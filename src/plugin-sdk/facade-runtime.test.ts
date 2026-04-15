@@ -46,23 +46,17 @@ function createCircularPluginDir(prefix: string): string {
   fs.writeFileSync(
     path.join(rootDir, "facade.mjs"),
     [
-      `import {
-        loadBundledPluginPublicSurfaceModuleSync } from ${JSON.stringify(
-        new URL("./facade-runtime.js",
-        import.meta.url).href,
-        )};`,
-        `export const marker = loadBundledPluginPublicSurfaceModuleSync({ dirName: "demo",
-        artifactBasename: "api.js" }).marker;`,
-        "",
-        ].join("\n"),
-        "utf8",
-        );
+      `import { loadBundledPluginPublicSurfaceModuleSync } from ${JSON.stringify(
+        new URL("./facade-runtime.js", import.meta.url).href,
+      )};`,
+      `export const marker = loadBundledPluginPublicSurfaceModuleSync({ dirName: "demo", artifactBasename: "api.js" }).marker;`,
+      "",
+    ].join("\n"),
+    "utf8",
+  );
   fs.writeFileSync(
-    path.join(rootDir,
-        "demo",
-        "helper.js"),
-        ['import { marker,
-} from "../facade.mjs";', "export const circularMarker = marker;", ""].join(
+    path.join(rootDir, "demo", "helper.js"),
+    ['import { marker } from "../facade.mjs";', "export const circularMarker = marker;", ""].join(
       "\n",
     ),
     "utf8",

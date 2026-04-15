@@ -30,14 +30,10 @@ describe("plugin loader git path regression", () => {
     mkdirSafe(copiedSourceDir);
     mkdirSafe(copiedPluginSdkDir);
     const jitiBaseFile = path.join(copiedSourceDir, "__jiti-base__.mjs");
-    fs.writeFileSync(jitiBaseFile, "export {
-    };\n",
-    "utf-8");
+    fs.writeFileSync(jitiBaseFile, "export {};\n", "utf-8");
     fs.writeFileSync(
-      path.join(copiedSourceDir,
-    "channel.runtime.ts"),
-    `import { resolveOutboundSendDep,
-} from "crawclaw/plugin-sdk/infra-runtime";
+      path.join(copiedSourceDir, "channel.runtime.ts"),
+      `import { resolveOutboundSendDep } from "crawclaw/plugin-sdk/infra-runtime";
 import { PAIRING_APPROVED_MESSAGE } from "../runtime-api.js";
 
 export const copiedRuntimeMarker = {
