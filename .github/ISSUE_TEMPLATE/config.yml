@@ -6,3 +6,9 @@ contact_links:
   - name: Support
     url: https://discord.gg/clawd
     about: "Get help from the CrawClaw community on Discord in #help."
+  - name: Docs
+    url: https://docs.crawclaw.ai/start/getting-started
+    about: "Start with the docs before filing setup or install issues."
+  - name: Security
+    url: https://github.com/qianleigood/crawclaw/security/policy
+    about: "Read the private reporting instructions before filing a security issue."

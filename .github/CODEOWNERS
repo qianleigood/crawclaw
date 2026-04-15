@@ -2,53 +2,53 @@
 /.github/CODEOWNERS @steipete
 
 # WARNING: GitHub CODEOWNERS uses last-match-wins semantics.
-# If you add overlapping rules below the secops block, include @crawclaw/secops
-# on those entries too or you can silently remove required secops review.
-# Security-sensitive code, config, and docs require secops review.
-/SECURITY.md @crawclaw/secops
-/.github/dependabot.yml @crawclaw/secops
-/.github/codeql/ @crawclaw/secops
-/.github/workflows/codeql.yml @crawclaw/secops
-/src/security/ @crawclaw/secops
-/src/secrets/ @crawclaw/secops
-/src/config/*secret*.ts @crawclaw/secops
-/src/config/**/*secret*.ts @crawclaw/secops
-/src/gateway/*auth*.ts @crawclaw/secops
-/src/gateway/**/*auth*.ts @crawclaw/secops
-/src/gateway/*secret*.ts @crawclaw/secops
-/src/gateway/**/*secret*.ts @crawclaw/secops
-/src/gateway/security-path*.ts @crawclaw/secops
-/src/gateway/resolve-configured-secret-input-string*.ts @crawclaw/secops
-/src/gateway/protocol/**/*secret*.ts @crawclaw/secops
-/src/gateway/server-methods/secrets*.ts @crawclaw/secops
-/src/agents/*auth*.ts @crawclaw/secops
-/src/agents/**/*auth*.ts @crawclaw/secops
-/src/agents/auth-profiles*.ts @crawclaw/secops
-/src/agents/auth-health*.ts @crawclaw/secops
-/src/agents/auth-profiles/ @crawclaw/secops
-/src/agents/sandbox.ts @crawclaw/secops
-/src/agents/sandbox-*.ts @crawclaw/secops
-/src/agents/sandbox/ @crawclaw/secops
-/src/infra/secret-file*.ts @crawclaw/secops
-/src/cron/stagger.ts @crawclaw/secops
-/src/cron/service/jobs.ts @crawclaw/secops
-/docs/security/ @crawclaw/secops
-/docs/gateway/authentication.md @crawclaw/secops
-/docs/gateway/sandbox-vs-tool-policy-vs-elevated.md @crawclaw/secops
-/docs/gateway/sandboxing.md @crawclaw/secops
-/docs/gateway/secrets-plan-contract.md @crawclaw/secops
-/docs/gateway/secrets.md @crawclaw/secops
-/docs/gateway/security/ @crawclaw/secops
-/docs/cli/approvals.md @crawclaw/secops
-/docs/cli/sandbox.md @crawclaw/secops
-/docs/cli/security.md @crawclaw/secops
-/docs/cli/secrets.md @crawclaw/secops
-/docs/reference/secretref-credential-surface.md @crawclaw/secops
-/docs/reference/secretref-user-supplied-credentials-matrix.json @crawclaw/secops
+# This repository currently lives under a personal account, so org-team owners
+# are not resolvable here. Keep sensitive paths on the maintainer owner until
+# dedicated GitHub teams exist for this repo.
+/SECURITY.md @qianleigood
+/.github/dependabot.yml @qianleigood
+/.github/codeql/ @qianleigood
+/.github/workflows/codeql.yml @qianleigood
+/src/security/ @qianleigood
+/src/secrets/ @qianleigood
+/src/config/*secret*.ts @qianleigood
+/src/config/**/*secret*.ts @qianleigood
+/src/gateway/*auth*.ts @qianleigood
+/src/gateway/**/*auth*.ts @qianleigood
+/src/gateway/*secret*.ts @qianleigood
+/src/gateway/**/*secret*.ts @qianleigood
+/src/gateway/security-path*.ts @qianleigood
+/src/gateway/resolve-configured-secret-input-string*.ts @qianleigood
+/src/gateway/protocol/**/*secret*.ts @qianleigood
+/src/gateway/server-methods/secrets*.ts @qianleigood
+/src/agents/*auth*.ts @qianleigood
+/src/agents/**/*auth*.ts @qianleigood
+/src/agents/auth-profiles*.ts @qianleigood
+/src/agents/auth-health*.ts @qianleigood
+/src/agents/auth-profiles/ @qianleigood
+/src/agents/sandbox.ts @qianleigood
+/src/agents/sandbox-*.ts @qianleigood
+/src/agents/sandbox/ @qianleigood
+/src/infra/secret-file*.ts @qianleigood
+/src/cron/stagger.ts @qianleigood
+/src/cron/service/jobs.ts @qianleigood
+/docs/security/ @qianleigood
+/docs/gateway/authentication.md @qianleigood
+/docs/gateway/sandbox-vs-tool-policy-vs-elevated.md @qianleigood
+/docs/gateway/sandboxing.md @qianleigood
+/docs/gateway/secrets-plan-contract.md @qianleigood
+/docs/gateway/secrets.md @qianleigood
+/docs/gateway/security/ @qianleigood
+/docs/cli/approvals.md @qianleigood
+/docs/cli/sandbox.md @qianleigood
+/docs/cli/security.md @qianleigood
+/docs/cli/secrets.md @qianleigood
+/docs/reference/secretref-credential-surface.md @qianleigood
+/docs/reference/secretref-user-supplied-credentials-matrix.json @qianleigood
 
 # Release workflow and its supporting release-path checks.
-/.github/workflows/crawclaw-npm-release.yml @crawclaw/crawclaw-release-managers
-/docs/reference/RELEASING.md @crawclaw/crawclaw-release-managers
-/scripts/crawclaw-npm-publish.sh @crawclaw/crawclaw-release-managers
-/scripts/crawclaw-npm-release-check.ts @crawclaw/crawclaw-release-managers
-/scripts/release-check.ts @crawclaw/crawclaw-release-managers
+/.github/workflows/crawclaw-npm-release.yml @qianleigood
+/docs/reference/RELEASING.md @qianleigood
+/scripts/crawclaw-npm-publish.sh @qianleigood
+/scripts/crawclaw-npm-release-check.ts @qianleigood
+/scripts/release-check.ts @qianleigood

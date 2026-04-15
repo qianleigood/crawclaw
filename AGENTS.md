@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-- Repo: https://github.com/crawclaw/crawclaw
+- Repo: https://github.com/qianleigood/crawclaw
 - In chat replies, file references must be repo-root relative only (example: `src/telegram/index.ts:80`); never absolute paths or `~/...`.
 - Do not edit files covered by security-focused `CODEOWNERS` rules unless a listed owner explicitly asked for the change or is already reviewing it with you. Treat those paths as restricted surfaces, not drive-by cleanup.
 

@@ -1281,7 +1281,7 @@ export async function runEmbeddedPiAgent(
             // cycle. advanceAuthProfile() runs applyApiKeyInfo() which
             // initializes the next profile — costly work that is pointless when
             // we already know we will escalate to cross-provider fallback.
-            // See: https://github.com/crawclaw/crawclaw/issues/58348
+            // See: https://github.com/qianleigood/crawclaw/issues/58348
             if (assistantFailoverReason === "overloaded") {
               overloadProfileRotations += 1;
               if (overloadProfileRotations > overloadProfileRotationLimit && fallbackConfigured) {
@@ -1307,7 +1307,7 @@ export async function runEmbeddedPiAgent(
             // per-model quota exhaustion (e.g. Anthropic Sonnet-only limits)
             // escalates to cross-provider model fallback instead of spinning
             // forever across profiles that share the same model quota.
-            // See: https://github.com/crawclaw/crawclaw/issues/58572
+            // See: https://github.com/qianleigood/crawclaw/issues/58572
             if (assistantFailoverReason === "rate_limit") {
               maybeEscalateRateLimitProfileFallback({
                 failoverProvider: activeErrorContext.provider,

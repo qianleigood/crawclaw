@@ -53,7 +53,7 @@ export function parseTimeoutMsOrExit(timeout?: string): number | undefined | nul
   return timeoutMs;
 }
 
-const CRAWCLAW_REPO_URL = "https://github.com/crawclaw/crawclaw.git";
+const CRAWCLAW_REPO_URL = "https://github.com/qianleigood/crawclaw.git";
 const MAX_LOG_CHARS = 8000;
 
 export const DEFAULT_PACKAGE_NAME = "crawclaw";

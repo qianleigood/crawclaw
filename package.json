@@ -3,15 +3,15 @@
   "version": "2026.4.3",
   "description": "CrawClaw is a multi-channel AI gateway with extensible messaging integrations",
   "keywords": [],
-  "homepage": "https://github.com/crawclaw/crawclaw#readme",
+  "homepage": "https://github.com/qianleigood/crawclaw#readme",
   "bugs": {
-    "url": "https://github.com/crawclaw/crawclaw/issues"
+    "url": "https://github.com/qianleigood/crawclaw/issues"
   },
   "license": "MIT",
   "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/crawclaw/crawclaw.git"
+    "url": "git+https://github.com/qianleigood/crawclaw.git"
   },
   "bin": {
     "crawclaw": "crawclaw.mjs"
@@ -1196,6 +1196,7 @@
     "jscpd": "4.0.8",
     "jsdom": "^29.0.1",
     "lit": "^3.3.2",
+    "node-gyp": "^12.1.0",
     "oxfmt": "0.43.0",
     "oxlint": "^1.58.0",
     "oxlint-tsgolint": "^0.18.1",
@@ -1234,6 +1235,7 @@
       "request-promise": "npm:@cypress/request-promise@5.0.0",
       "file-type": "22.0.0",
       "form-data": "2.5.4",
+      "libsignal": "git+https://github.com/whiskeysockets/libsignal-node.git",
       "minimatch": "10.2.4",
       "path-to-regexp": "8.4.0",
       "qs": "6.14.2",

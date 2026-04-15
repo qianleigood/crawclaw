@@ -1002,6 +1002,6 @@ crawclaw hooks list
 ## 另请参阅
 
 - [CLI Reference: hooks](/cli/hooks)
-- [Bundled Hooks README](https://github.com/crawclaw/crawclaw/tree/main/src/hooks/bundled)
+- [Bundled Hooks README](https://github.com/qianleigood/crawclaw/tree/main/src/hooks/bundled)
 - [Webhook Hooks](/automation/webhook)
 - [Configuration](/gateway/configuration#hooks)

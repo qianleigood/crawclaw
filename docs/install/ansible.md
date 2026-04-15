@@ -9,10 +9,10 @@ title: "Ansible"
 
 # Ansible Installation
 
-Deploy CrawClaw to production servers with **[crawclaw-ansible](https://github.com/crawclaw/crawclaw-ansible)** -- an automated installer with security-first architecture.
+Deploy CrawClaw to production servers with **[crawclaw-ansible](https://github.com/qianleigood/crawclaw-ansible)** -- an automated installer with security-first architecture.
 
 <Info>
-The [crawclaw-ansible](https://github.com/crawclaw/crawclaw-ansible) repo is the source of truth for Ansible deployment. This page is a quick overview.
+The [crawclaw-ansible](https://github.com/qianleigood/crawclaw-ansible) repo is the source of truth for Ansible deployment. This page is a quick overview.
 </Info>
 
 ## Prerequisites
@@ -38,7 +38,7 @@ The [crawclaw-ansible](https://github.com/crawclaw/crawclaw-ansible) repo is the
 One-command install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/crawclaw/crawclaw-ansible/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw-ansible/main/install.sh | bash
 ```
 
 ## What Gets Installed
@@ -132,7 +132,7 @@ If you prefer manual control over the automation:
   </Step>
   <Step title="Clone the repository">
     ```bash
-    git clone https://github.com/crawclaw/crawclaw-ansible.git
+    git clone https://github.com/qianleigood/crawclaw-ansible.git
     cd crawclaw-ansible
     ```
   </Step>
@@ -218,13 +218,13 @@ This is idempotent and safe to run multiple times.
 
 For detailed security architecture and troubleshooting, see the crawclaw-ansible repo:
 
-- [Security Architecture](https://github.com/crawclaw/crawclaw-ansible/blob/main/docs/security.md)
-- [Technical Details](https://github.com/crawclaw/crawclaw-ansible/blob/main/docs/architecture.md)
-- [Troubleshooting Guide](https://github.com/crawclaw/crawclaw-ansible/blob/main/docs/troubleshooting.md)
+- [Security Architecture](https://github.com/qianleigood/crawclaw-ansible/blob/main/docs/security.md)
+- [Technical Details](https://github.com/qianleigood/crawclaw-ansible/blob/main/docs/architecture.md)
+- [Troubleshooting Guide](https://github.com/qianleigood/crawclaw-ansible/blob/main/docs/troubleshooting.md)
 
 ## Related
 
-- [crawclaw-ansible](https://github.com/crawclaw/crawclaw-ansible) -- full deployment guide
+- [crawclaw-ansible](https://github.com/qianleigood/crawclaw-ansible) -- full deployment guide
 - [Docker](/install/docker) -- containerized gateway setup
 - [Sandboxing](/gateway/sandboxing) -- agent sandbox configuration
 - [Multi-Agent Sandbox and Tools](/tools/multi-agent-sandbox-tools) -- per-agent isolation

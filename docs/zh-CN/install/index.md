@@ -126,10 +126,10 @@ x-i18n:
 
     <Steps>
       <Step title="克隆并构建">
-        克隆 [CrawClaw 仓库](https://github.com/crawclaw/crawclaw) 并构建：
+        克隆 [CrawClaw 仓库](https://github.com/qianleigood/crawclaw) 并构建：
 
         ```bash
-        git clone https://github.com/crawclaw/crawclaw.git
+        git clone https://github.com/qianleigood/crawclaw.git
         cd crawclaw
         pnpm install
         pnpm ui:build

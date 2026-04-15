@@ -162,7 +162,7 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
     "## Documentation",
     `CrawClaw docs: ${docsPath}`,
     "Mirror: https://docs.crawclaw.ai",
-    "Source: https://github.com/crawclaw/crawclaw",
+    "Source: https://github.com/qianleigood/crawclaw",
     "Community: https://discord.com/invite/clawd",
     "Find new skills: https://clawhub.ai",
     "For CrawClaw behavior, commands, config, or architecture: consult local docs first.",

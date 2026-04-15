@@ -186,7 +186,7 @@ For the generic Docker flow, see [Docker](/install/docker).
 
   <Step title="Clone the CrawClaw repository">
     ```bash
-    git clone https://github.com/crawclaw/crawclaw.git
+    git clone https://github.com/qianleigood/crawclaw.git
     cd crawclaw
     ```
 

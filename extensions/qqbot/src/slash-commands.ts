@@ -25,7 +25,7 @@ try {
   // fallback
 }
 
-const QQBOT_PLUGIN_GITHUB_URL = "https://github.com/crawclaw/crawclaw/tree/main/extensions/qqbot";
+const QQBOT_PLUGIN_GITHUB_URL = "https://github.com/qianleigood/crawclaw/tree/main/extensions/qqbot";
 const QQBOT_UPGRADE_GUIDE_URL = "https://q.qq.com/qqbot/crawclaw/upgrade.html";
 
 // ============ Types ============

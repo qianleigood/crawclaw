@@ -2,8 +2,8 @@
 
 <p align="center">
     <picture>
-        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/crawclaw-logo-text-dark.svg">
-        <img src="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/crawclaw-logo-text.svg" alt="CrawClaw" width="500">
+        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/crawclaw-logo-text-dark.svg">
+        <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/crawclaw-logo-text.svg" alt="CrawClaw" width="500">
     </picture>
 </p>
 
@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/crawclaw/crawclaw/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/crawclaw/crawclaw/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
-  <a href="https://github.com/crawclaw/crawclaw/releases"><img src="https://img.shields.io/github/v/release/crawclaw/crawclaw?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
+  <a href="https://github.com/qianleigood/crawclaw/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/qianleigood/crawclaw/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
+  <a href="https://github.com/qianleigood/crawclaw/releases"><img src="https://img.shields.io/github/v/release/qianleigood/crawclaw?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
   <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
@@ -23,7 +23,7 @@ It answers you on the channels you already use (WhatsApp, Telegram, Slack, Disco
 
 If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
 
-[Website](https://crawclaw.ai) · [Docs](https://docs.crawclaw.ai) · [Vision](VISION.md) · [DeepWiki](https://deepwiki.com/crawclaw/crawclaw) · [Getting Started](https://docs.crawclaw.ai/start/getting-started) · [Updating](https://docs.crawclaw.ai/install/updating) · [Showcase](https://docs.crawclaw.ai/start/showcase) · [FAQ](https://docs.crawclaw.ai/help/faq) · [Onboarding](https://docs.crawclaw.ai/start/wizard) · [Nix](https://github.com/crawclaw/nix-crawclaw) · [Docker](https://docs.crawclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
+[GitHub](https://github.com/qianleigood/crawclaw) · [Website](https://crawclaw.ai) · [Docs](https://docs.crawclaw.ai) · [Vision](VISION.md) · [Roadmap](ROADMAP.md) · [Support Matrix](docs/reference/support-matrix.md) · [DeepWiki](https://deepwiki.com/qianleigood/crawclaw) · [Getting Started](https://docs.crawclaw.ai/start/getting-started) · [Updating](https://docs.crawclaw.ai/install/updating) · [FAQ](https://docs.crawclaw.ai/help/faq) · [Discord](https://discord.gg/clawd)
 
 Preferred setup: run `crawclaw onboard` in your terminal.
 CrawClaw Onboard guides you step by step through setting up the gateway, workspace, channels, and skills. It is the recommended CLI setup path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
@@ -40,40 +40,40 @@ If you already have legacy CrawClaw state under `~/.crawclaw`, migrate it once w
     <td align="center" width="20%">
       <a href="https://openai.com/">
         <picture>
-          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/openai-light.svg">
-          <img src="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/openai.svg" alt="OpenAI" height="28">
+          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/openai-light.svg">
+          <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/openai.svg" alt="OpenAI" height="28">
         </picture>
       </a>
     </td>
     <td align="center" width="20%">
       <a href="https://www.nvidia.com/">
         <picture>
-          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/nvidia.svg">
-          <img src="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/nvidia-dark.svg" alt="NVIDIA" height="28">
+          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/nvidia.svg">
+          <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/nvidia-dark.svg" alt="NVIDIA" height="28">
         </picture>
       </a>
     </td>
     <td align="center" width="20%">
       <a href="https://vercel.com/">
         <picture>
-          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/vercel-light.svg">
-          <img src="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/vercel.svg" alt="Vercel" height="24">
+          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/vercel-light.svg">
+          <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/vercel.svg" alt="Vercel" height="24">
         </picture>
       </a>
     </td>
     <td align="center" width="20%">
       <a href="https://blacksmith.sh/">
         <picture>
-          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/blacksmith-light.svg">
-          <img src="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/blacksmith.svg" alt="Blacksmith" height="28">
+          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/blacksmith-light.svg">
+          <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/blacksmith.svg" alt="Blacksmith" height="28">
         </picture>
       </a>
     </td>
     <td align="center" width="20%">
       <a href="https://www.convex.dev/">
         <picture>
-          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/convex-light.svg">
-          <img src="https://raw.githubusercontent.com/crawclaw/crawclaw/main/docs/assets/sponsors/convex.svg" alt="Convex" height="24">
+          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/convex-light.svg">
+          <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/sponsors/convex.svg" alt="Convex" height="24">
         </picture>
       </a>
     </td>
@@ -138,7 +138,7 @@ Details: [Development channels](https://docs.crawclaw.ai/install/development-cha
 Prefer `pnpm` for builds from source. Bun is optional for running TypeScript directly.
 
 ```bash
-git clone https://github.com/crawclaw/crawclaw.git
+git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 
 pnpm install
@@ -179,7 +179,7 @@ Run `crawclaw doctor` to surface risky/misconfigured DM policies.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=crawclaw/crawclaw&type=date&legend=top-left)](https://www.star-history.com/#crawclaw/crawclaw&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=qianleigood/crawclaw&type=date&legend=top-left)](https://www.star-history.com/#qianleigood/crawclaw&type=date&legend=top-left)
 
 ## Everything we built so far
 

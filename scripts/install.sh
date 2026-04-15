@@ -1913,7 +1913,7 @@ resolve_crawclaw_bin() {
 
 install_crawclaw_from_git() {
     local repo_dir="$1"
-    local repo_url="https://github.com/crawclaw/crawclaw.git"
+    local repo_url="https://github.com/qianleigood/crawclaw.git"
 
     if [[ -d "$repo_dir/.git" ]]; then
         ui_info "Installing CrawClaw from git checkout: ${repo_dir}"

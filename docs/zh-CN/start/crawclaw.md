@@ -45,7 +45,7 @@ npm install -g crawclaw@latest
 从源代码（开发）：
 
 ```bash
-git clone https://github.com/crawclaw/crawclaw.git
+git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 pnpm install
 pnpm ui:build # 首次运行时自动安装 UI 依赖

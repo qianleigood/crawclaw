@@ -32,7 +32,7 @@ x-i18n:
 
 ```bash
 # Clone the repo
-git clone https://github.com/crawclaw/crawclaw.git
+git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 
 # Create a new Fly app (pick your own name)

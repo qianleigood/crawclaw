@@ -124,10 +124,10 @@ documented and operator-visible.
 
 ## Public references
 
-- [`.github/workflows/crawclaw-npm-release.yml`](https://github.com/crawclaw/crawclaw/blob/main/.github/workflows/crawclaw-npm-release.yml)
-- [`scripts/crawclaw-npm-release-check.ts`](https://github.com/crawclaw/crawclaw/blob/main/scripts/crawclaw-npm-release-check.ts)
-- [`scripts/package-mac-dist.sh`](https://github.com/crawclaw/crawclaw/blob/main/scripts/package-mac-dist.sh)
-- [`scripts/make_appcast.sh`](https://github.com/crawclaw/crawclaw/blob/main/scripts/make_appcast.sh)
+- [`.github/workflows/crawclaw-npm-release.yml`](https://github.com/qianleigood/crawclaw/blob/main/.github/workflows/crawclaw-npm-release.yml)
+- [`scripts/crawclaw-npm-release-check.ts`](https://github.com/qianleigood/crawclaw/blob/main/scripts/crawclaw-npm-release-check.ts)
+- [`scripts/package-mac-dist.sh`](https://github.com/qianleigood/crawclaw/blob/main/scripts/package-mac-dist.sh)
+- [`scripts/make_appcast.sh`](https://github.com/qianleigood/crawclaw/blob/main/scripts/make_appcast.sh)
 
 Maintainers use the private release docs in
 [`crawclaw/maintainers/release/README.md`](https://github.com/crawclaw/maintainers/blob/main/release/README.md)

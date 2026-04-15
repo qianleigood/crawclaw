@@ -90,7 +90,7 @@ SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g crawclaw@latest
 For contributors or anyone who wants to run from a local checkout:
 
 ```bash
-git clone https://github.com/crawclaw/crawclaw.git
+git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 pnpm install && pnpm ui:build && pnpm build
 pnpm link --global

@@ -40,8 +40,8 @@ CrawClaw 有三个公开发布渠道：
 
 ## 公开参考
 
-- [`.github/workflows/crawclaw-npm-release.yml`](https://github.com/crawclaw/crawclaw/blob/main/.github/workflows/crawclaw-npm-release.yml)
-- [`scripts/crawclaw-npm-release-check.ts`](https://github.com/crawclaw/crawclaw/blob/main/scripts/crawclaw-npm-release-check.ts)
+- [`.github/workflows/crawclaw-npm-release.yml`](https://github.com/qianleigood/crawclaw/blob/main/.github/workflows/crawclaw-npm-release.yml)
+- [`scripts/crawclaw-npm-release-check.ts`](https://github.com/qianleigood/crawclaw/blob/main/scripts/crawclaw-npm-release-check.ts)
 
 维护者使用
 [`crawclaw/maintainers/release/README.md`](https://github.com/crawclaw/maintainers/blob/main/release/README.md)

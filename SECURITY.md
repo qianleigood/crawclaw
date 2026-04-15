@@ -6,10 +6,7 @@ If you believe you've found a security issue in CrawClaw, please report it priva
 
 Report vulnerabilities directly to the repository where the issue lives:
 
-- **Core CLI and gateway** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw)
-- **macOS desktop app** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw) (apps/macos)
-- **iOS app** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw) (apps/ios)
-- **Android app** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw) (apps/android)
+- **Core CLI and gateway** — [qianleigood/crawclaw](https://github.com/qianleigood/crawclaw)
 - **ClawHub** — [crawclaw/clawhub](https://github.com/crawclaw/clawhub)
 - **Trust and threat model** — [crawclaw/trust](https://github.com/crawclaw/trust)
 

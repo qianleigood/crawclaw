@@ -138,7 +138,7 @@ CRAWCLAW_NAMESPACE=my-namespace ./scripts/k8s/deploy.sh
 Edit the `image` field in `scripts/k8s/manifests/deployment.yaml`:
 
 ```yaml
-image: ghcr.io/crawclaw/crawclaw:latest # or pin to a specific version from https://github.com/crawclaw/crawclaw/releases
+image: ghcr.io/crawclaw/crawclaw:latest # or pin to a specific version from https://github.com/qianleigood/crawclaw/releases
 ```
 
 ### Expose beyond port-forward

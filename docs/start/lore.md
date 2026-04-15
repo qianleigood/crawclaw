@@ -116,7 +116,7 @@ Moltbot never quite rolled off the tongue. And so, at 4am GMT, the team gathered
 
 In just 3 hours:
 
-- GitHub renamed: `github.com/crawclaw/crawclaw` ✅
+- GitHub renamed: `github.com/qianleigood/crawclaw` ✅
 - X handle `@crawclaw` secured with GOLD CHECKMARK 💰
 - npm packages released under new name
 - Docs migrated to `docs.crawclaw.ai`

@@ -500,7 +500,7 @@ export async function runCronIsolatedAgentTurn(params: {
             // Passing an existing ID activates the resume watchdog profile
             // (noOutputTimeoutRatio 0.3, maxMs 180 s) instead of the fresh profile
             // (ratio 0.8, maxMs 600 s), causing jobs to time out at roughly 1/3 of
-            // the configured timeoutSeconds. See: https://github.com/crawclaw/crawclaw/issues/29774
+            // the configured timeoutSeconds. See: https://github.com/qianleigood/crawclaw/issues/29774
             const cliSessionId = cronSession.isNewSession
               ? undefined
               : getCliSessionId(cronSession.sessionEntry, providerOverride);
@@ -592,7 +592,7 @@ export async function runCronIsolatedAgentTurn(params: {
     // restart with the model requested by the error — mirroring the retry logic
     // in the main agent runner (agent-runner-execution.ts). Without this, cron
     // jobs that specify a model different from the agent primary always fail.
-    // See: https://github.com/crawclaw/crawclaw/issues/57206
+    // See: https://github.com/qianleigood/crawclaw/issues/57206
     //
     // Circuit breaker: cap retries to prevent infinite loops when the live
     // session model switch guard fires repeatedly during failover (#58466).

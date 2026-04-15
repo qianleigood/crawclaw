@@ -106,7 +106,7 @@ docker compose version
 ## 3) 克隆 CrawClaw 仓库
 
 ```bash
-git clone https://github.com/crawclaw/crawclaw.git
+git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 ```
 

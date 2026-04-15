@@ -69,7 +69,7 @@ export function formatDuplicateTelegramTokenReason(params: {
  *   2. The config has an explicit `accounts` section with entries, AND
  *   3. The accountId is not found in that `accounts` section.
  *
- * See: https://github.com/crawclaw/crawclaw/issues/53876
+ * See: https://github.com/qianleigood/crawclaw/issues/53876
  */
 function isBlockedByMultiBotGuard(cfg: CrawClawConfig, accountId: string): boolean {
   if (normalizeAccountId(accountId) === DEFAULT_ACCOUNT_ID) {
@@ -135,7 +135,7 @@ export function createTelegramPluginBase(params: {
         // channel-level fallback paths not available in resolveTelegramAccount.
         // This ensures binding-created accountIds that inherit the channel-level
         // token are correctly detected as configured.
-        // See: https://github.com/crawclaw/crawclaw/issues/53876
+        // See: https://github.com/qianleigood/crawclaw/issues/53876
         if (isBlockedByMultiBotGuard(cfg, account.accountId)) {
           return false;
         }

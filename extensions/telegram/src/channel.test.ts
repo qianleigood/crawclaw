@@ -683,7 +683,7 @@ describe("telegramPlugin duplicate token guard", () => {
     expect(await telegramPlugin.config.isConfigured!(alertsAccount, cfg)).toBe(true);
   });
 
-  // Regression: https://github.com/crawclaw/crawclaw/issues/53876
+  // Regression: https://github.com/qianleigood/crawclaw/issues/53876
   // Single-bot setup with channel-level token should report configured.
   it("reports configured for single-bot setup with channel-level token", async () => {
     const cfg = {
@@ -699,7 +699,7 @@ describe("telegramPlugin duplicate token guard", () => {
     expect(await telegramPlugin.config.isConfigured!(account, cfg)).toBe(true);
   });
 
-  // Regression: https://github.com/crawclaw/crawclaw/issues/53876
+  // Regression: https://github.com/qianleigood/crawclaw/issues/53876
   // Binding-created non-default accountId in single-bot setup should report configured.
   it("reports configured for binding-created accountId in single-bot setup", async () => {
     const cfg = {

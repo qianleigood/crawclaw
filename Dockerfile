@@ -125,7 +125,7 @@ ARG CRAWCLAW_DOCKER_APT_UPGRADE
 # If you change these annotations, also update:
 # - docs/install/docker.md ("Base image metadata" section)
 # - https://docs.crawclaw.ai/install/docker
-LABEL org.opencontainers.image.source="https://github.com/crawclaw/crawclaw" \
+LABEL org.opencontainers.image.source="https://github.com/qianleigood/crawclaw" \
   org.opencontainers.image.url="https://crawclaw.ai" \
   org.opencontainers.image.documentation="https://docs.crawclaw.ai/install/docker" \
   org.opencontainers.image.licenses="MIT" \

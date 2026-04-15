@@ -750,7 +750,7 @@ export async function resolveModelAsync(
  * providers before setup, the raw `Unknown model` error is too vague. Provider
  * plugins can append a targeted recovery hint here.
  *
- * See: https://github.com/crawclaw/crawclaw/issues/17328
+ * See: https://github.com/qianleigood/crawclaw/issues/17328
  */
 function buildUnknownModelError(params: {
   provider: string;

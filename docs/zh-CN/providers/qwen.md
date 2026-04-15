@@ -17,7 +17,7 @@ x-i18n:
 
 <Warning>
 
-**Qwen OAuth 已移除。** 使用 `portal.qwen.ai` 端点的免费层 OAuth 集成（`qwen-portal`）已不再可用。详情请参见 [Issue #49557](https://github.com/crawclaw/crawclaw/issues/49557)。
+**Qwen OAuth 已移除。** 使用 `portal.qwen.ai` 端点的免费层 OAuth 集成（`qwen-portal`）已不再可用。详情请参见 [Issue #49557](https://github.com/qianleigood/crawclaw/issues/49557)。
 
 </Warning>
 

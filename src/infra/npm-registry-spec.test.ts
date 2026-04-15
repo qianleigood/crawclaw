@@ -39,7 +39,7 @@ describe("npm registry spec validation", () => {
       expected: "URLs are not allowed",
     },
     {
-      spec: "git+ssh://github.com/crawclaw/crawclaw",
+      spec: "git+ssh://github.com/qianleigood/crawclaw",
       expected: "URLs are not allowed",
     },
     {

@@ -36,12 +36,12 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/crawclaw/crawclaw",
+        "href": "https://github.com/qianleigood/crawclaw",
         "icon": "github"
       },
       {
         "label": "Releases",
-        "href": "https://github.com/crawclaw/crawclaw/releases",
+        "href": "https://github.com/qianleigood/crawclaw/releases",
         "icon": "package"
       },
       {

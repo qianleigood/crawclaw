@@ -60,7 +60,7 @@ import type { TypingSignaler } from "./typing-mode.js";
 // Maximum number of LiveSessionModelSwitchError retries before surfacing a
 // user-visible error. Prevents infinite ping-pong when the persisted session
 // selection keeps conflicting with fallback model choices.
-// See: https://github.com/crawclaw/crawclaw/issues/58348
+// See: https://github.com/qianleigood/crawclaw/issues/58348
 export const MAX_LIVE_SWITCH_RETRIES = 2;
 
 export type RuntimeFallbackAttempt = {
@@ -554,7 +554,7 @@ export async function runAgentTurnWithFallback(params: {
                       // Serialize tool result delivery to preserve message ordering.
                       // Without this, concurrent tool callbacks race through typing signals
                       // and message sends, causing out-of-order delivery to the user.
-                      // See: https://github.com/crawclaw/crawclaw/issues/11044
+                      // See: https://github.com/qianleigood/crawclaw/issues/11044
                       let toolResultChain: Promise<void> = Promise.resolve();
                       return (payload: ReplyPayload) => {
                         toolResultChain = toolResultChain
@@ -650,7 +650,7 @@ export async function runAgentTurnWithFallback(params: {
           // conflicting with fallback model choices (e.g. overloaded primary
           // triggers fallback, but session store keeps pulling back to the
           // overloaded model). Surface the last error to the user instead.
-          // See: https://github.com/crawclaw/crawclaw/issues/58348
+          // See: https://github.com/qianleigood/crawclaw/issues/58348
           defaultRuntime.error(
             `Live model switch failed after ${MAX_LIVE_SWITCH_RETRIES} retries ` +
               `(${sanitizeForLog(err.provider)}/${sanitizeForLog(err.model)}). The requested model may be unavailable.`,

@@ -125,7 +125,7 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
 ### 选项 B：可修改安装（适合折腾）
 
 ```bash
-git clone https://github.com/crawclaw/crawclaw.git
+git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 npm install
 npm run build

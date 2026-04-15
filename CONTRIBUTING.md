@@ -4,8 +4,11 @@ Welcome to the lobster tank! 🦞
 
 ## Quick Links
 
-- **GitHub:** https://github.com/crawclaw/crawclaw
+- **GitHub:** https://github.com/qianleigood/crawclaw
 - **Vision:** [`VISION.md`](VISION.md)
+- **Roadmap:** [`ROADMAP.md`](ROADMAP.md)
+- **Support matrix:** [`docs/reference/support-matrix.md`](docs/reference/support-matrix.md)
+- **Open-source release checklist:** [`docs/reference/open-source-release-checklist.md`](docs/reference/open-source-release-checklist.md)
 - **Discord:** https://discord.gg/qkhbAGHRBT
 - **X/Twitter:** [@steipete](https://x.com/steipete) / [@crawclaw](https://x.com/crawclaw)
 
@@ -80,7 +83,7 @@ Welcome to the lobster tank! 🦞
 ## How to Contribute
 
 1. **Bugs & small fixes** → Open a PR!
-2. **New features / architecture** → Start a [GitHub Discussion](https://github.com/crawclaw/crawclaw/discussions) or ask in Discord first
+2. **New features / architecture** → Start a [GitHub Discussion](https://github.com/qianleigood/crawclaw/discussions) or ask in Discord first
 3. **Refactor-only PRs** → Don't open a PR. We are not accepting refactor-only changes unless a maintainer explicitly asks for them as part of a concrete fix.
 4. **Test/CI-only PRs for known `main` failures** → Don't open a PR. The Maintainer team is already tracking those failures, and PRs that only tweak tests or CI to chase them will be closed unless they are required to validate a new fix.
 5. **Questions** → Discord [#help](https://discord.com/channels/1456350064065904867/1459642797895319552) / [#users-helping-users](https://discord.com/channels/1456350064065904867/1459007081603403828)
@@ -98,7 +101,7 @@ Welcome to the lobster tank! 🦞
   - If you changed broader runtime behavior, still run the relevant wider lanes (`pnpm test:extensions`, `pnpm test:channels`, or `pnpm test`) before asking for review
 - If you have access to Codex, run `codex review --base origin/main` locally before opening or updating your PR. Treat this as the current highest standard of AI review, even if GitHub Codex review also runs.
 - Do not submit refactor-only PRs unless a maintainer explicitly requested that refactor for an active fix or deliverable.
-- Do not submit test or CI-config fixes for failures already red on `main` CI. If a failure is already visible in the [main branch CI runs](https://github.com/crawclaw/crawclaw/actions), it's a known issue the Maintainer team is tracking, and a PR that only addresses those failures will be closed automatically. If you spot a _new_ regression not yet shown in main CI, report it as an issue first.
+- Do not submit test or CI-config fixes for failures already red on `main` CI. If a failure is already visible in the [main branch CI runs](https://github.com/qianleigood/crawclaw/actions), it's a known issue the Maintainer team is tracking, and a PR that only addresses those failures will be closed automatically. If you spot a _new_ regression not yet shown in main CI, report it as an issue first.
 - Do not submit test-only PRs that just try to make known `main` CI failures pass. Test changes are acceptable when they are required to validate a new fix or cover new behavior in the same PR.
 - Ensure CI checks pass
 - Keep PRs focused (one thing per PR; do not mix unrelated concerns)
@@ -159,8 +162,8 @@ We are currently prioritizing:
 - **Skills**: For skill contributions, head to [ClawHub](https://clawhub.ai/) — the community hub for CrawClaw skills.
 - **Performance**: Optimizing token usage and compaction logic.
 
-Check the [GitHub Issues](https://github.com/crawclaw/crawclaw/issues) for
-["good first issue"](https://github.com/crawclaw/crawclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+Check the [GitHub Issues](https://github.com/qianleigood/crawclaw/issues) for
+["good first issue"](https://github.com/qianleigood/crawclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 labels. If none are open, pick a small docs or bug issue and leave a quick comment saying
 you'd like to work on it.
 
@@ -188,10 +191,7 @@ Please allow a few weeks for a response.
 
 We take security reports seriously. Report vulnerabilities directly to the repository where the issue lives:
 
-- **Core CLI and gateway** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw)
-- **macOS desktop app** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw) (apps/macos)
-- **iOS app** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw) (apps/ios)
-- **Android app** — [crawclaw/crawclaw](https://github.com/crawclaw/crawclaw) (apps/android)
+- **Core CLI and gateway** — [qianleigood/crawclaw](https://github.com/qianleigood/crawclaw)
 - **ClawHub** — [crawclaw/clawhub](https://github.com/crawclaw/clawhub)
 - **Trust and threat model** — [crawclaw/trust](https://github.com/crawclaw/trust)
 

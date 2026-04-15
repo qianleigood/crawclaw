@@ -69,7 +69,7 @@ export async function loadMSTeamsSdk(): Promise<MSTeamsTeamsSdk> {
  * the SDK's built-in HTTP server is unnecessary.  Passing this stub prevents
  * the SDK from creating the default HttpPlugin and avoids the crash.
  *
- * See: https://github.com/crawclaw/crawclaw/issues/55161
+ * See: https://github.com/qianleigood/crawclaw/issues/55161
  */
 async function createNoOpHttpPlugin(): Promise<unknown> {
   // Lazy-import reflect-metadata (required by the Teams SDK decorator system)

@@ -215,7 +215,7 @@ export type GatewayReloadConfig = {
    * Maximum time (ms) to wait for in-flight operations to complete before
    * forcing a SIGUSR1 restart. Default: 300000 (5 minutes).
    * Lower values risk aborting active subagent LLM calls.
-   * @see https://github.com/crawclaw/crawclaw/issues/47711
+   * @see https://github.com/qianleigood/crawclaw/issues/47711
    */
   deferralTimeoutMs?: number;
 };
