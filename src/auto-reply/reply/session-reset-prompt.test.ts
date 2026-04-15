@@ -1,0 +1,36 @@
+import { describe, it, expect } from "vitest";
+import type { CrawClawConfig } from "../../config/config.js";
+import { buildBareSessionResetPrompt } from "./session-reset-prompt.js";
+
+describe("buildBareSessionResetPrompt", () => {
+  it("includes the lightweight fresh-session greeting instruction", () => {
+    const prompt = buildBareSessionResetPrompt();
+    expect(prompt).toContain("A new session was started via /new");
+    expect(prompt).toContain("Greet the user briefly");
+    expect(prompt).toContain("Do not mention internal steps, files, tools, or reasoning");
+  });
+
+  it("appends current time line so agents know the date", () => {
+    const cfg = {
+      agents: { defaults: { userTimezone: "America/New_York", timeFormat: "12" } },
+    } as CrawClawConfig;
+    // 2026-03-03 14:00 UTC = 2026-03-03 09:00 EST
+    const nowMs = Date.UTC(2026, 2, 3, 14, 0, 0);
+    const prompt = buildBareSessionResetPrompt(cfg, nowMs);
+    expect(prompt).toContain(
+      "Current time: Tuesday, March 3rd, 2026 — 9:00 AM (America/New_York) / 2026-03-03 14:00 UTC",
+    );
+  });
+
+  it("does not append a duplicate current time line", () => {
+    const nowMs = Date.UTC(2026, 2, 3, 14, 0, 0);
+    const prompt = buildBareSessionResetPrompt(undefined, nowMs);
+    expect((prompt.match(/Current time:/g) ?? []).length).toBe(1);
+  });
+
+  it("falls back to UTC when no timezone configured", () => {
+    const nowMs = Date.UTC(2026, 2, 3, 14, 0, 0);
+    const prompt = buildBareSessionResetPrompt(undefined, nowMs);
+    expect(prompt).toContain("Current time:");
+  });
+});

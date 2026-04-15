@@ -1,0 +1,28 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
+export async function withTempConfig(params: {
+  cfg: unknown;
+  run: () => Promise<void>;
+  prefix?: string;
+}): Promise<void> {
+  const prevConfigPath = process.env.CRAWCLAW_CONFIG_PATH;
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), params.prefix ?? "crawclaw-test-config-"));
+  const configPath = path.join(dir, "crawclaw.json");
+
+  process.env.CRAWCLAW_CONFIG_PATH = configPath;
+
+  try {
+    await writeFile(configPath, JSON.stringify(params.cfg, null, 2), "utf-8");
+    await params.run();
+  } finally {
+    if (prevConfigPath === undefined) {
+      delete process.env.CRAWCLAW_CONFIG_PATH;
+    } else {
+      process.env.CRAWCLAW_CONFIG_PATH = prevConfigPath;
+    }
+    await rm(dir, { recursive: true, force: true });
+  }
+}

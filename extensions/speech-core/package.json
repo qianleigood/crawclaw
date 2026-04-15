@@ -1,0 +1,7 @@
+{
+  "name": "@crawclaw/speech-core",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "CrawClaw speech runtime package",
+  "type": "module"
+}

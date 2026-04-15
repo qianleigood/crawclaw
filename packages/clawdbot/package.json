@@ -1,0 +1,16 @@
+{
+  "name": "clawdbot",
+  "version": "2026.2.12",
+  "description": "Compatibility shim that forwards to crawclaw",
+  "bin": {
+    "clawdbot": "./bin/clawdbot.js"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./cli-entry": "./bin/clawdbot.js"
+  },
+  "dependencies": {
+    "crawclaw": "workspace:*"
+  }
+}

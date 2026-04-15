@@ -1,0 +1,12 @@
+{
+  "name": "@crawclaw/opencode-provider",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "CrawClaw OpenCode Zen provider plugin",
+  "type": "module",
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

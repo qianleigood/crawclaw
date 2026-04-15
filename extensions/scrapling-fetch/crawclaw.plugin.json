@@ -1,0 +1,110 @@
+{
+  "id": "scrapling-fetch",
+  "enabledByDefault": true,
+  "uiHints": {
+    "webFetch.apiKey": {
+      "label": "Scrapling Fetch API Key",
+      "help": "Reserved for optional Scrapling HTTP service auth. Phase 2 keeps the field for compatibility.",
+      "sensitive": true,
+      "placeholder": "optional"
+    },
+    "webFetch.baseUrl": {
+      "label": "Scrapling Fetch Base URL",
+      "help": "Override the base URL used by the Scrapling fetch client."
+    },
+    "service.baseUrl": {
+      "label": "Scrapling Service Base URL",
+      "help": "Base URL for the managed Scrapling Python/HTTP sidecar service."
+    },
+    "service.command": {
+      "label": "Scrapling Service Command",
+      "help": "Command used to launch the Scrapling Python service."
+    },
+    "service.bootstrap": {
+      "label": "Managed Scrapling Bootstrap",
+      "help": "Create and maintain a plugin-owned Python virtual environment before starting the sidecar."
+    },
+    "service.bootstrapPackages": {
+      "label": "Managed Scrapling Packages",
+      "help": "Pinned Python packages installed into the managed Scrapling virtual environment."
+    },
+    "service.startupTimeoutMs": {
+      "label": "Scrapling Service Startup Timeout",
+      "help": "How long CrawClaw should wait for the Scrapling service to become ready."
+    },
+    "service.fetchPath": {
+      "label": "Scrapling Service Fetch Path",
+      "help": "HTTP path served by the Scrapling sidecar fetch endpoint."
+    }
+  },
+  "contracts": {
+    "webFetchProviders": ["scrapling"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "webFetch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "type": ["string", "object"]
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "type": "number"
+          },
+          "onlyMainContent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "service": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["python-http"]
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bootstrap": {
+            "type": "boolean"
+          },
+          "bootstrapPackages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startupTimeoutMs": {
+            "type": "number"
+          },
+          "healthcheckPath": {
+            "type": "string"
+          },
+          "fetchPath": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

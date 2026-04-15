@@ -1,0 +1,96 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  emitRunLoopLifecycleEvent,
+  registerRunLoopLifecycleHandler,
+  resetRunLoopLifecycleHandlersForTests,
+  unregisterRunLoopLifecycleHandler,
+} from "./bus.js";
+
+describe("run-loop lifecycle bus", () => {
+  beforeEach(() => {
+    resetRunLoopLifecycleHandlersForTests();
+  });
+
+  it("delivers events to wildcard and phase subscribers", async () => {
+    const wildcard = vi.fn();
+    const phaseOnly = vi.fn();
+    registerRunLoopLifecycleHandler("*", wildcard);
+    registerRunLoopLifecycleHandler("post_sampling", phaseOnly);
+
+    await emitRunLoopLifecycleEvent({
+      phase: "post_sampling",
+      sessionId: "session-1",
+      isTopLevel: true,
+    });
+
+    expect(wildcard).toHaveBeenCalledTimes(1);
+    expect(phaseOnly).toHaveBeenCalledTimes(1);
+    const delivered = wildcard.mock.calls[0]?.[0];
+    expect(delivered).toEqual(
+      expect.objectContaining({
+        phase: "post_sampling",
+        sessionId: "session-1",
+        isTopLevel: true,
+        traceId: "run-loop:session-1",
+        decision: null,
+        metrics: {},
+        refs: {
+          isTopLevel: true,
+        },
+      }),
+    );
+    expect(delivered.spanId).toMatch(/^span:post_sampling:/);
+    expect(delivered.parentSpanId).toBe("root:run-loop:session-1");
+  });
+
+  it("allows handlers to be unregistered", async () => {
+    const handler = vi.fn();
+    registerRunLoopLifecycleHandler("settled_turn", handler);
+    unregisterRunLoopLifecycleHandler("settled_turn", handler);
+
+    await emitRunLoopLifecycleEvent({
+      phase: "settled_turn",
+      sessionId: "session-1",
+      isTopLevel: true,
+    });
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("preserves explicit trace envelope fields when provided", async () => {
+    const handler = vi.fn();
+    registerRunLoopLifecycleHandler("stop", handler);
+
+    await emitRunLoopLifecycleEvent({
+      phase: "stop",
+      traceId: "trace-1",
+      spanId: "span-1",
+      parentSpanId: "parent-1",
+      sessionId: "session-1",
+      isTopLevel: false,
+      decision: {
+        code: "completed",
+        summary: "turn completed without retry",
+      },
+      metrics: { toolCalls: 2 },
+      refs: { provider: "openai" },
+    });
+
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        traceId: "trace-1",
+        spanId: "span-1",
+        parentSpanId: "parent-1",
+        decision: {
+          code: "completed",
+          summary: "turn completed without retry",
+        },
+        metrics: { toolCalls: 2 },
+        refs: {
+          provider: "openai",
+          isTopLevel: false,
+        },
+      }),
+    );
+  });
+});

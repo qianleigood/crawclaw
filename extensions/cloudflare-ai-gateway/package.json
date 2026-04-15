@@ -1,0 +1,12 @@
+{
+  "name": "@crawclaw/cloudflare-ai-gateway-provider",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "CrawClaw Cloudflare AI Gateway provider plugin",
+  "type": "module",
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

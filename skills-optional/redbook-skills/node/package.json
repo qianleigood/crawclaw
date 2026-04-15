@@ -1,0 +1,23 @@
+{
+  "name": "xiaohongshuskills-puppeteer",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Experimental Puppeteer-first execution layer for xiaohongshuskills",
+  "bin": {
+    "xhs-cli": "./bin/xhs-cli.js"
+  },
+  "scripts": {
+    "cli": "node ./bin/xhs-cli.js",
+    "check-login": "node ./bin/xhs-cli.js check-login",
+    "search-feeds": "node ./bin/xhs-cli.js search-feeds",
+    "get-feed-detail": "node ./bin/xhs-cli.js get-feed-detail"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.7.1",
+    "yargs": "^17.7.2",
+    "zod": "^3.24.2"
+  }
+}

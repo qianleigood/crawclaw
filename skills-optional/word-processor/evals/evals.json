@@ -1,0 +1,38 @@
+{
+  "skill_name": "word-processor",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "本地帮我生成一份 DOCX 版的合作协议模板，后续我要自己再改，不要走飞书。",
+      "expected_output": "Skill should choose a local DOCX workflow and avoid cloud-doc routing, framing the result as a locally generated Word document.",
+      "files": [],
+      "expectations": [
+        "The output explicitly keeps the work local and Word-based.",
+        "The output avoids routing the task to Feishu doc skills.",
+        "The plan recognizes that the final artifact should remain editable as DOCX."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "批量把这批 Word 模板填上客户信息，输出到一个新目录里。",
+      "expected_output": "Skill should identify this as a template-fill / batch-processing use case and route toward batch DOCX handling.",
+      "files": [],
+      "expectations": [
+        "The output recognizes a batch template workflow.",
+        "The output routes to CLI or API patterns suitable for batch processing.",
+        "The plan includes separate output handling rather than in-place manual editing."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "帮我从本地这份 docx 里把表格和元数据都抽出来，整理成我能继续处理的结构化结果。",
+      "expected_output": "Skill should identify this as a read/extract workflow for a local DOCX file and focus on extracting tables and metadata.",
+      "files": [],
+      "expectations": [
+        "The output treats the task as local DOCX parsing, not document creation.",
+        "The plan explicitly mentions table and metadata extraction.",
+        "The output stays inside the Word-processing workflow."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@crawclaw/acpx",
+  "version": "2026.4.1-beta.1",
+  "description": "CrawClaw ACP runtime backend via acpx",
+  "type": "module",
+  "dependencies": {
+    "acpx": "0.4.0"
+  },
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

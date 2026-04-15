@@ -1,0 +1,41 @@
+{
+  "name": "@crawclaw/mattermost",
+  "version": "2026.4.1-beta.1",
+  "description": "CrawClaw Mattermost channel plugin",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.49",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "crawclaw": "workspace:*"
+  },
+  "peerDependencies": {
+    "crawclaw": ">=2026.4.1-beta.1"
+  },
+  "peerDependenciesMeta": {
+    "crawclaw": {
+      "optional": true
+    }
+  },
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "setupEntry": "./setup-entry.ts",
+    "channel": {
+      "id": "mattermost",
+      "label": "Mattermost",
+      "selectionLabel": "Mattermost (plugin)",
+      "docsPath": "/channels/mattermost",
+      "docsLabel": "mattermost",
+      "blurb": "self-hosted Slack-style chat; install the plugin to enable.",
+      "order": 65
+    },
+    "install": {
+      "npmSpec": "@crawclaw/mattermost",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.4.1"
+    }
+  }
+}

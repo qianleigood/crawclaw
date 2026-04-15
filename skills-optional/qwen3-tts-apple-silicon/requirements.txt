@@ -1,0 +1,9 @@
+mlx
+mlx-metal
+mlx-lm
+transformers>=4.51.3
+mlx-audio @ git+https://github.com/Blaizzy/mlx-audio.git
+soundfile
+librosa
+huggingface_hub
+numpy

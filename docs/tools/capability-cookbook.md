@@ -1,0 +1,102 @@
+---
+summary: "Contributor guide for adding a new shared capability to the CrawClaw plugin system"
+read_when:
+  - Adding a new core capability and plugin registration surface
+  - Deciding whether code belongs in core, a vendor plugin, or a feature plugin
+  - Wiring a new runtime helper for channels or tools
+title: "Adding Capabilities (Contributor Guide)"
+sidebarTitle: "Adding Capabilities"
+---
+
+# Adding Capabilities
+
+<Info>
+  This is a **contributor guide** for CrawClaw core developers. If you are
+  building an external plugin, see [Building Plugins](/plugins/building-plugins)
+  instead.
+</Info>
+
+Use this when CrawClaw needs a new domain such as image generation, video
+generation, or some future vendor-backed feature area.
+
+The rule:
+
+- plugin = ownership boundary
+- capability = shared core contract
+
+That means you should not start by wiring a vendor directly into a channel or a
+tool. Start by defining the capability.
+
+## When to create a capability
+
+Create a new capability when all of these are true:
+
+1. more than one vendor could plausibly implement it
+2. channels, tools, or feature plugins should consume it without caring about
+   the vendor
+3. core needs to own fallback, policy, config, or delivery behavior
+
+If the work is vendor-only and no shared contract exists yet, stop and define
+the contract first.
+
+## The standard sequence
+
+1. Define the typed core contract.
+2. Add plugin registration for that contract.
+3. Add a shared runtime helper.
+4. Wire one real vendor plugin as proof.
+5. Move feature/channel consumers onto the runtime helper.
+6. Add contract tests.
+7. Document the operator-facing config and ownership model.
+
+## What goes where
+
+Core:
+
+- request/response types
+- provider registry + resolution
+- fallback behavior
+- config schema and labels/help
+- runtime helper surface
+
+Vendor plugin:
+
+- vendor API calls
+- vendor auth handling
+- vendor-specific request normalization
+- registration of the capability implementation
+
+Feature/channel plugin:
+
+- calls `api.runtime.*` or the matching `plugin-sdk/*-runtime` helper
+- never calls a vendor implementation directly
+
+## File checklist
+
+For a new capability, expect to touch these areas:
+
+- `src/<capability>/types.ts`
+- `src/<capability>/...registry/runtime.ts`
+- `src/plugins/types.ts`
+- `src/plugins/registry.ts`
+- `src/plugins/captured-registration.ts`
+- `src/plugins/contracts/registry.ts`
+- `src/plugins/runtime/types-core.ts`
+- `src/plugins/runtime/index.ts`
+- `src/plugin-sdk/<capability>.ts`
+- `src/plugin-sdk/<capability>-runtime.ts`
+- one or more bundled plugin packages
+- config/docs/tests
+
+## Review checklist
+
+Before shipping a new capability, verify:
+
+- no channel/tool imports vendor code directly
+- the runtime helper is the shared path
+- at least one contract test asserts bundled ownership
+- config docs name the new model/config key
+- plugin docs explain the ownership boundary
+
+If a PR skips the capability layer and hardcodes vendor behavior into a
+channel/tool, send it back and define the contract first.

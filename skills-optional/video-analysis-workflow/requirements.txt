@@ -1,0 +1,16 @@
+# video-analysis-workflow 当前依赖
+# 使用技能目录下的 .venv
+
+requests>=2.31.0
+python-docx>=1.1.0
+opencv-python>=4.8.0
+numpy>=1.26.0
+torch>=2.0.0
+imageio-ffmpeg>=0.4.8
+tenacity>=8.2.0
+fastapi>=0.115.0
+
+# 历史归档脚本仍可能用到的依赖（保留，避免 archive 中脚本完全失效）
+aiohttp>=3.8.0
+pyyaml>=6.0
+mlx-whisper>=0.4.0

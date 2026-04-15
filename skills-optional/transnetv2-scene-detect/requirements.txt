@@ -1,0 +1,26 @@
+# TransNetV2 视频镜头检测技能依赖
+
+# PyTorch CPU 版（推荐）
+torch
+torchvision
+torchaudio
+
+# 或使用 GPU 版（需要 NVIDIA GPU）
+# torch --index-url https://download.pytorch.org/whl/cu118
+# torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# 图像处理
+opencv-python-headless
+numpy
+
+# 视频处理
+ffmpeg-python
+
+# Word 生成
+python-docx
+
+# HTTP 请求
+requests
+
+# 可选：进度条
+tqdm

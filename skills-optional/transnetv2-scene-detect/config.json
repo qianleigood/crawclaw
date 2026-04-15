@@ -1,0 +1,23 @@
+{
+  "scene_detection": {
+    "method": "transnetv2",
+    "description": "分镜检测方法：transnetv2=TransNetV2 深度学习（默认）, opencv=OpenCV PySceneDetect"
+  },
+  "transnetv2": {
+    "threshold": 0.3,
+    "window_size": 100,
+    "overlap": 30
+  },
+  "opencv": {
+    "method": "combined",
+    "description": "OpenCV 检测方法：content=ContentDetector（硬切）, threshold=ThresholdDetector（像素）, combined=硬切 + 渐变",
+    "hard_threshold": 27.0,
+    "fade_threshold": 0.8,
+    "min_scene_len": 15
+  },
+  "video_preprocessing": {
+    "resolution": "auto",
+    "fps": 30,
+    "crf": 18
+  }
+}

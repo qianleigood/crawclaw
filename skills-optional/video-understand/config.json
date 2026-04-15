@@ -1,0 +1,7 @@
+{
+  "api_key": "${VIDEO_UNDERSTAND_API_KEY}",
+  "api_url": "https://api.whatai.cc/v1/chat/completions",
+  "model": "gemini-3-flash-preview-nothinking",
+  "default_question": "请分析这个视频镜头，并按以下结构输出：\n\n1. 镜头内容：这一镜头拍到了什么\n2. 景别与机位：远景/中景/近景，平视/俯拍/仰拍等\n3. 运镜方式：固定、推、拉、摇、移、跟拍等；如无法判断请说明\n4. 人物与动作：人物状态、动作、互动\n5. 场景与道具：环境、物件、视觉元素\n6. 字幕与声音：字幕文案、旁白、音乐、环境声\n7. 氛围与作用：这个镜头传达的情绪，以及在整体内容中的作用\n\n要求：\n- 用中文输出\n- 不要编造细节\n- 看不清就明确说明\n- 保持简洁、客观、可用于后续汇总成分镜脚本",
+  "stream": false
+}

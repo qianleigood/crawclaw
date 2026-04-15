@@ -1,0 +1,12 @@
+{
+  "name": "@crawclaw/google-plugin",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "CrawClaw Google plugin",
+  "type": "module",
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

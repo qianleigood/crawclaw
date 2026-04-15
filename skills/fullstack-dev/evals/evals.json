@@ -1,0 +1,38 @@
+{
+  "skill_name": "fullstack-dev",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我搭一个带用户登录、文件上传和后台管理页的全栈应用，前端 React，后端 Node.js。",
+      "expected_output": "Skill should choose a full-stack architecture path, explicitly cover auth, upload flow, backend structure, and frontend-backend integration.",
+      "files": [],
+      "expectations": [
+        "The output treats the work as a full-stack app rather than frontend-only work.",
+        "The plan addresses auth, upload handling, and service boundaries.",
+        "The output includes both server-side and browser-facing architecture decisions."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "我想做一个带实时通知的工单系统，前后端一起搭，最好一开始就按可上线的结构来。",
+      "expected_output": "Skill should cover full-stack architecture with real-time strategy, production hardening, and integration boundaries.",
+      "files": [],
+      "expectations": [
+        "The output includes a real-time method choice such as SSE or WebSocket.",
+        "The output includes production-hardening concerns, not only coding steps.",
+        "The output keeps the problem in fullstack-dev rather than only React or only API design."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "把这个现有 Next.js 前台和 Python API 服务重新整理成更清晰的全栈架构，顺便补错误处理和配置管理。",
+      "expected_output": "Skill should identify refactor / architecture cleanup work across frontend and backend, including config, error handling, and system boundaries.",
+      "files": [],
+      "expectations": [
+        "The output frames this as refactoring an existing full-stack system.",
+        "The plan covers configuration, error handling, and module boundaries.",
+        "The output does not limit itself to visual frontend changes only."
+      ]
+    }
+  ]
+}

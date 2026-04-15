@@ -1,0 +1,45 @@
+{
+  "id": "feishu-cli",
+  "enabledByDefault": false,
+  "skills": ["./skills"],
+  "contracts": {
+    "tools": ["feishu_user_calendar", "feishu_user_task", "feishu_user_messages"]
+  },
+  "uiHints": {
+    "enabled": {
+      "label": "Enable Feishu CLI user tools",
+      "help": "Uses the official lark-cli with user identity. Separate from the Feishu bot/channel plugin."
+    },
+    "command": {
+      "label": "lark-cli command",
+      "help": "Executable used for user-identity Feishu actions.",
+      "placeholder": "lark-cli"
+    },
+    "profile": {
+      "label": "CLI profile",
+      "help": "Optional lark-cli profile name for user auth context."
+    },
+    "timeoutMs": {
+      "label": "Command timeout (ms)",
+      "help": "Timeout used for lark-cli status and tool calls."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "command": {
+        "type": "string"
+      },
+      "profile": {
+        "type": "string"
+      },
+      "timeoutMs": {
+        "type": "number"
+      }
+    }
+  }
+}

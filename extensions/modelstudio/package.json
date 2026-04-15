@@ -1,0 +1,12 @@
+{
+  "name": "@crawclaw/modelstudio-provider",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "CrawClaw Model Studio provider plugin",
+  "type": "module",
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

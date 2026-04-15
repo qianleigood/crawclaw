@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crawclaw-config
+  labels:
+    app: crawclaw
+data:
+  crawclaw.json: |
+    {
+      "gateway": {
+        "mode": "local",
+        "bind": "loopback",
+        "port": 18789,
+        "auth": {
+          "mode": "token"
+        },
+        "controlUi": {
+          "enabled": true
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "~/.crawclaw/workspace"
+        },
+        "list": [
+          {
+            "id": "default",
+            "name": "CrawClaw Assistant",
+            "workspace": "~/.crawclaw/workspace"
+          }
+        ]
+      },
+      "cron": { "enabled": false }
+    }
+  AGENTS.md: |
+    # CrawClaw Assistant
+
+    You are a helpful AI assistant running in Kubernetes.

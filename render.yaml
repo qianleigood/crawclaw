@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: crawclaw
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: CRAWCLAW_GATEWAY_PORT
+        value: "8080"
+      - key: CRAWCLAW_STATE_DIR
+        value: /data/.crawclaw
+      - key: CRAWCLAW_WORKSPACE_DIR
+        value: /data/workspace
+      - key: CRAWCLAW_GATEWAY_TOKEN
+        generateValue: true
+    disk:
+      name: crawclaw-data
+      mountPath: /data
+      sizeGB: 1

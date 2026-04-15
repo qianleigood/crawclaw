@@ -1,0 +1,135 @@
+{
+  "skill_name": "frontend-dev",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "给我的 AI 视频生成产品做一个高转化官网首页，要有高级感、滚动动效、真实卖点文案和示意视觉。",
+      "expected_output": "Skill should route to premium frontend delivery, explicitly state design dials, plan motion with reduced-motion support, and treat the work as a premium browser-facing build rather than a plain component or backend task.",
+      "files": [],
+      "expectations": [
+        "The output frames the task as a premium browser-facing frontend build.",
+        "The output explicitly states design dials such as DESIGN_VARIANCE, MOTION_INTENSITY, and VISUAL_DENSITY or clearly equivalent dial choices.",
+        "The output includes section / motion / asset / copy planning.",
+        "The output explicitly mentions reduced-motion or prefers-reduced-motion handling.",
+        "The output avoids reducing the task to backend work or generic React component scaffolding."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "帮我做一个 SaaS 仪表盘首页，要求响应式、状态齐全、视觉层级清晰，但不要太花。",
+      "expected_output": "Skill should stay in frontend-dev, emphasize responsive UI, layout hierarchy, state coverage, and practical polish, while making restrained motion / visual dial choices instead of defaulting to cinematic overdesign or backend expansion.",
+      "files": [],
+      "expectations": [
+        "The output keeps the focus on browser experience and product UI.",
+        "The plan includes loading / empty / error states.",
+        "The output reflects restrained visual or motion choices rather than flashy marketing-site treatment.",
+        "The output avoids expanding the task into auth / API / backend architecture unless the prompt asks for it."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "做一个产品着陆页，图和视频素材你先按页面需要规划出来，不要用 placeholder。",
+      "expected_output": "Skill should explicitly plan required assets, name a local asset directory strategy for the target stack, and avoid placeholder services in final output.",
+      "files": [],
+      "expectations": [
+        "The output includes explicit media / asset planning.",
+        "The output names a local asset directory such as public/assets/, static/assets/, or ./assets/ depending on the stack.",
+        "The output avoids placeholder image or video service suggestions for final output.",
+        "The output treats generated or provided local assets as part of the workflow."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "用 Next.js 给我做一个发布会风格的新品官网首页，重点是视觉、滚动节奏、品牌文案和本地素材组织；先别展开 hooks/状态管理那套。",
+      "expected_output": "Skill should keep the task in frontend-dev, treating Next.js as the implementation substrate while focusing on visual hierarchy, motion, copy, and local asset workflow rather than React-internal engineering concerns.",
+      "files": [],
+      "expectations": [
+        "The output keeps the task in frontend-dev rather than reframing it as generic React engineering.",
+        "The output treats React or Next.js as an implementation vehicle, not the main complexity of the task.",
+        "The output focuses on visual hierarchy, motion, copy, and local asset workflow.",
+        "The output does not center the answer on hooks, state architecture, or React rendering internals unless directly required."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "先帮我把产品官网前台做出来，登录、支付、API、后台这些后面再说；这轮只做浏览器里用户看到的部分。",
+      "expected_output": "Skill should keep scope explicitly inside frontend-dev, plan the browser-facing experience, and avoid prematurely expanding the work into full-stack architecture when backend scope is deferred.",
+      "files": [],
+      "expectations": [
+        "The output explicitly keeps the work inside browser-facing frontend scope.",
+        "The output avoids expanding into auth, API, database, or backend service architecture.",
+        "The output still plans sections, polish, and user-visible states rather than responding with only scaffolding language.",
+        "The output makes the frontend-dev vs fullstack-dev boundary clearer because server-side work is explicitly deferred."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "用 React / Next.js 帮我做一个品牌官网首屏和后面几屏，重点是高级感视觉、滚动节奏、文案和本地素材落位；hooks、状态管理先别展开。",
+      "expected_output": "Skill should resist being pulled into generic React-engineering mode and keep the answer centered on browser experience, design dials, motion, copy, and local asset workflow.",
+      "files": [],
+      "expectations": [
+        "The output keeps the task in frontend-dev rather than reframing it as React engineering just because React or Next.js is mentioned.",
+        "The output explicitly includes design dials or equivalent visual-direction controls.",
+        "The output focuses on sections, motion, copy, and local asset placement.",
+        "The output does not center the plan on hooks, effect patterns, or client/server state architecture."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "产品以后会接登录和支付，但这轮只做营销官网和浏览器里的转化体验，先别展开数据库、接口和后台设计。",
+      "expected_output": "Skill should explicitly keep the problem in frontend-dev, treating future backend work as out of scope for now instead of drifting into full-stack architecture planning.",
+      "files": [],
+      "expectations": [
+        "The output treats backend, auth, API, and database concerns as deferred rather than current scope.",
+        "The output stays focused on browser-side conversion experience, visual hierarchy, copy, and interaction planning.",
+        "The output does not propose service boundaries, schema design, or server architecture as the main answer.",
+        "The output makes the frontend-dev vs fullstack-dev boundary explicit because server-side work is postponed."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "帮我把这个新产品页做得像发布会页面：要有节奏感、镜头感、滚动叙事和清晰卖点。技术栈你默认选合适的前端方案，但别把回答写成通用工程搭架子清单。",
+      "expected_output": "Skill should choose a premium frontend-delivery posture, avoid generic implementation-checklist language, and anchor the answer in high-quality browser storytelling with explicit motion and accessibility handling.",
+      "files": [],
+      "expectations": [
+        "The output frames the work as premium browser storytelling rather than generic project scaffolding.",
+        "The output includes section rhythm, motion planning, and persuasive copy structure.",
+        "The output explicitly mentions reduced-motion or equivalent accessibility handling for motion-heavy pages.",
+        "The output avoids collapsing into generic React or full-stack boilerplate planning."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "帮我排查这个 React 页面为什么一改筛选条件就重复渲染、effect 重跑、请求打两次，顺便看看 hooks 和状态拆分是不是有问题。",
+      "expected_output": "Skill should yield to react rather than frontend-dev because the main complexity is React rendering behavior, hooks, and state architecture rather than browser-facing visual delivery.",
+      "files": [],
+      "expectations": [
+        "The output identifies the task as React engineering rather than visual frontend implementation.",
+        "The output focuses on hooks, rendering behavior, state boundaries, or effect cleanup instead of motion/copy/asset planning.",
+        "The output makes it clear this should route to react rather than frontend-dev."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "帮我搭一个带用户登录、文件上传、支付和后台管理页的产品系统，前端用 Next.js，后端你定，但一开始就按可上线结构来。",
+      "expected_output": "Skill should yield to fullstack-dev rather than frontend-dev because the task spans browser UI plus backend architecture, auth, upload, payment, and production structure.",
+      "files": [],
+      "expectations": [
+        "The output treats the work as a full-stack application rather than a browser-only frontend task.",
+        "The output focuses on auth, uploads, payments, backend/frontend integration, or production architecture.",
+        "The output makes it clear this should route to fullstack-dev rather than frontend-dev."
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "把现有 Next.js 前台和 Python API 服务一起整理成更清晰的应用架构，顺便补配置管理、错误处理和实时通知链路。",
+      "expected_output": "Skill should yield to fullstack-dev because the current problem is system refactoring across frontend and backend boundaries rather than premium browser-surface implementation.",
+      "files": [],
+      "expectations": [
+        "The output frames the task as frontend-backend architecture refactoring.",
+        "The output emphasizes integration boundaries, config, error handling, or real-time strategy rather than visual polish.",
+        "The output makes it clear this should route to fullstack-dev rather than frontend-dev."
+      ]
+    }
+  ]
+}

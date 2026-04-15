@@ -1,0 +1,9 @@
+# Exclude local runtime and generated artifacts from skill packaging
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.skill
+*.zip
+.env
+.secrets

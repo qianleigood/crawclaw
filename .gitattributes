@@ -1,0 +1,5 @@
+* text=auto eol=lf
+CLAUDE.md -text
+src/gateway/server-methods/CLAUDE.md -text
+src/**/*.generated.ts linguist-generated
+src/canvas-host/a2ui/**/*.bundle.js linguist-generated

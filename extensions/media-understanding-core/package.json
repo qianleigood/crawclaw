@@ -1,0 +1,7 @@
+{
+  "name": "@crawclaw/media-understanding-core",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "CrawClaw media understanding runtime package",
+  "type": "module"
+}

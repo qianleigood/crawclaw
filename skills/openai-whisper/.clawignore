@@ -1,0 +1,19 @@
+# Exclude local runtime and generated artifacts from skill packaging
+.venv
+.venv*/
+venv
+venv*/
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.skill
+*.zip
+.env
+.secrets
+output/
+logs/
+archive/
+runtime/
+tmp/

@@ -1,0 +1,12 @@
+{
+  "name": "@crawclaw/open-prose",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "OpenProse VM skill pack plugin (slash command + telemetry).",
+  "type": "module",
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
