@@ -11,6 +11,7 @@ import {
   resolveRequestedBrowserProfile,
 } from "../core-api.js";
 import { createPinchTabClient } from "../pinchtab/pinchtab-client.js";
+import { resolvePinchTabConnectionConfig } from "../pinchtab/pinchtab-managed-service.js";
 import {
   clearPinchTabSessionState,
   getPinchTabSessionState,
@@ -44,17 +45,7 @@ const BROWSER_PROXY_STATUS_TIMEOUT_MS = 750;
 export const __testing = {};
 
 function resolvePinchTabConfig() {
-  const cfg = loadConfig();
-  return {
-    baseUrl:
-      typeof cfg.browser?.pinchtab?.baseUrl === "string" && cfg.browser.pinchtab.baseUrl.trim()
-        ? cfg.browser.pinchtab.baseUrl.trim().replace(/\/$/, "")
-        : "http://127.0.0.1:9867",
-    token:
-      typeof cfg.browser?.pinchtab?.token === "string" && cfg.browser.pinchtab.token.trim()
-        ? cfg.browser.pinchtab.token.trim()
-        : undefined,
-  };
+  return resolvePinchTabConnectionConfig(loadConfig());
 }
 
 function resolvePinchTabNodeSession(profile?: string) {

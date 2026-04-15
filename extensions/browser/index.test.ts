@@ -11,6 +11,11 @@ const runtimeApiMocks = vi.hoisted(() => ({
   })),
 }));
 
+const serviceMocks = vi.hoisted(() => ({
+  ensureManagedPinchTabService: vi.fn(async () => {}),
+  stopManagedPinchTabService: vi.fn(async () => {}),
+}));
+
 vi.mock("./runtime-api.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./runtime-api.js")>();
   return {
@@ -19,10 +24,21 @@ vi.mock("./runtime-api.js", async (importOriginal) => {
   };
 });
 
+vi.mock("./src/pinchtab/pinchtab-managed-service.js", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("./src/pinchtab/pinchtab-managed-service.js")>();
+  return {
+    ...actual,
+    ensureManagedPinchTabService: serviceMocks.ensureManagedPinchTabService,
+    stopManagedPinchTabService: serviceMocks.stopManagedPinchTabService,
+  };
+});
+
 import browserPlugin from "./index.js";
 
 function createApi() {
   const registerTool = vi.fn();
+  const registerService = vi.fn();
   const api = createTestPluginApi({
     id: "browser",
     name: "Browser",
@@ -30,11 +46,32 @@ function createApi() {
     config: {},
     runtime: {} as CrawClawPluginApi["runtime"],
     registerTool,
+    registerService,
   }) as CrawClawPluginApi;
-  return { api, registerTool };
+  return { api, registerTool, registerService };
 }
 
 describe("browser plugin", () => {
+  it("registers the managed PinchTab runtime service", async () => {
+    const { api, registerService } = createApi();
+    browserPlugin.register(api);
+
+    const service = registerService.mock.calls[0]?.[0];
+    expect(service?.id).toBe("browser-pinchtab-runtime");
+
+    await service.start({
+      config: { marker: "cfg" },
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+    });
+    expect(serviceMocks.ensureManagedPinchTabService).toHaveBeenCalledWith({
+      config: { marker: "cfg" },
+      logger: expect.any(Object),
+    });
+
+    await service.stop();
+    expect(serviceMocks.stopManagedPinchTabService).toHaveBeenCalledTimes(1);
+  });
+
   it("forwards per-session browser options into the tool factory", () => {
     const { api, registerTool } = createApi();
     browserPlugin.register(api);

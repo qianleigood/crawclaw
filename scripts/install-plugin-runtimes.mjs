@@ -8,6 +8,7 @@ import { resolveNpmRunner } from "./npm-runner.mjs";
 
 const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
+const PINCHTAB_VERSION = "latest";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
 const SCRAPLING_REQUIREMENTS_LOCK = path.join(
@@ -210,6 +211,46 @@ function installOpenWebSearchRuntime(env = process.env) {
   };
 }
 
+function resolveBrowserRuntimeBin(runtimeDir) {
+  return process.platform === "win32"
+    ? path.join(runtimeDir, "node_modules", ".bin", "pinchtab.cmd")
+    : path.join(runtimeDir, "node_modules", ".bin", "pinchtab");
+}
+
+function installBrowserRuntime(env = process.env) {
+  const runtimeDir = path.join(resolveRuntimesRoot(env), "browser");
+  mkdirSync(runtimeDir, { recursive: true });
+  const npmRunner = resolveNpmRunner({
+    env,
+    npmArgs: [
+      "install",
+      "--prefix",
+      runtimeDir,
+      "--no-save",
+      "--package-lock=false",
+      `pinchtab@${PINCHTAB_VERSION}`,
+    ],
+  });
+  runOrThrow(npmRunner.command, npmRunner.args, {
+    env: npmRunner.env ?? env,
+    shell: npmRunner.shell,
+    windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,
+  });
+  const binPath = resolveBrowserRuntimeBin(runtimeDir);
+  if (!existsSync(binPath)) {
+    throw new Error(`pinchtab binary missing after install: ${binPath}`);
+  }
+  const version = runOrThrow(binPath, ["--version"], { env }).stdout.trim() || PINCHTAB_VERSION;
+  return {
+    state: "healthy",
+    version,
+    package: `pinchtab@${PINCHTAB_VERSION}`,
+    installDir: runtimeDir,
+    binPath,
+    installedAt: new Date().toISOString(),
+  };
+}
+
 export function runPluginRuntimeInstall(params = {}) {
   const env = params.env ?? process.env;
   const log = params.log ?? console;
@@ -221,12 +262,13 @@ export function runPluginRuntimeInstall(params = {}) {
     ...manifest,
     plugins: {
       ...manifest.plugins,
+      browser: installBrowserRuntime(env),
       "open-websearch": installOpenWebSearchRuntime(env),
       "scrapling-fetch": installScraplingRuntime(env),
     },
   };
   writeManifest(nextManifest, env);
-  log.log("[postinstall] installed plugin runtimes: open-websearch, scrapling-fetch");
+  log.log("[postinstall] installed plugin runtimes: browser, open-websearch, scrapling-fetch");
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

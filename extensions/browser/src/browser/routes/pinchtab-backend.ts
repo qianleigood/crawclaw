@@ -1,5 +1,6 @@
 import { loadConfig } from "../../config/config.js";
 import { createPinchTabClient } from "../../pinchtab/pinchtab-client.js";
+import { resolvePinchTabConnectionConfig } from "../../pinchtab/pinchtab-managed-service.js";
 import {
   clearPinchTabSessionState,
   getPinchTabSessionState,
@@ -26,20 +27,10 @@ function resolveSessionName(profileName: string) {
 }
 
 function resolvePinchTabConfig() {
-  const cfg = loadConfig();
-  return {
-    baseUrl:
-      typeof cfg.browser?.pinchtab?.baseUrl === "string" && cfg.browser.pinchtab.baseUrl.trim()
-        ? cfg.browser.pinchtab.baseUrl.trim().replace(/\/$/, "")
-        : "http://127.0.0.1:9867",
-    token:
-      typeof cfg.browser?.pinchtab?.token === "string" && cfg.browser.pinchtab.token.trim()
-        ? cfg.browser.pinchtab.token.trim()
-        : undefined,
-  };
+  return resolvePinchTabConnectionConfig(loadConfig());
 }
 
-function createClient() {
+async function createClient() {
   return createPinchTabClient(resolvePinchTabConfig());
 }
 
@@ -71,7 +62,7 @@ async function ensureProfileId(
 async function ensureRuntime(profileName: string) {
   const sessionName = resolveSessionName(profileName);
   const current = getPinchTabSessionState(sessionName);
-  const client = createClient();
+  const client = await createClient();
   if (current.instanceId) {
     return { client, sessionName, state: current };
   }
@@ -101,7 +92,7 @@ async function listTabsInternal(profileName: string): Promise<{
   if (!current.instanceId) {
     return { running: false, sessionName, tabs: [] };
   }
-  const client = createClient();
+  const client = await createClient();
   const tabs = (await client.listTabs(current.instanceId)).map(toBrowserTab);
   return {
     running: true,
@@ -230,7 +221,7 @@ export async function stopPinchTabBrowser(
   const sessionName = resolveSessionName(profileName);
   const current = getPinchTabSessionState(sessionName);
   if (current.instanceId) {
-    const client = createClient();
+    const client = await createClient();
     await client.stopInstance(current.instanceId);
     clearPinchTabSessionState(sessionName);
     return { ok: true, stopped: true, profile: profileName };
@@ -407,7 +398,7 @@ export async function closePinchTabBrowserTab(
   if (!current.instanceId) {
     throw new Error("browser not running");
   }
-  const client = createClient();
+  const client = await createClient();
   await client.closeTab(targetId);
   if (current.tabId === targetId) {
     updatePinchTabSessionState(sessionName, { tabId: undefined });

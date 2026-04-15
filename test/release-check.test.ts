@@ -234,6 +234,7 @@ describe("collectMissingPackPaths", () => {
       expect.arrayContaining([
         "dist/channel-catalog.json",
         "dist/control-ui/index.html",
+        "scripts/install-plugin-runtimes.mjs",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
         bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
@@ -260,6 +261,7 @@ describe("collectMissingPackPaths", () => {
         bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
         ...requiredBundledPluginPackPaths,
         ...requiredPluginSdkPackPaths,
+        "scripts/install-plugin-runtimes.mjs",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
         "dist/plugin-sdk/root-alias.cjs",

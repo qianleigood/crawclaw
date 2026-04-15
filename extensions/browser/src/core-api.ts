@@ -83,6 +83,7 @@ export {
   parseBooleanValue,
   readStringParam,
   respondUnavailableOnNodeInvokeError,
+  resolveManagedBrowserRuntimeBin,
   resolveEffectiveEnableState,
   resolveNodeIdFromList,
   resolveNodeCommandAllowlist,

@@ -48,6 +48,16 @@ export function resolveOpenWebSearchRuntimeDir(env: NodeJS.ProcessEnv = process.
   return path.join(resolvePluginRuntimesRoot(env), "open-websearch");
 }
 
+export function resolveBrowserRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolvePluginRuntimesRoot(env), "browser");
+}
+
+export function resolveBrowserRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
+  return process.platform === "win32"
+    ? path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "pinchtab.cmd")
+    : path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "pinchtab");
+}
+
 export function resolveOpenWebSearchRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
   return process.platform === "win32"
     ? path.join(resolveOpenWebSearchRuntimeDir(env), "node_modules", ".bin", "open-websearch.cmd")
@@ -132,9 +142,11 @@ export function formatPluginRuntimeDoctorLines(env: NodeJS.ProcessEnv = process.
       const detail =
         typeof entry.pythonVersion === "string"
           ? `python ${entry.pythonVersion}`
-          : typeof entry.version === "string"
-            ? `version ${entry.version}`
-            : "runtime metadata recorded";
+          : typeof entry.package === "string" && entry.package.startsWith("pinchtab@")
+            ? entry.package
+            : typeof entry.version === "string"
+              ? `version ${entry.version}`
+              : "runtime metadata recorded";
       return `${pluginId}: ${state} (${detail})`;
     });
 }

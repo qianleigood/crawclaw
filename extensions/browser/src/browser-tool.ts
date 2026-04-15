@@ -24,6 +24,7 @@ import {
 } from "./core-api.js";
 import { callGatewayTool } from "./core-api.js";
 import { tryExecutePinchTabHostAction } from "./pinchtab/pinchtab-executor.js";
+import { resolvePinchTabConnectionConfig } from "./pinchtab/pinchtab-managed-service.js";
 
 const browserToolDeps = {
   imageResultFromFile,
@@ -143,22 +144,7 @@ function readConfiguredProfiles() {
 }
 
 function readPinchTabConfig() {
-  const cfg = browserToolDeps.loadConfig();
-  const browser = ((cfg as { browser?: unknown }).browser ?? {}) as {
-    provider?: unknown;
-    pinchtab?: { baseUrl?: unknown; token?: unknown };
-  };
-  return {
-    enabled: true,
-    baseUrl:
-      typeof browser.pinchtab?.baseUrl === "string" && browser.pinchtab.baseUrl.trim()
-        ? browser.pinchtab.baseUrl.trim().replace(/\/$/, "")
-        : "http://127.0.0.1:9867",
-    token:
-      typeof browser.pinchtab?.token === "string" && browser.pinchtab.token.trim()
-        ? browser.pinchtab.token.trim()
-        : undefined,
-  };
+  return resolvePinchTabConnectionConfig(browserToolDeps.loadConfig());
 }
 
 function resolvePinchTabRouteConfig(params: {
@@ -172,6 +158,7 @@ function resolvePinchTabRouteConfig(params: {
       enabled: cfg.enabled && !!sandboxUrl,
       baseUrl: sandboxUrl ? sandboxUrl.replace(/\/$/, "") : cfg.baseUrl,
       token: cfg.token,
+      managed: false,
     };
   }
   return cfg;

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  resolveBrowserRuntimeBin,
   formatPluginRuntimeDoctorLines,
   readPluginRuntimeManifest,
   resolveOpenWebSearchRuntimeBin,
@@ -36,6 +37,9 @@ describe("plugin-runtimes", () => {
     expect(resolveOpenWebSearchRuntimeBin(env)).toContain(
       path.join("runtimes", "open-websearch", "node_modules", ".bin", "open-websearch"),
     );
+    expect(resolveBrowserRuntimeBin(env)).toContain(
+      path.join("runtimes", "browser", "node_modules", ".bin", "pinchtab"),
+    );
     expect(resolveScraplingFetchRuntimePython(env)).toContain("scrapling-fetch");
   });
 
@@ -44,6 +48,7 @@ describe("plugin-runtimes", () => {
     writePluginRuntimeManifest(
       {
         plugins: {
+          browser: { state: "healthy", version: "1.2.3", package: "pinchtab@latest" },
           "open-websearch": { state: "healthy", version: "2.1.5" },
           "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.4" },
         },
@@ -52,11 +57,13 @@ describe("plugin-runtimes", () => {
     );
     expect(readPluginRuntimeManifest(env)).toEqual({
       plugins: {
+        browser: { state: "healthy", version: "1.2.3", package: "pinchtab@latest" },
         "open-websearch": { state: "healthy", version: "2.1.5" },
         "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.4" },
       },
     });
     expect(formatPluginRuntimeDoctorLines(env)).toEqual([
+      "browser: healthy (pinchtab@latest)",
       "open-websearch: healthy (version 2.1.5)",
       "scrapling-fetch: healthy (python 3.14.4)",
     ]);

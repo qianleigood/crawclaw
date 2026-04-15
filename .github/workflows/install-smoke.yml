@@ -164,13 +164,20 @@ jobs:
               const runtimeManifest = JSON.parse(
                 fs.readFileSync(process.env.HOME + \"/.crawclaw/runtimes/manifest.json\", \"utf8\"),
               );
+              const browser = runtimeManifest.plugins?.browser;
               const scrapling = runtimeManifest.plugins?.[\"scrapling-fetch\"];
               const openWebSearch = runtimeManifest.plugins?.[\"open-websearch\"];
+              if (browser?.state !== \"healthy\") {
+                throw new Error(\"browser runtime is not healthy after install\");
+              }
               if (scrapling?.state !== \"healthy\") {
                 throw new Error(\"scrapling-fetch runtime is not healthy after install\");
               }
               if (openWebSearch?.state !== \"healthy\") {
                 throw new Error(\"open-websearch runtime is not healthy after install\");
+              }
+              if (typeof browser?.binPath !== \"string\" || !fs.existsSync(browser.binPath)) {
+                throw new Error(\"browser runtime pinchtab binary missing after install\");
               }
               const matrixDiag = (parsed.diagnostics || []).filter(
                 (diag) =>

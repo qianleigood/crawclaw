@@ -27,6 +27,7 @@ export {
   startLazyPluginServiceModule,
   type LazyPluginServiceHandle,
 } from "../plugins/lazy-service-module.js";
+export { resolveBrowserRuntimeBin as resolveManagedBrowserRuntimeBin } from "../plugins/plugin-runtimes.js";
 export type { CrawClawPluginService } from "../plugins/types.js";
 export { resolveGatewayAuth } from "../gateway/auth.js";
 export { isLoopbackHost } from "../gateway/net.js";
