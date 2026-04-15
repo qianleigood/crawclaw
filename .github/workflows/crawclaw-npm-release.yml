@@ -102,7 +102,6 @@ jobs:
       - name: Check
         env:
           CRAWCLAW_LOCAL_CHECK: "0"
-          CRAWCLAW_LOCAL_CHECK: "0"
         run: pnpm check
 
       - name: Build
@@ -115,10 +114,8 @@ jobs:
         if: ${{ inputs.preflight_run_id == '' }}
         env:
           CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
-          CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
           RELEASE_TAG: ${{ inputs.tag }}
           RELEASE_MAIN_REF: origin/main
-          CRAWCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
           CRAWCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
         run: |
           set -euo pipefail
@@ -135,7 +132,6 @@ jobs:
       - name: Pack prepared npm tarball
         id: packed_tarball
         env:
-          CRAWCLAW_PREPACK_PREPARED: "1"
           CRAWCLAW_PREPACK_PREPARED: "1"
           RELEASE_TAG: ${{ inputs.tag }}
           RELEASE_NPM_DIST_TAG: ${{ inputs.npm_dist_tag }}
@@ -265,7 +261,6 @@ jobs:
         if: ${{ inputs.preflight_run_id == '' }}
         env:
           CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
-          CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
           RELEASE_TAG: ${{ inputs.tag }}
           RELEASE_MAIN_REF: origin/main
         run: |
@@ -323,8 +318,6 @@ jobs:
       - name: Publish
         env:
           CRAWCLAW_PREPACK_PREPARED: "1"
-          CRAWCLAW_PREPACK_PREPARED: "1"
-          CRAWCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
           CRAWCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
         run: |
           set -euo pipefail
