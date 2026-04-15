@@ -1,66 +1,20 @@
-import type { BrowserRouteContext } from "../server-context.js";
-import {
-  readBody,
-  resolveTargetIdFromBody,
-  resolveTargetIdFromQuery,
-  withPlaywrightRouteContext,
-} from "./agent.shared.js";
-import type { BrowserRequest, BrowserResponse, BrowserRouteRegistrar } from "./types.js";
-import { jsonError, toBoolean, toNumber, toStringOrEmpty } from "./utils.js";
+import type { BrowserRouteContext } from "../server-context.types.js";
+import { readBody, resolveProfileContext } from "./agent.shared.js";
+import { evaluatePinchTabBrowserInstance, getPinchTabCookies } from "./pinchtab-backend.js";
+import type { BrowserRouteRegistrar } from "./types.js";
+import { jsonError, toBoolean, toStringOrEmpty } from "./utils.js";
 
 type StorageKind = "local" | "session";
 
-export function parseStorageKind(raw: string): StorageKind | null {
+function parseStorageKind(raw: string): StorageKind | null {
   if (raw === "local" || raw === "session") {
     return raw;
   }
   return null;
 }
 
-export function parseStorageMutationRequest(
-  kindParam: unknown,
-  body: Record<string, unknown>,
-): { kind: StorageKind | null; targetId: string | undefined } {
-  return {
-    kind: parseStorageKind(toStringOrEmpty(kindParam)),
-    targetId: resolveTargetIdFromBody(body),
-  };
-}
-
-export function parseRequiredStorageMutationRequest(
-  kindParam: unknown,
-  body: Record<string, unknown>,
-): { kind: StorageKind; targetId: string | undefined } | null {
-  const parsed = parseStorageMutationRequest(kindParam, body);
-  if (!parsed.kind) {
-    return null;
-  }
-  return {
-    kind: parsed.kind,
-    targetId: parsed.targetId,
-  };
-}
-
-function parseStorageMutationOrRespond(
-  res: BrowserResponse,
-  kindParam: unknown,
-  body: Record<string, unknown>,
-) {
-  const parsed = parseRequiredStorageMutationRequest(kindParam, body);
-  if (!parsed) {
-    jsonError(res, 400, "kind must be local|session");
-    return null;
-  }
-  return parsed;
-}
-
-function parseStorageMutationFromRequest(req: BrowserRequest, res: BrowserResponse) {
-  const body = readBody(req);
-  const parsed = parseStorageMutationOrRespond(res, req.params.kind, body);
-  if (!parsed) {
-    return null;
-  }
-  return { body, parsed };
+function readTargetId(value: unknown) {
+  return typeof value === "string" ? value.trim() || undefined : undefined;
 }
 
 export function registerBrowserAgentStorageRoutes(
@@ -68,84 +22,35 @@ export function registerBrowserAgentStorageRoutes(
   ctx: BrowserRouteContext,
 ) {
   app.get("/cookies", async (req, res) => {
-    const targetId = resolveTargetIdFromQuery(req.query);
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      feature: "cookies",
-      run: async ({ cdpUrl, tab, pw }) => {
-        const result = await pw.cookiesGetViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-        });
-        res.json({ ok: true, targetId: tab.targetId, ...result });
-      },
-    });
-  });
-
-  app.post("/cookies/set", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const cookie =
-      body.cookie && typeof body.cookie === "object" && !Array.isArray(body.cookie)
-        ? (body.cookie as Record<string, unknown>)
-        : null;
-    if (!cookie) {
-      return jsonError(res, 400, "cookie is required");
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
+      return;
     }
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      feature: "cookies set",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.cookiesSetViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          cookie: {
-            name: toStringOrEmpty(cookie.name),
-            value: toStringOrEmpty(cookie.value),
-            url: toStringOrEmpty(cookie.url) || undefined,
-            domain: toStringOrEmpty(cookie.domain) || undefined,
-            path: toStringOrEmpty(cookie.path) || undefined,
-            expires: toNumber(cookie.expires) ?? undefined,
-            httpOnly: toBoolean(cookie.httpOnly) ?? undefined,
-            secure: toBoolean(cookie.secure) ?? undefined,
-            sameSite:
-              cookie.sameSite === "Lax" ||
-              cookie.sameSite === "None" ||
-              cookie.sameSite === "Strict"
-                ? cookie.sameSite
-                : undefined,
-          },
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+    try {
+      const result = await getPinchTabCookies(
+        profileCtx.profile.name,
+        typeof req.query.targetId === "string" ? req.query.targetId.trim() || undefined : undefined,
+      );
+      res.json({ ok: true, targetId: result.targetId, ...result.result });
+    } catch (err) {
+      jsonError(res, 500, String(err));
+    }
   });
 
-  app.post("/cookies/clear", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/cookies/set", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "cookies clear",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.cookiesClearViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support cookies/set on browser server yet.",
+    );
+  });
+
+  app.post("/cookies/clear", async (_req, res) => {
+    jsonError(
+      res,
+      501,
+      "PinchTab unified backend does not support cookies/clear on browser server yet.",
+    );
   });
 
   app.get("/storage/:kind", async (req, res) => {
@@ -153,299 +58,136 @@ export function registerBrowserAgentStorageRoutes(
     if (!kind) {
       return jsonError(res, 400, "kind must be local|session");
     }
-    const targetId = resolveTargetIdFromQuery(req.query);
     const key = toStringOrEmpty(req.query.key);
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      feature: "storage get",
-      run: async ({ cdpUrl, tab, pw }) => {
-        const result = await pw.storageGetViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          kind,
-          key: key.trim() || undefined,
-        });
-        res.json({ ok: true, targetId: tab.targetId, ...result });
-      },
-    });
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
+      return;
+    }
+    try {
+      const result = await evaluatePinchTabBrowserInstance<{
+        kind: StorageKind;
+        values: Record<string, string | null>;
+      }>(
+        profileCtx.profile.name,
+        `JSON.stringify((() => { const mode = ${JSON.stringify(kind)}; const target = mode === "session" ? window.sessionStorage : window.localStorage; const key = ${JSON.stringify(key || null)}; const values = {}; if (key) { values[key] = target.getItem(key); } else { for (let i = 0; i < target.length; i += 1) { const k = target.key(i); if (k) values[k] = target.getItem(k); } } return { kind: mode, values }; })())`,
+        typeof req.query.targetId === "string" ? req.query.targetId.trim() || undefined : undefined,
+      );
+      res.json({ ok: true, targetId: result.targetId, ...(result.value ?? { kind, values: {} }) });
+    } catch (err) {
+      jsonError(res, 500, String(err));
+    }
   });
 
   app.post("/storage/:kind/set", async (req, res) => {
-    const mutation = parseStorageMutationFromRequest(req, res);
-    if (!mutation) {
-      return;
+    const kind = parseStorageKind(toStringOrEmpty(req.params.kind));
+    if (!kind) {
+      return jsonError(res, 400, "kind must be local|session");
     }
-    const key = toStringOrEmpty(mutation.body.key);
+    const body = readBody(req);
+    const key = toStringOrEmpty(body.key);
     if (!key) {
       return jsonError(res, 400, "key is required");
     }
-    const value = typeof mutation.body.value === "string" ? mutation.body.value : "";
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId: mutation.parsed.targetId,
-      feature: "storage set",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.storageSetViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          kind: mutation.parsed.kind,
-          key,
-          value,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+    const value = typeof body.value === "string" ? body.value : "";
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
+      return;
+    }
+    try {
+      const result = await evaluatePinchTabBrowserInstance(
+        profileCtx.profile.name,
+        `JSON.stringify((() => { const target = ${JSON.stringify(kind)} === "session" ? window.sessionStorage : window.localStorage; target.setItem(${JSON.stringify(key)}, ${JSON.stringify(value)}); return { ok: true }; })())`,
+        readTargetId(body.targetId),
+      );
+      res.json({ ok: true, targetId: result.targetId });
+    } catch (err) {
+      jsonError(res, 500, String(err));
+    }
   });
 
   app.post("/storage/:kind/clear", async (req, res) => {
-    const mutation = parseStorageMutationFromRequest(req, res);
-    if (!mutation) {
+    const kind = parseStorageKind(toStringOrEmpty(req.params.kind));
+    if (!kind) {
+      return jsonError(res, 400, "kind must be local|session");
+    }
+    const body = readBody(req);
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
       return;
     }
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId: mutation.parsed.targetId,
-      feature: "storage clear",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.storageClearViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          kind: mutation.parsed.kind,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
-  });
-
-  app.post("/set/offline", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const offline = toBoolean(body.offline);
-    if (offline === undefined) {
-      return jsonError(res, 400, "offline is required");
+    try {
+      const result = await evaluatePinchTabBrowserInstance(
+        profileCtx.profile.name,
+        `JSON.stringify((() => { const target = ${JSON.stringify(kind)} === "session" ? window.sessionStorage : window.localStorage; target.clear(); return { ok: true }; })())`,
+        readTargetId(body.targetId),
+      );
+      res.json({ ok: true, targetId: result.targetId });
+    } catch (err) {
+      jsonError(res, 500, String(err));
     }
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      feature: "offline",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.setOfflineViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          offline,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
   });
 
-  app.post("/set/headers", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const headers =
-      body.headers && typeof body.headers === "object" && !Array.isArray(body.headers)
-        ? (body.headers as Record<string, unknown>)
-        : null;
-    if (!headers) {
-      return jsonError(res, 400, "headers is required");
-    }
-
-    const parsed: Record<string, string> = {};
-    for (const [k, v] of Object.entries(headers)) {
-      if (typeof v === "string") {
-        parsed[k] = v;
-      }
-    }
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/set/offline", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "headers",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.setExtraHTTPHeadersViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          headers: parsed,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support offline emulation on browser server yet.",
+    );
   });
 
-  app.post("/set/credentials", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const clear = toBoolean(body.clear) ?? false;
-    const username = toStringOrEmpty(body.username) || undefined;
-    const password = typeof body.password === "string" ? body.password : undefined;
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/set/headers", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "http credentials",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.setHttpCredentialsViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          username,
-          password,
-          clear,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support extra headers on browser server yet.",
+    );
   });
 
-  app.post("/set/geolocation", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const clear = toBoolean(body.clear) ?? false;
-    const latitude = toNumber(body.latitude);
-    const longitude = toNumber(body.longitude);
-    const accuracy = toNumber(body.accuracy) ?? undefined;
-    const origin = toStringOrEmpty(body.origin) || undefined;
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/set/credentials", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "geolocation",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.setGeolocationViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          latitude,
-          longitude,
-          accuracy,
-          origin,
-          clear,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support HTTP credentials on browser server yet.",
+    );
   });
 
-  app.post("/set/media", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const schemeRaw = toStringOrEmpty(body.colorScheme);
-    const colorScheme =
-      schemeRaw === "dark" || schemeRaw === "light" || schemeRaw === "no-preference"
-        ? schemeRaw
-        : schemeRaw === "none"
-          ? null
-          : undefined;
-    if (colorScheme === undefined) {
-      return jsonError(res, 400, "colorScheme must be dark|light|no-preference|none");
-    }
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/set/geolocation", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "media emulation",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.emulateMediaViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          colorScheme,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support geolocation on browser server yet.",
+    );
   });
 
-  app.post("/set/timezone", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const timezoneId = toStringOrEmpty(body.timezoneId);
-    if (!timezoneId) {
-      return jsonError(res, 400, "timezoneId is required");
-    }
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/set/media", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "timezone",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.setTimezoneViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          timezoneId,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support media emulation on browser server yet.",
+    );
   });
 
-  app.post("/set/locale", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const locale = toStringOrEmpty(body.locale);
-    if (!locale) {
-      return jsonError(res, 400, "locale is required");
-    }
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/set/timezone", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "locale",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.setLocaleViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          locale,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support timezone emulation on browser server yet.",
+    );
   });
 
-  app.post("/set/device", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const name = toStringOrEmpty(body.name);
-    if (!name) {
-      return jsonError(res, 400, "name is required");
-    }
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/set/locale", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "device emulation",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.setDeviceViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          name,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support locale emulation on browser server yet.",
+    );
+  });
+
+  app.post("/set/device", async (_req, res) => {
+    jsonError(
+      res,
+      501,
+      "PinchTab unified backend does not support device emulation on browser server yet.",
+    );
   });
 }

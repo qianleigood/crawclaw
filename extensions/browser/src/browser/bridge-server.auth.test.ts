@@ -23,7 +23,6 @@ function buildResolvedConfig(): ResolvedBrowserConfig {
     executablePath: undefined,
     headless: true,
     noSandbox: false,
-    attachOnly: true,
     defaultProfile: DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME,
     profiles: {
       [DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME]: {

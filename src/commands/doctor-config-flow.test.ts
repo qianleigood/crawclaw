@@ -29,7 +29,7 @@ async function collectDoctorWarnings(config: Record<string, unknown>): Promise<s
     });
     return noteSpy.mock.calls
       .filter((call) => call[1] === "Doctor warnings")
-      .map((call) => String(call[0]));
+      .map((call) => call[0]);
   } finally {
     noteSpy.mockRestore();
   }
@@ -312,30 +312,6 @@ describe("doctor config flow", () => {
     });
   });
 
-  it("migrates legacy browser extension profiles to existing-session on repair", async () => {
-    const result = await runDoctorConfigWithInput({
-      repair: true,
-      config: {
-        browser: {
-          relayBindHost: "0.0.0.0",
-          profiles: {
-            chromeLive: {
-              driver: "extension",
-              color: "#00AA00",
-            },
-          },
-        },
-      },
-      run: loadAndMaybeMigrateDoctorConfig,
-    });
-
-    const browser = (result.cfg as { browser?: Record<string, unknown> }).browser ?? {};
-    expect(browser.relayBindHost).toBeUndefined();
-    expect(
-      ((browser.profiles as Record<string, { driver?: string }>)?.chromeLive ?? {}).driver,
-    ).toBe("existing-session");
-  });
-
   it("repairs restrictive plugins.allow when browser is referenced via tools.alsoAllow", async () => {
     const result = await runDoctorConfigWithInput({
       repair: true,
@@ -384,8 +360,7 @@ describe("doctor config flow", () => {
 
       const warning = noteSpy.mock.calls.find(
         (call) =>
-          call[1] === "Doctor warnings" &&
-          String(call[0]).includes("Matrix plugin upgraded in place."),
+          call[1] === "Doctor warnings" && call[0].includes("Matrix plugin upgraded in place."),
       );
       expect(warning?.[0]).toContain("Legacy sync store:");
       expect(warning?.[0]).toContain(
@@ -433,7 +408,7 @@ describe("doctor config flow", () => {
       const warning = noteSpy.mock.calls.find(
         (call) =>
           call[1] === "Doctor warnings" &&
-          String(call[0]).includes("Matrix encrypted-state migration is pending"),
+          call[0].includes("Matrix encrypted-state migration is pending"),
       );
       expect(warning?.[0]).toContain("Legacy crypto store:");
       expect(warning?.[0]).toContain("New recovery key file:");
@@ -495,8 +470,7 @@ describe("doctor config flow", () => {
       expect(
         noteSpy.mock.calls.some(
           (call) =>
-            call[1] === "Doctor changes" &&
-            String(call[0]).includes("Matrix plugin upgraded in place."),
+            call[1] === "Doctor changes" && call[0].includes("Matrix plugin upgraded in place."),
         ),
       ).toBe(true);
     } finally {
@@ -598,36 +572,6 @@ describe("doctor config flow", () => {
     });
   });
 
-  it("notes legacy browser extension migration changes", async () => {
-    const noteSpy = vi.spyOn(noteModule, "note").mockImplementation(() => {});
-    try {
-      await runDoctorConfigWithInput({
-        config: {
-          browser: {
-            relayBindHost: "127.0.0.1",
-            profiles: {
-              chromeLive: {
-                driver: "extension",
-                color: "#00AA00",
-              },
-            },
-          },
-        },
-        run: loadAndMaybeMigrateDoctorConfig,
-      });
-
-      const messages = noteSpy.mock.calls
-        .filter((call) => call[1] === "Doctor changes")
-        .map((call) => String(call[0]));
-      expect(
-        messages.some((line) => line.includes('browser.profiles.chromeLive.driver "extension"')),
-      ).toBe(true);
-      expect(messages.some((line) => line.includes("browser.relayBindHost"))).toBe(true);
-    } finally {
-      noteSpy.mockRestore();
-    }
-  });
-
   it("preserves discord streaming intent while stripping unsupported keys on repair", async () => {
     const result = await runDoctorConfigWithInput({
       repair: true,
@@ -715,7 +659,7 @@ describe("doctor config flow", () => {
 
       const outputs = noteSpy.mock.calls
         .filter((call) => call[1] === "Doctor warnings" || call[1] === "Doctor changes")
-        .map((call) => String(call[0]));
+        .map((call) => call[0]);
       expect(outputs.filter((line) => line.includes("\u001b"))).toEqual([]);
       expect(outputs.filter((line) => line.includes("\nforged"))).toEqual([]);
       expect(
@@ -785,14 +729,12 @@ describe("doctor config flow", () => {
       expect(fetchSpy).not.toHaveBeenCalled();
       expect(
         noteSpy.mock.calls.some((call) =>
-          String(call[0]).includes("Telegram account inactive: failed to inspect bot token"),
+          call[0].includes("Telegram account inactive: failed to inspect bot token"),
         ),
       ).toBe(true);
       expect(
         noteSpy.mock.calls.some((call) =>
-          String(call[0]).includes(
-            "Telegram allowFrom contains @username entries",
-          ),
+          call[0].includes("Telegram allowFrom contains @username entries"),
         ),
       ).toBe(true);
     } finally {

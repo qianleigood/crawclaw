@@ -1,7 +1,5 @@
 import { toBrowserErrorResponse } from "../errors.js";
-import type { PwAiModule } from "../pw-ai-module.js";
-import { getPwAiModule as getPwAiModuleBase } from "../pw-ai-module.js";
-import type { BrowserRouteContext, ProfileContext } from "../server-context.js";
+import type { BrowserRouteContext, ProfileContext } from "../server-context.types.js";
 import type { BrowserRequest, BrowserResponse } from "./types.js";
 import { getProfileContext, jsonError } from "./utils.js";
 
@@ -58,38 +56,10 @@ export function resolveProfileContext(
   return profileCtx;
 }
 
-export async function getPwAiModule(): Promise<PwAiModule | null> {
-  return await getPwAiModuleBase({ mode: "soft" });
-}
-
-export async function requirePwAi(
-  res: BrowserResponse,
-  feature: string,
-): Promise<PwAiModule | null> {
-  const mod = await getPwAiModule();
-  if (mod) {
-    return mod;
-  }
-  jsonError(
-    res,
-    501,
-    [
-      `Playwright is not available in this gateway build; '${feature}' is unsupported.`,
-      "Install the full Playwright package (not playwright-core) and restart the gateway, or reinstall with browser support.",
-      "Docs: /tools/browser#playwright-requirement",
-    ].join("\n"),
-  );
-  return null;
-}
-
 type RouteTabContext = {
   profileCtx: ProfileContext;
   tab: Awaited<ReturnType<ProfileContext["ensureTabAvailable"]>>;
   cdpUrl: string;
-};
-
-type RouteTabPwContext = RouteTabContext & {
-  pw: PwAiModule;
 };
 
 type RouteWithTabParams<T> = {
@@ -118,31 +88,4 @@ export async function withRouteTabContext<T>(
     handleRouteError(params.ctx, params.res, err);
     return undefined;
   }
-}
-
-type RouteWithPwParams<T> = {
-  req: BrowserRequest;
-  res: BrowserResponse;
-  ctx: BrowserRouteContext;
-  targetId?: string;
-  feature: string;
-  run: (ctx: RouteTabPwContext) => Promise<T>;
-};
-
-export async function withPlaywrightRouteContext<T>(
-  params: RouteWithPwParams<T>,
-): Promise<T | undefined> {
-  return await withRouteTabContext({
-    req: params.req,
-    res: params.res,
-    ctx: params.ctx,
-    targetId: params.targetId,
-    run: async ({ profileCtx, tab, cdpUrl }) => {
-      const pw = await requirePwAi(params.res, params.feature);
-      if (!pw) {
-        return undefined as T | undefined;
-      }
-      return await params.run({ profileCtx, tab, cdpUrl, pw });
-    },
-  });
 }

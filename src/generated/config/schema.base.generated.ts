@@ -404,9 +404,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
           noSandbox: {
             type: "boolean",
           },
-          attachOnly: {
-            type: "boolean",
-          },
           cdpPortRangeStart: {
             type: "integer",
             minimum: 1,
@@ -465,28 +462,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 },
                 cdpUrl: {
                   type: "string",
-                },
-                userDataDir: {
-                  type: "string",
-                },
-                driver: {
-                  anyOf: [
-                    {
-                      type: "string",
-                      const: "crawclaw",
-                    },
-                    {
-                      type: "string",
-                      const: "clawd",
-                    },
-                    {
-                      type: "string",
-                      const: "existing-session",
-                    },
-                  ],
-                },
-                attachOnly: {
-                  type: "boolean",
                 },
                 color: {
                   type: "string",
@@ -11855,7 +11830,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "browser.cdpUrl": {
       label: "Browser CDP URL",
-      help: "Remote CDP websocket URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep URL access restricted to trusted network paths.",
+      help: "Remote CDP URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep access restricted to trusted network paths.",
       tags: ["advanced"],
     },
     "browser.color": {
@@ -11878,11 +11853,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Disables Chromium sandbox isolation flags for environments where sandboxing fails at runtime. Keep this off whenever possible because process isolation protections are reduced.",
       tags: ["storage"],
     },
-    "browser.attachOnly": {
-      label: "Browser Attach-only Mode",
-      help: "Restricts browser mode to attach-only behavior without starting local browser processes. Use this when all browser sessions are externally managed by a remote CDP provider.",
-      tags: ["advanced"],
-    },
     "browser.cdpPortRangeStart": {
       label: "Browser CDP Port Range Start",
       help: "Starting local CDP port used for auto-allocated browser profile ports. Increase this when host-level port defaults conflict with other local services.",
@@ -11895,32 +11865,17 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "browser.profiles": {
       label: "Browser Profiles",
-      help: "Named browser profile connection map used for explicit routing to CDP ports or URLs with optional metadata. Keep profile names consistent and avoid overlapping endpoint definitions.",
+      help: "Named managed browser profiles used for explicit routing and visual identity. Keep profile names consistent and avoid overlapping endpoint definitions.",
       tags: ["storage"],
     },
     "browser.profiles.*.cdpPort": {
       label: "Browser Profile CDP Port",
-      help: "Per-profile local CDP port used when connecting to browser instances by port instead of URL. Use unique ports per profile to avoid connection collisions.",
+      help: "Per-profile local CDP port allocated for the managed browser profile. Use unique ports per profile to avoid connection collisions.",
       tags: ["storage"],
     },
     "browser.profiles.*.cdpUrl": {
       label: "Browser Profile CDP URL",
-      help: "Per-profile CDP websocket URL used for explicit remote browser routing by profile name. Use this when profile connections terminate on remote hosts or tunnels.",
-      tags: ["storage"],
-    },
-    "browser.profiles.*.userDataDir": {
-      label: "Browser Profile User Data Dir",
-      help: "Per-profile Chromium user data directory for existing-session attachment through Chrome DevTools MCP. Use this for host-local Brave, Edge, Chromium, or non-default Chrome profiles when the built-in auto-connect path would pick the wrong browser data directory.",
-      tags: ["storage"],
-    },
-    "browser.profiles.*.driver": {
-      label: "Browser Profile Driver",
-      help: 'Per-profile browser driver mode. Use "crawclaw" (or legacy "clawd") for CDP-based profiles, or use "existing-session" for host-local Chrome DevTools MCP attachment.',
-      tags: ["storage"],
-    },
-    "browser.profiles.*.attachOnly": {
-      label: "Browser Profile Attach-only Mode",
-      help: "Per-profile attach-only override that skips local browser launch and only attaches to an existing CDP endpoint. Useful when one profile is externally managed but others are locally launched.",
+      help: "Per-profile CDP URL used for explicit remote browser routing by profile name. Use this when profile connections terminate on remote hosts or tunnels.",
       tags: ["storage"],
     },
     "browser.profiles.*.color": {

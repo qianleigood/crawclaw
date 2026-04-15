@@ -3,12 +3,6 @@ export type BrowserProfileConfig = {
   cdpPort?: number;
   /** CDP URL for this profile (use for remote Chrome). */
   cdpUrl?: string;
-  /** Explicit user data directory for existing-session Chrome MCP attachment. */
-  userDataDir?: string;
-  /** Profile driver (default: crawclaw). */
-  driver?: "crawclaw" | "clawd" | "existing-session";
-  /** If true, never launch a browser for this profile; only attach. Falls back to browser.attachOnly. */
-  attachOnly?: boolean;
   /** Profile color (hex). Auto-assigned at creation. */
   color: string;
 };
@@ -59,8 +53,6 @@ export type BrowserConfig = {
   headless?: boolean;
   /** Pass --no-sandbox to Chrome (Linux containers). Default: false */
   noSandbox?: boolean;
-  /** If true: never launch; only attach to an existing browser. Default: false */
-  attachOnly?: boolean;
   /** Starting local CDP port for auto-assigned browser profiles. Default derives from gateway port. */
   cdpPortRangeStart?: number;
   /** Default profile to use when profile param is omitted. Default: "chrome" */

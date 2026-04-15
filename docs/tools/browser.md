@@ -10,15 +10,14 @@ title: "Browser (CrawClaw-managed)"
 # Browser (crawclaw-managed)
 
 CrawClaw can run a browser session that the agent controls through **PinchTab**.
-It stays isolated from your personal browser unless you explicitly use a profile
-that attaches to an existing browser session.
+It stays isolated from your personal browser by default.
 
 Beginner view:
 
 - Think of it as a **separate, agent-only browser**.
 - The `crawclaw` profile does **not** touch your personal browser profile.
 - The agent can **open tabs, read pages, click, and type** in a safe lane.
-- The built-in `user` profile attaches to your real signed-in Chrome session via Chrome MCP.
+- New browser server behavior is standardized on the PinchTab backend.
 
 ## What you get
 
@@ -141,23 +140,18 @@ Typical symptoms:
 - `browser.request` is missing.
 - The agent reports the browser tool as unavailable or missing.
 
-## Profiles: `crawclaw` vs `user`
+## Profiles
 
-- `crawclaw`: managed, isolated browser (no extension required).
-- `user`: built-in Chrome MCP attach profile for your **real signed-in Chrome**
-  session.
+- `crawclaw`: managed, isolated browser backed by PinchTab.
+- additional named profiles: logical browser routes/config labels that still
+  resolve through the PinchTab-backed browser server.
 
 For agent browser tool calls:
 
 - Default: use the isolated `crawclaw` browser.
-- Prefer `profile="user"` when existing logged-in sessions matter and the user
-  is at the computer to click/approve any attach prompt.
 - `profile` is the explicit override when you want a specific browser mode.
 
 Set `browser.defaultProfile: "crawclaw"` if you want managed mode by default.
-
-If you migrated from an older install, you may still see the legacy managed
-profile name until you recreate or rename local browser profiles.
 
 ## Configuration
 
@@ -167,36 +161,20 @@ Browser settings live in `~/.crawclaw/crawclaw.json`.
 {
   browser: {
     enabled: true, // default: true
+    evaluateEnabled: true,
     ssrfPolicy: {
       dangerouslyAllowPrivateNetwork: true, // default trusted-network mode
       // allowPrivateNetwork: true, // legacy alias
       // hostnameAllowlist: ["*.example.com", "example.com"],
       // allowedHostnames: ["localhost"],
     },
-    // cdpUrl: "http://127.0.0.1:18792", // legacy single-profile override
-    remoteCdpTimeoutMs: 1500, // remote CDP HTTP timeout (ms)
-    remoteCdpHandshakeTimeoutMs: 3000, // remote CDP WebSocket handshake timeout (ms)
     defaultProfile: "crawclaw",
     color: "#FF4500",
     headless: false,
     noSandbox: false,
-    attachOnly: false,
-    executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
     profiles: {
-      crawclaw: { cdpPort: 18800, color: "#FF4500" },
-      work: { cdpPort: 18801, color: "#0066CC" },
-      user: {
-        driver: "existing-session",
-        attachOnly: true,
-        color: "#00AA00",
-      },
-      brave: {
-        driver: "existing-session",
-        attachOnly: true,
-        userDataDir: "~/Library/Application Support/BraveSoftware/Brave-Browser",
-        color: "#FB542B",
-      },
-      remote: { cdpUrl: "http://10.0.0.42:9222", color: "#00AA00" },
+      crawclaw: { color: "#FF4500" },
+      work: { color: "#0066CC" },
     },
   },
 }
@@ -204,61 +182,17 @@ Browser settings live in `~/.crawclaw/crawclaw.json`.
 
 Notes:
 
-- The legacy browser compatibility service binds to loopback on a port derived
-  from `gateway.port` (default: `18791`, which is gateway + 2).
+- The browser control service binds to loopback on a port derived from
+  `gateway.port` (default: `18791`, which is gateway + 2).
 - If you override the Gateway port (`gateway.port` or `CRAWCLAW_GATEWAY_PORT`),
   the derived browser ports shift to stay in the same “family”.
-- `cdpUrl` defaults to the managed local CDP port when unset.
-- `remoteCdpTimeoutMs` applies to remote (non-loopback) CDP reachability checks.
-- `remoteCdpHandshakeTimeoutMs` applies to remote CDP WebSocket reachability checks.
 - Browser navigation/open-tab is SSRF-guarded before navigation and best-effort re-checked on final `http(s)` URL after navigation.
-- In strict SSRF mode, remote CDP endpoint discovery/probes (`cdpUrl`, including `/json/version` lookups) are checked too.
 - `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork` defaults to `true` (trusted-network model). Set it to `false` for strict public-only browsing.
 - `browser.ssrfPolicy.allowPrivateNetwork` remains supported as a legacy alias for compatibility.
-- `attachOnly: true` means “never launch a local browser; only attach if it is already running.”
 - `color` + per-profile `color` tint the browser UI so you can see which profile is active.
-- Default profile is `crawclaw` (CrawClaw-managed standalone browser). Use `defaultProfile: "user"` to opt into the signed-in user browser.
-- Auto-detect order: system default browser if Chromium-based; otherwise Chrome → Brave → Edge → Chromium → Chrome Canary.
-- Local `crawclaw` profiles auto-assign `cdpPort`/`cdpUrl` — set those only for remote CDP.
-- `driver: "existing-session"` uses Chrome DevTools MCP instead of raw CDP. Do
-  not set `cdpUrl` for that driver.
-- Set `browser.profiles.<name>.userDataDir` when an existing-session profile
-  should attach to a non-default Chromium user profile such as Brave or Edge.
-
-## Use Brave (or another Chromium-based browser)
-
-If your **system default** browser is Chromium-based (Chrome/Brave/Edge/etc),
-CrawClaw uses it automatically. Set `browser.executablePath` to override
-auto-detection:
-
-CLI example:
-
-```bash
-crawclaw config set browser.executablePath "/usr/bin/google-chrome"
-```
-
-```json5
-// macOS
-{
-  browser: {
-    executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
-  }
-}
-
-// Windows
-{
-  browser: {
-    executablePath: "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
-  }
-}
-
-// Linux
-{
-  browser: {
-    executablePath: "/usr/bin/brave-browser"
-  }
-}
-```
+- Default profile is `crawclaw`.
+- The bundled browser server is PinchTab-only. Profile creation and runtime
+  control use managed `crawclaw` profiles.
 
 ## Local vs remote control
 
@@ -392,123 +326,23 @@ Remote CDP tips:
 
 CrawClaw supports multiple named profiles (routing configs). Profiles can be:
 
-- **crawclaw-managed**: a dedicated Chromium-based browser instance with its own user data directory + CDP port
-- **remote**: an explicit CDP URL (Chromium-based browser running elsewhere)
-- **existing session**: your existing Chrome profile via Chrome DevTools MCP auto-connect
+- **crawclaw-managed**: a dedicated managed browser profile routed through PinchTab
+- **remote**: run a node host on the machine that has the browser and let the Gateway proxy browser actions there
 
 Defaults:
 
 - The `crawclaw` profile is auto-created if missing.
-- The `user` profile is built-in for Chrome MCP existing-session attach.
-- Existing-session profiles are opt-in beyond `user`; create them with `--driver existing-session`.
 - Local CDP ports allocate from **18800–18899** by default.
 - Deleting a profile moves its local data directory to Trash.
 
 All control endpoints accept `?profile=<name>`; the CLI uses `--browser-profile`.
 
-## Existing-session via Chrome DevTools MCP
-
-CrawClaw can also attach to a running Chromium-based browser profile through the
-official Chrome DevTools MCP server. This reuses the tabs and login state
-already open in that browser profile.
-
-Official background and setup references:
-
-- [Chrome for Developers: Use Chrome DevTools MCP with your browser session](https://developer.chrome.com/blog/chrome-devtools-mcp-debug-your-browser-session)
-- [Chrome DevTools MCP README](https://github.com/ChromeDevTools/chrome-devtools-mcp)
-
-Built-in profile:
-
-- `user`
-
-Optional: create your own custom existing-session profile if you want a
-different name, color, or browser data directory.
-
-Default behavior:
-
-- The built-in `user` profile uses Chrome MCP auto-connect, which targets the
-  default local Google Chrome profile.
-
-Use `userDataDir` for Brave, Edge, Chromium, or a non-default Chrome profile:
-
-```json5
-{
-  browser: {
-    profiles: {
-      brave: {
-        driver: "existing-session",
-        attachOnly: true,
-        userDataDir: "~/Library/Application Support/BraveSoftware/Brave-Browser",
-        color: "#FB542B",
-      },
-    },
-  },
-}
-```
-
-Then in the matching browser:
-
-1. Open that browser's inspect page for remote debugging.
-2. Enable remote debugging.
-3. Keep the browser running and approve the connection prompt when CrawClaw attaches.
-
-Common inspect pages:
-
-- Chrome: `chrome://inspect/#remote-debugging`
-- Brave: `brave://inspect/#remote-debugging`
-- Edge: `edge://inspect/#remote-debugging`
-
-Live attach smoke test:
-
-```bash
-crawclaw browser --browser-profile user start
-crawclaw browser --browser-profile user status
-crawclaw browser --browser-profile user tabs
-crawclaw browser --browser-profile user snapshot --format ai
-```
-
-What success looks like:
-
-- `status` shows `driver: existing-session`
-- `status` shows `transport: chrome-mcp`
-- `status` shows `running: true`
-- `tabs` lists your already-open browser tabs
-- `snapshot` returns refs from the selected live tab
-
-What to check if attach does not work:
-
-- the target Chromium-based browser is version `144+`
-- remote debugging is enabled in that browser's inspect page
-- the browser showed and you accepted the attach consent prompt
-- `crawclaw doctor` migrates old extension-based browser config and checks that
-  Chrome is installed locally for default auto-connect profiles, but it cannot
-  enable browser-side remote debugging for you
-
-Agent use:
-
-- Use `profile="user"` when you need the user’s logged-in browser state.
-- If you use a custom existing-session profile, pass that explicit profile name.
-- Only choose this mode when the user is at the computer to approve the attach
-  prompt.
-- the Gateway or node host can spawn `npx chrome-devtools-mcp@latest --autoConnect`
-
 Notes:
 
 - This path is higher-risk than the isolated `crawclaw` profile because it can
   act inside your signed-in browser session.
-- CrawClaw does not launch the browser for this driver; it attaches to an
-  existing session only.
-- CrawClaw uses the official Chrome DevTools MCP `--autoConnect` flow here. If
-  `userDataDir` is set, CrawClaw passes it through to target that explicit
-  Chromium user data directory.
-- Existing-session screenshots support page captures and `--ref` element
-  captures from snapshots, but not CSS `--element` selectors.
-- Existing-session `wait --url` supports exact, substring, and glob patterns
-  like other browser drivers. `wait --load networkidle` is not supported yet.
-- Some features still require the managed browser path, such as PDF export and
-  download interception.
-- Existing-session is host-local. If Chrome lives on a different machine or a
-  different network namespace, use remote CDP or a node host instead.
+- For a browser running on another host or namespace, use remote CDP or a node
+  host instead of treating it as a local managed profile.
 
 ## Isolation guarantees
 
@@ -558,29 +392,15 @@ If gateway auth is configured, browser HTTP routes require auth too:
 - `Authorization: Bearer <gateway token>`
 - `x-crawclaw-password: <gateway password>` or HTTP Basic auth with that password
 
-### Playwright requirement
+### Unified backend note
 
-Some features (navigate/act/AI snapshot/role snapshot, element screenshots, PDF) require
-Playwright. If Playwright isn’t installed, those endpoints return a clear 501
-error. ARIA snapshots and basic screenshots still work for crawclaw-managed Chrome.
+The bundled browser server now uses a single PinchTab backend.
 
-If you see `Playwright is not available in this gateway build`, install the full
-Playwright package (not `playwright-core`) and restart the gateway, or reinstall
-CrawClaw with browser support.
+Practical guidance:
 
-#### Docker Playwright install
-
-If your Gateway runs in Docker, avoid `npx playwright` (npm override conflicts).
-Use the bundled CLI instead:
-
-```bash
-docker compose run --rm crawclaw-cli \
-  node /app/node_modules/playwright-core/cli.js install chromium
-```
-
-To persist browser downloads, set `PLAYWRIGHT_BROWSERS_PATH` (for example,
-`/home/node/.cache/ms-playwright`) and make sure `/home/node` is persisted via
-`CRAWCLAW_HOME_VOLUME` or a bind mount. See [Docker](/install/docker).
+- Prefer the default managed `crawclaw` profile.
+- If a browser server endpoint returns `501`, that usually means the capability
+  has not been exposed on the unified PinchTab backend yet.
 
 ## How it works (internal)
 
@@ -588,14 +408,15 @@ High-level flow:
 
 - The bundled browser plugin routes calls through **PinchTab** on `host`,
   `sandbox`, or `node`.
-- PinchTab connects to Chromium-based browsers (Chrome/Brave/Edge/Chromium)
-  via **CDP** or Chrome DevTools MCP depending on the selected profile.
-- For advanced actions (click/type/snapshot/PDF), it uses **Playwright** on top
-  of the active browser session.
-- When Playwright is missing, only non-Playwright operations are available.
+- The browser control server now uses the same PinchTab backend for browser
+  lifecycle and tab management endpoints such as status/start/stop/reset and
+  tab list/open/focus/close, so CLI and HTTP entrypoints share the same runtime
+  for these operations.
+- PinchTab is the single execution backend for the bundled browser server and
+  tool routes on `host`, `sandbox`, and `node`.
 
 This design keeps the agent on a stable, deterministic interface while letting
-you swap local/remote browsers and profiles.
+you keep browser automation on one control plane.
 
 ## CLI quick reference
 

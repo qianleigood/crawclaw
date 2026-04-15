@@ -397,7 +397,6 @@ export const CrawClawSchema = z
         executablePath: z.string().optional(),
         headless: z.boolean().optional(),
         noSandbox: z.boolean().optional(),
-        attachOnly: z.boolean().optional(),
         cdpPortRangeStart: z.number().int().min(1).max(65535).optional(),
         defaultProfile: z.string().optional(),
         snapshotDefaults: BrowserSnapshotDefaultsSchema,
@@ -419,23 +418,9 @@ export const CrawClawSchema = z
               .object({
                 cdpPort: z.number().int().min(1).max(65535).optional(),
                 cdpUrl: z.string().optional(),
-                userDataDir: z.string().optional(),
-                driver: z
-                  .union([z.literal("crawclaw"), z.literal("clawd"), z.literal("existing-session")])
-                  .optional(),
-                attachOnly: z.boolean().optional(),
                 color: HexColorSchema,
               })
-              .strict()
-              .refine(
-                (value) => value.driver === "existing-session" || value.cdpPort || value.cdpUrl,
-                {
-                  message: "Profile must set cdpPort or cdpUrl",
-                },
-              )
-              .refine((value) => value.driver === "existing-session" || !value.userDataDir, {
-                message: 'Profile userDataDir is only supported with driver="existing-session"',
-              }),
+              .strict(),
           )
           .optional(),
         extraArgs: z.array(z.string()).optional(),
@@ -603,7 +588,7 @@ export const CrawClawSchema = z
       .superRefine((val, ctx) => {
         if (val.sessionRetention !== undefined && val.sessionRetention !== false) {
           try {
-            parseDurationMs(String(val.sessionRetention).trim(), { defaultUnit: "h" });
+            parseDurationMs(val.sessionRetention.trim(), { defaultUnit: "h" });
           } catch {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,

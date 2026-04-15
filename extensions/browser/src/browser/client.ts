@@ -1,11 +1,11 @@
 import { fetchBrowserJson } from "./client-fetch.js";
 
-export type BrowserTransport = "cdp" | "chrome-mcp";
+export type BrowserTransport = "pinchtab";
 
 export type BrowserStatus = {
   enabled: boolean;
   profile?: string;
-  driver?: "crawclaw" | "existing-session";
+  driver?: "crawclaw";
   transport?: BrowserTransport;
   running: boolean;
   cdpReady?: boolean;
@@ -17,12 +17,10 @@ export type BrowserStatus = {
   detectedBrowser?: string | null;
   detectedExecutablePath?: string | null;
   detectError?: string | null;
-  userDataDir: string | null;
   color: string;
   headless: boolean;
   noSandbox?: boolean;
   executablePath?: string | null;
-  attachOnly: boolean;
 };
 
 export type ProfileStatus = {
@@ -31,7 +29,7 @@ export type ProfileStatus = {
   cdpPort: number | null;
   cdpUrl: string | null;
   color: string;
-  driver: "crawclaw" | "existing-session";
+  driver: "crawclaw";
   running: boolean;
   tabCount: number;
   isDefault: boolean;
@@ -162,7 +160,6 @@ export type BrowserCreateProfileResult = {
   transport?: BrowserTransport;
   cdpPort: number | null;
   cdpUrl: string | null;
-  userDataDir: string | null;
   color: string;
   isRemote: boolean;
 };
@@ -172,9 +169,6 @@ export async function browserCreateProfile(
   opts: {
     name: string;
     color?: string;
-    cdpUrl?: string;
-    userDataDir?: string;
-    driver?: "crawclaw" | "existing-session";
   },
 ): Promise<BrowserCreateProfileResult> {
   return await fetchBrowserJson<BrowserCreateProfileResult>(
@@ -185,9 +179,6 @@ export async function browserCreateProfile(
       body: JSON.stringify({
         name: opts.name,
         color: opts.color,
-        cdpUrl: opts.cdpUrl,
-        userDataDir: opts.userDataDir,
-        driver: opts.driver,
       }),
       timeoutMs: 10000,
     },

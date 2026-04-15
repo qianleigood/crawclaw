@@ -1,7 +1,7 @@
 import type { Server } from "node:http";
 import express from "express";
 import type { BrowserRouteRegistrar } from "./browser/routes/types.js";
-import type { BrowserServerState } from "./browser/server-context.js";
+import type { BrowserServerState } from "./browser/server-context.types.js";
 
 type BrowserControlAuth = {
   token?: string;

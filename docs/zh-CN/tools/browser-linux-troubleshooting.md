@@ -67,7 +67,6 @@ sudo apt --fix-broken install -y  # if there are dependency errors
 {
   "browser": {
     "enabled": true,
-    "attachOnly": true,
     "headless": true,
     "noSandbox": true
   }
@@ -119,24 +118,23 @@ curl -s http://127.0.0.1:18791/tabs
 
 ### 配置参考
 
-| 选项                     | 描述                                                          | 默认值                                           |
-| ------------------------ | ------------------------------------------------------------- | ------------------------------------------------ |
-| `browser.enabled`        | 启用浏览器控制                                                | `true`                                           |
-| `browser.executablePath` | Chromium 系浏览器二进制文件路径（Chrome/Brave/Edge/Chromium） | 自动检测（当默认浏览器是 Chromium 系时优先使用） |
-| `browser.headless`       | 无 GUI 运行                                                   | `false`                                          |
-| `browser.noSandbox`      | 添加 `--no-sandbox` 标志（某些 Linux 设置需要）               | `false`                                          |
-| `browser.attachOnly`     | 不启动浏览器，仅附加到现有浏览器                              | `false`                                          |
-| `browser.cdpPort`        | Chrome DevTools Protocol 端口                                 | `18800`                                          |
+| 选项                        | 描述                                                          | 默认值                                           |
+| --------------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
+| `browser.enabled`           | 启用浏览器控制                                                | `true`                                           |
+| `browser.executablePath`    | Chromium 系浏览器二进制文件路径（Chrome/Brave/Edge/Chromium） | 自动检测（当默认浏览器是 Chromium 系时优先使用） |
+| `browser.headless`          | 无 GUI 运行                                                   | `false`                                          |
+| `browser.noSandbox`         | 添加 `--no-sandbox` 标志（某些 Linux 设置需要）               | `false`                                          |
+| `browser.cdpPortRangeStart` | 托管本地浏览器配置文件的起始端口                              | 从 `gateway.port` 派生                           |
 
-### 问题："Chrome extension relay is running, but no tab is connected"
+### 问题：`curl` 能访问 remote CDP，但 CrawClaw 仍然无法使用
 
-你正在使用 `chrome` 配置文件（扩展中继）。它期望 CrawClaw 浏览器扩展附加到一个活动标签页。
+你正在使用 remote CDP 配置文件。端点能响应，但 CrawClaw 仍无法完成浏览器操作。
 
 修复选项：
 
 1. **使用托管浏览器：** `crawclaw browser start --browser-profile crawclaw`
    （或设置 `browser.defaultProfile: "crawclaw"`）。
-2. **使用扩展中继：** 安装扩展，打开一个标签页，然后点击 CrawClaw 扩展图标来附加它。
+2. **使用 remote CDP：** 确认 `browser.profiles.<name>.cdpUrl` 对 CrawClaw 所在主机/命名空间仍然可达。
 
 注意事项：
 

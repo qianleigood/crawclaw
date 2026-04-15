@@ -4,9 +4,12 @@ import { createSubsystemLogger } from "../logging/subsystem.js";
 import { isDefaultBrowserPluginEnabled } from "../plugin-enabled.js";
 import { resolveBrowserConfig } from "./config.js";
 import { ensureBrowserControlAuth, resolveBrowserControlAuth } from "./control-auth.js";
+import { createPinchTabBrowserRouteContext } from "./pinchtab-route-context.js";
+import {
+  createPinchTabBrowserRuntimeState,
+  stopPinchTabBrowserRuntime,
+} from "./pinchtab-runtime-lifecycle.js";
 import { registerBrowserRoutes } from "./routes/index.js";
-import { createBrowserRuntimeState, stopBrowserRuntime } from "./runtime-lifecycle.js";
-import { createBrowserRouteContext } from "./server-context.js";
 import {
   installBrowserAuthMiddleware,
   installBrowserCommonMiddleware,
@@ -24,10 +27,10 @@ const controller = createBrowserControlServerController({
     ensureBrowserControlAuth,
     installBrowserCommonMiddleware,
     installBrowserAuthMiddleware,
-    createBrowserRouteContext,
+    createBrowserRouteContext: createPinchTabBrowserRouteContext,
     registerBrowserRoutes,
-    createBrowserRuntimeState,
-    stopBrowserRuntime,
+    createBrowserRuntimeState: createPinchTabBrowserRuntimeState,
+    stopBrowserRuntime: stopPinchTabBrowserRuntime,
   },
   log: logServer,
 });

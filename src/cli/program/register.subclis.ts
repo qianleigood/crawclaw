@@ -244,6 +244,15 @@ const entries: SubCliEntry[] = [
     },
   },
   {
+    name: "runtimes",
+    description: "Install, inspect, and repair plugin runtimes",
+    hasSubcommands: true,
+    register: async (program) => {
+      const mod = await import("../runtimes-cli.js");
+      mod.registerRuntimesCli(program);
+    },
+  },
+  {
     name: "plugins",
     description: "Manage CrawClaw plugins and extensions",
     hasSubcommands: true,

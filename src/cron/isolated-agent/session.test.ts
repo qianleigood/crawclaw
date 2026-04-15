@@ -104,14 +104,14 @@ describe("resolveCronSession", () => {
     it("reuses existing sessionId when session is fresh", () => {
       const result = resolveWithStoredEntry({
         entry: {
-          sessionId: "existing-session-id-123",
+          sessionId: "reused-session-id-123",
           updatedAt: NOW_MS - 1000,
           systemSent: true,
         },
         fresh: true,
       });
 
-      expect(result.sessionEntry.sessionId).toBe("existing-session-id-123");
+      expect(result.sessionEntry.sessionId).toBe("reused-session-id-123");
       expect(result.isNewSession).toBe(false);
       expect(result.systemSent).toBe(true);
       expect(clearBootstrapSnapshot).not.toHaveBeenCalled();
@@ -142,7 +142,7 @@ describe("resolveCronSession", () => {
     it("creates new sessionId when forceNew is true", () => {
       const result = resolveWithStoredEntry({
         entry: {
-          sessionId: "existing-session-id-456",
+          sessionId: "reused-session-id-456",
           updatedAt: NOW_MS - 1000,
           systemSent: true,
           modelOverride: "sonnet-4",
@@ -152,7 +152,7 @@ describe("resolveCronSession", () => {
         forceNew: true,
       });
 
-      expect(result.sessionEntry.sessionId).not.toBe("existing-session-id-456");
+      expect(result.sessionEntry.sessionId).not.toBe("reused-session-id-456");
       expect(result.isNewSession).toBe(true);
       expect(result.systemSent).toBe(false);
       expect(result.sessionEntry.modelOverride).toBe("sonnet-4");
@@ -163,7 +163,7 @@ describe("resolveCronSession", () => {
     it("clears delivery routing metadata and deliveryContext when forceNew is true", () => {
       const result = resolveWithStoredEntry({
         entry: {
-          sessionId: "existing-session-id-789",
+          sessionId: "reused-session-id-789",
           updatedAt: NOW_MS - 1000,
           systemSent: true,
           lastChannel: "slack" as never,
@@ -222,7 +222,7 @@ describe("resolveCronSession", () => {
     it("preserves delivery routing metadata when reusing fresh session", () => {
       const result = resolveWithStoredEntry({
         entry: {
-          sessionId: "existing-session-id-101",
+          sessionId: "reused-session-id-101",
           updatedAt: NOW_MS - 1000,
           systemSent: true,
           lastChannel: "slack" as never,

@@ -314,7 +314,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
 });
 
 describe("resolveCliBackendConfig google-gemini-cli defaults", () => {
-  it("uses Gemini CLI json args and existing-session resume mode", () => {
+  it("uses Gemini CLI json args and existing resume mode", () => {
     const resolved = resolveCliBackendConfig("google-gemini-cli");
 
     expect(resolved).not.toBeNull();

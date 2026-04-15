@@ -5,12 +5,9 @@ import {
   browserConsoleMessages,
   browserSnapshot,
   browserTabs,
-  getBrowserProfileCapabilities,
   imageResultFromFile,
-  jsonResult,
   loadConfig,
-  resolveBrowserConfig,
-  resolveProfile,
+  jsonResult,
   wrapExternalContent,
 } from "./core-api.js";
 
@@ -110,47 +107,6 @@ function formatConsoleToolResult(result: {
       messageCount: Array.isArray(result.messages) ? result.messages.length : undefined,
     },
   };
-}
-
-function isChromeStaleTargetError(profile: string | undefined, err: unknown): boolean {
-  if (!profile) {
-    return false;
-  }
-  if (profile === "user") {
-    const msg = String(err);
-    return msg.includes("404:") && msg.includes("tab not found");
-  }
-  const cfg = browserToolActionDeps.loadConfig();
-  const resolved = resolveBrowserConfig(cfg.browser, cfg);
-  const browserProfile = resolveProfile(resolved, profile);
-  if (!browserProfile || !getBrowserProfileCapabilities(browserProfile).usesChromeMcp) {
-    return false;
-  }
-  const msg = String(err);
-  return msg.includes("404:") && msg.includes("tab not found");
-}
-
-function stripTargetIdFromActRequest(
-  request: Parameters<typeof browserAct>[1],
-): Parameters<typeof browserAct>[1] | null {
-  const targetId = typeof request.targetId === "string" ? request.targetId.trim() : undefined;
-  if (!targetId) {
-    return null;
-  }
-  const retryRequest = { ...request };
-  delete retryRequest.targetId;
-  return retryRequest as Parameters<typeof browserAct>[1];
-}
-
-function canRetryChromeActWithoutTargetId(request: Parameters<typeof browserAct>[1]): boolean {
-  const typedRequest = request as Partial<Record<"kind" | "action", unknown>>;
-  const kind =
-    typeof typedRequest.kind === "string"
-      ? typedRequest.kind
-      : typeof typedRequest.action === "string"
-        ? typedRequest.action
-        : "";
-  return kind === "hover" || kind === "scrollIntoView" || kind === "wait";
 }
 
 export async function executeTabsAction(params: {
@@ -356,47 +312,6 @@ export async function executeActAction(params: {
         });
     return jsonResult(result);
   } catch (err) {
-    if (isChromeStaleTargetError(profile, err)) {
-      const retryRequest = stripTargetIdFromActRequest(request);
-      const tabs = proxyRequest
-        ? ((
-            (await proxyRequest({
-              method: "GET",
-              path: "/tabs",
-              profile,
-            })) as { tabs?: unknown[] }
-          ).tabs ?? [])
-        : await browserToolActionDeps.browserTabs(baseUrl, { profile }).catch(() => []);
-      // Some user-browser targetIds can go stale between snapshots and actions.
-      // Only retry safe read-only actions, and only when exactly one tab remains attached.
-      if (retryRequest && canRetryChromeActWithoutTargetId(request) && tabs.length === 1) {
-        try {
-          const retryResult = proxyRequest
-            ? await proxyRequest({
-                method: "POST",
-                path: "/act",
-                profile,
-                body: retryRequest,
-              })
-            : await browserToolActionDeps.browserAct(baseUrl, retryRequest, {
-                profile,
-              });
-          return jsonResult(retryResult);
-        } catch {
-          // Fall through to explicit stale-target guidance.
-        }
-      }
-      if (!tabs.length) {
-        throw new Error(
-          `No browser tabs found for profile="${profile}". Make sure the configured Chromium-based browser (v144+) is running and has open tabs, then retry.`,
-          { cause: err },
-        );
-      }
-      throw new Error(
-        `Chrome tab not found (stale targetId?). Run action=tabs profile="${profile}" and use one of the returned targetIds.`,
-        { cause: err },
-      );
-    }
     throw err;
   }
 }

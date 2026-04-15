@@ -121,7 +121,6 @@ function buildSandboxBrowserResolvedConfig(params: {
     executablePath: undefined,
     headless: params.headless,
     noSandbox: false,
-    attachOnly: true,
     defaultProfile: DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME,
     extraArgs: [],
     profiles: {

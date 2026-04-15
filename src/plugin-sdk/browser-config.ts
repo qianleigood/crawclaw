@@ -1,21 +1,19 @@
 import path from "node:path";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveGatewayPort } from "../config/paths.js";
-import type { BrowserConfig, BrowserProfileConfig } from "../config/types.browser.js";
 import {
   DEFAULT_BROWSER_CONTROL_PORT,
   deriveDefaultBrowserCdpPortRange,
   deriveDefaultBrowserControlPort,
 } from "../config/port-defaults.js";
+import type { BrowserConfig, BrowserProfileConfig } from "../config/types.browser.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { isLoopbackHost } from "../gateway/net.js";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import { resolvePreferredCrawClawTmpDir } from "../infra/tmp-crawclaw-dir.js";
 import { redactSensitiveText } from "../logging/redact.js";
-import { resolveUserPath } from "../utils.js";
 import {
   ensureDefaultProfile,
-  ensureDefaultUserBrowserProfile,
   normalizeHexColor,
   normalizeTimeoutMs,
   parseBrowserHttpUrl,
@@ -75,7 +73,6 @@ export type ResolvedBrowserConfig = {
   executablePath?: string;
   headless: boolean;
   noSandbox: boolean;
-  attachOnly: boolean;
   defaultProfile: string;
   profiles: Record<string, BrowserProfileConfig>;
   ssrfPolicy?: SsrFPolicy;
@@ -88,10 +85,8 @@ export type ResolvedBrowserProfile = {
   cdpUrl: string;
   cdpHost: string;
   cdpIsLoopback: boolean;
-  userDataDir?: string;
   color: string;
-  driver: "crawclaw" | "existing-session";
-  attachOnly: boolean;
+  driver: "crawclaw";
 };
 
 export { parseBrowserHttpUrl } from "./browser-config-helpers.js";
@@ -147,23 +142,20 @@ export function resolveBrowserConfig(
 
   const headless = cfg?.headless === true;
   const noSandbox = cfg?.noSandbox === true;
-  const attachOnly = cfg?.attachOnly === true;
   const executablePath = cfg?.executablePath?.trim() || undefined;
 
   const defaultProfileFromConfig = cfg?.defaultProfile?.trim() || undefined;
   const legacyCdpPort = rawCdpUrl ? cdpInfo.port : undefined;
   const isWsUrl = cdpInfo.parsed.protocol === "ws:" || cdpInfo.parsed.protocol === "wss:";
   const legacyCdpUrl = rawCdpUrl && isWsUrl ? cdpInfo.normalized : undefined;
-  const profiles = ensureDefaultUserBrowserProfile(
-    ensureDefaultProfile({
-      profiles: cfg?.profiles,
-      defaultProfileName: DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME,
-      defaultColor,
-      legacyCdpPort,
-      fallbackCdpPort: cdpPortRangeStart ?? CDP_PORT_RANGE_START,
-      legacyCdpUrl,
-    }),
-  );
+  const profiles = ensureDefaultProfile({
+    profiles: cfg?.profiles,
+    defaultProfileName: DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME,
+    defaultColor,
+    legacyCdpPort,
+    fallbackCdpPort: cdpPortRangeStart ?? CDP_PORT_RANGE_START,
+    legacyCdpUrl,
+  });
   const cdpProtocol = cdpInfo.parsed.protocol === "https:" ? "https" : "http";
 
   const defaultProfile =
@@ -172,7 +164,7 @@ export function resolveBrowserConfig(
       ? DEFAULT_BROWSER_DEFAULT_PROFILE_NAME
       : profiles[DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME]
         ? DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME
-        : "user");
+        : DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME);
 
   const extraArgs = Array.isArray(cfg?.extraArgs)
     ? cfg.extraArgs.filter((a): a is string => typeof a === "string" && a.trim().length > 0)
@@ -193,7 +185,6 @@ export function resolveBrowserConfig(
     executablePath,
     headless,
     noSandbox,
-    attachOnly,
     defaultProfile,
     profiles,
     ssrfPolicy,
@@ -214,21 +205,7 @@ export function resolveProfile(
   let cdpHost = resolved.cdpHost;
   let cdpPort = profile.cdpPort ?? 0;
   let cdpUrl = "";
-  const driver = profile.driver === "existing-session" ? "existing-session" : "crawclaw";
-
-  if (driver === "existing-session") {
-    return {
-      name: profileName,
-      cdpPort: 0,
-      cdpUrl: "",
-      cdpHost: "",
-      cdpIsLoopback: true,
-      userDataDir: resolveUserPath(profile.userDataDir?.trim() || "") || undefined,
-      color: profile.color,
-      driver,
-      attachOnly: true,
-    };
-  }
+  const driver = "crawclaw";
 
   const hasStaleWsPath =
     rawProfileUrl !== "" &&
@@ -259,7 +236,6 @@ export function resolveProfile(
     cdpIsLoopback: isLoopbackHost(cdpHost),
     color: profile.color,
     driver,
-    attachOnly: profile.attachOnly ?? resolved.attachOnly,
   };
 }
 

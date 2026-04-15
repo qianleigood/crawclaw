@@ -319,43 +319,7 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
     if ("relayBindHost" in browser) {
       delete browser.relayBindHost;
       browserChanged = true;
-      changes.push(
-        "Removed browser.relayBindHost (legacy Chrome extension relay setting; host-local Chrome now uses Chrome MCP existing-session attach).",
-      );
-    }
-
-    const rawProfiles = browser.profiles;
-    if (!isRecord(rawProfiles)) {
-      if (!browserChanged) {
-        return;
-      }
-      next = { ...next, browser };
-      return;
-    }
-
-    const profiles = { ...rawProfiles };
-    let profilesChanged = false;
-    for (const [profileName, rawProfile] of Object.entries(rawProfiles)) {
-      if (!isRecord(rawProfile)) {
-        continue;
-      }
-      const rawDriver = typeof rawProfile.driver === "string" ? rawProfile.driver.trim() : "";
-      if (rawDriver !== "extension") {
-        continue;
-      }
-      profiles[profileName] = {
-        ...rawProfile,
-        driver: "existing-session",
-      };
-      profilesChanged = true;
-      changes.push(
-        `Moved browser.profiles.${profileName}.driver "extension" → "existing-session" (Chrome MCP attach).`,
-      );
-    }
-
-    if (profilesChanged) {
-      browser.profiles = profiles;
-      browserChanged = true;
+      changes.push("Removed browser.relayBindHost (legacy browser relay setting).");
     }
 
     if (!browserChanged) {

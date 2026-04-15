@@ -1,7 +1,6 @@
 /**
- * Shared ARIA role classification sets used by both the Playwright and Chrome MCP
- * snapshot paths. Keep these in sync — divergence causes the two drivers to produce
- * different snapshot output for the same page.
+ * Shared ARIA role classification sets used by browser snapshot paths.
+ * Keep these in sync — divergence causes different snapshot output for the same page.
  */
 
 /** Roles that represent user-interactive elements and always get a ref. */

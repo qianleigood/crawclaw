@@ -10,6 +10,6 @@ title: "docs"
 Search the live docs index.
 
 ```bash
-crawclaw docs browser existing-session
+crawclaw docs browser remote-cdp
 crawclaw docs sandbox allowHostControl
 ```

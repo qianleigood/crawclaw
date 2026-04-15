@@ -324,15 +324,14 @@ flowchart TD
     Good output looks like:
 
     - Browser status shows `running: true` and a chosen browser/profile.
-    - `crawclaw` starts, or `user` can see local Chrome tabs.
+    - `crawclaw` starts, or a remote CDP profile is reachable.
 
     Common log signatures:
 
     - `unknown command "browser"` or `unknown command 'browser'` → `plugins.allow` is set and does not include `browser`.
     - `Failed to start Chrome CDP on port` → local browser launch failed.
     - `browser.executablePath not found` → configured binary path is wrong.
-    - `No Chrome tabs found for profile="user"` → the Chrome MCP attach profile has no open local Chrome tabs.
-    - `Browser attachOnly is enabled ... not reachable` → attach-only profile has no live CDP target.
+    - `Remote CDP for profile "<name>" is not reachable` → configured remote CDP endpoint is unreachable.
 
     Deep pages:
 

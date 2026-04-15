@@ -1,4 +1,4 @@
-import type { BrowserRouteContext } from "../server-context.js";
+import type { BrowserRouteContext } from "../server-context.types.js";
 import { registerBrowserAgentActRoutes } from "./agent.act.js";
 import { registerBrowserAgentDebugRoutes } from "./agent.debug.js";
 import { registerBrowserAgentSnapshotRoutes } from "./agent.snapshot.js";

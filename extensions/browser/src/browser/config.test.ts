@@ -23,12 +23,7 @@ describe("browser config", () => {
     expect(crawclaw?.driver).toBe("crawclaw");
     expect(crawclaw?.cdpPort).toBe(18800);
     expect(crawclaw?.cdpUrl).toBe("http://127.0.0.1:18800");
-    const user = resolveProfile(resolved, "user");
-    expect(user?.driver).toBe("existing-session");
-    expect(user?.cdpPort).toBe(0);
-    expect(user?.cdpUrl).toBe("");
-    expect(user?.userDataDir).toBeUndefined();
-    // chrome-relay is no longer auto-created
+    expect(resolveProfile(resolved, "user")).toBe(null);
     expect(resolveProfile(resolved, "chrome-relay")).toBe(null);
     expect(resolved.remoteCdpTimeoutMs).toBe(1500);
     expect(resolved.remoteCdpHandshakeTimeoutMs).toBe(3000);
@@ -128,30 +123,6 @@ describe("browser config", () => {
     expect(remote?.cdpIsLoopback).toBe(false);
   });
 
-  it("inherits attachOnly from global browser config when profile override is not set", () => {
-    const resolved = resolveBrowserConfig({
-      attachOnly: true,
-      profiles: {
-        remote: { cdpUrl: "http://127.0.0.1:9222", color: "#0066CC" },
-      },
-    });
-
-    const remote = resolveProfile(resolved, "remote");
-    expect(remote?.attachOnly).toBe(true);
-  });
-
-  it("allows profile attachOnly to override global browser attachOnly", () => {
-    const resolved = resolveBrowserConfig({
-      attachOnly: false,
-      profiles: {
-        remote: { cdpUrl: "http://127.0.0.1:9222", attachOnly: true, color: "#0066CC" },
-      },
-    });
-
-    const remote = resolveProfile(resolved, "remote");
-    expect(remote?.attachOnly).toBe(true);
-  });
-
   it("uses base protocol for profiles with only cdpPort", () => {
     const resolved = resolveBrowserConfig({
       cdpUrl: "https://example.com:9443",
@@ -196,7 +167,6 @@ describe("browser config", () => {
         "chrome-cdp": {
           cdpPort: 9222,
           cdpUrl: "ws://127.0.0.1:9222/devtools/browser/old-stale-id",
-          attachOnly: true,
           color: "#F59E0B",
         },
       },
@@ -206,7 +176,6 @@ describe("browser config", () => {
     expect(profile?.cdpUrl).toBe("http://127.0.0.1:9222");
     expect(profile?.cdpPort).toBe(9222);
     expect(profile?.cdpIsLoopback).toBe(true);
-    expect(profile?.attachOnly).toBe(true);
   });
 
   it("preserves profile host when dropping stale devtools WS path", () => {
@@ -297,56 +266,12 @@ describe("browser config", () => {
     expect(resolved.ssrfPolicy).toEqual({});
   });
 
-  it("resolves existing-session profiles without cdpPort or cdpUrl", () => {
+  it("sets usesChromeMcp false for managed profiles", () => {
     const resolved = resolveBrowserConfig({
       profiles: {
-        "chrome-live": {
-          driver: "existing-session",
-          attachOnly: true,
-          color: "#00AA00",
-        },
-      },
-    });
-    const profile = resolveProfile(resolved, "chrome-live");
-    expect(profile).not.toBeNull();
-    expect(profile?.driver).toBe("existing-session");
-    expect(profile?.attachOnly).toBe(true);
-    expect(profile?.cdpPort).toBe(0);
-    expect(profile?.cdpUrl).toBe("");
-    expect(profile?.cdpIsLoopback).toBe(true);
-    expect(profile?.userDataDir).toBeUndefined();
-    expect(profile?.color).toBe("#00AA00");
-  });
-
-  it("expands tilde-prefixed userDataDir for existing-session profiles", () => {
-    const resolved = resolveBrowserConfig({
-      profiles: {
-        brave: {
-          driver: "existing-session",
-          attachOnly: true,
-          userDataDir: "~/Library/Application Support/BraveSoftware/Brave-Browser",
-          color: "#FB542B",
-        },
-      },
-    });
-
-    const profile = resolveProfile(resolved, "brave");
-    expect(profile?.driver).toBe("existing-session");
-    expect(profile?.userDataDir).toBe(
-      resolveUserPath("~/Library/Application Support/BraveSoftware/Brave-Browser"),
-    );
-  });
-
-  it("sets usesChromeMcp only for existing-session profiles", () => {
-    const resolved = resolveBrowserConfig({
-      profiles: {
-        "chrome-live": { driver: "existing-session", attachOnly: true, color: "#00AA00" },
         work: { cdpPort: 18801, color: "#0066CC" },
       },
     });
-
-    const existingSession = resolveProfile(resolved, "chrome-live")!;
-    expect(getBrowserProfileCapabilities(existingSession).usesChromeMcp).toBe(true);
 
     const managed = resolveProfile(resolved, "crawclaw")!;
     expect(getBrowserProfileCapabilities(managed).usesChromeMcp).toBe(false);
@@ -389,17 +314,17 @@ describe("browser config", () => {
     it("explicit defaultProfile config overrides defaults in headless mode", () => {
       const resolved = resolveBrowserConfig({
         headless: true,
-        defaultProfile: "user",
+        defaultProfile: "crawclaw",
       });
-      expect(resolved.defaultProfile).toBe("user");
+      expect(resolved.defaultProfile).toBe("crawclaw");
     });
 
     it("explicit defaultProfile config overrides defaults in noSandbox mode", () => {
       const resolved = resolveBrowserConfig({
         noSandbox: true,
-        defaultProfile: "user",
+        defaultProfile: "crawclaw",
       });
-      expect(resolved.defaultProfile).toBe("user");
+      expect(resolved.defaultProfile).toBe("crawclaw");
     });
 
     it("allows custom profile as default even in headless mode", () => {

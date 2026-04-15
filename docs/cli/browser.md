@@ -1,9 +1,8 @@
 ---
-summary: "CLI reference for `crawclaw browser` (profiles, tabs, actions, Chrome MCP, and CDP)"
+summary: "CLI reference for `crawclaw browser` (PinchTab-backed browser automation)"
 read_when:
   - You use `crawclaw browser` and want examples for common tasks
   - You want to control a browser running on another machine via a node host
-  - You want to attach to your local signed-in Chrome via Chrome MCP
 title: "browser"
 ---
 
@@ -57,9 +56,9 @@ Related: [Browser tool](/tools/browser#missing-browser-command-or-tool)
 
 Profiles are named browser routing configs. In practice:
 
-- `crawclaw`: launches or attaches to a dedicated CrawClaw-managed Chrome instance (isolated user data dir).
-- `user`: controls your existing signed-in Chrome session via Chrome DevTools MCP.
-- custom CDP profiles: point at a local or remote CDP endpoint.
+- `crawclaw`: the default managed browser profile.
+- additional profiles: named browser routes/config labels that still run through
+  the bundled PinchTab-backed browser server.
 
 If you migrated from an older CrawClaw install, you may still see the legacy
 managed profile name `crawclaw` until you recreate or rename local browser
@@ -68,7 +67,6 @@ profiles.
 ```bash
 crawclaw browser profiles
 crawclaw browser create-profile --name work --color "#FF5A36"
-crawclaw browser create-profile --name chrome-live --driver existing-session
 crawclaw browser delete-profile --name work
 ```
 
@@ -109,18 +107,11 @@ crawclaw browser click <ref>
 crawclaw browser type <ref> "hello"
 ```
 
-## Existing Chrome via MCP
+## Managed profiles
 
-Use the built-in `user` profile, or create your own `existing-session` profile:
-
-```bash
-crawclaw browser --browser-profile user tabs
-crawclaw browser create-profile --name chrome-live --driver existing-session
-crawclaw browser create-profile --name brave-live --driver existing-session --user-data-dir "~/Library/Application Support/BraveSoftware/Brave-Browser"
-crawclaw browser --browser-profile chrome-live tabs
-```
-
-This path is host-only. For Docker, headless servers, Browserless, or other remote setups, use a CDP profile instead.
+The bundled browser server standardizes on PinchTab-backed managed profiles.
+Use `crawclaw browser create-profile --name <name>` to add another managed
+profile with a distinct color/runtime identity.
 
 ## Remote browser control (node host proxy)
 

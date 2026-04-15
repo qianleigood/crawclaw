@@ -4,13 +4,10 @@ import express from "express";
 import { isLoopbackHost } from "../gateway/net.js";
 import { deleteBridgeAuthForPort, setBridgeAuthForPort } from "./bridge-auth-registry.js";
 import type { ResolvedBrowserConfig } from "./config.js";
+import { createPinchTabBrowserRouteContext } from "./pinchtab-route-context.js";
 import { registerBrowserRoutes } from "./routes/index.js";
 import type { BrowserRouteRegistrar } from "./routes/types.js";
-import {
-  type BrowserServerState,
-  createBrowserRouteContext,
-  type ProfileContext,
-} from "./server-context.js";
+import type { BrowserServerState, ProfileContext } from "./server-context.types.js";
 import {
   installBrowserAuthMiddleware,
   installBrowserCommonMiddleware,
@@ -108,7 +105,7 @@ export async function startBrowserBridgeServer(params: {
     profiles: new Map(),
   };
 
-  const ctx = createBrowserRouteContext({
+  const ctx = createPinchTabBrowserRouteContext({
     getState: () => state,
     onEnsureAttachTarget: params.onEnsureAttachTarget,
   });

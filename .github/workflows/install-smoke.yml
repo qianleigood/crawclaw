@@ -107,7 +107,12 @@ jobs:
 
       - name: Run root Dockerfile CLI smoke
         run: |
-          docker run --rm --entrypoint sh crawclaw-dockerfile-smoke:local -lc 'which crawclaw && crawclaw --version'
+          docker run --rm --entrypoint sh crawclaw-dockerfile-smoke:local -lc '
+            which crawclaw &&
+            crawclaw --version &&
+            crawclaw runtimes doctor &&
+            crawclaw runtimes list --json
+          '
 
       # This smoke validates that the build-arg path preinstalls the matrix
       # runtime deps declared by the plugin and that matrix discovery stays
@@ -130,8 +135,10 @@ jobs:
           docker run --rm --entrypoint sh crawclaw-ext-smoke:local -lc '
             which crawclaw &&
             crawclaw --version &&
+            crawclaw runtimes doctor &&
             node -e "
               const Module = require(\"node:module\");
+              const fs = require(\"node:fs\");
               const matrixPackage = require(\"/app/extensions/matrix/package.json\");
               const requireFromMatrix = Module.createRequire(\"/app/extensions/matrix/package.json\");
               const runtimeDeps = Object.keys(matrixPackage.dependencies ?? {});
@@ -153,6 +160,17 @@ jobs:
               const matrix = (parsed.plugins || []).find((entry) => entry.id === \"matrix\");
               if (!matrix) {
                 throw new Error(\"matrix plugin missing from bundled plugin list\");
+              }
+              const runtimeManifest = JSON.parse(
+                fs.readFileSync(process.env.HOME + \"/.crawclaw/runtimes/manifest.json\", \"utf8\"),
+              );
+              const scrapling = runtimeManifest.plugins?.[\"scrapling-fetch\"];
+              const openWebSearch = runtimeManifest.plugins?.[\"open-websearch\"];
+              if (scrapling?.state !== \"healthy\") {
+                throw new Error(\"scrapling-fetch runtime is not healthy after install\");
+              }
+              if (openWebSearch?.state !== \"healthy\") {
+                throw new Error(\"open-websearch runtime is not healthy after install\");
               }
               const matrixDiag = (parsed.diagnostics || []).filter(
                 (diag) =>

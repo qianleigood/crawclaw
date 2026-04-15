@@ -3,15 +3,11 @@ import { resolveBrowserConfig, resolveProfile } from "../config.js";
 import { resolveSnapshotPlan } from "./agent.snapshot.plan.js";
 
 describe("resolveSnapshotPlan", () => {
-  it("defaults existing-session snapshots to ai when format is omitted", () => {
-    const resolved = resolveBrowserConfig({
-      profiles: {
-        user: { driver: "existing-session", attachOnly: true, color: "#00AA00" },
-      },
-    });
-    const profile = resolveProfile(resolved, "user");
+  it("defaults managed snapshots to ai when format is omitted", () => {
+    const resolved = resolveBrowserConfig({});
+    const profile = resolveProfile(resolved, "crawclaw");
     expect(profile).toBeTruthy();
-    expect(profile?.driver).toBe("existing-session");
+    expect(profile?.driver).toBe("crawclaw");
 
     const plan = resolveSnapshotPlan({
       profile: profile as NonNullable<typeof profile>,

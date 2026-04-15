@@ -30,6 +30,7 @@ import {
   noteMacLaunchctlGatewayEnvOverrides,
 } from "../commands/doctor-platform-notes.js";
 import { maybeRepairLegacyPluginManifestContracts } from "../commands/doctor-plugin-manifests.js";
+import { maybeRepairSharedPluginRuntimes } from "../commands/doctor-plugin-runtimes.js";
 import type { DoctorOptions, DoctorPrompter } from "../commands/doctor-prompter.js";
 import { maybeRepairSandboxImages, noteSandboxScopeWarnings } from "../commands/doctor-sandbox.js";
 import { noteSecurityWarnings } from "../commands/doctor-security.js";
@@ -142,7 +143,7 @@ async function runAuthProfileHealth(ctx: DoctorHealthFlowContext): Promise<void>
   await noteAuthProfileHealth({
     cfg: ctx.cfg,
     prompter: ctx.prompter,
-    allowKeychainPrompt: ctx.options.nonInteractive !== true && Boolean(process.stdin.isTTY),
+    allowKeychainPrompt: ctx.options.nonInteractive !== true && process.stdin.isTTY,
   });
   ctx.gatewayDetails = buildGatewayConnectionDetails({ config: ctx.cfg });
   if (ctx.gatewayDetails.remoteFallbackNote) {
@@ -239,6 +240,13 @@ async function runLegacyStateHealth(ctx: DoctorHealthFlowContext): Promise<void>
 async function runLegacyPluginManifestHealth(ctx: DoctorHealthFlowContext): Promise<void> {
   await maybeRepairLegacyPluginManifestContracts({
     env: process.env,
+    runtime: ctx.runtime,
+    prompter: ctx.prompter,
+  });
+}
+
+async function runSharedPluginRuntimesHealth(ctx: DoctorHealthFlowContext): Promise<void> {
+  await maybeRepairSharedPluginRuntimes({
     runtime: ctx.runtime,
     prompter: ctx.prompter,
   });
@@ -504,6 +512,11 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
       id: "doctor:legacy-plugin-manifests",
       label: "Legacy plugin manifests",
       run: runLegacyPluginManifestHealth,
+    }),
+    createDoctorHealthContribution({
+      id: "doctor:shared-plugin-runtimes",
+      label: "Shared plugin runtimes",
+      run: runSharedPluginRuntimesHealth,
     }),
     createDoctorHealthContribution({
       id: "doctor:bundled-plugin-runtime-deps",

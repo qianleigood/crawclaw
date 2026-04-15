@@ -10,7 +10,7 @@ export const SCRAPLING_FETCH_DEFAULT_STARTUP_TIMEOUT_MS = 15_000;
 export const SCRAPLING_FETCH_DEFAULT_TIMEOUT_SECONDS = 30;
 export const SCRAPLING_FETCH_DEFAULT_BOOTSTRAP_ENABLED = true;
 export const SCRAPLING_FETCH_DEFAULT_BOOTSTRAP_PACKAGES = [
-  "Scrapling==0.4.4",
+  "Scrapling==0.4.6",
   "curl-cffi==0.15.0",
   "playwright==1.58.0",
   "browserforge==1.2.4",

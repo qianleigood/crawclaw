@@ -11,7 +11,6 @@ import {
   type AnyAgentTool,
   DEFAULT_UPLOAD_DIR,
   applyBrowserProxyPaths,
-  getBrowserProfileCapabilities,
   imageResultFromFile,
   jsonResult,
   listNodes,
@@ -21,7 +20,6 @@ import {
   resolveBrowserConfig,
   resolveExistingPathsWithinRoot,
   resolveNodeIdFromList,
-  resolveProfile,
   selectDefaultNodeFromList,
 } from "./core-api.js";
 import { callGatewayTool } from "./core-api.js";
@@ -267,9 +265,6 @@ export function createBrowserTool(opts?: {
           loadConfig: browserToolDeps.loadConfig as unknown as BrowserToolRouteDeps["loadConfig"],
           resolveBrowserConfig:
             resolveBrowserConfig as unknown as BrowserToolRouteDeps["resolveBrowserConfig"],
-          resolveProfile: resolveProfile as unknown as BrowserToolRouteDeps["resolveProfile"],
-          getBrowserProfileCapabilities:
-            getBrowserProfileCapabilities as unknown as BrowserToolRouteDeps["getBrowserProfileCapabilities"],
           listNodes: browserToolDeps.listNodes as unknown as BrowserToolRouteDeps["listNodes"],
           resolveNodeIdFromList:
             resolveNodeIdFromList as unknown as BrowserToolRouteDeps["resolveNodeIdFromList"],

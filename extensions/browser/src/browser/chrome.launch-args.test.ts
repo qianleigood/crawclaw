@@ -19,7 +19,6 @@ describe("browser chrome launch args", () => {
         color: "#FF4500",
         headless: false,
         noSandbox: false,
-        attachOnly: false,
         ssrfPolicy: { allowPrivateNetwork: true },
         defaultProfile: "crawclaw",
         profiles: {
@@ -34,7 +33,6 @@ describe("browser chrome launch args", () => {
         cdpIsLoopback: true,
         color: "#FF4500",
         driver: "crawclaw",
-        attachOnly: false,
       },
       userDataDir: "/tmp/crawclaw-test-user-data",
     });

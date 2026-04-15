@@ -143,7 +143,7 @@ function mockMainSessionEntry(entry: Record<string, unknown>, cfg: Record<string
     cfg,
     storePath: "/tmp/sessions.json",
     entry: {
-      sessionId: "existing-session-id",
+      sessionId: "reused-session-id",
       updatedAt: Date.now(),
       ...entry,
     },
@@ -163,7 +163,7 @@ function captureUpdatedMainEntry() {
 
 function buildExistingMainStoreEntry(overrides: Record<string, unknown> = {}) {
   return {
-    sessionId: "existing-session-id",
+    sessionId: "reused-session-id",
     updatedAt: Date.now(),
     ...overrides,
   };
@@ -207,10 +207,7 @@ async function expectResetCall(expectedMessage: string) {
 }
 
 function primeMainAgentRun(params?: { sessionId?: string; cfg?: Record<string, unknown> }) {
-  mockMainSessionEntry(
-    { sessionId: params?.sessionId ?? "existing-session-id" },
-    params?.cfg ?? {},
-  );
+  mockMainSessionEntry({ sessionId: params?.sessionId ?? "reused-session-id" }, params?.cfg ?? {});
   mocks.updateSessionStore.mockResolvedValue(undefined);
   mocks.agentCommand.mockResolvedValue({
     payloads: [{ text: "ok" }],
@@ -833,7 +830,7 @@ describe("gateway agent handler", () => {
 
   it("keeps origin messageChannel as webchat while delivery channel uses last session channel", async () => {
     mockMainSessionEntry({
-      sessionId: "existing-session-id",
+      sessionId: "reused-session-id",
       lastChannel: "telegram",
       lastTo: "12345",
     });
@@ -920,7 +917,7 @@ describe("gateway agent handler", () => {
       },
       storePath: "/tmp/sessions.json",
       entry: {
-        sessionId: "existing-session-id",
+        sessionId: "reused-session-id",
         updatedAt: Date.now(),
       },
       canonicalKey: "agent:main:work",
@@ -929,7 +926,7 @@ describe("gateway agent handler", () => {
     let capturedStore: Record<string, unknown> | undefined;
     mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
       const store: Record<string, unknown> = {
-        "agent:main:work": { sessionId: "existing-session-id", updatedAt: 10 },
+        "agent:main:work": { sessionId: "reused-session-id", updatedAt: 10 },
         "agent:main:MAIN": { sessionId: "legacy-session-id", updatedAt: 5 },
       };
       await updater(store);
@@ -1033,7 +1030,7 @@ describe("gateway agent handler", () => {
   });
 
   it("rejects /new for write-scoped gateway callers", async () => {
-    mockMainSessionEntry({ sessionId: "existing-session-id" });
+    mockMainSessionEntry({ sessionId: "reused-session-id" });
     mocks.performGatewaySessionReset.mockClear();
     mocks.agentCommand.mockClear();
 

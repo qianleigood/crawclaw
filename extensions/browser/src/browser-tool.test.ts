@@ -16,13 +16,12 @@ const browserConfigMocks = vi.hoisted(() => ({
     }
     return {
       name,
-      driver: profile.driver === "existing-session" ? "existing-session" : "crawclaw",
+      driver: "crawclaw",
       cdpPort: 18792,
       cdpUrl: "http://127.0.0.1:18792",
       cdpHost: "127.0.0.1",
       cdpIsLoopback: true,
       color: "#FF4500",
-      attachOnly: profile.attachOnly === true,
     };
   }),
 }));
@@ -215,57 +214,17 @@ describe("browser tool", () => {
     });
   });
 
-  it("keeps existing-session profiles on host even when sandbox PinchTab is available", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "profile_user" }), { status: 200 }))
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "inst_user", status: "starting" }), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "tab_user", url: "https://example.com" }), {
-          status: 200,
-        }),
-      );
-    pinchTabClientTesting.setDepsForTest({ fetchImpl: fetchMock as never });
-    setResolvedBrowserProfiles({
-      user: { driver: "existing-session", attachOnly: true },
-    });
-
-    const tool = createBrowserTool({
-      sandboxBridgeUrl: "http://127.0.0.1:9999",
-      sandboxCdpUrl: "http://127.0.0.1:9222",
-    });
-    await tool.execute?.("call-1", {
-      action: "open",
-      profile: "user",
-      url: "https://example.com",
-    });
-
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      "http://127.0.0.1:9867/profiles?all=true",
-      expect.any(Object),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "http://127.0.0.1:9867/profiles",
-      expect.objectContaining({ method: "POST" }),
-    );
-  });
-
   it("returns configured profiles on host without calling legacy browser runtime", async () => {
     setResolvedBrowserProfiles({
       crawclaw: {},
-      user: { driver: "existing-session", attachOnly: true },
+      work: {},
     });
 
     const tool = createBrowserTool();
     const result = await tool.execute?.("call-1", { action: "profiles" });
 
     expect(result?.details).toEqual({
-      profiles: [{ name: "crawclaw" }, { name: "user" }],
+      profiles: [{ name: "crawclaw" }, { name: "work" }],
     });
   });
 

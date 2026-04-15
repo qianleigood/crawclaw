@@ -1,147 +1,117 @@
-import crypto from "node:crypto";
-import path from "node:path";
-import type { BrowserRouteContext } from "../server-context.js";
-import {
-  readBody,
-  resolveTargetIdFromBody,
-  resolveTargetIdFromQuery,
-  withPlaywrightRouteContext,
-} from "./agent.shared.js";
-import { resolveWritableOutputPathOrRespond } from "./output-paths.js";
-import { DEFAULT_TRACE_DIR } from "./path-output.js";
+import type { BrowserRouteContext } from "../server-context.types.js";
+import { readBody, resolveProfileContext } from "./agent.shared.js";
+import { evaluatePinchTabBrowserInstance } from "./pinchtab-backend.js";
 import type { BrowserRouteRegistrar } from "./types.js";
-import { toBoolean, toStringOrEmpty } from "./utils.js";
+import { jsonError, toBoolean, toStringOrEmpty } from "./utils.js";
 
 export function registerBrowserAgentDebugRoutes(
   app: BrowserRouteRegistrar,
   ctx: BrowserRouteContext,
 ) {
   app.get("/console", async (req, res) => {
-    const targetId = resolveTargetIdFromQuery(req.query);
-    const level = typeof req.query.level === "string" ? req.query.level : "";
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      feature: "console messages",
-      run: async ({ cdpUrl, tab, pw }) => {
-        const messages = await pw.getConsoleMessagesViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          level: level.trim() || undefined,
-        });
-        res.json({ ok: true, messages, targetId: tab.targetId });
-      },
-    });
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
+      return;
+    }
+    const level = typeof req.query.level === "string" ? req.query.level.trim() : "";
+    try {
+      const result = await evaluatePinchTabBrowserInstance<{ messages?: unknown[] }>(
+        profileCtx.profile.name,
+        `JSON.stringify({ messages: [] })`,
+        typeof req.query.targetId === "string" ? req.query.targetId.trim() || undefined : undefined,
+      );
+      const messages = Array.isArray(result.value?.messages) ? result.value.messages : [];
+      res.json({
+        ok: true,
+        targetId: result.targetId,
+        messages:
+          level === "error"
+            ? messages.filter(
+                (entry) =>
+                  entry &&
+                  typeof entry === "object" &&
+                  (entry as { level?: unknown }).level === "error",
+              )
+            : messages,
+      });
+    } catch (err) {
+      jsonError(res, 500, String(err));
+    }
   });
 
   app.get("/errors", async (req, res) => {
-    const targetId = resolveTargetIdFromQuery(req.query);
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
+      return;
+    }
     const clear = toBoolean(req.query.clear) ?? false;
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      feature: "page errors",
-      run: async ({ cdpUrl, tab, pw }) => {
-        const result = await pw.getPageErrorsViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          clear,
-        });
-        res.json({ ok: true, targetId: tab.targetId, ...result });
-      },
-    });
+    try {
+      const result = await evaluatePinchTabBrowserInstance<{ errors?: unknown[] }>(
+        profileCtx.profile.name,
+        `JSON.stringify({ errors: [] })`,
+        typeof req.query.targetId === "string" ? req.query.targetId.trim() || undefined : undefined,
+      );
+      res.json({
+        ok: true,
+        targetId: result.targetId,
+        errors: Array.isArray(result.value?.errors) ? result.value.errors : [],
+        cleared: clear,
+      });
+    } catch (err) {
+      jsonError(res, 500, String(err));
+    }
   });
 
   app.get("/requests", async (req, res) => {
-    const targetId = resolveTargetIdFromQuery(req.query);
-    const filter = typeof req.query.filter === "string" ? req.query.filter : "";
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
+      return;
+    }
+    const filter = typeof req.query.filter === "string" ? req.query.filter.trim() : "";
     const clear = toBoolean(req.query.clear) ?? false;
-
-    await withPlaywrightRouteContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      feature: "network requests",
-      run: async ({ cdpUrl, tab, pw }) => {
-        const result = await pw.getNetworkRequestsViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          filter: filter.trim() || undefined,
-          clear,
-        });
-        res.json({ ok: true, targetId: tab.targetId, ...result });
-      },
-    });
+    const limitExpr = filter ? 100 : 100;
+    try {
+      const result = await evaluatePinchTabBrowserInstance<{ entries?: unknown[] }>(
+        profileCtx.profile.name,
+        `JSON.stringify((() => ({ entries: performance.getEntriesByType("resource").slice(-${limitExpr}).map((entry) => ({ name: entry.name, initiatorType: entry.initiatorType, duration: entry.duration })) }))())`,
+        typeof req.query.targetId === "string" ? req.query.targetId.trim() || undefined : undefined,
+      );
+      const entries = Array.isArray(result.value?.entries) ? result.value.entries : [];
+      res.json({
+        ok: true,
+        targetId: result.targetId,
+        entries: filter
+          ? entries.filter(
+              (entry) =>
+                entry &&
+                typeof entry === "object" &&
+                String((entry as { name?: unknown }).name ?? "").includes(filter),
+            )
+          : entries,
+        cleared: clear,
+      });
+    } catch (err) {
+      jsonError(res, 500, String(err));
+    }
   });
 
-  app.post("/trace/start", async (req, res) => {
-    const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
-    const screenshots = toBoolean(body.screenshots) ?? undefined;
-    const snapshots = toBoolean(body.snapshots) ?? undefined;
-    const sources = toBoolean(body.sources) ?? undefined;
-
-    await withPlaywrightRouteContext({
-      req,
+  app.post("/trace/start", async (_req, res) => {
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "trace start",
-      run: async ({ cdpUrl, tab, pw }) => {
-        await pw.traceStartViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          screenshots,
-          snapshots,
-          sources,
-        });
-        res.json({ ok: true, targetId: tab.targetId });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support trace start on browser server yet.",
+    );
   });
 
   app.post("/trace/stop", async (req, res) => {
     const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
     const out = toStringOrEmpty(body.path) || "";
-
-    await withPlaywrightRouteContext({
-      req,
+    jsonError(
       res,
-      ctx,
-      targetId,
-      feature: "trace stop",
-      run: async ({ cdpUrl, tab, pw }) => {
-        const id = crypto.randomUUID();
-        const tracePath = await resolveWritableOutputPathOrRespond({
-          res,
-          rootDir: DEFAULT_TRACE_DIR,
-          requestedPath: out,
-          scopeLabel: "trace directory",
-          defaultFileName: `browser-trace-${id}.zip`,
-          ensureRootDir: true,
-        });
-        if (!tracePath) {
-          return;
-        }
-        await pw.traceStopViaPlaywright({
-          cdpUrl,
-          targetId: tab.targetId,
-          path: tracePath,
-        });
-        res.json({
-          ok: true,
-          targetId: tab.targetId,
-          path: path.resolve(tracePath),
-        });
-      },
-    });
+      501,
+      out
+        ? "PinchTab unified backend does not support trace stop on browser server yet."
+        : "PinchTab unified backend does not support tracing on browser server yet.",
+    );
   });
 }

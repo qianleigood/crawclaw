@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, openSync } from "node:fs";
+import { existsSync, mkdirSync, openSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
@@ -13,8 +13,6 @@ import {
   resolveOpenWebSearchStartupTimeoutMs,
 } from "./config.js";
 
-const OPEN_WEBSEARCH_PACKAGE_SPEC = "open-websearch";
-const OPEN_WEBSEARCH_FALLBACK_VERSION = "2.1.5";
 const DEFAULT_READY_POLL_INTERVAL_MS = 250;
 const DAEMON_STOP_TIMEOUT_MS = 5_000;
 const startupPromises = new Map<string, Promise<void>>();
@@ -24,6 +22,12 @@ type LaunchCommand = {
   command: string;
   args: string[];
 };
+
+function buildMissingRuntimeError(): Error {
+  return new Error(
+    "Open-WebSearch runtime is not installed. Expected a local runtime under ~/.crawclaw/runtimes/open-websearch or ~/.local/open-websearch. Install runtimes during setup/postinstall or run `crawclaw runtimes install`.",
+  );
+}
 
 function normalizeBaseUrl(value: string): string {
   return value.trim().replace(/\/+$/u, "");
@@ -64,10 +68,43 @@ function resolveDaemonLogPath(): string {
 }
 
 function resolveLaunchCommand(): LaunchCommand {
-  return {
-    command: process.platform === "win32" ? "npx.cmd" : "npx",
-    args: ["--yes", `${OPEN_WEBSEARCH_PACKAGE_SPEC}@${OPEN_WEBSEARCH_FALLBACK_VERSION}`],
-  };
+  const sharedRuntimeBin =
+    process.platform === "win32"
+      ? join(
+          homedir(),
+          ".crawclaw",
+          "runtimes",
+          "open-websearch",
+          "node_modules",
+          ".bin",
+          "open-websearch.cmd",
+        )
+      : join(
+          homedir(),
+          ".crawclaw",
+          "runtimes",
+          "open-websearch",
+          "node_modules",
+          ".bin",
+          "open-websearch",
+        );
+  if (existsSync(sharedRuntimeBin)) {
+    return {
+      command: sharedRuntimeBin,
+      args: [],
+    };
+  }
+  const localBin =
+    process.platform === "win32"
+      ? join(homedir(), ".local", "open-websearch", "node_modules", ".bin", "open-websearch.cmd")
+      : join(homedir(), ".local", "open-websearch", "node_modules", ".bin", "open-websearch");
+  if (existsSync(localBin)) {
+    return {
+      command: localBin,
+      args: [],
+    };
+  }
+  throw buildMissingRuntimeError();
 }
 
 async function probeReady(baseUrl: string): Promise<boolean> {

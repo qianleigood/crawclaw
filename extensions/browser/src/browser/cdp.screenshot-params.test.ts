@@ -74,7 +74,6 @@ const localProfile: ResolvedBrowserProfile = {
   cdpIsLoopback: true,
   color: "#FF4500",
   driver: "crawclaw",
-  attachOnly: false,
 };
 
 let captureScreenshot: typeof import("./cdp.js").captureScreenshot;

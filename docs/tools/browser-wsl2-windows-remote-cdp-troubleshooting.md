@@ -3,7 +3,7 @@ summary: "Troubleshoot WSL2 Gateway + Windows Chrome remote CDP in layers"
 read_when:
   - Running CrawClaw Gateway in WSL2 while Chrome lives on Windows
   - Seeing overlapping browser/control-ui errors across WSL2 and Windows
-  - Deciding between host-local Chrome MCP and raw remote CDP in split-host setups
+  - Deciding between managed browser and raw remote CDP in split-host setups
 title: "WSL2 + Windows + remote Chrome CDP troubleshooting"
 ---
 
@@ -31,17 +31,7 @@ Choose this when:
 - Chrome runs on Windows
 - you need browser control to cross the WSL2/Windows boundary
 
-### Option 2: Host-local Chrome MCP
-
-Use `existing-session` / `user` only when the Gateway itself runs on the same host as Chrome.
-
-Choose this when:
-
-- CrawClaw and Chrome are on the same machine
-- you want the local signed-in browser state
-- you do not need cross-host browser transport
-
-For WSL2 Gateway + Windows Chrome, prefer raw remote CDP. Chrome MCP is host-local, not a WSL2-to-Windows bridge.
+For WSL2 Gateway + Windows Chrome, prefer raw remote CDP. Managed PinchTab profiles are local to the host that runs CrawClaw; they are not a WSL2-to-Windows bridge.
 
 ## Working architecture
 
@@ -130,7 +120,6 @@ For raw remote CDP, point CrawClaw at the address that is reachable from WSL2:
     profiles: {
       remote: {
         cdpUrl: "http://WINDOWS_HOST_OR_IP:9222",
-        attachOnly: true,
         color: "#00AA00",
       },
     },
@@ -141,7 +130,6 @@ For raw remote CDP, point CrawClaw at the address that is reachable from WSL2:
 Notes:
 
 - use the WSL2-reachable address, not whatever only works on Windows
-- keep `attachOnly: true` for externally managed browsers
 - test the same URL with `curl` before expecting CrawClaw to succeed
 
 ### Layer 4: Verify the Control UI layer separately
@@ -189,8 +177,6 @@ Treat each message as a layer-specific clue:
   - WSL2 cannot reach the configured `cdpUrl`
 - `gateway timeout after 1500ms`
   - often still CDP reachability or a slow/unreachable remote endpoint
-- `No Chrome tabs found for profile="user"`
-  - local Chrome MCP profile selected where no host-local tabs are available
 
 ## Fast triage checklist
 
@@ -198,7 +184,7 @@ Treat each message as a layer-specific clue:
 2. WSL2: does `curl http://WINDOWS_HOST_OR_IP:9222/json/version` work?
 3. CrawClaw config: does `browser.profiles.<name>.cdpUrl` use that exact WSL2-reachable address?
 4. Control UI: are you opening `http://127.0.0.1:18789/` instead of a LAN IP?
-5. Are you trying to use `existing-session` across WSL2 and Windows instead of raw remote CDP?
+5. Are you using a remote CDP profile instead of trying to treat Windows Chrome as a host-local browser?
 
 ## Practical takeaway
 

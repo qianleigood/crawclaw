@@ -1111,21 +1111,28 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="How do I use my existing signed-in Chrome with CrawClaw?">
-    Use the built-in `user` browser profile, which attaches through Chrome DevTools MCP:
+    Use a managed browser profile or a remote CDP profile. The legacy host-local
+    attach mode is no longer part of the supported browser path.
 
     ```bash
-    crawclaw browser --browser-profile user tabs
-    crawclaw browser --browser-profile user snapshot
+    crawclaw browser start --browser-profile crawclaw
+    crawclaw browser tabs --browser-profile crawclaw
     ```
 
-    If you want a custom name, create an explicit MCP profile:
+    If Chrome runs on another host, point a named profile at that remote CDP
+    endpoint instead:
 
-    ```bash
-    crawclaw browser create-profile --name chrome-live --driver existing-session
-    crawclaw browser --browser-profile chrome-live tabs
+    ```json5
+    {
+      browser: {
+        profiles: {
+          remote: { cdpUrl: "http://BROWSER_HOST:9222", color: "#00AA00" }
+        }
+      }
+    }
     ```
 
-    This path is host-local. If the Gateway runs elsewhere, either run a node host on the browser machine or use remote CDP instead.
+    If the Gateway runs elsewhere, either run a node host on the browser machine or use remote CDP.
 
   </Accordion>
 </AccordionGroup>
@@ -1627,7 +1634,7 @@ for usage/billing and raise limits as needed.
     - **No inbound SSH required.** Nodes connect out to the Gateway WebSocket and use device pairing.
     - **Safer execution controls.** `system.run` is gated by node allowlists/approvals on that laptop.
     - **More device tools.** Nodes expose `canvas`, `camera`, and `screen` in addition to `system.run`.
-    - **Local browser automation.** Keep the Gateway on a VPS, but run Chrome locally through a node host on the laptop, or attach to local Chrome on the host via Chrome MCP.
+    - **Local browser automation.** Keep the Gateway on a VPS, but run the browser locally through a node host on the laptop, or expose a remote CDP endpoint from that machine.
 
     SSH is fine for ad-hoc shell access, but nodes are simpler for ongoing agent workflows and
     device automation.
@@ -2005,7 +2012,7 @@ for usage/billing and raise limits as needed.
     channel/account/peer. Slack is supported as a channel and can be bound to specific agents.
 
     Browser access is powerful but not "do anything a human can" - anti-bot, CAPTCHAs, and MFA can
-    still block automation. For the most reliable browser control, use local Chrome MCP on the host,
+    still block automation. For the most reliable browser control, use a managed browser on the host,
     or use CDP on the machine that actually runs the browser.
 
     Best-practice setup:
@@ -2013,7 +2020,7 @@ for usage/billing and raise limits as needed.
     - Always-on Gateway host (VPS/Mac mini).
     - One agent per role (bindings).
     - Slack channel(s) bound to those agents.
-    - Local browser via Chrome MCP or a node when needed.
+    - Local browser via a node host or remote CDP when needed.
 
     Docs: [Multi-Agent Routing](/concepts/multi-agent), [Slack](/channels/slack),
     [Browser](/tools/browser), [Nodes](/nodes).

@@ -1,5 +1,6 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CrawClawPluginService } from "crawclaw/plugin-sdk/core";
@@ -52,6 +53,10 @@ function resolveManagedVenvDir(stateDir: string): string {
   return join(stateDir, MANAGED_VENV_DIRNAME);
 }
 
+function resolveSharedManagedVenvDir(): string {
+  return join(homedir(), ".crawclaw", "runtimes", "scrapling-fetch", "venv");
+}
+
 function resolveManagedPythonPath(stateDir: string): string {
   const venvDir = resolveManagedVenvDir(stateDir);
   return process.platform === "win32"
@@ -59,15 +64,19 @@ function resolveManagedPythonPath(stateDir: string): string {
     : join(venvDir, "bin", "python");
 }
 
+function resolveSharedManagedPythonPath(): string {
+  const venvDir = resolveSharedManagedVenvDir();
+  return process.platform === "win32"
+    ? join(venvDir, "Scripts", "python.exe")
+    : join(venvDir, "bin", "python");
+}
+
 function buildLaunchCommand(params: {
   config: ResolvedScraplingFetchPluginConfig;
-  stateDir: string;
+  command: string;
 }): { command: string; args: string[] } {
-  const command = params.config.service.bootstrap
-    ? resolveManagedPythonPath(params.stateDir)
-    : params.config.service.command;
   return {
-    command,
+    command: params.command,
     args: buildLaunchArgs(params.config),
   };
 }
@@ -111,32 +120,6 @@ function runSyncCommand(params: {
   });
 }
 
-function buildSpawnFailureMessage(params: {
-  action: string;
-  command: string;
-  args: string[];
-  result: ReturnType<SpawnSyncLike>;
-}): string {
-  const stderr =
-    typeof params.result.stderr === "string"
-      ? params.result.stderr.trim()
-      : Buffer.isBuffer(params.result.stderr)
-        ? params.result.stderr.toString("utf8").trim()
-        : "";
-  const stdout =
-    typeof params.result.stdout === "string"
-      ? params.result.stdout.trim()
-      : Buffer.isBuffer(params.result.stdout)
-        ? params.result.stdout.toString("utf8").trim()
-        : "";
-  const detail =
-    stderr ||
-    stdout ||
-    params.result.error?.message ||
-    `exit status ${params.result.status ?? "unknown"}`;
-  return `${params.action} failed for "${params.command} ${params.args.join(" ")}": ${detail}`;
-}
-
 function verifyManagedRuntimeAvailable(params: {
   pythonCommand: string;
   spawnSyncImpl?: SpawnSyncLike;
@@ -161,6 +144,16 @@ function ensureManagedRuntimeBootstrap(params: {
 
   const venvDir = resolveManagedVenvDir(params.stateDir);
   const managedPython = resolveManagedPythonPath(params.stateDir);
+  const sharedManagedPython = resolveSharedManagedPythonPath();
+  if (
+    existsSync(sharedManagedPython) &&
+    verifyManagedRuntimeAvailable({
+      pythonCommand: sharedManagedPython,
+      spawnSyncImpl: params.spawnSyncImpl,
+    })
+  ) {
+    return sharedManagedPython;
+  }
   if (
     existsSync(managedPython) &&
     verifyManagedRuntimeAvailable({
@@ -172,54 +165,10 @@ function ensureManagedRuntimeBootstrap(params: {
   }
 
   mkdirSync(params.stateDir, { recursive: true });
-  if (!existsSync(managedPython)) {
-    params.logger.info(`[scrapling-fetch] bootstrapping managed Python venv at ${venvDir}`);
-    const createVenv = runSyncCommand({
-      command: params.config.service.command,
-      args: ["-m", "venv", venvDir],
-      spawnSyncImpl: params.spawnSyncImpl,
-    });
-    if (createVenv.error || createVenv.status !== 0) {
-      throw new Error(
-        buildSpawnFailureMessage({
-          action: "Creating Scrapling virtualenv",
-          command: params.config.service.command,
-          args: ["-m", "venv", venvDir],
-          result: createVenv,
-        }),
-      );
-    }
-  }
-
   const packages = normalizeBootstrapPackages(params.config);
-  params.logger.info(
-    `[scrapling-fetch] installing managed Scrapling runtime packages (${packages.length})`,
+  throw new Error(
+    `Managed Scrapling runtime is not installed. Expected a verified runtime at ${resolveSharedManagedVenvDir()} or ${venvDir}. Install runtimes during setup/postinstall or run \`crawclaw runtimes install\`. Required packages: ${packages.join(", ")}`,
   );
-  const installPackages = runSyncCommand({
-    command: managedPython,
-    args: ["-m", "pip", "install", "--disable-pip-version-check", ...packages],
-    spawnSyncImpl: params.spawnSyncImpl,
-  });
-  if (installPackages.error || installPackages.status !== 0) {
-    throw new Error(
-      buildSpawnFailureMessage({
-        action: "Installing Scrapling runtime packages",
-        command: managedPython,
-        args: ["-m", "pip", "install", "--disable-pip-version-check", ...packages],
-        result: installPackages,
-      }),
-    );
-  }
-
-  if (
-    !verifyManagedRuntimeAvailable({
-      pythonCommand: managedPython,
-      spawnSyncImpl: params.spawnSyncImpl,
-    })
-  ) {
-    throw new Error("Managed Scrapling runtime verification failed after dependency install.");
-  }
-  return managedPython;
 }
 
 async function probeReady(baseUrl: string, healthcheckPath: string): Promise<boolean> {
@@ -346,15 +295,15 @@ async function ensureManagedService(params: {
 
   const startup = (async () => {
     const spawnImpl = params.spawnImpl ?? spawn;
-    const launchCommand = buildLaunchCommand({
-      config: resolved,
-      stateDir: params.stateDir,
-    });
-    ensureManagedRuntimeBootstrap({
+    const runtimeCommand = ensureManagedRuntimeBootstrap({
       stateDir: params.stateDir,
       logger: params.logger,
       config: resolved,
       spawnSyncImpl: params.spawnSyncImpl,
+    });
+    const launchCommand = buildLaunchCommand({
+      config: resolved,
+      command: runtimeCommand,
     });
     const child = spawnImpl(launchCommand.command, launchCommand.args, {
       stdio: ["ignore", "pipe", "pipe"],
@@ -424,6 +373,8 @@ export const __testing = {
   ensureManagedRuntimeBootstrap,
   resolveManagedPythonPath,
   resolveManagedVenvDir,
+  resolveSharedManagedPythonPath,
+  resolveSharedManagedVenvDir,
   probeReady,
   resolveScriptPath,
   verifyManagedRuntimeAvailable,

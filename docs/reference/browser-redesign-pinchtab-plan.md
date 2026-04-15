@@ -5,7 +5,7 @@
 - `browser` 工具保持单一入口（工具名不变）。
 - 底层执行内核统一为 PinchTab。
 - 保留多路由能力（`host | sandbox | node`），但路由只负责“选路”，不承担执行细节。
-- 移除现有多执行栈（Playwright/CDP/Chrome MCP 双轨）的耦合逻辑。
+- 移除现有多执行栈的耦合逻辑，统一到 PinchTab 单内核。
 
 ## 已完成（本批）
 

@@ -1,23 +1,12 @@
-import { getBrowserProfileCapabilities } from "../profile-capabilities.js";
-import type { BrowserRouteContext } from "../server-context.js";
-import {
-  readBody,
-  requirePwAi,
-  resolveTargetIdFromBody,
-  withRouteTabContext,
-} from "./agent.shared.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { BrowserRouteContext } from "../server-context.types.js";
+import { readBody, resolveProfileContext } from "./agent.shared.js";
 import { ensureOutputRootDir, resolveWritableOutputPathOrRespond } from "./output-paths.js";
 import { DEFAULT_DOWNLOAD_DIR } from "./path-output.js";
+import { evaluatePinchTabBrowserInstance } from "./pinchtab-backend.js";
 import type { BrowserRouteRegistrar } from "./types.js";
 import { jsonError, toNumber, toStringOrEmpty } from "./utils.js";
-
-function buildDownloadRequestBase(cdpUrl: string, targetId: string, timeoutMs: number | undefined) {
-  return {
-    cdpUrl,
-    targetId,
-    timeoutMs: timeoutMs ?? undefined,
-  };
-}
 
 export function registerBrowserAgentActDownloadRoutes(
   app: BrowserRouteRegistrar,
@@ -25,99 +14,66 @@ export function registerBrowserAgentActDownloadRoutes(
 ) {
   app.post("/wait/download", async (req, res) => {
     const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
     const out = toStringOrEmpty(body.path) || "";
     const timeoutMs = toNumber(body.timeoutMs);
-
-    await withRouteTabContext({
-      req,
-      res,
-      ctx,
-      targetId,
-      run: async ({ profileCtx, cdpUrl, tab }) => {
-        if (getBrowserProfileCapabilities(profileCtx.profile).usesChromeMcp) {
-          return jsonError(
-            res,
-            501,
-            "download waiting is not supported for existing-session profiles yet.",
-          );
-        }
-        const pw = await requirePwAi(res, "wait for download");
-        if (!pw) {
-          return;
-        }
-        await ensureOutputRootDir(DEFAULT_DOWNLOAD_DIR);
-        let downloadPath: string | undefined;
-        if (out.trim()) {
-          const resolvedDownloadPath = await resolveWritableOutputPathOrRespond({
-            res,
-            rootDir: DEFAULT_DOWNLOAD_DIR,
-            requestedPath: out,
-            scopeLabel: "downloads directory",
-          });
-          if (!resolvedDownloadPath) {
-            return;
-          }
-          downloadPath = resolvedDownloadPath;
-        }
-        const requestBase = buildDownloadRequestBase(cdpUrl, tab.targetId, timeoutMs);
-        const result = await pw.waitForDownloadViaPlaywright({
-          ...requestBase,
-          path: downloadPath,
-        });
-        res.json({ ok: true, targetId: tab.targetId, download: result });
-      },
-    });
+    const profileCtx = resolveProfileContext(req, res, ctx);
+    if (!profileCtx) {
+      return;
+    }
+    try {
+      await ensureOutputRootDir(DEFAULT_DOWNLOAD_DIR);
+      const downloadPath = await resolveWritableOutputPathOrRespond({
+        res,
+        rootDir: DEFAULT_DOWNLOAD_DIR,
+        requestedPath: out || "download.bin",
+        scopeLabel: "downloads directory",
+      });
+      if (!downloadPath) {
+        return;
+      }
+      const result = await evaluatePinchTabBrowserInstance<{
+        ok?: boolean;
+        url?: string;
+        status?: number;
+        base64?: string;
+      }>(
+        profileCtx.profile.name,
+        `fetch(window.location.href, { credentials: "include" }).then(async (res) => { const bytes = new Uint8Array(await res.arrayBuffer()); let binary = ""; const chunk = 0x8000; for (let i = 0; i < bytes.length; i += chunk) { binary += String.fromCharCode(...bytes.slice(i, i + chunk)); } return JSON.stringify({ ok: res.ok, url: res.url, status: res.status, base64: btoa(binary) }); })`,
+        typeof body.targetId === "string" ? body.targetId.trim() || undefined : undefined,
+      );
+      if (typeof result.value?.base64 !== "string" || !result.value.base64) {
+        return jsonError(res, 500, "PinchTab download failed.");
+      }
+      await fs.writeFile(downloadPath, Buffer.from(result.value.base64, "base64"));
+      res.json({
+        ok: true,
+        targetId: result.targetId,
+        download: {
+          url: result.value.url ?? "",
+          suggestedFilename: path.basename(downloadPath),
+          path: path.resolve(downloadPath),
+          timeoutMs,
+        },
+      });
+    } catch (err) {
+      jsonError(res, 500, String(err));
+    }
   });
 
   app.post("/download", async (req, res) => {
     const body = readBody(req);
-    const targetId = resolveTargetIdFromBody(body);
     const ref = toStringOrEmpty(body.ref);
     const out = toStringOrEmpty(body.path);
-    const timeoutMs = toNumber(body.timeoutMs);
     if (!ref) {
       return jsonError(res, 400, "ref is required");
     }
     if (!out) {
       return jsonError(res, 400, "path is required");
     }
-
-    await withRouteTabContext({
-      req,
+    return jsonError(
       res,
-      ctx,
-      targetId,
-      run: async ({ profileCtx, cdpUrl, tab }) => {
-        if (getBrowserProfileCapabilities(profileCtx.profile).usesChromeMcp) {
-          return jsonError(
-            res,
-            501,
-            "downloads are not supported for existing-session profiles yet.",
-          );
-        }
-        const pw = await requirePwAi(res, "download");
-        if (!pw) {
-          return;
-        }
-        await ensureOutputRootDir(DEFAULT_DOWNLOAD_DIR);
-        const downloadPath = await resolveWritableOutputPathOrRespond({
-          res,
-          rootDir: DEFAULT_DOWNLOAD_DIR,
-          requestedPath: out,
-          scopeLabel: "downloads directory",
-        });
-        if (!downloadPath) {
-          return;
-        }
-        const requestBase = buildDownloadRequestBase(cdpUrl, tab.targetId, timeoutMs);
-        const result = await pw.downloadViaPlaywright({
-          ...requestBase,
-          ref,
-          path: downloadPath,
-        });
-        res.json({ ok: true, targetId: tab.targetId, download: result });
-      },
-    });
+      501,
+      "PinchTab unified backend does not support ref-scoped downloads on browser server yet; use /wait/download instead.",
+    );
   });
 }

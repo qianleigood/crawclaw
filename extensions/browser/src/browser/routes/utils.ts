@@ -1,5 +1,5 @@
 import { parseBooleanValue } from "../../utils/boolean.js";
-import type { BrowserRouteContext, ProfileContext } from "../server-context.js";
+import type { BrowserRouteContext, ProfileContext } from "../server-context.types.js";
 import type { BrowserRequest, BrowserResponse } from "./types.js";
 
 /**

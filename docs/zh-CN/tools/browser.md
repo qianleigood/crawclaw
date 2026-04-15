@@ -95,7 +95,6 @@ crawclaw browser --browser-profile crawclaw snapshot
     color: "#FF4500",
     headless: false,
     noSandbox: false,
-    attachOnly: false,
     executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
     profiles: {
       crawclaw: { cdpPort: 18800, color: "#FF4500" },
@@ -113,9 +112,8 @@ crawclaw browser --browser-profile crawclaw snapshot
 - 未设置时，`cdpUrl` 默认为中继端口。
 - `remoteCdpTimeoutMs` 适用于远程（非 loopback）CDP 可达性检查。
 - `remoteCdpHandshakeTimeoutMs` 适用于远程 CDP WebSocket 可达性检查。
-- `attachOnly: true` 表示"永不启动本地浏览器；仅在浏览器已运行时附加"。
 - `color` + 每个配置文件的 `color` 为浏览器 UI 着色，以便你能看到哪个配置文件处于活动状态。
-- 默认配置文件是 `crawclaw`（托管浏览器）。如需使用扩展中继，可显式设置 `defaultProfile: "chrome"`。
+- 默认配置文件是 `crawclaw`（托管浏览器）。
 - 自动检测顺序：如果系统默认浏览器是基于 Chromium 的则使用它；否则 Chrome → Brave → Edge → Chromium → Chrome Canary。
 - 本地 `crawclaw` 配置文件会自动分配 `cdpPort`/`cdpUrl` — 仅为远程 CDP 设置这些。
 

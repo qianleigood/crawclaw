@@ -104,6 +104,12 @@ crawclaw onboard --install-daemon
 
 CrawClaw Onboard installs the Gateway daemon (launchd/systemd user service) so it stays running.
 
+Install-time bundled runtimes:
+
+- CrawClaw now provisions bundled plugin runtimes during install/postinstall instead of waiting for first startup.
+- Inspect shared runtime status with `crawclaw runtimes doctor` or `crawclaw runtimes list --json`.
+- Rebuild shared runtimes manually with `crawclaw runtimes install` or `crawclaw runtimes repair`.
+
 ## Quick start (TL;DR)
 
 Runtime: **Node 24 (recommended) or Node 22.16+**.
@@ -142,6 +148,7 @@ git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 
 pnpm install
+pnpm crawclaw runtimes doctor
 pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 
@@ -152,6 +159,7 @@ pnpm gateway:watch
 ```
 
 Note: `pnpm crawclaw ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `crawclaw` binary.
+`pnpm install` now provisions shared bundled plugin runtimes under `~/.crawclaw/runtimes`; startup uses those installed runtimes instead of bootstrapping them on demand.
 
 ## Security defaults (DM access)
 

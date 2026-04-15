@@ -122,18 +122,3 @@ export function ensureDefaultProfile(params: {
   }
   return result;
 }
-
-export function ensureDefaultUserBrowserProfile(
-  profiles: Record<string, BrowserProfileConfig>,
-): Record<string, BrowserProfileConfig> {
-  const result = { ...profiles };
-  if (result.user) {
-    return result;
-  }
-  result.user = {
-    driver: "existing-session",
-    attachOnly: true,
-    color: "#00AA00",
-  };
-  return result;
-}

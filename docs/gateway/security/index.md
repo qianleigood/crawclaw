@@ -1033,7 +1033,7 @@ access those accounts and data. Treat browser profiles as **sensitive state**:
 - For remote gateways, assume “browser control” is equivalent to “operator access” to whatever that profile can reach.
 - Keep the Gateway and node hosts tailnet-only; avoid exposing browser control ports to LAN or public Internet.
 - Disable browser proxy routing when you don’t need it (`gateway.nodes.browser.mode="off"`).
-- Chrome MCP existing-session mode is **not** “safer”; it can act as you in whatever that host Chrome profile can reach.
+- Browser control against a personal daily-driver profile is **not** “safer”; it can act as you in whatever that profile can reach.
 
 ### Browser SSRF policy (trusted-network default)
 

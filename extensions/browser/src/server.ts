@@ -1,9 +1,12 @@
 import { createBrowserControlServerController } from "./browser-control-server-core.js";
 import { resolveBrowserConfig } from "./browser/config.js";
 import { ensureBrowserControlAuth, resolveBrowserControlAuth } from "./browser/control-auth.js";
+import { createPinchTabBrowserRouteContext } from "./browser/pinchtab-route-context.js";
+import {
+  createPinchTabBrowserRuntimeState,
+  stopPinchTabBrowserRuntime,
+} from "./browser/pinchtab-runtime-lifecycle.js";
 import { registerBrowserRoutes } from "./browser/routes/index.js";
-import { createBrowserRuntimeState, stopBrowserRuntime } from "./browser/runtime-lifecycle.js";
-import { createBrowserRouteContext } from "./browser/server-context.js";
 import {
   installBrowserAuthMiddleware,
   installBrowserCommonMiddleware,
@@ -24,10 +27,10 @@ const controller = createBrowserControlServerController({
     ensureBrowserControlAuth,
     installBrowserCommonMiddleware,
     installBrowserAuthMiddleware,
-    createBrowserRouteContext,
+    createBrowserRouteContext: createPinchTabBrowserRouteContext,
     registerBrowserRoutes,
-    createBrowserRuntimeState,
-    stopBrowserRuntime,
+    createBrowserRuntimeState: createPinchTabBrowserRuntimeState,
+    stopBrowserRuntime: stopPinchTabBrowserRuntime,
   },
   log: logServer,
 });

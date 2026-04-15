@@ -1363,7 +1363,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
 
   it("applies WhatsApp group reset authorization across sender variants", async () => {
     const sessionKey = "agent:main:whatsapp:group:120363406150318674@g.us";
-    const existingSessionId = "existing-session-123";
+    const existingSessionId = "reused-session-123";
     const storePath = await createStorePath("crawclaw-group-reset");
     const cases = [
       {
@@ -1443,7 +1443,7 @@ describe("initSessionState reset triggers in Slack channels", () => {
   }
 
   it("supports mention-prefixed Slack reset commands and preserves args", async () => {
-    const existingSessionId = "existing-session-123";
+    const existingSessionId = "reused-session-123";
     const sessionKey = "agent:main:slack:channel:c2";
     const body = "<@U123> /new take notes";
     const storePath = await createStorePath("crawclaw-slack-channel-new-");
@@ -1500,7 +1500,7 @@ describe("initSessionState preserves behavior overrides across /new", () => {
   it("preserves behavior overrides across /new", async () => {
     const storePath = await createStorePath("crawclaw-reset-overrides-");
     const sessionKey = "agent:main:telegram:dm:user-overrides";
-    const existingSessionId = "existing-session-overrides";
+    const existingSessionId = "reused-session-overrides";
     const overrides = {
       verboseLevel: "on",
       thinkingLevel: "high",
@@ -1543,7 +1543,7 @@ describe("initSessionState preserves behavior overrides across /new", () => {
   it("preserves selected auth profile overrides across /new", async () => {
     const storePath = await createStorePath("crawclaw-reset-model-auth-");
     const sessionKey = "agent:main:telegram:dm:user-model-auth";
-    const existingSessionId = "existing-session-model-auth";
+    const existingSessionId = "reused-session-model-auth";
     const overrides = {
       providerOverride: "openai",
       modelOverride: "gpt-4o",
@@ -1604,7 +1604,7 @@ describe("initSessionState preserves behavior overrides across /new", () => {
   it("preserves spawned session ownership metadata across /new", async () => {
     const storePath = await createStorePath("crawclaw-reset-spawned-metadata-");
     const sessionKey = "subagent:owned-child";
-    const existingSessionId = "existing-session-owned-child";
+    const existingSessionId = "reused-session-owned-child";
     const overrides = {
       spawnedBy: "agent:main:main",
       spawnedWorkspaceDir: "/tmp/child-workspace",
@@ -1651,7 +1651,7 @@ describe("initSessionState preserves behavior overrides across /new", () => {
   it("requires operator.admin when Provider is internal even if Surface carries external metadata", async () => {
     const storePath = await createStorePath("crawclaw-internal-reset-provider-authoritative-");
     const sessionKey = "agent:main:telegram:dm:provider-authoritative";
-    const existingSessionId = "existing-session-provider-authoritative";
+    const existingSessionId = "reused-session-provider-authoritative";
 
     await seedSessionStoreWithOverrides({
       storePath,
@@ -1688,7 +1688,7 @@ describe("initSessionState preserves behavior overrides across /new", () => {
   it("archives the old session store entry on /new", async () => {
     const storePath = await createStorePath("crawclaw-archive-old-");
     const sessionKey = "agent:main:telegram:dm:user-archive";
-    const existingSessionId = "existing-session-archive";
+    const existingSessionId = "reused-session-archive";
     const transcriptPath = path.join(path.dirname(storePath), `${existingSessionId}.jsonl`);
     await seedSessionStoreWithOverrides({
       storePath,

@@ -291,7 +291,7 @@ Look for:
 - Whether `plugins.allow` is set and includes `browser`.
 - Valid browser executable path.
 - CDP profile reachability.
-- Local Chrome availability for `existing-session` / `user` profiles.
+- PinchTab runtime health for managed profiles.
 
 Common signatures:
 
@@ -299,8 +299,7 @@ Common signatures:
 - browser tool missing / unavailable while `browser.enabled=true` → `plugins.allow` excludes `browser`, so the plugin never loaded.
 - `Failed to start Chrome CDP on port` → browser process failed to launch.
 - `browser.executablePath not found` → configured path is invalid.
-- `No Chrome tabs found for profile="user"` → the Chrome MCP attach profile has no open local Chrome tabs.
-- `Browser attachOnly is enabled ... not reachable` → attach-only profile has no reachable target.
+- `Remote CDP for profile "<name>" is not reachable` → configured remote CDP endpoint is unreachable.
 
 Related:
 

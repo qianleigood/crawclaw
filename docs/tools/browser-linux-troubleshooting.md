@@ -60,7 +60,6 @@ If you must use snap Chromium, configure CrawClaw to attach to a manually-starte
 {
   "browser": {
     "enabled": true,
-    "attachOnly": true,
     "headless": true,
     "noSandbox": true
   }
@@ -112,27 +111,27 @@ curl -s http://127.0.0.1:18791/tabs
 
 ### Config Reference
 
-| Option                   | Description                                                          | Default                                                     |
-| ------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `browser.enabled`        | Enable browser control                                               | `true`                                                      |
-| `browser.executablePath` | Path to a Chromium-based browser binary (Chrome/Brave/Edge/Chromium) | auto-detected (prefers default browser when Chromium-based) |
-| `browser.headless`       | Run without GUI                                                      | `false`                                                     |
-| `browser.noSandbox`      | Add `--no-sandbox` flag (needed for some Linux setups)               | `false`                                                     |
-| `browser.attachOnly`     | Don't launch browser, only attach to existing                        | `false`                                                     |
-| `browser.cdpPort`        | Chrome DevTools Protocol port                                        | `18800`                                                     |
+| Option                      | Description                                                          | Default                                                     |
+| --------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `browser.enabled`           | Enable browser control                                               | `true`                                                      |
+| `browser.executablePath`    | Path to a Chromium-based browser binary (Chrome/Brave/Edge/Chromium) | auto-detected (prefers default browser when Chromium-based) |
+| `browser.headless`          | Run without GUI                                                      | `false`                                                     |
+| `browser.noSandbox`         | Add `--no-sandbox` flag (needed for some Linux setups)               | `false`                                                     |
+| `browser.cdpPortRangeStart` | Starting port for managed local browser profiles                     | derived from `gateway.port`                                 |
 
-### Problem: "No Chrome tabs found for profile=\"user\""
+### Problem: remote CDP is reachable by `curl`, but CrawClaw still cannot use it
 
-You're using an `existing-session` / Chrome MCP profile. CrawClaw can see local Chrome,
-but there are no open tabs available to attach to.
+You're using a remote CDP profile. The endpoint answers, but CrawClaw still
+cannot complete browser operations.
 
 Fix options:
 
 1. **Use the managed browser:** `crawclaw browser start --browser-profile crawclaw`
    (or set `browser.defaultProfile: "crawclaw"`).
-2. **Use Chrome MCP:** make sure local Chrome is running with at least one open tab, then retry with `--browser-profile user`.
+2. **Use remote CDP:** make sure the configured browser is still serving
+   `browser.profiles.<name>.cdpUrl` from the same host/namespace CrawClaw uses.
 
 Notes:
 
-- `user` is host-only. For Linux servers, containers, or remote hosts, prefer CDP profiles.
+- For Linux servers, containers, or remote hosts, prefer managed profiles or remote CDP.
 - Local `crawclaw` profiles auto-assign `cdpPort`/`cdpUrl`; only set those for remote CDP.

@@ -16,14 +16,8 @@ function changedProfileInvariants(
   if (current.driver !== next.driver) {
     changed.push("driver");
   }
-  if (current.attachOnly !== next.attachOnly) {
-    changed.push("attachOnly");
-  }
   if (current.cdpIsLoopback !== next.cdpIsLoopback) {
     changed.push("cdpIsLoopback");
-  }
-  if ((current.userDataDir ?? "") !== (next.userDataDir ?? "")) {
-    changed.push("userDataDir");
   }
   return changed;
 }

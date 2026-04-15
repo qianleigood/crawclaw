@@ -229,12 +229,10 @@ describe("browser client", () => {
             cdpPort: 18792,
             cdpUrl: "http://127.0.0.1:18792",
             chosenBrowser: "chrome",
-            userDataDir: "/tmp",
             color: "#FF4500",
             headless: false,
             noSandbox: false,
             executablePath: null,
-            attachOnly: false,
           }),
         } as unknown as Response;
       }),

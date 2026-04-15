@@ -1,8 +1,4 @@
-import type {
-  BrowserConfig,
-  BrowserProfileConfig,
-  CrawClawConfig,
-} from "../config/config.js";
+import type { BrowserConfig, BrowserProfileConfig, CrawClawConfig } from "../config/config.js";
 import { resolveGatewayPort } from "../config/paths.js";
 import {
   deriveDefaultBrowserCdpPortRange,
@@ -36,7 +32,6 @@ export type ResolvedBrowserConfig = {
   executablePath?: string;
   headless: boolean;
   noSandbox: boolean;
-  attachOnly: boolean;
   defaultProfile: string;
   profiles: Record<string, BrowserProfileConfig>;
   ssrfPolicy?: SsrFPolicy;
@@ -49,10 +44,8 @@ export type ResolvedBrowserProfile = {
   cdpUrl: string;
   cdpHost: string;
   cdpIsLoopback: boolean;
-  userDataDir?: string;
   color: string;
-  driver: "crawclaw" | "existing-session";
-  attachOnly: boolean;
+  driver: "crawclaw";
 };
 
 function normalizeHexColor(raw: string | undefined) {
@@ -184,24 +177,6 @@ function ensureDefaultProfile(
   return result;
 }
 
-/**
- * Ensure a built-in "user" profile exists for Chrome's existing-session attach flow.
- */
-function ensureDefaultUserBrowserProfile(
-  profiles: Record<string, BrowserProfileConfig>,
-): Record<string, BrowserProfileConfig> {
-  const result = { ...profiles };
-  if (result.user) {
-    return result;
-  }
-  result.user = {
-    driver: "existing-session",
-    attachOnly: true,
-    color: "#00AA00",
-  };
-  return result;
-}
-
 export function resolveBrowserConfig(
   cfg: BrowserConfig | undefined,
   rootConfig?: CrawClawConfig,
@@ -253,7 +228,6 @@ export function resolveBrowserConfig(
 
   const headless = cfg?.headless === true;
   const noSandbox = cfg?.noSandbox === true;
-  const attachOnly = cfg?.attachOnly === true;
   const executablePath = cfg?.executablePath?.trim() || undefined;
 
   const defaultProfileFromConfig = cfg?.defaultProfile?.trim() || undefined;
@@ -261,14 +235,12 @@ export function resolveBrowserConfig(
   const legacyCdpPort = rawCdpUrl ? cdpInfo.port : undefined;
   const isWsUrl = cdpInfo.parsed.protocol === "ws:" || cdpInfo.parsed.protocol === "wss:";
   const legacyCdpUrl = rawCdpUrl && isWsUrl ? cdpInfo.normalized : undefined;
-  const profiles = ensureDefaultUserBrowserProfile(
-    ensureDefaultProfile(
-      cfg?.profiles,
-      defaultColor,
-      legacyCdpPort,
-      cdpPortRangeStart,
-      legacyCdpUrl,
-    ),
+  const profiles = ensureDefaultProfile(
+    cfg?.profiles,
+    defaultColor,
+    legacyCdpPort,
+    cdpPortRangeStart,
+    legacyCdpUrl,
   );
   const cdpProtocol = cdpInfo.parsed.protocol === "https:" ? "https" : "http";
 
@@ -278,7 +250,7 @@ export function resolveBrowserConfig(
       ? DEFAULT_BROWSER_DEFAULT_PROFILE_NAME
       : profiles[DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME]
         ? DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME
-        : "user");
+        : DEFAULT_CRAWCLAW_BROWSER_PROFILE_NAME);
 
   const extraArgs = Array.isArray(cfg?.extraArgs)
     ? cfg.extraArgs.filter((a): a is string => typeof a === "string" && a.trim().length > 0)
@@ -299,7 +271,6 @@ export function resolveBrowserConfig(
     executablePath,
     headless,
     noSandbox,
-    attachOnly,
     defaultProfile,
     profiles,
     ssrfPolicy,
@@ -324,22 +295,7 @@ export function resolveProfile(
   let cdpHost = resolved.cdpHost;
   let cdpPort = profile.cdpPort ?? 0;
   let cdpUrl = "";
-  const driver = profile.driver === "existing-session" ? "existing-session" : "crawclaw";
-
-  if (driver === "existing-session") {
-    // existing-session uses Chrome MCP auto-connect; no CDP port/URL needed
-    return {
-      name: profileName,
-      cdpPort: 0,
-      cdpUrl: "",
-      cdpHost: "",
-      cdpIsLoopback: true,
-      userDataDir: resolveUserPath(profile.userDataDir?.trim() || "") || undefined,
-      color: profile.color,
-      driver,
-      attachOnly: true,
-    };
-  }
+  const driver = "crawclaw";
 
   // When both cdpPort and cdpUrl are set and the URL contains a
   // /devtools/browser/ path (a session-specific WebSocket ID), prefer
@@ -375,7 +331,6 @@ export function resolveProfile(
     cdpIsLoopback: isLoopbackHost(cdpHost),
     color: profile.color,
     driver,
-    attachOnly: profile.attachOnly ?? resolved.attachOnly,
   };
 }
 

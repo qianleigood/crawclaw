@@ -43,13 +43,6 @@ export type BrowserToolRouteDeps = {
     enabled: boolean;
     profiles?: Record<string, unknown>;
   };
-  resolveProfile: (
-    resolved: { profiles?: Record<string, unknown> },
-    profileName: string,
-  ) => Record<string, unknown> | null;
-  getBrowserProfileCapabilities: (profile: Record<string, unknown>) => {
-    usesChromeMcp?: boolean;
-  };
   listNodes: (_args: Record<string, unknown>) => Promise<BrowserNodeListEntry[]>;
   resolveNodeIdFromList: (
     nodes: BrowserNodeListEntry[],
@@ -225,20 +218,6 @@ async function callBrowserProxy(params: {
   return parsed;
 }
 
-function shouldPreferHostForProfile(profileName: string | undefined, deps: BrowserToolRouteDeps) {
-  if (!profileName) {
-    return false;
-  }
-  const cfg = deps.loadConfig();
-  const resolved = deps.resolveBrowserConfig((cfg as { browser?: unknown }).browser, cfg);
-  const profile = deps.resolveProfile(resolved, profileName);
-  if (!profile) {
-    return false;
-  }
-  const capabilities = deps.getBrowserProfileCapabilities(profile);
-  return capabilities.usesChromeMcp === true;
-}
-
 export async function resolveBrowserToolRoute(params: {
   profile?: string;
   requestedNode?: string;
@@ -259,22 +238,6 @@ export async function resolveBrowserToolRoute(params: {
 
   if (requestedNode && target && target !== "node") {
     throw new Error('node is only supported with target="node".');
-  }
-
-  // User-browser profiles (existing-session) are host-only.
-  const isUserBrowserProfile = shouldPreferHostForProfile(profile, params.deps);
-  if (isUserBrowserProfile) {
-    if (requestedNode || target === "node") {
-      throw new Error(`profile="${profile}" only supports the local host browser.`);
-    }
-    if (target === "sandbox") {
-      throw new Error(
-        `profile="${profile}" cannot use the sandbox browser; use target="host" or omit target.`,
-      );
-    }
-    if (!target && !requestedNode) {
-      target = "host";
-    }
   }
 
   const nodeTarget = await resolveBrowserNodeTarget({

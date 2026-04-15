@@ -1,9 +1,15 @@
-import { BrowserProfileUnavailableError, BrowserTabNotFoundError } from "../errors.js";
+import { BrowserTabNotFoundError } from "../errors.js";
 import {
   assertBrowserNavigationAllowed,
   withBrowserNavigationPolicy,
 } from "../navigation-guard.js";
-import type { BrowserRouteContext, ProfileContext } from "../server-context.js";
+import type { BrowserRouteContext } from "../server-context.types.js";
+import {
+  closePinchTabBrowserTab,
+  focusPinchTabBrowserTab,
+  listPinchTabBrowserTabs,
+  openPinchTabBrowserTab,
+} from "./pinchtab-backend.js";
 import type { BrowserRequest, BrowserResponse, BrowserRouteRegistrar } from "./types.js";
 import { getProfileContext, jsonError, toNumber, toStringOrEmpty } from "./utils.js";
 
@@ -20,18 +26,7 @@ function resolveTabsProfileContext(
   return profileCtx;
 }
 
-function handleTabsRouteError(
-  ctx: BrowserRouteContext,
-  res: BrowserResponse,
-  err: unknown,
-  opts?: { mapTabError?: boolean },
-) {
-  if (opts?.mapTabError) {
-    const mapped = ctx.mapTabError(err);
-    if (mapped) {
-      return jsonError(res, mapped.status, mapped.message);
-    }
-  }
+function handleTabsRouteError(_ctx: BrowserRouteContext, res: BrowserResponse, err: unknown) {
   return jsonError(res, 500, String(err));
 }
 
@@ -39,36 +34,20 @@ async function withTabsProfileRoute(params: {
   req: BrowserRequest;
   res: BrowserResponse;
   ctx: BrowserRouteContext;
-  mapTabError?: boolean;
-  run: (profileCtx: ProfileContext) => Promise<void>;
+  run: (profileName: string) => Promise<void>;
 }) {
   const profileCtx = resolveTabsProfileContext(params.req, params.res, params.ctx);
   if (!profileCtx) {
     return;
   }
   try {
-    await params.run(profileCtx);
+    await params.run(profileCtx.profile.name);
   } catch (err) {
-    handleTabsRouteError(params.ctx, params.res, err, { mapTabError: params.mapTabError });
+    handleTabsRouteError(params.ctx, params.res, err);
   }
 }
 
-async function ensureBrowserRunning(profileCtx: ProfileContext, res: BrowserResponse) {
-  if (!(await profileCtx.isReachable(300))) {
-    jsonError(
-      res,
-      new BrowserProfileUnavailableError("browser not running").status,
-      "browser not running",
-    );
-    return false;
-  }
-  return true;
-}
-
-function resolveIndexedTab(
-  tabs: Awaited<ReturnType<ProfileContext["listTabs"]>>,
-  index: number | undefined,
-) {
+function resolveIndexedTab(tabs: Array<{ targetId: string }>, index: number | undefined) {
   return typeof index === "number" ? tabs[index] : tabs.at(0);
 }
 
@@ -86,18 +65,14 @@ async function runTabTargetMutation(params: {
   res: BrowserResponse;
   ctx: BrowserRouteContext;
   targetId: string;
-  mutate: (profileCtx: ProfileContext, targetId: string) => Promise<void>;
+  mutate: (profileName: string, targetId: string) => Promise<void>;
 }) {
   await withTabsProfileRoute({
     req: params.req,
     res: params.res,
     ctx: params.ctx,
-    mapTabError: true,
-    run: async (profileCtx) => {
-      if (!(await ensureBrowserRunning(profileCtx, params.res))) {
-        return;
-      }
-      await params.mutate(profileCtx, params.targetId);
+    run: async (profileName) => {
+      await params.mutate(profileName, params.targetId);
       params.res.json({ ok: true });
     },
   });
@@ -109,13 +84,9 @@ export function registerBrowserTabRoutes(app: BrowserRouteRegistrar, ctx: Browse
       req,
       res,
       ctx,
-      run: async (profileCtx) => {
-        const reachable = await profileCtx.isReachable(300);
-        if (!reachable) {
-          return res.json({ running: false, tabs: [] as unknown[] });
-        }
-        const tabs = await profileCtx.listTabs();
-        res.json({ running: true, tabs });
+      run: async (profileName) => {
+        const tabs = await listPinchTabBrowserTabs(profileName);
+        res.json({ running: tabs.running, tabs: tabs.tabs });
       },
     });
   });
@@ -130,14 +101,12 @@ export function registerBrowserTabRoutes(app: BrowserRouteRegistrar, ctx: Browse
       req,
       res,
       ctx,
-      mapTabError: true,
-      run: async (profileCtx) => {
+      run: async (profileName) => {
         await assertBrowserNavigationAllowed({
           url,
           ...withBrowserNavigationPolicy(ctx.state().resolved.ssrfPolicy),
         });
-        await profileCtx.ensureBrowserAvailable();
-        const tab = await profileCtx.openTab(url);
+        const tab = await openPinchTabBrowserTab(profileName, url);
         res.json(tab);
       },
     });
@@ -153,8 +122,8 @@ export function registerBrowserTabRoutes(app: BrowserRouteRegistrar, ctx: Browse
       res,
       ctx,
       targetId,
-      mutate: async (profileCtx, id) => {
-        await profileCtx.focusTab(id);
+      mutate: async (profileName, id) => {
+        await focusPinchTabBrowserTab(profileName, id);
       },
     });
   });
@@ -169,8 +138,8 @@ export function registerBrowserTabRoutes(app: BrowserRouteRegistrar, ctx: Browse
       res,
       ctx,
       targetId,
-      mutate: async (profileCtx, id) => {
-        await profileCtx.closeTab(id);
+      mutate: async (profileName, id) => {
+        await closePinchTabBrowserTab(profileName, id);
       },
     });
   });
@@ -183,30 +152,24 @@ export function registerBrowserTabRoutes(app: BrowserRouteRegistrar, ctx: Browse
       req,
       res,
       ctx,
-      mapTabError: true,
-      run: async (profileCtx) => {
+      run: async (profileName) => {
         if (action === "list") {
-          const reachable = await profileCtx.isReachable(300);
-          if (!reachable) {
-            return res.json({ ok: true, tabs: [] as unknown[] });
-          }
-          const tabs = await profileCtx.listTabs();
-          return res.json({ ok: true, tabs });
+          const tabs = await listPinchTabBrowserTabs(profileName);
+          return res.json({ ok: true, tabs: tabs.tabs });
         }
 
         if (action === "new") {
-          await profileCtx.ensureBrowserAvailable();
-          const tab = await profileCtx.openTab("about:blank");
+          const tab = await openPinchTabBrowserTab(profileName, "about:blank");
           return res.json({ ok: true, tab });
         }
 
         if (action === "close") {
-          const tabs = await profileCtx.listTabs();
-          const target = resolveIndexedTab(tabs, index);
+          const tabs = await listPinchTabBrowserTabs(profileName);
+          const target = resolveIndexedTab(tabs.tabs, index);
           if (!target) {
             throw new BrowserTabNotFoundError();
           }
-          await profileCtx.closeTab(target.targetId);
+          await closePinchTabBrowserTab(profileName, target.targetId);
           return res.json({ ok: true, targetId: target.targetId });
         }
 
@@ -214,12 +177,12 @@ export function registerBrowserTabRoutes(app: BrowserRouteRegistrar, ctx: Browse
           if (typeof index !== "number") {
             return jsonError(res, 400, "index is required");
           }
-          const tabs = await profileCtx.listTabs();
-          const target = tabs[index];
+          const tabs = await listPinchTabBrowserTabs(profileName);
+          const target = tabs.tabs[index];
           if (!target) {
             throw new BrowserTabNotFoundError();
           }
-          await profileCtx.focusTab(target.targetId);
+          await focusPinchTabBrowserTab(profileName, target.targetId);
           return res.json({ ok: true, targetId: target.targetId });
         }
 

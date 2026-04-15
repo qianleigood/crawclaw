@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { BrowserRouteContext } from "../server-context.js";
+import type { BrowserRouteContext } from "../server-context.types.js";
 
 let createBrowserRouteDispatcher: typeof import("./dispatcher.js").createBrowserRouteDispatcher;
 

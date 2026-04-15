@@ -115,7 +115,7 @@ describe("session store key normalization", () => {
       JSON.stringify(
         {
           [CANONICAL_KEY]: {
-            sessionId: "existing-session",
+            sessionId: "preserved-session",
             updatedAt: 1111,
             chatType: "direct",
             channel: "webchat",
@@ -141,7 +141,7 @@ describe("session store key normalization", () => {
     });
 
     const store = loadSessionStore(storePath, { skipCache: true });
-    expect(store[CANONICAL_KEY]?.sessionId).toBe("existing-session");
+    expect(store[CANONICAL_KEY]?.sessionId).toBe("preserved-session");
     expect(store[CANONICAL_KEY]?.updatedAt).toBe(1111);
     expect(store[CANONICAL_KEY]?.origin?.provider).toBe("webchat");
   });

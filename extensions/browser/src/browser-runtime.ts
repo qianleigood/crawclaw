@@ -65,8 +65,14 @@ export {
 } from "./browser/session-tab-registry.js";
 export { ensureBrowserControlAuth, resolveBrowserControlAuth } from "./browser/control-auth.js";
 export { movePathToTrash } from "./browser/trash.js";
-export { createBrowserRuntimeState, stopBrowserRuntime } from "./browser/runtime-lifecycle.js";
-export { type BrowserServerState, createBrowserRouteContext } from "./browser/server-context.js";
+export {
+  createPinchTabBrowserRuntimeState as createBrowserRuntimeState,
+  stopPinchTabBrowserRuntime as stopBrowserRuntime,
+} from "./browser/pinchtab-runtime-lifecycle.js";
+export {
+  type BrowserServerState,
+  createPinchTabBrowserRouteContext as createBrowserRouteContext,
+} from "./browser/pinchtab-route-context.js";
 export { registerBrowserRoutes } from "./browser/routes/index.js";
 export type { BrowserRouteRegistrar } from "./browser/routes/types.js";
 export {

@@ -13,6 +13,7 @@ Manage Gateway plugins/extensions, hook packs, and compatible bundles.
 Related:
 
 - Plugin system: [Plugins](/tools/plugin)
+- Runtime provisioning: [Runtimes](/cli/runtimes)
 - Bundle compatibility: [Plugin bundles](/plugins/bundles)
 - Plugin manifest + schema: [Plugin manifest](/plugins/manifest)
 - Security hardening: [Security](/gateway/security)
@@ -34,6 +35,8 @@ crawclaw plugins marketplace list <marketplace>
 
 Bundled plugins ship with CrawClaw but start disabled. Use `plugins enable` to
 activate them.
+
+Bundled plugin sidecar/runtime dependencies that are part of the default install path are now provisioned during install/postinstall under `~/.crawclaw/runtimes`. Use `crawclaw runtimes doctor` or `crawclaw runtimes install` when you need to inspect or repair those shared runtimes.
 
 Native CrawClaw plugins should ship `crawclaw.plugin.json` with an inline JSON
 Schema (`configSchema`, even if empty). Legacy `crawclaw.plugin.json` is still
