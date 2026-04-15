@@ -31,6 +31,7 @@
     "docs/",
     "!docs/.generated/**",
     "!docs/.i18n/zh-CN.tm.jsonl",
+    "extensions/scrapling-fetch/runtime/requirements.lock.txt",
     "skills/",
     "scripts/install-plugin-runtimes.mjs",
     "scripts/npm-runner.mjs",

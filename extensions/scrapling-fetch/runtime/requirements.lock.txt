@@ -1,0 +1,6 @@
+Scrapling==0.4.6
+curl-cffi==0.15.0
+playwright==1.58.0
+browserforge==1.2.4
+patchright==1.58.2
+msgspec==0.20.0

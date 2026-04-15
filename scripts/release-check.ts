@@ -24,6 +24,7 @@ const requiredPathGroups = [
   ...listPluginSdkDistArtifacts(),
   ...listBundledPluginPackArtifacts(),
   ...listStaticExtensionAssetOutputs(),
+  "extensions/scrapling-fetch/runtime/requirements.lock.txt",
   "scripts/install-plugin-runtimes.mjs",
   "scripts/npm-runner.mjs",
   "scripts/postinstall-bundled-plugins.mjs",
