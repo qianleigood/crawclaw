@@ -67,7 +67,7 @@ const hoisted = vi.hoisted(() => {
     getRoomInfo,
     inboundDeduper,
     logger,
-    registeredOnRoomMessage: null | ((roomId: string, event: unknown) => Promise<void>),
+    registeredOnRoomMessage: null as ((roomId: string, event: unknown) => Promise<void>) | null,
     releaseSharedClientInstance,
     resolveTextChunkLimit,
     setActiveMatrixClient,

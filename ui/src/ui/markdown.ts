@@ -159,6 +159,7 @@ const cjkAutoLinkExtension = {
         ],
       };
     }
+    return undefined;
   },
 };
 

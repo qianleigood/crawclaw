@@ -955,9 +955,7 @@ function handleLifecycleEvent(event: AgentEventPayload): void {
   if (phase === "start") {
     trajectory.status = "running";
     trajectory.startedAt =
-      typeof event.data?.startedAt === "number"
-        ? Number(event.data.startedAt)
-        : trajectory.startedAt;
+      typeof event.data?.startedAt === "number" ? event.data.startedAt : trajectory.startedAt;
     trajectory.updatedAt = event.ts;
     enqueueTrajectoryPersist(runState, filePath);
     return;
@@ -966,7 +964,7 @@ function handleLifecycleEvent(event: AgentEventPayload): void {
     upsertAssistantCompletion(trajectory, runState, event.ts);
     trajectory.status = "completed";
     trajectory.completedAt =
-      typeof event.data?.endedAt === "number" ? Number(event.data.endedAt) : event.ts;
+      typeof event.data?.endedAt === "number" ? event.data.endedAt : event.ts;
     evaluateTrajectoryCompletion(trajectory, event.ts);
     captureTrajectoryCompletionDecision({ trajectory, runState, at: event.ts });
     trajectory.updatedAt = event.ts;
@@ -976,7 +974,7 @@ function handleLifecycleEvent(event: AgentEventPayload): void {
   if (phase === "error") {
     trajectory.status = "failed";
     trajectory.completedAt =
-      typeof event.data?.endedAt === "number" ? Number(event.data.endedAt) : event.ts;
+      typeof event.data?.endedAt === "number" ? event.data.endedAt : event.ts;
     evaluateTrajectoryCompletion(trajectory, event.ts);
     captureTrajectoryCompletionDecision({ trajectory, runState, at: event.ts });
     trajectory.updatedAt = event.ts;

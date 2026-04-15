@@ -17,35 +17,22 @@ import {
   resolveAllowlistModelKey,
   resolveProviderModelMergeState,
   type AgentModelAliasEntry,
-  type ProviderModelMergeState,
   type ProviderOnboardPresetAppliers,
 } from "./provider-onboard-helpers.js";
 
-export type {
-  CrawClawConfig,
-  } from "../config/config.js";
-export type {
-ModelApi,
-  ModelDefinitionConfig,
-  ModelProviderConfig,
-};
-export type {
-AgentModelAliasEntry,
-ProviderOnboardPresetAppliers,
-};
+export type { CrawClawConfig } from "../config/config.js";
+export type { ModelApi, ModelDefinitionConfig, ModelProviderConfig };
+export type { AgentModelAliasEntry, ProviderOnboardPresetAppliers };
 export {
   resolveAgentModelFallbackValues,
   resolveAgentModelPrimaryValue,
-  } from "../config/model-input.js";
+} from "../config/model-input.js";
 
 export function withAgentModelAliases(
-  existing: Record<string,
-  AgentModelEntryConfig> | undefined,
+  existing: Record<string, AgentModelEntryConfig> | undefined,
   aliases: readonly AgentModelAliasEntry[],
-  ): Record<string,
-  AgentModelEntryConfig> {
-  const next = { ...existing,
-};
+): Record<string, AgentModelEntryConfig> {
+  const next = { ...existing };
   for (const entry of aliases) {
     const normalized = normalizeAgentModelAliasEntry(entry);
     next[normalized.modelRef] = {

@@ -75,12 +75,8 @@ function logRemoteBinProbeFailure(nodeId: string, err: unknown) {
 }
 
 function isMacPlatform(platform?: string, deviceFamily?: string): boolean {
-  const platformNorm = String(platform ?? "")
-    .trim()
-    .toLowerCase();
-  const familyNorm = String(deviceFamily ?? "")
-    .trim()
-    .toLowerCase();
+  const platformNorm = (platform ?? "").trim().toLowerCase();
+  const familyNorm = (deviceFamily ?? "").trim().toLowerCase();
   if (platformNorm.includes("mac")) {
     return true;
   }

@@ -9,7 +9,7 @@ import type { ModelDefinitionConfig } from "../config/types.models.js";
 
 vi.mock("../agents/auth-profiles.js", () => {
   const normalizeProvider = (provider?: string | null): string =>
-    String(provider ?? "")
+    (provider ?? "")
       .trim()
       .toLowerCase()
       .replace(/^z-ai$/, "zai");

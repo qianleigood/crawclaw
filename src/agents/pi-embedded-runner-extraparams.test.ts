@@ -60,7 +60,7 @@ function createTestXaiFastModeWrapper(
       )(model, context, options);
     }
 
-    const fastModelId = XAI_FAST_MODEL_IDS.get(String(model.id).trim());
+    const fastModelId = XAI_FAST_MODEL_IDS.get(model.id.trim());
     return (
       baseStreamFn ??
       (() => {
@@ -437,7 +437,7 @@ describe("applyExtraParamsToAgent", () => {
   }): string {
     let resolvedModelId = params.model.id;
     const baseStreamFn: StreamFn = (model) => {
-      resolvedModelId = String(model.id ?? "");
+      resolvedModelId = model.id ?? "";
       return {} as ReturnType<StreamFn>;
     };
     const agent = { streamFn: baseStreamFn };

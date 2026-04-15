@@ -17,7 +17,7 @@ export {
   readJsonBodyWithLimit,
   readRequestBodyWithLimit,
   requestBodyErrorToText,
-  } from "../infra/http-body.js";
+} from "../infra/http-body.js";
 
 export const WEBHOOK_BODY_READ_DEFAULTS = Object.freeze({
   preAuth: {
@@ -144,7 +144,7 @@ export function isJsonContentType(value: string | string[] | undefined): boolean
     return false;
   }
   const mediaType = first.split(";", 1)[0]?.trim().toLowerCase();
-  return mediaType === "application/json" || Boolean(mediaType?.endsWith("+json"));
+  return mediaType === "application/json" || (mediaType?.endsWith("+json") ?? false);
 }
 
 /** Apply method, rate-limit, and content-type guards before a webhook handler reads the body. */

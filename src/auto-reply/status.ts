@@ -481,9 +481,7 @@ export function buildStatusMessage(args: StatusArgs): string {
     const fallbackMatchesRuntimeModel =
       initialFallbackState.active &&
       runtimeModelRaw.toLowerCase() ===
-        String(entry?.fallbackNoticeActiveModel ?? "")
-          .trim()
-          .toLowerCase();
+        (entry?.fallbackNoticeActiveModel ?? "").trim().toLowerCase();
     const runtimeMatchesSelectedModel =
       runtimeModelRaw.toLowerCase() === (modelRefs.selected.label || "unknown").toLowerCase();
     // Legacy fallback sessions can persist provider-qualified runtime ids

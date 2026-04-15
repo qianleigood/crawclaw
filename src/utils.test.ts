@@ -242,12 +242,9 @@ describe("resolveUserPath", () => {
     const env = {
       HOME: "/tmp/crawclaw-home",
       CRAWCLAW_HOME: "/srv/crawclaw-home",
-      CRAWCLAW_HOME: "/srv/crawclaw-home",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveUserPath("~/crawclaw", env)).toBe(
-      path.resolve("/srv/crawclaw-home", "crawclaw"),
-    );
+    expect(resolveUserPath("~/crawclaw", env)).toBe(path.resolve("/srv/crawclaw-home", "crawclaw"));
   });
 
   it("keeps blank paths blank", () => {

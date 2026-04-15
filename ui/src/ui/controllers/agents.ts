@@ -262,7 +262,7 @@ export function refreshVisibleToolsEffectiveForCurrentSession(
   if (!sessionAgentId || state.agentsSelectedId !== sessionAgentId) {
     return;
   }
-  return loadToolsEffective(state, {
+  void loadToolsEffective(state, {
     agentId: sessionAgentId,
     sessionKey: resolvedSessionKey,
   });
@@ -279,7 +279,7 @@ export function refreshVisibleAgentInspectionForCurrentRun(
   if (!sessionAgentId || state.agentsSelectedId !== sessionAgentId) {
     return;
   }
-  return loadAgentInspection(state, { runId: resolvedRunId });
+  void loadAgentInspection(state, { runId: resolvedRunId });
 }
 
 function resolveEffectiveToolsModelKey(

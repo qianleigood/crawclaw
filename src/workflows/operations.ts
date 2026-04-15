@@ -1,5 +1,14 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { sleep } from "../utils.js";
+import { createWorkflowDefinitionDiffFromSnapshots } from "./diff.js";
+import {
+  appendWorkflowExecutionEvent,
+  attachWorkflowExecutionRemoteRef,
+  createWorkflowExecutionRecord,
+  getWorkflowExecution,
+  listWorkflowExecutions,
+  syncWorkflowExecutionFromN8n,
+} from "./executions.js";
 import { createN8nClient, resolveN8nCallbackConfig, resolveN8nConfig } from "./n8n-client.js";
 import type { N8nExecutionRecord, N8nWorkflowRecord, N8nResolvedConfig } from "./n8n-client.js";
 import {
@@ -7,9 +16,6 @@ import {
   compileWorkflowSpecToN8n,
   getWorkflowN8nCallbackCompileError,
 } from "./n8n-compiler.js";
-import {
-  createWorkflowDefinitionDiffFromSnapshots,
-} from "./diff.js";
 import {
   deleteWorkflow,
   describeWorkflow,
@@ -25,23 +31,10 @@ import {
   updateWorkflowDefinition,
 } from "./registry.js";
 import { buildWorkflowExecutionView, extractN8nResumeUrl } from "./status-view.js";
-import {
-  appendWorkflowExecutionEvent,
-  attachWorkflowExecutionRemoteRef,
-  createWorkflowExecutionRecord,
-  getWorkflowExecution,
-  listWorkflowExecutions,
-  syncWorkflowExecutionFromN8n,
-} from "./executions.js";
-import type {
-  WorkflowExecutionRecord,
-  WorkflowExecutionView,
-  WorkflowRegistryEntry,
-  WorkflowSpec,
-} from "./types.js";
 import type { WorkflowStoreContext } from "./store.js";
-import { buildWorkflowVersionSnapshot, loadWorkflowVersionSnapshot } from "./version-history.js";
+import type { WorkflowExecutionRecord, WorkflowRegistryEntry, WorkflowSpec } from "./types.js";
 import type { WorkflowDefinitionPatch } from "./types.js";
+import { buildWorkflowVersionSnapshot, loadWorkflowVersionSnapshot } from "./version-history.js";
 
 export function buildWorkflowListPayload(params: {
   workflows: WorkflowRegistryEntry[];
@@ -179,7 +172,9 @@ export async function deployWorkflowDefinition(params: {
   const deployed = await markWorkflowDeployed(params.context, described.entry.workflowId, {
     n8nWorkflowId: remote.id,
     specVersion: described.entry.specVersion,
-    ...(params.publishedBySessionKey ? { publishedBySessionKey: params.publishedBySessionKey } : {}),
+    ...(params.publishedBySessionKey
+      ? { publishedBySessionKey: params.publishedBySessionKey }
+      : {}),
     ...(params.summary ? { summary: params.summary } : {}),
   });
   return {
@@ -274,17 +269,33 @@ export async function buildWorkflowMatchPayload(params: {
 export async function resolveRunnableWorkflowForExecution(
   context: WorkflowStoreContext,
   workflowRef: string,
-) {
+): Promise<{
+  entry: WorkflowRegistryEntry & { n8nWorkflowId: string };
+  spec: WorkflowSpec;
+  storeRoot: string;
+  specPath: string;
+}> {
   const described = await describeWorkflow(context, workflowRef);
   if (!described) {
     throw new WorkflowOperationInputError(`Workflow "${workflowRef}" not found.`);
   }
-  if (described.entry.deploymentState !== "deployed" || !described.entry.n8nWorkflowId) {
+  if (
+    described.entry.deploymentState !== "deployed" ||
+    !described.entry.n8nWorkflowId ||
+    !described.spec
+  ) {
     throw new WorkflowOperationInputError(
       `Workflow "${workflowRef}" is not currently deployed. Run workflow.deploy or workflow.republish first.`,
     );
   }
-  return described;
+  return {
+    ...described,
+    entry: {
+      ...described.entry,
+      n8nWorkflowId: described.entry.n8nWorkflowId,
+    },
+    spec: described.spec,
+  };
 }
 
 export async function buildWorkflowDiffPayload(params: {
@@ -390,8 +401,7 @@ export async function rollbackWorkflowWithOptionalRepublish(params: {
     context: params.context,
     config: params.config,
     workflowRef: rolledBack.entry.workflowId,
-    summary:
-      params.summary ?? `rollback from spec version ${rolledBack.restoredFromSpecVersion}`,
+    summary: params.summary ?? `rollback from spec version ${rolledBack.restoredFromSpecVersion}`,
     publishedBySessionKey: params.sessionKey,
   });
   return {
@@ -486,10 +496,7 @@ export async function setWorkflowArchivedPayload(params: {
   };
 }
 
-export async function deleteWorkflowPayload(
-  context: WorkflowStoreContext,
-  workflowRef: string,
-) {
+export async function deleteWorkflowPayload(context: WorkflowStoreContext, workflowRef: string) {
   const deleted = await deleteWorkflow(context, workflowRef);
   if (!deleted.deleted) {
     throw new WorkflowOperationInputError(`Workflow "${workflowRef}" not found.`);
@@ -655,9 +662,7 @@ export async function resumeWorkflowExecution(params: {
 }) {
   const localExecution = await getWorkflowExecution(params.context, params.executionId);
   if (!localExecution) {
-    throw new WorkflowOperationInputError(
-      `Workflow execution "${params.executionId}" not found.`,
-    );
+    throw new WorkflowOperationInputError(`Workflow execution "${params.executionId}" not found.`);
   }
   const remoteExecutionId = localExecution.n8nExecutionId ?? params.executionId;
   const remoteExecution = await params.client.getExecution(remoteExecutionId, {

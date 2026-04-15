@@ -2,9 +2,7 @@ import { compileGlobPatterns, matchesAnyGlobPattern } from "../../glob-pattern.j
 import type { ContextPruningToolMatch } from "./settings.js";
 
 function normalizeGlob(value: string) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase();
+  return value.trim().toLowerCase();
 }
 
 export function makeToolPrunablePredicate(

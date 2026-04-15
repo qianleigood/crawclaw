@@ -42,7 +42,7 @@ export function createDoctorPrompter(params: {
       return false;
     }
     if (!repairMode.canPrompt) {
-      return Boolean(p.initialValue ?? false);
+      return p.initialValue ?? false;
     }
     return guardCancel(
       await confirm({
@@ -67,7 +67,7 @@ export function createDoctorPrompter(params: {
         return false;
       }
       if (!repairMode.canPrompt) {
-        return Boolean(p.initialValue ?? false);
+        return p.initialValue ?? false;
       }
       return guardCancel(
         await confirm({
@@ -85,7 +85,7 @@ export function createDoctorPrompter(params: {
         return false;
       }
       if (!repairMode.canPrompt) {
-        return Boolean(p.initialValue ?? false);
+        return p.initialValue ?? false;
       }
       return guardCancel(
         await confirm({

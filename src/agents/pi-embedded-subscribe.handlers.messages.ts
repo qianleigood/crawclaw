@@ -380,7 +380,7 @@ export function handleMessageUpdate(
 export function handleMessageEnd(
   ctx: EmbeddedPiSubscribeContext,
   evt: AgentEvent & { message: AgentMessage },
-) {
+): void | Promise<void> {
   const msg = evt.message;
   if (msg?.role !== "assistant" || isTranscriptOnlyCrawClawAssistantMessage(msg)) {
     return;
@@ -472,7 +472,7 @@ export function handleMessageEnd(
   );
   const shouldEmitReasoningBeforeAnswer =
     shouldEmitReasoning && ctx.state.blockReplyBreak === "message_end" && !addedDuringMessage;
-  const maybeEmitReasoning = () => {
+  const maybeEmitReasoning = (): void => {
     if (!shouldEmitReasoning || !formattedReasoning) {
       return;
     }
@@ -576,6 +576,7 @@ export function handleMessageEnd(
           if (isPromiseLike<void>(onBlockReplyFlushResult)) {
             return onBlockReplyFlushResult;
           }
+          return undefined;
         })
         .finally(() => {
           finalizeMessageEnd();

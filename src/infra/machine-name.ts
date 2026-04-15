@@ -12,7 +12,7 @@ async function tryScutil(key: "ComputerName" | "LocalHostName") {
       timeout: 1000,
       windowsHide: true,
     });
-    const value = String(stdout ?? "").trim();
+    const value = (stdout ?? "").trim();
     return value.length > 0 ? value : null;
   } catch {
     return null;

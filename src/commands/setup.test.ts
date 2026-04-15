@@ -24,7 +24,6 @@ describe("setupCommand", () => {
       },
       {
         env: {
-          CRAWCLAW_STATE_DIR: undefined,
           CRAWCLAW_STATE_DIR: (home) => path.join(home, ".crawclaw"),
         },
       },
@@ -67,7 +66,6 @@ describe("setupCommand", () => {
       },
       {
         env: {
-          CRAWCLAW_STATE_DIR: undefined,
           CRAWCLAW_STATE_DIR: (home) => path.join(home, ".crawclaw"),
         },
       },
@@ -100,7 +98,6 @@ describe("setupCommand", () => {
       },
       {
         env: {
-          CRAWCLAW_STATE_DIR: undefined,
           CRAWCLAW_STATE_DIR: (home) => path.join(home, ".crawclaw"),
         },
       },

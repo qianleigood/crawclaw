@@ -4,7 +4,7 @@ import { splitSetupEntries } from "./setup-wizard-helpers.js";
 export type ChannelAccessPolicy = "allowlist" | "open" | "disabled";
 
 export function parseAllowlistEntries(raw: string): string[] {
-  return splitSetupEntries(String(raw ?? ""));
+  return splitSetupEntries(raw);
 }
 
 export function formatAllowlistEntries(entries: string[]): string {

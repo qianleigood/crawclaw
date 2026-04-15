@@ -151,6 +151,8 @@ function extractShellWrapperPayload(argv: string[], spec: ShellWrapperSpec): str
       return extractCmdInlineCommand(argv);
     case "powershell":
       return extractPowerShellInlineCommand(argv);
+    default:
+      return null;
   }
 }
 

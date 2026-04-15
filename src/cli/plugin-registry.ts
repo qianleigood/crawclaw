@@ -26,6 +26,7 @@ function scopeRank(scope: typeof pluginRegistryLoaded): number {
     case "all":
       return 3;
   }
+  return scope satisfies never;
 }
 
 function activeRegistrySatisfiesScope(
@@ -47,6 +48,7 @@ function activeRegistrySatisfiesScope(
     case "all":
       return false;
   }
+  return scope satisfies never;
 }
 
 export function ensurePluginRegistryLoaded(options?: { scope?: PluginRegistryScope }): void {

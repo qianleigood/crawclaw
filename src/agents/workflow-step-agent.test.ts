@@ -80,7 +80,9 @@ describe("workflow-step-agent helpers", () => {
       },
     ]);
     expect(parsed?.status).toBe("succeeded");
-    expect((parsed?.output as { title: string }).title).toBe("AI workflow");
+    expect(
+      parsed && "output" in parsed ? (parsed.output as { title: string }).title : undefined,
+    ).toBe("AI workflow");
 
     let seenRunParams: unknown;
     const subagent = {

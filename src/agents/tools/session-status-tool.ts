@@ -1,10 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { CrawClawConfig } from "../../config/config.js";
-import {
-  loadSessionStore,
-  resolveStorePath,
-  type SessionEntry,
-} from "../../config/sessions.js";
+import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import {
   buildAgentMainSessionKey,
   parseAgentSessionKey,
@@ -24,7 +20,6 @@ import {
   createSessionVisibilityGuard,
   shouldResolveSessionIdInput,
   resolveSessionAccessPolicies,
-  resolveInternalSessionKey,
   resolveSessionReference,
   resolveVisibleSessionReference,
   resolveSessionToolContext,

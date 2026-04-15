@@ -89,7 +89,7 @@ export function registerRuntimesCli(program: Command) {
       defaultRuntime.log(theme.heading("Runtime Doctor"));
       defaultRuntime.log(theme.muted(manifestPath));
       if (lines.length === 0) {
-        defaultRuntime.warn("No plugin runtime manifest entries found.");
+        defaultRuntime.log(theme.warn("No plugin runtime manifest entries found."));
         return;
       }
       for (const line of lines) {

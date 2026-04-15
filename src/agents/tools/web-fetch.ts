@@ -22,18 +22,7 @@ import {
   WEB_FETCH_OUTPUT_MODES,
   WEB_FETCH_RENDER_MODES,
   WEB_FETCH_WAIT_UNTIL_MODES,
-  type WebFetchDetailLevel,
-  type WebFetchExtractVariant,
-  type WebFetchOutputMode,
-  type WebFetchRenderMode,
-  type WebFetchWaitUntilMode,
 } from "./web-fetch-detail.js";
-import {
-  extractBasicHtmlContent,
-  extractReadableContent,
-  markdownToText,
-  type ExtractMode,
-} from "./web-fetch-utils.js";
 import {
   formatWebFetchErrorDetail,
   logWebFetchMarkdownTokens,
@@ -48,6 +37,11 @@ import {
   standardizeWebFetchPayload,
   type WebFetchRuntimeParams,
 } from "./web-fetch-runtime-helpers.js";
+import {
+  extractBasicHtmlContent,
+  extractReadableContent,
+  markdownToText,
+} from "./web-fetch-utils.js";
 import { fetchWithWebToolsNetworkGuard } from "./web-guarded-fetch.js";
 import {
   CacheEntry,
@@ -241,7 +235,7 @@ async function runWebFetch(params: WebFetchRuntimeParams): Promise<Record<string
         detail: rawDetail,
         contentType: res.headers.get("content-type"),
       });
-      const wrappedDetail = standardizeWebFetchPayload({
+      standardizeWebFetchPayload({
         fetcher: "http",
         usedFallback: false,
         rendered: false,
@@ -260,7 +254,7 @@ async function runWebFetch(params: WebFetchRuntimeParams): Promise<Record<string
         tookMs: Date.now() - start,
         maxChars: 4_000,
       });
-      throw new Error(`Web fetch failed (${res.status}): ${String(wrappedDetail.text ?? "")}`);
+      throw new Error(`Web fetch failed (${res.status}): ${detail || res.statusText}`);
     }
 
     const contentType = res.headers.get("content-type") ?? "application/octet-stream";

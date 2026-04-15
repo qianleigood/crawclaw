@@ -57,13 +57,11 @@ export async function configureGatewayForSetup(
     flow === "quickstart"
       ? quickstartGateway.port
       : Number.parseInt(
-          String(
-            await prompter.text({
-              message: "Gateway port",
-              initialValue: String(localPort),
-              validate: (value) => (Number.isFinite(Number(value)) ? undefined : "Invalid port"),
-            }),
-          ),
+          await prompter.text({
+            message: "Gateway port",
+            initialValue: String(localPort),
+            validate: (value) => (Number.isFinite(Number(value)) ? undefined : "Invalid port"),
+          }),
           10,
         );
 
@@ -132,12 +130,10 @@ export async function configureGatewayForSetup(
   let tailscaleResetOnExit = flow === "quickstart" ? quickstartGateway.tailscaleResetOnExit : false;
   if (tailscaleMode !== "off" && flow !== "quickstart") {
     await prompter.note(TAILSCALE_DOCS_LINES.join("\n"), "Tailscale");
-    tailscaleResetOnExit = Boolean(
-      await prompter.confirm({
-        message: "Reset Tailscale serve/funnel on exit?",
-        initialValue: false,
-      }),
-    );
+    tailscaleResetOnExit = await prompter.confirm({
+      message: "Reset Tailscale serve/funnel on exit?",
+      initialValue: false,
+    });
   }
 
   // Safety + constraints:
@@ -202,9 +198,8 @@ export async function configureGatewayForSetup(
         gatewayToken = resolved.resolvedValue;
       }
     } else if (flow === "quickstart") {
-        gatewayToken =
-          (quickstartTokenString ??
-          normalizeGatewayTokenInput(process.env.CRAWCLAW_GATEWAY_TOKEN)) ||
+      gatewayToken =
+        (quickstartTokenString ?? normalizeGatewayTokenInput(process.env.CRAWCLAW_GATEWAY_TOKEN)) ||
         randomToken();
       gatewayTokenInput = gatewayToken;
     } else {
@@ -247,11 +242,11 @@ export async function configureGatewayForSetup(
         });
         password = resolved.ref;
       } else {
-        password = String(
+        password = (
           (await prompter.text({
             message: "Gateway password",
             validate: validateGatewayPasswordInput,
-          })) ?? "",
+          })) ?? ""
         ).trim();
       }
     }

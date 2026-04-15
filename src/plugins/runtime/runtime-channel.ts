@@ -183,6 +183,8 @@ export function createRuntimeChannel(): PluginRuntime["channel"] {
               accountId,
               idleTimeoutMs,
             });
+          default:
+            return [];
         }
       },
       setMaxAgeBySessionKey: ({ channelId, targetSessionKey, accountId, maxAgeMs }) => {
@@ -207,6 +209,8 @@ export function createRuntimeChannel(): PluginRuntime["channel"] {
               accountId,
               maxAgeMs,
             });
+          default:
+            return [];
         }
       },
     },

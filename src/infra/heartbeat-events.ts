@@ -33,6 +33,8 @@ export function resolveIndicatorType(
       return "error";
     case "skipped":
       return undefined;
+    default:
+      return undefined;
   }
 }
 

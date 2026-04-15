@@ -9,13 +9,8 @@ import {
   resolveProviderScopedAuthProfile,
   resolveRunAuthProfile,
 } from "./agent-runner-auth-profile.js";
-export {
-resolveProviderScopedAuthProfile,
-resolveRunAuthProfile,
-};
-import { resolveOriginMessageProvider,
-resolveOriginMessageTo,
-} from "./origin-routing.js";
+export { resolveProviderScopedAuthProfile, resolveRunAuthProfile };
+import { resolveOriginMessageProvider, resolveOriginMessageTo } from "./origin-routing.js";
 import type { FollowupRun } from "./queue.js";
 
 const BUN_FETCH_SOCKET_ERROR_RE = /socket connection was closed unexpectedly/i;
@@ -98,14 +93,12 @@ export const formatBunFetchSocketError = (message: string) => {
 };
 
 export const resolveEnforceFinalTag = (run: FollowupRun["run"], provider: string) =>
-  Boolean(
-    run.enforceFinalTag ||
-    isReasoningTagProvider(provider, {
-      config: run.config,
-      workspaceDir: run.workspaceDir,
-      modelId: run.model,
-    }),
-  );
+  run.enforceFinalTag ||
+  isReasoningTagProvider(provider, {
+    config: run.config,
+    workspaceDir: run.workspaceDir,
+    modelId: run.model,
+  });
 
 export function resolveModelFallbackOptions(run: FollowupRun["run"]) {
   return {

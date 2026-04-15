@@ -37,7 +37,7 @@ export async function noteMacLaunchAgentOverrides() {
 async function launchctlGetenv(name: string): Promise<string | undefined> {
   try {
     const result = await execFileAsync("/bin/launchctl", ["getenv", name], { encoding: "utf8" });
-    const value = String(result.stdout ?? "").trim();
+    const value = (result.stdout ?? "").trim();
     return value.length > 0 ? value : undefined;
   } catch {
     return undefined;
@@ -48,11 +48,11 @@ function hasConfigGatewayCreds(cfg: CrawClawConfig): boolean {
   const localPassword = cfg.gateway?.auth?.password;
   const remoteToken = cfg.gateway?.remote?.token;
   const remotePassword = cfg.gateway?.remote?.password;
-  return Boolean(
+  return (
     hasConfiguredSecretInput(cfg.gateway?.auth?.token, cfg.secrets?.defaults) ||
     hasConfiguredSecretInput(localPassword, cfg.secrets?.defaults) ||
     hasConfiguredSecretInput(remoteToken, cfg.secrets?.defaults) ||
-    hasConfiguredSecretInput(remotePassword, cfg.secrets?.defaults),
+    hasConfiguredSecretInput(remotePassword, cfg.secrets?.defaults)
   );
 }
 
@@ -73,7 +73,9 @@ export async function noteMacLaunchctlGatewayEnvOverrides(
   }
 
   const getenv = deps?.getenv ?? launchctlGetenv;
-  const tokenEntries = [["CRAWCLAW_GATEWAY_TOKEN", await getenv("CRAWCLAW_GATEWAY_TOKEN")]] as const;
+  const tokenEntries = [
+    ["CRAWCLAW_GATEWAY_TOKEN", await getenv("CRAWCLAW_GATEWAY_TOKEN")],
+  ] as const;
   const passwordEntries = [
     ["CRAWCLAW_GATEWAY_PASSWORD", await getenv("CRAWCLAW_GATEWAY_PASSWORD")],
   ] as const;

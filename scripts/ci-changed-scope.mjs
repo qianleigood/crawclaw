@@ -35,7 +35,7 @@ export function detectChangedScope(changedPaths) {
   let hasNonDocs = false;
 
   for (const rawPath of changedPaths) {
-    const path = String(rawPath).trim();
+    const path = rawPath.trim();
     if (!path) {
       continue;
     }
@@ -69,7 +69,6 @@ export function detectChangedScope(changedPaths) {
     if (CHANGED_SMOKE_SCOPE_RE.test(path)) {
       runChangedSmoke = true;
     }
-
   }
 
   if (!runNode && hasNonDocs) {

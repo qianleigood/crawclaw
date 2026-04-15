@@ -10,6 +10,8 @@ export function resolveProviderLifecycleDecisionCode(params: {
       return "provider_request_completed";
     case "provider_request_error":
       return "provider_request_failed";
+    default:
+      return "provider_request_failed";
   }
 }
 

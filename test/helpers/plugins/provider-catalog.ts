@@ -2,7 +2,7 @@ export {
   expectAugmentedCodexCatalog,
   expectCodexBuiltInSuppression,
   expectCodexMissingAuthHint,
-  } from "../../../src/plugins/provider-runtime.test-support.js";
+} from "../../../src/plugins/provider-runtime.test-support.js";
 export type { ProviderPlugin } from "../../../src/plugins/types.js";
 export { loadBundledPluginPublicSurfaceSync } from "../../../src/test-utils/bundled-plugin-public-surface.js";
 
@@ -16,10 +16,12 @@ type ProviderRuntimeCatalogModule = Pick<
 export async function importProviderRuntimeCatalogModule(): Promise<ProviderRuntimeCatalogModule> {
   const {
     augmentModelCatalogWithProviderPlugins,
-  resetProviderRuntimeHookCacheForTest,
-  resolveProviderBuiltInModelSuppression,
+    resetProviderRuntimeHookCacheForTest,
+    resolveProviderBuiltInModelSuppression,
   } = await import("../../../src/plugins/provider-runtime.js");
   return {
     augmentModelCatalogWithProviderPlugins,
-};
+    resetProviderRuntimeHookCacheForTest,
+    resolveProviderBuiltInModelSuppression,
+  };
 }

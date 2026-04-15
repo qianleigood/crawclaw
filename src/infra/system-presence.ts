@@ -181,7 +181,7 @@ function mergeStringList(...values: Array<string[] | undefined>): string[] | und
       continue;
     }
     for (const item of list) {
-      const trimmed = String(item).trim();
+      const trimmed = item.trim();
       if (trimmed) {
         out.add(trimmed);
       }

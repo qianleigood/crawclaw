@@ -61,8 +61,8 @@ describe("WA_WEB_AUTH_DIR", () => {
     const webEntry = await import("./web/index.js");
 
     expect(resolveWaWebAuthDir).not.toHaveBeenCalled();
-    expect(String(channelWeb.WA_WEB_AUTH_DIR)).toBe("/tmp/crawclaw-whatsapp-auth");
-    expect(String(webEntry.WA_WEB_AUTH_DIR)).toBe("/tmp/crawclaw-whatsapp-auth");
+    expect(channelWeb.WA_WEB_AUTH_DIR).toBe("/tmp/crawclaw-whatsapp-auth");
+    expect(webEntry.WA_WEB_AUTH_DIR).toBe("/tmp/crawclaw-whatsapp-auth");
     expect(resolveWaWebAuthDir).toHaveBeenCalledTimes(1);
   });
 });

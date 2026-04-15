@@ -79,6 +79,7 @@ function skillMatchesStatus(skill: SkillStatusEntry, status: SkillsStatusFilter)
     case "disabled":
       return skill.disabled;
   }
+  return status satisfies never;
 }
 
 function skillStatusClass(skill: SkillStatusEntry): string {
@@ -488,14 +489,18 @@ function renderSkillDetail(skill: SkillStatusEntry, props: SkillsProps) {
                   class="callout"
                   style="border-color: var(--warn-subtle); background: var(--warn-subtle); color: var(--warn);"
                 >
-                  <div style="font-weight: 600; margin-bottom: 4px;">${t("skillsPage.missingRequirements")}</div>
+                  <div style="font-weight: 600; margin-bottom: 4px;">
+                    ${t("skillsPage.missingRequirements")}
+                  </div>
                   <div>${missing.join(", ")}</div>
                 </div>
               `
             : nothing}
           ${reasons.length > 0
             ? html`
-                <div class="muted" style="font-size: 13px;">${t("skillsPage.reason")}: ${reasons.join(", ")}</div>
+                <div class="muted" style="font-size: 13px;">
+                  ${t("skillsPage.reason")}: ${reasons.join(", ")}
+                </div>
               `
             : nothing}
 
@@ -570,7 +575,9 @@ function renderSkillDetail(skill: SkillStatusEntry, props: SkillsProps) {
           <div
             style="border-top: 1px solid var(--border); padding-top: 12px; display: grid; gap: 6px; font-size: 12px; color: var(--muted);"
           >
-            <div><span style="font-weight: 600;">${t("skillsPage.source")}:</span> ${skill.source}</div>
+            <div>
+              <span style="font-weight: 600;">${t("skillsPage.source")}:</span> ${skill.source}
+            </div>
             <div style="font-family: var(--mono); word-break: break-all;">${skill.filePath}</div>
             ${(() => {
               const safeHref = safeExternalHref(skill.homepage);

@@ -27,7 +27,6 @@ import {
   setTopLevelChannelEnabledInConfigSection,
   type ChannelConfigAccessorParams,
   type ChannelConfigAdapterWithAccessors,
-  type ChannelCrudConfigAdapter,
 } from "./channel-config-adapter-helpers.js";
 
 type SimpleDirectMessageConfig = {
@@ -126,16 +125,6 @@ function normalizeLocalWhatsAppTarget(value: string): string | null {
   }
   const normalized = normalizeLocalE164(candidate);
   return normalized.length > 1 ? normalized : null;
-}
-
-function resolveChannelConfig(
-  cfg: CrawClawConfig,
-  channelId?: string | null,
-): ChannelConfigWithAccounts | undefined {
-  if (!channelId) {
-    return undefined;
-  }
-  return (cfg.channels as Record<string, ChannelConfigWithAccounts> | undefined)?.[channelId];
 }
 
 /** Resolve the config path prefix for a channel account, falling back to the root channel section. */

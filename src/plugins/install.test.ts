@@ -1583,7 +1583,7 @@ describe("installPluginFromNpmSpec", () => {
     const packedName = "voice-call-0.0.1.tgz";
     run.mockImplementation(async (argv, opts) => {
       if (argv[0] === "npm" && argv[1] === "pack") {
-        packTmpDir = String(typeof opts === "number" ? "" : (opts.cwd ?? ""));
+        packTmpDir = typeof opts === "number" ? "" : (opts.cwd ?? "");
         fs.writeFileSync(path.join(packTmpDir, packedName), voiceCallArchiveBuffer);
         return {
           code: 0,
@@ -1649,7 +1649,7 @@ describe("installPluginFromNpmSpec", () => {
     const packedName = "dangerous-plugin-1.0.0.tgz";
     run.mockImplementation(async (argv, opts) => {
       if (argv[0] === "npm" && argv[1] === "pack") {
-        packTmpDir = String(typeof opts === "number" ? "" : (opts.cwd ?? ""));
+        packTmpDir = typeof opts === "number" ? "" : (opts.cwd ?? "");
         fs.writeFileSync(path.join(packTmpDir, packedName), archiveBuffer);
         return {
           code: 0,
@@ -1788,7 +1788,7 @@ describe("installPluginFromNpmSpec", () => {
       const voiceCallArchiveBuffer = VOICE_CALL_ARCHIVE_V1_BUFFER;
       run.mockImplementation(async (argv, opts) => {
         if (argv[0] === "npm" && argv[1] === "pack") {
-          packTmpDir = String(typeof opts === "number" ? "" : (opts.cwd ?? ""));
+          packTmpDir = typeof opts === "number" ? "" : (opts.cwd ?? "");
           fs.writeFileSync(path.join(packTmpDir, packedName), voiceCallArchiveBuffer);
           return {
             code: 0,

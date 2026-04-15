@@ -34,9 +34,7 @@ export function resolveCommandSurfaceChannel(params: DiscordSurfaceParams): stri
     params.command.channel ??
     params.ctx.Surface ??
     params.ctx.Provider;
-  return String(channel ?? "")
-    .trim()
-    .toLowerCase();
+  return (channel ?? "").trim().toLowerCase();
 }
 
 export function resolveDiscordAccountId(params: DiscordAccountParams): string {

@@ -158,7 +158,7 @@ export async function resolveDeliveryTarget(
     const configuredAllowFromRaw =
       resolveWhatsAppAccount({ cfg, accountId: resolvedAccountId }).allowFrom ?? [];
     const configuredAllowFrom = configuredAllowFromRaw
-      .map((entry) => String(entry).trim())
+      .map((entry) => entry.trim())
       .filter((entry) => entry && entry !== "*")
       .map((entry) => normalizeWhatsAppTarget(entry))
       .filter((entry): entry is string => Boolean(entry));

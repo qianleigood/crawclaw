@@ -680,7 +680,7 @@ export const nodeHandlers: GatewayRequestHandlers = {
       return;
     }
     const { nodeId } = params as { nodeId: string };
-    const id = String(nodeId ?? "").trim();
+    const id = (nodeId ?? "").trim();
     if (!id) {
       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "nodeId required"));
       return;
@@ -758,7 +758,7 @@ export const nodeHandlers: GatewayRequestHandlers = {
       return;
     }
     const nodeId = client?.connect?.device?.id ?? client?.connect?.client?.id;
-    const trimmedNodeId = String(nodeId ?? "").trim();
+    const trimmedNodeId = (nodeId ?? "").trim();
     if (!trimmedNodeId) {
       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "nodeId required"));
       return;
@@ -789,13 +789,13 @@ export const nodeHandlers: GatewayRequestHandlers = {
       return;
     }
     const nodeId = client?.connect?.device?.id ?? client?.connect?.client?.id;
-    const trimmedNodeId = String(nodeId ?? "").trim();
+    const trimmedNodeId = (nodeId ?? "").trim();
     if (!trimmedNodeId) {
       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "nodeId required"));
       return;
     }
     const ackIds = Array.from(
-      new Set((params.ids ?? []).map((value) => String(value ?? "").trim()).filter(Boolean)),
+      new Set((params.ids ?? []).map((value) => (value ?? "").trim()).filter(Boolean)),
     );
     const remaining = ackPendingNodeActions(trimmedNodeId, ackIds);
     respond(
@@ -824,8 +824,8 @@ export const nodeHandlers: GatewayRequestHandlers = {
       timeoutMs?: number;
       idempotencyKey: string;
     };
-    const nodeId = String(p.nodeId ?? "").trim();
-    const command = String(p.command ?? "").trim();
+    const nodeId = (p.nodeId ?? "").trim();
+    const command = (p.command ?? "").trim();
     if (!nodeId || !command) {
       respond(
         false,

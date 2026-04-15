@@ -96,7 +96,7 @@ export function createAgentToAgentPolicy(cfg: CrawClawConfig): AgentToAgentPolic
       return true;
     }
     return allowPatterns.some((pattern) => {
-      const raw = String(pattern ?? "").trim();
+      const raw = (pattern ?? "").trim();
       if (!raw) {
         return false;
       }

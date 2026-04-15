@@ -30,7 +30,7 @@ export function createVpsAwareOAuthHandlers(params: {
             message: manualPromptMessage,
             validate: validateRequiredInput,
           })
-          .then((value) => String(value));
+          .then((value) => value);
         return;
       }
 
@@ -47,7 +47,7 @@ export function createVpsAwareOAuthHandlers(params: {
         placeholder: prompt.placeholder,
         validate: validateRequiredInput,
       });
-      return String(code);
+      return code;
     },
   };
 }

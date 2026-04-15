@@ -93,7 +93,7 @@ describe("group policy warning builders", () => {
       { account: { accountId: string }; cfg: CrawClawConfig }
     >(
       (cfg: CrawClawConfig) => cfg.channels ?? {},
-      ({ account, cfg }) => [String(account.accountId), Object.keys(cfg).join(",") || "none"],
+      ({ account, cfg }) => [account.accountId, Object.keys(cfg).join(",") || "none"],
     );
 
     expect(

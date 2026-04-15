@@ -528,7 +528,6 @@ describe("resolveGatewayStateDir", () => {
   it("prefers CRAWCLAW_HOME over CRAWCLAW_HOME and HOME", () => {
     const env = {
       CRAWCLAW_HOME: "/srv/crawclaw-home",
-      CRAWCLAW_HOME: "/srv/crawclaw-home",
       HOME: "/Users/test",
     };
     expect(resolveGatewayStateDir(env)).toBe(path.join("/srv/crawclaw-home", ".crawclaw"));

@@ -1796,8 +1796,8 @@ describe("runReplyAgent response usage footer", () => {
     const sessionKey = "agent:main:whatsapp:dm:+1000";
     const res = await createRun({ responseUsage: "full", sessionKey });
     const payload = Array.isArray(res) ? res[0] : res;
-    expect(String(payload?.text ?? "")).toContain("Usage:");
-    expect(String(payload?.text ?? "")).toContain(`· session \`${sessionKey}\``);
+    expect(payload?.text ?? "").toContain("Usage:");
+    expect(payload?.text ?? "").toContain(`· session \`${sessionKey}\``);
   });
 
   it("does not append session key when responseUsage=tokens", async () => {
@@ -1815,8 +1815,8 @@ describe("runReplyAgent response usage footer", () => {
     const sessionKey = "agent:main:whatsapp:dm:+1000";
     const res = await createRun({ responseUsage: "tokens", sessionKey });
     const payload = Array.isArray(res) ? res[0] : res;
-    expect(String(payload?.text ?? "")).toContain("Usage:");
-    expect(String(payload?.text ?? "")).not.toContain("· session ");
+    expect(payload?.text ?? "").toContain("Usage:");
+    expect(payload?.text ?? "").not.toContain("· session ");
   });
 });
 

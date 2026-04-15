@@ -19,14 +19,14 @@ export function registerNodesNotifyCommand(nodes: Command) {
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 15000)", "15000")
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("notify", async () => {
-          const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
-          const title = String(opts.title ?? "").trim();
-          const body = String(opts.body ?? "").trim();
+          const nodeId = await resolveNodeId(opts, opts.node ?? "");
+          const title = (opts.title ?? "").trim();
+          const body = (opts.body ?? "").trim();
           if (!title && !body) {
             throw new Error("missing --title or --body");
           }
           const invokeTimeout = opts.invokeTimeout
-            ? Number.parseInt(String(opts.invokeTimeout), 10)
+            ? Number.parseInt(opts.invokeTimeout, 10)
             : undefined;
           const invokeParams: Record<string, unknown> = {
             nodeId,
@@ -38,7 +38,7 @@ export function registerNodesNotifyCommand(nodes: Command) {
               priority: opts.priority,
               delivery: opts.delivery,
             },
-            idempotencyKey: String(opts.idempotencyKey ?? randomIdempotencyKey()),
+            idempotencyKey: opts.idempotencyKey ?? randomIdempotencyKey(),
           };
           if (typeof invokeTimeout === "number" && Number.isFinite(invokeTimeout)) {
             invokeParams.timeoutMs = invokeTimeout;

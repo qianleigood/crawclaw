@@ -412,5 +412,7 @@ export function filterRecordsForReport(
       );
     case "public-surface-usage":
       return records;
+    default:
+      return records;
   }
 }

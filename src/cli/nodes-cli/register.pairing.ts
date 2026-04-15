@@ -78,8 +78,8 @@ export function registerNodesPairingCommands(nodes: Command) {
       .requiredOption("--name <displayName>", "New display name")
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("rename", async () => {
-          const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
-          const name = String(opts.name ?? "").trim();
+          const nodeId = await resolveNodeId(opts, opts.node ?? "");
+          const name = (opts.name ?? "").trim();
           if (!nodeId || !name) {
             defaultRuntime.error("--node and --name required");
             defaultRuntime.exit(1);

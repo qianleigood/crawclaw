@@ -77,7 +77,7 @@ function resolvePairingPath(channel: PairingChannel, env: NodeJS.ProcessEnv = pr
 }
 
 function safeAccountKey(accountId: string): string {
-  const raw = String(accountId).trim().toLowerCase();
+  const raw = accountId.trim().toLowerCase();
   if (!raw) {
     throw new Error("invalid pairing account id");
   }
@@ -194,7 +194,7 @@ function resolveLastSeenAt(entry: PairingRequest): number {
 }
 
 function resolvePairingRequestAccountId(entry: PairingRequest): string {
-  return normalizePairingAccountId(String(entry.meta?.accountId ?? "")) || DEFAULT_ACCOUNT_ID;
+  return normalizePairingAccountId(entry.meta?.accountId ?? "") || DEFAULT_ACCOUNT_ID;
 }
 
 function pruneExcessRequestsByAccount(reqs: PairingRequest[], maxPending: number) {
@@ -288,14 +288,12 @@ function normalizeAllowEntry(channel: PairingChannel, entry: string): string {
   }
   const adapter = getPairingAdapter(channel);
   const normalized = adapter?.normalizeAllowEntry ? adapter.normalizeAllowEntry(trimmed) : trimmed;
-  return String(normalized).trim();
+  return normalized.trim();
 }
 
 function normalizeAllowFromList(channel: PairingChannel, store: AllowFromStore): string[] {
   const list = Array.isArray(store.allowFrom) ? store.allowFrom : [];
-  return dedupePreserveOrder(
-    list.map((v) => normalizeAllowEntry(channel, String(v))).filter(Boolean),
-  );
+  return dedupePreserveOrder(list.map((v) => normalizeAllowEntry(channel, v)).filter(Boolean));
 }
 
 function normalizeAllowFromInput(channel: PairingChannel, entry: string | number): string {
@@ -306,7 +304,7 @@ function dedupePreserveOrder(entries: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const entry of entries) {
-    const normalized = String(entry).trim();
+    const normalized = entry.trim();
     if (!normalized || seen.has(normalized)) {
       continue;
     }
@@ -745,8 +743,8 @@ export async function upsertChannelPairingRequest(params: {
         params.meta && typeof params.meta === "object"
           ? Object.fromEntries(
               Object.entries(params.meta)
-                .map(([k, v]) => [k, String(v ?? "").trim()] as const)
-                .filter(([_, v]) => Boolean(v)),
+                .map(([k, v]) => [k, (v ?? "").trim()] as const)
+                .filter(([_, v]) => !!v),
             )
           : undefined;
       const meta = { ...baseMeta, accountId: normalizedAccountId };
@@ -764,13 +762,7 @@ export async function upsertChannelPairingRequest(params: {
         }
         return requestMatchesAccountId(r, normalizedMatchingAccountId);
       });
-      const existingCodes = new Set(
-        reqs.map((req) =>
-          String(req.code ?? "")
-            .trim()
-            .toUpperCase(),
-        ),
-      );
+      const existingCodes = new Set(reqs.map((req) => (req.code ?? "").trim().toUpperCase()));
 
       if (existingIdx >= 0) {
         const existing = reqs[existingIdx];
@@ -847,7 +839,7 @@ export async function approveChannelPairingCode(params: {
       const { requests: pruned, removed } = await readPrunedPairingRequests(filePath);
       const normalizedAccountId = normalizePairingAccountId(params.accountId);
       const idx = pruned.findIndex((r) => {
-        if (String(r.code ?? "").toUpperCase() !== code) {
+        if ((r.code ?? "").toUpperCase() !== code) {
           return false;
         }
         return requestMatchesAccountId(r, normalizedAccountId);
@@ -870,7 +862,7 @@ export async function approveChannelPairingCode(params: {
         version: 1,
         requests: pruned,
       } satisfies PairingStore);
-      const entryAccountId = String(entry.meta?.accountId ?? "").trim() || undefined;
+      const entryAccountId = (entry.meta?.accountId ?? "").trim() || undefined;
       await addChannelAllowFromStoreEntry({
         channel: params.channel,
         entry: entry.id,

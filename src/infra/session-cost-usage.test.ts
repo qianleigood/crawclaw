@@ -17,7 +17,6 @@ describe("session cost usage", () => {
     await withEnvAsync(
       {
         CRAWCLAW_STATE_DIR: stateDir,
-        CRAWCLAW_STATE_DIR: stateDir,
       },
       fn,
     );

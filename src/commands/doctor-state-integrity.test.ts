@@ -50,7 +50,7 @@ function stateIntegrityText(): string {
   return vi
     .mocked(note)
     .mock.calls.filter((call) => call[1] === "State integrity")
-    .map((call) => String(call[0]))
+    .map((call) => call[0])
     .join("\n");
 }
 

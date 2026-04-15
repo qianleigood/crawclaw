@@ -34,8 +34,9 @@ describe("crawclaw-tools workflow registration", () => {
 
     n8nTesting.setDepsForTest({
       fetchImpl: async (input) => {
-        const url = String(input);
-        if (url.endsWith("/api/v1/workflows")) {
+        const url = input instanceof URL ? input.href : input;
+        const urlText = typeof url === "string" ? url : url.url;
+        if (urlText.endsWith("/api/v1/workflows")) {
           return new Response(
             JSON.stringify({
               id: "wf_remote",
@@ -47,13 +48,13 @@ describe("crawclaw-tools workflow registration", () => {
             { status: 200, headers: { "Content-Type": "application/json" } },
           );
         }
-        if (url.endsWith("/api/v1/workflows/wf_remote/activate")) {
+        if (urlText.endsWith("/api/v1/workflows/wf_remote/activate")) {
           return new Response(JSON.stringify({ id: "wf_remote", active: true }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           });
         }
-        throw new Error(`Unexpected URL ${url}`);
+        throw new Error(`Unexpected URL ${urlText}`);
       },
     });
 
@@ -62,10 +63,12 @@ describe("crawclaw-tools workflow registration", () => {
       goal: "Generate and publish a redbook post",
     });
 
-    const deployed = (await workflow?.execute("workflow-deploy", {
-      action: "deploy",
-      workflow: "Publish Redbook Note",
-    }))?.details as { workflow: { n8nWorkflowId: string } };
+    const deployed = (
+      await workflow?.execute("workflow-deploy", {
+        action: "deploy",
+        workflow: "Publish Redbook Note",
+      })
+    )?.details as { workflow: { n8nWorkflowId: string } };
 
     expect(deployed.workflow.n8nWorkflowId).toBe("wf_remote");
   });

@@ -60,6 +60,47 @@ async function saveBrowserMediaResponse(params: {
   });
 }
 
+export async function resolveTargetIdAfterNavigate(opts: {
+  oldTargetId: string;
+  navigatedUrl: string;
+  listTabs: () => Promise<Array<{ targetId: string; url: string }>>;
+}): Promise<string> {
+  let currentTargetId = opts.oldTargetId;
+  try {
+    const pickReplacement = (
+      tabs: Array<{ targetId: string; url: string }>,
+      options?: { allowSingleTabFallback?: boolean },
+    ) => {
+      if (tabs.some((tab) => tab.targetId === opts.oldTargetId)) {
+        return opts.oldTargetId;
+      }
+      const byUrl = tabs.filter((tab) => tab.url === opts.navigatedUrl);
+      if (byUrl.length === 1) {
+        return byUrl[0]?.targetId ?? opts.oldTargetId;
+      }
+      const uniqueReplacement = byUrl.filter((tab) => tab.targetId !== opts.oldTargetId);
+      if (uniqueReplacement.length === 1) {
+        return uniqueReplacement[0]?.targetId ?? opts.oldTargetId;
+      }
+      if (options?.allowSingleTabFallback && tabs.length === 1) {
+        return tabs[0]?.targetId ?? opts.oldTargetId;
+      }
+      return opts.oldTargetId;
+    };
+
+    currentTargetId = pickReplacement(await opts.listTabs());
+    if (currentTargetId === opts.oldTargetId) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      currentTargetId = pickReplacement(await opts.listTabs(), {
+        allowSingleTabFallback: true,
+      });
+    }
+  } catch {
+    // Best-effort fallback to the pre-navigation target.
+  }
+  return currentTargetId;
+}
+
 export function registerBrowserAgentSnapshotRoutes(
   app: BrowserRouteRegistrar,
   ctx: BrowserRouteContext,

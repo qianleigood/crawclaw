@@ -2,8 +2,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
-import type { ExecCommandSegment } from "./exec-approvals-analysis.js";
 import { resolveAllowAlwaysPatternEntries } from "./exec-approvals-allowlist.js";
+import type { ExecCommandSegment } from "./exec-approvals-analysis.js";
 import { expandHomePrefix } from "./home-dir.js";
 import { requestJsonlSocket } from "./jsonl-socket.js";
 export * from "./exec-approvals-analysis.js";
@@ -641,7 +641,7 @@ export function resolveExecApprovalsFromFile(params: {
       defaults.askFallback ?? fallbackAskFallback,
       fallbackAskFallback,
     ),
-    autoAllowSkills: Boolean(defaults.autoAllowSkills ?? fallbackAutoAllowSkills),
+    autoAllowSkills: defaults.autoAllowSkills ?? fallbackAutoAllowSkills,
   };
   const resolvedAgentSecurity = resolveAgentSecurityField({
     field: "security",
@@ -676,9 +676,8 @@ export function resolveExecApprovalsFromFile(params: {
     security: resolvedAgentSecurity.value,
     ask: resolvedAgentAsk.value,
     askFallback: resolvedAgentAskFallback.value,
-    autoAllowSkills: Boolean(
+    autoAllowSkills:
       agent.autoAllowSkills ?? wildcard.autoAllowSkills ?? resolvedDefaults.autoAllowSkills,
-    ),
   };
   const allowlist = [
     ...(Array.isArray(wildcard.allowlist) ? wildcard.allowlist : []),
@@ -781,7 +780,9 @@ export function recordAllowlistUse(
   saveExecApprovals(approvals);
 }
 
-function buildAllowlistEntryMatchKey(entry: Pick<ExecAllowlistEntry, "pattern" | "argPattern">): string {
+function buildAllowlistEntryMatchKey(
+  entry: Pick<ExecAllowlistEntry, "pattern" | "argPattern">,
+): string {
   return `${entry.pattern}\x00${entry.argPattern?.trim() ?? ""}`;
 }
 
@@ -834,8 +835,7 @@ export function addAllowlistEntry(
   }
   const trimmedArgPattern = options?.argPattern?.trim() || undefined;
   const existingEntry = allowlist.find(
-    (entry) =>
-      entry.pattern === trimmed && (entry.argPattern ?? undefined) === trimmedArgPattern,
+    (entry) => entry.pattern === trimmed && (entry.argPattern ?? undefined) === trimmedArgPattern,
   );
   if (existingEntry && (!options?.source || existingEntry.source === options.source)) {
     return;

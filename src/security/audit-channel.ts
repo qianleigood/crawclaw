@@ -748,7 +748,7 @@ export async function collectChannelSecurityFindings(params: {
           account,
         });
         for (const message of warnings ?? []) {
-          const trimmed = String(message).trim();
+          const trimmed = message.trim();
           if (!trimmed) {
             continue;
           }
@@ -790,7 +790,7 @@ export async function collectChannelSecurityFindings(params: {
         process.env,
         accountId,
       ).catch(() => []);
-      const storeHasWildcard = storeAllowFrom.some((value) => String(value).trim() === "*");
+      const storeHasWildcard = storeAllowFrom.some((value) => value.trim() === "*");
       const invalidTelegramAllowFromEntries = new Set<string>();
       await collectInvalidTelegramAllowFromEntries({
         entries: storeAllowFrom,

@@ -1,12 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, type Mock } from "vitest";
+import { __testing as agentStepTesting } from "../agents/tools/agent-step.js";
+import { __testing as sessionsSendA2ATesting } from "../agents/tools/sessions-send-tool.a2a.js";
+import { createSessionsSendTool } from "../agents/tools/sessions-send-tool.js";
 import { resolveSessionTranscriptPath } from "../config/sessions.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { captureEnv } from "../test-utils/env.js";
-import { createSessionsSendTool } from "../agents/tools/sessions-send-tool.js";
-import { __testing as agentStepTesting } from "../agents/tools/agent-step.js";
-import { __testing as sessionsSendA2ATesting } from "../agents/tools/sessions-send-tool.a2a.js";
+import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { __testing as gatewayCallTesting, callGateway } from "./call.js";
+import { GatewayClient } from "./client.js";
 import {
   agentCommand,
   getFreePort,
@@ -14,9 +17,6 @@ import {
   startGatewayServer,
   testState,
 } from "./test-helpers.js";
-import { __testing as gatewayCallTesting, callGateway } from "./call.js";
-import { GatewayClient } from "./client.js";
-import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 
 installGatewayTestHooks({ scope: "suite" });
 
@@ -101,12 +101,10 @@ beforeAll(async () => {
   sessionsSendA2ATesting.setDepsForTest({ callGateway: callGatewayCliLike });
   server = await startGatewayServer(gatewayPort);
 
-  const { loadOrCreateDeviceIdentity, publicKeyRawBase64UrlFromPem } = await import(
-    "../infra/device-identity.js"
-  );
-  const { getPairedDevice, requestDevicePairing, approveDevicePairing } = await import(
-    "../infra/device-pairing.js"
-  );
+  const { loadOrCreateDeviceIdentity, publicKeyRawBase64UrlFromPem } =
+    await import("../infra/device-identity.js");
+  const { getPairedDevice, requestDevicePairing, approveDevicePairing } =
+    await import("../infra/device-pairing.js");
   pairedDeviceIdentityPath = path.join(
     process.env.CRAWCLAW_STATE_DIR ?? process.cwd(),
     "test-device-identities",
@@ -124,7 +122,7 @@ beforeAll(async () => {
   await approveDevicePairing(pending.request.requestId, {
     callerScopes: ["operator.admin"],
   });
-  pairedDeviceToken = String((await getPairedDevice(identity.deviceId))?.tokens?.operator?.token ?? "");
+  pairedDeviceToken = (await getPairedDevice(identity.deviceId))?.tokens?.operator?.token ?? "";
   gatewayCallTesting.setDepsForTests({
     createGatewayClient: (opts) =>
       new GatewayClient({

@@ -89,7 +89,7 @@ function resolveExecApprovalsDefaults(
     security: normalizeSecurity(defaults.security),
     ask: normalizeAsk(defaults.ask),
     askFallback: normalizeSecurity(defaults.askFallback ?? "deny"),
-    autoAllowSkills: Boolean(defaults.autoAllowSkills ?? false),
+    autoAllowSkills: defaults.autoAllowSkills ?? false,
   };
 }
 
@@ -199,7 +199,8 @@ export function renderExecApprovals(state: ExecApprovalsState) {
         <div>
           <div class="card-title">${uiLiteral("Exec approvals")}</div>
           <div class="card-sub">
-            ${uiLiteral("Allowlist and approval policy for")} <span class="mono">exec host=gateway/node</span>.
+            ${uiLiteral("Allowlist and approval policy for")}
+            <span class="mono">exec host=gateway/node</span>.
           </div>
         </div>
         <button
@@ -237,7 +238,9 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
       <div class="list-item">
         <div class="list-main">
           <div class="list-title">${uiLiteral("Target")}</div>
-          <div class="list-sub">${uiLiteral("Gateway edits local approvals; node edits the selected node.")}</div>
+          <div class="list-sub">
+            ${uiLiteral("Gateway edits local approvals; node edits the selected node.")}
+          </div>
         </div>
         <div class="list-meta">
           <label class="field">
@@ -255,8 +258,12 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
                 }
               }}
             >
-              <option value="gateway" ?selected=${state.target === "gateway"}>${uiLiteral("Gateway")}</option>
-              <option value="node" ?selected=${state.target === "node"}>${uiLiteral("Node")}</option>
+              <option value="gateway" ?selected=${state.target === "gateway"}>
+                ${uiLiteral("Gateway")}
+              </option>
+              <option value="node" ?selected=${state.target === "node"}>
+                ${uiLiteral("Node")}
+              </option>
             </select>
           </label>
           ${state.target === "node"
@@ -271,7 +278,9 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
                       state.onSelectTarget("node", value ? value : null);
                     }}
                   >
-                    <option value="" ?selected=${nodeValue === ""}>${uiLiteral("Select node")}</option>
+                    <option value="" ?selected=${nodeValue === ""}>
+                      ${uiLiteral("Select node")}
+                    </option>
                     ${state.targetNodes.map(
                       (node) =>
                         html`<option value=${node.id} ?selected=${nodeValue === node.id}>
@@ -342,7 +351,9 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
         <div class="list-main">
           <div class="list-title">${uiLiteral("Security")}</div>
           <div class="list-sub">
-            ${isDefaults ? uiLiteral("Default security mode.") : `${uiLiteral("Default")}: ${uiLiteral(defaults.security)}.`}
+            ${isDefaults
+              ? uiLiteral("Default security mode.")
+              : `${uiLiteral("Default")}: ${uiLiteral(defaults.security)}.`}
           </div>
         </div>
         <div class="list-meta">
@@ -380,7 +391,9 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
         <div class="list-main">
           <div class="list-title">${uiLiteral("Ask")}</div>
           <div class="list-sub">
-            ${isDefaults ? uiLiteral("Default prompt policy.") : `${uiLiteral("Default")}: ${uiLiteral(defaults.ask)}.`}
+            ${isDefaults
+              ? uiLiteral("Default prompt policy.")
+              : `${uiLiteral("Default")}: ${uiLiteral(defaults.ask)}.`}
           </div>
         </div>
         <div class="list-meta">
@@ -526,13 +539,17 @@ function renderAllowlistEntry(
   entry: ExecApprovalsAllowlistEntry,
   index: number,
 ) {
-  const lastUsed = entry.lastUsedAt ? formatRelativeTimestamp(entry.lastUsedAt) : uiLiteral("never");
+  const lastUsed = entry.lastUsedAt
+    ? formatRelativeTimestamp(entry.lastUsedAt)
+    : uiLiteral("never");
   const lastCommand = entry.lastUsedCommand ? clampText(entry.lastUsedCommand, 120) : null;
   const lastPath = entry.lastResolvedPath ? clampText(entry.lastResolvedPath, 120) : null;
   return html`
     <div class="list-item">
       <div class="list-main">
-        <div class="list-title">${entry.pattern?.trim() ? entry.pattern : uiLiteral("New pattern")}</div>
+        <div class="list-title">
+          ${entry.pattern?.trim() ? entry.pattern : uiLiteral("New pattern")}
+        </div>
         <div class="list-sub">${uiLiteral("Last used")}: ${lastUsed}</div>
         ${lastCommand ? html`<div class="list-sub mono">${lastCommand}</div>` : nothing}
         ${lastPath ? html`<div class="list-sub mono">${lastPath}</div>` : nothing}

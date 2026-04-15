@@ -1,9 +1,6 @@
 import path from "node:path";
-import {
-  readSkillFrontmatterSafe,
-  loadSkillsFromDirSafe,
-} from "../agents/skills/local-loader.js";
 import { resolveCrawClawMetadata } from "../agents/skills/frontmatter.js";
+import { readSkillFrontmatterSafe, loadSkillsFromDirSafe } from "../agents/skills/local-loader.js";
 import type { CrawClawSkillMetadata } from "../agents/skills/types.js";
 import type { WorkflowStoreContext } from "./store.js";
 import type { WorkflowHttpMethod, WorkflowPortability, WorkflowStepKind } from "./types.js";
@@ -61,6 +58,8 @@ function resolveDefaultStepKind(
     case "crawclaw_agent":
     case "non_portable":
       return "crawclaw_agent";
+    default:
+      return "crawclaw_agent";
   }
 }
 
@@ -97,7 +96,9 @@ export function resolveWorkflowSkillPortabilityHint(
   if (!normalized) {
     return null;
   }
-  const hint = listWorkflowSkillHints(context).find((entry) => entry.name.trim().toLowerCase() === normalized);
+  const hint = listWorkflowSkillHints(context).find(
+    (entry) => entry.name.trim().toLowerCase() === normalized,
+  );
   const workflow = hint?.metadata?.workflow;
   const portability = workflow?.portability;
   if (!hint || !workflow || !portability) {

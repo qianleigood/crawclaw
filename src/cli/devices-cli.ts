@@ -233,8 +233,8 @@ function formatPendingScopes(request: PendingDevice): string {
 function resolveRequiredDeviceRole(
   opts: DevicesRpcOpts,
 ): { deviceId: string; role: string } | null {
-  const deviceId = String(opts.device ?? "").trim();
-  const role = String(opts.role ?? "").trim();
+  const deviceId = (opts.device ?? "").trim();
+  const role = (opts.role ?? "").trim();
   if (deviceId && role) {
     return { deviceId, role };
   }

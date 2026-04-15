@@ -154,6 +154,7 @@ export async function executeNodeCommandAction(params: {
       return jsonResult(raw ?? {});
     }
   }
+  return params.action satisfies never;
 }
 
 export async function invokeNodeCommandPayload(params: {

@@ -54,7 +54,7 @@ export function applyNonInteractiveGatewayConfig(params: {
   const explicitGatewayToken = normalizeGatewayTokenInput(opts.gatewayToken);
   const envGatewayToken = normalizeGatewayTokenInput(process.env.CRAWCLAW_GATEWAY_TOKEN);
   let gatewayToken = explicitGatewayToken || envGatewayToken || undefined;
-  const gatewayTokenRefEnv = String(opts.gatewayTokenRefEnv ?? "").trim();
+  const gatewayTokenRefEnv = (opts.gatewayTokenRefEnv ?? "").trim();
 
   if (authMode === "token") {
     if (gatewayTokenRefEnv) {

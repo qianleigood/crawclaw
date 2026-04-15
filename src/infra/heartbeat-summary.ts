@@ -53,7 +53,7 @@ export function resolveHeartbeatIntervalMs(
   if (!raw) {
     return null;
   }
-  const trimmed = String(raw).trim();
+  const trimmed = raw.trim();
   if (!trimmed) {
     return null;
   }

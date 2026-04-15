@@ -76,9 +76,6 @@ export function createContextMemoryRuntime(options: {
     skillIndexStore,
     agentMemoryRoutingContract,
     contextArchiveTurnCapture,
-    durableExtractionManager,
-    autoDreamScheduler,
-    sessionSummaryScheduler,
   } = createContextMemoryRuntimeDeps(options);
 
   async function recallKnowledge(params: {
@@ -227,29 +224,24 @@ export function createContextMemoryRuntime(options: {
         return promptMissingResult;
       }
 
-      const {
-        classification,
-        knowledgeRecallItems,
-        reranked,
-        skillRouting,
-        selectedKnowledge,
-      } = await prepareMemoryAssemblyContext({
-        promptText,
-        recentMessages: promptContext.recentMessages,
-        runtimeContext,
-        queryClassifier,
-        reranker,
-        skillIndexStore,
-        skillRoutingEnabled: options.config?.skillRouting.enabled !== false,
-        skillRoutingLimit: options.config?.skillRouting.shortlistLimit,
-        recallKnowledge: async (args) =>
-          await recallKnowledge(args).catch((error) => {
-            options.logger.warn(
-              `[memory] knowledge recall skipped | ${error instanceof Error ? error.message : String(error)}`,
-            );
-            return [] as UnifiedRecallItem[];
-          }),
-      });
+      const { classification, knowledgeRecallItems, reranked, skillRouting, selectedKnowledge } =
+        await prepareMemoryAssemblyContext({
+          promptText,
+          recentMessages: promptContext.recentMessages,
+          runtimeContext,
+          queryClassifier,
+          reranker,
+          skillIndexStore,
+          skillRoutingEnabled: options.config?.skillRouting.enabled !== false,
+          skillRoutingLimit: options.config?.skillRouting.shortlistLimit,
+          recallKnowledge: async (args) =>
+            await recallKnowledge(args).catch((error) => {
+              options.logger.warn(
+                `[memory] knowledge recall skipped | ${error instanceof Error ? error.message : String(error)}`,
+              );
+              return [] as UnifiedRecallItem[];
+            }),
+        });
       const { durableRecall, durableRecallSource } = await resolveDurableRecallForAssembly({
         sessionId,
         sessionKey,

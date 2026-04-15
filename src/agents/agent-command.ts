@@ -65,7 +65,6 @@ import { updateSessionStoreAfterAgentRun } from "./command/session-store.js";
 import { resolveSession } from "./command/session.js";
 import type { AgentCommandIngressOpts, AgentCommandOpts } from "./command/types.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
-import { AGENT_LANE_SUBAGENT } from "./lanes.js";
 import { loadModelCatalog } from "./model-catalog.js";
 import { runWithModelFallback } from "./model-fallback.js";
 import {
@@ -235,13 +234,9 @@ async function prepareAgentCommandExecution(
   }
 
   const laneRaw = typeof opts.lane === "string" ? opts.lane.trim() : "";
-  const isSubagentLane = laneRaw === String(AGENT_LANE_SUBAGENT);
+  const isSubagentLane = laneRaw === "subagent";
   const timeoutSecondsRaw =
-    opts.timeout !== undefined
-      ? Number.parseInt(String(opts.timeout), 10)
-      : isSubagentLane
-        ? 0
-        : undefined;
+    opts.timeout !== undefined ? Number.parseInt(opts.timeout, 10) : isSubagentLane ? 0 : undefined;
   if (
     timeoutSecondsRaw !== undefined &&
     (Number.isNaN(timeoutSecondsRaw) || timeoutSecondsRaw < 0)
@@ -252,8 +247,7 @@ async function prepareAgentCommandExecution(
     cfg,
     overrideSeconds: timeoutSecondsRaw,
   });
-  const maxTurnsRaw =
-    opts.maxTurns !== undefined ? Number.parseInt(String(opts.maxTurns), 10) : undefined;
+  const maxTurnsRaw = opts.maxTurns !== undefined ? Number.parseInt(opts.maxTurns, 10) : undefined;
   if (maxTurnsRaw !== undefined && (Number.isNaN(maxTurnsRaw) || maxTurnsRaw < 1)) {
     throw new Error("--max-turns must be an integer greater than or equal to 1");
   }

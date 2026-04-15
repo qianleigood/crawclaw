@@ -97,7 +97,7 @@ function getLightExport<K extends keyof WhatsAppLightRuntimeModule>(
   const loaded = loadWhatsAppLightModule();
   const value = loaded[exportName];
   if (value == null) {
-    throw new Error(`WhatsApp plugin runtime is missing export '${String(exportName)}'`);
+    throw new Error(`WhatsApp plugin runtime is missing export '${exportName}'`);
   }
   return value as NonNullable<WhatsAppLightRuntimeModule[K]>;
 }
@@ -108,7 +108,7 @@ async function getHeavyExport<K extends keyof WhatsAppHeavyRuntimeModule>(
   const loaded = await loadWhatsAppHeavyModule();
   const value = loaded[exportName];
   if (value == null) {
-    throw new Error(`WhatsApp plugin runtime is missing export '${String(exportName)}'`);
+    throw new Error(`WhatsApp plugin runtime is missing export '${exportName}'`);
   }
   return value as NonNullable<WhatsAppHeavyRuntimeModule[K]>;
 }

@@ -139,10 +139,7 @@ function createCrawClawModelRegistry(
 }
 
 function scrubLegacyStaticAuthJsonEntries(pathname: string): void {
-  if (
-    process.env.CRAWCLAW_AUTH_STORE_READONLY === "1" ||
-    process.env.CRAWCLAW_AUTH_STORE_READONLY === "1"
-  ) {
+  if (process.env.CRAWCLAW_AUTH_STORE_READONLY === "1") {
     return;
   }
   if (!fs.existsSync(pathname)) {

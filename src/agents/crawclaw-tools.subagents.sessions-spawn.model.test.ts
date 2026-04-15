@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
-import "./test-helpers/fast-core-tools.js";
 import {
   getCallGatewayMock,
   getSessionsSpawnTool,
   resetSessionsSpawnConfigOverride,
   setSessionsSpawnConfigOverride,
 } from "./crawclaw-tools.subagents.sessions-spawn.test-harness.js";
+import "./test-helpers/fast-core-tools.js";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
 import { resetSubagentRegistryForTests } from "./subagent-registry.js";
 import { SUBAGENT_SPAWN_ACCEPTED_NOTE } from "./subagent-spawn.js";
 
@@ -271,7 +271,7 @@ describe("crawclaw-tools: subagents (sessions_spawn model + thinking)", () => {
     expect(result.details).toMatchObject({
       status: "error",
     });
-    expect(String((result.details as { error?: string }).error ?? "")).toContain("invalid model");
+    expect((result.details as { error?: string }).error ?? "").toContain("invalid model");
     expect(calls.some((call) => call.method === "agent")).toBe(false);
   });
 

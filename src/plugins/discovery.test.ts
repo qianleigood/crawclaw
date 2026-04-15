@@ -236,7 +236,7 @@ function expectCachedDiscoveryPair(params: {
 
 async function expectRejectedPackageExtensionEntry(params: {
   stateDir: string;
-  setup: (stateDir: string) => boolean | void;
+  setup: (stateDir: string) => boolean | undefined;
   expectedDiagnostic?: "escapes" | "none";
   expectedId?: string;
 }) {
@@ -548,7 +548,7 @@ describe("discoverCrawClawPlugins", () => {
     {
       name: "blocks extension entries that escape package directory",
       expectedDiagnostic: "escapes" as const,
-      setup: (stateDir: string) => {
+      setup: (stateDir: string): undefined => {
         const globalExt = path.join(stateDir, "extensions", "escape-pack");
         const outside = path.join(stateDir, "outside.js");
         mkdirSafe(globalExt);
@@ -558,12 +558,13 @@ describe("discoverCrawClawPlugins", () => {
           extensions: ["../../outside.js"],
         });
         fs.writeFileSync(outside, "export default function () {}", "utf-8");
+        return undefined;
       },
     },
     {
       name: "skips missing package extension entries without escape diagnostics",
       expectedDiagnostic: "none" as const,
-      setup: (stateDir: string) => {
+      setup: (stateDir: string): undefined => {
         const globalExt = path.join(stateDir, "extensions", "missing-entry-pack");
         mkdirSafe(globalExt);
         writePluginPackageManifest({
@@ -571,13 +572,14 @@ describe("discoverCrawClawPlugins", () => {
           packageName: "@crawclaw/missing-entry-pack",
           extensions: ["./missing.ts"],
         });
+        return undefined;
       },
     },
     {
       name: "rejects package extension entries that escape via symlink",
       expectedDiagnostic: "escapes" as const,
       expectedId: "pack",
-      setup: (stateDir: string) => {
+      setup: (stateDir: string): boolean | undefined => {
         const globalExt = path.join(stateDir, "extensions", "pack");
         const outsideDir = path.join(stateDir, "outside");
         const linkedDir = path.join(globalExt, "linked");
@@ -594,13 +596,14 @@ describe("discoverCrawClawPlugins", () => {
           packageName: "@crawclaw/pack",
           extensions: ["./linked/escape.ts"],
         });
+        return undefined;
       },
     },
     {
       name: "rejects package extension entries that are hardlinked aliases",
       expectedDiagnostic: "escapes" as const,
       expectedId: "pack",
-      setup: (stateDir: string) => {
+      setup: (stateDir: string): boolean | undefined => {
         if (process.platform === "win32") {
           return false;
         }
@@ -624,6 +627,7 @@ describe("discoverCrawClawPlugins", () => {
           packageName: "@crawclaw/pack",
           extensions: ["./escape.ts"],
         });
+        return undefined;
       },
     },
   ] as const)("$name", async ({ setup, expectedDiagnostic, expectedId }) => {

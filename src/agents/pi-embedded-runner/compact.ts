@@ -18,6 +18,7 @@ import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { prepareProviderRuntimeAuth } from "../../plugins/provider-runtime.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isCronSessionKey, isSubagentSessionKey } from "../../routing/session-key.js";
+import { resolveCompactionLifecycleDecisionCode } from "../../shared/decision-codes.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 import { resolveUserPath } from "../../utils.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
@@ -69,7 +70,6 @@ import {
 import { registerProviderStreamForModel } from "../provider-stream.js";
 import { ensureRuntimePluginsLoaded } from "../runtime-plugins.js";
 import { emitRunLoopLifecycleEvent } from "../runtime/lifecycle/bus.js";
-import { resolveCompactionLifecycleDecisionCode } from "../../shared/decision-codes.js";
 import {
   runAfterCompactionHooks,
   runBeforeCompactionHooks,
@@ -609,9 +609,7 @@ export async function compactEmbeddedPiSessionDirect(
         : [];
     if (promptCapabilities.length > 0) {
       runtimeCapabilities ??= [];
-      const seenCapabilities = new Set(
-        runtimeCapabilities.map((cap) => String(cap).trim().toLowerCase()),
-      );
+      const seenCapabilities = new Set(runtimeCapabilities.map((cap) => cap.trim().toLowerCase()));
       for (const capability of promptCapabilities) {
         const normalizedCapability = capability.trim().toLowerCase();
         if (!normalizedCapability || seenCapabilities.has(normalizedCapability)) {

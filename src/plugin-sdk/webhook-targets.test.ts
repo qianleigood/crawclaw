@@ -259,12 +259,12 @@ describe("resolveSingleWebhookTarget", () => {
     {
       name: "sync",
       run: async (targets, isMatch) =>
-        resolveSingleWebhookTarget(targets, (value) => Boolean(isMatch(value))),
+        resolveSingleWebhookTarget(targets, (value) => isMatch(value) === true),
     },
     {
       name: "async",
       run: (targets, isMatch) =>
-        resolveSingleWebhookTargetAsync(targets, async (value) => Boolean(await isMatch(value))),
+        resolveSingleWebhookTargetAsync(targets, async (value) => await isMatch(value)),
     },
   ];
 

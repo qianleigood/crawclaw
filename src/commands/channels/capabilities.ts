@@ -184,9 +184,7 @@ async function resolveChannelReports(params: {
       }),
       includeActions: true,
     }).actions;
-    const actions = Array.from(
-      new Set<string>(["send", "broadcast", ...discoveredActions.map((action) => String(action))]),
-    );
+    const actions = Array.from(new Set<string>(["send", "broadcast", ...discoveredActions]));
 
     reports.push({
       plugin,

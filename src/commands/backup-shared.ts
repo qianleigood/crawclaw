@@ -55,6 +55,7 @@ function backupAssetPriority(kind: BackupAssetKind): number {
     case "workspace":
       return 3;
   }
+  return kind satisfies never;
 }
 
 export function buildBackupArchiveRoot(nowMs = Date.now()): string {

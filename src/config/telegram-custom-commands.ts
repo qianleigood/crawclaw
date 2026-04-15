@@ -43,7 +43,7 @@ export function resolveTelegramCustomCommands(params: {
 
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
-    const normalized = normalizeTelegramCommandName(String(entry?.command ?? ""));
+    const normalized = normalizeTelegramCommandName(entry?.command ?? "");
     if (!normalized) {
       issues.push({
         index,
@@ -76,7 +76,7 @@ export function resolveTelegramCustomCommands(params: {
       });
       continue;
     }
-    const description = normalizeTelegramCommandDescription(String(entry?.description ?? ""));
+    const description = normalizeTelegramCommandDescription(entry?.description ?? "");
     if (!description) {
       issues.push({
         index,

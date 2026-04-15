@@ -97,7 +97,7 @@ function resolveConfiguredModelRaw(cfg: CrawClawConfig): string {
 function resolveConfiguredModelKeys(cfg: CrawClawConfig): string[] {
   const models = cfg.agents?.defaults?.models ?? {};
   return Object.keys(models)
-    .map((key) => String(key ?? "").trim())
+    .map((key) => key.trim())
     .filter((key) => key.length > 0);
 }
 
@@ -105,7 +105,7 @@ function normalizeModelKeys(values: string[]): string[] {
   const seen = new Set<string>();
   const next: string[] = [];
   for (const raw of values) {
-    const value = String(raw ?? "").trim();
+    const value = raw.trim();
     if (!value || seen.has(value)) {
       continue;
     }
@@ -178,7 +178,7 @@ async function promptManualModel(params: {
     placeholder: "provider/model",
     validate: params.allowBlank ? undefined : (value) => (value?.trim() ? undefined : "Required"),
   });
-  const model = String(modelInput ?? "").trim();
+  const model = (modelInput ?? "").trim();
   if (!model) {
     return {};
   }
@@ -476,7 +476,7 @@ export async function promptDefaultModel(
   }
 
   const providerPluginResult = await maybeHandleProviderPluginSelection({
-    selection: String(selection),
+    selection,
     cfg,
     prompter: params.prompter,
     agentDir: params.agentDir,
@@ -488,7 +488,7 @@ export async function promptDefaultModel(
     return providerPluginResult;
   }
 
-  const model = String(selection);
+  const model = selection;
   const { runProviderModelSelectedHook } = await loadResolvedModelPickerRuntime();
   await runProviderModelSelectedHook({
     config: cfg,
@@ -541,7 +541,7 @@ export async function promptModelAllowlist(params: {
       initialValue: existingKeys.join(", "),
       placeholder: "provider/model, other-provider/model",
     });
-    const parsed = String(raw ?? "")
+    const parsed = raw
       .split(",")
       .map((value) => value.trim())
       .filter((value) => value.length > 0);
@@ -596,7 +596,7 @@ export async function promptModelAllowlist(params: {
     initialValues: initialKeys.length > 0 ? initialKeys : undefined,
     searchable: true,
   });
-  const selected = normalizeModelKeys(selection.map((value) => String(value)));
+  const selected = normalizeModelKeys(selection);
   if (selected.length > 0) {
     return { models: selected };
   }

@@ -68,7 +68,7 @@ function collectTopLevelPublicSurfaceEntries(pluginDir) {
 
 function isManifestlessBundledRuntimeSupportPackage(params) {
   const packageName = typeof params.packageJson?.name === "string" ? params.packageJson.name : "";
-  if (packageName !== `@crawclaw/${params.dirName}` && packageName !== `@crawclaw/${params.dirName}`) {
+  if (packageName !== `@crawclaw/${params.dirName}`) {
     return false;
   }
   return params.topLevelPublicSurfaceEntries.length > 0;

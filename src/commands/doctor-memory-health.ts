@@ -88,8 +88,12 @@ export interface DoctorMemoryHealthSummary {
 }
 
 function maxLevel(levels: DoctorMemoryHealthLevel[]): DoctorMemoryHealthLevel {
-  if (levels.includes("error")) {return "error";}
-  if (levels.includes("warn")) {return "warn";}
+  if (levels.includes("error")) {
+    return "error";
+  }
+  if (levels.includes("warn")) {
+    return "warn";
+  }
   return "ok";
 }
 
@@ -107,7 +111,9 @@ function listMarkdownFiles(rootDir: string, limit = 50): string[] {
   const stack = [rootDir];
   while (stack.length > 0 && files.length < limit) {
     const next = stack.pop();
-    if (!next) {break;}
+    if (!next) {
+      break;
+    }
     let entries: Dirent[];
     try {
       entries = readdirSync(next, { withFileTypes: true });
@@ -115,7 +121,7 @@ function listMarkdownFiles(rootDir: string, limit = 50): string[] {
       continue;
     }
     for (const entry of entries) {
-      const entryName = String(entry.name);
+      const entryName = entry.name;
       const absolute = path.join(next, entryName);
       if (entry.isDirectory()) {
         stack.push(absolute);
@@ -123,7 +129,9 @@ function listMarkdownFiles(rootDir: string, limit = 50): string[] {
       }
       if (entry.isFile() && /\.md$/i.test(entryName)) {
         files.push(absolute);
-        if (files.length >= limit) {break;}
+        if (files.length >= limit) {
+          break;
+        }
       }
     }
   }
@@ -159,7 +167,9 @@ export async function checkDurableMemoryHealth(
 ): Promise<DoctorDurableMemoryHealth> {
   const memoryConfig = resolveMemoryConfig({
     notebooklm: cfg.memory?.notebooklm ?? {},
-    durableExtraction: (cfg.memory as { durableExtraction?: Record<string, unknown> } | undefined)?.durableExtraction ?? {},
+    durableExtraction:
+      (cfg.memory as { durableExtraction?: Record<string, unknown> } | undefined)
+        ?.durableExtraction ?? {},
   });
   const rootDir = resolveDurableMemoryRootDir();
   const rootExists = existsSync(rootDir);
@@ -179,7 +189,9 @@ export async function checkDurableMemoryHealth(
         const text = readFileSync(filePath, "utf8");
         parseMarkdownFrontmatter(text);
       } catch (error) {
-        parseErrors.push(`${path.relative(rootDir, filePath)}: ${error instanceof Error ? error.message : String(error)}`);
+        parseErrors.push(
+          `${path.relative(rootDir, filePath)}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
   } else {
@@ -218,7 +230,8 @@ export async function checkDurableMemoryHealth(
     extractionEnabled: memoryConfig.durableExtraction.enabled,
     extractionRecentMessageLimit: memoryConfig.durableExtraction.recentMessageLimit,
     extractionMaxNotesPerTurn: memoryConfig.durableExtraction.maxNotesPerTurn,
-    extractionMinEligibleTurnsBetweenRuns: memoryConfig.durableExtraction.minEligibleTurnsBetweenRuns,
+    extractionMinEligibleTurnsBetweenRuns:
+      memoryConfig.durableExtraction.minEligibleTurnsBetweenRuns,
     extractionMaxConcurrentWorkers: memoryConfig.durableExtraction.maxConcurrentWorkers,
     extractionWorkerIdleTtlMs: memoryConfig.durableExtraction.workerIdleTtlMs,
     extractionWorkers: {
@@ -332,6 +345,7 @@ function formatLevel(level: DoctorMemoryHealthLevel): string {
     case "error":
       return "error";
   }
+  return level satisfies never;
 }
 
 export async function noteMemoryHealth(
@@ -350,7 +364,9 @@ export async function noteMemoryHealth(
     summary.notebooklm.recommendedAction,
     summary.durable.recommendedAction,
     summary.session.recommendedAction,
-  ].filter((value, index, list): value is string => Boolean(value) && list.indexOf(value) === index);
+  ].filter(
+    (value, index, list): value is string => Boolean(value) && list.indexOf(value) === index,
+  );
   if (actions.length > 0) {
     lines.push("", "Recommended actions:");
     for (const action of actions) {

@@ -32,7 +32,7 @@ function installProcessWarningFilter() {
       return;
     }
 
-    return Reflect.apply(originalEmitWarning, process, args);
+    Reflect.apply(originalEmitWarning, process, args);
   };
 
   globalThis[warningFilterKey] = { installed: true };

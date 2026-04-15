@@ -26,10 +26,7 @@ function isBun(): boolean {
 
 function prefersSips(): boolean {
   const backend = process.env.CRAWCLAW_IMAGE_BACKEND;
-  return (
-    backend === "sips" ||
-    (backend !== "sharp" && isBun() && process.platform === "darwin")
-  );
+  return backend === "sips" || (backend !== "sharp" && isBun() && process.platform === "darwin");
 }
 
 async function loadSharp(): Promise<(buffer: Buffer) => ReturnType<Sharp>> {
@@ -407,8 +404,8 @@ export async function getImageMetadata(buffer: Buffer): Promise<ImageMetadata | 
   try {
     const sharp = await loadSharp();
     const meta = await sharp(buffer).metadata();
-    const width = Number(meta.width ?? 0);
-    const height = Number(meta.height ?? 0);
+    const width = meta.width ?? 0;
+    const height = meta.height ?? 0;
     if (!Number.isFinite(width) || !Number.isFinite(height)) {
       return null;
     }

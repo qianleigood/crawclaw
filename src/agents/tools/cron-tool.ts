@@ -17,11 +17,7 @@ import {
   updateCronJob,
   wakeGateway,
 } from "./cron-gateway.js";
-import {
-  CronToolSchema,
-  recoverFlatCronObject,
-  REMINDER_CONTEXT_MESSAGES_MAX,
-} from "./cron-tool-params.js";
+import { CronToolSchema, recoverFlatCronObject } from "./cron-tool-params.js";
 export { CronToolSchema } from "./cron-tool-params.js";
 import {
   appendReminderContextToPayload,
@@ -124,7 +120,9 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
         case "status":
           return jsonResult(await getCronStatus(callGateway, gatewayOpts));
         case "list":
-          return jsonResult(await listCronJobs(callGateway, gatewayOpts, Boolean(params.includeDisabled)));
+          return jsonResult(
+            await listCronJobs(callGateway, gatewayOpts, Boolean(params.includeDisabled)),
+          );
         case "add": {
           recoverFlatCronObject(params, "job");
 
@@ -215,7 +213,12 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
         }
         case "run": {
           return jsonResult(
-            await runCronJob(callGateway, gatewayOpts, readCronJobId(params), readCronRunMode(params)),
+            await runCronJob(
+              callGateway,
+              gatewayOpts,
+              readCronJobId(params),
+              readCronRunMode(params),
+            ),
           );
         }
         case "runs": {
@@ -223,7 +226,9 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
         }
         case "wake": {
           const text = readStringParam(params, "text", { required: true });
-          return jsonResult(await wakeGateway(callGateway, gatewayOpts, readCronWakeMode(params), text));
+          return jsonResult(
+            await wakeGateway(callGateway, gatewayOpts, readCronWakeMode(params), text),
+          );
         }
         default:
           throw new Error(`Unknown action: ${action}`);

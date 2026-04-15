@@ -89,7 +89,7 @@ function getColorForConsole(): ChalkInstance {
   if (process.env.NO_COLOR && !hasForceColor) {
     return new Chalk({ level: 0 });
   }
-  const hasTty = Boolean(process.stdout.isTTY || process.stderr.isTTY);
+  const hasTty = process.stdout.isTTY || process.stderr.isTTY;
   return hasTty || isRichConsoleEnv() ? new Chalk({ level: 1 }) : new Chalk({ level: 0 });
 }
 
@@ -221,7 +221,10 @@ function formatConsoleLine(opts: {
         : opts.level === "debug" || opts.level === "trace"
           ? color.gray
           : color.cyan;
-  const baseDisplayMessage = stripRedundantSubsystemPrefixForConsole(opts.message, displaySubsystem);
+  const baseDisplayMessage = stripRedundantSubsystemPrefixForConsole(
+    opts.message,
+    displaySubsystem,
+  );
   const displayMessage = appendOperatorMetaForConsole(baseDisplayMessage, opts.meta);
   const time = (() => {
     if (opts.style === "pretty") {
@@ -271,10 +274,7 @@ function messageAlreadyContainsOperatorField(message: string, aliases: string[])
   return aliases.some((alias) => lowered.includes(`${alias.toLowerCase()}=`));
 }
 
-function appendOperatorMetaForConsole(
-  message: string,
-  meta: SubsystemLogMeta | undefined,
-): string {
+function appendOperatorMetaForConsole(message: string, meta: SubsystemLogMeta | undefined): string {
   if (!meta || Object.keys(meta).length === 0) {
     return message;
   }
@@ -298,7 +298,10 @@ function appendOperatorMetaForConsole(
     { key: "span", value: meta.spanId, aliases: ["span", "spanId"] },
   ];
   const tokens = fields
-    .filter(({ value, aliases }) => value !== undefined && !messageAlreadyContainsOperatorField(message, aliases))
+    .filter(
+      ({ value, aliases }) =>
+        value !== undefined && !messageAlreadyContainsOperatorField(message, aliases),
+    )
     .map(({ key, value }) => `${key}=${String(value)}`);
   if (tokens.length === 0) {
     return message;

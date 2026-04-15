@@ -385,7 +385,7 @@ function applyLegacyStore(store: AuthProfileStore, legacy: LegacyAuthStore): voi
     if (cred.type === "api_key") {
       store.profiles[profileId] = {
         type: "api_key",
-        provider: String(cred.provider ?? provider),
+        provider: cred.provider ?? provider,
         key: cred.key,
         ...(cred.email ? { email: cred.email } : {}),
       };
@@ -394,7 +394,7 @@ function applyLegacyStore(store: AuthProfileStore, legacy: LegacyAuthStore): voi
     if (cred.type === "token") {
       store.profiles[profileId] = {
         type: "token",
-        provider: String(cred.provider ?? provider),
+        provider: cred.provider ?? provider,
         token: cred.token,
         ...(typeof cred.expires === "number" ? { expires: cred.expires } : {}),
         ...(cred.email ? { email: cred.email } : {}),
@@ -403,7 +403,7 @@ function applyLegacyStore(store: AuthProfileStore, legacy: LegacyAuthStore): voi
     }
     store.profiles[profileId] = {
       type: "oauth",
-      provider: String(cred.provider ?? provider),
+      provider: cred.provider ?? provider,
       access: cred.access,
       refresh: cred.refresh,
       expires: cred.expires,
@@ -520,9 +520,7 @@ function loadAuthProfileStoreForAgent(
   const mergedOAuth = mergeOAuthFileIntoStore(store);
   // Keep external CLI credentials visible in runtime even during read-only loads.
   const syncedCli = syncExternalCliCredentialsTimed(store, { log: !readOnly });
-  const forceReadOnly =
-    process.env.CRAWCLAW_AUTH_STORE_READONLY === "1" ||
-    process.env.CRAWCLAW_AUTH_STORE_READONLY === "1";
+  const forceReadOnly = process.env.CRAWCLAW_AUTH_STORE_READONLY === "1";
   const shouldWrite = !readOnly && !forceReadOnly && (legacy !== null || mergedOAuth || syncedCli);
   if (shouldWrite) {
     saveJsonFile(authPath, store);

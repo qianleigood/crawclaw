@@ -10,7 +10,7 @@ export function resolveNodeIdFromNodeList<TNode extends NodeMatchCandidate>(
   query?: string,
   options: ResolveNodeFromListOptions<TNode> = {},
 ): string {
-  const q = String(query ?? "").trim();
+  const q = (query ?? "").trim();
   if (!q) {
     if (options.allowDefault === true && options.pickDefaultNode) {
       const picked = options.pickDefaultNode(nodes);

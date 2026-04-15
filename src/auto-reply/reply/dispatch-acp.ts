@@ -167,26 +167,18 @@ function hasBoundConversationForSession(params: {
   channelRaw: string | undefined;
   accountIdRaw: string | undefined;
 }): boolean {
-  const channel = String(params.channelRaw ?? "")
-    .trim()
-    .toLowerCase();
+  const channel = (params.channelRaw ?? "").trim().toLowerCase();
   if (!channel) {
     return false;
   }
-  const accountId = String(params.accountIdRaw ?? "")
-    .trim()
-    .toLowerCase();
+  const accountId = (params.accountIdRaw ?? "").trim().toLowerCase();
   const normalizedAccountId = accountId || "default";
   const bindingService = getSessionBindingService();
   const bindings = bindingService.listBySession(params.sessionKey);
   return bindings.some((binding) => {
-    const bindingChannel = String(binding.conversation.channel ?? "")
-      .trim()
-      .toLowerCase();
-    const bindingAccountId = String(binding.conversation.accountId ?? "")
-      .trim()
-      .toLowerCase();
-    const conversationId = String(binding.conversation.conversationId ?? "").trim();
+    const bindingChannel = (binding.conversation.channel ?? "").trim().toLowerCase();
+    const bindingAccountId = (binding.conversation.accountId ?? "").trim().toLowerCase();
+    const conversationId = (binding.conversation.conversationId ?? "").trim();
     return (
       bindingChannel === channel &&
       (bindingAccountId || "default") === normalizedAccountId &&

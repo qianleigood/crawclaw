@@ -96,7 +96,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
           undefined,
           cfg,
         );
-        expect(String((Array.isArray(r0) ? r0[0]?.text : r0?.text) ?? "")).toContain(
+        expect((Array.isArray(r0) ? r0[0]?.text : r0?.text) ?? "").toContain(
           "Usage footer: tokens",
         );
 
@@ -112,9 +112,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
           undefined,
           cfg,
         );
-        expect(String((Array.isArray(r1) ? r1[0]?.text : r1?.text) ?? "")).toContain(
-          "Usage footer: full",
-        );
+        expect((Array.isArray(r1) ? r1[0]?.text : r1?.text) ?? "").toContain("Usage footer: full");
 
         const r2 = await getReplyFromConfig(
           {
@@ -128,9 +126,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
           undefined,
           cfg,
         );
-        expect(String((Array.isArray(r2) ? r2[0]?.text : r2?.text) ?? "")).toContain(
-          "Usage footer: off",
-        );
+        expect((Array.isArray(r2) ? r2[0]?.text : r2?.text) ?? "").toContain("Usage footer: off");
 
         const r3 = await getReplyFromConfig(
           {
@@ -144,7 +140,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
           undefined,
           cfg,
         );
-        expect(String((Array.isArray(r3) ? r3[0]?.text : r3?.text) ?? "")).toContain(
+        expect((Array.isArray(r3) ? r3[0]?.text : r3?.text) ?? "").toContain(
           "Usage footer: tokens",
         );
 

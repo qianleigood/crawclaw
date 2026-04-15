@@ -107,6 +107,8 @@ export function matchBoundaryFileOpenFailure<T>(
       return handlers.validation ? handlers.validation(failure) : handlers.fallback(failure);
     case "io":
       return handlers.io ? handlers.io(failure) : handlers.fallback(failure);
+    default:
+      return handlers.fallback(failure);
   }
 }
 

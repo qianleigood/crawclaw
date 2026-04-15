@@ -365,7 +365,6 @@ describe("security audit", () => {
     await withEnvAsync(
       {
         CRAWCLAW_STATE_DIR: sharedChannelSecurityStateDir,
-        CRAWCLAW_STATE_DIR: sharedChannelSecurityStateDir,
       },
       () => fn(sharedChannelSecurityStateDir),
     );

@@ -25,6 +25,7 @@ import {
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
 import { resolveToolCallArgumentsEncoding } from "../../../plugins/provider-model-compat.js";
 import { isSubagentSessionKey } from "../../../routing/session-key.js";
+import { resolvePromptCacheDecisionCodes } from "../../../shared/decision-codes.js";
 import { buildTtsSystemPromptHint } from "../../../tts/tts.js";
 import { resolveUserPath } from "../../../utils.js";
 import { normalizeMessageChannel } from "../../../utils/message-channel.js";
@@ -187,7 +188,6 @@ import {
   resolveAttemptSpawnWorkspaceDir,
   shouldUseOpenAIWebSocketTransport,
 } from "./attempt.thread-helpers.js";
-import { resolvePromptCacheDecisionCodes } from "../../../shared/decision-codes.js";
 import {
   shouldRepairMalformedAnthropicToolCallArguments,
   wrapStreamFnDecodeXaiToolCallArguments,
@@ -212,7 +212,7 @@ import type { EmbeddedRunAttemptParams, EmbeddedRunAttemptResult } from "./types
 export {
   appendAttemptCacheTtlIfNeeded,
   resolveAttemptSpawnWorkspaceDir,
-  } from "./attempt.thread-helpers.js";
+} from "./attempt.thread-helpers.js";
 export {
   buildAfterTurnRuntimeContext,
   resolveAttemptFsWorkspaceOnly,
@@ -221,27 +221,27 @@ export {
   resolvePromptModeForSession,
   shouldTriggerSkillDiscovery,
   shouldInjectHeartbeatPrompt,
-  } from "./attempt.prompt-helpers.js";
+} from "./attempt.prompt-helpers.js";
 export {
   buildSessionsYieldContextMessage,
   persistSessionsYieldContextMessage,
   queueSessionsYieldInterruptMessage,
   stripSessionsYieldArtifacts,
-  } from "./attempt.sessions-yield.js";
+} from "./attempt.sessions-yield.js";
 export {
   isOllamaCompatProvider,
   resolveOllamaCompatNumCtxEnabled,
   shouldInjectOllamaCompatNumCtx,
   wrapOllamaCompatNumCtx,
-  } from "../../../plugin-sdk/ollama.js";
+} from "../../../plugin-sdk/ollama.js";
 export {
   decodeHtmlEntitiesInObject,
   wrapStreamFnRepairMalformedToolCallArguments,
-  } from "./attempt.tool-call-argument-repair.js";
+} from "./attempt.tool-call-argument-repair.js";
 export {
   wrapStreamFnSanitizeMalformedToolCalls,
   wrapStreamFnTrimToolCallNames,
-  } from "./attempt.tool-call-normalization.js";
+} from "./attempt.tool-call-normalization.js";
 export { convertMinimaxXmlToolCallsInMessage } from "./attempt.minimax-tool-call-xml.js";
 
 const MAX_BTW_SNAPSHOT_MESSAGES = 100;
@@ -251,7 +251,7 @@ const DURABLE_MEMORY_TOOL_ALLOWLIST = new Set([
   "memory_note_write",
   "memory_note_edit",
   "memory_note_delete",
-  ]);
+]);
 
 function shouldUseMinimalPromptForAllowedTools(toolsAllow?: string[]): boolean {
   if (!toolsAllow?.length) {
@@ -265,9 +265,8 @@ function shouldEnableAnthropicThinkingRecovery(api: string | null | undefined): 
 }
 
 function extractSpecialAgentCacheSafeStreamParams(
-  extraParams: Record<string,
-  unknown> | undefined,
-  ): {
+  extraParams: Record<string, unknown> | undefined,
+): {
   cacheRetention?: "none" | "short" | "long";
   skipCacheWrite?: boolean;
   promptCacheKey?: string;
@@ -289,10 +288,10 @@ function extractSpecialAgentCacheSafeStreamParams(
       : undefined;
   return {
     ...(cacheRetention ? { cacheRetention } : {}),
-  ...(extraParams?.skipCacheWrite === true ? { skipCacheWrite: true } : {}),
-  ...(promptCacheKey ? { promptCacheKey } : {}),
-  ...(promptCacheRetention ? { promptCacheRetention } : {}),
-};
+    ...(extraParams?.skipCacheWrite === true ? { skipCacheWrite: true } : {}),
+    ...(promptCacheKey ? { promptCacheKey } : {}),
+    ...(promptCacheRetention ? { promptCacheRetention } : {}),
+  };
 }
 
 function buildSpecialAgentCacheDebugContext(params: {
@@ -548,9 +547,11 @@ function resolveEffectiveToolsAllow(params: {
   return undefined;
 }
 
-(ensureAllowedToolsActiveInSession as typeof ensureAllowedToolsActiveInSession & {
-  __test_resolveEffectiveToolsAllow?: typeof resolveEffectiveToolsAllow;
-}).__test_resolveEffectiveToolsAllow = resolveEffectiveToolsAllow;
+(
+  ensureAllowedToolsActiveInSession as typeof ensureAllowedToolsActiveInSession & {
+    __test_resolveEffectiveToolsAllow?: typeof resolveEffectiveToolsAllow;
+  }
+).__test_resolveEffectiveToolsAllow = resolveEffectiveToolsAllow;
 
 function buildToolInventorySignature(tools: Array<{ name?: string }>): string {
   return tools
@@ -981,9 +982,7 @@ export async function runEmbeddedAttempt(
         : [];
     if (promptCapabilities.length > 0) {
       runtimeCapabilities ??= [];
-      const seenCapabilities = new Set(
-        runtimeCapabilities.map((cap) => String(cap).trim().toLowerCase()),
-      );
+      const seenCapabilities = new Set(runtimeCapabilities.map((cap) => cap.trim().toLowerCase()));
       for (const capability of promptCapabilities) {
         const normalizedCapability = capability.trim().toLowerCase();
         if (!normalizedCapability || seenCapabilities.has(normalizedCapability)) {
@@ -2428,7 +2427,7 @@ export async function runEmbeddedAttempt(
               effectivePromptMode,
               defaultModelLabel,
               sandboxInfo,
-              reasoningTagHint: Boolean(reasoningTagHint),
+              reasoningTagHint: reasoningTagHint,
               channelActions,
               messageToolHints,
             });

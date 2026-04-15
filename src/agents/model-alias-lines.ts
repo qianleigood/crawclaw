@@ -4,11 +4,11 @@ export function buildModelAliasLines(cfg?: CrawClawConfig) {
   const models = cfg?.agents?.defaults?.models ?? {};
   const entries: Array<{ alias: string; model: string }> = [];
   for (const [keyRaw, entryRaw] of Object.entries(models)) {
-    const model = String(keyRaw ?? "").trim();
+    const model = keyRaw.trim();
     if (!model) {
       continue;
     }
-    const alias = String((entryRaw as { alias?: string } | undefined)?.alias ?? "").trim();
+    const alias = ((entryRaw as { alias?: string } | undefined)?.alias ?? "").trim();
     if (!alias) {
       continue;
     }

@@ -1754,10 +1754,7 @@ export class SqliteRuntimeStore implements RuntimeStore {
       typeof rec.content_text === "string" && rec.content_text.trim()
         ? rec.content_text
         : String(rec.content ?? "");
-    const contentBlocks = this.parseMessageBlocks(
-      rec.content_blocks_json,
-      String(contentText ?? ""),
-    );
+    const contentBlocks = this.parseMessageBlocks(rec.content_blocks_json, contentText ?? "");
     const runtimeMeta = this.parseRuntimeMeta(rec.runtime_meta_json);
     const runtimeShape = this.parseRuntimeShape(rec.runtime_shape_json);
     return {

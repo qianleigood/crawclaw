@@ -136,7 +136,7 @@ function expectWorkerTranscriptPath(
 ) {
   const session = getFirstListedSession(result);
   expect(session).toMatchObject({ key: "agent:worker:main" });
-  const transcriptPath = String(session?.transcriptPath ?? "");
+  const transcriptPath = session?.transcriptPath ?? "";
   expect(path.normalize(transcriptPath)).toContain(path.normalize(params.containsPath));
   expect(transcriptPath).toMatch(new RegExp(`${params.sessionId}\\.jsonl$`));
 }
@@ -360,9 +360,7 @@ describe("sessions_list transcriptPath resolution", () => {
       name: "resolves transcriptPath even when sessions.list does not return a store path",
       stateDirName: "crawclaw-state-no-path",
       response: {
-        sessions: [
-          { key: "agent:worker:main", kind: "direct", sessionId: "sess-worker-no-path" },
-        ],
+        sessions: [{ key: "agent:worker:main", kind: "direct", sessionId: "sess-worker-no-path" }],
       },
       expectedPath: (_stateDir: string) => path.join("agents", "worker", "sessions"),
       sessionId: "sess-worker-no-path",
@@ -382,9 +380,7 @@ describe("sessions_list transcriptPath resolution", () => {
       stateDirName: "crawclaw-state-multiple",
       response: {
         path: "(multiple)",
-        sessions: [
-          { key: "agent:worker:main", kind: "direct", sessionId: "sess-worker-multiple" },
-        ],
+        sessions: [{ key: "agent:worker:main", kind: "direct", sessionId: "sess-worker-multiple" }],
       },
       expectedPath: (stateDir: string) => path.join(stateDir, "agents", "worker", "sessions"),
       sessionId: "sess-worker-multiple",

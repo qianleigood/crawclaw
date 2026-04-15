@@ -71,6 +71,8 @@ function extractOwner(relPath: string): string | null {
       return parts[0] || "other";
     case "test":
       return null;
+    default:
+      return parts[0] || "other";
   }
 }
 

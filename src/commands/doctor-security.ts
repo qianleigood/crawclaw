@@ -59,6 +59,7 @@ function execSecurityRank(value: ExecSecurity): number {
     case "full":
       return 2;
   }
+  return value satisfies never;
 }
 
 function execAskRank(value: ExecAsk): number {
@@ -70,6 +71,7 @@ function execAskRank(value: ExecAsk): number {
     case "always":
       return 2;
   }
+  return value satisfies never;
 }
 
 function collectExecPolicyConflictWarnings(cfg: CrawClawConfig): string[] {

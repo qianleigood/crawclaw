@@ -581,7 +581,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const p = params;
     const keysRaw = Array.isArray(p.keys) ? p.keys : [];
     const keys = keysRaw
-      .map((key) => String(key ?? "").trim())
+      .map((key) => (key ?? "").trim())
       .filter(Boolean)
       .slice(0, 64);
     const limit =

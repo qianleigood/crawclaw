@@ -20,8 +20,6 @@ export const isNixMode = resolveIsNixMode();
 const LEGACY_STATE_DIRNAMES = [".crawclaw", ".clawdbot"] as const;
 const NEW_STATE_DIRNAME = ".crawclaw";
 const CONFIG_FILENAME = "crawclaw.json";
-const LEGACY_CONFIG_FILENAMES = ["crawclaw.json", "clawdbot.json"] as const;
-
 function readEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
   const value = env[key]?.trim();
   return value || undefined;

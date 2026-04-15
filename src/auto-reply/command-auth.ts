@@ -568,10 +568,9 @@ export function resolveCommandAuthorization(params: {
     : undefined;
   const senderId = matchedSender ?? senderCandidates[0];
 
-  const enforceOwner = Boolean(
+  const enforceOwner =
     plugin?.commands?.enforceOwnerForCommands ??
-    resolveFallbackCommandOptions(providerId).enforceOwnerForCommands,
-  );
+    resolveFallbackCommandOptions(providerId).enforceOwnerForCommands;
   const senderIsOwnerByIdentity = Boolean(matchedSender);
   const senderIsOwnerByScope =
     isInternalMessageChannel(ctx.Provider) &&

@@ -23,7 +23,7 @@ export {
   SELF_HOSTED_DEFAULT_CONTEXT_WINDOW,
   SELF_HOSTED_DEFAULT_COST,
   SELF_HOSTED_DEFAULT_MAX_TOKENS,
-  } from "../agents/self-hosted-provider-defaults.js";
+} from "../agents/self-hosted-provider-defaults.js";
 
 const log = createSubsystemLogger("plugins/self-hosted-provider-setup");
 
@@ -212,11 +212,9 @@ export async function promptAndConfigureOpenAICompatibleSelfHostedProvider(
     validate: (value) => (value?.trim() ? undefined : "Required"),
   });
 
-  const baseUrl = String(baseUrlRaw ?? "")
-    .trim()
-    .replace(/\/+$/, "");
-  const apiKey = String(apiKeyRaw ?? "").trim();
-  const modelId = String(modelIdRaw ?? "").trim();
+  const baseUrl = (baseUrlRaw ?? "").trim().replace(/\/+$/, "");
+  const apiKey = (apiKeyRaw ?? "").trim();
+  const modelId = (modelIdRaw ?? "").trim();
   const credential: AuthProfileCredential = {
     type: "api_key",
     provider: params.providerId,

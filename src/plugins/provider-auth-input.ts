@@ -19,18 +19,16 @@ export {
   promptSecretRefForSetup,
   resolveRefFallbackInput,
   type SecretRefSetupPromptCopy,
-  } from "./provider-auth-ref.js";
+} from "./provider-auth-ref.js";
 export {
   resolveSecretInputModeForEnvSelection,
   type SecretInputModePromptCopy,
-  } from "./provider-auth-mode.js";
+} from "./provider-auth-mode.js";
 
-const DEFAULT_KEY_PREVIEW = { head: 4,
-  tail: 4,
-};
+const DEFAULT_KEY_PREVIEW = { head: 4, tail: 4 };
 
 export function normalizeApiKeyInput(raw: string): string {
-  const trimmed = String(raw ?? "").trim();
+  const trimmed = raw.trim();
   if (!trimmed) {
     return "";
   }
@@ -78,18 +76,14 @@ export function formatApiKeyPreview(
 export function normalizeTokenProviderInput(
   tokenProvider: string | null | undefined,
 ): string | undefined {
-  const normalized = String(tokenProvider ?? "")
-    .trim()
-    .toLowerCase();
+  const normalized = (tokenProvider ?? "").trim().toLowerCase();
   return normalized || undefined;
 }
 
 export function normalizeSecretInputModeInput(
   secretInputMode: string | null | undefined,
 ): SecretInputMode | undefined {
-  const normalized = String(secretInputMode ?? "")
-    .trim()
-    .toLowerCase();
+  const normalized = (secretInputMode ?? "").trim().toLowerCase();
   if (normalized === "plaintext" || normalized === "ref") {
     return normalized;
   }
@@ -219,7 +213,7 @@ export async function ensureApiKeyFromEnvOrPrompt(params: {
     message: params.promptMessage,
     validate: params.validate,
   });
-  const apiKey = params.normalize(String(key ?? ""));
+  const apiKey = params.normalize(key ?? "");
   await params.setCredential(apiKey, selectedMode);
   return apiKey;
 }

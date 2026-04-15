@@ -7,7 +7,6 @@ import {
 import type { ExecApprovalDecision } from "../infra/exec-approvals.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import type { PluginHookAfterToolCallEvent } from "../plugins/types.js";
-import { emitRunLoopLifecycleEvent } from "./runtime/lifecycle/bus.js";
 import { normalizeTextForComparison } from "./pi-embedded-helpers.js";
 import { isMessagingTool, isMessagingToolSendAction } from "./pi-embedded-messaging.js";
 import type {
@@ -27,7 +26,11 @@ import {
 } from "./pi-embedded-subscribe.tools.js";
 import { inferToolMetaFromArgs } from "./pi-embedded-utils.js";
 import { consumeAdjustedParamsForToolCall } from "./pi-tools.before-tool-call.js";
-import { inferLoadedSkillNameFromToolCall, recordLoadedSkillName } from "./skills/exposure-state.js";
+import { emitRunLoopLifecycleEvent } from "./runtime/lifecycle/bus.js";
+import {
+  inferLoadedSkillNameFromToolCall,
+  recordLoadedSkillName,
+} from "./skills/exposure-state.js";
 import { buildToolMutationState, isSameToolMutationAction } from "./tool-mutation.js";
 import { normalizeToolName } from "./tool-policy.js";
 
@@ -84,7 +87,7 @@ function emitToolLifecycleEvent(params: {
       },
     },
     ...(params.error ? { error: params.error, stopReason: decisionCode } : {}),
-    metrics: (typeof params.durationMs === "number" ? { durationMs: params.durationMs } : {}),
+    metrics: typeof params.durationMs === "number" ? { durationMs: params.durationMs } : {},
     refs: {
       toolName: params.toolName,
       toolCallId: params.toolCallId,
@@ -420,9 +423,9 @@ export function handleToolExecutionStart(
   };
 
   const continueToolExecutionStart = async () => {
-    const rawToolName = String(evt.toolName);
+    const rawToolName = evt.toolName;
     const toolName = normalizeToolName(rawToolName);
-    const toolCallId = String(evt.toolCallId);
+    const toolCallId = evt.toolCallId;
     const args = evt.args;
     const runId = ctx.params.runId;
 
@@ -438,9 +441,9 @@ export function handleToolExecutionStart(
             ? record.file_path
             : typeof record.filePath === "string"
               ? record.filePath
-            : typeof record.file === "string"
-              ? record.file
-            : "";
+              : typeof record.file === "string"
+                ? record.file
+                : "";
       const filePath = filePathValue.trim();
       if (!filePath) {
         const argsPreview = typeof args === "string" ? args.slice(0, 200) : undefined;
@@ -529,8 +532,8 @@ export function handleToolExecutionUpdate(
     partialResult?: unknown;
   },
 ) {
-  const toolName = normalizeToolName(String(evt.toolName));
-  const toolCallId = String(evt.toolCallId);
+  const toolName = normalizeToolName(evt.toolName);
+  const toolCallId = evt.toolCallId;
   const partial = evt.partialResult;
   const sanitized = sanitizeToolResult(partial);
   emitAgentEvent({
@@ -562,10 +565,10 @@ export async function handleToolExecutionEnd(
     result?: unknown;
   },
 ) {
-  const toolName = normalizeToolName(String(evt.toolName));
-  const toolCallId = String(evt.toolCallId);
+  const toolName = normalizeToolName(evt.toolName);
+  const toolCallId = evt.toolCallId;
   const runId = ctx.params.runId;
-  const isError = Boolean(evt.isError);
+  const isError = evt.isError;
   const result = evt.result;
   const isToolError = isError || isToolResultError(result);
   const sanitizedResult = sanitizeToolResult(result);

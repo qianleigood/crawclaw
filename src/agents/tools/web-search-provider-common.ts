@@ -305,6 +305,8 @@ function describeUnsupportedSearchFilter(name: UnsupportedWebSearchFilterName): 
     case "date_after":
     case "date_before":
       return "date_after/date_before filtering";
+    default:
+      return "unsupported filtering";
   }
 }
 

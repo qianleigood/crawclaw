@@ -98,9 +98,7 @@ export async function maybeRepairAllowlistPolicyAllowFrom(cfg: CrawClawConfig): 
       process.env,
       normalizedAccountId,
     ).catch(() => []);
-    const recovered = Array.from(new Set(fromStore.map((entry) => String(entry).trim()))).filter(
-      Boolean,
-    );
+    const recovered = Array.from(new Set(fromStore.map((entry) => entry.trim()))).filter(Boolean);
     if (recovered.length === 0) {
       return;
     }

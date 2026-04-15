@@ -17,7 +17,7 @@ import { imageMimeFromFormat } from "../../media/mime.js";
 import type { ImageSanitizationLimits } from "../image-sanitization.js";
 import { sanitizeToolResultImages } from "../tool-images.js";
 import type { GatewayCallOptions } from "./gateway.js";
-import { invokeNode, invokeNodePayload } from "./nodes-gateway.js";
+import { invokeNodePayload } from "./nodes-gateway.js";
 import { resolveNode, resolveNodeId } from "./nodes-utils.js";
 
 export const MEDIA_INVOKE_ACTIONS = {
@@ -50,6 +50,7 @@ export async function executeNodeMediaAction(
     case "screen_record":
       return await executeScreenRecord(input);
   }
+  return input.action satisfies never;
 }
 
 async function executeCameraSnap({

@@ -295,7 +295,7 @@ export function buildConfiguredAllowlistKeys(params: {
 
   const keys = new Set<string>();
   for (const raw of rawAllowlist) {
-    const key = resolveAllowlistModelKey(String(raw ?? ""), params.defaultProvider);
+    const key = resolveAllowlistModelKey(raw, params.defaultProvider);
     if (key) {
       keys.add(key);
     }
@@ -313,13 +313,13 @@ export function buildModelAliasIndex(params: {
 
   const rawModels = params.cfg.agents?.defaults?.models ?? {};
   for (const [keyRaw, entryRaw] of Object.entries(rawModels)) {
-    const parsed = parseModelRef(String(keyRaw ?? ""), params.defaultProvider, {
+    const parsed = parseModelRef(keyRaw, params.defaultProvider, {
       allowPluginNormalization: params.allowPluginNormalization,
     });
     if (!parsed) {
       continue;
     }
-    const alias = String((entryRaw as { alias?: string } | undefined)?.alias ?? "").trim();
+    const alias = ((entryRaw as { alias?: string } | undefined)?.alias ?? "").trim();
     if (!alias) {
       continue;
     }
@@ -530,7 +530,7 @@ export function buildAllowedModelSet(params: {
   const allowedKeys = new Set<string>();
   const syntheticCatalogEntries = new Map<string, ModelCatalogEntry>();
   for (const raw of rawAllowlist) {
-    const parsed = parseModelRef(String(raw), params.defaultProvider);
+    const parsed = parseModelRef(raw, params.defaultProvider);
     if (!parsed) {
       continue;
     }
@@ -552,7 +552,7 @@ export function buildAllowedModelSet(params: {
     cfg: params.cfg,
     agentId: params.agentId,
   })) {
-    const parsed = parseModelRef(String(fallback), params.defaultProvider);
+    const parsed = parseModelRef(fallback, params.defaultProvider);
     if (parsed) {
       const key = modelKey(parsed.provider, parsed.model);
       allowedKeys.add(key);

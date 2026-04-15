@@ -3,18 +3,16 @@ import { type CrawClawConfig, loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringArrayParam } from "./common.js";
-import { hydrateSessionListMessages, resolveTranscriptPath } from "./sessions-list-tool-ops.js";
 import {
   createSessionVisibilityGuard,
   classifySessionKind,
   deriveChannel,
   resolveSessionAccessPolicies,
   resolveDisplaySessionKey,
-  resolveInternalSessionKey,
   resolveSessionToolContext,
   type SessionListRow,
-  stripToolMessages,
 } from "./sessions-helpers.js";
+import { hydrateSessionListMessages, resolveTranscriptPath } from "./sessions-list-tool-ops.js";
 
 const SessionsListToolSchema = Type.Object({
   kinds: Type.Optional(Type.Array(Type.String())),
@@ -38,7 +36,7 @@ export function createSessionsListTool(opts?: {
     parameters: SessionsListToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      const { cfg, mainKey, alias, requesterInternalKey, effectiveRequesterKey, restrictToSpawned } =
+      const { cfg, mainKey, alias, effectiveRequesterKey, restrictToSpawned } =
         resolveSessionToolContext({
           config: opts?.config ?? loadConfig(),
           agentSessionKey: opts?.agentSessionKey,
@@ -92,8 +90,6 @@ export function createSessionsListTool(opts?: {
         a2aPolicy,
       });
       const rows: SessionListRow[] = [];
-      const historyTargets: Array<{ row: SessionListRow; resolvedKey: string }> = [];
-
       for (const entry of sessions) {
         if (!entry || typeof entry !== "object") {
           continue;

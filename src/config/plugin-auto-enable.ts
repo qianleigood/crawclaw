@@ -79,9 +79,7 @@ function collectBundledProviderPluginIdsByPredicate(
 ): Set<string> {
   return new Set(
     listBundledPluginMetadata()
-      .filter(
-        (entry) => (entry.manifest.providers?.length ?? 0) > 0 && predicate(entry as never),
-      )
+      .filter((entry) => (entry.manifest.providers?.length ?? 0) > 0 && predicate(entry as never))
       .map((entry) => entry.manifest.id),
   );
 }
@@ -91,9 +89,9 @@ function collectRegistryProviderPluginIdsByPredicate(
   predicate: (plugin: PluginManifestRegistry["plugins"][number]) => boolean,
 ): Set<string> {
   return new Set(
-    registry.plugins.filter((plugin) => plugin.providers.length > 0 && predicate(plugin)).map(
-      (plugin) => plugin.id,
-    ),
+    registry.plugins
+      .filter((plugin) => plugin.providers.length > 0 && predicate(plugin))
+      .map((plugin) => plugin.id),
   );
 }
 
@@ -205,7 +203,7 @@ function isProviderConfigured(cfg: CrawClawConfig, providerId: string): boolean 
       if (!isRecord(profile)) {
         continue;
       }
-      const provider = normalizeProviderId(String(profile.provider ?? ""));
+      const provider = normalizeProviderId(profile.provider ?? "");
       if (provider === normalized) {
         return true;
       }
@@ -254,9 +252,9 @@ function hasPluginOwnedToolConfig(cfg: CrawClawConfig, pluginId: string): boolea
   if (pluginId === "xai" && isRecord(web?.x_search)) {
     return true;
   }
-  return Boolean(
+  return (
     isRecord(pluginConfig) &&
-      TOOL_CONFIG_SECTIONS.some(({ section }) => isRecord(pluginConfig[section])),
+    TOOL_CONFIG_SECTIONS.some(({ section }) => isRecord(pluginConfig[section]))
   );
 }
 
@@ -685,14 +683,22 @@ function resolvePreferredOverIds(
     addPreferredOverIds(preferred, getChatChannelMeta(normalized).preferOver, channelToPluginId);
   }
   if (BUNDLED_CHANNEL_PREFER_OVER_IDS.has(pluginId)) {
-    addPreferredOverIds(preferred, BUNDLED_CHANNEL_PREFER_OVER_IDS.get(pluginId), channelToPluginId);
+    addPreferredOverIds(
+      preferred,
+      BUNDLED_CHANNEL_PREFER_OVER_IDS.get(pluginId),
+      channelToPluginId,
+    );
   }
   const installedPlugin = registry.plugins.find((record) => record.id === pluginId);
   const manifestChannelPreferOver = installedPlugin?.channelConfigs?.[pluginId]?.preferOver;
   addPreferredOverIds(preferred, manifestChannelPreferOver, channelToPluginId);
   const installedChannelMeta = installedPlugin?.channelCatalogMeta;
   addPreferredOverIds(preferred, installedChannelMeta?.preferOver, channelToPluginId);
-  addPreferredOverIds(preferred, resolveExternalCatalogPreferOver(pluginId, env), channelToPluginId);
+  addPreferredOverIds(
+    preferred,
+    resolveExternalCatalogPreferOver(pluginId, env),
+    channelToPluginId,
+  );
   return [...preferred];
 }
 

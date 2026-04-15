@@ -1,4 +1,3 @@
-import type { ChannelStatusAdapter } from "../channels/plugins/types.adapters.js";
 export { isRecord } from "../channels/plugins/status-issues/shared.js";
 export {
   appendMatchMetadata,

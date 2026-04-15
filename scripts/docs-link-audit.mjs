@@ -108,9 +108,7 @@ for (const abs of markdownFiles) {
   if (!match) {
     continue;
   }
-  const permalink = String(match[1])
-    .trim()
-    .replace(/^['"]|['"]$/g, "");
+  const permalink = match[1].trim().replace(/^['"]|['"]$/g, "");
   routes.add(normalizeRoute(permalink));
 }
 
@@ -362,7 +360,7 @@ export function auditDocsLinks() {
   }
 
   for (const page of collectNavPageEntries(docsConfig.navigation || [])) {
-    if (isGeneratedTranslatedDoc(String(page))) {
+    if (isGeneratedTranslatedDoc(page)) {
       continue;
     }
     checked++;

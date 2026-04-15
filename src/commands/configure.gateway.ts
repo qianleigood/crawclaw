@@ -40,7 +40,7 @@ export async function promptGatewayConfig(
     }),
     runtime,
   );
-  const port = Number.parseInt(String(portRaw), 10);
+  const port = Number.parseInt(portRaw, 10);
 
   let bind = guardCancel(
     await select({
@@ -127,14 +127,12 @@ export async function promptGatewayConfig(
   let tailscaleResetOnExit = false;
   if (tailscaleMode !== "off") {
     note(TAILSCALE_DOCS_LINES.join("\n"), "Tailscale");
-    tailscaleResetOnExit = Boolean(
-      guardCancel(
-        await confirm({
-          message: "Reset Tailscale serve/funnel on exit?",
-          initialValue: false,
-        }),
-        runtime,
-      ),
+    tailscaleResetOnExit = guardCancel(
+      await confirm({
+        message: "Reset Tailscale serve/funnel on exit?",
+        initialValue: false,
+      }),
+      runtime,
     );
   }
 
@@ -195,7 +193,7 @@ export async function promptGatewayConfig(
           initialValue: "CRAWCLAW_GATEWAY_TOKEN",
           placeholder: "CRAWCLAW_GATEWAY_TOKEN",
           validate: (value) => {
-            const candidate = String(value ?? "").trim();
+            const candidate = (value ?? "").trim();
             if (!isValidEnvSecretRefId(candidate)) {
               return "Use an env var name like CRAWCLAW_GATEWAY_TOKEN.";
             }
@@ -208,7 +206,7 @@ export async function promptGatewayConfig(
         }),
         runtime,
       );
-      const envVarName = String(envVar ?? "").trim();
+      const envVarName = (envVar ?? "").trim();
       gatewayToken = {
         source: "env",
         provider: resolveDefaultSecretProviderAlias(cfg, "env", {
@@ -238,7 +236,7 @@ export async function promptGatewayConfig(
       }),
       runtime,
     );
-    gatewayPassword = String(password ?? "").trim();
+    gatewayPassword = (password ?? "").trim();
   }
 
   if (authMode === "trusted-proxy") {
@@ -272,7 +270,7 @@ export async function promptGatewayConfig(
       runtime,
     );
     const requiredHeaders = requiredHeadersRaw
-      ? String(requiredHeadersRaw)
+      ? requiredHeadersRaw
           .split(",")
           .map((h) => h.trim())
           .filter(Boolean)
@@ -286,7 +284,7 @@ export async function promptGatewayConfig(
       runtime,
     );
     const allowUsers = allowUsersRaw
-      ? String(allowUsersRaw)
+      ? allowUsersRaw
           .split(",")
           .map((u) => u.trim())
           .filter(Boolean)
@@ -297,7 +295,7 @@ export async function promptGatewayConfig(
         message: "Trusted proxy IPs (comma-separated)",
         placeholder: "10.0.1.10,192.168.1.5",
         validate: (value) => {
-          if (!value || String(value).trim() === "") {
+          if (!value || value.trim() === "") {
             return "At least one trusted proxy IP is required";
           }
           return undefined;
@@ -305,13 +303,13 @@ export async function promptGatewayConfig(
       }),
       runtime,
     );
-    trustedProxies = String(trustedProxiesRaw)
+    trustedProxies = trustedProxiesRaw
       .split(",")
       .map((ip) => ip.trim())
       .filter(Boolean);
 
     trustedProxyConfig = {
-      userHeader: String(userHeader).trim(),
+      userHeader: userHeader.trim(),
       requiredHeaders: requiredHeaders.length > 0 ? requiredHeaders : undefined,
       allowUsers: allowUsers.length > 0 ? allowUsers : undefined,
     };

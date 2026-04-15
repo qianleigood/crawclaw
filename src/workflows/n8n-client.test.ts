@@ -93,12 +93,24 @@ describe("n8n client", () => {
 
   it("calls n8n workflow and execution endpoints with X-N8N-API-KEY", async () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const readUrl = (input: RequestInfo | URL) =>
+      typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const parseJsonBody = (value: BodyInit | null | undefined) =>
+      JSON.parse(typeof value === "string" ? value : "{}") as {
+        nodes?: Array<Record<string, unknown>>;
+        meta?: Record<string, unknown>;
+      };
     __testing.setDepsForTest({
       fetchImpl: async (input, init) => {
-        calls.push({ url: String(input), init });
-        const url = String(input);
+        const url = readUrl(input);
+        calls.push({ url, init });
         if (url.endsWith("/api/v1/workflows")) {
-          return jsonResponse({ id: "wf_remote", name: "Remote Workflow", nodes: [], connections: {} });
+          return jsonResponse({
+            id: "wf_remote",
+            name: "Remote Workflow",
+            nodes: [],
+            connections: {},
+          });
         }
         if (url.endsWith("/api/v1/workflows/wf_remote")) {
           return jsonResponse({
@@ -163,12 +175,11 @@ describe("n8n client", () => {
     expect(calls).toHaveLength(8);
     for (const call of calls) {
       if (call.url.startsWith("https://n8n.example.com/api/v1/")) {
-        expect((call.init?.headers as Record<string, string>)["X-N8N-API-KEY"]).toBe("secret-token");
+        const headers = (call.init?.headers ?? {}) as Record<string, string>;
+        expect(headers["X-N8N-API-KEY"]).toBe("secret-token");
       }
     }
-    const createBody = JSON.parse(String(calls[0]?.init?.body ?? "{}")) as {
-      nodes?: Array<Record<string, unknown>>;
-    };
+    const createBody = parseJsonBody(calls[0]?.init?.body);
     expect(createBody.nodes).toEqual([]);
   });
 
@@ -176,8 +187,15 @@ describe("n8n client", () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     __testing.setDepsForTest({
       fetchImpl: async (input, init) => {
-        calls.push({ url: String(input), init });
-        return jsonResponse({ id: "wf_remote", name: "Remote Workflow", nodes: [], connections: {} });
+        const url =
+          typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        calls.push({ url, init });
+        return jsonResponse({
+          id: "wf_remote",
+          name: "Remote Workflow",
+          nodes: [],
+          connections: {},
+        });
       },
     });
 
@@ -204,7 +222,9 @@ describe("n8n client", () => {
       meta: { workflowId: "wf_1" },
     });
 
-    const createBody = JSON.parse(String(calls[0]?.init?.body ?? "{}")) as {
+    const createBody = JSON.parse(
+      typeof calls[0]?.init?.body === "string" ? calls[0].init.body : "{}",
+    ) as {
       nodes?: Array<Record<string, unknown>>;
       meta?: Record<string, unknown>;
     };

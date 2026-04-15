@@ -278,8 +278,7 @@ function handleLifecycleEvent(event: AgentEventPayload): void {
     return;
   }
   if (phase === "start") {
-    const startedAt =
-      typeof event.data?.startedAt === "number" ? Number(event.data.startedAt) : event.ts;
+    const startedAt = typeof event.data?.startedAt === "number" ? event.data.startedAt : event.ts;
     const state = registerAgentRuntimeState({
       runId: event.runId,
       status: "running",
@@ -301,7 +300,7 @@ function handleLifecycleEvent(event: AgentEventPayload): void {
     const terminal = markAgentRuntimeStateTerminal({
       runId: event.runId,
       status: "completed",
-      endedAt: typeof event.data?.endedAt === "number" ? Number(event.data.endedAt) : event.ts,
+      endedAt: typeof event.data?.endedAt === "number" ? event.data.endedAt : event.ts,
     });
     if (!terminal.changed) {
       return;
@@ -324,7 +323,7 @@ function handleLifecycleEvent(event: AgentEventPayload): void {
     const terminal = markAgentRuntimeStateTerminal({
       runId: event.runId,
       status: "failed",
-      endedAt: typeof event.data?.endedAt === "number" ? Number(event.data.endedAt) : event.ts,
+      endedAt: typeof event.data?.endedAt === "number" ? event.data.endedAt : event.ts,
       error: errorText,
     });
     if (!terminal.changed) {

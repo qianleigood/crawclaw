@@ -15,7 +15,7 @@ export function mkdirSafeDir(dir: string) {
 }
 
 export function makeTrackedTempDir(prefix: string, trackedDirs: string[]) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), String(prefix) + "-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix + "-"));
   chmodSafeDir(dir);
   trackedDirs.push(dir);
   return dir;

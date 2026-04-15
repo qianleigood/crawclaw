@@ -320,7 +320,7 @@ export async function maybeRepairGatewayServiceConfig(
   const repair = needsAggressive
     ? await prompter.confirmAggressiveAutoFix({
         message: "Overwrite gateway service config with current defaults now?",
-        initialValue: Boolean(prompter.shouldForce),
+        initialValue: prompter.shouldForce,
       })
     : await prompter.confirmAutoFix({
         message: "Update gateway service config to the recommended defaults now?",

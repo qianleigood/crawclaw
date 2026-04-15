@@ -15,7 +15,6 @@ vi.mock("./loader.js", () => ({
   loadCrawClawPluginCliRegistry: (...args: unknown[]) =>
     mocks.loadCrawClawPluginCliRegistry(...args),
   loadCrawClawPlugins: (...args: unknown[]) => mocks.loadCrawClawPlugins(...args),
-  loadCrawClawPlugins: (...args: unknown[]) => mocks.loadCrawClawPlugins(...args),
 }));
 
 vi.mock("../config/plugin-auto-enable.js", () => ({

@@ -247,6 +247,7 @@ function marketplaceEntrySourceToInput(source: MarketplaceEntrySource): string {
     case "url":
       return source.url;
   }
+  return source satisfies never;
 }
 
 function parseMarketplaceManifest(

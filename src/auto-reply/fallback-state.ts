@@ -10,14 +10,12 @@ export type FallbackNoticeState = Pick<
 >;
 
 export function normalizeFallbackModelRef(value?: string): string | undefined {
-  const trimmed = String(value ?? "").trim();
+  const trimmed = (value ?? "").trim();
   return trimmed || undefined;
 }
 
 function truncateFallbackReasonPart(value: string, max = FALLBACK_REASON_PART_MAX): string {
-  const text = String(value ?? "")
-    .replace(/\s+/g, " ")
-    .trim();
+  const text = value.replace(/\s+/g, " ").trim();
   if (text.length <= max) {
     return text;
   }

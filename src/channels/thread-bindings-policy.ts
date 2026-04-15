@@ -29,9 +29,7 @@ export type ThreadBindingSpawnPolicy = {
 };
 
 function normalizeChannelId(value: string | undefined | null): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase();
+  return (value ?? "").trim().toLowerCase();
 }
 
 export function supportsAutomaticThreadBindingSpawn(channel: string): boolean {

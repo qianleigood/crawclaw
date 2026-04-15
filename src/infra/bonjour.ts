@@ -1,3 +1,4 @@
+import { ServiceState as CiaoServiceState } from "@homebridge/ciao/lib/CiaoService.js";
 import { logDebug, logWarn } from "../logger.js";
 import { getLogger } from "../logging.js";
 import { classifyCiaoUnhandledRejection } from "./bonjour-ciao.js";
@@ -95,7 +96,7 @@ function serviceSummary(label: string, svc: BonjourService): string {
 }
 
 function isAnnouncedState(state: BonjourServiceState | "unknown") {
-  return String(state) === "announced";
+  return state === CiaoServiceState.ANNOUNCED;
 }
 
 function handleCiaoUnhandledRejection(reason: unknown): boolean {

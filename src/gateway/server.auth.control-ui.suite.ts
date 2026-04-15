@@ -227,7 +227,7 @@ export function registerControlUiAndPairingSuite(): void {
             scopes: [],
             clientId: GATEWAY_CLIENT_NAMES.CONTROL_UI,
             clientMode: GATEWAY_CLIENT_MODES.WEBCHAT,
-            nonce: String(challengeNonce),
+            nonce: challengeNonce,
           }));
         }
         const res = await connectReq(ws, {
@@ -375,7 +375,7 @@ export function registerControlUiAndPairingSuite(): void {
             os.tmpdir(),
             `crawclaw-controlui-device-${process.pid}-${process.env.VITEST_POOL_ID ?? "0"}-${controlUiIdentityPathSeq++}.json`,
           ),
-          nonce: String(nonce),
+          nonce: typeof nonce === "string" ? nonce : "",
         });
         const res = await connectReq(ws, {
           token: "secret",
@@ -413,7 +413,7 @@ export function registerControlUiAndPairingSuite(): void {
           clientId: GATEWAY_CLIENT_NAMES.CONTROL_UI,
           clientMode: GATEWAY_CLIENT_MODES.WEBCHAT,
           signedAtMs: Date.now() - 60 * 60 * 1000,
-          nonce: String(challengeNonce),
+          nonce: challengeNonce,
         });
         const res = await connectReq(ws, {
           token: "secret",

@@ -36,7 +36,7 @@ function readBundledPluginPackageJson(packageJsonPath) {
 
 function isManifestlessBundledRuntimeSupportPackage(params) {
   const packageName = typeof params.packageJson?.name === "string" ? params.packageJson.name : "";
-  if (packageName !== `@crawclaw/${params.dirName}` && packageName !== `@crawclaw/${params.dirName}`) {
+  if (packageName !== `@crawclaw/${params.dirName}`) {
     return false;
   }
   return params.topLevelPublicSurfaceEntries.length > 0;
@@ -50,7 +50,8 @@ function collectPluginSourceEntries(packageJson) {
       )
     : [];
   const setupEntry =
-    typeof manifestMetadata?.setupEntry === "string" && manifestMetadata.setupEntry.trim().length > 0
+    typeof manifestMetadata?.setupEntry === "string" &&
+    manifestMetadata.setupEntry.trim().length > 0
       ? manifestMetadata.setupEntry
       : undefined;
   if (setupEntry) {

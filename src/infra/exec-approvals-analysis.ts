@@ -586,9 +586,7 @@ function analyzeWindowsShellCommand(params: {
 }
 
 export function isWindowsPlatform(platform?: string | null): boolean {
-  const normalized = String(platform ?? "")
-    .trim()
-    .toLowerCase();
+  const normalized = (platform ?? "").trim().toLowerCase();
   return normalized.startsWith("win");
 }
 

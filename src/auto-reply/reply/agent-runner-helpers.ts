@@ -28,7 +28,7 @@ function resolveCurrentVerboseLevel(params: VerboseGateParams): VerboseLevel | u
   try {
     const store = loadSessionStore(params.storePath);
     const entry = store[params.sessionKey];
-    return normalizeVerboseLevel(String(entry?.verboseLevel ?? ""));
+    return normalizeVerboseLevel(entry?.verboseLevel ?? "");
   } catch {
     // ignore store read failures
     return undefined;
@@ -40,7 +40,7 @@ function createVerboseGate(
   shouldEmit: (level: VerboseLevel) => boolean,
 ): () => boolean {
   // Normalize verbose values from session store/config so false/"false" still means off.
-  const fallbackVerbose = normalizeVerboseLevel(String(params.resolvedVerboseLevel ?? "")) ?? "off";
+  const fallbackVerbose = normalizeVerboseLevel(params.resolvedVerboseLevel ?? "") ?? "off";
   return () => {
     return shouldEmit(resolveCurrentVerboseLevel(params) ?? fallbackVerbose);
   };

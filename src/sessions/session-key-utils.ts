@@ -94,7 +94,7 @@ export function isSubagentSessionKey(sessionKey: string | undefined | null): boo
     return true;
   }
   const parsed = parseAgentSessionKey(raw);
-  return Boolean((parsed?.rest ?? "").toLowerCase().startsWith("subagent:"));
+  return (parsed?.rest ?? "").toLowerCase().startsWith("subagent:");
 }
 
 export function getSubagentDepth(sessionKey: string | undefined | null): number {
@@ -115,7 +115,7 @@ export function isAcpSessionKey(sessionKey: string | undefined | null): boolean 
     return true;
   }
   const parsed = parseAgentSessionKey(raw);
-  return Boolean((parsed?.rest ?? "").toLowerCase().startsWith("acp:"));
+  return (parsed?.rest ?? "").toLowerCase().startsWith("acp:");
 }
 
 function normalizeSessionConversationChannel(value: string | undefined | null): string | undefined {

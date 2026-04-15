@@ -1132,7 +1132,7 @@ export async function runConfigSet(opts: {
     if (removedGatewayAuthPaths.length > 0) {
       runtime.log(
         info(
-          `Removed inactive ${removedGatewayAuthPaths.join(", ")} for gateway.auth.mode=${String(nextConfig.gateway?.auth?.mode ?? "<unset>")}.`,
+          `Removed inactive ${removedGatewayAuthPaths.join(", ")} for gateway.auth.mode=${nextConfig.gateway?.auth?.mode ?? "<unset>"}.`,
         ),
       );
     }

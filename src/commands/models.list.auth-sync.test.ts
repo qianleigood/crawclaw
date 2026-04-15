@@ -67,7 +67,7 @@ function getProviderRow(payloadText: string, providerPrefix: string) {
   const payload = JSON.parse(payloadText) as {
     models?: Array<{ key?: string; available?: boolean }>;
   };
-  return payload.models?.find((model) => String(model.key ?? "").startsWith(providerPrefix));
+  return payload.models?.find((model) => (model.key ?? "").startsWith(providerPrefix));
 }
 
 async function runModelsListAndGetProvider(providerPrefix: string) {

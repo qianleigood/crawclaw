@@ -19,7 +19,6 @@ import {
   describeWorkflowWithRecentExecutions,
   deployWorkflowDefinition,
   handleWorkflowAgentNodeCallback,
-  listWorkflowVersionSnapshots,
   normalizeWorkflowAgentNodeRequest,
   readWorkflowExecutionStatus,
   resolveN8nConfig,

@@ -31,7 +31,7 @@ export const pushHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const nodeId = String(params.nodeId ?? "").trim();
+    const nodeId = (params.nodeId ?? "").trim();
     if (!nodeId) {
       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "nodeId required"));
       return;

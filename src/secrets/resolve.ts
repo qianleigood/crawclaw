@@ -828,6 +828,7 @@ async function resolveProviderRefs(params: {
       provider: params.providerName,
       err,
     });
+    return undefined as never;
   }
 }
 

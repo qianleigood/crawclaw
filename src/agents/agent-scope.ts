@@ -57,7 +57,7 @@ export function listAgentEntries(cfg: CrawClawConfig): AgentEntry[] {
   if (!Array.isArray(list)) {
     return [];
   }
-  return list.filter((entry): entry is AgentEntry => Boolean(entry && typeof entry === "object"));
+  return list.filter((entry): entry is AgentEntry => !!entry && typeof entry === "object");
 }
 
 export function listAgentIds(cfg: CrawClawConfig): string[] {

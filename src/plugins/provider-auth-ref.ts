@@ -114,7 +114,7 @@ async function promptEnvSecretRefForSetup(params: {
       return undefined;
     },
   });
-  const envCandidate = String(envVarRaw ?? "").trim();
+  const envCandidate = (envVarRaw ?? "").trim();
   const envVar =
     envCandidate && isValidEnvSecretRefId(envCandidate) ? envCandidate : params.defaultEnvVar;
   if (!envVar) {
@@ -223,7 +223,7 @@ async function promptProviderSecretRefForSetup(params: {
       return undefined;
     },
   });
-  const id = String(idRaw ?? "").trim() || idDefault;
+  const id = (idRaw ?? "").trim() || idDefault;
   const ref: SecretRef = {
     source: providerEntry.source,
     provider: selectedProvider,

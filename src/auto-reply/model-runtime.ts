@@ -1,8 +1,8 @@
 import type { SessionEntry } from "../config/sessions.js";
 
 export function formatProviderModelRef(providerRaw: string, modelRaw: string): string {
-  const provider = String(providerRaw ?? "").trim();
-  const model = String(modelRaw ?? "").trim();
+  const provider = providerRaw.trim();
+  const model = modelRaw.trim();
   if (!provider) {
     return model;
   }
@@ -26,7 +26,7 @@ type ModelRef = {
 };
 
 function normalizeModelWithinProvider(provider: string, modelRaw: string): string {
-  const model = String(modelRaw ?? "").trim();
+  const model = modelRaw.trim();
   if (!provider || !model) {
     return model;
   }
@@ -45,7 +45,7 @@ function normalizeModelRef(
   fallbackProvider: string,
   parseEmbeddedProvider = false,
 ): ModelRef {
-  const trimmed = String(rawModel ?? "").trim();
+  const trimmed = rawModel.trim();
   const slashIndex = parseEmbeddedProvider ? trimmed.indexOf("/") : -1;
   if (slashIndex > 0) {
     const provider = trimmed.slice(0, slashIndex).trim();
@@ -58,7 +58,7 @@ function normalizeModelRef(
       };
     }
   }
-  const provider = String(fallbackProvider ?? "").trim();
+  const provider = fallbackProvider.trim();
   const dedupedModel = normalizeModelWithinProvider(provider, trimmed);
   return {
     provider,

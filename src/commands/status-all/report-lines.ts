@@ -89,7 +89,7 @@ export async function buildStatusAllReportLines(params: {
       return row;
     }
     const issue = issues[0];
-    const suffix = ` · ${warn(`gateway: ${String(issue.message).slice(0, 90)}`)}`;
+    const suffix = ` · ${warn(`gateway: ${issue.message.slice(0, 90)}`)}`;
     return {
       ...row,
       State: warn("WARN"),

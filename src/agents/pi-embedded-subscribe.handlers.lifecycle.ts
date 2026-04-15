@@ -113,7 +113,7 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
     }
   };
 
-  const flushPendingMediaAndChannel = () => {
+  const flushPendingMediaAndChannel = (): void | Promise<void> => {
     const pendingToolMediaReply = consumePendingToolMediaReply(ctx.state);
     if (pendingToolMediaReply && hasAssistantVisibleReply(pendingToolMediaReply)) {
       ctx.emitBlockReply(pendingToolMediaReply);
@@ -126,6 +126,7 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
         if (isPromiseLike<void>(onBlockReplyFlushResult)) {
           return onBlockReplyFlushResult;
         }
+        return undefined;
       });
     }
 
@@ -145,4 +146,5 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
   if (isPromiseLike<void>(flushPendingMediaAndChannelResult)) {
     return flushPendingMediaAndChannelResult;
   }
+  return undefined;
 }
