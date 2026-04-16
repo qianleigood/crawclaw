@@ -21,19 +21,19 @@ title: Phase 对应 PR 计划
 
 以下状态以 `2026-04-16` 的代码和文档为准：
 
-| PR      | 对应 Phase | 当前状态 | 说明                                                                                    |
-| ------- | ---------- | -------- | --------------------------------------------------------------------------------------- |
-| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                 |
-| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。 |
-| `PR-02` | Phase 2    | `未开始` | 共享 handler 收口还没有开工。                                                           |
-| `PR-03` | Phase 3    | `未开始` | `src/agents` 子域拆分还没有开工。                                                       |
-| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                |
-| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                    |
-| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                          |
-| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                      |
-| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                          |
-| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                               |
-| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                  |
+| PR      | 对应 Phase | 当前状态 | 说明                                                                                          |
+| ------- | ---------- | -------- | --------------------------------------------------------------------------------------------- |
+| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                       |
+| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。       |
+| `PR-02` | Phase 2    | `进行中` | 已开始从 workflow controls 下手，先统一 command 与 gateway 的 workflow control 共享 handler。 |
+| `PR-03` | Phase 3    | `未开始` | `src/agents` 子域拆分还没有开工。                                                             |
+| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                      |
+| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                          |
+| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                |
+| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                            |
+| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                |
+| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                     |
+| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                        |
 
 ## 总体规则
 
@@ -248,6 +248,34 @@ title: Phase 对应 PR 计划
 
 - 是否真正删掉重复路径
 - transport 是否只剩适配职责
+
+### 当前完成情况
+
+状态：`进行中（截至 2026-04-16，第一刀已开始）`
+
+已完成：
+
+- 已新增共享 workflow control runtime：
+  - `src/workflows/control-runtime.ts`
+- 已把 `commands-workflow` 接到共享执行层，不再各自拼装 workflow status/cancel/resume 的底层 runtime 调用。
+- 已把 gateway `workflow.status / workflow.cancel / workflow.resume` 接到同一套共享执行层。
+- 已补共享层单测：
+  - `src/workflows/control-runtime.test.ts`
+
+已验证：
+
+- `vitest run src/workflows/control-runtime.test.ts src/auto-reply/reply/commands-workflow.test.ts src/gateway/server-methods/workflow.test.ts`
+- `pnpm lint src/workflows/control-runtime.ts src/auto-reply/reply/commands-workflow.ts src/gateway/server-methods/workflow.ts src/workflows/control-runtime.test.ts src/auto-reply/reply/commands-workflow.test.ts`
+
+当前未完成：
+
+- workflow controls 目前只共享了执行层，参数校验与 transport 结果映射还可以继续下沉。
+- `session controls`、`model selection`、`memory command API` 还未开始收口。
+
+本 PR 下一步建议：
+
+1. 继续把 workflow control 的参数校验和 domain result 映射抽成更显式的 handler。
+2. workflow controls 收完后，转入 `session controls` 的共享 handler。
 
 ## PR-03：Agent Kernel 子域化
 

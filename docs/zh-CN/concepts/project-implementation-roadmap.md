@@ -223,6 +223,21 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 把重复业务语义从 transport 层拉回共享 domain handler。
 
+### 当前状态
+
+状态：`进行中（截至 2026-04-16，第一刀已开始）`
+
+已完成：
+
+- 已开始从 `workflow controls` 下手。
+- 已新增 `src/workflows/control-runtime.ts` 作为 command 与 gateway 共享的 workflow control 执行层。
+- 已把 `workflow status / cancel / resume` 的 command 与 gateway 调度接到同一套共享执行路径。
+
+后续紧接着做：
+
+- 继续把 workflow control 的参数校验、domain 结果映射、transport 输出边界再往共享 handler 收。
+- 然后推进 `session controls`、`model selection`、`memory command API`。
+
 ### 产出
 
 - 第一批共享 handler

@@ -1,9 +1,3 @@
-import {
-  listAgentIds,
-  resolveAgentDir,
-  resolveAgentWorkspaceDir,
-  resolveDefaultAgentId,
-} from "../../agents/agent-scope.js";
 import { loadConfig } from "../../config/config.js";
 import { createPluginRuntime } from "../../plugins/runtime/index.js";
 import { buildAgentMainSessionKey } from "../../routing/session-key.js";
@@ -13,18 +7,15 @@ import {
   buildWorkflowMatchPayload,
   buildWorkflowRunsPayload,
   buildWorkflowVersionsPayload,
-  cancelWorkflowExecution,
   createN8nClient,
   deleteWorkflowPayload,
   describeWorkflowWithRecentExecutions,
   deployWorkflowDefinition,
   handleWorkflowAgentNodeCallback,
   normalizeWorkflowAgentNodeRequest,
-  readWorkflowExecutionStatus,
   resolveN8nConfig,
   resolveRunnableWorkflowForExecution,
   rollbackWorkflowWithOptionalRepublish,
-  resumeWorkflowExecution,
   setWorkflowArchivedPayload,
   setWorkflowEnabledPayload,
   startWorkflowExecution,
@@ -35,6 +26,11 @@ import {
   type WorkflowDefinitionPatch,
   type WorkflowStoreContext,
 } from "../../workflows/api.js";
+import {
+  executeWorkflowControlAction,
+  requireWorkflowN8nRuntimeOrThrowUnavailable,
+  resolveWorkflowControlContext,
+} from "../../workflows/control-runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
 import { respondUnavailableOnThrow } from "./nodes.helpers.js";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
@@ -115,24 +111,20 @@ function resolveWorkflowStoreContext(
   params: Record<string, unknown>,
   respond: RespondFn,
 ): ResolvedWorkflowContext | null {
-  const cfg = loadConfig();
-  const requestedAgentId = readTrimmedString(params.agentId);
-  const workspaceDir = readTrimmedString(params.workspaceDir);
-  const agentDir = readTrimmedString(params.agentDir);
-  const knownAgents = listAgentIds(cfg);
-  const agentId = requestedAgentId ?? resolveDefaultAgentId(cfg);
-
-  if (requestedAgentId && !knownAgents.includes(agentId)) {
-    respondInvalid(respond, `unknown agent id "${requestedAgentId}"`);
-    return null;
+  try {
+    return resolveWorkflowControlContext({
+      cfg: loadConfig(),
+      agentId: readTrimmedString(params.agentId),
+      workspaceDir: readTrimmedString(params.workspaceDir),
+      agentDir: readTrimmedString(params.agentDir),
+    });
+  } catch (error) {
+    if (error instanceof WorkflowOperationInputError) {
+      respondInvalid(respond, error.message);
+      return null;
+    }
+    throw error;
   }
-
-  return {
-    cfg,
-    agentId,
-    workspaceDir: workspaceDir ?? resolveAgentWorkspaceDir(cfg, agentId),
-    agentDir: agentDir ?? resolveAgentDir(cfg, agentId),
-  };
 }
 
 function resolveN8nRuntimeOrRespond(
@@ -142,18 +134,15 @@ function resolveN8nRuntimeOrRespond(
   resolved: NonNullable<ReturnType<typeof resolveN8nConfig>>;
   client: ReturnType<typeof createN8nClient>;
 } | null {
-  const resolved = resolveN8nConfig(context.cfg);
-  if (!resolved) {
-    respondUnavailable(
-      respond,
-      "n8n is not configured. Set workflow.n8n.baseUrl/apiKey or CRAWCLAW_N8N_BASE_URL and CRAWCLAW_N8N_API_KEY.",
-    );
-    return null;
+  try {
+    return requireWorkflowN8nRuntimeOrThrowUnavailable(context.cfg);
+  } catch (error) {
+    if (error instanceof WorkflowOperationUnavailableError) {
+      respondUnavailable(respond, error.message);
+      return null;
+    }
+    throw error;
   }
-  return {
-    resolved,
-    client: createN8nClient(resolved),
-  };
 }
 
 export function validateWorkflowAgentRunParams(value: unknown): value is WorkflowAgentNodeRequest {
@@ -988,21 +977,16 @@ export const workflowHandlers: GatewayRequestHandlers = {
     if (!resolved) {
       return;
     }
-    const runtime = resolveN8nRuntimeOrRespond(resolved, respond);
-    if (!runtime) {
-      return;
-    }
-    const { client, resolved: n8nResolved } = runtime;
     const executionId = params.executionId.trim();
     await respondUnavailableOnThrow(respond, async () => {
       respond(
         true,
         {
           agentId: resolved.agentId,
-          ...(await readWorkflowExecutionStatus({
+          ...(await executeWorkflowControlAction({
+            action: "status",
             context: resolved,
-            client,
-            n8nBaseUrl: n8nResolved.baseUrl,
+            config: resolved.cfg,
             executionId,
           })),
         },
@@ -1029,21 +1013,16 @@ export const workflowHandlers: GatewayRequestHandlers = {
     if (!resolved) {
       return;
     }
-    const runtime = resolveN8nRuntimeOrRespond(resolved, respond);
-    if (!runtime) {
-      return;
-    }
-    const { client, resolved: n8nResolved } = runtime;
     const executionId = params.executionId.trim();
     await respondUnavailableOnThrow(respond, async () => {
       respond(
         true,
         {
           agentId: resolved.agentId,
-          ...(await cancelWorkflowExecution({
+          ...(await executeWorkflowControlAction({
+            action: "cancel",
             context: resolved,
-            client,
-            n8nBaseUrl: n8nResolved.baseUrl,
+            config: resolved.cfg,
             executionId,
           })),
         },
@@ -1071,18 +1050,13 @@ export const workflowHandlers: GatewayRequestHandlers = {
     if (!resolved) {
       return;
     }
-    const runtime = resolveN8nRuntimeOrRespond(resolved, respond);
-    if (!runtime) {
-      return;
-    }
-    const { client, resolved: n8nResolved } = runtime;
     const executionId = params.executionId.trim();
     await respondUnavailableOnThrow(respond, async () => {
       try {
-        const resumed = await resumeWorkflowExecution({
+        const resumed = await executeWorkflowControlAction({
+          action: "resume",
           context: resolved,
-          client,
-          n8nBaseUrl: n8nResolved.baseUrl,
+          config: resolved.cfg,
           executionId,
           input: readTrimmedString(params.input) ?? undefined,
           actorLabel: "gateway",

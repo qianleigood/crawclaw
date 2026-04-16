@@ -1,8 +1,4 @@
 import {
-  cancelWorkflowExecution,
-  readWorkflowExecutionStatus,
-  requireWorkflowN8nRuntime,
-  resumeWorkflowExecution,
   WorkflowOperationInputError,
   WorkflowOperationUnavailableError,
 } from "../../workflows/api.js";
@@ -11,18 +7,15 @@ import {
   buildWorkflowResumeCommandTemplate,
   buildWorkflowTelegramButtons,
 } from "../../workflows/channel-controls.js";
+import {
+  executeWorkflowControlAction,
+  resolveWorkflowControlContext,
+} from "../../workflows/control-runtime.js";
 import type { WorkflowExecutionView } from "../../workflows/types.js";
 import type { CommandHandler } from "./commands-types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function buildWorkflowContext(params: Parameters<CommandHandler>[0]) {
-  return {
-    workspaceDir: params.workspaceDir,
-    agentDir: params.agentDir,
-  };
 }
 
 function buildWorkflowStatusTitle(execution: WorkflowExecutionView): string {
@@ -187,14 +180,18 @@ export const handleWorkflowCommand: CommandHandler = async (params, allowTextCom
     return { shouldContinue: false };
   }
 
-  const context = buildWorkflowContext(params);
   try {
-    const { client, resolved } = requireWorkflowN8nRuntime(params.cfg);
+    const context = resolveWorkflowControlContext({
+      cfg: params.cfg,
+      agentId: params.agentId,
+      workspaceDir: params.workspaceDir,
+      agentDir: params.agentDir,
+    });
     if (parsed.action === "status") {
-      const result = await readWorkflowExecutionStatus({
+      const result = await executeWorkflowControlAction({
+        action: "status",
         context,
-        client,
-        n8nBaseUrl: resolved.baseUrl,
+        config: params.cfg,
         executionId: parsed.executionId,
       });
       return {
@@ -216,10 +213,10 @@ export const handleWorkflowCommand: CommandHandler = async (params, allowTextCom
     }
 
     if (parsed.action === "cancel") {
-      const result = await cancelWorkflowExecution({
+      const result = await executeWorkflowControlAction({
+        action: "cancel",
         context,
-        client,
-        n8nBaseUrl: resolved.baseUrl,
+        config: params.cfg,
         executionId: parsed.executionId,
       });
       return {
@@ -240,13 +237,12 @@ export const handleWorkflowCommand: CommandHandler = async (params, allowTextCom
       };
     }
 
-    const resumeInput = parsed.action === "resume" ? parsed.input : undefined;
-    const result = await resumeWorkflowExecution({
+    const result = await executeWorkflowControlAction({
+      action: "resume",
       context,
-      client,
-      n8nBaseUrl: resolved.baseUrl,
+      config: params.cfg,
       executionId: parsed.executionId,
-      input: resumeInput,
+      input: parsed.action === "resume" ? parsed.input : undefined,
       actorLabel: "chat command",
     });
     return {

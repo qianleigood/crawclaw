@@ -5,19 +5,18 @@ import { handleWorkflowCommand } from "./commands-workflow.js";
 import { buildCommandTestParams } from "./commands.test-harness.js";
 
 const mocks = vi.hoisted(() => ({
-  requireWorkflowN8nRuntime: vi.fn(),
-  readWorkflowExecutionStatus: vi.fn(),
-  cancelWorkflowExecution: vi.fn(),
-  resumeWorkflowExecution: vi.fn(),
+  executeWorkflowControlAction: vi.fn(),
+  resolveWorkflowControlContext: vi.fn(),
 }));
 
 vi.mock("../../workflows/api.js", () => ({
-  requireWorkflowN8nRuntime: mocks.requireWorkflowN8nRuntime,
-  readWorkflowExecutionStatus: mocks.readWorkflowExecutionStatus,
-  cancelWorkflowExecution: mocks.cancelWorkflowExecution,
-  resumeWorkflowExecution: mocks.resumeWorkflowExecution,
   WorkflowOperationInputError: class WorkflowOperationInputError extends Error {},
   WorkflowOperationUnavailableError: class WorkflowOperationUnavailableError extends Error {},
+}));
+
+vi.mock("../../workflows/control-runtime.js", () => ({
+  executeWorkflowControlAction: mocks.executeWorkflowControlAction,
+  resolveWorkflowControlContext: mocks.resolveWorkflowControlContext,
 }));
 
 const baseCfg: CrawClawConfig = {
@@ -32,14 +31,14 @@ const baseCfg: CrawClawConfig = {
 
 describe("handleWorkflowCommand", () => {
   beforeEach(() => {
-    mocks.requireWorkflowN8nRuntime.mockReset();
-    mocks.readWorkflowExecutionStatus.mockReset();
-    mocks.cancelWorkflowExecution.mockReset();
-    mocks.resumeWorkflowExecution.mockReset();
-    mocks.requireWorkflowN8nRuntime.mockReturnValue({
-      client: { getExecution: vi.fn(), stopExecution: vi.fn(), resumeExecutionByUrl: vi.fn() },
-      resolved: { baseUrl: "https://n8n.example.com" },
-    });
+    mocks.executeWorkflowControlAction.mockReset();
+    mocks.resolveWorkflowControlContext.mockReset();
+    mocks.resolveWorkflowControlContext.mockImplementation((params) => ({
+      cfg: params.cfg,
+      agentId: "default",
+      workspaceDir: params.workspaceDir,
+      agentDir: params.agentDir,
+    }));
   });
 
   it("returns usage for incomplete workflow commands", async () => {
@@ -56,7 +55,7 @@ describe("handleWorkflowCommand", () => {
   });
 
   it("builds telegram workflow status replies with inline buttons", async () => {
-    mocks.readWorkflowExecutionStatus.mockResolvedValue({
+    mocks.executeWorkflowControlAction.mockResolvedValue({
       execution: {
         executionId: "exec_1234abcd",
         workflowId: "wf_publish_redbook_123",
@@ -89,8 +88,9 @@ describe("handleWorkflowCommand", () => {
 
     const result = await handleWorkflowCommand(params, true);
 
-    expect(mocks.readWorkflowExecutionStatus).toHaveBeenCalledWith(
+    expect(mocks.executeWorkflowControlAction).toHaveBeenCalledWith(
       expect.objectContaining({
+        action: "status",
         executionId: "exec_1234abcd",
       }),
     );
@@ -122,7 +122,7 @@ describe("handleWorkflowCommand", () => {
   });
 
   it("builds discord workflow cancel replies with native components", async () => {
-    mocks.cancelWorkflowExecution.mockResolvedValue({
+    mocks.executeWorkflowControlAction.mockResolvedValue({
       execution: {
         executionId: "exec_1234abcd",
         workflowId: "wf_publish_redbook_123",
@@ -172,7 +172,7 @@ describe("handleWorkflowCommand", () => {
   });
 
   it("adds a discord resume modal for waiting workflow status replies", async () => {
-    mocks.readWorkflowExecutionStatus.mockResolvedValue({
+    mocks.executeWorkflowControlAction.mockResolvedValue({
       execution: {
         executionId: "exec_1234abcd",
         workflowId: "wf_publish_redbook_123",
@@ -229,7 +229,7 @@ describe("handleWorkflowCommand", () => {
   });
 
   it("routes /workflow through the top-level command dispatcher", async () => {
-    mocks.readWorkflowExecutionStatus.mockResolvedValue({
+    mocks.executeWorkflowControlAction.mockResolvedValue({
       execution: {
         executionId: "exec_1234abcd",
         workflowId: "wf_publish_redbook_123",
