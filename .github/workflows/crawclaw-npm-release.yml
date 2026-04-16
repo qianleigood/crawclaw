@@ -319,6 +319,8 @@ jobs:
         env:
           CRAWCLAW_PREPACK_PREPARED: "1"
           CRAWCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           publish_target="${{ steps.publish_tarball.outputs.path }}"

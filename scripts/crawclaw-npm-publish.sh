@@ -41,7 +41,11 @@ publish_cmd+=(--access public --tag "${publish_tag}" --provenance)
 echo "Resolved package version: ${package_version}"
 echo "Resolved release channel: ${release_channel}"
 echo "Resolved publish tag: ${publish_tag}"
-echo "Publish auth: GitHub OIDC trusted publishing"
+if [[ -n "${NODE_AUTH_TOKEN:-${NPM_TOKEN:-}}" ]]; then
+  echo "Publish auth: npm token"
+else
+  echo "Publish auth: GitHub OIDC trusted publishing"
+fi
 if [[ -n "${publish_target}" ]]; then
   echo "Resolved publish target: ${publish_target}"
 fi
