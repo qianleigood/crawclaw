@@ -21,19 +21,19 @@ title: Phase 对应 PR 计划
 
 以下状态以 `2026-04-16` 的代码和文档为准：
 
-| PR      | 对应 Phase | 当前状态 | 说明                                                                                                                                    |
-| ------- | ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                                                                 |
-| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。                                                 |
-| `PR-02` | Phase 2    | `进行中` | workflow controls、session patch 和 model selection 的第一批共享 runtime 已落地，剩余 reset / abort / lifecycle 与 memory command API。 |
-| `PR-03` | Phase 3    | `未开始` | `src/agents` 子域拆分还没有开工。                                                                                                       |
-| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                                                                |
-| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                                    |
-| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                                          |
-| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                                      |
-| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                                          |
-| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                                               |
-| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                                  |
+| PR      | 对应 Phase | 当前状态 | 说明                                                                                                                   |
+| ------- | ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                                                |
+| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。                                |
+| `PR-02` | Phase 2    | `已完成` | workflow controls、session patch 与 model selection 的共享 runtime 已收口；更深的 session runtime 重构转入后续 phase。 |
+| `PR-03` | Phase 3    | `未开始` | `src/agents` 子域拆分还没有开工。                                                                                      |
+| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                                               |
+| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                   |
+| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                         |
+| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                     |
+| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                         |
+| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                              |
+| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                 |
 
 ## 总体规则
 
@@ -251,7 +251,7 @@ title: Phase 对应 PR 计划
 
 ### 当前完成情况
 
-状态：`进行中（截至 2026-04-16，已推进到 model selection 收口）`
+状态：`已完成（截至 2026-04-16）`
 
 已完成：
 
@@ -291,14 +291,14 @@ title: Phase 对应 PR 计划
 当前未完成：
 
 - workflow controls 目前只共享了执行层，参数校验与 transport 结果映射还可以继续下沉。
-- `session controls` 目前已收 `/send`、`/usage`、`/fast`、一批 directive patch 字段和 `model selection` 持久化，但 `reset / abort / lifecycle` 还没收口。
-- `memory command API` 还未开始收口。
+- `reset / abort / lifecycle` 经代码复查后确认为 session runtime / ACP / transcript / hook cleanup 的复合状态机问题，不再作为 Phase 2 的 transport 收口项。
+- `memory command API` 当前消费者已经直接复用 `src/memory/command-api.ts`，本 phase 未再发现需要单独收口的一组跨 transport 重复实现。
 
-本 PR 下一步建议：
+本 PR 收口结论：
 
-1. 继续把 workflow control 的参数校验和 domain result 映射抽成更显式的 handler。
-2. 继续把 `session controls` 里剩余的 `reset / abort / lifecycle` 往共享 handler 收。
-3. 然后转入 `memory command API`。
+1. Phase 2 里属于“transport 重复业务入口”的主链已经收完，可以关闭 `PR-02`。
+2. workflow control 更深一层的参数/result contract 收紧，转入后续 phase 继续做，不阻塞本 PR。
+3. `reset / abort / lifecycle` 转入后续围绕 session runtime 的专题改造，不再作为 `PR-02` 的合并条件。
 
 ## PR-03：Agent Kernel 子域化
 

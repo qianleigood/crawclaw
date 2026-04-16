@@ -225,7 +225,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 ### 当前状态
 
-状态：`进行中（截至 2026-04-16，已推进到 model selection 收口）`
+状态：`已完成（截至 2026-04-16）`
 
 已完成：
 
@@ -235,12 +235,13 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - 已把 `session controls` 的第一批命令 `/send`、`/usage`、`/fast` 接到共享 session patch 语义，不再直接手改 `sessionEntry`。
 - 已把 inline directive 持久化里的 `verbose / reasoning / elevated / exec` 也接到同一套 shared session patch runtime。
 - 已把 `model selection` 持久化也收口到共享 runtime，覆盖 inline directive、session reset 和无效存储模型回退到默认的路径。
+- 已确认 `memory command API` 当前消费者已经复用 `src/memory/command-api.ts`，这一批没有额外的 transport 重复实现需要再拆。
 
-后续紧接着做：
+收口说明：
 
-- 继续把 workflow control 的参数校验、domain 结果映射、transport 输出边界再往共享 handler 收。
-- 继续推进 `session controls` 剩余的 `reset / abort / lifecycle`。
-- 然后推进 `memory command API`。
+- workflow control 更深一层的参数校验、domain 结果映射、transport 输出边界，转入后续 phase 继续收紧。
+- `reset / abort / lifecycle` 经代码复查后确认为 session runtime / ACP / transcript / hook cleanup 的复合状态机问题，不再作为 Phase 2 的收口条件。
+- 因此 Phase 2 里“把重复业务语义从 transport 层拉回共享 handler”的主线已经完成，可以关闭对应 PR。
 
 ### 产出
 
