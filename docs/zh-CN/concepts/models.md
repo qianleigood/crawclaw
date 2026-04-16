@@ -16,6 +16,11 @@ x-i18n:
 
 # Models CLI
 
+<Note>
+这篇主要讲模型选择、切换、回退和扫描。  
+如果你想看模型层在整个系统里的位置，请先读 [项目整体架构总览](/concepts/project-architecture-overview)；如果你想看多智能体如何按 agent 覆盖模型，请同时参考 [多智能体路由](/concepts/multi-agent)。
+</Note>
+
 关于凭证配置轮换、冷却时间以及它们如何与回退交互，请参阅 [/concepts/model-failover](/concepts/model-failover)。
 快速提供商概览 + 示例：[/concepts/model-providers](/concepts/model-providers)。
 
@@ -218,6 +223,13 @@ crawclaw models status
 - 智能体 `models.json` 中的非空 `apiKey` 仅在该提供商在当前配置/凭证配置文件上下文中不是 SecretRef 管理时才优先。
 - 由 SecretRef 管理的提供商 `apiKey` 值会从源标记（环境变量引用使用 `ENV_VAR_NAME`，文件/exec 引用使用 `secretref-managed`）刷新，而不是持久化已解析的 secret。
 - 由 SecretRef 管理的提供商 header 值会从源标记（环境变量引用使用 `secretref-env:ENV_VAR_NAME`，文件/exec 引用使用 `secretref-managed`）刷新。
+
+## 延伸阅读
+
+- [模型提供商](/concepts/model-providers)
+- [模型故障切换](/concepts/model-failover)
+- [多智能体路由](/concepts/multi-agent)
+- [项目整体架构总览](/concepts/project-architecture-overview)
 - 智能体中为空或缺失的 `apiKey`/`baseUrl` 会回退到配置中的 `models.providers`。
 - 其他提供商字段会从配置和规范化后的目录数据中刷新。
 

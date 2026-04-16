@@ -14,6 +14,11 @@ x-i18n:
 
 # 多智能体路由
 
+<Note>
+这篇主要解释多智能体的路由和隔离模型。  
+如果你想看整个仓库里 `agents / channels / gateway / memory / workflow` 的分层关系，请先读 [项目整体架构总览](/concepts/project-architecture-overview)；如果你想看单个运行时的细节，请继续读 [智能体运行时](/concepts/agent)。
+</Note>
+
 目标：多个*隔离的*智能体（独立的工作区 + `agentDir` + 会话），加上多个渠道账户（例如两个 WhatsApp）在一个运行的 Gateway 网关中。入站消息通过绑定路由到智能体。
 
 ## 什么是"一个智能体"？
@@ -201,6 +206,13 @@ crawclaw agents list --bindings
   },
 }
 ```
+
+## 延伸阅读
+
+- [智能体运行时](/concepts/agent)
+- [会话管理](/concepts/session)
+- [Models CLI](/concepts/models)
+- [项目整体架构总览](/concepts/project-architecture-overview)
 
 ## 示例：WhatsApp 日常聊天 + Telegram 深度工作
 

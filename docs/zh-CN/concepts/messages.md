@@ -16,6 +16,11 @@ x-i18n:
 
 # 消息
 
+<Note>
+这篇聚焦“消息如何进入和离开系统”。  
+如果你想看更高层的项目分层，请先读 [项目整体架构总览](/concepts/project-architecture-overview)；如果你想看过程展示如何统一到 UI 和渠道，请继续读 [执行过程可见性系统](/concepts/execution-visibility-system)。
+</Note>
+
 本页汇总了 CrawClaw 如何处理入站消息、会话、队列、流式传输和推理可见性。
 
 ## 消息流程（高层概述）
@@ -139,3 +144,10 @@ CrawClaw 可以显示或隐藏模型推理：
 - 通过 `replyToMode` 和单渠道默认值进行回复线程
 
 详情：[配置](/gateway/configuration#messages)和渠道文档。
+
+## 延伸阅读
+
+- [会话管理](/concepts/session)
+- [队列](/concepts/queue)
+- [流式传输和分块](/concepts/streaming)
+- [执行过程可见性系统](/concepts/execution-visibility-system)

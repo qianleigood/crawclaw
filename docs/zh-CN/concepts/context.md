@@ -16,6 +16,11 @@ x-i18n:
 
 # 上下文
 
+<Note>
+这篇解释“模型当前窗口里看到了什么”。  
+如果你想看上下文和 memory、cache、prompt identity 在项目级架构里的位置，请同时参考 [记忆](/concepts/memory)、[项目缓存机制总览](/concepts/project-cache-strategy) 和 [项目整体架构总览](/concepts/project-architecture-overview)。
+</Note>
+
 "上下文"是 **CrawClaw 在一次运行中发送给模型的所有内容**。它受模型的**上下文窗口**（token 限制）约束。
 
 新手心智模型：
@@ -166,3 +171,10 @@ Skill 指令默认*不*包含。模型应该**仅在需要时**`read` Skill 的 
 - `System prompt (estimate)` = 当没有运行报告存在时（或通过不生成报告的 CLI 后端运行时）即时计算。
 
 无论哪种方式，它都报告大小和主要贡献者；它**不会**转储完整的系统提示词或工具 schema。
+
+## 延伸阅读
+
+- [智能体运行时](/concepts/agent)
+- [记忆](/concepts/memory)
+- [系统提示词](/concepts/system-prompt)
+- [项目缓存机制总览](/concepts/project-cache-strategy)

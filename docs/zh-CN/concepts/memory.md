@@ -16,6 +16,11 @@ x-i18n:
 
 # 记忆
 
+<Note>
+如果你想从项目级角度看 memory 在整个仓库里的位置，请先读 [项目整体架构总览](/concepts/project-architecture-overview)。  
+如果你正在看 prompt reuse、special agent cache、summary file cache 或 runtime cache，请同时参考 [项目缓存机制总览](/concepts/project-cache-strategy)。
+</Note>
+
 CrawClaw 通过分层记忆系统跨会话保留信息：
 
 - **Session memory**：保存单个会话内的短期任务连续性
@@ -197,3 +202,5 @@ crawclaw agent export-context --task-id <task-id> --json
 
 - [记忆配置参考](/reference/memory-config)
 - [压缩](/concepts/compaction)
+- [项目整体架构总览](/concepts/project-architecture-overview)
+- [项目缓存机制总览](/concepts/project-cache-strategy)

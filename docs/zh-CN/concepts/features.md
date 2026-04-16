@@ -37,6 +37,7 @@ x-i18n:
 
 ## 完整列表
 
+- 多渠道 Gateway 控制平面，统一管理会话、路由、presence、节点和控制界面
 - 通过 WhatsApp Web（Baileys）集成 WhatsApp
 - Telegram 机器人支持（grammY）
 - Discord 机器人支持（channels.discord.js）
@@ -45,6 +46,10 @@ x-i18n:
 - Pi 的智能体桥接，支持 RPC 模式和工具流式传输
 - 长响应的流式传输和分块处理
 - 多智能体路由，按工作区或发送者隔离会话
+- built-in memory runtime：durable memory、session summary、dream、knowledge recall
+- special agent substrate：verification、memory-extraction、session-summary、dream
+- workflow 运行链：本地注册、执行同步、渠道回投、resume/cancel/status
+- Action Feed / execution visibility：统一展示 tool、workflow 和过程事件
 - 通过 OAuth 进行 Anthropic 和 OpenAI 的订阅认证
 - 会话：私信合并为共享的 `main`；群组相互隔离
 - 群聊支持，通过提及激活
@@ -53,6 +58,13 @@ x-i18n:
 - WebChat 和 macOS 菜单栏应用
 - macOS 节点模式，支持配对、Canvas、相机和远程命令
 - 无头节点主机，支持配对和 `system.run`
+- ACP / 控制平面互操作，用于外部 agent 和运行时桥接
+
+## 建议配套阅读
+
+- 如果你要看项目整体结构： [项目整体架构总览](/concepts/project-architecture-overview)
+- 如果你要看智能体运行细节： [智能体运行时](/concepts/agent)
+- 如果你要看记忆层： [记忆](/concepts/memory)
 
 <Note>
 旧版 Claude、Codex、Gemini 和 Opencode 路径已被移除。Pi 是唯一的编程智能体路径。

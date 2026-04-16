@@ -16,6 +16,11 @@ x-i18n:
 
 # 流式传输 + 分块
 
+<Note>
+这篇只讲消息输出面的流式传输、分块和渠道投递行为。  
+如果你想看更高层的执行过程展示语义，请继续读 [执行过程可见性系统](/concepts/execution-visibility-system)；如果你想看项目级整体结构，请先读 [项目整体架构总览](/concepts/project-architecture-overview)。
+</Note>
+
 CrawClaw 有两个独立的"流式传输"层：
 
 - **分块流式传输（渠道）：** 在助手写入时发出已完成的**块**。这些是普通的渠道消息（不是令牌增量）。
@@ -131,3 +136,9 @@ Telegram（私聊 + 主题）
 
 - `sendMessageDraft`：Telegram 草稿气泡（不是真正的消息）。
 - `final reply`：普通 Telegram 消息发送。
+
+## 延伸阅读
+
+- [消息](/concepts/messages)
+- [执行过程可见性系统](/concepts/execution-visibility-system)
+- [项目整体架构总览](/concepts/project-architecture-overview)
