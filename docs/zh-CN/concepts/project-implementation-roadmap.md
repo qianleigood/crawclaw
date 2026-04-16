@@ -64,11 +64,12 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 1. 第 1-2 周：Phase 0-1
 2. 第 3-4 周：Phase 2
-3. 第 5-7 周：Phase 3-4
-4. 第 8-9 周：Phase 5
-5. 第 10-12 周：Phase 6-7
-6. 第 13-14 周：Phase 8-9
-7. 第 15 周：Phase 10 与收口
+3. 第 5-7 周：Phase 3
+4. 第 8 周：Session Runtime 专题收口
+5. 第 9-10 周：Phase 4-5
+6. 第 11-13 周：Phase 6-7
+7. 第 14 周：Phase 8-9
+8. 第 15 周：Phase 10 与收口
 
 如果团队规模较小，可以把 Phase 8-10 延后，但不建议跳过 Phase 0-7。
 
@@ -299,6 +300,24 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 降低 `src/agents` 的理解成本，把执行内核从“巨型热点区”收成多个稳定子域。
 
+### 当前状态
+
+状态：`已完成（截至 2026-04-16）`
+
+已完成：
+
+- 已把 `agent-command.ts` 的准备期逻辑抽到 `src/agents/command/prepare.ts`，让 command ingress、session 解析和 workspace / ACP 准备不再继续沉在根文件里。
+- 已把 `subagent-spawn.ts` 的 spawn contract 和 spawn runtime helper 拆到 `src/agents/subagents/spawn-types.ts` 与 `src/agents/subagents/spawn-runtime.ts`。
+- 已为 `command / subagents / runtime / query-context / tools / special` 补最小入口文档，显式化 `src/agents` 内部的主要子域。
+- 已补 focused unit tests，锁住新的 command / subagent helper 行为。
+- 已通过针对性 runtime 测试与全仓 `pnpm check`。
+
+收口说明：
+
+- 这轮重点是先把最清晰的两条 owner 线 `command` 与 `subagents` 从根文件热点里抽出来。
+- 没有做机械搬目录，也没有直接碰 `pi-embedded-runner` 这种更高风险的主循环热点。
+- 后续如果继续细化 `agents`，应该优先沿现有子域做增量收口，而不是再往根层堆 helper。
+
 ### 产出
 
 - `agents` 内部清晰子域
@@ -335,6 +354,75 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 - `agents` 相关 unit / integration
 - tool / provider / runtime smoke
+
+## 专题：Session Runtime / Reset-Abort-Lifecycle 收口
+
+### 目标
+
+把 `reset / abort / lifecycle` 从当前分散的复合状态机，收成一套明确的 session runtime 实现。
+
+### 为什么放在这里
+
+- 这项工作长期价值很高，但短期投入产出比不如 `Phase 3` 的 `agents` 子域化。
+- 它已经确认不属于 `Phase 2` 的 transport 入口收口问题。
+- 它也不适合直接塞进 `Phase 4` 的 special agent substrate 标准化。
+- 因此更合适的时序是：`Phase 3` 完成后，单独做一轮 session runtime 收口，再继续后续 phase。
+
+### 详细任务
+
+1. 先补行为冻结测试：
+   - 普通 `/new`
+   - `/new` 带 tail
+   - ACP 绑定会话的 in-place reset
+   - stale session 自动 reset
+   - `/stop`
+   - fast-abort
+   - `abortedLastRun` 的消费
+   - `before_reset / session_start / session_end` hooks
+2. 抽 reset planner：
+   - reset trigger
+   - freshness / reset policy
+   - ACP bypass 判断
+3. 抽 reset carry-over policy：
+   - reset 后保留哪些 session 字段
+   - reset 后清掉哪些 runtime 状态
+4. 抽 reset executor：
+   - runtime cleanup
+   - transcript rollover
+   - session file rebuild
+   - old session archive
+5. 抽 ACP in-place reset adapter：
+   - bound ACP session 的特殊 reset 路径
+   - reset tail 的续跑逻辑
+6. 抽 abort executor 与 abort state：
+   - active run cancel
+   - queue clear
+   - subagent cascade stop
+   - abort state persist / consume
+7. 收口 lifecycle hooks 与内部事件发射
+8. 最后删除旧路径和重复分支
+
+### 涉及目录
+
+- `src/auto-reply/reply/session.ts`
+- `src/auto-reply/reply/commands-core.ts`
+- `src/auto-reply/reply/abort.ts`
+- `src/gateway/session-reset-service.ts`
+- `src/sessions/runtime`（计划新增）
+
+### 验收标准
+
+- `session.ts` 只负责入口归一化与 runtime 调用
+- `session-reset-service.ts` 只负责 gateway adapter
+- `commands-core.ts` 不再直接处理 ACP reset 细节
+- `reset / abort / lifecycle` 主逻辑只剩一套
+
+### 必要测试
+
+- reset / abort / lifecycle 行为冻结测试
+- session runtime unit / integration
+- ACP reset 主链测试
+- 至少一条 `/new`、`sessions.reset`、`/stop` 的端到端主链验证
 
 ## Phase 4：Special Agent 正式化
 

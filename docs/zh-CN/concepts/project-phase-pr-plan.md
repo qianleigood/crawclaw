@@ -16,6 +16,7 @@ title: Phase 对应 PR 计划
 - 每个 PR 都必须有明确 owner、范围、验收、测试门槛
 - 允许在一个 PR 内有多次 commit
 - 不建议一个 phase 再拆成多个并行 PR，除非出现紧急修复或阻塞
+- 对于跨多个 phase 边界、但又不适合强行塞进现有 phase 的复合状态机问题，允许插入一个专题 PR 单独收口
 
 ## 当前状态
 
@@ -26,7 +27,8 @@ title: Phase 对应 PR 计划
 | `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                                                |
 | `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。                                |
 | `PR-02` | Phase 2    | `已完成` | workflow controls、session patch 与 model selection 的共享 runtime 已收口；更深的 session runtime 重构转入后续 phase。 |
-| `PR-03` | Phase 3    | `未开始` | `src/agents` 子域拆分还没有开工。                                                                                      |
+| `PR-03` | Phase 3    | `已完成` | `command` / `subagents` 子域已显式化，两个热点文件已拆薄，并补了子域入口文档与 focused tests。                         |
+| `PR-SR` | 专题       | `未开始` | 建议排在 `PR-03` 之后，专门处理 session runtime / ACP / transcript / lifecycle 的复合状态机收口。                      |
 | `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                                               |
 | `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                   |
 | `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                         |
@@ -338,6 +340,114 @@ title: Phase 对应 PR 计划
 
 - 是否按 owner 拆，而不是纯机械搬文件
 - 是否减少而不是增加胶水代码
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-16）`
+
+已完成：
+
+- 已把 `agent-command.ts` 的准备期逻辑抽到 `src/agents/command/prepare.ts`：
+  - command ingress 校验
+  - command session 解析
+  - command workspace / ACP 准备
+  - 显式 override 归一化
+  - session entry 持久化 helper
+- 已把 `subagent-spawn.ts` 的 spawn contract 与 spawn runtime helper 拆出：
+  - `src/agents/subagents/spawn-types.ts`
+  - `src/agents/subagents/spawn-runtime.ts`
+- `subagent-spawn.ts` 保持原 public API，但内部改为复用 `subagents` 子域 helper，不再继续堆在单文件里。
+- 已为以下子域补最小入口文档：
+  - `src/agents/command/README.md`
+  - `src/agents/subagents/README.md`
+  - `src/agents/runtime/README.md`
+  - `src/agents/query-context/README.md`
+  - `src/agents/tools/README.md`
+  - `src/agents/special/README.md`
+- 已更新 `src/agents/README.md` 的 Start Here，使 `command / runtime / query-context / subagents / special / tools` 成为显式阅读入口。
+- 已补 focused unit tests：
+  - `src/agents/command/prepare.test.ts`
+  - `src/agents/subagents/spawn-runtime.test.ts`
+
+已验证：
+
+- `vitest run src/agents/command/prepare.test.ts src/agents/subagents/spawn-runtime.test.ts src/agents/subagent-spawn.test.ts src/agents/subagent-spawn.workspace.test.ts src/agents/subagent-spawn.model-session.test.ts`
+- `vitest run src/agents/runtime/spawn-session.test.ts`
+- `pnpm lint src/agents/agent-command.ts src/agents/command/prepare.ts src/agents/command/prepare.test.ts src/agents/subagent-spawn.ts src/agents/subagents/spawn-runtime.ts src/agents/subagents/spawn-runtime.test.ts src/agents/README.md src/agents/command/README.md src/agents/subagents/README.md src/agents/runtime/README.md src/agents/query-context/README.md src/agents/tools/README.md src/agents/special/README.md`
+- `pnpm check`
+
+本 PR 收口结论：
+
+1. `src/agents` 内部的 `command` 和 `subagents` 两条子域已经从根文件热点中独立出来，`PR-03` 的第一阶段目标已完成。
+2. 这次没有做机械搬目录或 package 拆分，仍然保持单仓内的安全渐进式重构。
+3. 后续围绕 session runtime 的复合状态机收口，转入 `PR-SR`；special agent substrate 标准化转入 `PR-04`。
+
+## PR-SR：Session Runtime / Reset-Abort-Lifecycle 收口
+
+### 建议标题
+
+`refactor: consolidate session runtime reset abort and lifecycle semantics`
+
+### 对应位置
+
+- 专题 PR
+- 建议排在 `PR-03` 之后、`PR-04` 之前
+
+### 为什么单独立项
+
+- 这部分已经确认不是 Phase 2 那类 transport 共享 handler 问题。
+- 它同时涉及 session reset trigger、carry-over policy、runtime cleanup、transcript rollover、ACP in-place reset、abort state 和 lifecycle hooks。
+- 它也不适合塞进 `PR-03` 的 `agents` 子域化，否则会把两个都做重。
+
+### 目标
+
+把目前散落在 `auto-reply`、`gateway` 和 ACP 命令路径里的 `reset / abort / lifecycle` 语义，收成一套明确的 session runtime。
+
+### 范围
+
+- reset trigger / freshness / planning 收口
+- reset carry-over policy 收口
+- reset cleanup / transcript rollover / session file rebuild 收口
+- ACP in-place reset adapter 收口
+- abort executor / abort state 收口
+- lifecycle hook / event emit 收口
+
+### 非目标
+
+- 不做 UI 信息架构调整
+- 不重写 channel runtime
+- 不引入新的 session 产品功能
+
+### 主要目录
+
+- `src/auto-reply/reply/session.ts`
+- `src/auto-reply/reply/commands-core.ts`
+- `src/auto-reply/reply/abort.ts`
+- `src/gateway/session-reset-service.ts`
+- `src/sessions/runtime`（计划新增）
+
+### 必要测试
+
+- reset / abort / lifecycle 行为冻结测试
+- session runtime unit / integration
+- ACP reset 主链测试
+- 至少一条 `/new`、`sessions.reset`、`/stop` 的端到端主链验证
+
+### Reviewer 关注点
+
+- 是否真的收成单一状态机，而不是把重复逻辑搬了个位置
+- carry-over policy 是否只剩一套
+- transcript / runtime cleanup / lifecycle emit 是否不再散落多处
+
+### 当前状态
+
+状态：`未开始`
+
+规划结论：
+
+1. 这项工作后续必须做，但不再属于 `PR-02` 的合并条件。
+2. 结合当前价值评估，建议排在 `PR-03` 之后，而不是立刻抢在最前面。
+3. 开工前应先补行为冻结测试，再逐步抽 `planner / carry-over / executor / ACP adapter / lifecycle`。
 
 ## PR-04：Special Agent 正式化
 

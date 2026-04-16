@@ -14,8 +14,11 @@ It owns:
 ## Start Here
 
 - `crawclaw-tools.ts`
+- `command/*`
 - `pi-embedded-runner.ts`
-- `pi-embedded-subscribe.ts`
+- `runtime/*`
+- `query-context/*`
+- `subagents/*`
 - `special/runtime/*`
 - `tools/*`
 
