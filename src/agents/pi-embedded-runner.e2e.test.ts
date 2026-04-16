@@ -6,9 +6,13 @@ import {
   buildEmbeddedRunnerAssistant,
   cleanupEmbeddedPiRunnerTestWorkspace,
   createMockUsage,
-  createEmbeddedPiRunnerOpenAiConfig,
+  createEmbeddedPiRunnerMinimaxConfig,
   createResolvedEmbeddedRunnerModel,
   createEmbeddedPiRunnerTestWorkspace,
+  EMBEDDED_PI_RUNNER_E2E_MINIMAX_API,
+  EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID,
+  EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
+  EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
   type EmbeddedPiRunnerTestWorkspace,
   immediateEnqueue,
   makeEmbeddedRunnerAttempt,
@@ -50,13 +54,13 @@ vi.mock("@mariozechner/pi-ai", async (importOriginal) => {
   return {
     ...actual,
     complete: async (model: { api: string; provider: string; id: string }) => {
-      if (model.id === "mock-error") {
+      if (model.id === EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID) {
         return buildAssistantErrorMessage(model);
       }
       return buildAssistantMessage(model);
     },
     completeSimple: async (model: { api: string; provider: string; id: string }) => {
-      if (model.id === "mock-error") {
+      if (model.id === EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID) {
         return buildAssistantErrorMessage(model);
       }
       return buildAssistantMessage(model);
@@ -68,7 +72,7 @@ vi.mock("@mariozechner/pi-ai", async (importOriginal) => {
           type: "done",
           reason: "stop",
           message:
-            model.id === "mock-error"
+            model.id === EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID
               ? buildAssistantErrorMessage(model)
               : buildAssistantMessage(model),
         });
@@ -161,7 +165,7 @@ beforeEach(() => {
   runEmbeddedAttemptMock.mockReset();
   disposeSessionMcpRuntimeMock.mockReset();
   resolveBuiltInMemoryRuntimeMock.mockReset();
-  resolveBuiltInMemoryRuntimeMock.mockResolvedValue(undefined);
+  resolveBuiltInMemoryRuntimeMock.mockImplementation(async () => createMockMemoryRuntime());
   refreshRuntimeAuthOnFirstPromptError = false;
   runEmbeddedAttemptMock.mockImplementation(async () => {
     throw new Error("unexpected extra runEmbeddedAttempt call");
@@ -175,6 +179,23 @@ const nextSessionFile = () => {
 const nextRunId = (prefix = "run-embedded-test") => `${prefix}-${++runCounter}`;
 const nextSessionKey = () => `agent:test:embedded:${nextRunId("session-key")}`;
 
+const createMockMemoryRuntime = () => ({
+  info: { id: "builtin-memory", name: "Built-in Memory", ownsCompaction: false },
+  ingest: vi.fn(async () => ({ ingested: true })),
+  compact: vi.fn(async () => ({ ok: false, compacted: false })),
+  assemble: vi.fn(async () => ({ messages: [], estimatedTokens: 0 })),
+  afterTurn: vi.fn(async () => undefined),
+  dispose: vi.fn(async () => undefined),
+});
+
+const buildMinimaxEmbeddedAssistant = (text: string) =>
+  buildEmbeddedRunnerAssistant({
+    api: EMBEDDED_PI_RUNNER_E2E_MINIMAX_API,
+    provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+    model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
+    content: [{ type: "text", text }],
+  });
+
 const runWithOrphanedSingleUserMessage = async (text: string, sessionKey: string) => {
   const sessionFile = nextSessionFile();
   const sessionManager = SessionManager.open(sessionFile);
@@ -187,13 +208,11 @@ const runWithOrphanedSingleUserMessage = async (text: string, sessionKey: string
   runEmbeddedAttemptMock.mockResolvedValueOnce(
     makeEmbeddedRunnerAttempt({
       assistantTexts: ["ok"],
-      lastAssistant: buildEmbeddedRunnerAssistant({
-        content: [{ type: "text", text: "ok" }],
-      }),
+      lastAssistant: buildMinimaxEmbeddedAssistant("ok"),
     }),
   );
 
-  const cfg = createEmbeddedPiRunnerOpenAiConfig(["mock-1"]);
+  const cfg = createEmbeddedPiRunnerMinimaxConfig([EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID]);
   return await runEmbeddedPiAgent({
     sessionId: "session:test",
     sessionKey,
@@ -201,8 +220,8 @@ const runWithOrphanedSingleUserMessage = async (text: string, sessionKey: string
     workspaceDir,
     config: cfg,
     prompt: "hello",
-    provider: "openai",
-    model: "mock-1",
+    provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+    model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
     timeoutMs: 5_000,
     agentDir,
     runId: nextRunId("orphaned-user"),
@@ -238,13 +257,11 @@ const readSessionMessages = async (sessionFile: string) => {
 };
 
 const runDefaultEmbeddedTurn = async (sessionFile: string, prompt: string, sessionKey: string) => {
-  const cfg = createEmbeddedPiRunnerOpenAiConfig(["mock-error"]);
+  const cfg = createEmbeddedPiRunnerMinimaxConfig([EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID]);
   runEmbeddedAttemptMock.mockResolvedValueOnce(
     makeEmbeddedRunnerAttempt({
       assistantTexts: ["ok"],
-      lastAssistant: buildEmbeddedRunnerAssistant({
-        content: [{ type: "text", text: "ok" }],
-      }),
+      lastAssistant: buildMinimaxEmbeddedAssistant("ok"),
     }),
   );
   await runEmbeddedPiAgent({
@@ -254,8 +271,8 @@ const runDefaultEmbeddedTurn = async (sessionFile: string, prompt: string, sessi
     workspaceDir,
     config: cfg,
     prompt,
-    provider: "openai",
-    model: "mock-error",
+    provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+    model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID,
     timeoutMs: 5_000,
     agentDir,
     runId: nextRunId("default-turn"),
@@ -266,14 +283,12 @@ const runDefaultEmbeddedTurn = async (sessionFile: string, prompt: string, sessi
 describe("runEmbeddedPiAgent", () => {
   it("disposes bundle MCP once when a one-shot local run completes", async () => {
     const sessionFile = nextSessionFile();
-    const cfg = createEmbeddedPiRunnerOpenAiConfig(["mock-1"]);
+    const cfg = createEmbeddedPiRunnerMinimaxConfig([EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID]);
     const sessionKey = nextSessionKey();
     runEmbeddedAttemptMock.mockResolvedValueOnce(
       makeEmbeddedRunnerAttempt({
         assistantTexts: ["ok"],
-        lastAssistant: buildEmbeddedRunnerAssistant({
-          content: [{ type: "text", text: "ok" }],
-        }),
+        lastAssistant: buildMinimaxEmbeddedAssistant("ok"),
       }),
     );
 
@@ -284,8 +299,8 @@ describe("runEmbeddedPiAgent", () => {
       workspaceDir,
       config: cfg,
       prompt: "hello",
-      provider: "openai",
-      model: "mock-1",
+      provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+      model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
       timeoutMs: 5_000,
       agentDir,
       runId: nextRunId("bundle-mcp-run-cleanup"),
@@ -301,7 +316,7 @@ describe("runEmbeddedPiAgent", () => {
   it("preserves bundle MCP state across retries within one local run", async () => {
     refreshRuntimeAuthOnFirstPromptError = true;
     const sessionFile = nextSessionFile();
-    const cfg = createEmbeddedPiRunnerOpenAiConfig(["mock-1"]);
+    const cfg = createEmbeddedPiRunnerMinimaxConfig([EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID]);
     const sessionKey = nextSessionKey();
     runEmbeddedAttemptMock
       .mockImplementationOnce(async () => {
@@ -314,9 +329,7 @@ describe("runEmbeddedPiAgent", () => {
         expect(disposeSessionMcpRuntimeMock).not.toHaveBeenCalled();
         return makeEmbeddedRunnerAttempt({
           assistantTexts: ["ok"],
-          lastAssistant: buildEmbeddedRunnerAssistant({
-            content: [{ type: "text", text: "ok" }],
-          }),
+          lastAssistant: buildMinimaxEmbeddedAssistant("ok"),
         });
       });
 
@@ -327,8 +340,8 @@ describe("runEmbeddedPiAgent", () => {
       workspaceDir,
       config: cfg,
       prompt: "hello",
-      provider: "openai",
-      model: "mock-1",
+      provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+      model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
       timeoutMs: 5_000,
       agentDir,
       runId: nextRunId("bundle-mcp-retry"),
@@ -344,19 +357,14 @@ describe("runEmbeddedPiAgent", () => {
 
   it("prefers the built-in memory runtime over the legacy context engine path", async () => {
     const sessionFile = nextSessionFile();
-    const cfg = createEmbeddedPiRunnerOpenAiConfig(["mock-1"]);
+    const cfg = createEmbeddedPiRunnerMinimaxConfig([EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID]);
     const sessionKey = nextSessionKey();
-    const builtInRuntime = {
-      info: { id: "builtin-memory", name: "Built-in Memory", ownsCompaction: false },
-      dispose: vi.fn(async () => undefined),
-    };
+    const builtInRuntime = createMockMemoryRuntime();
     resolveBuiltInMemoryRuntimeMock.mockResolvedValueOnce(builtInRuntime);
     runEmbeddedAttemptMock.mockResolvedValueOnce(
       makeEmbeddedRunnerAttempt({
         assistantTexts: ["ok"],
-        lastAssistant: buildEmbeddedRunnerAssistant({
-          content: [{ type: "text", text: "ok" }],
-        }),
+        lastAssistant: buildMinimaxEmbeddedAssistant("ok"),
       }),
     );
 
@@ -367,8 +375,8 @@ describe("runEmbeddedPiAgent", () => {
       workspaceDir,
       config: cfg,
       prompt: "hello",
-      provider: "openai",
-      model: "mock-1",
+      provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+      model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
       timeoutMs: 5_000,
       agentDir,
       runId: nextRunId("builtin-memory-runtime"),
@@ -385,7 +393,9 @@ describe("runEmbeddedPiAgent", () => {
 
   it("handles prompt error paths without dropping user state", async () => {
     const sessionFile = nextSessionFile();
-    const cfg = createEmbeddedPiRunnerOpenAiConfig(["mock-error"]);
+    const cfg = createEmbeddedPiRunnerMinimaxConfig([
+      EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID,
+    ]);
     const sessionKey = nextSessionKey();
     runEmbeddedAttemptMock.mockResolvedValueOnce(
       makeEmbeddedRunnerAttempt({
@@ -400,8 +410,8 @@ describe("runEmbeddedPiAgent", () => {
         workspaceDir,
         config: cfg,
         prompt: "boom",
-        provider: "openai",
-        model: "mock-error",
+        provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+        model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_ERROR_MODEL_ID,
         timeoutMs: 5_000,
         agentDir,
         runId: nextRunId("prompt-error"),
@@ -439,9 +449,9 @@ describe("runEmbeddedPiAgent", () => {
         role: "assistant",
         content: [{ type: "text", text: "seed assistant" }],
         stopReason: "stop",
-        api: "openai-responses",
-        provider: "openai",
-        model: "mock-1",
+        api: EMBEDDED_PI_RUNNER_E2E_MINIMAX_API,
+        provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+        model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
         usage: createMockUsage(1, 1),
         timestamp: Date.now(),
       });

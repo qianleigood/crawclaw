@@ -4,8 +4,10 @@ import "./test-helpers/fast-coding-tools.js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   cleanupEmbeddedPiRunnerTestWorkspace,
-  createEmbeddedPiRunnerOpenAiConfig,
+  createEmbeddedPiRunnerMinimaxConfig,
   createEmbeddedPiRunnerTestWorkspace,
+  EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
+  EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
   type EmbeddedPiRunnerTestWorkspace,
   immediateEnqueue,
 } from "./test-helpers/pi-embedded-runner-e2e-fixtures.js";
@@ -209,7 +211,7 @@ describe("runEmbeddedPiAgent bundle MCP e2e", () => {
       observedContexts = [];
 
       const sessionFile = path.join(workspaceDir, "session-bundle-mcp-e2e.jsonl");
-      const cfg = createEmbeddedPiRunnerOpenAiConfig(["mock-bundle-mcp"]);
+      const cfg = createEmbeddedPiRunnerMinimaxConfig([EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID]);
 
       const result = await runEmbeddedPiAgent({
         sessionId: "bundle-mcp-e2e",
@@ -218,8 +220,8 @@ describe("runEmbeddedPiAgent bundle MCP e2e", () => {
         workspaceDir,
         config: cfg,
         prompt: "Use the bundle MCP tool and report its result.",
-        provider: "openai",
-        model: "mock-bundle-mcp",
+        provider: EMBEDDED_PI_RUNNER_E2E_MINIMAX_PROVIDER,
+        model: EMBEDDED_PI_RUNNER_E2E_MINIMAX_MODEL_ID,
         timeoutMs: 30_000,
         agentDir,
         runId: "run-bundle-mcp-e2e",
