@@ -233,6 +233,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - 已新增 `src/workflows/control-runtime.ts` 作为 command 与 gateway 共享的 workflow control 执行层。
 - 已把 `workflow status / cancel / resume` 的 command 与 gateway 调度接到同一套共享执行路径。
 - 已把 `session controls` 的第一批命令 `/send`、`/usage`、`/fast` 接到共享 session patch 语义，不再直接手改 `sessionEntry`。
+- 已把 inline directive 持久化里的 `verbose / reasoning / elevated / exec` 也接到同一套 shared session patch runtime。
 
 后续紧接着做：
 

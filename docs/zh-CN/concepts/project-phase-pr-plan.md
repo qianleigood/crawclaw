@@ -264,6 +264,11 @@ title: Phase 对应 PR 计划
 - 已新增 command session patch 共享入口：
   - `src/auto-reply/reply/commands-session-store.ts`
 - 已把 `/send`、`/usage`、`/fast` 从手改 `sessionEntry` 收口到 gateway `sessions.patch` 共用的 patch 语义。
+- 已新增通用 session patch runtime：
+  - `src/auto-reply/reply/session-patch-runtime.ts`
+- 已把 inline directive 持久化里的 `verbose / reasoning / elevated / exec` 收口到同一套 session patch 语义：
+  - `src/auto-reply/reply/directive-handling.impl.ts`
+  - `src/auto-reply/reply/directive-handling.persist.ts`
 - 已补 command session setting 测试：
   - `src/auto-reply/reply/commands-session-settings.test.ts`
 
@@ -273,11 +278,13 @@ title: Phase 对应 PR 计划
 - `pnpm lint src/workflows/control-runtime.ts src/auto-reply/reply/commands-workflow.ts src/gateway/server-methods/workflow.ts src/workflows/control-runtime.test.ts src/auto-reply/reply/commands-workflow.test.ts`
 - `vitest run src/auto-reply/reply/commands-session-settings.test.ts src/gateway/sessions-patch.test.ts`
 - `pnpm lint src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-session-store.ts src/auto-reply/reply/commands-session-settings.test.ts`
+- `vitest run src/auto-reply/reply/commands-session-settings.test.ts src/auto-reply/reply/directive-handling.model.test.ts src/gateway/sessions-patch.test.ts`
+- `pnpm lint src/auto-reply/reply/session-patch-runtime.ts src/auto-reply/reply/commands-session-store.ts src/auto-reply/reply/directive-handling.persist.ts src/auto-reply/reply/directive-handling.impl.ts src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-session-settings.test.ts`
 
 当前未完成：
 
 - workflow controls 目前只共享了执行层，参数校验与 transport 结果映射还可以继续下沉。
-- `session controls` 目前只收了 `/send`、`/usage`、`/fast` 这一批，`reset / abort / lifecycle` 还没收口。
+- `session controls` 目前已收 `/send`、`/usage`、`/fast` 和一批 directive patch 字段，但 `reset / abort / lifecycle` 还没收口。
 - `model selection`、`memory command API` 还未开始收口。
 
 本 PR 下一步建议：

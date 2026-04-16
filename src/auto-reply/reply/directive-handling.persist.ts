@@ -10,7 +10,6 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { updateSessionStore } from "../../config/sessions/store.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
-import { applyVerboseOverride } from "../../sessions/level-overrides.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import { resolveModelSelectionFromDirective } from "./directive-handling.model-selection.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
@@ -20,6 +19,7 @@ import {
   enqueueModeSwitchEvents,
 } from "./directive-handling.shared.js";
 import type { ElevatedLevel, ReasoningLevel } from "./directives.js";
+import { applySharedSessionPatch, type SharedSessionPatch } from "./session-patch-runtime.js";
 
 export async function persistInlineDirectives(params: {
   directives: InlineDirectives;
@@ -92,6 +92,8 @@ export async function persistInlineDirectives(params: {
     let reasoningChanged =
       directives.hasReasoningDirective && directives.reasoningLevel !== undefined;
     let updated = false;
+    let sharedPatchApplied = false;
+    const sharedPatch: SharedSessionPatch = {};
 
     if (directives.hasThinkDirective && directives.thinkLevel) {
       sessionEntry.thinkingLevel = directives.thinkLevel;
@@ -102,21 +104,14 @@ export async function persistInlineDirectives(params: {
       directives.verboseLevel &&
       allowInternalVerbosePersistence
     ) {
-      applyVerboseOverride(sessionEntry, directives.verboseLevel);
-      updated = true;
+      sharedPatch.verboseLevel = directives.verboseLevel;
     }
     if (directives.hasReasoningDirective && directives.reasoningLevel) {
-      if (directives.reasoningLevel === "off") {
-        // Persist explicit off so it overrides model-capability defaults.
-        sessionEntry.reasoningLevel = "off";
-      } else {
-        sessionEntry.reasoningLevel = directives.reasoningLevel;
-      }
       reasoningChanged =
         reasoningChanged ||
         (directives.reasoningLevel !== prevReasoningLevel &&
           directives.reasoningLevel !== undefined);
-      updated = true;
+      sharedPatch.reasoningLevel = directives.reasoningLevel;
     }
     if (
       directives.hasElevatedDirective &&
@@ -124,30 +119,40 @@ export async function persistInlineDirectives(params: {
       elevatedEnabled &&
       elevatedAllowed
     ) {
-      // Persist "off" explicitly so inline `/elevated off` overrides defaults.
-      sessionEntry.elevatedLevel = directives.elevatedLevel;
       elevatedChanged =
         elevatedChanged ||
         (directives.elevatedLevel !== prevElevatedLevel && directives.elevatedLevel !== undefined);
-      updated = true;
+      sharedPatch.elevatedLevel = directives.elevatedLevel;
     }
     if (directives.hasExecDirective && directives.hasExecOptions && allowInternalExecPersistence) {
       if (directives.execHost) {
-        sessionEntry.execHost = directives.execHost;
-        updated = true;
+        sharedPatch.execHost = directives.execHost;
       }
       if (directives.execSecurity) {
-        sessionEntry.execSecurity = directives.execSecurity;
-        updated = true;
+        sharedPatch.execSecurity = directives.execSecurity;
       }
       if (directives.execAsk) {
-        sessionEntry.execAsk = directives.execAsk;
-        updated = true;
+        sharedPatch.execAsk = directives.execAsk;
       }
       if (directives.execNode) {
-        sessionEntry.execNode = directives.execNode;
-        updated = true;
+        sharedPatch.execNode = directives.execNode;
       }
+    }
+    if (Object.keys(sharedPatch).length > 0) {
+      const patched = await applySharedSessionPatch({
+        cfg,
+        sessionEntry,
+        sessionStore,
+        sessionKey,
+        storePath,
+        patch: sharedPatch,
+      });
+      if (!patched.ok) {
+        throw new Error(
+          `failed to persist inline directive session patch: ${patched.error.message}`,
+        );
+      }
+      sharedPatchApplied = true;
     }
 
     const modelDirective =
@@ -207,6 +212,8 @@ export async function persistInlineDirectives(params: {
           store[sessionKey] = sessionEntry;
         });
       }
+    }
+    if (updated || sharedPatchApplied) {
       enqueueModeSwitchEvents({
         enqueueSystemEvent,
         sessionEntry,

@@ -10,7 +10,6 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import type { ExecAsk, ExecHost, ExecSecurity, ExecTarget } from "../../infra/exec-approvals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
-import { applyVerboseOverride } from "../../sessions/level-overrides.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import { formatThinkingLevels, formatXHighModelHint, supportsXHighThinking } from "../thinking.js";
 import type { ReplyPayload } from "../types.js";
@@ -32,6 +31,7 @@ import {
 } from "./directive-handling.shared.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel } from "./directives.js";
 import { refreshQueuedFollowupSession } from "./queue.js";
+import { applySharedSessionPatch, type SharedSessionPatch } from "./session-patch-runtime.js";
 
 function resolveExecDefaults(params: {
   cfg: CrawClawConfig;
@@ -360,52 +360,63 @@ export async function handleDirectiveOnly(
   let reasoningChanged =
     directives.hasReasoningDirective && directives.reasoningLevel !== undefined;
   if (shouldPersistSessionEntry) {
+    let directMutationUpdated = false;
+    const sharedPatch: SharedSessionPatch = {};
     if (directives.hasThinkDirective && directives.thinkLevel) {
       sessionEntry.thinkingLevel = directives.thinkLevel;
+      directMutationUpdated = true;
     }
     if (directives.hasFastDirective && directives.fastMode !== undefined) {
       sessionEntry.fastMode = directives.fastMode;
+      directMutationUpdated = true;
     }
     if (shouldDowngradeXHigh) {
       sessionEntry.thinkingLevel = "high";
+      directMutationUpdated = true;
     }
     if (
       directives.hasVerboseDirective &&
       directives.verboseLevel &&
       allowInternalVerbosePersistence
     ) {
-      applyVerboseOverride(sessionEntry, directives.verboseLevel);
+      sharedPatch.verboseLevel = directives.verboseLevel;
     }
     if (directives.hasReasoningDirective && directives.reasoningLevel) {
-      if (directives.reasoningLevel === "off") {
-        // Persist explicit off so it overrides model-capability defaults.
-        sessionEntry.reasoningLevel = "off";
-      } else {
-        sessionEntry.reasoningLevel = directives.reasoningLevel;
-      }
       reasoningChanged =
         directives.reasoningLevel !== prevReasoningLevel && directives.reasoningLevel !== undefined;
+      sharedPatch.reasoningLevel = directives.reasoningLevel;
     }
     if (directives.hasElevatedDirective && directives.elevatedLevel) {
-      // Unlike other toggles, elevated defaults can be "on".
-      // Persist "off" explicitly so `/elevated off` actually overrides defaults.
-      sessionEntry.elevatedLevel = directives.elevatedLevel;
       elevatedChanged =
         elevatedChanged ||
         (directives.elevatedLevel !== prevElevatedLevel && directives.elevatedLevel !== undefined);
+      sharedPatch.elevatedLevel = directives.elevatedLevel;
     }
     if (directives.hasExecDirective && directives.hasExecOptions && allowInternalExecPersistence) {
       if (directives.execHost) {
-        sessionEntry.execHost = directives.execHost;
+        sharedPatch.execHost = directives.execHost;
       }
       if (directives.execSecurity) {
-        sessionEntry.execSecurity = directives.execSecurity;
+        sharedPatch.execSecurity = directives.execSecurity;
       }
       if (directives.execAsk) {
-        sessionEntry.execAsk = directives.execAsk;
+        sharedPatch.execAsk = directives.execAsk;
       }
       if (directives.execNode) {
-        sessionEntry.execNode = directives.execNode;
+        sharedPatch.execNode = directives.execNode;
+      }
+    }
+    if (Object.keys(sharedPatch).length > 0) {
+      const patched = await applySharedSessionPatch({
+        cfg: params.cfg,
+        sessionEntry,
+        sessionStore,
+        sessionKey,
+        storePath,
+        patch: sharedPatch,
+      });
+      if (!patched.ok) {
+        return { text: `⚠️ Failed to update session defaults: ${patched.error.message}` };
       }
     }
     if (modelSelection) {
@@ -415,32 +426,40 @@ export async function handleDirectiveOnly(
         profileOverride,
       });
       modelSelectionUpdated = applied.updated;
+      directMutationUpdated = directMutationUpdated || applied.updated;
     }
     if (directives.hasQueueDirective && directives.queueReset) {
       delete sessionEntry.queueMode;
       delete sessionEntry.queueDebounceMs;
       delete sessionEntry.queueCap;
       delete sessionEntry.queueDrop;
+      directMutationUpdated = true;
     } else if (directives.hasQueueDirective) {
       if (directives.queueMode) {
         sessionEntry.queueMode = directives.queueMode;
+        directMutationUpdated = true;
       }
       if (typeof directives.debounceMs === "number") {
         sessionEntry.queueDebounceMs = directives.debounceMs;
+        directMutationUpdated = true;
       }
       if (typeof directives.cap === "number") {
         sessionEntry.queueCap = directives.cap;
+        directMutationUpdated = true;
       }
       if (directives.dropPolicy) {
         sessionEntry.queueDrop = directives.dropPolicy;
+        directMutationUpdated = true;
       }
     }
-    sessionEntry.updatedAt = Date.now();
-    sessionStore[sessionKey] = sessionEntry;
-    if (storePath) {
-      await updateSessionStore(storePath, (store) => {
-        store[sessionKey] = sessionEntry;
-      });
+    if (directMutationUpdated) {
+      sessionEntry.updatedAt = Date.now();
+      sessionStore[sessionKey] = sessionEntry;
+      if (storePath) {
+        await updateSessionStore(storePath, (store) => {
+          store[sessionKey] = sessionEntry;
+        });
+      }
     }
     if (modelSelection && modelSelectionUpdated && sessionKey) {
       // `/model` should retarget queued/future work without interrupting the
