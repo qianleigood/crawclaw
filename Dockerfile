@@ -65,6 +65,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY ui/package.json ./ui/package.json
 COPY patches ./patches
 COPY scripts/postinstall-bundled-plugins.mjs scripts/install-plugin-runtimes.mjs scripts/npm-runner.mjs ./scripts/
+COPY extensions/scrapling-fetch/runtime/requirements.lock.txt ./extensions/scrapling-fetch/runtime/requirements.lock.txt
 
 COPY --from=ext-deps /out/ ./${CRAWCLAW_BUNDLED_PLUGIN_DIR}/
 
