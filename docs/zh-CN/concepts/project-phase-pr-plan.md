@@ -21,19 +21,19 @@ title: Phase 对应 PR 计划
 
 以下状态以 `2026-04-16` 的代码和文档为准：
 
-| PR      | 对应 Phase | 当前状态 | 说明                                                                                          |
-| ------- | ---------- | -------- | --------------------------------------------------------------------------------------------- |
-| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                       |
-| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。       |
-| `PR-02` | Phase 2    | `进行中` | 已开始从 workflow controls 下手，先统一 command 与 gateway 的 workflow control 共享 handler。 |
-| `PR-03` | Phase 3    | `未开始` | `src/agents` 子域拆分还没有开工。                                                             |
-| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                      |
-| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                          |
-| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                |
-| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                            |
-| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                |
-| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                     |
-| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                        |
+| PR      | 对应 Phase | 当前状态 | 说明                                                                                                                                    |
+| ------- | ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                                                                 |
+| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。                                                 |
+| `PR-02` | Phase 2    | `进行中` | workflow controls、session patch 和 model selection 的第一批共享 runtime 已落地，剩余 reset / abort / lifecycle 与 memory command API。 |
+| `PR-03` | Phase 3    | `未开始` | `src/agents` 子域拆分还没有开工。                                                                                                       |
+| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                                                                |
+| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                                    |
+| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                                          |
+| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                                      |
+| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                                          |
+| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                                               |
+| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                                  |
 
 ## 总体规则
 
@@ -251,7 +251,7 @@ title: Phase 对应 PR 计划
 
 ### 当前完成情况
 
-状态：`进行中（截至 2026-04-16，第一刀已开始）`
+状态：`进行中（截至 2026-04-16，已推进到 model selection 收口）`
 
 已完成：
 
@@ -269,6 +269,11 @@ title: Phase 对应 PR 计划
 - 已把 inline directive 持久化里的 `verbose / reasoning / elevated / exec` 收口到同一套 session patch 语义：
   - `src/auto-reply/reply/directive-handling.impl.ts`
   - `src/auto-reply/reply/directive-handling.persist.ts`
+- 已把 `model selection` 持久化收口到共享 runtime：
+  - `src/auto-reply/reply/directive-handling.impl.ts`
+  - `src/auto-reply/reply/directive-handling.persist.ts`
+  - `src/auto-reply/reply/session-reset-model.ts`
+  - `src/auto-reply/reply/model-selection.ts`
 - 已补 command session setting 测试：
   - `src/auto-reply/reply/commands-session-settings.test.ts`
 
@@ -280,18 +285,20 @@ title: Phase 对应 PR 计划
 - `pnpm lint src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-session-store.ts src/auto-reply/reply/commands-session-settings.test.ts`
 - `vitest run src/auto-reply/reply/commands-session-settings.test.ts src/auto-reply/reply/directive-handling.model.test.ts src/gateway/sessions-patch.test.ts`
 - `pnpm lint src/auto-reply/reply/session-patch-runtime.ts src/auto-reply/reply/commands-session-store.ts src/auto-reply/reply/directive-handling.persist.ts src/auto-reply/reply/directive-handling.impl.ts src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-session-settings.test.ts`
+- `vitest run src/auto-reply/reply/directive-handling.model.test.ts src/auto-reply/reply/model-selection.test.ts src/auto-reply/reply/session-reset-model.test.ts`
+- `pnpm lint src/auto-reply/reply/session-patch-runtime.ts src/auto-reply/reply/directive-handling.impl.ts src/auto-reply/reply/directive-handling.persist.ts src/auto-reply/reply/model-selection.ts src/auto-reply/reply/session-reset-model.ts`
 
 当前未完成：
 
 - workflow controls 目前只共享了执行层，参数校验与 transport 结果映射还可以继续下沉。
-- `session controls` 目前已收 `/send`、`/usage`、`/fast` 和一批 directive patch 字段，但 `reset / abort / lifecycle` 还没收口。
-- `model selection`、`memory command API` 还未开始收口。
+- `session controls` 目前已收 `/send`、`/usage`、`/fast`、一批 directive patch 字段和 `model selection` 持久化，但 `reset / abort / lifecycle` 还没收口。
+- `memory command API` 还未开始收口。
 
 本 PR 下一步建议：
 
 1. 继续把 workflow control 的参数校验和 domain result 映射抽成更显式的 handler。
 2. 继续把 `session controls` 里剩余的 `reset / abort / lifecycle` 往共享 handler 收。
-3. 然后转入 `model selection`。
+3. 然后转入 `memory command API`。
 
 ## PR-03：Agent Kernel 子域化
 

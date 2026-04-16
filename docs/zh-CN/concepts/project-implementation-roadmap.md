@@ -225,7 +225,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 ### 当前状态
 
-状态：`进行中（截至 2026-04-16，第一刀已开始）`
+状态：`进行中（截至 2026-04-16，已推进到 model selection 收口）`
 
 已完成：
 
@@ -234,12 +234,13 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - 已把 `workflow status / cancel / resume` 的 command 与 gateway 调度接到同一套共享执行路径。
 - 已把 `session controls` 的第一批命令 `/send`、`/usage`、`/fast` 接到共享 session patch 语义，不再直接手改 `sessionEntry`。
 - 已把 inline directive 持久化里的 `verbose / reasoning / elevated / exec` 也接到同一套 shared session patch runtime。
+- 已把 `model selection` 持久化也收口到共享 runtime，覆盖 inline directive、session reset 和无效存储模型回退到默认的路径。
 
 后续紧接着做：
 
 - 继续把 workflow control 的参数校验、domain 结果映射、transport 输出边界再往共享 handler 收。
 - 继续推进 `session controls` 剩余的 `reset / abort / lifecycle`。
-- 然后推进 `model selection`、`memory command API`。
+- 然后推进 `memory command API`。
 
 ### 产出
 

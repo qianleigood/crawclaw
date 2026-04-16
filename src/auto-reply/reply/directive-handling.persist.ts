@@ -10,7 +10,6 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { updateSessionStore } from "../../config/sessions/store.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
-import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import { resolveModelSelectionFromDirective } from "./directive-handling.model-selection.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import {
@@ -19,7 +18,11 @@ import {
   enqueueModeSwitchEvents,
 } from "./directive-handling.shared.js";
 import type { ElevatedLevel, ReasoningLevel } from "./directives.js";
-import { applySharedSessionPatch, type SharedSessionPatch } from "./session-patch-runtime.js";
+import {
+  applySharedModelSelection,
+  applySharedSessionPatch,
+  type SharedSessionPatch,
+} from "./session-patch-runtime.js";
 
 export async function persistInlineDirectives(params: {
   directives: InlineDirectives;
@@ -91,13 +94,14 @@ export async function persistInlineDirectives(params: {
       elevatedAllowed;
     let reasoningChanged =
       directives.hasReasoningDirective && directives.reasoningLevel !== undefined;
-    let updated = false;
+    let directMutationUpdated = false;
+    let modelSelectionUpdated = false;
     let sharedPatchApplied = false;
     const sharedPatch: SharedSessionPatch = {};
 
     if (directives.hasThinkDirective && directives.thinkLevel) {
       sessionEntry.thinkingLevel = directives.thinkLevel;
-      updated = true;
+      directMutationUpdated = true;
     }
     if (
       directives.hasVerboseDirective &&
@@ -176,8 +180,11 @@ export async function persistInlineDirectives(params: {
         provider,
       });
       if (modelResolution.modelSelection) {
-        const { updated: modelUpdated } = applyModelOverrideToSessionEntry({
-          entry: sessionEntry,
+        const { updated: modelUpdated } = await applySharedModelSelection({
+          sessionEntry,
+          sessionStore,
+          sessionKey,
+          storePath,
           selection: modelResolution.modelSelection,
           profileOverride: modelResolution.profileOverride,
         });
@@ -193,7 +200,7 @@ export async function persistInlineDirectives(params: {
             },
           );
         }
-        updated = updated || modelUpdated;
+        modelSelectionUpdated = modelSelectionUpdated || modelUpdated;
       }
     }
     if (directives.hasQueueDirective && directives.queueReset) {
@@ -201,10 +208,10 @@ export async function persistInlineDirectives(params: {
       delete sessionEntry.queueDebounceMs;
       delete sessionEntry.queueCap;
       delete sessionEntry.queueDrop;
-      updated = true;
+      directMutationUpdated = true;
     }
 
-    if (updated) {
+    if (directMutationUpdated) {
       sessionEntry.updatedAt = Date.now();
       sessionStore[sessionKey] = sessionEntry;
       if (storePath) {
@@ -213,7 +220,7 @@ export async function persistInlineDirectives(params: {
         });
       }
     }
-    if (updated || sharedPatchApplied) {
+    if (directMutationUpdated || modelSelectionUpdated || sharedPatchApplied) {
       enqueueModeSwitchEvents({
         enqueueSystemEvent,
         sessionEntry,

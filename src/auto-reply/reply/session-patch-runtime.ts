@@ -4,6 +4,10 @@ import type { SessionEntry } from "../../config/sessions.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import type { ErrorShape, SessionsPatchParams } from "../../gateway/protocol/index.js";
 import { applySessionsPatchToStore } from "../../gateway/sessions-patch.js";
+import {
+  applyModelOverrideToSessionEntry,
+  type ModelOverrideSelection,
+} from "../../sessions/model-overrides.js";
 
 export type SharedSessionPatch = Omit<SessionsPatchParams, "key">;
 
@@ -14,6 +18,35 @@ function replaceSessionEntryContents(target: SessionEntry, source: SessionEntry)
     }
   }
   Object.assign(target, source);
+}
+
+async function persistMutatedSessionEntry(params: {
+  sessionEntry: SessionEntry;
+  sessionStore: Record<string, SessionEntry>;
+  sessionKey: string;
+  storePath?: string;
+  apply: (entry: SessionEntry) => { updated: boolean };
+}): Promise<{ updated: boolean; entry: SessionEntry }> {
+  const applied = params.apply(params.sessionEntry);
+  if (!applied.updated) {
+    return { updated: false, entry: params.sessionEntry };
+  }
+
+  params.sessionStore[params.sessionKey] = params.sessionEntry;
+  if (!params.storePath) {
+    return { updated: true, entry: params.sessionEntry };
+  }
+
+  const persisted = await updateSessionStore(params.storePath, (store) => {
+    const entry = store[params.sessionKey] ?? { ...params.sessionEntry };
+    params.apply(entry);
+    store[params.sessionKey] = entry;
+    return entry;
+  });
+  const finalEntry = persisted ?? params.sessionEntry;
+  replaceSessionEntryContents(params.sessionEntry, finalEntry);
+  params.sessionStore[params.sessionKey] = params.sessionEntry;
+  return { updated: true, entry: params.sessionEntry };
 }
 
 export async function applySharedSessionPatch(params: {
@@ -67,4 +100,33 @@ export async function applySharedSessionPatch(params: {
   replaceSessionEntryContents(sessionEntry, finalEntry);
   sessionStore[sessionKey] = sessionEntry;
   return { ok: true, entry: sessionEntry };
+}
+
+export async function applySharedModelSelection(params: {
+  sessionEntry?: SessionEntry;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+  storePath?: string;
+  selection: ModelOverrideSelection;
+  profileOverride?: string;
+  profileOverrideSource?: "auto" | "user";
+}): Promise<{ updated: boolean; entry?: SessionEntry }> {
+  const { sessionEntry, sessionStore, sessionKey } = params;
+  if (!sessionEntry || !sessionStore || !sessionKey) {
+    return { updated: false, entry: sessionEntry };
+  }
+
+  return await persistMutatedSessionEntry({
+    sessionEntry,
+    sessionStore,
+    sessionKey,
+    storePath: params.storePath,
+    apply: (entry) =>
+      applyModelOverrideToSessionEntry({
+        entry,
+        selection: params.selection,
+        profileOverride: params.profileOverride,
+        profileOverrideSource: params.profileOverrideSource,
+      }),
+  });
 }

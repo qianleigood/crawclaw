@@ -10,7 +10,6 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import type { ExecAsk, ExecHost, ExecSecurity, ExecTarget } from "../../infra/exec-approvals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
-import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import { formatThinkingLevels, formatXHighModelHint, supportsXHighThinking } from "../thinking.js";
 import type { ReplyPayload } from "../types.js";
 import { resolveModelSelectionFromDirective } from "./directive-handling.model-selection.js";
@@ -31,7 +30,11 @@ import {
 } from "./directive-handling.shared.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel } from "./directives.js";
 import { refreshQueuedFollowupSession } from "./queue.js";
-import { applySharedSessionPatch, type SharedSessionPatch } from "./session-patch-runtime.js";
+import {
+  applySharedModelSelection,
+  applySharedSessionPatch,
+  type SharedSessionPatch,
+} from "./session-patch-runtime.js";
 
 function resolveExecDefaults(params: {
   cfg: CrawClawConfig;
@@ -420,13 +423,15 @@ export async function handleDirectiveOnly(
       }
     }
     if (modelSelection) {
-      const applied = applyModelOverrideToSessionEntry({
-        entry: sessionEntry,
+      const applied = await applySharedModelSelection({
+        sessionEntry,
+        sessionStore,
+        sessionKey,
+        storePath,
         selection: modelSelection,
         profileOverride,
       });
       modelSelectionUpdated = applied.updated;
-      directMutationUpdated = directMutationUpdated || applied.updated;
     }
     if (directives.hasQueueDirective && directives.queueReset) {
       delete sessionEntry.queueMode;

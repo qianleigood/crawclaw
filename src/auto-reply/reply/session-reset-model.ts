@@ -8,10 +8,9 @@ import {
 } from "../../agents/model-selection.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import { updateSessionStore } from "../../config/sessions.js";
-import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
 import { resolveModelDirectiveSelection, type ModelDirectiveSelection } from "./model-selection.js";
+import { applySharedModelSelection } from "./session-patch-runtime.js";
 
 type ResetModelResult = {
   selection?: ModelDirectiveSelection;
@@ -57,7 +56,7 @@ function buildSelectionFromExplicit(params: {
   };
 }
 
-function applySelectionToSession(params: {
+async function applySelectionToSession(params: {
   selection: ModelDirectiveSelection;
   sessionEntry?: SessionEntry;
   sessionStore?: Record<string, SessionEntry>;
@@ -65,23 +64,16 @@ function applySelectionToSession(params: {
   storePath?: string;
 }) {
   const { selection, sessionEntry, sessionStore, sessionKey, storePath } = params;
-  if (!sessionEntry || !sessionStore || !sessionKey) {
-    return;
-  }
-  const { updated } = applyModelOverrideToSessionEntry({
-    entry: sessionEntry,
-    selection,
-  });
-  if (!updated) {
-    return;
-  }
-  sessionStore[sessionKey] = sessionEntry;
-  if (storePath) {
-    updateSessionStore(storePath, (store) => {
-      store[sessionKey] = sessionEntry;
-    }).catch(() => {
-      // Ignore persistence errors; session still proceeds.
+  try {
+    await applySharedModelSelection({
+      sessionEntry,
+      sessionStore,
+      sessionKey,
+      storePath,
+      selection,
     });
+  } catch {
+    // Ignore persistence errors; session still proceeds.
   }
 }
 
@@ -189,7 +181,7 @@ export async function applyResetModelOverride(params: {
   params.sessionCtx.BodyStripped = cleanedBody;
   params.sessionCtx.BodyForCommands = cleanedBody;
 
-  applySelectionToSession({
+  await applySelectionToSession({
     selection,
     sessionEntry: params.sessionEntry,
     sessionStore: params.sessionStore,

@@ -17,8 +17,8 @@ import {
 import { resolveSessionParentSessionKey } from "../../channels/plugins/session-conversation.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import type { ThinkLevel } from "./directives.js";
+import { applySharedModelSelection } from "./session-patch-runtime.js";
 
 export type ModelDirectiveSelection = {
   provider: string;
@@ -48,18 +48,10 @@ function shouldLogModelSelectionTiming(): boolean {
 let modelCatalogRuntimePromise:
   | Promise<typeof import("../../agents/model-catalog.runtime.js")>
   | undefined;
-let sessionStoreRuntimePromise:
-  | Promise<typeof import("../../config/sessions/store.runtime.js")>
-  | undefined;
 
 function loadModelCatalogRuntime() {
   modelCatalogRuntimePromise ??= import("../../agents/model-catalog.runtime.js");
   return modelCatalogRuntimePromise;
-}
-
-function loadSessionStoreRuntime() {
-  sessionStoreRuntimePromise ??= import("../../config/sessions/store.runtime.js");
-  return sessionStoreRuntimePromise;
 }
 
 const FUZZY_VARIANT_TOKENS = [
@@ -387,20 +379,13 @@ export async function createModelSelectionState(params: {
       const normalizedOverride = normalizeModelRef(overrideProvider, overrideModel);
       const key = modelKey(normalizedOverride.provider, normalizedOverride.model);
       if (allowedModelKeys.size > 0 && !allowedModelKeys.has(key)) {
-        const { updated } = applyModelOverrideToSessionEntry({
-          entry: sessionEntry,
+        const { updated } = await applySharedModelSelection({
+          sessionEntry,
+          sessionStore,
+          sessionKey,
+          storePath,
           selection: { provider: defaultProvider, model: defaultModel, isDefault: true },
         });
-        if (updated) {
-          sessionStore[sessionKey] = sessionEntry;
-          if (storePath) {
-            await (
-              await loadSessionStoreRuntime()
-            ).updateSessionStore(storePath, (store) => {
-              store[sessionKey] = sessionEntry;
-            });
-          }
-        }
         resetModelOverride = updated;
       }
     }
