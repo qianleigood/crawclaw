@@ -1,10 +1,7 @@
 # 🦞 CrawClaw — Personal AI Assistant
 
 <p align="center">
-    <picture>
-        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/crawclaw-logo-text-dark.svg">
-        <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/crawclaw-logo-text.svg" alt="CrawClaw" width="500">
-    </picture>
+  <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/crawclaw-logo-badge.png" alt="CrawClaw logo" width="360">
 </p>
 
 <p align="center">
@@ -18,10 +15,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**CrawClaw** is a _personal AI assistant_ you run on your own devices.
-It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, BlueBubbles, IRC, Microsoft Teams, Matrix, Feishu, LINE, Mattermost, Nextcloud Talk, Nostr, Synology Chat, Tlon, Twitch, Zalo, Zalo Personal, WeChat, WebChat). It can speak and listen on macOS, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
+**CrawClaw** is a local-first personal AI assistant you run on your own devices.
+It connects the channels you already use, keeps its own always-on gateway, and gives you one control plane for chat, browser automation, tools, cron jobs, nodes, and the Control UI.
 
-If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
+If you want one assistant that feels personal, stateful, self-hosted, and available everywhere you already talk, this is what the project is for.
 
 [GitHub](https://github.com/qianleigood/crawclaw) · [Website](https://crawclaw.ai) · [Docs](https://docs.crawclaw.ai) · [Vision](VISION.md) · [Roadmap](ROADMAP.md) · [Support Matrix](docs/reference/support-matrix.md) · [DeepWiki](https://deepwiki.com/qianleigood/crawclaw) · [Getting Started](https://docs.crawclaw.ai/start/getting-started) · [Updating](https://docs.crawclaw.ai/install/updating) · [FAQ](https://docs.crawclaw.ai/help/faq) · [Discord](https://discord.gg/clawd)
 
