@@ -103,7 +103,7 @@ describe("workflow discord interactive handler", () => {
         clearComponents,
       },
       requestConversationBinding: vi.fn(async () => ({
-        status: "error",
+        status: "error" as const,
         message: "not used",
       })),
       detachConversationBinding: vi.fn(async () => ({ removed: false })),

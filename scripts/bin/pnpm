@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v corepack >/dev/null 2>&1 && corepack pnpm --version >/dev/null 2>&1; then
+  exec corepack pnpm "$@"
+fi
+
+echo "Missing corepack: cannot provide pnpm shim." >&2
+exit 1

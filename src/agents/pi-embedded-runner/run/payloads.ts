@@ -3,6 +3,7 @@ import { hasOutboundReplyContent } from "crawclaw/plugin-sdk/reply-payload";
 import {
   buildToolExecutionVisibilityText,
   resolveExecutionVisibilityMode,
+  type ExecutionVisibilityMode,
 } from "../../../auto-reply/reply/execution-visibility.js";
 import { parseReplyDirectives } from "../../../auto-reply/reply/reply-directives.js";
 import type { ReasoningLevel, VerboseLevel } from "../../../auto-reply/thinking.js";
@@ -108,9 +109,12 @@ function resolveToolErrorWarningPolicy(params: {
 function buildToolFailureSummary(params: {
   toolName: string;
   meta?: string;
-  mode: "summary" | "verbose" | "full";
+  mode: ExecutionVisibilityMode;
 }): string {
   const display = resolveToolDisplay({ name: params.toolName, meta: params.meta });
+  if (params.mode === "off") {
+    return `${display.label} failed`;
+  }
   return (
     buildToolExecutionVisibilityText({
       toolName: params.toolName,

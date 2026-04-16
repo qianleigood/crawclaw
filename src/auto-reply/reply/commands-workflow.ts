@@ -190,38 +190,73 @@ export const handleWorkflowCommand: CommandHandler = async (params, allowTextCom
   const context = buildWorkflowContext(params);
   try {
     const { client, resolved } = requireWorkflowN8nRuntime(params.cfg);
-    const result =
-      parsed.action === "status"
-        ? await readWorkflowExecutionStatus({
-            context,
-            client,
-            n8nBaseUrl: resolved.baseUrl,
-            executionId: parsed.executionId,
-          })
-        : parsed.action === "cancel"
-          ? await cancelWorkflowExecution({
-              context,
-              client,
-              n8nBaseUrl: resolved.baseUrl,
-              executionId: parsed.executionId,
-            })
-          : await resumeWorkflowExecution({
-              context,
-              client,
-              n8nBaseUrl: resolved.baseUrl,
-              executionId: parsed.executionId,
-              input: parsed.input,
-              actorLabel: "chat command",
-            });
+    if (parsed.action === "status") {
+      const result = await readWorkflowExecutionStatus({
+        context,
+        client,
+        n8nBaseUrl: resolved.baseUrl,
+        executionId: parsed.executionId,
+      });
+      return {
+        shouldContinue: false,
+        reply: {
+          text: buildWorkflowReplyText({
+            action: parsed.action,
+            execution: result.execution,
+            errorMessage: result.localExecution?.errorMessage,
+          }),
+          channelData: buildWorkflowReplyChannelData({
+            surface: params.ctx.Surface ?? params.ctx.Provider,
+            execution: result.execution,
+            workspaceDir: params.workspaceDir,
+            agentDir: params.agentDir,
+          }),
+        },
+      };
+    }
 
+    if (parsed.action === "cancel") {
+      const result = await cancelWorkflowExecution({
+        context,
+        client,
+        n8nBaseUrl: resolved.baseUrl,
+        executionId: parsed.executionId,
+      });
+      return {
+        shouldContinue: false,
+        reply: {
+          text: buildWorkflowReplyText({
+            action: parsed.action,
+            execution: result.execution,
+            errorMessage: result.localExecution?.errorMessage,
+          }),
+          channelData: buildWorkflowReplyChannelData({
+            surface: params.ctx.Surface ?? params.ctx.Provider,
+            execution: result.execution,
+            workspaceDir: params.workspaceDir,
+            agentDir: params.agentDir,
+          }),
+        },
+      };
+    }
+
+    const resumeInput = parsed.action === "resume" ? parsed.input : undefined;
+    const result = await resumeWorkflowExecution({
+      context,
+      client,
+      n8nBaseUrl: resolved.baseUrl,
+      executionId: parsed.executionId,
+      input: resumeInput,
+      actorLabel: "chat command",
+    });
     return {
       shouldContinue: false,
       reply: {
         text: buildWorkflowReplyText({
-          action: parsed.action,
+          action: "resume",
           execution: result.execution,
           errorMessage: result.localExecution?.errorMessage,
-          ...("resumeAccepted" in result ? { resumeAccepted: result.resumeAccepted } : {}),
+          resumeAccepted: result.resumeAccepted,
         }),
         channelData: buildWorkflowReplyChannelData({
           surface: params.ctx.Surface ?? params.ctx.Provider,

@@ -5,6 +5,20 @@ set -euo pipefail
 ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 RUN_NODE_TOOL="$ROOT_DIR/scripts/pre-commit/run-node-tool.sh"
 FILTER_FILES="$ROOT_DIR/scripts/pre-commit/filter-staged-files.mjs"
+COREPACK_PNPM_SHIM_DIR="$ROOT_DIR/scripts/bin"
+
+run_pnpm() {
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm "$@"
+    return
+  fi
+  if command -v corepack >/dev/null 2>&1 && corepack pnpm --version >/dev/null 2>&1; then
+    PATH="$COREPACK_PNPM_SHIM_DIR:$PATH" corepack pnpm "$@"
+    return
+  fi
+  echo "Missing pnpm: install pnpm or enable it via corepack." >&2
+  exit 1
+}
 
 if [[ ! -x "$RUN_NODE_TOOL" ]]; then
   echo "Missing helper: $RUN_NODE_TOOL" >&2
@@ -73,7 +87,7 @@ if [[ -f "$ROOT_DIR/package.json" ]] && [[ -f "$ROOT_DIR/pnpm-lock.yaml" ]]; the
       if [[ "$docs_only" == true ]]; then
         echo "Docs-only staged changes detected: skipping pnpm check in pre-commit hook."
       else
-        pnpm check
+        run_pnpm check
       fi
       ;;
   esac
