@@ -1769,58 +1769,6 @@
       "hasChildren": false
     },
     {
-      "path": "agents.defaults.imageGenerationModel",
-      "kind": "core",
-      "type": [
-        "object",
-        "string"
-      ],
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.imageGenerationModel.fallbacks",
-      "kind": "core",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "media",
-        "reliability"
-      ],
-      "label": "Image Generation Model Fallbacks",
-      "help": "Ordered fallback image-generation models (provider/model).",
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.imageGenerationModel.fallbacks.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.imageGenerationModel.primary",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "media"
-      ],
-      "label": "Image Generation Model",
-      "help": "Optional image-generation model (provider/model) used by the shared image generation capability.",
-      "hasChildren": false
-    },
-    {
       "path": "agents.defaults.imageMaxDimensionPx",
       "kind": "core",
       "type": "integer",
@@ -8382,20 +8330,6 @@
       "hasChildren": true
     },
     {
-      "path": "browser.attachOnly",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Browser Attach-only Mode",
-      "help": "Restricts browser mode to attach-only behavior without starting local browser processes. Use this when all browser sessions are externally managed by a remote CDP provider.",
-      "hasChildren": false
-    },
-    {
       "path": "browser.cdpPortRangeStart",
       "kind": "core",
       "type": "integer",
@@ -8420,7 +8354,7 @@
         "advanced"
       ],
       "label": "Browser CDP URL",
-      "help": "Remote CDP websocket URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep URL access restricted to trusted network paths.",
+      "help": "Remote CDP URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep access restricted to trusted network paths.",
       "hasChildren": false
     },
     {
@@ -8552,7 +8486,7 @@
         "storage"
       ],
       "label": "Browser Profiles",
-      "help": "Named browser profile connection map used for explicit routing to CDP ports or URLs with optional metadata. Keep profile names consistent and avoid overlapping endpoint definitions.",
+      "help": "Named managed browser profiles used for explicit routing and visual identity. Keep profile names consistent and avoid overlapping endpoint definitions.",
       "hasChildren": true
     },
     {
@@ -8566,20 +8500,6 @@
       "hasChildren": true
     },
     {
-      "path": "browser.profiles.*.attachOnly",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Browser Profile Attach-only Mode",
-      "help": "Per-profile attach-only override that skips local browser launch and only attaches to an existing CDP endpoint. Useful when one profile is externally managed but others are locally launched.",
-      "hasChildren": false
-    },
-    {
       "path": "browser.profiles.*.cdpPort",
       "kind": "core",
       "type": "integer",
@@ -8590,7 +8510,7 @@
         "storage"
       ],
       "label": "Browser Profile CDP Port",
-      "help": "Per-profile local CDP port used when connecting to browser instances by port instead of URL. Use unique ports per profile to avoid connection collisions.",
+      "help": "Per-profile local CDP port allocated for the managed browser profile. Use unique ports per profile to avoid connection collisions.",
       "hasChildren": false
     },
     {
@@ -8604,7 +8524,7 @@
         "storage"
       ],
       "label": "Browser Profile CDP URL",
-      "help": "Per-profile CDP websocket URL used for explicit remote browser routing by profile name. Use this when profile connections terminate on remote hosts or tunnels.",
+      "help": "Per-profile CDP URL used for explicit remote browser routing by profile name. Use this when profile connections terminate on remote hosts or tunnels.",
       "hasChildren": false
     },
     {
@@ -8619,34 +8539,6 @@
       ],
       "label": "Browser Profile Accent Color",
       "help": "Per-profile accent color for visual differentiation in dashboards and browser-related UI hints. Use distinct colors for high-signal operator recognition of active profiles.",
-      "hasChildren": false
-    },
-    {
-      "path": "browser.profiles.*.driver",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Browser Profile Driver",
-      "help": "Per-profile browser driver mode. Use \"crawclaw\" (or legacy \"clawd\") for CDP-based profiles, or use \"existing-session\" for host-local Chrome DevTools MCP attachment.",
-      "hasChildren": false
-    },
-    {
-      "path": "browser.profiles.*.userDataDir",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Browser Profile User Data Dir",
-      "help": "Per-profile Chromium user data directory for existing-session attachment through Chrome DevTools MCP. Use this for host-local Brave, Edge, Chromium, or non-default Chrome profiles when the built-in auto-connect path would pick the wrong browser data directory.",
       "hasChildren": false
     },
     {
@@ -10415,6 +10307,21 @@
       "kind": "channel",
       "type": "boolean",
       "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.discord.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
       "deprecated": false,
       "sensitive": false,
       "tags": [],
@@ -12868,6 +12775,21 @@
       ],
       "label": "Discord Config Writes",
       "help": "Allow Discord to write config in response to channel events/commands (default: true).",
+      "hasChildren": false
+    },
+    {
+      "path": "channels.discord.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
       "hasChildren": false
     },
     {
@@ -18533,6 +18455,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.imessage.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.imessage.accounts.*.dbPath",
       "kind": "channel",
       "type": "string",
@@ -19193,6 +19130,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.imessage.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.imessage.dbPath",
       "kind": "channel",
       "type": "string",
@@ -19846,6 +19798,21 @@
       "enumValues": [
         "length",
         "newline"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.irc.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
       ],
       "deprecated": false,
       "sensitive": false,
@@ -20568,6 +20535,21 @@
       "enumValues": [
         "length",
         "newline"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.irc.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
       ],
       "deprecated": false,
       "sensitive": false,
@@ -22255,6 +22237,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.matrix.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.matrix.defaultAccount",
       "kind": "channel",
       "type": "string",
@@ -22373,6 +22370,104 @@
       "kind": "channel",
       "type": "boolean",
       "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.matrix.execApprovals",
+      "kind": "channel",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "channels.matrix.execApprovals.agentFilter",
+      "kind": "channel",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "channels.matrix.execApprovals.agentFilter.*",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.matrix.execApprovals.approvers",
+      "kind": "channel",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "channels.matrix.execApprovals.approvers.*",
+      "kind": "channel",
+      "type": [
+        "number",
+        "string"
+      ],
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.matrix.execApprovals.enabled",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.matrix.execApprovals.sessionFilter",
+      "kind": "channel",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "channels.matrix.execApprovals.sessionFilter.*",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.matrix.execApprovals.target",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "dm",
+        "channel",
+        "both"
+      ],
       "deprecated": false,
       "sensitive": false,
       "tags": [],
@@ -24461,6 +24556,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.msteams.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.msteams.dangerouslyAllowNameMatching",
       "kind": "channel",
       "type": "boolean",
@@ -25553,6 +25663,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.nextcloud-talk.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.nextcloud-talk.accounts.*.dmHistoryLimit",
       "kind": "channel",
       "type": "integer",
@@ -26161,6 +26286,21 @@
       "enumValues": [
         "length",
         "newline"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.nextcloud-talk.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
       ],
       "deprecated": false,
       "sensitive": false,
@@ -27784,6 +27924,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.signal.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.signal.accounts.*.defaultTo",
       "kind": "channel",
       "type": "string",
@@ -27918,6 +28073,16 @@
       "sensitive": false,
       "tags": [],
       "hasChildren": true
+    },
+    {
+      "path": "channels.signal.accounts.*.groups.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
     },
     {
       "path": "channels.signal.accounts.*.groups.*.requireMention",
@@ -28523,6 +28688,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.signal.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.signal.defaultAccount",
       "kind": "channel",
       "type": "string",
@@ -28673,6 +28853,16 @@
       "sensitive": false,
       "tags": [],
       "hasChildren": true
+    },
+    {
+      "path": "channels.signal.groups.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
     },
     {
       "path": "channels.signal.groups.*.requireMention",
@@ -29770,6 +29960,21 @@
       "kind": "channel",
       "type": "boolean",
       "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.slack.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
       "deprecated": false,
       "sensitive": false,
       "tags": [],
@@ -31256,6 +31461,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.slack.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.slack.dangerouslyAllowNameMatching",
       "kind": "channel",
       "type": "boolean",
@@ -32610,6 +32830,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.telegram.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.telegram.accounts.*.customCommands",
       "kind": "channel",
       "type": "array",
@@ -33093,6 +33328,16 @@
       "hasChildren": false
     },
     {
+      "path": "channels.telegram.accounts.*.direct.*.topics.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.telegram.accounts.*.direct.*.topics.*.requireMention",
       "kind": "channel",
       "type": "boolean",
@@ -33505,6 +33750,16 @@
       "hasChildren": false
     },
     {
+      "path": "channels.telegram.accounts.*.groups.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.telegram.accounts.*.groups.*.requireMention",
       "kind": "channel",
       "type": "boolean",
@@ -33802,6 +34057,16 @@
         "disabled",
         "allowlist"
       ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.telegram.accounts.*.groups.*.topics.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
       "deprecated": false,
       "sensitive": false,
       "tags": [],
@@ -34757,6 +35022,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.telegram.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.telegram.customCommands",
       "kind": "channel",
       "type": "array",
@@ -35255,6 +35535,16 @@
       "hasChildren": false
     },
     {
+      "path": "channels.telegram.direct.*.topics.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.telegram.direct.*.topics.*.requireMention",
       "kind": "channel",
       "type": "boolean",
@@ -35704,6 +35994,16 @@
       "hasChildren": false
     },
     {
+      "path": "channels.telegram.groups.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.telegram.groups.*.requireMention",
       "kind": "channel",
       "type": "boolean",
@@ -36001,6 +36301,16 @@
         "disabled",
         "allowlist"
       ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.telegram.groups.*.topics.*.ingest",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
       "deprecated": false,
       "sensitive": false,
       "tags": [],
@@ -37663,6 +37973,21 @@
       "hasChildren": false
     },
     {
+      "path": "channels.whatsapp.accounts.*.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "channels.whatsapp.accounts.*.debounceMs",
       "kind": "channel",
       "type": "integer",
@@ -38352,6 +38677,21 @@
       ],
       "label": "WhatsApp Config Writes",
       "help": "Allow WhatsApp to write config in response to channel events/commands (default: true).",
+      "hasChildren": false
+    },
+    {
+      "path": "channels.whatsapp.contextVisibility",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "all",
+        "allowlist",
+        "allowlist_quote"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
       "hasChildren": false
     },
     {
@@ -44590,6 +44930,207 @@
       "hasChildren": false
     },
     {
+      "path": "memory.contextArchive",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "memory.contextArchive.compress",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.contextArchive.enabled",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.contextArchive.maxBlobBytes",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.contextArchive.maxTotalBytes",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.contextArchive.mode",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.contextArchive.redactSecrets",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.contextArchive.retentionDays",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.contextArchive.rootDir",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.dreaming",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "memory.dreaming.*",
+      "kind": "core",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.dreaming.enabled",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.dreaming.lockStaleAfterMs",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.dreaming.minHours",
+      "kind": "core",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.dreaming.minSessions",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.dreaming.scanThrottleMs",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.durableExtraction",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "memory.durableExtraction.*",
+      "kind": "core",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "memory.notebooklm",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "storage"
+      ],
+      "label": "NotebookLM Memory Runtime",
+      "help": "Configures NotebookLM-backed knowledge recall for the built-in memory runtime. Prompt-facing knowledge retrieval uses NotebookLM only.",
+      "hasChildren": true
+    },
+    {
+      "path": "memory.notebooklm.*",
+      "kind": "core",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
       "path": "memory.qmd",
       "kind": "core",
       "type": "object",
@@ -45117,6 +45658,25 @@
       ],
       "label": "QMD Wait for Boot Sync",
       "help": "Blocks startup completion until the initial boot-time QMD sync finishes (default: false). Enable when you need fully up-to-date recall before serving traffic, and keep off for faster boot.",
+      "hasChildren": false
+    },
+    {
+      "path": "memory.sessionSummary",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "memory.sessionSummary.*",
+      "kind": "core",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
       "hasChildren": false
     },
     {
@@ -47033,7 +47593,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -47365,7 +47925,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -47545,7 +48105,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -47680,7 +48240,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -47787,7 +48347,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -47908,7 +48468,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48075,7 +48635,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48196,7 +48756,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48317,7 +48877,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48438,7 +48998,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48559,7 +49119,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48680,7 +49240,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48801,7 +49361,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -48922,7 +49482,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -49057,7 +49617,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -49178,7 +49738,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -49648,7 +50208,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -49769,7 +50329,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -49933,7 +50493,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -50054,7 +50614,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -50203,7 +50763,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -50324,7 +50884,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -50394,6 +50954,183 @@
       "hasChildren": true
     },
     {
+      "path": "plugins.entries.feishu-cli",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "feishu-cli",
+      "help": "Plugin entry for feishu-cli.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.feishu-cli.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "feishu-cli Config",
+      "help": "Plugin-defined config payload for feishu-cli.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.feishu-cli.config.command",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "lark-cli command",
+      "help": "Executable used for user-identity Feishu actions.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.feishu-cli.config.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable Feishu CLI user tools",
+      "help": "Uses the official lark-cli with user identity. Separate from the Feishu bot/channel plugin.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.feishu-cli.config.profile",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "storage"
+      ],
+      "label": "CLI profile",
+      "help": "Optional lark-cli profile name for user auth context.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.feishu-cli.config.timeoutMs",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "performance"
+      ],
+      "label": "Command timeout (ms)",
+      "help": "Timeout used for lark-cli status and tool calls.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.feishu-cli.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable feishu-cli",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.feishu-cli.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.feishu-cli.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.feishu-cli.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.feishu-cli.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.feishu-cli.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.feishu-cli.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
       "path": "plugins.entries.feishu.config",
       "kind": "plugin",
       "type": "object",
@@ -50445,7 +51182,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -50488,243 +51225,6 @@
     },
     {
       "path": "plugins.entries.feishu.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/firecrawl-plugin",
-      "help": "CrawClaw Firecrawl plugin (plugin: firecrawl)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.firecrawl.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/firecrawl-plugin Config",
-      "help": "Plugin-defined config payload for firecrawl.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webFetch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webFetch.apiKey",
-      "kind": "plugin",
-      "type": [
-        "object",
-        "string"
-      ],
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security"
-      ],
-      "label": "Firecrawl Fetch API Key",
-      "help": "Firecrawl API key for web fetch fallback (fallback: FIRECRAWL_API_KEY env var).",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webFetch.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "url-secret"
-      ],
-      "label": "Firecrawl Fetch Base URL",
-      "help": "Firecrawl Fetch base URL override.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webFetch.maxAgeMs",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webFetch.onlyMainContent",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webFetch.timeoutSeconds",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webSearch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webSearch.apiKey",
-      "kind": "plugin",
-      "type": [
-        "object",
-        "string"
-      ],
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security"
-      ],
-      "label": "Firecrawl Search API Key",
-      "help": "Firecrawl API key for web search (fallback: FIRECRAWL_API_KEY env var).",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.config.webSearch.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "url-secret"
-      ],
-      "label": "Firecrawl Search Base URL",
-      "help": "Firecrawl Search base URL override.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/firecrawl-plugin",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.firecrawl.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.firecrawl.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.firecrawl.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.firecrawl.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -50803,7 +51303,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -50966,7 +51466,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51087,7 +51587,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51208,7 +51708,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51329,7 +51829,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51450,7 +51950,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51571,7 +52071,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51692,7 +52192,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51813,7 +52313,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -51934,7 +52434,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -52055,7 +52555,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -52246,7 +52746,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -52367,7 +52867,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -52488,7 +52988,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -52609,7 +53109,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -52652,378 +53152,6 @@
     },
     {
       "path": "plugins.entries.mattermost.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-core",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/memory-core",
-      "help": "CrawClaw core memory search plugin (plugin: memory-core)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-core.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/memory-core Config",
-      "help": "Plugin-defined config payload for memory-core.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-core.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/memory-core",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-core.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-core.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-core.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-core.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-core.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-core.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "@crawclaw/memory-lancedb",
-      "help": "CrawClaw LanceDB-backed long-term memory plugin with auto-recall/capture (plugin: memory-lancedb)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "@crawclaw/memory-lancedb Config",
-      "help": "Plugin-defined config payload for memory-lancedb.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.autoCapture",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Auto-Capture",
-      "help": "Automatically capture important information from conversations",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.autoRecall",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Auto-Recall",
-      "help": "Automatically inject relevant memories into context",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.captureMaxChars",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "performance",
-        "storage"
-      ],
-      "label": "Capture Max Chars",
-      "help": "Maximum message length eligible for auto-capture",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.dbPath",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "storage"
-      ],
-      "label": "Database Path",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.embedding",
-      "kind": "plugin",
-      "type": "object",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.embedding.apiKey",
-      "kind": "plugin",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security",
-        "storage"
-      ],
-      "label": "OpenAI API Key",
-      "help": "API key for OpenAI embeddings (or use ${OPENAI_API_KEY})",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.embedding.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "storage",
-        "url-secret"
-      ],
-      "label": "Base URL",
-      "help": "Base URL for compatible providers (e.g. http://localhost:11434/v1)",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.embedding.dimensions",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "storage"
-      ],
-      "label": "Dimensions",
-      "help": "Vector dimensions for custom models (required for non-standard models)",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.config.embedding.model",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "models",
-        "storage"
-      ],
-      "label": "Embedding Model",
-      "help": "OpenAI embedding model to use",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Enable @crawclaw/memory-lancedb",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.memory-lancedb.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -53116,7 +53244,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -53223,7 +53351,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -53344,7 +53472,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -53465,7 +53593,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -53586,7 +53714,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -53764,7 +53892,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -53885,7 +54013,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54006,7 +54134,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54127,7 +54255,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54248,7 +54376,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54369,7 +54497,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54490,7 +54618,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54533,6 +54661,211 @@
     },
     {
       "path": "plugins.entries.open-prose.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/open-websearch-plugin",
+      "help": "CrawClaw Open-WebSearch plugin (plugin: open-websearch)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.open-websearch.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/open-websearch-plugin Config",
+      "help": "Plugin-defined config payload for open-websearch.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.open-websearch.config.webSearch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.open-websearch.config.webSearch.autoStart",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Auto-start managed daemon",
+      "help": "Start and keep the bundled open-websearch daemon running with gateway startup.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.config.webSearch.baseUrl",
+      "kind": "plugin",
+      "type": [
+        "object",
+        "string"
+      ],
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced",
+        "url-secret"
+      ],
+      "label": "Open-WebSearch Base URL",
+      "help": "Optional override for the managed local daemon URL, such as http://127.0.0.1:3210.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.config.webSearch.host",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Managed daemon host",
+      "help": "Loopback host used for the managed open-websearch daemon.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.config.webSearch.port",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Managed daemon port",
+      "help": "Loopback port used for the managed open-websearch daemon.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.config.webSearch.startupTimeoutMs",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "performance"
+      ],
+      "label": "Managed daemon startup timeout",
+      "help": "How long CrawClaw waits for the managed open-websearch daemon to become ready.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @crawclaw/open-websearch-plugin",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.open-websearch.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.open-websearch.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.open-websearch.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.open-websearch.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -54611,7 +54944,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54746,7 +55079,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54853,7 +55186,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -54974,7 +55307,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -55280,7 +55613,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -55458,7 +55791,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -55579,7 +55912,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -55700,7 +56033,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56027,7 +56360,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56070,6 +56403,348 @@
     },
     {
       "path": "plugins.entries.qqbot.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/scrapling-fetch-plugin",
+      "help": "CrawClaw Scrapling web fetch plugin (plugin: scrapling-fetch)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/scrapling-fetch-plugin Config",
+      "help": "Plugin-defined config payload for scrapling-fetch.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.args",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.args.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.baseUrl",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced",
+        "url-secret"
+      ],
+      "label": "Scrapling Service Base URL",
+      "help": "Base URL for the managed Scrapling Python/HTTP sidecar service.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.bootstrap",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Managed Scrapling Bootstrap",
+      "help": "Create and maintain a plugin-owned Python virtual environment before starting the sidecar.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.bootstrapPackages",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Managed Scrapling Packages",
+      "help": "Pinned Python packages installed into the managed Scrapling virtual environment.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.bootstrapPackages.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.command",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Scrapling Service Command",
+      "help": "Command used to launch the Scrapling Python service.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.fetchPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "storage"
+      ],
+      "label": "Scrapling Service Fetch Path",
+      "help": "HTTP path served by the Scrapling sidecar fetch endpoint.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.healthcheckPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.mode",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "python-http"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.service.startupTimeoutMs",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "performance"
+      ],
+      "label": "Scrapling Service Startup Timeout",
+      "help": "How long CrawClaw should wait for the Scrapling service to become ready.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.webFetch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+      "kind": "plugin",
+      "type": [
+        "object",
+        "string"
+      ],
+      "required": false,
+      "deprecated": false,
+      "sensitive": true,
+      "tags": [
+        "auth",
+        "security"
+      ],
+      "label": "Scrapling Fetch API Key",
+      "help": "Reserved for optional Scrapling HTTP service auth. Phase 2 keeps the field for compatibility.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.webFetch.baseUrl",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced",
+        "url-secret"
+      ],
+      "label": "Scrapling Fetch Base URL",
+      "help": "Override the base URL used by the Scrapling fetch client.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.webFetch.onlyMainContent",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.config.webFetch.timeoutSeconds",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @crawclaw/scrapling-fetch-plugin",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.scrapling-fetch.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -56204,7 +56879,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56325,7 +57000,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56446,7 +57121,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56567,7 +57242,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56688,7 +57363,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56809,7 +57484,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56930,7 +57605,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -56973,170 +57648,6 @@
     },
     {
       "path": "plugins.entries.talk-voice.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.tavily",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/tavily-plugin",
-      "help": "CrawClaw Tavily plugin (plugin: tavily)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.tavily.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/tavily-plugin Config",
-      "help": "Plugin-defined config payload for tavily.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.tavily.config.webSearch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.tavily.config.webSearch.apiKey",
-      "kind": "plugin",
-      "type": [
-        "object",
-        "string"
-      ],
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security"
-      ],
-      "label": "Tavily API Key",
-      "help": "Tavily API key for web search and extraction (fallback: TAVILY_API_KEY env var).",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.tavily.config.webSearch.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "url-secret"
-      ],
-      "label": "Tavily Base URL",
-      "help": "Tavily API base URL override.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.tavily.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/tavily-plugin",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.tavily.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.tavily.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.tavily.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.tavily.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.tavily.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.tavily.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -57215,7 +57726,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -57374,7 +57885,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -57495,7 +58006,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -57616,7 +58127,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -57737,7 +58248,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -57858,7 +58369,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -57979,7 +58490,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -58100,7 +58611,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -59728,7 +60239,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -59849,7 +60360,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -59970,7 +60481,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -60308,7 +60819,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -60429,7 +60940,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -60550,7 +61061,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -60671,7 +61182,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -60792,7 +61303,7 @@
         "access"
       ],
       "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -61170,22 +61681,8 @@
         "advanced"
       ],
       "label": "Plugin Slots",
-      "help": "Selects which plugins own exclusive runtime slots such as memory so only one plugin provides that capability. Use explicit slot ownership to avoid overlapping providers with conflicting behavior.",
+      "help": "Selects which plugins own exclusive runtime slots such as the memory slot so only one plugin provides that capability. Use explicit slot ownership to avoid overlapping providers with conflicting behavior.",
       "hasChildren": true
-    },
-    {
-      "path": "plugins.slots.contextEngine",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Context Engine Plugin",
-      "help": "Selects the active context engine plugin by id so one plugin provides context orchestration behavior.",
-      "hasChildren": false
     },
     {
       "path": "plugins.slots.memory",
@@ -61194,11 +61691,7 @@
       "required": false,
       "deprecated": false,
       "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Memory Plugin",
-      "help": "Select the active memory plugin by id, or \"none\" to disable memory plugins.",
+      "tags": [],
       "hasChildren": false
     },
     {
@@ -66874,116 +67367,6 @@
       ],
       "label": "Enable Web Fetch Tool",
       "help": "Enable the web_fetch tool (lightweight HTTP fetch).",
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.apiKey",
-      "kind": "core",
-      "type": [
-        "object",
-        "string"
-      ],
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security",
-        "tools"
-      ],
-      "hasChildren": true
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.apiKey.id",
-      "kind": "core",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.apiKey.provider",
-      "kind": "core",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.apiKey.source",
-      "kind": "core",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.baseUrl",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "tools",
-        "url-secret"
-      ],
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.enabled",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.maxAgeMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.onlyMainContent",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.fetch.firecrawl.timeoutSeconds",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
       "hasChildren": false
     },
     {

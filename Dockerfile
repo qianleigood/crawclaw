@@ -71,7 +71,11 @@ COPY --from=ext-deps /out/ ./${CRAWCLAW_BUNDLED_PLUGIN_DIR}/
 
 # Reduce OOM risk on low-memory hosts during dependency installation.
 # Docker builds on small VMs may otherwise fail with "Killed" (exit 137).
+# Skip runtime postinstall here: build-stage runtimes are not copied into the
+# final image, and baking them during pnpm install makes Docker release depend
+# on optional host/runtime tooling such as python3-venv.
 RUN --mount=type=cache,id=crawclaw-pnpm-store,target=/root/.local/share/pnpm/store,sharing=locked \
+    CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL=1 \
     NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile
 
 COPY . .
