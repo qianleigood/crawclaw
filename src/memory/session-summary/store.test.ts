@@ -3,6 +3,9 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import {
+  SESSION_SUMMARY_READ_CACHE_DESCRIPTOR,
+  clearSessionSummaryReadCache,
+  getSessionSummaryReadCacheMeta,
   ensureSessionSummaryFile,
   resolveSessionSummaryPath,
   readSessionSummaryFile,
@@ -17,6 +20,10 @@ afterEach(async () => {
 });
 
 describe("session summary store", () => {
+  afterEach(() => {
+    clearSessionSummaryReadCache();
+  });
+
   it("renders a Claude-style summary template", () => {
     const template = renderSessionSummaryTemplate();
     expect(template).toContain("# Session Title");
@@ -146,5 +153,31 @@ describe("session summary store", () => {
     expect(updated.content).toContain("Version B");
     expect(readFileSpy).toHaveBeenCalledTimes(0);
     readFileSpy.mockRestore();
+  });
+
+  it("clears cached summary snapshots explicitly and exposes cache meta", async () => {
+    const rootDir = await tempDirs.make("session-summary-store-cache-clear-");
+    const sessionId = "session-cache-3";
+
+    const written = await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId,
+      rootDir,
+      content: "# Session Title\n\nCache clear\n",
+    });
+    await readSessionSummaryFile({ agentId: "main", sessionId, rootDir });
+
+    expect(getSessionSummaryReadCacheMeta()).toEqual({ size: 1 });
+
+    clearSessionSummaryReadCache(written.summaryPath);
+    expect(getSessionSummaryReadCacheMeta()).toEqual({ size: 0 });
+  });
+
+  it("publishes explicit governance metadata", () => {
+    expect(SESSION_SUMMARY_READ_CACHE_DESCRIPTOR.category).toBe("file_ui");
+    expect(SESSION_SUMMARY_READ_CACHE_DESCRIPTOR.owner).toContain("session-summary");
+    expect(SESSION_SUMMARY_READ_CACHE_DESCRIPTOR.invalidation).toContain(
+      "clearSessionSummaryReadCache(summaryPath?) clears one or all entries",
+    );
   });
 });

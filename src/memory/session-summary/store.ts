@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { CacheGovernanceDescriptor } from "../../cache/governance-types.js";
 import { resolveStateDir } from "../../config/paths.ts";
 import { writeTextAtomic } from "../../infra/json-files.ts";
 import { normalizeAgentId } from "../../routing/session-key.ts";
@@ -30,6 +31,22 @@ type SessionSummaryReadCacheEntry = {
 };
 
 const sessionSummaryReadCache = new Map<string, SessionSummaryReadCacheEntry>();
+
+export const SESSION_SUMMARY_READ_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "memory.session-summary.read-cache",
+  module: "src/memory/session-summary/store.ts",
+  category: "file_ui",
+  owner: "memory/session-summary",
+  key: "summaryPath + file mtimeMs + bytes",
+  lifecycle:
+    "Process-local read-through cache for session summary markdown snapshots retained until file mutation, file disappearance, explicit clear, or process restart.",
+  invalidation: [
+    "writeSessionSummaryFile(...) refreshes the cached snapshot",
+    "Missing files remove the cached entry",
+    "clearSessionSummaryReadCache(summaryPath?) clears one or all entries",
+  ],
+  observability: ["getSessionSummaryReadCacheMeta()", "SessionSummaryFileSnapshot.updatedAt"],
+};
 
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -243,4 +260,20 @@ export function renderSessionSummaryMarkdown(
   document: SessionSummaryDocument | null | undefined,
 ): string {
   return renderSessionSummaryDocument(document);
+}
+
+export function clearSessionSummaryReadCache(summaryPath?: string): void {
+  if (typeof summaryPath === "string" && summaryPath.trim()) {
+    sessionSummaryReadCache.delete(summaryPath);
+    return;
+  }
+  sessionSummaryReadCache.clear();
+}
+
+export function getSessionSummaryReadCacheMeta(): {
+  size: number;
+} {
+  return {
+    size: sessionSummaryReadCache.size,
+  };
 }

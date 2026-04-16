@@ -7,6 +7,7 @@ import {
   resolveModelRefFromString,
   type ModelRef,
 } from "../agents/model-selection.js";
+import type { CacheGovernanceDescriptor } from "../cache/governance-types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolvePluginWebSearchConfig } from "../config/legacy-web-search.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
@@ -53,6 +54,22 @@ const WRAPPER_PROVIDERS = new Set([
   "vercel-ai-gateway",
 ]);
 const log = createSubsystemLogger("gateway").child("model-pricing");
+
+export const GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "gateway.model-pricing",
+  module: "src/gateway/model-pricing-cache.ts",
+  category: "plugin_routing_control_plane",
+  owner: "gateway/model-pricing",
+  key: "normalized provider/model ref",
+  lifecycle:
+    "Process-local OpenRouter pricing cache refreshed on demand and retained until TTL refresh, explicit reset, or process restart.",
+  invalidation: [
+    "refreshGatewayModelPricingCache(...) replaces the cached catalog",
+    "startGatewayModelPricingRefresh(...) schedules TTL refresh",
+    "__resetGatewayModelPricingCacheForTest() clears cache and timers",
+  ],
+  observability: ["getGatewayModelPricingCacheMeta()", "gateway:model-pricing subsystem logger"],
+};
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let inFlightRefresh: Promise<void> | null = null;

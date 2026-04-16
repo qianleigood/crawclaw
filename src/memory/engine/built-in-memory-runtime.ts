@@ -1,4 +1,5 @@
 import { createContextArchiveService } from "../../agents/context-archive/service.js";
+import type { CacheGovernanceDescriptor } from "../../cache/governance-types.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeSecretInputString } from "../../config/types.secrets.js";
 import { resolveMemoryConfig } from "../config/resolve.js";
@@ -24,6 +25,21 @@ type RuntimeBootstrapOverrides = {
 };
 
 let cachedBootstrapPromise: Promise<RuntimeBootstrap | undefined> | null = null;
+
+export const BUILT_IN_MEMORY_RUNTIME_BOOTSTRAP_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "memory.engine.built-in-runtime-bootstrap",
+  module: "src/memory/engine/built-in-memory-runtime.ts",
+  category: "runtime_ttl",
+  owner: "memory/engine",
+  key: "singleton bootstrap promise for static built-in memory runtime config",
+  lifecycle:
+    "Process-local bootstrap cache retained until explicit reset, dynamic override bypass, or process restart.",
+  invalidation: [
+    "Dynamic overrides with llm/complete bypass the shared cache",
+    "resetConfiguredBuiltInMemoryRuntimeCache() clears the shared bootstrap promise",
+  ],
+  observability: ["getBuiltInMemoryRuntimeBootstrapCacheMeta()"],
+};
 
 function resolveRawMemoryConfig(config?: CrawClawConfig): unknown {
   const notebooklm = config?.memory?.notebooklm;
@@ -178,4 +194,16 @@ export async function resolveConfiguredBuiltInMemoryRuntime(
   }
   const bootstrap = await cachedBootstrapPromise;
   return bootstrap?.runtime;
+}
+
+export function getBuiltInMemoryRuntimeBootstrapCacheMeta(): {
+  cached: boolean;
+} {
+  return {
+    cached: cachedBootstrapPromise !== null,
+  };
+}
+
+export function resetConfiguredBuiltInMemoryRuntimeCache(): void {
+  cachedBootstrapPromise = null;
 }

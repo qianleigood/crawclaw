@@ -30,7 +30,7 @@ title: Phase 对应 PR 计划
 | `PR-03` | Phase 3    | `已完成` | `command` / `subagents` 子域已显式化，两个热点文件已拆薄，并补了子域入口文档与 focused tests。                                                                                                                                                                                                                                      |
 | `PR-SR` | 专题       | `已完成` | session runtime 的 reset / abort / lifecycle 主链已完成收口：行为冻结测试、shared runtime seam、ACP reset adapter、shared abort executor、shared reset internal hook、gateway reset entry/helper 与 transcript header 统一接线都已落地，主状态机不再散落在 `session.ts`、`abort.ts`、`commands-core.ts` 与 gateway reset 主流程里。 |
 | `PR-04` | Phase 4    | `已完成` | special agent substrate 标准化已完成：registry contract 校验、shared presets、shared action/observability/result wiring、verification 与 memory 主链对齐，以及 special-agent focused/integration tests 都已落地。                                                                                                                   |
-| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                                                                                                                                                                                                                                |
+| `PR-05` | Phase 5    | `已完成` | cache 治理已完成：已新增 cache governance substrate、显式 cache descriptor、失效/观测 helper、memory/cache focused tests，以及至少一条 memory 主链 e2e；cache owner、key、lifecycle、invalidation 与 observability 不再只留在隐式约定里。                                                                                           |
 | `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                                                                                                                                                                                                                                      |
 | `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                                                                                                                                                                                                                                  |
 | `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                                                                                                                                                                                                                                      |
@@ -654,6 +654,70 @@ title: Phase 对应 PR 计划
 
 - 每种 cache 是否有清晰 owner
 - memory 和 cache 是否还在互相隐式耦合
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-16）`
+
+已完成：
+
+- 已新增 shared cache governance substrate：
+  - `src/cache/governance-types.ts`
+  - `src/cache/governance.ts`
+  - `src/cache/governance.test.ts`
+- 已把 cache 正式收敛成 5 类并开始显式建模：
+  - `query_prompt_identity`
+  - `special_agent_snapshot`
+  - `runtime_ttl`
+  - `plugin_routing_control_plane`
+  - `file_ui`
+- 已为以下主链 cache 补显式 descriptor、owner、lifecycle、invalidation 与 observability：
+  - `src/agents/query-context/cache-contract.ts`
+  - `src/agents/context-cache.ts`
+  - `src/agents/bootstrap-cache.ts`
+  - `src/agents/special/runtime/cache-safe-params.ts`
+  - `src/memory/engine/built-in-memory-runtime.ts`
+  - `src/memory/session-summary/store.ts`
+  - `src/routing/resolve-route.ts`
+  - `src/gateway/model-pricing-cache.ts`
+  - `ui/src/ui/chat/session-cache.ts`
+- 已为主链 cache 补显式 invalidation / meta helper，而不是继续靠隐式 `Map.clear()` 约定：
+  - `clearCachedContextTokens(...)`
+  - `getModelContextTokenCacheMeta()`
+  - `getBootstrapSnapshotCacheMeta()`
+  - `getSpecialAgentCacheSafeParamsStoreConfig()`
+  - `getBuiltInMemoryRuntimeBootstrapCacheMeta()`
+  - `resetConfiguredBuiltInMemoryRuntimeCache()`
+  - `clearSessionSummaryReadCache(...)`
+  - `getSessionSummaryReadCacheMeta()`
+  - `clearResolveRouteCaches(cfg)`
+  - `getResolveRouteCacheMeta(cfg)`
+  - `getChatSessionCacheMeta(map)`
+- 已把 `src/agents/context.ts` 的 context-window cache reset 接到 shared invalidation helper，而不是继续直接操作底层 map。
+- 已补 focused tests 覆盖 cache descriptor、meta、invalidation 与 memory runtime 接线：
+  - `src/cache/governance.test.ts`
+  - `src/agents/context-cache.test.ts`
+  - `src/agents/bootstrap-cache.test.ts`
+  - `src/agents/special/runtime/cache-safe-params.test.ts`
+  - `src/memory/engine/built-in-memory-runtime.test.ts`
+  - `src/memory/session-summary/store.test.ts`
+  - `src/routing/resolve-route.test.ts`
+  - `src/gateway/model-pricing-cache.test.ts`
+  - `ui/src/ui/chat/session-cache.test.ts`
+- 已补并通过至少一条 memory 主链 e2e：
+  - `src/agents/pi-embedded-runner.e2e.test.ts -t "prefers the built-in memory runtime over the legacy context engine path"`
+
+已验证：
+
+- `vitest run src/cache/governance.test.ts src/agents/context-cache.test.ts src/agents/bootstrap-cache.test.ts src/agents/special/runtime/cache-safe-params.test.ts src/memory/engine/built-in-memory-runtime.test.ts src/memory/session-summary/store.test.ts src/routing/resolve-route.test.ts src/gateway/model-pricing-cache.test.ts ui/src/ui/chat/session-cache.test.ts`
+- `vitest run src/memory/engine/context-memory-runtime.lifecycle.test.ts`
+- `vitest run -c vitest.e2e.config.ts src/agents/pi-embedded-runner.e2e.test.ts -t "prefers the built-in memory runtime over the legacy context engine path"`
+- `pnpm check`
+
+收口结论：
+
+1. Phase 5 的目标已经完成，可以关闭 `PR-05`。
+2. 后续如果继续补更多 cache registry 消费方、UI 面板或 runtime inspection，属于增强项，不再作为 Phase 5 缺口。
 
 ## PR-06：Channel Runtime 收口
 

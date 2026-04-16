@@ -7,7 +7,11 @@ import type { CrawClawConfig } from "../config/config.js";
 import { computeBackoff, type BackoffPolicy } from "../infra/backoff.js";
 import { consumeRootOptionToken, FLAG_TERMINATOR } from "../infra/cli-root-options.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
-import { lookupCachedContextTokens, MODEL_CONTEXT_TOKEN_CACHE } from "./context-cache.js";
+import {
+  clearCachedContextTokens,
+  lookupCachedContextTokens,
+  MODEL_CONTEXT_TOKEN_CACHE,
+} from "./context-cache.js";
 import { normalizeProviderId } from "./model-selection.js";
 
 type ModelEntry = { id: string; contextWindow?: number };
@@ -237,7 +241,7 @@ export function resetContextWindowCacheForTest(): void {
   configLoadFailures = 0;
   nextConfigLoadAttemptAtMs = 0;
   modelsConfigRuntimePromise = undefined;
-  MODEL_CONTEXT_TOKEN_CACHE.clear();
+  clearCachedContextTokens();
 }
 
 export function lookupContextTokens(

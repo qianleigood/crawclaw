@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  SPECIAL_AGENT_CACHE_SAFE_PARAMS_STORE_DESCRIPTOR,
+  getSpecialAgentCacheSafeParamsStoreConfig,
   readSpecialAgentCacheSafeParamsSnapshot,
   resolveSpecialAgentCacheSafeParamsPath,
   writeSpecialAgentCacheSafeParamsSnapshot,
@@ -43,6 +45,21 @@ describe("special-agent cacheSafeParams snapshot store", () => {
     expect(resolveSpecialAgentCacheSafeParamsPath("run-123")).toBe(
       path.join(stateDir, "agents", "special", "cache-safe-params", "run-123.json"),
     );
+  });
+
+  it("publishes cache store config and governance metadata", async () => {
+    process.env.CRAWCLAW_SPECIAL_CACHE_SAFE_PARAMS_TTL_MS = "60000";
+    process.env.CRAWCLAW_SPECIAL_CACHE_SAFE_PARAMS_MAX_FILES = "88";
+
+    expect(getSpecialAgentCacheSafeParamsStoreConfig()).toEqual({
+      version: 5,
+      ttlMs: 60_000,
+      maxFiles: 88,
+    });
+    expect(SPECIAL_AGENT_CACHE_SAFE_PARAMS_STORE_DESCRIPTOR.category).toBe(
+      "special_agent_snapshot",
+    );
+    expect(SPECIAL_AGENT_CACHE_SAFE_PARAMS_STORE_DESCRIPTOR.owner).toContain("special-agent");
   });
 
   it("round-trips a cacheSafeParams snapshot", async () => {

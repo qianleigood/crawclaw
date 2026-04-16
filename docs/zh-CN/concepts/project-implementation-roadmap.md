@@ -562,6 +562,32 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 把 memory 和 cache 从“能跑的一堆实现”升级成有 owner、有失效规则、有测试归属的正式子系统。
 
+### 当前状态
+
+状态：`已完成（截至 2026-04-16）`
+
+已完成：
+
+- 已新增 shared cache governance substrate：
+  - `src/cache/governance-types.ts`
+  - `src/cache/governance.ts`
+  - `src/cache/governance.test.ts`
+- 已把 cache 按 5 类开始显式建模：
+  - `query_prompt_identity`
+  - `special_agent_snapshot`
+  - `runtime_ttl`
+  - `plugin_routing_control_plane`
+  - `file_ui`
+- 已为 query context、context-window、workspace bootstrap、special-agent snapshot、built-in memory runtime、session summary、route resolution、gateway model pricing、UI session cache 等主链 cache 补显式 descriptor。
+- 已为这些 cache 补 shared invalidation / observability helper，而不是继续依赖隐式 `Map.clear()` 与局部知识。
+- 已把 `context.ts` 的 reset 路径接到 shared invalidation helper。
+- 已补 focused cache governance tests、memory integration test，以及至少一条 memory 主链 e2e。
+
+收口说明：
+
+- Phase 5 的重点是把 cache owner / key / lifecycle / invalidation / observability 显式化，而不是一次性为所有 cache 都做 UI 面板。
+- 后续如果继续把 registry 暴露给更多 inspect / UI surface，属于增强项，不再作为 Phase 5 缺口。
+
 ### 产出
 
 - cache owner / invalidation / TTL 盘点

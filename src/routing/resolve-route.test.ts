@@ -2,7 +2,12 @@ import { describe, expect, test, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import * as routingBindings from "./bindings.js";
 import {
+  clearResolveRouteCaches,
   deriveLastRoutePolicy,
+  getResolveRouteCacheMeta,
+  ROUTE_AGENT_LOOKUP_CACHE_DESCRIPTOR,
+  ROUTE_EVALUATED_BINDINGS_CACHE_DESCRIPTOR,
+  ROUTE_RESOLVED_ROUTE_CACHE_DESCRIPTOR,
   resolveAgentRoute,
   resolveInboundLastRouteSessionKey,
 } from "./resolve-route.js";
@@ -538,6 +543,65 @@ describe("resolveAgentRoute", () => {
         peer,
       }),
       expected,
+    );
+  });
+});
+
+describe("resolve-route cache governance", () => {
+  test("reports route cache sizes and supports explicit invalidation", () => {
+    const cfg: CrawClawConfig = {
+      bindings: [
+        {
+          agentId: "router",
+          match: {
+            channel: "telegram",
+            peer: { kind: "direct", id: "user-1" },
+          },
+        },
+      ],
+      agents: {
+        list: [{ id: "router" }],
+      },
+    };
+
+    expect(getResolveRouteCacheMeta(cfg)).toMatchObject({
+      agentLookupEntries: 0,
+      evaluatedBindingsByChannel: 0,
+      evaluatedBindingsByChannelAccount: 0,
+      evaluatedBindingsByChannelAccountIndex: 0,
+      resolvedRouteEntries: 0,
+    });
+
+    resolveAgentRoute({
+      cfg,
+      channel: "telegram",
+      accountId: "default",
+      peer: { kind: "direct", id: "user-1" },
+    });
+
+    expect(getResolveRouteCacheMeta(cfg)).toMatchObject({
+      agentLookupEntries: 1,
+      evaluatedBindingsByChannel: 1,
+      evaluatedBindingsByChannelAccount: 1,
+      evaluatedBindingsByChannelAccountIndex: 1,
+      resolvedRouteEntries: 1,
+    });
+
+    clearResolveRouteCaches(cfg);
+    expect(getResolveRouteCacheMeta(cfg)).toMatchObject({
+      agentLookupEntries: 0,
+      evaluatedBindingsByChannel: 0,
+      evaluatedBindingsByChannelAccount: 0,
+      evaluatedBindingsByChannelAccountIndex: 0,
+      resolvedRouteEntries: 0,
+    });
+  });
+
+  test("publishes explicit governance descriptors for routing caches", () => {
+    expect(ROUTE_AGENT_LOOKUP_CACHE_DESCRIPTOR.category).toBe("plugin_routing_control_plane");
+    expect(ROUTE_EVALUATED_BINDINGS_CACHE_DESCRIPTOR.owner).toContain("resolve-route");
+    expect(ROUTE_RESOLVED_ROUTE_CACHE_DESCRIPTOR.observability).toContain(
+      "getResolveRouteCacheMeta(cfg).resolvedRouteEntries",
     );
   });
 });

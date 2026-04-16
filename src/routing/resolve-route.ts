@@ -1,4 +1,5 @@
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
+import type { CacheGovernanceDescriptor } from "../cache/governance-types.js";
 import type { ChatType } from "../channels/chat-type.js";
 import { normalizeChatType } from "../channels/chat-type.js";
 import type { CrawClawConfig } from "../config/config.js";
@@ -125,6 +126,21 @@ type AgentLookupCache = {
 
 const agentLookupCacheByCfg = new WeakMap<CrawClawConfig, AgentLookupCache>();
 
+export const ROUTE_AGENT_LOOKUP_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "routing.resolve-route.agent-lookup",
+  module: "src/routing/resolve-route.ts",
+  category: "plugin_routing_control_plane",
+  owner: "routing/resolve-route",
+  key: "WeakMap<CrawClawConfig, normalized agent-id lookup>",
+  lifecycle:
+    "Per-config in-memory lookup cache reused until agents config reference changes, explicit clear, or process restart.",
+  invalidation: [
+    "Automatic replacement when cfg.agents reference changes",
+    "clearResolveRouteCaches(cfg) deletes the cache for one config",
+  ],
+  observability: ["getResolveRouteCacheMeta(cfg).agentLookupEntries"],
+};
+
 function resolveAgentLookupCache(cfg: CrawClawConfig): AgentLookupCache {
   const agentsRef = cfg.agents;
   const existing = agentLookupCacheByCfg.get(cfg);
@@ -212,6 +228,45 @@ const resolvedRouteCacheByCfg = new WeakMap<
   }
 >();
 const MAX_RESOLVED_ROUTE_CACHE_KEYS = 4000;
+
+export const ROUTE_EVALUATED_BINDINGS_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "routing.resolve-route.evaluated-bindings",
+  module: "src/routing/resolve-route.ts",
+  category: "plugin_routing_control_plane",
+  owner: "routing/resolve-route",
+  key: "WeakMap<CrawClawConfig, channel/account evaluated bindings and indexes>",
+  lifecycle:
+    "Per-config route binding cache retained until bindings ref changes, explicit clear, cache-key cap reset, or process restart.",
+  invalidation: [
+    "Automatic replacement when cfg.bindings reference changes",
+    "byChannelAccount/byChannelAccountIndex clear when key count exceeds max",
+    "clearResolveRouteCaches(cfg) deletes the cache for one config",
+  ],
+  observability: [
+    "getResolveRouteCacheMeta(cfg).evaluatedBindingsByChannel",
+    "getResolveRouteCacheMeta(cfg).evaluatedBindingsByChannelAccount",
+    "getResolveRouteCacheMeta(cfg).evaluatedBindingsByChannelAccountIndex",
+  ],
+};
+
+export const ROUTE_RESOLVED_ROUTE_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "routing.resolve-route.resolved-routes",
+  module: "src/routing/resolve-route.ts",
+  category: "plugin_routing_control_plane",
+  owner: "routing/resolve-route",
+  key: "WeakMap<CrawClawConfig, normalized inbound route cache key>",
+  lifecycle:
+    "Per-config resolved-route cache retained until bindings/agents/session refs change, explicit clear, size-cap reset, or process restart.",
+  invalidation: [
+    "Automatic replacement when cfg.bindings/cfg.agents/cfg.session reference changes",
+    "Cache clear when resolved-route key count exceeds max",
+    "clearResolveRouteCaches(cfg) deletes the cache for one config",
+  ],
+  observability: [
+    "getResolveRouteCacheMeta(cfg).resolvedRouteEntries",
+    "verbose routing logs when shouldLogVerbose() is enabled",
+  ],
+};
 
 type EvaluatedBindingsIndex = {
   byPeer: Map<string, EvaluatedBinding[]>;
@@ -535,6 +590,35 @@ function resolveRouteCacheForConfig(cfg: CrawClawConfig): Map<string, ResolvedAg
     byKey,
   });
   return byKey;
+}
+
+export function clearResolveRouteCaches(cfg: CrawClawConfig): void {
+  agentLookupCacheByCfg.delete(cfg);
+  evaluatedBindingsCacheByCfg.delete(cfg);
+  resolvedRouteCacheByCfg.delete(cfg);
+}
+
+export function getResolveRouteCacheMeta(cfg: CrawClawConfig): {
+  agentLookupEntries: number;
+  evaluatedBindingsByChannel: number;
+  evaluatedBindingsByChannelAccount: number;
+  evaluatedBindingsByChannelAccountIndex: number;
+  maxEvaluatedBindingsCacheKeys: number;
+  resolvedRouteEntries: number;
+  maxResolvedRouteCacheKeys: number;
+} {
+  const agentLookup = agentLookupCacheByCfg.get(cfg);
+  const evaluatedBindings = evaluatedBindingsCacheByCfg.get(cfg);
+  const resolvedRoutes = resolvedRouteCacheByCfg.get(cfg);
+  return {
+    agentLookupEntries: agentLookup?.byNormalizedId.size ?? 0,
+    evaluatedBindingsByChannel: evaluatedBindings?.byChannel.size ?? 0,
+    evaluatedBindingsByChannelAccount: evaluatedBindings?.byChannelAccount.size ?? 0,
+    evaluatedBindingsByChannelAccountIndex: evaluatedBindings?.byChannelAccountIndex.size ?? 0,
+    maxEvaluatedBindingsCacheKeys: MAX_EVALUATED_BINDINGS_CACHE_KEYS,
+    resolvedRouteEntries: resolvedRoutes?.byKey.size ?? 0,
+    maxResolvedRouteCacheKeys: MAX_RESOLVED_ROUTE_CACHE_KEYS,
+  };
 }
 
 function formatRouteCachePeer(peer: RoutePeer | null): string {

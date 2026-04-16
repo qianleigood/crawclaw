@@ -5,7 +5,9 @@ import { withFetchPreconnect } from "../test-utils/fetch-mock.js";
 import {
   __resetGatewayModelPricingCacheForTest,
   collectConfiguredModelPricingRefs,
+  GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR,
   getCachedGatewayModelPricing,
+  getGatewayModelPricingCacheMeta,
   refreshGatewayModelPricingCache,
 } from "./model-pricing-cache.js";
 
@@ -241,5 +243,15 @@ describe("model-pricing-cache", () => {
       cacheRead: 0,
       cacheWrite: 0,
     });
+  });
+
+  it("publishes cache meta and governance details", async () => {
+    expect(getGatewayModelPricingCacheMeta()).toMatchObject({
+      cachedAt: 0,
+      ttlMs: expect.any(Number),
+      size: 0,
+    });
+    expect(GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR.category).toBe("plugin_routing_control_plane");
+    expect(GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR.owner).toContain("model-pricing");
   });
 });

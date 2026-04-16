@@ -33,6 +33,20 @@ describe("resolveConfiguredBuiltInMemoryRuntime", () => {
     vi.resetModules();
   });
 
+  it("publishes bootstrap cache governance metadata and reset helpers", async () => {
+    const {
+      BUILT_IN_MEMORY_RUNTIME_BOOTSTRAP_CACHE_DESCRIPTOR,
+      getBuiltInMemoryRuntimeBootstrapCacheMeta,
+      resetConfiguredBuiltInMemoryRuntimeCache,
+    } = await import("./built-in-memory-runtime.js");
+
+    expect(BUILT_IN_MEMORY_RUNTIME_BOOTSTRAP_CACHE_DESCRIPTOR.category).toBe("runtime_ttl");
+    expect(getBuiltInMemoryRuntimeBootstrapCacheMeta()).toEqual({ cached: false });
+
+    resetConfiguredBuiltInMemoryRuntimeCache();
+    expect(getBuiltInMemoryRuntimeBootstrapCacheMeta()).toEqual({ cached: false });
+  });
+
   it("returns undefined when built-in memory config is absent", async () => {
     const { resolveConfiguredBuiltInMemoryRuntime } = await import("./built-in-memory-runtime.js");
 
@@ -94,7 +108,8 @@ describe("resolveConfiguredBuiltInMemoryRuntime", () => {
       skillRouting: {},
       llm: undefined,
     });
-    const { resolveConfiguredBuiltInMemoryRuntime } = await import("./built-in-memory-runtime.js");
+    const { getBuiltInMemoryRuntimeBootstrapCacheMeta, resolveConfiguredBuiltInMemoryRuntime } =
+      await import("./built-in-memory-runtime.js");
     const cfg = {
       memory: {
         notebooklm: { enabled: true },
@@ -124,6 +139,7 @@ describe("resolveConfiguredBuiltInMemoryRuntime", () => {
     expect(resolveMemoryConfigMock).toHaveBeenCalledTimes(1);
     expect(runtimeStoreInitMock).toHaveBeenCalledTimes(1);
     expect(createContextMemoryRuntimeMock).toHaveBeenCalledTimes(1);
+    expect(getBuiltInMemoryRuntimeBootstrapCacheMeta()).toEqual({ cached: true });
   });
 
   it("bypasses the shared bootstrap cache when a dynamic complete fn is supplied", async () => {

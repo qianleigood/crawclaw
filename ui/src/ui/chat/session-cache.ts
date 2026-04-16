@@ -1,5 +1,20 @@
 export const MAX_CACHED_CHAT_SESSIONS = 20;
 
+export const CHAT_SESSION_CACHE_DESCRIPTOR = {
+  id: "ui.chat.session-cache",
+  module: "ui/src/ui/chat/session-cache.ts",
+  category: "file_ui",
+  owner: "ui/chat",
+  key: "sessionKey",
+  lifecycle:
+    "In-memory LRU-style cache for recent chat session UI helpers retained until explicit map clear, LRU eviction, or page reload.",
+  invalidation: [
+    "Least-recently-used entry evicted when size exceeds MAX_CACHED_CHAT_SESSIONS",
+    "Callers can clear or replace their backing Map to drop UI state explicitly",
+  ],
+  observability: ["getChatSessionCacheMeta(map)"],
+} as const;
+
 export function getOrCreateSessionCacheValue<T>(
   map: Map<string, T>,
   sessionKey: string,
@@ -23,4 +38,14 @@ export function getOrCreateSessionCacheValue<T>(
     map.delete(oldest);
   }
   return created;
+}
+
+export function getChatSessionCacheMeta<T>(map: Map<string, T>): {
+  size: number;
+  maxSize: number;
+} {
+  return {
+    size: map.size,
+    maxSize: MAX_CACHED_CHAT_SESSIONS,
+  };
 }

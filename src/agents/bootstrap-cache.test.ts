@@ -113,3 +113,48 @@ describe("clearBootstrapSnapshot", () => {
     expect(mockLoad()).toHaveBeenCalledTimes(2); // sk1 x1, sk2 x1
   });
 });
+
+describe("bootstrap-cache governance", () => {
+  let clearAllBootstrapSnapshots: typeof import("./bootstrap-cache.js").clearAllBootstrapSnapshots;
+  let getBootstrapSnapshotCacheMeta: typeof import("./bootstrap-cache.js").getBootstrapSnapshotCacheMeta;
+  let getOrLoadBootstrapFiles: typeof import("./bootstrap-cache.js").getOrLoadBootstrapFiles;
+  let bootstrapDescriptor: typeof import("./bootstrap-cache.js").WORKSPACE_BOOTSTRAP_CACHE_DESCRIPTOR;
+  let workspaceModule: typeof import("./workspace.js");
+
+  const mockLoad = () => vi.mocked(workspaceModule.loadWorkspaceBootstrapFiles);
+
+  beforeAll(async () => {
+    ({
+      WORKSPACE_BOOTSTRAP_CACHE_DESCRIPTOR: bootstrapDescriptor,
+      clearAllBootstrapSnapshots,
+      getBootstrapSnapshotCacheMeta,
+      getOrLoadBootstrapFiles,
+    } = await import("./bootstrap-cache.js"));
+    workspaceModule = await import("./workspace.js");
+  });
+
+  beforeEach(() => {
+    clearAllBootstrapSnapshots();
+    mockLoad().mockResolvedValue([makeFile("AGENTS.md", "content")]);
+  });
+
+  afterEach(() => {
+    clearAllBootstrapSnapshots();
+    vi.clearAllMocks();
+  });
+
+  it("reports cache size for observability", async () => {
+    expect(getBootstrapSnapshotCacheMeta()).toEqual({ size: 0 });
+
+    await getOrLoadBootstrapFiles({ workspaceDir: "/ws", sessionKey: "session-1" });
+    await getOrLoadBootstrapFiles({ workspaceDir: "/ws", sessionKey: "session-2" });
+
+    expect(getBootstrapSnapshotCacheMeta()).toEqual({ size: 2 });
+  });
+
+  it("publishes explicit governance metadata", () => {
+    expect(bootstrapDescriptor.category).toBe("runtime_ttl");
+    expect(bootstrapDescriptor.owner).toContain("workspace-bootstrap");
+    expect(bootstrapDescriptor.observability).toContain("getBootstrapSnapshotCacheMeta()");
+  });
+});

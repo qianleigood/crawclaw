@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { CacheGovernanceDescriptor } from "../../../cache/governance-types.js";
 import { resolveStateDir } from "../../../config/paths.js";
 import { readJsonFile, writeJsonAtomic } from "../../../infra/json-files.js";
 import type { AgentStreamParams } from "../../command/types.js";
@@ -27,6 +28,25 @@ const DEFAULT_CACHE_SAFE_PARAMS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_CACHE_SAFE_PARAMS_MAX_FILES = 200;
 const MIN_CACHE_SAFE_PARAMS_MAX_FILES = 20;
 const MAX_CACHE_SAFE_PARAMS_MAX_FILES = 5_000;
+
+export const SPECIAL_AGENT_CACHE_SAFE_PARAMS_STORE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "agents.special.cache-safe-params",
+  module: "src/agents/special/runtime/cache-safe-params.ts",
+  category: "special_agent_snapshot",
+  owner: "agent-kernel/special-agent-substrate",
+  key: "runId -> cache-safe snapshot JSON file",
+  lifecycle:
+    "Disk-backed special-agent snapshot store retained until TTL expiry, max-file pruning, explicit file deletion, or state directory reset.",
+  invalidation: [
+    "TTL pruning via CRAWCLAW_SPECIAL_CACHE_SAFE_PARAMS_TTL_MS",
+    "Max-file pruning via CRAWCLAW_SPECIAL_CACHE_SAFE_PARAMS_MAX_FILES",
+    "Snapshot file overwrite on same runId",
+  ],
+  observability: [
+    "resolveSpecialAgentCacheSafeParamsPath(runId)",
+    "getSpecialAgentCacheSafeParamsStoreConfig()",
+  ],
+};
 
 export type SpecialAgentCacheSafeJsonPrimitive = string | number | boolean | null;
 
@@ -149,6 +169,18 @@ function resolveCacheSafeParamsMaxFiles(): number {
     MIN_CACHE_SAFE_PARAMS_MAX_FILES,
     Math.min(MAX_CACHE_SAFE_PARAMS_MAX_FILES, parsed),
   );
+}
+
+export function getSpecialAgentCacheSafeParamsStoreConfig(): {
+  version: number;
+  ttlMs: number;
+  maxFiles: number;
+} {
+  return {
+    version: SPECIAL_AGENT_CACHE_SAFE_PARAMS_VERSION,
+    ttlMs: resolveCacheSafeParamsTtlMs(),
+    maxFiles: resolveCacheSafeParamsMaxFiles(),
+  };
 }
 
 async function pruneSpecialAgentCacheSafeParamsSnapshots(params: {

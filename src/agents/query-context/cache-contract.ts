@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { CacheGovernanceDescriptor } from "../../cache/governance-types.js";
 import type { QueryContextModelInput } from "./types.js";
 
 export type QueryLayerCacheSafeJsonPrimitive = string | number | boolean | null;
@@ -31,6 +32,26 @@ export type QueryLayerCacheEnvelope = {
   thinkingConfig: QueryLayerCacheContext;
   forkContextMessages: unknown[];
   cacheIdentity: QueryLayerCacheIdentity;
+};
+
+export const QUERY_LAYER_CACHE_IDENTITY_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "agents.query-context.identity",
+  module: "src/agents/query-context/cache-contract.ts",
+  category: "query_prompt_identity",
+  owner: "agent-kernel/query-context",
+  key: "queryContextHash + forkContextMessagesHash + envelopeHash",
+  lifecycle:
+    "Derived per prompt envelope and recomputed whenever system prompt, tool inventory, thinking config, or fork context changes.",
+  invalidation: [
+    "System prompt text changes",
+    "Tool prompt payload or normalized tool names change",
+    "Thinking config changes",
+    "Fork-context messages change",
+  ],
+  observability: [
+    "QueryLayerCacheEnvelope.cacheIdentity",
+    "QueryLayerCacheEnvelope.toolInventoryDigest",
+  ],
 };
 
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
