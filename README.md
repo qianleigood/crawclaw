@@ -313,3 +313,20 @@ curl -fsS http://127.0.0.1:18789/readyz
 - Agent runtime and tools: [src/agents](/Users/qianlei/crawclaw/src/agents)
 - Control UI: [ui](/Users/qianlei/crawclaw/ui)
 - Browser subsystem and plugins: [extensions](/Users/qianlei/crawclaw/extensions)
+
+## Repository Layout
+
+The monorepo currently carries several layers at once:
+
+- runtime core in `src/`
+- interface code in `ui/`
+- capability ecosystem packages in `extensions/`
+- support packages in `packages/`
+- optional skill catalog content in `skills-optional/`
+- sidecar code in `Swabble/`
+- shared test infrastructure in `test/`
+- build output in `dist/`
+
+Maintainer structure notes:
+
+- [docs/maintainers/repo-structure.md](/Users/qianlei/crawclaw/docs/maintainers/repo-structure.md)

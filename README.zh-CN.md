@@ -277,3 +277,20 @@ curl -fsS http://127.0.0.1:18789/readyz
 - Agent runtime and tools: [src/agents](/Users/qianlei/crawclaw/src/agents)
 - Control UI: [ui](/Users/qianlei/crawclaw/ui)
 - Browser subsystem and plugins: [extensions](/Users/qianlei/crawclaw/extensions)
+
+## 仓库结构
+
+这个 monorepo 当前同时承载了几层内容：
+
+- `src/`：运行时主系统
+- `ui/`：界面层
+- `extensions/`：能力扩展生态
+- `packages/`：支持型子包
+- `skills-optional/`：可选技能目录
+- `Swabble/`：旁支/侧项目代码
+- `test/`：共享测试基础设施
+- `dist/`：构建产物
+
+维护者结构说明：
+
+- [docs/maintainers/repo-structure.md](/Users/qianlei/crawclaw/docs/maintainers/repo-structure.md)
