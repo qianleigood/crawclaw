@@ -487,6 +487,14 @@ export const CrawClawSchema = z
         maxConcurrentSessions: z.number().int().positive().optional(),
         stream: z
           .object({
+            visibilityMode: z
+              .union([
+                z.literal("off"),
+                z.literal("summary"),
+                z.literal("verbose"),
+                z.literal("full"),
+              ])
+              .optional(),
             coalesceIdleMs: z.number().int().nonnegative().optional(),
             maxChunkChars: z.number().int().positive().optional(),
             repeatSuppression: z.boolean().optional(),

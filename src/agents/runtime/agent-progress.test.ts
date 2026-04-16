@@ -137,6 +137,40 @@ describe("agent-progress", () => {
     ]);
   });
 
+  it("emits workflow action kind for workflow tools", () => {
+    registerAgentRunContext("run-workflow-action", {
+      sessionKey: "agent:main:session-workflow",
+      sessionId: "session-workflow",
+      agentId: "main",
+    });
+    registerAgentRuntimeRun({
+      runId: "run-workflow-action",
+      status: "created",
+    });
+
+    const actions: Array<Record<string, unknown>> = [];
+    const stop = onAgentEvent((event) => {
+      if (event.runId === "run-workflow-action" && event.stream === "action") {
+        actions.push(event.data);
+      }
+    });
+
+    emitAgentEvent({
+      runId: "run-workflow-action",
+      stream: "tool",
+      data: { phase: "start", name: "workflow", toolCallId: "tool-wf-1" },
+    });
+    emitAgentEvent({
+      runId: "run-workflow-action",
+      stream: "tool",
+      data: { phase: "result", name: "workflow", toolCallId: "tool-wf-1", isError: false },
+    });
+
+    stop();
+
+    expect(actions.map((entry) => entry.kind)).toEqual(["workflow", "workflow"]);
+  });
+
   it("emits manual cancel once for runs without lifecycle end events", () => {
     registerAgentRuntimeRun({
       runId: "run-cancel",

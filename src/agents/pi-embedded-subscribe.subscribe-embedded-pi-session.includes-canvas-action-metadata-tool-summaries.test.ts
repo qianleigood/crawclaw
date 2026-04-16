@@ -23,7 +23,6 @@ describe("subscribeEmbeddedPiSession", () => {
 
     expect(onToolResult).toHaveBeenCalledTimes(1);
     const payload = onToolResult.mock.calls[0][0];
-    expect(payload.text).toContain("🖼️");
     expect(payload.text).toContain("Canvas");
     expect(payload.text).toContain("/tmp/a2ui.jsonl");
   });
@@ -66,5 +65,6 @@ describe("subscribeEmbeddedPiSession", () => {
     await Promise.resolve();
 
     expect(onToolResult).toHaveBeenCalledTimes(1);
+    expect(onToolResult.mock.calls[0]?.[0]?.text).toContain("Reading from /tmp/c.txt");
   });
 });

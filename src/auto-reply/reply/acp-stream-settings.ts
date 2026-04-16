@@ -1,6 +1,10 @@
 import type { AcpSessionUpdateTag } from "../../acp/runtime/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { clampPositiveInteger, resolveEffectiveBlockStreamingConfig } from "./block-streaming.js";
+import {
+  normalizeExecutionVisibilityMode,
+  type ExecutionVisibilityMode,
+} from "./execution-visibility.js";
 
 const DEFAULT_ACP_STREAM_COALESCE_IDLE_MS = 350;
 const DEFAULT_ACP_STREAM_MAX_CHUNK_CHARS = 1800;
@@ -10,6 +14,7 @@ const DEFAULT_ACP_HIDDEN_BOUNDARY_SEPARATOR = "paragraph";
 const DEFAULT_ACP_HIDDEN_BOUNDARY_SEPARATOR_LIVE = "space";
 const DEFAULT_ACP_MAX_OUTPUT_CHARS = 24_000;
 const DEFAULT_ACP_MAX_SESSION_UPDATE_CHARS = 320;
+const DEFAULT_ACP_VISIBILITY_MODE: ExecutionVisibilityMode = "summary";
 
 export const ACP_TAG_VISIBILITY_DEFAULTS: Record<AcpSessionUpdateTag, boolean> = {
   agent_message_chunk: true,
@@ -28,6 +33,7 @@ export type AcpDeliveryMode = "live" | "final_only";
 export type AcpHiddenBoundarySeparator = "none" | "space" | "newline" | "paragraph";
 
 export type AcpProjectionSettings = {
+  visibilityMode: ExecutionVisibilityMode;
   deliveryMode: AcpDeliveryMode;
   hiddenBoundarySeparator: AcpHiddenBoundarySeparator;
   repeatSuppression: boolean;
@@ -83,6 +89,8 @@ export function resolveAcpProjectionSettings(cfg: CrawClawConfig): AcpProjection
       ? DEFAULT_ACP_HIDDEN_BOUNDARY_SEPARATOR_LIVE
       : DEFAULT_ACP_HIDDEN_BOUNDARY_SEPARATOR;
   return {
+    visibilityMode:
+      normalizeExecutionVisibilityMode(stream?.visibilityMode) ?? DEFAULT_ACP_VISIBILITY_MODE,
     deliveryMode,
     hiddenBoundarySeparator: resolveAcpHiddenBoundarySeparator(
       stream?.hiddenBoundarySeparator,

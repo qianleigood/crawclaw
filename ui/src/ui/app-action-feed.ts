@@ -1,3 +1,4 @@
+import { projectAgentActionEventData } from "../../../src/agents/action-feed/projector.js";
 import type { AgentActionEventData } from "../../../src/agents/action-feed/types.js";
 import { isAgentActionEventData } from "../../../src/agents/action-feed/types.js";
 const ACTION_FEED_LIMIT = 24;
@@ -117,19 +118,21 @@ function handleRawAgentAction(host: ActionFeedHost, payload: AgentEventPayload) 
   if (!isAgentActionEventData(payload.data)) {
     return;
   }
+  const projected = projectAgentActionEventData(payload.data);
   if (
     !resolveAcceptedSession(host, payload, {
       allowSessionScopedWhenIdle: true,
       allowSessionScoped:
-        payload.data.kind === "approval" ||
-        payload.data.kind === "verification" ||
-        payload.data.kind === "memory",
+        projected.kind === "approval" ||
+        projected.kind === "verification" ||
+        projected.kind === "memory" ||
+        projected.kind === "workflow",
     })
   ) {
     return;
   }
   upsertActionEntry(host, {
-    ...payload.data,
+    ...projected,
     runId: payload.runId,
     ...(payload.sessionKey ? { sessionKey: payload.sessionKey } : {}),
     updatedAt: payload.ts,

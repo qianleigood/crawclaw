@@ -1,8 +1,11 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import {
+  buildToolExecutionVisibilityText,
+  resolveExecutionVisibilityMode,
+} from "../auto-reply/reply/execution-visibility.js";
 import { parseReplyDirectives } from "../auto-reply/reply/reply-directives.js";
 import { createStreamingDirectiveAccumulator } from "../auto-reply/reply/streaming-directives.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
-import { formatToolAggregate } from "../auto-reply/tool-meta.js";
 import { setReplyPayloadMetadata } from "../auto-reply/types.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
@@ -364,6 +367,18 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     typeof params.shouldEmitToolOutput === "function"
       ? params.shouldEmitToolOutput()
       : params.verboseLevel === "full";
+  const resolveVisibilityRequest = () => {
+    if (typeof params.shouldEmitToolResult === "function" && params.verboseLevel === "off") {
+      return undefined;
+    }
+    return params.verboseLevel;
+  };
+  const resolveCurrentVisibilityMode = () =>
+    resolveExecutionVisibilityMode({
+      requested: resolveVisibilityRequest(),
+      shouldDisplay: shouldEmitToolResult(),
+      fallback: params.verboseLevel === "full" ? "full" : "summary",
+    });
   const formatToolOutputBlock = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) {
@@ -397,18 +412,32 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     }
   };
   const emitToolSummary = (toolName?: string, meta?: string) => {
-    const agg = formatToolAggregate(toolName, meta ? [meta] : undefined, {
-      markdown: useMarkdown,
+    const projected = buildToolExecutionVisibilityText({
+      toolName,
+      meta,
+      phase: "start",
+      mode: resolveCurrentVisibilityMode(),
+      status: "in_progress",
     });
-    emitToolResultMessage(toolName, agg);
+    if (!projected) {
+      return;
+    }
+    emitToolResultMessage(toolName, projected);
   };
   const emitToolOutput = (toolName?: string, meta?: string, output?: string, result?: unknown) => {
     if (!output) {
       return;
     }
-    const agg = formatToolAggregate(toolName, meta ? [meta] : undefined, {
-      markdown: useMarkdown,
+    const agg = buildToolExecutionVisibilityText({
+      toolName,
+      meta,
+      phase: "end",
+      mode: resolveCurrentVisibilityMode(),
+      status: "completed",
     });
+    if (!agg) {
+      return;
+    }
     const message = `${agg}\n${formatToolOutputBlock(output)}`;
     emitToolResultMessage(toolName, message, result);
   };

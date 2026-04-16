@@ -450,6 +450,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "acp.allowedAgents": "ACP Allowed Agents",
   "acp.maxConcurrentSessions": "ACP Max Concurrent Sessions",
   "acp.stream": "ACP Stream",
+  "acp.stream.visibilityMode": "ACP Stream Visibility Mode",
   "acp.stream.coalesceIdleMs": "ACP Stream Coalesce Idle (ms)",
   "acp.stream.maxChunkChars": "ACP Stream Max Chunk Chars",
   "acp.stream.repeatSuppression": "ACP Stream Repeat Suppression",

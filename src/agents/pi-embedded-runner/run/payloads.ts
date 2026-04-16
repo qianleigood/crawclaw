@@ -1,9 +1,12 @@
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { hasOutboundReplyContent } from "crawclaw/plugin-sdk/reply-payload";
+import {
+  buildToolExecutionVisibilityText,
+  resolveExecutionVisibilityMode,
+} from "../../../auto-reply/reply/execution-visibility.js";
 import { parseReplyDirectives } from "../../../auto-reply/reply/reply-directives.js";
 import type { ReasoningLevel, VerboseLevel } from "../../../auto-reply/thinking.js";
 import { isSilentReplyPayloadText, SILENT_REPLY_TOKEN } from "../../../auto-reply/tokens.js";
-import { formatToolAggregate } from "../../../auto-reply/tool-meta.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import { isCronSessionKey } from "../../../routing/session-key.js";
 import {
@@ -20,6 +23,7 @@ import {
   extractAssistantThinking,
   formatReasoningMessage,
 } from "../../pi-embedded-utils.js";
+import { resolveToolDisplay } from "../../tool-display.js";
 import { isExecLikeToolName, type ToolErrorSummary } from "../../tool-error-summary.js";
 import { isLikelyMutatingToolName } from "../../tool-mutation.js";
 
@@ -101,6 +105,23 @@ function resolveToolErrorWarningPolicy(params: {
   };
 }
 
+function buildToolFailureSummary(params: {
+  toolName: string;
+  meta?: string;
+  mode: "summary" | "verbose" | "full";
+}): string {
+  const display = resolveToolDisplay({ name: params.toolName, meta: params.meta });
+  return (
+    buildToolExecutionVisibilityText({
+      toolName: params.toolName,
+      meta: params.meta ?? display.label,
+      phase: "error",
+      mode: params.mode,
+      status: "failed",
+    }) ?? `${display.label} failed`
+  );
+}
+
 export function buildEmbeddedRunPayloads(params: {
   assistantTexts: string[];
   toolMetas: ToolMetaEntry[];
@@ -140,7 +161,6 @@ export function buildEmbeddedRunPayloads(params: {
     replyToCurrent?: boolean;
   }> = [];
 
-  const useMarkdown = params.toolResultFormat === "markdown";
   const suppressAssistantArtifacts = params.didSendDeterministicApprovalPrompt === true;
   const lastAssistantErrored = params.lastAssistant?.stopReason === "error";
   const errorText =
@@ -172,6 +192,11 @@ export function buildEmbeddedRunPayloads(params: {
   const normalizedErrorText = errorText ? normalizeTextForComparison(errorText) : null;
   const normalizedGenericBillingErrorText = normalizeTextForComparison(BILLING_ERROR_USER_MESSAGE);
   const genericErrorText = "The AI service returned an error. Please try again.";
+  const visibilityMode = resolveExecutionVisibilityMode({
+    requested: params.verboseLevel,
+    shouldDisplay: params.verboseLevel !== "off",
+    fallback: "summary",
+  });
   if (errorText) {
     replyItems.push({ text: errorText, isError: true });
   }
@@ -180,9 +205,16 @@ export function buildEmbeddedRunPayloads(params: {
     params.inlineToolResultsAllowed && params.verboseLevel !== "off" && params.toolMetas.length > 0;
   if (inlineToolResults) {
     for (const { toolName, meta } of params.toolMetas) {
-      const agg = formatToolAggregate(toolName, meta ? [meta] : [], {
-        markdown: useMarkdown,
+      const agg = buildToolExecutionVisibilityText({
+        toolName,
+        meta,
+        phase: "end",
+        mode: visibilityMode,
+        status: "completed",
       });
+      if (!agg) {
+        continue;
+      }
       const {
         text: cleanedText,
         mediaUrls,
@@ -311,16 +343,16 @@ export function buildEmbeddedRunPayloads(params: {
     // Always surface mutating tool failures so we do not silently confirm actions that did not happen.
     // Otherwise, keep the previous behavior and only surface non-recoverable failures when no reply exists.
     if (warningPolicy.showWarning) {
-      const toolSummary = formatToolAggregate(
-        params.lastToolError.toolName,
-        params.lastToolError.meta ? [params.lastToolError.meta] : undefined,
-        { markdown: useMarkdown },
-      );
+      const toolSummary = buildToolFailureSummary({
+        toolName: params.lastToolError.toolName,
+        meta: params.lastToolError.meta,
+        mode: visibilityMode,
+      });
       const errorSuffix =
         warningPolicy.includeDetails && params.lastToolError.error
           ? `: ${params.lastToolError.error}`
           : "";
-      const warningText = `⚠️ ${toolSummary} failed${errorSuffix}`;
+      const warningText = `⚠️ ${toolSummary}${errorSuffix}`;
       const normalizedWarning = normalizeTextForComparison(warningText);
       const duplicateWarning = normalizedWarning
         ? replyItems.some((item) => {

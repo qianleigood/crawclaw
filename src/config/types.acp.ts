@@ -1,4 +1,5 @@
 import type { AcpSessionUpdateTag } from "../acp/runtime/types.js";
+import type { ExecutionVisibilityMode } from "../auto-reply/reply/execution-visibility.js";
 
 export type AcpDispatchConfig = {
   /** Master switch for ACP turn dispatch in the reply pipeline. */
@@ -6,6 +7,8 @@ export type AcpDispatchConfig = {
 };
 
 export type AcpStreamConfig = {
+  /** Semantic detail level for projected execution/process visibility. */
+  visibilityMode?: ExecutionVisibilityMode;
   /** Coalescer idle flush window in milliseconds for ACP streamed text. */
   coalesceIdleMs?: number;
   /** Maximum text size per streamed chunk. */

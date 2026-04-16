@@ -106,6 +106,8 @@ function maybeEmitActionEvent(event: AgentProgressEvent): void {
 
   const runActionId = `run:${event.runId}`;
   const toolActionId = event.toolCallId ? `tool:${event.toolCallId}` : undefined;
+  const actionKind =
+    event.toolName === "workflow" || event.toolName === "workflowize" ? "workflow" : "tool";
   const baseDetail: Record<string, unknown> = {
     ...(event.runtime ? { runtime: event.runtime } : {}),
     ...(event.mode ? { mode: event.mode } : {}),
@@ -136,7 +138,7 @@ function maybeEmitActionEvent(event: AgentProgressEvent): void {
         data: {
           actionId: toolActionId ?? `tool:${event.runId}:${event.toolName ?? "tool"}`,
           parentActionId: runActionId,
-          kind: "tool",
+          kind: actionKind,
           status: "running",
           title: event.toolName ? `Running ${event.toolName}` : "Running tool",
           ...(event.summary ? { summary: event.summary } : {}),
@@ -153,7 +155,7 @@ function maybeEmitActionEvent(event: AgentProgressEvent): void {
         data: {
           actionId: toolActionId ?? `tool:${event.runId}:${event.toolName ?? "tool"}`,
           parentActionId: runActionId,
-          kind: "tool",
+          kind: actionKind,
           status: event.isError ? "failed" : "completed",
           title: event.toolName
             ? event.isError

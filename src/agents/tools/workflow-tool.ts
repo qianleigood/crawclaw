@@ -107,7 +107,7 @@ export function createWorkflowTool(opts?: {
     description:
       "List, inspect, match, deploy, and manage workflow registry entries. Prefer action=match before repeating a task that may already exist as a workflow, then follow invocation.recommendedAction to run directly or ask the user. n8n-backed deploy/run/status/cancel require workflow.n8n config or CRAWCLAW_N8N_* env vars.",
     parameters: WorkflowToolSchema,
-    execute: async (_toolCallId, args) =>
-      await executeWorkflowToolAction(options, args as Record<string, unknown>),
+    execute: async (toolCallId, args) =>
+      await executeWorkflowToolAction(options, toolCallId, args as Record<string, unknown>),
   };
 }

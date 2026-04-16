@@ -213,6 +213,18 @@ describe("buildEmbeddedRunPayloads", () => {
     });
   });
 
+  it("uses execution visibility summaries for inline tool results", () => {
+    const payloads = buildPayloads({
+      toolMetas: [{ toolName: "read", meta: "/tmp/out.md" }],
+      inlineToolResultsAllowed: true,
+      verboseLevel: "on",
+    });
+
+    expectSinglePayloadSummary(payloads, {
+      text: "Read /tmp/out.md",
+    });
+  });
+
   it("adds tool error fallback when the assistant only invoked tools and verbose mode is on", () => {
     const payloads = buildPayloads({
       lastAssistant: makeAssistant({

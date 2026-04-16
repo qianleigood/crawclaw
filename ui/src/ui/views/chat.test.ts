@@ -877,6 +877,34 @@ describe("chat view", () => {
     expect(feed?.textContent).toContain("pnpm test auth");
   });
 
+  it("prefers projected action feed text when present", () => {
+    const container = document.createElement("div");
+    render(
+      renderChat(
+        createProps({
+          actionFeed: [
+            {
+              actionId: "workflow-1",
+              runId: "run-1",
+              version: 1,
+              kind: "workflow",
+              status: "running",
+              title: "Running workflow",
+              projectedTitle: "Workflow: Publish Redbook",
+              summary: "raw summary",
+              updatedAt: 1,
+            },
+          ],
+        }),
+      ),
+      container,
+    );
+
+    const feed = container.querySelector(".action-feed");
+    expect(feed?.textContent).toContain("Workflow: Publish Redbook");
+    expect(feed?.textContent).not.toContain("Running workflow");
+  });
+
   it("renders action feed details when structured detail is present", () => {
     const container = document.createElement("div");
     render(

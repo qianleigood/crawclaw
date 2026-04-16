@@ -1,6 +1,5 @@
 import type { AcpRuntimeEvent, AcpSessionUpdateTag } from "../../acp/runtime/types.js";
 import { EmbeddedBlockChunker } from "../../agents/pi-embedded-block-chunker.js";
-import { formatToolSummary, resolveToolDisplay } from "../../agents/tool-display.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { prefixSystemMessage } from "../../infra/system-message.js";
 import type { ReplyPayload } from "../types.js";
@@ -11,6 +10,7 @@ import {
   resolveAcpStreamingConfig,
 } from "./acp-stream-settings.js";
 import { createBlockReplyPipeline } from "./block-reply-pipeline.js";
+import { projectAcpToolCallEvent, resolveExecutionVisibilityMode } from "./execution-visibility.js";
 import type { ReplyDispatchKind } from "./reply-dispatcher.js";
 
 const ACP_BLOCK_REPLY_TIMEOUT_MS = 15_000;
@@ -138,27 +138,6 @@ function shouldFlushLiveBufferOnIdle(text: string): boolean {
   return false;
 }
 
-function renderToolSummaryText(event: Extract<AcpRuntimeEvent, { type: "tool_call" }>): string {
-  const detailParts: string[] = [];
-  const title = event.title?.trim();
-  if (title) {
-    detailParts.push(title);
-  }
-  const status = event.status?.trim();
-  if (status) {
-    detailParts.push(`status=${status}`);
-  }
-  const fallback = event.text?.trim();
-  if (detailParts.length === 0 && fallback) {
-    detailParts.push(fallback);
-  }
-  const display = resolveToolDisplay({
-    name: "tool_call",
-    meta: detailParts.join(" · ") || "tool call",
-  });
-  return formatToolSummary(display);
-}
-
 export type AcpReplyProjector = {
   onEvent: (event: AcpRuntimeEvent) => Promise<void>;
   flush: (force?: boolean) => Promise<void>;
@@ -176,6 +155,10 @@ export function createAcpReplyProjector(params: {
   accountId?: string;
 }): AcpReplyProjector {
   const settings = resolveAcpProjectionSettings(params.cfg);
+  const visibilityMode = resolveExecutionVisibilityMode({
+    requested: settings.visibilityMode,
+    shouldDisplay: params.shouldSendToolSummaries,
+  });
   const streaming = resolveAcpStreamingConfig({
     cfg: params.cfg,
     provider: params.provider,
@@ -298,7 +281,7 @@ export function createAcpReplyProjector(params: {
     meta?: AcpProjectedDeliveryMeta,
     opts?: { dedupe?: boolean },
   ) => {
-    if (!params.shouldSendToolSummaries) {
+    if (visibilityMode === "off") {
       return;
     }
     const bounded = truncateText(text.trim(), settings.maxSessionUpdateChars);
@@ -324,18 +307,24 @@ export function createAcpReplyProjector(params: {
   };
 
   const emitToolSummary = async (event: Extract<AcpRuntimeEvent, { type: "tool_call" }>) => {
-    if (!params.shouldSendToolSummaries) {
+    if (visibilityMode === "off") {
       return;
     }
     if (!isAcpTagVisible(settings, event.tag)) {
       return;
     }
 
-    const renderedToolSummary = renderToolSummaryText(event);
-    const toolSummary = truncateText(renderedToolSummary, settings.maxSessionUpdateChars);
-    const hash = hashText(renderedToolSummary);
     const toolCallId = event.toolCallId?.trim() || undefined;
     const status = normalizeToolStatus(event.status);
+    const renderedToolSummary = projectAcpToolCallEvent({
+      event,
+      mode: visibilityMode,
+    });
+    if (!renderedToolSummary) {
+      return;
+    }
+    const toolSummary = truncateText(renderedToolSummary, settings.maxSessionUpdateChars);
+    const hash = hashText(`${renderedToolSummary}|${status ?? event.tag ?? ""}`);
     const isTerminal = status ? TERMINAL_TOOL_STATUSES.has(status) : false;
     const isStart = status === "in_progress" || event.tag === "tool_call";
 

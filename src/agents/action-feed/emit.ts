@@ -6,6 +6,7 @@ import {
 } from "../../config/sessions.js";
 import { emitAgentEvent, getAgentRunContext } from "../../infra/agent-events.js";
 import { captureContextArchiveRunEvent } from "../context-archive/run-capture.js";
+import { projectAgentActionEventData } from "./projector.js";
 import type { AgentActionEventData } from "./types.js";
 
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
@@ -54,6 +55,10 @@ export function emitAgentActionEvent(params: {
   parentAgentId?: string;
   data: Omit<AgentActionEventData, "version"> & { version?: 1 };
 }) {
+  const projectedData = projectAgentActionEventData({
+    version: 1,
+    ...params.data,
+  });
   const runtimeContext = getAgentRunContext(params.runId);
   const runtimeSessionKey = normalizeOptionalString(runtimeContext?.sessionKey);
   const runtimeSessionId = normalizeOptionalString(runtimeContext?.sessionId);
@@ -71,10 +76,7 @@ export function emitAgentActionEvent(params: {
     runId: params.runId,
     ...(emittedSessionKey ? { sessionKey: emittedSessionKey } : {}),
     stream: "action",
-    data: {
-      version: 1,
-      ...params.data,
-    },
+    data: projectedData,
   });
 
   if (!archiveSession.sessionId) {
@@ -87,16 +89,15 @@ export function emitAgentActionEvent(params: {
     runId: params.runId,
     sessionId: archiveSession.sessionId,
     ...(archiveSession.sessionKey ? { sessionKey: archiveSession.sessionKey } : {}),
-    ...(normalizeOptionalString(params.taskId) ?? runtimeTaskId
+    ...((normalizeOptionalString(params.taskId) ?? runtimeTaskId)
       ? { taskId: normalizeOptionalString(params.taskId) ?? runtimeTaskId }
       : {}),
-    ...(normalizeOptionalString(params.agentId) ?? runtimeAgentId
+    ...((normalizeOptionalString(params.agentId) ?? runtimeAgentId)
       ? { agentId: normalizeOptionalString(params.agentId) ?? runtimeAgentId }
       : {}),
-    ...(normalizeOptionalString(params.parentAgentId) ?? runtimeParentAgentId
+    ...((normalizeOptionalString(params.parentAgentId) ?? runtimeParentAgentId)
       ? {
-          parentAgentId:
-            normalizeOptionalString(params.parentAgentId) ?? runtimeParentAgentId,
+          parentAgentId: normalizeOptionalString(params.parentAgentId) ?? runtimeParentAgentId,
         }
       : {}),
     label: "action-feed",
@@ -105,17 +106,16 @@ export function emitAgentActionEvent(params: {
       runId: params.runId,
       ...(archiveSession.sessionKey ? { sessionKey: archiveSession.sessionKey } : {}),
       action: {
-        version: 1,
-        ...params.data,
+        ...projectedData,
       },
     },
     metadata: {
       source: "action-feed",
-      actionId: params.data.actionId,
-      kind: params.data.kind,
-      status: params.data.status,
-      ...(params.data.toolName ? { toolName: params.data.toolName } : {}),
-      ...(params.data.toolCallId ? { toolCallId: params.data.toolCallId } : {}),
+      actionId: projectedData.actionId,
+      kind: projectedData.kind,
+      status: projectedData.status,
+      ...(projectedData.toolName ? { toolName: projectedData.toolName } : {}),
+      ...(projectedData.toolCallId ? { toolCallId: projectedData.toolCallId } : {}),
     },
   }).catch(() => {});
 }

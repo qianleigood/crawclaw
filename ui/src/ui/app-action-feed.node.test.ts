@@ -218,6 +218,39 @@ describe("app-action-feed", () => {
     });
   });
 
+  it("accepts session-scoped workflow actions even when they use a synthetic run id", () => {
+    const host = createHost({
+      chatRunId: "run-1",
+    });
+
+    handleAgentActionEvent(host, {
+      runId: "workflow:exec_123",
+      seq: 1,
+      stream: "action",
+      ts: 100,
+      sessionKey: "main",
+      data: {
+        version: 1,
+        actionId: "workflow:exec_123",
+        kind: "workflow",
+        status: "running",
+        title: "Running workflow: Publish Redbook Note",
+        projectedTitle: "Running workflow: Publish Redbook Note",
+        projectedSummary: "Current step: Draft content",
+        toolName: "workflow",
+        toolCallId: "tool-wf-1",
+      },
+    });
+
+    expect(host.chatActionFeed?.[0]).toMatchObject({
+      actionId: "workflow:exec_123",
+      kind: "workflow",
+      status: "running",
+      projectedTitle: "Running workflow: Publish Redbook Note",
+      projectedSummary: "Current step: Draft content",
+    });
+  });
+
   it("accepts raw memory actions for the active session even when runId differs", () => {
     const host = createHost({
       chatRunId: "run-1",
@@ -283,6 +316,60 @@ describe("app-action-feed", () => {
 
     expect(host.chatActionFeed?.map((entry) => entry.kind)).toContain("compaction");
     expect(host.chatActionFeed?.map((entry) => entry.kind)).toContain("fallback");
+  });
+
+  it("projects tool actions through execution visibility summaries", () => {
+    const host = createHost();
+
+    handleAgentActionEvent(host, {
+      runId: "run-1",
+      seq: 1,
+      stream: "action",
+      ts: 100,
+      sessionKey: "main",
+      data: {
+        version: 1,
+        actionId: "tool-1",
+        kind: "tool",
+        status: "running",
+        title: "Running read",
+        summary: "from /tmp/demo.ts",
+        toolName: "read",
+        toolCallId: "tool-1",
+      },
+    });
+
+    expect(host.chatActionFeed?.[0]).toMatchObject({
+      kind: "tool",
+      projectedTitle: "Reading from /tmp/demo.ts",
+    });
+  });
+
+  it("projects workflow tools as workflow action kind", () => {
+    const host = createHost();
+
+    handleAgentActionEvent(host, {
+      runId: "run-1",
+      seq: 1,
+      stream: "action",
+      ts: 100,
+      sessionKey: "main",
+      data: {
+        version: 1,
+        actionId: "tool-1",
+        kind: "tool",
+        status: "running",
+        title: "Running workflow",
+        summary: "Publish Redbook",
+        toolName: "workflow",
+        toolCallId: "tool-1",
+      },
+    });
+
+    expect(host.chatActionFeed?.[0]).toMatchObject({
+      kind: "workflow",
+      projectedTitle: "Workflow: Publish Redbook",
+    });
   });
 
   it("clears action feed state", () => {

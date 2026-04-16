@@ -1,6 +1,7 @@
 export type AgentActionKind =
   | "system"
   | "tool"
+  | "workflow"
   | "approval"
   | "guard"
   | "loop"
@@ -27,6 +28,8 @@ export type AgentActionEventData = {
   status: AgentActionStatus;
   title: string;
   summary?: string;
+  projectedTitle?: string;
+  projectedSummary?: string;
   toolName?: string;
   toolCallId?: string;
   detail?: Record<string, unknown>;

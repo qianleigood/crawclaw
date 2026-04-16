@@ -270,10 +270,30 @@ describe("agent.inspect command", () => {
       {
         id: "event-1",
         runId: "carun-1",
-        type: "turn.model_visible_context",
+        type: "agent.action",
         sequence: 3,
         blobKeys: [],
         createdAt: 4,
+        payload: {
+          version: 1,
+          actionId: "workflow:exec_123",
+          parentActionId: "tool:tool-wf-1",
+          kind: "workflow",
+          status: "waiting",
+          title: "Workflow waiting: Publish Redbook Note",
+          projectedTitle: "Workflow waiting: Publish Redbook Note",
+          projectedSummary: "Current step: Review",
+          toolName: "workflow",
+          toolCallId: "tool-wf-1",
+        },
+      },
+      {
+        id: "event-2",
+        runId: "carun-1",
+        type: "turn.model_visible_context",
+        sequence: 4,
+        blobKeys: [],
+        createdAt: 5,
         payload: {
           queryContextDiagnostics: {
             queryContextHash: "ctx-hash",
@@ -295,6 +315,11 @@ describe("agent.inspect command", () => {
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Timeline:"));
     expect(runtime.log).toHaveBeenCalledWith(
       expect.stringContaining("provider_request_start | openai/gpt-5.4"),
+    );
+    expect(runtime.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "action.workflow | Workflow waiting: Publish Redbook Note | status=waiting",
+      ),
     );
   });
 

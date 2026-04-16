@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
+import { buildWorkflowDiscordResumeCallbackData } from "../workflows/interactive.js";
 import * as conversationBinding from "./conversation-binding.js";
 import type {
   DiscordInteractiveDispatchContext,
@@ -15,6 +16,33 @@ import type {
   PluginInteractiveSlackHandlerContext,
   PluginInteractiveTelegramHandlerContext,
 } from "./types.js";
+
+const builtinWorkflowMocks = vi.hoisted(() => ({
+  loadConfig: vi.fn(() => ({})),
+  requireWorkflowN8nRuntime: vi.fn(() => ({
+    client: { getExecution: vi.fn(), resumeExecutionByUrl: vi.fn() },
+    resolved: { baseUrl: "https://n8n.example.com" },
+  })),
+  resumeWorkflowExecution: vi.fn(async () => ({
+    execution: {
+      executionId: "exec_123",
+      workflowId: "wf_publish_redbook_123",
+      workflowName: "Publish Redbook Note",
+      currentStepId: "review",
+    },
+  })),
+}));
+
+vi.mock("../config/config.js", () => ({
+  loadConfig: builtinWorkflowMocks.loadConfig,
+}));
+
+vi.mock("../workflows/api.js", () => ({
+  requireWorkflowN8nRuntime: builtinWorkflowMocks.requireWorkflowN8nRuntime,
+  resumeWorkflowExecution: builtinWorkflowMocks.resumeWorkflowExecution,
+  WorkflowOperationInputError: class WorkflowOperationInputError extends Error {},
+  WorkflowOperationUnavailableError: class WorkflowOperationUnavailableError extends Error {},
+}));
 
 let requestPluginConversationBindingMock: MockInstance<
   typeof conversationBinding.requestPluginConversationBinding
@@ -290,6 +318,9 @@ async function expectBindingHelperWiring(params: BindingHelperCase) {
 describe("plugin interactive handlers", () => {
   beforeEach(() => {
     clearPluginInteractiveHandlers();
+    builtinWorkflowMocks.loadConfig.mockClear();
+    builtinWorkflowMocks.requireWorkflowN8nRuntime.mockClear();
+    builtinWorkflowMocks.resumeWorkflowExecution.mockClear();
     requestPluginConversationBindingMock = vi
       .spyOn(conversationBinding, "requestPluginConversationBinding")
       .mockResolvedValue({
@@ -398,6 +429,51 @@ describe("plugin interactive handlers", () => {
       baseParams,
       handler,
       expectedCall,
+    });
+  });
+
+  it("lazily reloads built-in workflow discord handlers after registry resets", async () => {
+    const data = buildWorkflowDiscordResumeCallbackData({
+      executionId: "exec_123",
+      workspaceDir: "/tmp/workspace",
+      agentDir: "/tmp/agent-home",
+    });
+    if (!data) {
+      throw new Error("Expected workflow callback data");
+    }
+
+    const params = createDiscordDispatchParams({
+      data,
+      interactionId: "workflow-ix-1",
+      interaction: {
+        kind: "modal",
+        fields: [
+          {
+            id: "field-1",
+            name: "input",
+            values: ["approved"],
+          },
+        ],
+      },
+    });
+
+    await expect(dispatchInteractive(params)).resolves.toEqual({
+      matched: true,
+      handled: true,
+      duplicate: false,
+    });
+    expect(builtinWorkflowMocks.resumeWorkflowExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executionId: "exec_123",
+        input: "approved",
+      }),
+    );
+    expect(params.respond.clearComponents).toHaveBeenCalledWith({
+      text: "Workflow resume requested: Publish Redbook Note\nExecution: exec_123\nCurrent step: review",
+    });
+    expect(params.respond.followUp).toHaveBeenCalledWith({
+      text: "Workflow resume requested: Publish Redbook Note\nExecution: exec_123\nCurrent step: review",
+      ephemeral: true,
     });
   });
 

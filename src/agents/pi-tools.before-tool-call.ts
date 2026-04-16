@@ -29,6 +29,11 @@ export type HookContext = {
   specialToolAllowlist?: string[];
 };
 
+export type ToolCallRuntimeContext = Pick<
+  HookContext,
+  "runId" | "sessionKey" | "sessionId" | "agentId"
+>;
+
 type HookOutcome = { blocked: true; reason: string } | { blocked: false; params: unknown };
 type RuntimeAwareSessionState = {
   sessionState?: SessionState;
@@ -44,6 +49,7 @@ const MAX_LOOP_WARNING_KEYS = 256;
 const ARCHIVE_DECISION_LABEL = "tool-guard-loop-decisions";
 const MAX_ARCHIVE_DECISION_RUN_IDS = 256;
 const archiveDecisionRunIdsByScope = new Map<string, string>();
+const activeToolCallContextById = new Map<string, ToolCallRuntimeContext>();
 
 function emitLoopActionEvent(params: {
   runId?: string;
@@ -125,6 +131,27 @@ function buildAdjustedParamsKey(params: { runId?: string; toolCallId: string }):
     return `${params.runId}:${params.toolCallId}`;
   }
   return params.toolCallId;
+}
+
+function normalizeToolCallRuntimeContext(
+  ctx: HookContext | undefined,
+): ToolCallRuntimeContext | undefined {
+  if (!ctx) {
+    return undefined;
+  }
+  const runId = ctx.runId?.trim();
+  const sessionKey = ctx.sessionKey?.trim();
+  const sessionId = ctx.sessionId?.trim();
+  const agentId = ctx.agentId?.trim();
+  if (!runId && !sessionKey && !sessionId && !agentId) {
+    return undefined;
+  }
+  return {
+    ...(runId ? { runId } : {}),
+    ...(sessionKey ? { sessionKey } : {}),
+    ...(sessionId ? { sessionId } : {}),
+    ...(agentId ? { agentId } : {}),
+  };
 }
 
 function mergeParamsWithApprovalOverrides(
@@ -1121,28 +1148,33 @@ export function wrapToolWithBeforeToolCallHook(
   const wrappedTool: AnyAgentTool = {
     ...tool,
     execute: async (toolCallId, params, signal, onUpdate) => {
-      const outcome = await runBeforeToolCallHook({
-        toolName,
-        params,
-        toolCallId,
-        ctx,
-        signal,
-      });
-      if (outcome.blocked) {
-        throw new Error(outcome.reason);
+      const runtimeContext = normalizeToolCallRuntimeContext(ctx);
+      if (runtimeContext && toolCallId) {
+        activeToolCallContextById.set(toolCallId, runtimeContext);
       }
-      if (toolCallId) {
-        const adjustedParamsKey = buildAdjustedParamsKey({ runId: ctx?.runId, toolCallId });
-        adjustedParamsByToolCallId.set(adjustedParamsKey, outcome.params);
-        if (adjustedParamsByToolCallId.size > MAX_TRACKED_ADJUSTED_PARAMS) {
-          const oldest = adjustedParamsByToolCallId.keys().next().value;
-          if (oldest) {
-            adjustedParamsByToolCallId.delete(oldest);
-          }
-        }
-      }
+      let outcome: HookOutcome | undefined;
       const normalizedToolName = normalizeToolName(toolName || "tool");
       try {
+        outcome = await runBeforeToolCallHook({
+          toolName,
+          params,
+          toolCallId,
+          ctx,
+          signal,
+        });
+        if (outcome.blocked) {
+          throw new Error(outcome.reason);
+        }
+        if (toolCallId) {
+          const adjustedParamsKey = buildAdjustedParamsKey({ runId: ctx?.runId, toolCallId });
+          adjustedParamsByToolCallId.set(adjustedParamsKey, outcome.params);
+          if (adjustedParamsByToolCallId.size > MAX_TRACKED_ADJUSTED_PARAMS) {
+            const oldest = adjustedParamsByToolCallId.keys().next().value;
+            if (oldest) {
+              adjustedParamsByToolCallId.delete(oldest);
+            }
+          }
+        }
         const result = await execute(toolCallId, outcome.params, signal, onUpdate);
         await recordLoopOutcome({
           ctx,
@@ -1177,7 +1209,7 @@ export function wrapToolWithBeforeToolCallHook(
         await recordLoopOutcome({
           ctx,
           toolName: normalizedToolName,
-          toolParams: outcome.params,
+          toolParams: outcome?.blocked ? params : (outcome?.params ?? params),
           toolCallId,
           error: err,
         });
@@ -1197,12 +1229,16 @@ export function wrapToolWithBeforeToolCallHook(
             admission: {
               blocked: false,
             },
-            params: outcome.params,
+            params: outcome?.blocked ? params : (outcome?.params ?? params),
             error: describeArchiveError(err),
             isError: true,
           },
         });
         throw err;
+      } finally {
+        if (toolCallId) {
+          activeToolCallContextById.delete(toolCallId);
+        }
       }
     },
   };
@@ -1227,12 +1263,18 @@ export function consumeAdjustedParamsForToolCall(toolCallId: string, runId?: str
   return params;
 }
 
+export function peekToolCallRuntimeContext(toolCallId: string): ToolCallRuntimeContext | undefined {
+  const context = activeToolCallContextById.get(toolCallId);
+  return context ? { ...context } : undefined;
+}
+
 export const __testing = {
   BEFORE_TOOL_CALL_WRAPPED,
   archiveDecisionRunIdsByScope,
   ensureArchiveDecisionRun,
   buildAdjustedParamsKey,
   adjustedParamsByToolCallId,
+  activeToolCallContextById,
   runBeforeToolCallHook,
   mergeParamsWithApprovalOverrides,
   recordArchiveDecisionEvent,

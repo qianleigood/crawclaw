@@ -530,6 +530,16 @@ export async function startWorkflowExecution(params: {
   workflowName?: string;
   n8nWorkflowId: string;
   spec?: WorkflowSpec;
+  origin?: {
+    runId?: string;
+    sessionKey?: string;
+    sessionId?: string;
+    taskId?: string;
+    agentId?: string;
+    parentAgentId?: string;
+    toolCallId?: string;
+    visibilityMode?: "off" | "summary" | "verbose" | "full";
+  };
   workflowInputs?: Record<string, unknown>;
 }) {
   const localExecution = await createWorkflowExecutionRecord(params.context, {
@@ -538,6 +548,7 @@ export async function startWorkflowExecution(params: {
     n8nWorkflowId: params.n8nWorkflowId,
     spec: params.spec,
     initialStatus: "running",
+    origin: params.origin,
   });
   await params.client.triggerWebhook(buildCrawClawWorkflowWebhookPath(params.workflowId), {
     crawclawExecutionId: localExecution.executionId,

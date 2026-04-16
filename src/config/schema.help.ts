@@ -179,6 +179,8 @@ export const FIELD_HELP: Record<string, string> = {
     "Maximum concurrently active ACP sessions across this gateway process.",
   "acp.stream":
     "ACP streaming projection controls for chunk sizing, metadata visibility, and deduped delivery behavior.",
+  "acp.stream.visibilityMode":
+    "Semantic process visibility level for ACP execution projection: off suppresses process lines, summary shows concise user-facing progress, verbose adds lifecycle detail, and full keeps the richest safe projection.",
   "acp.stream.coalesceIdleMs":
     "Coalescer idle flush window in milliseconds for ACP streamed text before block replies are emitted.",
   "acp.stream.maxChunkChars":

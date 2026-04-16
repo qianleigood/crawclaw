@@ -1,3 +1,5 @@
+import { resolveExecutionVisibilityMode } from "../../auto-reply/reply/execution-visibility.js";
+import { getAgentRunContext } from "../../infra/agent-events.js";
 import {
   buildWorkflowCatalogPayload,
   buildWorkflowDiffPayload,
@@ -21,6 +23,7 @@ import {
   WorkflowOperationUnavailableError,
   type WorkflowDefinitionPatch,
 } from "../../workflows/api.js";
+import { peekToolCallRuntimeContext } from "../pi-tools.before-tool-call.js";
 import { jsonResult, readNumberParam, readStringParam, ToolInputError } from "./common.js";
 
 export type WorkflowToolOptions = {
@@ -51,6 +54,7 @@ function buildWorkflowContext(opts?: WorkflowToolOptions) {
 
 export async function executeWorkflowToolAction(
   opts: WorkflowToolOptions | undefined,
+  toolCallId: string | undefined,
   args: Record<string, unknown>,
 ) {
   const action = readStringParam(args, "action", { required: true });
@@ -59,6 +63,11 @@ export async function executeWorkflowToolAction(
   const autoRunnableOnly =
     typeof args.autoRunnableOnly === "boolean" ? args.autoRunnableOnly : undefined;
   const context = buildWorkflowContext(opts);
+  const toolRuntimeContext =
+    toolCallId && toolCallId.trim() ? peekToolCallRuntimeContext(toolCallId) : undefined;
+  const runContext = toolRuntimeContext?.runId
+    ? getAgentRunContext(toolRuntimeContext.runId)
+    : undefined;
 
   const resolveClient = () => requireWorkflowN8nRuntime(opts?.config);
   const deployWorkflowSpec = async (params: {
@@ -329,6 +338,30 @@ export async function executeWorkflowToolAction(
         workflowName: described.entry.name,
         n8nWorkflowId,
         spec: described.spec ?? undefined,
+        origin: {
+          ...(toolRuntimeContext?.runId ? { runId: toolRuntimeContext.runId } : {}),
+          ...(opts?.workspaceDir ? { workspaceDir: opts.workspaceDir } : {}),
+          ...(opts?.agentDir ? { agentDir: opts.agentDir } : {}),
+          ...(toolRuntimeContext?.sessionKey
+            ? { sessionKey: toolRuntimeContext.sessionKey }
+            : opts?.sessionKey
+              ? { sessionKey: opts.sessionKey }
+              : {}),
+          ...(toolRuntimeContext?.sessionId
+            ? { sessionId: toolRuntimeContext.sessionId }
+            : opts?.sessionId
+              ? { sessionId: opts.sessionId }
+              : {}),
+          ...(toolRuntimeContext?.agentId ? { agentId: toolRuntimeContext.agentId } : {}),
+          ...(runContext?.taskId ? { taskId: runContext.taskId } : {}),
+          ...(runContext?.parentAgentId ? { parentAgentId: runContext.parentAgentId } : {}),
+          ...(toolCallId?.trim() ? { toolCallId: toolCallId.trim() } : {}),
+          visibilityMode: resolveExecutionVisibilityMode({
+            requested: runContext?.verboseLevel,
+            shouldDisplay: runContext?.verboseLevel !== "off",
+            fallback: runContext?.verboseLevel === "full" ? "full" : "summary",
+          }),
+        },
         ...(workflowInputs ? { workflowInputs } : {}),
       });
       return jsonResult({

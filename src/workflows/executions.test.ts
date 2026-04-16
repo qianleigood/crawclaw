@@ -208,6 +208,27 @@ describe("workflow executions", () => {
     expect(view.waiting?.canResume).toBe(true);
   });
 
+  it("stores workflow origin paths for downstream channel controls", async () => {
+    const workspaceDir = await tempDirs.make("workflow-executions-origin-");
+
+    const created = await createWorkflowExecutionRecord(
+      { workspaceDir },
+      {
+        workflowId: "wf_publish_redbook_123",
+        workflowName: "Publish Redbook Note",
+        origin: {
+          workspaceDir,
+          agentDir: "/tmp/agent-home",
+          sessionKey: "agent:main:main",
+        },
+      },
+    );
+
+    expect(created.originWorkspaceDir).toBe(workspaceDir);
+    expect(created.originAgentDir).toBe("/tmp/agent-home");
+    expect(created.originSessionKey).toBe("agent:main:main");
+  });
+
   it("prepares branch-aware execution records without auto-succeeding untouched branch steps", async () => {
     const workspaceDir = await tempDirs.make("workflow-executions-branch-aware-");
 

@@ -1,4 +1,9 @@
 import { randomUUID } from "node:crypto";
+import {
+  emitWorkflowExecutionAction,
+  emitWorkflowExecutionCompensationAction,
+  emitWorkflowExecutionStepAction,
+} from "./action-feed.js";
 import type { N8nExecutionRecord } from "./n8n-client.js";
 import { buildWorkflowStepNodeName } from "./n8n-compiler.js";
 import { getN8nExecutionId, getN8nExecutionStatus, mapN8nExecutionStatus } from "./status-view.js";
@@ -511,9 +516,21 @@ export async function createWorkflowExecutionRecord(
     remote?: N8nExecutionRecord | null;
     spec?: WorkflowSpec | null;
     initialStatus?: WorkflowExecutionStatus;
+    origin?: {
+      runId?: string;
+      workspaceDir?: string;
+      agentDir?: string;
+      sessionKey?: string;
+      sessionId?: string;
+      taskId?: string;
+      agentId?: string;
+      parentAgentId?: string;
+      toolCallId?: string;
+      visibilityMode?: "off" | "summary" | "verbose" | "full";
+    };
   },
 ): Promise<WorkflowExecutionRecord> {
-  return await mutateWorkflowExecutionStore(context, async (store) => {
+  const created = await mutateWorkflowExecutionStore(context, async (store) => {
     const now = Date.now();
     const remoteExecutionId = getN8nExecutionId(params.remote);
     const status = params.remote
@@ -574,6 +591,18 @@ export async function createWorkflowExecutionRecord(
       workflowId: params.workflowId,
       ...(params.workflowName ? { workflowName: params.workflowName } : {}),
       ...(params.spec?.topology ? { topology: params.spec.topology } : {}),
+      ...(params.origin?.runId ? { originRunId: params.origin.runId } : {}),
+      ...(params.origin?.workspaceDir ? { originWorkspaceDir: params.origin.workspaceDir } : {}),
+      ...(params.origin?.agentDir ? { originAgentDir: params.origin.agentDir } : {}),
+      ...(params.origin?.sessionKey ? { originSessionKey: params.origin.sessionKey } : {}),
+      ...(params.origin?.sessionId ? { originSessionId: params.origin.sessionId } : {}),
+      ...(params.origin?.taskId ? { originTaskId: params.origin.taskId } : {}),
+      ...(params.origin?.agentId ? { originAgentId: params.origin.agentId } : {}),
+      ...(params.origin?.parentAgentId ? { originParentAgentId: params.origin.parentAgentId } : {}),
+      ...(params.origin?.toolCallId ? { originToolCallId: params.origin.toolCallId } : {}),
+      ...(params.origin?.visibilityMode
+        ? { originVisibilityMode: params.origin.visibilityMode }
+        : {}),
       ...(params.n8nWorkflowId ? { n8nWorkflowId: params.n8nWorkflowId } : {}),
       ...(remoteExecutionId ? { n8nExecutionId: remoteExecutionId } : {}),
       status,
@@ -606,6 +635,17 @@ export async function createWorkflowExecutionRecord(
     store.executions.push(record);
     return record;
   });
+  emitWorkflowExecutionAction(created);
+  const activeStep =
+    created.steps?.find((step) => step.status === "running" || step.status === "waiting") ??
+    undefined;
+  if (activeStep) {
+    emitWorkflowExecutionStepAction({
+      record: created,
+      step: activeStep,
+    });
+  }
+  return created;
 }
 
 export async function listWorkflowExecutions(
@@ -677,7 +717,8 @@ export async function syncWorkflowExecutionFromN8n(
     : null;
   const spec =
     specFromStore ?? (hintedExecution ? deriveWorkflowSpecFromExecution(hintedExecution) : null);
-  return await mutateWorkflowExecutionStore(context, async (store) => {
+  const changedStepIds = new Set<string>();
+  const synced = await mutateWorkflowExecutionStore(context, async (store) => {
     const entry = findExecutionRecord(store, ref);
     if (!entry) {
       return null;
@@ -685,6 +726,11 @@ export async function syncWorkflowExecutionFromN8n(
     const remoteExecutionId = getN8nExecutionId(remote);
     const previousStatus = entry.status;
     const previousRemoteStatus = entry.remoteStatus;
+    const previousCurrentStepId = entry.currentStepId;
+    const previousCurrentExecutor = entry.currentExecutor;
+    const previousStepStatuses = new Map(
+      entry.steps?.map((step) => [step.stepId, step.status]) ?? [],
+    );
     const status = mapN8nExecutionStatus(remote);
     entry.status = status;
     entry.updatedAt = Date.now();
@@ -752,8 +798,38 @@ export async function syncWorkflowExecutionFromN8n(
         details: entry.remoteStatus ? { remoteStatus: entry.remoteStatus } : {},
       });
     }
+    for (const step of entry.steps ?? []) {
+      if (previousStepStatuses.get(step.stepId) !== step.status) {
+        changedStepIds.add(step.stepId);
+      }
+    }
+    if (
+      previousStatus !== entry.status ||
+      previousRemoteStatus !== entry.remoteStatus ||
+      previousCurrentStepId !== entry.currentStepId ||
+      previousCurrentExecutor !== entry.currentExecutor
+    ) {
+      changedStepIds.add(entry.currentStepId ?? "");
+    }
     return entry;
   });
+  if (!synced) {
+    return null;
+  }
+  emitWorkflowExecutionAction(synced);
+  for (const stepId of changedStepIds) {
+    if (!stepId) {
+      continue;
+    }
+    const step = synced.steps?.find((candidate) => candidate.stepId === stepId);
+    if (step) {
+      emitWorkflowExecutionStepAction({
+        record: synced,
+        step,
+      });
+    }
+  }
+  return synced;
 }
 
 export async function updateWorkflowExecutionStep(
@@ -767,7 +843,8 @@ export async function updateWorkflowExecutionStep(
     error?: string;
   },
 ): Promise<WorkflowExecutionRecord | null> {
-  return await mutateWorkflowExecutionStore(context, async (store) => {
+  let emittedStepIds: string[] = [];
+  const updated = await mutateWorkflowExecutionStore(context, async (store) => {
     const entry = findExecutionRecord(store, ref);
     if (!entry?.steps?.length) {
       return null;
@@ -820,6 +897,7 @@ export async function updateWorkflowExecutionStep(
         next.status = "running";
         next.startedAt = now;
         next.updatedAt = now;
+        emittedStepIds.push(next.stepId);
       }
     }
 
@@ -892,6 +970,21 @@ export async function updateWorkflowExecutionStep(
     });
     return entry;
   });
+  if (!updated) {
+    return null;
+  }
+  emitWorkflowExecutionAction(updated);
+  emittedStepIds = [params.stepId, ...emittedStepIds];
+  for (const stepId of new Set(emittedStepIds)) {
+    const step = updated.steps?.find((candidate) => candidate.stepId === stepId);
+    if (step) {
+      emitWorkflowExecutionStepAction({
+        record: updated,
+        step,
+      });
+    }
+  }
+  return updated;
 }
 
 export async function updateWorkflowExecutionStepCompensation(
@@ -904,7 +997,7 @@ export async function updateWorkflowExecutionStepCompensation(
     error?: string;
   },
 ): Promise<WorkflowExecutionRecord | null> {
-  return await mutateWorkflowExecutionStore(context, async (store) => {
+  const updated = await mutateWorkflowExecutionStore(context, async (store) => {
     const entry = findExecutionRecord(store, ref);
     if (!entry?.steps?.length) {
       return null;
@@ -938,6 +1031,18 @@ export async function updateWorkflowExecutionStepCompensation(
     });
     return entry;
   });
+  if (!updated) {
+    return null;
+  }
+  const step = updated.steps?.find((candidate) => candidate.stepId === params.stepId);
+  if (step) {
+    emitWorkflowExecutionCompensationAction({
+      record: updated,
+      step,
+      status: params.status,
+    });
+  }
+  return updated;
 }
 
 export async function appendWorkflowExecutionEvent(

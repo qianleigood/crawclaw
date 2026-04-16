@@ -288,11 +288,23 @@ export type WorkflowExecutionWaitState = {
   canResume: boolean;
 };
 
+export type WorkflowExecutionVisibilityMode = "off" | "summary" | "verbose" | "full";
+
 export type WorkflowExecutionRecord = {
   executionId: string;
   workflowId: string;
   workflowName?: string;
   topology?: WorkflowTopology;
+  originRunId?: string;
+  originWorkspaceDir?: string;
+  originAgentDir?: string;
+  originSessionKey?: string;
+  originSessionId?: string;
+  originTaskId?: string;
+  originAgentId?: string;
+  originParentAgentId?: string;
+  originToolCallId?: string;
+  originVisibilityMode?: WorkflowExecutionVisibilityMode;
   n8nWorkflowId?: string;
   n8nExecutionId?: string;
   status: WorkflowExecutionStatus;

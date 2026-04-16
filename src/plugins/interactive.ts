@@ -99,6 +99,23 @@ function resolveNamespaceMatch(
   };
 }
 
+async function ensureBuiltInInteractiveHandlers(params: {
+  channel: "telegram" | "discord" | "slack";
+  data: string;
+}): Promise<void> {
+  const trimmedData = params.data.trim();
+  if (!trimmedData) {
+    return;
+  }
+  const separatorIndex = trimmedData.indexOf(":");
+  const namespace =
+    separatorIndex >= 0 ? trimmedData.slice(0, separatorIndex) : normalizeNamespace(trimmedData);
+  if (params.channel === "discord" && namespace === "workflow") {
+    const workflowInteractive = await import("../workflows/interactive.js");
+    workflowInteractive.ensureWorkflowInteractiveHandlersRegistered();
+  }
+}
+
 export function registerPluginInteractiveHandler(
   pluginId: string,
   registration: PluginInteractiveHandlerRegistration,
@@ -220,7 +237,14 @@ export async function dispatchPluginInteractiveHandler(params: {
   onMatched?: () => Promise<void> | void;
 }): Promise<InteractiveDispatchResult> {
   const callbackDedupe = getCallbackDedupe();
-  const match = resolveNamespaceMatch(params.channel, params.data);
+  let match = resolveNamespaceMatch(params.channel, params.data);
+  if (!match) {
+    await ensureBuiltInInteractiveHandlers({
+      channel: params.channel,
+      data: params.data,
+    });
+    match = resolveNamespaceMatch(params.channel, params.data);
+  }
   if (!match) {
     return { matched: false, handled: false, duplicate: false };
   }

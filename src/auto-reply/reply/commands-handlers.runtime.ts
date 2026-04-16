@@ -31,8 +31,9 @@ import {
 import { handleSubagentsCommand } from "./commands-subagents.js";
 import { handleTasksCommand } from "./commands-tasks.js";
 import { handleTtsCommands } from "./commands-tts.js";
-import { handleVerifyCommand } from "./commands-verify.js";
 import type { CommandHandler } from "./commands-types.js";
+import { handleVerifyCommand } from "./commands-verify.js";
+import { handleWorkflowCommand } from "./commands-workflow.js";
 
 export function loadCommandHandlers(): CommandHandler[] {
   return [
@@ -50,6 +51,7 @@ export function loadCommandHandlers(): CommandHandler[] {
     handleCommandsListCommand,
     handleToolsCommand,
     handleStatusCommand,
+    handleWorkflowCommand,
     handleVerifyCommand,
     handleTasksCommand,
     handleAllowlistCommand,

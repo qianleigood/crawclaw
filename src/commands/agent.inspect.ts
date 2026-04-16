@@ -1,3 +1,4 @@
+import { isAgentActionEventData } from "../agents/action-feed/types.js";
 import { resolveSharedContextArchiveService } from "../agents/context-archive/runtime.js";
 import type {
   AgentInspectionSnapshot,
@@ -64,9 +65,7 @@ function formatTimeline(snapshot: AgentInspectionSnapshot): string[] {
   for (const entry of snapshot.timeline) {
     lines.push(`  - ${entry.createdAt} ${formatTimelineSummary(entry)}`);
     if (entry.spanId || entry.parentSpanId !== undefined) {
-      lines.push(
-        `    span=${entry.spanId ?? "(none)"} parent=${entry.parentSpanId ?? "(root)"}`,
-      );
+      lines.push(`    span=${entry.spanId ?? "(none)"} parent=${entry.parentSpanId ?? "(root)"}`);
     }
     if (entry.metrics && Object.keys(entry.metrics).length > 0) {
       lines.push(`    metrics=${JSON.stringify(entry.metrics)}`);
@@ -78,7 +77,10 @@ function formatTimeline(snapshot: AgentInspectionSnapshot): string[] {
   return lines;
 }
 
-function resolveLifecycleStatus(phase: string, payload: Record<string, unknown>): string | undefined {
+function resolveLifecycleStatus(
+  phase: string,
+  payload: Record<string, unknown>,
+): string | undefined {
   if (phase.endsWith("_error") || typeof payload.error === "string") {
     return "error";
   }
@@ -104,7 +106,9 @@ function buildLifecycleSummary(
   const decision = isObjectRecord(payload.decision) ? payload.decision : undefined;
   const refs = isObjectRecord(payload.refs) ? payload.refs : undefined;
   const decisionSummary =
-    typeof decision?.summary === "string" && decision.summary.trim() ? decision.summary.trim() : undefined;
+    typeof decision?.summary === "string" && decision.summary.trim()
+      ? decision.summary.trim()
+      : undefined;
   const refToolName = typeof refs?.toolName === "string" ? refs.toolName : undefined;
   const refProvider =
     typeof refs?.provider === "string" && typeof refs?.modelId === "string"
@@ -155,38 +159,74 @@ function buildInspectionTimeline(
     metadata?: Record<string, unknown>;
   }>,
 ): AgentInspectionTimelineEntry[] {
-  return events
-    .filter((event) => event.type.startsWith("run.lifecycle."))
-    .map((event) => {
-      const payload = isObjectRecord(event.payload) ? event.payload : {};
-      const metadata = isObjectRecord(event.metadata) ? event.metadata : undefined;
-      const phase = typeof payload.phase === "string" ? payload.phase : event.type.slice("run.lifecycle.".length);
-      const decision = isObjectRecord(payload.decision) ? payload.decision : undefined;
-      const metrics = isObjectRecord(payload.metrics)
-        ? (Object.fromEntries(
-            Object.entries(payload.metrics).filter(([, value]) => typeof value === "number"),
-          ) as Record<string, number>)
+  return events.flatMap((event) => {
+    if (event.type === "agent.action" && isAgentActionEventData(event.payload)) {
+      const action = event.payload;
+      const summary =
+        (typeof action.projectedTitle === "string" && action.projectedTitle.trim()
+          ? action.projectedTitle.trim()
+          : action.title.trim()) || action.kind;
+      const refs: Record<string, string | number | boolean | null> = {
+        actionId: action.actionId,
+        kind: action.kind,
+      };
+      if (typeof action.parentActionId === "string") {
+        refs.parentActionId = action.parentActionId;
+      }
+      if (typeof action.toolName === "string") {
+        refs.toolName = action.toolName;
+      }
+      if (typeof action.toolCallId === "string") {
+        refs.toolCallId = action.toolCallId;
+      }
+      return [
+        {
+          eventId: event.id,
+          type: event.type,
+          phase: `action.${action.kind}`,
+          createdAt: event.createdAt,
+          status: action.status,
+          summary,
+          ...(Object.keys(refs).length > 0 ? { refs } : {}),
+        },
+      ];
+    }
+    if (!event.type.startsWith("run.lifecycle.")) {
+      return [];
+    }
+    const payload = isObjectRecord(event.payload) ? event.payload : {};
+    const metadata = isObjectRecord(event.metadata) ? event.metadata : undefined;
+    const phase =
+      typeof payload.phase === "string" ? payload.phase : event.type.slice("run.lifecycle.".length);
+    const decision = isObjectRecord(payload.decision) ? payload.decision : undefined;
+    const metrics = isObjectRecord(payload.metrics)
+      ? (Object.fromEntries(
+          Object.entries(payload.metrics).filter(([, value]) => typeof value === "number"),
+        ) as Record<string, number>)
+      : undefined;
+    const refs = isObjectRecord(payload.refs)
+      ? (Object.fromEntries(
+          Object.entries(payload.refs).filter(
+            ([, value]) =>
+              typeof value === "string" ||
+              typeof value === "number" ||
+              typeof value === "boolean" ||
+              value === null,
+          ),
+        ) as Record<string, string | number | boolean | null>)
+      : undefined;
+    const decisionCode =
+      typeof decision?.code === "string"
+        ? decision.code
+        : typeof metadata?.decisionCode === "string"
+          ? metadata.decisionCode
+          : undefined;
+    const decisionSummary =
+      typeof decision?.summary === "string" && decision.summary.trim()
+        ? decision.summary.trim()
         : undefined;
-      const refs = isObjectRecord(payload.refs)
-        ? (Object.fromEntries(
-            Object.entries(payload.refs).filter(
-              ([, value]) =>
-                typeof value === "string" ||
-                typeof value === "number" ||
-                typeof value === "boolean" ||
-                value === null,
-            ),
-          ) as Record<string, string | number | boolean | null>)
-        : undefined;
-      const decisionCode =
-        typeof decision?.code === "string"
-          ? decision.code
-          : typeof metadata?.decisionCode === "string"
-            ? metadata.decisionCode
-            : undefined;
-      const decisionSummary =
-        typeof decision?.summary === "string" && decision.summary.trim() ? decision.summary.trim() : undefined;
-      return {
+    return [
+      {
         eventId: event.id,
         type: event.type,
         phase,
@@ -196,14 +236,17 @@ function buildInspectionTimeline(
         ...(typeof payload.parentSpanId === "string" || payload.parentSpanId === null
           ? { parentSpanId: payload.parentSpanId }
           : {}),
-        ...(resolveLifecycleStatus(phase, payload) ? { status: resolveLifecycleStatus(phase, payload) } : {}),
+        ...(resolveLifecycleStatus(phase, payload)
+          ? { status: resolveLifecycleStatus(phase, payload) }
+          : {}),
         ...(decisionCode ? { decisionCode } : {}),
         ...(decisionSummary ? { decisionSummary } : {}),
         summary: buildLifecycleSummary(phase, payload, metadata),
         ...(metrics && Object.keys(metrics).length > 0 ? { metrics } : {}),
         ...(refs && Object.keys(refs).length > 0 ? { refs } : {}),
-      };
-    });
+      },
+    ];
+  });
 }
 
 function formatArchive(snapshot: AgentInspectionSnapshot): string[] {

@@ -131,7 +131,7 @@ describe("subscribeEmbeddedPiSession", () => {
 
     expect(onToolResult).toHaveBeenCalledTimes(1);
     const payload = onToolResult.mock.calls[0][0];
-    expect(payload.text).toContain("/tmp/a.txt");
+    expect(payload.text).toContain("Reading from /tmp/a.txt");
 
     toolHarness.emit({
       type: "tool_execution_end",
@@ -164,8 +164,7 @@ describe("subscribeEmbeddedPiSession", () => {
 
     expect(onToolResult).toHaveBeenCalledTimes(1);
     const payload = onToolResult.mock.calls[0][0];
-    expect(payload.text).toContain("🌐");
-    expect(payload.text).toContain("Browser");
+    expect(payload.text).toContain("Browsing");
     expect(payload.text).toContain("https://example.com");
   });
 
@@ -189,7 +188,8 @@ describe("subscribeEmbeddedPiSession", () => {
 
     expect(onToolResult).toHaveBeenCalledTimes(1);
     const summary = onToolResult.mock.calls[0][0];
-    expect(summary.text).toContain("Exec");
+    expect(summary.text).toContain("Tool Call");
+    expect(summary.text).toContain("claude");
     expect(summary.text).toContain("pty");
 
     toolHarness.emit({
@@ -200,9 +200,9 @@ describe("subscribeEmbeddedPiSession", () => {
       result: { content: [{ type: "text", text: "hello\nworld" }] },
     });
 
-    await Promise.resolve();
-
-    expect(onToolResult).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => {
+      expect(onToolResult).toHaveBeenCalledTimes(2);
+    });
     const output = onToolResult.mock.calls[1][0];
     expect(output.text).toContain("hello");
     expect(output.text).toContain("```txt");
@@ -215,9 +215,9 @@ describe("subscribeEmbeddedPiSession", () => {
       result: { content: [{ type: "text", text: "file data" }] },
     });
 
-    await Promise.resolve();
-
-    expect(onToolResult).toHaveBeenCalledTimes(3);
+    await vi.waitFor(() => {
+      expect(onToolResult).toHaveBeenCalledTimes(3);
+    });
     const readOutput = onToolResult.mock.calls[2][0];
     expect(readOutput.text).toContain("file data");
   });

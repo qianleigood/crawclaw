@@ -54,7 +54,8 @@ function combinedBlockText(deliveries: Delivery[]) {
 
 function expectToolCallSummary(delivery: Delivery | undefined) {
   expect(delivery?.kind).toBe("tool");
-  expect(delivery?.text).toContain("Tool Call");
+  expect(typeof delivery?.text).toBe("string");
+  expect(delivery?.text?.trim().length).toBeGreaterThan(0);
 }
 
 function createFinalOnlyStatusToolHarness() {
@@ -79,6 +80,7 @@ function createLiveToolLifecycleHarness(params?: {
   maxChunkChars?: number;
   maxSessionUpdateChars?: number;
   repeatSuppression?: boolean;
+  visibilityMode?: "off" | "summary" | "verbose" | "full";
 }) {
   return createProjectorHarness({
     acp: {
@@ -504,6 +506,102 @@ describe("createAcpReplyProjector", () => {
 
     expectToolCallSummary(deliveries[0]);
     expect(deliveries[0]?.text).not.toContain("call_ABC123 (");
+  });
+
+  it("projects summary mode tool updates as concise intent-first text", async () => {
+    const { deliveries, projector } = createLiveToolLifecycleHarness({
+      visibilityMode: "summary",
+    });
+
+    await projector.onEvent({
+      type: "tool_call",
+      tag: "tool_call",
+      toolCallId: "call_summary_1",
+      status: "in_progress",
+      title: "List files",
+      text: "List files (in_progress)",
+    });
+
+    expect(deliveries).toEqual([{ kind: "tool", text: "Reading List files" }]);
+  });
+
+  it("projects verbose mode tool updates with lifecycle detail", async () => {
+    const { deliveries, projector } = createLiveToolLifecycleHarness({
+      visibilityMode: "verbose",
+    });
+
+    await projector.onEvent({
+      type: "tool_call",
+      tag: "tool_call",
+      toolCallId: "call_verbose_1",
+      status: "in_progress",
+      title: "Run tests",
+      text: "Run tests (in_progress)",
+    });
+
+    expect(deliveries).toEqual([
+      { kind: "tool", text: "Tool Call: Run tests · status=in_progress" },
+    ]);
+  });
+
+  it("projects full mode tool updates with status and raw-safe detail", async () => {
+    const { deliveries, projector } = createLiveToolLifecycleHarness({
+      visibilityMode: "full",
+    });
+
+    await projector.onEvent({
+      type: "tool_call",
+      tag: "tool_call",
+      toolCallId: "call_full_1",
+      status: "completed",
+      title: "workflow publish draft",
+      text: "workflow publish draft (completed)",
+    });
+
+    expect(deliveries).toEqual([
+      {
+        kind: "tool",
+        text: "Workflow: workflow publish draft · status=completed",
+      },
+    ]);
+  });
+
+  it("suppresses tool/status projection completely when visibilityMode=off", async () => {
+    const { deliveries, projector } = createProjectorHarness({
+      acp: {
+        enabled: true,
+        stream: {
+          deliveryMode: "live",
+          visibilityMode: "off",
+          tagVisibility: {
+            available_commands_update: true,
+            tool_call: true,
+          },
+        },
+      },
+    });
+
+    await projector.onEvent({
+      type: "status",
+      text: "available commands updated",
+      tag: "available_commands_update",
+    });
+    await projector.onEvent({
+      type: "tool_call",
+      tag: "tool_call",
+      toolCallId: "call_off_1",
+      status: "in_progress",
+      title: "List files",
+      text: "List files (in_progress)",
+    });
+    await projector.onEvent({
+      type: "text_delta",
+      text: "hello",
+      tag: "agent_message_chunk",
+    });
+    await projector.flush(true);
+
+    expect(deliveries).toEqual([{ kind: "block", text: "hello" }]);
   });
 
   it("allows repeated status/tool summaries when repeatSuppression is disabled", async () => {
