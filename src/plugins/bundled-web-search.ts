@@ -1,9 +1,9 @@
+import { createOpenWebSearchProvider } from "../plugin-sdk/open-websearch-runtime.js";
 import { BUNDLED_WEB_SEARCH_PLUGIN_IDS } from "./bundled-capability-metadata.js";
 import { resolveBundledWebSearchPluginId as resolveBundledWebSearchPluginIdFromMap } from "./bundled-web-search-provider-ids.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import type { PluginWebSearchProviderEntry } from "./types.js";
-import { createOpenWebSearchProvider } from "../../extensions/open-websearch/src/open-websearch-provider.js";
 
 type BundledWebSearchProviderEntry = PluginWebSearchProviderEntry & { pluginId: string };
 

@@ -1,6 +1,11 @@
 import { Type } from "@sinclair/typebox";
+import {
+  jsonResult,
+  readStringParam,
+  ToolInputError,
+  type AnyAgentTool,
+} from "crawclaw/plugin-sdk/agent-runtime";
 import type { CrawClawPluginApi } from "crawclaw/plugin-sdk/plugin-entry";
-import { jsonResult, readStringParam, ToolInputError, type AnyAgentTool } from "../../../src/agents/tools/common.js";
 import type { FeishuCliPluginConfig } from "./config.js";
 import { runFeishuCliUserCommand } from "./lark-cli.js";
 

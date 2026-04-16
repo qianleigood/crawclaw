@@ -10,6 +10,8 @@ import {
 import { formatChannelStreamingDecision } from "crawclaw/plugin-sdk/channel-lifecycle";
 import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
 import { resolveStorePath, updateLastRoute } from "crawclaw/plugin-sdk/config-runtime";
+import { recordDiagnosticChannelStreamingDecision } from "crawclaw/plugin-sdk/diagnostic-runtime";
+import { emitDiagnosticEvent, isDiagnosticsEnabled } from "crawclaw/plugin-sdk/diagnostics-otel";
 import { resolveAgentOutboundIdentity } from "crawclaw/plugin-sdk/outbound-runtime";
 import { clearHistoryEntriesIfEnabled } from "crawclaw/plugin-sdk/reply-history";
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
@@ -18,8 +20,6 @@ import { createReplyDispatcherWithTyping } from "crawclaw/plugin-sdk/reply-runti
 import type { ReplyPayload } from "crawclaw/plugin-sdk/reply-runtime";
 import { danger, logVerbose, shouldLogVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { resolvePinnedMainDmOwnerFromAllowlist } from "crawclaw/plugin-sdk/security-runtime";
-import { emitDiagnosticEvent, isDiagnosticsEnabled } from "crawclaw/plugin-sdk/diagnostics-otel";
-import { recordDiagnosticChannelStreamingDecision } from "../../../../../src/logging/diagnostic-session-state.js";
 import { reactSlackMessage, removeSlackReaction } from "../../actions.js";
 import { createSlackDraftStream } from "../../draft-stream.js";
 import { normalizeSlackOutboundText } from "../../format.js";

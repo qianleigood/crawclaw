@@ -13,9 +13,13 @@ const { runOpenWebSearch } = vi.hoisted(() => ({
   runOpenWebSearch: vi.fn(async (params: Record<string, unknown>) => params),
 }));
 
-vi.mock("./open-websearch-client.js", () => ({
-  runOpenWebSearch,
-}));
+vi.mock("../../../src/open-websearch/client.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/open-websearch/client.js")>();
+  return {
+    ...actual,
+    runOpenWebSearch,
+  };
+});
 
 describe("open-websearch web search provider", () => {
   let createOpenWebSearchProvider: typeof import("./open-websearch-provider.js").createOpenWebSearchProvider;

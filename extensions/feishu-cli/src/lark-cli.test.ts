@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const runPluginCommandWithTimeoutMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../src/plugin-sdk/run-command.js", () => ({
+vi.mock("crawclaw/plugin-sdk/sandbox", () => ({
   runPluginCommandWithTimeout: runPluginCommandWithTimeoutMock,
 }));
 
@@ -123,10 +123,16 @@ describe("feishu-cli lark-cli runtime", () => {
       stderr: "",
     });
 
-    const result = await runLarkCliJson(
-      { enabled: true, command: "lark-cli", timeoutMs: 30_000 },
-      ["im", "+messages-search", "--as", "user", "--format", "json", "--query", "hello"],
-    );
+    const result = await runLarkCliJson({ enabled: true, command: "lark-cli", timeoutMs: 30_000 }, [
+      "im",
+      "+messages-search",
+      "--as",
+      "user",
+      "--format",
+      "json",
+      "--query",
+      "hello",
+    ]);
 
     expect(result.payload).toEqual({ ok: true, items: [{ id: "msg_1" }] });
   });

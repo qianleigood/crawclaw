@@ -1,13 +1,12 @@
-import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
 import { formatChannelStreamingDecision } from "crawclaw/plugin-sdk/channel-lifecycle";
+import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
 import { resolveChannelContextVisibilityMode } from "crawclaw/plugin-sdk/config-runtime";
 import { getSessionBindingService } from "crawclaw/plugin-sdk/conversation-runtime";
+import { recordDiagnosticChannelStreamingDecision } from "crawclaw/plugin-sdk/diagnostic-runtime";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "crawclaw/plugin-sdk/diagnostics-otel";
-import { recordDiagnosticChannelStreamingDecision } from "../../../../../src/logging/diagnostic-session-state.js";
 import { evaluateSupplementalContextVisibility } from "crawclaw/plugin-sdk/security-runtime";
 import type { CoreConfig, MatrixRoomConfig, ReplyToMode } from "../../types.js";
 import { createMatrixDraftStream } from "../draft-stream.js";
-import { resolveMatrixStreamingDecision } from "../stream-mode.js";
 import {
   formatMatrixMediaUnavailableText,
   formatMatrixMessageText,
@@ -29,6 +28,7 @@ import {
   sendReadReceiptMatrix,
   sendTypingMatrix,
 } from "../send.js";
+import { resolveMatrixStreamingDecision } from "../stream-mode.js";
 import { resolveMatrixMonitorAccessState } from "./access-state.js";
 import { resolveMatrixAckReactionConfig } from "./ack-config.js";
 import { resolveMatrixAllowListMatch } from "./allowlist.js";

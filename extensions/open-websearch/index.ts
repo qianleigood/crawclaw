@@ -1,9 +1,9 @@
-import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
 import {
+  createOpenWebSearchProvider,
   startManagedOpenWebSearchDaemonService,
   stopManagedOpenWebSearchDaemonService,
-} from "./src/open-websearch-daemon.js";
-import { createOpenWebSearchProvider } from "./src/open-websearch-provider.js";
+} from "crawclaw/plugin-sdk/open-websearch-runtime";
+import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
 
 export default definePluginEntry({
   id: "open-websearch",

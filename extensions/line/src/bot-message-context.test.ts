@@ -6,8 +6,11 @@ import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { getSessionBindingService } from "crawclaw/plugin-sdk/conversation-runtime";
 import { __testing as sessionBindingTesting } from "crawclaw/plugin-sdk/conversation-runtime";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { setActivePluginRegistry, resetPluginRuntimeStateForTest } from "../../../src/plugins/runtime.js";
-import { createTestRegistry } from "../../../src/test-utils/channel-plugins.js";
+import {
+  setActivePluginRegistry,
+  resetPluginRuntimeStateForTest,
+} from "../../../src/plugins/runtime.js";
+import { createTestRegistry } from "../../../test/helpers/plugins/plugin-registry.js";
 import { buildLineMessageContext, buildLinePostbackContext } from "./bot-message-context.js";
 import { linePlugin } from "./channel.js";
 import type { ResolvedLineAccount } from "./types.js";

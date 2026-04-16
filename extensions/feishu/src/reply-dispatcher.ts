@@ -1,15 +1,15 @@
 import {
-  resolveSendableOutboundReplyParts,
-  resolveTextChunksWithFallback,
-  sendMediaWithLeadingCaption,
-} from "crawclaw/plugin-sdk/reply-payload";
-import {
   formatChannelStreamingDecision,
   type ChannelStreamingDecision,
   type ChannelStreamingDecisionReason,
 } from "crawclaw/plugin-sdk/channel-lifecycle";
+import { recordDiagnosticChannelStreamingDecision } from "crawclaw/plugin-sdk/diagnostic-runtime";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "crawclaw/plugin-sdk/diagnostics-otel";
-import { recordDiagnosticChannelStreamingDecision } from "../../../src/logging/diagnostic-session-state.js";
+import {
+  resolveSendableOutboundReplyParts,
+  resolveTextChunksWithFallback,
+  sendMediaWithLeadingCaption,
+} from "crawclaw/plugin-sdk/reply-payload";
 import {
   createChannelReplyPipeline,
   createReplyPrefixContext,

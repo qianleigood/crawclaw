@@ -669,6 +669,10 @@
       "types": "./dist/plugin-sdk/openai.d.ts",
       "default": "./dist/plugin-sdk/openai.js"
     },
+    "./plugin-sdk/open-websearch-runtime": {
+      "types": "./dist/plugin-sdk/open-websearch-runtime.d.ts",
+      "default": "./dist/plugin-sdk/open-websearch-runtime.js"
+    },
     "./plugin-sdk/opencode": {
       "types": "./dist/plugin-sdk/opencode.d.ts",
       "default": "./dist/plugin-sdk/opencode.js"
@@ -962,7 +966,7 @@
     "canon:check:json": "node scripts/canon.mjs check --json",
     "canon:enforce": "node scripts/canon.mjs enforce --json",
     "canvas:a2ui:bundle": "bash scripts/bundle-a2ui.sh",
-    "check": "pnpm check:no-conflict-markers && pnpm tsgo && pnpm lint && pnpm lint:webhook:no-low-level-body-read && pnpm lint:auth:no-pairing-store-group && pnpm lint:auth:pairing-account-scope",
+    "check": "pnpm check:no-conflict-markers && pnpm tsgo && pnpm lint && pnpm lint:boundaries && pnpm lint:webhook:no-low-level-body-read && pnpm lint:auth:no-pairing-store-group && pnpm lint:auth:pairing-account-scope",
     "check:base-config-schema": "node --import tsx scripts/generate-base-config-schema.ts --check",
     "check:bundled-channel-config-metadata": "node --import tsx scripts/generate-bundled-channel-config-metadata.ts --check",
     "check:bundled-provider-auth-env-vars": "node scripts/generate-bundled-provider-auth-env-vars.mjs --check",
@@ -1012,6 +1016,8 @@
     "lint:all": "pnpm lint",
     "lint:auth:no-pairing-store-group": "node scripts/check-no-pairing-store-group-auth.mjs",
     "lint:auth:pairing-account-scope": "node scripts/check-pairing-account-scope.mjs",
+    "lint:boundaries": "pnpm lint:agent:ingress-owner && pnpm lint:runtime:module-boundaries && pnpm lint:tmp:channel-agnostic-boundaries && pnpm lint:web-search-provider-boundaries && pnpm lint:boundaries:ecosystem",
+    "lint:boundaries:ecosystem": "pnpm lint:extensions:no-plugin-sdk-internal && pnpm lint:extensions:no-relative-outside-package && pnpm lint:extensions:no-src-outside-plugin-sdk && pnpm lint:plugins:no-extension-imports && pnpm lint:plugins:no-extension-src-imports && pnpm lint:plugins:no-extension-test-core-imports && pnpm lint:plugins:no-monolithic-plugin-sdk-entry-imports && pnpm lint:plugins:plugin-sdk-subpaths-exported",
     "lint:docs": "pnpm dlx markdownlint-cli2",
     "lint:docs:fix": "pnpm dlx markdownlint-cli2 --fix",
     "lint:extensions:no-plugin-sdk-internal": "node scripts/check-extension-plugin-sdk-boundary.mjs --mode=plugin-sdk-internal",
@@ -1024,6 +1030,7 @@
     "lint:plugins:no-monolithic-plugin-sdk-entry-imports": "node --import tsx scripts/check-no-monolithic-plugin-sdk-entry-imports.ts",
     "lint:plugins:no-register-http-handler": "node scripts/check-no-register-http-handler.mjs",
     "lint:plugins:plugin-sdk-subpaths-exported": "node scripts/check-plugin-sdk-subpath-exports.mjs",
+    "lint:runtime:module-boundaries": "node scripts/check-runtime-module-boundaries.mjs",
     "lint:tmp:channel-agnostic-boundaries": "node scripts/check-channel-agnostic-boundaries.mjs",
     "lint:tmp:no-random-messaging": "node scripts/check-no-random-messaging-tmp.mjs",
     "lint:tmp:no-raw-channel-fetch": "node scripts/check-no-raw-channel-fetch.mjs",

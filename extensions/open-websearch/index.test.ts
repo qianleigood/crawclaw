@@ -11,19 +11,13 @@ const providerMocks = vi.hoisted(() => ({
   createOpenWebSearchProvider: vi.fn(() => ({ id: "open-websearch" })),
 }));
 
-vi.mock("./src/open-websearch-daemon.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./src/open-websearch-daemon.js")>();
+vi.mock("crawclaw/plugin-sdk/open-websearch-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("crawclaw/plugin-sdk/open-websearch-runtime")>();
   return {
     ...actual,
     startManagedOpenWebSearchDaemonService: daemonMocks.startManagedOpenWebSearchDaemonService,
     stopManagedOpenWebSearchDaemonService: daemonMocks.stopManagedOpenWebSearchDaemonService,
-  };
-});
-
-vi.mock("./src/open-websearch-provider.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./src/open-websearch-provider.js")>();
-  return {
-    ...actual,
     createOpenWebSearchProvider: providerMocks.createOpenWebSearchProvider,
   };
 });

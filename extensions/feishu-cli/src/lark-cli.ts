@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
-import { resolveWindowsCommandShim } from "../../../src/process/windows-command.js";
-import { runPluginCommandWithTimeout } from "../../../src/plugin-sdk/run-command.js";
+import { resolveWindowsCommandShim } from "crawclaw/plugin-sdk/process-runtime";
+import { runPluginCommandWithTimeout } from "crawclaw/plugin-sdk/sandbox";
 import type { FeishuCliPluginConfig } from "./config.js";
 
 export type FeishuCliStatus = {
@@ -128,7 +128,8 @@ export async function getFeishuCliStatus(params: {
   });
 
   if (versionResult.code !== 0) {
-    const message = versionResult.stderr.trim() || versionResult.stdout.trim() || "lark-cli missing";
+    const message =
+      versionResult.stderr.trim() || versionResult.stdout.trim() || "lark-cli missing";
     return {
       identity: "user",
       enabled: config.enabled,
@@ -164,7 +165,13 @@ export async function getFeishuCliStatus(params: {
     installed: true,
     ...(version ? { version } : {}),
     authOk,
-    status: !config.enabled ? "disabled" : authOk ? "ready" : message === "not configured" ? "not_configured" : "error",
+    status: !config.enabled
+      ? "disabled"
+      : authOk
+        ? "ready"
+        : message === "not configured"
+          ? "not_configured"
+          : "error",
     ...(message ? { message } : {}),
     ...(hint ? { hint } : {}),
     ...(authResult.payload !== undefined ? { raw: authResult.payload } : {}),

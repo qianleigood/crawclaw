@@ -32,6 +32,15 @@ Primary domains:
 
 When people say “the product code”, they usually mean `src/`.
 
+Top-level maintainer entry points inside `src/`:
+
+- `src/agents/README.md`
+- `src/channels/README.md`
+- `src/plugins/README.md`
+- `src/memory/README.md`
+- `src/workflows/README.md`
+- `src/infra/README.md`
+
 ## Interface Layer
 
 `ui/` is the browser-based Control UI.

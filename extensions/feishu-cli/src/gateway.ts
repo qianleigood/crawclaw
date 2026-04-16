@@ -1,4 +1,4 @@
-import type { GatewayRequestHandlerOptions } from "../../../src/gateway/server-methods/types.js";
+import type { GatewayRequestHandlerOptions } from "crawclaw/plugin-sdk/core";
 import type { FeishuCliPluginConfig } from "./config.js";
 import { getFeishuCliStatus } from "./lark-cli.js";
 
