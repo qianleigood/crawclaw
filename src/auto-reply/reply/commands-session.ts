@@ -20,7 +20,7 @@ import {
 } from "./channel-context.js";
 import { rejectNonOwnerCommand, rejectUnauthorizedCommand } from "./command-gates.js";
 import { handleAbortTrigger, handleStopCommand } from "./commands-session-abort.js";
-import { persistSessionEntry } from "./commands-session-store.js";
+import { applyCommandSessionPatch, persistSessionEntry } from "./commands-session-store.js";
 import type { CommandHandler } from "./commands-types.js";
 import {
   resolveMatrixConversationId,
@@ -41,6 +41,13 @@ function getChannelRuntime() {
 
 function resolveSessionCommandUsage() {
   return "Usage: /session idle <duration|off> | /session max-age <duration|off> (example: /session idle 24h)";
+}
+
+function buildSessionControlPatchFailureReply(message: string) {
+  return {
+    shouldContinue: false,
+    reply: { text: `⚠️ Failed to update session settings: ${message}` },
+  } as const;
 }
 
 function parseSessionDurationMs(raw: string): number {
@@ -232,13 +239,14 @@ export const handleSendPolicyCommand: CommandHandler = async (params, allowTextC
       reply: { text: "⚙️ Usage: /send on|off|inherit" },
     };
   }
-  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    if (sendPolicyCommand.mode === "inherit") {
-      delete params.sessionEntry.sendPolicy;
-    } else {
-      params.sessionEntry.sendPolicy = sendPolicyCommand.mode;
-    }
-    await persistSessionEntry(params);
+  const patched = await applyCommandSessionPatch({
+    commandParams: params,
+    patch: {
+      sendPolicy: sendPolicyCommand.mode === "inherit" ? null : sendPolicyCommand.mode,
+    },
+  });
+  if (!patched.ok) {
+    return buildSessionControlPatchFailureReply(patched.error.message);
   }
   const label =
     sendPolicyCommand.mode === "inherit"
@@ -321,13 +329,14 @@ export const handleUsageCommand: CommandHandler = async (params, allowTextComman
   const current = resolveResponseUsageMode(currentRaw);
   const next = requested ?? (current === "off" ? "tokens" : current === "tokens" ? "full" : "off");
 
-  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    if (next === "off") {
-      delete params.sessionEntry.responseUsage;
-    } else {
-      params.sessionEntry.responseUsage = next;
-    }
-    await persistSessionEntry(params);
+  const patched = await applyCommandSessionPatch({
+    commandParams: params,
+    patch: {
+      responseUsage: next,
+    },
+  });
+  if (!patched.ok) {
+    return buildSessionControlPatchFailureReply(patched.error.message);
   }
 
   return {
@@ -385,9 +394,14 @@ export const handleFastCommand: CommandHandler = async (params, allowTextCommand
     };
   }
 
-  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    params.sessionEntry.fastMode = nextMode;
-    await persistSessionEntry(params);
+  const patched = await applyCommandSessionPatch({
+    commandParams: params,
+    patch: {
+      fastMode: nextMode,
+    },
+  });
+  if (!patched.ok) {
+    return buildSessionControlPatchFailureReply(patched.error.message);
   }
 
   return {

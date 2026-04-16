@@ -261,21 +261,30 @@ title: Phase 对应 PR 计划
 - 已把 gateway `workflow.status / workflow.cancel / workflow.resume` 接到同一套共享执行层。
 - 已补共享层单测：
   - `src/workflows/control-runtime.test.ts`
+- 已新增 command session patch 共享入口：
+  - `src/auto-reply/reply/commands-session-store.ts`
+- 已把 `/send`、`/usage`、`/fast` 从手改 `sessionEntry` 收口到 gateway `sessions.patch` 共用的 patch 语义。
+- 已补 command session setting 测试：
+  - `src/auto-reply/reply/commands-session-settings.test.ts`
 
 已验证：
 
 - `vitest run src/workflows/control-runtime.test.ts src/auto-reply/reply/commands-workflow.test.ts src/gateway/server-methods/workflow.test.ts`
 - `pnpm lint src/workflows/control-runtime.ts src/auto-reply/reply/commands-workflow.ts src/gateway/server-methods/workflow.ts src/workflows/control-runtime.test.ts src/auto-reply/reply/commands-workflow.test.ts`
+- `vitest run src/auto-reply/reply/commands-session-settings.test.ts src/gateway/sessions-patch.test.ts`
+- `pnpm lint src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-session-store.ts src/auto-reply/reply/commands-session-settings.test.ts`
 
 当前未完成：
 
 - workflow controls 目前只共享了执行层，参数校验与 transport 结果映射还可以继续下沉。
-- `session controls`、`model selection`、`memory command API` 还未开始收口。
+- `session controls` 目前只收了 `/send`、`/usage`、`/fast` 这一批，`reset / abort / lifecycle` 还没收口。
+- `model selection`、`memory command API` 还未开始收口。
 
 本 PR 下一步建议：
 
 1. 继续把 workflow control 的参数校验和 domain result 映射抽成更显式的 handler。
-2. workflow controls 收完后，转入 `session controls` 的共享 handler。
+2. 继续把 `session controls` 里剩余的 `reset / abort / lifecycle` 往共享 handler 收。
+3. 然后转入 `model selection`。
 
 ## PR-03：Agent Kernel 子域化
 

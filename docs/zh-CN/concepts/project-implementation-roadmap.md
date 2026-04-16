@@ -232,11 +232,13 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - 已开始从 `workflow controls` 下手。
 - 已新增 `src/workflows/control-runtime.ts` 作为 command 与 gateway 共享的 workflow control 执行层。
 - 已把 `workflow status / cancel / resume` 的 command 与 gateway 调度接到同一套共享执行路径。
+- 已把 `session controls` 的第一批命令 `/send`、`/usage`、`/fast` 接到共享 session patch 语义，不再直接手改 `sessionEntry`。
 
 后续紧接着做：
 
 - 继续把 workflow control 的参数校验、domain 结果映射、transport 输出边界再往共享 handler 收。
-- 然后推进 `session controls`、`model selection`、`memory command API`。
+- 继续推进 `session controls` 剩余的 `reset / abort / lifecycle`。
+- 然后推进 `model selection`、`memory command API`。
 
 ### 产出
 
