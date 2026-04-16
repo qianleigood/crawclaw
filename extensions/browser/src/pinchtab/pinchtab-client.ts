@@ -1,3 +1,11 @@
+/**
+ * PinchTab transport adapter.
+ *
+ * This client speaks the raw PinchTab HTTP API used by host-side browser
+ * integrations. It is intentionally lower-level than the browser control
+ * facade in ../browser/control-client.ts and should stay focused on backend
+ * protocol details such as auth headers, instance routes, and binary payloads.
+ */
 type PinchTabFetch = typeof fetch;
 
 type PinchTabClientDeps = {

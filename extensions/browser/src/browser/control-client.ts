@@ -1,3 +1,15 @@
+/**
+ * CrawClaw-facing browser control facade.
+ *
+ * This module is the stable client surface that the rest of the browser
+ * subsystem uses to talk to CrawClaw's browser runtime routes. It intentionally
+ * stays at the product/domain level (profiles, tabs, snapshots, actions)
+ * instead of exposing any transport-specific backend protocol.
+ *
+ * Transport-specific adapters, such as the PinchTab HTTP client, live
+ * separately so the browser subsystem can evolve backend implementations
+ * without rewriting its higher-level control API.
+ */
 import { fetchBrowserJson } from "./client-fetch.js";
 
 export type BrowserTransport = "pinchtab";

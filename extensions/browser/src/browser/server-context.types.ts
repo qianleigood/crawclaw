@@ -1,8 +1,8 @@
 import type { Server } from "node:http";
 import type { RunningChrome } from "./chrome.js";
-import type { BrowserTransport } from "./client.js";
-import type { BrowserTab } from "./client.js";
 import type { ResolvedBrowserConfig, ResolvedBrowserProfile } from "./config.js";
+import type { BrowserTransport } from "./control-client.js";
+import type { BrowserTab } from "./control-client.js";
 
 export type { BrowserTab };
 

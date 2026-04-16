@@ -8,7 +8,7 @@ import {
   browserPdfSave,
   browserScreenshotAction,
 } from "./client-actions.js";
-import { browserOpenTab, browserSnapshot, browserStatus, browserTabs } from "./client.js";
+import { browserOpenTab, browserSnapshot, browserStatus, browserTabs } from "./control-client.js";
 
 describe("browser client", () => {
   function stubSnapshotFetch(calls: string[]) {

@@ -23,7 +23,7 @@ export {
   browserStop,
   browserTabAction,
   browserTabs,
-} from "./browser/client.js";
+} from "./browser/control-client.js";
 export { runBrowserProxyCommand } from "./node-host/invoke-browser.js";
 export type {
   BrowserCreateProfileResult,
@@ -34,7 +34,7 @@ export type {
   BrowserTransport,
   ProfileStatus,
   SnapshotResult,
-} from "./browser/client.js";
+} from "./browser/control-client.js";
 export type { BrowserExecutable } from "./browser/chrome.executables.js";
 export type { ResolvedBrowserConfig, ResolvedBrowserProfile } from "./browser/config.js";
 export { resolveBrowserConfig, resolveProfile } from "./browser/config.js";

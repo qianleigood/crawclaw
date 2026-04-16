@@ -1,6 +1,6 @@
 import { getPinchTabSessionState } from "../pinchtab/pinchtab-state.js";
-import type { BrowserTransport } from "./client.js";
 import { resolveProfile } from "./config.js";
+import type { BrowserTransport } from "./control-client.js";
 import {
   listPinchTabBrowserTabs,
   openPinchTabBrowserTab,

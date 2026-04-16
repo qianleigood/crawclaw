@@ -1,4 +1,4 @@
-import { browserCloseTab } from "./client.js";
+import { browserCloseTab } from "./control-client.js";
 
 export type TrackedSessionBrowserTab = {
   sessionKey: string;

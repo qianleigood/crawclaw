@@ -7,7 +7,7 @@ import {
   updatePinchTabSessionState,
 } from "../../pinchtab/pinchtab-state.js";
 import type { BrowserActRequest } from "../client-actions-core.js";
-import type { BrowserStatus, BrowserTab, ProfileStatus } from "../client.js";
+import type { BrowserStatus, BrowserTab, ProfileStatus } from "../control-client.js";
 import type { BrowserRouteContext } from "../server-context.types.js";
 
 type PinchTabTab = Record<string, unknown>;
