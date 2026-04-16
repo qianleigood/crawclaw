@@ -64,7 +64,7 @@ export function resolveMirroredTranscriptText(params: {
   return trimmed ? trimmed : null;
 }
 
-async function ensureSessionHeader(params: {
+export async function ensureSessionTranscriptHeader(params: {
   sessionFile: string;
   sessionId: string;
 }): Promise<void> {
@@ -190,7 +190,7 @@ export async function appendAssistantMessageToSessionTranscript(params: {
     };
   }
 
-  await ensureSessionHeader({ sessionFile, sessionId: entry.sessionId });
+  await ensureSessionTranscriptHeader({ sessionFile, sessionId: entry.sessionId });
 
   const existingMessageId = params.idempotencyKey
     ? await transcriptHasIdempotencyKey(sessionFile, params.idempotencyKey)

@@ -17,17 +17,13 @@ import {
   resolveSessionStoreEntry,
   resolveStorePath,
   type SessionEntry,
-  updateSessionStore,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { parseAgentSessionKey } from "../../routing/session-key.js";
+import { executeAbortTarget } from "../../sessions/runtime/abort-executor.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import type { FinalizedMsgContext, MsgContext } from "../templating.js";
-import {
-  applyAbortCutoffToSessionEntry,
-  resolveAbortCutoffFromContext,
-  shouldPersistAbortCutoff,
-} from "./abort-cutoff.js";
+import { resolveAbortCutoffFromContext, shouldPersistAbortCutoff } from "./abort-cutoff.js";
 import {
   getAbortMemory,
   getAbortMemorySizeForTest,
@@ -252,73 +248,37 @@ export async function tryFastAbortFromMessage(params: {
     const store = loadSessionStore(storePath);
     const { entry, key, legacyKeys } = resolveSessionEntryForKey(store, targetKey);
     const resolvedTargetKey = key ?? targetKey;
-    const acpManager = abortDeps.getAcpSessionManager();
-    const acpResolution = acpManager.resolveSession({
-      cfg,
-      sessionKey: resolvedTargetKey,
-    });
-    if (acpResolution.kind !== "none") {
-      try {
-        await acpManager.cancelSession({
-          cfg,
-          sessionKey: resolvedTargetKey,
-          reason: "fast-abort",
-        });
-      } catch (error) {
-        logVerbose(
-          `abort: ACP cancel failed for ${resolvedTargetKey}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
     const sessionId = entry?.sessionId;
-    const aborted = sessionId ? abortDeps.abortEmbeddedPiRun(sessionId) : false;
-    const cleared = clearSessionQueues([resolvedTargetKey, sessionId]);
-    if (cleared.followupCleared > 0 || cleared.laneCleared > 0) {
-      logVerbose(
-        `abort: cleared followups=${cleared.followupCleared} lane=${cleared.laneCleared} keys=${cleared.keys.join(",")}`,
-      );
-    }
     const abortCutoff = shouldPersistAbortCutoff({
       commandSessionKey: ctx.SessionKey,
       targetSessionKey: resolvedTargetKey,
     })
       ? resolveAbortCutoffFromContext(ctx)
       : undefined;
-    if (entry && key) {
-      entry.abortedLastRun = true;
-      applyAbortCutoffToSessionEntry(entry, abortCutoff);
-      entry.updatedAt = Date.now();
-      store[key] = entry;
-      for (const legacyKey of legacyKeys ?? []) {
-        if (legacyKey !== key) {
-          delete store[legacyKey];
-        }
-      }
-      await updateSessionStore(storePath, (nextStore) => {
-        const nextEntry = nextStore[key] ?? entry;
-        if (!nextEntry) {
-          return;
-        }
-        nextEntry.abortedLastRun = true;
-        applyAbortCutoffToSessionEntry(nextEntry, abortCutoff);
-        nextEntry.updatedAt = Date.now();
-        nextStore[key] = nextEntry;
-        for (const legacyKey of legacyKeys ?? []) {
-          if (legacyKey !== key) {
-            delete nextStore[legacyKey];
-          }
-        }
-      });
-    } else if (abortKey) {
-      setAbortMemory(abortKey, true);
+    const { aborted, cleared } = await executeAbortTarget({
+      entry,
+      key,
+      legacyKeys,
+      sessionId,
+      sessionStore: store,
+      storePath,
+      abortKey,
+      abortCutoff,
+      queueKeys: [resolvedTargetKey, sessionId],
+      cfg,
+      sessionKey: resolvedTargetKey,
+      acpCancelReason: "fast-abort",
+    });
+    if (cleared.followupCleared > 0 || cleared.laneCleared > 0) {
+      logVerbose(
+        `abort: cleared followups=${cleared.followupCleared} lane=${cleared.laneCleared} keys=${cleared.keys.join(",")}`,
+      );
     }
     const { stopped } = stopSubagentsForRequester({ cfg, requesterSessionKey });
     return { handled: true, aborted, stoppedSubagents: stopped };
   }
 
-  if (abortKey) {
-    setAbortMemory(abortKey, true);
-  }
+  await executeAbortTarget({ abortKey, queueKeys: [] });
   const { stopped } = stopSubagentsForRequester({ cfg, requesterSessionKey });
   return { handled: true, aborted: false, stoppedSubagents: stopped };
 }

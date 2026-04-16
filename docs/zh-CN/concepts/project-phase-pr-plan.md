@@ -22,20 +22,20 @@ title: Phase 对应 PR 计划
 
 以下状态以 `2026-04-16` 的代码和文档为准：
 
-| PR      | 对应 Phase | 当前状态 | 说明                                                                                                                   |
-| ------- | ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                                                |
-| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。                                |
-| `PR-02` | Phase 2    | `已完成` | workflow controls、session patch 与 model selection 的共享 runtime 已收口；更深的 session runtime 重构转入后续 phase。 |
-| `PR-03` | Phase 3    | `已完成` | `command` / `subagents` 子域已显式化，两个热点文件已拆薄，并补了子域入口文档与 focused tests。                         |
-| `PR-SR` | 专题       | `未开始` | 建议排在 `PR-03` 之后，专门处理 session runtime / ACP / transcript / lifecycle 的复合状态机收口。                      |
-| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                                               |
-| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                   |
-| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                         |
-| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                     |
-| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                         |
-| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                              |
-| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                 |
+| PR      | 对应 Phase | 当前状态 | 说明                                                                                                                                                                                                                                                                                                                                |
+| ------- | ---------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                                                                                                                                                                                                                                                             |
+| `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。                                                                                                                                                                                                                                             |
+| `PR-02` | Phase 2    | `已完成` | workflow controls、session patch 与 model selection 的共享 runtime 已收口；更深的 session runtime 重构转入后续 phase。                                                                                                                                                                                                              |
+| `PR-03` | Phase 3    | `已完成` | `command` / `subagents` 子域已显式化，两个热点文件已拆薄，并补了子域入口文档与 focused tests。                                                                                                                                                                                                                                      |
+| `PR-SR` | 专题       | `已完成` | session runtime 的 reset / abort / lifecycle 主链已完成收口：行为冻结测试、shared runtime seam、ACP reset adapter、shared abort executor、shared reset internal hook、gateway reset entry/helper 与 transcript header 统一接线都已落地，主状态机不再散落在 `session.ts`、`abort.ts`、`commands-core.ts` 与 gateway reset 主流程里。 |
+| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                                                                                                                                                                                                                                                            |
+| `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                                                                                                                                                                                                                                |
+| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                                                                                                                                                                                                                                      |
+| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                                                                                                                                                                                                                                  |
+| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                                                                                                                                                                                                                                      |
+| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                                                                                                                                                                                                                                           |
+| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                                                                                                                                                                                                                              |
 
 ## 总体规则
 
@@ -441,13 +441,97 @@ title: Phase 对应 PR 计划
 
 ### 当前状态
 
-状态：`未开始`
+状态：`已完成（截至 2026-04-16）`
 
 规划结论：
 
 1. 这项工作后续必须做，但不再属于 `PR-02` 的合并条件。
 2. 结合当前价值评估，建议排在 `PR-03` 之后，而不是立刻抢在最前面。
 3. 开工前应先补行为冻结测试，再逐步抽 `planner / carry-over / executor / ACP adapter / lifecycle`。
+
+已完成：
+
+- 已新增 `src/gateway/session-reset-service.test.ts`，冻结 gateway reset 的第一批核心语义：
+  - reset 后保留哪些用户级 session 设置
+  - reset 后清掉哪些 runtime 状态
+  - gateway reset 是否发 `before_reset`
+  - gateway reset 是否触发旧会话 unbind
+- 已在 `src/auto-reply/reply/commands-core.test.ts` 冻结 ACP reset-in-place 的命令层行为：
+  - 绑定 ACP 会话的 bare `/new` 会走 in-place reset 并返回成功回复
+  - 绑定 ACP 会话的 `/new <tail>` 会把 tail 回写到 `ctx / rootCtx`，并设置 `AcpDispatchTailAfterReset`
+- 已修正 `src/auto-reply/reply/abort.test.ts` 中 4 条 subagent abort/cascade 用例，使其对齐当前 subagent registry 的 latest-run 判定语义。
+- 已新增 `src/sessions/runtime/reset-carry-over.ts` 与 `src/sessions/runtime/reset-carry-over.test.ts`，抽出第一块共享 reset carry-over seam：
+  - `initSessionState` 的 `/new` carry-over 现在改走共享字段选择逻辑
+  - gateway `sessions.reset` 也改走同一套 carry-over 选择逻辑
+  - 当前仍保留两种 profile：`command-reset` 与 `gateway-reset`
+- 已新增 `src/sessions/runtime/reset-artifacts.ts` 与 `src/sessions/transcript-archive.fs.ts`：
+  - `initSessionState` 的旧 transcript 归档与 MCP runtime dispose 改走共享 helper
+  - gateway `sessions.reset` 与 `sessions.delete` 的 transcript 归档也改走同一套 helper
+- 已新增 `src/sessions/runtime/reset-lifecycle.ts`：
+  - `session.ts` 中 `session_end / session_start` 的 rollover hook 发射已抽成独立 helper
+- 已新增 `src/sessions/runtime/reset-cleanup.ts`：
+  - gateway 侧 `stop durable worker / clear queue / stop subagents / abort embedded run / close ACP runtime` 的前置清理已抽成共享 cleanup helper
+  - `session-reset-service.ts` 现在通过该 helper 暴露原有 `cleanupSessionBeforeMutation` API
+  - 已在 `src/gateway/session-reset-service.test.ts` 补 cleanup 直测，覆盖活动 run 停不下来时返回 `UNAVAILABLE`、以及 ACP session 的 cancel/close 路径
+- 已新增 `src/sessions/runtime/reset-plan.ts`：
+  - `session.ts` 中 `reset trigger / tail / ACP default-trigger bypass / stale freshness / system-event freshness override` 的纯决策逻辑已抽成 planner
+  - 当前 planner 只负责决策，不处理任何 session store / transcript / hook 副作用
+- 已新增 `src/auto-reply/reply/session-target-context.ts`：
+  - `session.ts` 中 `conversation binding context / targetSessionKey / native CommandTargetSessionKey fallback / ACP in-place reset target` 的入口解析已抽成独立 helper
+  - 当前 helper 负责改写 `sessionCtxForState`，并为 planner 前的 reset 入口判断提供稳定上下文
+- 已新增 `src/sessions/runtime/abort-executor.ts` 与 `src/sessions/runtime/abort-executor.test.ts`：
+  - `/stop` 命令路径与 `tryFastAbortFromMessage` 现在共用同一套 abort 执行 helper
+  - queue 清理、embedded run abort、`abortedLastRun` 持久化与 `abort memory` fallback 不再分散在 `commands-session-abort.ts` 与 `abort.ts`
+  - ACP session cancel 现在也并进 shared abort executor；fast-abort、`/stop` 与 natural-language abort trigger 不再继续分叉维护 ACP 取消语义
+  - 已新增 `src/auto-reply/reply/commands-session-abort.test.ts`，锁住 `/stop` 会把 ACP cancel metadata 透传到 shared abort executor
+- 已新增 `src/auto-reply/reply/acp-reset-adapter.ts`：
+  - `commands-core.ts` 不再直接处理 ACP reset-in-place 的 target 解析、结果映射、tail 回写与 hook session entry 选择
+  - ACP reset 特殊路径现在通过独立 adapter 接回命令层，只给 transport 返回最终结果
+- 已新增 `src/sessions/runtime/before-reset-hook.ts` 与 `src/sessions/runtime/before-reset-hook.test.ts`：
+  - `commands-core.ts` 与 gateway `session-reset-service.ts` 的 `before_reset` plugin hook 发射现在共用同一套 helper
+  - 命令层仍保留 transcript 归档回退，gateway 仍保留基于 `readSessionMessages(...)` 的加载方式，但 hook 上下文拼装与错误处理不再各写一套
+- 已新增 `src/gateway/session-reset-entry.ts` 与 `src/gateway/session-reset-entry.test.ts`：
+  - gateway `session-reset-service.ts` 中“构建下一个 reset 后 session entry”的 mutation 逻辑已抽成独立 helper
+  - carry-over、model resolution、origin snapshot、token/runtime state 清零与新 session file 路径分配不再继续堆在 `performGatewaySessionReset(...)` 主函数里
+- 已新增 `src/auto-reply/reply/session-entry-state.ts` 与 `src/auto-reply/reply/session-entry-state.test.ts`：
+  - `session.ts` 中 next session entry 的构建逻辑已抽成独立 helper
+  - deliveryContext、lastChannel/lastTo、meta patch、chatType 默认值与 thread label 收口不再混在 `initSessionState(...)` 主函数里
+- 已新增 `src/sessions/runtime/reset-entry-state.ts` 与 `src/sessions/runtime/reset-entry-state.test.ts`：
+  - `session.ts` 中“复用现有 session 还是生成新 sessionId、以及何时带上 command-reset carry-over”的执行态决策已抽成独立 helper
+  - `initSessionState(...)` 不再继续内联维护 `sessionId / isNewSession / systemSent / abortedLastRun / baseEntry / resetCarryOver` 这组 reset 主状态
+- 已新增 `src/sessions/runtime/reset-internal-hook.ts` 与 `src/sessions/runtime/reset-internal-hook.test.ts`：
+  - `/new` 命令路径与 gateway `sessions.reset` 路径现在共用同一套 reset internal hook event 构建与触发 helper
+  - `commands-core.ts` 与 `session-reset-service.ts` 不再各自手写 `createInternalHookEvent(...)+triggerInternalHook(...)`
+- 已复用 `src/config/sessions/transcript.ts` 中导出的 `ensureSessionTranscriptHeader(...)`：
+  - gateway `session-reset-service.ts` 不再继续保留一套内联 transcript header 初始化逻辑
+  - reset 后 transcript 文件创建现在回到统一的 transcript helper 之上
+- 已验证：
+  - `vitest run src/auto-reply/reply/session-target-context.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/sessions/runtime/reset-plan.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/gateway/session-reset-service.test.ts src/sessions/runtime/reset-lifecycle.test.ts src/sessions/runtime/reset-artifacts.test.ts src/sessions/runtime/reset-carry-over.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/abort.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/session.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/auto-reply/reply/acp-reset-adapter.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts src/sessions/runtime/abort-executor.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/sessions/runtime/before-reset-hook.test.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/gateway/session-reset-entry.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/auto-reply/reply/session-entry-state.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts`
+  - `vitest run src/sessions/runtime/before-reset-hook.test.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/acp-reset-adapter.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts`
+  - `vitest run src/gateway/session-reset-entry.test.ts src/sessions/runtime/before-reset-hook.test.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/acp-reset-adapter.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts`
+  - `vitest run src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/auto-reply/reply/abort.test.ts src/sessions/runtime/abort-executor.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/sessions/runtime/reset-entry-state.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/sessions/runtime/reset-internal-hook.test.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.test.ts src/auto-reply/reply/commands-core.test.ts`
+  - `vitest run src/gateway/session-reset-service.test.ts src/config/sessions/sessions.test.ts -t "appendAssistantMessageToSessionTranscript"`
+  - `vitest run src/gateway/session-utils.fs.test.ts -t "skips files that do not exist and archives only existing ones"`
+  - `pnpm lint src/sessions/runtime/reset-cleanup.ts src/gateway/session-reset-service.ts src/gateway/session-reset-service.test.ts src/sessions/runtime/reset-lifecycle.ts src/sessions/runtime/reset-lifecycle.test.ts src/sessions/transcript-archive.fs.ts src/sessions/runtime/reset-artifacts.ts src/sessions/runtime/reset-artifacts.test.ts src/sessions/runtime/reset-carry-over.ts src/sessions/runtime/reset-carry-over.test.ts src/auto-reply/reply/session.ts src/gateway/server-methods/sessions.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `pnpm lint src/auto-reply/reply/acp-reset-adapter.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/abort.ts src/auto-reply/reply/commands-session-abort.ts src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts`
+  - `pnpm lint src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.ts`
+  - `pnpm lint src/sessions/runtime/before-reset-hook.ts src/sessions/runtime/before-reset-hook.test.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.ts`
+  - `pnpm lint src/gateway/session-reset-entry.ts src/gateway/session-reset-entry.test.ts src/gateway/session-reset-service.ts`
+  - `pnpm lint src/auto-reply/reply/session-entry-state.ts src/auto-reply/reply/session-entry-state.test.ts src/auto-reply/reply/session.ts`
+  - `pnpm lint src/sessions/runtime/reset-entry-state.ts src/sessions/runtime/reset-entry-state.test.ts src/auto-reply/reply/session.ts`
+  - `pnpm lint src/sessions/runtime/reset-internal-hook.ts src/sessions/runtime/reset-internal-hook.test.ts src/auto-reply/reply/commands-core.ts src/gateway/session-reset-service.ts`
+  - `pnpm lint src/config/sessions/transcript.ts src/gateway/session-reset-service.ts src/gateway/session-reset-service.test.ts`
+  - `pnpm check`
 
 ## PR-04：Special Agent 正式化
 

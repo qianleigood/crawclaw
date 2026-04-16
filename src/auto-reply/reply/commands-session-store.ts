@@ -44,11 +44,12 @@ export async function applyCommandSessionPatch(params: {
 export async function persistAbortTargetEntry(params: {
   entry?: SessionEntry;
   key?: string;
+  legacyKeys?: string[];
   sessionStore?: Record<string, SessionEntry>;
   storePath?: string;
   abortCutoff?: AbortCutoff;
 }): Promise<boolean> {
-  const { entry, key, sessionStore, storePath, abortCutoff } = params;
+  const { entry, key, legacyKeys, sessionStore, storePath, abortCutoff } = params;
   if (!entry || !key || !sessionStore) {
     return false;
   }
@@ -57,6 +58,11 @@ export async function persistAbortTargetEntry(params: {
   applyAbortCutoffToSessionEntry(entry, abortCutoff);
   entry.updatedAt = Date.now();
   sessionStore[key] = entry;
+  for (const legacyKey of legacyKeys ?? []) {
+    if (legacyKey !== key) {
+      delete sessionStore[legacyKey];
+    }
+  }
 
   if (storePath) {
     await updateSessionStore(storePath, (store) => {
@@ -68,6 +74,11 @@ export async function persistAbortTargetEntry(params: {
       applyAbortCutoffToSessionEntry(nextEntry, abortCutoff);
       nextEntry.updatedAt = Date.now();
       store[key] = nextEntry;
+      for (const legacyKey of legacyKeys ?? []) {
+        if (legacyKey !== key) {
+          delete store[legacyKey];
+        }
+      }
     });
   }
 

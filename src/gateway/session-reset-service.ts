@@ -1,79 +1,29 @@
-import { randomUUID } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
-import { CURRENT_SESSION_VERSION } from "@mariozechner/pi-coding-agent";
-import { getAcpSessionManager } from "../acp/control-plane/manager.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { clearBootstrapSnapshot } from "../agents/bootstrap-cache.js";
-import { abortEmbeddedPiRun, waitForEmbeddedPiRunEnd } from "../agents/pi-embedded.js";
-import { stopSubagentsForRequester } from "../auto-reply/reply/abort.js";
-import { clearSessionQueues } from "../auto-reply/reply/queue.js";
 import { loadConfig } from "../config/config.js";
-import {
-  snapshotSessionOrigin,
-  type SessionEntry,
-  updateSessionStore,
-} from "../config/sessions.js";
-import { resolveSessionFilePath, resolveSessionFilePathOptions } from "../config/sessions/paths.js";
+import { type SessionEntry, updateSessionStore } from "../config/sessions.js";
+import { ensureSessionTranscriptHeader } from "../config/sessions/transcript.js";
 import { logVerbose } from "../globals.js";
-import { createInternalHookEvent, triggerInternalHook } from "../hooks/internal-hooks.js";
-import { stopSharedDurableExtractionWorkerForSession } from "../memory/durable/worker-manager.ts";
-import { closeTrackedBrowserTabsForSessions } from "../plugin-sdk/browser-maintenance.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { createPluginRuntime } from "../plugins/runtime/index.js";
+import { isSubagentSessionKey, normalizeAgentId } from "../routing/session-key.js";
+import { emitBeforeResetPluginHook } from "../sessions/runtime/before-reset-hook.js";
+import { archiveSessionTranscriptsForMutation } from "../sessions/runtime/reset-artifacts.js";
+import { cleanupSessionBeforeMutation } from "../sessions/runtime/reset-cleanup.js";
+import { emitResetInternalHook } from "../sessions/runtime/reset-internal-hook.js";
+import { errorShape } from "./protocol/index.js";
+import { buildGatewayResetEntry } from "./session-reset-entry.js";
 import {
-  isSubagentSessionKey,
-  normalizeAgentId,
-  parseAgentSessionKey,
-} from "../routing/session-key.js";
-import { ErrorCodes, errorShape } from "./protocol/index.js";
-import {
-  archiveSessionTranscripts,
   loadSessionEntry,
   migrateAndPruneGatewaySessionStoreKey,
   readSessionMessages,
   resolveGatewaySessionStoreTarget,
-  resolveSessionModelRef,
 } from "./session-utils.js";
 
-const ACP_RUNTIME_CLEANUP_TIMEOUT_MS = 15_000;
 let cachedChannelRuntime: ReturnType<typeof createPluginRuntime>["channel"] | undefined;
 
 function getChannelRuntime() {
   cachedChannelRuntime ??= createPluginRuntime().channel;
   return cachedChannelRuntime;
-}
-
-function stripRuntimeModelState(entry?: SessionEntry): SessionEntry | undefined {
-  if (!entry) {
-    return entry;
-  }
-  return {
-    ...entry,
-    model: undefined,
-    modelProvider: undefined,
-    contextTokens: undefined,
-    systemPromptReport: undefined,
-  };
-}
-
-export function archiveSessionTranscriptsForSession(params: {
-  sessionId: string | undefined;
-  storePath: string;
-  sessionFile?: string;
-  agentId?: string;
-  reason: "reset" | "deleted";
-}): string[] {
-  if (!params.sessionId) {
-    return [];
-  }
-  return archiveSessionTranscripts({
-    sessionId: params.sessionId,
-    storePath: params.storePath,
-    sessionFile: params.sessionFile,
-    agentId: params.agentId,
-    reason: params.reason,
-  });
 }
 
 export async function emitSessionUnboundLifecycleEvent(params: {
@@ -112,175 +62,7 @@ export async function emitSessionUnboundLifecycleEvent(params: {
   );
 }
 
-async function ensureSessionRuntimeCleanup(params: {
-  cfg: ReturnType<typeof loadConfig>;
-  key: string;
-  target: ReturnType<typeof resolveGatewaySessionStoreTarget>;
-  sessionId?: string;
-}) {
-  const closeTrackedBrowserTabs = async () => {
-    const closeKeys = new Set<string>([
-      params.key,
-      params.target.canonicalKey,
-      ...params.target.storeKeys,
-      params.sessionId ?? "",
-    ]);
-    return await closeTrackedBrowserTabsForSessions({
-      sessionKeys: [...closeKeys],
-      onWarn: (message) => logVerbose(message),
-    });
-  };
-
-  const queueKeys = new Set<string>(params.target.storeKeys);
-  queueKeys.add(params.target.canonicalKey);
-  if (params.sessionId) {
-    queueKeys.add(params.sessionId);
-  }
-  clearSessionQueues([...queueKeys]);
-  stopSubagentsForRequester({ cfg: params.cfg, requesterSessionKey: params.target.canonicalKey });
-  if (!params.sessionId) {
-    clearBootstrapSnapshot(params.target.canonicalKey);
-    await closeTrackedBrowserTabs();
-    return undefined;
-  }
-  abortEmbeddedPiRun(params.sessionId);
-  const ended = await waitForEmbeddedPiRunEnd(params.sessionId, 15_000);
-  clearBootstrapSnapshot(params.target.canonicalKey);
-  if (ended) {
-    await closeTrackedBrowserTabs();
-    return undefined;
-  }
-  return errorShape(
-    ErrorCodes.UNAVAILABLE,
-    `Session ${params.key} is still active; try again in a moment.`,
-  );
-}
-
-async function stopDurableExtractionWorkersForTarget(params: {
-  key: string;
-  target: ReturnType<typeof resolveGatewaySessionStoreTarget>;
-  legacyKey?: string;
-  canonicalKey?: string;
-}) {
-  const sessionKeys = new Set<string>([
-    params.key,
-    params.legacyKey ?? "",
-    params.canonicalKey ?? "",
-    params.target.canonicalKey ?? "",
-    ...params.target.storeKeys,
-  ]);
-  await Promise.all(
-    [...sessionKeys]
-      .filter((value) => value.trim().length > 0)
-      .map(async (sessionKey) => await stopSharedDurableExtractionWorkerForSession(sessionKey, { timeoutMs: 2_000 })),
-  );
-}
-
-async function runAcpCleanupStep(params: {
-  op: () => Promise<void>;
-}): Promise<{ status: "ok" } | { status: "timeout" } | { status: "error"; error: unknown }> {
-  let timer: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<{ status: "timeout" }>((resolve) => {
-    timer = setTimeout(() => resolve({ status: "timeout" }), ACP_RUNTIME_CLEANUP_TIMEOUT_MS);
-  });
-  const opPromise = params
-    .op()
-    .then(() => ({ status: "ok" as const }))
-    .catch((error: unknown) => ({ status: "error" as const, error }));
-  const outcome = await Promise.race([opPromise, timeoutPromise]);
-  if (timer) {
-    clearTimeout(timer);
-  }
-  return outcome;
-}
-
-async function closeAcpRuntimeForSession(params: {
-  cfg: ReturnType<typeof loadConfig>;
-  sessionKey: string;
-  entry?: SessionEntry;
-  reason: "session-reset" | "session-delete";
-}) {
-  if (!params.entry?.acp) {
-    return undefined;
-  }
-  const acpManager = getAcpSessionManager();
-  const cancelOutcome = await runAcpCleanupStep({
-    op: async () => {
-      await acpManager.cancelSession({
-        cfg: params.cfg,
-        sessionKey: params.sessionKey,
-        reason: params.reason,
-      });
-    },
-  });
-  if (cancelOutcome.status === "timeout") {
-    return errorShape(
-      ErrorCodes.UNAVAILABLE,
-      `Session ${params.sessionKey} is still active; try again in a moment.`,
-    );
-  }
-  if (cancelOutcome.status === "error") {
-    logVerbose(
-      `sessions.${params.reason}: ACP cancel failed for ${params.sessionKey}: ${String(cancelOutcome.error)}`,
-    );
-  }
-
-  const closeOutcome = await runAcpCleanupStep({
-    op: async () => {
-      await acpManager.closeSession({
-        cfg: params.cfg,
-        sessionKey: params.sessionKey,
-        reason: params.reason,
-        requireAcpSession: false,
-        allowBackendUnavailable: true,
-      });
-    },
-  });
-  if (closeOutcome.status === "timeout") {
-    return errorShape(
-      ErrorCodes.UNAVAILABLE,
-      `Session ${params.sessionKey} is still active; try again in a moment.`,
-    );
-  }
-  if (closeOutcome.status === "error") {
-    logVerbose(
-      `sessions.${params.reason}: ACP runtime close failed for ${params.sessionKey}: ${String(closeOutcome.error)}`,
-    );
-  }
-  return undefined;
-}
-
-export async function cleanupSessionBeforeMutation(params: {
-  cfg: ReturnType<typeof loadConfig>;
-  key: string;
-  target: ReturnType<typeof resolveGatewaySessionStoreTarget>;
-  entry: SessionEntry | undefined;
-  legacyKey?: string;
-  canonicalKey?: string;
-  reason: "session-reset" | "session-delete";
-}) {
-  await stopDurableExtractionWorkersForTarget({
-    key: params.key,
-    target: params.target,
-    legacyKey: params.legacyKey,
-    canonicalKey: params.canonicalKey,
-  });
-  const cleanupError = await ensureSessionRuntimeCleanup({
-    cfg: params.cfg,
-    key: params.key,
-    target: params.target,
-    sessionId: params.entry?.sessionId,
-  });
-  if (cleanupError) {
-    return cleanupError;
-  }
-  return await closeAcpRuntimeForSession({
-    cfg: params.cfg,
-    sessionKey: params.legacyKey ?? params.canonicalKey ?? params.target.canonicalKey ?? params.key,
-    entry: params.entry,
-    reason: params.reason,
-  });
-}
+export { cleanupSessionBeforeMutation };
 
 function emitGatewayBeforeResetPluginHook(params: {
   cfg: ReturnType<typeof loadConfig>;
@@ -291,43 +73,32 @@ function emitGatewayBeforeResetPluginHook(params: {
   reason: "new" | "reset";
 }): void {
   const hookRunner = getGlobalHookRunner();
-  if (!hookRunner?.hasHooks("before_reset")) {
-    return;
-  }
-
   const sessionKey = params.target.canonicalKey ?? params.key;
   const sessionId = params.entry?.sessionId;
   const sessionFile = params.entry?.sessionFile;
   const agentId = normalizeAgentId(params.target.agentId ?? resolveDefaultAgentId(params.cfg));
   const workspaceDir = resolveAgentWorkspaceDir(params.cfg, agentId);
-  let messages: unknown[] = [];
-  try {
-    if (typeof sessionId === "string" && sessionId.trim().length > 0) {
-      messages = readSessionMessages(sessionId, params.storePath, sessionFile);
-    }
-  } catch (err) {
-    logVerbose(
-      `before_reset: failed to read session messages for ${sessionId ?? "(none)"}; firing hook with empty messages (${String(err)})`,
-    );
-  }
-
-  void hookRunner
-    .runBeforeReset(
-      {
-        sessionFile,
-        messages,
-        reason: params.reason,
-      },
-      {
-        agentId,
-        sessionKey,
-        sessionId,
-        workspaceDir,
-      },
-    )
-    .catch((err) => {
-      logVerbose(`before_reset hook failed: ${String(err)}`);
-    });
+  emitBeforeResetPluginHook({
+    hookRunner: hookRunner ?? undefined,
+    loadMessages: async () => {
+      let messages: unknown[] = [];
+      try {
+        if (typeof sessionId === "string" && sessionId.trim().length > 0) {
+          messages = readSessionMessages(sessionId, params.storePath, sessionFile);
+        }
+      } catch (err) {
+        logVerbose(
+          `before_reset: failed to read session messages for ${sessionId ?? "(none)"}; firing hook with empty messages (${String(err)})`,
+        );
+      }
+      return { sessionFile, messages };
+    },
+    reason: params.reason,
+    agentId,
+    sessionKey,
+    sessionId,
+    workspaceDir,
+  });
 }
 
 export async function performGatewaySessionReset(params: {
@@ -345,18 +116,14 @@ export async function performGatewaySessionReset(params: {
   })();
   const { entry, legacyKey, canonicalKey } = loadSessionEntry(params.key);
   const hadExistingEntry = Boolean(entry);
-  const hookEvent = createInternalHookEvent(
-    "command",
-    params.reason,
-    target.canonicalKey ?? params.key,
-    {
-      sessionEntry: entry,
-      previousSessionEntry: entry,
-      commandSource: params.commandSource,
-      cfg,
-    },
-  );
-  await triggerInternalHook(hookEvent);
+  await emitResetInternalHook({
+    action: params.reason,
+    sessionKey: target.canonicalKey ?? params.key,
+    sessionEntry: entry,
+    previousSessionEntry: entry,
+    commandSource: params.commandSource,
+    cfg,
+  });
   const mutationCleanupError = await cleanupSessionBeforeMutation({
     cfg,
     key: params.key,
@@ -379,87 +146,16 @@ export async function performGatewaySessionReset(params: {
       key: params.key,
       store,
     });
-    const currentEntry = store[primaryKey];
-    resetSourceEntry = currentEntry ? { ...currentEntry } : undefined;
-    const resetEntry = stripRuntimeModelState(currentEntry);
-    const parsed = parseAgentSessionKey(primaryKey);
-    const sessionAgentId = normalizeAgentId(parsed?.agentId ?? resolveDefaultAgentId(cfg));
-    const resolvedModel = resolveSessionModelRef(cfg, resetEntry, sessionAgentId);
-    oldSessionId = currentEntry?.sessionId;
-    oldSessionFile = currentEntry?.sessionFile;
-    const now = Date.now();
-    const nextSessionId = randomUUID();
-    const sessionFile = resolveSessionFilePath(
-      nextSessionId,
-      currentEntry?.sessionFile ? { sessionFile: currentEntry.sessionFile } : undefined,
-      resolveSessionFilePathOptions({
-        storePath,
-        agentId: sessionAgentId,
-      }),
-    );
-    const nextEntry: SessionEntry = {
-      sessionId: nextSessionId,
-      sessionFile,
-      updatedAt: now,
-      systemSent: false,
-      abortedLastRun: false,
-      thinkingLevel: currentEntry?.thinkingLevel,
-      fastMode: currentEntry?.fastMode,
-      verboseLevel: currentEntry?.verboseLevel,
-      reasoningLevel: currentEntry?.reasoningLevel,
-      elevatedLevel: currentEntry?.elevatedLevel,
-      ttsAuto: currentEntry?.ttsAuto,
-      execHost: currentEntry?.execHost,
-      execSecurity: currentEntry?.execSecurity,
-      execAsk: currentEntry?.execAsk,
-      execNode: currentEntry?.execNode,
-      responseUsage: currentEntry?.responseUsage,
-      providerOverride: currentEntry?.providerOverride,
-      modelOverride: currentEntry?.modelOverride,
-      authProfileOverride: currentEntry?.authProfileOverride,
-      authProfileOverrideSource: currentEntry?.authProfileOverrideSource,
-      authProfileOverrideCompactionCount: currentEntry?.authProfileOverrideCompactionCount,
-      groupActivation: currentEntry?.groupActivation,
-      groupActivationNeedsSystemIntro: currentEntry?.groupActivationNeedsSystemIntro,
-      chatType: currentEntry?.chatType,
-      model: resolvedModel.model,
-      modelProvider: resolvedModel.provider,
-      contextTokens: resetEntry?.contextTokens,
-      sendPolicy: currentEntry?.sendPolicy,
-      queueMode: currentEntry?.queueMode,
-      queueDebounceMs: currentEntry?.queueDebounceMs,
-      queueCap: currentEntry?.queueCap,
-      queueDrop: currentEntry?.queueDrop,
-      spawnedBy: currentEntry?.spawnedBy,
-      spawnedWorkspaceDir: currentEntry?.spawnedWorkspaceDir,
-      parentSessionKey: currentEntry?.parentSessionKey,
-      forkedFromParent: currentEntry?.forkedFromParent,
-      spawnDepth: currentEntry?.spawnDepth,
-      subagentRole: currentEntry?.subagentRole,
-      subagentControlScope: currentEntry?.subagentControlScope,
-      label: currentEntry?.label,
-      displayName: currentEntry?.displayName,
-      channel: currentEntry?.channel,
-      groupId: currentEntry?.groupId,
-      subject: currentEntry?.subject,
-      groupChannel: currentEntry?.groupChannel,
-      space: currentEntry?.space,
-      origin: snapshotSessionOrigin(currentEntry),
-      deliveryContext: currentEntry?.deliveryContext,
-      cliSessionBindings: currentEntry?.cliSessionBindings,
-      cliSessionIds: currentEntry?.cliSessionIds,
-      claudeCliSessionId: currentEntry?.claudeCliSessionId,
-      lastChannel: currentEntry?.lastChannel,
-      lastTo: currentEntry?.lastTo,
-      lastAccountId: currentEntry?.lastAccountId,
-      lastThreadId: currentEntry?.lastThreadId,
-      skillsSnapshot: currentEntry?.skillsSnapshot,
-      acp: currentEntry?.acp,
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      totalTokensFresh: true,
-    };
+    const built = buildGatewayResetEntry({
+      cfg,
+      primaryKey,
+      currentEntry: store[primaryKey],
+      storePath,
+    });
+    resetSourceEntry = built.resetSourceEntry;
+    oldSessionId = built.oldSessionId;
+    oldSessionFile = built.oldSessionFile;
+    const nextEntry = built.nextEntry;
     store[primaryKey] = nextEntry;
     return nextEntry;
   });
@@ -472,27 +168,17 @@ export async function performGatewaySessionReset(params: {
     reason: params.reason,
   });
 
-  archiveSessionTranscriptsForSession({
+  archiveSessionTranscriptsForMutation({
     sessionId: oldSessionId,
     storePath,
     sessionFile: oldSessionFile,
     agentId: target.agentId,
     reason: "reset",
   });
-  fs.mkdirSync(path.dirname(next.sessionFile as string), { recursive: true });
-  if (!fs.existsSync(next.sessionFile as string)) {
-    const header = {
-      type: "session",
-      version: CURRENT_SESSION_VERSION,
-      id: next.sessionId,
-      timestamp: new Date().toISOString(),
-      cwd: process.cwd(),
-    };
-    fs.writeFileSync(next.sessionFile as string, `${JSON.stringify(header)}\n`, {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
-  }
+  await ensureSessionTranscriptHeader({
+    sessionFile: next.sessionFile as string,
+    sessionId: next.sessionId,
+  });
   if (hadExistingEntry) {
     await emitSessionUnboundLifecycleEvent({
       targetSessionKey: target.canonicalKey ?? params.key,

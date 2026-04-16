@@ -1,7 +1,7 @@
-import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
+import { executeAbortTarget } from "../../sessions/runtime/abort-executor.js";
 import {
   resolveAbortCutoffFromContext,
   shouldPersistAbortCutoff,
@@ -11,18 +11,16 @@ import {
   formatAbortReplyText,
   isAbortTrigger,
   resolveSessionEntryForKey,
-  setAbortMemory,
   stopSubagentsForRequester,
 } from "./abort.js";
 import { rejectUnauthorizedCommand } from "./command-gates.js";
-import { persistAbortTargetEntry } from "./commands-session-store.js";
 import type { CommandHandler } from "./commands-types.js";
-import { clearSessionQueues } from "./queue.js";
 
 type AbortTarget = {
   entry?: SessionEntry;
   key?: string;
   sessionId?: string;
+  legacyKeys?: string[];
 };
 
 function resolveAbortTarget(params: {
@@ -32,15 +30,19 @@ function resolveAbortTarget(params: {
   sessionStore?: Record<string, SessionEntry>;
 }): AbortTarget {
   const targetSessionKey = params.ctx.CommandTargetSessionKey?.trim() || params.sessionKey;
-  const { entry, key } = resolveSessionEntryForKey(params.sessionStore, targetSessionKey);
+  const { entry, key, legacyKeys } = resolveSessionEntryForKey(
+    params.sessionStore,
+    targetSessionKey,
+  );
   if (entry && key) {
-    return { entry, key, sessionId: entry.sessionId };
+    return { entry, key, sessionId: entry.sessionId, legacyKeys };
   }
   if (params.sessionEntry && params.sessionKey) {
     return {
       entry: params.sessionEntry,
       key: params.sessionKey,
       sessionId: params.sessionEntry.sessionId,
+      legacyKeys: undefined,
     };
   }
   return { entry: undefined, key: targetSessionKey, sessionId: undefined };
@@ -68,22 +70,24 @@ async function applyAbortTarget(params: {
   storePath?: string;
   abortKey?: string;
   abortCutoff?: AbortCutoff;
+  queueKeys?: Array<string | undefined>;
+  cfg: Parameters<CommandHandler>[0]["cfg"];
+  acpCancelReason?: string;
 }) {
-  const { abortTarget } = params;
-  if (abortTarget.sessionId) {
-    abortEmbeddedPiRun(abortTarget.sessionId);
-  }
-
-  const persisted = await persistAbortTargetEntry({
-    entry: abortTarget.entry,
-    key: abortTarget.key,
+  return await executeAbortTarget({
+    entry: params.abortTarget.entry,
+    key: params.abortTarget.key,
+    legacyKeys: params.abortTarget.legacyKeys,
+    sessionId: params.abortTarget.sessionId,
     sessionStore: params.sessionStore,
     storePath: params.storePath,
+    abortKey: params.abortKey,
     abortCutoff: params.abortCutoff,
+    queueKeys: params.queueKeys,
+    cfg: params.cfg,
+    sessionKey: params.abortTarget.key,
+    acpCancelReason: params.acpCancelReason,
   });
-  if (!persisted && params.abortKey) {
-    setAbortMemory(params.abortKey, true);
-  }
 }
 
 function buildAbortTargetApplyParams(
@@ -100,6 +104,8 @@ function buildAbortTargetApplyParams(
       commandSessionKey: params.sessionKey,
       targetSessionKey: abortTarget.key,
     }),
+    queueKeys: [],
+    cfg: params.cfg,
   };
 }
 
@@ -120,13 +126,16 @@ export const handleStopCommand: CommandHandler = async (params, allowTextCommand
     sessionEntry: params.sessionEntry,
     sessionStore: params.sessionStore,
   });
-  const cleared = clearSessionQueues([abortTarget.key, abortTarget.sessionId]);
+  const { cleared } = await applyAbortTarget({
+    ...buildAbortTargetApplyParams(params, abortTarget),
+    queueKeys: [abortTarget.key, abortTarget.sessionId],
+    acpCancelReason: "stop",
+  });
   if (cleared.followupCleared > 0 || cleared.laneCleared > 0) {
     logVerbose(
       `stop: cleared followups=${cleared.followupCleared} lane=${cleared.laneCleared} keys=${cleared.keys.join(",")}`,
     );
   }
-  await applyAbortTarget(buildAbortTargetApplyParams(params, abortTarget));
 
   // Trigger internal hook for stop command
   const hookEvent = createInternalHookEvent(
@@ -167,6 +176,9 @@ export const handleAbortTrigger: CommandHandler = async (params, allowTextComman
     sessionEntry: params.sessionEntry,
     sessionStore: params.sessionStore,
   });
-  await applyAbortTarget(buildAbortTargetApplyParams(params, abortTarget));
+  await applyAbortTarget({
+    ...buildAbortTargetApplyParams(params, abortTarget),
+    acpCancelReason: "abort-trigger",
+  });
   return { shouldContinue: false, reply: { text: "⚙️ Agent was aborted." } };
 };

@@ -361,6 +361,65 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 把 `reset / abort / lifecycle` 从当前分散的复合状态机，收成一套明确的 session runtime 实现。
 
+### 当前状态
+
+状态：`已完成（截至 2026-04-16）`
+
+已完成：
+
+- 已新增 `src/gateway/session-reset-service.test.ts`，先冻结 gateway reset 的第一批语义：
+  - carry-over 字段保留
+  - runtime 状态清理
+  - `before_reset` hook 发射
+  - reset 后会话 unbind
+- 已在 `src/auto-reply/reply/commands-core.test.ts` 冻结 ACP reset-in-place 的命令层行为：
+  - 绑定 ACP 会话的 bare `/new` 会走 in-place reset 并返回成功回复
+  - 绑定 ACP 会话的 `/new <tail>` 会把 tail 回写到 `ctx / rootCtx`，并设置 `AcpDispatchTailAfterReset`
+- 已修正 `src/auto-reply/reply/abort.test.ts` 中 4 条 subagent abort/cascade 用例，使其对齐当前 subagent registry 的 latest-run 判定语义。
+- 已新增 `src/sessions/runtime/reset-carry-over.ts` 与对应测试，抽出第一块共享 reset carry-over seam，让 `/new` 与 gateway `sessions.reset` 共用同一套字段保留逻辑；当前仍按 `command-reset / gateway-reset` 两种 profile 区分。
+- 已新增 `src/sessions/runtime/reset-artifacts.ts` 与 `src/sessions/transcript-archive.fs.ts`，让 transcript 归档和旧 session MCP runtime dispose 不再散在 reset 路径里；`/new`、gateway `sessions.reset`、gateway `sessions.delete` 已开始共用同一套 archive helper。
+- 已新增 `src/sessions/runtime/reset-lifecycle.ts`，让 `session_end / session_start` 的 rollover hook 发射从 `session.ts` 主函数中抽离出来。
+- 已新增 `src/sessions/runtime/reset-cleanup.ts`，让 gateway 侧的 runtime 前置清理不再散在 `session-reset-service.ts` 中；`stop durable worker / clear queue / stop subagents / abort embedded run / close ACP runtime` 已开始共用同一套 cleanup helper。
+- 已新增 `src/sessions/runtime/reset-plan.ts`，让 `session.ts` 中 `reset trigger / tail / ACP default-trigger bypass / stale freshness / system-event freshness override` 的纯决策逻辑从主函数中抽离出来。
+- 已新增 `src/auto-reply/reply/session-target-context.ts`，让 `conversation binding context / targetSessionKey / native CommandTargetSessionKey fallback / ACP in-place reset target` 的入口解析从 `session.ts` 主函数中抽离出来。
+- 已新增 `src/sessions/runtime/abort-executor.ts`，让 `/stop` 命令路径与 fast-abort 路径开始共用同一套 abort 执行 helper；queue 清理、embedded run abort、abort state 持久化与 abort memory fallback 不再分散在 `commands-session-abort.ts` 与 `abort.ts`。
+- ACP session cancel 也已并进 shared abort executor；fast-abort、`/stop` 与 natural-language abort trigger 不再继续分叉维护 ACP 取消语义。
+- 已新增 `src/auto-reply/reply/commands-session-abort.test.ts`，锁住 `/stop` 会把 ACP cancel metadata 透传到 shared abort executor。
+- 已新增 `src/auto-reply/reply/acp-reset-adapter.ts`，让 `commands-core.ts` 不再直接处理 ACP reset-in-place 的 target 解析、结果映射、tail 回写与 hook session entry 选择。
+- 已新增 `src/sessions/runtime/before-reset-hook.ts`，让 `commands-core.ts` 与 gateway `session-reset-service.ts` 的 `before_reset` plugin hook 发射共用同一套 helper；命令层保留 transcript 归档回退，gateway 保留基于 `readSessionMessages(...)` 的加载方式。
+- 已新增 `src/gateway/session-reset-entry.ts`，让 gateway `session-reset-service.ts` 中“构建 reset 后新 session entry”的 mutation 逻辑抽成独立 helper；carry-over、model resolution、origin snapshot、runtime/token state 清零与新 session file 路径分配不再继续堆在 service 主函数里。
+- 已新增 `src/auto-reply/reply/session-entry-state.ts`，让 `session.ts` 中 next session entry 的构建逻辑抽成独立 helper；deliveryContext、lastChannel/lastTo、meta patch、chatType 默认值与 thread label 收口不再混在 `initSessionState(...)` 主函数里。
+- 已新增 `src/sessions/runtime/reset-entry-state.ts`，让 `session.ts` 中“是否复用现有 session、何时生成新 sessionId、以及何时携带 command-reset carry-over”的执行态决策从主函数中抽离出来。
+- 已新增 `src/sessions/runtime/reset-internal-hook.ts`，让 `/new` 命令路径与 gateway `sessions.reset` 路径开始共用同一套 reset internal hook event 构建与触发 helper。
+- 已复用 `src/config/sessions/transcript.ts` 中导出的 `ensureSessionTranscriptHeader(...)`，让 gateway `session-reset-service.ts` 不再继续保留一套内联 transcript header 初始化逻辑。
+- 已通过：
+  - `vitest run src/auto-reply/reply/session-target-context.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/sessions/runtime/reset-plan.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/gateway/session-reset-service.test.ts src/sessions/runtime/reset-lifecycle.test.ts src/sessions/runtime/reset-artifacts.test.ts src/sessions/runtime/reset-carry-over.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/abort.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/session.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/auto-reply/reply/acp-reset-adapter.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts src/sessions/runtime/abort-executor.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/sessions/runtime/before-reset-hook.test.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/gateway/session-reset-entry.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/auto-reply/reply/session-entry-state.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts`
+  - `vitest run src/sessions/runtime/before-reset-hook.test.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/acp-reset-adapter.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts`
+  - `vitest run src/gateway/session-reset-entry.test.ts src/sessions/runtime/before-reset-hook.test.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/acp-reset-adapter.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts`
+  - `vitest run src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/auto-reply/reply/abort.test.ts src/sessions/runtime/abort-executor.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/sessions/runtime/reset-entry-state.test.ts src/auto-reply/reply/session.test.ts src/auto-reply/reply/session.heartbeat-no-reset.test.ts src/gateway/session-reset-service.test.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `vitest run src/sessions/runtime/reset-internal-hook.test.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.test.ts`
+  - `vitest run src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.test.ts src/auto-reply/reply/commands-core.test.ts`
+  - `vitest run src/gateway/session-reset-service.test.ts src/config/sessions/sessions.test.ts -t "appendAssistantMessageToSessionTranscript"`
+  - `vitest run src/gateway/session-utils.fs.test.ts -t "skips files that do not exist and archives only existing ones"`
+  - `pnpm lint src/sessions/runtime/reset-cleanup.ts src/gateway/session-reset-service.ts src/gateway/session-reset-service.test.ts src/sessions/runtime/reset-lifecycle.ts src/sessions/runtime/reset-lifecycle.test.ts src/sessions/transcript-archive.fs.ts src/sessions/runtime/reset-artifacts.ts src/sessions/runtime/reset-artifacts.test.ts src/sessions/runtime/reset-carry-over.ts src/sessions/runtime/reset-carry-over.test.ts src/auto-reply/reply/session.ts src/gateway/server-methods/sessions.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `pnpm lint src/auto-reply/reply/acp-reset-adapter.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/abort.ts src/auto-reply/reply/commands-session-abort.ts src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts`
+  - `pnpm lint src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.ts`
+  - `pnpm lint src/sessions/runtime/before-reset-hook.ts src/sessions/runtime/before-reset-hook.test.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.ts`
+  - `pnpm lint src/gateway/session-reset-entry.ts src/gateway/session-reset-entry.test.ts src/gateway/session-reset-service.ts`
+  - `pnpm lint src/auto-reply/reply/session-entry-state.ts src/auto-reply/reply/session-entry-state.test.ts src/auto-reply/reply/session.ts`
+  - `pnpm lint src/sessions/runtime/reset-entry-state.ts src/sessions/runtime/reset-entry-state.test.ts src/auto-reply/reply/session.ts`
+  - `pnpm lint src/sessions/runtime/reset-internal-hook.ts src/sessions/runtime/reset-internal-hook.test.ts src/auto-reply/reply/commands-core.ts src/gateway/session-reset-service.ts`
+  - `pnpm lint src/config/sessions/transcript.ts src/gateway/session-reset-service.ts src/gateway/session-reset-service.test.ts`
+  - `pnpm check`
+
 ### 为什么放在这里
 
 - 这项工作长期价值很高，但短期投入产出比不如 `Phase 3` 的 `agents` 子域化。

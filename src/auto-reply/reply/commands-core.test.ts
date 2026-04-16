@@ -12,11 +12,27 @@ const hookRunnerMocks = vi.hoisted(() => ({
   runBeforeReset: vi.fn<HookRunner["runBeforeReset"]>(),
 }));
 
+const bindingTargetMocks = vi.hoisted(() => ({
+  resetConfiguredBindingTargetInPlace: vi.fn(),
+}));
+
+const acpTargetMocks = vi.hoisted(() => ({
+  resolveBoundAcpThreadSessionKey: vi.fn(),
+}));
+
+const commandHandlersRuntimeMocks = vi.hoisted(() => ({
+  loadCommandHandlers: vi.fn(() => []),
+}));
+
 vi.mock("node:fs/promises", () => ({
   default: {
     readFile: fsMocks.readFile,
     readdir: fsMocks.readdir,
   },
+}));
+
+vi.mock("../../channels/plugins/binding-targets.js", () => ({
+  resetConfiguredBindingTargetInPlace: bindingTargetMocks.resetConfiguredBindingTargetInPlace,
 }));
 
 vi.mock("../../plugins/hook-runner-global.js", () => ({
@@ -27,7 +43,15 @@ vi.mock("../../plugins/hook-runner-global.js", () => ({
     }) as unknown as HookRunner,
 }));
 
-const { emitResetCommandHooks } = await import("./commands-core.js");
+vi.mock("./commands-acp/targets.js", () => ({
+  resolveBoundAcpThreadSessionKey: acpTargetMocks.resolveBoundAcpThreadSessionKey,
+}));
+
+vi.mock("./commands-handlers.runtime.js", () => ({
+  loadCommandHandlers: commandHandlersRuntimeMocks.loadCommandHandlers,
+}));
+
+const { emitResetCommandHooks, handleCommands } = await import("./commands-core.js");
 
 describe("emitResetCommandHooks", () => {
   async function runBeforeResetContext(sessionKey?: string) {
@@ -52,7 +76,7 @@ describe("emitResetCommandHooks", () => {
       workspaceDir: "/tmp/crawclaw-workspace",
     });
 
-    expect(hookRunnerMocks.runBeforeReset).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(hookRunnerMocks.runBeforeReset).toHaveBeenCalledTimes(1));
     const [, ctx] = hookRunnerMocks.runBeforeReset.mock.calls[0] ?? [];
     return ctx;
   }
@@ -62,8 +86,12 @@ describe("emitResetCommandHooks", () => {
     fsMocks.readdir.mockReset();
     hookRunnerMocks.hasHooks.mockReset();
     hookRunnerMocks.runBeforeReset.mockReset();
+    bindingTargetMocks.resetConfiguredBindingTargetInPlace.mockReset();
+    acpTargetMocks.resolveBoundAcpThreadSessionKey.mockReset();
+    commandHandlersRuntimeMocks.loadCommandHandlers.mockReset();
     hookRunnerMocks.hasHooks.mockImplementation((hookName) => hookName === "before_reset");
     hookRunnerMocks.runBeforeReset.mockResolvedValue(undefined);
+    commandHandlersRuntimeMocks.loadCommandHandlers.mockReturnValue([]);
     fsMocks.readFile.mockResolvedValue("");
     fsMocks.readdir.mockResolvedValue([]);
   });
@@ -144,6 +172,138 @@ describe("emitResetCommandHooks", () => {
       expect.objectContaining({
         sessionId: "prev-session",
       }),
+    );
+  });
+});
+
+describe("handleCommands ACP reset-in-place", () => {
+  function buildHandleCommandsParams(
+    commandBodyNormalized: string,
+    overrides: {
+      command?: Partial<HandleCommandsParams["command"]>;
+      ctx?: Record<string, unknown>;
+      rootCtx?: Record<string, unknown>;
+      sessionKey?: string;
+      sessionEntry?: HandleCommandsParams["sessionEntry"];
+      previousSessionEntry?: HandleCommandsParams["previousSessionEntry"];
+      sessionStore?: Record<string, NonNullable<HandleCommandsParams["sessionEntry"]>>;
+    } = {},
+  ): HandleCommandsParams {
+    const ctx = {
+      Body: commandBodyNormalized,
+      RawBody: commandBodyNormalized,
+      CommandBody: commandBodyNormalized,
+      BodyForCommands: commandBodyNormalized,
+      BodyForAgent: commandBodyNormalized,
+      BodyStripped: commandBodyNormalized,
+      ...overrides.ctx,
+    };
+    const rootCtx = {
+      Body: commandBodyNormalized,
+      RawBody: commandBodyNormalized,
+      CommandBody: commandBodyNormalized,
+      BodyForCommands: commandBodyNormalized,
+      BodyForAgent: commandBodyNormalized,
+      BodyStripped: commandBodyNormalized,
+      ...overrides.rootCtx,
+    };
+    return {
+      ctx: ctx as HandleCommandsParams["ctx"],
+      rootCtx: rootCtx as HandleCommandsParams["rootCtx"],
+      cfg: {
+        commands: { text: true },
+        channels: { telegram: { allowFrom: ["*"] } },
+      } as HandleCommandsParams["cfg"],
+      command: {
+        surface: "telegram",
+        channel: "telegram",
+        ownerList: [],
+        senderIsOwner: false,
+        isAuthorizedSender: true,
+        senderId: "123",
+        rawBodyNormalized: commandBodyNormalized,
+        commandBodyNormalized,
+        from: "telegram:123",
+        to: "telegram:bot",
+        resetHookTriggered: false,
+        ...overrides.command,
+      },
+      directives: {} as HandleCommandsParams["directives"],
+      elevated: {
+        enabled: false,
+        allowed: true,
+        failures: [],
+      },
+      sessionKey: overrides.sessionKey ?? "agent:main:telegram:direct:123",
+      sessionEntry: overrides.sessionEntry,
+      previousSessionEntry: overrides.previousSessionEntry,
+      sessionStore: overrides.sessionStore,
+      workspaceDir: "/tmp/crawclaw-workspace",
+      defaultGroupActivation: () => "mention",
+      resolvedVerboseLevel: "off",
+      resolvedReasoningLevel: "off",
+      resolveDefaultThinkingLevel: async () => undefined,
+      provider: "openai",
+      model: "gpt-5.4-mini",
+      contextTokens: 0,
+      isGroup: false,
+    } as HandleCommandsParams;
+  }
+
+  function expectTailContext(ctx: Record<string, unknown>, expectedTail: string) {
+    expect(ctx).toMatchObject({
+      Body: expectedTail,
+      RawBody: expectedTail,
+      CommandBody: expectedTail,
+      BodyForCommands: expectedTail,
+      BodyForAgent: expectedTail,
+      BodyStripped: expectedTail,
+      AcpDispatchTailAfterReset: true,
+    });
+  }
+
+  it("resets the bound ACP session in place and returns the success reply for bare /new", async () => {
+    hookRunnerMocks.hasHooks.mockReturnValue(false);
+    acpTargetMocks.resolveBoundAcpThreadSessionKey.mockReturnValue("acp:bound-thread");
+    bindingTargetMocks.resetConfiguredBindingTargetInPlace.mockResolvedValue({
+      ok: true,
+      skipped: false,
+    });
+
+    const params = buildHandleCommandsParams("/new");
+    const result = await handleCommands(params);
+
+    expect(bindingTargetMocks.resetConfiguredBindingTargetInPlace).toHaveBeenCalledWith({
+      cfg: params.cfg,
+      sessionKey: "acp:bound-thread",
+      reason: "new",
+    });
+    expect(result).toEqual({
+      shouldContinue: false,
+      reply: { text: "✅ ACP session reset in place." },
+    });
+    expect(params.command.resetHookTriggered).toBe(true);
+  });
+
+  it("replaces ctx and rootCtx with the /new tail after a successful ACP reset-in-place", async () => {
+    hookRunnerMocks.hasHooks.mockReturnValue(false);
+    acpTargetMocks.resolveBoundAcpThreadSessionKey.mockReturnValue("acp:bound-thread");
+    bindingTargetMocks.resetConfiguredBindingTargetInPlace.mockResolvedValue({
+      ok: true,
+      skipped: false,
+    });
+
+    const params = buildHandleCommandsParams("/new summarize the latest diff");
+    const result = await handleCommands(params);
+
+    expect(result).toEqual({ shouldContinue: false });
+    expectTailContext(
+      params.ctx as unknown as Record<string, unknown>,
+      "summarize the latest diff",
+    );
+    expectTailContext(
+      params.rootCtx as unknown as Record<string, unknown>,
+      "summarize the latest diff",
     );
   });
 });

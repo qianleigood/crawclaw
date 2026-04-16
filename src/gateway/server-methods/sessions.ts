@@ -30,6 +30,7 @@ import {
   resolveAgentIdFromSessionKey,
   toAgentStoreSessionKey,
 } from "../../routing/session-key.js";
+import { archiveSessionTranscriptsForMutation } from "../../sessions/runtime/reset-artifacts.js";
 import { GATEWAY_CLIENT_IDS } from "../protocol/client-info.js";
 import {
   ErrorCodes,
@@ -48,7 +49,6 @@ import {
   validateSessionsSendParams,
 } from "../protocol/index.js";
 import {
-  archiveSessionTranscriptsForSession,
   cleanupSessionBeforeMutation,
   emitSessionUnboundLifecycleEvent,
   performGatewaySessionReset,
@@ -1063,7 +1063,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
 
     const archived =
       deleted && deleteTranscript
-        ? archiveSessionTranscriptsForSession({
+        ? archiveSessionTranscriptsForMutation({
             sessionId,
             storePath,
             sessionFile: entry?.sessionFile,
