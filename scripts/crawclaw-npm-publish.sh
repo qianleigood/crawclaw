@@ -32,6 +32,7 @@ EOF
 )
 release_channel="${publish_plan[0]}"
 publish_tag="${publish_plan[1]}"
+publish_auth_token="${NODE_AUTH_TOKEN:-${NPM_TOKEN:-}}"
 publish_cmd=(npm publish)
 if [[ -n "${publish_target}" ]]; then
   publish_cmd+=("${publish_target}")
@@ -54,4 +55,12 @@ printf 'Publish command:'
 printf ' %q' "${publish_cmd[@]}"
 printf '\n'
 
-"${publish_cmd[@]}"
+if [[ -n "${publish_auth_token}" ]]; then
+  publish_userconfig="$(mktemp)"
+  trap 'rm -f "${publish_userconfig}"' EXIT
+  chmod 0600 "${publish_userconfig}"
+  printf '%s\n' "//registry.npmjs.org/:_authToken=${publish_auth_token}" > "${publish_userconfig}"
+  NPM_CONFIG_USERCONFIG="${publish_userconfig}" "${publish_cmd[@]}"
+else
+  "${publish_cmd[@]}"
+fi
