@@ -1,3 +1,4 @@
+import { createRuntimeDenyToolPolicy } from "./special/runtime/definition-presets.js";
 import type { SpecialAgentDefinition } from "./special/runtime/types.js";
 
 export const VERIFICATION_SPAWN_SOURCE = "verification";
@@ -20,10 +21,7 @@ export const VERIFICATION_AGENT_DEFINITION: SpecialAgentDefinition = {
   spawnSource: VERIFICATION_SPAWN_SOURCE,
   executionMode: "spawned_session",
   transcriptPolicy: "isolated",
-  toolPolicy: {
-    allowlist: VERIFICATION_TOOL_ALLOWLIST,
-    enforcement: "runtime_deny",
-  },
+  toolPolicy: createRuntimeDenyToolPolicy(VERIFICATION_TOOL_ALLOWLIST),
   mode: "run",
   cleanup: "keep",
   sandbox: "inherit",

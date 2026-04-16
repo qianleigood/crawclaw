@@ -29,7 +29,7 @@ title: Phase 对应 PR 计划
 | `PR-02` | Phase 2    | `已完成` | workflow controls、session patch 与 model selection 的共享 runtime 已收口；更深的 session runtime 重构转入后续 phase。                                                                                                                                                                                                              |
 | `PR-03` | Phase 3    | `已完成` | `command` / `subagents` 子域已显式化，两个热点文件已拆薄，并补了子域入口文档与 focused tests。                                                                                                                                                                                                                                      |
 | `PR-SR` | 专题       | `已完成` | session runtime 的 reset / abort / lifecycle 主链已完成收口：行为冻结测试、shared runtime seam、ACP reset adapter、shared abort executor、shared reset internal hook、gateway reset entry/helper 与 transcript header 统一接线都已落地，主状态机不再散落在 `session.ts`、`abort.ts`、`commands-core.ts` 与 gateway reset 主流程里。 |
-| `PR-04` | Phase 4    | `未开始` | special agent substrate 标准化尚未开工。                                                                                                                                                                                                                                                                                            |
+| `PR-04` | Phase 4    | `已完成` | special agent substrate 标准化已完成：registry contract 校验、shared presets、shared action/observability/result wiring、verification 与 memory 主链对齐，以及 special-agent focused/integration tests 都已落地。                                                                                                                   |
 | `PR-05` | Phase 5    | `未开始` | cache 治理尚未开工。                                                                                                                                                                                                                                                                                                                |
 | `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                                                                                                                                                                                                                                      |
 | `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                                                                                                                                                                                                                                  |
@@ -573,6 +573,41 @@ title: Phase 对应 PR 计划
 
 - 有没有清掉私建机制
 - contract 是否足够稳定
+
+### 当前状态
+
+状态：`已完成（截至 2026-04-16）`
+
+已完成：
+
+- 已开始把 special agent contract 校验从“仅运行时发现”往前移。
+- `src/agents/special/runtime/registry.ts` 已新增 registry-level contract issue 枚举能力，允许直接检查所有已注册 special agent 定义是否满足统一 contract。
+- `src/agents/special/runtime/registry.test.ts` 已新增 “all registered definitions stay contract-valid” 测试，先把当前 4 个已注册 special agent 锁住：
+  - `verification`
+  - `memory-extraction`
+  - `dream`
+  - `session-summary`
+- `src/agents/special/runtime/definition-presets.ts` 已新增 substrate preset，开始把 special agent 的共用 policy 从各域 runner 里回收到 substrate：
+  - shared `runtime_deny` tool policy helper
+  - shared embedded memory special-agent definition preset
+  - shared short parent-session prompt cache preset
+- `memory-extraction / session-summary / dream` 已开始复用同一套 embedded memory definition preset，`verification` 也已复用 shared `runtime_deny` tool policy helper。
+- memory file maintenance allowlist 已抽到共享入口，避免 `dream -> durable` 的导入环继续成为 special-agent substrate 收口阻力。
+- `src/agents/special/runtime/action-feed.ts` 已新增 shared action-feed emitter，`memory-extraction / session-summary / dream` 不再各自手写一套 `emitAgentActionEvent` 包装器，memory special-agent 的 action payload 归一到同一条 substrate helper。
+- `src/agents/special/runtime/runtime-deps.ts` 已新增 shared runtime deps bundle，memory special-agent 不再各自手写 `defaultSpecialAgentRuntimeDeps + emitAgentActionEvent` 组合逻辑。
+- `src/agents/special/runtime/configured-observability.ts` 已新增 shared observability wiring helper，memory special-agent 不再各自手写 `getRuntimeConfigSnapshot + createSpecialAgentObservability` 接线。
+- `src/agents/special/runtime/result-detail.ts` 已新增 shared result detail builder，memory special-agent 不再各自重复组装 `childRunId / childSessionKey / waitStatus / endedAt / usage` 这类 action detail。
+- `src/agents/tools/verify-task-tool.ts` 也已开始复用 shared action-feed / result-detail helper，verification 这条 special-agent 主链不再保留独立包装语义。
+- 已验证：
+  - `vitest run src/agents/tools/verify-task-tool.test.ts src/agents/special/runtime/result-detail.test.ts src/agents/special/runtime/configured-observability.test.ts src/agents/special/runtime/runtime-deps.test.ts src/agents/special/runtime/action-feed.test.ts src/agents/special/runtime/definition-presets.test.ts src/agents/special/runtime/registry.test.ts src/memory/durable/agent-runner.test.ts src/memory/session-summary/agent-runner.test.ts src/memory/dreaming/agent-runner.test.ts`
+  - `vitest run src/agents/pi-tools.verification-gating.test.ts`
+  - `vitest run -c vitest.e2e.config.ts src/agents/pi-tools.before-tool-call.integration.e2e.test.ts -t "blocks non-allowlisted special-agent tools before plugin hooks run"`
+  - `pnpm check`
+
+收口结论：
+
+1. Phase 4 的目标已经完成，可以关闭 `PR-04`。
+2. 后续如果继续增强 special-agent 体验或新增类型，应作为新能力演进，不再作为 Phase 4 缺口。
 
 ## PR-05：Memory 与 Cache 治理
 

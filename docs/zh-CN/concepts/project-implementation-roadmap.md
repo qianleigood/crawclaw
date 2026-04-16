@@ -489,6 +489,30 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 让后台 agent 变成统一 substrate，而不是各域自己的私有机制。
 
+### 当前状态
+
+状态：`已完成（截至 2026-04-16）`
+
+已完成：
+
+- 已开始把 special agent contract 校验从纯运行时路径前移到 registry 层。
+- 已为 registry 增加“列出所有已注册 special agent contract 问题”的能力，先把定义层标准化拉成可测试入口。
+- 已新增 registry-level contract test，锁住当前已注册 special agent 定义的 contract 合法性。
+- 已新增 special-agent substrate definition preset，开始把共用 policy 从 memory runner 下沉回 substrate。
+- `memory-extraction / session-summary / dream` 已开始共用 embedded memory definition preset；`verification` 已开始共用 shared `runtime_deny` tool policy helper。
+- memory file maintenance allowlist 已抽成共享入口，减少 `dream` 与 `durable` 之间的定义层耦合。
+- 已新增 shared action-feed emitter，开始统一 memory special-agent 的 action payload 发射路径，减少 runner 本地重复包装逻辑。
+- 已新增 shared runtime deps bundle，开始统一 memory special-agent 对 `runSpecialAgentToCompletion` 和 action-feed 的 runtime 依赖拼装方式。
+- 已新增 shared configured observability helper，开始统一 memory special-agent 对 runtime config 和 observability 的接线方式。
+- 已新增 shared result detail helper，开始统一 memory special-agent 对 child-run metadata、wait status、endedAt 和 usage detail 的组装方式。
+- verification tool 也已开始复用 shared action-feed 和 result-detail helper，special-agent substrate 的标准化不再只覆盖 memory 路径。
+- 已补 special-agent focused/integration/e2e 覆盖，验证 registry contract、memory runners、verification tool 和 special-agent tool gating 主链。
+
+收口说明：
+
+1. Phase 4 目标已完成，后续不再把 special-agent substrate 标准化视为当前重构主线缺口。
+2. 后续新增 special agent 类型或更深 observability 体验，转入后续独立增强项处理。
+
 ### 产出
 
 - 统一 special agent contract

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VERIFICATION_TOOL_ALLOWLIST } from "../../verification-agent.js";
 import {
+  listRegisteredSpecialAgentContractIssues,
   resolveSpecialAgentDefinitionBySpawnSource,
   resolveSpecialAgentToolAllowlistBySpawnSource,
 } from "./registry.js";
@@ -34,5 +35,9 @@ describe("special agent registry", () => {
       },
     });
     expect(definition?.toolPolicy?.enforcement).toBe("runtime_deny");
+  });
+
+  it("keeps all registered special agent definitions contract-valid", () => {
+    expect(listRegisteredSpecialAgentContractIssues()).toEqual([]);
   });
 });

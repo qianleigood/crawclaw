@@ -1,71 +1,43 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
+import { emitSpecialAgentActionEvent } from "../../agents/special/runtime/action-feed.js";
+import { createConfiguredSpecialAgentObservability } from "../../agents/special/runtime/configured-observability.js";
+import { createEmbeddedMemorySpecialAgentDefinition } from "../../agents/special/runtime/definition-presets.js";
 import {
-  buildSpecialAgentUsageDetail,
-  createSpecialAgentObservability,
-} from "../../agents/special/runtime/observability.js";
+  buildSpecialAgentCompletionDetail,
+  buildSpecialAgentRunRefDetail,
+  buildSpecialAgentWaitFailureDetail,
+} from "../../agents/special/runtime/result-detail.js";
+import { runSpecialAgentToCompletion } from "../../agents/special/runtime/run-once.js";
 import {
-  defaultSpecialAgentRuntimeDeps,
-  runSpecialAgentToCompletion,
-  type SpecialAgentRuntimeDeps,
-} from "../../agents/special/runtime/run-once.js";
+  createDefaultSpecialAgentActionRuntimeDeps,
+  type SpecialAgentActionRuntimeDeps,
+} from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
-import { getRuntimeConfigSnapshot } from "../../config/config.js";
+import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../special-agent-toollists.js";
 import { collectRecentDurableConversation } from "./extraction.js";
 import type { DurableMemoryManifestEntry } from "./store.js";
 import { scanDurableMemoryScopeEntries } from "./store.js";
 import type { DurableExtractionRunParams, DurableExtractionRunResult } from "./worker-manager.js";
 
 export const MEMORY_EXTRACTION_SPAWN_SOURCE = "memory-extraction";
-export const MEMORY_EXTRACTION_TOOL_ALLOWLIST = [
-  "memory_manifest_read",
-  "memory_note_read",
-  "memory_note_write",
-  "memory_note_edit",
-  "memory_note_delete",
-] as const;
-export const MEMORY_EXTRACTION_AGENT_DEFINITION: SpecialAgentDefinition = {
-  id: "memory_extractor",
-  label: "memory-extraction",
-  spawnSource: MEMORY_EXTRACTION_SPAWN_SOURCE,
-  executionMode: "embedded_fork",
-  transcriptPolicy: "isolated",
-  toolPolicy: {
+export const MEMORY_EXTRACTION_TOOL_ALLOWLIST = MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST;
+export const MEMORY_EXTRACTION_AGENT_DEFINITION: SpecialAgentDefinition =
+  createEmbeddedMemorySpecialAgentDefinition({
+    id: "memory_extractor",
+    label: "memory-extraction",
+    spawnSource: MEMORY_EXTRACTION_SPAWN_SOURCE,
     allowlist: MEMORY_EXTRACTION_TOOL_ALLOWLIST,
-    enforcement: "runtime_deny",
-  },
-  cachePolicy: {
-    cacheRetention: "short",
-    skipWrite: true,
-    promptCache: {
-      scope: "parent_session",
-      retention: "24h",
-    },
-  },
-  mode: "run",
-  cleanup: "keep",
-  sandbox: "inherit",
-  expectsCompletionMessage: false,
-  defaultRunTimeoutSeconds: 90,
-  defaultMaxTurns: 5,
-};
+    defaultRunTimeoutSeconds: 90,
+    defaultMaxTurns: 5,
+  });
 
-type MemoryExtractionAgentDeps = SpecialAgentRuntimeDeps & {
-  emitAgentActionEvent: typeof emitAgentActionEvent;
-};
-
-function createDefaultMemoryExtractionAgentDeps(): MemoryExtractionAgentDeps {
-  return {
-    ...defaultSpecialAgentRuntimeDeps,
-    emitAgentActionEvent,
-  };
-}
+type MemoryExtractionAgentDeps = SpecialAgentActionRuntimeDeps;
 
 let memoryExtractionAgentDeps: MemoryExtractionAgentDeps | undefined;
 
 function resolveMemoryExtractionAgentDeps(): MemoryExtractionAgentDeps {
   if (!memoryExtractionAgentDeps) {
-    memoryExtractionAgentDeps = createDefaultMemoryExtractionAgentDeps();
+    memoryExtractionAgentDeps = createDefaultSpecialAgentActionRuntimeDeps();
   }
   return memoryExtractionAgentDeps;
 }
@@ -88,7 +60,11 @@ function decodeDurableScopeSegment(value: string | null | undefined): string | u
 }
 
 function trimStructuredField(value: string | undefined): string | undefined {
-  const trimmed = value?.trim().replace(/^\*+\s*/, "").replace(/\s*\*+$/, "").trim();
+  const trimmed = value
+    ?.trim()
+    .replace(/^\*+\s*/, "")
+    .replace(/\s*\*+$/, "")
+    .trim();
   return trimmed ? trimmed : undefined;
 }
 
@@ -240,22 +216,17 @@ function emitMemoryExtractionAction(params: {
   summary?: string;
   detail?: Record<string, unknown>;
 }) {
-  resolveMemoryExtractionAgentDeps().emitAgentActionEvent({
+  emitSpecialAgentActionEvent({
+    emitAgentActionEvent: resolveMemoryExtractionAgentDeps().emitAgentActionEvent,
     runId: params.actionRunId,
+    actionId: params.actionId,
+    kind: "memory",
     sessionKey: params.sessionKey,
-    ...(normalizeOptionalString(params.agentId)
-      ? { agentId: normalizeOptionalString(params.agentId) }
-      : {}),
-    data: {
-      actionId: params.actionId,
-      kind: "memory",
-      status: params.status,
-      title: params.title,
-      ...(normalizeOptionalString(params.summary)
-        ? { summary: normalizeOptionalString(params.summary) }
-        : {}),
-      ...(params.detail ? { detail: params.detail } : {}),
-    },
+    agentId: params.agentId,
+    status: params.status,
+    title: params.title,
+    summary: params.summary,
+    detail: params.detail,
   });
 }
 
@@ -263,10 +234,8 @@ export async function runDurableExtractionAgentOnce(
   params: DurableExtractionRunParams,
 ): Promise<DurableExtractionRunResult> {
   const existingEntries = await scanDurableMemoryScopeEntries(params.scope);
-  const runtimeConfig = getRuntimeConfigSnapshot() ?? undefined;
-  const observability = createSpecialAgentObservability({
+  const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
-    config: runtimeConfig,
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
     ...(normalizeOptionalString(params.scope.agentId)
@@ -356,10 +325,7 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       title: "Memory extraction failed to start",
       summary: error,
-      detail: {
-        ...(run.runId ? { childRunId: run.runId } : {}),
-        ...(run.childSessionKey ? { childSessionKey: run.childSessionKey } : {}),
-      },
+      detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
       status: "failed",
@@ -377,10 +343,7 @@ export async function runDurableExtractionAgentOnce(
     status: "running",
     title: "Memory extraction running",
     summary: params.scope.scopeKey,
-    detail: {
-      childRunId: run.runId,
-      childSessionKey: run.childSessionKey,
-    },
+    detail: buildSpecialAgentRunRefDetail(run),
   });
 
   if (run.status === "wait_failed") {
@@ -398,11 +361,7 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       title: "Memory extraction did not complete",
       summary: error,
-      detail: {
-        childRunId: run.runId,
-        childSessionKey: run.childSessionKey,
-        ...(run.waitStatus ? { waitStatus: run.waitStatus } : {}),
-      },
+      detail: buildSpecialAgentWaitFailureDetail(run),
     });
     return {
       status: "failed",
@@ -428,10 +387,7 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       title: "Memory extraction report invalid",
       summary: error,
-      detail: {
-        childRunId: run.runId,
-        childSessionKey: run.childSessionKey,
-      },
+      detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
       status: "failed",
@@ -460,18 +416,14 @@ export async function runDurableExtractionAgentOnce(
             ? "Memory extraction found no durable changes"
             : "Memory extraction failed",
     summary: parsed.summary,
-    detail: {
-      childRunId: run.runId,
-      childSessionKey: run.childSessionKey,
-      writtenCount: parsed.writtenCount ?? 0,
-      updatedCount: parsed.updatedCount ?? 0,
-      deletedCount: parsed.deletedCount ?? 0,
-      endedAt: run.endedAt ?? null,
-      ...buildSpecialAgentUsageDetail({
-        usage: run.usage,
-        historyMessageCount: run.historyMessageCount,
-      }),
-    },
+    detail: buildSpecialAgentCompletionDetail({
+      result: run,
+      detail: {
+        writtenCount: parsed.writtenCount ?? 0,
+        updatedCount: parsed.updatedCount ?? 0,
+        deletedCount: parsed.deletedCount ?? 0,
+      },
+    }),
   });
 
   await observability.recordResult({
@@ -497,9 +449,9 @@ export const __testing = {
   setDepsForTest(overrides?: Partial<MemoryExtractionAgentDeps>) {
     memoryExtractionAgentDeps = overrides
       ? {
-          ...createDefaultMemoryExtractionAgentDeps(),
+          ...createDefaultSpecialAgentActionRuntimeDeps(),
           ...overrides,
         }
-      : createDefaultMemoryExtractionAgentDeps();
+      : createDefaultSpecialAgentActionRuntimeDeps();
   },
 };

@@ -1,16 +1,18 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
+import { emitSpecialAgentActionEvent } from "../../agents/special/runtime/action-feed.js";
+import { createConfiguredSpecialAgentObservability } from "../../agents/special/runtime/configured-observability.js";
+import { createEmbeddedMemorySpecialAgentDefinition } from "../../agents/special/runtime/definition-presets.js";
 import {
-  buildSpecialAgentUsageDetail,
-  createSpecialAgentObservability,
-} from "../../agents/special/runtime/observability.js";
+  buildSpecialAgentCompletionDetail,
+  buildSpecialAgentRunRefDetail,
+  buildSpecialAgentWaitFailureDetail,
+} from "../../agents/special/runtime/result-detail.js";
+import { runSpecialAgentToCompletion } from "../../agents/special/runtime/run-once.js";
 import {
-  defaultSpecialAgentRuntimeDeps,
-  runSpecialAgentToCompletion,
-  type SpecialAgentRuntimeDeps,
-} from "../../agents/special/runtime/run-once.js";
+  createDefaultSpecialAgentActionRuntimeDeps,
+  type SpecialAgentActionRuntimeDeps,
+} from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
-import { getRuntimeConfigSnapshot } from "../../config/config.js";
 import { collectRecentDurableConversation } from "../durable/extraction.ts";
 import { ensureSessionSummaryFile } from "./store.ts";
 import {
@@ -29,50 +31,25 @@ export const SESSION_SUMMARY_TOOL_ALLOWLIST = [
   "session_summary_file_read",
   "session_summary_file_edit",
 ] as const;
-export const SESSION_SUMMARY_AGENT_DEFINITION: SpecialAgentDefinition = {
-  id: "session_summary",
-  label: "session-summary",
-  spawnSource: SESSION_SUMMARY_SPAWN_SOURCE,
-  executionMode: "embedded_fork",
-  transcriptPolicy: "isolated",
-  toolPolicy: {
+export const SESSION_SUMMARY_AGENT_DEFINITION: SpecialAgentDefinition =
+  createEmbeddedMemorySpecialAgentDefinition({
+    id: "session_summary",
+    label: "session-summary",
+    spawnSource: SESSION_SUMMARY_SPAWN_SOURCE,
     allowlist: SESSION_SUMMARY_TOOL_ALLOWLIST,
-    enforcement: "runtime_deny",
-  },
-  cachePolicy: {
-    cacheRetention: "short",
-    skipWrite: true,
-    promptCache: {
-      scope: "parent_session",
-      retention: "24h",
-    },
-  },
-  mode: "run",
-  cleanup: "keep",
-  sandbox: "inherit",
-  expectsCompletionMessage: false,
-  defaultRunTimeoutSeconds: 90,
-  defaultMaxTurns: 5,
-};
+    defaultRunTimeoutSeconds: 90,
+    defaultMaxTurns: 5,
+  });
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
 
-type SessionSummaryAgentDeps = SpecialAgentRuntimeDeps & {
-  emitAgentActionEvent: typeof emitAgentActionEvent;
-};
-
-function createDefaultSessionSummaryAgentDeps(): SessionSummaryAgentDeps {
-  return {
-    ...defaultSpecialAgentRuntimeDeps,
-    emitAgentActionEvent,
-  };
-}
+type SessionSummaryAgentDeps = SpecialAgentActionRuntimeDeps;
 
 let sessionSummaryAgentDeps: SessionSummaryAgentDeps | undefined;
 
 function resolveSessionSummaryAgentDeps(): SessionSummaryAgentDeps {
   if (!sessionSummaryAgentDeps) {
-    sessionSummaryAgentDeps = createDefaultSessionSummaryAgentDeps();
+    sessionSummaryAgentDeps = createDefaultSpecialAgentActionRuntimeDeps();
   }
   return sessionSummaryAgentDeps;
 }
@@ -146,7 +123,11 @@ type ParsedSessionSummaryResult = {
 };
 
 function trimStructuredField(value: string | undefined): string | undefined {
-  const trimmed = value?.trim().replace(/^\*+\s*/, "").replace(/\s*\*+$/, "").trim();
+  const trimmed = value
+    ?.trim()
+    .replace(/^\*+\s*/, "")
+    .replace(/\s*\*+$/, "")
+    .trim();
   return trimmed ? trimmed : undefined;
 }
 
@@ -193,22 +174,17 @@ function emitSessionSummaryAction(params: {
   summary?: string;
   detail?: Record<string, unknown>;
 }) {
-  resolveSessionSummaryAgentDeps().emitAgentActionEvent({
+  emitSpecialAgentActionEvent({
+    emitAgentActionEvent: resolveSessionSummaryAgentDeps().emitAgentActionEvent,
     runId: params.actionRunId,
+    actionId: params.actionId,
+    kind: "memory",
     sessionKey: params.sessionKey,
-    ...(normalizeOptionalString(params.agentId)
-      ? { agentId: normalizeOptionalString(params.agentId) }
-      : {}),
-    data: {
-      actionId: params.actionId,
-      kind: "memory",
-      status: params.status,
-      title: params.title,
-      ...(normalizeOptionalString(params.summary)
-        ? { summary: normalizeOptionalString(params.summary) }
-        : {}),
-      ...(params.detail ? { detail: params.detail } : {}),
-    },
+    agentId: params.agentId,
+    status: params.status,
+    title: params.title,
+    summary: params.summary,
+    detail: params.detail,
   });
 }
 
@@ -355,10 +331,8 @@ export async function runSessionSummaryAgentOnce(params: {
     recentMessages: params.recentMessages,
     recentMessageLimit: params.recentMessageLimit,
   });
-  const runtimeConfig = getRuntimeConfigSnapshot() ?? undefined;
-  const observability = createSpecialAgentObservability({
+  const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: SESSION_SUMMARY_AGENT_DEFINITION,
-    config: runtimeConfig,
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
     agentId: params.agentId,
@@ -430,10 +404,7 @@ export async function runSessionSummaryAgentOnce(params: {
       status: "failed",
       title: "Session summary failed to start",
       summary: error,
-      detail: {
-        ...(run.runId ? { childRunId: run.runId } : {}),
-        ...(run.childSessionKey ? { childSessionKey: run.childSessionKey } : {}),
-      },
+      detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
       status: "failed",
@@ -451,10 +422,7 @@ export async function runSessionSummaryAgentOnce(params: {
     status: "running",
     title: "Session summary running",
     summary: params.sessionId,
-    detail: {
-      childRunId: run.runId,
-      childSessionKey: run.childSessionKey,
-    },
+    detail: buildSpecialAgentRunRefDetail(run),
   });
 
   if (run.status === "wait_failed") {
@@ -472,11 +440,7 @@ export async function runSessionSummaryAgentOnce(params: {
       status: "failed",
       title: "Session summary did not complete",
       summary: error,
-      detail: {
-        childRunId: run.runId,
-        childSessionKey: run.childSessionKey,
-        ...(run.waitStatus ? { waitStatus: run.waitStatus } : {}),
-      },
+      detail: buildSpecialAgentWaitFailureDetail(run),
     });
     return {
       status: "failed",
@@ -504,10 +468,7 @@ export async function runSessionSummaryAgentOnce(params: {
       status: "failed",
       title: "Session summary report invalid",
       summary: error,
-      detail: {
-        childRunId: run.runId,
-        childSessionKey: run.childSessionKey,
-      },
+      detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
       status: "failed",
@@ -545,17 +506,13 @@ export async function runSessionSummaryAgentOnce(params: {
             ? "Session summary unchanged"
             : "Session summary failed",
     summary: parsed.summary,
-    detail: {
-      childRunId: run.runId,
-      childSessionKey: run.childSessionKey,
-      writtenCount,
-      updatedCount,
-      endedAt: run.endedAt ?? null,
-      ...buildSpecialAgentUsageDetail({
-        usage: run.usage,
-        historyMessageCount: run.historyMessageCount,
-      }),
-    },
+    detail: buildSpecialAgentCompletionDetail({
+      result: run,
+      detail: {
+        writtenCount,
+        updatedCount,
+      },
+    }),
   });
 
   await observability.recordResult({
@@ -588,10 +545,10 @@ export const __testing = {
   setDepsForTest(overrides?: Partial<SessionSummaryAgentDeps>) {
     sessionSummaryAgentDeps = overrides
       ? {
-          ...createDefaultSessionSummaryAgentDeps(),
+          ...createDefaultSpecialAgentActionRuntimeDeps(),
           ...overrides,
         }
-      : createDefaultSessionSummaryAgentDeps();
+      : createDefaultSpecialAgentActionRuntimeDeps();
   },
   resetDepsForTest() {
     sessionSummaryAgentDeps = undefined;

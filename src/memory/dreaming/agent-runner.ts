@@ -1,46 +1,32 @@
-import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
+import { emitSpecialAgentActionEvent } from "../../agents/special/runtime/action-feed.js";
+import { createConfiguredSpecialAgentObservability } from "../../agents/special/runtime/configured-observability.js";
+import { createEmbeddedMemorySpecialAgentDefinition } from "../../agents/special/runtime/definition-presets.js";
 import {
-  buildSpecialAgentUsageDetail,
-  createSpecialAgentObservability,
-} from "../../agents/special/runtime/observability.js";
+  buildSpecialAgentCompletionDetail,
+  buildSpecialAgentRunRefDetail,
+  buildSpecialAgentWaitFailureDetail,
+} from "../../agents/special/runtime/result-detail.js";
+import { runSpecialAgentToCompletion } from "../../agents/special/runtime/run-once.js";
 import {
-  defaultSpecialAgentRuntimeDeps,
-  runSpecialAgentToCompletion,
-  type SpecialAgentRuntimeDeps,
-} from "../../agents/special/runtime/run-once.js";
+  createDefaultSpecialAgentActionRuntimeDeps,
+  type SpecialAgentActionRuntimeDeps,
+} from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
-import { getRuntimeConfigSnapshot } from "../../config/config.js";
-import { MEMORY_EXTRACTION_TOOL_ALLOWLIST } from "../durable/agent-runner.js";
 import type { DurableMemoryScope } from "../durable/scope.js";
 import type { DurableMemoryManifestEntry } from "../durable/store.js";
 import { scanDurableMemoryScopeEntries } from "../durable/store.js";
+import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../special-agent-toollists.js";
 
 export const DREAM_SPAWN_SOURCE = "dream";
-export const DREAM_AGENT_DEFINITION: SpecialAgentDefinition = {
-  id: "dream",
-  label: "dream",
-  spawnSource: DREAM_SPAWN_SOURCE,
-  executionMode: "embedded_fork",
-  transcriptPolicy: "isolated",
-  toolPolicy: {
-    allowlist: MEMORY_EXTRACTION_TOOL_ALLOWLIST,
-    enforcement: "runtime_deny",
-  },
-  cachePolicy: {
-    cacheRetention: "short",
-    skipWrite: true,
-    promptCache: {
-      scope: "parent_session",
-      retention: "24h",
-    },
-  },
-  mode: "run",
-  cleanup: "keep",
-  sandbox: "inherit",
-  expectsCompletionMessage: false,
-  defaultRunTimeoutSeconds: 120,
-  defaultMaxTurns: 8,
-};
+export const DREAM_AGENT_DEFINITION: SpecialAgentDefinition =
+  createEmbeddedMemorySpecialAgentDefinition({
+    id: "dream",
+    label: "dream",
+    spawnSource: DREAM_SPAWN_SOURCE,
+    allowlist: MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST,
+    defaultRunTimeoutSeconds: 120,
+    defaultMaxTurns: 8,
+  });
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
 
@@ -81,22 +67,13 @@ export type DreamRunResult = {
   touchedNotes?: string[];
 };
 
-type DreamAgentDeps = SpecialAgentRuntimeDeps & {
-  emitAgentActionEvent: typeof emitAgentActionEvent;
-};
-
-function createDefaultDreamAgentDeps(): DreamAgentDeps {
-  return {
-    ...defaultSpecialAgentRuntimeDeps,
-    emitAgentActionEvent,
-  };
-}
+type DreamAgentDeps = SpecialAgentActionRuntimeDeps;
 
 let deps: DreamAgentDeps | undefined;
 
 function resolveDreamAgentDeps(): DreamAgentDeps {
   if (!deps) {
-    deps = createDefaultDreamAgentDeps();
+    deps = createDefaultSpecialAgentActionRuntimeDeps();
   }
   return deps;
 }
@@ -128,7 +105,11 @@ type ParsedDreamResult = {
 };
 
 function trimStructuredField(value: string | undefined): string | undefined {
-  const trimmed = value?.trim().replace(/^\*+\s*/, "").replace(/\s*\*+$/, "").trim();
+  const trimmed = value
+    ?.trim()
+    .replace(/^\*+\s*/, "")
+    .replace(/\s*\*+$/, "")
+    .trim();
   return trimmed ? trimmed : undefined;
 }
 
@@ -309,24 +290,17 @@ function emitDreamAction(params: {
   summary?: string;
   detail?: Record<string, unknown>;
 }) {
-  resolveDreamAgentDeps().emitAgentActionEvent({
+  emitSpecialAgentActionEvent({
+    emitAgentActionEvent: resolveDreamAgentDeps().emitAgentActionEvent,
     runId: params.runId,
-    ...(normalizeOptionalString(params.sessionKey)
-      ? { sessionKey: normalizeOptionalString(params.sessionKey) }
-      : {}),
-    ...(normalizeOptionalString(params.agentId)
-      ? { agentId: normalizeOptionalString(params.agentId) }
-      : {}),
-    data: {
-      actionId: params.actionId,
-      kind: "memory",
-      status: params.status,
-      title: params.title,
-      ...(normalizeOptionalString(params.summary)
-        ? { summary: normalizeOptionalString(params.summary) }
-        : {}),
-      ...(params.detail ? { detail: params.detail } : {}),
-    },
+    actionId: params.actionId,
+    kind: "memory",
+    sessionKey: params.sessionKey,
+    agentId: params.agentId,
+    status: params.status,
+    title: params.title,
+    summary: params.summary,
+    detail: params.detail,
   });
 }
 
@@ -335,10 +309,8 @@ export async function runDreamAgentOnce(
   logger?: RuntimeLogger,
 ): Promise<DreamRunResult> {
   const existingEntries = await scanDurableMemoryScopeEntries(params.scope);
-  const runtimeConfig = getRuntimeConfigSnapshot() ?? undefined;
-  const observability = createSpecialAgentObservability({
+  const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: DREAM_AGENT_DEFINITION,
-    config: runtimeConfig,
     sessionId: params.sessionId,
     ...(normalizeOptionalString(params.sessionKey)
       ? { sessionKey: normalizeOptionalString(params.sessionKey) }
@@ -446,10 +418,7 @@ export async function runDreamAgentOnce(
       status: "failed",
       title: "Dream failed to start",
       summary: error,
-      detail: {
-        ...(run.runId ? { childRunId: run.runId } : {}),
-        ...(run.childSessionKey ? { childSessionKey: run.childSessionKey } : {}),
-      },
+      detail: buildSpecialAgentRunRefDetail(run),
     });
     return { status: "failed", summary: error, writtenCount: 0, updatedCount: 0, deletedCount: 0 };
   }
@@ -463,8 +432,7 @@ export async function runDreamAgentOnce(
     title: "Dream running",
     summary: params.scope.scopeKey,
     detail: {
-      childRunId: run.runId,
-      childSessionKey: run.childSessionKey,
+      ...buildSpecialAgentRunRefDetail(run),
       recentSessionCount: params.recentSessions.length,
     },
   });
@@ -484,11 +452,7 @@ export async function runDreamAgentOnce(
       status: "failed",
       title: "Dream did not complete",
       summary: error,
-      detail: {
-        childRunId: run.runId,
-        childSessionKey: run.childSessionKey,
-        ...(run.waitStatus ? { waitStatus: run.waitStatus } : {}),
-      },
+      detail: buildSpecialAgentWaitFailureDetail(run),
     });
     return { status: "failed", summary: error, writtenCount: 0, updatedCount: 0, deletedCount: 0 };
   }
@@ -537,17 +501,16 @@ export async function runDreamAgentOnce(
             ? "Dream found no changes"
             : "Dream failed",
     summary: parsed.summary,
-    detail: {
-      writtenCount: result.writtenCount,
-      updatedCount: result.updatedCount,
-      deletedCount: result.deletedCount,
-      touchedNotes: result.touchedNotes ?? [],
-      recentSessionCount: params.recentSessions.length,
-      ...buildSpecialAgentUsageDetail({
-        usage: run.usage,
-        historyMessageCount: run.historyMessageCount,
-      }),
-    },
+    detail: buildSpecialAgentCompletionDetail({
+      result: run,
+      detail: {
+        writtenCount: result.writtenCount,
+        updatedCount: result.updatedCount,
+        deletedCount: result.deletedCount,
+        touchedNotes: result.touchedNotes ?? [],
+        recentSessionCount: params.recentSessions.length,
+      },
+    }),
   });
 
   await observability.recordResult({
@@ -572,7 +535,7 @@ export async function runDreamAgentOnce(
 export const __testing = {
   setDepsForTest(overrides?: Partial<DreamAgentDeps>) {
     deps = overrides
-      ? { ...createDefaultDreamAgentDeps(), ...overrides }
-      : createDefaultDreamAgentDeps();
+      ? { ...createDefaultSpecialAgentActionRuntimeDeps(), ...overrides }
+      : createDefaultSpecialAgentActionRuntimeDeps();
   },
 };

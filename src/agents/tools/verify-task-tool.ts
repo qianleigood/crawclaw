@@ -2,6 +2,12 @@ import { Type } from "@sinclair/typebox";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import { emitAgentActionEvent } from "../action-feed/emit.js";
 import type { SpawnedToolContext } from "../spawned-context.js";
+import { emitSpecialAgentActionEvent } from "../special/runtime/action-feed.js";
+import {
+  buildSpecialAgentCompletionDetail,
+  buildSpecialAgentRunRefDetail,
+  buildSpecialAgentWaitFailureDetail,
+} from "../special/runtime/result-detail.js";
 import {
   defaultSpecialAgentRuntimeDeps,
   runSpecialAgentToCompletion,
@@ -86,20 +92,17 @@ function emitVerificationParentAction(params: {
   summary?: string | null;
   detail?: Record<string, unknown>;
 }) {
-  emitAgentActionEvent({
+  emitSpecialAgentActionEvent({
+    emitAgentActionEvent,
     runId: `verification:${params.toolCallId}`,
+    actionId: `verification:${params.toolCallId}`,
+    kind: "verification",
     sessionKey: normalizeOptionalString(params.sessionKey),
     agentId: normalizeOptionalString(params.agentId),
-    data: {
-      actionId: `verification:${params.toolCallId}`,
-      kind: "verification",
-      status: params.status,
-      title: params.title,
-      ...(normalizeOptionalString(params.summary)
-        ? { summary: normalizeOptionalString(params.summary) }
-        : {}),
-      ...(params.detail ? { detail: params.detail } : {}),
-    },
+    status: params.status,
+    title: params.title,
+    summary: normalizeOptionalString(params.summary),
+    detail: params.detail,
   });
 }
 
@@ -209,10 +212,7 @@ export function createVerifyTaskTool(
           status: "failed",
           title: "Verification failed to start",
           summary: result.error,
-          detail: {
-            ...(result.runId ? { childRunId: result.runId } : {}),
-            ...(result.childSessionKey ? { childSessionKey: result.childSessionKey } : {}),
-          },
+          detail: buildSpecialAgentRunRefDetail(result),
         });
         return jsonResult({
           status: "error",
@@ -229,10 +229,7 @@ export function createVerifyTaskTool(
         status: "running",
         title: "Verification running",
         summary: task,
-        detail: {
-          childRunId: result.runId,
-          childSessionKey: result.childSessionKey,
-        },
+        detail: buildSpecialAgentRunRefDetail(result),
       });
 
       if (result.status === "wait_failed") {
@@ -243,11 +240,7 @@ export function createVerifyTaskTool(
           status: "failed",
           title: "Verification did not complete",
           summary: result.error,
-          detail: {
-            childRunId: result.runId,
-            childSessionKey: result.childSessionKey,
-            ...(result.waitStatus ? { waitStatus: result.waitStatus } : {}),
-          },
+          detail: buildSpecialAgentWaitFailureDetail(result),
         });
         return jsonResult({
           status: result.waitStatus === "timeout" ? "timeout" : "error",
@@ -270,10 +263,7 @@ export function createVerifyTaskTool(
           status: "failed",
           title: "Verification report invalid",
           summary: "verification agent completed without a VERDICT line",
-          detail: {
-            childRunId: result.runId,
-            childSessionKey: result.childSessionKey,
-          },
+          detail: buildSpecialAgentRunRefDetail(result),
         });
         throw new ToolInputError(
           "verification agent completed without a VERDICT: PASS|FAIL|PARTIAL line",
@@ -292,12 +282,10 @@ export function createVerifyTaskTool(
               : "blocked",
         title: `Verification ${parsed.verdict}`,
         summary: parsed.summary ?? null,
-        detail: {
-          childRunId: result.runId,
-          childSessionKey: result.childSessionKey,
-          endedAt: result.endedAt ?? null,
-          ...buildVerificationDetail(parsed),
-        },
+        detail: buildSpecialAgentCompletionDetail({
+          result,
+          detail: buildVerificationDetail(parsed),
+        }),
       });
 
       return jsonResult({
