@@ -33,6 +33,7 @@ import { resolveUserPath } from "../utils.js";
 import { listConfiguredWebSearchProviders } from "../web-search/runtime.js";
 import type { WizardPrompter } from "./prompts.js";
 import { setupWizardShellCompletion } from "./setup.completion.js";
+import { maybeHandleNotebookLmOnboarding } from "./setup.notebooklm.js";
 import { resolveSetupSecretInputString } from "./setup.secret-input.js";
 import type { GatewayWizardSettings, WizardFlow } from "./setup.types.js";
 
@@ -281,6 +282,13 @@ export async function finalizeSetupWizard(
       );
     }
   }
+
+  await maybeHandleNotebookLmOnboarding({
+    config: nextConfig,
+    opts,
+    prompter,
+    runtime,
+  });
 
   const controlUiEnabled =
     nextConfig.gateway?.controlUi?.enabled ?? baseConfig.gateway?.controlUi?.enabled ?? true;
