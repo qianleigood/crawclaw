@@ -1,6 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
-import { loadConfig, resolveManagedBrowserRuntimeBin, type CrawClawConfig } from "../core-api.js";
+import os from "node:os";
+import path from "node:path";
+import { loadConfig, type CrawClawConfig } from "../config/config.js";
 import { createPinchTabClient } from "./pinchtab-client.js";
 
 const DEFAULT_PINCHTAB_BASE_URL = "http://127.0.0.1:9867";
@@ -28,6 +30,14 @@ type PinchTabManagedServiceDeps = {
   resolveBrowserRuntimeBinImpl: typeof resolveManagedBrowserRuntimeBin;
   createClientImpl: typeof createPinchTabClient;
 };
+
+function resolveManagedBrowserRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
+  const stateDir = env.CRAWCLAW_STATE_DIR?.trim() || path.join(os.homedir(), ".crawclaw");
+  const runtimeDir = path.join(stateDir, "runtimes", "browser");
+  return process.platform === "win32"
+    ? path.join(runtimeDir, "node_modules", ".bin", "pinchtab.cmd")
+    : path.join(runtimeDir, "node_modules", ".bin", "pinchtab");
+}
 
 const pinchTabManagedServiceDeps: PinchTabManagedServiceDeps = {
   spawnImpl: spawn,
