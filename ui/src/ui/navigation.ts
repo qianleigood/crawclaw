@@ -34,7 +34,7 @@ export const SIMPLE_TABS = [
   "overview",
   "chat",
   "channels",
-  "skills",
+  "workflows",
   "agents",
 ] as const satisfies readonly Tab[];
 
@@ -51,22 +51,24 @@ export const SIMPLE_TAB_GROUPS = [
 export const TAB_GROUPS = [
   { label: "chat", tabs: ["chat"] },
   {
-    label: "control",
-    tabs: ["overview", "channels", "instances", "sessions", "usage", "cron", "workflows"],
+    label: "workspace",
+    tabs: ["overview", "sessions", "usage"],
   },
-  { label: "agent", tabs: ["agents", "skills", "nodes"] },
+  {
+    label: "automation",
+    tabs: ["workflows", "agents", "skills", "cron"],
+  },
+  {
+    label: "runtime",
+    tabs: ["channels", "instances", "nodes"],
+  },
+  {
+    label: "observe",
+    tabs: ["debug", "logs"],
+  },
   {
     label: "settings",
-    tabs: [
-      "config",
-      "communications",
-      "appearance",
-      "automation",
-      "infrastructure",
-      "aiAgents",
-      "debug",
-      "logs",
-    ],
+    tabs: ["config", "communications", "appearance", "automation", "infrastructure", "aiAgents"],
   },
 ] as const satisfies readonly TabGroup[];
 

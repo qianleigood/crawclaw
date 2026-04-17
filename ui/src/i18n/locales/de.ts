@@ -17,9 +17,12 @@ export const de: TranslationMap = {
   },
   nav: {
     chat: "Chat",
-    control: "Steuerung",
-    agent: "Agent",
+    workspace: "Arbeitsraum",
+    automation: "Automatisierung",
+    runtime: "Kanäle",
+    observe: "Beobachten",
     settings: "Einstellungen",
+    platform: "Plattform",
     expand: "Seitenleiste ausklappen",
     collapse: "Seitenleiste einklappen",
   },
@@ -36,7 +39,7 @@ export const de: TranslationMap = {
     nodes: "Geräte",
     chat: "Chat",
     config: "Konfiguration",
-    debug: "Debug",
+    debug: "Inspektor",
     logs: "Protokolle",
   },
   subtitles: {
@@ -52,8 +55,8 @@ export const de: TranslationMap = {
     nodes: "Gekoppelte Geräte, Fähigkeiten und Befehlsfreigabe.",
     chat: "Direkte Gateway-Chat-Sitzung für schnelle Eingriffe.",
     config: "~/.crawclaw/crawclaw.json sicher bearbeiten.",
-    debug: "Gateway-Snapshots, Ereignisse und manuelle RPC-Aufrufe.",
-    logs: "Live-Verfolgung der Gateway-Protokolldateien.",
+    debug: "Snapshots, Ereignisse, Freigaben und manuelle RPC-Aufrufe.",
+    logs: "Gateway-Protokolle und Betriebsabläufe live verfolgen.",
   },
   overview: {
     access: {

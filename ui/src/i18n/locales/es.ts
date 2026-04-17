@@ -17,9 +17,12 @@ export const es: TranslationMap = {
   },
   nav: {
     chat: "Chat",
-    control: "Control",
-    agent: "Agente",
+    workspace: "Espacio",
+    automation: "Automatización",
+    runtime: "Canales",
+    observe: "Observación",
     settings: "Ajustes",
+    platform: "Plataforma",
     expand: "Expandir barra lateral",
     collapse: "Contraer barra lateral",
   },
@@ -36,7 +39,7 @@ export const es: TranslationMap = {
     nodes: "Nodos",
     chat: "Chat",
     config: "Configuración",
-    debug: "Depuración",
+    debug: "Inspección",
     logs: "Registros",
   },
   subtitles: {
@@ -52,8 +55,8 @@ export const es: TranslationMap = {
     nodes: "Dispositivos emparejados, capacidades y exposición de comandos.",
     chat: "Sesión de chat directa con la puerta de enlace para intervenciones rápidas.",
     config: "Editar ~/.crawclaw/crawclaw.json de forma segura.",
-    debug: "Instantáneas de la puerta de enlace, eventos y llamadas RPC manuales.",
-    logs: "Seguimiento en vivo de los registros de la puerta de enlace.",
+    debug: "Instantáneas, eventos, aprobaciones y RPC manuales.",
+    logs: "Registros del gateway y trazas operativas.",
   },
   overview: {
     access: {

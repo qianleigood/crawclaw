@@ -58,9 +58,10 @@ describe("titleForTab", () => {
 
   it("returns expected titles", () => {
     expect(titleForTab("chat")).toBe("Chat");
-    expect(titleForTab("overview")).toBe("Home");
+    expect(titleForTab("overview")).toBe("Overview");
     expect(titleForTab("cron")).toBe("Cron Jobs");
     expect(titleForTab("workflows")).toBe("Workflows");
+    expect(titleForTab("debug")).toBe("Inspect");
   });
 });
 
@@ -74,7 +75,7 @@ describe("subtitleForTab", () => {
 
   it("returns descriptive subtitles", () => {
     expect(subtitleForTab("chat")).toContain("quick interventions");
-    expect(subtitleForTab("overview")).toContain("next steps");
+    expect(subtitleForTab("overview")).toContain("Platform snapshot");
   });
 });
 
@@ -179,8 +180,10 @@ describe("TAB_GROUPS", () => {
   it("contains all expected groups", () => {
     const labels = TAB_GROUPS.map((g) => g.label);
     expect(labels).toContain("chat");
-    expect(labels).toContain("control");
-    expect(labels).toContain("agent");
+    expect(labels).toContain("workspace");
+    expect(labels).toContain("automation");
+    expect(labels).toContain("runtime");
+    expect(labels).toContain("observe");
     expect(labels).toContain("settings");
   });
 

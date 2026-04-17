@@ -937,6 +937,42 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - projection contract tests
 - 关键交互 smoke
 
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+1. 已把 UI 导航从旧控制台分组改成平台信息架构分组：
+   - `chat`
+   - `workspace`
+   - `automation`
+   - `runtime`
+   - `observe`
+   - `settings`
+2. 已把 simple mode 收敛为 5 个一级入口：
+   - `overview`
+   - `chat`
+   - `channels`
+   - `workflows`
+   - `agents`
+3. 已统一页面命名，减少旧控制台语义：
+   - `Home` -> `Overview`
+   - `Connect` -> `Channels`
+   - `Debug` -> `Inspect`
+4. 已同步 command palette、sidebar brand 和多语言导航文案，使 UI 表达更接近平台模型，而不是功能堆页。
+
+已验证：
+
+- UI focused tests：
+  - `ui/src/ui/navigation.test.ts`
+  - `ui/src/ui/navigation-groups.test.ts`
+- `pnpm check`
+
+说明：
+
+- 浏览器侧 `navigation.browser.test.ts` 在当前沙箱环境下会因 Playwright 监听端口受限触发 `EPERM`，因此本阶段以 jsdom focused tests + 全仓门禁作为最终验收。
+
 ## Phase 10：物理拆分准备
 
 ### 目标

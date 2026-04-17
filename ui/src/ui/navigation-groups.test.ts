@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SIMPLE_TAB_GROUPS, TAB_GROUPS, tabFromPath } from "./navigation.ts";
 
 describe("TAB_GROUPS", () => {
-  it("does not expose unfinished settings slices in the sidebar", () => {
+  it("keeps platform settings grouped under the settings rail", () => {
     const settings = TAB_GROUPS.find((group) => group.label === "settings");
     expect(settings?.tabs).toEqual([
       "config",
@@ -11,8 +11,17 @@ describe("TAB_GROUPS", () => {
       "automation",
       "infrastructure",
       "aiAgents",
-      "debug",
-      "logs",
+    ]);
+  });
+
+  it("surfaces the platform information architecture in advanced mode", () => {
+    expect(TAB_GROUPS.map((group) => group.label)).toEqual([
+      "chat",
+      "workspace",
+      "automation",
+      "runtime",
+      "observe",
+      "settings",
     ]);
   });
 
@@ -25,13 +34,13 @@ describe("TAB_GROUPS", () => {
     expect(tabFromPath("/config")).toBe("config");
   });
 
-  it("keeps simple mode focused on five primary tabs", () => {
+  it("keeps simple mode focused on five primary product tabs", () => {
     expect(SIMPLE_TAB_GROUPS).toHaveLength(1);
     expect(SIMPLE_TAB_GROUPS[0]?.tabs).toEqual([
       "overview",
       "chat",
       "channels",
-      "skills",
+      "workflows",
       "agents",
     ]);
   });

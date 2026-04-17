@@ -34,7 +34,7 @@ title: Phase 对应 PR 计划
 | `PR-06` | Phase 6    | `已完成` | channel runtime 收口已完成：workflow/outbound projection、interactive controls、inbound normalization、threading/binding/typing、Telegram/Matrix/LINE/Slack channel transform 已统一收进 `src/channels`，`auto-reply` / `workflows` 只保留语义层。                                                                                  |
 | `PR-07` | Phase 7    | `已完成` | 执行事件与可见性全链统一已完成：workflow / approval / completion / memory 的 projectedTitle / projectedSummary 已收成 shared visibility seam，并已接回 action feed、commands、execution-visibility、ACP projector、inspect、gateway approval handlers 与 UI focused surfaces。                                                      |
 | `PR-08` | Phase 8    | `已完成` | plugin platform 清理已完成：plugin entry / channel entry / setup entry 的导出 contract 已统一到 shared entry-contract seam，loader、bundled capability runtime、channels bundled loader 已共用同一套 resolver，plugin-sdk entry helpers 已带显式 lifecycle marker，plugin contract focused tests 也已补齐。                         |
-| `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                                                                                                                                                                                                                                           |
+| `PR-09` | Phase 9    | `已完成` | UI 信息架构重构已完成第一轮收口：导航分组与简单模式主入口已按平台信息架构重组，`overview / channels / debug` 的页面语义已更新为 `Overview / Channels / Inspect`，命令面与侧边栏不再继续沿用旧控制台分组命名，相关 UI focused tests 与 `pnpm check` 已通过。                                                                         |
 | `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                                                                                                                                                                                                                              |
 
 ## 总体规则
@@ -1120,6 +1120,55 @@ title: Phase 对应 PR 计划
 
 - UI 是否在消费稳定 contract
 - 信息架构是否比之前更接近系统模型
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已把 advanced navigation 重新组织为平台信息架构分组：
+  - `chat`
+  - `workspace`
+  - `automation`
+  - `runtime`
+  - `observe`
+  - `settings`
+- simple mode 已改成聚焦 5 个一级产品入口：
+  - `overview`
+  - `chat`
+  - `channels`
+  - `workflows`
+  - `agents`
+- UI 主命名已从旧控制台语义切到平台语义：
+  - `overview`：`Home` -> `Overview`
+  - `channels`：`Connect` -> `Channels`
+  - `debug`：`Debug` -> `Inspect`
+- 侧边栏品牌 eyebrow 已改成 `Platform`，不再继续沿用 `Control`。
+- command palette 的一级导航项已对齐新的 IA，优先暴露：
+  - `Overview`
+  - `Chat`
+  - `Channels`
+  - `Workflows`
+  - `Agents`
+  - `Inspect`
+  - `Settings`
+- 多语言导航文案已同步更新：
+  - `ui/src/i18n/locales/en.ts`
+  - `ui/src/i18n/locales/zh-CN.ts`
+  - `ui/src/i18n/locales/es.ts`
+  - `ui/src/i18n/locales/de.ts`
+  - `ui/src/i18n/locales/pt-BR.ts`
+
+已验证：
+
+- `pnpm --dir /Users/qianlei/crawclaw lint ui/src/ui/navigation.ts ui/src/ui/navigation.test.ts ui/src/ui/navigation-groups.test.ts ui/src/ui/app-render.ts ui/src/ui/views/command-palette.ts ui/src/i18n/locales/en.ts ui/src/i18n/locales/zh-CN.ts ui/src/i18n/locales/es.ts ui/src/i18n/locales/de.ts ui/src/i18n/locales/pt-BR.ts`
+- `../node_modules/.bin/vitest run --config vitest.config.ts src/ui/navigation.test.ts src/ui/navigation-groups.test.ts`（在 `ui/` 目录）
+- `pnpm check`
+
+补充说明：
+
+- `src/ui/navigation.browser.test.ts` 的 Playwright 浏览器用例在当前沙箱里会因监听端口 `EPERM` 被阻断，这属于运行环境限制，不是断言回归；本 PR 仍已通过对应的 jsdom focused tests 和全仓 `pnpm check`。
 
 ## PR-10：物理拆分准备
 

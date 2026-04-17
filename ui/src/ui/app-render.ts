@@ -510,7 +510,7 @@ export function renderApp(state: AppViewState) {
                   ? nothing
                   : html`
                       <span class="sidebar-brand__copy">
-                        <span class="sidebar-brand__eyebrow">${t("nav.control")}</span>
+                        <span class="sidebar-brand__eyebrow">${t("nav.platform")}</span>
                         <span class="sidebar-brand__title">CrawClaw</span>
                       </span>
                     `}

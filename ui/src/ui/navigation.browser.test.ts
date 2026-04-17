@@ -34,7 +34,7 @@ function expectConfirmedGatewayChange(app: ReturnType<typeof mountApp>) {
   expect(window.location.hash).toBe("");
 }
 
-describe("control UI routing", () => {
+describe("platform UI routing", () => {
   it("hydrates the tab from the location", async () => {
     const app = mountApp("/sessions");
     await app.updateComplete;

@@ -19,17 +19,20 @@ export const zh_CN: TranslationMap = {
   },
   nav: {
     chat: "聊天",
-    control: "控制",
-    agent: "代理",
+    workspace: "工作台",
+    automation: "自动化",
+    runtime: "渠道",
+    observe: "观察",
     settings: "设置",
+    platform: "平台",
     expand: "展开侧边栏",
     collapse: "折叠侧边栏",
     resize: "调整侧边栏大小",
   },
   tabs: {
     agents: "代理",
-    overview: "首页",
-    channels: "连接",
+    overview: "总览",
+    channels: "渠道",
     instances: "实例",
     sessions: "会话",
     usage: "使用情况",
@@ -44,13 +47,13 @@ export const zh_CN: TranslationMap = {
     automation: "技能与工具",
     infrastructure: "高级",
     aiAgents: "模型与智能体",
-    debug: "调试",
+    debug: "检查",
     logs: "日志",
   },
   subtitles: {
     agents: "工作区、工具、身份。",
-    overview: "设置进度、健康状态和下一步。",
-    channels: "网关、渠道和身份连接。",
+    overview: "平台快照、健康状态和下一步。",
+    channels: "渠道账号、绑定关系和投递入口。",
     instances: "已连接客户端和节点。",
     sessions: "活动会话和默认设置。",
     usage: "API 使用情况和成本。",
@@ -65,8 +68,8 @@ export const zh_CN: TranslationMap = {
     automation: "技能、工具、命令、钩子与插件自动化。",
     infrastructure: "浏览器、定时任务、MCP 和高级平台能力。",
     aiAgents: "默认智能体和模型选择。",
-    debug: "快照、事件、RPC。",
-    logs: "实时网关日志。",
+    debug: "快照、事件、审批和 RPC 入口。",
+    logs: "网关日志和运行轨迹。",
   },
   overview: {
     access: {
@@ -298,11 +301,13 @@ export const zh_CN: TranslationMap = {
     guide: {
       eyebrow: "引导设置",
       step1Title: "第 1 / 5 步 · 先连接你的网关",
-      step1Summary: "后续所有设置都依赖实时网关。先在这里接通，渠道、智能体和技能才能加载真实状态。",
+      step1Summary:
+        "后续所有设置都依赖实时网关。先在这里接通，渠道、智能体和技能才能加载真实状态。",
       step3Title: "第 3 / 5 步 · 接通一个渠道",
       step3Summary: "先选一个渠道即可。只要有一条路径能收发消息，后续验证就会简单很多。",
       readyTitle: "渠道已经可以继续设置",
-      readySummary: "至少已有一个渠道完成配置。你可以继续在这里优化身份设置，然后再去完成技能和真实测试消息。",
+      readySummary:
+        "至少已有一个渠道完成配置。你可以继续在这里优化身份设置，然后再去完成技能和真实测试消息。",
     },
     guideStats: {
       gateway: "网关",
@@ -382,7 +387,8 @@ export const zh_CN: TranslationMap = {
       pausedEyebrow: "引导已暂停",
       completeTitle: "核心技能设置已完成",
       pausedTitle: "你的设置进度已保存",
-      completeSummary: "你可以像平时一样继续使用技能中心；如果想再过一遍设置路径，也可以重新打开引导。",
+      completeSummary:
+        "你可以像平时一样继续使用技能中心；如果想再过一遍设置路径，也可以重新打开引导。",
       pausedSummary: "想完成核心技能设置并验证第一次真实运行时，随时都可以继续这份引导清单。",
     },
     guide: {

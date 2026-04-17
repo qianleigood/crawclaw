@@ -18,9 +18,12 @@ export const pt_BR: TranslationMap = {
   },
   nav: {
     chat: "Chat",
-    control: "Controle",
-    agent: "Agente",
+    workspace: "Espaço",
+    automation: "Automação",
+    runtime: "Canais",
+    observe: "Observação",
     settings: "Configurações",
+    platform: "Plataforma",
     expand: "Expandir barra lateral",
     collapse: "Recolher barra lateral",
     resize: "Redimensionar barra lateral",
@@ -43,7 +46,7 @@ export const pt_BR: TranslationMap = {
     automation: "Automação",
     infrastructure: "Infraestrutura",
     aiAgents: "IA e Agentes",
-    debug: "Debug",
+    debug: "Inspeção",
     logs: "Logs",
   },
   subtitles: {
@@ -64,8 +67,8 @@ export const pt_BR: TranslationMap = {
     automation: "Configurações de comandos, hooks, cron e plugins.",
     infrastructure: "Configurações de gateway, web, browser e mídia.",
     aiAgents: "Configurações de agentes, modelos, habilidades, ferramentas, memória e sessão.",
-    debug: "Snapshots, eventos, RPC.",
-    logs: "Logs ao vivo do gateway.",
+    debug: "Snapshots, eventos, aprovações e RPC.",
+    logs: "Logs do gateway e rastros operacionais.",
   },
   overview: {
     access: {

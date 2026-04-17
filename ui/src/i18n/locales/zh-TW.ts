@@ -18,9 +18,12 @@ export const zh_TW: TranslationMap = {
   },
   nav: {
     chat: "聊天",
-    control: "控制",
-    agent: "代理",
+    workspace: "工作台",
+    automation: "自動化",
+    runtime: "渠道",
+    observe: "觀察",
     settings: "設置",
+    platform: "平台",
     expand: "展開側邊欄",
     collapse: "折疊側邊欄",
     resize: "調整側邊欄大小",
@@ -43,7 +46,7 @@ export const zh_TW: TranslationMap = {
     automation: "自動化",
     infrastructure: "基礎設施",
     aiAgents: "AI 與代理",
-    debug: "調試",
+    debug: "檢查",
     logs: "日誌",
   },
   subtitles: {
@@ -64,8 +67,8 @@ export const zh_TW: TranslationMap = {
     automation: "命令、鉤子、定時任務和插件設置。",
     infrastructure: "網關、Web、瀏覽器和媒體設置。",
     aiAgents: "代理、模型、技能、工具、記憶和會話設置。",
-    debug: "快照、事件、RPC。",
-    logs: "實時網關日誌。",
+    debug: "快照、事件、審批和 RPC。",
+    logs: "網關日誌和運行軌跡。",
   },
   overview: {
     access: {
