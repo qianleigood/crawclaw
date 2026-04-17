@@ -48,7 +48,7 @@ describe("plugin-runtimes", () => {
     writePluginRuntimeManifest(
       {
         plugins: {
-          browser: { state: "healthy", version: "1.2.3", package: "pinchtab@latest" },
+          browser: { state: "healthy", version: "1.2.3", package: "pinchtab@0.9.1" },
           "open-websearch": { state: "healthy", version: "2.1.5" },
           "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.4" },
         },
@@ -57,13 +57,13 @@ describe("plugin-runtimes", () => {
     );
     expect(readPluginRuntimeManifest(env)).toEqual({
       plugins: {
-        browser: { state: "healthy", version: "1.2.3", package: "pinchtab@latest" },
+        browser: { state: "healthy", version: "1.2.3", package: "pinchtab@0.9.1" },
         "open-websearch": { state: "healthy", version: "2.1.5" },
         "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.4" },
       },
     });
     expect(formatPluginRuntimeDoctorLines(env)).toEqual([
-      "browser: healthy (pinchtab@latest)",
+      "browser: healthy (pinchtab@0.9.1)",
       "open-websearch: healthy (version 2.1.5)",
       "scrapling-fetch: healthy (python 3.14.4)",
     ]);

@@ -8,7 +8,7 @@ import { resolveNpmRunner } from "./npm-runner.mjs";
 
 const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
-const PINCHTAB_VERSION = "latest";
+const PINCHTAB_VERSION = "0.9.1";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
 const SCRAPLING_REQUIREMENTS_LOCK = path.join(
