@@ -16,6 +16,7 @@ import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { resolveUserPath } from "../utils.js";
 import { WizardCancelledError, type WizardPrompter } from "./prompts.js";
+import { promptNotebookLmEnablement } from "./setup.notebooklm.js";
 import {
   applyOnboardOutputPresentationConfig,
   promptOutputPresentationPreset,
@@ -605,6 +606,11 @@ export async function runSetupWizard(
 
   const outputPreset = opts.outputPreset ?? (await promptOutputPresentationPreset(prompter));
   nextConfig = applyOnboardOutputPresentationConfig(nextConfig, outputPreset);
+  nextConfig = await promptNotebookLmEnablement({
+    config: nextConfig,
+    prompter,
+    nonInteractive: opts.nonInteractive,
+  });
 
   await writeConfigFile(nextConfig);
   const { logConfigUpdated } = await import("../config/logging.js");

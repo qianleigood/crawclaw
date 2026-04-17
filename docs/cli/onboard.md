@@ -12,9 +12,10 @@ Interactive onboarding for local or remote Gateway setup.
 Use `--output-preset quiet|balanced|operator` to preselect the default reply
 presentation profile during onboarding.
 
-If `memory.notebooklm.enabled` is already configured, onboarding checks
-NotebookLM readiness near the end and can offer to run `crawclaw memory login`
-when the provider recommends it.
+Onboarding now includes a Memory / Knowledge decision for NotebookLM-backed
+knowledge recall. If you enable it and the provider recommends
+`crawclaw memory login`, onboarding can offer to run that login flow near the
+end.
 
 Legacy onboarding auth-choice aliases such as `oauth` and `anthropic-cli` have
 been removed. Use the current `--auth-choice` values or the dedicated

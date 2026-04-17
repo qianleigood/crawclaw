@@ -749,7 +749,10 @@ describe("runSetupWizard", () => {
       }
       return "quickstart";
     }) as unknown as WizardPrompter["select"];
-    const prompter = buildWizardPrompter({ select });
+    const prompter = buildWizardPrompter({
+      select,
+      confirm: vi.fn(async (params) => params.message === "Enable NotebookLM knowledge recall?"),
+    });
     const runtime = createRuntime();
 
     await runSetupWizard(
@@ -775,6 +778,11 @@ describe("runSetupWizard", () => {
     );
     expect(writeConfigFile).toHaveBeenCalledWith(
       expect.objectContaining({
+        memory: expect.objectContaining({
+          notebooklm: expect.objectContaining({
+            enabled: true,
+          }),
+        }),
         agents: expect.objectContaining({
           defaults: expect.objectContaining({
             verboseDefault: "full",

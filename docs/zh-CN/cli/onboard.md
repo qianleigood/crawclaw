@@ -18,8 +18,8 @@ x-i18n:
 
 可通过 `--output-preset quiet|balanced|operator` 预先指定 onboarding 时的默认输出展示档位。
 
-如果配置里已经启用了 `memory.notebooklm.enabled`，onboarding 会在接近结束时检查
-NotebookLM 状态；当 provider 明确建议 `crawclaw memory login` 时，会提供当场执行登录的入口。
+onboarding 现在会在主流程里明确询问是否启用 NotebookLM knowledge recall。
+如果你选择启用，并且 provider 明确建议 `crawclaw memory login`，onboarding 会在接近结束时提供当场执行登录的入口。
 
 旧的 onboarding `auth-choice` 别名（例如 `oauth`、`anthropic-cli`）已经移除。
 请改用当前的 `--auth-choice` 值，或使用专用的

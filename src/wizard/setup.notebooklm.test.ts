@@ -17,7 +17,7 @@ vi.mock("../memory/notebooklm/login.js", () => ({
   runNotebookLmLoginCommand,
 }));
 
-import { maybeHandleNotebookLmOnboarding } from "./setup.notebooklm.js";
+import { maybeHandleNotebookLmOnboarding, promptNotebookLmEnablement } from "./setup.notebooklm.js";
 
 function createRuntime(): RuntimeEnv {
   return {
@@ -48,6 +48,54 @@ describe("setup.notebooklm", () => {
 
     expect(getNotebookLmProviderState).not.toHaveBeenCalled();
     expect(prompter.note).not.toHaveBeenCalled();
+  });
+
+  it("adds NotebookLM enablement to the onboarding flow", async () => {
+    const prompter = buildWizardPrompter({
+      confirm: vi.fn(async () => true),
+    });
+
+    const nextConfig = await promptNotebookLmEnablement({
+      config: {},
+      prompter,
+    });
+
+    expect(prompter.confirm).toHaveBeenCalledWith({
+      message: "Enable NotebookLM knowledge recall?",
+      initialValue: false,
+    });
+    expect(nextConfig).toEqual({
+      memory: {
+        notebooklm: {
+          enabled: true,
+        },
+      },
+    });
+  });
+
+  it("keeps NotebookLM config unchanged in non-interactive mode", async () => {
+    const prompter = buildWizardPrompter({
+      confirm: vi.fn(async () => false),
+    });
+    const config = {
+      memory: {
+        notebooklm: {
+          enabled: true,
+          cli: {
+            command: "/tmp/notebooklm-cli.py",
+          },
+        },
+      },
+    };
+
+    const nextConfig = await promptNotebookLmEnablement({
+      config,
+      prompter,
+      nonInteractive: true,
+    });
+
+    expect(prompter.confirm).not.toHaveBeenCalled();
+    expect(nextConfig).toEqual(config);
   });
 
   it("offers NotebookLM login during onboarding when provider state recommends it", async () => {

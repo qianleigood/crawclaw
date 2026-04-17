@@ -15,6 +15,33 @@ import {
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "./prompts.js";
 
+export async function promptNotebookLmEnablement(params: {
+  config: CrawClawConfig;
+  prompter: WizardPrompter;
+  nonInteractive?: boolean;
+}): Promise<CrawClawConfig> {
+  if (params.nonInteractive === true) {
+    return params.config;
+  }
+
+  const notebooklm = normalizeNotebookLmConfig(params.config.memory?.notebooklm ?? {});
+  const enabled = await params.prompter.confirm({
+    message: "Enable NotebookLM knowledge recall?",
+    initialValue: notebooklm.enabled,
+  });
+
+  return {
+    ...params.config,
+    memory: {
+      ...params.config.memory,
+      notebooklm: {
+        ...params.config.memory?.notebooklm,
+        enabled,
+      },
+    },
+  };
+}
+
 function formatNotebookLmStateNote(state: NotebookLmProviderState): string {
   return [
     "NotebookLM knowledge is enabled but not ready.",
