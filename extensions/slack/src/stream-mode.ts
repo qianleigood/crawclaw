@@ -1,3 +1,4 @@
+import type { ChannelStreamingDecision } from "crawclaw/plugin-sdk/channel-lifecycle";
 import {
   mapStreamingModeToSlackLegacyDraftStreamMode,
   resolveSlackNativeStreaming,
@@ -5,7 +6,6 @@ import {
   type SlackLegacyDraftStreamMode,
   type StreamingMode,
 } from "crawclaw/plugin-sdk/config-runtime";
-import type { ChannelStreamingDecision } from "crawclaw/plugin-sdk/channel-lifecycle";
 
 export type SlackStreamMode = SlackLegacyDraftStreamMode;
 export type SlackStreamingMode = StreamingMode;
@@ -24,7 +24,6 @@ export function resolveSlackStreamMode(raw: unknown): SlackStreamMode {
 
 export function resolveSlackStreamingConfig(params: {
   streaming?: unknown;
-  streamMode?: unknown;
   nativeStreaming?: unknown;
 }): { mode: SlackStreamingMode; nativeStreaming: boolean; draftMode: SlackStreamMode } {
   const mode = resolveSlackStreamingMode(params);

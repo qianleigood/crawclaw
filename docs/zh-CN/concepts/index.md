@@ -10,7 +10,7 @@ title: 概念总览
 
 `concepts/` 关注的是 CrawClaw 的系统模型，而不是具体安装步骤或单个命令用法。
 
-如果你第一次进入这组文档，建议不要按文件名随机跳着读，而是先按主题进入。
+如果你第一次进入这组文档，建议不要按文件名随机跳着读，而是先按下面 6 组进入。
 
 ## 推荐入口
 
@@ -35,7 +35,76 @@ title: 概念总览
   </Card>
 </Columns>
 
-## 按主题阅读
+## 文档分组
+
+### 1. 项目治理与实施
+
+这组文档面向维护者和重构工作，回答“项目整体怎么分层、怎么演进、怎么验证”：
+
+- [项目整体架构总览](/concepts/project-architecture-overview)
+- [目录与边界规划](/concepts/project-directory-boundaries)
+- [项目缓存机制总览](/concepts/project-cache-strategy)
+- [文档与测试体系规划](/concepts/project-docs-and-test-strategy)
+- [项目基线冻结](/concepts/project-baseline-freeze)
+- [项目实施路线图](/concepts/project-implementation-roadmap)
+- [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
+- [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
+
+### 2. 运行时与执行主链
+
+这组文档关注 agent 运行、上下文组装、流式输出和执行循环：
+
+- [智能体运行时](/concepts/agent)
+- [Agent Loop](/concepts/agent-loop)
+- [智能体工作区](/concepts/agent-workspace)
+- [上下文](/concepts/context)
+- [系统提示词](/concepts/system-prompt)
+- [流式传输和分块](/concepts/streaming)
+- [执行过程可见性系统](/concepts/execution-visibility-system)
+- [执行过程可见性 PRD](/concepts/execution-visibility-prd)
+
+### 3. 会话、记忆与压缩
+
+这组文档关注 session、memory、compaction 和长期状态：
+
+- [会话管理](/concepts/session)
+- [记忆](/concepts/memory)
+- [会话修剪](/concepts/session-pruning)
+- [会话工具](/concepts/session-tool)
+- [压缩](/concepts/compaction)
+- [时区处理](/concepts/timezone)
+
+### 4. 模型、工具与多智能体
+
+这组文档关注 provider、model 选择、容错和多 agent 协作：
+
+- [模型](/concepts/models)
+- [模型提供商](/concepts/model-providers)
+- [模型故障切换](/concepts/model-failover)
+- [多智能体](/concepts/multi-agent)
+- [使用量跟踪](/concepts/usage-tracking)
+- [OAuth](/concepts/oauth)
+
+### 5. 消息、渠道与交互体验
+
+这组文档关注消息体验、presence、typing、queue 和重试：
+
+- [消息](/concepts/messages)
+- [Presence](/concepts/presence)
+- [输入中指示器](/concepts/typing-indicators)
+- [队列](/concepts/queue)
+- [重试](/concepts/retry)
+- [Markdown 格式化](/concepts/markdown-formatting)
+- [TypeBox 模式](/concepts/typebox)
+
+### 6. 面向入门和旧文档的桥接页
+
+这组页更偏“总览”和“入口”，可以帮助从旧阅读路径切到新结构：
+
+- [Gateway 网关架构](/concepts/architecture)
+- [功能](/concepts/features)
+
+## 推荐阅读路径
 
 ### 1. 想理解项目整体怎么工作
 
@@ -89,25 +158,10 @@ title: 概念总览
 5. [重试](/concepts/retry)
 6. [Markdown 格式化](/concepts/markdown-formatting)
 
-## 最近补齐的专题
-
-这几篇是近期新增或重点更新的项目级概念文档，和旧的单点概念文档互补：
-
-- [项目整体架构总览](/concepts/project-architecture-overview)
-- [目录与边界规划](/concepts/project-directory-boundaries)
-- [项目缓存机制总览](/concepts/project-cache-strategy)
-- [文档与测试体系规划](/concepts/project-docs-and-test-strategy)
-- [项目基线冻结](/concepts/project-baseline-freeze)
-- [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
-- [项目实施路线图](/concepts/project-implementation-roadmap)
-- [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
-- [执行过程可见性系统](/concepts/execution-visibility-system)
-- [执行过程可见性 PRD](/concepts/execution-visibility-prd)
-
 ## 如何理解这组文档
 
-- `project-*`：面向维护者的项目级梳理，讲分层、边界、缓存、文档和测试策略。
-- 非 `project-*` 的传统概念文档：面向单个系统主题，例如 session、memory、streaming、model、messages。
-- `execution-visibility-*`：面向当前“过程展示统一化”这条主线的专项设计文档。
+- `project-*`：项目治理、边界、缓存、路线图、baseline、拆包准备。
+- 传统概念文档：单个系统主题，例如 session、memory、streaming、model、messages。
+- `execution-visibility-*`：过程展示统一化的专项设计文档。
 
 如果你现在是在做架构调整、前端重构、渠道流式输出、workflow 展示、memory/special agent 设计，建议优先看 `project-*` 这组，再回到单点主题文档。

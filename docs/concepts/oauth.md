@@ -89,11 +89,7 @@ switch Anthropic model selection over to the local CLI backend:
 crawclaw models auth login --provider anthropic --method cli --set-default
 ```
 
-Onboarding shortcut:
-
-```bash
-crawclaw onboard --auth-choice anthropic-cli
-```
+Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
 
 This keeps existing Anthropic auth profiles for rollback, but rewrites the main
 default-model path from `anthropic/...` to `claude-cli/...`.
@@ -118,9 +114,8 @@ Claude CLI path:
 2. run `crawclaw models auth login --provider anthropic --method cli --set-default`
 3. store no new auth profile; switch model selection to `claude-cli/...`
 
-Wizard paths:
+Wizard path:
 
-- `crawclaw onboard` → auth choice `anthropic-cli`
 - `crawclaw onboard` → auth choice `setup-token` (Anthropic)
 
 ### OpenAI Codex (ChatGPT OAuth)

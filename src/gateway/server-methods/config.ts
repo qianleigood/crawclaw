@@ -197,7 +197,7 @@ function parseValidateConfigFromRawOrRespond(
     return null;
   }
   const schema = loadSchemaWithPlugins();
-  const restored = restoreRedactedValues(parsedRes.parsed, snapshot.config, schema.uiHints);
+  const restored = restoreRedactedValues(parsedRes.parsed, snapshot.runtimeConfig, schema.uiHints);
   if (!restored.ok) {
     respond(
       false,
@@ -442,11 +442,15 @@ export const configHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const merged = applyMergePatch(snapshot.config, parsedRes.parsed, {
+    const merged = applyMergePatch(snapshot.runtimeConfig, parsedRes.parsed, {
       mergeObjectArraysById: true,
     });
     const schemaPatch = loadSchemaWithPlugins();
-    const restoredMerge = restoreRedactedValues(merged, snapshot.config, schemaPatch.uiHints);
+    const restoredMerge = restoreRedactedValues(
+      merged,
+      snapshot.runtimeConfig,
+      schemaPatch.uiHints,
+    );
     if (!restoredMerge.ok) {
       respond(
         false,
@@ -474,7 +478,7 @@ export const configHandlers: GatewayRequestHandlers = {
     if (!(await ensureResolvableSecretRefsOrRespond({ config: validated.config, respond }))) {
       return;
     }
-    const changedPaths = diffConfigPaths(snapshot.config, validated.config);
+    const changedPaths = diffConfigPaths(snapshot.runtimeConfig, validated.config);
     const actor = resolveControlPlaneActor(client);
 
     // No-op: if the validated config is identical to the current config,
@@ -559,7 +563,7 @@ export const configHandlers: GatewayRequestHandlers = {
     if (!(await ensureResolvableSecretRefsOrRespond({ config: parsed.config, respond }))) {
       return;
     }
-    const changedPaths = diffConfigPaths(snapshot.config, parsed.config);
+    const changedPaths = diffConfigPaths(snapshot.runtimeConfig, parsed.config);
     const actor = resolveControlPlaneActor(client);
     context?.logGateway?.info(
       `config.apply write ${formatControlPlaneActor(actor)} changedPaths=${summarizeChangedPaths(changedPaths)} restartReason=config.apply`,

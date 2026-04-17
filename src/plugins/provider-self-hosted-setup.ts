@@ -13,7 +13,7 @@ import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { applyAuthProfileConfig } from "./provider-auth-helpers.js";
 import type {
-  ProviderDiscoveryContext,
+  ProviderCatalogContext,
   ProviderAuthResult,
   ProviderAuthMethodNonInteractiveContext,
   ProviderNonInteractiveApiKeyResult,
@@ -251,7 +251,7 @@ export async function promptAndConfigureOpenAICompatibleSelfHostedProviderAuth(
 export async function discoverOpenAICompatibleSelfHostedProvider<
   T extends Record<string, unknown>,
 >(params: {
-  ctx: ProviderDiscoveryContext;
+  ctx: ProviderCatalogContext;
   providerId: string;
   buildProvider: (params: { apiKey?: string }) => Promise<T>;
 }): Promise<{ provider: T & { apiKey: string } } | null> {

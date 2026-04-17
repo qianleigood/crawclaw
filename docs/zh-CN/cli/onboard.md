@@ -16,6 +16,10 @@ x-i18n:
 
 交互式新手引导（本地或远程 Gateway 网关设置）。
 
+旧的 onboarding `auth-choice` 别名（例如 `oauth`、`anthropic-cli`）已经移除。
+请改用当前的 `--auth-choice` 值，或使用专用的
+`crawclaw models auth ...` 命令。
+
 ## 相关指南
 
 - CLI 新手引导中心：[CLI 新手引导](/start/wizard)
@@ -141,6 +145,12 @@ crawclaw onboard --non-interactive \
   --auth-choice mistral-api-key \
   --mistral-api-key "$MISTRAL_API_KEY"
 ```
+
+已移除的旧 auth-choice 别名：
+
+- `oauth` -> 改用 `setup-token`
+- `anthropic-cli` -> 改用 `crawclaw models auth login --provider anthropic --method cli --set-default`
+- `claude-cli` / `codex-cli` 是 CLI backend id，不是合法的 `--auth-choice` 值
 
 流程说明：
 

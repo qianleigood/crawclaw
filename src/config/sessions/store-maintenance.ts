@@ -36,7 +36,7 @@ export type ResolvedSessionMaintenanceConfig = {
 };
 
 function resolvePruneAfterMs(maintenance?: SessionMaintenanceConfig): number {
-  const raw = maintenance?.pruneAfter ?? maintenance?.pruneDays;
+  const raw = maintenance?.pruneAfter;
   if (raw === undefined || raw === null || raw === "") {
     return DEFAULT_SESSION_PRUNE_AFTER_MS;
   }

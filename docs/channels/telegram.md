@@ -268,7 +268,6 @@ curl "https://api.telegram.org/bot<bot_token>/getUpdates"
 
     - `channels.telegram.streaming` is `off | partial | block | progress` (default: `partial`)
     - `progress` maps to `partial` on Telegram (compat with cross-channel naming)
-    - legacy `channels.telegram.streamMode` and boolean `streaming` values are auto-mapped
 
     For text-only replies:
 

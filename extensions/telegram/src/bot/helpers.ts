@@ -34,10 +34,7 @@ export {
   normalizeForwardedContext,
   resolveTelegramMediaPlaceholder,
 };
-export type {
-  TelegramForwardedContext,
-  TelegramTextEntity,
-  } from "./body-helpers.js";
+export type { TelegramForwardedContext, TelegramTextEntity } from "./body-helpers.js";
 
 const TELEGRAM_GENERAL_TOPIC_ID = 1;
 
@@ -263,7 +260,6 @@ export function buildTypingThreadParams(messageThreadId?: number) {
 
 export function resolveTelegramStreamMode(telegramCfg?: {
   streaming?: unknown;
-  streamMode?: unknown;
 }): TelegramStreamMode {
   return resolveTelegramPreviewStreamMode(telegramCfg);
 }

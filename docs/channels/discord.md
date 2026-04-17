@@ -584,9 +584,8 @@ Default slash command settings:
     - `channels.discord.streaming` controls preview streaming (`off` | `partial` | `block` | `progress`, default: `off`).
     - Default stays `off` because Discord preview edits can hit rate limits quickly, especially when multiple bots or gateways share the same account or guild traffic.
     - `progress` is accepted for cross-channel consistency and maps to `partial` on Discord.
-    - `channels.discord.streamMode` is a legacy alias and is auto-migrated.
     - `partial` edits a single preview message as tokens arrive.
-    - `block` emits draft-sized chunks (use `draftChunk` to tune size and breakpoints).
+    - `block` emits draft-sized chunks using the built-in Discord preview chunker.
 
     Example:
 
@@ -595,23 +594,6 @@ Default slash command settings:
   channels: {
     discord: {
       streaming: "partial",
-    },
-  },
-}
-```
-
-    `block` mode chunking defaults (clamped to `channels.discord.textChunkLimit`):
-
-```json5
-{
-  channels: {
-    discord: {
-      streaming: "block",
-      draftChunk: {
-        minChars: 200,
-        maxChars: 800,
-        breakPreference: "paragraph",
-      },
     },
   },
 }
@@ -1217,7 +1199,7 @@ High-signal Discord fields:
 - inbound worker: `inboundWorker.runTimeoutMs`
 - reply/history: `replyToMode`, `historyLimit`, `dmHistoryLimit`, `dms.*.historyLimit`
 - delivery: `textChunkLimit`, `chunkMode`, `maxLinesPerMessage`
-- streaming: `streaming` (legacy alias: `streamMode`), `draftChunk`, `blockStreaming`, `blockStreamingCoalesce`
+- streaming: `streaming`, `blockStreaming`, `blockStreamingCoalesce`
 - media/retry: `mediaMaxMb`, `retry`
   - `mediaMaxMb` caps outbound Discord uploads (default: `8MB`)
 - actions: `actions.*`

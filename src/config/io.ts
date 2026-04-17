@@ -2080,7 +2080,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     let envRefMap: Map<string, string> | null = null;
     let changedPaths: Set<string> | null = null;
     if (snapshot.valid && snapshot.exists) {
-      const patch = createMergePatch(snapshot.config, cfg);
+      const patch = createMergePatch(snapshot.runtimeConfig, cfg);
       persistCandidate = applyMergePatch(snapshot.resolved, patch);
       try {
         const resolvedIncludes = resolveConfigIncludes(snapshot.parsed, configPath, {
@@ -2099,7 +2099,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         if (collected.size > 0) {
           envRefMap = collected;
           changedPaths = new Set<string>();
-          collectChangedPaths(snapshot.config, cfg, "", changedPaths);
+          collectChangedPaths(snapshot.runtimeConfig, cfg, "", changedPaths);
         }
       } catch {
         envRefMap = null;
@@ -2505,7 +2505,7 @@ export function getRuntimeConfig(): CrawClawConfig {
 
 export async function readBestEffortConfig(): Promise<CrawClawConfig> {
   const snapshot = await readConfigFileSnapshot();
-  return snapshot.valid ? loadConfig() : snapshot.config;
+  return snapshot.valid ? loadConfig() : snapshot.runtimeConfig;
 }
 
 export async function readConfigFileSnapshot(): Promise<ConfigFileSnapshot> {

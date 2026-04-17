@@ -22,7 +22,7 @@ export async function runNonInteractiveSetup(
 
   const baseConfig: CrawClawConfig = snapshot.valid
     ? snapshot.exists
-      ? (snapshot.sourceConfig ?? snapshot.config)
+      ? (snapshot.sourceConfig ?? snapshot.runtimeConfig)
       : {}
     : {};
   const mode = opts.mode ?? "local";

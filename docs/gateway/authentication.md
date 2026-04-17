@@ -132,11 +132,7 @@ This keeps your existing Anthropic auth profiles for rollback, but changes the
 default model selection to `claude-cli/...` and adds matching Claude CLI
 allowlist entries under `agents.defaults.models`.
 
-Onboarding shortcut:
-
-```bash
-crawclaw onboard --auth-choice anthropic-cli
-```
+Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
 
 ## Checking model auth status
 

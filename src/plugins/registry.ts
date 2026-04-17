@@ -908,8 +908,6 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
             withPluginRuntimePluginIdScope(pluginId, () => subagent.waitForRun(params)),
           getSessionMessages: (params) =>
             withPluginRuntimePluginIdScope(pluginId, () => subagent.getSessionMessages(params)),
-          getSession: (params) =>
-            withPluginRuntimePluginIdScope(pluginId, () => subagent.getSession(params)),
           deleteSession: (params) =>
             withPluginRuntimePluginIdScope(pluginId, () => subagent.deleteSession(params)),
         } satisfies PluginRuntime["subagent"];

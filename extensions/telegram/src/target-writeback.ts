@@ -168,7 +168,7 @@ export async function maybePersistResolvedTelegramTarget(params: {
 
   try {
     const { snapshot, writeOptions } = await readConfigFileSnapshotForWrite();
-    const nextConfig = structuredClone(snapshot.config ?? {});
+    const nextConfig = structuredClone(snapshot.resolved);
     const configChanged = replaceTelegramDefaultToTargets({
       cfg: nextConfig,
       matchKey,

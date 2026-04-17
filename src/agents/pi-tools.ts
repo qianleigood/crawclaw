@@ -23,9 +23,9 @@ import {
 } from "./bash-tools.js";
 import { listChannelAgentTools } from "./channel-tools.js";
 import { shouldSuppressManagedWebSearchTool } from "./codex-native-web-search.js";
+import { createCrawClawTools } from "./crawclaw-tools.js";
 import { resolveImageSanitizationLimits } from "./image-sanitization.js";
 import type { ModelAuthMode } from "./model-auth.js";
-import { createCrawClawTools } from "./crawclaw-tools.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
 import { wrapToolWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
 import {
@@ -49,9 +49,10 @@ import {
   wrapToolWorkspaceRootGuardWithOptions,
   wrapToolParamNormalization,
 } from "./pi-tools.read.js";
-import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
+import { normalizeToolParameters } from "./pi-tools.schema.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxContext } from "./sandbox.js";
+import { cleanSchemaForGemini } from "./schema/clean-for-gemini.js";
 import { resolveSpecialAgentDefinitionBySpawnSource } from "./special/runtime/registry.js";
 import { createToolFsPolicy, resolveToolFsConfig } from "./tool-fs-policy.js";
 import {
@@ -317,7 +318,7 @@ export function resolveToolLoopDetectionConfig(params: {
 }
 
 export const __testing = {
-  cleanToolSchemaForGemini,
+  cleanSchemaForGemini,
   normalizeToolParams,
   patchToolSchemaForClaudeCompatibility,
   wrapToolParamNormalization,

@@ -31,6 +31,7 @@ type ExecApprovalsSnapshot = {
 
 type ConfigSnapshotLike = {
   config?: CrawClawConfig;
+  runtimeConfig?: CrawClawConfig;
 };
 type ApprovalsTargetSource = "gateway" | "node" | "local";
 type EffectivePolicyReport = {
@@ -174,7 +175,8 @@ async function loadConfigForApprovalsTarget(params: {
       params.opts,
       {},
     )) as ConfigSnapshotLike;
-    return snapshot.config && typeof snapshot.config === "object" ? snapshot.config : null;
+    const cfg = snapshot.runtimeConfig ?? snapshot.config;
+    return cfg && typeof cfg === "object" ? cfg : null;
   } catch {
     return null;
   }

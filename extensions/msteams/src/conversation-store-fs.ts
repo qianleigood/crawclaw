@@ -144,6 +144,5 @@ export function createMSTeamsConversationStoreFs(params?: {
     list,
     remove,
     findPreferredDmByUserId,
-    findByUserId: findPreferredDmByUserId,
   };
 }

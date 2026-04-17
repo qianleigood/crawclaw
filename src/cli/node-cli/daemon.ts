@@ -1,8 +1,8 @@
-import { buildNodeInstallPlan } from "../../commands/node-daemon-install-helpers.js";
 import {
-  DEFAULT_NODE_DAEMON_RUNTIME,
-  isNodeDaemonRuntime,
-} from "../../commands/node-daemon-runtime.js";
+  DEFAULT_GATEWAY_DAEMON_RUNTIME,
+  isGatewayDaemonRuntime,
+} from "../../commands/daemon-runtime.js";
+import { buildNodeInstallPlan } from "../../commands/node-daemon-install-helpers.js";
 import {
   resolveNodeLaunchAgentLabel,
   resolveNodeSystemdServiceName,
@@ -98,8 +98,8 @@ export async function runNodeDaemonInstall(opts: NodeDaemonInstallOptions) {
     return;
   }
 
-  const runtimeRaw = opts.runtime ? opts.runtime : DEFAULT_NODE_DAEMON_RUNTIME;
-  if (!isNodeDaemonRuntime(runtimeRaw)) {
+  const runtimeRaw = opts.runtime ? opts.runtime : DEFAULT_GATEWAY_DAEMON_RUNTIME;
+  if (!isGatewayDaemonRuntime(runtimeRaw)) {
     fail('Invalid --runtime (use "node" or "bun")');
     return;
   }

@@ -11,7 +11,6 @@ const programMocks = vi.hoisted(() => {
     configureCommandWithSections: vi.fn(),
     setupCommand: vi.fn(),
     setupWizardCommand,
-    onboardCommand: setupWizardCommand,
     callGateway: vi.fn(),
     runChannelLogin: vi.fn(),
     runChannelLogout: vi.fn(),
@@ -34,7 +33,6 @@ export const statusCommand = programMocks.statusCommand as AnyMock;
 export const configureCommand = programMocks.configureCommand as AnyMock;
 export const configureCommandWithSections = programMocks.configureCommandWithSections as AnyMock;
 export const setupCommand = programMocks.setupCommand as AnyMock;
-export const onboardCommand = programMocks.onboardCommand as AnyMock;
 export const setupWizardCommand = programMocks.setupWizardCommand as AnyMock;
 export const callGateway = programMocks.callGateway as AnyMock;
 export const runChannelLogin = programMocks.runChannelLogin as AnyMock;
@@ -77,7 +75,6 @@ vi.mock("../commands/configure.js", () => ({
 }));
 vi.mock("../commands/setup.js", () => ({ setupCommand: programMocks.setupCommand }));
 vi.mock("../commands/onboard.js", () => ({
-  onboardCommand: programMocks.onboardCommand,
   setupWizardCommand: programMocks.setupWizardCommand,
 }));
 vi.mock("../runtime.js", () => ({ defaultRuntime: programMocks.runtime }));

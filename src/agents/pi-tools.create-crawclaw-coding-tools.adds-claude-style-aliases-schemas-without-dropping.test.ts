@@ -221,7 +221,7 @@ describe("createCrawClawCodingTools", () => {
     expect(snapshotFormat?.enum).toEqual(["aria", "ai"]);
   });
   it("inlines local $ref before removing unsupported keywords", () => {
-    const cleaned = __testing.cleanToolSchemaForGemini({
+    const cleaned = __testing.cleanSchemaForGemini({
       type: "object",
       properties: {
         foo: { $ref: "#/$defs/Foo" },
@@ -242,7 +242,7 @@ describe("createCrawClawCodingTools", () => {
     });
   });
   it("cleans tuple items schemas", () => {
-    const cleaned = __testing.cleanToolSchemaForGemini({
+    const cleaned = __testing.cleanSchemaForGemini({
       type: "object",
       properties: {
         tuples: {
@@ -266,7 +266,7 @@ describe("createCrawClawCodingTools", () => {
     expect(second?.minimum).toBeUndefined();
   });
   it("drops null-only union variants without flattening other unions", () => {
-    const cleaned = __testing.cleanToolSchemaForGemini({
+    const cleaned = __testing.cleanSchemaForGemini({
       type: "object",
       properties: {
         parentId: { anyOf: [{ type: "string" }, { type: "null" }] },

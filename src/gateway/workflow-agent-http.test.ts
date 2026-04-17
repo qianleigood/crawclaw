@@ -1,9 +1,12 @@
-import { PassThrough } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  clearGatewaySubagentRuntime,
+  setGatewaySubagentRuntime,
+} from "../plugins/runtime/index.js";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
 import { createWorkflowExecutionRecord, getWorkflowExecution } from "../workflows/api.js";
-import { clearGatewaySubagentRuntime, setGatewaySubagentRuntime } from "../plugins/runtime/index.js";
 
 let cfg: Record<string, unknown> = {};
 
@@ -157,7 +160,6 @@ describe("POST /workflows/agent/run", () => {
           },
         ],
       }),
-      getSession: async () => ({ messages: [] }),
       deleteSession: async () => {},
     });
 

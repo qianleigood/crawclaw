@@ -73,7 +73,7 @@ describe("legacy config detection", () => {
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
   });
-  it("migrates audio.transcription with custom script names", async () => {
+  it("does not rewrite removed audio.transcription migrations", async () => {
     const res = migrateLegacyConfig({
       audio: {
         transcription: {
@@ -82,31 +82,8 @@ describe("legacy config detection", () => {
         },
       },
     });
-    expect(res.changes).toContain("Moved audio.transcription → tools.media.audio.models.");
-    expect(res.config?.tools?.media?.audio).toEqual({
-      enabled: true,
-      models: [
-        {
-          command: "/home/user/.scripts/whisperx-transcribe.sh",
-          type: "cli",
-          timeoutSeconds: 120,
-        },
-      ],
-    });
-    expect(res.config?.audio).toBeUndefined();
-  });
-  it("rejects audio.transcription when command contains non-string parts", async () => {
-    const res = migrateLegacyConfig({
-      audio: {
-        transcription: {
-          command: [{}],
-          timeoutSeconds: 120,
-        },
-      },
-    });
-    expect(res.changes).toContain("Removed audio.transcription (invalid or empty command).");
-    expect(res.config?.tools?.media?.audio).toBeUndefined();
-    expect(res.config?.audio).toBeUndefined();
+    expect(res.changes).toEqual([]);
+    expect(res.config).toBeNull();
   });
   it("does not rewrite removed agent config migrations", async () => {
     const res = migrateLegacyConfig({
@@ -386,79 +363,8 @@ describe("legacy config detection", () => {
         expect(channel?.groupPolicy, provider).toBe("allowlist");
         if (provider === "telegram") {
           expect(channel?.streaming, provider).toBe("partial");
-          expect(channel?.streamMode, provider).toBeUndefined();
         }
       }
-    },
-  );
-  it.each([
-    {
-      name: "top-level off",
-      input: { channels: { telegram: { streamMode: "off" } } },
-      assert: (config: NonNullable<CrawClawConfig>) => {
-        expect(config.channels?.telegram?.streaming).toBe("off");
-        expect(config.channels?.telegram?.streamMode).toBeUndefined();
-      },
-    },
-    {
-      name: "top-level block",
-      input: { channels: { telegram: { streamMode: "block" } } },
-      assert: (config: NonNullable<CrawClawConfig>) => {
-        expect(config.channels?.telegram?.streaming).toBe("block");
-        expect(config.channels?.telegram?.streamMode).toBeUndefined();
-      },
-    },
-    {
-      name: "per-account off",
-      input: {
-        channels: {
-          telegram: {
-            accounts: {
-              ops: {
-                streamMode: "off",
-              },
-            },
-          },
-        },
-      },
-      assert: (config: NonNullable<CrawClawConfig>) => {
-        expect(config.channels?.telegram?.accounts?.ops?.streaming).toBe("off");
-        expect(config.channels?.telegram?.accounts?.ops?.streamMode).toBeUndefined();
-      },
-    },
-  ] as const)("normalizes telegram legacy streamMode alias: $name", ({ input, assert, name }) => {
-    const res = validateConfigObject(input);
-    expect(res.ok, name).toBe(true);
-    if (res.ok) {
-      assert(res.config);
-    }
-  });
-
-  it.each([
-    {
-      name: "boolean streaming=true",
-      input: { channels: { discord: { streaming: true } } },
-      expectedChanges: ["Normalized channels.discord.streaming boolean → enum (partial)."],
-      expectedStreaming: "partial",
-    },
-    {
-      name: "streamMode with streaming boolean",
-      input: { channels: { discord: { streaming: false, streamMode: "block" } } },
-      expectedChanges: [
-        "Moved channels.discord.streamMode → channels.discord.streaming (block).",
-        "Normalized channels.discord.streaming boolean → enum (block).",
-      ],
-      expectedStreaming: "block",
-    },
-  ] as const)(
-    "normalizes discord streaming fields during legacy migration: $name",
-    ({ input, expectedChanges, expectedStreaming, name }) => {
-      const res = migrateLegacyConfig(input);
-      for (const expectedChange of expectedChanges) {
-        expect(res.changes, name).toContain(expectedChange);
-      }
-      expect(res.config?.channels?.discord?.streaming, name).toBe(expectedStreaming);
-      expect(res.config?.channels?.discord?.streamMode, name).toBeUndefined();
     },
   );
 
@@ -473,11 +379,6 @@ describe("legacy config detection", () => {
       input: { channels: { discord: { streaming: false } } },
       expectedStreaming: "off",
     },
-    {
-      name: "streamMode overrides streaming boolean",
-      input: { channels: { discord: { streamMode: "block", streaming: false } } },
-      expectedStreaming: "block",
-    },
   ] as const)(
     "normalizes discord streaming fields during validation: $name",
     ({ input, expectedStreaming, name }) => {
@@ -485,7 +386,6 @@ describe("legacy config detection", () => {
       expect(res.ok, name).toBe(true);
       if (res.ok) {
         expect(res.config.channels?.discord?.streaming, name).toBe(expectedStreaming);
-        expect(res.config.channels?.discord?.streamMode, name).toBeUndefined();
       }
     },
   );
@@ -505,22 +405,6 @@ describe("legacy config detection", () => {
       },
       assert: (config: NonNullable<CrawClawConfig>) => {
         expect(config.channels?.discord?.accounts?.work?.streaming).toBe("partial");
-        expect(config.channels?.discord?.accounts?.work?.streamMode).toBeUndefined();
-      },
-    },
-    {
-      name: "slack streamMode alias",
-      input: {
-        channels: {
-          slack: {
-            streamMode: "status_final",
-          },
-        },
-      },
-      assert: (config: NonNullable<CrawClawConfig>) => {
-        expect(config.channels?.slack?.streaming).toBe("progress");
-        expect(config.channels?.slack?.streamMode).toBeUndefined();
-        expect(config.channels?.slack?.nativeStreaming).toBe(true);
       },
     },
     {

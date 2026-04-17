@@ -10,13 +10,8 @@ import { formatConfigIssueLines } from "../config/issue-format.js";
 import { isPlainObject } from "../utils.js";
 import { buildGatewayReloadPlan, type GatewayReloadPlan } from "./config-reload-plan.js";
 
-export {
-buildGatewayReloadPlan,
-};
-export type {
-ChannelKind,
-GatewayReloadPlan,
-} from "./config-reload-plan.js";
+export { buildGatewayReloadPlan };
+export type { ChannelKind, GatewayReloadPlan } from "./config-reload-plan.js";
 
 export type GatewayReloadSettings = {
   mode: GatewayReloadMode;
@@ -229,7 +224,7 @@ export function startGatewayConfigReloader(opts: {
       if (handleInvalidSnapshot(snapshot)) {
         return;
       }
-      await applySnapshot(snapshot.config);
+      await applySnapshot(snapshot.runtimeConfig);
     } catch (err) {
       opts.log.error(`config reload failed: ${String(err)}`);
     } finally {

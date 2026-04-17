@@ -5,12 +5,12 @@ import {
   normalizePluginDiscoveryResult,
   runProviderCatalog,
 } from "./provider-discovery.js";
-import type { ProviderCatalogResult, ProviderDiscoveryOrder, ProviderPlugin } from "./types.js";
+import type { ProviderCatalogOrder, ProviderCatalogResult, ProviderPlugin } from "./types.js";
 
 function makeProvider(params: {
   id: string;
   label?: string;
-  order?: ProviderDiscoveryOrder;
+  order?: ProviderCatalogOrder;
   mode?: "catalog" | "discovery";
 }): ProviderPlugin {
   const hook = {
@@ -35,7 +35,7 @@ function makeModelProviderConfig(overrides?: Partial<ModelProviderConfig>): Mode
 
 function expectGroupedProviderIds(
   providers: readonly ProviderPlugin[],
-  expected: Record<ProviderDiscoveryOrder | "late", readonly string[]>,
+  expected: Record<ProviderCatalogOrder | "late", readonly string[]>,
 ) {
   const grouped = groupPluginDiscoveryProvidersByOrder([...providers]);
   const actual = {

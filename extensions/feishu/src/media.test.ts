@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { resolvePreferredCrawClawTmpDir } from "crawclaw/plugin-sdk/temp-path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ClawdbotConfig } from "../runtime-api.js";
+import type { CrawClawConfig } from "../runtime-api.js";
 
 const createFeishuClientMock = vi.hoisted(() => vi.fn());
 const resolveFeishuAccountMock = vi.hoisted(() => vi.fn());
@@ -18,7 +18,7 @@ const messageResourceGetMock = vi.hoisted(() => vi.fn());
 const messageReplyMock = vi.hoisted(() => vi.fn());
 
 const FEISHU_MEDIA_HTTP_TIMEOUT_MS = 120_000;
-const emptyConfig: ClawdbotConfig = {};
+const emptyConfig: CrawClawConfig = {};
 
 vi.mock("./client.js", () => ({
   createFeishuClient: createFeishuClientMock,

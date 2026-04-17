@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../runtime-api.js";
+import type { CrawClawConfig } from "../runtime-api.js";
 import { buildFeishuConversationId } from "./conversation-id.js";
 import { normalizeFeishuExternalKey } from "./external-keys.js";
 import { downloadMessageResourceFeishu } from "./media.js";
@@ -58,12 +58,10 @@ export function resolveFeishuGroupSession(params: {
   threadId?: string;
   groupConfig?: {
     groupSessionScope?: GroupSessionScope;
-    topicSessionMode?: "enabled" | "disabled";
     replyInThread?: "enabled" | "disabled";
   };
   feishuCfg?: {
     groupSessionScope?: GroupSessionScope;
-    topicSessionMode?: "enabled" | "disabled";
     replyInThread?: "enabled" | "disabled";
   };
 }): ResolvedFeishuGroupSession {
@@ -74,12 +72,8 @@ export function resolveFeishuGroupSession(params: {
   const replyInThread =
     (groupConfig?.replyInThread ?? feishuCfg?.replyInThread ?? "disabled") === "enabled" ||
     threadReply;
-  const legacyTopicSessionMode =
-    groupConfig?.topicSessionMode ?? feishuCfg?.topicSessionMode ?? "disabled";
   const groupSessionScope: GroupSessionScope =
-    groupConfig?.groupSessionScope ??
-    feishuCfg?.groupSessionScope ??
-    (legacyTopicSessionMode === "enabled" ? "group_topic" : "group");
+    groupConfig?.groupSessionScope ?? feishuCfg?.groupSessionScope ?? "group";
   const topicScope =
     groupSessionScope === "group_topic" || groupSessionScope === "group_topic_sender"
       ? (normalizedRootId ?? normalizedThreadId ?? (replyInThread ? messageId : null))
@@ -329,7 +323,7 @@ function inferPlaceholder(messageType: string): string {
 }
 
 export async function resolveFeishuMediaList(params: {
-  cfg: ClawdbotConfig;
+  cfg: CrawClawConfig;
   messageId: string;
   messageType: string;
   content: string;

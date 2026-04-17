@@ -3,14 +3,14 @@ import {
   getRequiredHookHandler,
   registerHookHandlersForTest,
 } from "../../../test/helpers/plugins/subagent-hooks.js";
-import type { ClawdbotConfig, CrawClawPluginApi } from "../runtime-api.js";
+import type { CrawClawConfig, CrawClawPluginApi } from "../runtime-api.js";
 import { registerFeishuSubagentHooks } from "./subagent-hooks.js";
 import {
   __testing as threadBindingTesting,
   createFeishuThreadBindingManager,
 } from "./thread-bindings.js";
 
-const baseConfig: ClawdbotConfig = {
+const baseConfig: CrawClawConfig = {
   session: { mainKey: "main", scope: "per-sender" },
   channels: { feishu: {} },
 };

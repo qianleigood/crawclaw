@@ -51,7 +51,6 @@ const QQBotAccountSchema = z
     allowFrom: AllowFromListSchema,
     systemPrompt: z.string().optional(),
     markdownSupport: z.boolean().optional(),
-    voiceDirectUploadFormats: z.array(z.string()).optional(),
     audioFormatPolicy: AudioFormatPolicySchema,
     urlDirectUpload: z.boolean().optional(),
     upgradeUrl: z.string().optional(),

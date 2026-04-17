@@ -8,7 +8,6 @@ describe("resolveDiscordPreviewStreamMode", () => {
 
   it("preserves explicit off", () => {
     expect(resolveDiscordPreviewStreamMode({ streaming: "off" })).toBe("off");
-    expect(resolveDiscordPreviewStreamMode({ streamMode: "off" })).toBe("off");
     expect(resolveDiscordPreviewStreamMode({ streaming: false })).toBe("off");
   });
 });

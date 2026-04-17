@@ -98,7 +98,7 @@ function createTelegramMessage(messageSid: string): MsgContext {
   };
 }
 
-function createReplyConfig(streamMode?: "block"): CrawClawConfig {
+function createReplyConfig(streaming?: "block"): CrawClawConfig {
   return {
     agents: {
       defaults: {
@@ -106,7 +106,7 @@ function createReplyConfig(streamMode?: "block"): CrawClawConfig {
         workspace: "/tmp/workspace",
       },
     },
-    channels: { telegram: { allowFrom: ["*"], streamMode } },
+    channels: { telegram: { allowFrom: ["*"], streaming } },
     session: { store: "/tmp/sessions.json" },
   };
 }
@@ -199,7 +199,7 @@ describe("block streaming", () => {
     }));
   });
 
-  it("handles ordering, timeout fallback, and telegram streamMode block", async () => {
+  it("handles ordering, timeout fallback, and telegram streaming=block", async () => {
     const onReplyStart = vi.fn().mockResolvedValue(undefined);
     const onBlockReply = vi.fn().mockResolvedValue(undefined);
 

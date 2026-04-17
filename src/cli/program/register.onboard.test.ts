@@ -15,11 +15,11 @@ const setupWizardCommandMock = mocks.setupWizardCommandMock;
 const runtime = mocks.runtime;
 
 vi.mock("../../commands/auth-choice-options.static.js", () => ({
-  formatStaticAuthChoiceChoicesForCli: () => "token|oauth",
+  formatStaticAuthChoiceChoicesForCli: () => "custom-api-key|skip",
 }));
 
 vi.mock("../../commands/auth-choice-options.js", () => ({
-  formatAuthChoiceChoicesForCli: () => "token|oauth|openai-api-key",
+  formatAuthChoiceChoicesForCli: () => "custom-api-key|skip|openai-api-key",
 }));
 
 vi.mock("../../commands/onboard-core-auth-flags.js", () => ({

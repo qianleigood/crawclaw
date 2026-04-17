@@ -16,9 +16,6 @@ import {
   sanitizeAgentId,
 } from "./session-key.js";
 
-/** @deprecated Use ChatType from channels/chat-type.js */
-export type RoutePeerKind = ChatType;
-
 export type RoutePeer = {
   kind: ChatType;
   id: string;

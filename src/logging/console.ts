@@ -8,7 +8,7 @@ import { type LogLevel, normalizeLogLevel } from "./levels.js";
 import { getLogger, type LoggerSettings } from "./logger.js";
 import { resolveNodeRequireFromMeta } from "./node-require.js";
 import { loggingState } from "./state.js";
-import { formatLocalIsoWithOffset, formatTimestamp } from "./timestamps.js";
+import { formatTimestamp } from "./timestamps.js";
 
 export type ConsoleStyle = "pretty" | "compact" | "json";
 type ConsoleSettings = {
@@ -177,7 +177,7 @@ export function formatConsoleTimestamp(style: ConsoleStyle): string {
   if (style === "pretty") {
     return formatTimestamp(now, { style: "short" });
   }
-  return formatLocalIsoWithOffset(now);
+  return formatTimestamp(now, { style: "long" });
 }
 
 function hasTimestampPrefix(value: string): boolean {

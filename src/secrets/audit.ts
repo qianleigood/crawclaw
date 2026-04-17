@@ -647,7 +647,7 @@ export async function runSecretsAudit(
   const io = createSecretsConfigIO({ env });
   const snapshot = await io.readConfigFileSnapshot();
   const configPath = resolveUserPath(snapshot.path);
-  const defaults = snapshot.valid ? snapshot.config.secrets?.defaults : undefined;
+  const defaults = snapshot.valid ? snapshot.runtimeConfig.secrets?.defaults : undefined;
 
   const collector: AuditCollector = {
     findings: [],
@@ -659,7 +659,7 @@ export async function runSecretsAudit(
 
   const stateDir = resolveStateDir(env, os.homedir);
   const envPath = path.join(resolveConfigDir(env, os.homedir), ".env");
-  const config = snapshot.valid ? snapshot.config : ({} as CrawClawConfig);
+  const config = snapshot.valid ? snapshot.runtimeConfig : ({} as CrawClawConfig);
   let resolution = {
     refsChecked: 0,
     skippedExecRefs: 0,

@@ -190,7 +190,7 @@ function createSendContext(params: {
   serviceUrl?: string;
   conversationId?: string;
   conversationType?: string;
-  bot?: MSTeamsBotIdentity;
+  agent?: MSTeamsBotIdentity;
   replyToActivityId?: string;
   getToken: () => Promise<string | undefined>;
   treatInvokeResponseAsNoop?: boolean;
@@ -213,8 +213,8 @@ function createSendContext(params: {
       return await apiClient.conversations.activities(params.conversationId).create({
         type: "message",
         ...msg,
-        from: params.bot?.id
-          ? { id: params.bot.id, name: params.bot.name ?? "", role: "bot" }
+        from: params.agent?.id
+          ? { id: params.agent.id, name: params.agent.name ?? "", role: "bot" }
           : undefined,
         conversation: {
           id: params.conversationId,
@@ -279,7 +279,7 @@ function createProcessContext(params: {
   const conversationType = (params.activity?.conversation as Record<string, unknown>)
     ?.conversationType as string | undefined;
   const replyToActivityId = params.activity?.id as string | undefined;
-  const bot: MSTeamsBotIdentity | undefined =
+  const agent: MSTeamsBotIdentity | undefined =
     params.activity?.recipient && typeof params.activity.recipient === "object"
       ? {
           id: (params.activity.recipient as Record<string, unknown>).id as string | undefined,
@@ -291,7 +291,7 @@ function createProcessContext(params: {
     serviceUrl,
     conversationId,
     conversationType,
-    bot,
+    agent,
     replyToActivityId,
     getToken: params.getToken,
     treatInvokeResponseAsNoop: true,
@@ -413,7 +413,7 @@ export function createMSTeamsAdapter(app: MSTeamsApp, sdk: MSTeamsTeamsSdk): MST
         serviceUrl,
         conversationId,
         conversationType: reference.conversation?.conversationType,
-        bot: reference.agent ?? undefined,
+        agent: reference.agent ?? undefined,
         getToken: createBotTokenGetter(app),
       });
 

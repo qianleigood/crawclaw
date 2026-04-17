@@ -16,12 +16,7 @@ import type {
 import type { HooksConfig } from "./types.hooks.js";
 import type { McpConfig } from "./types.mcp.js";
 import type { MemoryConfig } from "./types.memory.js";
-import type {
-  AudioConfig,
-  BroadcastConfig,
-  CommandsConfig,
-  MessagesConfig,
-} from "./types.messages.js";
+import type { BroadcastConfig, CommandsConfig, MessagesConfig } from "./types.messages.js";
 import type { ModelsConfig } from "./types.models.js";
 import type { NodeHostConfig } from "./types.node-host.js";
 import type { PluginsConfig } from "./types.plugins.js";
@@ -103,7 +98,6 @@ export type CrawClawConfig = {
   workflow?: WorkflowConfig;
   bindings?: AgentBinding[];
   broadcast?: BroadcastConfig;
-  audio?: AudioConfig;
   media?: {
     /** Preserve original uploaded filenames when storing inbound media. */
     preserveFilenames?: boolean;
@@ -167,7 +161,7 @@ export type ConfigFileSnapshot = {
   valid: boolean;
   /** Runtime-shaped config used by in-process readers. */
   runtimeConfig: RuntimeConfig;
-  /** @deprecated Prefer runtimeConfig. */
+  /** Deprecated alias kept for internal callers that still expect `snapshot.config`. */
   config: RuntimeConfig;
   hash?: string;
   issues: ConfigValidationIssue[];

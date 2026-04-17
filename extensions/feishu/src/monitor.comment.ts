@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../runtime-api.js";
+import type { CrawClawConfig } from "../runtime-api.js";
 import { resolveFeishuAccount } from "./accounts.js";
 import { raceWithTimeoutAndAbort } from "./async.js";
 import { createFeishuClient } from "./client.js";
@@ -34,7 +34,7 @@ export type FeishuDriveCommentNoticeEvent = {
 };
 
 type ResolveDriveCommentEventParams = {
-  cfg: ClawdbotConfig;
+  cfg: CrawClawConfig;
   accountId: string;
   event: FeishuDriveCommentNoticeEvent;
   botOpenId?: string;

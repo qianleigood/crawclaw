@@ -14,12 +14,6 @@ describe("resolveTelegramStreamMode", () => {
     expect(resolveTelegramStreamMode({ streaming: false })).toBe("off");
   });
 
-  it("maps legacy streamMode values", () => {
-    expect(resolveTelegramStreamMode({ streamMode: "off" })).toBe("off");
-    expect(resolveTelegramStreamMode({ streamMode: "partial" })).toBe("partial");
-    expect(resolveTelegramStreamMode({ streamMode: "block" })).toBe("block");
-  });
-
   it("maps unified progress mode to partial on Telegram", () => {
     expect(resolveTelegramStreamMode({ streaming: "progress" })).toBe("partial");
   });
@@ -44,32 +38,6 @@ describe("resolveTelegramDraftStreamingChunking", () => {
       minChars: 150,
       maxChars: 150,
       breakPreference: "paragraph",
-    });
-  });
-
-  it("supports per-account overrides", () => {
-    const cfg: CrawClawConfig = {
-      channels: {
-        telegram: {
-          allowFrom: ["*"],
-          accounts: {
-            default: {
-              allowFrom: ["*"],
-              draftChunk: {
-                minChars: 10,
-                maxChars: 20,
-                breakPreference: "sentence",
-              },
-            },
-          },
-        },
-      },
-    };
-    const chunking = resolveTelegramDraftStreamingChunking(cfg, "default");
-    expect(chunking).toEqual({
-      minChars: 10,
-      maxChars: 20,
-      breakPreference: "sentence",
     });
   });
 });

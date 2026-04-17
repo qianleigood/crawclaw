@@ -1,9 +1,9 @@
 import { normalizeProviderId } from "../agents/model-selection.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderConfig } from "../config/types.js";
-import type { ProviderDiscoveryOrder, ProviderPlugin } from "./types.js";
+import type { ProviderCatalogOrder, ProviderPlugin } from "./types.js";
 
-const DISCOVERY_ORDER: readonly ProviderDiscoveryOrder[] = ["simple", "profile", "paired", "late"];
+const DISCOVERY_ORDER: readonly ProviderCatalogOrder[] = ["simple", "profile", "paired", "late"];
 let providerRuntimePromise: Promise<typeof import("./provider-discovery.runtime.js")> | undefined;
 
 function loadProviderRuntime() {
@@ -28,13 +28,13 @@ export async function resolvePluginDiscoveryProviders(params: {
 
 export function groupPluginDiscoveryProvidersByOrder(
   providers: ProviderPlugin[],
-): Record<ProviderDiscoveryOrder, ProviderPlugin[]> {
+): Record<ProviderCatalogOrder, ProviderPlugin[]> {
   const grouped = {
     simple: [],
     profile: [],
     paired: [],
     late: [],
-  } as Record<ProviderDiscoveryOrder, ProviderPlugin[]>;
+  } as Record<ProviderCatalogOrder, ProviderPlugin[]>;
 
   for (const provider of providers) {
     const order = resolveProviderCatalogHook(provider)?.order ?? "late";

@@ -353,7 +353,7 @@ describe("loadGatewayPlugins", () => {
     );
   });
 
-  test("provides subagent runtime with sessions.get method aliases", async () => {
+  test("provides subagent runtime with session message methods", async () => {
     loadCrawClawPlugins.mockReturnValue(createRegistry([]));
     loadGatewayPluginsForTest();
 
@@ -365,7 +365,6 @@ describe("loadGatewayPlugins", () => {
       allowGatewaySubagentBinding: true,
     }).subagent;
     expect(typeof subagent?.getSessionMessages).toBe("function");
-    expect(typeof subagent?.getSession).toBe("function");
   });
 
   test("forwards provider and model overrides when the request scope is authorized", async () => {

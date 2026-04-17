@@ -5,7 +5,6 @@ export type {
   ChannelMessageActionName,
   ChannelMeta,
   ChannelOutboundAdapter,
-  CrawClawConfig as ClawdbotConfig,
   CrawClawConfig,
   CrawClawPluginApi,
   PluginRuntime,

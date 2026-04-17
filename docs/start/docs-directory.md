@@ -15,6 +15,10 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 ## Start here
 
 - [Docs hubs (all pages linked)](/start/hubs)
+- [Concepts index](/concepts)
+- [Debug docs](/debug)
+- [Reference docs](/reference)
+- [Maintainers docs](/maintainers)
 - [Help](/help)
 - [Configuration](/gateway/configuration)
 - [Configuration examples](/gateway/configuration-examples)

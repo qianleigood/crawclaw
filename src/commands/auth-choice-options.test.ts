@@ -257,7 +257,6 @@ describe("buildAuthChoiceOptions", () => {
     ]);
     const options = getOptions(true);
     const cliChoices = formatAuthChoiceChoicesForCli({
-      includeLegacyAliases: false,
       includeSkip: true,
     }).split("|");
 
@@ -270,7 +269,7 @@ describe("buildAuthChoiceOptions", () => {
     expect(cliChoices).not.toContain("ollama");
   });
 
-  it("can include legacy aliases in cli help choices", () => {
+  it("does not include deprecated aliases in cli help choices", () => {
     resolveManifestProviderAuthChoices.mockReturnValue([
       {
         pluginId: "anthropic",
@@ -291,14 +290,12 @@ describe("buildAuthChoiceOptions", () => {
     ]);
 
     const cliChoices = formatAuthChoiceChoicesForCli({
-      includeLegacyAliases: true,
       includeSkip: true,
     }).split("|");
 
-    expect(cliChoices).toContain("setup-token");
-    expect(cliChoices).toContain("oauth");
-    expect(cliChoices).toContain("claude-cli");
-    expect(cliChoices).toContain("codex-cli");
+    expect(cliChoices).not.toContain("oauth");
+    expect(cliChoices).not.toContain("claude-cli");
+    expect(cliChoices).not.toContain("codex-cli");
   });
 
   it("keeps static cli help choices off the plugin-backed catalog", () => {
@@ -322,7 +319,6 @@ describe("buildAuthChoiceOptions", () => {
     ]);
 
     const cliChoices = formatStaticAuthChoiceChoicesForCli({
-      includeLegacyAliases: false,
       includeSkip: true,
     }).split("|");
 
@@ -430,5 +426,4 @@ describe("buildAuthChoiceOptions", () => {
     expect(ollamaGroup).toBeDefined();
     expect(ollamaGroup?.options.some((opt) => opt.value === "ollama")).toBe(true);
   });
-
 });

@@ -223,6 +223,12 @@ crawclaw models auth paste-token --provider anthropic
 crawclaw onboard --auth-choice setup-token
 ```
 
+Claude CLI 迁移不再通过旧的 onboarding alias 触发。请改用：
+
+```bash
+crawclaw models auth login --provider anthropic --method cli --set-default
+```
+
 ### 配置片段（setup-token）
 
 ```json5

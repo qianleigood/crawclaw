@@ -29,7 +29,7 @@ export async function requireValidConfigFileSnapshot(
   if (opts?.includeCompatibilityAdvisory !== true) {
     return snapshot;
   }
-  const compatibility = buildPluginCompatibilityNotices({ config: snapshot.config });
+  const compatibility = buildPluginCompatibilityNotices({ config: snapshot.runtimeConfig });
   if (compatibility.length > 0) {
     runtime.log(
       [

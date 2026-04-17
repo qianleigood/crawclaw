@@ -24,8 +24,8 @@ import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { defaultRuntime } from "../../runtime.js";
 import { formatCliCommand } from "../command-format.js";
 import { inheritOptionFromParent } from "../command-options.js";
-import { withProgress } from "../progress.js";
 import { forceFreePortAndWait, waitForPortBindable } from "../ports.js";
+import { withProgress } from "../progress.js";
 import { ensureDevGatewayConfig } from "./dev.js";
 import { runGatewayLoop } from "./run-loop.js";
 import {
@@ -49,7 +49,6 @@ type GatewayRunOpts = {
   force?: boolean;
   verbose?: boolean;
   cliBackendLogs?: boolean;
-  claudeCliLogs?: boolean;
   wsLog?: unknown;
   compact?: boolean;
   rawStream?: boolean;
@@ -80,7 +79,6 @@ const GATEWAY_RUN_BOOLEAN_KEYS = [
   "force",
   "verbose",
   "cliBackendLogs",
-  "claudeCliLogs",
   "compact",
   "rawStream",
 ] as const;
@@ -189,7 +187,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   }
 
   setVerbose(Boolean(opts.verbose));
-  if (opts.cliBackendLogs || opts.claudeCliLogs) {
+  if (opts.cliBackendLogs) {
     setConsoleSubsystemFilter(["agent/cli-backend"]);
     process.env.CRAWCLAW_CLI_BACKEND_LOG_OUTPUT = "1";
   }
@@ -347,7 +345,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   const snapshot = await readConfigFileSnapshot().catch(() => null);
   const configExists = snapshot?.exists ?? fs.existsSync(CONFIG_PATH);
   const configAuditPath = path.join(resolveStateDir(process.env), "logs", "config-audit.jsonl");
-  const effectiveCfg = snapshot?.valid ? snapshot.config : cfg;
+  const effectiveCfg = snapshot?.valid ? snapshot.runtimeConfig : cfg;
   const mode = effectiveCfg.gateway?.mode;
   if (!opts.allowUnconfigured && mode !== "local") {
     if (!configExists) {
@@ -551,7 +549,6 @@ export function addGatewayRunCommand(cmd: Command): Command {
       "Only show CLI backend logs in the console (includes stdout/stderr)",
       false,
     )
-    .option("--claude-cli-logs", "Deprecated alias for --cli-backend-logs", false)
     .option("--ws-log <style>", 'WebSocket log style ("auto"|"full"|"compact")', "auto")
     .option("--compact", 'Alias for "--ws-log compact"', false)
     .option("--raw-stream", "Log raw model stream events to jsonl", false)

@@ -61,7 +61,6 @@ crawclaw gateway run
 - `--reset`：重置开发配置 + 凭证 + 会话 + 工作区（需要 `--dev`）。
 - `--force`：启动前杀死所选端口上的任何现有监听器。
 - `--verbose`：详细日志。
-- `--claude-cli-logs`：仅在控制台显示 claude-cli 日志（并启用其 stdout/stderr）。
 - `--ws-log <auto|full|compact>`：WebSocket 日志样式（默认 `auto`）。
 - `--compact`：`--ws-log compact` 的别名。
 - `--raw-stream`：将原始模型流事件记录到 jsonl。

@@ -24,14 +24,11 @@ import {
   setupAuthTestEnv,
 } from "./test-wizard-helpers.js";
 
-type DetectZaiEndpoint = typeof import("./zai-endpoint-detect.js").detectZaiEndpoint;
+type DetectZaiEndpoint = typeof import("../plugins/provider-zai-endpoint.js").detectZaiEndpoint;
 
 const loginOpenAICodexOAuth = vi.hoisted(() =>
   vi.fn<() => Promise<OAuthCredentials | null>>(async () => null),
 );
-vi.mock("./openai-codex-oauth.js", () => ({
-  loginOpenAICodexOAuth,
-}));
 
 const resolvePluginProviders = vi.hoisted(() => vi.fn<() => ProviderPlugin[]>(() => []));
 vi.mock("../plugins/provider-auth-choice.runtime.js", async (importOriginal) => {
@@ -44,7 +41,7 @@ vi.mock("../plugins/provider-auth-choice.runtime.js", async (importOriginal) => 
 });
 
 const detectZaiEndpoint = vi.hoisted(() => vi.fn<DetectZaiEndpoint>(async () => null));
-vi.mock("./zai-endpoint-detect.js", () => ({
+vi.mock("../plugins/provider-zai-endpoint.js", () => ({
   detectZaiEndpoint,
 }));
 

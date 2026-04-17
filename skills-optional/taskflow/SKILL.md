@@ -1,7 +1,18 @@
 ---
 name: taskflow
 description: Use when work should span one or more detached tasks but still behave like one job with one owner session, one return context, and durable flow state.
-metadata: { "crawclaw": { "emoji": "🪝", "workflow": { "portability": "non_portable", "notes": "Runtime orchestration primitive. Keep it inside CrawClaw; do not compile it into n8n steps." } } }
+metadata:
+  {
+    "crawclaw":
+      {
+        "emoji": "🪝",
+        "workflow":
+          {
+            "portability": "non_portable",
+            "notes": "Runtime orchestration primitive. Keep it inside CrawClaw; do not compile it into n8n steps.",
+          },
+      },
+  }
 ---
 
 # TaskFlow
@@ -25,9 +36,9 @@ Keep those in the caller.
 
 ## Canonical entrypoints
 
-- `api.runtime.tasks.flow`
-- `api.runtime.tasks.flow.fromToolContext(ctx)`
-- `api.runtime.tasks.flow.bindSession({ sessionKey, requesterOrigin })`
+- `api.runtime.tasks.flows`
+- `api.runtime.tasks.flows.fromToolContext(ctx)`
+- `api.runtime.tasks.flows.bindSession({ sessionKey, requesterOrigin })`
 
 ## Lifecycle
 

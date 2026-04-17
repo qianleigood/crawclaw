@@ -1429,14 +1429,14 @@ export async function startGatewayServer(
             logReload,
             createHealthMonitor: (opts: {
               checkIntervalMs: number;
-              staleEventThresholdMs?: number;
+              timing?: { staleEventThresholdMs?: number };
               maxRestartsPerHour?: number;
             }) =>
               startChannelHealthMonitor({
                 channelManager,
                 checkIntervalMs: opts.checkIntervalMs,
-                ...(opts.staleEventThresholdMs != null && {
-                  staleEventThresholdMs: opts.staleEventThresholdMs,
+                ...(opts.timing && {
+                  timing: opts.timing,
                 }),
                 ...(opts.maxRestartsPerHour != null && {
                   maxRestartsPerHour: opts.maxRestartsPerHour,

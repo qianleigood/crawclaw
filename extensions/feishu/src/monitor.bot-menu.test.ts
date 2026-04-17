@@ -5,7 +5,7 @@ import {
 } from "crawclaw/plugin-sdk/reply-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPluginRuntimeMock } from "../../../test/helpers/plugins/plugin-runtime-mock.js";
-import type { ClawdbotConfig, RuntimeEnv } from "../runtime-api.js";
+import type { CrawClawConfig, RuntimeEnv } from "../runtime-api.js";
 import { monitorSingleAccount } from "./monitor.account.js";
 import { setFeishuRuntime } from "./runtime.js";
 import type { ResolvedFeishuAccount } from "./types.js";
@@ -98,7 +98,7 @@ async function registerHandlers() {
   createEventDispatcherMock.mockReturnValue({ register });
 
   await monitorSingleAccount({
-    cfg: {} as ClawdbotConfig,
+    cfg: {} as CrawClawConfig,
     account: buildAccount(),
     runtime: {
       log: vi.fn(),

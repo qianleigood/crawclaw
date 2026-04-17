@@ -213,7 +213,7 @@ async function loadConfigFromSnapshotForInstall(
       "Config invalid outside the Matrix upgrade recovery path; run `crawclaw doctor --fix` before reinstalling Matrix.",
     );
   }
-  const cleaned = await cleanStaleMatrixPluginConfig(snapshot.config);
+  const cleaned = await cleanStaleMatrixPluginConfig(snapshot.runtimeConfig);
   return cleaned.config;
 }
 

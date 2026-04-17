@@ -1,5 +1,4 @@
 import type {
-  BlockStreamingChunkConfig,
   BlockStreamingCoalesceConfig,
   ContextVisibilityMode,
   DmPolicy,
@@ -156,12 +155,8 @@ export type TelegramAccountConfig = {
   streaming?: TelegramStreamingMode | boolean;
   /** Disable block streaming for this account. */
   blockStreaming?: boolean;
-  /** @deprecated Legacy chunking config from `streamMode: "block"`; ignored after migration. */
-  draftChunk?: BlockStreamingChunkConfig;
   /** Merge streamed block replies before sending. */
   blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
-  /** @deprecated Legacy key; migrated automatically to `streaming`. */
-  streamMode?: "off" | "partial" | "block";
   mediaMaxMb?: number;
   /** Telegram API client timeout in seconds (grammY ApiClientOptions). */
   timeoutSeconds?: number;

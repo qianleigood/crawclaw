@@ -15,8 +15,6 @@ export type StoredConversationReference = {
   user?: { id?: string; name?: string; aadObjectId?: string };
   /** Agent/bot that received the message */
   agent?: { id?: string; name?: string; aadObjectId?: string } | null;
-  /** @deprecated legacy field (pre-Agents SDK). Prefer `agent`. */
-  bot?: { id?: string; name?: string };
   /** Conversation details */
   conversation?: { id?: string; conversationType?: string; tenantId?: string };
   /** Team ID for channel messages (when available). */
@@ -50,6 +48,4 @@ export type MSTeamsConversationStore = {
   remove: (conversationId: string) => Promise<boolean>;
   /** Person-targeted proactive lookup: prefer the freshest personal DM reference. */
   findPreferredDmByUserId: (id: string) => Promise<MSTeamsConversationStoreEntry | null>;
-  /** @deprecated Use `findPreferredDmByUserId` for proactive user-targeted sends. */
-  findByUserId: (id: string) => Promise<MSTeamsConversationStoreEntry | null>;
 };

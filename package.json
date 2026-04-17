@@ -357,10 +357,6 @@
       "types": "./dist/plugin-sdk/collection-runtime.d.ts",
       "default": "./dist/plugin-sdk/collection-runtime.js"
     },
-    "./plugin-sdk/compat": {
-      "types": "./dist/plugin-sdk/compat.d.ts",
-      "default": "./dist/plugin-sdk/compat.js"
-    },
     "./plugin-sdk/direct-dm": {
       "types": "./dist/plugin-sdk/direct-dm.d.ts",
       "default": "./dist/plugin-sdk/direct-dm.js"

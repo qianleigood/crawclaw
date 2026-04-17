@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { ClawdbotConfig } from "../runtime-api.js";
+import type { CrawClawConfig } from "../runtime-api.js";
 import {
   resolveReactionSyntheticEvent,
   type FeishuReactionCreatedEvent,
 } from "./monitor.account.js";
 
-const cfg = {} as ClawdbotConfig;
+const cfg = {} as CrawClawConfig;
 
 function makeReactionEvent(
   overrides: Partial<FeishuReactionCreatedEvent> = {},

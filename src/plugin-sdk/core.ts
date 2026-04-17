@@ -24,7 +24,6 @@ export type {
   ProviderCatalogContext,
   ProviderCatalogResult,
   ProviderDefaultThinkingPolicyContext,
-  ProviderDiscoveryContext,
   ProviderFetchUsageSnapshotContext,
   ProviderModernModelPolicyContext,
   ProviderNormalizeResolvedModelContext,
@@ -124,11 +123,8 @@ export type {
   TailscaleStatusCommandResult,
   TailscaleStatusCommandRunner,
 } from "../shared/tailscale-status.js";
-export {
-  buildAgentSessionKey,
-  type RoutePeer,
-  type RoutePeerKind,
-} from "../routing/resolve-route.js";
+export { buildAgentSessionKey, type RoutePeer } from "../routing/resolve-route.js";
+export type { ChatType } from "../channels/chat-type.js";
 export { resolveThreadSessionKeys } from "../routing/session-key.js";
 export {
   buildChannelOutboundSessionRoute,

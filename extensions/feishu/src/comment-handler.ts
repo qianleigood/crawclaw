@@ -1,7 +1,7 @@
 import type { ResolvedAgentRoute } from "crawclaw/plugin-sdk/routing";
 import {
   createChannelPairingController,
-  type ClawdbotConfig,
+  type CrawClawConfig,
   type RuntimeEnv,
 } from "../runtime-api.js";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
@@ -19,7 +19,7 @@ import { getFeishuRuntime } from "./runtime.js";
 import type { DynamicAgentCreationConfig } from "./types.js";
 
 type HandleFeishuCommentEventParams = {
-  cfg: ClawdbotConfig;
+  cfg: CrawClawConfig;
   accountId: string;
   runtime?: RuntimeEnv;
   event: FeishuDriveCommentNoticeEvent;

@@ -4,11 +4,9 @@ import type { CrawClawConfig } from "../config/config.js";
 import { resolveNormalizedProviderModelMaxTokens } from "../config/defaults.js";
 import {
   formatSlackStreamingBooleanMigrationMessage,
-  formatSlackStreamModeMigrationMessage,
-  resolveDiscordPreviewStreamMode,
   resolveSlackNativeStreaming,
   resolveSlackStreamingMode,
-  resolveTelegramPreviewStreamMode,
+  type StreamingMode,
 } from "../config/discord-preview-streaming.js";
 import { migrateLegacyWebSearchConfig } from "../config/legacy-web-search.js";
 import { migrateLegacyXSearchConfig } from "../config/legacy-x-search.js";
@@ -108,52 +106,21 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
     return { entry: updated, changed };
   };
 
-  const normalizePreviewStreamingAliases = (params: {
+  const normalizePreviewStreamingBooleans = (params: {
     entry: Record<string, unknown>;
     pathPrefix: string;
-    resolveStreaming: (entry: Record<string, unknown>) => string;
+    resolveStreaming: (entry: Record<string, unknown>) => StreamingMode;
   }): { entry: Record<string, unknown>; changed: boolean } => {
     let updated = params.entry;
-    const hadLegacyStreamMode = updated.streamMode !== undefined;
     const beforeStreaming = updated.streaming;
-    const resolved = params.resolveStreaming(updated);
-    const shouldNormalize =
-      hadLegacyStreamMode ||
-      typeof beforeStreaming === "boolean" ||
-      (typeof beforeStreaming === "string" && beforeStreaming !== resolved);
-    if (!shouldNormalize) {
+    if (typeof beforeStreaming !== "boolean") {
       return { entry: updated, changed: false };
     }
 
-    let changed = false;
-    if (beforeStreaming !== resolved) {
-      updated = { ...updated, streaming: resolved };
-      changed = true;
-    }
-    if (hadLegacyStreamMode) {
-      const { streamMode: _ignored, ...rest } = updated;
-      updated = rest;
-      changed = true;
-      changes.push(
-        `Moved ${params.pathPrefix}.streamMode → ${params.pathPrefix}.streaming (${resolved}).`,
-      );
-    }
-    if (typeof beforeStreaming === "boolean") {
-      changes.push(`Normalized ${params.pathPrefix}.streaming boolean → enum (${resolved}).`);
-    } else if (typeof beforeStreaming === "string" && beforeStreaming !== resolved) {
-      changes.push(
-        `Normalized ${params.pathPrefix}.streaming (${beforeStreaming}) → (${resolved}).`,
-      );
-    }
-    if (
-      params.pathPrefix.startsWith("channels.discord") &&
-      resolved === "off" &&
-      hadLegacyStreamMode
-    ) {
-      changes.push(
-        `${params.pathPrefix}.streaming remains off by default to avoid Discord preview-edit rate limits; set ${params.pathPrefix}.streaming="partial" to opt in explicitly.`,
-      );
-    }
+    const resolved = params.resolveStreaming(updated);
+    updated = { ...updated, streaming: resolved };
+    const changed = true;
+    changes.push(`Normalized ${params.pathPrefix}.streaming boolean → enum (${resolved}).`);
 
     return { entry: updated, changed };
   };
@@ -163,17 +130,12 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
     pathPrefix: string;
   }): { entry: Record<string, unknown>; changed: boolean } => {
     let updated = params.entry;
-    const hadLegacyStreamMode = updated.streamMode !== undefined;
     const legacyStreaming = updated.streaming;
     const beforeStreaming = updated.streaming;
     const beforeNativeStreaming = updated.nativeStreaming;
     const resolvedStreaming = resolveSlackStreamingMode(updated);
     const resolvedNativeStreaming = resolveSlackNativeStreaming(updated);
-    const shouldNormalize =
-      hadLegacyStreamMode ||
-      typeof legacyStreaming === "boolean" ||
-      (typeof legacyStreaming === "string" && legacyStreaming !== resolvedStreaming);
-    if (!shouldNormalize) {
+    if (typeof legacyStreaming !== "boolean") {
       return { entry: updated, changed: false };
     }
 
@@ -189,21 +151,9 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
       updated = { ...updated, nativeStreaming: resolvedNativeStreaming };
       changed = true;
     }
-    if (hadLegacyStreamMode) {
-      const { streamMode: _ignored, ...rest } = updated;
-      updated = rest;
-      changed = true;
-      changes.push(formatSlackStreamModeMigrationMessage(params.pathPrefix, resolvedStreaming));
-    }
-    if (typeof legacyStreaming === "boolean") {
-      changes.push(
-        formatSlackStreamingBooleanMigrationMessage(params.pathPrefix, resolvedNativeStreaming),
-      );
-    } else if (typeof legacyStreaming === "string" && legacyStreaming !== resolvedStreaming) {
-      changes.push(
-        `Normalized ${params.pathPrefix}.streaming (${legacyStreaming}) → (${resolvedStreaming}).`,
-      );
-    }
+    changes.push(
+      formatSlackStreamingBooleanMigrationMessage(params.pathPrefix, resolvedNativeStreaming),
+    );
 
     return { entry: updated, changed };
   };
@@ -214,17 +164,17 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
     pathPrefix: string;
   }): { entry: Record<string, unknown>; changed: boolean } => {
     if (params.provider === "telegram") {
-      return normalizePreviewStreamingAliases({
+      return normalizePreviewStreamingBooleans({
         entry: params.entry,
         pathPrefix: params.pathPrefix,
-        resolveStreaming: resolveTelegramPreviewStreamMode,
+        resolveStreaming: (entry) => (entry.streaming === true ? "partial" : "off"),
       });
     }
     if (params.provider === "discord") {
-      return normalizePreviewStreamingAliases({
+      return normalizePreviewStreamingBooleans({
         entry: params.entry,
         pathPrefix: params.pathPrefix,
-        resolveStreaming: resolveDiscordPreviewStreamMode,
+        resolveStreaming: (entry) => (entry.streaming === true ? "partial" : "off"),
       });
     }
     return normalizeSlackStreamingAliases({
@@ -647,125 +597,6 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
     };
   };
 
-  const mapDeepgramCompatToProviderOptions = (
-    rawCompat: Record<string, unknown>,
-  ): Record<string, string | number | boolean> => {
-    const providerOptions: Record<string, string | number | boolean> = {};
-    if (typeof rawCompat.detectLanguage === "boolean") {
-      providerOptions.detect_language = rawCompat.detectLanguage;
-    }
-    if (typeof rawCompat.punctuate === "boolean") {
-      providerOptions.punctuate = rawCompat.punctuate;
-    }
-    if (typeof rawCompat.smartFormat === "boolean") {
-      providerOptions.smart_format = rawCompat.smartFormat;
-    }
-    return providerOptions;
-  };
-
-  const migrateLegacyDeepgramCompat = (params: {
-    owner: Record<string, unknown>;
-    pathPrefix: string;
-  }): boolean => {
-    const rawCompat = isRecord(params.owner.deepgram)
-      ? structuredClone(params.owner.deepgram)
-      : null;
-    if (!rawCompat) {
-      return false;
-    }
-
-    const compatProviderOptions = mapDeepgramCompatToProviderOptions(rawCompat);
-    const currentProviderOptions = isRecord(params.owner.providerOptions)
-      ? structuredClone(params.owner.providerOptions)
-      : {};
-    const currentDeepgram = isRecord(currentProviderOptions.deepgram)
-      ? structuredClone(currentProviderOptions.deepgram)
-      : {};
-    const mergedDeepgram = { ...compatProviderOptions, ...currentDeepgram };
-
-    delete params.owner.deepgram;
-    currentProviderOptions.deepgram = mergedDeepgram;
-    params.owner.providerOptions = currentProviderOptions;
-
-    const hadCanonicalDeepgram = Object.keys(currentDeepgram).length > 0;
-    changes.push(
-      hadCanonicalDeepgram
-        ? `Merged ${params.pathPrefix}.deepgram → ${params.pathPrefix}.providerOptions.deepgram (filled missing canonical fields from legacy).`
-        : `Moved ${params.pathPrefix}.deepgram → ${params.pathPrefix}.providerOptions.deepgram.`,
-    );
-    return true;
-  };
-
-  const normalizeLegacyMediaProviderOptions = () => {
-    const rawTools = next.tools;
-    if (!isRecord(rawTools)) {
-      return;
-    }
-    const rawMedia = rawTools.media;
-    if (!isRecord(rawMedia)) {
-      return;
-    }
-
-    let mediaChanged = false;
-    const nextMedia = structuredClone(rawMedia);
-    const migrateModelList = (models: unknown, pathPrefix: string): boolean => {
-      if (!Array.isArray(models)) {
-        return false;
-      }
-      let changed = false;
-      for (const [index, entry] of models.entries()) {
-        if (!isRecord(entry)) {
-          continue;
-        }
-        if (
-          migrateLegacyDeepgramCompat({
-            owner: entry,
-            pathPrefix: `${pathPrefix}[${index}]`,
-          })
-        ) {
-          changed = true;
-        }
-      }
-      return changed;
-    };
-
-    for (const capability of ["audio", "image", "video"] as const) {
-      const config = isRecord(nextMedia[capability])
-        ? structuredClone(nextMedia[capability])
-        : null;
-      if (!config) {
-        continue;
-      }
-      let configChanged = false;
-      if (migrateLegacyDeepgramCompat({ owner: config, pathPrefix: `tools.media.${capability}` })) {
-        configChanged = true;
-      }
-      if (migrateModelList(config.models, `tools.media.${capability}.models`)) {
-        configChanged = true;
-      }
-      if (configChanged) {
-        nextMedia[capability] = config;
-        mediaChanged = true;
-      }
-    }
-
-    if (migrateModelList(nextMedia.models, "tools.media.models")) {
-      mediaChanged = true;
-    }
-
-    if (!mediaChanged) {
-      return;
-    }
-
-    next = {
-      ...next,
-      tools: {
-        ...next.tools,
-        media: nextMedia as NonNullable<CrawClawConfig["tools"]>["media"],
-      },
-    };
-  };
-
   const normalizeLegacyMistralModelMaxTokens = () => {
     const rawProviders = next.models?.providers;
     if (!isRecord(rawProviders)) {
@@ -849,7 +680,6 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
   normalizeLegacyNanoBananaSkill();
   normalizeLegacyTalkConfig();
   normalizeLegacyCrossContextMessageConfig();
-  normalizeLegacyMediaProviderOptions();
   normalizeLegacyMistralModelMaxTokens();
 
   const legacyAckReaction = cfg.messages?.ackReaction?.trim();

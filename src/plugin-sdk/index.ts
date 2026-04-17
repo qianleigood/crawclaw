@@ -1,6 +1,6 @@
 // Shared root plugin-sdk surface.
 // Keep this entry intentionally tiny. Channel/provider helpers belong on
-// dedicated subpaths or, for legacy consumers, the compat surface.
+// dedicated subpaths. The old plugin-sdk compat surface has been removed.
 
 export type {
   ChannelAccountSnapshot,
@@ -75,8 +75,6 @@ export type {
   TaskRunView,
 } from "../plugins/runtime/task-domain-types.js";
 export type { CrawClawConfig } from "../config/config.js";
-/** @deprecated Use CrawClawConfig instead */
-export type { CrawClawConfig as ClawdbotConfig } from "../config/config.js";
 export type { CliBackendConfig } from "../config/types.js";
 export type { SecretInput, SecretRef } from "../config/types.secrets.js";
 export type { RuntimeEnv } from "../runtime.js";

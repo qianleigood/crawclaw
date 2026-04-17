@@ -4,7 +4,7 @@ import {
   type ProviderAuthContext,
   type ProviderAuthMethodNonInteractiveContext,
   type ProviderAuthResult,
-  type ProviderDiscoveryContext,
+  type ProviderCatalogContext,
 } from "crawclaw/plugin-sdk/plugin-entry";
 import {
   buildOllamaProvider,
@@ -82,7 +82,7 @@ export default definePluginEntry({
       ],
       discovery: {
         order: "late",
-        run: async (ctx: ProviderDiscoveryContext) => {
+        run: async (ctx: ProviderCatalogContext) => {
           const explicit = ctx.config.models?.providers?.ollama;
           const hasExplicitModels = Array.isArray(explicit?.models) && explicit.models.length > 0;
           const ollamaKey = ctx.resolveProviderApiKey(PROVIDER_ID).apiKey;

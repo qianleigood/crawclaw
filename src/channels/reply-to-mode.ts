@@ -26,7 +26,5 @@ export function resolveAllowExplicitReplyTagsWhenOff(channel?: OriginatingChanne
   const normalized = typeof channel === "string" ? channel.trim().toLowerCase() : undefined;
   const isWebchat = normalized === "webchat";
   const threading = provider ? getChannelPlugin(provider)?.threading : undefined;
-  return provider
-    ? (threading?.allowExplicitReplyTagsWhenOff ?? threading?.allowTagsWhenOff ?? true)
-    : isWebchat;
+  return provider ? (threading?.allowExplicitReplyTagsWhenOff ?? true) : isWebchat;
 }

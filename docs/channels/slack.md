@@ -293,7 +293,6 @@ Reply threading controls:
 
 - `channels.slack.replyToMode`: `off|first|all` (default `off`)
 - `channels.slack.replyToModeByChatType`: per `direct|group|channel`
-- legacy fallback for direct chats: `channels.slack.dm.replyToMode`
 
 Manual reply tags are supported:
 
@@ -612,10 +611,10 @@ channels:
     nativeStreaming: false
 ```
 
-Legacy keys:
+Notes:
 
-- `channels.slack.streamMode` (`replace | status_final | append`) is auto-migrated to `channels.slack.streaming`.
-- boolean `channels.slack.streaming` is auto-migrated to `channels.slack.nativeStreaming`.
+- `channels.slack.streaming` controls preview style (`off | partial | block | progress`).
+- `channels.slack.nativeStreaming` toggles Slack's native streaming API path for `partial`.
 
 ### Requirements
 

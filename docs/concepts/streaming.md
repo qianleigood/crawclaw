@@ -128,12 +128,6 @@ Slack-only:
 
 - `channels.slack.nativeStreaming` toggles Slack native streaming API calls when `streaming=partial` (default: `true`).
 
-Legacy key migration:
-
-- Telegram: `streamMode` + boolean `streaming` auto-migrate to `streaming` enum.
-- Discord: `streamMode` + boolean `streaming` auto-migrate to `streaming` enum.
-- Slack: `streamMode` auto-migrates to `streaming` enum; boolean `streaming` auto-migrates to `nativeStreaming`.
-
 ### Runtime behavior
 
 Telegram:
@@ -145,7 +139,7 @@ Telegram:
 Discord:
 
 - Uses send + edit preview messages.
-- `block` mode uses draft chunking (`draftChunk`).
+- `block` mode uses the built-in preview chunker.
 - Preview streaming is skipped when Discord block streaming is explicitly enabled.
 
 Slack:

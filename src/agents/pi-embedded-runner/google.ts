@@ -25,7 +25,7 @@ import {
   validateAnthropicTurns,
   validateGeminiTurns,
 } from "../pi-embedded-helpers.js";
-import { cleanToolSchemaForGemini } from "../pi-tools.schema.js";
+import { cleanSchemaForGemini } from "../schema/clean-for-gemini.js";
 import {
   sanitizeToolCallInputs,
   stripToolResultDetails,
@@ -457,9 +457,7 @@ export function sanitizeToolsForGoogle<
     }
     return {
       ...tool,
-      parameters: cleanToolSchemaForGemini(
-        tool.parameters as Record<string, unknown>,
-      ) as TSchemaType,
+      parameters: cleanSchemaForGemini(tool.parameters as Record<string, unknown>) as TSchemaType,
     };
   });
 }

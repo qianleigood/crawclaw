@@ -34,40 +34,6 @@ function mergeDeep<T>(base: T, overrides: DeepPartial<T>): T {
 }
 
 export function createPluginRuntimeMock(overrides: DeepPartial<PluginRuntime> = {}): PluginRuntime {
-  const taskFlow = {
-    bindSession: vi.fn(() => ({
-      sessionKey: "agent:main:main",
-      createManaged: vi.fn(),
-      get: vi.fn(),
-      list: vi.fn(() => []),
-      findLatest: vi.fn(),
-      resolve: vi.fn(),
-      getTaskSummary: vi.fn(),
-      setWaiting: vi.fn(),
-      resume: vi.fn(),
-      finish: vi.fn(),
-      fail: vi.fn(),
-      requestCancel: vi.fn(),
-      cancel: vi.fn(),
-      runTask: vi.fn(),
-    })) as unknown as PluginRuntime["taskFlow"]["bindSession"],
-    fromToolContext: vi.fn(() => ({
-      sessionKey: "agent:main:main",
-      createManaged: vi.fn(),
-      get: vi.fn(),
-      list: vi.fn(() => []),
-      findLatest: vi.fn(),
-      resolve: vi.fn(),
-      getTaskSummary: vi.fn(),
-      setWaiting: vi.fn(),
-      resume: vi.fn(),
-      finish: vi.fn(),
-      fail: vi.fn(),
-      requestCancel: vi.fn(),
-      cancel: vi.fn(),
-      runTask: vi.fn(),
-    })) as unknown as PluginRuntime["taskFlow"]["fromToolContext"],
-  };
   const base: PluginRuntime = {
     version: "1.0.0-test",
     config: {
@@ -363,9 +329,7 @@ export function createPluginRuntimeMock(overrides: DeepPartial<PluginRuntime> = 
         bindSession: vi.fn(),
         fromToolContext: vi.fn(),
       } as PluginRuntime["tasks"]["flows"],
-      flow: taskFlow,
     },
-    taskFlow,
     modelAuth: {
       getApiKeyForModel: vi.fn() as unknown as PluginRuntime["modelAuth"]["getApiKeyForModel"],
       resolveApiKeyForProvider:
@@ -375,7 +339,6 @@ export function createPluginRuntimeMock(overrides: DeepPartial<PluginRuntime> = 
       run: vi.fn(),
       waitForRun: vi.fn(),
       getSessionMessages: vi.fn(),
-      getSession: vi.fn(),
       deleteSession: vi.fn(),
     },
   };

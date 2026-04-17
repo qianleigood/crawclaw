@@ -103,6 +103,6 @@ export async function runDoctorConfigPreflight(
 
   return {
     snapshot,
-    baseConfig: snapshot.sourceConfig ?? snapshot.config ?? {},
+    baseConfig: snapshot.sourceConfig ?? snapshot.runtimeConfig ?? {},
   };
 }

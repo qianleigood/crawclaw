@@ -34,12 +34,6 @@ export type MediaUnderstandingAttachmentsConfig = {
 type MediaProviderRequestConfig = {
   /** Optional provider-specific query params (merged into requests). */
   providerOptions?: Record<string, Record<string, string | number | boolean>>;
-  /** @deprecated Use providerOptions.deepgram instead. */
-  deepgram?: {
-    detectLanguage?: boolean;
-    punctuate?: boolean;
-    smartFormat?: boolean;
-  };
   /** Optional base URL override for provider requests. */
   baseUrl?: string;
   /** Optional headers merged into provider requests. */

@@ -1,7 +1,5 @@
 import { type CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { resolveTextChunkLimit } from "crawclaw/plugin-sdk/reply-chunking";
-import { resolveAccountEntry } from "crawclaw/plugin-sdk/routing";
-import { normalizeAccountId } from "crawclaw/plugin-sdk/routing";
 import { TELEGRAM_TEXT_CHUNK_LIMIT } from "./outbound-adapter.js";
 
 const DEFAULT_TELEGRAM_DRAFT_STREAM_MIN = 200;
@@ -18,23 +16,10 @@ export function resolveTelegramDraftStreamingChunking(
   const textLimit = resolveTextChunkLimit(cfg, "telegram", accountId, {
     fallbackLimit: TELEGRAM_TEXT_CHUNK_LIMIT,
   });
-  const normalizedAccountId = normalizeAccountId(accountId);
-  const accountCfg = resolveAccountEntry(cfg?.channels?.telegram?.accounts, normalizedAccountId);
-  const draftCfg = accountCfg?.draftChunk ?? cfg?.channels?.telegram?.draftChunk;
-
-  const maxRequested = Math.max(
-    1,
-    Math.floor(draftCfg?.maxChars ?? DEFAULT_TELEGRAM_DRAFT_STREAM_MAX),
-  );
+  const maxRequested = Math.max(1, DEFAULT_TELEGRAM_DRAFT_STREAM_MAX);
   const maxChars = Math.max(1, Math.min(maxRequested, textLimit));
-  const minRequested = Math.max(
-    1,
-    Math.floor(draftCfg?.minChars ?? DEFAULT_TELEGRAM_DRAFT_STREAM_MIN),
-  );
+  const minRequested = Math.max(1, DEFAULT_TELEGRAM_DRAFT_STREAM_MIN);
   const minChars = Math.min(minRequested, maxChars);
-  const breakPreference =
-    draftCfg?.breakPreference === "newline" || draftCfg?.breakPreference === "sentence"
-      ? draftCfg.breakPreference
-      : "paragraph";
+  const breakPreference = "paragraph";
   return { minChars, maxChars, breakPreference };
 }

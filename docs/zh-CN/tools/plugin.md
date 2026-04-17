@@ -470,10 +470,10 @@ api.registerHttpRoute({
 
 ## Plugin SDK 导入路径
 
-编写插件时，请使用 SDK 子路径，而不是单体式 `crawclaw/plugin-sdk` 导入：
+编写插件时，请使用 SDK 子路径，而不是单体式 `crawclaw/plugin-sdk` 导入。
+`crawclaw/plugin-sdk/compat` 已移除，请直接改用对应的聚焦子路径：
 
 - `crawclaw/plugin-sdk/core` 用于通用插件 API、provider 身份验证类型和共享辅助工具。
-- `crawclaw/plugin-sdk/compat` 用于比 `core` 需要更广泛共享运行时辅助工具的捆绑/内部插件代码。
 - `crawclaw/plugin-sdk/telegram` 用于 Telegram 渠道插件。
 - `crawclaw/plugin-sdk/discord` 用于 Discord 渠道插件。
 - `crawclaw/plugin-sdk/slack` 用于 Slack 渠道插件。
@@ -494,7 +494,7 @@ api.registerHttpRoute({
   `crawclaw/plugin-sdk/nextcloud-talk`、`crawclaw/plugin-sdk/nostr`、
   `crawclaw/plugin-sdk/open-prose`、`crawclaw/plugin-sdk/phone-control`、
   `crawclaw/plugin-sdk/synology-chat`、
-  `crawclaw/plugin-sdk/talk-voice`、`crawclaw/plugin-sdk/test-utils`、
+  `crawclaw/plugin-sdk/talk-voice`、
   `crawclaw/plugin-sdk/thread-ownership`、`crawclaw/plugin-sdk/tlon`、
   `crawclaw/plugin-sdk/twitch`、`crawclaw/plugin-sdk/voice-call`、
   `crawclaw/plugin-sdk/zalo` 和 `crawclaw/plugin-sdk/zalouser`。

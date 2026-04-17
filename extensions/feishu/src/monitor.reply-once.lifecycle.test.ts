@@ -1,7 +1,7 @@
 import "./lifecycle.test-support.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRuntimeEnv } from "../../../test/helpers/plugins/runtime-env.js";
-import type { ClawdbotConfig, RuntimeEnv } from "../runtime-api.js";
+import type { CrawClawConfig, RuntimeEnv } from "../runtime-api.js";
 import { getFeishuLifecycleTestMocks } from "./lifecycle.test-support.js";
 import {
   cleanupFeishuLifecycleTestState,
@@ -47,7 +47,7 @@ const lifecycleConfig = createFeishuLifecycleConfig({
       },
     },
   },
-}) as ClawdbotConfig;
+}) as CrawClawConfig;
 
 const lifecycleAccount = createResolvedFeishuLifecycleAccount({
   accountId: "acct-lifecycle",

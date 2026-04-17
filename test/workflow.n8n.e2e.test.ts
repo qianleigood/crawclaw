@@ -470,7 +470,6 @@ describe("workflow n8n e2e", () => {
             },
           ],
         }),
-        getSession: async () => ({ messages: [] }),
         deleteSession: async () => {},
       });
 

@@ -598,14 +598,12 @@ describe("doctor config flow", () => {
     const cfg = result.cfg as {
       channels: {
         discord: {
-          streamMode?: string;
           streaming?: string;
           lifecycle?: unknown;
         };
       };
     };
     expect(cfg.channels.discord.streaming).toBe("partial");
-    expect(cfg.channels.discord.streamMode).toBeUndefined();
     expect(cfg.channels.discord.lifecycle).toEqual({
       enabled: true,
       reactions: {

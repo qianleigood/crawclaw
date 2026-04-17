@@ -14,7 +14,6 @@ import {
   resolveAndPersistSessionFile,
   updateSessionStore,
 } from "../sessions.js";
-import type { SessionConfig } from "../types.base.js";
 import {
   resolveSessionFilePath,
   resolveSessionFilePathOptions,
@@ -131,23 +130,6 @@ describe("session path safety", () => {
 });
 
 describe("resolveSessionResetPolicy", () => {
-  describe("backward compatibility: resetByType.dm -> direct", () => {
-    it("does not use dm fallback for group/thread types", () => {
-      const sessionCfg = {
-        resetByType: {
-          dm: { mode: "idle" as const, idleMinutes: 45 },
-        },
-      } as unknown as SessionConfig;
-
-      const groupPolicy = resolveSessionResetPolicy({
-        sessionCfg,
-        resetType: "group",
-      });
-
-      expect(groupPolicy.mode).toBe("daily");
-    });
-  });
-
   it("defaults to daily resets at 4am local time", () => {
     const policy = resolveSessionResetPolicy({
       resetType: "direct",

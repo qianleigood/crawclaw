@@ -40,15 +40,6 @@ export type BroadcastConfig = {
   [peerId: string]: string[] | BroadcastStrategy | undefined;
 };
 
-export type AudioConfig = {
-  /** @deprecated Use tools.media.audio.models instead. */
-  transcription?: {
-    // Optional CLI to turn inbound audio into text; templated args, must output transcript to stdout.
-    command: string[];
-    timeoutSeconds?: number;
-  };
-};
-
 export type StatusReactionsEmojiConfig = {
   thinking?: string;
   tool?: string;
@@ -84,8 +75,6 @@ export type StatusReactionsConfig = {
 };
 
 export type MessagesConfig = {
-  /** @deprecated Use `whatsapp.messagePrefix` (WhatsApp-only inbound prefix). */
-  messagePrefix?: string;
   /**
    * Prefix auto-added to all outbound replies.
    *

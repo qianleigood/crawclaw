@@ -41,8 +41,6 @@ export const SessionSchema = z
     resetByType: z
       .object({
         direct: SessionResetConfigSchema.optional(),
-        /** @deprecated Use `direct` instead. Kept for backward compatibility. */
-        dm: SessionResetConfigSchema.optional(),
         group: SessionResetConfigSchema.optional(),
         thread: SessionResetConfigSchema.optional(),
       })
@@ -73,8 +71,6 @@ export const SessionSchema = z
       .object({
         mode: z.enum(["enforce", "warn"]).optional(),
         pruneAfter: z.union([z.string(), z.number()]).optional(),
-        /** @deprecated Use pruneAfter instead. */
-        pruneDays: z.number().int().positive().optional(),
         maxEntries: z.number().int().positive().optional(),
         rotateBytes: z.union([z.string(), z.number()]).optional(),
         resetArchiveRetention: z.union([z.string(), z.number(), z.literal(false)]).optional(),
@@ -146,7 +142,6 @@ export const SessionSchema = z
 
 export const MessagesSchema = z
   .object({
-    messagePrefix: z.string().optional(),
     responsePrefix: z.string().optional(),
     groupChat: GroupChatSchema,
     queue: QueueSchema,

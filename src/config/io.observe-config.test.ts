@@ -64,8 +64,8 @@ describe("config io observe", () => {
 
       const snapshot = await io.readConfigFileSnapshot();
       expect(snapshot.valid).toBe(true);
-      expect(snapshot.config.update?.channel).toBe("beta");
-      expect(snapshot.config.gateway?.mode).toBe("local");
+      expect(snapshot.runtimeConfig.update?.channel).toBe("beta");
+      expect(snapshot.runtimeConfig.gateway?.mode).toBe("local");
       await expect(fs.readFile(configPath, "utf-8")).resolves.not.toBe(clobberedRaw);
 
       const lines = (await fs.readFile(auditPath, "utf-8")).trim().split("\n").filter(Boolean);

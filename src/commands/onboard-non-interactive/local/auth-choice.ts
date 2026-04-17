@@ -4,10 +4,6 @@ import type { SecretInput } from "../../../config/types.secrets.js";
 import { resolveManifestDeprecatedProviderAuthChoice } from "../../../plugins/provider-auth-choices.js";
 import type { RuntimeEnv } from "../../../runtime.js";
 import { resolveDefaultSecretProviderAlias } from "../../../secrets/ref-contract.js";
-import {
-  formatDeprecatedNonInteractiveAuthChoiceError,
-  isDeprecatedAuthChoice,
-} from "../../auth-choice-legacy.js";
 import { normalizeSecretInputModeInput } from "../../auth-choice.apply-helpers.js";
 import { normalizeApiKeyTokenProviderAuthChoice } from "../../auth-choice.apply.api-providers.js";
 import {
@@ -116,17 +112,6 @@ export async function applyNonInteractiveAuthChoice(params: {
       ...(params.metadata ? { metadata: params.metadata } : {}),
     };
   };
-  if (isDeprecatedAuthChoice(authChoice, { config: nextConfig, env: process.env })) {
-    runtime.error(
-      formatDeprecatedNonInteractiveAuthChoiceError(authChoice, {
-        config: nextConfig,
-        env: process.env,
-      })!,
-    );
-    runtime.exit(1);
-    return null;
-  }
-
   if (authChoice === "setup-token") {
     runtime.error(
       [
@@ -134,6 +119,12 @@ export async function applyNonInteractiveAuthChoice(params: {
         'Use "--auth-choice token" with --token and --token-provider anthropic.',
       ].join("\n"),
     );
+    runtime.exit(1);
+    return null;
+  }
+
+  if (authChoice === "oauth") {
+    runtime.error('Auth choice "oauth" has been removed. Use "--auth-choice setup-token".');
     runtime.exit(1);
     return null;
   }
@@ -241,7 +232,6 @@ export async function applyNonInteractiveAuthChoice(params: {
   }
 
   if (
-    authChoice === "oauth" ||
     authChoice === "chutes" ||
     authChoice === "minimax-global-oauth" ||
     authChoice === "minimax-cn-oauth"

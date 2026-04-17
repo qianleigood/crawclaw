@@ -39,7 +39,7 @@ import {
   buildBootstrapPromptWarning,
   buildBootstrapTruncationReportMeta,
   buildBootstrapInjectionStats,
-  prependBootstrapPromptWarning,
+  appendBootstrapPromptWarning,
 } from "../../bootstrap-budget.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../../bootstrap-files.js";
 import { createCacheTrace } from "../../cache-trace.js";
@@ -127,7 +127,7 @@ import {
   sanitizeToolsForGoogle,
   validateReplayTurns,
 } from "../google.js";
-import { getDmHistoryLimitFromSessionKey, limitHistoryTurns } from "../history.js";
+import { getHistoryLimitFromSessionKey, limitHistoryTurns } from "../history.js";
 import { log as embeddedAttemptLog } from "../logger.js";
 import { runMemoryRuntimeMaintenance } from "../memory-runtime-maintenance.js";
 import { buildEmbeddedMessageActionDiscoveryInput } from "../message-action-discovery-input.js";
@@ -1825,7 +1825,7 @@ export async function runEmbeddedAttempt(
         });
         const truncated = limitHistoryTurns(
           validated,
-          getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
+          getHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
         // Re-run tool_use/tool_result pairing repair after truncation, since
         // limitHistoryTurns can orphan tool_result blocks by removing the
@@ -2163,7 +2163,7 @@ export async function runEmbeddedAttempt(
         queryContext = {
           ...queryContext,
           messages: activeSession.messages,
-          userPrompt: prependBootstrapPromptWarning(params.prompt, bootstrapPromptWarning.lines, {
+          userPrompt: appendBootstrapPromptWarning(params.prompt, bootstrapPromptWarning.lines, {
             preserveExactPrompt: heartbeatPrompt,
           }),
         };

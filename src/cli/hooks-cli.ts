@@ -418,7 +418,7 @@ export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptio
 
 export async function enableHook(hookName: string): Promise<void> {
   const snapshot = await readConfigFileSnapshot();
-  const config = (snapshot.sourceConfig ?? snapshot.config) as CrawClawConfig;
+  const config = (snapshot.sourceConfig ?? snapshot.runtimeConfig) as CrawClawConfig;
   const hook = resolveHookForToggle(buildHooksReport(config), hookName, { requireEligible: true });
   const nextConfig = buildConfigWithHookEnabled({
     config,
@@ -438,7 +438,7 @@ export async function enableHook(hookName: string): Promise<void> {
 
 export async function disableHook(hookName: string): Promise<void> {
   const snapshot = await readConfigFileSnapshot();
-  const config = (snapshot.sourceConfig ?? snapshot.config) as CrawClawConfig;
+  const config = (snapshot.sourceConfig ?? snapshot.runtimeConfig) as CrawClawConfig;
   const hook = resolveHookForToggle(buildHooksReport(config), hookName);
   const nextConfig = buildConfigWithHookEnabled({ config, hookName, enabled: false });
 

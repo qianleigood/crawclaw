@@ -146,7 +146,7 @@ export async function setupCliRunnerTestModule() {
 
 export async function setupClaudeCliRunnerTestModule() {
   const runCliAgent = await setupCliRunnerTestModule();
-  return (params: Parameters<typeof import("./claude-cli-runner.js").runClaudeCliAgent>[0]) =>
+  return (params: Parameters<typeof import("./cli-runner.js").runClaudeCliAgent>[0]) =>
     runCliAgent({
       ...params,
       provider: params.provider ?? "claude-cli",

@@ -193,68 +193,13 @@ describe("normalizeCompatibilityConfigValues", () => {
     });
 
     expect(res.config.channels?.discord?.streaming).toBe("partial");
-    expect(res.config.channels?.discord?.streamMode).toBeUndefined();
     expect(res.config.channels?.discord?.accounts?.work?.streaming).toBe("off");
-    expect(res.config.channels?.discord?.accounts?.work?.streamMode).toBeUndefined();
     expect(res.changes).toContain(
       "Normalized channels.discord.streaming boolean → enum (partial).",
     );
     expect(res.changes).toContain(
       "Normalized channels.discord.accounts.work.streaming boolean → enum (off).",
     );
-  });
-
-  it("migrates Discord legacy streamMode into streaming enum", () => {
-    const res = normalizeCompatibilityConfigValues({
-      channels: {
-        discord: {
-          streaming: false,
-          streamMode: "block",
-        },
-      },
-    });
-
-    expect(res.config.channels?.discord?.streaming).toBe("block");
-    expect(res.config.channels?.discord?.streamMode).toBeUndefined();
-    expect(res.changes).toEqual([
-      "Moved channels.discord.streamMode → channels.discord.streaming (block).",
-      "Normalized channels.discord.streaming boolean → enum (block).",
-    ]);
-  });
-
-  it("migrates Telegram streamMode into streaming enum", () => {
-    const res = normalizeCompatibilityConfigValues({
-      channels: {
-        telegram: {
-          streamMode: "block",
-        },
-      },
-    });
-
-    expect(res.config.channels?.telegram?.streaming).toBe("block");
-    expect(res.config.channels?.telegram?.streamMode).toBeUndefined();
-    expect(res.changes).toEqual([
-      "Moved channels.telegram.streamMode → channels.telegram.streaming (block).",
-    ]);
-  });
-
-  it("migrates Slack legacy streaming keys to unified config", () => {
-    const res = normalizeCompatibilityConfigValues({
-      channels: {
-        slack: {
-          streaming: false,
-          streamMode: "status_final",
-        },
-      },
-    });
-
-    expect(res.config.channels?.slack?.streaming).toBe("progress");
-    expect(res.config.channels?.slack?.nativeStreaming).toBe(false);
-    expect(res.config.channels?.slack?.streamMode).toBeUndefined();
-    expect(res.changes).toEqual([
-      "Moved channels.slack.streamMode → channels.slack.streaming (progress).",
-      "Moved channels.slack.streaming (boolean) → channels.slack.nativeStreaming (false).",
-    ]);
   });
 
   it("moves missing default account from single-account top-level config when named accounts already exist", () => {
@@ -601,83 +546,6 @@ describe("normalizeCompatibilityConfigValues", () => {
     });
     expect(res.changes).toEqual([
       "Moved tools.message.allowCrossContextSend → tools.message.crossContext.allowWithinProvider/allowAcrossProviders (true).",
-    ]);
-  });
-
-  it("migrates legacy deepgram media options to providerOptions.deepgram", () => {
-    const res = normalizeCompatibilityConfigValues({
-      tools: {
-        media: {
-          audio: {
-            deepgram: {
-              detectLanguage: true,
-              smartFormat: true,
-            },
-            providerOptions: {
-              deepgram: {
-                punctuate: false,
-              },
-            },
-            models: [
-              {
-                provider: "deepgram",
-                deepgram: {
-                  punctuate: true,
-                },
-              },
-            ],
-          },
-          models: [
-            {
-              provider: "deepgram",
-              deepgram: {
-                smartFormat: false,
-              },
-              providerOptions: {
-                deepgram: {
-                  detect_language: true,
-                },
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    expect(res.config.tools?.media?.audio).toEqual({
-      providerOptions: {
-        deepgram: {
-          detect_language: true,
-          smart_format: true,
-          punctuate: false,
-        },
-      },
-      models: [
-        {
-          provider: "deepgram",
-          providerOptions: {
-            deepgram: {
-              punctuate: true,
-            },
-          },
-        },
-      ],
-    });
-    expect(res.config.tools?.media?.models).toEqual([
-      {
-        provider: "deepgram",
-        providerOptions: {
-          deepgram: {
-            smart_format: false,
-            detect_language: true,
-          },
-        },
-      },
-    ]);
-    expect(res.changes).toEqual([
-      "Merged tools.media.audio.deepgram → tools.media.audio.providerOptions.deepgram (filled missing canonical fields from legacy).",
-      "Moved tools.media.audio.models[0].deepgram → tools.media.audio.models[0].providerOptions.deepgram.",
-      "Merged tools.media.models[0].deepgram → tools.media.models[0].providerOptions.deepgram (filled missing canonical fields from legacy).",
     ]);
   });
 

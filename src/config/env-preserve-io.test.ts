@@ -68,7 +68,7 @@ describe("env snapshot TOCTOU via createConfigIO", () => {
       // Instance A: read config (captures env snapshot)
       const ioA = createConfigIO({ configPath, env: env as unknown as NodeJS.ProcessEnv });
       const firstRead = await ioA.readConfigFileSnapshotForWrite();
-      expect(firstRead.snapshot.config.gateway?.remote?.token).toBe("original-key-123");
+      expect(firstRead.snapshot.runtimeConfig.gateway?.remote?.token).toBe("original-key-123");
 
       // Mutate env between read and write
       env.MY_API_KEY = "mutated-key-456";
@@ -77,7 +77,7 @@ describe("env snapshot TOCTOU via createConfigIO", () => {
       const ioB = createConfigIO({ configPath, env: env as unknown as NodeJS.ProcessEnv });
 
       // Write the resolved config back — should restore ${MY_API_KEY}
-      await ioB.writeConfigFile(firstRead.snapshot.config, firstRead.writeOptions);
+      await ioB.writeConfigFile(firstRead.snapshot.runtimeConfig, firstRead.writeOptions);
 
       // Verify the written file still has ${MY_API_KEY}, not the resolved value
       const written = await fs.readFile(configPath, "utf-8");
@@ -100,7 +100,7 @@ describe("env snapshot TOCTOU via createConfigIO", () => {
       const ioB = createConfigIO({ configPath, env: env as unknown as NodeJS.ProcessEnv });
       // No explicit writeOptions — ioB uses live env
 
-      await ioB.writeConfigFile(snapshot.config);
+      await ioB.writeConfigFile(snapshot.runtimeConfig);
 
       // The written file should have the raw value because the live env
       // no longer matches — restoreEnvVarRefs won't find a match
@@ -117,15 +117,15 @@ describe("env snapshot TOCTOU via wrapper APIs", () => {
   it("uses explicit read context even if another read interleaves", async () => {
     await withWrapperGatewayTokenContext(async (configPath) => {
       const firstRead = await readConfigFileSnapshotForWrite();
-      expect(firstRead.snapshot.config.gateway?.remote?.token).toBe("original-key-123");
+      expect(firstRead.snapshot.runtimeConfig.gateway?.remote?.token).toBe("original-key-123");
 
       // Interleaving read from another request context with a different env value.
       process.env.MY_API_KEY = "mutated-key-456";
       const secondRead = await readConfigFileSnapshotForWrite();
-      expect(secondRead.snapshot.config.gateway?.remote?.token).toBe("mutated-key-456");
+      expect(secondRead.snapshot.runtimeConfig.gateway?.remote?.token).toBe("mutated-key-456");
 
       // Write using the first read's explicit context.
-      await writeConfigFileViaWrapper(firstRead.snapshot.config, firstRead.writeOptions);
+      await writeConfigFileViaWrapper(firstRead.snapshot.runtimeConfig, firstRead.writeOptions);
       expect(await readGatewayToken(configPath)).toBe("${MY_API_KEY}");
     });
   });
@@ -133,11 +133,11 @@ describe("env snapshot TOCTOU via wrapper APIs", () => {
   it("ignores read context when expected config path does not match", async () => {
     await withWrapperGatewayTokenContext(async (configPath) => {
       const firstRead = await readConfigFileSnapshotForWrite();
-      expect(firstRead.snapshot.config.gateway?.remote?.token).toBe("original-key-123");
+      expect(firstRead.snapshot.runtimeConfig.gateway?.remote?.token).toBe("original-key-123");
       expect(firstRead.writeOptions.expectedConfigPath).toBe(configPath);
 
       process.env.MY_API_KEY = "mutated-key-456";
-      await writeConfigFileViaWrapper(firstRead.snapshot.config, {
+      await writeConfigFileViaWrapper(firstRead.snapshot.runtimeConfig, {
         ...firstRead.writeOptions,
         expectedConfigPath: `${configPath}.different`,
       });

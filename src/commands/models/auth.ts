@@ -23,7 +23,15 @@ import { formatCliCommand } from "../../cli/command-format.js";
 import { parseDurationMs } from "../../cli/parse-duration.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { logConfigUpdated } from "../../config/logging.js";
+import { isRemoteEnvironment } from "../../infra/remote-env.js";
+import {
+  applyDefaultModel,
+  mergeConfigPatch,
+  pickAuthMethod,
+  resolveProviderMatch,
+} from "../../plugins/provider-auth-choice-helpers.js";
 import { applyAuthProfileConfig } from "../../plugins/provider-auth-helpers.js";
+import { createVpsAwareOAuthHandlers } from "../../plugins/provider-oauth-flow.js";
 import { resolvePluginProviders } from "../../plugins/providers.runtime.js";
 import type {
   ProviderAuthMethod,
@@ -33,15 +41,7 @@ import type {
 import type { RuntimeEnv } from "../../runtime.js";
 import { stylePromptHint, stylePromptMessage } from "../../terminal/prompt-style.js";
 import { createClackPrompter } from "../../wizard/clack-prompter.js";
-import { isRemoteEnvironment } from "../oauth-env.js";
-import { createVpsAwareOAuthHandlers } from "../oauth-flow.js";
 import { openUrl } from "../onboard-helpers.js";
-import {
-  applyDefaultModel,
-  mergeConfigPatch,
-  pickAuthMethod,
-  resolveProviderMatch,
-} from "../provider-auth-helpers.js";
 import { loadValidConfigOrThrow, updateConfig } from "./shared.js";
 
 function guardCancel<T>(value: T | symbol): T {

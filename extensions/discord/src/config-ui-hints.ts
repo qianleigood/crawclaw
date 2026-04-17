@@ -31,23 +31,7 @@ export const discordChannelConfigUiHints = {
   },
   streaming: {
     label: "Discord Streaming Mode",
-    help: 'Unified Discord stream preview mode: "off" | "partial" | "block" | "progress". "progress" maps to "partial" on Discord. Legacy boolean/streamMode keys are auto-mapped.',
-  },
-  streamMode: {
-    label: "Discord Stream Mode (Legacy)",
-    help: "Legacy Discord preview mode alias (off | partial | block); auto-migrated to channels.discord.streaming.",
-  },
-  "draftChunk.minChars": {
-    label: "Discord Draft Chunk Min Chars",
-    help: 'Minimum chars before emitting a Discord stream preview update when channels.discord.streaming="block" (default: 200).',
-  },
-  "draftChunk.maxChars": {
-    label: "Discord Draft Chunk Max Chars",
-    help: 'Target max size for a Discord stream preview chunk when channels.discord.streaming="block" (default: 800; clamped to channels.discord.textChunkLimit).',
-  },
-  "draftChunk.breakPreference": {
-    label: "Discord Draft Chunk Break Preference",
-    help: "Preferred breakpoints for Discord draft chunks (paragraph | newline | sentence). Default: paragraph.",
+    help: 'Unified Discord stream preview mode: "off" | "partial" | "block" | "progress". "progress" maps to "partial" on Discord.',
   },
   "retry.attempts": {
     label: "Discord Retry Attempts",

@@ -160,6 +160,12 @@ Example:
   <Card title="Docs hubs" href="/start/hubs" icon="book-open">
     All docs and guides, organized by use case.
   </Card>
+  <Card title="Concepts index" href="/concepts" icon="blocks">
+    System model, runtime, memory, models, and messaging concepts.
+  </Card>
+  <Card title="Reference docs" href="/reference" icon="file-text">
+    Stable reference material for testing, release, RPC, and migration.
+  </Card>
   <Card title="Configuration" href="/gateway/configuration" icon="settings">
     Core Gateway settings, tokens, and provider config.
   </Card>
@@ -191,6 +197,9 @@ Example:
   </Card>
   <Card title="Troubleshooting" href="/gateway/troubleshooting" icon="wrench">
     Gateway diagnostics and common errors.
+  </Card>
+  <Card title="Debug and maintainer docs" href="/debug" icon="search-code">
+    Deep implementation notes, investigations, and maintainer entry points.
   </Card>
   <Card title="About and credits" href="/reference/credits" icon="info">
     Project origins, contributors, and license.

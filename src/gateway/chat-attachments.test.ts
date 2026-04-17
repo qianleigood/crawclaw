@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  buildMessageWithAttachments,
-  type ChatAttachment,
-  parseMessageWithAttachments,
-} from "./chat-attachments.js";
+import { type ChatAttachment, parseMessageWithAttachments } from "./chat-attachments.js";
 
 const PNG_1x1 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/woAAn8B9FD5fHAAAAAASUVORK5CYII=";
@@ -15,32 +11,6 @@ async function parseWithWarnings(message: string, attachments: ChatAttachment[])
   });
   return { parsed, logs };
 }
-
-describe("buildMessageWithAttachments", () => {
-  it("embeds a single image as data URL", () => {
-    const msg = buildMessageWithAttachments("see this", [
-      {
-        type: "image",
-        mimeType: "image/png",
-        fileName: "dot.png",
-        content: PNG_1x1,
-      },
-    ]);
-    expect(msg).toContain("see this");
-    expect(msg).toContain(`data:image/png;base64,${PNG_1x1}`);
-    expect(msg).toContain("![dot.png]");
-  });
-
-  it("rejects non-image mime types", () => {
-    const bad: ChatAttachment = {
-      type: "file",
-      mimeType: "application/pdf",
-      fileName: "a.pdf",
-      content: "AAA",
-    };
-    expect(() => buildMessageWithAttachments("x", [bad])).toThrow(/image/);
-  });
-});
 
 describe("parseMessageWithAttachments", () => {
   it("strips data URL prefix", async () => {
@@ -140,7 +110,7 @@ describe("parseMessageWithAttachments", () => {
 });
 
 describe("shared attachment validation", () => {
-  it("rejects invalid base64 content for both builder and parser", async () => {
+  it("rejects invalid base64 content for parser", async () => {
     const bad: ChatAttachment = {
       type: "image",
       mimeType: "image/png",
@@ -148,13 +118,12 @@ describe("shared attachment validation", () => {
       content: "%not-base64%",
     };
 
-    expect(() => buildMessageWithAttachments("x", [bad])).toThrow(/base64/i);
     await expect(
       parseMessageWithAttachments("x", [bad], { log: { warn: () => {} } }),
     ).rejects.toThrow(/base64/i);
   });
 
-  it("rejects images over limit for both builder and parser without decoding base64", async () => {
+  it("rejects images over limit for parser without decoding base64", async () => {
     const big = "A".repeat(10_000);
     const att: ChatAttachment = {
       type: "image",
@@ -165,9 +134,6 @@ describe("shared attachment validation", () => {
 
     const fromSpy = vi.spyOn(Buffer, "from");
     try {
-      expect(() => buildMessageWithAttachments("x", [att], { maxBytes: 16 })).toThrow(
-        /exceeds size limit/i,
-      );
       await expect(
         parseMessageWithAttachments("x", [att], { maxBytes: 16, log: { warn: () => {} } }),
       ).rejects.toThrow(/exceeds size limit/i);

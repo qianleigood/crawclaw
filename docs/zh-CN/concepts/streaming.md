@@ -104,7 +104,7 @@ CrawClaw 有两个独立的"流式传输"层：
 - **最后流式传输全部内容：** `blockStreamingBreak: "message_end"`（刷新一次，如果很长可能有多个块）。
 - **无分块流式传输：** `blockStreamingDefault: "off"`（只有最终回复）。
 
-**渠道说明：** 对于非 Telegram 渠道，分块流式传输**默认关闭**，除非 `*.blockStreaming` 明确设置为 `true`。Telegram 可以在没有块回复的情况下流式传输草稿（`channels.telegram.streamMode`）。
+**渠道说明：** 对于非 Telegram 渠道，分块流式传输**默认关闭**，除非 `*.blockStreaming` 明确设置为 `true`。Telegram 可以在没有块回复的情况下流式传输草稿（`channels.telegram.streaming`）。
 
 配置位置提醒：`blockStreaming*` 默认值位于 `agents.defaults` 下，而不是根配置。
 
@@ -113,11 +113,11 @@ CrawClaw 有两个独立的"流式传输"层：
 Telegram 是唯一支持草稿流式传输的渠道：
 
 - 在**带主题的私聊**中使用 Bot API `sendMessageDraft`。
-- `channels.telegram.streamMode: "partial" | "block" | "off"`。
+- `channels.telegram.streaming: "partial" | "block" | "off" | "progress"`。
   - `partial`：用最新的流式文本更新草稿。
   - `block`：以分块方式更新草稿（相同的分块器规则）。
   - `off`：无草稿流式传输。
-- 草稿分块配置（仅用于 `streamMode: "block"`）：`channels.telegram.draftChunk`（默认值：`minChars: 200`，`maxChars: 800`）。
+- `progress`：为跨渠道语义一致性，在 Telegram 上按 `partial` 处理。
 - 草稿流式传输与分块流式传输分开；块回复默认关闭，仅在非 Telegram 渠道上通过 `*.blockStreaming: true` 启用。
 - 最终回复仍然是普通消息。
 - `/reasoning stream` 将推理写入草稿气泡（仅限 Telegram）。
@@ -127,8 +127,8 @@ Telegram 是唯一支持草稿流式传输的渠道：
 ```
 Telegram（私聊 + 主题）
   └─ sendMessageDraft（草稿气泡）
-       ├─ streamMode=partial → 更新最新文本
-       └─ streamMode=block   → 分块器更新草稿
+       ├─ streaming=partial/progress → 更新最新文本
+       └─ streaming=block            → 分块器更新草稿
   └─ 最终回复 → 普通消息
 ```
 

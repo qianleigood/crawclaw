@@ -272,11 +272,7 @@ switch the same gateway host to Claude CLI:
 crawclaw models auth login --provider anthropic --method cli --set-default
 ```
 
-Or in onboarding:
-
-```bash
-crawclaw onboard --auth-choice anthropic-cli
-```
+Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
 
 What this does:
 

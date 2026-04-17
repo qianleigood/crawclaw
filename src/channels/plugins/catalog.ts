@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { MANIFEST_KEY } from "../../compat/legacy-names.js";
 import { resolveCrawClawPackageRootSync } from "../../infra/crawclaw-root.js";
 import { resolveBundledPluginsDir } from "../../plugins/bundled-dir.js";
 import { discoverCrawClawPlugins } from "../../plugins/discovery.js";
@@ -8,6 +7,7 @@ import { loadPluginManifest } from "../../plugins/manifest.js";
 import type { CrawClawPackageManifest } from "../../plugins/manifest.js";
 import type { PackageManifest as PluginPackageManifest } from "../../plugins/manifest.js";
 import type { PluginOrigin } from "../../plugins/types.js";
+import { MANIFEST_KEY } from "../../shared/manifest-key.js";
 import { isRecord, resolveConfigDir, resolveUserPath } from "../../utils.js";
 import type { ChannelMeta } from "./types.js";
 

@@ -201,19 +201,19 @@ export const talkHandlers: GatewayRequestHandlers = {
     const configPayload: Record<string, unknown> = {};
 
     const talkSource = includeSecrets
-      ? snapshot.config.talk
-      : redactConfigObject(snapshot.config.talk);
+      ? snapshot.runtimeConfig.talk
+      : redactConfigObject(snapshot.runtimeConfig.talk);
     const talk = buildTalkConfigResponse(talkSource);
     if (talk) {
       configPayload.talk = talk;
     }
 
-    const sessionMainKey = snapshot.config.session?.mainKey;
+    const sessionMainKey = snapshot.runtimeConfig.session?.mainKey;
     if (typeof sessionMainKey === "string") {
       configPayload.session = { mainKey: sessionMainKey };
     }
 
-    const seamColor = snapshot.config.ui?.seamColor;
+    const seamColor = snapshot.runtimeConfig.ui?.seamColor;
     if (typeof seamColor === "string") {
       configPayload.ui = { seamColor };
     }
@@ -241,7 +241,7 @@ export const talkHandlers: GatewayRequestHandlers = {
 
     try {
       const snapshot = await readConfigFileSnapshot();
-      const setup = buildTalkTtsConfig(snapshot.config);
+      const setup = buildTalkTtsConfig(snapshot.runtimeConfig);
       if ("error" in setup) {
         respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, setup.error));
         return;
@@ -250,7 +250,7 @@ export const talkHandlers: GatewayRequestHandlers = {
       const overrides = buildTalkSpeakOverrides(
         setup.provider,
         setup.providerConfig,
-        snapshot.config,
+        snapshot.runtimeConfig,
         params,
       );
       const result = await synthesizeSpeech({

@@ -24,8 +24,6 @@ export type SlackDmConfig = {
   groupEnabled?: boolean;
   /** Optional allowlist for group DM channels (ids or slugs). */
   groupChannels?: Array<string | number>;
-  /** @deprecated Prefer channels.slack.replyToModeByChatType.direct. */
-  replyToMode?: ReplyToMode;
 };
 
 export type SlackChannelConfig = {
@@ -172,8 +170,6 @@ export type SlackAccountConfig = {
    * Used when `streaming` is `partial`. Default: true.
    */
   nativeStreaming?: boolean;
-  /** @deprecated Legacy preview mode key; migrated automatically to `streaming`. */
-  streamMode?: SlackLegacyStreamMode;
   mediaMaxMb?: number;
   /** Reaction notification mode (off|own|all|allowlist). Default: own. */
   reactionNotifications?: SlackReactionNotificationMode;

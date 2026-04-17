@@ -2,7 +2,7 @@ import type { EnvelopeFormatOptions } from "crawclaw/plugin-sdk/channel-inbound"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPluginRuntimeMock } from "../../../test/helpers/plugins/plugin-runtime-mock.js";
 import { createRuntimeEnv } from "../../../test/helpers/plugins/runtime-env.js";
-import type { ClawdbotConfig, PluginRuntime } from "../runtime-api.js";
+import type { CrawClawConfig, PluginRuntime } from "../runtime-api.js";
 import type { FeishuMessageEvent } from "./bot.js";
 import { handleFeishuMessage } from "./bot.js";
 import { setFeishuRuntime } from "./runtime.js";
@@ -72,7 +72,7 @@ describe("broadcast dispatch", () => {
     contentType: "video/mp4",
   });
 
-  function createBroadcastConfig(): ClawdbotConfig {
+  function createBroadcastConfig(): CrawClawConfig {
     return {
       broadcast: { "oc-broadcast-group": ["susan", "main"] },
       agents: { list: [{ id: "main" }, { id: "susan" }] },
@@ -235,7 +235,7 @@ describe("broadcast dispatch", () => {
   });
 
   it("preserves single-agent dispatch when no broadcast config", async () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: CrawClawConfig = {
       channels: {
         feishu: {
           groups: {
@@ -274,7 +274,7 @@ describe("broadcast dispatch", () => {
   });
 
   it("cross-account broadcast dedup: second account skips dispatch", async () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: CrawClawConfig = {
       broadcast: { "oc-broadcast-group": ["susan", "main"] },
       agents: { list: [{ id: "main" }, { id: "susan" }] },
       channels: {
@@ -320,7 +320,7 @@ describe("broadcast dispatch", () => {
   });
 
   it("skips unknown agents not in agents.list", async () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: CrawClawConfig = {
       broadcast: { "oc-broadcast-group": ["susan", "unknown-agent"] },
       agents: { list: [{ id: "main" }, { id: "susan" }] },
       channels: {

@@ -4,8 +4,6 @@ import type { GatewayDaemonRuntime } from "./daemon-runtime.js";
 
 export type OnboardMode = "local" | "remote";
 export type BuiltInAuthChoice =
-  // Legacy alias for `setup-token` (kept for backwards CLI compatibility).
-  | "oauth"
   | "setup-token"
   | "token"
   | "chutes"
@@ -161,8 +159,6 @@ export type OnboardOptions = {
   installDaemon?: boolean;
   daemonRuntime?: GatewayDaemonRuntime;
   skipChannels?: boolean;
-  /** @deprecated Legacy alias for `skipChannels`. */
-  skipProviders?: boolean;
   skipSkills?: boolean;
   skipSearch?: boolean;
   skipHealth?: boolean;

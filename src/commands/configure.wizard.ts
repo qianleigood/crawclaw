@@ -329,7 +329,7 @@ export async function runConfigureWizard(
     const snapshot = await readConfigFileSnapshot();
     let currentBaseHash = snapshot.hash;
     const baseConfig: CrawClawConfig = snapshot.valid
-      ? (snapshot.sourceConfig ?? snapshot.config)
+      ? (snapshot.sourceConfig ?? snapshot.runtimeConfig)
       : {};
 
     if (snapshot.exists) {

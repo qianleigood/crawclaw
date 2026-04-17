@@ -272,31 +272,39 @@ describe("secrets runtime snapshot", () => {
         }),
     });
 
-    expect(snapshot.config.models?.providers?.openai?.apiKey).toBe("sk-env-openai");
-    expect(snapshot.config.models?.providers?.openai?.headers?.Authorization).toBe(
+    expect(snapshot.runtimeConfig.models?.providers?.openai?.apiKey).toBe("sk-env-openai");
+    expect(snapshot.runtimeConfig.models?.providers?.openai?.headers?.Authorization).toBe(
       "Bearer sk-env-header",
     );
-    expect(snapshot.config.skills?.entries?.["review-pr"]?.apiKey).toBe("sk-skill-ref");
-    expect(snapshot.config.agents?.defaults?.memorySearch?.remote?.apiKey).toBe("mem-ref-key");
-    expect(snapshot.config.talk?.apiKey).toBe("talk-ref-key");
-    expect(snapshot.config.talk?.providers?.elevenlabs?.apiKey).toBe("talk-provider-ref-key");
-    expect(snapshot.config.gateway?.remote?.token).toBe("remote-token-ref");
-    expect(snapshot.config.gateway?.remote?.password).toBe("remote-password-ref");
-    expect(snapshot.config.channels?.telegram?.botToken).toEqual({
+    expect(snapshot.runtimeConfig.skills?.entries?.["review-pr"]?.apiKey).toBe("sk-skill-ref");
+    expect(snapshot.runtimeConfig.agents?.defaults?.memorySearch?.remote?.apiKey).toBe(
+      "mem-ref-key",
+    );
+    expect(snapshot.runtimeConfig.talk?.apiKey).toBe("talk-ref-key");
+    expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.apiKey).toBe(
+      "talk-provider-ref-key",
+    );
+    expect(snapshot.runtimeConfig.gateway?.remote?.token).toBe("remote-token-ref");
+    expect(snapshot.runtimeConfig.gateway?.remote?.password).toBe("remote-password-ref");
+    expect(snapshot.runtimeConfig.channels?.telegram?.botToken).toEqual({
       source: "env",
       provider: "default",
       id: "TELEGRAM_BOT_TOKEN_REF",
     });
-    expect(snapshot.config.channels?.telegram?.webhookSecret).toBe("telegram-webhook-ref");
-    expect(snapshot.config.channels?.telegram?.accounts?.work?.botToken).toBe("telegram-work-ref");
-    expect(snapshot.config.channels?.slack?.signingSecret).toBe("slack-signing-ref");
-    expect(snapshot.config.channels?.slack?.accounts?.work?.botToken).toBe("slack-work-bot-ref");
-    expect(snapshot.config.channels?.slack?.accounts?.work?.appToken).toEqual({
+    expect(snapshot.runtimeConfig.channels?.telegram?.webhookSecret).toBe("telegram-webhook-ref");
+    expect(snapshot.runtimeConfig.channels?.telegram?.accounts?.work?.botToken).toBe(
+      "telegram-work-ref",
+    );
+    expect(snapshot.runtimeConfig.channels?.slack?.signingSecret).toBe("slack-signing-ref");
+    expect(snapshot.runtimeConfig.channels?.slack?.accounts?.work?.botToken).toBe(
+      "slack-work-bot-ref",
+    );
+    expect(snapshot.runtimeConfig.channels?.slack?.accounts?.work?.appToken).toEqual({
       source: "env",
       provider: "default",
       id: "SLACK_WORK_APP_TOKEN_REF",
     });
-    expect(snapshot.config.tools?.web?.search?.apiKey).toBe("web-search-ref");
+    expect(snapshot.runtimeConfig.tools?.web?.search?.apiKey).toBe("web-search-ref");
     expect(snapshot.warnings.map((warning) => warning.path)).toEqual(
       expect.arrayContaining(["channels.slack.accounts.work.appToken"]),
     );
@@ -344,7 +352,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.matrix?.accessToken).toBe("default-matrix-token");
+    expect(snapshot.runtimeConfig.channels?.matrix?.accessToken).toBe("default-matrix-token");
   });
 
   it("can skip auth-profile SecretRef resolution when includeAuthStoreRefs is false", async () => {
@@ -404,7 +412,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.matrix?.accounts?.ops?.password).toEqual({
+    expect(snapshot.runtimeConfig.channels?.matrix?.accounts?.ops?.password).toEqual({
       source: "env",
       provider: "default",
       id: "MATRIX_OPS_PASSWORD",
@@ -489,7 +497,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.matrix?.password).toEqual({
+    expect(snapshot.runtimeConfig.channels?.matrix?.password).toEqual({
       source: "env",
       provider: "default",
       id: "MATRIX_PASSWORD",
@@ -578,7 +586,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.matrix?.accounts?.default?.password).toEqual({
+    expect(snapshot.runtimeConfig.channels?.matrix?.accounts?.default?.password).toEqual({
       source: "env",
       provider: "default",
       id: "MATRIX_DEFAULT_PASSWORD",
@@ -624,7 +632,7 @@ describe("secrets runtime snapshot", () => {
       },
     });
 
-    expect(snapshot.config.agents?.defaults?.sandbox?.ssh).toMatchObject({
+    expect(snapshot.runtimeConfig.agents?.defaults?.sandbox?.ssh).toMatchObject({
       identityData: "PRIVATE KEY",
       certificateData: "SSH CERT",
       knownHostsData: "example.com ssh-ed25519 AAAATEST",
@@ -649,7 +657,7 @@ describe("secrets runtime snapshot", () => {
       env: {},
     });
 
-    expect(snapshot.config.agents?.defaults?.sandbox?.ssh?.identityData).toEqual({
+    expect(snapshot.runtimeConfig.agents?.defaults?.sandbox?.ssh?.identityData).toEqual({
       source: "env",
       provider: "default",
       id: "SSH_IDENTITY_DATA",
@@ -778,8 +786,8 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.tools?.web?.search?.apiKey).toBe("web-search-ref");
-    const xaiWebSearchConfig = snapshot.config.plugins?.entries?.xai?.config as
+    expect(snapshot.runtimeConfig.tools?.web?.search?.apiKey).toBe("web-search-ref");
+    const xaiWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.xai?.config as
       | { webSearch?: { apiKey?: unknown } }
       | undefined;
     expect(xaiWebSearchConfig?.webSearch?.apiKey).toEqual({
@@ -832,8 +840,8 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.tools?.web?.search?.apiKey).toBe("web-search-ref");
-    const googleWebSearchConfig = snapshot.config.plugins?.entries?.google?.config as
+    expect(snapshot.runtimeConfig.tools?.web?.search?.apiKey).toBe("web-search-ref");
+    const googleWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.google?.config as
       | { webSearch?: { apiKey?: unknown } }
       | undefined;
     expect(googleWebSearchConfig?.webSearch?.apiKey).toEqual({
@@ -886,7 +894,7 @@ describe("secrets runtime snapshot", () => {
       agentDirs: ["/tmp/crawclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
-    const resolvedGoogleWebSearchConfig = snapshot.config.plugins?.entries?.google?.config as
+    const resolvedGoogleWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.google?.config as
       | { webSearch?: { apiKey?: unknown } }
       | undefined;
     expect(resolvedGoogleWebSearchConfig?.webSearch?.apiKey).toBe("web-search-gemini-ref");
@@ -1034,7 +1042,9 @@ describe("secrets runtime snapshot", () => {
         loadAuthStore: () => ({ version: 1, profiles: {} }),
       });
 
-      expect(snapshot.config.models?.providers?.openai?.apiKey).toBe("sk-from-file-provider");
+      expect(snapshot.runtimeConfig.models?.providers?.openai?.apiKey).toBe(
+        "sk-from-file-provider",
+      );
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
@@ -1140,7 +1150,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.telegram?.botToken).toEqual({
+    expect(snapshot.runtimeConfig.channels?.telegram?.botToken).toEqual({
       source: "env",
       provider: "default",
       id: "DISABLED_TELEGRAM_BASE_TOKEN",
@@ -1186,12 +1196,12 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.remote?.token).toEqual({
+    expect(snapshot.runtimeConfig.gateway?.remote?.token).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_REMOTE_TOKEN",
     });
-    expect(snapshot.config.gateway?.remote?.password).toEqual({
+    expect(snapshot.runtimeConfig.gateway?.remote?.password).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_REMOTE_PASSWORD",
@@ -1217,7 +1227,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.auth?.password).toBe("resolved-gateway-password");
+    expect(snapshot.runtimeConfig.gateway?.auth?.password).toBe("resolved-gateway-password");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain("gateway.auth.password");
   });
 
@@ -1238,7 +1248,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.auth?.token).toBe("resolved-gateway-token");
+    expect(snapshot.runtimeConfig.gateway?.auth?.token).toBe("resolved-gateway-token");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain("gateway.auth.token");
   });
 
@@ -1260,7 +1270,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.auth?.token).toEqual({
+    expect(snapshot.runtimeConfig.gateway?.auth?.token).toEqual({
       source: "env",
       provider: "default",
       id: "GATEWAY_TOKEN_REF",
@@ -1326,7 +1336,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.auth?.password).toEqual({
+    expect(snapshot.runtimeConfig.gateway?.auth?.password).toEqual({
       source: "env",
       provider: "default",
       id: "GATEWAY_PASSWORD_REF",
@@ -1354,7 +1364,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.auth?.password).toEqual({
+    expect(snapshot.runtimeConfig.gateway?.auth?.password).toEqual({
       source: "env",
       provider: "default",
       id: "GATEWAY_PASSWORD_REF",
@@ -1383,12 +1393,12 @@ describe("secrets runtime snapshot", () => {
         loadAuthStore: () => ({ version: 1, profiles: {} }),
       });
 
-      expect(snapshot.config.gateway?.remote?.token).toEqual({
+      expect(snapshot.runtimeConfig.gateway?.remote?.token).toEqual({
         source: "env",
         provider: "default",
         id: "MISSING_REMOTE_TOKEN",
       });
-      expect(snapshot.config.gateway?.remote?.password).toEqual({
+      expect(snapshot.runtimeConfig.gateway?.remote?.password).toEqual({
         source: "env",
         provider: "default",
         id: "MISSING_REMOTE_PASSWORD",
@@ -1420,7 +1430,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.remote?.token).toBe("resolved-remote-token");
+    expect(snapshot.runtimeConfig.gateway?.remote?.token).toBe("resolved-remote-token");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain("gateway.remote.token");
     expect(snapshot.warnings.map((warning) => warning.path)).toContain("gateway.remote.password");
   });
@@ -1444,7 +1454,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.remote?.password).toBe("resolved-remote-password");
+    expect(snapshot.runtimeConfig.gateway?.remote?.password).toBe("resolved-remote-password");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
       "gateway.remote.password",
     );
@@ -1467,7 +1477,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.zalo?.botToken).toBe("resolved-zalo-token");
+    expect(snapshot.runtimeConfig.channels?.zalo?.botToken).toBe("resolved-zalo-token");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
       "channels.zalo.botToken",
     );
@@ -1494,7 +1504,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.zalo?.accounts?.work?.botToken).toBe(
+    expect(snapshot.runtimeConfig.channels?.zalo?.accounts?.work?.botToken).toBe(
       "resolved-zalo-work-token",
     );
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
@@ -1523,7 +1533,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.zalo?.botToken).toBe("resolved-zalo-top-level-token");
+    expect(snapshot.runtimeConfig.channels?.zalo?.botToken).toBe("resolved-zalo-top-level-token");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
       "channels.zalo.botToken",
     );
@@ -1550,7 +1560,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.zalo?.accounts?.default?.botToken).toBe(
+    expect(snapshot.runtimeConfig.channels?.zalo?.accounts?.default?.botToken).toBe(
       "resolved-zalo-default-token",
     );
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
@@ -1579,10 +1589,10 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.["nextcloud-talk"]?.botSecret).toBe(
+    expect(snapshot.runtimeConfig.channels?.["nextcloud-talk"]?.botSecret).toBe(
       "resolved-nextcloud-bot-secret",
     );
-    expect(snapshot.config.channels?.["nextcloud-talk"]?.apiPassword).toBe(
+    expect(snapshot.runtimeConfig.channels?.["nextcloud-talk"]?.apiPassword).toBe(
       "resolved-nextcloud-api-password",
     );
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
@@ -1621,10 +1631,10 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.["nextcloud-talk"]?.accounts?.work?.botSecret).toBe(
+    expect(snapshot.runtimeConfig.channels?.["nextcloud-talk"]?.accounts?.work?.botSecret).toBe(
       "resolved-nextcloud-work-bot-secret",
     );
-    expect(snapshot.config.channels?.["nextcloud-talk"]?.accounts?.work?.apiPassword).toBe(
+    expect(snapshot.runtimeConfig.channels?.["nextcloud-talk"]?.accounts?.work?.apiPassword).toBe(
       "resolved-nextcloud-work-api-password",
     );
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
@@ -1656,8 +1666,8 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.gateway?.remote?.token).toBe("tailscale-remote-token");
-    expect(snapshot.config.gateway?.remote?.password).toBe("tailscale-remote-password");
+    expect(snapshot.runtimeConfig.gateway?.remote?.token).toBe("tailscale-remote-token");
+    expect(snapshot.runtimeConfig.gateway?.remote?.password).toBe("tailscale-remote-password");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain("gateway.remote.token");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
       "gateway.remote.password",
@@ -1694,7 +1704,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.agents?.defaults?.memorySearch?.remote?.apiKey).toEqual({
+    expect(snapshot.runtimeConfig.agents?.defaults?.memorySearch?.remote?.apiKey).toEqual({
       source: "env",
       provider: "default",
       id: "DEFAULT_MEMORY_REMOTE_API_KEY",
@@ -1789,10 +1799,10 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.telegram?.accounts?.work?.botToken).toBe(
+    expect(snapshot.runtimeConfig.channels?.telegram?.accounts?.work?.botToken).toBe(
       "telegram-work-token",
     );
-    expect(snapshot.config.channels?.telegram?.botToken).toEqual({
+    expect(snapshot.runtimeConfig.channels?.telegram?.botToken).toEqual({
       source: "env",
       provider: "default",
       id: "UNUSED_TELEGRAM_BASE_TOKEN",
@@ -1853,7 +1863,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.telegram?.webhookSecret).toEqual({
+    expect(snapshot.runtimeConfig.channels?.telegram?.webhookSecret).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_TELEGRAM_WEBHOOK_SECRET",
@@ -1882,7 +1892,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.telegram?.botToken).toEqual({
+    expect(snapshot.runtimeConfig.channels?.telegram?.botToken).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_TELEGRAM_BOT_TOKEN",
@@ -1916,7 +1926,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.telegram?.accounts?.work?.botToken).toEqual({
+    expect(snapshot.runtimeConfig.channels?.telegram?.accounts?.work?.botToken).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_TELEGRAM_WORK_BOT_TOKEN",
@@ -1952,8 +1962,8 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.telegram?.botToken).toBe("telegram-base-token");
-    expect(snapshot.config.channels?.telegram?.accounts?.work?.botToken).toBe("");
+    expect(snapshot.runtimeConfig.channels?.telegram?.botToken).toBe("telegram-base-token");
+    expect(snapshot.runtimeConfig.channels?.telegram?.accounts?.work?.botToken).toBe("");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
       "channels.telegram.botToken",
     );
@@ -1985,7 +1995,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.irc?.accounts?.work?.nickserv?.password).toEqual({
+    expect(snapshot.runtimeConfig.channels?.irc?.accounts?.work?.nickserv?.password).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_IRC_WORK_NICKSERV_PASSWORD",
@@ -2016,7 +2026,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.irc?.nickserv?.password).toEqual({
+    expect(snapshot.runtimeConfig.channels?.irc?.nickserv?.password).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_IRC_TOPLEVEL_NICKSERV_PASSWORD",
@@ -2051,7 +2061,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.slack?.signingSecret).toEqual({
+    expect(snapshot.runtimeConfig.channels?.slack?.signingSecret).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_SLACK_SIGNING_SECRET",
@@ -2091,12 +2101,12 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.slack?.appToken).toEqual({
+    expect(snapshot.runtimeConfig.channels?.slack?.appToken).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_SLACK_APP_TOKEN",
     });
-    expect(snapshot.config.channels?.slack?.accounts?.work?.appToken).toEqual({
+    expect(snapshot.runtimeConfig.channels?.slack?.accounts?.work?.appToken).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_SLACK_WORK_APP_TOKEN",
@@ -2136,12 +2146,12 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.googlechat?.serviceAccount).toEqual({
+    expect(snapshot.runtimeConfig.channels?.googlechat?.serviceAccount).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_GOOGLECHAT_BASE_SERVICE_ACCOUNT",
     });
-    expect(snapshot.config.channels?.googlechat?.accounts?.work?.serviceAccount).toBe(
+    expect(snapshot.runtimeConfig.channels?.googlechat?.accounts?.work?.serviceAccount).toBe(
       "work-service-account-json",
     );
     expect(snapshot.warnings.map((warning) => warning.path)).toContain(
@@ -2199,7 +2209,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.discord?.token).toEqual({
+    expect(snapshot.runtimeConfig.channels?.discord?.token).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_DISCORD_DEFAULT_TOKEN",
@@ -2228,7 +2238,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.discord?.pluralkit?.token).toEqual({
+    expect(snapshot.runtimeConfig.channels?.discord?.pluralkit?.token).toEqual({
       source: "env",
       provider: "default",
       id: "MISSING_DISCORD_PLURALKIT_TOKEN",
@@ -2280,13 +2290,16 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toEqual({
-      source: "env",
-      provider: "default",
-      id: "MISSING_DISCORD_VOICE_TTS_OPENAI",
-    });
+    expect(snapshot.runtimeConfig.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toEqual(
+      {
+        source: "env",
+        provider: "default",
+        id: "MISSING_DISCORD_VOICE_TTS_OPENAI",
+      },
+    );
     expect(
-      snapshot.config.channels?.discord?.accounts?.work?.voice?.tts?.providers?.openai?.apiKey,
+      snapshot.runtimeConfig.channels?.discord?.accounts?.work?.voice?.tts?.providers?.openai
+        ?.apiKey,
     ).toEqual({
       source: "env",
       provider: "default",
@@ -2373,29 +2386,29 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.config.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toBe(
+    expect(snapshot.runtimeConfig.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toBe(
       "base-tts-openai",
     );
-    expect(snapshot.config.channels?.discord?.pluralkit?.token).toBe("base-pk-token");
+    expect(snapshot.runtimeConfig.channels?.discord?.pluralkit?.token).toBe("base-pk-token");
     expect(
-      snapshot.config.channels?.discord?.accounts?.enabledOverride?.voice?.tts?.providers?.openai
-        ?.apiKey,
+      snapshot.runtimeConfig.channels?.discord?.accounts?.enabledOverride?.voice?.tts?.providers
+        ?.openai?.apiKey,
     ).toBe("enabled-override-tts-openai");
     expect(
-      snapshot.config.channels?.discord?.accounts?.disabledOverride?.voice?.tts?.providers?.openai
-        ?.apiKey,
+      snapshot.runtimeConfig.channels?.discord?.accounts?.disabledOverride?.voice?.tts?.providers
+        ?.openai?.apiKey,
     ).toEqual({
       source: "env",
       provider: "default",
       id: "DISCORD_DISABLED_OVERRIDE_TTS_OPENAI",
     });
-    expect(snapshot.config.channels?.discord?.accounts?.disabledOverride?.pluralkit?.token).toEqual(
-      {
-        source: "env",
-        provider: "default",
-        id: "DISCORD_DISABLED_OVERRIDE_PK_TOKEN",
-      },
-    );
+    expect(
+      snapshot.runtimeConfig.channels?.discord?.accounts?.disabledOverride?.pluralkit?.token,
+    ).toEqual({
+      source: "env",
+      provider: "default",
+      id: "DISCORD_DISABLED_OVERRIDE_PK_TOKEN",
+    });
     expect(snapshot.warnings.map((warning) => warning.path)).toEqual(
       expect.arrayContaining([
         "channels.discord.accounts.disabledOverride.voice.tts.providers.openai.apiKey",
@@ -2454,14 +2467,16 @@ describe("secrets runtime snapshot", () => {
     });
 
     expect(
-      snapshot.config.channels?.discord?.accounts?.enabledOverride?.voice?.tts?.providers?.openai
-        ?.apiKey,
+      snapshot.runtimeConfig.channels?.discord?.accounts?.enabledOverride?.voice?.tts?.providers
+        ?.openai?.apiKey,
     ).toBe("enabled-only-tts-openai");
-    expect(snapshot.config.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toEqual({
-      source: "env",
-      provider: "default",
-      id: "DISCORD_UNUSED_BASE_TTS_OPENAI",
-    });
+    expect(snapshot.runtimeConfig.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toEqual(
+      {
+        source: "env",
+        provider: "default",
+        id: "DISCORD_UNUSED_BASE_TTS_OPENAI",
+      },
+    );
     expect(snapshot.warnings.map((warning) => warning.path)).toContain(
       "channels.discord.voice.tts.providers.openai.apiKey",
     );
@@ -2556,7 +2571,7 @@ describe("secrets runtime snapshot", () => {
       string,
       { env?: Record<string, unknown> }
     >;
-    const entries = snapshot.config.plugins?.entries as Record<
+    const entries = snapshot.runtimeConfig.plugins?.entries as Record<
       string,
       { config?: Record<string, unknown> }
     >;
@@ -2606,7 +2621,7 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    const entries = snapshot.config.plugins?.entries as Record<
+    const entries = snapshot.runtimeConfig.plugins?.entries as Record<
       string,
       { config?: Record<string, unknown> }
     >;
@@ -2658,7 +2673,7 @@ describe("secrets runtime snapshot", () => {
       ),
     ).toBe(true);
 
-    const entries = snapshot.config.plugins?.entries as Record<
+    const entries = snapshot.runtimeConfig.plugins?.entries as Record<
       string,
       { config?: Record<string, unknown> }
     >;
@@ -2737,11 +2752,13 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect((snapshot.config.tools?.web as Record<string, unknown> | undefined)?.x_search).toEqual({
+    expect(
+      (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
+    ).toEqual({
       enabled: true,
       model: "grok-4-1-fast",
     });
-    expect(snapshot.config.plugins?.entries?.xai?.config).toEqual({
+    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toEqual({
       webSearch: {
         apiKey: "xai-runtime-key",
       },
@@ -2773,10 +2790,12 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect((snapshot.config.tools?.web as Record<string, unknown> | undefined)?.x_search).toEqual({
+    expect(
+      (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
+    ).toEqual({
       enabled: true,
     });
-    expect(snapshot.config.plugins?.entries?.xai?.config).toEqual({
+    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toEqual({
       webSearch: {
         apiKey: "xai-runtime-key-invalid-config",
       },
@@ -2800,10 +2819,12 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect((snapshot.config.tools?.web as Record<string, unknown> | undefined)?.x_search).toEqual({
+    expect(
+      (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
+    ).toEqual({
       enabled: true,
       model: "grok-4-1-fast",
     });
-    expect(snapshot.config.plugins?.entries?.xai).toBeUndefined();
+    expect(snapshot.runtimeConfig.plugins?.entries?.xai).toBeUndefined();
   });
 });

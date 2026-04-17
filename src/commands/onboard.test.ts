@@ -1,7 +1,7 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeEnv } from "../runtime.js";
-import { onboardCommand, setupWizardCommand } from "./onboard.js";
+import { setupWizardCommand } from "./onboard.js";
 
 const mocks = vi.hoisted(() => ({
   runInteractiveSetup: vi.fn(async () => {}),
@@ -156,9 +156,5 @@ describe("setupWizardCommand", () => {
     expect(mocks.handleReset).not.toHaveBeenCalled();
     expect(mocks.runInteractiveSetup).not.toHaveBeenCalled();
     expect(mocks.runNonInteractiveSetup).not.toHaveBeenCalled();
-  });
-
-  it("keeps onboardCommand as an alias for setupWizardCommand", () => {
-    expect(onboardCommand).toBe(setupWizardCommand);
   });
 });

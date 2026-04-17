@@ -317,7 +317,6 @@ export function createMSTeamsMessageHandler(deps: MSTeamsMessageHandlerDeps) {
       activityId: activity.id,
       user: { id: from.id, name: from.name, aadObjectId: from.aadObjectId },
       agent,
-      bot: agent ? { id: agent.id, name: agent.name } : undefined,
       conversation: {
         id: conversationId,
         conversationType,

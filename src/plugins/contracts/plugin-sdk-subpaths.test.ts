@@ -251,11 +251,6 @@ describe("plugin-sdk subpath exports", () => {
     });
     expectSourceMentions("account-helpers", ["createAccountListHelpers"]);
     expectSourceMentions("channel-actions", ["optionalStringEnum", "stringEnum"]);
-    expectSourceMentions("compat", [
-      "createPluginRuntimeStore",
-      "createScopedChannelConfigAdapter",
-      "resolveControlCommandGate",
-    ]);
     expectSourceMentions("device-bootstrap", [
       "approveDevicePairing",
       "issueDeviceBootstrapToken",

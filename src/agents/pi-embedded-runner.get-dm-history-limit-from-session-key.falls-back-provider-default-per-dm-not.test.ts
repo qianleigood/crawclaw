@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { getDmHistoryLimitFromSessionKey } from "./pi-embedded-runner.js";
+import { getHistoryLimitFromSessionKey } from "./pi-embedded-runner.js";
 
-describe("getDmHistoryLimitFromSessionKey", () => {
+describe("getHistoryLimitFromSessionKey", () => {
   it("falls back to provider default when per-DM not set", () => {
     const config = {
       channels: {
@@ -12,7 +12,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
         },
       },
     } as CrawClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(15);
+    expect(getHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(15);
   });
   it("returns per-DM override for agent-prefixed keys", () => {
     const config = {
@@ -23,7 +23,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
         },
       },
     } as CrawClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("agent:main:telegram:dm:789", config)).toBe(3);
+    expect(getHistoryLimitFromSessionKey("agent:main:telegram:dm:789", config)).toBe(3);
   });
   it("handles userId with colons (e.g., email)", () => {
     const config = {
@@ -34,7 +34,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
         },
       },
     } as CrawClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("msteams:dm:user@example.com", config)).toBe(7);
+    expect(getHistoryLimitFromSessionKey("msteams:dm:user@example.com", config)).toBe(7);
   });
   it("returns undefined when per-DM historyLimit is not set", () => {
     const config = {
@@ -44,7 +44,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
         },
       },
     } as CrawClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBeUndefined();
+    expect(getHistoryLimitFromSessionKey("telegram:dm:123", config)).toBeUndefined();
   });
   it("returns 0 when per-DM historyLimit is explicitly 0 (unlimited)", () => {
     const config = {
@@ -55,6 +55,6 @@ describe("getDmHistoryLimitFromSessionKey", () => {
         },
       },
     } as CrawClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(0);
+    expect(getHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(0);
   });
 });

@@ -9,6 +9,10 @@ title: "onboard"
 
 Interactive onboarding for local or remote Gateway setup.
 
+Legacy onboarding auth-choice aliases such as `oauth` and `anthropic-cli` have
+been removed. Use the current `--auth-choice` values or the dedicated
+`crawclaw models auth ...` commands instead.
+
 ## Related guides
 
 - CLI onboarding hub: [Onboarding (CLI)](/start/wizard)
@@ -135,6 +139,12 @@ crawclaw onboard --non-interactive \
   --auth-choice mistral-api-key \
   --mistral-api-key "$MISTRAL_API_KEY"
 ```
+
+Removed legacy auth-choice aliases:
+
+- `oauth` -> use `setup-token`
+- `anthropic-cli` -> use `crawclaw models auth login --provider anthropic --method cli --set-default`
+- `claude-cli` / `codex-cli` are CLI backend ids, not valid `--auth-choice` values
 
 Flow notes:
 

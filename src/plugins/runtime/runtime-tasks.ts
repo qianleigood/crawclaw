@@ -22,7 +22,6 @@ import {
 } from "../../tasks/task-owner-access.js";
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import type { CrawClawPluginToolContext } from "../types.js";
-import type { PluginRuntimeTaskFlow } from "./runtime-taskflow.js";
 import type {
   TaskFlowDetail,
   TaskFlowView,
@@ -94,8 +93,6 @@ export type PluginRuntimeTaskFlows = {
 export type PluginRuntimeTasks = {
   runs: PluginRuntimeTaskRuns;
   flows: PluginRuntimeTaskFlows;
-  /** @deprecated Use runtime.tasks.flows for DTO-based TaskFlow access. */
-  flow: PluginRuntimeTaskFlow;
 };
 
 function createBoundTaskRunsRuntime(params: {
@@ -252,12 +249,9 @@ export function createRuntimeTaskFlows(): PluginRuntimeTaskFlows {
   };
 }
 
-export function createRuntimeTasks(params: {
-  legacyTaskFlow: PluginRuntimeTaskFlow;
-}): PluginRuntimeTasks {
+export function createRuntimeTasks(): PluginRuntimeTasks {
   return {
     runs: createRuntimeTaskRuns(),
     flows: createRuntimeTaskFlows(),
-    flow: params.legacyTaskFlow,
   };
 }

@@ -324,12 +324,14 @@ const plugin: CrawClawPluginDefinition = {
       },
     });
 
-    api.registerWebSearchProvider(
-      createPluginBackedWebSearchProvider({
-        id: "exampleai-search",
-        // credential + fetch logic
-      }),
-    );
+    api.registerWebSearchProvider({
+      id: "exampleai-search",
+      // credential + fetch logic
+      createTool(ctx) {
+        // provider-owned tool wiring
+        return ctx.tool;
+      },
+    });
   },
 };
 

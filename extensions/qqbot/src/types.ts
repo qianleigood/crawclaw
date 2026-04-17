@@ -35,11 +35,6 @@ export interface QQBotAccountConfig {
   /** Whether markdown output is enabled. Defaults to true. */
   markdownSupport?: boolean;
   /**
-   * @deprecated Use audioFormatPolicy.uploadDirectFormats instead.
-   * Legacy list of formats that can upload directly without SILK conversion.
-   */
-  voiceDirectUploadFormats?: string[];
-  /**
    * Audio format policy covering inbound STT and outbound upload behavior.
    */
   audioFormatPolicy?: AudioFormatPolicy;

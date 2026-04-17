@@ -104,7 +104,6 @@ x-i18n:
 
   // 消息格式
   messages: {
-    messagePrefix: "[crawclaw]",
     responsePrefix: ">",
     ackReaction: "👀",
     ackReactionScope: "group-mentions",

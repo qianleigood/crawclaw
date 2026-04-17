@@ -176,10 +176,10 @@ describe("talk normalization", () => {
         async (configPath) => {
           const io = createConfigIO({ configPath });
           const snapshot = await io.readConfigFileSnapshot();
-          expect(snapshot.config.talk?.provider).toBeUndefined();
-          expect(snapshot.config.talk?.providers?.elevenlabs?.voiceId).toBe("voice-123");
-          expect(snapshot.config.talk?.providers?.elevenlabs?.apiKey).toBe(elevenLabsApiKey);
-          expect(snapshot.config.talk?.apiKey).toBe(elevenLabsApiKey);
+          expect(snapshot.runtimeConfig.talk?.provider).toBeUndefined();
+          expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.voiceId).toBe("voice-123");
+          expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.apiKey).toBe(elevenLabsApiKey);
+          expect(snapshot.runtimeConfig.talk?.apiKey).toBe(elevenLabsApiKey);
         },
       );
     });
@@ -202,10 +202,10 @@ describe("talk normalization", () => {
         async (configPath) => {
           const io = createConfigIO({ configPath });
           const snapshot = await io.readConfigFileSnapshot();
-          expect(snapshot.config.talk?.provider).toBe("acme");
-          expect(snapshot.config.talk?.providers?.acme?.voiceId).toBe("acme-voice");
-          expect(snapshot.config.talk?.providers?.acme?.apiKey).toBeUndefined();
-          expect(snapshot.config.talk?.apiKey).toBeUndefined();
+          expect(snapshot.runtimeConfig.talk?.provider).toBe("acme");
+          expect(snapshot.runtimeConfig.talk?.providers?.acme?.voiceId).toBe("acme-voice");
+          expect(snapshot.runtimeConfig.talk?.providers?.acme?.apiKey).toBeUndefined();
+          expect(snapshot.runtimeConfig.talk?.apiKey).toBeUndefined();
         },
       );
     });
@@ -228,12 +228,12 @@ describe("talk normalization", () => {
         async (configPath) => {
           const io = createConfigIO({ configPath });
           const snapshot = await io.readConfigFileSnapshot();
-          expect(snapshot.config.talk?.apiKey).toEqual({
+          expect(snapshot.runtimeConfig.talk?.apiKey).toEqual({
             source: "env",
             provider: "default",
             id: "ELEVENLABS_API_KEY",
           });
-          expect(snapshot.config.talk?.providers?.elevenlabs?.apiKey).toBeUndefined();
+          expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.apiKey).toBeUndefined();
         },
       );
     });

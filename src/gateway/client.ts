@@ -79,8 +79,6 @@ class GatewayClientRequestError extends Error {
 export type GatewayClientOptions = {
   url?: string; // ws://127.0.0.1:18789
   connectChallengeTimeoutMs?: number;
-  /** @deprecated Use connectChallengeTimeoutMs. */
-  connectDelayMs?: number;
   tickWatchMinIntervalMs?: number;
   requestTimeoutMs?: number;
   token?: string;
@@ -123,7 +121,7 @@ export function describeGatewayCloseCode(code: number): string | undefined {
 }
 
 function readConnectChallengeTimeoutOverride(
-  opts: Pick<GatewayClientOptions, "connectChallengeTimeoutMs" | "connectDelayMs">,
+  opts: Pick<GatewayClientOptions, "connectChallengeTimeoutMs">,
 ): number | undefined {
   if (
     typeof opts.connectChallengeTimeoutMs === "number" &&
@@ -131,14 +129,11 @@ function readConnectChallengeTimeoutOverride(
   ) {
     return opts.connectChallengeTimeoutMs;
   }
-  if (typeof opts.connectDelayMs === "number" && Number.isFinite(opts.connectDelayMs)) {
-    return opts.connectDelayMs;
-  }
   return undefined;
 }
 
 export function resolveGatewayClientConnectChallengeTimeoutMs(
-  opts: Pick<GatewayClientOptions, "connectChallengeTimeoutMs" | "connectDelayMs">,
+  opts: Pick<GatewayClientOptions, "connectChallengeTimeoutMs">,
 ): number {
   return resolveConnectChallengeTimeoutMs(readConnectChallengeTimeoutOverride(opts));
 }

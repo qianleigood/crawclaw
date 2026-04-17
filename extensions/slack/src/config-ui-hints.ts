@@ -75,15 +75,11 @@ export const slackChannelConfigUiHints = {
   },
   streaming: {
     label: "Slack Streaming Mode",
-    help: 'Unified Slack stream preview mode: "off" | "partial" | "block" | "progress". Legacy boolean/streamMode keys are auto-mapped.',
+    help: 'Unified Slack stream preview mode: "off" | "partial" | "block" | "progress".',
   },
   nativeStreaming: {
     label: "Slack Native Streaming",
     help: "Enable native Slack text streaming (chat.startStream/chat.appendStream/chat.stopStream) when channels.slack.streaming is partial (default: true).",
-  },
-  streamMode: {
-    label: "Slack Stream Mode (Legacy)",
-    help: "Legacy Slack preview mode alias (replace | status_final | append); auto-migrated to channels.slack.streaming.",
   },
   "thread.historyScope": {
     label: "Slack Thread History Scope",

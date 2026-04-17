@@ -812,26 +812,6 @@ export type ProviderAugmentModelCatalogContext = {
   entries: ModelCatalogEntry[];
 };
 
-/**
- * @deprecated Use ProviderCatalogOrder.
- */
-export type ProviderDiscoveryOrder = ProviderCatalogOrder;
-
-/**
- * @deprecated Use ProviderCatalogContext.
- */
-export type ProviderDiscoveryContext = ProviderCatalogContext;
-
-/**
- * @deprecated Use ProviderCatalogResult.
- */
-export type ProviderDiscoveryResult = ProviderCatalogResult;
-
-/**
- * @deprecated Use ProviderPluginCatalog.
- */
-export type ProviderPluginDiscovery = ProviderPluginCatalog;
-
 export type ProviderPluginWizardSetup = {
   choiceId?: string;
   choiceLabel?: string;
@@ -950,7 +930,7 @@ export type ProviderPlugin = {
    * Legacy alias for catalog.
    * Kept for compatibility with existing provider plugins.
    */
-  discovery?: ProviderPluginDiscovery;
+  discovery?: ProviderPluginCatalog;
   /**
    * Sync runtime fallback for model ids not present in the local catalog.
    *

@@ -5,7 +5,7 @@ import { sanitizeHostExecEnv } from "../../infra/host-env-security.js";
 import { enqueueSystemEvent as enqueueSystemEventImpl } from "../../infra/system-events.js";
 import { getProcessSupervisor as getProcessSupervisorImpl } from "../../process/supervisor/index.js";
 import { scopedHeartbeatWakeOptions } from "../../routing/session-key.js";
-import { prependBootstrapPromptWarning } from "../bootstrap-budget.js";
+import { appendBootstrapPromptWarning } from "../bootstrap-budget.js";
 import { parseCliOutput, type CliOutput } from "../cli-output.js";
 import { FailoverError, resolveFailoverStatus } from "../failover-error.js";
 import { classifyFailoverReason } from "../pi-embedded-helpers.js";
@@ -102,7 +102,7 @@ export async function executePreparedCliRun(
 
   let imagePaths: string[] | undefined;
   let cleanupImages: (() => Promise<void>) | undefined;
-  let prompt = prependBootstrapPromptWarning(params.prompt, context.bootstrapPromptWarningLines, {
+  let prompt = appendBootstrapPromptWarning(params.prompt, context.bootstrapPromptWarningLines, {
     preserveExactPrompt: context.heartbeatPrompt,
   });
   const resolvedImages =

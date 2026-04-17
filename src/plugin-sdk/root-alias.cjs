@@ -3,7 +3,6 @@
 const path = require("node:path");
 const fs = require("node:fs");
 
-let monolithicSdk = null;
 let diagnosticEventsModule = null;
 const jitiLoaders = new Map();
 const pluginSdkSubpathsCache = new Map();
@@ -157,25 +156,6 @@ function getJiti(tryNative) {
   return jitiLoader;
 }
 
-function loadMonolithicSdk() {
-  if (monolithicSdk) {
-    return monolithicSdk;
-  }
-
-  const distCandidate = path.resolve(__dirname, "..", "..", "dist", "plugin-sdk", "compat.js");
-  if (!shouldPreferSourceGraph && fs.existsSync(distCandidate)) {
-    try {
-      monolithicSdk = getJiti(true)(distCandidate);
-      return monolithicSdk;
-    } catch {
-      // Fall through to source alias if dist is unavailable or stale.
-    }
-  }
-
-  monolithicSdk = getJiti(false)(path.join(getPackageRoot(), "src", "plugin-sdk", "compat.ts"));
-  return monolithicSdk;
-}
-
 function loadDiagnosticEventsModule() {
   if (diagnosticEventsModule) {
     return diagnosticEventsModule;
@@ -225,14 +205,6 @@ function normalizeDiagnosticEventsModule(mod) {
   return mod;
 }
 
-function tryLoadMonolithicSdk() {
-  try {
-    return loadMonolithicSdk();
-  } catch {
-    return null;
-  }
-}
-
 const fastExports = {
   emptyPluginConfigSchema,
   onDiagnosticEvent,
@@ -240,95 +212,7 @@ const fastExports = {
 };
 
 const target = { ...fastExports };
-let rootExports = null;
-
-function shouldResolveMonolithic(prop) {
-  if (typeof prop !== "string") {
-    return false;
-  }
-  return prop !== "then";
-}
-
-function getMonolithicSdk() {
-  const loaded = tryLoadMonolithicSdk();
-  if (loaded && typeof loaded === "object") {
-    return loaded;
-  }
-  return null;
-}
-
-function getExportValue(prop) {
-  if (Reflect.has(target, prop)) {
-    return Reflect.get(target, prop);
-  }
-  if (!shouldResolveMonolithic(prop)) {
-    return undefined;
-  }
-  const monolithic = getMonolithicSdk();
-  if (!monolithic) {
-    return undefined;
-  }
-  return Reflect.get(monolithic, prop);
-}
-
-function getExportDescriptor(prop) {
-  const ownDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
-  if (ownDescriptor) {
-    return ownDescriptor;
-  }
-  if (!shouldResolveMonolithic(prop)) {
-    return undefined;
-  }
-
-  const monolithic = getMonolithicSdk();
-  if (!monolithic) {
-    return undefined;
-  }
-
-  const descriptor = Reflect.getOwnPropertyDescriptor(monolithic, prop);
-  if (!descriptor) {
-    return undefined;
-  }
-
-  // Proxy invariants require descriptors returned for dynamic properties to be configurable.
-  return {
-    ...descriptor,
-    configurable: true,
-  };
-}
-
-rootExports = new Proxy(target, {
-  get(_target, prop, receiver) {
-    if (Reflect.has(target, prop)) {
-      return Reflect.get(target, prop, receiver);
-    }
-    return getExportValue(prop);
-  },
-  has(_target, prop) {
-    if (Reflect.has(target, prop)) {
-      return true;
-    }
-    if (!shouldResolveMonolithic(prop)) {
-      return false;
-    }
-    const monolithic = getMonolithicSdk();
-    return monolithic ? Reflect.has(monolithic, prop) : false;
-  },
-  ownKeys() {
-    const keys = new Set(Reflect.ownKeys(target));
-    if (monolithicSdk && typeof monolithicSdk === "object") {
-      for (const key of Reflect.ownKeys(monolithicSdk)) {
-        if (!keys.has(key)) {
-          keys.add(key);
-        }
-      }
-    }
-    return [...keys];
-  },
-  getOwnPropertyDescriptor(_target, prop) {
-    return getExportDescriptor(prop);
-  },
-});
+const rootExports = target;
 
 Object.defineProperty(target, "__esModule", {
   configurable: true,

@@ -98,7 +98,7 @@ CrawClaw 在 CLI 输出中使用龙虾色调调色板。
 
 ## 命令树
 
-``` 
+```
 crawclaw [--dev] [--profile <name>] <command>
   setup
   onboard
@@ -381,7 +381,8 @@ task-backed agent runtime 的检查/导出入口：
 - `--non-interactive`
 - `--mode <local|remote>`
 - `--flow <quickstart|advanced|manual>`（`manual` 是 `advanced` 的别名）
-- `--auth-choice <setup-token|token|chutes|openai-codex|openai-api-key|openrouter-api-key|ollama|ai-gateway-api-key|moonshot-api-key|moonshot-api-key-cn|kimi-code-api-key|synthetic-api-key|venice-api-key|gemini-api-key|zai-api-key|mistral-api-key|apiKey|minimax-api|minimax-api-lightning|opencode-zen|opencode-go|custom-api-key|skip>`
+- `--auth-choice <setup-token|token|chutes|deepseek-api-key|openai-codex|openai-api-key|openrouter-api-key|kilocode-api-key|litellm-api-key|ai-gateway-api-key|cloudflare-ai-gateway-api-key|moonshot-api-key|moonshot-api-key-cn|kimi-code-api-key|synthetic-api-key|venice-api-key|together-api-key|huggingface-api-key|apiKey|gemini-api-key|google-gemini-cli|zai-api-key|zai-coding-global|zai-coding-cn|zai-global|zai-cn|xiaomi-api-key|minimax-global-oauth|minimax-global-api|minimax-cn-oauth|minimax-cn-api|opencode-zen|opencode-go|github-copilot|copilot-proxy|xai-api-key|mistral-api-key|volcengine-api-key|byteplus-api-key|qianfan-api-key|modelstudio-standard-api-key-cn|modelstudio-standard-api-key|modelstudio-api-key-cn|modelstudio-api-key|custom-api-key|skip>`
+- 已移除的旧别名：`oauth`、`anthropic-cli`，以及 `claude-cli`、`codex-cli` 这类 CLI backend id
 - `--token-provider <id>`（非交互式；与 `--auth-choice token` 一起使用）
 - `--token <token>`（非交互式；与 `--auth-choice token` 一起使用）
 - `--token-profile-id <id>`（非交互式；默认：`<provider>:manual`）
@@ -862,7 +863,6 @@ Gmail Pub/Sub hook 设置 + 运行器。参见 [/automation/gmail-pubsub](/autom
 - `--reset`（重置 dev 配置 + 凭据 + 会话 + 工作区）
 - `--force`（杀掉端口上的现有监听器）
 - `--verbose`
-- `--claude-cli-logs`
 - `--ws-log <auto|full|compact>`
 - `--compact`（`--ws-log compact` 的别名）
 - `--raw-stream`

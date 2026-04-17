@@ -395,6 +395,8 @@ Options:
   `mistral-api-key`, `volcengine-api-key`, `byteplus-api-key`, `qianfan-api-key`,
   `modelstudio-standard-api-key-cn`, `modelstudio-standard-api-key`,
   `modelstudio-api-key-cn`, `modelstudio-api-key`, `custom-api-key`, `skip`
+- Removed legacy aliases: `oauth`, `anthropic-cli`, and CLI backend ids such as
+  `claude-cli` or `codex-cli`
 - `--token-provider <id>` (non-interactive; used with `--auth-choice token`)
 - `--token <token>` (non-interactive; used with `--auth-choice token`)
 - `--token-profile-id <id>` (non-interactive; default: `<provider>:manual`)
@@ -913,7 +915,6 @@ Options:
 - `--force` (kill existing listener on port)
 - `--verbose`
 - `--cli-backend-logs`
-- `--claude-cli-logs` (deprecated alias)
 - `--ws-log <auto|full|compact>`
 - `--compact` (alias for `--ws-log compact`)
 - `--raw-stream`
@@ -1018,7 +1019,7 @@ Anthropic Claude CLI migration:
 crawclaw models auth login --provider anthropic --method cli --set-default
 ```
 
-Note: `--auth-choice anthropic-cli` is a deprecated legacy alias. Use `models auth login` instead.
+Note: `--auth-choice anthropic-cli` has been removed. Use `models auth login --provider anthropic --method cli --set-default` instead.
 
 ### `models` (root)
 

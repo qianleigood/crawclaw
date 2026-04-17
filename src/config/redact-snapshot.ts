@@ -419,26 +419,32 @@ export function redactConfigSnapshot(
     // Therefore, the only safe route is to reject handling out broken configs.
     return {
       ...snapshot,
-      config: {},
+      config: {} as ConfigFileSnapshot["config"],
+      runtimeConfig: {} as ConfigFileSnapshot["runtimeConfig"],
       raw: null,
       parsed: null,
       resolved: {},
     };
   }
-  // else: snapshot.config must be valid and populated, as that is what
+  // else: snapshot.runtimeConfig must be valid and populated, as that is what
   // readConfigFileSnapshot() does when it creates the snapshot.
 
-  const redactedConfig = redactObject(snapshot.config, uiHints) as ConfigFileSnapshot["config"];
+  const redactedRuntimeConfig = redactObject(
+    snapshot.runtimeConfig,
+    uiHints,
+  ) as ConfigFileSnapshot["runtimeConfig"];
   const redactedParsed = snapshot.parsed ? redactObject(snapshot.parsed, uiHints) : snapshot.parsed;
-  let redactedRaw = snapshot.raw ? redactRawText(snapshot.raw, snapshot.config, uiHints) : null;
+  let redactedRaw = snapshot.raw
+    ? redactRawText(snapshot.raw, snapshot.runtimeConfig, uiHints)
+    : null;
   if (
     redactedRaw &&
     shouldFallbackToStructuredRawRedaction({
       redactedRaw,
-      originalConfig: snapshot.config,
+      originalConfig: snapshot.runtimeConfig,
       restoreParsed: (parsed) =>
         withRestoreWarningsSuppressed(() =>
-          restoreRedactedValues(parsed, snapshot.config, uiHints),
+          restoreRedactedValues(parsed, snapshot.runtimeConfig, uiHints),
         ),
     })
   ) {
@@ -449,7 +455,8 @@ export function redactConfigSnapshot(
 
   return {
     ...snapshot,
-    config: redactedConfig,
+    config: redactedRuntimeConfig,
+    runtimeConfig: redactedRuntimeConfig,
     raw: redactedRaw,
     parsed: redactedParsed,
     resolved: redactedResolved,

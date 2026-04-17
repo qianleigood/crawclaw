@@ -373,7 +373,7 @@ WhatsApp 将音频作为**语音消息**（PTT 气泡）发送。
 - `channels.whatsapp.actions.reactions`（门控 WhatsApp 工具表情回应）。
 - `agents.list[].groupChat.mentionPatterns`（或 `messages.groupChat.mentionPatterns`）
 - `messages.groupChat.historyLimit`
-- `channels.whatsapp.messagePrefix`（入站前缀；按账户：`channels.whatsapp.accounts.<accountId>.messagePrefix`；已弃用：`messages.messagePrefix`）
+- `channels.whatsapp.messagePrefix`（入站前缀；按账户：`channels.whatsapp.accounts.<accountId>.messagePrefix`）
 - `messages.responsePrefix`（出站前缀）
 - `agents.defaults.mediaMaxMb`
 - `agents.defaults.heartbeat.every`

@@ -1,7 +1,7 @@
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
 import {
   createReplyPrefixContext,
-  type ClawdbotConfig,
+  type CrawClawConfig,
   type ReplyPayload,
   type RuntimeEnv,
 } from "../runtime-api.js";
@@ -12,7 +12,7 @@ import { deliverCommentThreadText } from "./drive.js";
 import { getFeishuRuntime } from "./runtime.js";
 
 export type CreateFeishuCommentReplyDispatcherParams = {
-  cfg: ClawdbotConfig;
+  cfg: CrawClawConfig;
   agentId: string;
   runtime: RuntimeEnv;
   accountId?: string;

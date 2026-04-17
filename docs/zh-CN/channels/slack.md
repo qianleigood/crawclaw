@@ -408,8 +408,6 @@ Slack 仅使用 Socket Mode（无 HTTP webhook 服务器）。提供两个令牌
 2. `replyToMode`
 3. 提供商默认值（`off`）
 
-当未设置聊天类型覆盖时，旧版 `channels.slack.dm.replyToMode` 仍可作为 `direct` 的回退。
-
 示例：
 
 仅对私信使用线程：

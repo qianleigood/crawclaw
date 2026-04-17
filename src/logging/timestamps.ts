@@ -67,11 +67,3 @@ export function formatTimestamp(date: Date, options?: FormatTimestampOptions): s
       return `${parts.hour}:${parts.minute}:${parts.second}.${parts.fractionalSecond}${parts.offset}`;
   }
 }
-
-/**
- * @deprecated Use formatTimestamp from "./timestamps.js" instead.
- * This function will be removed in a future version.
- */
-export function formatLocalIsoWithOffset(now: Date, timeZone?: string): string {
-  return formatTimestamp(now, { style: "long", timeZone });
-}

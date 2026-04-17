@@ -78,7 +78,6 @@
   "command-detection",
   "command-surface",
   "collection-runtime",
-  "compat",
   "direct-dm",
   "deepseek",
   "device-bootstrap",

@@ -36,7 +36,7 @@ describe("legacy migrate audio transcription", () => {
     expect(res.config).toBeNull();
   });
 
-  it("drops invalid audio.transcription payloads", () => {
+  it("does not rewrite removed audio.transcription payloads", () => {
     const res = migrateLegacyConfig({
       audio: {
         transcription: {
@@ -45,9 +45,8 @@ describe("legacy migrate audio transcription", () => {
       },
     });
 
-    expect(res.changes).toContain("Removed audio.transcription (invalid or empty command).");
-    expect(res.config?.audio).toBeUndefined();
-    expect(res.config?.tools?.media?.audio).toBeUndefined();
+    expect(res.changes).toEqual([]);
+    expect(res.config).toBeNull();
   });
 });
 

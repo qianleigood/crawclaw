@@ -1,10 +1,5 @@
-import { normalizeLegacyOnboardAuthChoice } from "../commands/auth-choice-legacy.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveManifestProviderAuthChoice } from "./provider-auth-choices.js";
-
-function normalizeLegacyAuthChoice(choice: string, env?: NodeJS.ProcessEnv): string {
-  return normalizeLegacyOnboardAuthChoice(choice, { env }) ?? choice;
-}
 
 export async function resolvePreferredProviderForAuthChoice(params: {
   choice: string;
@@ -12,7 +7,7 @@ export async function resolvePreferredProviderForAuthChoice(params: {
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<string | undefined> {
-  const choice = normalizeLegacyAuthChoice(params.choice, params.env) ?? params.choice;
+  const choice = params.choice;
   const manifestResolved = resolveManifestProviderAuthChoice(choice, params);
   if (manifestResolved) {
     return manifestResolved.providerId;

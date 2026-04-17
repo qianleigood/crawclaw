@@ -731,42 +731,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
             },
           ],
         },
-        streamMode: {
-          type: "string",
-          enum: ["partial", "block", "off"],
-        },
-        draftChunk: {
-          type: "object",
-          properties: {
-            minChars: {
-              type: "integer",
-              exclusiveMinimum: 0,
-              maximum: 9007199254740991,
-            },
-            maxChars: {
-              type: "integer",
-              exclusiveMinimum: 0,
-              maximum: 9007199254740991,
-            },
-            breakPreference: {
-              anyOf: [
-                {
-                  type: "string",
-                  const: "paragraph",
-                },
-                {
-                  type: "string",
-                  const: "newline",
-                },
-                {
-                  type: "string",
-                  const: "sentence",
-                },
-              ],
-            },
-          },
-          additionalProperties: false,
-        },
         maxLinesPerMessage: {
           type: "integer",
           exclusiveMinimum: 0,
@@ -1887,42 +1851,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
                   },
                 ],
               },
-              streamMode: {
-                type: "string",
-                enum: ["partial", "block", "off"],
-              },
-              draftChunk: {
-                type: "object",
-                properties: {
-                  minChars: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  maxChars: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  breakPreference: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "paragraph",
-                      },
-                      {
-                        type: "string",
-                        const: "newline",
-                      },
-                      {
-                        type: "string",
-                        const: "sentence",
-                      },
-                    ],
-                  },
-                },
-                additionalProperties: false,
-              },
               maxLinesPerMessage: {
                 type: "integer",
                 exclusiveMinimum: 0,
@@ -2862,23 +2790,7 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
       },
       streaming: {
         label: "Discord Streaming Mode",
-        help: 'Unified Discord stream preview mode: "off" | "partial" | "block" | "progress". "progress" maps to "partial" on Discord. Legacy boolean/streamMode keys are auto-mapped.',
-      },
-      streamMode: {
-        label: "Discord Stream Mode (Legacy)",
-        help: "Legacy Discord preview mode alias (off | partial | block); auto-migrated to channels.discord.streaming.",
-      },
-      "draftChunk.minChars": {
-        label: "Discord Draft Chunk Min Chars",
-        help: 'Minimum chars before emitting a Discord stream preview update when channels.discord.streaming="block" (default: 200).',
-      },
-      "draftChunk.maxChars": {
-        label: "Discord Draft Chunk Max Chars",
-        help: 'Target max size for a Discord stream preview chunk when channels.discord.streaming="block" (default: 800; clamped to channels.discord.textChunkLimit).',
-      },
-      "draftChunk.breakPreference": {
-        label: "Discord Draft Chunk Break Preference",
-        help: "Preferred breakpoints for Discord draft chunks (paragraph | newline | sentence). Default: paragraph.",
+        help: 'Unified Discord stream preview mode: "off" | "partial" | "block" | "progress". "progress" maps to "partial" on Discord.',
       },
       "retry.attempts": {
         label: "Discord Retry Attempts",
@@ -3412,10 +3324,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
                 type: "string",
                 enum: ["group", "group_sender", "group_topic", "group_topic_sender"],
               },
-              topicSessionMode: {
-                type: "string",
-                enum: ["disabled", "enabled"],
-              },
               replyInThread: {
                 type: "string",
                 enum: ["disabled", "enabled"],
@@ -3564,10 +3472,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
         groupSessionScope: {
           type: "string",
           enum: ["group", "group_sender", "group_topic", "group_topic_sender"],
-        },
-        topicSessionMode: {
-          type: "string",
-          enum: ["disabled", "enabled"],
         },
         dynamicAgentCreation: {
           type: "object",
@@ -3968,10 +3872,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
                       type: "string",
                       enum: ["group", "group_sender", "group_topic", "group_topic_sender"],
                     },
-                    topicSessionMode: {
-                      type: "string",
-                      enum: ["disabled", "enabled"],
-                    },
                     replyInThread: {
                       type: "string",
                       enum: ["disabled", "enabled"],
@@ -4117,10 +4017,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
               groupSessionScope: {
                 type: "string",
                 enum: ["group", "group_sender", "group_topic", "group_topic_sender"],
-              },
-              topicSessionMode: {
-                type: "string",
-                enum: ["disabled", "enabled"],
               },
             },
             additionalProperties: false,
@@ -8980,12 +8876,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
         markdownSupport: {
           type: "boolean",
         },
-        voiceDirectUploadFormats: {
-          type: "array",
-          items: {
-            type: "string",
-          },
-        },
         audioFormatPolicy: {
           type: "object",
           properties: {
@@ -9180,12 +9070,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
               },
               markdownSupport: {
                 type: "boolean",
-              },
-              voiceDirectUploadFormats: {
-                type: "array",
-                items: {
-                  type: "string",
-                },
               },
               audioFormatPolicy: {
                 type: "object",
@@ -10381,10 +10265,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
         nativeStreaming: {
           type: "boolean",
         },
-        streamMode: {
-          type: "string",
-          enum: ["replace", "status_final", "append"],
-        },
         mediaMaxMb: {
           type: "number",
           exclusiveMinimum: 0,
@@ -10600,22 +10480,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
                   },
                 ],
               },
-            },
-            replyToMode: {
-              anyOf: [
-                {
-                  type: "string",
-                  const: "off",
-                },
-                {
-                  type: "string",
-                  const: "first",
-                },
-                {
-                  type: "string",
-                  const: "all",
-                },
-              ],
             },
           },
           additionalProperties: false,
@@ -11231,10 +11095,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
               nativeStreaming: {
                 type: "boolean",
               },
-              streamMode: {
-                type: "string",
-                enum: ["replace", "status_final", "append"],
-              },
               mediaMaxMb: {
                 type: "number",
                 exclusiveMinimum: 0,
@@ -11450,22 +11310,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
                         },
                       ],
                     },
-                  },
-                  replyToMode: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "off",
-                      },
-                      {
-                        type: "string",
-                        const: "first",
-                      },
-                      {
-                        type: "string",
-                        const: "all",
-                      },
-                    ],
                   },
                 },
                 additionalProperties: false,
@@ -11690,15 +11534,11 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
       },
       streaming: {
         label: "Slack Streaming Mode",
-        help: 'Unified Slack stream preview mode: "off" | "partial" | "block" | "progress". Legacy boolean/streamMode keys are auto-mapped.',
+        help: 'Unified Slack stream preview mode: "off" | "partial" | "block" | "progress".',
       },
       nativeStreaming: {
         label: "Slack Native Streaming",
         help: "Enable native Slack text streaming (chat.startStream/chat.appendStream/chat.stopStream) when channels.slack.streaming is partial (default: true).",
-      },
-      streamMode: {
-        label: "Slack Stream Mode (Legacy)",
-        help: "Legacy Slack preview mode alias (replace | status_final | append); auto-migrated to channels.slack.streaming.",
       },
       "thread.historyScope": {
         label: "Slack Thread History Scope",
@@ -12411,38 +12251,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
         blockStreaming: {
           type: "boolean",
         },
-        draftChunk: {
-          type: "object",
-          properties: {
-            minChars: {
-              type: "integer",
-              exclusiveMinimum: 0,
-              maximum: 9007199254740991,
-            },
-            maxChars: {
-              type: "integer",
-              exclusiveMinimum: 0,
-              maximum: 9007199254740991,
-            },
-            breakPreference: {
-              anyOf: [
-                {
-                  type: "string",
-                  const: "paragraph",
-                },
-                {
-                  type: "string",
-                  const: "newline",
-                },
-                {
-                  type: "string",
-                  const: "sentence",
-                },
-              ],
-            },
-          },
-          additionalProperties: false,
-        },
         blockStreamingCoalesce: {
           type: "object",
           properties: {
@@ -12463,10 +12271,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
             },
           },
           additionalProperties: false,
-        },
-        streamMode: {
-          type: "string",
-          enum: ["off", "partial", "block"],
         },
         mediaMaxMb: {
           type: "number",
@@ -13420,38 +13224,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
               blockStreaming: {
                 type: "boolean",
               },
-              draftChunk: {
-                type: "object",
-                properties: {
-                  minChars: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  maxChars: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  breakPreference: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "paragraph",
-                      },
-                      {
-                        type: "string",
-                        const: "newline",
-                      },
-                      {
-                        type: "string",
-                        const: "sentence",
-                      },
-                    ],
-                  },
-                },
-                additionalProperties: false,
-              },
               blockStreamingCoalesce: {
                 type: "object",
                 properties: {
@@ -13472,10 +13244,6 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
                   },
                 },
                 additionalProperties: false,
-              },
-              streamMode: {
-                type: "string",
-                enum: ["off", "partial", "block"],
               },
               mediaMaxMb: {
                 type: "number",
@@ -13795,7 +13563,7 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
       },
       streaming: {
         label: "Telegram Streaming Mode",
-        help: 'Unified Telegram stream preview mode: "off" | "partial" | "block" | "progress" (default: "partial"). "progress" maps to "partial" on Telegram. Legacy boolean/streamMode keys are auto-mapped.',
+        help: 'Unified Telegram stream preview mode: "off" | "partial" | "block" | "progress" (default: "partial"). "progress" maps to "partial" on Telegram.',
       },
       "retry.attempts": {
         label: "Telegram Retry Attempts",

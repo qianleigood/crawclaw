@@ -62,11 +62,6 @@ export function collectConfigServiceEnvVars(cfg?: CrawClawConfig): Record<string
   return collectConfigEnvVarsByTarget(cfg);
 }
 
-/** @deprecated Use `collectConfigRuntimeEnvVars` or `collectConfigServiceEnvVars`. */
-export function collectConfigEnvVars(cfg?: CrawClawConfig): Record<string, string> {
-  return collectConfigRuntimeEnvVars(cfg);
-}
-
 export function createConfigRuntimeEnv(
   cfg: CrawClawConfig,
   baseEnv: NodeJS.ProcessEnv = process.env,

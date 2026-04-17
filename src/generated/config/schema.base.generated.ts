@@ -7079,30 +7079,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
           },
         },
       },
-      audio: {
-        type: "object",
-        properties: {
-          transcription: {
-            type: "object",
-            properties: {
-              command: {
-                type: "array",
-                items: {
-                  type: "string",
-                },
-              },
-              timeoutSeconds: {
-                type: "integer",
-                exclusiveMinimum: 0,
-                maximum: 9007199254740991,
-              },
-            },
-            required: ["command"],
-            additionalProperties: false,
-          },
-        },
-        additionalProperties: false,
-      },
       media: {
         type: "object",
         properties: {
@@ -7120,9 +7096,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       messages: {
         type: "object",
         properties: {
-          messagePrefix: {
-            type: "string",
-          },
           responsePrefix: {
             type: "string",
           },
@@ -8192,34 +8165,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 },
                 additionalProperties: false,
               },
-              dm: {
-                type: "object",
-                properties: {
-                  mode: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "daily",
-                      },
-                      {
-                        type: "string",
-                        const: "idle",
-                      },
-                    ],
-                  },
-                  atHour: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 23,
-                  },
-                  idleMinutes: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                },
-                additionalProperties: false,
-              },
               group: {
                 type: "object",
                 properties: {
@@ -8468,11 +8413,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                     type: "number",
                   },
                 ],
-              },
-              pruneDays: {
-                type: "integer",
-                exclusiveMinimum: 0,
-                maximum: 9007199254740991,
               },
               maxEntries: {
                 type: "integer",
@@ -11211,7 +11151,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "Audio",
       group: "Audio",
       order: 60,
-      help: "Global audio ingestion settings used before higher-level tools process speech or media content. Configure this when you need deterministic transcription behavior for voice notes and clips.",
       tags: ["advanced"],
     },
     models: {
@@ -12742,21 +12681,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Optional retention window in hours for persisted inbound media cleanup across the full media tree. Leave unset to preserve legacy behavior, or set values like 24 (1 day) or 168 (7 days) when you want automatic cleanup.",
       tags: ["advanced"],
     },
-    "audio.transcription": {
-      label: "Audio Transcription",
-      help: "Command-based transcription settings for converting audio files into text before agent handling. Keep a simple, deterministic command path here so failures are easy to diagnose in logs.",
-      tags: ["media"],
-    },
-    "audio.transcription.command": {
-      label: "Audio Transcription Command",
-      help: 'Executable + args used to transcribe audio (first token must be a safe binary/path), for example `["whisper-cli", "--model", "small", "{input}"]`. Prefer a pinned command so runtime environments behave consistently.',
-      tags: ["media"],
-    },
-    "audio.transcription.timeoutSeconds": {
-      label: "Audio Transcription Timeout (sec)",
-      help: "Maximum time allowed for the transcription command to finish before it is aborted. Increase this for longer recordings, and keep it tight in latency-sensitive deployments.",
-      tags: ["performance", "media"],
-    },
     "bindings[].type": {
       label: "Binding Type",
       help: 'Binding kind. Use "route" (or omit for legacy route entries) for normal routing, and "acp" for persistent ACP conversation bindings.',
@@ -14120,11 +14044,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Defines reset policy for direct chats and supersedes the base session.reset configuration for that type. Use this as the canonical direct-message override instead of the legacy dm alias.",
       tags: ["storage"],
     },
-    "session.resetByType.dm": {
-      label: "Session Reset (DM Deprecated Alias)",
-      help: "Deprecated alias for direct reset behavior kept for backward compatibility with older configs. Use session.resetByType.direct instead so future tooling and validation remain consistent.",
-      tags: ["storage"],
-    },
     "session.resetByType.group": {
       label: "Session Reset (Group)",
       help: "Defines reset policy for group chat sessions where continuity and noise patterns differ from DMs. Use shorter idle windows for busy groups if context drift becomes a problem.",
@@ -14253,11 +14172,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     "session.maintenance.pruneAfter": {
       label: "Session Prune After",
       help: "Removes entries older than this duration (for example `30d` or `12h`) during maintenance passes. Use this as the primary age-retention control and align it with data retention policy.",
-      tags: ["storage"],
-    },
-    "session.maintenance.pruneDays": {
-      label: "Session Prune Days (Deprecated)",
-      help: "Deprecated age-retention field kept for compatibility with legacy configs using day counts. Use session.maintenance.pruneAfter instead so duration syntax and behavior are consistent.",
       tags: ["storage"],
     },
     "session.maintenance.maxEntries": {
@@ -14788,11 +14702,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "Talk Silence Timeout (ms)",
       help: "Milliseconds of user silence before Talk mode finalizes and sends the current transcript. Leave unset to keep the platform default pause window (700 ms on macOS and Android, 900 ms on iOS).",
       tags: ["performance", "media"],
-    },
-    "messages.messagePrefix": {
-      label: "Inbound Message Prefix",
-      help: "Prefix text prepended to inbound user messages before they are handed to the agent runtime. Use this sparingly for channel context markers and keep it stable across sessions.",
-      tags: ["advanced"],
     },
     "messages.responsePrefix": {
       label: "Outbound Response Prefix",

@@ -14,7 +14,7 @@ function makePackResult(filename: string, unpackedSize: number) {
   return { filename, unpackedSize };
 }
 
-const requiredPluginSdkPackPaths = [...listPluginSdkDistArtifacts(), "dist/plugin-sdk/compat.js"];
+const requiredPluginSdkPackPaths = [...listPluginSdkDistArtifacts()];
 const requiredBundledPluginPackPaths = listBundledPluginPackArtifacts();
 
 describe("collectBundledExtensionManifestErrors", () => {
@@ -223,7 +223,6 @@ describe("collectMissingPackPaths", () => {
     const missing = collectMissingPackPaths([
       "dist/index.js",
       "dist/entry.js",
-      "dist/plugin-sdk/compat.js",
       "dist/plugin-sdk/index.js",
       "dist/plugin-sdk/index.d.ts",
       "dist/plugin-sdk/root-alias.cjs",

@@ -12,10 +12,7 @@ const WEB_TOOLS_TRUSTED_NETWORK_SSRF_POLICY: SsrFPolicy = {
   allowRfc2544BenchmarkRange: true,
 };
 
-type WebToolGuardedFetchOptions = Omit<
-  GuardedFetchOptions,
-  "mode" | "proxy" | "dangerouslyAllowEnvProxyWithoutPinnedDns"
-> & {
+type WebToolGuardedFetchOptions = Omit<GuardedFetchOptions, "mode"> & {
   timeoutSeconds?: number;
   useEnvProxy?: boolean;
 };

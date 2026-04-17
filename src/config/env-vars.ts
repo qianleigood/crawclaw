@@ -1,6 +1,5 @@
 export {
   applyConfigEnvVars,
-  collectConfigEnvVars,
   collectConfigRuntimeEnvVars,
   collectConfigServiceEnvVars,
   createConfigRuntimeEnv,

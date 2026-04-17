@@ -3,7 +3,7 @@ title: "Plugin SDK Migration"
 sidebarTitle: "Migrate to SDK"
 summary: "Migrate from the legacy backwards-compatibility layer to the modern plugin SDK"
 read_when:
-  - You see the CRAWCLAW_PLUGIN_SDK_COMPAT_DEPRECATED warning
+  - You see a module-not-found error for crawclaw/plugin-sdk/compat
   - You see the CRAWCLAW_EXTENSION_API_DEPRECATED warning
   - You are updating a plugin to the modern plugin architecture
   - You maintain an external CrawClaw plugin
@@ -15,7 +15,7 @@ CrawClaw has moved from a broad backwards-compatibility layer to a modern plugin
 architecture with focused, documented imports. If your plugin was built before
 the new architecture, this guide helps you migrate.
 
-## What is changing
+## What changed
 
 The old plugin system provided two wide-open surfaces that let plugins import
 anything they needed from a single entry point:
@@ -26,13 +26,12 @@ anything they needed from a single entry point:
 - **`crawclaw/extension-api`** — a bridge that gave plugins direct access to
   host-side helpers like the embedded agent runner.
 
-Both surfaces are now **deprecated**. They still work at runtime, but new
-plugins must not use them, and existing plugins should migrate before the next
-major release removes them.
+`crawclaw/plugin-sdk/compat` has been removed. `crawclaw/extension-api` remains
+deprecated and should still be migrated away from.
 
 <Warning>
-  The backwards-compatibility layer will be removed in a future major release.
-  Plugins that still import from these surfaces will break when that happens.
+  Plugins that still import `crawclaw/plugin-sdk/compat` will now fail to load.
+  Migrate those imports to focused `crawclaw/plugin-sdk/<subpath>` entries.
 </Warning>
 
 ## Why this changed
@@ -73,7 +72,7 @@ is a small, self-contained module with a clear purpose and documented contract.
   </Step>
 
   <Step title="Find deprecated imports">
-    Search your plugin for imports from either deprecated surface:
+    Search your plugin for imports from either legacy surface:
 
     ```bash
     grep -r "plugin-sdk/compat" my-plugin/
@@ -86,7 +85,7 @@ is a small, self-contained module with a clear purpose and documented contract.
     Each export from the old surface maps to a specific modern import path:
 
     ```typescript
-    // Before (deprecated backwards-compatibility layer)
+    // Before (removed backwards-compatibility layer)
     import {
       createChannelReplyPipeline,
       createPluginRuntimeStore,
@@ -174,10 +173,10 @@ check the source at `src/plugin-sdk/` or ask in Discord.
 
 ## Removal timeline
 
-| When                   | What happens                                                            |
-| ---------------------- | ----------------------------------------------------------------------- |
-| **Now**                | Deprecated surfaces emit runtime warnings                               |
-| **Next major release** | Deprecated surfaces will be removed; plugins still using them will fail |
+| When                   | What happens                                            |
+| ---------------------- | ------------------------------------------------------- |
+| **Now**                | `plugin-sdk/compat` is removed; importing it fails      |
+| **Next major release** | Other deprecated surfaces may be removed; migrate early |
 
 All core plugins have already been migrated. External plugins should migrate
 before the next major release.
@@ -187,7 +186,6 @@ before the next major release.
 Set these environment variables while you work on migrating:
 
 ```bash
-CRAWCLAW_SUPPRESS_PLUGIN_SDK_COMPAT_WARNING=1 crawclaw gateway run
 CRAWCLAW_SUPPRESS_EXTENSION_API_WARNING=1 crawclaw gateway run
 ```
 

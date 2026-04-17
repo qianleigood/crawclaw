@@ -129,11 +129,15 @@ x-i18n:
 
 ## 身份验证和模型选项
 
+旧的 onboarding `auth-choice` 别名（例如 `oauth`、`anthropic-cli`）已不再接受。
+请使用下方当前的 `--auth-choice` 值，或改用
+`crawclaw models auth ...` 执行 provider 专属登录流程。
+
 <AccordionGroup>
   <Accordion title="Anthropic API 密钥">
     如果存在 `ANTHROPIC_API_KEY` 则使用它，否则提示输入密钥，然后保存以供守护进程使用。
   </Accordion>
-  <Accordion title="Anthropic OAuth（Claude Code CLI）">
+  <Accordion title="Anthropic Claude CLI">
     - macOS：检查 Keychain 条目 “Claude Code-credentials”
     - Linux 和 Windows：如果存在，则复用 `~/.claude/.credentials.json`
 

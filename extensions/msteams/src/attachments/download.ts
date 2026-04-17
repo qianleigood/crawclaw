@@ -153,7 +153,7 @@ async function fetchWithAuthFallback(params: {
 
 /**
  * Download all file attachments from a Teams message (images, documents, etc.).
- * Renamed from downloadMSTeamsImageAttachments to support all file types.
+ * Downloads inbound Teams attachments with file-type-aware handling.
  */
 export async function downloadMSTeamsAttachments(params: {
   attachments: MSTeamsAttachmentLike[] | undefined;
@@ -263,8 +263,3 @@ export async function downloadMSTeamsAttachments(params: {
   }
   return out;
 }
-
-/**
- * @deprecated Use `downloadMSTeamsAttachments` instead (supports all file types).
- */
-export const downloadMSTeamsImageAttachments = downloadMSTeamsAttachments;

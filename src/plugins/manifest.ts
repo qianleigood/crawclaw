@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import JSON5 from "json5";
-import { MANIFEST_KEY } from "../compat/legacy-names.js";
 import { matchBoundaryFileOpenFailure, openBoundaryFileSync } from "../infra/boundary-file-read.js";
+import { MANIFEST_KEY } from "../shared/manifest-key.js";
 import { isRecord } from "../utils.js";
 import type { PluginConfigUiHint, PluginKind } from "./types.js";
 

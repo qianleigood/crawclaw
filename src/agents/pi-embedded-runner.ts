@@ -8,11 +8,7 @@ export {
 } from "./pi-embedded-runner/extra-params.js";
 
 export { applyGoogleTurnOrderingFix } from "./pi-embedded-runner/google.js";
-export {
-  getDmHistoryLimitFromSessionKey,
-  getHistoryLimitFromSessionKey,
-  limitHistoryTurns,
-} from "./pi-embedded-runner/history.js";
+export { getHistoryLimitFromSessionKey, limitHistoryTurns } from "./pi-embedded-runner/history.js";
 export { resolveEmbeddedSessionLane } from "./pi-embedded-runner/lanes.js";
 export { runEmbeddedPiAgent } from "./pi-embedded-runner/run.js";
 export {

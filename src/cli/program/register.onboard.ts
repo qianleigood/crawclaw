@@ -43,7 +43,6 @@ function resolveInstallDaemonFlag(
 }
 
 const AUTH_CHOICE_HELP = formatAuthChoiceChoicesForCli({
-  includeLegacyAliases: true,
   includeSkip: true,
 });
 

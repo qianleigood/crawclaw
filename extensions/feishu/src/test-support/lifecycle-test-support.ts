@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, vi } from "vitest";
 import { createPluginRuntimeMock } from "../../../../test/helpers/plugins/plugin-runtime-mock.js";
-import type { ClawdbotConfig, PluginRuntime, RuntimeEnv } from "../../runtime-api.js";
+import type { CrawClawConfig, PluginRuntime, RuntimeEnv } from "../../runtime-api.js";
 import { clearFeishuRuntime, setFeishuRuntime } from "../runtime.js";
 import type { ResolvedFeishuAccount } from "../types.js";
 
@@ -172,7 +172,7 @@ export function createFeishuLifecycleConfig(params: {
   channelConfig?: Record<string, unknown>;
   accountConfig?: Record<string, unknown>;
   extraConfig?: Record<string, unknown>;
-}): ClawdbotConfig {
+}): CrawClawConfig {
   const extraConfig = params.extraConfig ?? {};
   return {
     ...extraConfig,
@@ -204,7 +204,7 @@ export function createFeishuLifecycleConfig(params: {
         },
       },
     },
-  } as ClawdbotConfig;
+  } as CrawClawConfig;
 }
 
 export function createFeishuLifecycleFixture(params: {
@@ -388,7 +388,7 @@ export async function setupFeishuLifecycleHandler<T extends RuntimeEnv>(params: 
   };
   onRegister: (registered: Record<string, (data: unknown) => Promise<void>>) => void;
   runtime: T;
-  cfg: ClawdbotConfig;
+  cfg: CrawClawConfig;
   account: ResolvedFeishuAccount;
   handlerKey: string;
   missingHandlerMessage: string;

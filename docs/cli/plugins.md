@@ -178,8 +178,6 @@ By default, uninstall also removes the plugin install directory under the active
 state-dir plugin root. Use
 `--keep-files` to keep files on disk.
 
-`--keep-config` is supported as a deprecated alias for `--keep-files`.
-
 ### Update
 
 ```bash

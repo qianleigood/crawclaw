@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { MANIFEST_KEY } from "../compat/legacy-names.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { openBoundaryFileSync } from "../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { isPathInsideWithRealpath } from "../security/scan-paths.js";
+import { MANIFEST_KEY } from "../shared/manifest-key.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import { resolveBundledHooksDir } from "./bundled-dir.js";
 import { shouldIncludeHook } from "./config.js";

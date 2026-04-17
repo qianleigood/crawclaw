@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPluginRuntimeMock } from "../../../test/helpers/plugins/plugin-runtime-mock.js";
-import type { ClawdbotConfig } from "../runtime-api.js";
+import type { CrawClawConfig } from "../runtime-api.js";
 import { handleFeishuCommentEvent } from "./comment-handler.js";
 import { setFeishuRuntime } from "./runtime.js";
 
@@ -30,7 +30,7 @@ vi.mock("./drive.js", () => ({
   deliverCommentThreadText: deliverCommentThreadTextMock,
 }));
 
-function buildConfig(overrides?: Partial<ClawdbotConfig>): ClawdbotConfig {
+function buildConfig(overrides?: Partial<CrawClawConfig>): CrawClawConfig {
   return {
     channels: {
       feishu: {
@@ -39,7 +39,7 @@ function buildConfig(overrides?: Partial<ClawdbotConfig>): ClawdbotConfig {
       },
     },
     ...overrides,
-  } as ClawdbotConfig;
+  } as CrawClawConfig;
 }
 
 function buildResolvedRoute(matchedBy: "binding.channel" | "default" = "binding.channel") {

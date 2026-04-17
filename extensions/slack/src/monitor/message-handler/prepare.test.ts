@@ -431,10 +431,10 @@ describe("slack prepareSlackMessage inbound contract", () => {
     expect(prepared!.ctxPayload.MessageThreadId).toBe("1.000");
   });
 
-  it("respects dm.replyToMode legacy override for DMs", async () => {
+  it("respects replyToModeByChatType direct override for DMs", async () => {
     const prepared = await prepareMessageWith(
       createReplyToAllSlackCtx(),
-      createSlackAccount({ replyToMode: "all", dm: { replyToMode: "off" } }),
+      createSlackAccount({ replyToMode: "all", replyToModeByChatType: { direct: "off" } }),
       createSlackMessage({}), // DM
     );
 

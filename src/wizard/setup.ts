@@ -133,7 +133,7 @@ export async function runSetupWizard(
   const snapshot = await readConfigFileSnapshot();
   let baseConfig: CrawClawConfig = snapshot.valid
     ? snapshot.exists
-      ? (snapshot.sourceConfig ?? snapshot.config)
+      ? (snapshot.sourceConfig ?? snapshot.runtimeConfig)
       : {}
     : {};
 
@@ -578,7 +578,7 @@ export async function runSetupWizard(
   nextConfig = gateway.nextConfig;
   const settings = gateway.settings;
 
-  if (opts.skipChannels ?? opts.skipProviders) {
+  if (opts.skipChannels) {
     await prompter.note("Skipping channel setup.", "Channels");
   } else {
     const { listChannelPlugins } = await import("../channels/plugins/index.js");

@@ -20,7 +20,6 @@ const ROOT_SECTIONS = [
   "tools",
   "bindings",
   "broadcast",
-  "audio",
   "media",
   "messages",
   "commands",
@@ -143,7 +142,6 @@ const TARGET_KEYS = [
   "session.reset.idleMinutes",
   "session.resetByType",
   "session.resetByType.direct",
-  "session.resetByType.dm",
   "session.resetByType.group",
   "session.resetByType.thread",
   "session.resetByChannel",
@@ -169,7 +167,6 @@ const TARGET_KEYS = [
   "session.maintenance",
   "session.maintenance.mode",
   "session.maintenance.pruneAfter",
-  "session.maintenance.pruneDays",
   "session.maintenance.maxEntries",
   "session.maintenance.rotateBytes",
   "session.maintenance.resetArchiveRetention",
@@ -192,10 +189,6 @@ const TARGET_KEYS = [
   "nodeHost.browserProxy.allowProfiles",
   "media",
   "media.preserveFilenames",
-  "audio",
-  "audio.transcription",
-  "audio.transcription.command",
-  "audio.transcription.timeoutSeconds",
   "bindings",
   "bindings[].agentId",
   "bindings[].match",
@@ -237,7 +230,6 @@ const TARGET_KEYS = [
   "hooks.internal.handlers[].module",
   "hooks.internal.load.extraDirs",
   "messages",
-  "messages.messagePrefix",
   "messages.responsePrefix",
   "messages.groupChat",
   "messages.groupChat.mentionPatterns",
@@ -681,10 +673,6 @@ describe("config help copy quality", () => {
     expect(rotate.includes("10mb")).toBe(true);
     expect(rotate.includes("1gb")).toBe(true);
 
-    const deprecated = FIELD_HELP["session.maintenance.pruneDays"];
-    expect(/deprecated/i.test(deprecated)).toBe(true);
-    expect(deprecated.includes("session.maintenance.pruneAfter")).toBe(true);
-
     const resetRetention = FIELD_HELP["session.maintenance.resetArchiveRetention"];
     expect(resetRetention.includes(".reset.")).toBe(true);
     expect(/false/i.test(resetRetention)).toBe(true);
@@ -722,11 +710,7 @@ describe("config help copy quality", () => {
     expect(/differs|per provider/i.test(targetTo)).toBe(true);
   });
 
-  it("documents broadcast and audio command examples", () => {
-    const audioCmd = FIELD_HELP["audio.transcription.command"];
-    expect(audioCmd.includes("whisper-cli")).toBe(true);
-    expect(audioCmd.includes("{input}")).toBe(true);
-
+  it("documents broadcast mapping examples", () => {
     const broadcastMap = FIELD_HELP["broadcast.*"];
     expect(/source peer ID/i.test(broadcastMap)).toBe(true);
     expect(/destination peer IDs/i.test(broadcastMap)).toBe(true);

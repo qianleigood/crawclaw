@@ -16,7 +16,6 @@ import { isToolAllowedByPolicies } from "../agents/tool-policy-match.js";
 import { resolveToolProfilePolicy } from "../agents/tool-policy.js";
 import { listAgentWorkspaceDirs } from "../agents/workspace-dirs.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import { MANIFEST_KEY } from "../compat/legacy-names.js";
 import { resolveNativeSkillsEnabled } from "../config/commands.js";
 import type { CrawClawConfig, ConfigFileSnapshot } from "../config/config.js";
 import { collectIncludePathsRecursive } from "../config/includes-scan.js";
@@ -25,6 +24,7 @@ import { hasConfiguredSecretInput } from "../config/types.secrets.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { normalizePluginsConfig } from "../plugins/config-state.js";
 import { normalizeAgentId } from "../routing/session-key.js";
+import { MANIFEST_KEY } from "../shared/manifest-key.js";
 import {
   formatPermissionDetail,
   formatPermissionRemediation,

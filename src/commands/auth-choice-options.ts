@@ -44,7 +44,6 @@ function resolveProviderChoiceOptions(params?: {
 
 export function formatAuthChoiceChoicesForCli(params?: {
   includeSkip?: boolean;
-  includeLegacyAliases?: boolean;
   config?: CrawClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { MANIFEST_KEY } from "../compat/legacy-names.js";
+import { MANIFEST_KEY } from "../shared/manifest-key.js";
 import { loadHookEntriesFromDir, loadWorkspaceHookEntries } from "./workspace.js";
 
 function writeHookPackageManifest(pkgDir: string, hooks: string[]): void {

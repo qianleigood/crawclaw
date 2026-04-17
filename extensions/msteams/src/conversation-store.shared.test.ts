@@ -122,9 +122,6 @@ describe.each(storeFactories)("msteams conversation store ($name)", ({ createSto
         lastSeenAt: expect.any(String),
       },
     });
-    await expect(store.findByUserId("user-a")).resolves.toEqual(
-      await store.findPreferredDmByUserId("user-a"),
-    );
     await expect(store.findPreferredDmByUserId("   ")).resolves.toBeNull();
 
     await expect(store.remove("conv-a")).resolves.toBe(true);

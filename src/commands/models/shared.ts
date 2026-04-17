@@ -70,7 +70,7 @@ export async function loadValidConfigOrThrow(): Promise<CrawClawConfig> {
     const issues = formatConfigIssueLines(snapshot.issues, "-").join("\n");
     throw new Error(`Invalid config at ${snapshot.path}\n${issues}`);
   }
-  return snapshot.runtimeConfig ?? snapshot.config;
+  return snapshot.runtimeConfig ?? snapshot.runtimeConfig;
 }
 
 export async function updateConfig(
@@ -81,7 +81,7 @@ export async function updateConfig(
     const issues = formatConfigIssueLines(snapshot.issues, "-").join("\n");
     throw new Error(`Invalid config at ${snapshot.path}\n${issues}`);
   }
-  const next = mutator(structuredClone(snapshot.sourceConfig ?? snapshot.config));
+  const next = mutator(structuredClone(snapshot.sourceConfig ?? snapshot.runtimeConfig));
   await replaceConfigFile({
     nextConfig: next,
     baseHash: snapshot.hash,

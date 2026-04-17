@@ -60,7 +60,6 @@ describe("workflow callback runner", () => {
           },
         ],
       }),
-      getSession: async () => ({ messages: [] }),
       deleteSession: async () => {},
     };
 
@@ -118,7 +117,6 @@ describe("workflow callback runner", () => {
       run: async () => ({ runId: "run-timeout" }),
       waitForRun: async () => ({ status: "timeout" as const }),
       getSessionMessages: async () => ({ messages: [] }),
-      getSession: async () => ({ messages: [] }),
       deleteSession: async () => {},
     };
 
@@ -163,7 +161,6 @@ describe("workflow callback runner", () => {
           },
         ],
       }),
-      getSession: async () => ({ messages: [] }),
       deleteSession: async () => {},
     };
 
@@ -293,7 +290,6 @@ describe("workflow callback runner", () => {
           },
         ],
       }),
-      getSession: async () => ({ messages: [] }),
       deleteSession: async () => {},
     };
 

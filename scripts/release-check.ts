@@ -28,7 +28,6 @@ const requiredPathGroups = [
   "scripts/install-plugin-runtimes.mjs",
   "scripts/npm-runner.mjs",
   "scripts/postinstall-bundled-plugins.mjs",
-  "dist/plugin-sdk/compat.js",
   "dist/plugin-sdk/root-alias.cjs",
   "dist/build-info.json",
   "dist/channel-catalog.json",

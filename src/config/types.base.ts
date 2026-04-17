@@ -79,8 +79,6 @@ export type SessionResetConfig = {
 };
 export type SessionResetByTypeConfig = {
   direct?: SessionResetConfig;
-  /** @deprecated Use `direct` instead. Kept for backward compatibility. */
-  dm?: SessionResetConfig;
   group?: SessionResetConfig;
   thread?: SessionResetConfig;
 };
@@ -143,8 +141,6 @@ export type SessionMaintenanceConfig = {
   mode?: SessionMaintenanceMode;
   /** Remove session entries older than this duration (e.g. "30d", "12h"). Default: "30d". */
   pruneAfter?: string | number;
-  /** Deprecated. Use pruneAfter instead. */
-  pruneDays?: number;
   /** Maximum number of session entries to keep. Default: 500. */
   maxEntries?: number;
   /** Rotate sessions.json when it exceeds this size (e.g. "10mb"). Default: 10mb. */

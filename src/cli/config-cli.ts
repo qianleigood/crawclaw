@@ -1013,7 +1013,7 @@ export async function runConfigSet(opts: {
         });
     const snapshot = await loadValidConfig(runtime);
     // Use snapshot.resolved (config after $include and ${ENV} resolution, but BEFORE runtime defaults)
-    // instead of snapshot.config (runtime-merged with defaults).
+    // instead of snapshot.runtimeConfig (runtime-merged with defaults).
     // This prevents runtime defaults from leaking into the written config file (issue #6070)
     const next = structuredClone(snapshot.resolved) as Record<string, unknown>;
     for (const operation of operations) {
@@ -1165,7 +1165,7 @@ export async function runConfigGet(opts: { path: string; json?: boolean; runtime
   try {
     const parsedPath = parseRequiredPath(opts.path);
     const snapshot = await loadValidConfig(runtime);
-    const redacted = redactConfigObject(snapshot.config);
+    const redacted = redactConfigObject(snapshot.runtimeConfig);
     const res = getAtPath(redacted, parsedPath);
     if (!res.found) {
       runtime.error(danger(`Config path not found: ${opts.path}`));
@@ -1197,7 +1197,7 @@ export async function runConfigUnset(opts: { path: string; runtime?: RuntimeEnv 
     const parsedPath = parseRequiredPath(opts.path);
     const snapshot = await loadValidConfig(runtime);
     // Use snapshot.resolved (config after $include and ${ENV} resolution, but BEFORE runtime defaults)
-    // instead of snapshot.config (runtime-merged with defaults).
+    // instead of snapshot.runtimeConfig (runtime-merged with defaults).
     // This prevents runtime defaults from leaking into the written config file (issue #6070)
     const next = structuredClone(snapshot.resolved) as Record<string, unknown>;
     const removed = unsetAtPath(next, parsedPath);

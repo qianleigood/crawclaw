@@ -1,15 +1,10 @@
 import { formatCliCommand } from "../cli/command-format.js";
 import { readConfigFileSnapshot } from "../config/config.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
+import { resolveManifestDeprecatedProviderAuthChoice } from "../plugins/provider-auth-choices.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { resolveUserPath } from "../utils.js";
-import {
-  formatDeprecatedNonInteractiveAuthChoiceError,
-  isDeprecatedAuthChoice,
-  normalizeLegacyOnboardAuthChoice,
-  resolveDeprecatedAuthChoiceReplacement,
-} from "./auth-choice-legacy.js";
 import { DEFAULT_WORKSPACE, handleReset } from "./onboard-helpers.js";
 import { runInteractiveSetup } from "./onboard-interactive.js";
 import { runNonInteractiveSetup } from "./onboard-non-interactive.js";
@@ -22,29 +17,25 @@ export async function setupWizardCommand(
   runtime: RuntimeEnv = defaultRuntime,
 ) {
   assertSupportedRuntime(runtime);
-  const originalAuthChoice = opts.authChoice;
-  const normalizedAuthChoice = normalizeLegacyOnboardAuthChoice(originalAuthChoice, {
-    env: process.env,
-  });
-  if (opts.nonInteractive && isDeprecatedAuthChoice(originalAuthChoice, { env: process.env })) {
-    runtime.error(
-      formatDeprecatedNonInteractiveAuthChoiceError(originalAuthChoice, {
-        env: process.env,
-      })!,
-    );
+  if (opts.authChoice === "oauth") {
+    runtime.error('Auth choice "oauth" has been removed. Use "--auth-choice setup-token".');
     runtime.exit(1);
     return;
   }
-  if (isDeprecatedAuthChoice(originalAuthChoice, { env: process.env })) {
-    runtime.log(
-      resolveDeprecatedAuthChoiceReplacement(originalAuthChoice, { env: process.env })!.message,
-    );
+  if (typeof opts.authChoice === "string") {
+    const deprecatedChoice = resolveManifestDeprecatedProviderAuthChoice(opts.authChoice, {
+      env: process.env,
+    });
+    if (deprecatedChoice) {
+      runtime.error(
+        `Auth choice "${opts.authChoice}" has been removed. Use "--auth-choice ${deprecatedChoice.choiceId}".`,
+      );
+      runtime.exit(1);
+      return;
+    }
   }
   const flow = opts.flow === "manual" ? ("advanced" as const) : opts.flow;
-  const normalizedOpts =
-    normalizedAuthChoice === opts.authChoice && flow === opts.flow
-      ? opts
-      : { ...opts, authChoice: normalizedAuthChoice, flow };
+  const normalizedOpts = flow === opts.flow ? opts : { ...opts, flow };
   if (
     normalizedOpts.secretInputMode &&
     normalizedOpts.secretInputMode !== "plaintext" && // pragma: allowlist secret
@@ -75,7 +66,7 @@ export async function setupWizardCommand(
 
   if (normalizedOpts.reset) {
     const snapshot = await readConfigFileSnapshot();
-    const baseConfig = snapshot.valid ? (snapshot.sourceConfig ?? snapshot.config) : {};
+    const baseConfig = snapshot.valid ? (snapshot.sourceConfig ?? snapshot.runtimeConfig) : {};
     const workspaceDefault =
       normalizedOpts.workspace ?? baseConfig.agents?.defaults?.workspace ?? DEFAULT_WORKSPACE;
     const resetScope: ResetScope = normalizedOpts.resetScope ?? "config+creds+sessions";
@@ -100,8 +91,6 @@ export async function setupWizardCommand(
 
   await runInteractiveSetup(normalizedOpts, runtime);
 }
-
-export const onboardCommand = setupWizardCommand;
 
 export type { OnboardOptions } from "./onboard-types.js";
 export type { OnboardOptions as SetupWizardOptions } from "./onboard-types.js";

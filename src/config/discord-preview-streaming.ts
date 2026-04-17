@@ -64,7 +64,6 @@ export function mapStreamingModeToSlackLegacyDraftStreamMode(mode: StreamingMode
 
 export function resolveTelegramPreviewStreamMode(
   params: {
-    streamMode?: unknown;
     streaming?: unknown;
   } = {},
 ): TelegramPreviewStreamMode {
@@ -75,11 +74,6 @@ export function resolveTelegramPreviewStreamMode(
     }
     return parsedStreaming;
   }
-
-  const legacy = parseDiscordPreviewStreamMode(params.streamMode);
-  if (legacy) {
-    return legacy;
-  }
   if (typeof params.streaming === "boolean") {
     return params.streaming ? "partial" : "off";
   }
@@ -88,18 +82,12 @@ export function resolveTelegramPreviewStreamMode(
 
 export function resolveDiscordPreviewStreamMode(
   params: {
-    streamMode?: unknown;
     streaming?: unknown;
   } = {},
 ): DiscordPreviewStreamMode {
   const parsedStreaming = parseDiscordPreviewStreamMode(params.streaming);
   if (parsedStreaming) {
     return parsedStreaming;
-  }
-
-  const legacy = parseDiscordPreviewStreamMode(params.streamMode);
-  if (legacy) {
-    return legacy;
   }
   if (typeof params.streaming === "boolean") {
     return params.streaming ? "partial" : "off";
@@ -112,17 +100,12 @@ export function resolveDiscordPreviewStreamMode(
 
 export function resolveSlackStreamingMode(
   params: {
-    streamMode?: unknown;
     streaming?: unknown;
   } = {},
 ): StreamingMode {
   const parsedStreaming = parseStreamingMode(params.streaming);
   if (parsedStreaming) {
     return parsedStreaming;
-  }
-  const legacyStreamMode = parseSlackLegacyDraftStreamMode(params.streamMode);
-  if (legacyStreamMode) {
-    return mapSlackLegacyDraftStreamModeToStreaming(legacyStreamMode);
   }
   // Legacy boolean `streaming` values map to the unified enum.
   if (typeof params.streaming === "boolean") {
@@ -144,13 +127,6 @@ export function resolveSlackNativeStreaming(
     return params.streaming;
   }
   return true;
-}
-
-export function formatSlackStreamModeMigrationMessage(
-  pathPrefix: string,
-  resolvedStreaming: string,
-): string {
-  return `Moved ${pathPrefix}.streamMode → ${pathPrefix}.streaming (${resolvedStreaming}).`;
 }
 
 export function formatSlackStreamingBooleanMigrationMessage(

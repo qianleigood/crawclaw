@@ -292,7 +292,6 @@ describe.runIf(Boolean(LIVE_N8N_BASE_URL && LIVE_N8N_API_KEY && LIVE_GATEWAY_TOK
               },
             ],
           }),
-          getSession: async () => ({ messages: [] }),
           deleteSession: async () => {},
         });
 
@@ -503,7 +502,6 @@ describe.runIf(Boolean(LIVE_N8N_BASE_URL && LIVE_N8N_API_KEY && LIVE_GATEWAY_TOK
               },
             ],
           }),
-          getSession: async () => ({ messages: [] }),
           deleteSession: async () => {},
         });
 
@@ -692,7 +690,6 @@ describe.runIf(Boolean(LIVE_N8N_BASE_URL && LIVE_N8N_API_KEY && LIVE_GATEWAY_TOK
               },
             ],
           }),
-          getSession: async () => ({ messages: [] }),
           deleteSession: async () => {},
         });
 
@@ -888,7 +885,6 @@ describe.runIf(Boolean(LIVE_N8N_BASE_URL && LIVE_N8N_API_KEY && LIVE_GATEWAY_TOK
               },
             ],
           }),
-          getSession: async () => ({ messages: [] }),
           deleteSession: async () => {},
         });
 

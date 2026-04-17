@@ -41,6 +41,8 @@ export type { SecretResolverWarning } from "./runtime-shared.js";
 export type PreparedSecretsRuntimeSnapshot = {
   sourceConfig: CrawClawConfig;
   config: CrawClawConfig;
+  /** Deprecated alias kept while internal callers finish migrating to `config`. */
+  runtimeConfig: CrawClawConfig;
   authStores: Array<{ agentDir: string; store: AuthProfileStore }>;
   warnings: SecretResolverWarning[];
   webTools: RuntimeWebToolsMetadata;
@@ -77,6 +79,7 @@ function cloneSnapshot(snapshot: PreparedSecretsRuntimeSnapshot): PreparedSecret
   return {
     sourceConfig: structuredClone(snapshot.sourceConfig),
     config: structuredClone(snapshot.config),
+    runtimeConfig: structuredClone(snapshot.config),
     authStores: snapshot.authStores.map((entry) => ({
       agentDir: entry.agentDir,
       store: structuredClone(entry.store),
@@ -221,6 +224,7 @@ export async function prepareSecretsRuntimeSnapshot(params: {
   const snapshot = {
     sourceConfig,
     config: resolvedConfig,
+    runtimeConfig: resolvedConfig,
     authStores,
     warnings: context.warnings,
     webTools: await resolveRuntimeWebTools({

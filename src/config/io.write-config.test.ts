@@ -80,10 +80,10 @@ describe("config io write", () => {
 
   async function writeTokenAuthAndReadConfig(params: {
     io: { writeConfigFile: (config: Record<string, unknown>) => Promise<unknown> };
-    snapshot: { config: Record<string, unknown> };
+    snapshot: { config: Record<string, unknown>; runtimeConfig: Record<string, unknown> };
     configPath: string;
   }) {
-    const next = structuredClone(params.snapshot.config);
+    const next = structuredClone(params.snapshot.runtimeConfig);
     const gateway =
       next.gateway && typeof next.gateway === "object"
         ? (next.gateway as Record<string, unknown>)
@@ -112,7 +112,7 @@ describe("config io write", () => {
       },
     });
     const auditPath = path.join(params.home, ".crawclaw", "logs", "config-audit.jsonl");
-    const next = structuredClone(snapshot.config);
+    const next = structuredClone(snapshot.runtimeConfig);
     const gateway =
       next.gateway && typeof next.gateway === "object"
         ? (next.gateway as Record<string, unknown>)
@@ -284,7 +284,7 @@ describe("config io write", () => {
         },
       });
 
-      const input = structuredClone(snapshot.config) as Record<string, unknown>;
+      const input = structuredClone(snapshot.runtimeConfig) as Record<string, unknown>;
       await io.writeConfigFile(input, { unsetPaths: [["commands", "ownerDisplay"]] });
 
       expectInputOwnerDisplayUnchanged(input);
@@ -302,7 +302,7 @@ describe("config io write", () => {
         },
       });
 
-      const input = structuredClone(snapshot.config) as Record<string, unknown>;
+      const input = structuredClone(snapshot.runtimeConfig) as Record<string, unknown>;
       await io.writeConfigFile(input, { unsetPaths: [["tools", "alsoAllow", "1"]] });
 
       expect((input.tools as { alsoAllow: string[] }).alsoAllow).toEqual(["exec", "fetch", "read"]);
@@ -421,8 +421,8 @@ describe("config io write", () => {
         },
       });
 
-      // Simulate doctor: clone snapshot.config, make a small change, write back.
-      const next = structuredClone(snapshot.config);
+      // Simulate doctor: clone snapshot.runtimeConfig, make a small change, write back.
+      const next = structuredClone(snapshot.runtimeConfig);
       const gateway =
         next.gateway && typeof next.gateway === "object"
           ? (next.gateway as Record<string, unknown>)
@@ -478,7 +478,7 @@ describe("config io write", () => {
         },
       });
 
-      const next = structuredClone(snapshot.config);
+      const next = structuredClone(snapshot.runtimeConfig);
       // Simulate doctor removing legacy keys while keeping dm enabled.
       if (next.channels?.discord?.dm && typeof next.channels.discord.dm === "object") {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test helper
@@ -539,7 +539,7 @@ describe("config io write", () => {
       const snapshot = await io.readConfigFileSnapshot();
       expect(snapshot.valid).toBe(true);
 
-      const next = structuredClone(snapshot.config);
+      const next = structuredClone(snapshot.runtimeConfig);
       const codexBackend = next.agents?.defaults?.cliBackends?.codex;
       const args = Array.isArray(codexBackend?.args) ? codexBackend?.args : [];
       next.agents = {
@@ -590,7 +590,7 @@ describe("config io write", () => {
           error: vi.fn() as (msg: string) => void,
         },
       });
-      const next = structuredClone(snapshot.config);
+      const next = structuredClone(snapshot.runtimeConfig);
       next.gateway = {
         ...next.gateway,
         auth: { mode: "token" },

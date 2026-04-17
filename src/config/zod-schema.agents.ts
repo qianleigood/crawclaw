@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { AgentDefaultsSchema } from "./zod-schema.agent-defaults.js";
 import { AgentEntrySchema } from "./zod-schema.agent-runtime.js";
-import { TranscribeAudioSchema } from "./zod-schema.core.js";
 
 export const AgentsSchema = z
   .object({
@@ -117,11 +116,4 @@ export const BroadcastSchema = z
     strategy: BroadcastStrategySchema.optional(),
   })
   .catchall(z.array(z.string()))
-  .optional();
-
-export const AudioSchema = z
-  .object({
-    transcription: TranscribeAudioSchema,
-  })
-  .strict()
   .optional();

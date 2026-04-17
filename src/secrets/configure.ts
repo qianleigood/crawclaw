@@ -767,21 +767,21 @@ export async function runSecretsConfigureInteractive(
     throw new Error("Cannot run interactive secrets configure because config is invalid.");
   }
 
-  const stagedConfig = structuredClone(snapshot.config);
+  const stagedConfig = structuredClone(snapshot.runtimeConfig);
   if (!params.skipProviderSetup) {
     await configureProvidersInteractive(stagedConfig);
   }
 
   const providerChanges = collectConfigureProviderChanges({
-    original: snapshot.config,
+    original: snapshot.runtimeConfig,
     next: stagedConfig,
   });
 
   const selectedByPath = new Map<string, ConfigureCandidate & { ref: SecretRef }>();
   if (!params.providersOnly) {
-    const configureAgentId = resolveConfigureAgentId(snapshot.config, params.agentId);
+    const configureAgentId = resolveConfigureAgentId(snapshot.runtimeConfig, params.agentId);
     const authStore = loadAuthProfileStoreForConfigure({
-      config: snapshot.config,
+      config: snapshot.runtimeConfig,
       agentId: configureAgentId,
     });
     const candidates = buildConfigureCandidatesForScope({

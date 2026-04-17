@@ -50,7 +50,7 @@ export function createGatewayReloadHandlers(params: {
   logReload: { info: (msg: string) => void; warn: (msg: string) => void };
   createHealthMonitor: (opts: {
     checkIntervalMs: number;
-    staleEventThresholdMs?: number;
+    timing?: { staleEventThresholdMs?: number };
     maxRestartsPerHour?: number;
   }) => ChannelHealthMonitor;
 }) {
@@ -98,7 +98,9 @@ export function createGatewayReloadHandlers(params: {
           ? null
           : params.createHealthMonitor({
               checkIntervalMs: (minutes ?? 5) * 60_000,
-              ...(staleMinutes != null && { staleEventThresholdMs: staleMinutes * 60_000 }),
+              ...(staleMinutes != null && {
+                timing: { staleEventThresholdMs: staleMinutes * 60_000 },
+              }),
               ...(nextConfig.gateway?.channelMaxRestartsPerHour != null && {
                 maxRestartsPerHour: nextConfig.gateway.channelMaxRestartsPerHour,
               }),

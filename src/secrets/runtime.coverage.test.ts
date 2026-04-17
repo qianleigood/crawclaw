@@ -261,7 +261,7 @@ describe("secrets runtime target coverage", () => {
         loadAuthStore: () => ({ version: 1, profiles: {} }),
       });
       const resolved = getPath(
-        snapshot.config,
+        snapshot.runtimeConfig,
         toConcretePathSegments(resolveCoverageResolvedPath(entry)),
       );
       if (entry.expectedResolvedValue === "string") {

@@ -174,7 +174,7 @@ describe("crawclaw tools runtime web metadata wiring", () => {
     });
 
     expect(snapshot.webTools.search.selectedProvider).toBe("open-websearch");
-    const webSearch = requireWebSearchTool(snapshot.config, snapshot.webTools.search);
+    const webSearch = requireWebSearchTool(snapshot.runtimeConfig, snapshot.webTools.search);
     expect(webSearch).toBeTruthy();
   });
 
@@ -211,7 +211,7 @@ describe("crawclaw tools runtime web metadata wiring", () => {
     );
     global.fetch = withFetchPreconnect(mockFetch);
 
-    const webFetch = requireWebFetchTool(snapshot.config, snapshot.webTools.fetch);
+    const webFetch = requireWebFetchTool(snapshot.runtimeConfig, snapshot.webTools.fetch);
     await webFetch.execute("call-runtime-fetch", { url: "http://127.0.0.1/runtime-off" });
 
     expect(mockFetch).toHaveBeenCalled();

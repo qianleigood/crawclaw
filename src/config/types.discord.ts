@@ -1,5 +1,4 @@
 import type {
-  BlockStreamingChunkConfig,
   BlockStreamingCoalesceConfig,
   ContextVisibilityMode,
   DmPolicy,
@@ -268,12 +267,6 @@ export type DiscordAccountConfig = {
    * Legacy boolean values are still accepted and auto-migrated.
    */
   streaming?: DiscordStreamMode | boolean;
-  /**
-   * @deprecated Legacy key; migrated automatically to `streaming`.
-   */
-  streamMode?: "partial" | "block" | "off";
-  /** Chunking config for Discord stream previews in `streaming: "block"`. */
-  draftChunk?: BlockStreamingChunkConfig;
   /** Merge streamed block replies before sending. */
   blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /**

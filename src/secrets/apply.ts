@@ -206,7 +206,7 @@ async function projectPlanState(params: {
   }
 
   const options = normalizeSecretsPlanOptions(params.plan.options);
-  const nextConfig = structuredClone(snapshot.config);
+  const nextConfig = structuredClone(snapshot.runtimeConfig);
   const stateDir = resolveStateDir(params.env, os.homedir);
   const changedFiles = new Set<string>();
   const warnings: string[] = [];

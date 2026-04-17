@@ -41,11 +41,11 @@ vi.mock("../../gateway/auth.js", () => ({
     env?: NodeJS.ProcessEnv;
   }) => {
     const mode = params.authOverride?.mode ?? params.authConfig?.mode ?? "token";
-      const token =
-        (typeof params.authOverride?.token === "string" ? params.authOverride.token : undefined) ??
+    const token =
+      (typeof params.authOverride?.token === "string" ? params.authOverride.token : undefined) ??
       (typeof params.authConfig?.token === "string" ? params.authConfig.token : undefined) ??
       params.env?.CRAWCLAW_GATEWAY_TOKEN;
-      const password =
+    const password =
       (typeof params.authOverride?.password === "string"
         ? params.authOverride.password
         : undefined) ??
@@ -184,13 +184,10 @@ describe("gateway run option collisions", () => {
     );
   });
 
-  it.each([
-    ["--cli-backend-logs", "generic flag"],
-    ["--claude-cli-logs", "deprecated alias"],
-  ])("enables CLI backend log filtering via %s (%s)", async (flag) => {
+  it("enables CLI backend log filtering via --cli-backend-logs", async () => {
     delete process.env.CRAWCLAW_CLI_BACKEND_LOG_OUTPUT;
 
-    await runGatewayCli(["gateway", "run", flag, "--allow-unconfigured"]);
+    await runGatewayCli(["gateway", "run", "--cli-backend-logs", "--allow-unconfigured"]);
 
     expect(setConsoleSubsystemFilter).toHaveBeenCalledWith(["agent/cli-backend"]);
     expect(process.env.CRAWCLAW_CLI_BACKEND_LOG_OUTPUT).toBe("1");

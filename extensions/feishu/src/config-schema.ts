@@ -1,11 +1,7 @@
 import { normalizeAccountId } from "crawclaw/plugin-sdk/account-id";
 import { z } from "crawclaw/plugin-sdk/zod";
-export {
-z,
-};
-import { buildSecretInputSchema,
-hasConfiguredSecretInput,
-} from "./secret-input.js";
+export { z };
+import { buildSecretInputSchema, hasConfiguredSecretInput } from "./secret-input.js";
 
 const ChannelActionsSchema = z
   .object({
@@ -121,17 +117,6 @@ const GroupSessionScopeSchema = z
   .enum(["group", "group_sender", "group_topic", "group_topic_sender"])
   .optional();
 
-/**
- * @deprecated Use groupSessionScope instead.
- *
- * Topic session isolation mode for group chats.
- * - "disabled" (default): All messages in a group share one session
- * - "enabled": Messages in different topics get separate sessions
- *
- * Topic routing uses `root_id` when present to keep session continuity and
- * falls back to `thread_id` when `root_id` is unavailable.
- */
-const TopicSessionModeSchema = z.enum(["disabled", "enabled"]).optional();
 const ReactionNotificationModeSchema = z.enum(["off", "own", "all"]).optional();
 
 /**
@@ -153,7 +138,6 @@ export const FeishuGroupSchema = z
     allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     systemPrompt: z.string().optional(),
     groupSessionScope: GroupSessionScopeSchema,
-    topicSessionMode: TopicSessionModeSchema,
     replyInThread: ReplyInThreadSchema,
   })
   .strict();
@@ -207,7 +191,6 @@ export const FeishuAccountConfigSchema = z
     webhookPath: z.string().optional(),
     ...FeishuSharedConfigShape,
     groupSessionScope: GroupSessionScopeSchema,
-    topicSessionMode: TopicSessionModeSchema,
   })
   .strict();
 
@@ -229,7 +212,6 @@ export const FeishuConfigSchema = z
     groupPolicy: GroupPolicySchema.optional().default("allowlist"),
     requireMention: z.boolean().optional(),
     groupSessionScope: GroupSessionScopeSchema,
-    topicSessionMode: TopicSessionModeSchema,
     // Dynamic agent creation for DM users
     dynamicAgentCreation: DynamicAgentCreationSchema,
     // Optimization flags

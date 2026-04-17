@@ -150,7 +150,7 @@ function resolveExistingImplicitProviderFromContext(params: {
 
 async function resolvePluginImplicitProviders(
   ctx: ImplicitProviderContext,
-  order: import("../plugins/types.js").ProviderDiscoveryOrder,
+  order: import("../plugins/types.js").ProviderCatalogOrder,
 ): Promise<Record<string, ProviderConfig> | undefined> {
   const onlyPluginIds = resolveLiveProviderDiscoveryFilter(ctx.env);
   const providers = await resolvePluginDiscoveryProviders({

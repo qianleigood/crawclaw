@@ -553,7 +553,6 @@ import { ... } from "@mariozechner/pi-tui";
 Pi 集成的覆盖范围包括以下测试套件：
 
 - `src/agents/pi-*.test.ts`
-- `src/agents/pi-auth-json.test.ts`
 - `src/agents/pi-embedded-*.test.ts`
 - `src/agents/pi-embedded-helpers*.test.ts`
 - `src/agents/pi-embedded-runner*.test.ts`

@@ -35,12 +35,6 @@ export type GuardedFetchOptions = {
   dispatcherPolicy?: PinnedDispatcherPolicy;
   mode?: GuardedFetchMode;
   pinDns?: boolean;
-  /** @deprecated use `mode: "trusted_env_proxy"` for trusted/operator-controlled URLs. */
-  proxy?: "env";
-  /**
-   * @deprecated use `mode: "trusted_env_proxy"` instead.
-   */
-  dangerouslyAllowEnvProxyWithoutPinnedDns?: boolean;
   auditContext?: string;
 };
 
@@ -50,10 +44,7 @@ export type GuardedFetchResult = {
   release: () => Promise<void>;
 };
 
-type GuardedFetchPresetOptions = Omit<
-  GuardedFetchOptions,
-  "mode" | "proxy" | "dangerouslyAllowEnvProxyWithoutPinnedDns"
->;
+type GuardedFetchPresetOptions = Omit<GuardedFetchOptions, "mode">;
 
 const DEFAULT_MAX_REDIRECTS = 3;
 
@@ -68,13 +59,7 @@ export function withTrustedEnvProxyGuardedFetchMode(
 }
 
 function resolveGuardedFetchMode(params: GuardedFetchOptions): GuardedFetchMode {
-  if (params.mode) {
-    return params.mode;
-  }
-  if (params.proxy === "env" && params.dangerouslyAllowEnvProxyWithoutPinnedDns === true) {
-    return GUARDED_FETCH_MODE.TRUSTED_ENV_PROXY;
-  }
-  return GUARDED_FETCH_MODE.STRICT;
+  return params.mode ?? GUARDED_FETCH_MODE.STRICT;
 }
 
 function assertExplicitProxySupportsPinnedDns(

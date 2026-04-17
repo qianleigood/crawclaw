@@ -46,6 +46,5 @@ export function createMSTeamsConversationStoreMemory(
       return map.delete(normalizeStoredConversationId(conversationId));
     },
     findPreferredDmByUserId,
-    findByUserId: findPreferredDmByUserId,
   };
 }

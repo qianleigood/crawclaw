@@ -150,6 +150,12 @@ Gateway 网关启动后，打开浏览器控制界面。
   <Card title="文档中心" href="/start/hubs" icon="book-open">
     所有文档和指南，按用例分类。
   </Card>
+  <Card title="概念总览" href="/concepts" icon="blocks">
+    系统模型、运行时、记忆、模型和消息相关的核心概念。
+  </Card>
+  <Card title="参考文档" href="/reference" icon="file-text">
+    测试、发布、RPC、迁移等稳定参考资料入口。
+  </Card>
   <Card title="配置" href="/gateway/configuration" icon="settings">
     核心 Gateway 网关设置、令牌和提供商配置。
   </Card>
@@ -181,6 +187,9 @@ Gateway 网关启动后，打开浏览器控制界面。
   </Card>
   <Card title="故障排除" href="/gateway/troubleshooting" icon="wrench">
     Gateway 网关诊断和常见错误。
+  </Card>
+  <Card title="调试与维护者文档" href="/debug" icon="search-code">
+    深层实现笔记、调查记录和维护者入口。
   </Card>
   <Card title="关于与致谢" href="/reference/credits" icon="info">
     项目起源、贡献者和许可证。

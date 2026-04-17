@@ -4,7 +4,7 @@ export type {
   ProviderAuthContext,
   ProviderAuthMethodNonInteractiveContext,
   ProviderAuthResult,
-  ProviderDiscoveryContext,
+  ProviderCatalogContext,
 } from "../plugins/types.js";
 
 export {

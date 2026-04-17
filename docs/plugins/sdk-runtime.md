@@ -115,34 +115,19 @@ await api.runtime.subagent.deleteSession({
   Untrusted plugins can still run subagents, but override requests are rejected.
 </Warning>
 
-### `api.runtime.taskFlow`
+### `api.runtime.tasks.flows`
 
-Bind a Task Flow runtime to an existing CrawClaw session key or trusted tool
-context, then create and manage Task Flows without passing an owner on every call.
+Bind the Task Flow runtime to an existing CrawClaw session key or trusted tool
+context, then read owner-scoped Task Flow DTOs without passing the owner on
+every call.
 
 ```typescript
-const taskFlow = api.runtime.taskFlow.fromToolContext(ctx);
+const taskFlows = api.runtime.tasks.flows.fromToolContext(ctx);
 
-const created = taskFlow.createManaged({
-  controllerId: "my-plugin/review-batch",
-  goal: "Review new pull requests",
-});
-
-const child = taskFlow.runTask({
-  flowId: created.flowId,
-  runtime: "acp",
-  childSessionKey: "agent:main:subagent:reviewer",
-  task: "Review PR #123",
-  status: "running",
-  startedAt: Date.now(),
-});
-
-const waiting = taskFlow.setWaiting({
-  flowId: created.flowId,
-  expectedRevision: created.revision,
-  currentStep: "await-human-reply",
-  waitJson: { kind: "reply", channel: "telegram" },
-});
+const latest = taskFlows.findLatest();
+const flows = taskFlows.list();
+const detail = latest ? taskFlows.get(latest.id) : undefined;
+const summary = latest ? taskFlows.getTaskSummary(latest.id) : undefined;
 ```
 
 Use `bindSession({ sessionKey, requesterOrigin })` when you already have a

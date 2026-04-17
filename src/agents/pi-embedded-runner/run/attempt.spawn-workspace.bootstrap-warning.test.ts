@@ -3,7 +3,7 @@ import {
   analyzeBootstrapBudget,
   buildBootstrapInjectionStats,
   buildBootstrapPromptWarning,
-  prependBootstrapPromptWarning,
+  appendBootstrapPromptWarning,
 } from "../../bootstrap-budget.js";
 import { materializeQueryContext } from "../../query-context/render.js";
 
@@ -30,7 +30,7 @@ describe("runEmbeddedAttempt bootstrap warning prompt assembly", () => {
     });
     const modelInput = materializeQueryContext({
       messages: [],
-      userPrompt: prependBootstrapPromptWarning("hello", warning.lines),
+      userPrompt: appendBootstrapPromptWarning("hello", warning.lines),
       userContextSections: [{ id: "hook:prepend", role: "user_context", content: "hook context" }],
       systemPromptSections: [],
       systemContextSections: [],

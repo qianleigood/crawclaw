@@ -122,6 +122,10 @@ What you set:
 
 ## Auth and model options
 
+Legacy onboarding auth-choice aliases such as `oauth` and `anthropic-cli` are
+no longer accepted. Use the current `--auth-choice` values below, or run
+`crawclaw models auth ...` for provider-specific login flows.
+
 <AccordionGroup>
   <Accordion title="Anthropic API key">
     Uses `ANTHROPIC_API_KEY` if present or prompts for a key, then saves it for daemon use.

@@ -46,13 +46,16 @@ x-i18n:
 ## 核心概念
 
 - [概念总览](/concepts)
-- [架构](/concepts/architecture)
-- [功能](/concepts/features)
 - [项目整体架构总览](/concepts/project-architecture-overview)
 - [目录与边界规划](/concepts/project-directory-boundaries)
 - [项目缓存机制总览](/concepts/project-cache-strategy)
+- [文档与测试体系规划](/concepts/project-docs-and-test-strategy)
+- [项目基线冻结](/concepts/project-baseline-freeze)
 - [项目实施路线图](/concepts/project-implementation-roadmap)
 - [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
+- [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
+- [架构](/concepts/architecture)
+- [功能](/concepts/features)
 - [网络中心](/network)
 - [智能体运行时](/concepts/agent)
 - [智能体工作区](/concepts/agent-workspace)
@@ -168,6 +171,13 @@ x-i18n:
 ## 项目
 
 - [致谢](/reference/credits)
+
+## 维护者与深度文档
+
+- [概念总览](/concepts)
+- [调试文档](/debug)
+- [参考文档](/reference)
+- [维护者文档](/maintainers)
 
 ## 测试 + 发布
 

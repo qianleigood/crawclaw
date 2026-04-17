@@ -15,7 +15,6 @@ import { createRuntimeEvents } from "./runtime-events.js";
 import { createRuntimeLogging } from "./runtime-logging.js";
 import { createRuntimeMedia } from "./runtime-media.js";
 import { createRuntimeSystem } from "./runtime-system.js";
-import { createRuntimeTaskFlow } from "./runtime-taskflow.js";
 import { createRuntimeTasks } from "./runtime-tasks.js";
 import type { PluginRuntime } from "./types.js";
 
@@ -82,7 +81,6 @@ function createUnavailableSubagentRuntime(): PluginRuntime["subagent"] {
     run: unavailable,
     waitForRun: unavailable,
     getSessionMessages: unavailable,
-    getSession: unavailable,
     deleteSession: unavailable,
   };
 }
@@ -161,10 +159,7 @@ export type CreatePluginRuntimeOptions = {
 
 export function createPluginRuntime(_options: CreatePluginRuntimeOptions = {}): PluginRuntime {
   const mediaUnderstanding = createRuntimeMediaUnderstandingFacade();
-  const taskFlow = createRuntimeTaskFlow();
-  const tasks = createRuntimeTasks({
-    legacyTaskFlow: taskFlow,
-  });
+  const tasks = createRuntimeTasks();
   const runtime = {
     // Sourced from the shared CrawClaw version resolver (#52899) so plugins
     // always see the same version the CLI reports, avoiding API-version drift.
@@ -186,7 +181,6 @@ export function createPluginRuntime(_options: CreatePluginRuntimeOptions = {}): 
     logging: createRuntimeLogging(),
     state: { resolveStateDir },
     tasks,
-    taskFlow,
   } satisfies Omit<PluginRuntime, "tts" | "mediaUnderstanding" | "stt" | "modelAuth"> &
     Partial<Pick<PluginRuntime, "tts" | "mediaUnderstanding" | "stt" | "modelAuth">>;
 

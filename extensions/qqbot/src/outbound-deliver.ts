@@ -478,9 +478,7 @@ async function sendVoiceWithTimeout(
   log: DeliverAccountContext["log"],
   prefix: string,
 ): Promise<void> {
-  const uploadFormats =
-    account.config?.audioFormatPolicy?.uploadDirectFormats ??
-    account.config?.voiceDirectUploadFormats;
+  const uploadFormats = account.config?.audioFormatPolicy?.uploadDirectFormats;
   const transcodeEnabled = account.config?.audioFormatPolicy?.transcodeEnabled !== false;
   const voiceTimeout = 45000;
   const ac = new AbortController();

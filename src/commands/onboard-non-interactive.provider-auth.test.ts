@@ -44,7 +44,7 @@ vi.mock("./onboard-non-interactive/local/auth-choice.plugin-providers.js", async
     import("../plugins/provider-api-key-auth.js"),
     import("../plugins/provider-api-key-auth.runtime.js"),
     import("../plugins/provider-self-hosted-setup.js"),
-    import("./zai-endpoint-detect.js"),
+    import("../plugins/provider-zai-endpoint.js"),
     import("../plugin-sdk/openai.js"),
   ]);
 

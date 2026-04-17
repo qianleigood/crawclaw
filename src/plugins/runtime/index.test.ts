@@ -29,7 +29,6 @@ function createGatewaySubagentRuntime() {
     run: vi.fn(),
     waitForRun: vi.fn(),
     getSessionMessages: vi.fn(),
-    getSession: vi.fn(),
     deleteSession: vi.fn(),
   };
 }
@@ -181,7 +180,7 @@ describe("plugin runtime command execution", () => {
       },
     },
     {
-      name: "exposes canonical runtime.tasks.runs and runtime.tasks.flows while keeping legacy TaskFlow aliases",
+      name: "exposes canonical runtime.tasks.runs and runtime.tasks.flows",
       assert: (runtime: ReturnType<typeof createPluginRuntime>) => {
         expectFunctionKeys(runtime.tasks.runs as Record<string, unknown>, [
           "bindSession",
@@ -191,11 +190,6 @@ describe("plugin runtime command execution", () => {
           "bindSession",
           "fromToolContext",
         ]);
-        expectFunctionKeys(runtime.tasks.flow as Record<string, unknown>, [
-          "bindSession",
-          "fromToolContext",
-        ]);
-        expect(runtime.taskFlow).toBe(runtime.tasks.flow);
       },
     },
     {

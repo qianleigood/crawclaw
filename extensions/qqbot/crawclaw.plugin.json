@@ -87,10 +87,6 @@
           },
           "systemPrompt": { "type": "string" },
           "markdownSupport": { "type": "boolean" },
-          "voiceDirectUploadFormats": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
           "audioFormatPolicy": { "$ref": "#/$defs/audioFormatPolicy" },
           "urlDirectUpload": { "type": "boolean" },
           "upgradeUrl": { "type": "string" },
@@ -113,10 +109,6 @@
       },
       "systemPrompt": { "type": "string" },
       "markdownSupport": { "type": "boolean" },
-      "voiceDirectUploadFormats": {
-        "type": "array",
-        "items": { "type": "string" }
-      },
       "audioFormatPolicy": { "$ref": "#/$defs/audioFormatPolicy" },
       "tts": { "$ref": "#/$defs/tts" },
       "stt": { "$ref": "#/$defs/stt" },

@@ -158,7 +158,7 @@ describe("restoreRedactedValues", () => {
     };
     const snapshot = makeSnapshot(originalConfig);
     const redacted = redactConfigSnapshot(snapshot);
-    const restored = restoreRedactedValues(redacted.config, snapshot.config);
+    const restored = restoreRedactedValues(redacted.runtimeConfig, snapshot.runtimeConfig);
     expect(restored).toEqual(originalConfig);
   });
 
@@ -172,13 +172,16 @@ describe("restoreRedactedValues", () => {
     };
     const snapshot = makeSnapshot(originalConfig);
     const redacted = redactConfigSnapshot(snapshot, hints);
-    const custom = (redacted.config as typeof originalConfig).custom as Record<string, string>;
+    const custom = (redacted.runtimeConfig as typeof originalConfig).custom as Record<
+      string,
+      string
+    >;
     expect(custom.myApiKey).toBe(REDACTED_SENTINEL);
     expect(custom.displayName).toBe("My Bot");
 
     const restored = restoreRedactedValues(
-      redacted.config,
-      snapshot.config,
+      redacted.runtimeConfig,
+      snapshot.runtimeConfig,
       hints,
     ) as typeof originalConfig;
     expect(restored).toEqual(originalConfig);

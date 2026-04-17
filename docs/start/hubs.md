@@ -167,6 +167,13 @@ Use these hubs to discover every page, including deep dives and reference docs t
 
 - [Credits](/reference/credits)
 
+## Maintainers + deep docs
+
+- [Concepts index](/concepts)
+- [Debug docs](/debug)
+- [Reference docs](/reference)
+- [Maintainers docs](/maintainers)
+
 ## Testing + release
 
 - [Testing](/reference/test)

@@ -1277,9 +1277,7 @@ export async function sendMedia(ctx: MediaOutboundContext): Promise<OutboundResu
   // Dispatch by type, preferring MIME and falling back to the file extension.
   // Individual send* helpers already handle direct URL upload vs. download fallback.
   if (isAudioFile(mediaUrl, mimeType)) {
-    const formats =
-      account.config?.audioFormatPolicy?.uploadDirectFormats ??
-      account.config?.voiceDirectUploadFormats;
+    const formats = account.config?.audioFormatPolicy?.uploadDirectFormats;
     const transcodeEnabled = account.config?.audioFormatPolicy?.transcodeEnabled !== false;
     const result = await sendVoice(target, mediaUrl, formats, transcodeEnabled);
     if (!result.error) {

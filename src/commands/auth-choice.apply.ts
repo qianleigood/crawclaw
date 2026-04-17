@@ -2,7 +2,6 @@ import type { CrawClawConfig } from "../config/config.js";
 import { applyAuthChoiceLoadedPluginProvider } from "../plugins/provider-auth-choice.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
-import { normalizeLegacyOnboardAuthChoice } from "./auth-choice-legacy.js";
 import { applyAuthChoiceApiProviders } from "./auth-choice.apply.api-providers.js";
 import { normalizeApiKeyTokenProviderAuthChoice } from "./auth-choice.apply.api-providers.js";
 import { applyAuthChoiceOAuth } from "./auth-choice.apply.oauth.js";
@@ -28,13 +27,8 @@ export type ApplyAuthChoiceResult = {
 export async function applyAuthChoice(
   params: ApplyAuthChoiceParams,
 ): Promise<ApplyAuthChoiceResult> {
-  const normalizedAuthChoice =
-    normalizeLegacyOnboardAuthChoice(params.authChoice, {
-      config: params.config,
-      env: params.env,
-    }) ?? params.authChoice;
   const normalizedProviderAuthChoice = normalizeApiKeyTokenProviderAuthChoice({
-    authChoice: normalizedAuthChoice,
+    authChoice: params.authChoice,
     tokenProvider: params.opts?.tokenProvider,
     config: params.config,
     env: params.env,

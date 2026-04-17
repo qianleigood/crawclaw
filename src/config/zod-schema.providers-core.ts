@@ -18,7 +18,6 @@ import {
   ChannelHeartbeatVisibilitySchema,
 } from "./zod-schema.channels.js";
 import {
-  BlockStreamingChunkSchema,
   BlockStreamingCoalesceSchema,
   ContextVisibilityModeSchema,
   DmConfigSchema,
@@ -177,24 +176,17 @@ const validateTelegramCustomCommands = (
   }
 };
 
-function normalizeTelegramStreamingConfig(value: { streaming?: unknown; streamMode?: unknown }) {
+function normalizeTelegramStreamingConfig(value: { streaming?: unknown }) {
   value.streaming = resolveTelegramPreviewStreamMode(value);
-  delete value.streamMode;
 }
 
-function normalizeDiscordStreamingConfig(value: { streaming?: unknown; streamMode?: unknown }) {
+function normalizeDiscordStreamingConfig(value: { streaming?: unknown }) {
   value.streaming = resolveDiscordPreviewStreamMode(value);
-  delete value.streamMode;
 }
 
-function normalizeSlackStreamingConfig(value: {
-  streaming?: unknown;
-  nativeStreaming?: unknown;
-  streamMode?: unknown;
-}) {
+function normalizeSlackStreamingConfig(value: { streaming?: unknown; nativeStreaming?: unknown }) {
   value.nativeStreaming = resolveSlackNativeStreaming(value);
   value.streaming = resolveSlackStreamingMode(value);
-  delete value.streamMode;
 }
 
 export const TelegramAccountSchemaBase = z
@@ -234,10 +226,7 @@ export const TelegramAccountSchemaBase = z
     chunkMode: z.enum(["length", "newline"]).optional(),
     streaming: z.union([z.boolean(), z.enum(["off", "partial", "block", "progress"])]).optional(),
     blockStreaming: z.boolean().optional(),
-    draftChunk: BlockStreamingChunkSchema.optional(),
     blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-    // Legacy key kept for automatic migration to `streaming`.
-    streamMode: z.enum(["off", "partial", "block"]).optional(),
     mediaMaxMb: z.number().positive().optional(),
     timeoutSeconds: z.number().int().positive().optional(),
     retry: RetryConfigSchema,
@@ -521,10 +510,7 @@ export const DiscordAccountSchema = z
     chunkMode: z.enum(["length", "newline"]).optional(),
     blockStreaming: z.boolean().optional(),
     blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-    // Canonical streaming mode. Legacy aliases (`streamMode`, boolean `streaming`) are auto-mapped.
     streaming: z.union([z.boolean(), z.enum(["off", "partial", "block", "progress"])]).optional(),
-    streamMode: z.enum(["partial", "block", "off"]).optional(),
-    draftChunk: BlockStreamingChunkSchema.optional(),
     maxLinesPerMessage: z.number().int().positive().optional(),
     mediaMaxMb: z.number().positive().optional(),
     retry: RetryConfigSchema,
@@ -852,7 +838,6 @@ export const SlackDmSchema = z
     allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     groupEnabled: z.boolean().optional(),
     groupChannels: z.array(z.union([z.string(), z.number()])).optional(),
-    replyToMode: ReplyToModeSchema.optional(),
   })
   .strict();
 
@@ -925,7 +910,6 @@ export const SlackAccountSchema = z
     blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
     streaming: z.union([z.boolean(), z.enum(["off", "partial", "block", "progress"])]).optional(),
     nativeStreaming: z.boolean().optional(),
-    streamMode: z.enum(["replace", "status_final", "append"]).optional(),
     mediaMaxMb: z.number().positive().optional(),
     reactionNotifications: z.enum(["off", "own", "all", "allowlist"]).optional(),
     reactionAllowlist: z.array(z.union([z.string(), z.number()])).optional(),

@@ -150,7 +150,6 @@ describe("workflow.agent.run handler", () => {
           },
         ],
       }),
-      getSession: async () => ({ messages: [] }),
       deleteSession: async () => {},
     });
 

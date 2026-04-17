@@ -28,10 +28,14 @@ describe("realredactConfigSnapshot_real", () => {
     });
 
     const result = redactConfigSnapshot(snapshot, mainSchemaHints);
-    const config = result.config as typeof snapshot.config;
+    const config = result.runtimeConfig as typeof snapshot.runtimeConfig;
     expect(config.agents.defaults.memorySearch.remote.apiKey).toBe(REDACTED_SENTINEL);
     expect(config.agents.list[0].memorySearch.remote.apiKey).toBe(REDACTED_SENTINEL);
-    const restored = restoreRedactedValues(result.config, snapshot.config, mainSchemaHints);
+    const restored = restoreRedactedValues(
+      result.runtimeConfig,
+      snapshot.runtimeConfig,
+      mainSchemaHints,
+    );
     expect(restored.agents.defaults.memorySearch.remote.apiKey).toBe("1234");
     expect(restored.agents.list[0].memorySearch.remote.apiKey).toBe("6789");
   });
@@ -48,10 +52,10 @@ describe("realredactConfigSnapshot_real", () => {
     });
 
     const result = redactConfigSnapshot(snapshot, hints);
-    const channels = result.config.channels as Record<string, Record<string, unknown>>;
+    const channels = result.runtimeConfig.channels as Record<string, Record<string, unknown>>;
     expect(channels.nostr.privateKey).toBe(REDACTED_SENTINEL);
 
-    const restored = restoreRedactedValues(result.config, snapshot.config, hints);
+    const restored = restoreRedactedValues(result.runtimeConfig, snapshot.runtimeConfig, hints);
     expect(restored.channels.nostr.privateKey).toBe(
       "nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5",
     );

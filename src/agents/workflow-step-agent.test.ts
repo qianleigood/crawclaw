@@ -108,7 +108,6 @@ describe("workflow-step-agent helpers", () => {
           },
         ],
       }),
-      getSession: async () => ({ messages: [] }),
       deleteSession: async () => {},
     };
 

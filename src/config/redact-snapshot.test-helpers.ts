@@ -7,8 +7,8 @@ export type TestSnapshot<TConfig extends Record<string, unknown>> = ConfigFileSn
   parsed: TConfig;
   sourceConfig: TConfig;
   resolved: TConfig;
-  runtimeConfig: TConfig;
   config: TConfig;
+  runtimeConfig: TConfig;
 };
 
 export function makeSnapshot<TConfig extends Record<string, unknown>>(
@@ -22,9 +22,9 @@ export function makeSnapshot<TConfig extends Record<string, unknown>>(
     parsed: config,
     sourceConfig: config as ConfigFileSnapshot["sourceConfig"],
     resolved: config as ConfigFileSnapshot["resolved"],
+    config: config as ConfigFileSnapshot["config"],
     valid: true,
     runtimeConfig: config as ConfigFileSnapshot["runtimeConfig"],
-    config: config as ConfigFileSnapshot["config"],
     hash: "abc123",
     issues: [],
     warnings: [],

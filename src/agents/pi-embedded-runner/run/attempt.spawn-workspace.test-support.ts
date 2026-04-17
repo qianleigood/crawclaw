@@ -405,7 +405,7 @@ vi.mock("../compaction-safety-timeout.js", () => ({
 }));
 
 vi.mock("../history.js", () => ({
-  getDmHistoryLimitFromSessionKey: () => undefined,
+  getHistoryLimitFromSessionKey: () => undefined,
   limitHistoryTurns: <T>(messages: T) => messages,
 }));
 

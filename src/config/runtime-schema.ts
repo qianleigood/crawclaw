@@ -29,7 +29,7 @@ export function loadGatewayRuntimeConfigSchema(): ConfigSchemaResponse {
 
 export async function readBestEffortRuntimeConfigSchema(): Promise<ConfigSchemaResponse> {
   const snapshot = await readConfigFileSnapshot();
-  const config = snapshot.valid ? snapshot.config : { plugins: { enabled: true } };
+  const config = snapshot.valid ? snapshot.runtimeConfig : { plugins: { enabled: true } };
   const registry = loadManifestRegistry(config);
   return buildConfigSchema({
     plugins: snapshot.valid ? collectPluginSchemaMetadata(registry) : [],

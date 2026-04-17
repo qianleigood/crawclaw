@@ -569,7 +569,7 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
 
 - `agents.defaults.blockStreamingDefault` 仍然是 `"off"`。
 - `channels.telegram.blockStreaming` 设置为 `false`。
-- `channels.telegram.streamMode` 是 `partial` 或 `block` **且草稿流式传输处于活动状态**
+- `channels.telegram.streaming` 是 `partial`、`progress` 或 `block` **且草稿流式传输处于活动状态**
   （私聊 + 话题）。在这种情况下，草稿流式传输会禁用分块流式传输。
 - 你的 `minChars` / coalesce 设置太高，所以块被合并了。
 - 模型发出一个大的文本块（没有中间回复刷新点）。
@@ -577,7 +577,7 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
 修复清单：
 
 1. 将分块流式传输设置放在 `agents.defaults` 下，而不是根目录。
-2. 如果你想要真正的多消息分块回复，设置 `channels.telegram.streamMode: "off"`。
+2. 如果你想要真正的多消息分块回复，设置 `channels.telegram.streaming: "off"`。
 3. 调试时使用较小的 chunk/coalesce 阈值。
 
 参见 [流式传输](/concepts/streaming)。

@@ -36,7 +36,7 @@ function createManagedRun(
   };
 }
 
-let runClaudeCliAgent: typeof import("./claude-cli-runner.js").runClaudeCliAgent;
+let runClaudeCliAgent: typeof import("./cli-runner.js").runClaudeCliAgent;
 
 async function loadFreshClaudeCliRunnerModuleForTest() {
   runClaudeCliAgent = await setupClaudeCliRunnerTestModule();
