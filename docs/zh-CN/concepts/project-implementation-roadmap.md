@@ -850,6 +850,23 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 让扩展只通过稳定平台 surface 接入，而不是反向依赖核心内部实现。
 
+### 当前状态
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已新增 `src/plugins/entry-contract.ts`，把 plugin entry / channel entry / setup entry 的导出 contract 收成 shared seam。
+- `definePluginEntry(...)`、`defineChannelPluginEntry(...)`、`defineSetupPluginEntry(...)` 现在都会附带显式 lifecycle marker，不再只依赖 loader 的隐式 shape 推断。
+- `src/plugins/loader.ts`、`src/plugins/bundled-capability-runtime.ts`、`src/channels/plugins/bundled.ts` 已改为共用同一套 entry resolver；plugin/channel/setup 的 runtime 与 setup lifecycle 不再由三处各自维护一份解析逻辑。
+- 已补 focused contract tests，锁住 plugin/channel/setup entry marker、legacy export 兼容、bundled channel shape guard 与 plugin-sdk subpath surface 稳定性。
+
+收口说明：
+
+- 这轮优先收的是 Phase 8 里最核心的 `manifest / runtime / setup` entry contract，而不是继续扩展更多单点 helper。
+- entry lifecycle contract 统一之后，extension 不再需要隐式适配 loader/bundled runtime 的不同 export 解析逻辑。
+- interactive / setup / runtime 的更细颗粒 helper 若后续还发现重复样板，可继续增量下沉，但不再阻塞 Phase 8。
+
 ### 产出
 
 - plugin lifecycle 收口

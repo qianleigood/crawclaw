@@ -33,7 +33,7 @@ title: Phase 对应 PR 计划
 | `PR-05` | Phase 5    | `已完成` | cache 治理已完成：已新增 cache governance substrate、显式 cache descriptor、失效/观测 helper、memory/cache focused tests，以及至少一条 memory 主链 e2e；cache owner、key、lifecycle、invalidation 与 observability 不再只留在隐式约定里。                                                                                           |
 | `PR-06` | Phase 6    | `已完成` | channel runtime 收口已完成：workflow/outbound projection、interactive controls、inbound normalization、threading/binding/typing、Telegram/Matrix/LINE/Slack channel transform 已统一收进 `src/channels`，`auto-reply` / `workflows` 只保留语义层。                                                                                  |
 | `PR-07` | Phase 7    | `已完成` | 执行事件与可见性全链统一已完成：workflow / approval / completion / memory 的 projectedTitle / projectedSummary 已收成 shared visibility seam，并已接回 action feed、commands、execution-visibility、ACP projector、inspect、gateway approval handlers 与 UI focused surfaces。                                                      |
-| `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                                                                                                                                                                                                                                      |
+| `PR-08` | Phase 8    | `已完成` | plugin platform 清理已完成：plugin entry / channel entry / setup entry 的导出 contract 已统一到 shared entry-contract seam，loader、bundled capability runtime、channels bundled loader 已共用同一套 resolver，plugin-sdk entry helpers 已带显式 lifecycle marker，plugin contract focused tests 也已补齐。                         |
 | `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                                                                                                                                                                                                                                           |
 | `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                                                                                                                                                                                                                              |
 
@@ -1041,6 +1041,41 @@ title: Phase 对应 PR 计划
 ### Reviewer 关注点
 
 - 是否减少扩展对核心内部实现的耦合
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已新增 shared plugin entry contract seam：
+  - `src/plugins/entry-contract.ts`
+  - `src/plugins/entry-contract.test.ts`
+- `definePluginEntry(...)`、`defineChannelPluginEntry(...)`、`defineSetupPluginEntry(...)` 现在都会附带显式 entry lifecycle marker：
+  - `plugin`
+  - `channel`
+  - `setup`
+- `src/plugins/loader.ts`、`src/plugins/bundled-capability-runtime.ts`、`src/channels/plugins/bundled.ts` 已改为共用同一套 entry resolver，不再各自维护一份 plugin/channel/setup export shape 解析逻辑。
+- bundled channel setup entry 与 full plugin entry 现在共享同一层 contract 解析，setup/runtime manifest lifecycle 不再只靠隐式 shape 约定。
+- plugin contract focused tests 已补齐，锁住：
+  - plugin entry marker
+  - channel entry marker
+  - setup entry marker
+  - legacy unmarked export 兼容
+  - bundled channel shape guard
+  - plugin-sdk subpath surface 稳定性
+
+已验证：
+
+- `vitest run src/plugins/entry-contract.test.ts src/channels/plugins/bundled.shape-guard.test.ts src/plugins/contracts/plugin-sdk-subpaths.test.ts src/plugins/loader.test.ts -t "setup entry|cli-metadata mode|plugin entry path escapes|entry contract"`
+- `pnpm lint src/plugins/entry-contract.ts src/plugins/entry-contract.test.ts src/plugin-sdk/plugin-entry.ts src/plugin-sdk/channel-plugin-builders.ts src/plugins/loader.ts src/plugins/bundled-capability-runtime.ts src/channels/plugins/bundled.ts`
+- `pnpm check`
+
+本 PR 收口结论：
+
+1. plugin / channel / setup 三条最核心的 entry lifecycle contract 已统一，不再由 loader、bundled runtime、channels loader 各自维持一套 shape 约定。
+2. plugin-sdk entry helper 已开始明确声明 lifecycle 类型，扩展更像在“接平台 surface”，而不是依赖主仓 loader 的隐式解析细节。
+3. interactive / setup / runtime 的更细颗粒 helper 后续如果还有重复样板，可继续增量下沉，但不再阻塞 `PR-08`。
 
 ## PR-09：UI 信息架构重构
 

@@ -9,6 +9,7 @@ import {
 } from "./bundled-compat.js";
 import { createCapturedPluginRegistration } from "./captured-registration.js";
 import { discoverCrawClawPlugins } from "./discovery.js";
+import { resolvePluginModuleExport } from "./entry-contract.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
@@ -19,7 +20,7 @@ import {
   shouldPreferNativeJiti,
   type PluginSdkResolutionPreference,
 } from "./sdk-alias.js";
-import type { CrawClawPluginDefinition, CrawClawPluginModule } from "./types.js";
+import type { CrawClawPluginModule } from "./types.js";
 import { isApiKeylessBundledWebSearchPluginId } from "./web-search-provider-policy.js";
 
 const log = createSubsystemLogger("plugins");
@@ -70,31 +71,6 @@ export function buildBundledCapabilityRuntimeConfig(
     pluginIds,
     env,
   });
-}
-
-function resolvePluginModuleExport(moduleExport: unknown): {
-  definition?: CrawClawPluginDefinition;
-  register?: CrawClawPluginDefinition["register"];
-} {
-  const resolved =
-    moduleExport &&
-    typeof moduleExport === "object" &&
-    "default" in (moduleExport as Record<string, unknown>)
-      ? (moduleExport as { default: unknown }).default
-      : moduleExport;
-  if (typeof resolved === "function") {
-    return {
-      register: resolved as CrawClawPluginDefinition["register"],
-    };
-  }
-  if (resolved && typeof resolved === "object") {
-    const definition = resolved as CrawClawPluginDefinition;
-    return {
-      definition,
-      register: definition.register ?? definition.activate,
-    };
-  }
-  return {};
 }
 
 function createCapabilityPluginRecord(params: {

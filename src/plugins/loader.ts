@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { createJiti } from "jiti";
-import type { ChannelPlugin } from "../channels/plugins/types.js";
 import { isChannelConfigured } from "../config/channel-configured.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
@@ -23,6 +22,7 @@ import {
   type PluginActivationState,
 } from "./config-state.js";
 import { discoverCrawClawPlugins } from "./discovery.js";
+import { resolvePluginModuleExport, resolveSetupChannelRegistration } from "./entry-contract.js";
 import { initializeGlobalHookRunner } from "./hook-runner-global.js";
 import { clearPluginInteractiveHandlers } from "./interactive.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
@@ -53,7 +53,6 @@ import {
 } from "./sdk-alias.js";
 import { hasKind, kindsEqual } from "./slots.js";
 import type {
-  CrawClawPluginDefinition,
   CrawClawPluginModule,
   PluginDiagnostic,
   PluginBundleFormat,
@@ -453,52 +452,6 @@ function validatePluginConfig(params: {
     return { ok: true, value: result.value as Record<string, unknown> | undefined };
   }
   return { ok: false, errors: result.errors.map((error) => error.text) };
-}
-
-function resolvePluginModuleExport(moduleExport: unknown): {
-  definition?: CrawClawPluginDefinition;
-  register?: CrawClawPluginDefinition["register"];
-} {
-  const resolved =
-    moduleExport &&
-    typeof moduleExport === "object" &&
-    "default" in (moduleExport as Record<string, unknown>)
-      ? (moduleExport as { default: unknown }).default
-      : moduleExport;
-  if (typeof resolved === "function") {
-    return {
-      register: resolved as CrawClawPluginDefinition["register"],
-    };
-  }
-  if (resolved && typeof resolved === "object") {
-    const def = resolved as CrawClawPluginDefinition;
-    const register = def.register ?? def.activate;
-    return { definition: def, register };
-  }
-  return {};
-}
-
-function resolveSetupChannelRegistration(moduleExport: unknown): {
-  plugin?: ChannelPlugin;
-} {
-  const resolved =
-    moduleExport &&
-    typeof moduleExport === "object" &&
-    "default" in (moduleExport as Record<string, unknown>)
-      ? (moduleExport as { default: unknown }).default
-      : moduleExport;
-  if (!resolved || typeof resolved !== "object") {
-    return {};
-  }
-  const setup = resolved as {
-    plugin?: unknown;
-  };
-  if (!setup.plugin || typeof setup.plugin !== "object") {
-    return {};
-  }
-  return {
-    plugin: setup.plugin as ChannelPlugin,
-  };
 }
 
 function shouldLoadChannelPluginInSetupRuntime(params: {

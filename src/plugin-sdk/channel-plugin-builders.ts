@@ -21,6 +21,7 @@ import type { ReplyToMode } from "../config/types.base.js";
 import { buildOutboundBaseSessionKey } from "../infra/outbound/base-session-key.js";
 import type { OutboundDeliveryResult } from "../infra/outbound/deliver.js";
 import { emptyPluginConfigSchema } from "../plugins/config-schema.js";
+import { PLUGIN_ENTRY_TYPE_FIELD } from "../plugins/entry-contract.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
 import type { CrawClawPluginApi, CrawClawPluginConfigSchema } from "../plugins/types.js";
 
@@ -36,6 +37,7 @@ type DefineChannelPluginEntryOptions<TPlugin = ChannelPlugin> = {
 };
 
 type DefinedChannelPluginEntry<TPlugin> = {
+  [PLUGIN_ENTRY_TYPE_FIELD]: "channel";
   id: string;
   name: string;
   description: string;
@@ -360,6 +362,7 @@ export function defineChannelPluginEntry<TPlugin>({
 }: DefineChannelPluginEntryOptions<TPlugin>): DefinedChannelPluginEntry<TPlugin> {
   const resolvedConfigSchema = typeof configSchema === "function" ? configSchema() : configSchema;
   const entry = {
+    [PLUGIN_ENTRY_TYPE_FIELD]: "channel" as const,
     id,
     name,
     description,
@@ -392,7 +395,7 @@ export function defineChannelPluginEntry<TPlugin>({
  * keeps the shape explicit in examples and generated typings.
  */
 export function defineSetupPluginEntry<TPlugin>(plugin: TPlugin) {
-  return { plugin };
+  return { [PLUGIN_ENTRY_TYPE_FIELD]: "setup" as const, plugin };
 }
 
 // Shared higher-level builder for chat-style channels that mostly compose

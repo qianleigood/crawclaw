@@ -3,6 +3,10 @@ import { createJiti } from "jiti";
 import { openBoundaryFileSync } from "../../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { discoverCrawClawPlugins } from "../../plugins/discovery.js";
+import {
+  resolveChannelPluginModuleEntry,
+  resolveSetupChannelRegistration,
+} from "../../plugins/entry-contract.js";
 import { loadPluginManifestRegistry } from "../../plugins/manifest-registry.js";
 import type { PluginRuntime } from "../../plugins/runtime/types.js";
 import {
@@ -24,56 +28,6 @@ type GeneratedBundledChannelEntry = {
 };
 
 const log = createSubsystemLogger("channels");
-
-function resolveChannelPluginModuleEntry(
-  moduleExport: unknown,
-): GeneratedBundledChannelEntry["entry"] | null {
-  const resolved =
-    moduleExport &&
-    typeof moduleExport === "object" &&
-    "default" in (moduleExport as Record<string, unknown>)
-      ? (moduleExport as { default: unknown }).default
-      : moduleExport;
-  if (!resolved || typeof resolved !== "object") {
-    return null;
-  }
-  const record = resolved as {
-    channelPlugin?: unknown;
-    setChannelRuntime?: unknown;
-  };
-  if (!record.channelPlugin || typeof record.channelPlugin !== "object") {
-    return null;
-  }
-  return {
-    channelPlugin: record.channelPlugin as ChannelPlugin,
-    ...(typeof record.setChannelRuntime === "function"
-      ? { setChannelRuntime: record.setChannelRuntime as (runtime: PluginRuntime) => void }
-      : {}),
-  };
-}
-
-function resolveChannelSetupModuleEntry(
-  moduleExport: unknown,
-): GeneratedBundledChannelEntry["setupEntry"] | null {
-  const resolved =
-    moduleExport &&
-    typeof moduleExport === "object" &&
-    "default" in (moduleExport as Record<string, unknown>)
-      ? (moduleExport as { default: unknown }).default
-      : moduleExport;
-  if (!resolved || typeof resolved !== "object") {
-    return null;
-  }
-  const record = resolved as {
-    plugin?: unknown;
-  };
-  if (!record.plugin || typeof record.plugin !== "object") {
-    return null;
-  }
-  return {
-    plugin: record.plugin as ChannelPlugin,
-  };
-}
 
 function createModuleLoader() {
   const jitiLoaders = new Map<string, ReturnType<typeof createJiti>>();
@@ -144,18 +98,25 @@ function loadGeneratedBundledChannelEntries(): readonly GeneratedBundledChannelE
       const entry = resolveChannelPluginModuleEntry(
         loadBundledModule(candidate.source, candidate.rootDir),
       );
-      if (!entry) {
+      if (!entry.channelPlugin) {
         log.warn(
           `[channels] bundled channel entry ${manifest.id} missing channelPlugin export; skipping`,
         );
         continue;
       }
-      const setupEntry = manifest.setupSource
-        ? resolveChannelSetupModuleEntry(loadBundledModule(manifest.setupSource, candidate.rootDir))
-        : null;
+      const normalizedEntry: GeneratedBundledChannelEntry["entry"] = {
+        channelPlugin: entry.channelPlugin,
+        ...(entry.setChannelRuntime ? { setChannelRuntime: entry.setChannelRuntime } : {}),
+      };
+      const setupRegistration = manifest.setupSource
+        ? resolveSetupChannelRegistration(
+            loadBundledModule(manifest.setupSource, candidate.rootDir),
+          )
+        : {};
+      const setupEntry = setupRegistration.plugin ? { plugin: setupRegistration.plugin } : null;
       entries.push({
         id: manifest.id,
-        entry,
+        entry: normalizedEntry,
         ...(setupEntry ? { setupEntry } : {}),
       });
     } catch (error) {

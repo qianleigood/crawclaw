@@ -1,5 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { emptyPluginConfigSchema } from "../plugins/config-schema.js";
+import { PLUGIN_ENTRY_TYPE_FIELD } from "../plugins/entry-contract.js";
 import type {
   AnyAgentTool,
   MediaUnderstandingProviderPlugin,
@@ -111,8 +112,7 @@ export type {
   PluginLogger,
   PluginInteractiveTelegramHandlerContext,
 };
-export type { CrawClawConfig,
-} from "../config/config.js";
+export type { CrawClawConfig } from "../config/config.js";
 
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 
@@ -128,6 +128,7 @@ type DefinePluginEntryOptions = {
 
 /** Normalized object shape that CrawClaw loads from a plugin entry module. */
 type DefinedPluginEntry = {
+  [PLUGIN_ENTRY_TYPE_FIELD]: "plugin";
   id: string;
   name: string;
   description: string;
@@ -158,6 +159,7 @@ export function definePluginEntry({
   register,
 }: DefinePluginEntryOptions): DefinedPluginEntry {
   return {
+    [PLUGIN_ENTRY_TYPE_FIELD]: "plugin",
     id,
     name,
     description,
