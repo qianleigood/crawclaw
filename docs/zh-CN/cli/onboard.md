@@ -16,6 +16,8 @@ x-i18n:
 
 交互式新手引导（本地或远程 Gateway 网关设置）。
 
+可通过 `--output-preset quiet|balanced|operator` 预先指定 onboarding 时的默认输出展示档位。
+
 旧的 onboarding `auth-choice` 别名（例如 `oauth`、`anthropic-cli`）已经移除。
 请改用当前的 `--auth-choice` 值，或使用专用的
 `crawclaw models auth ...` 命令。

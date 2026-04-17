@@ -437,6 +437,7 @@ Options:
 - `--skip-search`
 - `--skip-health`
 - `--skip-ui`
+- `--output-preset <quiet|balanced|operator>`
 - `--cloudflare-ai-gateway-account-id <id>`
 - `--cloudflare-ai-gateway-gateway-id <id>`
 - `--node-manager <npm|pnpm|bun>` (pnpm recommended; bun not recommended for Gateway runtime)

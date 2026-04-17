@@ -420,8 +420,10 @@ task-backed agent runtime 的检查/导出入口：
 - `--daemon-runtime <node|bun>`
 - `--skip-channels`
 - `--skip-skills`
+- `--skip-search`
 - `--skip-health`
 - `--skip-ui`
+- `--output-preset <quiet|balanced|operator>`
 - `--node-manager <npm|pnpm|bun>`（推荐 pnpm；不推荐将 bun 用作 Gateway 网关运行时）
 - `--json`
 

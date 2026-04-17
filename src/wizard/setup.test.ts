@@ -93,8 +93,10 @@ const readConfigFileSnapshot = vi.hoisted(() =>
     exists: false,
     raw: null as string | null,
     parsed: {},
+    sourceConfig: {},
     resolved: {},
     valid: true,
+    runtimeConfig: {},
     config: {},
     issues: [] as Array<{ path: string; message: string }>,
     warnings: [] as Array<{ path: string; message: string }>,
@@ -279,8 +281,10 @@ describe("runSetupWizard", () => {
       exists: true,
       raw: "{}",
       parsed: {},
+      sourceConfig: {},
       resolved: {},
       valid: false,
+      runtimeConfig: {},
       config: {},
       issues: [{ path: "routing.allowFrom", message: "Legacy key" }],
       warnings: [],
@@ -329,6 +333,7 @@ describe("runSetupWizard", () => {
         flow: "quickstart",
         authChoice: "skip",
         installDaemon: false,
+        outputPreset: "balanced",
         skipChannels: true,
         skipSkills: true,
         skipSearch: true,
@@ -506,8 +511,16 @@ describe("runSetupWizard", () => {
       exists: true,
       raw: "{}",
       parsed: {},
-      resolved: {},
+      resolved: {
+        gateway: {},
+      },
       valid: true,
+      runtimeConfig: {
+        gateway: {},
+      },
+      sourceConfig: {
+        gateway: {},
+      },
       config: {
         gateway: {},
       },
@@ -561,8 +574,43 @@ describe("runSetupWizard", () => {
       exists: true,
       raw: "{}",
       parsed: {},
-      resolved: {},
+      resolved: {
+        gateway: {
+          auth: {
+            mode: "password",
+            password: {
+              source: "env",
+              provider: "default",
+              id: "CRAWCLAW_GATEWAY_PASSWORD",
+            },
+          },
+        },
+      },
       valid: true,
+      runtimeConfig: {
+        gateway: {
+          auth: {
+            mode: "password",
+            password: {
+              source: "env",
+              provider: "default",
+              id: "CRAWCLAW_GATEWAY_PASSWORD",
+            },
+          },
+        },
+      },
+      sourceConfig: {
+        gateway: {
+          auth: {
+            mode: "password",
+            password: {
+              source: "env",
+              provider: "default",
+              id: "CRAWCLAW_GATEWAY_PASSWORD",
+            },
+          },
+        },
+      },
       config: {
         gateway: {
           auth: {
@@ -691,5 +739,55 @@ describe("runSetupWizard", () => {
           call[0].includes("Gateway port: 18791"),
       ),
     ).toBe(true);
+  });
+
+  it("prompts for a unified output preset and applies it before writing config", async () => {
+    writeConfigFile.mockClear();
+    const select = vi.fn(async (opts: WizardSelectParams<unknown>) => {
+      if (opts.message === "Output and presentation") {
+        return "operator";
+      }
+      return "quickstart";
+    }) as unknown as WizardPrompter["select"];
+    const prompter = buildWizardPrompter({ select });
+    const runtime = createRuntime();
+
+    await runSetupWizard(
+      {
+        acceptRisk: true,
+        flow: "quickstart",
+        authChoice: "skip",
+        installDaemon: false,
+        skipChannels: true,
+        skipSkills: true,
+        skipSearch: true,
+        skipHealth: true,
+        skipUi: true,
+      },
+      runtime,
+      prompter,
+    );
+
+    expect(select).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Output and presentation",
+      }),
+    );
+    expect(writeConfigFile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agents: expect.objectContaining({
+          defaults: expect.objectContaining({
+            verboseDefault: "full",
+            blockStreamingDefault: "on",
+          }),
+        }),
+        acp: expect.objectContaining({
+          stream: expect.objectContaining({
+            visibilityMode: "full",
+            deliveryMode: "live",
+          }),
+        }),
+      }),
+    );
   });
 });

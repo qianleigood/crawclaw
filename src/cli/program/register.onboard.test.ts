@@ -153,6 +153,16 @@ describe("registerOnboardCommand", () => {
     );
   });
 
+  it("forwards --output-preset", async () => {
+    await runCli(["onboard", "--output-preset", "operator"]);
+    expect(setupWizardCommandMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outputPreset: "operator",
+      }),
+      runtime,
+    );
+  });
+
   it("reports errors via runtime on setup wizard command failures", async () => {
     setupWizardCommandMock.mockRejectedValueOnce(new Error("setup failed"));
 

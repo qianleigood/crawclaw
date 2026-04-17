@@ -20,6 +20,7 @@ Local mode (default) walks you through:
 - Workspace location and bootstrap files
 - Gateway settings (port, bind, auth, tailscale)
 - Channels and providers (Telegram, WhatsApp, Discord, Google Chat, Mattermost plugin, Signal)
+- Output and presentation preset (`quiet`, `balanced`, `operator`)
 - Daemon install (LaunchAgent or systemd user unit)
 - Health check
 - Skills setup

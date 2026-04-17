@@ -27,6 +27,7 @@ x-i18n:
 - 工作区位置和 bootstrap 文件
 - Gateway 网关设置（端口、绑定、身份验证、tailscale）
 - 渠道和提供商（Telegram、WhatsApp、Discord、Google Chat、Mattermost 插件、Signal）
+- 输出与展示预设（`quiet`、`balanced`、`operator`）
 - 守护进程安装（LaunchAgent 或 systemd 用户单元）
 - 健康检查
 - Skills 设置

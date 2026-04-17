@@ -9,6 +9,9 @@ title: "onboard"
 
 Interactive onboarding for local or remote Gateway setup.
 
+Use `--output-preset quiet|balanced|operator` to preselect the default reply
+presentation profile during onboarding.
+
 Legacy onboarding auth-choice aliases such as `oauth` and `anthropic-cli` have
 been removed. Use the current `--auth-choice` values or the dedicated
 `crawclaw models auth ...` commands instead.

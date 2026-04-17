@@ -86,6 +86,7 @@ export type ResetScope = "config" | "config+creds+sessions" | "full";
 export type GatewayBind = "loopback" | "lan" | "auto" | "custom" | "tailnet";
 export type TailscaleMode = "off" | "serve" | "funnel";
 export type NodeManagerChoice = "npm" | "pnpm" | "bun";
+export type OnboardOutputPreset = "quiet" | "balanced" | "operator";
 export type ChannelChoice = ChannelId;
 // Legacy alias (pre-rename).
 export type ProviderChoice = ChannelChoice;
@@ -163,6 +164,7 @@ export type OnboardOptions = {
   skipSearch?: boolean;
   skipHealth?: boolean;
   skipUi?: boolean;
+  outputPreset?: OnboardOutputPreset;
   nodeManager?: NodeManagerChoice;
   remoteUrl?: string;
   remoteToken?: string;

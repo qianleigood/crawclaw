@@ -16,6 +16,10 @@ import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { resolveUserPath } from "../utils.js";
 import { WizardCancelledError, type WizardPrompter } from "./prompts.js";
+import {
+  applyOnboardOutputPresentationConfig,
+  promptOutputPresentationPreset,
+} from "./setup.output-presentation.js";
 import { resolveSetupSecretInputString } from "./setup.secret-input.js";
 import type { QuickstartGatewayDefaults, WizardFlow } from "./setup.types.js";
 
@@ -598,6 +602,9 @@ export async function runSetupWizard(
       secretInputMode: opts.secretInputMode,
     });
   }
+
+  const outputPreset = opts.outputPreset ?? (await promptOutputPresentationPreset(prompter));
+  nextConfig = applyOnboardOutputPresentationConfig(nextConfig, outputPreset);
 
   await writeConfigFile(nextConfig);
   const { logConfigUpdated } = await import("../config/logging.js");
