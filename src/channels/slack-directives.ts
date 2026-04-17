@@ -1,4 +1,4 @@
-import type { ReplyPayload } from "../types.js";
+import type { ReplyPayload } from "../auto-reply/types.js";
 
 const SLACK_BUTTON_MAX_ITEMS = 5;
 const SLACK_SELECT_MAX_ITEMS = 100;

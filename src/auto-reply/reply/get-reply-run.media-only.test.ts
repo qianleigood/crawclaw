@@ -90,7 +90,7 @@ vi.mock("./session-system-events.js", () => ({
   drainFormattedSystemEvents: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("./typing-mode.js", () => ({
+vi.mock("../../channels/typing-mode.js", () => ({
   resolveTypingMode: vi.fn().mockReturnValue("off"),
 }));
 
@@ -98,14 +98,14 @@ let runPreparedReply: typeof import("./get-reply-run.js").runPreparedReply;
 let runReplyAgent: typeof import("./agent-runner.runtime.js").runReplyAgent;
 let routeReply: typeof import("./route-reply.runtime.js").routeReply;
 let drainFormattedSystemEvents: typeof import("./session-system-events.js").drainFormattedSystemEvents;
-let resolveTypingMode: typeof import("./typing-mode.js").resolveTypingMode;
+let resolveTypingMode: typeof import("../../channels/typing-mode.js").resolveTypingMode;
 
 async function loadFreshGetReplyRunModuleForTest() {
   vi.resetModules();
   ({ runReplyAgent } = await import("./agent-runner.runtime.js"));
   ({ routeReply } = await import("./route-reply.runtime.js"));
   ({ drainFormattedSystemEvents } = await import("./session-system-events.js"));
-  ({ resolveTypingMode } = await import("./typing-mode.js"));
+  ({ resolveTypingMode } = await import("../../channels/typing-mode.js"));
   ({ runPreparedReply } = await import("./get-reply-run.js"));
 }
 

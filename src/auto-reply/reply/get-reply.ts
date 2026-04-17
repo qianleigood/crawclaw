@@ -7,6 +7,7 @@ import {
 import { resolveModelRefFromString } from "../../agents/model-selection.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../../agents/workspace.js";
+import { finalizeInboundContext } from "../../channels/inbound-context.js";
 import { resolveChannelModelOverride } from "../../channels/model-overrides.js";
 import { type CrawClawConfig, loadConfig } from "../../config/config.js";
 import { applyMergePatch } from "../../config/merge-patch.js";
@@ -20,7 +21,6 @@ import { resolveDefaultModel } from "./directive-handling.defaults.js";
 import { resolveReplyDirectives } from "./get-reply-directives.js";
 import { handleInlineActions } from "./get-reply-inline-actions.js";
 import { runPreparedReply } from "./get-reply-run.js";
-import { finalizeInboundContext } from "./inbound-context.js";
 import { emitPreAgentMessageHooks } from "./message-preprocess-hooks.js";
 import { initSessionState } from "./session.js";
 import { createTypingController } from "./typing.js";

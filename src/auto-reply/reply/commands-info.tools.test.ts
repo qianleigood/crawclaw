@@ -78,7 +78,7 @@ async function loadToolsHarness(options?: {
       currentMessageId: "message-456",
     }),
   }));
-  vi.doMock("./reply-threading.js", () => ({
+  vi.doMock("../../channels/reply-to-mode.js", () => ({
     resolveReplyToMode: () => "all",
   }));
 

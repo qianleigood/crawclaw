@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveLastChannelRaw, resolveLastToRaw } from "./session-delivery.js";
+import { resolveLastChannelRaw, resolveLastToRaw } from "./session-delivery-route.js";
 
 describe("session delivery direct-session routing overrides", () => {
   it.each([
@@ -12,8 +12,6 @@ describe("session delivery direct-session routing overrides", () => {
   ])(
     "preserves persisted external route when webchat accesses channel-peer session %s (fixes #47745)",
     (sessionKey) => {
-      // Webchat/dashboard viewing an external-channel session must not overwrite
-      // the delivery route — subagents must still deliver to the original channel.
       expect(
         resolveLastChannelRaw({
           originatingChannelRaw: "webchat",

@@ -1,14 +1,12 @@
 import { countPendingDescendantRuns } from "../../../agents/subagent-registry.js";
+import {
+  resolveChannelAccountId,
+  resolveCommandSurfaceChannel,
+} from "../../../channels/command-surface-context.js";
 import { getSessionBindingService } from "../../../infra/outbound/session-binding-service.js";
 import type { CommandHandlerResult } from "../commands-types.js";
 import { formatRunLabel, sortSubagentRuns } from "../subagents-utils.js";
-import {
-  RECENT_WINDOW_MINUTES,
-  type SubagentsCommandContext,
-  resolveChannelAccountId,
-  resolveCommandSurfaceChannel,
-  stopWithText,
-} from "./shared.js";
+import { RECENT_WINDOW_MINUTES, type SubagentsCommandContext, stopWithText } from "./shared.js";
 
 function formatConversationBindingText(params: {
   channel: string;

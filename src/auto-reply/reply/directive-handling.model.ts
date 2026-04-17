@@ -6,13 +6,13 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
+import { buildBrowseProvidersButton } from "../../channels/telegram-model-picker.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { shortenHomePath } from "../../utils.js";
 import { resolveSelectedAndActiveModel } from "../model-runtime.js";
 import type { ReplyPayload } from "../types.js";
 import { resolveModelsCommandReply } from "./commands-models.js";
-import { buildBrowseProvidersButton } from "./commands-models.telegram.js";
 import {
   formatAuthLabel,
   type ModelAuthDetailMode,

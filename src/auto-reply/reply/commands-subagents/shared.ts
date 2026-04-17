@@ -11,7 +11,16 @@ import {
   sanitizeTextContent,
   stripToolMessages,
 } from "../../../agents/tools/sessions-helpers.js";
+import {
+  isDiscordSurface,
+  isMatrixSurface,
+  isTelegramSurface,
+  resolveCommandSurfaceChannel,
+  resolveDiscordAccountId,
+  resolveChannelAccountId,
+} from "../../../channels/command-surface-context.js";
 import { parseExplicitTargetForChannel } from "../../../channels/plugins/target-parsing.js";
+import { resolveTelegramConversationId } from "../../../channels/telegram-context.js";
 import type {
   SessionEntry,
   loadSessionStore as loadSessionStoreFn,
@@ -28,14 +37,6 @@ import {
   formatTokenUsageDisplay,
   truncateLine,
 } from "../../../shared/subagents-format.js";
-import {
-  isDiscordSurface,
-  isMatrixSurface,
-  isTelegramSurface,
-  resolveCommandSurfaceChannel,
-  resolveDiscordAccountId,
-  resolveChannelAccountId,
-} from "../channel-context.js";
 import type { CommandHandler, CommandHandlerResult } from "../commands-types.js";
 import {
   formatRunLabel,
@@ -43,7 +44,6 @@ import {
   resolveSubagentTargetFromRuns,
   type SubagentTargetResolution,
 } from "../subagents-utils.js";
-import { resolveTelegramConversationId } from "../telegram-context.js";
 
 export { extractAssistantText, stripToolMessages };
 export {

@@ -8,17 +8,21 @@ import {
   resolveDefaultModelForAgent,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-import type { CrawClawConfig } from "../../config/config.js";
-import type { SessionEntry } from "../../config/sessions.js";
-import type { ReplyPayload } from "../types.js";
-import { rejectUnauthorizedCommand } from "./command-gates.js";
+import {
+  buildTelegramModelsListReply,
+  buildTelegramModelsProviderPickerReply,
+} from "../../channels/telegram-command-replies.js";
 import {
   buildModelsKeyboard,
   buildProviderKeyboard,
   calculateTotalPages,
   getModelsPageSize,
   type ProviderInfo,
-} from "./commands-models.telegram.js";
+} from "../../channels/telegram-model-picker.js";
+import type { CrawClawConfig } from "../../config/config.js";
+import type { SessionEntry } from "../../config/sessions.js";
+import type { ReplyPayload } from "../types.js";
+import { rejectUnauthorizedCommand } from "./command-gates.js";
 import type { CommandHandler } from "./commands-types.js";
 
 const PAGE_SIZE_DEFAULT = 20;
@@ -253,21 +257,20 @@ export async function resolveModelsCommandReply(params: {
 
   // Provider list (no provider specified)
   if (!provider) {
-    // For Telegram: show buttons if there are providers
     if (isTelegram && providers.length > 0) {
       const providerInfos: ProviderInfo[] = providers.map((p) => ({
         id: p,
         count: byProvider.get(p)?.size ?? 0,
       }));
-      const buttons = buildProviderKeyboard(providerInfos);
-      const text = "Select a provider:";
-      return {
-        text,
-        channelData: { telegram: { buttons } },
-      };
+      const pickerReply = buildTelegramModelsProviderPickerReply({
+        providers: providerInfos,
+        buildProviderKeyboard,
+      });
+      if (pickerReply) {
+        return pickerReply;
+      }
     }
 
-    // Text fallback for non-Telegram surfaces
     const lines: string[] = [
       "Providers:",
       ...providers.map((p) =>
@@ -311,7 +314,6 @@ export async function resolveModelsCommandReply(params: {
     return { text: lines.join("\n") };
   }
 
-  // For Telegram: use button-based model list with inline keyboard pagination
   if (isTelegram) {
     const telegramPageSize = getModelsPageSize();
     const totalPages = calculateTotalPages(total, telegramPageSize);
@@ -334,13 +336,9 @@ export async function resolveModelsCommandReply(params: {
       agentDir: params.agentDir,
       sessionEntry: params.sessionEntry,
     });
-    return {
-      text,
-      channelData: { telegram: { buttons } },
-    };
+    return buildTelegramModelsListReply({ text, buttons });
   }
 
-  // Text fallback for non-Telegram surfaces
   const effectivePageSize = all ? total : pageSize;
   const pageCount = effectivePageSize > 0 ? Math.ceil(total / effectivePageSize) : 1;
   const safePage = all ? 1 : Math.max(1, Math.min(page, pageCount));

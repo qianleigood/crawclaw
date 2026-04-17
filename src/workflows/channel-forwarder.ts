@@ -1,5 +1,6 @@
 import type { AgentActionStatus } from "../agents/action-feed/types.js";
-import type { ReplyPayload } from "../auto-reply/types.js";
+import { resolveDeliverableTarget } from "../channels/deliverable-target.js";
+import { buildWorkflowReplyPayload } from "../channels/workflow-projection.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import {
@@ -8,16 +9,12 @@ import {
 } from "../infra/exec-approval-session-target.js";
 import { deliverOutboundPayloads } from "../infra/outbound/deliver.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { createInfoCard } from "../plugin-sdk/line.js";
+import { normalizeMessageChannel } from "../utils/message-channel.js";
+import { buildWorkflowChannelControlCommands } from "./channel-controls.js";
 import {
-  isDeliverableMessageChannel,
-  normalizeMessageChannel,
-  type DeliverableMessageChannel,
-} from "../utils/message-channel.js";
-import {
-  buildWorkflowDiscordComponents,
-  buildWorkflowTelegramButtons,
-} from "./channel-controls.js";
+  buildWorkflowDiscordResumeCallbackData,
+  ensureWorkflowInteractiveHandlersRegistered,
+} from "./interactive.js";
 import type { WorkflowExecutionRecord, WorkflowExecutionVisibilityMode } from "./types.js";
 
 const log = createSubsystemLogger("workflows/channel-forwarder");
@@ -99,7 +96,7 @@ function buildWorkflowChannelPayload(params: {
   record: WorkflowExecutionRecord;
   action: WorkflowChannelForwardAction;
   target?: { channel?: string | null };
-}): ReplyPayload {
+}) {
   const scope = resolveActionScope(params.action);
   const title =
     normalizeOptionalString(params.action.projectedTitle) ??
@@ -108,7 +105,6 @@ function buildWorkflowChannelPayload(params: {
   const summary =
     normalizeOptionalString(params.action.projectedSummary) ??
     normalizeOptionalString(params.action.summary);
-  const lines = summary && summary !== title ? [title, summary] : [title];
   const channel = normalizeMessageChannel(params.target?.channel) ?? params.target?.channel;
   const footerParts = [
     `Status: ${params.action.status}`,
@@ -117,100 +113,45 @@ function buildWorkflowChannelPayload(params: {
     normalizeOptionalString(params.action.detail?.stepId),
   ].filter(Boolean);
   const footer = footerParts.join(" · ");
-  const workflowChannelData: Record<string, unknown> = {
-    version: 1,
-    actionId: params.action.actionId,
-    ...(params.action.parentActionId ? { parentActionId: params.action.parentActionId } : {}),
-    executionId: params.record.executionId,
-    workflowId: params.record.workflowId,
-    ...(params.record.workflowName ? { workflowName: params.record.workflowName } : {}),
-    status: params.action.status,
-    scope,
-    visibilityMode: resolveForwardMode(params.record),
-    ...(normalizeOptionalString(params.record.originSessionKey)
-      ? { sessionKey: normalizeOptionalString(params.record.originSessionKey) }
-      : {}),
-    ...(normalizeOptionalString(params.action.detail?.stepId)
-      ? { stepId: normalizeOptionalString(params.action.detail?.stepId) }
-      : {}),
-  };
-  return {
-    text: lines.join("\n"),
-    channelData: {
-      workflow: workflowChannelData,
-      ...(channel === "slack"
-        ? {
-            slack: {
-              blocks: [
-                {
-                  type: "section",
-                  text: {
-                    type: "mrkdwn",
-                    text: `*${title}*`,
-                  },
-                },
-                ...(summary
-                  ? [
-                      {
-                        type: "section",
-                        text: {
-                          type: "mrkdwn",
-                          text: summary,
-                        },
-                      },
-                    ]
-                  : []),
-                {
-                  type: "context",
-                  elements: [
-                    {
-                      type: "mrkdwn",
-                      text: footer,
-                    },
-                  ],
-                },
-              ],
-            },
-          }
+  const commands = buildWorkflowChannelControlCommands(params.record.executionId);
+  const resumeCallbackData =
+    channel === "discord" && params.action.status === "waiting"
+      ? buildWorkflowDiscordResumeCallbackData({
+          executionId: params.record.executionId,
+          workspaceDir: params.record.originWorkspaceDir,
+          agentDir: params.record.originAgentDir,
+        })
+      : undefined;
+  if (resumeCallbackData) {
+    ensureWorkflowInteractiveHandlersRegistered();
+  }
+  return buildWorkflowReplyPayload({
+    channel,
+    title,
+    summary,
+    footer,
+    workflow: {
+      version: 1,
+      actionId: params.action.actionId,
+      ...(params.action.parentActionId ? { parentActionId: params.action.parentActionId } : {}),
+      executionId: params.record.executionId,
+      workflowId: params.record.workflowId,
+      ...(params.record.workflowName ? { workflowName: params.record.workflowName } : {}),
+      status: params.action.status,
+      scope,
+      visibilityMode: resolveForwardMode(params.record),
+      ...(normalizeOptionalString(params.record.originSessionKey)
+        ? { sessionKey: normalizeOptionalString(params.record.originSessionKey) }
         : {}),
-      ...(channel === "telegram"
-        ? (() => {
-            const buttons = buildWorkflowTelegramButtons({
-              executionId: params.record.executionId,
-              status: params.action.status,
-              scope,
-            });
-            return buttons ? { telegram: { buttons } } : {};
-          })()
-        : {}),
-      ...(channel === "discord"
-        ? (() => {
-            const components = buildWorkflowDiscordComponents({
-              executionId: params.record.executionId,
-              status: params.action.status,
-              scope,
-              workspaceDir: params.record.originWorkspaceDir,
-              agentDir: params.record.originAgentDir,
-            });
-            return components ? { discord: { components } } : {};
-          })()
-        : {}),
-      ...(channel === "line"
-        ? {
-            line: {
-              flexMessage: {
-                altText: title,
-                contents: createInfoCard(
-                  title,
-                  summary ?? `Status: ${params.action.status}`,
-                  footer,
-                ),
-              },
-            },
-          }
+      ...(normalizeOptionalString(params.action.detail?.stepId)
+        ? { stepId: normalizeOptionalString(params.action.detail?.stepId) }
         : {}),
     },
-  };
+    refreshCommand: commands?.refreshCommand,
+    cancelCommand: commands?.cancelCommand,
+    resumeCommand: commands?.resumeCommand,
+    resumeCallbackData,
+  });
 }
 
 function defaultResolveSessionTarget(params: {
@@ -238,19 +179,6 @@ function defaultResolveSessionTarget(params: {
   });
 }
 
-function resolveDeliverableTarget(
-  target: WorkflowChannelForwardTarget | null,
-): (WorkflowChannelForwardTarget & { channel: DeliverableMessageChannel }) | null {
-  const channel = normalizeMessageChannel(target?.channel) ?? target?.channel;
-  if (!channel || !target?.to || !isDeliverableMessageChannel(channel)) {
-    return null;
-  }
-  return {
-    ...target,
-    channel,
-  };
-}
-
 export async function forwardWorkflowActionToChannel(
   params: {
     record: WorkflowExecutionRecord;
@@ -263,15 +191,15 @@ export async function forwardWorkflowActionToChannel(
   }
 
   const cfg = deps.getConfig?.() ?? loadConfig();
-  const target = resolveDeliverableTarget(
-    (deps.resolveSessionTarget ?? defaultResolveSessionTarget)({
-      cfg,
-      record: params.record,
-    }),
-  );
-  if (!target) {
+  const rawTarget = (deps.resolveSessionTarget ?? defaultResolveSessionTarget)({
+    cfg,
+    record: params.record,
+  });
+  const deliverableTarget = resolveDeliverableTarget(rawTarget);
+  if (!rawTarget || !deliverableTarget) {
     return false;
   }
+  const target = { ...rawTarget, ...deliverableTarget };
 
   try {
     await (deps.deliver ?? deliverOutboundPayloads)({

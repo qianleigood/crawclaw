@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createTypingSignaler, resolveTypingMode } from "../../channels/typing-mode.js";
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
 import { parseAudioTag } from "./audio-tags.js";
 import { createBlockReplyCoalescer } from "./block-reply-coalescer.js";
@@ -12,7 +13,6 @@ import {
 } from "./response-prefix-template.js";
 import { createStreamingDirectiveAccumulator } from "./streaming-directives.js";
 import { createMockTypingController } from "./test-helpers.js";
-import { createTypingSignaler, resolveTypingMode } from "./typing-mode.js";
 import { createTypingController } from "./typing.js";
 
 describe("matchesMentionWithExplicit", () => {

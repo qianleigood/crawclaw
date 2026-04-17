@@ -1,5 +1,7 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveEffectiveToolInventory } from "../../agents/tools-effective-inventory.js";
+import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
+import { buildTelegramCommandsListReply } from "../../channels/telegram-command-replies.js";
 import { logVerbose } from "../../globals.js";
 import { listSkillCommandsForAgents } from "../skill-commands.js";
 import {
@@ -14,7 +16,6 @@ import { buildExportSessionReply } from "./commands-export-session.js";
 import { buildStatusReply } from "./commands-status.js";
 import type { CommandHandler } from "./commands-types.js";
 import { extractExplicitGroupId } from "./group-id.js";
-import { resolveReplyToMode } from "./reply-threading.js";
 
 export const handleHelpCommand: CommandHandler = async (params, allowTextCommands) => {
   if (!allowTextCommands) {
@@ -61,28 +62,14 @@ export const handleCommandsListCommand: CommandHandler = async (params, allowTex
       page: 1,
       surface,
     });
-
-    if (result.totalPages > 1) {
-      return {
-        shouldContinue: false,
-        reply: {
-          text: result.text,
-          channelData: {
-            telegram: {
-              buttons: buildCommandsPaginationKeyboard(
-                result.currentPage,
-                result.totalPages,
-                params.agentId,
-              ),
-            },
-          },
-        },
-      };
-    }
-
     return {
       shouldContinue: false,
-      reply: { text: result.text },
+      reply: buildTelegramCommandsListReply({
+        text: result.text,
+        currentPage: result.currentPage,
+        totalPages: result.totalPages,
+        agentId: params.agentId,
+      }),
     };
   }
 
@@ -171,36 +158,6 @@ export const handleToolsCommand: CommandHandler = async (params, allowTextComman
     };
   }
 };
-
-export function buildCommandsPaginationKeyboard(
-  currentPage: number,
-  totalPages: number,
-  agentId?: string,
-): Array<Array<{ text: string; callback_data: string }>> {
-  const buttons: Array<{ text: string; callback_data: string }> = [];
-  const suffix = agentId ? `:${agentId}` : "";
-
-  if (currentPage > 1) {
-    buttons.push({
-      text: "◀ Prev",
-      callback_data: `commands_page_${currentPage - 1}${suffix}`,
-    });
-  }
-
-  buttons.push({
-    text: `${currentPage}/${totalPages}`,
-    callback_data: `commands_page_noop${suffix}`,
-  });
-
-  if (currentPage < totalPages) {
-    buttons.push({
-      text: "Next ▶",
-      callback_data: `commands_page_${currentPage + 1}${suffix}`,
-    });
-  }
-
-  return [buttons];
-}
 
 export const handleStatusCommand: CommandHandler = async (params, allowTextCommands) => {
   if (!allowTextCommands) {

@@ -132,7 +132,7 @@ vi.doMock(whatsAppTestApiModuleId, async (importOriginal) => {
   };
 });
 
-const { finalizeInboundContext } = await import("../../../src/auto-reply/reply/inbound-context.js");
+const { finalizeInboundContext } = await import("../../../src/channels/inbound-context.js");
 
 function createSlackAccount(config: ResolvedSlackAccount["config"] = {}): ResolvedSlackAccount {
   return {

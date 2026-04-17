@@ -80,7 +80,7 @@ vi.mock("../../utils/delivery-context.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../../auto-reply/reply/reply-threading.js", () => ({
+vi.mock("../../channels/reply-to-mode.js", () => ({
   resolveReplyToMode: vi.fn(() => "first"),
 }));
 

@@ -1,15 +1,11 @@
-import { logVerbose, shouldLogVerbose } from "../../globals.js";
-import { resolveGlobalDedupeCache, type DedupeCache } from "../../infra/dedupe.js";
-import { parseAgentSessionKey } from "../../sessions/session-key-utils.js";
-import type { MsgContext } from "../templating.js";
+import type { MsgContext } from "../auto-reply/templating.js";
+import { logVerbose, shouldLogVerbose } from "../globals.js";
+import { resolveGlobalDedupeCache, type DedupeCache } from "../infra/dedupe.js";
+import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
 
 const DEFAULT_INBOUND_DEDUPE_TTL_MS = 20 * 60_000;
 const DEFAULT_INBOUND_DEDUPE_MAX = 5000;
 
-/**
- * Keep inbound dedupe shared across bundled chunks so the same provider
- * message cannot bypass dedupe by entering through a different chunk copy.
- */
 const INBOUND_DEDUPE_CACHE_KEY = Symbol.for("crawclaw.inboundDedupeCache");
 
 const inboundDedupeCache: DedupeCache = resolveGlobalDedupeCache(INBOUND_DEDUPE_CACHE_KEY, {
@@ -34,8 +30,6 @@ function resolveInboundDedupeSessionScope(ctx: MsgContext): string {
   if (!parsed) {
     return sessionKey;
   }
-  // The same physical inbound message should never run twice for the same
-  // agent, even if a routing bug presents it under both main and direct keys.
   return `agent:${parsed.agentId}`;
 }
 

@@ -1,4 +1,8 @@
 import { hasOutboundReplyContent } from "crawclaw/plugin-sdk/reply-payload";
+import {
+  resolveAcpDeliveryChannel,
+  shouldTreatAcpDeliveredTextAsVisible,
+} from "../../channels/acp-delivery-visibility.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { TtsAutoMode } from "../../config/types.tts.js";
 import { logVerbose } from "../../globals.js";
@@ -22,25 +26,6 @@ type ToolMessageHandle = {
   threadId?: string | number;
   messageId: string;
 };
-
-function normalizeDeliveryChannel(value: string | undefined): string | undefined {
-  const normalized = value?.trim().toLowerCase();
-  return normalized || undefined;
-}
-
-function shouldTreatDeliveredTextAsVisible(params: {
-  channel: string | undefined;
-  kind: ReplyDispatchKind;
-  text: string | undefined;
-}): boolean {
-  if (!params.text?.trim()) {
-    return false;
-  }
-  if (params.kind === "final") {
-    return true;
-  }
-  return normalizeDeliveryChannel(params.channel) === "telegram";
-}
 
 type AcpDispatchDeliveryState = {
   startedReplyLifecycle: boolean;
@@ -101,8 +86,8 @@ export function createAcpDispatchDeliveryCoordinator(params: {
     },
     toolMessageByCallId: new Map(),
   };
-  const directChannel = normalizeDeliveryChannel(params.ctx.Provider ?? params.ctx.Surface);
-  const routedChannel = normalizeDeliveryChannel(params.originatingChannel);
+  const directChannel = resolveAcpDeliveryChannel(params.ctx.Provider ?? params.ctx.Surface);
+  const routedChannel = resolveAcpDeliveryChannel(params.originatingChannel);
 
   const settleDirectVisibleText = async () => {
     if (state.settledDirectVisibleText || state.queuedDirectVisibleTextDeliveries === 0) {
@@ -209,7 +194,7 @@ export function createAcpDispatchDeliveryCoordinator(params: {
         }
       }
 
-      const tracksVisibleText = shouldTreatDeliveredTextAsVisible({
+      const tracksVisibleText = shouldTreatAcpDeliveredTextAsVisible({
         channel: routedChannel,
         kind,
         text: ttsPayload.text,
@@ -251,7 +236,7 @@ export function createAcpDispatchDeliveryCoordinator(params: {
       return true;
     }
 
-    const tracksVisibleText = shouldTreatDeliveredTextAsVisible({
+    const tracksVisibleText = shouldTreatAcpDeliveredTextAsVisible({
       channel: directChannel,
       kind,
       text: ttsPayload.text,

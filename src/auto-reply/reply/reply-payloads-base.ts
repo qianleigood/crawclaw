@@ -1,9 +1,9 @@
+import { createReplyToModeFilterForChannel } from "../../channels/reply-threading.js";
 import type { ReplyToMode } from "../../config/types.js";
 import { hasReplyPayloadContent } from "../../interactive/payload.js";
 import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { extractReplyToTag } from "./reply-tags.js";
-import { createReplyToModeFilterForChannel } from "./reply-threading.js";
 
 export function formatBtwTextForExternalDelivery(payload: ReplyPayload): string | undefined {
   const text = payload.text?.trim();

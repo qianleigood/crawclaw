@@ -1,7 +1,10 @@
-import { normalizeChatType } from "../../channels/chat-type.js";
-import { resolveConversationLabel } from "../../channels/conversation-label.js";
-import type { FinalizedMsgContext, MsgContext } from "../templating.js";
-import { normalizeInboundTextNewlines, sanitizeInboundSystemTags } from "./inbound-text.js";
+import {
+  normalizeInboundTextNewlines,
+  sanitizeInboundSystemTags,
+} from "../auto-reply/reply/inbound-text.js";
+import type { FinalizedMsgContext, MsgContext } from "../auto-reply/templating.js";
+import { normalizeChatType } from "./chat-type.js";
+import { resolveConversationLabel } from "./conversation-label.js";
 
 export type FinalizeInboundContextOptions = {
   forceBodyForAgent?: boolean;
@@ -62,11 +65,7 @@ export function finalizeInboundContext<T extends Record<string, unknown>>(
 
   const bodyForAgentSource = opts.forceBodyForAgent
     ? normalized.Body
-    : (normalized.BodyForAgent ??
-      // Prefer "clean" text over legacy envelope-shaped Body when upstream forgets to set BodyForAgent.
-      normalized.CommandBody ??
-      normalized.RawBody ??
-      normalized.Body);
+    : (normalized.BodyForAgent ?? normalized.CommandBody ?? normalized.RawBody ?? normalized.Body);
   normalized.BodyForAgent = sanitizeInboundSystemTags(
     normalizeInboundTextNewlines(bodyForAgentSource),
   );
@@ -91,13 +90,8 @@ export function finalizeInboundContext<T extends Record<string, unknown>>(
     normalized.ConversationLabel = explicitLabel;
   }
 
-  // Always set. Default-deny when upstream forgets to populate it.
   normalized.CommandAuthorized = normalized.CommandAuthorized === true;
 
-  // MediaType/MediaTypes alignment:
-  // - No media: do not inject defaults.
-  // - Media present: ensure MediaType is always set, and MediaTypes is padded to match
-  //   MediaPaths/MediaUrls length when possible.
   const mediaCount = countMediaEntries(normalized);
   if (mediaCount > 0) {
     const mediaType = normalizeMediaType(normalized.MediaType);

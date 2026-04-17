@@ -1,4 +1,9 @@
 import type { ReplyPayload } from "../auto-reply/types.js";
+import {
+  buildDeliverableTargetKey,
+  normalizeDeliverableChannel,
+  resolveDeliverableTarget,
+} from "../channels/deliverable-target.js";
 import { getChannelPlugin, resolveChannelApprovalAdapter } from "../channels/plugins/index.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
@@ -14,7 +19,6 @@ import {
   buildPluginApprovalResolvedReplyPayload,
 } from "../plugin-sdk/approval-renderers.js";
 import {
-  isDeliverableMessageChannel,
   normalizeMessageChannel,
   type DeliverableMessageChannel,
 } from "../utils/message-channel.js";
@@ -145,10 +149,7 @@ function shouldForwardRoute(params: {
 }
 
 function buildTargetKey(target: ExecApprovalForwardTarget): string {
-  const channel = normalizeMessageChannel(target.channel) ?? target.channel;
-  const accountId = target.accountId ?? "";
-  const threadId = target.threadId ?? "";
-  return [channel, target.to, accountId, threadId].join(":");
+  return buildDeliverableTargetKey(target);
 }
 
 function buildSyntheticApprovalRequest(routeRequest: ApprovalRouteRequest): ExecApprovalRequest {
@@ -264,8 +265,7 @@ function buildExpiredMessage(request: ExecApprovalRequest) {
 }
 
 function normalizeTurnSourceChannel(value?: string | null): DeliverableMessageChannel | undefined {
-  const normalized = value ? normalizeMessageChannel(value) : undefined;
-  return normalized && isDeliverableMessageChannel(normalized) ? normalized : undefined;
+  return normalizeDeliverableChannel(value);
 }
 
 function defaultResolveSessionTarget(params: {
@@ -280,18 +280,13 @@ function defaultResolveSessionTarget(params: {
     turnSourceAccountId: params.request.request.turnSourceAccountId?.trim() || undefined,
     turnSourceThreadId: params.request.request.turnSourceThreadId ?? undefined,
   });
-  if (!resolvedTarget?.channel || !resolvedTarget.to) {
-    return null;
-  }
-  const channel = resolvedTarget.channel;
-  if (!isDeliverableMessageChannel(channel)) {
+  const deliverableTarget = resolveDeliverableTarget(resolvedTarget);
+  if (!resolvedTarget || !deliverableTarget) {
     return null;
   }
   return {
-    channel,
-    to: resolvedTarget.to,
-    accountId: resolvedTarget.accountId,
-    threadId: resolvedTarget.threadId,
+    ...resolvedTarget,
+    ...deliverableTarget,
   };
 }
 
@@ -307,8 +302,8 @@ async function deliverToTargets(params: {
     if (params.shouldSend && !params.shouldSend()) {
       return;
     }
-    const channel = normalizeMessageChannel(target.channel) ?? target.channel;
-    if (!isDeliverableMessageChannel(channel)) {
+    const deliverableTarget = resolveDeliverableTarget(target);
+    if (!deliverableTarget) {
       return;
     }
     try {
@@ -316,14 +311,16 @@ async function deliverToTargets(params: {
       await params.beforeDeliver?.(target, payload);
       await params.deliver({
         cfg: params.cfg,
-        channel,
-        to: target.to,
-        accountId: target.accountId,
-        threadId: target.threadId,
+        channel: deliverableTarget.channel,
+        to: deliverableTarget.to,
+        accountId: deliverableTarget.accountId,
+        threadId: deliverableTarget.threadId,
         payloads: [payload],
       });
     } catch (err) {
-      log.error(`exec approvals: failed to deliver to ${channel}:${target.to}: ${String(err)}`);
+      log.error(
+        `exec approvals: failed to deliver to ${deliverableTarget.channel}:${deliverableTarget.to}: ${String(err)}`,
+      );
     }
   });
   await Promise.allSettled(deliveries);

@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import { resolveSessionAuthProfileOverride } from "../../agents/auth-profiles/session-override.js";
 import type { ExecToolDefaults } from "../../agents/bash-tools.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
+import { resolveTypingMode } from "../../channels/typing-mode.js";
+import { resolveRunTypingPolicy } from "../../channels/typing-policy.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { resolveGroupSessionKey } from "../../config/sessions/group.js";
 import {
@@ -39,8 +41,6 @@ import { resolveQueueSettings } from "./queue/settings.js";
 import type { RouteReplyParams } from "./route-reply.js";
 import { buildBareSessionResetPrompt } from "./session-reset-prompt.js";
 import { drainFormattedSystemEvents } from "./session-system-events.js";
-import { resolveTypingMode } from "./typing-mode.js";
-import { resolveRunTypingPolicy } from "./typing-policy.js";
 import type { TypingController } from "./typing.js";
 import { appendUntrustedContext } from "./untrusted-context.js";
 
@@ -319,8 +319,7 @@ export async function runPreparedReply(
   }
   const isBareNew = rawBodyTrimmed === "/new";
   const isBareSessionReset =
-    isNewSession &&
-    ((baseBodyTrimmedRaw.length === 0 && rawBodyTrimmed.length > 0) || isBareNew);
+    isNewSession && ((baseBodyTrimmedRaw.length === 0 && rawBodyTrimmed.length > 0) || isBareNew);
   const baseBodyFinal = isBareSessionReset ? buildBareSessionResetPrompt(cfg) : baseBody;
   const envelopeOptions = resolveEnvelopeFormatOptions(cfg);
   const inboundUserContext = buildInboundUserContextPrefix(

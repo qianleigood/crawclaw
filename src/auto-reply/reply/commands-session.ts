@@ -1,4 +1,15 @@
 import { resolveFastModeState } from "../../agents/fast-mode.js";
+import {
+  isDiscordSurface,
+  isMatrixSurface,
+  isTelegramSurface,
+  resolveChannelAccountId,
+} from "../../channels/command-surface-context.js";
+import {
+  resolveMatrixConversationId,
+  resolveMatrixParentConversationId,
+} from "../../channels/matrix-context.js";
+import { resolveTelegramConversationId } from "../../channels/telegram-context.js";
 import { formatThreadBindingDurationLabel } from "../../channels/thread-bindings-messages.js";
 import { parseDurationMs } from "../../cli/parse-duration.js";
 import { isRestartEnabled } from "../../config/commands.js";
@@ -12,21 +23,10 @@ import { formatTokenCount, formatUsd } from "../../utils/usage-format.js";
 import { parseActivationCommand } from "../group-activation.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
 import { normalizeFastMode, normalizeUsageDisplay, resolveResponseUsageMode } from "../thinking.js";
-import {
-  isDiscordSurface,
-  isMatrixSurface,
-  isTelegramSurface,
-  resolveChannelAccountId,
-} from "./channel-context.js";
 import { rejectNonOwnerCommand, rejectUnauthorizedCommand } from "./command-gates.js";
 import { handleAbortTrigger, handleStopCommand } from "./commands-session-abort.js";
 import { applyCommandSessionPatch, persistSessionEntry } from "./commands-session-store.js";
 import type { CommandHandler } from "./commands-types.js";
-import {
-  resolveMatrixConversationId,
-  resolveMatrixParentConversationId,
-} from "./matrix-context.js";
-import { resolveTelegramConversationId } from "./telegram-context.js";
 
 const SESSION_COMMAND_PREFIX = "/session";
 const SESSION_DURATION_OFF_VALUES = new Set(["off", "disable", "disabled", "none", "0"]);

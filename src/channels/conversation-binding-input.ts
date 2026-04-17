@@ -1,8 +1,7 @@
-import { normalizeConversationText } from "../../acp/conversation-id.js";
-import { resolveConversationBindingContext } from "../../channels/conversation-binding-context.js";
-import type { CrawClawConfig } from "../../config/config.js";
-import type { MsgContext } from "../templating.js";
-import type { HandleCommandsParams } from "./commands-types.js";
+import { normalizeConversationText } from "../acp/conversation-id.js";
+import type { MsgContext } from "../auto-reply/templating.js";
+import type { CrawClawConfig } from "../config/config.js";
+import { resolveConversationBindingContext } from "./conversation-binding-context.js";
 
 type BindingMsgContext = Pick<
   MsgContext,
@@ -21,6 +20,16 @@ type BindingMsgContext = Pick<
   | "From"
   | "NativeChannelId"
 >;
+
+type AcpCommandBindingParams = {
+  cfg: CrawClawConfig;
+  ctx: BindingMsgContext;
+  sessionKey?: string | null;
+  command: {
+    senderId?: string | null;
+    to?: string | null;
+  };
+};
 
 function resolveBindingChannel(ctx: BindingMsgContext, commandChannel?: string | null): string {
   const raw = ctx.OriginatingChannel ?? commandChannel ?? ctx.Surface ?? ctx.Provider;
@@ -64,7 +73,7 @@ export function resolveConversationBindingContextFromMessage(params: {
 }
 
 export function resolveConversationBindingContextFromAcpCommand(
-  params: HandleCommandsParams,
+  params: AcpCommandBindingParams,
 ): ReturnType<typeof resolveConversationBindingContext> {
   return resolveConversationBindingContextFromMessage({
     cfg: params.cfg,

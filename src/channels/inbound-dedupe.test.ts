@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { importFreshModule } from "../../../test/helpers/import-fresh.js";
-import type { MsgContext } from "../templating.js";
+import { importFreshModule } from "../../test/helpers/import-fresh.js";
+import type { MsgContext } from "../auto-reply/templating.js";
 import { resetInboundDedupe } from "./inbound-dedupe.js";
 
 const sharedInboundContext: MsgContext = {

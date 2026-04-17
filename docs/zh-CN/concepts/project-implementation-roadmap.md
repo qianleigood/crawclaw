@@ -643,6 +643,80 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 把真实渠道行为从散落逻辑收回 `src/channels`。
 
+### 当前状态
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已启动 Phase 6，第一刀先收 `workflow` 的渠道 outbound projection。
+- 已新增 `src/channels/workflow-projection.ts` 作为 channels 层的 workflow payload projector。
+- 已新增 `src/channels/workflow-controls.ts` 作为 channels 层的 workflow Telegram / Discord 控制组件 seam。
+- 已新增 `src/channels/telegram-model-picker.ts`，把 `/models` 的 Telegram provider/model picker 从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/telegram-pagination.ts`，把 `/commands` 的 Telegram 分页 inline keyboard 从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/deliverable-target.ts`，把简单的 deliverable target 归一化从 workflow / approval / media 等调用方里收成共享 channels seam。
+- 已新增 `src/channels/acp-delivery-visibility.ts`，把 ACP delivery 的渠道可见性判定从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/inbound-context.ts` 与 `src/channels/inbound-dedupe.ts`，把 inbound 归一化与 dedupe 语义从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/reply-to-mode.ts`，把 channel plugin threading contract 的 replyToMode 解析从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/reply-threading.ts`，把 payload-level reply threading filter 从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/session-delivery-route.ts`，把 session last-route 解析从 `auto-reply/reply` 收成共享 channels seam。
+- 已新增 `src/channels/command-surface-context.ts`，把命令面上的 channel / account 解析从 `auto-reply/reply` 收成共享 channels seam。
+- 已新增 `src/channels/conversation-binding-input.ts`，把 conversation binding 输入归一化从 `auto-reply/reply` 收成共享 channels seam。
+- 已新增 `src/channels/typing-mode.ts`，把 typing mode / signaler 语义从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/typing-policy.ts`，把 typing policy 判定从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/telegram-command-replies.ts`，把 `/commands` 与 `/models` 的 Telegram reply payload 成形从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/telegram-context.ts` 与 `src/channels/matrix-context.ts`，把 Telegram / Matrix conversation helper 从 `auto-reply/reply` 收回 channels 层。
+- 已新增 `src/channels/line-directives.ts` 与 `src/channels/slack-directives.ts`，把 LINE / Slack reply directive transform 从 `auto-reply/reply` 收回 channels 层。
+- `src/workflows/channel-forwarder.ts` 已开始改为复用 channels projector，而不是继续内联拼装 Slack / LINE / Telegram / Discord payload。
+- `src/auto-reply/reply/commands-workflow.ts` 与 `src/workflows/channel-forwarder.ts` 已开始复用 `src/channels/workflow-controls.ts`，workflow 层收缩为 `/workflow status|cancel|resume` 命令语义与 resume callback 语义。
+- `src/auto-reply/reply/commands-workflow.ts` 的 workflow command reply channelData 也已开始复用 `src/channels/workflow-projection.ts` 的共享装配器，不再单独维护 Telegram / Discord channelData 结构。
+- `src/auto-reply/reply/commands-models.ts` 与 `src/auto-reply/reply/directive-handling.model.ts` 已改为复用 `src/channels/telegram-model-picker.ts`，不再保留 `auto-reply/reply` 下的 Telegram picker 实现。
+- `src/auto-reply/reply/commands-info.ts` 与 `src/plugin-sdk/command-auth.ts` 已改为复用 `src/channels/telegram-pagination.ts`，不再保留 `auto-reply/reply` 下的 Telegram 分页键盘实现。
+- `src/workflows/channel-forwarder.ts`、`src/infra/exec-approval-forwarder.ts`、`src/media-understanding/echo-transcript.ts` 与 `src/tasks/task-registry.ts` 已开始复用 `src/channels/deliverable-target.ts`，减少各自手写的 deliverable target 归一化。
+- `src/auto-reply/reply/agent-runner.ts`、`src/auto-reply/reply/followup-runner.ts`、`src/auto-reply/reply/commands-info.ts` 与 `src/gateway/server-methods/tools-effective.ts` 已改为复用 `src/channels/reply-to-mode.ts`，不再继续从 `auto-reply/reply` 读取 channel-specific replyToMode resolver。
+- `src/auto-reply/reply/reply-payloads-base.ts` 与 `src/auto-reply/reply/agent-runner.ts` 已改为复用 `src/channels/reply-threading.ts`，原来的 `src/auto-reply/reply/reply-threading.ts` 已删除。
+- `src/auto-reply/reply/dispatch-acp-delivery.ts` 已改为复用 `src/channels/acp-delivery-visibility.ts`，不再内联 Telegram block visibility 判定。
+- `src/auto-reply/dispatch.ts`、`src/auto-reply/reply/get-reply.ts`、`src/auto-reply/reply/dispatch-from-config.ts`、`src/plugins/runtime/runtime-channel.ts` 与 `src/plugin-sdk/reply-runtime.ts` 已改为复用 `src/channels/inbound-context.ts` / `src/channels/inbound-dedupe.ts`，原来的 `src/auto-reply/reply/inbound-context.ts` 与 `src/auto-reply/reply/inbound-dedupe.ts` 已删除。
+- `src/auto-reply/reply/session-entry-state.ts` 与 `src/auto-reply/reply/session.ts` 已改为复用 `src/channels/session-delivery-route.ts`，原来的 `src/auto-reply/reply/session-delivery.ts` 已删除。
+- `src/auto-reply/reply/commands-session.ts` 与 `src/auto-reply/reply/commands-subagents/*` 已改为复用 `src/channels/command-surface-context.ts`，原来的 `src/auto-reply/reply/channel-context.ts` 已删除。
+- `src/auto-reply/reply/session-target-context.ts` 与 `src/auto-reply/reply/commands-acp/context.ts` 已改为复用 `src/channels/conversation-binding-input.ts`，原来的 `src/auto-reply/reply/conversation-binding-input.ts` 已删除。
+- `src/auto-reply/reply/agent-runner.ts`、`src/auto-reply/reply/followup-runner.ts` 与 `src/auto-reply/reply/get-reply-run.ts` 已改为复用 `src/channels/typing-mode.ts`，原来的 `src/auto-reply/reply/typing-mode.ts` 已删除。
+- `src/auto-reply/reply/get-reply-run.ts` 与 `src/auto-reply/reply/dispatch-from-config.ts` 已改为复用 `src/channels/typing-policy.ts`，原来的 `src/auto-reply/reply/typing-policy.ts` 已删除。
+- `src/auto-reply/reply/commands-info.ts` 与 `src/auto-reply/reply/commands-models.ts` 已开始复用 `src/channels/telegram-command-replies.ts`，不再直接内联 Telegram command reply payload。
+- `src/auto-reply/reply/commands-session.ts` 与 `src/auto-reply/reply/commands-subagents/*` 已开始复用 `src/channels/telegram-context.ts` / `src/channels/matrix-context.ts`，原来的 `src/auto-reply/reply/telegram-context.ts` 与 `src/auto-reply/reply/matrix-context.ts` 已删除。
+- `src/auto-reply/reply/normalize-reply.ts` 已改为复用 `src/channels/line-directives.ts` / `src/channels/slack-directives.ts`，原来的 `src/auto-reply/reply/line-directives.ts` 与 `src/auto-reply/reply/slack-directives.ts` 已删除。
+- 已补 focused tests：
+  - `src/channels/deliverable-target.test.ts`
+  - `src/channels/acp-delivery-visibility.test.ts`
+  - `src/channels/inbound-context.test.ts`
+  - `src/channels/inbound-dedupe.test.ts`
+  - `src/channels/reply-to-mode.test.ts`
+  - `src/channels/reply-threading.test.ts`
+  - `src/channels/session-delivery-route.test.ts`
+  - `src/channels/command-surface-context.test.ts`
+  - `src/channels/conversation-binding-input.test.ts`
+  - `src/channels/typing-mode.test.ts`
+  - `src/channels/typing-policy.test.ts`
+  - `src/channels/line-directives.test.ts`
+  - `src/channels/slack-directives.test.ts`
+  - `src/channels/telegram-command-replies.test.ts`
+  - `src/channels/telegram-context.test.ts`
+  - `src/channels/matrix-context.test.ts`
+  - `src/auto-reply/reply/session.test.ts` 中的 `dmScope delivery migration` focused cases
+  - `src/channels/telegram-pagination.test.ts`
+  - `src/channels/telegram-model-picker.test.ts`
+  - `src/channels/workflow-controls.test.ts`
+  - `src/channels/workflow-projection.test.ts`
+  - `src/workflows/channel-forwarder.test.ts`
+  - `src/auto-reply/reply/commands-workflow.test.ts`
+
+当前判断：
+
+- 这条 seam 已先把“channel payload 如何投影”和“Telegram / Discord 控件如何成形”从 workflow 逻辑里剥出来。
+- workflow 控制命令和 resume callback 语义仍暂留在 `src/workflows`，但实际渠道展示结构已经开始收回 `src/channels`。
+- inbound normalization、threading / binding / typing、Telegram / Matrix / LINE / Slack transform 与 workflow/projector 主链都已收进 `src/channels`。
+- `auto-reply` / `workflows` 现在主要保留 reply orchestration、命令语义和 workflow 语义，不再承载大块渠道 payload 组装与渠道 transform 逻辑。
+
 ### 产出
 
 - 更干净的 channel runtime contract

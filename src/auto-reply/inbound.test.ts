@@ -2,17 +2,17 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { finalizeInboundContext } from "../channels/inbound-context.js";
+import {
+  buildInboundDedupeKey,
+  resetInboundDedupe,
+  shouldSkipDuplicateInbound,
+} from "../channels/inbound-dedupe.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { GroupKeyResolution } from "../config/sessions.js";
 import { resetPluginRuntimeStateForTest } from "../plugins/runtime.js";
 import { createInboundDebouncer } from "./inbound-debounce.js";
 import { resolveGroupRequireMention } from "./reply/groups.js";
-import { finalizeInboundContext } from "./reply/inbound-context.js";
-import {
-  buildInboundDedupeKey,
-  resetInboundDedupe,
-  shouldSkipDuplicateInbound,
-} from "./reply/inbound-dedupe.js";
 import { normalizeInboundTextNewlines, sanitizeInboundSystemTags } from "./reply/inbound-text.js";
 import {
   buildMentionRegexes,

@@ -1,16 +1,20 @@
+import { buildWorkflowControlChannelData } from "../../channels/workflow-projection.js";
 import {
   WorkflowOperationInputError,
   WorkflowOperationUnavailableError,
 } from "../../workflows/api.js";
 import {
-  buildWorkflowDiscordComponents,
+  buildWorkflowChannelControlCommands,
   buildWorkflowResumeCommandTemplate,
-  buildWorkflowTelegramButtons,
 } from "../../workflows/channel-controls.js";
 import {
   executeWorkflowControlAction,
   resolveWorkflowControlContext,
 } from "../../workflows/control-runtime.js";
+import {
+  buildWorkflowDiscordResumeCallbackData,
+  ensureWorkflowInteractiveHandlersRegistered,
+} from "../../workflows/interactive.js";
 import type { WorkflowExecutionView } from "../../workflows/types.js";
 import type { CommandHandler } from "./commands-types.js";
 
@@ -95,25 +99,30 @@ function buildWorkflowReplyChannelData(params: {
   agentDir?: string;
 }): Record<string, unknown> | undefined {
   const surface = normalizeOptionalString(params.surface)?.toLowerCase();
-  if (surface === "telegram") {
-    const buttons = buildWorkflowTelegramButtons({
-      executionId: params.execution.executionId,
-      status: params.execution.status,
-      scope: "workflow",
-    });
-    return buttons ? { telegram: { buttons } } : undefined;
+  const commands = buildWorkflowChannelControlCommands(params.execution.executionId);
+  const resumeCallbackData =
+    surface === "discord" &&
+    (params.execution.status === "waiting_input" || params.execution.status === "waiting_external")
+      ? buildWorkflowDiscordResumeCallbackData({
+          executionId: params.execution.executionId,
+          workspaceDir: params.workspaceDir,
+          agentDir: params.agentDir,
+        })
+      : undefined;
+  if (resumeCallbackData) {
+    ensureWorkflowInteractiveHandlersRegistered();
   }
-  if (surface === "discord") {
-    const components = buildWorkflowDiscordComponents({
-      executionId: params.execution.executionId,
-      status: params.execution.status,
+  return buildWorkflowControlChannelData({
+    channel: surface,
+    workflow: {
       scope: "workflow",
-      workspaceDir: params.workspaceDir,
-      agentDir: params.agentDir,
-    });
-    return components ? { discord: { components } } : undefined;
-  }
-  return undefined;
+      status: params.execution.status,
+    },
+    refreshCommand: commands?.refreshCommand,
+    cancelCommand: commands?.cancelCommand,
+    resumeCommand: commands?.resumeCommand,
+    resumeCallbackData,
+  });
 }
 
 function parseWorkflowCommand(

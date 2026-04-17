@@ -31,7 +31,7 @@ title: Phase 对应 PR 计划
 | `PR-SR` | 专题       | `已完成` | session runtime 的 reset / abort / lifecycle 主链已完成收口：行为冻结测试、shared runtime seam、ACP reset adapter、shared abort executor、shared reset internal hook、gateway reset entry/helper 与 transcript header 统一接线都已落地，主状态机不再散落在 `session.ts`、`abort.ts`、`commands-core.ts` 与 gateway reset 主流程里。 |
 | `PR-04` | Phase 4    | `已完成` | special agent substrate 标准化已完成：registry contract 校验、shared presets、shared action/observability/result wiring、verification 与 memory 主链对齐，以及 special-agent focused/integration tests 都已落地。                                                                                                                   |
 | `PR-05` | Phase 5    | `已完成` | cache 治理已完成：已新增 cache governance substrate、显式 cache descriptor、失效/观测 helper、memory/cache focused tests，以及至少一条 memory 主链 e2e；cache owner、key、lifecycle、invalidation 与 observability 不再只留在隐式约定里。                                                                                           |
-| `PR-06` | Phase 6    | `未开始` | channel runtime 收口尚未开工。                                                                                                                                                                                                                                                                                                      |
+| `PR-06` | Phase 6    | `已完成` | channel runtime 收口已完成：workflow/outbound projection、interactive controls、inbound normalization、threading/binding/typing、Telegram/Matrix/LINE/Slack channel transform 已统一收进 `src/channels`，`auto-reply` / `workflows` 只保留语义层。                                                                                  |
 | `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                                                                                                                                                                                                                                  |
 | `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                                                                                                                                                                                                                                      |
 | `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                                                                                                                                                                                                                                           |
@@ -761,6 +761,125 @@ title: Phase 对应 PR 计划
 
 - 渠道逻辑有没有继续散落在别处
 - contract 是否比之前更清晰
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已启动 `PR-06`，第一刀优先收 `workflow` 的渠道 outbound projection。
+- 已新增共享 channels seam：
+  - `src/channels/deliverable-target.ts`
+  - `src/channels/deliverable-target.test.ts`
+  - `src/channels/acp-delivery-visibility.ts`
+  - `src/channels/acp-delivery-visibility.test.ts`
+  - `src/channels/inbound-context.ts`
+  - `src/channels/inbound-context.test.ts`
+  - `src/channels/inbound-dedupe.ts`
+  - `src/channels/inbound-dedupe.test.ts`
+  - `src/channels/reply-to-mode.ts`
+  - `src/channels/reply-to-mode.test.ts`
+  - `src/channels/reply-threading.ts`
+  - `src/channels/reply-threading.test.ts`
+  - `src/channels/session-delivery-route.ts`
+  - `src/channels/session-delivery-route.test.ts`
+  - `src/channels/command-surface-context.ts`
+  - `src/channels/command-surface-context.test.ts`
+  - `src/channels/conversation-binding-input.ts`
+  - `src/channels/conversation-binding-input.test.ts`
+  - `src/channels/typing-mode.ts`
+  - `src/channels/typing-mode.test.ts`
+  - `src/channels/typing-policy.ts`
+  - `src/channels/typing-policy.test.ts`
+  - `src/channels/line-directives.ts`
+  - `src/channels/line-directives.test.ts`
+  - `src/channels/slack-directives.ts`
+  - `src/channels/slack-directives.test.ts`
+  - `src/channels/telegram-context.ts`
+  - `src/channels/telegram-context.test.ts`
+  - `src/channels/matrix-context.ts`
+  - `src/channels/matrix-context.test.ts`
+  - `src/channels/telegram-command-replies.ts`
+  - `src/channels/telegram-command-replies.test.ts`
+  - `src/channels/telegram-pagination.ts`
+  - `src/channels/telegram-pagination.test.ts`
+  - `src/channels/telegram-model-picker.ts`
+  - `src/channels/telegram-model-picker.test.ts`
+  - `src/channels/workflow-controls.ts`
+  - `src/channels/workflow-controls.test.ts`
+  - `src/channels/workflow-projection.ts`
+  - `src/channels/workflow-projection.test.ts`
+- `src/workflows/channel-forwarder.ts` 不再直接内联组装 Slack / LINE / Telegram / Discord 的 workflow payload，而是委托给 `src/channels/workflow-projection.ts`。
+- `src/auto-reply/reply/commands-workflow.ts` 与 `src/workflows/channel-forwarder.ts` 已开始复用 `src/channels/workflow-controls.ts`，不再各自维护 Telegram / Discord 的 workflow 控件形态。
+- `src/auto-reply/reply/commands-workflow.ts` 的 workflow command reply channelData 也已开始复用 `src/channels/workflow-projection.ts`，减少 command reply 与 channel forwarder 之间的渠道装配分叉。
+- `src/auto-reply/reply/commands-models.ts` 与 `src/auto-reply/reply/directive-handling.model.ts` 已改为复用 `src/channels/telegram-model-picker.ts`，删除 `auto-reply/reply` 下的纯 Telegram picker 实现。
+- `src/auto-reply/reply/commands-info.ts` 与 `src/plugin-sdk/command-auth.ts` 已改为复用 `src/channels/telegram-pagination.ts`，删除 `auto-reply/reply` 下的 Telegram 分页键盘实现。
+- `src/workflows/channel-forwarder.ts`、`src/infra/exec-approval-forwarder.ts`、`src/media-understanding/echo-transcript.ts` 与 `src/tasks/task-registry.ts` 已改为复用 `src/channels/deliverable-target.ts`，开始把 deliverable target 归一化从调用侧抽成 channels 共享层。
+- `src/channels/acp-delivery-visibility.ts` 已新增，承接 ACP delivery 的渠道可见性判定；`dispatch-acp-delivery.ts` 不再内联 Telegram block visibility 规则。
+- `src/channels/inbound-context.ts` 与 `src/channels/inbound-dedupe.ts` 已新增，承接 inbound 归一化与 dedupe 语义；`auto-reply`、`plugin-sdk` 与 plugin runtime 不再从 `auto-reply/reply` 读取这些 inbound helper。
+- `src/channels/reply-to-mode.ts` 已新增，承接 channel plugin threading contract 的 replyToMode 解析；`agent-runner`、`followup-runner`、`commands-info` 与 `gateway tools-effective` 已开始统一复用 channels 层的 channel-specific resolver。
+- `src/channels/reply-threading.ts` 已新增，承接 payload-level replyTo filter；`reply-payloads-base.ts` 与 `agent-runner.ts` 不再从 `auto-reply/reply` 读取 reply threading filter helper。
+- `src/auto-reply/reply/session-entry-state.ts` 与 `src/auto-reply/reply/session.ts` 已改为复用 `src/channels/session-delivery-route.ts`，把 session last-route 解析和 legacy main delivery retirement 一并收回 channels 层。
+- `src/channels/telegram-command-replies.ts` 已新增，承接 `/commands` 与 `/models` 的 Telegram reply payload 成形；`commands-info.ts` 与 `commands-models.ts` 不再直接拼 `channelData.telegram.buttons`。
+- `src/channels/command-surface-context.ts` 已新增，承接命令面上的 channel / account 解析；`commands-session.ts` 与 `commands-subagents/*` 不再从 `auto-reply/reply` 读取这类 surface helper。
+- `src/channels/conversation-binding-input.ts` 已新增，承接 command/binding 输入归一化；`session-target-context.ts` 与 `commands-acp/context.ts` 不再从 `auto-reply/reply` 读取会话绑定输入 helper。
+- `src/channels/typing-mode.ts` 已新增，承接渠道侧 typing mode / signaler 语义；`agent-runner.ts`、`followup-runner.ts` 与 `get-reply-run.ts` 不再从 `auto-reply/reply` 读取 typing mode helper。
+- `src/channels/typing-policy.ts` 已新增，承接渠道侧 typing policy 判定；`get-reply-run.ts` 与 `dispatch-from-config.ts` 不再从 `auto-reply/reply` 读取 typing policy helper。
+- `src/channels/telegram-context.ts` 与 `src/channels/matrix-context.ts` 已新增，承接 Telegram / Matrix conversationId 解析；`commands-session.ts` 与 `commands-subagents/*` 不再从 `auto-reply/reply` 读取这些渠道上下文 helper。
+- `src/channels/line-directives.ts` 与 `src/channels/slack-directives.ts` 已新增，承接 LINE / Slack reply directive transform；`normalize-reply.ts` 不再从 `auto-reply/reply` 读取这些渠道特化 helper。
+- workflow 层现在主要保留 `/workflow status|cancel|resume` 命令语义和 Discord resume callback 语义；渠道层开始接管 payload projection 与控件成形本身。
+- `normalize-reply.ts` 已不再保留 LINE / Slack 渠道 transform；相关 reply directive transform 已统一收进 `src/channels`。
+- 原来的 `src/auto-reply/reply/session-delivery.ts` 已删除，相关 delivery route helper 已转为 channels seam。
+- 原来的 `src/auto-reply/reply/reply-threading.ts` 已删除，replyToMode resolver 和 payload-level reply threading filter 都已转到 channels 层。
+- 原来的 `src/auto-reply/reply/channel-context.ts` 已删除，命令面 channel/account 解析已转为 channels seam。
+- 原来的 `src/auto-reply/reply/conversation-binding-input.ts` 已删除，conversation binding 输入归一化已转为 channels seam。
+- 原来的 `src/auto-reply/reply/typing-mode.ts` 已删除，typing mode / signaler 语义已转为 channels seam。
+- 原来的 `src/auto-reply/reply/typing-policy.ts` 已删除，typing policy 判定已转为 channels seam。
+- 原来的 `src/auto-reply/reply/inbound-context.ts` 与 `src/auto-reply/reply/inbound-dedupe.ts` 已删除，inbound 归一化与 dedupe 语义已转为 channels seam。
+- 原来的 `src/auto-reply/reply/telegram-context.ts` 与 `src/auto-reply/reply/matrix-context.ts` 已删除，相关 conversation helper 已转为 channels seam。
+- 原来的 `src/auto-reply/reply/line-directives.ts` 与 `src/auto-reply/reply/slack-directives.ts` 已删除，相关 reply directive transform 已转为 channels seam。
+- 已把 `deliverable-target.ts`、`acp-delivery-visibility.ts`、`inbound-context.ts`、`inbound-dedupe.ts`、`reply-to-mode.ts`、`reply-threading.ts`、`session-delivery-route.ts`、`command-surface-context.ts`、`conversation-binding-input.ts`、`typing-mode.ts`、`typing-policy.ts`、`telegram-context.ts`、`matrix-context.ts`、`line-directives.ts`、`slack-directives.ts`、`telegram-command-replies.ts`、`telegram-pagination.ts`、`telegram-model-picker.ts`、`workflow-projection.ts` 与 `workflow-controls.ts` 补进 `src/channels/README.md` 的 maintainer 入口。
+
+已验证：
+
+- `vitest run src/channels/workflow-controls.test.ts src/channels/workflow-projection.test.ts src/workflows/channel-forwarder.test.ts src/auto-reply/reply/commands-workflow.test.ts`
+- `vitest run src/channels/telegram-model-picker.test.ts src/auto-reply/reply/directive-handling.model.test.ts src/auto-reply/reply/commands.test.ts -t "/models command|lists providers on telegram|model directive info"`
+- `vitest run src/channels/telegram-pagination.test.ts src/auto-reply/reply/commands.test.ts -t "buildCommandsPaginationKeyboard|/commands"`
+- `vitest run src/channels/deliverable-target.test.ts src/workflows/channel-forwarder.test.ts src/infra/exec-approval-forwarder.test.ts src/media-understanding/apply.echo-transcript.test.ts`
+- `vitest run src/channels/acp-delivery-visibility.test.ts src/auto-reply/reply/dispatch-acp-delivery.test.ts`
+- `vitest run src/channels/inbound-context.test.ts src/channels/inbound-dedupe.test.ts src/auto-reply/inbound.test.ts src/auto-reply/reply/dispatch-from-config.test.ts -t "finalizeInboundContext|inbound dedupe|skips duplicates|builds a stable key"`
+- `vitest run src/channels/reply-threading.test.ts src/channels/reply-to-mode.test.ts`
+- `vitest run src/channels/reply-to-mode.test.ts src/auto-reply/reply/reply-flow.test.ts -t "createReplyToModeFilter" src/auto-reply/reply/commands-info.tools.test.ts src/gateway/server-methods/tools-effective.test.ts`
+- `vitest run src/channels/session-delivery-route.test.ts src/auto-reply/reply/session-entry-state.test.ts src/auto-reply/reply/session.test.ts -t "dmScope delivery migration"`
+- `vitest run src/channels/command-surface-context.test.ts src/auto-reply/reply/commands-session-lifecycle.test.ts src/auto-reply/reply/commands-subagents-focus.test.ts`
+- `vitest run src/channels/conversation-binding-input.test.ts src/auto-reply/reply/session-target-context.test.ts src/auto-reply/reply/commands-acp.test.ts`
+- `vitest run src/channels/typing-mode.test.ts src/channels/typing-policy.test.ts src/auto-reply/reply/get-reply-run.media-only.test.ts src/auto-reply/reply/reply-utils.test.ts -t "resolveTypingMode|createTypingSignaler|suppressTyping"`
+- `vitest run src/channels/typing-policy.test.ts src/auto-reply/reply/get-reply-run.media-only.test.ts src/auto-reply/reply/dispatch-from-config.test.ts -t "suppressTyping|forces suppressTyping|forces internal webchat|forces system event"`
+- `vitest run src/channels/telegram-command-replies.test.ts src/auto-reply/reply/commands.test.ts -t "buildCommandsPaginationKeyboard|/commands|/models command" src/auto-reply/reply/directive-handling.model.test.ts -t "model directive info"`
+- `vitest run src/channels/telegram-context.test.ts src/channels/matrix-context.test.ts src/auto-reply/reply/commands-session-lifecycle.test.ts src/auto-reply/reply/commands-subagents-focus.test.ts`
+- `pnpm lint src/channels/workflow-controls.ts src/channels/workflow-controls.test.ts src/channels/workflow-projection.ts src/channels/workflow-projection.test.ts src/workflows/channel-controls.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/channels/README.md`
+- `pnpm lint src/channels/telegram-model-picker.ts src/channels/telegram-model-picker.test.ts src/auto-reply/reply/commands-models.ts src/auto-reply/reply/directive-handling.model.ts src/channels/README.md`
+- `pnpm lint src/channels/telegram-pagination.ts src/channels/telegram-pagination.test.ts src/auto-reply/reply/commands-info.ts src/auto-reply/reply/commands.test.ts src/channels/README.md`
+- `pnpm lint src/channels/deliverable-target.ts src/channels/deliverable-target.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/infra/exec-approval-forwarder.ts src/infra/exec-approval-forwarder.test.ts src/media-understanding/echo-transcript.ts src/media-understanding/apply.echo-transcript.test.ts src/tasks/task-registry.ts`
+- `pnpm lint src/channels/acp-delivery-visibility.ts src/channels/acp-delivery-visibility.test.ts src/auto-reply/reply/dispatch-acp-delivery.ts src/channels/README.md`
+- `pnpm lint src/channels/inbound-context.ts src/channels/inbound-context.test.ts src/channels/inbound-dedupe.ts src/channels/inbound-dedupe.test.ts src/auto-reply/dispatch.ts src/auto-reply/reply/get-reply.ts src/auto-reply/reply/dispatch-from-config.ts src/plugins/runtime/runtime-channel.ts src/plugins/runtime/types-channel.ts src/plugin-sdk/reply-runtime.ts src/plugin-sdk/reply-dispatch-runtime.ts src/link-understanding/apply.ts src/media-understanding/apply.ts src/channels/README.md`
+- `pnpm lint src/channels/reply-threading.ts src/channels/reply-threading.test.ts src/auto-reply/reply/reply-payloads-base.ts src/auto-reply/reply/agent-runner.ts src/auto-reply/reply/reply-flow.test.ts src/channels/README.md`
+- `pnpm lint src/channels/reply-to-mode.ts src/channels/reply-to-mode.test.ts src/auto-reply/reply/agent-runner.ts src/auto-reply/reply/followup-runner.ts src/auto-reply/reply/commands-info.ts src/auto-reply/reply/commands-info.tools.test.ts src/gateway/server-methods/tools-effective.ts src/gateway/server-methods/tools-effective.test.ts src/channels/README.md`
+- `pnpm lint src/channels/session-delivery-route.ts src/channels/session-delivery-route.test.ts src/auto-reply/reply/session-entry-state.ts src/auto-reply/reply/session.ts src/channels/README.md`
+- `pnpm lint src/channels/command-surface-context.ts src/channels/command-surface-context.test.ts src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-subagents/shared.ts src/auto-reply/reply/commands-subagents/action-agents.ts src/channels/README.md`
+- `pnpm lint src/channels/conversation-binding-input.ts src/channels/conversation-binding-input.test.ts src/auto-reply/reply/session-target-context.ts src/auto-reply/reply/session-target-context.test.ts src/auto-reply/reply/commands-acp/context.ts src/channels/README.md`
+- `pnpm lint src/channels/typing-mode.ts src/channels/typing-mode.test.ts src/channels/typing-policy.ts src/channels/typing-policy.test.ts src/channels/README.md`
+- `pnpm lint src/channels/typing-policy.ts src/channels/typing-policy.test.ts src/auto-reply/reply/get-reply-run.ts src/auto-reply/reply/dispatch-from-config.ts src/channels/README.md`
+- `pnpm lint src/channels/line-directives.ts src/channels/line-directives.test.ts src/channels/slack-directives.ts src/channels/slack-directives.test.ts src/auto-reply/reply/normalize-reply.ts src/auto-reply/reply/reply-flow.test.ts src/channels/README.md`
+- `pnpm lint src/channels/telegram-command-replies.ts src/channels/telegram-command-replies.test.ts src/auto-reply/reply/commands-info.ts src/auto-reply/reply/commands-models.ts src/channels/README.md`
+- `pnpm lint src/channels/telegram-context.ts src/channels/telegram-context.test.ts src/channels/matrix-context.ts src/channels/matrix-context.test.ts src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-subagents/action-focus.ts src/auto-reply/reply/commands-subagents/action-unfocus.ts src/auto-reply/reply/commands-subagents/shared.ts src/channels/README.md`
+- `pnpm check`
+
+下一步建议：
+
+1. 进入 `PR-07`，把已收进 `src/channels` 的 workflow / tool / process projector 与 execution visibility 语义进一步统一。
+2. 继续保持渠道相关改动优先落在 `src/channels` 或 channel plugin 中，不回流到 `auto-reply` / `workflows`。
 
 ## PR-07：Execution Event / Visibility 全链统一
 

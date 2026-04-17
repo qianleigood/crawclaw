@@ -1,9 +1,9 @@
 import { normalizeConversationText } from "../../acp/conversation-id.js";
+import { resolveConversationBindingContextFromMessage } from "../../channels/conversation-binding-input.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { getSessionBindingService } from "../../infra/outbound/session-binding-service.js";
 import type { MsgContext } from "../templating.js";
 import { resolveEffectiveResetTargetSessionKey } from "./acp-reset-target.js";
-import { resolveConversationBindingContextFromMessage } from "./conversation-binding-input.js";
 
 export type SessionConversationBindingContext = {
   channel: string;

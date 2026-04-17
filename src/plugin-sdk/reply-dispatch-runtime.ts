@@ -1,5 +1,5 @@
 export { resolveChunkMode } from "../auto-reply/chunk.js";
-export { finalizeInboundContext } from "../auto-reply/reply/inbound-context.js";
+export { finalizeInboundContext } from "../channels/inbound-context.js";
 export {
   dispatchReplyWithBufferedBlockDispatcher,
   dispatchReplyWithDispatcher,

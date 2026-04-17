@@ -10,6 +10,8 @@ import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
+import { createTypingSignaler } from "../../channels/typing-mode.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { TypingMode } from "../../config/types.js";
 import { logVerbose } from "../../globals.js";
@@ -34,10 +36,8 @@ import {
   filterMessagingToolMediaDuplicates,
   shouldSuppressMessagingToolReplies,
 } from "./reply-payloads.js";
-import { resolveReplyToMode } from "./reply-threading.js";
 import { isRoutableChannel, routeReply } from "./route-reply.js";
 import { incrementRunCompactionCount, persistRunSessionUsage } from "./session-run-accounting.js";
-import { createTypingSignaler } from "./typing-mode.js";
 import type { TypingController } from "./typing.js";
 
 export function createFollowupRunner(params: {

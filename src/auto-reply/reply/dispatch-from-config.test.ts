@@ -233,7 +233,7 @@ vi.mock("../../tts/tts-config.js", () => ({
 const noAbortResult = { handled: false, aborted: false } as const;
 const emptyConfig = {} as CrawClawConfig;
 let dispatchReplyFromConfig: typeof import("./dispatch-from-config.js").dispatchReplyFromConfig;
-let resetInboundDedupe: typeof import("./inbound-dedupe.js").resetInboundDedupe;
+let resetInboundDedupe: typeof import("../../channels/inbound-dedupe.js").resetInboundDedupe;
 let acpManagerTesting: typeof import("../../acp/control-plane/manager.js").__testing;
 let pluginBindingTesting: typeof import("../../plugins/conversation-binding.js").__testing;
 let AcpRuntimeErrorClass: typeof import("../../acp/runtime/errors.js").AcpRuntimeError;
@@ -298,7 +298,7 @@ describe("dispatchReplyFromConfig", () => {
   beforeEach(async () => {
     vi.resetModules();
     ({ dispatchReplyFromConfig } = await import("./dispatch-from-config.js"));
-    ({ resetInboundDedupe } = await import("./inbound-dedupe.js"));
+    ({ resetInboundDedupe } = await import("../../channels/inbound-dedupe.js"));
     ({ __testing: acpManagerTesting } = await import("../../acp/control-plane/manager.js"));
     ({ __testing: pluginBindingTesting } = await import("../../plugins/conversation-binding.js"));
     ({ AcpRuntimeError: AcpRuntimeErrorClass } = await import("../../acp/runtime/errors.js"));
@@ -3004,7 +3004,7 @@ describe("before_dispatch hook", () => {
   beforeEach(async () => {
     vi.resetModules();
     ({ dispatchReplyFromConfig } = await import("./dispatch-from-config.js"));
-    ({ resetInboundDedupe } = await import("./inbound-dedupe.js"));
+    ({ resetInboundDedupe } = await import("../../channels/inbound-dedupe.js"));
     resetInboundDedupe();
     mocks.routeReply.mockReset();
     mocks.routeReply.mockResolvedValue({ ok: true, messageId: "mock" });

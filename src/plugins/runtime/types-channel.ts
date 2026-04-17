@@ -52,7 +52,7 @@ export type PluginRuntimeChannel = {
     resolveHumanDelayConfig: typeof import("../../agents/identity.js").resolveHumanDelayConfig;
     dispatchReplyFromConfig: typeof import("../../auto-reply/reply/dispatch-from-config.js").dispatchReplyFromConfig;
     withReplyDispatcher: typeof import("../../auto-reply/dispatch.js").withReplyDispatcher;
-    finalizeInboundContext: typeof import("../../auto-reply/reply/inbound-context.js").finalizeInboundContext;
+    finalizeInboundContext: typeof import("../../channels/inbound-context.js").finalizeInboundContext;
     formatAgentEnvelope: typeof import("../../auto-reply/envelope.js").formatAgentEnvelope;
     /** @deprecated Prefer `BodyForAgent` + structured user-context blocks (do not build plaintext envelopes for prompts). */
     formatInboundEnvelope: typeof import("../../auto-reply/envelope.js").formatInboundEnvelope;

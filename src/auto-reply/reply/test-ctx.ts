@@ -1,5 +1,5 @@
+import { finalizeInboundContext } from "../../channels/inbound-context.js";
 import type { FinalizedMsgContext, MsgContext } from "../templating.js";
-import { finalizeInboundContext } from "./inbound-context.js";
 
 export function buildTestCtx(overrides: Partial<MsgContext> = {}): FinalizedMsgContext {
   return finalizeInboundContext({

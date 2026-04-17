@@ -53,7 +53,7 @@ vi.mock("./reply/directive-handling.defaults.js", () => ({
     aliasIndex: new Map(),
   })),
 }));
-vi.mock("./reply/inbound-context.js", () => ({
+vi.mock("../channels/inbound-context.js", () => ({
   finalizeInboundContext: vi.fn((ctx: unknown) => ctx),
 }));
 vi.mock("./reply/session-reset-model.runtime.js", () => ({

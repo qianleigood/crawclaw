@@ -1,17 +1,16 @@
-import type { SessionEntry } from "../../config/sessions.js";
-import { buildAgentMainSessionKey } from "../../routing/session-key.js";
-import { parseAgentSessionKey } from "../../sessions/session-key-utils.js";
+import type { SessionEntry } from "../config/sessions.js";
+import { buildAgentMainSessionKey } from "../routing/session-key.js";
+import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
 import {
   deliveryContextFromSession,
   deliveryContextKey,
   normalizeDeliveryContext,
-} from "../../utils/delivery-context.js";
+} from "../utils/delivery-context.js";
 import {
   INTERNAL_MESSAGE_CHANNEL,
   isDeliverableMessageChannel,
   normalizeMessageChannel,
-} from "../../utils/message-channel.js";
-import type { MsgContext } from "../templating.js";
+} from "../utils/message-channel.js";
 
 export type LegacyMainDeliveryRetirement = {
   key: string;
@@ -108,8 +107,6 @@ export function resolveLastChannelRaw(params: {
     return params.originatingChannelRaw;
   }
   let resolved = params.originatingChannelRaw || params.persistedLastChannel;
-  // Internal/non-deliverable sources should not overwrite previously known
-  // external delivery routes (or explicit channel hints from the session key).
   if (!isExternalRoutingChannel(originatingChannel)) {
     if (isExternalRoutingChannel(persistedChannel)) {
       resolved = persistedChannel;
@@ -140,9 +137,6 @@ export function resolveLastToRaw(params: {
   ) {
     return params.originatingToRaw || params.toRaw;
   }
-  // When the turn originates from an internal/non-deliverable source, do not
-  // replace an established external destination with internal routing ids
-  // (e.g., session/webchat ids).
   if (!isExternalRoutingChannel(originatingChannel)) {
     const hasExternalFallback =
       isExternalRoutingChannel(persistedChannel) || isExternalRoutingChannel(sessionKeyChannelHint);
@@ -161,7 +155,13 @@ export function maybeRetireLegacyMainDeliveryRoute(params: {
   agentId: string;
   mainKey: string;
   isGroup: boolean;
-  ctx: MsgContext;
+  ctx: {
+    OriginatingChannel?: string | null;
+    OriginatingTo?: string | null;
+    To?: string | null;
+    AccountId?: string | null;
+    MessageThreadId?: string | number | null;
+  };
 }): LegacyMainDeliveryRetirement | undefined {
   const dmScope = params.sessionCfg?.dmScope ?? "main";
   if (dmScope === "main" || params.isGroup) {
@@ -184,10 +184,10 @@ export function maybeRetireLegacyMainDeliveryRoute(params: {
   }
   const activeDirectRouteKey = deliveryContextKey(
     normalizeDeliveryContext({
-      channel: params.ctx.OriginatingChannel as string | undefined,
-      to: params.ctx.OriginatingTo || params.ctx.To,
-      accountId: params.ctx.AccountId,
-      threadId: params.ctx.MessageThreadId,
+      channel: params.ctx.OriginatingChannel ?? undefined,
+      to: params.ctx.OriginatingTo ?? params.ctx.To ?? undefined,
+      accountId: params.ctx.AccountId ?? undefined,
+      threadId: params.ctx.MessageThreadId ?? undefined,
     }),
   );
   if (!activeDirectRouteKey || activeDirectRouteKey !== legacyRouteKey) {

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LiveSessionModelSwitchError } from "../../agents/live-model-switch.js";
+import type { TypingSignaler } from "../../channels/typing-mode.js";
 import type { TemplateContext } from "../templating.js";
 import type { GetReplyOptions } from "../types.js";
 import { MAX_LIVE_SWITCH_RETRIES } from "./agent-runner-execution.js";
 import type { FollowupRun } from "./queue.js";
-import type { TypingSignaler } from "./typing-mode.js";
 
 const state = vi.hoisted(() => ({
   runEmbeddedPiAgentMock: vi.fn(),

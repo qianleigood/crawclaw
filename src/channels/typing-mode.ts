@@ -1,7 +1,13 @@
-import type { TypingMode } from "../../config/types.js";
-import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../tokens.js";
-import type { TypingPolicy } from "../types.js";
-import type { TypingController } from "./typing.js";
+import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import type { TypingPolicy } from "../auto-reply/types.js";
+import type { TypingMode } from "../config/types.js";
+
+type TypingRuntime = {
+  startTypingLoop: () => Promise<void>;
+  startTypingOnText: (text?: string) => Promise<void>;
+  refreshTypingTtl: () => void;
+  isActive: () => boolean;
+};
 
 export type TypingModeContext = {
   configured?: TypingMode;
@@ -54,7 +60,7 @@ export type TypingSignaler = {
 };
 
 export function createTypingSignaler(params: {
-  typing: TypingController;
+  typing: TypingRuntime;
   mode: TypingMode;
   isHeartbeat: boolean;
 }): TypingSignaler {
@@ -130,13 +136,11 @@ export function createTypingSignaler(params: {
     if (disabled) {
       return;
     }
-    // Start typing as soon as tools begin executing, even before the first text delta.
     if (!typing.isActive()) {
       await typing.startTypingLoop();
       typing.refreshTypingTtl();
       return;
     }
-    // Keep typing indicator alive during tool execution.
     typing.refreshTypingTtl();
   };
 

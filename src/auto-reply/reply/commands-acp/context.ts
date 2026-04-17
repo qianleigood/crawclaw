@@ -1,11 +1,11 @@
 import { normalizeConversationText } from "../../../acp/conversation-id.js";
-import type { HandleCommandsParams } from "../commands-types.js";
 import {
   resolveConversationBindingAccountIdFromMessage,
   resolveConversationBindingChannelFromMessage,
   resolveConversationBindingContextFromAcpCommand,
   resolveConversationBindingThreadIdFromMessage,
-} from "../conversation-binding-input.js";
+} from "../../../channels/conversation-binding-input.js";
+import type { HandleCommandsParams } from "../commands-types.js";
 
 export function resolveAcpCommandChannel(params: HandleCommandsParams): string {
   const resolved = resolveConversationBindingChannelFromMessage(params.ctx, params.command.channel);

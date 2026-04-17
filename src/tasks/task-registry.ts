@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { getAcpSessionManager } from "../acp/control-plane/manager.js";
 import { killSubagentRunAdmin } from "../agents/subagent-control.js";
+import { resolveDeliverableTarget } from "../channels/deliverable-target.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { onAgentEvent } from "../infra/agent-events.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
@@ -8,7 +9,6 @@ import { enqueueSystemEvent } from "../infra/system-events.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { normalizeDeliveryContext } from "../utils/delivery-context.js";
-import { isDeliverableMessageChannel } from "../utils/message-channel.js";
 import {
   formatTaskBlockedFollowupMessage,
   formatTaskStateChangeMessage,
@@ -1072,9 +1072,12 @@ function getTaskDeliveryState(taskId: string): TaskDeliveryState | undefined {
 
 function canDeliverTaskToRequesterOrigin(task: TaskRecord): boolean {
   const origin = resolveTaskDeliveryOwner(task).requesterOrigin;
-  const channel = origin?.channel?.trim();
-  const to = origin?.to?.trim();
-  return Boolean(channel && to && isDeliverableMessageChannel(channel));
+  return Boolean(
+    resolveDeliverableTarget({
+      channel: origin?.channel,
+      to: origin?.to,
+    }),
+  );
 }
 
 function resolveMissingOwnerDeliveryStatus(task: TaskRecord): TaskDeliveryStatus {

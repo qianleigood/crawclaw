@@ -1,6 +1,6 @@
 import path from "node:path";
-import { finalizeInboundContext } from "../auto-reply/reply/inbound-context.js";
 import type { MsgContext } from "../auto-reply/templating.js";
+import { finalizeInboundContext } from "../channels/inbound-context.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { renderFileContextBlock } from "../media/file-context.js";

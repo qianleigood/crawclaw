@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { TypingSignaler } from "../../channels/typing-mode.js";
 import type { ReplyPayload } from "../types.js";
-import type { TypingSignaler } from "./typing-mode.js";
 
 const hoisted = vi.hoisted(() => {
   const loadSessionStoreMock = vi.fn();

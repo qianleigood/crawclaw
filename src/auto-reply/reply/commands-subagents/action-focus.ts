@@ -4,6 +4,11 @@ import {
 } from "../../../acp/runtime/session-identifiers.js";
 import { readAcpSessionEntry } from "../../../acp/runtime/session-meta.js";
 import {
+  resolveMatrixConversationId,
+  resolveMatrixParentConversationId,
+} from "../../../channels/matrix-context.js";
+import { resolveTelegramConversationId } from "../../../channels/telegram-context.js";
+import {
   resolveThreadBindingIntroText,
   resolveThreadBindingThreadName,
 } from "../../../channels/thread-bindings-messages.js";
@@ -17,10 +22,6 @@ import {
 import { getSessionBindingService } from "../../../infra/outbound/session-binding-service.js";
 import type { CommandHandlerResult } from "../commands-types.js";
 import {
-  resolveMatrixConversationId,
-  resolveMatrixParentConversationId,
-} from "../matrix-context.js";
-import {
   type SubagentsCommandContext,
   isDiscordSurface,
   isMatrixSurface,
@@ -29,7 +30,6 @@ import {
   resolveCommandSurfaceChannel,
   resolveDiscordChannelIdForFocus,
   resolveFocusTargetSession,
-  resolveTelegramConversationId,
   stopWithText,
 } from "./shared.js";
 

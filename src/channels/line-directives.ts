@@ -1,12 +1,12 @@
+import type { ReplyPayload } from "../auto-reply/types.js";
 import {
   createAgendaCard,
   createAppleTvRemoteCard,
   createDeviceControlCard,
   createMediaPlayerCard,
   createEventCard,
-} from "../../plugin-sdk/line.js";
-import type { LineChannelData } from "../../plugin-sdk/line.js";
-import type { ReplyPayload } from "../types.js";
+} from "../plugin-sdk/line.js";
+import type { LineChannelData } from "../plugin-sdk/line.js";
 
 /**
  * Parse LINE-specific directives from text and extract them into ReplyPayload fields.

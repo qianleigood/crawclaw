@@ -1,9 +1,10 @@
-import { getSessionBindingService } from "../../../infra/outbound/session-binding-service.js";
-import type { CommandHandlerResult } from "../commands-types.js";
 import {
   resolveMatrixConversationId,
   resolveMatrixParentConversationId,
-} from "../matrix-context.js";
+} from "../../../channels/matrix-context.js";
+import { resolveTelegramConversationId } from "../../../channels/telegram-context.js";
+import { getSessionBindingService } from "../../../infra/outbound/session-binding-service.js";
+import type { CommandHandlerResult } from "../commands-types.js";
 import {
   type SubagentsCommandContext,
   isDiscordSurface,
@@ -11,7 +12,6 @@ import {
   isTelegramSurface,
   resolveChannelAccountId,
   resolveCommandSurfaceChannel,
-  resolveTelegramConversationId,
   stopWithText,
 } from "./shared.js";
 

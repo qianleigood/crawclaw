@@ -1,4 +1,6 @@
 import { sanitizeUserFacingText } from "../../agents/pi-embedded-helpers.js";
+import { hasLineDirectives, parseLineDirectives } from "../../channels/line-directives.js";
+import { compileSlackInteractiveReplies } from "../../channels/slack-directives.js";
 import { hasReplyPayloadContent } from "../../interactive/payload.js";
 import { stripHeartbeatToken } from "../heartbeat.js";
 import {
@@ -9,12 +11,10 @@ import {
   stripSilentToken,
 } from "../tokens.js";
 import type { ReplyPayload } from "../types.js";
-import { hasLineDirectives, parseLineDirectives } from "./line-directives.js";
 import {
   resolveResponsePrefixTemplate,
   type ResponsePrefixContext,
 } from "./response-prefix-template.js";
-import { compileSlackInteractiveReplies } from "./slack-directives.js";
 
 export type NormalizeReplySkipReason = "empty" | "silent" | "heartbeat";
 

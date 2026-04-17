@@ -1,8 +1,8 @@
+import { resolveLastChannelRaw, resolveLastToRaw } from "../../channels/session-delivery-route.js";
 import { deriveSessionMetaPatch } from "../../config/sessions/metadata.js";
 import type { GroupKeyResolution, SessionEntry } from "../../config/sessions/types.js";
 import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
 import type { MsgContext } from "../templating.js";
-import { resolveLastChannelRaw, resolveLastToRaw } from "./session-delivery.js";
 
 export function buildSessionEntryState(params: {
   ctx: MsgContext;

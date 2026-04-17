@@ -21,6 +21,26 @@ README is the maintainer entry point for the runtime layer itself.
 - `thread-bindings-messages.ts`
 - `typing.ts`
 - `typing-lifecycle.ts`
+- `telegram-model-picker.ts`
+- `telegram-pagination.ts`
+- `deliverable-target.ts`
+- `acp-delivery-visibility.ts`
+- `inbound-context.ts`
+- `inbound-dedupe.ts`
+- `reply-to-mode.ts`
+- `reply-threading.ts`
+- `session-delivery-route.ts`
+- `command-surface-context.ts`
+- `conversation-binding-input.ts`
+- `typing-mode.ts`
+- `typing-policy.ts`
+- `telegram-context.ts`
+- `matrix-context.ts`
+- `line-directives.ts`
+- `slack-directives.ts`
+- `telegram-command-replies.ts`
+- `workflow-controls.ts`
+- `workflow-projection.ts`
 
 ## Public Seams
 

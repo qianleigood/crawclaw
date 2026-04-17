@@ -8,7 +8,7 @@ const targetContextMocks = vi.hoisted(() => ({
   touch: vi.fn(),
 }));
 
-vi.mock("./conversation-binding-input.js", () => ({
+vi.mock("../../channels/conversation-binding-input.js", () => ({
   resolveConversationBindingContextFromMessage:
     targetContextMocks.resolveConversationBindingContextFromMessage,
 }));

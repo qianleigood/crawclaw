@@ -48,7 +48,7 @@ export function registerGetReplyCommonMocks(): void {
   vi.mock("./get-reply-run.js", () => ({
     runPreparedReply: vi.fn(async () => undefined),
   }));
-  vi.mock("./inbound-context.js", () => ({
+  vi.mock("../../channels/inbound-context.js", () => ({
     finalizeInboundContext: vi.fn((ctx: unknown) => ctx),
   }));
   vi.mock("./session-reset-model.runtime.js", () => ({

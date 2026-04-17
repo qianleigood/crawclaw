@@ -214,7 +214,7 @@ type DirectDmRuntime = {
         cfg: CrawClawConfig,
       ) => ReturnType<typeof import("../auto-reply/envelope.js").resolveEnvelopeFormatOptions>;
       formatAgentEnvelope: typeof import("../auto-reply/envelope.js").formatAgentEnvelope;
-      finalizeInboundContext: typeof import("../auto-reply/reply/inbound-context.js").finalizeInboundContext;
+      finalizeInboundContext: typeof import("../channels/inbound-context.js").finalizeInboundContext;
       dispatchReplyWithBufferedBlockDispatcher: typeof import("../auto-reply/reply/provider-dispatcher.js").dispatchReplyWithBufferedBlockDispatcher;
     };
   };

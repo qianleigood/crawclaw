@@ -1,6 +1,6 @@
 import { listAgentIds, resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveEffectiveToolInventory } from "../../agents/tools-effective-inventory.js";
-import { resolveReplyToMode } from "../../auto-reply/reply/reply-threading.js";
+import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
 import { loadConfig } from "../../config/config.js";
 import { deliveryContextFromSession } from "../../utils/delivery-context.js";
 import { ADMIN_SCOPE } from "../method-scopes.js";

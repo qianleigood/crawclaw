@@ -1,11 +1,14 @@
 import fs from "node:fs";
+import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
 import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { resolveModelAuthMode } from "../../agents/model-auth.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { queueEmbeddedPiMessage } from "../../agents/pi-embedded.js";
-import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
 import { hasNonzeroUsage } from "../../agents/usage.js";
+import { createReplyToModeFilterForChannel } from "../../channels/reply-threading.js";
+import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
+import { createTypingSignaler } from "../../channels/typing-mode.js";
 import {
   resolveAgentIdFromSessionKey,
   resolveSessionFilePath,
@@ -59,9 +62,7 @@ import {
   type QueueSettings,
 } from "./queue.js";
 import { createReplyMediaPathNormalizer } from "./reply-media-paths.js";
-import { createReplyToModeFilterForChannel, resolveReplyToMode } from "./reply-threading.js";
 import { incrementRunCompactionCount, persistRunSessionUsage } from "./session-run-accounting.js";
-import { createTypingSignaler } from "./typing-mode.js";
 import type { TypingController } from "./typing.js";
 
 const BLOCK_REPLY_SEND_TIMEOUT_MS = 15_000;

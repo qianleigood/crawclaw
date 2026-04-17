@@ -1,4 +1,4 @@
-import { parseExplicitTargetForChannel } from "../../channels/plugins/target-parsing.js";
+import { parseExplicitTargetForChannel } from "./plugins/target-parsing.js";
 
 type TelegramConversationParams = {
   ctx: {
@@ -10,6 +10,22 @@ type TelegramConversationParams = {
     to?: string;
   };
 };
+
+function resolveTelegramChatId(raw: string): string | undefined {
+  const parsed = parseExplicitTargetForChannel("telegram", raw)?.to.trim();
+  if (parsed) {
+    return parsed;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (trimmed.toLowerCase().startsWith("telegram:")) {
+    const stripped = trimmed.slice("telegram:".length).trim();
+    return stripped || undefined;
+  }
+  return trimmed;
+}
 
 export function resolveTelegramConversationId(
   params: TelegramConversationParams,
@@ -25,15 +41,17 @@ export function resolveTelegramConversationId(
     .map((value) => value.trim())
     .filter(Boolean);
   const chatId = toCandidates
-    .map((candidate) => parseExplicitTargetForChannel("telegram", candidate)?.to.trim() ?? "")
+    .map((candidate) => resolveTelegramChatId(candidate) ?? "")
     .find((candidate) => candidate.length > 0);
   if (!chatId) {
     return undefined;
   }
+  if (chatId.includes(":topic:")) {
+    return chatId;
+  }
   if (threadId) {
     return `${chatId}:topic:${threadId}`;
   }
-  // Non-topic groups should not become globally focused conversations.
   if (chatId.startsWith("-")) {
     return undefined;
   }

@@ -1,11 +1,11 @@
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import type { TypingSignaler } from "../../channels/typing-mode.js";
 import { createBlockReplyContentKey } from "./block-reply-pipeline.js";
 import {
   createBlockReplyDeliveryHandler,
   normalizeReplyPayloadDirectives,
 } from "./reply-delivery.js";
-import type { TypingSignaler } from "./typing-mode.js";
 
 type BlockReplyPipelineLike = NonNullable<
   Parameters<typeof createBlockReplyDeliveryHandler>[0]["blockReplyPipeline"]

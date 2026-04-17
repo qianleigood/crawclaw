@@ -1,7 +1,7 @@
 import type { MsgContext } from "../auto-reply/templating.js";
+import { resolveDeliverableTarget } from "../channels/deliverable-target.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
-import { isDeliverableMessageChannel } from "../utils/message-channel.js";
 
 let deliverRuntimePromise: Promise<typeof import("../infra/outbound/deliver-runtime.js")> | null =
   null;
@@ -28,22 +28,16 @@ export async function sendTranscriptEcho(params: {
   format?: string;
 }): Promise<void> {
   const { ctx, cfg, transcript } = params;
-  const channel = ctx.Provider ?? ctx.Surface ?? "";
-  const to = ctx.OriginatingTo ?? ctx.From ?? "";
+  const target = resolveDeliverableTarget({
+    channel: ctx.Provider ?? ctx.Surface ?? "",
+    to: ctx.OriginatingTo ?? ctx.From ?? "",
+    accountId: ctx.AccountId ?? undefined,
+    threadId: ctx.MessageThreadId ?? undefined,
+  });
 
-  if (!channel || !to) {
+  if (!target) {
     if (shouldLogVerbose()) {
       logVerbose("media: echo-transcript skipped (no channel/to resolved from ctx)");
-    }
-    return;
-  }
-
-  const normalizedChannel = channel.trim().toLowerCase();
-  if (!isDeliverableMessageChannel(normalizedChannel)) {
-    if (shouldLogVerbose()) {
-      logVerbose(
-        `media: echo-transcript skipped (channel "${String(normalizedChannel)}" is not deliverable)`,
-      );
     }
     return;
   }
@@ -54,15 +48,15 @@ export async function sendTranscriptEcho(params: {
     const { deliverOutboundPayloads } = await loadDeliverRuntime();
     await deliverOutboundPayloads({
       cfg,
-      channel: normalizedChannel,
-      to,
-      accountId: ctx.AccountId ?? undefined,
-      threadId: ctx.MessageThreadId ?? undefined,
+      channel: target.channel,
+      to: target.to,
+      accountId: target.accountId,
+      threadId: target.threadId,
       payloads: [{ text }],
       bestEffort: true,
     });
     if (shouldLogVerbose()) {
-      logVerbose(`media: echo-transcript sent to ${normalizedChannel}/${to}`);
+      logVerbose(`media: echo-transcript sent to ${target.channel}/${target.to}`);
     }
   } catch (err) {
     logVerbose(`media: echo-transcript delivery failed: ${String(err)}`);

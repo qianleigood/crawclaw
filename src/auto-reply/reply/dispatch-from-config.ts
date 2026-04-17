@@ -5,7 +5,9 @@ import {
   resolveConversationBindingRecord,
   touchConversationBindingRecord,
 } from "../../bindings/records.js";
+import { shouldSkipDuplicateInbound } from "../../channels/inbound-dedupe.js";
 import { shouldSuppressLocalExecApprovalPrompt } from "../../channels/plugins/exec-approval-local.js";
+import { resolveRunTypingPolicy } from "../../channels/typing-policy.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { parseSessionThreadInfo } from "../../config/sessions/delivery-info.js";
 import { resolveStorePath } from "../../config/sessions/paths.js";
@@ -48,10 +50,8 @@ import {
   type GetReplyOptions,
   type ReplyPayload,
 } from "../types.js";
-import { shouldSkipDuplicateInbound } from "./inbound-dedupe.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
 import { resolveReplyRoutingDecision } from "./routing-policy.js";
-import { resolveRunTypingPolicy } from "./typing-policy.js";
 
 let routeReplyRuntimePromise: Promise<typeof import("./route-reply.runtime.js")> | null = null;
 let getReplyFromConfigRuntimePromise: Promise<
