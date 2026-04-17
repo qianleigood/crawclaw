@@ -1,10 +1,10 @@
 import { Command } from "commander";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { registerNodesCli } from "./nodes-cli.js";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createIosNodeListResponse } from "./program.nodes-test-helpers.js";
 import { callGateway, installBaseProgramMocks, runtime } from "./program.test-mocks.js";
 
 installBaseProgramMocks();
+let registerNodesCli: (program: Command) => void;
 
 function formatRuntimeLogCallArg(value: unknown): string {
   if (typeof value === "string") {
@@ -25,6 +25,10 @@ function formatRuntimeLogCallArg(value: unknown): string {
 
 describe("cli program (nodes basics)", () => {
   let program: Command;
+
+  beforeAll(async () => {
+    ({ registerNodesCli } = await import("./nodes-cli.js"));
+  });
 
   function createProgram() {
     const next = new Command();

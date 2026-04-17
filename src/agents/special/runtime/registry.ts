@@ -12,29 +12,33 @@ export type RegisteredSpecialAgentContractIssue = {
   issues: string[];
 };
 
-const REGISTERED_SPECIAL_AGENT_DEFINITIONS = [
-  VERIFICATION_AGENT_DEFINITION,
-  MEMORY_EXTRACTION_AGENT_DEFINITION,
-  DREAM_AGENT_DEFINITION,
-  SESSION_SUMMARY_AGENT_DEFINITION,
-] as const satisfies readonly SpecialAgentDefinition[];
+function getRegisteredSpecialAgentDefinitions(): readonly SpecialAgentDefinition[] {
+  return [
+    VERIFICATION_AGENT_DEFINITION,
+    MEMORY_EXTRACTION_AGENT_DEFINITION,
+    DREAM_AGENT_DEFINITION,
+    SESSION_SUMMARY_AGENT_DEFINITION,
+  ] as const satisfies readonly SpecialAgentDefinition[];
+}
 
 export function listRegisteredSpecialAgentDefinitions(): readonly SpecialAgentDefinition[] {
-  return REGISTERED_SPECIAL_AGENT_DEFINITIONS;
+  return getRegisteredSpecialAgentDefinitions();
 }
 
 export function listRegisteredSpecialAgentContractIssues(): RegisteredSpecialAgentContractIssue[] {
-  return REGISTERED_SPECIAL_AGENT_DEFINITIONS.map((definition) => {
-    const issues = validateSpecialAgentDefinitionContract(definition);
-    if (issues.length === 0) {
-      return null;
-    }
-    return {
-      id: definition.id,
-      spawnSource: definition.spawnSource,
-      issues,
-    } satisfies RegisteredSpecialAgentContractIssue;
-  }).filter((entry): entry is RegisteredSpecialAgentContractIssue => entry !== null);
+  return getRegisteredSpecialAgentDefinitions()
+    .map((definition) => {
+      const issues = validateSpecialAgentDefinitionContract(definition);
+      if (issues.length === 0) {
+        return null;
+      }
+      return {
+        id: definition.id,
+        spawnSource: definition.spawnSource,
+        issues,
+      } satisfies RegisteredSpecialAgentContractIssue;
+    })
+    .filter((entry): entry is RegisteredSpecialAgentContractIssue => entry !== null);
 }
 
 export function resolveSpecialAgentDefinitionBySpawnSource(
@@ -44,7 +48,7 @@ export function resolveSpecialAgentDefinitionBySpawnSource(
   if (!normalized) {
     return undefined;
   }
-  return REGISTERED_SPECIAL_AGENT_DEFINITIONS.find(
+  return getRegisteredSpecialAgentDefinitions().find(
     (definition) => definition.spawnSource === normalized,
   );
 }

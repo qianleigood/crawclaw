@@ -818,11 +818,13 @@ describe("runReplyAgent typing (heartbeat)", () => {
       const storePath = path.join(stateDir, "sessions", "sessions.json");
       const sessionEntry: SessionEntry = { sessionId: "session", updatedAt: Date.now() };
       const sessionStore = { main: sessionEntry };
+      await fs.mkdir(path.dirname(storePath), { recursive: true });
+      await fs.writeFile(storePath, JSON.stringify(sessionStore), "utf-8");
 
       state.runEmbeddedPiAgentMock.mockImplementationOnce(async (params: AgentRunParams) => {
         params.onAgentEvent?.({
           stream: "compaction",
-          data: { phase: "end", willRetry: false },
+          data: { phase: "end", willRetry: false, completed: true },
         });
         return { payloads: [{ text: "final" }], meta: {} };
       });
@@ -835,11 +837,13 @@ describe("runReplyAgent typing (heartbeat)", () => {
         storePath,
       });
       const res = await run();
-      expect(Array.isArray(res)).toBe(true);
-      const payloads = res as { text?: string }[];
+      const payloads = Array.isArray(res)
+        ? (res as { text?: string }[])
+        : [res as { text?: string }];
       expect(payloads[0]?.text).toContain("Auto-compaction complete");
       expect(payloads[0]?.text).toContain("count 1");
-      expect(sessionStore.main.compactionCount).toBe(1);
+      const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+      expect(stored.main.compactionCount).toBe(1);
     });
   });
 
@@ -1630,7 +1634,7 @@ describe("runReplyAgent typing (heartbeat)", () => {
       const res = await run();
 
       expect(res).toMatchObject({
-        text: expect.stringContaining("Agent failed before reply"),
+        text: expect.stringContaining("Something went wrong while processing your request"),
       });
       expect(sessionStore.main).toBeDefined();
       await expect(fs.access(transcriptPath)).resolves.toBeUndefined();
@@ -1747,6 +1751,7 @@ describe("runReplyAgent memory flush", () => {
         sessionId: "session",
         updatedAt: Date.now(),
         totalTokens: 80_000,
+        totalTokensFresh: true,
         compactionCount: 1,
       };
 
@@ -1764,6 +1769,15 @@ describe("runReplyAgent memory flush", () => {
       const baseRun = createBaseRun({
         storePath,
         sessionEntry,
+        config: {
+          agents: {
+            defaults: {
+              cliBackends: {
+                "codex-cli": { command: "codex" },
+              },
+            },
+          },
+        },
         runOverrides: { provider: "codex-cli" },
       });
 
@@ -1892,6 +1906,7 @@ describe("runReplyAgent memory flush", () => {
         sessionId: "session",
         updatedAt: Date.now(),
         totalTokens: 80_000,
+        totalTokensFresh: true,
         compactionCount: 1,
       };
 
@@ -1958,6 +1973,7 @@ describe("runReplyAgent memory flush", () => {
         sessionId: "session",
         updatedAt: Date.now(),
         totalTokens: 80_000,
+        totalTokensFresh: true,
         compactionCount: 1,
         systemPromptReport: {
           source: "run",
@@ -2029,6 +2045,7 @@ describe("runReplyAgent memory flush", () => {
         sessionId: "session",
         updatedAt: Date.now(),
         totalTokens: 80_000,
+        totalTokensFresh: true,
         compactionCount: 1,
       };
 
@@ -2238,6 +2255,7 @@ describe("runReplyAgent memory flush", () => {
         sessionId: "session",
         updatedAt: Date.now(),
         totalTokens: 80_000,
+        totalTokensFresh: true,
         compactionCount: 1,
       };
 
@@ -2319,6 +2337,7 @@ describe("runReplyAgent memory flush", () => {
         sessionId: "session",
         updatedAt: Date.now(),
         totalTokens: 80_000,
+        totalTokensFresh: true,
         compactionCount: 1,
       };
 

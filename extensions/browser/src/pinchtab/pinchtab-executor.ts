@@ -1,9 +1,8 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import { jsonResult, wrapExternalContent } from "../core-api.js";
+import { jsonResult, resolvePreferredCrawClawTmpDir, wrapExternalContent } from "../core-api.js";
 import { createPinchTabClient, type PinchTabClient } from "./pinchtab-client.js";
 import {
   clearPinchTabSessionState,
@@ -41,7 +40,10 @@ function resolveSessionName(params: { agentSessionKey?: string; profile?: string
 }
 
 function buildTmpPath(ext: string) {
-  return path.join(os.tmpdir(), `crawclaw-pinchtab-${crypto.randomUUID()}.${ext}`);
+  return path.join(
+    resolvePreferredCrawClawTmpDir(),
+    `crawclaw-pinchtab-${crypto.randomUUID()}.${ext}`,
+  );
 }
 
 function unwrapEvalPayload<T>(value: Record<string, unknown> | null | undefined): T | null {

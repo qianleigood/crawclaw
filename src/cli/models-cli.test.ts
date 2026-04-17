@@ -103,7 +103,7 @@ describe("models cli", () => {
     registerModelsCli(program);
 
     try {
-      await program.parseAsync(["models", "auth"], { from: "user" });
+      await program.parseAsync(["models", "auth", "--help"], { from: "user" });
       expect.fail("expected help to exit");
     } catch (err) {
       const error = err as { exitCode?: number };

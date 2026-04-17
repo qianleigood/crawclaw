@@ -24,7 +24,7 @@ title: Phase 对应 PR 计划
 
 | PR      | 对应 Phase | 当前状态 | 说明                                                                                                                                                                                                                                                                                                                                |
 | ------- | ---------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PR-00` | Phase 0    | `未开始` | 已有路线图和规划文档，但还没有严格完成一次 baseline freeze 执行与归档。                                                                                                                                                                                                                                                             |
+| `PR-00` | Phase 0    | `已完成` | baseline freeze 已完成：owner 清单、业务入口、缓存、e2e / docker smoke 基线与 top 风险已归档到专项文档，后续各 phase 已有统一比较基线。                                                                                                                                                                                             |
 | `PR-01` | Phase 1    | `已完成` | 目录 maintainer 文档、运行时边界 lint、扩展生态 boundary 清理和主门禁接线已经全部落地。                                                                                                                                                                                                                                             |
 | `PR-02` | Phase 2    | `已完成` | workflow controls、session patch 与 model selection 的共享 runtime 已收口；更深的 session runtime 重构转入后续 phase。                                                                                                                                                                                                              |
 | `PR-03` | Phase 3    | `已完成` | `command` / `subagents` 子域已显式化，两个热点文件已拆薄，并补了子域入口文档与 focused tests。                                                                                                                                                                                                                                      |
@@ -35,7 +35,7 @@ title: Phase 对应 PR 计划
 | `PR-07` | Phase 7    | `已完成` | 执行事件与可见性全链统一已完成：workflow / approval / completion / memory 的 projectedTitle / projectedSummary 已收成 shared visibility seam，并已接回 action feed、commands、execution-visibility、ACP projector、inspect、gateway approval handlers 与 UI focused surfaces。                                                      |
 | `PR-08` | Phase 8    | `已完成` | plugin platform 清理已完成：plugin entry / channel entry / setup entry 的导出 contract 已统一到 shared entry-contract seam，loader、bundled capability runtime、channels bundled loader 已共用同一套 resolver，plugin-sdk entry helpers 已带显式 lifecycle marker，plugin contract focused tests 也已补齐。                         |
 | `PR-09` | Phase 9    | `已完成` | UI 信息架构重构已完成第一轮收口：导航分组与简单模式主入口已按平台信息架构重组，`overview / channels / debug` 的页面语义已更新为 `Overview / Channels / Inspect`，命令面与侧边栏不再继续沿用旧控制台分组命名，相关 UI focused tests 与 `pnpm check` 已通过。                                                                         |
-| `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                                                                                                                                                                                                                              |
+| `PR-10` | Phase 10   | `已完成` | 物理拆分准备已完成：future package 边界草案、public surface 清单、import graph 风险表已落到专项文档，当前已明确哪些 facade 可冻结、哪些模块只适合保持目录边界而不应立即拆包。                                                                                                                                                       |
 
 ## 总体规则
 
@@ -112,6 +112,66 @@ title: Phase 对应 PR 计划
 
 - baseline 清单可以指导后续 phase
 - 风险列表已明确
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已新增 baseline 专项文档：
+  - `docs/zh-CN/concepts/project-baseline-freeze.md`
+- 已冻结目录 owner 清单：
+  - `src/gateway`
+  - `src/auto-reply`
+  - `src/agents`
+  - `src/channels`
+  - `src/plugins`
+  - `src/memory`
+  - `src/workflows`
+- 已冻结当前业务入口基线：
+  - CLI commands
+  - channel text commands
+  - gateway methods
+  - UI actions
+- 已冻结当前缓存基线：
+  - prompt/query identity
+  - bootstrap/runtime snapshot
+  - memory/session summary/built-in runtime
+  - routing/control-plane cache
+  - cache governance registry
+- 已冻结当前 e2e / smoke 基线：
+  - `pnpm check`
+  - `pnpm test`
+  - `pnpm test:e2e`
+  - `pnpm test:docker:onboard`
+  - `pnpm test:docker:gateway-network`
+- 已归档当前 top 风险：
+  - interaction-engine 缺单一 facade
+  - agent-kernel 缺 top-level facade
+  - plugin-sdk 稳定级别分层仍需继续补
+  - browser e2e 在受限环境下存在运行限制
+  - docker smoke 依赖宿主环境
+- 已把概念导航补上 baseline 入口：
+  - `docs/zh-CN/concepts/index.md`
+
+已验证：
+
+- `pnpm check`
+- `pnpm test`
+- `pnpm test:e2e`
+- `pnpm test:docker:onboard`
+- `pnpm test:docker:gateway-network`
+
+补充说明：
+
+- baseline 文档已经更新为真实通过状态：
+  - `pnpm check` 通过
+  - `pnpm test` 通过
+  - `pnpm test:e2e` 通过
+  - `pnpm test:docker:onboard` 通过
+  - `pnpm test:docker:gateway-network` 通过
+- 这意味着后续任何 baseline 回归都应视为新回归，不再以“历史既有红项”处理。
 
 ## PR-01：边界治理与目录 owner 固化
 
@@ -1206,6 +1266,51 @@ title: Phase 对应 PR 计划
 ### Reviewer 关注点
 
 - 是否真的准备好了，而不是只写了一个理想图
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已新增专项文档：
+  - `docs/zh-CN/concepts/project-package-split-prep.md`
+- 已明确第一批可冻结的公开 surface：
+  - `src/plugin-sdk/index.ts`
+  - `src/plugin-sdk/entrypoints.ts`
+  - `src/plugins/entry-contract.ts`
+  - `src/workflows/api.ts`
+  - `src/memory/command-api.ts`
+  - `src/memory/cli-api.ts`
+  - `src/memory/index.ts`
+  - `src/gateway/server.ts`
+  - `src/agents/special/runtime/*` 这一组 substrate seam
+- 已给出未来 package 边界草案：
+  - `control-plane-core`
+  - `interaction-engine`
+  - `agent-kernel`
+  - `special-agent-substrate`
+  - `channel-runtime`
+  - `plugin-platform`
+  - `memory-runtime`
+  - `workflow-runtime`
+- 已把 import graph 风险整理成表：
+  - interaction 与 gateway 再次缠绕
+  - channel runtime 被 workflow / UI 反向侵入
+  - plugin-sdk facade 稳定性分层不足
+  - agent-kernel 缺少真正的 top-level facade
+  - UI 回退到消费 runtime internals
+- 已把概念导航补上拆包准备入口：
+  - `docs/zh-CN/concepts/index.md`
+
+已验证：
+
+- `pnpm check`
+
+收口结论：
+
+1. 当前已经具备“未来物理拆包”的边界准备条件。
+2. 但并不建议马上拆仓；后续若真拆包，应先单独补 `interaction-engine` 与 `agent-kernel` 的 facade freeze。
 
 ## PR 依赖顺序
 

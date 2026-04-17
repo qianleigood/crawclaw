@@ -108,7 +108,7 @@ describe("describeImageWithModel", () => {
     expect(getApiKeyForModelMock).toHaveBeenCalled();
     expect(requireApiKeyMock).toHaveBeenCalled();
     expect(setRuntimeApiKeyMock).toHaveBeenCalledWith("minimax-portal", "oauth-test");
-    expect(fetchMock).toHaveBeenCalledWith("https://api.minimaxi.com/v1/coding_plan/vlm", {
+    expect(fetchMock).toHaveBeenCalledWith("https://api.minimax.io/v1/coding_plan/vlm", {
       method: "POST",
       headers: {
         Authorization: "Bearer oauth-test",

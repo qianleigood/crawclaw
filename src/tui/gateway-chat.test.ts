@@ -167,11 +167,12 @@ describe("resolveGatewayConnection", () => {
     });
   });
 
-  it("does not fall back to legacy gateway token env when the CrawClaw env token is missing", async () => {
+  it("accepts CRAWCLAW_GATEWAY_TOKEN when config token is missing", async () => {
     loadConfig.mockReturnValue({ gateway: { mode: "local" } });
 
     await withEnvAsync({ CRAWCLAW_GATEWAY_TOKEN: "legacy-env-token" }, async () => {
-      await expect(resolveGatewayConnection({})).rejects.toThrow("Missing gateway auth token.");
+      const result = await resolveGatewayConnection({});
+      expect(result.token).toBe("legacy-env-token");
     });
   });
 

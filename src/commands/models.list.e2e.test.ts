@@ -4,10 +4,9 @@ let modelsListCommand: typeof import("./models/list.list-command.js").modelsList
 let loadModelRegistry: typeof import("./models/list.registry.js").loadModelRegistry;
 let toModelRow: typeof import("./models/list.registry.js").toModelRow;
 
-const loadConfig = vi.fn();
-const readConfigFileSnapshotForWrite = vi.fn().mockResolvedValue({
-  snapshot: { valid: false, resolved: {} },
-  writeOptions: {},
+const getRuntimeConfig = vi.fn();
+const readSourceConfigSnapshotForWrite = vi.fn().mockResolvedValue({
+  snapshot: { valid: false, sourceConfig: {} },
 });
 const setRuntimeConfigSnapshot = vi.fn();
 const ensureCrawClawModelsJson = vi.fn().mockResolvedValue(undefined);
@@ -38,8 +37,8 @@ vi.mock("../config/config.js", async (importOriginal) => {
     ...actual,
     CONFIG_PATH: "/tmp/crawclaw.json",
     STATE_DIR: "/tmp/crawclaw-state",
-    loadConfig,
-    readConfigFileSnapshotForWrite,
+    getRuntimeConfig,
+    readSourceConfigSnapshotForWrite,
     setRuntimeConfigSnapshot,
   };
 });
@@ -160,10 +159,10 @@ beforeEach(() => {
   modelRegistryState.getAvailableError = undefined;
   listProfilesForProvider.mockReturnValue([]);
   ensureCrawClawModelsJson.mockClear();
-  readConfigFileSnapshotForWrite.mockClear();
-  readConfigFileSnapshotForWrite.mockResolvedValue({
-    snapshot: { valid: false, resolved: {} },
-    writeOptions: {},
+  getRuntimeConfig.mockReset().mockReturnValue({});
+  readSourceConfigSnapshotForWrite.mockClear();
+  readSourceConfigSnapshotForWrite.mockResolvedValue({
+    snapshot: { valid: false, sourceConfig: {} },
   });
   setRuntimeConfigSnapshot.mockClear();
 });
@@ -225,13 +224,13 @@ describe("models list/status", () => {
   };
 
   function setDefaultModel(model: string) {
-    loadConfig.mockReturnValue({
+    getRuntimeConfig.mockReturnValue({
       agents: { defaults: { model } },
     });
   }
 
   function configureModelAsConfigured(model: string) {
-    loadConfig.mockReturnValue({
+    getRuntimeConfig.mockReturnValue({
       agents: {
         defaults: {
           model,
@@ -310,7 +309,7 @@ describe("models list/status", () => {
   });
 
   it("models list plain outputs canonical zai key", async () => {
-    loadConfig.mockReturnValue({
+    getRuntimeConfig.mockReturnValue({
       agents: { defaults: { model: "z.ai/glm-4.7" } },
     });
     const runtime = makeRuntime();
@@ -324,7 +323,7 @@ describe("models list/status", () => {
   });
 
   it("models list plain keeps canonical OpenRouter native ids", async () => {
-    loadConfig.mockReturnValue({
+    getRuntimeConfig.mockReturnValue({
       agents: { defaults: { model: "openrouter/hunter-alpha" } },
     });
     const runtime = makeRuntime();
@@ -450,9 +449,9 @@ describe("models list/status", () => {
     const resolvedConfig = {
       models: { providers: { openai: { apiKey: "sk-resolved-runtime-value" } } }, // pragma: allowlist secret
     };
-    readConfigFileSnapshotForWrite.mockResolvedValue({
-      snapshot: { valid: true, resolved: resolvedConfig, source: sourceConfig },
-      writeOptions: {},
+    getRuntimeConfig.mockReturnValue(resolvedConfig);
+    readSourceConfigSnapshotForWrite.mockResolvedValue({
+      snapshot: { valid: true, sourceConfig },
     });
     setDefaultModel("openai/gpt-4.1-mini");
     const runtime = makeRuntime();
@@ -460,7 +459,7 @@ describe("models list/status", () => {
     await modelsListCommand({ all: true, json: true }, runtime);
 
     expect(ensureCrawClawModelsJson).toHaveBeenCalled();
-    expect(ensureCrawClawModelsJson.mock.calls[0]?.[0]).toEqual(resolvedConfig);
+    expect(ensureCrawClawModelsJson.mock.calls[0]?.[0]).toEqual(sourceConfig);
   });
 
   it("toModelRow does not crash without cfg/authStore when availability is undefined", async () => {

@@ -87,6 +87,7 @@ export {
   resolveEffectiveEnableState,
   resolveNodeIdFromList,
   resolveNodeCommandAllowlist,
+  resolvePreferredCrawClawTmpDir,
   runCommandWithRuntime,
   selectDefaultNodeFromList,
   safeParseJson,

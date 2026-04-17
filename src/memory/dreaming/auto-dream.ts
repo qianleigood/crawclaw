@@ -1,5 +1,4 @@
-import os from "node:os";
-import path from "node:path";
+import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { resolveDurableMemoryScope, type DurableMemoryScope } from "../durable/scope.ts";
 import { scanDurableMemoryScopeEntries } from "../durable/store.ts";
@@ -361,7 +360,11 @@ export class AutoDreamScheduler {
       params.sessionId?.trim() || preview.recentSessionIds[0]?.trim() || `dream-${scopeKey}`;
     const embeddedWorkspaceDir = params.workspaceDir?.trim() || process.cwd();
     const embeddedSessionFile =
-      params.sessionFile?.trim() || path.join(os.tmpdir(), `${embeddedSessionId}.jsonl`);
+      params.sessionFile?.trim() ||
+      buildRandomTempFilePath({
+        prefix: embeddedSessionId,
+        extension: ".jsonl",
+      });
 
     try {
       const result = await this.runner(

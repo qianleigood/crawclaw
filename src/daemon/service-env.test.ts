@@ -292,11 +292,9 @@ describe("buildServiceEnvironment", () => {
     expect(typeof env.CRAWCLAW_SERVICE_VERSION).toBe("string");
     expect(env.CRAWCLAW_SYSTEMD_UNIT).toBe("crawclaw-gateway.service");
     expect(env.CRAWCLAW_WINDOWS_TASK_NAME).toBe("CrawClaw Gateway");
-    expect(env.CRAWCLAW_GATEWAY_PORT).toBeUndefined();
-    expect(env.CRAWCLAW_GATEWAY_TOKEN).toBeUndefined();
-    expect(env.CRAWCLAW_SYSTEMD_UNIT).toBeUndefined();
-    expect(env.CRAWCLAW_WINDOWS_TASK_NAME).toBeUndefined();
-    expect(env.CRAWCLAW_LAUNCHD_LABEL).toBeUndefined();
+    if (process.platform !== "darwin") {
+      expect(env.CRAWCLAW_LAUNCHD_LABEL).toBeUndefined();
+    }
   });
 
   it("forwards TMPDIR from the host environment", () => {
@@ -324,10 +322,9 @@ describe("buildServiceEnvironment", () => {
     expect(env.CRAWCLAW_WINDOWS_TASK_NAME).toBe("CrawClaw Gateway (work)");
     if (process.platform === "darwin") {
       expect(env.CRAWCLAW_LAUNCHD_LABEL).toBe("ai.crawclaw.work");
+    } else {
+      expect(env.CRAWCLAW_LAUNCHD_LABEL).toBeUndefined();
     }
-    expect(env.CRAWCLAW_SYSTEMD_UNIT).toBeUndefined();
-    expect(env.CRAWCLAW_WINDOWS_TASK_NAME).toBeUndefined();
-    expect(env.CRAWCLAW_LAUNCHD_LABEL).toBeUndefined();
   });
 
   it("forwards proxy environment variables for launchd/systemd runtime", () => {
@@ -362,7 +359,6 @@ describe("buildServiceEnvironment", () => {
 
     expect(env).not.toHaveProperty("PATH");
     expect(env.CRAWCLAW_WINDOWS_TASK_NAME).toBe("CrawClaw Gateway");
-    expect(env.CRAWCLAW_WINDOWS_TASK_NAME).toBeUndefined();
   });
 
   it("prepends extra runtime directories to the gateway service PATH", () => {
@@ -510,9 +506,9 @@ describe("resolveGatewayStateDir", () => {
     expect(resolveGatewayStateDir(env)).toBe(path.resolve("/var/lib/crawclaw"));
   });
 
-  it("ignores legacy CRAWCLAW_STATE_DIR when the new env is unset", () => {
+  it("uses CRAWCLAW_STATE_DIR when the gateway state dir override is set", () => {
     const env = { HOME: "/Users/test", CRAWCLAW_STATE_DIR: "/var/lib/crawclaw" };
-    expect(resolveGatewayStateDir(env)).toBe(path.join("/Users/test", ".crawclaw"));
+    expect(resolveGatewayStateDir(env)).toBe(path.resolve("/var/lib/crawclaw"));
   });
 
   it("expands ~ in CRAWCLAW_STATE_DIR", () => {

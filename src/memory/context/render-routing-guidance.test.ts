@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { renderAgentMemoryRoutingContract, renderContextRoutingSection } from "./render-routing-guidance.ts";
+import {
+  renderAgentMemoryRoutingContract,
+  renderContextRoutingSection,
+} from "./render-routing-guidance.ts";
 
 describe("renderRoutingGuidance", () => {
   it("renders a Chinese knowledge recall contract", () => {
     const contract = renderAgentMemoryRoutingContract();
-    expect(contract.text).toContain("知识回忆提供的是回忆到的操作流程、决策说明、运行规律和参考资料");
+    expect(contract.text).toContain(
+      "知识回忆提供的是回忆到的操作流程、决策说明、运行规律和参考资料",
+    );
     expect(contract.text).toContain("前台的知识回忆应来自当前配置的知识提供方");
     expect(contract.text).toContain("本地 SKILL.md 文件");
-    expect(contract.text).toContain("优先在当前回合显式调用 durable memory 工具，不要只口头答应");
+    expect(contract.text).toContain("优先在当前回合显式调用这些工具");
   });
 
   it("renders a Chinese context routing section", () => {

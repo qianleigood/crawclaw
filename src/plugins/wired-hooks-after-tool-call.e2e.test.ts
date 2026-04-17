@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createBaseToolHandlerState } from "../agents/pi-tool-handler-state.test-helpers.js";
 /**
  * Test: after_tool_call hook wiring (pi-embedded-subscribe.handlers.tools.ts)
  */
@@ -6,7 +7,6 @@ import {
   clearAllSkillExposureStateForTest,
   getSkillExposureState,
 } from "../agents/skills/exposure-state.js";
-import { createBaseToolHandlerState } from "../agents/pi-tool-handler-state.test-helpers.js";
 
 const hookMocks = vi.hoisted(() => ({
   runner: {
@@ -23,6 +23,8 @@ vi.mock("../plugins/hook-runner-global.js", () => ({
 // Mock agent events (used by handlers)
 vi.mock("../infra/agent-events.js", () => ({
   emitAgentEvent: vi.fn(),
+  onAgentEvent: vi.fn(() => () => {}),
+  getAgentRunContext: vi.fn(() => undefined),
 }));
 
 function createToolHandlerCtx(params: {

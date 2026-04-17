@@ -205,6 +205,30 @@ vi.mock("../agents/skills-status.js", () => ({
 
 vi.mock("../plugins/loader.js", () => ({
   loadCrawClawPlugins: () => createEmptyPluginRegistry(),
+  resolveRuntimePluginRegistry: () => createEmptyPluginRegistry(),
+}));
+
+vi.mock("../plugins/providers.runtime.js", () => ({
+  resolvePluginProviders: vi.fn(() => [
+    {
+      id: "anthropic",
+      label: "Anthropic",
+      oauthProfileIdRepairs: [{ legacyProfileId: "anthropic:default", promptLabel: "Anthropic" }],
+      deprecatedProfileIds: [],
+    },
+    {
+      id: "opencode",
+      label: "OpenCode Zen",
+      oauthProfileIdRepairs: [],
+      deprecatedProfileIds: [],
+    },
+    {
+      id: "opencode-go",
+      label: "OpenCode Go",
+      oauthProfileIdRepairs: [],
+      deprecatedProfileIds: [],
+    },
+  ]),
 }));
 
 vi.mock("../config/config.js", async (importOriginal) => {
@@ -264,6 +288,7 @@ vi.mock("../process/exec.js", () => ({
 
 vi.mock("../infra/crawclaw-root.js", () => ({
   resolveCrawClawPackageRoot,
+  resolveCrawClawPackageRootSync: vi.fn(() => process.cwd()),
 }));
 
 vi.mock("../infra/update-runner.js", () => ({

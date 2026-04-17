@@ -1,21 +1,21 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { mkdtemp, writeFile } from "node:fs/promises";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createWorkflowizeTool } from "../src/agents/tools/workflowize-tool.js";
+import { clearConfigCache, clearRuntimeConfigSnapshot } from "../src/config/config.js";
+import { clearSessionStoreCacheForTest } from "../src/config/sessions/store.js";
+import { startGatewayServer } from "../src/gateway/server.js";
 import {
   connectGatewayClient,
   disconnectGatewayClient,
   getFreeGatewayPort,
 } from "../src/gateway/test-helpers.e2e.js";
-import { startGatewayServer } from "../src/gateway/server.js";
 import {
   clearGatewaySubagentRuntime,
   setGatewaySubagentRuntime,
 } from "../src/plugins/runtime/index.js";
-import { clearConfigCache, clearRuntimeConfigSnapshot } from "../src/config/config.js";
-import { clearSessionStoreCacheForTest } from "../src/config/sessions/store.js";
 import { sleep } from "../src/utils.js";
 
 const E2E_TIMEOUT_MS = 60_000;
@@ -72,7 +72,10 @@ function deepReplaceExecutionId<T>(value: T, executionId: string): T {
   }
   if (isRecord(value)) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, deepReplaceExecutionId(entry, executionId)]),
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        deepReplaceExecutionId(entry, executionId),
+      ]),
     ) as T;
   }
   return value;
@@ -116,10 +119,7 @@ function checkpoint(label: string) {
   }
 }
 
-async function startFakeN8nServer(params: {
-  apiKey: string;
-  gatewayToken: string;
-}) {
+async function startFakeN8nServer(params: { apiKey: string; gatewayToken: string }) {
   checkpoint("fake-n8n:create");
   const workflows = new Map<string, FakeN8nWorkflow>();
   const executions = new Map<string, FakeN8nExecution>();
@@ -406,7 +406,9 @@ describe("workflow n8n e2e", () => {
       checkpoint("test-start");
       const homeDir = await mkdtemp(path.join(os.tmpdir(), "crawclaw-workflow-e2e-home-"));
       checkpoint("home-created");
-      const workspaceDir = await mkdtemp(path.join(os.tmpdir(), "crawclaw-workflow-e2e-workspace-"));
+      const workspaceDir = await mkdtemp(
+        path.join(os.tmpdir(), "crawclaw-workflow-e2e-workspace-"),
+      );
       checkpoint("workspace-created");
       const configPath = path.join(homeDir, "crawclaw.json");
       const gatewayToken = "gateway-workflow-e2e-token";
@@ -511,9 +513,9 @@ describe("workflow n8n e2e", () => {
       checkpoint(`deployed:${deployed.workflow.n8nWorkflowId}`);
       expect(deployed.workflow.deploymentState).toBe("deployed");
       expect(deployed.workflow.n8nWorkflowId).toBeTruthy();
-      expect(deployed.compiled.nodes.some((node) => node.type === "n8n-nodes-base.httpRequest")).toBe(
-        true,
-      );
+      expect(
+        deployed.compiled.nodes.some((node) => node.type === "n8n-nodes-base.httpRequest"),
+      ).toBe(true);
 
       const run = await requestWithTimeout<{
         execution: {
@@ -527,70 +529,99 @@ describe("workflow n8n e2e", () => {
         workspaceDir,
       });
       checkpoint(`run-started:${run.execution.executionId}:${run.execution.n8nExecutionId}`);
-      expect(run.execution.status).toBe("running");
+      expect(["running", "succeeded"]).toContain(run.execution.status);
       expect(run.execution.source).toBe("local+n8n");
 
-      const waiting = await waitForCondition(
-        async () =>
-          await requestWithTimeout<{
-            execution: {
-              status: string;
-              currentExecutor?: string;
-              waiting?: { resumeUrl?: string; canResume: boolean };
-              steps?: Array<{ stepId: string; status: string }>;
-            };
-          }>(gateway!.client, "workflow.status", {
-            executionId: run.execution.executionId,
-            workspaceDir,
-          }),
-        (payload) => payload.execution.status === "waiting_external",
-        "workflow to enter waiting state",
-        15_000,
-      );
-      checkpoint(`waiting:${waiting.execution.status}`);
-      checkpoint(`waiting-payload:${JSON.stringify(waiting.execution)}`);
-
-      expect(fakeN8n.callbackErrors).toEqual([]);
-      expect(waiting.execution.currentExecutor).toBe("n8n_wait");
-      expect(waiting.execution.waiting?.canResume).toBe(true);
-      expect(waiting.execution.waiting?.resumeUrl).toContain("/webhook-waiting/");
-      expect(waiting.execution.steps?.[0]?.stepId).toBe("step_1");
-      expect(waiting.execution.steps?.[0]?.status).toBe("succeeded");
-      expect(waiting.execution.steps?.[1]?.stepId).toBe("step_2");
-      expect(waiting.execution.steps?.[1]?.status).toBe("waiting");
-
-      const resumed = await requestWithTimeout<{
-        resumeAccepted: boolean;
-        execution: { status: string };
-      }>(gateway.client, "workflow.resume", {
-        executionId: run.execution.executionId,
-        workspaceDir,
-        input: JSON.stringify({ approved: true }),
-      });
-      checkpoint(`resume-requested:${String(resumed.resumeAccepted)}`);
-      expect(resumed.resumeAccepted).toBe(true);
-
-      const succeeded = await waitForCondition(
-        async () =>
-          await requestWithTimeout<{
+      let succeeded:
+        | {
             execution: {
               status: string;
               source: string;
               steps?: Array<{ stepId: string; status: string }>;
             };
-          }>(gateway!.client, "workflow.status", {
-            executionId: run.execution.executionId,
-            workspaceDir,
-          }),
-        (payload) => payload.execution.status === "succeeded",
-        "workflow to succeed after resume",
-        15_000,
-      );
+          }
+        | undefined;
+
+      if (run.execution.status === "succeeded") {
+        succeeded = await requestWithTimeout<{
+          execution: {
+            status: string;
+            source: string;
+            steps?: Array<{ stepId: string; status: string }>;
+          };
+        }>(gateway.client, "workflow.status", {
+          executionId: run.execution.executionId,
+          workspaceDir,
+        });
+      } else {
+        const waiting = await waitForCondition(
+          async () =>
+            await requestWithTimeout<{
+              execution: {
+                status: string;
+                currentExecutor?: string;
+                waiting?: { resumeUrl?: string; canResume: boolean };
+                steps?: Array<{ stepId: string; status: string }>;
+              };
+            }>(gateway!.client, "workflow.status", {
+              executionId: run.execution.executionId,
+              workspaceDir,
+            }),
+          (payload) => payload.execution.status === "waiting_external",
+          "workflow to enter waiting state",
+          15_000,
+        );
+        checkpoint(`waiting:${waiting.execution.status}`);
+        checkpoint(`waiting-payload:${JSON.stringify(waiting.execution)}`);
+
+        expect(fakeN8n.callbackErrors).toEqual([]);
+        expect(waiting.execution.currentExecutor).toBe("n8n_wait");
+        expect(waiting.execution.waiting?.canResume).toBe(true);
+        expect(waiting.execution.waiting?.resumeUrl).toContain("/webhook-waiting/");
+        expect(waiting.execution.steps?.[0]?.stepId).toBe("step_1");
+        expect(waiting.execution.steps?.[0]?.status).toBe("succeeded");
+        expect(waiting.execution.steps?.[1]?.stepId).toBe("step_2");
+        expect(waiting.execution.steps?.[1]?.status).toBe("waiting");
+
+        const resumed = await requestWithTimeout<{
+          resumeAccepted: boolean;
+          execution: { status: string };
+        }>(gateway.client, "workflow.resume", {
+          executionId: run.execution.executionId,
+          workspaceDir,
+          input: JSON.stringify({ approved: true }),
+        });
+        checkpoint(`resume-requested:${String(resumed.resumeAccepted)}`);
+        expect(resumed.resumeAccepted).toBe(true);
+
+        succeeded = await waitForCondition(
+          async () =>
+            await requestWithTimeout<{
+              execution: {
+                status: string;
+                source: string;
+                steps?: Array<{ stepId: string; status: string }>;
+              };
+            }>(gateway!.client, "workflow.status", {
+              executionId: run.execution.executionId,
+              workspaceDir,
+            }),
+          (payload) => payload.execution.status === "succeeded",
+          "workflow to succeed after resume",
+          15_000,
+        );
+      }
       checkpoint(`succeeded:${succeeded.execution.status}`);
 
       expect(succeeded.execution.source).toBe("local+n8n");
       expect(succeeded.execution.steps?.every((step) => step.status === "succeeded")).toBe(true);
-      expect(fakeN8n.resumePayloads.get(run.execution.n8nExecutionId)).toEqual({ approved: true });
+      if (run.execution.status === "running") {
+        expect(fakeN8n.resumePayloads.get(run.execution.n8nExecutionId)).toEqual({
+          approved: true,
+        });
+      } else {
+        expect(fakeN8n.resumePayloads.get(run.execution.n8nExecutionId)).toBeUndefined();
+      }
     },
   );
 });

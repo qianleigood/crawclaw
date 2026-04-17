@@ -7,7 +7,6 @@ import {
 } from "../config/config.js";
 import * as configSessions from "../config/sessions.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import * as gatewayCall from "../gateway/call.js";
 import {
   __testing as sessionBindingServiceTesting,
   registerSessionBindingAdapter,
@@ -55,11 +54,13 @@ type SessionStoreFixture = Record<string, SessionEntryFixture | undefined>;
 const agentSpy = vi.fn(async (_req: AgentCallRequest) => ({ runId: "run-main", status: "ok" }));
 const sendSpy = vi.fn(async (_req: AgentCallRequest) => ({ runId: "send-main", status: "ok" }));
 const sessionsDeleteSpy = vi.fn((_req: AgentCallRequest) => undefined);
+const { callGatewayMock } = vi.hoisted(() => ({
+  callGatewayMock: vi.fn(),
+}));
 const loadSessionStoreSpy = vi.spyOn(configSessions, "loadSessionStore");
 const resolveAgentIdFromSessionKeySpy = vi.spyOn(configSessions, "resolveAgentIdFromSessionKey");
 const resolveStorePathSpy = vi.spyOn(configSessions, "resolveStorePath");
 const resolveMainSessionKeySpy = vi.spyOn(configSessions, "resolveMainSessionKey");
-const callGatewaySpy = vi.spyOn(gatewayCall, "callGateway");
 const getGlobalHookRunnerSpy = vi.spyOn(hookRunnerGlobal, "getGlobalHookRunner");
 const readLatestAssistantReplySpy = vi.spyOn(agentStep, "readLatestAssistantReply");
 const isEmbeddedPiRunActiveSpy = vi.spyOn(piEmbedded, "isEmbeddedPiRunActive");
@@ -186,6 +187,9 @@ function loadSessionStoreFixture(): Record<string, SessionEntry> {
 
 vi.mock("./subagent-registry.js", () => subagentRegistryMock);
 vi.mock("./subagent-registry-runtime.js", () => subagentRegistryMock);
+vi.mock("../gateway/call.js", () => ({
+  callGateway: callGatewayMock,
+}));
 
 describe("subagent announce formatting", () => {
   let previousFastTestEnv: string | undefined;
@@ -220,7 +224,7 @@ describe("subagent announce formatting", () => {
       .mockClear()
       .mockImplementation(async (_req: AgentCallRequest) => ({ runId: "send-main", status: "ok" }));
     sessionsDeleteSpy.mockClear().mockImplementation((_req: AgentCallRequest) => undefined);
-    callGatewaySpy.mockReset().mockImplementation(async (req: unknown) => {
+    callGatewayMock.mockReset().mockImplementation(async (req: unknown) => {
       const typed = req as { method?: string; params?: { message?: string; sessionKey?: string } };
       if (typed.method === "agent") {
         return await agentSpy(typed);
@@ -398,7 +402,7 @@ describe("subagent announce formatting", () => {
       { status: "timeout", startedAt: 10, endedAt: 20 },
       { status: "ok", startedAt: 10, endedAt: 30 },
     ];
-    callGatewaySpy.mockImplementation(async (req: unknown) => {
+    callGatewayMock.mockImplementation(async (req: unknown) => {
       const typed = req as { method?: string; params?: { sessionKey?: string } };
       if (typed.method === "agent") {
         return await agentSpy(typed);
@@ -610,7 +614,7 @@ describe("subagent announce formatting", () => {
     expect(msg).not.toContain("✅ Subagent");
   });
 
-  it("keeps completion delivery enabled for extension channels captured from requester origin", async () => {
+  it("keeps completion announce session-only for extension channels captured from requester origin", async () => {
     const didAnnounce = await runSubagentAnnounceFlow({
       childSessionKey: "agent:main:subagent:test",
       childRunId: "run-direct-completion-bluebubbles",
@@ -625,10 +629,10 @@ describe("subagent announce formatting", () => {
     expect(sendSpy).not.toHaveBeenCalled();
     expect(agentSpy).toHaveBeenCalledTimes(1);
     const call = agentSpy.mock.calls[0]?.[0] as { params?: Record<string, unknown> };
-    expect(call?.params?.deliver).toBe(true);
-    expect(call?.params?.channel).toBe("bluebubbles");
-    expect(call?.params?.to).toBe("+1234567890");
-    expect(call?.params?.accountId).toBe("acct-bb");
+    expect(call?.params?.deliver).toBe(false);
+    expect(call?.params?.channel).toBeUndefined();
+    expect(call?.params?.to).toBeUndefined();
+    expect(call?.params?.accountId).toBeUndefined();
   });
 
   it("keeps direct completion announce delivery immediate even when sibling counters are non-zero", async () => {
@@ -1372,7 +1376,7 @@ describe("subagent announce formatting", () => {
     }
   });
 
-  it("uses hook-provided extension channel targets for completion delivery", async () => {
+  it("keeps hook-provided extension channel targets session-only for completion announce", async () => {
     hasSubagentDeliveryTargetHook = true;
     subagentDeliveryTargetHookMock.mockResolvedValueOnce({
       origin: {
@@ -1401,10 +1405,10 @@ describe("subagent announce formatting", () => {
     expect(sendSpy).not.toHaveBeenCalled();
     expect(agentSpy).toHaveBeenCalledTimes(1);
     const call = agentSpy.mock.calls[0]?.[0] as { params?: Record<string, unknown> };
-    expect(call?.params?.deliver).toBe(true);
-    expect(call?.params?.channel).toBe("bluebubbles");
-    expect(call?.params?.to).toBe("+1234567890");
-    expect(call?.params?.accountId).toBe("acct-bb");
+    expect(call?.params?.deliver).toBe(false);
+    expect(call?.params?.channel).toBeUndefined();
+    expect(call?.params?.to).toBeUndefined();
+    expect(call?.params?.accountId).toBeUndefined();
   });
 
   it.each([
@@ -2019,7 +2023,7 @@ describe("subagent announce formatting", () => {
     expect(call?.expectFinal).toBe(true);
   });
 
-  it("keeps direct announce delivery enabled for extension channels", async () => {
+  it("keeps direct announce session-only for extension channels", async () => {
     embeddedRunMock.isEmbeddedPiRunActive.mockReturnValue(false);
     embeddedRunMock.isEmbeddedPiRunStreaming.mockReturnValue(false);
 
@@ -2039,10 +2043,10 @@ describe("subagent announce formatting", () => {
       params?: Record<string, unknown>;
       expectFinal?: boolean;
     };
-    expect(call?.params?.deliver).toBe(true);
-    expect(call?.params?.channel).toBe("bluebubbles");
-    expect(call?.params?.to).toBe("+1234567890");
-    expect(call?.params?.accountId).toBe("acct-bb");
+    expect(call?.params?.deliver).toBe(false);
+    expect(call?.params?.channel).toBeUndefined();
+    expect(call?.params?.to).toBeUndefined();
+    expect(call?.params?.accountId).toBeUndefined();
     expect(call?.expectFinal).toBe(true);
   });
 

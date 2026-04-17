@@ -16,8 +16,8 @@ import type { ServiceConfigAudit } from "../../daemon/service-audit.js";
 import { auditGatewayServiceConfig } from "../../daemon/service-audit.js";
 import type { GatewayServiceRuntime } from "../../daemon/service-runtime.js";
 import { resolveGatewayService } from "../../daemon/service.js";
+import { resolveGatewayCredentialsWithSecretInputs } from "../../gateway/call.js";
 import { isGatewaySecretRefUnavailableError, trimToUndefined } from "../../gateway/credentials.js";
-import { resolveGatewayProbeAuthWithSecretInputs } from "../../gateway/probe-auth.js";
 import {
   inspectBestEffortPrimaryTailnetIPv4,
   resolveBestEffortGatewayBindHostForDisplay,
@@ -340,14 +340,21 @@ export async function gatherDaemonStatus(
   let rpcAuthWarning: string | undefined;
   if (opts.probe) {
     try {
-      daemonProbeAuth = await resolveGatewayProbeAuthWithSecretInputs({
-        cfg: daemonCfg,
-        mode: daemonCfg.gateway?.mode === "remote" ? "remote" : "local",
+      daemonProbeAuth = await resolveGatewayCredentialsWithSecretInputs({
+        config: daemonCfg,
         env: mergedDaemonEnv as NodeJS.ProcessEnv,
-        explicitAuth: {
-          token: opts.rpc.token,
-          password: opts.rpc.password,
-        },
+        explicitAuth:
+          opts.rpc.token || opts.rpc.password
+            ? {
+                token: opts.rpc.token,
+                password: opts.rpc.password,
+              }
+            : undefined,
+        modeOverride: daemonCfg.gateway?.mode === "remote" ? "remote" : "local",
+        localTokenPrecedence: "config-first",
+        localPasswordPrecedence: "config-first",
+        remoteTokenFallback: "remote-only",
+        remotePasswordPrecedence: "remote-first",
       });
     } catch (error) {
       const refPath = parseGatewaySecretRefPathFromError(error);

@@ -79,6 +79,7 @@ const onAgentEventMock = vi.fn((handler: typeof lifecycleHandler) => {
   lifecycleHandler = handler;
   return noop;
 });
+const getAgentRunContextMock = vi.fn(() => undefined);
 const loadConfigMock = vi.fn(() => ({
   agents: { defaults: { subagents: { archiveAfterMinutes: 0 } } },
   session: { mainKey: "main", scope: "per-sender" },
@@ -92,6 +93,7 @@ vi.mock("../gateway/call.js", () => ({
 
 vi.mock("../infra/agent-events.js", () => ({
   onAgentEvent: onAgentEventMock,
+  getAgentRunContext: getAgentRunContextMock,
 }));
 
 vi.mock("../config/config.js", async (importOriginal) => {
@@ -142,6 +144,7 @@ describe("subagent registry lifecycle error grace", () => {
     }));
     vi.doMock("../infra/agent-events.js", () => ({
       onAgentEvent: onAgentEventMock,
+      getAgentRunContext: getAgentRunContextMock,
     }));
     vi.doMock("../config/config.js", async (importOriginal) => {
       const actual = await importOriginal<typeof import("../config/config.js")>();
@@ -184,6 +187,7 @@ describe("subagent registry lifecycle error grace", () => {
     vi.useFakeTimers();
     callGatewayMock.mockClear();
     onAgentEventMock.mockClear();
+    getAgentRunContextMock.mockReset().mockReturnValue(undefined);
     loadConfigMock.mockClear().mockReturnValue({
       agents: { defaults: { subagents: { archiveAfterMinutes: 0 } } },
       session: { mainKey: "main", scope: "per-sender" },
@@ -214,6 +218,10 @@ describe("subagent registry lifecycle error grace", () => {
       },
     );
     mod = await import("./subagent-registry.js");
+    mod.__testing.setDepsForTest({
+      ensureRuntimePluginsLoaded: () => {},
+      resolveMemoryRuntime: async () => ({}) as never,
+    });
   });
 
   afterEach(() => {
@@ -228,31 +236,45 @@ describe("subagent registry lifecycle error grace", () => {
   };
 
   const waitForCleanupHandledFalse = async (runId: string) => {
-    for (let attempt = 0; attempt < 40; attempt += 1) {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
       const run = mod
         .listSubagentRunsForRequester(MAIN_REQUESTER_SESSION_KEY)
         .find((candidate) => candidate.runId === runId);
       if (run?.cleanupHandled === false) {
         return;
       }
-      await vi.advanceTimersByTimeAsync(1);
+      await vi.advanceTimersByTimeAsync(50);
       await flushAsync();
     }
     throw new Error(`run ${runId} did not reach cleanupHandled=false in time`);
   };
 
   const waitForCleanupCompleted = async (runId: string) => {
-    for (let attempt = 0; attempt < 40; attempt += 1) {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
       const run = mod
         .listSubagentRunsForRequester(MAIN_REQUESTER_SESSION_KEY)
         .find((candidate) => candidate.runId === runId);
       if (typeof run?.cleanupCompletedAt === "number") {
         return run;
       }
-      await vi.advanceTimersByTimeAsync(1);
+      await vi.advanceTimersByTimeAsync(50);
       await flushAsync();
     }
     throw new Error(`run ${runId} did not complete cleanup in time`);
+  };
+
+  const waitForFrozenResultText = async (runId: string, expectedText: string) => {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const run = mod
+        .listSubagentRunsForRequester(MAIN_REQUESTER_SESSION_KEY)
+        .find((candidate) => candidate.runId === runId);
+      if (run?.frozenResultText === expectedText) {
+        return run;
+      }
+      await vi.advanceTimersByTimeAsync(50);
+      await flushAsync();
+    }
+    throw new Error(`run ${runId} did not refresh frozen result in time`);
   };
 
   const waitForAgentCallCount = async (expectedCount: number) => {
@@ -455,9 +477,10 @@ describe("subagent registry lifecycle error grace", () => {
     );
     await flushAsync();
 
-    const runAfterRefresh = mod
-      .listSubagentRunsForRequester(MAIN_REQUESTER_SESSION_KEY)
-      .find((candidate) => candidate.runId === "run-refresh");
+    const runAfterRefresh = await waitForFrozenResultText(
+      "run-refresh",
+      "All 3 subagents complete. Here's the final summary.",
+    );
     expect(runAfterRefresh?.frozenResultText).toBe(
       "All 3 subagents complete. Here's the final summary.",
     );

@@ -140,13 +140,13 @@ describe("resolveConfigDir", () => {
     expect(resolveConfigDir(env)).toBe(path.resolve("/tmp/crawclaw-home", "state"));
   });
 
-  it("ignores CRAWCLAW_STATE_DIR when the new env is unset", () => {
+  it("uses CRAWCLAW_STATE_DIR when it is set", () => {
     const env = {
       HOME: "/tmp/crawclaw-home",
       CRAWCLAW_STATE_DIR: "~/state",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveConfigDir(env)).toBe(path.resolve("/tmp/crawclaw-home", ".crawclaw"));
+    expect(resolveConfigDir(env)).toBe(path.resolve("/tmp/crawclaw-home", "state"));
   });
 });
 

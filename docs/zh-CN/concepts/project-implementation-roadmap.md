@@ -141,6 +141,53 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - `pnpm test`
 - `pnpm test:e2e`
 
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+1. 已产出 baseline 专项文档：
+   - [项目基线冻结](/concepts/project-baseline-freeze)
+2. 已冻结当前目录 owner 基线：
+   - `src/gateway`
+   - `src/auto-reply`
+   - `src/agents`
+   - `src/channels`
+   - `src/plugins`
+   - `src/memory`
+   - `src/workflows`
+3. 已冻结当前业务入口基线：
+   - CLI commands
+   - channel text commands
+   - gateway methods
+   - UI actions
+4. 已冻结当前缓存与 e2e / smoke 基线：
+   - cache governance 分类
+   - `pnpm check`
+   - `pnpm test`
+   - `pnpm test:e2e`
+   - docker smoke 命令面
+5. 已冻结当前 top 风险，后续 phase 可按同一 baseline 比较是否继续收敛。
+
+已验证：
+
+- `pnpm check`
+- `pnpm test`
+- `pnpm test:e2e`
+- `pnpm test:docker:onboard`
+- `pnpm test:docker:gateway-network`
+
+说明：
+
+- baseline 已完成从“冻结真实状态”到“恢复真实门禁”的收口：
+  - `pnpm check` 通过
+  - `pnpm test` 通过
+  - `pnpm test:e2e` 通过
+  - `pnpm test:docker:onboard` 通过
+  - `pnpm test:docker:gateway-network` 通过
+- 后续若 baseline 再出现红项，应按新回归处理，而不是继续视为历史失败面。
+
 ## Phase 1：边界治理
 
 ### 目标
@@ -1006,6 +1053,40 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 ### 必要测试
 
 - 不新增测试面，但要确保前 9 个 phase 的门禁全部稳定
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+1. 已产出拆包准备专项文档：
+   - [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
+2. 已冻结第一批可以作为 future package facade 的公开 surface：
+   - plugin platform：`src/plugin-sdk/index.ts`、`src/plugin-sdk/entrypoints.ts`、`src/plugins/entry-contract.ts`
+   - workflow runtime：`src/workflows/api.ts`
+   - memory runtime：`src/memory/command-api.ts`、`src/memory/cli-api.ts`、`src/memory/index.ts`
+   - control plane：`src/gateway/server.ts`
+   - special agent substrate：`src/agents/special/runtime/*`
+3. 已明确未来 package 边界草案：
+   - `control-plane-core`
+   - `interaction-engine`
+   - `agent-kernel`
+   - `special-agent-substrate`
+   - `channel-runtime`
+   - `plugin-platform`
+   - `memory-runtime`
+   - `workflow-runtime`
+4. 已整理 import graph 风险表，明确哪些目录虽边界清晰，但仍不适合立刻物理拆包。
+
+已验证：
+
+- `pnpm check`
+
+结论：
+
+- 未来如果要拆包，当前已经不需要先再做一轮大规模边界排雷。
+- 但 `interaction-engine` 与 `agent-kernel` 仍建议先补 facade freeze，而不是直接迁目录。
 
 ## 横向硬约束
 

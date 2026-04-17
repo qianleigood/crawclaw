@@ -47,10 +47,12 @@ export async function maybeRepairLegacyOAuthProfileIds(
       }
 
       note(repair.changes.map((c) => `- ${c}`).join("\n"), "Auth profiles");
-      const apply = await prompter.confirm({
-        message: `Update ${repairSpec.promptLabel ?? provider.label} OAuth profile id in config now?`,
-        initialValue: true,
-      });
+      const apply = prompter.shouldRepair
+        ? true
+        : await prompter.confirm({
+            message: `Update ${repairSpec.promptLabel ?? provider.label} OAuth profile id in config now?`,
+            initialValue: true,
+          });
       if (!apply) {
         continue;
       }

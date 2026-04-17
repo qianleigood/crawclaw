@@ -110,13 +110,22 @@ async function loadTemplate(name: string): Promise<string> {
   const pending = (async () => {
     const templateDir = await resolveWorkspaceTemplateDir();
     const templatePath = path.join(templateDir, name);
+    const fallbackDevTemplatePath = path.join(
+      templateDir,
+      `${path.parse(name).name}.dev${path.parse(name).ext}`,
+    );
     try {
       const content = await fs.readFile(templatePath, "utf-8");
       return stripFrontMatter(content);
     } catch {
-      throw new Error(
-        `Missing workspace template: ${name} (${templatePath}). Ensure docs/reference/templates are packaged.`,
-      );
+      try {
+        const content = await fs.readFile(fallbackDevTemplatePath, "utf-8");
+        return stripFrontMatter(content);
+      } catch {
+        throw new Error(
+          `Missing workspace template: ${name} (${templatePath}). Ensure docs/reference/templates are packaged.`,
+        );
+      }
     }
   })();
 
@@ -546,13 +555,9 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
   return result;
 }
 
-const DEFAULT_MAIN_BOOTSTRAP_ALLOWLIST = new Set([
-  DEFAULT_AGENTS_FILENAME,
-]);
+const DEFAULT_MAIN_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME]);
 
-const MINIMAL_BOOTSTRAP_ALLOWLIST = new Set([
-  DEFAULT_AGENTS_FILENAME,
-]);
+const MINIMAL_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME]);
 
 export function filterBootstrapFilesForSession(
   files: WorkspaceBootstrapFile[],

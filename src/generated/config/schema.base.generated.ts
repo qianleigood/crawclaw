@@ -820,6 +820,26 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
           stream: {
             type: "object",
             properties: {
+              visibilityMode: {
+                anyOf: [
+                  {
+                    type: "string",
+                    const: "off",
+                  },
+                  {
+                    type: "string",
+                    const: "summary",
+                  },
+                  {
+                    type: "string",
+                    const: "verbose",
+                  },
+                  {
+                    type: "string",
+                    const: "full",
+                  },
+                ],
+              },
               coalesceIdleMs: {
                 type: "integer",
                 minimum: 0,
@@ -13481,6 +13501,11 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     "acp.stream": {
       label: "ACP Stream",
       help: "ACP streaming projection controls for chunk sizing, metadata visibility, and deduped delivery behavior.",
+      tags: ["advanced"],
+    },
+    "acp.stream.visibilityMode": {
+      label: "ACP Stream Visibility Mode",
+      help: "Semantic process visibility level for ACP execution projection: off suppresses process lines, summary shows concise user-facing progress, verbose adds lifecycle detail, and full keeps the richest safe projection.",
       tags: ["advanced"],
     },
     "acp.stream.coalesceIdleMs": {

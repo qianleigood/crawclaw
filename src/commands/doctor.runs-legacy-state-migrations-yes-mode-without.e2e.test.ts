@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CrawClawConfig } from "../config/config.js";
+import { maybeRepairLegacyOAuthProfileIds } from "./doctor-auth.js";
+import "./doctor.fast-path-mocks.js";
+import { createDoctorPrompter } from "./doctor-prompter.js";
 import {
   arrangeLegacyStateMigrationTest,
   confirm,
@@ -7,7 +11,6 @@ import {
   mockDoctorConfigSnapshot,
   serviceIsLoaded,
   serviceRestart,
-  writeConfigFile,
 } from "./doctor.e2e-harness.js";
 
 let doctorCommand: typeof import("./doctor.js").doctorCommand;
@@ -21,18 +24,16 @@ describe("doctor command", () => {
     vi.clearAllMocks();
   });
 
-  it("runs legacy state migrations in yes mode without prompting", async () => {
-    const { doctorCommand, runtime, runLegacyStateMigrations } =
-      await arrangeLegacyStateMigrationTest();
+  it("yes mode enables doctor auto-repair without prompting", async () => {
+    const prompter = createDoctorPrompter({
+      runtime: createDoctorRuntime(),
+      options: { yes: true },
+    });
 
-    await (doctorCommand as (runtime: unknown, opts: Record<string, unknown>) => Promise<void>)(
-      runtime,
-      { yes: true },
-    );
-
-    expect(runLegacyStateMigrations).toHaveBeenCalledTimes(1);
+    expect(prompter.shouldRepair).toBe(true);
+    expect(await prompter.confirm({ message: "repair now?", initialValue: true })).toBe(true);
     expect(confirm).not.toHaveBeenCalled();
-  }, 30_000);
+  });
 
   it("runs legacy state migrations in non-interactive mode without prompting", async () => {
     const { doctorCommand, runtime, runLegacyStateMigrations } =
@@ -63,15 +64,13 @@ describe("doctor command", () => {
   });
 
   it("migrates anthropic oauth config profile id when only email profile exists", async () => {
-    mockDoctorConfigSnapshot({
-      config: {
-        auth: {
-          profiles: {
-            "anthropic:default": { provider: "anthropic", mode: "oauth" },
-          },
+    const cfg: CrawClawConfig = {
+      auth: {
+        profiles: {
+          "anthropic:default": { provider: "anthropic", mode: "oauth" },
         },
       },
-    });
+    };
 
     ensureAuthProfileStore.mockReturnValueOnce({
       version: 1,
@@ -87,11 +86,17 @@ describe("doctor command", () => {
       },
     });
 
-    await doctorCommand(createDoctorRuntime(), { yes: true });
+    const nextCfg = await maybeRepairLegacyOAuthProfileIds(
+      cfg,
+      createDoctorPrompter({
+        runtime: createDoctorRuntime(),
+        options: { yes: true },
+      }),
+    );
 
-    const written = writeConfigFile.mock.calls.at(-1)?.[0] as Record<string, unknown>;
-    const profiles = (written.auth as { profiles: Record<string, unknown> }).profiles;
+    const profiles = (nextCfg.auth as { profiles: Record<string, unknown> }).profiles;
     expect(profiles["anthropic:me@example.com"]).toBeTruthy();
     expect(profiles["anthropic:default"]).toBeUndefined();
-  }, 30_000);
+    expect(confirm).not.toHaveBeenCalled();
+  });
 });

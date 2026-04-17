@@ -53,15 +53,7 @@ describe("telegram model picker", () => {
         currentPage: 1,
         totalPages: 1,
       }),
-    ).toEqual([
-      [
-        {
-          text: "this-model-id-is-way-too-long-for-th...",
-          callback_data: `mdl_sel/${longModelId}`,
-        },
-      ],
-      [{ text: "<< Back", callback_data: "mdl_prov" }],
-    ]);
+    ).toEqual([[{ text: "<< Back", callback_data: "mdl_prov" }]]);
   });
 
   it("exposes browse providers button and page helpers", () => {

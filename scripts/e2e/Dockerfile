@@ -22,9 +22,10 @@ COPY --chown=appuser:appuser package.json pnpm-lock.yaml pnpm-workspace.yaml .np
 COPY --chown=appuser:appuser ui/package.json ./ui/package.json
 COPY --chown=appuser:appuser extensions ./extensions
 COPY --chown=appuser:appuser patches ./patches
-COPY --chown=appuser:appuser scripts/postinstall-bundled-plugins.mjs scripts/npm-runner.mjs ./scripts/
+COPY --chown=appuser:appuser scripts/postinstall-bundled-plugins.mjs scripts/install-plugin-runtimes.mjs scripts/npm-runner.mjs ./scripts/
 
 RUN --mount=type=cache,id=crawclaw-pnpm-store,target=/home/appuser/.local/share/pnpm/store,sharing=locked \
+    CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL=1 \
     pnpm install --frozen-lockfile
 
 COPY --chown=appuser:appuser tsconfig.json tsconfig.plugin-sdk.dts.json tsdown.config.ts vitest.config.ts vitest.e2e.config.ts vitest.performance-config.ts crawclaw.mjs ./
@@ -36,7 +37,6 @@ COPY --chown=appuser:appuser packages ./packages
 COPY --chown=appuser:appuser skills ./skills
 COPY --chown=appuser:appuser ui ./ui
 COPY --chown=appuser:appuser extensions ./extensions
-COPY --chown=appuser:appuser vendor/a2ui/renderers/lit ./vendor/a2ui/renderers/lit
 COPY --chown=appuser:appuser src/canvas-host/a2ui-src ./src/canvas-host/a2ui-src
 
 RUN pnpm build

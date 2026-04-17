@@ -217,7 +217,7 @@ async function runLegacyStateHealth(ctx: DoctorHealthFlowContext): Promise<void>
   }
   note(legacyState.preview.join("\n"), "Legacy state detected");
   const migrate =
-    ctx.options.nonInteractive === true
+    ctx.options.nonInteractive === true || ctx.prompter.shouldRepair
       ? true
       : await ctx.prompter.confirm({
           message: "Migrate legacy state (sessions/agent/WhatsApp auth) now?",

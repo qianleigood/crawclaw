@@ -28,6 +28,8 @@ describe("normalizeChatType", () => {
 });
 
 describe("WA_WEB_AUTH_DIR", () => {
+  const coerceLazyWhatsAppAuthDir = (value: unknown): string => String(value);
+
   afterEach(() => {
     vi.doUnmock("../plugins/runtime/runtime-whatsapp-boundary.js");
   });
@@ -61,8 +63,10 @@ describe("WA_WEB_AUTH_DIR", () => {
     const webEntry = await import("./web/index.js");
 
     expect(resolveWaWebAuthDir).not.toHaveBeenCalled();
-    expect(channelWeb.WA_WEB_AUTH_DIR).toBe("/tmp/crawclaw-whatsapp-auth");
-    expect(webEntry.WA_WEB_AUTH_DIR).toBe("/tmp/crawclaw-whatsapp-auth");
+    expect(coerceLazyWhatsAppAuthDir(channelWeb.WA_WEB_AUTH_DIR)).toBe(
+      "/tmp/crawclaw-whatsapp-auth",
+    );
+    expect(coerceLazyWhatsAppAuthDir(webEntry.WA_WEB_AUTH_DIR)).toBe("/tmp/crawclaw-whatsapp-auth");
     expect(resolveWaWebAuthDir).toHaveBeenCalledTimes(1);
   });
 });

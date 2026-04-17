@@ -41,7 +41,8 @@ describe("Dockerfile", () => {
   it("prunes runtime dependencies after the build stage", async () => {
     const dockerfile = await readFile(dockerfilePath, "utf8");
     expect(dockerfile).toContain("FROM build AS runtime-assets");
-    expect(dockerfile).toContain("CI=true pnpm prune --prod");
+    expect(dockerfile).toContain("pnpm prune --prod");
+    expect(dockerfile).toContain("CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL=1");
     expect(dockerfile).not.toContain(
       `npm install --prefix "${BUNDLED_PLUGIN_ROOT_DIR}/$ext" --omit=dev --silent`,
     );

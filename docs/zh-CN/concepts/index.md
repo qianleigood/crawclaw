@@ -27,6 +27,12 @@ title: 概念总览
   <Card title="文档与测试体系" href="/concepts/project-docs-and-test-strategy" icon="clipboard-check">
     想继续做维护治理、重构和测试规划时，从这里接上。
   </Card>
+  <Card title="项目基线冻结" href="/concepts/project-baseline-freeze" icon="shield-check">
+    如果你要继续推进新一轮重构，先看当前 owner、入口、缓存、e2e 和风险基线。
+  </Card>
+  <Card title="拆包准备" href="/concepts/project-package-split-prep" icon="package">
+    如果你要评估未来拆包，先看哪些 surface 已能冻结，哪些模块还不适合物理拆分。
+  </Card>
 </Columns>
 
 ## 按主题阅读
@@ -91,6 +97,8 @@ title: 概念总览
 - [目录与边界规划](/concepts/project-directory-boundaries)
 - [项目缓存机制总览](/concepts/project-cache-strategy)
 - [文档与测试体系规划](/concepts/project-docs-and-test-strategy)
+- [项目基线冻结](/concepts/project-baseline-freeze)
+- [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
 - [项目实施路线图](/concepts/project-implementation-roadmap)
 - [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
 - [执行过程可见性系统](/concepts/execution-visibility-system)

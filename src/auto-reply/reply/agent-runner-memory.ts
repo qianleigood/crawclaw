@@ -3,6 +3,8 @@ import fs from "node:fs";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { resolveBootstrapWarningSignaturesSeen } from "../../agents/bootstrap-budget.js";
 import { estimateMessagesTokens } from "../../agents/compaction.js";
+import { appendCronStyleCurrentTimeLine } from "../../agents/current-time.js";
+import { resolveUserTimezone } from "../../agents/date-time.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { compactEmbeddedPiSession, runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
@@ -51,8 +53,93 @@ type MemoryFlushPlan = {
   relativePath: string;
 };
 
-function resolveMemoryFlushPlan(_params?: unknown): MemoryFlushPlan | null {
-  return null;
+const DEFAULT_MEMORY_FLUSH_SOFT_THRESHOLD_TOKENS = 4_000;
+const DEFAULT_MEMORY_FLUSH_RESERVE_TOKENS_FLOOR = 20_000;
+const DEFAULT_MEMORY_FLUSH_FORCE_TRANSCRIPT_BYTES = 0;
+
+function formatMemoryFlushDateStamp(nowMs: number, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(nowMs));
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  if (year && month && day) {
+    return `${year}-${month}-${day}`;
+  }
+  return new Date(nowMs).toISOString().slice(0, 10);
+}
+
+function resolveMemoryFlushPrompt(params: {
+  relativePath: string;
+  cfg: CrawClawConfig;
+  nowMs: number;
+}) {
+  const configuredPrompt = params.cfg.agents?.defaults?.compaction?.memoryFlush?.prompt?.trim();
+  const basePrompt = configuredPrompt || "Pre-compaction memory flush.";
+  const guidance = [
+    `Store durable memories only in ${params.relativePath} (create memory/ if needed).`,
+    "Treat workspace bootstrap/reference files such as MEMORY.md, SOUL.md, TOOLS.md, and AGENTS.md as read-only during this flush; never overwrite, replace, or edit them.",
+    "If nothing to store, reply with NO_REPLY.",
+    "MEMORY.md is the index for durable memory files; keep it aligned with any new or changed note.",
+  ].join("\n");
+  return appendCronStyleCurrentTimeLine(
+    [basePrompt, guidance].filter(Boolean).join("\n"),
+    params.cfg,
+    params.nowMs,
+  );
+}
+
+function resolveMemoryFlushSystemPrompt(params: { cfg: CrawClawConfig }) {
+  const configured = params.cfg.agents?.defaults?.compaction?.memoryFlush?.systemPrompt?.trim();
+  const defaultGuidance = [
+    "Pre-compaction memory flush turn.",
+    "The session is near auto-compaction; capture durable memories to disk.",
+    "Store durable memories only in memory/YYYY-MM-DD.md (create memory/ if needed).",
+    "You may reply, but usually NO_REPLY is correct.",
+    "MEMORY.md is an index only; keep it short and aligned with any note updates.",
+  ].join(" ");
+  return [
+    configured,
+    defaultGuidance,
+    "If nothing durable should be written, respond with NO_REPLY.",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function resolveMemoryFlushPlan(params?: {
+  cfg?: CrawClawConfig;
+  nowMs?: number;
+}): MemoryFlushPlan | null {
+  const cfg = params?.cfg;
+  const memoryFlushCfg = cfg?.agents?.defaults?.compaction?.memoryFlush;
+  if (memoryFlushCfg?.enabled === false) {
+    return null;
+  }
+
+  const nowMs = params?.nowMs ?? Date.now();
+  const timezone = resolveUserTimezone(cfg?.agents?.defaults?.userTimezone);
+  const dateStamp = formatMemoryFlushDateStamp(nowMs, timezone);
+  const relativePath = `memory/${dateStamp}.md`;
+
+  return {
+    softThresholdTokens:
+      memoryFlushCfg?.softThresholdTokens ?? DEFAULT_MEMORY_FLUSH_SOFT_THRESHOLD_TOKENS,
+    forceFlushTranscriptBytes:
+      typeof memoryFlushCfg?.forceFlushTranscriptBytes === "number"
+        ? memoryFlushCfg.forceFlushTranscriptBytes
+        : DEFAULT_MEMORY_FLUSH_FORCE_TRANSCRIPT_BYTES,
+    reserveTokensFloor:
+      cfg?.agents?.defaults?.compaction?.reserveTokensFloor ??
+      DEFAULT_MEMORY_FLUSH_RESERVE_TOKENS_FLOOR,
+    prompt: resolveMemoryFlushPrompt({ relativePath, cfg: cfg ?? {}, nowMs }),
+    systemPrompt: resolveMemoryFlushSystemPrompt({ cfg: cfg ?? {} }),
+    relativePath,
+  };
 }
 
 export function estimatePromptTokensForMemoryFlush(prompt?: string): number | undefined {

@@ -7,6 +7,7 @@ import {
   isPersistentBrowserProfileMutation,
   loadConfig,
   normalizeBrowserRequestPath,
+  resolvePreferredCrawClawTmpDir,
   resolveBrowserConfig,
   resolveRequestedBrowserProfile,
 } from "../core-api.js";
@@ -53,7 +54,10 @@ function resolvePinchTabNodeSession(profile?: string) {
 }
 
 function buildPinchTabTempPath(ext: "png" | "pdf" | "bin") {
-  return path.join(os.tmpdir(), `crawclaw-pinchtab-${crypto.randomUUID()}.${ext}`);
+  return path.join(
+    resolvePreferredCrawClawTmpDir(),
+    `crawclaw-pinchtab-${crypto.randomUUID()}.${ext}`,
+  );
 }
 
 async function ensurePinchTabNodeRuntime(
