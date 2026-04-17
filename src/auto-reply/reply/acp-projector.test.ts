@@ -525,6 +525,25 @@ describe("createAcpReplyProjector", () => {
     expect(deliveries).toEqual([{ kind: "tool", text: "Reading List files" }]);
   });
 
+  it("projects summary mode workflow tool updates through shared workflow visibility", async () => {
+    const { deliveries, projector } = createLiveToolLifecycleHarness({
+      visibilityMode: "summary",
+    });
+
+    await projector.onEvent({
+      type: "tool_call",
+      tag: "tool_call",
+      toolCallId: "call_workflow_summary_1",
+      status: "in_progress",
+      title: "workflow publish draft",
+      text: "workflow publish draft (in_progress)",
+    });
+
+    expect(deliveries).toEqual([
+      { kind: "tool", text: "Running workflow: workflow publish draft" },
+    ]);
+  });
+
   it("projects verbose mode tool updates with lifecycle detail", async () => {
     const { deliveries, projector } = createLiveToolLifecycleHarness({
       visibilityMode: "verbose",

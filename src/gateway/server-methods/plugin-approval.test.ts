@@ -159,6 +159,7 @@ describe("createPluginApprovalHandlers", () => {
             kind: "approval",
             status: "blocked",
             title: "Approval unavailable",
+            projectedTitle: "Approval unavailable",
           }),
         }),
       );
@@ -403,6 +404,8 @@ describe("createPluginApprovalHandlers", () => {
             status: "completed",
             title: "Approval granted",
             summary: "allow-once",
+            projectedTitle: "Approval granted",
+            projectedSummary: "allow-once",
           }),
         }),
       );

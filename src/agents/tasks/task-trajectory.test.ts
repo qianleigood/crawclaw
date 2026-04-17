@@ -233,7 +233,8 @@ describe("task-trajectory", () => {
             actionId: "completion:run-trajectory",
             kind: "completion",
             status: "completed",
-            title: "Completion decision",
+            title: "Completion accepted",
+            projectedTitle: "Completion accepted",
           }),
         ]),
       );
@@ -632,6 +633,8 @@ describe("task-trajectory", () => {
             data: expect.objectContaining({
               actionId: "completion:run-child-verify-pass",
               kind: "completion",
+              projectedTitle: "Completion incomplete",
+              projectedSummary: "Missing completion evidence: file change.",
               detail: expect.objectContaining({
                 verificationVerdict: "PASS",
                 verificationSummary: "Reproduced the old path and confirmed the crash is gone.",

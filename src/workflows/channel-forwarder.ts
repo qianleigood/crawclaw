@@ -16,6 +16,7 @@ import {
   ensureWorkflowInteractiveHandlersRegistered,
 } from "./interactive.js";
 import type { WorkflowExecutionRecord, WorkflowExecutionVisibilityMode } from "./types.js";
+import { buildWorkflowActionVisibilityProjection } from "./visibility.js";
 
 const log = createSubsystemLogger("workflows/channel-forwarder");
 
@@ -98,12 +99,24 @@ function buildWorkflowChannelPayload(params: {
   target?: { channel?: string | null };
 }) {
   const scope = resolveActionScope(params.action);
+  const visibilityProjection = buildWorkflowActionVisibilityProjection({
+    status: params.action.status,
+    detail: {
+      workflowId: params.record.workflowId,
+      workflowName: params.record.workflowName,
+      executionId: params.record.executionId,
+      ...params.action.detail,
+    },
+    summary: params.action.summary,
+  });
   const title =
     normalizeOptionalString(params.action.projectedTitle) ??
+    visibilityProjection?.projectedTitle ??
     normalizeOptionalString(params.action.title) ??
     "Workflow update";
   const summary =
     normalizeOptionalString(params.action.projectedSummary) ??
+    visibilityProjection?.projectedSummary ??
     normalizeOptionalString(params.action.summary);
   const channel = normalizeMessageChannel(params.target?.channel) ?? params.target?.channel;
   const footerParts = [

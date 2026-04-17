@@ -15,6 +15,8 @@ describe("special agent action feed", () => {
       status: "running",
       title: "Memory extraction running",
       summary: "  scope-1  ",
+      projectedTitle: " Memory extraction running ",
+      projectedSummary: " scope-1 ",
       detail: { childRunId: "child-1" },
     });
 
@@ -28,6 +30,8 @@ describe("special agent action feed", () => {
         status: "running",
         title: "Memory extraction running",
         summary: "scope-1",
+        projectedTitle: "Memory extraction running",
+        projectedSummary: "scope-1",
         detail: { childRunId: "child-1" },
       },
     });

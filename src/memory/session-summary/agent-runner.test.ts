@@ -190,7 +190,12 @@ UPDATED_COUNT: 2
       expect.objectContaining({
         data: expect.objectContaining({
           status: "completed",
+          projectedTitle: "Session summary updated",
+          projectedSummary: "Updated current state.",
           detail: expect.objectContaining({
+            memoryKind: "session_summary",
+            memoryPhase: "final",
+            memoryResultStatus: "written",
             usage: expect.objectContaining({
               input: 20,
               output: 8,

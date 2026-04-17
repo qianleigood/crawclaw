@@ -16,6 +16,8 @@ export function emitSpecialAgentActionEvent(params: {
   status: AgentActionStatus;
   title: string;
   summary?: string;
+  projectedTitle?: string;
+  projectedSummary?: string;
   detail?: Record<string, unknown>;
 }): void {
   params.emitAgentActionEvent({
@@ -33,6 +35,12 @@ export function emitSpecialAgentActionEvent(params: {
       title: params.title,
       ...(normalizeOptionalString(params.summary)
         ? { summary: normalizeOptionalString(params.summary) }
+        : {}),
+      ...(normalizeOptionalString(params.projectedTitle)
+        ? { projectedTitle: normalizeOptionalString(params.projectedTitle) }
+        : {}),
+      ...(normalizeOptionalString(params.projectedSummary)
+        ? { projectedSummary: normalizeOptionalString(params.projectedSummary) }
         : {}),
       ...(params.detail ? { detail: params.detail } : {}),
     },

@@ -32,7 +32,7 @@ title: Phase 对应 PR 计划
 | `PR-04` | Phase 4    | `已完成` | special agent substrate 标准化已完成：registry contract 校验、shared presets、shared action/observability/result wiring、verification 与 memory 主链对齐，以及 special-agent focused/integration tests 都已落地。                                                                                                                   |
 | `PR-05` | Phase 5    | `已完成` | cache 治理已完成：已新增 cache governance substrate、显式 cache descriptor、失效/观测 helper、memory/cache focused tests，以及至少一条 memory 主链 e2e；cache owner、key、lifecycle、invalidation 与 observability 不再只留在隐式约定里。                                                                                           |
 | `PR-06` | Phase 6    | `已完成` | channel runtime 收口已完成：workflow/outbound projection、interactive controls、inbound normalization、threading/binding/typing、Telegram/Matrix/LINE/Slack channel transform 已统一收进 `src/channels`，`auto-reply` / `workflows` 只保留语义层。                                                                                  |
-| `PR-07` | Phase 7    | `未开始` | 执行事件与可见性全链统一尚未开工。                                                                                                                                                                                                                                                                                                  |
+| `PR-07` | Phase 7    | `已完成` | 执行事件与可见性全链统一已完成：workflow / approval / completion / memory 的 projectedTitle / projectedSummary 已收成 shared visibility seam，并已接回 action feed、commands、execution-visibility、ACP projector、inspect、gateway approval handlers 与 UI focused surfaces。                                                      |
 | `PR-08` | Phase 8    | `未开始` | plugin platform 清理尚未开工。                                                                                                                                                                                                                                                                                                      |
 | `PR-09` | Phase 9    | `未开始` | UI 信息架构重构尚未开工。                                                                                                                                                                                                                                                                                                           |
 | `PR-10` | Phase 10   | `未开始` | 物理拆分准备尚未开工。                                                                                                                                                                                                                                                                                                              |
@@ -926,6 +926,81 @@ title: Phase 对应 PR 计划
 
 - 是否真统一成一套投影语义
 - 旧 fallback 是否被清掉
+
+### 当前完成情况
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已启动 `PR-07`，第一刀先收 workflow visibility。
+- 已新增共享 workflow visibility seam：
+  - `src/workflows/visibility.ts`
+  - `src/workflows/visibility.test.ts`
+- `src/workflows/action-feed.ts` 已改为复用 `src/workflows/visibility.ts`，不再自己维护 workflow root / step / compensation 的 projectedTitle / projectedSummary 生成逻辑。
+- `src/agents/action-feed/projector.ts` 在 workflow detail 足够完整时，也已改为复用 `src/workflows/visibility.ts` 的 shared projection seam，而不是继续退回通用 tool/workflow 文案。
+- `src/workflows/channel-forwarder.ts` 在 workflow projected 字段缺失时，也已开始复用 `src/workflows/visibility.ts` 的 shared projection seam，不再直接回退原始 workflow title / summary。
+- `src/auto-reply/reply/commands-workflow.ts` 的 workflow status/cancel/resume 回复标题也已接到 `src/workflows/visibility.ts`，不再自己维护第二套 `Workflow waiting/completed/failed...` 字符串。
+- `src/auto-reply/reply/execution-visibility.ts` 里的 workflow summary 与 workflow tool fallback 也已接到 `src/workflows/visibility.ts`，shared workflow title 语义开始同时覆盖 execution-visibility 链。
+- `ACP projector` 当前走的 `projectAcpToolCallEvent(...)` 也已开始复用 shared workflow title 语义；workflow tool call 在 summary mode 下不再退回泛化的 `Workflow: ...` 文案。
+- `src/commands/agent.inspect.ts` 现在也会把 workflow action 的 `projectedSummary` 带进 timeline summary；inspect 输出不再只显示 `Workflow waiting: ...` 而丢掉 `Current step: ...` 这类 shared summary。
+- UI 侧 focused tests 也已对齐新的 shared workflow visibility 语义；`app-action-feed` / `chat view` 不再保留旧的 `Workflow: ...` 预期。
+- `src/auto-reply/reply/execution-visibility.ts` 里 workflow summary 的最后一层 phase-aware fallback 也已收口；即使缺少结构化 workflow metadata，只要还有 object label，也会产出 `Running workflow: ...` 这类 shared title，而不再退回泛化的 `Workflow: ...`。
+- 已新增 `src/agents/action-feed/projector.test.ts`，锁住 action-feed projector 在 workflow root / step fallback 场景下的 shared projection 语义。
+- `src/workflows/visibility.ts` 现已支持 `currentStepId` fallback；即使 workflow steps 尚未完整加载，也能产出统一的 `Current step: ...` summary。
+- workflow projectedTitle / projectedSummary 的来源开始从 `workflows/action-feed.ts` 内联字符串，收口到明确的 shared projector seam，为后续对齐 action feed / channel forwarder / UI / ACP 打基础。
+- 已新增 shared approval visibility seam：
+  - `src/infra/approval-visibility.ts`
+  - `src/infra/approval-visibility.test.ts`
+- `src/agents/action-feed/projector.ts` 的 approval fallback 已改为复用 shared approval visibility；raw approval action 不再通过通用 `wait_approval` intent 临时拼出另一套标题。
+- `src/gateway/server-methods/exec-approval.ts` 与 `src/gateway/server-methods/plugin-approval.ts` 现在会在 emit action event 时直接附带 shared approval projectedTitle / projectedSummary。
+- UI action feed focused tests 也已开始锁住 approval projected fields；`Waiting for exec approval` / `Approval granted` / `Approval unavailable` 不再依赖各层各自猜标题。
+- 已新增 shared completion visibility seam：
+  - `src/agents/tasks/completion-visibility.ts`
+  - `src/agents/tasks/completion-visibility.test.ts`
+- `src/agents/tasks/task-trajectory.ts` 现在会在 emit completion action event 时直接附带 shared completion projectedTitle / projectedSummary；`Completion decision` 这类泛标题开始被 `Completion accepted` / `Waiting for user confirmation` / `Waiting for external condition` / `Completion missing verification` 取代。
+- `src/agents/action-feed/projector.ts` 的 completion fallback 也已开始复用 shared completion visibility；raw completion action 不再只剩一个泛化标题。
+- UI action feed focused tests 已开始锁住 completion projected fields；completion 这条主线也开始和 workflow / approval 一样走 shared visibility seam。
+- 已新增 shared memory visibility seam：
+  - `src/memory/action-visibility.ts`
+  - `src/memory/action-visibility.test.ts`
+- `memory-extraction / session-summary / dream` 三条 runner 现在会在 emit memory action event 时直接附带 shared memory projectedTitle / projectedSummary，以及 `memoryKind / memoryPhase / memoryResultStatus` detail。
+- `src/agents/action-feed/projector.ts` 的 memory fallback 也已开始复用 shared memory visibility；带 memory detail 的 raw memory action 不再只依赖各 runner 手写标题。
+- UI action feed focused tests 也已开始锁住 memory projected fields；memory 这条主线现在也纳入 shared visibility seam。
+
+已验证：
+
+- `vitest run src/workflows/visibility.test.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.test.ts`
+- `pnpm lint src/workflows/visibility.ts src/workflows/visibility.test.ts src/workflows/action-feed.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts`
+- `vitest run src/agents/action-feed/projector.test.ts src/workflows/visibility.test.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `pnpm lint src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/workflows/action-feed.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `vitest run src/workflows/channel-forwarder.test.ts src/workflows/visibility.test.ts src/agents/action-feed/projector.test.ts`
+- `pnpm lint src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
+- `vitest run src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
+- `pnpm lint src/workflows/visibility.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
+- `vitest run src/auto-reply/reply/execution-visibility.test.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
+- `pnpm lint src/auto-reply/reply/execution-visibility.ts src/auto-reply/reply/execution-visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts`
+- `vitest run src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
+- `pnpm lint src/auto-reply/reply/execution-visibility.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.ts src/auto-reply/reply/acp-projector.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
+- `vitest run src/commands/agent.inspect.test.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
+- `pnpm lint src/commands/agent.inspect.ts src/commands/agent.inspect.test.ts src/auto-reply/reply/execution-visibility.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.ts src/auto-reply/reply/acp-projector.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
+- `vitest run ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/agents/action-feed/projector.test.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.test.ts`
+- `pnpm lint ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/agents/action-feed/projector.test.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.test.ts`
+- `vitest run src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.test.ts ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
+- `pnpm lint src/auto-reply/reply/execution-visibility.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.ts src/commands/agent.inspect.test.ts ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
+- `vitest run src/infra/approval-visibility.test.ts src/agents/action-feed/projector.test.ts src/gateway/server-methods/server-methods.test.ts src/gateway/server-methods/plugin-approval.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `pnpm lint src/infra/approval-visibility.ts src/infra/approval-visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/gateway/server-methods/exec-approval.ts src/gateway/server-methods/plugin-approval.ts src/gateway/server-methods/server-methods.test.ts src/gateway/server-methods/plugin-approval.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `vitest run src/agents/tasks/completion-visibility.test.ts src/agents/action-feed/projector.test.ts src/agents/tasks/task-trajectory.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `pnpm lint src/agents/tasks/completion-visibility.ts src/agents/tasks/completion-visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/agents/tasks/task-trajectory.ts src/agents/tasks/task-trajectory.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `vitest run src/memory/action-visibility.test.ts src/agents/action-feed/projector.test.ts src/agents/special/runtime/action-feed.test.ts src/memory/durable/agent-runner.test.ts src/memory/session-summary/agent-runner.test.ts src/memory/dreaming/agent-runner.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `pnpm lint src/memory/action-visibility.ts src/memory/action-visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/agents/special/runtime/action-feed.ts src/agents/special/runtime/action-feed.test.ts src/memory/durable/agent-runner.ts src/memory/durable/agent-runner.test.ts src/memory/session-summary/agent-runner.ts src/memory/session-summary/agent-runner.test.ts src/memory/dreaming/agent-runner.ts src/memory/dreaming/agent-runner.test.ts ui/src/ui/app-action-feed.node.test.ts`
+- `pnpm check`
+
+本 PR 收口结论：
+
+1. workflow / approval / completion / memory 四条最明显的可见性主链已经收成 shared visibility seam，并接回主要消费面。
+2. `action-feed` / `commands` / `execution-visibility` / `ACP projector` / `inspect` / UI focused surfaces 已开始消费同一套 projectedTitle / projectedSummary 语义，而不是继续各自维护标题模板。
+3. artifact 或其他剩余事件若后续还发现新的重复 projector，可作为下一阶段增量收口，不再阻塞 `PR-07`。
 
 ## PR-08：Plugin Platform 清理
 

@@ -64,6 +64,14 @@ describe("handleWorkflowCommand", () => {
         currentStepId: "review",
         currentExecutor: "n8n_wait",
         remoteStatus: "waiting",
+        steps: [
+          {
+            stepId: "review",
+            title: "Review",
+            status: "waiting",
+            updatedAt: 1,
+          },
+        ],
         waiting: {
           kind: "external",
           prompt: "Approve publish",
@@ -95,6 +103,7 @@ describe("handleWorkflowCommand", () => {
       }),
     );
     expect(result?.reply?.text).toContain("Workflow waiting: Publish Redbook Note");
+    expect(result?.reply?.text).toContain("Current step: Review");
     expect(result?.reply?.text).toContain("Resume: /workflow resume exec_1234abcd <input>");
     expect(result?.reply?.channelData).toEqual({
       telegram: {

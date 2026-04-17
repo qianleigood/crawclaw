@@ -756,6 +756,56 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 让 tool、workflow、skill、system、artifact 的执行过程通过统一事件模型展示到 UI、channels、ACP。
 
+### 当前状态
+
+状态：`已完成（截至 2026-04-17）`
+
+已完成：
+
+- 已启动 Phase 7，第一刀先收 workflow visibility。
+- 已新增 `src/workflows/visibility.ts` 与 `src/workflows/visibility.test.ts`，把 workflow root / step / compensation 的 projectedTitle / projectedSummary 生成从 `src/workflows/action-feed.ts` 收成共享 seam。
+- `src/workflows/action-feed.ts` 已改为复用 `src/workflows/visibility.ts`，后续 workflow channel forwarder、ACP projector、UI inspect/action feed 可以继续吃同一层 workflow visibility 语义。
+- `src/agents/action-feed/projector.ts` 在 workflow detail 足够完整时，也已改为复用 `src/workflows/visibility.ts` 的 shared projection seam；action feed 不再只靠通用 tool/workflow fallback 文案兜 workflow root / step 场景。
+- `src/workflows/channel-forwarder.ts` 与 `src/auto-reply/reply/commands-workflow.ts` 现在也开始共用 `src/workflows/visibility.ts`；workflow 渠道回投和 `/workflow status|cancel|resume` 回复不再各自维护第二套标题语义。
+- `src/auto-reply/reply/execution-visibility.ts` 里的 workflow summary 与 workflow tool fallback 也已接到 `src/workflows/visibility.ts`；workflow shared title 语义已开始同时覆盖 action feed、channel forwarder、commands、execution-visibility 四条展示路径。
+- `ACP projector` 走的 `projectAcpToolCallEvent(...)` 现在也开始复用 shared workflow title 语义；workflow tool call 在 summary mode 下不再退回泛化的 `Workflow: ...` 文案。
+- `src/commands/agent.inspect.ts` 现在也会把 workflow action 的 `projectedSummary` 带进 timeline summary；inspect 输出不再丢掉 `Current step: ...` 这类 shared workflow summary。
+- UI focused tests 也已对齐新的 shared workflow visibility 语义；`app-action-feed` / `chat view` 不再保留旧的 `Workflow: ...` 预期。
+- `src/auto-reply/reply/execution-visibility.ts` 里 workflow summary 的最后一层 phase-aware fallback 也已收口；即使缺少结构化 workflow metadata，只要还有 object label，也会产出 `Running workflow: ...` 这类 shared title。
+- `src/workflows/visibility.ts` 已支持 `currentStepId` fallback；即使 steps 还没完整加载，也能产出统一的 `Current step: ...` summary。
+- 已新增 `src/infra/approval-visibility.ts`，把 approval waiting / granted / denied / unavailable 的 projectedTitle / projectedSummary 生成收成 shared seam。
+- `src/agents/action-feed/projector.ts` 与 gateway approval handlers 已开始复用 shared approval visibility；approval action feed / inspect / UI 的标题不再依赖通用 `wait_approval` intent fallback。
+- UI focused tests 也已开始锁住 approval projected fields；approval 这条主线现在和 workflow 一样开始走明确的 shared visibility seam。
+- 已新增 `src/agents/tasks/completion-visibility.ts`，把 completion accepted / waiting_user / waiting_external / verification_missing 的 projectedTitle / projectedSummary 生成收成 shared seam。
+- `src/agents/tasks/task-trajectory.ts` 与 `src/agents/action-feed/projector.ts` 已开始复用 shared completion visibility；completion action feed 不再只显示泛化的 `Completion decision`。
+- UI focused tests 也已开始锁住 completion projected fields；completion 这条主线现在也开始走 shared visibility seam。
+- 已新增 `src/memory/action-visibility.ts`，把 memory-extraction / session-summary / dream 的 projectedTitle / projectedSummary 生成收成 shared seam。
+- `memory-extraction / session-summary / dream` 三条 runner 现在会在 emit memory action event 时直接附带 shared memory projectedTitle / projectedSummary，以及 `memoryKind / memoryPhase / memoryResultStatus` detail。
+- `src/agents/action-feed/projector.ts` 的 memory fallback 也已开始复用 shared memory visibility；带 memory detail 的 raw memory action 不再只依赖各 runner 手写标题。
+- UI focused tests 也已开始锁住 memory projected fields；memory 这条主线现在也纳入 shared visibility seam。
+- 已补 focused tests：
+  - `src/workflows/visibility.test.ts`
+  - `src/workflows/action-feed.test.ts`
+  - `src/workflows/channel-forwarder.test.ts`
+  - `src/agents/action-feed/projector.test.ts`
+  - `src/auto-reply/reply/commands-workflow.test.ts`
+  - `src/auto-reply/reply/execution-visibility.test.ts`
+  - `src/auto-reply/reply/acp-projector.test.ts`
+  - `src/commands/agent.inspect.test.ts`
+  - `ui/src/ui/app-action-feed.node.test.ts`
+  - `ui/src/ui/views/chat.test.ts`
+  - `src/memory/action-visibility.test.ts`
+  - `src/agents/special/runtime/action-feed.test.ts`
+  - `src/memory/durable/agent-runner.test.ts`
+  - `src/memory/session-summary/agent-runner.test.ts`
+  - `src/memory/dreaming/agent-runner.test.ts`
+
+收口说明：
+
+- workflow / approval / completion / memory 四条最明显的 visibility 主链已经收口到 shared seam。
+- `action-feed` / `commands` / `execution-visibility` / `ACP projector` / `inspect` / UI focused surfaces 已开始消费同一套 projectedTitle / projectedSummary 语义。
+- artifact 或其他剩余事件如果后续再发现分叉，可作为下一阶段增量收口，不再阻塞 Phase 7。
+
 ### 产出
 
 - 统一执行事件模型

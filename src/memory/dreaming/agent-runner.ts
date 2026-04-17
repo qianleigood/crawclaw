@@ -12,6 +12,7 @@ import {
   type SpecialAgentActionRuntimeDeps,
 } from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
+import { buildMemoryActionVisibilityProjection } from "../action-visibility.js";
 import type { DurableMemoryScope } from "../durable/scope.js";
 import type { DurableMemoryManifestEntry } from "../durable/store.js";
 import { scanDurableMemoryScopeEntries } from "../durable/store.js";
@@ -288,8 +289,23 @@ function emitDreamAction(params: {
   status: "started" | "running" | "completed" | "failed";
   title: string;
   summary?: string;
+  phase:
+    | "orient"
+    | "gather"
+    | "running"
+    | "failed_to_start"
+    | "wait_failed"
+    | "invalid_report"
+    | "final";
+  resultStatus?: "written" | "skipped" | "no_change" | "failed";
   detail?: Record<string, unknown>;
 }) {
+  const projection = buildMemoryActionVisibilityProjection({
+    kind: "dream",
+    phase: params.phase,
+    summary: params.summary,
+    resultStatus: params.resultStatus,
+  });
   emitSpecialAgentActionEvent({
     emitAgentActionEvent: resolveDreamAgentDeps().emitAgentActionEvent,
     runId: params.runId,
@@ -300,7 +316,14 @@ function emitDreamAction(params: {
     status: params.status,
     title: params.title,
     summary: params.summary,
-    detail: params.detail,
+    projectedTitle: projection.projectedTitle,
+    projectedSummary: projection.projectedSummary,
+    detail: {
+      memoryKind: "dream",
+      memoryPhase: params.phase,
+      ...(params.resultStatus ? { memoryResultStatus: params.resultStatus } : {}),
+      ...params.detail,
+    },
   });
 }
 
@@ -342,6 +365,7 @@ export async function runDreamAgentOnce(
     status: "started",
     title: "Dream orienting",
     summary: params.scope.scopeKey,
+    phase: "orient",
     detail: {
       triggerSource: params.triggerSource,
       recentSessionCount: params.recentSessions.length,
@@ -355,6 +379,7 @@ export async function runDreamAgentOnce(
     status: "running",
     title: "Dream gathering signal",
     summary: params.scope.scopeKey,
+    phase: "gather",
     detail: {
       recentSessionCount: params.recentSessions.length,
       recentSignalCount: params.recentSignals?.length ?? 0,
@@ -418,6 +443,7 @@ export async function runDreamAgentOnce(
       status: "failed",
       title: "Dream failed to start",
       summary: error,
+      phase: "failed_to_start",
       detail: buildSpecialAgentRunRefDetail(run),
     });
     return { status: "failed", summary: error, writtenCount: 0, updatedCount: 0, deletedCount: 0 };
@@ -431,6 +457,7 @@ export async function runDreamAgentOnce(
     status: "running",
     title: "Dream running",
     summary: params.scope.scopeKey,
+    phase: "running",
     detail: {
       ...buildSpecialAgentRunRefDetail(run),
       recentSessionCount: params.recentSessions.length,
@@ -452,6 +479,7 @@ export async function runDreamAgentOnce(
       status: "failed",
       title: "Dream did not complete",
       summary: error,
+      phase: "wait_failed",
       detail: buildSpecialAgentWaitFailureDetail(run),
     });
     return { status: "failed", summary: error, writtenCount: 0, updatedCount: 0, deletedCount: 0 };
@@ -473,6 +501,7 @@ export async function runDreamAgentOnce(
       status: "failed",
       title: "Dream report invalid",
       summary: error,
+      phase: "invalid_report",
     });
     return { status: "failed", summary: error, writtenCount: 0, updatedCount: 0, deletedCount: 0 };
   }
@@ -501,6 +530,8 @@ export async function runDreamAgentOnce(
             ? "Dream found no changes"
             : "Dream failed",
     summary: parsed.summary,
+    phase: "final",
+    resultStatus: parsed.status,
     detail: buildSpecialAgentCompletionDetail({
       result: run,
       detail: {

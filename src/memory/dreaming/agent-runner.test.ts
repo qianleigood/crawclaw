@@ -228,7 +228,12 @@ describe("runDreamAgentOnce", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           status: "completed",
+          projectedTitle: "Dream updated durable notes",
+          projectedSummary: "merged duplicate feedback notes",
           detail: expect.objectContaining({
+            memoryKind: "dream",
+            memoryPhase: "final",
+            memoryResultStatus: "written",
             usage: expect.objectContaining({
               input: 18,
               output: 9,

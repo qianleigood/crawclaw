@@ -288,12 +288,47 @@ describe("agent.inspect command", () => {
         },
       },
       {
-        id: "event-2",
+        id: "event-approval-1",
         runId: "carun-1",
-        type: "turn.model_visible_context",
+        type: "agent.action",
         sequence: 4,
         blobKeys: [],
         createdAt: 5,
+        payload: {
+          version: 1,
+          actionId: "approval:approval-1",
+          kind: "approval",
+          status: "waiting",
+          title: "Waiting for exec approval",
+          projectedTitle: "Waiting for exec approval",
+          projectedSummary: "pnpm test auth",
+        },
+      },
+      {
+        id: "event-completion-1",
+        runId: "carun-1",
+        type: "agent.action",
+        sequence: 5,
+        blobKeys: [],
+        createdAt: 6,
+        payload: {
+          version: 1,
+          actionId: "completion:run-1",
+          kind: "completion",
+          status: "waiting",
+          title: "Waiting for user confirmation",
+          projectedTitle: "Waiting for user confirmation",
+          projectedSummary:
+            "Task is waiting for explicit user confirmation before it can be completed.",
+        },
+      },
+      {
+        id: "event-2",
+        runId: "carun-1",
+        type: "turn.model_visible_context",
+        sequence: 6,
+        blobKeys: [],
+        createdAt: 7,
         payload: {
           queryContextDiagnostics: {
             queryContextHash: "ctx-hash",
@@ -318,7 +353,17 @@ describe("agent.inspect command", () => {
     );
     expect(runtime.log).toHaveBeenCalledWith(
       expect.stringContaining(
-        "action.workflow | Workflow waiting: Publish Redbook Note | status=waiting",
+        "action.workflow | Workflow waiting: Publish Redbook Note · Current step: Review | status=waiting",
+      ),
+    );
+    expect(runtime.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "action.approval | Waiting for exec approval · pnpm test auth | status=waiting",
+      ),
+    );
+    expect(runtime.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "action.completion | Waiting for user confirmation · Task is waiting for explicit user confirmation before it can be completed. | status=waiting",
       ),
     );
   });

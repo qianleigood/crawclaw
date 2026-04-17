@@ -13,6 +13,7 @@ import {
   type SpecialAgentActionRuntimeDeps,
 } from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
+import { buildMemoryActionVisibilityProjection } from "../action-visibility.js";
 import { collectRecentDurableConversation } from "../durable/extraction.ts";
 import { ensureSessionSummaryFile } from "./store.ts";
 import {
@@ -172,8 +173,16 @@ function emitSessionSummaryAction(params: {
   status: "started" | "running" | "completed" | "blocked" | "failed";
   title: string;
   summary?: string;
+  phase: "scheduled" | "running" | "failed_to_start" | "wait_failed" | "invalid_report" | "final";
+  resultStatus?: "written" | "skipped" | "no_change" | "failed";
   detail?: Record<string, unknown>;
 }) {
+  const projection = buildMemoryActionVisibilityProjection({
+    kind: "session_summary",
+    phase: params.phase,
+    summary: params.summary,
+    resultStatus: params.resultStatus,
+  });
   emitSpecialAgentActionEvent({
     emitAgentActionEvent: resolveSessionSummaryAgentDeps().emitAgentActionEvent,
     runId: params.actionRunId,
@@ -184,7 +193,14 @@ function emitSessionSummaryAction(params: {
     status: params.status,
     title: params.title,
     summary: params.summary,
-    detail: params.detail,
+    projectedTitle: projection.projectedTitle,
+    projectedSummary: projection.projectedSummary,
+    detail: {
+      memoryKind: "session_summary",
+      memoryPhase: params.phase,
+      ...(params.resultStatus ? { memoryResultStatus: params.resultStatus } : {}),
+      ...params.detail,
+    },
   });
 }
 
@@ -350,6 +366,7 @@ export async function runSessionSummaryAgentOnce(params: {
     status: "started",
     title: "Session summary scheduled",
     summary: params.sessionId,
+    phase: "scheduled",
     detail: {
       recentMessageCount: params.recentMessages.length,
       recentMessageLimit: params.recentMessageLimit,
@@ -404,6 +421,7 @@ export async function runSessionSummaryAgentOnce(params: {
       status: "failed",
       title: "Session summary failed to start",
       summary: error,
+      phase: "failed_to_start",
       detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
@@ -422,6 +440,7 @@ export async function runSessionSummaryAgentOnce(params: {
     status: "running",
     title: "Session summary running",
     summary: params.sessionId,
+    phase: "running",
     detail: buildSpecialAgentRunRefDetail(run),
   });
 
@@ -440,6 +459,7 @@ export async function runSessionSummaryAgentOnce(params: {
       status: "failed",
       title: "Session summary did not complete",
       summary: error,
+      phase: "wait_failed",
       detail: buildSpecialAgentWaitFailureDetail(run),
     });
     return {
@@ -468,6 +488,7 @@ export async function runSessionSummaryAgentOnce(params: {
       status: "failed",
       title: "Session summary report invalid",
       summary: error,
+      phase: "invalid_report",
       detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
@@ -506,6 +527,8 @@ export async function runSessionSummaryAgentOnce(params: {
             ? "Session summary unchanged"
             : "Session summary failed",
     summary: parsed.summary,
+    phase: "final",
+    resultStatus: status === "written" ? "written" : status,
     detail: buildSpecialAgentCompletionDetail({
       result: run,
       detail: {

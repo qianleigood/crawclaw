@@ -195,7 +195,9 @@ describe("runDurableExtractionAgentOnce", () => {
         workspaceDir: dir,
       }),
     );
-    expect(runEmbeddedPiAgent.mock.calls[0]?.[0]).not.toHaveProperty("specialInheritedPromptEnvelope");
+    expect(runEmbeddedPiAgent.mock.calls[0]?.[0]).not.toHaveProperty(
+      "specialInheritedPromptEnvelope",
+    );
     const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as
       | { sessionId?: string; sessionFile?: string }
       | undefined;
@@ -206,12 +208,24 @@ describe("runDurableExtractionAgentOnce", () => {
       data: expect.objectContaining({
         kind: "memory",
         status: "started",
+        projectedTitle: "Memory extraction scheduled",
+        projectedSummary: "main:feishu:user-1",
+        detail: expect.objectContaining({
+          memoryKind: "extraction",
+          memoryPhase: "scheduled",
+        }),
       }),
     });
     expect(emitAgentActionEvent.mock.calls[1]?.[0]).toMatchObject({
       data: expect.objectContaining({
         kind: "memory",
         status: "running",
+        projectedTitle: "Memory extraction running",
+        projectedSummary: "main:feishu:user-1",
+        detail: expect.objectContaining({
+          memoryKind: "extraction",
+          memoryPhase: "running",
+        }),
       }),
     });
     expect(emitAgentActionEvent.mock.calls[2]?.[0]).toMatchObject({
@@ -219,7 +233,12 @@ describe("runDurableExtractionAgentOnce", () => {
         kind: "memory",
         status: "completed",
         title: "Memory extraction wrote durable notes",
+        projectedTitle: "Memory extraction wrote durable notes",
+        projectedSummary: "saved one durable note",
         detail: expect.objectContaining({
+          memoryKind: "extraction",
+          memoryPhase: "final",
+          memoryResultStatus: "written",
           usage: expect.objectContaining({
             input: 12,
             output: 6,
@@ -272,6 +291,12 @@ describe("runDurableExtractionAgentOnce", () => {
           kind: "memory",
           status: "failed",
           title: "Memory extraction did not complete",
+          projectedTitle: "Memory extraction did not complete",
+          projectedSummary: "pairing required",
+          detail: expect.objectContaining({
+            memoryKind: "extraction",
+            memoryPhase: "wait_failed",
+          }),
         }),
       }),
     );

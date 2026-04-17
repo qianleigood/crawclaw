@@ -1,4 +1,6 @@
+import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
 import { hasApprovalTurnSourceRoute } from "../../infra/approval-turn-source.js";
+import { buildApprovalActionVisibilityProjection } from "../../infra/approval-visibility.js";
 import { sanitizeExecApprovalDisplayText } from "../../infra/exec-approval-command-display.js";
 import type { ExecApprovalForwarder } from "../../infra/exec-approval-forwarder.js";
 import {
@@ -12,9 +14,7 @@ import {
   buildSystemRunApprovalEnvBinding,
 } from "../../infra/system-run-approval-binding.js";
 import { resolveSystemRunApprovalRequestContext } from "../../infra/system-run-approval-context.js";
-import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
 import type { ExecApprovalManager } from "../exec-approval-manager.js";
-import { loadSessionEntry } from "../session-utils.js";
 import {
   ErrorCodes,
   errorShape,
@@ -22,6 +22,7 @@ import {
   validateExecApprovalRequestParams,
   validateExecApprovalResolveParams,
 } from "../protocol/index.js";
+import { loadSessionEntry } from "../session-utils.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
 const APPROVAL_NOT_FOUND_DETAILS = {
@@ -214,18 +215,31 @@ export function createExecApprovalHandlers(
         ...(record.request.sessionKey ? { sessionKey: record.request.sessionKey } : {}),
         ...(record.request.sessionId ? { sessionId: record.request.sessionId } : {}),
         ...(record.request.agentId ? { agentId: record.request.agentId } : {}),
-        data: {
-          actionId: `approval:${record.id}`,
-          kind: "approval",
-          status: "waiting",
-          title: "Waiting for exec approval",
-          summary: record.request.command,
-          detail: {
+        data: (() => {
+          const detail = {
             kind: "exec",
             ...(record.request.cwd ? { cwd: record.request.cwd } : {}),
             ...(record.request.agentId ? { agentId: record.request.agentId } : {}),
-          },
-        },
+          };
+          const projection = buildApprovalActionVisibilityProjection({
+            status: "waiting",
+            kind: "exec",
+            summary: record.request.command,
+            detail,
+          });
+          return {
+            actionId: `approval:${record.id}`,
+            kind: "approval" as const,
+            status: "waiting" as const,
+            title: projection.projectedTitle,
+            summary: record.request.command,
+            projectedTitle: projection.projectedTitle,
+            ...(projection.projectedSummary
+              ? { projectedSummary: projection.projectedSummary }
+              : {}),
+            detail,
+          };
+        })(),
       });
       const hasExecApprovalClients = context.hasExecApprovalClients?.(client?.connId) ?? false;
       const hasTurnSourceRoute = hasApprovalTurnSourceRoute({
@@ -253,17 +267,30 @@ export function createExecApprovalHandlers(
           ...(record.request.sessionKey ? { sessionKey: record.request.sessionKey } : {}),
           ...(record.request.sessionId ? { sessionId: record.request.sessionId } : {}),
           ...(record.request.agentId ? { agentId: record.request.agentId } : {}),
-          data: {
-            actionId: `approval:${record.id}`,
-            kind: "approval",
-            status: "blocked",
-            title: "Approval unavailable",
-            summary: "no-approval-route",
-            detail: {
+          data: (() => {
+            const detail = {
               kind: "exec",
               reason: "no-approval-route",
-            },
-          },
+            };
+            const projection = buildApprovalActionVisibilityProjection({
+              status: "blocked",
+              kind: "exec",
+              summary: "no-approval-route",
+              detail,
+            });
+            return {
+              actionId: `approval:${record.id}`,
+              kind: "approval" as const,
+              status: "blocked" as const,
+              title: projection.projectedTitle,
+              summary: "no-approval-route",
+              projectedTitle: projection.projectedTitle,
+              ...(projection.projectedSummary
+                ? { projectedSummary: projection.projectedSummary }
+                : {}),
+              detail,
+            };
+          })(),
         });
         respond(
           true,
@@ -417,17 +444,31 @@ export function createExecApprovalHandlers(
         ...(snapshot?.request?.sessionKey ? { sessionKey: snapshot.request.sessionKey } : {}),
         ...(snapshot?.request?.sessionId ? { sessionId: snapshot.request.sessionId } : {}),
         ...(snapshot?.request?.agentId ? { agentId: snapshot.request.agentId } : {}),
-        data: {
-          actionId: `approval:${approvalId}`,
-          kind: "approval",
-          status: decision === "deny" ? "blocked" : "completed",
-          title: decision === "deny" ? "Approval denied" : "Approval granted",
-          summary: decision,
-          detail: {
+        data: (() => {
+          const status = decision === "deny" ? "blocked" : "completed";
+          const detail = {
             decision,
             ...(resolvedBy ? { resolvedBy } : {}),
-          },
-        },
+          };
+          const projection = buildApprovalActionVisibilityProjection({
+            status,
+            kind: "exec",
+            summary: decision,
+            detail,
+          });
+          return {
+            actionId: `approval:${approvalId}`,
+            kind: "approval" as const,
+            status,
+            title: projection.projectedTitle,
+            summary: decision,
+            projectedTitle: projection.projectedTitle,
+            ...(projection.projectedSummary
+              ? { projectedSummary: projection.projectedSummary }
+              : {}),
+            detail,
+          };
+        })(),
       });
       void opts?.forwarder
         ?.handleResolved({

@@ -225,6 +225,31 @@ describe("workflow channel forwarder", () => {
     );
   });
 
+  it("uses shared workflow visibility when projected fields are absent", () => {
+    const payload = __testing.buildWorkflowChannelPayload({
+      record: createRecord({
+        status: "waiting_external",
+      }),
+      action: {
+        actionId: "workflow:exec_123:step:review",
+        parentActionId: "workflow:exec_123",
+        status: "waiting",
+        title: "raw workflow title",
+        summary: "Approve publish",
+        detail: {
+          stepId: "review",
+          stepTitle: "Review",
+          stepStatus: "waiting",
+        },
+      },
+      target: {
+        channel: "telegram",
+      },
+    });
+
+    expect(payload.text).toBe("Workflow step waiting: Review\nApprove publish");
+  });
+
   it("builds telegram buttons for workflow targets", () => {
     const payload = __testing.buildWorkflowChannelPayload({
       record: createRecord({

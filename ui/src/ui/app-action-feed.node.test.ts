@@ -133,6 +133,8 @@ describe("app-action-feed", () => {
       kind: "approval",
       status: "waiting",
       title: "Waiting for exec approval",
+      projectedTitle: "Waiting for exec approval",
+      projectedSummary: "pnpm test auth",
     });
 
     handleAgentActionEvent(host, {
@@ -156,6 +158,8 @@ describe("app-action-feed", () => {
       status: "completed",
       title: "Approval granted",
       summary: "allow-once",
+      projectedTitle: "Approval granted",
+      projectedSummary: "allow-once",
     });
   });
 
@@ -185,6 +189,8 @@ describe("app-action-feed", () => {
       kind: "approval",
       status: "waiting",
       title: "Waiting for exec approval",
+      projectedTitle: "Waiting for exec approval",
+      projectedSummary: "pnpm test auth",
     });
   });
 
@@ -215,6 +221,40 @@ describe("app-action-feed", () => {
       status: "running",
       title: "Verification running",
       summary: "重跑登录两次并确认重试流程",
+    });
+  });
+
+  it("projects completion actions with shared completion visibility", () => {
+    const host = createHost({
+      chatRunId: "run-1",
+    });
+
+    handleAgentActionEvent(host, {
+      runId: "run-1",
+      seq: 1,
+      stream: "action",
+      ts: 100,
+      sessionKey: "main",
+      data: {
+        version: 1,
+        actionId: "completion:run-1",
+        kind: "completion",
+        status: "waiting",
+        title: "Completion decision",
+        summary: "Task is waiting for the external condition to be observed before completion.",
+        detail: {
+          completionStatus: "waiting_external",
+        },
+      },
+    });
+
+    expect(host.chatActionFeed?.[0]).toMatchObject({
+      actionId: "completion:run-1",
+      kind: "completion",
+      status: "waiting",
+      projectedTitle: "Waiting for external condition",
+      projectedSummary:
+        "Task is waiting for the external condition to be observed before completion.",
     });
   });
 
@@ -278,6 +318,41 @@ describe("app-action-feed", () => {
       status: "running",
       title: "Memory extraction running",
       summary: "main:feishu:user-1",
+    });
+  });
+
+  it("projects memory actions with shared memory visibility", () => {
+    const host = createHost({
+      chatRunId: "run-1",
+    });
+
+    handleAgentActionEvent(host, {
+      runId: "memory-extraction:session-1:2",
+      seq: 1,
+      stream: "action",
+      ts: 100,
+      sessionKey: "main",
+      data: {
+        version: 1,
+        actionId: "memory-extraction:session-1:2",
+        kind: "memory",
+        status: "completed",
+        title: "raw memory title",
+        summary: "saved one durable note",
+        detail: {
+          memoryKind: "extraction",
+          memoryPhase: "final",
+          memoryResultStatus: "written",
+        },
+      },
+    });
+
+    expect(host.chatActionFeed?.[0]).toMatchObject({
+      actionId: "memory-extraction:session-1:2",
+      kind: "memory",
+      status: "completed",
+      projectedTitle: "Memory extraction wrote durable notes",
+      projectedSummary: "saved one durable note",
     });
   });
 
@@ -368,7 +443,7 @@ describe("app-action-feed", () => {
 
     expect(host.chatActionFeed?.[0]).toMatchObject({
       kind: "workflow",
-      projectedTitle: "Workflow: Publish Redbook",
+      projectedTitle: "Running workflow: Publish Redbook",
     });
   });
 

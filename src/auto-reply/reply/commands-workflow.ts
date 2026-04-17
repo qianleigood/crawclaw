@@ -16,30 +16,11 @@ import {
   ensureWorkflowInteractiveHandlersRegistered,
 } from "../../workflows/interactive.js";
 import type { WorkflowExecutionView } from "../../workflows/types.js";
+import { buildWorkflowExecutionVisibilityProjection } from "../../workflows/visibility.js";
 import type { CommandHandler } from "./commands-types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function buildWorkflowStatusTitle(execution: WorkflowExecutionView): string {
-  const label = execution.workflowName?.trim() || execution.workflowId || execution.executionId;
-  switch (execution.status) {
-    case "queued":
-      return `Queued workflow: ${label}`;
-    case "running":
-      return `Running workflow: ${label}`;
-    case "waiting_input":
-    case "waiting_external":
-      return `Workflow waiting: ${label}`;
-    case "succeeded":
-      return `Workflow completed: ${label}`;
-    case "failed":
-      return `Workflow failed: ${label}`;
-    case "cancelled":
-      return `Workflow cancelled: ${label}`;
-  }
-  return `Workflow: ${label}`;
 }
 
 function buildWorkflowReplyText(params: {
@@ -48,16 +29,48 @@ function buildWorkflowReplyText(params: {
   errorMessage?: string;
   resumeAccepted?: boolean;
 }): string {
+  const workflowLabel =
+    params.execution.workflowName?.trim() ||
+    params.execution.workflowId ||
+    params.execution.executionId;
+  const failedStep = params.execution.steps?.find((step) => step.status === "failed");
+  const errorMessage =
+    normalizeOptionalString(failedStep?.error) ?? normalizeOptionalString(params.errorMessage);
+  const statusProjection =
+    params.action === "resume" && params.resumeAccepted
+      ? undefined
+      : buildWorkflowExecutionVisibilityProjection({
+          workflowId: params.execution.workflowId ?? params.execution.executionId,
+          ...(params.execution.workflowName ? { workflowName: params.execution.workflowName } : {}),
+          status: params.execution.status,
+          ...(params.execution.currentStepId
+            ? { currentStepId: params.execution.currentStepId }
+            : {}),
+          ...(params.execution.steps ? { steps: params.execution.steps } : {}),
+          ...(errorMessage ? { errorMessage } : {}),
+        });
   const lines = [
     params.action === "resume" && params.resumeAccepted
-      ? `Workflow resume requested: ${params.execution.workflowName?.trim() || params.execution.workflowId || params.execution.executionId}`
-      : buildWorkflowStatusTitle(params.execution),
+      ? `Workflow resume requested: ${workflowLabel}`
+      : (statusProjection?.projectedTitle ??
+        buildWorkflowExecutionVisibilityProjection({
+          workflowId: workflowLabel,
+          workflowName: workflowLabel,
+          status: params.execution.status,
+        }).projectedTitle),
     `Execution: ${params.execution.executionId}`,
   ];
+  if (statusProjection?.projectedSummary) {
+    lines.push(statusProjection.projectedSummary);
+  }
   if (normalizeOptionalString(params.execution.n8nExecutionId)) {
     lines.push(`Remote execution: ${normalizeOptionalString(params.execution.n8nExecutionId)}`);
   }
-  if (normalizeOptionalString(params.execution.currentStepId)) {
+  if (
+    normalizeOptionalString(params.execution.currentStepId) &&
+    statusProjection?.projectedSummary !==
+      `Current step: ${normalizeOptionalString(params.execution.currentStepId)}`
+  ) {
     lines.push(`Current step: ${normalizeOptionalString(params.execution.currentStepId)}`);
   }
   if (normalizeOptionalString(params.execution.currentExecutor)) {
@@ -83,10 +96,7 @@ function buildWorkflowReplyText(params: {
   ) {
     lines.push(`Remote status: ${normalizeOptionalString(params.execution.remoteStatus)}`);
   }
-  const failedStep = params.execution.steps?.find((step) => step.status === "failed");
-  const errorMessage =
-    normalizeOptionalString(failedStep?.error) ?? normalizeOptionalString(params.errorMessage);
-  if (errorMessage) {
+  if (errorMessage && statusProjection?.projectedSummary !== errorMessage) {
     lines.push(`Error: ${errorMessage}`);
   }
   return lines.join("\n");

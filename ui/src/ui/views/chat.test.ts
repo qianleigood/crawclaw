@@ -889,8 +889,8 @@ describe("chat view", () => {
               version: 1,
               kind: "workflow",
               status: "running",
-              title: "Running workflow",
-              projectedTitle: "Workflow: Publish Redbook",
+              title: "raw workflow title",
+              projectedTitle: "Running workflow: Publish Redbook",
               summary: "raw summary",
               updatedAt: 1,
             },
@@ -901,8 +901,8 @@ describe("chat view", () => {
     );
 
     const feed = container.querySelector(".action-feed");
-    expect(feed?.textContent).toContain("Workflow: Publish Redbook");
-    expect(feed?.textContent).not.toContain("Running workflow");
+    expect(feed?.textContent).toContain("Running workflow: Publish Redbook");
+    expect(feed?.textContent).not.toContain("raw workflow title");
   });
 
   it("renders action feed details when structured detail is present", () => {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { emitAgentActionEvent } from "../../agents/action-feed/emit.js";
 import { hasApprovalTurnSourceRoute } from "../../infra/approval-turn-source.js";
+import { buildApprovalActionVisibilityProjection } from "../../infra/approval-visibility.js";
 import type { ExecApprovalForwarder } from "../../infra/exec-approval-forwarder.js";
 import type { ExecApprovalDecision } from "../../infra/exec-approvals.js";
 import type { PluginApprovalRequestPayload } from "../../infra/plugin-approvals.js";
@@ -126,20 +127,33 @@ export function createPluginApprovalHandlers(
         ...(record.request.sessionKey ? { sessionKey: record.request.sessionKey } : {}),
         ...(record.request.sessionId ? { sessionId: record.request.sessionId } : {}),
         ...(record.request.agentId ? { agentId: record.request.agentId } : {}),
-        data: {
-          actionId: `approval:${record.id}`,
-          kind: "approval",
-          status: "waiting",
-          title: "Waiting for plugin approval",
-          summary: record.request.title,
-          ...(record.request.toolName ? { toolName: record.request.toolName } : {}),
-          ...(record.request.toolCallId ? { toolCallId: record.request.toolCallId } : {}),
-          detail: {
+        data: (() => {
+          const detail = {
             kind: "plugin",
             ...(record.request.agentId ? { agentId: record.request.agentId } : {}),
             ...(record.request.severity ? { severity: record.request.severity } : {}),
-          },
-        },
+          };
+          const projection = buildApprovalActionVisibilityProjection({
+            status: "waiting",
+            kind: "plugin",
+            summary: record.request.title,
+            detail,
+          });
+          return {
+            actionId: `approval:${record.id}`,
+            kind: "approval" as const,
+            status: "waiting" as const,
+            title: projection.projectedTitle,
+            summary: record.request.title,
+            projectedTitle: projection.projectedTitle,
+            ...(projection.projectedSummary
+              ? { projectedSummary: projection.projectedSummary }
+              : {}),
+            ...(record.request.toolName ? { toolName: record.request.toolName } : {}),
+            ...(record.request.toolCallId ? { toolCallId: record.request.toolCallId } : {}),
+            detail,
+          };
+        })(),
       });
 
       let forwarded = false;
@@ -168,19 +182,32 @@ export function createPluginApprovalHandlers(
           ...(record.request.sessionKey ? { sessionKey: record.request.sessionKey } : {}),
           ...(record.request.sessionId ? { sessionId: record.request.sessionId } : {}),
           ...(record.request.agentId ? { agentId: record.request.agentId } : {}),
-          data: {
-            actionId: `approval:${record.id}`,
-            kind: "approval",
-            status: "blocked",
-            title: "Approval unavailable",
-            summary: "no-approval-route",
-            ...(record.request.toolName ? { toolName: record.request.toolName } : {}),
-            ...(record.request.toolCallId ? { toolCallId: record.request.toolCallId } : {}),
-            detail: {
+          data: (() => {
+            const detail = {
               kind: "plugin",
               reason: "no-approval-route",
-            },
-          },
+            };
+            const projection = buildApprovalActionVisibilityProjection({
+              status: "blocked",
+              kind: "plugin",
+              summary: "no-approval-route",
+              detail,
+            });
+            return {
+              actionId: `approval:${record.id}`,
+              kind: "approval" as const,
+              status: "blocked" as const,
+              title: projection.projectedTitle,
+              summary: "no-approval-route",
+              projectedTitle: projection.projectedTitle,
+              ...(projection.projectedSummary
+                ? { projectedSummary: projection.projectedSummary }
+                : {}),
+              ...(record.request.toolName ? { toolName: record.request.toolName } : {}),
+              ...(record.request.toolCallId ? { toolCallId: record.request.toolCallId } : {}),
+              detail,
+            };
+          })(),
         });
         respond(
           true,
@@ -316,19 +343,33 @@ export function createPluginApprovalHandlers(
         ...(snapshot?.request?.sessionKey ? { sessionKey: snapshot.request.sessionKey } : {}),
         ...(snapshot?.request?.sessionId ? { sessionId: snapshot.request.sessionId } : {}),
         ...(snapshot?.request?.agentId ? { agentId: snapshot.request.agentId } : {}),
-        data: {
-          actionId: `approval:${approvalId}`,
-          kind: "approval",
-          status: decision === "deny" ? "blocked" : "completed",
-          title: decision === "deny" ? "Approval denied" : "Approval granted",
-          summary: decision,
-          ...(snapshot?.request?.toolName ? { toolName: snapshot.request.toolName } : {}),
-          ...(snapshot?.request?.toolCallId ? { toolCallId: snapshot.request.toolCallId } : {}),
-          detail: {
+        data: (() => {
+          const status = decision === "deny" ? "blocked" : "completed";
+          const detail = {
             decision,
             ...(resolvedBy ? { resolvedBy } : {}),
-          },
-        },
+          };
+          const projection = buildApprovalActionVisibilityProjection({
+            status,
+            kind: "plugin",
+            summary: decision,
+            detail,
+          });
+          return {
+            actionId: `approval:${approvalId}`,
+            kind: "approval" as const,
+            status,
+            title: projection.projectedTitle,
+            summary: decision,
+            projectedTitle: projection.projectedTitle,
+            ...(projection.projectedSummary
+              ? { projectedSummary: projection.projectedSummary }
+              : {}),
+            ...(snapshot?.request?.toolName ? { toolName: snapshot.request.toolName } : {}),
+            ...(snapshot?.request?.toolCallId ? { toolCallId: snapshot.request.toolCallId } : {}),
+            detail,
+          };
+        })(),
       });
       void opts?.forwarder
         ?.handlePluginApprovalResolved?.({

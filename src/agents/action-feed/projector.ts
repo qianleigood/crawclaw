@@ -1,8 +1,11 @@
 import {
-  buildExecutionVisibilityText,
   buildToolExecutionVisibilityText,
   type ExecutionEventPhase,
 } from "../../auto-reply/reply/execution-visibility.js";
+import { buildApprovalActionVisibilityProjection } from "../../infra/approval-visibility.js";
+import { buildMemoryActionVisibilityProjection } from "../../memory/action-visibility.js";
+import { buildWorkflowActionVisibilityProjection } from "../../workflows/visibility.js";
+import { buildCompletionActionVisibilityProjection } from "../tasks/completion-visibility.js";
 import type { AgentActionEventData, AgentActionKind, AgentActionStatus } from "./types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
@@ -66,6 +69,9 @@ function resolveProjectedSummary(params: {
     }
     return undefined;
   }
+  if (params.kind === "approval" && summary === "no-approval-route") {
+    return undefined;
+  }
   return summary;
 }
 
@@ -90,37 +96,82 @@ export function projectAgentActionEventData(input: AgentActionEventData): AgentA
   const phase = resolveExecutionPhase(input.status);
 
   let projectedTitle: string | undefined;
+  let projectedSummary: string | undefined;
   if (projectedKind === "tool" || projectedKind === "workflow") {
-    projectedTitle = buildToolExecutionVisibilityText({
-      toolName: input.toolName ?? (projectedKind === "workflow" ? "workflow" : undefined),
-      meta: normalizeOptionalString(input.summary),
-      phase,
-      mode: "summary",
-      status: input.status,
-    });
-    if (
-      projectedKind === "workflow" &&
-      projectedTitle &&
-      /^workflow:\s*workflow(?:ize)?$/i.test(projectedTitle)
-    ) {
-      projectedTitle = undefined;
+    if (projectedKind === "workflow") {
+      const workflowProjection = buildWorkflowActionVisibilityProjection({
+        status: input.status,
+        detail: input.detail,
+        summary: input.summary,
+      });
+      projectedTitle = workflowProjection?.projectedTitle;
+      projectedSummary = workflowProjection?.projectedSummary;
+    }
+    if (!projectedTitle) {
+      projectedTitle = buildToolExecutionVisibilityText({
+        toolName: input.toolName ?? (projectedKind === "workflow" ? "workflow" : undefined),
+        meta: normalizeOptionalString(input.summary),
+        phase,
+        mode: "summary",
+        status: input.status,
+      });
+      if (
+        projectedKind === "workflow" &&
+        projectedTitle &&
+        /^workflow:\s*workflow(?:ize)?$/i.test(projectedTitle)
+      ) {
+        projectedTitle = undefined;
+      }
     }
   } else if (projectedKind === "approval") {
-    projectedTitle = buildExecutionVisibilityText({
-      mode: "summary",
-      event: {
-        kind: "system",
-        phase,
-        sourceType: "system",
-        declaredIntent: "wait_approval",
-        object: normalizeOptionalString(input.summary),
-        message: normalizeOptionalString(input.title),
-        status: input.status,
-      },
+    const approvalProjection = buildApprovalActionVisibilityProjection({
+      status: input.status,
+      title: input.title,
+      summary: input.summary,
+      detail: input.detail,
     });
+    projectedTitle = approvalProjection.projectedTitle;
+    projectedSummary = approvalProjection.projectedSummary;
+  } else if (projectedKind === "completion") {
+    const completionProjection = buildCompletionActionVisibilityProjection({
+      status: input.status,
+      summary: input.summary,
+      detail: input.detail,
+    });
+    projectedTitle = completionProjection.projectedTitle;
+    projectedSummary = completionProjection.projectedSummary;
+  } else if (projectedKind === "memory") {
+    const memoryKind = normalizeOptionalString(input.detail?.memoryKind);
+    const memoryPhase = normalizeOptionalString(input.detail?.memoryPhase);
+    if (
+      (memoryKind === "extraction" || memoryKind === "session_summary" || memoryKind === "dream") &&
+      (memoryPhase === "scheduled" ||
+        memoryPhase === "running" ||
+        memoryPhase === "failed_to_start" ||
+        memoryPhase === "wait_failed" ||
+        memoryPhase === "invalid_report" ||
+        memoryPhase === "orient" ||
+        memoryPhase === "gather" ||
+        memoryPhase === "final")
+    ) {
+      const memoryResultStatus = normalizeOptionalString(input.detail?.memoryResultStatus);
+      const memoryProjection = buildMemoryActionVisibilityProjection({
+        kind: memoryKind,
+        phase: memoryPhase,
+        summary: input.summary,
+        ...(memoryResultStatus === "written" ||
+        memoryResultStatus === "skipped" ||
+        memoryResultStatus === "no_change" ||
+        memoryResultStatus === "failed"
+          ? { resultStatus: memoryResultStatus }
+          : {}),
+      });
+      projectedTitle = memoryProjection.projectedTitle;
+      projectedSummary = memoryProjection.projectedSummary;
+    }
   }
 
-  const projectedSummary = resolveProjectedSummary({
+  projectedSummary ??= resolveProjectedSummary({
     kind: projectedKind,
     summary: input.summary,
     projectedTitle,

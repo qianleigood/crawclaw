@@ -646,6 +646,8 @@ describe("exec approval handlers", () => {
             kind: "approval",
             status: "waiting",
             title: "Waiting for exec approval",
+            projectedTitle: "Waiting for exec approval",
+            projectedSummary: "echo ok",
           }),
         }),
       );
@@ -658,6 +660,8 @@ describe("exec approval handlers", () => {
             status: "completed",
             title: "Approval granted",
             summary: "allow-once",
+            projectedTitle: "Approval granted",
+            projectedSummary: "allow-once",
           }),
         }),
       );

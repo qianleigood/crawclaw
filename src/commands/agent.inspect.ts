@@ -47,6 +47,24 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function joinProjectedSummary(params: {
+  projectedTitle?: string;
+  projectedSummary?: string;
+  title?: string;
+}): string | undefined {
+  const projectedTitle = normalizeOptionalString(params.projectedTitle);
+  const projectedSummary = normalizeOptionalString(params.projectedSummary);
+  const title = normalizeOptionalString(params.title);
+  const base = projectedTitle ?? title;
+  if (!base) {
+    return undefined;
+  }
+  if (!projectedSummary || projectedSummary === base) {
+    return base;
+  }
+  return `${base} · ${projectedSummary}`;
+}
+
 function formatTimelineSummary(entry: AgentInspectionTimelineEntry): string {
   const parts = [
     entry.phase ?? entry.type,
@@ -163,9 +181,11 @@ function buildInspectionTimeline(
     if (event.type === "agent.action" && isAgentActionEventData(event.payload)) {
       const action = event.payload;
       const summary =
-        (typeof action.projectedTitle === "string" && action.projectedTitle.trim()
-          ? action.projectedTitle.trim()
-          : action.title.trim()) || action.kind;
+        joinProjectedSummary({
+          projectedTitle: action.projectedTitle,
+          projectedSummary: action.projectedSummary,
+          title: action.title,
+        }) ?? action.kind;
       const refs: Record<string, string | number | boolean | null> = {
         actionId: action.actionId,
         kind: action.kind,

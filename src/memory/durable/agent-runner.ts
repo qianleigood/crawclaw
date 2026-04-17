@@ -13,6 +13,7 @@ import {
   type SpecialAgentActionRuntimeDeps,
 } from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
+import { buildMemoryActionVisibilityProjection } from "../action-visibility.js";
 import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../special-agent-toollists.js";
 import { collectRecentDurableConversation } from "./extraction.js";
 import type { DurableMemoryManifestEntry } from "./store.js";
@@ -214,8 +215,16 @@ function emitMemoryExtractionAction(params: {
   status: "started" | "running" | "completed" | "blocked" | "failed";
   title: string;
   summary?: string;
+  phase: "scheduled" | "running" | "failed_to_start" | "wait_failed" | "invalid_report" | "final";
+  resultStatus?: "written" | "skipped" | "no_change" | "failed";
   detail?: Record<string, unknown>;
 }) {
+  const projection = buildMemoryActionVisibilityProjection({
+    kind: "extraction",
+    phase: params.phase,
+    summary: params.summary,
+    resultStatus: params.resultStatus,
+  });
   emitSpecialAgentActionEvent({
     emitAgentActionEvent: resolveMemoryExtractionAgentDeps().emitAgentActionEvent,
     runId: params.actionRunId,
@@ -226,7 +235,14 @@ function emitMemoryExtractionAction(params: {
     status: params.status,
     title: params.title,
     summary: params.summary,
-    detail: params.detail,
+    projectedTitle: projection.projectedTitle,
+    projectedSummary: projection.projectedSummary,
+    detail: {
+      memoryKind: "extraction",
+      memoryPhase: params.phase,
+      ...(params.resultStatus ? { memoryResultStatus: params.resultStatus } : {}),
+      ...params.detail,
+    },
   });
 }
 
@@ -262,6 +278,7 @@ export async function runDurableExtractionAgentOnce(
     status: "started",
     title: "Memory extraction scheduled",
     summary: params.scope.scopeKey,
+    phase: "scheduled",
     detail: {
       messageCursor: params.messageCursor,
       recentMessageLimit: params.recentMessageLimit,
@@ -325,6 +342,7 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       title: "Memory extraction failed to start",
       summary: error,
+      phase: "failed_to_start",
       detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
@@ -343,6 +361,7 @@ export async function runDurableExtractionAgentOnce(
     status: "running",
     title: "Memory extraction running",
     summary: params.scope.scopeKey,
+    phase: "running",
     detail: buildSpecialAgentRunRefDetail(run),
   });
 
@@ -361,6 +380,7 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       title: "Memory extraction did not complete",
       summary: error,
+      phase: "wait_failed",
       detail: buildSpecialAgentWaitFailureDetail(run),
     });
     return {
@@ -387,6 +407,7 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       title: "Memory extraction report invalid",
       summary: error,
+      phase: "invalid_report",
       detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
@@ -416,6 +437,8 @@ export async function runDurableExtractionAgentOnce(
             ? "Memory extraction found no durable changes"
             : "Memory extraction failed",
     summary: parsed.summary,
+    phase: "final",
+    resultStatus: parsed.status,
     detail: buildSpecialAgentCompletionDetail({
       result: run,
       detail: {

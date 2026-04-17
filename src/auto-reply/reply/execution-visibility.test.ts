@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildExecutionVisibilityText,
+  buildToolExecutionVisibilityText,
   normalizeExecutionVisibilityMode,
   projectAcpToolCallEvent,
   resolveExecutionIntent,
@@ -65,7 +66,63 @@ describe("execution visibility", () => {
           },
         },
       }),
-    ).toBe("Workflow: Publish Redbook");
+    ).toBe("Running workflow: Publish Redbook");
+  });
+
+  it("renders workflow waiting summaries through shared workflow visibility", () => {
+    expect(
+      buildExecutionVisibilityText({
+        mode: "summary",
+        event: {
+          kind: "workflow",
+          phase: "waiting",
+          workflow: {
+            workflowName: "Publish Redbook",
+            stepName: "Review draft",
+          },
+        },
+      }),
+    ).toBe("Workflow waiting: Publish Redbook");
+  });
+
+  it("renders workflow summary text without workflow metadata through shared phase-aware fallback", () => {
+    expect(
+      buildExecutionVisibilityText({
+        mode: "summary",
+        event: {
+          kind: "workflow",
+          phase: "start",
+          object: "Publish Redbook",
+        },
+      }),
+    ).toBe("Running workflow: Publish Redbook");
+  });
+
+  it("renders workflow failure summaries through shared workflow visibility", () => {
+    expect(
+      buildExecutionVisibilityText({
+        mode: "summary",
+        event: {
+          kind: "workflow",
+          phase: "error",
+          detail: "Approval rejected",
+          workflow: {
+            workflowName: "Publish Redbook",
+          },
+        },
+      }),
+    ).toBe("Workflow failed: Publish Redbook");
+  });
+
+  it("projects workflow tool summaries through shared workflow visibility", () => {
+    expect(
+      buildToolExecutionVisibilityText({
+        toolName: "workflow",
+        meta: "Publish Redbook",
+        phase: "waiting",
+        mode: "summary",
+      }),
+    ).toBe("Workflow waiting: Publish Redbook");
   });
 
   it("projects ACP tool calls through the semantic layer", () => {
@@ -82,5 +139,37 @@ describe("execution visibility", () => {
         },
       }),
     ).toBe("Searching search docs");
+  });
+
+  it("projects ACP workflow tool calls through shared workflow visibility in summary mode", () => {
+    expect(
+      projectAcpToolCallEvent({
+        mode: "summary",
+        event: {
+          type: "tool_call",
+          tag: "tool_call",
+          toolCallId: "call_workflow_1",
+          status: "in_progress",
+          title: "workflow publish draft",
+          text: "workflow publish draft (in_progress)",
+        },
+      }),
+    ).toBe("Running workflow: workflow publish draft");
+  });
+
+  it("keeps ACP workflow tool calls detailed in full mode", () => {
+    expect(
+      projectAcpToolCallEvent({
+        mode: "full",
+        event: {
+          type: "tool_call",
+          tag: "tool_call",
+          toolCallId: "call_workflow_full_1",
+          status: "completed",
+          title: "workflow publish draft",
+          text: "workflow publish draft (completed)",
+        },
+      }),
+    ).toBe("Workflow: workflow publish draft · status=completed");
   });
 });

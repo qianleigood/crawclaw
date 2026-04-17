@@ -26,6 +26,7 @@ import { getAgentRuntimeState } from "../runtime/agent-runtime-state.js";
 import { parseVerificationReport, VERIFICATION_SPAWN_SOURCE } from "../verification-agent.js";
 import type { CompletionEvidence } from "./completion-evidence.js";
 import { evaluateCompletionGuard, type CompletionGuardResult } from "./completion-guard.js";
+import { buildCompletionActionVisibilityProjection } from "./completion-visibility.js";
 
 const log = createSubsystemLogger("agents/task-trajectory");
 
@@ -836,18 +837,14 @@ function captureTrajectoryCompletionDecision(params: {
   emitAgentActionEvent({
     runId: trajectory.runId,
     sessionKey: trajectory.sessionKey,
-    data: {
-      actionId: `completion:${trajectory.runId}`,
-      kind: "completion",
-      status:
+    data: (() => {
+      const status =
         completion.status === "accepted" || completion.status === "accepted_with_warnings"
           ? "completed"
           : completion.status === "waiting_user" || completion.status === "waiting_external"
             ? "waiting"
-            : "blocked",
-      title: "Completion decision",
-      summary: completion.summary,
-      detail: {
+            : "blocked";
+      const detail = {
         completionStatus: completion.status,
         ...(completion.blockingState ? { blockingState: completion.blockingState } : {}),
         evidenceCount: trajectory.evidence.length,
@@ -862,8 +859,23 @@ function captureTrajectoryCompletionDecision(params: {
               verificationArtifacts: parsedVerification.artifacts,
             }
           : {}),
-      },
-    },
+      };
+      const projection = buildCompletionActionVisibilityProjection({
+        status,
+        summary: completion.summary,
+        detail,
+      });
+      return {
+        actionId: `completion:${trajectory.runId}`,
+        kind: "completion" as const,
+        status,
+        title: projection.projectedTitle,
+        summary: completion.summary,
+        projectedTitle: projection.projectedTitle,
+        ...(projection.projectedSummary ? { projectedSummary: projection.projectedSummary } : {}),
+        detail,
+      };
+    })(),
   });
   void captureContextArchiveRunEvent({
     source: "task-trajectory",

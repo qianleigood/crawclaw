@@ -1,4 +1,12 @@
 import type { AcpRuntimeEvent } from "../../acp/runtime/types.js";
+import type {
+  WorkflowExecutionStatus,
+  WorkflowExecutionStepStatus,
+} from "../../workflows/types.js";
+import {
+  buildWorkflowExecutionVisibilityProjection,
+  type WorkflowVisibilityProjection,
+} from "../../workflows/visibility.js";
 
 export type ExecutionVisibilityMode = "off" | "summary" | "verbose" | "full";
 
@@ -259,6 +267,119 @@ function resolveObjectLabel(input: ExecutionEvent): string | undefined {
   return simplifyObjectLabel(input.message);
 }
 
+function resolveWorkflowExecutionStatusFromEvent(event: ExecutionEvent): WorkflowExecutionStatus {
+  const normalizedStatus = normalizeOptionalString(event.status)?.toLowerCase();
+  switch (normalizedStatus) {
+    case "queued":
+    case "pending":
+      return "queued";
+    case "running":
+    case "in_progress":
+      return "running";
+    case "waiting":
+    case "blocked":
+    case "waiting_input":
+      return "waiting_input";
+    case "waiting_external":
+      return "waiting_external";
+    case "completed":
+    case "succeeded":
+    case "done":
+      return "succeeded";
+    case "failed":
+    case "error":
+      return "failed";
+    case "cancelled":
+    case "canceled":
+      return "cancelled";
+  }
+
+  switch (event.phase) {
+    case "waiting":
+      return "waiting_external";
+    case "end":
+      return "succeeded";
+    case "error":
+      return "failed";
+    case "start":
+    case "update":
+      return "running";
+  }
+  return "running";
+}
+
+function resolveWorkflowStepStatus(status: WorkflowExecutionStatus): WorkflowExecutionStepStatus {
+  switch (status) {
+    case "queued":
+      return "pending";
+    case "running":
+      return "running";
+    case "waiting_input":
+    case "waiting_external":
+      return "waiting";
+    case "succeeded":
+      return "succeeded";
+    case "failed":
+      return "failed";
+    case "cancelled":
+      return "cancelled";
+  }
+  return "running";
+}
+
+function buildWorkflowVisibilitySummaryProjection(
+  event: ExecutionEvent,
+): WorkflowVisibilityProjection | undefined {
+  const workflowName = normalizeOptionalString(event.workflow?.workflowName);
+  const workflowId = normalizeOptionalString(event.workflow?.workflowId);
+  if (!workflowName && !workflowId) {
+    return undefined;
+  }
+  const status = resolveWorkflowExecutionStatusFromEvent(event);
+  const stepName = normalizeOptionalString(event.workflow?.stepName);
+  const stepId = normalizeOptionalString(event.workflow?.stepId) ?? stepName;
+  const errorMessage =
+    status === "failed" ? simplifyObjectLabel(event.detail ?? event.message) : undefined;
+  return buildWorkflowExecutionVisibilityProjection({
+    workflowId: workflowId ?? workflowName ?? "workflow",
+    ...(workflowName ? { workflowName } : {}),
+    status,
+    ...(stepId ? { currentStepId: stepId } : {}),
+    ...(stepId
+      ? {
+          steps: [
+            {
+              stepId,
+              ...(stepName ? { title: stepName } : {}),
+              status: resolveWorkflowStepStatus(status),
+              updatedAt: 0,
+            },
+          ],
+        }
+      : {}),
+    ...(errorMessage ? { errorMessage } : {}),
+  });
+}
+
+function buildWorkflowToolVisibilityTitle(params: {
+  label: string;
+  phase: ExecutionEventPhase;
+  status?: string;
+}): string {
+  return buildWorkflowExecutionVisibilityProjection({
+    workflowId: params.label,
+    workflowName: params.label,
+    status: resolveWorkflowExecutionStatusFromEvent({
+      kind: "workflow",
+      phase: params.phase,
+      status: normalizeOptionalString(params.status),
+      workflow: {
+        workflowName: params.label,
+      },
+    }),
+  }).projectedTitle;
+}
+
 export function normalizeExecutionVisibilityMode(
   raw?: string | null,
 ): ExecutionVisibilityMode | undefined {
@@ -341,20 +462,28 @@ export function buildExecutionVisibilityText(params: {
   const status = normalizeOptionalString(event.status);
 
   if (mode === "summary") {
+    if (event.kind === "workflow") {
+      const workflowProjection = buildWorkflowVisibilitySummaryProjection(event);
+      if (workflowProjection?.projectedTitle) {
+        return workflowProjection.projectedTitle;
+      }
+      if (objectLabel) {
+        return buildWorkflowToolVisibilityTitle({
+          label: objectLabel,
+          phase: event.phase,
+          status: event.status,
+        });
+      }
+      if (event.phase === "waiting") {
+        return "Workflow waiting";
+      }
+      return noun;
+    }
     if (event.phase === "error") {
       if (objectLabel) {
         return `${noun} failed: ${objectLabel}`;
       }
       return `${noun} failed`;
-    }
-    if (event.kind === "workflow") {
-      if (event.phase === "waiting") {
-        return objectLabel ? `Workflow waiting: ${objectLabel}` : "Workflow waiting";
-      }
-      if (objectLabel) {
-        return `${noun}: ${objectLabel}`;
-      }
-      return noun;
     }
     if (intent !== "unknown" && objectLabel) {
       return `${resolveIntentVerb(intent, event.phase)} ${objectLabel}`;
@@ -409,6 +538,16 @@ export function buildToolExecutionVisibilityText(params: {
   status?: string;
 }): string | undefined {
   const kind = resolveExecutionKindFromToolName(params.toolName);
+  if (kind === "workflow") {
+    const workflowLabel = simplifyObjectLabel(params.meta);
+    if (workflowLabel) {
+      return buildWorkflowToolVisibilityTitle({
+        label: workflowLabel,
+        phase: params.phase,
+        status: params.status,
+      });
+    }
+  }
   return buildExecutionVisibilityText({
     mode: params.mode,
     event: {
@@ -448,6 +587,13 @@ export function projectAcpToolCallEvent(params: {
     message: params.event.text,
   });
   const kind: ExecutionEventKind = family === "workflow" ? "workflow" : "tool";
+  if (kind === "workflow" && params.mode === "summary" && rawLabel) {
+    return buildWorkflowToolVisibilityTitle({
+      label: rawLabel,
+      phase,
+      status,
+    });
+  }
   return buildExecutionVisibilityText({
     mode: params.mode,
     event: {
