@@ -28,6 +28,7 @@ x-i18n:
 - Gateway 网关设置（端口、绑定、身份验证、tailscale）
 - 渠道和提供商（Telegram、WhatsApp、Discord、Google Chat、Mattermost 插件、Signal）
 - 输出与展示预设（`quiet`、`balanced`、`operator`）
+- Memory / Knowledge：NotebookLM knowledge recall 启用开关
 - 守护进程安装（LaunchAgent 或 systemd 用户单元）
 - 健康检查
 - Skills 设置
@@ -80,6 +81,15 @@ x-i18n:
     - [iMessage](/channels/imessage)：旧版 `imsg` CLI 路径 + 数据库访问
     - 私信安全：默认是配对。首次私信会发送一个代码；通过
       `crawclaw pairing approve <channel> <code>` 批准，或使用 allowlist。
+  </Step>
+  <Step title="输出与展示">
+    - 选择默认回复预设：`quiet`、`balanced` 或 `operator`。
+    - 该预设会映射到 streaming、过程可见性、ACP visibility 和 reply threading 默认值。
+  </Step>
+  <Step title="Memory / Knowledge">
+    - 询问是否启用基于 NotebookLM 的 knowledge recall。
+    - 如果启用，onboarding 会保留 `memory.notebooklm.enabled = true`。
+    - 在接近结束时，如果 provider state 明确建议 `crawclaw memory login`，onboarding 会提供当场执行登录的入口。
   </Step>
   <Step title="守护进程安装">
     - macOS：LaunchAgent

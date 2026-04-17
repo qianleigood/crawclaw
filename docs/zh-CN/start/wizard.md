@@ -83,12 +83,14 @@ CLI 新手引导包含一个 web search 步骤，你可以选择一个提供商
    在交互式 token 模式中，你可以选择默认的明文 token 存储，或选择启用 SecretRef。
    非交互式 token SecretRef 路径：`--gateway-token-ref-env <ENV_VAR>`。
 4. **渠道** —— WhatsApp、Telegram、Discord、Google Chat、Mattermost、Signal、BlueBubbles 或 iMessage。
-5. **守护进程** —— 安装 LaunchAgent（macOS）或 systemd 用户单元（Linux/WSL2）。
+5. **输出与展示** —— 选择默认回复预设（`quiet`、`balanced`、`operator`），控制 streaming 和过程可见性。
+6. **Memory / Knowledge** —— 决定是否启用 NotebookLM knowledge recall；如果已启用且 provider 明确建议 `crawclaw memory login`，onboarding 会在接近结束时提供登录入口。
+7. **守护进程** —— 安装 LaunchAgent（macOS）或 systemd 用户单元（Linux/WSL2）。
    如果 token 认证需要 token，且 `gateway.auth.token` 由 SecretRef 管理，守护进程安装会验证它，但不会将已解析的 token 持久化到监督服务的环境元数据中。
    如果 token 认证需要 token，而已配置的 token SecretRef 无法解析，守护进程安装会被阻止，并提供可执行的指导。
    如果同时配置了 `gateway.auth.token` 和 `gateway.auth.password`，而 `gateway.auth.mode` 未设置，守护进程安装会被阻止，直到显式设置 mode。
-6. **健康检查** —— 启动 Gateway 网关并验证其正在运行。
-7. **Skills** —— 安装推荐的 Skills 和可选依赖项。
+8. **健康检查** —— 启动 Gateway 网关并验证其正在运行。
+9. **Skills** —— 安装推荐的 Skills 和可选依赖项。
 
 <Note>
 重新运行新手引导**不会**清除任何内容，除非你显式选择 **Reset**（或传入 `--reset`）。

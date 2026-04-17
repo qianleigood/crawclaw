@@ -37,6 +37,16 @@ crawclaw onboard
 - [CLI 新手引导](/start/wizard)
 - [`crawclaw onboard` 命令](/cli/onboard)
 
+无论你走哪条 onboarding 路径，当前主流程都会覆盖：
+
+1. **模型提供商与认证**
+2. **工作区**
+3. **Gateway 网关**
+4. **渠道**（可选）
+5. **输出与展示**（默认回复可见性与 streaming 预设）
+6. **Memory / Knowledge**（可选的 NotebookLM knowledge recall）
+7. **守护进程**（可选）
+
 ## 自定义提供商
 
 如果你需要一个未列出的端点，包括那些

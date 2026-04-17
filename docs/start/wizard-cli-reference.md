@@ -21,6 +21,7 @@ Local mode (default) walks you through:
 - Gateway settings (port, bind, auth, tailscale)
 - Channels and providers (Telegram, WhatsApp, Discord, Google Chat, Mattermost plugin, Signal)
 - Output and presentation preset (`quiet`, `balanced`, `operator`)
+- Memory / Knowledge enablement for NotebookLM-backed knowledge recall
 - Daemon install (LaunchAgent or systemd user unit)
 - Health check
 - Skills setup
@@ -73,6 +74,15 @@ It does not install or modify anything on the remote host.
     - [iMessage](/channels/imessage): legacy `imsg` CLI path + DB access
     - DM security: default is pairing. First DM sends a code; approve via
       `crawclaw pairing approve <channel> <code>` or use allowlists.
+  </Step>
+  <Step title="Output and presentation">
+    - Picks the default reply preset: `quiet`, `balanced`, or `operator`.
+    - Maps to streaming, visible process detail, ACP visibility, and reply threading defaults.
+  </Step>
+  <Step title="Memory / Knowledge">
+    - Asks whether to enable NotebookLM-backed knowledge recall.
+    - If enabled, onboarding preserves `memory.notebooklm.enabled = true`.
+    - Near the end, if the provider state recommends `crawclaw memory login`, onboarding can offer to run that login flow immediately.
   </Step>
   <Step title="Daemon install">
     - macOS: LaunchAgent
