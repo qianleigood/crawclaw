@@ -1,6 +1,6 @@
 import { html, nothing } from "lit";
-import type { EventLogEntry } from "../app-events.ts";
 import { formatEventPayload } from "../presenter.ts";
+import type { EventLogEntry } from "../types/event-log.ts";
 import { uiLiteral } from "../ui-literal.ts";
 
 export type DebugProps = {

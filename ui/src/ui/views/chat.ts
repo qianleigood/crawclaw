@@ -1,11 +1,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { ref } from "lit/directives/ref.js";
 import { repeat } from "lit/directives/repeat.js";
-import type { ActionFeedEntry } from "../app-action-feed.ts";
-import type {
-  CompactionStatus as CompactionIndicatorStatus,
-  FallbackStatus as FallbackIndicatorStatus,
-} from "../app-tool-stream.ts";
+import type { ActionFeedEntry } from "../chat/action-feed-state.ts";
 import {
   CHAT_ATTACHMENT_ACCEPT,
   isSupportedChatAttachmentMimeType,
@@ -31,6 +27,10 @@ import {
   type SlashCommandDef,
 } from "../chat/slash-commands.ts";
 import { isSttSupported, startStt, stopStt } from "../chat/speech.ts";
+import type {
+  CompactionStatus as CompactionIndicatorStatus,
+  FallbackStatus as FallbackIndicatorStatus,
+} from "../chat/tool-stream-state.ts";
 import { icons } from "../icons.ts";
 import { detectTextDirection } from "../text-direction.ts";
 import type { GatewaySessionRow, SessionsListResult } from "../types.ts";

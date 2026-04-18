@@ -1,8 +1,8 @@
 import { html, nothing } from "lit";
 import { t } from "../../i18n/index.ts";
-import type { EventLogEntry } from "../app-events.ts";
 import { icons } from "../icons.ts";
 import { formatEventPayload } from "../presenter.ts";
+import type { EventLogEntry } from "../types/event-log.ts";
 
 export type OverviewEventLogProps = {
   events: EventLogEntry[];

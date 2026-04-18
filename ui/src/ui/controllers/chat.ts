@@ -1,6 +1,6 @@
-import { resetActionFeed } from "../app-action-feed.ts";
-import { resetToolStream } from "../app-tool-stream.ts";
+import { resetActionFeed } from "../chat/action-feed-state.ts";
 import { extractText } from "../chat/message-extract.ts";
+import { resetToolStream } from "../chat/tool-stream-state.ts";
 import { formatConnectError } from "../connect-error.ts";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { ChatAttachment } from "../ui-types.ts";

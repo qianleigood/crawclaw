@@ -1,12 +1,21 @@
-import { projectAgentActionEventData } from "../../../src/agents/action-feed/projector.js";
-import type { AgentActionEventData } from "../../../src/agents/action-feed/types.js";
-import { isAgentActionEventData } from "../../../src/agents/action-feed/types.js";
+import { projectAgentActionEventData } from "../../../../src/agents/action-feed/projector.js";
+import { isAgentActionEventData } from "../../../../src/agents/action-feed/types.js";
+
 const ACTION_FEED_LIMIT = 24;
 
-export type AgentActionEntry = AgentActionEventData & {
+export type AgentActionEntry = {
+  actionId: string;
+  kind: string;
+  title: string;
+  status: "started" | "running" | "waiting" | "completed" | "blocked" | "cancelled" | "failed";
+  summary?: string;
+  projectedTitle?: string;
+  projectedSummary?: string;
+  detail?: unknown;
   runId: string;
   sessionKey?: string;
   updatedAt: number;
+  [key: string]: unknown;
 };
 
 export type ActionFeedEntry = AgentActionEntry;
@@ -118,7 +127,7 @@ function handleRawAgentAction(host: ActionFeedHost, payload: AgentEventPayload) 
   if (!isAgentActionEventData(payload.data)) {
     return;
   }
-  const projected = projectAgentActionEventData(payload.data);
+  const projected = projectAgentActionEventData(payload.data) as unknown as Record<string, unknown>;
   if (
     !resolveAcceptedSession(host, payload, {
       allowSessionScopedWhenIdle: true,
@@ -131,12 +140,13 @@ function handleRawAgentAction(host: ActionFeedHost, payload: AgentEventPayload) 
   ) {
     return;
   }
-  upsertActionEntry(host, {
+  const nextEntry = {
     ...projected,
     runId: payload.runId,
     ...(payload.sessionKey ? { sessionKey: payload.sessionKey } : {}),
     updatedAt: payload.ts,
-  });
+  } as AgentActionEntry;
+  upsertActionEntry(host, nextEntry);
 }
 
 export function handleAgentActionEvent(host: ActionFeedHost, payload?: AgentEventPayload) {

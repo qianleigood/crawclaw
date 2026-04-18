@@ -38,7 +38,7 @@ function extractConstUnionValues(schema: SchemaLike): string[] {
   );
 }
 
-const UI_FILES = ["ui/src/ui/types.ts", "ui/src/ui/ui-types.ts", "ui/src/ui/views/cron.ts"];
+const UI_FILES = ["ui/src/ui/types.ts", "ui/src/ui/ui-types.ts"];
 
 describe("cron protocol conformance", () => {
   it("ui includes all cron delivery modes from gateway schema", async () => {
@@ -54,7 +54,6 @@ describe("cron protocol conformance", () => {
         );
       }
     }
-
   });
 
   it("cron status shape matches gateway fields in UI", async () => {
