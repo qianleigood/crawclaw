@@ -189,6 +189,23 @@ const APP_COPY = {
       connectedAccounts: "Connected accounts",
       defaultAgent: "Default agent",
       models: "Models",
+      steps: "Steps",
+      inputs: "Inputs",
+      outputs: "Outputs",
+      groups: "Groups",
+      profiles: "Profiles",
+      tools: "Tools",
+      issues: "Issues",
+      latest: "Latest",
+      events: "Events",
+      logs: "Logs",
+      timeline: "Timeline",
+      summary: "Summary",
+      daily: "Daily",
+      agent: "Agent",
+      role: "Role",
+      state: "State",
+      exists: "Exists",
     },
     connection: {
       kicker: "Gateway endpoint",
@@ -390,6 +407,23 @@ const APP_COPY = {
       connectedAccounts: "已连接账号",
       defaultAgent: "默认代理",
       models: "模型数",
+      steps: "步骤数",
+      inputs: "输入",
+      outputs: "输出",
+      groups: "分组",
+      profiles: "配置组",
+      tools: "工具数",
+      issues: "问题数",
+      latest: "最近一条",
+      events: "事件数",
+      logs: "日志数",
+      timeline: "时间线",
+      summary: "摘要",
+      daily: "按日",
+      agent: "代理",
+      role: "角色",
+      state: "状态",
+      exists: "存在",
     },
     connection: {
       kicker: "网关端点",
@@ -660,6 +694,32 @@ function flattenChannelAccounts(snapshot: ChannelsStatusSnapshot | null) {
       account,
     })),
   );
+}
+
+function primitiveSummary(value: unknown): string {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return `${value.length}`;
+  }
+  if (value && typeof value === "object") {
+    return `${Object.keys(value as JsonRecord).length}`;
+  }
+  return "n/a";
+}
+
+function formatMaybeDate(value: unknown, locale: Locale): string {
+  return typeof value === "number" ? formatDateTime(value, locale) : uiText(locale).common.na;
+}
+
+function countObjectKeys(value: unknown): number {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? Object.keys(value as JsonRecord).length
+    : 0;
 }
 
 function resolvePresenceEntries(payload: unknown): PresenceEntry[] {
@@ -1361,6 +1421,332 @@ export class CrawClawApp extends LitElement {
       ts,
       scope: scopeParts.join(" / ") || copy.common.na,
     };
+  }
+
+  private renderMetaEntries(
+    entries: Array<{ label: string; value: unknown; hint?: string }>,
+    empty?: string,
+  ) {
+    const visible = entries.filter((entry) => entry.value !== undefined && entry.value !== null);
+    if (!visible.length) {
+      return empty ? html`<p class="cp-empty">${empty}</p>` : nothing;
+    }
+    return html`
+      <div class="cp-meta-list">
+        ${visible.map(
+          (entry) => html`
+            <div>
+              <span>${entry.label}</span>
+              <strong
+                >${typeof entry.value === "string" ? entry.value : String(entry.value)}</strong
+              >
+              ${entry.hint ? html`<small>${entry.hint}</small>` : nothing}
+            </div>
+          `,
+        )}
+      </div>
+    `;
+  }
+
+  private renderWorkflowExecutionPanel(execution: unknown) {
+    const copy = uiText(this.locale);
+    const record = execution && typeof execution === "object" ? (execution as JsonRecord) : null;
+    if (!record) {
+      return html`<p class="cp-empty">${copy.workflows.noExecution}</p>`;
+    }
+    return this.renderMetaEntries([
+      {
+        label: "ID",
+        value: readString(record.executionId, readString(record.runId, copy.common.na)),
+      },
+      { label: copy.common.status, value: readString(record.status, copy.common.na) },
+      { label: copy.common.state, value: readString(record.state, copy.common.na) },
+      { label: copy.common.updated, value: formatMaybeDate(record.updatedAt, this.locale) },
+      { label: copy.common.agent, value: readString(record.agentId, copy.common.na) },
+      {
+        label: copy.common.events,
+        value: Array.isArray(record.events) ? record.events.length : 0,
+      },
+    ]);
+  }
+
+  private renderWorkflowSpecPanel(spec: unknown) {
+    const copy = uiText(this.locale);
+    const record = spec && typeof spec === "object" ? (spec as JsonRecord) : null;
+    if (!record) {
+      return html`<p class="cp-empty">${copy.workflows.choosePrompt}</p>`;
+    }
+    return this.renderMetaEntries([
+      { label: copy.common.summary, value: readString(record.goal, copy.common.na) },
+      { label: copy.common.state, value: readString(record.topology, copy.common.na) },
+      { label: copy.common.steps, value: Array.isArray(record.steps) ? record.steps.length : 0 },
+      {
+        label: copy.common.inputs,
+        value: Array.isArray(record.inputs) ? record.inputs.length : countObjectKeys(record.inputs),
+      },
+      {
+        label: copy.common.outputs,
+        value: Array.isArray(record.outputs)
+          ? record.outputs.length
+          : countObjectKeys(record.outputs),
+      },
+      {
+        label: "Tags",
+        value: Array.isArray(record.tags) ? record.tags.length : 0,
+        hint: Array.isArray(record.tags) ? record.tags.join(", ") || undefined : undefined,
+      },
+    ]);
+  }
+
+  private renderAgentInspectionPanel(snapshot: unknown) {
+    const copy = uiText(this.locale);
+    const record = snapshot && typeof snapshot === "object" ? (snapshot as JsonRecord) : null;
+    if (!record) {
+      return html`<p class="cp-empty">${copy.agents.selectPrompt}</p>`;
+    }
+    return this.renderMetaEntries([
+      { label: copy.common.agent, value: readString(record.agentId, copy.common.na) },
+      { label: copy.common.model, value: readString(record.modelId, copy.common.na) },
+      { label: copy.common.provider, value: readString(record.provider, copy.common.na) },
+      { label: copy.common.execution, value: readString(record.runId, copy.common.na) },
+      { label: "Task", value: readString(record.taskId, copy.common.na) },
+      {
+        label: copy.common.timeline,
+        value: Array.isArray(record.timeline) ? record.timeline.length : 0,
+      },
+    ]);
+  }
+
+  private renderToolsCatalogPanel() {
+    const copy = uiText(this.locale);
+    const result =
+      this.agentsState.toolsCatalogResult && typeof this.agentsState.toolsCatalogResult === "object"
+        ? (this.agentsState.toolsCatalogResult as JsonRecord)
+        : null;
+    if (!result) {
+      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+    }
+    const groups = Array.isArray(result.groups) ? result.groups : [];
+    const profiles = Array.isArray(result.profiles) ? result.profiles : [];
+    const tools = groups.reduce((sum, group) => {
+      const toolsList =
+        group && typeof group === "object" && Array.isArray((group as JsonRecord).tools)
+          ? ((group as JsonRecord).tools as unknown[])
+          : [];
+      return sum + toolsList.length;
+    }, 0);
+    return this.renderMetaEntries([
+      { label: copy.common.groups, value: groups.length },
+      { label: copy.common.profiles, value: profiles.length },
+      { label: copy.common.tools, value: tools },
+      {
+        label: copy.common.latest,
+        value:
+          groups[0] && typeof groups[0] === "object"
+            ? readString((groups[0] as JsonRecord).label, copy.common.na)
+            : copy.common.na,
+      },
+    ]);
+  }
+
+  private renderToolsEffectivePanel() {
+    const copy = uiText(this.locale);
+    const result =
+      this.agentsState.toolsEffectiveResult &&
+      typeof this.agentsState.toolsEffectiveResult === "object"
+        ? (this.agentsState.toolsEffectiveResult as JsonRecord)
+        : null;
+    if (!result) {
+      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+    }
+    const groups = Array.isArray(result.groups) ? result.groups : [];
+    const tools = groups.reduce((sum, group) => {
+      const toolsList =
+        group && typeof group === "object" && Array.isArray((group as JsonRecord).tools)
+          ? ((group as JsonRecord).tools as unknown[])
+          : [];
+      return sum + toolsList.length;
+    }, 0);
+    return this.renderMetaEntries([
+      { label: copy.common.groups, value: groups.length },
+      { label: copy.common.tools, value: tools },
+      {
+        label: copy.common.session,
+        value: this.settings.sessionKey,
+      },
+      {
+        label: copy.common.latest,
+        value:
+          groups[0] && typeof groups[0] === "object"
+            ? readString((groups[0] as JsonRecord).label, copy.common.na)
+            : copy.common.na,
+      },
+    ]);
+  }
+
+  private renderUsageTotalsPanel() {
+    const copy = uiText(this.locale);
+    const totals =
+      this.usageState.usageCostSummary?.totals &&
+      typeof this.usageState.usageCostSummary.totals === "object"
+        ? (this.usageState.usageCostSummary.totals as JsonRecord)
+        : null;
+    if (!totals) {
+      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+    }
+    return this.renderMetaEntries([
+      {
+        label: copy.common.cost,
+        value: `$${readUsageCost(this.usageState.usageCostSummary).toFixed(2)}`,
+      },
+      {
+        label: copy.common.tokens,
+        value: primitiveSummary(totals.totalTokens ?? totals.total_tokens),
+      },
+      { label: "Input", value: primitiveSummary(totals.inputTokens ?? totals.input_tokens) },
+      { label: "Output", value: primitiveSummary(totals.outputTokens ?? totals.output_tokens) },
+      {
+        label: copy.common.daily,
+        value: Array.isArray(this.usageState.usageCostSummary?.daily)
+          ? this.usageState.usageCostSummary?.daily.length
+          : 0,
+      },
+    ]);
+  }
+
+  private renderUsageTimeSeriesPanel() {
+    const copy = uiText(this.locale);
+    const series =
+      this.usageState.usageTimeSeries && typeof this.usageState.usageTimeSeries === "object"
+        ? (this.usageState.usageTimeSeries as JsonRecord)
+        : null;
+    if (!series) {
+      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+    }
+    const points = Array.isArray(series.points)
+      ? series.points
+      : Array.isArray(series.entries)
+        ? series.entries
+        : [];
+    const latest = points.at(-1);
+    return this.renderMetaEntries([
+      { label: copy.common.timeline, value: points.length },
+      {
+        label: copy.common.latest,
+        value:
+          latest && typeof latest === "object"
+            ? readString(
+                (latest as JsonRecord).day,
+                readString((latest as JsonRecord).ts, copy.common.na),
+              )
+            : copy.common.na,
+      },
+      {
+        label: copy.common.tokens,
+        value:
+          latest && typeof latest === "object"
+            ? primitiveSummary(
+                (latest as JsonRecord).totalTokens ?? (latest as JsonRecord).total_tokens,
+              )
+            : copy.common.na,
+      },
+    ]);
+  }
+
+  private renderUsageLogsPanel() {
+    const copy = uiText(this.locale);
+    const logs = Array.isArray(this.usageState.usageSessionLogs)
+      ? this.usageState.usageSessionLogs
+      : [];
+    const latest = logs[0] && typeof logs[0] === "object" ? (logs[0] as JsonRecord) : null;
+    return this.renderMetaEntries(
+      [
+        { label: copy.common.logs, value: logs.length },
+        {
+          label: copy.common.latest,
+          value: latest ? formatMaybeDate(latest.ts, this.locale) : copy.common.na,
+        },
+        {
+          label: copy.common.session,
+          value: latest ? readString(latest.sessionKey, copy.common.na) : copy.common.na,
+        },
+        {
+          label: copy.common.role,
+          value: latest ? readString(latest.role, copy.common.na) : copy.common.na,
+        },
+      ],
+      copy.common.notLoaded,
+    );
+  }
+
+  private renderConfigIssuesPanel() {
+    const copy = uiText(this.locale);
+    const issues = Array.isArray(this.configState.configIssues)
+      ? this.configState.configIssues
+      : [];
+    if (!issues.length) {
+      return html`<p class="cp-empty">${copy.common.none}</p>`;
+    }
+    return html`
+      <div class="cp-list cp-list--dense">
+        ${issues.map((issue) => {
+          const record = issue && typeof issue === "object" ? (issue as JsonRecord) : null;
+          return html`
+            <div class="cp-list-item">
+              <strong>${readString(record?.path, copy.common.na)}</strong>
+              <small>${readString(record?.message, copy.common.na)}</small>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  private renderApprovalsSnapshotPanel() {
+    const copy = uiText(this.locale);
+    if (this.approvalsError) {
+      return html`<p class="cp-empty">${this.approvalsError}</p>`;
+    }
+    const snapshot = this.execApprovalsState.execApprovalsSnapshot;
+    if (!snapshot) {
+      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+    }
+    return this.renderMetaEntries([
+      { label: copy.common.path, value: snapshot.path },
+      { label: copy.common.hash, value: snapshot.hash },
+      { label: copy.common.exists, value: snapshot.exists ? copy.common.yes : copy.common.no },
+      {
+        label: copy.common.agent,
+        value: countObjectKeys(snapshot.file?.agents),
+      },
+      {
+        label: copy.common.defaultAgent,
+        value: readString(snapshot.file?.defaults?.security, copy.common.na),
+      },
+    ]);
+  }
+
+  private renderDebugSnapshotPanel(value: unknown, titleFallback: string) {
+    const copy = uiText(this.locale);
+    const record = value && typeof value === "object" ? (value as JsonRecord) : null;
+    if (!record) {
+      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+    }
+    const entries: Array<{ label: string; value: string; hint?: string }> = Object.entries(record)
+      .filter(([, entry]) => ["string", "number", "boolean"].includes(typeof entry))
+      .slice(0, 6)
+      .map(([key, entry]) => ({
+        label: key,
+        value: primitiveSummary(entry),
+      }));
+    if (!entries.length) {
+      entries.push({
+        label: copy.common.summary,
+        value: titleFallback,
+        hint: `${Object.keys(record).length} keys`,
+      });
+    }
+    return this.renderMetaEntries(entries);
   }
 
   private renderPageHeader(
@@ -2123,16 +2509,12 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                       </article>
                       <article class="cp-subpanel">
                         <h4>${copy.workflows.currentExecution}</h4>
-                        <pre class="cp-code">
-${selectedExecution ? formatJson(selectedExecution) : copy.workflows.noExecution}</pre
-                        >
+                        ${this.renderWorkflowExecutionPanel(selectedExecution)}
                       </article>
                     </div>
                     <article class="cp-subpanel">
                       <h4>${copy.workflows.specification}</h4>
-                      <pre class="cp-code">
-${formatJson(this.workflowsState.workflowDetail?.spec)}</pre
-                      >
+                      ${this.renderWorkflowSpecPanel(this.workflowsState.workflowDetail?.spec)}
                     </article>
                   `
                 : html`<p class="cp-empty">${copy.workflows.choosePrompt}</p>`}
@@ -2231,20 +2613,16 @@ ${formatJson(this.workflowsState.workflowDetail?.spec)}</pre
                       </article>
                       <article class="cp-subpanel">
                         <h4>${copy.agents.inspectionSnapshot}</h4>
-                        <pre class="cp-code">
-${formatJson(this.agentsState.agentInspectionSnapshot)}</pre
-                        >
+                        ${this.renderAgentInspectionPanel(this.agentsState.agentInspectionSnapshot)}
                       </article>
                     </div>
                     <article class="cp-subpanel">
                       <h4>${copy.agents.toolsCatalog}</h4>
-                      <pre class="cp-code">${formatJson(this.agentsState.toolsCatalogResult)}</pre>
+                      ${this.renderToolsCatalogPanel()}
                     </article>
                     <article class="cp-subpanel">
                       <h4>${copy.agents.effectiveTools}</h4>
-                      <pre class="cp-code">
-${formatJson(this.agentsState.toolsEffectiveResult)}</pre
-                      >
+                      ${this.renderToolsEffectivePanel()}
                     </article>
                   `
                 : html`<p class="cp-empty">${copy.agents.selectPrompt}</p>`}
@@ -2326,7 +2704,7 @@ ${formatJson(this.agentsState.toolsEffectiveResult)}</pre
                   </button>
                 </div>
               </form>
-              <pre class="cp-code">${formatJson(this.usageState.usageCostSummary?.totals)}</pre>
+              ${this.renderUsageTotalsPanel()}
             </article>
           </aside>
           <main class="cp-stage__main">
@@ -2370,11 +2748,11 @@ ${formatJson(this.agentsState.toolsEffectiveResult)}</pre
             <section class="cp-grid cp-grid--double">
               <article class="cp-subpanel">
                 <h4>${copy.usage.timeSeries}</h4>
-                <pre class="cp-code">${formatJson(this.usageState.usageTimeSeries)}</pre>
+                ${this.renderUsageTimeSeriesPanel()}
               </article>
               <article class="cp-subpanel">
                 <h4>${copy.usage.usageLogs}</h4>
-                <pre class="cp-code">${formatJson(this.usageState.usageSessionLogs)}</pre>
+                ${this.renderUsageLogsPanel()}
               </article>
             </section>
           </main>
@@ -2517,13 +2895,11 @@ ${formatJson(this.agentsState.toolsEffectiveResult)}</pre
             <section class="cp-grid cp-grid--double">
               <article class="cp-subpanel">
                 <h4>${copy.config.configIssues}</h4>
-                <pre class="cp-code">${formatJson(this.configState.configIssues)}</pre>
+                ${this.renderConfigIssuesPanel()}
               </article>
               <article class="cp-subpanel">
                 <h4>${copy.config.approvalSnapshot}</h4>
-                <pre class="cp-code">
-${this.approvalsError ?? formatJson(this.execApprovalsState.execApprovalsSnapshot)}</pre
-                >
+                ${this.renderApprovalsSnapshotPanel()}
               </article>
             </section>
           </main>
@@ -2596,11 +2972,17 @@ ${this.approvalsError ?? formatJson(this.execApprovalsState.execApprovalsSnapsho
             <section class="cp-grid cp-grid--double">
               <article class="cp-subpanel">
                 <h4>${copy.debug.statusSnapshot}</h4>
-                <pre class="cp-code">${formatJson(this.debugState.debugStatus)}</pre>
+                ${this.renderDebugSnapshotPanel(
+                  this.debugState.debugStatus,
+                  copy.debug.statusSnapshot,
+                )}
               </article>
               <article class="cp-subpanel">
                 <h4>${copy.debug.healthSnapshot}</h4>
-                <pre class="cp-code">${formatJson(this.debugState.debugHealth)}</pre>
+                ${this.renderDebugSnapshotPanel(
+                  this.debugState.debugHealth,
+                  copy.debug.healthSnapshot,
+                )}
               </article>
             </section>
             <article class="cp-panel">
