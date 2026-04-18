@@ -380,6 +380,19 @@ crawclaw-app {
   gap: var(--cp-stage-gap);
 }
 
+.cp-session-console.is-maximized {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cp-session-console.is-maximized .cp-session-console__rail,
+.cp-session-console.is-maximized .cp-session-console__inspector {
+  display: none;
+}
+
+.cp-session-console.is-maximized .cp-session-console__main {
+  gap: 24px;
+}
+
 .cp-session-console__rail,
 .cp-session-console__main,
 .cp-session-console__inspector {
@@ -678,6 +691,11 @@ crawclaw-app {
   min-height: 480px;
 }
 
+.cp-session-console.is-maximized .cp-chat-thread--console {
+  min-height: clamp(620px, calc(100vh - 340px), 1120px);
+  max-height: none;
+}
+
 .cp-chat-entry {
   display: grid;
   gap: 10px;
@@ -795,6 +813,20 @@ crawclaw-app {
   border-top: 1px solid rgba(123, 162, 255, 0.08);
 }
 
+.cp-chat-composer__surface {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(21, 45, 74, 0.66), rgba(8, 16, 27, 0.9)),
+    rgba(6, 14, 23, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(166, 198, 255, 0.08),
+    0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
 .cp-chat-composer__head {
   display: flex;
   justify-content: space-between;
@@ -815,6 +847,14 @@ crawclaw-app {
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.cp-chat-composer__textarea {
+  min-height: 148px;
+  resize: vertical;
+  border-radius: 18px;
+  background: rgba(4, 10, 18, 0.88);
+  box-shadow: inset 0 1px 0 rgba(166, 198, 255, 0.05);
 }
 
 .cp-chat-attachments-toolbar {
@@ -936,6 +976,15 @@ crawclaw-app {
   gap: 10px;
 }
 
+.cp-form__actions--composer {
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.cp-form__actions--composer .cp-button--primary {
+  min-width: 132px;
+}
+
 .cp-code {
   margin: 0;
   padding: 14px;
@@ -975,6 +1024,10 @@ crawclaw-app {
   .cp-band,
   .cp-grid--double {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .cp-chat-composer__head {
+    flex-direction: column;
   }
 }
 
@@ -1049,11 +1102,27 @@ crawclaw-app {
     flex-direction: column;
   }
 
+  .cp-chat-composer__surface {
+    gap: 12px;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .cp-form__actions--composer .cp-button--primary {
+    width: 100%;
+  }
+
   .cp-chat-bubble {
     max-width: 100%;
   }
 
   .cp-chat-entry {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .cp-session-console.is-maximized .cp-chat-thread--console {
+    min-height: calc(100vh - 360px);
   }
 }

@@ -273,6 +273,9 @@ const APP_COPY = {
       attachImage: "Attach image",
       dragHint: "Drag images here or use the picker",
       imageAttachments: "Image attachments",
+      maximize: "Maximize thread",
+      restore: "Restore layout",
+      clearImages: "Clear images",
       inspectorKicker: "Inspector",
       inspectorTitle: "Current session context",
       selectPrompt: "Select a session to inspect.",
@@ -507,6 +510,9 @@ const APP_COPY = {
       attachImage: "添加图片",
       dragHint: "把图片拖到这里，或使用选择器",
       imageAttachments: "图片附件",
+      maximize: "最大化对话",
+      restore: "恢复布局",
+      clearImages: "清空图片",
       inspectorKicker: "检查面板",
       inspectorTitle: "当前会话上下文",
       selectPrompt: "选择一个会话后查看详情。",
@@ -878,6 +884,7 @@ export class CrawClawApp extends LitElement {
   @state() gatewayTokenDraft = this.settings.token;
   @state() sidebarCollapsed = false;
   @state() sessionsQuery = "";
+  @state() sessionsMaximized = false;
   @state() systemStatus: StatusSummary | null = null;
   @state() systemPresence: PresenceEntry[] = [];
   @state() systemHeartbeat: unknown = null;
@@ -2235,7 +2242,7 @@ export class CrawClawApp extends LitElement {
             hint: selected?.status ?? copy.common.idle,
           },
         ])}
-        <div class="cp-session-console">
+        <div class="cp-session-console ${this.sessionsMaximized ? "is-maximized" : ""}">
           <aside class="cp-session-console__rail">
             <article class="cp-panel cp-panel--fill cp-panel--rail">
               <div class="cp-panel__head">
@@ -2326,6 +2333,15 @@ export class CrawClawApp extends LitElement {
                 <div class="cp-inline-actions">
                   <button
                     class="cp-button"
+                    type="button"
+                    @click=${() => {
+                      this.sessionsMaximized = !this.sessionsMaximized;
+                    }}
+                  >
+                    ${this.sessionsMaximized ? copy.sessions.restore : copy.sessions.maximize}
+                  </button>
+                  <button
+                    class="cp-button"
                     @click=${() =>
                       void this.safeCall(async () => {
                         await loadChatHistory(this.chatState);
@@ -2412,78 +2428,95 @@ export class CrawClawApp extends LitElement {
                 @drop=${(event: DragEvent) => void this.handleChatDrop(event)}
                 @dragover=${(event: DragEvent) => event.preventDefault()}
               >
-                <div class="cp-chat-composer__head">
-                  <div>
-                    <span class="cp-kicker">${copy.sessions.composerKicker}</span>
-                    <h4>${copy.sessions.composerTitle}</h4>
+                <div class="cp-chat-composer__surface">
+                  <div class="cp-chat-composer__head">
+                    <div>
+                      <span class="cp-kicker">${copy.sessions.composerKicker}</span>
+                      <h4>${copy.sessions.composerTitle}</h4>
+                    </div>
+                    <div class="cp-chat-composer__meta">
+                      <span>
+                        ${copy.sessions.draftLength}: ${this.chatState.chatMessage.trim().length}
+                      </span>
+                      <span>
+                        ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
+                      </span>
+                      <span>
+                        ${copy.sessions.imageAttachments}: ${this.chatState.chatAttachments.length}
+                      </span>
+                    </div>
                   </div>
-                  <div class="cp-chat-composer__meta">
-                    <span>
-                      ${copy.sessions.draftLength}: ${this.chatState.chatMessage.trim().length}
-                    </span>
-                    <span>
-                      ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
-                    </span>
-                    <span>
-                      ${copy.sessions.imageAttachments}: ${this.chatState.chatAttachments.length}
-                    </span>
+                  <div class="cp-chat-attachments-toolbar">
+                    <label class="cp-button cp-button--ghost cp-chat-attachments-toolbar__picker">
+                      <input
+                        type="file"
+                        accept=${CHAT_ATTACHMENT_ACCEPT}
+                        multiple
+                        @change=${(event: Event) => void this.handleChatFileSelect(event)}
+                      />
+                      <span>${copy.sessions.attachImage}</span>
+                    </label>
+                    <span class="cp-chat-attachments-toolbar__hint">${copy.sessions.dragHint}</span>
+                    ${this.chatState.chatAttachments.length
+                      ? html`
+                          <button
+                            class="cp-button cp-button--ghost"
+                            type="button"
+                            @click=${() => {
+                              this.chatState.chatAttachments = [];
+                              this.requestUpdate();
+                            }}
+                          >
+                            ${copy.sessions.clearImages}
+                          </button>
+                        `
+                      : nothing}
                   </div>
-                </div>
-                <div class="cp-chat-attachments-toolbar">
-                  <label class="cp-button cp-chat-attachments-toolbar__picker">
-                    <input
-                      type="file"
-                      accept=${CHAT_ATTACHMENT_ACCEPT}
-                      multiple
-                      @change=${(event: Event) => void this.handleChatFileSelect(event)}
-                    />
-                    <span>${copy.sessions.attachImage}</span>
-                  </label>
-                  <span class="cp-chat-attachments-toolbar__hint">${copy.sessions.dragHint}</span>
-                </div>
-                ${this.chatState.chatAttachments.length
-                  ? html`
-                      <div class="cp-chat-attachments-preview">
-                        ${repeat(
-                          this.chatState.chatAttachments,
-                          (attachment) => attachment.id,
-                          (attachment) => html`
-                            <div class="cp-chat-attachment-thumb">
-                              <img
-                                src=${attachment.dataUrl}
-                                alt=${copy.sessions.imageAttachments}
-                              />
-                              <button
-                                class="cp-chat-attachment-thumb__remove"
-                                type="button"
-                                @click=${() => {
-                                  this.chatState.chatAttachments =
-                                    this.chatState.chatAttachments.filter(
-                                      (entry) => entry.id !== attachment.id,
-                                    );
-                                  this.requestUpdate();
-                                }}
-                              >
-                                ×
-                              </button>
-                            </div>
-                          `,
-                        )}
-                      </div>
-                    `
-                  : nothing}
-                <textarea
-                  .value=${this.chatState.chatMessage}
-                  placeholder=${copy.sessions.sendPlaceholder}
-                  @input=${(event: Event) => {
-                    this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
-                    this.requestUpdate();
-                  }}
-                ></textarea>
-                <div class="cp-form__actions">
-                  <button class="cp-button cp-button--primary" type="submit">
-                    ${copy.common.send}
-                  </button>
+                  ${this.chatState.chatAttachments.length
+                    ? html`
+                        <div class="cp-chat-attachments-preview">
+                          ${repeat(
+                            this.chatState.chatAttachments,
+                            (attachment) => attachment.id,
+                            (attachment) => html`
+                              <div class="cp-chat-attachment-thumb">
+                                <img
+                                  src=${attachment.dataUrl}
+                                  alt=${copy.sessions.imageAttachments}
+                                />
+                                <button
+                                  class="cp-chat-attachment-thumb__remove"
+                                  type="button"
+                                  @click=${() => {
+                                    this.chatState.chatAttachments =
+                                      this.chatState.chatAttachments.filter(
+                                        (entry) => entry.id !== attachment.id,
+                                      );
+                                    this.requestUpdate();
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            `,
+                          )}
+                        </div>
+                      `
+                    : nothing}
+                  <textarea
+                    class="cp-chat-composer__textarea"
+                    .value=${this.chatState.chatMessage}
+                    placeholder=${copy.sessions.sendPlaceholder}
+                    @input=${(event: Event) => {
+                      this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
+                      this.requestUpdate();
+                    }}
+                  ></textarea>
+                  <div class="cp-form__actions cp-form__actions--composer">
+                    <button class="cp-button cp-button--primary" type="submit">
+                      ${copy.common.send}
+                    </button>
+                  </div>
                 </div>
               </form>
             </article>
