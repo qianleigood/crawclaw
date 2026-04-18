@@ -277,4 +277,37 @@ describe("channel display selectors", () => {
     expect(container.textContent).toContain("Step 3 of 5");
     expect(container.textContent).toContain("Connect one channel");
   });
+
+  it("renders operations strip for gateway probe, login flow, and config state", async () => {
+    const container = document.createElement("div");
+    render(
+      renderChannels(
+        createProps(
+          {
+            ts: Date.now(),
+            channelOrder: ["whatsapp"],
+            channelLabels: { whatsapp: "WhatsApp" },
+            channels: { whatsapp: { configured: true } },
+            channelAccounts: {},
+            channelDefaultAccountId: {},
+          },
+          {
+            lastSuccessAt: Date.now(),
+            whatsappBusy: true,
+            whatsappMessage: "Waiting for QR scan",
+            feishuCliSupported: false,
+            configFormDirty: true,
+          },
+        ),
+      ),
+      container,
+    );
+    await Promise.resolve();
+
+    expect(container.textContent).toContain("Gateway probe");
+    expect(container.textContent).toContain("WhatsApp login");
+    expect(container.textContent).toContain("Waiting for QR scan");
+    expect(container.textContent).toContain("Config state");
+    expect(container.textContent).toContain("Apply required");
+  });
 });

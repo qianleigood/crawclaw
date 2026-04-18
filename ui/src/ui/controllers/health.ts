@@ -1,3 +1,4 @@
+import type { ControlUiMethodParamsMap } from "../../../../src/gateway/protocol/control-ui-methods.js";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { HealthSummary } from "../types.ts";
 
@@ -30,7 +31,9 @@ export type HealthState = {
  */
 export async function loadHealth(client: GatewayBrowserClient): Promise<HealthSummary> {
   try {
-    const result = await client.request<HealthSummary>("health", {});
+    const method = client.hasMethod("system.health") ? "system.health" : "health";
+    const params: ControlUiMethodParamsMap["system.health"] = {};
+    const result = await client.request<HealthSummary>(method, params);
     return result ?? HEALTH_FALLBACK;
   } catch {
     return HEALTH_FALLBACK;

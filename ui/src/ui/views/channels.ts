@@ -17,6 +17,7 @@ import type {
   TelegramStatus,
   WhatsAppStatus,
 } from "../types.ts";
+import { uiLiteral } from "../ui-literal.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
 import { renderDiscordCard } from "./channels.discord.ts";
 import { renderGoogleChatCard } from "./channels.googlechat.ts";
@@ -58,6 +59,49 @@ export function renderChannels(props: ChannelsProps) {
       }
       return a.order - b.order;
     });
+  const configuredChannels = orderedChannels.filter(
+    (channel) => resolveChannelDisplayState(channel.key, props).configured,
+  ).length;
+  const activeChannels = orderedChannels.filter((channel) => {
+    const state = resolveChannelDisplayState(channel.key, props);
+    return state.connected || state.running;
+  }).length;
+  const enabledChannels = orderedChannels.filter((channel) => channel.enabled).length;
+  const accountCount = Object.values(props.snapshot?.channelAccounts ?? {}).reduce(
+    (total, accounts) => total + (Array.isArray(accounts) ? accounts.length : 0),
+    0,
+  );
+  const gatewayProbeState = props.loading
+    ? uiLiteral("Refreshing")
+    : props.lastError
+      ? uiLiteral("Attention")
+      : props.lastSuccessAt
+        ? uiLiteral("Recent")
+        : uiLiteral("Pending");
+  const whatsappFlowState = props.whatsappBusy
+    ? uiLiteral("Working")
+    : props.whatsappConnected === true
+      ? uiLiteral("Linked")
+      : props.whatsappQrDataUrl
+        ? uiLiteral("QR ready")
+        : props.whatsappMessage
+          ? uiLiteral("Waiting")
+          : uiLiteral("Idle");
+  const feishuFlowState =
+    props.feishuCliSupported === false
+      ? uiLiteral("Unavailable")
+      : props.feishuCliStatus?.authOk
+        ? uiLiteral("Ready")
+        : props.feishuCliStatus
+          ? uiLiteral("Needs auth")
+          : props.feishuCliError
+            ? uiLiteral("Attention")
+            : uiLiteral("Pending");
+  const configState = props.configSaving
+    ? uiLiteral("Saving")
+    : props.configFormDirty
+      ? uiLiteral("Apply required")
+      : uiLiteral("In sync");
 
   return html`
     <section class="connect-center card">
@@ -79,9 +123,65 @@ export function renderChannels(props: ChannelsProps) {
           <div>
             <span class="label">${t("channelsPage.meta.lastRefresh")}</span>
             <strong
-              >${props.lastSuccessAt ? formatRelativeTimestamp(props.lastSuccessAt) : t("common.na")}</strong
+              >${props.lastSuccessAt
+                ? formatRelativeTimestamp(props.lastSuccessAt)
+                : t("common.na")}</strong
             >
           </div>
+        </div>
+      </div>
+      <div class="connect-center__summary-strip">
+        <div class="connect-center__summary-card">
+          <span class="label">Enabled surfaces</span>
+          <strong>${enabledChannels}</strong>
+        </div>
+        <div class="connect-center__summary-card">
+          <span class="label">Configured</span>
+          <strong>${configuredChannels}</strong>
+        </div>
+        <div class="connect-center__summary-card">
+          <span class="label">Live now</span>
+          <strong>${activeChannels}</strong>
+        </div>
+        <div class="connect-center__summary-card">
+          <span class="label">Accounts</span>
+          <strong>${accountCount}</strong>
+        </div>
+      </div>
+      <div class="connect-center__ops-strip">
+        <div class="connect-center__ops-card">
+          <span class="label">${uiLiteral("Gateway probe")}</span>
+          <strong>${gatewayProbeState}</strong>
+          <span
+            >${props.lastSuccessAt
+              ? formatRelativeTimestamp(props.lastSuccessAt)
+              : uiLiteral("No snapshot yet")}</span
+          >
+        </div>
+        <div class="connect-center__ops-card">
+          <span class="label">${uiLiteral("WhatsApp login")}</span>
+          <strong>${whatsappFlowState}</strong>
+          <span>${props.whatsappMessage ?? uiLiteral("No active login flow")}</span>
+        </div>
+        <div class="connect-center__ops-card">
+          <span class="label">${uiLiteral("Feishu CLI")}</span>
+          <strong>${feishuFlowState}</strong>
+          <span
+            >${props.feishuCliError ??
+            props.feishuCliStatus?.message ??
+            uiLiteral("Capability summary only")}</span
+          >
+        </div>
+        <div class="connect-center__ops-card">
+          <span class="label">${uiLiteral("Config state")}</span>
+          <strong>${configState}</strong>
+          <span>
+            ${props.configSchemaLoading
+              ? uiLiteral("Loading schema")
+              : props.configFormDirty
+                ? uiLiteral("Unsaved channel edits pending")
+                : uiLiteral("Channel config is aligned with runtime")}
+          </span>
         </div>
       </div>
       ${props.lastError
@@ -133,7 +233,9 @@ export function renderChannels(props: ChannelsProps) {
       ? renderChannelHealthSnapshot(props)
       : html`
           <details class="card connect-center__details">
-            <summary class="connect-center__details-summary">${t("channelsPage.advancedSnapshot")}</summary>
+            <summary class="connect-center__details-summary">
+              ${t("channelsPage.advancedSnapshot")}
+            </summary>
             <div class="connect-center__details-body">${renderChannelHealthSnapshot(props)}</div>
           </details>
         `}
@@ -166,8 +268,12 @@ function renderConnectCenterGuideState(props: ChannelsProps) {
         </div>
       </div>
       <div class="connect-center__guide-actions">
-        <button class="btn primary" @click=${props.onResumeOnboarding}>${t("channelsPage.actions.resumeGuide")}</button>
-        <button class="btn" @click=${props.onRestartOnboarding}>${t("channelsPage.actions.restartGuide")}</button>
+        <button class="btn primary" @click=${props.onResumeOnboarding}>
+          ${t("channelsPage.actions.resumeGuide")}
+        </button>
+        <button class="btn" @click=${props.onRestartOnboarding}>
+          ${t("channelsPage.actions.restartGuide")}
+        </button>
       </div>
     </section>
   `;
@@ -286,9 +392,7 @@ function renderFeishuCliCard(props: ChannelsProps) {
     : t("common.na");
   const informationalMessage =
     status?.message ??
-    (props.feishuCliSupported === false
-      ? t("channelsPage.feishu.pluginNotLoaded")
-      : null);
+    (props.feishuCliSupported === false ? t("channelsPage.feishu.pluginNotLoaded") : null);
   const nextSteps =
     props.feishuCliSupported === false
       ? [
@@ -621,7 +725,9 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
         <div>
           <span class="label">${t("channelsPage.generic.lastInbound")}</span>
           <span
-            >${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : t("common.na")}</span
+            >${account.lastInboundAt
+              ? formatRelativeTimestamp(account.lastInboundAt)
+              : t("common.na")}</span
           >
         </div>
         <div>

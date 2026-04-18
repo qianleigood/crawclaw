@@ -37,77 +37,169 @@ export function renderDebug(props: DebugProps) {
       : warn > 0
         ? `${warn} ${uiLiteral("warnings")}`
         : uiLiteral("No critical issues");
+  const methodCount = props.methods.length;
+  const modelCount = props.models.length;
+  const eventCount = props.eventLog.length;
+  const preferredMethodCount = props.methods.filter(
+    (method) => method.startsWith("system.") || method.startsWith("channels.login."),
+  ).length;
+  const legacyAliasCount = props.methods.filter((method) =>
+    ["health", "status", "last-heartbeat", "web.login.start", "web.login.wait"].includes(method),
+  ).length;
+  const selectedMethod = props.callMethod.trim() || uiLiteral("Not selected");
+  const paramsState = resolveParamsState(props.callParams);
+  const rpcState = props.callError
+    ? uiLiteral("Error")
+    : props.callResult
+      ? uiLiteral("Ready")
+      : uiLiteral("Idle");
 
   return html`
-    <section class="grid">
-      <div class="card">
-        <div class="row" style="justify-content: space-between;">
-          <div>
-            <div class="card-title">${uiLiteral("Snapshots")}</div>
-            <div class="card-sub">${uiLiteral("Status, health, and heartbeat data.")}</div>
+    <section class="card operations-panel">
+      <div class="operations-panel__header row" style="justify-content: space-between;">
+        <div>
+          <div class="card-title">${uiLiteral("Debug & RPC")}</div>
+          <div class="card-sub">
+            ${uiLiteral("Snapshots, raw methods, and gateway event flow.")}
           </div>
-          <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
-            ${props.loading ? uiLiteral("Refreshing…") : uiLiteral("Refresh")}
-          </button>
         </div>
-        <div class="stack" style="margin-top: 12px;">
-          <div>
-            <div class="muted">${uiLiteral("Status")}</div>
-            ${securitySummary
-              ? html`<div class="callout ${securityTone}" style="margin-top: 8px;">
-                  ${uiLiteral("Security audit")}: ${securityLabel}${info > 0 ? ` · ${info} ${uiLiteral("info")}` : ""}. ${uiLiteral("Run")} <span class="mono">crawclaw security audit --deep</span> ${uiLiteral("for details.")}
-                </div>`
-              : nothing}
-            <pre class="code-block">${JSON.stringify(props.status ?? {}, null, 2)}</pre>
-          </div>
-          <div>
-            <div class="muted">${uiLiteral("Health")}</div>
-            <pre class="code-block">${JSON.stringify(props.health ?? {}, null, 2)}</pre>
-          </div>
-          <div>
-            <div class="muted">${uiLiteral("Last heartbeat")}</div>
-            <pre class="code-block">${JSON.stringify(props.heartbeat ?? {}, null, 2)}</pre>
-          </div>
+        <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
+          ${props.loading ? uiLiteral("Refreshing…") : uiLiteral("Refresh")}
+        </button>
+      </div>
+
+      <div class="operations-panel__stats">
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Methods")}</span>
+          <strong class="operations-panel__stat-value">${methodCount}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Models")}</span>
+          <strong class="operations-panel__stat-value">${modelCount}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Events")}</span>
+          <strong class="operations-panel__stat-value">${eventCount}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Security audit")}</span>
+          <strong class="operations-panel__stat-value">${securityLabel}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Manual RPC")}</span>
+          <strong class="operations-panel__stat-value">${rpcState}</strong>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">${uiLiteral("Manual RPC")}</div>
-        <div class="card-sub">${uiLiteral("Send a raw gateway method with JSON params.")}</div>
-        <div class="stack" style="margin-top: 16px;">
-          <label class="field">
-            <span>${uiLiteral("Method")}</span>
-            <select
-              .value=${props.callMethod}
-              @change=${(e: Event) =>
-                props.onCallMethodChange((e.target as HTMLSelectElement).value)}
-            >
-              ${!props.callMethod
-                ? html` <option value="" disabled>${uiLiteral("Select a method…")}</option> `
-                : nothing}
-              ${props.methods.map((m) => html`<option value=${m}>${m}</option>`)}
-            </select>
-          </label>
-          <label class="field">
-            <span>${uiLiteral("Params (JSON)")}</span>
-            <textarea
-              .value=${props.callParams}
-              @input=${(e: Event) =>
-                props.onCallParamsChange((e.target as HTMLTextAreaElement).value)}
-              rows="6"
-            ></textarea>
-          </label>
+      <div class="debug-surface-strip">
+        <div class="debug-surface-card">
+          <span class="debug-surface-card__label">${uiLiteral("Preferred names")}</span>
+          <strong class="debug-surface-card__value">${preferredMethodCount}</strong>
+          <span class="debug-surface-card__meta"
+            >${uiLiteral("system.* and channels.login.* available")}</span
+          >
         </div>
-        <div class="row" style="margin-top: 12px;">
-          <button class="btn primary" @click=${props.onCall}>${uiLiteral("Call")}</button>
+        <div class="debug-surface-card">
+          <span class="debug-surface-card__label">${uiLiteral("Legacy aliases")}</span>
+          <strong class="debug-surface-card__value">${legacyAliasCount}</strong>
+          <span class="debug-surface-card__meta"
+            >${uiLiteral("Compatibility surface still exposed")}</span
+          >
         </div>
-        ${props.callError
-          ? html`<div class="callout danger" style="margin-top: 12px;">${props.callError}</div>`
-          : nothing}
-        ${props.callResult
-          ? html`<pre class="code-block" style="margin-top: 12px;">${props.callResult}</pre>`
-          : nothing}
+        <div class="debug-surface-card">
+          <span class="debug-surface-card__label">${uiLiteral("Selected method")}</span>
+          <strong class="debug-surface-card__value">${selectedMethod}</strong>
+          <span class="debug-surface-card__meta">${uiLiteral("Manual RPC target")}</span>
+        </div>
+        <div class="debug-surface-card">
+          <span class="debug-surface-card__label">${uiLiteral("Params state")}</span>
+          <strong class="debug-surface-card__value">${paramsState}</strong>
+          <span class="debug-surface-card__meta"
+            >${uiLiteral("JSON payload validation before send")}</span
+          >
+        </div>
       </div>
+
+      <section class="debug-grid">
+        <div class="card">
+          <div class="row" style="justify-content: space-between;">
+            <div>
+              <div class="card-title">${uiLiteral("Snapshots")}</div>
+              <div class="card-sub">${uiLiteral("Status, health, and heartbeat data.")}</div>
+            </div>
+          </div>
+          <div class="stack" style="margin-top: 12px;">
+            <div>
+              <div class="muted">${uiLiteral("Status")}</div>
+              ${securitySummary
+                ? html`<div class="callout ${securityTone}" style="margin-top: 8px;">
+                    ${uiLiteral("Security audit")}:
+                    ${securityLabel}${info > 0 ? ` · ${info} ${uiLiteral("info")}` : ""}.
+                    ${uiLiteral("Run")}
+                    <span class="mono">crawclaw security audit --deep</span> ${uiLiteral(
+                      "for details.",
+                    )}
+                  </div>`
+                : nothing}
+              <pre class="code-block">${JSON.stringify(props.status ?? {}, null, 2)}</pre>
+            </div>
+            <div>
+              <div class="muted">${uiLiteral("Health")}</div>
+              <pre class="code-block">${JSON.stringify(props.health ?? {}, null, 2)}</pre>
+            </div>
+            <div>
+              <div class="muted">${uiLiteral("Last heartbeat")}</div>
+              <pre class="code-block">${JSON.stringify(props.heartbeat ?? {}, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">${uiLiteral("Manual RPC")}</div>
+          <div class="card-sub">${uiLiteral("Send a raw gateway method with JSON params.")}</div>
+          <div class="debug-rpc-hint">
+            <span class="debug-rpc-hint__label">${uiLiteral("Preferred surface")}</span>
+            <span class="debug-rpc-hint__value">
+              ${uiLiteral(
+                "Use system.health / system.status / system.heartbeat.last / channels.login.* when available.",
+              )}
+            </span>
+          </div>
+          <div class="stack" style="margin-top: 16px;">
+            <label class="field">
+              <span>${uiLiteral("Method")}</span>
+              <select
+                .value=${props.callMethod}
+                @change=${(e: Event) =>
+                  props.onCallMethodChange((e.target as HTMLSelectElement).value)}
+              >
+                ${!props.callMethod
+                  ? html` <option value="" disabled>${uiLiteral("Select a method…")}</option> `
+                  : nothing}
+                ${props.methods.map((m) => html`<option value=${m}>${m}</option>`)}
+              </select>
+            </label>
+            <label class="field">
+              <span>${uiLiteral("Params (JSON)")}</span>
+              <textarea
+                .value=${props.callParams}
+                @input=${(e: Event) =>
+                  props.onCallParamsChange((e.target as HTMLTextAreaElement).value)}
+                rows="6"
+              ></textarea>
+            </label>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn primary" @click=${props.onCall}>${uiLiteral("Call")}</button>
+          </div>
+          ${props.callError
+            ? html`<div class="callout danger" style="margin-top: 12px;">${props.callError}</div>`
+            : nothing}
+          ${props.callResult
+            ? html`<pre class="code-block" style="margin-top: 12px;">${props.callResult}</pre>`
+            : nothing}
+        </div>
+      </section>
     </section>
 
     <section class="card" style="margin-top: 18px;">
@@ -144,4 +236,17 @@ ${formatEventPayload(evt.payload)}</pre
           `}
     </section>
   `;
+}
+
+function resolveParamsState(callParams: string): string {
+  const value = callParams.trim();
+  if (!value) {
+    return uiLiteral("Default object");
+  }
+  try {
+    JSON.parse(value);
+    return uiLiteral("Valid JSON");
+  } catch {
+    return uiLiteral("Invalid JSON");
+  }
 }

@@ -1,12 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
-import { GatewayRequestError } from "../gateway.ts";
-import { loadChannels } from "./channels.ts";
+import { loadChannels, startWhatsAppLogin, waitWhatsAppLogin } from "./channels.ts";
 import type { ChannelsState } from "./channels.types.ts";
 
-function createState(): { state: ChannelsState; request: ReturnType<typeof vi.fn> } {
+function createState(): {
+  state: ChannelsState;
+  request: ReturnType<typeof vi.fn>;
+  hasMethod: ReturnType<typeof vi.fn>;
+} {
   const request = vi.fn();
+  const hasMethod = vi.fn(() => true);
   const state: ChannelsState = {
     client: {
+      hasMethod,
       request,
     } as unknown as ChannelsState["client"],
     connected: true,
@@ -23,12 +28,12 @@ function createState(): { state: ChannelsState; request: ReturnType<typeof vi.fn
     whatsappLoginConnected: null,
     whatsappBusy: false,
   };
-  return { state, request };
+  return { state, request, hasMethod };
 }
 
 describe("loadChannels", () => {
   it("loads channel and Feishu CLI status in one refresh", async () => {
-    const { state, request } = createState();
+    const { state, request, hasMethod } = createState();
     request.mockImplementation(async (method: string) => {
       if (method === "channels.status") {
         return {
@@ -57,6 +62,7 @@ describe("loadChannels", () => {
 
     await loadChannels(state, false);
 
+    expect(hasMethod).toHaveBeenCalledWith("feishu.cli.status");
     expect(request).toHaveBeenCalledWith("channels.status", {
       probe: false,
       timeoutMs: 8000,
@@ -72,8 +78,9 @@ describe("loadChannels", () => {
     expect(state.feishuCliError).toBeNull();
   });
 
-  it("treats missing feishu-cli plugin as optional", async () => {
-    const { state, request } = createState();
+  it("treats missing feishu-cli support as optional when the method is absent", async () => {
+    const { state, request, hasMethod } = createState();
+    hasMethod.mockImplementation((method: string) => method !== "feishu.cli.status");
     request.mockImplementation(async (method: string) => {
       if (method === "channels.status") {
         return {
@@ -85,20 +92,42 @@ describe("loadChannels", () => {
           channelDefaultAccountId: {},
         };
       }
-      if (method === "feishu.cli.status") {
-        throw new GatewayRequestError({
-          code: "INVALID_REQUEST",
-          message: "unknown method: feishu.cli.status",
-        });
-      }
       throw new Error(`unexpected method: ${method}`);
     });
 
     await loadChannels(state, false);
 
+    expect(request).not.toHaveBeenCalledWith("feishu.cli.status", expect.anything());
     expect(state.channelsSnapshot?.ts).toBe(1);
     expect(state.feishuCliStatus).toBeNull();
     expect(state.feishuCliSupported).toBe(false);
     expect(state.feishuCliError).toBeNull();
+  });
+});
+
+describe("whatsapp login method aliases", () => {
+  it("prefers channels.login.start when available", async () => {
+    const { state, request, hasMethod } = createState();
+    hasMethod.mockImplementation((method: string) => method !== "web.login.start");
+    request.mockResolvedValue({ message: "scan", qrDataUrl: "data:image/png;base64,abc" });
+
+    await startWhatsAppLogin(state, true);
+
+    expect(request).toHaveBeenCalledWith("channels.login.start", {
+      force: true,
+      timeoutMs: 30000,
+    });
+  });
+
+  it("falls back to web.login.wait when only the legacy alias is present", async () => {
+    const { state, request, hasMethod } = createState();
+    hasMethod.mockImplementation((method: string) => method === "web.login.wait");
+    request.mockResolvedValue({ message: "connected", connected: true });
+
+    await waitWhatsAppLogin(state);
+
+    expect(request).toHaveBeenCalledWith("web.login.wait", {
+      timeoutMs: 120000,
+    });
   });
 });

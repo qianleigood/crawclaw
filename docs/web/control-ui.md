@@ -15,6 +15,9 @@ The Control UI is a small **Vite + Lit** single-page app served by the Gateway:
 
 It speaks **directly to the Gateway WebSocket** on the same port.
 
+For the frontend-facing RPC contract that backs the Control UI, see
+[Control-plane RPC](/gateway/control-plane-rpc).
+
 ## Quick open (local)
 
 If the Gateway is running on the same computer, open:
@@ -85,6 +88,7 @@ The Control UI can localize itself on first load based on your browser locale, a
 - Nodes: list + caps (`node.list`)
 - Exec approvals: edit gateway or node allowlists + ask policy for `exec host=gateway/node` (`exec.approvals.*`)
 - Config: view/edit `~/.crawclaw/crawclaw.json` (`config.get`, `config.set`)
+- Config: form saves prefer `config.patch`, Raw JSON saves use `config.set`, and apply uses `config.apply`
 - Config: apply + restart with validation (`config.apply`) and wake the last active session
 - Config writes include a base-hash guard to prevent clobbering concurrent edits
 - Config writes (`config.set`/`config.apply`/`config.patch`) also preflight active SecretRef resolution for refs in the submitted config payload; unresolved active submitted refs are rejected before write
@@ -94,6 +98,14 @@ The Control UI can localize itself on first load based on your browser locale, a
 - Debug: status/health/models snapshots + event log + manual RPC calls (`status`, `health`, `models.list`)
 - Logs: live tail of gateway file logs with filter/export (`logs.tail`)
 - Update: run a package/git update + restart (`update.run`) with a restart report
+
+Capability notes:
+
+- Optional surfaces such as `web.login.*` and node-scoped exec approvals are now
+  expected to be gated by negotiated method/capability support, not by treating
+  `unknown method` as the main probe mechanism.
+- For the exact stable/optional surface and capability semantics, use
+  [Control-plane RPC](/gateway/control-plane-rpc).
 
 Cron jobs panel notes:
 
@@ -222,6 +234,7 @@ CRAWCLAW_CONTROL_UI_BASE_PATH=/crawclaw/ pnpm ui:build
 ## Related
 
 - [Control UI UX Plan](/web/control-ui-ux) — a simpler, beginner-focused redesign plan
+- [Control-plane RPC](/gateway/control-plane-rpc) — stable browser-facing method surface and config write model
 
 For local development (separate dev server):
 

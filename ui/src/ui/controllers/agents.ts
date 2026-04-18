@@ -1,3 +1,7 @@
+import type {
+  ControlUiMethodParamsMap,
+  ControlUiMethodResultMap,
+} from "../../../../src/gateway/protocol/control-ui-methods.js";
 import { resolveAgentIdFromSessionKey } from "../../../../src/routing/session-key.js";
 import {
   resolveChatModelOverride,
@@ -61,7 +65,7 @@ export async function loadAgents(state: AgentsState) {
   state.agentsLoading = true;
   state.agentsError = null;
   try {
-    const res = await state.client.request<AgentsListResult>("agents.list", {});
+    const res = await state.client.request("agents.list", {});
     if (res) {
       state.agentsList = res;
       const selected = state.agentsSelectedId;
@@ -95,10 +99,14 @@ export async function loadToolsCatalog(state: AgentsState, agentId: string) {
   state.toolsCatalogError = null;
   state.toolsCatalogResult = null;
   try {
-    const res = await state.client.request<ToolsCatalogResult>("tools.catalog", {
+    const params: ControlUiMethodParamsMap["tools.catalog"] = {
       agentId: resolvedAgentId,
       includePlugins: true,
-    });
+    };
+    const res: ControlUiMethodResultMap["tools.catalog"] = await state.client.request(
+      "tools.catalog",
+      params,
+    );
     if (state.toolsCatalogLoadingAgentId !== resolvedAgentId) {
       return;
     }
@@ -147,10 +155,14 @@ export async function loadToolsEffective(
   state.toolsEffectiveError = null;
   state.toolsEffectiveResult = null;
   try {
-    const res = await state.client.request<ToolsEffectiveResult>("tools.effective", {
+    const requestParams: ControlUiMethodParamsMap["tools.effective"] = {
       agentId: resolvedAgentId,
       sessionKey: resolvedSessionKey,
-    });
+    };
+    const res: ControlUiMethodResultMap["tools.effective"] = await state.client.request(
+      "tools.effective",
+      requestParams,
+    );
     if (state.toolsEffectiveLoadingKey !== requestKey) {
       return;
     }
@@ -201,9 +213,12 @@ export async function loadAgentInspection(
   state.agentInspectionRunId = runId || null;
   state.agentInspectionTaskId = taskId || null;
   try {
-    const res = await state.client.request<AgentInspectionSnapshot>("agent.inspect", {
+    const requestParams: ControlUiMethodParamsMap["agent.inspect"] = {
       ...(runId ? { runId } : {}),
       ...(taskId ? { taskId } : {}),
+    };
+    const res = await state.client.request<AgentInspectionSnapshot>("agent.inspect", {
+      ...requestParams,
     });
     if (state.agentInspectionRunId !== (runId || null)) {
       return;

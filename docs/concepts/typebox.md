@@ -1,21 +1,31 @@
 ---
-summary: "TypeBox schemas as the single source of truth for the gateway protocol"
+summary: "TypeBox schemas for the Gateway protocol, paired with the shared control-plane method contract"
 read_when:
   - Updating protocol schemas or codegen
 title: "TypeBox"
 ---
 
-# TypeBox as protocol source of truth
+# TypeBox as protocol schema source of truth
 
-Last updated: 2026-01-10
+Last updated: 2026-04-17
 
 TypeBox is a TypeScript-first schema library. We use it to define the **Gateway
 WebSocket protocol** (handshake, request/response, server events). Those schemas
 drive **runtime validation**, **JSON Schema export**, and generated client
-models. One source of truth; everything else is generated.
+models.
+
+For the browser Control UI specifically, TypeBox is now paired with the shared
+method contract in `src/gateway/protocol/control-ui-methods.ts`.
+
+Use this distinction:
+
+- **TypeBox / ProtocolSchemas**: protocol object shapes and reusable schemas
+- **control-ui-methods.ts**: frontend-facing method list, params/result mapping,
+  scopes, capability tags, and effect metadata
 
 If you want the higher-level protocol context, start with
-[Gateway architecture](/concepts/architecture).
+[Gateway architecture](/concepts/architecture). For the browser-facing RPC
+surface, see [Control-plane RPC](/gateway/control-plane-rpc).
 
 ## Mental model (30 seconds)
 
@@ -51,13 +61,20 @@ Common methods + events:
 | Nodes     | `node.list`, `node.invoke`, `node.pair.*`                 | Gateway WS + node actions          |
 | Events    | `tick`, `presence`, `agent`, `chat`, `health`, `shutdown` | server push                        |
 
-Authoritative list lives in `src/gateway/server.ts` (`METHODS`, `EVENTS`).
+Authoritative pieces now live in different layers:
+
+- protocol schemas: `src/gateway/protocol/schema/*`
+- shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
+- control-plane UI method contract: `src/gateway/protocol/control-ui-methods.ts`
+- gateway dispatch/runtime behavior: `src/gateway/server-methods.ts`
 
 ## Where the schemas live
 
-- Source: `src/gateway/protocol/schema.ts`
+- Source modules: `src/gateway/protocol/schema/*`
+- Shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
 - Runtime validators (AJV): `src/gateway/protocol/index.ts`
-- Server handshake + method dispatch: `src/gateway/server.ts`
+- Control-plane method contract: `src/gateway/protocol/control-ui-methods.ts`
+- Server handshake + method dispatch: `src/gateway/server-methods.ts`
 - Node client: `src/gateway/client.ts`
 - Generated JSON Schema: `dist/protocol.schema.json`
 - Generated Swift models: `apps/macos/Sources/CrawClawProtocol/GatewayModels.swift`

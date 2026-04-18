@@ -1,3 +1,4 @@
+import type { ControlUiMethodParamsMap } from "../../../../src/gateway/protocol/control-ui-methods.js";
 import type {
   WorkflowDefinitionDiff,
   WorkflowDeploymentRecord,
@@ -146,6 +147,10 @@ type LoadWorkflowOptions = {
   selectedExecutionId?: string | null;
 };
 
+type WorkflowRequestParams<
+  K extends Extract<keyof ControlUiMethodParamsMap, `workflow.${string}`>,
+> = ControlUiMethodParamsMap[K];
+
 function toErrorMessage(err: unknown): string {
   if (isMissingOperatorReadScopeError(err)) {
     return formatMissingOperatorReadScopeMessage("workflows");
@@ -217,11 +222,12 @@ async function loadWorkflowVersionsAndDiff(state: WorkflowsState, workflowRef: s
   state.workflowVersionsError = null;
   state.workflowDiffError = null;
   try {
+    const versionsParams: WorkflowRequestParams<"workflow.versions"> = {
+      workflow: workflowRef,
+    };
     const versionsPayload = await state.client.request<WorkflowVersionsPayload>(
       "workflow.versions",
-      {
-        workflow: workflowRef,
-      },
+      versionsParams,
     );
     state.workflowVersions = versionsPayload;
     if (
@@ -229,8 +235,11 @@ async function loadWorkflowVersionsAndDiff(state: WorkflowsState, workflowRef: s
       versionsPayload.workflow.specVersion > 1
     ) {
       try {
-        state.workflowDiff = await state.client.request<WorkflowDiffPayload>("workflow.diff", {
+        const diffParams: WorkflowRequestParams<"workflow.diff"> = {
           workflow: workflowRef,
+        };
+        state.workflowDiff = await state.client.request<WorkflowDiffPayload>("workflow.diff", {
+          ...diffParams,
         });
       } catch (err) {
         state.workflowDiff = null;
@@ -311,15 +320,17 @@ export async function loadWorkflowDetail(
   state.workflowDetailError = null;
   state.workflowRunsError = null;
   try {
+    const detailParams: WorkflowRequestParams<"workflow.get"> = {
+      workflow: workflowRef,
+      recentRunsLimit: 12,
+    };
+    const runsParams: WorkflowRequestParams<"workflow.runs"> = {
+      workflow: workflowRef,
+      limit: 25,
+    };
     const [detailPayload, runsPayload] = await Promise.all([
-      state.client.request<WorkflowGetPayload>("workflow.get", {
-        workflow: workflowRef,
-        recentRunsLimit: 12,
-      }),
-      state.client.request<WorkflowRunsPayload>("workflow.runs", {
-        workflow: workflowRef,
-        limit: 25,
-      }),
+      state.client.request<WorkflowGetPayload>("workflow.get", detailParams),
+      state.client.request<WorkflowRunsPayload>("workflow.runs", runsParams),
     ]);
     state.workflowDetail = {
       agentId: detailPayload.agentId,
@@ -364,9 +375,10 @@ export async function loadWorkflows(state: WorkflowsState, options?: LoadWorkflo
   state.workflowLoading = true;
   state.workflowError = null;
   try {
-    const payload = await state.client.request<WorkflowListPayload>("workflow.list", {
+    const params: WorkflowRequestParams<"workflow.list"> = {
       includeDisabled: true,
-    });
+    };
+    const payload = await state.client.request<WorkflowListPayload>("workflow.list", params);
     state.workflowsList = payload.workflows ?? [];
     const selectedWorkflow =
       resolveWorkflowRef(state, options?.selectWorkflow) ??
@@ -404,8 +416,11 @@ export async function refreshWorkflowExecutionStatus(
   state.workflowStatusLoading = true;
   state.workflowStatusError = null;
   try {
-    const payload = await state.client.request<WorkflowExecutionActionPayload>("workflow.status", {
+    const params: WorkflowRequestParams<"workflow.status"> = {
       executionId: resolvedExecutionId,
+    };
+    const payload = await state.client.request<WorkflowExecutionActionPayload>("workflow.status", {
+      ...params,
     });
     state.workflowSelectedExecutionId = payload.execution.executionId;
     state.workflowSelectedExecution = payload.execution;
@@ -428,11 +443,10 @@ export async function setWorkflowEnabled(
   state.workflowActionBusyKey = `${enabled ? "enable" : "disable"}:${workflow}`;
   state.workflowStatusError = null;
   try {
+    const params: WorkflowRequestParams<"workflow.enable"> = { workflow };
     await state.client.request<WorkflowMutationPayload>(
       enabled ? "workflow.enable" : "workflow.disable",
-      {
-        workflow,
-      },
+      params,
     );
     await loadWorkflows(state, {
       selectWorkflow: workflow,
@@ -452,9 +466,10 @@ export async function deployWorkflow(state: WorkflowsState, workflow: string) {
   state.workflowActionBusyKey = `deploy:${workflow}`;
   state.workflowStatusError = null;
   try {
-    await state.client.request("workflow.deploy", {
+    const params: WorkflowRequestParams<"workflow.deploy"> = {
       workflow,
-    });
+    };
+    await state.client.request("workflow.deploy", params);
     await loadWorkflows(state, {
       selectWorkflow: workflow,
       selectedExecutionId: state.workflowSelectedExecutionId,
@@ -473,9 +488,10 @@ export async function republishWorkflow(state: WorkflowsState, workflow: string)
   state.workflowActionBusyKey = `republish:${workflow}`;
   state.workflowStatusError = null;
   try {
-    await state.client.request("workflow.republish", {
+    const params: WorkflowRequestParams<"workflow.republish"> = {
       workflow,
-    });
+    };
+    await state.client.request("workflow.republish", params);
     await loadWorkflows(state, {
       selectWorkflow: workflow,
       selectedExecutionId: state.workflowSelectedExecutionId,
@@ -498,10 +514,11 @@ export async function compareWorkflowVersion(
   state.workflowDiffLoading = true;
   state.workflowDiffError = null;
   try {
-    state.workflowDiff = await state.client.request<WorkflowDiffPayload>("workflow.diff", {
+    const params: WorkflowRequestParams<"workflow.diff"> = {
       workflow,
       specVersion: fromSpecVersion,
-    });
+    };
+    state.workflowDiff = await state.client.request<WorkflowDiffPayload>("workflow.diff", params);
   } catch (err) {
     state.workflowDiffError = toErrorMessage(err);
   } finally {
@@ -531,10 +548,11 @@ export async function saveWorkflowDefinitionUpdate(state: WorkflowsState, workfl
       outputs: parseWorkflowJsonArray(state.workflowEditorDraft.outputsJson, "Outputs"),
       steps: parseWorkflowJsonArray(state.workflowEditorDraft.stepsJson, "Steps"),
     };
-    await state.client.request("workflow.update", {
+    const params: WorkflowRequestParams<"workflow.update"> = {
       workflow,
       patch,
-    });
+    };
+    await state.client.request("workflow.update", params);
     await loadWorkflows(state, {
       selectWorkflow: workflow,
       selectedExecutionId: state.workflowSelectedExecutionId,
@@ -558,11 +576,12 @@ export async function rollbackWorkflowVersion(
   state.workflowActionBusyKey = `${republish ? "rollback-republish" : "rollback"}:${workflow}:${specVersion}`;
   state.workflowStatusError = null;
   try {
-    await state.client.request("workflow.rollback", {
+    const params: WorkflowRequestParams<"workflow.rollback"> = {
       workflow,
       specVersion,
       ...(republish ? { republish: true } : {}),
-    });
+    };
+    await state.client.request("workflow.rollback", params);
     await loadWorkflows(state, {
       selectWorkflow: workflow,
       selectedExecutionId: state.workflowSelectedExecutionId,
@@ -593,11 +612,10 @@ export async function setWorkflowArchived(
   state.workflowActionBusyKey = `${archived ? "archive" : "unarchive"}:${workflow}`;
   state.workflowStatusError = null;
   try {
+    const params: WorkflowRequestParams<"workflow.archive"> = { workflow };
     await state.client.request<WorkflowMutationPayload>(
       archived ? "workflow.archive" : "workflow.unarchive",
-      {
-        workflow,
-      },
+      params,
     );
     await loadWorkflows(state, {
       selectWorkflow: workflow,
@@ -617,9 +635,10 @@ export async function deleteWorkflowDefinition(state: WorkflowsState, workflow: 
   state.workflowActionBusyKey = `delete:${workflow}`;
   state.workflowStatusError = null;
   try {
-    const payload = await state.client.request<WorkflowDeletePayload>("workflow.delete", {
+    const params: WorkflowRequestParams<"workflow.delete"> = {
       workflow,
-    });
+    };
+    const payload = await state.client.request<WorkflowDeletePayload>("workflow.delete", params);
     const deletedWorkflowId = payload.workflowId ?? workflow;
     state.workflowsList = state.workflowsList.filter(
       (entry) => entry.workflowId !== deletedWorkflowId,
@@ -651,9 +670,13 @@ export async function runWorkflow(state: WorkflowsState, workflow: string) {
   state.workflowActionBusyKey = `run:${workflow}`;
   state.workflowStatusError = null;
   try {
-    const payload = await state.client.request<WorkflowExecutionActionPayload>("workflow.run", {
+    const params: WorkflowRequestParams<"workflow.run"> = {
       workflow,
-    });
+    };
+    const payload = await state.client.request<WorkflowExecutionActionPayload>(
+      "workflow.run",
+      params,
+    );
     await loadWorkflows(state, {
       selectWorkflow: workflow,
       selectedExecutionId: payload.execution.executionId,
@@ -676,8 +699,11 @@ export async function cancelWorkflowExecution(state: WorkflowsState, executionId
   state.workflowActionBusyKey = `cancel:${resolvedExecutionId}`;
   state.workflowStatusError = null;
   try {
-    const payload = await state.client.request<WorkflowExecutionActionPayload>("workflow.cancel", {
+    const params: WorkflowRequestParams<"workflow.cancel"> = {
       executionId: resolvedExecutionId,
+    };
+    const payload = await state.client.request<WorkflowExecutionActionPayload>("workflow.cancel", {
+      ...params,
     });
     state.workflowSelectedExecutionId = payload.execution.executionId;
     state.workflowSelectedExecution = payload.execution;
@@ -704,9 +730,12 @@ export async function resumeWorkflowExecution(
   state.workflowActionBusyKey = `resume:${resolvedExecutionId}`;
   state.workflowStatusError = null;
   try {
-    const payload = await state.client.request<WorkflowExecutionActionPayload>("workflow.resume", {
+    const params: WorkflowRequestParams<"workflow.resume"> = {
       executionId: resolvedExecutionId,
       ...(input?.trim() ? { input: input.trim() } : {}),
+    };
+    const payload = await state.client.request<WorkflowExecutionActionPayload>("workflow.resume", {
+      ...params,
     });
     state.workflowSelectedExecutionId = payload.execution.executionId;
     state.workflowSelectedExecution = payload.execution;

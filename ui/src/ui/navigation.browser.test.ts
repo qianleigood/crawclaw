@@ -233,6 +233,38 @@ describe("platform UI routing", () => {
     }
   });
 
+  it("renders the chat operations strip inside the mobile chat shell", async () => {
+    const app = mountApp("/chat");
+    await app.updateComplete;
+
+    expect(window.matchMedia("(max-width: 768px)").matches).toBe(true);
+
+    const strip = app.querySelector<HTMLElement>(".chat-ops-strip");
+    expect(strip).not.toBeNull();
+    expect(strip?.textContent).toContain("Session");
+    expect(strip?.textContent).toContain("Runtime");
+  });
+
+  it("renders control-plane strips on channels and debug routes", async () => {
+    const channelsApp = mountApp("/channels");
+    await channelsApp.updateComplete;
+
+    const channelsStrip = channelsApp.querySelector<HTMLElement>(".connect-center__ops-strip");
+    expect(channelsStrip).not.toBeNull();
+    expect(channelsStrip?.textContent).toContain("Gateway probe");
+    expect(channelsStrip?.textContent).toContain("Config state");
+
+    document.body.innerHTML = "";
+
+    const debugApp = mountApp("/debug");
+    await debugApp.updateComplete;
+
+    const debugStrip = debugApp.querySelector<HTMLElement>(".debug-surface-strip");
+    expect(debugStrip).not.toBeNull();
+    expect(debugStrip?.textContent).toContain("Preferred names");
+    expect(debugStrip?.textContent).toContain("Params state");
+  });
+
   it("stacks the refreshed top navigation for narrow viewports", async () => {
     const app = mountApp("/chat");
     await app.updateComplete;

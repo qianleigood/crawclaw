@@ -67,6 +67,45 @@
   margin-top: 0 !important;
 }
 
+.chat-ops-strip {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0 0 14px;
+}
+
+.chat-ops-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--panel) 78%, transparent),
+      color-mix(in srgb, var(--bg-elevated) 62%, transparent)
+    );
+  box-shadow: 0 1px 0 color-mix(in srgb, white 6%, transparent) inset;
+}
+
+.chat-ops-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.chat-ops-card__value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-strong);
+}
+
 /* Focus mode exit button */
 .chat-focus-exit {
   position: absolute;
@@ -369,13 +408,21 @@
   flex-direction: column;
   margin: 0 18px 14px;
   padding: 0;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--card) 96%, transparent),
+      color-mix(in srgb, var(--panel) 74%, transparent)
+    );
+  border: 1px solid color-mix(in srgb, var(--border-strong) 72%, transparent);
+  border-radius: calc(var(--radius-lg) + 2px);
   flex-shrink: 0;
   transition:
     border-color var(--duration-fast) ease,
     box-shadow var(--duration-fast) ease;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, white 7%, transparent) inset,
+    var(--shadow-sm);
 }
 
 .agent-chat__input:focus-within {
@@ -740,6 +787,10 @@
   justify-content: flex-start;
   gap: 12px;
   flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
 }
 
 .chat-controls__session {

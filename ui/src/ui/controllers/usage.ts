@@ -1,3 +1,4 @@
+import type { ControlUiMethodParamsMap } from "../../../../src/gateway/protocol/control-ui-methods.js";
 import { getSafeLocalStorage } from "../../local-storage.ts";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { SessionsUsageResult, CostUsageSummary, SessionUsageTimeSeries } from "../types.ts";
@@ -205,28 +206,33 @@ export async function loadUsage(
         state.usageTimeZone,
         includeDateInterpretation,
       );
+      const sessionsUsageParams: ControlUiMethodParamsMap["sessions.usage"] = {
+        startDate,
+        endDate,
+        ...dateInterpretation,
+        limit: 1000,
+        includeContextWeight: true,
+      };
+      const usageCostParams: ControlUiMethodParamsMap["usage.cost"] = {
+        startDate,
+        endDate,
+        ...dateInterpretation,
+      };
       return await Promise.all([
-        client.request("sessions.usage", {
-          startDate,
-          endDate,
-          ...dateInterpretation,
-          limit: 1000, // Cap at 1000 sessions
-          includeContextWeight: true,
-        }),
-        client.request("usage.cost", {
-          startDate,
-          endDate,
-          ...dateInterpretation,
-        }),
+        client.request<SessionsUsageResult>("sessions.usage", sessionsUsageParams),
+        client.request<CostUsageSummary>("usage.cost", usageCostParams),
       ]);
     };
 
-    const applyUsageResults = (sessionsRes: unknown, costRes: unknown) => {
+    const applyUsageResults = (
+      sessionsRes: SessionsUsageResult | null | undefined,
+      costRes: CostUsageSummary | null | undefined,
+    ) => {
       if (sessionsRes) {
-        state.usageResult = sessionsRes as SessionsUsageResult;
+        state.usageResult = sessionsRes;
       }
       if (costRes) {
-        state.usageCostSummary = costRes as CostUsageSummary;
+        state.usageCostSummary = costRes;
       }
     };
 
@@ -281,9 +287,13 @@ export async function loadSessionTimeSeries(state: UsageState, sessionKey: strin
   state.usageTimeSeriesLoading = true;
   state.usageTimeSeries = null;
   try {
-    const res = await state.client.request("sessions.usage.timeseries", { key: sessionKey });
+    const params: ControlUiMethodParamsMap["sessions.usage.timeseries"] = { key: sessionKey };
+    const res = await state.client.request<SessionUsageTimeSeries>(
+      "sessions.usage.timeseries",
+      params,
+    );
     if (res) {
-      state.usageTimeSeries = res as SessionUsageTimeSeries;
+      state.usageTimeSeries = res;
     }
   } catch {
     // Silently fail - time series is optional
@@ -303,12 +313,16 @@ export async function loadSessionLogs(state: UsageState, sessionKey: string) {
   state.usageSessionLogsLoading = true;
   state.usageSessionLogs = null;
   try {
-    const res = await state.client.request("sessions.usage.logs", {
+    const params: ControlUiMethodParamsMap["sessions.usage.logs"] = {
       key: sessionKey,
       limit: 1000,
-    });
+    };
+    const res = await state.client.request<{ logs: SessionLogEntry[] }>(
+      "sessions.usage.logs",
+      params,
+    );
     if (res && Array.isArray((res as { logs: SessionLogEntry[] }).logs)) {
-      state.usageSessionLogs = (res as { logs: SessionLogEntry[] }).logs;
+      state.usageSessionLogs = res.logs;
     }
   } catch {
     // Silently fail - logs are optional

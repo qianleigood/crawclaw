@@ -10,6 +10,14 @@ import {
   readConnectErrorRecoveryAdvice,
   readConnectErrorDetailCode,
 } from "../../../src/gateway/protocol/connect-error-details.js";
+import {
+  ControlUiMethodContract,
+  ControlUiMethodList,
+  type ControlUiMethodDefinition,
+  type ControlUiMethod,
+  type ControlUiMethodParamsMap,
+  type ControlUiMethodResultMap,
+} from "../../../src/gateway/protocol/control-ui-methods.js";
 import { clearDeviceAuthToken, loadDeviceAuthToken, storeDeviceAuthToken } from "./device-auth.ts";
 import { loadOrCreateDeviceIdentity, signDevicePayload } from "./device-identity.ts";
 import { generateUUID } from "./uuid.ts";
@@ -276,6 +284,7 @@ export class GatewayBrowserClient {
   private ws: WebSocket | null = null;
   private pending = new Map<string, Pending>();
   private closed = false;
+  private latestHello: GatewayHelloOk | null = null;
   private lastSeq: number | null = null;
   private connectNonce: string | null = null;
   private connectSent = false;
@@ -300,6 +309,7 @@ export class GatewayBrowserClient {
     }
     this.ws?.close();
     this.ws = null;
+    this.latestHello = null;
     this.pendingConnectError = undefined;
     this.pendingDeviceTokenRetry = false;
     this.deviceTokenRetryBudgetUsed = false;
@@ -308,6 +318,40 @@ export class GatewayBrowserClient {
 
   get connected() {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  get hello() {
+    return this.latestHello;
+  }
+
+  hasMethod(method: string): boolean {
+    const methods = this.latestHello?.features?.methods;
+    return Array.isArray(methods) ? methods.includes(method) : false;
+  }
+
+  hasCapability(capability: string, opts?: { includeOptional?: boolean }): boolean {
+    const id = capability.trim();
+    if (!id) {
+      return false;
+    }
+    return ControlUiMethodList.some((method) => {
+      const definition = ControlUiMethodContract[method];
+      return (
+        definition.capability === id &&
+        this.matchesCapabilityStability(definition, opts) &&
+        this.hasMethod(method)
+      );
+    });
+  }
+
+  private matchesCapabilityStability(
+    definition: ControlUiMethodDefinition,
+    opts?: { includeOptional?: boolean },
+  ): boolean {
+    if (definition.stability === "optional") {
+      return opts?.includeOptional !== false;
+    }
+    return definition.stability !== "debug";
   }
 
   private connect() {
@@ -322,6 +366,7 @@ export class GatewayBrowserClient {
       const connectError = this.pendingConnectError;
       this.pendingConnectError = undefined;
       this.ws = null;
+      this.latestHello = null;
       this.flushPending(new Error(`gateway closed (${ev.code}): ${reason}`));
       this.opts.onClose?.({ code: ev.code, reason, error: connectError });
       const connectErrorCode = resolveGatewayErrorDetailCode(connectError);
@@ -433,6 +478,7 @@ export class GatewayBrowserClient {
   private handleConnectHello(hello: GatewayHelloOk, plan: ConnectPlan) {
     this.pendingDeviceTokenRetry = false;
     this.deviceTokenRetryBudgetUsed = false;
+    this.latestHello = hello;
     if (hello?.auth?.deviceToken && plan.deviceIdentity) {
       storeDeviceAuthToken({
         deviceId: plan.deviceIdentity.deviceId,
@@ -596,6 +642,11 @@ export class GatewayBrowserClient {
     };
   }
 
+  request<K extends ControlUiMethod>(
+    method: K,
+    params: ControlUiMethodParamsMap[K],
+  ): Promise<ControlUiMethodResultMap[K]>;
+  request<T = unknown>(method: string, params?: unknown): Promise<T>;
   request<T = unknown>(method: string, params?: unknown): Promise<T> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("gateway not connected"));

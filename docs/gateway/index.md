@@ -16,6 +16,9 @@ Use this page for day-1 startup and day-2 operations of the Gateway service.
   <Card title="Configuration" icon="sliders" href="/gateway/configuration">
     Task-oriented setup guide + full configuration reference.
   </Card>
+  <Card title="Control-plane RPC" icon="waypoints" href="/gateway/control-plane-rpc">
+    Browser-facing Gateway method surface, capability rules, and config patch/set/apply semantics.
+  </Card>
   <Card title="Secrets management" icon="key-round" href="/gateway/secrets">
     SecretRef contract, runtime snapshot behavior, and migrate/reload operations.
   </Card>

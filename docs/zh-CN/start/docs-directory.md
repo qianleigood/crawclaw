@@ -37,6 +37,7 @@ x-i18n:
 - [工作区模板](/reference/templates/AGENTS)
 - [RPC 适配器](/reference/rpc)
 - [Gateway 网关运维手册](/gateway)
+- [控制面 RPC](/gateway/control-plane-rpc)
 - [节点（iOS 和 Android）](/nodes)
 - [Web 界面（控制面板 UI）](/web)
 - [设备发现与传输协议](/gateway/discovery)

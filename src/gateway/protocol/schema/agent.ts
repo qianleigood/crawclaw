@@ -150,6 +150,65 @@ export const AgentWaitParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const AgentInspectParamsSchema = Type.Object(
+  {
+    runId: Type.Optional(Type.String()),
+    taskId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const AgentInspectionTimelineEntrySchema = Type.Object(
+  {
+    eventId: NonEmptyString,
+    type: NonEmptyString,
+    phase: Type.Optional(Type.String()),
+    createdAt: Type.Integer({ minimum: 0 }),
+    traceId: Type.Optional(Type.String()),
+    spanId: Type.Optional(Type.String()),
+    parentSpanId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    status: Type.Optional(Type.String()),
+    decisionCode: Type.Optional(Type.String()),
+    decisionSummary: Type.Optional(Type.String()),
+    summary: Type.String(),
+    metrics: Type.Optional(Type.Record(Type.String(), Type.Number())),
+    refs: Type.Optional(
+      Type.Record(
+        Type.String(),
+        Type.Union([Type.String(), Type.Number(), Type.Boolean(), Type.Null()]),
+      ),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const AgentInspectionSnapshotSchema = Type.Object(
+  {
+    lookup: Type.Object(
+      {
+        runId: Type.Optional(Type.String()),
+        taskId: Type.Optional(Type.String()),
+      },
+      { additionalProperties: false },
+    ),
+    runId: Type.Optional(Type.String()),
+    taskId: Type.Optional(Type.String()),
+    timeline: Type.Optional(Type.Array(AgentInspectionTimelineEntrySchema)),
+    refs: Type.Object(
+      {
+        runtimeStateRef: Type.Optional(Type.String()),
+        transcriptRef: Type.Optional(Type.String()),
+        trajectoryRef: Type.Optional(Type.String()),
+        capabilitySnapshotRef: Type.Optional(Type.String()),
+      },
+      { additionalProperties: false },
+    ),
+    warnings: Type.Array(Type.String()),
+  },
+  // Keep this schema light: the full inspection payload carries many nested runtime snapshots.
+  { additionalProperties: true },
+);
+
 export const WakeParamsSchema = Type.Object(
   {
     mode: Type.Union([Type.Literal("now"), Type.Literal("next-heartbeat")]),

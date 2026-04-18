@@ -517,6 +517,17 @@
     margin: 0 8px 10px;
   }
 
+  .chat-ops-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .chat-ops-card {
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+  }
+
   .agent-chat__toolbar {
     padding: 4px 8px;
   }
@@ -627,6 +638,10 @@
 
   .chat-bubble {
     padding: 8px 10px;
+  }
+
+  .chat-ops-strip {
+    grid-template-columns: 1fr;
   }
 
   .chat-compose__field textarea {

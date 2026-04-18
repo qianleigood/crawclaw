@@ -66,6 +66,8 @@ export type ConfigProps = {
   gatewayUrl: string;
   assistantName: string;
   configPath?: string | null;
+  configHash?: string | null;
+  schemaVersion?: string | null;
   navRootLabel?: string;
   includeSections?: string[];
   excludeSections?: string[];
@@ -764,6 +766,11 @@ export function renderConfig(props: ConfigProps) {
   const diff = formMode === "form" ? computeDiff(props.originalValue, props.formValue) : [];
   const hasRawChanges = formMode === "raw" && props.raw !== props.originalRaw;
   const hasChanges = formMode === "form" ? diff.length > 0 : hasRawChanges;
+  const writePath = formMode === "form" ? "config.patch" : "config.set";
+  const runtimeAction = hasChanges ? "config.apply required" : "runtime in sync";
+  const configLocation = props.configPath ?? "managed snapshot";
+  const schemaVersion = props.schemaVersion ?? "n/a";
+  const configHash = props.configHash ? props.configHash.slice(0, 12) : "n/a";
 
   // Save/apply buttons require actual changes to be enabled.
   // Note: formUnsafe warns about unsupported schema paths but shouldn't block saving.
@@ -913,6 +920,39 @@ export function renderConfig(props: ConfigProps) {
             )}
           </div>
         </div>
+
+        <section class="config-runtime-strip" aria-label="Configuration runtime status">
+          <article class="config-runtime-strip__card">
+            <div class="config-runtime-strip__label">Write path</div>
+            <div class="config-runtime-strip__value mono">${writePath}</div>
+            <div class="config-runtime-strip__hint">
+              ${formMode === "form"
+                ? "Section edits stay patch-first and merge-safe."
+                : "Raw editor writes the full config snapshot."}
+            </div>
+          </article>
+          <article class="config-runtime-strip__card">
+            <div class="config-runtime-strip__label">Apply state</div>
+            <div class="config-runtime-strip__value">${runtimeAction}</div>
+            <div class="config-runtime-strip__hint">
+              ${hasChanges
+                ? "Save changes, then apply them to push runtime updates."
+                : "No pending config delta is waiting to be applied."}
+            </div>
+          </article>
+          <article class="config-runtime-strip__card">
+            <div class="config-runtime-strip__label">Schema + hash</div>
+            <div class="config-runtime-strip__value mono">schema ${schemaVersion}</div>
+            <div class="config-runtime-strip__hint mono">${configHash}</div>
+          </article>
+          <article class="config-runtime-strip__card">
+            <div class="config-runtime-strip__label">Config location</div>
+            <div class="config-runtime-strip__value mono">${configLocation}</div>
+            <div class="config-runtime-strip__hint">
+              ${props.connected ? "Gateway connected." : "Gateway offline."}
+            </div>
+          </article>
+        </section>
 
         ${validity === "invalid" && !cvs.validityDismissed
           ? html`

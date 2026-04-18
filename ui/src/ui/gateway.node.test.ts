@@ -432,6 +432,34 @@ describe("GatewayBrowserClient", () => {
 
     vi.useRealTimers();
   });
+
+  it("tracks hello methods and exposes method/capability helpers", async () => {
+    const client = new GatewayBrowserClient({
+      url: "ws://127.0.0.1:18789",
+      token: "shared-auth-token",
+    });
+
+    const { ws, connectFrame } = await startConnect(client);
+    ws.emitMessage({
+      type: "res",
+      id: connectFrame.id,
+      ok: true,
+      payload: {
+        type: "hello-ok",
+        protocol: 3,
+        features: {
+          methods: ["config.get", "web.login.start", "web.login.wait"],
+          events: [],
+        },
+      },
+    });
+
+    await vi.waitFor(() => expect(client.hello?.type).toBe("hello-ok"));
+    expect(client.hasMethod("config.get")).toBe(true);
+    expect(client.hasMethod("config.set")).toBe(false);
+    expect(client.hasCapability("channels.login")).toBe(true);
+    expect(client.hasCapability("exec.approvals.node")).toBe(false);
+  });
 });
 
 describe("shouldRetryWithDeviceToken", () => {

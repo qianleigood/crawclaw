@@ -494,6 +494,30 @@ export function renderApp(state: AppViewState) {
               <kbd class="topbar-search__kbd">⌘K</kbd>
             </button>
             <div class="topbar-status">
+              <div class="topbar-status__rack" aria-label="Runtime status">
+                <span
+                  class="topbar-status-pill ${state.connected
+                    ? "topbar-status-pill--online"
+                    : "topbar-status-pill--offline"}"
+                >
+                  <span class="topbar-status-pill__dot" aria-hidden="true"></span>
+                  <span class="topbar-status-pill__label"
+                    >${state.connected ? t("common.online") : t("common.offline")}</span
+                  >
+                </span>
+                <span class="topbar-status-pill topbar-status-pill--surface">
+                  <span class="topbar-status-pill__eyebrow">Surface</span>
+                  <span class="topbar-status-pill__value">${titleForTab(state.tab)}</span>
+                </span>
+                <span class="topbar-status-pill topbar-status-pill--version">
+                  <span class="topbar-status-pill__eyebrow">${t("common.version")}</span>
+                  <span class="topbar-status-pill__value mono"
+                    >${state.hello?.server?.version
+                      ? `v${state.hello.server.version}`
+                      : "n/a"}</span
+                  >
+                </span>
+              </div>
               ${isChat ? renderChatMobileToggle(state) : nothing}
               ${renderUiModeToggle(state, { compact: true })} ${renderTopbarThemeModeToggle(state)}
             </div>
@@ -644,13 +668,13 @@ export function renderApp(state: AppViewState) {
         ${state.tab === "config"
           ? nothing
           : html`<section class="content-header">
-              <div>
+              <div class="content-header__main">
                 ${isChat
                   ? renderChatSessionSelect(state)
                   : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
                 ${isChat ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
               </div>
-              <div class="page-meta">
+              <div class="page-meta content-header__meta">
                 ${state.lastError
                   ? html`<div class="pill danger">${state.lastError}</div>`
                   : nothing}
@@ -1859,6 +1883,8 @@ export function renderApp(state: AppViewState) {
               gatewayUrl: state.settings.gatewayUrl,
               assistantName: state.assistantName,
               configPath: state.configSnapshot?.path ?? null,
+              configHash: state.configSnapshot?.hash ?? null,
+              schemaVersion: state.configSchemaVersion,
               rawAvailable: typeof state.configSnapshot?.raw === "string",
               navRootLabel: "Basic",
               includeSections: [...BASIC_SECTION_KEYS],
@@ -1924,6 +1950,8 @@ export function renderApp(state: AppViewState) {
               gatewayUrl: state.settings.gatewayUrl,
               assistantName: state.assistantName,
               configPath: state.configSnapshot?.path ?? null,
+              configHash: state.configSnapshot?.hash ?? null,
+              schemaVersion: state.configSchemaVersion,
               rawAvailable: typeof state.configSnapshot?.raw === "string",
               navRootLabel: "Channels & Accounts",
               includeSections: [...CHANNELS_AND_ACCOUNTS_SECTION_KEYS],
@@ -1989,6 +2017,8 @@ export function renderApp(state: AppViewState) {
               gatewayUrl: state.settings.gatewayUrl,
               assistantName: state.assistantName,
               configPath: state.configSnapshot?.path ?? null,
+              configHash: state.configSnapshot?.hash ?? null,
+              schemaVersion: state.configSchemaVersion,
               rawAvailable: typeof state.configSnapshot?.raw === "string",
               navRootLabel: "Memory & Privacy",
               includeSections: [...MEMORY_AND_PRIVACY_SECTION_KEYS],
@@ -2054,6 +2084,8 @@ export function renderApp(state: AppViewState) {
               gatewayUrl: state.settings.gatewayUrl,
               assistantName: state.assistantName,
               configPath: state.configSnapshot?.path ?? null,
+              configHash: state.configSnapshot?.hash ?? null,
+              schemaVersion: state.configSchemaVersion,
               rawAvailable: typeof state.configSnapshot?.raw === "string",
               navRootLabel: "Skills & Tools",
               includeSections: [...SKILLS_AND_TOOLS_SECTION_KEYS],
@@ -2119,6 +2151,8 @@ export function renderApp(state: AppViewState) {
               gatewayUrl: state.settings.gatewayUrl,
               assistantName: state.assistantName,
               configPath: state.configSnapshot?.path ?? null,
+              configHash: state.configSnapshot?.hash ?? null,
+              schemaVersion: state.configSchemaVersion,
               rawAvailable: typeof state.configSnapshot?.raw === "string",
               navRootLabel: "Advanced",
               includeSections: [...ADVANCED_SECTION_KEYS],
@@ -2184,6 +2218,8 @@ export function renderApp(state: AppViewState) {
               gatewayUrl: state.settings.gatewayUrl,
               assistantName: state.assistantName,
               configPath: state.configSnapshot?.path ?? null,
+              configHash: state.configSnapshot?.hash ?? null,
+              schemaVersion: state.configSchemaVersion,
               rawAvailable: typeof state.configSnapshot?.raw === "string",
               navRootLabel: "Models & Agents",
               includeSections: [...MODELS_AND_AGENTS_SECTION_KEYS],

@@ -9,9 +9,18 @@
   gap: 0;
   height: calc(100vh - 160px);
   margin: 0 -16px -32px;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  background: var(--panel);
+  border-radius: calc(var(--radius-xl) + 2px);
+  border: 1px solid color-mix(in srgb, var(--border-strong) 74%, transparent);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 6%, transparent), transparent 24%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--panel) 94%, transparent) 0%,
+      color-mix(in srgb, var(--bg-elevated) 92%, transparent) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 24px 48px color-mix(in srgb, black 16%, transparent);
   overflow: hidden;
   overflow: clip;
   animation: config-enter 0.3s var(--ease-out);
@@ -175,7 +184,7 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  background: var(--panel);
+  background: transparent;
   overflow: hidden;
   /* fallback for older browsers */
   overflow: clip;
@@ -187,12 +196,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 20px;
-  background: var(--bg-accent);
-  border-bottom: 1px solid var(--border);
+  padding: 14px 20px 12px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-elevated) 86%, transparent),
+      color-mix(in srgb, var(--panel) 76%, transparent)
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--border-strong) 76%, transparent);
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, black 10%, transparent);
 }
 
 :root[data-theme-mode="light"] .config-actions {
@@ -204,6 +219,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .config-changes-badge {
@@ -237,9 +253,14 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
-  background: var(--bg-accent);
-  border-bottom: 1px solid var(--border);
+  padding: 12px 20px 10px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--panel) 70%, transparent),
+      color-mix(in srgb, var(--bg-elevated) 84%, transparent)
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
   flex-shrink: 0;
 }
 
@@ -302,6 +323,57 @@
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   background: var(--accent-subtle);
+}
+
+.config-runtime-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 20px 0;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-elevated) 58%, transparent),
+      color-mix(in srgb, var(--panel) 36%, transparent)
+    );
+}
+
+.config-runtime-strip__card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 72%, transparent);
+  border-radius: calc(var(--radius-lg) + 2px);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-elevated) 84%, transparent),
+      color-mix(in srgb, var(--panel) 76%, transparent)
+    );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+}
+
+.config-runtime-strip__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.config-runtime-strip__value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-strong);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.config-runtime-strip__hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 /* Diff Panel */
@@ -398,9 +470,14 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 22px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-accent);
+  padding: 18px 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-elevated) 62%, transparent),
+      color-mix(in srgb, var(--panel) 54%, transparent)
+    );
 }
 
 :root[data-theme-mode="light"] .config-section-hero {
@@ -452,7 +529,7 @@
 .config-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 22px;
+  padding: 18px 20px 20px;
   min-width: 0;
   scroll-behavior: smooth;
 }
@@ -1706,6 +1783,11 @@
     padding: 12px 16px;
   }
 
+  .config-runtime-strip {
+    grid-template-columns: 1fr 1fr;
+    padding: 12px 16px 0;
+  }
+
   .config-search--top {
     flex: 1 1 100%;
     max-width: none;
@@ -1767,6 +1849,10 @@
 }
 
 @media (max-width: 480px) {
+  .config-runtime-strip {
+    grid-template-columns: 1fr;
+  }
+
   .config-section-card__icon {
     width: 30px;
     height: 30px;

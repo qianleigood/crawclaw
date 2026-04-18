@@ -9,7 +9,12 @@ import {
 import { formatForLog } from "../ws-log.js";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
-const WEB_LOGIN_METHODS = new Set(["web.login.start", "web.login.wait"]);
+const WEB_LOGIN_METHODS = new Set([
+  "web.login.start",
+  "web.login.wait",
+  "channels.login.start",
+  "channels.login.wait",
+]);
 
 const resolveWebLoginProvider = () =>
   listChannelPlugins().find((plugin) =>
@@ -114,5 +119,11 @@ export const webHandlers: GatewayRequestHandlers = {
     } catch (err) {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
     }
+  },
+  "channels.login.start": async (args) => {
+    return webHandlers["web.login.start"](args);
+  },
+  "channels.login.wait": async (args) => {
+    return webHandlers["web.login.wait"](args);
   },
 };

@@ -193,8 +193,13 @@ export function resolveExecApprovalsState(props: NodesProps): ExecApprovalsState
 export function renderExecApprovals(state: ExecApprovalsState) {
   const ready = state.ready;
   const targetReady = state.target !== "node" || Boolean(state.targetNodeId);
+  const selectedAgentLabel =
+    state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE
+      ? uiLiteral("Defaults")
+      : (state.agents.find((agent) => agent.id === state.selectedScope)?.name?.trim() ??
+        state.selectedScope);
   return html`
-    <section class="card">
+    <section class="card operations-panel operations-panel--approvals">
       <div class="row" style="justify-content: space-between; align-items: center;">
         <div>
           <div class="card-title">${uiLiteral("Exec approvals")}</div>
@@ -210,6 +215,37 @@ export function renderExecApprovals(state: ExecApprovalsState) {
         >
           ${state.saving ? uiLiteral("Saving…") : uiLiteral("Save")}
         </button>
+      </div>
+
+      <div class="approvals-policy-strip">
+        <div class="approvals-policy-card">
+          <span class="approvals-policy-card__label">${uiLiteral("Target")}</span>
+          <strong class="approvals-policy-card__value"
+            >${state.target === "gateway"
+              ? uiLiteral("Gateway")
+              : (state.targetNodeId ?? uiLiteral("Select node"))}</strong
+          >
+        </div>
+        <div class="approvals-policy-card">
+          <span class="approvals-policy-card__label">${uiLiteral("Scope")}</span>
+          <strong class="approvals-policy-card__value">${selectedAgentLabel}</strong>
+        </div>
+        <div class="approvals-policy-card">
+          <span class="approvals-policy-card__label">${uiLiteral("Security")}</span>
+          <strong class="approvals-policy-card__value"
+            >${uiLiteral(state.defaults.security)}</strong
+          >
+        </div>
+        <div class="approvals-policy-card">
+          <span class="approvals-policy-card__label">${uiLiteral("Ask")}</span>
+          <strong class="approvals-policy-card__value">${uiLiteral(state.defaults.ask)}</strong>
+        </div>
+        <div class="approvals-policy-card approvals-policy-card--status">
+          <span class="approvals-policy-card__label">${uiLiteral("State")}</span>
+          <strong class="approvals-policy-card__value"
+            >${state.dirty ? uiLiteral("Apply required") : uiLiteral("Runtime in sync")}</strong
+          >
+        </div>
       </div>
 
       ${renderExecApprovalsTarget(state)}

@@ -193,6 +193,22 @@ export function renderSessions(props: SessionsProps) {
   const totalPages = Math.max(1, Math.ceil(totalRows / props.pageSize));
   const page = Math.min(props.page, totalPages - 1);
   const paginated = paginateRows(sorted, page, props.pageSize);
+  const selectedCount = props.selectedKeys.size;
+  const currentScopeLabel =
+    props.currentSessionKey && props.currentSessionKey.trim().length > 0
+      ? props.currentSessionKey
+      : uiLiteral("No active session");
+  const currentChatUrl =
+    props.currentSessionKey && props.currentSessionKey.trim().length > 0
+      ? `${pathForTab("chat", props.basePath)}?session=${encodeURIComponent(props.currentSessionKey)}`
+      : null;
+  const filterSummary = [
+    props.activeMinutes ? `${props.activeMinutes}m active` : uiLiteral("Any age"),
+    props.includeGlobal ? uiLiteral("Global") : null,
+    props.includeUnknown ? uiLiteral("Unknown") : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const sortHeader = (
     col: "key" | "kind" | "updated" | "tokens",
@@ -215,8 +231,11 @@ export function renderSessions(props: SessionsProps) {
   };
 
   return html`
-    <section class="card">
-      <div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+    <section class="card operations-panel operations-panel--sessions">
+      <div
+        class="operations-panel__header row"
+        style="justify-content: space-between; margin-bottom: 12px;"
+      >
         <div>
           <div class="card-title">${uiLiteral("Sessions")}</div>
           <div class="card-sub">
@@ -230,7 +249,63 @@ export function renderSessions(props: SessionsProps) {
         </button>
       </div>
 
-      <div class="filters" style="margin-bottom: 12px;">
+      <div class="operations-panel__stats">
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Visible rows")}</span>
+          <strong class="operations-panel__stat-value">${totalRows}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Active session")}</span>
+          <strong class="operations-panel__stat-value">${currentScopeLabel}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Selected")}</span>
+          <strong class="operations-panel__stat-value">${selectedCount}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Filter scope")}</span>
+          <strong class="operations-panel__stat-value">${filterSummary}</strong>
+        </div>
+      </div>
+
+      <div class="sessions-runtime-strip">
+        <div class="sessions-runtime-card">
+          <span class="sessions-runtime-card__label">${uiLiteral("Current session")}</span>
+          <strong class="sessions-runtime-card__value">${currentScopeLabel}</strong>
+        </div>
+        <div class="sessions-runtime-card">
+          <span class="sessions-runtime-card__label">${uiLiteral("Current run")}</span>
+          <strong class="sessions-runtime-card__value"
+            >${props.currentRunId ?? uiLiteral("Idle")}</strong
+          >
+        </div>
+        <div class="sessions-runtime-card">
+          <span class="sessions-runtime-card__label">${uiLiteral("Console route")}</span>
+          <strong class="sessions-runtime-card__value">
+            ${props.currentSessionKey ? uiLiteral("Chat attached") : uiLiteral("No selection")}
+          </strong>
+        </div>
+        <div class="sessions-runtime-actions">
+          ${currentChatUrl
+            ? html`<a class="btn btn--sm btn--ghost" href=${currentChatUrl}
+                >${uiLiteral("Open chat")}</a
+              >`
+            : nothing}
+          ${props.currentRunId && props.onInspectCurrentRun
+            ? html`
+                <button
+                  class="btn btn--sm"
+                  type="button"
+                  @click=${() => props.onInspectCurrentRun?.()}
+                >
+                  ${uiLiteral("Inspect current run")}
+                </button>
+              `
+            : nothing}
+        </div>
+      </div>
+
+      <div class="filters operations-inline-filters" style="margin-bottom: 12px;">
         <label class="field-inline">
           <span>${uiLiteral("Active")}</span>
           <input
@@ -296,6 +371,13 @@ export function renderSessions(props: SessionsProps) {
 
       <div class="data-table-wrapper">
         <div class="data-table-toolbar">
+          <div class="data-table-state-strip">
+            <span class="data-table-state-pill">${uiLiteral("Rows")}: ${totalRows}</span>
+            <span class="data-table-state-pill"
+              >${uiLiteral("Page rows")}: ${paginated.length}</span
+            >
+            <span class="data-table-state-pill">${uiLiteral("Selected")}: ${selectedCount}</span>
+          </div>
           <div class="data-table-search">
             <input
               type="text"
@@ -310,7 +392,9 @@ export function renderSessions(props: SessionsProps) {
           ? html`
               <div class="data-table-bulk-bar">
                 <span>${props.selectedKeys.size} ${uiLiteral("selected")}</span>
-                <button class="btn btn--sm" @click=${props.onDeselectAll}>${uiLiteral("Unselect")}</button>
+                <button class="btn btn--sm" @click=${props.onDeselectAll}>
+                  ${uiLiteral("Unselect")}
+                </button>
                 <button
                   class="btn btn--sm danger"
                   ?disabled=${props.loading}
@@ -348,7 +432,8 @@ export function renderSessions(props: SessionsProps) {
                 </th>
                 ${sortHeader("key", uiLiteral("Key"), "data-table-key-col")}
                 <th>${uiLiteral("Label")}</th>
-                ${sortHeader("kind", uiLiteral("Kind"))} ${sortHeader("updated", uiLiteral("Updated"))}
+                ${sortHeader("kind", uiLiteral("Kind"))}
+                ${sortHeader("updated", uiLiteral("Updated"))}
                 ${sortHeader("tokens", uiLiteral("Tokens"))}
                 <th>${uiLiteral("Thinking")}</th>
                 <th>${uiLiteral("Fast")}</th>

@@ -49,8 +49,8 @@ describe("gateway server health/presence", () => {
 
       const sendReq = (id: string, method: string) =>
         ws.send(JSON.stringify({ type: "req", id, method }));
-      sendReq("health1", "health");
-      sendReq("status1", "status");
+      sendReq("health1", "system.health");
+      sendReq("status1", "system.status");
       sendReq("presence1", "system-presence");
 
       const health = await healthP;
@@ -96,7 +96,7 @@ describe("gateway server health/presence", () => {
       JSON.stringify({
         type: "req",
         id: "hb-last",
-        method: "last-heartbeat",
+        method: "system.heartbeat.last",
       }),
     );
     const last = await onceMessage<GatewayFrame>(ws, (o) => o.type === "res" && o.id === "hb-last");

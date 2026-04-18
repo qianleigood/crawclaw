@@ -24,11 +24,16 @@ export async function loadDebug(state: DebugState) {
   }
   state.debugLoading = true;
   try {
+    const statusMethod = state.client.hasMethod("system.status") ? "system.status" : "status";
+    const healthMethod = state.client.hasMethod("system.health") ? "system.health" : "health";
+    const heartbeatMethod = state.client.hasMethod("system.heartbeat.last")
+      ? "system.heartbeat.last"
+      : "last-heartbeat";
     const [status, health, models, heartbeat] = await Promise.all([
-      state.client.request("status", {}),
-      state.client.request("health", {}),
+      state.client.request(statusMethod, {}),
+      state.client.request(healthMethod, {}),
       state.client.request("models.list", {}),
-      state.client.request("last-heartbeat", {}),
+      state.client.request(heartbeatMethod, {}),
     ]);
     state.debugStatus = status as StatusSummary;
     state.debugHealth = health as HealthSnapshot;

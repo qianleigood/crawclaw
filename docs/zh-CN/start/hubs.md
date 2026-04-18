@@ -51,6 +51,10 @@ x-i18n:
 - [项目缓存机制总览](/concepts/project-cache-strategy)
 - [文档与测试体系规划](/concepts/project-docs-and-test-strategy)
 - [项目基线冻结](/concepts/project-baseline-freeze)
+- [控制面 API 重构方案](/concepts/project-control-plane-api-refactor)
+- [控制面 API 实施清单](/concepts/project-control-plane-api-implementation-plan)
+- [控制面 API PR 计划](/concepts/project-control-plane-api-pr-plan)
+- [控制面 API Inventory](/concepts/project-control-plane-api-inventory)
 - [项目实施路线图](/concepts/project-implementation-roadmap)
 - [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
 - [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
@@ -101,6 +105,7 @@ x-i18n:
 ## Gateway 网关 + 运维
 
 - [Gateway 网关运维手册](/gateway)
+- [控制面 RPC](/gateway/control-plane-rpc)
 - [网络模型](/gateway/network-model)
 - [Gateway 网关配对](/gateway/pairing)
 - [Gateway 网关锁](/gateway/gateway-lock)

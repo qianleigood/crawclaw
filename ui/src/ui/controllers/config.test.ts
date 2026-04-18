@@ -313,7 +313,7 @@ describe("applyConfig", () => {
 });
 
 describe("saveConfig", () => {
-  it("coerces schema-typed values before config.set in form mode", async () => {
+  it("coerces schema-typed values before config.patch in form mode", async () => {
     const request = createRequestWithConfigGet();
     const state = createState();
     state.connected = true;
@@ -335,10 +335,13 @@ describe("saveConfig", () => {
       },
     };
     state.configSnapshot = { hash: "hash-save-1" };
+    state.configFormOriginal = {
+      gateway: { port: 18000, enabled: true },
+    };
 
     await saveConfig(state);
 
-    expect(request.mock.calls[0]?.[0]).toBe("config.set");
+    expect(request.mock.calls[0]?.[0]).toBe("config.patch");
     const params = request.mock.calls[0]?.[1] as { raw: string; baseHash: string };
     const parsed = JSON.parse(params.raw) as {
       gateway: { port: unknown; enabled: unknown };
@@ -349,17 +352,44 @@ describe("saveConfig", () => {
     expect(params.baseHash).toBe("hash-save-1");
   });
 
-  it("skips coercion when schema is not an object", async () => {
+  it("falls back to config.set when the form diff includes arrays", async () => {
     const request = createRequestWithConfigGet();
     const state = createState();
     state.connected = true;
     state.client = { request } as unknown as ConfigState["client"];
     state.configFormMode = "form";
     state.configForm = {
-      gateway: { port: "18789" },
+      agents: {
+        list: [{ id: "main" }, { id: "assistant" }],
+      },
     };
+    state.configFormOriginal = {
+      agents: {
+        list: [{ id: "main" }],
+      },
+    };
+    state.configSnapshot = { hash: "hash-save-array" };
+
+    await saveConfig(state);
+
+    expect(request.mock.calls[0]?.[0]).toBe("config.set");
+    const params = request.mock.calls[0]?.[1] as { raw: string; baseHash: string };
+    const parsed = JSON.parse(params.raw) as {
+      agents: { list: Array<{ id: string }> };
+    };
+    expect(parsed.agents.list).toEqual([{ id: "main" }, { id: "assistant" }]);
+    expect(params.baseHash).toBe("hash-save-array");
+  });
+
+  it("skips coercion when schema is not an object and keeps raw-mode saves on config.set", async () => {
+    const request = createRequestWithConfigGet();
+    const state = createState();
+    state.connected = true;
+    state.client = { request } as unknown as ConfigState["client"];
+    state.configFormMode = "raw";
+    state.configRaw = '{\n  "gateway": { "port": "18789" }\n}\n';
     state.configSchema = "invalid-schema";
-    state.configSnapshot = { hash: "hash-save-2" };
+    state.configSnapshot = { hash: "hash-save-2", raw: "{\n}\n" };
 
     await saveConfig(state);
 

@@ -3,6 +3,7 @@ import { formatControlPlaneActor, resolveControlPlaneActor } from "./control-pla
 import { consumeControlPlaneWriteBudget } from "./control-plane-rate-limit.js";
 import { ADMIN_SCOPE, authorizeOperatorScopesForMethod } from "./method-scopes.js";
 import { ErrorCodes, errorShape } from "./protocol/index.js";
+import { GatewayRequestDetailCodes } from "./protocol/request-error-details.js";
 import { isRoleAuthorizedForMethod, parseGatewayRole } from "./role-policy.js";
 import { agentHandlers } from "./server-methods/agent.js";
 import { agentsHandlers } from "./server-methods/agents.js";
@@ -33,15 +34,15 @@ import { updateHandlers } from "./server-methods/update.js";
 import { usageHandlers } from "./server-methods/usage.js";
 import { voicewakeHandlers } from "./server-methods/voicewake.js";
 import { webHandlers } from "./server-methods/web.js";
-import { workflowHandlers } from "./server-methods/workflow.js";
 import { wizardHandlers } from "./server-methods/wizard.js";
+import { workflowHandlers } from "./server-methods/workflow.js";
 
 const CONTROL_PLANE_WRITE_METHODS = new Set(["config.apply", "config.patch", "update.run"]);
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
   if (!client?.connect) {
     return null;
   }
-  if (method === "health") {
+  if (method === "health" || method === "system.health") {
     return null;
   }
   const roleRaw = client.connect.role ?? "operator";
@@ -61,7 +62,13 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
   }
   const scopeAuth = authorizeOperatorScopesForMethod(method, scopes);
   if (!scopeAuth.allowed) {
-    return errorShape(ErrorCodes.INVALID_REQUEST, `missing scope: ${scopeAuth.missingScope}`);
+    return errorShape(ErrorCodes.INVALID_REQUEST, `missing scope: ${scopeAuth.missingScope}`, {
+      details: {
+        code: GatewayRequestDetailCodes.SCOPE_MISSING,
+        missingScope: scopeAuth.missingScope,
+        method,
+      },
+    });
   }
   return null;
 }
@@ -139,7 +146,12 @@ export async function handleGatewayRequest(
     respond(
       false,
       undefined,
-      errorShape(ErrorCodes.INVALID_REQUEST, `unknown method: ${req.method}`),
+      errorShape(ErrorCodes.INVALID_REQUEST, `unknown method: ${req.method}`, {
+        details: {
+          code: GatewayRequestDetailCodes.METHOD_UNAVAILABLE,
+          method: req.method,
+        },
+      }),
     );
     return;
   }

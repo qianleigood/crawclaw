@@ -22,6 +22,9 @@ x-i18n:
 
 它**直接与同一端口上的 Gateway 网关 WebSocket** 通信。
 
+如果你要看支撑 Control UI 的前端控制面 RPC 契约，请直接看
+[控制面 RPC](/gateway/control-plane-rpc)。
+
 ## 快速打开（本地）
 
 如果 Gateway 网关在同一台计算机上运行，打开：
@@ -73,12 +76,18 @@ crawclaw devices approve <requestId>
 - 节点：列表 + 能力（`node.list`）
 - 执行批准：编辑 Gateway 网关或节点允许列表 + `exec host=gateway/node` 的询问策略（`exec.approvals.*`）
 - 配置：查看/编辑 `~/.crawclaw/crawclaw.json`（`config.get`、`config.set`）
+- 配置：表单保存优先 `config.patch`，Raw JSON 保存使用 `config.set`，应用使用 `config.apply`
 - 配置：应用 + 带验证的重启（`config.apply`）并唤醒上次活动的会话
 - 配置写入包含基础哈希保护，以防止覆盖并发编辑
 - 配置 schema + 表单渲染（`config.schema`，包括插件 + 渠道 schema）；原始 JSON 编辑器仍然可用
 - 调试：状态/健康/模型快照 + 事件日志 + 手动 RPC 调用（`status`、`health`、`models.list`）
 - 日志：Gateway 网关文件日志的实时尾部跟踪，带过滤/导出（`logs.tail`）
 - 更新：运行包/git 更新 + 重启（`update.run`）并显示重启报告
+
+Capability 说明：
+
+- `web.login.*`、node-scoped exec approvals 这类 optional surface 现在应基于协商出的 method/capability 进行 gating，而不是把 `unknown method` 当成主探测手段。
+- 稳定 surface / optional surface / capability 语义请以 [控制面 RPC](/gateway/control-plane-rpc) 为准。
 
 ## 聊天行为
 
@@ -193,3 +202,4 @@ http://localhost:5173/?gatewayUrl=wss://<gateway-host>:18789&token=<gateway-toke
 ## 相关文档
 
 - [控制 UI UX 方案](/web/control-ui-ux) — 面向新手的简化与重构方案
+- [控制面 RPC](/gateway/control-plane-rpc) — 浏览器稳定 method surface、capability 规则与 config 写路径

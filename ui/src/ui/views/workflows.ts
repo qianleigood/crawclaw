@@ -782,10 +782,31 @@ export function renderWorkflows(props: WorkflowsProps) {
       }
       return 0;
     });
+  const deployedCount = props.workflows.filter(
+    (workflow) => workflow.deploymentState === "deployed",
+  ).length;
+  const approvalCount = props.workflows.filter((workflow) => workflow.requiresApproval).length;
+  const archivedCount = props.workflows.filter((workflow) => Boolean(workflow.archivedAt)).length;
+  const selectedExecutionId = props.selectedExecution?.executionId ?? props.selectedExecutionId;
+  const editorState = props.editorDraft
+    ? props.actionBusyKey?.startsWith("update:")
+      ? uiLiteral("Saving")
+      : uiLiteral("Loaded")
+    : uiLiteral("Idle");
+  const diffState = props.diffLoading
+    ? uiLiteral("Loading")
+    : props.diffSnapshot?.diff
+      ? uiLiteral("Loaded")
+      : props.diffError
+        ? uiLiteral("Attention")
+        : uiLiteral("Idle");
 
   return html`
-    <section class="card">
-      <div class="row" style="justify-content:space-between; margin-bottom: 12px;">
+    <section class="card operations-panel operations-panel--workflows">
+      <div
+        class="operations-panel__header row"
+        style="justify-content:space-between; margin-bottom: 12px;"
+      >
         <div>
           <div class="card-title">${uiLiteral("Workflows")}</div>
           <div class="card-sub">
@@ -807,6 +828,77 @@ export function renderWorkflows(props: WorkflowsProps) {
       ${!props.connected
         ? html`<div class="muted">${uiLiteral("Connect to the gateway to load workflows.")}</div>`
         : nothing}
+
+      <div class="operations-panel__stats">
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Registry")}</span>
+          <strong class="operations-panel__stat-value">${props.workflows.length}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Filtered")}</span>
+          <strong class="operations-panel__stat-value">${filteredWorkflows.length}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Deployed")}</span>
+          <strong class="operations-panel__stat-value">${deployedCount}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Approval required")}</span>
+          <strong class="operations-panel__stat-value">${approvalCount}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Archived")}</span>
+          <strong class="operations-panel__stat-value">${archivedCount}</strong>
+        </div>
+        <div class="operations-panel__stat">
+          <span class="operations-panel__stat-label">${uiLiteral("Selected")}</span>
+          <strong class="operations-panel__stat-value"
+            >${detail?.workflow.name ?? uiLiteral("No workflow selected")}</strong
+          >
+        </div>
+      </div>
+
+      <div class="control-context-strip">
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Workflow id")}</span>
+          <strong class="control-context-card__value"
+            >${workflowRef ?? uiLiteral("No workflow selected")}</strong
+          >
+          <span class="control-context-card__meta"
+            >${detail?.workflow.scope ?? uiLiteral("Registry selection pending")}</span
+          >
+        </div>
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Execution")}</span>
+          <strong class="control-context-card__value"
+            >${selectedExecutionId ?? uiLiteral("No run selected")}</strong
+          >
+          <span class="control-context-card__meta">
+            ${props.selectedExecution
+              ? `${workflowStatusLabel(props.selectedExecution.status)} · ${executorLabel(props.selectedExecution.currentExecutor)}`
+              : uiLiteral("Select a run to inspect runtime state")}
+          </span>
+        </div>
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Editor")}</span>
+          <strong class="control-context-card__value">${editorState}</strong>
+          <span class="control-context-card__meta">
+            ${props.editorDraft
+              ? uiLiteral("Spec draft is mounted in the control plane")
+              : uiLiteral("No spec draft loaded")}
+          </span>
+        </div>
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Diff")}</span>
+          <strong class="control-context-card__value">${diffState}</strong>
+          <span class="control-context-card__meta">
+            ${props.diffSnapshot?.fromSpecVersion != null &&
+            props.diffSnapshot?.toSpecVersion != null
+              ? `v${props.diffSnapshot.fromSpecVersion} -> v${props.diffSnapshot.toSpecVersion}`
+              : uiLiteral("Compare two versions to populate the diff panel")}
+          </span>
+        </div>
+      </div>
 
       <div
         style="display:grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap:16px; align-items:start;"

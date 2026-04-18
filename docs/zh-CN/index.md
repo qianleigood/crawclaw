@@ -153,6 +153,9 @@ Gateway 网关启动后，打开浏览器控制界面。
   <Card title="概念总览" href="/concepts" icon="blocks">
     系统模型、运行时、记忆、模型和消息相关的核心概念。
   </Card>
+  <Card title="控制面 RPC" href="/gateway/control-plane-rpc" icon="waypoints">
+    浏览器稳定 method surface、capability 规则与 config 写路径模型。
+  </Card>
   <Card title="参考文档" href="/reference" icon="file-text">
     测试、发布、RPC、迁移等稳定参考资料入口。
   </Card>

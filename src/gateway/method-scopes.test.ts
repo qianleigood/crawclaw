@@ -18,6 +18,9 @@ describe("method scope resolution", () => {
     ["sessions.resolve", ["operator.read"]],
     ["config.schema.lookup", ["operator.read"]],
     ["agent.inspect", ["operator.read"]],
+    ["system.health", ["operator.read"]],
+    ["system.status", ["operator.read"]],
+    ["system.heartbeat.last", ["operator.read"]],
     ["workflow.list", ["operator.read"]],
     ["workflow.get", ["operator.read"]],
     ["workflow.status", ["operator.read"]],
@@ -63,6 +66,7 @@ describe("operator scope authorization", () => {
   it.each([
     ["health", ["operator.read"], { allowed: true }],
     ["health", ["operator.write"], { allowed: true }],
+    ["system.health", ["operator.read"], { allowed: true }],
     ["config.schema.lookup", ["operator.read"], { allowed: true }],
     ["config.patch", ["operator.admin"], { allowed: true }],
   ])("authorizes %s for scopes %j", (method, scopes, expected) => {

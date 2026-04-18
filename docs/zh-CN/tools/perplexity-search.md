@@ -4,13 +4,6 @@ read_when:
   - 你需要设置 PERPLEXITY_API_KEY 或 OpenRouter
 summary: CrawClaw 中的 Perplexity Search / Sonar web_search 设置
 title: Perplexity Sonar
-x-i18n:
-  generated_at: "2026-02-01T21:19:10Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 264d08e62e3bec854e378dad345ca209d139cd19b0469f3b25f88bb63b73ba00
-  source_path: perplexity.md
-  workflow: 15
 ---
 
 # Perplexity Sonar

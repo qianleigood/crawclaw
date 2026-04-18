@@ -1,3 +1,7 @@
+import type {
+  ControlUiMethodParamsMap,
+  ControlUiMethodResultMap,
+} from "../../../../src/gateway/protocol/control-ui-methods.js";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import { cloneConfigObject, removePathValue, setPathValue } from "./config/form-utils.ts";
 
@@ -48,32 +52,67 @@ export type ExecApprovalsState = {
   lastError: string | null;
 };
 
-function resolveExecApprovalsRpc(target?: ExecApprovalsTarget | null): {
-  method: string;
-  params: Record<string, unknown>;
-} | null {
+type ExecApprovalsReadMethod = "exec.approvals.get" | "exec.approvals.node.get";
+type ExecApprovalsWriteMethod = "exec.approvals.set" | "exec.approvals.node.set";
+
+type ExecApprovalsRpc<K extends ExecApprovalsReadMethod | ExecApprovalsWriteMethod> = {
+  method: K;
+  params: ControlUiMethodParamsMap[K];
+};
+
+type ExecApprovalsResolution<K extends ExecApprovalsReadMethod | ExecApprovalsWriteMethod> =
+  | { rpc: ExecApprovalsRpc<K>; error?: undefined }
+  | { rpc?: undefined; error: string };
+
+function resolveExecApprovalsRpc(
+  client: GatewayBrowserClient,
+  target?: ExecApprovalsTarget | null,
+): ExecApprovalsResolution<ExecApprovalsReadMethod> {
   if (!target || target.kind === "gateway") {
-    return { method: "exec.approvals.get", params: {} };
+    if (!client.hasMethod("exec.approvals.get")) {
+      return { error: "Exec approvals are not supported by this gateway." };
+    }
+    return { rpc: { method: "exec.approvals.get", params: {} } };
   }
   const nodeId = target.nodeId.trim();
   if (!nodeId) {
-    return null;
+    return { error: "Select a node before loading exec approvals." };
   }
-  return { method: "exec.approvals.node.get", params: { nodeId } };
+  if (!client.hasCapability("exec.approvals.node")) {
+    return { error: "Node exec approvals are not supported by this gateway." };
+  }
+  return { rpc: { method: "exec.approvals.node.get", params: { nodeId } } };
 }
 
 function resolveExecApprovalsSaveRpc(
+  client: GatewayBrowserClient,
   target: ExecApprovalsTarget | null | undefined,
   params: { file: ExecApprovalsFile; baseHash: string },
-): { method: string; params: Record<string, unknown> } | null {
+): ExecApprovalsResolution<ExecApprovalsWriteMethod> {
   if (!target || target.kind === "gateway") {
-    return { method: "exec.approvals.set", params };
+    if (!client.hasMethod("exec.approvals.set")) {
+      return { error: "Exec approvals are not supported by this gateway." };
+    }
+    return {
+      rpc: {
+        method: "exec.approvals.set",
+        params: params as ControlUiMethodParamsMap["exec.approvals.set"],
+      },
+    };
   }
   const nodeId = target.nodeId.trim();
   if (!nodeId) {
-    return null;
+    return { error: "Select a node before saving exec approvals." };
   }
-  return { method: "exec.approvals.node.set", params: { ...params, nodeId } };
+  if (!client.hasCapability("exec.approvals.node")) {
+    return { error: "Node exec approvals are not supported by this gateway." };
+  }
+  return {
+    rpc: {
+      method: "exec.approvals.node.set",
+      params: { ...params, nodeId } as ControlUiMethodParamsMap["exec.approvals.node.set"],
+    },
+  };
 }
 
 export async function loadExecApprovals(
@@ -89,12 +128,15 @@ export async function loadExecApprovals(
   state.execApprovalsLoading = true;
   state.lastError = null;
   try {
-    const rpc = resolveExecApprovalsRpc(target);
+    const { rpc, error } = resolveExecApprovalsRpc(state.client, target);
     if (!rpc) {
-      state.lastError = "Select a node before loading exec approvals.";
+      state.lastError = error;
       return;
     }
-    const res = await state.client.request<ExecApprovalsSnapshot>(rpc.method, rpc.params);
+    const res = await state.client.request<ControlUiMethodResultMap[typeof rpc.method]>(
+      rpc.method,
+      rpc.params,
+    );
     applyExecApprovalsSnapshot(state, res);
   } catch (err) {
     state.lastError = String(err);
@@ -129,9 +171,9 @@ export async function saveExecApprovals(
       return;
     }
     const file = state.execApprovalsForm ?? state.execApprovalsSnapshot?.file ?? {};
-    const rpc = resolveExecApprovalsSaveRpc(target, { file, baseHash });
+    const { rpc, error } = resolveExecApprovalsSaveRpc(state.client, target, { file, baseHash });
     if (!rpc) {
-      state.lastError = "Select a node before saving exec approvals.";
+      state.lastError = error;
       return;
     }
     await state.client.request(rpc.method, rpc.params);

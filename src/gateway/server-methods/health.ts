@@ -34,4 +34,10 @@ export const healthHandlers: GatewayRequestHandlers = {
     });
     respond(true, status, undefined);
   },
+  "system.health": async (args) => {
+    return healthHandlers.health(args);
+  },
+  "system.status": async (args) => {
+    return healthHandlers.status(args);
+  },
 };

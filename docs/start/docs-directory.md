@@ -33,6 +33,7 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 - [Workspace templates](/reference/templates/AGENTS)
 - [RPC adapters](/reference/rpc)
 - [Gateway runbook](/gateway)
+- [Control-plane RPC](/gateway/control-plane-rpc)
 - [Nodes (iOS and Android)](/nodes)
 - [Web surfaces (Control UI)](/web)
 - [Discovery and transports](/gateway/discovery)

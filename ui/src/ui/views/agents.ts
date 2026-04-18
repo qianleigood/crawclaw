@@ -12,6 +12,7 @@ import type {
   ToolsCatalogResult,
   ToolsEffectiveResult,
 } from "../types.ts";
+import { uiLiteral } from "../ui-literal.ts";
 import { renderAgentInspect } from "./agents-panels-inspect.ts";
 import { renderAgentOverview } from "./agents-panels-overview.ts";
 import {
@@ -169,10 +170,33 @@ export function renderAgents(props: AgentsProps) {
     channels: channelEntryCount,
     cron: cronJobCount || null,
   };
+  const runtimeRunLabel =
+    props.runtimeSessionMatchesSelectedAgent && props.runtimeRunId
+      ? props.runtimeRunId
+      : uiLiteral("No active run");
+  const inspectState = props.inspect.loading
+    ? uiLiteral("Loading")
+    : props.inspect.snapshot
+      ? uiLiteral("Ready")
+      : props.inspect.error
+        ? uiLiteral("Attention")
+        : uiLiteral("Idle");
+  const configState = props.config.saving
+    ? uiLiteral("Saving")
+    : props.config.dirty
+      ? uiLiteral("Apply required")
+      : uiLiteral("In sync");
+  const skillsState = props.agentSkills.loading
+    ? uiLiteral("Loading")
+    : props.agentSkills.error
+      ? uiLiteral("Attention")
+      : selectedSkillCount != null
+        ? uiLiteral("Ready")
+        : uiLiteral("Idle");
 
   return html`
     <div class="agents-layout">
-      <section class="agents-toolbar">
+      <section class="agents-toolbar operations-panel">
         <div class="agents-toolbar-row">
           <div class="agents-control-select">
             <select
@@ -232,6 +256,74 @@ export function renderAgents(props: AgentsProps) {
         ${props.error
           ? html`<div class="callout danger" style="margin-top: 8px;">${props.error}</div>`
           : nothing}
+        <div class="operations-panel__stats">
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Registry")}</span>
+            <strong class="operations-panel__stat-value">${agents.length}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Default")}</span>
+            <strong class="operations-panel__stat-value">${defaultId ?? t("common.na")}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Selection")}</span>
+            <strong class="operations-panel__stat-value"
+              >${selectedAgent
+                ? normalizeAgentLabel(selectedAgent)
+                : t("agentsPage.noAgents")}</strong
+            >
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Panel")}</span>
+            <strong class="operations-panel__stat-value">${activePanel}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Runtime")}</span>
+            <strong class="operations-panel__stat-value">${runtimeRunLabel}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Channels")}</span>
+            <strong class="operations-panel__stat-value">${channelEntryCount ?? 0}</strong>
+          </div>
+        </div>
+        <div class="control-context-strip">
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Runtime session")}</span>
+            <strong class="control-context-card__value"
+              >${props.runtimeSessionKey || uiLiteral("No session bound")}</strong
+            >
+            <span class="control-context-card__meta">
+              ${props.runtimeSessionMatchesSelectedAgent
+                ? uiLiteral("Current runtime session matches selected agent")
+                : uiLiteral("Runtime session is outside the selected agent scope")}
+            </span>
+          </div>
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Inspect state")}</span>
+            <strong class="control-context-card__value">${inspectState}</strong>
+            <span class="control-context-card__meta">
+              ${props.inspect.runId ?? uiLiteral("No inspect run pinned")}
+            </span>
+          </div>
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Config state")}</span>
+            <strong class="control-context-card__value">${configState}</strong>
+            <span class="control-context-card__meta">
+              ${props.config.loading
+                ? uiLiteral("Loading agent configuration")
+                : uiLiteral("Model, tools, and skill policy flow through config")}
+            </span>
+          </div>
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Skills report")}</span>
+            <strong class="control-context-card__value">${skillsState}</strong>
+            <span class="control-context-card__meta">
+              ${selectedSkillCount != null
+                ? `${selectedSkillCount} ${uiLiteral("skills visible for this agent")}`
+                : uiLiteral("Load the skills panel to inspect effective skill state")}
+            </span>
+          </div>
+        </div>
       </section>
       <section class="agents-main">
         ${!selectedAgent
@@ -399,7 +491,12 @@ function renderAgentTabs(
     { id: "channels", label: t("tabs.channels") },
     { id: "cron", label: t("tabs.cron") },
     ...(uiMode === "advanced"
-      ? [{ id: "inspect", label: t("agentsPage.tabs.inspect") } satisfies { id: AgentsPanel; label: string }]
+      ? [
+          { id: "inspect", label: t("agentsPage.tabs.inspect") } satisfies {
+            id: AgentsPanel;
+            label: string;
+          },
+        ]
       : []),
   ];
   return html`

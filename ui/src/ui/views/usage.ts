@@ -1,5 +1,6 @@
 import { html, nothing } from "lit";
 import { t } from "../../i18n/index.ts";
+import { uiLiteral } from "../ui-literal.ts";
 import { extractQueryTerms, filterSessionsByQuery } from "../usage-helpers.ts";
 import {
   buildAggregatesFromSessions,
@@ -435,12 +436,94 @@ export function renderUsage(props: UsageProps) {
     `;
   };
   const exportStamp = formatIsoDate(new Date());
+  const queryTermCount = queryTerms.length;
+  const selectedSessionLabel =
+    filters.selectedSessions.length === 1
+      ? filters.selectedSessions[0]
+      : filters.selectedSessions.length > 1
+        ? `${filters.selectedSessions.length} ${uiLiteral("sessions selected")}`
+        : uiLiteral("No session selected");
+  const chartModeLabel = display.chartMode === "tokens" ? uiLiteral("Tokens") : uiLiteral("Cost");
+  const headerState = display.headerPinned ? uiLiteral("Pinned") : uiLiteral("Floating");
+  const queryState = hasQuery
+    ? uiLiteral("Applied")
+    : hasDraftQuery
+      ? uiLiteral("Draft")
+      : uiLiteral("Idle");
 
   return html`
     <div class="usage-page">
       <section class="usage-page-header">
         <div class="usage-page-title">${t("tabs.usage")}</div>
         <div class="usage-page-subtitle">${t("usage.page.subtitle")}</div>
+      </section>
+
+      <section class="usage-page-strip">
+        <div class="usage-page-strip__card">
+          <span class="usage-page-strip__label">${t("usage.metrics.tokens")}</span>
+          <strong class="usage-page-strip__value"
+            >${displayTotals ? formatTokens(displayTotals.totalTokens) : "0"}</strong
+          >
+        </div>
+        <div class="usage-page-strip__card">
+          <span class="usage-page-strip__label">${t("usage.metrics.cost")}</span>
+          <strong class="usage-page-strip__value"
+            >${displayTotals ? formatCost(displayTotals.totalCost) : "$0.00"}</strong
+          >
+        </div>
+        <div class="usage-page-strip__card">
+          <span class="usage-page-strip__label">${uiLiteral("Sessions")}</span>
+          <strong class="usage-page-strip__value">${displaySessionCount}</strong>
+        </div>
+        <div class="usage-page-strip__card">
+          <span class="usage-page-strip__label">${uiLiteral("Selected days")}</span>
+          <strong class="usage-page-strip__value">${filters.selectedDays.length}</strong>
+        </div>
+        <div class="usage-page-strip__card">
+          <span class="usage-page-strip__label">${uiLiteral("Query terms")}</span>
+          <strong class="usage-page-strip__value">${queryTermCount}</strong>
+        </div>
+      </section>
+
+      <section class="control-context-strip">
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Primary session")}</span>
+          <strong class="control-context-card__value">${selectedSessionLabel}</strong>
+          <span class="control-context-card__meta">
+            ${primarySelectedEntry?.label ??
+            primarySelectedEntry?.key ??
+            uiLiteral("Detail panel follows the current selection")}
+          </span>
+        </div>
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Chart mode")}</span>
+          <strong class="control-context-card__value">${chartModeLabel}</strong>
+          <span class="control-context-card__meta">
+            ${display.chartMode === "tokens"
+              ? uiLiteral("Charts aggregate token volume across the current filter scope")
+              : uiLiteral("Charts aggregate cost across the current filter scope")}
+          </span>
+        </div>
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Header state")}</span>
+          <strong class="control-context-card__value">${headerState}</strong>
+          <span class="control-context-card__meta">
+            ${display.headerPinned
+              ? uiLiteral("Filter controls stay pinned while you inspect logs and timeseries")
+              : uiLiteral("Header scrolls with the page")}
+          </span>
+        </div>
+        <div class="control-context-card">
+          <span class="control-context-card__label">${uiLiteral("Query state")}</span>
+          <strong class="control-context-card__value">${queryState}</strong>
+          <span class="control-context-card__meta">
+            ${hasQuery
+              ? `${queryTermCount} ${uiLiteral("query terms active")}`
+              : hasDraftQuery
+                ? uiLiteral("Draft terms are staged in the query editor")
+                : uiLiteral("No query filter is shaping the usage surface")}
+          </span>
+        </div>
       </section>
 
       <section class="card usage-header ${display.headerPinned ? "pinned" : ""}">

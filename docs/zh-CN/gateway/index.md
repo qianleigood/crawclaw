@@ -21,6 +21,7 @@ x-i18n:
 - 拥有单一 Baileys/Telegram 连接和控制/事件平面的常驻进程。
 - 替代旧版 `gateway` 命令。CLI 入口点：`crawclaw gateway`。
 - 运行直到停止；出现致命错误时以非零退出码退出，以便 supervisor 重启它。
+- 面向浏览器 Control UI 的稳定 method surface、capability 规则和 config 写路径，见 [控制面 RPC](/gateway/control-plane-rpc)。
 
 ## 如何运行（本地）
 

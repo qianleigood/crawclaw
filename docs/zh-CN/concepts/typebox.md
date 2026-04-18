@@ -1,7 +1,7 @@
 ---
 read_when:
   - 更新协议模式或代码生成
-summary: TypeBox 模式作为 Gateway 网关协议的唯一事实来源
+summary: TypeBox 模式作为 Gateway 网关协议 schema 来源，并与共享控制面 method contract 配合使用
 title: TypeBox
 x-i18n:
   generated_at: "2026-02-03T07:47:23Z"
@@ -12,11 +12,19 @@ x-i18n:
   workflow: 15
 ---
 
-# TypeBox 作为协议的事实来源
+# TypeBox 作为协议 schema 的事实来源
 
-最后更新：2026-01-10
+最后更新：2026-04-17
 
-TypeBox 是一个 TypeScript 优先的模式库。我们用它来定义 **Gateway 网关 WebSocket 协议**（握手、请求/响应、服务器事件）。这些模式驱动**运行时验证**、**JSON Schema 导出**和 macOS 应用的 **Swift 代码生成**。一个事实来源；其他一切都是生成的。
+TypeBox 是一个 TypeScript 优先的模式库。我们用它来定义 **Gateway 网关 WebSocket 协议**（握手、请求/响应、服务器事件）。这些模式驱动**运行时验证**、**JSON Schema 导出**和 macOS 应用的 **Swift 代码生成**。
+
+对浏览器 Control UI 来说，TypeBox 现在需要和共享 method contract 一起理解：
+
+- **TypeBox / ProtocolSchemas**：协议对象 shape 和可复用 schema
+- **`src/gateway/protocol/control-ui-methods.ts`**：前端 method 列表、params/result 映射、scope、capability、effects 元信息
+
+如果你看的是浏览器控制面的稳定 RPC surface，请同时参考
+[控制面 RPC](/gateway/control-plane-rpc)。
 
 如果你想了解更高层次的协议上下文，请从 [Gateway 网关架构](/concepts/architecture)开始。
 
@@ -52,13 +60,20 @@ Client                    Gateway
 | 节点 | `node.list`、`node.invoke`、`node.pair.*`                 | Gateway 网关 WS + 节点操作      |
 | 事件 | `tick`、`presence`、`agent`、`chat`、`health`、`shutdown` | 服务器推送                      |
 
-权威列表在 `src/gateway/server.ts`（`METHODS`、`EVENTS`）中。
+权威入口现在分布在不同层：
+
+- 协议 schema：`src/gateway/protocol/schema/*`
+- 共享 protocol exports：`src/gateway/protocol/schema/protocol-schemas.ts`
+- Control UI method contract：`src/gateway/protocol/control-ui-methods.ts`
+- gateway dispatch/runtime 行为：`src/gateway/server-methods.ts`
 
 ## 模式所在位置
 
-- 源码：`src/gateway/protocol/schema.ts`
+- 源模块：`src/gateway/protocol/schema/*`
+- 共享 protocol exports：`src/gateway/protocol/schema/protocol-schemas.ts`
 - 运行时验证器（AJV）：`src/gateway/protocol/index.ts`
-- 服务器握手 + 方法分发：`src/gateway/server.ts`
+- 控制面 method contract：`src/gateway/protocol/control-ui-methods.ts`
+- 服务器握手 + 方法分发：`src/gateway/server-methods.ts`
 - 节点客户端：`src/gateway/client.ts`
 - 生成的 JSON Schema：`dist/protocol.schema.json`
 - 生成的 Swift 模型：`apps/macos/Sources/CrawClawProtocol/GatewayModels.swift`

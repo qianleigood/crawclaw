@@ -1,5 +1,4 @@
-import { GatewayRequestError } from "../gateway.ts";
-import { ChannelsStatusSnapshot, FeishuCliStatusSnapshot } from "../types.ts";
+import { FeishuCliStatusSnapshot } from "../types.ts";
 import type { ChannelsState } from "./channels.types.ts";
 import {
   formatMissingOperatorReadScopeMessage,
@@ -8,12 +7,28 @@ import {
 
 export type { ChannelsState };
 
-function isUnknownMethodError(err: unknown, method: string): boolean {
-  return (
-    err instanceof GatewayRequestError &&
-    err.gatewayCode === "INVALID_REQUEST" &&
-    err.message.includes(`unknown method: ${method}`)
-  );
+function resolveStartLoginMethod(
+  state: ChannelsState,
+): "channels.login.start" | "web.login.start" | null {
+  if (state.client?.hasMethod("channels.login.start")) {
+    return "channels.login.start";
+  }
+  if (state.client?.hasMethod("web.login.start")) {
+    return "web.login.start";
+  }
+  return null;
+}
+
+function resolveWaitLoginMethod(
+  state: ChannelsState,
+): "channels.login.wait" | "web.login.wait" | null {
+  if (state.client?.hasMethod("channels.login.wait")) {
+    return "channels.login.wait";
+  }
+  if (state.client?.hasMethod("web.login.wait")) {
+    return "web.login.wait";
+  }
+  return null;
 }
 
 export async function loadChannels(state: ChannelsState, probe: boolean) {
@@ -27,20 +42,23 @@ export async function loadChannels(state: ChannelsState, probe: boolean) {
   state.channelsError = null;
   state.feishuCliError = null;
   try {
+    const feishuCliSupported = state.client.hasMethod("feishu.cli.status");
     const [channelsResult, feishuCliResult] = await Promise.allSettled([
-      state.client.request<ChannelsStatusSnapshot | null>("channels.status", {
+      state.client.request("channels.status", {
         probe,
         timeoutMs: 8000,
       }),
-      state.client.request<FeishuCliStatusSnapshot>("feishu.cli.status", {
-        verify: false,
-        timeoutMs: 8000,
-      }),
+      feishuCliSupported
+        ? state.client.request<FeishuCliStatusSnapshot>("feishu.cli.status", {
+            verify: false,
+            timeoutMs: 8000,
+          })
+        : Promise.resolve<FeishuCliStatusSnapshot | null>(null),
     ]);
     const completedAt = Date.now();
 
     if (channelsResult.status === "fulfilled") {
-      state.channelsSnapshot = channelsResult.value;
+      state.channelsSnapshot = channelsResult.value as ChannelsState["channelsSnapshot"];
       state.channelsLastSuccess = completedAt;
     } else {
       const err = channelsResult.reason;
@@ -52,17 +70,17 @@ export async function loadChannels(state: ChannelsState, probe: boolean) {
       }
     }
 
-    if (feishuCliResult.status === "fulfilled") {
+    if (!feishuCliSupported) {
+      state.feishuCliStatus = null;
+      state.feishuCliSupported = false;
+      state.feishuCliLastSuccess = completedAt;
+    } else if (feishuCliResult.status === "fulfilled") {
       state.feishuCliStatus = feishuCliResult.value;
       state.feishuCliSupported = true;
       state.feishuCliLastSuccess = completedAt;
     } else {
       const err = feishuCliResult.reason;
-      if (isUnknownMethodError(err, "feishu.cli.status")) {
-        state.feishuCliStatus = null;
-        state.feishuCliSupported = false;
-        state.feishuCliLastSuccess = completedAt;
-      } else if (isMissingOperatorReadScopeError(err)) {
+      if (isMissingOperatorReadScopeError(err)) {
         state.feishuCliStatus = null;
         state.feishuCliSupported = true;
         state.feishuCliError = formatMissingOperatorReadScopeMessage("Feishu CLI user status");
@@ -88,15 +106,19 @@ export async function startWhatsAppLogin(state: ChannelsState, force: boolean) {
   if (!state.client || !state.connected || state.whatsappBusy) {
     return;
   }
+  const method = resolveStartLoginMethod(state);
+  if (!method) {
+    state.whatsappLoginMessage = "WhatsApp login is not supported by this gateway.";
+    state.whatsappLoginQrDataUrl = null;
+    state.whatsappLoginConnected = null;
+    return;
+  }
   state.whatsappBusy = true;
   try {
-    const res = await state.client.request<{ message?: string; qrDataUrl?: string }>(
-      "web.login.start",
-      {
-        force,
-        timeoutMs: 30000,
-      },
-    );
+    const res = await state.client.request<{ message?: string; qrDataUrl?: string }>(method, {
+      force,
+      timeoutMs: 30000,
+    });
     state.whatsappLoginMessage = res.message ?? null;
     state.whatsappLoginQrDataUrl = res.qrDataUrl ?? null;
     state.whatsappLoginConnected = null;
@@ -113,14 +135,17 @@ export async function waitWhatsAppLogin(state: ChannelsState) {
   if (!state.client || !state.connected || state.whatsappBusy) {
     return;
   }
+  const method = resolveWaitLoginMethod(state);
+  if (!method) {
+    state.whatsappLoginMessage = "WhatsApp login wait is not supported by this gateway.";
+    state.whatsappLoginConnected = null;
+    return;
+  }
   state.whatsappBusy = true;
   try {
-    const res = await state.client.request<{ message?: string; connected?: boolean }>(
-      "web.login.wait",
-      {
-        timeoutMs: 120000,
-      },
-    );
+    const res = await state.client.request<{ message?: string; connected?: boolean }>(method, {
+      timeoutMs: 120000,
+    });
     state.whatsappLoginMessage = res.message ?? null;
     state.whatsappLoginConnected = res.connected ?? null;
     if (res.connected) {

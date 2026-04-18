@@ -1040,6 +1040,20 @@ export function renderChat(props: ChatProps) {
 
   const splitRatio = props.splitRatio ?? 0.6;
   const sidebarOpen = Boolean(props.sidebarOpen && props.onCloseSidebar);
+  const sessionLabel =
+    activeSession?.label?.trim() ||
+    activeSession?.displayName?.trim() ||
+    props.sessionKey ||
+    uiLiteral("No session");
+  const sessionKind = activeSession?.kind ?? uiLiteral("unknown");
+  const streamState =
+    props.stream !== null
+      ? uiLiteral("Streaming")
+      : props.sending
+        ? uiLiteral("Sending")
+        : uiLiteral("Idle");
+  const reasoningState = showReasoning ? reasoningLevel : uiLiteral("off");
+  const queueCount = props.queue.length;
 
   const handleCodeBlockCopy = (e: Event) => {
     const btn = (e.target as HTMLElement).closest(".code-block-copy");
@@ -1303,6 +1317,35 @@ export function renderChat(props: ChatProps) {
           `
         : nothing}
       ${renderSearchBar(requestUpdate)} ${renderPinnedSection(props, pinned, requestUpdate)}
+
+      <div class="chat-ops-strip">
+        <div class="chat-ops-card">
+          <span class="chat-ops-card__label">${uiLiteral("Session")}</span>
+          <strong class="chat-ops-card__value">${sessionLabel}</strong>
+        </div>
+        <div class="chat-ops-card">
+          <span class="chat-ops-card__label">${uiLiteral("Kind")}</span>
+          <strong class="chat-ops-card__value">${sessionKind}</strong>
+        </div>
+        <div class="chat-ops-card">
+          <span class="chat-ops-card__label">${uiLiteral("Reasoning")}</span>
+          <strong class="chat-ops-card__value">${reasoningState}</strong>
+        </div>
+        <div class="chat-ops-card">
+          <span class="chat-ops-card__label">${uiLiteral("Queue")}</span>
+          <strong class="chat-ops-card__value">${queueCount}</strong>
+        </div>
+        <div class="chat-ops-card">
+          <span class="chat-ops-card__label">${uiLiteral("Sidebar")}</span>
+          <strong class="chat-ops-card__value"
+            >${sidebarOpen ? uiLiteral("Open") : uiLiteral("Closed")}</strong
+          >
+        </div>
+        <div class="chat-ops-card">
+          <span class="chat-ops-card__label">${uiLiteral("Runtime")}</span>
+          <strong class="chat-ops-card__value">${streamState}</strong>
+        </div>
+      </div>
 
       <div class="chat-split-container ${sidebarOpen ? "chat-split-container--open" : ""}">
         <div

@@ -26,6 +26,9 @@ export const systemHandlers: GatewayRequestHandlers = {
   "last-heartbeat": ({ respond }) => {
     respond(true, getLastHeartbeatEvent(), undefined);
   },
+  "system.heartbeat.last": ({ respond }) => {
+    respond(true, getLastHeartbeatEvent(), undefined);
+  },
   "set-heartbeats": ({ params, respond }) => {
     const enabled = params.enabled;
     if (typeof enabled !== "boolean") {

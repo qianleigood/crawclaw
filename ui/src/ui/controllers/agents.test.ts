@@ -321,11 +321,12 @@ describe("saveAgentsConfig", () => {
 
     expect(request).toHaveBeenNthCalledWith(
       1,
-      "config.set",
+      "config.patch",
       expect.objectContaining({ baseHash: "hash-1" }),
     );
     expect(JSON.parse(request.mock.calls[0]?.[1]?.raw as string)).toEqual({
-      agents: { list: [{ id: "main" }] },
+      // saveAgentsConfig reuses the config.patch form-mode write path, so no-op saves
+      // produce an empty merge patch before reloading the config and agent list.
     });
     expect(request).toHaveBeenNthCalledWith(2, "config.get", {});
     expect(request).toHaveBeenNthCalledWith(3, "agents.list", {});

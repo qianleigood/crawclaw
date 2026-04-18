@@ -1,3 +1,4 @@
+import type { ControlUiMethodParamsMap } from "../../../../src/gateway/protocol/control-ui-methods.js";
 import { toNumber } from "../format.ts";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { SessionsListResult } from "../types.ts";
@@ -51,7 +52,7 @@ export async function loadSessions(
     const includeUnknown = overrides?.includeUnknown ?? state.sessionsIncludeUnknown;
     const activeMinutes = overrides?.activeMinutes ?? toNumber(state.sessionsFilterActive, 0);
     const limit = overrides?.limit ?? toNumber(state.sessionsFilterLimit, 0);
-    const params: Record<string, unknown> = {
+    const params: ControlUiMethodParamsMap["sessions.list"] = {
       includeGlobal,
       includeUnknown,
     };
@@ -91,7 +92,7 @@ export async function patchSession(
   if (!state.client || !state.connected) {
     return;
   }
-  const params: Record<string, unknown> = { key };
+  const params: ControlUiMethodParamsMap["sessions.patch"] = { key };
   if ("label" in patch) {
     params.label = patch.label;
   }

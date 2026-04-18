@@ -163,6 +163,9 @@ Example:
   <Card title="Concepts index" href="/concepts" icon="blocks">
     System model, runtime, memory, models, and messaging concepts.
   </Card>
+  <Card title="Control-plane RPC" href="/gateway/control-plane-rpc" icon="waypoints">
+    Stable browser-facing method surface, capability rules, and config write model.
+  </Card>
   <Card title="Reference docs" href="/reference" icon="file-text">
     Stable reference material for testing, release, RPC, and migration.
   </Card>
