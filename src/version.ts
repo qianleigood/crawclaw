@@ -1,5 +1,3 @@
-import { createRequire } from "node:module";
-
 declare const __CRAWCLAW_VERSION__: string | undefined;
 const CORE_PACKAGE_NAME = "crawclaw";
 
@@ -16,11 +14,36 @@ const BUILD_INFO_CANDIDATES = [
   "./build-info.json",
 ] as const;
 
+type NodeLikeProcess = {
+  getBuiltinModule?: (id: string) => unknown;
+};
+
+type NodeModuleBuiltin = {
+  createRequire?: (moduleUrl: string) => NodeJS.Require;
+};
+
+function resolveCreateRequire(): ((moduleUrl: string) => NodeJS.Require) | null {
+  const processLike = globalThis.process as NodeLikeProcess | undefined;
+  if (typeof processLike?.getBuiltinModule !== "function") {
+    return null;
+  }
+  try {
+    const nodeModule = processLike.getBuiltinModule("node:module") as NodeModuleBuiltin | undefined;
+    return typeof nodeModule?.createRequire === "function" ? nodeModule.createRequire : null;
+  } catch {
+    return null;
+  }
+}
+
 function readVersionFromJsonCandidates(
   moduleUrl: string,
   candidates: readonly string[],
   opts: { requirePackageName?: boolean } = {},
 ): string | null {
+  const createRequire = resolveCreateRequire();
+  if (!createRequire) {
+    return null;
+  }
   try {
     const require = createRequire(moduleUrl);
     for (const candidate of candidates) {
@@ -90,6 +113,10 @@ export type RuntimeVersionEnv = {
   [key: string]: string | undefined;
 };
 
+function readRuntimeEnv(): RuntimeVersionEnv {
+  return typeof process !== "undefined" ? (process.env as RuntimeVersionEnv) : {};
+}
+
 export const RUNTIME_SERVICE_VERSION_FALLBACK = "unknown";
 type RuntimeVersionPreference = "env-first" | "runtime-first";
 
@@ -123,7 +150,7 @@ function resolveVersionFromRuntimeSources(params: {
 }
 
 export function resolveRuntimeServiceVersion(
-  env: RuntimeVersionEnv = process.env as RuntimeVersionEnv,
+  env: RuntimeVersionEnv = readRuntimeEnv(),
   fallback = RUNTIME_SERVICE_VERSION_FALLBACK,
 ): string {
   return resolveVersionFromRuntimeSources({
@@ -135,14 +162,15 @@ export function resolveRuntimeServiceVersion(
 }
 
 export function resolveCompatibilityHostVersion(
-  env: RuntimeVersionEnv = process.env as RuntimeVersionEnv,
+  env: RuntimeVersionEnv = readRuntimeEnv(),
   fallback = RUNTIME_SERVICE_VERSION_FALLBACK,
 ): string {
+  const defaultEnv = readRuntimeEnv();
   return resolveVersionFromRuntimeSources({
     env,
     runtimeVersion: resolveUsableRuntimeVersion(VERSION),
     fallback,
-    preference: env === (process.env as RuntimeVersionEnv) ? "runtime-first" : "env-first",
+    preference: env === defaultEnv ? "runtime-first" : "env-first",
   });
 }
 
@@ -152,5 +180,5 @@ export function resolveCompatibilityHostVersion(
 export const VERSION = resolveBinaryVersion({
   moduleUrl: import.meta.url,
   injectedVersion: typeof __CRAWCLAW_VERSION__ === "string" ? __CRAWCLAW_VERSION__ : undefined,
-  bundledVersion: process.env.CRAWCLAW_BUNDLED_VERSION,
+  bundledVersion: readRuntimeEnv()["CRAWCLAW_BUNDLED_VERSION"],
 });

@@ -14,6 +14,22 @@ function nextFrame() {
   });
 }
 
+async function waitForElement<T extends Element>(
+  app: ReturnType<typeof mountApp>,
+  selector: string,
+  attempts = 12,
+): Promise<T | null> {
+  for (let index = 0; index < attempts; index += 1) {
+    await app.updateComplete;
+    const element = app.querySelector<T>(selector);
+    if (element) {
+      return element;
+    }
+    await nextFrame();
+  }
+  return app.querySelector<T>(selector);
+}
+
 function findConfirmButton(app: ReturnType<typeof mountApp>) {
   return Array.from(app.querySelectorAll<HTMLButtonElement>("button")).find(
     (button) => button.textContent?.trim() === "Confirm",
@@ -247,9 +263,10 @@ describe("platform UI routing", () => {
 
   it("renders control-plane strips on channels and debug routes", async () => {
     const channelsApp = mountApp("/channels");
-    await channelsApp.updateComplete;
-
-    const channelsStrip = channelsApp.querySelector<HTMLElement>(".connect-center__ops-strip");
+    const channelsStrip = await waitForElement<HTMLElement>(
+      channelsApp,
+      ".connect-center__ops-strip",
+    );
     expect(channelsStrip).not.toBeNull();
     expect(channelsStrip?.textContent).toContain("Gateway probe");
     expect(channelsStrip?.textContent).toContain("Config state");
@@ -257,9 +274,7 @@ describe("platform UI routing", () => {
     document.body.innerHTML = "";
 
     const debugApp = mountApp("/debug");
-    await debugApp.updateComplete;
-
-    const debugStrip = debugApp.querySelector<HTMLElement>(".debug-surface-strip");
+    const debugStrip = await waitForElement<HTMLElement>(debugApp, ".debug-surface-strip");
     expect(debugStrip).not.toBeNull();
     expect(debugStrip?.textContent).toContain("Preferred names");
     expect(debugStrip?.textContent).toContain("Params state");

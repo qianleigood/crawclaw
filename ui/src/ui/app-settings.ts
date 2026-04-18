@@ -30,6 +30,7 @@ import { loadUsage } from "./controllers/usage.ts";
 import { loadWorkflows } from "./controllers/workflows.ts";
 import {
   inferBasePathFromPathname,
+  isAdvancedTab,
   normalizeTabForMode,
   normalizeBasePath,
   normalizePath,
@@ -431,7 +432,7 @@ export function syncTabWithLocation(host: SettingsHost, replace: boolean) {
   }
   const resolved =
     tabFromPath(window.location.pathname, host.basePath) ?? (host.onboarding ? "overview" : "chat");
-  const normalizedTab = normalizeTabForMode(resolved, host.settings.uiMode ?? "simple");
+  const normalizedTab = resolveTabForRoute(host, resolved);
   setTabFromRoute(host, normalizedTab);
   syncUrlWithTab(host, normalizedTab, replace);
 }
@@ -444,7 +445,7 @@ export function onPopState(host: SettingsHost) {
   if (!resolved) {
     return;
   }
-  const normalizedTab = normalizeTabForMode(resolved, host.settings.uiMode ?? "simple");
+  const normalizedTab = resolveTabForRoute(host, resolved);
 
   const url = new URL(window.location.href);
   const session = url.searchParams.get("session")?.trim();
@@ -461,9 +462,18 @@ export function onPopState(host: SettingsHost) {
 }
 
 export function setTabFromRoute(host: SettingsHost, next: Tab) {
-  applyTabSelection(host, normalizeTabForMode(next, host.settings.uiMode ?? "simple"), {
+  applyTabSelection(host, resolveTabForRoute(host, next), {
     refreshPolicy: "connected",
   });
+}
+
+function resolveTabForRoute(host: SettingsHost, next: Tab): Tab {
+  const uiMode = host.settings.uiMode ?? "simple";
+  if (uiMode !== "advanced" && isAdvancedTab(next)) {
+    applySettings(host, { ...host.settings, uiMode: "advanced" });
+    return next;
+  }
+  return normalizeTabForMode(next, uiMode);
 }
 
 function applyTabSelection(

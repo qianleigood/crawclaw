@@ -237,6 +237,16 @@ describe("setTabFromRoute", () => {
     expect(host.debugPollInterval).toBeNull();
   });
 
+  it("promotes simple mode to advanced for deep-linked advanced tabs", () => {
+    const host = createHost("chat");
+    host.settings.uiMode = "simple";
+
+    setTabFromRoute(host, "debug");
+
+    expect(host.settings.uiMode).toBe("advanced");
+    expect(host.tab).toBe("debug");
+  });
+
   it("starts and stops inspect polling only for agent inspect on the active run", () => {
     const host = createHost("chat");
     host.connected = true;
@@ -346,7 +356,9 @@ describe("setTabFromRoute", () => {
 
     buildAttentionItems(host as never);
 
-    expect(host.attentionItems?.map((item) => item.title)).toContain("Feishu user tools not loaded");
+    expect(host.attentionItems?.map((item) => item.title)).toContain(
+      "Feishu user tools not loaded",
+    );
   });
 
   it("adds an attention item when Feishu user auth is missing", () => {
