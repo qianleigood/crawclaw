@@ -1,6 +1,16 @@
 import { Type } from "@sinclair/typebox";
 import type { Static, TSchema } from "@sinclair/typebox";
 import type { OperatorScope } from "../method-scopes.js";
+import {
+  AgentRuntimeCancelParamsSchema,
+  AgentRuntimeCancelResultSchema,
+  AgentRuntimeDetailResultSchema,
+  AgentRuntimeGetParamsSchema,
+  AgentRuntimeListParamsSchema,
+  AgentRuntimeListResultSchema,
+  AgentRuntimeSummaryParamsSchema,
+  AgentRuntimeSummaryResultSchema,
+} from "./schema/agent-runtime.ts";
 import { AgentInspectionSnapshotSchema, AgentInspectParamsSchema } from "./schema/agent.ts";
 import {
   AgentsListParamsSchema,
@@ -469,6 +479,34 @@ export const ControlUiMethodContract = {
     paramsSchema: MemoryPromptJournalSummaryParamsSchema,
     resultSchema: MemoryPromptJournalSummaryResultSchema,
     requiredScopes: ["operator.read"],
+    stability: "stable",
+  }),
+  "agentRuntime.summary": defineControlUiMethod({
+    method: "agentRuntime.summary",
+    paramsSchema: AgentRuntimeSummaryParamsSchema,
+    resultSchema: AgentRuntimeSummaryResultSchema,
+    requiredScopes: ["operator.read"],
+    stability: "stable",
+  }),
+  "agentRuntime.list": defineControlUiMethod({
+    method: "agentRuntime.list",
+    paramsSchema: AgentRuntimeListParamsSchema,
+    resultSchema: AgentRuntimeListResultSchema,
+    requiredScopes: ["operator.read"],
+    stability: "stable",
+  }),
+  "agentRuntime.get": defineControlUiMethod({
+    method: "agentRuntime.get",
+    paramsSchema: AgentRuntimeGetParamsSchema,
+    resultSchema: AgentRuntimeDetailResultSchema,
+    requiredScopes: ["operator.read"],
+    stability: "stable",
+  }),
+  "agentRuntime.cancel": defineControlUiMethod({
+    method: "agentRuntime.cancel",
+    paramsSchema: AgentRuntimeCancelParamsSchema,
+    resultSchema: AgentRuntimeCancelResultSchema,
+    requiredScopes: ["operator.write"],
     stability: "stable",
   }),
   "usage.status": defineControlUiMethod({

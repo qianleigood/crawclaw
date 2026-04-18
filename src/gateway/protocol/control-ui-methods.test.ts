@@ -59,6 +59,10 @@ const FIRST_BATCH_METHODS = [
   "memory.sessionSummary.status",
   "memory.sessionSummary.refresh",
   "memory.promptJournal.summary",
+  "agentRuntime.summary",
+  "agentRuntime.list",
+  "agentRuntime.get",
+  "agentRuntime.cancel",
   "usage.status",
   "usage.cost",
   "workflow.list",
@@ -198,6 +202,15 @@ describe("control-plane method contract", () => {
     expect(getControlUiMethodDefinition("memory.promptJournal.summary").requiredScopes).toEqual([
       "operator.read",
     ]);
+    expect(getControlUiMethodDefinition("agentRuntime.summary").requiredScopes).toEqual([
+      "operator.read",
+    ]);
+    expect(getControlUiMethodDefinition("agentRuntime.list").requiredScopes).toEqual([
+      "operator.read",
+    ]);
+    expect(getControlUiMethodDefinition("agentRuntime.get").requiredScopes).toEqual([
+      "operator.read",
+    ]);
     expect(getControlUiMethodDefinition("usage.cost").requiredScopes).toEqual(["operator.read"]);
     expect(getControlUiMethodDefinition("agents.list").requiredScopes).toEqual(["operator.read"]);
     expect(getControlUiMethodDefinition("tools.effective").requiredScopes).toEqual([
@@ -236,6 +249,9 @@ describe("control-plane method contract", () => {
       "operator.write",
     ]);
     expect(getControlUiMethodDefinition("memory.sessionSummary.refresh").requiredScopes).toEqual([
+      "operator.write",
+    ]);
+    expect(getControlUiMethodDefinition("agentRuntime.cancel").requiredScopes).toEqual([
       "operator.write",
     ]);
   });
@@ -320,6 +336,30 @@ describe("control-plane method contract", () => {
     );
     expect(ControlUiMethodContract["memory.promptJournal.summary"].resultSchema).toBe(
       ProtocolSchemas.MemoryPromptJournalSummaryResult,
+    );
+    expect(ControlUiMethodContract["agentRuntime.summary"].paramsSchema).toBe(
+      ProtocolSchemas.AgentRuntimeSummaryParams,
+    );
+    expect(ControlUiMethodContract["agentRuntime.summary"].resultSchema).toBe(
+      ProtocolSchemas.AgentRuntimeSummaryResult,
+    );
+    expect(ControlUiMethodContract["agentRuntime.list"].paramsSchema).toBe(
+      ProtocolSchemas.AgentRuntimeListParams,
+    );
+    expect(ControlUiMethodContract["agentRuntime.list"].resultSchema).toBe(
+      ProtocolSchemas.AgentRuntimeListResult,
+    );
+    expect(ControlUiMethodContract["agentRuntime.get"].paramsSchema).toBe(
+      ProtocolSchemas.AgentRuntimeGetParams,
+    );
+    expect(ControlUiMethodContract["agentRuntime.get"].resultSchema).toBe(
+      ProtocolSchemas.AgentRuntimeDetailResult,
+    );
+    expect(ControlUiMethodContract["agentRuntime.cancel"].paramsSchema).toBe(
+      ProtocolSchemas.AgentRuntimeCancelParams,
+    );
+    expect(ControlUiMethodContract["agentRuntime.cancel"].resultSchema).toBe(
+      ProtocolSchemas.AgentRuntimeCancelResult,
     );
   });
 });

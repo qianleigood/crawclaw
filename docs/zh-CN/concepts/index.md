@@ -53,6 +53,7 @@ title: 概念总览
 - [Control UI Stitch 1:1 重写 PR 计划](/concepts/project-control-ui-stitch-1to1-pr-plan)
 - [Control UI 产品化重构 PR 计划](/concepts/project-control-ui-productization-pr-plan)
 - [Control UI Memory 模块 PR 计划](/concepts/project-control-ui-memory-pr-plan)
+- [Control UI Agent Runtime 模块 PR 计划](/concepts/project-control-ui-agent-runtime-pr-plan)
 - [项目实施路线图](/concepts/project-implementation-roadmap)
 - [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
 - [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)

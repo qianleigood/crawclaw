@@ -759,6 +759,10 @@ crawclaw-app {
   background: rgba(89, 180, 255, 0.05);
 }
 
+.cp-table tbody tr.is-active {
+  background: rgba(89, 180, 255, 0.08);
+}
+
 .cp-chat-thread {
   display: flex;
   flex-direction: column;

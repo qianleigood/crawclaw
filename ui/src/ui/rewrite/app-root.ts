@@ -8,6 +8,12 @@ import {
 } from "../chat/attachment-support.ts";
 import { extractText } from "../chat/message-extract.ts";
 import {
+  cancelAgentRuntimeTask,
+  loadAgentRuntime,
+  selectAgentRuntimeTask,
+  type AgentRuntimeState,
+} from "../controllers/agent-runtime.ts";
+import {
   loadAgents,
   loadAgentInspection,
   loadToolsCatalog,
@@ -177,6 +183,7 @@ const APP_COPY = {
       wait: "Wait",
       logout: "Logout",
       execute: "Execute",
+      cancel: "Cancel",
       password: "Password",
       path: "Path",
       hash: "Hash",
@@ -432,6 +439,42 @@ const APP_COPY = {
       knowledgeWrites: "Knowledge writes",
       noJournal: "Prompt journal is disabled or no files were found.",
     },
+    runtime: {
+      registryKicker: "Background work",
+      registryTitle: "Runs that are active or need review",
+      choosePrompt: "Choose a run to review its status, linked session and available actions.",
+      categoryKicker: "Filter by kind",
+      categoryTitle: "What should this list show?",
+      statusKicker: "Filter by status",
+      statusTitle: "Which runs matter right now?",
+      queryKicker: "Find a specific run",
+      queryTitle: "Filter by agent, session or run ID",
+      refreshRuns: "Refresh runs",
+      taskId: "Task ID",
+      runId: "Run ID",
+      parentSession: "Parent session",
+      childSession: "Child session",
+      updatedAt: "Updated",
+      lastCompleted: "Last completed",
+      currentRun: "Selected run",
+      contractTitle: "How this run was created",
+      detailsTitle: "Run details",
+      actionsTitle: "Actions",
+      openSession: "Open linked session",
+      noRuns: "No background runs match the current filters.",
+      running: "Running",
+      failed: "Failed",
+      waiting: "Waiting",
+      completed: "Completed",
+      attention: "Needs attention",
+      all: "All",
+      memory: "Memory",
+      verification: "Verification",
+      subagents: "Subagents",
+      acp: "ACP",
+      cron: "Cron",
+      cli: "CLI",
+    },
     usage: {
       queryKicker: "Choose a time range",
       queryTitle: "What period do you want to review?",
@@ -518,6 +561,7 @@ const APP_COPY = {
       wait: "等待",
       logout: "退出登录",
       execute: "执行",
+      cancel: "取消",
       password: "密码",
       path: "路径",
       hash: "哈希",
@@ -772,6 +816,42 @@ const APP_COPY = {
       durableExtractions: "持久提取",
       knowledgeWrites: "知识写入",
       noJournal: "Prompt journal 未启用，或没有找到文件。",
+    },
+    runtime: {
+      registryKicker: "后台运行",
+      registryTitle: "当前正在运行或需要处理的任务",
+      choosePrompt: "选择一条运行后，可以查看状态、关联会话和可执行动作。",
+      categoryKicker: "按类型过滤",
+      categoryTitle: "当前列表要看哪类后台工作？",
+      statusKicker: "按状态过滤",
+      statusTitle: "现在最需要关注哪些运行？",
+      queryKicker: "查找某条运行",
+      queryTitle: "按代理、会话或运行 ID 过滤",
+      refreshRuns: "刷新运行列表",
+      taskId: "任务 ID",
+      runId: "运行 ID",
+      parentSession: "父会话",
+      childSession: "子会话",
+      updatedAt: "最近更新",
+      lastCompleted: "最近完成",
+      currentRun: "当前选中运行",
+      contractTitle: "这条运行是如何创建的",
+      detailsTitle: "运行详情",
+      actionsTitle: "可执行动作",
+      openSession: "打开关联会话",
+      noRuns: "当前筛选条件下没有后台运行。",
+      running: "运行中",
+      failed: "失败",
+      waiting: "等待中",
+      completed: "已完成",
+      attention: "需要处理",
+      all: "全部",
+      memory: "记忆",
+      verification: "校验",
+      subagents: "子代理",
+      acp: "ACP",
+      cron: "Cron",
+      cli: "CLI",
     },
     usage: {
       queryKicker: "选择时间范围",
@@ -1367,6 +1447,25 @@ export class CrawClawApp extends LitElement {
     journalDays: "1",
   };
 
+  readonly agentRuntimeState: AgentRuntimeState = {
+    client: null,
+    connected: false,
+    runtimeLoading: false,
+    runtimeError: null,
+    runtimeSummary: null,
+    runtimeRuns: [],
+    runtimeSelectedTaskId: "",
+    runtimeSelectedDetail: null,
+    runtimeCategory: "all",
+    runtimeStatus: "all",
+    runtimeAgent: "",
+    runtimeSessionKey: "",
+    runtimeTaskQuery: "",
+    runtimeRunQuery: "",
+    runtimeActionBusy: false,
+    runtimeActionMessage: null,
+  };
+
   readonly workflowsState: WorkflowsState = {
     client: null,
     connected: false,
@@ -1523,6 +1622,8 @@ export class CrawClawApp extends LitElement {
     this.agentsState.chatRunId = this.chatState.chatRunId;
     this.memoryState.client = client;
     this.memoryState.connected = connected;
+    this.agentRuntimeState.client = client;
+    this.agentRuntimeState.connected = connected;
     this.workflowsState.client = client;
     this.workflowsState.connected = connected;
     this.usageState.client = client;
@@ -1670,6 +1771,9 @@ export class CrawClawApp extends LitElement {
       case "memory":
         await this.loadMemorySurface();
         break;
+      case "runtime":
+        await this.loadAgentRuntimeSurface();
+        break;
       case "usage":
         await this.safeCall(async () => {
           await loadUsage(this.usageState);
@@ -1732,6 +1836,12 @@ export class CrawClawApp extends LitElement {
       if (this.memoryState.summariesSelectedSessionId) {
         await loadMemorySessionSummary(this.memoryState);
       }
+    });
+  }
+
+  private async loadAgentRuntimeSurface() {
+    await this.safeCall(async () => {
+      await loadAgentRuntime(this.agentRuntimeState);
     });
   }
 
@@ -1951,6 +2061,35 @@ export class CrawClawApp extends LitElement {
     selectMemorySession(this.memoryState, session);
     this.memorySessionQuery = "";
     await this.activateMemorySection("summaries");
+  }
+
+  private async openRuntimeSession(sessionKey?: string | null) {
+    const normalized = sessionKey?.trim();
+    if (!normalized) {
+      return;
+    }
+    this.applySettings({
+      ...this.settings,
+      sessionKey: normalized,
+      lastActiveSessionKey: normalized,
+    });
+    this.navigate("sessions");
+  }
+
+  private renderRuntimeStatusBadge(status: string) {
+    const normalized = status.trim().toLowerCase();
+    const tone =
+      normalized === "running"
+        ? "ok"
+        : normalized === "queued"
+          ? "warn"
+          : normalized === "failed" ||
+              normalized === "timed_out" ||
+              normalized === "lost" ||
+              normalized === "cancelled"
+            ? "danger"
+            : "ok";
+    return html`<span class="cp-badge cp-badge--${tone}">${status}</span>`;
   }
 
   private renderConnectionBadge() {
@@ -4506,6 +4645,371 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
     `;
   }
 
+  private renderAgentRuntime() {
+    const copy = uiText(this.locale);
+    const summary = this.agentRuntimeState.runtimeSummary;
+    const selected = this.agentRuntimeState.runtimeSelectedDetail;
+    const totalRuns = summary
+      ? Object.values(summary.byCategory).reduce((sum, count) => sum + count, 0)
+      : 0;
+    const categoryButtons = [
+      { id: "all", label: copy.runtime.all, count: totalRuns },
+      { id: "memory", label: copy.runtime.memory, count: summary?.byCategory.memory ?? 0 },
+      {
+        id: "verification",
+        label: copy.runtime.verification,
+        count: summary?.byCategory.verification ?? 0,
+      },
+      {
+        id: "subagents",
+        label: copy.runtime.subagents,
+        count: summary?.byCategory.subagents ?? 0,
+      },
+      { id: "acp", label: copy.runtime.acp, count: summary?.byCategory.acp ?? 0 },
+      { id: "cron", label: copy.runtime.cron, count: summary?.byCategory.cron ?? 0 },
+      { id: "cli", label: copy.runtime.cli, count: summary?.byCategory.cli ?? 0 },
+    ] as const;
+    const statusButtons = [
+      { id: "all", label: copy.runtime.all, count: totalRuns },
+      { id: "running", label: copy.runtime.running, count: summary?.running ?? 0 },
+      { id: "waiting", label: copy.runtime.waiting, count: summary?.waiting ?? 0 },
+      { id: "failed", label: copy.runtime.failed, count: summary?.failed ?? 0 },
+      { id: "completed", label: copy.runtime.completed, count: summary?.completed ?? 0 },
+      {
+        id: "attention",
+        label: copy.runtime.attention,
+        count: summary?.failed ?? 0,
+      },
+    ] as const;
+
+    return html`
+      <section class="cp-page">
+        ${this.renderPageHeader("runtime", [
+          { label: copy.runtime.running, value: String(summary?.running ?? 0) },
+          { label: copy.runtime.failed, value: String(summary?.failed ?? 0) },
+          { label: copy.runtime.waiting, value: String(summary?.waiting ?? 0) },
+          {
+            label: copy.runtime.lastCompleted,
+            value: summary?.lastCompletedAt
+              ? formatIsoDateTime(summary.lastCompletedAt, this.locale)
+              : copy.common.none,
+          },
+        ])}
+        <div class="cp-stage cp-stage--three">
+          <aside class="cp-stage__rail">
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.runtime.categoryKicker}</span>
+                  <h3>${copy.runtime.categoryTitle}</h3>
+                </div>
+              </div>
+              <div class="cp-action-stack">
+                ${categoryButtons.map(
+                  (entry) => html`
+                    <button
+                      class="cp-action-card ${this.agentRuntimeState.runtimeCategory === entry.id
+                        ? "is-active"
+                        : ""}"
+                      @click=${() => {
+                        this.agentRuntimeState.runtimeCategory = entry.id;
+                        void this.loadAgentRuntimeSurface();
+                      }}
+                    >
+                      <span>${entry.label}</span>
+                      <small>${entry.count}</small>
+                    </button>
+                  `,
+                )}
+              </div>
+            </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.runtime.statusKicker}</span>
+                  <h3>${copy.runtime.statusTitle}</h3>
+                </div>
+              </div>
+              <div class="cp-action-stack">
+                ${statusButtons.map(
+                  (entry) => html`
+                    <button
+                      class="cp-action-card ${this.agentRuntimeState.runtimeStatus === entry.id
+                        ? "is-active"
+                        : ""}"
+                      @click=${() => {
+                        this.agentRuntimeState.runtimeStatus = entry.id;
+                        void this.loadAgentRuntimeSurface();
+                      }}
+                    >
+                      <span>${entry.label}</span>
+                      <small>${entry.count}</small>
+                    </button>
+                  `,
+                )}
+              </div>
+            </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.runtime.queryKicker}</span>
+                  <h3>${copy.runtime.queryTitle}</h3>
+                </div>
+              </div>
+              <form
+                class="cp-form"
+                @submit=${(event: Event) => {
+                  event.preventDefault();
+                  void this.loadAgentRuntimeSurface();
+                }}
+              >
+                <label>
+                  <span>${copy.common.agent}</span>
+                  <input
+                    .value=${this.agentRuntimeState.runtimeAgent}
+                    @input=${(event: Event) => {
+                      this.agentRuntimeState.runtimeAgent = (
+                        event.target as HTMLInputElement
+                      ).value;
+                      this.requestUpdate();
+                    }}
+                  />
+                </label>
+                <label>
+                  <span>${copy.runtime.parentSession}</span>
+                  <input
+                    .value=${this.agentRuntimeState.runtimeSessionKey}
+                    @input=${(event: Event) => {
+                      this.agentRuntimeState.runtimeSessionKey = (
+                        event.target as HTMLInputElement
+                      ).value;
+                      this.requestUpdate();
+                    }}
+                  />
+                </label>
+                <label>
+                  <span>${copy.runtime.taskId}</span>
+                  <input
+                    .value=${this.agentRuntimeState.runtimeTaskQuery}
+                    @input=${(event: Event) => {
+                      this.agentRuntimeState.runtimeTaskQuery = (
+                        event.target as HTMLInputElement
+                      ).value;
+                      this.requestUpdate();
+                    }}
+                  />
+                </label>
+                <label>
+                  <span>${copy.runtime.runId}</span>
+                  <input
+                    .value=${this.agentRuntimeState.runtimeRunQuery}
+                    @input=${(event: Event) => {
+                      this.agentRuntimeState.runtimeRunQuery = (
+                        event.target as HTMLInputElement
+                      ).value;
+                      this.requestUpdate();
+                    }}
+                  />
+                </label>
+                <div class="cp-form__actions">
+                  <button class="cp-button cp-button--primary" type="submit">
+                    ${copy.runtime.refreshRuns}
+                  </button>
+                </div>
+              </form>
+            </article>
+          </aside>
+
+          <main class="cp-stage__main">
+            <article class="cp-panel cp-panel--fill">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.runtime.registryKicker}</span>
+                  <h3>${copy.runtime.registryTitle}</h3>
+                </div>
+                <button class="cp-button" @click=${() => void this.loadAgentRuntimeSurface()}>
+                  ${copy.common.refresh}
+                </button>
+              </div>
+              ${this.agentRuntimeState.runtimeError
+                ? html`<p class="cp-empty">${this.agentRuntimeState.runtimeError}</p>`
+                : this.agentRuntimeState.runtimeRuns.length
+                  ? html`
+                      <div class="cp-table-wrap">
+                        <table class="cp-table">
+                          <thead>
+                            <tr>
+                              <th>${copy.common.kind}</th>
+                              <th>${copy.common.status}</th>
+                              <th>${copy.runtime.updatedAt}</th>
+                              <th>${copy.runtime.parentSession}</th>
+                              <th>${copy.runtime.taskId}</th>
+                              <th>${copy.common.summary}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${repeat(
+                              this.agentRuntimeState.runtimeRuns,
+                              (run) => run.taskId,
+                              (run) => html`
+                                <tr
+                                  class=${this.agentRuntimeState.runtimeSelectedTaskId ===
+                                  run.taskId
+                                    ? "is-active"
+                                    : ""}
+                                  @click=${() =>
+                                    void this.safeCall(async () => {
+                                      await selectAgentRuntimeTask(
+                                        this.agentRuntimeState,
+                                        run.taskId,
+                                      );
+                                    })}
+                                >
+                                  <td>
+                                    <strong>${run.title}</strong>
+                                    <small>${run.category} · ${run.runtime}</small>
+                                  </td>
+                                  <td>${this.renderRuntimeStatusBadge(run.status)}</td>
+                                  <td>
+                                    <strong>${formatDateTime(run.updatedAt, this.locale)}</strong>
+                                    <small>${formatAgo(run.updatedAt, this.locale)}</small>
+                                  </td>
+                                  <td>
+                                    <strong>${run.sessionKey}</strong>
+                                    <small>${run.childSessionKey ?? copy.common.none}</small>
+                                  </td>
+                                  <td>
+                                    <strong>${run.taskId}</strong>
+                                    <small>${run.runId ?? copy.common.none}</small>
+                                  </td>
+                                  <td>${run.summary ?? copy.common.none}</td>
+                                </tr>
+                              `,
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    `
+                  : html`<p class="cp-empty">${copy.runtime.noRuns}</p>`}
+            </article>
+          </main>
+
+          <aside class="cp-stage__rail">
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.runtime.detailsTitle}</span>
+                  <h3>${copy.runtime.currentRun}</h3>
+                </div>
+              </div>
+              ${selected
+                ? this.renderMetaEntries([
+                    { label: copy.common.kind, value: selected.run.title },
+                    { label: copy.common.status, value: selected.run.status },
+                    { label: copy.runtime.taskId, value: selected.run.taskId },
+                    { label: copy.runtime.runId, value: selected.run.runId ?? copy.common.none },
+                    { label: copy.common.agent, value: selected.run.agentId ?? copy.common.none },
+                    {
+                      label: copy.runtime.parentSession,
+                      value: selected.run.sessionKey,
+                    },
+                    {
+                      label: copy.runtime.childSession,
+                      value: selected.run.childSessionKey ?? copy.common.none,
+                    },
+                    {
+                      label: copy.common.updated,
+                      value: formatDateTime(selected.run.updatedAt, this.locale),
+                    },
+                    {
+                      label: copy.runtime.lastCompleted,
+                      value: selected.run.endedAt
+                        ? formatDateTime(selected.run.endedAt, this.locale)
+                        : copy.common.none,
+                    },
+                  ])
+                : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
+            </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.common.summary}</span>
+                  <h3>${copy.runtime.contractTitle}</h3>
+                </div>
+              </div>
+              ${selected
+                ? this.renderMetaEntries([
+                    {
+                      label: "Definition",
+                      value: selected.contract.definitionLabel ?? copy.common.none,
+                    },
+                    {
+                      label: "Spawn source",
+                      value: selected.contract.spawnSource ?? copy.common.none,
+                    },
+                    {
+                      label: "Execution mode",
+                      value: selected.contract.executionMode ?? copy.common.none,
+                    },
+                    {
+                      label: "Transcript policy",
+                      value: selected.contract.transcriptPolicy ?? copy.common.none,
+                    },
+                    { label: "Cleanup", value: selected.contract.cleanup ?? copy.common.none },
+                    { label: "Sandbox", value: selected.contract.sandbox ?? copy.common.none },
+                    {
+                      label: "Tool allowlist",
+                      value: selected.contract.toolAllowlistCount ?? copy.common.none,
+                    },
+                  ])
+                : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
+            </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.common.summary}</span>
+                  <h3>${copy.runtime.actionsTitle}</h3>
+                </div>
+              </div>
+              ${selected
+                ? html`
+                    <div class="cp-form__actions">
+                      <button
+                        class="cp-button"
+                        ?disabled=${!selected.availableActions.openSession}
+                        @click=${() =>
+                          void this.openRuntimeSession(
+                            selected.run.childSessionKey ?? selected.run.sessionKey,
+                          )}
+                      >
+                        ${copy.runtime.openSession}
+                      </button>
+                      <button
+                        class="cp-button cp-button--danger"
+                        ?disabled=${!selected.availableActions.cancel ||
+                        this.agentRuntimeState.runtimeActionBusy}
+                        @click=${() =>
+                          void this.safeCall(async () => {
+                            await cancelAgentRuntimeTask(this.agentRuntimeState);
+                          })}
+                      >
+                        ${copy.common.cancel}
+                      </button>
+                    </div>
+                  `
+                : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
+              ${this.agentRuntimeState.runtimeActionMessage
+                ? html`<p class="cp-panel__subcopy">
+                    ${this.agentRuntimeState.runtimeActionMessage}
+                  </p>`
+                : nothing}
+            </article>
+          </aside>
+        </div>
+      </section>
+    `;
+  }
+
   private renderUsage() {
     const copy = uiText(this.locale);
     const sessions = this.usageState.usageResult?.sessions ?? [];
@@ -5015,6 +5519,8 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
         return this.renderAgents();
       case "memory":
         return this.renderMemory();
+      case "runtime":
+        return this.renderAgentRuntime();
       case "usage":
         return this.renderUsage();
       case "config":

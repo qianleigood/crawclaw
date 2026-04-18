@@ -5,6 +5,7 @@ export type ControlPage =
   | "workflows"
   | "agents"
   | "memory"
+  | "runtime"
   | "usage"
   | "config"
   | "debug";
@@ -34,6 +35,7 @@ const CONTROL_PAGE_IDS = [
   "workflows",
   "agents",
   "memory",
+  "runtime",
   "usage",
   "config",
   "debug",
@@ -126,6 +128,21 @@ const LOCALIZED_CONTROL_PAGE_META: Record<ControlPage, LocalizedPageMeta> = {
       subheadline: "提供方状态、dream 运行、会话摘要和 prompt journal 都在这里查看。",
     },
   },
+  runtime: {
+    en: {
+      label: "Runtime",
+      eyebrow: "Background work",
+      headline: "See what the system is doing in the background and which runs need help.",
+      subheadline:
+        "Use this page to watch memory jobs, verification runs, subagents and other long-running work.",
+    },
+    "zh-CN": {
+      label: "后台运行",
+      eyebrow: "后台工作",
+      headline: "查看系统正在后台做什么，以及哪些运行需要处理。",
+      subheadline: "在这里统一查看记忆任务、verification、subagent 和其他长时间运行的后台工作。",
+    },
+  },
   usage: {
     en: {
       label: "Usage",
@@ -192,6 +209,7 @@ const PRIMARY_ROUTE_SEGMENTS: Record<ControlPage, string> = {
   workflows: "/workflows",
   agents: "/agents",
   memory: "/memory",
+  runtime: "/runtime",
   usage: "/usage",
   config: "/config",
   debug: "/debug",
@@ -204,6 +222,7 @@ const LEGACY_ROUTE_ALIASES: Record<string, ControlPage> = {
   "/workflows": "workflows",
   "/agents": "agents",
   "/memory": "memory",
+  "/runtime": "runtime",
   "/usage": "usage",
   "/config": "config",
   "/debug": "debug",
