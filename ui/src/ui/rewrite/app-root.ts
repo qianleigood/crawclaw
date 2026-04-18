@@ -178,6 +178,17 @@ const APP_COPY = {
       cost: "Cost",
       schema: "Schema",
       methods: "Methods",
+      sessions: "Sessions",
+      accounts: "Accounts",
+      messages: "Messages",
+      selected: "Selected",
+      execution: "Execution",
+      range: "Range",
+      heartbeat: "Heartbeat",
+      lastProbe: "Last probe",
+      connectedAccounts: "Connected accounts",
+      defaultAgent: "Default agent",
+      models: "Models",
     },
     connection: {
       kicker: "Gateway endpoint",
@@ -368,6 +379,17 @@ const APP_COPY = {
       cost: "成本",
       schema: "Schema",
       methods: "方法数",
+      sessions: "会话数",
+      accounts: "账号数",
+      messages: "消息数",
+      selected: "已选",
+      execution: "执行",
+      range: "范围",
+      heartbeat: "心跳",
+      lastProbe: "最近探测",
+      connectedAccounts: "已连接账号",
+      defaultAgent: "默认代理",
+      models: "模型数",
     },
     connection: {
       kicker: "网关端点",
@@ -1319,7 +1341,32 @@ export class CrawClawApp extends LitElement {
     `;
   }
 
-  private renderPageHeader(page: ControlPage, extra?: unknown) {
+  private renderPageMetrics(metrics: Array<{ label: string; value: string; hint?: string }>) {
+    return metrics.map((metric) => this.renderMetric(metric.label, metric.value, metric.hint));
+  }
+
+  private resolveHeartbeatMeta(value: unknown) {
+    const copy = uiText(this.locale);
+    const record = value && typeof value === "object" ? (value as JsonRecord) : null;
+    const status =
+      typeof record?.status === "string" && record.status.trim()
+        ? record.status.trim()
+        : copy.common.pending;
+    const ts = typeof record?.ts === "number" ? record.ts : null;
+    const scopeParts = [record?.channel, record?.accountId].filter(
+      (entry): entry is string => typeof entry === "string" && entry.trim().length > 0,
+    );
+    return {
+      status,
+      ts,
+      scope: scopeParts.join(" / ") || copy.common.na,
+    };
+  }
+
+  private renderPageHeader(
+    page: ControlPage,
+    metrics: Array<{ label: string; value: string; hint?: string }> = [],
+  ) {
     const meta = metaForPage(page, this.locale);
     return html`
       <header class="cp-page-head">
@@ -1329,18 +1376,7 @@ export class CrawClawApp extends LitElement {
           <p>${meta.headline}</p>
           <small>${meta.subheadline}</small>
         </div>
-        <div class="cp-page-head__stats">
-          ${this.renderMetric(
-            shellText(this.locale, "gateway"),
-            readString(this.hello?.server?.version, uiText(this.locale).common.pending),
-          )}
-          ${this.renderMetric(
-            shellText(this.locale, "methods"),
-            String(this.hello?.features?.methods?.length ?? 0),
-          )}
-          ${this.renderMetric(shellText(this.locale, "session"), this.settings.sessionKey)}
-          ${extra ?? nothing}
-        </div>
+        <div class="cp-page-head__stats">${this.renderPageMetrics(metrics)}</div>
       </header>
     `;
   }
@@ -1398,42 +1434,62 @@ export class CrawClawApp extends LitElement {
     const copy = uiText(this.locale);
     const sessions = this.sessionsState.sessionsResult?.sessions ?? [];
     const channels = flattenChannelAccounts(this.channelsState.channelsSnapshot);
-    const approvalsPath =
-      this.execApprovalsState.execApprovalsSnapshot?.path ?? copy.common.notLoaded;
+    const heartbeat = this.resolveHeartbeatMeta(this.systemHeartbeat);
+    const gatewayVersion = readString(
+      this.hello?.server?.version,
+      shellText(this.locale, "gatewayPending"),
+    );
     return html`
       <section class="cp-page cp-page--overview">
-        ${this.renderPageHeader(
-          "overview",
-          this.renderMetric(copy.overview.approvals, approvalsPath),
-        )}
+        ${this.renderPageHeader("overview", [
+          {
+            label: copy.overview.healthy,
+            value: this.healthState.healthResult?.ok ? copy.common.yes : copy.common.no,
+            hint:
+              this.healthState.healthResult?.durationMs != null
+                ? `${this.healthState.healthResult.durationMs}ms`
+                : undefined,
+          },
+          {
+            label: copy.common.sessions,
+            value: String(this.healthState.healthResult?.sessions.count ?? sessions.length),
+            hint: this.healthState.healthResult?.sessions.path ?? copy.overview.sessionStore,
+          },
+          {
+            label: copy.common.accounts,
+            value: String(channels.length),
+            hint: copy.overview.surfacesHint.replace(
+              "{count}",
+              String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
+            ),
+          },
+          {
+            label: copy.common.heartbeat,
+            value: heartbeat.status,
+            hint: heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.pending,
+          },
+        ])}
         <div class="cp-stage cp-stage--overview">
           <div class="cp-stage__main">
             <section class="cp-band">
               ${this.renderMetric(
-                copy.overview.healthy,
-                this.healthState.healthResult?.ok ? copy.common.yes : copy.common.no,
-                copy.overview.agentsHint.replace(
-                  "{count}",
-                  String(this.healthState.healthResult?.agents.length ?? 0),
-                ),
+                shellText(this.locale, "gateway"),
+                gatewayVersion,
+                this.connected ? copy.common.live : t("common.offline"),
               )}
               ${this.renderMetric(
-                copy.overview.recentSessions,
-                String(this.healthState.healthResult?.sessions.count ?? 0),
-                this.healthState.healthResult?.sessions.path ?? copy.overview.sessionStore,
-              )}
-              ${this.renderMetric(
-                copy.overview.channelAccounts,
-                String(channels.length),
-                copy.overview.surfacesHint.replace(
-                  "{count}",
-                  String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
-                ),
+                copy.common.methods,
+                String(this.hello?.features?.methods?.length ?? 0),
               )}
               ${this.renderMetric(
                 copy.overview.presenceClients,
                 String(this.systemPresence.length),
                 this.connected ? copy.common.live : t("common.offline"),
+              )}
+              ${this.renderMetric(
+                copy.common.updated,
+                heartbeat.ts ? formatDateTime(heartbeat.ts, this.locale) : copy.common.pending,
+                heartbeat.scope,
               )}
             </section>
 
@@ -1450,25 +1506,23 @@ export class CrawClawApp extends LitElement {
                 </div>
                 <div class="cp-meta-list">
                   <div>
-                    <span>${copy.overview.statusSummary}</span
+                    <span>${shellText(this.locale, "gateway")}</span
+                    ><strong>${gatewayVersion}</strong>
+                  </div>
+                  <div>
+                    <span>${copy.overview.heartbeat}</span><strong>${heartbeat.status}</strong>
+                  </div>
+                  <div>
+                    <span>${copy.common.updated}</span
                     ><strong
-                      >${readString(
-                        this.systemStatus && JSON.stringify(this.systemStatus).slice(0, 80),
-                        copy.common.pending,
-                      )}</strong
+                      >${heartbeat.ts
+                        ? formatDateTime(heartbeat.ts, this.locale)
+                        : copy.common.pending}</strong
                     >
                   </div>
                   <div>
-                    <span>${copy.overview.heartbeat}</span
-                    ><strong>${formatJson(this.systemHeartbeat)}</strong>
-                  </div>
-                  <div>
-                    <span>${copy.overview.lastClose}</span
-                    ><strong>${this.reconnectReason ?? copy.common.none}</strong>
-                  </div>
-                  <div>
                     <span>${copy.overview.error}</span
-                    ><strong>${this.lastError ?? copy.common.none}</strong>
+                    ><strong>${this.lastError ?? this.reconnectReason ?? copy.common.none}</strong>
                   </div>
                 </div>
               </article>
@@ -1583,10 +1637,27 @@ export class CrawClawApp extends LitElement {
     const selected = sessions.find((entry) => entry.key === this.settings.sessionKey) ?? null;
     return html`
       <section class="cp-page cp-page--sessions">
-        ${this.renderPageHeader(
-          "sessions",
-          this.renderMetric(copy.sessions.focusedSession, this.settings.sessionKey),
-        )}
+        ${this.renderPageHeader("sessions", [
+          {
+            label: copy.sessions.focusedSession,
+            value: this.settings.sessionKey,
+            hint: selected ? sessionDisplayName(selected) : undefined,
+          },
+          {
+            label: copy.common.sessions,
+            value: String(sessions.length),
+          },
+          {
+            label: copy.common.messages,
+            value: String(this.chatState.chatMessages.length),
+            hint: this.chatState.chatStream ? copy.sessions.streaming : undefined,
+          },
+          {
+            label: copy.common.execution,
+            value: this.chatState.chatRunId ?? copy.common.none,
+            hint: selected?.status ?? copy.common.idle,
+          },
+        ])}
         <div class="cp-stage cp-stage--three">
           <aside class="cp-stage__rail cp-stage__rail--wide">
             <article class="cp-panel cp-panel--fill">
@@ -1755,12 +1826,32 @@ export class CrawClawApp extends LitElement {
   private renderChannels() {
     const copy = uiText(this.locale);
     const flattenedAccounts = flattenChannelAccounts(this.channelsState.channelsSnapshot);
+    const connectedAccounts = flattenedAccounts.filter((entry) => entry.account.connected).length;
     return html`
       <section class="cp-page">
-        ${this.renderPageHeader(
-          "channels",
-          this.renderMetric(copy.channels.accounts, String(flattenedAccounts.length)),
-        )}
+        ${this.renderPageHeader("channels", [
+          {
+            label: copy.channels.enabledSurfaces,
+            value: String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
+          },
+          {
+            label: copy.common.accounts,
+            value: String(flattenedAccounts.length),
+          },
+          {
+            label: copy.common.connectedAccounts,
+            value: String(connectedAccounts),
+          },
+          {
+            label: copy.common.lastProbe,
+            value: this.channelsState.channelsLastSuccess
+              ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
+              : copy.common.na,
+            hint: this.channelsState.channelsLastSuccess
+              ? formatAgo(this.channelsState.channelsLastSuccess, this.locale)
+              : undefined,
+          },
+        ])}
         <div class="cp-stage cp-stage--overview">
           <div class="cp-stage__main">
             <section class="cp-band">
@@ -1877,15 +1968,34 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
     const copy = uiText(this.locale);
     const selectedWorkflow = this.workflowsState.workflowDetail?.workflow;
     const selectedExecution = this.workflowsState.workflowSelectedExecution;
+    const selectedExecutionRecord =
+      selectedExecution && typeof selectedExecution === "object"
+        ? (selectedExecution as JsonRecord)
+        : null;
     return html`
       <section class="cp-page">
-        ${this.renderPageHeader(
-          "workflows",
-          this.renderMetric(
-            copy.workflows.registry,
-            String(this.workflowsState.workflowsList.length),
-          ),
-        )}
+        ${this.renderPageHeader("workflows", [
+          {
+            label: copy.workflows.registry,
+            value: String(this.workflowsState.workflowsList.length),
+          },
+          {
+            label: copy.common.selected,
+            value: selectedWorkflow?.workflowId ?? copy.common.none,
+            hint: selectedWorkflow?.name ?? undefined,
+          },
+          {
+            label: copy.common.execution,
+            value:
+              readString(selectedExecutionRecord?.executionId, "") ||
+              readString(selectedExecutionRecord?.runId, copy.common.none),
+            hint: readString(selectedExecutionRecord?.status, copy.common.na),
+          },
+          {
+            label: copy.workflows.runs,
+            value: String(this.workflowsState.workflowRuns.length),
+          },
+        ])}
         <div class="cp-stage cp-stage--two">
           <aside class="cp-stage__rail cp-stage__rail--wide">
             <article class="cp-panel cp-panel--fill">
@@ -2037,12 +2147,31 @@ ${formatJson(this.workflowsState.workflowDetail?.spec)}</pre
     const copy = uiText(this.locale);
     const agents = this.agentsState.agentsList?.agents ?? [];
     const selected = agents.find((agent) => agent.id === this.agentsState.agentsSelectedId) ?? null;
+    const inspectionRef =
+      this.agentsState.agentInspectionRunId ??
+      this.agentsState.agentInspectionTaskId ??
+      copy.common.none;
     return html`
       <section class="cp-page">
-        ${this.renderPageHeader(
-          "agents",
-          this.renderMetric(copy.agents.registered, String(agents.length)),
-        )}
+        ${this.renderPageHeader("agents", [
+          {
+            label: copy.agents.registered,
+            value: String(agents.length),
+          },
+          {
+            label: copy.common.defaultAgent,
+            value: this.agentsState.agentsList?.defaultId ?? copy.common.none,
+          },
+          {
+            label: copy.common.selected,
+            value: selected?.id ?? copy.common.none,
+            hint: selected?.name ?? selected?.workspace ?? undefined,
+          },
+          {
+            label: copy.common.execution,
+            value: inspectionRef,
+          },
+        ])}
         <div class="cp-stage cp-stage--two">
           <aside class="cp-stage__rail cp-stage__rail--wide">
             <article class="cp-panel cp-panel--fill">
@@ -2129,15 +2258,28 @@ ${formatJson(this.agentsState.toolsEffectiveResult)}</pre
   private renderUsage() {
     const copy = uiText(this.locale);
     const sessions = this.usageState.usageResult?.sessions ?? [];
+    const usageRange = `${this.usageState.usageStartDate} → ${this.usageState.usageEndDate}`;
     return html`
       <section class="cp-page">
-        ${this.renderPageHeader(
-          "usage",
-          this.renderMetric(
-            copy.common.cost,
-            `$${readUsageCost(this.usageState.usageCostSummary).toFixed(2)}`,
-          ),
-        )}
+        ${this.renderPageHeader("usage", [
+          {
+            label: copy.common.cost,
+            value: `$${readUsageCost(this.usageState.usageCostSummary).toFixed(2)}`,
+          },
+          {
+            label: copy.common.sessions,
+            value: String(sessions.length),
+          },
+          {
+            label: copy.common.range,
+            value: usageRange,
+          },
+          {
+            label: copy.common.selected,
+            value: String(this.usageState.usageSelectedSessions.length),
+            hint: this.usageState.usageSelectedSessions[0] ?? undefined,
+          },
+        ])}
         <div class="cp-stage cp-stage--two">
           <aside class="cp-stage__rail cp-stage__rail--wide">
             <article class="cp-panel cp-panel--fill">
@@ -2246,13 +2388,26 @@ ${formatJson(this.agentsState.toolsEffectiveResult)}</pre
     const snapshot = this.configState.configSnapshot;
     return html`
       <section class="cp-page">
-        ${this.renderPageHeader(
-          "config",
-          this.renderMetric(
-            copy.common.schema,
-            this.configState.configSchemaVersion ?? copy.common.na,
-          ),
-        )}
+        ${this.renderPageHeader("config", [
+          {
+            label: copy.common.schema,
+            value: this.configState.configSchemaVersion ?? copy.common.na,
+          },
+          {
+            label: copy.common.hash,
+            value: snapshot?.hash ?? copy.common.na,
+            hint: snapshot?.path ?? undefined,
+          },
+          {
+            label: copy.config.manifestTitle,
+            value: this.configState.configFormDirty ? copy.common.yes : copy.common.no,
+          },
+          {
+            label: copy.config.approvalsTitle,
+            value: this.execApprovalsState.execApprovalsDirty ? copy.common.yes : copy.common.no,
+            hint: this.execApprovalsState.execApprovalsSnapshot?.path ?? undefined,
+          },
+        ])}
         <div class="cp-stage cp-stage--two">
           <aside class="cp-stage__rail cp-stage__rail--wide">
             <article class="cp-panel">
@@ -2380,12 +2535,30 @@ ${this.approvalsError ?? formatJson(this.execApprovalsState.execApprovalsSnapsho
   private renderDebug() {
     const copy = uiText(this.locale);
     const methodList = this.hello?.features?.methods ?? [];
+    const debugHeartbeat = this.resolveHeartbeatMeta(this.debugState.debugHeartbeat);
     return html`
       <section class="cp-page">
-        ${this.renderPageHeader(
-          "debug",
-          this.renderMetric(copy.common.methods, String(methodList.length)),
-        )}
+        ${this.renderPageHeader("debug", [
+          {
+            label: copy.common.methods,
+            value: String(methodList.length),
+          },
+          {
+            label: copy.common.models,
+            value: String(this.debugState.debugModels.length),
+          },
+          {
+            label: copy.common.selected,
+            value: this.debugState.debugCallMethod || copy.common.none,
+          },
+          {
+            label: copy.common.heartbeat,
+            value: debugHeartbeat.status,
+            hint: debugHeartbeat.ts
+              ? formatDateTime(debugHeartbeat.ts, this.locale)
+              : copy.common.pending,
+          },
+        ])}
         <div class="cp-stage cp-stage--two">
           <aside class="cp-stage__rail cp-stage__rail--wide">
             <article class="cp-panel cp-panel--fill">
