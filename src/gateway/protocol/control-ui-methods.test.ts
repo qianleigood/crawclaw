@@ -50,6 +50,15 @@ const FIRST_BATCH_METHODS = [
   "agent.inspect",
   "tools.catalog",
   "tools.effective",
+  "memory.status",
+  "memory.refresh",
+  "memory.login",
+  "memory.dream.status",
+  "memory.dream.history",
+  "memory.dream.run",
+  "memory.sessionSummary.status",
+  "memory.sessionSummary.refresh",
+  "memory.promptJournal.summary",
   "usage.status",
   "usage.cost",
   "workflow.list",
@@ -182,6 +191,13 @@ describe("control-plane method contract", () => {
     expect(getControlUiMethodDefinition("workflow.status").requiredScopes).toEqual([
       "operator.read",
     ]);
+    expect(getControlUiMethodDefinition("memory.status").requiredScopes).toEqual(["operator.read"]);
+    expect(getControlUiMethodDefinition("memory.dream.status").requiredScopes).toEqual([
+      "operator.read",
+    ]);
+    expect(getControlUiMethodDefinition("memory.promptJournal.summary").requiredScopes).toEqual([
+      "operator.read",
+    ]);
     expect(getControlUiMethodDefinition("usage.cost").requiredScopes).toEqual(["operator.read"]);
     expect(getControlUiMethodDefinition("agents.list").requiredScopes).toEqual(["operator.read"]);
     expect(getControlUiMethodDefinition("tools.effective").requiredScopes).toEqual([
@@ -211,6 +227,16 @@ describe("control-plane method contract", () => {
     ]);
     expect(getControlUiMethodDefinition("exec.approvals.set").requiredScopes).toEqual([
       "operator.admin",
+    ]);
+    expect(getControlUiMethodDefinition("memory.refresh").requiredScopes).toEqual([
+      "operator.admin",
+    ]);
+    expect(getControlUiMethodDefinition("memory.login").requiredScopes).toEqual(["operator.admin"]);
+    expect(getControlUiMethodDefinition("memory.dream.run").requiredScopes).toEqual([
+      "operator.write",
+    ]);
+    expect(getControlUiMethodDefinition("memory.sessionSummary.refresh").requiredScopes).toEqual([
+      "operator.write",
     ]);
   });
 
@@ -270,6 +296,30 @@ describe("control-plane method contract", () => {
     );
     expect(ControlUiMethodContract["exec.approvals.node.set"].paramsSchema).toBe(
       ProtocolSchemas.ExecApprovalsNodeSetParams,
+    );
+    expect(ControlUiMethodContract["memory.status"].paramsSchema).toBe(
+      ProtocolSchemas.MemoryStatusParams,
+    );
+    expect(ControlUiMethodContract["memory.status"].resultSchema).toBe(
+      ProtocolSchemas.MemoryProviderStatus,
+    );
+    expect(ControlUiMethodContract["memory.login"].resultSchema).toBe(
+      ProtocolSchemas.MemoryLoginResult,
+    );
+    expect(ControlUiMethodContract["memory.dream.status"].resultSchema).toBe(
+      ProtocolSchemas.MemoryDreamStatusResult,
+    );
+    expect(ControlUiMethodContract["memory.dream.run"].paramsSchema).toBe(
+      ProtocolSchemas.MemoryDreamRunParams,
+    );
+    expect(ControlUiMethodContract["memory.sessionSummary.status"].resultSchema).toBe(
+      ProtocolSchemas.MemorySessionSummaryStatusResult,
+    );
+    expect(ControlUiMethodContract["memory.sessionSummary.refresh"].paramsSchema).toBe(
+      ProtocolSchemas.MemorySessionSummaryRefreshParams,
+    );
+    expect(ControlUiMethodContract["memory.promptJournal.summary"].resultSchema).toBe(
+      ProtocolSchemas.MemoryPromptJournalSummaryResult,
     );
   });
 });

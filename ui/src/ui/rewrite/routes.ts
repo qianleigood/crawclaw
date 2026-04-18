@@ -4,6 +4,7 @@ export type ControlPage =
   | "channels"
   | "workflows"
   | "agents"
+  | "memory"
   | "usage"
   | "config"
   | "debug";
@@ -32,6 +33,7 @@ const CONTROL_PAGE_IDS = [
   "channels",
   "workflows",
   "agents",
+  "memory",
   "usage",
   "config",
   "debug",
@@ -108,6 +110,22 @@ const LOCALIZED_CONTROL_PAGE_META: Record<ControlPage, LocalizedPageMeta> = {
       subheadline: "左侧用于选择注册代理，右侧用于深度检查当前运行面。",
     },
   },
+  memory: {
+    en: {
+      label: "Memory",
+      eyebrow: "Memory & knowledge console",
+      headline: "Inspect provider readiness, durable memory and session summaries.",
+      subheadline:
+        "NotebookLM provider state, dream runs, session summaries and prompt journal in one workbench.",
+    },
+    "zh-CN": {
+      label: "记忆",
+      eyebrow: "记忆与知识控制台",
+      headline: "检查记忆提供方就绪度、持久记忆状态和会话摘要。",
+      subheadline:
+        "把 NotebookLM 提供方状态、dream 运行、会话摘要和 prompt journal 收进同一个工作台。",
+    },
+  },
   usage: {
     en: {
       label: "Usage",
@@ -172,6 +190,7 @@ const PRIMARY_ROUTE_SEGMENTS: Record<ControlPage, string> = {
   channels: "/channels",
   workflows: "/workflows",
   agents: "/agents",
+  memory: "/memory",
   usage: "/usage",
   config: "/config",
   debug: "/debug",
@@ -183,6 +202,7 @@ const LEGACY_ROUTE_ALIASES: Record<string, ControlPage> = {
   "/channels": "channels",
   "/workflows": "workflows",
   "/agents": "agents",
+  "/memory": "memory",
   "/usage": "usage",
   "/config": "config",
   "/debug": "debug",

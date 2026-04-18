@@ -17,6 +17,7 @@ import { doctorHandlers } from "./server-methods/doctor.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
 import { healthHandlers } from "./server-methods/health.js";
 import { logsHandlers } from "./server-methods/logs.js";
+import { memoryHandlers } from "./server-methods/memory.js";
 import { modelsHandlers } from "./server-methods/models.js";
 import { nodePendingHandlers } from "./server-methods/nodes-pending.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
@@ -76,6 +77,7 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
 export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...connectHandlers,
   ...logsHandlers,
+  ...memoryHandlers,
   ...voicewakeHandlers,
   ...healthHandlers,
   ...channelsHandlers,

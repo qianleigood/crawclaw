@@ -43,6 +43,21 @@ import {
   type ExecApprovalsState,
 } from "../controllers/exec-approvals.ts";
 import { loadHealthState, type HealthState } from "../controllers/health.ts";
+import {
+  loadMemoryDreaming,
+  loadMemoryPromptJournal,
+  loadMemoryProvider,
+  loadMemorySessionSummary,
+  loginMemoryProvider,
+  refreshMemoryProvider,
+  refreshMemorySessionSummary,
+  runMemoryDream,
+  selectMemorySession,
+  type MemoryProviderStatus,
+  type MemorySection,
+  type MemorySessionSummaryStatusResult,
+  type MemoryState,
+} from "../controllers/memory.ts";
 import { loadSessions, type SessionsState } from "../controllers/sessions.ts";
 import {
   loadSessionLogs,
@@ -334,6 +349,44 @@ const APP_COPY = {
       effectiveTools: "Effective tools",
       selectPrompt: "Select an agent to inspect tools and runtime metadata.",
     },
+    memory: {
+      provider: "Provider",
+      dreaming: "Dreaming",
+      sessionSummaries: "Session summaries",
+      promptJournal: "Prompt journal",
+      healthKicker: "Health rail",
+      healthTitle: "Memory health",
+      providerKicker: "Provider",
+      providerTitle: "NotebookLM provider",
+      refreshProvider: "Refresh provider",
+      runLoginFlow: "Run login flow",
+      recommendedAction: "Recommended action",
+      details: "Details",
+      dreamingKicker: "Durable memory",
+      dreamingTitle: "Auto dream state",
+      runNow: "Run now",
+      dryRun: "Dry run",
+      forceRun: "Force run",
+      recentRuns: "Recent dream runs",
+      summariesKicker: "Session summary",
+      summariesTitle: "Summary file state",
+      refreshSummary: "Refresh summary",
+      forceRefresh: "Force refresh",
+      selectSession: "Select a session to inspect summary state.",
+      currentState: "Current State",
+      taskSpecification: "Task Specification",
+      keyResults: "Key Results",
+      errorsAndCorrections: "Errors & Corrections",
+      journalKicker: "Prompt journal",
+      journalTitle: "Prompt journal summary",
+      summarizeJournal: "Refresh journal",
+      topReasons: "Top extraction reasons",
+      writeOutcomes: "Write outcomes",
+      promptAssemblies: "Prompt assemblies",
+      durableExtractions: "Durable extractions",
+      knowledgeWrites: "Knowledge writes",
+      noJournal: "Prompt journal is disabled or no files were found.",
+    },
     usage: {
       queryKicker: "Query rail",
       queryTitle: "Usage window",
@@ -572,6 +625,44 @@ const APP_COPY = {
       toolsCatalog: "工具目录",
       effectiveTools: "实际生效工具",
       selectPrompt: "选择一个代理以检查工具和运行元数据。",
+    },
+    memory: {
+      provider: "提供方",
+      dreaming: "Dreaming",
+      sessionSummaries: "会话摘要",
+      promptJournal: "Prompt Journal",
+      healthKicker: "健康侧栏",
+      healthTitle: "记忆健康",
+      providerKicker: "提供方",
+      providerTitle: "NotebookLM 提供方",
+      refreshProvider: "刷新提供方",
+      runLoginFlow: "执行登录流程",
+      recommendedAction: "建议动作",
+      details: "细节",
+      dreamingKicker: "持久记忆",
+      dreamingTitle: "Auto Dream 状态",
+      runNow: "立即运行",
+      dryRun: "Dry run",
+      forceRun: "强制运行",
+      recentRuns: "最近 dream 运行",
+      summariesKicker: "会话摘要",
+      summariesTitle: "摘要文件状态",
+      refreshSummary: "刷新摘要",
+      forceRefresh: "强制刷新",
+      selectSession: "选择一个会话以查看摘要状态。",
+      currentState: "当前状态",
+      taskSpecification: "任务规格",
+      keyResults: "关键结果",
+      errorsAndCorrections: "错误与修正",
+      journalKicker: "Prompt Journal",
+      journalTitle: "Prompt journal 摘要",
+      summarizeJournal: "刷新 journal",
+      topReasons: "主要提取原因",
+      writeOutcomes: "写入结果",
+      promptAssemblies: "Prompt 组装",
+      durableExtractions: "持久提取",
+      knowledgeWrites: "知识写入",
+      noJournal: "Prompt journal 未启用，或没有找到文件。",
     },
     usage: {
       queryKicker: "查询侧栏",
@@ -832,6 +923,56 @@ function formatMaybeDate(value: unknown, locale: Locale): string {
   return typeof value === "number" ? formatDateTime(value, locale) : uiText(locale).common.na;
 }
 
+function formatIsoDateTime(value: unknown, locale: Locale): string {
+  if (typeof value !== "string" || !value.trim()) {
+    return uiText(locale).common.na;
+  }
+  const ts = Date.parse(value);
+  return Number.isFinite(ts) ? formatDateTime(ts, locale) : value;
+}
+
+function isRecentIsoDate(value: unknown, maxAgeMs: number): boolean {
+  if (typeof value !== "string" || !value.trim()) {
+    return false;
+  }
+  const ts = Date.parse(value);
+  if (!Number.isFinite(ts)) {
+    return false;
+  }
+  return Date.now() - ts <= maxAgeMs;
+}
+
+function summarizeMemoryProviderLifecycle(status: MemoryProviderStatus | null): string {
+  if (!status) {
+    return "pending";
+  }
+  if (!status.enabled) {
+    return "disabled";
+  }
+  return status.lifecycle;
+}
+
+function summarizeMemorySummaryState(
+  summary: MemorySessionSummaryStatusResult | null,
+  locale: Locale,
+): string {
+  if (!summary?.exists) {
+    return uiText(locale).common.none;
+  }
+  return isRecentIsoDate(summary.updatedAt, 7 * 24 * 60 * 60 * 1000) ? "active" : "stale";
+}
+
+function summarizeDreamRunReason(run: {
+  status: string;
+  summary?: string | null;
+  error?: string | null;
+}): string | null {
+  if (run.status === "failed") {
+    return run.error ?? run.summary ?? "failed";
+  }
+  return run.summary ?? null;
+}
+
 function countObjectKeys(value: unknown): number {
   return value && typeof value === "object" && !Array.isArray(value)
     ? Object.keys(value as JsonRecord).length
@@ -896,6 +1037,7 @@ export class CrawClawApp extends LitElement {
   @state() systemStatusError: string | null = null;
   @state() approvalsRaw = "{}";
   @state() approvalsError: string | null = null;
+  @state() memorySessionQuery = "";
 
   client: GatewayBrowserClient | null = null;
   private reconnectReason: string | null = null;
@@ -1017,6 +1159,39 @@ export class CrawClawApp extends LitElement {
     agentInspectionSnapshot: null,
     agentInspectionRunId: null,
     agentInspectionTaskId: null,
+  };
+
+  readonly memoryState: MemoryState = {
+    client: null,
+    connected: false,
+    activeSection: "provider",
+    providerLoading: false,
+    providerRefreshing: false,
+    providerLoginBusy: false,
+    providerStatus: null,
+    providerError: null,
+    providerActionMessage: null,
+    dreamLoading: false,
+    dreamError: null,
+    dreamStatus: null,
+    dreamActionBusy: false,
+    dreamActionMessage: null,
+    dreamAgent: "",
+    dreamChannel: "",
+    dreamUser: "",
+    dreamScopeKey: "",
+    summariesLoading: false,
+    summariesError: null,
+    summariesStatus: null,
+    summariesRefreshBusy: false,
+    summariesRefreshResult: null,
+    summariesSelectedSessionKey: "",
+    summariesSelectedSessionId: "",
+    summariesAgentId: "",
+    journalLoading: false,
+    journalError: null,
+    journalSummary: null,
+    journalDays: "1",
   };
 
   readonly workflowsState: WorkflowsState = {
@@ -1173,6 +1348,8 @@ export class CrawClawApp extends LitElement {
     this.agentsState.sessionKey = this.settings.sessionKey;
     this.agentsState.sessionsResult = this.sessionsState.sessionsResult;
     this.agentsState.chatRunId = this.chatState.chatRunId;
+    this.memoryState.client = client;
+    this.memoryState.connected = connected;
     this.workflowsState.client = client;
     this.workflowsState.connected = connected;
     this.usageState.client = client;
@@ -1317,6 +1494,9 @@ export class CrawClawApp extends LitElement {
       case "agents":
         await this.loadAgentsSurface();
         break;
+      case "memory":
+        await this.loadMemorySurface();
+        break;
       case "usage":
         await this.safeCall(async () => {
           await loadUsage(this.usageState);
@@ -1356,6 +1536,28 @@ export class CrawClawApp extends LitElement {
         if (this.chatState.chatRunId) {
           await loadAgentInspection(this.agentsState, { runId: this.chatState.chatRunId });
         }
+      }
+    });
+  }
+
+  private async loadMemorySurface() {
+    await this.safeCall(async () => {
+      await Promise.all([
+        loadMemoryProvider(this.memoryState),
+        loadMemoryDreaming(this.memoryState),
+        loadMemoryPromptJournal(this.memoryState),
+      ]);
+      if (!this.sessionsState.sessionsResult) {
+        await loadSessions(this.sessionsState, { limit: 40, includeGlobal: true });
+      }
+      const firstSession = this.sessionsState.sessionsResult?.sessions.find(
+        (session) => session.key && session.kind !== "global",
+      );
+      if (!this.memoryState.summariesSelectedSessionKey && firstSession) {
+        selectMemorySession(this.memoryState, firstSession);
+      }
+      if (this.memoryState.summariesSelectedSessionId) {
+        await loadMemorySessionSummary(this.memoryState);
       }
     });
   }
@@ -1406,6 +1608,11 @@ export class CrawClawApp extends LitElement {
       lastActiveSessionKey: key,
     };
     this.applySettings(nextSettings);
+    const session =
+      this.sessionsState.sessionsResult?.sessions.find((entry) => entry.key === key) ?? null;
+    if (session) {
+      selectMemorySession(this.memoryState, session);
+    }
     await this.safeCall(async () => {
       await loadChatHistory(this.chatState);
     });
@@ -1544,6 +1751,33 @@ export class CrawClawApp extends LitElement {
         await loadSessionLogs(this.usageState, sessionKey);
       }),
     ]);
+  }
+
+  private async activateMemorySection(section: MemorySection) {
+    this.memoryState.activeSection = section;
+    await this.safeCall(async () => {
+      if (section === "provider") {
+        await loadMemoryProvider(this.memoryState);
+        return;
+      }
+      if (section === "dreaming") {
+        await loadMemoryDreaming(this.memoryState);
+        return;
+      }
+      if (section === "summaries") {
+        if (this.memoryState.summariesSelectedSessionId) {
+          await loadMemorySessionSummary(this.memoryState);
+        }
+        return;
+      }
+      await loadMemoryPromptJournal(this.memoryState);
+    });
+  }
+
+  private async handleSelectMemorySession(session: GatewaySessionRow) {
+    selectMemorySession(this.memoryState, session);
+    this.memorySessionQuery = "";
+    await this.activateMemorySection("summaries");
   }
 
   private renderConnectionBadge() {
@@ -3134,6 +3368,630 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
     `;
   }
 
+  private renderMemory() {
+    const copy = uiText(this.locale);
+    const providerStatus = this.memoryState.providerStatus;
+    const dreamStatus = this.memoryState.dreamStatus;
+    const summaryStatus = this.memoryState.summariesStatus;
+    const journalSummary = this.memoryState.journalSummary;
+    const lifecycle = summarizeMemoryProviderLifecycle(providerStatus);
+    const summaryState = summarizeMemorySummaryState(summaryStatus, this.locale);
+    const recommendedAction = providerStatus?.recommendedAction ?? copy.common.none;
+    const sessions = (this.sessionsState.sessionsResult?.sessions ?? []).filter(
+      (session) => session.kind !== "global",
+    );
+    const filteredSessions = sessions.filter((session) => {
+      if (!this.memorySessionQuery.trim()) {
+        return true;
+      }
+      const query = this.memorySessionQuery.trim().toLowerCase();
+      return [session.displayName, session.label, session.key, session.sessionId, session.surface]
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .some((value) => value.toLowerCase().includes(query));
+    });
+
+    let mainPanel: ReturnType<typeof html> | typeof nothing = nothing;
+    if (this.memoryState.activeSection === "provider") {
+      mainPanel = html`
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.memory.providerKicker}</span>
+              <h3>${copy.memory.providerTitle}</h3>
+            </div>
+            <div class="cp-inline-actions">
+              <button
+                class="cp-button"
+                ?disabled=${this.memoryState.providerRefreshing}
+                @click=${() =>
+                  void this.safeCall(async () => refreshMemoryProvider(this.memoryState))}
+              >
+                ${copy.memory.refreshProvider}
+              </button>
+              <button
+                class="cp-button cp-button--primary"
+                ?disabled=${this.memoryState.providerLoginBusy}
+                @click=${() =>
+                  void this.safeCall(async () => loginMemoryProvider(this.memoryState))}
+              >
+                ${copy.memory.runLoginFlow}
+              </button>
+            </div>
+          </div>
+          ${this.renderMetaEntries(
+            [
+              { label: copy.common.status, value: lifecycle },
+              { label: copy.common.provider, value: providerStatus?.provider ?? copy.common.na },
+              {
+                label: copy.common.valid,
+                value: providerStatus?.ready ? copy.common.yes : copy.common.no,
+              },
+              { label: copy.memory.recommendedAction, value: recommendedAction },
+              { label: "Profile", value: providerStatus?.profile ?? copy.common.na },
+              { label: "Notebook ID", value: providerStatus?.notebookId ?? copy.common.na },
+              { label: "Auth source", value: providerStatus?.authSource ?? copy.common.na },
+              {
+                label: "Last validated",
+                value: formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale),
+              },
+              {
+                label: "Last refresh",
+                value: formatIsoDateTime(providerStatus?.lastRefreshAt, this.locale),
+              },
+              {
+                label: "Next probe",
+                value: formatIsoDateTime(providerStatus?.nextProbeAt, this.locale),
+              },
+              {
+                label: "Next refresh",
+                value: formatIsoDateTime(providerStatus?.nextAllowedRefreshAt, this.locale),
+              },
+              { label: copy.memory.details, value: providerStatus?.details ?? copy.common.none },
+            ],
+            this.memoryState.providerError ?? copy.common.notLoaded,
+          )}
+        </article>
+      `;
+    } else if (this.memoryState.activeSection === "dreaming") {
+      const runs = dreamStatus?.runs ?? [];
+      mainPanel = html`
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.memory.dreamingKicker}</span>
+              <h3>${copy.memory.dreamingTitle}</h3>
+            </div>
+            <div class="cp-inline-actions">
+              <button
+                class="cp-button cp-button--primary"
+                ?disabled=${this.memoryState.dreamActionBusy}
+                @click=${() => void this.safeCall(async () => runMemoryDream(this.memoryState))}
+              >
+                ${copy.memory.runNow}
+              </button>
+              <button
+                class="cp-button"
+                ?disabled=${this.memoryState.dreamActionBusy}
+                @click=${() =>
+                  void this.safeCall(async () =>
+                    runMemoryDream(this.memoryState, { dryRun: true }),
+                  )}
+              >
+                ${copy.memory.dryRun}
+              </button>
+              <button
+                class="cp-button"
+                ?disabled=${this.memoryState.dreamActionBusy}
+                @click=${() =>
+                  void this.safeCall(async () => runMemoryDream(this.memoryState, { force: true }))}
+              >
+                ${copy.memory.forceRun}
+              </button>
+            </div>
+          </div>
+          ${this.renderMetaEntries(
+            [
+              {
+                label: copy.common.status,
+                value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
+              },
+              { label: "Scope", value: dreamStatus?.scopeKey ?? copy.common.none },
+              { label: "minHours", value: dreamStatus?.config.minHours ?? copy.common.na },
+              { label: "minSessions", value: dreamStatus?.config.minSessions ?? copy.common.na },
+              {
+                label: "scanThrottleMs",
+                value: dreamStatus?.config.scanThrottleMs ?? copy.common.na,
+              },
+              {
+                label: "Last success",
+                value: formatIsoDateTime(dreamStatus?.state?.lastSuccessAt, this.locale),
+              },
+              {
+                label: "Last attempt",
+                value: formatIsoDateTime(dreamStatus?.state?.lastAttemptAt, this.locale),
+              },
+              {
+                label: "Last failure",
+                value: formatIsoDateTime(dreamStatus?.state?.lastFailureAt, this.locale),
+              },
+              {
+                label: "Last skip reason",
+                value: dreamStatus?.state?.lastSkipReason ?? copy.common.none,
+              },
+              { label: "Lock owner", value: dreamStatus?.state?.lockOwner ?? copy.common.none },
+            ],
+            this.memoryState.dreamError ?? copy.common.notLoaded,
+          )}
+          ${this.memoryState.dreamActionMessage
+            ? html`<p class="cp-panel__subcopy">${this.memoryState.dreamActionMessage}</p>`
+            : nothing}
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.memory.dreamingKicker}</span>
+              <h3>${copy.memory.recentRuns}</h3>
+            </div>
+          </div>
+          ${runs.length
+            ? html`
+                <div class="cp-table-wrap">
+                  <table class="cp-table">
+                    <thead>
+                      <tr>
+                        <th>${copy.common.status}</th>
+                        <th>Scope</th>
+                        <th>Trigger</th>
+                        <th>Run ID</th>
+                        <th>${copy.common.summary}</th>
+                        <th>${copy.common.updated}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${runs.map(
+                        (run) => html`
+                          <tr>
+                            <td>${run.status}</td>
+                            <td>${run.scope ?? copy.common.none}</td>
+                            <td>${run.triggerSource ?? copy.common.none}</td>
+                            <td>${run.runId ?? copy.common.none}</td>
+                            <td>${summarizeDreamRunReason(run) ?? copy.common.none}</td>
+                            <td>${formatIsoDateTime(run.createdAt, this.locale)}</td>
+                          </tr>
+                        `,
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              `
+            : html`<p class="cp-empty">${copy.common.notLoaded}</p>`}
+        </article>
+      `;
+    } else if (this.memoryState.activeSection === "summaries") {
+      mainPanel = html`
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.memory.summariesKicker}</span>
+              <h3>${copy.memory.summariesTitle}</h3>
+            </div>
+            <div class="cp-inline-actions">
+              <button
+                class="cp-button cp-button--primary"
+                ?disabled=${this.memoryState.summariesRefreshBusy ||
+                !this.memoryState.summariesSelectedSessionId}
+                @click=${() =>
+                  void this.safeCall(async () => refreshMemorySessionSummary(this.memoryState))}
+              >
+                ${copy.memory.forceRefresh}
+              </button>
+            </div>
+          </div>
+          ${summaryStatus
+            ? this.renderMetaEntries([
+                { label: copy.common.agent, value: summaryStatus.agentId },
+                { label: "Session ID", value: summaryStatus.sessionId },
+                { label: copy.common.path, value: summaryStatus.summaryPath },
+                {
+                  label: copy.common.exists,
+                  value: summaryStatus.exists ? copy.common.yes : copy.common.no,
+                },
+                {
+                  label: copy.common.updated,
+                  value: formatIsoDateTime(summaryStatus.updatedAt, this.locale),
+                },
+                {
+                  label: "Last summarized message",
+                  value: summaryStatus.state?.lastSummarizedMessageId ?? copy.common.none,
+                },
+                {
+                  label: "Last summary update",
+                  value: formatIsoDateTime(summaryStatus.state?.lastSummaryUpdatedAt, this.locale),
+                },
+                {
+                  label: copy.common.tokens,
+                  value: summaryStatus.state?.tokensAtLastSummary ?? 0,
+                },
+                {
+                  label: "In progress",
+                  value: summaryStatus.state?.summaryInProgress ? copy.common.yes : copy.common.no,
+                },
+              ])
+            : html`<p class="cp-empty">
+                ${this.memoryState.summariesError ?? copy.memory.selectSession}
+              </p>`}
+        </article>
+        <section class="cp-grid cp-grid--double">
+          <article class="cp-subpanel">
+            <h4>${copy.memory.currentState}</h4>
+            <pre class="cp-code cp-code--compact">
+${summaryStatus?.sections.currentState || copy.common.none}</pre
+            >
+          </article>
+          <article class="cp-subpanel">
+            <h4>${copy.memory.taskSpecification}</h4>
+            <pre class="cp-code cp-code--compact">
+${summaryStatus?.sections.taskSpecification || copy.common.none}</pre
+            >
+          </article>
+          <article class="cp-subpanel">
+            <h4>${copy.memory.keyResults}</h4>
+            <pre class="cp-code cp-code--compact">
+${summaryStatus?.sections.keyResults || copy.common.none}</pre
+            >
+          </article>
+          <article class="cp-subpanel">
+            <h4>${copy.memory.errorsAndCorrections}</h4>
+            <pre class="cp-code cp-code--compact">
+${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
+            >
+          </article>
+        </section>
+      `;
+    } else {
+      mainPanel = html`
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.memory.journalKicker}</span>
+              <h3>${copy.memory.journalTitle}</h3>
+            </div>
+            <button
+              class="cp-button cp-button--primary"
+              ?disabled=${this.memoryState.journalLoading}
+              @click=${() =>
+                void this.safeCall(async () => loadMemoryPromptJournal(this.memoryState))}
+            >
+              ${copy.memory.summarizeJournal}
+            </button>
+          </div>
+          ${journalSummary
+            ? html`
+                <section class="cp-band">
+                  ${this.renderMetric(
+                    copy.memory.promptAssemblies,
+                    String(journalSummary.promptAssembly.count),
+                  )}
+                  ${this.renderMetric(
+                    copy.memory.durableExtractions,
+                    String(journalSummary.durableExtraction.count),
+                  )}
+                  ${this.renderMetric(
+                    copy.memory.knowledgeWrites,
+                    String(countObjectKeys(journalSummary.knowledgeWrite.statusCounts)),
+                  )}
+                  ${this.renderMetric(copy.common.sessions, String(journalSummary.uniqueSessions))}
+                </section>
+                <section class="cp-grid cp-grid--double">
+                  <article class="cp-subpanel">
+                    <h4>${copy.memory.topReasons}</h4>
+                    ${journalSummary.durableExtraction.topReasons.length
+                      ? html`
+                          <div class="cp-list cp-list--dense">
+                            ${journalSummary.durableExtraction.topReasons.map(
+                              (entry) => html`
+                                <div class="cp-list-item">
+                                  <strong>${entry.reason}</strong>
+                                  <small>${entry.count}</small>
+                                </div>
+                              `,
+                            )}
+                          </div>
+                        `
+                      : html`<p class="cp-empty">${copy.common.none}</p>`}
+                  </article>
+                  <article class="cp-subpanel">
+                    <h4>${copy.memory.writeOutcomes}</h4>
+                    ${this.renderMetaEntries([
+                      { label: "Files", value: journalSummary.files.length },
+                      { label: "Events", value: journalSummary.totalEvents },
+                      {
+                        label: "Save rate",
+                        value: journalSummary.durableExtraction.saveRate ?? copy.common.na,
+                      },
+                      {
+                        label: "Statuses",
+                        value: countObjectKeys(journalSummary.knowledgeWrite.statusCounts),
+                      },
+                      {
+                        label: "Actions",
+                        value: countObjectKeys(journalSummary.knowledgeWrite.actionCounts),
+                      },
+                    ])}
+                  </article>
+                </section>
+              `
+            : html`<p class="cp-empty">
+                ${this.memoryState.journalError ?? copy.memory.noJournal}
+              </p>`}
+        </article>
+      `;
+    }
+
+    return html`
+      <section class="cp-page">
+        ${this.renderPageHeader("memory", [
+          { label: copy.memory.provider, value: lifecycle },
+          {
+            label: copy.memory.dreaming,
+            value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
+          },
+          {
+            label: copy.memory.sessionSummaries,
+            value: summaryState,
+            hint: summaryStatus?.sessionId ?? undefined,
+          },
+          {
+            label: copy.memory.recommendedAction,
+            value: recommendedAction,
+          },
+        ])}
+        <div class="cp-stage cp-stage--three">
+          <aside class="cp-stage__rail">
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.memory.provider}</span>
+                  <h3>${metaForPage("memory", this.locale).label}</h3>
+                </div>
+              </div>
+              <div class="cp-action-stack">
+                ${(
+                  [
+                    ["provider", copy.memory.provider],
+                    ["dreaming", copy.memory.dreaming],
+                    ["summaries", copy.memory.sessionSummaries],
+                    ["journal", copy.memory.promptJournal],
+                  ] as const
+                ).map(
+                  ([section, label]) => html`
+                    <button
+                      class="cp-action-card ${this.memoryState.activeSection === section
+                        ? "is-active"
+                        : ""}"
+                      @click=${() => void this.activateMemorySection(section)}
+                    >
+                      <span>${label}</span>
+                      <small>${section}</small>
+                    </button>
+                  `,
+                )}
+              </div>
+            </article>
+            ${this.memoryState.activeSection === "dreaming"
+              ? html`
+                  <article class="cp-panel">
+                    <div class="cp-panel__head">
+                      <div>
+                        <span class="cp-kicker">${copy.memory.dreamingKicker}</span>
+                        <h3>Scope filters</h3>
+                      </div>
+                    </div>
+                    <form
+                      class="cp-form"
+                      @submit=${(event: Event) => {
+                        event.preventDefault();
+                        void this.safeCall(async () => loadMemoryDreaming(this.memoryState));
+                      }}
+                    >
+                      <label>
+                        <span>${copy.common.agent}</span>
+                        <input
+                          .value=${this.memoryState.dreamAgent}
+                          @input=${(event: Event) => {
+                            this.memoryState.dreamAgent = (event.target as HTMLInputElement).value;
+                            this.requestUpdate();
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span>${copy.common.surface}</span>
+                        <input
+                          .value=${this.memoryState.dreamChannel}
+                          @input=${(event: Event) => {
+                            this.memoryState.dreamChannel = (
+                              event.target as HTMLInputElement
+                            ).value;
+                            this.requestUpdate();
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span>User</span>
+                        <input
+                          .value=${this.memoryState.dreamUser}
+                          @input=${(event: Event) => {
+                            this.memoryState.dreamUser = (event.target as HTMLInputElement).value;
+                            this.requestUpdate();
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span>Scope key</span>
+                        <input
+                          .value=${this.memoryState.dreamScopeKey}
+                          @input=${(event: Event) => {
+                            this.memoryState.dreamScopeKey = (
+                              event.target as HTMLInputElement
+                            ).value;
+                            this.requestUpdate();
+                          }}
+                        />
+                      </label>
+                      <div class="cp-form__actions">
+                        <button class="cp-button cp-button--primary" type="submit">
+                          ${copy.common.refresh}
+                        </button>
+                      </div>
+                    </form>
+                  </article>
+                `
+              : nothing}
+            ${this.memoryState.activeSection === "summaries"
+              ? html`
+                  <article class="cp-panel cp-panel--fill">
+                    <div class="cp-panel__head">
+                      <div>
+                        <span class="cp-kicker">${copy.memory.summariesKicker}</span>
+                        <h3>${copy.memory.sessionSummaries}</h3>
+                      </div>
+                    </div>
+                    <div class="cp-session-console__search">
+                      <span>${copy.common.session}</span>
+                      <input
+                        .value=${this.memorySessionQuery}
+                        placeholder=${copy.memory.selectSession}
+                        @input=${(event: Event) => {
+                          this.memorySessionQuery = (event.target as HTMLInputElement).value;
+                          this.requestUpdate();
+                        }}
+                      />
+                    </div>
+                    <div class="cp-session-console__list">
+                      <div class="cp-list">
+                        ${filteredSessions.length
+                          ? filteredSessions.map(
+                              (session) => html`
+                                <button
+                                  class="cp-session-item ${this.memoryState
+                                    .summariesSelectedSessionKey === session.key
+                                    ? "is-active"
+                                    : ""}"
+                                  @click=${() => void this.handleSelectMemorySession(session)}
+                                >
+                                  <strong
+                                    >${session.displayName ?? session.label ?? session.key}</strong
+                                  >
+                                  <span>${session.key}</span>
+                                  <small>
+                                    ${session.sessionId ?? session.key} ·
+                                    ${formatMaybeDate(session.updatedAt, this.locale)}
+                                  </small>
+                                </button>
+                              `,
+                            )
+                          : html`<p class="cp-empty">${copy.memory.selectSession}</p>`}
+                      </div>
+                    </div>
+                  </article>
+                `
+              : nothing}
+            ${this.memoryState.activeSection === "journal"
+              ? html`
+                  <article class="cp-panel">
+                    <div class="cp-panel__head">
+                      <div>
+                        <span class="cp-kicker">${copy.memory.journalKicker}</span>
+                        <h3>${copy.memory.promptJournal}</h3>
+                      </div>
+                    </div>
+                    <form
+                      class="cp-form"
+                      @submit=${(event: Event) => {
+                        event.preventDefault();
+                        void this.safeCall(async () => loadMemoryPromptJournal(this.memoryState));
+                      }}
+                    >
+                      <label>
+                        <span>Days</span>
+                        <input
+                          type="number"
+                          min="1"
+                          .value=${this.memoryState.journalDays}
+                          @input=${(event: Event) => {
+                            this.memoryState.journalDays = (event.target as HTMLInputElement).value;
+                            this.requestUpdate();
+                          }}
+                        />
+                      </label>
+                      <div class="cp-form__actions">
+                        <button class="cp-button cp-button--primary" type="submit">
+                          ${copy.memory.summarizeJournal}
+                        </button>
+                      </div>
+                    </form>
+                  </article>
+                `
+              : nothing}
+          </aside>
+          <main class="cp-stage__main">${mainPanel}</main>
+          <aside class="cp-stage__rail">
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.memory.healthKicker}</span>
+                  <h3>${copy.memory.healthTitle}</h3>
+                </div>
+              </div>
+              ${this.renderMetaEntries([
+                { label: copy.memory.provider, value: lifecycle },
+                {
+                  label: copy.memory.dreaming,
+                  value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
+                },
+                { label: copy.memory.sessionSummaries, value: summaryState },
+                { label: copy.memory.recommendedAction, value: recommendedAction },
+              ])}
+            </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.common.latest}</span>
+                  <h3>${copy.common.summary}</h3>
+                </div>
+              </div>
+              ${this.renderMetaEntries(
+                [
+                  {
+                    label: "Provider validated",
+                    value: formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale),
+                  },
+                  {
+                    label: "Dream run",
+                    value: dreamStatus?.runs[0]?.status ?? copy.common.none,
+                    hint: formatIsoDateTime(dreamStatus?.runs[0]?.createdAt, this.locale),
+                  },
+                  {
+                    label: "Summary session",
+                    value: summaryStatus?.sessionId ?? copy.common.none,
+                  },
+                  {
+                    label: "Journal files",
+                    value: journalSummary?.files.length ?? 0,
+                  },
+                ],
+                copy.common.notLoaded,
+              )}
+              ${this.memoryState.providerActionMessage
+                ? html`<p class="cp-panel__subcopy">${this.memoryState.providerActionMessage}</p>`
+                : nothing}
+            </article>
+          </aside>
+        </div>
+      </section>
+    `;
+  }
+
   private renderUsage() {
     const copy = uiText(this.locale);
     const sessions = this.usageState.usageResult?.sessions ?? [];
@@ -3546,6 +4404,8 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
         return this.renderWorkflows();
       case "agents":
         return this.renderAgents();
+      case "memory":
+        return this.renderMemory();
       case "usage":
         return this.renderUsage();
       case "config":
