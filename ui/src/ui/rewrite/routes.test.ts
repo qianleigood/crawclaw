@@ -1,0 +1,17 @@
+import { describe, expect, it } from "vitest";
+import { controlPagesForLocale, metaForPage } from "./routes.ts";
+
+describe("rewrite routes locale metadata", () => {
+  it("returns English control pages by default", () => {
+    const pages = controlPagesForLocale();
+    expect(pages[0]?.label).toBe("Overview");
+    expect(metaForPage("config").eyebrow).toBe("Approvals & config console");
+  });
+
+  it("returns Simplified Chinese metadata when requested", () => {
+    const pages = controlPagesForLocale("zh-CN");
+    expect(pages[0]?.label).toBe("概览");
+    expect(metaForPage("sessions", "zh-CN").headline).toContain("实时会话");
+    expect(metaForPage("debug", "zh-CN").label).toBe("调试");
+  });
+});

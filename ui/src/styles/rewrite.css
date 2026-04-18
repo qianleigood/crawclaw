@@ -226,6 +226,30 @@ crawclaw-app {
   flex-wrap: wrap;
 }
 
+.cp-topbar__locale {
+  display: grid;
+  gap: 6px;
+  min-width: 176px;
+}
+
+.cp-topbar__locale span {
+  color: var(--cp-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.cp-select {
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  border-radius: 12px;
+  border: 1px solid var(--cp-border);
+  padding: 10px 14px;
+  background: rgba(12, 24, 42, 0.84);
+  color: var(--cp-text);
+}
+
 .cp-content {
   padding: 26px 28px 42px;
 }
@@ -786,6 +810,10 @@ crawclaw-app {
   .cp-topbar__actions {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .cp-topbar__locale {
+    width: 100%;
   }
 
   .cp-form__actions {
