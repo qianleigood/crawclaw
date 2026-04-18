@@ -604,6 +604,56 @@ crawclaw-app {
   gap: 10px;
 }
 
+.cp-list-item {
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(8, 18, 31, 0.72);
+  padding: 14px;
+}
+
+.cp-issue-item {
+  display: grid;
+  gap: 8px;
+}
+
+.cp-issue-item__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cp-issue-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cp-issue-badge--error {
+  color: #ffd3da;
+  background: rgba(126, 22, 35, 0.4);
+  border-color: rgba(255, 107, 125, 0.3);
+}
+
+.cp-issue-badge--warning {
+  color: #ffe8be;
+  background: rgba(110, 71, 12, 0.34);
+  border-color: rgba(255, 197, 92, 0.28);
+}
+
+.cp-issue-badge--info {
+  color: #d3ecff;
+  background: rgba(18, 74, 122, 0.34);
+  border-color: rgba(89, 180, 255, 0.28);
+}
+
 .cp-action-card,
 .cp-session-item {
   appearance: none;
@@ -615,6 +665,13 @@ crawclaw-app {
   color: var(--cp-text);
   padding: 14px;
   cursor: pointer;
+}
+
+.cp-action-card:disabled,
+.cp-session-item:disabled,
+.cp-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .cp-action-card span,
@@ -758,6 +815,27 @@ crawclaw-app {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.cp-qr-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background: rgba(5, 12, 21, 0.72);
+}
+
+.cp-qr-card img {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  margin: 0 auto;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff;
 }
 
 .cp-chat-entry {

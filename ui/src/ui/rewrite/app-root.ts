@@ -127,7 +127,7 @@ const SHELL_COPY: Record<
     gateway: "Gateway",
     methods: "Methods",
     session: "Session",
-    gatewayPending: "gateway pending",
+    gatewayPending: "Waiting for gateway",
     reconnect: "Reconnect",
     gatewayNotice: "Gateway notice",
   },
@@ -142,7 +142,7 @@ const SHELL_COPY: Record<
     gateway: "网关",
     methods: "方法数",
     session: "会话",
-    gatewayPending: "网关待握手",
+    gatewayPending: "等待网关响应",
     reconnect: "重连",
     gatewayNotice: "网关提示",
   },
@@ -154,9 +154,9 @@ const APP_COPY = {
       yes: "yes",
       no: "no",
       live: "live",
-      none: "none",
-      pending: "pending",
-      na: "n/a",
+      none: "No data",
+      pending: "Loading",
+      na: "Unavailable",
       auto: "auto",
       default: "default",
       idle: "idle",
@@ -164,7 +164,7 @@ const APP_COPY = {
       hidden: "hidden",
       supported: "supported",
       notExposed: "not exposed",
-      notLoaded: "not loaded",
+      notLoaded: "Not loaded yet",
       notReported: "not reported",
       refresh: "Refresh",
       reload: "Reload",
@@ -189,7 +189,7 @@ const APP_COPY = {
       updated: "Updated",
       connected: "Connected",
       account: "Account",
-      surface: "Surface",
+      surface: "Channel",
       session: "Session",
       key: "Key",
       kind: "Kind",
@@ -242,49 +242,56 @@ const APP_COPY = {
       presenceClients: "Presence clients",
       agentsHint: "{count} agents",
       sessionStore: "session store",
-      surfacesHint: "{count} surfaces",
-      runtimeKicker: "Runtime",
-      runtimeTitle: "System heartbeat",
+      surfacesHint: "Across {count} channels",
+      runtimeKicker: "System status",
+      runtimeTitle: "How the gateway is doing right now",
       statusSummary: "Status summary",
       heartbeat: "Heartbeat",
       lastClose: "Last close",
       error: "Error",
-      controlKicker: "Control surface",
-      controlTitle: "High-value tasks",
-      openSessions: "Open sessions & chat",
+      controlKicker: "Start here",
+      controlTitle: "Most common next steps",
+      openSessions: "Open chat and sessions",
       trackedSessions: "{count} tracked sessions",
-      reviewConfig: "Review config & approvals",
-      manifestWorkbench: "manifest workbench",
-      inspectWorkflows: "Inspect workflow deployments",
+      reviewConfig: "Review settings and approvals",
+      manifestWorkbench: "settings page",
+      inspectWorkflows: "Open workflows",
       workflowCount: "{count} workflow definitions",
-      recentKicker: "Recent operator surface",
-      recentTitle: "Hot sessions",
-      presenceKicker: "Presence rail",
+      recentKicker: "Recent activity",
+      recentTitle: "Recently active sessions",
+      presenceKicker: "Connected clients",
       presenceTitle: "Connected clients",
       noPresence: "No live presence entries were returned.",
       controlUi: "control-ui",
       operator: "operator",
+      attentionKicker: "Needs attention",
+      attentionTitle: "Things to check now",
+      everythingHealthy: "Nothing urgent needs action right now.",
+      openChannels: "Check channel connections",
+      openMemory: "Review memory status",
+      memoryHealth: "Memory health",
+      recommendedAction: "Recommended action",
     },
     sessions: {
       focusedSession: "Focused session",
-      registryKicker: "Registry rail",
-      registryTitle: "Session inventory",
-      searchPlaceholder: "Filter sessions by name, key or surface",
+      registryKicker: "Choose a session",
+      registryTitle: "Recent sessions",
+      searchPlaceholder: "Filter sessions by name, key or channel",
       noSessions: "No sessions returned by the gateway.",
-      conversationKicker: "Conversation thread",
-      conversationTitle: "Sessions & chat console",
+      conversationKicker: "Current conversation",
+      conversationTitle: "Chat and replies",
       refreshHistory: "Refresh history",
       abortRun: "Abort run",
       streaming: "streaming",
-      runtimeKicker: "Runtime",
-      runtimeTitle: "Current execution telemetry",
-      routingKicker: "Routing",
-      routingTitle: "Session routing & model",
-      activityKicker: "Latest activity",
+      runtimeKicker: "Running now",
+      runtimeTitle: "Current session state",
+      routingKicker: "Model and route",
+      routingTitle: "How this session is routed",
+      activityKicker: "Latest reply",
       activityTitle: "Most recent message",
-      composerKicker: "Operator compose",
-      composerTitle: "Deliver a session-scoped message",
-      sendPlaceholder: "Send a session-scoped operator message...",
+      composerKicker: "Send a message",
+      composerTitle: "Write to this session",
+      sendPlaceholder: "Type a message for this session...",
       attachImage: "Attach image",
       dragHint: "Drag images here or use the picker",
       imageAttachments: "Image attachments",
@@ -295,7 +302,7 @@ const APP_COPY = {
       sendHint: "Enter sends · Shift+Enter adds a new line",
       inspectorKicker: "Inspector",
       inspectorTitle: "Current session context",
-      selectPrompt: "Select a session to inspect.",
+      selectPrompt: "Choose a session to read messages and reply.",
       noMessages: "No messages loaded for the current session.",
       inventoryMatches: "{count} matching sessions",
       draftLength: "Draft length",
@@ -303,83 +310,121 @@ const APP_COPY = {
     },
     channels: {
       accounts: "Accounts",
-      enabledSurfaces: "Enabled surfaces",
+      enabledSurfaces: "Enabled channels",
       feishuCli: "Feishu CLI",
       whatsappLogin: "WhatsApp login",
-      accountsKicker: "Accounts & probes",
-      inventoryTitle: "Channel inventory",
-      probeAgain: "Probe again",
+      accountsKicker: "Connection status",
+      inventoryTitle: "Connected channels",
+      probeAgain: "Check again",
       running: "Running",
       lastError: "Last error",
-      optionalKicker: "Optional flow",
-      optionalTitle: "WhatsApp login",
-      noActiveLogin: "No active login flow.",
+      optionalKicker: "Login and repair",
+      optionalTitle: "Finish a login flow",
+      noActiveLogin: "No login flow is active right now.",
+      noAccounts: "No channel accounts were returned by the gateway.",
+      repairHint: "Use these actions only when an account needs to reconnect.",
+      loginQr: "Scan QR code",
+      loginMessage: "Login status",
     },
     workflows: {
       registry: "Registry",
-      registryKicker: "Registry rail",
-      registryTitle: "Workflow definitions",
+      registryKicker: "Choose a workflow",
+      registryTitle: "Available workflows",
       autoRun: "auto-run",
       manual: "manual",
       runs: "runs",
-      detailKicker: "Deployment detail",
+      detailKicker: "Selected workflow",
       selectTitle: "Select a workflow",
       disable: "Disable",
       enable: "Enable",
-      registryDetail: "Registry detail",
+      registryDetail: "What this workflow is",
       approval: "Approval",
       required: "required",
       notRequired: "not required",
       archived: "Archived",
       currentExecution: "Current execution",
       noExecution: "No execution selected.",
-      specification: "Specification",
-      choosePrompt: "Choose a workflow from the rail.",
+      specification: "Definition summary",
+      choosePrompt: "Choose a workflow to see what it does and what you can do next.",
+      actionsTitle: "What you can do next",
+      actionsHint: "Run it now, change whether it is enabled, or deploy the current definition.",
+      recentRunsTitle: "Recent runs",
+      recentRunsEmpty: "No runs have been returned for this workflow yet.",
+      openWorkflow: "Open workflow",
+      goal: "Goal",
+      topology: "Topology",
+      runWorkflow: "Run workflow",
+      deployWorkflow: "Deploy current definition",
+      enabledState: "Enabled",
     },
     agents: {
       registered: "Registered",
-      registryKicker: "Registry rail",
-      registryTitle: "Agent inventory",
-      introspectionKicker: "Introspection",
-      detailTitle: "Agent detail",
-      identity: "Identity",
+      registryKicker: "Choose an agent",
+      registryTitle: "Available agents",
+      introspectionKicker: "Current activity",
+      detailTitle: "Selected agent",
+      identity: "Who this agent is",
       primaryModel: "Primary model",
-      inspectionSnapshot: "Inspection snapshot",
-      toolsCatalog: "Tools catalog",
-      effectiveTools: "Effective tools",
-      selectPrompt: "Select an agent to inspect tools and runtime metadata.",
+      inspectionSnapshot: "Current runtime check",
+      toolsCatalog: "Available tools",
+      effectiveTools: "Tools in this session",
+      selectPrompt: "Choose an agent to review its model, status and tools.",
+      runtimeSummary: "What it is doing now",
+      workspaceHint: "Workspace",
+      toolsHint: "Review both the full catalog and the tools currently active in this session.",
+      catalogEmpty: "Open an agent to load the tool catalog.",
+      effectiveToolsEmpty: "Open an agent to see the tools available in this session.",
     },
     memory: {
       provider: "Provider",
-      dreaming: "Dreaming",
+      dreaming: "Memory runs",
       sessionSummaries: "Session summaries",
-      promptJournal: "Prompt journal",
+      promptJournal: "Prompt activity",
       healthKicker: "Health rail",
-      healthTitle: "Memory health",
+      healthTitle: "Status and next steps",
       providerKicker: "Provider",
-      providerTitle: "NotebookLM provider",
+      providerTitle: "NotebookLM connection",
       refreshProvider: "Refresh provider",
-      runLoginFlow: "Run login flow",
+      runLoginFlow: "Sign in again",
       recommendedAction: "Recommended action",
       details: "Details",
       dreamingKicker: "Durable memory",
-      dreamingTitle: "Auto dream state",
+      dreamingTitle: "Automatic memory updates",
       runNow: "Run now",
-      dryRun: "Dry run",
+      dryRun: "Preview run",
       forceRun: "Force run",
-      recentRuns: "Recent dream runs",
+      recentRuns: "Recent memory jobs",
+      scope: "Scope",
+      trigger: "Trigger",
+      runId: "Run ID",
+      profile: "Profile",
+      notebookId: "Notebook ID",
+      authSource: "Auth source",
+      lastValidated: "Last validated",
+      lastRefresh: "Last refresh",
+      nextProbe: "Next check",
+      nextRefresh: "Next refresh",
+      lastSuccess: "Last success",
+      lastAttempt: "Last attempt",
+      lastFailure: "Last failure",
+      lastSkipReason: "Last skip reason",
+      lockOwner: "Lock owner",
+      sessionId: "Session ID",
+      lastSummarizedMessage: "Last summarized message",
+      lastSummaryUpdate: "Last summary update",
+      inProgress: "In progress",
       summariesKicker: "Session summary",
-      summariesTitle: "Summary file state",
+      summariesTitle: "Saved summary",
       refreshSummary: "Refresh summary",
       forceRefresh: "Force refresh",
-      selectSession: "Select a session to inspect summary state.",
+      selectSession: "Choose a session to review its saved summary.",
       currentState: "Current State",
       taskSpecification: "Task Specification",
       keyResults: "Key Results",
       errorsAndCorrections: "Errors & Corrections",
       journalKicker: "Prompt journal",
-      journalTitle: "Prompt journal summary",
-      summarizeJournal: "Refresh journal",
+      journalTitle: "Prompt activity summary",
+      summarizeJournal: "Refresh prompt activity",
       topReasons: "Top extraction reasons",
       writeOutcomes: "Write outcomes",
       promptAssemblies: "Prompt assemblies",
@@ -388,42 +433,61 @@ const APP_COPY = {
       noJournal: "Prompt journal is disabled or no files were found.",
     },
     usage: {
-      queryKicker: "Query rail",
-      queryTitle: "Usage window",
+      queryKicker: "Choose a time range",
+      queryTitle: "What period do you want to review?",
       startDate: "Start date",
       endDate: "End date",
       refreshUsage: "Refresh usage",
-      sessionCostKicker: "Session cost map",
-      sessionCostTitle: "Usage sessions",
+      sessionCostKicker: "Sessions using resources",
+      sessionCostTitle: "Sessions in this range",
       timeSeries: "Time series",
       usageLogs: "Usage logs",
+      totalsTitle: "Total cost and tokens",
+      rangeSummaryTitle: "What this report includes",
+      noSessions: "No sessions were returned for this date range.",
+      totalsEmpty: "Refresh usage to load cost and token totals.",
+      timeSeriesEmpty: "Refresh usage to load the recent trend.",
+      logsEmpty: "Refresh usage to load the most recent session activity.",
     },
     config: {
-      manifestKicker: "Manifest rail",
-      manifestTitle: "Config runtime parity",
+      manifestKicker: "Current configuration file",
+      manifestTitle: "Config file status",
       applySession: "Apply session",
-      approvalsKicker: "Approvals rail",
-      approvalsTitle: "Execution policy",
-      manifestWorkbenchKicker: "Manifest workbench",
-      manifestWorkbenchTitle: "Config raw editor",
-      approvalWorkbenchKicker: "Approval workbench",
-      approvalWorkbenchTitle: "Exec approvals raw editor",
-      saveApprovals: "Save approvals",
-      configIssues: "Config issues",
-      approvalSnapshot: "Approval snapshot",
+      approvalsKicker: "Approval rules",
+      approvalsTitle: "Execution policy file",
+      manifestWorkbenchKicker: "Edit settings",
+      manifestWorkbenchTitle: "Configuration",
+      approvalWorkbenchKicker: "Edit approval rules",
+      approvalWorkbenchTitle: "Approval rules",
+      saveApprovals: "Save approval rules",
+      configIssues: "Issues to fix",
+      approvalSnapshot: "Current approval summary",
+      issuesEmpty: "No configuration issues were reported.",
+      issuesAction: "Recommended action",
+      issuesReview: "Review this setting and save the updated configuration.",
+      approvalsNotLoaded: "Approval rules have not been loaded yet.",
+      saveAndApplyTitle: "Save first, then apply",
+      saveAndApplyHint:
+        "Saving writes the file. Applying tells the running gateway to reload the updated config.",
+      approvalHint:
+        "Approval rules are saved separately. Keep them in sync when you change security behavior.",
     },
     debug: {
-      methodSurfaceKicker: "Method surface",
-      methodSurfaceTitle: "Advertised methods",
-      preferredName: "preferred name",
-      surface: "surface",
-      statusSnapshot: "Status snapshot",
-      healthSnapshot: "Health snapshot",
-      manualKicker: "Manual RPC",
-      manualTitle: "Raw request workbench",
+      methodSurfaceKicker: "Available methods",
+      methodSurfaceTitle: "Methods you can call from this page",
+      preferredName: "recommended",
+      surface: "available",
+      statusSnapshot: "Current gateway status",
+      healthSnapshot: "Recent health checks",
+      manualKicker: "Manual call",
+      manualTitle: "Call a method directly",
       method: "Method",
       params: "Params",
       noRequest: "No request executed yet.",
+      snapshotEmpty: "Open or refresh diagnostics to load data here.",
+      diagnosticsTitle: "When to use this page",
+      diagnosticsHint:
+        "Use Debug only when the normal product pages do not tell you enough or when you need to inspect raw gateway responses.",
     },
   },
   "zh-CN": {
@@ -431,9 +495,9 @@ const APP_COPY = {
       yes: "是",
       no: "否",
       live: "在线",
-      none: "无",
-      pending: "等待中",
-      na: "无",
+      none: "暂无",
+      pending: "加载中",
+      na: "不可用",
       auto: "自动",
       default: "默认",
       idle: "空闲",
@@ -441,7 +505,7 @@ const APP_COPY = {
       hidden: "隐藏",
       supported: "支持",
       notExposed: "未暴露",
-      notLoaded: "未加载",
+      notLoaded: "尚未加载",
       notReported: "未上报",
       refresh: "刷新",
       reload: "重新加载",
@@ -466,7 +530,7 @@ const APP_COPY = {
       updated: "更新时间",
       connected: "连接状态",
       account: "账号",
-      surface: "表面",
+      surface: "渠道",
       session: "会话",
       key: "键",
       kind: "类型",
@@ -519,49 +583,56 @@ const APP_COPY = {
       presenceClients: "在线客户端",
       agentsHint: "{count} 个代理",
       sessionStore: "会话存储",
-      surfacesHint: "{count} 个表面",
-      runtimeKicker: "运行态",
-      runtimeTitle: "系统心跳",
+      surfacesHint: "来自 {count} 个渠道",
+      runtimeKicker: "系统状态",
+      runtimeTitle: "当前网关整体情况",
       statusSummary: "状态摘要",
       heartbeat: "心跳",
       lastClose: "上次关闭",
       error: "错误",
-      controlKicker: "控制面",
-      controlTitle: "高价值操作",
-      openSessions: "打开会话与聊天",
+      controlKicker: "从这里开始",
+      controlTitle: "最常见的下一步操作",
+      openSessions: "打开聊天和会话",
       trackedSessions: "{count} 个跟踪会话",
-      reviewConfig: "查看配置与审批",
-      manifestWorkbench: "配置工作台",
-      inspectWorkflows: "检查工作流部署",
+      reviewConfig: "检查设置和审批",
+      manifestWorkbench: "设置页面",
+      inspectWorkflows: "打开工作流",
       workflowCount: "{count} 个工作流定义",
-      recentKicker: "近期操作面",
-      recentTitle: "热点会话",
-      presenceKicker: "在线侧栏",
+      recentKicker: "最近活动",
+      recentTitle: "最近活跃的会话",
+      presenceKicker: "已连接客户端",
       presenceTitle: "已连接客户端",
       noPresence: "当前没有返回在线客户端条目。",
       controlUi: "控制台",
       operator: "操作员",
+      attentionKicker: "需要处理",
+      attentionTitle: "当前建议先检查这些",
+      everythingHealthy: "当前没有明显异常，可以继续正常使用。",
+      openChannels: "检查渠道连接",
+      openMemory: "查看记忆状态",
+      memoryHealth: "记忆状态",
+      recommendedAction: "建议动作",
     },
     sessions: {
       focusedSession: "当前会话",
-      registryKicker: "注册表侧栏",
-      registryTitle: "会话清单",
-      searchPlaceholder: "按名称、key 或 surface 过滤会话",
+      registryKicker: "选择会话",
+      registryTitle: "最近会话",
+      searchPlaceholder: "按名称、key 或渠道过滤会话",
       noSessions: "网关没有返回会话。",
-      conversationKicker: "对话线程",
-      conversationTitle: "会话与聊天控制台",
+      conversationKicker: "当前对话",
+      conversationTitle: "聊天与回复",
       refreshHistory: "刷新历史",
       abortRun: "中止运行",
       streaming: "流式输出中",
-      runtimeKicker: "运行态",
-      runtimeTitle: "当前执行遥测",
-      routingKicker: "路由",
-      routingTitle: "会话路由与模型",
-      activityKicker: "最近活动",
+      runtimeKicker: "正在运行",
+      runtimeTitle: "当前会话状态",
+      routingKicker: "模型与路由",
+      routingTitle: "这条会话是怎么被处理的",
+      activityKicker: "最近回复",
       activityTitle: "最新一条消息",
-      composerKicker: "操作输入",
-      composerTitle: "发送绑定到当前会话的操作消息",
-      sendPlaceholder: "发送一条绑定到当前会话的操作消息…",
+      composerKicker: "发送消息",
+      composerTitle: "向当前会话发送消息",
+      sendPlaceholder: "给当前会话输入一条消息…",
       attachImage: "添加图片",
       dragHint: "把图片拖到这里，或使用选择器",
       imageAttachments: "图片附件",
@@ -572,7 +643,7 @@ const APP_COPY = {
       sendHint: "回车发送 · Shift+Enter 换行",
       inspectorKicker: "检查面板",
       inspectorTitle: "当前会话上下文",
-      selectPrompt: "选择一个会话后查看详情。",
+      selectPrompt: "选择一个会话后查看消息并继续回复。",
       noMessages: "当前会话还没有加载到消息。",
       inventoryMatches: "{count} 个匹配会话",
       draftLength: "草稿长度",
@@ -580,83 +651,121 @@ const APP_COPY = {
     },
     channels: {
       accounts: "账号数",
-      enabledSurfaces: "已启用表面",
+      enabledSurfaces: "已启用渠道",
       feishuCli: "飞书 CLI",
       whatsappLogin: "WhatsApp 登录",
-      accountsKicker: "账号与探测",
-      inventoryTitle: "渠道清单",
-      probeAgain: "再次探测",
+      accountsKicker: "连接状态",
+      inventoryTitle: "已接入渠道",
+      probeAgain: "重新检查",
       running: "运行中",
       lastError: "最近错误",
-      optionalKicker: "可选流程",
-      optionalTitle: "WhatsApp 登录",
+      optionalKicker: "登录与修复",
+      optionalTitle: "完成登录流程",
       noActiveLogin: "当前没有激活的登录流程。",
+      noAccounts: "当前网关没有返回任何渠道账号。",
+      repairHint: "只有在账号断开或需要重新连接时，才需要使用这些操作。",
+      loginQr: "扫描二维码",
+      loginMessage: "登录状态",
     },
     workflows: {
       registry: "注册表",
-      registryKicker: "注册表侧栏",
-      registryTitle: "工作流定义",
+      registryKicker: "选择工作流",
+      registryTitle: "可用工作流",
       autoRun: "自动运行",
       manual: "手动",
       runs: "次运行",
-      detailKicker: "部署详情",
+      detailKicker: "当前工作流",
       selectTitle: "选择一个工作流",
       disable: "禁用",
       enable: "启用",
-      registryDetail: "注册详情",
+      registryDetail: "这个工作流是做什么的",
       approval: "审批",
       required: "需要",
       notRequired: "不需要",
       archived: "已归档",
       currentExecution: "当前执行",
       noExecution: "当前没有选中的执行记录。",
-      specification: "规格定义",
-      choosePrompt: "从左侧选择一个工作流。",
+      specification: "定义摘要",
+      choosePrompt: "选择一个工作流后，再决定是否运行、启用或部署。",
+      actionsTitle: "下一步可以做什么",
+      actionsHint: "你可以立即运行、切换启用状态，或部署当前定义。",
+      recentRunsTitle: "最近运行",
+      recentRunsEmpty: "这个工作流当前还没有返回运行记录。",
+      openWorkflow: "打开工作流",
+      goal: "目标",
+      topology: "拓扑",
+      runWorkflow: "运行工作流",
+      deployWorkflow: "部署当前定义",
+      enabledState: "已启用",
     },
     agents: {
       registered: "已注册",
-      registryKicker: "注册表侧栏",
-      registryTitle: "代理清单",
-      introspectionKicker: "运行检查",
-      detailTitle: "代理详情",
-      identity: "身份信息",
+      registryKicker: "选择代理",
+      registryTitle: "可用代理",
+      introspectionKicker: "当前活动",
+      detailTitle: "当前代理",
+      identity: "这个代理是谁",
       primaryModel: "主模型",
-      inspectionSnapshot: "检查快照",
-      toolsCatalog: "工具目录",
-      effectiveTools: "实际生效工具",
-      selectPrompt: "选择一个代理以检查工具和运行元数据。",
+      inspectionSnapshot: "当前运行检查",
+      toolsCatalog: "可用工具",
+      effectiveTools: "当前会话中可用的工具",
+      selectPrompt: "选择一个代理后，可以查看它的模型、状态和工具。",
+      runtimeSummary: "它现在在做什么",
+      workspaceHint: "工作区",
+      toolsHint: "同时查看工具总目录和当前会话实际可用的工具。",
+      catalogEmpty: "先打开一个代理，再加载工具目录。",
+      effectiveToolsEmpty: "先打开一个代理，再查看这个会话里可用的工具。",
     },
     memory: {
       provider: "提供方",
-      dreaming: "Dreaming",
+      dreaming: "记忆运行",
       sessionSummaries: "会话摘要",
-      promptJournal: "Prompt Journal",
+      promptJournal: "提示词活动",
       healthKicker: "健康侧栏",
-      healthTitle: "记忆健康",
+      healthTitle: "状态与下一步",
       providerKicker: "提供方",
-      providerTitle: "NotebookLM 提供方",
+      providerTitle: "NotebookLM 连接状态",
       refreshProvider: "刷新提供方",
-      runLoginFlow: "执行登录流程",
+      runLoginFlow: "重新登录",
       recommendedAction: "建议动作",
       details: "细节",
       dreamingKicker: "持久记忆",
-      dreamingTitle: "Auto Dream 状态",
+      dreamingTitle: "自动记忆更新",
       runNow: "立即运行",
-      dryRun: "Dry run",
+      dryRun: "试运行",
       forceRun: "强制运行",
-      recentRuns: "最近 dream 运行",
+      recentRuns: "最近记忆任务",
+      scope: "范围",
+      trigger: "触发来源",
+      runId: "运行 ID",
+      profile: "配置档",
+      notebookId: "Notebook ID",
+      authSource: "认证来源",
+      lastValidated: "最近验证",
+      lastRefresh: "最近刷新",
+      nextProbe: "下次检查",
+      nextRefresh: "下次刷新",
+      lastSuccess: "最近成功",
+      lastAttempt: "最近尝试",
+      lastFailure: "最近失败",
+      lastSkipReason: "最近跳过原因",
+      lockOwner: "锁持有者",
+      sessionId: "会话 ID",
+      lastSummarizedMessage: "上次摘要消息",
+      lastSummaryUpdate: "上次摘要更新时间",
+      inProgress: "是否进行中",
       summariesKicker: "会话摘要",
-      summariesTitle: "摘要文件状态",
+      summariesTitle: "已保存摘要",
       refreshSummary: "刷新摘要",
       forceRefresh: "强制刷新",
-      selectSession: "选择一个会话以查看摘要状态。",
+      selectSession: "选择一个会话以查看它的已保存摘要。",
       currentState: "当前状态",
       taskSpecification: "任务规格",
       keyResults: "关键结果",
       errorsAndCorrections: "错误与修正",
-      journalKicker: "Prompt Journal",
-      journalTitle: "Prompt journal 摘要",
-      summarizeJournal: "刷新 journal",
+      journalKicker: "提示词活动",
+      journalTitle: "提示词活动摘要",
+      summarizeJournal: "刷新提示词活动",
       topReasons: "主要提取原因",
       writeOutcomes: "写入结果",
       promptAssemblies: "Prompt 组装",
@@ -665,42 +774,58 @@ const APP_COPY = {
       noJournal: "Prompt journal 未启用，或没有找到文件。",
     },
     usage: {
-      queryKicker: "查询侧栏",
-      queryTitle: "用量窗口",
+      queryKicker: "选择时间范围",
+      queryTitle: "你想看哪一段时间的用量？",
       startDate: "开始日期",
       endDate: "结束日期",
       refreshUsage: "刷新用量",
-      sessionCostKicker: "会话成本图",
-      sessionCostTitle: "会话用量",
+      sessionCostKicker: "消耗资源的会话",
+      sessionCostTitle: "当前范围内的会话",
       timeSeries: "时间序列",
       usageLogs: "用量日志",
+      totalsTitle: "总成本与 Tokens",
+      rangeSummaryTitle: "这份报告包含什么",
+      noSessions: "这个时间范围内没有返回任何会话。",
+      totalsEmpty: "刷新用量后，这里会显示成本和 Token 总览。",
+      timeSeriesEmpty: "刷新用量后，这里会显示最近趋势。",
+      logsEmpty: "刷新用量后，这里会显示最近的会话活动。",
     },
     config: {
-      manifestKicker: "配置侧栏",
-      manifestTitle: "配置运行一致性",
+      manifestKicker: "当前配置文件",
+      manifestTitle: "配置文件状态",
       applySession: "应用会话",
-      approvalsKicker: "审批侧栏",
-      approvalsTitle: "执行策略",
-      manifestWorkbenchKicker: "配置工作台",
-      manifestWorkbenchTitle: "配置原始编辑器",
-      approvalWorkbenchKicker: "审批工作台",
-      approvalWorkbenchTitle: "执行审批原始编辑器",
-      saveApprovals: "保存审批",
-      configIssues: "配置问题",
-      approvalSnapshot: "审批快照",
+      approvalsKicker: "审批规则",
+      approvalsTitle: "执行策略文件",
+      manifestWorkbenchKicker: "编辑设置",
+      manifestWorkbenchTitle: "配置内容",
+      approvalWorkbenchKicker: "编辑审批规则",
+      approvalWorkbenchTitle: "审批规则",
+      saveApprovals: "保存审批规则",
+      configIssues: "需要修复的问题",
+      approvalSnapshot: "当前审批摘要",
+      issuesEmpty: "当前没有发现需要处理的配置问题。",
+      issuesAction: "建议动作",
+      issuesReview: "检查这个设置，修改后重新保存配置。",
+      approvalsNotLoaded: "审批规则还没有加载到页面。",
+      saveAndApplyTitle: "先保存，再应用",
+      saveAndApplyHint: "保存会写入文件，应用会让当前运行中的网关重新读取最新配置。",
+      approvalHint: "审批规则单独保存。修改安全行为时，记得一起检查这里。",
     },
     debug: {
-      methodSurfaceKicker: "方法面",
-      methodSurfaceTitle: "已发布方法",
-      preferredName: "首选名称",
-      surface: "接口面",
-      statusSnapshot: "状态快照",
-      healthSnapshot: "健康快照",
-      manualKicker: "手动 RPC",
-      manualTitle: "原始请求工作台",
+      methodSurfaceKicker: "可用方法",
+      methodSurfaceTitle: "这里可以直接调用的方法",
+      preferredName: "推荐名称",
+      surface: "可调用",
+      statusSnapshot: "当前网关状态",
+      healthSnapshot: "最近健康检查",
+      manualKicker: "手动调用",
+      manualTitle: "直接调用一个方法",
       method: "方法",
       params: "参数",
       noRequest: "尚未执行任何请求。",
+      snapshotEmpty: "刷新或打开诊断后，这里会显示结果。",
+      diagnosticsTitle: "什么时候来这里看",
+      diagnosticsHint: "当普通页面解释不清问题，或者你需要直接看原始网关返回值时，再使用这里。",
     },
   },
 } as const;
@@ -738,7 +863,7 @@ function syncDocumentLocale(locale: Locale) {
 
 function formatDateTime(value?: number | null, locale?: string): string {
   if (!value) {
-    return "n/a";
+    return uiText((locale as Locale) ?? "en").common.na;
   }
   return new Intl.DateTimeFormat(locale, {
     month: "short",
@@ -783,7 +908,7 @@ function formatJson(value: unknown): string {
   }
 }
 
-function readString(value: unknown, fallback = "n/a"): string {
+function readString(value: unknown, fallback = "Unavailable"): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
@@ -836,7 +961,7 @@ function countMessageBlocks(message: unknown): number {
 function summarizeMessage(message: unknown): string {
   const text = renderMessageText(message).replace(/\s+/g, " ").trim();
   if (!text) {
-    return "n/a";
+    return "No message text";
   }
   return text.length > 160 ? `${text.slice(0, 157)}...` : text;
 }
@@ -916,7 +1041,7 @@ function primitiveSummary(value: unknown): string {
   if (value && typeof value === "object") {
     return `${Object.keys(value as JsonRecord).length}`;
   }
-  return "n/a";
+  return "Unavailable";
 }
 
 function formatMaybeDate(value: unknown, locale: Locale): string {
@@ -942,9 +1067,12 @@ function isRecentIsoDate(value: unknown, maxAgeMs: number): boolean {
   return Date.now() - ts <= maxAgeMs;
 }
 
-function summarizeMemoryProviderLifecycle(status: MemoryProviderStatus | null): string {
+function summarizeMemoryProviderLifecycle(
+  status: MemoryProviderStatus | null,
+  locale: Locale = "en",
+): string {
   if (!status) {
-    return "pending";
+    return uiText(locale).common.pending;
   }
   if (!status.enabled) {
     return "disabled";
@@ -971,6 +1099,51 @@ function summarizeDreamRunReason(run: {
     return run.error ?? run.summary ?? "failed";
   }
   return run.summary ?? null;
+}
+
+function configIssueSeverity(issue: JsonRecord | null): "error" | "warning" | "info" {
+  const candidate = readString(
+    issue?.severity ?? issue?.level ?? issue?.kind,
+    "warning",
+  ).toLowerCase();
+  if (candidate.includes("error") || candidate.includes("fatal")) {
+    return "error";
+  }
+  if (candidate.includes("info") || candidate.includes("notice")) {
+    return "info";
+  }
+  return "warning";
+}
+
+function configIssueAction(issue: JsonRecord | null, locale: Locale): string {
+  const copy = uiText(locale);
+  const candidate =
+    issue?.recommendedAction ??
+    issue?.recommendation ??
+    issue?.action ??
+    issue?.fix ??
+    issue?.suggestion;
+  return readString(candidate, copy.config.issuesReview);
+}
+
+function debugFieldLabel(field: string, locale: Locale): string {
+  const copy = uiText(locale);
+  const labels: Record<string, string> = {
+    ok: copy.common.status,
+    status: copy.common.status,
+    state: copy.common.state,
+    version: shellText(locale, "gateway"),
+    connected: copy.common.connected,
+    heartbeat: copy.common.heartbeat,
+    lastHeartbeatAt: copy.common.heartbeat,
+    durationMs: copy.common.updated,
+    ts: copy.common.updated,
+    agentId: copy.common.agent,
+    sessionKey: copy.common.session,
+    modelId: copy.common.model,
+    provider: copy.common.provider,
+  };
+  return labels[field] ?? field;
 }
 
 function countObjectKeys(value: unknown): number {
@@ -1861,15 +2034,15 @@ export class CrawClawApp extends LitElement {
     }
     return this.renderMetaEntries([
       {
-        label: "ID",
+        label: "Run ID",
         value: readString(record.executionId, readString(record.runId, copy.common.na)),
       },
       { label: copy.common.status, value: readString(record.status, copy.common.na) },
       { label: copy.common.state, value: readString(record.state, copy.common.na) },
       { label: copy.common.updated, value: formatMaybeDate(record.updatedAt, this.locale) },
-      { label: copy.common.agent, value: readString(record.agentId, copy.common.na) },
+      { label: "Current agent", value: readString(record.agentId, copy.common.na) },
       {
-        label: copy.common.events,
+        label: "Events captured",
         value: Array.isArray(record.events) ? record.events.length : 0,
       },
     ]);
@@ -1882,8 +2055,8 @@ export class CrawClawApp extends LitElement {
       return html`<p class="cp-empty">${copy.workflows.choosePrompt}</p>`;
     }
     return this.renderMetaEntries([
-      { label: copy.common.summary, value: readString(record.goal, copy.common.na) },
-      { label: copy.common.state, value: readString(record.topology, copy.common.na) },
+      { label: copy.workflows.goal, value: readString(record.goal, copy.common.na) },
+      { label: copy.workflows.topology, value: readString(record.topology, copy.common.na) },
       { label: copy.common.steps, value: Array.isArray(record.steps) ? record.steps.length : 0 },
       {
         label: copy.common.inputs,
@@ -1913,10 +2086,10 @@ export class CrawClawApp extends LitElement {
       { label: copy.common.agent, value: readString(record.agentId, copy.common.na) },
       { label: copy.common.model, value: readString(record.modelId, copy.common.na) },
       { label: copy.common.provider, value: readString(record.provider, copy.common.na) },
-      { label: copy.common.execution, value: readString(record.runId, copy.common.na) },
-      { label: "Task", value: readString(record.taskId, copy.common.na) },
+      { label: "Current run", value: readString(record.runId, copy.common.na) },
+      { label: "Current task", value: readString(record.taskId, copy.common.na) },
       {
-        label: copy.common.timeline,
+        label: "Recent events",
         value: Array.isArray(record.timeline) ? record.timeline.length : 0,
       },
     ]);
@@ -1929,7 +2102,7 @@ export class CrawClawApp extends LitElement {
         ? (this.agentsState.toolsCatalogResult as JsonRecord)
         : null;
     if (!result) {
-      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+      return html`<p class="cp-empty">${copy.agents.catalogEmpty}</p>`;
     }
     const groups = Array.isArray(result.groups) ? result.groups : [];
     const profiles = Array.isArray(result.profiles) ? result.profiles : [];
@@ -1962,7 +2135,7 @@ export class CrawClawApp extends LitElement {
         ? (this.agentsState.toolsEffectiveResult as JsonRecord)
         : null;
     if (!result) {
-      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+      return html`<p class="cp-empty">${copy.agents.effectiveToolsEmpty}</p>`;
     }
     const groups = Array.isArray(result.groups) ? result.groups : [];
     const tools = groups.reduce((sum, group) => {
@@ -1997,7 +2170,7 @@ export class CrawClawApp extends LitElement {
         ? (this.usageState.usageCostSummary.totals as JsonRecord)
         : null;
     if (!totals) {
-      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+      return html`<p class="cp-empty">${copy.usage.totalsEmpty}</p>`;
     }
     return this.renderMetaEntries([
       {
@@ -2026,7 +2199,7 @@ export class CrawClawApp extends LitElement {
         ? (this.usageState.usageTimeSeries as JsonRecord)
         : null;
     if (!series) {
-      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+      return html`<p class="cp-empty">${copy.usage.timeSeriesEmpty}</p>`;
     }
     const points = Array.isArray(series.points)
       ? series.points
@@ -2080,7 +2253,7 @@ export class CrawClawApp extends LitElement {
           value: latest ? readString(latest.role, copy.common.na) : copy.common.na,
         },
       ],
-      copy.common.notLoaded,
+      copy.usage.logsEmpty,
     );
   }
 
@@ -2090,16 +2263,26 @@ export class CrawClawApp extends LitElement {
       ? this.configState.configIssues
       : [];
     if (!issues.length) {
-      return html`<p class="cp-empty">${copy.common.none}</p>`;
+      return html`<p class="cp-empty">${copy.config.issuesEmpty}</p>`;
     }
     return html`
-      <div class="cp-list cp-list--dense">
+      <div class="cp-list cp-list--dense cp-issue-list">
         ${issues.map((issue) => {
           const record = issue && typeof issue === "object" ? (issue as JsonRecord) : null;
+          const severity = configIssueSeverity(record);
           return html`
-            <div class="cp-list-item">
-              <strong>${readString(record?.path, copy.common.na)}</strong>
+            <div class="cp-list-item cp-issue-item">
+              <div class="cp-issue-item__head">
+                <strong>${readString(record?.path, copy.common.na)}</strong>
+                <span class="cp-issue-badge cp-issue-badge--${severity}">${severity}</span>
+              </div>
               <small>${readString(record?.message, copy.common.na)}</small>
+              <small
+                ><span>${copy.config.issuesAction}: </span>${configIssueAction(
+                  record,
+                  this.locale,
+                )}</small
+              >
             </div>
           `;
         })}
@@ -2114,7 +2297,7 @@ export class CrawClawApp extends LitElement {
     }
     const snapshot = this.execApprovalsState.execApprovalsSnapshot;
     if (!snapshot) {
-      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+      return html`<p class="cp-empty">${copy.config.approvalsNotLoaded}</p>`;
     }
     return this.renderMetaEntries([
       { label: copy.common.path, value: snapshot.path },
@@ -2135,13 +2318,13 @@ export class CrawClawApp extends LitElement {
     const copy = uiText(this.locale);
     const record = value && typeof value === "object" ? (value as JsonRecord) : null;
     if (!record) {
-      return html`<p class="cp-empty">${copy.common.notLoaded}</p>`;
+      return html`<p class="cp-empty">${copy.debug.snapshotEmpty}</p>`;
     }
     const entries: Array<{ label: string; value: string; hint?: string }> = Object.entries(record)
       .filter(([, entry]) => ["string", "number", "boolean"].includes(typeof entry))
       .slice(0, 6)
       .map(([key, entry]) => ({
-        label: key,
+        label: debugFieldLabel(key, this.locale),
         value: primitiveSummary(entry),
       }));
     if (!entries.length) {
@@ -2226,10 +2409,37 @@ export class CrawClawApp extends LitElement {
     const sessions = this.sessionsState.sessionsResult?.sessions ?? [];
     const channels = flattenChannelAccounts(this.channelsState.channelsSnapshot);
     const heartbeat = this.resolveHeartbeatMeta(this.systemHeartbeat);
+    const providerStatus = this.memoryState.providerStatus;
+    const memoryLifecycle = summarizeMemoryProviderLifecycle(providerStatus, this.locale);
+    const memoryAction = providerStatus?.recommendedAction ?? copy.common.none;
     const gatewayVersion = readString(
       this.hello?.server?.version,
       shellText(this.locale, "gatewayPending"),
     );
+    const attentionItems: Array<{ title: string; detail: string; page?: ControlPage }> = [];
+    if (this.channelsState.channelsError) {
+      attentionItems.push({
+        title: copy.overview.openChannels,
+        detail: this.channelsState.channelsError,
+        page: "channels",
+      });
+    }
+    if (this.configState.configFormDirty || this.execApprovalsState.execApprovalsDirty) {
+      attentionItems.push({
+        title: copy.overview.reviewConfig,
+        detail: this.execApprovalsState.execApprovalsDirty
+          ? copy.config.approvalsTitle
+          : copy.config.manifestTitle,
+        page: "config",
+      });
+    }
+    if (providerStatus && (!providerStatus.ready || providerStatus.recommendedAction)) {
+      attentionItems.push({
+        title: copy.overview.openMemory,
+        detail: memoryAction,
+        page: "memory",
+      });
+    }
     return html`
       <section class="cp-page cp-page--overview">
         ${this.renderPageHeader("overview", [
@@ -2338,6 +2548,19 @@ export class CrawClawApp extends LitElement {
                       ${this.configState.configSnapshot?.path ?? copy.overview.manifestWorkbench}
                     </small>
                   </button>
+                  <button class="cp-action-card" @click=${() => this.navigate("channels")}>
+                    <span>${copy.overview.openChannels}</span>
+                    <small>
+                      ${copy.overview.surfacesHint.replace(
+                        "{count}",
+                        String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
+                      )}
+                    </small>
+                  </button>
+                  <button class="cp-action-card" @click=${() => this.navigate("memory")}>
+                    <span>${copy.overview.openMemory}</span>
+                    <small>${memoryAction}</small>
+                  </button>
                   <button class="cp-action-card" @click=${() => this.navigate("workflows")}>
                     <span>${copy.overview.inspectWorkflows}</span>
                     <small>
@@ -2347,6 +2570,67 @@ export class CrawClawApp extends LitElement {
                       )}
                     </small>
                   </button>
+                </div>
+              </article>
+
+              <article class="cp-panel">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.overview.attentionKicker}</span>
+                    <h3>${copy.overview.attentionTitle}</h3>
+                  </div>
+                </div>
+                ${attentionItems.length
+                  ? html`
+                      <div class="cp-action-stack">
+                        ${attentionItems.map(
+                          (item) => html`
+                            <button
+                              class="cp-action-card"
+                              ?disabled=${!item.page}
+                              @click=${() => {
+                                if (item.page) {
+                                  this.navigate(item.page);
+                                }
+                              }}
+                            >
+                              <span>${item.title}</span>
+                              <small>${item.detail}</small>
+                            </button>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : html`<p class="cp-empty">${copy.overview.everythingHealthy}</p>`}
+              </article>
+
+              <article class="cp-panel">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.overview.memoryHealth}</span>
+                    <h3>${copy.overview.openMemory}</h3>
+                  </div>
+                </div>
+                <div class="cp-meta-list">
+                  <div><span>${copy.memory.provider}</span><strong>${memoryLifecycle}</strong></div>
+                  <div>
+                    <span>${copy.memory.sessionSummaries}</span
+                    ><strong
+                      >${summarizeMemorySummaryState(
+                        this.memoryState.summariesStatus,
+                        this.locale,
+                      )}</strong
+                    >
+                  </div>
+                  <div>
+                    <span>${copy.overview.recommendedAction}</span><strong>${memoryAction}</strong>
+                  </div>
+                  <div>
+                    <span>${copy.common.updated}</span
+                    ><strong
+                      >${formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale)}</strong
+                    >
+                  </div>
                 </div>
               </article>
             </section>
@@ -2369,21 +2653,27 @@ export class CrawClawApp extends LitElement {
                     </tr>
                   </thead>
                   <tbody>
-                    ${repeat(
-                      sessions.slice(0, 10),
-                      (session) => session.key,
-                      (session) => html`
-                        <tr @click=${() => void this.handleSelectSession(session.key)}>
-                          <td>
-                            <strong>${sessionDisplayName(session)}</strong>
-                            <small>${session.key}</small>
-                          </td>
-                          <td>${session.kind}</td>
-                          <td>${session.status ?? copy.common.idle}</td>
-                          <td>${formatAgo(session.updatedAt, this.locale)}</td>
-                        </tr>
-                      `,
-                    )}
+                    ${sessions.length
+                      ? repeat(
+                          sessions.slice(0, 10),
+                          (session) => session.key,
+                          (session) => html`
+                            <tr @click=${() => void this.handleSelectSession(session.key)}>
+                              <td>
+                                <strong>${sessionDisplayName(session)}</strong>
+                                <small>${session.key}</small>
+                              </td>
+                              <td>${session.kind}</td>
+                              <td>${session.status ?? copy.common.idle}</td>
+                              <td>${formatAgo(session.updatedAt, this.locale)}</td>
+                            </tr>
+                          `,
+                        )
+                      : html`
+                          <tr>
+                            <td colspan="4"><p class="cp-empty">${copy.sessions.noSessions}</p></td>
+                          </tr>
+                        `}
                   </tbody>
                 </table>
               </div>
@@ -2948,6 +3238,15 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const copy = uiText(this.locale);
     const flattenedAccounts = flattenChannelAccounts(this.channelsState.channelsSnapshot);
     const connectedAccounts = flattenedAccounts.filter((entry) => entry.account.connected).length;
+    const loginSupported = this.client?.hasCapability("channels.login") ?? false;
+    const loginState =
+      this.channelsState.whatsappLoginConnected === true
+        ? copy.common.connected
+        : this.channelsState.whatsappBusy
+          ? copy.common.pending
+          : loginSupported
+            ? copy.common.available
+            : copy.common.notExposed;
     return html`
       <section class="cp-page">
         ${this.renderPageHeader("channels", [
@@ -2985,12 +3284,62 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 this.channelsState.feishuCliSupported ? copy.common.available : copy.common.hidden,
                 this.channelsState.feishuCliStatus?.status ?? copy.common.na,
               )}
-              ${this.renderMetric(
-                copy.channels.whatsappLogin,
-                this.client?.hasCapability("channels.login")
-                  ? copy.common.supported
-                  : copy.common.notExposed,
-              )}
+              ${this.renderMetric(copy.channels.whatsappLogin, loginState)}
+            </section>
+            <section class="cp-grid cp-grid--double">
+              <article class="cp-panel">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.channels.accountsKicker}</span>
+                    <h3>${copy.channels.inventoryTitle}</h3>
+                  </div>
+                </div>
+                ${this.renderMetaEntries(
+                  [
+                    {
+                      label: copy.channels.enabledSurfaces,
+                      value: this.channelsState.channelsSnapshot?.channelOrder.length ?? 0,
+                    },
+                    { label: copy.common.accounts, value: flattenedAccounts.length },
+                    { label: copy.common.connectedAccounts, value: connectedAccounts },
+                    {
+                      label: copy.common.lastProbe,
+                      value: this.channelsState.channelsLastSuccess
+                        ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
+                        : copy.common.na,
+                    },
+                    {
+                      label: copy.channels.feishuCli,
+                      value: this.channelsState.feishuCliStatus?.status ?? copy.common.na,
+                      hint: this.channelsState.feishuCliError ?? undefined,
+                    },
+                  ],
+                  this.channelsState.channelsError ?? copy.channels.noAccounts,
+                )}
+              </article>
+              <article class="cp-panel">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.channels.optionalKicker}</span>
+                    <h3>${copy.channels.optionalTitle}</h3>
+                  </div>
+                </div>
+                ${this.renderMetaEntries([
+                  { label: copy.channels.whatsappLogin, value: loginState },
+                  {
+                    label: copy.channels.loginMessage,
+                    value: this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin,
+                  },
+                  {
+                    label: copy.channels.feishuCli,
+                    value: this.channelsState.feishuCliSupported
+                      ? copy.common.available
+                      : copy.common.hidden,
+                    hint: this.channelsState.feishuCliStatus?.status ?? undefined,
+                  },
+                ])}
+                <p class="cp-panel__subcopy">${copy.channels.repairHint}</p>
+              </article>
             </section>
             <article class="cp-panel">
               <div class="cp-panel__head">
@@ -3020,19 +3369,27 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                     </tr>
                   </thead>
                   <tbody>
-                    ${repeat(
-                      flattenedAccounts,
-                      (entry) => `${entry.channelId}:${entry.account.accountId}`,
-                      (entry) => html`
-                        <tr>
-                          <td><strong>${entry.label}</strong><small>${entry.channelId}</small></td>
-                          <td>${entry.account.name ?? entry.account.accountId}</td>
-                          <td>${entry.account.running ? copy.common.yes : copy.common.no}</td>
-                          <td>${entry.account.connected ? copy.common.yes : copy.common.no}</td>
-                          <td>${entry.account.lastError ?? copy.common.none}</td>
-                        </tr>
-                      `,
-                    )}
+                    ${flattenedAccounts.length
+                      ? repeat(
+                          flattenedAccounts,
+                          (entry) => `${entry.channelId}:${entry.account.accountId}`,
+                          (entry) => html`
+                            <tr>
+                              <td>
+                                <strong>${entry.label}</strong><small>${entry.channelId}</small>
+                              </td>
+                              <td>${entry.account.name ?? entry.account.accountId}</td>
+                              <td>${entry.account.running ? copy.common.yes : copy.common.no}</td>
+                              <td>${entry.account.connected ? copy.common.yes : copy.common.no}</td>
+                              <td>${entry.account.lastError ?? copy.common.none}</td>
+                            </tr>
+                          `,
+                        )
+                      : html`
+                          <tr>
+                            <td colspan="5"><p class="cp-empty">${copy.channels.noAccounts}</p></td>
+                          </tr>
+                        `}
                   </tbody>
                 </table>
               </div>
@@ -3049,6 +3406,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
               <div class="cp-inline-actions cp-inline-actions--stack">
                 <button
                   class="cp-button"
+                  ?disabled=${!loginSupported}
                   @click=${() =>
                     void this.safeCall(async () => {
                       await startWhatsAppLogin(this.channelsState, true);
@@ -3058,6 +3416,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 </button>
                 <button
                   class="cp-button"
+                  ?disabled=${!loginSupported}
                   @click=${() =>
                     void this.safeCall(async () => {
                       await waitWhatsAppLogin(this.channelsState);
@@ -3067,6 +3426,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 </button>
                 <button
                   class="cp-button cp-button--danger"
+                  ?disabled=${!loginSupported}
                   @click=${() =>
                     void this.safeCall(async () => {
                       await logoutWhatsApp(this.channelsState);
@@ -3075,6 +3435,17 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                   ${copy.common.logout}
                 </button>
               </div>
+              ${this.channelsState.whatsappLoginQrDataUrl
+                ? html`
+                    <div class="cp-qr-card">
+                      <span class="cp-kicker">${copy.channels.loginQr}</span>
+                      <img
+                        src=${this.channelsState.whatsappLoginQrDataUrl}
+                        alt=${copy.channels.loginQr}
+                      />
+                    </div>
+                  `
+                : nothing}
               <pre class="cp-code">
 ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
               >
@@ -3088,11 +3459,16 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
   private renderWorkflows() {
     const copy = uiText(this.locale);
     const selectedWorkflow = this.workflowsState.workflowDetail?.workflow;
+    const selectedSpec = this.workflowsState.workflowDetail?.spec;
     const selectedExecution = this.workflowsState.workflowSelectedExecution;
     const selectedExecutionRecord =
       selectedExecution && typeof selectedExecution === "object"
         ? (selectedExecution as JsonRecord)
         : null;
+    const recentExecutions =
+      this.workflowsState.workflowRuns.length > 0
+        ? this.workflowsState.workflowRuns
+        : (this.workflowsState.workflowDetail?.recentExecutions ?? []);
     return html`
       <section class="cp-page">
         ${this.renderPageHeader("workflows", [
@@ -3217,7 +3593,7 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                         <div class="cp-meta-list">
                           <div><span>ID</span><strong>${selectedWorkflow.workflowId}</strong></div>
                           <div>
-                            <span>${copy.workflows.enable}</span
+                            <span>${copy.workflows.enabledState}</span
                             ><strong
                               >${selectedWorkflow.enabled
                                 ? copy.common.yes
@@ -3240,16 +3616,95 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                                 : copy.common.no}</strong
                             >
                           </div>
+                          <div>
+                            <span>${copy.workflows.goal}</span
+                            ><strong>${selectedSpec?.goal ?? copy.common.na}</strong>
+                          </div>
+                          <div>
+                            <span>${copy.workflows.topology}</span
+                            ><strong>${selectedSpec?.topology ?? copy.common.default}</strong>
+                          </div>
                         </div>
                       </article>
+                      <article class="cp-subpanel">
+                        <h4>${copy.workflows.actionsTitle}</h4>
+                        <div class="cp-action-stack">
+                          <button
+                            class="cp-action-card"
+                            @click=${() =>
+                              void this.safeCall(async () => {
+                                await runWorkflow(this.workflowsState, selectedWorkflow.workflowId);
+                              })}
+                          >
+                            <span>${copy.workflows.runWorkflow}</span>
+                            <small>${copy.common.execution}</small>
+                          </button>
+                          <button
+                            class="cp-action-card"
+                            @click=${() =>
+                              void this.safeCall(async () => {
+                                await setWorkflowEnabled(
+                                  this.workflowsState,
+                                  selectedWorkflow.workflowId,
+                                  !selectedWorkflow.enabled,
+                                );
+                              })}
+                          >
+                            <span>
+                              ${selectedWorkflow.enabled
+                                ? copy.workflows.disable
+                                : copy.workflows.enable}
+                            </span>
+                            <small>${copy.workflows.enabledState}</small>
+                          </button>
+                          <button
+                            class="cp-action-card"
+                            @click=${() =>
+                              void this.safeCall(async () => {
+                                await deployWorkflow(
+                                  this.workflowsState,
+                                  selectedWorkflow.workflowId,
+                                );
+                              })}
+                          >
+                            <span>${copy.workflows.deployWorkflow}</span>
+                            <small>${copy.workflows.actionsHint}</small>
+                          </button>
+                        </div>
+                        <p class="cp-panel__subcopy">${copy.workflows.actionsHint}</p>
+                      </article>
+                    </div>
+                    <section class="cp-grid cp-grid--double">
                       <article class="cp-subpanel">
                         <h4>${copy.workflows.currentExecution}</h4>
                         ${this.renderWorkflowExecutionPanel(selectedExecution)}
                       </article>
-                    </div>
+                      <article class="cp-subpanel">
+                        <h4>${copy.workflows.recentRunsTitle}</h4>
+                        ${recentExecutions.length
+                          ? html`
+                              <div class="cp-list cp-list--dense">
+                                ${recentExecutions.slice(0, 5).map(
+                                  (execution) => html`
+                                    <div class="cp-list-item">
+                                      <strong>${execution.executionId ?? copy.common.none}</strong>
+                                      <small>
+                                        ${execution.status ?? copy.common.na} ·
+                                        ${execution.updatedAt
+                                          ? formatDateTime(execution.updatedAt, this.locale)
+                                          : copy.common.pending}
+                                      </small>
+                                    </div>
+                                  `,
+                                )}
+                              </div>
+                            `
+                          : html`<p class="cp-empty">${copy.workflows.recentRunsEmpty}</p>`}
+                      </article>
+                    </section>
                     <article class="cp-subpanel">
                       <h4>${copy.workflows.specification}</h4>
-                      ${this.renderWorkflowSpecPanel(this.workflowsState.workflowDetail?.spec)}
+                      ${this.renderWorkflowSpecPanel(selectedSpec)}
                     </article>
                   `
                 : html`<p class="cp-empty">${copy.workflows.choosePrompt}</p>`}
@@ -3344,6 +3799,10 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                             <span>${copy.agents.primaryModel}</span
                             ><strong>${selected.model?.primary ?? copy.common.default}</strong>
                           </div>
+                          <div>
+                            <span>${copy.agents.workspaceHint}</span
+                            ><strong>${selected.workspace ?? copy.common.notReported}</strong>
+                          </div>
                         </div>
                       </article>
                       <article class="cp-subpanel">
@@ -3352,13 +3811,59 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                       </article>
                     </div>
                     <article class="cp-subpanel">
-                      <h4>${copy.agents.toolsCatalog}</h4>
-                      ${this.renderToolsCatalogPanel()}
+                      <h4>${copy.agents.runtimeSummary}</h4>
+                      ${this.renderMetaEntries([
+                        {
+                          label: copy.common.execution,
+                          value: inspectionRef,
+                        },
+                        {
+                          label: copy.common.session,
+                          value: this.settings.sessionKey,
+                        },
+                        {
+                          label: copy.common.groups,
+                          value: primitiveSummary(
+                            (this.agentsState.toolsCatalogResult as JsonRecord | null)?.groups
+                              ? Array.isArray(
+                                  (this.agentsState.toolsCatalogResult as JsonRecord).groups,
+                                )
+                                ? (
+                                    (this.agentsState.toolsCatalogResult as JsonRecord)
+                                      .groups as unknown[]
+                                  ).length
+                                : 0
+                              : 0,
+                          ),
+                        },
+                        {
+                          label: copy.common.tools,
+                          value: primitiveSummary(
+                            (this.agentsState.toolsEffectiveResult as JsonRecord | null)?.groups
+                              ? Array.isArray(
+                                  (this.agentsState.toolsEffectiveResult as JsonRecord).groups,
+                                )
+                                ? (
+                                    (this.agentsState.toolsEffectiveResult as JsonRecord)
+                                      .groups as unknown[]
+                                  ).length
+                                : 0
+                              : 0,
+                          ),
+                        },
+                      ])}
                     </article>
-                    <article class="cp-subpanel">
-                      <h4>${copy.agents.effectiveTools}</h4>
-                      ${this.renderToolsEffectivePanel()}
-                    </article>
+                    <section class="cp-grid cp-grid--double">
+                      <article class="cp-subpanel">
+                        <h4>${copy.agents.toolsCatalog}</h4>
+                        ${this.renderToolsCatalogPanel()}
+                      </article>
+                      <article class="cp-subpanel">
+                        <h4>${copy.agents.effectiveTools}</h4>
+                        ${this.renderToolsEffectivePanel()}
+                      </article>
+                    </section>
+                    <p class="cp-panel__subcopy">${copy.agents.toolsHint}</p>
                   `
                 : html`<p class="cp-empty">${copy.agents.selectPrompt}</p>`}
             </article>
@@ -3374,7 +3879,7 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
     const dreamStatus = this.memoryState.dreamStatus;
     const summaryStatus = this.memoryState.summariesStatus;
     const journalSummary = this.memoryState.journalSummary;
-    const lifecycle = summarizeMemoryProviderLifecycle(providerStatus);
+    const lifecycle = summarizeMemoryProviderLifecycle(providerStatus, this.locale);
     const summaryState = summarizeMemorySummaryState(summaryStatus, this.locale);
     const recommendedAction = providerStatus?.recommendedAction ?? copy.common.none;
     const sessions = (this.sessionsState.sessionsResult?.sessions ?? []).filter(
@@ -3427,23 +3932,29 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                 value: providerStatus?.ready ? copy.common.yes : copy.common.no,
               },
               { label: copy.memory.recommendedAction, value: recommendedAction },
-              { label: "Profile", value: providerStatus?.profile ?? copy.common.na },
-              { label: "Notebook ID", value: providerStatus?.notebookId ?? copy.common.na },
-              { label: "Auth source", value: providerStatus?.authSource ?? copy.common.na },
+              { label: copy.memory.profile, value: providerStatus?.profile ?? copy.common.na },
               {
-                label: "Last validated",
+                label: copy.memory.notebookId,
+                value: providerStatus?.notebookId ?? copy.common.na,
+              },
+              {
+                label: copy.memory.authSource,
+                value: providerStatus?.authSource ?? copy.common.na,
+              },
+              {
+                label: copy.memory.lastValidated,
                 value: formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale),
               },
               {
-                label: "Last refresh",
+                label: copy.memory.lastRefresh,
                 value: formatIsoDateTime(providerStatus?.lastRefreshAt, this.locale),
               },
               {
-                label: "Next probe",
+                label: copy.memory.nextProbe,
                 value: formatIsoDateTime(providerStatus?.nextProbeAt, this.locale),
               },
               {
-                label: "Next refresh",
+                label: copy.memory.nextRefresh,
                 value: formatIsoDateTime(providerStatus?.nextAllowedRefreshAt, this.locale),
               },
               { label: copy.memory.details, value: providerStatus?.details ?? copy.common.none },
@@ -3495,7 +4006,7 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                 label: copy.common.status,
                 value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
               },
-              { label: "Scope", value: dreamStatus?.scopeKey ?? copy.common.none },
+              { label: copy.memory.scope, value: dreamStatus?.scopeKey ?? copy.common.none },
               { label: "minHours", value: dreamStatus?.config.minHours ?? copy.common.na },
               { label: "minSessions", value: dreamStatus?.config.minSessions ?? copy.common.na },
               {
@@ -3503,22 +4014,25 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                 value: dreamStatus?.config.scanThrottleMs ?? copy.common.na,
               },
               {
-                label: "Last success",
+                label: copy.memory.lastSuccess,
                 value: formatIsoDateTime(dreamStatus?.state?.lastSuccessAt, this.locale),
               },
               {
-                label: "Last attempt",
+                label: copy.memory.lastAttempt,
                 value: formatIsoDateTime(dreamStatus?.state?.lastAttemptAt, this.locale),
               },
               {
-                label: "Last failure",
+                label: copy.memory.lastFailure,
                 value: formatIsoDateTime(dreamStatus?.state?.lastFailureAt, this.locale),
               },
               {
-                label: "Last skip reason",
+                label: copy.memory.lastSkipReason,
                 value: dreamStatus?.state?.lastSkipReason ?? copy.common.none,
               },
-              { label: "Lock owner", value: dreamStatus?.state?.lockOwner ?? copy.common.none },
+              {
+                label: copy.memory.lockOwner,
+                value: dreamStatus?.state?.lockOwner ?? copy.common.none,
+              },
             ],
             this.memoryState.dreamError ?? copy.common.notLoaded,
           )}
@@ -3540,9 +4054,9 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                     <thead>
                       <tr>
                         <th>${copy.common.status}</th>
-                        <th>Scope</th>
-                        <th>Trigger</th>
-                        <th>Run ID</th>
+                        <th>${copy.memory.scope}</th>
+                        <th>${copy.memory.trigger}</th>
+                        <th>${copy.memory.runId}</th>
                         <th>${copy.common.summary}</th>
                         <th>${copy.common.updated}</th>
                       </tr>
@@ -3590,7 +4104,7 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
           ${summaryStatus
             ? this.renderMetaEntries([
                 { label: copy.common.agent, value: summaryStatus.agentId },
-                { label: "Session ID", value: summaryStatus.sessionId },
+                { label: copy.memory.sessionId, value: summaryStatus.sessionId },
                 { label: copy.common.path, value: summaryStatus.summaryPath },
                 {
                   label: copy.common.exists,
@@ -3601,11 +4115,11 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                   value: formatIsoDateTime(summaryStatus.updatedAt, this.locale),
                 },
                 {
-                  label: "Last summarized message",
+                  label: copy.memory.lastSummarizedMessage,
                   value: summaryStatus.state?.lastSummarizedMessageId ?? copy.common.none,
                 },
                 {
-                  label: "Last summary update",
+                  label: copy.memory.lastSummaryUpdate,
                   value: formatIsoDateTime(summaryStatus.state?.lastSummaryUpdatedAt, this.locale),
                 },
                 {
@@ -3613,7 +4127,7 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                   value: summaryStatus.state?.tokensAtLastSummary ?? 0,
                 },
                 {
-                  label: "In progress",
+                  label: copy.memory.inProgress,
                   value: summaryStatus.state?.summaryInProgress ? copy.common.yes : copy.common.no,
                 },
               ])
@@ -4063,10 +4577,37 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                   </button>
                 </div>
               </form>
-              ${this.renderUsageTotalsPanel()}
+            </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.common.summary}</span>
+                  <h3>${copy.usage.rangeSummaryTitle}</h3>
+                </div>
+              </div>
+              ${this.renderMetaEntries([
+                { label: copy.common.range, value: usageRange },
+                { label: copy.common.sessions, value: sessions.length },
+                {
+                  label: copy.common.selected,
+                  value: this.usageState.usageSelectedSessions.length,
+                  hint: this.usageState.usageSelectedSessions[0] ?? undefined,
+                },
+                { label: copy.common.logs, value: this.usageState.usageSessionLogs?.length ?? 0 },
+              ])}
             </article>
           </aside>
           <main class="cp-stage__main">
+            <section class="cp-grid cp-grid--double">
+              <article class="cp-subpanel">
+                <h4>${copy.usage.totalsTitle}</h4>
+                ${this.renderUsageTotalsPanel()}
+              </article>
+              <article class="cp-subpanel">
+                <h4>${copy.usage.timeSeries}</h4>
+                ${this.renderUsageTimeSeriesPanel()}
+              </article>
+            </section>
             <article class="cp-panel">
               <div class="cp-panel__head">
                 <div>
@@ -4085,35 +4626,35 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                     </tr>
                   </thead>
                   <tbody>
-                    ${repeat(
-                      sessions,
-                      (session) => session.key,
-                      (session) => html`
-                        <tr @click=${() => void this.handleSelectUsageSession(session.key)}>
-                          <td>
-                            <strong>${session.label ?? session.key}</strong>
-                            <small>${session.key}</small>
-                          </td>
-                          <td>${session.modelProvider ?? copy.common.na}</td>
-                          <td>${session.model ?? copy.common.na}</td>
-                          <td>${formatDateTime(session.updatedAt, this.locale)}</td>
-                        </tr>
-                      `,
-                    )}
+                    ${sessions.length
+                      ? repeat(
+                          sessions,
+                          (session) => session.key,
+                          (session) => html`
+                            <tr @click=${() => void this.handleSelectUsageSession(session.key)}>
+                              <td>
+                                <strong>${session.label ?? session.key}</strong>
+                                <small>${session.key}</small>
+                              </td>
+                              <td>${session.modelProvider ?? copy.common.na}</td>
+                              <td>${session.model ?? copy.common.na}</td>
+                              <td>${formatDateTime(session.updatedAt, this.locale)}</td>
+                            </tr>
+                          `,
+                        )
+                      : html`
+                          <tr>
+                            <td colspan="4"><p class="cp-empty">${copy.usage.noSessions}</p></td>
+                          </tr>
+                        `}
                   </tbody>
                 </table>
               </div>
             </article>
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-subpanel">
-                <h4>${copy.usage.timeSeries}</h4>
-                ${this.renderUsageTimeSeriesPanel()}
-              </article>
-              <article class="cp-subpanel">
-                <h4>${copy.usage.usageLogs}</h4>
-                ${this.renderUsageLogsPanel()}
-              </article>
-            </section>
+            <article class="cp-subpanel">
+              <h4>${copy.usage.usageLogs}</h4>
+              ${this.renderUsageLogsPanel()}
+            </article>
           </main>
         </div>
       </section>
@@ -4198,8 +4739,57 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                 </div>
               </div>
             </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.common.summary}</span>
+                  <h3>${copy.config.saveAndApplyTitle}</h3>
+                </div>
+              </div>
+              <p class="cp-panel__subcopy">${copy.config.saveAndApplyHint}</p>
+              <p class="cp-panel__subcopy">${copy.config.approvalHint}</p>
+            </article>
           </aside>
           <main class="cp-stage__main">
+            <section class="cp-grid cp-grid--double">
+              <article class="cp-subpanel">
+                <h4>${copy.config.manifestTitle}</h4>
+                ${this.renderMetaEntries([
+                  { label: copy.common.path, value: snapshot?.path ?? copy.common.na },
+                  { label: copy.common.hash, value: snapshot?.hash ?? copy.common.na },
+                  {
+                    label: copy.common.valid,
+                    value: snapshot?.valid === false ? copy.common.no : copy.common.yes,
+                  },
+                  {
+                    label: copy.common.dirty,
+                    value: this.configState.configFormDirty ? copy.common.yes : copy.common.no,
+                  },
+                ])}
+              </article>
+              <article class="cp-subpanel">
+                <h4>${copy.config.approvalsTitle}</h4>
+                ${this.renderMetaEntries([
+                  {
+                    label: copy.common.file,
+                    value:
+                      this.execApprovalsState.execApprovalsSnapshot?.path ?? copy.common.notLoaded,
+                  },
+                  {
+                    label: copy.common.dirty,
+                    value: this.execApprovalsState.execApprovalsDirty
+                      ? copy.common.yes
+                      : copy.common.no,
+                  },
+                  {
+                    label: copy.common.exists,
+                    value: this.execApprovalsState.execApprovalsSnapshot?.exists
+                      ? copy.common.yes
+                      : copy.common.no,
+                  },
+                ])}
+              </article>
+            </section>
             <section class="cp-grid cp-grid--double">
               <article class="cp-panel cp-panel--fill">
                 <div class="cp-panel__head">
@@ -4242,6 +4832,7 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                     ${copy.config.saveApprovals}
                   </button>
                 </div>
+                <p class="cp-panel__subcopy">${copy.config.approvalHint}</p>
                 <textarea
                   class="cp-code-editor"
                   .value=${this.approvalsRaw}
@@ -4325,6 +4916,24 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                   `,
                 )}
               </div>
+            </article>
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.common.summary}</span>
+                  <h3>${copy.debug.diagnosticsTitle}</h3>
+                </div>
+              </div>
+              <p class="cp-panel__subcopy">${copy.debug.diagnosticsHint}</p>
+              ${this.renderMetaEntries([
+                { label: copy.common.methods, value: methodList.length },
+                { label: copy.common.models, value: this.debugState.debugModels.length },
+                { label: copy.common.heartbeat, value: debugHeartbeat.status },
+                {
+                  label: copy.common.selected,
+                  value: this.debugState.debugCallMethod || copy.common.none,
+                },
+              ])}
             </article>
           </aside>
           <main class="cp-stage__main">
