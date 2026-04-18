@@ -231,276 +231,280 @@ export function renderSessions(props: SessionsProps) {
   };
 
   return html`
-    <section class="card operations-panel operations-panel--sessions">
-      <div
-        class="operations-panel__header row"
-        style="justify-content: space-between; margin-bottom: 12px;"
-      >
-        <div>
-          <div class="card-title">${uiLiteral("Sessions")}</div>
-          <div class="card-sub">
-            ${props.result
-              ? `Store: ${props.result.path}`
-              : uiLiteral("Active session keys and per-session overrides.")}
+    <section class="sessions-stage">
+      <section class="card operations-panel operations-panel--sessions">
+        <div
+          class="operations-panel__header row"
+          style="justify-content: space-between; margin-bottom: 12px;"
+        >
+          <div>
+            <div class="card-title">${uiLiteral("Sessions")}</div>
+            <div class="card-sub">
+              ${props.result
+                ? `Store: ${props.result.path}`
+                : uiLiteral("Active session keys and per-session overrides.")}
+            </div>
+          </div>
+          <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
+            ${props.loading ? uiLiteral("Loading…") : uiLiteral("Refresh")}
+          </button>
+        </div>
+
+        <div class="operations-panel__stats">
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Visible rows")}</span>
+            <strong class="operations-panel__stat-value">${totalRows}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Active session")}</span>
+            <strong class="operations-panel__stat-value">${currentScopeLabel}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Selected")}</span>
+            <strong class="operations-panel__stat-value">${selectedCount}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Filter scope")}</span>
+            <strong class="operations-panel__stat-value">${filterSummary}</strong>
           </div>
         </div>
-        <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
-          ${props.loading ? uiLiteral("Loading…") : uiLiteral("Refresh")}
-        </button>
-      </div>
 
-      <div class="operations-panel__stats">
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Visible rows")}</span>
-          <strong class="operations-panel__stat-value">${totalRows}</strong>
+        <div class="sessions-runtime-strip">
+          <div class="sessions-runtime-card">
+            <span class="sessions-runtime-card__label">${uiLiteral("Current session")}</span>
+            <strong class="sessions-runtime-card__value">${currentScopeLabel}</strong>
+          </div>
+          <div class="sessions-runtime-card">
+            <span class="sessions-runtime-card__label">${uiLiteral("Current run")}</span>
+            <strong class="sessions-runtime-card__value"
+              >${props.currentRunId ?? uiLiteral("Idle")}</strong
+            >
+          </div>
+          <div class="sessions-runtime-card">
+            <span class="sessions-runtime-card__label">${uiLiteral("Console route")}</span>
+            <strong class="sessions-runtime-card__value">
+              ${props.currentSessionKey ? uiLiteral("Chat attached") : uiLiteral("No selection")}
+            </strong>
+          </div>
+          <div class="sessions-runtime-actions">
+            ${currentChatUrl
+              ? html`<a class="btn btn--sm btn--ghost" href=${currentChatUrl}
+                  >${uiLiteral("Open chat")}</a
+                >`
+              : nothing}
+            ${props.currentRunId && props.onInspectCurrentRun
+              ? html`
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    @click=${() => props.onInspectCurrentRun?.()}
+                  >
+                    ${uiLiteral("Inspect current run")}
+                  </button>
+                `
+              : nothing}
+          </div>
         </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Active session")}</span>
-          <strong class="operations-panel__stat-value">${currentScopeLabel}</strong>
-        </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Selected")}</span>
-          <strong class="operations-panel__stat-value">${selectedCount}</strong>
-        </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Filter scope")}</span>
-          <strong class="operations-panel__stat-value">${filterSummary}</strong>
-        </div>
-      </div>
 
-      <div class="sessions-runtime-strip">
-        <div class="sessions-runtime-card">
-          <span class="sessions-runtime-card__label">${uiLiteral("Current session")}</span>
-          <strong class="sessions-runtime-card__value">${currentScopeLabel}</strong>
+        <div class="filters operations-inline-filters" style="margin-bottom: 12px;">
+          <label class="field-inline">
+            <span>${uiLiteral("Active")}</span>
+            <input
+              style="width: 72px;"
+              placeholder=${uiLiteral("min")}
+              .value=${props.activeMinutes}
+              @input=${(e: Event) =>
+                props.onFiltersChange({
+                  activeMinutes: (e.target as HTMLInputElement).value,
+                  limit: props.limit,
+                  includeGlobal: props.includeGlobal,
+                  includeUnknown: props.includeUnknown,
+                })}
+            />
+          </label>
+          <label class="field-inline">
+            <span>${uiLiteral("Limit")}</span>
+            <input
+              style="width: 64px;"
+              .value=${props.limit}
+              @input=${(e: Event) =>
+                props.onFiltersChange({
+                  activeMinutes: props.activeMinutes,
+                  limit: (e.target as HTMLInputElement).value,
+                  includeGlobal: props.includeGlobal,
+                  includeUnknown: props.includeUnknown,
+                })}
+            />
+          </label>
+          <label class="field-inline checkbox">
+            <input
+              type="checkbox"
+              .checked=${props.includeGlobal}
+              @change=${(e: Event) =>
+                props.onFiltersChange({
+                  activeMinutes: props.activeMinutes,
+                  limit: props.limit,
+                  includeGlobal: (e.target as HTMLInputElement).checked,
+                  includeUnknown: props.includeUnknown,
+                })}
+            />
+            <span>${uiLiteral("Global")}</span>
+          </label>
+          <label class="field-inline checkbox">
+            <input
+              type="checkbox"
+              .checked=${props.includeUnknown}
+              @change=${(e: Event) =>
+                props.onFiltersChange({
+                  activeMinutes: props.activeMinutes,
+                  limit: props.limit,
+                  includeGlobal: props.includeGlobal,
+                  includeUnknown: (e.target as HTMLInputElement).checked,
+                })}
+            />
+            <span>${uiLiteral("Unknown")}</span>
+          </label>
         </div>
-        <div class="sessions-runtime-card">
-          <span class="sessions-runtime-card__label">${uiLiteral("Current run")}</span>
-          <strong class="sessions-runtime-card__value"
-            >${props.currentRunId ?? uiLiteral("Idle")}</strong
-          >
-        </div>
-        <div class="sessions-runtime-card">
-          <span class="sessions-runtime-card__label">${uiLiteral("Console route")}</span>
-          <strong class="sessions-runtime-card__value">
-            ${props.currentSessionKey ? uiLiteral("Chat attached") : uiLiteral("No selection")}
-          </strong>
-        </div>
-        <div class="sessions-runtime-actions">
-          ${currentChatUrl
-            ? html`<a class="btn btn--sm btn--ghost" href=${currentChatUrl}
-                >${uiLiteral("Open chat")}</a
-              >`
-            : nothing}
-          ${props.currentRunId && props.onInspectCurrentRun
+
+        ${props.error
+          ? html`<div class="callout danger" style="margin-bottom: 12px;">${props.error}</div>`
+          : nothing}
+
+        <div class="data-table-wrapper">
+          <div class="data-table-toolbar">
+            <div class="data-table-state-strip">
+              <span class="data-table-state-pill">${uiLiteral("Rows")}: ${totalRows}</span>
+              <span class="data-table-state-pill"
+                >${uiLiteral("Page rows")}: ${paginated.length}</span
+              >
+              <span class="data-table-state-pill">${uiLiteral("Selected")}: ${selectedCount}</span>
+            </div>
+            <div class="data-table-search">
+              <input
+                type="text"
+                placeholder=${uiLiteral("Filter by key, label, kind…")}
+                .value=${props.searchQuery}
+                @input=${(e: Event) => props.onSearchChange((e.target as HTMLInputElement).value)}
+              />
+            </div>
+          </div>
+
+          ${props.selectedKeys.size > 0
             ? html`
-                <button
-                  class="btn btn--sm"
-                  type="button"
-                  @click=${() => props.onInspectCurrentRun?.()}
-                >
-                  ${uiLiteral("Inspect current run")}
-                </button>
+                <div class="data-table-bulk-bar">
+                  <span>${props.selectedKeys.size} ${uiLiteral("selected")}</span>
+                  <button class="btn btn--sm" @click=${props.onDeselectAll}>
+                    ${uiLiteral("Unselect")}
+                  </button>
+                  <button
+                    class="btn btn--sm danger"
+                    ?disabled=${props.loading}
+                    @click=${props.onDeleteSelected}
+                  >
+                    ${icons.trash} ${uiLiteral("Delete")}
+                  </button>
+                </div>
+              `
+            : nothing}
+
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="data-table-checkbox-col">
+                    ${paginated.length > 0
+                      ? html`<input
+                          type="checkbox"
+                          .checked=${paginated.length > 0 &&
+                          paginated.every((r) => props.selectedKeys.has(r.key))}
+                          .indeterminate=${paginated.some((r) => props.selectedKeys.has(r.key)) &&
+                          !paginated.every((r) => props.selectedKeys.has(r.key))}
+                          @change=${() => {
+                            const allSelected = paginated.every((r) =>
+                              props.selectedKeys.has(r.key),
+                            );
+                            if (allSelected) {
+                              props.onDeselectPage(paginated.map((r) => r.key));
+                            } else {
+                              props.onSelectPage(paginated.map((r) => r.key));
+                            }
+                          }}
+                          aria-label=${uiLiteral("Select all on page")}
+                        />`
+                      : nothing}
+                  </th>
+                  ${sortHeader("key", uiLiteral("Key"), "data-table-key-col")}
+                  <th>${uiLiteral("Label")}</th>
+                  ${sortHeader("kind", uiLiteral("Kind"))}
+                  ${sortHeader("updated", uiLiteral("Updated"))}
+                  ${sortHeader("tokens", uiLiteral("Tokens"))}
+                  <th>${uiLiteral("Thinking")}</th>
+                  <th>${uiLiteral("Fast")}</th>
+                  <th>${uiLiteral("Verbose")}</th>
+                  <th>${uiLiteral("Reasoning")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${paginated.length === 0
+                  ? html`
+                      <tr>
+                        <td
+                          colspan="10"
+                          style="text-align: center; padding: 48px 16px; color: var(--muted)"
+                        >
+                          ${uiLiteral("No sessions found.")}
+                        </td>
+                      </tr>
+                    `
+                  : paginated.map((row) =>
+                      renderRow(
+                        row,
+                        props.basePath,
+                        props.onPatch,
+                        props.selectedKeys.has(row.key),
+                        props.onToggleSelect,
+                        props.loading,
+                        props.onNavigateToChat,
+                        props.currentSessionKey,
+                        props.currentRunId,
+                        props.onInspectCurrentRun,
+                      ),
+                    )}
+              </tbody>
+            </table>
+          </div>
+
+          ${totalRows > 0
+            ? html`
+                <div class="data-table-pagination">
+                  <div class="data-table-pagination__info">
+                    ${page * props.pageSize + 1}-${Math.min((page + 1) * props.pageSize, totalRows)}
+                    of ${totalRows} row${totalRows === 1 ? "" : "s"}
+                  </div>
+                  <div class="data-table-pagination__controls">
+                    <select
+                      style="height: 32px; padding: 0 8px; font-size: 13px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--card);"
+                      .value=${String(props.pageSize)}
+                      @change=${(e: Event) =>
+                        props.onPageSizeChange(Number((e.target as HTMLSelectElement).value))}
+                    >
+                      ${PAGE_SIZES.map((s) => html`<option value=${s}>${s} per page</option>`)}
+                    </select>
+                    <button ?disabled=${page <= 0} @click=${() => props.onPageChange(page - 1)}>
+                      Previous
+                    </button>
+                    <button
+                      ?disabled=${page >= totalPages - 1}
+                      @click=${() => props.onPageChange(page + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               `
             : nothing}
         </div>
-      </div>
-
-      <div class="filters operations-inline-filters" style="margin-bottom: 12px;">
-        <label class="field-inline">
-          <span>${uiLiteral("Active")}</span>
-          <input
-            style="width: 72px;"
-            placeholder=${uiLiteral("min")}
-            .value=${props.activeMinutes}
-            @input=${(e: Event) =>
-              props.onFiltersChange({
-                activeMinutes: (e.target as HTMLInputElement).value,
-                limit: props.limit,
-                includeGlobal: props.includeGlobal,
-                includeUnknown: props.includeUnknown,
-              })}
-          />
-        </label>
-        <label class="field-inline">
-          <span>${uiLiteral("Limit")}</span>
-          <input
-            style="width: 64px;"
-            .value=${props.limit}
-            @input=${(e: Event) =>
-              props.onFiltersChange({
-                activeMinutes: props.activeMinutes,
-                limit: (e.target as HTMLInputElement).value,
-                includeGlobal: props.includeGlobal,
-                includeUnknown: props.includeUnknown,
-              })}
-          />
-        </label>
-        <label class="field-inline checkbox">
-          <input
-            type="checkbox"
-            .checked=${props.includeGlobal}
-            @change=${(e: Event) =>
-              props.onFiltersChange({
-                activeMinutes: props.activeMinutes,
-                limit: props.limit,
-                includeGlobal: (e.target as HTMLInputElement).checked,
-                includeUnknown: props.includeUnknown,
-              })}
-          />
-          <span>${uiLiteral("Global")}</span>
-        </label>
-        <label class="field-inline checkbox">
-          <input
-            type="checkbox"
-            .checked=${props.includeUnknown}
-            @change=${(e: Event) =>
-              props.onFiltersChange({
-                activeMinutes: props.activeMinutes,
-                limit: props.limit,
-                includeGlobal: props.includeGlobal,
-                includeUnknown: (e.target as HTMLInputElement).checked,
-              })}
-          />
-          <span>${uiLiteral("Unknown")}</span>
-        </label>
-      </div>
-
-      ${props.error
-        ? html`<div class="callout danger" style="margin-bottom: 12px;">${props.error}</div>`
-        : nothing}
-
-      <div class="data-table-wrapper">
-        <div class="data-table-toolbar">
-          <div class="data-table-state-strip">
-            <span class="data-table-state-pill">${uiLiteral("Rows")}: ${totalRows}</span>
-            <span class="data-table-state-pill"
-              >${uiLiteral("Page rows")}: ${paginated.length}</span
-            >
-            <span class="data-table-state-pill">${uiLiteral("Selected")}: ${selectedCount}</span>
-          </div>
-          <div class="data-table-search">
-            <input
-              type="text"
-              placeholder=${uiLiteral("Filter by key, label, kind…")}
-              .value=${props.searchQuery}
-              @input=${(e: Event) => props.onSearchChange((e.target as HTMLInputElement).value)}
-            />
-          </div>
-        </div>
-
-        ${props.selectedKeys.size > 0
-          ? html`
-              <div class="data-table-bulk-bar">
-                <span>${props.selectedKeys.size} ${uiLiteral("selected")}</span>
-                <button class="btn btn--sm" @click=${props.onDeselectAll}>
-                  ${uiLiteral("Unselect")}
-                </button>
-                <button
-                  class="btn btn--sm danger"
-                  ?disabled=${props.loading}
-                  @click=${props.onDeleteSelected}
-                >
-                  ${icons.trash} ${uiLiteral("Delete")}
-                </button>
-              </div>
-            `
-          : nothing}
-
-        <div class="data-table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th class="data-table-checkbox-col">
-                  ${paginated.length > 0
-                    ? html`<input
-                        type="checkbox"
-                        .checked=${paginated.length > 0 &&
-                        paginated.every((r) => props.selectedKeys.has(r.key))}
-                        .indeterminate=${paginated.some((r) => props.selectedKeys.has(r.key)) &&
-                        !paginated.every((r) => props.selectedKeys.has(r.key))}
-                        @change=${() => {
-                          const allSelected = paginated.every((r) => props.selectedKeys.has(r.key));
-                          if (allSelected) {
-                            props.onDeselectPage(paginated.map((r) => r.key));
-                          } else {
-                            props.onSelectPage(paginated.map((r) => r.key));
-                          }
-                        }}
-                        aria-label=${uiLiteral("Select all on page")}
-                      />`
-                    : nothing}
-                </th>
-                ${sortHeader("key", uiLiteral("Key"), "data-table-key-col")}
-                <th>${uiLiteral("Label")}</th>
-                ${sortHeader("kind", uiLiteral("Kind"))}
-                ${sortHeader("updated", uiLiteral("Updated"))}
-                ${sortHeader("tokens", uiLiteral("Tokens"))}
-                <th>${uiLiteral("Thinking")}</th>
-                <th>${uiLiteral("Fast")}</th>
-                <th>${uiLiteral("Verbose")}</th>
-                <th>${uiLiteral("Reasoning")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${paginated.length === 0
-                ? html`
-                    <tr>
-                      <td
-                        colspan="10"
-                        style="text-align: center; padding: 48px 16px; color: var(--muted)"
-                      >
-                        ${uiLiteral("No sessions found.")}
-                      </td>
-                    </tr>
-                  `
-                : paginated.map((row) =>
-                    renderRow(
-                      row,
-                      props.basePath,
-                      props.onPatch,
-                      props.selectedKeys.has(row.key),
-                      props.onToggleSelect,
-                      props.loading,
-                      props.onNavigateToChat,
-                      props.currentSessionKey,
-                      props.currentRunId,
-                      props.onInspectCurrentRun,
-                    ),
-                  )}
-            </tbody>
-          </table>
-        </div>
-
-        ${totalRows > 0
-          ? html`
-              <div class="data-table-pagination">
-                <div class="data-table-pagination__info">
-                  ${page * props.pageSize + 1}-${Math.min((page + 1) * props.pageSize, totalRows)}
-                  of ${totalRows} row${totalRows === 1 ? "" : "s"}
-                </div>
-                <div class="data-table-pagination__controls">
-                  <select
-                    style="height: 32px; padding: 0 8px; font-size: 13px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--card);"
-                    .value=${String(props.pageSize)}
-                    @change=${(e: Event) =>
-                      props.onPageSizeChange(Number((e.target as HTMLSelectElement).value))}
-                  >
-                    ${PAGE_SIZES.map((s) => html`<option value=${s}>${s} per page</option>`)}
-                  </select>
-                  <button ?disabled=${page <= 0} @click=${() => props.onPageChange(page - 1)}>
-                    Previous
-                  </button>
-                  <button
-                    ?disabled=${page >= totalPages - 1}
-                    @click=${() => props.onPageChange(page + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            `
-          : nothing}
-      </div>
+      </section>
     </section>
   `;
 }

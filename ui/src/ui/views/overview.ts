@@ -262,271 +262,275 @@ export function renderOverview(props: OverviewProps) {
   const nextSteps = buildOverviewNextSteps(props);
 
   return html`
-    ${renderOverviewHero(props, nextSteps)}
-    ${props.onboarding
-      ? renderOverviewOnboardingWizard(props)
-      : html`${renderOverviewOnboardingState(props)} ${renderOverviewSetupPath(props)}`}
+    <section class="overview-stage">
+      ${renderOverviewHero(props, nextSteps)}
+      ${props.onboarding
+        ? renderOverviewOnboardingWizard(props)
+        : html`${renderOverviewOnboardingState(props)} ${renderOverviewSetupPath(props)}`}
 
-    <section class="grid">
-      <div class="card">
-        <div class="card-title">${t("overview.access.title")}</div>
-        <div class="card-sub">${t("overview.access.subtitle")}</div>
-        <div class="ov-access-grid" style="margin-top: 16px;">
-          <label class="field ov-access-grid__full">
-            <span>${t("overview.access.wsUrl")}</span>
-            <input
-              .value=${props.settings.gatewayUrl}
-              @input=${(e: Event) => {
-                const v = (e.target as HTMLInputElement).value;
-                props.onSettingsChange({
-                  ...props.settings,
-                  gatewayUrl: v,
-                  token: v.trim() === props.settings.gatewayUrl.trim() ? props.settings.token : "",
-                });
-              }}
-              placeholder="ws://100.x.y.z:18789"
-            />
-          </label>
-          ${isTrustedProxy
-            ? ""
-            : html`
-                <label class="field">
-                  <span>${t("overview.access.token")}</span>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <input
-                      type=${props.showGatewayToken ? "text" : "password"}
-                      autocomplete="off"
-                      style="flex: 1;"
-                      .value=${props.settings.token}
-                      @input=${(e: Event) => {
-                        const v = (e.target as HTMLInputElement).value;
-                        props.onSettingsChange({ ...props.settings, token: v });
-                      }}
-                      placeholder="CRAWCLAW_GATEWAY_TOKEN"
-                    />
-                    <button
-                      type="button"
-                      class="btn btn--icon ${props.showGatewayToken ? "active" : ""}"
-                      style="width: 36px; height: 36px;"
-                      title=${props.showGatewayToken ? "Hide token" : "Show token"}
-                      aria-label="Toggle token visibility"
-                      aria-pressed=${props.showGatewayToken}
-                      @click=${props.onToggleGatewayTokenVisibility}
-                    >
-                      ${props.showGatewayToken ? icons.eye : icons.eyeOff}
-                    </button>
-                  </div>
-                </label>
-                <label class="field">
-                  <span>${t("overview.access.password")}</span>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <input
-                      type=${props.showGatewayPassword ? "text" : "password"}
-                      autocomplete="off"
-                      style="flex: 1;"
-                      .value=${props.password}
-                      @input=${(e: Event) => {
-                        const v = (e.target as HTMLInputElement).value;
-                        props.onPasswordChange(v);
-                      }}
-                      placeholder="system or shared password"
-                    />
-                    <button
-                      type="button"
-                      class="btn btn--icon ${props.showGatewayPassword ? "active" : ""}"
-                      style="width: 36px; height: 36px;"
-                      title=${props.showGatewayPassword ? "Hide password" : "Show password"}
-                      aria-label="Toggle password visibility"
-                      aria-pressed=${props.showGatewayPassword}
-                      @click=${props.onToggleGatewayPasswordVisibility}
-                    >
-                      ${props.showGatewayPassword ? icons.eye : icons.eyeOff}
-                    </button>
-                  </div>
-                </label>
-              `}
-          <label class="field">
-            <span>${t("overview.access.sessionKey")}</span>
-            <input
-              .value=${props.settings.sessionKey}
-              @input=${(e: Event) => {
-                const v = (e.target as HTMLInputElement).value;
-                props.onSessionKeyChange(v);
-              }}
-            />
-          </label>
-          <label class="field">
-            <span>${t("overview.access.language")}</span>
-            <select
-              .value=${currentLocale}
-              @change=${(e: Event) => {
-                const v = (e.target as HTMLSelectElement).value as Locale;
-                void i18n.setLocale(v);
-                props.onSettingsChange({ ...props.settings, locale: v });
-              }}
+      <section class="grid">
+        <div class="card">
+          <div class="card-title">${t("overview.access.title")}</div>
+          <div class="card-sub">${t("overview.access.subtitle")}</div>
+          <div class="ov-access-grid" style="margin-top: 16px;">
+            <label class="field ov-access-grid__full">
+              <span>${t("overview.access.wsUrl")}</span>
+              <input
+                .value=${props.settings.gatewayUrl}
+                @input=${(e: Event) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  props.onSettingsChange({
+                    ...props.settings,
+                    gatewayUrl: v,
+                    token:
+                      v.trim() === props.settings.gatewayUrl.trim() ? props.settings.token : "",
+                  });
+                }}
+                placeholder="ws://100.x.y.z:18789"
+              />
+            </label>
+            ${isTrustedProxy
+              ? ""
+              : html`
+                  <label class="field">
+                    <span>${t("overview.access.token")}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <input
+                        type=${props.showGatewayToken ? "text" : "password"}
+                        autocomplete="off"
+                        style="flex: 1;"
+                        .value=${props.settings.token}
+                        @input=${(e: Event) => {
+                          const v = (e.target as HTMLInputElement).value;
+                          props.onSettingsChange({ ...props.settings, token: v });
+                        }}
+                        placeholder="CRAWCLAW_GATEWAY_TOKEN"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn--icon ${props.showGatewayToken ? "active" : ""}"
+                        style="width: 36px; height: 36px;"
+                        title=${props.showGatewayToken ? "Hide token" : "Show token"}
+                        aria-label="Toggle token visibility"
+                        aria-pressed=${props.showGatewayToken}
+                        @click=${props.onToggleGatewayTokenVisibility}
+                      >
+                        ${props.showGatewayToken ? icons.eye : icons.eyeOff}
+                      </button>
+                    </div>
+                  </label>
+                  <label class="field">
+                    <span>${t("overview.access.password")}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <input
+                        type=${props.showGatewayPassword ? "text" : "password"}
+                        autocomplete="off"
+                        style="flex: 1;"
+                        .value=${props.password}
+                        @input=${(e: Event) => {
+                          const v = (e.target as HTMLInputElement).value;
+                          props.onPasswordChange(v);
+                        }}
+                        placeholder="system or shared password"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn--icon ${props.showGatewayPassword ? "active" : ""}"
+                        style="width: 36px; height: 36px;"
+                        title=${props.showGatewayPassword ? "Hide password" : "Show password"}
+                        aria-label="Toggle password visibility"
+                        aria-pressed=${props.showGatewayPassword}
+                        @click=${props.onToggleGatewayPasswordVisibility}
+                      >
+                        ${props.showGatewayPassword ? icons.eye : icons.eyeOff}
+                      </button>
+                    </div>
+                  </label>
+                `}
+            <label class="field">
+              <span>${t("overview.access.sessionKey")}</span>
+              <input
+                .value=${props.settings.sessionKey}
+                @input=${(e: Event) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  props.onSessionKeyChange(v);
+                }}
+              />
+            </label>
+            <label class="field">
+              <span>${t("overview.access.language")}</span>
+              <select
+                .value=${currentLocale}
+                @change=${(e: Event) => {
+                  const v = (e.target as HTMLSelectElement).value as Locale;
+                  void i18n.setLocale(v);
+                  props.onSettingsChange({ ...props.settings, locale: v });
+                }}
+              >
+                ${SUPPORTED_LOCALES.map((loc) => {
+                  const key = loc.replace(/-([a-zA-Z])/g, (_, c) => c.toUpperCase());
+                  return html`<option value=${loc} ?selected=${currentLocale === loc}>
+                    ${t(`languages.${key}`)}
+                  </option>`;
+                })}
+              </select>
+            </label>
+          </div>
+          <div class="row" style="margin-top: 14px;">
+            <button class="btn" @click=${() => props.onConnect()}>${t("common.connect")}</button>
+            <button class="btn" @click=${() => props.onRefresh()}>${t("common.refresh")}</button>
+            <span class="muted"
+              >${isTrustedProxy
+                ? t("overview.access.trustedProxy")
+                : t("overview.access.connectHint")}</span
             >
-              ${SUPPORTED_LOCALES.map((loc) => {
-                const key = loc.replace(/-([a-zA-Z])/g, (_, c) => c.toUpperCase());
-                return html`<option value=${loc} ?selected=${currentLocale === loc}>
-                  ${t(`languages.${key}`)}
-                </option>`;
-              })}
-            </select>
-          </label>
-        </div>
-        <div class="row" style="margin-top: 14px;">
-          <button class="btn" @click=${() => props.onConnect()}>${t("common.connect")}</button>
-          <button class="btn" @click=${() => props.onRefresh()}>${t("common.refresh")}</button>
-          <span class="muted"
-            >${isTrustedProxy
-              ? t("overview.access.trustedProxy")
-              : t("overview.access.connectHint")}</span
-          >
-        </div>
-        ${!props.connected
-          ? html`
-              <div class="login-gate__help" style="margin-top: 16px;">
-                <div class="login-gate__help-title">${t("overview.connection.title")}</div>
-                <ol class="login-gate__steps">
-                  <li>
-                    ${t("overview.connection.step1")}
-                    ${renderConnectCommand("crawclaw gateway run")}
-                  </li>
-                  <li>
-                    ${t("overview.connection.step2")} ${renderConnectCommand("crawclaw dashboard")}
-                  </li>
-                  <li>${t("overview.connection.step3")}</li>
-                  <li>
-                    ${t("overview.connection.step4")}<code
-                      >crawclaw doctor --generate-gateway-token</code
-                    >
-                  </li>
-                </ol>
-                <div class="login-gate__docs">
-                  ${t("overview.connection.docsHint")}
-                  <a
-                    class="session-link"
-                    href="https://docs.crawclaw.ai/web/dashboard"
-                    target="_blank"
-                    rel="noreferrer"
-                    >${t("overview.connection.docsLink")}</a
-                  >
-                </div>
-              </div>
-            `
-          : nothing}
-      </div>
-
-      <div class="card">
-        <div class="card-title">${t("overview.snapshot.title")}</div>
-        <div class="card-sub">${t("overview.snapshot.subtitle")}</div>
-        <div class="stat-grid" style="margin-top: 16px;">
-          <div class="stat">
-            <div class="stat-label">${t("overview.snapshot.status")}</div>
-            <div class="stat-value ${props.connected ? "ok" : "warn"}">
-              ${props.connected ? t("common.ok") : t("common.offline")}
-            </div>
           </div>
-          <div class="stat">
-            <div class="stat-label">${t("overview.snapshot.uptime")}</div>
-            <div class="stat-value">${uptime}</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">${t("overview.snapshot.tickInterval")}</div>
-            <div class="stat-value">${tick}</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">${t("overview.snapshot.lastChannelsRefresh")}</div>
-            <div class="stat-value">
-              ${props.lastChannelsRefresh
-                ? formatRelativeTimestamp(props.lastChannelsRefresh)
-                : t("common.na")}
-            </div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Feishu user</div>
-            <div class="stat-value">${formatFeishuCliOverviewState(props)}</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Feishu user refresh</div>
-            <div class="stat-value">
-              ${props.feishuCliLastSuccessAt
-                ? formatRelativeTimestamp(props.feishuCliLastSuccessAt)
-                : t("common.na")}
-            </div>
-          </div>
-        </div>
-        ${props.lastError
-          ? html`<div class="callout danger" style="margin-top: 14px;">
-              <div>${props.lastError}</div>
-              ${pairingHint ?? ""} ${authHint ?? ""} ${insecureContextHint ?? ""}
-            </div>`
-          : html`
-              <div class="callout" style="margin-top: 14px">
-                ${t("overview.snapshot.channelsHint")}
-              </div>
-            `}
-        ${props.feishuCliError
-          ? html`<div class="callout danger" style="margin-top: 14px;">
-              ${props.feishuCliError}
-            </div>`
-          : props.connected && props.feishuCliSupported !== null
+          ${!props.connected
             ? html`
-                <div
-                  class="callout ${props.feishuCliStatus?.authOk === false ||
-                  !props.feishuCliSupported
-                    ? "warn"
-                    : "info"}"
-                  style="margin-top: 14px"
-                >
-                  ${formatFeishuCliOverviewCallout(props) ?? nothing}
+                <div class="login-gate__help" style="margin-top: 16px;">
+                  <div class="login-gate__help-title">${t("overview.connection.title")}</div>
+                  <ol class="login-gate__steps">
+                    <li>
+                      ${t("overview.connection.step1")}
+                      ${renderConnectCommand("crawclaw gateway run")}
+                    </li>
+                    <li>
+                      ${t("overview.connection.step2")}
+                      ${renderConnectCommand("crawclaw dashboard")}
+                    </li>
+                    <li>${t("overview.connection.step3")}</li>
+                    <li>
+                      ${t("overview.connection.step4")}<code
+                        >crawclaw doctor --generate-gateway-token</code
+                      >
+                    </li>
+                  </ol>
+                  <div class="login-gate__docs">
+                    ${t("overview.connection.docsHint")}
+                    <a
+                      class="session-link"
+                      href="https://docs.crawclaw.ai/web/dashboard"
+                      target="_blank"
+                      rel="noreferrer"
+                      >${t("overview.connection.docsLink")}</a
+                    >
+                  </div>
                 </div>
               `
             : nothing}
-      </div>
-    </section>
+        </div>
 
-    <div class="ov-section-divider"></div>
-
-    ${renderOverviewCards({
-      usageResult: props.usageResult,
-      sessionsResult: props.sessionsResult,
-      skillsReport: props.skillsReport,
-      cronJobs: props.cronJobs,
-      cronStatus: props.cronStatus,
-      presenceCount: props.presenceCount,
-      onNavigate: props.onNavigate,
-    })}
-    ${renderOverviewAttention({ items: props.attentionItems })}
-    ${uiMode === "advanced"
-      ? html`
-          <div class="ov-section-divider"></div>
-          <div class="ov-bottom-grid">
-            ${renderOverviewEventLog({
-              events: props.eventLog,
-            })}
-            ${renderOverviewLogTail({
-              lines: props.overviewLogLines,
-              onRefreshLogs: props.onRefreshLogs,
-            })}
-          </div>
-        `
-      : html`
-          <details class="card overview-advanced-details">
-            <summary class="overview-advanced-details__summary">Advanced details</summary>
-            <div class="overview-advanced-details__body">
-              <section class="grid">
-                ${renderOverviewEventLog({
-                  events: props.eventLog,
-                })}
-                ${renderOverviewLogTail({
-                  lines: props.overviewLogLines,
-                  onRefreshLogs: props.onRefreshLogs,
-                })}
-              </section>
+        <div class="card">
+          <div class="card-title">${t("overview.snapshot.title")}</div>
+          <div class="card-sub">${t("overview.snapshot.subtitle")}</div>
+          <div class="stat-grid" style="margin-top: 16px;">
+            <div class="stat">
+              <div class="stat-label">${t("overview.snapshot.status")}</div>
+              <div class="stat-value ${props.connected ? "ok" : "warn"}">
+                ${props.connected ? t("common.ok") : t("common.offline")}
+              </div>
             </div>
-          </details>
-        `}
+            <div class="stat">
+              <div class="stat-label">${t("overview.snapshot.uptime")}</div>
+              <div class="stat-value">${uptime}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">${t("overview.snapshot.tickInterval")}</div>
+              <div class="stat-value">${tick}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">${t("overview.snapshot.lastChannelsRefresh")}</div>
+              <div class="stat-value">
+                ${props.lastChannelsRefresh
+                  ? formatRelativeTimestamp(props.lastChannelsRefresh)
+                  : t("common.na")}
+              </div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Feishu user</div>
+              <div class="stat-value">${formatFeishuCliOverviewState(props)}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Feishu user refresh</div>
+              <div class="stat-value">
+                ${props.feishuCliLastSuccessAt
+                  ? formatRelativeTimestamp(props.feishuCliLastSuccessAt)
+                  : t("common.na")}
+              </div>
+            </div>
+          </div>
+          ${props.lastError
+            ? html`<div class="callout danger" style="margin-top: 14px;">
+                <div>${props.lastError}</div>
+                ${pairingHint ?? ""} ${authHint ?? ""} ${insecureContextHint ?? ""}
+              </div>`
+            : html`
+                <div class="callout" style="margin-top: 14px">
+                  ${t("overview.snapshot.channelsHint")}
+                </div>
+              `}
+          ${props.feishuCliError
+            ? html`<div class="callout danger" style="margin-top: 14px;">
+                ${props.feishuCliError}
+              </div>`
+            : props.connected && props.feishuCliSupported !== null
+              ? html`
+                  <div
+                    class="callout ${props.feishuCliStatus?.authOk === false ||
+                    !props.feishuCliSupported
+                      ? "warn"
+                      : "info"}"
+                    style="margin-top: 14px"
+                  >
+                    ${formatFeishuCliOverviewCallout(props) ?? nothing}
+                  </div>
+                `
+              : nothing}
+        </div>
+      </section>
+
+      <div class="ov-section-divider"></div>
+
+      ${renderOverviewCards({
+        usageResult: props.usageResult,
+        sessionsResult: props.sessionsResult,
+        skillsReport: props.skillsReport,
+        cronJobs: props.cronJobs,
+        cronStatus: props.cronStatus,
+        presenceCount: props.presenceCount,
+        onNavigate: props.onNavigate,
+      })}
+      ${renderOverviewAttention({ items: props.attentionItems })}
+      ${uiMode === "advanced"
+        ? html`
+            <div class="ov-section-divider"></div>
+            <div class="ov-bottom-grid">
+              ${renderOverviewEventLog({
+                events: props.eventLog,
+              })}
+              ${renderOverviewLogTail({
+                lines: props.overviewLogLines,
+                onRefreshLogs: props.onRefreshLogs,
+              })}
+            </div>
+          `
+        : html`
+            <details class="card overview-advanced-details">
+              <summary class="overview-advanced-details__summary">Advanced details</summary>
+              <div class="overview-advanced-details__body">
+                <section class="grid">
+                  ${renderOverviewEventLog({
+                    events: props.eventLog,
+                  })}
+                  ${renderOverviewLogTail({
+                    lines: props.overviewLogLines,
+                    onRefreshLogs: props.onRefreshLogs,
+                  })}
+                </section>
+              </div>
+            </details>
+          `}
+    </section>
   `;
 }
 
@@ -551,8 +555,7 @@ function buildOverviewNextSteps(props: OverviewProps): OverviewStep[] {
     steps.push({
       title: t("overviewUi.next.finishFeishuLoginTitle"),
       description:
-        props.feishuCliStatus.message ??
-        t("overviewUi.next.finishFeishuLoginDescription"),
+        props.feishuCliStatus.message ?? t("overviewUi.next.finishFeishuLoginDescription"),
       actionLabel: t("overviewUi.actions.openConnectCenter"),
       action: () => props.onNavigate("channels"),
     });
@@ -611,7 +614,11 @@ function renderOverviewHero(props: OverviewProps, nextSteps: OverviewStep[]) {
           <button
             class="btn primary"
             @click=${() => (props.connected ? props.onNavigate("chat") : props.onConnect())}
-          >${props.connected ? t("overviewUi.actions.openChat") : t("overviewUi.actions.connectGateway")}</button>
+          >
+            ${props.connected
+              ? t("overviewUi.actions.openChat")
+              : t("overviewUi.actions.connectGateway")}
+          </button>
           <button class="btn" @click=${() => props.onNavigate("channels")}>
             ${t("overviewUi.actions.openConnectCenter")}
           </button>
@@ -706,7 +713,9 @@ function buildOverviewSetupPath(props: OverviewProps): SetupPathStep[] {
       title: t("overviewUi.setup.connectGatewayTitle"),
       description: t("overviewUi.setup.connectGatewayDescription"),
       status: resolveStatus(0, props.connected),
-      actionLabel: props.connected ? t("overviewUi.status.connected") : t("overviewUi.actions.connectNow"),
+      actionLabel: props.connected
+        ? t("overviewUi.status.connected")
+        : t("overviewUi.actions.connectNow"),
       action: props.connected ? () => props.onNavigate("overview") : props.onConnect,
     },
     {
@@ -841,7 +850,9 @@ function renderOverviewOnboardingState(props: OverviewProps) {
     return html`
       <section class="callout info" style="margin-bottom: 16px;">
         <div>
-          <strong>${t("overviewUi.state.completeStrong")}</strong> ${t("overviewUi.state.completeBody")}
+          <strong>${t("overviewUi.state.completeStrong")}</strong> ${t(
+            "overviewUi.state.completeBody",
+          )}
         </div>
         <div class="row" style="margin-top: 10px; gap: 8px;">
           <button class="btn btn--sm" @click=${props.onResumeOnboarding}>
@@ -858,9 +869,7 @@ function renderOverviewOnboardingState(props: OverviewProps) {
     <section class="callout" style="margin-bottom: 16px;">
       <div>
         <strong>${t("overviewUi.state.pausedStrong")}</strong>
-        ${finished
-          ? t("overviewUi.state.pausedFinished")
-          : t("overviewUi.state.pausedBody")}
+        ${finished ? t("overviewUi.state.pausedFinished") : t("overviewUi.state.pausedBody")}
       </div>
       <div class="row" style="margin-top: 10px; gap: 8px;">
         <button class="btn btn--sm" @click=${props.onResumeOnboarding}>

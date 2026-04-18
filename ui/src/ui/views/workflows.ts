@@ -800,432 +800,500 @@ export function renderWorkflows(props: WorkflowsProps) {
       : props.diffError
         ? uiLiteral("Attention")
         : uiLiteral("Idle");
+  const workflowSelection = detail?.workflow.name ?? uiLiteral("No workflow selected");
+  const runtimeState =
+    props.selectedExecution != null
+      ? `${workflowStatusLabel(props.selectedExecution.status)} · ${executorLabel(props.selectedExecution.currentExecutor)}`
+      : uiLiteral("Select a run to inspect runtime state");
 
   return html`
-    <section class="card operations-panel operations-panel--workflows">
-      <div
-        class="operations-panel__header row"
-        style="justify-content:space-between; margin-bottom: 12px;"
-      >
-        <div>
-          <div class="card-title">${uiLiteral("Workflows")}</div>
-          <div class="card-sub">
-            ${uiLiteral("Workflow registry, deployment, and execution timeline.")}
+    <section class="control-console-stage control-console-stage--workflows">
+      <section class="control-console-head">
+        <div class="control-console-head__top">
+          <div class="control-console-head__copy">
+            <div class="control-console-head__eyebrow">${uiLiteral("Control plane workflows")}</div>
+            <h1 class="control-console-head__title">${uiLiteral("Workflow control")}</h1>
+            <p class="control-console-head__summary">
+              ${uiLiteral(
+                "Operate the workflow registry, deployment rail, version diff, and live execution timeline from a single control surface.",
+              )}
+            </p>
+          </div>
+          <div class="control-console-head__actions">
+            <button
+              class="btn"
+              ?disabled=${props.loading || !props.connected}
+              @click=${props.onRefresh}
+            >
+              ${props.loading ? uiLiteral("Loading…") : uiLiteral("Refresh registry")}
+            </button>
           </div>
         </div>
-        <button
-          class="btn"
-          ?disabled=${props.loading || !props.connected}
-          @click=${props.onRefresh}
+        <div class="control-console-head__meta">
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Gateway")}</span>
+            <strong class="control-console-head__meta-value"
+              >${props.connected ? uiLiteral("Connected") : uiLiteral("Offline")}</strong
+            >
+            <span class="control-console-head__meta-note"
+              >${props.connected
+                ? uiLiteral("Workflow registry and runtime control are available.")
+                : uiLiteral("Connect to the gateway to load workflows.")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Registry selection")}</span>
+            <strong class="control-console-head__meta-value">${workflowSelection}</strong>
+            <span class="control-console-head__meta-note"
+              >${workflowRef ?? uiLiteral("Select a workflow from the registry rail.")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Runtime")}</span>
+            <strong class="control-console-head__meta-value"
+              >${selectedExecutionId ?? uiLiteral("No run selected")}</strong
+            >
+            <span class="control-console-head__meta-note">${runtimeState}</span>
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Editor rail")}</span>
+            <strong class="control-console-head__meta-value">${editorState}</strong>
+            <span class="control-console-head__meta-note"
+              >${props.editorDraft
+                ? uiLiteral("Spec draft is mounted in the control plane.")
+                : uiLiteral("Load or select a workflow to mount an editor draft.")}</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="card operations-panel operations-panel--workflows">
+        <div
+          class="operations-panel__header row"
+          style="justify-content:space-between; margin-bottom: 12px;"
         >
-          ${props.loading ? uiLiteral("Loading…") : uiLiteral("Refresh")}
-        </button>
-      </div>
-
-      ${props.error
-        ? html`<div class="callout danger" style="margin-bottom: 12px;">${props.error}</div>`
-        : nothing}
-      ${!props.connected
-        ? html`<div class="muted">${uiLiteral("Connect to the gateway to load workflows.")}</div>`
-        : nothing}
-
-      <div class="operations-panel__stats">
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Registry")}</span>
-          <strong class="operations-panel__stat-value">${props.workflows.length}</strong>
-        </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Filtered")}</span>
-          <strong class="operations-panel__stat-value">${filteredWorkflows.length}</strong>
-        </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Deployed")}</span>
-          <strong class="operations-panel__stat-value">${deployedCount}</strong>
-        </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Approval required")}</span>
-          <strong class="operations-panel__stat-value">${approvalCount}</strong>
-        </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Archived")}</span>
-          <strong class="operations-panel__stat-value">${archivedCount}</strong>
-        </div>
-        <div class="operations-panel__stat">
-          <span class="operations-panel__stat-label">${uiLiteral("Selected")}</span>
-          <strong class="operations-panel__stat-value"
-            >${detail?.workflow.name ?? uiLiteral("No workflow selected")}</strong
-          >
-        </div>
-      </div>
-
-      <div class="control-context-strip">
-        <div class="control-context-card">
-          <span class="control-context-card__label">${uiLiteral("Workflow id")}</span>
-          <strong class="control-context-card__value"
-            >${workflowRef ?? uiLiteral("No workflow selected")}</strong
-          >
-          <span class="control-context-card__meta"
-            >${detail?.workflow.scope ?? uiLiteral("Registry selection pending")}</span
-          >
-        </div>
-        <div class="control-context-card">
-          <span class="control-context-card__label">${uiLiteral("Execution")}</span>
-          <strong class="control-context-card__value"
-            >${selectedExecutionId ?? uiLiteral("No run selected")}</strong
-          >
-          <span class="control-context-card__meta">
-            ${props.selectedExecution
-              ? `${workflowStatusLabel(props.selectedExecution.status)} · ${executorLabel(props.selectedExecution.currentExecutor)}`
-              : uiLiteral("Select a run to inspect runtime state")}
-          </span>
-        </div>
-        <div class="control-context-card">
-          <span class="control-context-card__label">${uiLiteral("Editor")}</span>
-          <strong class="control-context-card__value">${editorState}</strong>
-          <span class="control-context-card__meta">
-            ${props.editorDraft
-              ? uiLiteral("Spec draft is mounted in the control plane")
-              : uiLiteral("No spec draft loaded")}
-          </span>
-        </div>
-        <div class="control-context-card">
-          <span class="control-context-card__label">${uiLiteral("Diff")}</span>
-          <strong class="control-context-card__value">${diffState}</strong>
-          <span class="control-context-card__meta">
-            ${props.diffSnapshot?.fromSpecVersion != null &&
-            props.diffSnapshot?.toSpecVersion != null
-              ? `v${props.diffSnapshot.fromSpecVersion} -> v${props.diffSnapshot.toSpecVersion}`
-              : uiLiteral("Compare two versions to populate the diff panel")}
-          </span>
-        </div>
-      </div>
-
-      <div
-        style="display:grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap:16px; align-items:start;"
-      >
-        <div style="display:grid; gap:12px;">
-          <section
-            style="display:grid; gap:12px; padding:12px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-          >
-            <div style="display:grid; gap:10px;">
-              <div class="card-title">${uiLiteral("Registry")}</div>
-              <input
-                class="input"
-                .value=${props.filterQuery}
-                placeholder=${uiLiteral("Search workflows")}
-                @input=${(event: Event) =>
-                  props.onFilterQueryChange((event.currentTarget as HTMLInputElement).value)}
-              />
-              <select
-                class="input"
-                .value=${props.filterState}
-                @change=${(event: Event) =>
-                  props.onFilterStateChange(
-                    (event.currentTarget as HTMLSelectElement)
-                      .value as WorkflowsProps["filterState"],
-                  )}
-              >
-                <option value="all">${uiLiteral("All workflows")}</option>
-                <option value="enabled">${uiLiteral("Enabled only")}</option>
-                <option value="disabled">${uiLiteral("Disabled only")}</option>
-                <option value="deployed">${uiLiteral("Deployed only")}</option>
-                <option value="approval">${uiLiteral("Approval required only")}</option>
-              </select>
+          <div>
+            <div class="card-title">${uiLiteral("Workflows")}</div>
+            <div class="card-sub">
+              ${uiLiteral("Workflow registry, deployment, and execution timeline.")}
             </div>
-            ${filteredWorkflows.length
-              ? filteredWorkflows.map((workflow) => renderWorkflowListEntry(workflow, props))
-              : html`<div class="muted">${uiLiteral("No workflows have been saved yet.")}</div>`}
-          </section>
+          </div>
+          <button
+            class="btn"
+            ?disabled=${props.loading || !props.connected}
+            @click=${props.onRefresh}
+          >
+            ${props.loading ? uiLiteral("Loading…") : uiLiteral("Refresh")}
+          </button>
         </div>
 
-        <div style="display:grid; gap:16px;">
-          <section
-            style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-          >
-            ${detail
-              ? html`
-                  <div
-                    style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;"
-                  >
-                    <div style="display:grid; gap:6px;">
-                      <div class="card-title">${detail.workflow.name}</div>
-                      <div class="card-sub">${detail.workflow.description || detail.spec.goal}</div>
-                    </div>
-                    <div class="row" style="gap:8px; flex-wrap:wrap;">
-                      <button
-                        class="btn btn--sm"
-                        ?disabled=${!workflowRef ||
-                        props.actionBusyKey ===
-                          `${isDeployed ? "republish" : "deploy"}:${workflowRef}`}
-                        @click=${() =>
-                          workflowRef &&
-                          (isDeployed
-                            ? props.onRepublish(workflowRef)
-                            : props.onDeploy(workflowRef))}
-                      >
-                        ${props.actionBusyKey ===
-                        `${isDeployed ? "republish" : "deploy"}:${workflowRef}`
-                          ? isDeployed
-                            ? uiLiteral("Republishing…")
-                            : uiLiteral("Deploying…")
-                          : isDeployed
-                            ? uiLiteral("Republish")
-                            : uiLiteral("Deploy")}
-                      </button>
-                      <button
-                        class="btn btn--sm"
-                        ?disabled=${!workflowRef ||
-                        !isDeployed ||
-                        props.actionBusyKey === `run:${workflowRef}`}
-                        @click=${() => workflowRef && props.onRun(workflowRef)}
-                      >
-                        ${props.actionBusyKey === `run:${workflowRef}`
-                          ? uiLiteral("Running…")
-                          : uiLiteral("Run")}
-                      </button>
-                      <button
-                        class="btn btn--sm"
-                        ?disabled=${!workflowRef ||
-                        props.actionBusyKey ===
-                          `${isEnabled ? "disable" : "enable"}:${workflowRef}`}
-                        @click=${() =>
-                          workflowRef && props.onToggleEnabled(workflowRef, !isEnabled)}
-                      >
-                        ${props.actionBusyKey ===
-                        `${isEnabled ? "disable" : "enable"}:${workflowRef}`
-                          ? uiLiteral("Saving…")
-                          : isEnabled
-                            ? uiLiteral("Disable")
-                            : uiLiteral("Enable")}
-                      </button>
-                      <button
-                        class="btn btn--sm"
-                        ?disabled=${!workflowRef ||
-                        props.actionBusyKey ===
-                          `${isArchived ? "unarchive" : "archive"}:${workflowRef}`}
-                        @click=${() => workflowRef && props.onSetArchived(workflowRef, !isArchived)}
-                      >
-                        ${props.actionBusyKey ===
-                        `${isArchived ? "unarchive" : "archive"}:${workflowRef}`
-                          ? uiLiteral("Saving…")
-                          : isArchived
-                            ? uiLiteral("Unarchive")
-                            : uiLiteral("Archive")}
-                      </button>
-                      <button
-                        class="btn btn--sm"
-                        ?disabled=${!workflowRef || props.actionBusyKey === `delete:${workflowRef}`}
-                        @click=${() => workflowRef && props.onDeleteWorkflow(workflowRef)}
-                      >
-                        ${props.actionBusyKey === `delete:${workflowRef}`
-                          ? uiLiteral("Deleting…")
-                          : uiLiteral("Delete")}
-                      </button>
-                    </div>
-                  </div>
+        ${props.error
+          ? html`<div class="callout danger" style="margin-bottom: 12px;">${props.error}</div>`
+          : nothing}
+        ${!props.connected
+          ? html`<div class="muted">${uiLiteral("Connect to the gateway to load workflows.")}</div>`
+          : nothing}
 
-                  <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    <span class="pill">${deploymentLabel(detail)}</span>
-                    <span class="pill"
-                      >${isEnabled ? uiLiteral("enabled") : uiLiteral("disabled")}</span
+        <div class="operations-panel__stats">
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Registry")}</span>
+            <strong class="operations-panel__stat-value">${props.workflows.length}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Filtered")}</span>
+            <strong class="operations-panel__stat-value">${filteredWorkflows.length}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Deployed")}</span>
+            <strong class="operations-panel__stat-value">${deployedCount}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Approval required")}</span>
+            <strong class="operations-panel__stat-value">${approvalCount}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Archived")}</span>
+            <strong class="operations-panel__stat-value">${archivedCount}</strong>
+          </div>
+          <div class="operations-panel__stat">
+            <span class="operations-panel__stat-label">${uiLiteral("Selected")}</span>
+            <strong class="operations-panel__stat-value">${workflowSelection}</strong>
+          </div>
+        </div>
+
+        <div class="control-context-strip">
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Workflow id")}</span>
+            <strong class="control-context-card__value"
+              >${workflowRef ?? uiLiteral("No workflow selected")}</strong
+            >
+            <span class="control-context-card__meta"
+              >${detail?.workflow.scope ?? uiLiteral("Registry selection pending")}</span
+            >
+          </div>
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Execution")}</span>
+            <strong class="control-context-card__value"
+              >${selectedExecutionId ?? uiLiteral("No run selected")}</strong
+            >
+            <span class="control-context-card__meta">${runtimeState}</span>
+          </div>
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Editor")}</span>
+            <strong class="control-context-card__value">${editorState}</strong>
+            <span class="control-context-card__meta">
+              ${props.editorDraft
+                ? uiLiteral("Spec draft is mounted in the control plane")
+                : uiLiteral("No spec draft loaded")}
+            </span>
+          </div>
+          <div class="control-context-card">
+            <span class="control-context-card__label">${uiLiteral("Diff")}</span>
+            <strong class="control-context-card__value">${diffState}</strong>
+            <span class="control-context-card__meta">
+              ${props.diffSnapshot?.fromSpecVersion != null &&
+              props.diffSnapshot?.toSpecVersion != null
+                ? `v${props.diffSnapshot.fromSpecVersion} -> v${props.diffSnapshot.toSpecVersion}`
+                : uiLiteral("Compare two versions to populate the diff panel")}
+            </span>
+          </div>
+        </div>
+
+        <div
+          style="display:grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap:16px; align-items:start;"
+        >
+          <div style="display:grid; gap:12px;">
+            <section
+              style="display:grid; gap:12px; padding:12px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
+            >
+              <div style="display:grid; gap:10px;">
+                <div class="card-title">${uiLiteral("Registry")}</div>
+                <input
+                  class="input"
+                  .value=${props.filterQuery}
+                  placeholder=${uiLiteral("Search workflows")}
+                  @input=${(event: Event) =>
+                    props.onFilterQueryChange((event.currentTarget as HTMLInputElement).value)}
+                />
+                <select
+                  class="input"
+                  .value=${props.filterState}
+                  @change=${(event: Event) =>
+                    props.onFilterStateChange(
+                      (event.currentTarget as HTMLSelectElement)
+                        .value as WorkflowsProps["filterState"],
+                    )}
+                >
+                  <option value="all">${uiLiteral("All workflows")}</option>
+                  <option value="enabled">${uiLiteral("Enabled only")}</option>
+                  <option value="disabled">${uiLiteral("Disabled only")}</option>
+                  <option value="deployed">${uiLiteral("Deployed only")}</option>
+                  <option value="approval">${uiLiteral("Approval required only")}</option>
+                </select>
+              </div>
+              ${filteredWorkflows.length
+                ? filteredWorkflows.map((workflow) => renderWorkflowListEntry(workflow, props))
+                : html`<div class="muted">${uiLiteral("No workflows have been saved yet.")}</div>`}
+            </section>
+          </div>
+
+          <div style="display:grid; gap:16px;">
+            <section
+              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
+            >
+              ${detail
+                ? html`
+                    <div
+                      style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;"
                     >
-                    ${isArchived
-                      ? html`<span class="pill danger">${uiLiteral("archived")}</span>`
-                      : nothing}
-                    <span class="pill">${detail.workflow.scope}</span>
-                    <span class="pill">spec v${detail.workflow.specVersion}</span>
-                    <span class="pill">deploy v${detail.workflow.deploymentVersion}</span>
-                    ${detail.workflow.requiresApproval
-                      ? html`<span class="pill">${uiLiteral("Approval required")}</span>`
-                      : nothing}
-                    ${detail.workflow.safeForAutoRun
-                      ? html`<span class="pill">${uiLiteral("Auto-run safe")}</span>`
-                      : nothing}
-                  </div>
-
-                  <div
-                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;"
-                  >
-                    ${metric(uiLiteral("Inputs"), detail.spec.inputs.length)}
-                    ${metric(uiLiteral("Outputs"), detail.spec.outputs.length)}
-                    ${metric(uiLiteral("Steps"), detail.spec.steps.length)}
-                    ${metric(uiLiteral("Last run"), formatWhen(detail.workflow.lastRunAt))}
-                    ${metric(uiLiteral("Spec version"), detail.workflow.specVersion)}
-                    ${metric(uiLiteral("Deployment version"), detail.workflow.deploymentVersion)}
-                  </div>
-
-                  <div style="display:grid; gap:8px;">
-                    <div class="label">${uiLiteral("Tags")}</div>
-                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                      ${detail.workflow.tags.length
-                        ? detail.workflow.tags.map((tag) => html`<span class="pill">${tag}</span>`)
-                        : html`<span class="muted">${uiLiteral("No tags")}</span>`}
+                      <div style="display:grid; gap:6px;">
+                        <div class="card-title">${detail.workflow.name}</div>
+                        <div class="card-sub">
+                          ${detail.workflow.description || detail.spec.goal}
+                        </div>
+                      </div>
+                      <div class="row" style="gap:8px; flex-wrap:wrap;">
+                        <button
+                          class="btn btn--sm"
+                          ?disabled=${!workflowRef ||
+                          props.actionBusyKey ===
+                            `${isDeployed ? "republish" : "deploy"}:${workflowRef}`}
+                          @click=${() =>
+                            workflowRef &&
+                            (isDeployed
+                              ? props.onRepublish(workflowRef)
+                              : props.onDeploy(workflowRef))}
+                        >
+                          ${props.actionBusyKey ===
+                          `${isDeployed ? "republish" : "deploy"}:${workflowRef}`
+                            ? isDeployed
+                              ? uiLiteral("Republishing…")
+                              : uiLiteral("Deploying…")
+                            : isDeployed
+                              ? uiLiteral("Republish")
+                              : uiLiteral("Deploy")}
+                        </button>
+                        <button
+                          class="btn btn--sm"
+                          ?disabled=${!workflowRef ||
+                          !isDeployed ||
+                          props.actionBusyKey === `run:${workflowRef}`}
+                          @click=${() => workflowRef && props.onRun(workflowRef)}
+                        >
+                          ${props.actionBusyKey === `run:${workflowRef}`
+                            ? uiLiteral("Running…")
+                            : uiLiteral("Run")}
+                        </button>
+                        <button
+                          class="btn btn--sm"
+                          ?disabled=${!workflowRef ||
+                          props.actionBusyKey ===
+                            `${isEnabled ? "disable" : "enable"}:${workflowRef}`}
+                          @click=${() =>
+                            workflowRef && props.onToggleEnabled(workflowRef, !isEnabled)}
+                        >
+                          ${props.actionBusyKey ===
+                          `${isEnabled ? "disable" : "enable"}:${workflowRef}`
+                            ? uiLiteral("Saving…")
+                            : isEnabled
+                              ? uiLiteral("Disable")
+                              : uiLiteral("Enable")}
+                        </button>
+                        <button
+                          class="btn btn--sm"
+                          ?disabled=${!workflowRef ||
+                          props.actionBusyKey ===
+                            `${isArchived ? "unarchive" : "archive"}:${workflowRef}`}
+                          @click=${() =>
+                            workflowRef && props.onSetArchived(workflowRef, !isArchived)}
+                        >
+                          ${props.actionBusyKey ===
+                          `${isArchived ? "unarchive" : "archive"}:${workflowRef}`
+                            ? uiLiteral("Saving…")
+                            : isArchived
+                              ? uiLiteral("Unarchive")
+                              : uiLiteral("Archive")}
+                        </button>
+                        <button
+                          class="btn btn--sm"
+                          ?disabled=${!workflowRef ||
+                          props.actionBusyKey === `delete:${workflowRef}`}
+                          @click=${() => workflowRef && props.onDeleteWorkflow(workflowRef)}
+                        >
+                          ${props.actionBusyKey === `delete:${workflowRef}`
+                            ? uiLiteral("Deleting…")
+                            : uiLiteral("Delete")}
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div style="display:grid; gap:8px;">
-                    <div class="label">${uiLiteral("Store paths")}</div>
-                    <div class="muted">${uiLiteral("Spec path")}: ${detail.specPath}</div>
-                    <div class="muted">${uiLiteral("Store root")}: ${detail.storeRoot}</div>
-                    ${detail.workflow.n8nWorkflowId
-                      ? html`<div class="muted">
-                          n8n workflow: ${detail.workflow.n8nWorkflowId}
-                        </div>`
-                      : nothing}
-                  </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                      <span class="pill">${deploymentLabel(detail)}</span>
+                      <span class="pill"
+                        >${isEnabled ? uiLiteral("enabled") : uiLiteral("disabled")}</span
+                      >
+                      ${isArchived
+                        ? html`<span class="pill danger">${uiLiteral("archived")}</span>`
+                        : nothing}
+                      <span class="pill">${detail.workflow.scope}</span>
+                      <span class="pill">spec v${detail.workflow.specVersion}</span>
+                      <span class="pill">deploy v${detail.workflow.deploymentVersion}</span>
+                      ${detail.workflow.requiresApproval
+                        ? html`<span class="pill">${uiLiteral("Approval required")}</span>`
+                        : nothing}
+                      ${detail.workflow.safeForAutoRun
+                        ? html`<span class="pill">${uiLiteral("Auto-run safe")}</span>`
+                        : nothing}
+                    </div>
 
-                  <div style="display:grid; gap:10px;">
-                    <div class="card-title">${uiLiteral("Workflow Steps")}</div>
-                    ${detail.spec.steps.length
-                      ? detail.spec.steps.map(
-                          (step, index) => html`
-                            <div
-                              style="display:grid; gap:6px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface);"
-                            >
+                    <div
+                      style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;"
+                    >
+                      ${metric(uiLiteral("Inputs"), detail.spec.inputs.length)}
+                      ${metric(uiLiteral("Outputs"), detail.spec.outputs.length)}
+                      ${metric(uiLiteral("Steps"), detail.spec.steps.length)}
+                      ${metric(uiLiteral("Last run"), formatWhen(detail.workflow.lastRunAt))}
+                      ${metric(uiLiteral("Spec version"), detail.workflow.specVersion)}
+                      ${metric(uiLiteral("Deployment version"), detail.workflow.deploymentVersion)}
+                    </div>
+
+                    <div style="display:grid; gap:8px;">
+                      <div class="label">${uiLiteral("Tags")}</div>
+                      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        ${detail.workflow.tags.length
+                          ? detail.workflow.tags.map(
+                              (tag) => html`<span class="pill">${tag}</span>`,
+                            )
+                          : html`<span class="muted">${uiLiteral("No tags")}</span>`}
+                      </div>
+                    </div>
+
+                    <div style="display:grid; gap:8px;">
+                      <div class="label">${uiLiteral("Store paths")}</div>
+                      <div class="muted">${uiLiteral("Spec path")}: ${detail.specPath}</div>
+                      <div class="muted">${uiLiteral("Store root")}: ${detail.storeRoot}</div>
+                      ${detail.workflow.n8nWorkflowId
+                        ? html`<div class="muted">
+                            n8n workflow: ${detail.workflow.n8nWorkflowId}
+                          </div>`
+                        : nothing}
+                    </div>
+
+                    <div style="display:grid; gap:10px;">
+                      <div class="card-title">${uiLiteral("Workflow Steps")}</div>
+                      ${detail.spec.steps.length
+                        ? detail.spec.steps.map(
+                            (step, index) => html`
                               <div
-                                style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;"
+                                style="display:grid; gap:6px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface);"
                               >
-                                <div style="display:grid; gap:4px;">
-                                  <strong>${index + 1}. ${step.title || step.id}</strong>
-                                  <span class="muted">${step.id}</span>
+                                <div
+                                  style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;"
+                                >
+                                  <div style="display:grid; gap:4px;">
+                                    <strong>${index + 1}. ${step.title || step.id}</strong>
+                                    <span class="muted">${step.id}</span>
+                                  </div>
+                                  <span class="pill">${stepKindLabel(step.kind)}</span>
                                 </div>
-                                <span class="pill">${stepKindLabel(step.kind)}</span>
+                                ${step.goal ? html`<div>${step.goal}</div>` : nothing}
+                                <div class="muted">
+                                  ${uiLiteral("Path")}: ${step.path || "main"} ·
+                                  ${uiLiteral("Branch group")}:
+                                  ${step.branchGroup || uiLiteral("n/a")} ·
+                                  ${uiLiteral("Activation")}:
+                                  ${uiLiteral(step.activation?.mode || "sequential")}
+                                </div>
+                                ${step.activation?.parallel &&
+                                (step.activation.parallel.failurePolicy ||
+                                  step.activation.parallel.joinPolicy ||
+                                  typeof step.activation.parallel.maxActiveBranches === "number" ||
+                                  step.activation.parallel.retryOnFail)
+                                  ? html`<div class="muted">
+                                      ${uiLiteral("Parallel policy")}:
+                                      ${step.activation.parallel.failurePolicy || uiLiteral("n/a")}
+                                      · ${uiLiteral("Join")}:
+                                      ${step.activation.parallel.joinPolicy || uiLiteral("n/a")} ·
+                                      ${uiLiteral("Max active branches")}:
+                                      ${step.activation.parallel.maxActiveBranches ??
+                                      uiLiteral("n/a")}
+                                      · ${uiLiteral("Retry")}:
+                                      ${step.activation.parallel.retryOnFail
+                                        ? `${uiLiteral("yes")} (${step.activation.parallel.maxTries ?? 3}/${step.activation.parallel.waitBetweenTriesMs ?? 1000}ms)`
+                                        : uiLiteral("no")}
+                                    </div>`
+                                  : nothing}
+                                ${step.compensation
+                                  ? html`<div class="muted">
+                                      ${uiLiteral("Compensation")}:
+                                      ${step.compensation.mode || uiLiteral("n/a")}
+                                    </div>`
+                                  : nothing}
+                                ${step.service
+                                  ? html`<div class="muted">
+                                      ${uiLiteral("Service")}: ${step.service}
+                                    </div>`
+                                  : nothing}
+                                ${step.prompt
+                                  ? html`<div class="muted">
+                                      ${uiLiteral("Prompt")}: ${step.prompt}
+                                    </div>`
+                                  : nothing}
                               </div>
-                              ${step.goal ? html`<div>${step.goal}</div>` : nothing}
-                              <div class="muted">
-                                ${uiLiteral("Path")}: ${step.path || "main"} ·
-                                ${uiLiteral("Branch group")}:
-                                ${step.branchGroup || uiLiteral("n/a")} ·
-                                ${uiLiteral("Activation")}:
-                                ${uiLiteral(step.activation?.mode || "sequential")}
-                              </div>
-                              ${step.activation?.parallel &&
-                              (step.activation.parallel.failurePolicy ||
-                                step.activation.parallel.joinPolicy ||
-                                typeof step.activation.parallel.maxActiveBranches === "number" ||
-                                step.activation.parallel.retryOnFail)
-                                ? html`<div class="muted">
-                                    ${uiLiteral("Parallel policy")}:
-                                    ${step.activation.parallel.failurePolicy || uiLiteral("n/a")} ·
-                                    ${uiLiteral("Join")}:
-                                    ${step.activation.parallel.joinPolicy || uiLiteral("n/a")} ·
-                                    ${uiLiteral("Max active branches")}:
-                                    ${step.activation.parallel.maxActiveBranches ??
-                                    uiLiteral("n/a")}
-                                    · ${uiLiteral("Retry")}:
-                                    ${step.activation.parallel.retryOnFail
-                                      ? `${uiLiteral("yes")} (${step.activation.parallel.maxTries ?? 3}/${step.activation.parallel.waitBetweenTriesMs ?? 1000}ms)`
-                                      : uiLiteral("no")}
-                                  </div>`
-                                : nothing}
-                              ${step.compensation
-                                ? html`<div class="muted">
-                                    ${uiLiteral("Compensation")}:
-                                    ${step.compensation.mode || uiLiteral("n/a")}
-                                  </div>`
-                                : nothing}
-                              ${step.service
-                                ? html`<div class="muted">
-                                    ${uiLiteral("Service")}: ${step.service}
-                                  </div>`
-                                : nothing}
-                              ${step.prompt
-                                ? html`<div class="muted">
-                                    ${uiLiteral("Prompt")}: ${step.prompt}
-                                  </div>`
-                                : nothing}
-                            </div>
-                          `,
-                        )
-                      : html`<div class="muted">${uiLiteral("No workflow steps recorded.")}</div>`}
-                  </div>
-                `
-              : html`<div class="muted">
-                  ${uiLiteral("Select a workflow to inspect deployment and runs.")}
-                </div>`}
-            ${props.detailError
-              ? html`<div class="callout danger">${props.detailError}</div>`
-              : nothing}
-          </section>
+                            `,
+                          )
+                        : html`<div class="muted">
+                            ${uiLiteral("No workflow steps recorded.")}
+                          </div>`}
+                    </div>
+                  `
+                : html`<div class="muted">
+                    ${uiLiteral("Select a workflow to inspect deployment and runs.")}
+                  </div>`}
+              ${props.detailError
+                ? html`<div class="callout danger">${props.detailError}</div>`
+                : nothing}
+            </section>
 
-          <section
-            style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-          >
-            <div
-              style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;"
+            <section
+              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
+            >
+              <div
+                style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;"
+              >
+                <div>
+                  <div class="card-title">${uiLiteral("Version Rail")}</div>
+                  <div class="card-sub">
+                    ${uiLiteral(
+                      "Track spec history and deployment lineage before you change anything.",
+                    )}
+                  </div>
+                </div>
+              </div>
+              ${renderVersionsPanel(detail, props)}
+            </section>
+
+            <section
+              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
             >
               <div>
-                <div class="card-title">${uiLiteral("Version Rail")}</div>
+                <div class="card-title">${uiLiteral("Change Summary")}</div>
+                <div class="card-sub">
+                  ${props.diffSnapshot
+                    ? html`${uiLiteral("Comparing spec")} v${props.diffSnapshot.fromSpecVersion} →
+                      v${props.diffSnapshot.toSpecVersion}`
+                    : uiLiteral(
+                        "Inspect what changed between the current spec and the selected baseline.",
+                      )}
+                </div>
+              </div>
+              ${props.diffLoading
+                ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
+                : props.diffError
+                  ? html`<div class="callout danger">${props.diffError}</div>`
+                  : renderWorkflowDiff(props.diffSnapshot?.diff ?? null)}
+            </section>
+
+            <section
+              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
+            >
+              <div>
+                <div class="card-title">${uiLiteral("Spec Workbench")}</div>
                 <div class="card-sub">
                   ${uiLiteral(
-                    "Track spec history and deployment lineage before you change anything.",
+                    "Edit the source spec here, then republish to refresh the compiled n8n workflow.",
                   )}
                 </div>
               </div>
-            </div>
-            ${renderVersionsPanel(detail, props)}
-          </section>
+              ${renderEditorPanel(detail, props)}
+            </section>
 
-          <section
-            style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-          >
-            <div>
-              <div class="card-title">${uiLiteral("Change Summary")}</div>
-              <div class="card-sub">
-                ${props.diffSnapshot
-                  ? html`${uiLiteral("Comparing spec")} v${props.diffSnapshot.fromSpecVersion} →
-                    v${props.diffSnapshot.toSpecVersion}`
-                  : uiLiteral(
-                      "Inspect what changed between the current spec and the selected baseline.",
-                    )}
-              </div>
-            </div>
-            ${props.diffLoading
-              ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
-              : props.diffError
-                ? html`<div class="callout danger">${props.diffError}</div>`
-                : renderWorkflowDiff(props.diffSnapshot?.diff ?? null)}
-          </section>
+            <section
+              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
+            >
+              <div class="card-title">${uiLiteral("Recent Runs")}</div>
+              ${props.runsError
+                ? html`<div class="callout danger">${props.runsError}</div>`
+                : nothing}
+              ${props.runsLoading
+                ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
+                : props.runs.length
+                  ? html`
+                      <div style="display:grid; gap:10px;">
+                        ${props.runs.map((execution) => renderExecutionRow(execution, props))}
+                      </div>
+                    `
+                  : html`<div class="muted">${uiLiteral("No executions recorded yet.")}</div>`}
+            </section>
 
-          <section
-            style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-          >
-            <div>
-              <div class="card-title">${uiLiteral("Spec Workbench")}</div>
-              <div class="card-sub">
-                ${uiLiteral(
-                  "Edit the source spec here, then republish to refresh the compiled n8n workflow.",
-                )}
-              </div>
-            </div>
-            ${renderEditorPanel(detail, props)}
-          </section>
-
-          <section
-            style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-          >
-            <div class="card-title">${uiLiteral("Recent Runs")}</div>
-            ${props.runsError
-              ? html`<div class="callout danger">${props.runsError}</div>`
-              : nothing}
-            ${props.runsLoading
-              ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
-              : props.runs.length
-                ? html`
-                    <div style="display:grid; gap:10px;">
-                      ${props.runs.map((execution) => renderExecutionRow(execution, props))}
-                    </div>
-                  `
-                : html`<div class="muted">${uiLiteral("No executions recorded yet.")}</div>`}
-          </section>
-
-          <section
-            style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-          >
-            ${renderExecutionDetail(props.selectedExecution, props)}
-          </section>
+            <section
+              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
+            >
+              ${renderExecutionDetail(props.selectedExecution, props)}
+            </section>
+          </div>
         </div>
-      </div>
+      </section>
     </section>
   `;
 }

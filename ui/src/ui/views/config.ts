@@ -794,6 +794,35 @@ export function renderConfig(props: ConfigProps) {
   return html`
     <div class="config-layout">
       <main class="config-main">
+        <section class="config-shell-head">
+          <div class="config-shell-head__main">
+            <div class="config-shell-head__eyebrow">Control plane config</div>
+            <h1 class="config-shell-head__title">Runtime configuration</h1>
+            <p class="config-shell-head__summary">
+              Edit the gateway configuration through schema-driven sections or the raw JSON
+              snapshot, then apply the delta to the running instance.
+            </p>
+          </div>
+          <div class="config-shell-head__meta">
+            <div class="config-shell-head__meta-card">
+              <span class="config-shell-head__meta-label">Gateway</span>
+              <strong class="config-shell-head__meta-value mono"
+                >${props.gatewayUrl || "not set"}</strong
+              >
+            </div>
+            <div class="config-shell-head__meta-card">
+              <span class="config-shell-head__meta-label">Assistant</span>
+              <strong class="config-shell-head__meta-value"
+                >${props.assistantName || "Unnamed"}</strong
+              >
+            </div>
+            <div class="config-shell-head__meta-card">
+              <span class="config-shell-head__meta-label">Runtime</span>
+              <strong class="config-shell-head__meta-value">${runtimeAction}</strong>
+            </div>
+          </div>
+        </section>
+
         <div class="config-actions">
           <div class="config-actions__left">
             ${showModeToggle

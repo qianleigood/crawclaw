@@ -102,143 +102,211 @@ export function renderChannels(props: ChannelsProps) {
     : props.configFormDirty
       ? uiLiteral("Apply required")
       : uiLiteral("In sync");
+  const loginSurface =
+    props.feishuCliSupported === false
+      ? uiLiteral("WhatsApp only")
+      : props.feishuCliSupported
+        ? uiLiteral("WhatsApp + Feishu CLI")
+        : uiLiteral("Capability probe");
+  const snapshotState = props.loading
+    ? uiLiteral("Refreshing")
+    : props.lastSuccessAt
+      ? uiLiteral("Live snapshot")
+      : uiLiteral("No snapshot yet");
 
   return html`
-    <section class="connect-center card">
-      <div class="connect-center__hero">
-        <div class="connect-center__copy">
-          <div class="connect-center__eyebrow">${t("channelsPage.eyebrow")}</div>
-          <h1 class="connect-center__title">${t("channelsPage.title")}</h1>
-          <p class="connect-center__summary">${t("channelsPage.summary")}</p>
+    <section class="control-console-stage control-console-stage--channels">
+      <section class="control-console-head">
+        <div class="control-console-head__top">
+          <div class="control-console-head__copy">
+            <div class="control-console-head__eyebrow">${uiLiteral("Control plane channels")}</div>
+            <h1 class="control-console-head__title">${uiLiteral("Channel operations")}</h1>
+            <p class="control-console-head__summary">
+              ${uiLiteral(
+                "Manage live channel surfaces, login capability, routing health, and config-backed delivery state from one operator console.",
+              )}
+            </p>
+          </div>
+          <div class="control-console-head__actions">
+            <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
+              ${props.loading ? uiLiteral("Refreshing…") : uiLiteral("Refresh snapshot")}
+            </button>
+          </div>
         </div>
-        <div class="connect-center__meta">
-          <div>
-            <span class="label">${t("channelsPage.meta.gateway")}</span>
-            <strong>${props.connected ? t("channelsPage.connected") : t("common.offline")}</strong>
+        <div class="control-console-head__meta">
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Gateway")}</span>
+            <strong class="control-console-head__meta-value"
+              >${props.connected ? t("channelsPage.connected") : t("common.offline")}</strong
+            >
+            <span class="control-console-head__meta-note"
+              >${props.gatewayUrl || t("common.na")}</span
+            >
           </div>
-          <div>
-            <span class="label">${t("channelsPage.meta.address")}</span>
-            <strong>${props.gatewayUrl || t("common.na")}</strong>
-          </div>
-          <div>
-            <span class="label">${t("channelsPage.meta.lastRefresh")}</span>
-            <strong
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Snapshot")}</span>
+            <strong class="control-console-head__meta-value">${snapshotState}</strong>
+            <span class="control-console-head__meta-note"
               >${props.lastSuccessAt
                 ? formatRelativeTimestamp(props.lastSuccessAt)
-                : t("common.na")}</strong
+                : uiLiteral("Waiting for the first probe")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Login surface")}</span>
+            <strong class="control-console-head__meta-value">${loginSurface}</strong>
+            <span class="control-console-head__meta-note"
+              >${uiLiteral("Capability-gated login flows stay inside this panel.")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Config write path")}</span>
+            <strong class="control-console-head__meta-value">${configState}</strong>
+            <span class="control-console-head__meta-note"
+              >${uiLiteral("Patch for form edits, apply to sync runtime.")}</span
             >
           </div>
         </div>
-      </div>
-      <div class="connect-center__summary-strip">
-        <div class="connect-center__summary-card">
-          <span class="label">Enabled surfaces</span>
-          <strong>${enabledChannels}</strong>
-        </div>
-        <div class="connect-center__summary-card">
-          <span class="label">Configured</span>
-          <strong>${configuredChannels}</strong>
-        </div>
-        <div class="connect-center__summary-card">
-          <span class="label">Live now</span>
-          <strong>${activeChannels}</strong>
-        </div>
-        <div class="connect-center__summary-card">
-          <span class="label">Accounts</span>
-          <strong>${accountCount}</strong>
-        </div>
-      </div>
-      <div class="connect-center__ops-strip">
-        <div class="connect-center__ops-card">
-          <span class="label">${uiLiteral("Gateway probe")}</span>
-          <strong>${gatewayProbeState}</strong>
-          <span
-            >${props.lastSuccessAt
-              ? formatRelativeTimestamp(props.lastSuccessAt)
-              : uiLiteral("No snapshot yet")}</span
-          >
-        </div>
-        <div class="connect-center__ops-card">
-          <span class="label">${uiLiteral("WhatsApp login")}</span>
-          <strong>${whatsappFlowState}</strong>
-          <span>${props.whatsappMessage ?? uiLiteral("No active login flow")}</span>
-        </div>
-        <div class="connect-center__ops-card">
-          <span class="label">${uiLiteral("Feishu CLI")}</span>
-          <strong>${feishuFlowState}</strong>
-          <span
-            >${props.feishuCliError ??
-            props.feishuCliStatus?.message ??
-            uiLiteral("Capability summary only")}</span
-          >
-        </div>
-        <div class="connect-center__ops-card">
-          <span class="label">${uiLiteral("Config state")}</span>
-          <strong>${configState}</strong>
-          <span>
-            ${props.configSchemaLoading
-              ? uiLiteral("Loading schema")
-              : props.configFormDirty
-                ? uiLiteral("Unsaved channel edits pending")
-                : uiLiteral("Channel config is aligned with runtime")}
-          </span>
-        </div>
-      </div>
-      ${props.lastError
-        ? html`<div class="callout danger" style="margin-top: 14px;">${props.lastError}</div>`
-        : nothing}
-      ${props.onboarding ? renderConnectCenterGuide(props) : renderConnectCenterGuideState(props)}
-      <div class="connect-center__identity-grid">
-        <div class="card">
-          <div class="card-title">Gateway connection</div>
-          <div class="card-sub">
-            This is the live control-plane connection used by the dashboard.
+      </section>
+
+      <section class="connect-center card">
+        <div class="connect-center__hero">
+          <div class="connect-center__copy">
+            <div class="connect-center__eyebrow">${t("channelsPage.eyebrow")}</div>
+            <h1 class="connect-center__title">${t("channelsPage.title")}</h1>
+            <p class="connect-center__summary">${t("channelsPage.summary")}</p>
           </div>
-          <div class="status-list" style="margin-top: 16px;">
+          <div class="connect-center__meta">
             <div>
-              <span class="label">Status</span>
-              <span>${props.connected ? "Connected" : "Offline"}</span>
+              <span class="label">${t("channelsPage.meta.gateway")}</span>
+              <strong
+                >${props.connected ? t("channelsPage.connected") : t("common.offline")}</strong
+              >
             </div>
             <div>
-              <span class="label">Address</span>
-              <span class="mono">${props.gatewayUrl || "n/a"}</span>
+              <span class="label">${t("channelsPage.meta.address")}</span>
+              <strong>${props.gatewayUrl || t("common.na")}</strong>
             </div>
             <div>
-              <span class="label">Channel probe</span>
-              <span>${props.lastSuccessAt ? "Recent" : "Not refreshed yet"}</span>
+              <span class="label">${t("channelsPage.meta.lastRefresh")}</span>
+              <strong
+                >${props.lastSuccessAt
+                  ? formatRelativeTimestamp(props.lastSuccessAt)
+                  : t("common.na")}</strong
+              >
             </div>
           </div>
         </div>
-        ${renderFeishuCliCard(props)}
-      </div>
-    </section>
+        <div class="connect-center__summary-strip">
+          <div class="connect-center__summary-card">
+            <span class="label">Enabled surfaces</span>
+            <strong>${enabledChannels}</strong>
+          </div>
+          <div class="connect-center__summary-card">
+            <span class="label">Configured</span>
+            <strong>${configuredChannels}</strong>
+          </div>
+          <div class="connect-center__summary-card">
+            <span class="label">Live now</span>
+            <strong>${activeChannels}</strong>
+          </div>
+          <div class="connect-center__summary-card">
+            <span class="label">Accounts</span>
+            <strong>${accountCount}</strong>
+          </div>
+        </div>
+        <div class="connect-center__ops-strip">
+          <div class="connect-center__ops-card">
+            <span class="label">${uiLiteral("Gateway probe")}</span>
+            <strong>${gatewayProbeState}</strong>
+            <span
+              >${props.lastSuccessAt
+                ? formatRelativeTimestamp(props.lastSuccessAt)
+                : uiLiteral("No snapshot yet")}</span
+            >
+          </div>
+          <div class="connect-center__ops-card">
+            <span class="label">${uiLiteral("WhatsApp login")}</span>
+            <strong>${whatsappFlowState}</strong>
+            <span>${props.whatsappMessage ?? uiLiteral("No active login flow")}</span>
+          </div>
+          <div class="connect-center__ops-card">
+            <span class="label">${uiLiteral("Feishu CLI")}</span>
+            <strong>${feishuFlowState}</strong>
+            <span
+              >${props.feishuCliError ??
+              props.feishuCliStatus?.message ??
+              uiLiteral("Capability summary only")}</span
+            >
+          </div>
+          <div class="connect-center__ops-card">
+            <span class="label">${uiLiteral("Config state")}</span>
+            <strong>${configState}</strong>
+            <span>
+              ${props.configSchemaLoading
+                ? uiLiteral("Loading schema")
+                : props.configFormDirty
+                  ? uiLiteral("Unsaved channel edits pending")
+                  : uiLiteral("Channel config is aligned with runtime")}
+            </span>
+          </div>
+        </div>
+        ${props.lastError
+          ? html`<div class="callout danger" style="margin-top: 14px;">${props.lastError}</div>`
+          : nothing}
+        ${props.onboarding ? renderConnectCenterGuide(props) : renderConnectCenterGuideState(props)}
+        <div class="connect-center__identity-grid">
+          <div class="card">
+            <div class="card-title">Gateway connection</div>
+            <div class="card-sub">
+              This is the live control-plane connection used by the dashboard.
+            </div>
+            <div class="status-list" style="margin-top: 16px;">
+              <div>
+                <span class="label">Status</span>
+                <span>${props.connected ? "Connected" : "Offline"}</span>
+              </div>
+              <div>
+                <span class="label">Address</span>
+                <span class="mono">${props.gatewayUrl || "n/a"}</span>
+              </div>
+              <div>
+                <span class="label">Channel probe</span>
+                <span>${props.lastSuccessAt ? "Recent" : "Not refreshed yet"}</span>
+              </div>
+            </div>
+          </div>
+          ${renderFeishuCliCard(props)}
+        </div>
+      </section>
 
-    <section class="grid grid-cols-2">
-      ${orderedChannels.map((channel) =>
-        renderChannel(channel.key, props, {
-          whatsapp,
-          telegram,
-          discord,
-          googlechat,
-          slack,
-          signal,
-          imessage,
-          nostr,
-          channelAccounts: props.snapshot?.channelAccounts ?? null,
-        }),
-      )}
-    </section>
+      <section class="grid grid-cols-2">
+        ${orderedChannels.map((channel) =>
+          renderChannel(channel.key, props, {
+            whatsapp,
+            telegram,
+            discord,
+            googlechat,
+            slack,
+            signal,
+            imessage,
+            nostr,
+            channelAccounts: props.snapshot?.channelAccounts ?? null,
+          }),
+        )}
+      </section>
 
-    ${uiMode === "advanced"
-      ? renderChannelHealthSnapshot(props)
-      : html`
-          <details class="card connect-center__details">
-            <summary class="connect-center__details-summary">
-              ${t("channelsPage.advancedSnapshot")}
-            </summary>
-            <div class="connect-center__details-body">${renderChannelHealthSnapshot(props)}</div>
-          </details>
-        `}
+      ${uiMode === "advanced"
+        ? renderChannelHealthSnapshot(props)
+        : html`
+            <details class="card connect-center__details">
+              <summary class="connect-center__details-summary">
+                ${t("channelsPage.advancedSnapshot")}
+              </summary>
+              <div class="connect-center__details-body">${renderChannelHealthSnapshot(props)}</div>
+            </details>
+          `}
+    </section>
   `;
 }
 

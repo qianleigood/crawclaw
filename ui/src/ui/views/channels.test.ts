@@ -309,5 +309,7 @@ describe("channel display selectors", () => {
     expect(container.textContent).toContain("Waiting for QR scan");
     expect(container.textContent).toContain("Config state");
     expect(container.textContent).toContain("Apply required");
+    expect(container.textContent).toContain("Control plane channels");
+    expect(container.textContent).toContain("Channel operations");
   });
 });

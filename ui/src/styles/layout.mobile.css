@@ -109,6 +109,10 @@
     padding: 0 4px 16px;
   }
 
+  .sidebar-shell__meta {
+    display: none;
+  }
+
   .sidebar-shell__header .nav-collapse-toggle {
     display: none;
   }
@@ -239,6 +243,10 @@
     gap: 10px;
   }
 
+  .topnav-shell__context {
+    margin-bottom: 0;
+  }
+
   .topnav-shell__actions {
     min-width: 0;
     flex: 1 1 auto;
@@ -326,6 +334,23 @@
   }
 
   /* Content */
+  .content {
+    padding: 12px 12px 18px;
+  }
+
+  .content-shell {
+    gap: 12px;
+  }
+
+  .content-stage {
+    padding: 12px;
+    border-radius: calc(var(--radius-xl) + 2px);
+  }
+
+  .content-stage--chat {
+    padding: 0;
+  }
+
   .content-header {
     display: none;
   }

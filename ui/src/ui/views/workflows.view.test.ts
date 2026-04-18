@@ -133,6 +133,8 @@ describe("renderWorkflows", () => {
     render(renderWorkflows(createProps()), container);
     await Promise.resolve();
 
+    expect(container.textContent).toContain("Control plane workflows");
+    expect(container.textContent).toContain("Workflow control");
     expect(container.textContent).toContain("Workflow id");
     expect(container.textContent).toContain("wf-main");
     expect(container.textContent).toContain("Execution");

@@ -18,6 +18,79 @@
   box-shadow: none !important;
 }
 
+.chat-console__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 2px 0 14px;
+}
+
+.chat-console__header-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chat-console__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.chat-console__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chat-console__title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  color: var(--text-strong);
+}
+
+.chat-console__session {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  font-size: 11px;
+  color: var(--text);
+}
+
+.chat-console__summary {
+  margin: 0;
+  max-width: 72ch;
+  color: color-mix(in srgb, var(--muted) 78%, var(--text) 22%);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.chat-console__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chat-console__body {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
 /* Chat header - fixed at top, transparent */
 .chat-header {
   display: flex;
@@ -229,6 +302,30 @@
   padding: 12px 4px 4px;
   background: linear-gradient(to bottom, transparent, var(--bg) 20%);
   z-index: 10;
+}
+
+@media (max-width: 900px) {
+  .chat-console__header {
+    flex-direction: column;
+  }
+
+  .chat-console__header-actions {
+    width: 100%;
+  }
+
+  .chat-ops-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .chat-console__title {
+    font-size: 20px;
+  }
+
+  .chat-ops-strip {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 /* Image attachments preview */

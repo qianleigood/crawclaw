@@ -38,6 +38,8 @@ describe("renderDebug", () => {
     render(renderDebug(createProps()), container);
     await Promise.resolve();
 
+    expect(container.textContent).toContain("Control plane debug");
+    expect(container.textContent).toContain("Debug console");
     expect(container.textContent).toContain("Preferred names");
     expect(container.textContent).toContain("Legacy aliases");
     expect(container.textContent).toContain("Selected method");

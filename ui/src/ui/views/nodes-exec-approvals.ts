@@ -199,69 +199,138 @@ export function renderExecApprovals(state: ExecApprovalsState) {
       : (state.agents.find((agent) => agent.id === state.selectedScope)?.name?.trim() ??
         state.selectedScope);
   return html`
-    <section class="card operations-panel operations-panel--approvals">
-      <div class="row" style="justify-content: space-between; align-items: center;">
-        <div>
-          <div class="card-title">${uiLiteral("Exec approvals")}</div>
-          <div class="card-sub">
-            ${uiLiteral("Allowlist and approval policy for")}
-            <span class="mono">exec host=gateway/node</span>.
+    <section class="control-console-stage control-console-stage--approvals">
+      <section class="control-console-head">
+        <div class="control-console-head__top">
+          <div class="control-console-head__copy">
+            <div class="control-console-head__eyebrow">${uiLiteral("Control plane approvals")}</div>
+            <h1 class="control-console-head__title">${uiLiteral("Exec approval policy")}</h1>
+            <p class="control-console-head__summary">
+              ${uiLiteral(
+                "Edit allowlists and prompt policy for gateway or node execution hosts without leaving the runtime console.",
+              )}
+            </p>
+          </div>
+          <div class="control-console-head__actions">
+            <button
+              class="btn"
+              ?disabled=${state.disabled || !state.dirty || !targetReady}
+              @click=${state.onSave}
+            >
+              ${state.saving ? uiLiteral("Saving…") : uiLiteral("Save policy")}
+            </button>
           </div>
         </div>
-        <button
-          class="btn"
-          ?disabled=${state.disabled || !state.dirty || !targetReady}
-          @click=${state.onSave}
-        >
-          ${state.saving ? uiLiteral("Saving…") : uiLiteral("Save")}
-        </button>
-      </div>
+        <div class="control-console-head__meta">
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Target surface")}</span>
+            <strong class="control-console-head__meta-value"
+              >${state.target === "gateway"
+                ? uiLiteral("Gateway")
+                : (state.targetNodeId ?? uiLiteral("Select node"))}</strong
+            >
+            <span class="control-console-head__meta-note"
+              >${state.target === "gateway"
+                ? uiLiteral("Local gateway execution host")
+                : uiLiteral("Capability-gated node approval surface")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Scope")}</span>
+            <strong class="control-console-head__meta-value">${selectedAgentLabel}</strong>
+            <span class="control-console-head__meta-note"
+              >${state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE
+                ? uiLiteral("Editing default policy")
+                : uiLiteral("Editing agent-specific override")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Security baseline")}</span>
+            <strong class="control-console-head__meta-value"
+              >${uiLiteral(state.defaults.security)}</strong
+            >
+            <span class="control-console-head__meta-note"
+              >${uiLiteral(state.defaults.ask)} · ${uiLiteral(state.defaults.askFallback)}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Runtime state")}</span>
+            <strong class="control-console-head__meta-value"
+              >${state.dirty ? uiLiteral("Apply required") : uiLiteral("Runtime in sync")}</strong
+            >
+            <span class="control-console-head__meta-note"
+              >${ready
+                ? uiLiteral("Policy file is loaded into the editor rail.")
+                : uiLiteral("Load the approvals file before editing allowlists.")}</span
+            >
+          </div>
+        </div>
+      </section>
 
-      <div class="approvals-policy-strip">
-        <div class="approvals-policy-card">
-          <span class="approvals-policy-card__label">${uiLiteral("Target")}</span>
-          <strong class="approvals-policy-card__value"
-            >${state.target === "gateway"
-              ? uiLiteral("Gateway")
-              : (state.targetNodeId ?? uiLiteral("Select node"))}</strong
+      <section class="card operations-panel operations-panel--approvals">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <div>
+            <div class="card-title">${uiLiteral("Exec approvals")}</div>
+            <div class="card-sub">
+              ${uiLiteral("Allowlist and approval policy for")}
+              <span class="mono">exec host=gateway/node</span>.
+            </div>
+          </div>
+          <button
+            class="btn"
+            ?disabled=${state.disabled || !state.dirty || !targetReady}
+            @click=${state.onSave}
           >
+            ${state.saving ? uiLiteral("Saving…") : uiLiteral("Save")}
+          </button>
         </div>
-        <div class="approvals-policy-card">
-          <span class="approvals-policy-card__label">${uiLiteral("Scope")}</span>
-          <strong class="approvals-policy-card__value">${selectedAgentLabel}</strong>
-        </div>
-        <div class="approvals-policy-card">
-          <span class="approvals-policy-card__label">${uiLiteral("Security")}</span>
-          <strong class="approvals-policy-card__value"
-            >${uiLiteral(state.defaults.security)}</strong
-          >
-        </div>
-        <div class="approvals-policy-card">
-          <span class="approvals-policy-card__label">${uiLiteral("Ask")}</span>
-          <strong class="approvals-policy-card__value">${uiLiteral(state.defaults.ask)}</strong>
-        </div>
-        <div class="approvals-policy-card approvals-policy-card--status">
-          <span class="approvals-policy-card__label">${uiLiteral("State")}</span>
-          <strong class="approvals-policy-card__value"
-            >${state.dirty ? uiLiteral("Apply required") : uiLiteral("Runtime in sync")}</strong
-          >
-        </div>
-      </div>
 
-      ${renderExecApprovalsTarget(state)}
-      ${!ready
-        ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
-            <div class="muted">${uiLiteral("Load exec approvals to edit allowlists.")}</div>
-            <button class="btn" ?disabled=${state.loading || !targetReady} @click=${state.onLoad}>
-              ${state.loading ? uiLiteral("Loading…") : uiLiteral("Load approvals")}
-            </button>
-          </div>`
-        : html`
-            ${renderExecApprovalsTabs(state)} ${renderExecApprovalsPolicy(state)}
-            ${state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE
-              ? nothing
-              : renderExecApprovalsAllowlist(state)}
-          `}
+        <div class="approvals-policy-strip">
+          <div class="approvals-policy-card">
+            <span class="approvals-policy-card__label">${uiLiteral("Target")}</span>
+            <strong class="approvals-policy-card__value"
+              >${state.target === "gateway"
+                ? uiLiteral("Gateway")
+                : (state.targetNodeId ?? uiLiteral("Select node"))}</strong
+            >
+          </div>
+          <div class="approvals-policy-card">
+            <span class="approvals-policy-card__label">${uiLiteral("Scope")}</span>
+            <strong class="approvals-policy-card__value">${selectedAgentLabel}</strong>
+          </div>
+          <div class="approvals-policy-card">
+            <span class="approvals-policy-card__label">${uiLiteral("Security")}</span>
+            <strong class="approvals-policy-card__value"
+              >${uiLiteral(state.defaults.security)}</strong
+            >
+          </div>
+          <div class="approvals-policy-card">
+            <span class="approvals-policy-card__label">${uiLiteral("Ask")}</span>
+            <strong class="approvals-policy-card__value">${uiLiteral(state.defaults.ask)}</strong>
+          </div>
+          <div class="approvals-policy-card approvals-policy-card--status">
+            <span class="approvals-policy-card__label">${uiLiteral("State")}</span>
+            <strong class="approvals-policy-card__value"
+              >${state.dirty ? uiLiteral("Apply required") : uiLiteral("Runtime in sync")}</strong
+            >
+          </div>
+        </div>
+
+        ${renderExecApprovalsTarget(state)}
+        ${!ready
+          ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
+              <div class="muted">${uiLiteral("Load exec approvals to edit allowlists.")}</div>
+              <button class="btn" ?disabled=${state.loading || !targetReady} @click=${state.onLoad}>
+                ${state.loading ? uiLiteral("Loading…") : uiLiteral("Load approvals")}
+              </button>
+            </div>`
+          : html`
+              ${renderExecApprovalsTabs(state)} ${renderExecApprovalsPolicy(state)}
+              ${state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE
+                ? nothing
+                : renderExecApprovalsAllowlist(state)}
+            `}
+      </section>
     </section>
   `;
 }

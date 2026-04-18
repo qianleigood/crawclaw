@@ -51,6 +51,7 @@ title: 概念总览
 - [控制面 API PR 计划](/concepts/project-control-plane-api-pr-plan)
 - [控制面 API Inventory](/concepts/project-control-plane-api-inventory)
 - [Control UI 剩余重构 PR 计划](/concepts/project-control-ui-remaining-pr-plan)
+- [Control UI Stitch 重写 PR 计划](/concepts/project-control-ui-stitch-pr-plan)
 - [项目实施路线图](/concepts/project-implementation-roadmap)
 - [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
 - [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
