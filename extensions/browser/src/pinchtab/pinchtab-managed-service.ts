@@ -1,7 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { resolveBrowserControlAuth } from "../browser/control-auth.js";
 import { loadConfig, type CrawClawConfig } from "../config/config.js";
 import { createPinchTabClient } from "./pinchtab-client.js";
 
@@ -26,6 +27,7 @@ type ManagedPinchTabServiceState = {
 type PinchTabManagedServiceDeps = {
   spawnImpl: SpawnLike;
   existsSyncImpl: typeof existsSync;
+  readFileSyncImpl: typeof readFileSync;
   loadConfigImpl: typeof loadConfig;
   resolveBrowserRuntimeBinImpl: typeof resolveManagedBrowserRuntimeBin;
   createClientImpl: typeof createPinchTabClient;
@@ -42,6 +44,7 @@ function resolveManagedBrowserRuntimeBin(env: NodeJS.ProcessEnv = process.env): 
 const pinchTabManagedServiceDeps: PinchTabManagedServiceDeps = {
   spawnImpl: spawn,
   existsSyncImpl: existsSync,
+  readFileSyncImpl: readFileSync,
   loadConfigImpl: loadConfig,
   resolveBrowserRuntimeBinImpl: resolveManagedBrowserRuntimeBin,
   createClientImpl: createPinchTabClient,
@@ -54,6 +57,7 @@ export const __testing = {
   setDepsForTest(overrides: Partial<PinchTabManagedServiceDeps> | null) {
     pinchTabManagedServiceDeps.spawnImpl = overrides?.spawnImpl ?? spawn;
     pinchTabManagedServiceDeps.existsSyncImpl = overrides?.existsSyncImpl ?? existsSync;
+    pinchTabManagedServiceDeps.readFileSyncImpl = overrides?.readFileSyncImpl ?? readFileSync;
     pinchTabManagedServiceDeps.loadConfigImpl = overrides?.loadConfigImpl ?? loadConfig;
     pinchTabManagedServiceDeps.resolveBrowserRuntimeBinImpl =
       overrides?.resolveBrowserRuntimeBinImpl ?? resolveManagedBrowserRuntimeBin;
@@ -77,6 +81,25 @@ function resolveConfigInput(config?: CrawClawConfig): CrawClawConfig {
   return config ?? pinchTabManagedServiceDeps.loadConfigImpl();
 }
 
+function resolveManagedPinchTabServerToken(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const explicitConfigPath = env.PINCHTAB_CONFIG?.trim();
+  const configPath = explicitConfigPath || path.join(os.homedir(), ".pinchtab", "config.json");
+  try {
+    const raw = pinchTabManagedServiceDeps.readFileSyncImpl(configPath, "utf8");
+    const parsed = JSON.parse(raw) as {
+      server?: {
+        token?: string;
+      };
+    };
+    const token = parsed.server?.token;
+    return typeof token === "string" && token.trim() ? token.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function resolvePinchTabConnectionConfig(
   config?: CrawClawConfig,
 ): ResolvedPinchTabConnectionConfig {
@@ -85,10 +108,13 @@ export function resolvePinchTabConnectionConfig(
   const rawBaseUrl =
     typeof browser.pinchtab?.baseUrl === "string" ? browser.pinchtab.baseUrl.trim() : "";
   const explicitBaseUrl = rawBaseUrl ? rawBaseUrl.replace(/\/$/, "") : null;
-  const token =
+  const explicitToken =
     typeof browser.pinchtab?.token === "string" && browser.pinchtab.token.trim()
       ? browser.pinchtab.token.trim()
       : undefined;
+  const managedLocalToken =
+    explicitBaseUrl === null ? resolveManagedPinchTabServerToken() : undefined;
+  const token = explicitToken ?? managedLocalToken ?? resolveBrowserControlAuth(resolved).token;
   const enabled =
     browser.enabled !== false &&
     (browser.provider === undefined || browser.provider === "pinchtab");
@@ -216,7 +242,12 @@ export async function ensureManagedPinchTabService(params?: {
         ...process.env,
         BRIDGE_BIND: endpoint.hostname,
         BRIDGE_PORT: endpoint.port || (endpoint.protocol === "https:" ? "443" : "80"),
-        ...(resolved.token ? { BRIDGE_TOKEN: resolved.token } : {}),
+        ...(resolved.token
+          ? {
+              BRIDGE_TOKEN: resolved.token,
+              PINCHTAB_TOKEN: resolved.token,
+            }
+          : {}),
       },
     });
     serviceState = {

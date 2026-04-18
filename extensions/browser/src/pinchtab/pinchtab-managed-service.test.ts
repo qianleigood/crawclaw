@@ -40,6 +40,50 @@ describe("pinchtab-managed-service", () => {
     });
   });
 
+  it("falls back to the gateway auth token when no explicit PinchTab token is configured", () => {
+    expect(
+      resolvePinchTabConnectionConfig({
+        gateway: {
+          auth: {
+            mode: "token",
+            token: "gateway-secret",
+          },
+        },
+        browser: { provider: "pinchtab" },
+      }),
+    ).toEqual({
+      enabled: true,
+      baseUrl: "http://127.0.0.1:9867",
+      token: "gateway-secret",
+      managed: true,
+    });
+  });
+
+  it("prefers the managed PinchTab server token for local managed startup", () => {
+    __testing.setDepsForTest({
+      readFileSyncImpl: vi.fn(() =>
+        JSON.stringify({ server: { token: "pinchtab-server-secret" } }),
+      ) as never,
+    });
+
+    expect(
+      resolvePinchTabConnectionConfig({
+        gateway: {
+          auth: {
+            mode: "token",
+            token: "gateway-secret",
+          },
+        },
+        browser: { provider: "pinchtab" },
+      }),
+    ).toEqual({
+      enabled: true,
+      baseUrl: "http://127.0.0.1:9867",
+      token: "pinchtab-server-secret",
+      managed: true,
+    });
+  });
+
   it("treats explicit baseUrl as externally managed and skips managed startup", async () => {
     const spawnImpl = vi.fn();
     __testing.setDepsForTest({ spawnImpl: spawnImpl as never });
@@ -99,5 +143,49 @@ describe("pinchtab-managed-service", () => {
       }),
     );
     expect(health.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("passes the resolved token to both legacy and PinchTab-native auth env vars", async () => {
+    const child = new FakeChildProcess();
+    let stage: "pre" | "post" = "pre";
+    const spawnImpl = vi.fn(() => {
+      stage = "post";
+      return child as never;
+    });
+    const health = vi.fn(async () => {
+      if (stage === "pre") {
+        throw new Error("offline");
+      }
+      return { ok: true };
+    });
+    __testing.setDepsForTest({
+      spawnImpl: spawnImpl as never,
+      existsSyncImpl: vi.fn(() => true),
+      resolveBrowserRuntimeBinImpl: vi.fn(() => "/tmp/pinchtab"),
+      createClientImpl: vi.fn(() => ({ health })) as never,
+    });
+
+    await ensureManagedPinchTabService({
+      config: {
+        gateway: {
+          auth: {
+            mode: "token",
+            token: "gateway-secret",
+          },
+        },
+        browser: { provider: "pinchtab" },
+      },
+    });
+
+    expect(spawnImpl).toHaveBeenCalledWith(
+      "/tmp/pinchtab",
+      [],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          BRIDGE_TOKEN: "gateway-secret",
+          PINCHTAB_TOKEN: "gateway-secret",
+        }),
+      }),
+    );
   });
 });
