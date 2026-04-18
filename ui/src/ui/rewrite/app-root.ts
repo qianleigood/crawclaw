@@ -2,6 +2,10 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { i18n, t, isSupportedLocale, type Locale } from "../../i18n/index.ts";
+import {
+  CHAT_ATTACHMENT_ACCEPT,
+  isSupportedChatAttachmentMimeType,
+} from "../chat/attachment-support.ts";
 import { extractText } from "../chat/message-extract.ts";
 import {
   loadAgents,
@@ -64,6 +68,7 @@ import type {
   PresenceEntry,
   StatusSummary,
 } from "../types.ts";
+import type { ChatAttachment } from "../ui-types.ts";
 import {
   controlPagesForLocale,
   metaForPage,
@@ -265,6 +270,9 @@ const APP_COPY = {
       composerKicker: "Operator compose",
       composerTitle: "Deliver a session-scoped message",
       sendPlaceholder: "Send a session-scoped operator message...",
+      attachImage: "Attach image",
+      dragHint: "Drag images here or use the picker",
+      imageAttachments: "Image attachments",
       inspectorKicker: "Inspector",
       inspectorTitle: "Current session context",
       selectPrompt: "Select a session to inspect.",
@@ -496,6 +504,9 @@ const APP_COPY = {
       composerKicker: "操作输入",
       composerTitle: "发送绑定到当前会话的操作消息",
       sendPlaceholder: "发送一条绑定到当前会话的操作消息…",
+      attachImage: "添加图片",
+      dragHint: "把图片拖到这里，或使用选择器",
+      imageAttachments: "图片附件",
       inspectorKicker: "检查面板",
       inspectorTitle: "当前会话上下文",
       selectPrompt: "选择一个会话后查看详情。",
@@ -727,6 +738,44 @@ function summarizeMessage(message: unknown): string {
     return "n/a";
   }
   return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+}
+
+function imageSourcesFromMessage(message: unknown): string[] {
+  if (!message || typeof message !== "object") {
+    return [];
+  }
+  const content = (message as JsonRecord).content;
+  if (!Array.isArray(content)) {
+    return [];
+  }
+  const sources: string[] = [];
+  for (const block of content) {
+    if (!block || typeof block !== "object") {
+      continue;
+    }
+    const record = block as JsonRecord;
+    if (record.type !== "image") {
+      continue;
+    }
+    const source = record.source;
+    if (!source || typeof source !== "object") {
+      continue;
+    }
+    const sourceRecord = source as JsonRecord;
+    const data = typeof sourceRecord.data === "string" ? sourceRecord.data : null;
+    const mimeType =
+      typeof sourceRecord.media_type === "string" ? sourceRecord.media_type : "image/png";
+    const url = typeof sourceRecord.url === "string" ? sourceRecord.url : null;
+    if (url) {
+      sources.push(url);
+      continue;
+    }
+    if (data) {
+      const normalized = data.startsWith("data:") ? data : `data:${mimeType};base64,${data}`;
+      sources.push(normalized);
+    }
+  }
+  return sources;
 }
 
 function sessionDisplayName(session: GatewaySessionRow): string {
@@ -1353,13 +1402,66 @@ export class CrawClawApp extends LitElement {
 
   private async handleSendMessage(event: Event) {
     event.preventDefault();
-    if (!this.chatState.chatMessage.trim()) {
+    if (!this.chatState.chatMessage.trim() && this.chatState.chatAttachments.length === 0) {
       return;
     }
     await this.safeCall(async () => {
-      await sendChatMessage(this.chatState, this.chatState.chatMessage);
+      await sendChatMessage(
+        this.chatState,
+        this.chatState.chatMessage,
+        this.chatState.chatAttachments,
+      );
       this.chatState.chatMessage = "";
+      this.chatState.chatAttachments = [];
     });
+  }
+
+  private async readChatAttachments(files: Iterable<File>) {
+    const readers = Array.from(files).filter((file) =>
+      isSupportedChatAttachmentMimeType(file.type),
+    );
+    if (!readers.length) {
+      return;
+    }
+    const additions = await Promise.all(
+      readers.map(
+        (file) =>
+          new Promise<ChatAttachment>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.addEventListener("load", () => {
+              resolve({
+                id:
+                  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                    ? crypto.randomUUID()
+                    : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                dataUrl: reader.result as string,
+                mimeType: file.type,
+              });
+            });
+            reader.addEventListener("error", () => reject(reader.error));
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    this.chatState.chatAttachments = [...this.chatState.chatAttachments, ...additions];
+    this.requestUpdate();
+  }
+
+  private async handleChatFileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) {
+      return;
+    }
+    await this.readChatAttachments(input.files);
+    input.value = "";
+  }
+
+  private async handleChatDrop(event: DragEvent) {
+    event.preventDefault();
+    if (!event.dataTransfer?.files?.length) {
+      return;
+    }
+    await this.readChatAttachments(event.dataTransfer.files);
   }
 
   private async handleAbortRun() {
@@ -2263,6 +2365,19 @@ export class CrawClawApp extends LitElement {
                               : nothing}
                           </div>
                           <div class="cp-chat-entry__body">
+                            ${imageSourcesFromMessage(message).length
+                              ? html`
+                                  <div class="cp-chat-entry__images">
+                                    ${repeat(
+                                      imageSourcesFromMessage(message),
+                                      (source) => source,
+                                      (source) => html`
+                                        <img src=${source} alt=${copy.sessions.imageAttachments} />
+                                      `,
+                                    )}
+                                  </div>
+                                `
+                              : nothing}
                             <p>${renderMessageText(message)}</p>
                           </div>
                         </article>
@@ -2294,6 +2409,8 @@ export class CrawClawApp extends LitElement {
               <form
                 class="cp-chat-composer cp-chat-composer--console"
                 @submit=${(event: Event) => this.handleSendMessage(event)}
+                @drop=${(event: DragEvent) => void this.handleChatDrop(event)}
+                @dragover=${(event: DragEvent) => event.preventDefault()}
               >
                 <div class="cp-chat-composer__head">
                   <div>
@@ -2307,8 +2424,54 @@ export class CrawClawApp extends LitElement {
                     <span>
                       ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
                     </span>
+                    <span>
+                      ${copy.sessions.imageAttachments}: ${this.chatState.chatAttachments.length}
+                    </span>
                   </div>
                 </div>
+                <div class="cp-chat-attachments-toolbar">
+                  <label class="cp-button cp-chat-attachments-toolbar__picker">
+                    <input
+                      type="file"
+                      accept=${CHAT_ATTACHMENT_ACCEPT}
+                      multiple
+                      @change=${(event: Event) => void this.handleChatFileSelect(event)}
+                    />
+                    <span>${copy.sessions.attachImage}</span>
+                  </label>
+                  <span class="cp-chat-attachments-toolbar__hint">${copy.sessions.dragHint}</span>
+                </div>
+                ${this.chatState.chatAttachments.length
+                  ? html`
+                      <div class="cp-chat-attachments-preview">
+                        ${repeat(
+                          this.chatState.chatAttachments,
+                          (attachment) => attachment.id,
+                          (attachment) => html`
+                            <div class="cp-chat-attachment-thumb">
+                              <img
+                                src=${attachment.dataUrl}
+                                alt=${copy.sessions.imageAttachments}
+                              />
+                              <button
+                                class="cp-chat-attachment-thumb__remove"
+                                type="button"
+                                @click=${() => {
+                                  this.chatState.chatAttachments =
+                                    this.chatState.chatAttachments.filter(
+                                      (entry) => entry.id !== attachment.id,
+                                    );
+                                  this.requestUpdate();
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : nothing}
                 <textarea
                   .value=${this.chatState.chatMessage}
                   placeholder=${copy.sessions.sendPlaceholder}
