@@ -3481,7 +3481,11 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
     const activeMeta = metaForPage(this.tab, this.locale);
     const localizedPages = controlPagesForLocale(this.locale);
     return html`
-      <div class="cp-shell ${this.onboarding ? "cp-shell--onboarding" : ""}">
+      <div
+        class="cp-shell ${this.onboarding ? "cp-shell--onboarding" : ""} ${this.sidebarCollapsed
+          ? "is-nav-collapsed"
+          : ""}"
+      >
         <aside class="cp-nav ${this.sidebarCollapsed ? "is-collapsed" : ""}">
           <div class="cp-nav__brand">
             <span class="cp-nav__logo">CC</span>

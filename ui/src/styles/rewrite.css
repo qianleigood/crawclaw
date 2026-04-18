@@ -67,6 +67,11 @@ crawclaw-app {
   display: grid;
   grid-template-columns: var(--cp-nav-width) minmax(0, 1fr);
   min-height: 100vh;
+  transition: grid-template-columns 180ms ease;
+}
+
+.cp-shell.is-nav-collapsed {
+  grid-template-columns: 96px minmax(0, 1fr);
 }
 
 .cp-nav {
@@ -87,11 +92,34 @@ crawclaw-app {
 .cp-nav.is-collapsed {
   width: 96px;
   min-width: 96px;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .cp-nav.is-collapsed .cp-nav__copy,
 .cp-nav.is-collapsed .cp-nav__item small {
   display: none;
+}
+
+.cp-nav.is-collapsed .cp-nav__brand,
+.cp-nav.is-collapsed .cp-nav__footer {
+  align-items: center;
+}
+
+.cp-nav.is-collapsed .cp-nav__stack {
+  gap: 8px;
+}
+
+.cp-nav.is-collapsed .cp-nav__item {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px 10px;
+}
+
+.cp-nav.is-collapsed .cp-nav__item:hover,
+.cp-nav.is-collapsed .cp-nav__item.is-active {
+  transform: none;
 }
 
 .cp-nav__brand {
