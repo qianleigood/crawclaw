@@ -145,5 +145,7 @@ describe("renderUsage", () => {
     expect(container.textContent).toContain("Pinned");
     expect(container.textContent).toContain("Query state");
     expect(container.textContent).toContain("Applied");
+    expect(container.querySelector(".usage-console-grid")).toBeTruthy();
+    expect(container.querySelector(".usage-rail-summary")).toBeTruthy();
   });
 });

@@ -794,31 +794,47 @@ export function renderConfig(props: ConfigProps) {
   return html`
     <div class="config-layout">
       <main class="config-main">
-        <section class="config-shell-head">
-          <div class="config-shell-head__main">
-            <div class="config-shell-head__eyebrow">Control plane config</div>
-            <h1 class="config-shell-head__title">Runtime configuration</h1>
-            <p class="config-shell-head__summary">
-              Edit the gateway configuration through schema-driven sections or the raw JSON
-              snapshot, then apply the delta to the running instance.
-            </p>
+        <section class="control-console-head config-console-head">
+          <div class="control-console-head__top">
+            <div class="control-console-head__copy">
+              <div class="control-console-head__eyebrow">Approvals & config console</div>
+              <h1 class="control-console-head__title">Runtime configuration</h1>
+              <p class="control-console-head__summary">
+                Edit the gateway configuration through schema-driven sections or the raw JSON
+                snapshot, then apply the delta to the running instance.
+              </p>
+            </div>
           </div>
-          <div class="config-shell-head__meta">
-            <div class="config-shell-head__meta-card">
-              <span class="config-shell-head__meta-label">Gateway</span>
-              <strong class="config-shell-head__meta-value mono"
+          <div class="control-console-head__meta">
+            <div class="control-console-head__meta-card">
+              <span class="control-console-head__meta-label">Gateway</span>
+              <strong class="control-console-head__meta-value mono"
                 >${props.gatewayUrl || "not set"}</strong
               >
-            </div>
-            <div class="config-shell-head__meta-card">
-              <span class="config-shell-head__meta-label">Assistant</span>
-              <strong class="config-shell-head__meta-value"
-                >${props.assistantName || "Unnamed"}</strong
+              <span class="control-console-head__meta-note"
+                >${props.connected ? "Connected control plane target" : "Gateway offline"}</span
               >
             </div>
-            <div class="config-shell-head__meta-card">
-              <span class="config-shell-head__meta-label">Runtime</span>
-              <strong class="config-shell-head__meta-value">${runtimeAction}</strong>
+            <div class="control-console-head__meta-card">
+              <span class="control-console-head__meta-label">Assistant</span>
+              <strong class="control-console-head__meta-value"
+                >${props.assistantName || "Unnamed"}</strong
+              >
+              <span class="control-console-head__meta-note"
+                >${props.version ? `ui ${props.version}` : "UI runtime metadata"}</span
+              >
+            </div>
+            <div class="control-console-head__meta-card">
+              <span class="control-console-head__meta-label">Write path</span>
+              <strong class="control-console-head__meta-value mono">${writePath}</strong>
+              <span class="control-console-head__meta-note"
+                >${formMode === "form" ? "Patch-first sections" : "Raw snapshot writer"}</span
+              >
+            </div>
+            <div class="control-console-head__meta-card">
+              <span class="control-console-head__meta-label">Runtime state</span>
+              <strong class="control-console-head__meta-value">${runtimeAction}</strong>
+              <span class="control-console-head__meta-note mono">${configLocation}</span>
             </div>
           </div>
         </section>

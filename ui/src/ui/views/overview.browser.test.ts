@@ -96,6 +96,8 @@ describe("overview (browser)", () => {
     await Promise.resolve();
 
     const text = container.textContent ?? "";
+    expect(text).toContain("Control plane overview");
+    expect(text).toContain("System overview");
     expect(text).toContain("Set up CrawClaw without leaving the UI.");
     expect(text).toContain("Setup path");
     expect(text).not.toContain("Set up CrawClaw in five guided steps");

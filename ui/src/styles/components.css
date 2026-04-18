@@ -1832,10 +1832,87 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.debug-console-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.debug-console-grid__rail,
+.debug-console-grid__main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.debug-method-rail,
+.debug-models-rail {
+  display: grid;
+  gap: 14px;
+}
+
+.debug-method-rail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.debug-method-rail__group {
+  display: grid;
+  gap: 8px;
+}
+
+.debug-method-rail__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.debug-method-rail__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.debug-method-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.debug-method-pill--alias {
+  color: var(--muted);
+}
+
+.debug-models-rail__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .debug-surface-strip {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.debug-surface-strip--rail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .debug-surface-card {
@@ -1897,6 +1974,12 @@
 .debug-rpc-hint__value {
   font-size: 12px;
   color: var(--text);
+}
+
+@media (max-width: 1100px) {
+  .debug-console-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Cron jobs: allow long payload/state text and keep action buttons inside the card. */
@@ -3621,6 +3704,52 @@ td.data-table-key-col {
   gap: 14px;
 }
 
+.agents-console-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.agents-console-grid__rail,
+.agents-console-grid__main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.agents-console-grid__context {
+  grid-template-columns: 1fr;
+}
+
+.agents-registry-rail {
+  display: grid;
+  gap: 14px;
+}
+
+.agents-registry-rail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agents-registry-rail__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.agents-registry-rail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agents-registry-rail__empty {
+  padding: 10px 2px 2px;
+}
+
 .agents-sidebar {
   display: grid;
   gap: 12px;
@@ -3831,6 +3960,16 @@ td.data-table-key-col {
 .agent-tab:hover {
   color: var(--text);
   background: var(--bg-hover);
+}
+
+@media (max-width: 1100px) {
+  .agents-console-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agents-console-grid__context {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .agent-tab.active {
@@ -4673,6 +4812,42 @@ td.data-table-key-col {
   min-width: 0;
 }
 
+.overview-stage--rewrite {
+  gap: 20px;
+}
+
+.overview-console-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.82fr);
+  align-items: start;
+}
+
+.overview-console-grid__main,
+.overview-console-grid__rail {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.overview-console-grid__rail {
+  position: relative;
+}
+
+.overview-console-grid__rail > .card {
+  padding: 20px;
+  border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--card) 92%, transparent),
+      color-mix(in srgb, var(--bg-elevated) 74%, transparent)
+    );
+  box-shadow:
+    0 1px 0 color-mix(in srgb, white 6%, transparent) inset,
+    var(--shadow-sm);
+}
+
 .overview-hero::before {
   content: "";
   position: absolute;
@@ -5320,6 +5495,42 @@ td.data-table-key-col {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.channels-console-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.58fr) minmax(300px, 0.82fr);
+  align-items: start;
+}
+
+.channels-console-grid__main,
+.channels-console-grid__rail {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.channels-console-grid__cards {
+  min-width: 0;
+}
+
+.channels-console-grid__rail .connect-center__identity-grid {
+  grid-template-columns: 1fr;
+}
+
+.workflows-console-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.workflows-console-grid__rail,
+.workflows-console-grid__main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
 
 .connect-center__identity-grid > .card {
@@ -6013,6 +6224,10 @@ details[open] > .ov-expandable-toggle::after {
   }
 
   .connect-center__hero,
+  .channels-console-grid,
+  .workflows-console-grid,
+  .agents-console-grid,
+  .debug-console-grid,
   .connect-center__identity-grid,
   .connect-center__summary-strip,
   .connect-center__ops-strip {
@@ -6021,6 +6236,10 @@ details[open] > .ov-expandable-toggle::after {
 
   .debug-surface-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .debug-surface-strip--rail {
+    grid-template-columns: 1fr;
   }
 
   .control-context-strip {
@@ -6051,6 +6270,10 @@ details[open] > .ov-expandable-toggle::after {
 
   .overview-hero {
     padding: 18px;
+  }
+
+  .overview-console-grid {
+    grid-template-columns: 1fr;
   }
 
   .overview-hero::before {
@@ -6104,6 +6327,17 @@ details[open] > .ov-expandable-toggle::after {
     grid-template-columns: 1fr;
     gap: 4px;
   }
+
+  .agents-registry-rail__header,
+  .debug-method-rail__header {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .agents-registry-rail__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 420px) {
@@ -6113,6 +6347,9 @@ details[open] > .ov-expandable-toggle::after {
   .debug-surface-strip,
   .control-console-head__meta,
   .control-context-strip,
+  .overview-console-grid,
+  .channels-console-grid,
+  .workflows-console-grid,
   .connect-center__summary-strip,
   .connect-center__ops-strip {
     grid-template-columns: 1fr;

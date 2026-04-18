@@ -40,12 +40,14 @@ export function renderDebug(props: DebugProps) {
   const methodCount = props.methods.length;
   const modelCount = props.models.length;
   const eventCount = props.eventLog.length;
-  const preferredMethodCount = props.methods.filter(
+  const preferredMethods = props.methods.filter(
     (method) => method.startsWith("system.") || method.startsWith("channels.login."),
-  ).length;
-  const legacyAliasCount = props.methods.filter((method) =>
+  );
+  const legacyAliasList = props.methods.filter((method) =>
     ["health", "status", "last-heartbeat", "web.login.start", "web.login.wait"].includes(method),
-  ).length;
+  );
+  const preferredMethodCount = preferredMethods.length;
+  const legacyAliasCount = legacyAliasList.length;
   const selectedMethod = props.callMethod.trim() || uiLiteral("Not selected");
   const paramsState = resolveParamsState(props.callParams);
   const rpcState = props.callError
@@ -104,72 +106,90 @@ export function renderDebug(props: DebugProps) {
         </div>
       </section>
 
-      <section class="card operations-panel">
-        <div class="operations-panel__header row" style="justify-content: space-between;">
-          <div>
-            <div class="card-title">${uiLiteral("Debug & RPC")}</div>
-            <div class="card-sub">
-              ${uiLiteral("Snapshots, raw methods, and gateway event flow.")}
+      <div class="debug-console-grid">
+        <aside class="debug-console-grid__rail">
+          <section class="card debug-method-rail">
+            <div class="debug-method-rail__header">
+              <div>
+                <div class="card-title">${uiLiteral("Method surface")}</div>
+                <div class="card-sub">
+                  ${uiLiteral("Preferred names, aliases, and callable gateway methods.")}
+                </div>
+              </div>
+              <span class="agent-pill">${methodCount} ${uiLiteral("methods")}</span>
             </div>
-          </div>
-          <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
-            ${props.loading ? uiLiteral("Refreshing…") : uiLiteral("Refresh")}
-          </button>
-        </div>
 
-        <div class="operations-panel__stats">
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Methods")}</span>
-            <strong class="operations-panel__stat-value">${methodCount}</strong>
-          </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Models")}</span>
-            <strong class="operations-panel__stat-value">${modelCount}</strong>
-          </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Events")}</span>
-            <strong class="operations-panel__stat-value">${eventCount}</strong>
-          </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Security audit")}</span>
-            <strong class="operations-panel__stat-value">${securityLabel}</strong>
-          </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Manual RPC")}</span>
-            <strong class="operations-panel__stat-value">${rpcState}</strong>
-          </div>
-        </div>
+            <div class="debug-surface-strip debug-surface-strip--rail">
+              <div class="debug-surface-card">
+                <span class="debug-surface-card__label">${uiLiteral("Preferred names")}</span>
+                <strong class="debug-surface-card__value">${preferredMethodCount}</strong>
+                <span class="debug-surface-card__meta"
+                  >${uiLiteral("system.* and channels.login.* available")}</span
+                >
+              </div>
+              <div class="debug-surface-card">
+                <span class="debug-surface-card__label">${uiLiteral("Legacy aliases")}</span>
+                <strong class="debug-surface-card__value">${legacyAliasCount}</strong>
+                <span class="debug-surface-card__meta"
+                  >${uiLiteral("Compatibility surface still exposed")}</span
+                >
+              </div>
+              <div class="debug-surface-card">
+                <span class="debug-surface-card__label">${uiLiteral("Selected method")}</span>
+                <strong class="debug-surface-card__value">${selectedMethod}</strong>
+                <span class="debug-surface-card__meta">${uiLiteral("Manual RPC target")}</span>
+              </div>
+              <div class="debug-surface-card">
+                <span class="debug-surface-card__label">${uiLiteral("Params state")}</span>
+                <strong class="debug-surface-card__value">${paramsState}</strong>
+                <span class="debug-surface-card__meta"
+                  >${uiLiteral("JSON payload validation before send")}</span
+                >
+              </div>
+            </div>
 
-        <div class="debug-surface-strip">
-          <div class="debug-surface-card">
-            <span class="debug-surface-card__label">${uiLiteral("Preferred names")}</span>
-            <strong class="debug-surface-card__value">${preferredMethodCount}</strong>
-            <span class="debug-surface-card__meta"
-              >${uiLiteral("system.* and channels.login.* available")}</span
-            >
-          </div>
-          <div class="debug-surface-card">
-            <span class="debug-surface-card__label">${uiLiteral("Legacy aliases")}</span>
-            <strong class="debug-surface-card__value">${legacyAliasCount}</strong>
-            <span class="debug-surface-card__meta"
-              >${uiLiteral("Compatibility surface still exposed")}</span
-            >
-          </div>
-          <div class="debug-surface-card">
-            <span class="debug-surface-card__label">${uiLiteral("Selected method")}</span>
-            <strong class="debug-surface-card__value">${selectedMethod}</strong>
-            <span class="debug-surface-card__meta">${uiLiteral("Manual RPC target")}</span>
-          </div>
-          <div class="debug-surface-card">
-            <span class="debug-surface-card__label">${uiLiteral("Params state")}</span>
-            <strong class="debug-surface-card__value">${paramsState}</strong>
-            <span class="debug-surface-card__meta"
-              >${uiLiteral("JSON payload validation before send")}</span
-            >
-          </div>
-        </div>
+            <div class="debug-method-rail__group">
+              <span class="debug-method-rail__label">${uiLiteral("Preferred names")}</span>
+              <div class="debug-method-rail__list">
+                ${preferredMethods
+                  .slice(0, 10)
+                  .map((method) => html`<span class="debug-method-pill">${method}</span>`)}
+              </div>
+            </div>
 
-        <section class="debug-grid">
+            ${
+              legacyAliasList.length > 0
+                ? html`
+                    <div class="debug-method-rail__group">
+                      <span class="debug-method-rail__label">${uiLiteral("Legacy aliases")}</span>
+                      <div class="debug-method-rail__list">
+                        ${legacyAliasList.map(
+                          (method) =>
+                            html`<span class="debug-method-pill debug-method-pill--alias"
+                              >${method}</span
+                            >`,
+                        )}
+                      </div>
+                    </div>
+                  `
+                : nothing
+            }
+          </section>
+
+          <section class="card debug-models-rail">
+            <div class="card-title">${uiLiteral("Models")}</div>
+            <div class="card-sub">${uiLiteral("Catalog from models.list.")}</div>
+            <div class="debug-models-rail__meta">
+              <span>${modelCount} ${uiLiteral("models")}</span>
+            </div>
+            <pre class="code-block" style="margin-top: 12px;">
+${JSON.stringify(props.models ?? [], null, 2)}</pre
+            >
+          </section>
+        </aside>
+
+        <div class="debug-console-grid__main">
+          <section class="debug-grid">
           <div class="card">
             <div class="row" style="justify-content: space-between;">
               <div>
@@ -180,16 +200,18 @@ export function renderDebug(props: DebugProps) {
             <div class="stack" style="margin-top: 12px;">
               <div>
                 <div class="muted">${uiLiteral("Status")}</div>
-                ${securitySummary
-                  ? html`<div class="callout ${securityTone}" style="margin-top: 8px;">
-                      ${uiLiteral("Security audit")}:
-                      ${securityLabel}${info > 0 ? ` · ${info} ${uiLiteral("info")}` : ""}.
-                      ${uiLiteral("Run")}
-                      <span class="mono">crawclaw security audit --deep</span> ${uiLiteral(
-                        "for details.",
-                      )}
-                    </div>`
-                  : nothing}
+                ${
+                  securitySummary
+                    ? html`<div class="callout ${securityTone}" style="margin-top: 8px;">
+                        ${uiLiteral("Security audit")}:
+                        ${securityLabel}${info > 0 ? ` · ${info} ${uiLiteral("info")}` : ""}.
+                        ${uiLiteral("Run")}
+                        <span class="mono">crawclaw security audit --deep</span> ${uiLiteral(
+                          "for details.",
+                        )}
+                      </div>`
+                    : nothing
+                }
                 <pre class="code-block">${JSON.stringify(props.status ?? {}, null, 2)}</pre>
               </div>
               <div>
@@ -222,9 +244,11 @@ export function renderDebug(props: DebugProps) {
                   @change=${(e: Event) =>
                     props.onCallMethodChange((e.target as HTMLSelectElement).value)}
                 >
-                  ${!props.callMethod
-                    ? html` <option value="" disabled>${uiLiteral("Select a method…")}</option> `
-                    : nothing}
+                  ${
+                    !props.callMethod
+                      ? html` <option value="" disabled>${uiLiteral("Select a method…")}</option> `
+                      : nothing
+                  }
                   ${props.methods.map((m) => html`<option value=${m}>${m}</option>`)}
                 </select>
               </label>
@@ -241,48 +265,53 @@ export function renderDebug(props: DebugProps) {
             <div class="row" style="margin-top: 12px;">
               <button class="btn primary" @click=${props.onCall}>${uiLiteral("Call")}</button>
             </div>
-            ${props.callError
-              ? html`<div class="callout danger" style="margin-top: 12px;">${props.callError}</div>`
-              : nothing}
-            ${props.callResult
-              ? html`<pre class="code-block" style="margin-top: 12px;">${props.callResult}</pre>`
-              : nothing}
+            ${
+              props.callError
+                ? html`<div class="callout danger" style="margin-top: 12px;">
+                    ${props.callError}
+                  </div>`
+                : nothing
+            }
+            ${
+              props.callResult
+                ? html`<pre class="code-block" style="margin-top: 12px;">${props.callResult}</pre>`
+                : nothing
+            }
           </div>
         </section>
-      </section>
-
-      <section class="card" style="margin-top: 18px;">
-        <div class="card-title">${uiLiteral("Models")}</div>
-        <div class="card-sub">${uiLiteral("Catalog from models.list.")}</div>
-        <pre class="code-block" style="margin-top: 12px;">
-${JSON.stringify(props.models ?? [], null, 2)}</pre
-        >
-      </section>
-
-      <section class="card" style="margin-top: 18px;">
-        <div class="card-title">${uiLiteral("Event Log")}</div>
-        <div class="card-sub">${uiLiteral("Latest gateway events.")}</div>
-        ${props.eventLog.length === 0
-          ? html` <div class="muted" style="margin-top: 12px">${uiLiteral("No events yet.")}</div> `
-          : html`
-              <div class="list debug-event-log" style="margin-top: 12px;">
-                ${props.eventLog.map(
-                  (evt) => html`
-                    <div class="list-item debug-event-log__item">
-                      <div class="list-main">
-                        <div class="list-title">${evt.event}</div>
-                        <div class="list-sub">${new Date(evt.ts).toLocaleTimeString()}</div>
-                      </div>
-                      <div class="list-meta debug-event-log__meta">
-                        <pre class="code-block debug-event-log__payload">
+          <section class="card">
+            <div class="card-title">${uiLiteral("Event Log")}</div>
+            <div class="card-sub">${uiLiteral("Latest gateway events.")}</div>
+            <div class="debug-models-rail__meta">
+              <span>${eventCount} ${uiLiteral("events")}</span>
+            </div>
+            ${
+              props.eventLog.length === 0
+                ? html`
+                    <div class="muted" style="margin-top: 12px">${uiLiteral("No events yet.")}</div>
+                  `
+                : html`
+                    <div class="list debug-event-log" style="margin-top: 12px;">
+                      ${props.eventLog.map(
+                        (evt) => html`
+                          <div class="list-item debug-event-log__item">
+                            <div class="list-main">
+                              <div class="list-title">${evt.event}</div>
+                              <div class="list-sub">${new Date(evt.ts).toLocaleTimeString()}</div>
+                            </div>
+                            <div class="list-meta debug-event-log__meta">
+                              <pre class="code-block debug-event-log__payload">
 ${formatEventPayload(evt.payload)}</pre
-                        >
-                      </div>
+                              >
+                            </div>
+                          </div>
+                        `,
+                      )}
                     </div>
-                  `,
-                )}
-              </div>
-            `}
+                  `
+            }
+          </section>
+        </div>
       </section>
     </section>
   `;

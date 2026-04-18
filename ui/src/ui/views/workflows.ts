@@ -959,10 +959,8 @@ export function renderWorkflows(props: WorkflowsProps) {
           </div>
         </div>
 
-        <div
-          style="display:grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap:16px; align-items:start;"
-        >
-          <div style="display:grid; gap:12px;">
+        <div class="workflows-console-grid">
+          <div class="workflows-console-grid__rail">
             <section
               style="display:grid; gap:12px; padding:12px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
             >
@@ -997,7 +995,7 @@ export function renderWorkflows(props: WorkflowsProps) {
             </section>
           </div>
 
-          <div style="display:grid; gap:16px;">
+          <div class="workflows-console-grid__main">
             <section
               style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
             >

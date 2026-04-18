@@ -373,6 +373,15 @@ describe("chat view", () => {
     expect(container.textContent).toContain("Inspect run");
   });
 
+  it("renders the stitch-style chat console head", () => {
+    const container = document.createElement("div");
+    render(renderChat(createProps({ assistantName: "CrawClaw" })), container);
+
+    expect(container.textContent).toContain("Sessions & chat console");
+    expect(container.textContent).toContain("CrawClaw");
+    expect(container.textContent).toContain("Queue / runtime");
+  });
+
   it("renders inspect run action for tool stream messages", () => {
     const container = document.createElement("div");
     render(

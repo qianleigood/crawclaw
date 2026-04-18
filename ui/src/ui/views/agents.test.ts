@@ -227,6 +227,8 @@ describe("renderAgents", () => {
     expect(container.textContent).toContain("run-123");
     expect(container.textContent).toContain("Runtime session");
     expect(container.textContent).toContain("Inspect state");
+    expect(container.querySelector(".agents-console-grid")).toBeTruthy();
+    expect(container.querySelector(".agents-registry-rail")).toBeTruthy();
   });
 
   it("renders human-readable decision labels in inspect timeline", async () => {

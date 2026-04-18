@@ -250,30 +250,22 @@ export function renderAgents(props: AgentsProps) {
           </div>
         </div>
       </section>
-      <div class="agents-layout">
-        <section class="agents-toolbar operations-panel">
-          <div class="agents-toolbar-row">
-            <div class="agents-control-select">
-              <select
-                class="agents-select"
-                .value=${selectedId ?? ""}
-                ?disabled=${props.loading || agents.length === 0}
-                @change=${(e: Event) => props.onSelectAgent((e.target as HTMLSelectElement).value)}
-              >
-                ${agents.length === 0
-                  ? html` <option value="">${t("agentsPage.noAgents")}</option> `
-                  : agents.map(
-                      (agent) => html`
-                        <option value=${agent.id} ?selected=${agent.id === selectedId}>
-                          ${normalizeAgentLabel(agent)}${agentBadgeText(agent.id, defaultId)
-                            ? ` (${agentBadgeText(agent.id, defaultId)})`
-                            : ""}
-                        </option>
-                      `,
-                    )}
-              </select>
+      <div class="agents-console-grid">
+        <aside class="agents-console-grid__rail">
+          <section class="card agents-registry-rail">
+            <div class="agents-registry-rail__header">
+              <div class="agents-registry-rail__copy">
+                <div class="card-title">${uiLiteral("Registry rail")}</div>
+                <div class="card-sub">
+                  ${uiLiteral(
+                    "Select an agent to inspect identity, runtime, files, tools, skills, channel bindings, and cron state.",
+                  )}
+                </div>
+              </div>
+              <span class="agent-pill">${agents.length} ${uiLiteral("agents")}</span>
             </div>
-            <div class="agents-toolbar-actions">
+            ${props.error ? html`<div class="callout danger">${props.error}</div>` : nothing}
+            <div class="agents-registry-rail__actions">
               ${selectedAgent
                 ? html`
                     <button
@@ -307,41 +299,38 @@ export function renderAgents(props: AgentsProps) {
                 ${props.loading ? t("skillsPage.loading") : t("common.refresh")}
               </button>
             </div>
-          </div>
-          ${props.error
-            ? html`<div class="callout danger" style="margin-top: 8px;">${props.error}</div>`
-            : nothing}
-          <div class="operations-panel__stats">
-            <div class="operations-panel__stat">
-              <span class="operations-panel__stat-label">${uiLiteral("Registry")}</span>
-              <strong class="operations-panel__stat-value">${agents.length}</strong>
-            </div>
-            <div class="operations-panel__stat">
-              <span class="operations-panel__stat-label">${uiLiteral("Default")}</span>
-              <strong class="operations-panel__stat-value">${defaultId ?? t("common.na")}</strong>
-            </div>
-            <div class="operations-panel__stat">
-              <span class="operations-panel__stat-label">${uiLiteral("Selection")}</span>
-              <strong class="operations-panel__stat-value"
-                >${selectedAgent
-                  ? normalizeAgentLabel(selectedAgent)
-                  : t("agentsPage.noAgents")}</strong
-              >
-            </div>
-            <div class="operations-panel__stat">
-              <span class="operations-panel__stat-label">${uiLiteral("Panel")}</span>
-              <strong class="operations-panel__stat-value">${activePanel}</strong>
-            </div>
-            <div class="operations-panel__stat">
-              <span class="operations-panel__stat-label">${uiLiteral("Runtime")}</span>
-              <strong class="operations-panel__stat-value">${runtimeRunLabel}</strong>
-            </div>
-            <div class="operations-panel__stat">
-              <span class="operations-panel__stat-label">${uiLiteral("Channels")}</span>
-              <strong class="operations-panel__stat-value">${channelEntryCount ?? 0}</strong>
-            </div>
-          </div>
-          <div class="control-context-strip">
+            ${agents.length === 0
+              ? html`
+                  <div class="agents-registry-rail__empty">
+                    <div class="card-sub">${t("agentsPage.noAgents")}</div>
+                  </div>
+                `
+              : html`
+                  <div class="agent-list">
+                    ${agents.map((agent) => {
+                      const isActive = agent.id === selectedId;
+                      const badge = agentBadgeText(agent.id, defaultId);
+                      return html`
+                        <button
+                          type="button"
+                          class="agent-row ${isActive ? "active" : ""}"
+                          @click=${() => props.onSelectAgent(agent.id)}
+                        >
+                          <div class="agent-avatar" aria-hidden="true">
+                            ${(normalizeAgentLabel(agent).slice(0, 1) || "?").toUpperCase()}
+                          </div>
+                          <div class="agent-info">
+                            <div class="agent-title">${normalizeAgentLabel(agent)}</div>
+                            <div class="agent-sub">${agent.id}</div>
+                          </div>
+                          ${badge ? html`<span class="agent-pill">${badge}</span>` : nothing}
+                        </button>
+                      `;
+                    })}
+                  </div>
+                `}
+          </section>
+          <section class="control-context-strip agents-console-grid__context">
             <div class="control-context-card">
               <span class="control-context-card__label">${uiLiteral("Runtime session")}</span>
               <strong class="control-context-card__value"
@@ -378,9 +367,47 @@ export function renderAgents(props: AgentsProps) {
                   : uiLiteral("Load the skills panel to inspect effective skill state")}
               </span>
             </div>
+          </section>
+        </aside>
+        <section class="agents-console-grid__main">
+          <div class="control-context-strip">
+            <div class="control-context-card">
+              <span class="control-context-card__label">${uiLiteral("Registry")}</span>
+              <strong class="control-context-card__value">${agents.length}</strong>
+              <span class="control-context-card__meta">
+                ${defaultId
+                  ? `${uiLiteral("Default agent")}: ${defaultId}`
+                  : uiLiteral("No default agent pinned")}
+              </span>
+            </div>
+            <div class="control-context-card">
+              <span class="control-context-card__label">${uiLiteral("Selection")}</span>
+              <strong class="control-context-card__value"
+                >${selectedAgent
+                  ? normalizeAgentLabel(selectedAgent)
+                  : t("agentsPage.noAgents")}</strong
+              >
+              <span class="control-context-card__meta">${selectedId ?? t("common.na")}</span>
+            </div>
+            <div class="control-context-card">
+              <span class="control-context-card__label">${uiLiteral("Panel")}</span>
+              <strong class="control-context-card__value">${activePanel}</strong>
+              <span class="control-context-card__meta">
+                ${uiMode === "advanced"
+                  ? uiLiteral("Advanced surface")
+                  : uiLiteral("Simple surface")}
+              </span>
+            </div>
+            <div class="control-context-card">
+              <span class="control-context-card__label">${uiLiteral("Channels")}</span>
+              <strong class="control-context-card__value">${channelEntryCount ?? 0}</strong>
+              <span class="control-context-card__meta">
+                ${cronJobCount != null
+                  ? `${cronJobCount} ${uiLiteral("cron jobs for the current agent")}`
+                  : uiLiteral("No channel snapshot loaded")}
+              </span>
+            </div>
           </div>
-        </section>
-        <section class="agents-main">
           ${!selectedAgent
             ? html`
                 <div class="card">

@@ -1301,36 +1301,65 @@ export function renderChat(props: ChatProps) {
       @drop=${(e: DragEvent) => handleDrop(e, props)}
       @dragover=${(e: DragEvent) => e.preventDefault()}
     >
-      <div class="chat-console__header">
-        <div class="chat-console__header-main">
-          <div class="chat-console__eyebrow">${uiLiteral("Operator console")}</div>
-          <div class="chat-console__title-row">
-            <h1 class="chat-console__title">${props.assistantName || uiLiteral("Session chat")}</h1>
-            <span class="chat-console__session mono">${sessionLabel}</span>
+      <section class="control-console-head chat-console-head">
+        <div class="control-console-head__top">
+          <div class="control-console-head__copy">
+            <div class="control-console-head__eyebrow">${uiLiteral("Sessions & chat console")}</div>
+            <h1 class="control-console-head__title">
+              ${props.assistantName || uiLiteral("Session chat")}
+            </h1>
+            <p class="control-console-head__summary">
+              Live message stream, tool output, action feed, and inspect context for the active
+              runtime session.
+            </p>
           </div>
-          <p class="chat-console__summary">
-            Live message stream, tool output, action feed, and inspect context for the active
-            runtime session.
-          </p>
+          <div class="control-console-head__actions">
+            <button class="btn btn--sm" @click=${props.onRefresh}>${uiLiteral("Refresh")}</button>
+            ${props.onInspectCurrentRun && props.currentRunId
+              ? html`
+                  <button class="btn btn--sm btn--ghost" @click=${props.onInspectCurrentRun}>
+                    ${uiLiteral("Inspect current run")}
+                  </button>
+                `
+              : nothing}
+            ${props.onNavigateToAgent
+              ? html`
+                  <button class="btn btn--sm btn--ghost" @click=${props.onNavigateToAgent}>
+                    ${uiLiteral("Open agent")}
+                  </button>
+                `
+              : nothing}
+          </div>
         </div>
-        <div class="chat-console__header-actions">
-          <button class="btn btn--sm" @click=${props.onRefresh}>${uiLiteral("Refresh")}</button>
-          ${props.onInspectCurrentRun && props.currentRunId
-            ? html`
-                <button class="btn btn--sm btn--ghost" @click=${props.onInspectCurrentRun}>
-                  ${uiLiteral("Inspect current run")}
-                </button>
-              `
-            : nothing}
-          ${props.onNavigateToAgent
-            ? html`
-                <button class="btn btn--sm btn--ghost" @click=${props.onNavigateToAgent}>
-                  ${uiLiteral("Open agent")}
-                </button>
-              `
-            : nothing}
+        <div class="control-console-head__meta">
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Session")}</span>
+            <strong class="control-console-head__meta-value">${sessionLabel}</strong>
+            <span class="control-console-head__meta-note mono">${sessionLabel}</span>
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Kind")}</span>
+            <strong class="control-console-head__meta-value">${sessionKind}</strong>
+            <span class="control-console-head__meta-note"
+              >${uiLiteral("Routing and chat posture")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Reasoning")}</span>
+            <strong class="control-console-head__meta-value">${reasoningState}</strong>
+            <span class="control-console-head__meta-note"
+              >${uiLiteral("Current operator override state")}</span
+            >
+          </div>
+          <div class="control-console-head__meta-card">
+            <span class="control-console-head__meta-label">${uiLiteral("Queue / runtime")}</span>
+            <strong class="control-console-head__meta-value">${queueCount} / ${streamState}</strong>
+            <span class="control-console-head__meta-note">
+              ${sidebarOpen ? uiLiteral("Inspector attached") : uiLiteral("Inspector standby")}
+            </span>
+          </div>
         </div>
-      </div>
+      </section>
 
       ${props.disabledReason ? html`<div class="callout">${props.disabledReason}</div>` : nothing}
       ${props.error ? html`<div class="callout danger">${props.error}</div>` : nothing}
@@ -1348,35 +1377,6 @@ export function renderChat(props: ChatProps) {
           `
         : nothing}
       ${renderSearchBar(requestUpdate)} ${renderPinnedSection(props, pinned, requestUpdate)}
-
-      <div class="chat-ops-strip">
-        <div class="chat-ops-card">
-          <span class="chat-ops-card__label">${uiLiteral("Session")}</span>
-          <strong class="chat-ops-card__value">${sessionLabel}</strong>
-        </div>
-        <div class="chat-ops-card">
-          <span class="chat-ops-card__label">${uiLiteral("Kind")}</span>
-          <strong class="chat-ops-card__value">${sessionKind}</strong>
-        </div>
-        <div class="chat-ops-card">
-          <span class="chat-ops-card__label">${uiLiteral("Reasoning")}</span>
-          <strong class="chat-ops-card__value">${reasoningState}</strong>
-        </div>
-        <div class="chat-ops-card">
-          <span class="chat-ops-card__label">${uiLiteral("Queue")}</span>
-          <strong class="chat-ops-card__value">${queueCount}</strong>
-        </div>
-        <div class="chat-ops-card">
-          <span class="chat-ops-card__label">${uiLiteral("Inspector")}</span>
-          <strong class="chat-ops-card__value"
-            >${sidebarOpen ? uiLiteral("Attached") : uiLiteral("Standby")}</strong
-          >
-        </div>
-        <div class="chat-ops-card">
-          <span class="chat-ops-card__label">${uiLiteral("Runtime")}</span>
-          <strong class="chat-ops-card__value">${streamState}</strong>
-        </div>
-      </div>
 
       <div class="chat-console__body">
         <div class="chat-split-container ${sidebarOpen ? "chat-split-container--open" : ""}">

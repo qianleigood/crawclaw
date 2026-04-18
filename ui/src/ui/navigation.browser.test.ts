@@ -280,6 +280,20 @@ describe("platform UI routing", () => {
     expect(debugStrip?.textContent).toContain("Params state");
   });
 
+  it("renders stitch rewrite console grids on agents and usage routes", async () => {
+    const agentsApp = mountApp("/agents");
+    const agentsGrid = await waitForElement<HTMLElement>(agentsApp, ".agents-console-grid");
+    expect(agentsGrid).not.toBeNull();
+    expect(agentsApp.querySelector(".agents-registry-rail")).not.toBeNull();
+
+    document.body.innerHTML = "";
+
+    const usageApp = mountApp("/usage");
+    const usageGrid = await waitForElement<HTMLElement>(usageApp, ".usage-console-grid");
+    expect(usageGrid).not.toBeNull();
+    expect(usageApp.querySelector(".usage-rail-summary")).not.toBeNull();
+  });
+
   it("stacks the refreshed top navigation for narrow viewports", async () => {
     const app = mountApp("/chat");
     await app.updateComplete;

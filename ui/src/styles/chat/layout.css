@@ -18,6 +18,10 @@
   box-shadow: none !important;
 }
 
+.chat-console-head {
+  margin-bottom: 14px;
+}
+
 .chat-console__header {
   display: flex;
   align-items: flex-start;

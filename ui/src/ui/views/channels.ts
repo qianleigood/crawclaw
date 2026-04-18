@@ -170,33 +170,6 @@ export function renderChannels(props: ChannelsProps) {
       </section>
 
       <section class="connect-center card">
-        <div class="connect-center__hero">
-          <div class="connect-center__copy">
-            <div class="connect-center__eyebrow">${t("channelsPage.eyebrow")}</div>
-            <h1 class="connect-center__title">${t("channelsPage.title")}</h1>
-            <p class="connect-center__summary">${t("channelsPage.summary")}</p>
-          </div>
-          <div class="connect-center__meta">
-            <div>
-              <span class="label">${t("channelsPage.meta.gateway")}</span>
-              <strong
-                >${props.connected ? t("channelsPage.connected") : t("common.offline")}</strong
-              >
-            </div>
-            <div>
-              <span class="label">${t("channelsPage.meta.address")}</span>
-              <strong>${props.gatewayUrl || t("common.na")}</strong>
-            </div>
-            <div>
-              <span class="label">${t("channelsPage.meta.lastRefresh")}</span>
-              <strong
-                >${props.lastSuccessAt
-                  ? formatRelativeTimestamp(props.lastSuccessAt)
-                  : t("common.na")}</strong
-              >
-            </div>
-          </div>
-        </div>
         <div class="connect-center__summary-strip">
           <div class="connect-center__summary-card">
             <span class="label">Enabled surfaces</span>
@@ -254,46 +227,53 @@ export function renderChannels(props: ChannelsProps) {
         ${props.lastError
           ? html`<div class="callout danger" style="margin-top: 14px;">${props.lastError}</div>`
           : nothing}
-        ${props.onboarding ? renderConnectCenterGuide(props) : renderConnectCenterGuideState(props)}
-        <div class="connect-center__identity-grid">
-          <div class="card">
-            <div class="card-title">Gateway connection</div>
-            <div class="card-sub">
-              This is the live control-plane connection used by the dashboard.
-            </div>
-            <div class="status-list" style="margin-top: 16px;">
-              <div>
-                <span class="label">Status</span>
-                <span>${props.connected ? "Connected" : "Offline"}</span>
-              </div>
-              <div>
-                <span class="label">Address</span>
-                <span class="mono">${props.gatewayUrl || "n/a"}</span>
-              </div>
-              <div>
-                <span class="label">Channel probe</span>
-                <span>${props.lastSuccessAt ? "Recent" : "Not refreshed yet"}</span>
-              </div>
-            </div>
+        <section class="channels-console-grid">
+          <div class="channels-console-grid__main">
+            ${props.onboarding
+              ? renderConnectCenterGuide(props)
+              : renderConnectCenterGuideState(props)}
+            <section class="grid grid-cols-2 channels-console-grid__cards">
+              ${orderedChannels.map((channel) =>
+                renderChannel(channel.key, props, {
+                  whatsapp,
+                  telegram,
+                  discord,
+                  googlechat,
+                  slack,
+                  signal,
+                  imessage,
+                  nostr,
+                  channelAccounts: props.snapshot?.channelAccounts ?? null,
+                }),
+              )}
+            </section>
           </div>
-          ${renderFeishuCliCard(props)}
-        </div>
-      </section>
-
-      <section class="grid grid-cols-2">
-        ${orderedChannels.map((channel) =>
-          renderChannel(channel.key, props, {
-            whatsapp,
-            telegram,
-            discord,
-            googlechat,
-            slack,
-            signal,
-            imessage,
-            nostr,
-            channelAccounts: props.snapshot?.channelAccounts ?? null,
-          }),
-        )}
+          <aside class="channels-console-grid__rail">
+            <div class="connect-center__identity-grid">
+              <div class="card">
+                <div class="card-title">Gateway connection</div>
+                <div class="card-sub">
+                  This is the live control-plane connection used by the dashboard.
+                </div>
+                <div class="status-list" style="margin-top: 16px;">
+                  <div>
+                    <span class="label">Status</span>
+                    <span>${props.connected ? "Connected" : "Offline"}</span>
+                  </div>
+                  <div>
+                    <span class="label">Address</span>
+                    <span class="mono">${props.gatewayUrl || "n/a"}</span>
+                  </div>
+                  <div>
+                    <span class="label">Channel probe</span>
+                    <span>${props.lastSuccessAt ? "Recent" : "Not refreshed yet"}</span>
+                  </div>
+                </div>
+              </div>
+              ${renderFeishuCliCard(props)}
+            </div>
+          </aside>
+        </section>
       </section>
 
       ${uiMode === "advanced"

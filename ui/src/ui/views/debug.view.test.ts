@@ -48,5 +48,7 @@ describe("renderDebug", () => {
     expect(container.textContent).toContain(
       "system.health / system.status / system.heartbeat.last / channels.login.*",
     );
+    expect(container.querySelector(".debug-console-grid")).toBeTruthy();
+    expect(container.querySelector(".debug-method-rail")).toBeTruthy();
   });
 });

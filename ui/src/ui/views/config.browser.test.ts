@@ -325,6 +325,17 @@ describe("config view", () => {
     expect(tabs).toContain("Gateway");
   });
 
+  it("renders the stitch-style config console head", () => {
+    const container = document.createElement("div");
+    render(renderConfig(baseProps()), container);
+
+    const text = normalizedText(container);
+    expect(text).toContain("Approvals & config console");
+    expect(text).toContain("Runtime configuration");
+    expect(text).toContain("Write path");
+    expect(text).toContain("Runtime state");
+  });
+
   it("clears the active search query", () => {
     const container = document.createElement("div");
     const onSearchChange = vi.fn();
