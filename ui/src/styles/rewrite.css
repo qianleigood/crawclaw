@@ -724,6 +724,42 @@ crawclaw-app {
   max-height: none;
 }
 
+.cp-session-signal-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cp-session-signal-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 162, 255, 0.1);
+  background: rgba(9, 20, 36, 0.72);
+}
+
+.cp-session-signal-card span,
+.cp-panel__subcopy {
+  color: var(--cp-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.cp-session-signal-card strong {
+  color: var(--cp-text);
+  font-size: 0.96rem;
+  line-height: 1.3;
+}
+
+.cp-session-signal-card small {
+  color: var(--cp-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .cp-chat-entry {
   display: grid;
   gap: 10px;
@@ -885,6 +921,13 @@ crawclaw-app {
   box-shadow: inset 0 1px 0 rgba(166, 198, 255, 0.05);
 }
 
+.cp-chat-composer__hint {
+  color: var(--cp-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
 .cp-chat-attachments-toolbar {
   display: flex;
   align-items: center;
@@ -1005,8 +1048,12 @@ crawclaw-app {
 }
 
 .cp-form__actions--composer {
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
+}
+
+.cp-inline-actions--composer {
+  margin-left: auto;
 }
 
 .cp-form__actions--composer .cp-button--primary {
@@ -1050,7 +1097,8 @@ crawclaw-app {
 
   .cp-page-head__stats,
   .cp-band,
-  .cp-grid--double {
+  .cp-grid--double,
+  .cp-session-signal-strip {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -1097,7 +1145,8 @@ crawclaw-app {
   .cp-page-head__stats,
   .cp-band,
   .cp-band--sessions,
-  .cp-grid--double {
+  .cp-grid--double,
+  .cp-session-signal-strip {
     grid-template-columns: 1fr;
   }
 
@@ -1137,6 +1186,16 @@ crawclaw-app {
   }
 
   .cp-form__actions--composer .cp-button--primary {
+    width: 100%;
+  }
+
+  .cp-form__actions--composer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cp-inline-actions--composer {
+    margin-left: 0;
     width: 100%;
   }
 

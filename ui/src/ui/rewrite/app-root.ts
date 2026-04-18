@@ -276,6 +276,8 @@ const APP_COPY = {
       maximize: "Maximize thread",
       restore: "Restore layout",
       clearImages: "Clear images",
+      clearDraft: "Clear draft",
+      sendHint: "Enter sends · Shift+Enter adds a new line",
       inspectorKicker: "Inspector",
       inspectorTitle: "Current session context",
       selectPrompt: "Select a session to inspect.",
@@ -513,6 +515,8 @@ const APP_COPY = {
       maximize: "最大化对话",
       restore: "恢复布局",
       clearImages: "清空图片",
+      clearDraft: "清空草稿",
+      sendHint: "回车发送 · Shift+Enter 换行",
       inspectorKicker: "检查面板",
       inspectorTitle: "当前会话上下文",
       selectPrompt: "选择一个会话后查看详情。",
@@ -2211,6 +2215,7 @@ export class CrawClawApp extends LitElement {
     const lastMessage = this.chatState.chatMessages.at(-1) ?? null;
     const lastMessageTimestamp = readMessageTimestamp(lastMessage);
     const lastMessageRole = readMessageRole(lastMessage);
+    const lastMessageSummary = lastMessage ? summarizeMessage(lastMessage) : copy.common.none;
     const runtimeState = this.chatState.chatStream
       ? copy.sessions.streaming
       : this.chatState.chatSending
@@ -2219,6 +2224,8 @@ export class CrawClawApp extends LitElement {
     const selectedModel = selected?.model ?? this.sessionsState.sessionsResult?.defaults?.model;
     const selectedProvider =
       selected?.modelProvider ?? this.sessionsState.sessionsResult?.defaults?.modelProvider;
+    const draftLength = this.chatState.chatMessage.trim().length;
+    const attachmentCount = this.chatState.chatAttachments.length;
     return html`
       <section class="cp-page cp-page--sessions">
         ${this.renderPageHeader("sessions", [
@@ -2324,11 +2331,46 @@ export class CrawClawApp extends LitElement {
               )}
             </section>
 
+            <section class="cp-session-signal-strip">
+              <article class="cp-session-signal-card">
+                <span>${copy.common.session}</span>
+                <strong>${selected ? sessionDisplayName(selected) : copy.common.none}</strong>
+                <small>${selected?.key ?? this.settings.sessionKey}</small>
+              </article>
+              <article class="cp-session-signal-card">
+                <span>${copy.common.latest}</span>
+                <strong>${lastMessageRole ?? copy.common.none}</strong>
+                <small>
+                  ${lastMessageTimestamp
+                    ? formatAgo(lastMessageTimestamp, this.locale)
+                    : copy.common.pending}
+                </small>
+              </article>
+              <article class="cp-session-signal-card">
+                <span>${copy.common.summary}</span>
+                <strong
+                  >${lastMessage ? countMessageBlocks(lastMessage) : 0}
+                  ${copy.sessions.blocks}</strong
+                >
+                <small>${lastMessageSummary}</small>
+              </article>
+              <article class="cp-session-signal-card">
+                <span>${copy.common.execution}</span>
+                <strong>${this.chatState.chatRunId ?? copy.common.none}</strong>
+                <small>${draftLength} / ${attachmentCount} ${copy.sessions.imageAttachments}</small>
+              </article>
+            </section>
+
             <article class="cp-panel cp-panel--fill cp-session-console__thread-panel">
               <div class="cp-panel__head">
                 <div>
                   <span class="cp-kicker">${copy.sessions.conversationKicker}</span>
                   <h3>${copy.sessions.conversationTitle}</h3>
+                  <p class="cp-panel__subcopy">
+                    ${selected
+                      ? `${sessionDisplayName(selected)} · ${selected.key}`
+                      : this.settings.sessionKey}
+                  </p>
                 </div>
                 <div class="cp-inline-actions">
                   <button
@@ -2435,15 +2477,11 @@ export class CrawClawApp extends LitElement {
                       <h4>${copy.sessions.composerTitle}</h4>
                     </div>
                     <div class="cp-chat-composer__meta">
-                      <span>
-                        ${copy.sessions.draftLength}: ${this.chatState.chatMessage.trim().length}
-                      </span>
+                      <span> ${copy.sessions.draftLength}: ${draftLength} </span>
                       <span>
                         ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
                       </span>
-                      <span>
-                        ${copy.sessions.imageAttachments}: ${this.chatState.chatAttachments.length}
-                      </span>
+                      <span> ${copy.sessions.imageAttachments}: ${attachmentCount} </span>
                     </div>
                   </div>
                   <div class="cp-chat-attachments-toolbar">
@@ -2513,9 +2551,24 @@ export class CrawClawApp extends LitElement {
                     }}
                   ></textarea>
                   <div class="cp-form__actions cp-form__actions--composer">
-                    <button class="cp-button cp-button--primary" type="submit">
-                      ${copy.common.send}
-                    </button>
+                    <span class="cp-chat-composer__hint">${copy.sessions.sendHint}</span>
+                    <div class="cp-inline-actions cp-inline-actions--composer">
+                      <button
+                        class="cp-button cp-button--ghost"
+                        type="button"
+                        ?disabled=${draftLength === 0 && attachmentCount === 0}
+                        @click=${() => {
+                          this.chatState.chatMessage = "";
+                          this.chatState.chatAttachments = [];
+                          this.requestUpdate();
+                        }}
+                      >
+                        ${copy.sessions.clearDraft}
+                      </button>
+                      <button class="cp-button cp-button--primary" type="submit">
+                        ${copy.common.send}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </form>
@@ -2623,6 +2676,33 @@ export class CrawClawApp extends LitElement {
                     <pre class="cp-code cp-code--compact">${summarizeMessage(lastMessage)}</pre>
                   `
                 : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
+            </article>
+
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.sessions.composerKicker}</span>
+                  <h3>${copy.sessions.composerTitle}</h3>
+                </div>
+              </div>
+              ${this.renderMetaEntries([
+                {
+                  label: copy.sessions.draftLength,
+                  value: String(draftLength),
+                  hint: draftLength ? copy.common.live : copy.common.idle,
+                },
+                {
+                  label: copy.sessions.imageAttachments,
+                  value: String(attachmentCount),
+                },
+                {
+                  label: copy.common.execution,
+                  value: this.chatState.chatRunId ?? copy.common.none,
+                },
+              ])}
+              <pre class="cp-code cp-code--compact">
+${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
+              >
             </article>
           </aside>
         </div>
