@@ -249,16 +249,29 @@ const APP_COPY = {
       focusedSession: "Focused session",
       registryKicker: "Registry rail",
       registryTitle: "Session inventory",
+      searchPlaceholder: "Filter sessions by name, key or surface",
       noSessions: "No sessions returned by the gateway.",
       conversationKicker: "Conversation thread",
       conversationTitle: "Sessions & chat console",
       refreshHistory: "Refresh history",
       abortRun: "Abort run",
       streaming: "streaming",
+      runtimeKicker: "Runtime",
+      runtimeTitle: "Current execution telemetry",
+      routingKicker: "Routing",
+      routingTitle: "Session routing & model",
+      activityKicker: "Latest activity",
+      activityTitle: "Most recent message",
+      composerKicker: "Operator compose",
+      composerTitle: "Deliver a session-scoped message",
       sendPlaceholder: "Send a session-scoped operator message...",
       inspectorKicker: "Inspector",
       inspectorTitle: "Current session context",
       selectPrompt: "Select a session to inspect.",
+      noMessages: "No messages loaded for the current session.",
+      inventoryMatches: "{count} matching sessions",
+      draftLength: "Draft length",
+      blocks: "Blocks",
     },
     channels: {
       accounts: "Accounts",
@@ -467,16 +480,29 @@ const APP_COPY = {
       focusedSession: "当前会话",
       registryKicker: "注册表侧栏",
       registryTitle: "会话清单",
+      searchPlaceholder: "按名称、key 或 surface 过滤会话",
       noSessions: "网关没有返回会话。",
       conversationKicker: "对话线程",
       conversationTitle: "会话与聊天控制台",
       refreshHistory: "刷新历史",
       abortRun: "中止运行",
       streaming: "流式输出中",
+      runtimeKicker: "运行态",
+      runtimeTitle: "当前执行遥测",
+      routingKicker: "路由",
+      routingTitle: "会话路由与模型",
+      activityKicker: "最近活动",
+      activityTitle: "最新一条消息",
+      composerKicker: "操作输入",
+      composerTitle: "发送绑定到当前会话的操作消息",
       sendPlaceholder: "发送一条绑定到当前会话的操作消息…",
       inspectorKicker: "检查面板",
       inspectorTitle: "当前会话上下文",
       selectPrompt: "选择一个会话后查看详情。",
+      noMessages: "当前会话还没有加载到消息。",
+      inventoryMatches: "{count} 个匹配会话",
+      draftLength: "草稿长度",
+      blocks: "块数",
     },
     channels: {
       accounts: "账号数",
@@ -672,6 +698,37 @@ function renderMessageText(message: unknown): string {
   return formatJson(message);
 }
 
+function readMessageTimestamp(message: unknown): number | null {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  const candidate = (message as JsonRecord).timestamp;
+  return typeof candidate === "number" ? candidate : null;
+}
+
+function readMessageRole(message: unknown): string {
+  if (!message || typeof message !== "object") {
+    return "assistant";
+  }
+  return readString((message as JsonRecord).role, "assistant");
+}
+
+function countMessageBlocks(message: unknown): number {
+  if (!message || typeof message !== "object") {
+    return 0;
+  }
+  const content = (message as JsonRecord).content;
+  return Array.isArray(content) ? content.length : 0;
+}
+
+function summarizeMessage(message: unknown): string {
+  const text = renderMessageText(message).replace(/\s+/g, " ").trim();
+  if (!text) {
+    return "n/a";
+  }
+  return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+}
+
 function sessionDisplayName(session: GatewaySessionRow): string {
   return (
     session.displayName ||
@@ -771,6 +828,7 @@ export class CrawClawApp extends LitElement {
   @state() gatewayUrlDraft = this.settings.gatewayUrl;
   @state() gatewayTokenDraft = this.settings.token;
   @state() sidebarCollapsed = false;
+  @state() sessionsQuery = "";
   @state() systemStatus: StatusSummary | null = null;
   @state() systemPresence: PresenceEntry[] = [];
   @state() systemHeartbeat: unknown = null;
@@ -2021,6 +2079,37 @@ export class CrawClawApp extends LitElement {
     const copy = uiText(this.locale);
     const sessions = this.sessionsState.sessionsResult?.sessions ?? [];
     const selected = sessions.find((entry) => entry.key === this.settings.sessionKey) ?? null;
+    const query = this.sessionsQuery.trim().toLowerCase();
+    const filteredSessions = query
+      ? sessions.filter((session) => {
+          const haystack = [
+            session.key,
+            session.displayName,
+            session.label,
+            session.surface,
+            session.subject,
+            session.room,
+            session.space,
+          ]
+            .filter(
+              (value): value is string => typeof value === "string" && value.trim().length > 0,
+            )
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(query);
+        })
+      : sessions;
+    const lastMessage = this.chatState.chatMessages.at(-1) ?? null;
+    const lastMessageTimestamp = readMessageTimestamp(lastMessage);
+    const lastMessageRole = readMessageRole(lastMessage);
+    const runtimeState = this.chatState.chatStream
+      ? copy.sessions.streaming
+      : this.chatState.chatSending
+        ? copy.common.pending
+        : (selected?.status ?? copy.common.idle);
+    const selectedModel = selected?.model ?? this.sessionsState.sessionsResult?.defaults?.model;
+    const selectedProvider =
+      selected?.modelProvider ?? this.sessionsState.sessionsResult?.defaults?.modelProvider;
     return html`
       <section class="cp-page cp-page--sessions">
         ${this.renderPageHeader("sessions", [
@@ -2044,9 +2133,9 @@ export class CrawClawApp extends LitElement {
             hint: selected?.status ?? copy.common.idle,
           },
         ])}
-        <div class="cp-stage cp-stage--three">
-          <aside class="cp-stage__rail cp-stage__rail--wide">
-            <article class="cp-panel cp-panel--fill">
+        <div class="cp-session-console">
+          <aside class="cp-session-console__rail">
+            <article class="cp-panel cp-panel--fill cp-panel--rail">
               <div class="cp-panel__head">
                 <div>
                   <span class="cp-kicker">${copy.sessions.registryKicker}</span>
@@ -2062,10 +2151,25 @@ export class CrawClawApp extends LitElement {
                   ${copy.common.reload}
                 </button>
               </div>
-              <div class="cp-list cp-list--dense">
-                ${sessions.length
+              <label class="cp-session-console__search">
+                <span
+                  >${copy.sessions.inventoryMatches.replace(
+                    "{count}",
+                    String(filteredSessions.length),
+                  )}</span
+                >
+                <input
+                  .value=${this.sessionsQuery}
+                  placeholder=${copy.sessions.searchPlaceholder}
+                  @input=${(event: Event) => {
+                    this.sessionsQuery = (event.target as HTMLInputElement).value;
+                  }}
+                />
+              </label>
+              <div class="cp-list cp-list--dense cp-session-console__list">
+                ${filteredSessions.length
                   ? repeat(
-                      sessions,
+                      filteredSessions,
                       (session) => session.key,
                       (session) => html`
                         <button
@@ -2076,10 +2180,11 @@ export class CrawClawApp extends LitElement {
                         >
                           <strong>${sessionDisplayName(session)}</strong>
                           <span>${session.key}</span>
-                          <small
-                            >${session.status ?? copy.common.idle} ·
-                            ${formatAgo(session.updatedAt, this.locale)}</small
-                          >
+                          <small>
+                            ${(session.surface ?? session.kind).toUpperCase()} ·
+                            ${session.status ?? copy.common.idle} ·
+                            ${formatAgo(session.updatedAt, this.locale)}
+                          </small>
                         </button>
                       `,
                     )
@@ -2088,8 +2193,29 @@ export class CrawClawApp extends LitElement {
             </article>
           </aside>
 
-          <main class="cp-stage__main">
-            <article class="cp-panel cp-panel--fill">
+          <main class="cp-session-console__main">
+            <section class="cp-band cp-band--sessions">
+              ${this.renderMetric(copy.common.status, runtimeState, selected?.status ?? undefined)}
+              ${this.renderMetric(
+                copy.common.provider,
+                selectedProvider ?? copy.common.auto,
+                selectedModel ?? copy.common.default,
+              )}
+              ${this.renderMetric(
+                copy.common.tokens,
+                String(selected?.totalTokens ?? 0),
+                selected?.totalTokensFresh ? copy.common.live : copy.common.summary,
+              )}
+              ${this.renderMetric(
+                copy.common.updated,
+                selected?.updatedAt
+                  ? formatDateTime(selected.updatedAt, this.locale)
+                  : copy.common.pending,
+                selected?.updatedAt ? formatAgo(selected.updatedAt, this.locale) : undefined,
+              )}
+            </section>
+
+            <article class="cp-panel cp-panel--fill cp-session-console__thread-panel">
               <div class="cp-panel__head">
                 <div>
                   <span class="cp-kicker">${copy.sessions.conversationKicker}</span>
@@ -2113,46 +2239,76 @@ export class CrawClawApp extends LitElement {
                   </button>
                 </div>
               </div>
-              <div class="cp-chat-thread">
-                ${repeat(
-                  this.chatState.chatMessages,
-                  (_, index) => index,
-                  (message) => html`
-                    <article
-                      class="cp-chat-bubble cp-chat-bubble--${readString(
-                        (message as JsonRecord).role,
-                        "assistant",
-                      )}"
-                    >
-                      <header>
-                        <strong>${readString((message as JsonRecord).role, "assistant")}</strong>
-                        <small
-                          >${formatDateTime(
-                            (message as JsonRecord).timestamp as number | null,
-                            this.locale,
-                          )}</small
-                        >
-                      </header>
-                      <p>${renderMessageText(message)}</p>
-                    </article>
-                  `,
-                )}
+
+              <div class="cp-chat-thread cp-chat-thread--console">
+                ${this.chatState.chatMessages.length
+                  ? repeat(
+                      this.chatState.chatMessages,
+                      (_, index) => index,
+                      (message) => html`
+                        <article class="cp-chat-entry cp-chat-entry--${readMessageRole(message)}">
+                          <div class="cp-chat-entry__meta">
+                            <strong>${readMessageRole(message)}</strong>
+                            <span>
+                              ${readMessageTimestamp(message)
+                                ? formatDateTime(readMessageTimestamp(message), this.locale)
+                                : copy.common.pending}
+                            </span>
+                            ${countMessageBlocks(message)
+                              ? html`
+                                  <small>
+                                    ${countMessageBlocks(message)} ${copy.sessions.blocks}
+                                  </small>
+                                `
+                              : nothing}
+                          </div>
+                          <div class="cp-chat-entry__body">
+                            <p>${renderMessageText(message)}</p>
+                          </div>
+                        </article>
+                      `,
+                    )
+                  : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
                 ${this.chatState.chatStream
                   ? html`
-                      <article class="cp-chat-bubble cp-chat-bubble--stream">
-                        <header>
+                      <article class="cp-chat-entry cp-chat-entry--stream">
+                        <div class="cp-chat-entry__meta">
                           <strong>assistant</strong>
-                          <small>${copy.sessions.streaming}</small>
-                        </header>
-                        <p>${this.chatState.chatStream}</p>
+                          <span>${copy.sessions.streaming}</span>
+                          ${this.chatState.chatStreamStartedAt
+                            ? html`
+                                <small>
+                                  ${formatAgo(this.chatState.chatStreamStartedAt, this.locale)}
+                                </small>
+                              `
+                            : nothing}
+                        </div>
+                        <div class="cp-chat-entry__body">
+                          <p>${this.chatState.chatStream}</p>
+                        </div>
                       </article>
                     `
                   : nothing}
               </div>
+
               <form
-                class="cp-chat-composer"
+                class="cp-chat-composer cp-chat-composer--console"
                 @submit=${(event: Event) => this.handleSendMessage(event)}
               >
+                <div class="cp-chat-composer__head">
+                  <div>
+                    <span class="cp-kicker">${copy.sessions.composerKicker}</span>
+                    <h4>${copy.sessions.composerTitle}</h4>
+                  </div>
+                  <div class="cp-chat-composer__meta">
+                    <span>
+                      ${copy.sessions.draftLength}: ${this.chatState.chatMessage.trim().length}
+                    </span>
+                    <span>
+                      ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
+                    </span>
+                  </div>
+                </div>
                 <textarea
                   .value=${this.chatState.chatMessage}
                   placeholder=${copy.sessions.sendPlaceholder}
@@ -2170,38 +2326,107 @@ export class CrawClawApp extends LitElement {
             </article>
           </main>
 
-          <aside class="cp-stage__rail">
-            <article class="cp-panel cp-panel--fill">
+          <aside class="cp-session-console__inspector">
+            <article class="cp-panel">
               <div class="cp-panel__head">
                 <div>
-                  <span class="cp-kicker">${copy.sessions.inspectorKicker}</span>
-                  <h3>${copy.sessions.inspectorTitle}</h3>
+                  <span class="cp-kicker">${copy.sessions.runtimeKicker}</span>
+                  <h3>${copy.sessions.runtimeTitle}</h3>
                 </div>
               </div>
               ${selected
-                ? html`
-                    <div class="cp-meta-list">
-                      <div><span>${copy.common.key}</span><strong>${selected.key}</strong></div>
-                      <div><span>${copy.common.kind}</span><strong>${selected.kind}</strong></div>
-                      <div>
-                        <span>${copy.common.status}</span
-                        ><strong>${selected.status ?? copy.common.idle}</strong>
-                      </div>
-                      <div>
-                        <span>${copy.common.provider}</span
-                        ><strong>${selected.modelProvider ?? copy.common.auto}</strong>
-                      </div>
-                      <div>
-                        <span>${copy.common.model}</span
-                        ><strong>${selected.model ?? copy.common.default}</strong>
-                      </div>
-                      <div>
-                        <span>${copy.common.tokens}</span
-                        ><strong>${selected.totalTokens ?? 0}</strong>
-                      </div>
-                    </div>
-                  `
+                ? this.renderMetaEntries(
+                    [
+                      { label: copy.common.status, value: selected.status ?? copy.common.idle },
+                      {
+                        label: copy.common.execution,
+                        value: this.chatState.chatRunId ?? copy.common.none,
+                      },
+                      {
+                        label: copy.common.updated,
+                        value: selected.updatedAt
+                          ? formatDateTime(selected.updatedAt, this.locale)
+                          : copy.common.pending,
+                        hint: selected.updatedAt
+                          ? formatAgo(selected.updatedAt, this.locale)
+                          : undefined,
+                      },
+                      {
+                        label: copy.common.timeline,
+                        value:
+                          selected.runtimeMs != null ? `${selected.runtimeMs}ms` : copy.common.na,
+                      },
+                      {
+                        label: copy.common.messages,
+                        value: String(this.chatState.chatMessages.length),
+                        hint: this.chatState.chatStream ? copy.sessions.streaming : undefined,
+                      },
+                    ],
+                    copy.sessions.selectPrompt,
+                  )
                 : html`<p class="cp-empty">${copy.sessions.selectPrompt}</p>`}
+            </article>
+
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.sessions.routingKicker}</span>
+                  <h3>${copy.sessions.routingTitle}</h3>
+                </div>
+              </div>
+              ${selected
+                ? this.renderMetaEntries(
+                    [
+                      { label: copy.common.key, value: selected.key },
+                      { label: copy.common.kind, value: selected.kind },
+                      { label: copy.common.surface, value: selected.surface ?? copy.common.na },
+                      {
+                        label: copy.common.provider,
+                        value: selectedProvider ?? copy.common.auto,
+                      },
+                      { label: copy.common.model, value: selectedModel ?? copy.common.default },
+                      {
+                        label: copy.common.tokens,
+                        value: String(selected.totalTokens ?? 0),
+                        hint:
+                          selected.inputTokens != null || selected.outputTokens != null
+                            ? `${selected.inputTokens ?? 0} in / ${selected.outputTokens ?? 0} out`
+                            : undefined,
+                      },
+                    ],
+                    copy.sessions.selectPrompt,
+                  )
+                : html`<p class="cp-empty">${copy.sessions.selectPrompt}</p>`}
+            </article>
+
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.sessions.activityKicker}</span>
+                  <h3>${copy.sessions.activityTitle}</h3>
+                </div>
+              </div>
+              ${lastMessage
+                ? html`
+                    ${this.renderMetaEntries([
+                      { label: copy.common.role, value: lastMessageRole ?? copy.common.na },
+                      {
+                        label: copy.common.updated,
+                        value: lastMessageTimestamp
+                          ? formatDateTime(lastMessageTimestamp, this.locale)
+                          : copy.common.pending,
+                        hint: lastMessageTimestamp
+                          ? formatAgo(lastMessageTimestamp, this.locale)
+                          : undefined,
+                      },
+                      {
+                        label: copy.sessions.blocks,
+                        value: String(countMessageBlocks(lastMessage)),
+                      },
+                    ])}
+                    <pre class="cp-code cp-code--compact">${summarizeMessage(lastMessage)}</pre>
+                  `
+                : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
             </article>
           </aside>
         </div>
