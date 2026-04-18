@@ -456,8 +456,12 @@ export function renderUsage(props: UsageProps) {
       <section class="control-console-head">
         <div class="control-console-head__top">
           <div class="control-console-head__copy">
-            <div class="control-console-head__eyebrow">${uiLiteral("Control plane usage")}</div>
-            <h1 class="control-console-head__title">${uiLiteral("Usage observability")}</h1>
+            <div class="control-console-head__eyebrow">
+              ${uiLiteral("Runtime telemetry / observability")}
+            </div>
+            <h1 class="control-console-head__title">
+              ${uiLiteral("Usage & observability console")}
+            </h1>
             <p class="control-console-head__summary">
               ${uiLiteral(
                 "Inspect token volume, cost, session activity, trends, and query-scoped usage detail from one runtime observability surface.",
@@ -507,6 +511,34 @@ export function renderUsage(props: UsageProps) {
           </div>
         </div>
       </section>
+      <div class="console-kpi-band">
+        <div class="console-kpi-card">
+          <span class="console-kpi-card__label">${uiLiteral("Total spend")}</span>
+          <strong class="console-kpi-card__value"
+            >${displayTotals ? formatCost(displayTotals.totalCost) : "$0.00"}</strong
+          >
+          <span class="console-kpi-card__meta">${uiLiteral("Current filtered window")}</span>
+        </div>
+        <div class="console-kpi-card console-kpi-card--stable">
+          <span class="console-kpi-card__label">${uiLiteral("Token velocity")}</span>
+          <strong class="console-kpi-card__value"
+            >${displayTotals ? formatTokens(displayTotals.totalTokens) : "0"}</strong
+          >
+          <span class="console-kpi-card__meta">${chartModeLabel}</span>
+        </div>
+        <div class="console-kpi-card console-kpi-card--warn">
+          <span class="console-kpi-card__label">${uiLiteral("Selected days")}</span>
+          <strong class="console-kpi-card__value"
+            >${filters.selectedDays.length || uiLiteral("All")}</strong
+          >
+          <span class="console-kpi-card__meta">${queryState}</span>
+        </div>
+        <div class="console-kpi-card console-kpi-card--info">
+          <span class="console-kpi-card__label">${uiLiteral("Sessions")}</span>
+          <strong class="console-kpi-card__value">${displaySessionCount}</strong>
+          <span class="console-kpi-card__meta">${selectedSessionLabel}</span>
+        </div>
+      </div>
 
       <div class="usage-console-grid">
         <aside class="usage-console-grid__rail">

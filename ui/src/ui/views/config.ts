@@ -839,389 +839,444 @@ export function renderConfig(props: ConfigProps) {
           </div>
         </section>
 
-        <div class="config-actions">
-          <div class="config-actions__left">
-            ${showModeToggle
+        <section class="config-alert-strip ${hasChanges ? "config-alert-strip--warn" : ""}">
+          <div class="config-alert-strip__copy">
+            <strong>${hasChanges ? "Apply required" : "Runtime synchronized"}</strong>
+            <span>
+              ${hasChanges
+                ? "Configuration edits are staged. Save and apply to push runtime changes."
+                : "No pending config delta is waiting to be applied to the gateway."}
+            </span>
+          </div>
+          <div class="config-alert-strip__meta mono">${configLocation}</div>
+        </section>
+
+        <section class="config-policy-grid" aria-label="Configuration summaries">
+          <article class="config-policy-card">
+            <div class="config-policy-card__header">
+              <span class="config-policy-card__eyebrow">Gateway write lane</span>
+              <span class="config-policy-card__status"
+                >${props.connected ? "linked" : "offline"}</span
+              >
+            </div>
+            <div class="config-policy-card__title">${writePath}</div>
+            <div class="config-policy-card__summary">
+              ${formMode === "form"
+                ? "Section edits remain patch-first and safe to merge into the running snapshot."
+                : "Raw mode writes the full snapshot and bypasses section-safe patch semantics."}
+            </div>
+            <div class="config-policy-card__meta mono">
+              ${hasChanges
+                ? formMode === "raw"
+                  ? "1 pending raw delta"
+                  : `${diff.length} pending field delta${diff.length === 1 ? "" : "s"}`
+                : "0 pending deltas"}
+            </div>
+          </article>
+          <article class="config-policy-card">
+            <div class="config-policy-card__header">
+              <span class="config-policy-card__eyebrow">Runtime sync</span>
+              <span class="config-policy-card__status">${runtimeAction}</span>
+            </div>
+            <div class="config-policy-card__title mono">schema ${schemaVersion}</div>
+            <div class="config-policy-card__summary">
+              ${props.connected
+                ? "Gateway control plane is online. Use reload to refresh the snapshot before editing."
+                : "Gateway is offline. You can inspect the snapshot, but runtime apply is unavailable."}
+            </div>
+            <div class="config-policy-card__meta mono">${configHash}</div>
+          </article>
+        </section>
+
+        <section class="config-workbench">
+          <aside class="config-workbench__rail">
+            ${formMode === "form"
               ? html`
-                  <div class="config-mode-toggle">
-                    <button
-                      class="config-mode-toggle__btn ${formMode === "form" ? "active" : ""}"
-                      ?disabled=${props.schemaLoading || !props.schema}
-                      title=${formUnsafe ? "Form view can't safely edit some fields" : ""}
-                      @click=${() => props.onFormModeChange("form")}
-                    >
-                      Form
-                    </button>
-                    <button
-                      class="config-mode-toggle__btn ${formMode === "raw" ? "active" : ""}"
-                      ?disabled=${!rawAvailable}
-                      title=${rawAvailable
-                        ? "Edit raw JSON/JSON5 config"
-                        : "Raw mode unavailable for this snapshot"}
-                      @click=${() => props.onFormModeChange("raw")}
-                    >
-                      Raw
-                    </button>
+                  <div class="config-search config-search--top">
+                    <div class="config-search__input-row">
+                      <svg
+                        class="config-search__icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="M21 21l-4.35-4.35"></path>
+                      </svg>
+                      <input
+                        type="text"
+                        class="config-search__input"
+                        placeholder="Search settings..."
+                        aria-label="Search settings"
+                        .value=${props.searchQuery}
+                        @input=${(e: Event) =>
+                          props.onSearchChange((e.target as HTMLInputElement).value)}
+                      />
+                      ${props.searchQuery
+                        ? html`
+                            <button
+                              class="config-search__clear"
+                              aria-label="Clear search"
+                              @click=${() => props.onSearchChange("")}
+                            >
+                              ×
+                            </button>
+                          `
+                        : nothing}
+                    </div>
                   </div>
                 `
               : nothing}
-            ${hasChanges
-              ? html`
-                  <span class="config-changes-badge"
-                    >${formMode === "raw"
-                      ? "Unsaved changes"
-                      : `${diff.length} unsaved change${diff.length !== 1 ? "s" : ""}`}</span
-                  >
-                `
-              : html` <span class="config-status muted">No changes</span> `}
-          </div>
-          <div class="config-actions__right">
-            ${!rawAvailable
-              ? html`
-                  <span class="config-status muted"
-                    >Raw mode disabled (snapshot cannot safely round-trip raw text).</span
-                  >
-                `
-              : nothing}
-            ${props.onOpenFile
-              ? html`
+            <div class="config-workbench__rail-header">Manifest sections</div>
+            <div class="config-workbench__rail-tabs" role="tablist" aria-label="Settings sections">
+              ${topTabs.map(
+                (tab) => html`
                   <button
-                    class="btn btn--sm"
-                    title=${props.configPath ? `Open ${props.configPath}` : "Open config file"}
-                    @click=${props.onOpenFile}
+                    class="config-workbench__rail-tab ${props.activeSection === tab.key
+                      ? "active"
+                      : ""}"
+                    role="tab"
+                    aria-selected=${props.activeSection === tab.key}
+                    @click=${() => props.onSectionChange(tab.key)}
+                    title=${tab.label}
                   >
-                    ${icons.fileText} Open
+                    ${tab.label}
                   </button>
-                `
-              : nothing}
-            <button class="btn btn--sm" ?disabled=${props.loading} @click=${props.onReload}>
-              ${props.loading ? "Loading…" : "Reload"}
-            </button>
-            <button class="btn btn--sm primary" ?disabled=${!canSave} @click=${props.onSave}>
-              ${props.saving ? "Saving…" : "Save"}
-            </button>
-            <button class="btn btn--sm" ?disabled=${!canApply} @click=${props.onApply}>
-              ${props.applying ? "Applying…" : "Apply"}
-            </button>
-            <button class="btn btn--sm" ?disabled=${!canUpdate} @click=${props.onUpdate}>
-              ${props.updating ? "Updating…" : "Update"}
-            </button>
-          </div>
-        </div>
+                `,
+              )}
+            </div>
+          </aside>
 
-        <div class="config-top-tabs">
-          ${formMode === "form"
-            ? html`
-                <div class="config-search config-search--top">
-                  <div class="config-search__input-row">
+          <div class="config-workbench__main">
+            <div class="config-actions">
+              <div class="config-actions__left">
+                ${showModeToggle
+                  ? html`
+                      <div class="config-mode-toggle">
+                        <button
+                          class="config-mode-toggle__btn ${formMode === "form" ? "active" : ""}"
+                          ?disabled=${props.schemaLoading || !props.schema}
+                          title=${formUnsafe ? "Form view can't safely edit some fields" : ""}
+                          @click=${() => props.onFormModeChange("form")}
+                        >
+                          Form
+                        </button>
+                        <button
+                          class="config-mode-toggle__btn ${formMode === "raw" ? "active" : ""}"
+                          ?disabled=${!rawAvailable}
+                          title=${rawAvailable
+                            ? "Edit raw JSON/JSON5 config"
+                            : "Raw mode unavailable for this snapshot"}
+                          @click=${() => props.onFormModeChange("raw")}
+                        >
+                          Raw
+                        </button>
+                      </div>
+                    `
+                  : nothing}
+                ${hasChanges
+                  ? html`
+                      <span class="config-changes-badge"
+                        >${formMode === "raw"
+                          ? "Unsaved changes"
+                          : `${diff.length} unsaved change${diff.length !== 1 ? "s" : ""}`}</span
+                      >
+                    `
+                  : html` <span class="config-status muted">No changes</span> `}
+              </div>
+              <div class="config-actions__right">
+                ${!rawAvailable
+                  ? html`
+                      <span class="config-status muted"
+                        >Raw mode disabled (snapshot cannot safely round-trip raw text).</span
+                      >
+                    `
+                  : nothing}
+                ${props.onOpenFile
+                  ? html`
+                      <button
+                        class="btn btn--sm"
+                        title=${props.configPath ? `Open ${props.configPath}` : "Open config file"}
+                        @click=${props.onOpenFile}
+                      >
+                        ${icons.fileText} Open
+                      </button>
+                    `
+                  : nothing}
+                <button class="btn btn--sm" ?disabled=${props.loading} @click=${props.onReload}>
+                  ${props.loading ? "Loading…" : "Reload"}
+                </button>
+                <button class="btn btn--sm primary" ?disabled=${!canSave} @click=${props.onSave}>
+                  ${props.saving ? "Saving…" : "Save"}
+                </button>
+                <button class="btn btn--sm" ?disabled=${!canApply} @click=${props.onApply}>
+                  ${props.applying ? "Applying…" : "Apply"}
+                </button>
+                <button class="btn btn--sm" ?disabled=${!canUpdate} @click=${props.onUpdate}>
+                  ${props.updating ? "Updating…" : "Update"}
+                </button>
+              </div>
+            </div>
+
+            <section class="config-runtime-strip" aria-label="Configuration runtime status">
+              <article class="config-runtime-strip__card">
+                <div class="config-runtime-strip__label">Write path</div>
+                <div class="config-runtime-strip__value mono">${writePath}</div>
+                <div class="config-runtime-strip__hint">
+                  ${formMode === "form"
+                    ? "Section edits stay patch-first and merge-safe."
+                    : "Raw editor writes the full config snapshot."}
+                </div>
+              </article>
+              <article class="config-runtime-strip__card">
+                <div class="config-runtime-strip__label">Apply state</div>
+                <div class="config-runtime-strip__value">${runtimeAction}</div>
+                <div class="config-runtime-strip__hint">
+                  ${hasChanges
+                    ? "Save changes, then apply them to push runtime updates."
+                    : "No pending config delta is waiting to be applied."}
+                </div>
+              </article>
+              <article class="config-runtime-strip__card">
+                <div class="config-runtime-strip__label">Schema + hash</div>
+                <div class="config-runtime-strip__value mono">schema ${schemaVersion}</div>
+                <div class="config-runtime-strip__hint mono">${configHash}</div>
+              </article>
+              <article class="config-runtime-strip__card">
+                <div class="config-runtime-strip__label">Config location</div>
+                <div class="config-runtime-strip__value mono">${configLocation}</div>
+                <div class="config-runtime-strip__hint">
+                  ${props.connected ? "Gateway connected." : "Gateway offline."}
+                </div>
+              </article>
+            </section>
+
+            ${validity === "invalid" && !cvs.validityDismissed
+              ? html`
+                  <div class="config-validity-warning">
                     <svg
-                      class="config-search__icon"
+                      class="config-validity-warning__icon"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      width="16"
+                      height="16"
                     >
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <path d="M21 21l-4.35-4.35"></path>
+                      <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                      ></path>
+                      <line x1="12" y1="9" x2="12" y2="13"></line>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
-                    <input
-                      type="text"
-                      class="config-search__input"
-                      placeholder="Search settings..."
-                      aria-label="Search settings"
-                      .value=${props.searchQuery}
-                      @input=${(e: Event) =>
-                        props.onSearchChange((e.target as HTMLInputElement).value)}
-                    />
-                    ${props.searchQuery
+                    <span class="config-validity-warning__text"
+                      >Your configuration is invalid. Some settings may not work as expected.</span
+                    >
+                    <button
+                      class="btn btn--sm"
+                      @click=${() => {
+                        cvs.validityDismissed = true;
+                        requestUpdate();
+                      }}
+                    >
+                      Don't remind again
+                    </button>
+                  </div>
+                `
+              : nothing}
+            ${hasChanges && formMode === "form"
+              ? html`
+                  <details class="config-diff">
+                    <summary class="config-diff__summary">
+                      <span>View ${diff.length} pending change${diff.length !== 1 ? "s" : ""}</span>
+                      <svg
+                        class="config-diff__chevron"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </summary>
+                    <div class="config-diff__content">
+                      ${diff.map(
+                        (change) => html`
+                          <div class="config-diff__item">
+                            <div class="config-diff__path">${change.path}</div>
+                            <div class="config-diff__values">
+                              <span class="config-diff__from"
+                                >${renderDiffValue(change.path, change.from, props.uiHints)}</span
+                              >
+                              <span class="config-diff__arrow">→</span>
+                              <span class="config-diff__to"
+                                >${renderDiffValue(change.path, change.to, props.uiHints)}</span
+                              >
+                            </div>
+                          </div>
+                        `,
+                      )}
+                    </div>
+                  </details>
+                `
+              : nothing}
+            ${activeSectionMeta && formMode === "form"
+              ? html`
+                  <div class="config-section-hero">
+                    <div class="config-section-hero__icon">
+                      ${getSectionIcon(props.activeSection ?? "")}
+                    </div>
+                    <div class="config-section-hero__text">
+                      <div class="config-section-hero__title">${activeSectionMeta.label}</div>
+                      ${activeSectionMeta.description
+                        ? html`<div class="config-section-hero__desc">
+                            ${activeSectionMeta.description}
+                          </div>`
+                        : nothing}
+                    </div>
+                    ${props.activeSection === "env"
                       ? html`
                           <button
-                            class="config-search__clear"
-                            aria-label="Clear search"
-                            @click=${() => props.onSearchChange("")}
+                            class="config-env-peek-btn ${envSensitiveVisible
+                              ? "config-env-peek-btn--active"
+                              : ""}"
+                            title=${envSensitiveVisible ? "Hide env values" : "Reveal env values"}
+                            @click=${() => {
+                              cvs.envRevealed = !cvs.envRevealed;
+                              requestUpdate();
+                            }}
                           >
-                            ×
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              width="16"
+                              height="16"
+                            >
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            Peek
                           </button>
                         `
                       : nothing}
                   </div>
-                </div>
-              `
-            : nothing}
-
-          <div class="config-top-tabs__scroller" role="tablist" aria-label="Settings sections">
-            ${topTabs.map(
-              (tab) => html`
-                <button
-                  class="config-top-tabs__tab ${props.activeSection === tab.key ? "active" : ""}"
-                  role="tab"
-                  aria-selected=${props.activeSection === tab.key}
-                  @click=${() => props.onSectionChange(tab.key)}
-                  title=${tab.label}
-                >
-                  ${tab.label}
-                </button>
-              `,
-            )}
-          </div>
-        </div>
-
-        <section class="config-runtime-strip" aria-label="Configuration runtime status">
-          <article class="config-runtime-strip__card">
-            <div class="config-runtime-strip__label">Write path</div>
-            <div class="config-runtime-strip__value mono">${writePath}</div>
-            <div class="config-runtime-strip__hint">
-              ${formMode === "form"
-                ? "Section edits stay patch-first and merge-safe."
-                : "Raw editor writes the full config snapshot."}
-            </div>
-          </article>
-          <article class="config-runtime-strip__card">
-            <div class="config-runtime-strip__label">Apply state</div>
-            <div class="config-runtime-strip__value">${runtimeAction}</div>
-            <div class="config-runtime-strip__hint">
-              ${hasChanges
-                ? "Save changes, then apply them to push runtime updates."
-                : "No pending config delta is waiting to be applied."}
-            </div>
-          </article>
-          <article class="config-runtime-strip__card">
-            <div class="config-runtime-strip__label">Schema + hash</div>
-            <div class="config-runtime-strip__value mono">schema ${schemaVersion}</div>
-            <div class="config-runtime-strip__hint mono">${configHash}</div>
-          </article>
-          <article class="config-runtime-strip__card">
-            <div class="config-runtime-strip__label">Config location</div>
-            <div class="config-runtime-strip__value mono">${configLocation}</div>
-            <div class="config-runtime-strip__hint">
-              ${props.connected ? "Gateway connected." : "Gateway offline."}
-            </div>
-          </article>
-        </section>
-
-        ${validity === "invalid" && !cvs.validityDismissed
-          ? html`
-              <div class="config-validity-warning">
-                <svg
-                  class="config-validity-warning__icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  width="16"
-                  height="16"
-                >
-                  <path
-                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                  ></path>
-                  <line x1="12" y1="9" x2="12" y2="13"></line>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                <span class="config-validity-warning__text"
-                  >Your configuration is invalid. Some settings may not work as expected.</span
-                >
-                <button
-                  class="btn btn--sm"
-                  @click=${() => {
-                    cvs.validityDismissed = true;
-                    requestUpdate();
-                  }}
-                >
-                  Don't remind again
-                </button>
-              </div>
-            `
-          : nothing}
-
-        <!-- Diff panel (form mode only - raw mode doesn't have granular diff) -->
-        ${hasChanges && formMode === "form"
-          ? html`
-              <details class="config-diff">
-                <summary class="config-diff__summary">
-                  <span>View ${diff.length} pending change${diff.length !== 1 ? "s" : ""}</span>
-                  <svg
-                    class="config-diff__chevron"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </summary>
-                <div class="config-diff__content">
-                  ${diff.map(
-                    (change) => html`
-                      <div class="config-diff__item">
-                        <div class="config-diff__path">${change.path}</div>
-                        <div class="config-diff__values">
-                          <span class="config-diff__from"
-                            >${renderDiffValue(change.path, change.from, props.uiHints)}</span
-                          >
-                          <span class="config-diff__arrow">→</span>
-                          <span class="config-diff__to"
-                            >${renderDiffValue(change.path, change.to, props.uiHints)}</span
-                          >
-                        </div>
-                      </div>
-                    `,
-                  )}
-                </div>
-              </details>
-            `
-          : nothing}
-        ${activeSectionMeta && formMode === "form"
-          ? html`
-              <div class="config-section-hero">
-                <div class="config-section-hero__icon">
-                  ${getSectionIcon(props.activeSection ?? "")}
-                </div>
-                <div class="config-section-hero__text">
-                  <div class="config-section-hero__title">${activeSectionMeta.label}</div>
-                  ${activeSectionMeta.description
-                    ? html`<div class="config-section-hero__desc">
-                        ${activeSectionMeta.description}
-                      </div>`
-                    : nothing}
-                </div>
-                ${props.activeSection === "env"
-                  ? html`
-                      <button
-                        class="config-env-peek-btn ${envSensitiveVisible
-                          ? "config-env-peek-btn--active"
-                          : ""}"
-                        title=${envSensitiveVisible ? "Hide env values" : "Reveal env values"}
-                        @click=${() => {
-                          cvs.envRevealed = !cvs.envRevealed;
-                          requestUpdate();
-                        }}
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          width="16"
-                          height="16"
-                        >
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                        Peek
-                      </button>
-                    `
-                  : nothing}
-              </div>
-            `
-          : nothing}
-        <!-- Form content -->
-        <div class="config-content">
-          ${props.activeSection === "__appearance__"
-            ? includeVirtualSections
-              ? renderAppearanceSection(props)
-              : nothing
-            : formMode === "form"
-              ? html`
-                  ${showAppearanceOnRoot ? renderAppearanceSection(props) : nothing}
-                  ${props.schemaLoading
-                    ? html`
-                        <div class="config-loading">
-                          <div class="config-loading__spinner"></div>
-                          <span>Loading schema…</span>
-                        </div>
-                      `
-                    : renderConfigForm({
-                        schema: analysis.schema,
-                        uiHints: props.uiHints,
-                        value: props.formValue,
-                        rawAvailable,
-                        disabled: props.loading || !props.formValue,
-                        unsupportedPaths: analysis.unsupportedPaths,
-                        onPatch: props.onFormPatch,
-                        searchQuery: props.searchQuery,
-                        activeSection: props.activeSection,
-                        activeSubsection: effectiveSubsection,
-                        revealSensitive:
-                          props.activeSection === "env" ? envSensitiveVisible : false,
-                        isSensitivePathRevealed,
-                        onToggleSensitivePath: (path) => {
-                          toggleSensitivePathReveal(path);
-                          requestUpdate();
-                        },
-                      })}
                 `
-              : (() => {
-                  const sensitiveCount = countSensitiveConfigValues(
-                    props.formValue,
-                    [],
-                    props.uiHints,
-                  );
-                  const blurred = sensitiveCount > 0 && !cvs.rawRevealed;
-                  return html`
-                    ${formUnsafe
-                      ? html`
-                          <div class="callout info" style="margin-bottom: 12px">
-                            Your config contains fields the form editor can't safely represent. Use
-                            Raw mode to edit those entries.
-                          </div>
-                        `
-                      : nothing}
-                    <div class="field config-raw-field">
-                      <span style="display:flex;align-items:center;gap:8px;">
-                        Raw config (JSON/JSON5)
-                        ${sensitiveCount > 0
-                          ? html`
-                              <span class="pill pill--sm"
-                                >${sensitiveCount} secret${sensitiveCount === 1 ? "" : "s"}
-                                ${blurred ? "redacted" : "visible"}</span
-                              >
-                              <button
-                                class="btn btn--icon config-raw-toggle ${blurred ? "" : "active"}"
-                                title=${blurred
-                                  ? "Reveal sensitive values"
-                                  : "Hide sensitive values"}
-                                aria-label="Toggle raw config redaction"
-                                aria-pressed=${!blurred}
-                                @click=${() => {
-                                  cvs.rawRevealed = !cvs.rawRevealed;
-                                  requestUpdate();
-                                }}
-                              >
-                                ${blurred ? icons.eyeOff : icons.eye}
-                              </button>
-                            `
-                          : nothing}
-                      </span>
-                      ${blurred
+              : nothing}
+            <div class="config-content">
+              ${props.activeSection === "__appearance__"
+                ? includeVirtualSections
+                  ? renderAppearanceSection(props)
+                  : nothing
+                : formMode === "form"
+                  ? html`
+                      ${showAppearanceOnRoot ? renderAppearanceSection(props) : nothing}
+                      ${props.schemaLoading
                         ? html`
-                            <div class="callout info" style="margin-top: 12px">
-                              ${sensitiveCount} sensitive value${sensitiveCount === 1 ? "" : "s"}
-                              hidden. Use the reveal button above to edit the raw config.
+                            <div class="config-loading">
+                              <div class="config-loading__spinner"></div>
+                              <span>Loading schema…</span>
                             </div>
                           `
-                        : html`
-                            <textarea
-                              placeholder="Raw config (JSON/JSON5)"
-                              .value=${props.raw}
-                              @input=${(e: Event) => {
-                                props.onRawChange((e.target as HTMLTextAreaElement).value);
-                              }}
-                            ></textarea>
-                          `}
-                    </div>
-                  `;
-                })()}
-        </div>
+                        : renderConfigForm({
+                            schema: analysis.schema,
+                            uiHints: props.uiHints,
+                            value: props.formValue,
+                            rawAvailable,
+                            disabled: props.loading || !props.formValue,
+                            unsupportedPaths: analysis.unsupportedPaths,
+                            onPatch: props.onFormPatch,
+                            searchQuery: props.searchQuery,
+                            activeSection: props.activeSection,
+                            activeSubsection: effectiveSubsection,
+                            revealSensitive:
+                              props.activeSection === "env" ? envSensitiveVisible : false,
+                            isSensitivePathRevealed,
+                            onToggleSensitivePath: (path) => {
+                              toggleSensitivePathReveal(path);
+                              requestUpdate();
+                            },
+                          })}
+                    `
+                  : (() => {
+                      const sensitiveCount = countSensitiveConfigValues(
+                        props.formValue,
+                        [],
+                        props.uiHints,
+                      );
+                      const blurred = sensitiveCount > 0 && !cvs.rawRevealed;
+                      return html`
+                        ${formUnsafe
+                          ? html`
+                              <div class="callout info" style="margin-bottom: 12px">
+                                Your config contains fields the form editor can't safely represent.
+                                Use Raw mode to edit those entries.
+                              </div>
+                            `
+                          : nothing}
+                        <div class="field config-raw-field">
+                          <span style="display:flex;align-items:center;gap:8px;">
+                            Raw config (JSON/JSON5)
+                            ${sensitiveCount > 0
+                              ? html`
+                                  <span class="pill pill--sm"
+                                    >${sensitiveCount} secret${sensitiveCount === 1 ? "" : "s"}
+                                    ${blurred ? "redacted" : "visible"}</span
+                                  >
+                                  <button
+                                    class="btn btn--icon config-raw-toggle ${blurred
+                                      ? ""
+                                      : "active"}"
+                                    title=${blurred
+                                      ? "Reveal sensitive values"
+                                      : "Hide sensitive values"}
+                                    aria-label="Toggle raw config redaction"
+                                    aria-pressed=${!blurred}
+                                    @click=${() => {
+                                      cvs.rawRevealed = !cvs.rawRevealed;
+                                      requestUpdate();
+                                    }}
+                                  >
+                                    ${blurred ? icons.eyeOff : icons.eye}
+                                  </button>
+                                `
+                              : nothing}
+                          </span>
+                          ${blurred
+                            ? html`
+                                <div class="callout info" style="margin-top: 12px">
+                                  ${sensitiveCount} sensitive
+                                  value${sensitiveCount === 1 ? "" : "s"} hidden. Use the reveal
+                                  button above to edit the raw config.
+                                </div>
+                              `
+                            : html`
+                                <textarea
+                                  placeholder="Raw config (JSON/JSON5)"
+                                  .value=${props.raw}
+                                  @input=${(e: Event) => {
+                                    props.onRawChange((e.target as HTMLTextAreaElement).value);
+                                  }}
+                                ></textarea>
+                              `}
+                        </div>
+                      `;
+                    })()}
+            </div>
 
-        ${props.issues.length > 0
-          ? html`<div class="callout danger" style="margin-top: 12px;">
-              <pre class="code-block">${JSON.stringify(props.issues, null, 2)}</pre>
-            </div>`
-          : nothing}
+            ${props.issues.length > 0
+              ? html`<div class="callout danger" style="margin-top: 12px;">
+                  <pre class="code-block">${JSON.stringify(props.issues, null, 2)}</pre>
+                </div>`
+              : nothing}
+          </div>
+        </section>
       </main>
     </div>
   `;

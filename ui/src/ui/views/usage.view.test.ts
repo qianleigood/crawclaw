@@ -135,8 +135,8 @@ describe("renderUsage", () => {
     render(renderUsage(createProps()), container);
     await Promise.resolve();
 
-    expect(container.textContent).toContain("Control plane usage");
-    expect(container.textContent).toContain("Usage observability");
+    expect(container.textContent).toContain("Runtime telemetry / observability");
+    expect(container.textContent).toContain("Usage & observability console");
     expect(container.textContent).toContain("Primary session");
     expect(container.textContent).toContain("session-alpha");
     expect(container.textContent).toContain("Chart mode");

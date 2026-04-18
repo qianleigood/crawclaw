@@ -199,11 +199,15 @@ export function renderAgents(props: AgentsProps) {
       <section class="control-console-head">
         <div class="control-console-head__top">
           <div class="control-console-head__copy">
-            <div class="control-console-head__eyebrow">${uiLiteral("Control plane agents")}</div>
-            <h1 class="control-console-head__title">${uiLiteral("Agent control")}</h1>
+            <div class="control-console-head__eyebrow">
+              ${uiLiteral("Ops / agents_introspection")}
+            </div>
+            <h1 class="control-console-head__title">
+              ${uiLiteral("Agents & introspection console")}
+            </h1>
             <p class="control-console-head__summary">
               ${uiLiteral(
-                "Inspect agent identity, runtime session, tools, skills, files, and cron state from one operator-focused control surface.",
+                "Inspect agent identity, runtime session, capabilities, files, and raw introspection payloads from one operator-focused console.",
               )}
             </p>
           </div>
@@ -250,6 +254,36 @@ export function renderAgents(props: AgentsProps) {
           </div>
         </div>
       </section>
+      <div class="console-kpi-band">
+        <div class="console-kpi-card">
+          <span class="console-kpi-card__label">${uiLiteral("Active fleet")}</span>
+          <strong class="console-kpi-card__value">${agents.length}</strong>
+          <span class="console-kpi-card__meta"
+            >${uiLiteral("Agents mounted in the registry rail")}</span
+          >
+        </div>
+        <div class="console-kpi-card console-kpi-card--stable">
+          <span class="console-kpi-card__label">${uiLiteral("Runtime")}</span>
+          <strong class="console-kpi-card__value"
+            >${props.runtimeSessionKey ? uiLiteral("Bound") : uiLiteral("Idle")}</strong
+          >
+          <span class="console-kpi-card__meta"
+            >${props.runtimeSessionKey || uiLiteral("No runtime session bound")}</span
+          >
+        </div>
+        <div class="console-kpi-card console-kpi-card--warn">
+          <span class="console-kpi-card__label">${uiLiteral("Inspect")}</span>
+          <strong class="console-kpi-card__value">${inspectState}</strong>
+          <span class="console-kpi-card__meta"
+            >${props.inspect.runId ?? uiLiteral("No inspect run pinned")}</span
+          >
+        </div>
+        <div class="console-kpi-card console-kpi-card--info">
+          <span class="console-kpi-card__label">${uiLiteral("Config / skills")}</span>
+          <strong class="console-kpi-card__value">${configState}</strong>
+          <span class="console-kpi-card__meta">${skillsState}</span>
+        </div>
+      </div>
       <div class="agents-console-grid">
         <aside class="agents-console-grid__rail">
           <section class="card agents-registry-rail">

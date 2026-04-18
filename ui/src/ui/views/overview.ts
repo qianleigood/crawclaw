@@ -2,7 +2,12 @@ import { html, nothing } from "lit";
 import { t, i18n, SUPPORTED_LOCALES, type Locale, isSupportedLocale } from "../../i18n/index.ts";
 import type { EventLogEntry } from "../app-events.ts";
 import { buildExternalLinkRel, EXTERNAL_LINK_TARGET } from "../external-link.ts";
-import { formatRelativeTimestamp, formatDurationHuman } from "../format.ts";
+import {
+  formatCost,
+  formatDurationHuman,
+  formatRelativeTimestamp,
+  formatTokens,
+} from "../format.ts";
 import type { GatewayHelloOk } from "../gateway.ts";
 import { icons } from "../icons.ts";
 import {
@@ -141,8 +146,6 @@ export function renderOverview(props: OverviewProps) {
     : t("common.na");
   const authMode = snapshot?.authMode;
   const isTrustedProxy = authMode === "trusted-proxy";
-  const helloSnapshot =
-    (props.hello?.snapshot as { channels?: Record<string, unknown> } | undefined) ?? undefined;
 
   const pairingHint = (() => {
     if (!shouldShowPairingHint(props.connected, props.lastError, props.lastErrorCode)) {
@@ -266,66 +269,20 @@ export function renderOverview(props: OverviewProps) {
     : i18n.getLocale();
   const uiMode = props.uiMode === "advanced" ? "advanced" : "simple";
   const nextSteps = buildOverviewNextSteps(props);
-  const channelSurfaceCount = Object.keys(helloSnapshot?.channels ?? {}).length;
-  const connectionState = props.connected ? uiLiteral("Connected") : uiLiteral("Needs connection");
-  const sessionSummary =
-    props.sessionsResult?.count != null ? String(props.sessionsResult.count) : t("common.na");
   const refreshSummary = props.lastChannelsRefresh
     ? formatRelativeTimestamp(props.lastChannelsRefresh)
     : t("common.na");
-  const skillSummary =
-    props.skillsReport?.skills != null
-      ? String((props.skillsReport.skills ?? []).filter((skill) => !skill.disabled).length)
-      : t("common.na");
 
   return html`
     <section class="overview-stage overview-stage--rewrite">
-      <section class="control-console-head">
-        <div class="control-console-head__top">
-          <div class="control-console-head__copy">
-            <div class="control-console-head__eyebrow">${uiLiteral("Control plane overview")}</div>
-            <h1 class="control-console-head__title">${uiLiteral("System overview")}</h1>
-            <p class="control-console-head__summary">
-              ${uiLiteral(
-                "Monitor gateway reachability, onboarding readiness, channel posture, runtime health, and operator next steps from one system surface.",
-              )}
-            </p>
-          </div>
-          <div class="control-console-head__actions">
-            <button class="btn" @click=${() => props.onRefresh()}>${t("common.refresh")}</button>
-          </div>
-        </div>
-        <div class="control-console-head__meta">
-          <div class="control-console-head__meta-card">
-            <span class="control-console-head__meta-label">${uiLiteral("Gateway")}</span>
-            <strong class="control-console-head__meta-value">${connectionState}</strong>
-            <span class="control-console-head__meta-note"
-              >${props.settings.gatewayUrl || t("common.na")}</span
-            >
-          </div>
-          <div class="control-console-head__meta-card">
-            <span class="control-console-head__meta-label">${uiLiteral("Assistant")}</span>
-            <strong class="control-console-head__meta-value">${props.assistantName}</strong>
-            <span class="control-console-head__meta-note">${props.settings.sessionKey}</span>
-          </div>
-          <div class="control-console-head__meta-card">
-            <span class="control-console-head__meta-label">${uiLiteral("Channel surfaces")}</span>
-            <strong class="control-console-head__meta-value">${channelSurfaceCount}</strong>
-            <span class="control-console-head__meta-note">${refreshSummary}</span>
-          </div>
-          <div class="control-console-head__meta-card">
-            <span class="control-console-head__meta-label"
-              >${uiLiteral("Ready sessions / skills")}</span
-            >
-            <strong class="control-console-head__meta-value"
-              >${sessionSummary} / ${skillSummary}</strong
-            >
-            <span class="control-console-head__meta-note">
-              ${uiLiteral("Sessions in registry · enabled skills in workspace")}
-            </span>
-          </div>
-        </div>
-      </section>
+      ${renderOverviewMetricsBand({
+        connected: props.connected,
+        usageResult: props.usageResult,
+        sessionsResult: props.sessionsResult,
+        skillsReport: props.skillsReport,
+        cronStatus: props.cronStatus,
+        attentionItems: props.attentionItems,
+      })}
 
       <section class="overview-console-grid">
         <div class="overview-console-grid__main">
@@ -654,6 +611,74 @@ function buildOverviewNextSteps(props: OverviewProps): OverviewStep[] {
   return steps.slice(0, 4);
 }
 
+function renderOverviewMetricsBand(
+  props: Pick<
+    OverviewProps,
+    | "connected"
+    | "usageResult"
+    | "sessionsResult"
+    | "skillsReport"
+    | "cronStatus"
+    | "attentionItems"
+  >,
+) {
+  const totals = props.usageResult?.totals;
+  const enabledSkills = (props.skillsReport?.skills ?? []).filter(
+    (skill) => !skill.disabled,
+  ).length;
+  const issues = props.attentionItems.length;
+  const criticalIssues = props.attentionItems.filter((item) => item.severity === "error").length;
+  const metrics = [
+    {
+      label: uiLiteral("Gateway"),
+      value: props.connected ? uiLiteral("Online") : uiLiteral("Offline"),
+      suffix: uiLiteral("state"),
+      accent: props.connected ? "ok" : "warn",
+      fill: props.connected ? "86%" : "28%",
+    },
+    {
+      label: uiLiteral("Usage"),
+      value: formatCost(totals?.totalCost),
+      suffix: formatTokens(totals?.totalTokens),
+      accent: "info",
+      fill: totals?.totalCost ? "68%" : "18%",
+    },
+    {
+      label: uiLiteral("Sessions"),
+      value: String(props.sessionsResult?.count ?? 0),
+      suffix: `${enabledSkills} skills`,
+      accent: "stable",
+      fill: props.sessionsResult?.count ? "76%" : "22%",
+    },
+    {
+      label: uiLiteral("Attention"),
+      value: issues ? String(issues) : uiLiteral("Clear"),
+      suffix: criticalIssues > 0 ? `${criticalIssues} critical` : uiLiteral("nominal"),
+      accent: criticalIssues > 0 ? "warn" : props.cronStatus?.enabled === false ? "info" : "ok",
+      fill: issues ? "41%" : "94%",
+    },
+  ];
+
+  return html`
+    <section class="overview-kpi-band" aria-label="Overview metrics">
+      ${metrics.map(
+        (metric) => html`
+          <article class="overview-kpi-card overview-kpi-card--${metric.accent}">
+            <div class="overview-kpi-card__label">${metric.label}</div>
+            <div class="overview-kpi-card__value-row">
+              <strong class="overview-kpi-card__value">${metric.value}</strong>
+              <span class="overview-kpi-card__suffix mono">${metric.suffix}</span>
+            </div>
+            <div class="overview-kpi-card__meter" aria-hidden="true">
+              <span class="overview-kpi-card__meter-fill" style=${`width:${metric.fill}`}></span>
+            </div>
+          </article>
+        `,
+      )}
+    </section>
+  `;
+}
+
 function renderOverviewHero(props: OverviewProps, nextSteps: OverviewStep[]) {
   const statusLabel = props.connected ? "Connected" : "Needs connection";
   const statusTone = props.connected ? "ok" : "warn";
@@ -666,56 +691,121 @@ function renderOverviewHero(props: OverviewProps, nextSteps: OverviewStep[]) {
   const summary = props.connected
     ? `System ready. ${enabledSkills} skill${enabledSkills === 1 ? "" : "s"} enabled${channelsReady ? ` · ${channelsReady} channel surface${channelsReady === 1 ? "" : "s"}` : ""}.`
     : "Connect the gateway first, then finish one channel and a few recommended skills.";
+  const matrixNodes = [
+    {
+      label: uiLiteral("GW"),
+      title: uiLiteral("Gateway"),
+      status: props.connected ? uiLiteral("online") : uiLiteral("offline"),
+      tone: props.connected ? "ok" : "warn",
+    },
+    {
+      label: uiLiteral("CH"),
+      title: uiLiteral("Channels"),
+      status: channelsReady > 0 ? `${channelsReady} ready` : uiLiteral("unchecked"),
+      tone: channelsReady > 0 ? "ok" : "warn",
+    },
+    {
+      label: uiLiteral("SK"),
+      title: uiLiteral("Skills"),
+      status: `${enabledSkills} enabled`,
+      tone: enabledSkills > 0 ? "stable" : "warn",
+    },
+    {
+      label: uiLiteral("SE"),
+      title: uiLiteral("Sessions"),
+      status: `${props.sessionsResult?.count ?? 0} live`,
+      tone: (props.sessionsResult?.count ?? 0) > 0 ? "info" : "warn",
+    },
+    {
+      label: uiLiteral("CR"),
+      title: uiLiteral("Cron"),
+      status: props.cronEnabled === false ? uiLiteral("disabled") : uiLiteral("armed"),
+      tone: props.cronEnabled === false ? "warn" : "ok",
+    },
+    {
+      label: uiLiteral("FS"),
+      title: uiLiteral("Feishu"),
+      status: formatFeishuCliOverviewState(props),
+      tone: props.feishuCliStatus?.authOk === false ? "warn" : "ok",
+    },
+    {
+      label: uiLiteral("OB"),
+      title: uiLiteral("Onboarding"),
+      status: props.onboarding ? uiLiteral("guided") : uiLiteral("manual"),
+      tone: props.onboarding ? "info" : "stable",
+    },
+    {
+      label: uiLiteral("RT"),
+      title: uiLiteral("Runtime"),
+      status: props.connected ? uiLiteral("stable") : uiLiteral("pending"),
+      tone: props.connected ? "ok" : "warn",
+    },
+  ];
 
   return html`
-    <section class="overview-hero card">
-      <div class="overview-hero__main">
-        <div class="overview-hero__eyebrow">${t("overviewUi.hero.eyebrow")}</div>
-        <h1 class="overview-hero__title">${t("overviewUi.hero.title")}</h1>
-        <p class="overview-hero__summary">${summary}</p>
-        <div class="overview-hero__actions">
-          <button
-            class="btn primary"
-            @click=${() => (props.connected ? props.onNavigate("chat") : props.onConnect())}
-          >
-            ${props.connected
-              ? t("overviewUi.actions.openChat")
-              : t("overviewUi.actions.connectGateway")}
-          </button>
-          <button class="btn" @click=${() => props.onNavigate("channels")}>
-            ${t("overviewUi.actions.openConnectCenter")}
-          </button>
-          <button class="btn" @click=${() => props.onNavigate("skills")}>
-            ${t("overviewUi.actions.reviewSkills")}
-          </button>
+    <section class="overview-matrix card">
+      <div class="overview-matrix__header">
+        <div>
+          <div class="overview-matrix__eyebrow">${t("overviewUi.hero.eyebrow")}</div>
+          <h1 class="overview-matrix__title">${t("overviewUi.hero.title")}</h1>
+          <p class="overview-matrix__summary">${summary}</p>
         </div>
-      </div>
-      <div class="overview-hero__side">
-        <div class="overview-hero__status">
+        <div class="overview-matrix__status">
           <span class="label">${t("overviewUi.hero.statusLabel")}</span>
           <span class="overview-hero__status-pill ${statusTone}">${statusLabel}</span>
         </div>
-        <div class="overview-hero__quick-stats">
-          <div>
-            <span class="label">${t("overviewUi.hero.defaultSession")}</span>
-            <strong>${props.settings.sessionKey}</strong>
+      </div>
+      <div class="overview-matrix__grid">
+        <div class="overview-matrix__tiles">
+          ${matrixNodes.map(
+            (node) => html`
+              <article class="overview-matrix-node overview-matrix-node--${node.tone}">
+                <span class="overview-matrix-node__key mono">${node.label}</span>
+                <strong class="overview-matrix-node__title">${node.title}</strong>
+                <span class="overview-matrix-node__status">${node.status}</span>
+              </article>
+            `,
+          )}
+        </div>
+        <div class="overview-matrix__rail">
+          <div class="overview-matrix__quick-stats">
+            <div>
+              <span class="label">${t("overviewUi.hero.defaultSession")}</span>
+              <strong>${props.settings.sessionKey}</strong>
+            </div>
+            <div>
+              <span class="label">${t("tabs.channels")}</span>
+              <strong>
+                ${props.lastChannelsRefresh
+                  ? t("overviewUi.hero.configured")
+                  : t("overviewUi.hero.notChecked")}
+              </strong>
+            </div>
+            <div>
+              <span class="label">${t("overviewUi.hero.feishuUser")}</span>
+              <strong>${formatFeishuCliOverviewState(props)}</strong>
+            </div>
           </div>
-          <div>
-            <span class="label">${t("tabs.channels")}</span>
-            <strong>
-              ${props.lastChannelsRefresh
-                ? t("overviewUi.hero.configured")
-                : t("overviewUi.hero.notChecked")}
-            </strong>
-          </div>
-          <div>
-            <span class="label">${t("overviewUi.hero.feishuUser")}</span>
-            <strong>${formatFeishuCliOverviewState(props)}</strong>
+          <div class="overview-matrix__actions">
+            <button
+              class="btn primary"
+              @click=${() => (props.connected ? props.onNavigate("chat") : props.onConnect())}
+            >
+              ${props.connected
+                ? t("overviewUi.actions.openChat")
+                : t("overviewUi.actions.connectGateway")}
+            </button>
+            <button class="btn" @click=${() => props.onNavigate("channels")}>
+              ${t("overviewUi.actions.openConnectCenter")}
+            </button>
+            <button class="btn" @click=${() => props.onNavigate("skills")}>
+              ${t("overviewUi.actions.reviewSkills")}
+            </button>
           </div>
         </div>
       </div>
-      <div class="overview-hero__steps">
-        <div class="overview-hero__steps-title">${t("overviewUi.hero.nextSteps")}</div>
+      <div class="overview-matrix__steps">
+        <div class="overview-matrix__steps-title">${t("overviewUi.hero.nextSteps")}</div>
         <div class="overview-hero__steps-grid">
           ${nextSteps.map(
             (step) => html`

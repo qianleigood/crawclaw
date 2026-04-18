@@ -220,8 +220,8 @@ describe("renderAgents", () => {
     );
     await Promise.resolve();
 
-    expect(container.textContent).toContain("Control plane agents");
-    expect(container.textContent).toContain("Agent control");
+    expect(container.textContent).toContain("Ops / agents_introspection");
+    expect(container.textContent).toContain("Agents & introspection console");
     expect(container.textContent).toContain("Inspect");
     expect(container.textContent).toContain("Runtime Inspect");
     expect(container.textContent).toContain("run-123");

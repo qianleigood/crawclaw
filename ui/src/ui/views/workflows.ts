@@ -867,57 +867,38 @@ export function renderWorkflows(props: WorkflowsProps) {
         </div>
       </section>
 
-      <section class="card operations-panel operations-panel--workflows">
-        <div
-          class="operations-panel__header row"
-          style="justify-content:space-between; margin-bottom: 12px;"
-        >
-          <div>
-            <div class="card-title">${uiLiteral("Workflows")}</div>
-            <div class="card-sub">
-              ${uiLiteral("Workflow registry, deployment, and execution timeline.")}
-            </div>
-          </div>
-          <button
-            class="btn"
-            ?disabled=${props.loading || !props.connected}
-            @click=${props.onRefresh}
-          >
-            ${props.loading ? uiLiteral("Loading…") : uiLiteral("Refresh")}
-          </button>
-        </div>
+      ${props.error ? html`<div class="callout danger">${props.error}</div>` : nothing}
+      ${!props.connected
+        ? html`<div class="callout warn">
+            ${uiLiteral("Connect to the gateway to load workflows.")}
+          </div>`
+        : nothing}
 
-        ${props.error
-          ? html`<div class="callout danger" style="margin-bottom: 12px;">${props.error}</div>`
-          : nothing}
-        ${!props.connected
-          ? html`<div class="muted">${uiLiteral("Connect to the gateway to load workflows.")}</div>`
-          : nothing}
-
-        <div class="operations-panel__stats">
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Registry")}</span>
-            <strong class="operations-panel__stat-value">${props.workflows.length}</strong>
+      <section class="workflows-stitch-shell">
+        <div class="workflows-kpi-band">
+          <div class="workflows-kpi-card">
+            <span class="workflows-kpi-card__label">${uiLiteral("Registry")}</span>
+            <strong class="workflows-kpi-card__value">${props.workflows.length}</strong>
+            <span class="workflows-kpi-card__meta">${uiLiteral("Total saved workflows")}</span>
           </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Filtered")}</span>
-            <strong class="operations-panel__stat-value">${filteredWorkflows.length}</strong>
+          <div class="workflows-kpi-card">
+            <span class="workflows-kpi-card__label">${uiLiteral("Filtered")}</span>
+            <strong class="workflows-kpi-card__value">${filteredWorkflows.length}</strong>
+            <span class="workflows-kpi-card__meta"
+              >${uiLiteral("Current search and state filter")}</span
+            >
           </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Deployed")}</span>
-            <strong class="operations-panel__stat-value">${deployedCount}</strong>
+          <div class="workflows-kpi-card workflows-kpi-card--stable">
+            <span class="workflows-kpi-card__label">${uiLiteral("Deployed")}</span>
+            <strong class="workflows-kpi-card__value">${deployedCount}</strong>
+            <span class="workflows-kpi-card__meta">${uiLiteral("Live runtime surfaces")}</span>
           </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Approval required")}</span>
-            <strong class="operations-panel__stat-value">${approvalCount}</strong>
-          </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Archived")}</span>
-            <strong class="operations-panel__stat-value">${archivedCount}</strong>
-          </div>
-          <div class="operations-panel__stat">
-            <span class="operations-panel__stat-label">${uiLiteral("Selected")}</span>
-            <strong class="operations-panel__stat-value">${workflowSelection}</strong>
+          <div class="workflows-kpi-card workflows-kpi-card--warn">
+            <span class="workflows-kpi-card__label">${uiLiteral("Approval / archived")}</span>
+            <strong class="workflows-kpi-card__value">${approvalCount + archivedCount}</strong>
+            <span class="workflows-kpi-card__meta"
+              >${uiLiteral("Governed or paused workflows")}</span
+            >
           </div>
         </div>
 
@@ -959,35 +940,46 @@ export function renderWorkflows(props: WorkflowsProps) {
           </div>
         </div>
 
-        <div class="workflows-console-grid">
+        <div class="workflows-console-grid workflows-console-grid--stitch">
           <div class="workflows-console-grid__rail">
-            <section
-              style="display:grid; gap:12px; padding:12px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-            >
-              <div style="display:grid; gap:10px;">
-                <div class="card-title">${uiLiteral("Registry")}</div>
-                <input
-                  class="input"
-                  .value=${props.filterQuery}
-                  placeholder=${uiLiteral("Search workflows")}
-                  @input=${(event: Event) =>
-                    props.onFilterQueryChange((event.currentTarget as HTMLInputElement).value)}
-                />
-                <select
-                  class="input"
-                  .value=${props.filterState}
-                  @change=${(event: Event) =>
-                    props.onFilterStateChange(
-                      (event.currentTarget as HTMLSelectElement)
-                        .value as WorkflowsProps["filterState"],
-                    )}
-                >
-                  <option value="all">${uiLiteral("All workflows")}</option>
-                  <option value="enabled">${uiLiteral("Enabled only")}</option>
-                  <option value="disabled">${uiLiteral("Disabled only")}</option>
-                  <option value="deployed">${uiLiteral("Deployed only")}</option>
-                  <option value="approval">${uiLiteral("Approval required only")}</option>
-                </select>
+            <section class="workflow-registry-shell">
+              <div class="workflow-registry-shell__controls">
+                <div style="display:grid; gap:10px;">
+                  <div class="card-title">${uiLiteral("Registry")}</div>
+                  <input
+                    class="input"
+                    .value=${props.filterQuery}
+                    placeholder=${uiLiteral("Search workflows")}
+                    @input=${(event: Event) =>
+                      props.onFilterQueryChange((event.currentTarget as HTMLInputElement).value)}
+                  />
+                </div>
+                <div class="workflow-registry-shell__filters">
+                  <button
+                    class="workflow-registry-shell__filter ${props.filterState === "all"
+                      ? "active"
+                      : ""}"
+                    @click=${() => props.onFilterStateChange("all")}
+                  >
+                    ${uiLiteral("All")}
+                  </button>
+                  <button
+                    class="workflow-registry-shell__filter ${props.filterState === "enabled"
+                      ? "active"
+                      : ""}"
+                    @click=${() => props.onFilterStateChange("enabled")}
+                  >
+                    ${uiLiteral("Active")}
+                  </button>
+                  <button
+                    class="workflow-registry-shell__filter ${props.filterState === "approval"
+                      ? "active"
+                      : ""}"
+                    @click=${() => props.onFilterStateChange("approval")}
+                  >
+                    ${uiLiteral("Critical")}
+                  </button>
+                </div>
               </div>
               ${filteredWorkflows.length
                 ? filteredWorkflows.map((workflow) => renderWorkflowListEntry(workflow, props))
@@ -996,21 +988,31 @@ export function renderWorkflows(props: WorkflowsProps) {
           </div>
 
           <div class="workflows-console-grid__main">
-            <section
-              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-            >
+            <section class="workflow-runtime-shell">
               ${detail
                 ? html`
-                    <div
-                      style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;"
-                    >
-                      <div style="display:grid; gap:6px;">
+                    <div class="workflow-runtime-shell__header">
+                      <div class="workflow-runtime-shell__identity">
                         <div class="card-title">${detail.workflow.name}</div>
                         <div class="card-sub">
                           ${detail.workflow.description || detail.spec.goal}
                         </div>
+                        <div class="workflow-runtime-shell__meta">
+                          <span
+                            >${uiLiteral("Owner")}:
+                            ${detail.workflow.ownerSessionKey ?? uiLiteral("system")}</span
+                          >
+                          <span
+                            >${uiLiteral("Source")}:
+                            ${detail.spec.sourceSummary ?? uiLiteral("runtime managed")}</span
+                          >
+                          <span
+                            >${uiLiteral("Last mod")}:
+                            ${formatWhen(detail.workflow.updatedAt)}</span
+                          >
+                        </div>
                       </div>
-                      <div class="row" style="gap:8px; flex-wrap:wrap;">
+                      <div class="workflow-runtime-shell__actions">
                         <button
                           class="btn btn--sm"
                           ?disabled=${!workflowRef ||
@@ -1072,20 +1074,10 @@ export function renderWorkflows(props: WorkflowsProps) {
                               ? uiLiteral("Unarchive")
                               : uiLiteral("Archive")}
                         </button>
-                        <button
-                          class="btn btn--sm"
-                          ?disabled=${!workflowRef ||
-                          props.actionBusyKey === `delete:${workflowRef}`}
-                          @click=${() => workflowRef && props.onDeleteWorkflow(workflowRef)}
-                        >
-                          ${props.actionBusyKey === `delete:${workflowRef}`
-                            ? uiLiteral("Deleting…")
-                            : uiLiteral("Delete")}
-                        </button>
                       </div>
                     </div>
 
-                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <div class="workflow-runtime-shell__status">
                       <span class="pill">${deploymentLabel(detail)}</span>
                       <span class="pill"
                         >${isEnabled ? uiLiteral("enabled") : uiLiteral("disabled")}</span
@@ -1104,9 +1096,7 @@ export function renderWorkflows(props: WorkflowsProps) {
                         : nothing}
                     </div>
 
-                    <div
-                      style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;"
-                    >
+                    <div class="workflow-runtime-shell__metrics">
                       ${metric(uiLiteral("Inputs"), detail.spec.inputs.length)}
                       ${metric(uiLiteral("Outputs"), detail.spec.outputs.length)}
                       ${metric(uiLiteral("Steps"), detail.spec.steps.length)}
@@ -1115,7 +1105,7 @@ export function renderWorkflows(props: WorkflowsProps) {
                       ${metric(uiLiteral("Deployment version"), detail.workflow.deploymentVersion)}
                     </div>
 
-                    <div style="display:grid; gap:8px;">
+                    <div class="workflow-runtime-shell__tagset">
                       <div class="label">${uiLiteral("Tags")}</div>
                       <div style="display:flex; flex-wrap:wrap; gap:8px;">
                         ${detail.workflow.tags.length
@@ -1126,7 +1116,7 @@ export function renderWorkflows(props: WorkflowsProps) {
                       </div>
                     </div>
 
-                    <div style="display:grid; gap:8px;">
+                    <div class="workflow-runtime-shell__store">
                       <div class="label">${uiLiteral("Store paths")}</div>
                       <div class="muted">${uiLiteral("Spec path")}: ${detail.specPath}</div>
                       <div class="muted">${uiLiteral("Store root")}: ${detail.storeRoot}</div>
@@ -1137,7 +1127,7 @@ export function renderWorkflows(props: WorkflowsProps) {
                         : nothing}
                     </div>
 
-                    <div style="display:grid; gap:10px;">
+                    <div class="workflow-runtime-shell__steps">
                       <div class="card-title">${uiLiteral("Workflow Steps")}</div>
                       ${detail.spec.steps.length
                         ? detail.spec.steps.map(
@@ -1211,83 +1201,82 @@ export function renderWorkflows(props: WorkflowsProps) {
               ${props.detailError
                 ? html`<div class="callout danger">${props.detailError}</div>`
                 : nothing}
-            </section>
-
-            <section
-              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-            >
-              <div
-                style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;"
-              >
-                <div>
-                  <div class="card-title">${uiLiteral("Version Rail")}</div>
-                  <div class="card-sub">
-                    ${uiLiteral(
-                      "Track spec history and deployment lineage before you change anything.",
-                    )}
-                  </div>
-                </div>
+              <div class="workflow-runtime-shell__tabs">
+                <span class="workflow-runtime-shell__tab workflow-runtime-shell__tab--active"
+                  >${uiLiteral("Diff preview")}</span
+                >
+                <span class="workflow-runtime-shell__tab">${uiLiteral("Version history")}</span>
+                <span class="workflow-runtime-shell__tab">${uiLiteral("Parameters")}</span>
               </div>
-              ${renderVersionsPanel(detail, props)}
-            </section>
-
-            <section
-              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-            >
-              <div>
-                <div class="card-title">${uiLiteral("Change Summary")}</div>
-                <div class="card-sub">
-                  ${props.diffSnapshot
-                    ? html`${uiLiteral("Comparing spec")} v${props.diffSnapshot.fromSpecVersion} →
-                      v${props.diffSnapshot.toSpecVersion}`
-                    : uiLiteral(
-                        "Inspect what changed between the current spec and the selected baseline.",
-                      )}
-                </div>
-              </div>
-              ${props.diffLoading
-                ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
-                : props.diffError
-                  ? html`<div class="callout danger">${props.diffError}</div>`
-                  : renderWorkflowDiff(props.diffSnapshot?.diff ?? null)}
-            </section>
-
-            <section
-              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-            >
-              <div>
-                <div class="card-title">${uiLiteral("Spec Workbench")}</div>
-                <div class="card-sub">
-                  ${uiLiteral(
-                    "Edit the source spec here, then republish to refresh the compiled n8n workflow.",
-                  )}
-                </div>
-              </div>
-              ${renderEditorPanel(detail, props)}
-            </section>
-
-            <section
-              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-            >
-              <div class="card-title">${uiLiteral("Recent Runs")}</div>
-              ${props.runsError
-                ? html`<div class="callout danger">${props.runsError}</div>`
-                : nothing}
-              ${props.runsLoading
-                ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
-                : props.runs.length
-                  ? html`
-                      <div style="display:grid; gap:10px;">
-                        ${props.runs.map((execution) => renderExecutionRow(execution, props))}
+              <div class="workflow-runtime-shell__body">
+                <div class="workflow-runtime-shell__primary">
+                  <section class="workflow-runtime-shell__panel">
+                    <div>
+                      <div class="card-title">${uiLiteral("Change summary")}</div>
+                      <div class="card-sub">
+                        ${props.diffSnapshot
+                          ? html`${uiLiteral("Comparing spec")}
+                            v${props.diffSnapshot.fromSpecVersion} →
+                            v${props.diffSnapshot.toSpecVersion}`
+                          : uiLiteral(
+                              "Inspect what changed between the current spec and the selected baseline.",
+                            )}
                       </div>
-                    `
-                  : html`<div class="muted">${uiLiteral("No executions recorded yet.")}</div>`}
-            </section>
+                    </div>
+                    ${props.diffLoading
+                      ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
+                      : props.diffError
+                        ? html`<div class="callout danger">${props.diffError}</div>`
+                        : renderWorkflowDiff(props.diffSnapshot?.diff ?? null)}
+                  </section>
 
-            <section
-              style="display:grid; gap:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel);"
-            >
-              ${renderExecutionDetail(props.selectedExecution, props)}
+                  <section class="workflow-runtime-shell__panel">
+                    <div>
+                      <div class="card-title">${uiLiteral("Spec workbench")}</div>
+                      <div class="card-sub">
+                        ${uiLiteral(
+                          "Edit the source spec here, then republish to refresh the compiled runtime workflow.",
+                        )}
+                      </div>
+                    </div>
+                    ${renderEditorPanel(detail, props)}
+                  </section>
+                </div>
+
+                <aside class="workflow-runtime-shell__rail">
+                  <section class="workflow-runtime-shell__panel">
+                    <div>
+                      <div class="card-title">${uiLiteral("Version rail")}</div>
+                      <div class="card-sub">
+                        ${uiLiteral(
+                          "Track spec history and deployment lineage before you change anything.",
+                        )}
+                      </div>
+                    </div>
+                    ${renderVersionsPanel(detail, props)}
+                  </section>
+
+                  <section class="workflow-runtime-shell__panel">
+                    <div class="card-title">${uiLiteral("Recent executions")}</div>
+                    ${props.runsError
+                      ? html`<div class="callout danger">${props.runsError}</div>`
+                      : nothing}
+                    ${props.runsLoading
+                      ? html`<div class="muted">${uiLiteral("Loading…")}</div>`
+                      : props.runs.length
+                        ? html`<div style="display:grid; gap:10px;">
+                            ${props.runs.map((execution) => renderExecutionRow(execution, props))}
+                          </div>`
+                        : html`<div class="muted">
+                            ${uiLiteral("No executions recorded yet.")}
+                          </div>`}
+                  </section>
+
+                  <section class="workflow-runtime-shell__panel">
+                    ${renderExecutionDetail(props.selectedExecution, props)}
+                  </section>
+                </aside>
+              </div>
             </section>
           </div>
         </div>

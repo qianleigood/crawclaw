@@ -1293,6 +1293,219 @@
 }
 
 /* ===========================================
+   Stitch Rewrite Overrides
+   =========================================== */
+
+.shell {
+  --shell-nav-width: 264px;
+  --shell-nav-rail-width: 80px;
+  --shell-topbar-height: 48px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 6%, transparent), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 100%, transparent), color-mix(in srgb, var(--bg) 92%, var(--panel) 8%));
+}
+
+.topbar {
+  min-height: var(--shell-topbar-height);
+  padding: 0 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-strong) 40%, transparent);
+  background: color-mix(in srgb, var(--bg) 98%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.topbar-shell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--shell-topbar-height);
+}
+
+.topbar-shell__brandline {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
+}
+
+.topbar-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.topbar-shell__brand-mark {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text-strong);
+}
+
+.topbar-shell__brand-separator {
+  color: color-mix(in srgb, var(--muted) 64%, transparent);
+}
+
+.topbar-shell__brand-route {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 86%, white 14%);
+}
+
+.topbar-domain-nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.topbar-domain-nav__link {
+  position: relative;
+  padding: 2px 0 4px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+.topbar-domain-nav__link.active {
+  color: var(--text-strong);
+}
+
+.topbar-domain-nav__link.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent) 86%, white 14%);
+}
+
+.topbar-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.topbar-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-telemetry__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 48%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 40%, transparent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.topbar-telemetry__chip--online {
+  color: var(--ok);
+}
+
+.topbar-telemetry__chip--offline {
+  color: var(--danger);
+}
+
+.topbar-telemetry__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  box-shadow: 0 0 10px color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.topbar-telemetry__text {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.topbar-search {
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-elevated) 28%, transparent);
+}
+
+.shell-nav {
+  border-right: 1px solid color-mix(in srgb, var(--border-strong) 28%, transparent);
+  background: color-mix(in srgb, var(--bg) 98%, transparent);
+}
+
+.sidebar-shell {
+  padding: 20px 12px 14px;
+  border-right: 1px solid color-mix(in srgb, var(--border-strong) 18%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 18%, transparent);
+  box-shadow: none;
+}
+
+.sidebar-shell--stitch .sidebar-shell__header {
+  justify-content: flex-start;
+  padding: 0 8px 18px;
+}
+
+.sidebar-brand__title {
+  font-size: 12px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.nav-section,
+.nav-section__label,
+.nav-section__chevron {
+  display: none;
+}
+
+.sidebar-nav--stitch .nav-section__items {
+  display: grid;
+  gap: 4px;
+}
+
+.sidebar-shell__footer {
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-strong) 18%, transparent);
+}
+
+.content-shell {
+  gap: 0;
+}
+
+.content-stage {
+  padding: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.content-header {
+  display: none;
+}
+
+.content--chat .content-header {
+  display: none;
+}
+
+/* ===========================================
    Grid Utilities
    =========================================== */
 

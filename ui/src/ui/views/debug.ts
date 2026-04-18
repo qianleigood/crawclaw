@@ -61,8 +61,8 @@ export function renderDebug(props: DebugProps) {
       <section class="control-console-head">
         <div class="control-console-head__top">
           <div class="control-console-head__copy">
-            <div class="control-console-head__eyebrow">${uiLiteral("Control plane debug")}</div>
-            <h1 class="control-console-head__title">${uiLiteral("Debug console")}</h1>
+            <div class="control-console-head__eyebrow">${uiLiteral("Ops_console_v2.4 / telemetry / security / logs")}</div>
+            <h1 class="control-console-head__title">${uiLiteral("Debug & RPC console")}</h1>
             <p class="control-console-head__summary">
               ${uiLiteral(
                 "Inspect snapshots, method surface, preferred names, aliases, and raw gateway RPC traffic from one engineering console.",
@@ -105,6 +105,28 @@ export function renderDebug(props: DebugProps) {
           </div>
         </div>
       </section>
+      <div class="console-kpi-band">
+        <div class="console-kpi-card">
+          <span class="console-kpi-card__label">${uiLiteral("Signal")}</span>
+          <strong class="console-kpi-card__value">${props.loading ? uiLiteral("Refreshing") : uiLiteral("Stable")}</strong>
+          <span class="console-kpi-card__meta">${uiLiteral("Method and event surface probe")}</span>
+        </div>
+        <div class="console-kpi-card console-kpi-card--stable">
+          <span class="console-kpi-card__label">${uiLiteral("Preferred names")}</span>
+          <strong class="console-kpi-card__value">${preferredMethodCount}</strong>
+          <span class="console-kpi-card__meta">${uiLiteral("system.* and channels.login.*")}</span>
+        </div>
+        <div class="console-kpi-card console-kpi-card--warn">
+          <span class="console-kpi-card__label">${uiLiteral("Legacy aliases")}</span>
+          <strong class="console-kpi-card__value">${legacyAliasCount}</strong>
+          <span class="console-kpi-card__meta">${uiLiteral("Compatibility surface still exposed")}</span>
+        </div>
+        <div class="console-kpi-card ${critical > 0 ? "console-kpi-card--danger" : "console-kpi-card--info"}">
+          <span class="console-kpi-card__label">${uiLiteral("Security audit")}</span>
+          <strong class="console-kpi-card__value">${securityLabel}</strong>
+          <span class="console-kpi-card__meta">${uiLiteral("Critical / warn / info summary")}</span>
+        </div>
+      </div>
 
       <div class="debug-console-grid">
         <aside class="debug-console-grid__rail">

@@ -9,9 +9,7 @@ import { getSafeLocalStorage } from "../local-storage.ts";
 import { refreshChatAvatar } from "./app-chat.ts";
 import { renderUsageTab } from "./app-render-usage-tab.ts";
 import {
-  renderChatControls,
   renderChatMobileToggle,
-  renderChatSessionSelect,
   renderTab,
   renderSidebarConnectionStatus,
   renderTopbarThemeModeToggle,
@@ -106,10 +104,9 @@ import {
   setWorkflowArchived,
   setWorkflowEnabled,
 } from "./controllers/workflows.ts";
-import "./components/dashboard-header.ts";
 import { buildExternalLinkRel, EXTERNAL_LINK_TARGET } from "./external-link.ts";
 import { icons } from "./icons.ts";
-import { normalizeBasePath, subtitleForTab, tabGroupsForMode, titleForTab } from "./navigation.ts";
+import { normalizeBasePath, tabGroupsForMode, titleForTab } from "./navigation.ts";
 import { agentLogoUrl } from "./views/agents-utils.ts";
 import {
   resolveAgentConfig,
@@ -352,10 +349,24 @@ export function renderApp(state: AppViewState) {
   const showToolCalls = state.onboarding ? true : state.settings.chatShowToolCalls;
   const uiMode = state.settings.uiMode === "advanced" ? "advanced" : "simple";
   const navGroups = tabGroupsForMode(uiMode);
-  const currentNavGroup = navGroups.find((group) => group.tabs.includes(state.tab));
-  const currentNavGroupLabel = currentNavGroup
-    ? t(`nav.${currentNavGroup.label}`)
-    : t("nav.platform");
+  const navTabs = [...new Set(navGroups.flatMap((group) => group.tabs))];
+  const shellDomains = [
+    {
+      id: "operations",
+      label: "Operations",
+      active: ["overview", "chat", "channels", "config", "workflows"].includes(state.tab),
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      active: ["usage", "logs", "cron", "skills"].includes(state.tab),
+    },
+    {
+      id: "topology",
+      label: "Topology",
+      active: ["agents", "nodes", "devices", "debug"].includes(state.tab),
+    },
+  ];
   const assistantAvatarUrl = resolveAssistantAvatarUrl(state);
   const chatAvatarUrl = state.chatAvatarUrl ?? assistantAvatarUrl ?? null;
   const configValue =
@@ -469,7 +480,7 @@ export function renderApp(state: AppViewState) {
         }}
       ></button>
       <header class="topbar">
-        <div class="topnav-shell">
+        <div class="topbar-shell">
           <button
             type="button"
             class="topbar-nav-toggle"
@@ -482,14 +493,23 @@ export function renderApp(state: AppViewState) {
           >
             <span class="nav-collapse-toggle__icon" aria-hidden="true">${icons.menu}</span>
           </button>
-          <div class="topnav-shell__content">
-            <div class="topnav-shell__context">
-              <span class="topnav-shell__eyebrow">${t("nav.platform")}</span>
-              <span class="topnav-shell__route mono">/${state.tab}</span>
+          <div class="topbar-shell__brandline">
+            <div class="topbar-shell__brand">
+              <span class="topbar-shell__brand-mark">CrawClaw</span>
+              <span class="topbar-shell__brand-separator" aria-hidden="true">/</span>
+              <span class="topbar-shell__brand-route mono">/${state.tab}</span>
             </div>
-            <dashboard-header .tab=${state.tab}></dashboard-header>
+            <nav class="topbar-domain-nav" aria-label="Control domains">
+              ${shellDomains.map(
+                (domain) => html`
+                  <span class="topbar-domain-nav__link ${domain.active ? "active" : ""}"
+                    >${domain.label}</span
+                  >
+                `,
+              )}
+            </nav>
           </div>
-          <div class="topnav-shell__actions">
+          <div class="topbar-shell__actions">
             <button
               class="topbar-search"
               @click=${() => {
@@ -501,31 +521,19 @@ export function renderApp(state: AppViewState) {
               <span class="topbar-search__label">${t("common.search")}</span>
               <kbd class="topbar-search__kbd">⌘K</kbd>
             </button>
-            <div class="topbar-status">
-              <div class="topbar-status__rack" aria-label="Runtime status">
-                <span
-                  class="topbar-status-pill ${state.connected
-                    ? "topbar-status-pill--online"
-                    : "topbar-status-pill--offline"}"
-                >
-                  <span class="topbar-status-pill__dot" aria-hidden="true"></span>
-                  <span class="topbar-status-pill__label"
-                    >${state.connected ? t("common.online") : t("common.offline")}</span
-                  >
-                </span>
-                <span class="topbar-status-pill topbar-status-pill--surface">
-                  <span class="topbar-status-pill__eyebrow">Surface</span>
-                  <span class="topbar-status-pill__value">${titleForTab(state.tab)}</span>
-                </span>
-                <span class="topbar-status-pill topbar-status-pill--version">
-                  <span class="topbar-status-pill__eyebrow">${t("common.version")}</span>
-                  <span class="topbar-status-pill__value mono"
-                    >${state.hello?.server?.version
-                      ? `v${state.hello.server.version}`
-                      : "n/a"}</span
-                  >
-                </span>
-              </div>
+            <div class="topbar-telemetry">
+              <span
+                class="topbar-telemetry__chip ${state.connected
+                  ? "topbar-telemetry__chip--online"
+                  : "topbar-telemetry__chip--offline"}"
+              >
+                <span class="topbar-telemetry__dot" aria-hidden="true"></span>
+                <span>${state.connected ? "SYS_STABLE" : "LINK_DOWN"}</span>
+              </span>
+              <span class="topbar-telemetry__text mono">${titleForTab(state.tab)}</span>
+              <span class="topbar-telemetry__text mono"
+                >v${state.hello?.server?.version ?? "n/a"}</span
+              >
               ${isChat ? renderChatMobileToggle(state) : nothing}
               ${renderUiModeToggle(state, { compact: true })} ${renderTopbarThemeModeToggle(state)}
             </div>
@@ -534,84 +542,25 @@ export function renderApp(state: AppViewState) {
       </header>
       <div class="shell-nav">
         <aside class="sidebar ${navCollapsed ? "sidebar--collapsed" : ""}">
-          <div class="sidebar-shell">
+          <div class="sidebar-shell sidebar-shell--stitch">
             <div class="sidebar-shell__header">
-              <div class="sidebar-shell__header-main">
-                <div class="sidebar-brand">
-                  <img class="sidebar-brand__logo" src="${agentLogoUrl(basePath)}" alt="CrawClaw" />
-                  ${navCollapsed
-                    ? nothing
-                    : html`
-                        <span class="sidebar-brand__copy">
-                          <span class="sidebar-brand__eyebrow">${t("nav.platform")}</span>
-                          <span class="sidebar-brand__title">CrawClaw</span>
-                        </span>
-                      `}
-                </div>
+              <div class="sidebar-brand sidebar-brand--stitch">
+                <img class="sidebar-brand__logo" src="${agentLogoUrl(basePath)}" alt="CrawClaw" />
                 ${navCollapsed
                   ? nothing
                   : html`
-                      <div class="sidebar-shell__meta">
-                        <span class="sidebar-shell__meta-label">${currentNavGroupLabel}</span>
-                        <span class="sidebar-shell__meta-value">${titleForTab(state.tab)}</span>
-                      </div>
+                      <span class="sidebar-brand__copy">
+                        <span class="sidebar-brand__eyebrow">Control plane</span>
+                        <span class="sidebar-brand__title">NODE_01_ACTIVE</span>
+                      </span>
                     `}
               </div>
-              <button
-                type="button"
-                class="nav-collapse-toggle"
-                @click=${() =>
-                  state.applySettings({
-                    ...state.settings,
-                    navCollapsed: !state.settings.navCollapsed,
-                  })}
-                title="${navCollapsed ? t("nav.expand") : t("nav.collapse")}"
-                aria-label="${navCollapsed ? t("nav.expand") : t("nav.collapse")}"
-              >
-                <span class="nav-collapse-toggle__icon" aria-hidden="true"
-                  >${navCollapsed ? icons.panelLeftOpen : icons.panelLeftClose}</span
-                >
-              </button>
             </div>
             <div class="sidebar-shell__body">
-              <nav class="sidebar-nav">
-                ${navGroups.map((group) => {
-                  const isGroupCollapsed = state.settings.navGroupsCollapsed[group.label] ?? false;
-                  const hasActiveTab = group.tabs.some((tab) => tab === state.tab);
-                  const showItems = navCollapsed || hasActiveTab || !isGroupCollapsed;
-                  const showGroupLabel = group.showLabel !== false;
-
-                  return html`
-                    <section class="nav-section ${!showItems ? "nav-section--collapsed" : ""}">
-                      ${!navCollapsed && showGroupLabel
-                        ? html`
-                            <button
-                              class="nav-section__label"
-                              @click=${() => {
-                                const next = { ...state.settings.navGroupsCollapsed };
-                                next[group.label] = !isGroupCollapsed;
-                                state.applySettings({
-                                  ...state.settings,
-                                  navGroupsCollapsed: next,
-                                });
-                              }}
-                              aria-expanded=${showItems}
-                            >
-                              <span class="nav-section__label-text"
-                                >${t(`nav.${group.label}`)}</span
-                              >
-                              <span class="nav-section__chevron"> ${icons.chevronDown} </span>
-                            </button>
-                          `
-                        : nothing}
-                      <div class="nav-section__items">
-                        ${group.tabs.map((tab) =>
-                          renderTab(state, tab, { collapsed: navCollapsed }),
-                        )}
-                      </div>
-                    </section>
-                  `;
-                })}
+              <nav class="sidebar-nav sidebar-nav--stitch">
+                <div class="nav-section__items">
+                  ${navTabs.map((tab) => renderTab(state, tab, { collapsed: navCollapsed }))}
+                </div>
               </nav>
             </div>
             <div class="sidebar-shell__footer">
@@ -631,8 +580,6 @@ export function renderApp(state: AppViewState) {
                       `
                     : nothing}
                 </a>
-                <div class="sidebar-mode-switch">${renderUiModeToggle(state)}</div>
-                <div class="sidebar-mode-switch">${renderTopbarThemeModeToggle(state)}</div>
                 ${(() => {
                   const version = state.hello?.server?.version ?? "";
                   return version
@@ -684,22 +631,6 @@ export function renderApp(state: AppViewState) {
                 </button>
               </div>`
             : nothing}
-          <section class="content-header">
-            <div class="content-header__main">
-              <div class="content-header__eyebrow-row">
-                <span class="content-header__eyebrow">${currentNavGroupLabel}</span>
-                <span class="content-header__route mono">/${state.tab}</span>
-              </div>
-              ${isChat
-                ? renderChatSessionSelect(state)
-                : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
-              ${isChat ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
-            </div>
-            <div class="page-meta content-header__meta">
-              ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
-              ${isChat ? renderChatControls(state) : nothing}
-            </div>
-          </section>
           <div class="content-stage content-stage--${state.tab}">
             ${state.tab === "overview"
               ? renderOverview({

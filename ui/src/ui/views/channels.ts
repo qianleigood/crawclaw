@@ -59,9 +59,6 @@ export function renderChannels(props: ChannelsProps) {
       }
       return a.order - b.order;
     });
-  const configuredChannels = orderedChannels.filter(
-    (channel) => resolveChannelDisplayState(channel.key, props).configured,
-  ).length;
   const activeChannels = orderedChannels.filter((channel) => {
     const state = resolveChannelDisplayState(channel.key, props);
     return state.connected || state.running;
@@ -113,17 +110,39 @@ export function renderChannels(props: ChannelsProps) {
     : props.lastSuccessAt
       ? uiLiteral("Live snapshot")
       : uiLiteral("No snapshot yet");
+  const channelData: ChannelsChannelData = {
+    whatsapp,
+    telegram,
+    discord,
+    googlechat,
+    slack,
+    signal,
+    imessage,
+    nostr,
+    channelAccounts: props.snapshot?.channelAccounts ?? null,
+  };
+  const primaryChannel =
+    orderedChannels.find((channel) => {
+      const state = resolveChannelDisplayState(channel.key, props);
+      return state.connected || state.running || state.configured;
+    }) ??
+    orderedChannels[0] ??
+    null;
 
   return html`
     <section class="control-console-stage control-console-stage--channels">
       <section class="control-console-head">
         <div class="control-console-head__top">
           <div class="control-console-head__copy">
-            <div class="control-console-head__eyebrow">${uiLiteral("Control plane channels")}</div>
-            <h1 class="control-console-head__title">${uiLiteral("Channel operations")}</h1>
+            <div class="control-console-head__eyebrow">
+              ${uiLiteral("CrawClaw console / channels_infrastructure")}
+            </div>
+            <h1 class="control-console-head__title">
+              ${uiLiteral("Channels infrastructure console")}
+            </h1>
             <p class="control-console-head__summary">
               ${uiLiteral(
-                "Manage live channel surfaces, login capability, routing health, and config-backed delivery state from one operator console.",
+                "Monitor live delivery units, login capability, routing readiness, and config-backed channel state from a registry-style infrastructure console.",
               )}
             </p>
           </div>
@@ -169,53 +188,66 @@ export function renderChannels(props: ChannelsProps) {
         </div>
       </section>
 
-      <section class="connect-center card">
-        <div class="connect-center__summary-strip">
-          <div class="connect-center__summary-card">
-            <span class="label">Enabled surfaces</span>
-            <strong>${enabledChannels}</strong>
+      <section class="channels-stitch-shell">
+        <div class="channels-kpi-band">
+          <div class="channels-kpi-card">
+            <span class="channels-kpi-card__label">${uiLiteral("Active channels")}</span>
+            <strong class="channels-kpi-card__value">${activeChannels}</strong>
+            <span class="channels-kpi-card__meta">${uiLiteral("Live delivery units")}</span>
           </div>
-          <div class="connect-center__summary-card">
-            <span class="label">Configured</span>
-            <strong>${configuredChannels}</strong>
+          <div class="channels-kpi-card channels-kpi-card--warn">
+            <span class="channels-kpi-card__label">${uiLiteral("Critical health")}</span>
+            <strong class="channels-kpi-card__value">${enabledChannels - activeChannels}</strong>
+            <span class="channels-kpi-card__meta"
+              >${uiLiteral("Enabled surfaces needing attention")}</span
+            >
           </div>
-          <div class="connect-center__summary-card">
-            <span class="label">Live now</span>
-            <strong>${activeChannels}</strong>
+          <div class="channels-kpi-card channels-kpi-card--stable">
+            <span class="channels-kpi-card__label">${uiLiteral("Delivery rate")}</span>
+            <strong class="channels-kpi-card__value"
+              >${enabledChannels > 0
+                ? `${Math.round((activeChannels / Math.max(enabledChannels, 1)) * 100)}%`
+                : "0%"}</strong
+            >
+            <span class="channels-kpi-card__meta">${gatewayProbeState}</span>
           </div>
-          <div class="connect-center__summary-card">
-            <span class="label">Accounts</span>
-            <strong>${accountCount}</strong>
+          <div class="channels-kpi-card channels-kpi-card--info">
+            <span class="channels-kpi-card__label">${uiLiteral("Configured accounts")}</span>
+            <strong class="channels-kpi-card__value">${accountCount}</strong>
+            <span class="channels-kpi-card__meta">${configState}</span>
           </div>
         </div>
-        <div class="connect-center__ops-strip">
-          <div class="connect-center__ops-card">
-            <span class="label">${uiLiteral("Gateway probe")}</span>
-            <strong>${gatewayProbeState}</strong>
-            <span
-              >${props.lastSuccessAt
+
+        <div class="channels-ops-band">
+          <div class="channels-ops-band__card">
+            <span class="channels-ops-band__label">${uiLiteral("Gateway probe")}</span>
+            <strong class="channels-ops-band__value">${gatewayProbeState}</strong>
+            <span class="channels-ops-band__meta">
+              ${props.lastSuccessAt
                 ? formatRelativeTimestamp(props.lastSuccessAt)
-                : uiLiteral("No snapshot yet")}</span
-            >
+                : uiLiteral("No snapshot yet")}
+            </span>
           </div>
-          <div class="connect-center__ops-card">
-            <span class="label">${uiLiteral("WhatsApp login")}</span>
-            <strong>${whatsappFlowState}</strong>
-            <span>${props.whatsappMessage ?? uiLiteral("No active login flow")}</span>
+          <div class="channels-ops-band__card">
+            <span class="channels-ops-band__label">${uiLiteral("WhatsApp login")}</span>
+            <strong class="channels-ops-band__value">${whatsappFlowState}</strong>
+            <span class="channels-ops-band__meta">
+              ${props.whatsappMessage ?? uiLiteral("No active login flow")}
+            </span>
           </div>
-          <div class="connect-center__ops-card">
-            <span class="label">${uiLiteral("Feishu CLI")}</span>
-            <strong>${feishuFlowState}</strong>
-            <span
-              >${props.feishuCliError ??
+          <div class="channels-ops-band__card">
+            <span class="channels-ops-band__label">${uiLiteral("Feishu CLI")}</span>
+            <strong class="channels-ops-band__value">${feishuFlowState}</strong>
+            <span class="channels-ops-band__meta">
+              ${props.feishuCliError ??
               props.feishuCliStatus?.message ??
-              uiLiteral("Capability summary only")}</span
-            >
+              uiLiteral("Capability summary only")}
+            </span>
           </div>
-          <div class="connect-center__ops-card">
-            <span class="label">${uiLiteral("Config state")}</span>
-            <strong>${configState}</strong>
-            <span>
+          <div class="channels-ops-band__card">
+            <span class="channels-ops-band__label">${uiLiteral("Config state")}</span>
+            <strong class="channels-ops-band__value">${configState}</strong>
+            <span class="channels-ops-band__meta">
               ${props.configSchemaLoading
                 ? uiLiteral("Loading schema")
                 : props.configFormDirty
@@ -224,68 +256,141 @@ export function renderChannels(props: ChannelsProps) {
             </span>
           </div>
         </div>
-        ${props.lastError
-          ? html`<div class="callout danger" style="margin-top: 14px;">${props.lastError}</div>`
-          : nothing}
-        <section class="channels-console-grid">
-          <div class="channels-console-grid__main">
+
+        ${props.lastError ? html`<div class="callout danger">${props.lastError}</div>` : nothing}
+
+        <div class="channels-stitch-grid">
+          <div class="channels-stitch-grid__main">
+            <section class="channels-registry-shell">
+              <div class="channels-registry-shell__toolbar">
+                <div class="channels-registry-shell__filters">
+                  <button class="channels-registry-filter channels-registry-filter--active">
+                    ${uiLiteral("All types")}
+                  </button>
+                  <span class="channels-registry-status">${uiLiteral("Status: Live")}</span>
+                </div>
+                <div class="channels-registry-shell__search">
+                  <span class="material-symbols-outlined">search</span>
+                  <span>${uiLiteral("Search channels")}</span>
+                </div>
+              </div>
+              <div class="channels-registry-table">
+                <div class="channels-registry-table__head">
+                  <span>${uiLiteral("Channel / type")}</span>
+                  <span>${uiLiteral("Account state")}</span>
+                  <span>${uiLiteral("Delivery state")}</span>
+                  <span>${uiLiteral("Health")}</span>
+                  <span>${uiLiteral("Last heartbeat")}</span>
+                  <span>${uiLiteral("Readiness")}</span>
+                  <span>${uiLiteral("Actions")}</span>
+                </div>
+                <div class="channels-registry-table__body">
+                  ${orderedChannels.map((channel) =>
+                    renderChannelRegistryRow(channel.key, props, channelData),
+                  )}
+                </div>
+              </div>
+            </section>
+
             ${props.onboarding
               ? renderConnectCenterGuide(props)
               : renderConnectCenterGuideState(props)}
-            <section class="grid grid-cols-2 channels-console-grid__cards">
-              ${orderedChannels.map((channel) =>
-                renderChannel(channel.key, props, {
-                  whatsapp,
-                  telegram,
-                  discord,
-                  googlechat,
-                  slack,
-                  signal,
-                  imessage,
-                  nostr,
-                  channelAccounts: props.snapshot?.channelAccounts ?? null,
-                }),
-              )}
-            </section>
           </div>
-          <aside class="channels-console-grid__rail">
-            <div class="connect-center__identity-grid">
-              <div class="card">
-                <div class="card-title">Gateway connection</div>
-                <div class="card-sub">
-                  This is the live control-plane connection used by the dashboard.
+
+          <aside class="channels-stitch-grid__rail">
+            ${primaryChannel
+              ? html`
+                  <section class="channels-selected-shell card">
+                    <div class="channels-selected-shell__header">
+                      <div>
+                        <div class="channels-selected-shell__eyebrow">
+                          ${uiLiteral("Selected unit: details")}
+                        </div>
+                        <div class="card-title">
+                          ${resolveChannelLabel(props.snapshot, primaryChannel.key)}
+                        </div>
+                        <div class="card-sub">
+                          ${resolveChannelTypeLabel(primaryChannel.key)} ·
+                          ${renderChannelStateLabel(primaryChannel.key, props)}
+                        </div>
+                      </div>
+                      <span class="agent-pill">${uiLiteral("Primary")}</span>
+                    </div>
+                    <div class="channels-selected-shell__stats">
+                      <div>
+                        <span class="label">${uiLiteral("Instance id")}</span>
+                        <strong>${primaryChannel.key.toUpperCase()}</strong>
+                      </div>
+                      <div>
+                        <span class="label">${uiLiteral("Accounts")}</span>
+                        <strong
+                          >${renderChannelAccountCount(
+                            primaryChannel.key,
+                            channelData.channelAccounts,
+                          )}</strong
+                        >
+                      </div>
+                      <div>
+                        <span class="label">${uiLiteral("Login surface")}</span>
+                        <strong>${loginSurface}</strong>
+                      </div>
+                      <div>
+                        <span class="label">${uiLiteral("Last snapshot")}</span>
+                        <strong
+                          >${props.lastSuccessAt
+                            ? formatRelativeTimestamp(props.lastSuccessAt)
+                            : uiLiteral("Pending")}</strong
+                        >
+                      </div>
+                    </div>
+                    <div class="channels-selected-shell__workbench">
+                      ${renderChannel(primaryChannel.key, props, channelData)}
+                    </div>
+                  </section>
+                `
+              : nothing}
+            <section class="card channels-rail-shell">
+              <div class="card-title">${uiLiteral("Gateway connection")}</div>
+              <div class="card-sub">
+                ${uiLiteral("This is the live control-plane connection serving the dashboard.")}
+              </div>
+              <div class="status-list" style="margin-top: 16px;">
+                <div>
+                  <span class="label">${uiLiteral("Status")}</span>
+                  <span>${props.connected ? uiLiteral("Connected") : uiLiteral("Offline")}</span>
                 </div>
-                <div class="status-list" style="margin-top: 16px;">
-                  <div>
-                    <span class="label">Status</span>
-                    <span>${props.connected ? "Connected" : "Offline"}</span>
-                  </div>
-                  <div>
-                    <span class="label">Address</span>
-                    <span class="mono">${props.gatewayUrl || "n/a"}</span>
-                  </div>
-                  <div>
-                    <span class="label">Channel probe</span>
-                    <span>${props.lastSuccessAt ? "Recent" : "Not refreshed yet"}</span>
-                  </div>
+                <div>
+                  <span class="label">${uiLiteral("Address")}</span>
+                  <span class="mono">${props.gatewayUrl || "n/a"}</span>
+                </div>
+                <div>
+                  <span class="label">${uiLiteral("Channel probe")}</span>
+                  <span>${props.lastSuccessAt ? uiLiteral("Recent") : uiLiteral("Pending")}</span>
+                </div>
+                <div>
+                  <span class="label">${uiLiteral("Config schema")}</span>
+                  <span
+                    >${props.configSchemaLoading ? uiLiteral("Loading") : uiLiteral("Ready")}</span
+                  >
                 </div>
               </div>
-              ${renderFeishuCliCard(props)}
-            </div>
+            </section>
+            ${renderFeishuCliCard(props)}
+            ${uiMode === "advanced"
+              ? renderChannelHealthSnapshot(props)
+              : html`
+                  <details class="card connect-center__details">
+                    <summary class="connect-center__details-summary">
+                      ${t("channelsPage.advancedSnapshot")}
+                    </summary>
+                    <div class="connect-center__details-body">
+                      ${renderChannelHealthSnapshot(props)}
+                    </div>
+                  </details>
+                `}
           </aside>
-        </section>
+        </div>
       </section>
-
-      ${uiMode === "advanced"
-        ? renderChannelHealthSnapshot(props)
-        : html`
-            <details class="card connect-center__details">
-              <summary class="connect-center__details-summary">
-                ${t("channelsPage.advancedSnapshot")}
-              </summary>
-              <div class="connect-center__details-body">${renderChannelHealthSnapshot(props)}</div>
-            </details>
-          `}
     </section>
   `;
 }
@@ -562,6 +667,152 @@ function resolveChannelOrder(snapshot: ChannelsStatusSnapshot | null): ChannelKe
     return snapshot.channelOrder;
   }
   return ["whatsapp", "telegram", "discord", "googlechat", "slack", "signal", "imessage", "nostr"];
+}
+
+function resolveChannelTypeLabel(key: ChannelKey): string {
+  switch (key) {
+    case "whatsapp":
+      return uiLiteral("WhatsApp business");
+    case "telegram":
+      return uiLiteral("Telegram API");
+    case "discord":
+      return uiLiteral("Discord webhook");
+    case "googlechat":
+      return uiLiteral("Google Chat");
+    case "slack":
+      return uiLiteral("Slack enterprise");
+    case "signal":
+      return uiLiteral("Signal bridge");
+    case "imessage":
+      return uiLiteral("iMessage relay");
+    case "nostr":
+      return uiLiteral("Nostr relay");
+    default:
+      return uiLiteral("Channel surface");
+  }
+}
+
+function renderChannelStateLabel(key: ChannelKey, props: ChannelsProps): string {
+  const state = resolveChannelDisplayState(key, props);
+  if (state.connected) {
+    return uiLiteral("Connected");
+  }
+  if (state.running) {
+    return uiLiteral("Authenticating");
+  }
+  if (state.configured) {
+    return uiLiteral("Configured");
+  }
+  return uiLiteral("Unavailable");
+}
+
+function renderChannelHealthValue(key: ChannelKey, props: ChannelsProps): string {
+  const state = resolveChannelDisplayState(key, props);
+  if (state.connected) {
+    return "100%";
+  }
+  if (state.running) {
+    return "45%";
+  }
+  if (state.configured) {
+    return "72%";
+  }
+  return "12%";
+}
+
+function renderChannelReadinessLabel(key: ChannelKey, props: ChannelsProps): string {
+  const state = resolveChannelDisplayState(key, props);
+  if (state.connected) {
+    return uiLiteral("Check circle");
+  }
+  if (state.running) {
+    return uiLiteral("Pending");
+  }
+  return uiLiteral("Unavailable");
+}
+
+function renderChannelActionLabel(key: ChannelKey, props: ChannelsProps): string {
+  if (key === "whatsapp") {
+    return uiLiteral("Login start");
+  }
+  if (key === "telegram" && props.feishuCliSupported !== false) {
+    return uiLiteral("Waiting…");
+  }
+  if (key === "discord" || key === "googlechat" || key === "slack") {
+    return uiLiteral("View config");
+  }
+  return uiLiteral("Inspect");
+}
+
+function renderChannelRegistryRow(
+  key: ChannelKey,
+  props: ChannelsProps,
+  data: ChannelsChannelData,
+) {
+  const label = resolveChannelLabel(props.snapshot, key);
+  const state = resolveChannelDisplayState(key, props);
+  const lastHeartbeat = props.lastSuccessAt
+    ? new Date(props.lastSuccessAt).toLocaleString()
+    : uiLiteral("No snapshot yet");
+  const accountCount = Array.isArray(data.channelAccounts?.[key])
+    ? (data.channelAccounts?.[key].length ?? 0)
+    : 0;
+  const statusTone = state.connected
+    ? "channels-registry-row__dot--ok"
+    : state.running
+      ? "channels-registry-row__dot--warn"
+      : "channels-registry-row__dot--danger";
+  return html`
+    <div class="channels-registry-row">
+      <div class="channels-registry-row__channel">
+        <div class="channels-registry-row__icon">${label.slice(0, 2).toUpperCase()}</div>
+        <div class="channels-registry-row__copy">
+          <strong>${label}</strong>
+          <span>${resolveChannelTypeLabel(key)}</span>
+        </div>
+      </div>
+      <div class="channels-registry-row__metric">
+        <span class="channels-registry-row__dot ${statusTone}"></span>
+        <strong>${renderChannelStateLabel(key, props)}</strong>
+        <span>${accountCount} ${uiLiteral("accounts")}</span>
+      </div>
+      <div class="channels-registry-row__metric">
+        <strong>
+          ${state.connected
+            ? uiLiteral("Optimal")
+            : state.running
+              ? uiLiteral("Queueing…")
+              : state.configured
+                ? uiLiteral("Waiting…")
+                : uiLiteral("Connection lost")}
+        </strong>
+        <span
+          >${state.configured ? uiLiteral("Manifest ready") : uiLiteral("Manifest missing")}</span
+        >
+      </div>
+      <div class="channels-registry-row__metric">
+        <strong>${renderChannelHealthValue(key, props)}</strong>
+        <span>${state.connected ? uiLiteral("Capacity") : uiLiteral("Recovery lane")}</span>
+      </div>
+      <div class="channels-registry-row__heartbeat">
+        <span>${lastHeartbeat}</span>
+        <span
+          >${props.lastSuccessAt
+            ? formatRelativeTimestamp(props.lastSuccessAt)
+            : uiLiteral("Pending")}</span
+        >
+      </div>
+      <div class="channels-registry-row__metric">
+        <strong>${renderChannelReadinessLabel(key, props)}</strong>
+        <span
+          >${state.connected ? uiLiteral("Ready") : uiLiteral("Requires operator attention")}</span
+        >
+      </div>
+      <div class="channels-registry-row__actions">
+        <button class="btn btn--sm">${renderChannelActionLabel(key, props)}</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderChannel(key: ChannelKey, props: ChannelsProps, data: ChannelsChannelData) {
