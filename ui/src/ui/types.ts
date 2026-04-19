@@ -21,6 +21,11 @@ export type ChannelsStatusSnapshot = {
   channelDetailLabels?: Record<string, string>;
   channelSystemImages?: Record<string, string>;
   channelMeta?: ChannelUiMetaEntry[];
+  catalogOrder?: string[];
+  catalogLabels?: Record<string, string>;
+  catalogDetailLabels?: Record<string, string>;
+  catalogSystemImages?: Record<string, string>;
+  catalogMeta?: ChannelUiMetaEntry[];
   channels: Record<string, unknown>;
   channelControls?: Record<string, ChannelControlCapabilities>;
   channelAccounts: Record<string, ChannelAccountSnapshot[]>;
@@ -77,6 +82,8 @@ export type ChannelUiMetaEntry = {
   label: string;
   detailLabel: string;
   systemImage?: string;
+  docsPath?: string | null;
+  installNpmSpec?: string | null;
 };
 
 export const CRON_CHANNEL_LAST = "last";

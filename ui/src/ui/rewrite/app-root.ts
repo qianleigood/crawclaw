@@ -105,6 +105,7 @@ import {
 } from "../controllers/workflows.ts";
 import type { GatewayHelloOk, GatewayEventFrame } from "../gateway.ts";
 import { GatewayBrowserClient } from "../gateway.ts";
+import { openExternalUrlSafe } from "../open-external-url.ts";
 import {
   sessionDisplayName,
   sessionSurfaceKey,
@@ -115,6 +116,7 @@ import { loadSettings, saveSettings, type UiSettings } from "../storage.ts";
 import type {
   ChannelAccountSnapshot,
   ChannelControlCapabilities,
+  ChannelUiMetaEntry,
   ChannelsStatusSnapshot,
   CostUsageSummary,
   GatewaySessionRow,
@@ -410,6 +412,7 @@ const APP_COPY = {
         "Pick from every channel this gateway supports. We will take you into setup, editing, or the channel detail page based on what that channel can do.",
       addFlowEmpty: "No supported channels are available on this gateway right now.",
       startWithThisChannel: "Set up this channel",
+      viewChannelGuide: "View setup guide",
       detailKicker: "Selected channel",
       detailTitle: "Channel details",
       detailHint: "Review this channel, then edit it or work with its accounts when needed.",
@@ -447,6 +450,7 @@ const APP_COPY = {
       channelHealthy: "Healthy",
       channelAttention: "Needs attention",
       channelNotConfigured: "Not configured",
+      channelAvailableToAdd: "Available to add",
       channelConnected: "Connected",
       channelConfigured: "Configured",
       issueCount: "Issues",
@@ -509,6 +513,11 @@ const APP_COPY = {
         "For multi-account channels, this creates a draft account entry in the channel editor so you can fill credentials before saving.",
       defaultAccount: "Default account",
       makeDefaultAccount: "Make default",
+      catalogOnlyTitle: "This channel is supported, but not active on this gateway yet",
+      catalogOnlyHint:
+        "Use the package and docs below to add the channel first. After it is enabled, come back here to edit settings and accounts.",
+      catalogDocs: "Docs path",
+      catalogPackage: "Package",
     },
     workflows: {
       registry: "Registry",
@@ -940,6 +949,7 @@ const APP_COPY = {
         "这里会列出当前网关支持的所有渠道。选中后，会按这个渠道实际支持的能力带你进入配置、编辑或详情页。",
       addFlowEmpty: "当前网关上没有可用的渠道。",
       startWithThisChannel: "开始配置这个渠道",
+      viewChannelGuide: "查看接入说明",
       detailKicker: "当前渠道",
       detailTitle: "渠道详情",
       detailHint: "先看这个渠道当前的状态；需要时再编辑渠道或处理账号。",
@@ -972,6 +982,7 @@ const APP_COPY = {
       channelHealthy: "正常",
       channelAttention: "需要处理",
       channelNotConfigured: "未配置",
+      channelAvailableToAdd: "可接入",
       channelConnected: "已连接",
       channelConfigured: "已配置",
       issueCount: "问题数",
@@ -1027,6 +1038,10 @@ const APP_COPY = {
       addAccountDraftHint: "多账号渠道可以先在这里建一个账号草稿，再到下方编辑器里补全凭据和字段。",
       defaultAccount: "默认账号",
       makeDefaultAccount: "设为默认",
+      catalogOnlyTitle: "这个渠道受支持，但当前还没有接入这台网关",
+      catalogOnlyHint: "先按下面的包名和文档把渠道接进来。启用后再回到这里编辑设置和账号。",
+      catalogDocs: "文档路径",
+      catalogPackage: "安装包",
     },
     workflows: {
       registry: "注册表",
@@ -1623,6 +1638,20 @@ function flattenChannelAccounts(snapshot: ChannelsStatusSnapshot | null) {
       label: snapshot.channelLabels[channelId] ?? channelId,
       account,
     })),
+  );
+}
+
+function resolveChannelCatalogMeta(
+  snapshot: ChannelsStatusSnapshot | null | undefined,
+  channelId: string | null | undefined,
+): ChannelUiMetaEntry | null {
+  if (!snapshot || !channelId) {
+    return null;
+  }
+  return (
+    snapshot.catalogMeta?.find((entry) => entry.id === channelId) ??
+    snapshot.channelMeta?.find((entry) => entry.id === channelId) ??
+    null
   );
 }
 
@@ -2458,10 +2487,14 @@ export class CrawClawApp extends LitElement {
         await this.safeCall(async () => {
           await loadChannels(this.channelsState, true);
           const snapshot = this.channelsState.channelsSnapshot;
-          const selectedChannelId = snapshot?.channelOrder.includes(this.channelsSelectedChannelId)
+          const activeChannelIds = snapshot?.channelOrder ?? [];
+          const catalogChannelIds = snapshot?.catalogOrder?.length
+            ? snapshot.catalogOrder
+            : activeChannelIds;
+          const selectedChannelId = catalogChannelIds.includes(this.channelsSelectedChannelId)
             ? this.channelsSelectedChannelId
             : "";
-          if (selectedChannelId) {
+          if (selectedChannelId && activeChannelIds.includes(selectedChannelId)) {
             await loadChannelSetupSurface(this.channelSetupState, selectedChannelId);
           } else {
             resetChannelSetupState(this.channelSetupState);
@@ -2646,7 +2679,11 @@ export class CrawClawApp extends LitElement {
     this.channelsWorkspaceReturnMode = "guide";
     this.channelsEditorOpen = false;
     resetChannelConfigState(this.channelConfigState);
-    void this.refreshChannelSetupSurface(channelId);
+    if (this.channelsState.channelsSnapshot?.channelOrder.includes(channelId)) {
+      void this.refreshChannelSetupSurface(channelId);
+    } else {
+      resetChannelSetupState(this.channelSetupState);
+    }
   }
 
   private selectChannelAccount(channelId: string, accountId: string) {
@@ -4737,18 +4774,29 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const snapshot = this.channelsState.channelsSnapshot;
     const flattenedAccounts = flattenChannelAccounts(snapshot);
     const channelIds = snapshot?.channelOrder ?? [];
+    const catalogChannelIds = snapshot?.catalogOrder?.length ? snapshot.catalogOrder : channelIds;
     const connectedAccounts = flattenedAccounts.filter((entry) => entry.account.connected).length;
     const channelsNeedingAttention = channelIds.filter(
       (channelId) => countChannelAttentionIssues(resolveChannelAccounts(snapshot, channelId)) > 0,
     ).length;
-    const selectedChannelId = channelIds.includes(this.channelsSelectedChannelId)
+    const selectedChannelId = catalogChannelIds.includes(this.channelsSelectedChannelId)
       ? this.channelsSelectedChannelId
       : "";
+    const selectedChannelAvailable = selectedChannelId
+      ? channelIds.includes(selectedChannelId)
+      : false;
+    const selectedChannelMeta = resolveChannelCatalogMeta(snapshot, selectedChannelId);
     const selectedChannelLabel = selectedChannelId
-      ? (snapshot?.channelLabels[selectedChannelId] ?? selectedChannelId)
+      ? (snapshot?.catalogLabels?.[selectedChannelId] ??
+        snapshot?.channelLabels[selectedChannelId] ??
+        selectedChannelMeta?.label ??
+        selectedChannelId)
       : copy.common.none;
     const selectedChannelDetail = selectedChannelId
-      ? (snapshot?.channelDetailLabels?.[selectedChannelId] ?? selectedChannelLabel)
+      ? (snapshot?.catalogDetailLabels?.[selectedChannelId] ??
+        snapshot?.channelDetailLabels?.[selectedChannelId] ??
+        selectedChannelMeta?.detailLabel ??
+        selectedChannelLabel)
       : copy.channels.browseChannels;
     const selectedControls = resolveChannelControls(snapshot, selectedChannelId);
     const selectedAccounts = resolveChannelAccounts(snapshot, selectedChannelId);
@@ -4842,7 +4890,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       this.channelsWorkspaceMode === "settings" || this.channelsWorkspaceMode === "add"
         ? this.channelsWorkspaceMode
         : "guide";
-    const addChannelIds = channelIds;
+    const addChannelIds = catalogChannelIds;
 
     const openAddChannel = () => {
       this.channelsSelectedChannelId = "";
@@ -4859,6 +4907,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       const connectedCount = accounts.filter((account) => account.connected).length;
       const issueCount = countChannelAttentionIssues(accounts);
       const statusTone = channelStatusTone(channelId);
+      const meta = resolveChannelCatalogMeta(snapshot, channelId);
       return html`
         <button
           class="cp-action-card cp-channel-card"
@@ -4866,10 +4915,13 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
         >
           <div class="cp-channel-card__head">
             <div>
-              <strong>${snapshot?.channelLabels[channelId] ?? channelId}</strong>
+              <strong>${snapshot?.channelLabels[channelId] ?? meta?.label ?? channelId}</strong>
               <small>
                 ${snapshot?.channelDetailLabels?.[channelId] ??
                 snapshot?.channelLabels[channelId] ??
+                snapshot?.catalogDetailLabels?.[channelId] ??
+                meta?.detailLabel ??
+                meta?.label ??
                 channelId}
               </small>
             </div>
@@ -4886,6 +4938,9 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             <small
               >${snapshot?.channelDetailLabels?.[channelId] ??
               snapshot?.channelLabels[channelId] ??
+              snapshot?.catalogDetailLabels?.[channelId] ??
+              meta?.detailLabel ??
+              meta?.label ??
               channelId}</small
             >
           </div>
@@ -4975,6 +5030,64 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       </section>
     `;
 
+    const renderCatalogOnlyPanel = () => {
+      const docsPath = selectedChannelMeta?.docsPath?.trim() || null;
+      const installNpmSpec = selectedChannelMeta?.installNpmSpec?.trim() || null;
+      const installCommand = installNpmSpec ? `pnpm add ${installNpmSpec}` : null;
+      return html`
+        <section class="cp-grid cp-grid--double">
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.channels.addFlowKicker}</span>
+                <h3>${copy.channels.catalogOnlyTitle}</h3>
+              </div>
+            </div>
+            <p class="cp-panel__subcopy">${copy.channels.catalogOnlyHint}</p>
+            ${this.renderMetaEntries([
+              {
+                label: copy.channels.catalogDocs,
+                value: docsPath ?? copy.common.na,
+              },
+              {
+                label: copy.channels.catalogPackage,
+                value: installNpmSpec ?? copy.common.na,
+              },
+            ])}
+            ${installCommand
+              ? html`<pre class="cp-code cp-code--compact">${installCommand}</pre>`
+              : nothing}
+          </article>
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.channels.recommendedNext}</span>
+                <h3>${copy.channels.viewChannelGuide}</h3>
+              </div>
+            </div>
+            <p class="cp-panel__subcopy">${copy.channels.catalogOnlyHint}</p>
+            <div class="cp-inline-actions">
+              ${docsPath
+                ? html`
+                    <button
+                      class="cp-button"
+                      @click=${() => {
+                        openExternalUrlSafe(docsPath);
+                      }}
+                    >
+                      ${copy.channels.viewChannelGuide}
+                    </button>
+                  `
+                : nothing}
+              <button class="cp-button" @click=${openAddChannel}>
+                ${copy.channels.addChannel}
+              </button>
+            </div>
+          </article>
+        </section>
+      `;
+    };
+
     const renderAddPage = () => html`
       <div class="cp-channel-directory-page">
         <article class="cp-panel">
@@ -4996,10 +5109,15 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                   (channelId) => {
                     const accounts = resolveChannelAccounts(snapshot, channelId);
                     const controls = resolveChannelControls(snapshot, channelId);
-                    const statusTone = channelStatusTone(channelId);
+                    const isActiveChannel = channelIds.includes(channelId);
+                    const statusTone = isActiveChannel
+                      ? channelStatusTone(channelId)
+                      : { label: copy.channels.channelAvailableToAdd, className: "" };
+                    const meta = resolveChannelCatalogMeta(snapshot, channelId);
                     const configuredCount = accounts.filter((account) => account.configured).length;
-                    const addActionLabel =
-                      configuredCount > 0 && controls.multiAccount && controls.canEdit
+                    const addActionLabel = !isActiveChannel
+                      ? copy.channels.viewChannelGuide
+                      : configuredCount > 0 && controls.multiAccount && controls.canEdit
                         ? copy.channels.addAccountDraft
                         : configuredCount > 0
                           ? copy.channels.openWorkspace
@@ -5010,10 +5128,19 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                       <article class="cp-action-card cp-channel-card">
                         <div class="cp-channel-card__head">
                           <div>
-                            <strong>${snapshot?.channelLabels[channelId] ?? channelId}</strong>
-                            <small>
-                              ${snapshot?.channelDetailLabels?.[channelId] ??
+                            <strong>
+                              ${snapshot?.catalogLabels?.[channelId] ??
                               snapshot?.channelLabels[channelId] ??
+                              meta?.label ??
+                              channelId}
+                            </strong>
+                            <small>
+                              ${snapshot?.catalogDetailLabels?.[channelId] ??
+                              snapshot?.channelDetailLabels?.[channelId] ??
+                              meta?.detailLabel ??
+                              snapshot?.catalogLabels?.[channelId] ??
+                              snapshot?.channelLabels[channelId] ??
+                              meta?.label ??
                               channelId}
                             </small>
                           </div>
@@ -5035,20 +5162,28 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                         <div class="cp-channel-card__summary">
                           <span>${copy.channels.recommendedNext}</span>
                           <strong>
-                            ${controls.canEdit
-                              ? copy.channels.stepSettingsTitle
-                              : copy.channels.stepSetupTitle}
+                            ${!isActiveChannel
+                              ? copy.channels.viewChannelGuide
+                              : controls.canEdit
+                                ? copy.channels.stepSettingsTitle
+                                : copy.channels.stepSetupTitle}
                           </strong>
                           <small>
-                            ${controls.canEdit
-                              ? copy.channels.stepSettingsHint
-                              : copy.channels.stepSetupHint}
+                            ${!isActiveChannel
+                              ? copy.channels.catalogOnlyHint
+                              : controls.canEdit
+                                ? copy.channels.stepSettingsHint
+                                : copy.channels.stepSetupHint}
                           </small>
                         </div>
                         <div class="cp-inline-actions">
                           <button
                             class="cp-button"
                             @click=${() => {
+                              if (!isActiveChannel) {
+                                this.selectChannel(channelId);
+                                return;
+                              }
                               if (
                                 configuredCount > 0 &&
                                 controls.multiAccount &&
@@ -5620,61 +5755,95 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
               `
             : activeMode === "settings"
               ? renderSettingsPanel()
-              : html`
-                  <div class="cp-channel-workspace">
-                    <section class="cp-channel-workspace__nav">
-                      <div>
-                        <span class="cp-kicker">${copy.channels.detailKicker}</span>
-                        <strong>${selectedChannelLabel}</strong>
-                        <small>${selectedChannelDetail}</small>
-                      </div>
-                      <div class="cp-inline-actions">
-                        ${channelEditorAvailable
-                          ? html`
-                              <button
-                                class="cp-button"
-                                @click=${() =>
-                                  this.openChannelSettings(
-                                    selectedChannelId,
-                                    selectedAccount?.accountId ?? null,
-                                    "guide",
-                                  )}
-                              >
-                                ${copy.channels.openSettings}
-                              </button>
-                            `
-                          : nothing}
-                        ${addChannelIds.length
-                          ? html`
-                              <button class="cp-button" @click=${openAddChannel}>
-                                ${copy.channels.addChannel}
-                              </button>
-                            `
-                          : nothing}
-                        <button class="cp-button" @click=${() => this.leaveChannelWorkspace()}>
-                          ${copy.channels.backToDirectory}
-                        </button>
-                      </div>
-                    </section>
+              : !selectedChannelAvailable
+                ? html`
+                    <div class="cp-channel-workspace">
+                      <section class="cp-channel-workspace__nav">
+                        <div>
+                          <span class="cp-kicker">${copy.channels.detailKicker}</span>
+                          <strong>${selectedChannelLabel}</strong>
+                          <small>${selectedChannelDetail}</small>
+                        </div>
+                        <div class="cp-inline-actions">
+                          <button class="cp-button" @click=${openAddChannel}>
+                            ${copy.channels.addChannel}
+                          </button>
+                          <button class="cp-button" @click=${() => this.leaveChannelWorkspace()}>
+                            ${copy.channels.backToDirectory}
+                          </button>
+                        </div>
+                      </section>
 
-                    <section class="cp-band">
-                      ${this.renderMetric(copy.common.accounts, String(selectedAccounts.length))}
-                      ${this.renderMetric(
-                        copy.common.connectedAccounts,
-                        String(selectedConnectedCount),
-                      )}
-                      ${this.renderMetric(copy.channels.issueCount, String(selectedIssueCount))}
-                      ${this.renderMetric(copy.channels.recommendedNext, recommendedLabel)}
-                    </section>
+                      <section class="cp-band">
+                        ${this.renderMetric(copy.common.accounts, "0")}
+                        ${this.renderMetric(copy.common.connectedAccounts, "0")}
+                        ${this.renderMetric(copy.channels.issueCount, "0")}
+                        ${this.renderMetric(
+                          copy.channels.recommendedNext,
+                          copy.channels.viewChannelGuide,
+                        )}
+                      </section>
 
-                    <div class="cp-workspace-stack">
-                      ${renderSummaryPanel()}
-                      ${!selectedAccounts.length || showSetupPanel ? renderSetupPanel() : nothing}
-                      ${selectedAccounts.length ? renderAccountsPanel() : nothing}
-                      ${qrLoginAvailable ? renderConnectPanel() : nothing}
+                      <div class="cp-workspace-stack">
+                        ${renderSummaryPanel()} ${renderCatalogOnlyPanel()}
+                      </div>
                     </div>
-                  </div>
-                `}
+                  `
+                : html`
+                    <div class="cp-channel-workspace">
+                      <section class="cp-channel-workspace__nav">
+                        <div>
+                          <span class="cp-kicker">${copy.channels.detailKicker}</span>
+                          <strong>${selectedChannelLabel}</strong>
+                          <small>${selectedChannelDetail}</small>
+                        </div>
+                        <div class="cp-inline-actions">
+                          ${channelEditorAvailable
+                            ? html`
+                                <button
+                                  class="cp-button"
+                                  @click=${() =>
+                                    this.openChannelSettings(
+                                      selectedChannelId,
+                                      selectedAccount?.accountId ?? null,
+                                      "guide",
+                                    )}
+                                >
+                                  ${copy.channels.openSettings}
+                                </button>
+                              `
+                            : nothing}
+                          ${addChannelIds.length
+                            ? html`
+                                <button class="cp-button" @click=${openAddChannel}>
+                                  ${copy.channels.addChannel}
+                                </button>
+                              `
+                            : nothing}
+                          <button class="cp-button" @click=${() => this.leaveChannelWorkspace()}>
+                            ${copy.channels.backToDirectory}
+                          </button>
+                        </div>
+                      </section>
+
+                      <section class="cp-band">
+                        ${this.renderMetric(copy.common.accounts, String(selectedAccounts.length))}
+                        ${this.renderMetric(
+                          copy.common.connectedAccounts,
+                          String(selectedConnectedCount),
+                        )}
+                        ${this.renderMetric(copy.channels.issueCount, String(selectedIssueCount))}
+                        ${this.renderMetric(copy.channels.recommendedNext, recommendedLabel)}
+                      </section>
+
+                      <div class="cp-workspace-stack">
+                        ${renderSummaryPanel()}
+                        ${!selectedAccounts.length || showSetupPanel ? renderSetupPanel() : nothing}
+                        ${selectedAccounts.length ? renderAccountsPanel() : nothing}
+                        ${qrLoginAvailable ? renderConnectPanel() : nothing}
+                      </div>
+                    </div>
+                  `}
       </section>
     `;
   }

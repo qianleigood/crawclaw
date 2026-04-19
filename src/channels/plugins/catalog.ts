@@ -16,6 +16,8 @@ export type ChannelUiMetaEntry = {
   label: string;
   detailLabel: string;
   systemImage?: string;
+  docsPath?: string;
+  installNpmSpec?: string;
 };
 
 export type ChannelUiCatalog = {
@@ -351,7 +353,7 @@ function loadBundledMetadataCatalogEntries(options: CatalogOptions): ChannelPlug
 }
 
 export function buildChannelUiCatalog(
-  plugins: Array<{ id: string; meta: ChannelMeta }>,
+  plugins: Array<{ id: string; meta: ChannelMeta; installNpmSpec?: string }>,
 ): ChannelUiCatalog {
   const entries: ChannelUiMetaEntry[] = plugins.map((plugin) => {
     const detailLabel = plugin.meta.detailLabel ?? plugin.meta.selectionLabel ?? plugin.meta.label;
@@ -360,6 +362,8 @@ export function buildChannelUiCatalog(
       label: plugin.meta.label,
       detailLabel,
       ...(plugin.meta.systemImage ? { systemImage: plugin.meta.systemImage } : {}),
+      ...(plugin.meta.docsPath ? { docsPath: plugin.meta.docsPath } : {}),
+      ...(plugin.installNpmSpec ? { installNpmSpec: plugin.installNpmSpec } : {}),
     };
   });
   const order = entries.map((entry) => entry.id);

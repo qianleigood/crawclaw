@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   readConfigFileSnapshot: vi.fn(),
   applyPluginAutoEnable: vi.fn(),
   listChannelPlugins: vi.fn(),
+  listChannelPluginCatalogEntries: vi.fn(),
   getChannelPlugin: vi.fn(),
   buildChannelUiCatalog: vi.fn(),
   buildChannelAccountSnapshot: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock("../../channels/plugins/index.js", () => ({
 
 vi.mock("../../channels/plugins/catalog.js", () => ({
   buildChannelUiCatalog: mocks.buildChannelUiCatalog,
+  listChannelPluginCatalogEntries: mocks.listChannelPluginCatalogEntries,
 }));
 
 vi.mock("../../channels/plugins/status.js", () => ({
@@ -91,13 +93,46 @@ describe("channelsHandlers channels.status", () => {
       valid: true,
       runtimeConfig: {},
     });
-    mocks.buildChannelUiCatalog.mockReturnValue({
-      order: ["whatsapp"],
-      labels: { whatsapp: "WhatsApp" },
-      detailLabels: { whatsapp: "WhatsApp" },
-      systemImages: { whatsapp: undefined },
-      entries: { whatsapp: { id: "whatsapp" } },
-    });
+    mocks.buildChannelUiCatalog
+      .mockReturnValueOnce({
+        order: ["whatsapp"],
+        labels: { whatsapp: "WhatsApp" },
+        detailLabels: { whatsapp: "WhatsApp" },
+        systemImages: { whatsapp: undefined },
+        entries: [{ id: "whatsapp", label: "WhatsApp", detailLabel: "WhatsApp" }],
+      })
+      .mockReturnValue({
+        order: ["whatsapp", "telegram"],
+        labels: { whatsapp: "WhatsApp", telegram: "Telegram" },
+        detailLabels: { whatsapp: "WhatsApp", telegram: "Telegram" },
+        systemImages: { whatsapp: undefined, telegram: undefined },
+        entries: [
+          { id: "whatsapp", label: "WhatsApp", detailLabel: "WhatsApp" },
+          { id: "telegram", label: "Telegram", detailLabel: "Telegram" },
+        ],
+      });
+    mocks.listChannelPluginCatalogEntries.mockReturnValue([
+      {
+        id: "whatsapp",
+        meta: {
+          id: "whatsapp",
+          label: "WhatsApp",
+          selectionLabel: "WhatsApp",
+          docsPath: "/channels/whatsapp",
+        },
+        install: { npmSpec: "@crawclaw/whatsapp" },
+      },
+      {
+        id: "telegram",
+        meta: {
+          id: "telegram",
+          label: "Telegram",
+          selectionLabel: "Telegram",
+          docsPath: "/channels/telegram",
+        },
+        install: { npmSpec: "@crawclaw/telegram" },
+      },
+    ]);
     mocks.buildChannelAccountSnapshot.mockResolvedValue({
       accountId: "default",
       configured: true,
@@ -148,6 +183,8 @@ describe("channelsHandlers channels.status", () => {
     expect(respond).toHaveBeenCalledWith(
       true,
       expect.objectContaining({
+        catalogOrder: ["whatsapp", "telegram"],
+        catalogLabels: { whatsapp: "WhatsApp", telegram: "Telegram" },
         channels: {
           whatsapp: expect.objectContaining({
             configured: true,

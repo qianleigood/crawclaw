@@ -1,4 +1,10 @@
-import { buildChannelUiCatalog } from "../../channels/plugins/catalog.js";
+import fs from "node:fs";
+import path from "node:path";
+import {
+  buildChannelUiCatalog,
+  listChannelPluginCatalogEntries,
+  type ChannelPluginCatalogEntry,
+} from "../../channels/plugins/catalog.js";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
 import {
   type ChannelId,
@@ -14,6 +20,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { loadConfig, readConfigFileSnapshot } from "../../config/config.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
 import { getChannelActivity } from "../../infra/channel-activity.js";
+import { resolveCrawClawPackageRootSync } from "../../infra/crawclaw-root.js";
 import { listRecentDiagnosticChannelStreamingDecisions } from "../../logging/diagnostic-session-state.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -91,6 +98,76 @@ function loadChannelsConfig(): CrawClawConfig {
     config: loadConfig(),
     env: process.env,
   }).config;
+}
+
+function loadFallbackChannelCatalogEntries(): ChannelPluginCatalogEntry[] {
+  const packageRoot =
+    resolveCrawClawPackageRootSync({ moduleUrl: import.meta.url }) ??
+    resolveCrawClawPackageRootSync({ cwd: process.cwd() });
+  if (!packageRoot) {
+    return [];
+  }
+  const catalogPath = path.join(packageRoot, "dist", "channel-catalog.json");
+  if (!fs.existsSync(catalogPath)) {
+    return [];
+  }
+  try {
+    const payload = JSON.parse(fs.readFileSync(catalogPath, "utf-8")) as {
+      entries?: Array<{
+        name?: string;
+        crawclaw?: {
+          channel?: {
+            id?: string;
+            label?: string;
+            selectionLabel?: string;
+            detailLabel?: string;
+            docsPath?: string;
+            systemImage?: string;
+            order?: number;
+          };
+          install?: { npmSpec?: string; defaultChoice?: "npm" | "local"; localPath?: string };
+        };
+      }>;
+    };
+    const entries: ChannelPluginCatalogEntry[] = [];
+    for (const entry of payload.entries ?? []) {
+      const channel = entry.crawclaw?.channel;
+      const install = entry.crawclaw?.install;
+      const id = channel?.id?.trim();
+      const label = channel?.label?.trim();
+      const npmSpec = install?.npmSpec?.trim();
+      if (!channel || !install || !id || !label || !npmSpec) {
+        continue;
+      }
+      entries.push({
+        id,
+        meta: {
+          id,
+          label,
+          selectionLabel: channel.selectionLabel?.trim() || label,
+          detailLabel: channel.detailLabel?.trim() || channel.selectionLabel?.trim() || label,
+          docsPath: channel.docsPath?.trim() || `/channels/${id}`,
+          docsLabel: id,
+          blurb: "",
+          ...(channel.systemImage?.trim() ? { systemImage: channel.systemImage.trim() } : {}),
+          ...(typeof channel.order === "number" ? { order: channel.order } : {}),
+        },
+        install: {
+          npmSpec,
+          ...(install.defaultChoice ? { defaultChoice: install.defaultChoice } : {}),
+          ...(install.localPath?.trim() ? { localPath: install.localPath.trim() } : {}),
+        },
+      });
+    }
+    return entries;
+  } catch {
+    return [];
+  }
+}
+
+function resolveSupportedChannelCatalog() {
+  const entries = listChannelPluginCatalogEntries();
+  return entries.length > 0 ? entries : loadFallbackChannelCatalogEntries();
 }
 
 function resolveChannelAccountTarget(params: unknown, cfg: CrawClawConfig) {
@@ -384,6 +461,13 @@ export const channelsHandlers: GatewayRequestHandlers = {
     };
 
     const uiCatalog = buildChannelUiCatalog(plugins);
+    const supportedCatalog = buildChannelUiCatalog(
+      resolveSupportedChannelCatalog().map((entry) => ({
+        id: entry.id,
+        meta: entry.meta,
+        installNpmSpec: entry.install.npmSpec,
+      })),
+    );
     const payload: Record<string, unknown> = {
       ts: Date.now(),
       channelOrder: uiCatalog.order,
@@ -391,6 +475,11 @@ export const channelsHandlers: GatewayRequestHandlers = {
       channelDetailLabels: uiCatalog.detailLabels,
       channelSystemImages: uiCatalog.systemImages,
       channelMeta: uiCatalog.entries,
+      catalogOrder: supportedCatalog.order,
+      catalogLabels: supportedCatalog.labels,
+      catalogDetailLabels: supportedCatalog.detailLabels,
+      catalogSystemImages: supportedCatalog.systemImages,
+      catalogMeta: supportedCatalog.entries,
       channels: {} as Record<string, unknown>,
       channelControls: {} as Record<string, unknown>,
       channelAccounts: {} as Record<string, unknown>,
