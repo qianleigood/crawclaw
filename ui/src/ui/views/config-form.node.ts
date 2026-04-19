@@ -1,6 +1,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { icons as sharedIcons } from "../icons.ts";
 import type { ConfigUiHints } from "../types.ts";
+import { uiLiteral } from "../ui-literal.ts";
 import {
   defaultValue,
   hasSensitiveConfigData,
@@ -239,8 +240,9 @@ function resolveFieldMeta(
   hints: ConfigUiHints,
 ): FieldMeta {
   const hint = hintForPath(path, hints);
-  const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
-  const help = hint?.help ?? schema.description;
+  const label = uiLiteral(hint?.label ?? schema.title ?? humanize(String(path.at(-1))));
+  const helpRaw = hint?.help ?? schema.description;
+  const help = helpRaw ? uiLiteral(helpRaw) : undefined;
   const schemaTags = normalizeTags(schema["x-tags"] ?? schema.tags);
   const hintTags = normalizeTags(hint?.tags);
   return {
