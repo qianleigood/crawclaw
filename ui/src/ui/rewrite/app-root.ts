@@ -3457,9 +3457,24 @@ export class CrawClawApp extends LitElement {
               ${selected
                 ? this.renderMetaEntries(
                     [
-                      { label: copy.common.key, value: selected.key },
-                      { label: copy.common.kind, value: selected.kind },
-                      { label: copy.common.surface, value: selected.surface ?? copy.common.na },
+                      {
+                        label: copy.common.session,
+                        value: sessionDisplayName(selected),
+                        hint: selected.key,
+                      },
+                      {
+                        label: copy.common.kind,
+                        value: selected.chatType ?? selected.kind,
+                      },
+                      {
+                        label: copy.common.surface,
+                        value: sessionSurfaceLabel(selected),
+                        hint:
+                          selected.channel ??
+                          selected.origin?.surface ??
+                          selected.origin?.provider ??
+                          selected.surface,
+                      },
                       {
                         label: copy.common.provider,
                         value: selectedProvider ?? copy.common.auto,
