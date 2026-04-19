@@ -24,7 +24,8 @@
   --cp-mono:
     "JetBrains Mono", "SFMono-Regular", ui-monospace, "Cascadia Code", "Roboto Mono", monospace;
   --cp-sans:
-    "IBM Plex Sans", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", "Microsoft YaHei", "IBM Plex Sans",
+    "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 * {

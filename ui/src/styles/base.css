@@ -81,7 +81,9 @@
   /* Typography */
   --mono:
     "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body:
+    "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", "Microsoft YaHei", "Inter",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--font-body);
 
   /* Shadows - Subtle, layered depth */

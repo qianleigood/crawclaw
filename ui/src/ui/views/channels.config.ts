@@ -72,32 +72,45 @@ type ChannelConfigEntry = {
   order: number;
 };
 
-const CHANNEL_CONFIG_SECTION_COPY: Record<
+const CHANNEL_CONFIG_SECTION_COPY_KEYS: Record<
   ChannelConfigSectionKey,
   { title: string; hint: string; collapsible?: boolean }
 > = {
   basic: {
-    title: uiLiteral("1. Start with the basics"),
-    hint: uiLiteral("Only fill the fields needed to get this channel online."),
+    title: "1. Start with the basics",
+    hint: "Only fill the fields needed to get this channel online.",
   },
   auth: {
-    title: uiLiteral("2. Login and credentials"),
-    hint: uiLiteral("Paste tokens, secrets, app ids, or cookie paths here."),
+    title: "2. Login and credentials",
+    hint: "Paste tokens, secrets, app ids, or cookie paths here.",
   },
   accounts: {
-    title: uiLiteral("3. Accounts and destinations"),
-    hint: uiLiteral("Add accounts, pick the default one, and set the target chat or room here."),
+    title: "3. Accounts and destinations",
+    hint: "Add accounts, pick the default one, and set the target chat or room here.",
   },
   behavior: {
-    title: uiLiteral("4. Reply behavior"),
-    hint: uiLiteral("Adjust how replies stream, mention groups, and behave after delivery."),
+    title: "4. Reply behavior",
+    hint: "Adjust how replies stream, mention groups, and behave after delivery.",
   },
   advanced: {
-    title: uiLiteral("Advanced options (optional)"),
-    hint: uiLiteral("Leave this alone unless you know a channel-specific setting needs to change."),
+    title: "Advanced options (optional)",
+    hint: "Leave this alone unless you know a channel-specific setting needs to change.",
     collapsible: true,
   },
 };
+
+function getChannelConfigSectionCopy(key: ChannelConfigSectionKey): {
+  title: string;
+  hint: string;
+  collapsible?: boolean;
+} {
+  const copy = CHANNEL_CONFIG_SECTION_COPY_KEYS[key];
+  return {
+    title: uiLiteral(copy.title),
+    hint: uiLiteral(copy.hint),
+    ...(copy.collapsible ? { collapsible: true } : {}),
+  };
+}
 
 const BASIC_FIELD_ORDER = new Map(
   ["enabled", "mode", "baseUrl", "endpoint", "webhookUrl", "host", "port", "path"].map(
@@ -320,10 +333,15 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
     behavior: entries.filter((entry) => entry.section === "behavior"),
     advanced: entries.filter((entry) => entry.section === "advanced"),
   } satisfies Record<ChannelConfigSectionKey, ChannelConfigEntry[]>;
+  const basicCopy = getChannelConfigSectionCopy("basic");
+  const authCopy = getChannelConfigSectionCopy("auth");
+  const accountsCopy = getChannelConfigSectionCopy("accounts");
+  const behaviorCopy = getChannelConfigSectionCopy("behavior");
+  const advancedCopy = getChannelConfigSectionCopy("advanced");
   return html`
     <div class="cp-channel-config-editor">
       ${renderChannelConfigSectionGroup({
-        ...CHANNEL_CONFIG_SECTION_COPY.basic,
+        ...basicCopy,
         entries: bySection.basic,
         basePath,
         hints: props.uiHints,
@@ -332,7 +350,7 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
         onPatch: props.onPatch,
       })}
       ${renderChannelConfigSectionGroup({
-        ...CHANNEL_CONFIG_SECTION_COPY.auth,
+        ...authCopy,
         entries: bySection.auth,
         basePath,
         hints: props.uiHints,
@@ -341,7 +359,7 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
         onPatch: props.onPatch,
       })}
       ${renderChannelConfigSectionGroup({
-        ...CHANNEL_CONFIG_SECTION_COPY.accounts,
+        ...accountsCopy,
         entries: bySection.accounts,
         basePath,
         hints: props.uiHints,
@@ -350,7 +368,7 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
         onPatch: props.onPatch,
       })}
       ${renderChannelConfigSectionGroup({
-        ...CHANNEL_CONFIG_SECTION_COPY.behavior,
+        ...behaviorCopy,
         entries: bySection.behavior,
         basePath,
         hints: props.uiHints,
@@ -361,9 +379,9 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
       ${bySection.advanced.length
         ? html`
             <details class="cp-channel-config-section cp-channel-config-section--advanced">
-              <summary>${CHANNEL_CONFIG_SECTION_COPY.advanced.title}</summary>
+              <summary>${advancedCopy.title}</summary>
               <div class="cp-channel-config-section__head">
-                <p>${CHANNEL_CONFIG_SECTION_COPY.advanced.hint}</p>
+                <p>${advancedCopy.hint}</p>
               </div>
               <div class="cp-channel-config-section__grid">
                 ${bySection.advanced.map((entry) => {
