@@ -2257,13 +2257,13 @@ export class CrawClawApp extends LitElement {
   private async applySlashCommandSelection(command: SlashCommandDef, execute = false) {
     if (command.argOptions?.length) {
       this.chatState.chatMessage = `/${command.name} `;
-      this.chatSlashSuppressed = false;
+      this.chatSlashSuppressed = true;
       this.chatSlashIndex = 0;
       this.requestUpdate();
       return;
     }
     this.chatState.chatMessage = command.args ? `/${command.name} ` : `/${command.name}`;
-    this.chatSlashSuppressed = false;
+    this.chatSlashSuppressed = true;
     this.chatSlashIndex = 0;
     this.requestUpdate();
     if (execute && !command.args) {
@@ -2277,7 +2277,7 @@ export class CrawClawApp extends LitElement {
     execute = false,
   ) {
     this.chatState.chatMessage = `/${command.name} ${arg}`;
-    this.chatSlashSuppressed = false;
+    this.chatSlashSuppressed = true;
     this.chatSlashIndex = 0;
     this.requestUpdate();
     if (execute) {
