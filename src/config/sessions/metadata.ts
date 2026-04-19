@@ -2,9 +2,26 @@ import type { MsgContext } from "../../auto-reply/templating.js";
 import { normalizeChatType } from "../../channels/chat-type.js";
 import { resolveConversationLabel } from "../../channels/conversation-label.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
-import { normalizeMessageChannel } from "../../utils/message-channel.js";
+import { INTERNAL_MESSAGE_CHANNEL, normalizeMessageChannel } from "../../utils/message-channel.js";
 import { buildGroupDisplayName, resolveGroupSessionKey } from "./group.js";
 import type { GroupKeyResolution, SessionEntry, SessionOrigin } from "./types.js";
+
+function resolveOriginChannel(origin?: SessionOrigin): string | undefined {
+  return normalizeMessageChannel(origin?.provider ?? origin?.surface);
+}
+
+function shouldPreserveExistingOrigin(
+  existing: SessionOrigin | undefined,
+  next: SessionOrigin | undefined,
+): boolean {
+  const existingChannel = resolveOriginChannel(existing);
+  const nextChannel = resolveOriginChannel(next);
+  return Boolean(
+    existingChannel &&
+    existingChannel !== INTERNAL_MESSAGE_CHANNEL &&
+    nextChannel === INTERNAL_MESSAGE_CHANNEL,
+  );
+}
 
 const mergeOrigin = (
   existing: SessionOrigin | undefined,
@@ -12,6 +29,9 @@ const mergeOrigin = (
 ): SessionOrigin | undefined => {
   if (!existing && !next) {
     return undefined;
+  }
+  if (shouldPreserveExistingOrigin(existing, next)) {
+    return existing ? { ...existing } : undefined;
   }
   const merged: SessionOrigin = existing ? { ...existing } : {};
   if (next?.label) {

@@ -1044,6 +1044,39 @@ function readMessageRole(message: unknown): string {
   return readString((message as JsonRecord).role, "assistant");
 }
 
+function readMessageSenderLabel(message: unknown): string | null {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  const candidate = (message as JsonRecord).senderLabel;
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null;
+}
+
+function resolveSessionDisplayNameFromHistory(
+  session: SessionDisplayLike,
+  messages: unknown[],
+): string {
+  const persisted = sessionDisplayName(session);
+  if (typeof session.origin?.label === "string" && session.origin.label.trim()) {
+    return persisted;
+  }
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (readMessageRole(message).toLowerCase() !== "user") {
+      continue;
+    }
+    const senderLabel = readMessageSenderLabel(message);
+    if (!senderLabel) {
+      continue;
+    }
+    const surface = sessionSurfaceLabel(session);
+    return senderLabel.toLowerCase() === surface.toLowerCase()
+      ? senderLabel
+      : `${surface} · ${senderLabel}`;
+  }
+  return persisted;
+}
+
 function countMessageBlocks(message: unknown): number {
   if (!message || typeof message !== "object") {
     return 0;
@@ -2964,12 +2997,15 @@ export class CrawClawApp extends LitElement {
       selected?.modelProvider ?? this.sessionsState.sessionsResult?.defaults?.modelProvider;
     const draftLength = this.chatState.chatMessage.trim().length;
     const attachmentCount = this.chatState.chatAttachments.length;
+    const selectedDisplayName = selected
+      ? resolveSessionDisplayNameFromHistory(selected, this.chatState.chatMessages)
+      : this.settings.sessionKey;
     return html`
       <section class="cp-page cp-page--sessions">
         ${this.renderPageHeader("sessions", [
           {
             label: copy.sessions.focusedSession,
-            value: selected ? sessionDisplayName(selected) : this.settings.sessionKey,
+            value: selectedDisplayName,
             hint: selected?.key,
           },
           {
@@ -3071,7 +3107,7 @@ export class CrawClawApp extends LitElement {
             <section class="cp-session-signal-strip">
               <article class="cp-session-signal-card">
                 <span>${copy.common.session}</span>
-                <strong>${selected ? sessionDisplayName(selected) : copy.common.none}</strong>
+                <strong>${selected ? selectedDisplayName : copy.common.none}</strong>
                 <small
                   >${selected ? sessionSurfaceLabel(selected) : this.settings.sessionKey}</small
                 >
@@ -3107,7 +3143,7 @@ export class CrawClawApp extends LitElement {
                   <h3>${copy.sessions.conversationTitle}</h3>
                   <p class="cp-panel__subcopy">
                     ${selected
-                      ? `${sessionDisplayName(selected)} · ${selected.status ?? copy.common.idle}`
+                      ? `${selectedDisplayName} · ${selected.status ?? copy.common.idle}`
                       : this.settings.sessionKey}
                   </p>
                 </div>
@@ -3367,7 +3403,7 @@ export class CrawClawApp extends LitElement {
                     [
                       {
                         label: copy.common.session,
-                        value: sessionDisplayName(selected),
+                        value: selectedDisplayName,
                         hint: selected.key,
                       },
                       {
