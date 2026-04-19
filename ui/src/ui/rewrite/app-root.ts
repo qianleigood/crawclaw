@@ -412,6 +412,9 @@ const APP_COPY = {
         "Pick from every channel this gateway supports. We will take you into setup, editing, or the channel detail page based on what that channel can do.",
       addFlowEmpty: "No supported channels are available on this gateway right now.",
       startWithThisChannel: "Set up this channel",
+      addAnotherAccount: "Add another account",
+      addAnotherAccountHint:
+        "This channel already exists. Add another account or instance here instead of reopening the current one.",
       viewChannelGuide: "View setup guide",
       detailKicker: "Selected channel",
       detailTitle: "Channel details",
@@ -949,6 +952,9 @@ const APP_COPY = {
         "这里会列出当前网关支持的所有渠道。选中后，会按这个渠道实际支持的能力带你进入配置、编辑或详情页。",
       addFlowEmpty: "当前网关上没有可用的渠道。",
       startWithThisChannel: "开始配置这个渠道",
+      addAnotherAccount: "新增这个渠道的账号",
+      addAnotherAccountHint:
+        "这个渠道已经存在。这里直接为它新增一个账号或实例，不再只是打开当前渠道。",
       viewChannelGuide: "查看接入说明",
       detailKicker: "当前渠道",
       detailTitle: "渠道详情",
@@ -5222,6 +5228,24 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       const addSelectedControls = resolveChannelControls(snapshot, addSelectedChannelId);
       const addSelectedAccounts = resolveChannelAccounts(snapshot, addSelectedChannelId);
       const configuredCount = addSelectedAccounts.filter((account) => account.configured).length;
+      const canAddAnotherAccount =
+        addSelectedChannelAvailable &&
+        addSelectedControls.multiAccount &&
+        addSelectedControls.canEdit;
+      const recommendedTitle = !addSelectedChannelAvailable
+        ? copy.channels.viewChannelGuide
+        : canAddAnotherAccount
+          ? copy.channels.addAnotherAccount
+          : configuredCount > 0
+            ? copy.channels.openWorkspace
+            : addSelectedControls.canEdit
+              ? copy.channels.startWithThisChannel
+              : copy.channels.viewChannelGuide;
+      const recommendedHint = !addSelectedChannelAvailable
+        ? copy.channels.catalogOnlyHint
+        : canAddAnotherAccount
+          ? copy.channels.addAnotherAccountHint
+          : copy.channels.addFlowHint;
       return html`
         <div class="cp-channel-directory-page">
           <article class="cp-panel">
@@ -5287,22 +5311,10 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 <div class="cp-panel__head">
                   <div>
                     <span class="cp-kicker">${copy.channels.recommendedNext}</span>
-                    <h3>
-                      ${addSelectedChannelAvailable
-                        ? configuredCount > 0
-                          ? copy.channels.openWorkspace
-                          : addSelectedControls.canEdit
-                            ? copy.channels.startWithThisChannel
-                            : copy.channels.viewChannelGuide
-                        : copy.channels.viewChannelGuide}
-                    </h3>
+                    <h3>${recommendedTitle}</h3>
                   </div>
                 </div>
-                <p class="cp-panel__subcopy">
-                  ${addSelectedChannelAvailable
-                    ? copy.channels.addFlowHint
-                    : copy.channels.catalogOnlyHint}
-                </p>
+                <p class="cp-panel__subcopy">${recommendedHint}</p>
                 <div class="cp-inline-actions">
                   ${docsPath
                     ? html`
@@ -5318,6 +5330,22 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                     : nothing}
                   ${addSelectedChannelAvailable
                     ? html`
+                        ${canAddAnotherAccount
+                          ? html`
+                              <button
+                                class="cp-button"
+                                @click=${async () => {
+                                  this.channelsAddSelectedChannelId = "";
+                                  await this.addChannelAccountDraft(
+                                    addSelectedChannelId,
+                                    addSelectedAccounts,
+                                  );
+                                }}
+                              >
+                                ${copy.channels.addAnotherAccount}
+                              </button>
+                            `
+                          : nothing}
                         <button
                           class="cp-button"
                           @click=${() => {
@@ -5325,9 +5353,11 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                             this.selectChannel(addSelectedChannelId);
                           }}
                         >
-                          ${configuredCount > 0
+                          ${canAddAnotherAccount
                             ? copy.channels.openWorkspace
-                            : copy.channels.startWithThisChannel}
+                            : configuredCount > 0
+                              ? copy.channels.openWorkspace
+                              : copy.channels.startWithThisChannel}
                         </button>
                         ${addSelectedControls.canEdit
                           ? html`
