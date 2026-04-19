@@ -724,6 +724,58 @@ crawclaw-app {
   text-align: right;
 }
 
+.cp-routing-card {
+  display: grid;
+  gap: 14px;
+}
+
+.cp-routing-card__hero,
+.cp-routing-card__item,
+.cp-routing-card__technical {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background: rgba(8, 18, 31, 0.72);
+}
+
+.cp-routing-card__hero span,
+.cp-routing-card__item span,
+.cp-routing-card__technical span {
+  color: var(--cp-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.cp-routing-card__hero strong,
+.cp-routing-card__item strong {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.cp-routing-card__hero small,
+.cp-routing-card__item small,
+.cp-routing-card__technical small {
+  color: var(--cp-text-soft);
+  line-height: 1.45;
+}
+
+.cp-routing-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cp-routing-card__technical code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--cp-text);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .cp-table-wrap {
   overflow: auto;
   border: 1px solid rgba(123, 162, 255, 0.1);
@@ -1228,7 +1280,8 @@ crawclaw-app {
   .cp-band,
   .cp-band--sessions,
   .cp-grid--double,
-  .cp-session-signal-strip {
+  .cp-session-signal-strip,
+  .cp-routing-card__grid {
     grid-template-columns: 1fr;
   }
 

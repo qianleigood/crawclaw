@@ -302,8 +302,15 @@ const APP_COPY = {
       streaming: "streaming",
       runtimeKicker: "Running now",
       runtimeTitle: "Current session state",
-      routingKicker: "Model and route",
-      routingTitle: "How this session is routed",
+      routingKicker: "Reply setup",
+      routingTitle: "How this message will be sent",
+      routingTarget: "Message target",
+      routingChannel: "Delivery channel",
+      routingMode: "Conversation type",
+      routingModel: "Reply model",
+      routingUsage: "Usage summary",
+      routingTechnical: "Technical details",
+      routingTechnicalHint: "Only open these fields when you need to troubleshoot routing.",
       activityKicker: "Latest reply",
       activityTitle: "Most recent message",
       composerKicker: "Send a message",
@@ -684,8 +691,15 @@ const APP_COPY = {
       streaming: "流式输出中",
       runtimeKicker: "正在运行",
       runtimeTitle: "当前会话状态",
-      routingKicker: "模型与路由",
-      routingTitle: "这条会话是怎么被处理的",
+      routingKicker: "回复方式",
+      routingTitle: "这条消息会如何发送",
+      routingTarget: "发送对象",
+      routingChannel: "发送渠道",
+      routingMode: "会话类型",
+      routingModel: "回复模型",
+      routingUsage: "用量摘要",
+      routingTechnical: "技术信息",
+      routingTechnicalHint: "只有在排查路由问题时，才需要看这些字段。",
       activityKicker: "最近回复",
       activityTitle: "最新一条消息",
       composerKicker: "发送消息",
@@ -1075,6 +1089,34 @@ function resolveSessionDisplayNameFromHistory(
       : `${surface} · ${senderLabel}`;
   }
   return persisted;
+}
+
+function describeSessionKind(kind: string | null | undefined, locale: Locale): string {
+  const normalized = (kind ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return uiText(locale).common.na;
+  }
+  if (normalized === "direct" || normalized === "dm") {
+    return locale === "zh-CN" ? "直接聊天" : "Direct chat";
+  }
+  if (normalized === "group") {
+    return locale === "zh-CN" ? "群组会话" : "Group chat";
+  }
+  if (normalized === "channel") {
+    return locale === "zh-CN" ? "频道会话" : "Channel thread";
+  }
+  if (normalized === "global") {
+    return locale === "zh-CN" ? "全局会话" : "Global session";
+  }
+  return normalized;
+}
+
+function compactSessionTechnicalKey(key: string | null | undefined): string | null {
+  const trimmed = key?.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed.length > 88 ? `${trimmed.slice(0, 44)}…${trimmed.slice(-24)}` : trimmed;
 }
 
 function countMessageBlocks(message: unknown): number {
@@ -3000,6 +3042,24 @@ export class CrawClawApp extends LitElement {
     const selectedDisplayName = selected
       ? resolveSessionDisplayNameFromHistory(selected, this.chatState.chatMessages)
       : this.settings.sessionKey;
+    const selectedKindLabel = selected
+      ? describeSessionKind(selected.chatType ?? selected.kind, this.locale)
+      : copy.common.na;
+    const selectedSurfaceLabel = selected ? sessionSurfaceLabel(selected) : copy.common.na;
+    const selectedSurfaceRaw = selected ? sessionSurfaceKey(selected) : null;
+    const selectedSurfaceHint =
+      selected && selectedSurfaceRaw
+        ? selectedSurfaceRaw.trim().toLowerCase() === selectedSurfaceLabel.trim().toLowerCase()
+          ? undefined
+          : selectedSurfaceRaw
+        : undefined;
+    const selectedUsageHint =
+      selected?.inputTokens != null || selected?.outputTokens != null
+        ? `${selected.inputTokens ?? 0} in / ${selected.outputTokens ?? 0} out`
+        : selected?.totalTokensFresh
+          ? copy.common.live
+          : copy.common.summary;
+    const selectedTechnicalKey = compactSessionTechnicalKey(selected?.key);
     return html`
       <section class="cp-page cp-page--sessions">
         ${this.renderPageHeader("sessions", [
@@ -3399,38 +3459,48 @@ export class CrawClawApp extends LitElement {
                 </div>
               </div>
               ${selected
-                ? this.renderMetaEntries(
-                    [
-                      {
-                        label: copy.common.session,
-                        value: selectedDisplayName,
-                        hint: selected.key,
-                      },
-                      {
-                        label: copy.common.kind,
-                        value: selected.chatType ?? selected.kind,
-                      },
-                      {
-                        label: copy.common.surface,
-                        value: sessionSurfaceLabel(selected),
-                        hint: sessionSurfaceKey(selected),
-                      },
-                      {
-                        label: copy.common.provider,
-                        value: selectedProvider ?? copy.common.auto,
-                      },
-                      { label: copy.common.model, value: selectedModel ?? copy.common.default },
-                      {
-                        label: copy.common.tokens,
-                        value: String(selected.totalTokens ?? 0),
-                        hint:
-                          selected.inputTokens != null || selected.outputTokens != null
-                            ? `${selected.inputTokens ?? 0} in / ${selected.outputTokens ?? 0} out`
-                            : undefined,
-                      },
-                    ],
-                    copy.sessions.selectPrompt,
-                  )
+                ? html`
+                    <div class="cp-routing-card">
+                      <div class="cp-routing-card__hero">
+                        <span>${copy.sessions.routingTarget}</span>
+                        <strong>${selectedDisplayName}</strong>
+                        <small>${selectedSurfaceLabel} · ${selectedKindLabel}</small>
+                      </div>
+                      <div class="cp-routing-card__grid">
+                        <div class="cp-routing-card__item">
+                          <span>${copy.sessions.routingChannel}</span>
+                          <strong>${selectedSurfaceLabel}</strong>
+                          ${selectedSurfaceHint
+                            ? html`<small>${selectedSurfaceHint}</small>`
+                            : nothing}
+                        </div>
+                        <div class="cp-routing-card__item">
+                          <span>${copy.sessions.routingMode}</span>
+                          <strong>${selectedKindLabel}</strong>
+                          <small>${selected.chatType ?? selected.kind ?? copy.common.na}</small>
+                        </div>
+                        <div class="cp-routing-card__item">
+                          <span>${copy.sessions.routingModel}</span>
+                          <strong>${selectedModel ?? copy.common.default}</strong>
+                          <small>${selectedProvider ?? copy.common.auto}</small>
+                        </div>
+                        <div class="cp-routing-card__item">
+                          <span>${copy.sessions.routingUsage}</span>
+                          <strong
+                            >${String(selected.totalTokens ?? 0)} ${copy.common.tokens}</strong
+                          >
+                          <small>${selectedUsageHint}</small>
+                        </div>
+                      </div>
+                      <div class="cp-routing-card__technical">
+                        <span>${copy.sessions.routingTechnical}</span>
+                        <small>${copy.sessions.routingTechnicalHint}</small>
+                        ${selectedTechnicalKey
+                          ? html`<code>${selectedTechnicalKey}</code>`
+                          : nothing}
+                      </div>
+                    </div>
+                  `
                 : html`<p class="cp-empty">${copy.sessions.selectPrompt}</p>`}
             </article>
 
