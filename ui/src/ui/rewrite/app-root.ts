@@ -1066,6 +1066,11 @@ function readMessageSenderLabel(message: unknown): string | null {
   return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null;
 }
 
+function isControlUiSenderLabel(label: string | null | undefined): boolean {
+  const normalized = (label ?? "").trim().toLowerCase();
+  return normalized === "crawclaw-control-ui" || normalized === "crawclaw control ui";
+}
+
 function resolveSessionDisplayNameFromHistory(
   session: SessionDisplayLike,
   messages: unknown[],
@@ -1080,7 +1085,7 @@ function resolveSessionDisplayNameFromHistory(
       continue;
     }
     const senderLabel = readMessageSenderLabel(message);
-    if (!senderLabel) {
+    if (!senderLabel || isControlUiSenderLabel(senderLabel)) {
       continue;
     }
     const surface = sessionSurfaceLabel(session);
