@@ -3,10 +3,15 @@ import { customElement, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { i18n, t, isSupportedLocale, type Locale } from "../../i18n/index.ts";
 import {
-  CHAT_ATTACHMENT_ACCEPT,
-  isSupportedChatAttachmentMimeType,
+  CHAT_COMPOSER_ATTACHMENT_ACCEPT,
+  getSupportedComposerAttachmentKind,
 } from "../chat/attachment-support.ts";
 import { extractText } from "../chat/message-extract.ts";
+import {
+  getSlashCommandCompletions,
+  SLASH_COMMANDS,
+  type SlashCommandDef,
+} from "../chat/slash-commands.ts";
 import {
   cancelAgentRuntimeTask,
   loadAgentRuntime,
@@ -316,14 +321,21 @@ const APP_COPY = {
       composerKicker: "Send a message",
       composerTitle: "Write to this session",
       sendPlaceholder: "Type a message for this session...",
-      attachImage: "Attach image",
-      dragHint: "Drag images here or use the picker",
+      attachFiles: "Add files",
+      dragHint: "Drag images or text files here, or use the picker",
       imageAttachments: "Image attachments",
+      attachments: "Attachments",
       maximize: "Maximize thread",
       restore: "Restore layout",
-      clearImages: "Clear images",
+      clearAttachments: "Clear attachments",
       clearDraft: "Clear draft",
       sendHint: "Enter sends · Shift+Enter adds a new line",
+      commandHint: "Type / to browse commands",
+      commandSuggestions: "Command suggestions",
+      commandHelp: "Use Tab to fill · Enter to send · Shift+Enter for a new line",
+      textFile: "Text file",
+      unsupportedAttachment: "Only images and text/code files are supported here.",
+      fileTooLarge: "Some files were too large and were trimmed before send.",
       inspectorKicker: "Inspector",
       inspectorTitle: "Current session context",
       selectPrompt: "Choose a session to read messages and reply.",
@@ -705,14 +717,21 @@ const APP_COPY = {
       composerKicker: "发送消息",
       composerTitle: "向当前会话发送消息",
       sendPlaceholder: "给当前会话输入一条消息…",
-      attachImage: "添加图片",
-      dragHint: "把图片拖到这里，或使用选择器",
+      attachFiles: "添加文件",
+      dragHint: "把图片或文本文件拖到这里，或使用选择器",
       imageAttachments: "图片附件",
+      attachments: "附件",
       maximize: "最大化对话",
       restore: "恢复布局",
-      clearImages: "清空图片",
+      clearAttachments: "清空附件",
       clearDraft: "清空草稿",
       sendHint: "回车发送 · Shift+Enter 换行",
+      commandHint: "输入 / 查看可用指令",
+      commandSuggestions: "指令提醒",
+      commandHelp: "Tab 补全 · Enter 发送 · Shift+Enter 换行",
+      textFile: "文本文件",
+      unsupportedAttachment: "这里只支持图片和文本/代码文件。",
+      fileTooLarge: "部分文件过大，发送前已自动截断。",
       inspectorKicker: "检查面板",
       inspectorTitle: "当前会话上下文",
       selectPrompt: "选择一个会话后查看消息并继续回复。",
@@ -1178,6 +1197,54 @@ function imageSourcesFromMessage(message: unknown): string[] {
   return sources;
 }
 
+type ChatSlashMenuState =
+  | { open: false }
+  | { open: true; mode: "command"; items: SlashCommandDef[] }
+  | { open: true; mode: "args"; command: SlashCommandDef; items: string[] };
+
+function resolveChatSlashMenuState(draft: string): ChatSlashMenuState {
+  const value = draft.trim();
+  if (!value.startsWith("/")) {
+    return { open: false };
+  }
+  const argMatch = value.match(/^\/(\S+)\s(.*)$/);
+  if (argMatch) {
+    const commandName = argMatch[1]?.toLowerCase() ?? "";
+    const argFilter = argMatch[2]?.trim().toLowerCase() ?? "";
+    const command = SLASH_COMMANDS.find((entry) => entry.name === commandName);
+    if (!command?.argOptions?.length) {
+      return { open: false };
+    }
+    const items = argFilter
+      ? command.argOptions.filter((entry) => entry.toLowerCase().startsWith(argFilter))
+      : command.argOptions;
+    return items.length ? { open: true, mode: "args", command, items } : { open: false };
+  }
+  const match = value.match(/^\/(\S*)$/);
+  if (!match) {
+    return { open: false };
+  }
+  const items = getSlashCommandCompletions(match[1] ?? "");
+  return items.length ? { open: true, mode: "command", items } : { open: false };
+}
+
+function chatAttachmentName(attachment: ChatAttachment, locale: Locale): string {
+  if (attachment.fileName?.trim()) {
+    return attachment.fileName.trim();
+  }
+  return attachment.kind === "text"
+    ? uiText(locale).sessions.textFile
+    : uiText(locale).sessions.imageAttachments;
+}
+
+function chatAttachmentPreviewText(attachment: ChatAttachment): string | null {
+  const text = attachment.textContent?.trim();
+  if (!text) {
+    return null;
+  }
+  return text.length > 140 ? `${text.slice(0, 137)}...` : text;
+}
+
 function resolveSessionRowByKey<T extends SessionDisplayLike>(
   sessions: readonly T[] | null | undefined,
   sessionKey?: string | null,
@@ -1439,6 +1506,7 @@ export class CrawClawApp extends LitElement {
   @state() approvalsRaw = "{}";
   @state() approvalsError: string | null = null;
   @state() memorySessionQuery = "";
+  @state() chatSlashIndex = 0;
 
   client: GatewayBrowserClient | null = null;
   private reconnectReason: string | null = null;
@@ -2049,8 +2117,7 @@ export class CrawClawApp extends LitElement {
     });
   }
 
-  private async handleSendMessage(event: Event) {
-    event.preventDefault();
+  private async submitCurrentChatDraft() {
     if (!this.chatState.chatMessage.trim() && this.chatState.chatAttachments.length === 0) {
       return;
     }
@@ -2062,37 +2129,120 @@ export class CrawClawApp extends LitElement {
       );
       this.chatState.chatMessage = "";
       this.chatState.chatAttachments = [];
+      this.chatSlashIndex = 0;
     });
   }
 
+  private async handleSendMessage(event: Event) {
+    event.preventDefault();
+    await this.submitCurrentChatDraft();
+  }
+
+  private applySlashCommandSelection(command: SlashCommandDef) {
+    this.chatState.chatMessage = command.args ? `/${command.name} ` : `/${command.name}`;
+    this.chatSlashIndex = 0;
+    this.requestUpdate();
+  }
+
+  private applySlashArgumentSelection(command: SlashCommandDef, arg: string) {
+    this.chatState.chatMessage = `/${command.name} ${arg}`;
+    this.chatSlashIndex = 0;
+    this.requestUpdate();
+  }
+
+  private async handleChatComposerKeydown(event: KeyboardEvent) {
+    const slashMenu = resolveChatSlashMenuState(this.chatState.chatMessage);
+    if (slashMenu.open && event.key === "Escape") {
+      this.chatSlashIndex = 0;
+      this.requestUpdate();
+      return;
+    }
+    if (slashMenu.open && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      const count = slashMenu.items.length;
+      this.chatSlashIndex = (this.chatSlashIndex + direction + count) % count;
+      this.requestUpdate();
+      return;
+    }
+    if (slashMenu.open && event.key === "Tab") {
+      event.preventDefault();
+      const index = Math.max(0, Math.min(this.chatSlashIndex, slashMenu.items.length - 1));
+      if (slashMenu.mode === "command") {
+        this.applySlashCommandSelection(slashMenu.items[index]);
+      } else {
+        this.applySlashArgumentSelection(slashMenu.command, slashMenu.items[index]);
+      }
+      return;
+    }
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      await this.submitCurrentChatDraft();
+    }
+  }
+
   private async readChatAttachments(files: Iterable<File>) {
-    const readers = Array.from(files).filter((file) =>
-      isSupportedChatAttachmentMimeType(file.type),
-    );
+    const candidates = Array.from(files);
+    const oversizedTextFiles = new Set<string>();
+    const readers = candidates
+      .map((file) => ({ file, kind: getSupportedComposerAttachmentKind(file) }))
+      .filter((entry) => entry.kind !== null);
     if (!readers.length) {
+      this.chatState.lastError = uiText(this.locale).sessions.unsupportedAttachment;
+      this.requestUpdate();
       return;
     }
     const additions = await Promise.all(
       readers.map(
-        (file) =>
+        ({ file, kind }) =>
           new Promise<ChatAttachment>((resolve, reject) => {
             const reader = new FileReader();
             reader.addEventListener("load", () => {
+              const id =
+                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                  ? crypto.randomUUID()
+                  : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              if (kind === "text") {
+                const maxChars = 40_000;
+                const rawText = typeof reader.result === "string" ? reader.result : "";
+                const truncated = rawText.length > maxChars;
+                if (truncated) {
+                  oversizedTextFiles.add(file.name);
+                }
+                resolve({
+                  id,
+                  kind: "text",
+                  dataUrl: "",
+                  mimeType: file.type || "text/plain",
+                  fileName: file.name,
+                  textContent: truncated ? rawText.slice(0, maxChars) : rawText,
+                  sizeBytes: file.size,
+                  truncated,
+                });
+                return;
+              }
               resolve({
-                id:
-                  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                    ? crypto.randomUUID()
-                    : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                id,
+                kind: "image",
                 dataUrl: reader.result as string,
                 mimeType: file.type,
+                fileName: file.name,
+                sizeBytes: file.size,
               });
             });
             reader.addEventListener("error", () => reject(reader.error));
+            if (kind === "text") {
+              reader.readAsText(file);
+              return;
+            }
             reader.readAsDataURL(file);
           }),
       ),
     );
     this.chatState.chatAttachments = [...this.chatState.chatAttachments, ...additions];
+    this.chatState.lastError = oversizedTextFiles.size
+      ? uiText(this.locale).sessions.fileTooLarge
+      : null;
     this.requestUpdate();
   }
 
@@ -3044,6 +3194,15 @@ export class CrawClawApp extends LitElement {
       selected?.modelProvider ?? this.sessionsState.sessionsResult?.defaults?.modelProvider;
     const draftLength = this.chatState.chatMessage.trim().length;
     const attachmentCount = this.chatState.chatAttachments.length;
+    const imageAttachmentCount = this.chatState.chatAttachments.filter(
+      (attachment) => attachment.kind !== "text",
+    ).length;
+    const textAttachmentCount = attachmentCount - imageAttachmentCount;
+    const slashMenu = resolveChatSlashMenuState(this.chatState.chatMessage);
+    const normalizedSlashIndex =
+      slashMenu.open && slashMenu.items.length > 0
+        ? Math.max(0, Math.min(this.chatSlashIndex, slashMenu.items.length - 1))
+        : 0;
     const selectedDisplayName = selected
       ? resolveSessionDisplayNameFromHistory(selected, this.chatState.chatMessages)
       : this.settings.sessionKey;
@@ -3197,7 +3356,7 @@ export class CrawClawApp extends LitElement {
               <article class="cp-session-signal-card">
                 <span>${copy.common.execution}</span>
                 <strong>${this.chatState.chatRunId ?? copy.common.none}</strong>
-                <small>${draftLength} / ${attachmentCount} ${copy.sessions.imageAttachments}</small>
+                <small>${draftLength} / ${attachmentCount} ${copy.sessions.attachments}</small>
               </article>
             </section>
 
@@ -3321,18 +3480,18 @@ export class CrawClawApp extends LitElement {
                       <span>
                         ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
                       </span>
-                      <span> ${copy.sessions.imageAttachments}: ${attachmentCount} </span>
+                      <span> ${copy.sessions.attachments}: ${attachmentCount} </span>
                     </div>
                   </div>
                   <div class="cp-chat-attachments-toolbar">
                     <label class="cp-button cp-button--ghost cp-chat-attachments-toolbar__picker">
                       <input
                         type="file"
-                        accept=${CHAT_ATTACHMENT_ACCEPT}
+                        accept=${CHAT_COMPOSER_ATTACHMENT_ACCEPT}
                         multiple
                         @change=${(event: Event) => void this.handleChatFileSelect(event)}
                       />
-                      <span>${copy.sessions.attachImage}</span>
+                      <span>${copy.sessions.attachFiles}</span>
                     </label>
                     <span class="cp-chat-attachments-toolbar__hint">${copy.sessions.dragHint}</span>
                     ${this.chatState.chatAttachments.length
@@ -3345,7 +3504,7 @@ export class CrawClawApp extends LitElement {
                               this.requestUpdate();
                             }}
                           >
-                            ${copy.sessions.clearImages}
+                            ${copy.sessions.clearAttachments}
                           </button>
                         `
                       : nothing}
@@ -3358,10 +3517,29 @@ export class CrawClawApp extends LitElement {
                             (attachment) => attachment.id,
                             (attachment) => html`
                               <div class="cp-chat-attachment-thumb">
-                                <img
-                                  src=${attachment.dataUrl}
-                                  alt=${copy.sessions.imageAttachments}
-                                />
+                                ${attachment.kind === "text"
+                                  ? html`
+                                      <div class="cp-chat-attachment-thumb__file">
+                                        <span>${copy.sessions.textFile}</span>
+                                        <strong
+                                          >${chatAttachmentName(attachment, this.locale)}</strong
+                                        >
+                                        <small>
+                                          ${attachment.sizeBytes != null
+                                            ? `${Math.max(1, Math.round(attachment.sizeBytes / 1024))} KB`
+                                            : attachment.mimeType}
+                                        </small>
+                                        ${chatAttachmentPreviewText(attachment)
+                                          ? html` <p>${chatAttachmentPreviewText(attachment)}</p> `
+                                          : nothing}
+                                      </div>
+                                    `
+                                  : html`
+                                      <img
+                                        src=${attachment.dataUrl}
+                                        alt=${copy.sessions.imageAttachments}
+                                      />
+                                    `}
                                 <button
                                   class="cp-chat-attachment-thumb__remove"
                                   type="button"
@@ -3381,17 +3559,75 @@ export class CrawClawApp extends LitElement {
                         </div>
                       `
                     : nothing}
+                  ${slashMenu.open
+                    ? html`
+                        <div
+                          class="cp-chat-slash-menu"
+                          role="listbox"
+                          aria-label=${copy.sessions.commandSuggestions}
+                        >
+                          <div class="cp-chat-slash-menu__head">
+                            <span>${copy.sessions.commandSuggestions}</span>
+                            <small>${copy.sessions.commandHelp}</small>
+                          </div>
+                          <div class="cp-chat-slash-menu__list">
+                            ${slashMenu.mode === "command"
+                              ? repeat(
+                                  slashMenu.items,
+                                  (item) => item.key,
+                                  (item, index) => html`
+                                    <button
+                                      class="cp-chat-slash-menu__item ${index ===
+                                      normalizedSlashIndex
+                                        ? "is-active"
+                                        : ""}"
+                                      type="button"
+                                      @click=${() => this.applySlashCommandSelection(item)}
+                                    >
+                                      <strong>/${item.name}</strong>
+                                      <span>${item.description}</span>
+                                      ${item.args ? html`<small>${item.args}</small>` : nothing}
+                                    </button>
+                                  `,
+                                )
+                              : repeat(
+                                  slashMenu.items,
+                                  (item) => item,
+                                  (item, index) => html`
+                                    <button
+                                      class="cp-chat-slash-menu__item ${index ===
+                                      normalizedSlashIndex
+                                        ? "is-active"
+                                        : ""}"
+                                      type="button"
+                                      @click=${() =>
+                                        this.applySlashArgumentSelection(slashMenu.command, item)}
+                                    >
+                                      <strong>${item}</strong>
+                                      <span>/${slashMenu.command.name} ${item}</span>
+                                    </button>
+                                  `,
+                                )}
+                          </div>
+                        </div>
+                      `
+                    : nothing}
                   <textarea
                     class="cp-chat-composer__textarea"
                     .value=${this.chatState.chatMessage}
                     placeholder=${copy.sessions.sendPlaceholder}
+                    @keydown=${(event: KeyboardEvent) => void this.handleChatComposerKeydown(event)}
                     @input=${(event: Event) => {
                       this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
+                      this.chatSlashIndex = 0;
                       this.requestUpdate();
                     }}
                   ></textarea>
                   <div class="cp-form__actions cp-form__actions--composer">
-                    <span class="cp-chat-composer__hint">${copy.sessions.sendHint}</span>
+                    <span class="cp-chat-composer__hint">
+                      ${copy.sessions.sendHint}
+                      ${slashMenu.open ? ` · ${copy.sessions.commandHint}` : ""}
+                    </span>
                     <div class="cp-inline-actions cp-inline-actions--composer">
                       <button
                         class="cp-button cp-button--ghost"
@@ -3553,8 +3789,12 @@ export class CrawClawApp extends LitElement {
                   hint: draftLength ? copy.common.live : copy.common.idle,
                 },
                 {
-                  label: copy.sessions.imageAttachments,
+                  label: copy.sessions.attachments,
                   value: String(attachmentCount),
+                  hint:
+                    textAttachmentCount > 0
+                      ? `${imageAttachmentCount} ${copy.sessions.imageAttachments.toLowerCase()} · ${textAttachmentCount} ${copy.sessions.textFile.toLowerCase()}`
+                      : undefined,
                 },
                 {
                   label: copy.common.execution,

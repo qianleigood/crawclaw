@@ -1112,6 +1112,43 @@ crawclaw-app {
   object-fit: cover;
 }
 
+.cp-chat-attachment-thumb__file {
+  display: grid;
+  gap: 6px;
+  height: 100%;
+  padding: 14px;
+}
+
+.cp-chat-attachment-thumb__file span {
+  color: var(--cp-text-muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.cp-chat-attachment-thumb__file strong {
+  display: block;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.cp-chat-attachment-thumb__file small {
+  color: var(--cp-text-muted);
+  font-size: 0.72rem;
+}
+
+.cp-chat-attachment-thumb__file p {
+  margin: 0;
+  color: var(--cp-text-soft);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
 .cp-chat-attachment-thumb__remove {
   position: absolute;
   top: 8px;
@@ -1123,6 +1160,68 @@ crawclaw-app {
   background: rgba(7, 17, 30, 0.92);
   color: var(--cp-text);
   cursor: pointer;
+}
+
+.cp-chat-slash-menu {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background: rgba(6, 14, 23, 0.88);
+}
+
+.cp-chat-slash-menu__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.cp-chat-slash-menu__head span {
+  color: var(--cp-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.cp-chat-slash-menu__head small {
+  color: var(--cp-text-muted);
+  font-size: 0.72rem;
+}
+
+.cp-chat-slash-menu__list {
+  display: grid;
+  gap: 8px;
+}
+
+.cp-chat-slash-menu__item {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(123, 162, 255, 0.08);
+  background: rgba(10, 22, 38, 0.82);
+  color: var(--cp-text);
+  cursor: pointer;
+}
+
+.cp-chat-slash-menu__item.is-active,
+.cp-chat-slash-menu__item:hover {
+  border-color: rgba(89, 180, 255, 0.3);
+  background: linear-gradient(180deg, rgba(89, 180, 255, 0.12), rgba(89, 180, 255, 0.05));
+}
+
+.cp-chat-slash-menu__item strong {
+  font-size: 0.88rem;
+}
+
+.cp-chat-slash-menu__item span,
+.cp-chat-slash-menu__item small {
+  color: var(--cp-text-muted);
+  font-size: 0.74rem;
 }
 
 .cp-form,

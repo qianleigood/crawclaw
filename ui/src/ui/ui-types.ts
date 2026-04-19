@@ -2,6 +2,11 @@ export type ChatAttachment = {
   id: string;
   dataUrl: string;
   mimeType: string;
+  kind?: "image" | "text";
+  fileName?: string;
+  textContent?: string;
+  sizeBytes?: number;
+  truncated?: boolean;
 };
 
 export type ChatQueueItem = {

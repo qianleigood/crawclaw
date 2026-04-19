@@ -120,6 +120,69 @@ function dataUrlToBase64(dataUrl: string): { content: string; mimeType: string }
   return { mimeType: match[1], content: match[2] };
 }
 
+function isTextChatAttachment(attachment: ChatAttachment): boolean {
+  return attachment.kind === "text" || typeof attachment.textContent === "string";
+}
+
+function guessTextAttachmentLanguage(fileName: string | undefined): string {
+  const lower = fileName?.trim().toLowerCase() ?? "";
+  if (lower.endsWith(".md") || lower.endsWith(".markdown")) {
+    return "markdown";
+  }
+  if (lower.endsWith(".json") || lower.endsWith(".jsonl")) {
+    return "json";
+  }
+  if (lower.endsWith(".yaml") || lower.endsWith(".yml")) {
+    return "yaml";
+  }
+  if (lower.endsWith(".csv")) {
+    return "csv";
+  }
+  if (lower.endsWith(".xml")) {
+    return "xml";
+  }
+  if (lower.endsWith(".html") || lower.endsWith(".htm")) {
+    return "html";
+  }
+  if (lower.endsWith(".css")) {
+    return "css";
+  }
+  if (lower.endsWith(".jsx") || lower.endsWith(".js")) {
+    return "javascript";
+  }
+  if (lower.endsWith(".tsx") || lower.endsWith(".ts")) {
+    return "typescript";
+  }
+  if (lower.endsWith(".py")) {
+    return "python";
+  }
+  if (lower.endsWith(".sh")) {
+    return "bash";
+  }
+  if (lower.endsWith(".sql")) {
+    return "sql";
+  }
+  return "";
+}
+
+function formatTextAttachmentBlock(attachment: ChatAttachment): string {
+  const fileName = attachment.fileName?.trim() || "attachment.txt";
+  const language = guessTextAttachmentLanguage(fileName);
+  const body = attachment.textContent?.trimEnd() ?? "";
+  const truncatedNotice = attachment.truncated
+    ? "\n\n[File content truncated in the dashboard before send.]"
+    : "";
+  if (!body) {
+    return `[Attached file: ${fileName}]`;
+  }
+  return [
+    `[Attached file: ${fileName}]`,
+    `\`\`\`${language}`,
+    `${body}${truncatedNotice}`,
+    "```",
+  ].join("\n");
+}
+
 type AssistantMessageNormalizationOptions = {
   roleRequirement: "required" | "optional";
   roleCaseSensitive?: boolean;
@@ -178,21 +241,29 @@ export async function sendChatMessage(
     return null;
   }
   const msg = message.trim();
-  const hasAttachments = attachments && attachments.length > 0;
+  const normalizedAttachments = attachments ?? [];
+  const imageAttachments = normalizedAttachments.filter(
+    (attachment) => !isTextChatAttachment(attachment),
+  );
+  const textAttachments = normalizedAttachments.filter(isTextChatAttachment);
+  const hasAttachments = normalizedAttachments.length > 0;
   if (!msg && !hasAttachments) {
     return null;
   }
+  const composedMessage = [msg, ...textAttachments.map(formatTextAttachmentBlock)]
+    .filter((segment) => segment.trim().length > 0)
+    .join("\n\n");
 
   const now = Date.now();
 
   // Build user message content blocks
   const contentBlocks: Array<{ type: string; text?: string; source?: unknown }> = [];
-  if (msg) {
-    contentBlocks.push({ type: "text", text: msg });
+  if (composedMessage) {
+    contentBlocks.push({ type: "text", text: composedMessage });
   }
   // Add image previews to the message for display
-  if (hasAttachments) {
-    for (const att of attachments) {
+  if (imageAttachments.length > 0) {
+    for (const att of imageAttachments) {
       contentBlocks.push({
         type: "image",
         source: { type: "base64", media_type: att.mimeType, data: att.dataUrl },
@@ -217,26 +288,27 @@ export async function sendChatMessage(
   state.chatStreamStartedAt = now;
 
   // Convert attachments to API format
-  const apiAttachments = hasAttachments
-    ? attachments
-        .map((att) => {
-          const parsed = dataUrlToBase64(att.dataUrl);
-          if (!parsed) {
-            return null;
-          }
-          return {
-            type: "image",
-            mimeType: parsed.mimeType,
-            content: parsed.content,
-          };
-        })
-        .filter((a): a is NonNullable<typeof a> => a !== null)
-    : undefined;
+  const apiAttachments =
+    imageAttachments.length > 0
+      ? imageAttachments
+          .map((att) => {
+            const parsed = dataUrlToBase64(att.dataUrl);
+            if (!parsed) {
+              return null;
+            }
+            return {
+              type: "image",
+              mimeType: parsed.mimeType,
+              content: parsed.content,
+            };
+          })
+          .filter((a): a is NonNullable<typeof a> => a !== null)
+      : undefined;
 
   try {
     await state.client.request("chat.send", {
       sessionKey: state.sessionKey,
-      message: msg,
+      message: composedMessage,
       deliver: false,
       idempotencyKey: runId,
       attachments: apiAttachments,
