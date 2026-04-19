@@ -72,6 +72,14 @@ type ChannelConfigEntry = {
   order: number;
 };
 
+const CHANNEL_SECTION_STEP: Record<ChannelConfigSectionKey, string> = {
+  basic: "01",
+  auth: "02",
+  accounts: "03",
+  behavior: "04",
+  advanced: "05",
+};
+
 const CHANNEL_CONFIG_SECTION_COPY_KEYS: Record<
   ChannelConfigSectionKey,
   { title: string; hint: string; collapsible?: boolean }
@@ -239,6 +247,7 @@ function collectChannelEntries(params: {
 }
 
 function renderChannelConfigSectionGroup(params: {
+  sectionKey: ChannelConfigSectionKey;
   title: string;
   hint: string;
   entries: ChannelConfigEntry[];
@@ -254,6 +263,9 @@ function renderChannelConfigSectionGroup(params: {
   return html`
     <section class="cp-channel-config-section">
       <div class="cp-channel-config-section__head">
+        <span class="cp-channel-config-section__step"
+          >${CHANNEL_SECTION_STEP[params.sectionKey]}</span
+        >
         <h4>${params.title}</h4>
         <p>${params.hint}</p>
       </div>
@@ -341,6 +353,7 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
   return html`
     <div class="cp-channel-config-editor">
       ${renderChannelConfigSectionGroup({
+        sectionKey: "basic",
         ...basicCopy,
         entries: bySection.basic,
         basePath,
@@ -350,6 +363,7 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
         onPatch: props.onPatch,
       })}
       ${renderChannelConfigSectionGroup({
+        sectionKey: "auth",
         ...authCopy,
         entries: bySection.auth,
         basePath,
@@ -359,6 +373,7 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
         onPatch: props.onPatch,
       })}
       ${renderChannelConfigSectionGroup({
+        sectionKey: "accounts",
         ...accountsCopy,
         entries: bySection.accounts,
         basePath,
@@ -368,6 +383,7 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
         onPatch: props.onPatch,
       })}
       ${renderChannelConfigSectionGroup({
+        sectionKey: "behavior",
         ...behaviorCopy,
         entries: bySection.behavior,
         basePath,
