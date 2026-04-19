@@ -12,6 +12,7 @@ type ChannelConfigFormProps = {
   uiHints: ConfigUiHints;
   disabled: boolean;
   onPatch: (path: Array<string | number>, value: unknown) => void;
+  scoped?: boolean;
 };
 
 function resolveSchemaNode(
@@ -89,18 +90,21 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
   if (!normalized) {
     return html` <div class="callout danger">${uiLiteral("Schema unavailable. Use Raw.")}</div> `;
   }
-  const node = resolveSchemaNode(normalized, ["channels", props.channelId]);
+  const scoped = props.scoped === true;
+  const node = scoped ? normalized : resolveSchemaNode(normalized, ["channels", props.channelId]);
   if (!node) {
-    return html` <div class="callout danger">${uiLiteral("Channel config schema unavailable.")}</div> `;
+    return html`
+      <div class="callout danger">${uiLiteral("Channel config schema unavailable.")}</div>
+    `;
   }
   const configValue = props.configValue ?? {};
-  const value = resolveChannelValue(configValue, props.channelId);
+  const value = scoped ? configValue : resolveChannelValue(configValue, props.channelId);
   return html`
     <div class="config-form">
       ${renderNode({
         schema: node,
         value,
-        path: ["channels", props.channelId],
+        path: scoped ? [] : ["channels", props.channelId],
         hints: props.uiHints,
         unsupported: new Set(analysis.unsupportedPaths),
         disabled: props.disabled,

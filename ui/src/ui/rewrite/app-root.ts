@@ -30,6 +30,15 @@ import {
   type AgentsState,
 } from "../controllers/agents.ts";
 import {
+  applyChannelConfig,
+  loadChannelConfig,
+  loadChannelConfigSchema,
+  resetChannelConfigState,
+  saveChannelConfig,
+  updateChannelConfigFormValue,
+  type ChannelConfigState,
+} from "../controllers/channel-config.ts";
+import {
   loadChannels,
   logoutWhatsApp,
   reconnectChannelAccount,
@@ -50,7 +59,6 @@ import {
   loadConfig,
   loadConfigSchema,
   saveConfig,
-  updateConfigFormValue,
   type ConfigState,
 } from "../controllers/config.ts";
 import { callDebugMethod, loadDebug, type DebugState } from "../controllers/debug.ts";
@@ -1845,6 +1853,25 @@ export class CrawClawApp extends LitElement {
     whatsappBusy: false,
   };
 
+  readonly channelConfigState: ChannelConfigState = {
+    client: null,
+    connected: false,
+    applySessionKey: this.settings.sessionKey,
+    selectedChannelId: null,
+    configLoading: false,
+    configSaving: false,
+    configApplying: false,
+    configSnapshot: null,
+    configSchema: null,
+    configSchemaVersion: null,
+    configSchemaLoading: false,
+    configUiHints: {},
+    configForm: null,
+    configFormOriginal: null,
+    configFormDirty: false,
+    lastError: null,
+  };
+
   readonly configState: ConfigState = {
     client: null,
     connected: false,
@@ -2108,6 +2135,9 @@ export class CrawClawApp extends LitElement {
     this.chatState.sessionKey = this.settings.sessionKey;
     this.channelsState.client = client;
     this.channelsState.connected = connected;
+    this.channelConfigState.client = client;
+    this.channelConfigState.connected = connected;
+    this.channelConfigState.applySessionKey = this.settings.sessionKey;
     this.configState.client = client;
     this.configState.connected = connected;
     this.configState.applySessionKey = this.settings.sessionKey;
@@ -2376,19 +2406,25 @@ export class CrawClawApp extends LitElement {
   private openChannelSettings(channelId: string, _accountId?: string | null) {
     this.channelsSelectedChannelId = channelId;
     this.channelsEditorOpen = true;
-    this.configState.configFormMode = "form";
     void this.safeCall(async () => {
-      await Promise.all([loadConfigSchema(this.configState), loadConfig(this.configState)]);
+      await Promise.all([
+        loadChannelConfigSchema(this.channelConfigState, channelId),
+        loadChannelConfig(this.channelConfigState, channelId),
+      ]);
     });
   }
 
   private closeChannelSettings() {
     this.channelsEditorOpen = false;
+    resetChannelConfigState(this.channelConfigState);
   }
 
   private selectChannel(channelId: string) {
     this.channelsSelectedChannelId = channelId;
     this.channelsSelectedAccountId = "";
+    if (this.channelsEditorOpen) {
+      this.openChannelSettings(channelId);
+    }
   }
 
   private selectChannelAccount(channelId: string, accountId: string) {
@@ -4461,10 +4497,10 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const selectedIssueCount = countChannelAttentionIssues(selectedAccounts);
     const channelEditorAvailable = selectedControls.canEdit;
     const channelEditorBusy =
-      this.configState.configLoading ||
-      this.configState.configSchemaLoading ||
-      this.configState.configSaving ||
-      this.configState.configApplying;
+      this.channelConfigState.configLoading ||
+      this.channelConfigState.configSchemaLoading ||
+      this.channelConfigState.configSaving ||
+      this.channelConfigState.configApplying;
     const loginSupported =
       this.client?.hasMethod("channels.account.login.start") === true ||
       this.client?.hasMethod("channels.login.start") === true ||
@@ -4907,22 +4943,24 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                         <div class="cp-inline-actions">
                           <button
                             class="cp-button"
-                            ?disabled=${channelEditorBusy || !this.configState.configFormDirty}
+                            ?disabled=${channelEditorBusy ||
+                            !this.channelConfigState.configFormDirty}
                             @click=${() =>
                               void this.safeCall(async () => {
-                                this.configState.configFormMode = "form";
-                                await saveConfig(this.configState);
+                                await saveChannelConfig(this.channelConfigState);
+                                await loadChannels(this.channelsState, true);
                               })}
                           >
                             ${copy.channels.saveChannelSettings}
                           </button>
                           <button
                             class="cp-button"
-                            ?disabled=${channelEditorBusy || !this.configState.configFormDirty}
+                            ?disabled=${channelEditorBusy ||
+                            !this.channelConfigState.configFormDirty}
                             @click=${() =>
                               void this.safeCall(async () => {
-                                this.configState.configFormMode = "form";
-                                await applyConfig(this.configState);
+                                await applyChannelConfig(this.channelConfigState);
+                                await loadChannels(this.channelsState, true);
                               })}
                           >
                             ${copy.channels.applyChannelSettings}
@@ -4933,8 +4971,11 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                             @click=${() =>
                               void this.safeCall(async () => {
                                 await Promise.all([
-                                  loadConfigSchema(this.configState),
-                                  loadConfig(this.configState),
+                                  loadChannelConfigSchema(
+                                    this.channelConfigState,
+                                    selectedChannelId,
+                                  ),
+                                  loadChannelConfig(this.channelConfigState, selectedChannelId),
                                 ]);
                               })}
                           >
@@ -4963,27 +5004,28 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                           },
                           {
                             label: copy.common.schema,
-                            value: this.configState.configSchemaVersion ?? copy.common.na,
+                            value: this.channelConfigState.configSchemaVersion ?? copy.common.na,
                           },
                           {
                             label: copy.common.dirty,
-                            value: this.configState.configFormDirty
+                            value: this.channelConfigState.configFormDirty
                               ? copy.common.yes
                               : copy.common.no,
                           },
                         ],
-                        this.configState.lastError ?? undefined,
+                        this.channelConfigState.lastError ?? undefined,
                       )}
                       ${channelEditorBusy
                         ? html`<p class="cp-empty">${copy.common.pending}</p>`
                         : renderChannelConfigForm({
                             channelId: selectedChannelId,
-                            configValue: this.configState.configForm,
-                            schema: this.configState.configSchema,
-                            uiHints: this.configState.configUiHints,
+                            configValue: this.channelConfigState.configForm,
+                            schema: this.channelConfigState.configSchema,
+                            uiHints: this.channelConfigState.configUiHints,
                             disabled: channelEditorBusy,
+                            scoped: true,
                             onPatch: (path, value) =>
-                              updateConfigFormValue(this.configState, path, value),
+                              updateChannelConfigFormValue(this.channelConfigState, path, value),
                           })}
                     `
                   : html`

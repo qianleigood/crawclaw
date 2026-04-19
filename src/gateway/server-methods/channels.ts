@@ -328,7 +328,7 @@ export const channelsHandlers: GatewayRequestHandlers = {
         ...(canReconnect ? ["reconnect"] : []),
         ...(plugin.status?.probeAccount || plugin.status?.auditAccount ? ["verify"] : []),
         ...(plugin.gateway?.logoutAccount ? ["logout"] : []),
-        ...(plugin.configSchema || plugin.setupWizard || plugin.setup ? ["edit"] : []),
+        ...(plugin.configSchema ? ["edit"] : []),
         ...(plugin.setupWizard || plugin.setup ? ["setup"] : []),
       ];
       controlsMap[plugin.id] = {
@@ -337,7 +337,7 @@ export const channelsHandlers: GatewayRequestHandlers = {
         canReconnect,
         canVerify: plugin.status?.probeAccount != null || plugin.status?.auditAccount != null,
         canLogout: plugin.gateway?.logoutAccount != null,
-        canEdit: plugin.configSchema != null || plugin.setupWizard != null || plugin.setup != null,
+        canEdit: plugin.configSchema != null,
         canSetup: plugin.setupWizard != null || plugin.setup != null,
         multiAccount: accounts.length > 1,
       };

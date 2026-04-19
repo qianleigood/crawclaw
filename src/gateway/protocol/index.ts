@@ -48,6 +48,14 @@ import {
   ChannelsAccountLoginWaitParamsSchema,
   type ChannelsAccountReconnectParams,
   ChannelsAccountReconnectParamsSchema,
+  type ChannelsConfigApplyParams,
+  ChannelsConfigApplyParamsSchema,
+  type ChannelsConfigGetParams,
+  ChannelsConfigGetParamsSchema,
+  type ChannelsConfigPatchParams,
+  ChannelsConfigPatchParamsSchema,
+  type ChannelsConfigSchemaParams,
+  ChannelsConfigSchemaParamsSchema,
   type ChannelsAccountLogoutParams,
   ChannelsAccountLogoutParamsSchema,
   type ChannelsAccountTargetParams,
@@ -418,6 +426,18 @@ export const validateChannelsAccountLoginWaitParams = ajv.compile<ChannelsAccoun
 export const validateChannelsAccountReconnectParams = ajv.compile<ChannelsAccountReconnectParams>(
   ChannelsAccountReconnectParamsSchema,
 );
+export const validateChannelsConfigGetParams = ajv.compile<ChannelsConfigGetParams>(
+  ChannelsConfigGetParamsSchema,
+);
+export const validateChannelsConfigSchemaParams = ajv.compile<ChannelsConfigSchemaParams>(
+  ChannelsConfigSchemaParamsSchema,
+);
+export const validateChannelsConfigPatchParams = ajv.compile<ChannelsConfigPatchParams>(
+  ChannelsConfigPatchParamsSchema,
+);
+export const validateChannelsConfigApplyParams = ajv.compile<ChannelsConfigApplyParams>(
+  ChannelsConfigApplyParamsSchema,
+);
 export const validateChannelsAccountVerifyParams = ajv.compile<ChannelsAccountVerifyParams>(
   ChannelsAccountVerifyParamsSchema,
 );
@@ -601,6 +621,10 @@ export {
   ChannelsAccountLoginStartParamsSchema,
   ChannelsAccountLoginWaitParamsSchema,
   ChannelsAccountReconnectParamsSchema,
+  ChannelsConfigGetParamsSchema,
+  ChannelsConfigSchemaParamsSchema,
+  ChannelsConfigPatchParamsSchema,
+  ChannelsConfigApplyParamsSchema,
   ChannelsAccountVerifyParamsSchema,
   ChannelsAccountLogoutParamsSchema,
   WebLoginStartParamsSchema,
@@ -700,6 +724,10 @@ export type {
   ChannelsAccountLoginStartParams,
   ChannelsAccountLoginWaitParams,
   ChannelsAccountReconnectParams,
+  ChannelsConfigGetParams,
+  ChannelsConfigSchemaParams,
+  ChannelsConfigPatchParams,
+  ChannelsConfigApplyParams,
   ChannelsAccountVerifyParams,
   ChannelsAccountLogoutParams,
   WebLoginStartParams,

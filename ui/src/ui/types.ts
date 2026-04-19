@@ -335,7 +335,26 @@ export type ConfigSnapshot = {
   issues?: ConfigSnapshotIssue[] | null;
 };
 
+export type ChannelConfigSnapshot = {
+  channel: string;
+  path: string;
+  exists?: boolean | null;
+  hash?: string | null;
+  valid?: boolean | null;
+  config?: Record<string, unknown> | null;
+  issues?: ConfigSnapshotIssue[] | null;
+};
+
 export type ConfigSchemaResponse = {
+  schema: unknown;
+  uiHints: ConfigUiHints;
+  version: string;
+  generatedAt: string;
+};
+
+export type ChannelConfigSchemaResponse = {
+  channel: string;
+  path: string;
   schema: unknown;
   uiHints: ConfigUiHints;
   version: string;

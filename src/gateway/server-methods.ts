@@ -39,7 +39,13 @@ import { webHandlers } from "./server-methods/web.js";
 import { wizardHandlers } from "./server-methods/wizard.js";
 import { workflowHandlers } from "./server-methods/workflow.js";
 
-const CONTROL_PLANE_WRITE_METHODS = new Set(["config.apply", "config.patch", "update.run"]);
+const CONTROL_PLANE_WRITE_METHODS = new Set([
+  "config.apply",
+  "config.patch",
+  "channels.config.patch",
+  "channels.config.apply",
+  "update.run",
+]);
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
   if (!client?.connect) {
     return null;

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import {
   createConfigIO,
   parseConfigJson5,
@@ -36,6 +37,10 @@ import {
 import {
   ErrorCodes,
   errorShape,
+  validateChannelsConfigApplyParams,
+  validateChannelsConfigGetParams,
+  validateChannelsConfigPatchParams,
+  validateChannelsConfigSchemaParams,
   formatValidationErrors,
   validateConfigApplyParams,
   validateConfigGetParams,
@@ -129,6 +134,130 @@ function sanitizeLookupPathForLog(path: string): string {
     return code < 0x20 || code === 0x7f ? "?" : char;
   }).join("");
   return sanitized.length > 120 ? `${sanitized.slice(0, 117)}...` : sanitized;
+}
+
+function resolveChannelConfigPath(channelId: string): string {
+  return `channels.${channelId}`;
+}
+
+function isPlainObjectRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function getChannelConfigValue(
+  config: CrawClawConfig | Record<string, unknown>,
+  channelId: string,
+): Record<string, unknown> | null {
+  const channelsValue = (config as { channels?: unknown }).channels;
+  if (!isPlainObjectRecord(channelsValue)) {
+    return null;
+  }
+  const entry = channelsValue[channelId];
+  return isPlainObjectRecord(entry) ? entry : null;
+}
+
+function setChannelConfigValue(
+  config: CrawClawConfig,
+  channelId: string,
+  value: Record<string, unknown>,
+): CrawClawConfig {
+  const next = structuredClone(config);
+  const channelsValue = isPlainObjectRecord(next.channels) ? next.channels : {};
+  channelsValue[channelId] = value;
+  next.channels = channelsValue as CrawClawConfig["channels"];
+  return next;
+}
+
+function filterChannelConfigIssues(
+  issues: ReadonlyArray<ConfigValidationIssue>,
+  channelId: string,
+): ConfigValidationIssue[] {
+  const exactPath = resolveChannelConfigPath(channelId);
+  const prefix = `${exactPath}.`;
+  return issues.flatMap((issue) => {
+    if (issue.path === exactPath) {
+      return [
+        {
+          ...issue,
+          path: "(channel)",
+        },
+      ];
+    }
+    if (!issue.path.startsWith(prefix)) {
+      return [];
+    }
+    return [
+      {
+        ...issue,
+        path: issue.path.slice(prefix.length),
+      },
+    ];
+  });
+}
+
+function resolveChannelConfigTarget(params: unknown, respond: RespondFn) {
+  const rawChannel = (params as { channel?: unknown }).channel;
+  const channelId = typeof rawChannel === "string" ? normalizeChannelId(rawChannel) : null;
+  if (!channelId) {
+    respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid channel"));
+    return null;
+  }
+  const plugin = getChannelPlugin(channelId);
+  if (!plugin) {
+    respond(
+      false,
+      undefined,
+      errorShape(ErrorCodes.INVALID_REQUEST, `channel ${channelId} is unavailable`),
+    );
+    return null;
+  }
+  return { channelId, plugin };
+}
+
+function resolveChannelConfigUiHints(params: {
+  plugin: NonNullable<ReturnType<typeof getChannelPlugin>>;
+}): ConfigSchemaResponse["uiHints"] {
+  return params.plugin.configSchema?.uiHints ?? {};
+}
+
+function resolveChannelConfigSchemaPayload(params: {
+  channelId: string;
+  plugin: NonNullable<ReturnType<typeof getChannelPlugin>>;
+}): { path: string; schema: unknown; uiHints: ConfigSchemaResponse["uiHints"] } | null {
+  const channelSchema = params.plugin.configSchema;
+  if (!channelSchema) {
+    return null;
+  }
+  return {
+    path: resolveChannelConfigPath(params.channelId),
+    schema: channelSchema.schema,
+    uiHints: channelSchema.uiHints ?? {},
+  };
+}
+
+function parseChannelConfigObjectOrRespond(
+  params: unknown,
+  requestName: string,
+  respond: RespondFn,
+): Record<string, unknown> | null {
+  const rawValue = parseRawConfigOrRespond(params, requestName, respond);
+  if (!rawValue) {
+    return null;
+  }
+  const parsedRes = parseConfigJson5(rawValue);
+  if (!parsedRes.ok) {
+    respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, parsedRes.error));
+    return null;
+  }
+  if (!isPlainObjectRecord(parsedRes.parsed)) {
+    respond(
+      false,
+      undefined,
+      errorShape(ErrorCodes.INVALID_REQUEST, `${requestName} raw must be an object`),
+    );
+    return null;
+  }
+  return parsedRes.parsed;
 }
 
 function escapePowerShellSingleQuotedString(value: string): string {
@@ -337,6 +466,72 @@ export const configHandlers: GatewayRequestHandlers = {
       return;
     }
     respond(true, loadSchemaWithPlugins(), undefined);
+  },
+  "channels.config.get": async ({ params, respond }) => {
+    if (
+      !assertValidParams(params, validateChannelsConfigGetParams, "channels.config.get", respond)
+    ) {
+      return;
+    }
+    const target = resolveChannelConfigTarget(params, respond);
+    if (!target) {
+      return;
+    }
+    const snapshot = await readConfigFileSnapshot();
+    const uiHints = resolveChannelConfigUiHints(target);
+    const existingChannelConfig = getChannelConfigValue(snapshot.runtimeConfig, target.channelId);
+    const channelConfig = existingChannelConfig ?? {};
+    respond(
+      true,
+      {
+        channel: target.channelId,
+        path: resolveChannelConfigPath(target.channelId),
+        exists: existingChannelConfig != null,
+        hash: snapshot.hash ?? null,
+        valid: snapshot.valid,
+        config: redactConfigObject(channelConfig, uiHints),
+        issues: filterChannelConfigIssues(snapshot.issues, target.channelId),
+      },
+      undefined,
+    );
+  },
+  "channels.config.schema": ({ params, respond }) => {
+    if (
+      !assertValidParams(
+        params,
+        validateChannelsConfigSchemaParams,
+        "channels.config.schema",
+        respond,
+      )
+    ) {
+      return;
+    }
+    const target = resolveChannelConfigTarget(params, respond);
+    if (!target) {
+      return;
+    }
+    const channelSchema = resolveChannelConfigSchemaPayload(target);
+    if (!channelSchema) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.UNAVAILABLE, "channel config schema unavailable"),
+      );
+      return;
+    }
+    const schema = loadSchemaWithPlugins();
+    respond(
+      true,
+      {
+        channel: target.channelId,
+        path: channelSchema.path,
+        schema: channelSchema.schema,
+        uiHints: channelSchema.uiHints,
+        version: schema.version,
+        generatedAt: schema.generatedAt,
+      },
+      undefined,
+    );
   },
   "config.schema.lookup": ({ params, respond, context }) => {
     if (
@@ -602,6 +797,263 @@ export const configHandlers: GatewayRequestHandlers = {
         ok: true,
         path: createConfigIO().configPath,
         config: redactConfigObject(parsed.config, parsed.schema.uiHints),
+        restart,
+        sentinel: {
+          path: sentinelPath,
+          payload,
+        },
+      },
+      undefined,
+    );
+  },
+  "channels.config.patch": async ({ params, respond, client, context }) => {
+    if (
+      !assertValidParams(
+        params,
+        validateChannelsConfigPatchParams,
+        "channels.config.patch",
+        respond,
+      )
+    ) {
+      return;
+    }
+    const target = resolveChannelConfigTarget(params, respond);
+    if (!target) {
+      return;
+    }
+    const { snapshot, writeOptions } = await readConfigFileSnapshotForWrite();
+    if (!requireConfigBaseHash(params, snapshot, respond)) {
+      return;
+    }
+    if (!snapshot.valid) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "invalid config; fix before patching"),
+      );
+      return;
+    }
+    const patchObject = parseChannelConfigObjectOrRespond(params, "channels.config.patch", respond);
+    if (!patchObject) {
+      return;
+    }
+    const uiHints = resolveChannelConfigUiHints(target);
+    const currentChannelConfig =
+      getChannelConfigValue(snapshot.runtimeConfig, target.channelId) ?? {};
+    const mergedChannelConfig = applyMergePatch(currentChannelConfig, patchObject, {
+      mergeObjectArraysById: true,
+    });
+    const restoredChannel = restoreRedactedValues(
+      mergedChannelConfig,
+      currentChannelConfig,
+      uiHints,
+    );
+    if (!restoredChannel.ok || !isPlainObjectRecord(restoredChannel.result)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          restoredChannel.humanReadableMessage ?? "invalid channel config",
+        ),
+      );
+      return;
+    }
+    const nextConfig = setChannelConfigValue(
+      snapshot.runtimeConfig,
+      target.channelId,
+      restoredChannel.result,
+    );
+    const validated = validateConfigObjectWithPlugins(nextConfig);
+    if (!validated.ok) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, summarizeConfigValidationIssues(validated.issues), {
+          details: { issues: validated.issues },
+        }),
+      );
+      return;
+    }
+    if (!(await ensureResolvableSecretRefsOrRespond({ config: validated.config, respond }))) {
+      return;
+    }
+    const changedPaths = diffConfigPaths(snapshot.runtimeConfig, validated.config);
+    const actor = resolveControlPlaneActor(client);
+    if (changedPaths.length === 0) {
+      context?.logGateway?.info(
+        `channels.config.patch noop ${formatControlPlaneActor(actor)} channel=${target.channelId}`,
+      );
+      respond(
+        true,
+        {
+          ok: true,
+          noop: true,
+          channel: target.channelId,
+          path: resolveChannelConfigPath(target.channelId),
+          config: redactConfigObject(
+            getChannelConfigValue(validated.config, target.channelId) ?? {},
+            uiHints,
+          ),
+        },
+        undefined,
+      );
+      return;
+    }
+    context?.logGateway?.info(
+      `channels.config.patch write ${formatControlPlaneActor(actor)} channel=${target.channelId} changedPaths=${summarizeChangedPaths(changedPaths)} restartReason=channels.config.patch`,
+    );
+    await writeConfigFile(validated.config, writeOptions);
+
+    const { sessionKey, note, restartDelayMs, deliveryContext, threadId } =
+      resolveConfigRestartRequest(params);
+    const payload = buildConfigRestartSentinelPayload({
+      kind: "config-patch",
+      mode: "channels.config.patch",
+      sessionKey,
+      deliveryContext,
+      threadId,
+      note,
+    });
+    const sentinelPath = await tryWriteRestartSentinelPayload(payload);
+    const restart = scheduleGatewaySigusr1Restart({
+      delayMs: restartDelayMs,
+      reason: "channels.config.patch",
+      audit: {
+        actor: actor.actor,
+        deviceId: actor.deviceId,
+        clientIp: actor.clientIp,
+        changedPaths,
+      },
+    });
+    if (restart.coalesced) {
+      context?.logGateway?.warn(
+        `channels.config.patch restart coalesced ${formatControlPlaneActor(actor)} delayMs=${restart.delayMs}`,
+      );
+    }
+    respond(
+      true,
+      {
+        ok: true,
+        channel: target.channelId,
+        path: resolveChannelConfigPath(target.channelId),
+        config: redactConfigObject(
+          getChannelConfigValue(validated.config, target.channelId) ?? {},
+          uiHints,
+        ),
+        restart,
+        sentinel: {
+          path: sentinelPath,
+          payload,
+        },
+      },
+      undefined,
+    );
+  },
+  "channels.config.apply": async ({ params, respond, client, context }) => {
+    if (
+      !assertValidParams(
+        params,
+        validateChannelsConfigApplyParams,
+        "channels.config.apply",
+        respond,
+      )
+    ) {
+      return;
+    }
+    const target = resolveChannelConfigTarget(params, respond);
+    if (!target) {
+      return;
+    }
+    const { snapshot, writeOptions } = await readConfigFileSnapshotForWrite();
+    if (!requireConfigBaseHash(params, snapshot, respond)) {
+      return;
+    }
+    const nextChannelConfig = parseChannelConfigObjectOrRespond(
+      params,
+      "channels.config.apply",
+      respond,
+    );
+    if (!nextChannelConfig) {
+      return;
+    }
+    const uiHints = resolveChannelConfigUiHints(target);
+    const currentChannelConfig =
+      getChannelConfigValue(snapshot.runtimeConfig, target.channelId) ?? {};
+    const restoredChannel = restoreRedactedValues(nextChannelConfig, currentChannelConfig, uiHints);
+    if (!restoredChannel.ok || !isPlainObjectRecord(restoredChannel.result)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          restoredChannel.humanReadableMessage ?? "invalid channel config",
+        ),
+      );
+      return;
+    }
+    const nextConfig = setChannelConfigValue(
+      snapshot.runtimeConfig,
+      target.channelId,
+      restoredChannel.result,
+    );
+    const validated = validateConfigObjectWithPlugins(nextConfig);
+    if (!validated.ok) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, summarizeConfigValidationIssues(validated.issues), {
+          details: { issues: validated.issues },
+        }),
+      );
+      return;
+    }
+    if (!(await ensureResolvableSecretRefsOrRespond({ config: validated.config, respond }))) {
+      return;
+    }
+    const changedPaths = diffConfigPaths(snapshot.runtimeConfig, validated.config);
+    const actor = resolveControlPlaneActor(client);
+    context?.logGateway?.info(
+      `channels.config.apply write ${formatControlPlaneActor(actor)} channel=${target.channelId} changedPaths=${summarizeChangedPaths(changedPaths)} restartReason=channels.config.apply`,
+    );
+    await writeConfigFile(validated.config, writeOptions);
+
+    const { sessionKey, note, restartDelayMs, deliveryContext, threadId } =
+      resolveConfigRestartRequest(params);
+    const payload = buildConfigRestartSentinelPayload({
+      kind: "config-apply",
+      mode: "channels.config.apply",
+      sessionKey,
+      deliveryContext,
+      threadId,
+      note,
+    });
+    const sentinelPath = await tryWriteRestartSentinelPayload(payload);
+    const restart = scheduleGatewaySigusr1Restart({
+      delayMs: restartDelayMs,
+      reason: "channels.config.apply",
+      audit: {
+        actor: actor.actor,
+        deviceId: actor.deviceId,
+        clientIp: actor.clientIp,
+        changedPaths,
+      },
+    });
+    if (restart.coalesced) {
+      context?.logGateway?.warn(
+        `channels.config.apply restart coalesced ${formatControlPlaneActor(actor)} delayMs=${restart.delayMs}`,
+      );
+    }
+    respond(
+      true,
+      {
+        ok: true,
+        channel: target.channelId,
+        path: resolveChannelConfigPath(target.channelId),
+        config: redactConfigObject(
+          getChannelConfigValue(validated.config, target.channelId) ?? {},
+          uiHints,
+        ),
         restart,
         sentinel: {
           path: sentinelPath,

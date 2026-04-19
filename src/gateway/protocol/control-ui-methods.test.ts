@@ -41,6 +41,10 @@ const FIRST_BATCH_METHODS = [
   "channels.account.login.start",
   "channels.account.login.wait",
   "channels.account.reconnect",
+  "channels.config.get",
+  "channels.config.schema",
+  "channels.config.patch",
+  "channels.config.apply",
   "channels.account.verify",
   "channels.account.logout",
   "channels.login.start",
@@ -134,6 +138,22 @@ describe("control-plane method contract", () => {
       requiredScopes: ["operator.admin"],
     });
     expect(getControlUiMethodDefinition("channels.account.reconnect")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.admin"],
+    });
+    expect(getControlUiMethodDefinition("channels.config.get")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.read"],
+    });
+    expect(getControlUiMethodDefinition("channels.config.schema")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.read"],
+    });
+    expect(getControlUiMethodDefinition("channels.config.patch")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.admin"],
+    });
+    expect(getControlUiMethodDefinition("channels.config.apply")).toMatchObject({
       stability: "stable",
       requiredScopes: ["operator.admin"],
     });
@@ -254,6 +274,14 @@ describe("control-plane method contract", () => {
       restart: "reload",
     });
     expect(getControlUiMethodDefinition("config.apply").effects).toEqual({
+      writesConfig: true,
+      restart: "reload",
+    });
+    expect(getControlUiMethodDefinition("channels.config.patch").effects).toEqual({
+      writesConfig: true,
+      restart: "reload",
+    });
+    expect(getControlUiMethodDefinition("channels.config.apply").effects).toEqual({
       writesConfig: true,
       restart: "reload",
     });

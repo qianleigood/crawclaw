@@ -526,10 +526,14 @@ UI 改成按渠道/账号显示按钮。
 
 当前状态：
 
-- 部分完成
-- 当前浏览器端已经提供渠道内联编辑区
-- 第一版复用现有 `config.get / schema / patch / apply`
-- 还没有拆出独立的 `channels.config.*` 控制面 API
+- 已完成
+- 已落地：
+  - `channels.config.get`
+  - `channels.config.schema`
+  - `channels.config.patch`
+  - `channels.config.apply`
+- `Channels` 页面已经切到独立的渠道配置状态
+- 渠道编辑不再复用全局 `ConfigState`
 
 ### Phase 4
 

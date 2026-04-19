@@ -1,4 +1,5 @@
 import { Type } from "@sinclair/typebox";
+import { ConfigUiHintSchema } from "./config.js";
 import { NonEmptyString, SecretInputSchema } from "./primitives.js";
 
 export const TalkModeParamsSchema = Type.Object(
@@ -336,6 +337,76 @@ export const ChannelsAccountReconnectResultSchema = Type.Object(
     accountId: NonEmptyString,
     restartedAt: Type.Integer({ minimum: 0 }),
     snapshot: Type.Optional(ChannelAccountSnapshotSchema),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsConfigTargetParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsConfigIssueSchema = Type.Object(
+  {
+    path: Type.String(),
+    message: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsConfigSnapshotSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    path: NonEmptyString,
+    exists: Type.Optional(Type.Boolean()),
+    hash: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    valid: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+    config: Type.Optional(Type.Unknown()),
+    issues: Type.Optional(Type.Array(ChannelsConfigIssueSchema)),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsConfigSchemaResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    path: NonEmptyString,
+    schema: Type.Unknown(),
+    uiHints: Type.Record(Type.String(), ConfigUiHintSchema),
+    version: NonEmptyString,
+    generatedAt: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+const ChannelsConfigApplyLikeParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    raw: NonEmptyString,
+    baseHash: Type.Optional(NonEmptyString),
+    sessionKey: Type.Optional(Type.String()),
+    note: Type.Optional(Type.String()),
+    restartDelayMs: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsConfigGetParamsSchema = ChannelsConfigTargetParamsSchema;
+export const ChannelsConfigSchemaParamsSchema = ChannelsConfigTargetParamsSchema;
+export const ChannelsConfigPatchParamsSchema = ChannelsConfigApplyLikeParamsSchema;
+export const ChannelsConfigApplyParamsSchema = ChannelsConfigApplyLikeParamsSchema;
+
+export const ChannelsConfigWriteResultSchema = Type.Object(
+  {
+    ok: Type.Boolean(),
+    noop: Type.Optional(Type.Boolean()),
+    channel: NonEmptyString,
+    path: NonEmptyString,
+    config: Type.Unknown(),
+    restart: Type.Optional(Type.Unknown()),
+    sentinel: Type.Optional(Type.Unknown()),
   },
   { additionalProperties: false },
 );
