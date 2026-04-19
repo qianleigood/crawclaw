@@ -686,9 +686,44 @@ crawclaw-app {
   gap: 12px;
 }
 
+.cp-channel-directory-page,
+.cp-channel-workspace,
+.cp-channel-settings-page,
+.cp-workspace-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.cp-channel-directory-grid,
+.cp-channel-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
 .cp-channel-card {
   display: grid;
   gap: 12px;
+}
+
+.cp-channel-card__summary {
+  display: grid;
+  gap: 4px;
+}
+
+.cp-channel-card__summary > span {
+  color: var(--cp-text-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cp-channel-card__summary > strong {
+  font-size: 0.92rem;
+}
+
+.cp-channel-card__summary > small {
+  color: var(--cp-text-muted);
 }
 
 .cp-channel-card__head {
@@ -696,6 +731,46 @@ crawclaw-app {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.cp-channel-workspace__nav,
+.cp-channel-settings-page__nav,
+.cp-choice-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cp-channel-workspace__nav,
+.cp-channel-settings-page__nav {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 162, 255, 0.14);
+  background: rgba(8, 18, 31, 0.72);
+}
+
+.cp-channel-workspace__nav strong,
+.cp-channel-settings-page__nav strong {
+  display: block;
+  font-size: 1rem;
+  margin-top: 4px;
+}
+
+.cp-channel-workspace__nav small,
+.cp-channel-settings-page__nav small {
+  display: block;
+  margin-top: 6px;
+  color: var(--cp-text-muted);
+}
+
+.cp-choice-card {
+  gap: 10px;
+}
+
+.cp-choice-card.is-active {
+  border-color: rgba(89, 180, 255, 0.42);
+  background: linear-gradient(180deg, rgba(89, 180, 255, 0.14), rgba(89, 180, 255, 0.05));
 }
 
 .cp-channel-card__stats {
@@ -737,6 +812,20 @@ crawclaw-app {
   border-radius: 16px;
   border: 1px solid rgba(123, 162, 255, 0.14);
   background: rgba(8, 18, 31, 0.72);
+}
+
+@media (max-width: 780px) {
+  .cp-channel-directory-grid,
+  .cp-channel-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-channel-workspace__nav,
+  .cp-channel-settings-page__nav,
+  .cp-choice-card__head {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
 }
 
 .cp-action-card small,

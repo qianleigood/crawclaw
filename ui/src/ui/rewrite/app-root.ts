@@ -405,6 +405,31 @@ const APP_COPY = {
       detailKicker: "Selected channel",
       detailTitle: "Channel details",
       detailHint: "Review the selected channel, then choose an account to inspect or repair.",
+      backToDirectory: "Back to channel list",
+      backToWorkspace: "Back to channel workspace",
+      workspaceKicker: "Channel workspace",
+      workspaceTitle: "Choose what to do next",
+      workspaceHint:
+        "Handle one task at a time: set up the channel, connect an account, review accounts, or edit settings.",
+      recommendedNext: "Recommended next step",
+      stepGuideTitle: "Review channel status",
+      stepGuideHint: "Start here if you want to understand this channel before changing anything.",
+      stepSetupTitle: "Set up this channel",
+      stepSetupHint:
+        "Use the setup guide when the channel still needs credentials, a draft account, or docs.",
+      stepConnectTitle: "Connect an account",
+      stepConnectHint: "Use sign-in and repair actions only when this channel exposes them.",
+      stepAccountsTitle: "Review accounts",
+      stepAccountsHint:
+        "Open the account list to inspect connection state, choose a default, or fix one account.",
+      stepSettingsTitle: "Edit channel settings",
+      stepSettingsHint:
+        "Open the channel editor only when you know you need to change config values.",
+      chooseStepKicker: "Next step",
+      chooseStepTitle: "Pick one task",
+      chooseStepHint:
+        "This page stays focused on a single task so setup and repair are easier to follow.",
+      openWorkspace: "Open channel workspace",
       accountsTitle: "Accounts for this channel",
       accountsHint: "Select an account to inspect connection state and next actions.",
       accountDetailsTitle: "Selected account",
@@ -896,6 +921,26 @@ const APP_COPY = {
       detailKicker: "当前渠道",
       detailTitle: "渠道详情",
       detailHint: "先看渠道整体状态，再选择账号处理连接、登录或配置。",
+      backToDirectory: "返回渠道列表",
+      backToWorkspace: "返回渠道工作页",
+      workspaceKicker: "渠道工作页",
+      workspaceTitle: "下一步要做什么",
+      workspaceHint: "一次只做一件事：配置渠道、连接账号、检查账号，或编辑设置。",
+      recommendedNext: "建议下一步",
+      stepGuideTitle: "先看整体状态",
+      stepGuideHint: "如果你还不确定该改什么，先看渠道状态和建议动作。",
+      stepSetupTitle: "配置这个渠道",
+      stepSetupHint: "当渠道还缺凭据、文档提示或账号草稿入口时，从这里开始。",
+      stepConnectTitle: "连接账号",
+      stepConnectHint: "只在这个渠道真的支持登录或修复动作时使用。",
+      stepAccountsTitle: "查看账号",
+      stepAccountsHint: "进入账号列表后，可以检查状态、切默认账号，或修复某一个账号。",
+      stepSettingsTitle: "编辑渠道设置",
+      stepSettingsHint: "只有确定要改配置时，再打开编辑器。",
+      chooseStepKicker: "下一步",
+      chooseStepTitle: "先选一件事",
+      chooseStepHint: "这个页面一次只聚焦一件事，配置和修复会更容易理解。",
+      openWorkspace: "进入渠道工作页",
       accountsTitle: "这个渠道下的账号",
       accountsHint: "选择一个账号后查看真实连接状态和下一步操作。",
       accountDetailsTitle: "当前账号",
@@ -1841,6 +1886,8 @@ function initialRange(daysBack: number) {
   };
 }
 
+type ChannelWorkspaceMode = "guide" | "setup" | "connect" | "accounts" | "settings";
+
 @customElement("crawclaw-app")
 export class CrawClawApp extends LitElement {
   createRenderRoot() {
@@ -1866,6 +1913,8 @@ export class CrawClawApp extends LitElement {
   @state() sessionsMaximized = false;
   @state() channelsSelectedChannelId = "";
   @state() channelsSelectedAccountId = "";
+  @state() channelsWorkspaceMode: ChannelWorkspaceMode = "guide";
+  @state() channelsWorkspaceReturnMode: ChannelWorkspaceMode = "guide";
   @state() channelsEditorOpen = false;
   @state() channelsDraftAccountId = "";
   @state() systemStatus: StatusSummary | null = null;
@@ -2385,7 +2434,7 @@ export class CrawClawApp extends LitElement {
           const snapshot = this.channelsState.channelsSnapshot;
           const selectedChannelId = snapshot?.channelOrder.includes(this.channelsSelectedChannelId)
             ? this.channelsSelectedChannelId
-            : (snapshot?.channelOrder[0] ?? "");
+            : "";
           if (selectedChannelId) {
             await loadChannelSetupSurface(this.channelSetupState, selectedChannelId);
           } else {
@@ -2516,6 +2565,8 @@ export class CrawClawApp extends LitElement {
 
   private async ensureChannelEditorReady(channelId: string) {
     this.channelsSelectedChannelId = channelId;
+    this.channelsWorkspaceMode = "settings";
+    this.channelsWorkspaceReturnMode = "settings";
     this.channelsEditorOpen = true;
     const needsReload =
       this.channelConfigState.selectedChannelId !== channelId ||
@@ -2530,8 +2581,14 @@ export class CrawClawApp extends LitElement {
     ]);
   }
 
-  private openChannelSettings(channelId: string, _accountId?: string | null) {
+  private openChannelSettings(
+    channelId: string,
+    _accountId?: string | null,
+    returnMode: ChannelWorkspaceMode = this.channelsWorkspaceMode,
+  ) {
     this.channelsSelectedChannelId = channelId;
+    this.channelsWorkspaceMode = "settings";
+    this.channelsWorkspaceReturnMode = returnMode;
     this.channelsEditorOpen = true;
     void this.safeCall(async () => {
       await Promise.all([
@@ -2546,18 +2603,30 @@ export class CrawClawApp extends LitElement {
     resetChannelConfigState(this.channelConfigState);
   }
 
+  private leaveChannelWorkspace() {
+    this.channelsSelectedChannelId = "";
+    this.channelsSelectedAccountId = "";
+    this.channelsWorkspaceMode = "guide";
+    this.channelsWorkspaceReturnMode = "guide";
+    this.channelsEditorOpen = false;
+    resetChannelConfigState(this.channelConfigState);
+    resetChannelSetupState(this.channelSetupState);
+  }
+
   private selectChannel(channelId: string) {
     this.channelsSelectedChannelId = channelId;
     this.channelsSelectedAccountId = "";
+    this.channelsWorkspaceMode = "guide";
+    this.channelsWorkspaceReturnMode = "guide";
+    this.channelsEditorOpen = false;
+    resetChannelConfigState(this.channelConfigState);
     void this.refreshChannelSetupSurface(channelId);
-    if (this.channelsEditorOpen) {
-      this.openChannelSettings(channelId);
-    }
   }
 
   private selectChannelAccount(channelId: string, accountId: string) {
     this.channelsSelectedChannelId = channelId;
     this.channelsSelectedAccountId = accountId;
+    this.channelsWorkspaceMode = "accounts";
   }
 
   private async addChannelAccountDraft(
@@ -4648,7 +4717,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     ).length;
     const selectedChannelId = channelIds.includes(this.channelsSelectedChannelId)
       ? this.channelsSelectedChannelId
-      : (channelIds[0] ?? "");
+      : "";
     const selectedChannelLabel = selectedChannelId
       ? (snapshot?.channelLabels[selectedChannelId] ?? selectedChannelId)
       : copy.common.none;
@@ -4658,11 +4727,12 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const selectedControls = resolveChannelControls(snapshot, selectedChannelId);
     const selectedAccounts = resolveChannelAccounts(snapshot, selectedChannelId);
     const selectedDefaultAccount = resolveDefaultChannelAccount(snapshot, selectedChannelId);
+    const resolvedDefaultAccountId = selectedDefaultAccount?.accountId ?? null;
     const selectedAccountId = selectedAccounts.some(
       (account) => account.accountId === this.channelsSelectedAccountId,
     )
       ? this.channelsSelectedAccountId
-      : (selectedDefaultAccount?.accountId ?? selectedAccounts[0]?.accountId ?? "");
+      : (resolvedDefaultAccountId ?? selectedAccounts[0]?.accountId ?? "");
     const selectedAccount =
       selectedAccounts.find((account) => account.accountId === selectedAccountId) ??
       selectedDefaultAccount;
@@ -4682,9 +4752,11 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       this.channelConfigState.configSaving ||
       this.channelConfigState.configApplying;
     const currentDefaultAccountId =
-      setupSurface?.defaultAccountId ?? selectedDefaultAccount?.accountId ?? copy.common.none;
+      setupSurface?.defaultAccountId ?? resolvedDefaultAccountId ?? null;
     const selectedIsDefaultAccount =
-      Boolean(selectedAccount?.accountId) && selectedAccount?.accountId === currentDefaultAccountId;
+      Boolean(selectedAccount?.accountId) &&
+      Boolean(currentDefaultAccountId) &&
+      selectedAccount?.accountId === currentDefaultAccountId;
     const setupMode =
       setupSurface?.mode === "wizard"
         ? copy.channels.setupModeWizard
@@ -4715,6 +4787,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
           : qrLoginAvailable
             ? copy.common.available
             : copy.common.notExposed;
+
     const labelForAction = (action: string) => {
       switch (action) {
         case "login":
@@ -4733,6 +4806,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
           return action;
       }
     };
+
     const channelStatusTone = (channelId: string) => {
       const accounts = resolveChannelAccounts(snapshot, channelId);
       const issues = countChannelAttentionIssues(accounts);
@@ -4747,658 +4821,827 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       }
       return { label: copy.channels.channelNotConfigured, className: "" };
     };
-    return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("channels", [
-          {
-            label: copy.channels.enabledSurfaces,
-            value: String(channelIds.length),
-          },
-          {
-            label: copy.common.accounts,
-            value: String(flattenedAccounts.length),
-          },
-          {
-            label: copy.channels.issueCount,
-            value: String(channelsNeedingAttention),
-          },
-          {
-            label: copy.common.recentCheck,
-            value: this.channelsState.channelsLastSuccess
-              ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
-              : copy.common.notRecorded,
-            hint: this.channelsState.channelsLastSuccess
-              ? formatAgo(this.channelsState.channelsLastSuccess, this.locale)
-              : undefined,
-          },
-        ])}
-        <div class="cp-stage cp-stage--two">
-          <aside class="cp-stage__rail cp-stage__rail--wide">
+
+    const workspaceMetaFor = (mode: ChannelWorkspaceMode) => {
+      switch (mode) {
+        case "setup":
+          return {
+            title: copy.channels.stepSetupTitle,
+            hint: copy.channels.stepSetupHint,
+          };
+        case "connect":
+          return {
+            title: copy.channels.stepConnectTitle,
+            hint: copy.channels.stepConnectHint,
+          };
+        case "accounts":
+          return {
+            title: copy.channels.stepAccountsTitle,
+            hint: copy.channels.stepAccountsHint,
+          };
+        case "settings":
+          return {
+            title: copy.channels.stepSettingsTitle,
+            hint: copy.channels.stepSettingsHint,
+          };
+        case "guide":
+        default:
+          return {
+            title: copy.channels.stepGuideTitle,
+            hint: copy.channels.stepGuideHint,
+          };
+      }
+    };
+
+    const recommendedMode: ChannelWorkspaceMode = !selectedChannelId
+      ? "guide"
+      : showSetupPanel && (!selectedAccounts.length || selectedControls.canSetup)
+        ? "setup"
+        : qrLoginAvailable && !selectedConnectedCount
+          ? "connect"
+          : selectedAccounts.length
+            ? "accounts"
+            : channelEditorAvailable
+              ? "settings"
+              : "guide";
+
+    const availableModes = (["guide"] as ChannelWorkspaceMode[])
+      .concat(showSetupPanel ? ["setup"] : [])
+      .concat(qrLoginAvailable ? ["connect"] : [])
+      .concat(selectedAccounts.length ? ["accounts"] : [])
+      .concat(channelEditorAvailable ? ["settings"] : []);
+
+    const activeMode = availableModes.includes(this.channelsWorkspaceMode)
+      ? this.channelsWorkspaceMode
+      : recommendedMode;
+
+    const activateMode = (mode: ChannelWorkspaceMode) => {
+      if (!selectedChannelId) {
+        return;
+      }
+      if (mode === "settings") {
+        this.openChannelSettings(selectedChannelId, selectedAccount?.accountId ?? null, activeMode);
+        return;
+      }
+      if (this.channelsEditorOpen) {
+        this.closeChannelSettings();
+      }
+      this.channelsWorkspaceMode = mode;
+    };
+
+    const renderDirectoryCard = (channelId: string) => {
+      const accounts = resolveChannelAccounts(snapshot, channelId);
+      const controls = resolveChannelControls(snapshot, channelId);
+      const connectedCount = accounts.filter((account) => account.connected).length;
+      const issueCount = countChannelAttentionIssues(accounts);
+      const statusTone = channelStatusTone(channelId);
+      const recommendedCardMode: ChannelWorkspaceMode =
+        (controls.canSetup || !accounts.length) && (controls.canSetup || controls.canEdit)
+          ? "setup"
+          : controls.loginMode === "qr" && connectedCount === 0
+            ? "connect"
+            : accounts.length
+              ? "accounts"
+              : controls.canEdit
+                ? "settings"
+                : "guide";
+      const nextStep = workspaceMetaFor(recommendedCardMode);
+      return html`
+        <button
+          class="cp-action-card cp-channel-card"
+          @click=${() => this.selectChannel(channelId)}
+        >
+          <div class="cp-channel-card__head">
+            <div>
+              <strong>${snapshot?.channelLabels[channelId] ?? channelId}</strong>
+              <small>
+                ${snapshot?.channelDetailLabels?.[channelId] ??
+                snapshot?.channelLabels[channelId] ??
+                channelId}
+              </small>
+            </div>
+            <span class=${`cp-badge ${statusTone.className}`}>${statusTone.label}</span>
+          </div>
+          <div class="cp-channel-card__stats">
+            <span>${copy.common.accounts}: ${accounts.length}</span>
+            <span>${copy.common.connectedAccounts}: ${connectedCount}</span>
+            <span>${copy.channels.issueCount}: ${issueCount}</span>
+          </div>
+          <div class="cp-channel-card__summary">
+            <span>${copy.channels.recommendedNext}</span>
+            <strong>${nextStep.title}</strong>
+            <small>${nextStep.hint}</small>
+          </div>
+        </button>
+      `;
+    };
+
+    const renderGuidePanel = () => html`
+      <section class="cp-grid cp-grid--double">
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.channels.detailKicker}</span>
+              <h3>${copy.channels.detailTitle}</h3>
+            </div>
+          </div>
+          <p class="cp-panel__subcopy">${copy.channels.detailHint}</p>
+          ${this.renderMetaEntries(
+            [
+              {
+                label: copy.channels.selectedChannel,
+                value: selectedChannelLabel,
+              },
+              {
+                label: copy.common.summary,
+                value: selectedChannelDetail,
+              },
+              {
+                label: copy.common.accounts,
+                value: String(selectedAccounts.length),
+              },
+              {
+                label: copy.common.connectedAccounts,
+                value: String(selectedConnectedCount),
+              },
+              {
+                label: copy.channels.issueCount,
+                value: String(selectedIssueCount),
+              },
+              {
+                label: copy.channels.supportedActions,
+                value:
+                  selectedControls.actions.map(labelForAction).join(", ") ||
+                  copy.channels.actionNone,
+              },
+            ],
+            this.channelsState.channelsError ?? undefined,
+          )}
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.channels.chooseStepKicker}</span>
+              <h3>${copy.channels.chooseStepTitle}</h3>
+            </div>
+          </div>
+          <p class="cp-panel__subcopy">${copy.channels.chooseStepHint}</p>
+          ${this.renderMetaEntries([
+            {
+              label: copy.channels.recommendedNext,
+              value: workspaceMetaFor(recommendedMode).title,
+              hint: workspaceMetaFor(recommendedMode).hint,
+            },
+            {
+              label: copy.common.recentCheck,
+              value: this.channelsState.channelsLastSuccess
+                ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
+                : copy.common.notRecorded,
+              hint: this.channelsState.channelsLastSuccess
+                ? formatAgo(this.channelsState.channelsLastSuccess, this.locale)
+                : undefined,
+            },
+            {
+              label: copy.channels.defaultAccount,
+              value: currentDefaultAccountId ?? copy.common.none,
+            },
+            {
+              label: copy.common.status,
+              value: channelStatusTone(selectedChannelId).label,
+            },
+          ])}
+        </article>
+      </section>
+    `;
+
+    const renderSetupPanel = () =>
+      !showSetupPanel
+        ? html`<article class="cp-panel">
+            <p class="cp-empty">${copy.channels.setupUnavailable}</p>
+          </article>`
+        : html`
             <article class="cp-panel cp-panel--fill">
               <div class="cp-panel__head">
                 <div>
-                  <span class="cp-kicker">${copy.channels.directoryKicker}</span>
-                  <h3>${copy.channels.directoryTitle}</h3>
+                  <span class="cp-kicker">${copy.channels.setupKicker}</span>
+                  <h3>${copy.channels.setupTitle}</h3>
                 </div>
-              </div>
-              <p class="cp-panel__subcopy">${copy.channels.directoryHint}</p>
-              <div class="cp-channel-card-list">
-                ${channelIds.length
-                  ? repeat(
-                      channelIds,
-                      (channelId) => channelId,
-                      (channelId) => {
-                        const accounts = resolveChannelAccounts(snapshot, channelId);
-                        const controls = resolveChannelControls(snapshot, channelId);
-                        const cardState = channelStatusTone(channelId);
-                        return html`
-                          <button
-                            class="cp-action-card cp-channel-card ${selectedChannelId === channelId
-                              ? "is-active"
-                              : ""}"
-                            @click=${() => this.selectChannel(channelId)}
-                          >
-                            <div class="cp-channel-card__head">
-                              <div>
-                                <strong>${snapshot?.channelLabels[channelId] ?? channelId}</strong>
-                                <small>
-                                  ${snapshot?.channelDetailLabels?.[channelId] ??
-                                  snapshot?.channelLabels[channelId] ??
-                                  channelId}
-                                </small>
-                              </div>
-                              <span class=${`cp-badge ${cardState.className}`}>
-                                ${cardState.label}
-                              </span>
-                            </div>
-                            <div class="cp-channel-card__stats">
-                              <span>${copy.common.accounts}: ${accounts.length}</span>
-                              <span
-                                >${copy.common.connectedAccounts}:
-                                ${accounts.filter((account) => account.connected).length}</span
-                              >
-                              <span
-                                >${copy.channels.issueCount}:
-                                ${countChannelAttentionIssues(accounts)}</span
-                              >
-                            </div>
-                            <div class="cp-chip-row">
-                              ${controls.actions.length
-                                ? controls.actions.map(
-                                    (action) => html`
-                                      <span class="cp-chip">${labelForAction(action)}</span>
-                                    `,
-                                  )
-                                : html`<span class="cp-chip cp-chip--muted"
-                                    >${copy.channels.actionNone}</span
-                                  >`}
-                            </div>
-                          </button>
-                        `;
-                      },
-                    )
-                  : html`<p class="cp-empty">${copy.channels.noAccounts}</p>`}
-              </div>
-            </article>
-          </aside>
-          <main class="cp-stage__main">
-            <section class="cp-band">
-              ${this.renderMetric(copy.channels.enabledSurfaces, String(channelIds.length))}
-              ${this.renderMetric(copy.common.accounts, String(flattenedAccounts.length))}
-              ${this.renderMetric(copy.common.connectedAccounts, String(connectedAccounts))}
-              ${this.renderMetric(copy.channels.issueCount, String(channelsNeedingAttention))}
-            </section>
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-panel">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.channels.detailKicker}</span>
-                    <h3>${copy.channels.detailTitle}</h3>
-                  </div>
-                </div>
-                <p class="cp-panel__subcopy">${copy.channels.detailHint}</p>
-                ${this.renderMetaEntries(
-                  [
-                    {
-                      label: copy.channels.selectedChannel,
-                      value: selectedChannelLabel,
-                    },
-                    {
-                      label: copy.common.summary,
-                      value: selectedChannelDetail,
-                    },
-                    { label: copy.common.accounts, value: selectedAccounts.length },
-                    { label: copy.common.connectedAccounts, value: selectedConnectedCount },
-                    { label: copy.channels.issueCount, value: selectedIssueCount },
-                    {
-                      label: copy.channels.supportedActions,
-                      value:
-                        selectedControls.actions.map(labelForAction).join(", ") ||
-                        copy.channels.actionNone,
-                    },
-                    {
-                      label: copy.common.recentCheck,
-                      value: this.channelsState.channelsLastSuccess
-                        ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
-                        : copy.common.notRecorded,
-                    },
-                  ],
-                  this.channelsState.channelsError ?? copy.channels.browseChannels,
-                )}
-              </article>
-              <article class="cp-panel">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.channels.actionsTitle}</span>
-                    <h3>${copy.channels.actionsTitle}</h3>
-                  </div>
-                </div>
-                <p class="cp-panel__subcopy">${copy.channels.actionsHint}</p>
-                ${this.renderMetaEntries([
-                  {
-                    label: copy.channels.supportedActions,
-                    value:
-                      selectedControls.actions.map(labelForAction).join(", ") ||
-                      copy.channels.actionNone,
-                  },
-                  {
-                    label: copy.channels.selectedAccount,
-                    value: selectedAccount?.name ?? selectedAccount?.accountId ?? copy.common.none,
-                  },
-                  {
-                    label: copy.channels.defaultAccount,
-                    value: currentDefaultAccountId,
-                  },
-                  { label: copy.common.status, value: channelStatusTone(selectedChannelId).label },
-                  {
-                    label: copy.channels.qrLoginTitle,
-                    value: qrLoginAvailable ? loginState : copy.common.notExposed,
-                  },
-                ])}
                 <div class="cp-inline-actions">
-                  <button
-                    class="cp-button"
-                    ?disabled=${!selectedControls.canReconnect || !selectedAccount?.configured}
-                    @click=${() =>
-                      void this.safeCall(async () => {
-                        await reconnectChannelAccount(
-                          this.channelsState,
-                          selectedChannelId,
-                          selectedAccount?.accountId,
-                        );
-                      })}
-                  >
-                    ${copy.common.reconnect}
-                  </button>
-                  <button
-                    class="cp-button"
-                    ?disabled=${!selectedControls.canVerify}
-                    @click=${() =>
-                      void this.safeCall(async () => {
-                        await verifyChannelAccount(
-                          this.channelsState,
-                          selectedChannelId,
-                          selectedAccount?.accountId,
-                        );
-                      })}
-                  >
-                    ${copy.channels.verifyConnection}
-                  </button>
-                  <button
-                    class="cp-button"
-                    ?disabled=${!selectedControls.multiAccount ||
-                    !channelEditorAvailable ||
-                    !selectedAccount ||
-                    selectedIsDefaultAccount}
-                    @click=${() =>
-                      selectedAccount
-                        ? void this.makeChannelAccountDefault(
-                            selectedChannelId,
-                            selectedAccount.accountId,
-                          )
-                        : undefined}
-                  >
-                    ${copy.channels.makeDefaultAccount}
-                  </button>
-                  <button
-                    class="cp-button"
-                    ?disabled=${!channelEditorAvailable}
-                    @click=${() =>
-                      this.channelsEditorOpen
-                        ? this.closeChannelSettings()
-                        : this.openChannelSettings(
-                            selectedChannelId,
-                            selectedAccount?.accountId ?? null,
-                          )}
-                  >
-                    ${this.channelsEditorOpen
-                      ? copy.channels.closeChannelEditor
-                      : copy.channels.openChannelEditor}
-                  </button>
-                </div>
-                <p class="cp-panel__subcopy">${copy.channels.openSettingsHint}</p>
-              </article>
-            </section>
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-panel cp-panel--fill">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.channels.accountsTitle}</span>
-                    <h3>${copy.channels.accountsTitle}</h3>
-                  </div>
-                  <button
-                    class="cp-button"
-                    @click=${() =>
-                      void this.safeCall(async () => {
-                        await loadChannels(this.channelsState, true);
-                      })}
-                  >
-                    ${copy.channels.probeAgain}
-                  </button>
-                </div>
-                <p class="cp-panel__subcopy">${copy.channels.accountsHint}</p>
-                <div class="cp-list cp-list--dense">
-                  ${selectedAccounts.length
-                    ? repeat(
-                        selectedAccounts,
-                        (account) => `${selectedChannelId}:${account.accountId}`,
-                        (account) => html`
-                          <button
-                            class="cp-session-item ${selectedAccount?.accountId ===
-                            account.accountId
-                              ? "is-active"
-                              : ""}"
-                            @click=${() =>
-                              this.selectChannelAccount(selectedChannelId, account.accountId)}
-                          >
-                            <strong>${account.name ?? account.accountId}</strong>
-                            <span>
-                              ${account.connected
-                                ? copy.channels.channelConnected
-                                : account.configured
-                                  ? copy.channels.channelConfigured
-                                  : copy.channels.channelNotConfigured}
-                            </span>
-                            <small>${account.lastError ?? copy.common.recentCheck}</small>
-                          </button>
-                        `,
-                      )
-                    : html`<p class="cp-empty">${copy.channels.noChannelAccounts}</p>`}
-                </div>
-              </article>
-              <article class="cp-panel cp-panel--fill">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.channels.accountDetailsTitle}</span>
-                    <h3>${copy.channels.accountDetailsTitle}</h3>
-                  </div>
-                </div>
-                <p class="cp-panel__subcopy">${copy.channels.accountDetailsHint}</p>
-                ${selectedAccount
-                  ? this.renderMetaEntries([
-                      {
-                        label: copy.channels.selectedAccount,
-                        value: selectedAccount.name ?? selectedAccount.accountId,
-                      },
-                      {
-                        label: copy.channels.defaultAccount,
-                        value: selectedIsDefaultAccount ? copy.common.yes : currentDefaultAccountId,
-                      },
-                      {
-                        label: copy.common.status,
-                        value: selectedAccount.connected
-                          ? copy.channels.channelConnected
-                          : selectedAccount.configured
-                            ? copy.channels.channelConfigured
-                            : copy.channels.channelNotConfigured,
-                      },
-                      {
-                        label: copy.channels.running,
-                        value: selectedAccount.running ? copy.common.yes : copy.common.no,
-                      },
-                      {
-                        label: copy.common.recentCheck,
-                        value: selectedAccount.lastProbeAt
-                          ? formatDateTime(selectedAccount.lastProbeAt, this.locale)
-                          : copy.common.notRecorded,
-                      },
-                      {
-                        label: copy.common.updated,
-                        value: selectedAccount.lastInboundAt
-                          ? formatDateTime(selectedAccount.lastInboundAt, this.locale)
-                          : copy.common.notRecorded,
-                      },
-                      {
-                        label: copy.channels.lastError,
-                        value: selectedAccount.lastError ?? copy.common.none,
-                      },
-                      {
-                        label: copy.common.reconnect,
-                        value: selectedControls.canReconnect
-                          ? selectedAccount.configured
-                            ? copy.common.available
-                            : copy.channels.channelNotConfigured
-                          : copy.common.notExposed,
-                      },
-                    ])
-                  : html`<p class="cp-empty">${copy.channels.noChannelAccounts}</p>`}
-                ${qrLoginAvailable
-                  ? html`
-                      <article class="cp-channel-login-panel">
-                        <span class="cp-kicker">${copy.channels.qrLoginTitle}</span>
-                        <strong>${loginState}</strong>
-                        <p class="cp-panel__subcopy">${copy.channels.qrLoginHint}</p>
-                        <div class="cp-inline-actions">
-                          <button
-                            class="cp-button"
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await startWhatsAppLogin(
-                                  this.channelsState,
-                                  true,
-                                  selectedChannelId,
-                                  selectedAccount?.accountId,
-                                );
-                              })}
-                          >
-                            ${copy.channels.startQrLogin}
-                          </button>
-                          <button
-                            class="cp-button"
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await waitWhatsAppLogin(
-                                  this.channelsState,
-                                  selectedChannelId,
-                                  selectedAccount?.accountId,
-                                );
-                              })}
-                          >
-                            ${copy.channels.checkLogin}
-                          </button>
-                          <button
-                            class="cp-button cp-button--danger"
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await logoutWhatsApp(
-                                  this.channelsState,
-                                  selectedChannelId,
-                                  selectedAccount?.accountId,
-                                );
-                              })}
-                          >
-                            ${copy.channels.logoutAccount}
-                          </button>
-                        </div>
-                        ${this.channelsState.whatsappLoginQrDataUrl
-                          ? html`
-                              <div class="cp-qr-card">
-                                <span class="cp-kicker">${copy.channels.loginQr}</span>
-                                <img
-                                  src=${this.channelsState.whatsappLoginQrDataUrl}
-                                  alt=${copy.channels.loginQr}
-                                />
-                              </div>
-                            `
-                          : nothing}
-                        <pre class="cp-code">${loginMessage}</pre>
-                      </article>
-                    `
-                  : html`
-                      <article class="cp-channel-login-panel">
-                        <span class="cp-kicker">${copy.channels.qrLoginTitle}</span>
-                        <strong>${copy.common.notExposed}</strong>
-                        <p class="cp-panel__subcopy">${loginMessage}</p>
-                      </article>
-                    `}
-              </article>
-            </section>
-            ${showSetupPanel
-              ? html`
-                  <section class="cp-grid">
-                    <article class="cp-panel cp-panel--fill">
-                      <div class="cp-panel__head">
-                        <div>
-                          <span class="cp-kicker">${copy.channels.setupKicker}</span>
-                          <h3>${copy.channels.setupTitle}</h3>
-                        </div>
-                      </div>
-                      <p class="cp-panel__subcopy">${copy.channels.setupHint}</p>
-                      ${setupLoading
-                        ? html`<p class="cp-empty">${copy.common.pending}</p>`
-                        : setupSurface
-                          ? html`
-                              ${this.renderMetaEntries(
-                                [
-                                  {
-                                    label: copy.channels.setupMode,
-                                    value: setupMode,
-                                  },
-                                  {
-                                    label: copy.common.status,
-                                    value: setupSurface.configured
-                                      ? copy.channels.channelConfigured
-                                      : copy.channels.channelNotConfigured,
-                                  },
-                                  {
-                                    label: copy.channels.defaultAccount,
-                                    value: currentDefaultAccountId,
-                                  },
-                                  {
-                                    label: copy.channels.setupSelectionHint,
-                                    value:
-                                      setupSurface.selectionHint?.trim() || copy.common.notRecorded,
-                                  },
-                                  {
-                                    label: copy.channels.setupDocs,
-                                    value: setupSurface.docsPath ?? copy.common.na,
-                                  },
-                                ],
-                                this.channelSetupState.lastError ?? undefined,
-                              )}
-                              <div class="cp-list cp-list--dense">
-                                ${setupSurface.statusLines.map(
-                                  (line) => html`<div class="cp-list-item">${line}</div>`,
-                                )}
-                              </div>
-                              <div class="cp-inline-actions" style="margin-top: 16px;">
-                                <button
-                                  class="cp-button"
-                                  ?disabled=${!channelEditorAvailable}
-                                  @click=${() =>
-                                    this.channelsEditorOpen
-                                      ? this.closeChannelSettings()
-                                      : this.openChannelSettings(selectedChannelId)}
-                                >
-                                  ${this.channelsEditorOpen
-                                    ? copy.channels.closeChannelEditor
-                                    : copy.channels.openChannelEditor}
-                                </button>
-                                <button
-                                  class="cp-button"
-                                  ?disabled=${!selectedControls.multiAccount ||
-                                  !channelEditorAvailable}
-                                  @click=${() =>
-                                    void this.addChannelAccountDraft(
-                                      selectedChannelId,
-                                      selectedAccounts,
-                                    )}
-                                >
-                                  ${copy.channels.addAccountDraft}
-                                </button>
-                              </div>
-                              ${selectedControls.multiAccount && channelEditorAvailable
-                                ? html`
-                                    <div class="cp-form" style="margin-top: 16px;">
-                                      <label>
-                                        <span>${copy.channels.addAccountDraft}</span>
-                                        <input
-                                          type="text"
-                                          .value=${this.channelsDraftAccountId}
-                                          placeholder=${copy.channels.addAccountDraftPlaceholder}
-                                          @input=${(event: Event) => {
-                                            this.channelsDraftAccountId = (
-                                              event.target as HTMLInputElement
-                                            ).value;
-                                          }}
-                                        />
-                                      </label>
-                                      <small class="cp-panel__subcopy">
-                                        ${copy.channels.addAccountDraftHint}
-                                      </small>
-                                    </div>
-                                  `
-                                : nothing}
-                              ${setupSurface.commands.length
-                                ? html`
-                                    <div class="cp-list cp-list--dense" style="margin-top: 16px;">
-                                      ${setupSurface.commands.map(
-                                        (command) =>
-                                          html`<pre class="cp-code cp-code--compact">
-${command}</pre
-                                          >`,
-                                      )}
-                                    </div>
-                                  `
-                                : nothing}
-                            `
-                          : html`<p class="cp-empty">${copy.channels.setupUnavailable}</p>`}
-                    </article>
-                  </section>
-                `
-              : nothing}
-            <section class="cp-grid">
-              <article class="cp-panel cp-panel--fill">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.channels.settingsTitle}</span>
-                    <h3>${copy.channels.settingsTitle}</h3>
-                  </div>
-                  ${channelEditorAvailable && this.channelsEditorOpen
+                  ${channelEditorAvailable
                     ? html`
-                        <div class="cp-inline-actions">
-                          <button
-                            class="cp-button"
-                            ?disabled=${channelEditorBusy ||
-                            !this.channelConfigState.configFormDirty}
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await saveChannelConfig(this.channelConfigState);
-                                await Promise.all([
-                                  loadChannels(this.channelsState, true),
-                                  loadChannelSetupSurface(
-                                    this.channelSetupState,
-                                    selectedChannelId,
-                                  ),
-                                ]);
-                              })}
-                          >
-                            ${copy.channels.saveChannelSettings}
-                          </button>
-                          <button
-                            class="cp-button"
-                            ?disabled=${channelEditorBusy ||
-                            !this.channelConfigState.configFormDirty}
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await applyChannelConfig(this.channelConfigState);
-                                await Promise.all([
-                                  loadChannels(this.channelsState, true),
-                                  loadChannelSetupSurface(
-                                    this.channelSetupState,
-                                    selectedChannelId,
-                                  ),
-                                ]);
-                              })}
-                          >
-                            ${copy.channels.applyChannelSettings}
-                          </button>
-                          <button
-                            class="cp-button"
-                            ?disabled=${channelEditorBusy}
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await Promise.all([
-                                  loadChannelConfigSchema(
-                                    this.channelConfigState,
-                                    selectedChannelId,
-                                  ),
-                                  loadChannelConfig(this.channelConfigState, selectedChannelId),
-                                ]);
-                                await loadChannelSetupSurface(
-                                  this.channelSetupState,
-                                  selectedChannelId,
-                                );
-                              })}
-                          >
-                            ${copy.channels.reloadChannelSettings}
-                          </button>
-                          <button
-                            class="cp-button"
-                            ?disabled=${channelEditorBusy || !selectedControls.multiAccount}
-                            @click=${() =>
-                              void this.addChannelAccountDraft(selectedChannelId, selectedAccounts)}
-                          >
-                            ${copy.channels.addAccountDraft}
-                          </button>
-                        </div>
+                        <button
+                          class="cp-button"
+                          @click=${() => this.openChannelSettings(selectedChannelId, null, "setup")}
+                        >
+                          ${copy.channels.openSettings}
+                        </button>
+                      `
+                    : nothing}
+                  ${selectedControls.multiAccount && channelEditorAvailable
+                    ? html`
+                        <button
+                          class="cp-button"
+                          @click=${() =>
+                            void this.addChannelAccountDraft(selectedChannelId, selectedAccounts)}
+                        >
+                          ${copy.channels.addAccountDraft}
+                        </button>
                       `
                     : nothing}
                 </div>
-                <p class="cp-panel__subcopy">
-                  ${channelEditorAvailable
-                    ? copy.channels.settingsHint
-                    : copy.channels.settingsUnavailable}
-                </p>
-                ${channelEditorAvailable && this.channelsEditorOpen
+              </div>
+              <p class="cp-panel__subcopy">${copy.channels.setupHint}</p>
+              ${setupLoading
+                ? html`<p class="cp-empty">${copy.common.pending}</p>`
+                : setupSurface
                   ? html`
                       ${this.renderMetaEntries(
                         [
                           {
-                            label: copy.common.selected,
-                            value: selectedChannelLabel,
+                            label: copy.channels.setupMode,
+                            value: setupMode,
                           },
                           {
-                            label: copy.common.path,
-                            value: `channels.${selectedChannelId}`,
+                            label: copy.common.status,
+                            value: setupSurface.configured
+                              ? copy.channels.channelConfigured
+                              : copy.channels.channelNotConfigured,
                           },
                           {
-                            label: copy.common.schema,
-                            value: this.channelConfigState.configSchemaVersion ?? copy.common.na,
+                            label: copy.channels.defaultAccount,
+                            value: currentDefaultAccountId ?? copy.common.none,
                           },
                           {
-                            label: copy.common.dirty,
-                            value: this.channelConfigState.configFormDirty
-                              ? copy.common.yes
-                              : copy.common.no,
+                            label: copy.channels.setupSelectionHint,
+                            value: setupSurface.selectionHint?.trim() || copy.common.notRecorded,
+                          },
+                          {
+                            label: copy.channels.setupDocs,
+                            value: setupSurface.docsPath ?? copy.common.na,
                           },
                         ],
-                        this.channelConfigState.lastError ?? undefined,
+                        this.channelSetupState.lastError ?? undefined,
                       )}
-                      ${channelEditorBusy
-                        ? html`<p class="cp-empty">${copy.common.pending}</p>`
-                        : renderChannelConfigForm({
-                            channelId: selectedChannelId,
-                            configValue: this.channelConfigState.configForm,
-                            schema: this.channelConfigState.configSchema,
-                            uiHints: this.channelConfigState.configUiHints,
-                            disabled: channelEditorBusy,
-                            scoped: true,
-                            onPatch: (path, value) =>
-                              updateChannelConfigFormValue(this.channelConfigState, path, value),
-                          })}
+                      ${setupSurface.statusLines.length
+                        ? html`
+                            <div class="cp-list cp-list--dense">
+                              ${setupSurface.statusLines.map(
+                                (line) => html`<div class="cp-list-item">${line}</div>`,
+                              )}
+                            </div>
+                          `
+                        : nothing}
+                      ${selectedControls.multiAccount && channelEditorAvailable
+                        ? html`
+                            <div class="cp-form">
+                              <label>
+                                <span>${copy.channels.addAccountDraft}</span>
+                                <input
+                                  type="text"
+                                  .value=${this.channelsDraftAccountId}
+                                  placeholder=${copy.channels.addAccountDraftPlaceholder}
+                                  @input=${(event: Event) => {
+                                    this.channelsDraftAccountId = (
+                                      event.target as HTMLInputElement
+                                    ).value;
+                                  }}
+                                />
+                              </label>
+                              <small class="cp-panel__subcopy">
+                                ${copy.channels.addAccountDraftHint}
+                              </small>
+                            </div>
+                          `
+                        : nothing}
+                      ${setupSurface.commands.length
+                        ? html`
+                            <div class="cp-list cp-list--dense">
+                              ${setupSurface.commands.map(
+                                (command) =>
+                                  html`<pre class="cp-code cp-code--compact">${command}</pre>`,
+                              )}
+                            </div>
+                          `
+                        : nothing}
                     `
-                  : html`
-                      <p class="cp-empty">
-                        ${channelEditorAvailable
-                          ? copy.channels.settingsClosed
-                          : copy.channels.settingsUnavailable}
-                      </p>
-                    `}
-              </article>
-            </section>
-          </main>
-        </div>
+                  : html`<p class="cp-empty">${copy.channels.setupUnavailable}</p>`}
+            </article>
+          `;
+
+    const renderConnectPanel = () => html`
+      <section class="cp-grid cp-grid--double">
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.channels.accountDetailsTitle}</span>
+              <h3>${copy.channels.accountDetailsTitle}</h3>
+            </div>
+          </div>
+          <p class="cp-panel__subcopy">${copy.channels.accountDetailsHint}</p>
+          ${selectedAccount
+            ? this.renderMetaEntries([
+                {
+                  label: copy.channels.selectedAccount,
+                  value: selectedAccount.name ?? selectedAccount.accountId,
+                },
+                {
+                  label: copy.channels.defaultAccount,
+                  value: selectedIsDefaultAccount
+                    ? copy.common.yes
+                    : (currentDefaultAccountId ?? copy.common.none),
+                },
+                {
+                  label: copy.common.status,
+                  value: selectedAccount.connected
+                    ? copy.channels.channelConnected
+                    : selectedAccount.configured
+                      ? copy.channels.channelConfigured
+                      : copy.channels.channelNotConfigured,
+                },
+                {
+                  label: copy.channels.running,
+                  value: selectedAccount.running ? copy.common.yes : copy.common.no,
+                },
+                {
+                  label: copy.common.recentCheck,
+                  value: selectedAccount.lastProbeAt
+                    ? formatDateTime(selectedAccount.lastProbeAt, this.locale)
+                    : copy.common.notRecorded,
+                },
+                {
+                  label: copy.channels.lastError,
+                  value: selectedAccount.lastError ?? copy.common.none,
+                },
+              ])
+            : html`<p class="cp-empty">${copy.channels.noChannelAccounts}</p>`}
+        </article>
+        <article class="cp-channel-login-panel">
+          <span class="cp-kicker">${copy.channels.qrLoginTitle}</span>
+          <strong>${qrLoginAvailable ? loginState : copy.common.notExposed}</strong>
+          <p class="cp-panel__subcopy">
+            ${qrLoginAvailable ? copy.channels.qrLoginHint : loginMessage}
+          </p>
+          ${qrLoginAvailable
+            ? html`
+                <div class="cp-inline-actions">
+                  <button
+                    class="cp-button"
+                    @click=${() =>
+                      void this.safeCall(async () => {
+                        await startWhatsAppLogin(
+                          this.channelsState,
+                          true,
+                          selectedChannelId,
+                          selectedAccount?.accountId,
+                        );
+                      })}
+                  >
+                    ${copy.channels.startQrLogin}
+                  </button>
+                  <button
+                    class="cp-button"
+                    @click=${() =>
+                      void this.safeCall(async () => {
+                        await waitWhatsAppLogin(
+                          this.channelsState,
+                          selectedChannelId,
+                          selectedAccount?.accountId,
+                        );
+                      })}
+                  >
+                    ${copy.channels.checkLogin}
+                  </button>
+                  <button
+                    class="cp-button cp-button--danger"
+                    @click=${() =>
+                      void this.safeCall(async () => {
+                        await logoutWhatsApp(
+                          this.channelsState,
+                          selectedChannelId,
+                          selectedAccount?.accountId,
+                        );
+                      })}
+                  >
+                    ${copy.channels.logoutAccount}
+                  </button>
+                </div>
+                ${this.channelsState.whatsappLoginQrDataUrl
+                  ? html`
+                      <div class="cp-qr-card">
+                        <span class="cp-kicker">${copy.channels.loginQr}</span>
+                        <img
+                          src=${this.channelsState.whatsappLoginQrDataUrl}
+                          alt=${copy.channels.loginQr}
+                        />
+                      </div>
+                    `
+                  : nothing}
+                <pre class="cp-code">${loginMessage}</pre>
+              `
+            : nothing}
+        </article>
+      </section>
+    `;
+
+    const renderAccountsPanel = () => html`
+      <section class="cp-grid cp-grid--double">
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.channels.accountsTitle}</span>
+              <h3>${copy.channels.accountsTitle}</h3>
+            </div>
+            <button
+              class="cp-button"
+              @click=${() =>
+                void this.safeCall(async () => {
+                  await loadChannels(this.channelsState, true);
+                })}
+            >
+              ${copy.channels.probeAgain}
+            </button>
+          </div>
+          <p class="cp-panel__subcopy">${copy.channels.accountsHint}</p>
+          <div class="cp-list cp-list--dense">
+            ${selectedAccounts.length
+              ? repeat(
+                  selectedAccounts,
+                  (account) => `${selectedChannelId}:${account.accountId}`,
+                  (account) => html`
+                    <button
+                      class="cp-session-item ${selectedAccount?.accountId === account.accountId
+                        ? "is-active"
+                        : ""}"
+                      @click=${() =>
+                        this.selectChannelAccount(selectedChannelId, account.accountId)}
+                    >
+                      <strong>${account.name ?? account.accountId}</strong>
+                      <span>
+                        ${account.connected
+                          ? copy.channels.channelConnected
+                          : account.configured
+                            ? copy.channels.channelConfigured
+                            : copy.channels.channelNotConfigured}
+                      </span>
+                      <small>${account.lastError ?? copy.common.recentCheck}</small>
+                    </button>
+                  `,
+                )
+              : html`<p class="cp-empty">${copy.channels.noChannelAccounts}</p>`}
+          </div>
+        </article>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.channels.actionsTitle}</span>
+              <h3>${copy.channels.actionsTitle}</h3>
+            </div>
+          </div>
+          <p class="cp-panel__subcopy">${copy.channels.actionsHint}</p>
+          ${selectedAccount
+            ? this.renderMetaEntries([
+                {
+                  label: copy.channels.selectedAccount,
+                  value: selectedAccount.name ?? selectedAccount.accountId,
+                },
+                {
+                  label: copy.channels.defaultAccount,
+                  value: selectedIsDefaultAccount
+                    ? copy.common.yes
+                    : (currentDefaultAccountId ?? copy.common.none),
+                },
+                {
+                  label: copy.common.status,
+                  value: selectedAccount.connected
+                    ? copy.channels.channelConnected
+                    : selectedAccount.configured
+                      ? copy.channels.channelConfigured
+                      : copy.channels.channelNotConfigured,
+                },
+                {
+                  label: copy.common.reconnect,
+                  value: selectedControls.canReconnect
+                    ? selectedAccount.configured
+                      ? copy.common.available
+                      : copy.channels.channelNotConfigured
+                    : copy.common.notExposed,
+                },
+              ])
+            : html`<p class="cp-empty">${copy.channels.noChannelAccounts}</p>`}
+          <div class="cp-inline-actions">
+            <button
+              class="cp-button"
+              ?disabled=${!selectedControls.canReconnect || !selectedAccount?.configured}
+              @click=${() =>
+                void this.safeCall(async () => {
+                  await reconnectChannelAccount(
+                    this.channelsState,
+                    selectedChannelId,
+                    selectedAccount?.accountId,
+                  );
+                })}
+            >
+              ${copy.common.reconnect}
+            </button>
+            <button
+              class="cp-button"
+              ?disabled=${!selectedControls.canVerify}
+              @click=${() =>
+                void this.safeCall(async () => {
+                  await verifyChannelAccount(
+                    this.channelsState,
+                    selectedChannelId,
+                    selectedAccount?.accountId,
+                  );
+                })}
+            >
+              ${copy.channels.verifyConnection}
+            </button>
+            <button
+              class="cp-button"
+              ?disabled=${!selectedControls.multiAccount ||
+              !channelEditorAvailable ||
+              !selectedAccount ||
+              selectedIsDefaultAccount}
+              @click=${() =>
+                selectedAccount
+                  ? void this.makeChannelAccountDefault(
+                      selectedChannelId,
+                      selectedAccount.accountId,
+                    )
+                  : undefined}
+            >
+              ${copy.channels.makeDefaultAccount}
+            </button>
+            <button
+              class="cp-button"
+              ?disabled=${!channelEditorAvailable}
+              @click=${() =>
+                this.openChannelSettings(selectedChannelId, selectedAccount?.accountId, "accounts")}
+            >
+              ${copy.channels.openSettings}
+            </button>
+          </div>
+        </article>
+      </section>
+    `;
+
+    const renderSettingsPanel = () => html`
+      <div class="cp-channel-settings-page">
+        <section class="cp-channel-settings-page__nav">
+          <div>
+            <span class="cp-kicker">${copy.channels.settingsTitle}</span>
+            <strong>${selectedChannelLabel}</strong>
+            <small>${selectedChannelDetail}</small>
+          </div>
+          <div class="cp-inline-actions">
+            <button
+              class="cp-button"
+              @click=${() => activateMode(this.channelsWorkspaceReturnMode)}
+            >
+              ${copy.channels.backToWorkspace}
+            </button>
+          </div>
+        </section>
+        <section class="cp-band">
+          ${this.renderMetric(copy.common.selected, selectedChannelLabel)}
+          ${this.renderMetric(copy.common.path, `channels.${selectedChannelId}`)}
+          ${this.renderMetric(
+            copy.common.schema,
+            this.channelConfigState.configSchemaVersion ?? copy.common.na,
+          )}
+          ${this.renderMetric(
+            copy.common.dirty,
+            this.channelConfigState.configFormDirty ? copy.common.yes : copy.common.no,
+          )}
+        </section>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.channels.settingsTitle}</span>
+              <h3>${copy.channels.settingsTitle}</h3>
+            </div>
+            ${channelEditorAvailable && this.channelsEditorOpen
+              ? html`
+                  <div class="cp-inline-actions">
+                    <button
+                      class="cp-button"
+                      ?disabled=${channelEditorBusy || !this.channelConfigState.configFormDirty}
+                      @click=${() =>
+                        void this.safeCall(async () => {
+                          await saveChannelConfig(this.channelConfigState);
+                          await Promise.all([
+                            loadChannels(this.channelsState, true),
+                            loadChannelSetupSurface(this.channelSetupState, selectedChannelId),
+                          ]);
+                        })}
+                    >
+                      ${copy.channels.saveChannelSettings}
+                    </button>
+                    <button
+                      class="cp-button"
+                      ?disabled=${channelEditorBusy || !this.channelConfigState.configFormDirty}
+                      @click=${() =>
+                        void this.safeCall(async () => {
+                          await applyChannelConfig(this.channelConfigState);
+                          await Promise.all([
+                            loadChannels(this.channelsState, true),
+                            loadChannelSetupSurface(this.channelSetupState, selectedChannelId),
+                          ]);
+                        })}
+                    >
+                      ${copy.channels.applyChannelSettings}
+                    </button>
+                    <button
+                      class="cp-button"
+                      ?disabled=${channelEditorBusy}
+                      @click=${() =>
+                        void this.safeCall(async () => {
+                          await Promise.all([
+                            loadChannelConfigSchema(this.channelConfigState, selectedChannelId),
+                            loadChannelConfig(this.channelConfigState, selectedChannelId),
+                          ]);
+                          await loadChannelSetupSurface(this.channelSetupState, selectedChannelId);
+                        })}
+                    >
+                      ${copy.channels.reloadChannelSettings}
+                    </button>
+                    <button
+                      class="cp-button"
+                      ?disabled=${channelEditorBusy || !selectedControls.multiAccount}
+                      @click=${() =>
+                        void this.addChannelAccountDraft(selectedChannelId, selectedAccounts)}
+                    >
+                      ${copy.channels.addAccountDraft}
+                    </button>
+                  </div>
+                `
+              : nothing}
+          </div>
+          <p class="cp-panel__subcopy">
+            ${channelEditorAvailable
+              ? copy.channels.settingsHint
+              : copy.channels.settingsUnavailable}
+          </p>
+          ${this.channelConfigState.lastError
+            ? html`
+                <section class="cp-banner cp-banner--danger">
+                  <strong>${this.channelConfigState.lastError}</strong>
+                </section>
+              `
+            : nothing}
+          ${channelEditorAvailable && this.channelsEditorOpen
+            ? html`
+                ${channelEditorBusy
+                  ? html`<p class="cp-empty">${copy.common.pending}</p>`
+                  : renderChannelConfigForm({
+                      channelId: selectedChannelId,
+                      configValue: this.channelConfigState.configForm,
+                      schema: this.channelConfigState.configSchema,
+                      uiHints: this.channelConfigState.configUiHints,
+                      disabled: channelEditorBusy,
+                      scoped: true,
+                      onPatch: (path, value) =>
+                        updateChannelConfigFormValue(this.channelConfigState, path, value),
+                    })}
+              `
+            : html`<p class="cp-empty">${copy.channels.settingsClosed}</p>`}
+        </article>
+      </div>
+    `;
+
+    return html`
+      <section class="cp-page">
+        ${activeMode === "settings"
+          ? nothing
+          : this.renderPageHeader("channels", [
+              {
+                label: copy.channels.enabledSurfaces,
+                value: String(channelIds.length),
+              },
+              {
+                label: copy.common.accounts,
+                value: String(flattenedAccounts.length),
+              },
+              {
+                label: copy.channels.issueCount,
+                value: String(channelsNeedingAttention),
+              },
+              {
+                label: copy.common.recentCheck,
+                value: this.channelsState.channelsLastSuccess
+                  ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
+                  : copy.common.notRecorded,
+                hint: this.channelsState.channelsLastSuccess
+                  ? formatAgo(this.channelsState.channelsLastSuccess, this.locale)
+                  : undefined,
+              },
+            ])}
+        ${!selectedChannelId
+          ? html`
+              <div class="cp-channel-directory-page">
+                <section class="cp-band">
+                  ${this.renderMetric(copy.channels.enabledSurfaces, String(channelIds.length))}
+                  ${this.renderMetric(copy.common.accounts, String(flattenedAccounts.length))}
+                  ${this.renderMetric(copy.common.connectedAccounts, String(connectedAccounts))}
+                  ${this.renderMetric(copy.channels.issueCount, String(channelsNeedingAttention))}
+                </section>
+                <article class="cp-panel">
+                  <div class="cp-panel__head">
+                    <div>
+                      <span class="cp-kicker">${copy.channels.directoryKicker}</span>
+                      <h3>${copy.channels.directoryTitle}</h3>
+                    </div>
+                  </div>
+                  <p class="cp-panel__subcopy">${copy.channels.directoryHint}</p>
+                  <div class="cp-channel-directory-grid">
+                    ${channelIds.length
+                      ? repeat(channelIds, (channelId) => channelId, renderDirectoryCard)
+                      : html`<p class="cp-empty">${copy.channels.noAccounts}</p>`}
+                  </div>
+                </article>
+              </div>
+            `
+          : activeMode === "settings"
+            ? renderSettingsPanel()
+            : html`
+                <div class="cp-channel-workspace">
+                  <section class="cp-channel-workspace__nav">
+                    <div>
+                      <span class="cp-kicker">${copy.channels.workspaceKicker}</span>
+                      <strong>${selectedChannelLabel}</strong>
+                      <small>${selectedChannelDetail}</small>
+                    </div>
+                    <div class="cp-inline-actions">
+                      <button class="cp-button" @click=${() => this.leaveChannelWorkspace()}>
+                        ${copy.channels.backToDirectory}
+                      </button>
+                    </div>
+                  </section>
+
+                  <section class="cp-band">
+                    ${this.renderMetric(copy.common.accounts, String(selectedAccounts.length))}
+                    ${this.renderMetric(
+                      copy.common.connectedAccounts,
+                      String(selectedConnectedCount),
+                    )}
+                    ${this.renderMetric(copy.channels.issueCount, String(selectedIssueCount))}
+                    ${this.renderMetric(
+                      copy.channels.recommendedNext,
+                      workspaceMetaFor(recommendedMode).title,
+                    )}
+                  </section>
+
+                  <article class="cp-panel">
+                    <div class="cp-panel__head">
+                      <div>
+                        <span class="cp-kicker">${copy.channels.workspaceKicker}</span>
+                        <h3>${copy.channels.workspaceTitle}</h3>
+                      </div>
+                    </div>
+                    <p class="cp-panel__subcopy">${copy.channels.workspaceHint}</p>
+                    <div class="cp-channel-choice-grid">
+                      ${repeat(
+                        availableModes,
+                        (mode) => mode,
+                        (mode) => {
+                          const meta = workspaceMetaFor(mode);
+                          return html`
+                            <button
+                              class="cp-action-card cp-choice-card ${activeMode === mode
+                                ? "is-active"
+                                : ""}"
+                              @click=${() => activateMode(mode)}
+                            >
+                              <div class="cp-choice-card__head">
+                                <div>
+                                  <strong>${meta.title}</strong>
+                                  <small>${meta.hint}</small>
+                                </div>
+                                ${recommendedMode === mode
+                                  ? html`<span class="cp-badge cp-badge--ok"
+                                      >${copy.channels.recommendedNext}</span
+                                    >`
+                                  : nothing}
+                              </div>
+                            </button>
+                          `;
+                        },
+                      )}
+                    </div>
+                  </article>
+
+                  <div class="cp-workspace-stack">
+                    ${activeMode === "guide"
+                      ? renderGuidePanel()
+                      : activeMode === "setup"
+                        ? renderSetupPanel()
+                        : activeMode === "connect"
+                          ? renderConnectPanel()
+                          : renderAccountsPanel()}
+                  </div>
+                </div>
+              `}
       </section>
     `;
   }
