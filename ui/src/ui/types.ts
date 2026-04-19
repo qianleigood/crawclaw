@@ -1,9 +1,9 @@
 export type UpdateAvailable = import("../../../src/infra/update-startup.js").UpdateAvailable;
-import type { CronJobBase } from "../../../src/cron/types-shared.js";
 import type {
   AgentInspectionSnapshot as SharedAgentInspectionSnapshot,
   AgentInspectionTimelineEntry as SharedAgentInspectionTimelineEntry,
 } from "../../../src/agents/runtime/agent-inspection.js";
+import type { CronJobBase } from "../../../src/cron/types-shared.js";
 import type { ConfigUiHints } from "../../../src/shared/config-ui-hints-types.js";
 import type {
   GatewayAgentRow as SharedGatewayAgentRow,
@@ -407,6 +407,21 @@ export type GatewaySessionRow = {
   kind: "direct" | "group" | "global" | "unknown";
   label?: string;
   displayName?: string;
+  derivedTitle?: string;
+  lastMessagePreview?: string;
+  channel?: string;
+  groupChannel?: string;
+  chatType?: string;
+  origin?: {
+    label?: string;
+    provider?: string;
+    surface?: string;
+    chatType?: string;
+    from?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
   surface?: string;
   subject?: string;
   room?: string;

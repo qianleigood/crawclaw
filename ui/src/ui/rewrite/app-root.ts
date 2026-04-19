@@ -212,6 +212,10 @@ const APP_COPY = {
       execution: "Execution",
       range: "Range",
       heartbeat: "Heartbeat",
+      recentActivity: "Recent activity",
+      recentCheck: "Recent check",
+      backgroundCheck: "Background check",
+      notRecorded: "No record yet",
       lastProbe: "Last probe",
       connectedAccounts: "Connected accounts",
       defaultAgent: "Default agent",
@@ -590,6 +594,10 @@ const APP_COPY = {
       execution: "执行",
       range: "范围",
       heartbeat: "心跳",
+      recentActivity: "最近活动",
+      recentCheck: "最近检查",
+      backgroundCheck: "后台检查",
+      notRecorded: "尚未记录",
       lastProbe: "最近探测",
       connectedAccounts: "已连接账号",
       defaultAgent: "默认代理",
@@ -1084,15 +1092,135 @@ function imageSourcesFromMessage(message: unknown): string[] {
   return sources;
 }
 
-function sessionDisplayName(session: GatewaySessionRow): string {
-  return (
-    session.displayName ||
-    session.label ||
-    session.subject ||
-    session.room ||
-    session.space ||
-    session.key
-  );
+type SessionDisplayLike = {
+  key: string;
+  kind?: string;
+  label?: string;
+  displayName?: string;
+  derivedTitle?: string;
+  channel?: string;
+  surface?: string;
+  subject?: string;
+  room?: string;
+  space?: string;
+  sessionId?: string;
+  origin?: {
+    label?: string;
+    provider?: string;
+    surface?: string;
+  };
+};
+
+function sessionDisplayName(session: SessionDisplayLike): string {
+  const surface = sessionSurfaceLabel(session);
+  const identity = sessionIdentityLabel(session);
+  if (!identity) {
+    return surface;
+  }
+  return identity.toLowerCase() === surface.toLowerCase() ? identity : `${surface} · ${identity}`;
+}
+
+function sessionSurfaceLabel(session: SessionDisplayLike): string {
+  const raw =
+    session.channel ||
+    session.origin?.surface ||
+    session.origin?.provider ||
+    session.surface ||
+    session.kind;
+  const normalized = raw?.trim().toLowerCase() || "session";
+  const labels: Record<string, string> = {
+    whatsapp: "WhatsApp",
+    telegram: "Telegram",
+    discord: "Discord",
+    slack: "Slack",
+    signal: "Signal",
+    imessage: "iMessage",
+    googlechat: "Google Chat",
+    webchat: "Web",
+    feishu: "Feishu",
+    matrix: "Matrix",
+    teams: "Teams",
+    direct: "Direct",
+    group: "Group",
+    global: "Global",
+    unknown: "Session",
+  };
+  return labels[normalized] ?? raw?.trim() ?? "Session";
+}
+
+function normalizeSessionIdentity(
+  raw?: string | null,
+  session?: SessionDisplayLike,
+): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const surfaceKey =
+    session?.channel || session?.origin?.surface || session?.origin?.provider || session?.surface;
+  const normalizedSurface = surfaceKey?.trim().toLowerCase();
+  let next = trimmed;
+  if (normalizedSurface && next.toLowerCase().startsWith(`${normalizedSurface}:`)) {
+    next = next.slice(normalizedSurface.length + 1).trim();
+  }
+  if (next.startsWith("g-") && next.length > 2) {
+    next = next.slice(2);
+  }
+  next = next.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return next || null;
+}
+
+function sessionIdentityLabel(session: SessionDisplayLike): string | null {
+  const candidates = [
+    session.origin?.label,
+    session.subject,
+    session.room,
+    session.space,
+    session.displayName,
+    session.label,
+    session.derivedTitle,
+    session.sessionId,
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeSessionIdentity(candidate, session);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
+function resolveSessionRowByKey<T extends SessionDisplayLike>(
+  sessions: readonly T[] | null | undefined,
+  sessionKey?: string | null,
+): T | null {
+  const normalized = sessionKey?.trim();
+  if (!normalized) {
+    return null;
+  }
+  return sessions?.find((session) => session.key === normalized) ?? null;
+}
+
+function sessionReferenceDisplay(
+  sessionKey: string | null | undefined,
+  sessions: readonly SessionDisplayLike[] | null | undefined,
+): string {
+  const session = resolveSessionRowByKey(sessions, sessionKey);
+  if (session) {
+    return sessionDisplayName(session);
+  }
+  return sessionKey?.trim() || "Session";
+}
+
+function sessionReferenceHint(
+  sessionKey: string | null | undefined,
+  sessions: readonly SessionDisplayLike[] | null | undefined,
+): string | undefined {
+  const normalized = sessionKey?.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  return resolveSessionRowByKey(sessions, normalized) ? normalized : undefined;
 }
 
 function flattenChannelAccounts(snapshot: ChannelsStatusSnapshot | null) {
@@ -1214,8 +1342,8 @@ function debugFieldLabel(field: string, locale: Locale): string {
     state: copy.common.state,
     version: shellText(locale, "gateway"),
     connected: copy.common.connected,
-    heartbeat: copy.common.heartbeat,
-    lastHeartbeatAt: copy.common.heartbeat,
+    heartbeat: copy.common.recentCheck,
+    lastHeartbeatAt: copy.common.recentCheck,
     durationMs: copy.common.updated,
     ts: copy.common.updated,
     agentId: copy.common.agent,
@@ -1224,6 +1352,38 @@ function debugFieldLabel(field: string, locale: Locale): string {
     provider: copy.common.provider,
   };
   return labels[field] ?? field;
+}
+
+function heartbeatStatusLabel(status: string, locale: Locale): string {
+  const normalized = status.trim().toLowerCase();
+  if (locale === "zh-CN") {
+    switch (normalized) {
+      case "sent":
+        return "已发送检查";
+      case "ok-empty":
+      case "ok-token":
+        return "正常";
+      case "skipped":
+        return "已跳过";
+      case "failed":
+        return "失败";
+      default:
+        return status;
+    }
+  }
+  switch (normalized) {
+    case "sent":
+      return "Check sent";
+    case "ok-empty":
+    case "ok-token":
+      return "Healthy";
+    case "skipped":
+      return "Skipped";
+    case "failed":
+      return "Failed";
+    default:
+      return status;
+  }
 }
 
 function countObjectKeys(value: unknown): number {
@@ -2127,8 +2287,8 @@ export class CrawClawApp extends LitElement {
     const record = value && typeof value === "object" ? (value as JsonRecord) : null;
     const status =
       typeof record?.status === "string" && record.status.trim()
-        ? record.status.trim()
-        : copy.common.pending;
+        ? heartbeatStatusLabel(record.status.trim(), this.locale)
+        : copy.common.notRecorded;
     const ts = typeof record?.ts === "number" ? record.ts : null;
     const scopeParts = [record?.channel, record?.accountId].filter(
       (entry): entry is string => typeof entry === "string" && entry.trim().length > 0,
@@ -2268,6 +2428,7 @@ export class CrawClawApp extends LitElement {
 
   private renderToolsEffectivePanel() {
     const copy = uiText(this.locale);
+    const sessionRows = this.sessionsState.sessionsResult?.sessions ?? [];
     const result =
       this.agentsState.toolsEffectiveResult &&
       typeof this.agentsState.toolsEffectiveResult === "object"
@@ -2289,7 +2450,8 @@ export class CrawClawApp extends LitElement {
       { label: copy.common.tools, value: tools },
       {
         label: copy.common.session,
-        value: this.settings.sessionKey,
+        value: sessionReferenceDisplay(this.settings.sessionKey, sessionRows),
+        hint: sessionReferenceHint(this.settings.sessionKey, sessionRows),
       },
       {
         label: copy.common.latest,
@@ -2604,9 +2766,9 @@ export class CrawClawApp extends LitElement {
             ),
           },
           {
-            label: copy.common.heartbeat,
+            label: copy.common.recentActivity,
             value: heartbeat.status,
-            hint: heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.pending,
+            hint: heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.notRecorded,
           },
         ])}
         <div class="cp-stage cp-stage--overview">
@@ -2627,8 +2789,8 @@ export class CrawClawApp extends LitElement {
                 this.connected ? copy.common.live : t("common.offline"),
               )}
               ${this.renderMetric(
-                copy.common.updated,
-                heartbeat.ts ? formatDateTime(heartbeat.ts, this.locale) : copy.common.pending,
+                copy.common.recentActivity,
+                heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.notRecorded,
                 heartbeat.scope,
               )}
             </section>
@@ -2650,14 +2812,14 @@ export class CrawClawApp extends LitElement {
                     ><strong>${gatewayVersion}</strong>
                   </div>
                   <div>
-                    <span>${copy.overview.heartbeat}</span><strong>${heartbeat.status}</strong>
+                    <span>${copy.common.backgroundCheck}</span><strong>${heartbeat.status}</strong>
                   </div>
                   <div>
                     <span>${copy.common.updated}</span
                     ><strong
                       >${heartbeat.ts
                         ? formatDateTime(heartbeat.ts, this.locale)
-                        : copy.common.pending}</strong
+                        : copy.common.notRecorded}</strong
                     >
                   </div>
                   <div>
@@ -2800,7 +2962,7 @@ export class CrawClawApp extends LitElement {
                             <tr @click=${() => void this.handleSelectSession(session.key)}>
                               <td>
                                 <strong>${sessionDisplayName(session)}</strong>
-                                <small>${session.key}</small>
+                                <small>${sessionSurfaceLabel(session)} · ${session.kind}</small>
                               </td>
                               <td>${session.kind}</td>
                               <td>${session.status ?? copy.common.idle}</td>
@@ -2860,12 +3022,17 @@ export class CrawClawApp extends LitElement {
       ? sessions.filter((session) => {
           const haystack = [
             session.key,
+            session.channel,
+            session.origin?.label,
+            session.origin?.surface,
+            session.origin?.provider,
             session.displayName,
             session.label,
             session.surface,
             session.subject,
             session.room,
             session.space,
+            sessionDisplayName(session),
           ]
             .filter(
               (value): value is string => typeof value === "string" && value.trim().length > 0,
@@ -2894,8 +3061,8 @@ export class CrawClawApp extends LitElement {
         ${this.renderPageHeader("sessions", [
           {
             label: copy.sessions.focusedSession,
-            value: this.settings.sessionKey,
-            hint: selected ? sessionDisplayName(selected) : undefined,
+            value: selected ? sessionDisplayName(selected) : this.settings.sessionKey,
+            hint: selected?.key,
           },
           {
             label: copy.common.sessions,
@@ -2958,9 +3125,8 @@ export class CrawClawApp extends LitElement {
                           @click=${() => void this.handleSelectSession(session.key)}
                         >
                           <strong>${sessionDisplayName(session)}</strong>
-                          <span>${session.key}</span>
+                          <span>${sessionSurfaceLabel(session)}</span>
                           <small>
-                            ${(session.surface ?? session.kind).toUpperCase()} ·
                             ${session.status ?? copy.common.idle} ·
                             ${formatAgo(session.updatedAt, this.locale)}
                           </small>
@@ -2998,7 +3164,9 @@ export class CrawClawApp extends LitElement {
               <article class="cp-session-signal-card">
                 <span>${copy.common.session}</span>
                 <strong>${selected ? sessionDisplayName(selected) : copy.common.none}</strong>
-                <small>${selected?.key ?? this.settings.sessionKey}</small>
+                <small
+                  >${selected ? sessionSurfaceLabel(selected) : this.settings.sessionKey}</small
+                >
               </article>
               <article class="cp-session-signal-card">
                 <span>${copy.common.latest}</span>
@@ -3031,7 +3199,7 @@ export class CrawClawApp extends LitElement {
                   <h3>${copy.sessions.conversationTitle}</h3>
                   <p class="cp-panel__subcopy">
                     ${selected
-                      ? `${sessionDisplayName(selected)} · ${selected.key}`
+                      ? `${sessionDisplayName(selected)} · ${selected.status ?? copy.common.idle}`
                       : this.settings.sessionKey}
                   </p>
                 </div>
@@ -3958,7 +4126,14 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                         },
                         {
                           label: copy.common.session,
-                          value: this.settings.sessionKey,
+                          value: sessionReferenceDisplay(
+                            this.settings.sessionKey,
+                            this.sessionsState.sessionsResult?.sessions ?? [],
+                          ),
+                          hint: sessionReferenceHint(
+                            this.settings.sessionKey,
+                            this.sessionsState.sessionsResult?.sessions ?? [],
+                          ),
                         },
                         {
                           label: copy.common.groups,
@@ -4023,6 +4198,10 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
     const recommendedAction = providerStatus?.recommendedAction ?? copy.common.none;
     const sessions = (this.sessionsState.sessionsResult?.sessions ?? []).filter(
       (session) => session.kind !== "global",
+    );
+    const selectedSummarySession = resolveSessionRowByKey(
+      sessions,
+      this.memoryState.summariesSelectedSessionKey,
     );
     const filteredSessions = sessions.filter((session) => {
       if (!this.memorySessionQuery.trim()) {
@@ -4392,7 +4571,9 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
           {
             label: copy.memory.sessionSummaries,
             value: summaryState,
-            hint: summaryStatus?.sessionId ?? undefined,
+            hint: selectedSummarySession
+              ? sessionDisplayName(selectedSummarySession)
+              : (summaryStatus?.sessionId ?? undefined),
           },
           {
             label: copy.memory.recommendedAction,
@@ -4532,12 +4713,10 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                                     : ""}"
                                   @click=${() => void this.handleSelectMemorySession(session)}
                                 >
-                                  <strong
-                                    >${session.displayName ?? session.label ?? session.key}</strong
-                                  >
-                                  <span>${session.key}</span>
+                                  <strong>${sessionDisplayName(session)}</strong>
+                                  <span>${sessionSurfaceLabel(session)}</span>
                                   <small>
-                                    ${session.sessionId ?? session.key} ·
+                                    ${session.kind} ·
                                     ${formatMaybeDate(session.updatedAt, this.locale)}
                                   </small>
                                 </button>
@@ -4626,7 +4805,13 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                   },
                   {
                     label: "Summary session",
-                    value: summaryStatus?.sessionId ?? copy.common.none,
+                    value: selectedSummarySession
+                      ? sessionDisplayName(selectedSummarySession)
+                      : (summaryStatus?.sessionId ?? copy.common.none),
+                    hint: sessionReferenceHint(
+                      this.memoryState.summariesSelectedSessionKey,
+                      sessions,
+                    ),
                   },
                   {
                     label: "Journal files",
@@ -4649,6 +4834,11 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
     const copy = uiText(this.locale);
     const summary = this.agentRuntimeState.runtimeSummary;
     const selected = this.agentRuntimeState.runtimeSelectedDetail;
+    const runtimeSessions = this.sessionsState.sessionsResult?.sessions ?? [];
+    const runtimeSessionDisplay = (sessionKey?: string | null) =>
+      sessionReferenceDisplay(sessionKey, runtimeSessions);
+    const runtimeSessionHint = (sessionKey?: string | null) =>
+      sessionReferenceHint(sessionKey, runtimeSessions);
     const totalRuns = summary
       ? Object.values(summary.byCategory).reduce((sum, count) => sum + count, 0)
       : 0;
@@ -4875,8 +5065,12 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                                     <small>${formatAgo(run.updatedAt, this.locale)}</small>
                                   </td>
                                   <td>
-                                    <strong>${run.sessionKey}</strong>
-                                    <small>${run.childSessionKey ?? copy.common.none}</small>
+                                    <strong>${runtimeSessionDisplay(run.sessionKey)}</strong>
+                                    <small>
+                                      ${run.childSessionKey
+                                        ? runtimeSessionDisplay(run.childSessionKey)
+                                        : copy.common.none}
+                                    </small>
                                   </td>
                                   <td>
                                     <strong>${run.taskId}</strong>
@@ -4911,11 +5105,15 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                     { label: copy.common.agent, value: selected.run.agentId ?? copy.common.none },
                     {
                       label: copy.runtime.parentSession,
-                      value: selected.run.sessionKey,
+                      value: runtimeSessionDisplay(selected.run.sessionKey),
+                      hint: runtimeSessionHint(selected.run.sessionKey),
                     },
                     {
                       label: copy.runtime.childSession,
-                      value: selected.run.childSessionKey ?? copy.common.none,
+                      value: selected.run.childSessionKey
+                        ? runtimeSessionDisplay(selected.run.childSessionKey)
+                        : copy.common.none,
+                      hint: runtimeSessionHint(selected.run.childSessionKey),
                     },
                     {
                       label: copy.common.updated,
@@ -5013,6 +5211,10 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
   private renderUsage() {
     const copy = uiText(this.locale);
     const sessions = this.usageState.usageResult?.sessions ?? [];
+    const selectedUsageSession = resolveSessionRowByKey(
+      sessions,
+      this.usageState.usageSelectedSessions[0],
+    );
     const usageRange = `${this.usageState.usageStartDate} → ${this.usageState.usageEndDate}`;
     return html`
       <section class="cp-page">
@@ -5032,7 +5234,9 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
           {
             label: copy.common.selected,
             value: String(this.usageState.usageSelectedSessions.length),
-            hint: this.usageState.usageSelectedSessions[0] ?? undefined,
+            hint: selectedUsageSession
+              ? sessionDisplayName(selectedUsageSession)
+              : (this.usageState.usageSelectedSessions[0] ?? undefined),
           },
         ])}
         <div class="cp-stage cp-stage--two">
@@ -5095,7 +5299,9 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                 {
                   label: copy.common.selected,
                   value: this.usageState.usageSelectedSessions.length,
-                  hint: this.usageState.usageSelectedSessions[0] ?? undefined,
+                  hint: selectedUsageSession
+                    ? sessionDisplayName(selectedUsageSession)
+                    : (this.usageState.usageSelectedSessions[0] ?? undefined),
                 },
                 { label: copy.common.logs, value: this.usageState.usageSessionLogs?.length ?? 0 },
               ])}
@@ -5137,8 +5343,8 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
                           (session) => html`
                             <tr @click=${() => void this.handleSelectUsageSession(session.key)}>
                               <td>
-                                <strong>${session.label ?? session.key}</strong>
-                                <small>${session.key}</small>
+                                <strong>${sessionDisplayName(session)}</strong>
+                                <small>${sessionSurfaceLabel(session)}</small>
                               </td>
                               <td>${session.modelProvider ?? copy.common.na}</td>
                               <td>${session.model ?? copy.common.na}</td>
@@ -5382,11 +5588,11 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
             value: this.debugState.debugCallMethod || copy.common.none,
           },
           {
-            label: copy.common.heartbeat,
+            label: copy.common.recentCheck,
             value: debugHeartbeat.status,
             hint: debugHeartbeat.ts
               ? formatDateTime(debugHeartbeat.ts, this.locale)
-              : copy.common.pending,
+              : copy.common.notRecorded,
           },
         ])}
         <div class="cp-stage cp-stage--two">
@@ -5432,7 +5638,7 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
               ${this.renderMetaEntries([
                 { label: copy.common.methods, value: methodList.length },
                 { label: copy.common.models, value: this.debugState.debugModels.length },
-                { label: copy.common.heartbeat, value: debugHeartbeat.status },
+                { label: copy.common.recentCheck, value: debugHeartbeat.status },
                 {
                   label: copy.common.selected,
                   value: this.debugState.debugCallMethod || copy.common.none,

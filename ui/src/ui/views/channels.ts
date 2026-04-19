@@ -280,7 +280,7 @@ export function renderChannels(props: ChannelsProps) {
                   <span>${uiLiteral("Account state")}</span>
                   <span>${uiLiteral("Delivery state")}</span>
                   <span>${uiLiteral("Health")}</span>
-                  <span>${uiLiteral("Last heartbeat")}</span>
+                  <span>${uiLiteral("Recent check")}</span>
                   <span>${uiLiteral("Readiness")}</span>
                   <span>${uiLiteral("Actions")}</span>
                 </div>
@@ -799,7 +799,7 @@ function renderChannelRegistryRow(
         <span
           >${props.lastSuccessAt
             ? formatRelativeTimestamp(props.lastSuccessAt)
-            : uiLiteral("Pending")}</span
+            : uiLiteral("No check yet")}</span
         >
       </div>
       <div class="channels-registry-row__metric">

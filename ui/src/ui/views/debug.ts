@@ -216,7 +216,7 @@ ${JSON.stringify(props.models ?? [], null, 2)}</pre
             <div class="row" style="justify-content: space-between;">
               <div>
                 <div class="card-title">${uiLiteral("Snapshots")}</div>
-                <div class="card-sub">${uiLiteral("Status, health, and heartbeat data.")}</div>
+                <div class="card-sub">${uiLiteral("Status, health, and recent check data.")}</div>
               </div>
             </div>
             <div class="stack" style="margin-top: 12px;">
@@ -241,7 +241,7 @@ ${JSON.stringify(props.models ?? [], null, 2)}</pre
                 <pre class="code-block">${JSON.stringify(props.health ?? {}, null, 2)}</pre>
               </div>
               <div>
-                <div class="muted">${uiLiteral("Last heartbeat")}</div>
+                <div class="muted">${uiLiteral("Recent check")}</div>
                 <pre class="code-block">${JSON.stringify(props.heartbeat ?? {}, null, 2)}</pre>
               </div>
             </div>
