@@ -4836,12 +4836,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
         : "guide";
     const addChannelIds = channelIds.filter((channelId) => {
       const controls = resolveChannelControls(snapshot, channelId);
-      const accounts = resolveChannelAccounts(snapshot, channelId);
-      const configuredCount = accounts.filter((account) => account.configured).length;
-      return (
-        configuredCount === 0 &&
-        (controls.canSetup || controls.canEdit || controls.loginMode !== "none")
-      );
+      return controls.canSetup || controls.canEdit || controls.loginMode !== "none";
     });
 
     const openAddChannel = () => {
@@ -4997,6 +4992,13 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                     const accounts = resolveChannelAccounts(snapshot, channelId);
                     const controls = resolveChannelControls(snapshot, channelId);
                     const statusTone = channelStatusTone(channelId);
+                    const configuredCount = accounts.filter((account) => account.configured).length;
+                    const addActionLabel =
+                      configuredCount > 0 && controls.multiAccount && controls.canEdit
+                        ? copy.channels.addAccountDraft
+                        : configuredCount > 0
+                          ? copy.channels.openSettings
+                          : copy.channels.startWithThisChannel;
                     return html`
                       <article class="cp-action-card cp-channel-card">
                         <div class="cp-channel-card__head">
@@ -5040,6 +5042,18 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                           <button
                             class="cp-button"
                             @click=${() => {
+                              if (
+                                configuredCount > 0 &&
+                                controls.multiAccount &&
+                                controls.canEdit
+                              ) {
+                                this.openChannelSettings(channelId, null, "guide");
+                                return;
+                              }
+                              if (configuredCount > 0) {
+                                this.selectChannel(channelId);
+                                return;
+                              }
                               if (controls.canEdit) {
                                 this.openChannelSettings(channelId, null, "guide");
                                 return;
@@ -5047,7 +5061,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                               this.selectChannel(channelId);
                             }}
                           >
-                            ${copy.channels.startWithThisChannel}
+                            ${addActionLabel}
                           </button>
                         </div>
                       </article>
@@ -5402,18 +5416,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             </button>
           </div>
         </section>
-        <section class="cp-band">
-          ${this.renderMetric(copy.common.selected, selectedChannelLabel)}
-          ${this.renderMetric(copy.common.path, `channels.${selectedChannelId}`)}
-          ${this.renderMetric(
-            copy.common.schema,
-            this.channelConfigState.configSchemaVersion ?? copy.common.na,
-          )}
-          ${this.renderMetric(
-            copy.common.dirty,
-            this.channelConfigState.configFormDirty ? copy.common.yes : copy.common.no,
-          )}
-        </section>
         <article class="cp-panel cp-panel--fill">
           <div class="cp-panel__head">
             <div>
@@ -5451,28 +5453,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                     >
                       ${copy.channels.applyChannelSettings}
                     </button>
-                    <button
-                      class="cp-button"
-                      ?disabled=${channelEditorBusy}
-                      @click=${() =>
-                        void this.safeCall(async () => {
-                          await Promise.all([
-                            loadChannelConfigSchema(this.channelConfigState, selectedChannelId),
-                            loadChannelConfig(this.channelConfigState, selectedChannelId),
-                          ]);
-                          await loadChannelSetupSurface(this.channelSetupState, selectedChannelId);
-                        })}
-                    >
-                      ${copy.channels.reloadChannelSettings}
-                    </button>
-                    <button
-                      class="cp-button"
-                      ?disabled=${channelEditorBusy || !selectedControls.multiAccount}
-                      @click=${() =>
-                        void this.addChannelAccountDraft(selectedChannelId, selectedAccounts)}
-                    >
-                      ${copy.channels.addAccountDraft}
-                    </button>
                   </div>
                 `
               : nothing}
@@ -5491,6 +5471,57 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             : nothing}
           ${channelEditorAvailable && this.channelsEditorOpen
             ? html`
+                <details class="cp-panel__details">
+                  <summary>${copy.common.summary}</summary>
+                  ${this.renderMetaEntries([
+                    {
+                      label: copy.common.selected,
+                      value: selectedChannelLabel,
+                    },
+                    {
+                      label: copy.common.path,
+                      value: `channels.${selectedChannelId}`,
+                    },
+                    {
+                      label: copy.common.schema,
+                      value: this.channelConfigState.configSchemaVersion ?? copy.common.na,
+                    },
+                    {
+                      label: copy.common.dirty,
+                      value: this.channelConfigState.configFormDirty
+                        ? copy.common.yes
+                        : copy.common.no,
+                    },
+                  ])}
+                  <div class="cp-inline-actions">
+                    <button
+                      class="cp-button"
+                      ?disabled=${channelEditorBusy}
+                      @click=${() =>
+                        void this.safeCall(async () => {
+                          await Promise.all([
+                            loadChannelConfigSchema(this.channelConfigState, selectedChannelId),
+                            loadChannelConfig(this.channelConfigState, selectedChannelId),
+                          ]);
+                          await loadChannelSetupSurface(this.channelSetupState, selectedChannelId);
+                        })}
+                    >
+                      ${copy.channels.reloadChannelSettings}
+                    </button>
+                    ${selectedControls.multiAccount
+                      ? html`
+                          <button
+                            class="cp-button"
+                            ?disabled=${channelEditorBusy}
+                            @click=${() =>
+                              void this.addChannelAccountDraft(selectedChannelId, selectedAccounts)}
+                          >
+                            ${copy.channels.addAccountDraft}
+                          </button>
+                        `
+                      : nothing}
+                  </div>
+                </details>
                 ${channelEditorBusy
                   ? html`<p class="cp-empty">${copy.common.pending}</p>`
                   : renderChannelConfigForm({
