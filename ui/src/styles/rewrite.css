@@ -885,6 +885,204 @@ crawclaw-app {
   grid-column: 1 / -1;
 }
 
+.cp-channel-config-editor .cfg-fields,
+.cp-channel-config-editor .cfg-object,
+.cp-channel-config-editor .cfg-array,
+.cp-channel-config-editor .cfg-map {
+  gap: 14px;
+}
+
+.cp-channel-config-editor .cfg-field,
+.cp-channel-config-editor .cfg-toggle-row,
+.cp-channel-config-editor .cfg-array,
+.cp-channel-config-editor .cfg-map,
+.cp-channel-config-editor .cfg-object,
+.cp-channel-config-editor .cfg-fields {
+  border-radius: 16px;
+}
+
+.cp-channel-config-editor .cfg-field__label,
+.cp-channel-config-editor .cfg-toggle-row__label,
+.cp-channel-config-editor .cfg-array__label,
+.cp-channel-config-editor .cfg-map__label,
+.cp-channel-config-editor .cfg-object__title {
+  color: var(--cp-text);
+  letter-spacing: 0;
+}
+
+.cp-channel-config-editor .cfg-field__help,
+.cp-channel-config-editor .cfg-toggle-row__help,
+.cp-channel-config-editor .cfg-array__help,
+.cp-channel-config-editor .cfg-object__help {
+  color: var(--cp-text-soft);
+}
+
+.cp-channel-config-editor .cfg-input,
+.cp-channel-config-editor .cfg-select,
+.cp-channel-config-editor .cfg-textarea,
+.cp-channel-config-editor .cfg-number,
+.cp-channel-config-editor .cfg-segmented {
+  border-color: rgba(123, 162, 255, 0.2);
+  background:
+    linear-gradient(180deg, rgba(11, 24, 42, 0.94), rgba(8, 18, 31, 0.92)),
+    rgba(8, 18, 31, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.cp-channel-config-editor .cfg-input,
+.cp-channel-config-editor .cfg-select,
+.cp-channel-config-editor .cfg-textarea {
+  border-radius: 14px;
+}
+
+.cp-channel-config-editor .cfg-input,
+.cp-channel-config-editor .cfg-select,
+.cp-channel-config-editor .cfg-number__input {
+  min-height: 46px;
+}
+
+.cp-channel-config-editor .cfg-textarea {
+  min-height: 112px;
+  line-height: 1.6;
+}
+
+.cp-channel-config-editor .cfg-input::placeholder,
+.cp-channel-config-editor .cfg-textarea::placeholder {
+  color: rgba(168, 184, 216, 0.56);
+}
+
+.cp-channel-config-editor .cfg-input:hover:not(:focus),
+.cp-channel-config-editor .cfg-select:hover:not(:focus),
+.cp-channel-config-editor .cfg-textarea:hover:not(:focus),
+.cp-channel-config-editor .cfg-number:hover:not(:focus-within) {
+  border-color: rgba(123, 162, 255, 0.34);
+}
+
+.cp-channel-config-editor .cfg-input:focus,
+.cp-channel-config-editor .cfg-select:focus,
+.cp-channel-config-editor .cfg-textarea:focus,
+.cp-channel-config-editor .cfg-number:focus-within {
+  border-color: rgba(89, 180, 255, 0.54);
+  box-shadow:
+    0 0 0 1px rgba(89, 180, 255, 0.26),
+    0 0 0 6px rgba(89, 180, 255, 0.08);
+}
+
+.cp-channel-config-editor .cfg-input-wrap {
+  align-items: stretch;
+}
+
+.cp-channel-config-editor .cfg-input__reset,
+.cp-channel-config-editor .cfg-array__add,
+.cp-channel-config-editor .cfg-map__add,
+.cp-channel-config-editor .cfg-array__item-remove,
+.cp-channel-config-editor .cfg-map__item-remove {
+  border-radius: 12px;
+}
+
+.cp-channel-config-editor .cfg-input__reset {
+  min-width: 40px;
+  height: 40px;
+  align-self: center;
+  margin-right: 4px;
+  border-color: rgba(123, 162, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cp-channel-config-editor .cfg-input__reset:hover:not(:disabled),
+.cp-channel-config-editor .cfg-array__add:hover:not(:disabled),
+.cp-channel-config-editor .cfg-map__add:hover:not(:disabled) {
+  border-color: rgba(123, 162, 255, 0.32);
+  background: rgba(89, 180, 255, 0.12);
+}
+
+.cp-channel-config-editor .cfg-segmented {
+  padding: 4px;
+  border-radius: 14px;
+  gap: 4px;
+}
+
+.cp-channel-config-editor .cfg-segmented__btn {
+  min-height: 38px;
+  border-radius: 10px;
+  color: var(--cp-text-soft);
+  font-weight: 600;
+}
+
+.cp-channel-config-editor .cfg-segmented__btn:hover:not(:disabled):not(.active) {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cp-text);
+}
+
+.cp-channel-config-editor .cfg-segmented__btn.active {
+  color: var(--cp-text);
+  background: linear-gradient(135deg, rgba(89, 180, 255, 0.24), rgba(124, 219, 255, 0.14));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cp-channel-config-editor .cfg-number {
+  padding: 4px;
+  border-radius: 14px;
+  gap: 4px;
+}
+
+.cp-channel-config-editor .cfg-number__btn {
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 10px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cp-text);
+}
+
+.cp-channel-config-editor .cfg-number__btn:hover:not(:disabled) {
+  background: rgba(89, 180, 255, 0.12);
+}
+
+.cp-channel-config-editor .cfg-number__input {
+  border-radius: 10px;
+  background: transparent;
+}
+
+.cp-channel-config-editor .cfg-array__header,
+.cp-channel-config-editor .cfg-map__header,
+.cp-channel-config-editor .cfg-array__item,
+.cp-channel-config-editor .cfg-map__item,
+.cp-channel-config-editor .cfg-object {
+  border-color: rgba(123, 162, 255, 0.14);
+  background: rgba(5, 14, 26, 0.5);
+}
+
+.cp-channel-config-editor .cfg-array__empty,
+.cp-channel-config-editor .cfg-map__empty {
+  border: 1px dashed rgba(123, 162, 255, 0.2);
+  border-radius: 14px;
+  background: rgba(5, 14, 26, 0.32);
+  color: var(--cp-text-muted);
+}
+
+.cp-channel-config-editor .cfg-array__item-index {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(89, 180, 255, 0.12);
+  color: var(--cp-accent-strong);
+}
+
+.cp-channel-config-editor .cfg-field--error,
+.cp-channel-config-editor .cfg-field--error .cfg-input,
+.cp-channel-config-editor .cfg-field--error .cfg-select,
+.cp-channel-config-editor .cfg-field--error .cfg-textarea,
+.cp-channel-config-editor .cfg-field--error .cfg-number {
+  border-color: rgba(255, 107, 125, 0.24);
+  background: rgba(56, 11, 18, 0.24);
+}
+
+.cp-channel-config-editor .cfg-field__error {
+  color: #ffd3da;
+}
+
 .cp-choice-card {
   gap: 10px;
 }
