@@ -77,28 +77,24 @@ const CHANNEL_CONFIG_SECTION_COPY: Record<
   { title: string; hint: string; collapsible?: boolean }
 > = {
   basic: {
-    title: uiLiteral("Basic setup"),
-    hint: uiLiteral("Turn the channel on, set the main mode, and fill the primary address first."),
+    title: uiLiteral("1. Start with the basics"),
+    hint: uiLiteral("Only fill the fields needed to get this channel online."),
   },
   auth: {
-    title: uiLiteral("Sign-in and credentials"),
-    hint: uiLiteral("Fill the keys, tokens, secrets, and app credentials this channel needs."),
+    title: uiLiteral("2. Login and credentials"),
+    hint: uiLiteral("Paste tokens, secrets, app ids, or cookie paths here."),
   },
   accounts: {
-    title: uiLiteral("Accounts and destinations"),
-    hint: uiLiteral(
-      "Choose the default account and set the channel, chat, room, or other destination identifiers here.",
-    ),
+    title: uiLiteral("3. Accounts and destinations"),
+    hint: uiLiteral("Add accounts, pick the default one, and set the target chat or room here."),
   },
   behavior: {
-    title: uiLiteral("Replies and behavior"),
-    hint: uiLiteral("Adjust how replies stream, route to groups, and behave after delivery."),
+    title: uiLiteral("4. Reply behavior"),
+    hint: uiLiteral("Adjust how replies stream, mention groups, and behave after delivery."),
   },
   advanced: {
-    title: uiLiteral("Advanced options"),
-    hint: uiLiteral(
-      "Keep low-frequency or expert-only options here so the main form stays readable.",
-    ),
+    title: uiLiteral("Advanced options (optional)"),
+    hint: uiLiteral("Leave this alone unless you know a channel-specific setting needs to change."),
     collapsible: true,
   },
 };

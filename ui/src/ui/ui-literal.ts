@@ -126,6 +126,20 @@ const ZH_CN_LITERALS: Record<string, string> = {
   "Schema unavailable. Use Raw.": "Schema 不可用，请切换到 Raw。",
   "Channel config schema unavailable.": "渠道配置 Schema 不可用。",
   "Loading config schema…": "正在加载配置 Schema…",
+  "1. Start with the basics": "1. 先完成基础设置",
+  "Only fill the fields needed to get this channel online.": "先只填写让这个渠道能上线的必要字段。",
+  "2. Login and credentials": "2. 登录与凭据",
+  "Paste tokens, secrets, app ids, or cookie paths here.":
+    "把 token、secret、应用 ID 或 cookie 路径填在这里。",
+  "3. Accounts and destinations": "3. 账号与目标位置",
+  "Add accounts, pick the default one, and set the target chat or room here.":
+    "在这里新增账号、设置默认账号，并填写目标会话或房间。",
+  "4. Reply behavior": "4. 回复行为",
+  "Adjust how replies stream, mention groups, and behave after delivery.":
+    "这里调整流式回复、群组提及，以及消息发出后的行为。",
+  "Advanced options (optional)": "高级选项（可选）",
+  "Leave this alone unless you know a channel-specific setting needs to change.":
+    "如果你不确定，不要动这里。只有明确知道某个渠道专用设置需要修改时再打开。",
   Reload: "重新加载",
   inherit: "继承",
   "off (explicit)": "关闭（显式）",

@@ -472,9 +472,17 @@ const APP_COPY = {
       settingsTitle: "Channel settings",
       settingsHint:
         "Edit the selected channel without leaving this page. Changes still use the same config write path underneath.",
-      settingsReviewTitle: "Before you save",
+      settingsReviewTitle: "Save and apply",
       settingsReviewHint:
-        "Keep the form focused on the channel itself. Reload schema, review the path, and add draft accounts from the side rail.",
+        "Keep the main form focused on the channel itself. Save, apply, and reload from the side rail.",
+      settingsStatusTitle: "Current status",
+      settingsStatusHint:
+        "See the current account count, default account, and whether you still have unsaved changes.",
+      settingsTechnicalTitle: "Technical details",
+      settingsTechnicalHint:
+        "Only open this when you need the config path, schema version, or channel id.",
+      settingsPageHint:
+        "Change only what this channel needs. Keep the left side for form fields and the right side for actions and reference details.",
       settingsClosed: "Channel editor is closed. Open it when you need to change channel settings.",
       settingsUnavailable: "This channel does not expose editable settings on this gateway.",
       openChannelEditor: "Open channel editor",
@@ -1004,8 +1012,13 @@ const APP_COPY = {
       openSettingsHint: "直接在当前页打开渠道级编辑面板，保存或应用你想改的内容。",
       settingsTitle: "渠道设置",
       settingsHint: "不用跳到总配置页，直接在这里编辑当前渠道。底层仍然走同一条配置写入链路。",
-      settingsReviewTitle: "保存前先确认",
-      settingsReviewHint: "主区域只专注改渠道本身；右侧再看路径、重新载入和账号草稿入口。",
+      settingsReviewTitle: "保存与应用",
+      settingsReviewHint: "左边只改字段；右边处理保存、应用、重载和账号草稿。",
+      settingsStatusTitle: "当前状态",
+      settingsStatusHint: "这里显示账号数量、默认账号，以及当前有没有未保存改动。",
+      settingsTechnicalTitle: "技术详情",
+      settingsTechnicalHint: "只有在排查问题或核对配置路径时，才需要看这里。",
+      settingsPageHint: "只改这个渠道真正需要的内容。左边是表单，右边是动作和参考信息。",
       settingsClosed: "渠道编辑面板当前已关闭，需要时再打开。",
       settingsUnavailable: "当前渠道没有在这台网关上暴露可编辑的设置。",
       openChannelEditor: "打开渠道编辑",
@@ -5724,46 +5737,12 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
           <div class="cp-panel__head">
             <div>
               <span class="cp-kicker">${copy.channels.settingsTitle}</span>
-              <h3>${copy.channels.settingsTitle}</h3>
+              <h3>${selectedChannelLabel}</h3>
             </div>
-            ${channelEditorAvailable && this.channelsEditorOpen
-              ? html`
-                  <div class="cp-inline-actions">
-                    <button
-                      class="cp-button"
-                      ?disabled=${channelEditorBusy || !this.channelConfigState.configFormDirty}
-                      @click=${() =>
-                        void this.safeCall(async () => {
-                          await saveChannelConfig(this.channelConfigState);
-                          await Promise.all([
-                            loadChannels(this.channelsState, true),
-                            loadChannelSetupSurface(this.channelSetupState, selectedChannelId),
-                          ]);
-                        })}
-                    >
-                      ${copy.channels.saveChannelSettings}
-                    </button>
-                    <button
-                      class="cp-button"
-                      ?disabled=${channelEditorBusy || !this.channelConfigState.configFormDirty}
-                      @click=${() =>
-                        void this.safeCall(async () => {
-                          await applyChannelConfig(this.channelConfigState);
-                          await Promise.all([
-                            loadChannels(this.channelsState, true),
-                            loadChannelSetupSurface(this.channelSetupState, selectedChannelId),
-                          ]);
-                        })}
-                    >
-                      ${copy.channels.applyChannelSettings}
-                    </button>
-                  </div>
-                `
-              : nothing}
           </div>
           <p class="cp-panel__subcopy">
             ${channelEditorAvailable
-              ? copy.channels.settingsHint
+              ? copy.channels.settingsPageHint
               : copy.channels.settingsUnavailable}
           </p>
           ${this.channelConfigState.lastError
@@ -5799,27 +5778,35 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                         </div>
                       </div>
                       <p class="cp-panel__subcopy">${copy.channels.settingsReviewHint}</p>
-                      ${this.renderMetaEntries([
-                        {
-                          label: copy.common.selected,
-                          value: selectedChannelLabel,
-                        },
-                        {
-                          label: copy.common.path,
-                          value: `channels.${selectedChannelId}`,
-                        },
-                        {
-                          label: copy.common.schema,
-                          value: this.channelConfigState.configSchemaVersion ?? copy.common.na,
-                        },
-                        {
-                          label: copy.common.dirty,
-                          value: this.channelConfigState.configFormDirty
-                            ? copy.common.yes
-                            : copy.common.no,
-                        },
-                      ])}
-                      <div class="cp-inline-actions">
+                      <div class="cp-channel-settings-actions">
+                        <button
+                          class="cp-button"
+                          ?disabled=${channelEditorBusy || !this.channelConfigState.configFormDirty}
+                          @click=${() =>
+                            void this.safeCall(async () => {
+                              await saveChannelConfig(this.channelConfigState);
+                              await Promise.all([
+                                loadChannels(this.channelsState, true),
+                                loadChannelSetupSurface(this.channelSetupState, selectedChannelId),
+                              ]);
+                            })}
+                        >
+                          ${copy.channels.saveChannelSettings}
+                        </button>
+                        <button
+                          class="cp-button"
+                          ?disabled=${channelEditorBusy || !this.channelConfigState.configFormDirty}
+                          @click=${() =>
+                            void this.safeCall(async () => {
+                              await applyChannelConfig(this.channelConfigState);
+                              await Promise.all([
+                                loadChannels(this.channelsState, true),
+                                loadChannelSetupSurface(this.channelSetupState, selectedChannelId),
+                              ]);
+                            })}
+                        >
+                          ${copy.channels.applyChannelSettings}
+                        </button>
                         <button
                           class="cp-button"
                           ?disabled=${channelEditorBusy}
@@ -5853,6 +5840,63 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                             `
                           : nothing}
                       </div>
+                    </section>
+                    <section class="cp-panel cp-panel--fill">
+                      <div class="cp-panel__head">
+                        <div>
+                          <span class="cp-kicker">${copy.channels.settingsStatusTitle}</span>
+                          <h3>${copy.channels.settingsStatusTitle}</h3>
+                        </div>
+                      </div>
+                      <p class="cp-panel__subcopy">${copy.channels.settingsStatusHint}</p>
+                      ${this.renderMetaEntries([
+                        {
+                          label: copy.common.selected,
+                          value: selectedChannelLabel,
+                        },
+                        {
+                          label: copy.common.accounts,
+                          value: String(selectedAccounts.length),
+                        },
+                        {
+                          label: copy.common.connectedAccounts,
+                          value: String(selectedConnectedCount),
+                        },
+                        {
+                          label: copy.channels.issueCount,
+                          value: String(selectedIssueCount),
+                        },
+                        {
+                          label: copy.channels.defaultAccount,
+                          value: currentDefaultAccountId ?? copy.common.none,
+                        },
+                        {
+                          label: copy.common.dirty,
+                          value: this.channelConfigState.configFormDirty
+                            ? copy.common.yes
+                            : copy.common.no,
+                        },
+                      ])}
+                    </section>
+                    <section class="cp-panel cp-panel--fill">
+                      <details class="cp-channel-settings-technical">
+                        <summary>${copy.channels.settingsTechnicalTitle}</summary>
+                        <p class="cp-panel__subcopy">${copy.channels.settingsTechnicalHint}</p>
+                        ${this.renderMetaEntries([
+                          {
+                            label: copy.common.path,
+                            value: `channels.${selectedChannelId}`,
+                          },
+                          {
+                            label: copy.common.schema,
+                            value: this.channelConfigState.configSchemaVersion ?? copy.common.na,
+                          },
+                          {
+                            label: copy.channels.catalogDocs,
+                            value: selectedChannelMeta?.docsPath ?? copy.common.na,
+                          },
+                        ])}
+                      </details>
                     </section>
                   </aside>
                 </div>

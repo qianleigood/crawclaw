@@ -782,6 +782,28 @@ crawclaw-app {
   align-content: start;
 }
 
+.cp-channel-settings-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.cp-channel-settings-actions .cp-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.cp-channel-settings-technical {
+  display: grid;
+  gap: 12px;
+}
+
+.cp-channel-settings-technical summary {
+  cursor: pointer;
+  color: var(--cp-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 .cp-channel-config-editor {
   display: grid;
   gap: 16px;
@@ -832,6 +854,30 @@ crawclaw-app {
 
 .cp-channel-config-field {
   min-width: 0;
+}
+
+.cp-channel-config-field > .cfg-field,
+.cp-channel-config-field > .cfg-toggle-row,
+.cp-channel-config-field > .cfg-object,
+.cp-channel-config-field > .cfg-fields {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background: rgba(10, 20, 34, 0.58);
+}
+
+.cp-channel-config-field .cfg-field__label,
+.cp-channel-config-field .cfg-toggle-row__label,
+.cp-channel-config-field .cfg-object__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.cp-channel-config-field .cfg-field__help,
+.cp-channel-config-field .cfg-toggle-row__help,
+.cp-channel-config-field .cfg-object__help {
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .cp-channel-config-field.is-wide {
