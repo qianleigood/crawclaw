@@ -993,6 +993,88 @@ describe("listSessionsFromStore search", () => {
     }
   });
 
+  test("falls back to historical session archives for the same session key when the current session id changed", async () => {
+    await withStateDirEnv("crawclaw-session-utils-history-", async ({ stateDir }) => {
+      const sessionsDir = path.join(stateDir, "agents", "main", "sessions");
+      const runsDir = path.join(stateDir, "context-archive", "runs");
+      fs.mkdirSync(sessionsDir, { recursive: true });
+      fs.mkdirSync(runsDir, { recursive: true });
+
+      const storePath = path.join(sessionsDir, "sessions.json");
+      const key = "agent:main:feishu:direct:ou_833e794925a4d0da1e85f6cc2c3ab970";
+      const currentSessionId = "sess-feishu-current";
+      const previousSessionId = "sess-feishu-previous";
+      const store: Record<string, SessionEntry> = {
+        [key]: {
+          sessionId: currentSessionId,
+          updatedAt: Date.now(),
+          chatType: "direct",
+          origin: {
+            provider: "webchat",
+            surface: "webchat",
+            chatType: "direct",
+          },
+        } as SessionEntry,
+      };
+
+      fs.writeFileSync(
+        path.join(sessionsDir, `${currentSessionId}.jsonl`),
+        [
+          JSON.stringify({ type: "session", version: 1, id: currentSessionId }),
+          JSON.stringify({
+            message: {
+              role: "user",
+              content:
+                'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-control-ui","id":"crawclaw-control-ui"}\n```\n\n你好',
+            },
+          }),
+        ].join("\n"),
+        "utf-8",
+      );
+      fs.writeFileSync(
+        path.join(sessionsDir, `${previousSessionId}.jsonl.reset.2026-04-19T00-00-00.000Z`),
+        [
+          JSON.stringify({ type: "session", version: 1, id: previousSessionId }),
+          JSON.stringify({
+            message: {
+              role: "user",
+              content:
+                'Sender (untrusted metadata):\n```json\n{"label":"钱磊 (ou_833e794925a4d0da1e85f6cc2c3ab970)","id":"ou_833e794925a4d0da1e85f6cc2c3ab970","name":"钱磊"}\n```\n\n你好',
+            },
+          }),
+        ].join("\n"),
+        "utf-8",
+      );
+      fs.writeFileSync(
+        path.join(runsDir, "carun_previous.json"),
+        JSON.stringify({
+          sessionId: previousSessionId,
+          sessionKey: key,
+          updatedAt: 10,
+        }),
+        "utf-8",
+      );
+      fs.writeFileSync(
+        path.join(runsDir, "carun_current.json"),
+        JSON.stringify({
+          sessionId: currentSessionId,
+          sessionKey: key,
+          updatedAt: 20,
+        }),
+        "utf-8",
+      );
+
+      const result = listSessionsFromStore({
+        cfg: baseCfg,
+        storePath,
+        store,
+        opts: {},
+      });
+      expect(result.sessions[0]?.displayName).toBe("钱磊");
+      expect(result.sessions[0]?.key).toBe(key);
+    });
+  });
+
   test("returns all sessions when search is empty or missing", () => {
     const cases = [{ opts: { search: "" } }, { opts: {} }] as const;
     for (const testCase of cases) {

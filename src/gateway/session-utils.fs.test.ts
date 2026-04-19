@@ -416,6 +416,10 @@ describe("readSessionTitleFieldsFromTranscript cache", () => {
     storePath = nextStorePath;
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   test("returns cached values without re-reading when unchanged", () => {
     const sessionId = "test-cache-1";
     writeTranscript(tmpDir, sessionId, buildBasicSessionTranscript(sessionId));
@@ -485,6 +489,66 @@ describe("readSessionTitleFieldsFromTranscript cache", () => {
     );
 
     const result = readSessionTitleFieldsFromTranscript(sessionId, storePath);
+    expect(result.firstUserSenderLabel).toBe("钱磊");
+  });
+
+  test("falls back to historical session archives for the same session key when the current sessionId changed", () => {
+    const sessionId = "test-cache-history-current";
+    const previousSessionId = "test-cache-history-previous";
+    writeTranscript(
+      tmpDir,
+      sessionId,
+      buildBasicSessionTranscript(
+        sessionId,
+        'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-control-ui","id":"crawclaw-control-ui"}\n```\n\n你好',
+        "ok",
+      ),
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, `${previousSessionId}.jsonl.reset.2026-04-19T00-00-00.000Z`),
+      [
+        JSON.stringify({ type: "session", version: 1, id: previousSessionId }),
+        JSON.stringify({
+          message: {
+            role: "user",
+            content:
+              'Sender (untrusted metadata):\n```json\n{"label":"钱磊 (ou_833e794925a4d0da1e85f6cc2c3ab970)","id":"ou_833e794925a4d0da1e85f6cc2c3ab970","name":"钱磊"}\n```\n\n你好',
+          },
+        }),
+      ].join("\n"),
+      "utf-8",
+    );
+    const runsDir = path.join(tmpDir, "context-archive", "runs");
+    fs.mkdirSync(runsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(runsDir, "carun_previous.json"),
+      JSON.stringify({
+        sessionId: previousSessionId,
+        sessionKey: "agent:main:feishu:direct:ou_833e794925a4d0da1e85f6cc2c3ab970",
+        updatedAt: 10,
+      }),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(runsDir, "carun_current.json"),
+      JSON.stringify({
+        sessionId,
+        sessionKey: "agent:main:feishu:direct:ou_833e794925a4d0da1e85f6cc2c3ab970",
+        updatedAt: 20,
+      }),
+      "utf-8",
+    );
+    vi.stubEnv("CRAWCLAW_STATE_DIR", tmpDir);
+
+    const result = readSessionTitleFieldsFromTranscript(
+      sessionId,
+      storePath,
+      undefined,
+      undefined,
+      {
+        sessionKey: "agent:main:feishu:direct:ou_833e794925a4d0da1e85f6cc2c3ab970",
+      },
+    );
     expect(result.firstUserSenderLabel).toBe("钱磊");
   });
 });

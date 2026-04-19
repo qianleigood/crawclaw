@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { deriveSessionTotalTokens, hasNonzeroUsage, normalizeUsage } from "../agents/usage.js";
+import { resolveStateDir } from "../config/paths.js";
 import { jsonUtf8Bytes } from "../infra/json-utf8-bytes.js";
 import { hasInterSessionUserProvenance } from "../sessions/input-provenance.js";
 import { stripInlineDirectiveTagsForDisplay } from "../utils/directive-tags.js";
@@ -20,6 +21,13 @@ type SessionTitleFields = {
   lastMessagePreview: string | null;
 };
 
+type SessionTitleReadOptions = {
+  includeInterSession?: boolean;
+  sessionKey?: string;
+  storePath?: string;
+  agentId?: string;
+};
+
 type SessionTitleFieldsCacheEntry = SessionTitleFields & {
   mtimeMs: number;
   size: number;
@@ -27,13 +35,16 @@ type SessionTitleFieldsCacheEntry = SessionTitleFields & {
 
 const sessionTitleFieldsCache = new Map<string, SessionTitleFieldsCacheEntry>();
 const MAX_SESSION_TITLE_FIELDS_CACHE_ENTRIES = 5000;
+const contextArchiveSessionIdsByKeyCache = new Map<
+  string,
+  { mtimeMs: number; sessionIdsByKey: Map<string, string[]> }
+>();
 
-function readSessionTitleFieldsCacheKey(
-  filePath: string,
-  opts?: { includeInterSession?: boolean },
-) {
+function readSessionTitleFieldsCacheKey(filePath: string, opts?: SessionTitleReadOptions) {
   const includeInterSession = opts?.includeInterSession === true ? "1" : "0";
-  return `${filePath}\t${includeInterSession}`;
+  const sessionKey = typeof opts?.sessionKey === "string" ? opts.sessionKey.trim() : "";
+  const archiveVersion = sessionKey ? readContextArchiveRunsVersion() : "0";
+  return `${filePath}\t${includeInterSession}\t${sessionKey}\t${archiveVersion}`;
 }
 
 function getCachedSessionTitleFields(cacheKey: string, stat: fs.Stats): SessionTitleFields | null {
@@ -185,7 +196,7 @@ export function readSessionTitleFieldsFromTranscript(
   storePath: string | undefined,
   sessionFile?: string,
   agentId?: string,
-  opts?: { includeInterSession?: boolean },
+  opts?: SessionTitleReadOptions,
 ): SessionTitleFields {
   const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile, agentId);
   const filePath = candidates.find((p) => fs.existsSync(p));
@@ -247,6 +258,31 @@ export function readSessionTitleFieldsFromTranscript(
         }
         if (!firstUserMessage && archived.firstUserMessage) {
           firstUserMessage = archived.firstUserMessage;
+        }
+      }
+    }
+
+    if (
+      (!firstUserSenderLabel || isControlUiSenderLabel(firstUserSenderLabel)) &&
+      opts?.sessionKey?.trim() &&
+      storePath
+    ) {
+      const historical = readHistoricalSessionTitleFieldsFallback({
+        agentId,
+        currentSessionId: sessionId,
+        opts,
+        sessionKey: opts.sessionKey.trim(),
+        storePath,
+      });
+      if (historical) {
+        if (
+          historical.firstUserSenderLabel &&
+          !isControlUiSenderLabel(historical.firstUserSenderLabel)
+        ) {
+          firstUserSenderLabel = historical.firstUserSenderLabel;
+        }
+        if (!firstUserMessage && historical.firstUserMessage) {
+          firstUserMessage = historical.firstUserMessage;
         }
       }
     }
@@ -384,7 +420,7 @@ function findLatestArchivedTranscript(sessionFile: string): string | null {
 
 function readArchivedSessionTitleFieldsFallback(
   sessionFile: string,
-  opts?: { includeInterSession?: boolean },
+  opts?: SessionTitleReadOptions,
 ): SessionTitleFields | null {
   const archivedPath = findLatestArchivedTranscript(sessionFile);
   if (!archivedPath) {
@@ -398,6 +434,177 @@ function readArchivedSessionTitleFieldsFallback(
   } catch {
     return null;
   }
+}
+
+function readContextArchiveRunsDir(): string {
+  return path.join(resolveStateDir(), "context-archive", "runs");
+}
+
+function readContextArchiveRunsVersion(): string {
+  try {
+    const stat = fs.statSync(readContextArchiveRunsDir());
+    return String(stat.mtimeMs);
+  } catch {
+    return "0";
+  }
+}
+
+function listHistoricalSessionIdsForKey(sessionKey: string, currentSessionId: string): string[] {
+  const runsDir = readContextArchiveRunsDir();
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(runsDir);
+  } catch {
+    return [];
+  }
+
+  const cached = contextArchiveSessionIdsByKeyCache.get(runsDir);
+  if (cached && cached.mtimeMs === stat.mtimeMs) {
+    return (cached.sessionIdsByKey.get(sessionKey) ?? []).filter((id) => id !== currentSessionId);
+  }
+
+  const byKey = new Map<string, Array<{ sessionId: string; updatedAt: number }>>();
+  try {
+    for (const name of fs.readdirSync(runsDir)) {
+      if (!name.endsWith(".json")) {
+        continue;
+      }
+      const runPath = path.join(runsDir, name);
+      try {
+        const parsed = JSON.parse(fs.readFileSync(runPath, "utf-8")) as Record<string, unknown>;
+        const runSessionKey =
+          typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()
+            ? parsed.sessionKey.trim()
+            : null;
+        const runSessionId =
+          typeof parsed.sessionId === "string" && parsed.sessionId.trim()
+            ? parsed.sessionId.trim()
+            : null;
+        if (!runSessionKey || !runSessionId) {
+          continue;
+        }
+        const updatedAt =
+          typeof parsed.updatedAt === "number" && Number.isFinite(parsed.updatedAt)
+            ? parsed.updatedAt
+            : typeof parsed.createdAt === "number" && Number.isFinite(parsed.createdAt)
+              ? parsed.createdAt
+              : 0;
+        const bucket = byKey.get(runSessionKey) ?? [];
+        bucket.push({ sessionId: runSessionId, updatedAt });
+        byKey.set(runSessionKey, bucket);
+      } catch {
+        // ignore malformed archive run files
+      }
+    }
+  } catch {
+    return [];
+  }
+
+  const normalized = new Map<string, string[]>();
+  for (const [key, bucket] of byKey.entries()) {
+    const seen = new Set<string>();
+    const ids = bucket
+      .toSorted((a, b) => b.updatedAt - a.updatedAt)
+      .map((entry) => entry.sessionId)
+      .filter((sessionId) => {
+        if (seen.has(sessionId)) {
+          return false;
+        }
+        seen.add(sessionId);
+        return true;
+      });
+    normalized.set(key, ids);
+  }
+
+  contextArchiveSessionIdsByKeyCache.set(runsDir, {
+    mtimeMs: stat.mtimeMs,
+    sessionIdsByKey: normalized,
+  });
+  return (normalized.get(sessionKey) ?? []).filter((id) => id !== currentSessionId);
+}
+
+function readTranscriptTitleFieldsForFallback(
+  transcriptPath: string,
+  opts?: SessionTitleReadOptions,
+): SessionTitleFields | null {
+  let firstUserMessage: string | null = null;
+  let firstUserSenderLabel: string | null = null;
+
+  try {
+    if (fs.existsSync(transcriptPath)) {
+      const stat = fs.statSync(transcriptPath);
+      if (stat.size > 0) {
+        const fileText = fs.readFileSync(transcriptPath, "utf-8");
+        const fields = extractFirstUserFieldsFromTranscriptChunk(fileText, opts);
+        firstUserMessage = fields.firstUserMessage;
+        firstUserSenderLabel = fields.firstUserSenderLabel;
+      }
+    }
+  } catch {
+    // ignore transcript read failures
+  }
+
+  if (!firstUserSenderLabel || isControlUiSenderLabel(firstUserSenderLabel)) {
+    const archived = readArchivedSessionTitleFieldsFallback(transcriptPath, opts);
+    if (archived) {
+      if (archived.firstUserSenderLabel && !isControlUiSenderLabel(archived.firstUserSenderLabel)) {
+        firstUserSenderLabel = archived.firstUserSenderLabel;
+      }
+      if (!firstUserMessage && archived.firstUserMessage) {
+        firstUserMessage = archived.firstUserMessage;
+      }
+    }
+  }
+
+  if (!firstUserMessage && !firstUserSenderLabel) {
+    return null;
+  }
+
+  return {
+    firstUserMessage,
+    firstUserSenderLabel,
+    lastMessagePreview: null,
+  };
+}
+
+function readHistoricalSessionTitleFieldsFallback(params: {
+  sessionKey: string;
+  currentSessionId: string;
+  storePath: string;
+  agentId?: string;
+  opts?: SessionTitleReadOptions;
+}): SessionTitleFields | null {
+  const sessionIds = listHistoricalSessionIdsForKey(params.sessionKey, params.currentSessionId);
+  if (!sessionIds.length) {
+    return null;
+  }
+
+  const seenPaths = new Set<string>();
+  for (const historicalSessionId of sessionIds) {
+    const candidates = resolveSessionTranscriptCandidates(
+      historicalSessionId,
+      params.storePath,
+      undefined,
+      params.agentId,
+    );
+    for (const candidate of candidates) {
+      if (!candidate || seenPaths.has(candidate)) {
+        continue;
+      }
+      seenPaths.add(candidate);
+      const fields = readTranscriptTitleFieldsForFallback(candidate, params.opts);
+      if (!fields) {
+        continue;
+      }
+      if (fields.firstUserSenderLabel && !isControlUiSenderLabel(fields.firstUserSenderLabel)) {
+        return fields;
+      }
+      if (fields.firstUserMessage) {
+        return fields;
+      }
+    }
+  }
+  return null;
 }
 
 function findExistingTranscriptPath(

@@ -1278,6 +1278,7 @@ export function buildGatewaySessionRow(params: {
       storePath,
       entry.sessionFile,
       sessionAgentId,
+      { sessionKey: key },
     );
     transcriptSenderLabel =
       typeof fields.firstUserSenderLabel === "string" && fields.firstUserSenderLabel.trim()
