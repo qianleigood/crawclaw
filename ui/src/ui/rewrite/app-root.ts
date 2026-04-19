@@ -1,5 +1,5 @@
 import { LitElement, html, nothing } from "lit";
-import { customElement, state } from "lit/decorators.js";
+import { customElement, query, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { i18n, t, isSupportedLocale, type Locale } from "../../i18n/index.ts";
 import {
@@ -1611,6 +1611,7 @@ export class CrawClawApp extends LitElement {
   @state() memorySessionQuery = "";
   @state() chatSlashIndex = 0;
   @state() chatSlashSuppressed = false;
+  @query(".cp-chat-composer__textarea") private chatComposerTextarea!: HTMLTextAreaElement | null;
 
   client: GatewayBrowserClient | null = null;
   private reconnectReason: string | null = null;
@@ -1872,6 +1873,7 @@ export class CrawClawApp extends LitElement {
       void i18n.setLocale(preferredLocale);
     }
     window.addEventListener("popstate", this.handlePopState);
+    document.addEventListener("pointerdown", this.handleDocumentPointerDown, true);
   }
 
   firstUpdated() {
@@ -1880,6 +1882,7 @@ export class CrawClawApp extends LitElement {
 
   disconnectedCallback() {
     window.removeEventListener("popstate", this.handlePopState);
+    document.removeEventListener("pointerdown", this.handleDocumentPointerDown, true);
     this.unsubscribeLocale?.();
     this.unsubscribeLocale = null;
     this.stopClient();
@@ -2247,6 +2250,33 @@ export class CrawClawApp extends LitElement {
     await this.submitCurrentChatDraft();
   }
 
+  private readonly handleDocumentPointerDown = (event: PointerEvent) => {
+    if (!this.getChatSlashMenuState().open) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (target.closest(".cp-chat-composer__input-shell")) {
+      return;
+    }
+    this.chatSlashSuppressed = true;
+    this.chatSlashIndex = 0;
+    this.requestUpdate();
+  };
+
+  private async focusChatComposerAtEnd() {
+    await this.updateComplete;
+    const textarea = this.chatComposerTextarea;
+    if (!textarea) {
+      return;
+    }
+    textarea.focus({ preventScroll: true });
+    const caret = textarea.value.length;
+    textarea.setSelectionRange(caret, caret);
+  }
+
   private getChatSlashMenuState(): ChatSlashMenuState {
     if (this.chatSlashSuppressed) {
       return { open: false };
@@ -2260,6 +2290,7 @@ export class CrawClawApp extends LitElement {
       this.chatSlashSuppressed = true;
       this.chatSlashIndex = 0;
       this.requestUpdate();
+      await this.focusChatComposerAtEnd();
       return;
     }
     this.chatState.chatMessage = command.args ? `/${command.name} ` : `/${command.name}`;
@@ -2268,7 +2299,10 @@ export class CrawClawApp extends LitElement {
     this.requestUpdate();
     if (execute && !command.args) {
       await this.submitCurrentChatDraft();
+      await this.focusChatComposerAtEnd();
+      return;
     }
+    await this.focusChatComposerAtEnd();
   }
 
   private async applySlashArgumentSelection(
@@ -2282,7 +2316,10 @@ export class CrawClawApp extends LitElement {
     this.requestUpdate();
     if (execute) {
       await this.submitCurrentChatDraft();
+      await this.focusChatComposerAtEnd();
+      return;
     }
+    await this.focusChatComposerAtEnd();
   }
 
   private async handleChatComposerKeydown(event: KeyboardEvent) {
