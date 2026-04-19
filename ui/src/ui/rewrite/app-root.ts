@@ -407,8 +407,8 @@ const APP_COPY = {
       addFlowKicker: "Add a channel",
       addFlowTitle: "Choose a channel to set up",
       addFlowHint:
-        "Pick the channel you want to add. We will take you straight into setup or settings for that channel.",
-      addFlowEmpty: "No new channels are ready to be added on this gateway right now.",
+        "Pick from every channel this gateway supports. We will take you into setup, editing, or the channel detail page based on what that channel can do.",
+      addFlowEmpty: "No supported channels are available on this gateway right now.",
       startWithThisChannel: "Set up this channel",
       detailKicker: "Selected channel",
       detailTitle: "Channel details",
@@ -465,6 +465,9 @@ const APP_COPY = {
       settingsTitle: "Channel settings",
       settingsHint:
         "Edit the selected channel without leaving this page. Changes still use the same config write path underneath.",
+      settingsReviewTitle: "Before you save",
+      settingsReviewHint:
+        "Keep the form focused on the channel itself. Reload schema, review the path, and add draft accounts from the side rail.",
       settingsClosed: "Channel editor is closed. Open it when you need to change channel settings.",
       settingsUnavailable: "This channel does not expose editable settings on this gateway.",
       openChannelEditor: "Open channel editor",
@@ -497,6 +500,7 @@ const APP_COPY = {
       setupModeConfig: "Settings editor",
       setupModeNone: "Reference only",
       setupSelectionHint: "Current guidance",
+      setupCommandsTitle: "Commands and references",
       setupDocs: "Docs",
       setupUnavailable: "This channel does not expose a dedicated setup surface on this gateway.",
       addAccountDraft: "Add account draft",
@@ -932,8 +936,9 @@ const APP_COPY = {
       addChannel: "新增渠道",
       addFlowKicker: "新增渠道",
       addFlowTitle: "选择一个要接入的渠道",
-      addFlowHint: "先选渠道，我们会直接带你进入这个渠道自己的配置页或引导页。",
-      addFlowEmpty: "当前网关上没有可直接新增的渠道。",
+      addFlowHint:
+        "这里会列出当前网关支持的所有渠道。选中后，会按这个渠道实际支持的能力带你进入配置、编辑或详情页。",
+      addFlowEmpty: "当前网关上没有可用的渠道。",
       startWithThisChannel: "开始配置这个渠道",
       detailKicker: "当前渠道",
       detailTitle: "渠道详情",
@@ -982,6 +987,8 @@ const APP_COPY = {
       openSettingsHint: "直接在当前页打开渠道级编辑面板，保存或应用你想改的内容。",
       settingsTitle: "渠道设置",
       settingsHint: "不用跳到总配置页，直接在这里编辑当前渠道。底层仍然走同一条配置写入链路。",
+      settingsReviewTitle: "保存前先确认",
+      settingsReviewHint: "主区域只专注改渠道本身；右侧再看路径、重新载入和账号草稿入口。",
       settingsClosed: "渠道编辑面板当前已关闭，需要时再打开。",
       settingsUnavailable: "当前渠道没有在这台网关上暴露可编辑的设置。",
       openChannelEditor: "打开渠道编辑",
@@ -1012,6 +1019,7 @@ const APP_COPY = {
       setupModeConfig: "设置编辑器",
       setupModeNone: "仅参考说明",
       setupSelectionHint: "当前建议",
+      setupCommandsTitle: "命令与参考",
       setupDocs: "文档",
       setupUnavailable: "这个渠道在当前网关上没有暴露专门的配置引导。",
       addAccountDraft: "新增账号草稿",
@@ -4834,10 +4842,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       this.channelsWorkspaceMode === "settings" || this.channelsWorkspaceMode === "add"
         ? this.channelsWorkspaceMode
         : "guide";
-    const addChannelIds = channelIds.filter((channelId) => {
-      const controls = resolveChannelControls(snapshot, channelId);
-      return controls.canSetup || controls.canEdit || controls.loginMode !== "none";
-    });
+    const addChannelIds = channelIds;
 
     const openAddChannel = () => {
       this.channelsSelectedChannelId = "";
@@ -4997,8 +5002,10 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                       configuredCount > 0 && controls.multiAccount && controls.canEdit
                         ? copy.channels.addAccountDraft
                         : configuredCount > 0
-                          ? copy.channels.openSettings
-                          : copy.channels.startWithThisChannel;
+                          ? copy.channels.openWorkspace
+                          : controls.canEdit || controls.canSetup || controls.loginMode !== "none"
+                            ? copy.channels.startWithThisChannel
+                            : copy.channels.openWorkspace;
                     return html`
                       <article class="cp-action-card cp-channel-card">
                         <div class="cp-channel-card__head">
@@ -5124,10 +5131,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                               : copy.channels.channelNotConfigured,
                           },
                           {
-                            label: copy.channels.recommendedNext,
-                            value: setupSurface.selectionHint?.trim() || copy.common.notRecorded,
-                          },
-                          {
                             label: copy.channels.setupDocs,
                             value: setupSurface.docsPath ?? copy.common.na,
                           },
@@ -5168,7 +5171,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                       ${setupSurface.commands.length
                         ? html`
                             <details class="cp-panel__details">
-                              <summary>${copy.channels.setupSelectionHint}</summary>
+                              <summary>${copy.channels.setupCommandsTitle}</summary>
                               <div class="cp-list cp-list--dense">
                                 ${setupSurface.commands.map(
                                   (command) =>
@@ -5471,69 +5474,87 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             : nothing}
           ${channelEditorAvailable && this.channelsEditorOpen
             ? html`
-                <details class="cp-panel__details">
-                  <summary>${copy.common.summary}</summary>
-                  ${this.renderMetaEntries([
-                    {
-                      label: copy.common.selected,
-                      value: selectedChannelLabel,
-                    },
-                    {
-                      label: copy.common.path,
-                      value: `channels.${selectedChannelId}`,
-                    },
-                    {
-                      label: copy.common.schema,
-                      value: this.channelConfigState.configSchemaVersion ?? copy.common.na,
-                    },
-                    {
-                      label: copy.common.dirty,
-                      value: this.channelConfigState.configFormDirty
-                        ? copy.common.yes
-                        : copy.common.no,
-                    },
-                  ])}
-                  <div class="cp-inline-actions">
-                    <button
-                      class="cp-button"
-                      ?disabled=${channelEditorBusy}
-                      @click=${() =>
-                        void this.safeCall(async () => {
-                          await Promise.all([
-                            loadChannelConfigSchema(this.channelConfigState, selectedChannelId),
-                            loadChannelConfig(this.channelConfigState, selectedChannelId),
-                          ]);
-                          await loadChannelSetupSurface(this.channelSetupState, selectedChannelId);
+                <div class="cp-channel-settings-layout">
+                  <div class="cp-channel-settings-layout__main">
+                    ${channelEditorBusy
+                      ? html`<p class="cp-empty">${copy.common.pending}</p>`
+                      : renderChannelConfigForm({
+                          channelId: selectedChannelId,
+                          configValue: this.channelConfigState.configForm,
+                          schema: this.channelConfigState.configSchema,
+                          uiHints: this.channelConfigState.configUiHints,
+                          disabled: channelEditorBusy,
+                          scoped: true,
+                          onPatch: (path, value) =>
+                            updateChannelConfigFormValue(this.channelConfigState, path, value),
                         })}
-                    >
-                      ${copy.channels.reloadChannelSettings}
-                    </button>
-                    ${selectedControls.multiAccount
-                      ? html`
-                          <button
-                            class="cp-button"
-                            ?disabled=${channelEditorBusy}
-                            @click=${() =>
-                              void this.addChannelAccountDraft(selectedChannelId, selectedAccounts)}
-                          >
-                            ${copy.channels.addAccountDraft}
-                          </button>
-                        `
-                      : nothing}
                   </div>
-                </details>
-                ${channelEditorBusy
-                  ? html`<p class="cp-empty">${copy.common.pending}</p>`
-                  : renderChannelConfigForm({
-                      channelId: selectedChannelId,
-                      configValue: this.channelConfigState.configForm,
-                      schema: this.channelConfigState.configSchema,
-                      uiHints: this.channelConfigState.configUiHints,
-                      disabled: channelEditorBusy,
-                      scoped: true,
-                      onPatch: (path, value) =>
-                        updateChannelConfigFormValue(this.channelConfigState, path, value),
-                    })}
+                  <aside class="cp-channel-settings-layout__side">
+                    <section class="cp-panel cp-panel--fill">
+                      <div class="cp-panel__head">
+                        <div>
+                          <span class="cp-kicker">${copy.channels.settingsReviewTitle}</span>
+                          <h3>${copy.channels.settingsReviewTitle}</h3>
+                        </div>
+                      </div>
+                      <p class="cp-panel__subcopy">${copy.channels.settingsReviewHint}</p>
+                      ${this.renderMetaEntries([
+                        {
+                          label: copy.common.selected,
+                          value: selectedChannelLabel,
+                        },
+                        {
+                          label: copy.common.path,
+                          value: `channels.${selectedChannelId}`,
+                        },
+                        {
+                          label: copy.common.schema,
+                          value: this.channelConfigState.configSchemaVersion ?? copy.common.na,
+                        },
+                        {
+                          label: copy.common.dirty,
+                          value: this.channelConfigState.configFormDirty
+                            ? copy.common.yes
+                            : copy.common.no,
+                        },
+                      ])}
+                      <div class="cp-inline-actions">
+                        <button
+                          class="cp-button"
+                          ?disabled=${channelEditorBusy}
+                          @click=${() =>
+                            void this.safeCall(async () => {
+                              await Promise.all([
+                                loadChannelConfigSchema(this.channelConfigState, selectedChannelId),
+                                loadChannelConfig(this.channelConfigState, selectedChannelId),
+                              ]);
+                              await loadChannelSetupSurface(
+                                this.channelSetupState,
+                                selectedChannelId,
+                              );
+                            })}
+                        >
+                          ${copy.channels.reloadChannelSettings}
+                        </button>
+                        ${selectedControls.multiAccount
+                          ? html`
+                              <button
+                                class="cp-button"
+                                ?disabled=${channelEditorBusy}
+                                @click=${() =>
+                                  void this.addChannelAccountDraft(
+                                    selectedChannelId,
+                                    selectedAccounts,
+                                  )}
+                              >
+                                ${copy.channels.addAccountDraft}
+                              </button>
+                            `
+                          : nothing}
+                      </div>
+                    </section>
+                  </aside>
+                </div>
               `
             : html`<p class="cp-empty">${copy.channels.settingsClosed}</p>`}
         </article>

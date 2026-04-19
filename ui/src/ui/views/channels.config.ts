@@ -1,8 +1,9 @@
 import { html } from "lit";
 import type { ConfigUiHints } from "../types.ts";
 import { uiLiteral } from "../ui-literal.ts";
-import { formatChannelExtraValue, resolveChannelConfigValue } from "./channel-config-extras.ts";
+import { resolveChannelConfigValue } from "./channel-config-extras.ts";
 import type { ChannelsProps } from "./channels.types.ts";
+import { hintForPath } from "./config-form.shared.ts";
 import { analyzeConfigSchema, renderNode, schemaType, type JsonSchema } from "./config-form.ts";
 
 type ChannelConfigFormProps = {
@@ -60,27 +61,213 @@ function resolveChannelValue(
 
 const EXTRA_CHANNEL_FIELDS = ["groupPolicy", "streamMode", "dmPolicy"] as const;
 
-function renderExtraChannelFields(value: Record<string, unknown>) {
-  const entries = EXTRA_CHANNEL_FIELDS.flatMap((field) => {
-    if (!(field in value)) {
-      return [];
-    }
-    return [[field, value[field]]] as Array<[string, unknown]>;
-  });
-  if (entries.length === 0) {
+type ChannelConfigSectionKey = "basic" | "auth" | "accounts" | "behavior" | "advanced";
+
+type ChannelConfigEntry = {
+  key: string;
+  schema: JsonSchema;
+  value: unknown;
+  complex: boolean;
+  section: ChannelConfigSectionKey;
+  order: number;
+};
+
+const CHANNEL_CONFIG_SECTION_COPY: Record<
+  ChannelConfigSectionKey,
+  { title: string; hint: string; collapsible?: boolean }
+> = {
+  basic: {
+    title: uiLiteral("Basic setup"),
+    hint: uiLiteral("Turn the channel on, set the main mode, and fill the primary address first."),
+  },
+  auth: {
+    title: uiLiteral("Sign-in and credentials"),
+    hint: uiLiteral("Fill the keys, tokens, secrets, and app credentials this channel needs."),
+  },
+  accounts: {
+    title: uiLiteral("Accounts and destinations"),
+    hint: uiLiteral(
+      "Choose the default account and set the channel, chat, room, or other destination identifiers here.",
+    ),
+  },
+  behavior: {
+    title: uiLiteral("Replies and behavior"),
+    hint: uiLiteral("Adjust how replies stream, route to groups, and behave after delivery."),
+  },
+  advanced: {
+    title: uiLiteral("Advanced options"),
+    hint: uiLiteral(
+      "Keep low-frequency or expert-only options here so the main form stays readable.",
+    ),
+    collapsible: true,
+  },
+};
+
+const BASIC_FIELD_ORDER = new Map(
+  ["enabled", "mode", "baseUrl", "endpoint", "webhookUrl", "host", "port", "path"].map(
+    (key, index) => [key, index] as const,
+  ),
+);
+
+const AUTH_FIELD_PATTERN =
+  /(token|secret|password|clientid|clientsecret|appid|appsecret|accesskey|apikey|verify|signing|credential|cookie|auth|refresh|username|email|tenant|key$)/i;
+const ACCOUNT_FIELD_PATTERN =
+  /(^accounts?$|defaultaccount|accountid|workspace|channelid|chatid|roomid|guildid|threadid|target|peer|phone|business|teamid|server|instance|botusername|userid)/i;
+const BEHAVIOR_FIELD_PATTERN =
+  /(stream|policy|reply|broadcast|typing|presence|command|mention|markdown|format|parse|history|dedupe|retry|interval|poll)/i;
+
+function resolveSectionFromGroup(groupRaw: string | undefined): ChannelConfigSectionKey | null {
+  const group = groupRaw?.trim().toLowerCase();
+  if (!group) {
+    return null;
+  }
+  if (
+    group.includes("auth") ||
+    group.includes("secret") ||
+    group.includes("token") ||
+    group.includes("credential")
+  ) {
+    return "auth";
+  }
+  if (
+    group.includes("account") ||
+    group.includes("routing") ||
+    group.includes("target") ||
+    group.includes("destination")
+  ) {
+    return "accounts";
+  }
+  if (
+    group.includes("behavior") ||
+    group.includes("reply") ||
+    group.includes("delivery") ||
+    group.includes("message")
+  ) {
+    return "behavior";
+  }
+  if (group.includes("advanced")) {
+    return "advanced";
+  }
+  if (group.includes("basic") || group.includes("setup")) {
+    return "basic";
+  }
+  return null;
+}
+
+function classifyChannelField(params: {
+  key: string;
+  schema: JsonSchema;
+  hints: ConfigUiHints;
+}): ChannelConfigSectionKey {
+  const hint = hintForPath([params.key], params.hints);
+  if (hint?.advanced) {
+    return "advanced";
+  }
+  const grouped = resolveSectionFromGroup(hint?.group);
+  if (grouped) {
+    return grouped;
+  }
+  if (params.key === "enabled" || BASIC_FIELD_ORDER.has(params.key)) {
+    return "basic";
+  }
+  if (params.key === "accounts") {
+    return "accounts";
+  }
+  if (EXTRA_CHANNEL_FIELDS.includes(params.key as (typeof EXTRA_CHANNEL_FIELDS)[number])) {
+    return "behavior";
+  }
+  if (AUTH_FIELD_PATTERN.test(params.key)) {
+    return "auth";
+  }
+  if (ACCOUNT_FIELD_PATTERN.test(params.key)) {
+    return "accounts";
+  }
+  if (BEHAVIOR_FIELD_PATTERN.test(params.key)) {
+    return "behavior";
+  }
+  const type = schemaType(params.schema);
+  if (type === "boolean" && (params.key.startsWith("enable") || params.key.endsWith("Enabled"))) {
+    return "basic";
+  }
+  return "advanced";
+}
+
+function resolveFieldOrder(key: string, hints: ConfigUiHints): number {
+  const hintOrder = hintForPath([key], hints)?.order;
+  if (typeof hintOrder === "number") {
+    return hintOrder;
+  }
+  return BASIC_FIELD_ORDER.get(key) ?? 100;
+}
+
+function collectChannelEntries(params: {
+  schema: JsonSchema;
+  value: Record<string, unknown>;
+  hints: ConfigUiHints;
+}): ChannelConfigEntry[] {
+  const properties = params.schema.properties ?? {};
+  return Object.entries(properties)
+    .map(([key, schema]) => {
+      const type = schemaType(schema);
+      return {
+        key,
+        schema,
+        value: params.value[key],
+        complex: type === "object" || type === "array",
+        section: classifyChannelField({ key, schema, hints: params.hints }),
+        order: resolveFieldOrder(key, params.hints),
+      } satisfies ChannelConfigEntry;
+    })
+    .toSorted((left, right) => {
+      if (left.section !== right.section) {
+        return left.section.localeCompare(right.section);
+      }
+      if (left.order !== right.order) {
+        return left.order - right.order;
+      }
+      return left.key.localeCompare(right.key);
+    });
+}
+
+function renderChannelConfigSectionGroup(params: {
+  title: string;
+  hint: string;
+  entries: ChannelConfigEntry[];
+  basePath: Array<string | number>;
+  hints: ConfigUiHints;
+  unsupported: Set<string>;
+  disabled: boolean;
+  onPatch: (path: Array<string | number>, value: unknown) => void;
+}) {
+  if (params.entries.length === 0) {
     return null;
   }
   return html`
-    <div class="status-list" style="margin-top: 12px;">
-      ${entries.map(
-        ([field, raw]) => html`
-          <div>
-            <span class="label">${field}</span>
-            <span>${formatChannelExtraValue(raw)}</span>
-          </div>
-        `,
-      )}
-    </div>
+    <section class="cp-channel-config-section">
+      <div class="cp-channel-config-section__head">
+        <h4>${params.title}</h4>
+        <p>${params.hint}</p>
+      </div>
+      <div class="cp-channel-config-section__grid">
+        ${params.entries.map((entry) => {
+          const path = [...params.basePath, entry.key];
+          return html`
+            <div class=${`cp-channel-config-field ${entry.complex ? "is-wide" : ""}`.trim()}>
+              ${renderNode({
+                schema: entry.schema,
+                value: entry.value,
+                path,
+                hints: params.hints,
+                unsupported: params.unsupported,
+                disabled: params.disabled,
+                showLabel: true,
+                onPatch: params.onPatch,
+              })}
+            </div>
+          `;
+        })}
+      </div>
+    </section>
   `;
 }
 
@@ -99,20 +286,114 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
   }
   const configValue = props.configValue ?? {};
   const value = scoped ? configValue : resolveChannelValue(configValue, props.channelId);
+  if (schemaType(node) !== "object" || !node.properties) {
+    return html`
+      <div class="cp-channel-config-editor">
+        <section class="cp-channel-config-section">
+          <div class="cp-channel-config-section__head">
+            <h4>${uiLiteral("Channel settings")}</h4>
+            <p>${uiLiteral("This channel exposes a custom schema node. Edit it below.")}</p>
+          </div>
+          <div class="config-form">
+            ${renderNode({
+              schema: node,
+              value,
+              path: scoped ? [] : ["channels", props.channelId],
+              hints: props.uiHints,
+              unsupported: new Set(analysis.unsupportedPaths),
+              disabled: props.disabled,
+              showLabel: false,
+              onPatch: props.onPatch,
+            })}
+          </div>
+        </section>
+      </div>
+    `;
+  }
+  const basePath = scoped ? [] : ["channels", props.channelId];
+  const entries = collectChannelEntries({
+    schema: node,
+    value,
+    hints: props.uiHints,
+  });
+  const unsupported = new Set(analysis.unsupportedPaths);
+  const bySection = {
+    basic: entries.filter((entry) => entry.section === "basic"),
+    auth: entries.filter((entry) => entry.section === "auth"),
+    accounts: entries.filter((entry) => entry.section === "accounts"),
+    behavior: entries.filter((entry) => entry.section === "behavior"),
+    advanced: entries.filter((entry) => entry.section === "advanced"),
+  } satisfies Record<ChannelConfigSectionKey, ChannelConfigEntry[]>;
   return html`
-    <div class="config-form">
-      ${renderNode({
-        schema: node,
-        value,
-        path: scoped ? [] : ["channels", props.channelId],
+    <div class="cp-channel-config-editor">
+      ${renderChannelConfigSectionGroup({
+        ...CHANNEL_CONFIG_SECTION_COPY.basic,
+        entries: bySection.basic,
+        basePath,
         hints: props.uiHints,
-        unsupported: new Set(analysis.unsupportedPaths),
+        unsupported,
         disabled: props.disabled,
-        showLabel: false,
         onPatch: props.onPatch,
       })}
+      ${renderChannelConfigSectionGroup({
+        ...CHANNEL_CONFIG_SECTION_COPY.auth,
+        entries: bySection.auth,
+        basePath,
+        hints: props.uiHints,
+        unsupported,
+        disabled: props.disabled,
+        onPatch: props.onPatch,
+      })}
+      ${renderChannelConfigSectionGroup({
+        ...CHANNEL_CONFIG_SECTION_COPY.accounts,
+        entries: bySection.accounts,
+        basePath,
+        hints: props.uiHints,
+        unsupported,
+        disabled: props.disabled,
+        onPatch: props.onPatch,
+      })}
+      ${renderChannelConfigSectionGroup({
+        ...CHANNEL_CONFIG_SECTION_COPY.behavior,
+        entries: bySection.behavior,
+        basePath,
+        hints: props.uiHints,
+        unsupported,
+        disabled: props.disabled,
+        onPatch: props.onPatch,
+      })}
+      ${bySection.advanced.length
+        ? html`
+            <details class="cp-channel-config-section cp-channel-config-section--advanced">
+              <summary>${CHANNEL_CONFIG_SECTION_COPY.advanced.title}</summary>
+              <div class="cp-channel-config-section__head">
+                <p>${CHANNEL_CONFIG_SECTION_COPY.advanced.hint}</p>
+              </div>
+              <div class="cp-channel-config-section__grid">
+                ${bySection.advanced.map((entry) => {
+                  const path = [...basePath, entry.key];
+                  return html`
+                    <div
+                      class=${`cp-channel-config-field ${entry.complex ? "is-wide" : ""}`.trim()}
+                    >
+                      ${renderNode({
+                        schema: entry.schema,
+                        value: entry.value,
+                        path,
+                        hints: props.uiHints,
+                        unsupported,
+                        disabled: props.disabled,
+                        showLabel: true,
+                        onPatch: props.onPatch,
+                      })}
+                    </div>
+                  `;
+                })}
+              </div>
+            </details>
+          `
+        : null}
     </div>
-    ${renderExtraChannelFields(value)}
   `;
 }
 

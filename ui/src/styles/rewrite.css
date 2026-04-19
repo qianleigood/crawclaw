@@ -764,6 +764,80 @@ crawclaw-app {
   color: var(--cp-text-muted);
 }
 
+.cp-channel-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 360px);
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.cp-channel-settings-layout__main,
+.cp-channel-settings-layout__side {
+  min-width: 0;
+}
+
+.cp-channel-settings-layout__side {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.cp-channel-config-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.cp-channel-config-section {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background: rgba(8, 18, 31, 0.72);
+}
+
+.cp-channel-config-section--advanced {
+  padding: 16px 18px;
+}
+
+.cp-channel-config-section--advanced summary {
+  cursor: pointer;
+  color: var(--cp-text);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.cp-channel-config-section__head {
+  display: grid;
+  gap: 6px;
+}
+
+.cp-channel-config-section__head h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--cp-text);
+}
+
+.cp-channel-config-section__head p {
+  margin: 0;
+  color: var(--cp-text-muted);
+  line-height: 1.55;
+}
+
+.cp-channel-config-section__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.cp-channel-config-field {
+  min-width: 0;
+}
+
+.cp-channel-config-field.is-wide {
+  grid-column: 1 / -1;
+}
+
 .cp-choice-card {
   gap: 10px;
 }
@@ -842,6 +916,16 @@ crawclaw-app {
   .cp-choice-card__head {
     grid-template-columns: 1fr;
     display: grid;
+  }
+}
+
+@media (max-width: 980px) {
+  .cp-channel-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-channel-config-section__grid {
+    grid-template-columns: 1fr;
   }
 }
 
