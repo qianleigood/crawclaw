@@ -294,6 +294,7 @@ const APP_COPY = {
       attentionTitle: "Things to check now",
       everythingHealthy: "Nothing urgent needs action right now.",
       openChannels: "Check channel connections",
+      openAgents: "Check connected user tools",
       openMemory: "Review memory status",
       memoryHealth: "Memory health",
       recommendedAction: "Recommended action",
@@ -373,7 +374,6 @@ const APP_COPY = {
     channels: {
       accounts: "Accounts",
       enabledSurfaces: "Enabled channels",
-      feishuCli: "Feishu CLI",
       whatsappLogin: "WhatsApp login",
       accountsKicker: "Connection status",
       inventoryTitle: "Connected channels",
@@ -423,6 +423,16 @@ const APP_COPY = {
       registered: "Registered",
       registryKicker: "Choose an agent",
       registryTitle: "Available agents",
+      connectedAccountsKicker: "Connected accounts",
+      connectedAccountsTitle: "User tools and identities",
+      connectedAccountsHint:
+        "These tools use your own logged-in account. They are separate from bot channels.",
+      connectedAccountsHidden: "Not enabled",
+      connectedAccountsAttention: "Needs attention",
+      feishuUserTools: "Feishu user tools",
+      authState: "Auth state",
+      checkCommand: "Check command",
+      loginCommand: "Login command",
       introspectionKicker: "Current activity",
       detailTitle: "Selected agent",
       identity: "Who this agent is",
@@ -712,6 +722,7 @@ const APP_COPY = {
       attentionTitle: "当前建议先检查这些",
       everythingHealthy: "当前没有明显异常，可以继续正常使用。",
       openChannels: "检查渠道连接",
+      openAgents: "检查已连接的用户工具",
       openMemory: "查看记忆状态",
       memoryHealth: "记忆状态",
       recommendedAction: "建议动作",
@@ -790,7 +801,6 @@ const APP_COPY = {
     channels: {
       accounts: "账号数",
       enabledSurfaces: "已启用渠道",
-      feishuCli: "飞书 CLI",
       whatsappLogin: "WhatsApp 登录",
       accountsKicker: "连接状态",
       inventoryTitle: "已接入渠道",
@@ -840,6 +850,15 @@ const APP_COPY = {
       registered: "已注册",
       registryKicker: "选择代理",
       registryTitle: "可用代理",
+      connectedAccountsKicker: "已连接账号",
+      connectedAccountsTitle: "用户工具与身份",
+      connectedAccountsHint: "这里显示的是“以你本人身份”运行的用户工具，不是机器人渠道。",
+      connectedAccountsHidden: "未启用",
+      connectedAccountsAttention: "需要处理",
+      feishuUserTools: "飞书用户工具",
+      authState: "授权状态",
+      checkCommand: "检查命令",
+      loginCommand: "登录命令",
       introspectionKicker: "当前活动",
       detailTitle: "当前代理",
       identity: "这个代理是谁",
@@ -2127,7 +2146,7 @@ export class CrawClawApp extends LitElement {
 
   private async loadAgentsSurface() {
     await this.safeCall(async () => {
-      await loadAgents(this.agentsState);
+      await Promise.all([loadAgents(this.agentsState), loadChannels(this.channelsState, false)]);
       if (this.agentsState.agentsSelectedId) {
         await loadToolsCatalog(this.agentsState, this.agentsState.agentsSelectedId);
         await loadToolsEffective(this.agentsState, {
@@ -3083,6 +3102,17 @@ export class CrawClawApp extends LitElement {
         title: copy.overview.openMemory,
         detail: memoryAction,
         page: "memory",
+      });
+    }
+    if (this.channelsState.feishuCliError || this.channelsState.feishuCliStatus?.authOk === false) {
+      attentionItems.push({
+        title: copy.overview.openAgents,
+        detail:
+          this.channelsState.feishuCliError ??
+          this.channelsState.feishuCliStatus?.message ??
+          this.channelsState.feishuCliStatus?.status ??
+          copy.common.none,
+        page: "agents",
       });
     }
     return html`
@@ -4265,11 +4295,8 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 copy.channels.enabledSurfaces,
                 String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
               )}
-              ${this.renderMetric(
-                copy.channels.feishuCli,
-                this.channelsState.feishuCliSupported ? copy.common.available : copy.common.hidden,
-                this.channelsState.feishuCliStatus?.status ?? copy.common.na,
-              )}
+              ${this.renderMetric(copy.common.accounts, String(flattenedAccounts.length))}
+              ${this.renderMetric(copy.common.connectedAccounts, String(connectedAccounts))}
               ${this.renderMetric(copy.channels.whatsappLogin, loginState)}
             </section>
             <section class="cp-grid cp-grid--double">
@@ -4294,11 +4321,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                         ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
                         : copy.common.na,
                     },
-                    {
-                      label: copy.channels.feishuCli,
-                      value: this.channelsState.feishuCliStatus?.status ?? copy.common.na,
-                      hint: this.channelsState.feishuCliError ?? undefined,
-                    },
                   ],
                   this.channelsState.channelsError ?? copy.channels.noAccounts,
                 )}
@@ -4315,13 +4337,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                   {
                     label: copy.channels.loginMessage,
                     value: this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin,
-                  },
-                  {
-                    label: copy.channels.feishuCli,
-                    value: this.channelsState.feishuCliSupported
-                      ? copy.common.available
-                      : copy.common.hidden,
-                    hint: this.channelsState.feishuCliStatus?.status ?? undefined,
                   },
                 ])}
                 <p class="cp-panel__subcopy">${copy.channels.repairHint}</p>
@@ -4709,6 +4724,29 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
       this.agentsState.agentInspectionRunId ??
       this.agentsState.agentInspectionTaskId ??
       copy.common.none;
+    const feishuCliStatus = this.channelsState.feishuCliStatus;
+    const feishuCliState =
+      this.channelsState.feishuCliSupported === false
+        ? copy.agents.connectedAccountsHidden
+        : this.channelsState.feishuCliError
+          ? copy.agents.connectedAccountsAttention
+          : feishuCliStatus?.authOk
+            ? copy.common.available
+            : feishuCliStatus
+              ? copy.common.pending
+              : copy.common.notLoaded;
+    const feishuCliAuth =
+      this.channelsState.feishuCliSupported === false
+        ? copy.agents.connectedAccountsHidden
+        : !feishuCliStatus?.installed
+          ? copy.common.na
+          : feishuCliStatus.authOk
+            ? copy.common.yes
+            : copy.common.no;
+    const feishuCliHint =
+      this.channelsState.feishuCliError ??
+      feishuCliStatus?.message ??
+      copy.agents.connectedAccountsHint;
     return html`
       <section class="cp-page">
         ${this.renderPageHeader("agents", [
@@ -4770,6 +4808,44 @@ ${this.channelsState.whatsappLoginMessage ?? copy.channels.noActiveLogin}</pre
                   <h3>${selected?.name ?? copy.agents.detailTitle}</h3>
                 </div>
               </div>
+              <article class="cp-subpanel">
+                <h4>${copy.agents.connectedAccountsTitle}</h4>
+                ${this.renderMetaEntries([
+                  {
+                    label: copy.agents.feishuUserTools,
+                    value: feishuCliState,
+                    hint: feishuCliHint,
+                  },
+                  {
+                    label: copy.agents.authState,
+                    value: feishuCliAuth,
+                    hint: feishuCliStatus?.identity ?? undefined,
+                  },
+                  {
+                    label: copy.common.profiles,
+                    value: feishuCliStatus?.profile ?? copy.common.default,
+                    hint: feishuCliStatus?.command ?? "lark-cli",
+                  },
+                  {
+                    label: copy.common.updated,
+                    value: this.channelsState.feishuCliLastSuccess
+                      ? formatDateTime(this.channelsState.feishuCliLastSuccess, this.locale)
+                      : copy.common.notRecorded,
+                    hint: this.channelsState.feishuCliLastSuccess
+                      ? formatAgo(this.channelsState.feishuCliLastSuccess, this.locale)
+                      : undefined,
+                  },
+                  {
+                    label: copy.agents.checkCommand,
+                    value: "crawclaw feishu-cli status --verify",
+                  },
+                  {
+                    label: copy.agents.loginCommand,
+                    value: "crawclaw feishu-cli auth login",
+                  },
+                ])}
+                <p class="cp-panel__subcopy">${copy.agents.connectedAccountsHint}</p>
+              </article>
               ${selected
                 ? html`
                     <div class="cp-grid cp-grid--double">
