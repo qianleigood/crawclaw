@@ -429,7 +429,7 @@ export function renderNode(params: {
   if (unsupported.has(key)) {
     return html`<div class="cfg-field cfg-field--error">
       <div class="cfg-field__label">${label}</div>
-      <div class="cfg-field__error">Unsupported schema node. Use Raw mode.</div>
+      <div class="cfg-field__error">${uiLiteral("Unsupported schema node. Use Raw mode.")}</div>
     </div>`;
   }
   if (
@@ -483,10 +483,10 @@ export function renderNode(params: {
                   ?disabled=${disabled}
                   @click=${() => onPatch(path, lit)}
                 >
-                  ${
+                  ${uiLiteral(
                     // oxlint-disable typescript/no-base-to-string
-                    String(lit)
-                  }
+                    String(lit),
+                  )}
                 </button>
               `,
             )}
@@ -562,7 +562,7 @@ export function renderNode(params: {
                   ?disabled=${disabled}
                   @click=${() => onPatch(path, opt)}
                 >
-                  ${String(opt)}
+                  ${uiLiteral(String(opt))}
                 </button>
               `,
             )}
@@ -625,7 +625,9 @@ export function renderNode(params: {
   return html`
     <div class="cfg-field cfg-field--error">
       <div class="cfg-field__label">${label}</div>
-      <div class="cfg-field__error">Unsupported type: ${type}. Use Raw mode.</div>
+      <div class="cfg-field__error">
+        ${uiLiteral("Unsupported type")}: ${type}. ${uiLiteral("Use Raw mode.")}
+      </div>
     </div>
   `;
 }
@@ -664,12 +666,16 @@ function renderTextInput(params: {
   const placeholder = effectiveRedacted
     ? isStructuredSecretRef
       ? rawAvailable
-        ? "Structured value (SecretRef) - use Raw mode to edit"
-        : "Structured value (SecretRef) - edit the config file directly"
+        ? uiLiteral("Structured value (SecretRef) - use Raw mode to edit")
+        : uiLiteral("Structured value (SecretRef) - edit the config file directly")
       : REDACTED_PLACEHOLDER
     : (hint?.placeholder ??
-      // oxlint-disable typescript/no-base-to-string
-      (schema.default !== undefined ? `Default: ${String(schema.default)}` : ""));
+      (schema.default !== undefined
+        ? `${uiLiteral("Default")}: ${uiLiteral(
+            // oxlint-disable typescript/no-base-to-string
+            String(schema.default),
+          )}`
+        : ""));
   const displayValue = effectiveRedacted
     ? ""
     : isStructuredValue
@@ -735,7 +741,7 @@ function renderTextInput(params: {
               <button
                 type="button"
                 class="cfg-input__reset"
-                title="Reset to default"
+                title=${uiLiteral("Reset to default")}
                 ?disabled=${disabled || effectiveRedacted}
                 @click=${() => onPatch(path, schema.default)}
               >
@@ -834,8 +840,10 @@ function renderSelect(params: {
           onPatch(path, val === unset ? undefined : options[Number(val)]);
         }}
       >
-        <option value=${unset}>Select...</option>
-        ${options.map((opt, idx) => html` <option value=${String(idx)}>${String(opt)}</option> `)}
+        <option value=${unset}>${uiLiteral("Select...")}</option>
+        ${options.map(
+          (opt, idx) => html` <option value=${String(idx)}>${uiLiteral(String(opt))}</option> `,
+        )}
       </select>
     </div>
   `;
@@ -873,7 +881,7 @@ function renderJsonTextarea(params: {
       <div class="cfg-input-wrap">
         <textarea
           class="cfg-textarea${sensitiveState.isRedacted ? " cfg-textarea--redacted" : ""}"
-          placeholder=${sensitiveState.isRedacted ? REDACTED_PLACEHOLDER : "JSON value"}
+          placeholder=${sensitiveState.isRedacted ? REDACTED_PLACEHOLDER : uiLiteral("JSON value")}
           rows="3"
           .value=${displayValue}
           ?disabled=${disabled}
@@ -1073,7 +1081,7 @@ function renderArray(params: {
     return html`
       <div class="cfg-field cfg-field--error">
         <div class="cfg-field__label">${label}</div>
-        <div class="cfg-field__error">Unsupported array schema. Use Raw mode.</div>
+        <div class="cfg-field__error">${uiLiteral("Unsupported array schema. Use Raw mode.")}</div>
       </div>
     `;
   }
@@ -1087,7 +1095,9 @@ function renderArray(params: {
           ${showLabel ? html`<span class="cfg-array__label">${label}</span>` : nothing}
           ${renderTags(tags)}
         </div>
-        <span class="cfg-array__count">${arr.length} item${arr.length !== 1 ? "s" : ""}</span>
+        <span class="cfg-array__count">
+          ${arr.length} ${uiLiteral(arr.length !== 1 ? "items" : "item")}
+        </span>
         <button
           type="button"
           class="cfg-array__add"
@@ -1098,12 +1108,16 @@ function renderArray(params: {
           }}
         >
           <span class="cfg-array__add-icon">${icons.plus}</span>
-          Add
+          ${uiLiteral("Add")}
         </button>
       </div>
       ${help ? html`<div class="cfg-array__help">${help}</div>` : nothing}
       ${arr.length === 0
-        ? html` <div class="cfg-array__empty">No items yet. Click "Add" to create one.</div> `
+        ? html`
+            <div class="cfg-array__empty">
+              ${uiLiteral('No items yet. Click "Add" to create one.')}
+            </div>
+          `
         : html`
             <div class="cfg-array__items">
               ${arr.map(
@@ -1114,7 +1128,7 @@ function renderArray(params: {
                       <button
                         type="button"
                         class="cfg-array__item-remove"
-                        title="Remove item"
+                        title=${uiLiteral("Remove item")}
                         ?disabled=${disabled}
                         @click=${() => {
                           const next = [...arr];
@@ -1199,7 +1213,7 @@ function renderMapField(params: {
   return html`
     <div class="cfg-map">
       <div class="cfg-map__header">
-        <span class="cfg-map__label">Custom entries</span>
+        <span class="cfg-map__label">${uiLiteral("Custom entries")}</span>
         <button
           type="button"
           class="cfg-map__add"
@@ -1217,12 +1231,12 @@ function renderMapField(params: {
           }}
         >
           <span class="cfg-map__add-icon">${icons.plus}</span>
-          Add Entry
+          ${uiLiteral("Add Entry")}
         </button>
       </div>
 
       ${visibleEntries.length === 0
-        ? html` <div class="cfg-map__empty">No custom entries.</div> `
+        ? html` <div class="cfg-map__empty">${uiLiteral("No custom entries.")}</div> `
         : html`
             <div class="cfg-map__items">
               ${visibleEntries.map(([key, entryValue]) => {
@@ -1242,7 +1256,7 @@ function renderMapField(params: {
                         <input
                           type="text"
                           class="cfg-input cfg-input--sm"
-                          placeholder="Key"
+                          placeholder=${uiLiteral("Key")}
                           .value=${key}
                           ?disabled=${disabled}
                           @change=${(e: Event) => {
@@ -1263,7 +1277,7 @@ function renderMapField(params: {
                       <button
                         type="button"
                         class="cfg-map__item-remove"
-                        title="Remove entry"
+                        title=${uiLiteral("Remove entry")}
                         ?disabled=${disabled}
                         @click=${() => {
                           const next = { ...value };
@@ -1284,7 +1298,7 @@ function renderMapField(params: {
                                   : ""}"
                                 placeholder=${sensitiveState.isRedacted
                                   ? REDACTED_PLACEHOLDER
-                                  : "JSON value"}
+                                  : uiLiteral("JSON value")}
                                 rows="2"
                                 .value=${sensitiveState.isRedacted ? "" : fallback}
                                 ?disabled=${disabled}
