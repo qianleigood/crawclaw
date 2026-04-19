@@ -946,6 +946,53 @@ describe("listSessionsFromStore search", () => {
     } as SessionEntry,
   });
 
+  test("falls back to sender label from latest reset archive when session metadata was overwritten by webchat", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-session-utils-identity-"));
+    const storePath = path.join(tmpDir, "sessions.json");
+    const key = "agent:main:feishu:direct:ou_833e794925a4d0da1e85f6cc2c3ab970";
+    const sessionId = "sess-feishu-stale";
+    try {
+      const store: Record<string, SessionEntry> = {
+        [key]: {
+          sessionId,
+          updatedAt: Date.now(),
+          chatType: "direct",
+          origin: {
+            provider: "webchat",
+            surface: "webchat",
+            chatType: "direct",
+          },
+        } as SessionEntry,
+      };
+      fs.writeFileSync(path.join(tmpDir, `${sessionId}.jsonl`), "", "utf-8");
+      fs.writeFileSync(
+        path.join(tmpDir, `${sessionId}.jsonl.reset.2026-04-19T00-00-00.000Z`),
+        [
+          JSON.stringify({ type: "session", version: 1, id: sessionId }),
+          JSON.stringify({
+            message: {
+              role: "user",
+              content:
+                'Sender (untrusted metadata):\n```json\n{"label":"钱磊 (ou_833e794925a4d0da1e85f6cc2c3ab970)","id":"ou_833e794925a4d0da1e85f6cc2c3ab970","name":"钱磊"}\n```\n\n你好',
+            },
+          }),
+        ].join("\n"),
+        "utf-8",
+      );
+
+      const result = listSessionsFromStore({
+        cfg: baseCfg,
+        storePath,
+        store,
+        opts: {},
+      });
+      expect(result.sessions[0]?.displayName).toBe("钱磊");
+      expect(result.sessions[0]?.key).toBe(key);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   test("returns all sessions when search is empty or missing", () => {
     const cases = [{ opts: { search: "" } }, { opts: {} }] as const;
     for (const testCase of cases) {

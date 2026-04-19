@@ -457,6 +457,36 @@ describe("readSessionTitleFieldsFromTranscript cache", () => {
     expect(readSpy.mock.calls.length).toBeGreaterThan(readsAfterFirst);
     readSpy.mockRestore();
   });
+
+  test("falls back to latest reset archive for sender label when live transcript only has control-ui metadata", () => {
+    const sessionId = "test-cache-reset-sender";
+    const transcriptPath = writeTranscript(
+      tmpDir,
+      sessionId,
+      buildBasicSessionTranscript(
+        sessionId,
+        'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-control-ui","id":"crawclaw-control-ui"}\n```\n\n你好',
+        "ok",
+      ),
+    );
+    fs.writeFileSync(
+      `${transcriptPath}.reset.2026-04-19T00-00-00.000Z`,
+      [
+        JSON.stringify({ type: "session", version: 1, id: sessionId }),
+        JSON.stringify({
+          message: {
+            role: "user",
+            content:
+              'Sender (untrusted metadata):\n```json\n{"label":"钱磊 (ou_833e794925a4d0da1e85f6cc2c3ab970)","id":"ou_833e794925a4d0da1e85f6cc2c3ab970","name":"钱磊"}\n```\n\n你好',
+          },
+        }),
+      ].join("\n"),
+      "utf-8",
+    );
+
+    const result = readSessionTitleFieldsFromTranscript(sessionId, storePath);
+    expect(result.firstUserSenderLabel).toBe("钱磊");
+  });
 });
 
 describe("readSessionMessages", () => {

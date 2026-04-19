@@ -1180,6 +1180,8 @@ export function buildGatewaySessionRow(params: {
       : undefined) ??
     entry?.label ??
     originLabel;
+  const needsTranscriptSenderLabel =
+    !displayName && !originLabel && !entry?.label && Boolean(entry?.sessionId);
   const deliveryFields = normalizeSessionDeliveryFields(entry);
   const parsedAgent = parseAgentSessionKey(key);
   const sessionAgentId = normalizeAgentId(parsedAgent?.agentId ?? resolveDefaultAgentId(cfg));
@@ -1266,13 +1268,21 @@ export function buildGatewaySessionRow(params: {
 
   let derivedTitle: string | undefined;
   let lastMessagePreview: string | undefined;
-  if (entry?.sessionId && (params.includeDerivedTitles || params.includeLastMessage)) {
+  let transcriptSenderLabel: string | undefined;
+  if (
+    entry?.sessionId &&
+    (params.includeDerivedTitles || params.includeLastMessage || needsTranscriptSenderLabel)
+  ) {
     const fields = readSessionTitleFieldsFromTranscript(
       entry.sessionId,
       storePath,
       entry.sessionFile,
       sessionAgentId,
     );
+    transcriptSenderLabel =
+      typeof fields.firstUserSenderLabel === "string" && fields.firstUserSenderLabel.trim()
+        ? fields.firstUserSenderLabel.trim()
+        : undefined;
     if (params.includeDerivedTitles) {
       derivedTitle = deriveSessionTitle(entry, fields.firstUserMessage);
     }
@@ -1291,7 +1301,7 @@ export function buildGatewaySessionRow(params: {
     subagentControlScope: entry?.subagentControlScope,
     kind: classifySessionKey(key, entry),
     label: entry?.label,
-    displayName,
+    displayName: displayName ?? transcriptSenderLabel,
     derivedTitle,
     lastMessagePreview,
     channel,

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { deriveSessionTotalTokens, hasNonzeroUsage, normalizeUsage } from "../agents/usage.js";
 import { jsonUtf8Bytes } from "../infra/json-utf8-bytes.js";
 import { hasInterSessionUserProvenance } from "../sessions/input-provenance.js";
@@ -15,6 +16,7 @@ import type { SessionPreviewItem } from "./session-utils.types.js";
 
 type SessionTitleFields = {
   firstUserMessage: string | null;
+  firstUserSenderLabel: string | null;
   lastMessagePreview: string | null;
 };
 
@@ -48,6 +50,7 @@ function getCachedSessionTitleFields(cacheKey: string, stat: fs.Stats): SessionT
   sessionTitleFieldsCache.set(cacheKey, cached);
   return {
     firstUserMessage: cached.firstUserMessage,
+    firstUserSenderLabel: cached.firstUserSenderLabel,
     lastMessagePreview: cached.lastMessagePreview,
   };
 }
@@ -149,16 +152,14 @@ export {
   archiveSessionTranscripts,
   cleanupArchivedSessionTranscripts,
   resolveSessionTranscriptCandidates,
-  } from "./session-transcript-files.fs.js";
+} from "./session-transcript-files.fs.js";
 
 export function capArrayByJsonBytes<T>(
   items: T[],
   maxBytes: number,
-  ): { items: T[]; bytes: number } {
+): { items: T[]; bytes: number } {
   if (items.length === 0) {
-    return { items,
-  bytes: 2,
-};
+    return { items, bytes: 2 };
   }
   const parts = items.map((item) => jsonUtf8Bytes(item));
   let bytes = 2 + parts.reduce((a, b) => a + b, 0) + (items.length - 1);
@@ -189,14 +190,14 @@ export function readSessionTitleFieldsFromTranscript(
   const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile, agentId);
   const filePath = candidates.find((p) => fs.existsSync(p));
   if (!filePath) {
-    return { firstUserMessage: null, lastMessagePreview: null };
+    return { firstUserMessage: null, firstUserSenderLabel: null, lastMessagePreview: null };
   }
 
   let stat: fs.Stats;
   try {
     stat = fs.statSync(filePath);
   } catch {
-    return { firstUserMessage: null, lastMessagePreview: null };
+    return { firstUserMessage: null, firstUserSenderLabel: null, lastMessagePreview: null };
   }
 
   const cacheKey = readSessionTitleFieldsCacheKey(filePath, opts);
@@ -206,7 +207,12 @@ export function readSessionTitleFieldsFromTranscript(
   }
 
   if (stat.size === 0) {
-    const empty = { firstUserMessage: null, lastMessagePreview: null };
+    const fallback = readArchivedSessionTitleFieldsFallback(filePath, opts);
+    const empty = fallback ?? {
+      firstUserMessage: null,
+      firstUserSenderLabel: null,
+      lastMessagePreview: null,
+    };
     setCachedSessionTitleFields(cacheKey, stat, empty);
     return empty;
   }
@@ -218,13 +224,31 @@ export function readSessionTitleFieldsFromTranscript(
 
     // Head (first user message)
     let firstUserMessage: string | null = null;
+    let firstUserSenderLabel: string | null = null;
     try {
       const chunk = readTranscriptHeadChunk(fd);
       if (chunk) {
-        firstUserMessage = extractFirstUserMessageFromTranscriptChunk(chunk, opts);
+        const head = extractFirstUserFieldsFromTranscriptChunk(chunk, opts);
+        firstUserMessage = head.firstUserMessage;
+        firstUserSenderLabel = head.firstUserSenderLabel;
       }
     } catch {
       // ignore head read errors
+    }
+
+    if (!firstUserSenderLabel || isControlUiSenderLabel(firstUserSenderLabel)) {
+      const archived = readArchivedSessionTitleFieldsFallback(filePath, opts);
+      if (archived) {
+        if (
+          archived.firstUserSenderLabel &&
+          !isControlUiSenderLabel(archived.firstUserSenderLabel)
+        ) {
+          firstUserSenderLabel = archived.firstUserSenderLabel;
+        }
+        if (!firstUserMessage && archived.firstUserMessage) {
+          firstUserMessage = archived.firstUserMessage;
+        }
+      }
     }
 
     // Tail (last message preview)
@@ -235,11 +259,11 @@ export function readSessionTitleFieldsFromTranscript(
       // ignore tail read errors
     }
 
-    const result = { firstUserMessage, lastMessagePreview };
+    const result = { firstUserMessage, firstUserSenderLabel, lastMessagePreview };
     setCachedSessionTitleFields(cacheKey, stat, result);
     return result;
   } catch {
-    return { firstUserMessage: null, lastMessagePreview: null };
+    return { firstUserMessage: null, firstUserSenderLabel: null, lastMessagePreview: null };
   } finally {
     if (fd !== null) {
       try {
@@ -282,10 +306,10 @@ function readTranscriptHeadChunk(fd: number, maxBytes = 8192): string | null {
   return buf.toString("utf-8", 0, bytesRead);
 }
 
-function extractFirstUserMessageFromTranscriptChunk(
+function extractFirstUserFieldsFromTranscriptChunk(
   chunk: string,
   opts?: { includeInterSession?: boolean },
-): string | null {
+): { firstUserMessage: string | null; firstUserSenderLabel: string | null } {
   const lines = chunk.split(/\r?\n/).slice(0, MAX_LINES_TO_SCAN);
   for (const line of lines) {
     if (!line.trim()) {
@@ -301,14 +325,79 @@ function extractFirstUserMessageFromTranscriptChunk(
         continue;
       }
       const text = extractTextFromContent(msg.content);
-      if (text) {
-        return text;
+      const senderLabel = text ? extractSenderLabelFromInboundMeta(text) : null;
+      if (!text && !senderLabel) {
+        continue;
       }
+      return {
+        firstUserMessage: text,
+        firstUserSenderLabel: senderLabel,
+      };
     } catch {
       // skip malformed lines
     }
   }
-  return null;
+  return { firstUserMessage: null, firstUserSenderLabel: null };
+}
+
+function extractSenderLabelFromInboundMeta(text: string): string | null {
+  const match = text.match(/Sender \(untrusted metadata\):\n```json\n([\s\S]*?)\n```/);
+  if (!match?.[1]) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(match[1]) as Record<string, unknown>;
+    const name =
+      typeof payload.name === "string" && payload.name.trim()
+        ? payload.name.trim()
+        : typeof payload.label === "string" && payload.label.trim()
+          ? payload.label.trim()
+          : typeof payload.id === "string" && payload.id.trim()
+            ? payload.id.trim()
+            : null;
+    return name;
+  } catch {
+    return null;
+  }
+}
+
+function isControlUiSenderLabel(label: string | null | undefined): boolean {
+  const normalized = (label ?? "").trim().toLowerCase();
+  return normalized === "crawclaw-control-ui" || normalized === "crawclaw control ui";
+}
+
+function findLatestArchivedTranscript(sessionFile: string): string | null {
+  try {
+    const dir = path.dirname(sessionFile);
+    const base = path.basename(sessionFile);
+    const prefix = `${base}.reset.`;
+    const latest = fs
+      .readdirSync(dir)
+      .filter((name) => name.startsWith(prefix))
+      .toSorted()
+      .at(-1);
+    return latest ? path.join(dir, latest) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readArchivedSessionTitleFieldsFallback(
+  sessionFile: string,
+  opts?: { includeInterSession?: boolean },
+): SessionTitleFields | null {
+  const archivedPath = findLatestArchivedTranscript(sessionFile);
+  if (!archivedPath) {
+    return null;
+  }
+  try {
+    return {
+      ...extractFirstUserFieldsFromTranscriptChunk(fs.readFileSync(archivedPath, "utf-8"), opts),
+      lastMessagePreview: null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function findExistingTranscriptPath(
@@ -353,7 +442,7 @@ export function readFirstUserMessageFromTranscript(
     if (!chunk) {
       return null;
     }
-    return extractFirstUserMessageFromTranscriptChunk(chunk, opts);
+    return extractFirstUserFieldsFromTranscriptChunk(chunk, opts).firstUserMessage;
   });
 }
 
