@@ -2,7 +2,7 @@ export type ChatAttachment = {
   id: string;
   dataUrl: string;
   mimeType: string;
-  kind?: "image" | "text";
+  kind?: "image" | "text" | "pdf" | "audio";
   fileName?: string;
   textContent?: string;
   sizeBytes?: number;

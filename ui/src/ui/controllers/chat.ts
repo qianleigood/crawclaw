@@ -124,6 +124,21 @@ function isTextChatAttachment(attachment: ChatAttachment): boolean {
   return attachment.kind === "text" || typeof attachment.textContent === "string";
 }
 
+function isImageChatAttachment(attachment: ChatAttachment): boolean {
+  return attachment.kind === "image";
+}
+
+function formatBinaryAttachmentBlock(attachment: ChatAttachment): string {
+  const fileName = attachment.fileName?.trim() || "attachment";
+  if (attachment.kind === "pdf") {
+    return `[Attached PDF: ${fileName}]`;
+  }
+  if (attachment.kind === "audio") {
+    return `[Attached audio: ${fileName}]`;
+  }
+  return `[Attached file: ${fileName}]`;
+}
+
 function guessTextAttachmentLanguage(fileName: string | undefined): string {
   const lower = fileName?.trim().toLowerCase() ?? "";
   if (lower.endsWith(".md") || lower.endsWith(".markdown")) {
@@ -242,10 +257,11 @@ export async function sendChatMessage(
   }
   const msg = message.trim();
   const normalizedAttachments = attachments ?? [];
-  const imageAttachments = normalizedAttachments.filter(
-    (attachment) => !isTextChatAttachment(attachment),
-  );
+  const imageAttachments = normalizedAttachments.filter(isImageChatAttachment);
   const textAttachments = normalizedAttachments.filter(isTextChatAttachment);
+  const fileAttachments = normalizedAttachments.filter(
+    (attachment) => !isTextChatAttachment(attachment) && !isImageChatAttachment(attachment),
+  );
   const hasAttachments = normalizedAttachments.length > 0;
   if (!msg && !hasAttachments) {
     return null;
@@ -260,6 +276,14 @@ export async function sendChatMessage(
   const contentBlocks: Array<{ type: string; text?: string; source?: unknown }> = [];
   if (composedMessage) {
     contentBlocks.push({ type: "text", text: composedMessage });
+  }
+  if (fileAttachments.length > 0) {
+    for (const att of fileAttachments) {
+      contentBlocks.push({
+        type: "text",
+        text: formatBinaryAttachmentBlock(att),
+      });
+    }
   }
   // Add image previews to the message for display
   if (imageAttachments.length > 0) {
@@ -289,16 +313,20 @@ export async function sendChatMessage(
 
   // Convert attachments to API format
   const apiAttachments =
-    imageAttachments.length > 0
-      ? imageAttachments
+    normalizedAttachments.length > 0
+      ? normalizedAttachments
           .map((att) => {
+            if (isTextChatAttachment(att)) {
+              return null;
+            }
             const parsed = dataUrlToBase64(att.dataUrl);
             if (!parsed) {
               return null;
             }
             return {
-              type: "image",
+              type: att.kind ?? (parsed.mimeType.startsWith("image/") ? "image" : "file"),
               mimeType: parsed.mimeType,
+              fileName: att.fileName,
               content: parsed.content,
             };
           })

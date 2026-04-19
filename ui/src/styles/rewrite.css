@@ -1171,6 +1171,23 @@ crawclaw-app {
   background: rgba(6, 14, 23, 0.88);
 }
 
+.cp-chat-slash-menu__groups {
+  display: grid;
+  gap: 12px;
+}
+
+.cp-chat-slash-menu__group {
+  display: grid;
+  gap: 8px;
+}
+
+.cp-chat-slash-menu__group-label {
+  color: var(--cp-text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
 .cp-chat-slash-menu__head {
   display: flex;
   justify-content: space-between;
@@ -1206,6 +1223,41 @@ crawclaw-app {
   background: rgba(10, 22, 38, 0.82);
   color: var(--cp-text);
   cursor: pointer;
+}
+
+.cp-chat-slash-menu__row,
+.cp-chat-slash-menu__meta,
+.cp-chat-slash-menu__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cp-chat-slash-menu__row {
+  justify-content: space-between;
+}
+
+.cp-chat-slash-menu__meta {
+  flex-wrap: wrap;
+}
+
+.cp-chat-slash-menu__badges {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.cp-chat-slash-menu__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(123, 162, 255, 0.18);
+  background: rgba(14, 32, 55, 0.92);
+  color: var(--cp-text-soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .cp-chat-slash-menu__item.is-active,

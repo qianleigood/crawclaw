@@ -8,6 +8,7 @@ import {
 } from "../chat/attachment-support.ts";
 import { extractText } from "../chat/message-extract.ts";
 import {
+  CATEGORY_LABELS,
   getSlashCommandCompletions,
   SLASH_COMMANDS,
   type SlashCommandDef,
@@ -322,7 +323,7 @@ const APP_COPY = {
       composerTitle: "Write to this session",
       sendPlaceholder: "Type a message for this session...",
       attachFiles: "Add files",
-      dragHint: "Drag images or text files here, or use the picker",
+      dragHint: "Drag images, text files, PDF files, or audio files here, or use the picker",
       imageAttachments: "Image attachments",
       attachments: "Attachments",
       maximize: "Maximize thread",
@@ -333,8 +334,18 @@ const APP_COPY = {
       commandHint: "Type / to browse commands",
       commandSuggestions: "Command suggestions",
       commandHelp: "Use Tab to fill · Enter to send · Shift+Enter for a new line",
+      commandHelpArgs: "Use Tab to fill · Enter to run · Esc to close",
+      commandInstant: "Runs now",
+      commandOptions: "options",
+      commandCategorySession: "Session",
+      commandCategoryModel: "Model",
+      commandCategoryTools: "Tools",
+      commandCategoryAgents: "Agents",
       textFile: "Text file",
-      unsupportedAttachment: "Only images and text/code files are supported here.",
+      pdfFile: "PDF file",
+      audioFile: "Audio file",
+      unsupportedAttachment:
+        "Only images, text/code files, PDF files, and audio files are supported here.",
       fileTooLarge: "Some files were too large and were trimmed before send.",
       inspectorKicker: "Inspector",
       inspectorTitle: "Current session context",
@@ -718,7 +729,7 @@ const APP_COPY = {
       composerTitle: "向当前会话发送消息",
       sendPlaceholder: "给当前会话输入一条消息…",
       attachFiles: "添加文件",
-      dragHint: "把图片或文本文件拖到这里，或使用选择器",
+      dragHint: "把图片、文本文件、PDF 文件或音频文件拖到这里，或使用选择器",
       imageAttachments: "图片附件",
       attachments: "附件",
       maximize: "最大化对话",
@@ -729,8 +740,17 @@ const APP_COPY = {
       commandHint: "输入 / 查看可用指令",
       commandSuggestions: "指令提醒",
       commandHelp: "Tab 补全 · Enter 发送 · Shift+Enter 换行",
+      commandHelpArgs: "Tab 补全 · Enter 执行 · Esc 关闭",
+      commandInstant: "立即执行",
+      commandOptions: "个选项",
+      commandCategorySession: "会话",
+      commandCategoryModel: "模型",
+      commandCategoryTools: "工具",
+      commandCategoryAgents: "代理",
       textFile: "文本文件",
-      unsupportedAttachment: "这里只支持图片和文本/代码文件。",
+      pdfFile: "PDF 文件",
+      audioFile: "音频文件",
+      unsupportedAttachment: "这里只支持图片、文本/代码文件、PDF 文件和音频文件。",
       fileTooLarge: "部分文件过大，发送前已自动截断。",
       inspectorKicker: "检查面板",
       inspectorTitle: "当前会话上下文",
@@ -1202,6 +1222,20 @@ type ChatSlashMenuState =
   | { open: true; mode: "command"; items: SlashCommandDef[] }
   | { open: true; mode: "args"; command: SlashCommandDef; items: string[] };
 
+function findSlashCommandByToken(token: string): SlashCommandDef | null {
+  const normalized = token.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  return (
+    SLASH_COMMANDS.find(
+      (entry) =>
+        entry.name.toLowerCase() === normalized ||
+        entry.aliases?.some((alias) => alias.toLowerCase() === normalized),
+    ) ?? null
+  );
+}
+
 function resolveChatSlashMenuState(draft: string): ChatSlashMenuState {
   const value = draft.trim();
   if (!value.startsWith("/")) {
@@ -1211,7 +1245,7 @@ function resolveChatSlashMenuState(draft: string): ChatSlashMenuState {
   if (argMatch) {
     const commandName = argMatch[1]?.toLowerCase() ?? "";
     const argFilter = argMatch[2]?.trim().toLowerCase() ?? "";
-    const command = SLASH_COMMANDS.find((entry) => entry.name === commandName);
+    const command = findSlashCommandByToken(commandName);
     if (!command?.argOptions?.length) {
       return { open: false };
     }
@@ -1232,9 +1266,17 @@ function chatAttachmentName(attachment: ChatAttachment, locale: Locale): string 
   if (attachment.fileName?.trim()) {
     return attachment.fileName.trim();
   }
-  return attachment.kind === "text"
-    ? uiText(locale).sessions.textFile
-    : uiText(locale).sessions.imageAttachments;
+  const sessionsCopy = uiText(locale).sessions;
+  switch (attachment.kind) {
+    case "text":
+      return sessionsCopy.textFile;
+    case "pdf":
+      return sessionsCopy.pdfFile;
+    case "audio":
+      return sessionsCopy.audioFile;
+    default:
+      return sessionsCopy.imageAttachments;
+  }
 }
 
 function chatAttachmentPreviewText(attachment: ChatAttachment): string | null {
@@ -1243,6 +1285,40 @@ function chatAttachmentPreviewText(attachment: ChatAttachment): string | null {
     return null;
   }
   return text.length > 140 ? `${text.slice(0, 137)}...` : text;
+}
+
+function summarizeAttachmentKinds(params: {
+  locale: Locale;
+  attachments: readonly ChatAttachment[];
+}): string | undefined {
+  const sessionsCopy = uiText(params.locale).sessions;
+  const images = params.attachments.filter((attachment) => attachment.kind === "image").length;
+  const texts = params.attachments.filter((attachment) => attachment.kind === "text").length;
+  const pdfs = params.attachments.filter((attachment) => attachment.kind === "pdf").length;
+  const audio = params.attachments.filter((attachment) => attachment.kind === "audio").length;
+  const parts = [
+    images ? `${images} ${sessionsCopy.imageAttachments.toLowerCase()}` : null,
+    texts ? `${texts} ${sessionsCopy.textFile.toLowerCase()}` : null,
+    pdfs ? `${pdfs} ${sessionsCopy.pdfFile.toLowerCase()}` : null,
+    audio ? `${audio} ${sessionsCopy.audioFile.toLowerCase()}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : undefined;
+}
+
+function slashCategoryLabel(locale: Locale, category: string | undefined): string {
+  const sessionsCopy = uiText(locale).sessions;
+  switch (category) {
+    case "session":
+      return sessionsCopy.commandCategorySession;
+    case "model":
+      return sessionsCopy.commandCategoryModel;
+    case "tools":
+      return sessionsCopy.commandCategoryTools;
+    case "agents":
+      return sessionsCopy.commandCategoryAgents;
+    default:
+      return CATEGORY_LABELS.session;
+  }
 }
 
 function resolveSessionRowByKey<T extends SessionDisplayLike>(
@@ -1507,6 +1583,7 @@ export class CrawClawApp extends LitElement {
   @state() approvalsError: string | null = null;
   @state() memorySessionQuery = "";
   @state() chatSlashIndex = 0;
+  @state() chatSlashSuppressed = false;
 
   client: GatewayBrowserClient | null = null;
   private reconnectReason: string | null = null;
@@ -2130,6 +2207,7 @@ export class CrawClawApp extends LitElement {
       this.chatState.chatMessage = "";
       this.chatState.chatAttachments = [];
       this.chatSlashIndex = 0;
+      this.chatSlashSuppressed = false;
     });
   }
 
@@ -2138,21 +2216,49 @@ export class CrawClawApp extends LitElement {
     await this.submitCurrentChatDraft();
   }
 
-  private applySlashCommandSelection(command: SlashCommandDef) {
-    this.chatState.chatMessage = command.args ? `/${command.name} ` : `/${command.name}`;
-    this.chatSlashIndex = 0;
-    this.requestUpdate();
+  private getChatSlashMenuState(): ChatSlashMenuState {
+    if (this.chatSlashSuppressed) {
+      return { open: false };
+    }
+    return resolveChatSlashMenuState(this.chatState.chatMessage);
   }
 
-  private applySlashArgumentSelection(command: SlashCommandDef, arg: string) {
-    this.chatState.chatMessage = `/${command.name} ${arg}`;
+  private async applySlashCommandSelection(command: SlashCommandDef, execute = false) {
+    if (command.argOptions?.length) {
+      this.chatState.chatMessage = `/${command.name} `;
+      this.chatSlashSuppressed = false;
+      this.chatSlashIndex = 0;
+      this.requestUpdate();
+      return;
+    }
+    this.chatState.chatMessage = command.args ? `/${command.name} ` : `/${command.name}`;
+    this.chatSlashSuppressed = false;
     this.chatSlashIndex = 0;
     this.requestUpdate();
+    if (execute && !command.args) {
+      await this.submitCurrentChatDraft();
+    }
+  }
+
+  private async applySlashArgumentSelection(
+    command: SlashCommandDef,
+    arg: string,
+    execute = false,
+  ) {
+    this.chatState.chatMessage = `/${command.name} ${arg}`;
+    this.chatSlashSuppressed = false;
+    this.chatSlashIndex = 0;
+    this.requestUpdate();
+    if (execute) {
+      await this.submitCurrentChatDraft();
+    }
   }
 
   private async handleChatComposerKeydown(event: KeyboardEvent) {
-    const slashMenu = resolveChatSlashMenuState(this.chatState.chatMessage);
+    const slashMenu = this.getChatSlashMenuState();
     if (slashMenu.open && event.key === "Escape") {
+      event.preventDefault();
+      this.chatSlashSuppressed = true;
       this.chatSlashIndex = 0;
       this.requestUpdate();
       return;
@@ -2169,13 +2275,23 @@ export class CrawClawApp extends LitElement {
       event.preventDefault();
       const index = Math.max(0, Math.min(this.chatSlashIndex, slashMenu.items.length - 1));
       if (slashMenu.mode === "command") {
-        this.applySlashCommandSelection(slashMenu.items[index]);
+        await this.applySlashCommandSelection(slashMenu.items[index], false);
       } else {
-        this.applySlashArgumentSelection(slashMenu.command, slashMenu.items[index]);
+        await this.applySlashArgumentSelection(slashMenu.command, slashMenu.items[index], false);
       }
       return;
     }
     if (event.key === "Enter" && !event.shiftKey) {
+      if (slashMenu.open) {
+        event.preventDefault();
+        const index = Math.max(0, Math.min(this.chatSlashIndex, slashMenu.items.length - 1));
+        if (slashMenu.mode === "command") {
+          await this.applySlashCommandSelection(slashMenu.items[index], true);
+        } else {
+          await this.applySlashArgumentSelection(slashMenu.command, slashMenu.items[index], true);
+        }
+        return;
+      }
       event.preventDefault();
       await this.submitCurrentChatDraft();
     }
@@ -2186,7 +2302,14 @@ export class CrawClawApp extends LitElement {
     const oversizedTextFiles = new Set<string>();
     const readers = candidates
       .map((file) => ({ file, kind: getSupportedComposerAttachmentKind(file) }))
-      .filter((entry) => entry.kind !== null);
+      .filter(
+        (
+          entry,
+        ): entry is {
+          file: File;
+          kind: NonNullable<ReturnType<typeof getSupportedComposerAttachmentKind>>;
+        } => entry.kind !== null,
+      );
     if (!readers.length) {
       this.chatState.lastError = uiText(this.locale).sessions.unsupportedAttachment;
       this.requestUpdate();
@@ -2223,7 +2346,7 @@ export class CrawClawApp extends LitElement {
               }
               resolve({
                 id,
-                kind: "image",
+                kind,
                 dataUrl: reader.result as string,
                 mimeType: file.type,
                 fileName: file.name,
@@ -3194,15 +3317,27 @@ export class CrawClawApp extends LitElement {
       selected?.modelProvider ?? this.sessionsState.sessionsResult?.defaults?.modelProvider;
     const draftLength = this.chatState.chatMessage.trim().length;
     const attachmentCount = this.chatState.chatAttachments.length;
-    const imageAttachmentCount = this.chatState.chatAttachments.filter(
-      (attachment) => attachment.kind !== "text",
-    ).length;
-    const textAttachmentCount = attachmentCount - imageAttachmentCount;
-    const slashMenu = resolveChatSlashMenuState(this.chatState.chatMessage);
+    const attachmentSummaryHint = summarizeAttachmentKinds({
+      locale: this.locale,
+      attachments: this.chatState.chatAttachments,
+    });
+    const slashMenu = this.getChatSlashMenuState();
     const normalizedSlashIndex =
       slashMenu.open && slashMenu.items.length > 0
         ? Math.max(0, Math.min(this.chatSlashIndex, slashMenu.items.length - 1))
         : 0;
+    const slashMenuGroups =
+      slashMenu.open && slashMenu.mode === "command"
+        ? Array.from(
+            slashMenu.items.reduce((map, item, index) => {
+              const category = item.category ?? "session";
+              const entries = map.get(category) ?? [];
+              entries.push({ item, index });
+              map.set(category, entries);
+              return map;
+            }, new Map<string, Array<{ item: SlashCommandDef; index: number }>>()),
+          )
+        : [];
     const selectedDisplayName = selected
       ? resolveSessionDisplayNameFromHistory(selected, this.chatState.chatMessages)
       : this.settings.sessionKey;
@@ -3517,10 +3652,22 @@ export class CrawClawApp extends LitElement {
                             (attachment) => attachment.id,
                             (attachment) => html`
                               <div class="cp-chat-attachment-thumb">
-                                ${attachment.kind === "text"
+                                ${attachment.kind === "image"
                                   ? html`
+                                      <img
+                                        src=${attachment.dataUrl}
+                                        alt=${copy.sessions.imageAttachments}
+                                      />
+                                    `
+                                  : html`
                                       <div class="cp-chat-attachment-thumb__file">
-                                        <span>${copy.sessions.textFile}</span>
+                                        <span>
+                                          ${attachment.kind === "text"
+                                            ? copy.sessions.textFile
+                                            : attachment.kind === "pdf"
+                                              ? copy.sessions.pdfFile
+                                              : copy.sessions.audioFile}
+                                        </span>
                                         <strong
                                           >${chatAttachmentName(attachment, this.locale)}</strong
                                         >
@@ -3529,16 +3676,11 @@ export class CrawClawApp extends LitElement {
                                             ? `${Math.max(1, Math.round(attachment.sizeBytes / 1024))} KB`
                                             : attachment.mimeType}
                                         </small>
-                                        ${chatAttachmentPreviewText(attachment)
+                                        ${attachment.kind === "text" &&
+                                        chatAttachmentPreviewText(attachment)
                                           ? html` <p>${chatAttachmentPreviewText(attachment)}</p> `
-                                          : nothing}
+                                          : html`<p>${attachment.mimeType}</p>`}
                                       </div>
-                                    `
-                                  : html`
-                                      <img
-                                        src=${attachment.dataUrl}
-                                        alt=${copy.sessions.imageAttachments}
-                                      />
                                     `}
                                 <button
                                   class="cp-chat-attachment-thumb__remove"
@@ -3568,47 +3710,118 @@ export class CrawClawApp extends LitElement {
                         >
                           <div class="cp-chat-slash-menu__head">
                             <span>${copy.sessions.commandSuggestions}</span>
-                            <small>${copy.sessions.commandHelp}</small>
+                            <small>
+                              ${slashMenu.mode === "args"
+                                ? copy.sessions.commandHelpArgs
+                                : copy.sessions.commandHelp}
+                            </small>
                           </div>
-                          <div class="cp-chat-slash-menu__list">
-                            ${slashMenu.mode === "command"
-                              ? repeat(
-                                  slashMenu.items,
-                                  (item) => item.key,
-                                  (item, index) => html`
-                                    <button
-                                      class="cp-chat-slash-menu__item ${index ===
-                                      normalizedSlashIndex
-                                        ? "is-active"
-                                        : ""}"
-                                      type="button"
-                                      @click=${() => this.applySlashCommandSelection(item)}
-                                    >
-                                      <strong>/${item.name}</strong>
-                                      <span>${item.description}</span>
-                                      ${item.args ? html`<small>${item.args}</small>` : nothing}
-                                    </button>
-                                  `,
-                                )
-                              : repeat(
-                                  slashMenu.items,
-                                  (item) => item,
-                                  (item, index) => html`
-                                    <button
-                                      class="cp-chat-slash-menu__item ${index ===
-                                      normalizedSlashIndex
-                                        ? "is-active"
-                                        : ""}"
-                                      type="button"
-                                      @click=${() =>
-                                        this.applySlashArgumentSelection(slashMenu.command, item)}
-                                    >
-                                      <strong>${item}</strong>
-                                      <span>/${slashMenu.command.name} ${item}</span>
-                                    </button>
-                                  `,
-                                )}
-                          </div>
+                          ${slashMenu.mode === "command"
+                            ? html`
+                                <div class="cp-chat-slash-menu__groups">
+                                  ${repeat(
+                                    slashMenuGroups,
+                                    ([category]) => category,
+                                    ([category, entries]) => html`
+                                      <div class="cp-chat-slash-menu__group">
+                                        <span class="cp-chat-slash-menu__group-label">
+                                          ${slashCategoryLabel(this.locale, category)}
+                                        </span>
+                                        <div class="cp-chat-slash-menu__list">
+                                          ${repeat(
+                                            entries,
+                                            ({ item }) => item.key,
+                                            ({ item, index }) => html`
+                                              <button
+                                                class="cp-chat-slash-menu__item ${index ===
+                                                normalizedSlashIndex
+                                                  ? "is-active"
+                                                  : ""}"
+                                                type="button"
+                                                @click=${() =>
+                                                  void this.applySlashCommandSelection(item, true)}
+                                              >
+                                                <div class="cp-chat-slash-menu__row">
+                                                  <strong>/${item.name}</strong>
+                                                  <div class="cp-chat-slash-menu__badges">
+                                                    ${item.argOptions?.length
+                                                      ? html`
+                                                          <small class="cp-chat-slash-menu__badge">
+                                                            ${item.argOptions.length}
+                                                            ${copy.sessions.commandOptions}
+                                                          </small>
+                                                        `
+                                                      : nothing}
+                                                    ${item.executeLocal && !item.args
+                                                      ? html`
+                                                          <small class="cp-chat-slash-menu__badge">
+                                                            ${copy.sessions.commandInstant}
+                                                          </small>
+                                                        `
+                                                      : nothing}
+                                                  </div>
+                                                </div>
+                                                <span>${item.description}</span>
+                                                <div class="cp-chat-slash-menu__meta">
+                                                  ${item.args
+                                                    ? html`<small>${item.args}</small>`
+                                                    : nothing}
+                                                  ${item.aliases?.length
+                                                    ? html`
+                                                        <small>
+                                                          ${item.aliases
+                                                            .map((alias) => `/${alias}`)
+                                                            .join(" · ")}
+                                                        </small>
+                                                      `
+                                                    : nothing}
+                                                </div>
+                                              </button>
+                                            `,
+                                          )}
+                                        </div>
+                                      </div>
+                                    `,
+                                  )}
+                                </div>
+                              `
+                            : html`
+                                <div class="cp-chat-slash-menu__group">
+                                  <span class="cp-chat-slash-menu__group-label">
+                                    /${slashMenu.command.name}
+                                  </span>
+                                  <div class="cp-chat-slash-menu__list">
+                                    ${repeat(
+                                      slashMenu.items,
+                                      (item) => item,
+                                      (item, index) => html`
+                                        <button
+                                          class="cp-chat-slash-menu__item ${index ===
+                                          normalizedSlashIndex
+                                            ? "is-active"
+                                            : ""}"
+                                          type="button"
+                                          @click=${() =>
+                                            void this.applySlashArgumentSelection(
+                                              slashMenu.command,
+                                              item,
+                                              true,
+                                            )}
+                                        >
+                                          <div class="cp-chat-slash-menu__row">
+                                            <strong>${item}</strong>
+                                            <small class="cp-chat-slash-menu__badge">
+                                              ${copy.sessions.commandInstant}
+                                            </small>
+                                          </div>
+                                          <span>${slashMenu.command.description}</span>
+                                          <small>/${slashMenu.command.name} ${item}</small>
+                                        </button>
+                                      `,
+                                    )}
+                                  </div>
+                                </div>
+                              `}
                         </div>
                       `
                     : nothing}
@@ -3619,6 +3832,7 @@ export class CrawClawApp extends LitElement {
                     @keydown=${(event: KeyboardEvent) => void this.handleChatComposerKeydown(event)}
                     @input=${(event: Event) => {
                       this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
+                      this.chatSlashSuppressed = false;
                       this.chatSlashIndex = 0;
                       this.requestUpdate();
                     }}
@@ -3791,10 +4005,7 @@ export class CrawClawApp extends LitElement {
                 {
                   label: copy.sessions.attachments,
                   value: String(attachmentCount),
-                  hint:
-                    textAttachmentCount > 0
-                      ? `${imageAttachmentCount} ${copy.sessions.imageAttachments.toLowerCase()} · ${textAttachmentCount} ${copy.sessions.textFile.toLowerCase()}`
-                      : undefined,
+                  hint: attachmentSummaryHint,
                 },
                 {
                   label: copy.common.execution,

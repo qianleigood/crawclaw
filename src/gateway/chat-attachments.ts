@@ -1,6 +1,10 @@
+import type { CrawClawConfig } from "../config/config.js";
+import { transcribeAudioFile } from "../media-understanding/transcribe-audio.js";
 import { estimateBase64DecodedBytes } from "../media/base64.js";
+import { extractFileContentFromSource, resolveInputFileLimits } from "../media/input-files.js";
 import type { PromptImageOrderEntry } from "../media/prompt-image-order.js";
 import { sniffMimeFromBase64 } from "../media/sniff-mime-from-base64.js";
+import type { SavedMedia } from "../media/store.js";
 import { deleteMediaBuffer, saveMediaBuffer } from "../media/store.js";
 
 export type ChatAttachment = {
@@ -44,6 +48,8 @@ export type ParsedMessageWithImages = {
   images: ChatImageContent[];
   /** Original accepted attachment order after inline/offloaded split. */
   imageOrder: PromptImageOrderEntry[];
+  /** Non-image media stored for transcript metadata (e.g. audio / PDF originals). */
+  additionalMedia: SavedMedia[];
   /**
    * Large attachments (> OFFLOAD_THRESHOLD_BYTES) that were offloaded to the
    * media store. Each entry corresponds to a `[media attached: media://inbound/<id>]`
@@ -71,11 +77,6 @@ type NormalizedAttachment = {
   base64: string;
 };
 
-type SavedMedia = {
-  id: string;
-  path?: string;
-};
-
 const OFFLOAD_THRESHOLD_BYTES = 2_000_000;
 
 const MIME_TO_EXT: Record<string, string> = {
@@ -86,6 +87,18 @@ const MIME_TO_EXT: Record<string, string> = {
   "image/gif": ".gif",
   "image/heic": ".heic",
   "image/heif": ".heif",
+  "application/pdf": ".pdf",
+  "audio/mpeg": ".mp3",
+  "audio/mp3": ".mp3",
+  "audio/wav": ".wav",
+  "audio/x-wav": ".wav",
+  "audio/flac": ".flac",
+  "audio/aac": ".aac",
+  "audio/ogg": ".ogg",
+  "audio/opus": ".opus",
+  "audio/mp4": ".m4a",
+  "audio/x-m4a": ".m4a",
+  "audio/m4a": ".m4a",
   // bmp/tiff excluded from SUPPORTED_OFFLOAD_MIMES to avoid extension-loss
   // bug in store.ts; entries kept here for future extension support
   "image/bmp": ".bmp",
@@ -136,6 +149,14 @@ function isImageMime(mime?: string): boolean {
   return typeof mime === "string" && mime.startsWith("image/");
 }
 
+function isPdfMime(mime?: string): boolean {
+  return mime === "application/pdf";
+}
+
+function isAudioMime(mime?: string): boolean {
+  return typeof mime === "string" && mime.startsWith("audio/");
+}
+
 function isValidBase64(value: string): boolean {
   if (value.length === 0 || value.length % 4 !== 0) {
     return false;
@@ -174,6 +195,14 @@ function ensureExtension(label: string, mime: string): string {
   }
   const ext = MIME_TO_EXT[mime.toLowerCase()] ?? "";
   return ext ? `${label}${ext}` : label;
+}
+
+function appendAttachmentText(message: string, title: string, body?: string): string {
+  const parts = [message.trimEnd(), `[${title}]`];
+  if (body?.trim()) {
+    parts.push(body.trim());
+  }
+  return parts.filter(Boolean).join("\n\n");
 }
 
 /**
@@ -274,29 +303,24 @@ function normalizeAttachment(
 export async function parseMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
-  opts?: { maxBytes?: number; log?: AttachmentLog; supportsImages?: boolean },
+  opts?: {
+    maxBytes?: number;
+    log?: AttachmentLog;
+    supportsImages?: boolean;
+    cfg?: CrawClawConfig;
+    agentDir?: string;
+  },
 ): Promise<ParsedMessageWithImages> {
   const maxBytes = opts?.maxBytes ?? 5_000_000;
   const log = opts?.log;
 
   if (!attachments || attachments.length === 0) {
-    return { message, images: [], imageOrder: [], offloadedRefs: [] };
-  }
-
-  // For text-only models drop all attachments cleanly. Do not save files or
-  // inject media:// markers that would never be resolved and would leak
-  // internal path references into the model's prompt.
-  if (opts?.supportsImages === false) {
-    if (attachments.length > 0) {
-      log?.warn(
-        `parseMessageWithAttachments: ${attachments.length} attachment(s) dropped — model does not support images`,
-      );
-    }
-    return { message, images: [], imageOrder: [], offloadedRefs: [] };
+    return { message, images: [], imageOrder: [], additionalMedia: [], offloadedRefs: [] };
   }
 
   const images: ChatImageContent[] = [];
   const imageOrder: PromptImageOrderEntry[] = [];
+  const additionalMedia: SavedMedia[] = [];
   const offloadedRefs: OffloadedRef[] = [];
   let updatedMessage = message;
 
@@ -336,23 +360,126 @@ export async function parseMessageWithAttachments(
       const providedMime = normalizeMime(mime);
       const sniffedMime = normalizeMime(await sniffMimeFromBase64(b64));
 
-      if (sniffedMime && !isImageMime(sniffedMime)) {
-        log?.warn(`attachment ${label}: detected non-image (${sniffedMime}), dropping`);
-        continue;
-      }
-      if (!sniffedMime && !isImageMime(providedMime)) {
-        log?.warn(`attachment ${label}: unable to detect image mime type, dropping`);
-        continue;
-      }
       if (sniffedMime && providedMime && sniffedMime !== providedMime) {
         log?.warn(
           `attachment ${label}: mime mismatch (${providedMime} -> ${sniffedMime}), using sniffed`,
         );
       }
 
-      // Third fallback normalises `mime` so a raw un-normalised string (e.g.
-      // "IMAGE/JPEG") does not silently bypass the SUPPORTED_OFFLOAD_MIMES check.
       const finalMime = sniffedMime ?? providedMime ?? normalizeMime(mime) ?? mime;
+      if (!finalMime) {
+        log?.warn(`attachment ${label}: unable to determine mime type, dropping`);
+        continue;
+      }
+
+      if (isPdfMime(finalMime)) {
+        const extracted = await extractFileContentFromSource({
+          source: {
+            type: "base64",
+            data: b64,
+            mediaType: finalMime,
+            filename: ensureExtension(label, finalMime),
+          },
+          limits: resolveInputFileLimits({
+            allowedMimes: [finalMime],
+            maxBytes,
+            maxChars: 40_000,
+          }),
+        });
+        const pdfBuffer = Buffer.from(b64, "base64");
+        verifyDecodedSize(pdfBuffer, sizeBytes, label);
+        let savedPdf: SavedMedia;
+        try {
+          savedPdf = await saveMediaBuffer(
+            pdfBuffer,
+            finalMime,
+            "inbound",
+            maxBytes,
+            ensureExtension(label, finalMime),
+          );
+        } catch (err) {
+          throw new MediaOffloadError(
+            `[Gateway Error] Failed to save intercepted media to disk: ${err instanceof Error ? err.message : String(err)}`,
+            { cause: err },
+          );
+        }
+        savedMediaIds.push(savedPdf.id);
+        additionalMedia.push(savedPdf);
+
+        const extractedText = extracted.text?.trim();
+        if (extracted.images?.length) {
+          if (opts?.supportsImages === false && !extractedText) {
+            throw new Error(
+              `attachment ${label}: PDF contains no extractable text and the current model does not support images`,
+            );
+          }
+          if (opts?.supportsImages !== false) {
+            for (const image of extracted.images) {
+              images.push(image);
+              imageOrder.push("inline");
+            }
+          }
+        }
+
+        updatedMessage = appendAttachmentText(
+          updatedMessage,
+          `Attached PDF: ${ensureExtension(label, finalMime)}`,
+          extractedText || undefined,
+        );
+        continue;
+      }
+
+      if (isAudioMime(finalMime)) {
+        if (!opts?.cfg) {
+          throw new Error(`attachment ${label}: audio transcription requires gateway config`);
+        }
+        const audioBuffer = Buffer.from(b64, "base64");
+        verifyDecodedSize(audioBuffer, sizeBytes, label);
+        let savedAudio: SavedMedia;
+        try {
+          savedAudio = await saveMediaBuffer(
+            audioBuffer,
+            finalMime,
+            "inbound",
+            maxBytes,
+            ensureExtension(label, finalMime),
+          );
+        } catch (err) {
+          throw new MediaOffloadError(
+            `[Gateway Error] Failed to save intercepted media to disk: ${err instanceof Error ? err.message : String(err)}`,
+            { cause: err },
+          );
+        }
+        savedMediaIds.push(savedAudio.id);
+        additionalMedia.push(savedAudio);
+        const transcript = (
+          await transcribeAudioFile({
+            filePath: savedAudio.path,
+            cfg: opts.cfg,
+            agentDir: opts.agentDir,
+            mime: finalMime,
+          })
+        ).text?.trim();
+        if (!transcript) {
+          throw new Error(`attachment ${label}: audio transcription is unavailable for this file`);
+        }
+        updatedMessage = appendAttachmentText(
+          updatedMessage,
+          `Attached audio: ${ensureExtension(label, finalMime)}`,
+          `Transcript:\n${transcript}`,
+        );
+        continue;
+      }
+
+      if (!isImageMime(finalMime)) {
+        log?.warn(`attachment ${label}: unsupported mime (${finalMime}), dropping`);
+        continue;
+      }
+
+      if (opts?.supportsImages === false) {
+        log?.warn(`attachment ${label}: image dropped — current model does not support images`);
+        continue;
+      }
 
       let isOffloaded = false;
 
@@ -439,6 +566,7 @@ export async function parseMessageWithAttachments(
     message: updatedMessage !== message ? updatedMessage.trimEnd() : message,
     images,
     imageOrder,
+    additionalMedia,
     offloadedRefs,
   };
 }

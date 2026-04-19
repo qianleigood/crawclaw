@@ -400,6 +400,7 @@ export const agentHandlers: GatewayRequestHandlers = {
           maxBytes: 5_000_000,
           log: context.logGateway,
           supportsImages,
+          cfg,
         });
         message = parsed.message.trim();
         images = parsed.images;

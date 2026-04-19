@@ -348,6 +348,7 @@ async function persistChatSendImages(params: {
   images: ChatImageContent[];
   imageOrder: PromptImageOrderEntry[];
   offloadedRefs: OffloadedRef[];
+  additionalMedia: SavedMedia[];
   client: GatewayRequestHandlerOptions["client"];
   logGateway: GatewayRequestContext["logGateway"];
 }): Promise<SavedMedia[]> {
@@ -386,7 +387,7 @@ async function persistChatSendImages(params: {
     }
   }
 
-  return saved;
+  return [...saved, ...params.additionalMedia];
 }
 
 function buildChatSendTranscriptMessage(params: {
@@ -1461,6 +1462,7 @@ export const chatHandlers: GatewayRequestHandlers = {
     let parsedImages: ChatImageContent[] = [];
     let parsedImageOrder: PromptImageOrderEntry[] = [];
     let parsedOffloadedRefs: OffloadedRef[] = [];
+    let parsedAdditionalMedia: SavedMedia[] = [];
 
     const timeoutMs = resolveAgentTimeoutMs({
       cfg,
@@ -1533,11 +1535,13 @@ export const chatHandlers: GatewayRequestHandlers = {
           maxBytes: 5_000_000,
           log: context.logGateway,
           supportsImages,
+          cfg,
         });
         parsedMessage = parsed.message;
         parsedImages = parsed.images;
         parsedImageOrder = parsed.imageOrder;
         parsedOffloadedRefs = parsed.offloadedRefs;
+        parsedAdditionalMedia = parsed.additionalMedia;
       } catch (err) {
         // MediaOffloadError indicates a server-side storage fault (ENOSPC, EPERM,
         // etc.). All other errors are client-side input validation failures.
@@ -1581,6 +1585,7 @@ export const chatHandlers: GatewayRequestHandlers = {
         images: parsedImages,
         imageOrder: parsedImageOrder,
         offloadedRefs: parsedOffloadedRefs,
+        additionalMedia: parsedAdditionalMedia,
         client,
         logGateway: context.logGateway,
       });

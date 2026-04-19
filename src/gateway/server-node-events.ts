@@ -393,6 +393,7 @@ export const handleNodeEvent = async (ctx: NodeEventContext, nodeId: string, evt
             maxBytes: 5_000_000,
             log: ctx.logGateway,
             supportsImages,
+            cfg,
           });
           message = parsed.message.trim();
           images = parsed.images;
@@ -408,6 +409,17 @@ export const handleNodeEvent = async (ctx: NodeEventContext, nodeId: string, evt
                 } catch (cleanupErr) {
                   ctx.logGateway.warn(
                     `Failed to cleanup orphaned media ${ref.id}: ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`,
+                  );
+                }
+              }
+            }
+            if (parsed.additionalMedia && parsed.additionalMedia.length > 0) {
+              for (const media of parsed.additionalMedia) {
+                try {
+                  await deleteMediaBuffer(media.id);
+                } catch (cleanupErr) {
+                  ctx.logGateway.warn(
+                    `Failed to cleanup orphaned media ${media.id}: ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`,
                   );
                 }
               }
