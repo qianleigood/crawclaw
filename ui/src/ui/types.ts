@@ -38,6 +38,25 @@ export type ChannelControlCapabilities = {
   multiAccount: boolean;
 };
 
+export type ChannelSetupSurfaceSnapshot = {
+  channel: string;
+  label: string;
+  detailLabel: string;
+  docsPath?: string | null;
+  configured: boolean;
+  mode: "none" | "wizard" | "config";
+  selectionHint?: string | null;
+  quickstartScore?: number | null;
+  statusLines: string[];
+  accountIds: string[];
+  defaultAccountId?: string | null;
+  canSetup: boolean;
+  canEdit: boolean;
+  multiAccount: boolean;
+  loginMode: "none" | "qr";
+  commands: string[];
+};
+
 export type FeishuCliStatusSnapshot = {
   identity: "user";
   enabled: boolean;

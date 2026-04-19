@@ -8,6 +8,8 @@ import {
 } from "../../channels/plugins/index.js";
 import { buildChannelAccountSnapshot } from "../../channels/plugins/status.js";
 import type { ChannelAccountSnapshot, ChannelPlugin } from "../../channels/plugins/types.js";
+import { formatCliCommand } from "../../cli/command-format.js";
+import { resolveChannelSetupWizardAdapterForPlugin } from "../../commands/channel-setup/registry.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { loadConfig, readConfigFileSnapshot } from "../../config/config.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
@@ -24,6 +26,7 @@ import {
   validateChannelsAccountReconnectParams,
   validateChannelsAccountLogoutParams,
   validateChannelsAccountVerifyParams,
+  validateChannelsSetupSurfaceParams,
   validateChannelsLogoutParams,
   validateChannelsStatusParams,
 } from "../protocol/index.js";
@@ -135,6 +138,103 @@ function resolveRuntimeAccountSnapshot(params: {
     accounts?.[params.accountId] ??
     (params.accountId === defaultAccountId ? defaultRuntime : undefined)
   );
+}
+
+function asJsonRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function supportsChannelMultiAccount(plugin: ChannelPlugin, cfg: CrawClawConfig): boolean {
+  const accountIds = plugin.config.listAccountIds(cfg);
+  if (accountIds.length > 1) {
+    return true;
+  }
+  const schema = asJsonRecord(plugin.configSchema?.schema);
+  const properties = asJsonRecord(schema?.properties);
+  return Boolean(properties?.accounts || properties?.defaultAccount);
+}
+
+async function buildChannelsSetupSurface(params: {
+  channelId: ChannelId;
+  plugin: ChannelPlugin;
+  cfg: CrawClawConfig;
+}) {
+  const accountIds = params.plugin.config.listAccountIds(params.cfg);
+  const defaultAccountId = resolveChannelDefaultAccountId({
+    plugin: params.plugin,
+    cfg: params.cfg,
+    accountIds,
+  });
+  const adapter = resolveChannelSetupWizardAdapterForPlugin(params.plugin);
+  const canEdit = params.plugin.configSchema != null;
+  const canSetup = params.plugin.setupWizard != null || params.plugin.setup != null;
+  const loginMode =
+    params.plugin.gateway?.loginWithQrStart && params.plugin.gateway?.loginWithQrWait
+      ? "qr"
+      : "none";
+
+  let configured = false;
+  let statusLines: string[] = [];
+  let selectionHint: string | undefined;
+  let quickstartScore: number | undefined;
+  if (adapter) {
+    const status = await adapter.getStatus({
+      cfg: params.cfg,
+      accountOverrides: {},
+    });
+    configured = status.configured;
+    statusLines = [...status.statusLines];
+    selectionHint = status.selectionHint;
+    quickstartScore = status.quickstartScore;
+  } else {
+    const account = params.plugin.config.resolveAccount(params.cfg, defaultAccountId);
+    configured = params.plugin.config.isConfigured
+      ? await params.plugin.config.isConfigured(account, params.cfg)
+      : accountIds.length > 0;
+    statusLines = [
+      `${params.plugin.meta.label}: ${configured ? "configured" : canEdit ? "ready to configure" : "needs setup"}`,
+    ];
+    selectionHint = configured
+      ? "configured"
+      : canEdit
+        ? "open channel settings"
+        : canSetup
+          ? "run setup"
+          : "follow docs";
+  }
+
+  const commands = [
+    formatCliCommand("crawclaw channels status --probe"),
+    formatCliCommand(
+      accountIds.length > 0 || params.plugin.config.defaultAccountId != null
+        ? `crawclaw channels add --channel ${params.channelId} --account <id>`
+        : `crawclaw channels add --channel ${params.channelId}`,
+    ),
+    ...(loginMode === "qr"
+      ? [formatCliCommand(`crawclaw channels login --channel ${params.channelId}`)]
+      : []),
+  ];
+
+  return {
+    channel: params.channelId,
+    label: params.plugin.meta.label,
+    detailLabel: params.plugin.meta.detailLabel ?? params.plugin.meta.label,
+    docsPath: params.plugin.meta.docsPath,
+    configured,
+    mode: adapter ? "wizard" : canEdit ? "config" : "none",
+    selectionHint,
+    quickstartScore,
+    statusLines,
+    accountIds,
+    defaultAccountId,
+    canSetup,
+    canEdit,
+    multiAccount: supportsChannelMultiAccount(params.plugin, params.cfg),
+    loginMode,
+    commands,
+  } as const;
 }
 
 export const channelsHandlers: GatewayRequestHandlers = {
@@ -339,13 +439,49 @@ export const channelsHandlers: GatewayRequestHandlers = {
         canLogout: plugin.gateway?.logoutAccount != null,
         canEdit: plugin.configSchema != null,
         canSetup: plugin.setupWizard != null || plugin.setup != null,
-        multiAccount: accounts.length > 1,
+        multiAccount: supportsChannelMultiAccount(plugin, cfg),
       };
       accountsMap[plugin.id] = accounts;
       defaultAccountIdMap[plugin.id] = defaultAccountId;
     }
 
     respond(true, payload, undefined);
+  },
+  "channels.setup.surface": async ({ params, respond }) => {
+    if (!validateChannelsSetupSurfaceParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid channels.setup.surface params: ${formatValidationErrors(validateChannelsSetupSurfaceParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    const cfg = loadChannelsConfig();
+    const target = resolveChannelAccountTarget(params, cfg);
+    if ("error" in target) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, target.error ?? "invalid channel"),
+      );
+      return;
+    }
+    try {
+      respond(
+        true,
+        await buildChannelsSetupSurface({
+          channelId: target.channelId,
+          plugin: target.plugin,
+          cfg,
+        }),
+        undefined,
+      );
+    } catch (err) {
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
+    }
   },
   "channels.account.login.start": async ({ params, respond, context }) => {
     if (!validateChannelsAccountLoginStartParams(params)) {

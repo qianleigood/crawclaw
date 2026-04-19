@@ -27,6 +27,7 @@ describe("method scope resolution", () => {
     ["memory.status", ["operator.read"]],
     ["memory.dream.status", ["operator.read"]],
     ["memory.sessionSummary.status", ["operator.read"]],
+    ["channels.setup.surface", ["operator.read"]],
     ["channels.config.get", ["operator.read"]],
     ["channels.config.schema", ["operator.read"]],
     ["channels.account.verify", ["operator.read"]],

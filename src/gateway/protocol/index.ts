@@ -48,6 +48,8 @@ import {
   ChannelsAccountLoginWaitParamsSchema,
   type ChannelsAccountReconnectParams,
   ChannelsAccountReconnectParamsSchema,
+  type ChannelsSetupSurfaceParams,
+  ChannelsSetupSurfaceParamsSchema,
   type ChannelsConfigApplyParams,
   ChannelsConfigApplyParamsSchema,
   type ChannelsConfigGetParams,
@@ -411,6 +413,9 @@ export const validateTalkSpeakResult = ajv.compile<TalkSpeakResult>(TalkSpeakRes
 export const validateChannelsStatusParams = ajv.compile<ChannelsStatusParams>(
   ChannelsStatusParamsSchema,
 );
+export const validateChannelsSetupSurfaceParams = ajv.compile<ChannelsSetupSurfaceParams>(
+  ChannelsSetupSurfaceParamsSchema,
+);
 export const validateChannelsLogoutParams = ajv.compile<ChannelsLogoutParams>(
   ChannelsLogoutParamsSchema,
 );
@@ -621,6 +626,7 @@ export {
   ChannelsAccountLoginStartParamsSchema,
   ChannelsAccountLoginWaitParamsSchema,
   ChannelsAccountReconnectParamsSchema,
+  ChannelsSetupSurfaceParamsSchema,
   ChannelsConfigGetParamsSchema,
   ChannelsConfigSchemaParamsSchema,
   ChannelsConfigPatchParamsSchema,
@@ -719,6 +725,7 @@ export type {
   TalkModeParams,
   ChannelsStatusParams,
   ChannelsStatusResult,
+  ChannelsSetupSurfaceParams,
   ChannelsLogoutParams,
   ChannelsAccountTargetParams,
   ChannelsAccountLoginStartParams,

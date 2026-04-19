@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   buildChannelAccountSnapshot: vi.fn(),
   getChannelActivity: vi.fn(),
   listRecentDiagnosticChannelStreamingDecisions: vi.fn(),
+  resolveChannelSetupWizardAdapterForPlugin: vi.fn(),
+  formatCliCommand: vi.fn((value: string) => value),
 }));
 
 vi.mock("../../config/config.js", async () => {
@@ -48,6 +50,14 @@ vi.mock("../../infra/channel-activity.js", () => ({
 vi.mock("../../logging/diagnostic-session-state.js", () => ({
   listRecentDiagnosticChannelStreamingDecisions:
     mocks.listRecentDiagnosticChannelStreamingDecisions,
+}));
+
+vi.mock("../../commands/channel-setup/registry.js", () => ({
+  resolveChannelSetupWizardAdapterForPlugin: mocks.resolveChannelSetupWizardAdapterForPlugin,
+}));
+
+vi.mock("../../cli/command-format.js", () => ({
+  formatCliCommand: mocks.formatCliCommand,
 }));
 
 import { channelsHandlers } from "./channels.js";
@@ -97,6 +107,7 @@ describe("channelsHandlers channels.status", () => {
       outboundAt: null,
     });
     mocks.listRecentDiagnosticChannelStreamingDecisions.mockReturnValue([]);
+    mocks.resolveChannelSetupWizardAdapterForPlugin.mockReturnValue(undefined);
     mocks.listChannelPlugins.mockReturnValue([
       {
         id: "whatsapp",
@@ -295,6 +306,71 @@ describe("channelsHandlers channels.status", () => {
         message: "scan now",
         qrDataUrl: "data:image/png;base64,abc",
       },
+      undefined,
+    );
+  });
+
+  it("builds a setup surface from the channel setup adapter", async () => {
+    const plugin = {
+      id: "telegram",
+      meta: {
+        label: "Telegram",
+        detailLabel: "Telegram bot",
+        docsPath: "/channels/telegram",
+      },
+      setupWizard: {},
+      configSchema: { schema: { type: "object" } },
+      config: {
+        listAccountIds: () => ["default", "ops"],
+        defaultAccountId: () => "default",
+        resolveAccount: () => ({}),
+      },
+      gateway: {
+        loginWithQrStart: vi.fn(),
+        loginWithQrWait: vi.fn(),
+      },
+    };
+    mocks.getChannelPlugin.mockReturnValue(plugin);
+    mocks.resolveChannelSetupWizardAdapterForPlugin.mockReturnValue({
+      getStatus: vi.fn(async () => ({
+        channel: "telegram",
+        configured: false,
+        statusLines: ["Telegram: needs token"],
+        selectionHint: "needs token",
+        quickstartScore: 2,
+      })),
+    });
+    const respond = vi.fn();
+    const opts = {
+      ...createOptions({ channel: "telegram" }, { respond }),
+      req: {
+        type: "req",
+        id: "req-setup",
+        method: "channels.setup.surface",
+        params: { channel: "telegram" },
+      },
+    } as unknown as GatewayRequestHandlerOptions;
+
+    await channelsHandlers["channels.setup.surface"](opts);
+
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channel: "telegram",
+        label: "Telegram",
+        detailLabel: "Telegram bot",
+        docsPath: "/channels/telegram",
+        configured: false,
+        mode: "wizard",
+        selectionHint: "needs token",
+        statusLines: ["Telegram: needs token"],
+        defaultAccountId: "default",
+        accountIds: ["default", "ops"],
+        canSetup: true,
+        canEdit: true,
+        multiAccount: true,
+        loginMode: "qr",
+      }),
       undefined,
     );
   });

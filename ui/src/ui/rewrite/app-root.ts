@@ -39,6 +39,11 @@ import {
   type ChannelConfigState,
 } from "../controllers/channel-config.ts";
 import {
+  loadChannelSetupSurface,
+  resetChannelSetupState,
+  type ChannelSetupState,
+} from "../controllers/channel-setup.ts";
+import {
   loadChannels,
   logoutWhatsApp,
   reconnectChannelAccount,
@@ -447,6 +452,23 @@ const APP_COPY = {
       actionEdit: "Edit settings",
       actionSetup: "Set up",
       actionNone: "No direct actions are exposed for this channel yet.",
+      setupKicker: "Setup",
+      setupTitle: "Get this channel ready",
+      setupHint:
+        "Use channel-specific guidance, account drafts, and command shortcuts when a channel still needs credentials, another account, or a quick repair path.",
+      setupMode: "Setup mode",
+      setupModeWizard: "Guided setup",
+      setupModeConfig: "Settings editor",
+      setupModeNone: "Reference only",
+      setupSelectionHint: "Current guidance",
+      setupDocs: "Docs",
+      setupUnavailable: "This channel does not expose a dedicated setup surface on this gateway.",
+      addAccountDraft: "Add account draft",
+      addAccountDraftPlaceholder: "Leave blank to auto-pick an account id",
+      addAccountDraftHint:
+        "For multi-account channels, this creates a draft account entry in the channel editor so you can fill credentials before saving.",
+      defaultAccount: "Default account",
+      makeDefaultAccount: "Make default",
     },
     workflows: {
       registry: "Registry",
@@ -918,6 +940,22 @@ const APP_COPY = {
       actionEdit: "编辑设置",
       actionSetup: "开始配置",
       actionNone: "当前还没有给这个渠道暴露直接动作。",
+      setupKicker: "配置引导",
+      setupTitle: "把这个渠道准备好",
+      setupHint:
+        "当渠道还缺凭据、需要新增账号，或需要一条更直接的修复路径时，这里会给出当前渠道自己的引导、草稿入口和命令提示。",
+      setupMode: "配置方式",
+      setupModeWizard: "引导式配置",
+      setupModeConfig: "设置编辑器",
+      setupModeNone: "仅参考说明",
+      setupSelectionHint: "当前建议",
+      setupDocs: "文档",
+      setupUnavailable: "这个渠道在当前网关上没有暴露专门的配置引导。",
+      addAccountDraft: "新增账号草稿",
+      addAccountDraftPlaceholder: "留空时自动生成账号 ID",
+      addAccountDraftHint: "多账号渠道可以先在这里建一个账号草稿，再到下方编辑器里补全凭据和字段。",
+      defaultAccount: "默认账号",
+      makeDefaultAccount: "设为默认",
     },
     workflows: {
       registry: "注册表",
@@ -1564,6 +1602,52 @@ function resolveDefaultChannelAccount(
   );
 }
 
+function asJsonRecord(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : null;
+}
+
+function resolveChannelSchemaProperty(schema: unknown, key: string): JsonRecord | null {
+  const root = asJsonRecord(schema);
+  const properties = asJsonRecord(root?.properties);
+  return asJsonRecord(properties?.[key]);
+}
+
+function channelConfigSupportsAccountsDraft(schema: unknown): boolean {
+  const accounts = resolveChannelSchemaProperty(schema, "accounts");
+  const type = accounts?.type;
+  return type === "object" || (Array.isArray(type) && type.includes("object"));
+}
+
+function channelConfigSupportsDefaultAccount(schema: unknown): boolean {
+  return resolveChannelSchemaProperty(schema, "defaultAccount") != null;
+}
+
+function resolveNextChannelDraftAccountId(params: {
+  accounts: readonly ChannelAccountSnapshot[];
+  configForm: Record<string, unknown> | null;
+  input: string;
+}) {
+  const preferred = params.input.trim();
+  if (preferred) {
+    return preferred;
+  }
+  const configAccounts = asJsonRecord(params.configForm?.accounts);
+  const used = new Set([
+    ...params.accounts.map((account) => account.accountId),
+    ...Object.keys(configAccounts ?? {}),
+  ]);
+  if (!used.has("default")) {
+    return "default";
+  }
+  let index = 2;
+  let candidate = `account-${index}`;
+  while (used.has(candidate)) {
+    index += 1;
+    candidate = `account-${index}`;
+  }
+  return candidate;
+}
+
 function countChannelAttentionIssues(accounts: readonly ChannelAccountSnapshot[]): number {
   return accounts.filter(
     (account) =>
@@ -1783,6 +1867,7 @@ export class CrawClawApp extends LitElement {
   @state() channelsSelectedChannelId = "";
   @state() channelsSelectedAccountId = "";
   @state() channelsEditorOpen = false;
+  @state() channelsDraftAccountId = "";
   @state() systemStatus: StatusSummary | null = null;
   @state() systemPresence: PresenceEntry[] = [];
   @state() systemHeartbeat: unknown = null;
@@ -1869,6 +1954,15 @@ export class CrawClawApp extends LitElement {
     configForm: null,
     configFormOriginal: null,
     configFormDirty: false,
+    lastError: null,
+  };
+
+  readonly channelSetupState: ChannelSetupState = {
+    client: null,
+    connected: false,
+    selectedChannelId: null,
+    loading: false,
+    surface: null,
     lastError: null,
   };
 
@@ -2138,6 +2232,8 @@ export class CrawClawApp extends LitElement {
     this.channelConfigState.client = client;
     this.channelConfigState.connected = connected;
     this.channelConfigState.applySessionKey = this.settings.sessionKey;
+    this.channelSetupState.client = client;
+    this.channelSetupState.connected = connected;
     this.configState.client = client;
     this.configState.connected = connected;
     this.configState.applySessionKey = this.settings.sessionKey;
@@ -2286,6 +2382,15 @@ export class CrawClawApp extends LitElement {
       case "channels":
         await this.safeCall(async () => {
           await loadChannels(this.channelsState, true);
+          const snapshot = this.channelsState.channelsSnapshot;
+          const selectedChannelId = snapshot?.channelOrder.includes(this.channelsSelectedChannelId)
+            ? this.channelsSelectedChannelId
+            : (snapshot?.channelOrder[0] ?? "");
+          if (selectedChannelId) {
+            await loadChannelSetupSurface(this.channelSetupState, selectedChannelId);
+          } else {
+            resetChannelSetupState(this.channelSetupState);
+          }
         });
         break;
       case "workflows":
@@ -2403,6 +2508,28 @@ export class CrawClawApp extends LitElement {
     void this.loadActivePage();
   }
 
+  private async refreshChannelSetupSurface(channelId: string) {
+    await this.safeCall(async () => {
+      await loadChannelSetupSurface(this.channelSetupState, channelId);
+    });
+  }
+
+  private async ensureChannelEditorReady(channelId: string) {
+    this.channelsSelectedChannelId = channelId;
+    this.channelsEditorOpen = true;
+    const needsReload =
+      this.channelConfigState.selectedChannelId !== channelId ||
+      this.channelConfigState.configSchema == null ||
+      this.channelConfigState.configSnapshot == null;
+    if (!needsReload) {
+      return;
+    }
+    await Promise.all([
+      loadChannelConfigSchema(this.channelConfigState, channelId),
+      loadChannelConfig(this.channelConfigState, channelId),
+    ]);
+  }
+
   private openChannelSettings(channelId: string, _accountId?: string | null) {
     this.channelsSelectedChannelId = channelId;
     this.channelsEditorOpen = true;
@@ -2422,6 +2549,7 @@ export class CrawClawApp extends LitElement {
   private selectChannel(channelId: string) {
     this.channelsSelectedChannelId = channelId;
     this.channelsSelectedAccountId = "";
+    void this.refreshChannelSetupSurface(channelId);
     if (this.channelsEditorOpen) {
       this.openChannelSettings(channelId);
     }
@@ -2430,6 +2558,51 @@ export class CrawClawApp extends LitElement {
   private selectChannelAccount(channelId: string, accountId: string) {
     this.channelsSelectedChannelId = channelId;
     this.channelsSelectedAccountId = accountId;
+  }
+
+  private async addChannelAccountDraft(
+    channelId: string,
+    accounts: readonly ChannelAccountSnapshot[],
+  ) {
+    await this.safeCall(async () => {
+      await this.ensureChannelEditorReady(channelId);
+      if (!channelConfigSupportsAccountsDraft(this.channelConfigState.configSchema)) {
+        this.channelSetupState.lastError =
+          "This channel does not expose an accounts map for draft entries.";
+        return;
+      }
+      const accountId = resolveNextChannelDraftAccountId({
+        accounts,
+        configForm: this.channelConfigState.configForm,
+        input: this.channelsDraftAccountId,
+      });
+      const existing = asJsonRecord(this.channelConfigState.configForm?.accounts);
+      if (existing?.[accountId]) {
+        this.channelSetupState.lastError = `Account "${accountId}" already exists in the draft config.`;
+        return;
+      }
+      updateChannelConfigFormValue(this.channelConfigState, ["accounts", accountId], {});
+      this.channelSetupState.lastError = null;
+      this.channelsDraftAccountId = "";
+    });
+  }
+
+  private async makeChannelAccountDefault(channelId: string, accountId: string) {
+    await this.safeCall(async () => {
+      await this.ensureChannelEditorReady(channelId);
+      if (!channelConfigSupportsDefaultAccount(this.channelConfigState.configSchema)) {
+        this.channelSetupState.lastError =
+          "This channel does not expose a default account selector in config.";
+        return;
+      }
+      updateChannelConfigFormValue(this.channelConfigState, ["defaultAccount"], accountId);
+      await applyChannelConfig(this.channelConfigState);
+      await Promise.all([
+        loadChannels(this.channelsState, true),
+        loadChannelSetupSurface(this.channelSetupState, channelId),
+      ]);
+      this.channelSetupState.lastError = null;
+    });
   }
 
   private handleGatewayFormSubmit(event: Event) {
@@ -4496,11 +4669,36 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const selectedConnectedCount = selectedAccounts.filter((account) => account.connected).length;
     const selectedIssueCount = countChannelAttentionIssues(selectedAccounts);
     const channelEditorAvailable = selectedControls.canEdit;
+    const setupSurface =
+      this.channelSetupState.selectedChannelId === selectedChannelId
+        ? this.channelSetupState.surface
+        : null;
+    const setupLoading =
+      this.channelSetupState.loading &&
+      this.channelSetupState.selectedChannelId === selectedChannelId;
     const channelEditorBusy =
       this.channelConfigState.configLoading ||
       this.channelConfigState.configSchemaLoading ||
       this.channelConfigState.configSaving ||
       this.channelConfigState.configApplying;
+    const currentDefaultAccountId =
+      setupSurface?.defaultAccountId ?? selectedDefaultAccount?.accountId ?? copy.common.none;
+    const selectedIsDefaultAccount =
+      Boolean(selectedAccount?.accountId) && selectedAccount?.accountId === currentDefaultAccountId;
+    const setupMode =
+      setupSurface?.mode === "wizard"
+        ? copy.channels.setupModeWizard
+        : setupSurface?.mode === "config"
+          ? copy.channels.setupModeConfig
+          : copy.channels.setupModeNone;
+    const showSetupPanel = Boolean(
+      selectedChannelId &&
+      (selectedControls.canSetup ||
+        channelEditorAvailable ||
+        selectedControls.multiAccount ||
+        !selectedAccounts.length ||
+        setupSurface?.statusLines.length),
+    );
     const loginSupported =
       this.client?.hasMethod("channels.account.login.start") === true ||
       this.client?.hasMethod("channels.login.start") === true ||
@@ -4707,6 +4905,10 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                     label: copy.channels.selectedAccount,
                     value: selectedAccount?.name ?? selectedAccount?.accountId ?? copy.common.none,
                   },
+                  {
+                    label: copy.channels.defaultAccount,
+                    value: currentDefaultAccountId,
+                  },
                   { label: copy.common.status, value: channelStatusTone(selectedChannelId).label },
                   {
                     label: copy.channels.qrLoginTitle,
@@ -4741,6 +4943,22 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                       })}
                   >
                     ${copy.channels.verifyConnection}
+                  </button>
+                  <button
+                    class="cp-button"
+                    ?disabled=${!selectedControls.multiAccount ||
+                    !channelEditorAvailable ||
+                    !selectedAccount ||
+                    selectedIsDefaultAccount}
+                    @click=${() =>
+                      selectedAccount
+                        ? void this.makeChannelAccountDefault(
+                            selectedChannelId,
+                            selectedAccount.accountId,
+                          )
+                        : undefined}
+                  >
+                    ${copy.channels.makeDefaultAccount}
                   </button>
                   <button
                     class="cp-button"
@@ -4821,6 +5039,10 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                       {
                         label: copy.channels.selectedAccount,
                         value: selectedAccount.name ?? selectedAccount.accountId,
+                      },
+                      {
+                        label: copy.channels.defaultAccount,
+                        value: selectedIsDefaultAccount ? copy.common.yes : currentDefaultAccountId,
                       },
                       {
                         label: copy.common.status,
@@ -4931,6 +5153,120 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                     `}
               </article>
             </section>
+            ${showSetupPanel
+              ? html`
+                  <section class="cp-grid">
+                    <article class="cp-panel cp-panel--fill">
+                      <div class="cp-panel__head">
+                        <div>
+                          <span class="cp-kicker">${copy.channels.setupKicker}</span>
+                          <h3>${copy.channels.setupTitle}</h3>
+                        </div>
+                      </div>
+                      <p class="cp-panel__subcopy">${copy.channels.setupHint}</p>
+                      ${setupLoading
+                        ? html`<p class="cp-empty">${copy.common.pending}</p>`
+                        : setupSurface
+                          ? html`
+                              ${this.renderMetaEntries(
+                                [
+                                  {
+                                    label: copy.channels.setupMode,
+                                    value: setupMode,
+                                  },
+                                  {
+                                    label: copy.common.status,
+                                    value: setupSurface.configured
+                                      ? copy.channels.channelConfigured
+                                      : copy.channels.channelNotConfigured,
+                                  },
+                                  {
+                                    label: copy.channels.defaultAccount,
+                                    value: currentDefaultAccountId,
+                                  },
+                                  {
+                                    label: copy.channels.setupSelectionHint,
+                                    value:
+                                      setupSurface.selectionHint?.trim() || copy.common.notRecorded,
+                                  },
+                                  {
+                                    label: copy.channels.setupDocs,
+                                    value: setupSurface.docsPath ?? copy.common.na,
+                                  },
+                                ],
+                                this.channelSetupState.lastError ?? undefined,
+                              )}
+                              <div class="cp-list cp-list--dense">
+                                ${setupSurface.statusLines.map(
+                                  (line) => html`<div class="cp-list-item">${line}</div>`,
+                                )}
+                              </div>
+                              <div class="cp-inline-actions" style="margin-top: 16px;">
+                                <button
+                                  class="cp-button"
+                                  ?disabled=${!channelEditorAvailable}
+                                  @click=${() =>
+                                    this.channelsEditorOpen
+                                      ? this.closeChannelSettings()
+                                      : this.openChannelSettings(selectedChannelId)}
+                                >
+                                  ${this.channelsEditorOpen
+                                    ? copy.channels.closeChannelEditor
+                                    : copy.channels.openChannelEditor}
+                                </button>
+                                <button
+                                  class="cp-button"
+                                  ?disabled=${!selectedControls.multiAccount ||
+                                  !channelEditorAvailable}
+                                  @click=${() =>
+                                    void this.addChannelAccountDraft(
+                                      selectedChannelId,
+                                      selectedAccounts,
+                                    )}
+                                >
+                                  ${copy.channels.addAccountDraft}
+                                </button>
+                              </div>
+                              ${selectedControls.multiAccount && channelEditorAvailable
+                                ? html`
+                                    <div class="cp-form" style="margin-top: 16px;">
+                                      <label>
+                                        <span>${copy.channels.addAccountDraft}</span>
+                                        <input
+                                          type="text"
+                                          .value=${this.channelsDraftAccountId}
+                                          placeholder=${copy.channels.addAccountDraftPlaceholder}
+                                          @input=${(event: Event) => {
+                                            this.channelsDraftAccountId = (
+                                              event.target as HTMLInputElement
+                                            ).value;
+                                          }}
+                                        />
+                                      </label>
+                                      <small class="cp-panel__subcopy">
+                                        ${copy.channels.addAccountDraftHint}
+                                      </small>
+                                    </div>
+                                  `
+                                : nothing}
+                              ${setupSurface.commands.length
+                                ? html`
+                                    <div class="cp-list cp-list--dense" style="margin-top: 16px;">
+                                      ${setupSurface.commands.map(
+                                        (command) =>
+                                          html`<pre class="cp-code cp-code--compact">
+${command}</pre
+                                          >`,
+                                      )}
+                                    </div>
+                                  `
+                                : nothing}
+                            `
+                          : html`<p class="cp-empty">${copy.channels.setupUnavailable}</p>`}
+                    </article>
+                  </section>
+                `
+              : nothing}
             <section class="cp-grid">
               <article class="cp-panel cp-panel--fill">
                 <div class="cp-panel__head">
@@ -4948,7 +5284,13 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                             @click=${() =>
                               void this.safeCall(async () => {
                                 await saveChannelConfig(this.channelConfigState);
-                                await loadChannels(this.channelsState, true);
+                                await Promise.all([
+                                  loadChannels(this.channelsState, true),
+                                  loadChannelSetupSurface(
+                                    this.channelSetupState,
+                                    selectedChannelId,
+                                  ),
+                                ]);
                               })}
                           >
                             ${copy.channels.saveChannelSettings}
@@ -4960,7 +5302,13 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                             @click=${() =>
                               void this.safeCall(async () => {
                                 await applyChannelConfig(this.channelConfigState);
-                                await loadChannels(this.channelsState, true);
+                                await Promise.all([
+                                  loadChannels(this.channelsState, true),
+                                  loadChannelSetupSurface(
+                                    this.channelSetupState,
+                                    selectedChannelId,
+                                  ),
+                                ]);
                               })}
                           >
                             ${copy.channels.applyChannelSettings}
@@ -4977,9 +5325,21 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                                   ),
                                   loadChannelConfig(this.channelConfigState, selectedChannelId),
                                 ]);
+                                await loadChannelSetupSurface(
+                                  this.channelSetupState,
+                                  selectedChannelId,
+                                );
                               })}
                           >
                             ${copy.channels.reloadChannelSettings}
+                          </button>
+                          <button
+                            class="cp-button"
+                            ?disabled=${channelEditorBusy || !selectedControls.multiAccount}
+                            @click=${() =>
+                              void this.addChannelAccountDraft(selectedChannelId, selectedAccounts)}
+                          >
+                            ${copy.channels.addAccountDraft}
                           </button>
                         </div>
                       `

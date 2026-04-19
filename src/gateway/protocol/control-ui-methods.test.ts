@@ -38,6 +38,7 @@ const FIRST_BATCH_METHODS = [
   "sessions.usage.timeseries",
   "sessions.usage.logs",
   "channels.status",
+  "channels.setup.surface",
   "channels.account.login.start",
   "channels.account.login.wait",
   "channels.account.reconnect",
@@ -140,6 +141,10 @@ describe("control-plane method contract", () => {
     expect(getControlUiMethodDefinition("channels.account.reconnect")).toMatchObject({
       stability: "stable",
       requiredScopes: ["operator.admin"],
+    });
+    expect(getControlUiMethodDefinition("channels.setup.surface")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.read"],
     });
     expect(getControlUiMethodDefinition("channels.config.get")).toMatchObject({
       stability: "stable",
@@ -368,6 +373,12 @@ describe("control-plane method contract", () => {
     );
     expect(ControlUiMethodContract["channels.account.login.start"].paramsSchema).toBe(
       ProtocolSchemas.ChannelsAccountLoginStartParams,
+    );
+    expect(ControlUiMethodContract["channels.setup.surface"].paramsSchema).toBe(
+      ProtocolSchemas.ChannelsSetupSurfaceParams,
+    );
+    expect(ControlUiMethodContract["channels.setup.surface"].resultSchema).toBe(
+      ProtocolSchemas.ChannelsSetupSurfaceResult,
     );
     expect(ControlUiMethodContract["channels.account.login.start"].resultSchema).toBe(
       ProtocolSchemas.ChannelsAccountLoginStartResult,

@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type, type Static } from "@sinclair/typebox";
 import { ConfigUiHintSchema } from "./config.js";
 import { NonEmptyString, SecretInputSchema } from "./primitives.js";
 
@@ -210,6 +210,38 @@ export const ChannelControlCapabilitiesSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+export const ChannelsSetupSurfaceParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsSetupSurfaceResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    label: NonEmptyString,
+    detailLabel: NonEmptyString,
+    docsPath: Type.Optional(Type.String()),
+    configured: Type.Boolean(),
+    mode: Type.Union([Type.Literal("none"), Type.Literal("wizard"), Type.Literal("config")]),
+    selectionHint: Type.Optional(Type.String()),
+    quickstartScore: Type.Optional(Type.Number()),
+    statusLines: Type.Array(Type.String()),
+    accountIds: Type.Array(NonEmptyString),
+    defaultAccountId: Type.Optional(Type.String()),
+    canSetup: Type.Boolean(),
+    canEdit: Type.Boolean(),
+    multiAccount: Type.Boolean(),
+    loginMode: Type.Union([Type.Literal("none"), Type.Literal("qr")]),
+    commands: Type.Array(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export type ChannelsSetupSurfaceParams = Static<typeof ChannelsSetupSurfaceParamsSchema>;
+export type ChannelsSetupSurfaceResult = Static<typeof ChannelsSetupSurfaceResultSchema>;
 
 export const ChannelsStatusResultSchema = Type.Object(
   {
