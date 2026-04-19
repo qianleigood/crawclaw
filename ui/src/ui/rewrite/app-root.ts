@@ -330,6 +330,12 @@ const APP_COPY = {
       restore: "Restore layout",
       clearAttachments: "Clear attachments",
       clearDraft: "Clear draft",
+      preparingAttachments: "Preparing attachments",
+      preparingAttachmentsHint: "{count} files are being prepared before send.",
+      historyLoading: "Loading conversation",
+      historyLoadingHint: "Recent messages are being loaded from the gateway.",
+      sendingNow: "Sending now",
+      sendingNowHint: "Your draft has been accepted and the reply is being prepared.",
       sendHint: "Enter sends · Shift+Enter adds a new line",
       commandHint: "Type / to browse commands",
       commandSuggestions: "Command suggestions",
@@ -736,6 +742,12 @@ const APP_COPY = {
       restore: "恢复布局",
       clearAttachments: "清空附件",
       clearDraft: "清空草稿",
+      preparingAttachments: "正在整理附件",
+      preparingAttachmentsHint: "还有 {count} 个文件正在发送前处理。",
+      historyLoading: "正在加载对话",
+      historyLoadingHint: "正在从网关读取最近消息。",
+      sendingNow: "正在发送",
+      sendingNowHint: "消息已经提交，正在等待回复开始生成。",
       sendHint: "回车发送 · Shift+Enter 换行",
       commandHint: "输入 / 查看可用指令",
       commandSuggestions: "指令提醒",
@@ -1617,6 +1629,7 @@ export class CrawClawApp extends LitElement {
     chatMessages: [],
     chatThinkingLevel: null,
     chatSending: false,
+    chatAttachmentLoadingCount: 0,
     chatMessage: "",
     chatAttachments: [],
     chatRunId: null,
@@ -2195,7 +2208,10 @@ export class CrawClawApp extends LitElement {
   }
 
   private async submitCurrentChatDraft() {
-    if (!this.chatState.chatMessage.trim() && this.chatState.chatAttachments.length === 0) {
+    if (
+      this.chatState.chatAttachmentLoadingCount > 0 ||
+      (!this.chatState.chatMessage.trim() && this.chatState.chatAttachments.length === 0)
+    ) {
       return;
     }
     await this.safeCall(async () => {
@@ -2315,58 +2331,66 @@ export class CrawClawApp extends LitElement {
       this.requestUpdate();
       return;
     }
-    const additions = await Promise.all(
-      readers.map(
-        ({ file, kind }) =>
-          new Promise<ChatAttachment>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.addEventListener("load", () => {
-              const id =
-                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                  ? crypto.randomUUID()
-                  : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-              if (kind === "text") {
-                const maxChars = 40_000;
-                const rawText = typeof reader.result === "string" ? reader.result : "";
-                const truncated = rawText.length > maxChars;
-                if (truncated) {
-                  oversizedTextFiles.add(file.name);
+    this.chatState.chatAttachmentLoadingCount = readers.length;
+    this.requestUpdate();
+    try {
+      const additions = await Promise.all(
+        readers.map(
+          ({ file, kind }) =>
+            new Promise<ChatAttachment>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.addEventListener("load", () => {
+                const id =
+                  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                    ? crypto.randomUUID()
+                    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                if (kind === "text") {
+                  const maxChars = 40_000;
+                  const rawText = typeof reader.result === "string" ? reader.result : "";
+                  const truncated = rawText.length > maxChars;
+                  if (truncated) {
+                    oversizedTextFiles.add(file.name);
+                  }
+                  resolve({
+                    id,
+                    kind: "text",
+                    dataUrl: "",
+                    mimeType: file.type || "text/plain",
+                    fileName: file.name,
+                    textContent: truncated ? rawText.slice(0, maxChars) : rawText,
+                    sizeBytes: file.size,
+                    truncated,
+                  });
+                  return;
                 }
                 resolve({
                   id,
-                  kind: "text",
-                  dataUrl: "",
-                  mimeType: file.type || "text/plain",
+                  kind,
+                  dataUrl: reader.result as string,
+                  mimeType: file.type,
                   fileName: file.name,
-                  textContent: truncated ? rawText.slice(0, maxChars) : rawText,
                   sizeBytes: file.size,
-                  truncated,
                 });
+              });
+              reader.addEventListener("error", () => reject(reader.error));
+              if (kind === "text") {
+                reader.readAsText(file);
                 return;
               }
-              resolve({
-                id,
-                kind,
-                dataUrl: reader.result as string,
-                mimeType: file.type,
-                fileName: file.name,
-                sizeBytes: file.size,
-              });
-            });
-            reader.addEventListener("error", () => reject(reader.error));
-            if (kind === "text") {
-              reader.readAsText(file);
-              return;
-            }
-            reader.readAsDataURL(file);
-          }),
-      ),
-    );
-    this.chatState.chatAttachments = [...this.chatState.chatAttachments, ...additions];
-    this.chatState.lastError = oversizedTextFiles.size
-      ? uiText(this.locale).sessions.fileTooLarge
-      : null;
-    this.requestUpdate();
+              reader.readAsDataURL(file);
+            }),
+        ),
+      );
+      this.chatState.chatAttachments = [...this.chatState.chatAttachments, ...additions];
+      this.chatState.lastError = oversizedTextFiles.size
+        ? uiText(this.locale).sessions.fileTooLarge
+        : null;
+    } catch (err) {
+      this.chatState.lastError = err instanceof Error ? err.message : String(err);
+    } finally {
+      this.chatState.chatAttachmentLoadingCount = 0;
+      this.requestUpdate();
+    }
   }
 
   private async handleChatFileSelect(event: Event) {
@@ -3312,6 +3336,10 @@ export class CrawClawApp extends LitElement {
       : this.chatState.chatSending
         ? copy.common.pending
         : (selected?.status ?? copy.common.idle);
+    const historyBusy = this.chatState.chatLoading;
+    const attachmentsBusy = this.chatState.chatAttachmentLoadingCount > 0;
+    const sendBusy = this.chatState.chatSending;
+    const composerBusy = attachmentsBusy || sendBusy;
     const selectedModel = selected?.model ?? this.sessionsState.sessionsResult?.defaults?.model;
     const selectedProvider =
       selected?.modelProvider ?? this.sessionsState.sessionsResult?.defaults?.modelProvider;
@@ -3535,6 +3563,17 @@ export class CrawClawApp extends LitElement {
               </div>
 
               <div class="cp-chat-thread cp-chat-thread--console">
+                ${historyBusy
+                  ? html`
+                      <div class="cp-chat-loading-strip" role="status" aria-live="polite">
+                        <span class="cp-chat-loading-strip__dot" aria-hidden="true"></span>
+                        <div>
+                          <strong>${copy.sessions.historyLoading}</strong>
+                          <small>${copy.sessions.historyLoadingHint}</small>
+                        </div>
+                      </div>
+                    `
+                  : nothing}
                 ${this.chatState.chatMessages.length
                   ? repeat(
                       this.chatState.chatMessages,
@@ -3575,7 +3614,15 @@ export class CrawClawApp extends LitElement {
                         </article>
                       `,
                     )
-                  : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
+                  : historyBusy
+                    ? html`
+                        <div class="cp-chat-thread__skeletons" aria-hidden="true">
+                          <div class="cp-chat-skeleton cp-chat-skeleton--assistant"></div>
+                          <div class="cp-chat-skeleton cp-chat-skeleton--user"></div>
+                          <div class="cp-chat-skeleton cp-chat-skeleton--assistant"></div>
+                        </div>
+                      `
+                    : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
                 ${this.chatState.chatStream
                   ? html`
                       <article class="cp-chat-entry cp-chat-entry--stream">
@@ -3618,15 +3665,46 @@ export class CrawClawApp extends LitElement {
                       <span> ${copy.sessions.attachments}: ${attachmentCount} </span>
                     </div>
                   </div>
+                  ${composerBusy
+                    ? html`
+                        <div
+                          class="cp-chat-loading-strip cp-chat-loading-strip--composer"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          <span class="cp-chat-loading-strip__dot" aria-hidden="true"></span>
+                          <div>
+                            <strong>
+                              ${attachmentsBusy
+                                ? copy.sessions.preparingAttachments
+                                : copy.sessions.sendingNow}
+                            </strong>
+                            <small>
+                              ${attachmentsBusy
+                                ? copy.sessions.preparingAttachmentsHint.replace(
+                                    "{count}",
+                                    String(this.chatState.chatAttachmentLoadingCount),
+                                  )
+                                : copy.sessions.sendingNowHint}
+                            </small>
+                          </div>
+                        </div>
+                      `
+                    : nothing}
                   <div class="cp-chat-attachments-toolbar">
                     <label class="cp-button cp-button--ghost cp-chat-attachments-toolbar__picker">
                       <input
                         type="file"
                         accept=${CHAT_COMPOSER_ATTACHMENT_ACCEPT}
                         multiple
+                        ?disabled=${composerBusy}
                         @change=${(event: Event) => void this.handleChatFileSelect(event)}
                       />
-                      <span>${copy.sessions.attachFiles}</span>
+                      <span>
+                        ${attachmentsBusy
+                          ? copy.sessions.preparingAttachments
+                          : copy.sessions.attachFiles}
+                      </span>
                     </label>
                     <span class="cp-chat-attachments-toolbar__hint">${copy.sessions.dragHint}</span>
                     ${this.chatState.chatAttachments.length
@@ -3701,142 +3779,156 @@ export class CrawClawApp extends LitElement {
                         </div>
                       `
                     : nothing}
-                  ${slashMenu.open
-                    ? html`
-                        <div
-                          class="cp-chat-slash-menu"
-                          role="listbox"
-                          aria-label=${copy.sessions.commandSuggestions}
-                        >
-                          <div class="cp-chat-slash-menu__head">
-                            <span>${copy.sessions.commandSuggestions}</span>
-                            <small>
-                              ${slashMenu.mode === "args"
-                                ? copy.sessions.commandHelpArgs
-                                : copy.sessions.commandHelp}
-                            </small>
-                          </div>
-                          ${slashMenu.mode === "command"
-                            ? html`
-                                <div class="cp-chat-slash-menu__groups">
-                                  ${repeat(
-                                    slashMenuGroups,
-                                    ([category]) => category,
-                                    ([category, entries]) => html`
-                                      <div class="cp-chat-slash-menu__group">
-                                        <span class="cp-chat-slash-menu__group-label">
-                                          ${slashCategoryLabel(this.locale, category)}
-                                        </span>
-                                        <div class="cp-chat-slash-menu__list">
-                                          ${repeat(
-                                            entries,
-                                            ({ item }) => item.key,
-                                            ({ item, index }) => html`
-                                              <button
-                                                class="cp-chat-slash-menu__item ${index ===
-                                                normalizedSlashIndex
-                                                  ? "is-active"
-                                                  : ""}"
-                                                type="button"
-                                                @click=${() =>
-                                                  void this.applySlashCommandSelection(item, true)}
-                                              >
-                                                <div class="cp-chat-slash-menu__row">
-                                                  <strong>/${item.name}</strong>
-                                                  <div class="cp-chat-slash-menu__badges">
-                                                    ${item.argOptions?.length
-                                                      ? html`
-                                                          <small class="cp-chat-slash-menu__badge">
-                                                            ${item.argOptions.length}
-                                                            ${copy.sessions.commandOptions}
-                                                          </small>
-                                                        `
+                  <div
+                    class="cp-chat-composer__input-shell ${slashMenu.open ? "is-menu-open" : ""}"
+                  >
+                    <textarea
+                      class="cp-chat-composer__textarea"
+                      .value=${this.chatState.chatMessage}
+                      placeholder=${copy.sessions.sendPlaceholder}
+                      aria-expanded=${slashMenu.open ? "true" : "false"}
+                      ?disabled=${attachmentsBusy}
+                      @keydown=${(event: KeyboardEvent) =>
+                        void this.handleChatComposerKeydown(event)}
+                      @input=${(event: Event) => {
+                        this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
+                        this.chatSlashSuppressed = false;
+                        this.chatSlashIndex = 0;
+                        this.requestUpdate();
+                      }}
+                    ></textarea>
+                    ${slashMenu.open
+                      ? html`
+                          <div
+                            class="cp-chat-slash-menu"
+                            role="listbox"
+                            aria-label=${copy.sessions.commandSuggestions}
+                          >
+                            <div class="cp-chat-slash-menu__head">
+                              <span>${copy.sessions.commandSuggestions}</span>
+                              <small>
+                                ${slashMenu.mode === "args"
+                                  ? copy.sessions.commandHelpArgs
+                                  : copy.sessions.commandHelp}
+                              </small>
+                            </div>
+                            ${slashMenu.mode === "command"
+                              ? html`
+                                  <div class="cp-chat-slash-menu__groups">
+                                    ${repeat(
+                                      slashMenuGroups,
+                                      ([category]) => category,
+                                      ([category, entries]) => html`
+                                        <div class="cp-chat-slash-menu__group">
+                                          <span class="cp-chat-slash-menu__group-label">
+                                            ${slashCategoryLabel(this.locale, category)}
+                                          </span>
+                                          <div class="cp-chat-slash-menu__list">
+                                            ${repeat(
+                                              entries,
+                                              ({ item }) => item.key,
+                                              ({ item, index }) => html`
+                                                <button
+                                                  class="cp-chat-slash-menu__item ${index ===
+                                                  normalizedSlashIndex
+                                                    ? "is-active"
+                                                    : ""}"
+                                                  type="button"
+                                                  @click=${() =>
+                                                    void this.applySlashCommandSelection(
+                                                      item,
+                                                      true,
+                                                    )}
+                                                >
+                                                  <div class="cp-chat-slash-menu__row">
+                                                    <strong>/${item.name}</strong>
+                                                    <div class="cp-chat-slash-menu__badges">
+                                                      ${item.argOptions?.length
+                                                        ? html`
+                                                            <small
+                                                              class="cp-chat-slash-menu__badge"
+                                                            >
+                                                              ${item.argOptions.length}
+                                                              ${copy.sessions.commandOptions}
+                                                            </small>
+                                                          `
+                                                        : nothing}
+                                                      ${item.executeLocal && !item.args
+                                                        ? html`
+                                                            <small
+                                                              class="cp-chat-slash-menu__badge"
+                                                            >
+                                                              ${copy.sessions.commandInstant}
+                                                            </small>
+                                                          `
+                                                        : nothing}
+                                                    </div>
+                                                  </div>
+                                                  <span>${item.description}</span>
+                                                  <div class="cp-chat-slash-menu__meta">
+                                                    ${item.args
+                                                      ? html`<small>${item.args}</small>`
                                                       : nothing}
-                                                    ${item.executeLocal && !item.args
+                                                    ${item.aliases?.length
                                                       ? html`
-                                                          <small class="cp-chat-slash-menu__badge">
-                                                            ${copy.sessions.commandInstant}
+                                                          <small>
+                                                            ${item.aliases
+                                                              .map((alias) => `/${alias}`)
+                                                              .join(" · ")}
                                                           </small>
                                                         `
                                                       : nothing}
                                                   </div>
-                                                </div>
-                                                <span>${item.description}</span>
-                                                <div class="cp-chat-slash-menu__meta">
-                                                  ${item.args
-                                                    ? html`<small>${item.args}</small>`
-                                                    : nothing}
-                                                  ${item.aliases?.length
-                                                    ? html`
-                                                        <small>
-                                                          ${item.aliases
-                                                            .map((alias) => `/${alias}`)
-                                                            .join(" · ")}
-                                                        </small>
-                                                      `
-                                                    : nothing}
-                                                </div>
-                                              </button>
-                                            `,
-                                          )}
-                                        </div>
-                                      </div>
-                                    `,
-                                  )}
-                                </div>
-                              `
-                            : html`
-                                <div class="cp-chat-slash-menu__group">
-                                  <span class="cp-chat-slash-menu__group-label">
-                                    /${slashMenu.command.name}
-                                  </span>
-                                  <div class="cp-chat-slash-menu__list">
-                                    ${repeat(
-                                      slashMenu.items,
-                                      (item) => item,
-                                      (item, index) => html`
-                                        <button
-                                          class="cp-chat-slash-menu__item ${index ===
-                                          normalizedSlashIndex
-                                            ? "is-active"
-                                            : ""}"
-                                          type="button"
-                                          @click=${() =>
-                                            void this.applySlashArgumentSelection(
-                                              slashMenu.command,
-                                              item,
-                                              true,
+                                                </button>
+                                              `,
                                             )}
-                                        >
-                                          <div class="cp-chat-slash-menu__row">
-                                            <strong>${item}</strong>
-                                            <small class="cp-chat-slash-menu__badge">
-                                              ${copy.sessions.commandInstant}
-                                            </small>
                                           </div>
-                                          <span>${slashMenu.command.description}</span>
-                                          <small>/${slashMenu.command.name} ${item}</small>
-                                        </button>
+                                        </div>
                                       `,
                                     )}
                                   </div>
-                                </div>
-                              `}
-                        </div>
-                      `
-                    : nothing}
-                  <textarea
-                    class="cp-chat-composer__textarea"
-                    .value=${this.chatState.chatMessage}
-                    placeholder=${copy.sessions.sendPlaceholder}
-                    @keydown=${(event: KeyboardEvent) => void this.handleChatComposerKeydown(event)}
-                    @input=${(event: Event) => {
-                      this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
-                      this.chatSlashSuppressed = false;
-                      this.chatSlashIndex = 0;
-                      this.requestUpdate();
-                    }}
-                  ></textarea>
+                                `
+                              : html`
+                                  <div class="cp-chat-slash-menu__group">
+                                    <span class="cp-chat-slash-menu__group-label">
+                                      /${slashMenu.command.name}
+                                    </span>
+                                    <div class="cp-chat-slash-menu__list">
+                                      ${repeat(
+                                        slashMenu.items,
+                                        (item) => item,
+                                        (item, index) => html`
+                                          <button
+                                            class="cp-chat-slash-menu__item ${index ===
+                                            normalizedSlashIndex
+                                              ? "is-active"
+                                              : ""}"
+                                            type="button"
+                                            @click=${() =>
+                                              void this.applySlashArgumentSelection(
+                                                slashMenu.command,
+                                                item,
+                                                true,
+                                              )}
+                                          >
+                                            <div class="cp-chat-slash-menu__row">
+                                              <strong>${item}</strong>
+                                              <small class="cp-chat-slash-menu__badge">
+                                                ${copy.sessions.commandInstant}
+                                              </small>
+                                            </div>
+                                            <span>${slashMenu.command.description}</span>
+                                            <small>/${slashMenu.command.name} ${item}</small>
+                                          </button>
+                                        `,
+                                      )}
+                                    </div>
+                                  </div>
+                                `}
+                          </div>
+                        `
+                      : nothing}
+                  </div>
                   <div class="cp-form__actions cp-form__actions--composer">
                     <span class="cp-chat-composer__hint">
                       ${copy.sessions.sendHint}
@@ -3846,7 +3938,7 @@ export class CrawClawApp extends LitElement {
                       <button
                         class="cp-button cp-button--ghost"
                         type="button"
-                        ?disabled=${draftLength === 0 && attachmentCount === 0}
+                        ?disabled=${composerBusy || (draftLength === 0 && attachmentCount === 0)}
                         @click=${() => {
                           this.chatState.chatMessage = "";
                           this.chatState.chatAttachments = [];
@@ -3855,8 +3947,12 @@ export class CrawClawApp extends LitElement {
                       >
                         ${copy.sessions.clearDraft}
                       </button>
-                      <button class="cp-button cp-button--primary" type="submit">
-                        ${copy.common.send}
+                      <button
+                        class="cp-button cp-button--primary"
+                        type="submit"
+                        ?disabled=${composerBusy || (draftLength === 0 && attachmentCount === 0)}
+                      >
+                        ${sendBusy ? copy.sessions.sendingNow : copy.common.send}
                       </button>
                     </div>
                   </div>

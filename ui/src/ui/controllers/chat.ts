@@ -41,6 +41,7 @@ export type ChatState = {
   chatMessages: unknown[];
   chatThinkingLevel: string | null;
   chatSending: boolean;
+  chatAttachmentLoadingCount: number;
   chatMessage: string;
   chatAttachments: ChatAttachment[];
   chatRunId: string | null;
