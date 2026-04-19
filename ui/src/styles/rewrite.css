@@ -814,6 +814,23 @@ crawclaw-app {
   background: rgba(8, 18, 31, 0.72);
 }
 
+.cp-panel__details {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(123, 162, 255, 0.1);
+  background: rgba(8, 18, 31, 0.54);
+}
+
+.cp-panel__details summary {
+  cursor: pointer;
+  color: var(--cp-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 @media (max-width: 780px) {
   .cp-channel-directory-grid,
   .cp-channel-choice-grid {
