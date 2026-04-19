@@ -19,6 +19,11 @@ import {
   ErrorCodes,
   errorShape,
   formatValidationErrors,
+  validateChannelsAccountLoginStartParams,
+  validateChannelsAccountLoginWaitParams,
+  validateChannelsAccountReconnectParams,
+  validateChannelsAccountLogoutParams,
+  validateChannelsAccountVerifyParams,
   validateChannelsLogoutParams,
   validateChannelsStatusParams,
 } from "../protocol/index.js";
@@ -66,6 +71,70 @@ export async function logoutChannelAccount(params: {
     ...result,
     cleared,
   };
+}
+
+function resolveRequestedChannelId(params: unknown): ChannelId | null {
+  const rawChannel = (params as { channel?: unknown }).channel;
+  return typeof rawChannel === "string" ? normalizeChannelId(rawChannel) : null;
+}
+
+function resolveRequestedAccountId(params: unknown): string | undefined {
+  const rawAccountId = (params as { accountId?: unknown }).accountId;
+  return typeof rawAccountId === "string" && rawAccountId.trim() ? rawAccountId.trim() : undefined;
+}
+
+function loadChannelsConfig(): CrawClawConfig {
+  return applyPluginAutoEnable({
+    config: loadConfig(),
+    env: process.env,
+  }).config;
+}
+
+function resolveChannelAccountTarget(params: unknown, cfg: CrawClawConfig) {
+  const channelId = resolveRequestedChannelId(params);
+  if (!channelId) {
+    return {
+      error: "invalid channel",
+    } as const;
+  }
+  const plugin = getChannelPlugin(channelId);
+  if (!plugin) {
+    return {
+      error: `channel ${channelId} is unavailable`,
+    } as const;
+  }
+  const accountId =
+    resolveRequestedAccountId(params) ||
+    plugin.config.defaultAccountId?.(cfg) ||
+    plugin.config.listAccountIds(cfg)[0] ||
+    DEFAULT_ACCOUNT_ID;
+  const account = plugin.config.resolveAccount(cfg, accountId);
+  return {
+    channelId,
+    plugin,
+    accountId,
+    account,
+  } as const;
+}
+
+function resolveRuntimeAccountSnapshot(params: {
+  context: GatewayRequestContext;
+  channelId: ChannelId;
+  accountId: string;
+  plugin: ChannelPlugin;
+  cfg: CrawClawConfig;
+}): ChannelAccountSnapshot | undefined {
+  const runtime = params.context.getRuntimeSnapshot();
+  const defaultAccountId =
+    params.plugin.config.defaultAccountId?.(params.cfg) ||
+    params.plugin.config.listAccountIds(params.cfg)[0] ||
+    DEFAULT_ACCOUNT_ID;
+  const accounts = runtime.channelAccounts[params.channelId];
+  const defaultRuntime = runtime.channels[params.channelId];
+  return (
+    accounts?.[params.accountId] ??
+    (params.accountId === defaultAccountId ? defaultRuntime : undefined)
+  );
 }
 
 export const channelsHandlers: GatewayRequestHandlers = {
@@ -223,10 +292,12 @@ export const channelsHandlers: GatewayRequestHandlers = {
       channelSystemImages: uiCatalog.systemImages,
       channelMeta: uiCatalog.entries,
       channels: {} as Record<string, unknown>,
+      channelControls: {} as Record<string, unknown>,
       channelAccounts: {} as Record<string, unknown>,
       channelDefaultAccountId: {} as Record<string, unknown>,
     };
     const channelsMap = payload.channels as Record<string, unknown>;
+    const controlsMap = payload.channelControls as Record<string, unknown>;
     const accountsMap = payload.channelAccounts as Record<string, unknown>;
     const defaultAccountIdMap = payload.channelDefaultAccountId as Record<string, unknown>;
     for (const plugin of plugins) {
@@ -249,11 +320,341 @@ export const channelsHandlers: GatewayRequestHandlers = {
             configured: defaultAccount?.configured ?? false,
           };
       channelsMap[plugin.id] = summary;
+      const loginMode =
+        plugin.gateway?.loginWithQrStart && plugin.gateway?.loginWithQrWait ? "qr" : "none";
+      const canReconnect = accounts.some((account) => account.configured);
+      const actions = [
+        ...(loginMode === "qr" ? ["login"] : []),
+        ...(canReconnect ? ["reconnect"] : []),
+        ...(plugin.status?.probeAccount || plugin.status?.auditAccount ? ["verify"] : []),
+        ...(plugin.gateway?.logoutAccount ? ["logout"] : []),
+        ...(plugin.configSchema || plugin.setupWizard || plugin.setup ? ["edit"] : []),
+        ...(plugin.setupWizard || plugin.setup ? ["setup"] : []),
+      ];
+      controlsMap[plugin.id] = {
+        loginMode,
+        actions,
+        canReconnect,
+        canVerify: plugin.status?.probeAccount != null || plugin.status?.auditAccount != null,
+        canLogout: plugin.gateway?.logoutAccount != null,
+        canEdit: plugin.configSchema != null || plugin.setupWizard != null || plugin.setup != null,
+        canSetup: plugin.setupWizard != null || plugin.setup != null,
+        multiAccount: accounts.length > 1,
+      };
       accountsMap[plugin.id] = accounts;
       defaultAccountIdMap[plugin.id] = defaultAccountId;
     }
 
     respond(true, payload, undefined);
+  },
+  "channels.account.login.start": async ({ params, respond, context }) => {
+    if (!validateChannelsAccountLoginStartParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid channels.account.login.start params: ${formatValidationErrors(validateChannelsAccountLoginStartParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    try {
+      const cfg = loadChannelsConfig();
+      const target = resolveChannelAccountTarget(params, cfg);
+      if ("error" in target) {
+        const message = target.error ?? "invalid channel";
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, message));
+        return;
+      }
+      if (!target.plugin.gateway?.loginWithQrStart) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `channel ${target.channelId} does not support QR login`,
+          ),
+        );
+        return;
+      }
+      await context.stopChannel(target.channelId, target.accountId);
+      const result = await target.plugin.gateway.loginWithQrStart({
+        accountId: target.accountId,
+        force: Boolean((params as { force?: boolean }).force),
+        timeoutMs:
+          typeof (params as { timeoutMs?: unknown }).timeoutMs === "number"
+            ? (params as { timeoutMs?: number }).timeoutMs
+            : undefined,
+        verbose: Boolean((params as { verbose?: boolean }).verbose),
+      });
+      respond(
+        true,
+        {
+          channel: target.channelId,
+          accountId: target.accountId,
+          ...result,
+        },
+        undefined,
+      );
+    } catch (err) {
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
+    }
+  },
+  "channels.account.login.wait": async ({ params, respond, context }) => {
+    if (!validateChannelsAccountLoginWaitParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid channels.account.login.wait params: ${formatValidationErrors(validateChannelsAccountLoginWaitParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    try {
+      const cfg = loadChannelsConfig();
+      const target = resolveChannelAccountTarget(params, cfg);
+      if ("error" in target) {
+        const message = target.error ?? "invalid channel";
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, message));
+        return;
+      }
+      if (!target.plugin.gateway?.loginWithQrWait) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `channel ${target.channelId} does not support QR login`,
+          ),
+        );
+        return;
+      }
+      const result = await target.plugin.gateway.loginWithQrWait({
+        accountId: target.accountId,
+        timeoutMs:
+          typeof (params as { timeoutMs?: unknown }).timeoutMs === "number"
+            ? (params as { timeoutMs?: number }).timeoutMs
+            : undefined,
+      });
+      if (result.connected) {
+        await context.startChannel(target.channelId, target.accountId);
+      }
+      respond(
+        true,
+        {
+          channel: target.channelId,
+          accountId: target.accountId,
+          ...result,
+        },
+        undefined,
+      );
+    } catch (err) {
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
+    }
+  },
+  "channels.account.reconnect": async ({ params, respond, context }) => {
+    if (!validateChannelsAccountReconnectParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid channels.account.reconnect params: ${formatValidationErrors(validateChannelsAccountReconnectParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    try {
+      const cfg = loadChannelsConfig();
+      const target = resolveChannelAccountTarget(params, cfg);
+      if ("error" in target) {
+        const message = target.error ?? "invalid channel";
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, message));
+        return;
+      }
+      const configured = target.plugin.config.isConfigured
+        ? await target.plugin.config.isConfigured(target.account, cfg)
+        : true;
+      if (!configured) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `channel ${target.channelId} account ${target.accountId} is not configured`,
+          ),
+        );
+        return;
+      }
+      await context.stopChannel(target.channelId, target.accountId);
+      await context.startChannel(target.channelId, target.accountId);
+      const restartedAt = Date.now();
+      const snapshot = await buildChannelAccountSnapshot({
+        plugin: target.plugin,
+        cfg,
+        accountId: target.accountId,
+        runtime: resolveRuntimeAccountSnapshot({
+          context,
+          channelId: target.channelId,
+          accountId: target.accountId,
+          plugin: target.plugin,
+          cfg,
+        }),
+      });
+      snapshot.lastStartAt ??= restartedAt;
+      respond(
+        true,
+        {
+          channel: target.channelId,
+          accountId: target.accountId,
+          restartedAt,
+          snapshot,
+        },
+        undefined,
+      );
+    } catch (err) {
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
+    }
+  },
+  "channels.account.verify": async ({ params, respond, context }) => {
+    if (!validateChannelsAccountVerifyParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid channels.account.verify params: ${formatValidationErrors(validateChannelsAccountVerifyParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    try {
+      const cfg = loadChannelsConfig();
+      const target = resolveChannelAccountTarget(params, cfg);
+      if ("error" in target) {
+        const message = target.error ?? "invalid channel";
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, message));
+        return;
+      }
+      if (!target.plugin.status?.probeAccount && !target.plugin.status?.auditAccount) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `channel ${target.channelId} does not support account verification`,
+          ),
+        );
+        return;
+      }
+      const timeoutMsRaw = (params as { timeoutMs?: unknown }).timeoutMs;
+      const timeoutMs = typeof timeoutMsRaw === "number" ? Math.max(1000, timeoutMsRaw) : 10_000;
+      const configured = target.plugin.config.isConfigured
+        ? await target.plugin.config.isConfigured(target.account, cfg)
+        : true;
+      let probe: unknown;
+      let audit: unknown;
+      let verifiedAt = Date.now();
+      if (configured && target.plugin.status?.probeAccount) {
+        probe = await target.plugin.status.probeAccount({
+          account: target.account,
+          timeoutMs,
+          cfg,
+        });
+        verifiedAt = Date.now();
+      }
+      if (configured && target.plugin.status?.auditAccount) {
+        audit = await target.plugin.status.auditAccount({
+          account: target.account,
+          timeoutMs,
+          cfg,
+          probe,
+        });
+      }
+      const snapshot = await buildChannelAccountSnapshot({
+        plugin: target.plugin,
+        cfg,
+        accountId: target.accountId,
+        runtime: resolveRuntimeAccountSnapshot({
+          context,
+          channelId: target.channelId,
+          accountId: target.accountId,
+          plugin: target.plugin,
+          cfg,
+        }),
+        probe,
+        audit,
+      });
+      snapshot.lastProbeAt = verifiedAt;
+      respond(
+        true,
+        {
+          channel: target.channelId,
+          accountId: target.accountId,
+          verifiedAt,
+          snapshot,
+          ...(probe !== undefined ? { probe } : {}),
+          ...(audit !== undefined ? { audit } : {}),
+        },
+        undefined,
+      );
+    } catch (err) {
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
+    }
+  },
+  "channels.account.logout": async ({ params, respond, context }) => {
+    if (!validateChannelsAccountLogoutParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid channels.account.logout params: ${formatValidationErrors(validateChannelsAccountLogoutParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    const snapshot = await readConfigFileSnapshot();
+    if (!snapshot.valid) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "config invalid; fix it before logging out"),
+      );
+      return;
+    }
+    try {
+      const target = resolveChannelAccountTarget(params, snapshot.runtimeConfig);
+      if ("error" in target) {
+        const message = target.error ?? "invalid channel";
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, message));
+        return;
+      }
+      if (!target.plugin.gateway?.logoutAccount) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `channel ${target.channelId} does not support logout`,
+          ),
+        );
+        return;
+      }
+      const payload = await logoutChannelAccount({
+        channelId: target.channelId,
+        accountId: target.accountId,
+        cfg: snapshot.runtimeConfig,
+        context,
+        plugin: target.plugin,
+      });
+      respond(true, payload, undefined);
+    } catch (err) {
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
+    }
   },
   "channels.logout": async ({ params, respond, context }) => {
     if (!validateChannelsLogoutParams(params)) {

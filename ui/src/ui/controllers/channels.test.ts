@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { loadChannels, startWhatsAppLogin, waitWhatsAppLogin } from "./channels.ts";
+import {
+  loadChannels,
+  reconnectChannelAccount,
+  startWhatsAppLogin,
+  verifyChannelAccount,
+  waitWhatsAppLogin,
+} from "./channels.ts";
 import type { ChannelsState } from "./channels.types.ts";
 
 function createState(): {
@@ -105,29 +111,149 @@ describe("loadChannels", () => {
   });
 });
 
-describe("whatsapp login method aliases", () => {
-  it("prefers channels.login.start when available", async () => {
+describe("channel account actions", () => {
+  it("prefers channels.account.login.start when available", async () => {
     const { state, request, hasMethod } = createState();
     hasMethod.mockImplementation((method: string) => method !== "web.login.start");
     request.mockResolvedValue({ message: "scan", qrDataUrl: "data:image/png;base64,abc" });
 
-    await startWhatsAppLogin(state, true);
+    await startWhatsAppLogin(state, true, "whatsapp", "default");
 
-    expect(request).toHaveBeenCalledWith("channels.login.start", {
+    expect(request).toHaveBeenCalledWith("channels.account.login.start", {
+      channel: "whatsapp",
       force: true,
       timeoutMs: 30000,
+      accountId: "default",
     });
   });
 
-  it("falls back to web.login.wait when only the legacy alias is present", async () => {
+  it("falls back to web.login.wait when only legacy wait is present", async () => {
     const { state, request, hasMethod } = createState();
     hasMethod.mockImplementation((method: string) => method === "web.login.wait");
     request.mockResolvedValue({ message: "connected", connected: true });
 
-    await waitWhatsAppLogin(state);
+    await waitWhatsAppLogin(state, "whatsapp", "work");
 
     expect(request).toHaveBeenCalledWith("web.login.wait", {
       timeoutMs: 120000,
+      accountId: "work",
+    });
+  });
+
+  it("verifies a selected account and patches the current snapshot", async () => {
+    const { state, request } = createState();
+    state.channelsSnapshot = {
+      ts: 1,
+      channelOrder: ["whatsapp"],
+      channelLabels: { whatsapp: "WhatsApp" },
+      channels: {},
+      channelAccounts: {
+        whatsapp: [
+          {
+            accountId: "default",
+            configured: true,
+            connected: false,
+          },
+        ],
+      },
+      channelDefaultAccountId: { whatsapp: "default" },
+    };
+    request.mockResolvedValue({
+      channel: "whatsapp",
+      accountId: "default",
+      snapshot: {
+        accountId: "default",
+        configured: true,
+        connected: true,
+        lastProbeAt: 123,
+      },
+    });
+
+    await verifyChannelAccount(state, "whatsapp", "default");
+
+    expect(request).toHaveBeenCalledWith("channels.account.verify", {
+      channel: "whatsapp",
+      accountId: "default",
+      timeoutMs: 8000,
+    });
+    expect(state.channelsSnapshot?.channelAccounts.whatsapp[0]).toMatchObject({
+      accountId: "default",
+      connected: true,
+      lastProbeAt: 123,
+    });
+  });
+
+  it("reconnects a selected account and refreshes channel status", async () => {
+    const { state, request } = createState();
+    state.channelsSnapshot = {
+      ts: 1,
+      channelOrder: ["telegram"],
+      channelLabels: { telegram: "Telegram" },
+      channels: {},
+      channelAccounts: {
+        telegram: [
+          {
+            accountId: "default",
+            configured: true,
+            connected: false,
+          },
+        ],
+      },
+      channelDefaultAccountId: { telegram: "default" },
+    };
+    request.mockImplementation(async (method: string) => {
+      if (method === "channels.account.reconnect") {
+        return {
+          channel: "telegram",
+          accountId: "default",
+          snapshot: {
+            accountId: "default",
+            configured: true,
+            connected: true,
+            running: true,
+          },
+        };
+      }
+      if (method === "channels.status") {
+        return {
+          ts: 2,
+          channelOrder: ["telegram"],
+          channelLabels: { telegram: "Telegram" },
+          channels: {},
+          channelAccounts: {
+            telegram: [
+              {
+                accountId: "default",
+                configured: true,
+                connected: true,
+                running: true,
+              },
+            ],
+          },
+          channelDefaultAccountId: { telegram: "default" },
+        };
+      }
+      if (method === "feishu.cli.status") {
+        return null;
+      }
+      throw new Error(`unexpected method: ${method}`);
+    });
+
+    await reconnectChannelAccount(state, "telegram", "default");
+
+    expect(request).toHaveBeenNthCalledWith(1, "channels.account.reconnect", {
+      channel: "telegram",
+      accountId: "default",
+      timeoutMs: 10000,
+    });
+    expect(request).toHaveBeenNthCalledWith(2, "channels.status", {
+      probe: true,
+      timeoutMs: 8000,
+    });
+    expect(state.channelsSnapshot?.channelAccounts.telegram[0]).toMatchObject({
+      accountId: "default",
+      connected: true,
+      running: true,
     });
   });
 });

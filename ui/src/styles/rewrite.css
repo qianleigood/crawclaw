@@ -680,6 +680,65 @@ crawclaw-app {
   margin-bottom: 4px;
 }
 
+.cp-channel-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cp-channel-card {
+  display: grid;
+  gap: 12px;
+}
+
+.cp-channel-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cp-channel-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--cp-text-muted);
+  font-size: 0.74rem;
+}
+
+.cp-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cp-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  border: 1px solid rgba(123, 162, 255, 0.16);
+  background: rgba(8, 18, 31, 0.78);
+  color: var(--cp-text-soft);
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.cp-chip--muted {
+  color: var(--cp-text-muted);
+  border-color: rgba(123, 162, 255, 0.1);
+}
+
+.cp-channel-login-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(123, 162, 255, 0.14);
+  background: rgba(8, 18, 31, 0.72);
+}
+
 .cp-action-card small,
 .cp-session-item span,
 .cp-session-item small,

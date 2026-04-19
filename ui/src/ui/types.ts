@@ -22,8 +22,20 @@ export type ChannelsStatusSnapshot = {
   channelSystemImages?: Record<string, string>;
   channelMeta?: ChannelUiMetaEntry[];
   channels: Record<string, unknown>;
+  channelControls?: Record<string, ChannelControlCapabilities>;
   channelAccounts: Record<string, ChannelAccountSnapshot[]>;
   channelDefaultAccountId: Record<string, string>;
+};
+
+export type ChannelControlCapabilities = {
+  loginMode: "none" | "qr";
+  actions: string[];
+  canReconnect: boolean;
+  canVerify: boolean;
+  canLogout: boolean;
+  canEdit: boolean;
+  canSetup: boolean;
+  multiAccount: boolean;
 };
 
 export type FeishuCliStatusSnapshot = {

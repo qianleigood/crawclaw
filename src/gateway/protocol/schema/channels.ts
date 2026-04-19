@@ -196,6 +196,20 @@ export const ChannelUiMetaSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ChannelControlCapabilitiesSchema = Type.Object(
+  {
+    loginMode: Type.Union([Type.Literal("none"), Type.Literal("qr")]),
+    actions: Type.Array(NonEmptyString),
+    canReconnect: Type.Boolean(),
+    canVerify: Type.Boolean(),
+    canLogout: Type.Boolean(),
+    canEdit: Type.Boolean(),
+    canSetup: Type.Boolean(),
+    multiAccount: Type.Boolean(),
+  },
+  { additionalProperties: false },
+);
+
 export const ChannelsStatusResultSchema = Type.Object(
   {
     ts: Type.Integer({ minimum: 0 }),
@@ -205,6 +219,7 @@ export const ChannelsStatusResultSchema = Type.Object(
     channelSystemImages: Type.Optional(Type.Record(NonEmptyString, NonEmptyString)),
     channelMeta: Type.Optional(Type.Array(ChannelUiMetaSchema)),
     channels: Type.Record(NonEmptyString, Type.Unknown()),
+    channelControls: Type.Optional(Type.Record(NonEmptyString, ChannelControlCapabilitiesSchema)),
     channelAccounts: Type.Record(NonEmptyString, Type.Array(ChannelAccountSnapshotSchema)),
     channelDefaultAccountId: Type.Record(NonEmptyString, NonEmptyString),
   },
@@ -212,6 +227,14 @@ export const ChannelsStatusResultSchema = Type.Object(
 );
 
 export const ChannelsLogoutParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountTargetParamsSchema = Type.Object(
   {
     channel: NonEmptyString,
     accountId: Type.Optional(Type.String()),
@@ -229,10 +252,107 @@ export const WebLoginStartParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ChannelsAccountLoginStartParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+    force: Type.Optional(Type.Boolean()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    verbose: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountLoginStartResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: NonEmptyString,
+    message: NonEmptyString,
+    qrDataUrl: Type.Optional(Type.String()),
+  },
+  { additionalProperties: true },
+);
+
 export const WebLoginWaitParamsSchema = Type.Object(
   {
     timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
     accountId: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
+);
+
+export const ChannelsAccountLoginWaitParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountLoginWaitResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: NonEmptyString,
+    connected: Type.Boolean(),
+    message: NonEmptyString,
+  },
+  { additionalProperties: true },
+);
+
+export const ChannelsAccountVerifyParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountVerifyResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: NonEmptyString,
+    verifiedAt: Type.Integer({ minimum: 0 }),
+    snapshot: ChannelAccountSnapshotSchema,
+    probe: Type.Optional(Type.Unknown()),
+    audit: Type.Optional(Type.Unknown()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountReconnectParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountReconnectResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: NonEmptyString,
+    restartedAt: Type.Integer({ minimum: 0 }),
+    snapshot: Type.Optional(ChannelAccountSnapshotSchema),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountLogoutParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAccountLogoutResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: NonEmptyString,
+    cleared: Type.Boolean(),
+  },
+  { additionalProperties: true },
 );

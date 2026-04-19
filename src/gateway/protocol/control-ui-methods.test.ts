@@ -38,6 +38,11 @@ const FIRST_BATCH_METHODS = [
   "sessions.usage.timeseries",
   "sessions.usage.logs",
   "channels.status",
+  "channels.account.login.start",
+  "channels.account.login.wait",
+  "channels.account.reconnect",
+  "channels.account.verify",
+  "channels.account.logout",
   "channels.login.start",
   "channels.login.wait",
   "web.login.start",
@@ -118,6 +123,26 @@ describe("control-plane method contract", () => {
     expect(getControlUiMethodDefinition("channels.login.start")).toMatchObject({
       capability: "channels.login",
       stability: "optional",
+      requiredScopes: ["operator.admin"],
+    });
+    expect(getControlUiMethodDefinition("channels.account.login.start")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.admin"],
+    });
+    expect(getControlUiMethodDefinition("channels.account.login.wait")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.admin"],
+    });
+    expect(getControlUiMethodDefinition("channels.account.reconnect")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.admin"],
+    });
+    expect(getControlUiMethodDefinition("channels.account.verify")).toMatchObject({
+      stability: "stable",
+      requiredScopes: ["operator.read"],
+    });
+    expect(getControlUiMethodDefinition("channels.account.logout")).toMatchObject({
+      stability: "stable",
       requiredScopes: ["operator.admin"],
     });
     expect(getControlUiMethodDefinition("channels.login.wait")).toMatchObject({
@@ -312,6 +337,24 @@ describe("control-plane method contract", () => {
     );
     expect(ControlUiMethodContract["exec.approvals.node.set"].paramsSchema).toBe(
       ProtocolSchemas.ExecApprovalsNodeSetParams,
+    );
+    expect(ControlUiMethodContract["channels.account.login.start"].paramsSchema).toBe(
+      ProtocolSchemas.ChannelsAccountLoginStartParams,
+    );
+    expect(ControlUiMethodContract["channels.account.login.start"].resultSchema).toBe(
+      ProtocolSchemas.ChannelsAccountLoginStartResult,
+    );
+    expect(ControlUiMethodContract["channels.account.verify"].paramsSchema).toBe(
+      ProtocolSchemas.ChannelsAccountVerifyParams,
+    );
+    expect(ControlUiMethodContract["channels.account.verify"].resultSchema).toBe(
+      ProtocolSchemas.ChannelsAccountVerifyResult,
+    );
+    expect(ControlUiMethodContract["channels.account.reconnect"].paramsSchema).toBe(
+      ProtocolSchemas.ChannelsAccountReconnectParams,
+    );
+    expect(ControlUiMethodContract["channels.account.reconnect"].resultSchema).toBe(
+      ProtocolSchemas.ChannelsAccountReconnectResult,
     );
     expect(ControlUiMethodContract["memory.status"].paramsSchema).toBe(
       ProtocolSchemas.MemoryStatusParams,
