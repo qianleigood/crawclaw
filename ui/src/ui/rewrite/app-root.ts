@@ -4817,12 +4817,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const flattenedAccounts = flattenChannelAccounts(snapshot);
     const channelIds = snapshot?.channelOrder ?? [];
     const catalogChannelIds = snapshot?.catalogOrder?.length ? snapshot.catalogOrder : channelIds;
-    const configuredCatalogIds = catalogChannelIds.filter((channelId) =>
-      channelIds.includes(channelId),
-    );
-    const availableCatalogIds = catalogChannelIds.filter(
-      (channelId) => !channelIds.includes(channelId),
-    );
     const connectedAccounts = flattenedAccounts.filter((entry) => entry.account.connected).length;
     const channelsNeedingAttention = channelIds.filter(
       (channelId) => countChannelAttentionIssues(resolveChannelAccounts(snapshot, channelId)) > 0,
@@ -5131,15 +5125,46 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       `;
     };
 
-    const renderConfiguredCatalogCard = (channelId: string) => {
+    const openCatalogEntry = (channelId: string) => {
+      const controls = resolveChannelControls(snapshot, channelId);
+      const configured = channelIds.includes(channelId);
+      if (configured) {
+        this.selectChannel(channelId);
+        return;
+      }
+      if (controls.canEdit) {
+        this.openChannelSettings(channelId, null, "add");
+        return;
+      }
+      this.selectChannel(channelId);
+    };
+
+    const renderCatalogCard = (channelId: string) => {
       const accounts = resolveChannelAccounts(snapshot, channelId);
       const controls = resolveChannelControls(snapshot, channelId);
       const meta = resolveChannelCatalogMeta(snapshot, channelId);
+      const configured = channelIds.includes(channelId);
       const configuredCount = accounts.filter((account) => account.configured).length;
       const connectedCount = accounts.filter((account) => account.connected).length;
       const issueCount = countChannelAttentionIssues(accounts);
-      const statusTone = channelStatusTone(channelId);
+      const statusTone = configured
+        ? channelStatusTone(channelId)
+        : { label: copy.channels.channelAvailableToAdd, className: "" };
       const canAddAnotherAccount = configuredCount > 0 && controls.multiAccount && controls.canEdit;
+      const primaryLabel = configured
+        ? canAddAnotherAccount
+          ? copy.channels.addAnotherAccount
+          : copy.channels.openSettings
+        : controls.canEdit
+          ? copy.channels.actionSetup
+          : copy.channels.viewChannelGuide;
+      const summaryHint = configured
+        ? canAddAnotherAccount
+          ? copy.channels.addAnotherAccountHint
+          : copy.channels.stepSettingsHint
+        : controls.canEdit
+          ? copy.channels.stepSetupHint
+          : copy.channels.catalogOnlyHint;
       return html`
         <article class="cp-action-card cp-channel-card cp-channel-card--catalog">
           <div class="cp-channel-card__head">
@@ -5163,20 +5188,14 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             <span class=${`cp-badge ${statusTone.className}`}>${statusTone.label}</span>
           </div>
           <div class="cp-channel-card__stats">
-            <span>${copy.common.accounts}: ${accounts.length}</span>
-            <span>${copy.common.connectedAccounts}: ${connectedCount}</span>
-            <span>${copy.channels.issueCount}: ${issueCount}</span>
+            <span>${copy.common.accounts}: ${configured ? accounts.length : 0}</span>
+            <span>${copy.common.connectedAccounts}: ${configured ? connectedCount : 0}</span>
+            <span>${copy.channels.issueCount}: ${configured ? issueCount : 0}</span>
           </div>
           <div class="cp-channel-card__summary">
             <span>${copy.channels.recommendedNext}</span>
-            <strong>
-              ${canAddAnotherAccount ? copy.channels.addAnotherAccount : copy.channels.openSettings}
-            </strong>
-            <small>
-              ${canAddAnotherAccount
-                ? copy.channels.addAnotherAccountHint
-                : copy.channels.stepSettingsHint}
-            </small>
+            <strong>${primaryLabel}</strong>
+            <small>${summaryHint}</small>
           </div>
           <div class="cp-inline-actions">
             ${canAddAnotherAccount
@@ -5190,61 +5209,17 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 `
               : nothing}
             <button
-              class="cp-button"
-              @click=${() => this.openChannelSettings(channelId, null, "guide")}
+              class=${`cp-button ${canAddAnotherAccount ? "" : "cp-button--primary"}`.trim()}
+              @click=${() => openCatalogEntry(channelId)}
             >
-              ${copy.channels.openSettings}
+              ${primaryLabel}
             </button>
-          </div>
-        </article>
-      `;
-    };
-
-    const renderAvailableCatalogCard = (channelId: string) => {
-      const meta = resolveChannelCatalogMeta(snapshot, channelId);
-      const docsPath = meta?.docsPath?.trim() || null;
-      const installNpmSpec = meta?.installNpmSpec?.trim() || null;
-      return html`
-        <article class="cp-action-card cp-channel-card cp-channel-card--catalog">
-          <div class="cp-channel-card__head">
-            <div>
-              <strong>
-                ${snapshot?.catalogLabels?.[channelId] ??
-                snapshot?.channelLabels[channelId] ??
-                meta?.label ??
-                channelId}
-              </strong>
-              <small>
-                ${snapshot?.catalogDetailLabels?.[channelId] ??
-                snapshot?.channelDetailLabels?.[channelId] ??
-                meta?.detailLabel ??
-                snapshot?.catalogLabels?.[channelId] ??
-                snapshot?.channelLabels[channelId] ??
-                meta?.label ??
-                channelId}
-              </small>
-            </div>
-            <span class="cp-badge">${copy.channels.channelAvailableToAdd}</span>
-          </div>
-          <div class="cp-channel-card__stats">
-            <span>${copy.channels.catalogPackage}: ${installNpmSpec ?? copy.common.na}</span>
-            <span
-              >${copy.channels.catalogDocs}:
-              ${docsPath ? copy.common.available : copy.common.na}</span
-            >
-          </div>
-          <div class="cp-channel-card__summary">
-            <span>${copy.channels.recommendedNext}</span>
-            <strong>${copy.channels.viewChannelGuide}</strong>
-            <small>${copy.channels.catalogOnlyHint}</small>
-          </div>
-          <div class="cp-inline-actions">
-            ${docsPath
+            ${!configured && meta?.docsPath
               ? html`
                   <button
-                    class="cp-button cp-button--primary"
+                    class="cp-button"
                     @click=${() => {
-                      openExternalUrlSafe(docsPath);
+                      openExternalUrlSafe(meta.docsPath!);
                     }}
                   >
                     ${copy.channels.viewChannelGuide}
@@ -5272,42 +5247,13 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
           ${!addChannelIds.length
             ? html`<p class="cp-empty">${copy.channels.addFlowEmpty}</p>`
             : html`
-                <section class="cp-channel-catalog-block">
-                  <div class="cp-channel-catalog-block__head">
-                    <div>
-                      <span class="cp-kicker">${copy.channels.directoryKicker}</span>
-                      <h4>${copy.channels.configuredCatalogTitle}</h4>
-                    </div>
-                    <p>${copy.channels.configuredCatalogHint}</p>
-                  </div>
-                  <div class="cp-channel-directory-grid">
-                    ${configuredCatalogIds.length
-                      ? repeat(
-                          configuredCatalogIds,
-                          (channelId) => channelId,
-                          (channelId) => renderConfiguredCatalogCard(channelId),
-                        )
-                      : html`<p class="cp-empty">${copy.channels.noAccounts}</p>`}
-                  </div>
-                </section>
-                <section class="cp-channel-catalog-block">
-                  <div class="cp-channel-catalog-block__head">
-                    <div>
-                      <span class="cp-kicker">${copy.channels.addFlowKicker}</span>
-                      <h4>${copy.channels.availableCatalogTitle}</h4>
-                    </div>
-                    <p>${copy.channels.availableCatalogHint}</p>
-                  </div>
-                  <div class="cp-channel-directory-grid">
-                    ${availableCatalogIds.length
-                      ? repeat(
-                          availableCatalogIds,
-                          (channelId) => channelId,
-                          (channelId) => renderAvailableCatalogCard(channelId),
-                        )
-                      : html`<p class="cp-empty">${copy.channels.channelConfigured}</p>`}
-                  </div>
-                </section>
+                <div class="cp-channel-directory-grid">
+                  ${repeat(
+                    addChannelIds,
+                    (channelId) => channelId,
+                    (channelId) => renderCatalogCard(channelId),
+                  )}
+                </div>
               `}
         </article>
       </div>
@@ -5797,33 +5743,30 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                       ])}
                     </section>
                     <section class="cp-panel cp-panel--fill">
-                      <div class="cp-panel__head">
-                        <div>
-                          <span class="cp-kicker">${copy.channels.settingsReferenceTitle}</span>
-                          <h3>${copy.channels.settingsReferenceTitle}</h3>
-                        </div>
-                      </div>
-                      <p class="cp-panel__subcopy">${copy.channels.settingsReferenceHint}</p>
-                      ${setupSurface?.commands?.length
-                        ? html`
-                            <div class="cp-list cp-list--dense">
-                              ${setupSurface.commands.map(
-                                (command) =>
-                                  html`<pre class="cp-code cp-code--compact">${command}</pre>`,
-                              )}
-                            </div>
-                          `
-                        : html`<p class="cp-empty">${copy.channels.settingsReferenceEmpty}</p>`}
-                      ${this.renderMetaEntries([
-                        {
-                          label: copy.channels.catalogDocs,
-                          value: selectedChannelMeta?.docsPath ?? copy.common.na,
-                        },
-                        {
-                          label: copy.channels.catalogPackage,
-                          value: selectedChannelMeta?.installNpmSpec ?? copy.common.na,
-                        },
-                      ])}
+                      <details class="cp-channel-settings-technical">
+                        <summary>${copy.channels.settingsReferenceTitle}</summary>
+                        <p class="cp-panel__subcopy">${copy.channels.settingsReferenceHint}</p>
+                        ${setupSurface?.commands?.length
+                          ? html`
+                              <div class="cp-list cp-list--dense">
+                                ${setupSurface.commands.map(
+                                  (command) =>
+                                    html`<pre class="cp-code cp-code--compact">${command}</pre>`,
+                                )}
+                              </div>
+                            `
+                          : html`<p class="cp-empty">${copy.channels.settingsReferenceEmpty}</p>`}
+                        ${this.renderMetaEntries([
+                          {
+                            label: copy.channels.catalogDocs,
+                            value: selectedChannelMeta?.docsPath ?? copy.common.na,
+                          },
+                          {
+                            label: copy.channels.catalogPackage,
+                            value: selectedChannelMeta?.installNpmSpec ?? copy.common.na,
+                          },
+                        ])}
+                      </details>
                     </section>
                     <section class="cp-panel cp-panel--fill">
                       <details class="cp-channel-settings-technical">

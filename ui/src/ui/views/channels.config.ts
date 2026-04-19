@@ -85,24 +85,24 @@ const CHANNEL_CONFIG_SECTION_COPY_KEYS: Record<
   { title: string; hint: string; collapsible?: boolean }
 > = {
   basic: {
-    title: "1. Start with the basics",
-    hint: "Only fill the fields needed to get this channel online.",
+    title: "基础设置",
+    hint: "先填写让这个渠道能上线的必要字段。",
   },
   auth: {
-    title: "2. Login and credentials",
-    hint: "Paste tokens, secrets, app ids, or cookie paths here.",
+    title: "登录与凭据",
+    hint: "把 token、secret、应用 ID 或 cookie 路径填在这里。",
   },
   accounts: {
-    title: "3. Accounts and destinations",
-    hint: "Add accounts, pick the default one, and set the target chat or room here.",
+    title: "账号与目标位置",
+    hint: "在这里新增账号、设置默认账号，并填写目标会话或房间。",
   },
   behavior: {
-    title: "4. Reply behavior",
-    hint: "Adjust how replies stream, mention groups, and behave after delivery.",
+    title: "回复与行为",
+    hint: "这里调整流式回复、群组提及，以及消息发出后的行为。",
   },
   advanced: {
-    title: "Advanced options (optional)",
-    hint: "Leave this alone unless you know a channel-specific setting needs to change.",
+    title: "高级选项（可选）",
+    hint: "如果你不确定，不要动这里。只有明确知道某个渠道专用设置需要修改时再打开。",
     collapsible: true,
   },
 };
