@@ -32,6 +32,7 @@ import type {
   FallbackStatus as FallbackIndicatorStatus,
 } from "../chat/tool-stream-state.ts";
 import { icons } from "../icons.ts";
+import { sessionDisplayName } from "../session-display.ts";
 import { detectTextDirection } from "../text-direction.ts";
 import type { GatewaySessionRow, SessionsListResult } from "../types.ts";
 import type { ChatItem, MessageGroup } from "../types/chat-types.ts";
@@ -40,70 +41,6 @@ import type { ChatAttachment, ChatQueueItem } from "../ui-types.ts";
 import { agentLogoUrl, resolveAgentAvatarUrl } from "./agents-utils.ts";
 import "../components/resizable-divider.ts";
 import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
-
-type SessionDisplayLike = Pick<
-  GatewaySessionRow,
-  "key" | "displayName" | "label" | "subject" | "room" | "space" | "surface" | "channel" | "origin"
->;
-
-function sessionSurfaceLabel(session: SessionDisplayLike): string {
-  const raw =
-    session.channel || session.origin?.surface || session.origin?.provider || session.surface;
-  const normalized = raw?.trim().toLowerCase() || "session";
-  const labels: Record<string, string> = {
-    whatsapp: "WhatsApp",
-    telegram: "Telegram",
-    discord: "Discord",
-    slack: "Slack",
-    signal: "Signal",
-    imessage: "iMessage",
-    googlechat: "Google Chat",
-    webchat: "Web",
-    feishu: "Feishu",
-    matrix: "Matrix",
-    teams: "Teams",
-  };
-  return labels[normalized] ?? raw?.trim() ?? "Session";
-}
-
-function normalizeSessionIdentity(
-  raw?: string | null,
-  session?: SessionDisplayLike,
-): string | null {
-  const trimmed = raw?.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const surfaceKey = session?.channel || session?.origin?.surface || session?.origin?.provider;
-  const normalizedSurface = surfaceKey?.trim().toLowerCase();
-  let next = trimmed;
-  if (normalizedSurface && next.toLowerCase().startsWith(`${normalizedSurface}:`)) {
-    next = next.slice(normalizedSurface.length + 1).trim();
-  }
-  if (next.startsWith("g-") && next.length > 2) {
-    next = next.slice(2);
-  }
-  next = next.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  return next || null;
-}
-
-function sessionDisplayName(session: SessionDisplayLike): string {
-  const surface = sessionSurfaceLabel(session);
-  const identity = [
-    session.origin?.label,
-    session.subject,
-    session.room,
-    session.space,
-    session.displayName,
-    session.label,
-  ]
-    .map((value) => normalizeSessionIdentity(value, session))
-    .find((value): value is string => Boolean(value));
-  if (!identity) {
-    return surface;
-  }
-  return identity.toLowerCase() === surface.toLowerCase() ? identity : `${surface} · ${identity}`;
-}
 
 export type ChatProps = {
   sessionKey: string;
@@ -1252,11 +1189,9 @@ export function renderChat(props: ChatProps) {
   const getDraft = props.getDraft ?? (() => props.draft);
 
   const sidebarOpen = Boolean(props.sidebarOpen && props.onCloseSidebar);
-  const sessionLabel =
-    activeSession?.label?.trim() ||
-    activeSession?.displayName?.trim() ||
-    props.sessionKey ||
-    uiLiteral("No session");
+  const sessionLabel = activeSession
+    ? sessionDisplayName(activeSession)
+    : props.sessionKey || uiLiteral("No session");
   const sessionKind = activeSession?.kind ?? uiLiteral("unknown");
   const streamState =
     props.stream !== null

@@ -1,6 +1,7 @@
 import { html, svg, nothing } from "lit";
 import { formatDurationCompact } from "../../../../src/infra/format-time/format-duration.ts";
 import { t } from "../../i18n/index.ts";
+import { sessionDisplayName } from "../session-display.ts";
 import { parseToolSummary } from "../usage-helpers.ts";
 import { charsToTokens, formatCost, formatTokens } from "./usage-metrics.ts";
 import { renderInsightList } from "./usage-render-overview.ts";
@@ -18,54 +19,6 @@ const CHART_SELECTION_OPACITY = 0.06; // Opacity of range selection overlay
 const HANDLE_WIDTH = 5; // Width of drag handle in SVG units
 const HANDLE_HEIGHT = 12; // Height of drag handle
 const HANDLE_GRIP_OFFSET = 0.7; // Offset of grip lines inside handle
-
-function sessionSurfaceLabel(session: UsageSessionEntry): string {
-  const raw = session.channel || session.origin?.surface || session.origin?.provider;
-  const normalized = raw?.trim().toLowerCase() || "session";
-  const labels: Record<string, string> = {
-    whatsapp: "WhatsApp",
-    telegram: "Telegram",
-    discord: "Discord",
-    slack: "Slack",
-    signal: "Signal",
-    imessage: "iMessage",
-    googlechat: "Google Chat",
-    webchat: "Web",
-    feishu: "Feishu",
-    matrix: "Matrix",
-    teams: "Teams",
-  };
-  return labels[normalized] ?? raw?.trim() ?? "Session";
-}
-
-function normalizeSessionIdentity(raw?: string | null, session?: UsageSessionEntry): string | null {
-  const trimmed = raw?.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const surfaceKey = session?.channel || session?.origin?.surface || session?.origin?.provider;
-  const normalizedSurface = surfaceKey?.trim().toLowerCase();
-  let next = trimmed;
-  if (normalizedSurface && next.toLowerCase().startsWith(`${normalizedSurface}:`)) {
-    next = next.slice(normalizedSurface.length + 1).trim();
-  }
-  if (next.startsWith("g-") && next.length > 2) {
-    next = next.slice(2);
-  }
-  next = next.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  return next || null;
-}
-
-function sessionDisplayName(session: UsageSessionEntry): string {
-  const surface = sessionSurfaceLabel(session);
-  const identity = [session.origin?.label, session.label, session.sessionId]
-    .map((value) => normalizeSessionIdentity(value, session))
-    .find((value): value is string => Boolean(value));
-  if (!identity) {
-    return surface;
-  }
-  return identity.toLowerCase() === surface.toLowerCase() ? identity : `${surface} · ${identity}`;
-}
 
 function pct(part: number, total: number): number {
   if (!total || total <= 0) {

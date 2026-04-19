@@ -80,6 +80,12 @@ import {
 } from "../controllers/workflows.ts";
 import type { GatewayHelloOk, GatewayEventFrame } from "../gateway.ts";
 import { GatewayBrowserClient } from "../gateway.ts";
+import {
+  sessionDisplayName,
+  sessionSurfaceKey,
+  sessionSurfaceLabel,
+  type SessionDisplayLike,
+} from "../session-display.ts";
 import { loadSettings, saveSettings, type UiSettings } from "../storage.ts";
 import type {
   ChannelAccountSnapshot,
@@ -1090,104 +1096,6 @@ function imageSourcesFromMessage(message: unknown): string[] {
     }
   }
   return sources;
-}
-
-type SessionDisplayLike = {
-  key: string;
-  kind?: string;
-  label?: string;
-  displayName?: string;
-  derivedTitle?: string;
-  channel?: string;
-  surface?: string;
-  subject?: string;
-  room?: string;
-  space?: string;
-  sessionId?: string;
-  origin?: {
-    label?: string;
-    provider?: string;
-    surface?: string;
-  };
-};
-
-function sessionDisplayName(session: SessionDisplayLike): string {
-  const surface = sessionSurfaceLabel(session);
-  const identity = sessionIdentityLabel(session);
-  if (!identity) {
-    return surface;
-  }
-  return identity.toLowerCase() === surface.toLowerCase() ? identity : `${surface} · ${identity}`;
-}
-
-function sessionSurfaceLabel(session: SessionDisplayLike): string {
-  const raw =
-    session.channel ||
-    session.origin?.surface ||
-    session.origin?.provider ||
-    session.surface ||
-    session.kind;
-  const normalized = raw?.trim().toLowerCase() || "session";
-  const labels: Record<string, string> = {
-    whatsapp: "WhatsApp",
-    telegram: "Telegram",
-    discord: "Discord",
-    slack: "Slack",
-    signal: "Signal",
-    imessage: "iMessage",
-    googlechat: "Google Chat",
-    webchat: "Web",
-    feishu: "Feishu",
-    matrix: "Matrix",
-    teams: "Teams",
-    direct: "Direct",
-    group: "Group",
-    global: "Global",
-    unknown: "Session",
-  };
-  return labels[normalized] ?? raw?.trim() ?? "Session";
-}
-
-function normalizeSessionIdentity(
-  raw?: string | null,
-  session?: SessionDisplayLike,
-): string | null {
-  const trimmed = raw?.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const surfaceKey =
-    session?.channel || session?.origin?.surface || session?.origin?.provider || session?.surface;
-  const normalizedSurface = surfaceKey?.trim().toLowerCase();
-  let next = trimmed;
-  if (normalizedSurface && next.toLowerCase().startsWith(`${normalizedSurface}:`)) {
-    next = next.slice(normalizedSurface.length + 1).trim();
-  }
-  if (next.startsWith("g-") && next.length > 2) {
-    next = next.slice(2);
-  }
-  next = next.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  return next || null;
-}
-
-function sessionIdentityLabel(session: SessionDisplayLike): string | null {
-  const candidates = [
-    session.origin?.label,
-    session.subject,
-    session.room,
-    session.space,
-    session.displayName,
-    session.label,
-    session.derivedTitle,
-    session.sessionId,
-  ];
-  for (const candidate of candidates) {
-    const normalized = normalizeSessionIdentity(candidate, session);
-    if (normalized) {
-      return normalized;
-    }
-  }
-  return null;
 }
 
 function resolveSessionRowByKey<T extends SessionDisplayLike>(
@@ -3469,11 +3377,7 @@ export class CrawClawApp extends LitElement {
                       {
                         label: copy.common.surface,
                         value: sessionSurfaceLabel(selected),
-                        hint:
-                          selected.channel ??
-                          selected.origin?.surface ??
-                          selected.origin?.provider ??
-                          selected.surface,
+                        hint: sessionSurfaceKey(selected),
                       },
                       {
                         label: copy.common.provider,
