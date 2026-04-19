@@ -400,11 +400,13 @@ const APP_COPY = {
       lastError: "Last error",
       noAccounts: "No channel accounts were returned by the gateway.",
       directoryKicker: "Channel directory",
-      directoryTitle: "Choose a channel",
-      directoryHint: "Each channel shows its own accounts, status, and supported actions.",
+      directoryTitle: "Current channels",
+      directoryHint:
+        "Review the channels you already have first. When you need a new one, choose Add channel.",
+      addChannel: "Add channel",
       detailKicker: "Selected channel",
       detailTitle: "Channel details",
-      detailHint: "Review the selected channel, then choose an account to inspect or repair.",
+      detailHint: "Review this channel first, then edit it or add another account when needed.",
       backToDirectory: "Back to channel list",
       backToWorkspace: "Back to channel workspace",
       workspaceKicker: "Channel workspace",
@@ -916,11 +918,12 @@ const APP_COPY = {
       lastError: "最近错误",
       noAccounts: "当前网关没有返回任何渠道账号。",
       directoryKicker: "渠道目录",
-      directoryTitle: "选择一个渠道",
-      directoryHint: "每个渠道都会展示自己的账号、状态和可执行动作。",
+      directoryTitle: "当前渠道",
+      directoryHint: "先看当前已经接入的渠道；如果要新增，再点“新增渠道”。",
+      addChannel: "新增渠道",
       detailKicker: "当前渠道",
       detailTitle: "渠道详情",
-      detailHint: "先看渠道整体状态，再选择账号处理连接、登录或配置。",
+      detailHint: "先看这个渠道当前的状态；需要时再编辑渠道或新增账号。",
       backToDirectory: "返回渠道列表",
       backToWorkspace: "返回渠道工作页",
       workspaceKicker: "渠道工作页",
@@ -4855,15 +4858,17 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
 
     const recommendedMode: ChannelWorkspaceMode = !selectedChannelId
       ? "guide"
-      : showSetupPanel && (!selectedAccounts.length || selectedControls.canSetup)
+      : !selectedAccounts.length && showSetupPanel
         ? "setup"
-        : qrLoginAvailable && !selectedConnectedCount
-          ? "connect"
-          : selectedAccounts.length
-            ? "accounts"
-            : channelEditorAvailable
-              ? "settings"
-              : "guide";
+        : selectedAccounts.length
+          ? "accounts"
+          : qrLoginAvailable
+            ? "connect"
+            : showSetupPanel
+              ? "setup"
+              : channelEditorAvailable
+                ? "settings"
+                : "guide";
 
     const availableModes = (["guide"] as ChannelWorkspaceMode[])
       .concat(showSetupPanel ? ["setup"] : [])
@@ -4874,6 +4879,20 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const activeMode = availableModes.includes(this.channelsWorkspaceMode)
       ? this.channelsWorkspaceMode
       : recommendedMode;
+    const detailMode: ChannelWorkspaceMode = activeMode === "guide" ? recommendedMode : activeMode;
+    const addChannelCandidateId =
+      channelIds.find((channelId) => {
+        const controls = resolveChannelControls(snapshot, channelId);
+        const accounts = resolveChannelAccounts(snapshot, channelId);
+        return (
+          (controls.canSetup || controls.canEdit) && !accounts.some((account) => account.configured)
+        );
+      }) ??
+      channelIds.find((channelId) => {
+        const controls = resolveChannelControls(snapshot, channelId);
+        return controls.canSetup || controls.canEdit;
+      }) ??
+      "";
 
     const activateMode = (mode: ChannelWorkspaceMode) => {
       if (!selectedChannelId) {
@@ -4887,6 +4906,14 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
         this.closeChannelSettings();
       }
       this.channelsWorkspaceMode = mode;
+    };
+
+    const openAddChannel = () => {
+      if (!addChannelCandidateId) {
+        return;
+      }
+      this.selectChannel(addChannelCandidateId);
+      this.channelsWorkspaceMode = "setup";
     };
 
     const renderDirectoryCard = (channelId: string) => {
@@ -4981,35 +5008,41 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
         <article class="cp-panel">
           <div class="cp-panel__head">
             <div>
-              <span class="cp-kicker">${copy.channels.chooseStepKicker}</span>
-              <h3>${copy.channels.chooseStepTitle}</h3>
+              <span class="cp-kicker">${copy.channels.recommendedNext}</span>
+              <h3>${workspaceMetaFor(recommendedMode).title}</h3>
             </div>
           </div>
-          <p class="cp-panel__subcopy">${copy.channels.chooseStepHint}</p>
-          ${this.renderMetaEntries([
-            {
-              label: copy.channels.recommendedNext,
-              value: workspaceMetaFor(recommendedMode).title,
-              hint: workspaceMetaFor(recommendedMode).hint,
-            },
-            {
-              label: copy.common.recentCheck,
-              value: this.channelsState.channelsLastSuccess
-                ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
-                : copy.common.notRecorded,
-              hint: this.channelsState.channelsLastSuccess
-                ? formatAgo(this.channelsState.channelsLastSuccess, this.locale)
-                : undefined,
-            },
-            {
-              label: copy.channels.defaultAccount,
-              value: currentDefaultAccountId ?? copy.common.none,
-            },
-            {
-              label: copy.common.status,
-              value: channelStatusTone(selectedChannelId).label,
-            },
-          ])}
+          <p class="cp-panel__subcopy">${workspaceMetaFor(recommendedMode).hint}</p>
+          <div class="cp-inline-actions">
+            ${showSetupPanel
+              ? html`
+                  <button class="cp-button" @click=${() => activateMode("setup")}>
+                    ${copy.channels.actionSetup}
+                  </button>
+                `
+              : nothing}
+            ${selectedAccounts.length
+              ? html`
+                  <button class="cp-button" @click=${() => activateMode("accounts")}>
+                    ${copy.channels.accountsTitle}
+                  </button>
+                `
+              : nothing}
+            ${qrLoginAvailable
+              ? html`
+                  <button class="cp-button" @click=${() => activateMode("connect")}>
+                    ${copy.channels.actionLogin}
+                  </button>
+                `
+              : nothing}
+            ${channelEditorAvailable
+              ? html`
+                  <button class="cp-button" @click=${() => activateMode("settings")}>
+                    ${copy.channels.openSettings}
+                  </button>
+                `
+              : nothing}
+          </div>
         </article>
       </section>
     `;
@@ -5552,6 +5585,13 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                       <span class="cp-kicker">${copy.channels.directoryKicker}</span>
                       <h3>${copy.channels.directoryTitle}</h3>
                     </div>
+                    ${addChannelCandidateId
+                      ? html`
+                          <button class="cp-button" @click=${openAddChannel}>
+                            ${copy.channels.addChannel}
+                          </button>
+                        `
+                      : nothing}
                   </div>
                   <p class="cp-panel__subcopy">${copy.channels.directoryHint}</p>
                   <div class="cp-channel-directory-grid">
@@ -5568,11 +5608,39 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 <div class="cp-channel-workspace">
                   <section class="cp-channel-workspace__nav">
                     <div>
-                      <span class="cp-kicker">${copy.channels.workspaceKicker}</span>
+                      <span class="cp-kicker">${copy.channels.detailKicker}</span>
                       <strong>${selectedChannelLabel}</strong>
                       <small>${selectedChannelDetail}</small>
                     </div>
                     <div class="cp-inline-actions">
+                      ${showSetupPanel
+                        ? html`
+                            <button class="cp-button" @click=${() => activateMode("setup")}>
+                              ${copy.channels.actionSetup}
+                            </button>
+                          `
+                        : nothing}
+                      ${selectedAccounts.length
+                        ? html`
+                            <button class="cp-button" @click=${() => activateMode("accounts")}>
+                              ${copy.channels.accountsTitle}
+                            </button>
+                          `
+                        : nothing}
+                      ${channelEditorAvailable
+                        ? html`
+                            <button class="cp-button" @click=${() => activateMode("settings")}>
+                              ${copy.channels.openSettings}
+                            </button>
+                          `
+                        : nothing}
+                      ${addChannelCandidateId && addChannelCandidateId !== selectedChannelId
+                        ? html`
+                            <button class="cp-button" @click=${openAddChannel}>
+                              ${copy.channels.addChannel}
+                            </button>
+                          `
+                        : nothing}
                       <button class="cp-button" @click=${() => this.leaveChannelWorkspace()}>
                         ${copy.channels.backToDirectory}
                       </button>
@@ -5592,53 +5660,21 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                     )}
                   </section>
 
-                  <article class="cp-panel">
-                    <div class="cp-panel__head">
-                      <div>
-                        <span class="cp-kicker">${copy.channels.workspaceKicker}</span>
-                        <h3>${copy.channels.workspaceTitle}</h3>
-                      </div>
-                    </div>
-                    <p class="cp-panel__subcopy">${copy.channels.workspaceHint}</p>
-                    <div class="cp-channel-choice-grid">
-                      ${repeat(
-                        availableModes,
-                        (mode) => mode,
-                        (mode) => {
-                          const meta = workspaceMetaFor(mode);
-                          return html`
-                            <button
-                              class="cp-action-card cp-choice-card ${activeMode === mode
-                                ? "is-active"
-                                : ""}"
-                              @click=${() => activateMode(mode)}
-                            >
-                              <div class="cp-choice-card__head">
-                                <div>
-                                  <strong>${meta.title}</strong>
-                                  <small>${meta.hint}</small>
-                                </div>
-                                ${recommendedMode === mode
-                                  ? html`<span class="cp-badge cp-badge--ok"
-                                      >${copy.channels.recommendedNext}</span
-                                    >`
-                                  : nothing}
-                              </div>
-                            </button>
-                          `;
-                        },
-                      )}
-                    </div>
-                  </article>
-
                   <div class="cp-workspace-stack">
-                    ${activeMode === "guide"
-                      ? renderGuidePanel()
-                      : activeMode === "setup"
-                        ? renderSetupPanel()
-                        : activeMode === "connect"
-                          ? renderConnectPanel()
-                          : renderAccountsPanel()}
+                    ${renderGuidePanel()}
+                    ${detailMode === "setup"
+                      ? renderSetupPanel()
+                      : detailMode === "connect"
+                        ? renderConnectPanel()
+                        : detailMode === "accounts"
+                          ? renderAccountsPanel()
+                          : showSetupPanel
+                            ? renderSetupPanel()
+                            : selectedAccounts.length
+                              ? renderAccountsPanel()
+                              : qrLoginAvailable
+                                ? renderConnectPanel()
+                                : nothing}
                   </div>
                 </div>
               `}
