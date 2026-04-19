@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseSlashCommand, SLASH_COMMANDS } from "./slash-commands.ts";
+import {
+  localizeSlashCommandArgs,
+  localizeSlashCommandDescription,
+  parseSlashCommand,
+  SLASH_COMMANDS,
+} from "./slash-commands.ts";
 
 describe("parseSlashCommand", () => {
   it("parses commands with an optional colon separator", () => {
@@ -99,5 +104,12 @@ describe("parseSlashCommand", () => {
       command: { key: "focus", executeLocal: true },
       args: "",
     });
+  });
+
+  it("localizes slash command descriptions and argument hints for zh-CN", () => {
+    const tools = SLASH_COMMANDS.find((entry) => entry.name === "tools");
+    const steer = SLASH_COMMANDS.find((entry) => entry.name === "steer");
+    expect(localizeSlashCommandDescription(tools!, "zh-CN")).toBe("查看当前可用工具。");
+    expect(localizeSlashCommandArgs(steer!, "zh-CN")).toBe("[编号] <消息>");
   });
 });

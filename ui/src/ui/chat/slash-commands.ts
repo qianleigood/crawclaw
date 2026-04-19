@@ -23,6 +23,8 @@ export type SlashCommandDef = {
   shortcut?: string;
 };
 
+export type SlashCommandLocale = "en" | "zh-CN";
+
 const COMMAND_ICON_OVERRIDES: Partial<Record<string, IconName>> = {
   help: "book",
   status: "barChart",
@@ -126,6 +128,97 @@ const COMMAND_ARGS_OVERRIDES: Partial<Record<string, string>> = {
   steer: "[id] <message>",
 };
 
+const ZH_COMMAND_DESCRIPTIONS: Partial<Record<string, string>> = {
+  help: "查看可用指令。",
+  commands: "查看全部斜杠指令。",
+  tools: "查看当前可用工具。",
+  skill: "按名称运行一个技能。",
+  status: "查看当前状态。",
+  tasks: "查看这个会话的后台任务。",
+  allowlist: "查看、新增或移除 allowlist 条目。",
+  approve: "批准或拒绝执行请求。",
+  context: "说明上下文是如何构建和使用的。",
+  btw: "提一个旁支问题，但不改变后续会话上下文。",
+  "export-session": "把当前会话导出为包含完整系统提示词的 HTML 文件。",
+  tts: "控制文本转语音（TTS）。",
+  whoami: "查看你的发送者 ID。",
+  session: "管理会话级设置（例如 /session idle）。",
+  subagents: "查看、结束、查看日志、启动或引导这个会话的子代理。",
+  acp: "管理 ACP 会话和运行时选项。",
+  focus: "把当前线程或话题绑定到某个会话目标。",
+  unfocus: "移除当前线程或话题绑定。",
+  agents: "查看这个会话绑定的代理。",
+  kill: "结束一个正在运行的子代理（或全部）。",
+  steer: "向当前运行注入一条引导消息。",
+  config: "查看或设置配置项。",
+  mcp: "查看或设置 CrawClaw 的 MCP 服务。",
+  plugins: "查看、启用或禁用插件。",
+  debug: "设置运行时调试覆盖项。",
+  usage: "查看用量页脚或成本摘要。",
+  stop: "停止当前运行。",
+  restart: "重启 CrawClaw。",
+  activation: "设置群组激活模式。",
+  send: "设置发送策略。",
+  new: "开始一个新会话。",
+  verify: "为当前任务启动一个专用验证代理。",
+  compact: "压缩当前会话上下文。",
+  think: "设置思考强度。",
+  verbose: "切换详细模式。",
+  fast: "切换快速模式。",
+  reasoning: "切换推理可见性。",
+  elevated: "切换提权模式。",
+  exec: "设置这个会话的执行默认值。",
+  model: "查看或设置模型。",
+  models: "查看模型提供方或提供方下的模型。",
+  queue: "调整队列设置。",
+  bash: "运行宿主机 shell 命令（仅主机模式）。",
+  clear: "清空聊天记录。",
+  redirect: "终止当前运行，并用一条新消息重新开始。",
+};
+
+const ZH_ARG_NAME_LABELS: Partial<Record<string, string>> = {
+  id: "编号",
+  mode: "模式",
+  name: "名称",
+  input: "输入",
+  path: "路径",
+  action: "操作",
+  value: "值",
+  target: "目标",
+  message: "消息",
+  model: "模型",
+  task: "任务",
+  instructions: "说明",
+  level: "等级",
+  host: "主机",
+  security: "安全",
+  ask: "询问",
+  node: "节点",
+  debounce: "防抖",
+  cap: "上限",
+  drop: "丢弃策略",
+  provider: "提供方",
+  limit: "限制",
+  command: "命令",
+};
+
+function normalizeSlashLocale(locale?: string): SlashCommandLocale {
+  return locale === "zh-CN" ? "zh-CN" : "en";
+}
+
+function translateArgToken(token: string): string {
+  return ZH_ARG_NAME_LABELS[token] ?? token;
+}
+
+function localizeArgsHint(args: string | undefined, locale?: string): string | undefined {
+  if (!args || normalizeSlashLocale(locale) !== "zh-CN") {
+    return args;
+  }
+  return args.replace(/([<[ ]+)([a-z][a-z0-9-]*)([>\] ]+)/gi, (_match, prefix, token, suffix) => {
+    return `${prefix}${translateArgToken(token)}${suffix}`;
+  });
+}
+
 function normalizeUiKey(command: ChatCommandDefinition): string {
   return command.key.replace(/[:.-]/g, "_");
 }
@@ -211,6 +304,23 @@ export const CATEGORY_LABELS: Record<SlashCommandCategory, string> = {
   agents: "Agents",
   tools: "Tools",
 };
+
+export function localizeSlashCommandDescription(
+  command: Pick<SlashCommandDef, "key" | "description">,
+  locale?: string,
+): string {
+  if (normalizeSlashLocale(locale) !== "zh-CN") {
+    return command.description;
+  }
+  return ZH_COMMAND_DESCRIPTIONS[command.key] ?? command.description;
+}
+
+export function localizeSlashCommandArgs(
+  command: Pick<SlashCommandDef, "args">,
+  locale?: string,
+): string | undefined {
+  return localizeArgsHint(command.args, locale);
+}
 
 export function getSlashCommandCompletions(filter: string): SlashCommandDef[] {
   const lower = filter.toLowerCase();

@@ -10,6 +10,8 @@ import { extractText } from "../chat/message-extract.ts";
 import {
   CATEGORY_LABELS,
   getSlashCommandCompletions,
+  localizeSlashCommandArgs,
+  localizeSlashCommandDescription,
   SLASH_COMMANDS,
   type SlashCommandDef,
 } from "../chat/slash-commands.ts";
@@ -3864,10 +3866,23 @@ export class CrawClawApp extends LitElement {
                                                         : nothing}
                                                     </div>
                                                   </div>
-                                                  <span>${item.description}</span>
+                                                  <span>
+                                                    ${localizeSlashCommandDescription(
+                                                      item,
+                                                      normalizeShellLocale(this.locale),
+                                                    )}
+                                                  </span>
                                                   <div class="cp-chat-slash-menu__meta">
-                                                    ${item.args
-                                                      ? html`<small>${item.args}</small>`
+                                                    ${localizeSlashCommandArgs(
+                                                      item,
+                                                      normalizeShellLocale(this.locale),
+                                                    )
+                                                      ? html`<small
+                                                          >${localizeSlashCommandArgs(
+                                                            item,
+                                                            normalizeShellLocale(this.locale),
+                                                          )}</small
+                                                        >`
                                                       : nothing}
                                                     ${item.aliases?.length
                                                       ? html`
@@ -3917,7 +3932,12 @@ export class CrawClawApp extends LitElement {
                                                 ${copy.sessions.commandInstant}
                                               </small>
                                             </div>
-                                            <span>${slashMenu.command.description}</span>
+                                            <span>
+                                              ${localizeSlashCommandDescription(
+                                                slashMenu.command,
+                                                normalizeShellLocale(this.locale),
+                                              )}
+                                            </span>
                                             <small>/${slashMenu.command.name} ${item}</small>
                                           </button>
                                         `,
