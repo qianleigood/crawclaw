@@ -10,6 +10,7 @@ import { extractText } from "../chat/message-extract.ts";
 import {
   CATEGORY_LABELS,
   getSlashCommandCompletions,
+  localizeSlashArgOptionLabel,
   localizeSlashCommandArgs,
   localizeSlashCommandDescription,
   SLASH_COMMANDS,
@@ -343,6 +344,12 @@ const APP_COPY = {
       commandSuggestions: "Command suggestions",
       commandHelp: "Use Tab to fill · Enter to send · Shift+Enter for a new line",
       commandHelpArgs: "Use Tab to fill · Enter to run · Esc to close",
+      commandEmptyTitle: "No matching command",
+      commandEmptyHint: "Keep typing after /, or clear the filter to browse all commands.",
+      commandEmptyArgsTitle: "No matching option",
+      commandEmptyArgsHint: "Try a different option, or delete a few characters to see more.",
+      commandStartTitle: "Start with a command",
+      commandStartHint: "Type / to browse commands, then use Tab to fill and Enter to send.",
       commandInstant: "Runs now",
       commandOptions: "options",
       commandCategorySession: "Session",
@@ -755,6 +762,12 @@ const APP_COPY = {
       commandSuggestions: "指令提醒",
       commandHelp: "Tab 补全 · Enter 发送 · Shift+Enter 换行",
       commandHelpArgs: "Tab 补全 · Enter 执行 · Esc 关闭",
+      commandEmptyTitle: "没有匹配的指令",
+      commandEmptyHint: "继续在 / 后输入，或清空筛选查看全部指令。",
+      commandEmptyArgsTitle: "没有匹配的选项",
+      commandEmptyArgsHint: "试试其他选项，或删掉几个字符查看更多结果。",
+      commandStartTitle: "先选择一个指令",
+      commandStartHint: "输入 / 查看指令，再用 Tab 补全，Enter 发送。",
       commandInstant: "立即执行",
       commandOptions: "个选项",
       commandCategorySession: "会话",
@@ -2290,6 +2303,9 @@ export class CrawClawApp extends LitElement {
       return;
     }
     if (slashMenu.open && event.key === "Tab") {
+      if (slashMenu.items.length === 0) {
+        return;
+      }
       event.preventDefault();
       const index = Math.max(0, Math.min(this.chatSlashIndex, slashMenu.items.length - 1));
       if (slashMenu.mode === "command") {
@@ -2301,6 +2317,10 @@ export class CrawClawApp extends LitElement {
     }
     if (event.key === "Enter" && !event.shiftKey) {
       if (slashMenu.open) {
+        if (slashMenu.items.length === 0) {
+          event.preventDefault();
+          return;
+        }
         event.preventDefault();
         const index = Math.max(0, Math.min(this.chatSlashIndex, slashMenu.items.length - 1));
         if (slashMenu.mode === "command") {
@@ -3809,98 +3829,109 @@ export class CrawClawApp extends LitElement {
                             <div class="cp-chat-slash-menu__head">
                               <span>${copy.sessions.commandSuggestions}</span>
                               <small>
-                                ${slashMenu.mode === "args"
-                                  ? copy.sessions.commandHelpArgs
-                                  : copy.sessions.commandHelp}
+                                ${slashMenu.items.length === 0
+                                  ? slashMenu.mode === "args"
+                                    ? copy.sessions.commandEmptyArgsHint
+                                    : copy.sessions.commandEmptyHint
+                                  : slashMenu.mode === "args"
+                                    ? copy.sessions.commandHelpArgs
+                                    : copy.sessions.commandHelp}
                               </small>
                             </div>
                             ${slashMenu.mode === "command"
                               ? html`
                                   <div class="cp-chat-slash-menu__groups">
-                                    ${repeat(
-                                      slashMenuGroups,
-                                      ([category]) => category,
-                                      ([category, entries]) => html`
-                                        <div class="cp-chat-slash-menu__group">
-                                          <span class="cp-chat-slash-menu__group-label">
-                                            ${slashCategoryLabel(this.locale, category)}
-                                          </span>
-                                          <div class="cp-chat-slash-menu__list">
-                                            ${repeat(
-                                              entries,
-                                              ({ item }) => item.key,
-                                              ({ item, index }) => html`
-                                                <button
-                                                  class="cp-chat-slash-menu__item ${index ===
-                                                  normalizedSlashIndex
-                                                    ? "is-active"
-                                                    : ""}"
-                                                  type="button"
-                                                  @click=${() =>
-                                                    void this.applySlashCommandSelection(
-                                                      item,
-                                                      true,
-                                                    )}
-                                                >
-                                                  <div class="cp-chat-slash-menu__row">
-                                                    <strong>/${item.name}</strong>
-                                                    <div class="cp-chat-slash-menu__badges">
-                                                      ${item.argOptions?.length
-                                                        ? html`
-                                                            <small
-                                                              class="cp-chat-slash-menu__badge"
-                                                            >
-                                                              ${item.argOptions.length}
-                                                              ${copy.sessions.commandOptions}
-                                                            </small>
-                                                          `
-                                                        : nothing}
-                                                      ${item.executeLocal && !item.args
-                                                        ? html`
-                                                            <small
-                                                              class="cp-chat-slash-menu__badge"
-                                                            >
-                                                              ${copy.sessions.commandInstant}
-                                                            </small>
-                                                          `
-                                                        : nothing}
-                                                    </div>
-                                                  </div>
-                                                  <span>
-                                                    ${localizeSlashCommandDescription(
-                                                      item,
-                                                      normalizeShellLocale(this.locale),
-                                                    )}
-                                                  </span>
-                                                  <div class="cp-chat-slash-menu__meta">
-                                                    ${localizeSlashCommandArgs(
-                                                      item,
-                                                      normalizeShellLocale(this.locale),
-                                                    )
-                                                      ? html`<small
-                                                          >${localizeSlashCommandArgs(
-                                                            item,
-                                                            normalizeShellLocale(this.locale),
-                                                          )}</small
-                                                        >`
-                                                      : nothing}
-                                                    ${item.aliases?.length
-                                                      ? html`
-                                                          <small>
-                                                            ${item.aliases
-                                                              .map((alias) => `/${alias}`)
-                                                              .join(" · ")}
-                                                          </small>
-                                                        `
-                                                      : nothing}
-                                                  </div>
-                                                </button>
-                                              `,
-                                            )}
+                                    ${slashMenuGroups.length
+                                      ? repeat(
+                                          slashMenuGroups,
+                                          ([category]) => category,
+                                          ([category, entries]) => html`
+                                            <div class="cp-chat-slash-menu__group">
+                                              <span class="cp-chat-slash-menu__group-label">
+                                                ${slashCategoryLabel(this.locale, category)}
+                                              </span>
+                                              <div class="cp-chat-slash-menu__list">
+                                                ${repeat(
+                                                  entries,
+                                                  ({ item }) => item.key,
+                                                  ({ item, index }) => html`
+                                                    <button
+                                                      class="cp-chat-slash-menu__item ${index ===
+                                                      normalizedSlashIndex
+                                                        ? "is-active"
+                                                        : ""}"
+                                                      type="button"
+                                                      @click=${() =>
+                                                        void this.applySlashCommandSelection(
+                                                          item,
+                                                          true,
+                                                        )}
+                                                    >
+                                                      <div class="cp-chat-slash-menu__row">
+                                                        <strong>/${item.name}</strong>
+                                                        <div class="cp-chat-slash-menu__badges">
+                                                          ${item.argOptions?.length
+                                                            ? html`
+                                                                <small
+                                                                  class="cp-chat-slash-menu__badge"
+                                                                >
+                                                                  ${item.argOptions.length}
+                                                                  ${copy.sessions.commandOptions}
+                                                                </small>
+                                                              `
+                                                            : nothing}
+                                                          ${item.executeLocal && !item.args
+                                                            ? html`
+                                                                <small
+                                                                  class="cp-chat-slash-menu__badge"
+                                                                >
+                                                                  ${copy.sessions.commandInstant}
+                                                                </small>
+                                                              `
+                                                            : nothing}
+                                                        </div>
+                                                      </div>
+                                                      <span>
+                                                        ${localizeSlashCommandDescription(
+                                                          item,
+                                                          normalizeShellLocale(this.locale),
+                                                        )}
+                                                      </span>
+                                                      <div class="cp-chat-slash-menu__meta">
+                                                        ${localizeSlashCommandArgs(
+                                                          item,
+                                                          normalizeShellLocale(this.locale),
+                                                        )
+                                                          ? html`<small
+                                                              >${localizeSlashCommandArgs(
+                                                                item,
+                                                                normalizeShellLocale(this.locale),
+                                                              )}</small
+                                                            >`
+                                                          : nothing}
+                                                        ${item.aliases?.length
+                                                          ? html`
+                                                              <small>
+                                                                ${item.aliases
+                                                                  .map((alias) => `/${alias}`)
+                                                                  .join(" · ")}
+                                                              </small>
+                                                            `
+                                                          : nothing}
+                                                      </div>
+                                                    </button>
+                                                  `,
+                                                )}
+                                              </div>
+                                            </div>
+                                          `,
+                                        )
+                                      : html`
+                                          <div class="cp-chat-slash-menu__empty">
+                                            <strong>${copy.sessions.commandEmptyTitle}</strong>
+                                            <span>${copy.sessions.commandEmptyHint}</span>
                                           </div>
-                                        </div>
-                                      `,
-                                    )}
+                                        `}
                                   </div>
                                 `
                               : html`
@@ -3909,39 +3940,53 @@ export class CrawClawApp extends LitElement {
                                       /${slashMenu.command.name}
                                     </span>
                                     <div class="cp-chat-slash-menu__list">
-                                      ${repeat(
-                                        slashMenu.items,
-                                        (item) => item,
-                                        (item, index) => html`
-                                          <button
-                                            class="cp-chat-slash-menu__item ${index ===
-                                            normalizedSlashIndex
-                                              ? "is-active"
-                                              : ""}"
-                                            type="button"
-                                            @click=${() =>
-                                              void this.applySlashArgumentSelection(
-                                                slashMenu.command,
-                                                item,
-                                                true,
-                                              )}
-                                          >
-                                            <div class="cp-chat-slash-menu__row">
-                                              <strong>${item}</strong>
-                                              <small class="cp-chat-slash-menu__badge">
-                                                ${copy.sessions.commandInstant}
-                                              </small>
+                                      ${slashMenu.items.length
+                                        ? repeat(
+                                            slashMenu.items,
+                                            (item) => item,
+                                            (item, index) => html`
+                                              <button
+                                                class="cp-chat-slash-menu__item ${index ===
+                                                normalizedSlashIndex
+                                                  ? "is-active"
+                                                  : ""}"
+                                                type="button"
+                                                @click=${() =>
+                                                  void this.applySlashArgumentSelection(
+                                                    slashMenu.command,
+                                                    item,
+                                                    true,
+                                                  )}
+                                              >
+                                                <div class="cp-chat-slash-menu__row">
+                                                  <strong>
+                                                    ${localizeSlashArgOptionLabel(
+                                                      item,
+                                                      normalizeShellLocale(this.locale),
+                                                    )}
+                                                  </strong>
+                                                  <small class="cp-chat-slash-menu__badge">
+                                                    ${copy.sessions.commandInstant}
+                                                  </small>
+                                                </div>
+                                                <span>
+                                                  ${localizeSlashCommandDescription(
+                                                    slashMenu.command,
+                                                    normalizeShellLocale(this.locale),
+                                                  )}
+                                                </span>
+                                                <small>/${slashMenu.command.name} ${item}</small>
+                                              </button>
+                                            `,
+                                          )
+                                        : html`
+                                            <div class="cp-chat-slash-menu__empty">
+                                              <strong
+                                                >${copy.sessions.commandEmptyArgsTitle}</strong
+                                              >
+                                              <span>${copy.sessions.commandEmptyArgsHint}</span>
                                             </div>
-                                            <span>
-                                              ${localizeSlashCommandDescription(
-                                                slashMenu.command,
-                                                normalizeShellLocale(this.locale),
-                                              )}
-                                            </span>
-                                            <small>/${slashMenu.command.name} ${item}</small>
-                                          </button>
-                                        `,
-                                      )}
+                                          `}
                                     </div>
                                   </div>
                                 `}

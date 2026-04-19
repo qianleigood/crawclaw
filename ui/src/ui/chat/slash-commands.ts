@@ -202,6 +202,70 @@ const ZH_ARG_NAME_LABELS: Partial<Record<string, string>> = {
   command: "命令",
 };
 
+const ZH_ARG_OPTION_LABELS: Partial<Record<string, string>> = {
+  compact: "精简",
+  verbose: "详细",
+  on: "开启",
+  off: "关闭",
+  status: "状态",
+  provider: "提供方",
+  limit: "限制",
+  summary: "摘要",
+  audio: "音频",
+  help: "帮助",
+  idle: "空闲",
+  "max-age": "最长保留",
+  list: "列表",
+  log: "日志",
+  info: "详情",
+  send: "发送",
+  steer: "引导",
+  spawn: "启动",
+  sessions: "会话",
+  cancel: "取消",
+  close: "关闭",
+  "set-mode": "设置模式",
+  set: "设置",
+  cwd: "工作目录",
+  permissions: "权限",
+  timeout: "超时",
+  model: "模型",
+  "reset-options": "重置选项",
+  doctor: "诊断",
+  install: "安装",
+  show: "查看",
+  get: "读取",
+  unset: "清除",
+  enable: "启用",
+  disable: "停用",
+  full: "完整",
+  tokens: "令牌",
+  cost: "成本",
+  mention: "提及时",
+  always: "始终",
+  inherit: "继承",
+  high: "高",
+  medium: "中",
+  low: "低",
+  minimal: "最少",
+  xhigh: "超高",
+  stream: "流式",
+  ask: "询问",
+  sandbox: "沙箱",
+  gateway: "网关",
+  node: "节点",
+  deny: "拒绝",
+  allowlist: "白名单",
+  "on-miss": "缺失时询问",
+  "steer-backlog": "引导积压",
+  interrupt: "中断",
+  followup: "跟进",
+  collect: "收集",
+  old: "旧消息",
+  new: "新消息",
+  summarize: "摘要化",
+};
+
 function normalizeSlashLocale(locale?: string): SlashCommandLocale {
   return locale === "zh-CN" ? "zh-CN" : "en";
 }
@@ -320,6 +384,13 @@ export function localizeSlashCommandArgs(
   locale?: string,
 ): string | undefined {
   return localizeArgsHint(command.args, locale);
+}
+
+export function localizeSlashArgOptionLabel(option: string, locale?: string): string {
+  if (normalizeSlashLocale(locale) !== "zh-CN") {
+    return option;
+  }
+  return ZH_ARG_OPTION_LABELS[option] ?? option;
 }
 
 export function getSlashCommandCompletions(filter: string): SlashCommandDef[] {

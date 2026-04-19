@@ -1239,6 +1239,23 @@ crawclaw-app {
   gap: 8px;
 }
 
+.cp-chat-slash-menu__empty {
+  display: grid;
+  gap: 6px;
+  padding: 14px 2px 4px;
+}
+
+.cp-chat-slash-menu__empty strong {
+  color: var(--cp-text);
+  font-size: 0.88rem;
+}
+
+.cp-chat-slash-menu__empty span {
+  color: var(--cp-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
 .cp-chat-slash-menu__group-label {
   color: var(--cp-text-muted);
   font-size: 0.7rem;

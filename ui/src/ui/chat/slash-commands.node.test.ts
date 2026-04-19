@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  localizeSlashArgOptionLabel,
   localizeSlashCommandArgs,
   localizeSlashCommandDescription,
   parseSlashCommand,
@@ -111,5 +112,6 @@ describe("parseSlashCommand", () => {
     const steer = SLASH_COMMANDS.find((entry) => entry.name === "steer");
     expect(localizeSlashCommandDescription(tools!, "zh-CN")).toBe("查看当前可用工具。");
     expect(localizeSlashCommandArgs(steer!, "zh-CN")).toBe("[编号] <消息>");
+    expect(localizeSlashArgOptionLabel("compact", "zh-CN")).toBe("精简");
   });
 });
