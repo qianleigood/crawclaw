@@ -88,11 +88,10 @@ Session memory now follows a Claude-style single-track design:
 - each session has one `summary.md` file
 - a background `session_summary` agent maintains that file from the run-loop
   post-sampling hook
-- the scheduler now creates a lightweight summary earlier, then expands that
-  file into a fuller working-memory document once the larger token threshold is
-  reached
-- natural settled turns still trigger summary updates, but post-sampling runs
-  can also refresh the file once the token-growth threshold and tool-call
+- the scheduler can start with a lightweight summary profile earlier, then
+  upgrade the same file to a full profile later
+- natural settled turns still trigger summary updates, but the scheduler can
+  also refresh the file earlier when the token-growth threshold and tool-call
   threshold are both met
 - the runtime DB only stores boundary/progress state such as
   `lastSummarizedMessageId`, `lastSummaryUpdatedAt`, `tokensAtLastSummary`, and
@@ -115,12 +114,30 @@ The summary file uses a fixed structure, including sections such as:
 - `Key results`
 - `Worklog`
 
+The file now has two maintenance modes:
+
+- **Light profile** updates the minimum working-state sections first:
+  `Current State`, `Open Loops`, `Task specification`, and `Key results`
+- **Full profile** expands into the richer long-run sections such as
+  `Files and Functions`, `Workflow`, `Errors & Corrections`, `Learnings`, and
+  `Worklog`
+
 Prompt assembly no longer injects `summary.md` into the model-visible system
 context. Before compaction, continuity comes from the recent transcript. When a
 session later compacts, CrawClaw consumes `summary.md` as the compacted-history
 source of truth and preserves only the recent tail after the summarized
 boundary. Compaction audit details also record summary freshness, inferred
 summary profile, and how long compaction waited for in-flight summary work.
+
+Compaction also no longer consumes the raw `summary.md` body. It renders a
+structured compacted view from the most continuity-critical sections, including
+`Current State`, `Open Loops`, `Task specification`, `Files and Functions`,
+`Workflow`, `Errors & Corrections`, and `Key results`.
+
+Session summary can also seed durable-memory promotion candidates. After a
+successful summary update, CrawClaw distills stable long-term facts from the
+structured summary sections and records them as promotion candidates instead of
+writing durable memory directly.
 
 Session memory is still keyed by `sessionId`, so parent agents and spawned
 sub-agents do **not** share the same summary file. Each child run owns its own

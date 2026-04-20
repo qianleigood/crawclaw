@@ -52,6 +52,10 @@ vi.mock("../memory/session-summary/agent-runner.ts", () => ({
   runSessionSummaryAgentOnce: vi.fn(),
 }));
 
+vi.mock("../memory/session-summary/template.ts", () => ({
+  inferSessionSummaryProfile: vi.fn().mockReturnValue("full"),
+}));
+
 vi.mock("../memory/session-summary/store.ts", () => ({
   readSessionSummaryFile: mocks.readSessionSummaryFileMock,
   readSessionSummarySectionText: ({
@@ -64,6 +68,7 @@ vi.mock("../memory/session-summary/store.ts", () => ({
     const text = content ?? "";
     const headings: Record<string, string> = {
       currentState: "## Current State",
+      openLoops: "## Open Loops",
       taskSpecification: "## Task Specification",
       keyResults: "## Key Results",
       errorsAndCorrections: "## Errors and Corrections",
@@ -140,6 +145,9 @@ describe("memory-cli dream runtime", () => {
 
 ## Current State
 Working through the task.
+
+## Open Loops
+Need to keep the promotion bridge stable.
 
 ## Key Results
 Nothing yet.
@@ -271,8 +279,10 @@ Nothing yet.
     });
 
     expect(runtimeLogs.join("\n")).toContain("Session Summary");
+    expect(runtimeLogs.join("\n")).toContain("Profile:");
     expect(runtimeLogs.join("\n")).toContain("msg-10");
     expect(runtimeLogs.join("\n")).toContain("Working through the task.");
+    expect(runtimeLogs.join("\n")).toContain("Need to keep the promotion bridge stable.");
   });
 
   it("runs session summary refresh with bypass gate support", async () => {

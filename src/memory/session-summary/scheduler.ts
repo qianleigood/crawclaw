@@ -3,6 +3,7 @@ import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { SessionSummaryRunResult } from "./agent-runner.ts";
+import { persistSessionSummaryPromotionCandidates } from "./promotion.ts";
 import { isSessionSummaryEffectivelyEmpty } from "./sections.ts";
 import { readSessionSummaryFile } from "./store.ts";
 import {
@@ -481,6 +482,7 @@ export class SessionSummaryScheduler {
       );
       const success =
         result.status === "written" || result.status === "no_change" || result.status === "skipped";
+      const completedAt = success ? Date.now() : (existingState?.lastSummaryUpdatedAt ?? null);
       await this.runtimeStore.upsertSessionSummaryState({
         sessionId: params.sessionId,
         lastSummarizedMessageId: success
@@ -488,12 +490,30 @@ export class SessionSummaryScheduler {
             existingState?.lastSummarizedMessageId ??
             null)
           : (existingState?.lastSummarizedMessageId ?? null),
-        lastSummaryUpdatedAt: success ? Date.now() : (existingState?.lastSummaryUpdatedAt ?? null),
+        lastSummaryUpdatedAt: completedAt,
         tokensAtLastSummary: success
           ? Math.max(0, Math.floor(params.currentTokenCount ?? preview.currentTokenCount))
           : (existingState?.tokensAtLastSummary ?? 0),
         summaryInProgress: false,
       });
+      const promotionStore = this.runtimeStore as Partial<RuntimeStore>;
+      if (
+        success &&
+        typeof promotionStore.listRecentPromotionCandidates === "function" &&
+        typeof promotionStore.createPromotionCandidate === "function" &&
+        typeof promotionStore.updatePromotionCandidate === "function"
+      ) {
+        const latestSummary = await readSessionSummaryFile({
+          agentId: params.agentId,
+          sessionId: params.sessionId,
+        });
+        await persistSessionSummaryPromotionCandidates({
+          runtimeStore: this.runtimeStore,
+          sessionId: params.sessionId,
+          document: latestSummary.document,
+          summaryUpdatedAt: completedAt,
+        });
+      }
       return {
         status: result.status === "failed" ? "failed" : "started",
         reason: result.reason ?? result.summary,

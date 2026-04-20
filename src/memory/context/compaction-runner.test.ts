@@ -105,6 +105,8 @@ Summary-backed compaction result.
       throw new Error(`expected compaction success, got ${result.reason ?? "unknown"}`);
     }
     expect(result.result.firstKeptEntryId).toBeTruthy();
+    expect(result.result.summary).toContain("## Open Loops");
+    expect(result.result.summary).not.toContain("## Worklog");
     expect(result.result.postCompactArtifacts).toEqual(
       expect.objectContaining({
         boundaryMarker: expect.objectContaining({

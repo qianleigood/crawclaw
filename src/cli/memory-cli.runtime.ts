@@ -31,6 +31,7 @@ import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
 } from "../memory/notebooklm/login.js";
+import { inferSessionSummaryProfile } from "../memory/session-summary/template.ts";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { colorize, isRich, theme } from "../terminal/theme.js";
@@ -372,11 +373,16 @@ export async function runMemorySessionSummaryStatus(opts: MemoryCommandOptions) 
       summaryPath: file.summaryPath,
       exists: file.exists,
       updatedAt: file.updatedAt,
+      profile: inferSessionSummaryProfile(file.document),
       state,
       sections: {
         currentState: readSessionSummarySectionText({
           content: file.content,
           section: "currentState",
+        }),
+        openLoops: readSessionSummarySectionText({
+          content: file.content,
+          section: "openLoops",
         }),
         taskSpecification: readSessionSummarySectionText({
           content: file.content,
@@ -399,6 +405,7 @@ export async function runMemorySessionSummaryStatus(opts: MemoryCommandOptions) 
     defaultRuntime.log(`${theme.muted("Path:")} ${file.summaryPath}`);
     defaultRuntime.log(`${theme.muted("Exists:")} ${file.exists ? "yes" : "no"}`);
     defaultRuntime.log(`${theme.muted("Updated:")} ${file.updatedAt ?? "(never)"}`);
+    defaultRuntime.log(`${theme.muted("Profile:")} ${payload.profile ?? "(none)"}`);
     defaultRuntime.log(
       `${theme.muted("Last summarized message:")} ${state?.lastSummarizedMessageId ?? "(none)"}`,
     );
@@ -412,6 +419,10 @@ export async function runMemorySessionSummaryStatus(opts: MemoryCommandOptions) 
     const currentState = payload.sections.currentState.trim();
     if (currentState) {
       defaultRuntime.log(`${theme.muted("Current State:")} ${currentState}`);
+    }
+    const openLoops = payload.sections.openLoops.trim();
+    if (openLoops) {
+      defaultRuntime.log(`${theme.muted("Open Loops:")} ${openLoops}`);
     }
     const keyResults = payload.sections.keyResults.trim();
     if (keyResults) {
