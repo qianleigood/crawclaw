@@ -33,6 +33,7 @@ import {
 } from "../controllers/agents.ts";
 import {
   applyChannelConfig,
+  channelReloadRequiresConfirm,
   loadChannelConfig,
   loadChannelConfigSchema,
   resetChannelConfigForm,
@@ -5243,8 +5244,9 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
     },
   ) {
     const reloadConfirmOpen = Boolean(this.channelConfigState.reloadConfirmOpen);
+    const submitActionsDisabled = params.channelEditorBusy || !params.dirty;
     return html`
-      <section class="cp-channel-editor-status cp-channel-settings-submit cp-subpanel">
+      <section class="cp-channel-editor-status cp-subpanel">
         <div class="cp-panel__head">
           <div>
             <span class="cp-kicker">${copy.channels.settingsSummaryKicker}</span>
@@ -5254,7 +5256,7 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
             ${params.selectedStatusTone.label}
           </span>
         </div>
-        <p class="cp-channel-settings-summary__detail">${params.selectedChannelDetail}</p>
+        <p class="cp-channel-editor-summary__detail">${params.selectedChannelDetail}</p>
         ${this.renderMetaEntries(
           [
             { label: copy.channels.selectedChannel, value: params.selectedChannelLabel },
@@ -5269,32 +5271,37 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
           ],
           copy.channels.browseChannels,
         )}
-        <section class="cp-subpanel cp-channel-settings-submit">
+        <section class="cp-channel-editor-submit cp-subpanel">
           <div class="cp-panel__head">
             <div>
               <span class="cp-kicker">${copy.channels.channelsSettingsGroupSendingTitle}</span>
               <h4>${copy.channels.channelsSettingsGroupSendingTitle}</h4>
             </div>
-            <span class=${`cp-badge ${params.dirty ? "cp-badge--warn" : ""}`.trim()}>
-              ${params.dirty ? copy.channels.channelsUnsavedChanges : copy.common.idle}
-            </span>
+            <div class="cp-inline-actions">
+              <span class=${`cp-badge ${params.submitState.badgeClass}`.trim()}>
+                ${params.submitState.badge}
+              </span>
+              <span class=${`cp-badge ${params.dirty ? "cp-badge--warn" : ""}`.trim()}>
+                ${params.dirty ? copy.channels.channelsUnsavedChanges : copy.common.idle}
+              </span>
+            </div>
           </div>
           <p class="cp-panel__subcopy">${copy.channels.channelsSettingsGroupSendingHint}</p>
-          <div class="cp-channel-settings-submit__body">
+          <div class="cp-channel-editor-submit__body">
             <div>
               <strong>${params.submitState.title}</strong>
-              <p class="cp-channel-settings-submit__hint">${params.submitState.hint}</p>
+              <p class="cp-channel-editor-submit__hint">${params.submitState.hint}</p>
               ${reloadConfirmOpen
                 ? html`<p class="cp-channel-editor-status__confirm">
                     ${copy.channels.channelsReloadConfirm}
                   </p>`
                 : nothing}
             </div>
-            <div class="cp-inline-actions cp-channel-settings-submit__actions">
+            <div class="cp-inline-actions cp-channel-editor-submit__actions">
               <button
                 class="cp-button"
                 type="button"
-                ?disabled=${params.channelEditorBusy || !params.dirty}
+                ?disabled=${submitActionsDisabled}
                 @click=${() => {
                   resetChannelConfigForm(this.channelConfigState);
                   this.requestUpdate();
@@ -5305,7 +5312,7 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
               <button
                 class="cp-button"
                 type="button"
-                ?disabled=${params.channelEditorBusy || !params.dirty}
+                ?disabled=${submitActionsDisabled}
                 @click=${() =>
                   void this.safeCall(async () => {
                     await saveChannelConfig(this.channelConfigState);
@@ -5320,7 +5327,7 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
               <button
                 class="cp-button cp-button--primary"
                 type="button"
-                ?disabled=${params.channelEditorBusy || !params.dirty}
+                ?disabled=${submitActionsDisabled}
                 @click=${() =>
                   void this.safeCall(async () => {
                     await applyChannelConfig(this.channelConfigState);
@@ -5361,7 +5368,7 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
                       type="button"
                       ?disabled=${params.channelEditorBusy}
                       @click=${() => {
-                        if (params.dirty) {
+                        if (channelReloadRequiresConfirm(this.channelConfigState)) {
                           this.setChannelEditorReloadConfirmOpen(true);
                           return;
                         }
@@ -5474,7 +5481,7 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
     },
   ) {
     return html`
-      <section class="cp-channel-editor-accounts cp-channel-settings-accounts cp-subpanel">
+      <section class="cp-channel-editor-accounts cp-subpanel">
         <div class="cp-panel__head">
           <div>
             <span class="cp-kicker">${copy.channels.accountsKicker}</span>
@@ -5508,7 +5515,7 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
             ? copy.channels.accountManagerHint
             : copy.channels.accountsHint}
         </p>
-        <div class="cp-list cp-list--dense cp-channel-settings-accounts__list">
+        <div class="cp-list cp-list--dense cp-channel-editor-accounts__list">
           ${params.selectedAccounts.length
             ? repeat(
                 params.selectedAccounts,
@@ -5526,13 +5533,13 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
                       ? ""
                       : "cp-badge--warn";
                   return html`
-                    <div class="cp-list-item cp-channel-settings-accounts__item">
-                      <div class="cp-channel-settings-accounts__copy">
+                    <div class="cp-list-item cp-channel-editor-accounts__item">
+                      <div class="cp-channel-editor-accounts__copy">
                         <strong>${account.name}</strong>
                         ${account.name !== account.accountId
                           ? html`<small>${account.accountId}</small>`
                           : nothing}
-                        <div class="cp-channel-settings-accounts__meta">
+                        <div class="cp-channel-editor-accounts__meta">
                           <span class=${`cp-badge ${statusClass}`.trim()}>${statusLabel}</span>
                           ${isDefault
                             ? html`

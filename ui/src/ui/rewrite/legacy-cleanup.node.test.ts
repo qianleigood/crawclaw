@@ -102,6 +102,14 @@ test("channels settings editor renders a shared submit status strip", () => {
   expect(source).toContain("cp-channel-editor-status");
   expect(source).toContain("submitState.title");
   expect(source).not.toContain("cp-channel-settings-overview");
+  expect(source).not.toContain("cp-channel-settings-summary");
+});
+
+test("channels editor exposes one shared status strip and tab shell", () => {
+  const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
+  expect(source).toContain("cp-channel-editor-status");
+  expect(source).toContain("cp-channel-editor-tabs");
+  expect(source).not.toContain("cp-channel-settings-submit__actions");
 });
 
 test("channels settings editor no longer mixes account manager into the settings form shell", () => {
@@ -188,26 +196,45 @@ test("channels account creation is consolidated into settings", () => {
 
 test("channels settings includes a dedicated account manager section", () => {
   const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
-  expect(source.includes("cp-channel-settings-accounts")).toBe(true);
+  expect(source.includes("cp-channel-editor-accounts")).toBe(true);
   expect(source.includes("${copy.channels.defaultAccount}")).toBe(true);
-  expect(source.includes("${copy.channels.accountManagerTitle}")).toBe(true);
-  expect(source.includes("${copy.channels.accountManagerKicker}")).toBe(true);
+  expect(source.includes("copy.channels.accountManagerTitle")).toBe(true);
+  expect(source.includes("copy.channels.accountManagerHint")).toBe(true);
 });
 
 test("channels settings exposes a dedicated submit status area and reset action", () => {
   const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
-  expect(source.includes("cp-channel-settings-submit")).toBe(true);
+  expect(source.includes("cp-channel-editor-submit")).toBe(true);
   expect(source.includes("resetChannelConfigForm(this.channelConfigState)")).toBe(true);
 });
 
 test("channels settings overview keeps a resolved detail label", () => {
   const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
   expect(source.includes("const selectedChannelDetail = selectedChannelId")).toBe(true);
-  expect(source.includes("${selectedChannelDetail}")).toBe(true);
+  expect(source.includes("params.selectedChannelDetail")).toBe(true);
 });
 
 test("channels settings form hides raw accounts fields when account manager is shown", () => {
   const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
   expect(source.includes("pruneChannelSettingsEditorSchema")).toBe(true);
   expect(source.includes("pruneChannelSettingsEditorValue")).toBe(true);
+});
+
+test("old settings layout selectors are no longer the current implementation primitives", () => {
+  const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
+  const css = readFileSync("src/styles/rewrite.css", "utf8");
+  expect(source.includes("cp-channel-settings-overview")).toBe(false);
+  expect(source.includes("cp-channel-settings-summary")).toBe(false);
+  expect(source.includes("cp-channel-settings-layout")).toBe(false);
+  expect(source.includes("cp-channel-settings-layout__main")).toBe(false);
+  expect(source.includes("cp-channel-settings-layout__side")).toBe(false);
+  expect(source.includes("cp-channel-settings-submit__actions")).toBe(false);
+  expect(source.includes("cp-channel-settings-accounts")).toBe(false);
+  expect(css.includes(".cp-channel-settings-overview")).toBe(false);
+  expect(css.includes(".cp-channel-settings-summary")).toBe(false);
+  expect(css.includes(".cp-channel-settings-layout")).toBe(false);
+  expect(css.includes(".cp-channel-settings-layout__main")).toBe(false);
+  expect(css.includes(".cp-channel-settings-layout__side")).toBe(false);
+  expect(css.includes(".cp-channel-settings-submit__actions")).toBe(false);
+  expect(css.includes(".cp-channel-settings-accounts")).toBe(false);
 });

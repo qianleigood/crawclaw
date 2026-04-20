@@ -102,7 +102,7 @@ describe("applyChannelConfig", () => {
     vi.setSystemTime(new Date("2026-04-20T07:25:00.000Z"));
   });
 
-  it("tracks a successful apply submission", async () => {
+  it("keeps last submit metadata visible after apply", async () => {
     const request = vi.fn().mockImplementation(async (method: string) => {
       if (method === "channels.config.get") {
         return { hash: "hash-2", config: { token: "abc" } };
