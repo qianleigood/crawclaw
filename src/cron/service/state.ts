@@ -1,5 +1,5 @@
 import type { CronConfig } from "../../config/types.cron.js";
-import type { HeartbeatRunResult } from "../../infra/heartbeat-wake.js";
+import type { MainSessionRunResult } from "../../infra/main-session-runner.js";
 import type {
   CronDeliveryStatus,
   CronJob,
@@ -64,21 +64,25 @@ export type CronServiceDeps = {
     text: string,
     opts?: { agentId?: string; sessionKey?: string; contextKey?: string },
   ) => void;
-  requestHeartbeatNow: (opts?: { reason?: string; agentId?: string; sessionKey?: string }) => void;
-  runHeartbeatOnce?: (opts?: {
+  requestMainSessionWake: (opts?: {
     reason?: string;
     agentId?: string;
     sessionKey?: string;
-    /** Optional heartbeat config override (e.g. target: "last" for cron-triggered heartbeats). */
-    heartbeat?: { target?: string };
-  }) => Promise<HeartbeatRunResult>;
+  }) => void;
+  runMainSessionOnce?: (opts?: {
+    reason?: string;
+    agentId?: string;
+    sessionKey?: string;
+    /** Optional session delivery override (e.g. target: "last" for cron-triggered runs). */
+    session?: { target?: string };
+  }) => Promise<MainSessionRunResult>;
   /**
-   * WakeMode=now: max time to wait for runHeartbeatOnce to stop returning
+   * WakeMode=now: max time to wait for runMainSessionOnce to stop returning
    * { status:"skipped", reason:"requests-in-flight" } before falling back to
-   * requestHeartbeatNow.
+   * requestMainSessionWake.
    */
   wakeNowHeartbeatBusyMaxWaitMs?: number;
-  /** WakeMode=now: delay between runHeartbeatOnce retries while busy. */
+  /** WakeMode=now: delay between runMainSessionOnce retries while busy. */
   wakeNowHeartbeatBusyRetryDelayMs?: number;
   runIsolatedAgentJob: (params: {
     job: CronJob;
@@ -131,7 +135,10 @@ export type CronServiceState = {
 
 export function createCronServiceState(deps: CronServiceDeps): CronServiceState {
   return {
-    deps: { ...deps, nowMs: deps.nowMs ?? (() => Date.now()) },
+    deps: {
+      ...deps,
+      nowMs: deps.nowMs ?? (() => Date.now()),
+    },
     store: null,
     timer: null,
     running: false,

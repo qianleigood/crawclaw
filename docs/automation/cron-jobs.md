@@ -3,7 +3,7 @@ summary: "Scheduled jobs, webhooks, and Gmail PubSub triggers for the Gateway sc
 read_when:
   - Scheduling background jobs or wakeups
   - Wiring external triggers (webhooks, Gmail) into CrawClaw
-  - Deciding between heartbeat and cron for scheduled tasks
+  - Deciding between main-session wakeups and isolated cron jobs
 title: "Scheduled Tasks"
 ---
 
@@ -53,12 +53,12 @@ Recurring top-of-hour expressions are automatically staggered by up to 5 minutes
 
 | Style           | `--session` value   | Runs in                  | Best for                        |
 | --------------- | ------------------- | ------------------------ | ------------------------------- |
-| Main session    | `main`              | Next heartbeat turn      | Reminders, system events        |
+| Main session    | `main`              | Main-session runner      | Reminders, system events        |
 | Isolated        | `isolated`          | Dedicated `cron:<jobId>` | Reports, background chores      |
 | Current session | `current`           | Bound at creation time   | Context-aware recurring work    |
 | Custom session  | `session:custom-id` | Persistent named session | Workflows that build on history |
 
-**Main session** jobs enqueue a system event and optionally wake the heartbeat (`--wake now` or `--wake next-heartbeat`). **Isolated** jobs run a dedicated agent turn with a fresh session. **Custom sessions** (`session:xxx`) persist context across runs, enabling workflows like daily standups that build on previous summaries.
+**Main session** jobs enqueue a system event and optionally wake the main-session runner (`--wake now` or `--wake next-heartbeat`). **Isolated** jobs run a dedicated agent turn with a fresh session. **Custom sessions** (`session:xxx`) persist context across runs, enabling workflows like daily standups that build on previous summaries.
 
 ### Payload options for isolated jobs
 
@@ -86,7 +86,7 @@ crawclaw cron add \
   --name "Calendar check" \
   --at "20m" \
   --session main \
-  --system-event "Next heartbeat: check calendar." \
+  --system-event "Next main-session wake: check calendar." \
   --wake now
 ```
 
@@ -153,7 +153,7 @@ curl -X POST http://127.0.0.1:18789/hooks/wake \
 ```
 
 - `text` (required): event description
-- `mode` (optional): `now` (default) or `next-heartbeat`
+- `mode` (optional): `now` (default) or `next-heartbeat` to queue the next main-session wake
 
 ### POST /hooks/agent
 

@@ -20,8 +20,7 @@ import { CronService } from "../cron/service.js";
 import { resolveCronStorePath } from "../cron/store.js";
 import { normalizeHttpWebhookUrl } from "../cron/webhook-url.js";
 import { formatErrorMessage } from "../infra/errors.js";
-import { runHeartbeatOnce } from "../infra/heartbeat-runner.js";
-import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
+import { requestMainSessionWake, runMainSessionOnce } from "../infra/main-session-runner.js";
 import { fetchWithSsrFGuard } from "../infra/net/fetch-guard.js";
 import { SsrFBlockedError } from "../infra/net/ssrf.js";
 import { deliverOutboundPayloads } from "../infra/outbound/deliver.js";
@@ -148,8 +147,7 @@ export function buildGatewayCronService(params: {
 }): GatewayCronState {
   const cronLogger = getChildLogger({ module: "cron" });
   const storePath = resolveCronStorePath(params.cfg.cron?.store);
-  const cronEnabled =
-    process.env.CRAWCLAW_SKIP_CRON !== "1" && params.cfg.cron?.enabled !== false;
+  const cronEnabled = process.env.CRAWCLAW_SKIP_CRON !== "1" && params.cfg.cron?.enabled !== false;
 
   const resolveCronAgent = (requested?: string | null) => {
     const runtimeConfig = loadConfig();
@@ -245,18 +243,18 @@ export function buildGatewayCronService(params: {
       });
       enqueueSystemEvent(text, { sessionKey, contextKey: opts?.contextKey });
     },
-    requestHeartbeatNow: (opts) => {
+    requestMainSessionWake: (opts) => {
       const { agentId, sessionKey } = resolveCronWakeTarget(opts);
-      requestHeartbeatNow({
+      requestMainSessionWake({
         reason: opts?.reason,
         agentId,
         sessionKey,
       });
     },
-    runHeartbeatOnce: async (opts) => {
+    runMainSessionOnce: async (opts) => {
       const { runtimeConfig, agentId, sessionKey } = resolveCronWakeTarget(opts);
-      // Merge cron-supplied heartbeat overrides (e.g. target: "last") with the
-      // fully resolved agent heartbeat config so cron-triggered heartbeats
+      // Merge cron-supplied session overrides (e.g. target: "last") with the
+      // fully resolved agent heartbeat config so cron-triggered main-session runs
       // respect agent-specific overrides (agents.list[].heartbeat) before
       // falling back to agents.defaults.heartbeat.
       const agentEntry =
@@ -271,15 +269,13 @@ export function buildGatewayCronService(params: {
         ...runtimeConfig.agents?.defaults?.heartbeat,
         ...agentHeartbeat,
       };
-      const heartbeatOverride = opts?.heartbeat
-        ? { ...baseHeartbeat, ...opts.heartbeat }
-        : undefined;
-      return await runHeartbeatOnce({
+      const sessionOverride = opts?.session ? { ...baseHeartbeat, ...opts.session } : undefined;
+      return await runMainSessionOnce({
         cfg: runtimeConfig,
         reason: opts?.reason,
         agentId,
         sessionKey,
-        heartbeat: heartbeatOverride,
+        session: sessionOverride,
         deps: { ...params.deps, runtime: defaultRuntime },
       });
     },

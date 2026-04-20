@@ -7,8 +7,8 @@ const { logger, makeStorePath } = setupCronServiceSuite({
   prefix: "cron-main-heartbeat-target",
 });
 
-type RunHeartbeatOnce = NonNullable<
-  ConstructorParameters<typeof CronService>[0]["runHeartbeatOnce"]
+type RunMainSessionOnce = NonNullable<
+  ConstructorParameters<typeof CronService>[0]["runMainSessionOnce"]
 >;
 
 describe("cron main job passes heartbeat target=last", () => {
@@ -31,19 +31,22 @@ describe("cron main job passes heartbeat target=last", () => {
     };
   }
 
-  function createCronWithSpies(params: { storePath: string; runHeartbeatOnce: RunHeartbeatOnce }) {
+  function createCronWithSpies(params: {
+    storePath: string;
+    runMainSessionOnce: RunMainSessionOnce;
+  }) {
     const enqueueSystemEvent = vi.fn();
-    const requestHeartbeatNow = vi.fn();
+    const requestMainSessionWake = vi.fn();
     const cron = new CronService({
       storePath: params.storePath,
       cronEnabled: true,
       log: logger,
       enqueueSystemEvent,
-      requestHeartbeatNow,
-      runHeartbeatOnce: params.runHeartbeatOnce,
+      requestMainSessionWake,
+      runMainSessionOnce: params.runMainSessionOnce,
       runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
     });
-    return { cron, requestHeartbeatNow };
+    return { cron, requestMainSessionWake };
   }
 
   async function runSingleTick(cron: CronService) {
@@ -53,7 +56,7 @@ describe("cron main job passes heartbeat target=last", () => {
     cron.stop();
   }
 
-  it("should pass heartbeat.target=last to runHeartbeatOnce for wakeMode=now main jobs", async () => {
+  it("should pass session.target=last to runMainSessionOnce for wakeMode=now main jobs", async () => {
     const { storePath } = await makeStorePath();
     const now = Date.now();
 
@@ -65,27 +68,27 @@ describe("cron main job passes heartbeat target=last", () => {
 
     await writeCronStoreSnapshot({ storePath, jobs: [job] });
 
-    const runHeartbeatOnce = vi.fn<RunHeartbeatOnce>(async () => ({
+    const runMainSessionOnce = vi.fn<RunMainSessionOnce>(async () => ({
       status: "ran" as const,
       durationMs: 50,
     }));
 
     const { cron } = createCronWithSpies({
       storePath,
-      runHeartbeatOnce,
+      runMainSessionOnce,
     });
 
     await runSingleTick(cron);
 
-    // runHeartbeatOnce should have been called
-    expect(runHeartbeatOnce).toHaveBeenCalled();
+    // runMainSessionOnce should have been called
+    expect(runMainSessionOnce).toHaveBeenCalled();
 
-    // The heartbeat config passed should include target: "last" so the
-    // heartbeat runner delivers the response to the last active channel.
-    const callArgs = runHeartbeatOnce.mock.calls[0]?.[0];
+    // The main-session override passed should include target: "last" so the
+    // runner delivers the response to the last active channel.
+    const callArgs = runMainSessionOnce.mock.calls[0]?.[0];
     expect(callArgs).toBeDefined();
-    expect(callArgs?.heartbeat).toBeDefined();
-    expect(callArgs?.heartbeat?.target).toBe("last");
+    expect(callArgs?.session).toBeDefined();
+    expect(callArgs?.session?.target).toBe("last");
   });
 
   it("should not pass heartbeat target for wakeMode=next-heartbeat main jobs", async () => {
@@ -100,21 +103,21 @@ describe("cron main job passes heartbeat target=last", () => {
 
     await writeCronStoreSnapshot({ storePath, jobs: [job] });
 
-    const runHeartbeatOnce = vi.fn<RunHeartbeatOnce>(async () => ({
+    const runMainSessionOnce = vi.fn<RunMainSessionOnce>(async () => ({
       status: "ran" as const,
       durationMs: 50,
     }));
 
-    const { cron, requestHeartbeatNow } = createCronWithSpies({
+    const { cron, requestMainSessionWake } = createCronWithSpies({
       storePath,
-      runHeartbeatOnce,
+      runMainSessionOnce,
     });
 
     await runSingleTick(cron);
 
-    // wakeMode=next-heartbeat uses requestHeartbeatNow, not runHeartbeatOnce
-    expect(requestHeartbeatNow).toHaveBeenCalled();
-    // runHeartbeatOnce should NOT have been called for next-heartbeat mode
-    expect(runHeartbeatOnce).not.toHaveBeenCalled();
+    // wakeMode=next-heartbeat uses requestMainSessionWake, not runMainSessionOnce
+    expect(requestMainSessionWake).toHaveBeenCalled();
+    // runMainSessionOnce should NOT have been called for next-heartbeat mode
+    expect(runMainSessionOnce).not.toHaveBeenCalled();
   });
 });

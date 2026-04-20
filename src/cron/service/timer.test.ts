@@ -36,7 +36,7 @@ describe("cron service timer seam coverage", () => {
     const { storePath } = await makeStorePath();
     const now = Date.parse("2026-03-23T12:00:00.000Z");
     const enqueueSystemEvent = vi.fn();
-    const requestHeartbeatNow = vi.fn();
+    const requestMainSessionWake = vi.fn();
     const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
 
     await writeCronStoreSnapshot({
@@ -50,7 +50,7 @@ describe("cron service timer seam coverage", () => {
       log: logger,
       nowMs: () => now,
       enqueueSystemEvent,
-      requestHeartbeatNow,
+      requestMainSessionWake,
       runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
     });
 
@@ -61,7 +61,7 @@ describe("cron service timer seam coverage", () => {
       sessionKey: "agent:main:main",
       contextKey: "cron:main-heartbeat-job",
     });
-    expect(requestHeartbeatNow).toHaveBeenCalledWith({
+    expect(requestMainSessionWake).toHaveBeenCalledWith({
       reason: "cron:main-heartbeat-job",
       agentId: undefined,
       sessionKey: "agent:main:main",
@@ -88,7 +88,7 @@ describe("cron service timer seam coverage", () => {
     const { storePath } = await makeStorePath();
     const now = Date.parse("2026-03-23T12:00:00.000Z");
     const enqueueSystemEvent = vi.fn();
-    const requestHeartbeatNow = vi.fn();
+    const requestMainSessionWake = vi.fn();
 
     await writeCronStoreSnapshot({
       storePath,
@@ -107,7 +107,7 @@ describe("cron service timer seam coverage", () => {
       log: logger,
       nowMs: () => now,
       enqueueSystemEvent,
-      requestHeartbeatNow,
+      requestMainSessionWake,
       runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
     });
 

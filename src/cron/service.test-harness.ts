@@ -127,22 +127,22 @@ export function createStartedCronServiceWithFinishedBarrier(params: {
 }): {
   cron: CronService;
   enqueueSystemEvent: MockFn;
-  requestHeartbeatNow: MockFn;
+  requestMainSessionWake: MockFn;
   finished: ReturnType<typeof createFinishedBarrier>;
 } {
   const enqueueSystemEvent = vi.fn();
-  const requestHeartbeatNow = vi.fn();
+  const requestMainSessionWake = vi.fn();
   const finished = createFinishedBarrier();
   const cron = new CronService({
     storePath: params.storePath,
     cronEnabled: true,
     log: params.logger,
     enqueueSystemEvent,
-    requestHeartbeatNow,
+    requestMainSessionWake,
     runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
     onEvent: finished.onEvent,
   });
-  return { cron, enqueueSystemEvent, requestHeartbeatNow, finished };
+  return { cron, enqueueSystemEvent, requestMainSessionWake, finished };
 }
 
 export async function withCronServiceForTest(
@@ -155,18 +155,18 @@ export async function withCronServiceForTest(
   run: (context: {
     cron: CronService;
     enqueueSystemEvent: ReturnType<typeof vi.fn>;
-    requestHeartbeatNow: ReturnType<typeof vi.fn>;
+    requestMainSessionWake: ReturnType<typeof vi.fn>;
   }) => Promise<void>,
 ): Promise<void> {
   const store = await params.makeStorePath();
   const enqueueSystemEvent = vi.fn();
-  const requestHeartbeatNow = vi.fn();
+  const requestMainSessionWake = vi.fn();
   const cron = new CronService({
     cronEnabled: params.cronEnabled,
     storePath: store.storePath,
     log: params.logger,
     enqueueSystemEvent,
-    requestHeartbeatNow,
+    requestMainSessionWake,
     runIsolatedAgentJob:
       params.runIsolatedAgentJob ??
       (vi.fn(async () => ({ status: "ok" as const, summary: "done" })) as never),
@@ -174,7 +174,7 @@ export async function withCronServiceForTest(
 
   await cron.start();
   try {
-    await run({ cron, enqueueSystemEvent, requestHeartbeatNow });
+    await run({ cron, enqueueSystemEvent, requestMainSessionWake });
   } finally {
     cron.stop();
     await store.cleanup();
@@ -193,7 +193,7 @@ export function createRunningCronServiceState(params: {
     log: params.log,
     nowMs: params.nowMs,
     enqueueSystemEvent: vi.fn(),
-    requestHeartbeatNow: vi.fn(),
+    requestMainSessionWake: vi.fn(),
     runIsolatedAgentJob: vi.fn().mockResolvedValue({ status: "ok", summary: "ok" }),
   });
   state.running = true;
@@ -250,7 +250,7 @@ export function createMockCronStateForJobs(params: {
       cronEnabled: true,
       nowMs: () => nowMs,
       enqueueSystemEvent: () => {},
-      requestHeartbeatNow: () => {},
+      requestMainSessionWake: () => {},
       runIsolatedAgentJob: async () => ({ status: "ok" }),
       log: {
         debug: () => {},

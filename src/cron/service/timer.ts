@@ -1,6 +1,6 @@
 import { resolveFailoverReasonFromError } from "../../agents/failover-error.js";
 import type { CronConfig, CronRetryOn } from "../../config/types.cron.js";
-import type { HeartbeatRunResult } from "../../infra/heartbeat-wake.js";
+import type { MainSessionRunResult } from "../../infra/main-session-runner.js";
 import { DEFAULT_AGENT_ID } from "../../routing/session-key.js";
 import {
   completeTaskRunByRunId,
@@ -372,7 +372,7 @@ function emitFailureAlert(
 
   state.deps.enqueueSystemEvent(text, { agentId: params.job.agentId });
   if (params.job.wakeMode === "now") {
-    state.deps.requestHeartbeatNow({ reason: `cron:${params.job.id}:failure-alert` });
+    state.deps.requestMainSessionWake({ reason: `cron:${params.job.id}:failure-alert` });
   }
 }
 
@@ -1175,32 +1175,35 @@ async function executeMainSessionCronJob(
     sessionKey: targetMainSessionKey,
     contextKey: `cron:${job.id}`,
   });
-  if (job.wakeMode === "now" && state.deps.runHeartbeatOnce) {
+  if (job.wakeMode === "now" && state.deps.runMainSessionOnce) {
     const reason = `cron:${job.id}`;
     const isRecurringJob = job.schedule.kind !== "at";
     const maxWaitMs = state.deps.wakeNowHeartbeatBusyMaxWaitMs ?? 2 * 60_000;
     const retryDelayMs = state.deps.wakeNowHeartbeatBusyRetryDelayMs ?? 250;
     const waitStartedAt = state.deps.nowMs();
 
-    let heartbeatResult: HeartbeatRunResult;
+    let mainSessionResult: MainSessionRunResult;
     for (;;) {
       if (abortSignal?.aborted) {
         return { status: "error", error: timeoutErrorMessage() };
       }
-      heartbeatResult = await state.deps.runHeartbeatOnce({
+      mainSessionResult = await state.deps.runMainSessionOnce({
         reason,
         agentId: job.agentId,
         sessionKey: targetMainSessionKey,
-        heartbeat: { target: "last" },
+        session: { target: "last" },
       });
-      if (heartbeatResult.status !== "skipped" || heartbeatResult.reason !== "requests-in-flight") {
+      if (
+        mainSessionResult.status !== "skipped" ||
+        mainSessionResult.reason !== "requests-in-flight"
+      ) {
         break;
       }
       if (isRecurringJob) {
         // Recurring main-session cron jobs should not hold the cron lane open
         // while the main lane is busy, or their measured duration starts to
         // reflect queue wait instead of cron bookkeeping (#58833).
-        state.deps.requestHeartbeatNow({
+        state.deps.requestMainSessionWake({
           reason,
           agentId: job.agentId,
           sessionKey: targetMainSessionKey,
@@ -1214,7 +1217,7 @@ async function executeMainSessionCronJob(
         if (abortSignal?.aborted) {
           return { status: "error", error: timeoutErrorMessage() };
         }
-        state.deps.requestHeartbeatNow({
+        state.deps.requestMainSessionWake({
           reason,
           agentId: job.agentId,
           sessionKey: targetMainSessionKey,
@@ -1224,19 +1227,19 @@ async function executeMainSessionCronJob(
       await waitWithAbort(retryDelayMs);
     }
 
-    if (heartbeatResult.status === "ran") {
+    if (mainSessionResult.status === "ran") {
       return { status: "ok", summary: text };
     }
-    if (heartbeatResult.status === "skipped") {
-      return { status: "skipped", error: heartbeatResult.reason, summary: text };
+    if (mainSessionResult.status === "skipped") {
+      return { status: "skipped", error: mainSessionResult.reason, summary: text };
     }
-    return { status: "error", error: heartbeatResult.reason, summary: text };
+    return { status: "error", error: mainSessionResult.reason, summary: text };
   }
 
   if (abortSignal?.aborted) {
     return { status: "error", error: timeoutErrorMessage() };
   }
-  state.deps.requestHeartbeatNow({
+  state.deps.requestMainSessionWake({
     reason: `cron:${job.id}`,
     agentId: job.agentId,
     sessionKey: targetMainSessionKey,
@@ -1369,7 +1372,7 @@ export function wake(
   }
   state.deps.enqueueSystemEvent(text);
   if (opts.mode === "now") {
-    state.deps.requestHeartbeatNow({ reason: "wake" });
+    state.deps.requestMainSessionWake({ reason: "wake" });
   }
   return { ok: true } as const;
 }

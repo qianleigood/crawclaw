@@ -23,9 +23,10 @@ crawclaw system presence
 
 ## `system event`
 
-Enqueue a system event on the **main** session. The next heartbeat will inject
-it as a `System:` line in the prompt. Use `--mode now` to trigger the heartbeat
-immediately; `next-heartbeat` waits for the next scheduled tick.
+Enqueue a system event on the **main** session. The next main-session run will
+inject it as a `System:` line in the prompt. Use `--mode now` to trigger the
+main-session wake immediately; `next-heartbeat` waits for the next scheduled
+wake slot.
 
 Flags:
 

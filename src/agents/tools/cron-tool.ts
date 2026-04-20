@@ -43,7 +43,7 @@ export function createCronTool(opts?: CronToolOptions, deps?: CronToolDeps): Any
     displaySummary: "Schedule and manage cron jobs and wake events.",
     description: `Manage Gateway cron jobs (status/list/add/update/remove/run/runs) and send wake events.
 
-Main-session cron jobs enqueue system events for heartbeat handling. Isolated cron jobs create background task runs that appear in \`crawclaw tasks\`.
+Main-session cron jobs enqueue system events for main-session handling. Isolated cron jobs create background task runs that appear in \`crawclaw tasks\`.
 
 ACTIONS:
 - status: Check cron scheduler status
@@ -106,7 +106,7 @@ CRITICAL CONSTRAINTS:
 Default: prefer isolated agentTurn jobs unless the user explicitly wants current-session binding.
 
 WAKE MODES (for wake action):
-- "next-heartbeat" (default): Wake on next heartbeat
+- "next-heartbeat" (default): Queue the next main-session wake
 - "now": Wake immediately
 
 Use jobId as the canonical identifier; id is accepted for compatibility. Use contextMessages (0-10) to add previous messages as context to the job text.`,
