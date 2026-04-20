@@ -5,7 +5,7 @@ import type { ControlPageMeta } from "../routes.ts";
 @customElement("control-sidebar")
 export class ControlSidebar extends LitElement {
   @property({ attribute: false }) pages: ControlPageMeta[] = [];
-  @property() activePage = "overview";
+  @property() activePage = "sessions";
   @property() collapsed = false;
   @property() eyebrow = "CrawClaw";
 

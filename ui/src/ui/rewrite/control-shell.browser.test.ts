@@ -41,6 +41,7 @@ describe("control shell", () => {
     await sidebar?.updateComplete;
     await topbar?.updateComplete;
     expect(el.querySelector(".cp-shell")).toBeTruthy();
+    expect(el.querySelector(".cp-shell.is-nav-collapsed")).toBeTruthy();
     expect(el.querySelector(".cp-sidebar")).toBeTruthy();
     expect(el.querySelector(".cp-topbar")).toBeTruthy();
     expect(topbar?.querySelector(".cp-topbar__stats")).toBeTruthy();

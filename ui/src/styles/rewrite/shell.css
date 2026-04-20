@@ -1,3 +1,20 @@
+control-shell,
+control-sidebar,
+control-topbar,
+overview-screen,
+sessions-screen,
+channels-screen,
+workflows-screen,
+agents-screen,
+memory-screen,
+runtime-screen,
+usage-screen,
+config-screen,
+debug-screen {
+  display: block;
+  width: 100%;
+}
+
 .cp-shell {
   display: grid;
   grid-template-columns: var(--cp-nav-width) minmax(0, 1fr);

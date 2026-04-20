@@ -46,7 +46,6 @@ export class ControlTopbar extends LitElement {
   }
 
   protected render() {
-    const language = this.locale === "zh-CN" ? "中文" : "English";
     const connectionState = this.connected ? "Connected" : "Disconnected";
     return html`
       <header class="cp-topbar">
@@ -69,7 +68,6 @@ export class ControlTopbar extends LitElement {
         </div>
         <div class="cp-topbar__actions">
           <label class="cp-topbar__locale-picker">
-            <span class="cp-topbar__locale-copy">${language}</span>
             <select
               class="cp-topbar__locale-select"
               .value=${this.locale}

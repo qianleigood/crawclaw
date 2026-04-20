@@ -28,7 +28,6 @@ declare global {
 }
 
 const CONTROL_PAGE_IDS = [
-  "overview",
   "sessions",
   "channels",
   "workflows",
@@ -68,7 +67,8 @@ const PRIMARY_ROUTE_SEGMENTS: Record<ControlPage, string> = {
 };
 
 const LEGACY_ROUTE_ALIASES: Record<string, ControlPage> = {
-  "/": "overview",
+  "/": "sessions",
+  "/overview": "sessions",
   "/chat": "sessions",
   "/channels": "channels",
   "/workflows": "workflows",
@@ -148,7 +148,7 @@ export function pageFromPath(pathname: string, basePath = ""): ControlPage {
   if (normalized.endsWith("/index.html")) {
     normalized = "/";
   }
-  return LEGACY_ROUTE_ALIASES[normalized] ?? "overview";
+  return LEGACY_ROUTE_ALIASES[normalized] ?? "sessions";
 }
 
 export function pathForPage(page: ControlPage, basePath = ""): string {
