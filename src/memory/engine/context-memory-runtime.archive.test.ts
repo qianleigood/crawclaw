@@ -219,7 +219,7 @@ summary file should stay out of assemble
     );
   });
 
-  it("does not emit legacy session-memory archive events after new turn ingestion", async () => {
+  it("does not emit legacy session-summary archive events after new turn ingestion", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
     const archive = createArchiveFixture();
     const runtime = createContextMemoryRuntime({
@@ -249,7 +249,7 @@ summary file should stay out of assemble
 
     expect(archive.appendEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "turn.session_memory_update",
+        type: "turn.session_summary_update",
       }),
     );
   });

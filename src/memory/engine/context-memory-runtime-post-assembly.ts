@@ -46,7 +46,7 @@ export async function runPostAssemblySideEffects(params: {
   };
   combined: { text: string; estimatedTokens: number };
   systemContextSections: QueryContextSection[];
-  sessionSectionEstimatedTokens?: number;
+  sessionSummaryEstimatedTokens?: number;
   durableSectionEstimatedTokens?: number;
   knowledgeSectionEstimatedTokens?: number;
   memoryRecallDiagnostics: QueryContextMemoryRecallDiagnostics;
@@ -71,8 +71,8 @@ export async function runPostAssemblySideEffects(params: {
     compactedMessageCount: params.compactedMessageCount,
     rawMessageTokens: params.rawMessageTokens,
     compactedMessageTokens: params.compactedMessageTokens,
-    sessionMemoryTokens: params.sessionSectionEstimatedTokens ?? 0,
-    recallTokens: params.built.estimatedTokens - (params.sessionSectionEstimatedTokens ?? 0),
+    sessionSummaryTokens: params.sessionSummaryEstimatedTokens ?? 0,
+    recallTokens: params.built.estimatedTokens - (params.sessionSummaryEstimatedTokens ?? 0),
     systemContextTokens: params.combined.estimatedTokens,
     compactionState: params.compactionState,
     details: {
@@ -90,7 +90,7 @@ export async function runPostAssemblySideEffects(params: {
       selectedItemIds: params.built.selectedItemIds,
       sections: params.built.sections.map((section) => section.heading),
       memorySections: {
-        session: params.sessionSectionEstimatedTokens ?? 0,
+        sessionSummary: params.sessionSummaryEstimatedTokens ?? 0,
         durable: params.durableSectionEstimatedTokens ?? 0,
         knowledge: params.knowledgeSectionEstimatedTokens ?? 0,
       },
@@ -110,7 +110,7 @@ export async function runPostAssemblySideEffects(params: {
   });
 
   params.logger.info(
-    `[memory] prompt assembly tokens=${params.combined.estimatedTokens}/${params.targetBudget} session=${params.sessionSectionEstimatedTokens ?? 0} durable=${params.durableSectionEstimatedTokens ?? 0} knowledge=${params.knowledgeSectionEstimatedTokens ?? 0} recallCandidates=${params.knowledgeRecallCandidateCount} durableManifest=${params.durableRecall?.manifest.length ?? 0} durableSource=${params.durableRecallSource} selected=${params.built.selectedItemIds.length}`,
+    `[memory] prompt assembly tokens=${params.combined.estimatedTokens}/${params.targetBudget} sessionSummary=${params.sessionSummaryEstimatedTokens ?? 0} durable=${params.durableSectionEstimatedTokens ?? 0} knowledge=${params.knowledgeSectionEstimatedTokens ?? 0} recallCandidates=${params.knowledgeRecallCandidateCount} durableManifest=${params.durableRecall?.manifest.length ?? 0} durableSource=${params.durableRecallSource} selected=${params.built.selectedItemIds.length}`,
   );
 
   getSharedMemoryPromptJournal()?.recordStage("prompt_assembly", {
@@ -140,7 +140,7 @@ export async function runPostAssemblySideEffects(params: {
       rawMessageTokens: params.rawMessageTokens,
       compactedMessageTokens: params.compactedMessageTokens,
       memorySections: {
-        session: params.sessionSectionEstimatedTokens ?? 0,
+        sessionSummary: params.sessionSummaryEstimatedTokens ?? 0,
         durable: params.durableSectionEstimatedTokens ?? 0,
         knowledge: params.knowledgeSectionEstimatedTokens ?? 0,
       },

@@ -463,7 +463,7 @@ export interface AppendContextAssemblyAuditInput {
   compactedMessageCount: number;
   rawMessageTokens: number;
   compactedMessageTokens: number;
-  sessionMemoryTokens?: number | null;
+  sessionSummaryTokens?: number | null;
   recallTokens?: number | null;
   systemContextTokens?: number | null;
   preservedTailStartTurn?: number | null;
@@ -481,7 +481,7 @@ export interface ContextAssemblyAudit {
   compactedMessageCount: number;
   rawMessageTokens: number;
   compactedMessageTokens: number;
-  sessionMemoryTokens: number | null;
+  sessionSummaryTokens: number | null;
   recallTokens: number | null;
   systemContextTokens: number | null;
   preservedTailStartTurn: number | null;

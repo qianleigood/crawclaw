@@ -119,6 +119,8 @@ function sqliteNullableNumber(value: unknown): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+const CONTEXT_ASSEMBLY_AUDIT_SESSION_SUMMARY_TOKENS_COLUMN = "session_summary_tokens";
+const CONTEXT_ASSEMBLY_AUDIT_LEGACY_SESSION_MEMORY_TOKENS_COLUMN = "session_memory_tokens";
 const CONTEXT_ASSEMBLY_AUDIT_SYSTEM_CONTEXT_TOKENS_COLUMN = "system_context_tokens";
 const CONTEXT_ASSEMBLY_AUDIT_LEGACY_SYSTEM_PROMPT_ADDITION_TOKENS_COLUMN =
   "system_prompt_addition_tokens";
@@ -527,7 +529,7 @@ export class SqliteRuntimeStore implements RuntimeStore {
     const db = this.getDb();
     const id = newId("aaudit");
     db.prepare(`INSERT INTO gm_context_assembly_audits
-      (id, session_id, prompt, raw_message_count, compacted_message_count, raw_message_tokens, compacted_message_tokens, session_memory_tokens, recall_tokens, ${CONTEXT_ASSEMBLY_AUDIT_SYSTEM_CONTEXT_TOKENS_COLUMN}, ${CONTEXT_ASSEMBLY_AUDIT_LEGACY_SYSTEM_PROMPT_ADDITION_TOKENS_COLUMN}, preserved_tail_start_turn, compaction_state_present, compaction_mode, details_json, created_at)
+      (id, session_id, prompt, raw_message_count, compacted_message_count, raw_message_tokens, compacted_message_tokens, ${CONTEXT_ASSEMBLY_AUDIT_SESSION_SUMMARY_TOKENS_COLUMN}, recall_tokens, ${CONTEXT_ASSEMBLY_AUDIT_SYSTEM_CONTEXT_TOKENS_COLUMN}, ${CONTEXT_ASSEMBLY_AUDIT_LEGACY_SYSTEM_PROMPT_ADDITION_TOKENS_COLUMN}, preserved_tail_start_turn, compaction_state_present, compaction_mode, details_json, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       id,
       input.sessionId,
@@ -536,7 +538,7 @@ export class SqliteRuntimeStore implements RuntimeStore {
       input.compactedMessageCount,
       input.rawMessageTokens,
       input.compactedMessageTokens,
-      input.sessionMemoryTokens ?? null,
+      input.sessionSummaryTokens ?? null,
       input.recallTokens ?? null,
       input.systemContextTokens ?? null,
       input.systemContextTokens ?? null,
@@ -1519,6 +1521,23 @@ export class SqliteRuntimeStore implements RuntimeStore {
 
   private ensureContextAssemblyAuditColumns() {
     const db = this.getDb();
+    const columns = db.prepare("PRAGMA table_info(gm_context_assembly_audits)").all() as Array<{
+      name?: string;
+    }>;
+    const names = new Set(columns.map((column) => column.name ?? ""));
+    if (
+      names.has(CONTEXT_ASSEMBLY_AUDIT_LEGACY_SESSION_MEMORY_TOKENS_COLUMN) &&
+      !names.has(CONTEXT_ASSEMBLY_AUDIT_SESSION_SUMMARY_TOKENS_COLUMN)
+    ) {
+      db.exec(
+        `ALTER TABLE gm_context_assembly_audits RENAME COLUMN ${CONTEXT_ASSEMBLY_AUDIT_LEGACY_SESSION_MEMORY_TOKENS_COLUMN} TO ${CONTEXT_ASSEMBLY_AUDIT_SESSION_SUMMARY_TOKENS_COLUMN}`,
+      );
+    }
+    this.ensureColumn(
+      "gm_context_assembly_audits",
+      CONTEXT_ASSEMBLY_AUDIT_SESSION_SUMMARY_TOKENS_COLUMN,
+      "INTEGER",
+    );
     this.ensureColumn("gm_context_assembly_audits", "compaction_mode", "TEXT");
     this.ensureColumn(
       "gm_context_assembly_audits",
@@ -1959,7 +1978,9 @@ export class SqliteRuntimeStore implements RuntimeStore {
       compactedMessageCount: sqliteNumber(rec.compacted_message_count),
       rawMessageTokens: sqliteNumber(rec.raw_message_tokens),
       compactedMessageTokens: sqliteNumber(rec.compacted_message_tokens),
-      sessionMemoryTokens: sqliteNullableNumber(rec.session_memory_tokens),
+      sessionSummaryTokens: sqliteNullableNumber(
+        rec[CONTEXT_ASSEMBLY_AUDIT_SESSION_SUMMARY_TOKENS_COLUMN],
+      ),
       recallTokens: sqliteNullableNumber(rec.recall_tokens),
       systemContextTokens: sqliteNullableNumber(
         rec[CONTEXT_ASSEMBLY_AUDIT_SYSTEM_CONTEXT_TOKENS_COLUMN] ??

@@ -9,7 +9,7 @@ export async function appendAssemblyAudit(params: {
   compactedMessageCount: number;
   rawMessageTokens: number;
   compactedMessageTokens: number;
-  sessionMemoryTokens?: number | null;
+  sessionSummaryTokens?: number | null;
   recallTokens?: number | null;
   systemContextTokens?: number | null;
   compactionState?: SessionCompactionStateRow | null;
@@ -23,7 +23,7 @@ export async function appendAssemblyAudit(params: {
     compactedMessageCount,
     rawMessageTokens,
     compactedMessageTokens,
-    sessionMemoryTokens,
+    sessionSummaryTokens,
     recallTokens,
     systemContextTokens,
     compactionState,
@@ -37,7 +37,7 @@ export async function appendAssemblyAudit(params: {
     compactedMessageCount,
     rawMessageTokens,
     compactedMessageTokens,
-    sessionMemoryTokens: sessionMemoryTokens ?? null,
+    sessionSummaryTokens: sessionSummaryTokens ?? null,
     recallTokens: recallTokens ?? null,
     systemContextTokens: systemContextTokens ?? null,
     preservedTailStartTurn: compactionState?.preservedTailStartTurn ?? null,

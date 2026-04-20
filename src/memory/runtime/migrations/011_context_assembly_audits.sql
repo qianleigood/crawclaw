@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS gm_context_assembly_audits (
   compacted_message_count INTEGER NOT NULL,
   raw_message_tokens INTEGER NOT NULL,
   compacted_message_tokens INTEGER NOT NULL,
-  session_memory_tokens INTEGER,
+  session_summary_tokens INTEGER,
   recall_tokens INTEGER,
   system_prompt_addition_tokens INTEGER,
   preserved_tail_start_turn INTEGER,
