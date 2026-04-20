@@ -733,6 +733,9 @@ importers:
 
   ui:
     dependencies:
+      '@awesome.me/webawesome':
+        specifier: ^3.2.1
+        version: 3.5.0(@floating-ui/utils@0.2.11)(@types/react@19.2.14)
       '@create-markdown/preview':
         specifier: ^2.0.0
         version: 2.0.3(shiki@3.23.0)
@@ -794,6 +797,10 @@ packages:
 
   '@asamuzakjp/nwsapi@2.3.9':
     resolution: {integrity: sha512-n8GuYSrI9bF7FFZ/SjhwevlHc8xaVlb/7HmHelnc/PZXBD2ZR49NnN9sMMuDdEGPeeRQ5d0hqlSlEpgCX3Wl0Q==}
+
+  '@awesome.me/webawesome@3.5.0':
+    resolution: {integrity: sha512-/hJOe5vsKu9GejyTB3xFyQvvGRzXCLqdOGtBa4a+ifDNPRwzQLR3bzxcEpJsLmVfOhhem1XGbyOD9cMwefuAlA==}
+    engines: {node: '>=14.17.0'}
 
   '@aws-crypto/crc32@5.2.0':
     resolution: {integrity: sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg==}
@@ -1128,6 +1135,10 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
+  '@ctrl/tinycolor@4.1.0':
+    resolution: {integrity: sha512-WyOx8cJQ+FQus4Mm4uPIZA64gbk3Wxh0so5Lcii0aJifqwoVOlfFtorjLE0Hen4OYyHZMXDWqMmaQemBhgxFRQ==}
+    engines: {node: '>=14'}
+
   '@d-fischer/cache-decorators@4.0.1':
     resolution: {integrity: sha512-HNYLBLWs/t28GFZZeqdIBqq8f37mqDIFO6xNPof94VjpKvuP6ROqCZGafx88dk5zZUlBfViV9jD8iNNlXfc4CA==}
 
@@ -1345,6 +1356,15 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@floating-ui/core@1.7.5':
+    resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
+
+  '@floating-ui/dom@1.7.6':
+    resolution: {integrity: sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ==}
+
+  '@floating-ui/utils@0.2.11':
+    resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
   '@gar/promise-retry@1.0.3':
     resolution: {integrity: sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA==}
@@ -1733,6 +1753,11 @@ packages:
 
   '@lit/context@1.1.6':
     resolution: {integrity: sha512-M26qDE6UkQbZA2mQ3RjJ3Gzd8TxP+/0obMgE5HfkfLhEEyYE3Bui4A5XHiGPjy0MUGAyxB3QgVuw2ciS0kHn6A==}
+
+  '@lit/react@1.0.8':
+    resolution: {integrity: sha512-p2+YcF+JE67SRX3mMlJ1TKCSTsgyOVdAwd/nxp3NuV1+Cb6MWALbN6nT7Ld4tpmYofcE5kcaSY1YBB9erY+6fw==}
+    peerDependencies:
+      '@types/react': 17 || 18 || 19
 
   '@lit/reactive-element@2.1.2':
     resolution: {integrity: sha512-pbCDiVMnne1lYUIaYNN5wrwQXDtHaYtg7YEFPeW+hws6U47WeFvISGUWekPGKWOP1ygrs0ef0o1VJMk1exos5A==}
@@ -2804,6 +2829,12 @@ packages:
   '@shikijs/vscode-textmate@10.0.2':
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
 
+  '@shoelace-style/animations@1.2.0':
+    resolution: {integrity: sha512-avvo1xxkLbv2dgtabdewBbqcJfV0e0zCwFqkPMnHFGbJbBHorRFfMAHh1NG9ymmXn0jW95ibUVH03E1NYXD6Gw==}
+
+  '@shoelace-style/localize@3.2.1':
+    resolution: {integrity: sha512-r4C9C/5kSfMBIr0D9imvpRdCNXtUNgyYThc4YlS6K5Hchv1UyxNQ9mxwj+BTRH2i1Neits260sR3OjKMnplsFA==}
+
   '@silvia-odwyer/photon-node@0.3.4':
     resolution: {integrity: sha512-bnly4BKB3KDTFxrUIcgCLbaeVVS8lrAkri1pEzskpmxu9MdfGQTy8b8EgcD83ywD3RPMsIulY8xJH5Awa+t9fA==}
 
@@ -3299,6 +3330,9 @@ packages:
 
   '@types/range-parser@1.2.7':
     resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
+
+  '@types/react@19.2.14':
+    resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
 
   '@types/retry@0.12.0':
     resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
@@ -3835,6 +3869,11 @@ packages:
     resolution: {integrity: sha512-P0CysNDQ7rtVw4QIQtm+MRxV66vKFSvlsQvGYXZWR3qFU0jlMKHZZZgw8e+8DSah4UDKMqnknRDQz+xuQXQ/Zg==}
     engines: {node: '>= 6'}
 
+  composed-offset-position@0.0.6:
+    resolution: {integrity: sha512-Q7dLompI6lUwd7LWyIcP66r4WcS9u7AL2h8HaeipiRfCRPLMWqRx8fYsjb4OHi6UQFifO7XtNC2IlEJ1ozIFxw==}
+    peerDependencies:
+      '@floating-ui/utils': ^0.2.5
+
   constantinople@4.0.1:
     resolution: {integrity: sha512-vCrqcSIq4//Gx74TXXCGnHpulY1dskqLTFGDmhrGxzeXL8lF8kvXv6mpNWlJj1uD4DW23D4ljAqbY4RRaaUZIw==}
 
@@ -3888,6 +3927,9 @@ packages:
 
   cssom@0.5.0:
     resolution: {integrity: sha512-iKuQcq+NdHqlAcwUY0o/HL69XQrUaQdMjmStJ8JFmUaiiQErlhrmuigkg/CU4E2J0IyUKUrMAgl36TvN67MqTw==}
+
+  csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
   curve25519-js@0.0.4:
     resolution: {integrity: sha512-axn2UMEnkhyDUPWOwVKBMVIzSQy2ejH2xRGy1wq81dqRwApXfIzfbE3hIX0ZRFBIihf/KDqK158DLwESu4AK1w==}
@@ -4884,6 +4926,11 @@ packages:
   markdown-table@2.0.0:
     resolution: {integrity: sha512-Ezda85ToJUBhM6WGaG6veasyym+Tbs3cMAw/ZhOPqXiYsr0jgocBV3j3nx+4lk47plLlIqjwuTm/ywVI+zjJ/A==}
 
+  marked@11.2.0:
+    resolution: {integrity: sha512-HR0m3bvu0jAPYiIvLUUQtdg1g6D247//lvcekpHO1WMvbwDlwSkZAX9Lw4F4YHE1T0HaaNve0tuAWuV1UJ6vtw==}
+    engines: {node: '>= 18'}
+    hasBin: true
+
   marked@15.0.12:
     resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
     engines: {node: '>= 18'}
@@ -5519,6 +5566,9 @@ packages:
   qified@0.9.1:
     resolution: {integrity: sha512-n7mar4T0xQ+39dE2vGTAlbxUEpndwPANH0kDef1/MYsB8Bba9wshkybIRx74qgcvKQPEWErf9AqAdYjhzY2Ilg==}
     engines: {node: '>=20'}
+
+  qr-creator@1.0.0:
+    resolution: {integrity: sha512-C0cqfbS1P5hfqN4NhsYsUXePlk9BO+a45bAQ3xLYjBL3bOIFzoVEjs79Fado9u9BPBD3buHi3+vY+C8tHh4qMQ==}
 
   qrcode-terminal@0.12.0:
     resolution: {integrity: sha512-EXtzRZmC+YGmGlDFbXKxQiMZNwCLEO6BANKXG4iCtSIM0yqc/pappSx3RIKr4r0uh5JsBckOXeKrB3Iz7mdQpQ==}
@@ -6470,6 +6520,22 @@ snapshots:
 
   '@asamuzakjp/nwsapi@2.3.9': {}
 
+  '@awesome.me/webawesome@3.5.0(@floating-ui/utils@0.2.11)(@types/react@19.2.14)':
+    dependencies:
+      '@ctrl/tinycolor': 4.1.0
+      '@floating-ui/dom': 1.7.6
+      '@lit/react': 1.0.8(@types/react@19.2.14)
+      '@shoelace-style/animations': 1.2.0
+      '@shoelace-style/localize': 3.2.1
+      composed-offset-position: 0.0.6(@floating-ui/utils@0.2.11)
+      lit: 3.3.2
+      marked: 11.2.0
+      nanoid: 5.1.7
+      qr-creator: 1.0.0
+    transitivePeerDependencies:
+      - '@floating-ui/utils'
+      - '@types/react'
+
   '@aws-crypto/crc32@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
@@ -7221,6 +7287,8 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
+  '@ctrl/tinycolor@4.1.0': {}
+
   '@d-fischer/cache-decorators@4.0.1':
     dependencies:
       '@d-fischer/shared-utils': 3.6.4
@@ -7403,6 +7471,17 @@ snapshots:
   '@exodus/bytes@1.15.0(@noble/hashes@2.0.1)':
     optionalDependencies:
       '@noble/hashes': 2.0.1
+
+  '@floating-ui/core@1.7.5':
+    dependencies:
+      '@floating-ui/utils': 0.2.11
+
+  '@floating-ui/dom@1.7.6':
+    dependencies:
+      '@floating-ui/core': 1.7.5
+      '@floating-ui/utils': 0.2.11
+
+  '@floating-ui/utils@0.2.11': {}
 
   '@gar/promise-retry@1.0.3': {}
 
@@ -7886,6 +7965,10 @@ snapshots:
   '@lit/context@1.1.6':
     dependencies:
       '@lit/reactive-element': 2.1.2
+
+  '@lit/react@1.0.8(@types/react@19.2.14)':
+    dependencies:
+      '@types/react': 19.2.14
 
   '@lit/reactive-element@2.1.2':
     dependencies:
@@ -8823,6 +8906,10 @@ snapshots:
 
   '@shikijs/vscode-textmate@10.0.2': {}
 
+  '@shoelace-style/animations@1.2.0': {}
+
+  '@shoelace-style/localize@3.2.1': {}
+
   '@silvia-odwyer/photon-node@0.3.4': {}
 
   '@simple-git/args-pathspec@1.0.3': {}
@@ -9483,6 +9570,10 @@ snapshots:
 
   '@types/range-parser@1.2.7': {}
 
+  '@types/react@19.2.14':
+    dependencies:
+      csstype: 3.2.3
+
   '@types/retry@0.12.0': {}
 
   '@types/sarif@2.1.7': {}
@@ -10034,6 +10125,10 @@ snapshots:
 
   commander@5.1.0: {}
 
+  composed-offset-position@0.0.6(@floating-ui/utils@0.2.11):
+    dependencies:
+      '@floating-ui/utils': 0.2.11
+
   constantinople@4.0.1:
     dependencies:
       '@babel/parser': 7.29.2
@@ -10082,6 +10177,8 @@ snapshots:
   css-what@6.2.2: {}
 
   cssom@0.5.0: {}
+
+  csstype@3.2.3: {}
 
   curve25519-js@0.0.4: {}
 
@@ -11204,6 +11301,8 @@ snapshots:
     dependencies:
       repeat-string: 1.6.1
 
+  marked@11.2.0: {}
+
   marked@15.0.12: {}
 
   marked@17.0.6: {}
@@ -11951,6 +12050,8 @@ snapshots:
   qified@0.9.1:
     dependencies:
       hookified: 2.1.1
+
+  qr-creator@1.0.0: {}
 
   qrcode-terminal@0.12.0: {}
 

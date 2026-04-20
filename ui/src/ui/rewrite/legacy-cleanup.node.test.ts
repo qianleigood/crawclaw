@@ -97,6 +97,12 @@ test("channels settings editor uses overview/accounts/settings/advanced tabs", (
   expect(source).toContain("cp-channel-editor-tabs");
 });
 
+test("channels editor no longer uses raw button tabs", () => {
+  const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
+  expect(source.includes('class="cp-channel-editor-tabs"')).toBe(false);
+  expect(source.includes("wa-tab-group")).toBe(true);
+});
+
 test("channels settings editor renders a shared submit status strip", () => {
   const source = readFileSync("src/ui/rewrite/app-root.ts", "utf8");
   expect(source).toContain("cp-channel-editor-status");

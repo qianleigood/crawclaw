@@ -142,6 +142,7 @@ import "./screens/runtime-screen.ts";
 import "./screens/sessions-screen.ts";
 import "./screens/usage-screen.ts";
 import "./screens/workflows-screen.ts";
+import "./webawesome.ts";
 import "./shell/control-shell.ts";
 
 type JsonRecord = Record<string, unknown>;

@@ -127,6 +127,24 @@ describe("channels settings editor", () => {
     }
   });
 
+  it("renders a component-library tab shell for the channel editor", async () => {
+    const el = createEditor();
+    try {
+      await customElements.whenDefined("crawclaw-app");
+      el.openTestChannelEditor("demo-channel");
+      await el.updateComplete;
+
+      await customElements.whenDefined("wa-tab-group");
+      const tabGroup = el.renderRoot.querySelector("wa-tab-group");
+      expect(customElements.get("wa-tab-group")).toBeTypeOf("function");
+      expect(tabGroup).toBeInstanceOf(customElements.get("wa-tab-group")!);
+      expect(tabGroup?.matches(":defined")).toBe(true);
+      expect(el.renderRoot.querySelectorAll(".cp-channel-editor-tabs button")).toHaveLength(0);
+    } finally {
+      el.remove();
+    }
+  });
+
   it("switches between accounts and settings editor surfaces", async () => {
     const el = createEditor();
     try {

@@ -9,6 +9,7 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "@awesome.me/webawesome": "^3.2.1",
     "@create-markdown/preview": "^2.0.0",
     "@noble/ed25519": "3.0.1",
     "dompurify": "^3.3.3",
