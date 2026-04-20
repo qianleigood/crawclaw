@@ -74,9 +74,9 @@ describe("context archive turn capture", () => {
       systemPrompt: "You are CrawClaw.",
       systemContextSections: [
         {
-          id: "memory:session",
+          id: "memory:durable",
           role: "system_context",
-          content: "## Session memory",
+          content: "## Durable memory",
         },
       ],
       messages: [

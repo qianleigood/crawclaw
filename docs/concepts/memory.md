@@ -111,9 +111,11 @@ The summary file uses a fixed structure, including sections such as:
 - `Key results`
 - `Worklog`
 
-Prompt assembly does not inject the entire file every turn. It only extracts
-the most useful live-continuity sections, such as `Current State`,
-`Task specification`, `Key results`, and relevant `Errors & Corrections`.
+Prompt assembly no longer injects `summary.md` into the model-visible system
+context. Before compaction, continuity comes from the recent transcript. When a
+session later compacts, CrawClaw consumes `summary.md` as the compacted-history
+source of truth and preserves only the recent tail after the summarized
+boundary.
 
 Session memory is still keyed by `sessionId`, so parent agents and spawned
 sub-agents do **not** share the same summary file. Each child run owns its own
@@ -189,7 +191,8 @@ This keeps short-term continuity on one source of truth:
 - the background agent updates `summary.md`
 - compaction preserves the tail after the summarized boundary, expanding
   backward only enough to keep a usable recent working set
-- prompt assembly reads the same summary file instead of a separate session card
+- prompt assembly keeps using the recent transcript and does not separately
+  inject `summary.md`
 
 ## CLI
 

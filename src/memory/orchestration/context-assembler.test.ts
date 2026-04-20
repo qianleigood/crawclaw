@@ -65,19 +65,8 @@ function makeDurableItem(
 }
 
 describe("assembleMemoryPrompt", () => {
-  it("renders session, durable, and knowledge sections separately", () => {
+  it("renders durable and knowledge sections separately", () => {
     const assembled = assembleMemoryPrompt({
-      sessionMemoryText: `# Session Title
-Memory routing validation
-
-# Current State
-User prefers concise answers.
-
-# Task specification
-Validate session/durable/knowledge assembly sections.
-
-# Key results
-All memory sections are rendered separately.`,
       durableItems: [
         makeDurableItem({
           id: "user-memory",
@@ -123,12 +112,8 @@ All memory sections are rendered separately.`,
       tokenBudget: 600,
     });
 
-    expect(assembled.sections.map((section) => section.kind)).toEqual([
-      "session",
-      "durable",
-      "knowledge",
-    ]);
-    expect(assembled.text).toContain("## Session memory");
+    expect(assembled.sections.map((section) => section.kind)).toEqual(["durable", "knowledge"]);
+    expect(assembled.text).not.toContain("## Session memory");
     expect(assembled.text).toContain("## Durable memory");
     expect(assembled.text).toContain("## 知识回忆");
     expect(assembled.text).toContain("Feedback memory: Prefer concise answers");
@@ -147,11 +132,10 @@ All memory sections are rendered separately.`,
     );
     const queryContextSections = assembled.queryContextSections ?? [];
     expect(queryContextSections.map((section) => section.schema?.kind)).toEqual([
-      "session_memory",
       "durable_memory",
       "knowledge",
     ]);
-    expect(queryContextSections[1]?.schema).toMatchObject({
+    expect(queryContextSections[0]?.schema).toMatchObject({
       kind: "durable_memory",
       itemIds: expect.arrayContaining(["user-memory", "project-memory"]),
       omittedCount: 0,

@@ -121,7 +121,8 @@ Examples:
 
 - relevant memory retrieval
 - skill discovery
-- session summary loading
+- recent transcript continuity
+- compaction summary consumption
 - context assembly
 - durable recall prefetch
 

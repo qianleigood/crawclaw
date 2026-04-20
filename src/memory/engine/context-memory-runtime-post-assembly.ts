@@ -1,10 +1,13 @@
-import type { QueryContextMemoryRecallDiagnostics, QueryContextSection } from "../../agents/query-context/types.js";
+import type {
+  QueryContextMemoryRecallDiagnostics,
+  QueryContextSection,
+} from "../../agents/query-context/types.js";
 import { appendAssemblyAudit } from "../context/assembly-audit.ts";
 import { getSharedMemoryPromptJournal } from "../diagnostics/prompt-journal.ts";
 import type { DurableRecallResult } from "../durable/read.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
-import type { SessionCompactionStateRow } from "../types/runtime.ts";
 import type { SkillRoutingResult, UnifiedQueryClassification } from "../types/orchestration.ts";
+import type { SessionCompactionStateRow } from "../types/runtime.ts";
 import type { RuntimeLogger } from "./context-memory-runtime-deps.ts";
 import type { DurableRecallSource } from "./context-memory-runtime-helpers.ts";
 import type { MemoryRuntimeContext } from "./types.ts";
@@ -36,7 +39,6 @@ export async function runPostAssemblySideEffects(params: {
   compactedMessageTokens: number;
   droppedMessageCount: number;
   targetBudget: number;
-  effectiveSummaryText: string | null;
   built: {
     estimatedTokens: number;
     selectedItemIds: string[];
@@ -115,13 +117,17 @@ export async function runPostAssemblySideEffects(params: {
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
     agentId:
-      typeof params.runtimeContext?.agentId === "string" ? params.runtimeContext.agentId : undefined,
+      typeof params.runtimeContext?.agentId === "string"
+        ? params.runtimeContext.agentId
+        : undefined,
     channel:
       typeof params.runtimeContext?.messageChannel === "string"
         ? params.runtimeContext.messageChannel
         : undefined,
     userId:
-      typeof params.runtimeContext?.senderId === "string" ? params.runtimeContext.senderId : undefined,
+      typeof params.runtimeContext?.senderId === "string"
+        ? params.runtimeContext.senderId
+        : undefined,
     payload: {
       prompt: params.promptText,
       recentMessages: params.promptRecentMessages ?? [],
@@ -164,7 +170,9 @@ export async function runPostAssemblySideEffects(params: {
       sessionId: params.sessionId,
       sessionKey: params.sessionKey,
       agentId:
-        typeof params.runtimeContext?.agentId === "string" ? params.runtimeContext.agentId : undefined,
+        typeof params.runtimeContext?.agentId === "string"
+          ? params.runtimeContext.agentId
+          : undefined,
       turnIndex: params.turnIndex,
       payload: {
         model: params.model ?? null,
@@ -180,7 +188,6 @@ export async function runPostAssemblySideEffects(params: {
         rawMessageTokens: params.rawMessageTokens,
         compactedMessageTokens: params.compactedMessageTokens,
         droppedMessageCount: params.droppedMessageCount,
-        sessionMemoryText: params.effectiveSummaryText,
         durableRecallSource: params.durableRecallSource,
         selectedDurableMemoryIds: params.selectedDurableItemIds,
         omittedDurableMemoryIds: params.omittedDurableItemIds,

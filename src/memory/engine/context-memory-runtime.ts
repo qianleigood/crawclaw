@@ -14,7 +14,6 @@ import { callStructuredOutput } from "../llm/structured-output.ts";
 import { startNotebookLmHeartbeat } from "../notebooklm/heartbeat.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { SessionSummaryRunner } from "../session-summary/scheduler.ts";
-import { readSessionSummaryFile } from "../session-summary/store.ts";
 import { buildSkillIndexFromAvailableSkills } from "../skills/skill-metadata.ts";
 import { selectRelevantSkills } from "../skills/skill-router.ts";
 import type { MemoryRuntimeConfig, LlmConfig } from "../types/config.ts";
@@ -167,21 +166,11 @@ export function createContextMemoryRuntime(options: {
       const compactedMessageTokens = estimateConversationMessageTokens(compactedMessages);
       const droppedMessageCount = Math.max(0, messages.length - compactedMessages.length);
       const targetBudget = Math.max(240, Math.min(tokenBudget ?? 1000, 1200));
-      const summaryAgentId =
-        (typeof runtimeContext?.agentId === "string" && runtimeContext.agentId.trim()) ||
-        resolveAgentIdFromSessionKey(sessionKey) ||
-        "main";
-      const sessionSummaryFile = await readSessionSummaryFile({
-        agentId: summaryAgentId,
-        sessionId,
-      }).catch(() => null);
-      const effectiveSummaryText = sessionSummaryFile?.content ?? null;
       const promptContext = resolvePromptContext({ prompt, messages: compactedMessages });
       const promptText = promptContext.prompt;
 
       if (!promptText) {
         const built = contextAssembler.assemble({
-          sessionMemoryText: effectiveSummaryText,
           durableItems: [],
           knowledgeItems: [],
           tokenBudget: targetBudget,
@@ -210,7 +199,6 @@ export function createContextMemoryRuntime(options: {
               rawMessageTokens,
               compactedMessageTokens,
               droppedMessageCount,
-              sessionMemoryText: effectiveSummaryText,
               selectedDurableMemoryIds: [],
               selectedKnowledgeRecallIds: [],
               selectedItemIds: [],
@@ -252,8 +240,6 @@ export function createContextMemoryRuntime(options: {
         complete: structuredComplete,
       });
       const built = contextAssembler.assemble({
-        query: promptText,
-        sessionMemoryText: effectiveSummaryText,
         durableItems: durableRecall?.items ?? [],
         knowledgeItems: selectedKnowledge.items,
         tokenBudget: targetBudget,
@@ -261,7 +247,6 @@ export function createContextMemoryRuntime(options: {
       const {
         combined,
         systemContextSections,
-        sessionSection,
         durableSection,
         knowledgeSection,
         selectedDurableItemIds,
@@ -294,11 +279,9 @@ export function createContextMemoryRuntime(options: {
         compactedMessageTokens,
         droppedMessageCount,
         targetBudget,
-        effectiveSummaryText,
         built,
         combined,
         systemContextSections,
-        sessionSectionEstimatedTokens: sessionSection?.estimatedTokens,
         durableSectionEstimatedTokens: durableSection?.estimatedTokens,
         knowledgeSectionEstimatedTokens: knowledgeSection?.estimatedTokens,
         memoryRecallDiagnostics,

@@ -4,21 +4,21 @@ import type {
 } from "../../agents/query-context/types.js";
 import { resolveMemoryRecallDecisionCodes } from "../../shared/decision-codes.js";
 import { joinPromptSections } from "../context/assembly.ts";
-import type { DurableRecallResult } from "../durable/read.ts";
 import { renderContextRoutingSection } from "../context/render-routing-guidance.ts";
+import type { DurableRecallResult } from "../durable/read.ts";
 import type { KnowledgeRecallSelectionResult } from "../orchestration/knowledge-recall-selector.ts";
 import type {
   MemoryPromptAssemblyResult,
   MemoryPromptSection,
   UnifiedQueryClassification,
 } from "../types/orchestration.ts";
-import type { MemoryAssembleResult } from "./types.ts";
 import {
   createMemorySystemContextSection,
   resolveMemoryRecallEvictionReason,
   resolveMemoryRecallHitReason,
   type DurableRecallSource,
 } from "./context-memory-runtime-helpers.ts";
+import type { MemoryAssembleResult } from "./types.ts";
 
 function getAssemblySection(
   sections: MemoryPromptSection[],
@@ -57,7 +57,6 @@ export function buildMemoryAssemblyArtifacts(params: {
 }): {
   combined: { text: string; estimatedTokens: number };
   systemContextSections: QueryContextSection[];
-  sessionSection?: MemoryPromptSection;
   durableSection?: MemoryPromptSection;
   knowledgeSection?: MemoryPromptSection;
   selectedDurableItemIds: string[];
@@ -110,7 +109,6 @@ export function buildMemoryAssemblyArtifacts(params: {
     ...(params.built.queryContextSections ?? []),
   ].filter((section): section is QueryContextSection => Boolean(section));
 
-  const sessionSection = getAssemblySection(params.built.sections, "session");
   const durableSection = getAssemblySection(params.built.sections, "durable");
   const knowledgeSection = getAssemblySection(params.built.sections, "knowledge");
 
@@ -150,7 +148,6 @@ export function buildMemoryAssemblyArtifacts(params: {
   return {
     combined,
     systemContextSections,
-    sessionSection,
     durableSection,
     knowledgeSection,
     selectedDurableItemIds,

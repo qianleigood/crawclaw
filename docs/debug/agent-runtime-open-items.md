@@ -107,7 +107,7 @@ contracts.
   - Landed:
     - base system prompt now emits structured sections instead of only one large string
     - memory assembly now emits structured `systemContextSections` as the only context-engine prompt output
-    - memory `systemContextSections` now carry machine-readable section schema (`session_memory` / `durable_memory` / `knowledge` / `routing`) instead of relying only on free-form text + metadata
+    - memory `systemContextSections` now carry machine-readable section schema (`durable_memory` / `knowledge` / `routing`) instead of relying only on free-form text + metadata
     - prompt-build hooks now return structured `QueryContextPatch` objects instead of string mutations
     - cache identity is derived from the structured query context instead of ad-hoc prompt assembly paths
     - query-context tool payload normalization is now shared with query-layer cache contract helpers, reducing duplicated cache-shape logic

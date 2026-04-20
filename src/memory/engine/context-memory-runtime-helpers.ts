@@ -36,9 +36,6 @@ export function resolveMemoryRecallHitReason(params: {
   if (params.selectedKnowledgeCount > 0) {
     return "knowledge_selected";
   }
-  if (params.selectedTotalCount > 0) {
-    return "session_memory_selected";
-  }
   if (
     params.durableRecallSource === "prefetch_pending" ||
     params.durableRecallSource === "prefetch_pending_fallback_error" ||

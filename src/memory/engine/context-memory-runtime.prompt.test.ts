@@ -289,8 +289,8 @@ describe("createContextMemoryRuntime().assemble", () => {
 
     const systemContextSections = result.systemContextSections ?? [];
     const systemContextText = renderQueryContextSections(systemContextSections);
-    expect(systemContextText).toContain("## Session memory");
-    expect(systemContextText).toContain("先判断 durable memory 是否相关");
+    expect(systemContextText).not.toContain("## Session memory");
+    expect(systemContextText).not.toContain("先判断 durable memory 是否相关");
     expect(systemContextText).toContain("## Durable memory");
     expect(systemContextText).toContain("Feedback memory: 回答操作类问题先给步骤");
     expect(systemContextText).toContain("Freshness:");
@@ -707,5 +707,144 @@ describe("createContextMemoryRuntime().assemble", () => {
       "## Durable memory",
     );
     expect(recallDurableMemoryMock).not.toHaveBeenCalled();
+  });
+
+  it("does not inject session summary into system context during assemble", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-workflow-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    searchNotebookLmViaCliMock.mockResolvedValue([]);
+    recallDurableMemoryMock.mockReset();
+
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId: "session-workflow",
+      content: `# Session Title
+Gateway recovery
+
+# Current State
+Gateway health checks are failing intermittently.
+
+# Task specification
+Recover the local gateway and verify the probe output.
+
+# Files and Functions
+src/gateway/run.ts starts the gateway and wires the health checks.
+
+# Workflow
+Run crawclaw channels status --probe, inspect the gateway log, clear the stale process, restart the gateway, and rerun the probe.
+
+# Errors & Corrections
+Previous attempts failed because the old process still held the port binding.
+
+# Codebase and System Documentation
+The gateway owns channel adapters and control-plane routing behind the local runtime boundary.
+
+# Key results
+The health probe recovered after the stale process was removed.
+`,
+    });
+
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-workflow"),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createBaseMemoryRuntimeConfig(),
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-workflow",
+      sessionKey: "session-workflow",
+      prompt: "本地网关挂了怎么恢复，给我操作步骤",
+      messages: castAgentMessages([
+        { role: "user", content: "本地网关挂了怎么恢复，给我操作步骤" },
+      ]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-42",
+      },
+    });
+
+    const systemContextText = renderQueryContextSections(result.systemContextSections);
+    expect(systemContextText).not.toContain("## Session memory");
+    expect(systemContextText).not.toContain("Gateway health checks are failing intermittently.");
+    expect(systemContextText).not.toContain("Run crawclaw channels status --probe");
+    expect(recallDurableMemoryMock).not.toHaveBeenCalled();
+  });
+
+  it("does not surface session summary even when durable and knowledge layers are empty", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-borrow-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    searchNotebookLmViaCliMock.mockResolvedValue([]);
+    recallDurableMemoryMock.mockReset();
+
+    const repeatedWorkflow =
+      "Run the probe, inspect the log, kill the stale process, restart the gateway, rerun the probe, and confirm recovery. ".repeat(
+        20,
+      );
+
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId: "session-borrow",
+      content: `# Session Title
+Recovery workflow
+
+# Current State
+Gateway recovery is blocked on a stale process.
+
+# Task specification
+Recover the local gateway and verify probe output.
+
+# Workflow
+${repeatedWorkflow}
+
+# Errors & Corrections
+Do not restart the gateway before clearing the old process binding.
+
+# Key results
+Probe output recovered after the stale process was removed.
+`,
+    });
+
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-borrow"),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createBaseMemoryRuntimeConfig(),
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-borrow",
+      sessionKey: "session-borrow",
+      prompt: "这个网关恢复流程具体怎么走",
+      messages: castAgentMessages([{ role: "user", content: "这个网关恢复流程具体怎么走" }]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-42",
+      },
+    });
+
+    expect(
+      (result.systemContextSections ?? []).find((section) => section.id === "memory:session"),
+    ).toBeUndefined();
+    expect(renderQueryContextSections(result.systemContextSections)).not.toContain(
+      "## Session memory",
+    );
+    expect(renderQueryContextSections(result.systemContextSections)).not.toContain(
+      "## Durable memory",
+    );
   });
 });

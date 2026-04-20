@@ -10,7 +10,6 @@ import {
   KNOWLEDGE_DISPLAY_HEADING,
 } from "../knowledge/knowledge-display.ts";
 import { estimateTokenCount } from "../recall/token-estimate.ts";
-import { renderSessionSummaryPromptSection } from "../session-summary/sections.ts";
 import type {
   DurableMemoryItem,
   MemoryPromptAssemblyInput,
@@ -93,23 +92,14 @@ function formatSourceLine(item: UnifiedRankedItem): string {
   return `- ${getKnowledgeSourceLabel(item)}${citation(item)} ${item.title}${support}`;
 }
 
-function allocateBudgets(
-  tokenBudget: number,
-  hasSession: boolean,
-): {
-  session: number;
+function allocateBudgets(tokenBudget: number): {
   durable: number;
   knowledge: number;
   knowledgeLayers: Record<UnifiedRecallLayer, number>;
 } {
-  const session = hasSession ? Math.min(240, Math.max(80, Math.floor(tokenBudget * 0.25))) : 0;
-  const remaining = Math.max(0, tokenBudget - session);
-  const durable = hasSession
-    ? Math.min(240, Math.max(72, Math.floor(remaining * 0.28)))
-    : Math.min(320, Math.max(96, Math.floor(tokenBudget * 0.28)));
-  const knowledge = Math.max(0, (hasSession ? remaining : tokenBudget) - durable);
+  const durable = Math.min(320, Math.max(96, Math.floor(tokenBudget * 0.28)));
+  const knowledge = Math.max(0, tokenBudget - durable);
   return {
-    session,
     durable,
     knowledge,
     knowledgeLayers: {
@@ -142,17 +132,13 @@ function createSection(
 
 function toQueryContextSection(section: MemoryPromptSection): QueryContextSection {
   const sectionType =
-    section.kind === "session"
-      ? "session_memory"
-      : section.kind === "durable"
-        ? "durable_memory"
-        : section.kind === "knowledge"
-          ? "knowledge"
-          : "other";
+    section.kind === "durable"
+      ? "durable_memory"
+      : section.kind === "knowledge"
+        ? "knowledge"
+        : "other";
   const schema: QueryContextSectionSchema =
-    sectionType === "session_memory" ||
-    sectionType === "durable_memory" ||
-    sectionType === "knowledge"
+    sectionType === "durable_memory" || sectionType === "knowledge"
       ? {
           kind: sectionType,
           itemIds: [...section.itemIds],
@@ -180,28 +166,6 @@ function toQueryContextSection(section: MemoryPromptSection): QueryContextSectio
       itemIds: section.itemIds,
       omittedCount: section.omittedCount,
     },
-  };
-}
-
-function assembleSessionSection(
-  summaryText: string | null | undefined,
-  budget: number,
-): MemoryPromptSection | null {
-  if (!summaryText) {
-    return null;
-  }
-  const built = renderSessionSummaryPromptSection(summaryText, budget);
-  if (!built) {
-    return null;
-  }
-  const lines = built.text.split("\n").slice(1);
-  return {
-    kind: "session",
-    heading: "## Session memory",
-    lines,
-    estimatedTokens: built.estimatedTokens,
-    itemIds: [],
-    omittedCount: 0,
   };
 }
 
@@ -314,26 +278,21 @@ function assembleKnowledgeSection(
 
 export function assembleMemoryPrompt(input: MemoryPromptAssemblyInput): MemoryPromptAssemblyResult {
   const tokenBudget = clamp(input.tokenBudget ?? 1100, 240, 2400);
-  const budgets = allocateBudgets(tokenBudget, Boolean(input.sessionMemoryText));
+  const budgets = allocateBudgets(tokenBudget);
   const sections: MemoryPromptSection[] = [];
   const includedItemIds = new Set<string>();
 
-  const sessionSection = assembleSessionSection(input.sessionMemoryText, budgets.session);
-  if (sessionSection) {
-    sections.push(sessionSection);
-  }
-
   const durableItems = input.durableItems ?? [];
   const durableSection = assembleDurableSection(durableItems, budgets.durable);
+  const knowledgeItems = input.knowledgeItems ?? [];
+  const knowledgeSection = assembleKnowledgeSection(knowledgeItems, budgets.knowledge);
+
   if (durableSection) {
     sections.push(durableSection);
     for (const itemId of durableSection.itemIds) {
       includedItemIds.add(itemId);
     }
   }
-
-  const knowledgeItems = input.knowledgeItems ?? [];
-  const knowledgeSection = assembleKnowledgeSection(knowledgeItems, budgets.knowledge);
   if (knowledgeSection) {
     sections.push(knowledgeSection);
     for (const itemId of knowledgeSection.itemIds) {

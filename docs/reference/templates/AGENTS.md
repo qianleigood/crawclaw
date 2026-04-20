@@ -19,7 +19,8 @@ put rules here that the agent would reliably get wrong without them.
 ## Memory
 
 - Do not manually read multiple memory files at session start.
-- Let session summary, durable recall, and knowledge recall provide default context.
+- Let durable recall and knowledge recall provide default context.
+- Treat session summary as a compaction aid, not default prompt context.
 - Read `MEMORY.md` only when long-term personal context or prior decisions are relevant.
 - Read `memory/*.md` only on demand through memory tools or explicit file reads.
 - When something should persist, write it down. Prefer the correct layer:

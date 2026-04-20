@@ -23,12 +23,12 @@ function createContext(): QueryContext {
     ],
     systemContextSections: [
       {
-        id: "memory",
+        id: "memory:durable",
         role: "system_context",
-        content: "## Session memory\nCurrent task: verify.",
+        content: "## Durable memory\n- Feedback memory: prefer concise answers.",
         schema: {
-          kind: "session_memory",
-          itemIds: [],
+          kind: "durable_memory",
+          itemIds: ["memory-1"],
           omittedCount: 0,
         },
       },
@@ -47,9 +47,9 @@ function createContext(): QueryContext {
 describe("query context render", () => {
   it("renders system context before base system prompt", () => {
     const rendered = renderQueryContextSystemPrompt(createContext());
-    expect(rendered).toContain("## Session memory");
+    expect(rendered).toContain("## Durable memory");
     expect(rendered).toContain("You are CrawClaw.");
-    expect(rendered.indexOf("## Session memory")).toBeLessThan(
+    expect(rendered.indexOf("## Durable memory")).toBeLessThan(
       rendered.indexOf("You are CrawClaw."),
     );
   });
@@ -131,12 +131,12 @@ describe("query context render", () => {
     const usage = summarizeQueryContextSectionTokenUsage(context);
     expect(usage.totalEstimatedTokens).toBeGreaterThan(0);
     expect(usage.byRole.system_context).toBeGreaterThan(0);
-    expect(usage.byType.session_memory).toBeGreaterThan(0);
+    expect(usage.byType.durable_memory).toBeGreaterThan(0);
     expect(usage.byRolePercent?.system_context ?? 0).toBeGreaterThan(0);
     const snapshot = buildQueryContextProviderRequestSnapshot(context);
     expect(snapshot.queryContextHash).toHaveLength(64);
     expect(snapshot.sectionOrder.map((section) => section.id)).toEqual([
-      "memory",
+      "memory:durable",
       "hook-ctx",
       "base",
     ]);

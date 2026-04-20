@@ -3,7 +3,7 @@ import type { UnifiedQueryClassification } from "../types/orchestration.ts";
 
 const STABLE_MEMORY_SKILL_CONTRACT = [
   "请把结构化上下文与技能一起使用。",
-  "Session memory 负责保留当前回合连续性和最近任务状态。",
+  "最近 transcript 负责当前回合连续性；session summary 主要在 compaction 时消费，不会每轮直接注入。",
   "Durable memory 用来保存未来仍然有用、但不能从当前代码、当前任务状态或当前临时上下文直接推导出来的协作信息。",
   "Durable memory 只允许四类 durable memory note：user、feedback、project、reference。",
   "user 记录用户的角色、目标、职责、知识背景和稳定偏好；feedback 记录应避免或继续沿用的协作方式；project 记录不能从代码或 git 历史直接推导的项目级背景、目标、时限和约束；reference 记录外部系统中的稳定信息入口。",
@@ -44,9 +44,12 @@ export function renderAgentMemoryRoutingContract(): { text: string; estimatedTok
   };
 }
 
-export function renderContextRoutingSection(classification: UnifiedQueryClassification | null | undefined):
-  { text: string; estimatedTokens: number } | null {
-  if (!classification) {return null;}
+export function renderContextRoutingSection(
+  classification: UnifiedQueryClassification | null | undefined,
+): { text: string; estimatedTokens: number } | null {
+  if (!classification) {
+    return null;
+  }
   const lines = [
     "## 上下文路由",
     `- 意图: ${classification.intent}`,

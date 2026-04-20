@@ -217,7 +217,7 @@ export interface DurableMemoryItem extends UnifiedRankedItem {
   durableReasons: string[];
 }
 
-export type MemoryPromptSectionKind = "session" | "durable" | "knowledge";
+export type MemoryPromptSectionKind = "durable" | "knowledge";
 
 export interface MemoryPromptSection {
   kind: MemoryPromptSectionKind;
@@ -229,8 +229,6 @@ export interface MemoryPromptSection {
 }
 
 export interface MemoryPromptAssemblyInput {
-  query?: string;
-  sessionMemoryText?: string | null;
   durableItems?: DurableMemoryItem[];
   knowledgeItems?: UnifiedRankedItem[];
   tokenBudget?: number;
@@ -268,8 +266,6 @@ export interface UnifiedRerankResult {
 export type UnifiedContextSection = MemoryPromptSection;
 
 export interface UnifiedContextAssemblyInput {
-  query?: string;
-  sessionMemoryText?: string | null;
   durableItems?: DurableMemoryItem[];
   knowledgeItems?: UnifiedRankedItem[];
   tokenBudget?: number;

@@ -2,7 +2,6 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 
 export type QueryContextSectionRole = "system_prompt" | "system_context" | "user_context";
 export type QueryContextSectionType =
-  | "session_memory"
   | "durable_memory"
   | "knowledge"
   | "routing"
@@ -13,11 +12,6 @@ export type QueryContextSectionType =
   | "other";
 
 export type QueryContextSectionSchema =
-  | {
-      kind: "session_memory";
-      itemIds: string[];
-      omittedCount: number;
-    }
   | {
       kind: "durable_memory";
       itemIds: string[];

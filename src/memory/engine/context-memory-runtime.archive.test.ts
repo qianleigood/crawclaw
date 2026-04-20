@@ -161,7 +161,7 @@ verify archive capture
 inspect the archive path
 
 ## Key Results
-summary file should surface in assemble
+summary file should stay out of assemble
 `,
     });
 
@@ -192,8 +192,8 @@ summary file should surface in assemble
     });
 
     const systemContextText = renderQueryContextSections(result.systemContextSections);
-    expect(systemContextText).toContain("## Session memory");
-    expect(systemContextText).toContain("verify archive capture");
+    expect(systemContextText).not.toContain("## Session memory");
+    expect(systemContextText).not.toContain("verify archive capture");
     expect(archive.createRun).toHaveBeenCalledTimes(1);
     expect(archive.createRun).toHaveBeenCalledWith(
       expect.objectContaining({

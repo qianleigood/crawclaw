@@ -51,7 +51,6 @@ function resolveSectionTypeFromSchema(
     return undefined;
   }
   if (
-    kind === "session_memory" ||
     kind === "durable_memory" ||
     kind === "knowledge" ||
     kind === "routing" ||
@@ -75,9 +74,6 @@ function resolveSectionType(section: QueryContextSection): QueryContextSectionTy
   }
   const metadataKind =
     typeof section.metadata?.kind === "string" ? section.metadata.kind.trim().toLowerCase() : "";
-  if (metadataKind === "session") {
-    return "session_memory";
-  }
   if (metadataKind === "durable") {
     return "durable_memory";
   }
