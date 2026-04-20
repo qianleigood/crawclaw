@@ -476,6 +476,30 @@ crawclaw-app {
   font: 700 1rem/1.2 var(--cp-mono);
 }
 
+.cp-screen--sessions .cp-band,
+.cp-screen--runtime .cp-band {
+  gap: 12px;
+}
+
+.cp-screen--sessions .cp-metric,
+.cp-screen--runtime .cp-metric {
+  gap: 3px;
+  padding: 10px 12px;
+}
+
+.cp-screen--sessions .cp-metric__label,
+.cp-screen--sessions .cp-metric__hint,
+.cp-screen--runtime .cp-metric__label,
+.cp-screen--runtime .cp-metric__hint {
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+}
+
+.cp-screen--sessions .cp-metric__value,
+.cp-screen--runtime .cp-metric__value {
+  font-size: 0.92rem;
+}
+
 .cp-stage {
   display: grid;
   gap: var(--cp-stage-gap);
@@ -490,7 +514,7 @@ crawclaw-app {
 }
 
 .cp-stage--three {
-  grid-template-columns: minmax(250px, 0.8fr) minmax(0, 1.55fr) minmax(250px, 0.8fr);
+  grid-template-columns: 288px minmax(0, 1fr) 288px;
 }
 
 .cp-stage--usage {
@@ -579,7 +603,7 @@ crawclaw-app {
 
 .cp-session-console {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1.55fr) minmax(280px, 0.92fr);
+  grid-template-columns: 224px minmax(0, 1fr);
   gap: var(--cp-stage-gap);
 }
 
@@ -587,8 +611,7 @@ crawclaw-app {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.cp-session-console.is-maximized .cp-session-console__rail,
-.cp-session-console.is-maximized .cp-session-console__inspector {
+.cp-session-console.is-maximized .cp-session-console__rail {
   display: none;
 }
 
@@ -597,12 +620,28 @@ crawclaw-app {
 }
 
 .cp-session-console__rail,
-.cp-session-console__main,
-.cp-session-console__inspector {
+.cp-session-console__main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+}
+
+.cp-session-console__rail {
+  align-self: stretch;
+}
+
+.cp-screen--sessions .cp-session-console__rail .cp-panel {
+  padding: 16px;
+}
+
+.cp-screen--sessions .cp-session-console__rail > .cp-panel--fill {
+  flex: 1;
+}
+
+.cp-screen--sessions .cp-session-console__main > .cp-panel--fill {
+  flex: 1;
+  min-height: 0;
 }
 
 .cp-session-console__search {
@@ -628,6 +667,15 @@ crawclaw-app {
   color: var(--cp-text);
 }
 
+.cp-screen--sessions .cp-session-console__search input {
+  padding: 10px 12px;
+  font-size: 0.84rem;
+}
+
+.cp-screen--sessions .cp-session-console__search input::placeholder {
+  font-size: 0.8rem;
+}
+
 .cp-session-console__list {
   min-height: 0;
   overflow: auto;
@@ -644,6 +692,31 @@ crawclaw-app {
 .cp-band--workflows,
 .cp-band--agents {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cp-screen--runtime .cp-stage--three {
+  grid-template-columns: 204px minmax(0, 1fr) 204px;
+}
+
+.cp-screen--runtime .cp-stage__rail {
+  gap: 12px;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-panel {
+  padding: 14px;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-panel__head {
+  margin-bottom: 12px;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-panel__head h3 {
+  font-size: 0.92rem;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-kicker {
+  font-size: 0.64rem;
+  margin-bottom: 4px;
 }
 
 .cp-band,
@@ -703,6 +776,18 @@ crawclaw-app {
   padding: 18px;
 }
 
+.cp-panel--runtime-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+}
+
+.cp-panel--sidebar-empty {
+  display: grid;
+  gap: 14px;
+  background: rgba(10, 20, 37, 0.84);
+}
+
 .cp-panel--fill {
   min-height: 100%;
 }
@@ -757,6 +842,133 @@ crawclaw-app {
 .cp-subpanel h4 {
   margin: 0;
   font-size: 1rem;
+}
+
+.cp-empty-state {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-height: 100%;
+}
+
+.cp-empty-state--session-main,
+.cp-empty-state--session-thread,
+.cp-empty-state--runtime-main {
+  min-height: auto;
+  align-content: center;
+  width: min(100%, 420px);
+  justify-self: center;
+}
+
+.cp-screen--sessions .cp-empty-state--session-main {
+  width: min(100%, 396px);
+}
+
+.cp-session-console__thread-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.cp-session-console__thread-panel > .cp-empty-state--session-main,
+.cp-panel--runtime-main > .cp-empty-state--runtime-main {
+  margin-block: auto;
+}
+
+.cp-empty-state--session-main .cp-empty-state__actions,
+.cp-empty-state--session-thread .cp-empty-state__actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cp-empty-state--runtime-main {
+  width: min(100%, 440px);
+}
+
+.cp-empty-state--session-main .cp-empty-state__actions,
+.cp-empty-state--runtime-main .cp-empty-state__actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cp-empty-state__hero {
+  display: grid;
+  gap: 8px;
+  padding: 24px 24px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(15, 31, 58, 0.72), rgba(7, 15, 28, 0.9)),
+    rgba(6, 14, 23, 0.88);
+}
+
+.cp-screen--sessions .cp-empty-state--session-main .cp-empty-state__hero {
+  gap: 10px;
+  padding: 28px 26px;
+  border-radius: 22px;
+  border-color: rgba(123, 162, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(20, 41, 74, 0.82), rgba(8, 17, 31, 0.96)),
+    rgba(6, 14, 23, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(166, 198, 255, 0.08),
+    0 18px 40px rgba(0, 0, 0, 0.16);
+}
+
+.cp-empty-state__hero h3 {
+  margin: 0;
+  font-size: 1.28rem;
+}
+
+.cp-empty-state__hero p {
+  margin: 0;
+  color: var(--cp-text-soft);
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+.cp-empty-state__actions {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.cp-empty-state__actions .cp-action-card {
+  min-height: 92px;
+  border-color: rgba(123, 162, 255, 0.16);
+  background: rgba(11, 23, 41, 0.86);
+  cursor: default;
+}
+
+.cp-screen--sessions .cp-empty-state--session-main .cp-empty-state__actions {
+  gap: 10px;
+}
+
+.cp-empty-state--session-main .cp-action-card,
+.cp-empty-state--session-thread .cp-action-card,
+.cp-empty-state--runtime-main .cp-action-card {
+  min-height: 72px;
+  padding: 10px 12px;
+}
+
+.cp-screen--sessions .cp-empty-state--session-main .cp-action-card {
+  min-height: 68px;
+  border-radius: 16px;
+  background: rgba(10, 22, 38, 0.94);
+}
+
+.cp-empty-state--session-main .cp-action-card span,
+.cp-empty-state--session-thread .cp-action-card span,
+.cp-empty-state--runtime-main .cp-action-card span {
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.cp-empty-state--session-main .cp-action-card small,
+.cp-empty-state--session-thread .cp-action-card small,
+.cp-empty-state--runtime-main .cp-action-card small {
+  font-size: 0.64rem;
+  line-height: 1.5;
+}
+
+.cp-empty-state__actions button.cp-action-card {
+  cursor: pointer;
 }
 
 .cp-kicker {
@@ -847,6 +1059,10 @@ crawclaw-app {
   gap: 12px;
 }
 
+.cp-screen--runtime .cp-action-stack {
+  gap: 8px;
+}
+
 .cp-list--dense {
   gap: 10px;
 }
@@ -912,6 +1128,35 @@ crawclaw-app {
   color: var(--cp-text);
   padding: 12px;
   cursor: pointer;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-action-card {
+  padding: 8px 9px;
+  background: rgba(9, 18, 32, 0.76);
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-action-card span {
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-action-card small {
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-form {
+  gap: 10px;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-form label span {
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+}
+
+.cp-screen--runtime .cp-stage__rail .cp-form input {
+  min-height: 34px;
+  padding: 8px 10px;
 }
 
 .cp-action-card:disabled,
@@ -1023,7 +1268,6 @@ crawclaw-app {
 }
 
 .cp-channel-workspace__nav,
-.cp-channel-settings-page__nav,
 .cp-choice-card__head {
   display: flex;
   align-items: flex-start;
@@ -1031,23 +1275,20 @@ crawclaw-app {
   gap: 12px;
 }
 
-.cp-channel-workspace__nav,
-.cp-channel-settings-page__nav {
+.cp-channel-workspace__nav {
   padding: 18px 20px;
   border-radius: 10px;
   border: 1px solid rgba(123, 162, 255, 0.14);
   background: rgba(8, 18, 31, 0.72);
 }
 
-.cp-channel-workspace__nav strong,
-.cp-channel-settings-page__nav strong {
+.cp-channel-workspace__nav strong {
   display: block;
   font-size: 1rem;
   margin-top: 4px;
 }
 
-.cp-channel-workspace__nav small,
-.cp-channel-settings-page__nav small {
+.cp-channel-workspace__nav small {
   display: block;
   margin-top: 6px;
   color: var(--cp-text-muted);
@@ -1055,63 +1296,230 @@ crawclaw-app {
 
 .cp-channel-settings-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 340px);
-  gap: 18px;
-  margin-top: 16px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.8fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.cp-channel-settings-layout__main,
-.cp-channel-settings-layout__side {
+.cp-channel-settings-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.95fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.cp-channel-settings-summary,
+.cp-channel-settings-submit {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(110, 136, 201, 0.18);
+  background:
+    linear-gradient(180deg, rgba(12, 23, 40, 0.92), rgba(8, 17, 30, 0.94)),
+    rgba(8, 17, 30, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 16px 32px rgba(0, 0, 0, 0.16);
+}
+
+.cp-channel-settings-layout__main {
   min-width: 0;
+  display: grid;
+  gap: 16px;
 }
 
 .cp-channel-settings-layout__side {
   display: grid;
   gap: 16px;
-  align-content: start;
+  align-self: start;
   position: sticky;
-  top: 96px;
+  top: 18px;
 }
 
-.cp-channel-settings-actions {
+.cp-channel-settings-form-shell {
   display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 136, 201, 0.18);
+  background:
+    linear-gradient(180deg, rgba(11, 21, 37, 0.96), rgba(7, 15, 27, 0.96)),
+    rgba(8, 18, 31, 0.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.018),
+    0 18px 36px rgba(0, 0, 0, 0.16);
+}
+
+.cp-channel-editor-group-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.cp-channel-editor-group {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(96, 115, 173, 0.16);
+  background:
+    linear-gradient(180deg, rgba(8, 18, 31, 0.86), rgba(5, 12, 22, 0.88)),
+    rgba(8, 18, 31, 0.74);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 14px 30px rgba(0, 0, 0, 0.1);
+}
+
+.cp-channel-editor-group__head {
+  display: grid;
+  gap: 8px;
+}
+
+.cp-channel-editor-group__head h4 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.15;
+  color: var(--cp-text);
+}
+
+.cp-channel-editor-group__head p,
+.cp-channel-editor-help {
+  margin: 0;
+  color: var(--cp-text-soft);
+  font-size: 0.85rem;
+  line-height: 1.58;
+  max-width: 64ch;
+}
+
+.cp-channel-settings-submit__body {
+  display: grid;
+  gap: 14px;
+}
+
+.cp-channel-settings-submit__body strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--cp-text);
+}
+
+.cp-channel-settings-summary__detail,
+.cp-channel-settings-submit__hint {
+  margin: 0;
+  color: var(--cp-text-soft);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.cp-channel-settings-submit__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  justify-content: start;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(123, 162, 255, 0.1);
+}
+
+.cp-channel-settings-submit__actions .cp-button {
+  min-height: 38px;
+}
+
+.cp-channel-settings-submit__actions .cp-button--primary {
+  box-shadow: 0 8px 18px rgba(193, 199, 207, 0.12);
+  grid-column: 1 / -1;
+}
+
+.cp-channel-settings-accounts {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(110, 136, 201, 0.16);
+  background:
+    linear-gradient(180deg, rgba(10, 20, 36, 0.9), rgba(7, 15, 28, 0.92)),
+    rgba(8, 18, 31, 0.82);
+}
+
+.cp-channel-settings-accounts__list {
+  max-height: min(52vh, 640px);
+  overflow: auto;
+  padding-right: 6px;
   gap: 10px;
 }
 
-.cp-channel-settings-actions .cp-button {
-  width: 100%;
-  justify-content: center;
+.cp-channel-settings-accounts__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(96, 115, 173, 0.14);
+  background: rgba(4, 11, 21, 0.42);
 }
 
-.cp-channel-settings-technical {
-  display: grid;
-  gap: 12px;
+.cp-channel-settings-accounts__copy {
+  min-width: 0;
 }
 
-.cp-channel-settings-technical summary {
-  cursor: pointer;
+.cp-channel-settings-accounts__copy strong,
+.cp-channel-settings-accounts__copy small {
+  display: block;
+}
+
+.cp-channel-settings-accounts__copy strong {
+  font-size: 0.95rem;
   color: var(--cp-text);
-  font-size: 0.92rem;
-  font-weight: 600;
+}
+
+.cp-channel-settings-accounts__copy small {
+  margin-top: 4px;
+  line-height: 1.5;
+  color: var(--cp-text-muted);
+}
+
+.cp-channel-settings-accounts__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cp-channel-settings-accounts .cp-panel__head {
+  align-items: start;
+}
+
+.cp-channel-settings-accounts .cp-badge,
+.cp-channel-settings-accounts .cp-chip {
+  padding: 6px 10px;
+  font-size: 0.68rem;
+}
+
+.cp-channel-settings-accounts__list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cp-channel-settings-accounts__list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(123, 162, 255, 0.2);
 }
 
 .cp-channel-config-editor {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .cp-channel-config-section {
   display: grid;
   gap: 16px;
-  padding: 22px 22px 20px;
-  border-radius: 10px;
-  border: 1px solid rgba(96, 115, 173, 0.18);
+  padding: 24px 24px 22px;
+  border-radius: 14px;
+  border: 1px solid rgba(104, 126, 186, 0.18);
   background:
-    linear-gradient(180deg, rgba(10, 20, 35, 0.94), rgba(7, 15, 27, 0.94)),
-    rgba(8, 18, 31, 0.78);
+    linear-gradient(180deg, rgba(10, 20, 35, 0.96), rgba(7, 15, 27, 0.95)),
+    rgba(8, 18, 31, 0.82);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.018),
-    0 14px 30px rgba(0, 0, 0, 0.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 18px 34px rgba(0, 0, 0, 0.14);
 }
 
 .cp-channel-config-section--advanced {
@@ -1127,7 +1535,7 @@ crawclaw-app {
 
 .cp-channel-config-section__head {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .cp-channel-config-section__step {
@@ -1147,7 +1555,7 @@ crawclaw-app {
 
 .cp-channel-config-section__head h4 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.04rem;
   color: var(--cp-text);
 }
 
@@ -1155,13 +1563,13 @@ crawclaw-app {
   margin: 0;
   color: var(--cp-text-soft);
   line-height: 1.55;
-  max-width: 68ch;
+  max-width: 62ch;
 }
 
 .cp-channel-config-section__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 18px;
+  gap: 16px 20px;
 }
 
 .cp-channel-config-field {
@@ -1172,16 +1580,18 @@ crawclaw-app {
 .cp-channel-config-field > .cfg-toggle-row,
 .cp-channel-config-field > .cfg-object,
 .cp-channel-config-field > .cfg-fields {
-  padding: 16px;
-  border-radius: 8px;
+  padding: 18px;
+  border-radius: 12px;
   border: 1px solid rgba(96, 115, 173, 0.16);
-  background: rgba(3, 10, 20, 0.42);
+  background:
+    linear-gradient(180deg, rgba(7, 15, 28, 0.78), rgba(4, 10, 18, 0.78)),
+    rgba(3, 10, 20, 0.46);
 }
 
 .cp-channel-config-field .cfg-field__label,
 .cp-channel-config-field .cfg-toggle-row__label,
 .cp-channel-config-field .cfg-object__title {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 700;
 }
 
@@ -1218,10 +1628,10 @@ crawclaw-app {
 .cp-channel-config-editor .cfg-map__label,
 .cp-channel-config-editor .cfg-object__title {
   color: var(--cp-text);
-  letter-spacing: 0.04em;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  font-family: var(--cp-mono);
+  letter-spacing: 0;
+  font-size: 0.88rem;
+  text-transform: none;
+  font-family: inherit;
 }
 
 .cp-channel-config-editor .cfg-field__help,
@@ -1229,6 +1639,8 @@ crawclaw-app {
 .cp-channel-config-editor .cfg-array__help,
 .cp-channel-config-editor .cfg-object__help {
   color: var(--cp-text-soft);
+  font-size: 0.8rem;
+  line-height: 1.55;
 }
 
 .cp-channel-config-editor .cfg-input,
@@ -1237,24 +1649,25 @@ crawclaw-app {
 .cp-channel-config-editor .cfg-number,
 .cp-channel-config-editor .cfg-segmented {
   border-color: rgba(96, 115, 173, 0.22);
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(1, 8, 17, 0.44);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.015);
 }
 
 .cp-channel-config-editor .cfg-input,
 .cp-channel-config-editor .cfg-select,
 .cp-channel-config-editor .cfg-textarea {
-  border-radius: 6px;
+  border-radius: 10px;
+  font-size: 0.9rem;
 }
 
 .cp-channel-config-editor .cfg-input,
 .cp-channel-config-editor .cfg-select,
 .cp-channel-config-editor .cfg-number__input {
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .cp-channel-config-editor .cfg-textarea {
-  min-height: 104px;
+  min-height: 120px;
   line-height: 1.6;
 }
 
@@ -1289,7 +1702,7 @@ crawclaw-app {
 .cp-channel-config-editor .cfg-map__add,
 .cp-channel-config-editor .cfg-array__item-remove,
 .cp-channel-config-editor .cfg-map__item-remove {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .cp-channel-config-editor .cfg-input__reset {
@@ -1309,14 +1722,14 @@ crawclaw-app {
 }
 
 .cp-channel-config-editor .cfg-segmented {
-  padding: 3px;
-  border-radius: 6px;
-  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  gap: 6px;
 }
 
 .cp-channel-config-editor .cfg-segmented__btn {
-  min-height: 34px;
-  border-radius: 4px;
+  min-height: 36px;
+  border-radius: 8px;
   color: var(--cp-text-soft);
   font-weight: 600;
 }
@@ -1333,15 +1746,15 @@ crawclaw-app {
 }
 
 .cp-channel-config-editor .cfg-number {
-  padding: 3px;
-  border-radius: 6px;
+  padding: 4px;
+  border-radius: 10px;
   gap: 4px;
 }
 
 .cp-channel-config-editor .cfg-number__btn {
-  min-width: 34px;
-  min-height: 34px;
-  border-radius: 4px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 8px;
   border-color: transparent;
   background: rgba(255, 255, 255, 0.04);
   color: var(--cp-text);
@@ -1352,7 +1765,7 @@ crawclaw-app {
 }
 
 .cp-channel-config-editor .cfg-number__input {
-  border-radius: 4px;
+  border-radius: 8px;
   background: transparent;
 }
 
@@ -1363,6 +1776,7 @@ crawclaw-app {
 .cp-channel-config-editor .cfg-object {
   border-color: rgba(96, 115, 173, 0.16);
   background: rgba(5, 13, 24, 0.64);
+  border-radius: 10px;
 }
 
 .cp-channel-config-editor .cfg-array__empty,
@@ -1466,7 +1880,6 @@ crawclaw-app {
   gap: 20px;
 }
 
-.cp-channel-management-header,
 .cp-channel-catalog-header {
   display: flex;
   align-items: flex-end;
@@ -1478,19 +1891,19 @@ crawclaw-app {
 
 .cp-channel-management-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
-}
-
-.cp-channel-management-side {
-  display: grid;
-  gap: 16px;
-  align-content: start;
 }
 
 .cp-channel-table-wrap {
   overflow: auto;
   margin-top: 8px;
+}
+
+.cp-channel-toolbar {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .cp-channel-table {
@@ -1538,90 +1951,9 @@ crawclaw-app {
   color: var(--cp-text-muted);
 }
 
-.cp-channel-table__metric {
-  font: 600 0.82rem/1 var(--cp-mono);
-  color: var(--cp-text);
-}
-
-.cp-channel-health {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.cp-channel-health__bar {
-  width: 88px;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(123, 162, 255, 0.14);
-}
-
-.cp-channel-health__bar > div {
-  height: 100%;
-  background: linear-gradient(90deg, rgba(88, 231, 171, 0.9), rgba(193, 199, 207, 0.8));
-}
-
-.cp-channel-focus-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.cp-channel-focus-card__icon {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  color: rgba(193, 199, 207, 0.08);
-  font: 700 4rem/1 "Material Symbols Outlined";
-}
-
-.cp-channel-focus-card__body {
-  position: relative;
-  display: grid;
-  gap: 16px;
-}
-
-.cp-channel-focus-card__body h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  color: var(--cp-text);
-}
-
-.cp-channel-focus-card__body p {
-  margin: 0;
-  color: var(--cp-text-soft);
-}
-
-.cp-channel-focus-card__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.cp-channel-focus-card__grid > div {
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(123, 162, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2);
-  display: grid;
-  gap: 6px;
-}
-
-.cp-channel-focus-card__grid > div.is-wide {
-  grid-column: 1 / -1;
-}
-
-.cp-channel-focus-card__grid span {
-  color: var(--cp-text-muted);
-  font: 600 0.68rem/1.2 var(--cp-mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.cp-channel-focus-card__grid strong {
-  color: var(--cp-text);
-  font-size: 0.84rem;
+.cp-channel-table__actions {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .cp-channel-catalog-section {
@@ -1717,7 +2049,17 @@ crawclaw-app {
 }
 
 @media (max-width: 980px) {
+  .cp-channel-settings-overview,
   .cp-channel-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-channel-settings-layout__side {
+    position: static;
+    top: auto;
+  }
+
+  .cp-channel-settings-submit__actions {
     grid-template-columns: 1fr;
   }
 
@@ -1875,7 +2217,40 @@ crawclaw-app {
 }
 
 .cp-chat-thread--console {
-  min-height: 480px;
+  min-height: 360px;
+}
+
+.cp-chat-thread--console .cp-empty-state--session-thread {
+  flex: 1;
+}
+
+.cp-screen--sessions .cp-session-console__thread-panel {
+  position: relative;
+  padding: 22px;
+  border-color: rgba(123, 162, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(16, 31, 58, 0.94), rgba(9, 18, 34, 0.96)),
+    rgba(7, 15, 27, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(166, 198, 255, 0.05),
+    0 18px 44px rgba(0, 0, 0, 0.14);
+}
+
+.cp-screen--sessions .cp-session-console__thread-panel .cp-panel__head {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(123, 162, 255, 0.08);
+}
+
+.cp-screen--sessions .cp-chat-thread--console {
+  gap: 14px;
+  padding: 16px;
+  border-radius: 24px;
+  border-color: rgba(123, 162, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(8, 16, 29, 0.86), rgba(6, 13, 24, 0.94)),
+    rgba(5, 12, 21, 0.72);
+  box-shadow: inset 0 1px 0 rgba(166, 198, 255, 0.04);
 }
 
 .cp-session-console.is-maximized .cp-chat-thread--console {
@@ -1883,40 +2258,11 @@ crawclaw-app {
   max-height: none;
 }
 
-.cp-session-signal-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.cp-session-signal-card {
-  display: grid;
-  gap: 6px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(123, 162, 255, 0.1);
-  background: rgba(9, 20, 36, 0.72);
-}
-
-.cp-session-signal-card span,
 .cp-panel__subcopy {
   color: var(--cp-text-muted);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-}
-
-.cp-session-signal-card strong {
-  color: var(--cp-text);
-  font-size: 0.96rem;
-  line-height: 1.3;
-}
-
-.cp-session-signal-card small {
-  color: var(--cp-text-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .cp-qr-card {
@@ -1950,14 +2296,37 @@ crawclaw-app {
   background: rgba(11, 23, 41, 0.9);
 }
 
+.cp-screen--sessions .cp-chat-entry {
+  width: min(100%, 760px);
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  border-color: rgba(123, 162, 255, 0.14);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
 .cp-chat-entry--user {
   align-self: flex-end;
   background: linear-gradient(180deg, rgba(89, 180, 255, 0.18), rgba(89, 180, 255, 0.08));
 }
 
+.cp-screen--sessions .cp-chat-entry--user {
+  background:
+    linear-gradient(180deg, rgba(89, 180, 255, 0.24), rgba(89, 180, 255, 0.1)),
+    rgba(18, 46, 78, 0.82);
+  border-color: rgba(89, 180, 255, 0.22);
+}
+
 .cp-chat-entry--assistant,
 .cp-chat-entry--stream {
   align-self: flex-start;
+}
+
+.cp-screen--sessions .cp-chat-entry--assistant,
+.cp-screen--sessions .cp-chat-entry--stream {
+  background:
+    linear-gradient(180deg, rgba(14, 29, 51, 0.96), rgba(9, 18, 34, 0.92)),
+    rgba(11, 23, 41, 0.9);
 }
 
 .cp-chat-entry__meta {
@@ -1971,9 +2340,22 @@ crawclaw-app {
   letter-spacing: 0.12em;
 }
 
+.cp-screen--sessions .cp-chat-entry__meta {
+  gap: 8px;
+}
+
 .cp-chat-entry__meta strong {
   color: var(--cp-text);
   font-size: 0.76rem;
+}
+
+.cp-screen--sessions .cp-chat-entry__meta strong {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(123, 162, 255, 0.14);
+  background: rgba(9, 20, 36, 0.84);
 }
 
 .cp-chat-entry__meta small {
@@ -1990,6 +2372,11 @@ crawclaw-app {
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.cp-screen--sessions .cp-chat-entry__body p {
+  font-size: 0.95rem;
+  line-height: 1.75;
 }
 
 .cp-chat-entry__images {
@@ -2049,7 +2436,7 @@ crawclaw-app {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .cp-chat-composer--console {
@@ -2057,11 +2444,17 @@ crawclaw-app {
   border-top: 1px solid rgba(123, 162, 255, 0.08);
 }
 
+.cp-screen--sessions .cp-chat-composer--console {
+  margin-top: 16px;
+  padding-top: 18px;
+  border-top-color: rgba(123, 162, 255, 0.12);
+}
+
 .cp-chat-composer__surface {
   display: grid;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 24px;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
   border: 1px solid rgba(123, 162, 255, 0.12);
   background:
     linear-gradient(180deg, rgba(21, 45, 74, 0.66), rgba(8, 16, 27, 0.9)),
@@ -2069,6 +2462,19 @@ crawclaw-app {
   box-shadow:
     inset 0 1px 0 rgba(166, 198, 255, 0.08),
     0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.cp-screen--sessions .cp-chat-composer__surface {
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  border-color: rgba(123, 162, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(24, 49, 81, 0.78), rgba(8, 17, 30, 0.96)),
+    rgba(7, 14, 24, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(166, 198, 255, 0.1),
+    0 22px 52px rgba(0, 0, 0, 0.2);
 }
 
 .cp-chat-composer__head {
@@ -2083,26 +2489,60 @@ crawclaw-app {
   font-size: 1rem;
 }
 
+.cp-screen--sessions .cp-chat-composer__head h4 {
+  font-size: 1.08rem;
+}
+
 .cp-chat-composer__meta {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   color: var(--cp-text-muted);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 
+.cp-screen--sessions .cp-chat-composer__meta {
+  gap: 8px;
+}
+
+.cp-screen--sessions .cp-chat-composer__meta span {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  background: rgba(8, 18, 32, 0.68);
+}
+
 .cp-chat-composer__textarea {
-  min-height: 148px;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 112px;
   resize: vertical;
   border-radius: 18px;
   background: rgba(4, 10, 18, 0.88);
   box-shadow: inset 0 1px 0 rgba(166, 198, 255, 0.05);
 }
 
+.cp-screen--sessions .cp-chat-composer__textarea {
+  min-height: 136px;
+  padding: 16px 18px;
+  border: 1px solid rgba(123, 162, 255, 0.12);
+  color: var(--cp-text);
+  font-size: 0.96rem;
+  line-height: 1.7;
+  background:
+    linear-gradient(180deg, rgba(4, 10, 18, 0.96), rgba(6, 13, 22, 0.9)),
+    rgba(4, 10, 18, 0.92);
+}
+
 .cp-chat-composer__input-shell {
   position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
 .cp-chat-composer__input-shell.is-menu-open .cp-chat-composer__textarea {
@@ -2160,6 +2600,13 @@ crawclaw-app {
   flex-wrap: wrap;
 }
 
+.cp-screen--sessions .cp-chat-attachments-toolbar {
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 162, 255, 0.1);
+  background: rgba(8, 18, 31, 0.48);
+}
+
 .cp-chat-attachments-toolbar__picker {
   position: relative;
   overflow: hidden;
@@ -2180,10 +2627,18 @@ crawclaw-app {
   letter-spacing: 0.12em;
 }
 
+.cp-screen--sessions .cp-chat-attachments-toolbar__hint {
+  font-size: 0.68rem;
+}
+
 .cp-chat-attachments-preview {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.cp-screen--sessions .cp-chat-attachments-preview {
+  gap: 14px;
 }
 
 .cp-chat-attachment-thumb {
@@ -2194,6 +2649,13 @@ crawclaw-app {
   border-radius: 16px;
   border: 1px solid rgba(123, 162, 255, 0.12);
   background: rgba(5, 12, 21, 0.78);
+}
+
+.cp-screen--sessions .cp-chat-attachment-thumb {
+  width: 116px;
+  height: 116px;
+  border-color: rgba(123, 162, 255, 0.16);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
 }
 
 .cp-chat-attachment-thumb img {
@@ -2522,8 +2984,18 @@ crawclaw-app {
   align-items: center;
 }
 
+.cp-screen--sessions .cp-form__actions--composer {
+  padding-top: 4px;
+  border-top: 1px solid rgba(123, 162, 255, 0.08);
+}
+
 .cp-inline-actions--composer {
   margin-left: auto;
+}
+
+.cp-screen--sessions .cp-chat-composer .cp-button {
+  border-radius: 999px;
+  padding: 9px 14px;
 }
 
 .cp-form__actions--composer .cp-button--primary {
@@ -2553,7 +3025,7 @@ crawclaw-app {
   color: var(--cp-text-muted);
 }
 
-@media (max-width: 1380px) {
+@media (max-width: 1180px) {
   .cp-session-console,
   .cp-stage--three,
   .cp-stage--overview,
@@ -2567,8 +3039,7 @@ crawclaw-app {
 
   .cp-page-head__stats,
   .cp-band,
-  .cp-grid--double,
-  .cp-session-signal-strip {
+  .cp-grid--double {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -2625,7 +3096,6 @@ crawclaw-app {
   .cp-band,
   .cp-band--sessions,
   .cp-grid--double,
-  .cp-session-signal-strip,
   .cp-routing-card__grid {
     grid-template-columns: 1fr;
   }

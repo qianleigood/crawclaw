@@ -40,6 +40,7 @@ import {
   saveChannelConfig,
   setChannelEditorTab as setChannelEditorTabState,
   updateChannelConfigFormValue,
+  type ChannelEditorGroup,
   type ChannelConfigState,
   type ChannelEditorTab,
 } from "../controllers/channel-config.ts";
@@ -1371,6 +1372,56 @@ const APP_COPY = {
   },
 } as const;
 
+const CHANNEL_EDITOR_GROUP_COPY: Record<
+  ShellLocale,
+  Record<string, { title: string; description: string }>
+> = {
+  en: {
+    "basic-information": {
+      title: "Basic information",
+      description: "Start with the details that help people recognize this channel.",
+    },
+    "sending-defaults": {
+      title: "Sending defaults",
+      description: "Control which account sends by default and how this channel behaves.",
+    },
+    "message-behavior": {
+      title: "Message behavior",
+      description: "Tune how messages are delivered, replied to, and formatted.",
+    },
+    accounts: {
+      title: "Account routing",
+      description: "Choose the default account and keep multi-account behavior easy to follow.",
+    },
+    advanced: {
+      title: "Advanced",
+      description: "Specialized options for experienced operators.",
+    },
+  },
+  "zh-CN": {
+    "basic-information": {
+      title: "基础信息",
+      description: "先填写能让大家认出这个渠道的基础内容。",
+    },
+    "sending-defaults": {
+      title: "发送默认值",
+      description: "控制默认由哪个账号发送，以及这个渠道的发送方式。",
+    },
+    "message-behavior": {
+      title: "消息行为",
+      description: "调整消息如何发送、回复和呈现。",
+    },
+    accounts: {
+      title: "账号路由",
+      description: "选择默认账号，让多账号行为更容易理解。",
+    },
+    advanced: {
+      title: "高级",
+      description: "给熟练操作的人准备的专项选项。",
+    },
+  },
+} as const;
+
 function normalizeShellLocale(locale?: string): ShellLocale {
   return locale === "zh-CN" ? "zh-CN" : "en";
 }
@@ -2052,6 +2103,72 @@ function pruneChannelEditorValueForTab(
     }),
   );
   return Object.fromEntries(Object.entries(value).filter(([key]) => allowedKeys.has(key)));
+}
+
+function extractChannelEditorFieldKey(fieldPath: string): string {
+  return fieldPath.split(".")[0]?.trim() ?? fieldPath;
+}
+
+function pickChannelEditorSchemaFields(schema: unknown, fieldPaths: readonly string[]) {
+  const root = asJsonRecord(schema);
+  const properties = asJsonRecord(root?.properties);
+  if (!root || !properties) {
+    return schema;
+  }
+  const allowedKeys = new Set(
+    fieldPaths.map((fieldPath) => extractChannelEditorFieldKey(fieldPath)).filter(Boolean),
+  );
+  if (allowedKeys.size === 0) {
+    return null;
+  }
+  const nextProperties = Object.fromEntries(
+    Object.entries(properties).filter(([key]) => allowedKeys.has(key)),
+  );
+  if (Object.keys(nextProperties).length === 0) {
+    return null;
+  }
+  const required = Array.isArray(root.required)
+    ? root.required.filter((entry) => typeof entry === "string" && entry in nextProperties)
+    : root.required;
+  return {
+    ...root,
+    properties: nextProperties,
+    ...(Array.isArray(root.required) ? { required } : {}),
+  };
+}
+
+function collectChannelEditorSchemaKeys(schema: unknown): string[] {
+  const root = asJsonRecord(schema);
+  const properties = asJsonRecord(root?.properties);
+  return properties ? Object.keys(properties) : [];
+}
+
+function hasCompleteChannelEditorGroupCoverage(
+  schema: unknown,
+  groups: readonly ChannelEditorGroup[],
+): boolean {
+  const visibleKeys = collectChannelEditorSchemaKeys(schema);
+  if (visibleKeys.length === 0) {
+    return false;
+  }
+  const groupedKeys = new Set(
+    groups.flatMap((group) =>
+      group.fieldPaths.map((fieldPath) => extractChannelEditorFieldKey(fieldPath)),
+    ),
+  );
+  return visibleKeys.every((key) => groupedKeys.has(key));
+}
+
+function resolveChannelEditorGroupPresentation(
+  locale: Locale,
+  group: ChannelEditorGroup,
+): { title: string; description: string } {
+  const copy = CHANNEL_EDITOR_GROUP_COPY[normalizeShellLocale(locale)];
+  const localCopy = copy[group.key];
+  return {
+    title: localCopy?.title ?? group.title,
+    description: localCopy?.description ?? group.description,
+  };
 }
 
 function countObjectKeys(value: unknown): number {
@@ -5467,6 +5584,29 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
       channelEditorBusy: boolean;
     },
   ) {
+    const settingsGroups = this.channelConfigState.groupedEditorState?.settings ?? [];
+    const settingsGroupsComplete = hasCompleteChannelEditorGroupCoverage(
+      params.settingsEditorSchema,
+      settingsGroups,
+    );
+    const visibleSettingsGroups = settingsGroupsComplete
+      ? settingsGroups
+          .map((group) => {
+            const schema = pickChannelEditorSchemaFields(
+              params.settingsEditorSchema,
+              group.fieldPaths,
+            );
+            return schema ? { group, schema } : null;
+          })
+          .filter(
+            (
+              entry,
+            ): entry is {
+              group: ChannelEditorGroup;
+              schema: unknown;
+            } => entry !== null,
+          )
+      : [];
     return html`
       <section class="cp-channel-editor-settings cp-channel-settings-form-shell cp-subpanel">
         <div class="cp-panel__head">
@@ -5485,19 +5625,57 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
               : nothing}
           </div>
         </div>
-        <p class="cp-panel__subcopy">${copy.channels.settingsPageHint}</p>
+        <p class="cp-channel-editor-help">${copy.channels.settingsPageHint}</p>
         ${params.channelEditorBusy
           ? html`<p class="cp-empty">${copy.common.pending}</p>`
-          : renderChannelConfigForm({
-              channelId: params.selectedChannelId,
-              configValue: params.settingsEditorValue,
-              schema: params.settingsEditorSchema,
-              uiHints: this.channelConfigState.configUiHints,
-              disabled: params.channelEditorBusy,
-              scoped: true,
-              onPatch: (path, value) =>
-                updateChannelConfigFormValue(this.channelConfigState, path, value),
-            })}
+          : visibleSettingsGroups.length
+            ? html`
+                <div class="cp-channel-editor-group-stack">
+                  ${repeat(
+                    visibleSettingsGroups,
+                    ({ group }) => group.key,
+                    ({ group, schema }) => {
+                      const presentation = resolveChannelEditorGroupPresentation(
+                        this.locale,
+                        group,
+                      );
+                      return html`
+                        <section class="cp-channel-editor-group">
+                          <header class="cp-channel-editor-group__head">
+                            <span class="cp-kicker">${copy.channels.channelsTabSettings}</span>
+                            <h4>${presentation.title}</h4>
+                            ${presentation.description
+                              ? html`<p class="cp-channel-editor-help">
+                                  ${presentation.description}
+                                </p>`
+                              : nothing}
+                          </header>
+                          ${renderChannelConfigForm({
+                            channelId: params.selectedChannelId,
+                            configValue: params.settingsEditorValue,
+                            schema,
+                            uiHints: this.channelConfigState.configUiHints,
+                            disabled: params.channelEditorBusy,
+                            scoped: true,
+                            onPatch: (path, value) =>
+                              updateChannelConfigFormValue(this.channelConfigState, path, value),
+                          })}
+                        </section>
+                      `;
+                    },
+                  )}
+                </div>
+              `
+            : renderChannelConfigForm({
+                channelId: params.selectedChannelId,
+                configValue: params.settingsEditorValue,
+                schema: params.settingsEditorSchema,
+                uiHints: this.channelConfigState.configUiHints,
+                disabled: params.channelEditorBusy,
+                scoped: true,
+                onPatch: (path, value) =>
+                  updateChannelConfigFormValue(this.channelConfigState, path, value),
+              })}
       </section>
     `;
   }
