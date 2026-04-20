@@ -3,7 +3,10 @@ import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import { renderSessionSummaryForCompaction } from "../session-summary/sections.ts";
 import { readSessionSummaryFile } from "../session-summary/store.ts";
-import { getSessionSummarySectionText } from "../session-summary/template.ts";
+import {
+  getSessionSummarySectionText,
+  inferSessionSummaryProfile,
+} from "../session-summary/template.ts";
 import {
   buildSessionSummaryPostCompactArtifacts,
   calculateCompactionBoundaryStartRow,
@@ -26,6 +29,7 @@ function buildSessionSummaryPlanAttachmentText(
 
   const parts = [
     { label: "Current State", text: getSessionSummarySectionText(document, "currentState") },
+    { label: "Open Loops", text: getSessionSummarySectionText(document, "openLoops") },
     {
       label: "Task Specification",
       text: getSessionSummarySectionText(document, "taskSpecification"),
@@ -59,15 +63,23 @@ async function waitForSessionSummaryIdle(params: {
   runtimeStore: RuntimeStore;
   sessionId: string;
   maxWaitMs?: number;
-}): Promise<void> {
+}): Promise<{ waitedForSummaryMs: number; timedOut: boolean }> {
+  const startedAt = Date.now();
   const deadline = Date.now() + Math.max(0, params.maxWaitMs ?? 15_000);
   while (Date.now() < deadline) {
     const state = await params.runtimeStore.getSessionSummaryState(params.sessionId);
     if (!state?.summaryInProgress) {
-      return;
+      return {
+        waitedForSummaryMs: Math.max(0, Date.now() - startedAt),
+        timedOut: false,
+      };
     }
     await sleep(250);
   }
+  return {
+    waitedForSummaryMs: Math.max(0, Date.now() - startedAt),
+    timedOut: true,
+  };
 }
 
 type CompactionResult =
@@ -99,7 +111,7 @@ export async function runSessionMemoryCompaction(params: {
   maxSummaryWaitMs?: number;
 }): Promise<CompactionResult> {
   const triggerInfo = formatCompactionTrigger(params.runtimeContext);
-  await waitForSessionSummaryIdle({
+  const waitResult = await waitForSessionSummaryIdle({
     runtimeStore: params.runtimeStore,
     sessionId: params.sessionId,
     maxWaitMs: params.maxSummaryWaitMs,
@@ -114,6 +126,10 @@ export async function runSessionMemoryCompaction(params: {
   ]);
   const renderedSummary = renderSessionSummaryForCompaction(summaryFile.content);
   const summarizedThroughMessageId = summaryState?.lastSummarizedMessageId ?? null;
+  const summaryLastUpdatedAt = summaryState?.lastSummaryUpdatedAt ?? summaryFile.updatedAt ?? null;
+  const summaryAgeMs =
+    summaryLastUpdatedAt != null ? Math.max(0, Date.now() - summaryLastUpdatedAt) : null;
+  const summaryProfile = inferSessionSummaryProfile(summaryFile.document);
 
   if (!renderedSummary.trim()) {
     params.logger.info(
@@ -230,6 +246,12 @@ export async function runSessionMemoryCompaction(params: {
     keptMessages: keptRows.length,
     summaryChars: renderedSummary.length,
     summaryTokens,
+    summaryProfile,
+    summaryLastUpdatedAt,
+    summaryAgeMs,
+    waitedForSummaryMs: waitResult.waitedForSummaryMs,
+    summaryWaitTimedOut: waitResult.timedOut,
+    planAttachmentIncluded: Boolean(planAttachmentText),
     tailTokensBefore,
     tailTokensAfter,
     minPreservedTokens,

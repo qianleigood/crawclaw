@@ -456,6 +456,7 @@ export async function runMemorySessionSummaryRefresh(opts: MemoryCommandOptions)
     const scheduler = getSharedSessionSummaryScheduler({
       config: {
         enabled: memoryConfig.sessionSummary.enabled,
+        lightInitialTokenThreshold: memoryConfig.sessionSummary.lightInitTokenThreshold ?? 3_000,
         initialTokenThreshold: memoryConfig.sessionSummary.minTokensToInit,
         updateTokenThreshold: memoryConfig.sessionSummary.minTokensBetweenUpdates,
         minToolCalls: memoryConfig.sessionSummary.toolCallsBetweenUpdates,

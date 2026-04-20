@@ -34,11 +34,25 @@ describe("session summary scheduler gate", () => {
     const gate = evaluateSessionSummaryGate({
       enabled: true,
       sessionKey: "agent:main:main",
-      currentTokenCount: 9_999,
+      currentTokenCount: 2_999,
       summaryText: "",
     });
     expect(gate.ready).toBe(false);
     expect(gate.reason).toBe("below_initial_token_threshold");
+  });
+
+  it("allows an early lightweight summary once the light threshold is met", () => {
+    const gate = evaluateSessionSummaryGate({
+      enabled: true,
+      sessionKey: "agent:main:main",
+      isSettledTurn: true,
+      currentTokenCount: 3_000,
+      summaryText: "",
+      lightInitialTokenThreshold: 3_000,
+      initialTokenThreshold: 10_000,
+    });
+    expect(gate.ready).toBe(true);
+    expect(gate.reason).toBe("ready");
   });
 
   it("allows an update only when the token delta threshold is met", () => {
@@ -81,6 +95,23 @@ describe("session summary scheduler gate", () => {
       toolCallCount: 3,
       updateTokenThreshold: 5_000,
       minToolCalls: 3,
+    });
+    expect(gate.ready).toBe(true);
+    expect(gate.reason).toBe("ready");
+  });
+
+  it("allows a light summary to expand into a full summary once the full threshold is reached", () => {
+    const gate = evaluateSessionSummaryGate({
+      enabled: true,
+      sessionKey: "agent:main:main",
+      currentTokenCount: 10_000,
+      summaryText: "# Session Title\n_Title_\n\n# Current State\n_State_\n\nWorking\n",
+      stateSummaryTokenCount: 9_800,
+      toolCallCount: 0,
+      isSettledTurn: true,
+      updateTokenThreshold: 5_000,
+      initialTokenThreshold: 10_000,
+      requiresFullUpgrade: true,
     });
     expect(gate.ready).toBe(true);
     expect(gate.reason).toBe("ready");

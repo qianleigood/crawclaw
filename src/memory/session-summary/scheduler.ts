@@ -7,8 +7,10 @@ import { isSessionSummaryEffectivelyEmpty } from "./sections.ts";
 import { readSessionSummaryFile } from "./store.ts";
 import {
   buildSessionSummaryTemplate,
+  inferSessionSummaryProfile,
   renderSessionSummaryDocument,
   parseSessionSummaryDocument,
+  type SessionSummaryProfile,
   type SessionSummaryDocument,
 } from "./template.ts";
 
@@ -16,6 +18,7 @@ type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(m
 
 export type SessionSummarySchedulerConfig = {
   enabled: boolean;
+  lightInitialTokenThreshold?: number;
   initialTokenThreshold?: number;
   updateTokenThreshold?: number;
   minToolCalls?: number;
@@ -39,6 +42,7 @@ export type SessionSummaryRunParams = {
   recentMessages: AgentMessage[];
   recentMessageLimit: number;
   currentSummary?: SessionSummaryDocument | null;
+  profile?: SessionSummaryProfile;
   runTimeoutSeconds?: number;
   maxTurns?: number;
   logger?: RuntimeLogger;
@@ -68,6 +72,9 @@ export type SessionSummaryPreview = {
   sessionId: string;
   summaryPath: string;
   summaryExists: boolean;
+  currentProfile: SessionSummaryProfile | null;
+  targetProfile: SessionSummaryProfile;
+  requiresFullUpgrade: boolean;
   summaryTokenCount: number;
   stateSummaryTokenCount: number;
   currentTokenCount: number;
@@ -149,10 +156,12 @@ export function evaluateSessionSummaryGate(params: {
   currentTokenCount?: number;
   toolCallCount?: number;
   lastSummaryUpdatedAt?: number | null;
+  lightInitialTokenThreshold?: number;
   initialTokenThreshold?: number;
   updateTokenThreshold?: number;
   minToolCalls?: number;
   minIntervalMs?: number;
+  requiresFullUpgrade?: boolean;
 }): SessionSummaryGateDecision {
   const summaryText = params.summaryText?.trim() ?? "";
   const summaryExists = Boolean(summaryText);
@@ -197,6 +206,13 @@ export function evaluateSessionSummaryGate(params: {
     };
   }
   const initialThreshold = Math.max(1, params.initialTokenThreshold ?? 10_000);
+  const lightInitialThreshold = Math.max(
+    1,
+    Math.min(
+      initialThreshold,
+      Math.floor(params.lightInitialTokenThreshold ?? Math.min(initialThreshold, 3_000)),
+    ),
+  );
   const updateThreshold = Math.max(1, params.updateTokenThreshold ?? 5_000);
   const minToolCalls = Math.max(0, params.minToolCalls ?? 3);
   const minIntervalMs = Math.max(0, params.minIntervalMs ?? 0);
@@ -207,7 +223,7 @@ export function evaluateSessionSummaryGate(params: {
       : null;
 
   if (!summaryExists) {
-    if (currentTokenCount < initialThreshold) {
+    if (currentTokenCount < lightInitialThreshold) {
       return {
         ready: false,
         reason: "below_initial_token_threshold",
@@ -217,7 +233,7 @@ export function evaluateSessionSummaryGate(params: {
         tokenDelta,
       };
     }
-  } else if (tokenDelta < updateThreshold) {
+  } else if (!params.requiresFullUpgrade && tokenDelta < updateThreshold) {
     return {
       ready: false,
       reason: "below_update_token_threshold",
@@ -323,6 +339,14 @@ export class SessionSummaryScheduler {
       fileSnapshot.document ??
       parseSessionSummaryDocument(buildSessionSummaryTemplate({ sessionId: params.sessionId }));
     const currentSummaryText = renderSessionSummaryDocument(snapshot);
+    const currentProfile = inferSessionSummaryProfile(
+      params.currentSummary ?? fileSnapshot.document,
+    );
+    const targetProfile: SessionSummaryProfile =
+      (params.currentTokenCount ?? 0) >= (this.config.initialTokenThreshold ?? 10_000)
+        ? "full"
+        : "light";
+    const requiresFullUpgrade = targetProfile === "full" && currentProfile !== "full";
     const gateSummaryText = params.currentSummary
       ? currentSummaryText
       : (fileSnapshot.content ?? "");
@@ -336,10 +360,12 @@ export class SessionSummaryScheduler {
       currentTokenCount: params.currentTokenCount,
       toolCallCount: params.toolCallCount,
       lastSummaryUpdatedAt: state?.lastSummaryUpdatedAt ?? fileSnapshot.updatedAt,
+      lightInitialTokenThreshold: this.config.lightInitialTokenThreshold,
       initialTokenThreshold: this.config.initialTokenThreshold,
       updateTokenThreshold: this.config.updateTokenThreshold,
       minToolCalls: this.config.minToolCalls,
       minIntervalMs: this.config.minIntervalMs,
+      requiresFullUpgrade,
     });
     const stateSummaryTokenCount = state?.tokensAtLastSummary ?? 0;
     const tokenDelta = resolveTokenDelta({
@@ -354,6 +380,9 @@ export class SessionSummaryScheduler {
       sessionId: params.sessionId,
       summaryPath: fileSnapshot.summaryPath,
       summaryExists,
+      currentProfile,
+      targetProfile,
+      requiresFullUpgrade,
       summaryTokenCount: summaryExists ? estimateTokenCount(gateSummaryText) : 0,
       stateSummaryTokenCount,
       currentTokenCount: params.currentTokenCount ?? 0,
@@ -443,6 +472,7 @@ export class SessionSummaryScheduler {
           recentMessages: params.recentMessages,
           recentMessageLimit: clampInt(params.recentMessageLimit, 12),
           currentSummary: currentSummaryDocument,
+          profile: preview.targetProfile,
           runTimeoutSeconds: params.runTimeoutSeconds ?? this.config.runTimeoutSeconds,
           maxTurns: params.maxTurns ?? this.config.maxTurns,
           logger: this.logger,

@@ -42,6 +42,11 @@ Compaction should emit Claude-style artifacts.
 
 *What is the agent doing now? Keep this short and current.*
 
+# Open Loops
+Need to preserve the latest retry plan.
+
+*Which work items, decisions, or follow-ups are still open right now? Keep this tightly focused on unresolved items.*
+
 # Key results
 Summary-backed compaction result.
 
@@ -138,6 +143,9 @@ Summary-backed compaction result.
         preservedTailStartTurn: expect.any(Number),
         summarizedMessages: expect.any(Number),
         keptMessages: expect.any(Number),
+        summaryProfile: "light",
+        summaryAgeMs: expect.any(Number),
+        waitedForSummaryMs: expect.any(Number),
       }),
     );
   });

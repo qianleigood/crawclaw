@@ -19,7 +19,11 @@ import type { SessionSummaryRunner } from "../session-summary/scheduler.ts";
 import { SkillIndexStore } from "../skills/skill-index.ts";
 import type { MemoryRuntimeConfig, LlmConfig } from "../types/config.ts";
 
-export type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
+export type RuntimeLogger = {
+  info(msg: string): void;
+  warn(msg: string): void;
+  error(msg: string): void;
+};
 
 export function createContextMemoryRuntimeDeps(options: {
   runtimeStore: RuntimeStore;
@@ -85,6 +89,7 @@ export function createContextMemoryRuntimeDeps(options: {
   const sessionSummaryScheduler = getSharedSessionSummaryScheduler({
     config: {
       enabled: options.config?.sessionSummary?.enabled ?? true,
+      lightInitialTokenThreshold: options.config?.sessionSummary?.lightInitTokenThreshold ?? 3_000,
       initialTokenThreshold: options.config?.sessionSummary?.minTokensToInit ?? 10_000,
       updateTokenThreshold: options.config?.sessionSummary?.minTokensBetweenUpdates ?? 5_000,
       minToolCalls: options.config?.sessionSummary?.toolCallsBetweenUpdates ?? 3,

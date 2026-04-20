@@ -88,8 +88,11 @@ Session memory now follows a Claude-style single-track design:
 - each session has one `summary.md` file
 - a background `session_summary` agent maintains that file from the run-loop
   post-sampling hook
-- natural settled turns still trigger summary updates, but the scheduler can
-  also refresh the file earlier when the token-growth threshold and tool-call
+- the scheduler now creates a lightweight summary earlier, then expands that
+  file into a fuller working-memory document once the larger token threshold is
+  reached
+- natural settled turns still trigger summary updates, but post-sampling runs
+  can also refresh the file once the token-growth threshold and tool-call
   threshold are both met
 - the runtime DB only stores boundary/progress state such as
   `lastSummarizedMessageId`, `lastSummaryUpdatedAt`, `tokensAtLastSummary`, and
@@ -102,6 +105,7 @@ The summary file uses a fixed structure, including sections such as:
 
 - `Session Title`
 - `Current State`
+- `Open Loops`
 - `Task specification`
 - `Files and Functions`
 - `Workflow`
@@ -115,7 +119,8 @@ Prompt assembly no longer injects `summary.md` into the model-visible system
 context. Before compaction, continuity comes from the recent transcript. When a
 session later compacts, CrawClaw consumes `summary.md` as the compacted-history
 source of truth and preserves only the recent tail after the summarized
-boundary.
+boundary. Compaction audit details also record summary freshness, inferred
+summary profile, and how long compaction waited for in-flight summary work.
 
 Session memory is still keyed by `sessionId`, so parent agents and spawned
 sub-agents do **not** share the same summary file. Each child run owns its own
@@ -189,6 +194,9 @@ as needed to satisfy minimum preserved-tail conditions.
 This keeps short-term continuity on one source of truth:
 
 - the background agent updates `summary.md`
+- early runs can keep that file in a lighter `Current State` / `Open Loops` /
+  `Task specification` / `Key results` shape before expanding the rest of the
+  document later
 - compaction preserves the tail after the summarized boundary, expanding
   backward only enough to keep a usable recent working set
 - prompt assembly keeps using the recent transcript and does not separately

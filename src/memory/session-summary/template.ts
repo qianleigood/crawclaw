@@ -1,6 +1,7 @@
 export const SESSION_SUMMARY_SECTION_ORDER = [
   "sessionTitle",
   "currentState",
+  "openLoops",
   "taskSpecification",
   "filesAndFunctions",
   "workflow",
@@ -12,10 +13,28 @@ export const SESSION_SUMMARY_SECTION_ORDER = [
 ] as const;
 
 export type SessionSummarySectionKey = (typeof SESSION_SUMMARY_SECTION_ORDER)[number];
+export type SessionSummaryProfile = "light" | "full";
+
+export const SESSION_SUMMARY_LIGHT_SECTION_ORDER = [
+  "currentState",
+  "openLoops",
+  "taskSpecification",
+  "keyResults",
+] as const satisfies readonly SessionSummarySectionKey[];
+
+export const SESSION_SUMMARY_FULL_ONLY_SECTION_ORDER = [
+  "filesAndFunctions",
+  "workflow",
+  "errorsAndCorrections",
+  "codebaseAndSystemDocumentation",
+  "learnings",
+  "worklog",
+] as const satisfies readonly SessionSummarySectionKey[];
 
 const SESSION_SUMMARY_SECTION_HEADINGS: Record<SessionSummarySectionKey, string> = {
   sessionTitle: "Session Title",
   currentState: "Current State",
+  openLoops: "Open Loops",
   taskSpecification: "Task specification",
   filesAndFunctions: "Files and Functions",
   workflow: "Workflow",
@@ -31,6 +50,8 @@ const SESSION_SUMMARY_SECTION_INSTRUCTIONS: Record<SessionSummarySectionKey, str
     "_A short and distinctive 5-10 word descriptive title for the session. Super info dense, no filler_",
   currentState:
     "_What is actively being worked on right now? Pending tasks not yet completed. Immediate next steps._",
+  openLoops:
+    "_Which work items, decisions, or follow-ups are still open right now? Keep this tightly focused on unresolved items._",
   taskSpecification:
     "_What did the user ask to build? Any design decisions or other explanatory context_",
   filesAndFunctions:
@@ -178,4 +199,19 @@ export function getSessionSummarySectionHeading(key: SessionSummarySectionKey): 
 
 export function getSessionSummarySectionInstruction(key: SessionSummarySectionKey): string {
   return SESSION_SUMMARY_SECTION_INSTRUCTIONS[key];
+}
+
+export function inferSessionSummaryProfile(
+  document: SessionSummaryDocument | null | undefined,
+): SessionSummaryProfile | null {
+  const hasAnyLightSection = SESSION_SUMMARY_LIGHT_SECTION_ORDER.some(
+    (key) => getSessionSummarySectionText(document, key).trim().length > 0,
+  );
+  const hasAnyFullOnlySection = SESSION_SUMMARY_FULL_ONLY_SECTION_ORDER.some(
+    (key) => getSessionSummarySectionText(document, key).trim().length > 0,
+  );
+  if (hasAnyFullOnlySection) {
+    return "full";
+  }
+  return hasAnyLightSection ? "light" : null;
 }

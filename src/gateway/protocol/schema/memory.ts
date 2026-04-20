@@ -194,6 +194,7 @@ export const MemorySessionSummaryStateSchema = Type.Object(
 export const MemorySessionSummarySectionsSchema = Type.Object(
   {
     currentState: Type.String(),
+    openLoops: Type.String(),
     taskSpecification: Type.String(),
     keyResults: Type.String(),
     errorsAndCorrections: Type.String(),
@@ -208,6 +209,7 @@ export const MemorySessionSummaryStatusResultSchema = Type.Object(
     summaryPath: NonEmptyString,
     exists: Type.Boolean(),
     updatedAt: NullableString,
+    profile: Type.Union([Type.Literal("light"), Type.Literal("full"), Type.Null()]),
     state: Type.Union([MemorySessionSummaryStateSchema, Type.Null()]),
     sections: MemorySessionSummarySectionsSchema,
   },

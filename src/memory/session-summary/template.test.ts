@@ -11,6 +11,7 @@ describe("session summary template", () => {
     const rendered = renderSessionSummaryDocument({
       sections: {
         currentState: ["Working on summary support."],
+        openLoops: ["Need to confirm the compaction boundary."],
         taskSpecification: ["Add a Claude-style summary.md workflow."],
         keyResults: ["Session summary files now exist."],
       },
@@ -18,6 +19,7 @@ describe("session summary template", () => {
 
     expect(rendered).toContain("# Session Title");
     expect(rendered).toContain("# Current State");
+    expect(rendered).toContain("# Open Loops");
     expect(rendered).toContain("# Task specification");
     expect(rendered).toContain("# Key results");
     expect(rendered).toContain("_What is actively being worked on right now?");
@@ -25,6 +27,9 @@ describe("session summary template", () => {
     const parsed = parseSessionSummaryDocument(rendered);
     expect(getSessionSummarySectionText(parsed, "currentState")).toBe(
       "Working on summary support.",
+    );
+    expect(getSessionSummarySectionText(parsed, "openLoops")).toBe(
+      "Need to confirm the compaction boundary.",
     );
     expect(getSessionSummarySectionText(parsed, "taskSpecification")).toBe(
       "Add a Claude-style summary.md workflow.",
@@ -38,6 +43,7 @@ describe("session summary template", () => {
     const template = buildSessionSummaryTemplate({ sessionId: "session-2" });
     expect(template).toContain("# Session Title");
     expect(template).toContain("# Current State");
+    expect(template).toContain("# Open Loops");
     expect(template).toContain("# Task specification");
     expect(template).toContain("# Files and Functions");
     expect(template).toContain("# Workflow");
