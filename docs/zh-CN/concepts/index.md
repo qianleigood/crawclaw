@@ -51,6 +51,8 @@ title: 概念总览
 - [控制面 API PR 计划](/concepts/project-control-plane-api-pr-plan)
 - [控制面 API Inventory](/concepts/project-control-plane-api-inventory)
 - [Control UI Stitch 1:1 重写 PR 计划](/concepts/project-control-ui-stitch-1to1-pr-plan)
+- [Control UI Stitch 基线清单](/concepts/project-control-ui-stitch-baseline)
+- [Control UI Stitch Channels 差异清单](/concepts/project-control-ui-stitch-channels-diff-checklist)
 - [Control UI 产品化重构 PR 计划](/concepts/project-control-ui-productization-pr-plan)
 - [Control UI Channels 模块 PR 计划](/concepts/project-control-ui-channels-pr-plan)
 - [Control UI Memory 模块 PR 计划](/concepts/project-control-ui-memory-pr-plan)

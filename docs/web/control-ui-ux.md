@@ -1,5 +1,5 @@
 ---
-summary: "A simple, beginner-friendly redesign plan for the browser Control UI"
+summary: "Future beginner-mode ideas for the browser Control UI, not the current Stitch implementation target"
 read_when:
   - You want to simplify the Control UI for non-technical users
   - You want a concrete page-by-page UX plan before implementing UI changes
@@ -8,9 +8,11 @@ title: "Control UI UX Plan"
 
 # Control UI UX Plan
 
+This document is exploratory. The current browser implementation target is the Stitch-first Control UI described in [Control UI](/web/control-ui). Do not use this page as the parity baseline for the current rebuild.
+
 ## Goal
 
-Make the browser Control UI easy enough that a first-time user can:
+If CrawClaw adds a dedicated beginner mode later, the browser Control UI should be easy enough that a first-time user can:
 
 1. connect to the gateway
 2. connect one channel
@@ -18,7 +20,7 @@ Make the browser Control UI easy enough that a first-time user can:
 4. pick the right agent
 5. send a successful test message
 
-The current UI already has strong capabilities. The main problem is not missing features. The problem is that the default surface still feels like an engineering control panel.
+The current UI already has strong capabilities. The main problem is not missing features. The problem is that a future beginner mode would need a more guided default surface than the current operator-focused Control UI.
 
 ## Current problems
 
@@ -43,7 +45,9 @@ From the current source layout:
   - `Needs setup`
 - Treat the first screen as a workspace, not a dashboard grid.
 
-## Target information architecture
+## Candidate information architecture
+
+These sections describe a possible future simplified mode. They do not replace the current Stitch canonical information architecture.
 
 ### Simple Mode
 

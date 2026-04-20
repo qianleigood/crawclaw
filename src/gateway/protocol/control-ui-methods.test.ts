@@ -12,6 +12,7 @@ import {
 import { ProtocolSchemas } from "./schema/protocol-schemas.js";
 
 const FIRST_BATCH_METHODS = [
+  "overview.summary",
   "config.get",
   "config.schema",
   "config.schema.lookup",
@@ -38,6 +39,8 @@ const FIRST_BATCH_METHODS = [
   "sessions.usage.timeseries",
   "sessions.usage.logs",
   "channels.status",
+  "channels.catalog",
+  "channels.editor.get",
   "channels.setup.surface",
   "channels.account.login.start",
   "channels.account.login.wait",
@@ -114,6 +117,12 @@ describe("control-plane method contract", () => {
       return !Array.isArray(scopes) || scopes.length === 0;
     });
     expect(missingScopes).toEqual([]);
+  });
+
+  it("registers overview and channels page-oriented surfaces for the Stitch rebuild", () => {
+    expect(hasControlUiMethodDefinition("overview.summary")).toBe(true);
+    expect(hasControlUiMethodDefinition("channels.catalog")).toBe(true);
+    expect(hasControlUiMethodDefinition("channels.editor.get")).toBe(true);
   });
 
   it("marks login + node approvals as optional capability-gated surface", () => {

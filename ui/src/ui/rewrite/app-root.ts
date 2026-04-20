@@ -20,7 +20,9 @@ import {
   cancelAgentRuntimeTask,
   loadAgentRuntime,
   selectAgentRuntimeTask,
+  type AgentRuntimeCategory,
   type AgentRuntimeState,
+  type AgentRuntimeStatusFilter,
 } from "../controllers/agent-runtime.ts";
 import {
   loadAgents,
@@ -123,6 +125,7 @@ import type {
   PresenceEntry,
   StatusSummary,
 } from "../types.ts";
+import { uiLiteral } from "../ui-literal.ts";
 import type { ChatAttachment } from "../ui-types.ts";
 import { renderChannelConfigForm } from "../views/channels.config.ts";
 import {
@@ -133,11 +136,20 @@ import {
   resolveBasePath,
   type ControlPage,
 } from "./routes.ts";
+import "./screens/agents-screen.ts";
+import "./screens/channels-screen.ts";
+import "./screens/config-screen.ts";
+import "./screens/debug-screen.ts";
+import "./screens/memory-screen.ts";
+import "./screens/overview-screen.ts";
+import "./screens/runtime-screen.ts";
+import "./screens/sessions-screen.ts";
+import "./screens/usage-screen.ts";
+import "./screens/workflows-screen.ts";
+import "./shell/control-shell.ts";
 
 type JsonRecord = Record<string, unknown>;
 type ShellLocale = "en" | "zh-CN";
-
-const SHELL_LOCALES = ["en", "zh-CN"] as const satisfies readonly Locale[];
 
 const SHELL_COPY: Record<
   ShellLocale,
@@ -1300,18 +1312,6 @@ function uiText(locale: Locale) {
   return APP_COPY[normalizeShellLocale(locale)];
 }
 
-function localeLabel(locale: Locale): string {
-  const key =
-    locale === "zh-CN"
-      ? "zhCN"
-      : locale === "zh-TW"
-        ? "zhTW"
-        : locale === "pt-BR"
-          ? "ptBR"
-          : locale;
-  return t(`languages.${key}`);
-}
-
 function syncDocumentLocale(locale: Locale) {
   if (typeof document === "undefined") {
     return;
@@ -1350,6 +1350,19 @@ function formatAgo(value?: number | null, locale: Locale = "en"): string {
   }
   const diffDays = Math.round(diffHours / 24);
   return isZh ? `${diffDays}天前` : `${diffDays}d ago`;
+}
+
+function formatCurrency(value: number, locale: Locale = "en"): string {
+  if (!Number.isFinite(value)) {
+    return normalizeShellLocale(locale) === "zh-CN" ? "¥0.00" : "¥0.00";
+  }
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "CNY",
+    currencyDisplay: "narrowSymbol",
+    minimumFractionDigits: value >= 100 ? 0 : 2,
+    maximumFractionDigits: value >= 100 ? 0 : 2,
+  }).format(value);
 }
 
 function formatJson(value: unknown): string {
@@ -2349,6 +2362,33 @@ export class CrawClawApp extends LitElement {
     void i18n.setLocale(nextLocale);
   }
 
+  private handleShellLocaleChange(event: CustomEvent<{ locale?: string }>) {
+    const nextLocale = event.detail.locale;
+    if (!nextLocale || !isSupportedLocale(nextLocale) || nextLocale === this.locale) {
+      return;
+    }
+    this.applySettings({ ...this.settings, locale: nextLocale });
+    void i18n.setLocale(nextLocale);
+  }
+
+  private handleShellNavigate(event: CustomEvent<{ page?: string }>) {
+    const nextPage = event.detail.page;
+    if (!nextPage || !controlPagesForLocale(this.locale).some((page) => page.id === nextPage)) {
+      return;
+    }
+    this.navigate(nextPage as ControlPage);
+  }
+
+  private connectionLabel() {
+    if (this.connected) {
+      return shellText(this.locale, "connected");
+    }
+    if (this.connecting) {
+      return shellText(this.locale, "connecting");
+    }
+    return shellText(this.locale, "disconnected");
+  }
+
   private handlePopState = () => {
     this.tab = pageFromCurrentLocation(this.basePath);
     const params = new URLSearchParams(window.location.search);
@@ -3176,22 +3216,6 @@ export class CrawClawApp extends LitElement {
     return html`<span class="cp-badge cp-badge--${tone}">${status}</span>`;
   }
 
-  private renderConnectionBadge() {
-    if (this.connected) {
-      return html`<span class="cp-badge cp-badge--ok"
-        >${shellText(this.locale, "connected")}</span
-      >`;
-    }
-    if (this.connecting) {
-      return html`<span class="cp-badge cp-badge--warn"
-        >${shellText(this.locale, "connecting")}</span
-      >`;
-    }
-    return html`<span class="cp-badge cp-badge--danger"
-      >${shellText(this.locale, "disconnected")}</span
-    >`;
-  }
-
   private renderMetric(label: string, value: string, hint?: string) {
     return html`
       <article class="cp-metric">
@@ -3482,6 +3506,343 @@ export class CrawClawApp extends LitElement {
     );
   }
 
+  private renderConfigRail(
+    copy: ReturnType<typeof uiText>,
+    snapshot: ConfigState["configSnapshot"],
+  ) {
+    return html`
+      <aside slot="rail" class="cp-stage__rail cp-stage__rail--wide">
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.config.manifestKicker}</span>
+              <h3>${copy.config.manifestTitle}</h3>
+            </div>
+          </div>
+          <div class="cp-meta-list">
+            <div>
+              <span>${copy.common.path}</span><strong>${snapshot?.path ?? copy.common.na}</strong>
+            </div>
+            <div>
+              <span>${copy.common.hash}</span><strong>${snapshot?.hash ?? copy.common.na}</strong>
+            </div>
+            <div>
+              <span>${copy.common.valid}</span
+              ><strong>${snapshot?.valid === false ? copy.common.no : copy.common.yes}</strong>
+            </div>
+            <div>
+              <span>${copy.config.applySession}</span
+              ><strong>${this.configState.applySessionKey}</strong>
+            </div>
+          </div>
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.config.approvalsKicker}</span>
+              <h3>${copy.config.approvalsTitle}</h3>
+            </div>
+          </div>
+          <div class="cp-meta-list">
+            <div>
+              <span>${copy.common.file}</span>
+              <strong
+                >${this.execApprovalsState.execApprovalsSnapshot?.path ??
+                copy.common.notLoaded}</strong
+              >
+            </div>
+            <div>
+              <span>${copy.common.dirty}</span>
+              <strong
+                >${this.execApprovalsState.execApprovalsDirty
+                  ? copy.common.yes
+                  : copy.common.no}</strong
+              >
+            </div>
+          </div>
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.summary}</span>
+              <h3>${copy.config.saveAndApplyTitle}</h3>
+            </div>
+          </div>
+          <p class="cp-panel__subcopy">${copy.config.saveAndApplyHint}</p>
+          <p class="cp-panel__subcopy">${copy.config.approvalHint}</p>
+        </article>
+      </aside>
+    `;
+  }
+
+  private renderConfigMain(
+    copy: ReturnType<typeof uiText>,
+    snapshot: ConfigState["configSnapshot"],
+  ) {
+    return html`
+      <section class="cp-grid cp-grid--double">
+        <article class="cp-subpanel">
+          <h4>${copy.config.manifestTitle}</h4>
+          ${this.renderMetaEntries([
+            { label: copy.common.path, value: snapshot?.path ?? copy.common.na },
+            { label: copy.common.hash, value: snapshot?.hash ?? copy.common.na },
+            {
+              label: copy.common.valid,
+              value: snapshot?.valid === false ? copy.common.no : copy.common.yes,
+            },
+            {
+              label: copy.common.dirty,
+              value: this.configState.configFormDirty ? copy.common.yes : copy.common.no,
+            },
+          ])}
+        </article>
+        <article class="cp-subpanel">
+          <h4>${copy.config.approvalsTitle}</h4>
+          ${this.renderMetaEntries([
+            {
+              label: copy.common.file,
+              value: this.execApprovalsState.execApprovalsSnapshot?.path ?? copy.common.notLoaded,
+            },
+            {
+              label: copy.common.dirty,
+              value: this.execApprovalsState.execApprovalsDirty ? copy.common.yes : copy.common.no,
+            },
+            {
+              label: copy.common.exists,
+              value: this.execApprovalsState.execApprovalsSnapshot?.exists
+                ? copy.common.yes
+                : copy.common.no,
+            },
+          ])}
+        </article>
+      </section>
+      <section class="cp-grid cp-grid--double">
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.config.manifestWorkbenchKicker}</span>
+              <h3>${copy.config.manifestWorkbenchTitle}</h3>
+            </div>
+            <div class="cp-inline-actions">
+              <button class="cp-button" @click=${() => void this.handleSaveConfig()}>
+                ${copy.common.save}
+              </button>
+              <button
+                class="cp-button cp-button--primary"
+                @click=${() => void this.handleApplyConfig()}
+              >
+                ${copy.common.apply}
+              </button>
+            </div>
+          </div>
+          <textarea
+            class="cp-code-editor"
+            .value=${this.configState.configRaw}
+            @input=${(event: Event) => {
+              this.configState.configRaw = (event.target as HTMLTextAreaElement).value;
+              this.configState.configFormDirty = true;
+              this.requestUpdate();
+            }}
+          ></textarea>
+        </article>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.config.approvalWorkbenchKicker}</span>
+              <h3>${copy.config.approvalWorkbenchTitle}</h3>
+            </div>
+            <button
+              class="cp-button cp-button--primary"
+              @click=${() => void this.handleSaveApprovals()}
+            >
+              ${copy.config.saveApprovals}
+            </button>
+          </div>
+          <p class="cp-panel__subcopy">${copy.config.approvalHint}</p>
+          <textarea
+            class="cp-code-editor"
+            .value=${this.approvalsRaw}
+            @input=${(event: Event) => {
+              this.approvalsRaw = (event.target as HTMLTextAreaElement).value;
+            }}
+          ></textarea>
+        </article>
+      </section>
+      <section class="cp-grid cp-grid--double">
+        <article class="cp-subpanel">
+          <h4>${copy.config.configIssues}</h4>
+          ${this.renderConfigIssuesPanel()}
+        </article>
+        <article class="cp-subpanel">
+          <h4>${copy.config.approvalSnapshot}</h4>
+          ${this.renderApprovalsSnapshotPanel()}
+        </article>
+      </section>
+    `;
+  }
+
+  private renderDebugRail(
+    copy: ReturnType<typeof uiText>,
+    methodList: string[],
+    debugHeartbeat: ReturnType<CrawClawApp["resolveHeartbeatMeta"]>,
+  ) {
+    return html`
+      <aside slot="rail" class="cp-debug-console__rail">
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.debug.methodSurfaceKicker}</span>
+              <h3>${copy.debug.methodSurfaceTitle}</h3>
+            </div>
+          </div>
+          <div class="cp-list cp-list--dense">
+            ${repeat(
+              methodList,
+              (method) => method,
+              (method) => html`
+                <button
+                  class="cp-session-item"
+                  @click=${() => {
+                    this.debugState.debugCallMethod = method;
+                    this.requestUpdate();
+                  }}
+                >
+                  <strong>${method}</strong>
+                  <small>
+                    ${method.startsWith("system.") ? copy.debug.preferredName : copy.debug.surface}
+                  </small>
+                </button>
+              `,
+            )}
+          </div>
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.summary}</span>
+              <h3>${copy.debug.diagnosticsTitle}</h3>
+            </div>
+          </div>
+          <p class="cp-panel__subcopy">${copy.debug.diagnosticsHint}</p>
+          ${this.renderMetaEntries([
+            { label: copy.common.methods, value: methodList.length },
+            { label: copy.common.models, value: this.debugState.debugModels.length },
+            { label: copy.common.recentCheck, value: debugHeartbeat.status },
+            {
+              label: copy.common.selected,
+              value: this.debugState.debugCallMethod || copy.common.none,
+            },
+          ])}
+        </article>
+      </aside>
+    `;
+  }
+
+  private renderDebugMain(
+    copy: ReturnType<typeof uiText>,
+    methodList: string[],
+    debugHeartbeat: ReturnType<CrawClawApp["resolveHeartbeatMeta"]>,
+  ) {
+    return html`
+      <section class="cp-band cp-band--debug">
+        ${this.renderMetric(
+          copy.common.methods,
+          String(methodList.length),
+          copy.debug.methodSurfaceTitle,
+        )}
+        ${this.renderMetric(
+          copy.common.models,
+          String(this.debugState.debugModels.length),
+          copy.common.summary,
+        )}
+        ${this.renderMetric(
+          copy.common.selected,
+          this.debugState.debugCallMethod || copy.common.none,
+          copy.debug.manualTitle,
+        )}
+        ${this.renderMetric(
+          copy.common.recentCheck,
+          debugHeartbeat.status,
+          debugHeartbeat.ts ? formatAgo(debugHeartbeat.ts, this.locale) : copy.common.notRecorded,
+        )}
+      </section>
+      <article class="cp-panel cp-panel--fill">
+        <div class="cp-panel__head">
+          <div>
+            <span class="cp-kicker">${copy.debug.manualKicker}</span>
+            <h3>${copy.debug.manualTitle}</h3>
+          </div>
+          <button
+            class="cp-button cp-button--primary"
+            @click=${() =>
+              void this.safeCall(async () => {
+                await callDebugMethod(this.debugState);
+              })}
+          >
+            ${copy.common.execute}
+          </button>
+        </div>
+        <div class="cp-debug-console__workspace">
+          <div class="cp-debug-console__editor">
+            <div class="cp-form cp-form--rpc">
+              <label>
+                <span>${copy.debug.method}</span>
+                <input
+                  .value=${this.debugState.debugCallMethod}
+                  @input=${(event: Event) => {
+                    this.debugState.debugCallMethod = (event.target as HTMLInputElement).value;
+                    this.requestUpdate();
+                  }}
+                />
+              </label>
+              <label>
+                <span>${copy.debug.params}</span>
+                <textarea
+                  class="cp-code-editor cp-code-editor--compact"
+                  .value=${this.debugState.debugCallParams}
+                  @input=${(event: Event) => {
+                    this.debugState.debugCallParams = (event.target as HTMLTextAreaElement).value;
+                  }}
+                ></textarea>
+              </label>
+            </div>
+          </div>
+          <div class="cp-debug-console__viewer">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.common.summary}</span>
+                <h3>${copy.debug.manualTitle}</h3>
+              </div>
+            </div>
+            <pre class="cp-code">
+${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debug.noRequest}</pre
+            >
+          </div>
+        </div>
+      </article>
+      <section class="cp-grid cp-grid--double">
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.status}</span>
+              <h3>${copy.debug.statusSnapshot}</h3>
+            </div>
+          </div>
+          ${this.renderDebugSnapshotPanel(this.debugState.debugStatus, copy.debug.statusSnapshot)}
+        </article>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.recentCheck}</span>
+              <h3>${copy.debug.healthSnapshot}</h3>
+            </div>
+          </div>
+          ${this.renderDebugSnapshotPanel(this.debugState.debugHealth, copy.debug.healthSnapshot)}
+        </article>
+      </section>
+    `;
+  }
+
   private renderConfigIssuesPanel() {
     const copy = uiText(this.locale);
     const issues = Array.isArray(this.configState.configIssues)
@@ -3573,9 +3934,11 @@ export class CrawClawApp extends LitElement {
           <span class="cp-page-head__eyebrow">${meta.eyebrow}</span>
           <h1>${meta.label}</h1>
           <p>${meta.headline}</p>
-          <small>${meta.subheadline}</small>
+          <small class="cp-page-head__code">${meta.subheadline}</small>
         </div>
-        <div class="cp-page-head__stats">${this.renderPageMetrics(metrics)}</div>
+        ${metrics.length
+          ? html`<div class="cp-page-head__stats">${this.renderPageMetrics(metrics)}</div>`
+          : nothing}
       </header>
     `;
   }
@@ -3677,274 +4040,274 @@ export class CrawClawApp extends LitElement {
       });
     }
     return html`
-      <section class="cp-page cp-page--overview">
-        ${this.renderPageHeader("overview", [
-          {
-            label: copy.overview.healthy,
-            value: this.healthState.healthResult?.ok ? copy.common.yes : copy.common.no,
-            hint:
-              this.healthState.healthResult?.durationMs != null
-                ? `${this.healthState.healthResult.durationMs}ms`
-                : undefined,
-          },
-          {
-            label: copy.common.sessions,
-            value: String(this.healthState.healthResult?.sessions.count ?? sessions.length),
-            hint: this.healthState.healthResult?.sessions.path ?? copy.overview.sessionStore,
-          },
-          {
-            label: copy.common.accounts,
-            value: String(channels.length),
-            hint: copy.overview.surfacesHint.replace(
-              "{count}",
-              String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
-            ),
-          },
-          {
-            label: copy.common.recentActivity,
-            value: heartbeat.status,
-            hint: heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.notRecorded,
-          },
-        ])}
-        <div class="cp-stage cp-stage--overview">
-          <div class="cp-stage__main">
-            <section class="cp-band">
-              ${this.renderMetric(
-                shellText(this.locale, "gateway"),
-                gatewayVersion,
-                this.connected ? copy.common.live : t("common.offline"),
-              )}
-              ${this.renderMetric(
-                copy.common.methods,
-                String(this.hello?.features?.methods?.length ?? 0),
-              )}
-              ${this.renderMetric(
-                copy.overview.presenceClients,
-                String(this.systemPresence.length),
-                this.connected ? copy.common.live : t("common.offline"),
-              )}
-              ${this.renderMetric(
-                copy.common.recentActivity,
-                heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.notRecorded,
-                heartbeat.scope,
-              )}
-            </section>
-
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-panel">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.overview.runtimeKicker}</span>
-                    <h3>${copy.overview.runtimeTitle}</h3>
-                  </div>
-                  <button class="cp-button" @click=${() => void this.refreshSystemOverview()}>
-                    ${copy.common.refresh}
-                  </button>
-                </div>
-                <div class="cp-meta-list">
-                  <div>
-                    <span>${shellText(this.locale, "gateway")}</span
-                    ><strong>${gatewayVersion}</strong>
-                  </div>
-                  <div>
-                    <span>${copy.common.backgroundCheck}</span><strong>${heartbeat.status}</strong>
-                  </div>
-                  <div>
-                    <span>${copy.common.updated}</span
-                    ><strong
-                      >${heartbeat.ts
-                        ? formatDateTime(heartbeat.ts, this.locale)
-                        : copy.common.notRecorded}</strong
-                    >
-                  </div>
-                  <div>
-                    <span>${copy.overview.error}</span
-                    ><strong>${this.lastError ?? this.reconnectReason ?? copy.common.none}</strong>
-                  </div>
-                </div>
-              </article>
-
-              <article class="cp-panel">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.overview.controlKicker}</span>
-                    <h3>${copy.overview.controlTitle}</h3>
-                  </div>
-                </div>
-                <div class="cp-action-stack">
-                  <button class="cp-action-card" @click=${() => this.navigate("sessions")}>
-                    <span>${copy.overview.openSessions}</span>
-                    <small>
-                      ${copy.overview.trackedSessions.replace("{count}", String(sessions.length))}
-                    </small>
-                  </button>
-                  <button class="cp-action-card" @click=${() => this.navigate("config")}>
-                    <span>${copy.overview.reviewConfig}</span>
-                    <small>
-                      ${this.configState.configSnapshot?.path ?? copy.overview.manifestWorkbench}
-                    </small>
-                  </button>
-                  <button class="cp-action-card" @click=${() => this.navigate("channels")}>
-                    <span>${copy.overview.openChannels}</span>
-                    <small>
-                      ${copy.overview.surfacesHint.replace(
-                        "{count}",
-                        String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
-                      )}
-                    </small>
-                  </button>
-                  <button class="cp-action-card" @click=${() => this.navigate("memory")}>
-                    <span>${copy.overview.openMemory}</span>
-                    <small>${memoryAction}</small>
-                  </button>
-                  <button class="cp-action-card" @click=${() => this.navigate("workflows")}>
-                    <span>${copy.overview.inspectWorkflows}</span>
-                    <small>
-                      ${copy.overview.workflowCount.replace(
-                        "{count}",
-                        String(this.workflowsState.workflowsList.length),
-                      )}
-                    </small>
-                  </button>
-                </div>
-              </article>
-
-              <article class="cp-panel">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.overview.attentionKicker}</span>
-                    <h3>${copy.overview.attentionTitle}</h3>
-                  </div>
-                </div>
-                ${attentionItems.length
-                  ? html`
-                      <div class="cp-action-stack">
-                        ${attentionItems.map(
-                          (item) => html`
-                            <button
-                              class="cp-action-card"
-                              ?disabled=${!item.page}
-                              @click=${() => {
-                                if (item.page) {
-                                  this.navigate(item.page);
-                                }
-                              }}
-                            >
-                              <span>${item.title}</span>
-                              <small>${item.detail}</small>
-                            </button>
-                          `,
-                        )}
-                      </div>
-                    `
-                  : html`<p class="cp-empty">${copy.overview.everythingHealthy}</p>`}
-              </article>
-
-              <article class="cp-panel">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.overview.memoryHealth}</span>
-                    <h3>${copy.overview.openMemory}</h3>
-                  </div>
-                </div>
-                <div class="cp-meta-list">
-                  <div><span>${copy.memory.provider}</span><strong>${memoryLifecycle}</strong></div>
-                  <div>
-                    <span>${copy.memory.sessionSummaries}</span
-                    ><strong
-                      >${summarizeMemorySummaryState(
-                        this.memoryState.summariesStatus,
-                        this.locale,
-                      )}</strong
-                    >
-                  </div>
-                  <div>
-                    <span>${copy.overview.recommendedAction}</span><strong>${memoryAction}</strong>
-                  </div>
-                  <div>
-                    <span>${copy.common.updated}</span
-                    ><strong
-                      >${formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale)}</strong
-                    >
-                  </div>
-                </div>
-              </article>
-            </section>
-
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.overview.recentKicker}</span>
-                  <h3>${copy.overview.recentTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-table-wrap">
-                <table class="cp-table">
-                  <thead>
-                    <tr>
-                      <th>${copy.common.session}</th>
-                      <th>${copy.common.kind}</th>
-                      <th>${copy.common.status}</th>
-                      <th>${copy.common.updated}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${sessions.length
-                      ? repeat(
-                          sessions.slice(0, 10),
-                          (session) => session.key,
-                          (session) => html`
-                            <tr @click=${() => void this.handleSelectSession(session.key)}>
-                              <td>
-                                <strong>${sessionDisplayName(session)}</strong>
-                                <small>${sessionSurfaceLabel(session)} · ${session.kind}</small>
-                              </td>
-                              <td>${session.kind}</td>
-                              <td>${session.status ?? copy.common.idle}</td>
-                              <td>${formatAgo(session.updatedAt, this.locale)}</td>
-                            </tr>
-                          `,
-                        )
-                      : html`
-                          <tr>
-                            <td colspan="4"><p class="cp-empty">${copy.sessions.noSessions}</p></td>
-                          </tr>
-                        `}
-                  </tbody>
-                </table>
-              </div>
-            </article>
-          </div>
-
-          <aside class="cp-stage__rail">
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.overview.presenceKicker}</span>
-                  <h3>${copy.overview.presenceTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-list">
-                ${this.systemPresence.length
-                  ? repeat(
-                      this.systemPresence,
-                      (_, index) => index,
-                      (entry) => html`
-                        <div class="cp-list-item">
-                          <strong
-                            >${entry.instanceId ?? entry.host ?? copy.overview.controlUi}</strong
-                          >
-                          <small>${entry.text ?? entry.mode ?? copy.overview.operator}</small>
-                        </div>
-                      `,
-                    )
-                  : html`<p class="cp-empty">${copy.overview.noPresence}</p>`}
-              </div>
-            </article>
-            ${!this.connected ? this.renderConnectionWorkbench() : nothing}
-          </aside>
+      <overview-screen>
+        <div slot="header">
+          ${this.renderPageHeader("overview", [
+            {
+              label: copy.overview.healthy,
+              value: this.healthState.healthResult?.ok ? copy.common.yes : copy.common.no,
+              hint:
+                this.healthState.healthResult?.durationMs != null
+                  ? `${this.healthState.healthResult.durationMs}ms`
+                  : undefined,
+            },
+            {
+              label: copy.common.sessions,
+              value: String(this.healthState.healthResult?.sessions.count ?? sessions.length),
+              hint: this.healthState.healthResult?.sessions.path ?? copy.overview.sessionStore,
+            },
+            {
+              label: copy.common.accounts,
+              value: String(channels.length),
+              hint: copy.overview.surfacesHint.replace(
+                "{count}",
+                String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
+              ),
+            },
+            {
+              label: copy.common.recentActivity,
+              value: heartbeat.status,
+              hint: heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.notRecorded,
+            },
+          ])}
         </div>
-      </section>
+        <div class="cp-stage__main">
+          <section class="cp-band">
+            ${this.renderMetric(
+              shellText(this.locale, "gateway"),
+              gatewayVersion,
+              this.connected ? copy.common.live : t("common.offline"),
+            )}
+            ${this.renderMetric(
+              copy.common.methods,
+              String(this.hello?.features?.methods?.length ?? 0),
+            )}
+            ${this.renderMetric(
+              copy.overview.presenceClients,
+              String(this.systemPresence.length),
+              this.connected ? copy.common.live : t("common.offline"),
+            )}
+            ${this.renderMetric(
+              copy.common.recentActivity,
+              heartbeat.ts ? formatAgo(heartbeat.ts, this.locale) : copy.common.notRecorded,
+              heartbeat.scope,
+            )}
+          </section>
+
+          <section class="cp-grid cp-grid--double">
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.overview.runtimeKicker}</span>
+                  <h3>${copy.overview.runtimeTitle}</h3>
+                </div>
+                <button class="cp-button" @click=${() => void this.refreshSystemOverview()}>
+                  ${copy.common.refresh}
+                </button>
+              </div>
+              <div class="cp-meta-list">
+                <div>
+                  <span>${shellText(this.locale, "gateway")}</span
+                  ><strong>${gatewayVersion}</strong>
+                </div>
+                <div>
+                  <span>${copy.common.backgroundCheck}</span><strong>${heartbeat.status}</strong>
+                </div>
+                <div>
+                  <span>${copy.common.updated}</span
+                  ><strong
+                    >${heartbeat.ts
+                      ? formatDateTime(heartbeat.ts, this.locale)
+                      : copy.common.notRecorded}</strong
+                  >
+                </div>
+                <div>
+                  <span>${copy.overview.error}</span
+                  ><strong>${this.lastError ?? this.reconnectReason ?? copy.common.none}</strong>
+                </div>
+              </div>
+            </article>
+
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.overview.controlKicker}</span>
+                  <h3>${copy.overview.controlTitle}</h3>
+                </div>
+              </div>
+              <div class="cp-action-stack">
+                <button class="cp-action-card" @click=${() => this.navigate("sessions")}>
+                  <span>${copy.overview.openSessions}</span>
+                  <small>
+                    ${copy.overview.trackedSessions.replace("{count}", String(sessions.length))}
+                  </small>
+                </button>
+                <button class="cp-action-card" @click=${() => this.navigate("config")}>
+                  <span>${copy.overview.reviewConfig}</span>
+                  <small>
+                    ${this.configState.configSnapshot?.path ?? copy.overview.manifestWorkbench}
+                  </small>
+                </button>
+                <button class="cp-action-card" @click=${() => this.navigate("channels")}>
+                  <span>${copy.overview.openChannels}</span>
+                  <small>
+                    ${copy.overview.surfacesHint.replace(
+                      "{count}",
+                      String(this.channelsState.channelsSnapshot?.channelOrder.length ?? 0),
+                    )}
+                  </small>
+                </button>
+                <button class="cp-action-card" @click=${() => this.navigate("memory")}>
+                  <span>${copy.overview.openMemory}</span>
+                  <small>${memoryAction}</small>
+                </button>
+                <button class="cp-action-card" @click=${() => this.navigate("workflows")}>
+                  <span>${copy.overview.inspectWorkflows}</span>
+                  <small>
+                    ${copy.overview.workflowCount.replace(
+                      "{count}",
+                      String(this.workflowsState.workflowsList.length),
+                    )}
+                  </small>
+                </button>
+              </div>
+            </article>
+
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.overview.attentionKicker}</span>
+                  <h3>${copy.overview.attentionTitle}</h3>
+                </div>
+              </div>
+              ${attentionItems.length
+                ? html`
+                    <div class="cp-action-stack">
+                      ${attentionItems.map(
+                        (item) => html`
+                          <button
+                            class="cp-action-card"
+                            ?disabled=${!item.page}
+                            @click=${() => {
+                              if (item.page) {
+                                this.navigate(item.page);
+                              }
+                            }}
+                          >
+                            <span>${item.title}</span>
+                            <small>${item.detail}</small>
+                          </button>
+                        `,
+                      )}
+                    </div>
+                  `
+                : html`<p class="cp-empty">${copy.overview.everythingHealthy}</p>`}
+            </article>
+
+            <article class="cp-panel">
+              <div class="cp-panel__head">
+                <div>
+                  <span class="cp-kicker">${copy.overview.memoryHealth}</span>
+                  <h3>${copy.overview.openMemory}</h3>
+                </div>
+              </div>
+              <div class="cp-meta-list">
+                <div><span>${copy.memory.provider}</span><strong>${memoryLifecycle}</strong></div>
+                <div>
+                  <span>${copy.memory.sessionSummaries}</span
+                  ><strong
+                    >${summarizeMemorySummaryState(
+                      this.memoryState.summariesStatus,
+                      this.locale,
+                    )}</strong
+                  >
+                </div>
+                <div>
+                  <span>${copy.overview.recommendedAction}</span><strong>${memoryAction}</strong>
+                </div>
+                <div>
+                  <span>${copy.common.updated}</span
+                  ><strong
+                    >${formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale)}</strong
+                  >
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.overview.recentKicker}</span>
+                <h3>${copy.overview.recentTitle}</h3>
+              </div>
+            </div>
+            <div class="cp-table-wrap">
+              <table class="cp-table">
+                <thead>
+                  <tr>
+                    <th>${copy.common.session}</th>
+                    <th>${copy.common.kind}</th>
+                    <th>${copy.common.status}</th>
+                    <th>${copy.common.updated}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${sessions.length
+                    ? repeat(
+                        sessions.slice(0, 10),
+                        (session) => session.key,
+                        (session) => html`
+                          <tr @click=${() => void this.handleSelectSession(session.key)}>
+                            <td>
+                              <strong>${sessionDisplayName(session)}</strong>
+                              <small>${sessionSurfaceLabel(session)} · ${session.kind}</small>
+                            </td>
+                            <td>${session.kind}</td>
+                            <td>${session.status ?? copy.common.idle}</td>
+                            <td>${formatAgo(session.updatedAt, this.locale)}</td>
+                          </tr>
+                        `,
+                      )
+                    : html`
+                        <tr>
+                          <td colspan="4"><p class="cp-empty">${copy.sessions.noSessions}</p></td>
+                        </tr>
+                      `}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+
+        <aside class="cp-stage__rail">
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.overview.presenceKicker}</span>
+                <h3>${copy.overview.presenceTitle}</h3>
+              </div>
+            </div>
+            <div class="cp-list">
+              ${this.systemPresence.length
+                ? repeat(
+                    this.systemPresence,
+                    (_, index) => index,
+                    (entry) => html`
+                      <div class="cp-list-item">
+                        <strong
+                          >${entry.instanceId ?? entry.host ?? copy.overview.controlUi}</strong
+                        >
+                        <small>${entry.text ?? entry.mode ?? copy.overview.operator}</small>
+                      </div>
+                    `,
+                  )
+                : html`<p class="cp-empty">${copy.overview.noPresence}</p>`}
+            </div>
+          </article>
+          ${!this.connected ? this.renderConnectionWorkbench() : nothing}
+        </aside>
+      </overview-screen>
     `;
   }
 
@@ -4038,776 +4401,758 @@ export class CrawClawApp extends LitElement {
           : copy.common.summary;
     const selectedTechnicalKey = compactSessionTechnicalKey(selected?.key);
     return html`
-      <section class="cp-page cp-page--sessions">
-        ${this.renderPageHeader("sessions", [
-          {
-            label: copy.sessions.focusedSession,
-            value: selectedDisplayName,
-            hint: selected?.key,
-          },
-          {
-            label: copy.common.sessions,
-            value: String(sessions.length),
-          },
-          {
-            label: copy.common.messages,
-            value: String(this.chatState.chatMessages.length),
-            hint: this.chatState.chatStream ? copy.sessions.streaming : undefined,
-          },
-          {
-            label: copy.common.execution,
-            value: this.chatState.chatRunId ?? copy.common.none,
-            hint: selected?.status ?? copy.common.idle,
-          },
-        ])}
-        <div class="cp-session-console ${this.sessionsMaximized ? "is-maximized" : ""}">
-          <aside class="cp-session-console__rail">
-            <article class="cp-panel cp-panel--fill cp-panel--rail">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.sessions.registryKicker}</span>
-                  <h3>${copy.sessions.registryTitle}</h3>
-                </div>
-                <button
-                  class="cp-button"
-                  @click=${() =>
-                    void this.safeCall(async () => {
-                      await loadSessions(this.sessionsState, { limit: 60 });
-                    })}
-                >
-                  ${copy.common.reload}
-                </button>
+      <sessions-screen .maximized=${this.sessionsMaximized}>
+        <div slot="header">
+          ${this.renderPageHeader("sessions", [
+            {
+              label: copy.sessions.focusedSession,
+              value: selectedDisplayName,
+              hint: selected?.key,
+            },
+            {
+              label: copy.common.sessions,
+              value: String(sessions.length),
+            },
+            {
+              label: copy.common.messages,
+              value: String(this.chatState.chatMessages.length),
+              hint: this.chatState.chatStream ? copy.sessions.streaming : undefined,
+            },
+            {
+              label: copy.common.execution,
+              value: this.chatState.chatRunId ?? copy.common.none,
+              hint: selected?.status ?? copy.common.idle,
+            },
+          ])}
+        </div>
+        <aside slot="rail" class="cp-session-console__rail">
+          <article class="cp-panel cp-panel--fill cp-panel--rail">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.sessions.registryKicker}</span>
+                <h3>${copy.sessions.registryTitle}</h3>
               </div>
-              <label class="cp-session-console__search">
-                <span
-                  >${copy.sessions.inventoryMatches.replace(
-                    "{count}",
-                    String(filteredSessions.length),
-                  )}</span
-                >
-                <input
-                  .value=${this.sessionsQuery}
-                  placeholder=${copy.sessions.searchPlaceholder}
-                  @input=${(event: Event) => {
-                    this.sessionsQuery = (event.target as HTMLInputElement).value;
-                  }}
-                />
-              </label>
-              <div class="cp-list cp-list--dense cp-session-console__list">
-                ${filteredSessions.length
-                  ? repeat(
-                      filteredSessions,
-                      (session) => session.key,
-                      (session) => html`
-                        <button
-                          class="cp-session-item ${session.key === this.settings.sessionKey
-                            ? "is-active"
-                            : ""}"
-                          @click=${() => void this.handleSelectSession(session.key)}
-                        >
-                          <strong>${sessionDisplayName(session)}</strong>
-                          <span>${sessionSurfaceLabel(session)}</span>
-                          <small>
-                            ${session.status ?? copy.common.idle} ·
-                            ${formatAgo(session.updatedAt, this.locale)}
-                          </small>
-                        </button>
-                      `,
-                    )
-                  : html`<p class="cp-empty">${copy.sessions.noSessions}</p>`}
-              </div>
-            </article>
-          </aside>
-
-          <main class="cp-session-console__main">
-            <section class="cp-band cp-band--sessions">
-              ${this.renderMetric(copy.common.status, runtimeState, selected?.status ?? undefined)}
-              ${this.renderMetric(
-                copy.common.provider,
-                selectedProvider ?? copy.common.auto,
-                selectedModel ?? copy.common.default,
-              )}
-              ${this.renderMetric(
-                copy.common.tokens,
-                String(selected?.totalTokens ?? 0),
-                selected?.totalTokensFresh ? copy.common.live : copy.common.summary,
-              )}
-              ${this.renderMetric(
-                copy.common.updated,
-                selected?.updatedAt
-                  ? formatDateTime(selected.updatedAt, this.locale)
-                  : copy.common.pending,
-                selected?.updatedAt ? formatAgo(selected.updatedAt, this.locale) : undefined,
-              )}
-            </section>
-
-            <section class="cp-session-signal-strip">
-              <article class="cp-session-signal-card">
-                <span>${copy.common.session}</span>
-                <strong>${selected ? selectedDisplayName : copy.common.none}</strong>
-                <small
-                  >${selected ? sessionSurfaceLabel(selected) : this.settings.sessionKey}</small
-                >
-              </article>
-              <article class="cp-session-signal-card">
-                <span>${copy.common.latest}</span>
-                <strong>${lastMessageRole ?? copy.common.none}</strong>
-                <small>
-                  ${lastMessageTimestamp
-                    ? formatAgo(lastMessageTimestamp, this.locale)
-                    : copy.common.pending}
-                </small>
-              </article>
-              <article class="cp-session-signal-card">
-                <span>${copy.common.summary}</span>
-                <strong
-                  >${lastMessage ? countMessageBlocks(lastMessage) : 0}
-                  ${copy.sessions.blocks}</strong
-                >
-                <small>${lastMessageSummary}</small>
-              </article>
-              <article class="cp-session-signal-card">
-                <span>${copy.common.execution}</span>
-                <strong>${this.chatState.chatRunId ?? copy.common.none}</strong>
-                <small>${draftLength} / ${attachmentCount} ${copy.sessions.attachments}</small>
-              </article>
-            </section>
-
-            <article class="cp-panel cp-panel--fill cp-session-console__thread-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.sessions.conversationKicker}</span>
-                  <h3>${copy.sessions.conversationTitle}</h3>
-                  <p class="cp-panel__subcopy">
-                    ${selected
-                      ? `${selectedDisplayName} · ${selected.status ?? copy.common.idle}`
-                      : this.settings.sessionKey}
-                  </p>
-                </div>
-                <div class="cp-inline-actions">
-                  <button
-                    class="cp-button"
-                    type="button"
-                    @click=${() => {
-                      this.sessionsMaximized = !this.sessionsMaximized;
-                    }}
-                  >
-                    ${this.sessionsMaximized ? copy.sessions.restore : copy.sessions.maximize}
-                  </button>
-                  <button
-                    class="cp-button"
-                    @click=${() =>
-                      void this.safeCall(async () => {
-                        await loadChatHistory(this.chatState);
-                      })}
-                  >
-                    ${copy.sessions.refreshHistory}
-                  </button>
-                  <button
-                    class="cp-button cp-button--danger"
-                    @click=${() => void this.handleAbortRun()}
-                  >
-                    ${copy.sessions.abortRun}
-                  </button>
-                </div>
-              </div>
-
-              <div class="cp-chat-thread cp-chat-thread--console">
-                ${historyBusy
-                  ? html`
-                      <div class="cp-chat-loading-strip" role="status" aria-live="polite">
-                        <span class="cp-chat-loading-strip__dot" aria-hidden="true"></span>
-                        <div>
-                          <strong>${copy.sessions.historyLoading}</strong>
-                          <small>${copy.sessions.historyLoadingHint}</small>
-                        </div>
-                      </div>
-                    `
-                  : nothing}
-                ${this.chatState.chatMessages.length
-                  ? repeat(
-                      this.chatState.chatMessages,
-                      (_, index) => index,
-                      (message) => html`
-                        <article class="cp-chat-entry cp-chat-entry--${readMessageRole(message)}">
-                          <div class="cp-chat-entry__meta">
-                            <strong>${readMessageRole(message)}</strong>
-                            <span>
-                              ${readMessageTimestamp(message)
-                                ? formatDateTime(readMessageTimestamp(message), this.locale)
-                                : copy.common.pending}
-                            </span>
-                            ${countMessageBlocks(message)
-                              ? html`
-                                  <small>
-                                    ${countMessageBlocks(message)} ${copy.sessions.blocks}
-                                  </small>
-                                `
-                              : nothing}
-                          </div>
-                          <div class="cp-chat-entry__body">
-                            ${imageSourcesFromMessage(message).length
-                              ? html`
-                                  <div class="cp-chat-entry__images">
-                                    ${repeat(
-                                      imageSourcesFromMessage(message),
-                                      (source) => source,
-                                      (source) => html`
-                                        <img src=${source} alt=${copy.sessions.imageAttachments} />
-                                      `,
-                                    )}
-                                  </div>
-                                `
-                              : nothing}
-                            <p>${renderMessageText(message)}</p>
-                          </div>
-                        </article>
-                      `,
-                    )
-                  : historyBusy
-                    ? html`
-                        <div class="cp-chat-thread__skeletons" aria-hidden="true">
-                          <div class="cp-chat-skeleton cp-chat-skeleton--assistant"></div>
-                          <div class="cp-chat-skeleton cp-chat-skeleton--user"></div>
-                          <div class="cp-chat-skeleton cp-chat-skeleton--assistant"></div>
-                        </div>
-                      `
-                    : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
-                ${this.chatState.chatStream
-                  ? html`
-                      <article class="cp-chat-entry cp-chat-entry--stream">
-                        <div class="cp-chat-entry__meta">
-                          <strong>assistant</strong>
-                          <span>${copy.sessions.streaming}</span>
-                          ${this.chatState.chatStreamStartedAt
-                            ? html`
-                                <small>
-                                  ${formatAgo(this.chatState.chatStreamStartedAt, this.locale)}
-                                </small>
-                              `
-                            : nothing}
-                        </div>
-                        <div class="cp-chat-entry__body">
-                          <p>${this.chatState.chatStream}</p>
-                        </div>
-                      </article>
-                    `
-                  : nothing}
-              </div>
-
-              <form
-                class="cp-chat-composer cp-chat-composer--console"
-                @submit=${(event: Event) => this.handleSendMessage(event)}
-                @drop=${(event: DragEvent) => void this.handleChatDrop(event)}
-                @dragover=${(event: DragEvent) => event.preventDefault()}
+              <button
+                class="cp-button"
+                @click=${() =>
+                  void this.safeCall(async () => {
+                    await loadSessions(this.sessionsState, { limit: 60 });
+                  })}
               >
-                <div class="cp-chat-composer__surface">
-                  <div class="cp-chat-composer__head">
+                ${copy.common.reload}
+              </button>
+            </div>
+            <label class="cp-session-console__search">
+              <span
+                >${copy.sessions.inventoryMatches.replace(
+                  "{count}",
+                  String(filteredSessions.length),
+                )}</span
+              >
+              <input
+                .value=${this.sessionsQuery}
+                placeholder=${copy.sessions.searchPlaceholder}
+                @input=${(event: Event) => {
+                  this.sessionsQuery = (event.target as HTMLInputElement).value;
+                }}
+              />
+            </label>
+            <div class="cp-list cp-list--dense cp-session-console__list">
+              ${filteredSessions.length
+                ? repeat(
+                    filteredSessions,
+                    (session) => session.key,
+                    (session) => html`
+                      <button
+                        class="cp-session-item ${session.key === this.settings.sessionKey
+                          ? "is-active"
+                          : ""}"
+                        @click=${() => void this.handleSelectSession(session.key)}
+                      >
+                        <strong>${sessionDisplayName(session)}</strong>
+                        <span>${sessionSurfaceLabel(session)}</span>
+                        <small>
+                          ${session.status ?? copy.common.idle} ·
+                          ${formatAgo(session.updatedAt, this.locale)}
+                        </small>
+                      </button>
+                    `,
+                  )
+                : html`<p class="cp-empty">${copy.sessions.noSessions}</p>`}
+            </div>
+          </article>
+        </aside>
+        <section class="cp-band cp-band--sessions">
+          ${this.renderMetric(copy.common.status, runtimeState, selected?.status ?? undefined)}
+          ${this.renderMetric(
+            copy.common.provider,
+            selectedProvider ?? copy.common.auto,
+            selectedModel ?? copy.common.default,
+          )}
+          ${this.renderMetric(
+            copy.common.tokens,
+            String(selected?.totalTokens ?? 0),
+            selected?.totalTokensFresh ? copy.common.live : copy.common.summary,
+          )}
+          ${this.renderMetric(
+            copy.common.updated,
+            selected?.updatedAt
+              ? formatDateTime(selected.updatedAt, this.locale)
+              : copy.common.pending,
+            selected?.updatedAt ? formatAgo(selected.updatedAt, this.locale) : undefined,
+          )}
+        </section>
+
+        <section class="cp-session-signal-strip">
+          <article class="cp-session-signal-card">
+            <span>${copy.common.session}</span>
+            <strong>${selected ? selectedDisplayName : copy.common.none}</strong>
+            <small>${selected ? sessionSurfaceLabel(selected) : this.settings.sessionKey}</small>
+          </article>
+          <article class="cp-session-signal-card">
+            <span>${copy.common.latest}</span>
+            <strong>${lastMessageRole ?? copy.common.none}</strong>
+            <small>
+              ${lastMessageTimestamp
+                ? formatAgo(lastMessageTimestamp, this.locale)
+                : copy.common.pending}
+            </small>
+          </article>
+          <article class="cp-session-signal-card">
+            <span>${copy.common.summary}</span>
+            <strong
+              >${lastMessage ? countMessageBlocks(lastMessage) : 0} ${copy.sessions.blocks}</strong
+            >
+            <small>${lastMessageSummary}</small>
+          </article>
+          <article class="cp-session-signal-card">
+            <span>${copy.common.execution}</span>
+            <strong>${this.chatState.chatRunId ?? copy.common.none}</strong>
+            <small>${draftLength} / ${attachmentCount} ${copy.sessions.attachments}</small>
+          </article>
+        </section>
+
+        <article class="cp-panel cp-panel--fill cp-session-console__thread-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.sessions.conversationKicker}</span>
+              <h3>${copy.sessions.conversationTitle}</h3>
+              <p class="cp-panel__subcopy">
+                ${selected
+                  ? `${selectedDisplayName} · ${selected.status ?? copy.common.idle}`
+                  : this.settings.sessionKey}
+              </p>
+            </div>
+            <div class="cp-inline-actions">
+              <button
+                class="cp-button"
+                type="button"
+                @click=${() => {
+                  this.sessionsMaximized = !this.sessionsMaximized;
+                }}
+              >
+                ${this.sessionsMaximized ? copy.sessions.restore : copy.sessions.maximize}
+              </button>
+              <button
+                class="cp-button"
+                @click=${() =>
+                  void this.safeCall(async () => {
+                    await loadChatHistory(this.chatState);
+                  })}
+              >
+                ${copy.sessions.refreshHistory}
+              </button>
+              <button
+                class="cp-button cp-button--danger"
+                @click=${() => void this.handleAbortRun()}
+              >
+                ${copy.sessions.abortRun}
+              </button>
+            </div>
+          </div>
+
+          <div class="cp-chat-thread cp-chat-thread--console">
+            ${historyBusy
+              ? html`
+                  <div class="cp-chat-loading-strip" role="status" aria-live="polite">
+                    <span class="cp-chat-loading-strip__dot" aria-hidden="true"></span>
                     <div>
-                      <span class="cp-kicker">${copy.sessions.composerKicker}</span>
-                      <h4>${copy.sessions.composerTitle}</h4>
-                    </div>
-                    <div class="cp-chat-composer__meta">
-                      <span> ${copy.sessions.draftLength}: ${draftLength} </span>
-                      <span>
-                        ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
-                      </span>
-                      <span> ${copy.sessions.attachments}: ${attachmentCount} </span>
+                      <strong>${copy.sessions.historyLoading}</strong>
+                      <small>${copy.sessions.historyLoadingHint}</small>
                     </div>
                   </div>
-                  ${composerBusy
-                    ? html`
-                        <div
-                          class="cp-chat-loading-strip cp-chat-loading-strip--composer"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          <span class="cp-chat-loading-strip__dot" aria-hidden="true"></span>
-                          <div>
-                            <strong>
-                              ${attachmentsBusy
-                                ? copy.sessions.preparingAttachments
-                                : copy.sessions.sendingNow}
-                            </strong>
-                            <small>
-                              ${attachmentsBusy
-                                ? copy.sessions.preparingAttachmentsHint.replace(
-                                    "{count}",
-                                    String(this.chatState.chatAttachmentLoadingCount),
-                                  )
-                                : copy.sessions.sendingNowHint}
-                            </small>
-                          </div>
-                        </div>
-                      `
-                    : nothing}
-                  <div class="cp-chat-attachments-toolbar">
-                    <label class="cp-button cp-button--ghost cp-chat-attachments-toolbar__picker">
-                      <input
-                        type="file"
-                        accept=${CHAT_COMPOSER_ATTACHMENT_ACCEPT}
-                        multiple
-                        ?disabled=${composerBusy}
-                        @change=${(event: Event) => void this.handleChatFileSelect(event)}
-                      />
-                      <span>
-                        ${attachmentsBusy
-                          ? copy.sessions.preparingAttachments
-                          : copy.sessions.attachFiles}
-                      </span>
-                    </label>
-                    <span class="cp-chat-attachments-toolbar__hint">${copy.sessions.dragHint}</span>
-                    ${this.chatState.chatAttachments.length
-                      ? html`
-                          <button
-                            class="cp-button cp-button--ghost"
-                            type="button"
-                            @click=${() => {
-                              this.chatState.chatAttachments = [];
-                              this.requestUpdate();
-                            }}
-                          >
-                            ${copy.sessions.clearAttachments}
-                          </button>
-                        `
-                      : nothing}
-                  </div>
-                  ${this.chatState.chatAttachments.length
-                    ? html`
-                        <div class="cp-chat-attachments-preview">
-                          ${repeat(
-                            this.chatState.chatAttachments,
-                            (attachment) => attachment.id,
-                            (attachment) => html`
-                              <div class="cp-chat-attachment-thumb">
-                                ${attachment.kind === "image"
-                                  ? html`
-                                      <img
-                                        src=${attachment.dataUrl}
-                                        alt=${copy.sessions.imageAttachments}
-                                      />
-                                    `
-                                  : html`
-                                      <div class="cp-chat-attachment-thumb__file">
-                                        <span>
-                                          ${attachment.kind === "text"
-                                            ? copy.sessions.textFile
-                                            : attachment.kind === "pdf"
-                                              ? copy.sessions.pdfFile
-                                              : copy.sessions.audioFile}
-                                        </span>
-                                        <strong
-                                          >${chatAttachmentName(attachment, this.locale)}</strong
-                                        >
-                                        <small>
-                                          ${attachment.sizeBytes != null
-                                            ? `${Math.max(1, Math.round(attachment.sizeBytes / 1024))} KB`
-                                            : attachment.mimeType}
-                                        </small>
-                                        ${attachment.kind === "text" &&
-                                        chatAttachmentPreviewText(attachment)
-                                          ? html` <p>${chatAttachmentPreviewText(attachment)}</p> `
-                                          : html`<p>${attachment.mimeType}</p>`}
-                                      </div>
-                                    `}
-                                <button
-                                  class="cp-chat-attachment-thumb__remove"
-                                  type="button"
-                                  @click=${() => {
-                                    this.chatState.chatAttachments =
-                                      this.chatState.chatAttachments.filter(
-                                        (entry) => entry.id !== attachment.id,
-                                      );
-                                    this.requestUpdate();
-                                  }}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            `,
-                          )}
-                        </div>
-                      `
-                    : nothing}
-                  <div
-                    class="cp-chat-composer__input-shell ${slashMenu.open ? "is-menu-open" : ""}"
-                  >
-                    <textarea
-                      class="cp-chat-composer__textarea"
-                      .value=${this.chatState.chatMessage}
-                      placeholder=${copy.sessions.sendPlaceholder}
-                      aria-expanded=${slashMenu.open ? "true" : "false"}
-                      ?disabled=${attachmentsBusy}
-                      @keydown=${(event: KeyboardEvent) =>
-                        void this.handleChatComposerKeydown(event)}
-                      @input=${(event: Event) => {
-                        this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
-                        this.chatSlashSuppressed = false;
-                        this.chatSlashIndex = 0;
-                        this.requestUpdate();
-                      }}
-                    ></textarea>
-                    ${slashMenu.open
-                      ? html`
-                          <div
-                            class="cp-chat-slash-menu"
-                            role="listbox"
-                            aria-label=${copy.sessions.commandSuggestions}
-                          >
-                            <div class="cp-chat-slash-menu__head">
-                              <span>${copy.sessions.commandSuggestions}</span>
+                `
+              : nothing}
+            ${this.chatState.chatMessages.length
+              ? repeat(
+                  this.chatState.chatMessages,
+                  (_, index) => index,
+                  (message) => html`
+                    <article class="cp-chat-entry cp-chat-entry--${readMessageRole(message)}">
+                      <div class="cp-chat-entry__meta">
+                        <strong>${readMessageRole(message)}</strong>
+                        <span>
+                          ${readMessageTimestamp(message)
+                            ? formatDateTime(readMessageTimestamp(message), this.locale)
+                            : copy.common.pending}
+                        </span>
+                        ${countMessageBlocks(message)
+                          ? html`
                               <small>
-                                ${slashMenu.items.length === 0
-                                  ? slashMenu.mode === "args"
-                                    ? copy.sessions.commandEmptyArgsHint
-                                    : copy.sessions.commandEmptyHint
-                                  : slashMenu.mode === "args"
-                                    ? copy.sessions.commandHelpArgs
-                                    : copy.sessions.commandHelp}
+                                ${countMessageBlocks(message)} ${copy.sessions.blocks}
                               </small>
-                            </div>
-                            ${slashMenu.mode === "command"
-                              ? html`
-                                  <div class="cp-chat-slash-menu__groups">
-                                    ${slashMenuGroups.length
-                                      ? repeat(
-                                          slashMenuGroups,
-                                          ([category]) => category,
-                                          ([category, entries]) => html`
-                                            <div class="cp-chat-slash-menu__group">
-                                              <span class="cp-chat-slash-menu__group-label">
-                                                ${slashCategoryLabel(this.locale, category)}
-                                              </span>
-                                              <div class="cp-chat-slash-menu__list">
-                                                ${repeat(
-                                                  entries,
-                                                  ({ item }) => item.key,
-                                                  ({ item, index }) => html`
-                                                    <button
-                                                      class="cp-chat-slash-menu__item ${index ===
-                                                      normalizedSlashIndex
-                                                        ? "is-active"
-                                                        : ""}"
-                                                      type="button"
-                                                      @click=${() =>
-                                                        void this.applySlashCommandSelection(
-                                                          item,
-                                                          true,
-                                                        )}
-                                                    >
-                                                      <div class="cp-chat-slash-menu__row">
-                                                        <strong>/${item.name}</strong>
-                                                        <div class="cp-chat-slash-menu__badges">
-                                                          ${item.argOptions?.length
-                                                            ? html`
-                                                                <small
-                                                                  class="cp-chat-slash-menu__badge"
-                                                                >
-                                                                  ${item.argOptions.length}
-                                                                  ${copy.sessions.commandOptions}
-                                                                </small>
-                                                              `
-                                                            : nothing}
-                                                          ${item.executeLocal && !item.args
-                                                            ? html`
-                                                                <small
-                                                                  class="cp-chat-slash-menu__badge"
-                                                                >
-                                                                  ${copy.sessions.commandInstant}
-                                                                </small>
-                                                              `
-                                                            : nothing}
-                                                        </div>
-                                                      </div>
-                                                      <span>
-                                                        ${localizeSlashCommandDescription(
-                                                          item,
-                                                          normalizeShellLocale(this.locale),
-                                                        )}
-                                                      </span>
-                                                      <div class="cp-chat-slash-menu__meta">
-                                                        ${localizeSlashCommandArgs(
-                                                          item,
-                                                          normalizeShellLocale(this.locale),
-                                                        )
-                                                          ? html`<small
-                                                              >${localizeSlashCommandArgs(
-                                                                item,
-                                                                normalizeShellLocale(this.locale),
-                                                              )}</small
-                                                            >`
-                                                          : nothing}
-                                                        ${item.aliases?.length
-                                                          ? html`
-                                                              <small>
-                                                                ${item.aliases
-                                                                  .map((alias) => `/${alias}`)
-                                                                  .join(" · ")}
-                                                              </small>
-                                                            `
-                                                          : nothing}
-                                                      </div>
-                                                    </button>
-                                                  `,
-                                                )}
-                                              </div>
-                                            </div>
-                                          `,
-                                        )
-                                      : html`
-                                          <div class="cp-chat-slash-menu__empty">
-                                            <strong>${copy.sessions.commandEmptyTitle}</strong>
-                                            <span>${copy.sessions.commandEmptyHint}</span>
-                                          </div>
-                                        `}
-                                  </div>
-                                `
-                              : html`
-                                  <div class="cp-chat-slash-menu__group">
-                                    <span class="cp-chat-slash-menu__group-label">
-                                      /${slashMenu.command.name}
-                                    </span>
-                                    <div class="cp-chat-slash-menu__list">
-                                      ${slashMenu.items.length
-                                        ? repeat(
-                                            slashMenu.items,
-                                            (item) => item,
-                                            (item, index) => html`
-                                              <button
-                                                class="cp-chat-slash-menu__item ${index ===
-                                                normalizedSlashIndex
-                                                  ? "is-active"
-                                                  : ""}"
-                                                type="button"
-                                                @click=${() =>
-                                                  void this.applySlashArgumentSelection(
-                                                    slashMenu.command,
-                                                    item,
-                                                    true,
-                                                  )}
-                                              >
-                                                <div class="cp-chat-slash-menu__row">
-                                                  <strong>
-                                                    ${localizeSlashArgOptionLabel(
-                                                      item,
-                                                      normalizeShellLocale(this.locale),
-                                                    )}
-                                                  </strong>
-                                                  <small class="cp-chat-slash-menu__badge">
-                                                    ${copy.sessions.commandInstant}
-                                                  </small>
-                                                </div>
-                                                <span>
-                                                  ${localizeSlashCommandDescription(
-                                                    slashMenu.command,
-                                                    normalizeShellLocale(this.locale),
-                                                  )}
-                                                </span>
-                                                <small>/${slashMenu.command.name} ${item}</small>
-                                              </button>
-                                            `,
-                                          )
-                                        : html`
-                                            <div class="cp-chat-slash-menu__empty">
-                                              <strong
-                                                >${copy.sessions.commandEmptyArgsTitle}</strong
-                                              >
-                                              <span>${copy.sessions.commandEmptyArgsHint}</span>
-                                            </div>
-                                          `}
-                                    </div>
-                                  </div>
-                                `}
-                          </div>
-                        `
-                      : nothing}
-                  </div>
-                  <div class="cp-form__actions cp-form__actions--composer">
-                    <span class="cp-chat-composer__hint">
-                      ${copy.sessions.sendHint}
-                      ${slashMenu.open ? ` · ${copy.sessions.commandHint}` : ""}
-                    </span>
-                    <div class="cp-inline-actions cp-inline-actions--composer">
+                            `
+                          : nothing}
+                      </div>
+                      <div class="cp-chat-entry__body">
+                        ${imageSourcesFromMessage(message).length
+                          ? html`
+                              <div class="cp-chat-entry__images">
+                                ${repeat(
+                                  imageSourcesFromMessage(message),
+                                  (source) => source,
+                                  (source) => html`
+                                    <img src=${source} alt=${copy.sessions.imageAttachments} />
+                                  `,
+                                )}
+                              </div>
+                            `
+                          : nothing}
+                        <p>${renderMessageText(message)}</p>
+                      </div>
+                    </article>
+                  `,
+                )
+              : historyBusy
+                ? html`
+                    <div class="cp-chat-thread__skeletons" aria-hidden="true">
+                      <div class="cp-chat-skeleton cp-chat-skeleton--assistant"></div>
+                      <div class="cp-chat-skeleton cp-chat-skeleton--user"></div>
+                      <div class="cp-chat-skeleton cp-chat-skeleton--assistant"></div>
+                    </div>
+                  `
+                : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
+            ${this.chatState.chatStream
+              ? html`
+                  <article class="cp-chat-entry cp-chat-entry--stream">
+                    <div class="cp-chat-entry__meta">
+                      <strong>assistant</strong>
+                      <span>${copy.sessions.streaming}</span>
+                      ${this.chatState.chatStreamStartedAt
+                        ? html`
+                            <small>
+                              ${formatAgo(this.chatState.chatStreamStartedAt, this.locale)}
+                            </small>
+                          `
+                        : nothing}
+                    </div>
+                    <div class="cp-chat-entry__body">
+                      <p>${this.chatState.chatStream}</p>
+                    </div>
+                  </article>
+                `
+              : nothing}
+          </div>
+
+          <form
+            class="cp-chat-composer cp-chat-composer--console"
+            @submit=${(event: Event) => this.handleSendMessage(event)}
+            @drop=${(event: DragEvent) => void this.handleChatDrop(event)}
+            @dragover=${(event: DragEvent) => event.preventDefault()}
+          >
+            <div class="cp-chat-composer__surface">
+              <div class="cp-chat-composer__head">
+                <div>
+                  <span class="cp-kicker">${copy.sessions.composerKicker}</span>
+                  <h4>${copy.sessions.composerTitle}</h4>
+                </div>
+                <div class="cp-chat-composer__meta">
+                  <span> ${copy.sessions.draftLength}: ${draftLength} </span>
+                  <span>
+                    ${copy.common.execution}: ${this.chatState.chatRunId ?? copy.common.none}
+                  </span>
+                  <span> ${copy.sessions.attachments}: ${attachmentCount} </span>
+                </div>
+              </div>
+              ${composerBusy
+                ? html`
+                    <div
+                      class="cp-chat-loading-strip cp-chat-loading-strip--composer"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <span class="cp-chat-loading-strip__dot" aria-hidden="true"></span>
+                      <div>
+                        <strong>
+                          ${attachmentsBusy
+                            ? copy.sessions.preparingAttachments
+                            : copy.sessions.sendingNow}
+                        </strong>
+                        <small>
+                          ${attachmentsBusy
+                            ? copy.sessions.preparingAttachmentsHint.replace(
+                                "{count}",
+                                String(this.chatState.chatAttachmentLoadingCount),
+                              )
+                            : copy.sessions.sendingNowHint}
+                        </small>
+                      </div>
+                    </div>
+                  `
+                : nothing}
+              <div class="cp-chat-attachments-toolbar">
+                <label class="cp-button cp-button--ghost cp-chat-attachments-toolbar__picker">
+                  <input
+                    type="file"
+                    accept=${CHAT_COMPOSER_ATTACHMENT_ACCEPT}
+                    multiple
+                    ?disabled=${composerBusy}
+                    @change=${(event: Event) => void this.handleChatFileSelect(event)}
+                  />
+                  <span>
+                    ${attachmentsBusy
+                      ? copy.sessions.preparingAttachments
+                      : copy.sessions.attachFiles}
+                  </span>
+                </label>
+                <span class="cp-chat-attachments-toolbar__hint">${copy.sessions.dragHint}</span>
+                ${this.chatState.chatAttachments.length
+                  ? html`
                       <button
                         class="cp-button cp-button--ghost"
                         type="button"
-                        ?disabled=${composerBusy || (draftLength === 0 && attachmentCount === 0)}
                         @click=${() => {
-                          this.chatState.chatMessage = "";
                           this.chatState.chatAttachments = [];
                           this.requestUpdate();
                         }}
                       >
-                        ${copy.sessions.clearDraft}
+                        ${copy.sessions.clearAttachments}
                       </button>
-                      <button
-                        class="cp-button cp-button--primary"
-                        type="submit"
-                        ?disabled=${composerBusy || (draftLength === 0 && attachmentCount === 0)}
-                      >
-                        ${sendBusy ? copy.sessions.sendingNow : copy.common.send}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </article>
-          </main>
-
-          <aside class="cp-session-console__inspector">
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.sessions.runtimeKicker}</span>
-                  <h3>${copy.sessions.runtimeTitle}</h3>
-                </div>
+                    `
+                  : nothing}
               </div>
-              ${selected
-                ? this.renderMetaEntries(
-                    [
-                      { label: copy.common.status, value: selected.status ?? copy.common.idle },
-                      {
-                        label: copy.common.execution,
-                        value: this.chatState.chatRunId ?? copy.common.none,
-                      },
-                      {
-                        label: copy.common.updated,
-                        value: selected.updatedAt
-                          ? formatDateTime(selected.updatedAt, this.locale)
-                          : copy.common.pending,
-                        hint: selected.updatedAt
-                          ? formatAgo(selected.updatedAt, this.locale)
-                          : undefined,
-                      },
-                      {
-                        label: copy.common.timeline,
-                        value:
-                          selected.runtimeMs != null ? `${selected.runtimeMs}ms` : copy.common.na,
-                      },
-                      {
-                        label: copy.common.messages,
-                        value: String(this.chatState.chatMessages.length),
-                        hint: this.chatState.chatStream ? copy.sessions.streaming : undefined,
-                      },
-                    ],
-                    copy.sessions.selectPrompt,
-                  )
-                : html`<p class="cp-empty">${copy.sessions.selectPrompt}</p>`}
-            </article>
-
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.sessions.routingKicker}</span>
-                  <h3>${copy.sessions.routingTitle}</h3>
-                </div>
-              </div>
-              ${selected
+              ${this.chatState.chatAttachments.length
                 ? html`
-                    <div class="cp-routing-card">
-                      <div class="cp-routing-card__hero">
-                        <span>${copy.sessions.routingTarget}</span>
-                        <strong>${selectedDisplayName}</strong>
-                        <small>${selectedSurfaceLabel} · ${selectedKindLabel}</small>
+                    <div class="cp-chat-attachments-preview">
+                      ${repeat(
+                        this.chatState.chatAttachments,
+                        (attachment) => attachment.id,
+                        (attachment) => html`
+                          <div class="cp-chat-attachment-thumb">
+                            ${attachment.kind === "image"
+                              ? html`
+                                  <img
+                                    src=${attachment.dataUrl}
+                                    alt=${copy.sessions.imageAttachments}
+                                  />
+                                `
+                              : html`
+                                  <div class="cp-chat-attachment-thumb__file">
+                                    <span>
+                                      ${attachment.kind === "text"
+                                        ? copy.sessions.textFile
+                                        : attachment.kind === "pdf"
+                                          ? copy.sessions.pdfFile
+                                          : copy.sessions.audioFile}
+                                    </span>
+                                    <strong>${chatAttachmentName(attachment, this.locale)}</strong>
+                                    <small>
+                                      ${attachment.sizeBytes != null
+                                        ? `${Math.max(1, Math.round(attachment.sizeBytes / 1024))} KB`
+                                        : attachment.mimeType}
+                                    </small>
+                                    ${attachment.kind === "text" &&
+                                    chatAttachmentPreviewText(attachment)
+                                      ? html` <p>${chatAttachmentPreviewText(attachment)}</p> `
+                                      : html`<p>${attachment.mimeType}</p>`}
+                                  </div>
+                                `}
+                            <button
+                              class="cp-chat-attachment-thumb__remove"
+                              type="button"
+                              @click=${() => {
+                                this.chatState.chatAttachments =
+                                  this.chatState.chatAttachments.filter(
+                                    (entry) => entry.id !== attachment.id,
+                                  );
+                                this.requestUpdate();
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        `,
+                      )}
+                    </div>
+                  `
+                : nothing}
+              <div class="cp-chat-composer__input-shell ${slashMenu.open ? "is-menu-open" : ""}">
+                <textarea
+                  class="cp-chat-composer__textarea"
+                  .value=${this.chatState.chatMessage}
+                  placeholder=${copy.sessions.sendPlaceholder}
+                  aria-expanded=${slashMenu.open ? "true" : "false"}
+                  ?disabled=${attachmentsBusy}
+                  @keydown=${(event: KeyboardEvent) => void this.handleChatComposerKeydown(event)}
+                  @input=${(event: Event) => {
+                    this.chatState.chatMessage = (event.target as HTMLTextAreaElement).value;
+                    this.chatSlashSuppressed = false;
+                    this.chatSlashIndex = 0;
+                    this.requestUpdate();
+                  }}
+                ></textarea>
+                ${slashMenu.open
+                  ? html`
+                      <div
+                        class="cp-chat-slash-menu"
+                        role="listbox"
+                        aria-label=${copy.sessions.commandSuggestions}
+                      >
+                        <div class="cp-chat-slash-menu__head">
+                          <span>${copy.sessions.commandSuggestions}</span>
+                          <small>
+                            ${slashMenu.items.length === 0
+                              ? slashMenu.mode === "args"
+                                ? copy.sessions.commandEmptyArgsHint
+                                : copy.sessions.commandEmptyHint
+                              : slashMenu.mode === "args"
+                                ? copy.sessions.commandHelpArgs
+                                : copy.sessions.commandHelp}
+                          </small>
+                        </div>
+                        ${slashMenu.mode === "command"
+                          ? html`
+                              <div class="cp-chat-slash-menu__groups">
+                                ${slashMenuGroups.length
+                                  ? repeat(
+                                      slashMenuGroups,
+                                      ([category]) => category,
+                                      ([category, entries]) => html`
+                                        <div class="cp-chat-slash-menu__group">
+                                          <span class="cp-chat-slash-menu__group-label">
+                                            ${slashCategoryLabel(this.locale, category)}
+                                          </span>
+                                          <div class="cp-chat-slash-menu__list">
+                                            ${repeat(
+                                              entries,
+                                              ({ item }) => item.key,
+                                              ({ item, index }) => html`
+                                                <button
+                                                  class="cp-chat-slash-menu__item ${index ===
+                                                  normalizedSlashIndex
+                                                    ? "is-active"
+                                                    : ""}"
+                                                  type="button"
+                                                  @click=${() =>
+                                                    void this.applySlashCommandSelection(
+                                                      item,
+                                                      true,
+                                                    )}
+                                                >
+                                                  <div class="cp-chat-slash-menu__row">
+                                                    <strong>/${item.name}</strong>
+                                                    <div class="cp-chat-slash-menu__badges">
+                                                      ${item.argOptions?.length
+                                                        ? html`
+                                                            <small
+                                                              class="cp-chat-slash-menu__badge"
+                                                            >
+                                                              ${item.argOptions.length}
+                                                              ${copy.sessions.commandOptions}
+                                                            </small>
+                                                          `
+                                                        : nothing}
+                                                      ${item.executeLocal && !item.args
+                                                        ? html`
+                                                            <small
+                                                              class="cp-chat-slash-menu__badge"
+                                                            >
+                                                              ${copy.sessions.commandInstant}
+                                                            </small>
+                                                          `
+                                                        : nothing}
+                                                    </div>
+                                                  </div>
+                                                  <span>
+                                                    ${localizeSlashCommandDescription(
+                                                      item,
+                                                      normalizeShellLocale(this.locale),
+                                                    )}
+                                                  </span>
+                                                  <div class="cp-chat-slash-menu__meta">
+                                                    ${localizeSlashCommandArgs(
+                                                      item,
+                                                      normalizeShellLocale(this.locale),
+                                                    )
+                                                      ? html`<small
+                                                          >${localizeSlashCommandArgs(
+                                                            item,
+                                                            normalizeShellLocale(this.locale),
+                                                          )}</small
+                                                        >`
+                                                      : nothing}
+                                                    ${item.aliases?.length
+                                                      ? html`
+                                                          <small>
+                                                            ${item.aliases
+                                                              .map((alias) => `/${alias}`)
+                                                              .join(" · ")}
+                                                          </small>
+                                                        `
+                                                      : nothing}
+                                                  </div>
+                                                </button>
+                                              `,
+                                            )}
+                                          </div>
+                                        </div>
+                                      `,
+                                    )
+                                  : html`
+                                      <div class="cp-chat-slash-menu__empty">
+                                        <strong>${copy.sessions.commandEmptyTitle}</strong>
+                                        <span>${copy.sessions.commandEmptyHint}</span>
+                                      </div>
+                                    `}
+                              </div>
+                            `
+                          : html`
+                              <div class="cp-chat-slash-menu__group">
+                                <span class="cp-chat-slash-menu__group-label">
+                                  /${slashMenu.command.name}
+                                </span>
+                                <div class="cp-chat-slash-menu__list">
+                                  ${slashMenu.items.length
+                                    ? repeat(
+                                        slashMenu.items,
+                                        (item) => item,
+                                        (item, index) => html`
+                                          <button
+                                            class="cp-chat-slash-menu__item ${index ===
+                                            normalizedSlashIndex
+                                              ? "is-active"
+                                              : ""}"
+                                            type="button"
+                                            @click=${() =>
+                                              void this.applySlashArgumentSelection(
+                                                slashMenu.command,
+                                                item,
+                                                true,
+                                              )}
+                                          >
+                                            <div class="cp-chat-slash-menu__row">
+                                              <strong>
+                                                ${localizeSlashArgOptionLabel(
+                                                  item,
+                                                  normalizeShellLocale(this.locale),
+                                                )}
+                                              </strong>
+                                              <small class="cp-chat-slash-menu__badge">
+                                                ${copy.sessions.commandInstant}
+                                              </small>
+                                            </div>
+                                            <span>
+                                              ${localizeSlashCommandDescription(
+                                                slashMenu.command,
+                                                normalizeShellLocale(this.locale),
+                                              )}
+                                            </span>
+                                            <small>/${slashMenu.command.name} ${item}</small>
+                                          </button>
+                                        `,
+                                      )
+                                    : html`
+                                        <div class="cp-chat-slash-menu__empty">
+                                          <strong>${copy.sessions.commandEmptyArgsTitle}</strong>
+                                          <span>${copy.sessions.commandEmptyArgsHint}</span>
+                                        </div>
+                                      `}
+                                </div>
+                              </div>
+                            `}
                       </div>
-                      <div class="cp-routing-card__grid">
-                        <div class="cp-routing-card__item">
-                          <span>${copy.sessions.routingChannel}</span>
-                          <strong>${selectedSurfaceLabel}</strong>
-                          ${selectedSurfaceHint
-                            ? html`<small>${selectedSurfaceHint}</small>`
-                            : nothing}
-                        </div>
-                        <div class="cp-routing-card__item">
-                          <span>${copy.sessions.routingMode}</span>
-                          <strong>${selectedKindLabel}</strong>
-                          <small>${selected.chatType ?? selected.kind ?? copy.common.na}</small>
-                        </div>
-                        <div class="cp-routing-card__item">
-                          <span>${copy.sessions.routingModel}</span>
-                          <strong>${selectedModel ?? copy.common.default}</strong>
-                          <small>${selectedProvider ?? copy.common.auto}</small>
-                        </div>
-                        <div class="cp-routing-card__item">
-                          <span>${copy.sessions.routingUsage}</span>
-                          <strong
-                            >${String(selected.totalTokens ?? 0)} ${copy.common.tokens}</strong
-                          >
-                          <small>${selectedUsageHint}</small>
-                        </div>
-                      </div>
-                      <div class="cp-routing-card__technical">
-                        <span>${copy.sessions.routingTechnical}</span>
-                        <small>${copy.sessions.routingTechnicalHint}</small>
-                        ${selectedTechnicalKey
-                          ? html`<code>${selectedTechnicalKey}</code>`
+                    `
+                  : nothing}
+              </div>
+              <div class="cp-form__actions cp-form__actions--composer">
+                <span class="cp-chat-composer__hint">
+                  ${copy.sessions.sendHint}
+                  ${slashMenu.open ? ` · ${copy.sessions.commandHint}` : ""}
+                </span>
+                <div class="cp-inline-actions cp-inline-actions--composer">
+                  <button
+                    class="cp-button cp-button--ghost"
+                    type="button"
+                    ?disabled=${composerBusy || (draftLength === 0 && attachmentCount === 0)}
+                    @click=${() => {
+                      this.chatState.chatMessage = "";
+                      this.chatState.chatAttachments = [];
+                      this.requestUpdate();
+                    }}
+                  >
+                    ${copy.sessions.clearDraft}
+                  </button>
+                  <button
+                    class="cp-button cp-button--primary"
+                    type="submit"
+                    ?disabled=${composerBusy || (draftLength === 0 && attachmentCount === 0)}
+                  >
+                    ${sendBusy ? copy.sessions.sendingNow : copy.common.send}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </article>
+        <aside slot="detail" class="cp-session-console__inspector">
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.sessions.runtimeKicker}</span>
+                <h3>${copy.sessions.runtimeTitle}</h3>
+              </div>
+            </div>
+            ${selected
+              ? this.renderMetaEntries(
+                  [
+                    { label: copy.common.status, value: selected.status ?? copy.common.idle },
+                    {
+                      label: copy.common.execution,
+                      value: this.chatState.chatRunId ?? copy.common.none,
+                    },
+                    {
+                      label: copy.common.updated,
+                      value: selected.updatedAt
+                        ? formatDateTime(selected.updatedAt, this.locale)
+                        : copy.common.pending,
+                      hint: selected.updatedAt
+                        ? formatAgo(selected.updatedAt, this.locale)
+                        : undefined,
+                    },
+                    {
+                      label: copy.common.timeline,
+                      value:
+                        selected.runtimeMs != null ? `${selected.runtimeMs}ms` : copy.common.na,
+                    },
+                    {
+                      label: copy.common.messages,
+                      value: String(this.chatState.chatMessages.length),
+                      hint: this.chatState.chatStream ? copy.sessions.streaming : undefined,
+                    },
+                  ],
+                  copy.sessions.selectPrompt,
+                )
+              : html`<p class="cp-empty">${copy.sessions.selectPrompt}</p>`}
+          </article>
+
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.sessions.routingKicker}</span>
+                <h3>${copy.sessions.routingTitle}</h3>
+              </div>
+            </div>
+            ${selected
+              ? html`
+                  <div class="cp-routing-card">
+                    <div class="cp-routing-card__hero">
+                      <span>${copy.sessions.routingTarget}</span>
+                      <strong>${selectedDisplayName}</strong>
+                      <small>${selectedSurfaceLabel} · ${selectedKindLabel}</small>
+                    </div>
+                    <div class="cp-routing-card__grid">
+                      <div class="cp-routing-card__item">
+                        <span>${copy.sessions.routingChannel}</span>
+                        <strong>${selectedSurfaceLabel}</strong>
+                        ${selectedSurfaceHint
+                          ? html`<small>${selectedSurfaceHint}</small>`
                           : nothing}
                       </div>
+                      <div class="cp-routing-card__item">
+                        <span>${copy.sessions.routingMode}</span>
+                        <strong>${selectedKindLabel}</strong>
+                        <small>${selected.chatType ?? selected.kind ?? copy.common.na}</small>
+                      </div>
+                      <div class="cp-routing-card__item">
+                        <span>${copy.sessions.routingModel}</span>
+                        <strong>${selectedModel ?? copy.common.default}</strong>
+                        <small>${selectedProvider ?? copy.common.auto}</small>
+                      </div>
+                      <div class="cp-routing-card__item">
+                        <span>${copy.sessions.routingUsage}</span>
+                        <strong>${String(selected.totalTokens ?? 0)} ${copy.common.tokens}</strong>
+                        <small>${selectedUsageHint}</small>
+                      </div>
                     </div>
-                  `
-                : html`<p class="cp-empty">${copy.sessions.selectPrompt}</p>`}
-            </article>
+                    <div class="cp-routing-card__technical">
+                      <span>${copy.sessions.routingTechnical}</span>
+                      <small>${copy.sessions.routingTechnicalHint}</small>
+                      ${selectedTechnicalKey ? html`<code>${selectedTechnicalKey}</code>` : nothing}
+                    </div>
+                  </div>
+                `
+              : html`<p class="cp-empty">${copy.sessions.selectPrompt}</p>`}
+          </article>
 
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.sessions.activityKicker}</span>
-                  <h3>${copy.sessions.activityTitle}</h3>
-                </div>
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.sessions.activityKicker}</span>
+                <h3>${copy.sessions.activityTitle}</h3>
               </div>
-              ${lastMessage
-                ? html`
-                    ${this.renderMetaEntries([
-                      { label: copy.common.role, value: lastMessageRole ?? copy.common.na },
-                      {
-                        label: copy.common.updated,
-                        value: lastMessageTimestamp
-                          ? formatDateTime(lastMessageTimestamp, this.locale)
-                          : copy.common.pending,
-                        hint: lastMessageTimestamp
-                          ? formatAgo(lastMessageTimestamp, this.locale)
-                          : undefined,
-                      },
-                      {
-                        label: copy.sessions.blocks,
-                        value: String(countMessageBlocks(lastMessage)),
-                      },
-                    ])}
-                    <pre class="cp-code cp-code--compact">${summarizeMessage(lastMessage)}</pre>
-                  `
-                : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
-            </article>
+            </div>
+            ${lastMessage
+              ? html`
+                  ${this.renderMetaEntries([
+                    { label: copy.common.role, value: lastMessageRole ?? copy.common.na },
+                    {
+                      label: copy.common.updated,
+                      value: lastMessageTimestamp
+                        ? formatDateTime(lastMessageTimestamp, this.locale)
+                        : copy.common.pending,
+                      hint: lastMessageTimestamp
+                        ? formatAgo(lastMessageTimestamp, this.locale)
+                        : undefined,
+                    },
+                    {
+                      label: copy.sessions.blocks,
+                      value: String(countMessageBlocks(lastMessage)),
+                    },
+                  ])}
+                  <pre class="cp-code cp-code--compact">${summarizeMessage(lastMessage)}</pre>
+                `
+              : html`<p class="cp-empty">${copy.sessions.noMessages}</p>`}
+          </article>
 
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.sessions.composerKicker}</span>
-                  <h3>${copy.sessions.composerTitle}</h3>
-                </div>
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.sessions.composerKicker}</span>
+                <h3>${copy.sessions.composerTitle}</h3>
               </div>
-              ${this.renderMetaEntries([
-                {
-                  label: copy.sessions.draftLength,
-                  value: String(draftLength),
-                  hint: draftLength ? copy.common.live : copy.common.idle,
-                },
-                {
-                  label: copy.sessions.attachments,
-                  value: String(attachmentCount),
-                  hint: attachmentSummaryHint,
-                },
-                {
-                  label: copy.common.execution,
-                  value: this.chatState.chatRunId ?? copy.common.none,
-                },
-              ])}
-              <pre class="cp-code cp-code--compact">
+            </div>
+            ${this.renderMetaEntries([
+              {
+                label: copy.sessions.draftLength,
+                value: String(draftLength),
+                hint: draftLength ? copy.common.live : copy.common.idle,
+              },
+              {
+                label: copy.sessions.attachments,
+                value: String(attachmentCount),
+                hint: attachmentSummaryHint,
+              },
+              {
+                label: copy.common.execution,
+                value: this.chatState.chatRunId ?? copy.common.none,
+              },
+            ])}
+            <pre class="cp-code cp-code--compact">
 ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
-              >
-            </article>
-          </aside>
-        </div>
-      </section>
+            >
+          </article>
+        </aside>
+      </sessions-screen>
     `;
   }
 
@@ -4817,14 +5162,20 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     const flattenedAccounts = flattenChannelAccounts(snapshot);
     const channelIds = snapshot?.channelOrder ?? [];
     const catalogChannelIds = snapshot?.catalogOrder?.length ? snapshot.catalogOrder : channelIds;
-    const connectedAccounts = flattenedAccounts.filter((entry) => entry.account.connected).length;
-    const channelsNeedingAttention = channelIds.filter(
+    const activeMode: ChannelWorkspaceMode =
+      this.channelsWorkspaceMode === "settings" || this.channelsWorkspaceMode === "add"
+        ? this.channelsWorkspaceMode
+        : "guide";
+    const _connectedAccounts = flattenedAccounts.filter((entry) => entry.account.connected).length;
+    const _channelsNeedingAttention = channelIds.filter(
       (channelId) => countChannelAttentionIssues(resolveChannelAccounts(snapshot, channelId)) > 0,
     ).length;
+    const resolvedFallbackChannelId =
+      activeMode === "guide" && !this.channelsSelectedChannelId ? (channelIds[0] ?? "") : "";
     const selectedChannelId = catalogChannelIds.includes(this.channelsSelectedChannelId)
       ? this.channelsSelectedChannelId
-      : "";
-    const selectedChannelAvailable = selectedChannelId
+      : resolvedFallbackChannelId;
+    const _selectedChannelAvailable = selectedChannelId
       ? channelIds.includes(selectedChannelId)
       : false;
     const selectedChannelMeta = resolveChannelCatalogMeta(snapshot, selectedChannelId);
@@ -4928,10 +5279,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             : channelEditorAvailable
               ? copy.channels.stepSettingsTitle
               : copy.channels.stepGuideTitle;
-    const activeMode: ChannelWorkspaceMode =
-      this.channelsWorkspaceMode === "settings" || this.channelsWorkspaceMode === "add"
-        ? this.channelsWorkspaceMode
-        : "guide";
     const addChannelIds = catalogChannelIds;
 
     const openAddChannel = () => {
@@ -4939,7 +5286,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       this.channelsWorkspaceMode = "add";
     };
 
-    const renderDirectoryCard = (channelId: string) => {
+    const _renderDirectoryCard = (channelId: string) => {
       const accounts = resolveChannelAccounts(snapshot, channelId);
       const connectedCount = accounts.filter((account) => account.connected).length;
       const issueCount = countChannelAttentionIssues(accounts);
@@ -4985,7 +5332,37 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       `;
     };
 
-    const renderSummaryPanel = () => html`
+    const resolveChannelHealth = (channelId: string) => {
+      const accounts = resolveChannelAccounts(snapshot, channelId);
+      if (!accounts.length) {
+        return 15;
+      }
+      const configured = accounts.filter((account) => account.configured).length;
+      const connected = accounts.filter((account) => account.connected).length;
+      const issues = countChannelAttentionIssues(accounts);
+      return Math.max(
+        10,
+        Math.min(
+          100,
+          Math.round((configured * 30 + connected * 70 - issues * 15) / accounts.length),
+        ),
+      );
+    };
+
+    const resolveChannelDelivery = (channelId: string) => {
+      const accounts = resolveChannelAccounts(snapshot, channelId);
+      if (!accounts.length) {
+        return 0;
+      }
+      const connected = accounts.filter((account) => account.connected).length;
+      const configured = accounts.filter((account) => account.configured).length;
+      return Math.max(
+        0,
+        Math.min(100, Math.round(((connected * 0.8 + configured * 0.2) / accounts.length) * 100)),
+      );
+    };
+
+    const _renderSummaryPanel = () => html`
       <section class="cp-grid cp-grid--double">
         <article class="cp-panel">
           <div class="cp-panel__head">
@@ -5022,10 +5399,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                 value: selectedLatestProbeAt
                   ? formatDateTime(selectedLatestProbeAt, this.locale)
                   : copy.common.notRecorded,
-              },
-              {
-                label: copy.channels.recommendedNext,
-                value: recommendedLabel,
               },
             ],
             this.channelsState.channelsError ?? undefined,
@@ -5067,7 +5440,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       </section>
     `;
 
-    const renderCatalogOnlyPanel = () => {
+    const _renderCatalogOnlyPanel = () => {
       const docsPath = selectedChannelMeta?.docsPath?.trim() || null;
       const installNpmSpec = selectedChannelMeta?.installNpmSpec?.trim() || null;
       const installCommand = installNpmSpec ? `pnpm add ${installNpmSpec}` : null;
@@ -5232,34 +5605,291 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
     };
 
     const renderAddSelectionPage = () => html`
-      <div class="cp-channel-directory-page">
-        <article class="cp-panel">
-          <div class="cp-panel__head">
-            <div>
-              <span class="cp-kicker">${copy.channels.addFlowKicker}</span>
-              <h3>${copy.channels.addFlowTitle}</h3>
-            </div>
-            <button class="cp-button" @click=${() => (this.channelsWorkspaceMode = "guide")}>
-              ${copy.channels.backToDirectory}
-            </button>
+      <div class="cp-channel-catalog-page">
+        <section class="cp-channel-catalog-header">
+          <div>
+            <span class="cp-kicker">${copy.channels.addFlowKicker}</span>
+            <h3>${copy.channels.addFlowTitle}</h3>
+            <p class="cp-panel__subcopy">${copy.channels.addFlowHint}</p>
           </div>
-          <p class="cp-panel__subcopy">${copy.channels.addFlowHint}</p>
-          ${!addChannelIds.length
-            ? html`<p class="cp-empty">${copy.channels.addFlowEmpty}</p>`
-            : html`
-                <div class="cp-channel-directory-grid">
-                  ${repeat(
-                    addChannelIds,
-                    (channelId) => channelId,
-                    (channelId) => renderCatalogCard(channelId),
-                  )}
-                </div>
-              `}
-        </article>
+          <button class="cp-button" @click=${() => (this.channelsWorkspaceMode = "guide")}>
+            ${copy.channels.backToDirectory}
+          </button>
+        </section>
+        <section class="cp-channel-catalog-section">
+          <div class="cp-channel-catalog-section__head">
+            <h4>${copy.channels.configuredCatalogTitle}</h4>
+            <p>${copy.channels.configuredCatalogHint}</p>
+          </div>
+          <div class="cp-channel-directory-grid">
+            ${channelIds.length
+              ? repeat(
+                  channelIds,
+                  (channelId) => channelId,
+                  (channelId) => renderCatalogCard(channelId),
+                )
+              : html`<p class="cp-empty">${copy.channels.noAccounts}</p>`}
+          </div>
+        </section>
+        <section class="cp-channel-catalog-section cp-channel-catalog-section--muted">
+          <div class="cp-channel-catalog-section__head">
+            <h4>${copy.channels.availableCatalogTitle}</h4>
+            <p>${copy.channels.availableCatalogHint}</p>
+          </div>
+          <div class="cp-channel-directory-grid">
+            ${addChannelIds.length
+              ? repeat(
+                  addChannelIds.filter((channelId) => !channelIds.includes(channelId)),
+                  (channelId) => channelId,
+                  (channelId) => renderCatalogCard(channelId),
+                )
+              : html`<p class="cp-empty">${copy.channels.addFlowEmpty}</p>`}
+          </div>
+        </section>
       </div>
     `;
 
-    const renderSetupPanel = () =>
+    const renderManagementPage = () =>
+      !channelIds.length
+        ? html`
+            <div class="cp-channel-directory-page">
+              <article class="cp-panel">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.channels.directoryKicker}</span>
+                    <h3>${copy.channels.directoryTitle}</h3>
+                  </div>
+                  <button class="cp-button" @click=${openAddChannel}>
+                    ${copy.channels.addChannel}
+                  </button>
+                </div>
+                <p class="cp-panel__subcopy">${copy.channels.noAccounts}</p>
+              </article>
+            </div>
+          `
+        : html`
+            <div class="cp-channel-management-page">
+              <section class="cp-channel-management-header">
+                <div>
+                  <span class="cp-kicker">${copy.channels.accountsKicker}</span>
+                  <h3>${copy.channels.inventoryTitle}</h3>
+                  <p class="cp-panel__subcopy">${copy.channels.directoryHint}</p>
+                </div>
+                <button class="cp-button cp-button--primary" @click=${openAddChannel}>
+                  ${copy.channels.addChannel}
+                </button>
+              </section>
+              <div class="cp-channel-management-layout">
+                <article class="cp-panel cp-panel--fill">
+                  <div class="cp-panel__head">
+                    <div>
+                      <span class="cp-kicker">${copy.channels.directoryKicker}</span>
+                      <h3>${copy.channels.directoryTitle}</h3>
+                    </div>
+                    <span class="cp-chip"
+                      >${channelIds.length} ${copy.channels.enabledSurfaces}</span
+                    >
+                  </div>
+                  <div class="cp-channel-table-wrap">
+                    <table class="cp-channel-table">
+                      <thead>
+                        <tr>
+                          <th>${uiLiteral("ID / 名称")}</th>
+                          <th>${uiLiteral("类型")}</th>
+                          <th>${copy.common.status}</th>
+                          <th>${uiLiteral("连接")}</th>
+                          <th>${uiLiteral("健康度")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${repeat(
+                          channelIds,
+                          (channelId) => channelId,
+                          (channelId) => {
+                            const statusTone = channelStatusTone(channelId);
+                            const health = resolveChannelHealth(channelId);
+                            const delivery = resolveChannelDelivery(channelId);
+                            const label =
+                              snapshot?.channelLabels[channelId] ??
+                              snapshot?.catalogLabels?.[channelId] ??
+                              channelId;
+                            const detail =
+                              snapshot?.channelDetailLabels?.[channelId] ??
+                              snapshot?.catalogDetailLabels?.[channelId] ??
+                              label;
+                            return html`
+                              <tr
+                                class=${channelId === selectedChannelId ? "is-active" : ""}
+                                @click=${() => this.selectChannel(channelId)}
+                              >
+                                <td>
+                                  <strong>${channelId}</strong>
+                                  <small>${label}</small>
+                                </td>
+                                <td>${detail}</td>
+                                <td>
+                                  <span class=${`cp-badge ${statusTone.className}`}
+                                    >${statusTone.label}</span
+                                  >
+                                </td>
+                                <td>
+                                  <span class="cp-channel-table__metric">${delivery}%</span>
+                                </td>
+                                <td>
+                                  <div class="cp-channel-health">
+                                    <div class="cp-channel-health__bar">
+                                      <div style=${`width:${health}%`}></div>
+                                    </div>
+                                    <span>${health}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            `;
+                          },
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+                <aside class="cp-channel-management-side">
+                  <article class="cp-panel cp-panel--fill cp-channel-focus-card">
+                    <div class="cp-channel-focus-card__icon">hub</div>
+                    <div class="cp-channel-focus-card__body">
+                      <span class="cp-kicker">${copy.channels.selectedChannel}</span>
+                      <h3>${selectedChannelId}</h3>
+                      <p>${selectedChannelDetail}</p>
+                      <div class="cp-channel-focus-card__grid">
+                        <div>
+                          <span>${copy.channels.stepGuideTitle}</span>
+                          <strong
+                            >${selectedControls.loginMode === "qr"
+                              ? copy.channels.actionLogin
+                              : copy.channels.actionEdit}</strong
+                          >
+                        </div>
+                        <div>
+                          <span>${copy.common.recentCheck}</span>
+                          <strong>
+                            ${selectedLatestProbeAt
+                              ? formatAgo(selectedLatestProbeAt, this.locale)
+                              : copy.common.notRecorded}
+                          </strong>
+                        </div>
+                        <div class="is-wide">
+                          <span>${copy.common.accounts}</span>
+                          <strong
+                            >${selectedAccounts.length} / ${Math.max(selectedConnectedCount, 0)}
+                            ${copy.common.connectedAccounts}</strong
+                          >
+                        </div>
+                      </div>
+                      <div class="cp-inline-actions">
+                        ${channelEditorAvailable
+                          ? html`
+                              <button
+                                class="cp-button"
+                                @click=${() =>
+                                  this.openChannelSettings(
+                                    selectedChannelId,
+                                    selectedAccount?.accountId ?? null,
+                                    "guide",
+                                  )}
+                              >
+                                ${copy.channels.openSettings}
+                              </button>
+                            `
+                          : nothing}
+                        ${selectedControls.multiAccount && channelEditorAvailable
+                          ? html`
+                              <button
+                                class="cp-button"
+                                @click=${() =>
+                                  void this.addChannelAccountDraft(
+                                    selectedChannelId,
+                                    selectedAccounts,
+                                  )}
+                              >
+                                ${copy.channels.addAnotherAccount}
+                              </button>
+                            `
+                          : nothing}
+                      </div>
+                    </div>
+                  </article>
+                  <article class="cp-panel cp-panel--fill">
+                    <div class="cp-panel__head">
+                      <div>
+                        <span class="cp-kicker">${copy.channels.accountsTitle}</span>
+                        <h3>${copy.channels.actionsTitle}</h3>
+                      </div>
+                    </div>
+                    ${selectedAccount
+                      ? this.renderMetaEntries([
+                          {
+                            label: copy.channels.selectedAccount,
+                            value: selectedAccount.name ?? selectedAccount.accountId,
+                          },
+                          {
+                            label: copy.common.status,
+                            value: selectedAccount.connected
+                              ? copy.channels.channelConnected
+                              : selectedAccount.configured
+                                ? copy.channels.channelConfigured
+                                : copy.channels.channelNotConfigured,
+                          },
+                          {
+                            label: copy.channels.defaultAccount,
+                            value: currentDefaultAccountId ?? copy.common.none,
+                          },
+                          {
+                            label: copy.channels.issueCount,
+                            value: String(selectedIssueCount),
+                          },
+                        ])
+                      : html`<p class="cp-empty">${copy.channels.noChannelAccounts}</p>`}
+                    <div class="cp-inline-actions">
+                      ${selectedControls.canVerify
+                        ? html`
+                            <button
+                              class="cp-button"
+                              @click=${() =>
+                                void this.safeCall(async () => {
+                                  await verifyChannelAccount(
+                                    this.channelsState,
+                                    selectedChannelId,
+                                    selectedAccount?.accountId,
+                                  );
+                                })}
+                            >
+                              ${copy.channels.verifyConnection}
+                            </button>
+                          `
+                        : nothing}
+                      ${selectedControls.canReconnect
+                        ? html`
+                            <button
+                              class="cp-button"
+                              @click=${() =>
+                                void this.safeCall(async () => {
+                                  await reconnectChannelAccount(
+                                    this.channelsState,
+                                    selectedChannelId,
+                                    selectedAccount?.accountId,
+                                  );
+                                })}
+                            >
+                              ${copy.common.reconnect}
+                            </button>
+                          `
+                        : nothing}
+                    </div>
+                  </article>
+                </aside>
+              </div>
+            </div>
+          `;
+
+    const _renderSetupPanel = () =>
       !showSetupPanel
         ? html`<article class="cp-panel">
             <p class="cp-empty">${copy.channels.setupUnavailable}</p>
@@ -5366,7 +5996,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             </article>
           `;
 
-    const renderConnectPanel = () => html`
+    const _renderConnectPanel = () => html`
       <article class="cp-channel-login-panel">
         <span class="cp-kicker">${copy.channels.qrLoginTitle}</span>
         <strong>${qrLoginAvailable ? loginState : copy.common.notExposed}</strong>
@@ -5434,7 +6064,7 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       </article>
     `;
 
-    const renderAccountsPanel = () => html`
+    const _renderAccountsPanel = () => html`
       <section class="cp-grid cp-grid--double">
         <article class="cp-panel cp-panel--fill">
           <div class="cp-panel__head">
@@ -5742,8 +6372,8 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                         },
                       ])}
                     </section>
-                    <section class="cp-panel cp-panel--fill">
-                      <details class="cp-channel-settings-technical">
+                    <section class="cp-panel cp-panel--fill cp-panel--subtle">
+                      <details class="cp-channel-settings-technical" open>
                         <summary>${copy.channels.settingsReferenceTitle}</summary>
                         <p class="cp-panel__subcopy">${copy.channels.settingsReferenceHint}</p>
                         ${setupSurface?.commands?.length
@@ -5765,14 +6395,6 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
                             label: copy.channels.catalogPackage,
                             value: selectedChannelMeta?.installNpmSpec ?? copy.common.na,
                           },
-                        ])}
-                      </details>
-                    </section>
-                    <section class="cp-panel cp-panel--fill">
-                      <details class="cp-channel-settings-technical">
-                        <summary>${copy.channels.settingsTechnicalTitle}</summary>
-                        <p class="cp-panel__subcopy">${copy.channels.settingsTechnicalHint}</p>
-                        ${this.renderMetaEntries([
                           {
                             label: copy.common.path,
                             value: `channels.${selectedChannelId}`,
@@ -5792,155 +6414,19 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       </div>
     `;
 
+    const screenMode =
+      activeMode === "add" ? "catalog" : activeMode === "settings" ? "editor" : "management";
     return html`
-      <section class="cp-page">
+      <channels-screen .mode=${screenMode}>
         ${activeMode === "settings"
           ? nothing
-          : this.renderPageHeader("channels", [
-              {
-                label: copy.channels.enabledSurfaces,
-                value: String(channelIds.length),
-              },
-              {
-                label: copy.common.accounts,
-                value: String(flattenedAccounts.length),
-              },
-              {
-                label: copy.channels.issueCount,
-                value: String(channelsNeedingAttention),
-              },
-              {
-                label: copy.common.recentCheck,
-                value: this.channelsState.channelsLastSuccess
-                  ? formatDateTime(this.channelsState.channelsLastSuccess, this.locale)
-                  : copy.common.notRecorded,
-                hint: this.channelsState.channelsLastSuccess
-                  ? formatAgo(this.channelsState.channelsLastSuccess, this.locale)
-                  : undefined,
-              },
-            ])}
+          : html`<div slot="header">${this.renderPageHeader("channels", [])}</div>`}
         ${activeMode === "add"
-          ? renderAddSelectionPage()
-          : !selectedChannelId
-            ? html`
-                <div class="cp-channel-directory-page">
-                  <section class="cp-band">
-                    ${this.renderMetric(copy.channels.enabledSurfaces, String(channelIds.length))}
-                    ${this.renderMetric(copy.common.accounts, String(flattenedAccounts.length))}
-                    ${this.renderMetric(copy.common.connectedAccounts, String(connectedAccounts))}
-                    ${this.renderMetric(copy.channels.issueCount, String(channelsNeedingAttention))}
-                  </section>
-                  <article class="cp-panel">
-                    <div class="cp-panel__head">
-                      <div>
-                        <span class="cp-kicker">${copy.channels.directoryKicker}</span>
-                        <h3>${copy.channels.directoryTitle}</h3>
-                      </div>
-                      <button class="cp-button" @click=${openAddChannel}>
-                        ${copy.channels.addChannel}
-                      </button>
-                    </div>
-                    <p class="cp-panel__subcopy">${copy.channels.directoryHint}</p>
-                    <div class="cp-channel-directory-grid">
-                      ${channelIds.length
-                        ? repeat(channelIds, (channelId) => channelId, renderDirectoryCard)
-                        : html`<p class="cp-empty">${copy.channels.noAccounts}</p>`}
-                    </div>
-                  </article>
-                </div>
-              `
-            : activeMode === "settings"
-              ? renderSettingsPanel()
-              : !selectedChannelAvailable
-                ? html`
-                    <div class="cp-channel-workspace">
-                      <section class="cp-channel-workspace__nav">
-                        <div>
-                          <span class="cp-kicker">${copy.channels.detailKicker}</span>
-                          <strong>${selectedChannelLabel}</strong>
-                          <small>${selectedChannelDetail}</small>
-                        </div>
-                        <div class="cp-inline-actions">
-                          <button class="cp-button" @click=${openAddChannel}>
-                            ${copy.channels.addChannel}
-                          </button>
-                          <button class="cp-button" @click=${() => this.leaveChannelWorkspace()}>
-                            ${copy.channels.backToDirectory}
-                          </button>
-                        </div>
-                      </section>
-
-                      <section class="cp-band">
-                        ${this.renderMetric(copy.common.accounts, "0")}
-                        ${this.renderMetric(copy.common.connectedAccounts, "0")}
-                        ${this.renderMetric(copy.channels.issueCount, "0")}
-                        ${this.renderMetric(
-                          copy.channels.recommendedNext,
-                          copy.channels.viewChannelGuide,
-                        )}
-                      </section>
-
-                      <div class="cp-workspace-stack">
-                        ${renderSummaryPanel()} ${renderCatalogOnlyPanel()}
-                      </div>
-                    </div>
-                  `
-                : html`
-                    <div class="cp-channel-workspace">
-                      <section class="cp-channel-workspace__nav">
-                        <div>
-                          <span class="cp-kicker">${copy.channels.detailKicker}</span>
-                          <strong>${selectedChannelLabel}</strong>
-                          <small>${selectedChannelDetail}</small>
-                        </div>
-                        <div class="cp-inline-actions">
-                          ${channelEditorAvailable
-                            ? html`
-                                <button
-                                  class="cp-button"
-                                  @click=${() =>
-                                    this.openChannelSettings(
-                                      selectedChannelId,
-                                      selectedAccount?.accountId ?? null,
-                                      "guide",
-                                    )}
-                                >
-                                  ${copy.channels.openSettings}
-                                </button>
-                              `
-                            : nothing}
-                          ${addChannelIds.length
-                            ? html`
-                                <button class="cp-button" @click=${openAddChannel}>
-                                  ${copy.channels.addChannel}
-                                </button>
-                              `
-                            : nothing}
-                          <button class="cp-button" @click=${() => this.leaveChannelWorkspace()}>
-                            ${copy.channels.backToDirectory}
-                          </button>
-                        </div>
-                      </section>
-
-                      <section class="cp-band">
-                        ${this.renderMetric(copy.common.accounts, String(selectedAccounts.length))}
-                        ${this.renderMetric(
-                          copy.common.connectedAccounts,
-                          String(selectedConnectedCount),
-                        )}
-                        ${this.renderMetric(copy.channels.issueCount, String(selectedIssueCount))}
-                        ${this.renderMetric(copy.channels.recommendedNext, recommendedLabel)}
-                      </section>
-
-                      <div class="cp-workspace-stack">
-                        ${renderSummaryPanel()}
-                        ${!selectedAccounts.length || showSetupPanel ? renderSetupPanel() : nothing}
-                        ${selectedAccounts.length ? renderAccountsPanel() : nothing}
-                        ${qrLoginAvailable ? renderConnectPanel() : nothing}
-                      </div>
-                    </div>
-                  `}
-      </section>
+          ? html`<div slot="catalog">${renderAddSelectionPage()}</div>`
+          : activeMode === "settings"
+            ? html`<div slot="editor">${renderSettingsPanel()}</div>`
+            : renderManagementPage()}
+      </channels-screen>
     `;
   }
 
@@ -5958,248 +6444,520 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
         ? this.workflowsState.workflowRuns
         : (this.workflowsState.workflowDetail?.recentExecutions ?? []);
     return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("workflows", [
-          {
-            label: copy.workflows.registry,
-            value: String(this.workflowsState.workflowsList.length),
-          },
-          {
-            label: copy.common.selected,
-            value: selectedWorkflow?.workflowId ?? copy.common.none,
-            hint: selectedWorkflow?.name ?? undefined,
-          },
-          {
-            label: copy.common.execution,
-            value:
-              readString(selectedExecutionRecord?.executionId, "") ||
+      <workflows-screen>
+        <div slot="header">
+          ${this.renderPageHeader("workflows", [
+            {
+              label: copy.workflows.registry,
+              value: String(this.workflowsState.workflowsList.length),
+            },
+            {
+              label: copy.common.selected,
+              value: selectedWorkflow?.workflowId ?? copy.common.none,
+              hint: selectedWorkflow?.name ?? undefined,
+            },
+            {
+              label: copy.common.execution,
+              value:
+                readString(selectedExecutionRecord?.executionId, "") ||
+                readString(selectedExecutionRecord?.runId, copy.common.none),
+              hint: readString(selectedExecutionRecord?.status, copy.common.na),
+            },
+            {
+              label: copy.workflows.runs,
+              value: String(this.workflowsState.workflowRuns.length),
+            },
+          ])}
+        </div>
+        <section slot="band" class="cp-band cp-band--workflows">
+          ${this.renderMetric(
+            copy.workflows.registry,
+            String(this.workflowsState.workflowsList.length),
+            copy.workflows.registryTitle,
+          )}
+          ${this.renderMetric(
+            copy.common.selected,
+            selectedWorkflow?.workflowId ?? copy.common.none,
+            selectedWorkflow?.name ?? undefined,
+          )}
+          ${this.renderMetric(
+            copy.common.execution,
+            readString(selectedExecutionRecord?.executionId, "") ||
               readString(selectedExecutionRecord?.runId, copy.common.none),
-            hint: readString(selectedExecutionRecord?.status, copy.common.na),
-          },
-          {
-            label: copy.workflows.runs,
-            value: String(this.workflowsState.workflowRuns.length),
-          },
-        ])}
-        <div class="cp-stage cp-stage--two">
-          <aside class="cp-stage__rail cp-stage__rail--wide">
-            <article class="cp-panel cp-panel--fill">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.workflows.registryKicker}</span>
-                  <h3>${copy.workflows.registryTitle}</h3>
-                </div>
-                <button
-                  class="cp-button"
-                  @click=${() =>
-                    void this.safeCall(async () => {
-                      await loadWorkflows(this.workflowsState);
-                    })}
-                >
-                  ${copy.common.reload}
-                </button>
+            readString(selectedExecutionRecord?.status, copy.common.na),
+          )}
+          ${this.renderMetric(
+            copy.workflows.runs,
+            String(recentExecutions.length),
+            copy.workflows.recentRunsTitle,
+          )}
+        </section>
+        <aside slot="rail" class="cp-stage__rail cp-stage__rail--wide">
+          <article class="cp-panel cp-panel--fill">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.workflows.registryKicker}</span>
+                <h3>${copy.workflows.registryTitle}</h3>
               </div>
-              <div class="cp-list cp-list--dense">
-                ${repeat(
-                  this.workflowsState.workflowsList,
-                  (workflow) => workflow.workflowId,
-                  (workflow) => html`
-                    <button
-                      class="cp-session-item ${workflow.workflowId ===
-                      this.workflowsState.workflowSelectedId
-                        ? "is-active"
-                        : ""}"
-                      @click=${() => void this.handleSelectWorkflow(workflow.workflowId)}
+              <button
+                class="cp-button"
+                @click=${() =>
+                  void this.safeCall(async () => {
+                    await loadWorkflows(this.workflowsState);
+                  })}
+              >
+                ${copy.common.reload}
+              </button>
+            </div>
+            <div class="cp-list cp-list--dense">
+              ${repeat(
+                this.workflowsState.workflowsList,
+                (workflow) => workflow.workflowId,
+                (workflow) => html`
+                  <button
+                    class="cp-session-item ${workflow.workflowId ===
+                    this.workflowsState.workflowSelectedId
+                      ? "is-active"
+                      : ""}"
+                    @click=${() => void this.handleSelectWorkflow(workflow.workflowId)}
+                  >
+                    <strong>${workflow.name}</strong>
+                    <span>${workflow.workflowId}</span>
+                    <small
+                      >${workflow.safeForAutoRun ? copy.workflows.autoRun : copy.workflows.manual} ·
+                      ${workflow.runCount} ${copy.workflows.runs}</small
                     >
-                      <strong>${workflow.name}</strong>
-                      <span>${workflow.workflowId}</span>
-                      <small
-                        >${workflow.safeForAutoRun ? copy.workflows.autoRun : copy.workflows.manual}
-                        · ${workflow.runCount} ${copy.workflows.runs}</small
-                      >
+                  </button>
+                `,
+              )}
+            </div>
+          </article>
+        </aside>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.workflows.detailKicker}</span>
+              <h3>${selectedWorkflow?.name ?? copy.workflows.selectTitle}</h3>
+            </div>
+            ${selectedWorkflow
+              ? html`
+                  <div class="cp-inline-actions">
+                    <button
+                      class="cp-button"
+                      @click=${() =>
+                        void this.safeCall(async () => {
+                          await runWorkflow(this.workflowsState, selectedWorkflow.workflowId);
+                        })}
+                    >
+                      ${copy.common.run}
                     </button>
-                  `,
-                )}
-              </div>
-            </article>
-          </aside>
-          <main class="cp-stage__main">
-            <article class="cp-panel cp-panel--fill">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.workflows.detailKicker}</span>
-                  <h3>${selectedWorkflow?.name ?? copy.workflows.selectTitle}</h3>
-                </div>
-                ${selectedWorkflow
-                  ? html`
-                      <div class="cp-inline-actions">
-                        <button
-                          class="cp-button"
-                          @click=${() =>
-                            void this.safeCall(async () => {
-                              await runWorkflow(this.workflowsState, selectedWorkflow.workflowId);
-                            })}
+                    <button
+                      class="cp-button"
+                      @click=${() =>
+                        void this.safeCall(async () => {
+                          await setWorkflowEnabled(
+                            this.workflowsState,
+                            selectedWorkflow.workflowId,
+                            !selectedWorkflow.enabled,
+                          );
+                        })}
+                    >
+                      ${selectedWorkflow.enabled ? copy.workflows.disable : copy.workflows.enable}
+                    </button>
+                    <button
+                      class="cp-button"
+                      @click=${() =>
+                        void this.safeCall(async () => {
+                          await deployWorkflow(this.workflowsState, selectedWorkflow.workflowId);
+                        })}
+                    >
+                      ${copy.common.deploy}
+                    </button>
+                  </div>
+                `
+              : nothing}
+          </div>
+          ${selectedWorkflow
+            ? html`
+                <section class="cp-tab-strip">
+                  <button class="cp-tab is-active">${copy.workflows.currentExecution}</button>
+                  <button class="cp-tab">${copy.workflows.specification}</button>
+                  <button class="cp-tab">${copy.workflows.recentRunsTitle}</button>
+                </section>
+                <div class="cp-grid cp-grid--double">
+                  <article class="cp-subpanel">
+                    <h4>${copy.workflows.registryDetail}</h4>
+                    <div class="cp-meta-list">
+                      <div><span>ID</span><strong>${selectedWorkflow.workflowId}</strong></div>
+                      <div>
+                        <span>${copy.workflows.enabledState}</span
+                        ><strong
+                          >${selectedWorkflow.enabled ? copy.common.yes : copy.common.no}</strong
                         >
-                          ${copy.common.run}
-                        </button>
-                        <button
-                          class="cp-button"
-                          @click=${() =>
-                            void this.safeCall(async () => {
-                              await setWorkflowEnabled(
-                                this.workflowsState,
-                                selectedWorkflow.workflowId,
-                                !selectedWorkflow.enabled,
-                              );
-                            })}
+                      </div>
+                      <div>
+                        <span>${copy.workflows.approval}</span
+                        ><strong
+                          >${selectedWorkflow.requiresApproval
+                            ? copy.workflows.required
+                            : copy.workflows.notRequired}</strong
                         >
+                      </div>
+                      <div>
+                        <span>${copy.workflows.archived}</span
+                        ><strong
+                          >${selectedWorkflow.archivedAt ? copy.common.yes : copy.common.no}</strong
+                        >
+                      </div>
+                      <div>
+                        <span>${copy.workflows.goal}</span
+                        ><strong>${selectedSpec?.goal ?? copy.common.na}</strong>
+                      </div>
+                      <div>
+                        <span>${copy.workflows.topology}</span
+                        ><strong>${selectedSpec?.topology ?? copy.common.default}</strong>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="cp-subpanel">
+                    <h4>${copy.workflows.actionsTitle}</h4>
+                    <div class="cp-action-stack">
+                      <button
+                        class="cp-action-card"
+                        @click=${() =>
+                          void this.safeCall(async () => {
+                            await runWorkflow(this.workflowsState, selectedWorkflow.workflowId);
+                          })}
+                      >
+                        <span>${copy.workflows.runWorkflow}</span>
+                        <small>${copy.common.execution}</small>
+                      </button>
+                      <button
+                        class="cp-action-card"
+                        @click=${() =>
+                          void this.safeCall(async () => {
+                            await setWorkflowEnabled(
+                              this.workflowsState,
+                              selectedWorkflow.workflowId,
+                              !selectedWorkflow.enabled,
+                            );
+                          })}
+                      >
+                        <span>
                           ${selectedWorkflow.enabled
                             ? copy.workflows.disable
                             : copy.workflows.enable}
-                        </button>
-                        <button
-                          class="cp-button"
-                          @click=${() =>
-                            void this.safeCall(async () => {
-                              await deployWorkflow(
-                                this.workflowsState,
-                                selectedWorkflow.workflowId,
-                              );
-                            })}
-                        >
-                          ${copy.common.deploy}
-                        </button>
-                      </div>
-                    `
-                  : nothing}
-              </div>
-              ${selectedWorkflow
-                ? html`
-                    <div class="cp-grid cp-grid--double">
-                      <article class="cp-subpanel">
-                        <h4>${copy.workflows.registryDetail}</h4>
-                        <div class="cp-meta-list">
-                          <div><span>ID</span><strong>${selectedWorkflow.workflowId}</strong></div>
-                          <div>
-                            <span>${copy.workflows.enabledState}</span
-                            ><strong
-                              >${selectedWorkflow.enabled
-                                ? copy.common.yes
-                                : copy.common.no}</strong
-                            >
-                          </div>
-                          <div>
-                            <span>${copy.workflows.approval}</span
-                            ><strong
-                              >${selectedWorkflow.requiresApproval
-                                ? copy.workflows.required
-                                : copy.workflows.notRequired}</strong
-                            >
-                          </div>
-                          <div>
-                            <span>${copy.workflows.archived}</span
-                            ><strong
-                              >${selectedWorkflow.archivedAt
-                                ? copy.common.yes
-                                : copy.common.no}</strong
-                            >
-                          </div>
-                          <div>
-                            <span>${copy.workflows.goal}</span
-                            ><strong>${selectedSpec?.goal ?? copy.common.na}</strong>
-                          </div>
-                          <div>
-                            <span>${copy.workflows.topology}</span
-                            ><strong>${selectedSpec?.topology ?? copy.common.default}</strong>
-                          </div>
-                        </div>
-                      </article>
-                      <article class="cp-subpanel">
-                        <h4>${copy.workflows.actionsTitle}</h4>
-                        <div class="cp-action-stack">
-                          <button
-                            class="cp-action-card"
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await runWorkflow(this.workflowsState, selectedWorkflow.workflowId);
-                              })}
-                          >
-                            <span>${copy.workflows.runWorkflow}</span>
-                            <small>${copy.common.execution}</small>
-                          </button>
-                          <button
-                            class="cp-action-card"
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await setWorkflowEnabled(
-                                  this.workflowsState,
-                                  selectedWorkflow.workflowId,
-                                  !selectedWorkflow.enabled,
-                                );
-                              })}
-                          >
-                            <span>
-                              ${selectedWorkflow.enabled
-                                ? copy.workflows.disable
-                                : copy.workflows.enable}
-                            </span>
-                            <small>${copy.workflows.enabledState}</small>
-                          </button>
-                          <button
-                            class="cp-action-card"
-                            @click=${() =>
-                              void this.safeCall(async () => {
-                                await deployWorkflow(
-                                  this.workflowsState,
-                                  selectedWorkflow.workflowId,
-                                );
-                              })}
-                          >
-                            <span>${copy.workflows.deployWorkflow}</span>
-                            <small>${copy.workflows.actionsHint}</small>
-                          </button>
-                        </div>
-                        <p class="cp-panel__subcopy">${copy.workflows.actionsHint}</p>
-                      </article>
+                        </span>
+                        <small>${copy.workflows.enabledState}</small>
+                      </button>
+                      <button
+                        class="cp-action-card"
+                        @click=${() =>
+                          void this.safeCall(async () => {
+                            await deployWorkflow(this.workflowsState, selectedWorkflow.workflowId);
+                          })}
+                      >
+                        <span>${copy.workflows.deployWorkflow}</span>
+                        <small>${copy.workflows.actionsHint}</small>
+                      </button>
                     </div>
-                    <section class="cp-grid cp-grid--double">
-                      <article class="cp-subpanel">
-                        <h4>${copy.workflows.currentExecution}</h4>
-                        ${this.renderWorkflowExecutionPanel(selectedExecution)}
-                      </article>
-                      <article class="cp-subpanel">
-                        <h4>${copy.workflows.recentRunsTitle}</h4>
-                        ${recentExecutions.length
-                          ? html`
-                              <div class="cp-list cp-list--dense">
-                                ${recentExecutions.slice(0, 5).map(
-                                  (execution) => html`
-                                    <div class="cp-list-item">
-                                      <strong>${execution.executionId ?? copy.common.none}</strong>
-                                      <small>
-                                        ${execution.status ?? copy.common.na} ·
-                                        ${execution.updatedAt
-                                          ? formatDateTime(execution.updatedAt, this.locale)
-                                          : copy.common.pending}
-                                      </small>
-                                    </div>
-                                  `,
-                                )}
-                              </div>
-                            `
-                          : html`<p class="cp-empty">${copy.workflows.recentRunsEmpty}</p>`}
-                      </article>
-                    </section>
-                    <article class="cp-subpanel">
-                      <h4>${copy.workflows.specification}</h4>
-                      ${this.renderWorkflowSpecPanel(selectedSpec)}
-                    </article>
-                  `
-                : html`<p class="cp-empty">${copy.workflows.choosePrompt}</p>`}
-            </article>
-          </main>
+                    <p class="cp-panel__subcopy">${copy.workflows.actionsHint}</p>
+                  </article>
+                </div>
+                <article class="cp-subpanel cp-subpanel--fill">
+                  <h4>${copy.workflows.currentExecution}</h4>
+                  ${this.renderWorkflowExecutionPanel(selectedExecution)}
+                </article>
+                <article class="cp-subpanel">
+                  <h4>${copy.workflows.specification}</h4>
+                  ${this.renderWorkflowSpecPanel(selectedSpec)}
+                </article>
+              `
+            : html`<p class="cp-empty">${copy.workflows.choosePrompt}</p>`}
+        </article>
+        <aside slot="detail" class="cp-stage__rail">
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.workflows.recentRunsTitle}</span>
+                <h3>${copy.workflows.recentRunsTitle}</h3>
+              </div>
+            </div>
+            ${recentExecutions.length
+              ? html`
+                  <div class="cp-list cp-list--dense">
+                    ${recentExecutions.slice(0, 8).map(
+                      (execution) => html`
+                        <div class="cp-list-item">
+                          <strong>${execution.executionId ?? copy.common.none}</strong>
+                          <small>
+                            ${execution.status ?? copy.common.na} ·
+                            ${execution.updatedAt
+                              ? formatDateTime(execution.updatedAt, this.locale)
+                              : copy.common.pending}
+                          </small>
+                        </div>
+                      `,
+                    )}
+                  </div>
+                `
+              : html`<p class="cp-empty">${copy.workflows.recentRunsEmpty}</p>`}
+          </article>
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.common.summary}</span>
+                <h3>${copy.workflows.registryDetail}</h3>
+              </div>
+            </div>
+            ${selectedWorkflow
+              ? this.renderMetaEntries([
+                  { label: "ID", value: selectedWorkflow.workflowId },
+                  {
+                    label: copy.workflows.enabledState,
+                    value: selectedWorkflow.enabled ? copy.common.yes : copy.common.no,
+                  },
+                  {
+                    label: copy.workflows.approval,
+                    value: selectedWorkflow.requiresApproval
+                      ? copy.workflows.required
+                      : copy.workflows.notRequired,
+                  },
+                  {
+                    label: copy.workflows.topology,
+                    value: selectedSpec?.topology ?? copy.common.default,
+                  },
+                  {
+                    label: copy.workflows.goal,
+                    value: selectedSpec?.goal ?? copy.common.na,
+                  },
+                ])
+              : html`<p class="cp-empty">${copy.workflows.choosePrompt}</p>`}
+          </article>
+        </aside>
+      </workflows-screen>
+    `;
+  }
+
+  private renderAgentsRail(
+    copy: ReturnType<typeof uiText>,
+    agents: NonNullable<AgentsState["agentsList"]>["agents"],
+  ) {
+    return html`
+      <aside slot="rail" class="cp-stage__rail cp-stage__rail--wide">
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.agents.registryKicker}</span>
+              <h3>${copy.agents.registryTitle}</h3>
+            </div>
+            <button class="cp-button" @click=${() => void this.loadAgentsSurface()}>
+              ${copy.common.reload}
+            </button>
+          </div>
+          <div class="cp-list cp-list--dense">
+            ${repeat(
+              agents,
+              (agent) => agent.id,
+              (agent) => html`
+                <button
+                  class="cp-session-item ${agent.id === this.agentsState.agentsSelectedId
+                    ? "is-active"
+                    : ""}"
+                  @click=${() => void this.handleSelectAgent(agent.id)}
+                >
+                  <strong>${agent.name ?? agent.id}</strong>
+                  <span>${agent.id}</span>
+                  <small>${agent.workspace ?? copy.common.notReported}</small>
+                </button>
+              `,
+            )}
+          </div>
+        </article>
+      </aside>
+    `;
+  }
+
+  private renderAgentsMain(
+    copy: ReturnType<typeof uiText>,
+    selected: NonNullable<AgentsState["agentsList"]>["agents"][number] | null,
+    inspectionRef: string,
+  ) {
+    return html`
+      <article class="cp-panel cp-panel--fill">
+        <div class="cp-panel__head">
+          <div>
+            <span class="cp-kicker">${copy.agents.introspectionKicker}</span>
+            <h3>${selected?.name ?? copy.agents.detailTitle}</h3>
+          </div>
         </div>
-      </section>
+        ${selected
+          ? html`
+              <section class="cp-tab-strip">
+                <button class="cp-tab is-active">${copy.agents.inspectionSnapshot}</button>
+                <button class="cp-tab">${copy.agents.toolsCatalog}</button>
+                <button class="cp-tab">${copy.agents.effectiveTools}</button>
+              </section>
+              <div class="cp-grid cp-grid--double">
+                <article class="cp-subpanel">
+                  <h4>${copy.agents.identity}</h4>
+                  <div class="cp-meta-list">
+                    <div><span>ID</span><strong>${selected.id}</strong></div>
+                    <div>
+                      <span>${copy.common.workspace}</span
+                      ><strong>${selected.workspace ?? copy.common.na}</strong>
+                    </div>
+                    <div>
+                      <span>${copy.agents.primaryModel}</span
+                      ><strong>${selected.model?.primary ?? copy.common.default}</strong>
+                    </div>
+                    <div>
+                      <span>${copy.agents.workspaceHint}</span
+                      ><strong>${selected.workspace ?? copy.common.notReported}</strong>
+                    </div>
+                  </div>
+                </article>
+                <article class="cp-subpanel">
+                  <h4>${copy.agents.inspectionSnapshot}</h4>
+                  ${this.renderAgentInspectionPanel(this.agentsState.agentInspectionSnapshot)}
+                </article>
+              </div>
+              <article class="cp-subpanel">
+                <h4>${copy.agents.runtimeSummary}</h4>
+                ${this.renderMetaEntries([
+                  {
+                    label: copy.common.execution,
+                    value: inspectionRef,
+                  },
+                  {
+                    label: copy.common.session,
+                    value: sessionReferenceDisplay(
+                      this.settings.sessionKey,
+                      this.sessionsState.sessionsResult?.sessions ?? [],
+                    ),
+                    hint: sessionReferenceHint(
+                      this.settings.sessionKey,
+                      this.sessionsState.sessionsResult?.sessions ?? [],
+                    ),
+                  },
+                  {
+                    label: copy.common.groups,
+                    value: primitiveSummary(
+                      (this.agentsState.toolsCatalogResult as JsonRecord | null)?.groups
+                        ? Array.isArray((this.agentsState.toolsCatalogResult as JsonRecord).groups)
+                          ? (
+                              (this.agentsState.toolsCatalogResult as JsonRecord)
+                                .groups as unknown[]
+                            ).length
+                          : 0
+                        : 0,
+                    ),
+                  },
+                  {
+                    label: copy.common.tools,
+                    value: primitiveSummary(
+                      (this.agentsState.toolsEffectiveResult as JsonRecord | null)?.groups
+                        ? Array.isArray(
+                            (this.agentsState.toolsEffectiveResult as JsonRecord).groups,
+                          )
+                          ? (
+                              (this.agentsState.toolsEffectiveResult as JsonRecord)
+                                .groups as unknown[]
+                            ).length
+                          : 0
+                        : 0,
+                    ),
+                  },
+                ])}
+              </article>
+              <section class="cp-grid cp-grid--double">
+                <article class="cp-subpanel">
+                  <h4>${copy.agents.toolsCatalog}</h4>
+                  ${this.renderToolsCatalogPanel()}
+                </article>
+                <article class="cp-subpanel">
+                  <h4>${copy.agents.effectiveTools}</h4>
+                  ${this.renderToolsEffectivePanel()}
+                </article>
+              </section>
+              <p class="cp-panel__subcopy">${copy.agents.toolsHint}</p>
+            `
+          : html`<p class="cp-empty">${copy.agents.selectPrompt}</p>`}
+      </article>
+    `;
+  }
+
+  private renderAgentsDetail(
+    copy: ReturnType<typeof uiText>,
+    feishuCliState: string,
+    feishuCliHint: string,
+    feishuCliAuth: string,
+    feishuCliStatus: ChannelsState["feishuCliStatus"],
+  ) {
+    return html`
+      <aside slot="detail" class="cp-stage__rail">
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.agents.connectedAccountsTitle}</span>
+              <h3>${copy.agents.connectedAccountsTitle}</h3>
+            </div>
+          </div>
+          ${this.renderMetaEntries([
+            {
+              label: copy.agents.feishuUserTools,
+              value: feishuCliState,
+              hint: feishuCliHint,
+            },
+            {
+              label: copy.agents.authState,
+              value: feishuCliAuth,
+              hint: feishuCliStatus?.identity ?? undefined,
+            },
+            {
+              label: copy.common.profiles,
+              value: feishuCliStatus?.profile ?? copy.common.default,
+              hint: feishuCliStatus?.command ?? "lark-cli",
+            },
+            {
+              label: copy.common.updated,
+              value: this.channelsState.feishuCliLastSuccess
+                ? formatDateTime(this.channelsState.feishuCliLastSuccess, this.locale)
+                : copy.common.notRecorded,
+              hint: this.channelsState.feishuCliLastSuccess
+                ? formatAgo(this.channelsState.feishuCliLastSuccess, this.locale)
+                : undefined,
+            },
+            {
+              label: copy.agents.checkCommand,
+              value: "crawclaw feishu-cli status --verify",
+            },
+            {
+              label: copy.agents.loginCommand,
+              value: "crawclaw feishu-cli auth login",
+            },
+          ])}
+          <p class="cp-panel__subcopy">${copy.agents.connectedAccountsHint}</p>
+        </article>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.agents.toolsCatalog}</span>
+              <h3>${copy.agents.toolsCatalog}</h3>
+            </div>
+          </div>
+          ${this.renderToolsCatalogPanel()}
+        </article>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.agents.effectiveTools}</span>
+              <h3>${copy.agents.effectiveTools}</h3>
+            </div>
+          </div>
+          ${this.renderToolsEffectivePanel()}
+        </article>
+      </aside>
     `;
   }
 
@@ -6235,229 +6993,254 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
       feishuCliStatus?.message ??
       copy.agents.connectedAccountsHint;
     return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("agents", [
-          {
-            label: copy.agents.registered,
-            value: String(agents.length),
-          },
-          {
-            label: copy.common.defaultAgent,
-            value: this.agentsState.agentsList?.defaultId ?? copy.common.none,
-          },
-          {
-            label: copy.common.selected,
-            value: selected?.id ?? copy.common.none,
-            hint: selected?.name ?? selected?.workspace ?? undefined,
-          },
-          {
-            label: copy.common.execution,
-            value: inspectionRef,
-          },
-        ])}
-        <div class="cp-stage cp-stage--two">
-          <aside class="cp-stage__rail cp-stage__rail--wide">
-            <article class="cp-panel cp-panel--fill">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.agents.registryKicker}</span>
-                  <h3>${copy.agents.registryTitle}</h3>
-                </div>
-                <button class="cp-button" @click=${() => void this.loadAgentsSurface()}>
-                  ${copy.common.reload}
-                </button>
-              </div>
-              <div class="cp-list cp-list--dense">
-                ${repeat(
-                  agents,
-                  (agent) => agent.id,
-                  (agent) => html`
-                    <button
-                      class="cp-session-item ${agent.id === this.agentsState.agentsSelectedId
-                        ? "is-active"
-                        : ""}"
-                      @click=${() => void this.handleSelectAgent(agent.id)}
-                    >
-                      <strong>${agent.name ?? agent.id}</strong>
-                      <span>${agent.id}</span>
-                      <small>${agent.workspace ?? copy.common.notReported}</small>
-                    </button>
-                  `,
-                )}
-              </div>
-            </article>
-          </aside>
-          <main class="cp-stage__main">
-            <article class="cp-panel cp-panel--fill">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.agents.introspectionKicker}</span>
-                  <h3>${selected?.name ?? copy.agents.detailTitle}</h3>
-                </div>
-              </div>
-              <article class="cp-subpanel">
-                <h4>${copy.agents.connectedAccountsTitle}</h4>
-                ${this.renderMetaEntries([
-                  {
-                    label: copy.agents.feishuUserTools,
-                    value: feishuCliState,
-                    hint: feishuCliHint,
-                  },
-                  {
-                    label: copy.agents.authState,
-                    value: feishuCliAuth,
-                    hint: feishuCliStatus?.identity ?? undefined,
-                  },
-                  {
-                    label: copy.common.profiles,
-                    value: feishuCliStatus?.profile ?? copy.common.default,
-                    hint: feishuCliStatus?.command ?? "lark-cli",
-                  },
-                  {
-                    label: copy.common.updated,
-                    value: this.channelsState.feishuCliLastSuccess
-                      ? formatDateTime(this.channelsState.feishuCliLastSuccess, this.locale)
-                      : copy.common.notRecorded,
-                    hint: this.channelsState.feishuCliLastSuccess
-                      ? formatAgo(this.channelsState.feishuCliLastSuccess, this.locale)
-                      : undefined,
-                  },
-                  {
-                    label: copy.agents.checkCommand,
-                    value: "crawclaw feishu-cli status --verify",
-                  },
-                  {
-                    label: copy.agents.loginCommand,
-                    value: "crawclaw feishu-cli auth login",
-                  },
-                ])}
-                <p class="cp-panel__subcopy">${copy.agents.connectedAccountsHint}</p>
-              </article>
-              ${selected
-                ? html`
-                    <div class="cp-grid cp-grid--double">
-                      <article class="cp-subpanel">
-                        <h4>${copy.agents.identity}</h4>
-                        <div class="cp-meta-list">
-                          <div><span>ID</span><strong>${selected.id}</strong></div>
-                          <div>
-                            <span>${copy.common.workspace}</span
-                            ><strong>${selected.workspace ?? copy.common.na}</strong>
-                          </div>
-                          <div>
-                            <span>${copy.agents.primaryModel}</span
-                            ><strong>${selected.model?.primary ?? copy.common.default}</strong>
-                          </div>
-                          <div>
-                            <span>${copy.agents.workspaceHint}</span
-                            ><strong>${selected.workspace ?? copy.common.notReported}</strong>
-                          </div>
-                        </div>
-                      </article>
-                      <article class="cp-subpanel">
-                        <h4>${copy.agents.inspectionSnapshot}</h4>
-                        ${this.renderAgentInspectionPanel(this.agentsState.agentInspectionSnapshot)}
-                      </article>
-                    </div>
-                    <article class="cp-subpanel">
-                      <h4>${copy.agents.runtimeSummary}</h4>
-                      ${this.renderMetaEntries([
-                        {
-                          label: copy.common.execution,
-                          value: inspectionRef,
-                        },
-                        {
-                          label: copy.common.session,
-                          value: sessionReferenceDisplay(
-                            this.settings.sessionKey,
-                            this.sessionsState.sessionsResult?.sessions ?? [],
-                          ),
-                          hint: sessionReferenceHint(
-                            this.settings.sessionKey,
-                            this.sessionsState.sessionsResult?.sessions ?? [],
-                          ),
-                        },
-                        {
-                          label: copy.common.groups,
-                          value: primitiveSummary(
-                            (this.agentsState.toolsCatalogResult as JsonRecord | null)?.groups
-                              ? Array.isArray(
-                                  (this.agentsState.toolsCatalogResult as JsonRecord).groups,
-                                )
-                                ? (
-                                    (this.agentsState.toolsCatalogResult as JsonRecord)
-                                      .groups as unknown[]
-                                  ).length
-                                : 0
-                              : 0,
-                          ),
-                        },
-                        {
-                          label: copy.common.tools,
-                          value: primitiveSummary(
-                            (this.agentsState.toolsEffectiveResult as JsonRecord | null)?.groups
-                              ? Array.isArray(
-                                  (this.agentsState.toolsEffectiveResult as JsonRecord).groups,
-                                )
-                                ? (
-                                    (this.agentsState.toolsEffectiveResult as JsonRecord)
-                                      .groups as unknown[]
-                                  ).length
-                                : 0
-                              : 0,
-                          ),
-                        },
-                      ])}
-                    </article>
-                    <section class="cp-grid cp-grid--double">
-                      <article class="cp-subpanel">
-                        <h4>${copy.agents.toolsCatalog}</h4>
-                        ${this.renderToolsCatalogPanel()}
-                      </article>
-                      <article class="cp-subpanel">
-                        <h4>${copy.agents.effectiveTools}</h4>
-                        ${this.renderToolsEffectivePanel()}
-                      </article>
-                    </section>
-                    <p class="cp-panel__subcopy">${copy.agents.toolsHint}</p>
-                  `
-                : html`<p class="cp-empty">${copy.agents.selectPrompt}</p>`}
-            </article>
-          </main>
+      <agents-screen>
+        <div slot="header">
+          ${this.renderPageHeader("agents", [
+            {
+              label: copy.agents.registered,
+              value: String(agents.length),
+            },
+            {
+              label: copy.common.defaultAgent,
+              value: this.agentsState.agentsList?.defaultId ?? copy.common.none,
+            },
+            {
+              label: copy.common.selected,
+              value: selected?.id ?? copy.common.none,
+              hint: selected?.name ?? selected?.workspace ?? undefined,
+            },
+            {
+              label: copy.common.execution,
+              value: inspectionRef,
+            },
+          ])}
         </div>
-      </section>
+        <section slot="band" class="cp-band cp-band--agents">
+          ${this.renderMetric(
+            copy.agents.registered,
+            String(agents.length),
+            copy.agents.registryTitle,
+          )}
+          ${this.renderMetric(
+            copy.common.defaultAgent,
+            this.agentsState.agentsList?.defaultId ?? copy.common.none,
+          )}
+          ${this.renderMetric(
+            copy.common.selected,
+            selected?.id ?? copy.common.none,
+            selected?.name ?? selected?.workspace ?? undefined,
+          )}
+          ${this.renderMetric(copy.common.execution, inspectionRef, copy.agents.inspectionSnapshot)}
+        </section>
+        ${this.renderAgentsRail(copy, agents)}
+        ${this.renderAgentsMain(copy, selected, inspectionRef)}
+        ${this.renderAgentsDetail(
+          copy,
+          feishuCliState,
+          feishuCliHint,
+          feishuCliAuth,
+          feishuCliStatus,
+        )}
+      </agents-screen>
     `;
   }
 
-  private renderMemory() {
-    const copy = uiText(this.locale);
+  private renderMemoryRail(copy: ReturnType<typeof uiText>, filteredSessions: GatewaySessionRow[]) {
+    return html`
+      <aside slot="rail" class="cp-stage__rail">
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.memory.provider}</span>
+              <h3>${metaForPage("memory", this.locale).label}</h3>
+            </div>
+          </div>
+          <div class="cp-action-stack">
+            ${(
+              [
+                ["provider", copy.memory.provider],
+                ["dreaming", copy.memory.dreaming],
+                ["summaries", copy.memory.sessionSummaries],
+                ["journal", copy.memory.promptJournal],
+              ] as const
+            ).map(
+              ([section, label]) => html`
+                <button
+                  class="cp-action-card ${this.memoryState.activeSection === section
+                    ? "is-active"
+                    : ""}"
+                  @click=${() => void this.activateMemorySection(section)}
+                >
+                  <span>${label}</span>
+                  <small>${section}</small>
+                </button>
+              `,
+            )}
+          </div>
+        </article>
+        ${this.memoryState.activeSection === "dreaming"
+          ? html`
+              <article class="cp-panel">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.memory.dreamingKicker}</span>
+                    <h3>Scope filters</h3>
+                  </div>
+                </div>
+                <form
+                  class="cp-form"
+                  @submit=${(event: Event) => {
+                    event.preventDefault();
+                    void this.safeCall(async () => loadMemoryDreaming(this.memoryState));
+                  }}
+                >
+                  <label>
+                    <span>${copy.common.agent}</span>
+                    <input
+                      .value=${this.memoryState.dreamAgent}
+                      @input=${(event: Event) => {
+                        this.memoryState.dreamAgent = (event.target as HTMLInputElement).value;
+                        this.requestUpdate();
+                      }}
+                    />
+                  </label>
+                  <label>
+                    <span>${copy.common.surface}</span>
+                    <input
+                      .value=${this.memoryState.dreamChannel}
+                      @input=${(event: Event) => {
+                        this.memoryState.dreamChannel = (event.target as HTMLInputElement).value;
+                        this.requestUpdate();
+                      }}
+                    />
+                  </label>
+                  <label>
+                    <span>User</span>
+                    <input
+                      .value=${this.memoryState.dreamUser}
+                      @input=${(event: Event) => {
+                        this.memoryState.dreamUser = (event.target as HTMLInputElement).value;
+                        this.requestUpdate();
+                      }}
+                    />
+                  </label>
+                  <label>
+                    <span>Scope key</span>
+                    <input
+                      .value=${this.memoryState.dreamScopeKey}
+                      @input=${(event: Event) => {
+                        this.memoryState.dreamScopeKey = (event.target as HTMLInputElement).value;
+                        this.requestUpdate();
+                      }}
+                    />
+                  </label>
+                  <div class="cp-form__actions">
+                    <button class="cp-button cp-button--primary" type="submit">
+                      ${copy.common.refresh}
+                    </button>
+                  </div>
+                </form>
+              </article>
+            `
+          : nothing}
+        ${this.memoryState.activeSection === "summaries"
+          ? html`
+              <article class="cp-panel cp-panel--fill">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.memory.summariesKicker}</span>
+                    <h3>${copy.memory.sessionSummaries}</h3>
+                  </div>
+                </div>
+                <div class="cp-session-console__search">
+                  <span>${copy.common.session}</span>
+                  <input
+                    .value=${this.memorySessionQuery}
+                    placeholder=${copy.memory.selectSession}
+                    @input=${(event: Event) => {
+                      this.memorySessionQuery = (event.target as HTMLInputElement).value;
+                      this.requestUpdate();
+                    }}
+                  />
+                </div>
+                <div class="cp-session-console__list">
+                  <div class="cp-list">
+                    ${filteredSessions.length
+                      ? filteredSessions.map(
+                          (session) => html`
+                            <button
+                              class="cp-session-item ${this.memoryState
+                                .summariesSelectedSessionKey === session.key
+                                ? "is-active"
+                                : ""}"
+                              @click=${() => void this.handleSelectMemorySession(session)}
+                            >
+                              <strong>${sessionDisplayName(session)}</strong>
+                              <span>${sessionSurfaceLabel(session)}</span>
+                              <small>
+                                ${session.kind} · ${formatMaybeDate(session.updatedAt, this.locale)}
+                              </small>
+                            </button>
+                          `,
+                        )
+                      : html`<p class="cp-empty">${copy.memory.selectSession}</p>`}
+                  </div>
+                </div>
+              </article>
+            `
+          : nothing}
+        ${this.memoryState.activeSection === "journal"
+          ? html`
+              <article class="cp-panel">
+                <div class="cp-panel__head">
+                  <div>
+                    <span class="cp-kicker">${copy.memory.journalKicker}</span>
+                    <h3>${copy.memory.promptJournal}</h3>
+                  </div>
+                </div>
+                <form
+                  class="cp-form"
+                  @submit=${(event: Event) => {
+                    event.preventDefault();
+                    void this.safeCall(async () => loadMemoryPromptJournal(this.memoryState));
+                  }}
+                >
+                  <label>
+                    <span>Days</span>
+                    <input
+                      type="number"
+                      min="1"
+                      .value=${this.memoryState.journalDays}
+                      @input=${(event: Event) => {
+                        this.memoryState.journalDays = (event.target as HTMLInputElement).value;
+                        this.requestUpdate();
+                      }}
+                    />
+                  </label>
+                  <div class="cp-form__actions">
+                    <button class="cp-button cp-button--primary" type="submit">
+                      ${copy.memory.summarizeJournal}
+                    </button>
+                  </div>
+                </form>
+              </article>
+            `
+          : nothing}
+      </aside>
+    `;
+  }
+
+  private renderMemoryMain(
+    copy: ReturnType<typeof uiText>,
+    lifecycle: string,
+    recommendedAction: string,
+  ) {
     const providerStatus = this.memoryState.providerStatus;
     const dreamStatus = this.memoryState.dreamStatus;
     const summaryStatus = this.memoryState.summariesStatus;
     const journalSummary = this.memoryState.journalSummary;
-    const lifecycle = summarizeMemoryProviderLifecycle(providerStatus, this.locale);
-    const summaryState = summarizeMemorySummaryState(summaryStatus, this.locale);
-    const recommendedAction = providerStatus?.recommendedAction ?? copy.common.none;
-    const sessions = (this.sessionsState.sessionsResult?.sessions ?? []).filter(
-      (session) => session.kind !== "global",
-    );
-    const selectedSummarySession = resolveSessionRowByKey(
-      sessions,
-      this.memoryState.summariesSelectedSessionKey,
-    );
-    const filteredSessions = sessions.filter((session) => {
-      if (!this.memorySessionQuery.trim()) {
-        return true;
-      }
-      const query = this.memorySessionQuery.trim().toLowerCase();
-      return [session.displayName, session.label, session.key, session.sessionId, session.surface]
-        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-        .some((value) => value.toLowerCase().includes(query));
-    });
-
-    let mainPanel: ReturnType<typeof html> | typeof nothing = nothing;
     if (this.memoryState.activeSection === "provider") {
-      mainPanel = html`
+      return html`
         <article class="cp-panel">
           <div class="cp-panel__head">
             <div>
@@ -6523,9 +7306,10 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
           )}
         </article>
       `;
-    } else if (this.memoryState.activeSection === "dreaming") {
+    }
+    if (this.memoryState.activeSection === "dreaming") {
       const runs = dreamStatus?.runs ?? [];
-      mainPanel = html`
+      return html`
         <article class="cp-panel">
           <div class="cp-panel__head">
             <div>
@@ -6641,8 +7425,9 @@ ${draftLength ? this.chatState.chatMessage.trim() : copy.sessions.sendHint}</pre
             : html`<p class="cp-empty">${copy.common.notLoaded}</p>`}
         </article>
       `;
-    } else if (this.memoryState.activeSection === "summaries") {
-      mainPanel = html`
+    }
+    if (this.memoryState.activeSection === "summaries") {
+      return html`
         <article class="cp-panel">
           <div class="cp-panel__head">
             <div>
@@ -6722,353 +7507,578 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
           </article>
         </section>
       `;
-    } else {
-      mainPanel = html`
+    }
+    return html`
+      <article class="cp-panel">
+        <div class="cp-panel__head">
+          <div>
+            <span class="cp-kicker">${copy.memory.journalKicker}</span>
+            <h3>${copy.memory.journalTitle}</h3>
+          </div>
+          <button
+            class="cp-button cp-button--primary"
+            ?disabled=${this.memoryState.journalLoading}
+            @click=${() =>
+              void this.safeCall(async () => loadMemoryPromptJournal(this.memoryState))}
+          >
+            ${copy.memory.summarizeJournal}
+          </button>
+        </div>
+        ${journalSummary
+          ? html`
+              <section class="cp-band">
+                ${this.renderMetric(
+                  copy.memory.promptAssemblies,
+                  String(journalSummary.promptAssembly.count),
+                )}
+                ${this.renderMetric(
+                  copy.memory.durableExtractions,
+                  String(journalSummary.durableExtraction.count),
+                )}
+                ${this.renderMetric(
+                  copy.memory.knowledgeWrites,
+                  String(countObjectKeys(journalSummary.knowledgeWrite.statusCounts)),
+                )}
+                ${this.renderMetric(copy.common.sessions, String(journalSummary.uniqueSessions))}
+              </section>
+              <section class="cp-grid cp-grid--double">
+                <article class="cp-subpanel">
+                  <h4>${copy.memory.topReasons}</h4>
+                  ${journalSummary.durableExtraction.topReasons.length
+                    ? html`
+                        <div class="cp-list cp-list--dense">
+                          ${journalSummary.durableExtraction.topReasons.map(
+                            (entry) => html`
+                              <div class="cp-list-item">
+                                <strong>${entry.reason}</strong>
+                                <small>${entry.count}</small>
+                              </div>
+                            `,
+                          )}
+                        </div>
+                      `
+                    : html`<p class="cp-empty">${copy.common.none}</p>`}
+                </article>
+                <article class="cp-subpanel">
+                  <h4>${copy.memory.writeOutcomes}</h4>
+                  ${this.renderMetaEntries([
+                    { label: "Files", value: journalSummary.files.length },
+                    { label: "Events", value: journalSummary.totalEvents },
+                    {
+                      label: "Save rate",
+                      value: journalSummary.durableExtraction.saveRate ?? copy.common.na,
+                    },
+                    {
+                      label: "Statuses",
+                      value: countObjectKeys(journalSummary.knowledgeWrite.statusCounts),
+                    },
+                    {
+                      label: "Actions",
+                      value: countObjectKeys(journalSummary.knowledgeWrite.actionCounts),
+                    },
+                  ])}
+                </article>
+              </section>
+            `
+          : html`<p class="cp-empty">${this.memoryState.journalError ?? copy.memory.noJournal}</p>`}
+      </article>
+    `;
+  }
+
+  private renderMemoryDetail(
+    copy: ReturnType<typeof uiText>,
+    lifecycle: string,
+    summaryState: string,
+    recommendedAction: string,
+    sessions: GatewaySessionRow[],
+    selectedSummarySession: GatewaySessionRow | null,
+  ) {
+    const providerStatus = this.memoryState.providerStatus;
+    const dreamStatus = this.memoryState.dreamStatus;
+    const summaryStatus = this.memoryState.summariesStatus;
+    const journalSummary = this.memoryState.journalSummary;
+    return html`
+      <aside slot="detail" class="cp-stage__rail">
         <article class="cp-panel">
           <div class="cp-panel__head">
             <div>
-              <span class="cp-kicker">${copy.memory.journalKicker}</span>
-              <h3>${copy.memory.journalTitle}</h3>
+              <span class="cp-kicker">${copy.memory.healthKicker}</span>
+              <h3>${copy.memory.healthTitle}</h3>
             </div>
-            <button
-              class="cp-button cp-button--primary"
-              ?disabled=${this.memoryState.journalLoading}
-              @click=${() =>
-                void this.safeCall(async () => loadMemoryPromptJournal(this.memoryState))}
-            >
-              ${copy.memory.summarizeJournal}
-            </button>
           </div>
-          ${journalSummary
-            ? html`
-                <section class="cp-band">
-                  ${this.renderMetric(
-                    copy.memory.promptAssemblies,
-                    String(journalSummary.promptAssembly.count),
-                  )}
-                  ${this.renderMetric(
-                    copy.memory.durableExtractions,
-                    String(journalSummary.durableExtraction.count),
-                  )}
-                  ${this.renderMetric(
-                    copy.memory.knowledgeWrites,
-                    String(countObjectKeys(journalSummary.knowledgeWrite.statusCounts)),
-                  )}
-                  ${this.renderMetric(copy.common.sessions, String(journalSummary.uniqueSessions))}
-                </section>
-                <section class="cp-grid cp-grid--double">
-                  <article class="cp-subpanel">
-                    <h4>${copy.memory.topReasons}</h4>
-                    ${journalSummary.durableExtraction.topReasons.length
-                      ? html`
-                          <div class="cp-list cp-list--dense">
-                            ${journalSummary.durableExtraction.topReasons.map(
-                              (entry) => html`
-                                <div class="cp-list-item">
-                                  <strong>${entry.reason}</strong>
-                                  <small>${entry.count}</small>
-                                </div>
-                              `,
-                            )}
-                          </div>
-                        `
-                      : html`<p class="cp-empty">${copy.common.none}</p>`}
-                  </article>
-                  <article class="cp-subpanel">
-                    <h4>${copy.memory.writeOutcomes}</h4>
-                    ${this.renderMetaEntries([
-                      { label: "Files", value: journalSummary.files.length },
-                      { label: "Events", value: journalSummary.totalEvents },
-                      {
-                        label: "Save rate",
-                        value: journalSummary.durableExtraction.saveRate ?? copy.common.na,
-                      },
-                      {
-                        label: "Statuses",
-                        value: countObjectKeys(journalSummary.knowledgeWrite.statusCounts),
-                      },
-                      {
-                        label: "Actions",
-                        value: countObjectKeys(journalSummary.knowledgeWrite.actionCounts),
-                      },
-                    ])}
-                  </article>
-                </section>
-              `
-            : html`<p class="cp-empty">
-                ${this.memoryState.journalError ?? copy.memory.noJournal}
-              </p>`}
+          ${this.renderMetaEntries([
+            { label: copy.memory.provider, value: lifecycle },
+            {
+              label: copy.memory.dreaming,
+              value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
+            },
+            { label: copy.memory.sessionSummaries, value: summaryState },
+            { label: copy.memory.recommendedAction, value: recommendedAction },
+          ])}
         </article>
-      `;
-    }
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.latest}</span>
+              <h3>${copy.common.summary}</h3>
+            </div>
+          </div>
+          ${this.renderMetaEntries(
+            [
+              {
+                label: "Provider validated",
+                value: formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale),
+              },
+              {
+                label: "Dream run",
+                value: dreamStatus?.runs[0]?.status ?? copy.common.none,
+                hint: formatIsoDateTime(dreamStatus?.runs[0]?.createdAt, this.locale),
+              },
+              {
+                label: "Summary session",
+                value: selectedSummarySession
+                  ? sessionDisplayName(selectedSummarySession)
+                  : (summaryStatus?.sessionId ?? copy.common.none),
+                hint: sessionReferenceHint(this.memoryState.summariesSelectedSessionKey, sessions),
+              },
+              {
+                label: "Journal files",
+                value: journalSummary?.files.length ?? 0,
+              },
+            ],
+            copy.common.notLoaded,
+          )}
+          ${this.memoryState.providerActionMessage
+            ? html`<p class="cp-panel__subcopy">${this.memoryState.providerActionMessage}</p>`
+            : nothing}
+        </article>
+      </aside>
+    `;
+  }
+
+  private renderMemory() {
+    const copy = uiText(this.locale);
+    const providerStatus = this.memoryState.providerStatus;
+    const dreamStatus = this.memoryState.dreamStatus;
+    const summaryStatus = this.memoryState.summariesStatus;
+    const lifecycle = summarizeMemoryProviderLifecycle(providerStatus, this.locale);
+    const summaryState = summarizeMemorySummaryState(summaryStatus, this.locale);
+    const recommendedAction = providerStatus?.recommendedAction ?? copy.common.none;
+    const sessions = (this.sessionsState.sessionsResult?.sessions ?? []).filter(
+      (session) => session.kind !== "global",
+    );
+    const selectedSummarySession = resolveSessionRowByKey(
+      sessions,
+      this.memoryState.summariesSelectedSessionKey,
+    );
+    const filteredSessions = sessions.filter((session) => {
+      if (!this.memorySessionQuery.trim()) {
+        return true;
+      }
+      const query = this.memorySessionQuery.trim().toLowerCase();
+      return [session.displayName, session.label, session.key, session.sessionId, session.surface]
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .some((value) => value.toLowerCase().includes(query));
+    });
 
     return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("memory", [
-          { label: copy.memory.provider, value: lifecycle },
-          {
-            label: copy.memory.dreaming,
-            value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
-          },
-          {
-            label: copy.memory.sessionSummaries,
-            value: summaryState,
-            hint: selectedSummarySession
-              ? sessionDisplayName(selectedSummarySession)
-              : (summaryStatus?.sessionId ?? undefined),
-          },
-          {
-            label: copy.memory.recommendedAction,
-            value: recommendedAction,
-          },
-        ])}
-        <div class="cp-stage cp-stage--three">
-          <aside class="cp-stage__rail">
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.memory.provider}</span>
-                  <h3>${metaForPage("memory", this.locale).label}</h3>
-                </div>
-              </div>
-              <div class="cp-action-stack">
-                ${(
-                  [
-                    ["provider", copy.memory.provider],
-                    ["dreaming", copy.memory.dreaming],
-                    ["summaries", copy.memory.sessionSummaries],
-                    ["journal", copy.memory.promptJournal],
-                  ] as const
-                ).map(
-                  ([section, label]) => html`
-                    <button
-                      class="cp-action-card ${this.memoryState.activeSection === section
-                        ? "is-active"
-                        : ""}"
-                      @click=${() => void this.activateMemorySection(section)}
-                    >
-                      <span>${label}</span>
-                      <small>${section}</small>
-                    </button>
-                  `,
-                )}
-              </div>
-            </article>
-            ${this.memoryState.activeSection === "dreaming"
-              ? html`
-                  <article class="cp-panel">
-                    <div class="cp-panel__head">
-                      <div>
-                        <span class="cp-kicker">${copy.memory.dreamingKicker}</span>
-                        <h3>Scope filters</h3>
-                      </div>
-                    </div>
-                    <form
-                      class="cp-form"
-                      @submit=${(event: Event) => {
-                        event.preventDefault();
-                        void this.safeCall(async () => loadMemoryDreaming(this.memoryState));
-                      }}
-                    >
-                      <label>
-                        <span>${copy.common.agent}</span>
-                        <input
-                          .value=${this.memoryState.dreamAgent}
-                          @input=${(event: Event) => {
-                            this.memoryState.dreamAgent = (event.target as HTMLInputElement).value;
-                            this.requestUpdate();
-                          }}
-                        />
-                      </label>
-                      <label>
-                        <span>${copy.common.surface}</span>
-                        <input
-                          .value=${this.memoryState.dreamChannel}
-                          @input=${(event: Event) => {
-                            this.memoryState.dreamChannel = (
-                              event.target as HTMLInputElement
-                            ).value;
-                            this.requestUpdate();
-                          }}
-                        />
-                      </label>
-                      <label>
-                        <span>User</span>
-                        <input
-                          .value=${this.memoryState.dreamUser}
-                          @input=${(event: Event) => {
-                            this.memoryState.dreamUser = (event.target as HTMLInputElement).value;
-                            this.requestUpdate();
-                          }}
-                        />
-                      </label>
-                      <label>
-                        <span>Scope key</span>
-                        <input
-                          .value=${this.memoryState.dreamScopeKey}
-                          @input=${(event: Event) => {
-                            this.memoryState.dreamScopeKey = (
-                              event.target as HTMLInputElement
-                            ).value;
-                            this.requestUpdate();
-                          }}
-                        />
-                      </label>
-                      <div class="cp-form__actions">
-                        <button class="cp-button cp-button--primary" type="submit">
-                          ${copy.common.refresh}
-                        </button>
-                      </div>
-                    </form>
-                  </article>
-                `
-              : nothing}
-            ${this.memoryState.activeSection === "summaries"
-              ? html`
-                  <article class="cp-panel cp-panel--fill">
-                    <div class="cp-panel__head">
-                      <div>
-                        <span class="cp-kicker">${copy.memory.summariesKicker}</span>
-                        <h3>${copy.memory.sessionSummaries}</h3>
-                      </div>
-                    </div>
-                    <div class="cp-session-console__search">
-                      <span>${copy.common.session}</span>
-                      <input
-                        .value=${this.memorySessionQuery}
-                        placeholder=${copy.memory.selectSession}
-                        @input=${(event: Event) => {
-                          this.memorySessionQuery = (event.target as HTMLInputElement).value;
-                          this.requestUpdate();
-                        }}
-                      />
-                    </div>
-                    <div class="cp-session-console__list">
-                      <div class="cp-list">
-                        ${filteredSessions.length
-                          ? filteredSessions.map(
-                              (session) => html`
-                                <button
-                                  class="cp-session-item ${this.memoryState
-                                    .summariesSelectedSessionKey === session.key
-                                    ? "is-active"
-                                    : ""}"
-                                  @click=${() => void this.handleSelectMemorySession(session)}
-                                >
-                                  <strong>${sessionDisplayName(session)}</strong>
-                                  <span>${sessionSurfaceLabel(session)}</span>
-                                  <small>
-                                    ${session.kind} ·
-                                    ${formatMaybeDate(session.updatedAt, this.locale)}
-                                  </small>
-                                </button>
-                              `,
-                            )
-                          : html`<p class="cp-empty">${copy.memory.selectSession}</p>`}
-                      </div>
-                    </div>
-                  </article>
-                `
-              : nothing}
-            ${this.memoryState.activeSection === "journal"
-              ? html`
-                  <article class="cp-panel">
-                    <div class="cp-panel__head">
-                      <div>
-                        <span class="cp-kicker">${copy.memory.journalKicker}</span>
-                        <h3>${copy.memory.promptJournal}</h3>
-                      </div>
-                    </div>
-                    <form
-                      class="cp-form"
-                      @submit=${(event: Event) => {
-                        event.preventDefault();
-                        void this.safeCall(async () => loadMemoryPromptJournal(this.memoryState));
-                      }}
-                    >
-                      <label>
-                        <span>Days</span>
-                        <input
-                          type="number"
-                          min="1"
-                          .value=${this.memoryState.journalDays}
-                          @input=${(event: Event) => {
-                            this.memoryState.journalDays = (event.target as HTMLInputElement).value;
-                            this.requestUpdate();
-                          }}
-                        />
-                      </label>
-                      <div class="cp-form__actions">
-                        <button class="cp-button cp-button--primary" type="submit">
-                          ${copy.memory.summarizeJournal}
-                        </button>
-                      </div>
-                    </form>
-                  </article>
-                `
-              : nothing}
-          </aside>
-          <main class="cp-stage__main">${mainPanel}</main>
-          <aside class="cp-stage__rail">
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.memory.healthKicker}</span>
-                  <h3>${copy.memory.healthTitle}</h3>
-                </div>
-              </div>
-              ${this.renderMetaEntries([
-                { label: copy.memory.provider, value: lifecycle },
-                {
-                  label: copy.memory.dreaming,
-                  value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
-                },
-                { label: copy.memory.sessionSummaries, value: summaryState },
-                { label: copy.memory.recommendedAction, value: recommendedAction },
-              ])}
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.common.latest}</span>
-                  <h3>${copy.common.summary}</h3>
-                </div>
-              </div>
-              ${this.renderMetaEntries(
-                [
-                  {
-                    label: "Provider validated",
-                    value: formatIsoDateTime(providerStatus?.lastValidatedAt, this.locale),
-                  },
-                  {
-                    label: "Dream run",
-                    value: dreamStatus?.runs[0]?.status ?? copy.common.none,
-                    hint: formatIsoDateTime(dreamStatus?.runs[0]?.createdAt, this.locale),
-                  },
-                  {
-                    label: "Summary session",
-                    value: selectedSummarySession
-                      ? sessionDisplayName(selectedSummarySession)
-                      : (summaryStatus?.sessionId ?? copy.common.none),
-                    hint: sessionReferenceHint(
-                      this.memoryState.summariesSelectedSessionKey,
-                      sessions,
-                    ),
-                  },
-                  {
-                    label: "Journal files",
-                    value: journalSummary?.files.length ?? 0,
-                  },
-                ],
-                copy.common.notLoaded,
-              )}
-              ${this.memoryState.providerActionMessage
-                ? html`<p class="cp-panel__subcopy">${this.memoryState.providerActionMessage}</p>`
-                : nothing}
-            </article>
-          </aside>
+      <memory-screen>
+        <div slot="header">
+          ${this.renderPageHeader("memory", [
+            { label: copy.memory.provider, value: lifecycle },
+            {
+              label: copy.memory.dreaming,
+              value: dreamStatus?.enabled ? copy.common.yes : copy.common.no,
+            },
+            {
+              label: copy.memory.sessionSummaries,
+              value: summaryState,
+              hint: selectedSummarySession
+                ? sessionDisplayName(selectedSummarySession)
+                : (summaryStatus?.sessionId ?? undefined),
+            },
+            {
+              label: copy.memory.recommendedAction,
+              value: recommendedAction,
+            },
+          ])}
         </div>
+        <section slot="band" class="cp-band cp-band--memory">
+          ${this.renderMetric(copy.memory.provider, lifecycle, copy.memory.providerTitle)}
+          ${this.renderMetric(
+            copy.memory.dreaming,
+            dreamStatus?.enabled ? copy.common.yes : copy.common.no,
+            copy.memory.dreamingTitle,
+          )}
+          ${this.renderMetric(
+            copy.memory.sessionSummaries,
+            summaryState,
+            copy.memory.summariesTitle,
+          )}
+          ${this.renderMetric(
+            copy.memory.recommendedAction,
+            recommendedAction,
+            copy.memory.journalTitle,
+          )}
+        </section>
+        ${this.renderMemoryRail(copy, filteredSessions)}
+        ${this.renderMemoryMain(copy, lifecycle, recommendedAction)}
+        ${this.renderMemoryDetail(
+          copy,
+          lifecycle,
+          summaryState,
+          recommendedAction,
+          sessions,
+          selectedSummarySession,
+        )}
+      </memory-screen>
+    `;
+  }
+
+  private renderAgentRuntimeRail(
+    copy: ReturnType<typeof uiText>,
+    categoryButtons: ReadonlyArray<{ id: AgentRuntimeCategory; label: string; count: number }>,
+    statusButtons: ReadonlyArray<{ id: AgentRuntimeStatusFilter; label: string; count: number }>,
+  ) {
+    return html`
+      <aside slot="rail" class="cp-stage__rail">
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.runtime.categoryKicker}</span>
+              <h3>${copy.runtime.categoryTitle}</h3>
+            </div>
+          </div>
+          <div class="cp-action-stack">
+            ${categoryButtons.map(
+              (entry) => html`
+                <button
+                  class="cp-action-card ${this.agentRuntimeState.runtimeCategory === entry.id
+                    ? "is-active"
+                    : ""}"
+                  @click=${() => {
+                    this.agentRuntimeState.runtimeCategory = entry.id;
+                    void this.loadAgentRuntimeSurface();
+                  }}
+                >
+                  <span>${entry.label}</span>
+                  <small>${entry.count}</small>
+                </button>
+              `,
+            )}
+          </div>
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.runtime.statusKicker}</span>
+              <h3>${copy.runtime.statusTitle}</h3>
+            </div>
+          </div>
+          <div class="cp-action-stack">
+            ${statusButtons.map(
+              (entry) => html`
+                <button
+                  class="cp-action-card ${this.agentRuntimeState.runtimeStatus === entry.id
+                    ? "is-active"
+                    : ""}"
+                  @click=${() => {
+                    this.agentRuntimeState.runtimeStatus = entry.id;
+                    void this.loadAgentRuntimeSurface();
+                  }}
+                >
+                  <span>${entry.label}</span>
+                  <small>${entry.count}</small>
+                </button>
+              `,
+            )}
+          </div>
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.runtime.queryKicker}</span>
+              <h3>${copy.runtime.queryTitle}</h3>
+            </div>
+          </div>
+          <form
+            class="cp-form"
+            @submit=${(event: Event) => {
+              event.preventDefault();
+              void this.loadAgentRuntimeSurface();
+            }}
+          >
+            <label>
+              <span>${copy.common.agent}</span>
+              <input
+                .value=${this.agentRuntimeState.runtimeAgent}
+                @input=${(event: Event) => {
+                  this.agentRuntimeState.runtimeAgent = (event.target as HTMLInputElement).value;
+                  this.requestUpdate();
+                }}
+              />
+            </label>
+            <label>
+              <span>${copy.runtime.parentSession}</span>
+              <input
+                .value=${this.agentRuntimeState.runtimeSessionKey}
+                @input=${(event: Event) => {
+                  this.agentRuntimeState.runtimeSessionKey = (
+                    event.target as HTMLInputElement
+                  ).value;
+                  this.requestUpdate();
+                }}
+              />
+            </label>
+            <label>
+              <span>${copy.runtime.taskId}</span>
+              <input
+                .value=${this.agentRuntimeState.runtimeTaskQuery}
+                @input=${(event: Event) => {
+                  this.agentRuntimeState.runtimeTaskQuery = (
+                    event.target as HTMLInputElement
+                  ).value;
+                  this.requestUpdate();
+                }}
+              />
+            </label>
+            <label>
+              <span>${copy.runtime.runId}</span>
+              <input
+                .value=${this.agentRuntimeState.runtimeRunQuery}
+                @input=${(event: Event) => {
+                  this.agentRuntimeState.runtimeRunQuery = (event.target as HTMLInputElement).value;
+                  this.requestUpdate();
+                }}
+              />
+            </label>
+            <div class="cp-form__actions">
+              <button class="cp-button cp-button--primary" type="submit">
+                ${copy.runtime.refreshRuns}
+              </button>
+            </div>
+          </form>
+        </article>
+      </aside>
+    `;
+  }
+
+  private renderAgentRuntimeMain(
+    copy: ReturnType<typeof uiText>,
+    runtimeSessionDisplay: (sessionKey?: string | null) => string,
+  ) {
+    return html`
+      <section slot="band" class="cp-band cp-band--runtime">
+        ${this.renderMetric(
+          copy.runtime.running,
+          String(this.agentRuntimeState.runtimeSummary?.running ?? 0),
+          "OPS/S",
+        )}
+        ${this.renderMetric(
+          copy.runtime.failed,
+          String(this.agentRuntimeState.runtimeSummary?.failed ?? 0),
+          "LAST 24H",
+        )}
+        ${this.renderMetric(
+          copy.runtime.waiting,
+          String(this.agentRuntimeState.runtimeSummary?.waiting ?? 0),
+          "TASKS",
+        )}
       </section>
+      <article class="cp-panel cp-panel--fill">
+        <div class="cp-panel__head">
+          <div>
+            <span class="cp-kicker">${copy.runtime.registryKicker}</span>
+            <h3>${copy.runtime.registryTitle}</h3>
+          </div>
+          <button class="cp-button" @click=${() => void this.loadAgentRuntimeSurface()}>
+            ${copy.common.refresh}
+          </button>
+        </div>
+        ${this.agentRuntimeState.runtimeError
+          ? html`<p class="cp-empty">${this.agentRuntimeState.runtimeError}</p>`
+          : this.agentRuntimeState.runtimeRuns.length
+            ? html`
+                <div class="cp-table-wrap">
+                  <table class="cp-table">
+                    <thead>
+                      <tr>
+                        <th>${copy.common.kind}</th>
+                        <th>${copy.common.status}</th>
+                        <th>${copy.runtime.updatedAt}</th>
+                        <th>${copy.runtime.parentSession}</th>
+                        <th>${copy.runtime.taskId}</th>
+                        <th>${copy.common.summary}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${repeat(
+                        this.agentRuntimeState.runtimeRuns,
+                        (run) => run.taskId,
+                        (run) => html`
+                          <tr
+                            class=${this.agentRuntimeState.runtimeSelectedTaskId === run.taskId
+                              ? "is-active"
+                              : ""}
+                            @click=${() =>
+                              void this.safeCall(async () => {
+                                await selectAgentRuntimeTask(this.agentRuntimeState, run.taskId);
+                              })}
+                          >
+                            <td>
+                              <strong>${run.title}</strong>
+                              <small>${run.category} · ${run.runtime}</small>
+                            </td>
+                            <td>${this.renderRuntimeStatusBadge(run.status)}</td>
+                            <td>
+                              <strong>${formatDateTime(run.updatedAt, this.locale)}</strong>
+                              <small>${formatAgo(run.updatedAt, this.locale)}</small>
+                            </td>
+                            <td>
+                              <strong>${runtimeSessionDisplay(run.sessionKey)}</strong>
+                              <small>
+                                ${run.childSessionKey
+                                  ? runtimeSessionDisplay(run.childSessionKey)
+                                  : copy.common.none}
+                              </small>
+                            </td>
+                            <td>
+                              <strong>${run.taskId}</strong>
+                              <small>${run.runId ?? copy.common.none}</small>
+                            </td>
+                            <td>${run.summary ?? copy.common.none}</td>
+                          </tr>
+                        `,
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              `
+            : html`<p class="cp-empty">${copy.runtime.noRuns}</p>`}
+      </article>
+    `;
+  }
+
+  private renderAgentRuntimeDetail(
+    copy: ReturnType<typeof uiText>,
+    selected: AgentRuntimeState["runtimeSelectedDetail"],
+    runtimeSessionDisplay: (sessionKey?: string | null) => string,
+    runtimeSessionHint: (sessionKey?: string | null) => string | undefined,
+  ) {
+    return html`
+      <aside slot="detail" class="cp-stage__rail">
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.runtime.detailsTitle}</span>
+              <h3>${copy.runtime.currentRun}</h3>
+            </div>
+          </div>
+          ${selected
+            ? this.renderMetaEntries([
+                { label: copy.common.kind, value: selected.run.title },
+                { label: copy.common.status, value: selected.run.status },
+                { label: copy.runtime.taskId, value: selected.run.taskId },
+                { label: copy.runtime.runId, value: selected.run.runId ?? copy.common.none },
+                { label: copy.common.agent, value: selected.run.agentId ?? copy.common.none },
+                {
+                  label: copy.runtime.parentSession,
+                  value: runtimeSessionDisplay(selected.run.sessionKey),
+                  hint: runtimeSessionHint(selected.run.sessionKey),
+                },
+                {
+                  label: copy.runtime.childSession,
+                  value: selected.run.childSessionKey
+                    ? runtimeSessionDisplay(selected.run.childSessionKey)
+                    : copy.common.none,
+                  hint: runtimeSessionHint(selected.run.childSessionKey),
+                },
+                {
+                  label: copy.common.updated,
+                  value: formatDateTime(selected.run.updatedAt, this.locale),
+                },
+                {
+                  label: copy.runtime.lastCompleted,
+                  value: selected.run.endedAt
+                    ? formatDateTime(selected.run.endedAt, this.locale)
+                    : copy.common.none,
+                },
+              ])
+            : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.summary}</span>
+              <h3>${copy.runtime.contractTitle}</h3>
+            </div>
+          </div>
+          ${selected
+            ? this.renderMetaEntries([
+                {
+                  label: "Definition",
+                  value: selected.contract.definitionLabel ?? copy.common.none,
+                },
+                {
+                  label: "Spawn source",
+                  value: selected.contract.spawnSource ?? copy.common.none,
+                },
+                {
+                  label: "Execution mode",
+                  value: selected.contract.executionMode ?? copy.common.none,
+                },
+                {
+                  label: "Transcript policy",
+                  value: selected.contract.transcriptPolicy ?? copy.common.none,
+                },
+                { label: "Cleanup", value: selected.contract.cleanup ?? copy.common.none },
+                { label: "Sandbox", value: selected.contract.sandbox ?? copy.common.none },
+                {
+                  label: "Tool allowlist",
+                  value: selected.contract.toolAllowlistCount ?? copy.common.none,
+                },
+              ])
+            : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
+        </article>
+        <article class="cp-panel">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.summary}</span>
+              <h3>${copy.runtime.actionsTitle}</h3>
+            </div>
+          </div>
+          ${selected
+            ? html`
+                <div class="cp-form__actions">
+                  <button
+                    class="cp-button"
+                    ?disabled=${!selected.availableActions.openSession}
+                    @click=${() =>
+                      void this.openRuntimeSession(
+                        selected.run.childSessionKey ?? selected.run.sessionKey,
+                      )}
+                  >
+                    ${copy.runtime.openSession}
+                  </button>
+                  <button
+                    class="cp-button cp-button--danger"
+                    ?disabled=${!selected.availableActions.cancel ||
+                    this.agentRuntimeState.runtimeActionBusy}
+                    @click=${() =>
+                      void this.safeCall(async () => {
+                        await cancelAgentRuntimeTask(this.agentRuntimeState);
+                      })}
+                  >
+                    ${copy.common.cancel}
+                  </button>
+                </div>
+              `
+            : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
+          ${this.agentRuntimeState.runtimeActionMessage
+            ? html`<p class="cp-panel__subcopy">${this.agentRuntimeState.runtimeActionMessage}</p>`
+            : nothing}
+        </article>
+      </aside>
     `;
   }
 
@@ -7115,338 +8125,24 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
     ] as const;
 
     return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("runtime", [
-          { label: copy.runtime.running, value: String(summary?.running ?? 0) },
-          { label: copy.runtime.failed, value: String(summary?.failed ?? 0) },
-          { label: copy.runtime.waiting, value: String(summary?.waiting ?? 0) },
-          {
-            label: copy.runtime.lastCompleted,
-            value: summary?.lastCompletedAt
-              ? formatIsoDateTime(summary.lastCompletedAt, this.locale)
-              : copy.common.none,
-          },
-        ])}
-        <div class="cp-stage cp-stage--three">
-          <aside class="cp-stage__rail">
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.runtime.categoryKicker}</span>
-                  <h3>${copy.runtime.categoryTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-action-stack">
-                ${categoryButtons.map(
-                  (entry) => html`
-                    <button
-                      class="cp-action-card ${this.agentRuntimeState.runtimeCategory === entry.id
-                        ? "is-active"
-                        : ""}"
-                      @click=${() => {
-                        this.agentRuntimeState.runtimeCategory = entry.id;
-                        void this.loadAgentRuntimeSurface();
-                      }}
-                    >
-                      <span>${entry.label}</span>
-                      <small>${entry.count}</small>
-                    </button>
-                  `,
-                )}
-              </div>
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.runtime.statusKicker}</span>
-                  <h3>${copy.runtime.statusTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-action-stack">
-                ${statusButtons.map(
-                  (entry) => html`
-                    <button
-                      class="cp-action-card ${this.agentRuntimeState.runtimeStatus === entry.id
-                        ? "is-active"
-                        : ""}"
-                      @click=${() => {
-                        this.agentRuntimeState.runtimeStatus = entry.id;
-                        void this.loadAgentRuntimeSurface();
-                      }}
-                    >
-                      <span>${entry.label}</span>
-                      <small>${entry.count}</small>
-                    </button>
-                  `,
-                )}
-              </div>
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.runtime.queryKicker}</span>
-                  <h3>${copy.runtime.queryTitle}</h3>
-                </div>
-              </div>
-              <form
-                class="cp-form"
-                @submit=${(event: Event) => {
-                  event.preventDefault();
-                  void this.loadAgentRuntimeSurface();
-                }}
-              >
-                <label>
-                  <span>${copy.common.agent}</span>
-                  <input
-                    .value=${this.agentRuntimeState.runtimeAgent}
-                    @input=${(event: Event) => {
-                      this.agentRuntimeState.runtimeAgent = (
-                        event.target as HTMLInputElement
-                      ).value;
-                      this.requestUpdate();
-                    }}
-                  />
-                </label>
-                <label>
-                  <span>${copy.runtime.parentSession}</span>
-                  <input
-                    .value=${this.agentRuntimeState.runtimeSessionKey}
-                    @input=${(event: Event) => {
-                      this.agentRuntimeState.runtimeSessionKey = (
-                        event.target as HTMLInputElement
-                      ).value;
-                      this.requestUpdate();
-                    }}
-                  />
-                </label>
-                <label>
-                  <span>${copy.runtime.taskId}</span>
-                  <input
-                    .value=${this.agentRuntimeState.runtimeTaskQuery}
-                    @input=${(event: Event) => {
-                      this.agentRuntimeState.runtimeTaskQuery = (
-                        event.target as HTMLInputElement
-                      ).value;
-                      this.requestUpdate();
-                    }}
-                  />
-                </label>
-                <label>
-                  <span>${copy.runtime.runId}</span>
-                  <input
-                    .value=${this.agentRuntimeState.runtimeRunQuery}
-                    @input=${(event: Event) => {
-                      this.agentRuntimeState.runtimeRunQuery = (
-                        event.target as HTMLInputElement
-                      ).value;
-                      this.requestUpdate();
-                    }}
-                  />
-                </label>
-                <div class="cp-form__actions">
-                  <button class="cp-button cp-button--primary" type="submit">
-                    ${copy.runtime.refreshRuns}
-                  </button>
-                </div>
-              </form>
-            </article>
-          </aside>
-
-          <main class="cp-stage__main">
-            <article class="cp-panel cp-panel--fill">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.runtime.registryKicker}</span>
-                  <h3>${copy.runtime.registryTitle}</h3>
-                </div>
-                <button class="cp-button" @click=${() => void this.loadAgentRuntimeSurface()}>
-                  ${copy.common.refresh}
-                </button>
-              </div>
-              ${this.agentRuntimeState.runtimeError
-                ? html`<p class="cp-empty">${this.agentRuntimeState.runtimeError}</p>`
-                : this.agentRuntimeState.runtimeRuns.length
-                  ? html`
-                      <div class="cp-table-wrap">
-                        <table class="cp-table">
-                          <thead>
-                            <tr>
-                              <th>${copy.common.kind}</th>
-                              <th>${copy.common.status}</th>
-                              <th>${copy.runtime.updatedAt}</th>
-                              <th>${copy.runtime.parentSession}</th>
-                              <th>${copy.runtime.taskId}</th>
-                              <th>${copy.common.summary}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${repeat(
-                              this.agentRuntimeState.runtimeRuns,
-                              (run) => run.taskId,
-                              (run) => html`
-                                <tr
-                                  class=${this.agentRuntimeState.runtimeSelectedTaskId ===
-                                  run.taskId
-                                    ? "is-active"
-                                    : ""}
-                                  @click=${() =>
-                                    void this.safeCall(async () => {
-                                      await selectAgentRuntimeTask(
-                                        this.agentRuntimeState,
-                                        run.taskId,
-                                      );
-                                    })}
-                                >
-                                  <td>
-                                    <strong>${run.title}</strong>
-                                    <small>${run.category} · ${run.runtime}</small>
-                                  </td>
-                                  <td>${this.renderRuntimeStatusBadge(run.status)}</td>
-                                  <td>
-                                    <strong>${formatDateTime(run.updatedAt, this.locale)}</strong>
-                                    <small>${formatAgo(run.updatedAt, this.locale)}</small>
-                                  </td>
-                                  <td>
-                                    <strong>${runtimeSessionDisplay(run.sessionKey)}</strong>
-                                    <small>
-                                      ${run.childSessionKey
-                                        ? runtimeSessionDisplay(run.childSessionKey)
-                                        : copy.common.none}
-                                    </small>
-                                  </td>
-                                  <td>
-                                    <strong>${run.taskId}</strong>
-                                    <small>${run.runId ?? copy.common.none}</small>
-                                  </td>
-                                  <td>${run.summary ?? copy.common.none}</td>
-                                </tr>
-                              `,
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    `
-                  : html`<p class="cp-empty">${copy.runtime.noRuns}</p>`}
-            </article>
-          </main>
-
-          <aside class="cp-stage__rail">
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.runtime.detailsTitle}</span>
-                  <h3>${copy.runtime.currentRun}</h3>
-                </div>
-              </div>
-              ${selected
-                ? this.renderMetaEntries([
-                    { label: copy.common.kind, value: selected.run.title },
-                    { label: copy.common.status, value: selected.run.status },
-                    { label: copy.runtime.taskId, value: selected.run.taskId },
-                    { label: copy.runtime.runId, value: selected.run.runId ?? copy.common.none },
-                    { label: copy.common.agent, value: selected.run.agentId ?? copy.common.none },
-                    {
-                      label: copy.runtime.parentSession,
-                      value: runtimeSessionDisplay(selected.run.sessionKey),
-                      hint: runtimeSessionHint(selected.run.sessionKey),
-                    },
-                    {
-                      label: copy.runtime.childSession,
-                      value: selected.run.childSessionKey
-                        ? runtimeSessionDisplay(selected.run.childSessionKey)
-                        : copy.common.none,
-                      hint: runtimeSessionHint(selected.run.childSessionKey),
-                    },
-                    {
-                      label: copy.common.updated,
-                      value: formatDateTime(selected.run.updatedAt, this.locale),
-                    },
-                    {
-                      label: copy.runtime.lastCompleted,
-                      value: selected.run.endedAt
-                        ? formatDateTime(selected.run.endedAt, this.locale)
-                        : copy.common.none,
-                    },
-                  ])
-                : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.common.summary}</span>
-                  <h3>${copy.runtime.contractTitle}</h3>
-                </div>
-              </div>
-              ${selected
-                ? this.renderMetaEntries([
-                    {
-                      label: "Definition",
-                      value: selected.contract.definitionLabel ?? copy.common.none,
-                    },
-                    {
-                      label: "Spawn source",
-                      value: selected.contract.spawnSource ?? copy.common.none,
-                    },
-                    {
-                      label: "Execution mode",
-                      value: selected.contract.executionMode ?? copy.common.none,
-                    },
-                    {
-                      label: "Transcript policy",
-                      value: selected.contract.transcriptPolicy ?? copy.common.none,
-                    },
-                    { label: "Cleanup", value: selected.contract.cleanup ?? copy.common.none },
-                    { label: "Sandbox", value: selected.contract.sandbox ?? copy.common.none },
-                    {
-                      label: "Tool allowlist",
-                      value: selected.contract.toolAllowlistCount ?? copy.common.none,
-                    },
-                  ])
-                : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.common.summary}</span>
-                  <h3>${copy.runtime.actionsTitle}</h3>
-                </div>
-              </div>
-              ${selected
-                ? html`
-                    <div class="cp-form__actions">
-                      <button
-                        class="cp-button"
-                        ?disabled=${!selected.availableActions.openSession}
-                        @click=${() =>
-                          void this.openRuntimeSession(
-                            selected.run.childSessionKey ?? selected.run.sessionKey,
-                          )}
-                      >
-                        ${copy.runtime.openSession}
-                      </button>
-                      <button
-                        class="cp-button cp-button--danger"
-                        ?disabled=${!selected.availableActions.cancel ||
-                        this.agentRuntimeState.runtimeActionBusy}
-                        @click=${() =>
-                          void this.safeCall(async () => {
-                            await cancelAgentRuntimeTask(this.agentRuntimeState);
-                          })}
-                      >
-                        ${copy.common.cancel}
-                      </button>
-                    </div>
-                  `
-                : html`<p class="cp-empty">${copy.runtime.choosePrompt}</p>`}
-              ${this.agentRuntimeState.runtimeActionMessage
-                ? html`<p class="cp-panel__subcopy">
-                    ${this.agentRuntimeState.runtimeActionMessage}
-                  </p>`
-                : nothing}
-            </article>
-          </aside>
+      <runtime-screen>
+        <div slot="header">
+          ${this.renderPageHeader("runtime", [
+            { label: copy.runtime.running, value: String(summary?.running ?? 0) },
+            { label: copy.runtime.failed, value: String(summary?.failed ?? 0) },
+            { label: copy.runtime.waiting, value: String(summary?.waiting ?? 0) },
+            {
+              label: copy.runtime.lastCompleted,
+              value: summary?.lastCompletedAt
+                ? formatIsoDateTime(summary.lastCompletedAt, this.locale)
+                : copy.common.none,
+            },
+          ])}
         </div>
-      </section>
+        ${this.renderAgentRuntimeRail(copy, categoryButtons, statusButtons)}
+        ${this.renderAgentRuntimeMain(copy, runtimeSessionDisplay)}
+        ${this.renderAgentRuntimeDetail(copy, selected, runtimeSessionDisplay, runtimeSessionHint)}
+      </runtime-screen>
     `;
   }
 
@@ -7459,157 +8155,230 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
     );
     const usageRange = `${this.usageState.usageStartDate} → ${this.usageState.usageEndDate}`;
     return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("usage", [
-          {
-            label: copy.common.cost,
-            value: `$${readUsageCost(this.usageState.usageCostSummary).toFixed(2)}`,
-          },
-          {
-            label: copy.common.sessions,
-            value: String(sessions.length),
-          },
-          {
-            label: copy.common.range,
-            value: usageRange,
-          },
-          {
-            label: copy.common.selected,
-            value: String(this.usageState.usageSelectedSessions.length),
-            hint: selectedUsageSession
-              ? sessionDisplayName(selectedUsageSession)
-              : (this.usageState.usageSelectedSessions[0] ?? undefined),
-          },
-        ])}
-        <div class="cp-stage cp-stage--two">
-          <aside class="cp-stage__rail cp-stage__rail--wide">
-            <article class="cp-panel cp-panel--fill">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.usage.queryKicker}</span>
-                  <h3>${copy.usage.queryTitle}</h3>
-                </div>
-              </div>
-              <form
-                class="cp-form"
-                @submit=${(event: Event) => {
-                  event.preventDefault();
-                  void this.safeCall(async () => {
-                    await loadUsage(this.usageState);
-                  });
-                }}
-              >
-                <label>
-                  <span>${copy.usage.startDate}</span>
-                  <input
-                    type="date"
-                    .value=${this.usageState.usageStartDate}
-                    @input=${(event: Event) => {
-                      this.usageState.usageStartDate = (event.target as HTMLInputElement).value;
-                      this.requestUpdate();
-                    }}
-                  />
-                </label>
-                <label>
-                  <span>${copy.usage.endDate}</span>
-                  <input
-                    type="date"
-                    .value=${this.usageState.usageEndDate}
-                    @input=${(event: Event) => {
-                      this.usageState.usageEndDate = (event.target as HTMLInputElement).value;
-                      this.requestUpdate();
-                    }}
-                  />
-                </label>
-                <div class="cp-form__actions">
-                  <button class="cp-button cp-button--primary" type="submit">
-                    ${copy.usage.refreshUsage}
-                  </button>
-                </div>
-              </form>
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.common.summary}</span>
-                  <h3>${copy.usage.rangeSummaryTitle}</h3>
-                </div>
-              </div>
-              ${this.renderMetaEntries([
-                { label: copy.common.range, value: usageRange },
-                { label: copy.common.sessions, value: sessions.length },
-                {
-                  label: copy.common.selected,
-                  value: this.usageState.usageSelectedSessions.length,
-                  hint: selectedUsageSession
-                    ? sessionDisplayName(selectedUsageSession)
-                    : (this.usageState.usageSelectedSessions[0] ?? undefined),
-                },
-                { label: copy.common.logs, value: this.usageState.usageSessionLogs?.length ?? 0 },
-              ])}
-            </article>
-          </aside>
-          <main class="cp-stage__main">
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-subpanel">
-                <h4>${copy.usage.totalsTitle}</h4>
-                ${this.renderUsageTotalsPanel()}
-              </article>
-              <article class="cp-subpanel">
-                <h4>${copy.usage.timeSeries}</h4>
-                ${this.renderUsageTimeSeriesPanel()}
-              </article>
-            </section>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.usage.sessionCostKicker}</span>
-                  <h3>${copy.usage.sessionCostTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-table-wrap">
-                <table class="cp-table">
-                  <thead>
-                    <tr>
-                      <th>${copy.common.session}</th>
-                      <th>${copy.common.provider}</th>
-                      <th>${copy.common.model}</th>
-                      <th>${copy.common.updated}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${sessions.length
-                      ? repeat(
-                          sessions,
-                          (session) => session.key,
-                          (session) => html`
-                            <tr @click=${() => void this.handleSelectUsageSession(session.key)}>
-                              <td>
-                                <strong>${sessionDisplayName(session)}</strong>
-                                <small>${sessionSurfaceLabel(session)}</small>
-                              </td>
-                              <td>${session.modelProvider ?? copy.common.na}</td>
-                              <td>${session.model ?? copy.common.na}</td>
-                              <td>${formatDateTime(session.updatedAt, this.locale)}</td>
-                            </tr>
-                          `,
-                        )
-                      : html`
-                          <tr>
-                            <td colspan="4"><p class="cp-empty">${copy.usage.noSessions}</p></td>
-                          </tr>
-                        `}
-                  </tbody>
-                </table>
-              </div>
-            </article>
-            <article class="cp-subpanel">
-              <h4>${copy.usage.usageLogs}</h4>
-              ${this.renderUsageLogsPanel()}
-            </article>
-          </main>
+      <usage-screen>
+        <div slot="header">
+          ${this.renderPageHeader("usage", [
+            {
+              label: copy.common.cost,
+              value: `$${readUsageCost(this.usageState.usageCostSummary).toFixed(2)}`,
+            },
+            {
+              label: copy.common.sessions,
+              value: String(sessions.length),
+            },
+            {
+              label: copy.common.range,
+              value: usageRange,
+            },
+            {
+              label: copy.common.selected,
+              value: String(this.usageState.usageSelectedSessions.length),
+              hint: selectedUsageSession
+                ? sessionDisplayName(selectedUsageSession)
+                : (this.usageState.usageSelectedSessions[0] ?? undefined),
+            },
+          ])}
         </div>
-      </section>
+        <section class="cp-band cp-band--usage">
+          ${this.renderMetric(
+            copy.common.tokens,
+            String(this.usageState.usageResult?.totals?.totalTokens ?? 0),
+            copy.usage.totalsTitle,
+          )}
+          ${this.renderMetric(
+            copy.common.cost,
+            formatCurrency(readUsageCost(this.usageState.usageCostSummary), this.locale),
+            copy.usage.rangeSummaryTitle,
+          )}
+          ${this.renderMetric(
+            copy.common.sessions,
+            String(sessions.length),
+            copy.usage.sessionCostTitle,
+          )}
+          ${this.renderMetric(
+            copy.common.models,
+            String(
+              new Set(
+                sessions
+                  .map((session) => session.model)
+                  .filter(
+                    (value): value is string => typeof value === "string" && value.length > 0,
+                  ),
+              ).size,
+            ),
+            copy.common.summary,
+          )}
+        </section>
+        <section class="cp-grid cp-grid--double">
+          <article class="cp-panel cp-panel--fill">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.common.summary}</span>
+                <h3>${copy.usage.totalsTitle}</h3>
+              </div>
+            </div>
+            ${this.renderUsageTotalsPanel()}
+          </article>
+          <article class="cp-panel cp-panel--fill">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.common.range}</span>
+                <h3>${copy.usage.timeSeries}</h3>
+              </div>
+            </div>
+            ${this.renderUsageTimeSeriesPanel()}
+          </article>
+        </section>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.usage.sessionCostKicker}</span>
+              <h3>${copy.usage.sessionCostTitle}</h3>
+            </div>
+          </div>
+          <div class="cp-table-wrap">
+            <table class="cp-table">
+              <thead>
+                <tr>
+                  <th>${copy.common.session}</th>
+                  <th>${copy.common.provider}</th>
+                  <th>${copy.common.model}</th>
+                  <th>${copy.common.updated}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sessions.length
+                  ? repeat(
+                      sessions,
+                      (session) => session.key,
+                      (session) => html`
+                        <tr @click=${() => void this.handleSelectUsageSession(session.key)}>
+                          <td>
+                            <strong>${sessionDisplayName(session)}</strong>
+                            <small>${sessionSurfaceLabel(session)}</small>
+                          </td>
+                          <td>${session.modelProvider ?? copy.common.na}</td>
+                          <td>${session.model ?? copy.common.na}</td>
+                          <td>${formatDateTime(session.updatedAt, this.locale)}</td>
+                        </tr>
+                      `,
+                    )
+                  : html`
+                      <tr>
+                        <td colspan="4"><p class="cp-empty">${copy.usage.noSessions}</p></td>
+                      </tr>
+                    `}
+              </tbody>
+            </table>
+          </div>
+        </article>
+        <article class="cp-panel cp-panel--fill">
+          <div class="cp-panel__head">
+            <div>
+              <span class="cp-kicker">${copy.common.logs}</span>
+              <h3>${copy.usage.usageLogs}</h3>
+            </div>
+          </div>
+          ${this.renderUsageLogsPanel()}
+        </article>
+        <aside slot="detail" class="cp-usage-console__rail">
+          <article class="cp-panel cp-panel--fill">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.usage.queryKicker}</span>
+                <h3>${copy.usage.queryTitle}</h3>
+              </div>
+            </div>
+            <form
+              class="cp-form"
+              @submit=${(event: Event) => {
+                event.preventDefault();
+                void this.safeCall(async () => {
+                  await loadUsage(this.usageState);
+                });
+              }}
+            >
+              <label>
+                <span>${copy.usage.startDate}</span>
+                <input
+                  type="date"
+                  .value=${this.usageState.usageStartDate}
+                  @input=${(event: Event) => {
+                    this.usageState.usageStartDate = (event.target as HTMLInputElement).value;
+                    this.requestUpdate();
+                  }}
+                />
+              </label>
+              <label>
+                <span>${copy.usage.endDate}</span>
+                <input
+                  type="date"
+                  .value=${this.usageState.usageEndDate}
+                  @input=${(event: Event) => {
+                    this.usageState.usageEndDate = (event.target as HTMLInputElement).value;
+                    this.requestUpdate();
+                  }}
+                />
+              </label>
+              <div class="cp-form__actions">
+                <button class="cp-button cp-button--primary" type="submit">
+                  ${copy.usage.refreshUsage}
+                </button>
+              </div>
+            </form>
+          </article>
+          <article class="cp-panel">
+            <div class="cp-panel__head">
+              <div>
+                <span class="cp-kicker">${copy.common.summary}</span>
+                <h3>${copy.usage.rangeSummaryTitle}</h3>
+              </div>
+            </div>
+            ${this.renderMetaEntries([
+              { label: copy.common.range, value: usageRange },
+              { label: copy.common.sessions, value: sessions.length },
+              {
+                label: copy.common.selected,
+                value: this.usageState.usageSelectedSessions.length,
+                hint: selectedUsageSession
+                  ? sessionDisplayName(selectedUsageSession)
+                  : (this.usageState.usageSelectedSessions[0] ?? undefined),
+              },
+              { label: copy.common.logs, value: this.usageState.usageSessionLogs?.length ?? 0 },
+            ])}
+          </article>
+          ${selectedUsageSession
+            ? html`
+                <article class="cp-panel">
+                  <div class="cp-panel__head">
+                    <div>
+                      <span class="cp-kicker">${copy.common.selected}</span>
+                      <h3>${sessionDisplayName(selectedUsageSession)}</h3>
+                    </div>
+                  </div>
+                  ${this.renderMetaEntries([
+                    {
+                      label: copy.common.provider,
+                      value: selectedUsageSession.modelProvider ?? copy.common.na,
+                    },
+                    {
+                      label: copy.common.model,
+                      value: selectedUsageSession.model ?? copy.common.na,
+                    },
+                    {
+                      label: copy.common.updated,
+                      value: formatDateTime(selectedUsageSession.updatedAt, this.locale),
+                    },
+                    {
+                      label: copy.common.tokens,
+                      value: selectedUsageSession.usage?.totalTokens ?? 0,
+                    },
+                  ])}
+                </article>
+              `
+            : nothing}
+        </aside>
+      </usage-screen>
     `;
   }
 
@@ -7617,196 +8386,31 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
     const copy = uiText(this.locale);
     const snapshot = this.configState.configSnapshot;
     return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("config", [
-          {
-            label: copy.common.schema,
-            value: this.configState.configSchemaVersion ?? copy.common.na,
-          },
-          {
-            label: copy.common.hash,
-            value: snapshot?.hash ?? copy.common.na,
-            hint: snapshot?.path ?? undefined,
-          },
-          {
-            label: copy.config.manifestTitle,
-            value: this.configState.configFormDirty ? copy.common.yes : copy.common.no,
-          },
-          {
-            label: copy.config.approvalsTitle,
-            value: this.execApprovalsState.execApprovalsDirty ? copy.common.yes : copy.common.no,
-            hint: this.execApprovalsState.execApprovalsSnapshot?.path ?? undefined,
-          },
-        ])}
-        <div class="cp-stage cp-stage--two">
-          <aside class="cp-stage__rail cp-stage__rail--wide">
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.config.manifestKicker}</span>
-                  <h3>${copy.config.manifestTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-meta-list">
-                <div>
-                  <span>${copy.common.path}</span
-                  ><strong>${snapshot?.path ?? copy.common.na}</strong>
-                </div>
-                <div>
-                  <span>${copy.common.hash}</span
-                  ><strong>${snapshot?.hash ?? copy.common.na}</strong>
-                </div>
-                <div>
-                  <span>${copy.common.valid}</span
-                  ><strong>${snapshot?.valid === false ? copy.common.no : copy.common.yes}</strong>
-                </div>
-                <div>
-                  <span>${copy.config.applySession}</span
-                  ><strong>${this.configState.applySessionKey}</strong>
-                </div>
-              </div>
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.config.approvalsKicker}</span>
-                  <h3>${copy.config.approvalsTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-meta-list">
-                <div>
-                  <span>${copy.common.file}</span>
-                  <strong
-                    >${this.execApprovalsState.execApprovalsSnapshot?.path ??
-                    copy.common.notLoaded}</strong
-                  >
-                </div>
-                <div>
-                  <span>${copy.common.dirty}</span>
-                  <strong
-                    >${this.execApprovalsState.execApprovalsDirty
-                      ? copy.common.yes
-                      : copy.common.no}</strong
-                  >
-                </div>
-              </div>
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.common.summary}</span>
-                  <h3>${copy.config.saveAndApplyTitle}</h3>
-                </div>
-              </div>
-              <p class="cp-panel__subcopy">${copy.config.saveAndApplyHint}</p>
-              <p class="cp-panel__subcopy">${copy.config.approvalHint}</p>
-            </article>
-          </aside>
-          <main class="cp-stage__main">
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-subpanel">
-                <h4>${copy.config.manifestTitle}</h4>
-                ${this.renderMetaEntries([
-                  { label: copy.common.path, value: snapshot?.path ?? copy.common.na },
-                  { label: copy.common.hash, value: snapshot?.hash ?? copy.common.na },
-                  {
-                    label: copy.common.valid,
-                    value: snapshot?.valid === false ? copy.common.no : copy.common.yes,
-                  },
-                  {
-                    label: copy.common.dirty,
-                    value: this.configState.configFormDirty ? copy.common.yes : copy.common.no,
-                  },
-                ])}
-              </article>
-              <article class="cp-subpanel">
-                <h4>${copy.config.approvalsTitle}</h4>
-                ${this.renderMetaEntries([
-                  {
-                    label: copy.common.file,
-                    value:
-                      this.execApprovalsState.execApprovalsSnapshot?.path ?? copy.common.notLoaded,
-                  },
-                  {
-                    label: copy.common.dirty,
-                    value: this.execApprovalsState.execApprovalsDirty
-                      ? copy.common.yes
-                      : copy.common.no,
-                  },
-                  {
-                    label: copy.common.exists,
-                    value: this.execApprovalsState.execApprovalsSnapshot?.exists
-                      ? copy.common.yes
-                      : copy.common.no,
-                  },
-                ])}
-              </article>
-            </section>
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-panel cp-panel--fill">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.config.manifestWorkbenchKicker}</span>
-                    <h3>${copy.config.manifestWorkbenchTitle}</h3>
-                  </div>
-                  <div class="cp-inline-actions">
-                    <button class="cp-button" @click=${() => void this.handleSaveConfig()}>
-                      ${copy.common.save}
-                    </button>
-                    <button
-                      class="cp-button cp-button--primary"
-                      @click=${() => void this.handleApplyConfig()}
-                    >
-                      ${copy.common.apply}
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  class="cp-code-editor"
-                  .value=${this.configState.configRaw}
-                  @input=${(event: Event) => {
-                    this.configState.configRaw = (event.target as HTMLTextAreaElement).value;
-                    this.configState.configFormDirty = true;
-                    this.requestUpdate();
-                  }}
-                ></textarea>
-              </article>
-              <article class="cp-panel cp-panel--fill">
-                <div class="cp-panel__head">
-                  <div>
-                    <span class="cp-kicker">${copy.config.approvalWorkbenchKicker}</span>
-                    <h3>${copy.config.approvalWorkbenchTitle}</h3>
-                  </div>
-                  <button
-                    class="cp-button cp-button--primary"
-                    @click=${() => void this.handleSaveApprovals()}
-                  >
-                    ${copy.config.saveApprovals}
-                  </button>
-                </div>
-                <p class="cp-panel__subcopy">${copy.config.approvalHint}</p>
-                <textarea
-                  class="cp-code-editor"
-                  .value=${this.approvalsRaw}
-                  @input=${(event: Event) => {
-                    this.approvalsRaw = (event.target as HTMLTextAreaElement).value;
-                  }}
-                ></textarea>
-              </article>
-            </section>
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-subpanel">
-                <h4>${copy.config.configIssues}</h4>
-                ${this.renderConfigIssuesPanel()}
-              </article>
-              <article class="cp-subpanel">
-                <h4>${copy.config.approvalSnapshot}</h4>
-                ${this.renderApprovalsSnapshotPanel()}
-              </article>
-            </section>
-          </main>
+      <config-screen>
+        <div slot="header">
+          ${this.renderPageHeader("config", [
+            {
+              label: copy.common.schema,
+              value: this.configState.configSchemaVersion ?? copy.common.na,
+            },
+            {
+              label: copy.common.hash,
+              value: snapshot?.hash ?? copy.common.na,
+              hint: snapshot?.path ?? undefined,
+            },
+            {
+              label: copy.config.manifestTitle,
+              value: this.configState.configFormDirty ? copy.common.yes : copy.common.no,
+            },
+            {
+              label: copy.config.approvalsTitle,
+              value: this.execApprovalsState.execApprovalsDirty ? copy.common.yes : copy.common.no,
+              hint: this.execApprovalsState.execApprovalsSnapshot?.path ?? undefined,
+            },
+          ])}
         </div>
-      </section>
+        ${this.renderConfigRail(copy, snapshot)} ${this.renderConfigMain(copy, snapshot)}
+      </config-screen>
     `;
   }
 
@@ -7815,141 +8419,33 @@ ${summaryStatus?.sections.errorsAndCorrections || copy.common.none}</pre
     const methodList = this.hello?.features?.methods ?? [];
     const debugHeartbeat = this.resolveHeartbeatMeta(this.debugState.debugHeartbeat);
     return html`
-      <section class="cp-page">
-        ${this.renderPageHeader("debug", [
-          {
-            label: copy.common.methods,
-            value: String(methodList.length),
-          },
-          {
-            label: copy.common.models,
-            value: String(this.debugState.debugModels.length),
-          },
-          {
-            label: copy.common.selected,
-            value: this.debugState.debugCallMethod || copy.common.none,
-          },
-          {
-            label: copy.common.recentCheck,
-            value: debugHeartbeat.status,
-            hint: debugHeartbeat.ts
-              ? formatDateTime(debugHeartbeat.ts, this.locale)
-              : copy.common.notRecorded,
-          },
-        ])}
-        <div class="cp-stage cp-stage--two">
-          <aside class="cp-stage__rail cp-stage__rail--wide">
-            <article class="cp-panel cp-panel--fill">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.debug.methodSurfaceKicker}</span>
-                  <h3>${copy.debug.methodSurfaceTitle}</h3>
-                </div>
-              </div>
-              <div class="cp-list cp-list--dense">
-                ${repeat(
-                  methodList,
-                  (method) => method,
-                  (method) => html`
-                    <button
-                      class="cp-session-item"
-                      @click=${() => {
-                        this.debugState.debugCallMethod = method;
-                        this.requestUpdate();
-                      }}
-                    >
-                      <strong>${method}</strong>
-                      <small>
-                        ${method.startsWith("system.")
-                          ? copy.debug.preferredName
-                          : copy.debug.surface}
-                      </small>
-                    </button>
-                  `,
-                )}
-              </div>
-            </article>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.common.summary}</span>
-                  <h3>${copy.debug.diagnosticsTitle}</h3>
-                </div>
-              </div>
-              <p class="cp-panel__subcopy">${copy.debug.diagnosticsHint}</p>
-              ${this.renderMetaEntries([
-                { label: copy.common.methods, value: methodList.length },
-                { label: copy.common.models, value: this.debugState.debugModels.length },
-                { label: copy.common.recentCheck, value: debugHeartbeat.status },
-                {
-                  label: copy.common.selected,
-                  value: this.debugState.debugCallMethod || copy.common.none,
-                },
-              ])}
-            </article>
-          </aside>
-          <main class="cp-stage__main">
-            <section class="cp-grid cp-grid--double">
-              <article class="cp-subpanel">
-                <h4>${copy.debug.statusSnapshot}</h4>
-                ${this.renderDebugSnapshotPanel(
-                  this.debugState.debugStatus,
-                  copy.debug.statusSnapshot,
-                )}
-              </article>
-              <article class="cp-subpanel">
-                <h4>${copy.debug.healthSnapshot}</h4>
-                ${this.renderDebugSnapshotPanel(
-                  this.debugState.debugHealth,
-                  copy.debug.healthSnapshot,
-                )}
-              </article>
-            </section>
-            <article class="cp-panel">
-              <div class="cp-panel__head">
-                <div>
-                  <span class="cp-kicker">${copy.debug.manualKicker}</span>
-                  <h3>${copy.debug.manualTitle}</h3>
-                </div>
-                <button
-                  class="cp-button cp-button--primary"
-                  @click=${() =>
-                    void this.safeCall(async () => {
-                      await callDebugMethod(this.debugState);
-                    })}
-                >
-                  ${copy.common.execute}
-                </button>
-              </div>
-              <div class="cp-form cp-form--rpc">
-                <label>
-                  <span>${copy.debug.method}</span>
-                  <input
-                    .value=${this.debugState.debugCallMethod}
-                    @input=${(event: Event) => {
-                      this.debugState.debugCallMethod = (event.target as HTMLInputElement).value;
-                      this.requestUpdate();
-                    }}
-                  />
-                </label>
-                <label>
-                  <span>${copy.debug.params}</span>
-                  <textarea
-                    class="cp-code-editor cp-code-editor--compact"
-                    .value=${this.debugState.debugCallParams}
-                    @input=${(event: Event) => {
-                      this.debugState.debugCallParams = (event.target as HTMLTextAreaElement).value;
-                    }}
-                  ></textarea>
-                </label>
-              </div>
-              <pre class="cp-code">
-${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debug.noRequest}</pre
-              >
-            </article>
-          </main>
+      <debug-screen>
+        <div slot="header">
+          ${this.renderPageHeader("debug", [
+            {
+              label: copy.common.methods,
+              value: String(methodList.length),
+            },
+            {
+              label: copy.common.models,
+              value: String(this.debugState.debugModels.length),
+            },
+            {
+              label: copy.common.selected,
+              value: this.debugState.debugCallMethod || copy.common.none,
+            },
+            {
+              label: copy.common.recentCheck,
+              value: debugHeartbeat.status,
+              hint: debugHeartbeat.ts
+                ? formatDateTime(debugHeartbeat.ts, this.locale)
+                : copy.common.notRecorded,
+            },
+          ])}
         </div>
-      </section>
+        ${this.renderDebugRail(copy, methodList, debugHeartbeat)}
+        ${this.renderDebugMain(copy, methodList, debugHeartbeat)}
+      </debug-screen>
     `;
   }
 
@@ -7983,99 +8479,48 @@ ${this.debugState.debugCallError ?? this.debugState.debugCallResult ?? copy.debu
   render() {
     const activeMeta = metaForPage(this.tab, this.locale);
     const localizedPages = controlPagesForLocale(this.locale);
+    const pendingCount =
+      this.agentRuntimeState.runtimeSummary?.running ??
+      this.agentRuntimeState.runtimeSummary?.waiting ??
+      (this.execApprovalsState.execApprovalsDirty ? 1 : 0);
+    const gatewayVersion = readString(
+      this.hello?.server?.version,
+      shellText(this.locale, "gatewayPending"),
+    );
+    const costLabel = formatCurrency(readUsageCost(this.usageState.usageCostSummary), this.locale);
     return html`
-      <div
-        class="cp-shell ${this.onboarding ? "cp-shell--onboarding" : ""} ${this.sidebarCollapsed
-          ? "is-nav-collapsed"
-          : ""}"
+      <control-shell
+        .pages=${localizedPages}
+        .activePage=${this.tab}
+        .collapsed=${this.sidebarCollapsed}
+        .locale=${this.locale}
+        .eyebrow=${activeMeta.eyebrow}
+        .gatewayVersion=${gatewayVersion}
+        .connected=${this.connected}
+        .pendingCount=${pendingCount}
+        .costLabel=${costLabel}
+        .connectionLabel=${this.connectionLabel()}
+        @navigate=${(event: CustomEvent<{ page?: string }>) => this.handleShellNavigate(event)}
+        @toggle-rail=${() => {
+          this.sidebarCollapsed = !this.sidebarCollapsed;
+        }}
+        @locale-change=${(event: CustomEvent<{ locale?: string }>) =>
+          this.handleShellLocaleChange(event)}
+        @refresh-request=${() => void this.refreshSystemOverview()}
+        @reconnect-request=${() => void this.connectGateway()}
       >
-        <aside class="cp-nav ${this.sidebarCollapsed ? "is-collapsed" : ""}">
-          <div class="cp-nav__brand">
-            <span class="cp-nav__logo">CC</span>
-            <div class="cp-nav__copy">
-              <strong>CrawClaw</strong>
-              <small>${shellText(this.locale, "controlPlane")}</small>
-            </div>
-          </div>
-          <nav class="cp-nav__stack">
-            ${repeat(
-              localizedPages,
-              (page) => page.id,
-              (page) => html`
-                <a
-                  href=${pathForPage(page.id, this.basePath)}
-                  class="cp-nav__item nav-item ${this.tab === page.id ? "is-active" : ""}"
-                  @click=${(event: MouseEvent) => {
-                    event.preventDefault();
-                    this.navigate(page.id);
-                  }}
-                >
-                  <span>${page.label}</span>
-                  <small>${page.eyebrow}</small>
-                </a>
-              `,
-            )}
-          </nav>
-          <div class="cp-nav__footer">
-            ${this.renderConnectionBadge()}
-            <button
-              class="cp-button"
-              @click=${() => {
-                this.sidebarCollapsed = !this.sidebarCollapsed;
-              }}
-            >
-              ${this.sidebarCollapsed
-                ? shellText(this.locale, "expandRail")
-                : shellText(this.locale, "collapseRail")}
-            </button>
-          </div>
-        </aside>
-
-        <div class="cp-main">
-          <header class="cp-topbar">
-            <div class="cp-topbar__copy">
-              <span class="cp-topbar__eyebrow">${activeMeta.eyebrow}</span>
-              <strong>${activeMeta.label}</strong>
-              <small>
-                ${readString(this.hello?.server?.version, shellText(this.locale, "gatewayPending"))}
-              </small>
-            </div>
-            <div class="cp-topbar__actions">
-              <label class="cp-topbar__locale">
-                <span>${shellText(this.locale, "language")}</span>
-                <select
-                  class="cp-select"
-                  .value=${this.locale}
-                  @change=${(event: Event) => this.handleLocaleChange(event)}
-                >
-                  ${SHELL_LOCALES.map(
-                    (locale) => html` <option value=${locale}>${localeLabel(locale)}</option> `,
-                  )}
-                </select>
-              </label>
-              ${this.renderConnectionBadge()}
-              <button class="cp-button" @click=${() => void this.refreshSystemOverview()}>
-                ${t("common.refresh")}
-              </button>
-              <button class="cp-button" @click=${() => void this.connectGateway()}>
-                ${shellText(this.locale, "reconnect")}
-              </button>
-            </div>
-          </header>
-
-          <main class="cp-content">
-            ${this.lastError
-              ? html`
-                  <section class="cp-banner cp-banner--danger">
-                    <strong>${shellText(this.locale, "gatewayNotice")}</strong>
-                    <span>${this.lastError}</span>
-                  </section>
-                `
-              : nothing}
-            ${this.renderActivePage()}
-          </main>
-        </div>
-      </div>
+        <main class="cp-content">
+          ${this.lastError
+            ? html`
+                <section class="cp-banner cp-banner--danger">
+                  <strong>${shellText(this.locale, "gatewayNotice")}</strong>
+                  <span>${this.lastError}</span>
+                </section>
+              `
+            : nothing}
+          ${this.renderActivePage()}
+        </main>
+      </control-shell>
     `;
   }
 }

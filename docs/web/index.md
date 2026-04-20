@@ -14,7 +14,7 @@ The Gateway serves a small **browser Control UI** (Vite + Lit) from the same por
 - optional prefix: set `gateway.controlUi.basePath` (e.g. `/crawclaw`)
 
 Capabilities live in [Control UI](/web/control-ui).
-The redesign plan for making it beginner-friendly lives in [Control UI UX Plan](/web/control-ui-ux).
+Exploratory ideas for a future beginner mode live in [Control UI UX Plan](/web/control-ui-ux); the current implementation target is the Stitch-first [Control UI](/web/control-ui).
 This page focuses on bind modes, security, and web-facing surfaces.
 
 ## Webhooks

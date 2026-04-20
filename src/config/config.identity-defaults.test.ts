@@ -99,7 +99,6 @@ describe("config identity defaults", () => {
     await withTempHome("crawclaw-config-identity-", async (home) => {
       const cfg = await writeAndLoadConfig(home, {
         messages: {
-          messagePrefix: "[crawclaw]",
           responsePrefix: "🦞",
         },
         channels: {

@@ -547,7 +547,7 @@ describe("redactConfigSnapshot", () => {
 
   it("keeps regex fallback for extension keys not covered by uiHints", () => {
     const hints: ConfigUiHints = {
-      "plugins.entries.voice-call.runtimeConfig": { label: "Voice Call Config" },
+      "plugins.entries.voice-call.config": { label: "Voice Call Config" },
       "channels.my-channel": { label: "My Channel" },
     };
     const snapshot = makeSnapshot({
@@ -584,8 +584,8 @@ describe("redactConfigSnapshot", () => {
 
   it("honors sensitive:false for extension keys even with regex fallback", () => {
     const hints: ConfigUiHints = {
-      "plugins.entries.voice-call.runtimeConfig": { label: "Voice Call Config" },
-      "plugins.entries.voice-call.runtimeConfig.apiToken": { sensitive: false },
+      "plugins.entries.voice-call.config": { label: "Voice Call Config" },
+      "plugins.entries.voice-call.config.apiToken": { sensitive: false },
     };
     const snapshot = makeSnapshot({
       plugins: {

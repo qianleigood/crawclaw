@@ -131,7 +131,13 @@ describe("legacy config detection", () => {
   it("rejects unsafe executable config values", async () => {
     const res = validateConfigObject({
       channels: { imessage: { cliPath: "imsg; rm -rf /" } },
-      audio: { transcription: { command: ["whisper", "--model", "base"] } },
+      tools: {
+        media: {
+          audio: {
+            models: [{ type: "cli", command: "whisper", args: ["--model", "base"] }],
+          },
+        },
+      },
     });
     expect(res.ok).toBe(false);
     if (!res.ok) {
@@ -140,16 +146,24 @@ describe("legacy config detection", () => {
   });
   it("accepts tools audio transcription without cli", async () => {
     const res = validateConfigObject({
-      audio: { transcription: { command: ["whisper", "--model", "base"] } },
+      tools: {
+        media: {
+          audio: {
+            models: [{ type: "cli", command: "whisper", args: ["--model", "base"] }],
+          },
+        },
+      },
     });
     expect(res.ok).toBe(true);
   });
   it("accepts path-like executable values with spaces", async () => {
     const res = validateConfigObject({
       channels: { imessage: { cliPath: "/Applications/Imsg Tools/imsg" } },
-      audio: {
-        transcription: {
-          command: ["whisper", "--model"],
+      tools: {
+        media: {
+          audio: {
+            models: [{ type: "cli", command: "whisper", args: ["--model"] }],
+          },
         },
       },
     });

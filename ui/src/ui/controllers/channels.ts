@@ -7,6 +7,11 @@ import {
 
 export type { ChannelsState };
 
+export type ChannelsSurfaceSnapshot = {
+  status: ChannelsState["channelsSnapshot"];
+  catalog: { ts: number; entries: unknown[] } | null;
+};
+
 function resolveStartLoginMethod(
   state: ChannelsState,
 ): "channels.account.login.start" | "channels.login.start" | "web.login.start" | null {
@@ -125,6 +130,26 @@ export async function loadChannels(state: ChannelsState, probe: boolean) {
   } finally {
     state.channelsLoading = false;
   }
+}
+
+export async function loadChannelsSurface(
+  state: ChannelsState,
+  probe: boolean,
+): Promise<ChannelsSurfaceSnapshot | null> {
+  if (!state.client || !state.connected) {
+    return null;
+  }
+
+  const status = (await state.client.request("channels.status", {
+    probe,
+    timeoutMs: 8000,
+  })) as ChannelsState["channelsSnapshot"];
+
+  const catalog = state.client.hasMethod("channels.catalog")
+    ? ((await state.client.request("channels.catalog", {})) as ChannelsSurfaceSnapshot["catalog"])
+    : null;
+
+  return { status, catalog };
 }
 
 export async function startWhatsAppLogin(

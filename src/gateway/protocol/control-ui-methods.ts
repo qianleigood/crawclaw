@@ -27,6 +27,10 @@ import {
   ChannelsAccountLoginWaitResultSchema,
   ChannelsAccountReconnectParamsSchema,
   ChannelsAccountReconnectResultSchema,
+  ChannelsCatalogParamsSchema,
+  ChannelsCatalogResultSchema,
+  ChannelsEditorGetParamsSchema,
+  ChannelsEditorGetResultSchema,
   ChannelsSetupSurfaceParamsSchema,
   ChannelsSetupSurfaceResultSchema,
   ChannelsConfigApplyParamsSchema,
@@ -55,6 +59,10 @@ import {
   ConfigSchemaResponseSchema,
   ConfigSetParamsSchema,
 } from "./schema/config.js";
+import {
+  OverviewSummaryParamsSchema,
+  OverviewSummaryResultSchema,
+} from "./schema/control-ui-overview.ts";
 import {
   ExecApprovalsGetParamsSchema,
   ExecApprovalsNodeGetParamsSchema,
@@ -176,6 +184,14 @@ function defineControlUiMethod<
 }
 
 export const ControlUiMethodContract = {
+  "overview.summary": defineControlUiMethod({
+    method: "overview.summary",
+    paramsSchema: OverviewSummaryParamsSchema,
+    resultSchema: OverviewSummaryResultSchema,
+    requiredScopes: ["operator.read"],
+    capability: "controlUi.overview",
+    stability: "stable",
+  }),
   "config.get": defineControlUiMethod({
     method: "config.get",
     paramsSchema: ConfigGetParamsSchema,
@@ -347,6 +363,22 @@ export const ControlUiMethodContract = {
     paramsSchema: ChannelsStatusParamsSchema,
     resultSchema: ChannelsStatusResultSchema,
     requiredScopes: ["operator.read"],
+    stability: "stable",
+  }),
+  "channels.catalog": defineControlUiMethod({
+    method: "channels.catalog",
+    paramsSchema: ChannelsCatalogParamsSchema,
+    resultSchema: ChannelsCatalogResultSchema,
+    requiredScopes: ["operator.read"],
+    capability: "controlUi.channels",
+    stability: "stable",
+  }),
+  "channels.editor.get": defineControlUiMethod({
+    method: "channels.editor.get",
+    paramsSchema: ChannelsEditorGetParamsSchema,
+    resultSchema: ChannelsEditorGetResultSchema,
+    requiredScopes: ["operator.read"],
+    capability: "controlUi.channels",
     stability: "stable",
   }),
   "channels.setup.surface": defineControlUiMethod({

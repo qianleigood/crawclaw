@@ -1,5 +1,4 @@
 import type { ReplyPayload } from "../auto-reply/types.js";
-import { createInfoCard } from "../plugin-sdk/line.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import {
   buildWorkflowDiscordComponents,
@@ -137,7 +136,7 @@ export function buildWorkflowReplyPayload(params: {
             line: {
               flexMessage: {
                 altText: title,
-                contents: createInfoCard(
+                contents: buildLineWorkflowInfoCard(
                   title,
                   summary ?? `Status: ${params.workflow.status}`,
                   params.footer,
@@ -152,4 +151,89 @@ export function buildWorkflowReplyPayload(params: {
 
 function normalizeOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function buildLineWorkflowInfoCard(title: string, body: string, footer?: string) {
+  const bubble = {
+    type: "bubble",
+    size: "mega",
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [],
+              width: "4px",
+              backgroundColor: "#06C755",
+              cornerRadius: "2px",
+            },
+            {
+              type: "text",
+              text: title,
+              weight: "bold",
+              size: "xl",
+              color: "#111111",
+              wrap: true,
+              flex: 1,
+              margin: "lg",
+            },
+          ],
+        },
+        {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "text",
+              text: body,
+              size: "md",
+              color: "#444444",
+              wrap: true,
+              lineSpacing: "6px",
+            },
+          ],
+          margin: "xl",
+          paddingAll: "lg",
+          backgroundColor: "#F8F9FA",
+          cornerRadius: "lg",
+        },
+      ],
+      paddingAll: "xl",
+      backgroundColor: "#FFFFFF",
+    },
+  } as Record<string, unknown>;
+
+  if (!footer) {
+    return bubble;
+  }
+
+  return {
+    ...bubble,
+    footer: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "separator",
+          color: "#EEEEEE",
+        },
+        {
+          type: "text",
+          text: footer,
+          size: "sm",
+          color: "#888888",
+          wrap: true,
+          margin: "lg",
+        },
+      ],
+      paddingAll: "xl",
+      backgroundColor: "#FFFFFF",
+    },
+  };
 }

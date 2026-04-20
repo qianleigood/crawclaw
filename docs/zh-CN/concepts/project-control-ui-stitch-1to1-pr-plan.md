@@ -5,6 +5,8 @@ title: Control UI Stitch 1:1 重写 PR 计划
 
 # Control UI Stitch 1:1 重写 PR 计划
 
+> 说明：这份文档不是 canonical screen 清单。当前唯一的页面基线以 `project-control-ui-stitch-baseline.md` 为准；本文里若提到旧 screen 名称，只能按历史分析理解，不能作为实现或评审基线。
+
 这份文档对应的是一轮**严格按 Stitch 设计稿逐页重写**浏览器 Control UI 的 PR 计划。
 
 它和之前的“新壳迁移”不是一回事：
@@ -113,16 +115,23 @@ title: Control UI Stitch 1:1 重写 PR 计划
 - 项目：`CrawClaw Control Plane UI v2`
 - 项目 ID：`projects/12343540501702426619`
 
-当前优先采用的主 screen：
+当前优先采用的 canonical 主 screen：
 
-- `CrawClaw System Overview`
-- `Sessions & Chat Console`
-- `Approvals & Config Console`
-- `Channels Management Console`
-- `Workflows & Runtime Console`
-- `Agents & Introspection Console`
-- `Usage & Observability Console`
-- `Debug & RPC Console`
+- `System Overview / 系统概览`
+- `Sessions & Chat / 会话控制台`
+- `Channels / 渠道管理`
+- `Workflows / 工作流运行`
+- `Agents / 智能体自省`
+- `Usage / 用量与观察`
+- `Config / 审批与配置`
+- `Debug / RPC 调试`
+
+其他 canonical 页面：
+
+- `Memory / 记忆`
+- `Agent Runtime / 后台运行`
+- `Channel Catalog / 渠道目录`
+- `Feishu Channel Editor / 飞书编辑器 (Final)`
 
 ## 技术边界
 

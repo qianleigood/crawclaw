@@ -4,6 +4,7 @@ import { uiLiteral } from "../ui-literal.ts";
 import { resolveChannelConfigValue } from "./channel-config-extras.ts";
 import type { ChannelsProps } from "./channels.types.ts";
 import { hintForPath } from "./config-form.shared.ts";
+import { humanize, pathKey } from "./config-form.shared.ts";
 import { analyzeConfigSchema, renderNode, schemaType, type JsonSchema } from "./config-form.ts";
 
 type ChannelConfigFormProps = {
@@ -70,6 +71,7 @@ type ChannelConfigEntry = {
   complex: boolean;
   section: ChannelConfigSectionKey;
   order: number;
+  unsupported: boolean;
 };
 
 const CHANNEL_SECTION_STEP: Record<ChannelConfigSectionKey, string> = {
@@ -125,6 +127,27 @@ const BASIC_FIELD_ORDER = new Map(
     (key, index) => [key, index] as const,
   ),
 );
+
+const FEISHU_SECTION_ORDER: Record<ChannelConfigSectionKey, string[]> = {
+  basic: ["enabled"],
+  auth: ["appId", "appSecret", "encryptKey", "verificationToken"],
+  accounts: ["accounts", "defaultAccount"],
+  behavior: [
+    "stream",
+    "maxDelayMs",
+    "minDelayMs",
+    "dmHistoryLimit",
+    "dmPolicy",
+    "groupPolicy",
+    "historyLimit",
+    "mode",
+    "tableMode",
+    "replyInThread",
+    "requireMention",
+    "typingIndicator",
+  ],
+  advanced: [],
+};
 
 const AUTH_FIELD_PATTERN =
   /(token|secret|password|clientid|clientsecret|appid|appsecret|accesskey|apikey|verify|signing|credential|cookie|auth|refresh|username|email|tenant|key$)/i;
@@ -218,21 +241,36 @@ function resolveFieldOrder(key: string, hints: ConfigUiHints): number {
 }
 
 function collectChannelEntries(params: {
+  channelId: string;
   schema: JsonSchema;
   value: Record<string, unknown>;
   hints: ConfigUiHints;
+  basePath: Array<string | number>;
 }): ChannelConfigEntry[] {
+  const sectionOrder =
+    params.channelId === "feishu"
+      ? Object.entries(FEISHU_SECTION_ORDER).flatMap(([section, keys]) =>
+          keys.map((key, index) => [`${section}:${key}`, index] as const),
+        )
+      : [];
+  const preferredFieldOrder = new Map(sectionOrder);
   const properties = params.schema.properties ?? {};
   return Object.entries(properties)
     .map(([key, schema]) => {
       const type = schemaType(schema);
+      const section = classifyChannelField({ key, schema, hints: params.hints });
+      const preferredOrder = preferredFieldOrder.get(`${section}:${key}`);
       return {
         key,
         schema,
         value: params.value[key],
         complex: type === "object" || type === "array",
-        section: classifyChannelField({ key, schema, hints: params.hints }),
-        order: resolveFieldOrder(key, params.hints),
+        section,
+        order:
+          typeof preferredOrder === "number"
+            ? preferredOrder
+            : resolveFieldOrder(key, params.hints) + (params.channelId === "feishu" ? 100 : 0),
+        unsupported: false,
       } satisfies ChannelConfigEntry;
     })
     .toSorted((left, right) => {
@@ -244,6 +282,45 @@ function collectChannelEntries(params: {
       }
       return left.key.localeCompare(right.key);
     });
+}
+
+function markUnsupportedEntries(
+  entries: ChannelConfigEntry[],
+  basePath: Array<string | number>,
+  unsupported: Set<string>,
+): ChannelConfigEntry[] {
+  return entries.map((entry) => ({
+    ...entry,
+    unsupported: unsupported.has(pathKey([...basePath, entry.key])),
+  }));
+}
+
+function renderUnsupportedFieldCard(params: {
+  key: string;
+  schema: JsonSchema;
+  hints: ConfigUiHints;
+}) {
+  const hint = hintForPath([params.key], params.hints);
+  const meta = {
+    label: uiLiteral(hint?.label ?? params.schema.title ?? humanize(params.key)),
+    help: hint?.help
+      ? uiLiteral(hint.help)
+      : params.schema.description
+        ? uiLiteral(params.schema.description)
+        : undefined,
+  };
+  return html`
+    <div class="cp-channel-config-note">
+      <div>
+        <strong>${meta.label}</strong>
+        <p>
+          ${meta.help ??
+          uiLiteral("这个字段结构较复杂。当前编辑页先不在这里展开，必要时再切到原始模式处理。")}
+        </p>
+      </div>
+      <span>${uiLiteral("复杂字段")}</span>
+    </div>
+  `;
 }
 
 function renderChannelConfigSectionGroup(params: {
@@ -274,16 +351,22 @@ function renderChannelConfigSectionGroup(params: {
           const path = [...params.basePath, entry.key];
           return html`
             <div class=${`cp-channel-config-field ${entry.complex ? "is-wide" : ""}`.trim()}>
-              ${renderNode({
-                schema: entry.schema,
-                value: entry.value,
-                path,
-                hints: params.hints,
-                unsupported: params.unsupported,
-                disabled: params.disabled,
-                showLabel: true,
-                onPatch: params.onPatch,
-              })}
+              ${entry.unsupported
+                ? renderUnsupportedFieldCard({
+                    key: entry.key,
+                    schema: entry.schema,
+                    hints: params.hints,
+                  })
+                : renderNode({
+                    schema: entry.schema,
+                    value: entry.value,
+                    path,
+                    hints: params.hints,
+                    unsupported: params.unsupported,
+                    disabled: params.disabled,
+                    showLabel: true,
+                    onPatch: params.onPatch,
+                  })}
             </div>
           `;
         })}
@@ -333,17 +416,20 @@ export function renderChannelConfigForm(props: ChannelConfigFormProps) {
   }
   const basePath = scoped ? [] : ["channels", props.channelId];
   const entries = collectChannelEntries({
+    channelId: props.channelId,
     schema: node,
     value,
     hints: props.uiHints,
+    basePath,
   });
   const unsupported = new Set(analysis.unsupportedPaths);
+  const markedEntries = markUnsupportedEntries(entries, basePath, unsupported);
   const bySection = {
-    basic: entries.filter((entry) => entry.section === "basic"),
-    auth: entries.filter((entry) => entry.section === "auth"),
-    accounts: entries.filter((entry) => entry.section === "accounts"),
-    behavior: entries.filter((entry) => entry.section === "behavior"),
-    advanced: entries.filter((entry) => entry.section === "advanced"),
+    basic: markedEntries.filter((entry) => entry.section === "basic"),
+    auth: markedEntries.filter((entry) => entry.section === "auth"),
+    accounts: markedEntries.filter((entry) => entry.section === "accounts"),
+    behavior: markedEntries.filter((entry) => entry.section === "behavior"),
+    advanced: markedEntries.filter((entry) => entry.section === "advanced"),
   } satisfies Record<ChannelConfigSectionKey, ChannelConfigEntry[]>;
   const basicCopy = getChannelConfigSectionCopy("basic");
   const authCopy = getChannelConfigSectionCopy("auth");

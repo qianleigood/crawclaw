@@ -151,6 +151,8 @@ describe("cli integration: qr + dashboard token SecretRef", () => {
       valid: true,
       issues: [],
       config: fixture,
+      runtimeConfig: fixture,
+      sourceConfig: fixture,
     });
 
     await runCli(["qr", "--setup-code-only"]);
@@ -183,6 +185,8 @@ describe("cli integration: qr + dashboard token SecretRef", () => {
       valid: true,
       issues: [],
       config: fixture,
+      runtimeConfig: fixture,
+      sourceConfig: fixture,
     });
 
     await runCli(["qr", "--setup-code-only"]);

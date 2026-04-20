@@ -345,7 +345,9 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   const snapshot = await readConfigFileSnapshot().catch(() => null);
   const configExists = snapshot?.exists ?? fs.existsSync(CONFIG_PATH);
   const configAuditPath = path.join(resolveStateDir(process.env), "logs", "config-audit.jsonl");
-  const effectiveCfg = snapshot?.valid ? snapshot.runtimeConfig : cfg;
+  const effectiveCfg = snapshot?.valid
+    ? ((snapshot.runtimeConfig ?? snapshot.config ?? {}) as typeof cfg)
+    : cfg;
   const mode = effectiveCfg.gateway?.mode;
   if (!opts.allowUnconfigured && mode !== "local") {
     if (!configExists) {

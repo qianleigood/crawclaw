@@ -69,12 +69,37 @@ you revoke it with `crawclaw devices revoke --device <id> --role <role>`. See
 
 ## Language support
 
-The Control UI can localize itself on first load based on your browser locale, and you can override it later from the language picker in the Access card.
+The Control UI can localize itself on first load based on your browser locale, and you can override it later from the language picker in the shell.
 
 - Supported locales: `en`, `zh-CN`, `zh-TW`, `pt-BR`, `de`, `es`
 - Non-English translations are lazy-loaded in the browser.
 - The selected locale is saved in browser storage and reused on future visits.
 - Missing translation keys fall back to English.
+- English and Simplified Chinese are treated as separate runtime modes during the Stitch rebuild. Canonical page labels are not mixed on one screen.
+
+## Stitch-based structure
+
+The current Control UI rebuild follows the canonical Stitch baseline for app shell, page hierarchy, and panel density.
+
+Top-level pages:
+
+- `System Overview`
+- `Sessions & Chat`
+- `Channels`
+- `Workflows`
+- `Agents`
+- `Memory`
+- `Agent Runtime`
+- `Usage`
+- `Config`
+- `Debug`
+
+Nested `Channels` subflows:
+
+- `Channel Catalog`
+- `Feishu Channel Editor`
+
+When the old UI and the Stitch baseline conflict, the Stitch baseline is the implementation source of truth.
 
 ## What it can do (today)
 
@@ -98,6 +123,7 @@ The Control UI can localize itself on first load based on your browser locale, a
 - Debug: status/health/models snapshots + event log + manual RPC calls (`status`, `health`, `models.list`)
 - Logs: live tail of gateway file logs with filter/export (`logs.tail`)
 - Update: run a package/git update + restart (`update.run`) with a restart report
+- Stitch-first page hydration methods such as `overview.summary`, `channels.catalog`, and `channels.editor.get`
 
 Capability notes:
 
@@ -233,8 +259,9 @@ CRAWCLAW_CONTROL_UI_BASE_PATH=/crawclaw/ pnpm ui:build
 
 ## Related
 
-- [Control UI UX Plan](/web/control-ui-ux) — a simpler, beginner-focused redesign plan
+- [Control UI UX Plan](/web/control-ui-ux) — exploratory ideas for a future beginner mode, not the current Stitch parity baseline
 - [Control-plane RPC](/gateway/control-plane-rpc) — stable browser-facing method surface and config write model
+- [Gateway Architecture](/concepts/architecture) — where browser Control UI fits into the control-plane model
 
 For local development (separate dev server):
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   loadChannels,
+  loadChannelsSurface,
   reconnectChannelAccount,
   startWhatsAppLogin,
   verifyChannelAccount,
@@ -108,6 +109,47 @@ describe("loadChannels", () => {
     expect(state.feishuCliStatus).toBeNull();
     expect(state.feishuCliSupported).toBe(false);
     expect(state.feishuCliError).toBeNull();
+  });
+
+  it("loads a Stitch-first channels surface when catalog support exists", async () => {
+    const { state, request, hasMethod } = createState();
+    hasMethod.mockImplementation((method: string) => method === "channels.catalog");
+    request.mockImplementation(async (method: string) => {
+      if (method === "channels.status") {
+        return {
+          ts: 1,
+          channelOrder: ["discord"],
+          channelLabels: { discord: "Discord" },
+          channels: {},
+          channelAccounts: {},
+          channelDefaultAccountId: {},
+        };
+      }
+      if (method === "channels.catalog") {
+        return {
+          ts: 1,
+          entries: [{ id: "discord", label: "Discord", detailLabel: "Discord", docsPath: "/x" }],
+        };
+      }
+      throw new Error(`unexpected method: ${method}`);
+    });
+
+    const result = await loadChannelsSurface(state, false);
+
+    expect(result).toEqual({
+      status: {
+        ts: 1,
+        channelOrder: ["discord"],
+        channelLabels: { discord: "Discord" },
+        channels: {},
+        channelAccounts: {},
+        channelDefaultAccountId: {},
+      },
+      catalog: {
+        ts: 1,
+        entries: [{ id: "discord", label: "Discord", detailLabel: "Discord", docsPath: "/x" }],
+      },
+    });
   });
 });
 

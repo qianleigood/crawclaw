@@ -1,0 +1,12 @@
+.cp-card,
+.cp-metric-tile,
+.cp-split-panel,
+.cp-list-row {
+  border: 1px solid var(--cp-border);
+  background: var(--cp-bg-panel);
+}
+
+.cp-tab-strip {
+  display: flex;
+  gap: 8px;
+}

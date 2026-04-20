@@ -450,6 +450,33 @@ export const ChannelsConfigWriteResultSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ChannelsCatalogParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const ChannelsCatalogResultSchema = Type.Object(
+  {
+    ts: Type.Integer({ minimum: 0 }),
+    entries: Type.Array(ChannelUiMetaSchema),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsEditorGetParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsEditorGetResultSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    setup: ChannelsSetupSurfaceResultSchema,
+    config: Type.Optional(ChannelsConfigSnapshotSchema),
+    schema: Type.Optional(ChannelsConfigSchemaResultSchema),
+  },
+  { additionalProperties: false },
+);
+
 export const ChannelsAccountLogoutParamsSchema = Type.Object(
   {
     channel: NonEmptyString,

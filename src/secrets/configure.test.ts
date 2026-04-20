@@ -39,6 +39,7 @@ describe("runSecretsConfigureInteractive", () => {
         snapshot: {
           valid: true,
           config: {},
+          runtimeConfig: {},
           resolved: {},
         },
       }),
