@@ -42,6 +42,11 @@ Compaction should emit Claude-style artifacts.
 
 *What is the agent doing now? Keep this short and current.*
 
+# Open Loops
+Need to preserve the latest retry plan.
+
+*Which work items, decisions, or follow-ups are still open right now? Keep this tightly focused on unresolved items.*
+
 # Key results
 Summary-backed compaction result.
 
@@ -100,6 +105,8 @@ Summary-backed compaction result.
       throw new Error(`expected compaction success, got ${result.reason ?? "unknown"}`);
     }
     expect(result.result.firstKeptEntryId).toBeTruthy();
+    expect(result.result.summary).toContain("## Open Loops");
+    expect(result.result.summary).not.toContain("## Worklog");
     expect(result.result.postCompactArtifacts).toEqual(
       expect.objectContaining({
         boundaryMarker: expect.objectContaining({

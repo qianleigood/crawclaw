@@ -60,6 +60,7 @@ describe("session summary agent runner", () => {
       sessionId: "session-1",
       summaryPath: "/tmp/session-summary/agents/main/sessions/session-1/summary.md",
       currentSummary: null,
+      profile: "light",
       recentMessages: [
         { role: "user", content: "Please summarize the current memory architecture." },
         { role: "assistant", content: "I will update the session summary." },
@@ -69,6 +70,7 @@ describe("session summary agent runner", () => {
     });
 
     expect(taskPrompt).toContain("Session ID: session-1");
+    expect(taskPrompt).toContain("Summary profile: LIGHT");
     expect(taskPrompt).toContain("Max sections to change: 3");
     expect(taskPrompt).toContain("NOT part of the actual user conversation");
     expect(taskPrompt).toContain("<current_summary_content>");
@@ -76,6 +78,8 @@ describe("session summary agent runner", () => {
     expect(taskPrompt).toContain("session_summary_file_edit");
     expect(taskPrompt).toContain("Do not call any other tools");
     expect(taskPrompt).toContain("STRUCTURE PRESERVATION REMINDER");
+    expect(taskPrompt).toContain("Open Loops");
+    expect(taskPrompt).toContain("LIGHT profile runs");
   });
 
   it("adds budget reminders when the current summary is oversized", () => {

@@ -108,7 +108,11 @@ Notes:
 - `memory dream run --dry-run` previews the same gating/input collection path without spawning the dream agent.
 - `memory dream history` shows recent dream runs for one scope or all scopes, including failure reasons when a dream run ends in `failed`.
 - `memory session-summary status` shows the current `summary.md` path, file state, and runtime summary boundary for one session.
+- `memory session-summary status` also reports the inferred summary profile and
+  the current `Open Loops` section when present.
 - `memory session-summary refresh` forces one `session_summary` background update against a specific session.
+- `memory session-summary refresh` uses the same light-to-full scheduler path as
+  automatic session-summary maintenance.
 - Durable `MEMORY.md` indexes are now validated as Claude-style indexes: no frontmatter, one short pointer per line, and roughly capped at 200 lines / 25KB.
 - NotebookLM knowledge recall itself happens during prompt assembly for live agent turns; `crawclaw memory` does not trigger recall.
 - `write_knowledge_note` is the only NotebookLM write path in the current runtime.

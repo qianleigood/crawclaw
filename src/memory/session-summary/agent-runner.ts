@@ -22,9 +22,11 @@ import {
   type SessionSummaryDocument,
 } from "./template.ts";
 import {
+  SESSION_SUMMARY_LIGHT_SECTION_ORDER,
   SESSION_SUMMARY_SECTION_ORDER,
   getSessionSummarySectionHeading,
   getSessionSummarySectionText,
+  type SessionSummaryProfile,
 } from "./template.ts";
 
 export const SESSION_SUMMARY_SPAWN_SOURCE = "session-summary";
@@ -234,11 +236,12 @@ export function buildSessionSummarySystemPrompt(): string {
     "- Write detailed, information-dense content for each section, including exact file paths, function names, commands, and error messages when they matter.",
     "- Keep each section under control by cycling out lower-value detail when necessary while preserving the most critical information.",
     "- Always update Current State to reflect the latest work. This is critical for continuity after compaction.",
+    "- Update Open Loops whenever unresolved work, pending decisions, or follow-ups materially change.",
     "- If the summary already reflects the latest state, make no change.",
     "",
     "## Fixed Section Spec",
     "- The summary file uses a fixed Claude-style section layout.",
-    "- The sections are: Session Title, Current State, Task specification, Files and Functions, Workflow, Errors & Corrections, Codebase and System Documentation, Learnings, Key results, Worklog.",
+    "- The sections are: Session Title, Current State, Open Loops, Task specification, Files and Functions, Workflow, Errors & Corrections, Codebase and System Documentation, Learnings, Key results, Worklog.",
     "- The section headers and italic description lines are part of the template contract and must remain unchanged.",
     "",
     "## Output",
@@ -254,10 +257,16 @@ export function buildSessionSummaryTaskPrompt(params: {
   sessionId: string;
   summaryPath: string;
   currentSummary: SessionSummaryDocument | null;
+  profile?: SessionSummaryProfile;
   recentMessages: AgentMessage[];
   recentMessageLimit: number;
   maxSectionsToChange?: number;
 }): string {
+  const profile = params.profile ?? "full";
+  const prioritizedSections =
+    profile === "light"
+      ? SESSION_SUMMARY_LIGHT_SECTION_ORDER
+      : SESSION_SUMMARY_SECTION_ORDER.filter((key) => key !== "sessionTitle");
   const currentSummaryText = params.currentSummary
     ? renderSessionSummaryDocument(params.currentSummary)
     : buildSessionSummaryTemplate({ sessionId: params.sessionId });
@@ -278,9 +287,11 @@ export function buildSessionSummaryTaskPrompt(params: {
     "Based on the real user conversation above, update the session summary file.",
     "",
     `Session ID: ${params.sessionId}`,
+    `Summary profile: ${profile.toUpperCase()}`,
     `Summary file: ${params.summaryPath}`,
     `Current populated sections: ${sectionCount}`,
     `Max sections to change: ${Math.max(1, params.maxSectionsToChange ?? 4)}`,
+    `Prioritized sections: ${prioritizedSections.map((key) => getSessionSummarySectionHeading(key)).join(", ")}`,
     "",
     "The file has already been read for you. Here are its current contents:",
     "<current_summary_content>",
@@ -294,6 +305,19 @@ export function buildSessionSummaryTaskPrompt(params: {
     "You can make multiple edits. If multiple sections need updates, make all edit calls in parallel in a single message.",
     "Do not call any other tools.",
     "",
+    ...(profile === "light"
+      ? [
+          "LIGHT profile runs:",
+          "- Prioritize only these sections during this run: Current State, Open Loops, Task specification, Key results.",
+          "- Leave the other sections unchanged unless they contain a materially misleading stale statement that must be corrected now.",
+          "",
+        ]
+      : [
+          "FULL profile runs:",
+          "- Maintain the full structured working-memory document.",
+          "- Prioritize Current State, Open Loops, Workflow, Errors & Corrections, Files and Functions, and Key results when the recent conversation justifies updates.",
+          "",
+        ]),
     "CRITICAL RULES FOR EDITING:",
     "- The file must maintain its exact structure with all sections, headers, and italic descriptions intact.",
     "- NEVER modify, delete, or add section headers.",
@@ -330,6 +354,7 @@ export async function runSessionSummaryAgentOnce(params: {
   recentMessages: AgentMessage[];
   recentMessageLimit: number;
   currentSummary?: SessionSummaryDocument | null;
+  profile?: SessionSummaryProfile;
   runTimeoutSeconds?: number;
   maxTurns?: number;
   logger?: RuntimeLogger;
@@ -344,8 +369,10 @@ export async function runSessionSummaryAgentOnce(params: {
     sessionId: params.sessionId,
     summaryPath: summaryFileSnapshot.summaryPath,
     currentSummary: summarySnapshot,
+    profile: params.profile,
     recentMessages: params.recentMessages,
     recentMessageLimit: params.recentMessageLimit,
+    maxSectionsToChange: params.profile === "light" ? 4 : 6,
   });
   const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: SESSION_SUMMARY_AGENT_DEFINITION,

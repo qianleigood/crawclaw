@@ -27,6 +27,7 @@ import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
 } from "../../memory/notebooklm/login.js";
+import { inferSessionSummaryProfile } from "../../memory/session-summary/template.ts";
 import { prepareSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "./types.js";
@@ -389,11 +390,16 @@ export const memoryHandlers: GatewayRequestHandlers = {
             summaryPath: file.summaryPath,
             exists: file.exists,
             updatedAt: file.updatedAt,
+            profile: inferSessionSummaryProfile(file.document),
             state,
             sections: {
               currentState: readSessionSummarySectionText({
                 content: file.content,
                 section: "currentState",
+              }),
+              openLoops: readSessionSummarySectionText({
+                content: file.content,
+                section: "openLoops",
               }),
               taskSpecification: readSessionSummarySectionText({
                 content: file.content,
@@ -463,6 +469,8 @@ export const memoryHandlers: GatewayRequestHandlers = {
         const scheduler = getSharedSessionSummaryScheduler({
           config: {
             enabled: memoryConfig.sessionSummary.enabled,
+            lightInitialTokenThreshold:
+              memoryConfig.sessionSummary.lightInitTokenThreshold ?? 3_000,
             initialTokenThreshold: memoryConfig.sessionSummary.minTokensToInit,
             updateTokenThreshold: memoryConfig.sessionSummary.minTokensBetweenUpdates,
             minToolCalls: memoryConfig.sessionSummary.toolCallsBetweenUpdates,

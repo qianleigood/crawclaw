@@ -100,6 +100,7 @@ export interface DreamingConfig {
 export interface SessionSummaryConfig {
   enabled: boolean;
   rootDir?: string;
+  lightInitTokenThreshold?: number;
   minTokensToInit: number;
   minTokensBetweenUpdates: number;
   toolCallsBetweenUpdates: number;

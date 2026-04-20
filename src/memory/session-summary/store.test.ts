@@ -39,7 +39,7 @@ describe("session summary store", () => {
     expect(template).toContain("_What is actively being worked on right now?");
     expect(template).toMatch(/\n$/);
     expect(template).not.toContain("---");
-    expect(SESSION_SUMMARY_SECTION_ORDER).toHaveLength(10);
+    expect(SESSION_SUMMARY_SECTION_ORDER).toHaveLength(11);
   });
 
   it("creates a per-session summary.md file with the template when missing", async () => {

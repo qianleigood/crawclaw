@@ -1,5 +1,5 @@
-import { DEFAULT_NOTEBOOKLM_CONFIG } from "./notebooklm.ts";
 import type { MemoryRuntimeConfig } from "../types/config.ts";
+import { DEFAULT_NOTEBOOKLM_CONFIG } from "./notebooklm.ts";
 
 export const DEFAULT_CONFIG: MemoryRuntimeConfig = {
   runtimeStore: {
@@ -76,6 +76,7 @@ export const DEFAULT_CONFIG: MemoryRuntimeConfig = {
   sessionSummary: {
     enabled: true,
     rootDir: "~/.crawclaw",
+    lightInitTokenThreshold: 3_000,
     minTokensToInit: 10_000,
     minTokensBetweenUpdates: 5_000,
     toolCallsBetweenUpdates: 3,
