@@ -38,7 +38,6 @@ const ROOT_SECTIONS = [
 ] as const;
 
 const TARGET_KEYS = [
-  "memory.citations",
   "memory.backend",
   "memory.qmd.searchMode",
   "memory.qmd.searchTool",
@@ -396,7 +395,6 @@ const TARGET_KEYS = [
 ] as const;
 
 const ENUM_EXPECTATIONS: Record<string, string[]> = {
-  "memory.citations": ['"auto"', '"on"', '"off"'],
   "memory.backend": ['"builtin"', '"qmd"'],
   "memory.qmd.searchMode": ['"query"', '"search"', '"vsearch"'],
   "models.mode": ['"merge"', '"replace"'],
@@ -616,13 +614,9 @@ describe("config help copy quality", () => {
     }
   });
 
-  it("explains memory citations mode semantics", () => {
-    const help = FIELD_HELP["memory.citations"];
-    expect(help.includes('"auto"')).toBe(true);
-    expect(help.includes('"on"')).toBe(true);
-    expect(help.includes('"off"')).toBe(true);
-    expect(/always|always shows/i.test(help)).toBe(true);
-    expect(/hides|hide/i.test(help)).toBe(true);
+  it("does not expose removed memory citations help", () => {
+    expect(FIELD_HELP).not.toHaveProperty("memory.citations");
+    expect(FIELD_LABELS).not.toHaveProperty("memory.citations");
   });
 
   it("includes concrete examples on path and interval fields", () => {

@@ -117,12 +117,6 @@ channels). Configure `memory.qmd.scope` to change this:
 When scope denies a search, CrawClaw logs a warning with the derived channel and
 chat type so empty results are easier to debug.
 
-## Citations
-
-When `memory.citations` is `auto` or `on`, search snippets include a
-`Source: <path#line>` footer. Set `memory.citations = "off"` to omit the footer
-while still passing the path to the agent internally.
-
 ## When to use
 
 Choose QMD when you need:

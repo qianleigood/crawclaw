@@ -299,15 +299,15 @@ It is **not** the same as:
 - prompt journal, which is debug-only and intentionally truncated
 - diagnostic session state, which is an in-memory cache/mirror
 
-| Key                           | Type             | Default                        | Description                                  |
-| ----------------------------- | ---------------- | ------------------------------ | -------------------------------------------- |
-| `contextArchive.mode`         | `string`         | `off`                          | Enable archive capture and retention         |
-| `contextArchive.rootDir`      | `string`         | `~/.crawclaw/context-archive`  | Archive storage root                         |
-| `contextArchive.retentionDays` | `number \| null` | `30`                           | Age cutoff for pruning archive runs / blobs  |
-| `contextArchive.maxBlobBytes` | `number`         | `4194304`                      | Soft cap for a single archived blob payload  |
-| `contextArchive.maxTotalBytes` | `number \| null` | `536870912`                    | Best-effort total archive blob budget before pruning |
-| `contextArchive.compress`     | `boolean`        | `true`                         | Reserved archive storage option              |
-| `contextArchive.redactSecrets` | `boolean`       | `true`                         | Reserved archive storage option              |
+| Key                            | Type             | Default                       | Description                                          |
+| ------------------------------ | ---------------- | ----------------------------- | ---------------------------------------------------- |
+| `contextArchive.mode`          | `string`         | `off`                         | Enable archive capture and retention                 |
+| `contextArchive.rootDir`       | `string`         | `~/.crawclaw/context-archive` | Archive storage root                                 |
+| `contextArchive.retentionDays` | `number \| null` | `30`                          | Age cutoff for pruning archive runs / blobs          |
+| `contextArchive.maxBlobBytes`  | `number`         | `4194304`                     | Soft cap for a single archived blob payload          |
+| `contextArchive.maxTotalBytes` | `number \| null` | `536870912`                   | Best-effort total archive blob budget before pruning |
+| `contextArchive.compress`      | `boolean`        | `true`                        | Reserved archive storage option                      |
+| `contextArchive.redactSecrets` | `boolean`        | `true`                        | Reserved archive storage option                      |
 
 ---
 
@@ -367,23 +367,12 @@ Controls which sessions can receive QMD search results. Same schema as
 Default is DM-only. `match.keyPrefix` matches the normalized session key;
 `match.rawKeyPrefix` matches the raw key including `agent:<id>:`.
 
-### Citations
-
-`memory.citations` applies to all backends:
-
-| Value            | Behavior                                            |
-| ---------------- | --------------------------------------------------- |
-| `auto` (default) | Include `Source: <path#line>` footer in snippets    |
-| `on`             | Always include footer                               |
-| `off`            | Omit footer (path still passed to agent internally) |
-
 ### Full QMD example
 
 ```json5
 {
   memory: {
     backend: "qmd",
-    citations: "auto",
     qmd: {
       includeDefaultMemory: true,
       update: { interval: "5m", debounceMs: 15000 },

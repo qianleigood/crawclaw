@@ -1,7 +1,6 @@
 import { createHmac, createHash } from "node:crypto";
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
-import type { MemoryCitationsMode } from "../config/types.memory.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
@@ -37,11 +36,7 @@ function buildSkillsSection(params: { skillsPrompt?: string; readToolName: strin
   ];
 }
 
-function buildMemorySection(params: {
-  isMinimal: boolean;
-  availableTools: Set<string>;
-  citationsMode?: MemoryCitationsMode;
-}) {
+function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<string> }) {
   if (params.isMinimal) {
     return [];
   }
@@ -246,7 +241,6 @@ export function buildAgentSystemPromptSections(params: {
     level: "minimal" | "extensive";
     channel: string;
   };
-  memoryCitationsMode?: MemoryCitationsMode;
 }): QueryContextSection[] {
   const acpEnabled = params.acpEnabled !== false;
   const sandboxedRuntime = params.sandboxInfo?.enabled === true;
@@ -417,7 +411,6 @@ export function buildAgentSystemPromptSections(params: {
   const memorySection = buildMemorySection({
     isMinimal,
     availableTools,
-    citationsMode: params.memoryCitationsMode,
   });
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,

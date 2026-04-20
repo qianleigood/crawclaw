@@ -296,6 +296,7 @@ export class SessionSummaryScheduler {
   private runner?: SessionSummaryRunner;
   private logger: RuntimeLogger;
   private readonly inFlightSessions = new Set<string>();
+  private readonly pendingTurns = new Map<string, SubmitTurnParams>();
 
   constructor(params: SessionSummarySchedulerParams) {
     this.config = params.config;
@@ -372,15 +373,26 @@ export class SessionSummaryScheduler {
     if (isSubagentSessionKey(params.sessionKey)) {
       return;
     }
+    const normalizedParams = {
+      ...params,
+      recentMessageLimit: clampInt(params.recentMessageLimit, 12),
+    };
     if (this.inFlightSessions.has(params.sessionId)) {
+      // Keep only the latest turn while a summary run is active so we do not
+      // silently drop the newest session state.
+      this.pendingTurns.set(params.sessionId, normalizedParams);
       return;
     }
     this.inFlightSessions.add(params.sessionId);
     void this.runNow({
-      ...params,
-      recentMessageLimit: clampInt(params.recentMessageLimit, 12),
+      ...normalizedParams,
     }).finally(() => {
       this.inFlightSessions.delete(params.sessionId);
+      const pending = this.pendingTurns.get(params.sessionId);
+      if (pending) {
+        this.pendingTurns.delete(params.sessionId);
+        this.submitTurn(pending);
+      }
     });
   }
 

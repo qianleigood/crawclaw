@@ -10252,22 +10252,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               },
             ],
           },
-          citations: {
-            anyOf: [
-              {
-                type: "string",
-                const: "auto",
-              },
-              {
-                type: "string",
-                const: "on",
-              },
-              {
-                type: "string",
-                const: "off",
-              },
-            ],
-          },
           qmd: {
             type: "object",
             properties: {
@@ -13090,11 +13074,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     "memory.backend": {
       label: "Memory Backend",
       help: 'Selects the global memory engine: "builtin" uses CrawClaw memory internals, while "qmd" uses the QMD sidecar pipeline. Keep "builtin" unless you intentionally operate QMD.',
-      tags: ["storage"],
-    },
-    "memory.citations": {
-      label: "Memory Citations Mode",
-      help: 'Controls citation visibility in replies: "auto" shows citations when useful, "on" always shows them, and "off" hides them. Keep "auto" for a balanced signal-to-noise default.',
       tags: ["storage"],
     },
     "memory.qmd.command": {

@@ -484,8 +484,7 @@ export async function deleteDurableMemoryNote(params: {
   DurableMemoryDeleteResult | { action: "missing"; notePath: string; indexPath: string }
 > {
   const rootDir = params.rootDir ?? resolveDurableMemoryRootDir();
-  const scopeDir = resolveDurableMemoryScopeDir(params.scope, rootDir);
-  const notePath = params.notePath?.trim()
+  const requestedNotePath = params.notePath?.trim()
     ? params.notePath.trim().replace(/\\/g, "/")
     : await resolveDurableMemoryDeletionPath({
         scope: params.scope,
@@ -494,7 +493,13 @@ export async function deleteDurableMemoryNote(params: {
         dedupeKey: params.dedupeKey,
         rootDir,
       });
-  const absolutePath = path.join(scopeDir, notePath);
+  const resolved = resolveDurableMemoryScopedPath({
+    scope: params.scope,
+    notePath: requestedNotePath,
+    rootDir,
+  });
+  const notePath = resolved.notePath;
+  const absolutePath = resolved.absolutePath;
   try {
     await fs.unlink(absolutePath);
   } catch (error) {

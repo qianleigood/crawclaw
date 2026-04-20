@@ -127,8 +127,8 @@ CrawClaw now also carries the directly portable part of Claude's cache design:
 - the substrate now computes reuse/drift through an explicit fork-cache plan instead of scattering cache rules across snapshot persistence, embedded attempts, and provider patching
 - provider-specific request patching now only consumes the derived cache hints; it no longer defines cache identity itself
 - the substrate now supports an explicit `embedded_fork` execution mode, so special agents no longer need to be modeled only as child sessions
-- embedded memory special agents now inherit the parent run's captured system-prompt envelope instead of rebuilding an unrelated isolated prompt from scratch
-- embedded memory special runs now validate inherited thinking/tool/fork-context state against the live embedded request and drop the inherited prompt-cache key when the fork has drifted too far to safely reuse it
+- embedded memory special agents intentionally run without inheriting the parent run's captured prompt envelope
+- embedded memory special runs still keep cache-write suppression and short retention, but they do not reuse a parent prompt-cache key or parent fork envelope
 - embedded memory special runs now record shared agent-event / history / usage observations into Context Archive without depending on child-session transcript state
 - the same embedded memory runs now surface usage, including `cacheRead` / `cacheWrite`, back into their Action Feed completion details
 - embedded memory special agents now declare explicit cache-write suppression on the substrate, which maps to provider-supported "do not create new cache entries" controls while preserving prompt-cache reads when possible

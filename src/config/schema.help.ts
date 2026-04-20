@@ -882,8 +882,6 @@ export const FIELD_HELP: Record<string, string> = {
   memory: "Memory backend configuration (global).",
   "memory.backend":
     'Selects the global memory engine: "builtin" uses CrawClaw memory internals, while "qmd" uses the QMD sidecar pipeline. Keep "builtin" unless you intentionally operate QMD.',
-  "memory.citations":
-    'Controls citation visibility in replies: "auto" shows citations when useful, "on" always shows them, and "off" hides them. Keep "auto" for a balanced signal-to-noise default.',
   "memory.notebooklm":
     "Configures NotebookLM-backed knowledge recall for the built-in memory runtime. Prompt-facing knowledge retrieval uses NotebookLM only.",
   "memory.notebooklm.auth":

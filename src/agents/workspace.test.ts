@@ -6,9 +6,8 @@ import { makeTempWorkspace, writeWorkspaceFile } from "../test-helpers/workspace
 import {
   DEFAULT_AGENTS_FILENAME,
   DEFAULT_BOOTSTRAP_FILENAME,
+  DEFAULT_HEARTBEAT_FILENAME,
   DEFAULT_IDENTITY_FILENAME,
-  DEFAULT_MEMORY_ALT_FILENAME,
-  DEFAULT_MEMORY_FILENAME,
   DEFAULT_TOOLS_FILENAME,
   DEFAULT_USER_FILENAME,
   ensureAgentWorkspace,
@@ -167,42 +166,48 @@ describe("ensureAgentWorkspace", () => {
 });
 
 describe("loadWorkspaceBootstrapFiles", () => {
-  const getMemoryEntries = (files: Awaited<ReturnType<typeof loadWorkspaceBootstrapFiles>>) =>
-    files.filter((file) =>
-      [DEFAULT_MEMORY_FILENAME, DEFAULT_MEMORY_ALT_FILENAME].includes(file.name),
-    );
-
-  const expectSingleMemoryEntry = (
+  const expectDefaultRuntimeBootstrapFiles = (
     files: Awaited<ReturnType<typeof loadWorkspaceBootstrapFiles>>,
-    content: string,
+    params?: {
+      agentsContent?: string;
+      heartbeatContent?: string;
+      heartbeatMissing?: boolean;
+    },
   ) => {
-    const memoryEntries = getMemoryEntries(files);
-    expect(memoryEntries).toHaveLength(1);
-    expect(memoryEntries[0]?.missing).toBe(false);
-    expect(memoryEntries[0]?.content).toBe(content);
+    expect(files.map((file) => file.name)).toEqual([
+      DEFAULT_AGENTS_FILENAME,
+      DEFAULT_HEARTBEAT_FILENAME,
+    ]);
+    expect(files[0]?.missing).toBe(!params?.agentsContent);
+    expect(files[0]?.content).toBe(params?.agentsContent);
+    expect(files[1]?.missing).toBe(params?.heartbeatMissing ?? !params?.heartbeatContent);
+    expect(files[1]?.content).toBe(params?.heartbeatContent);
   };
 
-  it("includes MEMORY.md when present", async () => {
+  it("returns only AGENTS.md and HEARTBEAT.md for runtime bootstrap", async () => {
     const tempDir = await makeTempWorkspace("crawclaw-workspace-");
+    await writeWorkspaceFile({ dir: tempDir, name: DEFAULT_AGENTS_FILENAME, content: "agents" });
+    await writeWorkspaceFile({ dir: tempDir, name: DEFAULT_HEARTBEAT_FILENAME, content: "ping" });
+    await writeWorkspaceFile({ dir: tempDir, name: "SOUL.md", content: "persona" });
+    await writeWorkspaceFile({ dir: tempDir, name: "TOOLS.md", content: "tools" });
     await writeWorkspaceFile({ dir: tempDir, name: "MEMORY.md", content: "memory" });
 
     const files = await loadWorkspaceBootstrapFiles(tempDir);
-    expectSingleMemoryEntry(files, "memory");
+    expectDefaultRuntimeBootstrapFiles(files, {
+      agentsContent: "agents",
+      heartbeatContent: "ping",
+    });
   });
 
-  it("includes memory.md when MEMORY.md is absent", async () => {
+  it("marks HEARTBEAT.md as missing when the file is absent", async () => {
     const tempDir = await makeTempWorkspace("crawclaw-workspace-");
-    await writeWorkspaceFile({ dir: tempDir, name: "memory.md", content: "alt" });
+    await writeWorkspaceFile({ dir: tempDir, name: DEFAULT_AGENTS_FILENAME, content: "agents" });
 
     const files = await loadWorkspaceBootstrapFiles(tempDir);
-    expectSingleMemoryEntry(files, "alt");
-  });
-
-  it("omits memory entries when no memory files exist", async () => {
-    const tempDir = await makeTempWorkspace("crawclaw-workspace-");
-
-    const files = await loadWorkspaceBootstrapFiles(tempDir);
-    expect(getMemoryEntries(files)).toHaveLength(0);
+    expectDefaultRuntimeBootstrapFiles(files, {
+      agentsContent: "agents",
+      heartbeatMissing: true,
+    });
   });
 
   it("treats hardlinked bootstrap aliases as missing", async () => {

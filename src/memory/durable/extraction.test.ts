@@ -13,7 +13,7 @@ import {
 } from "./extraction.ts";
 
 describe("durable extraction helpers", () => {
-  it("detects explicit durable-memory writes from tool results", () => {
+  it("treats only mutating durable-memory tools as explicit writes", () => {
     expect(
       hasDurableMemoryWriteInMessages([
         makeAgentToolResultMessage({
@@ -22,7 +22,17 @@ describe("durable extraction helpers", () => {
           content: [{ type: "text", text: "ok" }],
         }),
       ]),
-    ).toBe(true);
+    ).toBe(false);
+
+    expect(
+      hasDurableMemoryWriteInMessages([
+        makeAgentToolResultMessage({
+          toolCallId: "call-read",
+          toolName: "memory_note_read",
+          content: [{ type: "text", text: "ok" }],
+        }),
+      ]),
+    ).toBe(false);
 
     expect(
       hasDurableMemoryWriteInMessages([
@@ -56,6 +66,16 @@ describe("durable extraction helpers", () => {
   });
 
   it("classifies after-turn skip reasons only for explicit durable writes", () => {
+    expect(
+      classifyAfterTurnDurableSkipReason([
+        makeAgentToolResultMessage({
+          toolCallId: "call-4a",
+          toolName: "memory_note_read",
+          content: [{ type: "text", text: "ok" }],
+        }),
+      ]),
+    ).toBeNull();
+
     expect(
       classifyAfterTurnDurableSkipReason([
         makeAgentToolResultMessage({

@@ -138,7 +138,6 @@ const MemoryDreamingSchema = z
 const MemorySchema = z
   .object({
     backend: z.union([z.literal("builtin"), z.literal("qmd")]).optional(),
-    citations: z.union([z.literal("auto"), z.literal("on"), z.literal("off")]).optional(),
     qmd: MemoryQmdSchema.optional(),
     notebooklm: z.record(z.string(), z.unknown()).optional(),
     durableExtraction: z.record(z.string(), z.unknown()).optional(),

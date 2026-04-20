@@ -94,10 +94,9 @@ contracts.
     - tool prompt payload and tool-inventory digest
     - thinking config
     - fork-context messages
-    - embedded memory special agents now inherit the captured parent system-prompt envelope
-    - the cache-safe snapshot now carries a canonical cache-identity hash for the inherited envelope
-    - embedded forks now derive prompt-cache keys from that canonical envelope identity when no explicit parent key exists
-    - embedded memory special runs now disable inherited prompt-cache keys when live tool/thinking/fork-context state drifts from the inherited envelope
+    - embedded memory special agents intentionally do not inherit the captured parent prompt envelope
+    - the cache-safe snapshot still carries canonical cache-identity state for non-memory embedded forks that opt into reuse
+    - embedded memory special runs keep short retention plus cache-write suppression instead of reusing a parent prompt-cache key
     - cache ownership is now split cleanly into:
       - `CacheEnvelope` identity + snapshot persistence
       - fork-cache planning / drift checks

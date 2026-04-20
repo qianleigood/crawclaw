@@ -142,4 +142,86 @@ describe("session summary scheduler gate", () => {
       console,
     );
   });
+
+  it("replays the latest queued turn after an in-flight summary run completes", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-queue-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    let releaseFirstRun: (() => void) | undefined;
+    const firstRun = new Promise<void>((resolve) => {
+      releaseFirstRun = resolve;
+    });
+    const seenRecentMessages: string[] = [];
+    const runtimeStore = {
+      getSessionSummaryState: vi.fn().mockResolvedValue(null),
+      upsertSessionSummaryState: vi.fn().mockResolvedValue(undefined),
+    };
+    const runner = vi
+      .fn()
+      .mockImplementation(async (params: { recentMessages: Array<{ content?: unknown }> }) => {
+        const firstContent = params.recentMessages[0]?.content;
+        seenRecentMessages.push(
+          typeof firstContent === "string" ? firstContent : JSON.stringify(firstContent ?? ""),
+        );
+        if (seenRecentMessages.length === 1) {
+          await firstRun;
+        }
+        return {
+          status: "no_change",
+          writtenCount: 0,
+          updatedCount: 0,
+          runId: `summary-run-${seenRecentMessages.length}`,
+        };
+      });
+    const scheduler = new SessionSummaryScheduler({
+      config: {
+        enabled: true,
+        initialTokenThreshold: 1,
+        updateTokenThreshold: 1,
+        minToolCalls: 0,
+      },
+      runtimeStore: runtimeStore as never,
+      runner,
+      logger: console,
+    });
+
+    scheduler.submitTurn({
+      sessionId: "session-queue-1",
+      sessionKey: "agent:main:main",
+      sessionFile: "/tmp/session-queue-1.jsonl",
+      workspaceDir: "/tmp/workspace",
+      agentId: "main",
+      recentMessages: [{ role: "assistant", content: "first" }] as never,
+      lastModelVisibleMessageId: "msg-1",
+      recentMessageLimit: 8,
+      currentTokenCount: 12_000,
+      toolCallCount: 3,
+      isSettledTurn: true,
+      currentSummary: null,
+    });
+    scheduler.submitTurn({
+      sessionId: "session-queue-1",
+      sessionKey: "agent:main:main",
+      sessionFile: "/tmp/session-queue-1.jsonl",
+      workspaceDir: "/tmp/workspace",
+      agentId: "main",
+      recentMessages: [{ role: "assistant", content: "second" }] as never,
+      lastModelVisibleMessageId: "msg-2",
+      recentMessageLimit: 8,
+      currentTokenCount: 13_000,
+      toolCallCount: 3,
+      isSettledTurn: true,
+      currentSummary: null,
+    });
+
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(1);
+    });
+    releaseFirstRun?.();
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(2);
+    });
+    expect(seenRecentMessages).toEqual(["first", "second"]);
+  });
 });

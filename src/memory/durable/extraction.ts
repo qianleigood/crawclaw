@@ -9,8 +9,12 @@ function extractTextBlocks(content: unknown): string[] {
   }
   return content
     .map((item) => {
-      if (typeof item === "string") {return item.trim();}
-      if (!item || typeof item !== "object") {return "";}
+      if (typeof item === "string") {
+        return item.trim();
+      }
+      if (!item || typeof item !== "object") {
+        return "";
+      }
       const text = (item as { text?: unknown }).text;
       return typeof text === "string" ? text.trim() : "";
     })
@@ -32,20 +36,21 @@ export function hasDurableMemoryWriteInMessages(messages: AgentMessage[]): boole
     if ((message as { role?: unknown }).role !== "toolResult") {
       return false;
     }
-    const toolName = typeof (message as { toolName?: unknown }).toolName === "string"
-      ? String((message as { toolName?: unknown }).toolName).trim()
-      : "";
-    return toolName === "memory_manifest_read"
-      || toolName === "memory_note_read"
-      || toolName === "memory_note_write"
-      || toolName === "memory_note_edit"
-      || toolName === "memory_note_delete";
+    const toolName =
+      typeof (message as { toolName?: unknown }).toolName === "string"
+        ? String((message as { toolName?: unknown }).toolName).trim()
+        : "";
+    return (
+      toolName === "memory_note_write" ||
+      toolName === "memory_note_edit" ||
+      toolName === "memory_note_delete"
+    );
   });
 }
 
 export function classifyAfterTurnDurableSkipReason(
   messages: AgentMessage[],
-) : "durable_write" | null {
+): "durable_write" | null {
   if (hasDurableMemoryWriteInMessages(messages)) {
     return "durable_write";
   }

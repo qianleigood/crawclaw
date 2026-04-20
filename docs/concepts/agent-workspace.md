@@ -72,11 +72,11 @@ These are the standard files CrawClaw expects inside the workspace:
 
 - `SOUL.md`
   - Persona, tone, and boundaries.
-  - Loaded every session.
+  - Kept as a workspace file, but not injected by default.
 
 - `USER.md`
   - Who the user is and how to address them.
-  - Loaded every session.
+  - Kept as a workspace file, but not injected by default.
 
 - `IDENTITY.md`
   - The agent's name, vibe, and emoji.
@@ -85,9 +85,11 @@ These are the standard files CrawClaw expects inside the workspace:
 - `TOOLS.md`
   - Notes about your local tools and conventions.
   - Does not control tool availability; it is only guidance.
+  - Not injected by default.
 
 - `HEARTBEAT.md`
   - Optional tiny checklist for heartbeat runs.
+  - Injected for heartbeat runs when lightweight context is enabled.
   - Keep it short to avoid token burn.
 
 - `BOOT.md`
@@ -104,8 +106,8 @@ These are the standard files CrawClaw expects inside the workspace:
   - Recommended to read today + yesterday on session start.
 
 - `MEMORY.md` (optional)
-  - Curated long-term memory.
-  - Only load in the main, private session (not shared/group contexts).
+  - Curated long-term memory for explicit memory tools and workflows.
+  - Not part of the default workspace bootstrap injection path.
 
 See [Memory](/concepts/memory) for the workflow and automatic memory flush.
 
@@ -116,10 +118,9 @@ See [Memory](/concepts/memory) for the workflow and automatic memory flush.
 - `canvas/` (optional)
   - Canvas UI files for node displays (for example `canvas/index.html`).
 
-If any bootstrap file is missing, CrawClaw injects a "missing file" marker into
-the session and continues. Large bootstrap files are truncated when injected;
-adjust limits with `agents.defaults.bootstrapMaxChars` (default: 20000) and
-`agents.defaults.bootstrapTotalMaxChars` (default: 150000).
+If the active bootstrap file for the run is missing, CrawClaw injects a
+"missing file" marker and continues. Large bootstrap files are truncated when
+injected; adjust limits with `agents.defaults.bootstrapMaxChars` (default: 20000) and `agents.defaults.bootstrapTotalMaxChars` (default: 150000).
 `crawclaw setup` can recreate missing defaults without overwriting existing
 files.
 

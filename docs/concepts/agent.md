@@ -28,20 +28,19 @@ per-session workspaces under `agents.defaults.sandbox.workspaceRoot` (see
 
 ## Bootstrap files (injected)
 
-Inside an agent workspace, CrawClaw expects these user-editable files:
+Inside an agent workspace, CrawClaw keeps several user-editable files, but the
+default runtime bootstrap injection is intentionally narrow:
 
-- `AGENTS.md` — operating instructions + “memory”
-- `SOUL.md` — persona, boundaries, tone
-- `TOOLS.md` — user-maintained tool notes (e.g. `imsg`, `sag`, conventions)
-- `BOOTSTRAP.md` — one-time first-run ritual (deleted after completion)
-- `IDENTITY.md` — agent name/vibe/emoji
-- `USER.md` — user profile + preferred address
+- `AGENTS.md` — injected for normal runs
+- `HEARTBEAT.md` — injected for heartbeat runs when lightweight context is enabled
 
-On the first turn of a new session, CrawClaw injects the contents of these files directly into the agent context.
+Other workspace files such as `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`,
+and `BOOTSTRAP.md` may still exist for workspace management, but they are not
+part of the default runtime injection path.
 
 Blank files are skipped. Large files are trimmed and truncated with a marker so prompts stay lean (read the file for full content).
 
-If a file is missing, CrawClaw injects a single “missing file” marker line (and `crawclaw setup` will create a safe default template).
+If the active bootstrap file is missing, CrawClaw injects a single “missing file” marker line (and `crawclaw setup` will create a safe default template).
 
 `BOOTSTRAP.md` is only created for a **brand new workspace** (no other bootstrap files present). If you delete it after completing the ritual, it should not be recreated on later restarts.
 

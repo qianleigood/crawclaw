@@ -102,15 +102,10 @@ Full breakdown: [System Prompt](/concepts/system-prompt).
 
 ## Injected workspace files (Project Context)
 
-By default, CrawClaw injects a fixed set of workspace files (if present):
+By default, CrawClaw injects only:
 
-- `AGENTS.md`
-- `SOUL.md`
-- `TOOLS.md`
-- `IDENTITY.md`
-- `USER.md`
-- `HEARTBEAT.md`
-- `BOOTSTRAP.md` (first-run only)
+- `AGENTS.md` for normal runs
+- `HEARTBEAT.md` for heartbeat runs using lightweight context
 
 Large files are truncated per-file using `agents.defaults.bootstrapMaxChars` (default `20000` chars). CrawClaw also enforces a total bootstrap injection cap across files with `agents.defaults.bootstrapTotalMaxChars` (default `150000` chars). `/context` shows **raw vs injected** sizes and whether truncation happened.
 

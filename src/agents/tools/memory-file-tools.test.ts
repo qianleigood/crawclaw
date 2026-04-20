@@ -11,6 +11,7 @@ import {
 } from "./memory-file-tools.js";
 
 const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
+const previousDurableMemoryDir = process.env.CRAWCLAW_DURABLE_MEMORY_DIR;
 
 async function createStateDir(): Promise<string> {
   return await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-memory-file-tools-"));
@@ -39,6 +40,11 @@ describe("memory file tools", () => {
       delete process.env.CRAWCLAW_STATE_DIR;
     } else {
       process.env.CRAWCLAW_STATE_DIR = previousStateDir;
+    }
+    if (previousDurableMemoryDir === undefined) {
+      delete process.env.CRAWCLAW_DURABLE_MEMORY_DIR;
+    } else {
+      process.env.CRAWCLAW_DURABLE_MEMORY_DIR = previousDurableMemoryDir;
     }
   });
 
@@ -115,5 +121,22 @@ describe("memory file tools", () => {
         content: ["---", 'title: "bad"', "---", "", "# MEMORY.md"].join("\n"),
       }),
     ).rejects.toThrow(/frontmatter/i);
+  });
+
+  it("rejects note deletion paths that escape the durable memory scope", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-memory-delete-scope-"));
+    process.env.CRAWCLAW_DURABLE_MEMORY_DIR = path.join(rootDir, "durable-root");
+    const outsidePath = path.join(rootDir, "outside.md");
+    await fs.writeFile(outsidePath, "outside", "utf8");
+
+    const { del } = createScopedTools();
+    expect(del).toBeTruthy();
+
+    await expect(
+      del!.execute("tool-8", {
+        notePath: "../../../../../../../outside.md",
+      }),
+    ).rejects.toThrow(/scope|inside/i);
+    await expect(fs.readFile(outsidePath, "utf8")).resolves.toBe("outside");
   });
 });
