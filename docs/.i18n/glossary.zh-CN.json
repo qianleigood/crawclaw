@@ -302,5 +302,57 @@
   {
     "source": "Testing",
     "target": "测试"
+  },
+  {
+    "source": "System Overview",
+    "target": "系统概览"
+  },
+  {
+    "source": "Sessions & Chat",
+    "target": "会话控制台"
+  },
+  {
+    "source": "Channels",
+    "target": "渠道管理"
+  },
+  {
+    "source": "Workflows",
+    "target": "工作流运行"
+  },
+  {
+    "source": "Agents",
+    "target": "智能体自省"
+  },
+  {
+    "source": "Memory",
+    "target": "记忆"
+  },
+  {
+    "source": "Agent Runtime",
+    "target": "后台运行"
+  },
+  {
+    "source": "Usage",
+    "target": "用量与观察"
+  },
+  {
+    "source": "Config",
+    "target": "审批与配置"
+  },
+  {
+    "source": "Debug",
+    "target": "RPC 调试"
+  },
+  {
+    "source": "Channel Catalog",
+    "target": "渠道目录"
+  },
+  {
+    "source": "Feishu Channel Editor",
+    "target": "飞书编辑器"
+  },
+  {
+    "source": "Gateway Architecture",
+    "target": "Gateway 架构"
   }
 ]
