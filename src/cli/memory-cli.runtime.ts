@@ -31,6 +31,7 @@ import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
 } from "../memory/notebooklm/login.js";
+import { readSessionSummaryPromotionSummary } from "../memory/session-summary/promotion.ts";
 import { inferSessionSummaryProfile } from "../memory/session-summary/template.ts";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
@@ -367,6 +368,10 @@ export async function runMemorySessionSummaryStatus(opts: MemoryCommandOptions) 
       store.getSessionSummaryState(sessionId),
       readSessionSummaryFile({ agentId, sessionId }),
     ]);
+    const promotion = await readSessionSummaryPromotionSummary({
+      runtimeStore: store,
+      sessionId,
+    });
     const payload = {
       agentId,
       sessionId,
@@ -374,6 +379,7 @@ export async function runMemorySessionSummaryStatus(opts: MemoryCommandOptions) 
       exists: file.exists,
       updatedAt: file.updatedAt,
       profile: inferSessionSummaryProfile(file.document),
+      promotion,
       state,
       sections: {
         currentState: readSessionSummarySectionText({
@@ -416,6 +422,9 @@ export async function runMemorySessionSummaryStatus(opts: MemoryCommandOptions) 
       `${theme.muted("Tokens at last summary:")} ${state?.tokensAtLastSummary ?? 0}`,
     );
     defaultRuntime.log(`${theme.muted("In progress:")} ${state?.summaryInProgress ? "yes" : "no"}`);
+    defaultRuntime.log(
+      `${theme.muted("Promotion Candidates:")} total=${promotion.total} pending=${promotion.pending} written=${promotion.written}`,
+    );
     const currentState = payload.sections.currentState.trim();
     if (currentState) {
       defaultRuntime.log(`${theme.muted("Current State:")} ${currentState}`);
@@ -427,6 +436,11 @@ export async function runMemorySessionSummaryStatus(opts: MemoryCommandOptions) 
     const keyResults = payload.sections.keyResults.trim();
     if (keyResults) {
       defaultRuntime.log(`${theme.muted("Key Results:")} ${keyResults}`);
+    }
+    if (promotion.latestTitles.length > 0) {
+      defaultRuntime.log(
+        `${theme.muted("Latest Promotion Titles:")} ${promotion.latestTitles.join(" | ")}`,
+      );
     }
   });
 }
@@ -518,6 +532,13 @@ export async function runMemorySessionSummaryRefresh(opts: MemoryCommandOptions)
     defaultRuntime.log(
       `${theme.heading("Session Summary Refresh")} ${result.status}${result.reason ? ` · ${result.reason}` : ""}${result.runId ? ` · ${result.runId}` : ""}`,
     );
+    if (result.promotion) {
+      defaultRuntime.log(`${theme.muted("Promotion created:")} ${result.promotion.created}`);
+      defaultRuntime.log(`${theme.muted("Promotion updated:")} ${result.promotion.updated}`);
+      defaultRuntime.log(
+        `${theme.muted("Promotion candidate IDs:")} ${result.promotion.candidateIds.join(", ") || "(none)"}`,
+      );
+    }
   });
 }
 

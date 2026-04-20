@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   sqliteRuntimeStoreListRecentMaintenanceRunsMock: vi.fn(),
   sqliteRuntimeStoreGetSessionSummaryStateMock: vi.fn(),
   sqliteRuntimeStoreListMessagesByTurnRangeMock: vi.fn(),
+  sqliteRuntimeStoreListRecentPromotionCandidatesMock: vi.fn(),
   readSessionSummaryFileMock: vi.fn(),
 }));
 
@@ -92,6 +93,7 @@ vi.mock("../memory/runtime/sqlite-runtime-store.js", () => ({
     listRecentMaintenanceRuns = mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock;
     getSessionSummaryState = mocks.sqliteRuntimeStoreGetSessionSummaryStateMock;
     listMessagesByTurnRange = mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock;
+    listRecentPromotionCandidates = mocks.sqliteRuntimeStoreListRecentPromotionCandidatesMock;
   },
 }));
 
@@ -136,6 +138,28 @@ describe("memory-cli dream runtime", () => {
     mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([]);
     mocks.sqliteRuntimeStoreGetSessionSummaryStateMock.mockResolvedValue(null);
     mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([]);
+    mocks.sqliteRuntimeStoreListRecentPromotionCandidatesMock.mockResolvedValue([
+      {
+        id: "candidate-1",
+        sessionId: "sess-1",
+        sourceType: "session_summary_distillation",
+        sourceRefsJson: "[]",
+        candidateJson: JSON.stringify({ title: "Preserve the promotion bridge" }),
+        status: "pending",
+        createdAt: 100,
+        updatedAt: 120,
+      },
+      {
+        id: "candidate-2",
+        sessionId: "sess-1",
+        sourceType: "session_summary_distillation",
+        sourceRefsJson: "[]",
+        candidateJson: JSON.stringify({ title: "Keep compaction transcript-first" }),
+        status: "written",
+        createdAt: 110,
+        updatedAt: 130,
+      },
+    ]);
     mocks.readSessionSummaryFileMock.mockResolvedValue({
       sessionId: "sess-1",
       agentId: "main",
@@ -175,6 +199,11 @@ Nothing yet.
         status: "started",
         reason: "manual_refresh",
         runId: "summary-run-1",
+        promotion: {
+          created: 1,
+          updated: 1,
+          candidateIds: ["candidate-1", "candidate-2"],
+        },
       }),
     });
   });
@@ -283,6 +312,8 @@ Nothing yet.
     expect(runtimeLogs.join("\n")).toContain("msg-10");
     expect(runtimeLogs.join("\n")).toContain("Working through the task.");
     expect(runtimeLogs.join("\n")).toContain("Need to keep the promotion bridge stable.");
+    expect(runtimeLogs.join("\n")).toContain("Promotion Candidates:");
+    expect(runtimeLogs.join("\n")).toContain("Preserve the promotion bridge");
   });
 
   it("runs session summary refresh with bypass gate support", async () => {
@@ -310,5 +341,7 @@ Nothing yet.
     );
     expect(runtimeLogs.join("\n")).toContain("Session Summary Refresh");
     expect(runtimeLogs.join("\n")).toContain("summary-run-1");
+    expect(runtimeLogs.join("\n")).toContain("Promotion created:");
+    expect(runtimeLogs.join("\n")).toContain("Promotion updated:");
   });
 });

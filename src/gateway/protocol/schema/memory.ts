@@ -202,6 +202,20 @@ export const MemorySessionSummarySectionsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const MemorySessionSummaryPromotionSchema = Type.Object(
+  {
+    total: Type.Number(),
+    pending: Type.Number(),
+    approved: Type.Number(),
+    written: Type.Number(),
+    failed: Type.Number(),
+    latestCreatedAt: Type.Union([Type.Number(), Type.Null()]),
+    latestUpdatedAt: Type.Union([Type.Number(), Type.Null()]),
+    latestTitles: Type.Array(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 export const MemorySessionSummaryStatusResultSchema = Type.Object(
   {
     agentId: NonEmptyString,
@@ -210,6 +224,7 @@ export const MemorySessionSummaryStatusResultSchema = Type.Object(
     exists: Type.Boolean(),
     updatedAt: NullableString,
     profile: Type.Union([Type.Literal("light"), Type.Literal("full"), Type.Null()]),
+    promotion: MemorySessionSummaryPromotionSchema,
     state: Type.Union([MemorySessionSummaryStateSchema, Type.Null()]),
     sections: MemorySessionSummarySectionsSchema,
   },
@@ -226,6 +241,16 @@ export const MemorySessionSummaryRefreshResultSchema = Type.Object(
         status: Type.String(),
         reason: Type.Optional(NullableString),
         runId: Type.Optional(NullableString),
+        promotion: Type.Optional(
+          Type.Object(
+            {
+              created: Type.Number(),
+              updated: Type.Number(),
+              candidateIds: Type.Array(Type.String()),
+            },
+            { additionalProperties: false },
+          ),
+        ),
       },
       { additionalProperties: false },
     ),

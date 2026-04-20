@@ -4,6 +4,7 @@ import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import { SqliteRuntimeStore } from "../runtime/sqlite-runtime-store.js";
 import {
   extractSessionSummaryPromotionCandidates,
+  summarizeSessionSummaryPromotionCandidates,
   persistSessionSummaryPromotionCandidates,
 } from "./promotion.js";
 import { parseSessionSummaryDocument } from "./template.js";
@@ -17,6 +18,55 @@ afterEach(async () => {
 });
 
 describe("session summary promotion bridge", () => {
+  it("summarizes session-summary-derived promotion candidates for one session", () => {
+    const summary = summarizeSessionSummaryPromotionCandidates({
+      sessionId: "session-1",
+      candidates: [
+        {
+          id: "c1",
+          sessionId: "session-1",
+          sourceType: "session_summary_distillation",
+          sourceRefsJson: "[]",
+          candidateJson: JSON.stringify({ title: "Keep compaction transcript-first" }),
+          status: "pending",
+          createdAt: 100,
+          updatedAt: 110,
+        },
+        {
+          id: "c2",
+          sessionId: "session-1",
+          sourceType: "session_summary_distillation",
+          sourceRefsJson: "[]",
+          candidateJson: JSON.stringify({ title: "Persist Open Loops as workflow facts" }),
+          status: "written",
+          createdAt: 120,
+          updatedAt: 130,
+        },
+        {
+          id: "c3",
+          sessionId: "session-2",
+          sourceType: "session_summary_distillation",
+          sourceRefsJson: "[]",
+          candidateJson: JSON.stringify({ title: "Ignore other sessions" }),
+          status: "pending",
+          createdAt: 140,
+          updatedAt: 150,
+        },
+      ],
+    });
+
+    expect(summary).toEqual({
+      total: 2,
+      pending: 1,
+      approved: 0,
+      written: 1,
+      failed: 0,
+      latestCreatedAt: 120,
+      latestUpdatedAt: 130,
+      latestTitles: ["Persist Open Loops as workflow facts", "Keep compaction transcript-first"],
+    });
+  });
+
   it("extracts durable promotion candidates from structured summary sections", async () => {
     const document = parseSessionSummaryDocument(`
 # Session Title

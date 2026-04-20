@@ -27,6 +27,7 @@ import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
 } from "../../memory/notebooklm/login.js";
+import { readSessionSummaryPromotionSummary } from "../../memory/session-summary/promotion.ts";
 import { inferSessionSummaryProfile } from "../../memory/session-summary/template.ts";
 import { prepareSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
@@ -382,6 +383,10 @@ export const memoryHandlers: GatewayRequestHandlers = {
           store.getSessionSummaryState(sessionId),
           readSessionSummaryFile({ agentId, sessionId }),
         ]);
+        const promotion = await readSessionSummaryPromotionSummary({
+          runtimeStore: store,
+          sessionId,
+        });
         respond(
           true,
           {
@@ -391,6 +396,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
             exists: file.exists,
             updatedAt: file.updatedAt,
             profile: inferSessionSummaryProfile(file.document),
+            promotion,
             state,
             sections: {
               currentState: readSessionSummarySectionText({

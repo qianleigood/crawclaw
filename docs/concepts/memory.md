@@ -137,7 +137,9 @@ structured compacted view from the most continuity-critical sections, including
 Session summary can also seed durable-memory promotion candidates. After a
 successful summary update, CrawClaw distills stable long-term facts from the
 structured summary sections and records them as promotion candidates instead of
-writing durable memory directly.
+writing durable memory directly. Session-summary status surfaces now expose that
+spillover so you can see whether a session has started feeding the durable
+review queue.
 
 Session memory is still keyed by `sessionId`, so parent agents and spawned
 sub-agents do **not** share the same summary file. Each child run owns its own

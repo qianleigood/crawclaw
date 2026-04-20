@@ -430,6 +430,11 @@ export class SessionSummaryScheduler {
     status: "started" | "skipped" | "failed" | "preview";
     reason?: string;
     runId?: string;
+    promotion?: {
+      created: number;
+      updated: number;
+      candidateIds: string[];
+    };
     preview?: SessionSummaryPreview;
   }> {
     if (!this.runner || !params.sessionId || !params.sessionKey?.trim()) {
@@ -497,6 +502,13 @@ export class SessionSummaryScheduler {
         summaryInProgress: false,
       });
       const promotionStore = this.runtimeStore as Partial<RuntimeStore>;
+      let promotion:
+        | {
+            created: number;
+            updated: number;
+            candidateIds: string[];
+          }
+        | undefined;
       if (
         success &&
         typeof promotionStore.listRecentPromotionCandidates === "function" &&
@@ -507,7 +519,7 @@ export class SessionSummaryScheduler {
           agentId: params.agentId,
           sessionId: params.sessionId,
         });
-        await persistSessionSummaryPromotionCandidates({
+        promotion = await persistSessionSummaryPromotionCandidates({
           runtimeStore: this.runtimeStore,
           sessionId: params.sessionId,
           document: latestSummary.document,
@@ -518,6 +530,7 @@ export class SessionSummaryScheduler {
         status: result.status === "failed" ? "failed" : "started",
         reason: result.reason ?? result.summary,
         runId: result.runId,
+        promotion,
       };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SessionSummaryScheduler, evaluateSessionSummaryGate } from "./scheduler.js";
+import { writeSessionSummaryFile } from "./store.js";
 
 describe("session summary scheduler gate", () => {
   const tempDirs: string[] = [];
@@ -172,6 +173,103 @@ describe("session summary scheduler gate", () => {
       }),
       console,
     );
+  });
+
+  it("returns promotion results after a successful summary refresh", async () => {
+    const stateDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-session-summary-promotion-"),
+    );
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId: "session-1",
+      content: `# Session Title
+_A short and distinctive 5-10 word descriptive title for the session. Super info dense, no filler_
+
+Memory refactor
+
+# Current State
+_What is actively being worked on right now? Pending tasks not yet completed. Immediate next steps._
+
+Finish the durable bridge.
+
+# Open Loops
+_Which work items, decisions, or follow-ups are still open right now? Keep this tightly focused on unresolved items._
+
+Need to keep transcript priority explicit.
+
+# Task specification
+_What did the user ask to build? Any design decisions or other explanatory context_
+
+Make session summary compaction-first.
+
+# Workflow
+_What bash commands are usually run and in what order? How to interpret their output if not obvious?_
+
+Run pnpm test for session summary files, then pnpm build.
+
+# Errors & Corrections
+_Errors encountered and how they were fixed. What did the user correct? What approaches failed and should not be tried again?_
+
+Do not reintroduce prompt-time session summary injection; keep summary compaction-first.
+
+# Key results
+_If the user asked a specific output such as an answer to a question, a table, or other document, repeat the exact result here_
+
+Session summary now starts with a light profile before upgrading to full.
+`,
+    });
+    const runtimeStore = {
+      getSessionSummaryState: vi.fn().mockResolvedValue(null),
+      upsertSessionSummaryState: vi.fn().mockResolvedValue(undefined),
+      listRecentPromotionCandidates: vi.fn().mockResolvedValue([]),
+      createPromotionCandidate: vi.fn().mockResolvedValue("candidate-1"),
+      updatePromotionCandidate: vi.fn().mockResolvedValue(undefined),
+    };
+    const runner = vi.fn().mockResolvedValue({
+      status: "no_change",
+      writtenCount: 0,
+      updatedCount: 0,
+      runId: "summary-run-2",
+    });
+    const scheduler = new SessionSummaryScheduler({
+      config: {
+        enabled: true,
+        initialTokenThreshold: 1,
+        updateTokenThreshold: 1,
+        minToolCalls: 0,
+      },
+      runtimeStore: runtimeStore as never,
+      runner,
+      logger: console,
+    });
+
+    const result = await scheduler.runNow({
+      sessionId: "session-1",
+      sessionKey: "agent:main:main",
+      sessionFile: "/tmp/session-1.jsonl",
+      workspaceDir: "/tmp/workspace",
+      agentId: "main",
+      recentMessages: [{ role: "assistant", content: "summarize this" }] as never,
+      lastModelVisibleMessageId: "msg-1",
+      recentMessageLimit: 8,
+      currentTokenCount: 12_000,
+      toolCallCount: 3,
+      isSettledTurn: true,
+      bypassGate: true,
+      currentSummary: null,
+    });
+
+    expect(result).toMatchObject({
+      status: "started",
+      runId: "summary-run-2",
+      promotion: {
+        created: 1,
+        updated: 0,
+        candidateIds: ["candidate-1"],
+      },
+    });
   });
 
   it("replays the latest queued turn after an in-flight summary run completes", async () => {

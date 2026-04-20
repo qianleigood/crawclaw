@@ -8,6 +8,17 @@ import {
   type SessionSummarySectionKey,
 } from "./template.ts";
 
+export type SessionSummaryPromotionSummary = {
+  total: number;
+  pending: number;
+  approved: number;
+  written: number;
+  failed: number;
+  latestCreatedAt: number | null;
+  latestUpdatedAt: number | null;
+  latestTitles: string[];
+};
+
 function buildPromotionMessages(params: {
   document: SessionSummaryDocument | null | undefined;
   summaryUpdatedAt?: number | null;
@@ -44,6 +55,44 @@ function parseCandidateTitle(row: PromotionCandidate): string | null {
   } catch {
     return null;
   }
+}
+
+export function summarizeSessionSummaryPromotionCandidates(params: {
+  sessionId: string;
+  candidates: PromotionCandidate[];
+  maxTitles?: number;
+}): SessionSummaryPromotionSummary {
+  const rows = params.candidates
+    .filter(
+      (row) =>
+        row.sessionId === params.sessionId && row.sourceType === "session_summary_distillation",
+    )
+    .toSorted((left, right) => right.updatedAt - left.updatedAt);
+  return {
+    total: rows.length,
+    pending: rows.filter((row) => row.status === "pending").length,
+    approved: rows.filter((row) => row.status === "approved").length,
+    written: rows.filter((row) => row.status === "written").length,
+    failed: rows.filter((row) => row.status === "failed").length,
+    latestCreatedAt: rows.length ? Math.max(...rows.map((row) => row.createdAt)) : null,
+    latestUpdatedAt: rows.length ? Math.max(...rows.map((row) => row.updatedAt)) : null,
+    latestTitles: rows
+      .map((row) => parseCandidateTitle(row))
+      .filter((title): title is string => Boolean(title))
+      .slice(0, Math.max(1, params.maxTitles ?? 3)),
+  };
+}
+
+export async function readSessionSummaryPromotionSummary(params: {
+  runtimeStore: RuntimeStore;
+  sessionId: string;
+  limit?: number;
+}): Promise<SessionSummaryPromotionSummary> {
+  const candidates = await params.runtimeStore.listRecentPromotionCandidates(params.limit ?? 50);
+  return summarizeSessionSummaryPromotionCandidates({
+    sessionId: params.sessionId,
+    candidates,
+  });
 }
 
 function normalizeSessionSummaryDrafts(
