@@ -45,19 +45,3 @@ CREATE TABLE IF NOT EXISTS gm_recall_traces (
 
 CREATE INDEX IF NOT EXISTS ix_gm_recall_traces_query_hash_created
 ON gm_recall_traces(query_hash, created_at DESC);
-
-CREATE TABLE IF NOT EXISTS gm_extraction_windows (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  start_turn INTEGER NOT NULL,
-  end_turn INTEGER NOT NULL,
-  window_hash TEXT NOT NULL,
-  decision TEXT NOT NULL,
-  reason TEXT NOT NULL,
-  message_count INTEGER NOT NULL,
-  char_count INTEGER NOT NULL,
-  created_at INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS ix_gm_extraction_windows_session_created
-ON gm_extraction_windows(session_id, created_at DESC);

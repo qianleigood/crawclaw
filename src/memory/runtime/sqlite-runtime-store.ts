@@ -20,15 +20,10 @@ import type {
   CreateContextArchiveRunInput,
   DreamLockAcquireResult,
   DreamStateRow,
-  CreateExtractionJobInput,
-  CreateExtractionJobIfAbsentResult,
   CreateMaintenanceRunInput,
   CreatePromotionCandidateInput,
   DeadLetter,
   DurableExtractionCursorRow,
-  ExtractionJob,
-  ExtractionWindow,
-  ExtractionWindowInput,
   KnowledgeSyncState,
   GmMessageRow,
   MaintenanceRun,
@@ -43,7 +38,6 @@ import type {
   SessionSummaryStateRow,
   UpdatePipelineJobInput,
   UpdateContextArchiveRunInput,
-  UpdateExtractionJobInput,
   UpdateMaintenanceRunInput,
   UpdatePromotionCandidateInput,
   ReleaseDreamLockInput,
@@ -167,7 +161,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     this.ensureMessageRuntimeShapeColumns();
     this.ensureSessionCompactionStateColumns();
     this.ensureContextAssemblyAuditColumns();
-    this.ensureExtractionJobColumns();
   }
 
   async appendMessage(input: AppendMessageInput): Promise<void> {
@@ -1027,160 +1020,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     db.prepare(`DELETE FROM gm_session_compaction_state WHERE session_id = ?`).run(sessionId);
   }
 
-  async createExtractionJob(input: CreateExtractionJobInput): Promise<string> {
-    const db = this.getDb();
-    const id = newId("job");
-    const now = Date.now();
-    db.prepare(`INSERT INTO gm_extraction_jobs
-      (id, session_id, conversation_uid, start_turn, end_turn, window_hash, trigger_reason, stage, status, attempts, error, heartbeat_at, claimed_at, finished_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 'pending', 0, NULL, NULL, NULL, NULL, ?, ?)`).run(
-      id,
-      input.sessionId,
-      input.conversationUid,
-      input.startTurn,
-      input.endTurn,
-      input.windowHash ?? null,
-      input.triggerReason ?? null,
-      now,
-      now,
-    );
-    return id;
-  }
-
-  async createExtractionJobIfAbsent(
-    input: CreateExtractionJobInput,
-  ): Promise<CreateExtractionJobIfAbsentResult> {
-    const db = this.getDb();
-    if (!input.windowHash) {
-      return { jobId: await this.createExtractionJob(input), created: true };
-    }
-    const now = Date.now();
-    const existing = db
-      .prepare(`SELECT * FROM gm_extraction_jobs
-      WHERE session_id = ? AND window_hash = ? AND status IN ('pending', 'running', 'done')
-      ORDER BY created_at DESC
-      LIMIT 1`)
-      .get(input.sessionId, input.windowHash);
-    if (existing) {
-      const rec = requireSqliteRow(existing, "Invalid extraction job row");
-      return {
-        jobId: String(rec.id),
-        created: false,
-        existingStatus: String(
-          rec.status ?? "pending",
-        ) as CreateExtractionJobIfAbsentResult["existingStatus"],
-      };
-    }
-
-    const id = newId("job");
-    const result = db
-      .prepare(`INSERT INTO gm_extraction_jobs
-      (id, session_id, conversation_uid, start_turn, end_turn, window_hash, trigger_reason, stage, status, attempts, error, heartbeat_at, claimed_at, finished_at, created_at, updated_at)
-      SELECT ?, ?, ?, ?, ?, ?, ?, 'queued', 'pending', 0, NULL, NULL, NULL, NULL, ?, ?
-      WHERE NOT EXISTS (
-        SELECT 1 FROM gm_extraction_jobs
-        WHERE session_id = ? AND window_hash = ? AND status IN ('pending', 'running', 'done')
-      )`)
-      .run(
-        id,
-        input.sessionId,
-        input.conversationUid,
-        input.startTurn,
-        input.endTurn,
-        input.windowHash,
-        input.triggerReason ?? null,
-        now,
-        now,
-        input.sessionId,
-        input.windowHash,
-      ) as { changes?: number };
-
-    if (result.changes) {
-      return { jobId: id, created: true };
-    }
-
-    const claimed = db
-      .prepare(`SELECT * FROM gm_extraction_jobs
-      WHERE session_id = ? AND window_hash = ? AND status IN ('pending', 'running', 'done')
-      ORDER BY created_at DESC
-      LIMIT 1`)
-      .get(input.sessionId, input.windowHash);
-    if (!claimed) {
-      return { jobId: id, created: true };
-    }
-    const claimedRow = requireSqliteRow(claimed, "Invalid extraction job row");
-    return {
-      jobId: String(claimedRow.id),
-      created: false,
-      existingStatus: String(
-        claimedRow.status ?? "pending",
-      ) as CreateExtractionJobIfAbsentResult["existingStatus"],
-    };
-  }
-
-  async claimExtractionJob(): Promise<ExtractionJob | null> {
-    const db = this.getDb();
-    const row = db
-      .prepare(
-        `SELECT * FROM gm_extraction_jobs WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1`,
-      )
-      .get();
-    if (!row) {
-      return null;
-    }
-    return this.claimPendingJobRow(row);
-  }
-
-  async claimExtractionJobById(jobId: string): Promise<ExtractionJob | null> {
-    const db = this.getDb();
-    const row = db
-      .prepare(`SELECT * FROM gm_extraction_jobs WHERE id = ? AND status = 'pending' LIMIT 1`)
-      .get(jobId);
-    if (!row) {
-      return null;
-    }
-    return this.claimPendingJobRow(row);
-  }
-
-  async findExtractionJobByWindow(
-    sessionId: string,
-    windowHash: string,
-    statuses?: ExtractionJob["status"][],
-  ): Promise<ExtractionJob | null> {
-    const db = this.getDb();
-    const effectiveStatuses = statuses?.length ? statuses : ["pending", "running", "done"];
-    const placeholders = effectiveStatuses.map(() => "?").join(", ");
-    const row = db
-      .prepare(`SELECT * FROM gm_extraction_jobs
-      WHERE session_id = ? AND window_hash = ? AND status IN (${placeholders})
-      ORDER BY created_at DESC
-      LIMIT 1`)
-      .get(sessionId, windowHash, ...effectiveStatuses);
-    return row ? this.mapJobRow(row) : null;
-  }
-
-  async updateExtractionJob(input: UpdateExtractionJobInput): Promise<void> {
-    const db = this.getDb();
-    db.prepare(`UPDATE gm_extraction_jobs
-      SET status = ?,
-          error = ?,
-          stage = COALESCE(?, stage),
-          heartbeat_at = COALESCE(?, heartbeat_at),
-          claimed_at = COALESCE(?, claimed_at),
-          finished_at = COALESCE(?, finished_at),
-          updated_at = ?
-      WHERE id = ?`).run(
-      input.status,
-      input.error ?? null,
-      input.stage ?? null,
-      input.heartbeatAt ?? null,
-      input.claimedAt ?? null,
-      input.finishedAt ?? null,
-      Date.now(),
-      input.id,
-    );
-  }
-
   async createMaintenanceRun(input: CreateMaintenanceRunInput): Promise<string> {
     const db = this.getDb();
     const id = newId("maint");
@@ -1254,27 +1093,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
       input.traceJson,
       input.topResultsJson ?? null,
       input.source ?? null,
-      now,
-    );
-    return id;
-  }
-
-  async appendExtractionWindow(input: ExtractionWindowInput): Promise<string> {
-    const db = this.getDb();
-    const id = newId("window");
-    const now = Date.now();
-    db.prepare(`INSERT INTO gm_extraction_windows
-      (id, session_id, start_turn, end_turn, window_hash, decision, reason, message_count, char_count, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-      id,
-      input.sessionId,
-      input.startTurn,
-      input.endTurn,
-      input.windowHash,
-      input.decision,
-      input.reason,
-      input.messageCount,
-      input.charCount,
       now,
     );
     return id;
@@ -1454,36 +1272,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     });
   }
 
-  async listRecentExtractionJobs(limit: number): Promise<ExtractionJob[]> {
-    const db = this.getDb();
-    const rows = db
-      .prepare(`SELECT * FROM gm_extraction_jobs ORDER BY created_at DESC LIMIT ?`)
-      .all(limit);
-    return rows.map((row) => this.mapJobRow(row));
-  }
-
-  async listRecentExtractionWindows(limit: number): Promise<ExtractionWindow[]> {
-    const db = this.getDb();
-    const rows = db
-      .prepare(`SELECT * FROM gm_extraction_windows ORDER BY created_at DESC LIMIT ?`)
-      .all(limit);
-    return rows.map((row) => {
-      const rec = requireSqliteRow(row, "Invalid extraction window row");
-      return {
-        id: String(rec.id ?? ""),
-        sessionId: String(rec.session_id ?? ""),
-        startTurn: sqliteNumber(rec.start_turn),
-        endTurn: sqliteNumber(rec.end_turn),
-        windowHash: String(rec.window_hash ?? ""),
-        decision: rec.decision === "skip" ? "skip" : "run",
-        reason: sqliteNullableString(rec.reason) ?? "",
-        messageCount: sqliteNumber(rec.message_count),
-        charCount: sqliteNumber(rec.char_count),
-        createdAt: sqliteNumber(rec.created_at),
-      };
-    });
-  }
-
   async close(): Promise<void> {
     this.db?.close();
     this.db = null;
@@ -1550,19 +1338,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
         ${CONTEXT_ASSEMBLY_AUDIT_LEGACY_SYSTEM_PROMPT_ADDITION_TOKENS_COLUMN}
       )
       WHERE ${CONTEXT_ASSEMBLY_AUDIT_SYSTEM_CONTEXT_TOKENS_COLUMN} IS NULL`);
-  }
-
-  private ensureExtractionJobColumns() {
-    const db = this.getDb();
-    this.ensureColumn("gm_extraction_jobs", "window_hash", "TEXT");
-    this.ensureColumn("gm_extraction_jobs", "trigger_reason", "TEXT");
-    this.ensureColumn("gm_extraction_jobs", "stage", "TEXT");
-    this.ensureColumn("gm_extraction_jobs", "heartbeat_at", "INTEGER");
-    this.ensureColumn("gm_extraction_jobs", "claimed_at", "INTEGER");
-    this.ensureColumn("gm_extraction_jobs", "finished_at", "INTEGER");
-    db.exec(
-      "CREATE INDEX IF NOT EXISTS ix_gm_extraction_jobs_session_window_status ON gm_extraction_jobs(session_id, window_hash, status, created_at DESC)",
-    );
   }
 
   private ensureAutomationMultimodalRuntimeSchema() {
@@ -1734,27 +1509,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     }
   }
 
-  private claimPendingJobRow(row: unknown): ExtractionJob {
-    const rec = requireSqliteRow(row, "Invalid extraction job row");
-    const db = this.getDb();
-    const updatedAt = Date.now();
-    const result = db
-      .prepare(`UPDATE gm_extraction_jobs
-      SET status = 'running',
-          stage = 'claimed',
-          attempts = attempts + 1,
-          claimed_at = ?,
-          heartbeat_at = ?,
-          updated_at = ?
-      WHERE id = ? AND status = 'pending'`)
-      .run(updatedAt, updatedAt, updatedAt, rec.id) as { changes?: number };
-    if (!result.changes) {
-      throw new Error(`Failed to claim pending extraction job: ${rec.id}`);
-    }
-    const updated = db.prepare(`SELECT * FROM gm_extraction_jobs WHERE id = ?`).get(rec.id);
-    return this.mapJobRow(updated);
-  }
-
   private mapMessageRows(rows: unknown[]): GmMessageRow[] {
     const refsByMessageId = this.loadMessageMediaRefs(
       rows.map((row) => String(requireSqliteRow(row, "Invalid message row").id ?? "")),
@@ -1842,28 +1596,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
       }
     }
     return [{ type: "text", text: fallbackText }];
-  }
-
-  private mapJobRow(row: unknown): ExtractionJob {
-    const rec = requireSqliteRow(row, "Invalid extraction job row");
-    return {
-      id: String(rec.id ?? ""),
-      sessionId: String(rec.session_id ?? ""),
-      conversationUid: String(rec.conversation_uid ?? ""),
-      startTurn: sqliteNumber(rec.start_turn),
-      endTurn: sqliteNumber(rec.end_turn),
-      windowHash: sqliteNullableString(rec.window_hash),
-      triggerReason: sqliteNullableString(rec.trigger_reason),
-      stage: sqliteNullableString(rec.stage),
-      status: rec.status as ExtractionJob["status"],
-      attempts: sqliteNumber(rec.attempts),
-      error: sqliteNullableString(rec.error),
-      heartbeatAt: sqliteNullableNumber(rec.heartbeat_at),
-      claimedAt: sqliteNullableNumber(rec.claimed_at),
-      finishedAt: sqliteNullableNumber(rec.finished_at),
-      createdAt: sqliteNumber(rec.created_at),
-      updatedAt: sqliteNumber(rec.updated_at),
-    };
   }
 
   private mapPipelineJobRow(row: unknown): PipelineJob {

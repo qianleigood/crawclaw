@@ -1,6 +1,4 @@
-import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { MessageBlock } from "../types/media.ts";
-import type { RecallTrace as StoredRecallTrace } from "../types/runtime.ts";
 import { normalizeMessageContent } from "../util/message.ts";
 import type {
   CandidateExtractorInput,
@@ -12,7 +10,6 @@ import type {
   PromotionMessageLike,
   PromotionRecallTraceLike,
   PromotionSourceRef,
-  PromotionWindowBundle,
 } from "./types.ts";
 import {
   inferPromotionDurableMemoryType,
@@ -489,20 +486,6 @@ function buildCandidateDraft(params: {
     status: "pending",
   };
 }
-
-function buildWindowRef(sessionId: string, bundle: PromotionWindowBundle): PromotionSourceRef {
-  return {
-    kind: "window",
-    refId: bundle.window.id ?? `window:${bundle.window.startTurn}-${bundle.window.endTurn}`,
-    sessionId,
-    startTurn: bundle.window.startTurn,
-    endTurn: bundle.window.endTurn,
-    createdAt: bundle.window.createdAt,
-    reason: bundle.window.reason,
-    excerpt: `turns ${bundle.window.startTurn}-${bundle.window.endTurn}`,
-  };
-}
-
 function dedupeCandidates(candidates: PromotionCandidateDraft[]): PromotionCandidateDraft[] {
   const seen = new Set<string>();
   const result: PromotionCandidateDraft[] = [];
@@ -561,7 +544,6 @@ export class CandidateExtractor {
       const candidate = buildCandidateDraft({
         sessionId: input.sessionId,
         sourceType: "runtime_window",
-        windowRef: buildWindowRef(input.sessionId, bundle),
         facts: factLines,
         messages: bundle.messages,
         recallTraces: input.recallTraces,
@@ -580,64 +562,5 @@ export class CandidateExtractor {
       candidates: dedupeCandidates(candidates).slice(0, Math.max(1, input.maxCandidates ?? 3)),
       diagnostics,
     };
-  }
-
-  async extractFromRuntimeStore(params: {
-    runtimeStore: RuntimeStore;
-    sessionId: string;
-    recentWindowLimit?: number;
-    recallTraces?: PromotionRecallTraceLike[] | StoredRecallTrace[];
-    maxCandidates?: number;
-  }): Promise<CandidateExtractorResult> {
-    const windows = (
-      await params.runtimeStore.listRecentExtractionWindows(params.recentWindowLimit ?? 12)
-    )
-      .filter((window) => window.sessionId === params.sessionId)
-      .toSorted((a, b) => a.startTurn - b.startTurn);
-
-    const bundles: PromotionWindowBundle[] = [];
-    for (const window of windows) {
-      const messages = await params.runtimeStore.listMessagesByTurnRange(
-        params.sessionId,
-        window.startTurn,
-        window.endTurn,
-      );
-      bundles.push({
-        window: {
-          id: window.id,
-          sessionId: window.sessionId,
-          startTurn: window.startTurn,
-          endTurn: window.endTurn,
-          reason: window.reason,
-          createdAt: window.createdAt,
-        },
-        messages: messages.map((message) => ({
-          id: message.id,
-          role: message.role,
-          content: message.content,
-          contentBlocks: message.contentBlocks,
-          hasMedia: message.hasMedia,
-          primaryMediaId: message.primaryMediaId,
-          mediaRefs: message.mediaRefs,
-          turnIndex: message.turnIndex,
-          createdAt: message.createdAt,
-        })),
-      });
-    }
-
-    const recallTraces = (params.recallTraces ?? []).map((trace) => ({
-      id: trace.id,
-      query: trace.query,
-      createdAt: trace.createdAt,
-      traceJson: trace.traceJson,
-      topResultsJson: trace.topResultsJson ?? null,
-    }));
-
-    return this.extract({
-      sessionId: params.sessionId,
-      windows: bundles,
-      recallTraces,
-      maxCandidates: params.maxCandidates,
-    });
   }
 }

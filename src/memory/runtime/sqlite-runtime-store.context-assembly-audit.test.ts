@@ -79,7 +79,7 @@ describe("SqliteRuntimeStore context assembly audits", () => {
       sessionSummaryTokens: 25,
     });
 
-    const verifyDb = new DatabaseSync(dbPath, { readonly: true });
+    const verifyDb = new DatabaseSync(dbPath);
     const columns = verifyDb
       .prepare("PRAGMA table_info(gm_context_assembly_audits)")
       .all() as Array<{ name?: string }>;

@@ -13,17 +13,12 @@ import type {
   ContextArchiveRunRow,
   CreatePipelineJobInput,
   CreateContextArchiveRunInput,
-  CreateExtractionJobInput,
-  CreateExtractionJobIfAbsentResult,
   CreateMaintenanceRunInput,
   CreatePromotionCandidateInput,
   DeadLetter,
   DurableExtractionCursorRow,
   DreamLockAcquireResult,
   DreamStateRow,
-  ExtractionJob,
-  ExtractionWindow,
-  ExtractionWindowInput,
   KnowledgeSyncState,
   GmMessageRow,
   MaintenanceRun,
@@ -38,7 +33,6 @@ import type {
   SessionSummaryStateRow,
   UpdatePipelineJobInput,
   UpdateContextArchiveRunInput,
-  UpdateExtractionJobInput,
   UpdateMaintenanceRunInput,
   UpdatePromotionCandidateInput,
   UpsertMediaAssetInput,
@@ -59,9 +53,22 @@ export interface RuntimeStore {
   appendRawEvent?(input: AppendRawEventInput): Promise<string>;
   upsertMediaAsset?(input: UpsertMediaAssetInput): Promise<void>;
   listUnextractedMessages(sessionId: string, limit: number): Promise<GmMessageRow[]>;
-  listMessagesByTurnRange(sessionId: string, startTurn: number, endTurn: number): Promise<GmMessageRow[]>;
-  listMessagesByCreatedAtRange(startTime: number, endTime: number, limit: number, sessionId?: string): Promise<GmMessageRow[]>;
-  listSessionIdsByCreatedAtRange(startTime: number, endTime: number, limit: number): Promise<string[]>;
+  listMessagesByTurnRange(
+    sessionId: string,
+    startTurn: number,
+    endTurn: number,
+  ): Promise<GmMessageRow[]>;
+  listMessagesByCreatedAtRange(
+    startTime: number,
+    endTime: number,
+    limit: number,
+    sessionId?: string,
+  ): Promise<GmMessageRow[]>;
+  listSessionIdsByCreatedAtRange(
+    startTime: number,
+    endTime: number,
+    limit: number,
+  ): Promise<string[]>;
   markMessagesExtracted(messageIds: string[]): Promise<void>;
   createPipelineJob(input: CreatePipelineJobInput): Promise<string>;
   claimPipelineJob(jobKinds?: string[]): Promise<PipelineJob | null>;
@@ -75,7 +82,10 @@ export interface RuntimeStore {
   appendCompactionAudit(input: AppendCompactionAuditInput): Promise<string>;
   listRecentCompactionAudits(limit: number, sessionId?: string): Promise<CompactionAudit[]>;
   appendContextAssemblyAudit(input: AppendContextAssemblyAuditInput): Promise<string>;
-  listRecentContextAssemblyAudits(limit: number, sessionId?: string): Promise<ContextAssemblyAudit[]>;
+  listRecentContextAssemblyAudits(
+    limit: number,
+    sessionId?: string,
+  ): Promise<ContextAssemblyAudit[]>;
   createContextArchiveRun(input: CreateContextArchiveRunInput): Promise<string>;
   updateContextArchiveRun(input: UpdateContextArchiveRunInput): Promise<void>;
   getContextArchiveRun(id: string): Promise<ContextArchiveRunRow | null>;
@@ -92,7 +102,12 @@ export interface RuntimeStore {
   getDurableExtractionCursor(sessionId: string): Promise<DurableExtractionCursorRow | null>;
   upsertDurableExtractionCursor(input: UpsertDurableExtractionCursorInput): Promise<void>;
   upsertSessionScope(input: UpsertSessionScopeInput): Promise<void>;
-  listScopedSessionIdsTouchedSince(scopeKey: string, sinceTime: number, excludeSessionId?: string | null, limit?: number): Promise<string[]>;
+  listScopedSessionIdsTouchedSince(
+    scopeKey: string,
+    sinceTime: number,
+    excludeSessionId?: string | null,
+    limit?: number,
+  ): Promise<string[]>;
   getDreamState(scopeKey: string): Promise<DreamStateRow | null>;
   touchDreamAttempt(input: TouchDreamAttemptInput): Promise<void>;
   acquireDreamLock(input: AcquireDreamLockInput): Promise<DreamLockAcquireResult>;
@@ -106,17 +121,10 @@ export interface RuntimeStore {
   getSessionCompactionState(sessionId: string): Promise<SessionCompactionStateRow | null>;
   upsertSessionCompactionState(input: UpsertSessionCompactionStateInput): Promise<void>;
   clearSessionCompactionState(sessionId: string): Promise<void>;
-  createExtractionJob(input: CreateExtractionJobInput): Promise<string>;
-  createExtractionJobIfAbsent(input: CreateExtractionJobInput): Promise<CreateExtractionJobIfAbsentResult>;
-  claimExtractionJob(): Promise<ExtractionJob | null>;
-  claimExtractionJobById(jobId: string): Promise<ExtractionJob | null>;
-  findExtractionJobByWindow(sessionId: string, windowHash: string, statuses?: ExtractionJob["status"][]): Promise<ExtractionJob | null>;
-  updateExtractionJob(input: UpdateExtractionJobInput): Promise<void>;
   createMaintenanceRun(input: CreateMaintenanceRunInput): Promise<string>;
   updateMaintenanceRun(input: UpdateMaintenanceRunInput): Promise<void>;
   appendMergeAudit(input: MergeAuditInput): Promise<string>;
   appendRecallTrace(input: RecallTraceInput): Promise<string>;
-  appendExtractionWindow(input: ExtractionWindowInput): Promise<string>;
   createPromotionCandidate(input: CreatePromotionCandidateInput): Promise<string>;
   updatePromotionCandidate(input: UpdatePromotionCandidateInput): Promise<void>;
   getPromotionCandidate(id: string): Promise<PromotionCandidate | null>;
@@ -126,7 +134,5 @@ export interface RuntimeStore {
   listRecentMaintenanceRuns(limit: number): Promise<MaintenanceRun[]>;
   listRecentMergeAudits(limit: number): Promise<MergeAudit[]>;
   listRecentRecallTraces(limit: number): Promise<RecallTrace[]>;
-  listRecentExtractionJobs(limit: number): Promise<ExtractionJob[]>;
-  listRecentExtractionWindows(limit: number): Promise<ExtractionWindow[]>;
   close(): Promise<void>;
 }

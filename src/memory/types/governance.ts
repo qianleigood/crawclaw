@@ -1,34 +1,3 @@
-export interface ExtractionWindowDecision {
-  id: string;
-  sessionId: string;
-  startTurn: number;
-  endTurn: number;
-  windowHash: string;
-  decision: "run" | "skip";
-  reason: string;
-  messageCount: number;
-  charCount: number;
-  createdAt: number;
-}
-
-export interface GovernanceExtractionJobRow {
-  id: string;
-  sessionId: string;
-  startTurn: number;
-  endTurn: number;
-  windowHash: string | null;
-  triggerReason: string | null;
-  stage: string | null;
-  status: string;
-  attempts: number;
-  error: string | null;
-  heartbeatAt: number | null;
-  claimedAt: number | null;
-  finishedAt: number | null;
-  createdAt: number;
-  updatedAt: number;
-}
-
 export interface GovernanceSummary {
   maintenanceRuns: {
     total: number;
@@ -284,8 +253,6 @@ export interface MemoryGovernanceReport {
   recentRecallFailures: GovernanceRecallFailureRow[];
   recentRecallDiagnostics: GovernanceRecallDiagnosticRow[];
   recentMergeAudits: GovernanceMergeAuditRow[];
-  recentExtractionWindows: ExtractionWindowDecision[];
-  recentExtractionJobs: GovernanceExtractionJobRow[];
   executionActivity: GovernanceExecutionActivityRow[];
   executionTasks: GovernanceExecutionTaskRow[];
   executionGraph: GovernanceExecutionGraph;

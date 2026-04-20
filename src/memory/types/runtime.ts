@@ -107,50 +107,6 @@ export interface UpsertMediaAssetInput {
   updatedAt?: number;
 }
 
-export interface CreateExtractionJobInput {
-  sessionId: string;
-  conversationUid: string;
-  startTurn: number;
-  endTurn: number;
-  windowHash?: string;
-  triggerReason?: string | null;
-}
-
-export interface CreateExtractionJobIfAbsentResult {
-  jobId: string;
-  created: boolean;
-  existingStatus?: ExtractionJob["status"];
-}
-
-export interface ExtractionJob {
-  id: string;
-  sessionId: string;
-  conversationUid: string;
-  startTurn: number;
-  endTurn: number;
-  windowHash: string | null;
-  triggerReason: string | null;
-  stage: string | null;
-  status: "pending" | "running" | "done" | "failed" | "cancelled";
-  attempts: number;
-  error: string | null;
-  heartbeatAt: number | null;
-  claimedAt: number | null;
-  finishedAt: number | null;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface UpdateExtractionJobInput {
-  id: string;
-  status: ExtractionJob["status"];
-  error?: string | null;
-  stage?: string | null;
-  heartbeatAt?: number | null;
-  claimedAt?: number | null;
-  finishedAt?: number | null;
-}
-
 export interface CreateMaintenanceRunInput {
   kind: string;
   status?: "pending" | "running" | "done" | "failed" | "cancelled";
@@ -582,30 +538,6 @@ export interface ContextArchiveBlobRow {
   metadataJson: string | null;
   createdAt: number;
   updatedAt: number;
-}
-
-export interface ExtractionWindowInput {
-  sessionId: string;
-  startTurn: number;
-  endTurn: number;
-  windowHash: string;
-  decision: "run" | "skip";
-  reason: string;
-  messageCount: number;
-  charCount: number;
-}
-
-export interface ExtractionWindow {
-  id: string;
-  sessionId: string;
-  startTurn: number;
-  endTurn: number;
-  windowHash: string;
-  decision: "run" | "skip";
-  reason: string;
-  messageCount: number;
-  charCount: number;
-  createdAt: number;
 }
 
 export const PROMOTION_CANDIDATE_STATUSES = [
