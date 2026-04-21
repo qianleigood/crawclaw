@@ -28,10 +28,11 @@ export <PROVIDER>_API_KEY="..."
 ./scripts/k8s/deploy.sh
 
 kubectl port-forward svc/crawclaw 18789:18789 -n crawclaw
-open http://localhost:18789
 ```
 
-Retrieve the gateway token and paste it into the Control UI:
+Then connect a supported gateway client to `http://localhost:18789`.
+
+Retrieve the gateway token and use it in your client:
 
 ```bash
 kubectl get secret crawclaw-secrets -n crawclaw -o jsonpath='{.data.CRAWCLAW_GATEWAY_TOKEN}' | base64 -d
@@ -149,7 +150,7 @@ If you want to expose the gateway through an Ingress or load balancer:
 
 - Change the gateway bind in `scripts/k8s/manifests/configmap.yaml` from `loopback` to a non-loopback bind that matches your deployment model
 - Keep gateway auth enabled and use a proper TLS-terminated entrypoint
-- Configure the Control UI for remote access using the supported web security model (for example HTTPS/Tailscale Serve and explicit allowed origins when needed)
+- Configure browser-facing access using the supported web security model (for example HTTPS/Tailscale Serve and explicit allowed origins when needed)
 
 ## Re-deploy
 
@@ -172,8 +173,8 @@ This deletes the namespace and all resources in it, including the PVC.
 - The gateway binds to loopback inside the pod by default, so the included setup is for `kubectl port-forward`
 - No cluster-scoped resources — everything lives in a single namespace
 - Security: `readOnlyRootFilesystem`, `drop: ALL` capabilities, non-root user (UID 1000)
-- The default config keeps the Control UI on the safer local-access path: loopback bind plus `kubectl port-forward` to `http://127.0.0.1:18789`
-- If you move beyond localhost access, use the supported remote model: HTTPS/Tailscale plus the appropriate gateway bind and Control UI origin settings
+- The default config keeps browser-facing access on the safer local-access path: loopback bind plus `kubectl port-forward` to `http://127.0.0.1:18789`
+- If you move beyond localhost access, use the supported remote model: HTTPS/Tailscale plus the appropriate gateway bind and browser-origin settings
 - Secrets are generated in a temp directory and applied directly to the cluster — no secret material is written to the repo checkout
 
 ## File structure

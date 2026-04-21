@@ -264,8 +264,6 @@ export async function statusCommand(
     groupChannelIssuesByChannel,
     info,
     renderTable,
-    resolveControlUiLinks,
-    resolveGatewayPort,
     resolveMemoryCacheSummary,
     resolveMemoryFtsState,
     resolveMemoryVectorState,
@@ -297,16 +295,6 @@ export async function statusCommand(
     }
     runtime.log("");
   }
-
-  const dashboard =
-    (cfg.gateway?.controlUi?.enabled ?? true)
-      ? resolveControlUiLinks({
-          port: resolveGatewayPort(cfg),
-          bind: cfg.gateway?.bind,
-          customBindHost: cfg.gateway?.customBindHost,
-          basePath: cfg.gateway?.controlUi?.basePath,
-        }).httpUrl
-      : "disabled";
 
   const [daemon, nodeDaemon] = await Promise.all([
     getDaemonStatusSummary(),
@@ -485,7 +473,6 @@ export async function statusCommand(
         );
 
   const overviewRows = [
-    { Item: "Dashboard", Value: dashboard },
     { Item: "OS", Value: `${osSummary.label} · node ${process.versions.node}` },
     {
       Item: "Tailscale",

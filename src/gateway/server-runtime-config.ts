@@ -23,7 +23,6 @@ export type GatewayRuntimeConfig = {
   openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
   strictTransportSecurityHeader?: string;
   controlUiBasePath: string;
-  controlUiRoot?: string;
   resolvedAuth: ResolvedGatewayAuth;
   authMode: ResolvedGatewayAuth["mode"];
   tailscaleConfig: GatewayTailscaleConfig;
@@ -84,11 +83,6 @@ export async function resolveGatewayRuntimeConfig(params: {
         ? strictTransportSecurityConfig.trim()
         : undefined;
   const controlUiBasePath = normalizeControlUiBasePath(params.cfg.gateway?.controlUi?.basePath);
-  const controlUiRootRaw = params.cfg.gateway?.controlUi?.root;
-  const controlUiRoot =
-    typeof controlUiRootRaw === "string" && controlUiRootRaw.trim().length > 0
-      ? controlUiRootRaw.trim()
-      : undefined;
   const tailscaleBase = params.cfg.gateway?.tailscale ?? {};
   const tailscaleOverrides = params.tailscale ?? {};
   const tailscaleConfig = mergeGatewayTailscaleConfig(tailscaleBase, tailscaleOverrides);
@@ -162,7 +156,6 @@ export async function resolveGatewayRuntimeConfig(params: {
       : undefined,
     strictTransportSecurityHeader,
     controlUiBasePath,
-    controlUiRoot,
     resolvedAuth,
     authMode,
     tailscaleConfig,

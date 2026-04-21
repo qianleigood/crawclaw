@@ -11,6 +11,23 @@ import { writeOfficialChannelCatalog } from "./write-official-channel-catalog.mj
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT_RUNTIME_ALIAS_PATTERN = /^(?<base>.+\.(?:runtime|contract))-[A-Za-z0-9_-]+\.js$/u;
 
+function listStaticRuntimeMigrationAssets(params = {}) {
+  const rootDir = params.rootDir ?? ROOT;
+  const migrationsDir = path.join(rootDir, "src", "memory", "runtime", "migrations");
+  if (!fs.existsSync(migrationsDir)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && /^\d+_.*\.sql$/u.test(entry.name))
+    .map((entry) => ({
+      src: path.join("src", "memory", "runtime", "migrations", entry.name),
+      dest: path.join("dist", "migrations", entry.name),
+    }))
+    .toSorted((left, right) => left.dest.localeCompare(right.dest));
+}
+
 /**
  * Copy static (non-transpiled) runtime assets that are referenced by their
  * source-relative path inside bundled extension code.
@@ -31,6 +48,9 @@ export const STATIC_EXTENSION_ASSETS = [
     src: "extensions/diffs/assets/viewer-runtime.js",
     dest: "dist/extensions/diffs/assets/viewer-runtime.js",
   },
+  // Sqlite runtime migrations are runtime data, not transpiled modules. Ship
+  // them under dist/ so published installs do not rely on src/ being present.
+  ...listStaticRuntimeMigrationAssets(),
 ];
 
 export function listStaticExtensionAssetOutputs(params = {}) {

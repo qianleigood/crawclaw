@@ -491,7 +491,7 @@ The manifest is the control-plane source of truth. CrawClaw uses it to:
 - identify the plugin
 - discover declared channels/skills/config schema or bundle capabilities
 - validate `plugins.entries.<id>.config`
-- augment Control UI labels/placeholders
+- augment browser-client labels/placeholders
 - show install/catalog metadata
 
 For native plugins, the runtime module is the data-plane part. It registers

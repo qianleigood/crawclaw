@@ -119,11 +119,6 @@ const coreEntries: CoreCliEntry[] = [
         hasSubcommands: false,
       },
       {
-        name: "dashboard",
-        description: "Open the Control UI with your current token",
-        hasSubcommands: false,
-      },
-      {
         name: "reset",
         description: "Reset local config/state (keeps the CLI installed)",
         hasSubcommands: false,

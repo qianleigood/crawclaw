@@ -79,7 +79,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     ```
   </Step>
 
-  <Step title="Access the Control UI">
+  <Step title="Access the Gateway">
     The gateway binds to loopback by default. Pick one of these options.
 
     **Option A: SSH tunnel (simplest)**
@@ -89,7 +89,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     ssh -L 18789:localhost:18789 root@YOUR_DROPLET_IP
     ```
 
-    Then open `http://localhost:18789`.
+    Then connect a supported gateway client to `http://localhost:18789`.
 
     **Option B: Tailscale Serve**
 
@@ -100,7 +100,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     crawclaw gateway restart
     ```
 
-    Then open `https://<magicdns>/` from any device on your tailnet.
+    Then connect a supported gateway client to `https://<magicdns>/` from any device on your tailnet.
 
     **Option C: Tailnet bind (no Serve)**
 
@@ -109,7 +109,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     crawclaw gateway restart
     ```
 
-    Then open `http://<tailscale-ip>:18789` (token required).
+    Then connect a supported gateway client to `http://<tailscale-ip>:18789` (token required).
 
   </Step>
 </Steps>

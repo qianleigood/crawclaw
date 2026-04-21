@@ -16,9 +16,6 @@ Use this page for day-1 startup and day-2 operations of the Gateway service.
   <Card title="Configuration" icon="sliders" href="/gateway/configuration">
     Task-oriented setup guide + full configuration reference.
   </Card>
-  <Card title="Control-plane RPC" icon="waypoints" href="/gateway/control-plane-rpc">
-    Browser-facing Gateway method surface, capability rules, and config patch/set/apply semantics.
-  </Card>
   <Card title="Secrets management" icon="key-round" href="/gateway/secrets">
     SecretRef contract, runtime snapshot behavior, and migrate/reload operations.
   </Card>
@@ -75,7 +72,7 @@ After the first successful load, the running process serves the active in-memory
 - Single multiplexed port for:
   - WebSocket control/RPC
   - HTTP APIs, OpenAI compatible (`/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/tools/invoke`)
-  - Control UI and hooks
+  - browser clients, WebChat, and hooks
 - Default bind mode: `loopback`.
 - Auth is required by default (`gateway.auth.token` / `gateway.auth.password`, or `CRAWCLAW_GATEWAY_TOKEN` / `CRAWCLAW_GATEWAY_PASSWORD`).
 

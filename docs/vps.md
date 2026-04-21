@@ -37,7 +37,7 @@ A community video walkthrough is available at
 ## How cloud setups work
 
 - The **Gateway runs on the VPS** and owns state + workspace.
-- You connect from your laptop or phone via the **Control UI** or **Tailscale/SSH**.
+- You connect from your laptop or phone via a gateway client over **Tailscale/SSH**.
 - Treat the VPS as the source of truth and **back up** the state + workspace regularly.
 - Secure default: keep the Gateway on loopback and access it via SSH tunnel or Tailscale Serve.
   If you bind to `lan` or `tailnet`, require `gateway.auth.token` or `gateway.auth.password`.

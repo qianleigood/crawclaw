@@ -26,8 +26,7 @@ crawclaw onboard
 ```
 
 <Info>
-最快的首次聊天方式：打开 Control UI（无需设置渠道）。运行
-`crawclaw dashboard` 并在浏览器中聊天。文档：[Dashboard](/web/dashboard)。
+最快的首次聊天方式：运行 `crawclaw tui`（无需设置渠道），或使用仍保留的 Web 客户端。文档：[Web 界面](/web)。
 </Info>
 
 若要稍后重新配置：

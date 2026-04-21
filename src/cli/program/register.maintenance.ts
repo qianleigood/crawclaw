@@ -1,7 +1,6 @@
 import type { Command } from "commander";
-import { dashboardCommand } from "../../commands/dashboard.js";
-import { doctorCommand } from "../../commands/doctor.js";
 import { doctorMemoryCommand } from "../../commands/doctor-memory-health.js";
+import { doctorCommand } from "../../commands/doctor.js";
 import { migrateCrawClawCommand } from "../../commands/migrate-legacy-state.js";
 import { uninstallCommand } from "../../commands/uninstall.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -68,23 +67,6 @@ export function registerMaintenanceCommands(program: Command) {
           json: Boolean(opts.json),
         });
         defaultRuntime.exit(0);
-      });
-    });
-
-  program
-    .command("dashboard")
-    .description("Open the Control UI with your current token")
-    .addHelpText(
-      "after",
-      () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dashboard", "docs.crawclaw.ai/cli/dashboard")}\n`,
-    )
-    .option("--no-open", "Print URL but do not launch a browser")
-    .action(async (opts) => {
-      await runCommandWithRuntime(defaultRuntime, async () => {
-        await dashboardCommand(defaultRuntime, {
-          noOpen: opts.open === false,
-        });
       });
     });
 

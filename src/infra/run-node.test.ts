@@ -194,56 +194,46 @@ async function expectManifestId(tmp: string, relativePath: string, id: string) {
 }
 
 describe("run-node script", () => {
-  it.runIf(process.platform !== "win32")(
-    "preserves control-ui assets by building with tsdown --no-clean",
-    async () => {
-      await withTempDir(async (tmp) => {
-        const argsPath = resolvePath(tmp, ".build-args.txt");
-        const indexPath = resolvePath(tmp, "dist/control-ui/index.html");
+  it.runIf(process.platform !== "win32")("builds with tsdown --no-clean when forced", async () => {
+    await withTempDir(async (tmp) => {
+      const argsPath = resolvePath(tmp, ".build-args.txt");
 
-        await writeRuntimePostBuildScaffold(tmp);
-        await fs.mkdir(path.dirname(indexPath), { recursive: true });
-        await fs.writeFile(indexPath, "<html>sentinel</html>\n", "utf-8");
+      await writeRuntimePostBuildScaffold(tmp);
 
-        const nodeCalls: string[][] = [];
-        const spawn = (cmd: string, args: string[]) => {
-          if (cmd === process.execPath && args[0] === "scripts/tsdown-build.mjs") {
-            fsSync.writeFileSync(argsPath, args.join(" "), "utf-8");
-            if (!args.includes("--no-clean")) {
-              fsSync.rmSync(resolvePath(tmp, "dist/control-ui"), { recursive: true, force: true });
-            }
-          }
-          if (cmd === process.execPath) {
-            nodeCalls.push([cmd, ...args]);
-          }
-          return createExitedProcess(0);
-        };
+      const nodeCalls: string[][] = [];
+      const spawn = (cmd: string, args: string[]) => {
+        if (cmd === process.execPath && args[0] === "scripts/tsdown-build.mjs") {
+          fsSync.writeFileSync(argsPath, args.join(" "), "utf-8");
+        }
+        if (cmd === process.execPath) {
+          nodeCalls.push([cmd, ...args]);
+        }
+        return createExitedProcess(0);
+      };
 
-        const exitCode = await runNodeMain({
-          cwd: tmp,
-          args: ["--version"],
-          env: {
-            ...process.env,
-            CRAWCLAW_FORCE_BUILD: "1",
-            CRAWCLAW_RUNNER_LOG: "0",
-          },
-          spawn,
-          execPath: process.execPath,
-          platform: process.platform,
-        });
-
-        expect(exitCode).toBe(0);
-        await expect(fs.readFile(argsPath, "utf-8")).resolves.toContain(
-          "scripts/tsdown-build.mjs --no-clean",
-        );
-        await expect(fs.readFile(indexPath, "utf-8")).resolves.toContain("sentinel");
-        expect(nodeCalls).toEqual([
-          [process.execPath, "scripts/tsdown-build.mjs", "--no-clean"],
-          [process.execPath, "crawclaw.mjs", "--version"],
-        ]);
+      const exitCode = await runNodeMain({
+        cwd: tmp,
+        args: ["--version"],
+        env: {
+          ...process.env,
+          CRAWCLAW_FORCE_BUILD: "1",
+          CRAWCLAW_RUNNER_LOG: "0",
+        },
+        spawn,
+        execPath: process.execPath,
+        platform: process.platform,
       });
-    },
-  );
+
+      expect(exitCode).toBe(0);
+      await expect(fs.readFile(argsPath, "utf-8")).resolves.toContain(
+        "scripts/tsdown-build.mjs --no-clean",
+      );
+      expect(nodeCalls).toEqual([
+        [process.execPath, "scripts/tsdown-build.mjs", "--no-clean"],
+        [process.execPath, "crawclaw.mjs", "--version"],
+      ]);
+    });
+  });
 
   it("copies bundled plugin metadata after rebuilding from a clean dist", async () => {
     await withTempDir(async (tmp) => {

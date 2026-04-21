@@ -23,7 +23,7 @@ Pricing varies by machine type and region; pick the smallest VM that fits your w
 - Install Docker (isolated app runtime)
 - Start the CrawClaw Gateway in Docker
 - Persist `~/.crawclaw` + `~/.crawclaw/workspace` on the host (survives restarts/rebuilds)
-- Access the Control UI from your laptop via an SSH tunnel
+- Access the gateway from your laptop via an SSH tunnel
 
 The Gateway can be accessed via:
 
@@ -306,19 +306,13 @@ For the generic Docker flow, see [Docker](/install/docker).
     gcloud compute ssh crawclaw-gateway --zone=us-central1-a -- -L 18789:127.0.0.1:18789
     ```
 
-    Open in your browser:
-
-    `http://127.0.0.1:18789/`
-
-    Fetch a fresh tokenized dashboard link:
+    Open a shell in the CLI container and use the local interface:
 
     ```bash
-    docker compose run --rm crawclaw-cli dashboard --no-open
+    docker compose run --rm crawclaw-cli tui
     ```
 
-    Paste the token from that URL.
-
-    If Control UI shows `unauthorized` or `disconnected (1008): pairing required`, approve the browser device:
+    If a browser client shows `unauthorized` or `disconnected (1008): pairing required`, approve the device:
 
     ```bash
     docker compose run --rm crawclaw-cli devices list

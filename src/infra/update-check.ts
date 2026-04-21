@@ -128,12 +128,9 @@ export async function checkGitUpdateStatus(params: {
     runCommandWithTimeout(["git", "-C", root, "rev-parse", "--abbrev-ref", "@{upstream}"], {
       timeoutMs,
     }).catch(() => null),
-    runCommandWithTimeout(
-      ["git", "-C", root, "status", "--porcelain", "--", ":!dist/control-ui/"],
-      {
-        timeoutMs,
-      },
-    ).catch(() => null),
+    runCommandWithTimeout(["git", "-C", root, "status", "--porcelain"], {
+      timeoutMs,
+    }).catch(() => null),
   ]);
   if (!branchRes || branchRes.code !== 0) {
     return { ...base, error: branchRes?.stderr?.trim() || "git unavailable" };

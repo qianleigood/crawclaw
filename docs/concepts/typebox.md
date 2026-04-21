@@ -1,5 +1,5 @@
 ---
-summary: "TypeBox schemas for the Gateway protocol, paired with the shared control-plane method contract"
+summary: "TypeBox schemas for the Gateway protocol and related typed gateway contracts"
 read_when:
   - Updating protocol schemas or codegen
 title: "TypeBox"
@@ -14,18 +14,20 @@ WebSocket protocol** (handshake, request/response, server events). Those schemas
 drive **runtime validation**, **JSON Schema export**, and generated client
 models.
 
-For the browser Control UI specifically, TypeBox is now paired with the shared
-method contract in `src/gateway/protocol/control-ui-methods.ts`.
+For browser-facing gateway contracts, TypeBox is paired with the shared
+protocol schemas in `src/gateway/protocol/schema.ts` and related schema
+modules.
 
 Use this distinction:
 
 - **TypeBox / ProtocolSchemas**: protocol object shapes and reusable schemas
-- **control-ui-methods.ts**: frontend-facing method list, params/result mapping,
-  scopes, capability tags, and effect metadata
+- **gateway schema modules**: typed request/response ownership, shared payloads,
+  and codegen inputs for gateway clients
 
 If you want the higher-level protocol context, start with
-[Gateway architecture](/concepts/architecture). For the browser-facing RPC
-surface, see [Control-plane RPC](/gateway/control-plane-rpc).
+[Gateway architecture](/concepts/architecture). For browser-facing contract
+surfaces, inspect `src/gateway/protocol/schema.ts` and the related
+`schema/*.ts` modules in the repository.
 
 ## Mental model (30 seconds)
 
@@ -65,7 +67,7 @@ Authoritative pieces now live in different layers:
 
 - protocol schemas: `src/gateway/protocol/schema/*`
 - shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
-- control-plane UI method contract: `src/gateway/protocol/control-ui-methods.ts`
+- gateway protocol schema index: `src/gateway/protocol/schema.ts`
 - gateway dispatch/runtime behavior: `src/gateway/server-methods.ts`
 
 ## Where the schemas live
@@ -73,7 +75,7 @@ Authoritative pieces now live in different layers:
 - Source modules: `src/gateway/protocol/schema/*`
 - Shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
 - Runtime validators (AJV): `src/gateway/protocol/index.ts`
-- Control-plane method contract: `src/gateway/protocol/control-ui-methods.ts`
+- Gateway protocol schema index: `src/gateway/protocol/schema.ts`
 - Server handshake + method dispatch: `src/gateway/server-methods.ts`
 - Node client: `src/gateway/client.ts`
 - Generated JSON Schema: `dist/protocol.schema.json`

@@ -377,8 +377,6 @@ export const FIELD_HELP: Record<string, string> = {
     "Per-agent override for CDP source CIDR allowlist.",
   "gateway.controlUi.basePath":
     "Optional URL prefix where the Control UI is served (e.g. /crawclaw).",
-  "gateway.controlUi.root":
-    "Optional filesystem root for Control UI assets (defaults to dist/control-ui).",
   "gateway.controlUi.allowedOrigins":
     'Allowed browser origins for Control UI/WebChat websocket connections (full origins only, e.g. https://control.example.com). Required for non-loopback Control UI deployments unless dangerous Host-header fallback is explicitly enabled. Setting ["*"] means allow any browser origin and should be avoided outside tightly controlled local testing.',
   "gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback":

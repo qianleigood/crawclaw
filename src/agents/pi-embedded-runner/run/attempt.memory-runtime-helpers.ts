@@ -38,41 +38,6 @@ function shouldEmitStopLifecyclePhase(
   );
 }
 
-export async function startAttemptMemoryRuntimeDurableRecallPrefetch(params: {
-  memoryRuntime?: AttemptMemoryRuntime;
-  sessionId: string;
-  sessionKey?: string;
-  messages: AgentMessage[];
-  modelId: string;
-  prompt?: string;
-  runtimeContext?: MemoryRuntimeContext;
-  warn: (message: string) => void;
-}): Promise<MemoryRuntimeContext | undefined> {
-  if (typeof params.memoryRuntime?.startDurableRecallPrefetch !== "function") {
-    return params.runtimeContext;
-  }
-  try {
-    const handle = await params.memoryRuntime.startDurableRecallPrefetch({
-      sessionId: params.sessionId,
-      sessionKey: params.sessionKey,
-      messages: params.messages,
-      model: params.modelId,
-      ...(params.prompt !== undefined ? { prompt: params.prompt } : {}),
-      runtimeContext: params.runtimeContext,
-    });
-    if (!handle) {
-      return params.runtimeContext;
-    }
-    return {
-      ...params.runtimeContext,
-      durableRecallPrefetchHandle: handle,
-    };
-  } catch (prefetchErr) {
-    params.warn(`memory runtime durable recall prefetch failed: ${String(prefetchErr)}`);
-    return params.runtimeContext;
-  }
-}
-
 export async function runAttemptMemoryRuntimeBootstrap(params: {
   hadSessionFile: boolean;
   memoryRuntime?: AttemptMemoryRuntime;

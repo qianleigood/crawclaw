@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   migrateCrawClawCommand: vi.fn(),
   doctorCommand: vi.fn(),
   doctorMemoryCommand: vi.fn(),
-  dashboardCommand: vi.fn(),
   uninstallCommand: vi.fn(),
   runtime: {
     log: vi.fn(),
@@ -15,8 +14,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-const { migrateCrawClawCommand, doctorCommand, dashboardCommand, uninstallCommand, runtime } =
-  mocks;
+const { migrateCrawClawCommand, doctorCommand, uninstallCommand, runtime } = mocks;
 
 vi.mock("../../commands/migrate-legacy-state.js", () => ({
   migrateCrawClawCommand: mocks.migrateCrawClawCommand,
@@ -30,10 +28,6 @@ vi.mock("../../commands/doctor-memory-health.js", () => ({
   doctorMemoryCommand: mocks.doctorMemoryCommand,
 }));
 
-vi.mock("../../commands/dashboard.js", () => ({
-  dashboardCommand: mocks.dashboardCommand,
-}));
-
 vi.mock("../../commands/uninstall.js", () => ({
   uninstallCommand: mocks.uninstallCommand,
 }));
@@ -43,7 +37,8 @@ vi.mock("../../runtime.js", () => ({
 }));
 
 vi.mock("../../config/config.js", async () => {
-  const actual = await vi.importActual<typeof import("../../config/config.js")>("../../config/config.js");
+  const actual =
+    await vi.importActual<typeof import("../../config/config.js")>("../../config/config.js");
   return {
     ...actual,
     loadConfig: vi.fn(() => ({})),
@@ -110,20 +105,6 @@ describe("registerMaintenanceCommands doctor action", () => {
     );
   });
 
-  it("passes noOpen to dashboard command", async () => {
-    dashboardCommand.mockResolvedValue(undefined);
-
-    await runMaintenanceCli(["dashboard", "--no-open"]);
-
-    expect(dashboardCommand).toHaveBeenCalledWith(
-      runtime,
-      expect.objectContaining({
-        noOpen: true,
-      }),
-    );
-  });
-
-
   it("passes uninstall options to uninstall command", async () => {
     uninstallCommand.mockResolvedValue(undefined);
 
@@ -152,15 +133,6 @@ describe("registerMaintenanceCommands doctor action", () => {
         dryRun: true,
       }),
     );
-  });
-
-  it("exits with code 1 when dashboard fails", async () => {
-    dashboardCommand.mockRejectedValue(new Error("dashboard failed"));
-
-    await runMaintenanceCli(["dashboard"]);
-
-    expect(runtime.error).toHaveBeenCalledWith("Error: dashboard failed");
-    expect(runtime.exit).toHaveBeenCalledWith(1);
   });
 
   it("runs doctor memory subcommand", async () => {

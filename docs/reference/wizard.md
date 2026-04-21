@@ -128,8 +128,7 @@ For a high-level overview, see [Onboarding (CLI)](/start/wizard).
 </Steps>
 
 <Note>
-If no GUI is detected, onboarding prints SSH port-forward instructions for the Control UI instead of opening a browser.
-If the Control UI assets are missing, onboarding attempts to build them; fallback is `pnpm ui:build` (auto-installs UI deps).
+If no GUI is detected, onboarding prints SSH port-forward instructions for remote gateway access instead of opening a browser.
 </Note>
 
 ## Non-interactive mode
@@ -184,7 +183,7 @@ crawclaw agents add work \
 ## Gateway wizard RPC
 
 The Gateway exposes the onboarding flow over RPC (`wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`).
-Clients (Control UI and other web surfaces) can render steps without re‑implementing onboarding logic.
+Clients such as WebChat and other web surfaces can render steps without re‑implementing onboarding logic.
 
 ## Signal setup (signal-cli)
 

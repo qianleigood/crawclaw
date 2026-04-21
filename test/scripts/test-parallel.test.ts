@@ -62,10 +62,7 @@ const targetedChannelProxyFiles = [
   bundledPluginFile("whatsapp", "src/monitor-inbox.streams-inbound-messages.test.ts"),
 ];
 
-const targetedUnitProxyFiles = [
-  ...sharedTargetedUnitProxyFiles,
-  "src/cli/qr-dashboard.integration.test.ts",
-];
+const targetedUnitProxyFiles = [...sharedTargetedUnitProxyFiles];
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const HIGH_MEMORY_LOCAL_PLANNER_ENV = {

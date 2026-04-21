@@ -88,9 +88,9 @@ Related:
 - [/channels/pairing](/channels/pairing)
 - [/channels/groups](/channels/groups)
 
-## Dashboard control ui connectivity
+## Browser client connectivity
 
-When dashboard/control UI will not connect, validate URL, auth mode, and secure context assumptions.
+When a browser-facing client will not connect, validate URL, auth mode, and secure context assumptions.
 
 ```bash
 crawclaw gateway status
@@ -102,7 +102,7 @@ crawclaw gateway status --json
 
 Look for:
 
-- Correct probe URL and dashboard URL.
+- Correct probe URL and client URL.
 - Auth mode/token mismatch between client and gateway.
 - HTTP usage where device identity is required.
 
@@ -123,7 +123,7 @@ Use `error.details.code` from the failed `connect` response to pick the next act
 
 | Detail code                  | Meaning                                                  | Recommended action                                                                                                                                                   |
 | ---------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_TOKEN_MISSING`         | Client did not send a required shared token.             | Paste/set token in the client and retry. For dashboard paths: `crawclaw config get gateway.auth.token` then paste into Control UI settings.                          |
+| `AUTH_TOKEN_MISSING`         | Client did not send a required shared token.             | Set the client token to match `crawclaw config get gateway.auth.token` and retry.                                                                                    |
 | `AUTH_TOKEN_MISMATCH`        | Shared token did not match gateway auth token.           | If `canRetryWithDeviceToken=true`, allow one trusted retry. If still failing, run the [token drift recovery checklist](/cli/devices#token-drift-recovery-checklist). |
 | `AUTH_DEVICE_TOKEN_MISMATCH` | Cached per-device token is stale or revoked.             | Rotate/re-approve device token using [devices CLI](/cli/devices), then reconnect.                                                                                    |
 | `PAIRING_REQUIRED`           | Device identity is known but not approved for this role. | Approve pending request: `crawclaw devices list` then `crawclaw devices approve <requestId>`.                                                                        |
@@ -144,7 +144,6 @@ If logs show nonce/signature errors, update the connecting client and verify it:
 
 Related:
 
-- [/web/control-ui](/web/control-ui)
 - [/gateway/configuration](/gateway/configuration) (gateway auth modes)
 - [/gateway/trusted-proxy-auth](/gateway/trusted-proxy-auth)
 - [/gateway/remote](/gateway/remote)

@@ -8,6 +8,7 @@ import {
   collectMissingPackPaths,
   collectPackUnpackedSizeErrors,
 } from "../scripts/release-check.ts";
+import { listStaticExtensionAssetOutputs } from "../scripts/runtime-postbuild.mjs";
 import { bundledDistPluginFile, bundledPluginFile } from "./helpers/bundled-plugin-paths.js";
 
 function makePackResult(filename: string, unpackedSize: number) {
@@ -16,6 +17,7 @@ function makePackResult(filename: string, unpackedSize: number) {
 
 const requiredPluginSdkPackPaths = [...listPluginSdkDistArtifacts()];
 const requiredBundledPluginPackPaths = listBundledPluginPackArtifacts();
+const requiredStaticExtensionAssetPaths = listStaticExtensionAssetOutputs().flat();
 
 describe("collectBundledExtensionManifestErrors", () => {
   it("flags invalid bundled extension install metadata", () => {
@@ -219,7 +221,7 @@ describe("collectForbiddenPackPaths", () => {
 });
 
 describe("collectMissingPackPaths", () => {
-  it("requires the shipped channel catalog, control ui, and optional bundled metadata", () => {
+  it("requires the shipped channel catalog and optional bundled metadata", () => {
     const missing = collectMissingPackPaths([
       "dist/index.js",
       "dist/entry.js",
@@ -232,7 +234,6 @@ describe("collectMissingPackPaths", () => {
     expect(missing).toEqual(
       expect.arrayContaining([
         "dist/channel-catalog.json",
-        "dist/control-ui/index.html",
         "extensions/scrapling-fetch/runtime/requirements.lock.txt",
         "scripts/install-plugin-runtimes.mjs",
         "scripts/npm-runner.mjs",
@@ -256,7 +257,6 @@ describe("collectMissingPackPaths", () => {
       collectMissingPackPaths([
         "dist/index.js",
         "dist/entry.js",
-        "dist/control-ui/index.html",
         "dist/extensions/acpx/mcp-proxy.mjs",
         bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
         ...requiredBundledPluginPackPaths,
@@ -268,6 +268,7 @@ describe("collectMissingPackPaths", () => {
         "dist/plugin-sdk/root-alias.cjs",
         "dist/build-info.json",
         "dist/channel-catalog.json",
+        ...requiredStaticExtensionAssetPaths,
       ]),
     ).toEqual([]);
   });

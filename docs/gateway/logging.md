@@ -8,7 +8,7 @@ title: "Gateway Logging"
 
 # Logging
 
-For a user-facing overview (CLI + Control UI + config), see [/logging](/logging).
+For a user-facing overview (CLI + gateway clients + config), see [/logging](/logging).
 
 CrawClaw has two log “surfaces”:
 
@@ -25,7 +25,7 @@ CrawClaw has two log “surfaces”:
 
 The file format is one JSON object per line.
 
-The Control UI Logs tab tails this file via the gateway (`logs.tail`).
+Gateway clients can tail this file via the gateway (`logs.tail`).
 CLI can do the same:
 
 ```bash

@@ -70,16 +70,12 @@ Need to install Node? See [Node setup](/install/node).
     You should see the Gateway listening on port 18789.
 
   </Step>
-  <Step title="Open the dashboard">
-    ```bash
-    crawclaw dashboard
-    ```
-
-    This opens the Control UI in your browser. If it loads, everything is working.
-
-  </Step>
   <Step title="Send your first message">
-    Type a message in the Control UI chat and you should get an AI reply.
+    Use a connected channel or run the terminal interface:
+
+    ```bash
+    crawclaw tui
+    ```
 
     Want to chat from your phone instead? The fastest channel to set up is
     [Telegram](/channels/telegram) (just a bot token). See [Channels](/channels)

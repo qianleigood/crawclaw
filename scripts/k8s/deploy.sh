@@ -223,7 +223,7 @@ echo "  kubectl port-forward svc/crawclaw 18789:18789 -n $NS"
 echo "  open http://localhost:18789"
 echo ""
 if $SHOW_TOKEN; then
-  echo "Gateway token (paste into Control UI):"
+  echo "Gateway token:"
   echo "  $(kubectl get secret crawclaw-secrets -n "$NS" -o jsonpath='{.data.CRAWCLAW_GATEWAY_TOKEN}' | base64 -d)"
 echo ""
 fi

@@ -90,7 +90,7 @@ IP, loopback remote addresses are ignored.
 
 ### Instances view
 
-The Control UI renders the output of `system-presence` and applies a small status
+A browser-facing client can render the output of `system-presence` and apply a small status
 indicator (Active/Idle/Stale) based on the age of the last update.
 
 ## Debugging tips

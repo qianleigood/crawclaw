@@ -36,9 +36,6 @@ title: "CrawClaw"
   <Card title="Run Onboarding" href="/start/wizard" icon="sparkles">
     Guided setup with `crawclaw onboard` and pairing flows.
   </Card>
-  <Card title="Open the Control UI" href="/web/control-ui" icon="layout-dashboard">
-    Launch the browser dashboard for chat, config, and sessions.
-  </Card>
 </Columns>
 
 ## What is CrawClaw?
@@ -63,9 +60,8 @@ flowchart LR
   A["Chat apps + plugins"] --> B["Gateway"]
   B --> C["Pi agent"]
   B --> D["CLI"]
-  B --> E["Web Control UI"]
-  B --> F["Web clients"]
-  B --> G["Node integrations"]
+  B --> E["Web clients"]
+  B --> F["Node integrations"]
 ```
 
 The Gateway is the single source of truth for sessions, routing, and channel connections.
@@ -84,9 +80,6 @@ The Gateway is the single source of truth for sessions, routing, and channel con
   </Card>
   <Card title="Media support" icon="image">
     Send and receive images, audio, and documents.
-  </Card>
-  <Card title="Web Control UI" icon="monitor">
-    Browser dashboard for chat, config, sessions, and nodes.
   </Card>
   <Card title="Node mode" icon="smartphone">
     Pair nodes for Canvas, camera, and local-device workflows.
@@ -107,25 +100,11 @@ The Gateway is the single source of truth for sessions, routing, and channel con
     ```
   </Step>
   <Step title="Chat">
-    Open the Control UI in your browser and send a message:
-
-    ```bash
-    crawclaw dashboard
-    ```
-
-    Or connect a channel ([Telegram](/channels/telegram) is fastest) and chat from your phone.
-
+    Connect a channel ([Telegram](/channels/telegram) is fastest) and chat from your phone, or use the CLI/TUI locally.
   </Step>
 </Steps>
 
 Need the full install and dev setup? See [Getting Started](/start/getting-started).
-
-## Dashboard
-
-Open the browser Control UI after the Gateway starts.
-
-- Local default: [http://127.0.0.1:18789/](http://127.0.0.1:18789/)
-- Remote access: [Web surfaces](/web) and [Tailscale](/gateway/tailscale)
 
 <p align="center">
   <img src="/whatsapp-crawclaw.jpg" alt="CrawClaw" width="420" />
@@ -163,8 +142,8 @@ Example:
   <Card title="Concepts index" href="/concepts" icon="blocks">
     System model, runtime, memory, models, and messaging concepts.
   </Card>
-  <Card title="Control-plane RPC" href="/gateway/control-plane-rpc" icon="waypoints">
-    Stable browser-facing method surface, capability rules, and config write model.
+  <Card title="Gateway runbook" href="/gateway" icon="waypoints">
+    Runtime operations, health checks, remote access, and gateway behavior.
   </Card>
   <Card title="Reference docs" href="/reference" icon="file-text">
     Stable reference material for testing, release, RPC, and migration.

@@ -12487,12 +12487,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       placeholder: "/crawclaw",
       tags: ["network", "storage"],
     },
-    "gateway.controlUi.root": {
-      label: "Control UI Assets Root",
-      help: "Optional filesystem root for Control UI assets (defaults to dist/control-ui).",
-      placeholder: "dist/control-ui",
-      tags: ["network"],
-    },
     "gateway.controlUi.allowedOrigins": {
       label: "Control UI Allowed Origins",
       help: 'Allowed browser origins for Control UI/WebChat websocket connections (full origins only, e.g. https://control.example.com). Required for non-loopback Control UI deployments unless dangerous Host-header fallback is explicitly enabled. Setting ["*"] means allow any browser origin and should be avoided outside tightly controlled local testing.',

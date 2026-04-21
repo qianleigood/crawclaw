@@ -36,9 +36,7 @@ title: "Gateway Architecture"
 - One WS connection per client.
 - Send requests (`health`, `status`, `send`, `agent`, `system-presence`).
 - Subscribe to events (`tick`, `agent`, `presence`, `shutdown`).
-- The browser Control UI is a Stitch-driven Vite + Lit client that hydrates browser pages from control-plane RPC methods.
-- Its canonical browser surface is organized into Overview, Sessions, Channels, Workflows, Agents, Memory, Agent Runtime, Usage, Config, and Debug.
-- `Channel Catalog` and `Feishu Channel Editor` are nested `Channels` flows rather than top-level navigation entries.
+- Browser-facing access now centers on gateway clients such as WebChat, browser-authenticated sessions, and related web surfaces rather than a dedicated Control UI bundle.
 
 ### Nodes (macOS / headless)
 

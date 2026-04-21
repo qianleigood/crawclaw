@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => {
       await writeConfigFile(params.nextConfig);
     }),
     resolveGatewayPort: vi.fn(),
-    ensureControlUiAssetsBuilt: vi.fn(),
     createClackPrompter: vi.fn(),
     note: vi.fn(),
     printWizardHeader: vi.fn(),
@@ -42,10 +41,6 @@ vi.mock("../config/config.js", () => ({
   writeConfigFile: mocks.writeConfigFile,
   replaceConfigFile: mocks.replaceConfigFile,
   resolveGatewayPort: mocks.resolveGatewayPort,
-}));
-
-vi.mock("../infra/control-ui-assets.js", () => ({
-  ensureControlUiAssetsBuilt: mocks.ensureControlUiAssetsBuilt,
 }));
 
 vi.mock("../wizard/clack-prompter.js", () => ({
@@ -116,6 +111,8 @@ const EMPTY_CONFIG_SNAPSHOT = {
   exists: false,
   valid: true,
   config: {},
+  sourceConfig: {},
+  runtimeConfig: {},
   issues: [],
 };
 
@@ -158,6 +155,8 @@ function setupBaseWizardState(config: CrawClawConfig = {}) {
   mocks.readConfigFileSnapshot.mockResolvedValue({
     ...EMPTY_CONFIG_SNAPSHOT,
     config,
+    sourceConfig: config,
+    runtimeConfig: config,
   });
   mocks.resolveGatewayPort.mockReturnValue(18789);
   mocks.probeGatewayReachable.mockResolvedValue({ ok: false });
@@ -192,7 +191,6 @@ async function runWebConfigureWizard() {
 describe("runConfigureWizard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.ensureControlUiAssetsBuilt.mockResolvedValue({ ok: true });
     mocks.resolveSearchProviderOptions.mockReturnValue([
       {
         id: "brave",

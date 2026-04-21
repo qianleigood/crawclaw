@@ -19,7 +19,6 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`completion`](/cli/completion)
 - [`doctor`](/cli/doctor)
 - [`runtimes`](/cli/runtimes)
-- [`dashboard`](/cli/dashboard)
 - [`backup`](/cli/backup)
 - [`uninstall`](/cli/uninstall)
 - [`update`](/cli/update)
@@ -113,7 +112,6 @@ crawclaw [--dev] [--profile <name>] <command>
     doctor
     install
     repair
-  dashboard
   backup
     create
     verify

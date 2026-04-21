@@ -92,7 +92,7 @@ For contributors or anyone who wants to run from a local checkout:
 ```bash
 git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
-pnpm install && pnpm ui:build && pnpm build
+pnpm install && pnpm build
 pnpm link --global
 crawclaw onboard --install-daemon
 ```

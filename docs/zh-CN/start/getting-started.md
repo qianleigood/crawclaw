@@ -18,11 +18,10 @@ x-i18n:
 目标：以最少的设置，从零开始到完成第一次可用聊天。
 
 <Info>
-最快的聊天方式：打开 Control UI（无需设置渠道）。运行 `crawclaw dashboard`
-并在浏览器中聊天，或在
+最快的聊天方式：运行 `crawclaw tui`，或使用仍保留的 WebChat/浏览器客户端（无需先设置渠道），在
 <Tooltip headline="Gateway host" tip="运行 CrawClaw Gateway 网关服务的机器。">网关主机</Tooltip>
-上打开 `http://127.0.0.1:18789/`。
-文档：[Dashboard](/web/dashboard) 和 [Control UI](/web/control-ui)。
+上访问浏览器入口。
+文档：[Web 界面](/web)。
 </Info>
 
 ## 前置条件
@@ -77,15 +76,15 @@ x-i18n:
     ```
 
   </Step>
-  <Step title="打开 Control UI">
+  <Step title="打开本地界面">
     ```bash
-    crawclaw dashboard
+    crawclaw tui
     ```
   </Step>
 </Steps>
 
 <Check>
-如果 Control UI 能加载，你的 Gateway 网关就已准备就绪，可以使用。
+如果 `crawclaw tui` 能正常进入，或 Web 客户端能连接，你的 Gateway 网关就已准备就绪，可以使用。
 </Check>
 
 ## 可选检查和附加内容
@@ -136,7 +135,7 @@ x-i18n:
 
 - 一个正在运行的 Gateway 网关
 - 已配置好的认证
-- Control UI 访问权限或一个已连接的渠道
+- `crawclaw tui` 访问能力或一个已连接的渠道
 
 <Note>
 如果你已经有旧版 CrawClaw 状态目录 `~/.crawclaw`，先运行一次

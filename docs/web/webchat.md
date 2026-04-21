@@ -18,7 +18,7 @@ Status: the macOS/iOS SwiftUI chat UI talks directly to the Gateway WebSocket.
 ## Quick start
 
 1. Start the gateway.
-2. Open the WebChat UI or the Control UI chat tab.
+2. Open the WebChat client.
 3. Ensure gateway auth is configured (required by default, even on loopback).
 
 ## How it works (behavior)
@@ -31,17 +31,17 @@ Status: the macOS/iOS SwiftUI chat UI talks directly to the Gateway WebSocket.
 - History is always fetched from the gateway (no local file watching).
 - If the gateway is unreachable, WebChat is read-only.
 
-## Control UI agents tools panel
+## Tools and runtime availability
 
-- The Control UI `/agents` Tools panel has two separate views:
-  - **Available Right Now** uses `tools.effective(sessionKey=...)` and shows what the current
-    session can actually use at runtime, including core, plugin, and channel-owned tools.
-  - **Tool Configuration** uses `tools.catalog` and stays focused on profiles, overrides, and
-    catalog semantics.
-- Runtime availability is session-scoped. Switching sessions on the same agent can change the
-  **Available Right Now** list.
-- The config editor does not imply runtime availability; effective access still follows policy
-  precedence (`allow`/`deny`, per-agent and provider/channel overrides).
+- Tool availability is session-scoped.
+- Gateway clients can use `tools.effective(sessionKey=...)` to inspect what the
+  current session can actually use at runtime, including core, plugin, and
+  channel-owned tools.
+- Catalog-style configuration views can use `tools.catalog` for profiles,
+  overrides, and catalog semantics.
+- Configuration does not imply runtime availability; effective access still
+  follows policy precedence (`allow`/`deny`, per-agent and provider/channel
+  overrides).
 
 ## Remote use
 

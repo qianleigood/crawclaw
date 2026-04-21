@@ -171,5 +171,4 @@ No output after sending a message:
 
 ## Related
 
-- [Control UI](/web/control-ui) — web-based control interface
 - [CLI Reference](/cli) — full CLI command reference

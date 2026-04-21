@@ -43,8 +43,8 @@ x-i18n:
   <Card title="运行新手引导" href="/start/wizard" icon="sparkles">
     通过 `crawclaw onboard` 和配对流程进行引导式设置。
   </Card>
-  <Card title="打开控制界面" href="/web/control-ui" icon="layout-dashboard">
-    启动浏览器仪表板，管理聊天、配置和会话。
+  <Card title="Web 界面" href="/web" icon="layout-dashboard">
+    查看仍保留的 WebChat 和浏览器访问方式。
   </Card>
 </Columns>
 
@@ -57,7 +57,7 @@ flowchart LR
   A["Chat apps + plugins"] --> B["Gateway"]
   B --> C["Pi agent"]
   B --> D["CLI"]
-  B --> E["Web Control UI"]
+  B --> E["Web 客户端"]
   B --> F["Web clients"]
   B --> G["Node integrations"]
 ```
@@ -79,8 +79,8 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
   <Card title="媒体支持" icon="image">
     发送和接收图片、音频和文档。
   </Card>
-  <Card title="Web 控制界面" icon="monitor">
-    浏览器仪表板，用于聊天、配置、会话和节点管理。
+  <Card title="Web 客户端" icon="monitor">
+    WebChat 和浏览器访问入口。
   </Card>
   <Card title="节点模式" icon="smartphone">
     配对节点与无头主机，支持 Canvas 与远程命令。
@@ -103,19 +103,20 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
   <Step title="启动 Gateway 网关并开始聊天">
     ```bash
     crawclaw onboard --install-daemon
-    crawclaw dashboard
+    crawclaw tui
     ```
   </Step>
 </Steps>
 
 需要完整的安装和开发环境设置？请参阅[入门指南](/start/getting-started)。
 
-## 仪表板
+## Web 访问
 
-Gateway 网关启动后，打开浏览器控制界面。
+Gateway 网关启动后，可通过仍保留的 Web 界面或本地终端使用它。
 
-- 本地默认地址：http://127.0.0.1:18789/
-- 远程访问：[Web 界面](/web)和 [Tailscale](/gateway/tailscale)
+- 本地终端：`crawclaw tui`
+- 浏览器访问：[Web 界面](/web)
+- 远程访问：[Web 界面](/web) 和 [Tailscale](/gateway/tailscale)
 
 <p align="center">
   <img src="/whatsapp-crawclaw.jpg" alt="CrawClaw" width="420" />
@@ -153,8 +154,8 @@ Gateway 网关启动后，打开浏览器控制界面。
   <Card title="概念总览" href="/concepts" icon="blocks">
     系统模型、运行时、记忆、模型和消息相关的核心概念。
   </Card>
-  <Card title="控制面 RPC" href="/gateway/control-plane-rpc" icon="waypoints">
-    浏览器稳定 method surface、capability 规则与 config 写路径模型。
+  <Card title="Gateway 运行手册" href="/gateway" icon="waypoints">
+    运行、健康检查、远程访问与网关行为。
   </Card>
   <Card title="参考文档" href="/reference" icon="file-text">
     测试、发布、RPC、迁移等稳定参考资料入口。

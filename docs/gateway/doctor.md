@@ -59,7 +59,6 @@ cat ~/.crawclaw/crawclaw.json
 ## What it does (summary)
 
 - Optional pre-flight update for git installs (interactive only).
-- UI protocol freshness check (rebuilds Control UI when the protocol schema is newer).
 - Health check + restart prompt.
 - Skills status summary (eligible/missing/blocked) and plugin status.
 - Config normalization for legacy values.

@@ -124,7 +124,7 @@ Examples:
 - recent transcript continuity
 - compaction summary consumption
 - context assembly
-- durable recall prefetch
+- synchronous durable recall
 
 This is how the agent avoids starting from zero.
 

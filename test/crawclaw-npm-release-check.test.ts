@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   compareReleaseVersions,
-  collectControlUiPackErrors,
   collectReleasePackageMetadataErrors,
   collectReleaseTagErrors,
   parseNpmPackJsonOutput,
@@ -267,40 +266,22 @@ describe("parseNpmPackJsonOutput", () => {
       'npm warn Unknown project config "node-linker".',
       "",
       "> crawclaw@2026.3.23 prepack",
-      "> pnpm build && pnpm ui:build",
+      "> pnpm build",
       "",
       "[copy-hook-metadata] Copied 4 hook metadata files.",
-      '[{"filename":"crawclaw.tgz","files":[{"path":"dist/control-ui/index.html"}]}]',
+      '[{"filename":"crawclaw.tgz","files":[{"path":"dist/index.mjs"}]}]',
     ].join("\n");
 
     expect(parseNpmPackJsonOutput(stdout)).toEqual([
       {
         filename: "crawclaw.tgz",
-        files: [{ path: "dist/control-ui/index.html" }],
+        files: [{ path: "dist/index.mjs" }],
       },
     ]);
   });
 
   it("returns null when no JSON payload is present", () => {
     expect(parseNpmPackJsonOutput("> crawclaw@2026.3.23 prepack")).toBeNull();
-  });
-});
-
-describe("collectControlUiPackErrors", () => {
-  it("rejects packs that ship the dashboard HTML without the asset payload", () => {
-    expect(collectControlUiPackErrors(["dist/control-ui/index.html"])).toEqual([
-      'npm package is missing Control UI asset payload under "dist/control-ui/assets/". Refuse release when the dashboard tarball would be empty.',
-    ]);
-  });
-
-  it("accepts packs that ship dashboard HTML and bundled assets", () => {
-    expect(
-      collectControlUiPackErrors([
-        "dist/control-ui/index.html",
-        "dist/control-ui/assets/index-Bu8rSoJV.js",
-        "dist/control-ui/assets/index-BK0yXA_h.css",
-      ]),
-    ).toEqual([]);
   });
 });
 

@@ -2,11 +2,11 @@
 summary: "Deploy CrawClaw on Railway with one-click template"
 read_when:
   - Deploying CrawClaw to Railway
-  - You want a one-click cloud deploy with browser-based Control UI
+  - You want a one-click cloud deploy with browser-facing gateway access
 title: "Railway"
 ---
 
-Deploy CrawClaw on Railway with a one-click template and access it through the web Control UI.
+Deploy CrawClaw on Railway with a one-click template and connect to it with a supported gateway client.
 This is the easiest "no terminal on the server" path: Railway runs the Gateway for you.
 
 ## Quick checklist (new users)
@@ -15,7 +15,7 @@ This is the easiest "no terminal on the server" path: Railway runs the Gateway f
 2. Add a **Volume** mounted at `/data`.
 3. Set the required **Variables** (at least `CRAWCLAW_GATEWAY_PORT` and `CRAWCLAW_GATEWAY_TOKEN`).
 4. Enable **HTTP Proxy** on port `8080`.
-5. Open `https://<your-railway-domain>/crawclaw` and connect using your `CRAWCLAW_GATEWAY_TOKEN`.
+5. Open a supported gateway client against `https://<your-railway-domain>` and authenticate using your `CRAWCLAW_GATEWAY_TOKEN`.
 
 ## One-click deploy
 
@@ -30,13 +30,9 @@ Railway will either:
 - give you a generated domain (often `https://<something>.up.railway.app`), or
 - use your custom domain if you attached one.
 
-Then open:
-
-- `https://<your-railway-domain>/crawclaw` — Control UI
-
 ## What you get
 
-- Hosted CrawClaw Gateway + Control UI
+- Hosted CrawClaw Gateway
 - Persistent storage via Railway Volume (`/data`) so config/credentials/workspace survive redeploys
 
 ## Required Railway settings
@@ -64,7 +60,7 @@ Set these variables on the service:
 
 ## Connect a channel
 
-Use the Control UI at `/crawclaw` or run `crawclaw onboard` via Railway's shell for channel setup instructions:
+Run `crawclaw onboard` via Railway's shell for channel setup instructions:
 
 - [Telegram](/channels/telegram) (fastest — just a bot token)
 - [Discord](/channels/discord)

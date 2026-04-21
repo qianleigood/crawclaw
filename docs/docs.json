@@ -373,20 +373,12 @@
       "destination": "/gateway/configuration"
     },
     {
-      "source": "/control-ui",
-      "destination": "/web/control-ui"
-    },
-    {
       "source": "/cron-jobs",
       "destination": "/automation/cron-jobs"
     },
     {
       "source": "/cron-vs-heartbeat",
       "destination": "/automation"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/web/dashboard"
     },
     {
       "source": "/device-models",
@@ -1351,14 +1343,7 @@
               },
               {
                 "group": "Web interfaces",
-                "pages": [
-                  "web/index",
-                  "web/control-ui",
-                  "web/control-ui-ux",
-                  "web/dashboard",
-                  "web/webchat",
-                  "web/tui"
-                ]
+                "pages": ["web/index", "web/webchat", "web/tui"]
               }
             ]
           },
@@ -1433,7 +1418,7 @@
                   },
                   {
                     "group": "Interfaces",
-                    "pages": ["cli/dashboard", "cli/tui"]
+                    "pages": ["cli/tui"]
                   },
                   {
                     "group": "Utility",

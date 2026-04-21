@@ -1,4 +1,3 @@
-import path from "node:path";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js";
 import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
@@ -25,12 +24,6 @@ import { formatConfigIssueLines } from "../config/issue-format.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { clearAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
-import {
-  ensureControlUiAssetsBuilt,
-  isPackageProvenControlUiRootSync,
-  resolveControlUiRootOverrideSync,
-  resolveControlUiRootSync,
-} from "../infra/control-ui-assets.js";
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
 import { logAcceptedEnvOption } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
@@ -86,7 +79,6 @@ import { runSetupWizard } from "../wizard/setup.js";
 import { createAuthRateLimiter, type AuthRateLimiter } from "./auth-rate-limit.js";
 import { startChannelHealthMonitor } from "./channel-health-monitor.js";
 import { startGatewayConfigReloader } from "./config-reload.js";
-import type { ControlUiRootState } from "./control-ui.js";
 import {
   GATEWAY_EVENT_UPDATE_AVAILABLE,
   type GatewayUpdateAvailableEventPayload,
@@ -188,7 +180,6 @@ const logHooks = log.child("hooks");
 const logPlugins = log.child("plugins");
 const logWsControl = log.child("ws");
 const logSecrets = log.child("secrets");
-const gatewayRuntime = runtimeForLogger(log);
 const canvasRuntime = runtimeForLogger(logCanvas);
 
 type AuthRateLimitConfig = Parameters<typeof createAuthRateLimiter>[0];
@@ -642,14 +633,12 @@ export async function startGatewayServer(
   });
   const {
     bindHost,
-    controlUiEnabled,
     openAiChatCompletionsEnabled,
     openAiChatCompletionsConfig,
     openResponsesEnabled,
     openResponsesConfig,
     strictTransportSecurityHeader,
     controlUiBasePath,
-    controlUiRoot: controlUiRootOverride,
     resolvedAuth,
     tailscaleConfig,
     tailscaleMode,
@@ -662,47 +651,6 @@ export async function startGatewayServer(
   const rateLimitConfig = cfgAtStart.gateway?.auth?.rateLimit;
   const { rateLimiter: authRateLimiter, browserRateLimiter: browserAuthRateLimiter } =
     createGatewayAuthRateLimiters(rateLimitConfig);
-
-  let controlUiRootState: ControlUiRootState | undefined;
-  if (controlUiRootOverride) {
-    const resolvedOverride = resolveControlUiRootOverrideSync(controlUiRootOverride);
-    const resolvedOverridePath = path.resolve(controlUiRootOverride);
-    controlUiRootState = resolvedOverride
-      ? { kind: "resolved", path: resolvedOverride }
-      : { kind: "invalid", path: resolvedOverridePath };
-    if (!resolvedOverride) {
-      log.warn(`gateway: controlUi.root not found at ${resolvedOverridePath}`);
-    }
-  } else if (controlUiEnabled) {
-    let resolvedRoot = resolveControlUiRootSync({
-      moduleUrl: import.meta.url,
-      argv1: process.argv[1],
-      cwd: process.cwd(),
-    });
-    if (!resolvedRoot) {
-      const ensureResult = await ensureControlUiAssetsBuilt(gatewayRuntime);
-      if (!ensureResult.ok && ensureResult.message) {
-        log.warn(`gateway: ${ensureResult.message}`);
-      }
-      resolvedRoot = resolveControlUiRootSync({
-        moduleUrl: import.meta.url,
-        argv1: process.argv[1],
-        cwd: process.cwd(),
-      });
-    }
-    controlUiRootState = resolvedRoot
-      ? {
-          kind: isPackageProvenControlUiRootSync(resolvedRoot, {
-            moduleUrl: import.meta.url,
-            argv1: process.argv[1],
-            cwd: process.cwd(),
-          })
-            ? "bundled"
-            : "resolved",
-          path: resolvedRoot,
-        }
-      : { kind: "missing" };
-  }
 
   const wizardRunner = opts.wizardRunner ?? runSetupWizard;
   const { wizardSessions, findRunningWizard, purgeWizardSession } = createWizardSessionTracker();
@@ -754,9 +702,6 @@ export async function startGatewayServer(
     cfg: cfgAtStart,
     bindHost,
     port,
-    controlUiEnabled,
-    controlUiBasePath,
-    controlUiRoot: controlUiRootState,
     openAiChatCompletionsEnabled,
     openAiChatCompletionsConfig,
     openResponsesEnabled,

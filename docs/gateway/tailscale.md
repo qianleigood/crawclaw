@@ -1,15 +1,15 @@
 ---
-summary: "Integrated Tailscale Serve/Funnel for the Gateway dashboard"
+summary: "Integrated Tailscale Serve/Funnel for browser-facing Gateway access"
 read_when:
-  - Exposing the Gateway Control UI outside localhost
-  - Automating tailnet or public dashboard access
+  - Exposing browser-facing Gateway access outside localhost
+  - Automating tailnet or public browser-client access
 title: "Tailscale"
 ---
 
-# Tailscale (Gateway dashboard)
+# Tailscale (Gateway browser access)
 
-CrawClaw can auto-configure Tailscale **Serve** (tailnet) or **Funnel** (public) for the
-Gateway dashboard and WebSocket port. This keeps the Gateway bound to loopback while
+CrawClaw can auto-configure Tailscale **Serve** (tailnet) or **Funnel** (public) for
+browser-facing Gateway access and the WebSocket port. This keeps the Gateway bound to loopback while
 Tailscale provides HTTPS, routing, and (for Serve) identity headers.
 
 ## Modes
@@ -26,7 +26,7 @@ Set `gateway.auth.mode` to control the handshake:
 - `password` (shared secret via `CRAWCLAW_GATEWAY_PASSWORD` or config)
 
 When `tailscale.mode = "serve"` and `gateway.auth.allowTailscale` is `true`,
-Control UI/WebSocket auth can use Tailscale identity headers
+Browser client/WebSocket auth can use Tailscale identity headers
 (`tailscale-user-login`) without supplying a token/password. CrawClaw verifies
 the identity by resolving the `x-forwarded-for` address via the local Tailscale
 daemon (`tailscale whois`) and matching it to the header before accepting it.
@@ -71,7 +71,7 @@ Use this when you want the Gateway to listen directly on the Tailnet IP (no Serv
 
 Connect from another Tailnet device:
 
-- Control UI: `http://<tailscale-ip>:18789/`
+- Browser client: `http://<tailscale-ip>:18789/`
 - WebSocket: `ws://<tailscale-ip>:18789`
 
 Note: loopback (`http://127.0.0.1:18789`) will **not** work in this mode.

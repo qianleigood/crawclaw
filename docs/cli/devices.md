@@ -103,7 +103,7 @@ Pass `--token` or `--password` explicitly. Missing explicit credentials is an er
 
 ## Token drift recovery checklist
 
-Use this when Control UI or other clients keep failing with `AUTH_TOKEN_MISMATCH` or `AUTH_DEVICE_TOKEN_MISMATCH`.
+Use this when a browser client or other client keeps failing with `AUTH_TOKEN_MISMATCH` or `AUTH_DEVICE_TOKEN_MISMATCH`.
 
 1. Confirm current gateway token source:
 
@@ -135,5 +135,4 @@ crawclaw devices approve <requestId>
 
 Related:
 
-- [Dashboard auth troubleshooting](/web/dashboard#if-you-see-unauthorized-1008)
-- [Gateway troubleshooting](/gateway/troubleshooting#dashboard-control-ui-connectivity)
+- [Gateway troubleshooting](/gateway/troubleshooting#browser-client-connectivity)

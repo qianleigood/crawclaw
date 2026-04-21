@@ -107,9 +107,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Build Control UI
-        run: pnpm ui:build
-
       - name: Validate release tag and package metadata
         if: ${{ inputs.preflight_run_id == '' }}
         env:

@@ -2,7 +2,7 @@
 summary: "Run CrawClaw Gateway on exe.dev (VM + HTTPS proxy) for remote access"
 read_when:
   - You want a cheap always-on Linux host for the Gateway
-  - You want remote Control UI access without running your own VPS
+  - You want remote gateway client access without running your own VPS
 title: "exe.dev"
 ---
 
@@ -17,7 +17,7 @@ This page assumes exe.dev's default **exeuntu** image. If you picked a different
 1. [https://exe.new/crawclaw](https://exe.new/crawclaw)
 2. Fill in your auth key/token as needed
 3. Click on "Agent" next to your VM and wait for Shelley to finish provisioning
-4. Open `https://<vm-name>.exe.xyz/` and paste your gateway token to authenticate
+4. Open a supported gateway client against `https://<vm-name>.exe.xyz/` and authenticate with your gateway token
 5. Approve any pending device pairing requests with `crawclaw devices approve <requestId>`
 
 ## What you need
@@ -31,7 +31,7 @@ Shelley, [exe.dev](https://exe.dev)'s agent, can install CrawClaw instantly with
 prompt. The prompt used is as below:
 
 ```
-Set up CrawClaw (https://docs.crawclaw.ai/install) on this VM. Use the non-interactive and accept-risk flags for crawclaw onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "crawclaw devices list" and "crawclaw devices approve <request id>". Make sure the dashboard shows that CrawClaw's health is OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
+Set up CrawClaw (https://docs.crawclaw.ai/install) on this VM. Use the non-interactive and accept-risk flags for crawclaw onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "crawclaw devices list" and "crawclaw devices approve <request id>". Make sure CrawClaw health is OK via `crawclaw health`. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
 ```
 
 ## Manual installation
@@ -103,10 +103,10 @@ server {
 
 ## 5) Access CrawClaw and grant privileges
 
-Access `https://<vm-name>.exe.xyz/` (see the Control UI output from onboarding). If it prompts for auth, paste the
+Access `https://<vm-name>.exe.xyz/` from a supported gateway client. If it prompts for auth, use the
 token from `gateway.auth.token` on the VM (retrieve with `crawclaw config get gateway.auth.token`, or generate one
 with `crawclaw doctor --generate-gateway-token`). Approve devices with `crawclaw devices list` and
-`crawclaw devices approve <requestId>`. When in doubt, use Shelley from your browser!
+`crawclaw devices approve <requestId>`. When in doubt, use Shelley from your browser.
 
 ## Remote Access
 

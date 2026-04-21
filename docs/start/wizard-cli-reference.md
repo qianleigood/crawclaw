@@ -107,8 +107,7 @@ It does not install or modify anything on the remote host.
 </Steps>
 
 <Note>
-If no GUI is detected, the wizard prints SSH port-forward instructions for the Control UI instead of opening a browser.
-If Control UI assets are missing, the wizard attempts to build them; fallback is `pnpm ui:build` (auto-installs UI deps).
+If no GUI is detected, the wizard stays on CLI/TUI-friendly next steps instead of trying to open a browser surface.
 </Note>
 
 ## Remote mode details
@@ -299,7 +298,7 @@ Gateway wizard RPC:
 - `wizard.cancel`
 - `wizard.status`
 
-Clients such as the Control UI can render steps without re-implementing onboarding logic.
+Clients such as WebChat can render steps without re-implementing onboarding logic.
 
 Signal setup behavior:
 

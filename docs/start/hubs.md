@@ -39,7 +39,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 
 - [Architecture](/concepts/architecture)
 - [Features](/concepts/features)
-- [Control-plane RPC](/gateway/control-plane-rpc)
 - [Network hub](/network)
 - [Agent runtime](/concepts/agent)
 - [Agent workspace](/concepts/agent-workspace)
@@ -85,7 +84,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 ## Gateway + operations
 
 - [Gateway runbook](/gateway)
-- [Control-plane RPC](/gateway/control-plane-rpc)
 - [Network model](/gateway/network-model)
 - [Gateway pairing](/gateway/pairing)
 - [Gateway lock](/gateway/gateway-lock)
@@ -95,8 +93,8 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Doctor](/gateway/doctor)
 - [Logging](/gateway/logging)
 - [Sandboxing](/gateway/sandboxing)
-- [Dashboard](/web/dashboard)
-- [Control UI](/web/control-ui)
+- [Web surfaces](/web)
+- [WebChat](/web/webchat)
 - [Remote access](/gateway/remote)
 - [Remote gateway README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)

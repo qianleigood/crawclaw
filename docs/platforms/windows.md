@@ -228,7 +228,6 @@ Follow the Linux Getting Started flow inside WSL:
 git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 pnpm install
-pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 crawclaw onboard
 ```

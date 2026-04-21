@@ -61,14 +61,11 @@ Docker is **optional**. Use it only if you want a containerized gateway or to va
 
   </Step>
 
-  <Step title="Open the Control UI">
-    Open `http://127.0.0.1:18789/` in your browser and paste the token into
-    Settings.
-
-    Need the URL again?
+  <Step title="Use the local interface">
+    Run the terminal interface inside the CLI container:
 
     ```bash
-    docker compose run --rm crawclaw-cli dashboard --no-open
+    docker compose run --rm crawclaw-cli tui
     ```
 
   </Step>
@@ -193,7 +190,7 @@ echo 'source ~/.clawdock/clawdock-helpers.sh' >> ~/.zshrc && source ~/.zshrc
 
 If you installed ClawDock from the older `scripts/shell-helpers/clawdock-helpers.sh` raw path, rerun the install command above so your local helper file tracks the new location.
 
-Then use `clawdock-start`, `clawdock-stop`, `clawdock-dashboard`, etc. Run
+Then use `clawdock-start`, `clawdock-stop`, `clawdock-logs`, etc. Run
 `clawdock-help` for all commands.
 See [ClawDock](/install/clawdock) for the full helper guide.
 
@@ -256,13 +253,10 @@ See [ClawDock](/install/clawdock) for the full helper guide.
     RUN corepack enable
     WORKDIR /app
     COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-    COPY ui/package.json ./ui/package.json
     COPY scripts ./scripts
     RUN pnpm install --frozen-lockfile
     COPY . .
     RUN pnpm build
-    RUN pnpm ui:install
-    RUN pnpm ui:build
     ENV NODE_ENV=production
     CMD ["node","dist/index.js"]
     ```
@@ -370,16 +364,15 @@ scripts/sandbox-setup.sh
     The VM needs at least 2 GB RAM. Use a larger machine class and retry.
   </Accordion>
 
-  <Accordion title="Unauthorized or pairing required in Control UI">
-    Fetch a fresh dashboard link and approve the browser device:
+  <Accordion title="Unauthorized or pairing required in a browser client">
+    Approve the browser device if a browser-based client requests pairing:
 
     ```bash
-    docker compose run --rm crawclaw-cli dashboard --no-open
     docker compose run --rm crawclaw-cli devices list
     docker compose run --rm crawclaw-cli devices approve <requestId>
     ```
 
-    More detail: [Dashboard](/web/dashboard), [Devices](/cli/devices).
+    More detail: [Devices](/cli/devices).
 
   </Accordion>
 

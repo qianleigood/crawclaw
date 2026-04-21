@@ -135,7 +135,7 @@ export function registerOnboardCommand(program: Command) {
     .option("--skip-skills", "Skip skills setup")
     .option("--skip-search", "Skip search provider setup")
     .option("--skip-health", "Skip health check")
-    .option("--skip-ui", "Skip Control UI/TUI prompts")
+    .option("--skip-ui", "Skip TUI/client prompts")
     .option("--output-preset <preset>", "Default output presentation: quiet|balanced|operator")
     .option("--node-manager <name>", "Node manager for skills: npm|pnpm|bun")
     .option("--json", "Output JSON summary", false);

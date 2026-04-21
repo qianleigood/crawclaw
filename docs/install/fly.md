@@ -22,7 +22,7 @@ read_when:
 1. Clone repo → customize `fly.toml`
 2. Create app + volume → set secrets
 3. Deploy with `fly deploy`
-4. SSH in to create config or use Control UI
+4. SSH in to create config or use another gateway client
 
 <Steps>
   <Step title="Create the Fly app">
@@ -219,7 +219,7 @@ read_when:
   </Step>
 
   <Step title="Access the Gateway">
-    ### Control UI
+    ### Browser client access
 
     Open in browser:
 
@@ -470,12 +470,12 @@ The ngrok tunnel runs inside the container and provides a public webhook URL wit
 
 ### Security benefits
 
-| Aspect            | Public       | Private    |
-| ----------------- | ------------ | ---------- |
-| Internet scanners | Discoverable | Hidden     |
-| Direct attacks    | Possible     | Blocked    |
-| Control UI access | Browser      | Proxy/VPN  |
-| Webhook delivery  | Direct       | Via tunnel |
+| Aspect                | Public       | Private    |
+| --------------------- | ------------ | ---------- |
+| Internet scanners     | Discoverable | Hidden     |
+| Direct attacks        | Possible     | Blocked    |
+| Browser client access | Browser      | Proxy/VPN  |
+| Webhook delivery      | Direct       | Via tunnel |
 
 ## Notes
 

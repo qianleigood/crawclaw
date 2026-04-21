@@ -162,7 +162,7 @@ Control soft block chunking with `agents.defaults.blockStreamingChunk` (defaults
 Coalesce streamed chunks with `agents.defaults.blockStreamingCoalesce` to reduce
 single-line spam (idle-based merging before send). Non-Telegram channels require
 explicit `*.blockStreaming: true` to enable block replies.
-Verbose tool summaries are emitted at tool start (no debounce); Control UI
+Verbose tool summaries are emitted at tool start (no debounce); browser clients
 streams tool output via agent events when available.
 More details: [Streaming + chunking](/concepts/streaming).
 

@@ -160,7 +160,6 @@ import {
   assembleAttemptMemoryRuntime,
   finalizeAttemptMemoryRuntimeTurn,
   runAttemptMemoryRuntimeBootstrap,
-  startAttemptMemoryRuntimeDurableRecallPrefetch,
 } from "./attempt.memory-runtime-helpers.js";
 import { wrapStreamFnConvertMinimaxXmlToolCalls } from "./attempt.minimax-tool-call-xml.js";
 import {
@@ -1796,19 +1795,10 @@ export async function runEmbeddedAttempt(
           policy: transcriptPolicy,
         });
         cacheTrace?.recordStage("session:sanitized", { messages: prior });
-        const assembleRuntimeContext = await startAttemptMemoryRuntimeDurableRecallPrefetch({
-          memoryRuntime: params.memoryRuntime,
-          sessionId: params.sessionId,
-          sessionKey: params.sessionKey,
-          messages: prior,
-          modelId: params.modelId,
-          ...(params.prompt !== undefined ? { prompt: params.prompt } : {}),
-          runtimeContext: buildAfterTurnRuntimeContext({
-            attempt: { ...params, surfacedSkillNames },
-            workspaceDir: effectiveWorkspace,
-            agentDir,
-          }),
-          warn: (message) => log.warn(message),
+        const assembleRuntimeContext = buildAfterTurnRuntimeContext({
+          attempt: { ...params, surfacedSkillNames },
+          workspaceDir: effectiveWorkspace,
+          agentDir,
         });
         const validated = await validateReplayTurns({
           messages: prior,

@@ -135,8 +135,7 @@ x-i18n:
 </Steps>
 
 <Note>
-如果未检测到 GUI，向导会打印用于访问 Control UI 的 SSH 端口转发说明，而不是打开浏览器。
-如果缺少 Control UI 资源，向导会尝试构建它们；回退方式是 `pnpm ui:build`（会自动安装 UI 依赖）。
+如果未检测到 GUI，向导会打印用于远程访问 Gateway 网关的 SSH 端口转发说明，而不是打开浏览器。
 </Note>
 
 ## 非交互模式
@@ -191,7 +190,7 @@ crawclaw agents add work \
 ## Gateway 网关向导 RPC
 
 Gateway 网关通过 RPC 暴露向导流程（`wizard.start`、`wizard.next`、`wizard.cancel`、`wizard.status`）。
-客户端（macOS 应用、Control UI）可以渲染这些步骤，而无需重新实现新手引导逻辑。
+客户端（如 macOS 应用、WebChat）可以渲染这些步骤，而无需重新实现新手引导逻辑。
 
 ## Signal 设置（signal-cli）
 

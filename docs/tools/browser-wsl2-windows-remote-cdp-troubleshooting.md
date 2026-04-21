@@ -38,7 +38,7 @@ For WSL2 Gateway + Windows Chrome, prefer raw remote CDP. Managed PinchTab profi
 Reference shape:
 
 - WSL2 runs the Gateway on `127.0.0.1:18789`
-- Windows opens the Control UI in a normal browser at `http://127.0.0.1:18789/`
+- Windows opens a browser-facing gateway client at `http://127.0.0.1:18789/`
 - Windows Chrome exposes a CDP endpoint on port `9222`
 - WSL2 can reach that Windows CDP endpoint
 - CrawClaw points a browser profile at the address that is reachable from WSL2
@@ -48,14 +48,14 @@ Reference shape:
 Several failures can overlap:
 
 - WSL2 cannot reach the Windows CDP endpoint
-- the Control UI is opened from a non-secure origin
+- the browser-facing client is opened from a non-secure origin
 - `gateway.controlUi.allowedOrigins` does not match the page origin
 - token or pairing is missing
 - the browser profile points at the wrong address
 
 Because of that, fixing one layer can still leave a different error visible.
 
-## Critical rule for the Control UI
+## Critical rule for browser-facing clients
 
 When the UI is opened from Windows, use Windows localhost unless you have a deliberate HTTPS setup.
 
@@ -63,7 +63,7 @@ Use:
 
 `http://127.0.0.1:18789/`
 
-Do not default to a LAN IP for the Control UI. Plain HTTP on a LAN or tailnet address can trigger insecure-origin/device-auth behavior that is unrelated to CDP itself. See [Control UI](/web/control-ui).
+Do not default to a LAN IP for browser-based gateway clients. Plain HTTP on a LAN or tailnet address can trigger insecure-origin/device-auth behavior that is unrelated to CDP itself. See [Web surfaces](/web).
 
 ## Validate in layers
 
@@ -132,7 +132,7 @@ Notes:
 - use the WSL2-reachable address, not whatever only works on Windows
 - test the same URL with `curl` before expecting CrawClaw to succeed
 
-### Layer 4: Verify the Control UI layer separately
+### Layer 4: Verify the browser-client layer separately
 
 Open the UI from Windows:
 
@@ -142,11 +142,11 @@ Then verify:
 
 - the page origin matches what `gateway.controlUi.allowedOrigins` expects
 - token auth or pairing is configured correctly
-- you are not debugging a Control UI auth problem as if it were a browser problem
+- you are not debugging a browser-client auth problem as if it were a browser problem
 
 Helpful page:
 
-- [Control UI](/web/control-ui)
+- [Web surfaces](/web)
 
 ### Layer 5: Verify end-to-end browser control
 
@@ -183,15 +183,15 @@ Treat each message as a layer-specific clue:
 1. Windows: does `curl http://127.0.0.1:9222/json/version` work?
 2. WSL2: does `curl http://WINDOWS_HOST_OR_IP:9222/json/version` work?
 3. CrawClaw config: does `browser.profiles.<name>.cdpUrl` use that exact WSL2-reachable address?
-4. Control UI: are you opening `http://127.0.0.1:18789/` instead of a LAN IP?
+4. Browser client: are you opening `http://127.0.0.1:18789/` instead of a LAN IP?
 5. Are you using a remote CDP profile instead of trying to treat Windows Chrome as a host-local browser?
 
 ## Practical takeaway
 
-The setup is usually viable. The hard part is that browser transport, Control UI origin security, and token/pairing can each fail independently while looking similar from the user side.
+The setup is usually viable. The hard part is that browser transport, browser-client origin security, and token/pairing can each fail independently while looking similar from the user side.
 
 When in doubt:
 
 - verify the Windows Chrome endpoint locally first
 - verify the same endpoint from WSL2 second
-- only then debug CrawClaw config or Control UI auth
+- only then debug CrawClaw config or browser-client auth

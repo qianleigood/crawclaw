@@ -276,9 +276,6 @@ export function formatSkillInfo(
       lines.push(`  Get your key: ${safeHomepage}`);
     }
     lines.push(
-      `  Save via UI: ${theme.muted("Control UI → Skills → ")}${safeName}${theme.muted(" → Save key")}`,
-    );
-    lines.push(
       `  Save via CLI: ${formatCliCommand(`crawclaw config set skills.entries.${safeSkillKey}.apiKey YOUR_KEY`)}`,
     );
     lines.push(

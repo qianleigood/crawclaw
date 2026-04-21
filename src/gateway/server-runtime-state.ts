@@ -16,7 +16,6 @@ import type { RuntimeEnv } from "../runtime.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
 import type { ChatAbortControllerEntry } from "./chat-abort.js";
-import type { ControlUiRootState } from "./control-ui.js";
 import type { HooksConfigResolved } from "./hooks.js";
 import { isLoopbackHost, resolveGatewayListenHosts } from "./net.js";
 import {
@@ -55,9 +54,6 @@ export async function createGatewayRuntimeState(params: {
   cfg: import("../config/config.js").CrawClawConfig;
   bindHost: string;
   port: number;
-  controlUiEnabled: boolean;
-  controlUiBasePath: string;
-  controlUiRoot?: ControlUiRootState;
   openAiChatCompletionsEnabled: boolean;
   openAiChatCompletionsConfig?: import("../config/types.gateway.js").GatewayHttpChatCompletionsConfig;
   openResponsesEnabled: boolean;
@@ -176,9 +172,6 @@ export async function createGatewayRuntimeState(params: {
       const httpServer = createGatewayHttpServer({
         canvasHost,
         clients,
-        controlUiEnabled: params.controlUiEnabled,
-        controlUiBasePath: params.controlUiBasePath,
-        controlUiRoot: params.controlUiRoot,
         openAiChatCompletionsEnabled: params.openAiChatCompletionsEnabled,
         openAiChatCompletionsConfig: params.openAiChatCompletionsConfig,
         openResponsesEnabled: params.openResponsesEnabled,

@@ -33,16 +33,15 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 - [Workspace templates](/reference/templates/AGENTS)
 - [RPC adapters](/reference/rpc)
 - [Gateway runbook](/gateway)
-- [Control-plane RPC](/gateway/control-plane-rpc)
 - [Nodes (iOS and Android)](/nodes)
-- [Web surfaces (Control UI)](/web)
+- [Web surfaces](/web)
 - [Discovery and transports](/gateway/discovery)
 - [Remote access](/gateway/remote)
 
 ## Providers and UX
 
 - [WebChat](/web/webchat)
-- [Control UI (browser)](/web/control-ui)
+- [WebChat](/web/webchat)
 - [Telegram](/channels/telegram)
 - [Discord](/channels/discord)
 - [Mattermost (plugin)](/channels/mattermost)

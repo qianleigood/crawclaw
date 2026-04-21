@@ -18,8 +18,7 @@ x-i18n:
 目標：ゼロから最小限のセットアップで最初の動作するチャットを実現する。
 
 <Info>
-最速のチャット方法：Control UIを開く（チャンネル設定は不要）。`crawclaw dashboard`を実行してブラウザでチャットするか、<Tooltip headline="Gatewayホスト" tip="CrawClaw Gatewayサービスを実行しているマシン。">Gatewayホスト</Tooltip>で`http://127.0.0.1:18789/`を開きます。
-ドキュメント：[Dashboard](/web/dashboard)と[Control UI](/web/control-ui)。
+最速のチャット方法：`crawclaw tui`を実行するか、残っているWebChat/ブラウザクライアントを使います（チャンネル設定は不要）。ドキュメント：[Webサーフェス](/web)。
 </Info>
 
 ## 前提条件
@@ -69,15 +68,15 @@ x-i18n:
     ```
 
   </Step>
-  <Step title="Control UIを開く">
+  <Step title="ローカルUIを開く">
     ```bash
-    crawclaw dashboard
+    crawclaw tui
     ```
   </Step>
 </Steps>
 
 <Check>
-Control UIが読み込まれれば、Gatewayは使用可能な状態です。
+`crawclaw tui` が開くか、Webクライアントが接続できれば、Gatewayは使用可能です。
 </Check>
 
 ## オプションの確認と追加機能
@@ -116,7 +115,7 @@ Control UIが読み込まれれば、Gatewayは使用可能な状態です。
 
 - 実行中のGateway
 - 構成済みの認証
-- Control UIアクセスまたは接続済みのチャンネル
+- `crawclaw tui` へのアクセスまたは接続済みのチャンネル
 
 ## 次のステップ
 

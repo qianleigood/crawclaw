@@ -14,7 +14,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const srcRoot = path.join(repoRoot, "src");
 const extensionsRoot = path.join(repoRoot, BUNDLED_PLUGIN_ROOT_DIR);
 const testRoot = path.join(repoRoot, "test");
-const workspacePackagePaths = ["ui/package.json"];
+const workspacePackagePaths = [];
 const MAX_SCAN_BYTES = 2 * 1024 * 1024;
 const compareStrings = (left, right) => left.localeCompare(right);
 export const HELP_TEXT = `Usage: node scripts/audit-seams.mjs [--help]
@@ -417,14 +417,6 @@ function buildOptionalClusterStaticLeaks(inventory) {
 }
 
 function packageClusterMeta(relativePackagePath) {
-  if (relativePackagePath === "ui/package.json") {
-    return {
-      cluster: "ui",
-      packageName: "crawclaw-control-ui",
-      packagePath: relativePackagePath,
-      reachability: "workspace-ui",
-    };
-  }
   const cluster = relativePackagePath.split("/")[1];
   return {
     cluster,

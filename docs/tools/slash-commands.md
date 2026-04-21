@@ -180,7 +180,7 @@ this conversation**.
 - `/tools` includes tools that are actually reachable at runtime, including core tools, connected
   plugin tools, and channel-owned tools.
 
-For profile and override editing, use the Control UI Tools panel or config/catalog surfaces instead
+For profile and override editing, use config/catalog surfaces instead
 of treating `/tools` as a static catalog.
 
 ## `/verify`

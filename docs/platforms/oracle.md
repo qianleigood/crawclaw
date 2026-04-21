@@ -109,13 +109,13 @@ When prompted "How do you want to hatch your bot?", select **"Do this later"**.
 
 ## 6) Configure Gateway (loopback + token auth) and enable Tailscale Serve
 
-Use token auth as the default. It’s predictable and avoids needing any “insecure auth” Control UI flags.
+Use token auth as the default. It’s predictable and avoids needing any insecure browser-client auth flags.
 
 ```bash
 # Keep the Gateway private on the VM
 crawclaw config set gateway.bind loopback
 
-# Require auth for the Gateway + Control UI
+# Require auth for the Gateway and browser clients
 crawclaw config set gateway.auth.mode token
 crawclaw doctor --generate-gateway-token
 
@@ -158,7 +158,7 @@ This blocks SSH on port 22, HTTP, HTTPS, and everything else at the network edge
 
 ---
 
-## Access the Control UI
+## Access the Gateway
 
 From any device on your Tailscale network:
 
@@ -256,7 +256,7 @@ crawclaw doctor --non-interactive
 journalctl --user -u crawclaw-gateway -n 50
 ```
 
-### Cannot reach Control UI
+### Cannot reach browser client
 
 ```bash
 # Verify Tailscale Serve is running

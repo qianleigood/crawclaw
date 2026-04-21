@@ -6,7 +6,6 @@ large-scale moves.
 The short version:
 
 - `src/` is the product runtime
-- `ui/` is the web interface layer
 - `extensions/` is the capability ecosystem
 - `packages/` contains support packages that do not fit the main runtime tree
 - `docs/` contains both product docs and maintainer-facing design material
@@ -22,7 +21,7 @@ The main product lives under `src/`.
 
 Primary domains:
 
-- `src/gateway`: control plane, auth, protocol, server methods, control UI integration
+- `src/gateway`: control plane, auth, protocol, server methods, and gateway services
 - `src/agents`: agent runtime, tool registration, providers, subagents, sandbox execution
 - `src/memory`: memory ingest, storage, retrieval, orchestration, compaction
 - `src/workflows`: workflow registry, compilation, n8n bridge, execution sync
@@ -40,14 +39,6 @@ Top-level maintainer entry points inside `src/`:
 - `src/memory/README.md`
 - `src/workflows/README.md`
 - `src/infra/README.md`
-
-## Interface Layer
-
-`ui/` is the browser-based Control UI.
-
-- It is its own workspace package.
-- It talks to the gateway through a single client abstraction.
-- It should be treated as the interface layer, not as a random subfolder under the repo root.
 
 ## Capability Ecosystem
 
@@ -135,7 +126,7 @@ under an explicit umbrella such as `apps/` or `experiments/`.
 
 - It exists because the published npm package and some release paths require it.
 - It should not be used to explain the source architecture.
-- If you are trying to understand how the system works, start from `src/`, `ui/`,
+- If you are trying to understand how the system works, start from `src/`,
   `extensions/`, and `docs/`, not `dist/`.
 
 ## Current Cleanup Direction

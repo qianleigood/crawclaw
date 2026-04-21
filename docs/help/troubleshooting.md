@@ -71,7 +71,7 @@ Reference: [Plugin architecture](/plugins/architecture)
 flowchart TD
   A[CrawClaw is not working] --> B{What breaks first}
   B --> C[No replies]
-  B --> D[Dashboard or Control UI will not connect]
+  B --> D[Browser client will not connect]
   B --> E[Gateway will not start or service not running]
   B --> F[Channel connects but messages do not flow]
   B --> G[Cron or heartbeat did not fire or did not deliver]
@@ -79,7 +79,7 @@ flowchart TD
   B --> I[Browser tool fails]
 
   C --> C1[/No replies section/]
-  D --> D1[/Control UI section/]
+  D --> D1[/Browser client section/]
   E --> E1[/Gateway section/]
   F --> F1[/Channel flow section/]
   G --> G1[/Automation section/]
@@ -118,7 +118,7 @@ flowchart TD
 
   </Accordion>
 
-  <Accordion title="Dashboard or Control UI will not connect">
+  <Accordion title="Browser client will not connect">
     ```bash
     crawclaw status
     crawclaw gateway status
@@ -129,7 +129,7 @@ flowchart TD
 
     Good output looks like:
 
-    - `Dashboard: http://...` is shown in `crawclaw gateway status`
+    - A reachable client target is shown in your chosen access path
     - `RPC probe: ok`
     - No auth loop in logs
 
@@ -138,12 +138,11 @@ flowchart TD
     - `device identity required` → HTTP/non-secure context cannot complete device auth.
     - `AUTH_TOKEN_MISMATCH` with retry hints (`canRetryWithDeviceToken=true`) → one trusted device-token retry may occur automatically.
     - repeated `unauthorized` after that retry → wrong token/password, auth mode mismatch, or stale paired device token.
-    - `gateway connect failed:` → UI is targeting the wrong URL/port or unreachable gateway.
+    - `gateway connect failed:` → client is targeting the wrong URL/port or an unreachable gateway.
 
     Deep pages:
 
-    - [/gateway/troubleshooting#dashboard-control-ui-connectivity](/gateway/troubleshooting#dashboard-control-ui-connectivity)
-    - [/web/control-ui](/web/control-ui)
+    - [/gateway/troubleshooting#browser-client-connectivity](/gateway/troubleshooting#browser-client-connectivity)
     - [/gateway/authentication](/gateway/authentication)
 
   </Accordion>

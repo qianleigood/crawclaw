@@ -236,7 +236,7 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 - **Local** connects include loopback and the gateway host’s own tailnet address
   (so same‑host tailnet binds can still auto‑approve).
 - All WS clients must include `device` identity during `connect` (operator + node).
-  Control UI can omit it only in these modes:
+  Browser-facing clients can omit it only in these modes:
   - `gateway.controlUi.allowInsecureAuth=true` for localhost-only insecure HTTP compatibility.
   - `gateway.controlUi.dangerouslyDisableDeviceAuth=true` (break-glass, severe security downgrade).
 - All connections must sign the server-provided `connect.challenge` nonce.

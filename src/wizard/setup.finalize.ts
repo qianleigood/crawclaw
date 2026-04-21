@@ -14,9 +14,6 @@ import { resolveGatewayInstallToken } from "../commands/gateway-install-token.js
 import { formatHealthCheckFailure } from "../commands/health-format.js";
 import { healthCommand } from "../commands/health.js";
 import {
-  detectBrowserOpenSupport,
-  formatControlUiSshHint,
-  openUrl,
   probeGatewayReachable,
   waitForGatewayReachable,
   resolveControlUiLinks,
@@ -25,7 +22,6 @@ import type { OnboardOptions } from "../commands/onboard-types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { describeGatewayServiceRestart, resolveGatewayService } from "../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
-import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { restoreTerminalState } from "../terminal/restore.js";
 import { runTui } from "../tui/tui.js";
@@ -290,15 +286,6 @@ export async function finalizeSetupWizard(
     runtime,
   });
 
-  const controlUiEnabled =
-    nextConfig.gateway?.controlUi?.enabled ?? baseConfig.gateway?.controlUi?.enabled ?? true;
-  if (!opts.skipUi && controlUiEnabled) {
-    const controlUiAssets = await ensureControlUiAssetsBuilt(runtime);
-    if (!controlUiAssets.ok && controlUiAssets.message) {
-      runtime.error(controlUiAssets.message);
-    }
-  }
-
   await prompter.note(
     [
       "Add nodes for extra features:",
@@ -308,18 +295,12 @@ export async function finalizeSetupWizard(
     "Optional nodes",
   );
 
-  const controlUiBasePath =
-    nextConfig.gateway?.controlUi?.basePath ?? baseConfig.gateway?.controlUi?.basePath;
   const links = resolveControlUiLinks({
     bind: settings.bind,
     port: settings.port,
     customBindHost: settings.customBindHost,
-    basePath: controlUiBasePath,
+    basePath: nextConfig.gateway?.controlUi?.basePath ?? baseConfig.gateway?.controlUi?.basePath,
   });
-  const authedUrl =
-    settings.authMode === "token" && settings.gatewayToken
-      ? `${links.httpUrl}#token=${encodeURIComponent(settings.gatewayToken)}`
-      : links.httpUrl;
   let resolvedGatewayPassword = "";
   if (settings.authMode === "password") {
     try {
@@ -360,25 +341,9 @@ export async function finalizeSetupWizard(
     .then(() => true)
     .catch(() => false);
 
-  await prompter.note(
-    [
-      `Web UI: ${links.httpUrl}`,
-      settings.authMode === "token" && settings.gatewayToken
-        ? `Web UI (with token): ${authedUrl}`
-        : undefined,
-      `Gateway WS: ${links.wsUrl}`,
-      gatewayStatusLine,
-      "Docs: https://docs.crawclaw.ai/web/control-ui",
-    ]
-      .filter(Boolean)
-      .join("\n"),
-    "Control UI",
-  );
+  await prompter.note([`Gateway WS: ${links.wsUrl}`, gatewayStatusLine].join("\n"), "Gateway");
 
-  let controlUiOpened = false;
-  let controlUiOpenHint: string | undefined;
-  let seededInBackground = false;
-  let hatchChoice: "tui" | "web" | "later" | null = null;
+  let hatchChoice: "tui" | "later" | null = null;
   let launchedTui = false;
 
   if (!opts.skipUi && gatewayProbe.ok) {
@@ -396,13 +361,10 @@ export async function finalizeSetupWizard(
 
     await prompter.note(
       [
-        "Gateway token: shared auth for the Gateway + Control UI.",
+        "Gateway token: shared auth for the Gateway.",
         "Stored in: $CRAWCLAW_CONFIG_PATH (default: ~/.crawclaw/crawclaw.json) under gateway.auth.token, or in CRAWCLAW_GATEWAY_TOKEN.",
         `View token: ${formatCliCommand("crawclaw config get gateway.auth.token")}`,
         `Generate token: ${formatCliCommand("crawclaw doctor --generate-gateway-token")}`,
-        "Web UI keeps dashboard URL tokens in memory for the current tab and strips them from the URL after load.",
-        `Open the dashboard anytime: ${formatCliCommand("crawclaw dashboard --no-open")}`,
-        "If prompted: paste the token into Control UI settings (or use the tokenized dashboard URL).",
       ].join("\n"),
       "Token",
     );
@@ -411,7 +373,6 @@ export async function finalizeSetupWizard(
       message: "How do you want to hatch your bot?",
       options: [
         { value: "tui", label: "Hatch in TUI (recommended)" },
-        { value: "web", label: "Open the Web UI" },
         { value: "later", label: "Do this later" },
       ],
       initialValue: "tui",
@@ -428,44 +389,11 @@ export async function finalizeSetupWizard(
         message: hasBootstrap ? "Wake up, my friend!" : undefined,
       });
       launchedTui = true;
-    } else if (hatchChoice === "web") {
-      const browserSupport = await detectBrowserOpenSupport();
-      if (browserSupport.ok) {
-        controlUiOpened = await openUrl(authedUrl);
-        if (!controlUiOpened) {
-          controlUiOpenHint = formatControlUiSshHint({
-            port: settings.port,
-            basePath: controlUiBasePath,
-            token: settings.authMode === "token" ? settings.gatewayToken : undefined,
-          });
-        }
-      } else {
-        controlUiOpenHint = formatControlUiSshHint({
-          port: settings.port,
-          basePath: controlUiBasePath,
-          token: settings.authMode === "token" ? settings.gatewayToken : undefined,
-        });
-      }
-      await prompter.note(
-        [
-          `Dashboard link (with token): ${authedUrl}`,
-          controlUiOpened
-            ? "Opened in your browser. Keep that tab to control CrawClaw."
-            : "Copy/paste this URL in a browser on this machine to control CrawClaw.",
-          controlUiOpenHint,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        "Dashboard ready",
-      );
     } else {
-      await prompter.note(
-        `When you're ready: ${formatCliCommand("crawclaw dashboard --no-open")}`,
-        "Later",
-      );
+      await prompter.note(`When you're ready: ${formatCliCommand("crawclaw tui")}`, "Later");
     }
   } else if (opts.skipUi) {
-    await prompter.note("Skipping Control UI/TUI prompts.", "Control UI");
+    await prompter.note("Skipping TUI prompt.", "TUI");
   }
 
   await prompter.note(
@@ -482,45 +410,6 @@ export async function finalizeSetupWizard(
   );
 
   await setupWizardShellCompletion({ flow, prompter });
-
-  const shouldOpenControlUi =
-    !opts.skipUi &&
-    gatewayProbe.ok &&
-    settings.authMode === "token" &&
-    Boolean(settings.gatewayToken) &&
-    hatchChoice === null;
-  if (shouldOpenControlUi) {
-    const browserSupport = await detectBrowserOpenSupport();
-    if (browserSupport.ok) {
-      controlUiOpened = await openUrl(authedUrl);
-      if (!controlUiOpened) {
-        controlUiOpenHint = formatControlUiSshHint({
-          port: settings.port,
-          basePath: controlUiBasePath,
-          token: settings.gatewayToken,
-        });
-      }
-    } else {
-      controlUiOpenHint = formatControlUiSshHint({
-        port: settings.port,
-        basePath: controlUiBasePath,
-        token: settings.gatewayToken,
-      });
-    }
-
-    await prompter.note(
-      [
-        `Dashboard link (with token): ${authedUrl}`,
-        controlUiOpened
-          ? "Opened in your browser. Keep that tab to control CrawClaw."
-          : "Copy/paste this URL in a browser on this machine to control CrawClaw.",
-        controlUiOpenHint,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      "Dashboard ready",
-    );
-  }
 
   const { describeCodexNativeWebSearch } = await import("../agents/codex-native-web-search.js");
   const codexNativeSummary = describeCodexNativeWebSearch(nextConfig);
@@ -642,11 +531,9 @@ export async function finalizeSetupWizard(
   );
 
   await prompter.outro(
-    controlUiOpened
-      ? "Onboarding complete. Dashboard opened; keep that tab to control CrawClaw."
-      : seededInBackground
-        ? "Onboarding complete. Web UI seeded in the background; open it anytime with the dashboard link above."
-        : "Onboarding complete. Use the dashboard link above to control CrawClaw.",
+    launchedTui
+      ? "Onboarding complete. TUI launched for your first session."
+      : "Onboarding complete. Start interacting with CrawClaw from the CLI or TUI.",
   );
 
   return { launchedTui };

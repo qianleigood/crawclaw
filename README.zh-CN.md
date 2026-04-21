@@ -39,11 +39,10 @@ CrawClaw 采用 **Gateway-first** 架构。
 
 从仓库结构看，系统大致分为：
 
-- [src/gateway](/Users/qianlei/crawclaw/src/gateway)：控制面、协议、认证、methods、UI 集成
+- [src/gateway](/Users/qianlei/crawclaw/src/gateway)：控制面、协议、认证、methods、gateway 服务
 - [src/agents](/Users/qianlei/crawclaw/src/agents)：agent runtime、工具注册、sandbox、provider 集成、subagents
 - [src/memory](/Users/qianlei/crawclaw/src/memory)：记忆引擎、提取、持久存储、编排、prompt assembly
 - [src/workflows](/Users/qianlei/crawclaw/src/workflows)：workflow registry、版本管理、n8n 编译与执行桥接
-- [ui](/Users/qianlei/crawclaw/ui)：通过统一 RPC 风格 client 调用 gateway 的 Control UI
 - [extensions](/Users/qianlei/crawclaw/extensions)：为渠道、provider、浏览器后端等提供扩展能力的插件式包
 
 ## 记忆设计
@@ -249,10 +248,10 @@ export CRAWCLAW_IMAGE="ghcr.io/qianleigood/crawclaw:latest"
 ./scripts/docker/setup.sh
 ```
 
-完成后可以打开：
+完成后可以连接 gateway：
 
 ```bash
-http://127.0.0.1:18789/
+crawclaw tui
 ```
 
 手动 Docker 路径：
@@ -275,7 +274,6 @@ curl -fsS http://127.0.0.1:18789/readyz
 - Memory: [src/memory](/Users/qianlei/crawclaw/src/memory)
 - Workflows: [src/workflows](/Users/qianlei/crawclaw/src/workflows)
 - Agent runtime and tools: [src/agents](/Users/qianlei/crawclaw/src/agents)
-- Control UI: [ui](/Users/qianlei/crawclaw/ui)
 - Browser subsystem and plugins: [extensions](/Users/qianlei/crawclaw/extensions)
 
 ## 仓库结构
@@ -283,7 +281,6 @@ curl -fsS http://127.0.0.1:18789/readyz
 这个 monorepo 当前同时承载了几层内容：
 
 - `src/`：运行时主系统
-- `ui/`：界面层
 - `extensions/`：能力扩展生态
 - `packages/`：支持型子包
 - `skills-optional/`：可选技能目录

@@ -15,7 +15,6 @@ RUN --mount=type=cache,id=crawclaw-cleanup-smoke-apt-cache,target=/var/cache/apt
 
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY ui/package.json ./ui/package.json
 COPY packages ./packages
 COPY extensions ./extensions
 COPY patches ./patches

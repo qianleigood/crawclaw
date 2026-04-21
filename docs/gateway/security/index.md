@@ -246,7 +246,7 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `gateway.tools_invoke_http.dangerous_allow`                   | warn/critical | Re-enables dangerous tools over HTTP API                                             | `gateway.tools.allow`                                                                                | no       |
 | `gateway.nodes.allow_commands_dangerous`                      | warn/critical | Enables high-impact node commands (camera/screen/contacts/calendar/SMS)              | `gateway.nodes.allowCommands`                                                                        | no       |
 | `gateway.tailscale_funnel`                                    | critical      | Public internet exposure                                                             | `gateway.tailscale.mode`                                                                             | no       |
-| `gateway.control_ui.allowed_origins_required`                 | critical      | Non-loopback Control UI without explicit browser-origin allowlist                    | `gateway.controlUi.allowedOrigins`                                                                   | no       |
+| `gateway.control_ui.allowed_origins_required`                 | critical      | Non-loopback browser client access without explicit browser-origin allowlist         | `gateway.controlUi.allowedOrigins`                                                                   | no       |
 | `gateway.control_ui.host_header_origin_fallback`              | warn/critical | Enables Host-header origin fallback (DNS rebinding hardening downgrade)              | `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback`                                         | no       |
 | `gateway.control_ui.insecure_auth`                            | warn          | Insecure-auth compatibility toggle enabled                                           | `gateway.controlUi.allowInsecureAuth`                                                                | no       |
 | `gateway.control_ui.device_auth_disabled`                     | critical      | Disables device identity check                                                       | `gateway.controlUi.dangerouslyDisableDeviceAuth`                                                     | no       |
@@ -278,12 +278,12 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `plugins.tools_reachable_permissive_policy`                   | warn          | Extension tools reachable in permissive contexts                                     | `tools.profile` + tool allow/deny                                                                    | no       |
 | `models.small_params`                                         | critical/info | Small models + unsafe tool surfaces raise injection risk                             | model choice + sandbox/tool policy                                                                   | no       |
 
-## Control UI over HTTP
+## Browser clients over HTTP
 
-The Control UI needs a **secure context** (HTTPS or localhost) to generate device
+Browser clients need a **secure context** (HTTPS or localhost) to generate device
 identity. `gateway.controlUi.allowInsecureAuth` is a local compatibility toggle:
 
-- On localhost, it allows Control UI auth without device identity when the page
+- On localhost, it allows browser-client auth without device identity when the page
   is loaded over non-secure HTTP.
 - It does not bypass pairing checks.
 - It does not relax remote (non-localhost) device identity requirements.
@@ -375,7 +375,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 - CrawClaw gateway is local/loopback first. If you terminate TLS at a reverse proxy, set HSTS on the proxy-facing HTTPS domain there.
 - If the gateway itself terminates HTTPS, you can set `gateway.http.securityHeaders.strictTransportSecurity` to emit the HSTS header from CrawClaw responses.
 - Detailed deployment guidance is in [Trusted Proxy Auth](/gateway/trusted-proxy-auth#tls-termination-and-hsts).
-- For non-loopback Control UI deployments, `gateway.controlUi.allowedOrigins` is required by default.
+- For non-loopback browser-client deployments, `gateway.controlUi.allowedOrigins` is required by default.
 - `gateway.controlUi.allowedOrigins: ["*"]` is an explicit allow-all browser-origin policy, not a hardened default. Avoid it outside tightly controlled local testing.
 - `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true` enables Host-header origin fallback mode; treat it as a dangerous operator-selected policy.
 - Treat DNS rebinding and proxy-host header behavior as deployment hardening concerns; keep `trustedProxies` tight and avoid exposing the gateway directly to the public internet.
@@ -657,9 +657,9 @@ The Gateway multiplexes **WebSocket + HTTP** on a single port:
 - Default: `18789`
 - Config/flags/env: `gateway.port`, `--port`, `CRAWCLAW_GATEWAY_PORT`
 
-This HTTP surface includes the Control UI and the canvas host:
+This HTTP surface includes browser-facing gateway clients and the canvas host:
 
-- Control UI (SPA assets) (default base path `/`)
+- Browser-facing client surface (default base path `/`)
 - Canvas host: `/__crawclaw__/canvas/` and `/__crawclaw__/a2ui/` (arbitrary HTML/JS; treat as untrusted content)
 
 If you load canvas content in a normal browser, treat it like any other untrusted web page:

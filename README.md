@@ -46,15 +46,13 @@ CrawClaw is built around a **Gateway-first architecture**.
 At the repository level, the system is split roughly like this:
 
 - [src/gateway](/Users/qianlei/crawclaw/src/gateway): control plane, protocol,
-  auth, methods, UI integration
+  auth, methods, gateway services
 - [src/agents](/Users/qianlei/crawclaw/src/agents): agent runtime, tool
   registration, sandboxing, provider integration, subagents
 - [src/memory](/Users/qianlei/crawclaw/src/memory): memory engine, extraction,
   durable storage, orchestration, prompt assembly
 - [src/workflows](/Users/qianlei/crawclaw/src/workflows): workflow registry,
   versioning, n8n compilation and execution bridge
-- [ui](/Users/qianlei/crawclaw/ui): Control UI that talks to the gateway over a
-  single RPC-style client
 - [extensions](/Users/qianlei/crawclaw/extensions): plugin-style capability
   packages for channels, providers, browser backends, and more
 
@@ -285,10 +283,10 @@ export CRAWCLAW_IMAGE="ghcr.io/qianleigood/crawclaw:latest"
 ./scripts/docker/setup.sh
 ```
 
-Open the Control UI after setup:
+Connect to the gateway after setup:
 
 ```bash
-http://127.0.0.1:18789/
+crawclaw tui
 ```
 
 Manual Docker path:
@@ -311,7 +309,6 @@ curl -fsS http://127.0.0.1:18789/readyz
 - Memory: [src/memory](/Users/qianlei/crawclaw/src/memory)
 - Workflows: [src/workflows](/Users/qianlei/crawclaw/src/workflows)
 - Agent runtime and tools: [src/agents](/Users/qianlei/crawclaw/src/agents)
-- Control UI: [ui](/Users/qianlei/crawclaw/ui)
 - Browser subsystem and plugins: [extensions](/Users/qianlei/crawclaw/extensions)
 
 ## Repository Layout
@@ -319,7 +316,6 @@ curl -fsS http://127.0.0.1:18789/readyz
 The monorepo currently carries several layers at once:
 
 - runtime core in `src/`
-- interface code in `ui/`
 - capability ecosystem packages in `extensions/`
 - support packages in `packages/`
 - optional skill catalog content in `skills-optional/`

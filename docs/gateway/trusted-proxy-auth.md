@@ -36,15 +36,15 @@ Use `trusted-proxy` auth mode when:
 4. CrawClaw extracts the user identity from the configured header
 5. If everything checks out, the request is authorized
 
-## Control UI Pairing Behavior
+## Browser client pairing behavior
 
 When `gateway.auth.mode = "trusted-proxy"` is active and the request passes
-trusted-proxy checks, Control UI WebSocket sessions can connect without device
-pairing identity.
+trusted-proxy checks, browser-client WebSocket sessions can connect without
+device pairing identity.
 
 Implications:
 
-- Pairing is no longer the primary gate for Control UI access in this mode.
+- Pairing is no longer the primary gate for browser-client access in this mode.
 - Your reverse proxy auth policy and `allowUsers` become the effective access control.
 - Keep gateway ingress locked to trusted proxy IPs only (`gateway.trustedProxies` + firewall).
 
@@ -331,7 +331,7 @@ If you're moving from token auth to trusted-proxy:
 2. Test the proxy setup independently (curl with headers)
 3. Update CrawClaw config with trusted-proxy auth
 4. Restart the Gateway
-5. Test WebSocket connections from the Control UI
+5. Test WebSocket connections from a browser-facing client
 6. Run `crawclaw security audit` and review findings
 
 ## Related

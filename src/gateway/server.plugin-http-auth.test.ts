@@ -63,16 +63,7 @@ function createMattermostCallbackConfig(callbackPath: string) {
   };
 }
 
-function createRootMountedControlUiOverrides(handlePluginRequest: PluginRequestHandler) {
-  return {
-    controlUiEnabled: true,
-    controlUiBasePath: "",
-    controlUiRoot: { kind: "missing" as const },
-    handlePluginRequest,
-  };
-}
-
-const withRootMountedControlUiServer = (params: {
+const withRootMountedPluginServer = (params: {
   prefix: string;
   handlePluginRequest: PluginRequestHandler;
   run: Parameters<typeof withGatewayServer>[0]["run"];
@@ -80,7 +71,7 @@ const withRootMountedControlUiServer = (params: {
   withPluginGatewayServer({
     prefix: params.prefix,
     resolvedAuth: AUTH_NONE,
-    overrides: createRootMountedControlUiOverrides(params.handlePluginRequest),
+    overrides: { handlePluginRequest: params.handlePluginRequest },
     run: params.run,
   });
 
@@ -419,7 +410,7 @@ describe("gateway plugin HTTP auth boundary", () => {
       return false;
     });
 
-    await withRootMountedControlUiServer({
+    await withRootMountedPluginServer({
       prefix: "crawclaw-plugin-http-control-ui-precedence-test-",
       handlePluginRequest,
       run: async (server) => {
@@ -446,7 +437,7 @@ describe("gateway plugin HTTP auth boundary", () => {
       return true;
     });
 
-    await withRootMountedControlUiServer({
+    await withRootMountedPluginServer({
       prefix: "crawclaw-plugin-http-control-ui-webhook-post-test-",
       handlePluginRequest,
       run: async (server) => {
@@ -474,7 +465,7 @@ describe("gateway plugin HTTP auth boundary", () => {
       return false;
     });
 
-    await withRootMountedControlUiServer({
+    await withRootMountedPluginServer({
       prefix: "crawclaw-plugin-http-control-ui-shadow-test-",
       handlePluginRequest,
       run: async (server) => {
@@ -487,18 +478,17 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("unmatched plugin paths fall through to control ui", async () => {
+  test("unmatched plugin paths fall through to the default HTTP not-found path", async () => {
     const handlePluginRequest = vi.fn(async () => false);
 
-    await withRootMountedControlUiServer({
+    await withRootMountedPluginServer({
       prefix: "crawclaw-plugin-http-control-ui-fallthrough-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, { path: "/chat" });
 
         expect(handlePluginRequest).toHaveBeenCalledTimes(1);
-        expect(response.res.statusCode).toBe(503);
-        expect(response.getBody()).toContain("Control UI assets not found");
+        expect(response.res.statusCode).toBe(404);
       },
     });
   });
@@ -506,7 +496,7 @@ describe("gateway plugin HTTP auth boundary", () => {
   test("root-mounted control ui does not swallow gateway probe routes", async () => {
     const handlePluginRequest = vi.fn(async () => false);
 
-    await withRootMountedControlUiServer({
+    await withRootMountedPluginServer({
       prefix: "crawclaw-plugin-http-control-ui-probes-test-",
       handlePluginRequest,
       run: async (server) => {
@@ -519,7 +509,7 @@ describe("gateway plugin HTTP auth boundary", () => {
   test("root-mounted control ui still lets plugins claim probe paths first", async () => {
     const handlePluginRequest = createHealthzPluginHandler();
 
-    await withRootMountedControlUiServer({
+    await withRootMountedPluginServer({
       prefix: "crawclaw-plugin-http-control-ui-probe-shadow-test-",
       handlePluginRequest,
       run: async (server) => {

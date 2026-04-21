@@ -698,7 +698,6 @@ export const CrawClawSchema = z
           .object({
             enabled: z.boolean().optional(),
             basePath: z.string().optional(),
-            root: z.string().optional(),
             allowedOrigins: z.array(z.string()).optional(),
             dangerouslyAllowHostHeaderOriginFallback: z.boolean().optional(),
             allowInsecureAuth: z.boolean().optional(),

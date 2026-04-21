@@ -65,7 +65,7 @@ crawclaw gateway --port 18789
 
 Now message the assistant number from your allowlisted phone.
 
-When onboarding finishes, we auto-open the dashboard and print a clean (non-tokenized) link. If it prompts for auth, paste the token from `gateway.auth.token` into Control UI settings. To reopen later: `crawclaw dashboard`.
+When onboarding finishes, use a channel or launch the terminal interface with `crawclaw tui`.
 
 ## Give the agent a workspace (AGENTS)
 

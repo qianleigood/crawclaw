@@ -99,7 +99,7 @@ crawclaw config get agents.list
 crawclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 ```
 
-Control UI: the Nodes tab includes a small “Exec node binding” panel for the same settings.
+Browser-facing clients can expose an “Exec node binding” control for the same settings.
 
 ## Session overrides (`/exec`)
 

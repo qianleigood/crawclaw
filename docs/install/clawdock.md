@@ -2,7 +2,7 @@
 summary: "ClawDock shell helpers for Docker-based CrawClaw installs"
 read_when:
   - You run CrawClaw with Docker often and want shorter day-to-day commands
-  - You want a helper layer for dashboard, logs, token setup, and pairing flows
+  - You want a helper layer for logs, token setup, and pairing flows
 title: "ClawDock"
 ---
 
@@ -10,7 +10,7 @@ title: "ClawDock"
 
 ClawDock is a small shell-helper layer for Docker-based CrawClaw installs.
 
-It gives you short commands like `clawdock-start`, `clawdock-dashboard`, and `clawdock-fix-token` instead of longer `docker compose ...` invocations.
+It gives you short commands like `clawdock-start`, `clawdock-logs`, and `clawdock-fix-token` instead of longer `docker compose ...` invocations.
 
 If you have not set up Docker yet, start with [Docker](/install/docker).
 
@@ -45,11 +45,10 @@ If you previously installed ClawDock from `scripts/shell-helpers/clawdock-helper
 | `clawdock-cli <command>`  | Run CrawClaw CLI commands in Docker           |
 | `clawdock-exec <command>` | Execute an arbitrary command in the container |
 
-### Web UI and pairing
+### Pairing
 
 | Command                 | Description                  |
 | ----------------------- | ---------------------------- |
-| `clawdock-dashboard`    | Open the Control UI URL      |
 | `clawdock-devices`      | List pending device pairings |
 | `clawdock-approve <id>` | Approve a pairing request    |
 
@@ -78,7 +77,6 @@ If you previously installed ClawDock from `scripts/shell-helpers/clawdock-helper
 ```bash
 clawdock-start
 clawdock-fix-token
-clawdock-dashboard
 ```
 
 If the browser says pairing is required:

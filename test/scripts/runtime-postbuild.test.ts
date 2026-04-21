@@ -29,6 +29,10 @@ describe("runtime postbuild static assets", () => {
     );
   });
 
+  it("tracks sqlite runtime migrations that release packaging must ship", () => {
+    expect(listStaticExtensionAssetOutputs()).toContain("dist/migrations/001_init_runtime.sql");
+  });
+
   it("copies declared static assets into dist", async () => {
     const rootDir = await createTempRoot();
     const src = "extensions/acpx/src/runtime-internals/mcp-proxy.mjs";

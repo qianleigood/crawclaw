@@ -162,7 +162,7 @@ crawclaw onboard --non-interactive \
 - `quickstart`：最少提示，自动生成 Gateway 网关令牌。
 - `manual`：提供端口/绑定/身份验证的完整提示（`advanced` 的别名）。
 - 本地新手引导私信范围行为：[CLI 设置参考](/start/wizard-cli-reference#outputs-and-internals)。
-- 最快开始第一次聊天：`crawclaw dashboard`（控制 UI，无需设置渠道）。
+- 最快开始第一次聊天：`crawclaw tui`（无需设置渠道）。
 - 自定义提供商：连接任何兼容 OpenAI 或 Anthropic 的端点，
   包括未列出的托管提供商。使用 Unknown 进行自动检测。
 

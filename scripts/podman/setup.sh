@@ -455,4 +455,4 @@ echo
 echo "Next:"
 echo "  ./scripts/run-crawclaw-podman.sh launch"
 echo "  ./scripts/run-crawclaw-podman.sh launch setup"
-echo "  crawclaw --container $CRAWCLAW_CONTAINER_NAME dashboard --no-open"
+echo "  crawclaw --container $CRAWCLAW_CONTAINER_NAME tui"

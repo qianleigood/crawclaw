@@ -92,7 +92,7 @@ export NOSTR_PRIVATE_KEY="nsec1..."
 
 ## Profile metadata
 
-Profile data is published as a NIP-01 `kind:0` event. You can manage it from the Control UI (Channels -> Nostr -> Profile) or set it directly in config.
+Profile data is published as a NIP-01 `kind:0` event. Manage it directly in config or through any client surface that exposes Nostr profile settings.
 
 Example:
 

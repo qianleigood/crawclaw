@@ -100,14 +100,8 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
     ```
   </Step>
 
-  <Step title="Access the Control UI">
-    On your computer, get a dashboard URL from the Pi:
-
-    ```bash
-    ssh user@gateway-host 'crawclaw dashboard --no-open'
-    ```
-
-    Then create an SSH tunnel in another terminal:
+  <Step title="Access the Gateway from your computer">
+    Create an SSH tunnel in another terminal:
 
     ```bash
     ssh -N -L 18789:127.0.0.1:18789 user@gateway-host

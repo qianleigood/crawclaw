@@ -154,7 +154,7 @@ export function formatControlUiSshHint(params: {
     authedUrl,
     "Docs:",
     "https://docs.crawclaw.ai/gateway/remote",
-    "https://docs.crawclaw.ai/web/control-ui",
+    "https://docs.crawclaw.ai/web",
   ]
     .filter(Boolean)
     .join("\n");

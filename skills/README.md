@@ -2,6 +2,9 @@
 
 This directory is the default bundled skill surface for CrawClaw.
 
+For the repo-wide skill map across bundled, optional, and extension-owned
+surfaces, see https://docs.crawclaw.ai/maintainers/skills-catalog.
+
 Only core skills belong here. The bundled skill loader resolves `<packageRoot>/skills`,
 so anything placed in this directory ships as part of the default runtime skill set.
 

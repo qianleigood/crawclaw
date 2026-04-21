@@ -65,10 +65,6 @@ clawdock-start
 clawdock-fix-token
 ```
 
-```bash
-clawdock-dashboard
-```
-
 If you see "pairing required":
 
 ```bash
@@ -101,13 +97,12 @@ clawdock-approve <request-id>
 | `clawdock-cli <command>`  | Run CrawClaw CLI commands                      |
 | `clawdock-exec <command>` | Execute arbitrary commands in the container    |
 
-### Web UI & Devices
+### Devices
 
-| Command                 | Description                                |
-| ----------------------- | ------------------------------------------ |
-| `clawdock-dashboard`    | Open web UI in browser with authentication |
-| `clawdock-devices`      | List device pairing requests               |
-| `clawdock-approve <id>` | Approve a device pairing request           |
+| Command                 | Description                      |
+| ----------------------- | -------------------------------- |
+| `clawdock-devices`      | List device pairing requests     |
+| `clawdock-approve <id>` | Approve a device pairing request |
 
 ### Setup & Configuration
 

@@ -45,7 +45,7 @@ Notes:
 
 Who receives it:
 
-- All WebSocket clients (Control UI, WebChat, etc.)
+- All WebSocket clients (WebChat, browser clients, etc.)
 - All connected nodes, and also on node connect as an initial “current state” push.
 
 ## Client behavior

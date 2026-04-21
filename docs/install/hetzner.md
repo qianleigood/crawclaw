@@ -31,7 +31,7 @@ See [Security](/gateway/security) and [VPS hosting](/vps).
 - Install Docker (isolated app runtime)
 - Start the CrawClaw Gateway in Docker
 - Persist `~/.crawclaw` + `~/.crawclaw/workspace` on the host (survives restarts/rebuilds)
-- Access the Control UI from your laptop via an SSH tunnel
+- Access the gateway from your laptop via an SSH tunnel
 
 The Gateway can be accessed via:
 

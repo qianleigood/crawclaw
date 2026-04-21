@@ -54,8 +54,6 @@ export type NpmDistTagMirrorAuth = {
 };
 const EXPECTED_REPOSITORY_URL = "https://github.com/qianleigood/crawclaw";
 const MAX_CALVER_DISTANCE_DAYS = 2;
-const REQUIRED_PACKED_PATHS = ["dist/control-ui/index.html"];
-const CONTROL_UI_ASSET_PREFIX = "dist/control-ui/assets/";
 const NPM_PACK_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 const skipPackValidationEnv = "CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK";
 const legacySkipPackValidationEnv = "CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK";
@@ -384,28 +382,6 @@ export function parseNpmPackJsonOutput(stdout: string): NpmPackResult[] | null {
   return null;
 }
 
-export function collectControlUiPackErrors(paths: Iterable<string>): string[] {
-  const packedPaths = new Set(paths);
-  const assetPaths = [...packedPaths].filter((path) => path.startsWith(CONTROL_UI_ASSET_PREFIX));
-  const errors: string[] = [];
-
-  for (const requiredPath of REQUIRED_PACKED_PATHS) {
-    if (!packedPaths.has(requiredPath)) {
-      errors.push(
-        `npm package is missing required path "${requiredPath}". Ensure UI assets are built and included before publish.`,
-      );
-    }
-  }
-
-  if (assetPaths.length === 0) {
-    errors.push(
-      `npm package is missing Control UI asset payload under "${CONTROL_UI_ASSET_PREFIX}". Refuse release when the dashboard tarball would be empty.`,
-    );
-  }
-
-  return errors;
-}
-
 function collectPackedTarballErrors(): string[] {
   const errors: string[] = [];
   let stdout = "";
@@ -432,13 +408,7 @@ function collectPackedTarballErrors(): string[] {
     return errors;
   }
 
-  const packedPaths = new Set(
-    firstResult.files
-      .map((entry) => entry.path)
-      .filter((path): path is string => typeof path === "string" && path.length > 0),
-  );
-
-  return collectControlUiPackErrors(packedPaths);
+  return [];
 }
 
 function main(): number {

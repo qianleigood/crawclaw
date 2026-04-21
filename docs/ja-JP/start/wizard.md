@@ -23,7 +23,7 @@ crawclaw onboard
 ```
 
 <Info>
-最速で初回チャットを開始する方法：Control UI を開きます（チャンネル設定は不要）。`crawclaw dashboard` を実行してブラウザでチャットできます。ドキュメント：[Dashboard](/web/dashboard)。
+最速で初回チャットを開始する方法：`crawclaw tui` を実行するか、残っているWebクライアントを使います（チャンネル設定は不要）。ドキュメント：[Webサーフェス](/web)。
 </Info>
 
 ## クイックスタート vs 詳細設定

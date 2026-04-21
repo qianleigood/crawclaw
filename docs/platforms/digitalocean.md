@@ -103,9 +103,9 @@ systemctl --user status crawclaw-gateway.service
 journalctl --user -u crawclaw-gateway.service -f
 ```
 
-## 6) Access the Dashboard
+## 6) Access the Gateway
 
-The gateway binds to loopback by default. To access the Control UI:
+The gateway binds to loopback by default. To access it from another machine:
 
 **Option A: SSH Tunnel (recommended)**
 
@@ -132,7 +132,7 @@ Open: `https://<magicdns>/`
 
 Notes:
 
-- Serve keeps the Gateway loopback-only and authenticates Control UI/WebSocket traffic via Tailscale identity headers (tokenless auth assumes trusted gateway host; HTTP APIs still require token/password).
+- Serve keeps the Gateway loopback-only and authenticates browser-client/WebSocket traffic via Tailscale identity headers (tokenless auth assumes trusted gateway host; HTTP APIs still require token/password).
 - To require token/password instead, set `gateway.auth.allowTailscale: false` or use `gateway.auth.mode: "password"`.
 
 **Option C: Tailnet bind (no Serve)**

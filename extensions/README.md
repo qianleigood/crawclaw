@@ -19,3 +19,9 @@ Practical reading order:
 
 This directory is intentionally broad, but maintainers should treat it as a
 single conceptual layer: product extensions, not core runtime code.
+
+Some extensions also ship extension-local skills under `extensions/*/skills/`,
+and a small number expose a single skill directly from the extension root.
+Those skills are owned by the extension that ships them and should stay close to
+that extension's tools and config surface. For the repo-wide skill map, see
+https://docs.crawclaw.ai/maintainers/skills-catalog.

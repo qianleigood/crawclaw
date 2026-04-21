@@ -144,7 +144,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     cd crawclaw
     pnpm install
     pnpm build
-    pnpm ui:build # auto-installs UI deps on first run
     crawclaw onboard
     ```
 
@@ -152,24 +151,24 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
   </Accordion>
 
-  <Accordion title="How do I open the dashboard after onboarding?">
-    The wizard opens your browser with a clean (non-tokenized) dashboard URL right after onboarding and also prints the link in the summary. Keep that tab open; if it didn't launch, copy/paste the printed URL on the same machine.
+  <Accordion title="How do I start chatting after onboarding?">
+    Use a connected channel or launch the local terminal interface with `crawclaw tui`.
   </Accordion>
 
-  <Accordion title="How do I authenticate the dashboard (token) on localhost vs remote?">
+  <Accordion title="How do I authenticate a gateway client (token) on localhost vs remote?">
     **Localhost (same machine):**
 
-    - Open `http://127.0.0.1:18789/`.
-    - If it asks for auth, paste the token from `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`) into Control UI settings.
+    - Open a supported gateway client against `http://127.0.0.1:18789/`.
+    - If it asks for auth, use the token from `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`).
     - Retrieve it from the gateway host: `crawclaw config get gateway.auth.token` (or generate one: `crawclaw doctor --generate-gateway-token`).
 
     **Not on localhost:**
 
-    - **Tailscale Serve** (recommended): keep bind loopback, run `crawclaw gateway --tailscale serve`, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy Control UI/WebSocket auth (no token, assumes trusted gateway host); HTTP APIs still require token/password.
-    - **Tailnet bind**: run `crawclaw gateway --bind tailnet --token "<token>"`, open `http://<tailscale-ip>:18789/`, paste token in dashboard settings.
-    - **SSH tunnel**: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/` and paste the token in Control UI settings.
+    - **Tailscale Serve** (recommended): keep bind loopback, run `crawclaw gateway --tailscale serve`, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy browser client/WebSocket auth (no token, assumes trusted gateway host); HTTP APIs still require token/password.
+    - **Tailnet bind**: run `crawclaw gateway --bind tailnet --token "<token>"`, then connect a client to `http://<tailscale-ip>:18789/`.
+    - **SSH tunnel**: `ssh -N -L 18789:127.0.0.1:18789 user@host` then connect a client to `http://127.0.0.1:18789/`.
 
-    See [Dashboard](/web/dashboard) and [Web surfaces](/web) for bind modes and auth details.
+    See [Web surfaces](/web) for bind modes and auth details.
 
   </Accordion>
 
@@ -502,7 +501,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - [exe.dev](/install/exe-dev)
 
     How it works in the cloud: the **Gateway runs on the server**, and you access it
-    from your laptop/phone via the Control UI (or Tailscale/SSH). Your state + workspace
+    from your laptop/phone via a gateway client (or Tailscale/SSH). Your state + workspace
     live on the server, so treat the host as the source of truth and back it up.
 
     You can pair **nodes** (Mac/headless) to that cloud Gateway to access
@@ -1377,7 +1376,7 @@ for usage/billing and raise limits as needed.
     - `gateway.remote.token` / `.password` do **not** enable local gateway auth by themselves.
     - Local call paths can use `gateway.remote.*` as fallback only when `gateway.auth.*` is unset.
     - If `gateway.auth.token` / `gateway.auth.password` is explicitly configured via SecretRef and unresolved, resolution fails closed (no remote fallback masking).
-    - The Control UI authenticates via `connect.params.auth.token` (stored in app/UI settings). Avoid putting tokens in URLs.
+    - Browser-facing clients authenticate via `connect.params.auth.token`. Avoid putting tokens in URLs.
 
   </Accordion>
 
@@ -1686,7 +1685,7 @@ for usage/billing and raise limits as needed.
        - SSH: `ssh user@your-vps.tailnet-xxxx.ts.net`
        - Gateway WS: `ws://your-vps.tailnet-xxxx.ts.net:18789`
 
-    If you want the Control UI without SSH, use Tailscale Serve on the VPS:
+    If you want browser-facing access without SSH, use Tailscale Serve on the VPS:
 
     ```bash
     crawclaw gateway --tailscale serve
@@ -1697,7 +1696,7 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="How do I connect a Mac node to a remote Gateway (Tailscale Serve)?">
-    Serve exposes the **Gateway Control UI + WS**. Nodes connect over the same Gateway WS endpoint.
+    Serve exposes the **Gateway browser-client surface + WS**. Nodes connect over the same Gateway WS endpoint.
 
     Recommended setup:
 
@@ -2460,7 +2459,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
 <AccordionGroup>
   <Accordion title="What port does the Gateway use?">
-    `gateway.port` controls the single multiplexed port for WebSocket + HTTP (Control UI, hooks, etc.).
+    `gateway.port` controls the single multiplexed port for WebSocket + HTTP (browser clients, hooks, etc.).
 
     Precedence:
 
@@ -2524,25 +2523,25 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
   </Accordion>
 
-  <Accordion title='The Control UI says "unauthorized" (or keeps reconnecting). What now?'>
+  <Accordion title='A browser client says "unauthorized" (or keeps reconnecting). What now?'>
     Your gateway is running with auth enabled (`gateway.auth.*`), but the UI is not sending the matching token/password.
 
     Facts (from code):
 
-    - The Control UI keeps the token in `sessionStorage` for the current browser tab session and selected gateway URL, so same-tab refreshes keep working without restoring long-lived localStorage token persistence.
+    - Browser clients may keep the token in session-scoped storage for the selected gateway URL, so same-tab refreshes can keep working without restoring long-lived token persistence.
     - On `AUTH_TOKEN_MISMATCH`, trusted clients can attempt one bounded retry with a cached device token when the gateway returns retry hints (`canRetryWithDeviceToken=true`, `recommendedNextStep=retry_with_device_token`).
 
     Fix:
 
-    - Fastest: `crawclaw dashboard` (prints + copies the dashboard URL, tries to open; shows SSH hint if headless).
+    - Fastest local check: `crawclaw tui`.
     - If you don't have a token yet: `crawclaw doctor --generate-gateway-token`.
     - If remote, tunnel first: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/`.
     - Set `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`) on the gateway host.
-    - In the Control UI settings, paste the same token.
+    - Configure the same token in the client you are using.
     - If mismatch persists after the one retry, rotate/re-approve the paired device token:
       - `crawclaw devices list`
       - `crawclaw devices rotate --device <id> --role operator`
-    - Still stuck? Run `crawclaw status --all` and follow [Troubleshooting](/gateway/troubleshooting). See [Dashboard](/web/dashboard) for auth details.
+    - Still stuck? Run `crawclaw status --all` and follow [Troubleshooting](/gateway/troubleshooting).
 
   </Accordion>
 
@@ -2713,7 +2712,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     1. Is the Gateway running? `crawclaw gateway status`
     2. Is the Gateway healthy? `crawclaw status`
-    3. Does the UI have the right token? `crawclaw dashboard`
+    3. Does the client have the right token?
     4. If remote, is the tunnel/Tailscale link up?
 
     Then tail logs:
@@ -2722,7 +2721,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     crawclaw logs --follow
     ```
 
-    Docs: [Dashboard](/web/dashboard), [Remote access](/gateway/remote), [Troubleshooting](/gateway/troubleshooting).
+    Docs: [Remote access](/gateway/remote), [Troubleshooting](/gateway/troubleshooting).
 
   </Accordion>
 
@@ -2933,7 +2932,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     /reasoning off
     ```
 
-    If it is still noisy, check the session settings in the Control UI and set verbose
+    If it is still noisy, check the session settings in the client you are using and set verbose
     to **inherit**. Also confirm you are not using a bot profile with `verboseDefault` set
     to `on` in config.
 

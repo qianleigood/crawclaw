@@ -91,14 +91,14 @@ export CRAWCLAW_CONTAINER=crawclaw
 Then commands such as these will run inside that container automatically:
 
 ```bash
-crawclaw dashboard --no-open
+crawclaw tui
 crawclaw gateway status --deep
 crawclaw doctor
 crawclaw channels login
 ```
 
 On macOS, Podman machine may make the browser appear non-local to the gateway.
-If the Control UI reports device-auth errors after launch, use the Tailscale guidance in
+If a browser client reports device-auth errors after launch, use the Tailscale guidance in
 [Podman + Tailscale](#podman--tailscale).
 
 <a id="podman--tailscale"></a>
@@ -116,7 +116,7 @@ Podman-specific note:
 See:
 
 - [Tailscale](/gateway/tailscale)
-- [Control UI](/web/control-ui)
+- [Web surfaces](/web)
 
 ## Systemd (Quadlet, optional)
 
@@ -159,7 +159,7 @@ The launch script and Quadlet bind-mount host state into the container:
 - `CRAWCLAW_WORKSPACE_DIR` -> `/home/node/.crawclaw/workspace`
 
 By default those are host directories, not anonymous container state, so config and workspace survive container replacement.
-The Podman setup also seeds `gateway.controlUi.allowedOrigins` for `127.0.0.1` and `localhost` on the published gateway port so the local dashboard works with the container's non-loopback bind.
+The Podman setup also seeds `gateway.controlUi.allowedOrigins` for `127.0.0.1` and `localhost` on the published gateway port so local browser clients work with the container's non-loopback bind.
 
 Useful env vars for the manual launcher:
 
@@ -186,7 +186,7 @@ Quadlet note:
 - **Container logs:** `podman logs -f crawclaw`
 - **Stop container:** `podman stop crawclaw`
 - **Remove container:** `podman rm -f crawclaw`
-- **Open dashboard URL from host CLI:** `crawclaw dashboard --no-open`
+- **Open the local terminal UI from host CLI:** `crawclaw tui`
 - **Health/status via host CLI:** `crawclaw gateway status --deep`
 
 ## Troubleshooting

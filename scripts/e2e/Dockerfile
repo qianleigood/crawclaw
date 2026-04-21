@@ -19,7 +19,6 @@ USER appuser
 WORKDIR /app
 
 COPY --chown=appuser:appuser package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY --chown=appuser:appuser ui/package.json ./ui/package.json
 COPY --chown=appuser:appuser extensions ./extensions
 COPY --chown=appuser:appuser patches ./patches
 COPY --chown=appuser:appuser scripts/postinstall-bundled-plugins.mjs scripts/install-plugin-runtimes.mjs scripts/npm-runner.mjs ./scripts/
@@ -35,14 +34,9 @@ COPY --chown=appuser:appuser scripts ./scripts
 COPY --chown=appuser:appuser docs ./docs
 COPY --chown=appuser:appuser packages ./packages
 COPY --chown=appuser:appuser skills ./skills
-COPY --chown=appuser:appuser ui ./ui
 COPY --chown=appuser:appuser extensions ./extensions
 COPY --chown=appuser:appuser src/canvas-host/a2ui-src ./src/canvas-host/a2ui-src
 
 RUN pnpm build
-# Onboard Docker E2E does not exercise the Control UI itself; it only needs the
-# asset-existence check to pass so configure/onboard can continue.
-RUN mkdir -p dist/control-ui \
-  && printf '%s\n' '<!doctype html><title>CrawClaw Control UI</title>' > dist/control-ui/index.html
 
 CMD ["bash"]

@@ -19,8 +19,7 @@ crawclaw onboard
 ```
 
 <Info>
-Fastest first chat: open the Control UI (no channel setup needed). Run
-`crawclaw dashboard` and chat in the browser. Docs: [Dashboard](/web/dashboard).
+Fastest first local chat: run `crawclaw tui`.
 </Info>
 
 To reconfigure later:

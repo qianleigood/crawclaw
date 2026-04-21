@@ -120,7 +120,7 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
     curl http://localhost:18789
     ```
 
-    Access the Control UI from any device on your tailnet:
+    Access the gateway from any device on your tailnet:
 
     ```
     https://crawclaw.<tailnet-name>.ts.net/
@@ -139,7 +139,7 @@ If Tailscale Serve is not working, use an SSH tunnel from your local machine:
 ssh -L 18789:127.0.0.1:18789 ubuntu@crawclaw
 ```
 
-Then open `http://localhost:18789`.
+Then connect a supported gateway client to `http://localhost:18789`.
 
 ## Troubleshooting
 

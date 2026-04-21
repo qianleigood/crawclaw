@@ -119,7 +119,7 @@ ensure_control_ui_allowed_origins() {
   current_allowed_origins="${current_allowed_origins//$'\r'/}"
 
   if [[ -n "$current_allowed_origins" && "$current_allowed_origins" != "null" && "$current_allowed_origins" != "[]" ]]; then
-    echo "Control UI allowlist already configured; leaving gateway.controlUi.allowedOrigins unchanged."
+    echo "Browser client allowlist already configured; leaving gateway.controlUi.allowedOrigins unchanged."
     return 0
   fi
 
@@ -517,7 +517,7 @@ echo "==> Docker gateway defaults"
 sync_gateway_mode_and_bind
 
 echo ""
-echo "==> Control UI origin allowlist"
+echo "==> Browser client origin allowlist"
 ensure_control_ui_allowed_origins
 
 echo ""

@@ -252,9 +252,6 @@ jobs:
       - name: Build dist
         run: pnpm build
 
-      - name: Build Control UI
-        run: pnpm ui:build
-
       - name: Upload dist artifact
         uses: actions/upload-artifact@v7
         with:
@@ -399,7 +396,6 @@ jobs:
               ;;
             compat-node22)
               pnpm build
-              pnpm ui:build
               node crawclaw.mjs --help
               node crawclaw.mjs status --json --timeout 1
               pnpm test:build:singleton
@@ -559,11 +555,6 @@ jobs:
         continue-on-error: true
         run: pnpm run lint:extensions:no-relative-outside-package
 
-      - name: Enforce safe external URL opening policy
-        id: no_raw_window_open
-        continue-on-error: true
-        run: pnpm lint:ui:no-raw-window-open
-
       - name: Run gateway watch regression harness
         id: gateway_watch_regression
         continue-on-error: true
@@ -595,7 +586,6 @@ jobs:
           EXTENSION_SRC_OUTSIDE_PLUGIN_SDK_BOUNDARY_OUTCOME: ${{ steps.extension_src_outside_plugin_sdk_boundary.outcome }}
           EXTENSION_PLUGIN_SDK_INTERNAL_BOUNDARY_OUTCOME: ${{ steps.extension_plugin_sdk_internal_boundary.outcome }}
           EXTENSION_RELATIVE_OUTSIDE_PACKAGE_BOUNDARY_OUTCOME: ${{ steps.extension_relative_outside_package_boundary.outcome }}
-          NO_RAW_WINDOW_OPEN_OUTCOME: ${{ steps.no_raw_window_open.outcome }}
           GATEWAY_WATCH_REGRESSION_OUTCOME: ${{ steps.gateway_watch_regression.outcome }}
         run: |
           failures=0
@@ -615,7 +605,6 @@ jobs:
             "extension-src-outside-plugin-sdk-boundary|$EXTENSION_SRC_OUTSIDE_PLUGIN_SDK_BOUNDARY_OUTCOME" \
             "extension-plugin-sdk-internal-boundary|$EXTENSION_PLUGIN_SDK_INTERNAL_BOUNDARY_OUTCOME" \
             "extension-relative-outside-package-boundary|$EXTENSION_RELATIVE_OUTSIDE_PACKAGE_BOUNDARY_OUTCOME" \
-            "lint:ui:no-raw-window-open|$NO_RAW_WINDOW_OPEN_OUTCOME" \
             "gateway-watch-regression|$GATEWAY_WATCH_REGRESSION_OUTCOME"; do
             name="${result%%|*}"
             outcome="${result#*|}"

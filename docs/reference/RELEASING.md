@@ -37,9 +37,8 @@ CrawClaw has three public release lanes:
 
 ## Release preflight
 
-- Run `pnpm build && pnpm ui:build` before `pnpm release:check` so the expected
-  `dist/*` release artifacts and Control UI bundle exist for the pack
-  validation step
+- Run `pnpm build` before `pnpm release:check` so the expected `dist/*`
+  release artifacts exist for the pack validation step
 - Run `pnpm release:check` before every tagged release
 - Run `RELEASE_TAG=vYYYY.M.D node --import tsx scripts/crawclaw-npm-release-check.ts`
   (or the matching beta/correction tag) before approval
@@ -62,9 +61,6 @@ CrawClaw has three public release lanes:
   also checks the same temp-prefix upgrade path from `YYYY.M.D` to `YYYY.M.D-N`
   so release corrections cannot silently leave older global installs on the
   base stable payload
-- npm release preflight fails closed unless the tarball includes both
-  `dist/control-ui/index.html` and a non-empty `dist/control-ui/assets/` payload
-  so we do not ship an empty browser dashboard again
 - If the release work touched CI planning, extension timing manifests, or fast
   test matrices, regenerate and review the planner-owned `checks-fast-extensions`
   shard plan via `node scripts/ci-write-manifest-outputs.mjs --workflow ci`

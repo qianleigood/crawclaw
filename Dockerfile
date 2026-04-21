@@ -62,7 +62,6 @@ RUN corepack enable
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY ui/package.json ./ui/package.json
 COPY patches ./patches
 COPY scripts/postinstall-bundled-plugins.mjs scripts/install-plugin-runtimes.mjs scripts/npm-runner.mjs ./scripts/
 COPY extensions/scrapling-fetch/runtime/requirements.lock.txt ./extensions/scrapling-fetch/runtime/requirements.lock.txt
@@ -99,9 +98,6 @@ RUN pnpm canvas:a2ui:bundle || \
      echo "stub" > src/canvas-host/a2ui/.bundle.hash && \
      rm -rf vendor/a2ui apps/shared/CrawClawKit/Tools/CanvasA2UI)
 RUN pnpm build:docker
-# Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
-ENV CRAWCLAW_PREFER_PNPM=1
-RUN pnpm ui:build
 
 # Prune dev dependencies and strip build-only metadata before copying
 # runtime assets into the final image.

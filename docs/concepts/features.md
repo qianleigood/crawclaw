@@ -23,7 +23,7 @@ title: "Features"
     Images, audio, and documents in and out.
   </Card>
   <Card title="Apps and UI" icon="monitor">
-    Web Control UI and macOS companion app.
+    Gateway browser clients and macOS companion app.
   </Card>
   <Card title="Node mode" icon="smartphone">
     macOS node mode with pairing and local device commands.
@@ -60,7 +60,7 @@ title: "Features"
 
 **Apps and interfaces:**
 
-- WebChat and browser Control UI
+- WebChat and browser-authenticated gateway clients
 - macOS menu bar companion app
 - macOS node mode with pairing, Canvas, camera, screen recording, location, and voice flows
 

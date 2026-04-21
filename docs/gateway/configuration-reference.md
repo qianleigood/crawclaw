@@ -2538,7 +2538,7 @@ See [Plugins](/tools/plugin).
 ```
 
 - `seamColor`: accent color for native app UI chrome (Talk Mode bubble tint, etc.).
-- `assistant`: Control UI identity override. Falls back to active agent identity.
+- `assistant`: browser-client identity override. Falls back to active agent identity.
 
 ---
 
@@ -2570,8 +2570,7 @@ See [Plugins](/tools/plugin).
     controlUi: {
       enabled: true,
       basePath: "/crawclaw",
-      // root: "dist/control-ui",
-      // allowedOrigins: ["https://control.example.com"], // required for non-loopback Control UI
+      // allowedOrigins: ["https://control.example.com"], // required for non-loopback browser-client access
       // dangerouslyAllowHostHeaderOriginFallback: false, // dangerous Host-header origin fallback mode
       // allowInsecureAuth: false,
       // dangerouslyDisableDeviceAuth: false,
@@ -2614,7 +2613,7 @@ See [Plugins](/tools/plugin).
 - If both `gateway.auth.token` and `gateway.auth.password` are configured (including SecretRefs), set `gateway.auth.mode` explicitly to `token` or `password`. Startup and service install/repair flows fail when both are configured and mode is unset.
 - `gateway.auth.mode: "none"`: explicit no-auth mode. Use only for trusted local loopback setups; this is intentionally not offered by onboarding prompts.
 - `gateway.auth.mode: "trusted-proxy"`: delegate auth to an identity-aware reverse proxy and trust identity headers from `gateway.trustedProxies` (see [Trusted Proxy Auth](/gateway/trusted-proxy-auth)).
-- `gateway.auth.allowTailscale`: when `true`, Tailscale Serve identity headers can satisfy Control UI/WebSocket auth (verified via `tailscale whois`); HTTP API endpoints still require token/password auth. This tokenless flow assumes the gateway host is trusted. Defaults to `true` when `tailscale.mode = "serve"`.
+- `gateway.auth.allowTailscale`: when `true`, Tailscale Serve identity headers can satisfy browser-client/WebSocket auth (verified via `tailscale whois`); HTTP API endpoints still require token/password auth. This tokenless flow assumes the gateway host is trusted. Defaults to `true` when `tailscale.mode = "serve"`.
 - `gateway.auth.rateLimit`: optional failed-auth limiter. Applies per client IP and per auth scope (shared-secret and device-token are tracked independently). Blocked attempts return `429` + `Retry-After`.
   - `gateway.auth.rateLimit.exemptLoopback` defaults to `true`; set `false` when you intentionally want localhost traffic rate-limited too (for test setups or strict proxy deployments).
 - Browser-origin WS auth attempts are always throttled with loopback exemption disabled (defense-in-depth against browser-based localhost brute force).

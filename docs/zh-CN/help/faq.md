@@ -19,8 +19,8 @@ x-i18n:
 - [快速开始与首次运行设置](#quick-start-and-firstrun-setup)
   - [我卡住了，最快的排障方法是什么？](#im-stuck-whats-the-fastest-way-to-get-unstuck)
   - [安装和设置 CrawClaw 的推荐方式是什么？](#whats-the-recommended-way-to-install-and-set-up-crawclaw)
-  - [新手引导后如何打开仪表板？](#how-do-i-open-the-dashboard-after-onboarding)
-  - [如何在本地和远程环境中验证仪表板（令牌）？](#how-do-i-authenticate-the-dashboard-token-on-localhost-vs-remote)
+  - [新手引导后如何连接 Gateway 网关？](#how-do-i-open-the-dashboard-after-onboarding)
+  - [如何在本地和远程环境中验证 Gateway 客户端认证（令牌）？](#how-do-i-authenticate-the-dashboard-token-on-localhost-vs-remote)
   - [我需要什么运行时？](#what-runtime-do-i-need)
   - [能在 Raspberry Pi 上运行吗？](#does-it-run-on-raspberry-pi)
   - [Raspberry Pi 安装有什么建议？](#any-tips-for-raspberry-pi-installs)
@@ -317,7 +317,7 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
 crawclaw onboard --install-daemon
 ```
 
-新手引导还可以自动构建 UI 资源。新手引导后，通常在端口 **18789** 上运行 Gateway 网关。
+新手引导完成后，Gateway 网关通常在端口 **18789** 上运行。
 
 从源码安装（贡献者/开发者）：
 
@@ -326,31 +326,30 @@ git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 pnpm install
 pnpm build
-pnpm ui:build # 首次运行时自动安装 UI 依赖
 crawclaw onboard
 ```
 
 如果你还没有全局安装，通过 `pnpm crawclaw onboard` 运行。
 
-### 新手引导后如何打开仪表板
+### 新手引导后如何连接 Gateway 网关
 
-新手引导现在会在完成后立即使用带令牌的仪表板 URL 打开浏览器，并在摘要中打印完整链接（带令牌）。保持该标签页打开；如果没有自动启动，请在同一台机器上复制/粘贴打印的 URL。令牌保持在本地主机上，不会从浏览器获取任何内容。
+新手引导完成后，可以直接运行 `crawclaw tui`，或使用仍保留的 Web 客户端连接 Gateway 网关。如果没有自动进入本地界面，请在同一台机器上运行 `crawclaw tui`，或按 [Web 界面](/web) 选择合适的浏览器访问方式。
 
-### 如何在本地和远程环境中验证仪表板令牌
+### 如何在本地和远程环境中验证 Gateway 客户端令牌
 
 **本地（同一台机器）：**
 
-- 打开 `http://127.0.0.1:18789/`。
-- 如果要求认证，运行 `crawclaw dashboard` 并使用带令牌的链接（`?token=...`）。
-- 令牌与 `gateway.auth.token`（或 `CRAWCLAW_GATEWAY_TOKEN`）的值相同，UI 在首次加载后会存储它。
+- 打开你要使用的客户端目标地址（例如 `http://127.0.0.1:18789/`）。
+- 如果要求认证，使用 `gateway.auth.token`（或 `CRAWCLAW_GATEWAY_TOKEN`）的值。
+- 令牌与 `gateway.auth.token`（或 `CRAWCLAW_GATEWAY_TOKEN`）的值相同。
 
 **非本地环境：**
 
 - **Tailscale Serve**（推荐）：保持绑定 loopback，运行 `crawclaw gateway --tailscale serve`，打开 `https://<magicdns>/`。如果 `gateway.auth.allowTailscale` 为 `true`，身份标头满足认证要求（无需令牌）。
-- **Tailnet 绑定**：运行 `crawclaw gateway --bind tailnet --token "<token>"`，打开 `http://<tailscale-ip>:18789/`，在仪表板设置中粘贴令牌。
-- **SSH 隧道**：`ssh -N -L 18789:127.0.0.1:18789 user@host`，然后从 `crawclaw dashboard` 打开 `http://127.0.0.1:18789/?token=...`。
+- **Tailnet 绑定**：运行 `crawclaw gateway --bind tailnet --token "<token>"`，然后连接 `http://<tailscale-ip>:18789/`。
+- **SSH 隧道**：`ssh -N -L 18789:127.0.0.1:18789 user@host`，然后连接 `http://127.0.0.1:18789/`。
 
-参阅[仪表板](/web/dashboard)和 [Web 界面](/web)了解绑定模式和认证详情。
+参阅 [Web 界面](/web) 了解绑定模式和认证详情。
 
 ### 我需要什么运行时
 
@@ -2216,17 +2215,17 @@ CrawClaw 通过在启动时立即绑定 WebSocket 监听器来强制运行时锁
 
 事实（来自代码）：
 
-- 控制 UI 将令牌存储在浏览器 localStorage 键 `crawclaw.control.settings.v1` 中。
-- UI 可以导入一次 `?token=...`（和/或 `?password=...`），然后从 URL 中剥离。
+- 浏览器客户端可能会在本地会话存储中保存令牌。
+- 客户端通常支持显式输入 token/password，而不是依赖 URL 参数。
 
 修复：
 
-- 最快：`crawclaw dashboard`（打印 + 复制带令牌的链接，尝试打开；如果无头则显示 SSH 提示）。
+- 最快：运行 `crawclaw tui`，或使用浏览器客户端直接连接 Gateway 网关。
 - 如果你还没有令牌：`crawclaw doctor --generate-gateway-token`。
-- 如果是远程，先建隧道：`ssh -N -L 18789:127.0.0.1:18789 user@host` 然后打开 `http://127.0.0.1:18789/?token=...`。
+- 如果是远程，先建隧道：`ssh -N -L 18789:127.0.0.1:18789 user@host` 然后连接 `http://127.0.0.1:18789/`。
 - 在 Gateway 网关主机上设置 `gateway.auth.token`（或 `CRAWCLAW_GATEWAY_TOKEN`）。
-- 在控制 UI 设置中粘贴相同的令牌（或使用一次性 `?token=...` 链接刷新）。
-- 仍然卡住？运行 `crawclaw status --all` 并按[故障排除](/gateway/troubleshooting)操作。参阅[仪表板](/web/dashboard)了解认证详情。
+- 在你使用的客户端里配置相同的令牌。
+- 仍然卡住？运行 `crawclaw status --all` 并按 [故障排除](/gateway/troubleshooting) 操作。参阅 [Web 界面](/web) 了解认证详情。
 
 ### 我设置了 gateway.bind: "tailnet" 但无法绑定 / 什么都没监听
 
@@ -2384,7 +2383,7 @@ crawclaw logs --follow
 
 1. Gateway 网关在运行吗？`crawclaw gateway status`
 2. Gateway 网关健康吗？`crawclaw status`
-3. UI 有正确的令牌吗？`crawclaw dashboard`
+3. 客户端有正确的令牌吗？检查 `gateway.auth.token`
 4. 如果是远程，隧道/Tailscale 链接正常吗？
 
 然后跟踪日志：
@@ -2393,7 +2392,7 @@ crawclaw logs --follow
 crawclaw logs --follow
 ```
 
-文档：[仪表板](/web/dashboard)、[远程访问](/gateway/remote)、[故障排除](/gateway/troubleshooting)。
+文档：[Web 界面](/web)、[远程访问](/gateway/remote)、[故障排除](/gateway/troubleshooting)。
 
 ### Telegram setMyCommands 因网络错误失败，应该检查什么
 

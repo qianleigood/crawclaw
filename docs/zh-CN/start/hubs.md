@@ -105,7 +105,6 @@ x-i18n:
 ## Gateway 网关 + 运维
 
 - [Gateway 网关运维手册](/gateway)
-- [控制面 RPC](/gateway/control-plane-rpc)
 - [网络模型](/gateway/network-model)
 - [Gateway 网关配对](/gateway/pairing)
 - [Gateway 网关锁](/gateway/gateway-lock)
@@ -115,8 +114,8 @@ x-i18n:
 - [Doctor](/gateway/doctor)
 - [日志](/gateway/logging)
 - [沙箱隔离](/gateway/sandboxing)
-- [仪表盘](/web/dashboard)
-- [控制界面](/web/control-ui)
+- [Web 界面](/web)
+- [WebChat](/web/webchat)
 - [远程访问](/gateway/remote)
 - [远程 Gateway 网关 README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)

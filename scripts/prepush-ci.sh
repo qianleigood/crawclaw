@@ -34,7 +34,6 @@ run_protocol_ci_mirror() {
 run_linux_ci_mirror() {
   run_step pnpm check
   run_step pnpm build:strict-smoke
-  run_step pnpm lint:ui:no-raw-window-open
   run_protocol_ci_mirror
   run_step pnpm canvas:a2ui:bundle
   run_step pnpm vitest run --config vitest.extensions.config.ts --maxWorkers=1

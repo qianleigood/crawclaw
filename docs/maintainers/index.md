@@ -13,6 +13,7 @@ title: Maintainers Docs
 ## Core Maintainer Docs
 
 - [Repository structure](/maintainers/repo-structure)
+- [Skills catalog](/maintainers/skills-catalog)
 
 ## Recommended Companion Sections
 
