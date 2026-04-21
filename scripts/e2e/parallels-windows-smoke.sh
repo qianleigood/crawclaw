@@ -921,19 +921,28 @@ start_server() {
 }
 
 install_latest_release() {
-  local install_url_q version_flag_q
+  local install_url_q version_flag_q npm_spec npm_spec_q
   install_url_q="$(ps_single_quote "$INSTALL_URL")"
   version_flag_q=""
   if [[ -n "$INSTALL_VERSION" ]]; then
     version_flag_q="-Tag '$(ps_single_quote "$INSTALL_VERSION")' "
   fi
+  npm_spec="crawclaw@${INSTALL_VERSION:-$LATEST_VERSION}"
+  npm_spec_q="$(ps_single_quote "$npm_spec")"
   local install_script
   install_script="$(cat <<EOF
+\$ErrorActionPreference = 'Stop'
 \$ProgressPreference = 'SilentlyContinue'
 $(ps_resolve_crawclaw_cmd_function)
-\$script = Invoke-RestMethod -Uri '$install_url_q'
-& ([scriptblock]::Create(\$script)) ${version_flag_q}-NoOnboard
-& (Resolve-CrawClawCmd) --version
+try {
+  \$script = Invoke-RestMethod -Uri '$install_url_q' -ErrorAction Stop
+  & ([scriptblock]::Create(\$script)) ${version_flag_q}-NoOnboard
+  & (Resolve-CrawClawCmd) --version
+} catch {
+  Write-Warning ("site installer failed; falling back to npm install $npm_spec_q: {0}" -f \$_.Exception.Message)
+  npm.cmd install -g '$npm_spec_q' --no-fund --no-audit
+  & (Resolve-CrawClawCmd) --version
+}
 EOF
 )"
   run_windows_retry "latest release installer" 2 guest_powershell "$install_script"
