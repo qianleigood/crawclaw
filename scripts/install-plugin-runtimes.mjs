@@ -114,6 +114,35 @@ function runOrThrow(command, args, options = {}) {
   throw new Error(output || `command failed: ${command} ${args.join(" ")}`);
 }
 
+function normalizeErrorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function classifyRuntimeInstallError(error) {
+  const message = normalizeErrorMessage(error);
+  if (message.includes("No supported Python interpreter found")) {
+    return "missing-python";
+  }
+  return "install-failed";
+}
+
+export function createUnavailableRuntimeEntry(error) {
+  return {
+    state: "unavailable",
+    reason: classifyRuntimeInstallError(error),
+    error: normalizeErrorMessage(error),
+    installedAt: new Date().toISOString(),
+  };
+}
+
+function installRuntimeOrUnavailable(installer, env = process.env) {
+  try {
+    return installer(env);
+  } catch (error) {
+    return createUnavailableRuntimeEntry(error);
+  }
+}
+
 export function createNestedNpmInstallEnv(env = process.env) {
   const nextEnv = { ...env };
   for (const key of Object.keys(nextEnv)) {
@@ -324,17 +353,24 @@ export function runPluginRuntimeInstall(params = {}) {
     return;
   }
   const manifest = readManifest(env);
+  const nextPlugins = {
+    ...manifest.plugins,
+    browser: installRuntimeOrUnavailable(installBrowserRuntime, env),
+    "open-websearch": installRuntimeOrUnavailable(installOpenWebSearchRuntime, env),
+    "scrapling-fetch": installRuntimeOrUnavailable(installScraplingRuntime, env),
+  };
   const nextManifest = {
     ...manifest,
-    plugins: {
-      ...manifest.plugins,
-      browser: installBrowserRuntime(env),
-      "open-websearch": installOpenWebSearchRuntime(env),
-      "scrapling-fetch": installScraplingRuntime(env),
-    },
+    plugins: nextPlugins,
   };
   writeManifest(nextManifest, env);
   log.log("[postinstall] installed plugin runtimes: browser, open-websearch, scrapling-fetch");
+  const unavailable = Object.entries(nextPlugins)
+    .filter(([, entry]) => entry?.state !== "healthy")
+    .map(([pluginId, entry]) => `${pluginId} (${entry?.reason ?? "unavailable"})`);
+  if (unavailable.length > 0) {
+    log.warn(`[postinstall] plugin runtimes unavailable: ${unavailable.join(", ")}`);
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

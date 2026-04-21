@@ -3,6 +3,12 @@ import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 type RuntimeInstallScript = {
+  createUnavailableRuntimeEntry: (error: unknown) => {
+    error: string;
+    installedAt: string;
+    reason: string;
+    state: string;
+  };
   createLocalPrefixNpmInstallArgs: (runtimeDir: string, packageSpec: string) => string[];
   createNestedNpmInstallEnv: (env: NodeJS.ProcessEnv) => NodeJS.ProcessEnv;
   resolveRuntimeSpawn: (
@@ -72,6 +78,22 @@ describe("install-plugin-runtimes", () => {
       args: ["/d", "/s", "/c", '"C:\\Program Files\\PinchTab\\pinchtab.cmd" --version'],
       shell: false,
       windowsVerbatimArguments: true,
+    });
+  });
+
+  it("records missing Python as an unavailable runtime", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(
+      script.createUnavailableRuntimeEntry(
+        new Error(
+          "No supported Python interpreter found for scrapling-fetch; requires Python >= 3.10.",
+        ),
+      ),
+    ).toMatchObject({
+      error: "No supported Python interpreter found for scrapling-fetch; requires Python >= 3.10.",
+      reason: "missing-python",
+      state: "unavailable",
     });
   });
 });

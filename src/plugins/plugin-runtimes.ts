@@ -144,9 +144,13 @@ export function formatPluginRuntimeDoctorLines(env: NodeJS.ProcessEnv = process.
           ? `python ${entry.pythonVersion}`
           : typeof entry.package === "string" && entry.package.startsWith("pinchtab@")
             ? entry.package
-            : typeof entry.version === "string"
-              ? `version ${entry.version}`
-              : "runtime metadata recorded";
+            : typeof entry.reason === "string"
+              ? entry.reason
+              : typeof entry.error === "string"
+                ? entry.error
+                : typeof entry.version === "string"
+                  ? `version ${entry.version}`
+                  : "runtime metadata recorded";
       return `${pluginId}: ${state} (${detail})`;
     });
 }
