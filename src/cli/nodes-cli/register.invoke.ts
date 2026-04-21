@@ -2,21 +2,22 @@ import type { Command } from "commander";
 import { randomIdempotencyKey } from "../../gateway/call.js";
 import { defaultRuntime } from "../../runtime.js";
 import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
-import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
+import { callGatewayCli, getCommandTranslator, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
 
 const BLOCKED_NODE_INVOKE_COMMANDS = new Set(["system.run", "system.run.prepare"]);
 
 export function registerNodesInvokeCommands(nodes: Command) {
+  const t = getCommandTranslator(nodes);
   nodesCallOpts(
     nodes
       .command("invoke")
-      .description("Invoke a command on a paired node")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
-      .requiredOption("--command <command>", "Command (e.g. canvas.eval)")
-      .option("--params <json>", "JSON object string for params", "{}")
-      .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 15000)", "15000")
-      .option("--idempotency-key <key>", "Idempotency key (optional)")
+      .description(t("command.nodes.invoke.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
+      .requiredOption("--command <command>", t("command.nodes.invoke.option.command"))
+      .option("--params <json>", t("command.nodes.invoke.option.params"), "{}")
+      .option("--invoke-timeout <ms>", t("command.nodes.option.invokeTimeoutDefault15000"), "15000")
+      .option("--idempotency-key <key>", t("command.nodes.invoke.option.idempotencyKey"))
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("invoke", async () => {
           const nodeId = await resolveNodeId(opts, opts.node ?? "");

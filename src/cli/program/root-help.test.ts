@@ -2,10 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { renderRootHelpText } from "./root-help.js";
 
 vi.mock("./core-command-descriptors.js", () => ({
-  getCoreCliCommandDescriptors: () => [
+  localizeCoreCliCommandDescriptors: () => [
     {
       name: "status",
       description: "Show status",
+      descriptionKey: "command.status.description",
       hasSubcommands: false,
     },
   ],
@@ -13,10 +14,11 @@ vi.mock("./core-command-descriptors.js", () => ({
 }));
 
 vi.mock("./subcli-descriptors.js", () => ({
-  getSubCliEntries: () => [
+  localizeSubCliEntries: () => [
     {
       name: "config",
       description: "Manage config",
+      descriptionKey: "command.config.description",
       hasSubcommands: true,
     },
   ],
@@ -41,5 +43,17 @@ describe("root help", () => {
     expect(text).toContain("config");
     expect(text).toContain("matrix");
     expect(text).toContain("Matrix channel utilities");
+  });
+
+  it("renders localized help copy when --lang zh-CN is present", async () => {
+    const originalArgv = process.argv;
+    process.argv = ["node", "crawclaw", "--lang", "zh-CN", "--help"];
+    try {
+      const text = await renderRootHelpText();
+      expect(text).toContain("示例：");
+      expect(text).toContain("文档：");
+    } finally {
+      process.argv = originalArgv;
+    }
   });
 });

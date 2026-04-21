@@ -5,17 +5,18 @@ export function registerMessageReadEditDeleteCommands(
   message: Command,
   helpers: MessageCliHelpers,
 ) {
+  const { t } = helpers;
   helpers
     .withMessageBase(
       helpers.withRequiredMessageTarget(
-        message.command("read").description("Read recent messages"),
+        message.command("read").description(t("command.message.read.description")),
       ),
     )
-    .option("--limit <n>", "Result limit")
-    .option("--before <id>", "Read/search before id")
-    .option("--after <id>", "Read/search after id")
-    .option("--around <id>", "Read around id")
-    .option("--include-thread", "Include thread replies (Discord)", false)
+    .option("--limit <n>", t("command.message.option.limit"))
+    .option("--before <id>", t("command.message.option.before"))
+    .option("--after <id>", t("command.message.option.after"))
+    .option("--around <id>", t("command.message.read.option.around"))
+    .option("--include-thread", t("command.message.read.option.includeThread"), false)
     .action(async (opts) => {
       await helpers.runMessageAction("read", opts);
     });
@@ -25,12 +26,12 @@ export function registerMessageReadEditDeleteCommands(
       helpers.withRequiredMessageTarget(
         message
           .command("edit")
-          .description("Edit a message")
-          .requiredOption("--message-id <id>", "Message id")
-          .requiredOption("-m, --message <text>", "Message body"),
+          .description(t("command.message.edit.description"))
+          .requiredOption("--message-id <id>", t("command.message.option.messageId"))
+          .requiredOption("-m, --message <text>", t("command.message.option.messageBody")),
       ),
     )
-    .option("--thread-id <id>", "Thread id (Telegram forum thread)")
+    .option("--thread-id <id>", t("command.message.option.telegramThreadId"))
     .action(async (opts) => {
       await helpers.runMessageAction("edit", opts);
     });
@@ -40,8 +41,8 @@ export function registerMessageReadEditDeleteCommands(
       helpers.withRequiredMessageTarget(
         message
           .command("delete")
-          .description("Delete a message")
-          .requiredOption("--message-id <id>", "Message id"),
+          .description(t("command.message.delete.description"))
+          .requiredOption("--message-id <id>", t("command.message.option.messageId")),
       ),
     )
     .action(async (opts) => {

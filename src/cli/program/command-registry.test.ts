@@ -37,6 +37,7 @@ vi.mock("./register.status-health-sessions.js", () => ({
   },
 }));
 
+import { createCliTranslator } from "../i18n/index.js";
 import {
   getCoreCliCommandNames,
   getCoreCliCommandsWithSubcommands,
@@ -46,6 +47,8 @@ import {
 
 const testProgramContext: ProgramContext = {
   programVersion: "0.0.0-test",
+  locale: "en",
+  t: createCliTranslator("en"),
   channelOptions: [],
   messageChannelOptions: "",
   agentChannelOptions: "web",

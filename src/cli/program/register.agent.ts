@@ -1,7 +1,7 @@
 import type { Command } from "commander";
+import { agentCliCommand } from "../../commands/agent-via-gateway.js";
 import { agentExportContextCommand } from "../../commands/agent.export-context.js";
 import { agentInspectCommand } from "../../commands/agent.inspect.js";
-import { agentCliCommand } from "../../commands/agent-via-gateway.js";
 import {
   agentsAddCommand,
   agentsBindingsCommand,
@@ -22,60 +22,59 @@ import { runCommandWithRuntime } from "../cli-utils.js";
 import { hasExplicitOptions } from "../command-options.js";
 import { createDefaultDeps } from "../deps.js";
 import { formatHelpExamples } from "../help-format.js";
+import { createCliTranslator } from "../i18n/index.js";
 import { collectOption } from "./helpers.js";
+import { getProgramContext } from "./program-context.js";
 
 export function registerAgentCommands(program: Command, args: { agentChannelOptions: string }) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const agent = program
     .command("agent")
-    .description("Run an agent turn via the Gateway (use --local for embedded)")
-    .option("-m, --message <text>", "Message body for the agent")
-    .option("-t, --to <number>", "Recipient number in E.164 used to derive the session key")
-    .option("--session-id <id>", "Use an explicit session id")
-    .option("--agent <id>", "Agent id (overrides routing bindings)")
-    .option("--thinking <level>", "Thinking level: off | minimal | low | medium | high | xhigh")
-    .option("--verbose <on|off>", "Persist agent verbose level for the session")
+    .description(t("command.agent.description"))
+    .option("-m, --message <text>", t("command.agent.option.message"))
+    .option("-t, --to <number>", t("command.agent.option.to"))
+    .option("--session-id <id>", t("command.agent.option.sessionId"))
+    .option("--agent <id>", t("command.agent.option.agent"))
+    .option("--thinking <level>", t("command.agent.option.thinking"))
+    .option("--verbose <on|off>", t("command.agent.option.verbose"))
     .option(
       "--channel <channel>",
-      `Delivery channel: ${args.agentChannelOptions} (omit to use the main session channel)`,
+      t("command.agent.option.channel", { channels: args.agentChannelOptions }),
     )
-    .option("--reply-to <target>", "Delivery target override (separate from session routing)")
-    .option("--reply-channel <channel>", "Delivery channel override (separate from routing)")
-    .option("--reply-account <id>", "Delivery account id override")
-    .option(
-      "--local",
-      "Run the embedded agent locally (requires model provider API keys in your shell)",
-      false,
-    )
-    .option("--deliver", "Send the agent's reply back to the selected channel", false)
-    .option("--json", "Output result as JSON", false)
-    .option(
-      "--timeout <seconds>",
-      "Override agent command timeout (seconds, default 600 or config value)",
-    )
+    .option("--reply-to <target>", t("command.agent.option.replyTo"))
+    .option("--reply-channel <channel>", t("command.agent.option.replyChannel"))
+    .option("--reply-account <id>", t("command.agent.option.replyAccount"))
+    .option("--local", t("command.agent.option.local"), false)
+    .option("--deliver", t("command.agent.option.deliver"), false)
+    .option("--json", t("command.agent.option.json"), false)
+    .option("--timeout <seconds>", t("command.agent.option.timeout"))
     .addHelpText(
       "after",
       () =>
         `
-${theme.heading("Examples:")}
+${theme.heading(t("cli.help.examplesHeading"))}
 ${formatHelpExamples([
-  ['crawclaw agent --to +15555550123 --message "status update"', "Start a new session."],
-  ['crawclaw agent --agent ops --message "Summarize logs"', "Use a specific agent."],
+  ['crawclaw agent --to +15555550123 --message "status update"', t("command.agent.example.start")],
+  ['crawclaw agent --agent ops --message "Summarize logs"', t("command.agent.example.specific")],
   [
     'crawclaw agent --session-id 1234 --message "Summarize inbox" --thinking medium',
-    "Target a session with explicit thinking level.",
+    t("command.agent.example.thinking"),
   ],
   [
     'crawclaw agent --to +15555550123 --message "Trace logs" --verbose on --json',
-    "Enable verbose logging and JSON output.",
+    t("command.agent.example.verbose"),
   ],
-  ['crawclaw agent --to +15555550123 --message "Summon reply" --deliver', "Deliver reply."],
+  [
+    'crawclaw agent --to +15555550123 --message "Summon reply" --deliver',
+    t("command.agent.example.deliver"),
+  ],
   [
     'crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel slack --reply-to "#reports"',
-    "Send reply to a different channel/target.",
+    t("command.agent.example.replyOverride"),
   ],
 ])}
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/agent")}`,
+${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/agent")}`,
     )
     .action(async (opts) => {
       const verboseLevel = typeof opts.verbose === "string" ? opts.verbose.toLowerCase() : "";
@@ -89,10 +88,10 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agent
     .command("inspect")
-    .description("Inspect a task-backed agent run")
-    .option("--run-id <id>", "Inspect by run id")
-    .option("--task-id <id>", "Inspect by task id")
-    .option("--json", "Output JSON instead of text", false)
+    .description(t("command.agent.inspect.description"))
+    .option("--run-id <id>", t("command.agent.inspect.option.runId"))
+    .option("--task-id <id>", t("command.agent.inspect.option.taskId"))
+    .option("--json", t("command.agent.inspect.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentInspectCommand(
@@ -108,13 +107,13 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agent
     .command("export-context")
-    .description("Export Context Archive records for a task-backed agent run")
-    .option("--run-id <id>", "Export by run id")
-    .option("--task-id <id>", "Export by task id")
-    .option("--session-id <id>", "Export by session id")
-    .option("--agent-id <id>", "Export by agent id")
-    .option("--out <path>", "Write the export snapshot to a JSON file")
-    .option("--json", "Output JSON instead of text", false)
+    .description(t("command.agent.exportContext.description"))
+    .option("--run-id <id>", t("command.agent.exportContext.option.runId"))
+    .option("--task-id <id>", t("command.agent.exportContext.option.taskId"))
+    .option("--session-id <id>", t("command.agent.exportContext.option.sessionId"))
+    .option("--agent-id <id>", t("command.agent.exportContext.option.agentId"))
+    .option("--out <path>", t("command.agent.exportContext.option.out"))
+    .option("--json", t("command.agent.exportContext.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentExportContextCommand(
@@ -133,18 +132,18 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   const agents = program
     .command("agents")
-    .description("Manage isolated agents (workspaces + auth + routing)")
+    .description(t("command.agents.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/agents", "docs.crawclaw.ai/cli/agents")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/agents", "docs.crawclaw.ai/cli/agents")}\n`,
     );
 
   agents
     .command("list")
-    .description("List configured agents")
-    .option("--json", "Output JSON instead of text", false)
-    .option("--bindings", "Include routing bindings", false)
+    .description(t("command.agents.list.description"))
+    .option("--json", t("command.agents.list.option.json"), false)
+    .option("--bindings", t("command.agents.list.option.bindings"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsListCommand(
@@ -156,8 +155,8 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agents
     .command("status")
-    .description("Show agent runtime/task/guard summary")
-    .option("--json", "Output JSON instead of text", false)
+    .description(t("command.agents.status.description"))
+    .option("--json", t("command.agents.status.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsStatusCommand(
@@ -171,9 +170,9 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agents
     .command("bindings")
-    .description("List routing bindings")
-    .option("--agent <id>", "Filter by agent id")
-    .option("--json", "Output JSON instead of text", false)
+    .description(t("command.agents.bindings.description"))
+    .option("--agent <id>", t("command.agents.bindings.option.agent"))
+    .option("--json", t("command.agents.bindings.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsBindingsCommand(
@@ -188,15 +187,10 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agents
     .command("bind")
-    .description("Add routing bindings for an agent")
-    .option("--agent <id>", "Agent id (defaults to current default agent)")
-    .option(
-      "--bind <channel[:accountId]>",
-      "Binding to add (repeatable). If omitted, accountId is resolved by channel defaults/hooks.",
-      collectOption,
-      [],
-    )
-    .option("--json", "Output JSON summary", false)
+    .description(t("command.agents.bind.description"))
+    .option("--agent <id>", t("command.agents.bind.option.agent"))
+    .option("--bind <channel[:accountId]>", t("command.agents.bind.option.bind"), collectOption, [])
+    .option("--json", t("command.agents.bind.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsBindCommand(
@@ -212,11 +206,16 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agents
     .command("unbind")
-    .description("Remove routing bindings for an agent")
-    .option("--agent <id>", "Agent id (defaults to current default agent)")
-    .option("--bind <channel[:accountId]>", "Binding to remove (repeatable)", collectOption, [])
-    .option("--all", "Remove all bindings for this agent", false)
-    .option("--json", "Output JSON summary", false)
+    .description(t("command.agents.unbind.description"))
+    .option("--agent <id>", t("command.agents.unbind.option.agent"))
+    .option(
+      "--bind <channel[:accountId]>",
+      t("command.agents.unbind.option.bind"),
+      collectOption,
+      [],
+    )
+    .option("--all", t("command.agents.unbind.option.all"), false)
+    .option("--json", t("command.agents.unbind.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsUnbindCommand(
@@ -233,13 +232,13 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agents
     .command("add [name]")
-    .description("Add a new isolated agent")
-    .option("--workspace <dir>", "Workspace directory for the new agent")
-    .option("--model <id>", "Model id for this agent")
-    .option("--agent-dir <dir>", "Agent state directory for this agent")
-    .option("--bind <channel[:accountId]>", "Route channel binding (repeatable)", collectOption, [])
-    .option("--non-interactive", "Disable prompts; requires --workspace", false)
-    .option("--json", "Output JSON summary", false)
+    .description(t("command.agents.add.description"))
+    .option("--workspace <dir>", t("command.agents.add.option.workspace"))
+    .option("--model <id>", t("command.agents.add.option.model"))
+    .option("--agent-dir <dir>", t("command.agents.add.option.agentDir"))
+    .option("--bind <channel[:accountId]>", t("command.agents.add.option.bind"), collectOption, [])
+    .option("--non-interactive", t("command.agents.add.option.nonInteractive"), false)
+    .option("--json", t("command.agents.add.option.json"), false)
     .action(async (name, opts, command) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         const hasFlags = hasExplicitOptions(command, [
@@ -267,31 +266,37 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.crawclaw.ai/cli/age
 
   agents
     .command("set-identity")
-    .description("Update an agent identity (name/theme/emoji/avatar)")
-    .option("--agent <id>", "Agent id to update")
-    .option("--workspace <dir>", "Workspace directory used to locate the agent + IDENTITY.md")
-    .option("--identity-file <path>", "Explicit IDENTITY.md path to read")
-    .option("--from-identity", "Read values from IDENTITY.md", false)
-    .option("--name <name>", "Identity name")
-    .option("--theme <theme>", "Identity theme")
-    .option("--emoji <emoji>", "Identity emoji")
-    .option("--avatar <value>", "Identity avatar (workspace path, http(s) URL, or data URI)")
-    .option("--json", "Output JSON summary", false)
+    .description(t("command.agents.setIdentity.description"))
+    .option("--agent <id>", t("command.agents.setIdentity.option.agent"))
+    .option("--workspace <dir>", t("command.agents.setIdentity.option.workspace"))
+    .option("--identity-file <path>", t("command.agents.setIdentity.option.identityFile"))
+    .option("--from-identity", t("command.agents.setIdentity.option.fromIdentity"), false)
+    .option("--name <name>", t("command.agents.setIdentity.option.name"))
+    .option("--theme <theme>", t("command.agents.setIdentity.option.theme"))
+    .option("--emoji <emoji>", t("command.agents.setIdentity.option.emoji"))
+    .option("--avatar <value>", t("command.agents.setIdentity.option.avatar"))
+    .option("--json", t("command.agents.setIdentity.option.json"), false)
     .addHelpText(
       "after",
       () =>
         `
-${theme.heading("Examples:")}
+${theme.heading(t("cli.help.examplesHeading"))}
 ${formatHelpExamples([
-  ['crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦞"', "Set name + emoji."],
-  ["crawclaw agents set-identity --agent main --avatar avatars/crawclaw.png", "Set avatar path."],
+  [
+    'crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦞"',
+    t("command.agents.setIdentity.example.nameEmoji"),
+  ],
+  [
+    "crawclaw agents set-identity --agent main --avatar avatars/crawclaw.png",
+    t("command.agents.setIdentity.example.avatar"),
+  ],
   [
     "crawclaw agents set-identity --workspace ~/.crawclaw/workspace --from-identity",
-    "Load from IDENTITY.md.",
+    t("command.agents.setIdentity.example.fromIdentity"),
   ],
   [
     "crawclaw agents set-identity --identity-file ~/.crawclaw/workspace/IDENTITY.md --agent main",
-    "Use a specific IDENTITY.md.",
+    t("command.agents.setIdentity.example.identityFile"),
   ],
 ])}
 `,
@@ -317,23 +322,26 @@ ${formatHelpExamples([
 
   const harness = agents
     .command("harness")
-    .description("Offline harness report and promotion checks")
+    .description(t("command.agents.harness.description"))
     .addHelpText(
       "after",
       () =>
         `
-${theme.heading("Examples:")}
+${theme.heading(t("cli.help.examplesHeading"))}
 ${formatHelpExamples([
-  ["crawclaw agents harness report", "Build a harness report from builtin scenarios."],
-  ["crawclaw agents harness report --scenario fix-complete", "Limit to one builtin scenario."],
-  ["crawclaw agents harness report --json", "Emit JSON report."],
+  ["crawclaw agents harness report", t("command.agents.harness.example.report")],
+  [
+    "crawclaw agents harness report --scenario fix-complete",
+    t("command.agents.harness.example.scenario"),
+  ],
+  ["crawclaw agents harness report --json", t("command.agents.harness.example.json")],
   [
     "crawclaw agents harness promote-check --baseline baseline.json --candidate candidate.json",
-    "Compare two harness reports and print the verdict.",
+    t("command.agents.harness.example.promote"),
   ],
   [
     "crawclaw agents harness promote-check --baseline baseline.json --candidate candidate.json --json",
-    "Emit the decision as JSON.",
+    t("command.agents.harness.example.promoteJson"),
   ],
 ])}
 `,
@@ -341,9 +349,14 @@ ${formatHelpExamples([
 
   harness
     .command("report")
-    .description("Generate a harness report from builtin scenarios")
-    .option("--scenario <name>", "Limit to one builtin scenario (repeatable)", collectOption, [])
-    .option("--json", "Output JSON instead of text", false)
+    .description(t("command.agents.harness.report.description"))
+    .option(
+      "--scenario <name>",
+      t("command.agents.harness.report.option.scenario"),
+      collectOption,
+      [],
+    )
+    .option("--json", t("command.agents.harness.report.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsHarnessReportCommand(
@@ -358,10 +371,10 @@ ${formatHelpExamples([
 
   harness
     .command("promote-check")
-    .description("Evaluate baseline and candidate harness reports")
-    .requiredOption("--baseline <path>", "Path to the baseline harness report JSON")
-    .requiredOption("--candidate <path>", "Path to the candidate harness report JSON")
-    .option("--json", "Output JSON instead of text", false)
+    .description(t("command.agents.harness.promoteCheck.description"))
+    .requiredOption("--baseline <path>", t("command.agents.harness.promoteCheck.option.baseline"))
+    .requiredOption("--candidate <path>", t("command.agents.harness.promoteCheck.option.candidate"))
+    .option("--json", t("command.agents.harness.promoteCheck.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsHarnessPromoteCheckCommand(
@@ -377,9 +390,9 @@ ${formatHelpExamples([
 
   agents
     .command("delete <id>")
-    .description("Delete an agent and prune workspace/state")
-    .option("--force", "Skip confirmation", false)
-    .option("--json", "Output JSON summary", false)
+    .description(t("command.agents.delete.description"))
+    .option("--force", t("command.agents.delete.option.force"), false)
+    .option("--json", t("command.agents.delete.option.json"), false)
     .action(async (id, opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await agentsDeleteCommand(

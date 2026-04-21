@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createProgramContext } from "./context.js";
+import { setProgramContext } from "./program-context.js";
 import { registerBackupCommand } from "./register.backup.js";
 
 const mocks = vi.hoisted(() => ({
@@ -100,5 +102,20 @@ describe("registerBackupCommand", () => {
         json: true,
       }),
     );
+  });
+
+  it("localizes backup help copy", () => {
+    const program = new Command();
+    setProgramContext(
+      program,
+      createProgramContext({ argv: ["node", "crawclaw", "--lang", "zh-CN"] }),
+    );
+    registerBackupCommand(program);
+
+    const backup = program.commands.find((command) => command.name() === "backup");
+    const create = backup?.commands.find((command) => command.name() === "create");
+    expect(backup?.description()).toBe("创建并校验 CrawClaw 本地状态备份");
+    expect(create?.description()).toBe("写入包含配置、凭据、会话和工作区的备份归档");
+    expect(create?.helpInformation()).toContain("只打印备份计划，不写入归档");
   });
 });

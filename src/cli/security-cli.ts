@@ -10,6 +10,8 @@ import { formatCliCommand } from "./command-format.js";
 import { resolveCommandSecretRefsViaGateway } from "./command-secret-gateway.js";
 import { getSecurityAuditCommandSecretTargetIds } from "./command-secret-targets.js";
 import { formatHelpExamples } from "./help-format.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type SecurityAuditOptions = {
   json?: boolean;
@@ -32,33 +34,34 @@ function formatSummary(summary: { critical: number; warn: number; info: number }
 }
 
 export function registerSecurityCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const security = program
     .command("security")
-    .description("Audit local config and state for common security foot-guns")
+    .description(t("command.security.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["crawclaw security audit", "Run a local security audit."],
-          ["crawclaw security audit --deep", "Include best-effort live Gateway probe checks."],
-          ["crawclaw security audit --deep --token <token>", "Use explicit token for deep probe."],
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          ["crawclaw security audit", t("command.security.example.audit")],
+          ["crawclaw security audit --deep", t("command.security.example.deep")],
+          ["crawclaw security audit --deep --token <token>", t("command.security.example.token")],
           [
             "crawclaw security audit --deep --password <password>",
-            "Use explicit password for deep probe.",
+            t("command.security.example.password"),
           ],
-          ["crawclaw security audit --fix", "Apply safe remediations and file-permission fixes."],
-          ["crawclaw security audit --json", "Output machine-readable JSON."],
-        ])}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/security", "docs.crawclaw.ai/cli/security")}\n`,
+          ["crawclaw security audit --fix", t("command.security.example.fix")],
+          ["crawclaw security audit --json", t("command.security.example.json")],
+        ])}\n\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/security", "docs.crawclaw.ai/cli/security")}\n`,
     );
 
   security
     .command("audit")
-    .description("Audit config + local state for common security foot-guns")
-    .option("--deep", "Attempt live Gateway probe (best-effort)", false)
-    .option("--token <token>", "Use explicit gateway token for deep probe auth")
-    .option("--password <password>", "Use explicit gateway password for deep probe auth")
-    .option("--fix", "Apply safe fixes (tighten defaults + chmod state/config)", false)
-    .option("--json", "Print JSON", false)
+    .description(t("command.security.audit.description"))
+    .option("--deep", t("command.security.audit.option.deep"), false)
+    .option("--token <token>", t("command.security.audit.option.token"))
+    .option("--password <password>", t("command.security.audit.option.password"))
+    .option("--fix", t("command.security.audit.option.fix"), false)
+    .option("--json", t("command.security.audit.option.json"), false)
     .action(async (opts: SecurityAuditOptions) => {
       const fixResult = opts.fix ? await fixSecurityFootguns().catch((_err) => null) : null;
 

@@ -15,6 +15,7 @@ import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
 import {
   buildNodeInvokeParams,
   callGatewayCli,
+  getCommandTranslator,
   nodesCallOpts,
   resolveNode,
   resolveNodeId,
@@ -36,13 +37,14 @@ function getGatewayInvokePayload(raw: unknown): unknown {
 }
 
 export function registerNodesCameraCommands(nodes: Command) {
-  const camera = nodes.command("camera").description("Capture camera media from a paired node");
+  const t = getCommandTranslator(nodes);
+  const camera = nodes.command("camera").description(t("command.nodes.camera.description"));
 
   nodesCallOpts(
     camera
       .command("list")
-      .description("List available cameras on a node")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
+      .description(t("command.nodes.camera.list.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("camera list", async () => {
           const nodeId = await resolveNodeId(opts, opts.node ?? "");
@@ -101,14 +103,14 @@ export function registerNodesCameraCommands(nodes: Command) {
   nodesCallOpts(
     camera
       .command("snap")
-      .description("Capture a photo from a node camera (prints MEDIA:<path>)")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
-      .option("--facing <front|back|both>", "Camera facing", "both")
-      .option("--device-id <id>", "Camera device id (from nodes camera list)")
-      .option("--max-width <px>", "Max width in px (optional)")
-      .option("--quality <0-1>", "JPEG quality (default 0.9)")
-      .option("--delay-ms <ms>", "Delay before capture in ms (macOS default 2000)")
-      .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 20000)", "20000")
+      .description(t("command.nodes.camera.snap.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
+      .option("--facing <front|back|both>", t("command.nodes.camera.option.facing"), "both")
+      .option("--device-id <id>", t("command.nodes.camera.option.deviceId"))
+      .option("--max-width <px>", t("command.nodes.option.maxWidth"))
+      .option("--quality <0-1>", t("command.nodes.option.jpegQualityDefault"))
+      .option("--delay-ms <ms>", t("command.nodes.camera.option.delayMs"))
+      .option("--invoke-timeout <ms>", t("command.nodes.option.invokeTimeoutDefault20000"), "20000")
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("camera snap", async () => {
           const node = await resolveNode(opts, opts.node ?? "");
@@ -190,17 +192,13 @@ export function registerNodesCameraCommands(nodes: Command) {
   nodesCallOpts(
     camera
       .command("clip")
-      .description("Capture a short video clip from a node camera (prints MEDIA:<path>)")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
-      .option("--facing <front|back>", "Camera facing", "front")
-      .option("--device-id <id>", "Camera device id (from nodes camera list)")
-      .option(
-        "--duration <ms|10s|1m>",
-        "Duration (default 3000ms; supports ms/s/m, e.g. 10s)",
-        "3000",
-      )
-      .option("--no-audio", "Disable audio capture")
-      .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 90000)", "90000")
+      .description(t("command.nodes.camera.clip.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
+      .option("--facing <front|back>", t("command.nodes.camera.option.facing"), "front")
+      .option("--device-id <id>", t("command.nodes.camera.option.deviceId"))
+      .option("--duration <ms|10s|1m>", t("command.nodes.camera.option.clipDuration"), "3000")
+      .option("--no-audio", t("command.nodes.camera.option.noAudio"))
+      .option("--invoke-timeout <ms>", t("command.nodes.option.invokeTimeoutDefault90000"), "90000")
       .action(async (opts: NodesRpcOpts & { audio?: boolean }) => {
         await runNodesCommand("camera clip", async () => {
           const node = await resolveNode(opts, opts.node ?? "");

@@ -1,11 +1,14 @@
 import { Command } from "commander";
 import { describe, expect, it } from "vitest";
+import { createCliTranslator } from "../i18n/index.js";
 import type { ProgramContext } from "./context.js";
 import { getProgramContext, setProgramContext } from "./program-context.js";
 
 function makeCtx(version: string): ProgramContext {
   return {
     programVersion: version,
+    locale: "en",
+    t: createCliTranslator("en"),
     channelOptions: ["telegram"],
     messageChannelOptions: "telegram",
     agentChannelOptions: "last|telegram",

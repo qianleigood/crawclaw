@@ -3,29 +3,28 @@ import { collectOption } from "../helpers.js";
 import type { MessageCliHelpers } from "./helpers.js";
 
 export function registerMessagePollCommand(message: Command, helpers: MessageCliHelpers) {
+  const { t } = helpers;
   helpers
     .withMessageBase(
-      helpers.withRequiredMessageTarget(message.command("poll").description("Send a poll")),
+      helpers.withRequiredMessageTarget(
+        message.command("poll").description(t("command.message.poll.description")),
+      ),
     )
-    .requiredOption("--poll-question <text>", "Poll question")
+    .requiredOption("--poll-question <text>", t("command.message.poll.option.question"))
     .option(
       "--poll-option <choice>",
-      "Poll option (repeat 2-12 times)",
+      t("command.message.poll.option.choice"),
       collectOption,
       [] as string[],
     )
-    .option("--poll-multi", "Allow multiple selections", false)
-    .option("--poll-duration-hours <n>", "Poll duration in hours (Discord)")
-    .option("--poll-duration-seconds <n>", "Poll duration in seconds (Telegram; 5-600)")
-    .option("--poll-anonymous", "Send an anonymous poll (Telegram)", false)
-    .option("--poll-public", "Send a non-anonymous poll (Telegram)", false)
-    .option("-m, --message <text>", "Optional message body")
-    .option(
-      "--silent",
-      "Send poll silently without notification (Telegram + Discord where supported)",
-      false,
-    )
-    .option("--thread-id <id>", "Thread id (Telegram forum topic / Slack thread ts)")
+    .option("--poll-multi", t("command.message.poll.option.multi"), false)
+    .option("--poll-duration-hours <n>", t("command.message.poll.option.durationHours"))
+    .option("--poll-duration-seconds <n>", t("command.message.poll.option.durationSeconds"))
+    .option("--poll-anonymous", t("command.message.poll.option.anonymous"), false)
+    .option("--poll-public", t("command.message.poll.option.public"), false)
+    .option("-m, --message <text>", t("command.message.option.optionalMessageBody"))
+    .option("--silent", t("command.message.poll.option.silent"), false)
+    .option("--thread-id <id>", t("command.message.poll.option.threadId"))
     .action(async (opts) => {
       await helpers.runMessageAction("poll", opts);
     });

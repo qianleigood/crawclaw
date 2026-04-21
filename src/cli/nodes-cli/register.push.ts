@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import { defaultRuntime } from "../../runtime.js";
 import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
-import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
+import { callGatewayCli, getCommandTranslator, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
 
 type NodesPushOpts = NodesRpcOpts & {
@@ -23,14 +23,15 @@ function normalizeEnvironment(value: unknown): "sandbox" | "production" | null {
 }
 
 export function registerNodesPushCommand(nodes: Command) {
+  const t = getCommandTranslator(nodes);
   nodesCallOpts(
     nodes
       .command("push")
-      .description("Send an APNs test push to an iOS node")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
-      .option("--title <text>", "Push title", "CrawClaw")
-      .option("--body <text>", "Push body")
-      .option("--environment <sandbox|production>", "Override APNs environment")
+      .description(t("command.nodes.push.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
+      .option("--title <text>", t("command.nodes.push.option.title"), "CrawClaw")
+      .option("--body <text>", t("command.nodes.push.option.body"))
+      .option("--environment <sandbox|production>", t("command.nodes.push.option.environment"))
       .action(async (opts: NodesPushOpts) => {
         await runNodesCommand("push", async () => {
           const nodeId = await resolveNodeId(opts, opts.node ?? "");

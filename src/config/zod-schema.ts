@@ -358,6 +358,7 @@ export const CrawClawSchema = z
       .optional(),
     cli: z
       .object({
+        language: z.union([z.literal("en"), z.literal("zh-CN")]).optional(),
         banner: z
           .object({
             taglineMode: z

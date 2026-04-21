@@ -1,19 +1,21 @@
 import type { Command } from "commander";
 import { defaultRuntime } from "../../runtime.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
+import type { CliTranslator } from "../i18n/types.js";
 import { handleCronCliError, printCronJson, warnIfCronSchedulerDisabled } from "./shared.js";
 
 function registerCronToggleCommand(params: {
   cron: Command;
   name: "enable" | "disable";
   description: string;
+  t: CliTranslator;
   enabled: boolean;
 }) {
   addGatewayClientOptions(
     params.cron
       .command(params.name)
       .description(params.description)
-      .argument("<id>", "Job id")
+      .argument("<id>", params.t("command.cron.argument.id"))
       .action(async (id, opts) => {
         try {
           const res = await callGatewayFromCli("cron.update", opts, {
@@ -29,15 +31,15 @@ function registerCronToggleCommand(params: {
   );
 }
 
-export function registerCronSimpleCommands(cron: Command) {
+export function registerCronSimpleCommands(cron: Command, t: CliTranslator) {
   addGatewayClientOptions(
     cron
       .command("rm")
       .alias("remove")
       .alias("delete")
-      .description("Remove a cron job")
-      .argument("<id>", "Job id")
-      .option("--json", "Output JSON", false)
+      .description(t("command.cron.remove.description"))
+      .argument("<id>", t("command.cron.argument.id"))
+      .option("--json", t("command.cron.option.json"), false)
       .action(async (id, opts) => {
         try {
           const res = await callGatewayFromCli("cron.remove", opts, { id });
@@ -51,22 +53,24 @@ export function registerCronSimpleCommands(cron: Command) {
   registerCronToggleCommand({
     cron,
     name: "enable",
-    description: "Enable a cron job",
+    description: t("command.cron.enable.description"),
+    t,
     enabled: true,
   });
   registerCronToggleCommand({
     cron,
     name: "disable",
-    description: "Disable a cron job",
+    description: t("command.cron.disable.description"),
+    t,
     enabled: false,
   });
 
   addGatewayClientOptions(
     cron
       .command("runs")
-      .description("Show cron run history (JSONL-backed)")
-      .requiredOption("--id <id>", "Job id")
-      .option("--limit <n>", "Max entries (default 50)", "50")
+      .description(t("command.cron.runs.description"))
+      .requiredOption("--id <id>", t("command.cron.argument.id"))
+      .option("--limit <n>", t("command.cron.runs.option.limit"), "50")
       .action(async (opts) => {
         try {
           const limitRaw = Number.parseInt(String(opts.limit ?? "50"), 10);
@@ -86,9 +90,9 @@ export function registerCronSimpleCommands(cron: Command) {
   addGatewayClientOptions(
     cron
       .command("run")
-      .description("Run a cron job now (debug)")
-      .argument("<id>", "Job id")
-      .option("--due", "Run only when due (default behavior in older versions)", false)
+      .description(t("command.cron.run.description"))
+      .argument("<id>", t("command.cron.argument.id"))
+      .option("--due", t("command.cron.run.option.due"), false)
       .action(async (id, opts, command) => {
         try {
           if (command.getOptionValueSource("timeout") === "default") {

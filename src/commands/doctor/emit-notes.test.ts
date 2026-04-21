@@ -1,7 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { emitDoctorNotes } from "./emit-notes.js";
 
 describe("doctor note emission", () => {
+  const originalArgv = process.argv;
+
+  afterEach(() => {
+    process.argv = originalArgv;
+  });
+
   it("emits grouped change and warning notes with the correct titles", () => {
     const note = vi.fn();
 
@@ -36,5 +42,21 @@ describe("doctor note emission", () => {
     emitDoctorNotes({ note, changeNotes: [], warningNotes: [] });
 
     expect(note).not.toHaveBeenCalled();
+  });
+
+  it("localizes note titles when --lang zh-CN is present", () => {
+    process.argv = ["node", "crawclaw", "--lang", "zh-CN"];
+    const note = vi.fn();
+
+    emitDoctorNotes({
+      note,
+      changeNotes: ["change"],
+      warningNotes: ["warning"],
+    });
+
+    expect(note.mock.calls).toEqual([
+      ["change", "Doctor 变更"],
+      ["warning", "Doctor 警告"],
+    ]);
   });
 });

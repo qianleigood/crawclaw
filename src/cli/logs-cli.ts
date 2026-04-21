@@ -9,6 +9,8 @@ import { createSafeStreamWriter } from "../terminal/stream-writer.js";
 import { colorize, isRich, theme } from "../terminal/theme.js";
 import { formatCliCommand } from "./command-format.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "./gateway-rpc.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type LogsTailPayload = {
   file?: string;
@@ -190,21 +192,22 @@ function emitGatewayError(
 }
 
 export function registerLogsCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const logs = program
     .command("logs")
-    .description("Tail gateway file logs via RPC")
-    .option("--limit <n>", "Max lines to return", "200")
-    .option("--max-bytes <n>", "Max bytes to read", "250000")
-    .option("--follow", "Follow log output", false)
-    .option("--interval <ms>", "Polling interval in ms", "1000")
-    .option("--json", "Emit JSON log lines", false)
-    .option("--plain", "Plain text output (no ANSI styling)", false)
-    .option("--no-color", "Disable ANSI colors")
-    .option("--local-time", "Display timestamps in local timezone", false)
+    .description(t("command.logs.description"))
+    .option("--limit <n>", t("command.logs.option.limit"), "200")
+    .option("--max-bytes <n>", t("command.logs.option.maxBytes"), "250000")
+    .option("--follow", t("command.logs.option.follow"), false)
+    .option("--interval <ms>", t("command.logs.option.interval"), "1000")
+    .option("--json", t("command.logs.option.json"), false)
+    .option("--plain", t("command.logs.option.plain"), false)
+    .option("--no-color", t("command.logs.option.noColor"))
+    .option("--local-time", t("command.logs.option.localTime"), false)
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/logs", "docs.crawclaw.ai/cli/logs")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/logs", "docs.crawclaw.ai/cli/logs")}\n`,
     );
 
   addGatewayClientOptions(logs);

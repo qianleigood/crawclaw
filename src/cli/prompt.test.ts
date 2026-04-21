@@ -48,4 +48,11 @@ describe("promptYesNo", () => {
     const resultYes = await promptYesNo("Continue?", false);
     expect(resultYes).toBe(true);
   });
+
+  it("supports localized yes/no labels", async () => {
+    readlineState.question.mockResolvedValueOnce("y");
+    const result = await promptYesNo("继续吗？", false, { yes: "y", no: "n" });
+    expect(result).toBe(true);
+    expect(readlineState.question).toHaveBeenCalledWith("继续吗？ [y/N] ");
+  });
 });

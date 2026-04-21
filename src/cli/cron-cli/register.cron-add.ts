@@ -4,6 +4,7 @@ import { sanitizeAgentId } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
 import type { GatewayRpcOpts } from "../gateway-rpc.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
+import type { CliTranslator } from "../i18n/types.js";
 import { parsePositiveIntOrUndefined } from "../program/helpers.js";
 import { resolveCronCreateSchedule } from "./schedule-options.js";
 import {
@@ -14,12 +15,12 @@ import {
   warnIfCronSchedulerDisabled,
 } from "./shared.js";
 
-export function registerCronStatusCommand(cron: Command) {
+export function registerCronStatusCommand(cron: Command, t: CliTranslator) {
   addGatewayClientOptions(
     cron
       .command("status")
-      .description("Show cron scheduler status")
-      .option("--json", "Output JSON", false)
+      .description(t("command.cron.status.description"))
+      .option("--json", t("command.cron.option.json"), false)
       .action(async (opts) => {
         try {
           const res = await callGatewayFromCli("cron.status", opts, {});
@@ -31,13 +32,13 @@ export function registerCronStatusCommand(cron: Command) {
   );
 }
 
-export function registerCronListCommand(cron: Command) {
+export function registerCronListCommand(cron: Command, t: CliTranslator) {
   addGatewayClientOptions(
     cron
       .command("list")
-      .description("List cron jobs")
-      .option("--all", "Include disabled jobs", false)
-      .option("--json", "Output JSON", false)
+      .description(t("command.cron.list.description"))
+      .option("--all", t("command.cron.list.option.all"), false)
+      .option("--json", t("command.cron.option.json"), false)
       .action(async (opts) => {
         try {
           const res = await callGatewayFromCli("cron.list", opts, {
@@ -56,51 +57,46 @@ export function registerCronListCommand(cron: Command) {
   );
 }
 
-export function registerCronAddCommand(cron: Command) {
+export function registerCronAddCommand(cron: Command, t: CliTranslator) {
   addGatewayClientOptions(
     cron
       .command("add")
       .alias("create")
-      .description("Add a cron job")
-      .requiredOption("--name <name>", "Job name")
-      .option("--description <text>", "Optional description")
-      .option("--disabled", "Create job disabled", false)
-      .option("--delete-after-run", "Delete one-shot job after it succeeds", false)
-      .option("--keep-after-run", "Keep one-shot job after it succeeds", false)
-      .option("--agent <id>", "Agent id for this job")
-      .option("--session <target>", "Session target (main|isolated)")
-      .option("--session-key <key>", "Session key for job routing (e.g. agent:my-agent:my-session)")
-      .option("--wake <mode>", "Wake mode (now|next-heartbeat)", "now")
+      .description(t("command.cron.add.description"))
+      .requiredOption("--name <name>", t("command.cron.option.name"))
+      .option("--description <text>", t("command.cron.add.option.description"))
+      .option("--disabled", t("command.cron.add.option.disabled"), false)
+      .option("--delete-after-run", t("command.cron.option.deleteAfterRun"), false)
+      .option("--keep-after-run", t("command.cron.option.keepAfterRun"), false)
+      .option("--agent <id>", t("command.cron.add.option.agent"))
+      .option("--session <target>", t("command.cron.option.session"))
+      .option("--session-key <key>", t("command.cron.add.option.sessionKey"))
+      .option("--wake <mode>", t("command.cron.option.wake"), "now")
+      .option("--at <when>", t("command.cron.add.option.at"))
+      .option("--every <duration>", t("command.cron.add.option.every"))
+      .option("--cron <expr>", t("command.cron.add.option.cron"))
+      .option("--tz <iana>", t("command.cron.option.tz"), "")
+      .option("--stagger <duration>", t("command.cron.option.stagger"))
+      .option("--exact", t("command.cron.option.exact"), false)
+      .option("--system-event <text>", t("command.cron.add.option.systemEvent"))
+      .option("--message <text>", t("command.cron.add.option.message"))
+      .option("--thinking <level>", t("command.cron.option.thinking"))
+      .option("--model <model>", t("command.cron.add.option.model"))
+      .option("--timeout-seconds <n>", t("command.cron.option.timeoutSeconds"))
+      .option("--light-context", t("command.cron.add.option.lightContext"), false)
+      .option("--tools <csv>", t("command.cron.option.tools"))
+      .option("--announce", t("command.cron.option.announce"), false)
+      .option("--deliver", t("command.cron.option.deliver"))
+      .option("--no-deliver", t("command.cron.add.option.noDeliver"))
       .option(
-        "--at <when>",
-        "Run once at time (ISO with offset, or +duration). Use --tz for offset-less datetimes",
+        "--channel <channel>",
+        t("command.cron.option.channel", { channels: getCronChannelOptions() }),
+        "last",
       )
-      .option("--every <duration>", "Run every duration (e.g. 10m, 1h)")
-      .option("--cron <expr>", "Cron expression (5-field or 6-field with seconds)")
-      .option("--tz <iana>", "Timezone for cron expressions (IANA)", "")
-      .option("--stagger <duration>", "Cron stagger window (e.g. 30s, 5m)")
-      .option("--exact", "Disable cron staggering (set stagger to 0)", false)
-      .option("--system-event <text>", "System event payload (main session)")
-      .option("--message <text>", "Agent message payload")
-      .option(
-        "--thinking <level>",
-        "Thinking level for agent jobs (off|minimal|low|medium|high|xhigh)",
-      )
-      .option("--model <model>", "Model override for agent jobs (provider/model or alias)")
-      .option("--timeout-seconds <n>", "Timeout seconds for agent jobs")
-      .option("--light-context", "Use lightweight bootstrap context for agent jobs", false)
-      .option("--tools <csv>", "Comma-separated tool allow-list (e.g. exec,read,write)")
-      .option("--announce", "Announce summary to a chat (subagent-style)", false)
-      .option("--deliver", "Deprecated (use --announce). Announces a summary to a chat.")
-      .option("--no-deliver", "Disable announce delivery and skip main-session summary")
-      .option("--channel <channel>", `Delivery channel (${getCronChannelOptions()})`, "last")
-      .option(
-        "--to <dest>",
-        "Delivery destination (E.164, Telegram chatId, or Discord channel/user)",
-      )
-      .option("--account <id>", "Channel account id for delivery (multi-account setups)")
-      .option("--best-effort-deliver", "Do not fail the job if delivery fails", false)
-      .option("--json", "Output JSON", false)
+      .option("--to <dest>", t("command.cron.option.to"))
+      .option("--account <id>", t("command.cron.option.account"))
+      .option("--best-effort-deliver", t("command.cron.add.option.bestEffortDeliver"), false)
+      .option("--json", t("command.cron.option.json"), false)
       .action(async (opts: GatewayRpcOpts & Record<string, unknown>, cmd?: Command) => {
         try {
           const schedule = resolveCronCreateSchedule({

@@ -4,6 +4,8 @@ import path from "node:path";
 import { Command } from "commander";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigFileSnapshot, CrawClawConfig } from "../config/types.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { setProgramContext } from "./program/program-context.js";
 import { createCliRuntimeCapture, mockRuntimeModule } from "./test-runtime-capture.js";
 
 /**
@@ -1598,5 +1600,29 @@ describe("config cli", () => {
 
       expect(mockLog).toHaveBeenCalledWith("/home/user/.crawclaw/crawclaw.json");
     });
+  });
+
+  it("localizes config help copy", () => {
+    const program = new Command();
+    setProgramContext(program, {
+      programVersion: "9.9.9-test",
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+      channelOptions: [],
+      messageChannelOptions: "",
+      agentChannelOptions: "last",
+    });
+    registerConfigCli(program);
+
+    const config = program.commands.find((command) => command.name() === "config");
+    const set = config?.commands.find((command) => command.name() === "set");
+    const validate = config?.commands.find((command) => command.name() === "validate");
+
+    expect(config?.description()).toBe(
+      "非交互式配置助手（get/set/unset/file/schema/validate）。无子命令时进入引导式设置。",
+    );
+    expect(set?.description()).toContain("按路径设置配置值");
+    expect(set?.helpInformation()).toContain("严格 JSON 解析");
+    expect(validate?.description()).toBe("在不启动网关的情况下校验当前配置");
   });
 });

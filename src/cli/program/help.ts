@@ -17,30 +17,25 @@ const ROOT_COMMANDS_WITH_SUBCOMMANDS = new Set([
   ...getCoreCliCommandsWithSubcommands(),
   ...getSubCliCommandsWithSubcommands(),
 ]);
-const ROOT_COMMANDS_HINT =
-  "Hint: commands suffixed with * have subcommands. Run <command> --help for details.";
 
 const EXAMPLES = [
-  ["crawclaw models --help", "Show detailed help for the models command."],
-  [
-    "crawclaw channels login --verbose",
-    "Link personal WhatsApp Web and show QR + connection logs.",
-  ],
+  ["crawclaw models --help", "cli.help.example.modelsHelp"],
+  ["crawclaw channels login --verbose", "cli.help.example.channelsLoginVerbose"],
   [
     'crawclaw message send --target +15555550123 --message "Hi" --json',
-    "Send via your web session and print JSON result.",
+    "cli.help.example.messageSendJson",
   ],
-  ["crawclaw gateway --port 18789", "Run the WebSocket Gateway locally."],
-  ["crawclaw --dev gateway", "Run a dev Gateway (isolated state/config) on ws://127.0.0.1:19001."],
-  ["crawclaw gateway --force", "Kill anything bound to the default gateway port, then start it."],
-  ["crawclaw gateway ...", "Gateway control via WebSocket."],
+  ["crawclaw gateway --port 18789", "cli.help.example.gatewayPort"],
+  ["crawclaw --dev gateway", "cli.help.example.devGateway"],
+  ["crawclaw gateway --force", "cli.help.example.gatewayForce"],
+  ["crawclaw gateway ...", "cli.help.example.gatewayEllipsis"],
   [
     'crawclaw agent --to +15555550123 --message "Run summary" --deliver',
-    "Talk directly to the agent using the Gateway; optionally send the WhatsApp reply.",
+    "cli.help.example.agentDeliver",
   ],
   [
     'crawclaw message send --channel telegram --target @mychat --message "Hi"',
-    "Send via your Telegram bot.",
+    "cli.help.example.telegramSend",
   ],
 ] as const;
 
@@ -49,27 +44,19 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
     .name(CLI_NAME)
     .description("")
     .version(ctx.programVersion)
-    .option(
-      "--container <name>",
-      "Run the CLI inside a running Podman/Docker container named <name> (default: env CRAWCLAW_CONTAINER)",
-    )
-    .option(
-      "--dev",
-      "Dev profile: isolate state under ~/.crawclaw-dev, default gateway port 19001, and shift derived ports (browser/canvas)",
-    )
-    .option(
-      "--profile <name>",
-      "Use a named profile (isolates CRAWCLAW_STATE_DIR/CRAWCLAW_CONFIG_PATH under ~/.crawclaw-<name>)",
-    )
+    .option("--lang <locale>", ctx.t("cli.option.lang"))
+    .option("--container <name>", ctx.t("cli.option.container"))
+    .option("--dev", ctx.t("cli.option.dev"))
+    .option("--profile <name>", ctx.t("cli.option.profile"))
     .option(
       "--log-level <level>",
-      `Global log level override for file + console (${CLI_LOG_LEVEL_VALUES})`,
+      ctx.t("cli.option.logLevel", { values: CLI_LOG_LEVEL_VALUES }),
       parseCliLogLevelOption,
     );
 
-  program.option("--no-color", "Disable ANSI colors", false);
-  program.helpOption("-h, --help", "Display help for command");
-  program.helpCommand("help [command]", "Display help for command");
+  program.option("--no-color", ctx.t("cli.option.noColor"), false);
+  program.helpOption("-h, --help", ctx.t("cli.help.helpOption"));
+  program.helpCommand("help [command]", ctx.t("cli.help.helpCommand"));
 
   program.configureHelp({
     // sort options and subcommands alphabetically
@@ -90,7 +77,10 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
       "m",
     ).test(output);
     if (isRootHelp && /^Commands:/m.test(output)) {
-      output = output.replace(/^Commands:/m, `Commands:\n  ${theme.muted(ROOT_COMMANDS_HINT)}`);
+      output = output.replace(
+        /^Commands:/m,
+        `Commands:\n  ${theme.muted(ctx.t("cli.help.rootCommandsHint"))}`,
+      );
     }
 
     return output
@@ -131,7 +121,8 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
   });
 
   const fmtExamples = EXAMPLES.map(
-    ([cmd, desc]) => `  ${theme.command(replaceCliName(cmd, CLI_NAME))}\n    ${theme.muted(desc)}`,
+    ([cmd, descKey]) =>
+      `  ${theme.command(replaceCliName(cmd, CLI_NAME))}\n    ${theme.muted(ctx.t(descKey))}`,
   ).join("\n");
 
   program.addHelpText("afterAll", ({ command }) => {
@@ -139,6 +130,6 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
       return "";
     }
     const docs = formatDocsLink("/cli", "docs.crawclaw.ai/cli");
-    return `\n${theme.heading("Examples:")}\n${fmtExamples}\n\n${theme.muted("Docs:")} ${docs}\n`;
+    return `\n${theme.heading(ctx.t("cli.help.examplesHeading"))}\n${fmtExamples}\n\n${theme.muted(ctx.t("cli.help.docsLabel"))} ${docs}\n`;
   });
 }

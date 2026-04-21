@@ -8,6 +8,8 @@ import {
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type RuntimeListOptions = {
   json?: boolean;
@@ -38,19 +40,20 @@ async function installAndReport(opts: RuntimeInstallOptions, action: "install" |
 }
 
 export function registerRuntimesCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const runtimes = program
     .command("runtimes")
-    .description("Install, inspect, and repair plugin runtimes")
+    .description(t("command.runtimes.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/plugins", "docs.crawclaw.ai/cli/plugins")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/plugins", "docs.crawclaw.ai/cli/plugins")}\n`,
     );
 
   runtimes
     .command("list")
-    .description("List installed plugin runtime status from the shared runtime manifest")
-    .option("--json", "Print JSON")
+    .description(t("command.runtimes.list.description"))
+    .option("--json", t("command.runtimes.option.json"))
     .action((opts: RuntimeListOptions) => {
       const manifestPath = resolvePluginRuntimeManifestPath();
       const manifest = readPluginRuntimeManifest();
@@ -72,8 +75,8 @@ export function registerRuntimesCli(program: Command) {
 
   runtimes
     .command("doctor")
-    .description("Show shared plugin runtime health from the install-time manifest")
-    .option("--json", "Print JSON")
+    .description(t("command.runtimes.doctor.description"))
+    .option("--json", t("command.runtimes.option.json"))
     .action((opts: RuntimeListOptions) => {
       const manifestPath = resolvePluginRuntimeManifestPath();
       const manifest = readPluginRuntimeManifest();
@@ -99,16 +102,16 @@ export function registerRuntimesCli(program: Command) {
 
   runtimes
     .command("install")
-    .description("Install all bundled shared plugin runtimes")
-    .option("--json", "Print JSON")
+    .description(t("command.runtimes.install.description"))
+    .option("--json", t("command.runtimes.option.json"))
     .action(async (opts: RuntimeInstallOptions) => {
       await installAndReport(opts, "install");
     });
 
   runtimes
     .command("repair")
-    .description("Re-run shared plugin runtime installation and verification")
-    .option("--json", "Print JSON")
+    .description(t("command.runtimes.repair.description"))
+    .option("--json", t("command.runtimes.option.json"))
     .action(async (opts: RuntimeInstallOptions) => {
       await installAndReport(opts, "repair");
     });

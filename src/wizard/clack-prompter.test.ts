@@ -1,35 +1,61 @@
-import { describe, expect, it } from "vitest";
-import { tokenizedOptionFilter } from "./clack-prompter.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { WizardCancelledError } from "./prompts.js";
 
-describe("tokenizedOptionFilter", () => {
-  it("matches tokens regardless of order", () => {
-    const option = {
-      value: "openai/gpt-5.4",
-      label: "openai/gpt-5.4",
-      hint: "ctx 400k",
-    };
+const mocks = vi.hoisted(() => {
+  const CANCEL = Symbol("cancel");
+  return {
+    CANCEL,
+    confirm: vi.fn(),
+    cancel: vi.fn(),
+    isCancel: vi.fn((value: unknown) => value === CANCEL),
+  };
+});
 
-    expect(tokenizedOptionFilter("gpt-5.4 openai/", option)).toBe(true);
-    expect(tokenizedOptionFilter("openai/ gpt-5.4", option)).toBe(true);
+vi.mock("@clack/prompts", () => ({
+  autocompleteMultiselect: vi.fn(),
+  cancel: mocks.cancel,
+  confirm: mocks.confirm,
+  intro: vi.fn(),
+  isCancel: mocks.isCancel,
+  multiselect: vi.fn(),
+  outro: vi.fn(),
+  select: vi.fn(),
+  spinner: vi.fn(() => ({ start: vi.fn(), message: vi.fn(), stop: vi.fn() })),
+  text: vi.fn(),
+}));
+
+vi.mock("../config/config.js", () => ({
+  loadConfig: () => ({ cli: { language: "zh-CN" } }),
+}));
+
+import { createClackPrompter } from "./clack-prompter.js";
+
+describe("createClackPrompter", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("requires all tokens to match", () => {
-    const option = {
-      value: "openai/gpt-5.4",
-      label: "openai/gpt-5.4",
-    };
+  it("localizes confirm controls from CLI locale", async () => {
+    mocks.confirm.mockResolvedValueOnce(true);
+    const prompter = createClackPrompter();
 
-    expect(tokenizedOptionFilter("gpt-5.4 anthropic/", option)).toBe(false);
+    await expect(prompter.confirm({ message: "继续吗？", initialValue: true })).resolves.toBe(true);
+    expect(mocks.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.any(String),
+        active: "确认",
+        inactive: "取消",
+      }),
+    );
   });
 
-  it("matches against label, hint, and value", () => {
-    const option = {
-      value: "openai/gpt-5.4",
-      label: "GPT 5.4",
-      hint: "provider openai",
-    };
+  it("emits a localized cancel message", async () => {
+    mocks.confirm.mockResolvedValueOnce(mocks.CANCEL);
+    const prompter = createClackPrompter();
 
-    expect(tokenizedOptionFilter("provider openai", option)).toBe(true);
-    expect(tokenizedOptionFilter("openai gpt-5.4", option)).toBe(true);
+    await expect(prompter.confirm({ message: "继续吗？" })).rejects.toBeInstanceOf(
+      WizardCancelledError,
+    );
+    expect(mocks.cancel).toHaveBeenCalledWith("已取消设置。");
   });
 });

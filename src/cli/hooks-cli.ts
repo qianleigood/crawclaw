@@ -17,8 +17,10 @@ import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { shortenHomePath } from "../utils.js";
 import { formatCliCommand } from "./command-format.js";
+import { createCliTranslator } from "./i18n/index.js";
 import { runPluginInstallCommand } from "./plugins-install-command.js";
 import { runPluginUpdateCommand } from "./plugins-update-command.js";
+import { getProgramContext } from "./program/program-context.js";
 
 export type HooksListOptions = {
   json?: boolean;
@@ -452,21 +454,22 @@ export async function disableHook(hookName: string): Promise<void> {
 }
 
 export function registerHooksCli(program: Command): void {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const hooks = program
     .command("hooks")
-    .description("Manage internal agent hooks")
+    .description(t("command.hooks.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/hooks", "docs.crawclaw.ai/cli/hooks")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/hooks", "docs.crawclaw.ai/cli/hooks")}\n`,
     );
 
   hooks
     .command("list")
-    .description("List all hooks")
-    .option("--eligible", "Show only eligible hooks", false)
-    .option("--json", "Output as JSON", false)
-    .option("-v, --verbose", "Show more details including missing requirements", false)
+    .description(t("command.hooks.list.description"))
+    .option("--eligible", t("command.hooks.list.option.eligible"), false)
+    .option("--json", t("command.hooks.option.json"), false)
+    .option("-v, --verbose", t("command.hooks.list.option.verbose"), false)
     .action(async (opts) =>
       runHooksCliAction(async () => {
         const config = loadConfig();
@@ -477,8 +480,8 @@ export function registerHooksCli(program: Command): void {
 
   hooks
     .command("info <name>")
-    .description("Show detailed information about a hook")
-    .option("--json", "Output as JSON", false)
+    .description(t("command.hooks.info.description"))
+    .option("--json", t("command.hooks.option.json"), false)
     .action(async (name, opts) =>
       runHooksCliAction(async () => {
         const config = loadConfig();
@@ -489,8 +492,8 @@ export function registerHooksCli(program: Command): void {
 
   hooks
     .command("check")
-    .description("Check hooks eligibility status")
-    .option("--json", "Output as JSON", false)
+    .description(t("command.hooks.check.description"))
+    .option("--json", t("command.hooks.option.json"), false)
     .action(async (opts) =>
       runHooksCliAction(async () => {
         const config = loadConfig();
@@ -501,7 +504,7 @@ export function registerHooksCli(program: Command): void {
 
   hooks
     .command("enable <name>")
-    .description("Enable a hook")
+    .description(t("command.hooks.enable.description"))
     .action(async (name) =>
       runHooksCliAction(async () => {
         await enableHook(name);
@@ -510,7 +513,7 @@ export function registerHooksCli(program: Command): void {
 
   hooks
     .command("disable <name>")
-    .description("Disable a hook")
+    .description(t("command.hooks.disable.description"))
     .action(async (name) =>
       runHooksCliAction(async () => {
         await disableHook(name);
@@ -519,10 +522,10 @@ export function registerHooksCli(program: Command): void {
 
   hooks
     .command("install")
-    .description("Deprecated: install a hook pack via `crawclaw plugins install`")
-    .argument("<path-or-spec>", "Path to a hook pack or npm package spec")
-    .option("-l, --link", "Link a local path instead of copying", false)
-    .option("--pin", "Record npm installs as exact resolved <name>@<version>", false)
+    .description(t("command.hooks.install.description"))
+    .argument("<path-or-spec>", t("command.hooks.install.argument.pathOrSpec"))
+    .option("-l, --link", t("command.hooks.install.option.link"), false)
+    .option("--pin", t("command.hooks.install.option.pin"), false)
     .action(async (raw: string, opts: { link?: boolean; pin?: boolean }) => {
       defaultRuntime.log(
         theme.warn("`crawclaw hooks install` is deprecated; use `crawclaw plugins install`."),
@@ -532,10 +535,10 @@ export function registerHooksCli(program: Command): void {
 
   hooks
     .command("update")
-    .description("Deprecated: update hook packs via `crawclaw plugins update`")
-    .argument("[id]", "Hook pack id (omit with --all)")
-    .option("--all", "Update all tracked hooks", false)
-    .option("--dry-run", "Show what would change without writing", false)
+    .description(t("command.hooks.update.description"))
+    .argument("[id]", t("command.hooks.update.argument.id"))
+    .option("--all", t("command.hooks.update.option.all"), false)
+    .option("--dry-run", t("command.hooks.update.option.dryRun"), false)
     .action(async (id: string | undefined, opts: HooksUpdateOptions) => {
       defaultRuntime.log(
         theme.warn("`crawclaw hooks update` is deprecated; use `crawclaw plugins update`."),

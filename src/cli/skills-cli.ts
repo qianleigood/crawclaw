@@ -10,6 +10,8 @@ import { loadConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 import { formatSkillInfo, formatSkillsCheck, formatSkillsList } from "./skills-cli.format.js";
 
 export type {
@@ -49,21 +51,24 @@ function resolveActiveWorkspaceDir(): string {
  * Register the skills CLI commands
  */
 export function registerSkillsCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const skills = program
     .command("skills")
-    .description("List and inspect available skills")
+    .description(t("command.skills.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/skills", "docs.crawclaw.ai/cli/skills")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/skills", "docs.crawclaw.ai/cli/skills")}\n`,
     );
 
   skills
     .command("search")
-    .description("Search ClawHub skills")
-    .argument("[query...]", "Optional search query")
-    .option("--limit <n>", "Max results", (value) => Number.parseInt(value, 10))
-    .option("--json", "Output as JSON", false)
+    .description(t("command.skills.search.description"))
+    .argument("[query...]", t("command.skills.search.argument.query"))
+    .option("--limit <n>", t("command.skills.search.option.limit"), (value) =>
+      Number.parseInt(value, 10),
+    )
+    .option("--json", t("command.skills.option.json"), false)
     .action(async (queryParts: string[], opts: { limit?: number; json?: boolean }) => {
       try {
         const results = await searchSkillsFromClawHub({
@@ -91,10 +96,10 @@ export function registerSkillsCli(program: Command) {
 
   skills
     .command("install")
-    .description("Install a skill from ClawHub into the active workspace")
-    .argument("<slug>", "ClawHub skill slug")
-    .option("--version <version>", "Install a specific version")
-    .option("--force", "Overwrite an existing workspace skill", false)
+    .description(t("command.skills.install.description"))
+    .argument("<slug>", t("command.skills.argument.slug"))
+    .option("--version <version>", t("command.skills.install.option.version"))
+    .option("--force", t("command.skills.install.option.force"), false)
     .action(async (slug: string, opts: { version?: string; force?: boolean }) => {
       try {
         const workspaceDir = resolveActiveWorkspaceDir();
@@ -121,9 +126,9 @@ export function registerSkillsCli(program: Command) {
 
   skills
     .command("update")
-    .description("Update ClawHub-installed skills in the active workspace")
-    .argument("[slug]", "Single skill slug")
-    .option("--all", "Update all tracked ClawHub skills", false)
+    .description(t("command.skills.update.description"))
+    .argument("[slug]", t("command.skills.update.argument.slug"))
+    .option("--all", t("command.skills.update.option.all"), false)
     .action(async (slug: string | undefined, opts: { all?: boolean }) => {
       try {
         if (!slug && !opts.all) {
@@ -170,27 +175,27 @@ export function registerSkillsCli(program: Command) {
 
   skills
     .command("list")
-    .description("List all available skills")
-    .option("--json", "Output as JSON", false)
-    .option("--eligible", "Show only eligible (ready to use) skills", false)
-    .option("-v, --verbose", "Show more details including missing requirements", false)
+    .description(t("command.skills.list.description"))
+    .option("--json", t("command.skills.option.json"), false)
+    .option("--eligible", t("command.skills.list.option.eligible"), false)
+    .option("-v, --verbose", t("command.skills.list.option.verbose"), false)
     .action(async (opts) => {
       await runSkillsAction((report) => formatSkillsList(report, opts));
     });
 
   skills
     .command("info")
-    .description("Show detailed information about a skill")
-    .argument("<name>", "Skill name")
-    .option("--json", "Output as JSON", false)
+    .description(t("command.skills.info.description"))
+    .argument("<name>", t("command.skills.info.argument.name"))
+    .option("--json", t("command.skills.option.json"), false)
     .action(async (name, opts) => {
       await runSkillsAction((report) => formatSkillInfo(report, name, opts));
     });
 
   skills
     .command("check")
-    .description("Check which skills are ready vs missing requirements")
-    .option("--json", "Output as JSON", false)
+    .description(t("command.skills.check.description"))
+    .option("--json", t("command.skills.option.json"), false)
     .action(async (opts) => {
       await runSkillsAction((report) => formatSkillsCheck(report, opts));
     });

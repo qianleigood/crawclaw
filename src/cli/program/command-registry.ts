@@ -6,6 +6,7 @@ import {
   type CoreCliCommandDescriptor,
   getCoreCliCommandDescriptors,
   getCoreCliCommandsWithSubcommands,
+  localizeCoreCliCommandDescriptors,
 } from "./core-command-descriptors.js";
 import { registerLazyCommand } from "./register-lazy-command.js";
 import { registerSubCliCommands } from "./register.subclis.js";
@@ -214,6 +215,16 @@ export function getCoreCliCommandNames(): string[] {
   return getCoreCliCommandDescriptors().map((command) => command.name);
 }
 
+function localizeCoreEntryCommands(
+  ctx: ProgramContext,
+  commands: readonly CoreCliCommandDescriptor[],
+): CoreCliCommandDescriptor[] {
+  const localized = new Map(
+    localizeCoreCliCommandDescriptors(ctx.t).map((command) => [command.name, command]),
+  );
+  return commands.map((command) => localized.get(command.name) ?? command);
+}
+
 function removeEntryCommands(program: Command, entry: CoreCliEntry) {
   // Some registrars install multiple top-level commands (e.g. status/health/sessions).
   // Remove placeholders/old registrations for all names in the entry before re-registering.
@@ -228,10 +239,11 @@ function registerLazyCoreCommand(
   entry: CoreCliEntry,
   command: CoreCliCommandDescriptor,
 ) {
+  const [localizedCommand] = localizeCoreEntryCommands(ctx, [command]);
   registerLazyCommand({
     program,
     name: command.name,
-    description: command.description,
+    description: localizedCommand.description,
     removeNames: entry.commands.map((cmd) => cmd.name),
     register: async () => {
       await entry.register({ program, ctx, argv: process.argv });
@@ -273,7 +285,7 @@ export function registerCoreCliCommands(program: Command, ctx: ProgramContext, a
   }
 
   for (const entry of coreEntries) {
-    for (const cmd of entry.commands) {
+    for (const cmd of localizeCoreEntryCommands(ctx, entry.commands)) {
       registerLazyCoreCommand(program, ctx, entry, cmd);
     }
   }
@@ -285,5 +297,5 @@ export function registerProgramCommands(
   argv: string[] = process.argv,
 ) {
   registerCoreCliCommands(program, ctx, argv);
-  registerSubCliCommands(program, argv);
+  registerSubCliCommands(program, ctx, argv);
 }

@@ -2,42 +2,26 @@ import type { Command } from "commander";
 import type { MessageCliHelpers } from "./helpers.js";
 
 export function registerMessageSendCommand(message: Command, helpers: MessageCliHelpers) {
+  const { t } = helpers;
   helpers
     .withMessageBase(
       helpers
         .withRequiredMessageTarget(
           message
             .command("send")
-            .description("Send a message")
-            .option("-m, --message <text>", "Message body (required unless --media is set)"),
+            .description(t("command.message.send.description"))
+            .option("-m, --message <text>", t("command.message.send.option.message")),
         )
-        .option(
-          "--media <path-or-url>",
-          "Attach media (image/audio/video/document). Accepts local paths or URLs.",
-        )
-        .option(
-          "--interactive <json>",
-          "Shared interactive payload as JSON (buttons/selects rendered natively by supported channels)",
-        )
-        .option(
-          "--buttons <json>",
-          "Telegram inline keyboard buttons as JSON (array of button rows)",
-        )
-        .option("--components <json>", "Discord components payload as JSON")
-        .option("--card <json>", "Adaptive Card JSON object (when supported by the channel)")
-        .option("--reply-to <id>", "Reply-to message id")
-        .option("--thread-id <id>", "Thread id (Telegram forum thread)")
-        .option("--gif-playback", "Treat video media as GIF playback (WhatsApp only).", false)
-        .option(
-          "--force-document",
-          "Send media as document to avoid Telegram compression (Telegram only). Applies to images and GIFs.",
-          false,
-        )
-        .option(
-          "--silent",
-          "Send message silently without notification (Telegram + Discord)",
-          false,
-        ),
+        .option("--media <path-or-url>", t("command.message.option.mediaPathOrUrl"))
+        .option("--interactive <json>", t("command.message.send.option.interactive"))
+        .option("--buttons <json>", t("command.message.send.option.buttons"))
+        .option("--components <json>", t("command.message.send.option.components"))
+        .option("--card <json>", t("command.message.send.option.card"))
+        .option("--reply-to <id>", t("command.message.option.replyTo"))
+        .option("--thread-id <id>", t("command.message.option.telegramThreadId"))
+        .option("--gif-playback", t("command.message.send.option.gifPlayback"), false)
+        .option("--force-document", t("command.message.send.option.forceDocument"), false)
+        .option("--silent", t("command.message.send.option.silent"), false),
     )
     .action(async (opts) => {
       await helpers.runMessageAction("send", opts);

@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "../i18n/index.js";
 import type { ProgramContext } from "./context.js";
 import { configureProgramHelp } from "./help.js";
 
@@ -49,6 +50,8 @@ vi.mock("./register.subclis.js", () => ({
 
 const testProgramContext: ProgramContext = {
   programVersion: "9.9.9-test",
+  locale: "en",
+  t: createCliTranslator("en"),
   channelOptions: ["telegram"],
   messageChannelOptions: "telegram",
   agentChannelOptions: "last|telegram",
@@ -129,6 +132,22 @@ describe("configureProgramHelp", () => {
     expect(help).toContain("BANNER-LINE");
     expect(help).toContain("Examples:");
     expect(help).toContain("https://docs.crawclaw.ai/cli");
+  });
+
+  it("localizes root help copy when locale is zh-CN", () => {
+    process.argv = ["node", "crawclaw", "--lang", "zh-CN", "--help"];
+    const program = makeProgramWithCommands();
+    const zhContext: ProgramContext = {
+      ...testProgramContext,
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+    };
+    configureProgramHelp(program, zhContext);
+
+    const help = captureHelpOutput(program);
+    expect(help).toContain("示例：");
+    expect(help).toContain("文档：");
+    expect(help).toContain("提示与帮助语言（en 或 zh-CN）");
   });
 
   it("prints version and exits immediately when version flags are present", () => {

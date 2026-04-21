@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "../i18n/index.js";
+import { setProgramContext } from "./program-context.js";
 import { registerStatusHealthSessionsCommands } from "./register.status-health-sessions.js";
 
 const mocks = vi.hoisted(() => ({
@@ -84,6 +86,20 @@ describe("registerStatusHealthSessionsCommands", () => {
     const program = new Command();
     registerStatusHealthSessionsCommands(program);
     await program.parseAsync(args, { from: "user" });
+  }
+
+  function createZhProgram() {
+    const program = new Command();
+    setProgramContext(program, {
+      programVersion: "9.9.9-test",
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+      channelOptions: [],
+      messageChannelOptions: "",
+      agentChannelOptions: "last",
+    });
+    registerStatusHealthSessionsCommands(program);
+    return program;
   }
 
   beforeEach(() => {
@@ -247,6 +263,24 @@ describe("registerStatusHealthSessionsCommands", () => {
       }),
       runtime,
     );
+  });
+
+  it("uses localized help copy when program context locale is zh-CN", () => {
+    const program = createZhProgram();
+    const status = program.commands.find((command) => command.name() === "status");
+    const sessions = program.commands.find((command) => command.name() === "sessions");
+    const tasks = program.commands.find((command) => command.name() === "tasks");
+    const audit = tasks?.commands.find((command) => command.name() === "audit");
+    const flow = tasks?.commands.find((command) => command.name() === "flow");
+
+    expect(status?.description()).toBe("显示渠道健康状态和最近会话目标");
+    expect(status?.options.find((option) => option.long === "--json")?.description).toBe(
+      "输出 JSON 而不是文本",
+    );
+    expect(sessions?.description()).toBe("列出已存储的会话");
+    expect(tasks?.description()).toBe("查看持久化后台任务状态");
+    expect(audit?.description()).toBe("显示过期或损坏的后台任务与 TaskFlow");
+    expect(flow?.description()).toBe("查看 tasks 下持久化 TaskFlow 状态");
   });
 
   it("runs tasks list from the parent command", async () => {

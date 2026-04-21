@@ -29,6 +29,7 @@ import { sanitizeTerminalText } from "../terminal/safe-text.js";
 import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { shortenHomeInString, shortenHomePath } from "../utils.js";
+import { createCliTranslator } from "./i18n/index.js";
 import {
   applySlotSelectionForPlugin,
   createPluginInstallLogger,
@@ -37,6 +38,7 @@ import {
 import { setPluginEnabledInConfig } from "./plugins-config.js";
 import { runPluginInstallCommand } from "./plugins-install-command.js";
 import { runPluginUpdateCommand } from "./plugins-update-command.js";
+import { getProgramContext } from "./program/program-context.js";
 import { promptYesNo } from "./prompt.js";
 
 export type PluginsListOptions = {
@@ -221,21 +223,22 @@ function formatInstallLines(install: PluginInstallRecord | undefined): string[] 
 }
 
 export function registerPluginsCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const plugins = program
     .command("plugins")
-    .description("Manage CrawClaw plugins and extensions")
+    .description(t("command.plugins.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/plugins", "docs.crawclaw.ai/cli/plugins")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/plugins", "docs.crawclaw.ai/cli/plugins")}\n`,
     );
 
   plugins
     .command("list")
-    .description("List discovered plugins")
-    .option("--json", "Print JSON")
-    .option("--enabled", "Only show enabled plugins", false)
-    .option("--verbose", "Show detailed entries", false)
+    .description(t("command.plugins.list.description"))
+    .option("--json", t("command.plugins.option.json"))
+    .option("--enabled", t("command.plugins.list.option.enabled"), false)
+    .option("--verbose", t("command.plugins.list.option.verbose"), false)
     .action((opts: PluginsListOptions) => {
       const report = buildPluginSnapshotReport();
       const list = opts.enabled
@@ -333,10 +336,10 @@ export function registerPluginsCli(program: Command) {
   plugins
     .command("inspect")
     .alias("info")
-    .description("Inspect plugin details")
-    .argument("[id]", "Plugin id")
-    .option("--all", "Inspect all plugins")
-    .option("--json", "Print JSON")
+    .description(t("command.plugins.inspect.description"))
+    .argument("[id]", t("command.plugins.argument.id"))
+    .option("--all", t("command.plugins.inspect.option.all"))
+    .option("--json", t("command.plugins.option.json"))
     .action((id: string | undefined, opts: PluginInspectOptions) => {
       const cfg = loadConfig();
       const report = buildPluginDiagnosticsReport({ config: cfg });
@@ -549,8 +552,8 @@ export function registerPluginsCli(program: Command) {
 
   plugins
     .command("enable")
-    .description("Enable a plugin in config")
-    .argument("<id>", "Plugin id")
+    .description(t("command.plugins.enable.description"))
+    .argument("<id>", t("command.plugins.argument.id"))
     .action(async (id: string) => {
       const snapshot = await readConfigFileSnapshot();
       const cfg = (snapshot.sourceConfig ?? snapshot.runtimeConfig) as CrawClawConfig;
@@ -576,8 +579,8 @@ export function registerPluginsCli(program: Command) {
 
   plugins
     .command("disable")
-    .description("Disable a plugin in config")
-    .argument("<id>", "Plugin id")
+    .description(t("command.plugins.disable.description"))
+    .argument("<id>", t("command.plugins.argument.id"))
     .action(async (id: string) => {
       const snapshot = await readConfigFileSnapshot();
       const cfg = (snapshot.sourceConfig ?? snapshot.runtimeConfig) as CrawClawConfig;
@@ -591,11 +594,11 @@ export function registerPluginsCli(program: Command) {
 
   plugins
     .command("uninstall")
-    .description("Uninstall a plugin")
-    .argument("<id>", "Plugin id")
-    .option("--keep-files", "Keep installed files on disk", false)
-    .option("--force", "Skip confirmation prompt", false)
-    .option("--dry-run", "Show what would be removed without making changes", false)
+    .description(t("command.plugins.uninstall.description"))
+    .argument("<id>", t("command.plugins.argument.id"))
+    .option("--keep-files", t("command.plugins.uninstall.option.keepFiles"), false)
+    .option("--force", t("command.plugins.option.force"), false)
+    .option("--dry-run", t("command.plugins.uninstall.option.dryRun"), false)
     .action(async (id: string, opts: PluginUninstallOptions) => {
       const snapshot = await readConfigFileSnapshot();
       const cfg = (snapshot.sourceConfig ?? snapshot.runtimeConfig) as CrawClawConfig;
@@ -736,24 +739,16 @@ export function registerPluginsCli(program: Command) {
 
   plugins
     .command("install")
-    .description(
-      "Install a plugin or hook pack (path, archive, npm spec, clawhub:package, or marketplace entry)",
-    )
-    .argument(
-      "<path-or-spec-or-plugin>",
-      "Path (.ts/.js/.zip/.tgz/.tar.gz), npm package spec, or marketplace plugin name",
-    )
-    .option("-l, --link", "Link a local path instead of copying", false)
-    .option("--pin", "Record npm installs as exact resolved <name>@<version>", false)
+    .description(t("command.plugins.install.description"))
+    .argument("<path-or-spec-or-plugin>", t("command.plugins.install.argument.pathOrSpecOrPlugin"))
+    .option("-l, --link", t("command.plugins.install.option.link"), false)
+    .option("--pin", t("command.plugins.install.option.pin"), false)
     .option(
       "--dangerously-force-unsafe-install",
-      "Bypass built-in dangerous-code install blocking (plugin hooks may still block)",
+      t("command.plugins.install.option.dangerouslyForceUnsafeInstall"),
       false,
     )
-    .option(
-      "--marketplace <source>",
-      "Install a Claude marketplace plugin from a local repo/path or git/GitHub source",
-    )
+    .option("--marketplace <source>", t("command.plugins.install.option.marketplace"))
     .action(
       async (
         raw: string,
@@ -770,17 +765,17 @@ export function registerPluginsCli(program: Command) {
 
   plugins
     .command("update")
-    .description("Update installed plugins and tracked hook packs")
-    .argument("[id]", "Plugin or hook-pack id (omit with --all)")
-    .option("--all", "Update all tracked plugins and hook packs", false)
-    .option("--dry-run", "Show what would change without writing", false)
+    .description(t("command.plugins.update.description"))
+    .argument("[id]", t("command.plugins.update.argument.id"))
+    .option("--all", t("command.plugins.update.option.all"), false)
+    .option("--dry-run", t("command.plugins.update.option.dryRun"), false)
     .action(async (id: string | undefined, opts: PluginUpdateOptions) => {
       await runPluginUpdateCommand({ id, opts });
     });
 
   plugins
     .command("doctor")
-    .description("Report plugin load issues")
+    .description(t("command.plugins.doctor.description"))
     .action(() => {
       const report = buildPluginDiagnosticsReport();
       const errors = report.plugins.filter((p) => p.status === "error");
@@ -827,13 +822,13 @@ export function registerPluginsCli(program: Command) {
 
   const marketplace = plugins
     .command("marketplace")
-    .description("Inspect Claude-compatible plugin marketplaces");
+    .description(t("command.plugins.marketplace.description"));
 
   marketplace
     .command("list")
-    .description("List plugins published by a marketplace source")
-    .argument("<source>", "Local marketplace path/repo or git/GitHub source")
-    .option("--json", "Print JSON")
+    .description(t("command.plugins.marketplace.list.description"))
+    .argument("<source>", t("command.plugins.marketplace.argument.source"))
+    .option("--json", t("command.plugins.option.json"))
     .action(async (source: string, opts: PluginMarketplaceListOptions) => {
       const result = await listMarketplacePlugins({
         marketplace: source,

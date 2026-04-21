@@ -40449,6 +40449,24 @@
       "hasChildren": true
     },
     {
+      "path": "cli.language",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "en",
+        "zh-CN"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "CLI Language",
+      "help": "Human-facing CLI prompt/help language. Keeps command names, flags, config keys, and JSON output in English while translating prompts and help text for operators.",
+      "hasChildren": false
+    },
+    {
       "path": "cli.banner",
       "kind": "core",
       "type": "object",

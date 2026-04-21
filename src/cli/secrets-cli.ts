@@ -10,6 +10,8 @@ import { isSecretsApplyPlan, type SecretsApplyPlan } from "../secrets/plan.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { addGatewayClientOptions, callGatewayFromCli, type GatewayRpcOpts } from "./gateway-rpc.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type SecretsReloadOptions = GatewayRpcOpts & { json?: boolean };
 type SecretsAuditOptions = {
@@ -44,20 +46,21 @@ function readPlanFile(pathname: string): SecretsApplyPlan {
 }
 
 export function registerSecretsCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const secrets = program
     .command("secrets")
-    .description("Secrets runtime controls")
+    .description(t("command.secrets.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/gateway/security", "docs.crawclaw.ai/gateway/security")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/gateway/security", "docs.crawclaw.ai/gateway/security")}\n`,
     );
 
   addGatewayClientOptions(
     secrets
       .command("reload")
-      .description("Re-resolve secret references and atomically swap runtime snapshot")
-      .option("--json", "Output JSON", false),
+      .description(t("command.secrets.reload.description"))
+      .option("--json", t("command.secrets.option.json"), false),
   ).action(async (opts: SecretsReloadOptions) => {
     try {
       const result = await callGatewayFromCli("secrets.reload", opts, undefined, {
@@ -83,14 +86,10 @@ export function registerSecretsCli(program: Command) {
 
   secrets
     .command("audit")
-    .description("Audit plaintext secrets, unresolved refs, and precedence drift")
-    .option("--check", "Exit non-zero when findings are present", false)
-    .option(
-      "--allow-exec",
-      "Allow exec SecretRef resolution during audit (may execute provider commands)",
-      false,
-    )
-    .option("--json", "Output JSON", false)
+    .description(t("command.secrets.audit.description"))
+    .option("--check", t("command.secrets.audit.option.check"), false)
+    .option("--allow-exec", t("command.secrets.audit.option.allowExec"), false)
+    .option("--json", t("command.secrets.option.json"), false)
     .action(async (opts: SecretsAuditOptions) => {
       try {
         const report = await runSecretsAudit({
@@ -130,26 +129,15 @@ export function registerSecretsCli(program: Command) {
 
   secrets
     .command("configure")
-    .description("Interactive secrets helper (provider setup + SecretRef mapping + preflight)")
-    .option("--apply", "Apply changes immediately after preflight", false)
-    .option("--yes", "Skip apply confirmation prompt", false)
-    .option("--providers-only", "Configure secrets.providers only, skip credential mapping", false)
-    .option(
-      "--skip-provider-setup",
-      "Skip provider setup and only map credential fields to existing providers",
-      false,
-    )
-    .option(
-      "--agent <id>",
-      "Agent id for auth-profiles targets (default: configured default agent)",
-    )
-    .option(
-      "--allow-exec",
-      "Allow exec SecretRef preflight checks (may execute provider commands)",
-      false,
-    )
-    .option("--plan-out <path>", "Write generated plan JSON to a file")
-    .option("--json", "Output JSON", false)
+    .description(t("command.secrets.configure.description"))
+    .option("--apply", t("command.secrets.configure.option.apply"), false)
+    .option("--yes", t("command.secrets.configure.option.yes"), false)
+    .option("--providers-only", t("command.secrets.configure.option.providersOnly"), false)
+    .option("--skip-provider-setup", t("command.secrets.configure.option.skipProviderSetup"), false)
+    .option("--agent <id>", t("command.secrets.configure.option.agent"))
+    .option("--allow-exec", t("command.secrets.configure.option.allowExec"), false)
+    .option("--plan-out <path>", t("command.secrets.configure.option.planOut"))
+    .option("--json", t("command.secrets.option.json"), false)
     .action(async (opts: SecretsConfigureOptions) => {
       try {
         const configured = await runSecretsConfigureInteractive({
@@ -196,7 +184,7 @@ export function registerSecretsCli(program: Command) {
         let shouldApply = Boolean(opts.apply);
         if (!shouldApply && !opts.json) {
           const approved = await confirm({
-            message: "Apply this plan now?",
+            message: t("command.secrets.configure.prompt.applyNow"),
             initialValue: true,
           });
           if (typeof approved === "boolean") {
@@ -207,12 +195,11 @@ export function registerSecretsCli(program: Command) {
           const needsIrreversiblePrompt = Boolean(opts.apply);
           if (needsIrreversiblePrompt && !opts.yes && !opts.json) {
             const confirmed = await confirm({
-              message:
-                "This migration is one-way for migrated plaintext values. Continue with apply?",
+              message: t("command.secrets.configure.prompt.oneWayMigration"),
               initialValue: true,
             });
             if (confirmed !== true) {
-              defaultRuntime.log("Apply cancelled.");
+              defaultRuntime.log(t("command.secrets.configure.applyCancelled"));
               return;
             }
           }
@@ -239,11 +226,11 @@ export function registerSecretsCli(program: Command) {
 
   secrets
     .command("apply")
-    .description("Apply a previously generated secrets plan")
-    .requiredOption("--from <path>", "Path to plan JSON")
-    .option("--dry-run", "Validate/preflight only", false)
-    .option("--allow-exec", "Allow exec SecretRef checks (may execute provider commands)", false)
-    .option("--json", "Output JSON", false)
+    .description(t("command.secrets.apply.description"))
+    .requiredOption("--from <path>", t("command.secrets.apply.option.from"))
+    .option("--dry-run", t("command.secrets.apply.option.dryRun"), false)
+    .option("--allow-exec", t("command.secrets.apply.option.allowExec"), false)
+    .option("--json", t("command.secrets.option.json"), false)
     .action(async (opts: SecretsApplyOptions) => {
       try {
         const plan = readPlanFile(opts.from);

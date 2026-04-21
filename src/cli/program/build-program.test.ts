@@ -35,6 +35,8 @@ describe("buildProgram", () => {
     vi.clearAllMocks();
     createProgramContextMock.mockReturnValue({
       programVersion: "9.9.9-test",
+      locale: "en",
+      t: ((key: string) => key) as ProgramContext["t"],
       channelOptions: ["telegram"],
       messageChannelOptions: "telegram",
       agentChannelOptions: "last|telegram",
@@ -50,6 +52,7 @@ describe("buildProgram", () => {
       const ctx = createProgramContextMock.mock.results[0]?.value as ProgramContext;
 
       expect(program).toBeInstanceOf(Command);
+      expect(createProgramContextMock).toHaveBeenCalledWith({ argv });
       expect(setProgramContextMock).toHaveBeenCalledWith(program, ctx);
       expect(configureProgramHelpMock).toHaveBeenCalledWith(program, ctx);
       expect(registerPreActionHooksMock).toHaveBeenCalledWith(program, ctx.programVersion);

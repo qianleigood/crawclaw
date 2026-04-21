@@ -7,6 +7,10 @@ vi.mock("../../version.js", () => ({
   VERSION: "9.9.9-test",
 }));
 
+vi.mock("../../config/config.js", () => ({
+  loadConfig: () => ({ cli: {} }),
+}));
+
 vi.mock("../channel-options.js", () => ({
   resolveCliChannelOptions: resolveCliChannelOptionsMock,
 }));
@@ -17,6 +21,8 @@ describe("createProgramContext", () => {
     const ctx = createProgramContext();
     expect(ctx).toEqual({
       programVersion: "9.9.9-test",
+      locale: "en",
+      t: expect.any(Function),
       channelOptions: ["telegram", "whatsapp"],
       messageChannelOptions: "telegram|whatsapp",
       agentChannelOptions: "last|telegram|whatsapp",
@@ -29,6 +35,8 @@ describe("createProgramContext", () => {
     const ctx = createProgramContext();
     expect(ctx).toEqual({
       programVersion: "9.9.9-test",
+      locale: "en",
+      t: expect.any(Function),
       channelOptions: [],
       messageChannelOptions: "",
       agentChannelOptions: "last",
@@ -55,6 +63,24 @@ describe("createProgramContext", () => {
     resolveCliChannelOptionsMock.mockClear();
     const ctx = createProgramContext();
     expect(ctx.programVersion).toBe("9.9.9-test");
+    expect(ctx.locale).toBe("en");
     expect(resolveCliChannelOptionsMock).not.toHaveBeenCalled();
+  });
+
+  it("prefers --lang over config language", () => {
+    const ctx = createProgramContext({
+      argv: ["node", "crawclaw", "--lang", "zh-CN", "status"],
+      configLanguage: "en",
+    });
+    expect(ctx.locale).toBe("zh-CN");
+    expect(ctx.t("common.confirm")).toBe("确认");
+  });
+
+  it("falls back to config language when --lang is absent", () => {
+    const ctx = createProgramContext({
+      argv: ["node", "crawclaw", "status"],
+      configLanguage: "zh-CN",
+    });
+    expect(ctx.locale).toBe("zh-CN");
   });
 });

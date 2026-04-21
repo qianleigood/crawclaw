@@ -14,6 +14,8 @@ import { runCommandWithRuntime } from "../cli-utils.js";
 import { inheritOptionFromParent } from "../command-options.js";
 import { addGatewayServiceCommands } from "../daemon-cli.js";
 import { formatHelpExamples } from "../help-format.js";
+import { createCliTranslator } from "../i18n/index.js";
+import { getProgramContext } from "../program/program-context.js";
 import { withProgress } from "../progress.js";
 import { callGatewayCli, gatewayCallOpts } from "./call.js";
 import type { GatewayDiscoverOpts } from "./discover.js";
@@ -87,36 +89,35 @@ function renderCostUsageSummary(summary: CostUsageSummary, days: number, rich: b
 }
 
 export function registerGatewayCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const gateway = addGatewayRunCommand(
     program
       .command("gateway")
-      .description("Run, inspect, and query the WebSocket Gateway")
+      .description(t("command.gateway.description"))
       .addHelpText(
         "after",
         () =>
-          `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-            ["crawclaw gateway run", "Run the gateway in the foreground."],
-            ["crawclaw gateway status", "Show service status and probe reachability."],
-            ["crawclaw gateway discover", "Find local and wide-area gateway beacons."],
-            ["crawclaw gateway call health", "Call a gateway RPC method directly."],
-          ])}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/gateway", "docs.crawclaw.ai/cli/gateway")}\n`,
+          `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+            ["crawclaw gateway run", t("command.gateway.example.run")],
+            ["crawclaw gateway status", t("command.gateway.example.status")],
+            ["crawclaw gateway discover", t("command.gateway.example.discover")],
+            ["crawclaw gateway call health", t("command.gateway.example.callHealth")],
+          ])}\n\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/gateway", "docs.crawclaw.ai/cli/gateway")}\n`,
       ),
   );
 
-  addGatewayRunCommand(
-    gateway.command("run").description("Run the WebSocket Gateway (foreground)"),
-  );
+  addGatewayRunCommand(gateway.command("run").description(t("command.gateway.run.description")));
 
   addGatewayServiceCommands(gateway, {
-    statusDescription: "Show gateway service status + probe the Gateway",
+    statusDescription: t("command.gateway.status.description"),
   });
 
   gatewayCallOpts(
     gateway
       .command("call")
-      .description("Call a Gateway method")
-      .argument("<method>", "Method name (health/status/system-presence/cron.*)")
-      .option("--params <json>", "JSON object string for params", "{}")
+      .description(t("command.gateway.call.description"))
+      .argument("<method>", t("command.gateway.call.argument.method"))
+      .option("--params <json>", t("command.gateway.call.option.params"), "{}")
       .action(async (method, opts, command) => {
         await runGatewayCommand(async () => {
           const rpcOpts = resolveGatewayRpcOptions(opts, command);
@@ -139,8 +140,8 @@ export function registerGatewayCli(program: Command) {
   gatewayCallOpts(
     gateway
       .command("usage-cost")
-      .description("Fetch usage cost summary from session logs")
-      .option("--days <days>", "Number of days to include", "30")
+      .description(t("command.gateway.usageCost.description"))
+      .option("--days <days>", t("command.gateway.usageCost.option.days"), "30")
       .action(async (opts, command) => {
         await runGatewayCommand(async () => {
           const rpcOpts = resolveGatewayRpcOptions(opts, command);
@@ -163,7 +164,7 @@ export function registerGatewayCli(program: Command) {
   gatewayCallOpts(
     gateway
       .command("health")
-      .description("Fetch Gateway health")
+      .description(t("command.gateway.health.description"))
       .action(async (opts, command) => {
         await runGatewayCommand(async () => {
           const rpcOpts = resolveGatewayRpcOptions(opts, command);
@@ -191,15 +192,15 @@ export function registerGatewayCli(program: Command) {
 
   gateway
     .command("probe")
-    .description("Show gateway reachability + discovery + health + status summary (local + remote)")
-    .option("--url <url>", "Explicit Gateway WebSocket URL (still probes localhost)")
-    .option("--ssh <target>", "SSH target for remote gateway tunnel (user@host or user@host:port)")
-    .option("--ssh-identity <path>", "SSH identity file path")
-    .option("--ssh-auto", "Try to derive an SSH target from Bonjour discovery", false)
-    .option("--token <token>", "Gateway token (applies to all probes)")
-    .option("--password <password>", "Gateway password (applies to all probes)")
-    .option("--timeout <ms>", "Overall probe budget in ms", "3000")
-    .option("--json", "Output JSON", false)
+    .description(t("command.gateway.probe.description"))
+    .option("--url <url>", t("command.gateway.probe.option.url"))
+    .option("--ssh <target>", t("command.gateway.probe.option.ssh"))
+    .option("--ssh-identity <path>", t("command.gateway.probe.option.sshIdentity"))
+    .option("--ssh-auto", t("command.gateway.probe.option.sshAuto"), false)
+    .option("--token <token>", t("command.gateway.probe.option.token"))
+    .option("--password <password>", t("command.gateway.probe.option.password"))
+    .option("--timeout <ms>", t("command.gateway.probe.option.timeout"), "3000")
+    .option("--json", t("command.gateway.option.json"), false)
     .action(async (opts, command) => {
       await runGatewayCommand(async () => {
         const rpcOpts = resolveGatewayRpcOptions(opts, command);
@@ -209,9 +210,9 @@ export function registerGatewayCli(program: Command) {
 
   gateway
     .command("discover")
-    .description("Discover gateways via Bonjour (local + wide-area if configured)")
-    .option("--timeout <ms>", "Per-command timeout in ms", "2000")
-    .option("--json", "Output JSON", false)
+    .description(t("command.gateway.discover.description"))
+    .option("--timeout <ms>", t("command.gateway.discover.option.timeout"), "2000")
+    .option("--json", t("command.gateway.option.json"), false)
     .action(async (opts: GatewayDiscoverOpts) => {
       await runGatewayCommand(async () => {
         const cfg = await readBestEffortConfig();

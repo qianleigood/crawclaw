@@ -1,7 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { finalizeDoctorConfigFlow } from "./finalize-config-flow.js";
 
 describe("doctor finalize config flow", () => {
+  const originalArgv = process.argv;
+
+  afterEach(() => {
+    process.argv = originalArgv;
+  });
+
   it("writes the candidate when preview changes are confirmed", async () => {
     const note = vi.fn();
     const result = await finalizeDoctorConfigFlow({
@@ -58,5 +64,24 @@ describe("doctor finalize config flow", () => {
       cfg: { channels: { signal: { enabled: true } } },
       shouldWriteConfig: true,
     });
+  });
+
+  it("localizes the apply prompt when --lang zh-CN is present", async () => {
+    process.argv = ["node", "crawclaw", "--lang", "zh-CN"];
+    const confirm = vi.fn(async () => true);
+
+    await finalizeDoctorConfigFlow({
+      cfg: { channels: {} },
+      candidate: { channels: { signal: { enabled: true } } },
+      pendingChanges: true,
+      shouldRepair: false,
+      fixHints: [],
+      confirm,
+      note: vi.fn(),
+    });
+
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "现在应用推荐的配置修复吗？" }),
+    );
   });
 });

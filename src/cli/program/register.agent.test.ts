@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createProgramContext } from "./context.js";
+import { setProgramContext } from "./program-context.js";
 import { registerAgentCommands } from "./register.agent.js";
 
 const mocks = vi.hoisted(() => ({
@@ -149,7 +151,14 @@ describe("registerAgentCommands", () => {
   });
 
   it("runs agent export-context command", async () => {
-    await runCli(["agent", "export-context", "--task-id", "task-123", "--out", "/tmp/archive.json"]);
+    await runCli([
+      "agent",
+      "export-context",
+      "--task-id",
+      "task-123",
+      "--out",
+      "/tmp/archive.json",
+    ]);
 
     expect(agentExportContextCommandMock).toHaveBeenCalledWith(
       {
@@ -220,6 +229,23 @@ describe("registerAgentCommands", () => {
     );
   });
 
+  it("localizes agent and agents help copy", () => {
+    const program = new Command();
+    setProgramContext(
+      program,
+      createProgramContext({ argv: ["node", "crawclaw", "--lang", "zh-CN"] }),
+    );
+    registerAgentCommands(program, { agentChannelOptions: "last|telegram|discord" });
+
+    const agent = program.commands.find((command) => command.name() === "agent");
+    const agents = program.commands.find((command) => command.name() === "agents");
+    const add = agents?.commands.find((command) => command.name() === "add");
+    expect(agent?.description()).toBe("通过 Gateway 运行一次 agent turn");
+    expect(agent?.helpInformation()).toContain("发送给 agent 的消息正文");
+    expect(agents?.description()).toBe("管理隔离 agent（工作区、认证、路由）");
+    expect(add?.description()).toBe("新增一个隔离 agent");
+  });
+
   it("forwards agents status options", async () => {
     await runCli(["agents", "status", "--json"]);
     expect(agentsStatusCommandMock).toHaveBeenCalledWith(
@@ -278,10 +304,7 @@ describe("registerAgentCommands", () => {
     const agents = program.commands.find((command) => command.name() === "agents");
     const harness = agents?.commands.find((command) => command.name() === "harness");
     expect(agents?.commands.map((command) => command.name())).toContain("harness");
-    expect(harness?.commands.map((command) => command.name())).toEqual([
-      "report",
-      "promote-check",
-    ]);
+    expect(harness?.commands.map((command) => command.name())).toEqual(["report", "promote-check"]);
   });
 
   it("forwards agents unbind options", async () => {

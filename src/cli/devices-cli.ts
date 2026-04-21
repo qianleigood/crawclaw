@@ -12,6 +12,8 @@ import { defaultRuntime } from "../runtime.js";
 import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 import { withProgress } from "./progress.js";
 
 type DevicesRpcOpts = {
@@ -64,13 +66,21 @@ type DevicePairingList = {
 
 const FALLBACK_NOTICE = "Direct scope access failed; using local fallback.";
 
-const devicesCallOpts = (cmd: Command, defaults?: { timeoutMs?: number }) =>
+const devicesCallOpts = (
+  cmd: Command,
+  t: (key: string) => string,
+  defaults?: { timeoutMs?: number },
+) =>
   cmd
-    .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
-    .option("--token <token>", "Gateway token (if required)")
-    .option("--password <password>", "Gateway password (password auth)")
-    .option("--timeout <ms>", "Timeout in ms", String(defaults?.timeoutMs ?? 10_000))
-    .option("--json", "Output JSON", false);
+    .option("--url <url>", t("command.devices.rpc.option.url"))
+    .option("--token <token>", t("command.devices.rpc.option.token"))
+    .option("--password <password>", t("command.devices.rpc.option.password"))
+    .option(
+      "--timeout <ms>",
+      t("command.devices.rpc.option.timeout"),
+      String(defaults?.timeoutMs ?? 10_000),
+    )
+    .option("--json", t("command.devices.rpc.option.json"), false);
 
 const callGatewayCli = async (method: string, opts: DevicesRpcOpts, params?: unknown) =>
   withProgress(
@@ -244,12 +254,13 @@ function resolveRequiredDeviceRole(
 }
 
 export function registerDevicesCli(program: Command) {
-  const devices = program.command("devices").description("Device pairing and auth tokens");
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
+  const devices = program.command("devices").description(t("command.devices.description"));
 
   devicesCallOpts(
     devices
       .command("list")
-      .description("List pending and paired devices")
+      .description(t("command.devices.list.description"))
       .action(async (opts: DevicesRpcOpts) => {
         const list = await listPairingWithFallback(opts);
         if (opts.json) {
@@ -314,13 +325,14 @@ export function registerDevicesCli(program: Command) {
           defaultRuntime.log(theme.muted("No device pairing entries."));
         }
       }),
+    t,
   );
 
   devicesCallOpts(
     devices
       .command("remove")
-      .description("Remove a paired device entry")
-      .argument("<deviceId>", "Paired device id")
+      .description(t("command.devices.remove.description"))
+      .argument("<deviceId>", t("command.devices.remove.argument.deviceId"))
       .action(async (deviceId: string, opts: DevicesRpcOpts) => {
         const trimmed = deviceId.trim();
         if (!trimmed) {
@@ -335,14 +347,15 @@ export function registerDevicesCli(program: Command) {
         }
         defaultRuntime.log(`${theme.warn("Removed")} ${theme.command(trimmed)}`);
       }),
+    t,
   );
 
   devicesCallOpts(
     devices
       .command("clear")
-      .description("Clear paired devices from the gateway table")
-      .option("--pending", "Also reject all pending pairing requests", false)
-      .option("--yes", "Confirm destructive clear", false)
+      .description(t("command.devices.clear.description"))
+      .option("--pending", t("command.devices.clear.option.pending"), false)
+      .option("--yes", t("command.devices.clear.option.yes"), false)
       .action(async (opts: DevicesRpcOpts) => {
         if (!opts.yes) {
           defaultRuntime.error("Refusing to clear pairing table without --yes");
@@ -388,14 +401,15 @@ export function registerDevicesCli(program: Command) {
           );
         }
       }),
+    t,
   );
 
   devicesCallOpts(
     devices
       .command("approve")
-      .description("Approve a pending device pairing request")
-      .argument("[requestId]", "Pending request id")
-      .option("--latest", "Approve the most recent pending request", false)
+      .description(t("command.devices.approve.description"))
+      .argument("[requestId]", t("command.devices.argument.requestId"))
+      .option("--latest", t("command.devices.approve.option.latest"), false)
       .action(async (requestId: string | undefined, opts: DevicesRpcOpts) => {
         let resolvedRequestId = requestId?.trim();
         if (!resolvedRequestId || opts.latest) {
@@ -422,13 +436,14 @@ export function registerDevicesCli(program: Command) {
           `${theme.success("Approved")} ${theme.command(deviceId ?? "ok")} ${theme.muted(`(${resolvedRequestId})`)}`,
         );
       }),
+    t,
   );
 
   devicesCallOpts(
     devices
       .command("reject")
-      .description("Reject a pending device pairing request")
-      .argument("<requestId>", "Pending request id")
+      .description(t("command.devices.reject.description"))
+      .argument("<requestId>", t("command.devices.argument.requestId"))
       .action(async (requestId: string, opts: DevicesRpcOpts) => {
         const result = await callGatewayCli("device.pair.reject", opts, { requestId });
         if (opts.json) {
@@ -438,15 +453,16 @@ export function registerDevicesCli(program: Command) {
         const deviceId = (result as { deviceId?: string })?.deviceId;
         defaultRuntime.log(`${theme.warn("Rejected")} ${theme.command(deviceId ?? "ok")}`);
       }),
+    t,
   );
 
   devicesCallOpts(
     devices
       .command("rotate")
-      .description("Rotate a device token for a role")
-      .requiredOption("--device <id>", "Device id")
-      .requiredOption("--role <role>", "Role name")
-      .option("--scope <scope...>", "Scopes to attach to the token (repeatable)")
+      .description(t("command.devices.rotate.description"))
+      .requiredOption("--device <id>", t("command.devices.option.device"))
+      .requiredOption("--role <role>", t("command.devices.option.role"))
+      .option("--scope <scope...>", t("command.devices.rotate.option.scope"))
       .action(async (opts: DevicesRpcOpts) => {
         const required = resolveRequiredDeviceRole(opts);
         if (!required) {
@@ -459,14 +475,15 @@ export function registerDevicesCli(program: Command) {
         });
         defaultRuntime.writeJson(result);
       }),
+    t,
   );
 
   devicesCallOpts(
     devices
       .command("revoke")
-      .description("Revoke a device token for a role")
-      .requiredOption("--device <id>", "Device id")
-      .requiredOption("--role <role>", "Role name")
+      .description(t("command.devices.revoke.description"))
+      .requiredOption("--device <id>", t("command.devices.option.device"))
+      .requiredOption("--role <role>", t("command.devices.option.role"))
       .action(async (opts: DevicesRpcOpts) => {
         const required = resolveRequiredDeviceRole(opts);
         if (!required) {
@@ -478,5 +495,6 @@ export function registerDevicesCli(program: Command) {
         });
         defaultRuntime.writeJson(result);
       }),
+    t,
   );
 }

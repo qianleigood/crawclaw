@@ -54,7 +54,10 @@ import {
   type ConfigSetOptions,
 } from "./config-set-input.js";
 import { resolveConfigSetMode } from "./config-set-parser.js";
+import { createCliTranslator } from "./i18n/index.js";
+import type { CliTranslator } from "./i18n/types.js";
 import { setCommandJsonMode } from "./program/json-mode.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type PathSegment = string;
 type ConfigSetParseOpts = {
@@ -85,15 +88,18 @@ const CONFIG_SET_EXAMPLE_PROVIDER = formatCliCommand(
 const CONFIG_SET_EXAMPLE_BATCH = formatCliCommand(
   "crawclaw config set --batch-file ./config-set.batch.json --dry-run",
 );
-const CONFIG_SET_DESCRIPTION = [
-  "Set config values by path (value mode, ref/provider builder mode, or batch JSON mode).",
-  "Examples:",
-  CONFIG_SET_EXAMPLE_VALUE,
-  CONFIG_SET_EXAMPLE_REF,
-  CONFIG_SET_EXAMPLE_PROVIDER,
-  CONFIG_SET_EXAMPLE_BATCH,
-].join("\n");
 const CONFIG_SET_POLICY_ERROR_MAX_ISSUES = 5;
+
+function formatConfigSetDescription(t: CliTranslator): string {
+  return [
+    t("command.config.set.description"),
+    t("command.config.set.examplesHeading"),
+    CONFIG_SET_EXAMPLE_VALUE,
+    CONFIG_SET_EXAMPLE_REF,
+    CONFIG_SET_EXAMPLE_PROVIDER,
+    CONFIG_SET_EXAMPLE_BATCH,
+  ].join("\n");
+}
 
 class ConfigSetDryRunValidationError extends Error {
   constructor(readonly result: ConfigSetDryRunResult) {
@@ -1305,19 +1311,18 @@ export async function runConfigValidate(opts: { json?: boolean; runtime?: Runtim
 }
 
 export function registerConfigCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const cmd = program
     .command("config")
-    .description(
-      "Non-interactive config helpers (get/set/unset/file/schema/validate). Run without subcommand for guided setup.",
-    )
+    .description(t("command.config.fullDescription"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/config", "docs.crawclaw.ai/cli/config")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/config", "docs.crawclaw.ai/cli/config")}\n`,
     )
     .option(
       "--section <section>",
-      "Configuration sections for guided setup (repeatable). Use with no subcommand.",
+      t("command.config.option.section"),
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )
@@ -1328,83 +1333,81 @@ export function registerConfigCli(program: Command) {
 
   cmd
     .command("get")
-    .description("Get a config value by dot path")
-    .argument("<path>", "Config path (dot or bracket notation)")
-    .option("--json", "Output JSON", false)
+    .description(t("command.config.get.description"))
+    .argument("<path>", t("command.config.argument.path"))
+    .option("--json", t("command.config.get.option.json"), false)
     .action(async (path: string, opts) => {
       await runConfigGet({ path, json: Boolean(opts.json) });
     });
 
   setCommandJsonMode(cmd.command("set"), "parse-only")
-    .description(CONFIG_SET_DESCRIPTION)
-    .argument("[path]", "Config path (dot or bracket notation)")
-    .argument("[value]", "Value (JSON/JSON5 or raw string)")
-    .option("--strict-json", "Strict JSON parsing (error instead of raw string fallback)", false)
-    .option("--json", "Legacy alias for --strict-json", false)
-    .option(
-      "--dry-run",
-      "Validate changes without writing crawclaw.json (checks run in builder/json/batch modes; exec SecretRefs are skipped unless --allow-exec is set)",
-      false,
-    )
-    .option(
-      "--allow-exec",
-      "Dry-run only: allow exec SecretRef resolvability checks (may execute provider commands)",
-      false,
-    )
-    .option("--ref-provider <alias>", "SecretRef builder: provider alias")
-    .option("--ref-source <source>", "SecretRef builder: source (env|file|exec)")
-    .option("--ref-id <id>", "SecretRef builder: ref id")
-    .option("--provider-source <source>", "Provider builder: source (env|file|exec)")
+    .description(formatConfigSetDescription(t))
+    .argument("[path]", t("command.config.argument.path"))
+    .argument("[value]", t("command.config.set.argument.value"))
+    .option("--strict-json", t("command.config.set.option.strictJson"), false)
+    .option("--json", t("command.config.set.option.json"), false)
+    .option("--dry-run", t("command.config.set.option.dryRun"), false)
+    .option("--allow-exec", t("command.config.set.option.allowExec"), false)
+    .option("--ref-provider <alias>", t("command.config.set.option.refProvider"))
+    .option("--ref-source <source>", t("command.config.set.option.refSource"))
+    .option("--ref-id <id>", t("command.config.set.option.refId"))
+    .option("--provider-source <source>", t("command.config.set.option.providerSource"))
     .option(
       "--provider-allowlist <envVar>",
-      "Provider builder (env): allowlist entry (repeatable)",
+      t("command.config.set.option.providerAllowlist"),
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )
-    .option("--provider-path <path>", "Provider builder (file): path")
-    .option("--provider-mode <mode>", "Provider builder (file): mode (singleValue|json)")
-    .option("--provider-timeout-ms <ms>", "Provider builder (file|exec): timeout ms")
-    .option("--provider-max-bytes <bytes>", "Provider builder (file): max bytes")
-    .option("--provider-command <path>", "Provider builder (exec): absolute command path")
+    .option("--provider-path <path>", t("command.config.set.option.providerPath"))
+    .option("--provider-mode <mode>", t("command.config.set.option.providerMode"))
+    .option("--provider-timeout-ms <ms>", t("command.config.set.option.providerTimeoutMs"))
+    .option("--provider-max-bytes <bytes>", t("command.config.set.option.providerMaxBytes"))
+    .option("--provider-command <path>", t("command.config.set.option.providerCommand"))
     .option(
       "--provider-arg <arg>",
-      "Provider builder (exec): command arg (repeatable)",
+      t("command.config.set.option.providerArg"),
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )
-    .option("--provider-no-output-timeout-ms <ms>", "Provider builder (exec): no-output timeout ms")
-    .option("--provider-max-output-bytes <bytes>", "Provider builder (exec): max output bytes")
-    .option("--provider-json-only", "Provider builder (exec): require JSON output", false)
+    .option(
+      "--provider-no-output-timeout-ms <ms>",
+      t("command.config.set.option.providerNoOutputTimeoutMs"),
+    )
+    .option(
+      "--provider-max-output-bytes <bytes>",
+      t("command.config.set.option.providerMaxOutputBytes"),
+    )
+    .option("--provider-json-only", t("command.config.set.option.providerJsonOnly"), false)
     .option(
       "--provider-env <key=value>",
-      "Provider builder (exec): env assignment (repeatable)",
+      t("command.config.set.option.providerEnv"),
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )
     .option(
       "--provider-pass-env <envVar>",
-      "Provider builder (exec): pass host env var (repeatable)",
+      t("command.config.set.option.providerPassEnv"),
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )
     .option(
       "--provider-trusted-dir <path>",
-      "Provider builder (exec): trusted directory (repeatable)",
+      t("command.config.set.option.providerTrustedDir"),
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )
     .option(
       "--provider-allow-insecure-path",
-      "Provider builder (exec): bypass strict path permission checks",
+      t("command.config.set.option.providerAllowInsecurePath"),
       false,
     )
     .option(
       "--provider-allow-symlink-command",
-      "Provider builder (exec): allow command symlink path",
+      t("command.config.set.option.providerAllowSymlinkCommand"),
       false,
     )
-    .option("--batch-json <json>", "Batch mode: JSON array of set operations")
-    .option("--batch-file <path>", "Batch mode: read JSON array of set operations from file")
+    .option("--batch-json <json>", t("command.config.set.option.batchJson"))
+    .option("--batch-file <path>", t("command.config.set.option.batchFile"))
     .action(async (path: string | undefined, value: string | undefined, opts: ConfigSetOptions) => {
       await runConfigSet({
         path,
@@ -1415,30 +1418,30 @@ export function registerConfigCli(program: Command) {
 
   cmd
     .command("unset")
-    .description("Remove a config value by dot path")
-    .argument("<path>", "Config path (dot or bracket notation)")
+    .description(t("command.config.unset.description"))
+    .argument("<path>", t("command.config.argument.path"))
     .action(async (path: string) => {
       await runConfigUnset({ path });
     });
 
   cmd
     .command("file")
-    .description("Print the active config file path")
+    .description(t("command.config.file.description"))
     .action(async () => {
       await runConfigFile({});
     });
 
   cmd
     .command("schema")
-    .description("Print the JSON schema for crawclaw.json")
+    .description(t("command.config.schema.description"))
     .action(async () => {
       await runConfigSchema({});
     });
 
   cmd
     .command("validate")
-    .description("Validate the current config against the schema without starting the gateway")
-    .option("--json", "Output validation result as JSON", false)
+    .description(t("command.config.validate.description"))
+    .option("--json", t("command.config.validate.option.json"), false)
     .action(async (opts) => {
       await runConfigValidate({ json: Boolean(opts.json) });
     });

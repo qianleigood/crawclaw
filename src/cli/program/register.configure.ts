@@ -7,19 +7,24 @@ import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
+import { createCliTranslator } from "../i18n/index.js";
+import { getProgramContext } from "./program-context.js";
 
 export function registerConfigureCommand(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   program
     .command("configure")
-    .description("Interactive configuration for credentials, channels, gateway, and agent defaults")
+    .description(t("command.configure.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/configure", "docs.crawclaw.ai/cli/configure")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/configure", "docs.crawclaw.ai/cli/configure")}\n`,
     )
     .option(
       "--section <section>",
-      `Configuration sections (repeatable). Options: ${CONFIGURE_WIZARD_SECTIONS.join(", ")}`,
+      t("command.configure.option.section", {
+        sections: CONFIGURE_WIZARD_SECTIONS.join(", "),
+      }),
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )

@@ -1,25 +1,30 @@
 import { Command } from "commander";
 import { getPluginCliCommandDescriptors } from "../../plugins/cli.js";
 import { VERSION } from "../../version.js";
-import { getCoreCliCommandDescriptors } from "./core-command-descriptors.js";
+import { createCliTranslator, resolveCliLocale } from "../i18n/index.js";
+import { localizeCoreCliCommandDescriptors } from "./core-command-descriptors.js";
 import { configureProgramHelp } from "./help.js";
-import { getSubCliEntries } from "./subcli-descriptors.js";
+import { localizeSubCliEntries } from "./subcli-descriptors.js";
 
 async function buildRootHelpProgram(): Promise<Command> {
   const program = new Command();
+  const locale = resolveCliLocale({ argv: process.argv, env: process.env.CRAWCLAW_LANG });
+  const t = createCliTranslator(locale);
   configureProgramHelp(program, {
     programVersion: VERSION,
+    locale,
+    t,
     channelOptions: [],
     messageChannelOptions: "",
     agentChannelOptions: "",
   });
 
   const existingCommands = new Set<string>();
-  for (const command of getCoreCliCommandDescriptors()) {
+  for (const command of localizeCoreCliCommandDescriptors(t)) {
     program.command(command.name).description(command.description);
     existingCommands.add(command.name);
   }
-  for (const command of getSubCliEntries()) {
+  for (const command of localizeSubCliEntries(t)) {
     if (existingCommands.has(command.name)) {
       continue;
     }

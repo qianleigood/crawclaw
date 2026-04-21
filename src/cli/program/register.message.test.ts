@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "../i18n/index.js";
 import type { ProgramContext } from "./context.js";
 import { registerMessageCommands } from "./register.message.js";
 
@@ -82,6 +83,8 @@ vi.mock("./message/register.discord-admin.js", () => ({
 describe("registerMessageCommands", () => {
   const ctx: ProgramContext = {
     programVersion: "9.9.9-test",
+    locale: "en",
+    t: createCliTranslator("en"),
     channelOptions: ["telegram", "discord"],
     messageChannelOptions: "telegram|discord",
     agentChannelOptions: "last|telegram|discord",

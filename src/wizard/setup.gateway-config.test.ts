@@ -317,4 +317,49 @@ describe("configureGatewayForSetup", () => {
     expect(result.nextConfig.gateway?.auth?.token).toEqual(quickstartGateway.token);
     expect(result.settings.gatewayToken).toBe("token-from-exec");
   });
+
+  it("localizes advanced gateway setup prompts when --lang zh-CN is present", async () => {
+    const previousArgv = process.argv;
+    process.argv = ["node", "crawclaw", "--lang", "zh-CN"];
+    const select = vi.fn(async (params: WizardSelectParams<unknown>) => {
+      if (params.message === "网关监听地址") {
+        return "loopback";
+      }
+      if (params.message === "网关认证方式") {
+        return "token";
+      }
+      if (params.message === "Tailscale 暴露方式") {
+        return "off";
+      }
+      return params.initialValue ?? params.options[0]?.value;
+    }) as unknown as WizardPrompter["select"];
+    const text = vi.fn(async (params: { message: string }) =>
+      params.message === "网关端口" ? "18789" : "",
+    ) as WizardPrompter["text"];
+
+    try {
+      await configureGatewayForSetup({
+        flow: "advanced",
+        baseConfig: {},
+        nextConfig: {},
+        localPort: 18789,
+        quickstartGateway: createQuickstartGateway("token"),
+        prompter: buildWizardPrompter({ select, text }),
+        runtime: createRuntime(),
+      });
+    } finally {
+      process.argv = previousArgv;
+    }
+
+    expect(text).toHaveBeenCalledWith(expect.objectContaining({ message: "网关端口" }));
+    expect(select).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "网关监听地址",
+        options: expect.arrayContaining([
+          expect.objectContaining({ label: "仅本机（127.0.0.1）" }),
+        ]),
+      }),
+    );
+    expect(select).toHaveBeenCalledWith(expect.objectContaining({ message: "网关认证方式" }));
+  });
 });

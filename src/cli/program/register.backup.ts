@@ -6,11 +6,14 @@ import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
 import { formatHelpExamples } from "../help-format.js";
+import { createCliTranslator } from "../i18n/index.js";
+import { getProgramContext } from "./program-context.js";
 
 export function registerBackupCommand(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const backup = program
     .command("backup")
-    .description("Create and verify local backup archives for CrawClaw state")
+    .description(t("command.backup.description"))
     .addHelpText(
       "after",
       () =>
@@ -19,35 +22,26 @@ export function registerBackupCommand(program: Command) {
 
   backup
     .command("create")
-    .description("Write a backup archive for config, credentials, sessions, and workspaces")
-    .option("--output <path>", "Archive path or destination directory")
-    .option("--json", "Output JSON", false)
-    .option("--dry-run", "Print the backup plan without writing the archive", false)
-    .option("--verify", "Verify the archive after writing it", false)
-    .option("--only-config", "Back up only the active JSON config file", false)
-    .option("--no-include-workspace", "Exclude workspace directories from the backup")
+    .description(t("command.backup.create.description"))
+    .option("--output <path>", t("command.backup.create.option.output"))
+    .option("--json", t("command.backup.create.option.json"), false)
+    .option("--dry-run", t("command.backup.create.option.dryRun"), false)
+    .option("--verify", t("command.backup.create.option.verify"), false)
+    .option("--only-config", t("command.backup.create.option.onlyConfig"), false)
+    .option("--no-include-workspace", t("command.backup.create.option.noIncludeWorkspace"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["crawclaw backup create", "Create a timestamped backup in the current directory."],
-          [
-            "crawclaw backup create --output ~/Backups",
-            "Write the archive into an existing backup directory.",
-          ],
-          [
-            "crawclaw backup create --dry-run --json",
-            "Preview the archive plan without writing any files.",
-          ],
-          [
-            "crawclaw backup create --verify",
-            "Create the archive and immediately validate its manifest and payload layout.",
-          ],
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          ["crawclaw backup create", t("command.backup.create.example.default")],
+          ["crawclaw backup create --output ~/Backups", t("command.backup.create.example.output")],
+          ["crawclaw backup create --dry-run --json", t("command.backup.create.example.dryRun")],
+          ["crawclaw backup create --verify", t("command.backup.create.example.verify")],
           [
             "crawclaw backup create --no-include-workspace",
-            "Back up state/config without agent workspace files.",
+            t("command.backup.create.example.noWorkspace"),
           ],
-          ["crawclaw backup create --only-config", "Back up only the active JSON config file."],
+          ["crawclaw backup create --only-config", t("command.backup.create.example.onlyConfig")],
         ])}`,
     )
     .action(async (opts) => {
@@ -65,19 +59,19 @@ export function registerBackupCommand(program: Command) {
 
   backup
     .command("verify <archive>")
-    .description("Validate a backup archive and its embedded manifest")
-    .option("--json", "Output JSON", false)
+    .description(t("command.backup.verify.description"))
+    .option("--json", t("command.backup.verify.option.json"), false)
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
           [
             "crawclaw backup verify ./2026-03-09T00-00-00.000Z-crawclaw-backup.tar.gz",
-            "Check that the archive structure and manifest are intact.",
+            t("command.backup.verify.example.default"),
           ],
           [
             "crawclaw backup verify ~/Backups/latest.tar.gz --json",
-            "Emit machine-readable verification output.",
+            t("command.backup.verify.example.json"),
           ],
         ])}`,
     )

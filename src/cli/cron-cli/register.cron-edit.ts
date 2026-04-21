@@ -4,6 +4,7 @@ import { danger } from "../../globals.js";
 import { sanitizeAgentId } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
+import type { CliTranslator } from "../i18n/types.js";
 import {
   applyExistingCronSchedulePatch,
   resolveCronEditScheduleRequest,
@@ -21,66 +22,66 @@ const assignIf = (
   }
 };
 
-export function registerCronEditCommand(cron: Command) {
+export function registerCronEditCommand(cron: Command, t: CliTranslator) {
   addGatewayClientOptions(
     cron
       .command("edit")
-      .description("Edit a cron job (patch fields)")
-      .argument("<id>", "Job id")
-      .option("--name <name>", "Set name")
-      .option("--description <text>", "Set description")
-      .option("--enable", "Enable job", false)
-      .option("--disable", "Disable job", false)
-      .option("--delete-after-run", "Delete one-shot job after it succeeds", false)
-      .option("--keep-after-run", "Keep one-shot job after it succeeds", false)
-      .option("--session <target>", "Session target (main|isolated)")
-      .option("--agent <id>", "Set agent id")
-      .option("--clear-agent", "Unset agent and use default", false)
-      .option("--session-key <key>", "Set session key for job routing")
-      .option("--clear-session-key", "Unset session key", false)
-      .option("--wake <mode>", "Wake mode (now|next-heartbeat)")
-      .option("--at <when>", "Set one-shot time (ISO) or duration like 20m")
-      .option("--every <duration>", "Set interval duration like 10m")
-      .option("--cron <expr>", "Set cron expression")
-      .option("--tz <iana>", "Timezone for cron expressions (IANA)")
-      .option("--stagger <duration>", "Cron stagger window (e.g. 30s, 5m)")
-      .option("--exact", "Disable cron staggering (set stagger to 0)")
-      .option("--system-event <text>", "Set systemEvent payload")
-      .option("--message <text>", "Set agentTurn payload message")
+      .description(t("command.cron.edit.description"))
+      .argument("<id>", t("command.cron.argument.id"))
+      .option("--name <name>", t("command.cron.edit.option.name"))
+      .option("--description <text>", t("command.cron.edit.option.description"))
+      .option("--enable", t("command.cron.edit.option.enable"), false)
+      .option("--disable", t("command.cron.edit.option.disable"), false)
+      .option("--delete-after-run", t("command.cron.option.deleteAfterRun"), false)
+      .option("--keep-after-run", t("command.cron.option.keepAfterRun"), false)
+      .option("--session <target>", t("command.cron.option.session"))
+      .option("--agent <id>", t("command.cron.edit.option.agent"))
+      .option("--clear-agent", t("command.cron.edit.option.clearAgent"), false)
+      .option("--session-key <key>", t("command.cron.edit.option.sessionKey"))
+      .option("--clear-session-key", t("command.cron.edit.option.clearSessionKey"), false)
+      .option("--wake <mode>", t("command.cron.option.wake"))
+      .option("--at <when>", t("command.cron.edit.option.at"))
+      .option("--every <duration>", t("command.cron.edit.option.every"))
+      .option("--cron <expr>", t("command.cron.edit.option.cron"))
+      .option("--tz <iana>", t("command.cron.option.tz"))
+      .option("--stagger <duration>", t("command.cron.option.stagger"))
+      .option("--exact", t("command.cron.option.exact"))
+      .option("--system-event <text>", t("command.cron.edit.option.systemEvent"))
+      .option("--message <text>", t("command.cron.edit.option.message"))
+      .option("--thinking <level>", t("command.cron.option.thinking"))
+      .option("--model <model>", t("command.cron.edit.option.model"))
+      .option("--timeout-seconds <n>", t("command.cron.option.timeoutSeconds"))
+      .option("--light-context", t("command.cron.edit.option.lightContext"))
+      .option("--no-light-context", t("command.cron.edit.option.noLightContext"))
+      .option("--tools <csv>", t("command.cron.option.tools"))
+      .option("--clear-tools", t("command.cron.edit.option.clearTools"), false)
+      .option("--announce", t("command.cron.option.announce"))
+      .option("--deliver", t("command.cron.option.deliver"))
+      .option("--no-deliver", t("command.cron.edit.option.noDeliver"))
       .option(
-        "--thinking <level>",
-        "Thinking level for agent jobs (off|minimal|low|medium|high|xhigh)",
+        "--channel <channel>",
+        t("command.cron.option.channel", { channels: getCronChannelOptions() }),
       )
-      .option("--model <model>", "Model override for agent jobs")
-      .option("--timeout-seconds <n>", "Timeout seconds for agent jobs")
-      .option("--light-context", "Enable lightweight bootstrap context for agent jobs")
-      .option("--no-light-context", "Disable lightweight bootstrap context for agent jobs")
-      .option("--tools <csv>", "Comma-separated tool allow-list (e.g. exec,read,write)")
-      .option("--clear-tools", "Remove tool allow-list (use all tools)", false)
-      .option("--announce", "Announce summary to a chat (subagent-style)")
-      .option("--deliver", "Deprecated (use --announce). Announces a summary to a chat.")
-      .option("--no-deliver", "Disable announce delivery")
-      .option("--channel <channel>", `Delivery channel (${getCronChannelOptions()})`)
-      .option(
-        "--to <dest>",
-        "Delivery destination (E.164, Telegram chatId, or Discord channel/user)",
-      )
-      .option("--account <id>", "Channel account id for delivery (multi-account setups)")
-      .option("--best-effort-deliver", "Do not fail job if delivery fails")
-      .option("--no-best-effort-deliver", "Fail job when delivery fails")
-      .option("--failure-alert", "Enable failure alerts for this job")
-      .option("--no-failure-alert", "Disable failure alerts for this job")
-      .option("--failure-alert-after <n>", "Alert after N consecutive job errors")
+      .option("--to <dest>", t("command.cron.option.to"))
+      .option("--account <id>", t("command.cron.option.account"))
+      .option("--best-effort-deliver", t("command.cron.edit.option.bestEffortDeliver"))
+      .option("--no-best-effort-deliver", t("command.cron.edit.option.noBestEffortDeliver"))
+      .option("--failure-alert", t("command.cron.edit.option.failureAlert"))
+      .option("--no-failure-alert", t("command.cron.edit.option.noFailureAlert"))
+      .option("--failure-alert-after <n>", t("command.cron.edit.option.failureAlertAfter"))
       .option(
         "--failure-alert-channel <channel>",
-        `Failure alert channel (${getCronChannelOptions()})`,
+        t("command.cron.edit.option.failureAlertChannel", { channels: getCronChannelOptions() }),
       )
-      .option("--failure-alert-to <dest>", "Failure alert destination")
-      .option("--failure-alert-cooldown <duration>", "Minimum time between alerts (e.g. 1h, 30m)")
-      .option("--failure-alert-mode <mode>", "Failure alert delivery mode (announce or webhook)")
+      .option("--failure-alert-to <dest>", t("command.cron.edit.option.failureAlertTo"))
+      .option(
+        "--failure-alert-cooldown <duration>",
+        t("command.cron.edit.option.failureAlertCooldown"),
+      )
+      .option("--failure-alert-mode <mode>", t("command.cron.edit.option.failureAlertMode"))
       .option(
         "--failure-alert-account-id <id>",
-        "Account ID for failure alert channel (multi-account setups)",
+        t("command.cron.edit.option.failureAlertAccountId"),
       )
       .action(async (id, opts) => {
         try {

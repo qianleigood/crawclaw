@@ -296,6 +296,18 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       cli: {
         type: "object",
         properties: {
+          language: {
+            anyOf: [
+              {
+                type: "string",
+                const: "en",
+              },
+              {
+                type: "string",
+                const: "zh-CN",
+              },
+            ],
+          },
           banner: {
             type: "object",
             properties: {
@@ -11343,6 +11355,11 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "Custom Redaction Patterns",
       help: "Additional custom redact regex patterns applied to log output before emission/storage. Use this to mask org-specific tokens and identifiers not covered by built-in redaction rules.",
       tags: ["privacy", "observability"],
+    },
+    "cli.language": {
+      label: "CLI Language",
+      help: "Human-facing CLI prompt/help language. Keeps command names, flags, config keys, and JSON output in English while translating prompts and help text for operators.",
+      tags: ["advanced"],
     },
     "cli.banner": {
       label: "CLI Banner",

@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "../i18n/index.js";
+import { setProgramContext } from "./program-context.js";
 import { registerMaintenanceCommands } from "./register.maintenance.js";
 
 const mocks = vi.hoisted(() => ({
@@ -50,6 +52,20 @@ describe("registerMaintenanceCommands doctor action", () => {
     const program = new Command();
     registerMaintenanceCommands(program);
     await program.parseAsync(args, { from: "user" });
+  }
+
+  function createZhProgram() {
+    const program = new Command();
+    setProgramContext(program, {
+      programVersion: "9.9.9-test",
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+      channelOptions: [],
+      messageChannelOptions: "",
+      agentChannelOptions: "last",
+    });
+    registerMaintenanceCommands(program);
+    return program;
   }
 
   beforeEach(() => {
@@ -147,5 +163,17 @@ describe("registerMaintenanceCommands doctor action", () => {
       }),
     );
     expect(runtime.exit).toHaveBeenCalledWith(0);
+  });
+
+  it("uses localized help copy when program context locale is zh-CN", () => {
+    const program = createZhProgram();
+    const doctor = program.commands.find((command) => command.name() === "doctor");
+    const uninstall = program.commands.find((command) => command.name() === "uninstall");
+
+    expect(doctor?.description()).toBe("检查并修复网关与渠道健康状态");
+    expect(doctor?.options.find((option) => option.long === "--yes")?.description).toBe(
+      "不提示，直接接受默认值",
+    );
+    expect(uninstall?.description()).toBe("卸载网关服务和本地数据（保留 CLI）");
   });
 });

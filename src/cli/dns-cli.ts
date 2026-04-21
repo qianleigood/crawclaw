@@ -9,6 +9,8 @@ import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type RunOpts = { allowFailure?: boolean; inherit?: boolean };
 
@@ -100,25 +102,21 @@ function ensureImportLine(corefilePath: string, importGlob: string): boolean {
 }
 
 export function registerDnsCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const dns = program
     .command("dns")
-    .description("DNS helpers for wide-area discovery (Tailscale + CoreDNS)")
+    .description(t("command.dns.description"))
     .addHelpText(
       "after",
-      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dns", "docs.crawclaw.ai/cli/dns")}\n`,
+      () =>
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/dns", "docs.crawclaw.ai/cli/dns")}\n`,
     );
 
   dns
     .command("setup")
-    .description(
-      "Set up CoreDNS to serve your discovery domain for unicast DNS-SD (Wide-Area Bonjour)",
-    )
-    .option("--domain <domain>", "Wide-area discovery domain (e.g. crawclaw.internal)")
-    .option(
-      "--apply",
-      "Install/update CoreDNS config and (re)start the service (requires sudo)",
-      false,
-    )
+    .description(t("command.dns.setup.description"))
+    .option("--domain <domain>", t("command.dns.setup.option.domain"))
+    .option("--apply", t("command.dns.setup.option.apply"), false)
     .action(async (opts) => {
       const cfg = loadConfig();
       const tailnetIPv4 = pickPrimaryTailnetIPv4();

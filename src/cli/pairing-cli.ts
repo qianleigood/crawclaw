@@ -13,6 +13,8 @@ import { formatDocsLink } from "../terminal/links.js";
 import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { formatCliCommand } from "./command-format.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 /** Parse channel, allowing extension channels not in core registry. */
 function parseChannel(raw: unknown, channels: PairingChannel[]): PairingChannel {
@@ -50,10 +52,11 @@ async function notifyApproved(channel: PairingChannel, id: string) {
 }
 
 export function registerPairingCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const channels = listPairingChannels();
   const pairing = program
     .command("pairing")
-    .description("Secure DM pairing (approve inbound requests)")
+    .description(t("command.pairing.description"))
     .addHelpText(
       "after",
       () =>
@@ -62,11 +65,14 @@ export function registerPairingCli(program: Command) {
 
   pairing
     .command("list")
-    .description("List pending pairing requests")
-    .option("--channel <channel>", `Channel (${channels.join(", ")})`)
-    .option("--account <accountId>", "Account id (for multi-account channels)")
-    .argument("[channel]", `Channel (${channels.join(", ")})`)
-    .option("--json", "Print JSON", false)
+    .description(t("command.pairing.list.description"))
+    .option(
+      "--channel <channel>",
+      t("command.pairing.option.channel", { channels: channels.join(", ") }),
+    )
+    .option("--account <accountId>", t("command.pairing.option.account"))
+    .argument("[channel]", t("command.pairing.argument.channel", { channels: channels.join(", ") }))
+    .option("--json", t("command.pairing.option.json"), false)
     .action(async (channelArg, opts) => {
       const channelRaw = opts.channel ?? channelArg ?? (channels.length === 1 ? channels[0] : "");
       if (!channelRaw) {
@@ -113,12 +119,15 @@ export function registerPairingCli(program: Command) {
 
   pairing
     .command("approve")
-    .description("Approve a pairing code and allow that sender")
-    .option("--channel <channel>", `Channel (${channels.join(", ")})`)
-    .option("--account <accountId>", "Account id (for multi-account channels)")
-    .argument("<codeOrChannel>", "Pairing code (or channel when using 2 args)")
-    .argument("[code]", "Pairing code (when channel is passed as the 1st arg)")
-    .option("--notify", "Notify the requester on the same channel", false)
+    .description(t("command.pairing.approve.description"))
+    .option(
+      "--channel <channel>",
+      t("command.pairing.option.channel", { channels: channels.join(", ") }),
+    )
+    .option("--account <accountId>", t("command.pairing.option.account"))
+    .argument("<codeOrChannel>", t("command.pairing.approve.argument.codeOrChannel"))
+    .argument("[code]", t("command.pairing.approve.argument.code"))
+    .option("--notify", t("command.pairing.approve.option.notify"), false)
     .action(async (codeOrChannel, code, opts) => {
       const defaultChannel = channels.length === 1 ? channels[0] : "";
       const usingExplicitChannel = Boolean(opts.channel);

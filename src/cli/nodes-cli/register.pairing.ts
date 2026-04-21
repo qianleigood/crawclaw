@@ -4,14 +4,15 @@ import { getTerminalTableWidth } from "../../terminal/table.js";
 import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
 import { parsePairingList } from "./format.js";
 import { renderPendingPairingRequestsTable } from "./pairing-render.js";
-import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
+import { callGatewayCli, getCommandTranslator, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
 
 export function registerNodesPairingCommands(nodes: Command) {
+  const t = getCommandTranslator(nodes);
   nodesCallOpts(
     nodes
       .command("pending")
-      .description("List pending pairing requests")
+      .description(t("command.nodes.pairing.pending.description"))
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("pending", async () => {
           const result = await callGatewayCli("node.pair.list", opts, {});
@@ -43,8 +44,8 @@ export function registerNodesPairingCommands(nodes: Command) {
   nodesCallOpts(
     nodes
       .command("approve")
-      .description("Approve a pending pairing request")
-      .argument("<requestId>", "Pending request id")
+      .description(t("command.nodes.pairing.approve.description"))
+      .argument("<requestId>", t("command.nodes.pairing.argument.requestId"))
       .action(async (requestId: string, opts: NodesRpcOpts) => {
         await runNodesCommand("approve", async () => {
           const result = await callGatewayCli("node.pair.approve", opts, {
@@ -58,8 +59,8 @@ export function registerNodesPairingCommands(nodes: Command) {
   nodesCallOpts(
     nodes
       .command("reject")
-      .description("Reject a pending pairing request")
-      .argument("<requestId>", "Pending request id")
+      .description(t("command.nodes.pairing.reject.description"))
+      .argument("<requestId>", t("command.nodes.pairing.argument.requestId"))
       .action(async (requestId: string, opts: NodesRpcOpts) => {
         await runNodesCommand("reject", async () => {
           const result = await callGatewayCli("node.pair.reject", opts, {
@@ -73,9 +74,9 @@ export function registerNodesPairingCommands(nodes: Command) {
   nodesCallOpts(
     nodes
       .command("rename")
-      .description("Rename a paired node (display name override)")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
-      .requiredOption("--name <displayName>", "New display name")
+      .description(t("command.nodes.pairing.rename.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
+      .requiredOption("--name <displayName>", t("command.nodes.pairing.rename.option.name"))
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("rename", async () => {
           const nodeId = await resolveNodeId(opts, opts.node ?? "");

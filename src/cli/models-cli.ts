@@ -28,35 +28,35 @@ import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { resolveOptionFromCommand, runCommandWithRuntime } from "./cli-utils.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 function runModelsCommand(action: () => Promise<void>) {
   return runCommandWithRuntime(defaultRuntime, action);
 }
 
 export function registerModelsCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const models = program
     .command("models")
-    .description("Model discovery, scanning, and configuration")
-    .option("--status-json", "Output JSON (alias for `models status --json`)", false)
-    .option("--status-plain", "Plain output (alias for `models status --plain`)", false)
-    .option(
-      "--agent <id>",
-      "Agent id to inspect (overrides CRAWCLAW_AGENT_DIR/CRAWCLAW_AGENT_DIR/PI_CODING_AGENT_DIR)",
-    )
+    .description(t("command.models.description"))
+    .option("--status-json", t("command.models.option.statusJson"), false)
+    .option("--status-plain", t("command.models.option.statusPlain"), false)
+    .option("--agent <id>", t("command.models.option.agent"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/models", "docs.crawclaw.ai/cli/models")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/models", "docs.crawclaw.ai/cli/models")}\n`,
     );
 
   models
     .command("list")
-    .description("List models (configured by default)")
-    .option("--all", "Show full model catalog", false)
-    .option("--local", "Filter to local models", false)
-    .option("--provider <name>", "Filter by provider")
-    .option("--json", "Output JSON", false)
-    .option("--plain", "Plain line output", false)
+    .description(t("command.models.list.description"))
+    .option("--all", t("command.models.list.option.all"), false)
+    .option("--local", t("command.models.list.option.local"), false)
+    .option("--provider <name>", t("command.models.option.provider"))
+    .option("--json", t("command.models.option.json"), false)
+    .option("--plain", t("command.models.list.option.plain"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsListCommand(opts, defaultRuntime);
@@ -65,32 +65,25 @@ export function registerModelsCli(program: Command) {
 
   models
     .command("status")
-    .description("Show configured model state")
-    .option("--json", "Output JSON", false)
-    .option("--plain", "Plain output", false)
-    .option(
-      "--check",
-      "Exit non-zero if auth is expiring/expired (1=expired/missing, 2=expiring)",
-      false,
-    )
-    .option("--probe", "Probe configured provider auth (live)", false)
-    .option("--probe-provider <name>", "Only probe a single provider")
+    .description(t("command.models.status.description"))
+    .option("--json", t("command.models.option.json"), false)
+    .option("--plain", t("command.models.option.plain"), false)
+    .option("--check", t("command.models.status.option.check"), false)
+    .option("--probe", t("command.models.status.option.probe"), false)
+    .option("--probe-provider <name>", t("command.models.status.option.probeProvider"))
     .option(
       "--probe-profile <id>",
-      "Only probe specific auth profile ids (repeat or comma-separated)",
+      t("command.models.status.option.probeProfile"),
       (value, previous) => {
         const next = Array.isArray(previous) ? previous : previous ? [previous] : [];
         next.push(value);
         return next;
       },
     )
-    .option("--probe-timeout <ms>", "Per-probe timeout in ms")
-    .option("--probe-concurrency <n>", "Concurrent probes")
-    .option("--probe-max-tokens <n>", "Probe max tokens (best-effort)")
-    .option(
-      "--agent <id>",
-      "Agent id to inspect (overrides CRAWCLAW_AGENT_DIR/CRAWCLAW_AGENT_DIR/PI_CODING_AGENT_DIR)",
-    )
+    .option("--probe-timeout <ms>", t("command.models.status.option.probeTimeout"))
+    .option("--probe-concurrency <n>", t("command.models.status.option.probeConcurrency"))
+    .option("--probe-max-tokens <n>", t("command.models.status.option.probeMaxTokens"))
+    .option("--agent <id>", t("command.models.option.agent"))
     .action(async (opts, command) => {
       const agent =
         resolveOptionFromCommand<string>(command, "agent") ?? (opts.agent as string | undefined);
@@ -115,8 +108,8 @@ export function registerModelsCli(program: Command) {
 
   models
     .command("set")
-    .description("Set the default model")
-    .argument("<model>", "Model id or alias")
+    .description(t("command.models.set.description"))
+    .argument("<model>", t("command.models.argument.model"))
     .action(async (model: string) => {
       await runModelsCommand(async () => {
         await modelsSetCommand(model, defaultRuntime);
@@ -125,21 +118,21 @@ export function registerModelsCli(program: Command) {
 
   models
     .command("set-image")
-    .description("Set the image model")
-    .argument("<model>", "Model id or alias")
+    .description(t("command.models.setImage.description"))
+    .argument("<model>", t("command.models.argument.model"))
     .action(async (model: string) => {
       await runModelsCommand(async () => {
         await modelsSetImageCommand(model, defaultRuntime);
       });
     });
 
-  const aliases = models.command("aliases").description("Manage model aliases");
+  const aliases = models.command("aliases").description(t("command.models.aliases.description"));
 
   aliases
     .command("list")
-    .description("List model aliases")
-    .option("--json", "Output JSON", false)
-    .option("--plain", "Plain output", false)
+    .description(t("command.models.aliases.list.description"))
+    .option("--json", t("command.models.option.json"), false)
+    .option("--plain", t("command.models.option.plain"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsAliasesListCommand(opts, defaultRuntime);
@@ -148,9 +141,9 @@ export function registerModelsCli(program: Command) {
 
   aliases
     .command("add")
-    .description("Add or update a model alias")
-    .argument("<alias>", "Alias name")
-    .argument("<model>", "Model id or alias")
+    .description(t("command.models.aliases.add.description"))
+    .argument("<alias>", t("command.models.aliases.argument.alias"))
+    .argument("<model>", t("command.models.argument.model"))
     .action(async (alias: string, model: string) => {
       await runModelsCommand(async () => {
         await modelsAliasesAddCommand(alias, model, defaultRuntime);
@@ -159,21 +152,23 @@ export function registerModelsCli(program: Command) {
 
   aliases
     .command("remove")
-    .description("Remove a model alias")
-    .argument("<alias>", "Alias name")
+    .description(t("command.models.aliases.remove.description"))
+    .argument("<alias>", t("command.models.aliases.argument.alias"))
     .action(async (alias: string) => {
       await runModelsCommand(async () => {
         await modelsAliasesRemoveCommand(alias, defaultRuntime);
       });
     });
 
-  const fallbacks = models.command("fallbacks").description("Manage model fallback list");
+  const fallbacks = models
+    .command("fallbacks")
+    .description(t("command.models.fallbacks.description"));
 
   fallbacks
     .command("list")
-    .description("List fallback models")
-    .option("--json", "Output JSON", false)
-    .option("--plain", "Plain output", false)
+    .description(t("command.models.fallbacks.list.description"))
+    .option("--json", t("command.models.option.json"), false)
+    .option("--plain", t("command.models.option.plain"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsFallbacksListCommand(opts, defaultRuntime);
@@ -182,8 +177,8 @@ export function registerModelsCli(program: Command) {
 
   fallbacks
     .command("add")
-    .description("Add a fallback model")
-    .argument("<model>", "Model id or alias")
+    .description(t("command.models.fallbacks.add.description"))
+    .argument("<model>", t("command.models.argument.model"))
     .action(async (model: string) => {
       await runModelsCommand(async () => {
         await modelsFallbacksAddCommand(model, defaultRuntime);
@@ -192,8 +187,8 @@ export function registerModelsCli(program: Command) {
 
   fallbacks
     .command("remove")
-    .description("Remove a fallback model")
-    .argument("<model>", "Model id or alias")
+    .description(t("command.models.fallbacks.remove.description"))
+    .argument("<model>", t("command.models.argument.model"))
     .action(async (model: string) => {
       await runModelsCommand(async () => {
         await modelsFallbacksRemoveCommand(model, defaultRuntime);
@@ -202,7 +197,7 @@ export function registerModelsCli(program: Command) {
 
   fallbacks
     .command("clear")
-    .description("Clear all fallback models")
+    .description(t("command.models.fallbacks.clear.description"))
     .action(async () => {
       await runModelsCommand(async () => {
         await modelsFallbacksClearCommand(defaultRuntime);
@@ -211,13 +206,13 @@ export function registerModelsCli(program: Command) {
 
   const imageFallbacks = models
     .command("image-fallbacks")
-    .description("Manage image model fallback list");
+    .description(t("command.models.imageFallbacks.description"));
 
   imageFallbacks
     .command("list")
-    .description("List image fallback models")
-    .option("--json", "Output JSON", false)
-    .option("--plain", "Plain output", false)
+    .description(t("command.models.imageFallbacks.list.description"))
+    .option("--json", t("command.models.option.json"), false)
+    .option("--plain", t("command.models.option.plain"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsImageFallbacksListCommand(opts, defaultRuntime);
@@ -226,8 +221,8 @@ export function registerModelsCli(program: Command) {
 
   imageFallbacks
     .command("add")
-    .description("Add an image fallback model")
-    .argument("<model>", "Model id or alias")
+    .description(t("command.models.imageFallbacks.add.description"))
+    .argument("<model>", t("command.models.argument.model"))
     .action(async (model: string) => {
       await runModelsCommand(async () => {
         await modelsImageFallbacksAddCommand(model, defaultRuntime);
@@ -236,8 +231,8 @@ export function registerModelsCli(program: Command) {
 
   imageFallbacks
     .command("remove")
-    .description("Remove an image fallback model")
-    .argument("<model>", "Model id or alias")
+    .description(t("command.models.imageFallbacks.remove.description"))
+    .argument("<model>", t("command.models.argument.model"))
     .action(async (model: string) => {
       await runModelsCommand(async () => {
         await modelsImageFallbacksRemoveCommand(model, defaultRuntime);
@@ -246,7 +241,7 @@ export function registerModelsCli(program: Command) {
 
   imageFallbacks
     .command("clear")
-    .description("Clear all image fallback models")
+    .description(t("command.models.imageFallbacks.clear.description"))
     .action(async () => {
       await runModelsCommand(async () => {
         await modelsImageFallbacksClearCommand(defaultRuntime);
@@ -255,19 +250,19 @@ export function registerModelsCli(program: Command) {
 
   models
     .command("scan")
-    .description("Scan OpenRouter free models for tools + images")
-    .option("--min-params <b>", "Minimum parameter size (billions)")
-    .option("--max-age-days <days>", "Skip models older than N days")
-    .option("--provider <name>", "Filter by provider prefix")
-    .option("--max-candidates <n>", "Max fallback candidates", "6")
-    .option("--timeout <ms>", "Per-probe timeout in ms")
-    .option("--concurrency <n>", "Probe concurrency")
-    .option("--no-probe", "Skip live probes; list free candidates only")
-    .option("--yes", "Accept defaults without prompting", false)
-    .option("--no-input", "Disable prompts (use defaults)")
-    .option("--set-default", "Set agents.defaults.model to the first selection", false)
-    .option("--set-image", "Set agents.defaults.imageModel to the first image selection", false)
-    .option("--json", "Output JSON", false)
+    .description(t("command.models.scan.description"))
+    .option("--min-params <b>", t("command.models.scan.option.minParams"))
+    .option("--max-age-days <days>", t("command.models.scan.option.maxAgeDays"))
+    .option("--provider <name>", t("command.models.scan.option.provider"))
+    .option("--max-candidates <n>", t("command.models.scan.option.maxCandidates"), "6")
+    .option("--timeout <ms>", t("command.models.scan.option.timeout"))
+    .option("--concurrency <n>", t("command.models.scan.option.concurrency"))
+    .option("--no-probe", t("command.models.scan.option.noProbe"))
+    .option("--yes", t("command.models.scan.option.yes"), false)
+    .option("--no-input", t("command.models.scan.option.noInput"))
+    .option("--set-default", t("command.models.scan.option.setDefault"), false)
+    .option("--set-image", t("command.models.scan.option.setImage"), false)
+    .option("--json", t("command.models.option.json"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsScanCommand(opts, defaultRuntime);
@@ -287,15 +282,15 @@ export function registerModelsCli(program: Command) {
     });
   });
 
-  const auth = models.command("auth").description("Manage model auth profiles");
-  auth.option("--agent <id>", "Agent id for auth order get/set/clear");
+  const auth = models.command("auth").description(t("command.models.auth.description"));
+  auth.option("--agent <id>", t("command.models.auth.option.agent"));
   auth.action(() => {
     auth.help();
   });
 
   auth
     .command("add")
-    .description("Interactive auth helper (setup-token or paste token)")
+    .description(t("command.models.auth.add.description"))
     .action(async () => {
       await runModelsCommand(async () => {
         await modelsAuthAddCommand({}, defaultRuntime);
@@ -304,10 +299,10 @@ export function registerModelsCli(program: Command) {
 
   auth
     .command("login")
-    .description("Run a provider plugin auth flow (OAuth/API key)")
-    .option("--provider <id>", "Provider id registered by a plugin")
-    .option("--method <id>", "Provider auth method id")
-    .option("--set-default", "Apply the provider's default model recommendation", false)
+    .description(t("command.models.auth.login.description"))
+    .option("--provider <id>", t("command.models.auth.login.option.provider"))
+    .option("--method <id>", t("command.models.auth.login.option.method"))
+    .option("--set-default", t("command.models.auth.login.option.setDefault"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsAuthLoginCommand(
@@ -323,9 +318,9 @@ export function registerModelsCli(program: Command) {
 
   auth
     .command("setup-token")
-    .description("Run a provider CLI to create/sync a token (TTY required)")
-    .option("--provider <name>", "Provider id (default: anthropic)")
-    .option("--yes", "Skip confirmation", false)
+    .description(t("command.models.auth.setupToken.description"))
+    .option("--provider <name>", t("command.models.auth.setupToken.option.provider"))
+    .option("--yes", t("command.models.auth.option.yes"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsAuthSetupTokenCommand(
@@ -340,13 +335,10 @@ export function registerModelsCli(program: Command) {
 
   auth
     .command("paste-token")
-    .description("Paste a token into auth-profiles.json and update config")
-    .requiredOption("--provider <name>", "Provider id (e.g. anthropic)")
-    .option("--profile-id <id>", "Auth profile id (default: <provider>:manual)")
-    .option(
-      "--expires-in <duration>",
-      "Optional expiry duration (e.g. 365d, 12h). Stored as absolute expiresAt.",
-    )
+    .description(t("command.models.auth.pasteToken.description"))
+    .requiredOption("--provider <name>", t("command.models.auth.pasteToken.option.provider"))
+    .option("--profile-id <id>", t("command.models.auth.pasteToken.option.profileId"))
+    .option("--expires-in <duration>", t("command.models.auth.pasteToken.option.expiresIn"))
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsAuthPasteTokenCommand(
@@ -362,8 +354,8 @@ export function registerModelsCli(program: Command) {
 
   auth
     .command("login-github-copilot")
-    .description("Login to GitHub Copilot via GitHub device flow (TTY required)")
-    .option("--yes", "Overwrite existing profile without prompting", false)
+    .description(t("command.models.auth.loginGithubCopilot.description"))
+    .option("--yes", t("command.models.auth.loginGithubCopilot.option.yes"), false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsAuthLoginCommand(
@@ -377,14 +369,14 @@ export function registerModelsCli(program: Command) {
       });
     });
 
-  const order = auth.command("order").description("Manage per-agent auth profile order overrides");
+  const order = auth.command("order").description(t("command.models.auth.order.description"));
 
   order
     .command("get")
-    .description("Show per-agent auth order override (from auth-profiles.json)")
-    .requiredOption("--provider <name>", "Provider id (e.g. anthropic)")
-    .option("--agent <id>", "Agent id (default: configured default agent)")
-    .option("--json", "Output JSON", false)
+    .description(t("command.models.auth.order.get.description"))
+    .requiredOption("--provider <name>", t("command.models.auth.order.option.provider"))
+    .option("--agent <id>", t("command.models.auth.order.option.agent"))
+    .option("--json", t("command.models.option.json"), false)
     .action(async (opts, command) => {
       const agent =
         resolveOptionFromCommand<string>(command, "agent") ?? (opts.agent as string | undefined);
@@ -402,10 +394,10 @@ export function registerModelsCli(program: Command) {
 
   order
     .command("set")
-    .description("Set per-agent auth order override (locks rotation to this list)")
-    .requiredOption("--provider <name>", "Provider id (e.g. anthropic)")
-    .option("--agent <id>", "Agent id (default: configured default agent)")
-    .argument("<profileIds...>", "Auth profile ids (e.g. anthropic:default)")
+    .description(t("command.models.auth.order.set.description"))
+    .requiredOption("--provider <name>", t("command.models.auth.order.option.provider"))
+    .option("--agent <id>", t("command.models.auth.order.option.agent"))
+    .argument("<profileIds...>", t("command.models.auth.order.argument.profileIds"))
     .action(async (profileIds: string[], opts, command) => {
       const agent =
         resolveOptionFromCommand<string>(command, "agent") ?? (opts.agent as string | undefined);
@@ -423,9 +415,9 @@ export function registerModelsCli(program: Command) {
 
   order
     .command("clear")
-    .description("Clear per-agent auth order override (fall back to config/round-robin)")
-    .requiredOption("--provider <name>", "Provider id (e.g. anthropic)")
-    .option("--agent <id>", "Agent id (default: configured default agent)")
+    .description(t("command.models.auth.order.clear.description"))
+    .requiredOption("--provider <name>", t("command.models.auth.order.option.provider"))
+    .option("--agent <id>", t("command.models.auth.order.option.agent"))
     .action(async (opts, command) => {
       const agent =
         resolveOptionFromCommand<string>(command, "agent") ?? (opts.agent as string | undefined);

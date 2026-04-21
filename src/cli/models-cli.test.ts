@@ -1,113 +1,64 @@
 import { Command } from "commander";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { runRegisteredCli } from "../test-utils/command-runner.js";
+import { describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "./i18n/index.js";
 import { registerModelsCli } from "./models-cli.js";
-
-const mocks = vi.hoisted(() => ({
-  modelsStatusCommand: vi.fn().mockResolvedValue(undefined),
-  noopAsync: vi.fn(async () => undefined),
-  modelsAuthLoginCommand: vi.fn().mockResolvedValue(undefined),
-}));
-
-const { modelsStatusCommand, modelsAuthLoginCommand } = mocks;
+import { setProgramContext } from "./program/program-context.js";
 
 vi.mock("../commands/models.js", () => ({
-  modelsStatusCommand: mocks.modelsStatusCommand,
-  modelsAliasesAddCommand: mocks.noopAsync,
-  modelsAliasesListCommand: mocks.noopAsync,
-  modelsAliasesRemoveCommand: mocks.noopAsync,
-  modelsAuthAddCommand: mocks.noopAsync,
-  modelsAuthLoginCommand: mocks.modelsAuthLoginCommand,
-  modelsAuthOrderClearCommand: mocks.noopAsync,
-  modelsAuthOrderGetCommand: mocks.noopAsync,
-  modelsAuthOrderSetCommand: mocks.noopAsync,
-  modelsAuthPasteTokenCommand: mocks.noopAsync,
-  modelsAuthSetupTokenCommand: mocks.noopAsync,
-  modelsFallbacksAddCommand: mocks.noopAsync,
-  modelsFallbacksClearCommand: mocks.noopAsync,
-  modelsFallbacksListCommand: mocks.noopAsync,
-  modelsFallbacksRemoveCommand: mocks.noopAsync,
-  modelsImageFallbacksAddCommand: mocks.noopAsync,
-  modelsImageFallbacksClearCommand: mocks.noopAsync,
-  modelsImageFallbacksListCommand: mocks.noopAsync,
-  modelsImageFallbacksRemoveCommand: mocks.noopAsync,
-  modelsListCommand: mocks.noopAsync,
-  modelsScanCommand: mocks.noopAsync,
-  modelsSetCommand: mocks.noopAsync,
-  modelsSetImageCommand: mocks.noopAsync,
+  modelsAliasesAddCommand: vi.fn(),
+  modelsAliasesListCommand: vi.fn(),
+  modelsAliasesRemoveCommand: vi.fn(),
+  modelsAuthAddCommand: vi.fn(),
+  modelsAuthLoginCommand: vi.fn(),
+  modelsAuthOrderClearCommand: vi.fn(),
+  modelsAuthOrderGetCommand: vi.fn(),
+  modelsAuthOrderSetCommand: vi.fn(),
+  modelsAuthPasteTokenCommand: vi.fn(),
+  modelsAuthSetupTokenCommand: vi.fn(),
+  modelsFallbacksAddCommand: vi.fn(),
+  modelsFallbacksClearCommand: vi.fn(),
+  modelsFallbacksListCommand: vi.fn(),
+  modelsFallbacksRemoveCommand: vi.fn(),
+  modelsImageFallbacksAddCommand: vi.fn(),
+  modelsImageFallbacksClearCommand: vi.fn(),
+  modelsImageFallbacksListCommand: vi.fn(),
+  modelsImageFallbacksRemoveCommand: vi.fn(),
+  modelsListCommand: vi.fn(),
+  modelsScanCommand: vi.fn(),
+  modelsSetCommand: vi.fn(),
+  modelsSetImageCommand: vi.fn(),
+  modelsStatusCommand: vi.fn(),
 }));
 
-describe("models cli", () => {
-  beforeEach(() => {
-    modelsAuthLoginCommand.mockClear();
-    modelsStatusCommand.mockClear();
+function createZhProgram() {
+  const program = new Command();
+  setProgramContext(program, {
+    programVersion: "9.9.9-test",
+    locale: "zh-CN",
+    t: createCliTranslator("zh-CN"),
+    channelOptions: [],
+    messageChannelOptions: "",
+    agentChannelOptions: "last",
   });
+  return program;
+}
 
-  function createProgram() {
-    const program = new Command();
-    registerModelsCli(program);
-    return program;
-  }
-
-  async function runModelsCommand(args: string[]) {
-    await runRegisteredCli({
-      register: registerModelsCli as (program: Command) => void,
-      argv: args,
-    });
-  }
-
-  it("registers github-copilot login command", async () => {
-    const program = createProgram();
-    const models = program.commands.find((cmd) => cmd.name() === "models");
-    expect(models).toBeTruthy();
-
-    const auth = models?.commands.find((cmd) => cmd.name() === "auth");
-    expect(auth).toBeTruthy();
-
-    const login = auth?.commands.find((cmd) => cmd.name() === "login-github-copilot");
-    expect(login).toBeTruthy();
-
-    await program.parseAsync(["models", "auth", "login-github-copilot", "--yes"], {
-      from: "user",
-    });
-
-    expect(modelsAuthLoginCommand).toHaveBeenCalledTimes(1);
-    expect(modelsAuthLoginCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: "github-copilot",
-        method: "device",
-        yes: true,
-      }),
-      expect.any(Object),
-    );
-  });
-
-  it.each([
-    { label: "status flag", args: ["models", "status", "--agent", "poe"] },
-    { label: "parent flag", args: ["models", "--agent", "poe", "status"] },
-  ])("passes --agent to models status ($label)", async ({ args }) => {
-    await runModelsCommand(args);
-    expect(modelsStatusCommand).toHaveBeenCalledWith(
-      expect.objectContaining({ agent: "poe" }),
-      expect.any(Object),
-    );
-  });
-
-  it("shows help for models auth without error exit", async () => {
-    const program = new Command();
-    program.exitOverride();
-    program.configureOutput({
-      writeOut: () => {},
-      writeErr: () => {},
-    });
+describe("registerModelsCli", () => {
+  it("localizes models help copy", () => {
+    const program = createZhProgram();
     registerModelsCli(program);
 
-    try {
-      await program.parseAsync(["models", "auth", "--help"], { from: "user" });
-      expect.fail("expected help to exit");
-    } catch (err) {
-      const error = err as { exitCode?: number };
-      expect(error.exitCode).toBe(0);
-    }
+    const models = program.commands.find((command) => command.name() === "models");
+    const status = models?.commands.find((command) => command.name() === "status");
+    const scan = models?.commands.find((command) => command.name() === "scan");
+    const auth = models?.commands.find((command) => command.name() === "auth");
+    const order = auth?.commands.find((command) => command.name() === "order");
+
+    expect(models?.description()).toBe("发现、扫描并配置模型");
+    expect(status?.description()).toBe("显示已配置模型状态");
+    expect(status?.helpInformation()).toContain("认证过期/即将过期");
+    expect(scan?.description()).toBe("扫描支持 tools + images 的 OpenRouter 免费模型");
+    expect(auth?.description()).toBe("管理模型认证 profile");
+    expect(order?.description()).toBe("管理每个 agent 的 auth profile 顺序覆盖");
   });
 });

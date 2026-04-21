@@ -3,10 +3,12 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { isTruthyEnvValue } from "../../infra/env.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "../argv.js";
 import { removeCommandByName } from "./command-tree.js";
+import type { ProgramContext } from "./context.js";
 import { registerLazyCommand as registerLazyCommandPlaceholder } from "./register-lazy-command.js";
 import {
   getSubCliCommandsWithSubcommands,
   getSubCliEntries as getSubCliEntryDescriptors,
+  localizeSubCliEntries,
   type SubCliDescriptor,
 } from "./subcli-descriptors.js";
 
@@ -356,7 +358,25 @@ function registerLazyCommand(program: Command, entry: SubCliEntry) {
   });
 }
 
-export function registerSubCliCommands(program: Command, argv: string[] = process.argv) {
+function localizeSubCliEntry(ctx: ProgramContext, entry: SubCliEntry): SubCliEntry {
+  const localized = new Map(
+    localizeSubCliEntries(ctx.t).map((candidate) => [candidate.name, candidate]),
+  );
+  const candidate = localized.get(entry.name);
+  if (!candidate) {
+    return entry;
+  }
+  return {
+    ...entry,
+    description: candidate.description,
+  };
+}
+
+export function registerSubCliCommands(
+  program: Command,
+  ctx: ProgramContext,
+  argv: string[] = process.argv,
+) {
   if (shouldEagerRegisterSubcommands(argv)) {
     for (const entry of entries) {
       void entry.register(program);
@@ -367,11 +387,11 @@ export function registerSubCliCommands(program: Command, argv: string[] = proces
   if (primary && shouldRegisterPrimaryOnly(argv)) {
     const entry = entries.find((candidate) => candidate.name === primary);
     if (entry) {
-      registerLazyCommand(program, entry);
+      registerLazyCommand(program, localizeSubCliEntry(ctx, entry));
       return;
     }
   }
   for (const candidate of entries) {
-    registerLazyCommand(program, candidate);
+    registerLazyCommand(program, localizeSubCliEntry(ctx, candidate));
   }
 }

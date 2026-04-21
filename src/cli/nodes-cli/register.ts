@@ -11,23 +11,25 @@ import { registerNodesPairingCommands } from "./register.pairing.js";
 import { registerNodesPushCommand } from "./register.push.js";
 import { registerNodesScreenCommands } from "./register.screen.js";
 import { registerNodesStatusCommands } from "./register.status.js";
+import { getCommandTranslator } from "./rpc.js";
 
 export function registerNodesCli(program: Command) {
+  const t = getCommandTranslator(program);
   const nodes = program
     .command("nodes")
-    .description("Manage gateway-owned nodes (pairing, status, invoke, and media)")
+    .description(t("command.nodes.fullDescription"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["crawclaw nodes status", "List known nodes with live status."],
-          ["crawclaw nodes pairing pending", "Show pending node pairing requests."],
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          ["crawclaw nodes status", t("command.nodes.example.status")],
+          ["crawclaw nodes pairing pending", t("command.nodes.example.pairingPending")],
           [
             'crawclaw nodes invoke --node <id> --command system.which --params \'{"name":"uname"}\'',
-            "Invoke a node command directly.",
+            t("command.nodes.example.invoke"),
           ],
-          ["crawclaw nodes camera snap --node <id>", "Capture a photo from a node camera."],
-        ])}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/nodes", "docs.crawclaw.ai/cli/nodes")}\n`,
+          ["crawclaw nodes camera snap --node <id>", t("command.nodes.example.cameraSnap")],
+        ])}\n\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/nodes", "docs.crawclaw.ai/cli/nodes")}\n`,
     );
 
   registerNodesStatusCommands(nodes);

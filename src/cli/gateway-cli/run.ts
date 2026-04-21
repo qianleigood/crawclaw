@@ -24,7 +24,9 @@ import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { defaultRuntime } from "../../runtime.js";
 import { formatCliCommand } from "../command-format.js";
 import { inheritOptionFromParent } from "../command-options.js";
+import { createCliTranslator } from "../i18n/index.js";
 import { forceFreePortAndWait, waitForPortBindable } from "../ports.js";
+import { getProgramContext } from "../program/program-context.js";
 import { withProgress } from "../progress.js";
 import { ensureDevGatewayConfig } from "./dev.js";
 import { runGatewayLoop } from "./run-loop.js";
@@ -56,6 +58,18 @@ type GatewayRunOpts = {
   dev?: boolean;
   reset?: boolean;
 };
+
+function findCommandTranslator(command: Command) {
+  let current: Command | undefined = command;
+  while (current) {
+    const ctx = getProgramContext(current);
+    if (ctx) {
+      return ctx.t;
+    }
+    current = current.parent ?? undefined;
+  }
+  return createCliTranslator("en");
+}
 
 const gatewayLog = createSubsystemLogger("gateway");
 
@@ -511,50 +525,38 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
 }
 
 export function addGatewayRunCommand(cmd: Command): Command {
+  const t = findCommandTranslator(cmd);
   return cmd
-    .option("--port <port>", "Port for the gateway WebSocket")
+    .option("--port <port>", t("command.gateway.run.option.port"))
+    .option("--bind <mode>", t("command.gateway.run.option.bind"))
+    .option("--token <token>", t("command.gateway.run.option.token"))
     .option(
-      "--bind <mode>",
-      'Bind mode ("loopback"|"lan"|"tailnet"|"auto"|"custom"). Defaults to config gateway.bind (or loopback).',
+      "--auth <mode>",
+      t("command.gateway.run.option.auth", { choices: formatModeChoices(GATEWAY_AUTH_MODES) }),
     )
-    .option(
-      "--token <token>",
-      "Shared token required in connect.params.auth.token (default: CRAWCLAW_GATEWAY_TOKEN env if set)",
-    )
-    .option("--auth <mode>", `Gateway auth mode (${formatModeChoices(GATEWAY_AUTH_MODES)})`)
-    .option("--password <password>", "Password for auth mode=password")
-    .option("--password-file <path>", "Read gateway password from file")
+    .option("--password <password>", t("command.gateway.run.option.password"))
+    .option("--password-file <path>", t("command.gateway.run.option.passwordFile"))
     .option(
       "--tailscale <mode>",
-      `Tailscale exposure mode (${formatModeChoices(GATEWAY_TAILSCALE_MODES)})`,
+      t("command.gateway.run.option.tailscale", {
+        choices: formatModeChoices(GATEWAY_TAILSCALE_MODES),
+      }),
     )
     .option(
       "--tailscale-reset-on-exit",
-      "Reset Tailscale serve/funnel configuration on shutdown",
+      t("command.gateway.run.option.tailscaleResetOnExit"),
       false,
     )
-    .option(
-      "--allow-unconfigured",
-      "Allow gateway start without gateway.mode=local in config",
-      false,
-    )
-    .option("--dev", "Create a dev config + workspace if missing (no BOOTSTRAP.md)", false)
-    .option(
-      "--reset",
-      "Reset dev config + credentials + sessions + workspace (requires --dev)",
-      false,
-    )
-    .option("--force", "Kill any existing listener on the target port before starting", false)
-    .option("--verbose", "Verbose logging to stdout/stderr", false)
-    .option(
-      "--cli-backend-logs",
-      "Only show CLI backend logs in the console (includes stdout/stderr)",
-      false,
-    )
-    .option("--ws-log <style>", 'WebSocket log style ("auto"|"full"|"compact")', "auto")
-    .option("--compact", 'Alias for "--ws-log compact"', false)
-    .option("--raw-stream", "Log raw model stream events to jsonl", false)
-    .option("--raw-stream-path <path>", "Raw stream jsonl path")
+    .option("--allow-unconfigured", t("command.gateway.run.option.allowUnconfigured"), false)
+    .option("--dev", t("command.gateway.run.option.dev"), false)
+    .option("--reset", t("command.gateway.run.option.reset"), false)
+    .option("--force", t("command.gateway.run.option.force"), false)
+    .option("--verbose", t("command.gateway.run.option.verbose"), false)
+    .option("--cli-backend-logs", t("command.gateway.run.option.cliBackendLogs"), false)
+    .option("--ws-log <style>", t("command.gateway.run.option.wsLog"), "auto")
+    .option("--compact", t("command.gateway.run.option.compact"), false)
+    .option("--raw-stream", t("command.gateway.run.option.rawStream"), false)
+    .option("--raw-stream-path <path>", t("command.gateway.run.option.rawStreamPath"))
     .action(async (opts, command) => {
       await runGatewayCommand(resolveGatewayRunOptions(opts, command));
     });

@@ -3,11 +3,12 @@ import { collectOption } from "../helpers.js";
 import type { MessageCliHelpers } from "./helpers.js";
 
 export function registerMessageEmojiCommands(message: Command, helpers: MessageCliHelpers) {
-  const emoji = message.command("emoji").description("Emoji actions");
+  const { t } = helpers;
+  const emoji = message.command("emoji").description(t("command.message.emoji.description"));
 
   helpers
-    .withMessageBase(emoji.command("list").description("List emojis"))
-    .option("--guild-id <id>", "Guild id (Discord)")
+    .withMessageBase(emoji.command("list").description(t("command.message.emoji.list.description")))
+    .option("--guild-id <id>", t("command.message.option.guildIdDiscord"))
     .action(async (opts) => {
       await helpers.runMessageAction("emoji-list", opts);
     });
@@ -16,26 +17,38 @@ export function registerMessageEmojiCommands(message: Command, helpers: MessageC
     .withMessageBase(
       emoji
         .command("upload")
-        .description("Upload an emoji")
-        .requiredOption("--guild-id <id>", "Guild id"),
+        .description(t("command.message.emoji.upload.description"))
+        .requiredOption("--guild-id <id>", t("command.message.option.guildId")),
     )
-    .requiredOption("--emoji-name <name>", "Emoji name")
-    .requiredOption("--media <path-or-url>", "Emoji media (path or URL)")
-    .option("--role-ids <id>", "Role id (repeat)", collectOption, [] as string[])
+    .requiredOption("--emoji-name <name>", t("command.message.emoji.option.name"))
+    .requiredOption("--media <path-or-url>", t("command.message.emoji.option.media"))
+    .option(
+      "--role-ids <id>",
+      t("command.message.option.roleIdRepeat"),
+      collectOption,
+      [] as string[],
+    )
     .action(async (opts) => {
       await helpers.runMessageAction("emoji-upload", opts);
     });
 }
 
 export function registerMessageStickerCommands(message: Command, helpers: MessageCliHelpers) {
-  const sticker = message.command("sticker").description("Sticker actions");
+  const { t } = helpers;
+  const sticker = message.command("sticker").description(t("command.message.sticker.description"));
 
   helpers
     .withMessageBase(
-      helpers.withRequiredMessageTarget(sticker.command("send").description("Send stickers")),
+      helpers.withRequiredMessageTarget(
+        sticker.command("send").description(t("command.message.sticker.send.description")),
+      ),
     )
-    .requiredOption("--sticker-id <id>", "Sticker id (repeat)", collectOption)
-    .option("-m, --message <text>", "Optional message body")
+    .requiredOption(
+      "--sticker-id <id>",
+      t("command.message.sticker.option.idRepeat"),
+      collectOption,
+    )
+    .option("-m, --message <text>", t("command.message.option.optionalMessageBody"))
     .action(async (opts) => {
       await helpers.runMessageAction("sticker", opts);
     });
@@ -44,13 +57,13 @@ export function registerMessageStickerCommands(message: Command, helpers: Messag
     .withMessageBase(
       sticker
         .command("upload")
-        .description("Upload a sticker")
-        .requiredOption("--guild-id <id>", "Guild id"),
+        .description(t("command.message.sticker.upload.description"))
+        .requiredOption("--guild-id <id>", t("command.message.option.guildId")),
     )
-    .requiredOption("--sticker-name <name>", "Sticker name")
-    .requiredOption("--sticker-desc <text>", "Sticker description")
-    .requiredOption("--sticker-tags <tags>", "Sticker tags")
-    .requiredOption("--media <path-or-url>", "Sticker media (path or URL)")
+    .requiredOption("--sticker-name <name>", t("command.message.sticker.option.name"))
+    .requiredOption("--sticker-desc <text>", t("command.message.sticker.option.desc"))
+    .requiredOption("--sticker-tags <tags>", t("command.message.sticker.option.tags"))
+    .requiredOption("--media <path-or-url>", t("command.message.sticker.option.media"))
     .action(async (opts) => {
       await helpers.runMessageAction("sticker-upload", opts);
     });

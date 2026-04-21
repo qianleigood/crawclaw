@@ -24,29 +24,32 @@ import { registerMessageThreadCommands } from "./message/register.thread.js";
 export function registerMessageCommands(program: Command, ctx: ProgramContext) {
   const message = program
     .command("message")
-    .description("Send, read, and manage messages and channel actions")
+    .description(ctx.t("command.message.fullDescription"))
     .addHelpText(
       "after",
       () =>
         `
-${theme.heading("Examples:")}
+${theme.heading(ctx.t("cli.help.examplesHeading"))}
 ${formatHelpExamples([
-  ['crawclaw message send --target +15555550123 --message "Hi"', "Send a text message."],
+  [
+    'crawclaw message send --target +15555550123 --message "Hi"',
+    ctx.t("command.message.example.sendText"),
+  ],
   [
     'crawclaw message send --target +15555550123 --message "Hi" --media photo.jpg',
-    "Send a message with media.",
+    ctx.t("command.message.example.sendMedia"),
   ],
   [
     'crawclaw message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi',
-    "Create a Discord poll.",
+    ctx.t("command.message.example.discordPoll"),
   ],
   [
     'crawclaw message react --channel discord --target 123 --message-id 456 --emoji "✅"',
-    "React to a message.",
+    ctx.t("command.message.example.react"),
   ],
 ])}
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/message", "docs.crawclaw.ai/cli/message")}`,
+${theme.muted(ctx.t("cli.help.docsLabel"))} ${formatDocsLink("/cli/message", "docs.crawclaw.ai/cli/message")}`,
     )
     .action(() => {
       message.help({ error: true });

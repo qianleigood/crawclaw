@@ -3,24 +3,28 @@ import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { runTui } from "../tui/tui.js";
+import { createCliTranslator } from "./i18n/index.js";
 import { parseTimeoutMs } from "./parse-timeout.js";
+import { getProgramContext } from "./program/program-context.js";
 
 export function registerTuiCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   program
     .command("tui")
-    .description("Open a terminal UI connected to the Gateway")
-    .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
-    .option("--token <token>", "Gateway token (if required)")
-    .option("--password <password>", "Gateway password (if required)")
-    .option("--session <key>", 'Session key (default: "main", or "global" when scope is global)')
-    .option("--deliver", "Deliver assistant replies", false)
-    .option("--thinking <level>", "Thinking level override")
-    .option("--message <text>", "Send an initial message after connecting")
-    .option("--timeout-ms <ms>", "Agent timeout in ms (defaults to agents.defaults.timeoutSeconds)")
-    .option("--history-limit <n>", "History entries to load", "200")
+    .description(t("command.tui.description"))
+    .option("--url <url>", t("command.tui.option.url"))
+    .option("--token <token>", t("command.tui.option.token"))
+    .option("--password <password>", t("command.tui.option.password"))
+    .option("--session <key>", t("command.tui.option.session"))
+    .option("--deliver", t("command.tui.option.deliver"), false)
+    .option("--thinking <level>", t("command.tui.option.thinking"))
+    .option("--message <text>", t("command.tui.option.message"))
+    .option("--timeout-ms <ms>", t("command.tui.option.timeoutMs"))
+    .option("--history-limit <n>", t("command.tui.option.historyLimit"), "200")
     .addHelpText(
       "after",
-      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/tui", "docs.crawclaw.ai/cli/tui")}\n`,
+      () =>
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/tui", "docs.crawclaw.ai/cli/tui")}\n`,
     )
     .action(async (opts) => {
       try {

@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "./i18n/index.js";
+import { setProgramContext } from "./program/program-context.js";
 import { registerSecretsCli } from "./secrets-cli.js";
 
 const mocks = vi.hoisted(() => {
@@ -159,6 +161,20 @@ describe("secrets CLI", () => {
     registerSecretsCli(program);
     return program;
   };
+  const createZhProgram = () => {
+    const program = new Command();
+    program.exitOverride();
+    setProgramContext(program, {
+      programVersion: "9.9.9-test",
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+      channelOptions: [],
+      messageChannelOptions: "",
+      agentChannelOptions: "last",
+    });
+    registerSecretsCli(program);
+    return program;
+  };
 
   beforeEach(() => {
     runtimeLogs.length = 0;
@@ -187,6 +203,18 @@ describe("secrets CLI", () => {
     );
     expect(runtimeLogs.at(-1)).toBe("Secrets reloaded with 1 warning(s).");
     expect(runtimeErrors).toHaveLength(0);
+  });
+
+  it("localizes secrets help copy", () => {
+    const program = createZhProgram();
+
+    const secrets = program.commands.find((command) => command.name() === "secrets");
+    const reload = secrets?.commands.find((command) => command.name() === "reload");
+    const configure = secrets?.commands.find((command) => command.name() === "configure");
+
+    expect(secrets?.description()).toBe("Secrets 运行时控制");
+    expect(reload?.description()).toBe("重新解析 secret 引用，并原子替换运行时快照");
+    expect(configure?.helpInformation()).toContain("Preflight 后立即应用变更");
   });
 
   it("prints JSON when requested", async () => {

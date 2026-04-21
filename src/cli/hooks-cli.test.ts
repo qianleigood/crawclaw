@@ -1,6 +1,14 @@
+import { Command } from "commander";
 import { describe, expect, it } from "vitest";
 import type { HookStatusReport } from "../hooks/hooks-status.js";
-import { formatHookInfo, formatHooksCheck, formatHooksList } from "./hooks-cli.js";
+import {
+  formatHookInfo,
+  formatHooksCheck,
+  formatHooksList,
+  registerHooksCli,
+} from "./hooks-cli.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { setProgramContext } from "./program/program-context.js";
 import { createEmptyInstallChecks } from "./requirements-test-fixtures.js";
 
 const report: HookStatusReport = {
@@ -84,5 +92,27 @@ describe("hooks cli formatting", () => {
     const output = formatHookInfo(pluginReport, "plugin-hook", {});
     expect(output).toContain("voice-call");
     expect(output).toContain("Managed by plugin");
+  });
+
+  it("localizes hooks help copy", () => {
+    const program = new Command();
+    setProgramContext(program, {
+      programVersion: "9.9.9-test",
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+      channelOptions: [],
+      messageChannelOptions: "",
+      agentChannelOptions: "last",
+    });
+    registerHooksCli(program);
+
+    const hooks = program.commands.find((command) => command.name() === "hooks");
+    const list = hooks?.commands.find((command) => command.name() === "list");
+    const install = hooks?.commands.find((command) => command.name() === "install");
+
+    expect(hooks?.description()).toBe("管理内部 agent hooks");
+    expect(list?.description()).toBe("列出所有 hooks");
+    expect(list?.helpInformation()).toContain("只显示可用 hooks");
+    expect(install?.description()).toContain("已废弃");
   });
 });

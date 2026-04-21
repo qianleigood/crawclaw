@@ -19,8 +19,10 @@ import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { isRich, theme } from "../terminal/theme.js";
 import { describeUnknownError } from "./gateway-cli/shared.js";
 import { callGatewayFromCli } from "./gateway-rpc.js";
+import { createCliTranslator } from "./i18n/index.js";
 import { nodesCallOpts, resolveNodeId } from "./nodes-cli/rpc.js";
 import type { NodesRpcOpts } from "./nodes-cli/types.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type ExecApprovalsSnapshot = {
   path: string;
@@ -437,14 +439,17 @@ function registerAllowlistMutationCommand(params: {
   allowlist: Command;
   name: "add" | "remove";
   description: string;
+  targetNodeDescription: string;
+  gatewayDescription: string;
+  agentDescription: string;
   mutate: AllowlistMutation;
 }): Command {
   const command = params.allowlist
     .command(`${params.name} <pattern>`)
     .description(params.description)
-    .option("--node <node>", "Target node id/name/IP")
-    .option("--gateway", "Force gateway approvals", false)
-    .option("--agent <id>", 'Agent id (defaults to "*")')
+    .option("--node <node>", params.targetNodeDescription)
+    .option("--gateway", params.gatewayDescription, false)
+    .option("--agent <id>", params.agentDescription)
     .action(async (pattern: string, opts: ExecApprovalsCliOpts) => {
       await runAllowlistMutation(pattern, opts, params.mutate);
     });
@@ -453,24 +458,25 @@ function registerAllowlistMutationCommand(params: {
 }
 
 export function registerExecApprovalsCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const formatExample = (cmd: string, desc: string) =>
     `  ${theme.command(cmd)}\n    ${theme.muted(desc)}`;
 
   const approvals = program
     .command("approvals")
     .alias("exec-approvals")
-    .description("Manage exec approvals (gateway or node host)")
+    .description(t("command.approvals.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/approvals", "docs.crawclaw.ai/cli/approvals")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/approvals", "docs.crawclaw.ai/cli/approvals")}\n`,
     );
 
   const getCmd = approvals
     .command("get")
-    .description("Fetch exec approvals snapshot")
-    .option("--node <node>", "Target node id/name/IP")
-    .option("--gateway", "Force gateway approvals", false)
+    .description(t("command.approvals.get.description"))
+    .option("--node <node>", t("command.approvals.option.node"))
+    .option("--gateway", t("command.approvals.option.gateway"), false)
     .action(async (opts: ExecApprovalsCliOpts) => {
       try {
         const { snapshot, nodeId, source } = await loadSnapshotTarget(opts);
@@ -503,11 +509,11 @@ export function registerExecApprovalsCli(program: Command) {
 
   const setCmd = approvals
     .command("set")
-    .description("Replace exec approvals with a JSON file")
-    .option("--node <node>", "Target node id/name/IP")
-    .option("--gateway", "Force gateway approvals", false)
-    .option("--file <path>", "Path to JSON file to upload")
-    .option("--stdin", "Read JSON from stdin", false)
+    .description(t("command.approvals.set.description"))
+    .option("--node <node>", t("command.approvals.option.node"))
+    .option("--gateway", t("command.approvals.option.gateway"), false)
+    .option("--file <path>", t("command.approvals.set.option.file"))
+    .option("--stdin", t("command.approvals.set.option.stdin"), false)
     .action(async (opts: ExecApprovalsCliOpts) => {
       try {
         if (!opts.file && !opts.stdin) {
@@ -535,29 +541,32 @@ export function registerExecApprovalsCli(program: Command) {
 
   const allowlist = approvals
     .command("allowlist")
-    .description("Edit the per-agent allowlist")
+    .description(t("command.approvals.allowlist.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatExample(
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatExample(
           'crawclaw approvals allowlist add "~/Projects/**/bin/rg"',
-          "Allowlist a local binary pattern for the main agent.",
+          t("command.approvals.allowlist.example.addLocal"),
         )}\n${formatExample(
           'crawclaw approvals allowlist add --agent main --node <id|name|ip> "/usr/bin/uptime"',
-          "Allowlist on a specific node/agent.",
+          t("command.approvals.allowlist.example.addNode"),
         )}\n${formatExample(
           'crawclaw approvals allowlist add --agent "*" "/usr/bin/uname"',
-          "Allowlist for all agents (wildcard).",
+          t("command.approvals.allowlist.example.addWildcard"),
         )}\n${formatExample(
           'crawclaw approvals allowlist remove "~/Projects/**/bin/rg"',
-          "Remove an allowlist pattern.",
-        )}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/approvals", "docs.crawclaw.ai/cli/approvals")}\n`,
+          t("command.approvals.allowlist.example.remove"),
+        )}\n\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/approvals", "docs.crawclaw.ai/cli/approvals")}\n`,
     );
 
   registerAllowlistMutationCommand({
     allowlist,
     name: "add",
-    description: "Add a glob pattern to an allowlist",
+    description: t("command.approvals.allowlist.add.description"),
+    targetNodeDescription: t("command.approvals.option.node"),
+    gatewayDescription: t("command.approvals.option.gateway"),
+    agentDescription: t("command.approvals.option.agent"),
     mutate: ({ trimmedPattern, file, agent, agentKey, allowlistEntries }) => {
       if (allowlistEntries.some((entry) => normalizeAllowlistEntry(entry) === trimmedPattern)) {
         defaultRuntime.log("Already allowlisted.");
@@ -573,7 +582,10 @@ export function registerExecApprovalsCli(program: Command) {
   registerAllowlistMutationCommand({
     allowlist,
     name: "remove",
-    description: "Remove a glob pattern from an allowlist",
+    description: t("command.approvals.allowlist.remove.description"),
+    targetNodeDescription: t("command.approvals.option.node"),
+    gatewayDescription: t("command.approvals.option.gateway"),
+    agentDescription: t("command.approvals.option.agent"),
     mutate: ({ trimmedPattern, file, agent, agentKey, allowlistEntries }) => {
       const nextEntries = allowlistEntries.filter(
         (entry) => normalizeAllowlistEntry(entry) !== trimmedPattern,

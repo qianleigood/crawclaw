@@ -6,6 +6,7 @@ const selectMock = vi.fn();
 
 vi.mock("@clack/prompts", () => ({
   confirm: (options: unknown) => confirmMock(options),
+  isCancel: () => false,
   select: (options: unknown) => selectMock(options),
 }));
 
@@ -35,6 +36,7 @@ function createRepairPrompter(params?: { force?: boolean }) {
 describe("createDoctorPrompter", () => {
   const originalStdinIsTTY = process.stdin.isTTY;
   const originalUpdateInProgress = process.env.CRAWCLAW_UPDATE_IN_PROGRESS;
+  const originalArgv = process.argv;
 
   afterEach(() => {
     vi.resetAllMocks();
@@ -47,6 +49,7 @@ describe("createDoctorPrompter", () => {
     } else {
       process.env.CRAWCLAW_UPDATE_IN_PROGRESS = originalUpdateInProgress;
     }
+    process.argv = originalArgv;
   });
 
   it("auto-accepts repairs in non-interactive fix mode", async () => {
@@ -114,5 +117,32 @@ describe("createDoctorPrompter", () => {
       }),
     ).resolves.toBe(true);
     expect(confirmMock).not.toHaveBeenCalled();
+  });
+
+  it("localizes interactive confirm controls from CLI locale", async () => {
+    process.argv = ["node", "crawclaw", "--lang", "zh-CN"];
+    Object.defineProperty(process.stdin, "isTTY", {
+      value: true,
+      configurable: true,
+    });
+    confirmMock.mockResolvedValueOnce(true);
+    const prompter = createDoctorPrompter({
+      runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
+      options: {},
+    });
+
+    await expect(
+      prompter.confirm({
+        message: "Apply general repair?",
+        initialValue: false,
+      }),
+    ).resolves.toBe(true);
+
+    expect(confirmMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        active: "确认",
+        inactive: "取消",
+      }),
+    );
   });
 });

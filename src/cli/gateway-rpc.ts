@@ -1,6 +1,8 @@
 import type { Command } from "commander";
 import { callGateway } from "../gateway/call.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 import { withProgress } from "./progress.js";
 
 export type GatewayRpcOpts = {
@@ -11,12 +13,25 @@ export type GatewayRpcOpts = {
   json?: boolean;
 };
 
+function findCommandTranslator(command: Command) {
+  let current: Command | undefined = command;
+  while (current) {
+    const ctx = getProgramContext(current);
+    if (ctx) {
+      return ctx.t;
+    }
+    current = current.parent ?? undefined;
+  }
+  return createCliTranslator("en");
+}
+
 export function addGatewayClientOptions(cmd: Command) {
+  const t = findCommandTranslator(cmd);
   return cmd
-    .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
-    .option("--token <token>", "Gateway token (if required)")
-    .option("--timeout <ms>", "Timeout in ms", "30000")
-    .option("--expect-final", "Wait for final response (agent)", false);
+    .option("--url <url>", t("command.gatewayRpc.option.url"))
+    .option("--token <token>", t("command.gatewayRpc.option.token"))
+    .option("--timeout <ms>", t("command.gatewayRpc.option.timeout"), "30000")
+    .option("--expect-final", t("command.gatewayRpc.option.expectFinal"), false);
 }
 
 export async function callGatewayFromCli(

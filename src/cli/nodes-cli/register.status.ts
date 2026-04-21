@@ -7,7 +7,7 @@ import { parseDurationMs } from "../parse-duration.js";
 import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
 import { formatPermissions, parseNodeList, parsePairingList } from "./format.js";
 import { renderPendingPairingRequestsTable } from "./pairing-render.js";
-import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
+import { callGatewayCli, getCommandTranslator, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
 
 function formatVersionLabel(raw: string) {
@@ -107,12 +107,13 @@ function parseSinceMs(raw: unknown, label: string): number | undefined {
 }
 
 export function registerNodesStatusCommands(nodes: Command) {
+  const t = getCommandTranslator(nodes);
   nodesCallOpts(
     nodes
       .command("status")
-      .description("List known nodes with connection status and capabilities")
-      .option("--connected", "Only show connected nodes")
-      .option("--last-connected <duration>", "Only show nodes connected within duration (e.g. 24h)")
+      .description(t("command.nodes.status.description"))
+      .option("--connected", t("command.nodes.option.connected"))
+      .option("--last-connected <duration>", t("command.nodes.option.lastConnected"))
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("status", async () => {
           const connectedOnly = Boolean(opts.connected);
@@ -225,8 +226,8 @@ export function registerNodesStatusCommands(nodes: Command) {
   nodesCallOpts(
     nodes
       .command("describe")
-      .description("Describe a node (capabilities + supported invoke commands)")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
+      .description(t("command.nodes.describe.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("describe", async () => {
           const nodeId = await resolveNodeId(opts, opts.node ?? "");
@@ -310,9 +311,9 @@ export function registerNodesStatusCommands(nodes: Command) {
   nodesCallOpts(
     nodes
       .command("list")
-      .description("List pending and paired nodes")
-      .option("--connected", "Only show connected nodes")
-      .option("--last-connected <duration>", "Only show nodes connected within duration (e.g. 24h)")
+      .description(t("command.nodes.list.description"))
+      .option("--connected", t("command.nodes.option.connected"))
+      .option("--last-connected <duration>", t("command.nodes.option.lastConnected"))
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("list", async () => {
           const connectedOnly = Boolean(opts.connected);

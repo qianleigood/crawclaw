@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "../i18n/index.js";
+import { setProgramContext } from "./program-context.js";
 import { registerOnboardCommand } from "./register.onboard.js";
 
 const mocks = vi.hoisted(() => ({
@@ -55,6 +57,20 @@ describe("registerOnboardCommand", () => {
     const program = new Command();
     registerOnboardCommand(program);
     await program.parseAsync(args, { from: "user" });
+  }
+
+  function createZhProgram() {
+    const program = new Command();
+    setProgramContext(program, {
+      programVersion: "9.9.9-test",
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+      channelOptions: [],
+      messageChannelOptions: "",
+      agentChannelOptions: "last",
+    });
+    registerOnboardCommand(program);
+    return program;
   }
 
   beforeEach(() => {
@@ -170,5 +186,14 @@ describe("registerOnboardCommand", () => {
 
     expect(runtime.error).toHaveBeenCalledWith("Error: setup failed");
     expect(runtime.exit).toHaveBeenCalledWith(1);
+  });
+
+  it("uses localized help copy when program context locale is zh-CN", () => {
+    const program = createZhProgram();
+    const onboard = program.commands.find((command) => command.name() === "onboard");
+    expect(onboard?.description()).toBe("交互式引导网关、工作区与技能配置");
+
+    const sectionOption = onboard?.options.find((option) => option.long === "--non-interactive");
+    expect(sectionOption?.description).toBe("无提示运行");
   });
 });

@@ -11,6 +11,8 @@ import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { resolveCommandSecretRefsViaGateway } from "./command-secret-gateway.js";
 import { getQrRemoteCommandSecretTargetIds } from "./command-secret-targets.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type QrCliOptions = {
   json?: boolean;
@@ -96,25 +98,22 @@ function emitQrSecretResolveDiagnostics(diagnostics: string[], opts: QrCliOption
 }
 
 export function registerQrCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   program
     .command("qr")
-    .description("Generate a node pairing QR code and setup code")
+    .description(t("command.qr.description"))
     .addHelpText(
       "after",
       () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/qr", "docs.crawclaw.ai/cli/qr")}\n`,
     )
-    .option(
-      "--remote",
-      "Use gateway.remote.url and gateway.remote token/password (ignores device-pair publicUrl)",
-      false,
-    )
-    .option("--url <url>", "Override gateway URL used in the setup payload")
-    .option("--public-url <url>", "Override gateway public URL used in the setup payload")
-    .option("--token <token>", "Override gateway token for setup payload")
-    .option("--password <password>", "Override gateway password for setup payload")
-    .option("--setup-code-only", "Print only the setup code", false)
-    .option("--no-ascii", "Skip ASCII QR rendering")
-    .option("--json", "Output JSON", false)
+    .option("--remote", t("command.qr.option.remote"), false)
+    .option("--url <url>", t("command.qr.option.url"))
+    .option("--public-url <url>", t("command.qr.option.publicUrl"))
+    .option("--token <token>", t("command.qr.option.token"))
+    .option("--password <password>", t("command.qr.option.password"))
+    .option("--setup-code-only", t("command.qr.option.setupCodeOnly"), false)
+    .option("--no-ascii", t("command.qr.option.noAscii"))
+    .option("--json", t("command.qr.option.json"), false)
     .action(async (opts: QrCliOptions) => {
       try {
         if (opts.token && opts.password) {

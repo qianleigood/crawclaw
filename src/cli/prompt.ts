@@ -2,7 +2,11 @@ import { stdin as input, stdout as output } from "node:process";
 import readline from "node:readline/promises";
 import { isVerbose, isYes } from "../globals.js";
 
-export async function promptYesNo(question: string, defaultYes = false): Promise<boolean> {
+export async function promptYesNo(
+  question: string,
+  defaultYes = false,
+  labels?: { yes: string; no: string },
+): Promise<boolean> {
   // Simple Y/N prompt honoring global --yes and verbosity flags.
   if (isVerbose() && isYes()) {
     return true;
@@ -11,11 +15,13 @@ export async function promptYesNo(question: string, defaultYes = false): Promise
     return true;
   }
   const rl = readline.createInterface({ input, output });
-  const suffix = defaultYes ? " [Y/n] " : " [y/N] ";
+  const yes = labels?.yes ?? "y";
+  const no = labels?.no ?? "n";
+  const suffix = defaultYes ? ` [${yes.toUpperCase()}/${no}] ` : ` [${yes}/${no.toUpperCase()}] `;
   const answer = (await rl.question(`${question}${suffix}`)).trim().toLowerCase();
   rl.close();
   if (!answer) {
     return defaultYes;
   }
-  return answer.startsWith("y");
+  return answer.startsWith(yes.toLowerCase());
 }

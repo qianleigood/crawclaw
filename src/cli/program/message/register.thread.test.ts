@@ -5,6 +5,7 @@ import { registerMessageThreadCommands } from "./register.thread.js";
 
 function createHelpers(runMessageAction: MessageCliHelpers["runMessageAction"]): MessageCliHelpers {
   return {
+    t: (key) => key,
     withMessageBase: (command) => command.option("--channel <channel>", "Channel"),
     withMessageTarget: (command) => command.option("-t, --target <dest>", "Target"),
     withRequiredMessageTarget: (command) => command.requiredOption("-t, --target <dest>", "Target"),

@@ -8,6 +8,8 @@ import {
 } from "../config/mcp-config.js";
 import { serveCrawClawChannelMcp } from "../mcp/channel-server.js";
 import { defaultRuntime } from "../runtime.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 
 function fail(message: string): never {
   defaultRuntime.error(message);
@@ -44,22 +46,19 @@ function warnSecretCliFlag(flag: "--token" | "--password") {
 }
 
 export function registerMcpCli(program: Command) {
-  const mcp = program.command("mcp").description("Manage CrawClaw MCP config and channel bridge");
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
+  const mcp = program.command("mcp").description(t("command.mcp.description"));
 
   mcp
     .command("serve")
-    .description("Expose CrawClaw channels over MCP stdio")
-    .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
-    .option("--token <token>", "Gateway token (if required)")
-    .option("--token-file <path>", "Read gateway token from file")
-    .option("--password <password>", "Gateway password (if required)")
-    .option("--password-file <path>", "Read gateway password from file")
-    .option(
-      "--claude-channel-mode <mode>",
-      "Claude channel notification mode: auto, on, or off",
-      "auto",
-    )
-    .option("-v, --verbose", "Verbose logging to stderr", false)
+    .description(t("command.mcp.serve.description"))
+    .option("--url <url>", t("command.mcp.option.url"))
+    .option("--token <token>", t("command.mcp.option.token"))
+    .option("--token-file <path>", t("command.mcp.option.tokenFile"))
+    .option("--password <password>", t("command.mcp.option.password"))
+    .option("--password-file <path>", t("command.mcp.option.passwordFile"))
+    .option("--claude-channel-mode <mode>", t("command.mcp.serve.option.claudeChannelMode"), "auto")
+    .option("-v, --verbose", t("command.mcp.serve.option.verbose"), false)
     .action(async (opts) => {
       try {
         const gatewayToken = resolveSecretOption({
@@ -107,8 +106,8 @@ export function registerMcpCli(program: Command) {
 
   mcp
     .command("list")
-    .description("List configured MCP servers")
-    .option("--json", "Print JSON")
+    .description(t("command.mcp.list.description"))
+    .option("--json", t("command.mcp.option.json"))
     .action(async (opts: { json?: boolean }) => {
       const loaded = await listConfiguredMcpServers();
       if (!loaded.ok) {
@@ -131,9 +130,9 @@ export function registerMcpCli(program: Command) {
 
   mcp
     .command("show")
-    .description("Show one configured MCP server or the full MCP config")
-    .argument("[name]", "MCP server name")
-    .option("--json", "Print JSON")
+    .description(t("command.mcp.show.description"))
+    .argument("[name]", t("command.mcp.argument.name"))
+    .option("--json", t("command.mcp.option.json"))
     .action(async (name: string | undefined, opts: { json?: boolean }) => {
       const loaded = await listConfiguredMcpServers();
       if (!loaded.ok) {
@@ -157,9 +156,9 @@ export function registerMcpCli(program: Command) {
 
   mcp
     .command("set")
-    .description("Set one configured MCP server from a JSON object")
-    .argument("<name>", "MCP server name")
-    .argument("<value>", 'JSON object, for example {"command":"uvx","args":["context7-mcp"]}')
+    .description(t("command.mcp.set.description"))
+    .argument("<name>", t("command.mcp.argument.name"))
+    .argument("<value>", t("command.mcp.set.argument.value"))
     .action(async (name: string, rawValue: string) => {
       const parsed = parseConfigValue(rawValue);
       if (parsed.error) {
@@ -174,8 +173,8 @@ export function registerMcpCli(program: Command) {
 
   mcp
     .command("unset")
-    .description("Remove one configured MCP server")
-    .argument("<name>", "MCP server name")
+    .description(t("command.mcp.unset.description"))
+    .argument("<name>", t("command.mcp.argument.name"))
     .action(async (name: string) => {
       const result = await unsetConfiguredMcpServer({ name });
       if (!result.ok) {

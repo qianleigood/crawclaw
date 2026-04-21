@@ -7,12 +7,15 @@ import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
+import { createCliTranslator } from "../i18n/index.js";
+import { getProgramContext } from "./program-context.js";
 
 export function registerMaintenanceCommands(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   program
     .command("migrate-crawclaw")
-    .description("One-time migration of legacy CrawClaw state into CrawClaw runtime paths")
-    .option("--dry-run", "Preview migration actions without moving files", false)
+    .description(t("command.migrate-crawclaw.description"))
+    .option("--dry-run", t("command.migrate-crawclaw.option.dryRun"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await migrateCrawClawCommand(
@@ -26,20 +29,20 @@ export function registerMaintenanceCommands(program: Command) {
 
   const doctor = program
     .command("doctor")
-    .description("Health checks + quick fixes for the gateway and channels")
+    .description(t("command.doctor.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/doctor", "docs.crawclaw.ai/cli/doctor")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/doctor", "docs.crawclaw.ai/cli/doctor")}\n`,
     )
-    .option("--no-workspace-suggestions", "Disable workspace memory system suggestions", false)
-    .option("--yes", "Accept defaults without prompting", false)
-    .option("--repair", "Apply recommended repairs without prompting", false)
-    .option("--fix", "Apply recommended repairs (alias for --repair)", false)
-    .option("--force", "Apply aggressive repairs (overwrites custom service config)", false)
-    .option("--non-interactive", "Run without prompts (safe migrations only)", false)
-    .option("--generate-gateway-token", "Generate and configure a gateway token", false)
-    .option("--deep", "Scan system services for extra gateway installs", false)
+    .option("--no-workspace-suggestions", t("command.doctor.option.noWorkspaceSuggestions"), false)
+    .option("--yes", t("command.doctor.option.yes"), false)
+    .option("--repair", t("command.doctor.option.repair"), false)
+    .option("--fix", t("command.doctor.option.fix"), false)
+    .option("--force", t("command.doctor.option.force"), false)
+    .option("--non-interactive", t("command.doctor.option.nonInteractive"), false)
+    .option("--generate-gateway-token", t("command.doctor.option.generateGatewayToken"), false)
+    .option("--deep", t("command.doctor.option.deep"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await doctorCommand(defaultRuntime, {
@@ -57,8 +60,8 @@ export function registerMaintenanceCommands(program: Command) {
 
   doctor
     .command("memory")
-    .description("Inspect the current Session/Durable/NotebookLM memory health")
-    .option("--json", "Print machine-readable JSON", false)
+    .description(t("command.doctor.memory.description"))
+    .option("--json", t("command.doctor.memory.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         const { loadConfig } = await import("../../config/config.js");
@@ -72,20 +75,20 @@ export function registerMaintenanceCommands(program: Command) {
 
   program
     .command("uninstall")
-    .description("Uninstall the gateway service + local data (CLI remains)")
+    .description(t("command.uninstall.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/uninstall", "docs.crawclaw.ai/cli/uninstall")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/uninstall", "docs.crawclaw.ai/cli/uninstall")}\n`,
     )
-    .option("--service", "Remove the gateway service", false)
-    .option("--state", "Remove state + config", false)
-    .option("--workspace", "Remove workspace dirs", false)
-    .option("--app", "Remove the macOS app", false)
-    .option("--all", "Remove service + state + workspace + app", false)
-    .option("--yes", "Skip confirmation prompts", false)
-    .option("--non-interactive", "Disable prompts (requires --yes)", false)
-    .option("--dry-run", "Print actions without removing files", false)
+    .option("--service", t("command.uninstall.option.service"), false)
+    .option("--state", t("command.uninstall.option.state"), false)
+    .option("--workspace", t("command.uninstall.option.workspace"), false)
+    .option("--app", t("command.uninstall.option.app"), false)
+    .option("--all", t("command.uninstall.option.all"), false)
+    .option("--yes", t("command.uninstall.option.yes"), false)
+    .option("--non-interactive", t("command.uninstall.option.nonInteractive"), false)
+    .option("--dry-run", t("command.uninstall.option.dryRun"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await uninstallCommand(defaultRuntime, {

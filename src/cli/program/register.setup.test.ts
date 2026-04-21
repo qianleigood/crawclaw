@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createProgramContext } from "./context.js";
+import { setProgramContext } from "./program-context.js";
 import { registerSetupCommand } from "./register.setup.js";
 
 const mocks = vi.hoisted(() => ({
@@ -86,5 +88,18 @@ describe("registerSetupCommand", () => {
 
     expect(runtime.error).toHaveBeenCalledWith("Error: setup failed");
     expect(runtime.exit).toHaveBeenCalledWith(1);
+  });
+
+  it("localizes setup help copy", () => {
+    const program = new Command();
+    setProgramContext(
+      program,
+      createProgramContext({ argv: ["node", "crawclaw", "--lang", "zh-CN"] }),
+    );
+    registerSetupCommand(program);
+
+    const setup = program.commands.find((command) => command.name() === "setup");
+    expect(setup?.description()).toBe("初始化本地配置与 agent 工作区");
+    expect(setup?.helpInformation()).toContain("无提示运行引导");
   });
 });

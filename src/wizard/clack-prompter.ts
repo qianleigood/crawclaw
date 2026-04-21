@@ -11,6 +11,7 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
 import { createCliProgress } from "../cli/progress.js";
 import { stripAnsi } from "../terminal/ansi.js";
 import { note as emitNote } from "../terminal/note.js";
@@ -21,7 +22,8 @@ import { WizardCancelledError } from "./prompts.js";
 
 function guardCancel<T>(value: T | symbol): T {
   if (isCancel(value)) {
-    cancel(stylePromptTitle("Setup cancelled.") ?? "Setup cancelled.");
+    const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
+    cancel(stylePromptTitle(t("wizard.cancelled")) ?? t("wizard.cancelled"));
     throw new WizardCancelledError();
   }
   return value;
@@ -52,6 +54,7 @@ export function tokenizedOptionFilter<T>(search: string, option: Option<T>): boo
 }
 
 export function createClackPrompter(): WizardPrompter {
+  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
   return {
     intro: async (title) => {
       intro(stylePromptTitle(title) ?? title);
@@ -114,6 +117,8 @@ export function createClackPrompter(): WizardPrompter {
         await confirm({
           message: stylePromptMessage(params.message),
           initialValue: params.initialValue,
+          active: t("common.confirm"),
+          inactive: t("common.cancel"),
         }),
       ),
     progress: (label: string): WizardProgress => {

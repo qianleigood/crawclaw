@@ -1,6 +1,8 @@
 import type { Command } from "commander";
+import { createCliTranslator } from "./i18n/index.js";
 import { formatDocsLink, formatHelpExamples, theme } from "./memory-cli.runtime.js";
 import type { MemoryCommandOptions } from "./memory-cli.types.js";
+import { getProgramContext } from "./program/program-context.js";
 
 type MemoryCliRuntime = typeof import("./memory-cli.runtime.js");
 
@@ -57,155 +59,153 @@ async function runMemorySessionSummaryRefresh(opts: MemoryCommandOptions) {
 }
 
 export function registerMemoryCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const memory = program
     .command("memory")
-    .description("Inspect and manage NotebookLM knowledge access")
+    .description(t("command.memory.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["crawclaw memory status", "Show NotebookLM provider status."],
-          [
-            "crawclaw memory refresh",
-            "Refresh NotebookLM auth from the configured cookie fallback.",
-          ],
-          ["crawclaw memory login", "Open NotebookLM login flow and rebuild the local profile."],
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          ["crawclaw memory status", t("command.memory.example.status")],
+          ["crawclaw memory refresh", t("command.memory.example.refresh")],
+          ["crawclaw memory login", t("command.memory.example.login")],
           [
             "crawclaw memory prompt-journal-summary --json",
-            "Summarize nightly memory prompt journal data.",
+            t("command.memory.example.promptJournalSummary"),
           ],
-          ["crawclaw memory dream status --json", "Show auto-dream state and recent dream runs."],
+          ["crawclaw memory dream status --json", t("command.memory.example.dreamStatus")],
           [
             "crawclaw memory dream run --agent main --channel telegram --user alice --force",
-            "Trigger one durable-memory dream run for a scope.",
+            t("command.memory.example.dreamRun"),
           ],
           [
             "crawclaw memory dream run --agent main --channel telegram --user alice --dry-run --session-limit 6",
-            "Preview one dream window without writing durable memory.",
+            t("command.memory.example.dreamDryRun"),
           ],
           [
             "crawclaw memory session-summary status --agent main --session-id sess-1 --json",
-            "Show one session summary file and runtime state.",
+            t("command.memory.example.sessionSummaryStatus"),
           ],
           [
             "crawclaw memory session-summary refresh --agent main --session-id sess-1 --session-key agent:main:sess-1 --force",
-            "Force one background summary refresh for a session.",
+            t("command.memory.example.sessionSummaryRefresh"),
           ],
-          ["crawclaw memory status --json", "Output machine-readable JSON (good for scripts)."],
-        ])}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/memory", "docs.crawclaw.ai/cli/memory")}\n`,
+          ["crawclaw memory status --json", t("command.memory.example.json")],
+        ])}\n\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/memory", "docs.crawclaw.ai/cli/memory")}\n`,
     );
 
   memory
     .command("status")
-    .description("Show NotebookLM knowledge provider status")
-    .option("--json", "Print JSON")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.status.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryStatus(opts);
     });
 
   memory
     .command("refresh")
-    .description("Refresh NotebookLM knowledge auth from the configured cookie fallback")
-    .option("--json", "Print JSON")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.refresh.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryRefresh(opts);
     });
 
   memory
     .command("login")
-    .description("Run NotebookLM login and rebuild the local profile")
-    .option("--json", "Print JSON")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.login.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryLogin(opts);
     });
 
   memory
     .command("prompt-journal-summary")
-    .description("Summarize nightly memory prompt journal data")
-    .option("--json", "Print JSON")
-    .option("--file <path>", "Read a specific journal JSONL file")
-    .option("--dir <path>", "Read journal files from a specific directory")
-    .option("--date <YYYY-MM-DD>", "Summarize a specific date bucket")
-    .option("--days <n>", "Summarize the most recent N daily files", "1")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.promptJournalSummary.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--file <path>", t("command.memory.promptJournalSummary.option.file"))
+    .option("--dir <path>", t("command.memory.promptJournalSummary.option.dir"))
+    .option("--date <YYYY-MM-DD>", t("command.memory.promptJournalSummary.option.date"))
+    .option("--days <n>", t("command.memory.promptJournalSummary.option.days"), "1")
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryPromptJournalSummary(opts);
     });
 
-  const dream = memory.command("dream").description("Inspect and run durable-memory dream passes");
+  const dream = memory.command("dream").description(t("command.memory.dream.description"));
 
   dream
     .command("status")
-    .description("Show auto-dream state and recent dream runs")
-    .option("--json", "Print JSON")
-    .option("--agent <id>", "Agent id for scope resolution")
-    .option("--channel <id>", "Channel id for scope resolution")
-    .option("--user <id>", "User id for scope resolution")
-    .option("--scope-key <key>", "Explicit durable scope key")
-    .option("--limit <n>", "Maximum recent runs to display", "10")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.dream.status.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--agent <id>", t("command.memory.option.agent"))
+    .option("--channel <id>", t("command.memory.option.channel"))
+    .option("--user <id>", t("command.memory.option.user"))
+    .option("--scope-key <key>", t("command.memory.option.scopeKey"))
+    .option("--limit <n>", t("command.memory.option.limit"), "10")
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryDreamStatus(opts);
     });
 
   dream
     .command("run")
-    .description("Trigger an auto-dream pass now")
-    .option("--json", "Print JSON")
-    .option("--agent <id>", "Agent id for scope resolution")
-    .option("--channel <id>", "Channel id for scope resolution")
-    .option("--user <id>", "User id for scope resolution")
-    .option("--scope-key <key>", "Explicit durable scope key")
-    .option("--force", "Bypass min-hours and min-sessions gates", false)
-    .option("--dry-run", "Preview dream inputs without writing durable memory", false)
-    .option("--session-limit <n>", "Cap how many recent sessions feed one manual run", "12")
-    .option("--signal-limit <n>", "Cap how many structured signals feed one manual run", "12")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.dream.run.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--agent <id>", t("command.memory.option.agent"))
+    .option("--channel <id>", t("command.memory.option.channel"))
+    .option("--user <id>", t("command.memory.option.user"))
+    .option("--scope-key <key>", t("command.memory.option.scopeKey"))
+    .option("--force", t("command.memory.dream.run.option.force"), false)
+    .option("--dry-run", t("command.memory.dream.run.option.dryRun"), false)
+    .option("--session-limit <n>", t("command.memory.dream.run.option.sessionLimit"), "12")
+    .option("--signal-limit <n>", t("command.memory.dream.run.option.signalLimit"), "12")
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryDreamRun(opts);
     });
 
   dream
     .command("history")
-    .description("Show recent auto-dream runs")
-    .option("--json", "Print JSON")
-    .option("--agent <id>", "Agent id for scope resolution")
-    .option("--channel <id>", "Channel id for scope resolution")
-    .option("--user <id>", "User id for scope resolution")
-    .option("--scope-key <key>", "Explicit durable scope key")
-    .option("--limit <n>", "Maximum recent runs to display", "20")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.dream.history.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--agent <id>", t("command.memory.option.agent"))
+    .option("--channel <id>", t("command.memory.option.channel"))
+    .option("--user <id>", t("command.memory.option.user"))
+    .option("--scope-key <key>", t("command.memory.option.scopeKey"))
+    .option("--limit <n>", t("command.memory.option.limit"), "20")
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryDreamHistory(opts);
     });
 
   const sessionSummary = memory
     .command("session-summary")
-    .description("Inspect and refresh Claude-style per-session summary files");
+    .description(t("command.memory.sessionSummary.description"));
 
   sessionSummary
     .command("status")
-    .description("Show one session summary file and runtime state")
-    .option("--json", "Print JSON")
-    .option("--agent <id>", "Agent id for the session summary", "main")
-    .requiredOption("--session-id <id>", "Session id")
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.sessionSummary.status.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--agent <id>", t("command.memory.sessionSummary.option.agent"), "main")
+    .requiredOption("--session-id <id>", t("command.memory.sessionSummary.option.sessionId"))
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemorySessionSummaryStatus(opts);
     });
 
   sessionSummary
     .command("refresh")
-    .description("Force one session summary refresh for a session")
-    .option("--json", "Print JSON")
-    .option("--agent <id>", "Agent id for the session summary", "main")
-    .requiredOption("--session-id <id>", "Session id")
-    .requiredOption("--session-key <key>", "Session key")
-    .option("--force", "Bypass the summary gate checks", false)
-    .option("--verbose", "Verbose logging", false)
+    .description(t("command.memory.sessionSummary.refresh.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--agent <id>", t("command.memory.sessionSummary.option.agent"), "main")
+    .requiredOption("--session-id <id>", t("command.memory.sessionSummary.option.sessionId"))
+    .requiredOption("--session-key <key>", t("command.memory.sessionSummary.option.sessionKey"))
+    .option("--force", t("command.memory.sessionSummary.refresh.option.force"), false)
+    .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemorySessionSummaryRefresh(opts);
     });

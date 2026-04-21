@@ -102,8 +102,7 @@ export function applyCliProfileEnv(params: {
   // Convenience only: fill defaults, never override explicit env values.
   env.CRAWCLAW_PROFILE = env.CRAWCLAW_PROFILE?.trim() || profile;
 
-  const stateDir =
-    env.CRAWCLAW_STATE_DIR?.trim() || resolveProfileStateDir(profile, env, homedir);
+  const stateDir = env.CRAWCLAW_STATE_DIR?.trim() || resolveProfileStateDir(profile, env, homedir);
   if (!env.CRAWCLAW_STATE_DIR?.trim()) {
     env.CRAWCLAW_STATE_DIR = stateDir;
   }

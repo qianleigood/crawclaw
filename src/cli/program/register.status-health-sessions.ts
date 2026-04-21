@@ -18,7 +18,9 @@ import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
 import { formatHelpExamples } from "../help-format.js";
+import { createCliTranslator } from "../i18n/index.js";
 import { parsePositiveIntOrUndefined } from "./helpers.js";
+import { getProgramContext } from "./program-context.js";
 
 function resolveVerbose(opts: { verbose?: boolean; debug?: boolean }): boolean {
   return Boolean(opts.verbose || opts.debug);
@@ -50,35 +52,33 @@ async function runWithVerboseAndTimeout(
 }
 
 export function registerStatusHealthSessionsCommands(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   program
     .command("status")
-    .description("Show channel health and recent session recipients")
-    .option("--json", "Output JSON instead of text", false)
-    .option("--all", "Full diagnosis (read-only, pasteable)", false)
-    .option("--usage", "Show model provider usage/quota snapshots", false)
-    .option("--deep", "Probe channels (WhatsApp Web + Telegram + Discord + Slack + Signal)", false)
-    .option("--timeout <ms>", "Probe timeout in milliseconds", "10000")
-    .option("--verbose", "Verbose logging", false)
-    .option("--debug", "Alias for --verbose", false)
+    .description(t("command.status.description"))
+    .option("--json", t("command.status.option.json"), false)
+    .option("--all", t("command.status.option.all"), false)
+    .option("--usage", t("command.status.option.usage"), false)
+    .option("--deep", t("command.status.option.deep"), false)
+    .option("--timeout <ms>", t("command.status.option.timeout"), "10000")
+    .option("--verbose", t("command.status.option.verbose"), false)
+    .option("--debug", t("command.status.option.debug"), false)
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["crawclaw status", "Show channel health + session summary."],
-          ["crawclaw status --all", "Full diagnosis (read-only)."],
-          ["crawclaw status --json", "Machine-readable output."],
-          ["crawclaw status --usage", "Show model provider usage/quota snapshots."],
-          [
-            "crawclaw status --deep",
-            "Run channel probes (WA + Telegram + Discord + Slack + Signal).",
-          ],
-          ["crawclaw status --deep --timeout 5000", "Tighten probe timeout."],
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          ["crawclaw status", t("command.status.example.summary")],
+          ["crawclaw status --all", t("command.status.example.all")],
+          ["crawclaw status --json", t("command.status.example.json")],
+          ["crawclaw status --usage", t("command.status.example.usage")],
+          ["crawclaw status --deep", t("command.status.example.deep")],
+          ["crawclaw status --deep --timeout 5000", t("command.status.example.deepTimeout")],
         ])}`,
     )
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/status", "docs.crawclaw.ai/cli/status")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/status", "docs.crawclaw.ai/cli/status")}\n`,
     )
     .action(async (opts) => {
       await runWithVerboseAndTimeout(opts, async ({ verbose, timeoutMs }) => {
@@ -98,15 +98,15 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   program
     .command("health")
-    .description("Fetch health from the running gateway")
-    .option("--json", "Output JSON instead of text", false)
-    .option("--timeout <ms>", "Connection timeout in milliseconds", "10000")
-    .option("--verbose", "Verbose logging", false)
-    .option("--debug", "Alias for --verbose", false)
+    .description(t("command.health.description"))
+    .option("--json", t("command.health.option.json"), false)
+    .option("--timeout <ms>", t("command.health.option.timeout"), "10000")
+    .option("--verbose", t("command.health.option.verbose"), false)
+    .option("--debug", t("command.health.option.debug"), false)
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/health", "docs.crawclaw.ai/cli/health")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/health", "docs.crawclaw.ai/cli/health")}\n`,
     )
     .action(async (opts) => {
       await runWithVerboseAndTimeout(opts, async ({ verbose, timeoutMs }) => {
@@ -123,31 +123,29 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   const sessionsCmd = program
     .command("sessions")
-    .description("List stored conversation sessions")
-    .option("--json", "Output as JSON", false)
-    .option("--verbose", "Verbose logging", false)
-    .option("--store <path>", "Path to session store (default: resolved from config)")
-    .option("--agent <id>", "Agent id to inspect (default: configured default agent)")
-    .option("--all-agents", "Aggregate sessions across all configured agents", false)
-    .option("--active <minutes>", "Only show sessions updated within the past N minutes")
+    .description(t("command.sessions.description"))
+    .option("--json", t("command.sessions.option.json"), false)
+    .option("--verbose", t("command.sessions.option.verbose"), false)
+    .option("--store <path>", t("command.sessions.option.store"))
+    .option("--agent <id>", t("command.sessions.option.agent"))
+    .option("--all-agents", t("command.sessions.option.allAgents"), false)
+    .option("--active <minutes>", t("command.sessions.option.active"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["crawclaw sessions", "List all sessions."],
-          ["crawclaw sessions --agent work", "List sessions for one agent."],
-          ["crawclaw sessions --all-agents", "Aggregate sessions across agents."],
-          ["crawclaw sessions --active 120", "Only last 2 hours."],
-          ["crawclaw sessions --json", "Machine-readable output."],
-          ["crawclaw sessions --store ./tmp/sessions.json", "Use a specific session store."],
-        ])}\n\n${theme.muted(
-          "Shows token usage per session when the agent reports it; set agents.defaults.contextTokens to cap the window and show %.",
-        )}`,
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          ["crawclaw sessions", t("command.sessions.example.list")],
+          ["crawclaw sessions --agent work", t("command.sessions.example.agent")],
+          ["crawclaw sessions --all-agents", t("command.sessions.example.allAgents")],
+          ["crawclaw sessions --active 120", t("command.sessions.example.active")],
+          ["crawclaw sessions --json", t("command.sessions.example.json")],
+          ["crawclaw sessions --store ./tmp/sessions.json", t("command.sessions.example.store")],
+        ])}\n\n${theme.muted(t("command.sessions.help.tokenUsage"))}`,
     )
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/sessions", "docs.crawclaw.ai/cli/sessions")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/sessions", "docs.crawclaw.ai/cli/sessions")}\n`,
     )
     .action(async (opts) => {
       setVerbose(Boolean(opts.verbose));
@@ -166,34 +164,36 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   sessionsCmd
     .command("cleanup")
-    .description("Run session-store maintenance now")
-    .option("--store <path>", "Path to session store (default: resolved from config)")
-    .option("--agent <id>", "Agent id to maintain (default: configured default agent)")
-    .option("--all-agents", "Run maintenance across all configured agents", false)
-    .option("--dry-run", "Preview maintenance actions without writing", false)
-    .option("--enforce", "Apply maintenance even when configured mode is warn", false)
-    .option(
-      "--fix-missing",
-      "Remove store entries whose transcript files are missing (bypasses age/count retention)",
-      false,
-    )
-    .option("--active-key <key>", "Protect this session key from budget-eviction")
-    .option("--json", "Output JSON", false)
+    .description(t("command.sessions.cleanup.description"))
+    .option("--store <path>", t("command.sessions.cleanup.option.store"))
+    .option("--agent <id>", t("command.sessions.cleanup.option.agent"))
+    .option("--all-agents", t("command.sessions.cleanup.option.allAgents"), false)
+    .option("--dry-run", t("command.sessions.cleanup.option.dryRun"), false)
+    .option("--enforce", t("command.sessions.cleanup.option.enforce"), false)
+    .option("--fix-missing", t("command.sessions.cleanup.option.fixMissing"), false)
+    .option("--active-key <key>", t("command.sessions.cleanup.option.activeKey"))
+    .option("--json", t("command.sessions.cleanup.option.json"), false)
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["crawclaw sessions cleanup --dry-run", "Preview stale/cap cleanup."],
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          ["crawclaw sessions cleanup --dry-run", t("command.sessions.cleanup.example.dryRun")],
           [
             "crawclaw sessions cleanup --dry-run --fix-missing",
-            "Also preview pruning entries with missing transcript files.",
+            t("command.sessions.cleanup.example.fixMissing"),
           ],
-          ["crawclaw sessions cleanup --enforce", "Apply maintenance now."],
-          ["crawclaw sessions cleanup --agent work --dry-run", "Preview one agent store."],
-          ["crawclaw sessions cleanup --all-agents --dry-run", "Preview all agent stores."],
+          ["crawclaw sessions cleanup --enforce", t("command.sessions.cleanup.example.enforce")],
+          [
+            "crawclaw sessions cleanup --agent work --dry-run",
+            t("command.sessions.cleanup.example.agent"),
+          ],
+          [
+            "crawclaw sessions cleanup --all-agents --dry-run",
+            t("command.sessions.cleanup.example.allAgents"),
+          ],
           [
             "crawclaw sessions cleanup --enforce --store ./tmp/sessions.json",
-            "Use a specific store.",
+            t("command.sessions.cleanup.example.store"),
           ],
         ])}`,
     )
@@ -225,13 +225,10 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   const tasksCmd = program
     .command("tasks")
-    .description("Inspect durable background tasks and TaskFlow state")
-    .option("--json", "Output as JSON", false)
-    .option("--runtime <name>", "Filter by kind (subagent, acp, cron, cli)")
-    .option(
-      "--status <name>",
-      "Filter by status (queued, running, succeeded, failed, timed_out, cancelled, lost)",
-    )
+    .description(t("command.tasks.description"))
+    .option("--json", t("command.tasks.option.json"), false)
+    .option("--runtime <name>", t("command.tasks.option.runtime"))
+    .option("--status <name>", t("command.tasks.option.status"))
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await tasksListCommand(
@@ -248,13 +245,10 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksCmd
     .command("list")
-    .description("List tracked background tasks")
-    .option("--json", "Output as JSON", false)
-    .option("--runtime <name>", "Filter by kind (subagent, acp, cron, cli)")
-    .option(
-      "--status <name>",
-      "Filter by status (queued, running, succeeded, failed, timed_out, cancelled, lost)",
-    )
+    .description(t("command.tasks.list.description"))
+    .option("--json", t("command.tasks.option.json"), false)
+    .option("--runtime <name>", t("command.tasks.option.runtime"))
+    .option("--status <name>", t("command.tasks.option.status"))
     .action(async (opts, command) => {
       const parentOpts = command.parent?.opts() as
         | {
@@ -277,14 +271,11 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksCmd
     .command("audit")
-    .description("Show stale or broken background tasks and TaskFlows")
-    .option("--json", "Output as JSON", false)
-    .option("--severity <level>", "Filter by severity (warn, error)")
-    .option(
-      "--code <name>",
-      "Filter by finding code (stale_queued, stale_running, lost, delivery_failed, missing_cleanup, inconsistent_timestamps, restore_failed, stale_waiting, stale_blocked, cancel_stuck, missing_linked_tasks, blocked_task_missing)",
-    )
-    .option("--limit <n>", "Limit displayed findings")
+    .description(t("command.tasks.audit.description"))
+    .option("--json", t("command.tasks.option.json"), false)
+    .option("--severity <level>", t("command.tasks.audit.option.severity"))
+    .option("--code <name>", t("command.tasks.audit.option.code"))
+    .option("--limit <n>", t("command.tasks.audit.option.limit"))
     .action(async (opts, command) => {
       const parentOpts = command.parent?.opts() as { json?: boolean } | undefined;
       await runCommandWithRuntime(defaultRuntime, async () => {
@@ -315,9 +306,9 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksCmd
     .command("maintenance")
-    .description("Preview or apply tasks and TaskFlow maintenance")
-    .option("--json", "Output as JSON", false)
-    .option("--apply", "Apply reconciliation, cleanup stamping, and pruning", false)
+    .description(t("command.tasks.maintenance.description"))
+    .option("--json", t("command.tasks.option.json"), false)
+    .option("--apply", t("command.tasks.maintenance.option.apply"), false)
     .action(async (opts, command) => {
       const parentOpts = command.parent?.opts() as { json?: boolean } | undefined;
       await runCommandWithRuntime(defaultRuntime, async () => {
@@ -333,9 +324,9 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksCmd
     .command("show")
-    .description("Show one background task by task id, run id, or session key")
-    .argument("<lookup>", "Task id, run id, or session key")
-    .option("--json", "Output as JSON", false)
+    .description(t("command.tasks.show.description"))
+    .argument("<lookup>", t("command.tasks.argument.lookup"))
+    .option("--json", t("command.tasks.option.json"), false)
     .action(async (lookup, opts, command) => {
       const parentOpts = command.parent?.opts() as { json?: boolean } | undefined;
       await runCommandWithRuntime(defaultRuntime, async () => {
@@ -351,9 +342,9 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksCmd
     .command("notify")
-    .description("Set task notify policy")
-    .argument("<lookup>", "Task id, run id, or session key")
-    .argument("<notify>", "Notify policy (done_only, state_changes, silent)")
+    .description(t("command.tasks.notify.description"))
+    .argument("<lookup>", t("command.tasks.argument.lookup"))
+    .argument("<notify>", t("command.tasks.notify.argument.notify"))
     .action(async (lookup, notify) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await tasksNotifyCommand(
@@ -368,8 +359,8 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksCmd
     .command("cancel")
-    .description("Cancel a running background task")
-    .argument("<lookup>", "Task id, run id, or session key")
+    .description(t("command.tasks.cancel.description"))
+    .argument("<lookup>", t("command.tasks.argument.lookup"))
     .action(async (lookup) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await tasksCancelCommand(
@@ -381,18 +372,13 @@ export function registerStatusHealthSessionsCommands(program: Command) {
       });
     });
 
-  const tasksFlowCmd = tasksCmd
-    .command("flow")
-    .description("Inspect durable TaskFlow state under tasks");
+  const tasksFlowCmd = tasksCmd.command("flow").description(t("command.tasks.flow.description"));
 
   tasksFlowCmd
     .command("list")
-    .description("List tracked TaskFlows")
-    .option("--json", "Output as JSON", false)
-    .option(
-      "--status <name>",
-      "Filter by status (queued, running, waiting, blocked, succeeded, failed, cancelled, lost)",
-    )
+    .description(t("command.tasks.flow.list.description"))
+    .option("--json", t("command.tasks.option.json"), false)
+    .option("--status <name>", t("command.tasks.flow.option.status"))
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await flowsListCommand(
@@ -407,9 +393,9 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksFlowCmd
     .command("show")
-    .description("Show one TaskFlow by flow id or owner key")
-    .argument("<lookup>", "Flow id or owner key")
-    .option("--json", "Output as JSON", false)
+    .description(t("command.tasks.flow.show.description"))
+    .argument("<lookup>", t("command.tasks.flow.argument.lookup"))
+    .option("--json", t("command.tasks.option.json"), false)
     .action(async (lookup, opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await flowsShowCommand(
@@ -424,8 +410,8 @@ export function registerStatusHealthSessionsCommands(program: Command) {
 
   tasksFlowCmd
     .command("cancel")
-    .description("Cancel a running TaskFlow")
-    .argument("<lookup>", "Flow id or owner key")
+    .description(t("command.tasks.flow.cancel.description"))
+    .argument("<lookup>", t("command.tasks.flow.argument.lookup"))
     .action(async (lookup) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await flowsCancelCommand(

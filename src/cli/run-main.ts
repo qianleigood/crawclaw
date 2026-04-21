@@ -22,7 +22,8 @@ import { tryRouteCli } from "./route.js";
 import { normalizeWindowsArgv } from "./windows-argv.js";
 
 async function closeCliMemoryManagers(): Promise<void> {
-  const { drainSharedDurableExtractionWorkers } = await import("../memory/durable/worker-manager.ts");
+  const { drainSharedDurableExtractionWorkers } =
+    await import("../memory/durable/worker-manager.ts");
   await drainSharedDurableExtractionWorkers(5_000).catch(() => {});
 }
 

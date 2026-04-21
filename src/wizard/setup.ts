@@ -1,4 +1,5 @@
 import { formatCliCommand } from "../cli/command-format.js";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
 import type {
   GatewayAuthChoice,
   OnboardMode,
@@ -130,9 +131,10 @@ export async function runSetupWizard(
   runtime: RuntimeEnv = defaultRuntime,
   prompter: WizardPrompter,
 ) {
+  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
   const onboardHelpers = await import("../commands/onboard-helpers.js");
   onboardHelpers.printWizardHeader(runtime);
-  await prompter.intro("CrawClaw setup");
+  await prompter.intro(t("wizard.setup.intro"));
   await requireRiskAcknowledgement({ opts, prompter });
 
   const snapshot = await readConfigFileSnapshot();
@@ -143,7 +145,10 @@ export async function runSetupWizard(
     : {};
 
   if (snapshot.exists && !snapshot.valid) {
-    await prompter.note(onboardHelpers.summarizeExistingConfig(baseConfig), "Invalid config");
+    await prompter.note(
+      onboardHelpers.summarizeExistingConfig(baseConfig),
+      t("wizard.setup.invalidConfig.title"),
+    );
     if (snapshot.issues.length > 0) {
       await prompter.note(
         [
@@ -151,11 +156,13 @@ export async function runSetupWizard(
           "",
           "Docs: https://docs.crawclaw.ai/gateway/configuration",
         ].join("\n"),
-        "Config issues",
+        t("wizard.setup.invalidConfig.issuesTitle"),
       );
     }
     await prompter.outro(
-      `Config invalid. Run \`${formatCliCommand("crawclaw doctor")}\` to repair it, then re-run setup.`,
+      t("wizard.setup.invalidConfig.outro", {
+        doctor: formatCliCommand("crawclaw doctor"),
+      }),
     );
     runtime.exit(1);
     return;
@@ -182,8 +189,10 @@ export async function runSetupWizard(
     );
   }
 
-  const quickstartHint = `Configure details later via ${formatCliCommand("crawclaw configure")}.`;
-  const manualHint = "Configure port, network, Tailscale, and auth options.";
+  const quickstartHint = t("wizard.setup.flow.quickstartHint", {
+    configure: formatCliCommand("crawclaw configure"),
+  });
+  const manualHint = t("wizard.setup.flow.manualHint");
   const explicitFlowRaw = opts.flow?.trim();
   const normalizedExplicitFlow = explicitFlowRaw === "manual" ? "advanced" : explicitFlowRaw;
   if (
@@ -202,18 +211,22 @@ export async function runSetupWizard(
   let flow: WizardFlow =
     explicitFlow ??
     (await prompter.select({
-      message: "Setup mode",
+      message: t("wizard.setup.flow.message"),
       options: [
-        { value: "quickstart", label: "QuickStart", hint: quickstartHint },
-        { value: "advanced", label: "Manual", hint: manualHint },
+        {
+          value: "quickstart",
+          label: t("wizard.setup.flow.quickstartLabel"),
+          hint: quickstartHint,
+        },
+        { value: "advanced", label: t("wizard.setup.flow.manualLabel"), hint: manualHint },
       ],
       initialValue: "quickstart",
     }));
 
   if (opts.mode === "remote" && flow === "quickstart") {
     await prompter.note(
-      "QuickStart only supports local gateways. Switching to Manual mode.",
-      "QuickStart",
+      t("wizard.setup.flow.quickstartRemoteOnly"),
+      t("wizard.setup.flow.quickstartLabel"),
     );
     flow = "advanced";
   }
@@ -221,15 +234,15 @@ export async function runSetupWizard(
   if (snapshot.exists) {
     await prompter.note(
       onboardHelpers.summarizeExistingConfig(baseConfig),
-      "Existing config detected",
+      t("wizard.setup.existingConfig.title"),
     );
 
     const action = await prompter.select({
-      message: "Config handling",
+      message: t("wizard.setup.existingConfig.message"),
       options: [
-        { value: "keep", label: "Use existing values" },
-        { value: "modify", label: "Update values" },
-        { value: "reset", label: "Reset" },
+        { value: "keep", label: t("wizard.setup.existingConfig.keep") },
+        { value: "modify", label: t("wizard.setup.existingConfig.modify") },
+        { value: "reset", label: t("wizard.setup.existingConfig.reset") },
       ],
     });
 
@@ -237,16 +250,16 @@ export async function runSetupWizard(
       const workspaceDefault =
         baseConfig.agents?.defaults?.workspace ?? onboardHelpers.DEFAULT_WORKSPACE;
       const resetScope = (await prompter.select({
-        message: "Reset scope",
+        message: t("wizard.setup.resetScope.message"),
         options: [
-          { value: "config", label: "Config only" },
+          { value: "config", label: t("wizard.setup.resetScope.config") },
           {
             value: "config+creds+sessions",
-            label: "Config + creds + sessions",
+            label: t("wizard.setup.resetScope.configCredsSessions"),
           },
           {
             value: "full",
-            label: "Full reset (config + creds + sessions + workspace)",
+            label: t("wizard.setup.resetScope.full"),
           },
         ],
       })) as ResetScope;
@@ -440,23 +453,23 @@ export async function runSetupWizard(
     (flow === "quickstart"
       ? "local"
       : ((await prompter.select({
-          message: "What do you want to set up?",
+          message: t("wizard.setup.mode.message"),
           options: [
             {
               value: "local",
-              label: "Local gateway (this machine)",
+              label: t("wizard.setup.mode.localLabel"),
               hint: localProbe.ok
-                ? `Gateway reachable (${localUrl})`
-                : `No gateway detected (${localUrl})`,
+                ? t("wizard.setup.mode.localReachable", { url: localUrl })
+                : t("wizard.setup.mode.localMissing", { url: localUrl }),
             },
             {
               value: "remote",
-              label: "Remote gateway (info-only)",
+              label: t("wizard.setup.mode.remoteLabel"),
               hint: !remoteUrl
-                ? "No remote URL configured yet"
+                ? t("wizard.setup.mode.remoteMissing")
                 : remoteProbe?.ok
-                  ? `Gateway reachable (${remoteUrl})`
-                  : `Configured but unreachable (${remoteUrl})`,
+                  ? t("wizard.setup.mode.remoteReachable", { url: remoteUrl })
+                  : t("wizard.setup.mode.remoteUnreachable", { url: remoteUrl }),
             },
           ],
         })) as OnboardMode));
@@ -470,7 +483,7 @@ export async function runSetupWizard(
     nextConfig = onboardHelpers.applyWizardMetadata(nextConfig, { command: "onboard", mode });
     await writeConfigFile(nextConfig);
     logConfigUpdated(runtime);
-    await prompter.outro("Remote gateway configured.");
+    await prompter.outro(t("wizard.setup.remoteConfigured"));
     return;
   }
 
@@ -584,7 +597,7 @@ export async function runSetupWizard(
   const settings = gateway.settings;
 
   if (opts.skipChannels) {
-    await prompter.note("Skipping channel setup.", "Channels");
+    await prompter.note(t("wizard.setup.skip.channels"), t("wizard.setup.skip.channelsTitle"));
   } else {
     const { listChannelPlugins } = await import("../channels/plugins/index.js");
     const { setupChannels } = await import("../commands/onboard-channels.js");
@@ -620,7 +633,7 @@ export async function runSetupWizard(
   });
 
   if (opts.skipSearch) {
-    await prompter.note("Skipping search setup.", "Search");
+    await prompter.note(t("wizard.setup.skip.search"), t("wizard.setup.skip.searchTitle"));
   } else {
     const { setupSearch } = await import("../commands/onboard-search.js");
     nextConfig = await setupSearch(nextConfig, runtime, prompter, {
@@ -630,7 +643,7 @@ export async function runSetupWizard(
   }
 
   if (opts.skipSkills) {
-    await prompter.note("Skipping skills setup.", "Skills");
+    await prompter.note(t("wizard.setup.skip.skills"), t("wizard.setup.skip.skillsTitle"));
   } else {
     const { setupSkills } = await import("../commands/onboard-skills.js");
     nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);

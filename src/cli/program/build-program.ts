@@ -8,8 +8,8 @@ import { setProgramContext } from "./program-context.js";
 export function buildProgram() {
   const program = new Command();
   program.enablePositionalOptions();
-  const ctx = createProgramContext();
   const argv = process.argv;
+  const ctx = createProgramContext({ argv });
 
   setProgramContext(program, ctx);
   configureProgramHelp(program, ctx);

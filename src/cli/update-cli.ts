@@ -2,9 +2,11 @@ import type { Command } from "commander";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
-import { inheritOptionFromParent } from "./command-options.js";
 import { replaceCliName, resolveCliName } from "./cli-name.js";
+import { inheritOptionFromParent } from "./command-options.js";
 import { formatHelpExamples } from "./help-format.js";
+import { createCliTranslator } from "./i18n/index.js";
+import { getProgramContext } from "./program/program-context.js";
 import {
   type UpdateCommandOptions,
   type UpdateStatusOptions,
@@ -33,63 +35,64 @@ function inheritedUpdateTimeout(
 }
 
 export function registerUpdateCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   const cliName = resolveCliName();
   program.enablePositionalOptions();
   const update = program
     .command("update")
-    .description("Update CrawClaw and inspect update channel status")
-    .option("--json", "Output result as JSON", false)
-    .option("--no-restart", "Skip restarting the gateway service after a successful update")
-    .option("--dry-run", "Preview update actions without making changes", false)
-    .option("--channel <stable|beta|dev>", "Persist update channel (git + npm)")
-    .option(
-      "--tag <dist-tag|version|spec>",
-      "Override the package target for this update (dist-tag, version, or package spec)",
-    )
-    .option("--timeout <seconds>", "Timeout for each update step in seconds (default: 1200)")
-    .option("--yes", "Skip confirmation prompts (non-interactive)", false)
+    .description(t("command.update.description"))
+    .option("--json", t("command.update.option.json"), false)
+    .option("--no-restart", t("command.update.option.noRestart"))
+    .option("--dry-run", t("command.update.option.dryRun"), false)
+    .option("--channel <stable|beta|dev>", t("command.update.option.channel"))
+    .option("--tag <dist-tag|version|spec>", t("command.update.option.tag"))
+    .option("--timeout <seconds>", t("command.update.option.timeout"))
+    .option("--yes", t("command.update.option.yes"), false)
     .addHelpText("after", () => {
       const examples = [
-        ["crawclaw update", "Update a source checkout (git)"],
-        ["crawclaw update --channel beta", "Switch to beta channel (git + npm)"],
-        ["crawclaw update --channel dev", "Switch to dev channel (git + npm)"],
-        ["crawclaw update --tag beta", "One-off update to a dist-tag or version"],
-        ["crawclaw update --tag main", "One-off package install from GitHub main"],
-        ["crawclaw update --dry-run", "Preview actions without changing anything"],
-        ["crawclaw update --no-restart", "Update without restarting the service"],
-        ["crawclaw update --json", "Output result as JSON"],
-        ["crawclaw update --yes", "Non-interactive (accept downgrade prompts)"],
-        ["crawclaw update wizard", "Interactive update wizard"],
-        ["crawclaw --update", "Shorthand for crawclaw update"],
+        ["crawclaw update", t("command.update.example.default")],
+        ["crawclaw update --channel beta", t("command.update.example.beta")],
+        ["crawclaw update --channel dev", t("command.update.example.dev")],
+        ["crawclaw update --tag beta", t("command.update.example.tagBeta")],
+        ["crawclaw update --tag main", t("command.update.example.tagMain")],
+        ["crawclaw update --dry-run", t("command.update.example.dryRun")],
+        ["crawclaw update --no-restart", t("command.update.example.noRestart")],
+        ["crawclaw update --json", t("command.update.example.json")],
+        ["crawclaw update --yes", t("command.update.example.yes")],
+        ["crawclaw update wizard", t("command.update.example.wizard")],
+        ["crawclaw --update", t("command.update.example.shortUpdate")],
       ] as const;
       const fmtExamples = examples
-        .map(([cmd, desc]) => `  ${theme.command(replaceCliName(cmd, cliName))} ${theme.muted(`# ${desc}`)}`)
+        .map(
+          ([cmd, desc]) =>
+            `  ${theme.command(replaceCliName(cmd, cliName))} ${theme.muted(`# ${desc}`)}`,
+        )
         .join("\n");
       return `
-${theme.heading("What this does:")}
-  - Git checkouts: fetches, rebases, installs deps, builds, and runs doctor
-  - npm installs: updates via detected package manager
+${theme.heading(t("command.update.help.whatThisDoes"))}
+  - ${t("command.update.help.gitCheckouts")}
+  - ${t("command.update.help.npmInstalls")}
 
-${theme.heading("Switch channels:")}
-  - Use --channel stable|beta|dev to persist the update channel in config
-  - Run ${replaceCliName("crawclaw update status", cliName)} to see the active channel and source
-  - Use --tag <dist-tag|version|spec> for a one-off package update without persisting
+${theme.heading(t("command.update.help.switchChannels"))}
+  - ${t("command.update.help.persistChannel")}
+  - ${t("command.update.help.statusHint", { command: replaceCliName("crawclaw update status", cliName) })}
+  - ${t("command.update.help.tagHint")}
 
-${theme.heading("Non-interactive:")}
-  - Use --yes to accept downgrade prompts
-  - Combine with --channel/--tag/--restart/--json/--timeout as needed
-  - Use --dry-run to preview actions without writing config/installing/restarting
+${theme.heading(t("command.update.help.nonInteractive"))}
+  - ${t("command.update.help.yesHint")}
+  - ${t("command.update.help.combineHint")}
+  - ${t("command.update.help.dryRunHint")}
 
-${theme.heading("Examples:")}
+${theme.heading(t("cli.help.examplesHeading"))}
 ${fmtExamples}
 
-${theme.heading("Notes:")}
-  - Switch channels with --channel stable|beta|dev
-  - For global installs: auto-updates via detected package manager when possible (see docs/install/updating.md)
-  - Downgrades require confirmation (can break configuration)
-  - Skips update if the working directory has uncommitted changes
+${theme.heading(t("command.update.help.notes"))}
+  - ${t("command.update.note.switch")}
+  - ${t("command.update.note.global")}
+  - ${t("command.update.note.downgrade")}
+  - ${t("command.update.note.dirty")}
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.crawclaw.ai/cli/update")}`;
+${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/update", "docs.crawclaw.ai/cli/update")}`;
     })
     .action(async (opts) => {
       try {
@@ -110,11 +113,11 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.crawclaw.ai/cli/up
 
   update
     .command("wizard")
-    .description("Interactive update wizard")
-    .option("--timeout <seconds>", "Timeout for each update step in seconds (default: 1200)")
+    .description(t("command.update.wizard.description"))
+    .option("--timeout <seconds>", t("command.update.option.timeout"))
     .addHelpText(
       "after",
-      `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.crawclaw.ai/cli/update")}\n`,
+      `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/update", "docs.crawclaw.ai/cli/update")}\n`,
     )
     .action(async (opts, command) => {
       try {
@@ -129,20 +132,29 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.crawclaw.ai/cli/up
 
   update
     .command("status")
-    .description("Show update channel and version status")
-    .option("--json", "Output result as JSON", false)
-    .option("--timeout <seconds>", "Timeout for update checks in seconds (default: 3)")
+    .description(t("command.update.status.description"))
+    .option("--json", t("command.update.option.json"), false)
+    .option("--timeout <seconds>", t("command.update.status.option.timeout"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          [replaceCliName("crawclaw update status", cliName), "Show channel + version status."],
-          [replaceCliName("crawclaw update status --json", cliName), "JSON output."],
-          [replaceCliName("crawclaw update status --timeout 10", cliName), "Custom timeout."],
-        ])}\n\n${theme.heading("Notes:")}\n${theme.muted(
-          "- Shows current update channel (stable/beta/dev) and source",
-        )}\n${theme.muted("- Includes git tag/branch/SHA for source checkouts")}\n\n${theme.muted(
-          "Docs:",
+        `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
+          [
+            replaceCliName("crawclaw update status", cliName),
+            t("command.update.status.example.default"),
+          ],
+          [
+            replaceCliName("crawclaw update status --json", cliName),
+            t("command.update.status.example.json"),
+          ],
+          [
+            replaceCliName("crawclaw update status --timeout 10", cliName),
+            t("command.update.status.example.timeout"),
+          ],
+        ])}\n\n${theme.heading(t("command.update.help.notes"))}\n${theme.muted(
+          `- ${t("command.update.status.note.channel")}`,
+        )}\n${theme.muted(`- ${t("command.update.status.note.git")}`)}\n\n${theme.muted(
+          t("cli.help.docsLabel"),
         )} ${formatDocsLink("/cli/update", "docs.crawclaw.ai/cli/update")}`,
     )
     .action(async (opts, command) => {

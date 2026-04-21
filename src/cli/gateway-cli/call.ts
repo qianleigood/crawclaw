@@ -2,6 +2,8 @@ import type { Command } from "commander";
 import type { CrawClawConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../../utils/message-channel.js";
+import { createCliTranslator } from "../i18n/index.js";
+import { getProgramContext } from "../program/program-context.js";
 import { withProgress } from "../progress.js";
 
 export type GatewayRpcOpts = {
@@ -14,14 +16,28 @@ export type GatewayRpcOpts = {
   json?: boolean;
 };
 
-export const gatewayCallOpts = (cmd: Command) =>
-  cmd
-    .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
-    .option("--token <token>", "Gateway token (if required)")
-    .option("--password <password>", "Gateway password (password auth)")
-    .option("--timeout <ms>", "Timeout in ms", "10000")
-    .option("--expect-final", "Wait for final response (agent)", false)
-    .option("--json", "Output JSON", false);
+function findCommandTranslator(command: Command) {
+  let current: Command | undefined = command;
+  while (current) {
+    const ctx = getProgramContext(current);
+    if (ctx) {
+      return ctx.t;
+    }
+    current = current.parent ?? undefined;
+  }
+  return createCliTranslator("en");
+}
+
+export const gatewayCallOpts = (cmd: Command) => {
+  const t = findCommandTranslator(cmd);
+  return cmd
+    .option("--url <url>", t("command.gateway.call.option.url"))
+    .option("--token <token>", t("command.gateway.call.option.token"))
+    .option("--password <password>", t("command.gateway.call.option.password"))
+    .option("--timeout <ms>", t("command.gateway.call.option.timeout"), "10000")
+    .option("--expect-final", t("command.gateway.call.option.expectFinal"), false)
+    .option("--json", t("command.gateway.option.json"), false);
+};
 
 export const callGatewayCli = async (method: string, opts: GatewayRpcOpts, params?: unknown) =>
   withProgress(

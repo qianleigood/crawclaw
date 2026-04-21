@@ -1,4 +1,5 @@
 import { confirm, select } from "@clack/prompts";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
 import {
@@ -34,6 +35,7 @@ export function createDoctorPrompter(params: {
   options: DoctorOptions;
 }): DoctorPrompter {
   const repairMode = resolveDoctorRepairMode(params.options);
+  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
   const confirmDefault = async (p: Parameters<typeof confirm>[0]) => {
     if (shouldAutoApproveDoctorFix(repairMode)) {
       return true;
@@ -48,6 +50,8 @@ export function createDoctorPrompter(params: {
       await confirm({
         ...p,
         message: stylePromptMessage(p.message),
+        active: p.active ?? t("common.confirm"),
+        inactive: p.inactive ?? t("common.cancel"),
       }),
       params.runtime,
     );
@@ -73,6 +77,8 @@ export function createDoctorPrompter(params: {
         await confirm({
           ...p,
           message: stylePromptMessage(p.message),
+          active: p.active ?? t("common.confirm"),
+          inactive: p.inactive ?? t("common.cancel"),
         }),
         params.runtime,
       );
@@ -91,6 +97,8 @@ export function createDoctorPrompter(params: {
         await confirm({
           ...p,
           message: stylePromptMessage(p.message),
+          active: p.active ?? t("common.confirm"),
+          inactive: p.inactive ?? t("common.cancel"),
         }),
         params.runtime,
       );

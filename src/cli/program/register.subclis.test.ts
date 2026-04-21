@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "../i18n/index.js";
+import type { ProgramContext } from "./context.js";
 import {
   loadValidatedConfigForPluginRegistration,
   registerSubCliByName,
@@ -35,6 +37,14 @@ vi.mock("../../config/config.js", () => configModule);
 describe("registerSubCliCommands", () => {
   const originalArgv = process.argv;
   const originalDisableLazySubcommands = process.env.CRAWCLAW_DISABLE_LAZY_SUBCOMMANDS;
+  const ctx: ProgramContext = {
+    programVersion: "9.9.9-test",
+    locale: "en",
+    t: createCliTranslator("en"),
+    channelOptions: ["telegram"],
+    messageChannelOptions: "telegram",
+    agentChannelOptions: "last|telegram",
+  };
 
   const createRegisteredProgram = (argv: string[], name?: string) => {
     process.argv = argv;
@@ -42,7 +52,7 @@ describe("registerSubCliCommands", () => {
     if (name) {
       program.name(name);
     }
-    registerSubCliCommands(program, process.argv);
+    registerSubCliCommands(program, ctx, process.argv);
     return program;
   };
 

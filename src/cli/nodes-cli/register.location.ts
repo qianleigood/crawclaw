@@ -2,24 +2,26 @@ import type { Command } from "commander";
 import { randomIdempotencyKey } from "../../gateway/call.js";
 import { defaultRuntime } from "../../runtime.js";
 import { runNodesCommand } from "./cli-utils.js";
-import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
+import { callGatewayCli, getCommandTranslator, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
 
 export function registerNodesLocationCommands(nodes: Command) {
-  const location = nodes.command("location").description("Fetch location from a paired node");
+  const t = getCommandTranslator(nodes);
+  const location = nodes.command("location").description(t("command.nodes.location.description"));
 
   nodesCallOpts(
     location
       .command("get")
-      .description("Fetch the current location from a node")
-      .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
-      .option("--max-age <ms>", "Use cached location newer than this (ms)")
+      .description(t("command.nodes.location.get.description"))
+      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
+      .option("--max-age <ms>", t("command.nodes.location.option.maxAge"))
+      .option("--accuracy <coarse|balanced|precise>", t("command.nodes.location.option.accuracy"))
       .option(
-        "--accuracy <coarse|balanced|precise>",
-        "Desired accuracy (default: balanced/precise depending on node setting)",
+        "--location-timeout <ms>",
+        t("command.nodes.location.option.locationTimeout"),
+        "10000",
       )
-      .option("--location-timeout <ms>", "Location fix timeout (ms)", "10000")
-      .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 20000)", "20000")
+      .option("--invoke-timeout <ms>", t("command.nodes.option.invokeTimeoutDefault20000"), "20000")
       .action(async (opts: NodesRpcOpts) => {
         await runNodesCommand("location get", async () => {
           const nodeId = await resolveNodeId(opts, opts.node ?? "");

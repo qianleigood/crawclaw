@@ -11,6 +11,7 @@ import {
   buildFishOptionCompletionLine,
   buildFishSubcommandCompletionLine,
 } from "./completion-fish.js";
+import { createCliTranslator } from "./i18n/index.js";
 import { getCoreCliCommandNames, registerCoreCliByName } from "./program/command-registry.js";
 import { getProgramContext } from "./program/program-context.js";
 import {
@@ -233,25 +234,23 @@ export async function usesSlowDynamicCompletion(
 }
 
 export function registerCompletionCli(program: Command) {
+  const t = getProgramContext(program)?.t ?? createCliTranslator("en");
   program
     .command("completion")
-    .description("Generate shell completion script")
+    .description(t("command.completion.description"))
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/completion", "docs.crawclaw.ai/cli/completion")}\n`,
+        `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/completion", "docs.crawclaw.ai/cli/completion")}\n`,
     )
     .addOption(
-      new Option("-s, --shell <shell>", "Shell to generate completion for (default: zsh)").choices(
+      new Option("-s, --shell <shell>", t("command.completion.option.shell")).choices(
         COMPLETION_SHELLS,
       ),
     )
-    .option("-i, --install", "Install completion script to shell profile")
-    .option(
-      "--write-state",
-      "Write completion scripts to $CRAWCLAW_STATE_DIR/completions (no stdout)",
-    )
-    .option("-y, --yes", "Skip confirmation (non-interactive)", false)
+    .option("-i, --install", t("command.completion.option.install"))
+    .option("--write-state", t("command.completion.option.writeState"))
+    .option("-y, --yes", t("command.completion.option.yes"), false)
     .action(async (options) => {
       // Route logs to stderr so plugin loading messages do not corrupt
       // the completion script written to stdout.

@@ -1,5 +1,7 @@
 import type { Command } from "commander";
 import { inheritOptionFromParent } from "../command-options.js";
+import { createCliTranslator } from "../i18n/index.js";
+import { getProgramContext } from "../program/program-context.js";
 import {
   runDaemonInstall,
   runDaemonRestart,
@@ -9,6 +11,18 @@ import {
   runDaemonUninstall,
 } from "./runners.js";
 import type { DaemonInstallOptions, GatewayRpcOpts } from "./types.js";
+
+function findCommandTranslator(command: Command) {
+  let current: Command | undefined = command;
+  while (current) {
+    const ctx = getProgramContext(current);
+    if (ctx) {
+      return ctx.t;
+    }
+    current = current.parent ?? undefined;
+  }
+  return createCliTranslator("en");
+}
 
 function resolveInstallOptions(
   cmdOpts: DaemonInstallOptions,
@@ -36,17 +50,18 @@ function resolveRpcOptions(cmdOpts: GatewayRpcOpts, command?: Command): GatewayR
 }
 
 export function addGatewayServiceCommands(parent: Command, opts?: { statusDescription?: string }) {
+  const t = findCommandTranslator(parent);
   parent
     .command("status")
-    .description(opts?.statusDescription ?? "Show gateway service status + probe the Gateway")
-    .option("--url <url>", "Gateway WebSocket URL (defaults to config/remote/local)")
-    .option("--token <token>", "Gateway token (if required)")
-    .option("--password <password>", "Gateway password (password auth)")
-    .option("--timeout <ms>", "Timeout in ms", "10000")
-    .option("--no-probe", "Skip RPC probe")
-    .option("--require-rpc", "Exit non-zero when the RPC probe fails", false)
-    .option("--deep", "Scan system-level services", false)
-    .option("--json", "Output JSON", false)
+    .description(opts?.statusDescription ?? t("command.gateway.status.description"))
+    .option("--url <url>", t("command.daemon.status.option.url"))
+    .option("--token <token>", t("command.daemon.status.option.token"))
+    .option("--password <password>", t("command.daemon.status.option.password"))
+    .option("--timeout <ms>", t("command.daemon.status.option.timeout"), "10000")
+    .option("--no-probe", t("command.daemon.status.option.noProbe"))
+    .option("--require-rpc", t("command.daemon.status.option.requireRpc"), false)
+    .option("--deep", t("command.daemon.status.option.deep"), false)
+    .option("--json", t("command.daemon.option.json"), false)
     .action(async (cmdOpts, command) => {
       await runDaemonStatus({
         rpc: resolveRpcOptions(cmdOpts, command),
@@ -59,44 +74,44 @@ export function addGatewayServiceCommands(parent: Command, opts?: { statusDescri
 
   parent
     .command("install")
-    .description("Install the Gateway service (launchd/systemd/schtasks)")
-    .option("--port <port>", "Gateway port")
-    .option("--runtime <runtime>", "Daemon runtime (node|bun). Default: node")
-    .option("--token <token>", "Gateway token (token auth)")
-    .option("--force", "Reinstall/overwrite if already installed", false)
-    .option("--json", "Output JSON", false)
+    .description(t("command.daemon.install.description"))
+    .option("--port <port>", t("command.daemon.install.option.port"))
+    .option("--runtime <runtime>", t("command.daemon.install.option.runtime"))
+    .option("--token <token>", t("command.daemon.install.option.token"))
+    .option("--force", t("command.daemon.install.option.force"), false)
+    .option("--json", t("command.daemon.option.json"), false)
     .action(async (cmdOpts, command) => {
       await runDaemonInstall(resolveInstallOptions(cmdOpts, command));
     });
 
   parent
     .command("uninstall")
-    .description("Uninstall the Gateway service (launchd/systemd/schtasks)")
-    .option("--json", "Output JSON", false)
+    .description(t("command.daemon.uninstall.description"))
+    .option("--json", t("command.daemon.option.json"), false)
     .action(async (cmdOpts) => {
       await runDaemonUninstall(cmdOpts);
     });
 
   parent
     .command("start")
-    .description("Start the Gateway service (launchd/systemd/schtasks)")
-    .option("--json", "Output JSON", false)
+    .description(t("command.daemon.start.description"))
+    .option("--json", t("command.daemon.option.json"), false)
     .action(async (cmdOpts) => {
       await runDaemonStart(cmdOpts);
     });
 
   parent
     .command("stop")
-    .description("Stop the Gateway service (launchd/systemd/schtasks)")
-    .option("--json", "Output JSON", false)
+    .description(t("command.daemon.stop.description"))
+    .option("--json", t("command.daemon.option.json"), false)
     .action(async (cmdOpts) => {
       await runDaemonStop(cmdOpts);
     });
 
   parent
     .command("restart")
-    .description("Restart the Gateway service (launchd/systemd/schtasks)")
-    .option("--json", "Output JSON", false)
+    .description(t("command.daemon.restart.description"))
+    .option("--json", t("command.daemon.option.json"), false)
     .action(async (cmdOpts) => {
       await runDaemonRestart(cmdOpts);
     });
