@@ -5,6 +5,7 @@ import type { AgentStreamParams } from "../../command/types.js";
 import type { SpawnAgentSessionParams } from "../../runtime/spawn-session.js";
 import type { AgentSpawnToolContext } from "../../runtime/subagent-context.js";
 import type { NormalizedUsage } from "../../usage.js";
+import type { SpecialAgentParentForkContext } from "./parent-fork-context.js";
 
 export type SpecialAgentTranscriptPolicy = "isolated" | "thread_bound";
 export type SpecialAgentExecutionMode = "embedded_fork" | "spawned_session";
@@ -14,16 +15,9 @@ export type SpecialAgentToolPolicy = {
   enforcement?: "prompt_allowlist" | "runtime_deny";
 };
 
-export type SpecialAgentPromptCachePolicy = {
-  scope?: "parent_session";
-  retention?: string;
-  keyNamespace?: string;
-};
-
 export type SpecialAgentCachePolicy = {
   cacheRetention?: AgentStreamParams["cacheRetention"];
   skipWrite?: boolean;
-  promptCache?: SpecialAgentPromptCachePolicy;
 };
 
 export type SpecialAgentEmbeddedContext = {
@@ -106,6 +100,7 @@ export type SpecialAgentSpawnRequest = {
   task: string;
   extraSystemPrompt?: string;
   parentRunId?: string;
+  parentForkContext?: SpecialAgentParentForkContext;
   embeddedContext?: SpecialAgentEmbeddedContext;
   spawnContext?: AgentSpawnToolContext;
   spawnOverrides?: SpecialAgentSpawnOverrides;
@@ -166,13 +161,5 @@ export function validateSpecialAgentDefinitionContract(
   if (transcriptPolicy === "thread_bound" && executionMode !== "spawned_session") {
     issues.push('thread_bound transcriptPolicy requires executionMode="spawned_session"');
   }
-  const promptCacheScope = definition.cachePolicy?.promptCache?.scope;
-  if (promptCacheScope && promptCacheScope !== "parent_session") {
-    issues.push('cachePolicy.promptCache.scope only supports "parent_session"');
-  }
-  if (definition.cachePolicy?.cacheRetention === "none" && definition.cachePolicy?.promptCache) {
-    issues.push('cachePolicy.cacheRetention="none" cannot be combined with promptCache policy');
-  }
-
   return issues;
 }

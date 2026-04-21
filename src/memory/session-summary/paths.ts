@@ -1,7 +1,7 @@
 import path from "node:path";
 import { resolveStateDir } from "../../config/paths.ts";
-import { normalizeAgentId } from "../../routing/session-key.ts";
 import { validateSessionId } from "../../config/sessions/paths.ts";
+import { normalizeAgentId } from "../../routing/session-key.ts";
 
 export function resolveSessionSummaryRootDir(): string {
   return path.join(resolveStateDir(), "session-summary");
@@ -14,7 +14,9 @@ export function resolveSessionSummaryDir(params: {
 }): string {
   const agentId = normalizeAgentId(params.agentId ?? undefined);
   const sessionId = validateSessionId(params.sessionId ?? "session");
-  const rootDir = params.rootDir?.trim() ? path.resolve(params.rootDir.trim()) : resolveSessionSummaryRootDir();
+  const rootDir = params.rootDir?.trim()
+    ? path.resolve(params.rootDir.trim())
+    : resolveSessionSummaryRootDir();
   return path.join(rootDir, "agents", agentId, "sessions", sessionId);
 }
 

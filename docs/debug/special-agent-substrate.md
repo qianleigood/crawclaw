@@ -110,13 +110,19 @@ This is now close to Claude Code at the substrate-design level:
 - explicit provider-level cache policy per special agent
 - shared event/history/usage hooks in the runner
 
-CrawClaw now also carries the directly portable part of Claude's cache design:
+CrawClaw now carries only the cache pieces used by the current memory special
+agents:
 
 - memory-oriented special agents declare cache policy in `SpecialAgentDefinition`
-- the shared runner now derives stable prompt-cache keys from a canonical parent cache-envelope identity, using the parent session only as a compatibility fallback
-- those policies flow through the shared spawn path into provider request params
-- parent runs now persist cache-safe snapshot state keyed by `runId`, so special agents can start resolving cache inheritance from the final parent prompt assembly instead of only from session keys
-- those cache-safe snapshots now separate:
+- the shared runner translates those policies into provider request params
+  such as short retention and cache-write suppression
+- parent runs now build a lifecycle `parentForkContext` from the final parent
+  prompt assembly, so `session_summary` receives the parent prompt envelope and
+  model-visible messages as one captured fork object
+- parent runs no longer persist a disk-backed parent prompt artifact keyed by
+  `runId`; embedded forks either receive an explicit parent prompt envelope or run
+  from their own prompt assembly
+- the parent fork context separates:
   - a canonical `CacheEnvelope` for the model-visible shared prefix
   - debug context fields for run/session metadata that should not affect cache identity
 - the canonical `CacheEnvelope` now only covers:
@@ -124,11 +130,33 @@ CrawClaw now also carries the directly portable part of Claude's cache design:
   - tool prompt payload + tool-inventory digest
   - thinking config
   - fork-context messages
-- the substrate now computes reuse/drift through an explicit fork-cache plan instead of scattering cache rules across snapshot persistence, embedded attempts, and provider patching
-- provider-specific request patching now only consumes the derived cache hints; it no longer defines cache identity itself
+- provider-specific request patching now only consumes direct cache hints; it no
+  longer derives a parent prompt-cache key from the parent envelope
 - the substrate now supports an explicit `embedded_fork` execution mode, so special agents no longer need to be modeled only as child sessions
-- embedded memory special agents intentionally run without inheriting the parent run's captured prompt envelope
-- embedded memory special runs still keep cache-write suppression and short retention, but they do not reuse a parent prompt-cache key or parent fork envelope
+- session-summary special runs now consume the lifecycle `parentForkContext`
+  directly instead of reading a `runId` snapshot for the parent envelope and a
+  separate lifecycle field for messages
+- that parent fork context carries the full current model-visible
+  fork-context messages, matching Claude Code's session-memory update shape
+  more closely than a recent-message excerpt
+- the old automatic recent-message excerpt fallback has been removed; lifecycle
+  updates with missing fork context are skipped, while explicit CLI/gateway
+  refresh builds a bounded manual parent fork context from persisted
+  model-visible rows
+- when that parent envelope is available, the summary-specific instructions
+  stay in the appended task prompt instead of being appended to the parent
+  system prompt
+- other embedded memory special agents do not attach the parent run's captured
+  prompt envelope
+- durable extraction and dream special runs still keep cache-write suppression
+  and short retention
+- session-summary keeps short retention but does not reuse a parent
+  prompt-cache key
+- session-summary-backed compaction now stores the rendered compact view in
+  compaction state, and prompt assembly prepends it as a compact summary message
+  before the preserved tail
+- stale `summaryInProgress` leases are cleared during compaction rather than
+  blocking on a dead summary run
 - embedded memory special runs now record shared agent-event / history / usage observations into Context Archive without depending on child-session transcript state
 - the same embedded memory runs now surface usage, including `cacheRead` / `cacheWrite`, back into their Action Feed completion details
 - embedded memory special agents now declare explicit cache-write suppression on the substrate, which maps to provider-supported "do not create new cache entries" controls while preserving prompt-cache reads when possible
@@ -136,13 +164,14 @@ CrawClaw now also carries the directly portable part of Claude's cache design:
 
 At the current CrawClaw runtime layer, this closes most of the substrate-level design gap that was still open after the first embedded-fork rollout while also simplifying ownership:
 
-- `cache-safe-params.ts` owns canonical cache identity and snapshot persistence
-- `cache-plan.ts` owns parent-prefix reuse and drift decisions
-- `extra-params.ts` only translates cache hints into provider payloads
+- `parent-fork-context.ts` owns canonical cache identity and parent fork context
+  construction
+- `cache-plan.ts` owns direct special-agent cache hints
+- `extra-params.ts` translates cache hints into provider payloads
 
-The main remaining difference from Claude Code is that CrawClaw still does not replay a full in-process forked query-loop identity. The inherited envelope is now canonical enough to carry a stable cache identity and drift protection, but request reconstruction is still adapter-shaped rather than a direct reuse of Claude's exact `CacheSafeParams` object model.
+The main remaining difference from Claude Code is that CrawClaw still does not replay a full in-process forked query-loop identity. The parent fork context is canonical enough for session-summary history handoff, but request reconstruction is still adapter-shaped rather than a direct reuse of Claude's exact `CacheSafeParams` object model.
 
 Future task-specific special agents should continue to opt in case-by-case:
 
 - maintenance-style, fire-and-forget background agents should prefer `embedded_fork`
-- user-invoked or session-bearing task agents should remain `spawned_session` unless they need parent-run cache inheritance more than child-session state
+- user-invoked or session-bearing task agents should remain `spawned_session` unless they explicitly need a parent fork context more than child-session state

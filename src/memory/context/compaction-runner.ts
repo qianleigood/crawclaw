@@ -15,6 +15,8 @@ import {
   MIN_COMPACTION_TEXT_MESSAGES,
 } from "./compaction.ts";
 
+const SESSION_SUMMARY_STALE_LEASE_MS = 60_000;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -63,7 +65,11 @@ async function waitForSessionSummaryIdle(params: {
   runtimeStore: RuntimeStore;
   sessionId: string;
   maxWaitMs?: number;
-}): Promise<{ waitedForSummaryMs: number; timedOut: boolean }> {
+}): Promise<{
+  waitedForSummaryMs: number;
+  timedOut: boolean;
+  staleSummaryLeaseCleared: boolean;
+}> {
   const startedAt = Date.now();
   const deadline = Date.now() + Math.max(0, params.maxWaitMs ?? 15_000);
   while (Date.now() < deadline) {
@@ -72,6 +78,22 @@ async function waitForSessionSummaryIdle(params: {
       return {
         waitedForSummaryMs: Math.max(0, Date.now() - startedAt),
         timedOut: false,
+        staleSummaryLeaseCleared: false,
+      };
+    }
+    const leaseAgeMs = Math.max(0, Date.now() - state.updatedAt);
+    if (leaseAgeMs >= SESSION_SUMMARY_STALE_LEASE_MS) {
+      await params.runtimeStore.upsertSessionSummaryState({
+        sessionId: state.sessionId,
+        lastSummarizedMessageId: state.lastSummarizedMessageId,
+        lastSummaryUpdatedAt: state.lastSummaryUpdatedAt,
+        tokensAtLastSummary: state.tokensAtLastSummary,
+        summaryInProgress: false,
+      });
+      return {
+        waitedForSummaryMs: Math.max(0, Date.now() - startedAt),
+        timedOut: false,
+        staleSummaryLeaseCleared: true,
       };
     }
     await sleep(250);
@@ -79,6 +101,7 @@ async function waitForSessionSummaryIdle(params: {
   return {
     waitedForSummaryMs: Math.max(0, Date.now() - startedAt),
     timedOut: true,
+    staleSummaryLeaseCleared: false,
   };
 }
 
@@ -209,7 +232,7 @@ export async function runSessionMemoryCompaction(params: {
     preservedTailMessageId,
     summarizedThroughMessageId,
     mode: "session-summary",
-    summaryOverrideText: null,
+    summaryOverrideText: renderedSummary,
   });
 
   const keptRows = allRows.filter((row) => row.turnIndex >= preservedTailStartTurn);
@@ -251,6 +274,7 @@ export async function runSessionMemoryCompaction(params: {
     summaryAgeMs,
     waitedForSummaryMs: waitResult.waitedForSummaryMs,
     summaryWaitTimedOut: waitResult.timedOut,
+    staleSummaryLeaseCleared: waitResult.staleSummaryLeaseCleared,
     planAttachmentIncluded: Boolean(planAttachmentText),
     tailTokensBefore,
     tailTokensAfter,

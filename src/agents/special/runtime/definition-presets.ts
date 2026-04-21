@@ -11,14 +11,10 @@ export function createRuntimeDenyToolPolicy(allowlist: readonly string[]): Speci
   };
 }
 
-export function createShortParentSessionCachePolicy(retention = "24h"): SpecialAgentCachePolicy {
+export function createShortMemoryCachePolicy(): SpecialAgentCachePolicy {
   return {
     cacheRetention: "short",
     skipWrite: true,
-    promptCache: {
-      scope: "parent_session",
-      retention,
-    },
   };
 }
 
@@ -37,7 +33,7 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
     executionMode: "embedded_fork",
     transcriptPolicy: "isolated",
     toolPolicy: createRuntimeDenyToolPolicy(params.allowlist),
-    cachePolicy: createShortParentSessionCachePolicy(),
+    cachePolicy: createShortMemoryCachePolicy(),
     mode: "run",
     cleanup: "keep",
     sandbox: "inherit",

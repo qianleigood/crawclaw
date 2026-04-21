@@ -106,11 +106,7 @@ import {
   resolveSkillsPromptForRun,
 } from "../../skills.js";
 import { getSkillExposureState } from "../../skills/exposure-state.js";
-import { buildSpecialAgentForkCachePlan } from "../../special/runtime/cache-plan.js";
-import {
-  buildSpecialAgentCacheEnvelopeFromModelInput,
-  writeSpecialAgentCacheSafeParamsSnapshot,
-} from "../../special/runtime/cache-safe-params.js";
+import { buildSpecialAgentParentForkContextFromModelInput } from "../../special/runtime/parent-fork-context.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
 import { sanitizeToolCallIdsForCloudCodeAssist } from "../../tool-call-id.js";
@@ -153,7 +149,6 @@ import {
 import { collectAllowedToolNames } from "../tool-name-allowlist.js";
 import { installToolResultContextGuard } from "../tool-result-context-guard.js";
 import { splitSdkTools } from "../tool-split.js";
-import type { EmbeddedSandboxInfo } from "../types.js";
 import { describeUnknownError, mapThinkingLevel } from "../utils.js";
 import { flushPendingToolResultsAfterIdle } from "../wait-for-idle-before-flush.js";
 import {
@@ -263,142 +258,22 @@ function shouldEnableAnthropicThinkingRecovery(api: string | null | undefined): 
   return api === "anthropic-messages" || api === "bedrock-converse-stream";
 }
 
-function extractSpecialAgentCacheSafeStreamParams(
-  extraParams: Record<string, unknown> | undefined,
-): {
-  cacheRetention?: "none" | "short" | "long";
-  skipCacheWrite?: boolean;
-  promptCacheKey?: string;
-  promptCacheRetention?: string;
-} {
-  const cacheRetention =
-    extraParams?.cacheRetention === "none" ||
-    extraParams?.cacheRetention === "short" ||
-    extraParams?.cacheRetention === "long"
-      ? extraParams.cacheRetention
-      : undefined;
-  const promptCacheKey =
-    typeof extraParams?.promptCacheKey === "string" && extraParams.promptCacheKey.trim()
-      ? extraParams.promptCacheKey.trim()
-      : undefined;
-  const promptCacheRetention =
-    typeof extraParams?.promptCacheRetention === "string" && extraParams.promptCacheRetention.trim()
-      ? extraParams.promptCacheRetention.trim()
-      : undefined;
-  return {
-    ...(cacheRetention ? { cacheRetention } : {}),
-    ...(extraParams?.skipCacheWrite === true ? { skipCacheWrite: true } : {}),
-    ...(promptCacheKey ? { promptCacheKey } : {}),
-    ...(promptCacheRetention ? { promptCacheRetention } : {}),
-  };
-}
-
-function buildSpecialAgentCacheDebugContext(params: {
-  runId: string;
-  sessionId: string;
-  sessionKey?: string | null;
-  agentId?: string | null;
-  workspaceDir: string;
-  sessionFile: string;
-  trigger?: string | null;
-  messageChannel?: string | null;
-  messageProvider?: string | null;
-  messageTo?: string | null;
-  messageThreadId?: string | number | null;
-  groupId?: string | null;
-  groupChannel?: string | null;
-  groupSpace?: string | null;
-  spawnedBy?: string | null;
-  senderId?: string | null;
-  senderName?: string | null;
-  senderUsername?: string | null;
-  senderE164?: string | null;
-  senderIsOwner?: boolean;
-  currentChannelId?: string | null;
-  currentThreadTs?: string | null;
-  currentMessageId?: string | number | null;
-  allowGatewaySubagentBinding?: boolean;
-  runtimeInfo: Record<string, unknown>;
-  userTimezone?: string | null;
-  userTime?: string | null;
-  userTimeFormat?: string | null;
-  promptMode: string;
-  effectivePromptMode: string;
-  defaultModelLabel: string;
-  sandboxInfo?: EmbeddedSandboxInfo;
-  reasoningTagHint: boolean;
-  channelActions?: unknown;
-  messageToolHints?: unknown;
-}): {
-  userContext: Record<string, unknown>;
-  systemContext: Record<string, unknown>;
-} {
-  return {
-    userContext: {
-      runId: params.runId,
-      sessionId: params.sessionId,
-      ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
-      ...(params.agentId ? { agentId: params.agentId } : {}),
-      workspaceDir: params.workspaceDir,
-      sessionFile: params.sessionFile,
-      ...(params.trigger ? { trigger: params.trigger } : {}),
-      ...(params.messageChannel ? { messageChannel: params.messageChannel } : {}),
-      ...(params.messageProvider ? { messageProvider: params.messageProvider } : {}),
-      ...(params.messageTo ? { messageTo: params.messageTo } : {}),
-      ...(params.messageThreadId !== undefined ? { messageThreadId: params.messageThreadId } : {}),
-      ...(params.groupId ? { groupId: params.groupId } : {}),
-      ...(params.groupChannel ? { groupChannel: params.groupChannel } : {}),
-      ...(params.groupSpace ? { groupSpace: params.groupSpace } : {}),
-      ...(params.spawnedBy ? { spawnedBy: params.spawnedBy } : {}),
-      ...(params.senderId ? { senderId: params.senderId } : {}),
-      ...(params.senderName ? { senderName: params.senderName } : {}),
-      ...(params.senderUsername ? { senderUsername: params.senderUsername } : {}),
-      ...(params.senderE164 ? { senderE164: params.senderE164 } : {}),
-      ...(params.senderIsOwner !== undefined ? { senderIsOwner: params.senderIsOwner } : {}),
-      ...(params.currentChannelId ? { currentChannelId: params.currentChannelId } : {}),
-      ...(params.currentThreadTs ? { currentThreadTs: params.currentThreadTs } : {}),
-      ...(params.currentMessageId !== undefined
-        ? { currentMessageId: params.currentMessageId }
-        : {}),
-      ...(params.allowGatewaySubagentBinding === true ? { allowGatewaySubagentBinding: true } : {}),
-    },
-    systemContext: {
-      runtimeInfo: params.runtimeInfo,
-      ...(params.userTimezone ? { userTimezone: params.userTimezone } : {}),
-      ...(params.userTime ? { userTime: params.userTime } : {}),
-      ...(params.userTimeFormat ? { userTimeFormat: params.userTimeFormat } : {}),
-      promptMode: params.promptMode,
-      effectivePromptMode: params.effectivePromptMode,
-      defaultModelLabel: params.defaultModelLabel,
-      sandboxEnabled: params.sandboxInfo?.enabled ?? false,
-      sandboxWorkspaceDir: params.sandboxInfo?.workspaceDir ?? null,
-      browserBridgeUrl: params.sandboxInfo?.browserBridgeUrl ?? null,
-      hostBrowserAllowed: params.sandboxInfo?.hostBrowserAllowed ?? null,
-      reasoningTagHint: params.reasoningTagHint,
-      ...(params.channelActions !== undefined ? { channelActions: params.channelActions } : {}),
-      ...(params.messageToolHints !== undefined
-        ? { messageToolHints: params.messageToolHints }
-        : {}),
-    },
-  };
-}
-
-function buildInheritedEmbeddedSystemPrompt(params: {
-  inheritedSystemPromptText: string;
+function buildParentPromptEmbeddedSystemPrompt(params: {
+  parentSystemPromptText: string;
   extraSystemPrompt?: string;
 }): string {
-  const inherited = params.inheritedSystemPromptText.trim();
+  const parent = params.parentSystemPromptText.trim();
   const extra = params.extraSystemPrompt?.trim();
   if (!extra) {
-    return inherited;
+    return parent;
   }
-  if (!inherited) {
+  if (!parent) {
     return extra;
   }
-  return `${inherited}\n\n${extra}`;
+  return `${parent}\n\n${extra}`;
 }
 
-function extractInheritedToolNames(
+function extractParentPromptToolNames(
   envelope:
     | {
         toolInventoryDigest?: { toolNames?: string[] };
@@ -426,8 +301,8 @@ function extractInheritedToolNames(
   return payloadNames.length ? [...new Set(payloadNames)] : undefined;
 }
 
-function resolveInheritedThinkingConfig(params: {
-  inherited?: Record<string, unknown>;
+function resolveParentPromptThinkingConfig(params: {
+  parent?: Record<string, unknown>;
   thinkLevel?: ThinkLevel;
   reasoningLevel?: ReasoningLevel;
   verboseLevel?: VerboseLevel;
@@ -438,24 +313,21 @@ function resolveInheritedThinkingConfig(params: {
   verboseLevel?: VerboseLevel;
   fastMode?: boolean;
 } {
-  const inherited = params.inherited;
-  const inheritedThinkLevel =
-    typeof inherited?.thinkLevel === "string" ? (inherited.thinkLevel as ThinkLevel) : undefined;
-  const inheritedReasoningLevel =
-    typeof inherited?.reasoningLevel === "string"
-      ? (inherited.reasoningLevel as ReasoningLevel)
+  const parent = params.parent;
+  const parentThinkLevel =
+    typeof parent?.thinkLevel === "string" ? (parent.thinkLevel as ThinkLevel) : undefined;
+  const parentReasoningLevel =
+    typeof parent?.reasoningLevel === "string"
+      ? (parent.reasoningLevel as ReasoningLevel)
       : undefined;
-  const inheritedVerboseLevel =
-    typeof inherited?.verboseLevel === "string"
-      ? (inherited.verboseLevel as VerboseLevel)
-      : undefined;
-  const inheritedFastMode =
-    typeof inherited?.fastMode === "boolean" ? inherited.fastMode : undefined;
+  const parentVerboseLevel =
+    typeof parent?.verboseLevel === "string" ? (parent.verboseLevel as VerboseLevel) : undefined;
+  const parentFastMode = typeof parent?.fastMode === "boolean" ? parent.fastMode : undefined;
   return {
-    thinkLevel: params.thinkLevel ?? inheritedThinkLevel,
-    reasoningLevel: params.reasoningLevel ?? inheritedReasoningLevel,
-    verboseLevel: params.verboseLevel ?? inheritedVerboseLevel,
-    fastMode: params.fastMode ?? inheritedFastMode,
+    thinkLevel: params.thinkLevel ?? parentThinkLevel,
+    reasoningLevel: params.reasoningLevel ?? parentReasoningLevel,
+    verboseLevel: params.verboseLevel ?? parentVerboseLevel,
+    fastMode: params.fastMode ?? parentFastMode,
   };
 }
 
@@ -527,21 +399,21 @@ export function ensureAllowedToolsActiveInSession<TTool extends { name: string }
 
 function resolveEffectiveToolsAllow(params: {
   toolsAllow?: string[];
-  inheritedToolNames?: string[];
+  parentPromptToolNames?: string[];
   specialAgentSpawnSource?: string;
 }): string[] | undefined {
   if (params.toolsAllow && params.toolsAllow.length > 0) {
     return params.toolsAllow;
   }
   // Embedded special-agent runs must preserve their current tool inventory.
-  // Falling back to the parent run's inherited tool names can strip the
+  // Falling back to the parent run's tool names can strip the
   // dedicated special-agent tools (for example memory_note_*), which makes the
   // child think those tools do not exist.
   if (params.specialAgentSpawnSource?.trim()) {
     return undefined;
   }
-  if (params.inheritedToolNames && params.inheritedToolNames.length > 0) {
-    return params.inheritedToolNames;
+  if (params.parentPromptToolNames && params.parentPromptToolNames.length > 0) {
+    return params.parentPromptToolNames;
   }
   return undefined;
 }
@@ -814,14 +686,14 @@ export async function runEmbeddedAttempt(
     let yieldAbortSettled: Promise<void> | null = null;
     // Check if the model supports native image input
     const modelHasVision = params.model.input?.includes("image") ?? false;
-    const inheritedThinking = resolveInheritedThinkingConfig({
-      inherited: params.specialInheritedPromptEnvelope?.thinkingConfig,
+    const parentPromptThinking = resolveParentPromptThinkingConfig({
+      parent: params.specialParentPromptEnvelope?.thinkingConfig,
       thinkLevel: params.thinkLevel,
       reasoningLevel: params.reasoningLevel,
       verboseLevel: params.verboseLevel,
       fastMode: params.fastMode,
     });
-    const inheritedToolNames = extractInheritedToolNames(params.specialInheritedPromptEnvelope);
+    const parentPromptToolNames = extractParentPromptToolNames(params.specialParentPromptEnvelope);
     const toolsRaw = params.disableTools
       ? []
       : (() => {
@@ -895,7 +767,7 @@ export async function runEmbeddedAttempt(
           });
           const effectiveToolsAllow = resolveEffectiveToolsAllow({
             toolsAllow: params.toolsAllow,
-            inheritedToolNames,
+            parentPromptToolNames,
             specialAgentSpawnSource: params.specialAgentSpawnSource,
           });
           if (effectiveToolsAllow && effectiveToolsAllow.length > 0) {
@@ -1079,31 +951,33 @@ export async function runEmbeddedAttempt(
     })
       ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
       : undefined;
-    const inheritedForkContextMessages = Array.isArray(
-      params.specialInheritedPromptEnvelope?.forkContextMessages,
+    const parentForkContextMessages = Array.isArray(
+      params.specialParentPromptEnvelope?.forkContextMessages,
     )
-      ? params.specialInheritedPromptEnvelope.forkContextMessages
+      ? params.specialParentPromptEnvelope.forkContextMessages
       : [];
     const thinkingConfig = {
-      ...(inheritedThinking.thinkLevel !== undefined
-        ? { thinkLevel: inheritedThinking.thinkLevel }
+      ...(parentPromptThinking.thinkLevel !== undefined
+        ? { thinkLevel: parentPromptThinking.thinkLevel }
         : {}),
-      ...(inheritedThinking.reasoningLevel !== undefined
-        ? { reasoningLevel: inheritedThinking.reasoningLevel }
+      ...(parentPromptThinking.reasoningLevel !== undefined
+        ? { reasoningLevel: parentPromptThinking.reasoningLevel }
         : {}),
-      ...(inheritedThinking.verboseLevel !== undefined
-        ? { verboseLevel: inheritedThinking.verboseLevel }
+      ...(parentPromptThinking.verboseLevel !== undefined
+        ? { verboseLevel: parentPromptThinking.verboseLevel }
         : {}),
-      ...(inheritedThinking.fastMode !== undefined ? { fastMode: inheritedThinking.fastMode } : {}),
+      ...(parentPromptThinking.fastMode !== undefined
+        ? { fastMode: parentPromptThinking.fastMode }
+        : {}),
     };
 
-    const baseSystemPromptSections = params.specialInheritedPromptEnvelope?.systemPromptText
+    const baseSystemPromptSections = params.specialParentPromptEnvelope?.systemPromptText
       ? [
           {
-            id: "special:inherited_system_prompt",
+            id: "special:parent_system_prompt",
             role: "system_prompt" as const,
-            content: buildInheritedEmbeddedSystemPrompt({
-              inheritedSystemPromptText: params.specialInheritedPromptEnvelope.systemPromptText,
+            content: buildParentPromptEmbeddedSystemPrompt({
+              parentSystemPromptText: params.specialParentPromptEnvelope.systemPromptText,
               extraSystemPrompt: params.extraSystemPrompt,
             }),
             source: "special-agent",
@@ -1112,8 +986,8 @@ export async function runEmbeddedAttempt(
         ]
       : buildEmbeddedSystemPromptSections({
           workspaceDir: effectiveWorkspace,
-          defaultThinkLevel: inheritedThinking.thinkLevel,
-          reasoningLevel: inheritedThinking.reasoningLevel ?? "off",
+          defaultThinkLevel: parentPromptThinking.thinkLevel,
+          reasoningLevel: parentPromptThinking.reasoningLevel ?? "off",
           extraSystemPrompt: params.extraSystemPrompt,
           ownerNumbers: params.ownerNumbers,
           ownerDisplay: ownerDisplay.ownerDisplay,
@@ -1168,29 +1042,7 @@ export async function runEmbeddedAttempt(
       return providerRequest;
     };
     let systemPromptText = modelInput.systemPrompt;
-    const currentInheritedEnvelope = params.specialInheritedPromptEnvelope?.systemPromptText
-      ? buildSpecialAgentCacheEnvelopeFromModelInput({
-          modelInput,
-          forkContextMessages: inheritedForkContextMessages,
-        })
-      : undefined;
-    const inheritedPromptCachePlan = buildSpecialAgentForkCachePlan({
-      inheritedEnvelope: params.specialInheritedPromptEnvelope,
-      currentEnvelope: currentInheritedEnvelope,
-      streamParams: params.streamParams,
-    });
-    if (inheritedPromptCachePlan.mismatches.length > 0) {
-      log.warn(
-        "special-agent inherited prompt envelope drift detected; disabling inherited prompt cache key",
-        {
-          runId: params.runId,
-          sessionId: params.sessionId,
-          spawnSource: params.specialAgentSpawnSource,
-          mismatches: inheritedPromptCachePlan.mismatches,
-        },
-      );
-    }
-    const specialAgentStreamParams = inheritedPromptCachePlan.streamParams;
+    const specialAgentStreamParams = params.streamParams;
     const systemPromptReport = buildSystemPromptReport({
       source: "run",
       generatedAt: Date.now(),
@@ -1538,9 +1390,9 @@ export async function runEmbeddedAttempt(
         params.modelId,
         {
           ...specialAgentStreamParams,
-          fastMode: inheritedThinking.fastMode,
+          fastMode: parentPromptThinking.fastMode,
         },
-        inheritedThinking.thinkLevel,
+        parentPromptThinking.thinkLevel,
         sessionAgentId,
         effectiveWorkspace,
         params.model,
@@ -1751,11 +1603,8 @@ export async function runEmbeddedAttempt(
       }
 
       try {
-        if (Array.isArray(params.specialInheritedPromptEnvelope?.forkContextMessages)) {
-          const inheritedMessages = params.specialInheritedPromptEnvelope.forkContextMessages;
-          if (inheritedMessages.length > 0) {
-            activeSession.agent.replaceMessages(inheritedMessages as AgentMessage[]);
-          }
+        if (parentForkContextMessages.length > 0) {
+          activeSession.agent.replaceMessages(parentForkContextMessages as AgentMessage[]);
         }
 
         if (shouldEnableAnthropicThinkingRecovery(params.model.api)) {
@@ -2227,9 +2076,9 @@ export async function runEmbeddedAttempt(
         }
         const effectivePrompt = modelInput.prompt;
         const cacheDecisionCodes = resolvePromptCacheDecisionCodes({
-          hasInheritedPromptEnvelope: Boolean(params.specialInheritedPromptEnvelope),
-          canReuseParentPrefix: inheritedPromptCachePlan.canReuseParentPrefix,
-          mismatchCount: inheritedPromptCachePlan.mismatches.length,
+          hasInheritedPromptEnvelope: false,
+          canReuseParentPrefix: false,
+          mismatchCount: 0,
           skipCacheWrite: specialAgentStreamParams?.skipCacheWrite === true,
           cacheRetention: specialAgentStreamParams?.cacheRetention,
           hasCacheIdentity: Boolean(providerRequestSnapshot.cacheIdentity),
@@ -2380,84 +2229,6 @@ export async function runEmbeddedAttempt(
               .catch((err) => {
                 log.warn(`llm_input hook failed: ${String(err)}`);
               });
-          }
-
-          try {
-            const cacheDebugContext = buildSpecialAgentCacheDebugContext({
-              runId: params.runId,
-              sessionId: params.sessionId,
-              sessionKey: params.sessionKey,
-              agentId: hookAgentId,
-              workspaceDir: effectiveWorkspace,
-              sessionFile: params.sessionFile,
-              trigger: params.trigger ?? null,
-              messageChannel: params.messageChannel ?? params.messageProvider ?? null,
-              messageProvider: params.messageProvider ?? null,
-              messageTo: params.messageTo ?? null,
-              messageThreadId: params.messageThreadId ?? null,
-              groupId: params.groupId ?? null,
-              groupChannel: params.groupChannel ?? null,
-              groupSpace: params.groupSpace ?? null,
-              spawnedBy: params.spawnedBy ?? null,
-              senderId: params.senderId ?? null,
-              senderName: params.senderName ?? null,
-              senderUsername: params.senderUsername ?? null,
-              senderE164: params.senderE164 ?? null,
-              senderIsOwner: params.senderIsOwner,
-              currentChannelId: params.currentChannelId ?? null,
-              currentThreadTs: params.currentThreadTs ?? null,
-              currentMessageId: params.currentMessageId ?? null,
-              allowGatewaySubagentBinding: params.allowGatewaySubagentBinding === true,
-              runtimeInfo,
-              userTimezone,
-              userTime,
-              userTimeFormat,
-              promptMode,
-              effectivePromptMode,
-              defaultModelLabel,
-              sandboxInfo,
-              reasoningTagHint: reasoningTagHint,
-              channelActions,
-              messageToolHints,
-            });
-            queryContext = {
-              ...queryContext,
-              messages: activeSession.messages,
-            };
-            refreshQueryContextProviderRequest();
-            const cacheEnvelope = buildSpecialAgentCacheEnvelopeFromModelInput({
-              modelInput,
-              forkContextMessages: activeSession.messages,
-            });
-            await writeSpecialAgentCacheSafeParamsSnapshot({
-              runId: params.runId,
-              sessionId: params.sessionId,
-              sessionKey: params.sessionKey,
-              agentId: hookAgentId,
-              provider: params.provider,
-              modelId: params.modelId,
-              modelApi: params.model.api,
-              systemPromptText: modelInput.systemPrompt,
-              queryContextHash: modelInput.queryContextHash,
-              prompt: effectivePrompt,
-              toolNames: modelInput.toolContext.toolNames,
-              userContext: cacheDebugContext.userContext,
-              systemContext: {
-                ...cacheDebugContext.systemContext,
-                queryContextHash: modelInput.queryContextHash,
-                ...(providerRequestSnapshot.cacheIdentity
-                  ? { cacheIdentity: providerRequestSnapshot.cacheIdentity }
-                  : {}),
-              },
-              toolPromptPayload: cacheEnvelope.toolPromptPayload,
-              thinkingConfig: cacheEnvelope.thinkingConfig,
-              forkContextMessages: cacheEnvelope.forkContextMessages,
-              transcriptLeafId,
-              messageCount: activeSession.messages.length,
-              streamParams: extractSpecialAgentCacheSafeStreamParams(effectiveExtraParams),
-            });
-          } catch (err) {
-            log.warn(`special-agent cacheSafeParams snapshot failed: ${String(err)}`);
           }
 
           const btwSnapshotMessages = activeSession.messages.slice(-MAX_BTW_SNAPSHOT_MESSAGES);
@@ -2637,6 +2408,14 @@ export async function runEmbeddedAttempt(
             sessionKey: params.sessionKey,
             sessionFile: params.sessionFile,
             messagesSnapshot,
+            parentForkContext: buildSpecialAgentParentForkContextFromModelInput({
+              parentRunId: params.runId,
+              provider: params.provider,
+              modelId: params.modelId,
+              modelApi: params.model.api,
+              modelInput,
+              forkContextMessages: messagesSnapshot,
+            }),
             prePromptMessageCount,
             tokenBudget: params.contextTokenBudget,
             runtimeContext: afterTurnRuntimeContext,

@@ -28,11 +28,6 @@ describe("special agent registry", () => {
 
     expect(definition?.cachePolicy).toEqual({
       cacheRetention: "short",
-      skipWrite: true,
-      promptCache: {
-        scope: "parent_session",
-        retention: "24h",
-      },
     });
     expect(definition?.toolPolicy?.enforcement).toBe("runtime_deny");
   });

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { emitRunLoopLifecycleEvent } from "../../agents/runtime/lifecycle/bus.js";
+import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
 import {
   castAgentMessages,
   makeAgentAssistantMessage,
@@ -266,7 +267,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       },
       sessionSummary: {
         enabled: false,
-      rootDir: "/tmp/crawclaw-session-summary",
+        rootDir: "/tmp/crawclaw-session-summary",
         minTokensToInit: 10_000,
         minTokensBetweenUpdates: 5_000,
         toolCallsBetweenUpdates: 3,
@@ -518,18 +519,114 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         ]),
       }),
     ]);
+    const lifecycleModelVisibleMessages = castAgentMessages([
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "Compacted summary from previous turns." }],
+      }),
+      ...messages,
+    ]);
+    const parentForkContext = {
+      parentRunId: "parent-run-lifecycle-1",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "parent system prompt",
+        toolNames: ["read"],
+        toolPromptPayload: [{ name: "read" }],
+        thinkingConfig: {},
+        forkContextMessages: lifecycleModelVisibleMessages,
+      }),
+    };
 
     await runtime.afterTurn?.({
       sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      sessionFile: "/tmp/session.jsonl",
+      messages: lifecycleModelVisibleMessages,
+      prePromptMessageCount: 1,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await emitRunLoopLifecycleEvent({
+      phase: "post_sampling",
+      runId: "parent-run-lifecycle-1",
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      agentId: "main",
+      isTopLevel: true,
+      sessionFile: "/tmp/session.jsonl",
+      messageCount: lifecycleModelVisibleMessages.length,
+      metadata: {
+        prePromptMessageCount: 1,
+        parentForkContext,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(sessionSummaryRunner).toHaveBeenCalledTimes(1);
+    });
+    const runnerInput = sessionSummaryRunner.mock.calls[0]?.[0] as
+      | {
+          parentForkContext?: {
+            parentRunId?: string;
+            promptEnvelope?: { forkContextMessages?: unknown[] };
+          };
+          recentMessages?: unknown[];
+        }
+      | undefined;
+    expect(runnerInput?.parentForkContext?.parentRunId).toBe("parent-run-lifecycle-1");
+    expect(runnerInput?.recentMessages).toBeUndefined();
+    expect(runnerInput?.parentForkContext?.promptEnvelope?.forkContextMessages).toEqual(
+      lifecycleModelVisibleMessages,
+    );
+  });
+
+  it("does not rebuild session summary context from persisted rows when lifecycle fork context is missing", async () => {
+    const stateDir = await createRuntimeRoot();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const sessionSummaryRunner = vi.fn().mockResolvedValue({
+      status: "no_change",
+      writtenCount: 0,
+      updatedCount: 0,
+    });
+
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: createRuntimeStore(),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: {
+        ...createRuntimeConfig(),
+        durableExtraction: {
+          ...createRuntimeConfig().durableExtraction,
+          enabled: false,
+        },
+        sessionSummary: {
+          ...createRuntimeConfig().sessionSummary,
+          enabled: true,
+          minTokensToInit: 1,
+          minTokensBetweenUpdates: 1,
+          toolCallsBetweenUpdates: 0,
+        },
+      },
+      sessionSummaryRunner,
+    });
+
+    const messages = castAgentMessages([
+      makeAgentUserMessage({ content: "summarize this session" }),
+      makeAgentAssistantMessage({ content: [{ type: "text", text: "done" }] }),
+    ]);
+    await runtime.afterTurn?.({
+      sessionId: "session-missing-lifecycle-fork-context",
       sessionKey: "agent:main:feishu:direct:user-1",
       sessionFile: "/tmp/session.jsonl",
       messages,
       prePromptMessageCount: 0,
       runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
     });
+
     await emitRunLoopLifecycleEvent({
       phase: "post_sampling",
-      sessionId: "session-1",
+      runId: "parent-run-missing-fork-context",
+      sessionId: "session-missing-lifecycle-fork-context",
       sessionKey: "agent:main:feishu:direct:user-1",
       agentId: "main",
       isTopLevel: true,
@@ -538,9 +635,8 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       metadata: { prePromptMessageCount: 0 },
     });
 
-    await vi.waitFor(() => {
-      expect(sessionSummaryRunner).toHaveBeenCalledTimes(1);
-    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(sessionSummaryRunner).not.toHaveBeenCalled();
   });
 
   it("skips stop-phase durable extraction when the turn already wrote durable memory directly", async () => {

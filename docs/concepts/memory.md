@@ -102,6 +102,19 @@ Session memory now follows a Claude-style single-track design:
 - each session has one `summary.md` file
 - a background `session_summary` agent maintains that file from the run-loop
   post-sampling hook
+- the summary agent runs from one captured parent fork context: the run-loop
+  lifecycle event carries both the parent prompt envelope and the full current
+  model-visible message context, then the summary run appends a narrow
+  `summary.md` maintenance prompt instead of adding another summary-specific
+  system prompt
+- the fork context is captured from the active run-loop, not reconstructed from
+  older persisted rows or reassembled from a separate persisted prompt artifact, so
+  compaction boundaries stay aligned with what the main agent actually saw
+- automatic lifecycle updates skip if that fork context is missing; explicit CLI
+  or gateway refresh reconstructs a bounded manual fork context from persisted
+  model-visible rows
+- session-summary keeps short-lived cache retention for the fork, but does not
+  derive or reuse a parent prompt-cache key
 - the scheduler can start with a lightweight summary profile earlier, then
   upgrade the same file to a full profile later
 - natural settled turns still trigger summary updates, but the scheduler can
@@ -137,15 +150,20 @@ The file now has two maintenance modes:
   `Worklog`
 
 Prompt assembly no longer injects `summary.md` into the model-visible system
-context. Before compaction, continuity comes from the recent transcript. When a
-session later compacts, CrawClaw consumes `summary.md` as the compacted-history
-source of truth and preserves only the recent tail after the summarized
-boundary.
+context. Before compaction, continuity comes from the current transcript, and
+the background summary agent keeps `summary.md` current from that same
+model-visible transcript. When a session later compacts, CrawClaw consumes
+`summary.md` as the compacted-history source of truth, stores that rendered
+compact view in compaction state, and preserves only the recent tail after the
+summarized boundary.
 
 Compaction also no longer consumes the raw `summary.md` body. It renders a
 structured compacted view from the most continuity-critical sections, including
 `Current State`, `Open Loops`, `Task specification`, `Files and Functions`,
-`Workflow`, `Errors & Corrections`, and `Key results`.
+`Workflow`, `Errors & Corrections`, and `Key results`. After compaction, prompt
+assembly prepends that rendered compact summary as a transcript summary message
+before the preserved tail; it still does not inject the full `summary.md` file
+as system context on ordinary turns.
 
 Session summary can also seed durable-memory promotion candidates. After a
 successful summary update, CrawClaw distills stable long-term facts from the
@@ -242,13 +260,19 @@ Before [compaction](/concepts/compaction) trims a session, CrawClaw waits for
 the current `session_summary` run to finish for a short bounded window and then
 uses `summary.md` plus `lastSummarizedMessageId` as the compaction boundary.
 Compaction starts just after that summarized boundary and expands backward only
-as needed to satisfy minimum preserved-tail conditions.
+as needed to satisfy minimum preserved-tail conditions. If a crashed process
+left `summaryInProgress` set past the stale-lease window, compaction clears the
+stale lease instead of waiting on a dead summary run.
 
 This keeps short-term continuity on one source of truth:
 
 - the background agent updates `summary.md`
+- that agent sees the full current model-visible message context from the
+  captured parent fork context, not only a small recent-message excerpt
 - compaction preserves the tail after the summarized boundary, expanding
   backward only enough to keep a usable recent working set
+- after compaction, model-visible history contains the compact summary message
+  plus that preserved tail
 - prompt assembly keeps using the recent transcript and does not separately
   inject `summary.md`
 

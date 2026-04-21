@@ -74,7 +74,8 @@ contracts.
     - explicit tool policies resolved from the shared special-agent registry
     - Claude-style runtime deny for special-agent tool enforcement
     - explicit provider-level cache policy on special-agent definitions
-    - parent-run `cacheSafeParams` snapshot persistence keyed by `runId`
+    - parent-run `parentForkContext` capture with no disk-backed parent prompt
+      fallback artifact
     - shared spawn / embedded-run / completion capture runtime
     - shared event / history / usage hooks in the runtime runner
     - `session_summary` migrated to `embedded_fork`
@@ -89,20 +90,34 @@ contracts.
 - [x] Add explicit cache-write suppression (`skipCacheWrite` equivalent) to the embedded-fork substrate.
   - Embedded memory special agents now carry explicit cache-write suppression through the shared substrate.
   - The runtime maps that to provider-supported "avoid creating new cache entries" controls while still preserving prompt-cache reads when the provider can do so.
-- [x] Expand parent-run cache snapshots from hash/key metadata to a fuller cache-safe prompt envelope.
+- [x] Replace persisted parent-run prompt artifacts with a fuller parent fork prompt envelope.
   - Landed:
     - tool prompt payload and tool-inventory digest
     - thinking config
     - fork-context messages
-    - embedded memory special agents intentionally do not inherit the captured parent prompt envelope
-    - the cache-safe snapshot still carries canonical cache-identity state for non-memory embedded forks that opt into reuse
-    - embedded memory special runs keep short retention plus cache-write suppression instead of reusing a parent prompt-cache key
+    - `session_summary` now receives one lifecycle `parentForkContext` that
+      bundles the retained parent prompt envelope with the current full
+      model-visible message context
+    - non-summary embedded forks no longer read parent prompt state from a
+      persisted `runId` artifact
+    - durable extraction and dream keep short retention plus cache-write
+      suppression, while session-summary uses the parent fork context only for
+      prompt/history handoff and does not reuse parent prompt-cache keys
+    - explicit CLI/gateway summary refresh now reconstructs a bounded manual
+      parent fork context from persisted model-visible rows instead of calling
+      the scheduler without fork context
+    - session-summary compaction now persists the rendered compact view and
+      prompt assembly prepends it as a compact summary message before the
+      preserved tail
+    - stale `summaryInProgress` leases are cleared by compaction
     - cache ownership is now split cleanly into:
-      - `CacheEnvelope` identity + snapshot persistence
-      - fork-cache planning / drift checks
-      - provider cache hints
+      - `CacheEnvelope` identity + explicit parent fork handoff
+      - direct provider cache hints
   - Remaining gap:
-    - CrawClaw still does not reuse a literal in-process Claude-style `CacheSafeParams` object; request reconstruction is still adapter-shaped even though the inherited envelope is now canonical enough for stable cache identity and drift protection.
+    - CrawClaw still does not reuse a literal in-process Claude-style
+      `CacheSafeParams` object; request reconstruction is still adapter-shaped
+      even though the parent fork context is canonical enough for session-summary
+      history handoff.
 - [x] Introduce a structured `QueryContext` owner for prompt assembly.
   - Landed:
     - base system prompt now emits structured sections instead of only one large string

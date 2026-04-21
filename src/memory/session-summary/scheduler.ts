@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
@@ -39,9 +40,7 @@ export type SessionSummaryRunParams = {
   sessionFile: string;
   workspaceDir: string;
   agentId: string;
-  parentRunId?: string;
-  recentMessages: AgentMessage[];
-  recentMessageLimit: number;
+  parentForkContext: SpecialAgentParentForkContext;
   currentSummary?: SessionSummaryDocument | null;
   profile?: SessionSummaryProfile;
   runTimeoutSeconds?: number;
@@ -293,10 +292,10 @@ type SubmitTurnParams = {
   sessionFile: string;
   workspaceDir: string;
   agentId: string;
-  parentRunId?: string;
   recentMessages: AgentMessage[];
   lastModelVisibleMessageId?: string | null;
   recentMessageLimit?: number;
+  parentForkContext?: SpecialAgentParentForkContext;
   currentTokenCount?: number;
   toolCallCount?: number;
   isSettledTurn?: boolean;
@@ -447,6 +446,9 @@ export class SessionSummaryScheduler {
     if (!params.bypassGate && !preview.gate.ready) {
       return { status: "skipped", reason: preview.gate.reason, preview };
     }
+    if (!params.parentForkContext?.promptEnvelope.forkContextMessages.length) {
+      return { status: "skipped", reason: "missing_fork_context", preview };
+    }
 
     try {
       const existingState = await this.runtimeStore.getSessionSummaryState(params.sessionId);
@@ -469,9 +471,7 @@ export class SessionSummaryScheduler {
           sessionFile: params.sessionFile,
           workspaceDir: params.workspaceDir,
           agentId: params.agentId,
-          parentRunId: params.parentRunId,
-          recentMessages: params.recentMessages,
-          recentMessageLimit: clampInt(params.recentMessageLimit, 12),
+          parentForkContext: params.parentForkContext,
           currentSummary: currentSummaryDocument,
           profile: preview.targetProfile,
           runTimeoutSeconds: params.runTimeoutSeconds ?? this.config.runTimeoutSeconds,

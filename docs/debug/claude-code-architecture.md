@@ -364,4 +364,3 @@ The most important architectural insight is this:
 
 > Claude Code is not organized around prompts. It is organized around a
 > long-lived runtime.
-

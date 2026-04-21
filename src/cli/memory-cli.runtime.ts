@@ -31,6 +31,7 @@ import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
 } from "../memory/notebooklm/login.js";
+import { buildManualSessionSummaryRefreshContext } from "../memory/session-summary/manual-refresh.ts";
 import { inferSessionSummaryProfile } from "../memory/session-summary/template.ts";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
@@ -185,14 +186,6 @@ function parsePositiveIntOption(value: string | undefined, fallback: number, min
     return fallback;
   }
   return Math.max(minimum, parsed);
-}
-
-function estimateContentTokens(text: string): number {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return 0;
-  }
-  return Math.max(1, Math.ceil(normalized.length / 4));
 }
 
 function summarizeDreamRunReason(run: {
@@ -483,12 +476,10 @@ export async function runMemorySessionSummaryRefresh(opts: MemoryCommandOptions)
       readSessionSummaryFile({ agentId, sessionId }),
       store.listMessagesByTurnRange(sessionId, 1, Number.MAX_SAFE_INTEGER),
     ]);
-    const recentMessages = rows
-      .filter((row) => row.role === "user" || row.role === "assistant")
-      .map((row) => ({
-        role: row.role,
-        content: row.contentText || row.content,
-      }));
+    const manualRefreshContext = buildManualSessionSummaryRefreshContext({
+      sessionId,
+      rows,
+    });
     const scheduler = getSharedSessionSummaryScheduler({
       config: {
         enabled: memoryConfig.sessionSummary.enabled,
@@ -516,20 +507,15 @@ export async function runMemorySessionSummaryRefresh(opts: MemoryCommandOptions)
       sessionFile,
       workspaceDir,
       agentId,
-      recentMessages: recentMessages as never,
+      recentMessages: manualRefreshContext.recentMessages,
       recentMessageLimit: 24,
-      currentTokenCount: recentMessages.reduce(
-        (sum, message) =>
-          sum + estimateContentTokens(typeof message.content === "string" ? message.content : ""),
-        0,
-      ),
+      currentTokenCount: manualRefreshContext.currentTokenCount,
       toolCallCount: 0,
       isSettledTurn: true,
       bypassGate: Boolean(opts.force),
       currentSummary: file.document,
-      lastModelVisibleMessageId:
-        rows.toReversed().find((row) => row.role === "user" || row.role === "assistant")?.id ??
-        null,
+      lastModelVisibleMessageId: manualRefreshContext.lastModelVisibleMessageId,
+      parentForkContext: manualRefreshContext.parentForkContext,
     });
     if (opts.json) {
       defaultRuntime.writeJson({

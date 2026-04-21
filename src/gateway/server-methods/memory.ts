@@ -27,6 +27,7 @@ import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
 } from "../../memory/notebooklm/login.js";
+import { buildManualSessionSummaryRefreshContext } from "../../memory/session-summary/manual-refresh.ts";
 import { inferSessionSummaryProfile } from "../../memory/session-summary/template.ts";
 import { prepareSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
@@ -162,14 +163,6 @@ async function withMemoryRuntimeStore<T>(
   } finally {
     await store.close();
   }
-}
-
-function estimateContentTokens(text: string): number {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return 0;
-  }
-  return Math.max(1, Math.ceil(normalized.length / 4));
 }
 
 export const memoryHandlers: GatewayRequestHandlers = {
@@ -479,12 +472,10 @@ export const memoryHandlers: GatewayRequestHandlers = {
           readSessionSummaryFile({ agentId, sessionId }),
           store.listMessagesByTurnRange(sessionId, 1, Number.MAX_SAFE_INTEGER),
         ]);
-        const recentMessages = rows
-          .filter((row) => row.role === "user" || row.role === "assistant")
-          .map((row) => ({
-            role: row.role,
-            content: row.contentText || row.content,
-          }));
+        const manualRefreshContext = buildManualSessionSummaryRefreshContext({
+          sessionId,
+          rows,
+        });
         const scheduler = getSharedSessionSummaryScheduler({
           config: {
             enabled: memoryConfig.sessionSummary.enabled,
@@ -513,21 +504,15 @@ export const memoryHandlers: GatewayRequestHandlers = {
           sessionFile,
           workspaceDir,
           agentId,
-          recentMessages: recentMessages as never,
+          recentMessages: manualRefreshContext.recentMessages,
           recentMessageLimit: 24,
-          currentTokenCount: recentMessages.reduce(
-            (sum, message) =>
-              sum +
-              estimateContentTokens(typeof message.content === "string" ? message.content : ""),
-            0,
-          ),
+          currentTokenCount: manualRefreshContext.currentTokenCount,
           toolCallCount: 0,
           isSettledTurn: true,
           bypassGate: readOptionalBoolean(asRecord(params).force) ?? false,
           currentSummary: file.document,
-          lastModelVisibleMessageId:
-            rows.toReversed().find((row) => row.role === "user" || row.role === "assistant")?.id ??
-            null,
+          lastModelVisibleMessageId: manualRefreshContext.lastModelVisibleMessageId,
+          parentForkContext: manualRefreshContext.parentForkContext,
         });
         respond(true, { agentId, sessionId, sessionKey, result }, undefined);
       });

@@ -1,9 +1,6 @@
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MEMORY_EXTRACTION_AGENT_DEFINITION } from "../../../memory/durable/agent-runner.js";
-import { writeSpecialAgentCacheSafeParamsSnapshot } from "./cache-safe-params.js";
+import { buildSpecialAgentCacheEnvelope } from "./parent-fork-context.js";
 import { runSpecialAgentToCompletion } from "./run-once.js";
 import type { SpecialAgentDefinition } from "./types.js";
 
@@ -28,10 +25,6 @@ const TEST_SPECIAL_AGENT_WITH_CACHE_DEFINITION: SpecialAgentDefinition = {
   cachePolicy: {
     cacheRetention: "short",
     skipWrite: true,
-    promptCache: {
-      scope: "parent_session",
-      retention: "24h",
-    },
   },
 };
 
@@ -59,20 +52,6 @@ const TEST_EMBEDDED_RUNTIME_DENY_SPECIAL_AGENT_DEFINITION: SpecialAgentDefinitio
 };
 
 describe("runSpecialAgentToCompletion", () => {
-  const tempDirs: string[] = [];
-  const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
-
-  afterEach(async () => {
-    await Promise.all(
-      tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })),
-    );
-    if (previousStateDir === undefined) {
-      delete process.env.CRAWCLAW_STATE_DIR;
-    } else {
-      process.env.CRAWCLAW_STATE_DIR = previousStateDir;
-    }
-  });
-
   it("returns spawn_failed when the child agent cannot be started", async () => {
     const result = await runSpecialAgentToCompletion(
       {
@@ -300,135 +279,11 @@ describe("runSpecialAgentToCompletion", () => {
         streamParams: {
           cacheRetention: "short",
           skipCacheWrite: true,
-          promptCacheKey: "test-special-agent-cache:agent:main:session-2",
-          promptCacheRetention: "24h",
         },
       }),
       expect.objectContaining({
         agentSessionKey: "agent:main:session-2",
       }),
-    );
-  });
-
-  it("reuses parent run cache snapshot data when the special agent inherits parent-session cache scope", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-special-run-cache-"));
-    tempDirs.push(stateDir);
-    process.env.CRAWCLAW_STATE_DIR = stateDir;
-    await writeSpecialAgentCacheSafeParamsSnapshot({
-      runId: "parent-run-1",
-      sessionId: "session-parent-1",
-      sessionKey: "agent:main:main",
-      agentId: "main",
-      provider: "openai",
-      modelId: "gpt-5.4",
-      modelApi: "openai-responses",
-      systemPromptText: "system prompt",
-      prompt: "prompt text",
-      streamParams: {
-        promptCacheKey: "cached-parent:agent:main:main",
-        promptCacheRetention: "36h",
-      },
-    });
-    const deps = {
-      spawnAgentSessionDirect: vi.fn().mockResolvedValue({
-        status: "accepted",
-        runId: "run-special-3c",
-        childSessionKey: "agent:main:subagent:special-3c",
-      }),
-      captureSubagentCompletionReply: vi.fn().mockResolvedValue("STATUS: OK"),
-      callGateway: vi.fn().mockResolvedValue({
-        status: "ok",
-        endedAt: 334,
-      }),
-      onAgentEvent: vi.fn().mockReturnValue(() => {}),
-      runEmbeddedPiAgent: vi.fn(),
-    };
-
-    await runSpecialAgentToCompletion(
-      {
-        definition: TEST_SPECIAL_AGENT_WITH_CACHE_DEFINITION,
-        task: "do the thing",
-        parentRunId: "parent-run-1",
-      },
-      deps,
-    );
-
-    expect(deps.spawnAgentSessionDirect).toHaveBeenCalledWith(
-      expect.objectContaining({
-        streamParams: {
-          cacheRetention: "short",
-          skipCacheWrite: true,
-          promptCacheKey: "cached-parent:agent:main:main",
-          promptCacheRetention: "36h",
-        },
-      }),
-      undefined,
-    );
-  });
-
-  it("derives a stable prompt cache key from the parent cache envelope when the parent has no explicit key", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-special-run-cache-"));
-    tempDirs.push(stateDir);
-    process.env.CRAWCLAW_STATE_DIR = stateDir;
-    const snapshot = await writeSpecialAgentCacheSafeParamsSnapshot({
-      runId: "parent-run-derived-key-1",
-      sessionId: "session-parent-derived-key-1",
-      sessionKey: "agent:main:main",
-      agentId: "main",
-      provider: "openai",
-      modelId: "gpt-5.4",
-      modelApi: "openai-responses",
-      systemPromptText: "system prompt",
-      prompt: "prompt text",
-      userContext: {
-        sessionId: "session-parent-derived-key-1",
-      },
-      systemContext: {
-        promptMode: "full",
-      },
-      toolPromptPayload: [{ name: "read" }],
-      thinkingConfig: {
-        thinkLevel: "medium",
-      },
-      forkContextMessages: [{ role: "user", content: "from parent" } as never],
-      streamParams: {
-        promptCacheRetention: "12h",
-      },
-    });
-    const deps = {
-      spawnAgentSessionDirect: vi.fn().mockResolvedValue({
-        status: "accepted",
-        runId: "run-special-derived-key-1",
-        childSessionKey: "agent:main:subagent:special-derived-key-1",
-      }),
-      captureSubagentCompletionReply: vi.fn().mockResolvedValue("STATUS: OK"),
-      callGateway: vi.fn().mockResolvedValue({
-        status: "ok",
-        endedAt: 335,
-      }),
-      onAgentEvent: vi.fn().mockReturnValue(() => {}),
-      runEmbeddedPiAgent: vi.fn(),
-    };
-
-    await runSpecialAgentToCompletion(
-      {
-        definition: TEST_SPECIAL_AGENT_WITH_CACHE_DEFINITION,
-        task: "do the thing",
-        parentRunId: "parent-run-derived-key-1",
-      },
-      deps,
-    );
-
-    expect(deps.spawnAgentSessionDirect).toHaveBeenCalledWith(
-      expect.objectContaining({
-        streamParams: {
-          cacheRetention: "short",
-          skipCacheWrite: true,
-          promptCacheKey: `test-special-agent-cache:${snapshot.queryContextHash}`,
-          promptCacheRetention: "12h",
-        },
-      }),
-      undefined,
     );
   });
 
@@ -544,23 +399,11 @@ describe("runSpecialAgentToCompletion", () => {
   });
 
   it("dispatches embedded_fork definitions through the embedded runner substrate", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-special-run-embedded-"));
-    tempDirs.push(stateDir);
-    process.env.CRAWCLAW_STATE_DIR = stateDir;
-    await writeSpecialAgentCacheSafeParamsSnapshot({
-      runId: "parent-run-embedded-1",
-      sessionId: "session-parent-embedded-1",
-      sessionKey: "agent:main:main",
-      agentId: "main",
-      provider: "openai",
-      modelId: "gpt-5.4",
-      modelApi: "openai-responses",
+    const parentPromptEnvelope = buildSpecialAgentCacheEnvelope({
       systemPromptText: "system prompt",
-      prompt: "prompt text",
-      streamParams: {
-        promptCacheKey: "cached-parent:agent:main:main",
-        promptCacheRetention: "48h",
-      },
+      toolPromptPayload: [],
+      thinkingConfig: {},
+      forkContextMessages: [],
     });
     const runEmbeddedPiAgent = vi.fn(async (params: Record<string, unknown>) => {
       const onAgentEvent = params.onAgentEvent as
@@ -603,13 +446,20 @@ describe("runSpecialAgentToCompletion", () => {
         definition: TEST_EMBEDDED_SPECIAL_AGENT_DEFINITION,
         task: "do the embedded thing",
         extraSystemPrompt: "embedded system prompt",
-        parentRunId: "parent-run-embedded-1",
+        parentForkContext: {
+          parentRunId: "parent-run-embedded-1",
+          provider: "openai",
+          modelId: "gpt-5.4",
+          promptEnvelope: parentPromptEnvelope,
+        },
         embeddedContext: {
           sessionId: "session-embedded-1",
           sessionKey: "agent:main:main",
           sessionFile: "/tmp/crawclaw-embedded-session.jsonl",
           workspaceDir: "/tmp/crawclaw-embedded",
           agentId: "main",
+          provider: "openai",
+          model: "gpt-5.4",
         },
         hooks: {
           onAgentEvent: eventHook,
@@ -623,7 +473,9 @@ describe("runSpecialAgentToCompletion", () => {
     expect(deps.spawnAgentSessionDirect).not.toHaveBeenCalled();
     expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
       expect.objectContaining({
-        sessionId: expect.stringMatching(/^embedded-test_embedded_special_agent-special-test_embedded_special_agent-/),
+        sessionId: expect.stringMatching(
+          /^embedded-test_embedded_special_agent-special-test_embedded_special_agent-/,
+        ),
         sessionKey: expect.stringMatching(
           /^embedded:test_embedded_special_agent:special:test_embedded_special_agent:/,
         ),
@@ -636,7 +488,7 @@ describe("runSpecialAgentToCompletion", () => {
         provider: "openai",
         model: "gpt-5.4",
         toolsAllow: ["read"],
-        specialInheritedPromptEnvelope: expect.objectContaining({
+        specialParentPromptEnvelope: expect.objectContaining({
           systemPromptText: "system prompt",
           toolPromptPayload: [],
           thinkingConfig: {},
@@ -646,8 +498,6 @@ describe("runSpecialAgentToCompletion", () => {
         streamParams: {
           cacheRetention: "short",
           skipCacheWrite: true,
-          promptCacheKey: "cached-parent:agent:main:main",
-          promptCacheRetention: "48h",
         },
       }),
     );
@@ -700,20 +550,9 @@ describe("runSpecialAgentToCompletion", () => {
     });
   });
 
-  it("uses parent tool inventory for embedded runtime_deny agents", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-special-run-embedded-"));
-    tempDirs.push(stateDir);
-    process.env.CRAWCLAW_STATE_DIR = stateDir;
-    await writeSpecialAgentCacheSafeParamsSnapshot({
-      runId: "parent-run-embedded-2",
-      sessionId: "session-parent-embedded-2",
-      sessionKey: "agent:main:main",
-      agentId: "main",
-      provider: "openai",
-      modelId: "gpt-5.4",
-      modelApi: "openai-responses",
+  it("uses explicit parent prompt tool inventory for embedded runtime_deny agents", async () => {
+    const parentPromptEnvelope = buildSpecialAgentCacheEnvelope({
       systemPromptText: "system prompt",
-      prompt: "prompt text",
       toolNames: ["read", "exec"],
       toolPromptPayload: [{ name: "read" }, { name: "exec" }],
     });
@@ -726,13 +565,20 @@ describe("runSpecialAgentToCompletion", () => {
       {
         definition: TEST_EMBEDDED_RUNTIME_DENY_SPECIAL_AGENT_DEFINITION,
         task: "do the embedded thing",
-        parentRunId: "parent-run-embedded-2",
+        parentForkContext: {
+          parentRunId: "parent-run-embedded-2",
+          provider: "openai",
+          modelId: "gpt-5.4",
+          promptEnvelope: parentPromptEnvelope,
+        },
         embeddedContext: {
           sessionId: "session-embedded-2",
           sessionKey: "agent:main:main",
           sessionFile: "/tmp/crawclaw-embedded-session-2.jsonl",
           workspaceDir: "/tmp/crawclaw-embedded-2",
           agentId: "main",
+          provider: "openai",
+          model: "gpt-5.4",
         },
       },
       {
@@ -746,35 +592,14 @@ describe("runSpecialAgentToCompletion", () => {
 
     const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
     expect(params?.toolsAllow).toBeUndefined();
-    expect(params?.specialInheritedPromptEnvelope).toEqual(
+    expect(params?.specialParentPromptEnvelope).toEqual(
       expect.objectContaining({
         toolPromptPayload: [{ name: "read" }, { name: "exec" }],
       }),
     );
   });
 
-  it("does not inherit the parent prompt envelope for memory special agents", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-special-run-memory-"));
-    tempDirs.push(stateDir);
-    process.env.CRAWCLAW_STATE_DIR = stateDir;
-    await writeSpecialAgentCacheSafeParamsSnapshot({
-      runId: "parent-run-memory-1",
-      sessionId: "session-parent-memory-1",
-      sessionKey: "agent:main:main",
-      agentId: "main",
-      provider: "openai",
-      modelId: "gpt-5.4",
-      modelApi: "openai-responses",
-      systemPromptText: "parent system prompt with NO_REPLY semantics",
-      prompt: "prompt text",
-      toolNames: ["memory_manifest_read", "memory_note_write"],
-      toolPromptPayload: [{ name: "memory_manifest_read" }, { name: "memory_note_write" }],
-      forkContextMessages: [{ role: "assistant", content: "NO_REPLY" }],
-      streamParams: {
-        promptCacheKey: "cached-parent:agent:main:main",
-        promptCacheRetention: "24h",
-      },
-    });
+  it("does not attach a parent prompt envelope for memory extraction special agents", async () => {
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
       payloads: [{ text: "STATUS: NO_CHANGE" }],
       meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
@@ -784,13 +609,14 @@ describe("runSpecialAgentToCompletion", () => {
       {
         definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
         task: "extract memory",
-        parentRunId: "parent-run-memory-1",
         embeddedContext: {
           sessionId: "session-memory-1",
           sessionKey: "agent:main:main",
           sessionFile: "/tmp/crawclaw-memory-session.jsonl",
           workspaceDir: "/tmp/crawclaw-memory",
           agentId: "main",
+          provider: "openai",
+          model: "gpt-5.4",
         },
       },
       {
@@ -803,7 +629,7 @@ describe("runSpecialAgentToCompletion", () => {
     );
 
     const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    expect(params?.specialInheritedPromptEnvelope).toBeUndefined();
+    expect(params?.specialParentPromptEnvelope).toBeUndefined();
     expect(params?.streamParams).toEqual({
       cacheRetention: "short",
       skipCacheWrite: true,

@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-import {
-  calculateCompactionBoundaryStartRow,
-  MIN_COMPACTION_TEXT_MESSAGES,
-} from "./compaction.ts";
 import type { GmMessageRow } from "../types/runtime.ts";
+import { calculateCompactionBoundaryStartRow, MIN_COMPACTION_TEXT_MESSAGES } from "./compaction.ts";
 
-function row(params: Partial<GmMessageRow> & Pick<GmMessageRow, "id" | "turnIndex" | "role" | "content">): GmMessageRow {
+function row(
+  params: Partial<GmMessageRow> & Pick<GmMessageRow, "id" | "turnIndex" | "role" | "content">,
+): GmMessageRow {
   return {
     sessionId: "session-1",
     conversationUid: "conv-1",
@@ -90,7 +89,12 @@ describe("calculateCompactionBoundaryStartRow", () => {
         content: "tool use emitted earlier",
         runtimeMeta: { providerMessageId: "assistant-msg-1", toolUseIds: ["tool-call-1"] },
       }),
-      row({ id: "m3", turnIndex: 3, role: "user", content: "new request after the summarized boundary" }),
+      row({
+        id: "m3",
+        turnIndex: 3,
+        role: "user",
+        content: "new request after the summarized boundary",
+      }),
       row({
         id: "m4",
         turnIndex: 4,
@@ -98,7 +102,12 @@ describe("calculateCompactionBoundaryStartRow", () => {
         content: "tool result linked to the earlier tool use",
         runtimeMeta: { toolResultIds: ["tool-call-1"] },
       }),
-      row({ id: "m5", turnIndex: 5, role: "assistant", content: "final answer after the tool result" }),
+      row({
+        id: "m5",
+        turnIndex: 5,
+        role: "assistant",
+        content: "final answer after the tool result",
+      }),
     ];
 
     const startRow = calculateCompactionBoundaryStartRow({
@@ -205,8 +214,18 @@ describe("calculateCompactionBoundaryStartRow", () => {
   it("does not expand backward past the latest compacted transcript marker", () => {
     const rows: GmMessageRow[] = [
       row({ id: "m1", turnIndex: 1, role: "user", content: "very old request one" }),
-      row({ id: "m2", turnIndex: 2, role: "assistant", content: "[compacted assistant message into session memory] turn=2" }),
-      row({ id: "m3", turnIndex: 3, role: "user", content: "disk boundary after compaction marker" }),
+      row({
+        id: "m2",
+        turnIndex: 2,
+        role: "assistant",
+        content: "[compacted assistant message into session memory] turn=2",
+      }),
+      row({
+        id: "m3",
+        turnIndex: 3,
+        role: "user",
+        content: "disk boundary after compaction marker",
+      }),
       row({ id: "m4", turnIndex: 4, role: "assistant", content: "summary boundary reply" }),
       row({ id: "m5", turnIndex: 5, role: "user", content: "recent work one" }),
       row({ id: "m6", turnIndex: 6, role: "assistant", content: "recent work two" }),

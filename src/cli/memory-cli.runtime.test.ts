@@ -332,6 +332,15 @@ Nothing yet.
         agentId: "main",
         bypassGate: true,
         isSettledTurn: true,
+        parentForkContext: expect.objectContaining({
+          parentRunId: "manual-session-summary:sess-1",
+          promptEnvelope: expect.objectContaining({
+            forkContextMessages: [
+              expect.objectContaining({ role: "user", content: "Do the thing" }),
+              expect.objectContaining({ role: "assistant", content: "Done" }),
+            ],
+          }),
+        }),
       }),
     );
     expect(runtimeLogs.join("\n")).toContain("Session Summary Refresh");

@@ -1,7 +1,6 @@
 import { WORKSPACE_BOOTSTRAP_CACHE_DESCRIPTOR } from "../agents/bootstrap-cache.js";
 import { MODEL_CONTEXT_TOKEN_CACHE_DESCRIPTOR } from "../agents/context-cache.js";
 import { QUERY_LAYER_CACHE_IDENTITY_DESCRIPTOR } from "../agents/query-context/cache-contract.js";
-import { SPECIAL_AGENT_CACHE_SAFE_PARAMS_STORE_DESCRIPTOR } from "../agents/special/runtime/cache-safe-params.js";
 import { GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR } from "../gateway/model-pricing-cache.js";
 import { BUILT_IN_MEMORY_RUNTIME_BOOTSTRAP_CACHE_DESCRIPTOR } from "../memory/engine/built-in-memory-runtime.js";
 import { SESSION_SUMMARY_READ_CACHE_DESCRIPTOR } from "../memory/session-summary/store.js";
@@ -14,7 +13,6 @@ import type { CacheGovernanceDescriptor } from "./governance-types.js";
 
 export const CACHE_GOVERNANCE_REGISTRY: CacheGovernanceDescriptor[] = [
   QUERY_LAYER_CACHE_IDENTITY_DESCRIPTOR,
-  SPECIAL_AGENT_CACHE_SAFE_PARAMS_STORE_DESCRIPTOR,
   MODEL_CONTEXT_TOKEN_CACHE_DESCRIPTOR,
   WORKSPACE_BOOTSTRAP_CACHE_DESCRIPTOR,
   BUILT_IN_MEMORY_RUNTIME_BOOTSTRAP_CACHE_DESCRIPTOR,

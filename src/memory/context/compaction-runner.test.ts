@@ -151,4 +151,93 @@ Summary-backed compaction result.
       }),
     );
   });
+
+  it("clears a stale session summary in-progress lease before compaction", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-compaction-stale-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId: "session-stale",
+      content: `# Session Title
+Stale summary lease
+
+# Current State
+Summary-backed compaction is ready.
+
+# Open Loops
+Keep the tail intact.
+
+# Task specification
+Compact with the existing summary.
+
+# Workflow
+Run compaction after clearing stale state.
+
+# Errors & Corrections
+Old in-progress state should not block compaction.
+
+# Key results
+Compaction can proceed.
+`,
+    });
+
+    const staleState = {
+      sessionId: "session-stale",
+      lastSummarizedMessageId: "m2",
+      lastSummaryUpdatedAt: Date.now() - 120_000,
+      tokensAtLastSummary: 1200,
+      summaryInProgress: true,
+      updatedAt: Date.now() - 120_000,
+    };
+    const runtimeStore = {
+      getSessionSummaryState: vi
+        .fn()
+        .mockResolvedValueOnce(staleState)
+        .mockResolvedValueOnce({ ...staleState, summaryInProgress: false })
+        .mockResolvedValueOnce({ ...staleState, summaryInProgress: false }),
+      upsertSessionSummaryState: vi.fn().mockResolvedValue(undefined),
+      listMessagesByTurnRange: vi.fn().mockResolvedValue([
+        { id: "m1", turnIndex: 1, role: "user", content: "older request one" },
+        { id: "m2", turnIndex: 2, role: "assistant", content: longText },
+        { id: "m3", turnIndex: 3, role: "user", content: longText },
+        { id: "m4", turnIndex: 4, role: "assistant", content: longText },
+        { id: "m5", turnIndex: 5, role: "user", content: longText },
+        { id: "m6", turnIndex: 6, role: "assistant", content: longText },
+        { id: "m7", turnIndex: 7, role: "user", content: longText },
+        { id: "m8", turnIndex: 8, role: "assistant", content: longText },
+      ]),
+      getSessionCompactionState: vi.fn().mockResolvedValue(null),
+      upsertSessionCompactionState: vi.fn().mockResolvedValue(undefined),
+      appendCompactionAudit: vi.fn().mockResolvedValue("audit-stale"),
+    };
+
+    const result = await runSessionMemoryCompaction({
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      logger: { info: vi.fn() },
+      sessionId: "session-stale",
+      agentId: "main",
+      totalTurns: 8,
+      tokenBudget: 900,
+      currentTokenCount: 1400,
+      force: true,
+      runtimeContext: { trigger: "overflow" },
+      maxSummaryWaitMs: 10,
+    });
+
+    expect(runtimeStore.upsertSessionSummaryState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-stale",
+        summaryInProgress: false,
+      }),
+    );
+    expect(result.compacted).toBe(true);
+    if (!result.compacted || !result.result) {
+      throw new Error(`expected compaction success, got ${result.reason ?? "unknown"}`);
+    }
+    expect(result.result.details).toEqual(
+      expect.objectContaining({ staleSummaryLeaseCleared: true }),
+    );
+  });
 });

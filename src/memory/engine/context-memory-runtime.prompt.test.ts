@@ -753,4 +753,63 @@ Probe output recovered after the stale process was removed.
       "## Durable memory",
     );
   });
+
+  it("prepends the compact summary message when a session has compaction state", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-compact-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    searchNotebookLmViaCliMock.mockResolvedValue([]);
+    recallDurableMemoryMock.mockReset();
+
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue({
+          sessionId: "session-compacted",
+          preservedTailStartTurn: 3,
+          preservedTailMessageId: "m3",
+          summarizedThroughMessageId: "m2",
+          mode: "session-summary",
+          summaryOverrideText:
+            "## Current State\nSummary-backed compaction captured the old gateway work.",
+          updatedAt: 1234,
+        }),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-compact-summary"),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createBaseMemoryRuntimeConfig(),
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-compacted",
+      sessionKey: "session-compacted",
+      prompt: "继续网关恢复",
+      messages: castAgentMessages([
+        { id: "m1", role: "user", content: "旧问题" },
+        { id: "m2", role: "assistant", content: "旧处理" },
+        { id: "m3", role: "user", content: "保留的 tail" },
+        { id: "m4", role: "assistant", content: "继续处理" },
+      ]),
+      tokenBudget: 900,
+      runtimeContext: { agentId: "main" },
+    });
+
+    expect(result.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "user",
+          subtype: "compact_summary",
+          content: expect.stringContaining(
+            "Summary-backed compaction captured the old gateway work.",
+          ),
+        }),
+      ]),
+    );
+    expect(result.messages.map((message) => (message as { id?: string }).id)).toEqual([
+      "compact-summary:session-compacted:m2",
+      "m3",
+      "m4",
+    ]);
+  });
 });

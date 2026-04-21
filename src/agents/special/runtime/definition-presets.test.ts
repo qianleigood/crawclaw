@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createEmbeddedMemorySpecialAgentDefinition,
   createRuntimeDenyToolPolicy,
-  createShortParentSessionCachePolicy,
+  createShortMemoryCachePolicy,
 } from "./definition-presets.js";
 
 describe("special agent definition presets", () => {
@@ -13,14 +13,10 @@ describe("special agent definition presets", () => {
     });
   });
 
-  it("creates the shared short parent-session cache policy", () => {
-    expect(createShortParentSessionCachePolicy()).toEqual({
+  it("creates the shared short memory cache policy", () => {
+    expect(createShortMemoryCachePolicy()).toEqual({
       cacheRetention: "short",
       skipWrite: true,
-      promptCache: {
-        scope: "parent_session",
-        retention: "24h",
-      },
     });
   });
 
@@ -47,10 +43,6 @@ describe("special agent definition presets", () => {
       cachePolicy: {
         cacheRetention: "short",
         skipWrite: true,
-        promptCache: {
-          scope: "parent_session",
-          retention: "24h",
-        },
       },
       mode: "run",
       cleanup: "keep",

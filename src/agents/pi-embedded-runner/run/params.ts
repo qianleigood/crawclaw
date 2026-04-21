@@ -11,7 +11,7 @@ import type { AgentStreamParams } from "../../command/types.js";
 import type { BlockReplyPayload } from "../../pi-embedded-payloads.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
 import type { SkillSnapshot } from "../../skills.js";
-import type { SpecialAgentInheritedPromptEnvelope } from "../../special/runtime/cache-safe-params.js";
+import type { SpecialAgentCacheEnvelope } from "../../special/runtime/parent-fork-context.js";
 
 // Simplified tool definition for client-provided tools (OpenResponses hosted tools)
 export type ClientToolDefinition = {
@@ -119,8 +119,8 @@ export type RunEmbeddedPiAgentParams = {
     agentId: string;
     sessionId: string;
   };
-  /** Parent-run prompt envelope inherited by embedded special-agent forks. */
-  specialInheritedPromptEnvelope?: SpecialAgentInheritedPromptEnvelope;
+  /** Parent-run prompt envelope used by embedded special-agent forks such as session summary. */
+  specialParentPromptEnvelope?: SpecialAgentCacheEnvelope;
   /** Seen bootstrap truncation warning signatures for this session (once mode dedupe). */
   bootstrapPromptWarningSignaturesSeen?: string[];
   /** Last shown bootstrap truncation warning signature for this session. */

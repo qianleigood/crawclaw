@@ -1,7 +1,7 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { emitSpecialAgentActionEvent } from "../../agents/special/runtime/action-feed.js";
 import { createConfiguredSpecialAgentObservability } from "../../agents/special/runtime/configured-observability.js";
 import { createEmbeddedMemorySpecialAgentDefinition } from "../../agents/special/runtime/definition-presets.js";
+import { type SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import {
   buildSpecialAgentCompletionDetail,
   buildSpecialAgentRunRefDetail,
@@ -14,7 +14,6 @@ import {
 } from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
 import { buildMemoryActionVisibilityProjection } from "../action-visibility.js";
-import { collectRecentDurableConversation } from "../durable/extraction.ts";
 import { ensureSessionSummaryFile } from "./store.ts";
 import {
   buildSessionSummaryTemplate,
@@ -34,15 +33,19 @@ export const SESSION_SUMMARY_TOOL_ALLOWLIST = [
   "session_summary_file_read",
   "session_summary_file_edit",
 ] as const;
-export const SESSION_SUMMARY_AGENT_DEFINITION: SpecialAgentDefinition =
-  createEmbeddedMemorySpecialAgentDefinition({
+export const SESSION_SUMMARY_AGENT_DEFINITION: SpecialAgentDefinition = {
+  ...createEmbeddedMemorySpecialAgentDefinition({
     id: "session_summary",
     label: "session-summary",
     spawnSource: SESSION_SUMMARY_SPAWN_SOURCE,
     allowlist: SESSION_SUMMARY_TOOL_ALLOWLIST,
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
-  });
+  }),
+  cachePolicy: {
+    cacheRetention: "short",
+  },
+};
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
 
@@ -206,60 +209,11 @@ function emitSessionSummaryAction(params: {
   });
 }
 
-export function buildSessionSummarySystemPrompt(): string {
-  return [
-    "# Session Summary Agent",
-    "",
-    "You are a dedicated background session summary agent.",
-    "",
-    "## Mission",
-    "- Maintain a single Claude-style summary.md file for the current session.",
-    "- Update only that file.",
-    "- Keep the file compact, structured, and stable across turns.",
-    "",
-    "## Constraints",
-    "- Use only the session summary tools provided for this run.",
-    "- Do NOT inspect project source files, run shell commands, browse the web, or spawn other agents.",
-    "- Do NOT modify any file other than the current session summary.md.",
-    "- Treat the summary file as the only persistent session summary source.",
-    "- Read the current summary.md before editing it.",
-    "- Your ONLY task is to use the session_summary_file_edit tool to update the file, then stop.",
-    "- You can make multiple edit calls. If multiple sections need updates, make all edit calls in parallel in a single message.",
-    "",
-    "## Critical Rules For Editing",
-    "- The file must maintain its exact structure with all sections, headers, and italic descriptions intact.",
-    "- NEVER modify, delete, or add section headers.",
-    "- NEVER modify or delete the italic section description lines immediately following each header.",
-    "- ONLY update the actual content that appears BELOW the italic description lines within each existing section.",
-    "- Do NOT add any new sections, summaries, or information outside the existing structure.",
-    "- It is OK to skip updating a section if there are no substantial new insights to add.",
-    "- Write detailed, information-dense content for each section, including exact file paths, function names, commands, and error messages when they matter.",
-    "- Keep each section under control by cycling out lower-value detail when necessary while preserving the most critical information.",
-    "- Always update Current State to reflect the latest work. This is critical for continuity after compaction.",
-    "- Update Open Loops whenever unresolved work, pending decisions, or follow-ups materially change.",
-    "- If the summary already reflects the latest state, make no change.",
-    "",
-    "## Fixed Section Spec",
-    "- The summary file uses a fixed Claude-style section layout.",
-    "- The sections are: Session Title, Current State, Open Loops, Task specification, Files and Functions, Workflow, Errors & Corrections, Codebase and System Documentation, Learnings, Key results, Worklog.",
-    "- The section headers and italic description lines are part of the template contract and must remain unchanged.",
-    "",
-    "## Output",
-    "Return a final report in exactly this shape:",
-    "STATUS: WRITTEN | SKIPPED | NO_CHANGE | FAILED",
-    "SUMMARY: one-line conclusion",
-    "WRITTEN_COUNT: <number>",
-    "UPDATED_COUNT: <number>",
-  ].join("\n");
-}
-
 export function buildSessionSummaryTaskPrompt(params: {
   sessionId: string;
   summaryPath: string;
   currentSummary: SessionSummaryDocument | null;
   profile?: SessionSummaryProfile;
-  recentMessages: AgentMessage[];
-  recentMessageLimit: number;
   maxSectionsToChange?: number;
 }): string {
   const profile = params.profile ?? "full";
@@ -271,10 +225,6 @@ export function buildSessionSummaryTaskPrompt(params: {
     ? renderSessionSummaryDocument(params.currentSummary)
     : buildSessionSummaryTemplate({ sessionId: params.sessionId });
   const budgetReminder = buildSessionSummaryBudgetReminder(params.currentSummary);
-  const recentConversation = collectRecentDurableConversation(
-    params.recentMessages,
-    params.recentMessageLimit,
-  );
   const sectionCount = params.currentSummary
     ? Object.values(params.currentSummary.sections).filter((value) => (value ?? []).length > 0)
         .length
@@ -284,7 +234,7 @@ export function buildSessionSummaryTaskPrompt(params: {
     "IMPORTANT: This message and these instructions are NOT part of the actual user conversation.",
     'Do NOT include any references to "note-taking", "session summary extraction", or these update instructions in the summary content.',
     "",
-    "Based on the real user conversation above, update the session summary file.",
+    "Based on the model-visible conversation above, update the session summary file.",
     "",
     `Session ID: ${params.sessionId}`,
     `Summary profile: ${profile.toUpperCase()}`,
@@ -298,8 +248,8 @@ export function buildSessionSummaryTaskPrompt(params: {
     currentSummaryText.trimEnd(),
     "</current_summary_content>",
     "",
-    "Recent model-visible messages since the last summary checkpoint:",
-    ...recentConversation.map((entry) => `- ${entry.role}: ${entry.text}`),
+    "The current model-visible conversation has already been provided as this forked agent's message history.",
+    "Use that conversation history plus the current summary contents above.",
     "",
     "Your ONLY task is to use the session_summary_file_edit tool to update the summary file, then stop.",
     "You can make multiple edits. If multiple sections need updates, make all edit calls in parallel in a single message.",
@@ -315,7 +265,7 @@ export function buildSessionSummaryTaskPrompt(params: {
       : [
           "FULL profile runs:",
           "- Maintain the full structured working-memory document.",
-          "- Prioritize Current State, Open Loops, Workflow, Errors & Corrections, Files and Functions, and Key results when the recent conversation justifies updates.",
+          "- Prioritize Current State, Open Loops, Workflow, Errors & Corrections, Files and Functions, and Key results when the conversation context justifies updates.",
           "",
         ]),
     "CRITICAL RULES FOR EDITING:",
@@ -339,7 +289,7 @@ export function buildSessionSummaryTaskPrompt(params: {
     "2. The italic description line immediately after the header",
     "",
     "You ONLY update the actual content that comes AFTER these two preserved lines.",
-    "If there is no substantial update from the recent messages, return STATUS: NO_CHANGE.",
+    "If there is no substantial update from the conversation context, return STATUS: NO_CHANGE.",
     ...(budgetReminder ? ["", budgetReminder] : []),
   ].join("\n");
 }
@@ -350,9 +300,7 @@ export async function runSessionSummaryAgentOnce(params: {
   sessionFile: string;
   workspaceDir: string;
   agentId: string;
-  parentRunId?: string;
-  recentMessages: AgentMessage[];
-  recentMessageLimit: number;
+  parentForkContext?: SpecialAgentParentForkContext;
   currentSummary?: SessionSummaryDocument | null;
   profile?: SessionSummaryProfile;
   runTimeoutSeconds?: number;
@@ -365,13 +313,22 @@ export async function runSessionSummaryAgentOnce(params: {
     sessionId: params.sessionId,
   });
   const summarySnapshot = params.currentSummary ?? summaryFileSnapshot.document;
+  const parentPromptEnvelope = params.parentForkContext?.promptEnvelope;
+  if (!parentPromptEnvelope?.forkContextMessages.length) {
+    const reason = "session summary requires a parent fork context";
+    logger.warn(`[memory] session summary skipped sessionId=${params.sessionId} reason=${reason}`);
+    return {
+      status: "failed",
+      writtenCount: 0,
+      updatedCount: 0,
+      reason,
+    };
+  }
   const taskPrompt = buildSessionSummaryTaskPrompt({
     sessionId: params.sessionId,
     summaryPath: summaryFileSnapshot.summaryPath,
     currentSummary: summarySnapshot,
     profile: params.profile,
-    recentMessages: params.recentMessages,
-    recentMessageLimit: params.recentMessageLimit,
     maxSectionsToChange: params.profile === "light" ? 4 : 6,
   });
   const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
@@ -379,8 +336,8 @@ export async function runSessionSummaryAgentOnce(params: {
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
     agentId: params.agentId,
-    ...(normalizeOptionalString(params.parentRunId)
-      ? { parentRunId: normalizeOptionalString(params.parentRunId) }
+    ...(normalizeOptionalString(params.parentForkContext?.parentRunId)
+      ? { parentRunId: normalizeOptionalString(params.parentForkContext?.parentRunId) }
       : {}),
   });
   const actionRunId = `session-summary:${params.sessionId}`;
@@ -395,8 +352,7 @@ export async function runSessionSummaryAgentOnce(params: {
     summary: params.sessionId,
     phase: "scheduled",
     detail: {
-      recentMessageCount: params.recentMessages.length,
-      recentMessageLimit: params.recentMessageLimit,
+      modelVisibleMessageCount: parentPromptEnvelope.forkContextMessages.length,
     },
   });
 
@@ -404,8 +360,10 @@ export async function runSessionSummaryAgentOnce(params: {
     {
       definition: SESSION_SUMMARY_AGENT_DEFINITION,
       task: taskPrompt,
-      extraSystemPrompt: buildSessionSummarySystemPrompt(),
-      ...(normalizeOptionalString(params.parentRunId) ? { parentRunId: params.parentRunId } : {}),
+      ...(normalizeOptionalString(params.parentForkContext?.parentRunId)
+        ? { parentRunId: params.parentForkContext?.parentRunId }
+        : {}),
+      parentForkContext: params.parentForkContext,
       embeddedContext: {
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,

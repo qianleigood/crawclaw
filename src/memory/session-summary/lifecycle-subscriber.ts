@@ -4,11 +4,11 @@ import {
   createRunLoopLifecycleRegistration,
   createSharedLifecycleSubscriberAccessor,
 } from "../../agents/special/runtime/lifecycle-subscriber.js";
+import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateConversationMessageTokens } from "../context/assembly.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
-import type { GmMessageRow } from "../types/runtime.ts";
 import type { SessionSummaryScheduler } from "./scheduler.ts";
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
@@ -34,11 +34,23 @@ function countToolCallsInRuntimeRow(row: {
   return Array.isArray(row.runtimeMeta?.toolUseIds) ? row.runtimeMeta.toolUseIds.length : 0;
 }
 
-function mapRowToAgentMessage(row: GmMessageRow): AgentMessage {
-  return {
-    role: row.role as "user" | "assistant",
-    content: row.contentBlocks?.length ? row.contentBlocks : (row.contentText ?? row.content),
-  } as AgentMessage;
+function resolveLifecycleParentForkContext(
+  event: RunLoopLifecycleEvent,
+): SpecialAgentParentForkContext | undefined {
+  const context = event.metadata?.parentForkContext;
+  if (!context || typeof context !== "object") {
+    return undefined;
+  }
+  const record = context as Partial<SpecialAgentParentForkContext>;
+  if (
+    typeof record.parentRunId !== "string" ||
+    !record.parentRunId.trim() ||
+    !record.promptEnvelope?.systemPromptText ||
+    !Array.isArray(record.promptEnvelope.forkContextMessages)
+  ) {
+    return undefined;
+  }
+  return record as SpecialAgentParentForkContext;
 }
 
 function resolvePrePromptMessageCount(event: RunLoopLifecycleEvent): number {
@@ -112,6 +124,16 @@ export class SessionSummaryLifecycleSubscriber {
     if (prePromptMessageCount >= currentTurnCount) {
       return;
     }
+    const parentForkContext = resolveLifecycleParentForkContext(event);
+    const lifecycleModelVisibleMessages = parentForkContext?.promptEnvelope.forkContextMessages as
+      | AgentMessage[]
+      | undefined;
+    if (!parentForkContext || !lifecycleModelVisibleMessages?.length) {
+      return;
+    }
+    if (prePromptMessageCount >= lifecycleModelVisibleMessages.length) {
+      return;
+    }
 
     try {
       const [summaryState, runtimeRows] = await Promise.all([
@@ -135,8 +157,8 @@ export class SessionSummaryLifecycleSubscriber {
           .slice()
           .toReversed()
           .find((row) => row.role === "user" || row.role === "assistant")?.id ?? null;
-      const allMessages = runtimeRows.map(mapRowToAgentMessage);
-      const recentMessages = recentRows.map(mapRowToAgentMessage);
+      const allMessages = lifecycleModelVisibleMessages;
+      const recentMessages = allMessages.slice(prePromptMessageCount);
 
       this.scheduler.submitTurn({
         sessionId: event.sessionId,
@@ -147,9 +169,7 @@ export class SessionSummaryLifecycleSubscriber {
           (typeof event.agentId === "string" && event.agentId.trim()) ||
           resolveAgentIdFromSessionKey(sessionKey) ||
           "main",
-        ...(typeof event.runId === "string" && event.runId.trim()
-          ? { parentRunId: event.runId.trim() }
-          : {}),
+        parentForkContext,
         recentMessages,
         lastModelVisibleMessageId,
         recentMessageLimit: 24,

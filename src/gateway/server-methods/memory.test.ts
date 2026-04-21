@@ -5,10 +5,13 @@ const mocks = vi.hoisted(() => ({
   loadConfigMock: vi.fn(),
   prepareSecretsRuntimeSnapshotMock: vi.fn(),
   resolveMemoryConfigMock: vi.fn(),
+  getSharedSessionSummarySchedulerMock: vi.fn(),
+  readSessionSummaryFileMock: vi.fn(),
   sqliteRuntimeStoreInitMock: vi.fn(),
   sqliteRuntimeStoreCloseMock: vi.fn(),
   sqliteRuntimeStoreGetDreamStateMock: vi.fn(),
   sqliteRuntimeStoreListRecentMaintenanceRunsMock: vi.fn(),
+  sqliteRuntimeStoreListMessagesByTurnRangeMock: vi.fn(),
 }));
 
 vi.mock("../../config/config.js", () => ({
@@ -23,13 +26,13 @@ vi.mock("../../memory/cli-api.js", () => ({
   clearNotebookLmProviderStateCache: vi.fn(),
   getNotebookLmProviderState: vi.fn(),
   getSharedAutoDreamScheduler: vi.fn(),
-  getSharedSessionSummaryScheduler: vi.fn(),
+  getSharedSessionSummaryScheduler: mocks.getSharedSessionSummarySchedulerMock,
   normalizeNotebookLmConfig: vi.fn().mockReturnValue({
     enabled: false,
     auth: { profile: "default" },
     cli: { notebookId: null },
   }),
-  readSessionSummaryFile: vi.fn(),
+  readSessionSummaryFile: mocks.readSessionSummaryFileMock,
   readSessionSummarySectionText: vi.fn(),
   refreshNotebookLmProviderState: vi.fn(),
   resolveDurableMemoryScope: vi.fn(),
@@ -42,6 +45,7 @@ vi.mock("../../memory/cli-api.js", () => ({
     close = mocks.sqliteRuntimeStoreCloseMock;
     getDreamState = mocks.sqliteRuntimeStoreGetDreamStateMock;
     listRecentMaintenanceRuns = mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock;
+    listMessagesByTurnRange = mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock;
   },
 }));
 
@@ -86,6 +90,17 @@ describe("memoryHandlers", () => {
     mocks.sqliteRuntimeStoreInitMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreCloseMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreGetDreamStateMock.mockResolvedValue(null);
+    mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([]);
+    mocks.readSessionSummaryFileMock.mockResolvedValue({
+      summaryPath: "/tmp/session-summary/agents/main/sessions/sess-1/summary.md",
+      exists: true,
+      updatedAt: 100,
+      document: null,
+      content: "",
+    });
+    mocks.getSharedSessionSummarySchedulerMock.mockReturnValue({
+      runNow: vi.fn().mockResolvedValue({ status: "started", runId: "summary-run-1" }),
+    });
   });
 
   it("includes touched notes in dream status responses", async () => {
@@ -116,6 +131,52 @@ describe("memoryHandlers", () => {
           }),
         ],
       }),
+      undefined,
+    );
+  });
+
+  it("builds a parent fork context for session summary refresh", async () => {
+    mocks.resolveMemoryConfigMock.mockReturnValue({
+      runtimeStore: { dbPath: "/tmp/memory-runtime.db" },
+      sessionSummary: {
+        enabled: true,
+        lightInitTokenThreshold: 3_000,
+        minTokensToInit: 10_000,
+        minTokensBetweenUpdates: 5_000,
+        toolCallsBetweenUpdates: 3,
+        maxWaitMs: 15_000,
+        maxTurns: 5,
+      },
+    });
+    mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([
+      { id: "m1", role: "user", content: "Do the thing", contentText: "Do the thing" },
+      { id: "m2", role: "assistant", content: "Done", contentText: "Done" },
+    ]);
+    const opts = createOptions("memory.sessionSummary.refresh", {
+      sessionId: "sess-1",
+      sessionKey: "agent:main:sess-1",
+      force: true,
+    });
+
+    await memoryHandlers["memory.sessionSummary.refresh"](opts);
+
+    const scheduler = mocks.getSharedSessionSummarySchedulerMock.mock.results[0]?.value;
+    expect(scheduler.runNow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentForkContext: expect.objectContaining({
+          parentRunId: "manual-session-summary:sess-1",
+          promptEnvelope: expect.objectContaining({
+            forkContextMessages: [
+              expect.objectContaining({ role: "user", content: "Do the thing" }),
+              expect.objectContaining({ role: "assistant", content: "Done" }),
+            ],
+          }),
+        }),
+      }),
+    );
+    expect(opts.respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({ sessionId: "sess-1" }),
       undefined,
     );
   });

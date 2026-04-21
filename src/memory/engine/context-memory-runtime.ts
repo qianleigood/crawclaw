@@ -3,7 +3,10 @@ import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateConversationMessageTokens } from "../context/assembly.ts";
 import { runSessionMemoryCompaction } from "../context/compaction-runner.ts";
-import { applyCompactionStateToMessages } from "../context/compaction.ts";
+import {
+  applyCompactionStateToMessages,
+  prependSessionSummaryCompactMessage,
+} from "../context/compaction.ts";
 import { runTranscriptMaintenance } from "../context/transcript-maintenance.ts";
 import type { AutoDreamRunner } from "../dreaming/auto-dream.ts";
 import { resolveDurableMemoryScope } from "../durable/scope.ts";
@@ -135,10 +138,19 @@ export function createContextMemoryRuntime(options: {
       runtimeContext,
     }) {
       const compactionState = await options.runtimeStore.getSessionCompactionState(sessionId);
-      const compactedMessages = applyCompactionStateToMessages({
+      const compactedTailMessages = applyCompactionStateToMessages({
         messages,
         preservedTailStartTurn: compactionState?.preservedTailStartTurn,
         preservedTailMessageId: compactionState?.preservedTailMessageId,
+      });
+      const compactedMessages = prependSessionSummaryCompactMessage({
+        sessionId,
+        messages: compactedTailMessages,
+        summaryText: compactionState?.summaryOverrideText,
+        summarizedThroughMessageId: compactionState?.summarizedThroughMessageId,
+        preservedTailMessageId: compactionState?.preservedTailMessageId,
+        preservedTailStartTurn: compactionState?.preservedTailStartTurn,
+        updatedAt: compactionState?.updatedAt,
       });
       const rawMessageCount = messages.length;
       const compactedMessageCount = compactedMessages.length;

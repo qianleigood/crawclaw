@@ -3,6 +3,7 @@ import type { MemoryRuntime, MemoryRuntimeContext } from "../../../memory/index.
 import { isSubagentSessionKey } from "../../../sessions/session-key-utils.ts";
 import { emitRunLoopLifecycleEvent } from "../../runtime/lifecycle/bus.js";
 import { ensureSharedRunLoopLifecycleSubscribers } from "../../runtime/lifecycle/shared-subscribers.js";
+import type { SpecialAgentParentForkContext } from "../../special/runtime/parent-fork-context.js";
 import { extractToolCallsFromAssistant } from "../../tool-call-id.js";
 
 export type AttemptMemoryRuntime = MemoryRuntime;
@@ -119,6 +120,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
   sessionKey?: string;
   sessionFile: string;
   messagesSnapshot: AgentMessage[];
+  parentForkContext?: SpecialAgentParentForkContext;
   prePromptMessageCount: number;
   tokenBudget?: number;
   runtimeContext?: MemoryRuntimeContext;
@@ -226,6 +228,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
       messageCount: params.messagesSnapshot.length,
       metadata: {
         prePromptMessageCount: params.prePromptMessageCount,
+        ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
         ...(workspaceDir ? { workspaceDir } : {}),
         ...(messageChannel ? { messageChannel } : {}),
         ...(senderId ? { senderId } : {}),
@@ -251,6 +254,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
       messageCount: params.messagesSnapshot.length,
       metadata: {
         prePromptMessageCount: params.prePromptMessageCount,
+        ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
         ...(workspaceDir ? { workspaceDir } : {}),
         ...(messageChannel ? { messageChannel } : {}),
         ...(senderId ? { senderId } : {}),
@@ -269,6 +273,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
         messageCount: params.messagesSnapshot.length,
         metadata: {
           prePromptMessageCount: params.prePromptMessageCount,
+          ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
           ...(workspaceDir ? { workspaceDir } : {}),
           ...(messageChannel ? { messageChannel } : {}),
           ...(senderId ? { senderId } : {}),
@@ -309,6 +314,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
         error: stopFailureReason,
         metadata: {
           prePromptMessageCount: params.prePromptMessageCount,
+          ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
           ...(workspaceDir ? { workspaceDir } : {}),
           ...(messageChannel ? { messageChannel } : {}),
           ...(senderId ? { senderId } : {}),

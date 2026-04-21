@@ -62,6 +62,4 @@ export type RunLoopLifecycleEvent = Omit<
 
 export type RunLoopLifecycleSubscriptionKey = RunLoopLifecyclePhase | "*";
 
-export type RunLoopLifecycleHandler = (
-  event: RunLoopLifecycleEvent,
-) => Promise<void> | void;
+export type RunLoopLifecycleHandler = (event: RunLoopLifecycleEvent) => Promise<void> | void;

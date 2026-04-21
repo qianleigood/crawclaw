@@ -35,10 +35,7 @@ describe("session summary tools", () => {
 
     expect(readTool?.name).toBe("session_summary_file_read");
     expect(editTool?.name).toBe("session_summary_file_edit");
-    expect(toolNames).toEqual([
-      "session_summary_file_read",
-      "session_summary_file_edit",
-    ]);
+    expect(toolNames).toEqual(["session_summary_file_read", "session_summary_file_edit"]);
   });
 
   it("reads and edits the scoped summary.md file", async () => {
@@ -55,7 +52,11 @@ describe("session summary tools", () => {
     }
 
     const initialRead = await readTool.execute("session-summary-read", {});
-    const initial = initialRead.details as { summaryPath?: string; content?: string; exists?: boolean };
+    const initial = initialRead.details as {
+      summaryPath?: string;
+      content?: string;
+      exists?: boolean;
+    };
     expect(initial.exists).toBe(true);
     expect(initial.content).toContain("# Current State");
     expect(initial.summaryPath).toBeDefined();

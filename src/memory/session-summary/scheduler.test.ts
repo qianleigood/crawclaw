@@ -2,7 +2,27 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
 import { SessionSummaryScheduler, evaluateSessionSummaryGate } from "./scheduler.js";
+
+function createParentForkContext(params?: {
+  parentRunId?: string;
+  messages?: Array<{ role: string; content: string }>;
+}) {
+  const messages = params?.messages ?? [{ role: "assistant", content: "summarize this" }];
+  return {
+    parentRunId: params?.parentRunId ?? "parent-run-1",
+    provider: "openai",
+    modelId: "gpt-5.4",
+    promptEnvelope: buildSpecialAgentCacheEnvelope({
+      systemPromptText: "parent system prompt",
+      toolNames: ["read"],
+      toolPromptPayload: [{ name: "read" }],
+      thinkingConfig: {},
+      forkContextMessages: messages,
+    }),
+  };
+}
 
 describe("session summary scheduler gate", () => {
   const tempDirs: string[] = [];
@@ -117,7 +137,7 @@ describe("session summary scheduler gate", () => {
     expect(gate.reason).toBe("ready");
   });
 
-  it("threads parentRunId into the session summary runner", async () => {
+  it("threads the parent fork context into the session summary runner", async () => {
     const stateDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "crawclaw-session-summary-scheduler-"),
     );
@@ -145,14 +165,15 @@ describe("session summary scheduler gate", () => {
       logger: console,
     });
 
+    const parentForkContext = createParentForkContext();
     const result = await scheduler.runNow({
       sessionId: "session-1",
       sessionKey: "agent:main:main",
       sessionFile: "/tmp/session-1.jsonl",
       workspaceDir: "/tmp/workspace",
       agentId: "main",
-      parentRunId: "parent-run-1",
       recentMessages: [{ role: "assistant", content: "summarize this" }] as never,
+      parentForkContext,
       lastModelVisibleMessageId: "msg-1",
       recentMessageLimit: 8,
       currentTokenCount: 12_000,
@@ -168,10 +189,52 @@ describe("session summary scheduler gate", () => {
         sessionId: "session-1",
         sessionFile: "/tmp/session-1.jsonl",
         workspaceDir: "/tmp/workspace",
-        parentRunId: "parent-run-1",
+        parentForkContext,
       }),
       console,
     );
+  });
+
+  it("skips ready runs when fork context is missing", async () => {
+    const stateDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-session-summary-missing-fork-"),
+    );
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runtimeStore = {
+      getSessionSummaryState: vi.fn().mockResolvedValue(null),
+      upsertSessionSummaryState: vi.fn().mockResolvedValue(undefined),
+    };
+    const runner = vi.fn();
+    const scheduler = new SessionSummaryScheduler({
+      config: {
+        enabled: true,
+        initialTokenThreshold: 1,
+        updateTokenThreshold: 1,
+        minToolCalls: 0,
+      },
+      runtimeStore: runtimeStore as never,
+      runner,
+      logger: console,
+    });
+
+    const result = await scheduler.runNow({
+      sessionId: "session-missing-fork",
+      sessionKey: "agent:main:main",
+      sessionFile: "/tmp/session-missing-fork.jsonl",
+      workspaceDir: "/tmp/workspace",
+      agentId: "main",
+      recentMessages: [{ role: "assistant", content: "summarize this" }] as never,
+      recentMessageLimit: 8,
+      currentTokenCount: 12_000,
+      toolCallCount: 3,
+      isSettledTurn: true,
+      bypassGate: true,
+      currentSummary: null,
+    });
+
+    expect(result).toMatchObject({ status: "skipped", reason: "missing_fork_context" });
+    expect(runner).not.toHaveBeenCalled();
   });
 
   it("replays the latest queued turn after an in-flight summary run completes", async () => {
@@ -183,28 +246,33 @@ describe("session summary scheduler gate", () => {
     const firstRun = new Promise<void>((resolve) => {
       releaseFirstRun = resolve;
     });
-    const seenRecentMessages: string[] = [];
+    const seenModelVisibleMessages: string[] = [];
     const runtimeStore = {
       getSessionSummaryState: vi.fn().mockResolvedValue(null),
       upsertSessionSummaryState: vi.fn().mockResolvedValue(undefined),
     };
-    const runner = vi
-      .fn()
-      .mockImplementation(async (params: { recentMessages: Array<{ content?: unknown }> }) => {
-        const firstContent = params.recentMessages[0]?.content;
-        seenRecentMessages.push(
+    const runner = vi.fn().mockImplementation(
+      async (params: {
+        parentForkContext: {
+          promptEnvelope: { forkContextMessages: Array<{ content?: unknown }> };
+        };
+      }) => {
+        const firstContent =
+          params.parentForkContext.promptEnvelope.forkContextMessages[0]?.content;
+        seenModelVisibleMessages.push(
           typeof firstContent === "string" ? firstContent : JSON.stringify(firstContent ?? ""),
         );
-        if (seenRecentMessages.length === 1) {
+        if (seenModelVisibleMessages.length === 1) {
           await firstRun;
         }
         return {
           status: "no_change",
           writtenCount: 0,
           updatedCount: 0,
-          runId: `summary-run-${seenRecentMessages.length}`,
+          runId: `summary-run-${seenModelVisibleMessages.length}`,
         };
-      });
+      },
+    );
     const scheduler = new SessionSummaryScheduler({
       config: {
         enabled: true,
@@ -224,6 +292,10 @@ describe("session summary scheduler gate", () => {
       workspaceDir: "/tmp/workspace",
       agentId: "main",
       recentMessages: [{ role: "assistant", content: "first" }] as never,
+      parentForkContext: createParentForkContext({
+        parentRunId: "parent-run-1",
+        messages: [{ role: "assistant", content: "first" }],
+      }),
       lastModelVisibleMessageId: "msg-1",
       recentMessageLimit: 8,
       currentTokenCount: 12_000,
@@ -238,6 +310,10 @@ describe("session summary scheduler gate", () => {
       workspaceDir: "/tmp/workspace",
       agentId: "main",
       recentMessages: [{ role: "assistant", content: "second" }] as never,
+      parentForkContext: createParentForkContext({
+        parentRunId: "parent-run-2",
+        messages: [{ role: "assistant", content: "second" }],
+      }),
       lastModelVisibleMessageId: "msg-2",
       recentMessageLimit: 8,
       currentTokenCount: 13_000,
@@ -253,6 +329,6 @@ describe("session summary scheduler gate", () => {
     await vi.waitFor(() => {
       expect(runner).toHaveBeenCalledTimes(2);
     });
-    expect(seenRecentMessages).toEqual(["first", "second"]);
+    expect(seenModelVisibleMessages).toEqual(["first", "second"]);
   });
 });

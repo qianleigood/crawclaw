@@ -475,6 +475,49 @@ export function applyCompactionStateToMessages<T>(params: {
   return messages.slice(startIndex);
 }
 
+export function buildSessionSummaryCompactMessage(params: {
+  sessionId: string;
+  summaryText?: string | null;
+  summarizedThroughMessageId?: string | null;
+  preservedTailMessageId?: string | null;
+  preservedTailStartTurn?: number | null;
+  updatedAt?: number | null;
+}): AgentMessage | null {
+  const summary = params.summaryText?.trim();
+  if (!summary) {
+    return null;
+  }
+  const anchor =
+    params.summarizedThroughMessageId?.trim() ||
+    params.preservedTailMessageId?.trim() ||
+    String(params.preservedTailStartTurn ?? "tail");
+  return {
+    id: `compact-summary:${params.sessionId}:${anchor}`,
+    role: "user",
+    subtype: "compact_summary",
+    content: summary,
+    isCompactSummary: true,
+    isVisibleInTranscriptOnly: true,
+    timestamp:
+      typeof params.updatedAt === "number" && Number.isFinite(params.updatedAt)
+        ? params.updatedAt
+        : 0,
+  } as AgentMessage;
+}
+
+export function prependSessionSummaryCompactMessage<T extends AgentMessage>(params: {
+  sessionId: string;
+  messages: T[];
+  summaryText?: string | null;
+  summarizedThroughMessageId?: string | null;
+  preservedTailMessageId?: string | null;
+  preservedTailStartTurn?: number | null;
+  updatedAt?: number | null;
+}): AgentMessage[] {
+  const compactSummary = buildSessionSummaryCompactMessage(params);
+  return compactSummary ? [compactSummary, ...params.messages] : params.messages;
+}
+
 export function isCompactedTranscriptMessage(message: AgentMessage): boolean {
   const content = (message as { content?: unknown }).content;
   if (typeof content === "string") {

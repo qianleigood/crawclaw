@@ -4,6 +4,7 @@ import {
   registerRunLoopLifecycleHandler,
   resetRunLoopLifecycleHandlersForTests,
 } from "../../runtime/lifecycle/bus.js";
+import { buildSpecialAgentCacheEnvelope } from "../../special/runtime/parent-fork-context.js";
 import { finalizeAttemptMemoryRuntimeTurn } from "./attempt.memory-runtime-helpers.js";
 
 beforeEach(() => {
@@ -19,6 +20,10 @@ describe("finalizeAttemptMemoryRuntimeTurn", () => {
       sessionId: string;
       sessionKey?: string;
       workspaceDir?: string;
+      parentForkContext?: {
+        parentRunId?: string;
+        promptEnvelope?: { forkContextMessages?: unknown[] };
+      };
     }> = [];
     registerRunLoopLifecycleHandler("*", (event) => {
       lifecycleEvents.push({
@@ -29,8 +34,28 @@ describe("finalizeAttemptMemoryRuntimeTurn", () => {
           typeof event.metadata?.workspaceDir === "string"
             ? event.metadata.workspaceDir
             : undefined,
+        parentForkContext:
+          event.metadata?.parentForkContext && typeof event.metadata.parentForkContext === "object"
+            ? (event.metadata.parentForkContext as {
+                parentRunId?: string;
+                promptEnvelope?: { forkContextMessages?: unknown[] };
+              })
+            : undefined,
       });
     });
+    const messagesSnapshot = [{ role: "assistant", content: "done" }] as unknown as AgentMessage[];
+    const parentForkContext = {
+      parentRunId: "run-1",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "parent system",
+        toolNames: ["read"],
+        toolPromptPayload: [{ name: "read" }],
+        thinkingConfig: {},
+        forkContextMessages: messagesSnapshot,
+      }),
+    };
 
     await finalizeAttemptMemoryRuntimeTurn({
       memoryRuntime: {
@@ -46,7 +71,8 @@ describe("finalizeAttemptMemoryRuntimeTurn", () => {
       sessionIdUsed: "session-1",
       sessionKey: "agent:main:feishu:user-1",
       sessionFile: "/tmp/session.jsonl",
-      messagesSnapshot: [{ role: "assistant", content: "done" }] as unknown as AgentMessage[],
+      messagesSnapshot,
+      parentForkContext,
       prePromptMessageCount: 0,
       runtimeContext: { agentId: "main", workspaceDir: "/tmp/workspace" },
       runMaintenance,
@@ -61,18 +87,21 @@ describe("finalizeAttemptMemoryRuntimeTurn", () => {
         sessionId: "session-1",
         sessionKey: "agent:main:feishu:user-1",
         workspaceDir: "/tmp/workspace",
+        parentForkContext,
       },
       {
         phase: "settled_turn",
         sessionId: "session-1",
         sessionKey: "agent:main:feishu:user-1",
         workspaceDir: "/tmp/workspace",
+        parentForkContext,
       },
       {
         phase: "stop",
         sessionId: "session-1",
         sessionKey: "agent:main:feishu:user-1",
         workspaceDir: "/tmp/workspace",
+        parentForkContext,
       },
     ]);
     expect(runMaintenance).toHaveBeenCalledTimes(1);

@@ -6,10 +6,6 @@ import type { RunEmbeddedPiAgentParams } from "../../pi-embedded-runner/run/para
 import type { EmbeddedPiRunResult } from "../../pi-embedded-runner/types.js";
 import { normalizeUsage, type NormalizedUsage } from "../../usage.js";
 import { resolveSpecialAgentCacheHints } from "./cache-plan.js";
-import {
-  readSpecialAgentCacheSafeParamsSnapshot,
-  type SpecialAgentInheritedPromptEnvelope,
-} from "./cache-safe-params.js";
 import { normalizeOptionalText, resolveMaxTurns, resolveRunTimeoutSeconds } from "./shared.js";
 import type {
   SpecialAgentCompletionResult,
@@ -24,17 +20,6 @@ export type EmbeddedSpecialAgentRuntimeDeps = {
 export const defaultEmbeddedSpecialAgentRuntimeDeps: EmbeddedSpecialAgentRuntimeDeps = {
   runEmbeddedPiAgent,
 };
-
-function shouldInheritParentPromptEnvelope(definitionId: string): boolean {
-  switch (definitionId) {
-    case "memory_extractor":
-    case "session_summary":
-    case "dream":
-      return false;
-    default:
-      return true;
-  }
-}
 
 function resolveEmbeddedSessionRef(params: { definitionId: string; runId: string }): string {
   return `embedded:${params.definitionId}:${params.runId}`;
@@ -118,23 +103,6 @@ function deriveEmbeddedUsage(result: EmbeddedPiRunResult): NormalizedUsage | und
   return normalizeUsage(result.meta.agentMeta?.usage);
 }
 
-function resolveInheritedPromptEnvelope(
-  snapshot: Awaited<ReturnType<typeof readSpecialAgentCacheSafeParamsSnapshot>>,
-): SpecialAgentInheritedPromptEnvelope | undefined {
-  if (!snapshot?.systemPromptText) {
-    return undefined;
-  }
-  return {
-    systemPromptText: snapshot.systemPromptText,
-    queryContextHash: snapshot.queryContextHash,
-    toolPromptPayload: snapshot.toolPromptPayload,
-    toolInventoryDigest: snapshot.toolInventoryDigest,
-    thinkingConfig: snapshot.thinkingConfig,
-    forkContextMessages: snapshot.forkContextMessages,
-    cacheIdentity: snapshot.cacheIdentity,
-  };
-}
-
 async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promise<
   | {
       runId: string;
@@ -157,9 +125,6 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
     };
   }
 
-  const snapshot = request.parentRunId
-    ? await readSpecialAgentCacheSafeParamsSnapshot(request.parentRunId)
-    : null;
   const modelOverride = splitModelRef(request.spawnOverrides?.model);
   const embeddedModel = splitModelRef(embeddedContext?.model);
   const configuredDefaultRef = embeddedContext?.config
@@ -174,17 +139,12 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
   const provider =
     modelOverride.provider ??
     normalizeOptionalText(embeddedContext?.provider) ??
-    normalizeOptionalText(snapshot?.provider) ??
     configuredDefaultModel.provider;
-  const model =
-    modelOverride.model ??
-    embeddedModel.model ??
-    normalizeOptionalText(snapshot?.modelId) ??
-    configuredDefaultModel.model;
+  const model = modelOverride.model ?? embeddedModel.model ?? configuredDefaultModel.model;
   if (!provider || !model) {
     return {
       error:
-        "embedded_fork special agents require provider/model resolution from spawnOverrides.model, embeddedContext, or parent cache snapshot",
+        "embedded_fork special agents require provider/model resolution from spawnOverrides.model, embeddedContext, or configured defaults",
     };
   }
 
@@ -226,14 +186,12 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
   let eventSeq = 0;
 
   const toolsAllow = resolveEmbeddedToolsAllow(request.definition.toolPolicy);
-  const inheritedPromptEnvelope = shouldInheritParentPromptEnvelope(request.definition.id)
-    ? resolveInheritedPromptEnvelope(snapshot)
-    : undefined;
+  const parentPromptEnvelope = request.parentForkContext?.promptEnvelope;
 
   return {
     runId,
     childSessionKey,
-      params: {
+    params: {
       sessionId: childSessionId,
       sessionKey: childSessionKey,
       ...(agentId ? { agentId } : {}),
@@ -302,9 +260,7 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
       ...(request.extraSystemPrompt ? { extraSystemPrompt: request.extraSystemPrompt } : {}),
       ...(streamParams ? { streamParams } : {}),
       ...(toolsAllow ? { toolsAllow: [...toolsAllow] } : {}),
-      ...(inheritedPromptEnvelope
-        ? { specialInheritedPromptEnvelope: inheritedPromptEnvelope }
-        : {}),
+      ...(parentPromptEnvelope ? { specialParentPromptEnvelope: parentPromptEnvelope } : {}),
       specialAgentSpawnSource: request.definition.spawnSource,
       ...(embeddedContext?.specialAgentContext?.durableMemoryScope
         ? {

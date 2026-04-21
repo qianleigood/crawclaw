@@ -9,14 +9,11 @@ import type {
   RunLoopLifecycleSubscriptionKey,
 } from "./types.js";
 
-const RUN_LOOP_LIFECYCLE_HANDLERS_KEY = Symbol.for(
-  "crawclaw.runLoopLifecycle.handlers",
-);
+const RUN_LOOP_LIFECYCLE_HANDLERS_KEY = Symbol.for("crawclaw.runLoopLifecycle.handlers");
 
-const handlers = resolveGlobalSingleton<Map<RunLoopLifecycleSubscriptionKey, RunLoopLifecycleHandler[]>>(
-  RUN_LOOP_LIFECYCLE_HANDLERS_KEY,
-  () => new Map(),
-);
+const handlers = resolveGlobalSingleton<
+  Map<RunLoopLifecycleSubscriptionKey, RunLoopLifecycleHandler[]>
+>(RUN_LOOP_LIFECYCLE_HANDLERS_KEY, () => new Map());
 
 const log = createSubsystemLogger("runtime-lifecycle");
 
@@ -53,7 +50,9 @@ function buildLifecycleMetrics(event: RunLoopLifecycleEventInput): Record<string
   };
 }
 
-function buildLifecycleRefs(event: RunLoopLifecycleEventInput): Record<string, string | number | boolean | null> {
+function buildLifecycleRefs(
+  event: RunLoopLifecycleEventInput,
+): Record<string, string | number | boolean | null> {
   return {
     ...event.refs,
     ...(event.runId ? { runId: event.runId } : {}),
@@ -77,9 +76,7 @@ function buildLifecycleDecision(
   return stopReason ? { code: stopReason } : null;
 }
 
-function normalizeRunLoopLifecycleEvent(
-  event: RunLoopLifecycleEventInput,
-): RunLoopLifecycleEvent {
+function normalizeRunLoopLifecycleEvent(event: RunLoopLifecycleEventInput): RunLoopLifecycleEvent {
   const traceId = buildDefaultTraceId(event);
   return {
     ...event,
@@ -88,7 +85,7 @@ function normalizeRunLoopLifecycleEvent(
     parentSpanId:
       event.parentSpanId === null
         ? null
-        : normalizeLifecycleString(event.parentSpanId) ?? buildDefaultRootSpanId(traceId),
+        : (normalizeLifecycleString(event.parentSpanId) ?? buildDefaultRootSpanId(traceId)),
     decision: buildLifecycleDecision(event),
     metrics: buildLifecycleMetrics(event),
     refs: buildLifecycleRefs(event),
@@ -125,15 +122,11 @@ export function unregisterRunLoopLifecycleHandler(
   }
 }
 
-export function hasRunLoopLifecycleSubscribers(
-  phase: RunLoopLifecyclePhase,
-): boolean {
+export function hasRunLoopLifecycleSubscribers(phase: RunLoopLifecyclePhase): boolean {
   return (handlers.get("*")?.length ?? 0) > 0 || (handlers.get(phase)?.length ?? 0) > 0;
 }
 
-export async function emitRunLoopLifecycleEvent(
-  event: RunLoopLifecycleEventInput,
-): Promise<void> {
+export async function emitRunLoopLifecycleEvent(event: RunLoopLifecycleEventInput): Promise<void> {
   if (!hasRunLoopLifecycleSubscribers(event.phase)) {
     return;
   }

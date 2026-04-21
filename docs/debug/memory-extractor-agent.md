@@ -155,39 +155,39 @@ The input to `memory_extractor` must be narrow and structured:
 
 ```ts
 type MemoryExtractorInput = {
-  sessionId: string
-  sessionKey: string
+  sessionId: string;
+  sessionKey: string;
   scope: {
-    scopeKey: string
-    agentId?: string | null
-    channel?: string | null
-    userId?: string | null
-  }
+    scopeKey: string;
+    agentId?: string | null;
+    channel?: string | null;
+    userId?: string | null;
+  };
   cursorAfter?: {
-    messageId?: string
-    turn?: number
-  }
+    messageId?: string;
+    turn?: number;
+  };
   recentModelVisibleMessages: Array<{
-    id?: string
-    role: "user" | "assistant"
-    text: string
-    turnIndex?: number
-  }>
+    id?: string;
+    role: "user" | "assistant";
+    text: string;
+    turnIndex?: number;
+  }>;
   existingManifest: Array<{
-    title: string
-    durableType: "user" | "feedback" | "project" | "reference"
-    description: string
-    dedupeKey?: string
-    relativePath: string
-  }>
+    title: string;
+    durableType: "user" | "feedback" | "project" | "reference";
+    description: string;
+    dedupeKey?: string;
+    relativePath: string;
+  }>;
   explicitSignals: {
-    explicitRememberAsked: boolean
-    explicitForgetAsked: boolean
-    hadDurableWriteThisTurn: boolean
-    hadDurableDeleteThisTurn: boolean
-    hadKnowledgeWriteThisTurn: boolean
-  }
-}
+    explicitRememberAsked: boolean;
+    explicitForgetAsked: boolean;
+    hadDurableWriteThisTurn: boolean;
+    hadDurableDeleteThisTurn: boolean;
+    hadKnowledgeWriteThisTurn: boolean;
+  };
+};
 ```
 
 The most important constraint is:
@@ -228,13 +228,13 @@ The agent should emit a structured result:
 
 ```ts
 type MemoryExtractorResult = {
-  status: "written" | "skipped" | "no_change" | "failed"
-  writtenPaths: string[]
-  updatedPaths: string[]
-  deletedPaths: string[]
-  extractedTypes: Array<"user" | "feedback" | "project" | "reference">
-  reason?: string
-}
+  status: "written" | "skipped" | "no_change" | "failed";
+  writtenPaths: string[];
+  updatedPaths: string[];
+  deletedPaths: string[];
+  extractedTypes: Array<"user" | "feedback" | "project" | "reference">;
+  reason?: string;
+};
 ```
 
 This result does not need to be user-facing by default, but it must feed:
@@ -307,11 +307,11 @@ Introduce a per-session extraction cursor:
 
 ```ts
 type DurableExtractionCursor = {
-  sessionKey: string
-  lastExtractedMessageId?: string
-  lastExtractedTurn?: number
-  lastRunAt?: number
-}
+  sessionKey: string;
+  lastExtractedMessageId?: string;
+  lastExtractedTurn?: number;
+  lastRunAt?: number;
+};
 ```
 
 Advance rules:
@@ -386,18 +386,23 @@ Current final state:
 ## Completed PR breakdown
 
 ### PR-A
+
 cursor-based durable extraction window
 
 ### PR-B
+
 remove knowledge-write suppression
 
 ### PR-C
+
 bidirectional feedback guidance
 
 ### PR-D
+
 background memory_extractor agent
 
 ### PR-E
+
 Action Feed / Archive / inspect integration
 
 ## Bottom line
