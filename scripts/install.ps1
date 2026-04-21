@@ -13,6 +13,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$INSTALLER_BOUND_PARAMETERS = @{}
+foreach ($key in $PSBoundParameters.Keys) {
+    $INSTALLER_BOUND_PARAMETERS[$key] = $PSBoundParameters[$key]
+}
+
 # Colors
 $ACCENT = "`e[38;2;255;77;77m"    # coral-bright
 $SUCCESS = "`e[38;2;0;229;204m"    # cyan-bright
@@ -37,6 +42,68 @@ function Write-Banner {
     Write-Host "${ACCENT}  🦀 CrawClaw Installer$NC" -Level info
     Write-Host "${MUTED}  All your chats, one CrawClaw.$NC" -Level info
     Write-Host ""
+}
+
+function Test-TruthyEnv {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $false
+    }
+
+    $normalized = $Value.Trim().ToLowerInvariant()
+    return @("1", "true", "yes", "on").Contains($normalized)
+}
+
+function Test-FalseyEnv {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $false
+    }
+
+    $normalized = $Value.Trim().ToLowerInvariant()
+    return @("0", "false", "no", "off").Contains($normalized)
+}
+
+function Apply-EnvironmentDefaults {
+    if (!$script:INSTALLER_BOUND_PARAMETERS.ContainsKey("InstallMethod") -and ![string]::IsNullOrWhiteSpace($env:CRAWCLAW_INSTALL_METHOD)) {
+        $script:InstallMethod = $env:CRAWCLAW_INSTALL_METHOD
+    }
+    if (!$script:INSTALLER_BOUND_PARAMETERS.ContainsKey("Tag")) {
+        if (![string]::IsNullOrWhiteSpace($env:CRAWCLAW_VERSION)) {
+            $script:Tag = $env:CRAWCLAW_VERSION
+        } elseif (Test-TruthyEnv -Value $env:CRAWCLAW_BETA) {
+            $script:Tag = "beta"
+        }
+    }
+    if (!$script:INSTALLER_BOUND_PARAMETERS.ContainsKey("GitDir") -and ![string]::IsNullOrWhiteSpace($env:CRAWCLAW_GIT_DIR)) {
+        $script:GitDir = $env:CRAWCLAW_GIT_DIR
+    }
+    if (!$script:INSTALLER_BOUND_PARAMETERS.ContainsKey("NoOnboard") -and (Test-TruthyEnv -Value $env:CRAWCLAW_NO_ONBOARD)) {
+        $script:NoOnboard = $true
+    }
+    if (!$script:INSTALLER_BOUND_PARAMETERS.ContainsKey("NoGitUpdate") -and (Test-FalseyEnv -Value $env:CRAWCLAW_GIT_UPDATE)) {
+        $script:NoGitUpdate = $true
+    }
+    if (!$script:INSTALLER_BOUND_PARAMETERS.ContainsKey("DryRun") -and (Test-TruthyEnv -Value $env:CRAWCLAW_DRY_RUN)) {
+        $script:DryRun = $true
+    }
+}
+
+function Resolve-InstallMethod {
+    param([string]$Method)
+
+    if ([string]::IsNullOrWhiteSpace($Method)) {
+        return "npm"
+    }
+
+    $normalized = $Method.Trim().ToLowerInvariant()
+    if ($normalized -eq "npm" -or $normalized -eq "git") {
+        return $normalized
+    }
+
+    throw "Invalid -InstallMethod '$Method'. Expected 'npm' or 'git'."
 }
 
 function Get-ExecutionPolicyStatus {
@@ -207,14 +274,35 @@ function Install-CrawClawNpm {
     Write-Host "Installing CrawClaw ($installSpec)..." -Level info
     
     try {
-        # Use -ExecutionPolicy Bypass to handle restricted execution policy
-        npm install -g $installSpec --no-fund --no-audit 2>&1
+        $npmArgs = @("install", "-g", $installSpec, "--no-fund", "--no-audit")
+        if (![string]::IsNullOrWhiteSpace($env:CRAWCLAW_NPM_LOGLEVEL)) {
+            $npmArgs += @("--loglevel", $env:CRAWCLAW_NPM_LOGLEVEL.Trim())
+        }
+        npm @npmArgs 2>&1
         Write-Host "CrawClaw installed" -Level success
         return $true
     } catch {
         Write-Host "npm install failed: $_" -Level error
         return $false
     }
+}
+
+function Resolve-CrawClawGitEntryPath {
+    param([string]$RepoDir)
+
+    try {
+        $resolvedRepoDir = (Resolve-Path -LiteralPath $RepoDir -ErrorAction Stop).ProviderPath
+    } catch {
+        $resolvedRepoDir = [System.IO.Path]::GetFullPath($RepoDir)
+    }
+
+    return [System.IO.Path]::Combine($resolvedRepoDir, "dist", "entry.js")
+}
+
+function Escape-BatchLiteral {
+    param([string]$Value)
+
+    return $Value.Replace("%", "%%")
 }
 
 function Install-CrawClawGit {
@@ -249,10 +337,13 @@ function Install-CrawClawGit {
     if (!(Test-Path $wrapperDir)) {
         New-Item -ItemType Directory -Path $wrapperDir -Force | Out-Null
     }
+
+    $entryPath = Resolve-CrawClawGitEntryPath -RepoDir $RepoDir
+    $entryPathForBatch = Escape-BatchLiteral -Value $entryPath
     
     @"
 @echo off
-node "%~dp0..\crawclaw\dist\entry.js" %*
+node "$entryPathForBatch" %*
 "@ | Out-File -FilePath "$wrapperDir\crawclaw.cmd" -Encoding ASCII -Force
     
     Write-Host "CrawClaw installed" -Level success
@@ -300,6 +391,14 @@ function Add-ToPath {
 # Main
 function Main {
     Write-Banner
+
+    Apply-EnvironmentDefaults
+    try {
+        $script:InstallMethod = Resolve-InstallMethod -Method $InstallMethod
+    } catch {
+        Write-Host $_.Exception.Message -Level error
+        exit 2
+    }
     
     Write-Host "Windows detected" -Level success
     

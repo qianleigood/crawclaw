@@ -1122,6 +1122,7 @@
     "test:startup:memory": "node scripts/check-cli-startup-memory.mjs",
     "test:voicecall:closedloop": "node scripts/test-voicecall-closedloop.mjs",
     "test:watch": "vitest",
+    "test:windows:compat": "pnpm test -- src/install-ps1.test.ts src/plugin-sdk/windows-spawn.test.ts src/process/exec.windows.test.ts src/process/windows-command.test.ts src/daemon/runtime-hints.windows-paths.test.ts src/daemon/schtasks.startup-fallback.test.ts src/daemon/schtasks.install.test.ts src/daemon/schtasks.stop.test.ts src/infra/windows-install-roots.test.ts src/infra/windows-task-restart.test.ts src/agents/shell-utils.test.ts src/agents/path-policy.test.ts src/agents/sandbox/docker.windows.test.ts extensions/browser/src/browser/chrome.test.ts extensions/lobster/src/lobster-tool.test.ts",
     "ts-topology": "node --import tsx scripts/ts-topology.ts",
     "tsgo": "node scripts/run-tsgo.mjs",
     "tui": "node scripts/run-node.mjs tui",

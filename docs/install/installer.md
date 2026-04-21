@@ -335,10 +335,13 @@ The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names whil
 | Variable                                                       | Description        |
 | -------------------------------------------------------------- | ------------------ |
 | `CRAWCLAW_INSTALL_METHOD=git\|npm` (`CRAWCLAW_INSTALL_METHOD`) | Install method     |
+| `CRAWCLAW_VERSION=<tag\|version\|spec>` (`CRAWCLAW_VERSION`)   | npm tag or spec    |
+| `CRAWCLAW_BETA=0\|1` (`CRAWCLAW_BETA`)                         | Use beta tag       |
 | `CRAWCLAW_GIT_DIR=<path>` (`CRAWCLAW_GIT_DIR`)                 | Checkout directory |
 | `CRAWCLAW_NO_ONBOARD=1` (`CRAWCLAW_NO_ONBOARD`)                | Skip onboarding    |
 | `CRAWCLAW_GIT_UPDATE=0` (`CRAWCLAW_GIT_UPDATE`)                | Disable git pull   |
 | `CRAWCLAW_DRY_RUN=1` (`CRAWCLAW_DRY_RUN`)                      | Dry run mode       |
+| `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice`                    | npm log level      |
 
   </Accordion>
 </AccordionGroup>
