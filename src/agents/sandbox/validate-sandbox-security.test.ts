@@ -40,6 +40,14 @@ describe("validateBindMounts", () => {
     ).not.toThrow();
   });
 
+  it("allows Windows drive-letter bind sources inside allowed roots", () => {
+    expect(() =>
+      validateBindMounts(["C:\\Users\\kai\\project\\cache:/cache:rw"], {
+        allowedSourceRoots: ["C:\\Users\\kai\\project"],
+      }),
+    ).not.toThrow();
+  });
+
   it("allows undefined or empty binds", () => {
     expect(() => validateBindMounts(undefined)).not.toThrow();
     expect(() => validateBindMounts([])).not.toThrow();
@@ -91,6 +99,26 @@ describe("validateBindMounts", () => {
         name: "double-slash normalization into /etc",
         binds: ["//etc//passwd:/mnt/passwd"],
         expected: /blocked path "\/etc"/,
+      },
+      {
+        name: "windows drive root mount",
+        binds: ["C:\\:/mnt/host"],
+        expected: /blocked path "C:\\/,
+      },
+      {
+        name: "windows system directory",
+        binds: ["C:\\Windows\\System32:/mnt/windows:ro"],
+        expected: /blocked path "C:\\Windows"/,
+      },
+      {
+        name: "windows crawclaw credentials",
+        binds: ["C:\\Users\\kai\\.crawclaw\\credentials:/mnt/creds:ro"],
+        expected: /sensitive Windows profile path/,
+      },
+      {
+        name: "windows ssh key directory",
+        binds: ["C:\\Users\\kai\\.ssh:/mnt/ssh:ro"],
+        expected: /sensitive Windows profile path/,
       },
     ] as const;
     for (const testCase of cases) {
@@ -167,10 +195,30 @@ describe("validateBindMounts", () => {
     }
   });
 
+  it("rejects UNC network bind sources unless the runtime is explicitly trusted", () => {
+    expect(() => validateBindMounts(["\\\\server\\share\\project:/mnt/project:ro"])).toThrow(
+      /network share source path/,
+    );
+
+    expect(() =>
+      validateBindMounts(["\\\\server\\share\\project:/mnt/project:ro"], {
+        allowSourcesOutsideAllowedRoots: true,
+      }),
+    ).not.toThrow();
+  });
+
   it("blocks bind sources outside allowed roots when allowlist is configured", () => {
     expect(() =>
       validateBindMounts(["/opt/external:/data:ro"], {
         allowedSourceRoots: ["/home/user/project"],
+      }),
+    ).toThrow(/outside allowed roots/);
+  });
+
+  it("blocks Windows drive-letter bind sources outside allowed roots", () => {
+    expect(() =>
+      validateBindMounts(["C:\\Users\\kai\\other:/data:ro"], {
+        allowedSourceRoots: ["C:\\Users\\kai\\project"],
       }),
     ).toThrow(/outside allowed roots/);
   });

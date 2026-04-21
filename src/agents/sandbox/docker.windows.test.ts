@@ -2,7 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
-import { resolveDockerSpawnInvocation } from "./docker.js";
+import { buildSandboxCreateArgs, resolveDockerSpawnInvocation } from "./docker.js";
+import type { SandboxDockerConfig } from "./types.js";
 
 const tempDirs = createTrackedTempDirs();
 const createTempDir = () => tempDirs.make("crawclaw-docker-spawn-test-");
@@ -62,5 +63,33 @@ describe("resolveDockerSpawnInvocation", () => {
     ).toThrow(
       /wrapper resolved, but no executable\/Node entrypoint could be resolved without shell execution\./i,
     );
+  });
+});
+
+describe("buildSandboxCreateArgs on Windows paths", () => {
+  function createDockerConfig(binds: string[]): SandboxDockerConfig {
+    return {
+      image: "crawclaw-sandbox:test",
+      containerPrefix: "oc-test-",
+      workdir: "/workspace",
+      readOnlyRoot: true,
+      tmpfs: ["/tmp"],
+      network: "none",
+      capDrop: ["ALL"],
+      binds,
+    };
+  }
+
+  it("accepts drive-letter bind sources and preserves the Docker bind spec", () => {
+    const bind = "C:\\Users\\kai\\project\\cache:/cache:rw";
+    const args = buildSandboxCreateArgs({
+      name: "oc-test",
+      cfg: createDockerConfig([bind]),
+      scopeKey: "agent:main",
+      bindSourceRoots: ["C:\\Users\\kai\\project"],
+    });
+
+    expect(args).toContain("-v");
+    expect(args).toContain(bind);
   });
 });

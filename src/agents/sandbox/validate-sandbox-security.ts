@@ -8,6 +8,9 @@
 import { splitSandboxBindSpec } from "./bind-spec.js";
 import { SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constants.js";
 import {
+  isSandboxHostPathAbsolute,
+  isSandboxHostPathInside,
+  isSandboxHostPathNetwork,
   normalizeSandboxHostPath,
   resolveSandboxHostPathViaExistingAncestor,
 } from "./host-paths.js";
@@ -50,6 +53,7 @@ export type BlockedBindReason =
   | { kind: "targets"; blockedPath: string }
   | { kind: "covers"; blockedPath: string }
   | { kind: "non_absolute"; sourcePath: string }
+  | { kind: "network_source"; sourcePath: string }
   | { kind: "outside_allowed_roots"; sourcePath: string; allowedRoots: string[] }
   | { kind: "reserved_target"; targetPath: string; reservedPath: string };
 
@@ -95,15 +99,51 @@ export function normalizeHostPath(raw: string): string {
  */
 export function getBlockedBindReason(bind: string): BlockedBindReason | null {
   const sourceRaw = parseBindSourcePath(bind);
-  if (!sourceRaw.startsWith("/")) {
+  if (!isSandboxHostPathAbsolute(sourceRaw)) {
     return { kind: "non_absolute", sourcePath: sourceRaw };
+  }
+  if (isSandboxHostPathNetwork(sourceRaw)) {
+    return { kind: "network_source", sourcePath: normalizeHostPath(sourceRaw) };
   }
 
   const normalized = normalizeHostPath(sourceRaw);
   return getBlockedReasonForSourcePath(normalized);
 }
 
+function getBlockedWindowsHostReason(sourceNormalized: string): BlockedBindReason | null {
+  const comparable = sourceNormalized.toLowerCase();
+  const driveRoot = /^[a-z]:\\$/.exec(comparable);
+  if (driveRoot) {
+    return { kind: "covers", blockedPath: sourceNormalized };
+  }
+  const windowsRoot = /^[a-z]:\\windows(?:\\|$)/.exec(comparable);
+  if (windowsRoot) {
+    return { kind: "targets", blockedPath: `${sourceNormalized.slice(0, 3)}Windows` };
+  }
+  if (/^[a-z]:\\users\\[^\\]+\\\.ssh(?:\\|$)/.test(comparable)) {
+    return { kind: "targets", blockedPath: "sensitive Windows profile path" };
+  }
+  if (
+    /^[a-z]:\\users\\[^\\]+\\\.crawclaw\\(?:credentials|secrets)(?:\\|$)/.test(comparable) ||
+    /^[a-z]:\\users\\[^\\]+\\\.crawclaw\\config(?:\\|\.|$)/.test(comparable) ||
+    /^[a-z]:\\users\\[^\\]+\\appdata\\(?:roaming|local)\\crawclaw\\(?:credentials|secrets)(?:\\|$)/.test(
+      comparable,
+    ) ||
+    /^[a-z]:\\users\\[^\\]+\\appdata\\(?:roaming|local)\\crawclaw\\config(?:\\|\.|$)/.test(
+      comparable,
+    )
+  ) {
+    return { kind: "targets", blockedPath: "sensitive Windows profile path" };
+  }
+  return null;
+}
+
 export function getBlockedReasonForSourcePath(sourceNormalized: string): BlockedBindReason | null {
+  const windowsReason = getBlockedWindowsHostReason(sourceNormalized);
+  if (windowsReason) {
+    return windowsReason;
+  }
+
   if (sourceNormalized === "/") {
     return { kind: "covers", blockedPath: "/" };
   }
@@ -122,7 +162,7 @@ function normalizeAllowedRoots(roots: string[] | undefined): string[] {
   }
   const normalized = roots
     .map((entry) => entry.trim())
-    .filter((entry) => entry.startsWith("/"))
+    .filter((entry) => isSandboxHostPathAbsolute(entry))
     .map(normalizeHostPath);
   const expanded = new Set<string>();
   for (const root of normalized) {
@@ -136,10 +176,7 @@ function normalizeAllowedRoots(roots: string[] | undefined): string[] {
 }
 
 function isPathInsidePosix(root: string, target: string): boolean {
-  if (root === "/") {
-    return true;
-  }
-  return target === root || target.startsWith(`${root}/`);
+  return isSandboxHostPathInside(root, target);
 }
 
 function getOutsideAllowedRootsReason(
@@ -202,7 +239,14 @@ function formatBindBlockedError(params: { bind: string; reason: BlockedBindReaso
   if (params.reason.kind === "non_absolute") {
     return new Error(
       `Sandbox security: bind mount "${params.bind}" uses a non-absolute source path ` +
-        `"${params.reason.sourcePath}". Only absolute POSIX paths are supported for sandbox binds.`,
+        `"${params.reason.sourcePath}". Only absolute POSIX paths or Windows drive-letter paths are supported for sandbox binds.`,
+    );
+  }
+  if (params.reason.kind === "network_source") {
+    return new Error(
+      `Sandbox security: bind mount "${params.bind}" uses network share source path ` +
+        `"${params.reason.sourcePath}". UNC/network bind sources are blocked by default. ` +
+        "Set sandbox.docker.dangerouslyAllowExternalBindSources=true only when the network share is trusted.",
     );
   }
   if (params.reason.kind === "outside_allowed_roots") {
@@ -248,7 +292,12 @@ export function validateBindMounts(
     }
 
     // Fast string-only check (covers .., //, ancestor/descendant logic).
-    const blocked = getBlockedBindReason(bind);
+    const sourceRaw = parseBindSourcePath(bind);
+    const allowExternalSources = options?.allowSourcesOutsideAllowedRoots === true;
+    let blocked = getBlockedBindReason(bind);
+    if (blocked?.kind === "network_source" && allowExternalSources) {
+      blocked = null;
+    }
     if (blocked) {
       throw formatBindBlockedError({ bind, reason: blocked });
     }
@@ -260,7 +309,6 @@ export function validateBindMounts(
       }
     }
 
-    const sourceRaw = parseBindSourcePath(bind);
     const sourceNormalized = normalizeHostPath(sourceRaw);
     enforceSourcePathPolicy({
       bind,
