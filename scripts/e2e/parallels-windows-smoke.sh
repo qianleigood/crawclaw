@@ -939,8 +939,11 @@ try {
   & ([scriptblock]::Create(\$script)) ${version_flag_q}-NoOnboard
   & (Resolve-CrawClawCmd) --version
 } catch {
-  Write-Warning ("site installer failed; falling back to npm install $npm_spec_q: {0}" -f \$_.Exception.Message)
-  npm.cmd install -g '$npm_spec_q' --no-fund --no-audit
+  Write-Warning ("site installer failed; installing npm baseline $npm_spec_q with lifecycle scripts disabled: {0}" -f \$_.Exception.Message)
+  npm.cmd install -g '$npm_spec_q' --ignore-scripts --no-fund --no-audit
+  if (\$LASTEXITCODE -ne 0) {
+    throw "npm baseline install failed with exit code \$LASTEXITCODE"
+  }
   & (Resolve-CrawClawCmd) --version
 }
 EOF
