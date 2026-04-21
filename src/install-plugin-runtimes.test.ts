@@ -5,6 +5,16 @@ import { describe, expect, it } from "vitest";
 type RuntimeInstallScript = {
   createLocalPrefixNpmInstallArgs: (runtimeDir: string, packageSpec: string) => string[];
   createNestedNpmInstallEnv: (env: NodeJS.ProcessEnv) => NodeJS.ProcessEnv;
+  resolveRuntimeSpawn: (
+    command: string,
+    args: string[],
+    params?: { comSpec?: string; env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform },
+  ) => {
+    args: string[];
+    command: string;
+    shell?: boolean;
+    windowsVerbatimArguments?: boolean;
+  };
   resolveScraplingVenvPython: (venvDir: string, platform?: NodeJS.Platform) => string;
 };
 
@@ -47,5 +57,21 @@ describe("install-plugin-runtimes", () => {
     expect(script.resolveScraplingVenvPython("/tmp/runtime/venv", "darwin")).toBe(
       path.posix.join("/tmp/runtime/venv", "bin", "python"),
     );
+  });
+
+  it("wraps Windows cmd shims before spawning them", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(
+      script.resolveRuntimeSpawn("C:\\Program Files\\PinchTab\\pinchtab.cmd", ["--version"], {
+        comSpec: "C:\\Windows\\System32\\cmd.exe",
+        platform: "win32",
+      }),
+    ).toEqual({
+      command: "C:\\Windows\\System32\\cmd.exe",
+      args: ["/d", "/s", "/c", '"C:\\Program Files\\PinchTab\\pinchtab.cmd" --version'],
+      shell: false,
+      windowsVerbatimArguments: true,
+    });
   });
 });

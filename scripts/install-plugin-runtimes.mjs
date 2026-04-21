@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolveNpmRunner } from "./npm-runner.mjs";
 
+const WINDOWS_UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
 const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
 const PINCHTAB_VERSION = "0.9.1";
@@ -57,11 +58,51 @@ function writeManifest(manifest, env = process.env) {
   writeFileSync(filePath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 }
 
+function escapeForCmdExe(arg) {
+  if (WINDOWS_UNSAFE_CMD_CHARS_RE.test(arg)) {
+    throw new Error(`unsafe Windows cmd.exe argument detected: ${JSON.stringify(arg)}`);
+  }
+  const escaped = arg.replace(/\^/g, "^^");
+  if (!escaped.includes(" ") && !escaped.includes('"')) {
+    return escaped;
+  }
+  return `"${escaped.replace(/"/g, '""')}"`;
+}
+
+function buildCmdExeCommandLine(command, args) {
+  return [escapeForCmdExe(command), ...args.map(escapeForCmdExe)].join(" ");
+}
+
+function isWindowsCmdShim(command, platform) {
+  if (platform !== "win32") {
+    return false;
+  }
+  const ext = path.win32.extname(command).toLowerCase();
+  return ext === ".cmd" || ext === ".bat";
+}
+
+export function resolveRuntimeSpawn(command, args, params = {}) {
+  const env = params.env ?? process.env;
+  const platform = params.platform ?? process.platform;
+  if (!isWindowsCmdShim(command, platform)) {
+    return { command, args };
+  }
+  return {
+    command: params.comSpec ?? env.ComSpec ?? "cmd.exe",
+    args: ["/d", "/s", "/c", buildCmdExeCommandLine(command, args)],
+    shell: false,
+    windowsVerbatimArguments: true,
+  };
+}
+
 function runOrThrow(command, args, options = {}) {
-  const result = spawnSync(command, args, {
+  const runner = resolveRuntimeSpawn(command, args, { env: options.env });
+  const result = spawnSync(runner.command, runner.args, {
     encoding: "utf8",
     stdio: "pipe",
     ...options,
+    shell: runner.shell ?? options.shell,
+    windowsVerbatimArguments: runner.windowsVerbatimArguments ?? options.windowsVerbatimArguments,
   });
   if (result.status === 0) {
     return result;
