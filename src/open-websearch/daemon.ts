@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, openSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { CrawClawConfig } from "../plugin-sdk/config-runtime.js";
+import { resolveOpenWebSearchRuntimeBin } from "../plugins/plugin-runtimes.js";
 import {
   DEFAULT_OPEN_WEBSEARCH_HOST,
   DEFAULT_OPEN_WEBSEARCH_PORT,
@@ -25,7 +26,7 @@ type LaunchCommand = {
 
 function buildMissingRuntimeError(): Error {
   return new Error(
-    "Open-WebSearch runtime is not installed. Expected a local runtime under ~/.crawclaw/runtimes/open-websearch or ~/.local/open-websearch. Install runtimes during setup/postinstall or run `crawclaw runtimes install`.",
+    "Open-WebSearch runtime is not installed. Expected a managed runtime under the CrawClaw state directory or a user-local Open-WebSearch install. Install runtimes during setup/postinstall or run `crawclaw runtimes install`.",
   );
 }
 
@@ -67,30 +68,11 @@ function resolveDaemonLogPath(): string {
   return join(homedir(), ".crawclaw", "logs", "open-websearch-daemon.log");
 }
 
-function resolveLaunchCommand(): LaunchCommand {
-  const sharedRuntimeBin =
-    process.platform === "win32"
-      ? join(
-          homedir(),
-          ".crawclaw",
-          "runtimes",
-          "open-websearch",
-          "node_modules",
-          ".bin",
-          "open-websearch.cmd",
-        )
-      : join(
-          homedir(),
-          ".crawclaw",
-          "runtimes",
-          "open-websearch",
-          "node_modules",
-          ".bin",
-          "open-websearch",
-        );
-  if (existsSync(sharedRuntimeBin)) {
+function resolveLaunchCommand(env: NodeJS.ProcessEnv = process.env): LaunchCommand {
+  const managedRuntimeBin = resolveOpenWebSearchRuntimeBin(env);
+  if (existsSync(managedRuntimeBin)) {
     return {
-      command: sharedRuntimeBin,
+      command: managedRuntimeBin,
       args: [],
     };
   }
@@ -134,8 +116,14 @@ async function waitForReady(params: { baseUrl: string; timeoutMs: number }): Pro
   );
 }
 
-function spawnDaemon(params: { host: string; port: number; detached: boolean }): ChildProcess {
-  const launch = resolveLaunchCommand();
+function spawnDaemon(params: {
+  host: string;
+  port: number;
+  detached: boolean;
+  env?: NodeJS.ProcessEnv;
+}): ChildProcess {
+  const env = params.env ?? process.env;
+  const launch = resolveLaunchCommand(env);
   const logPath = resolveDaemonLogPath();
   mkdirSync(dirname(logPath), { recursive: true });
   const logFd = openSync(logPath, "a");
@@ -147,7 +135,7 @@ function spawnDaemon(params: { host: string; port: number; detached: boolean }):
       stdio: ["ignore", logFd, logFd],
       windowsHide: true,
       env: {
-        ...process.env,
+        ...env,
         NO_COLOR: "1",
       },
     },
@@ -231,6 +219,7 @@ async function ensureManagedOpenWebSearchDaemonWithMode(
       host,
       port,
       detached: params.mode === "detached",
+      env,
     });
     if (params.mode === "service") {
       managedChildren.set(key, child);

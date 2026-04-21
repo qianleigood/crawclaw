@@ -54,7 +54,7 @@ describe("scrapling fetch service", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("bootstraps a managed venv before starting the sidecar and stops the child process", async () => {
+  it("uses the managed venv before starting the sidecar and stops the child process", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -72,7 +72,7 @@ describe("scrapling fetch service", () => {
       if (text.includes("python/scrapling_sidecar.py")) {
         return true;
       }
-      return false;
+      return text === `${stateDir}/runtimes/scrapling-fetch/venv/bin/python`;
     });
 
     const serviceModule = await import("./service.js");
@@ -111,37 +111,11 @@ describe("scrapling fetch service", () => {
 
     await service.start(ctx);
 
-    const managedPython = `${stateDir}/.venv/bin/python`;
-    expect(mkdirSyncMock).toHaveBeenCalledWith(stateDir, {
-      recursive: true,
-    });
+    const managedPython = `${stateDir}/runtimes/scrapling-fetch/venv/bin/python`;
+    expect(mkdirSyncMock).not.toHaveBeenCalled();
+    expect(spawnSyncMock).toHaveBeenCalledTimes(1);
     expect(spawnSyncMock).toHaveBeenNthCalledWith(
       1,
-      "python3",
-      ["-m", "venv", `${stateDir}/.venv`],
-      expect.objectContaining({
-        stdio: "pipe",
-        windowsHide: true,
-      }),
-    );
-    expect(spawnSyncMock).toHaveBeenNthCalledWith(
-      2,
-      managedPython,
-      [
-        "-m",
-        "pip",
-        "install",
-        "--disable-pip-version-check",
-        "Scrapling==0.4.4",
-        "curl-cffi==0.15.0",
-      ],
-      expect.objectContaining({
-        stdio: "pipe",
-        windowsHide: true,
-      }),
-    );
-    expect(spawnSyncMock).toHaveBeenNthCalledWith(
-      3,
       managedPython,
       ["-c", expect.stringContaining("from scrapling.fetchers import")],
       expect.objectContaining({
@@ -176,6 +150,41 @@ describe("scrapling fetch service", () => {
     await service.stop?.(ctx);
     expect(child.kill).toHaveBeenCalled();
     expect(serviceModule.getScraplingFetchServiceState(stateDir)).toBeNull();
+  });
+
+  it("uses the managed runtime installed under CRAWCLAW_STATE_DIR", async () => {
+    const serviceModule = await import("./service.js");
+    const stateDir = "/tmp/crawclaw-scrapling-custom-state";
+    const managedPython = `${stateDir}/runtimes/scrapling-fetch/venv/bin/python`;
+    existsSyncMock.mockImplementation((path: string) => {
+      const text = String(path);
+      return text.includes("python/scrapling_sidecar.py") || text === managedPython;
+    });
+
+    const runtimeCommand = serviceModule.__testing.ensureManagedRuntimeBootstrap({
+      stateDir,
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+      },
+      config: {
+        service: {
+          bootstrap: true,
+          command: "python3",
+          bootstrapPackages: ["Scrapling==0.4.6"],
+        },
+      } as never,
+    });
+
+    expect(runtimeCommand).toBe(managedPython);
+    expect(spawnSyncMock).toHaveBeenCalledWith(
+      managedPython,
+      ["-c", expect.stringContaining("from scrapling.fetchers import")],
+      expect.objectContaining({
+        stdio: "pipe",
+        windowsHide: true,
+      }),
+    );
   });
 
   it("skips managed bootstrap when disabled and launches the configured command directly", async () => {

@@ -1,9 +1,9 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CrawClawPluginService } from "crawclaw/plugin-sdk/core";
+import { resolveManagedScraplingFetchRuntimePython } from "crawclaw/plugin-sdk/state-paths";
 import {
   buildScraplingFetchEndpoint,
   resolveScraplingFetchBaseUrl,
@@ -28,7 +28,6 @@ const startupPromises = new Map<string, Promise<void>>();
 
 const DEFAULT_READY_POLL_INTERVAL_MS = 250;
 const STOP_TIMEOUT_MS = 5_000;
-const MANAGED_VENV_DIRNAME = ".venv";
 const SCRAPLING_IMPORT_CHECK_SCRIPT =
   "from scrapling.fetchers import Fetcher, StealthyFetcher, DynamicFetcher";
 
@@ -50,25 +49,14 @@ function resolveScriptPath(): string {
 }
 
 function resolveManagedVenvDir(stateDir: string): string {
-  return join(stateDir, MANAGED_VENV_DIRNAME);
-}
-
-function resolveSharedManagedVenvDir(): string {
-  return join(homedir(), ".crawclaw", "runtimes", "scrapling-fetch", "venv");
+  return join(stateDir, "runtimes", "scrapling-fetch", "venv");
 }
 
 function resolveManagedPythonPath(stateDir: string): string {
-  const venvDir = resolveManagedVenvDir(stateDir);
-  return process.platform === "win32"
-    ? join(venvDir, "Scripts", "python.exe")
-    : join(venvDir, "bin", "python");
-}
-
-function resolveSharedManagedPythonPath(): string {
-  const venvDir = resolveSharedManagedVenvDir();
-  return process.platform === "win32"
-    ? join(venvDir, "Scripts", "python.exe")
-    : join(venvDir, "bin", "python");
+  return resolveManagedScraplingFetchRuntimePython({
+    ...process.env,
+    CRAWCLAW_STATE_DIR: stateDir,
+  });
 }
 
 function buildLaunchCommand(params: {
@@ -144,16 +132,6 @@ function ensureManagedRuntimeBootstrap(params: {
 
   const venvDir = resolveManagedVenvDir(params.stateDir);
   const managedPython = resolveManagedPythonPath(params.stateDir);
-  const sharedManagedPython = resolveSharedManagedPythonPath();
-  if (
-    existsSync(sharedManagedPython) &&
-    verifyManagedRuntimeAvailable({
-      pythonCommand: sharedManagedPython,
-      spawnSyncImpl: params.spawnSyncImpl,
-    })
-  ) {
-    return sharedManagedPython;
-  }
   if (
     existsSync(managedPython) &&
     verifyManagedRuntimeAvailable({
@@ -167,7 +145,7 @@ function ensureManagedRuntimeBootstrap(params: {
   mkdirSync(params.stateDir, { recursive: true });
   const packages = normalizeBootstrapPackages(params.config);
   throw new Error(
-    `Managed Scrapling runtime is not installed. Expected a verified runtime at ${resolveSharedManagedVenvDir()} or ${venvDir}. Install runtimes during setup/postinstall or run \`crawclaw runtimes install\`. Required packages: ${packages.join(", ")}`,
+    `Managed Scrapling runtime is not installed. Expected a verified runtime at ${venvDir}. Install runtimes during setup/postinstall or run \`crawclaw runtimes install\`. Required packages: ${packages.join(", ")}`,
   );
 }
 
@@ -373,8 +351,6 @@ export const __testing = {
   ensureManagedRuntimeBootstrap,
   resolveManagedPythonPath,
   resolveManagedVenvDir,
-  resolveSharedManagedPythonPath,
-  resolveSharedManagedVenvDir,
   probeReady,
   resolveScriptPath,
   verifyManagedRuntimeAvailable,
