@@ -63,6 +63,19 @@ describe("bundled plugin postinstall", () => {
     });
   });
 
+  it("clears Windows npm config keys case-insensitively before nested installs", () => {
+    expect(
+      createNestedNpmInstallEnv({
+        NPM_CONFIG_GLOBAL: "true",
+        npm_config_location: "global",
+        Npm_Config_Prefix: "C:\\Users\\runner\\AppData\\Roaming\\npm",
+        Path: "C:\\Program Files\\nodejs",
+      }),
+    ).toEqual({
+      Path: "C:\\Program Files\\nodejs",
+    });
+  });
+
   it("installs bundled plugin deps outside of source checkouts", async () => {
     const extensionsDir = await createExtensionsDir();
     const packageRoot = path.dirname(path.dirname(extensionsDir));

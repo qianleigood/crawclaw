@@ -267,16 +267,35 @@ The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names whil
     Requires PowerShell 5+.
   </Step>
   <Step title="Ensure Node.js 24 by default">
-    If missing, attempts install via winget, then Chocolatey, then Scoop. Node 22 LTS, currently `22.14+`, remains supported for compatibility.
+    If missing, attempts install via winget, then Chocolatey, then Scoop. Node 24 is preferred; Node 22 LTS, currently `22.14+`, remains supported for compatibility.
+  </Step>
+  <Step title="Ensure Git and PATH prerequisites">
+    Git is required for npm and git installs on Windows. The installer checks it before package installation so PATH problems produce a clear first actionable error instead of a later `spawn git ENOENT`.
   </Step>
   <Step title="Install CrawClaw">
     - `npm` method (default): global npm install using selected `-Tag`
     - `git` method: clone/update repo, install/build with pnpm, and install wrapper at `%USERPROFILE%\.local\bin\crawclaw.cmd`
   </Step>
   <Step title="Post-install tasks">
-    Adds needed bin directory to user PATH when possible, then runs `crawclaw doctor --non-interactive` on upgrades and git installs (best effort).
+    Adds needed bin directory to user PATH when possible, prepares bundled plugin runtimes during postinstall, runs `crawclaw doctor --non-interactive` best effort, and prints the native Windows validation commands.
   </Step>
 </Steps>
+
+### Native Windows validation path
+
+The closed-loop validation path for native Windows is:
+
+```powershell
+iwr -useb https://crawclaw.ai/install.ps1 | iex
+crawclaw doctor --non-interactive
+crawclaw onboard --non-interactive --mode local --install-daemon --skip-skills --accept-risk
+crawclaw gateway status --deep --require-rpc
+```
+
+That path validates the installer, runtime preparation, local Gateway setup,
+and RPC reachability. The installer surfaces native command failures by checking
+process exit codes and printing the first actionable npm, Git, winget,
+Chocolatey, Scoop, pnpm, or PowerShell error it receives.
 
 ### Examples (install.ps1)
 
