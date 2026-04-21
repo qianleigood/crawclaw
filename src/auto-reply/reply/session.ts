@@ -198,12 +198,15 @@ export async function initSessionState(params: {
     resetType,
     resetOverride: channelReset,
   });
-  // Heartbeat, cron-event, and exec-event runs should NEVER trigger session resets.
+  // Automated system event runs should NEVER trigger session resets.
   // These are automated system events, not user interactions that should affect
   // session continuity. Forcing freshEntry=true prevents accidental data loss.
   // See #58409 for details on silent session reset bug.
   const isSystemEvent =
-    ctx.Provider === "heartbeat" || ctx.Provider === "cron-event" || ctx.Provider === "exec-event";
+    ctx.Provider === "heartbeat" ||
+    ctx.Provider === "cron-event" ||
+    ctx.Provider === "exec-event" ||
+    ctx.Provider === "system-event";
   const resetPlan = planSessionReset({
     resetTriggers,
     resetAuthorized,
