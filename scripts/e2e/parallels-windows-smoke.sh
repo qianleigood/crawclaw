@@ -1220,7 +1220,18 @@ restart_gateway() {
 }
 
 stop_gateway() {
-  run_gateway_daemon_action stop
+  # Stop is short and can run directly. The background helper path uses
+  # Start-Process, which can hang under prlctl exec after a global npm upgrade.
+  guest_powershell_poll "$TIMEOUT_GATEWAY_S" "$(cat <<EOF
+$(ps_resolve_crawclaw_cmd_function)
+\$crawclaw = Resolve-CrawClawCmd
+\$output = & \$crawclaw gateway stop 2>&1
+if (\$null -ne \$output) {
+  \$output | ForEach-Object { \$_ }
+}
+exit \$LASTEXITCODE
+EOF
+)"
 }
 
 show_gateway_status_compat() {
