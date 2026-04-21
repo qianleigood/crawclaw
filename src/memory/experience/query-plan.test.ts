@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { classifyUnifiedQuery } from "../orchestration/query-classifier.js";
-import { buildKnowledgeQueryPlan } from "./query-plan.js";
+import { buildExperienceQueryPlan } from "./query-plan.js";
 
-describe("buildKnowledgeQueryPlan", () => {
+describe("buildExperienceQueryPlan", () => {
   it("skips NotebookLM for preference-like queries", () => {
     const classification = classifyUnifiedQuery({
       query: "以后默认回答短一点，这是我的偏好",
     });
 
-    const plan = buildKnowledgeQueryPlan({
+    const plan = buildExperienceQueryPlan({
       query: classification.query,
       classification,
       defaultLimit: 5,
@@ -24,7 +24,7 @@ describe("buildKnowledgeQueryPlan", () => {
       query: "本地网关挂了怎么恢复？给我操作流程",
     });
 
-    const plan = buildKnowledgeQueryPlan({
+    const plan = buildExperienceQueryPlan({
       query: classification.query,
       classification,
       defaultLimit: 5,

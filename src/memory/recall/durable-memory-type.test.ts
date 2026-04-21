@@ -91,7 +91,7 @@ describe("durable memory taxonomy", () => {
     }
   });
 
-  it("splits durable memories away from knowledge recall", () => {
+  it("splits durable memories away from experience recall", () => {
     const durable = makeItem({
       id: "durable",
       source: "native_memory",
@@ -100,8 +100,8 @@ describe("durable memory taxonomy", () => {
       layer: "preferences",
       metadata: { tags: ["feedback"] },
     });
-    const knowledge = makeItem({
-      id: "knowledge",
+    const experience = makeItem({
+      id: "experience",
       source: "graph",
       title: "Deployment checklist",
       summary: "Deploy with a rollback check",
@@ -109,9 +109,24 @@ describe("durable memory taxonomy", () => {
       memoryKind: "procedure",
     });
 
-    const split = splitMemoryRecallItems([durable, knowledge]);
+    const split = splitMemoryRecallItems([durable, experience]);
 
     expect(split.durableItems.map((item) => item.id)).toEqual(["durable"]);
-    expect(split.knowledgeItems.map((item) => item.id)).toEqual(["knowledge"]);
+    expect(split.experienceItems.map((item) => item.id)).toEqual(["experience"]);
+  });
+
+  it("keeps experience notes out of durable user classification", () => {
+    const experience = makeItem({
+      id: "experience",
+      source: "local_experience_index",
+      title: "网关恢复经验",
+      summary: "经验类型：操作经验。恢复时先检查状态，再重启服务。",
+      layer: "sop",
+      memoryKind: "procedure",
+    });
+
+    const classification = classifyMemoryRecallItem(experience);
+
+    expect(classification.bucket).toBe("experience");
   });
 });

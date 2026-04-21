@@ -6,7 +6,7 @@ import type {
 } from "../types/orchestration.ts";
 import { assembleMemoryPrompt } from "./context-assembler.ts";
 
-function makeKnowledgeItem(
+function makeExperienceItem(
   overrides: Partial<UnifiedRankedItem> &
     Pick<UnifiedRankedItem, "id" | "source" | "title" | "summary" | "score">,
 ): UnifiedRankedItem {
@@ -93,7 +93,7 @@ function makeClassification(
 }
 
 describe("assembleMemoryPrompt", () => {
-  it("renders durable and knowledge sections separately", () => {
+  it("renders durable and experience sections separately", () => {
     const assembled = assembleMemoryPrompt({
       durableItems: [
         makeDurableItem({
@@ -115,8 +115,8 @@ describe("assembleMemoryPrompt", () => {
           score: 0.8,
         }),
       ],
-      knowledgeItems: [
-        makeKnowledgeItem({
+      experienceItems: [
+        makeExperienceItem({
           id: "procedure-memory",
           source: "graph",
           title: "deployment-security-checklist",
@@ -126,7 +126,7 @@ describe("assembleMemoryPrompt", () => {
           score: 0.7,
           sourceRef: "gm_skill_1",
         }),
-        makeKnowledgeItem({
+        makeExperienceItem({
           id: "decision-memory",
           source: "graph",
           title: "Use built-in memory runtime",
@@ -140,16 +140,16 @@ describe("assembleMemoryPrompt", () => {
       tokenBudget: 600,
     });
 
-    expect(assembled.sections.map((section) => section.kind)).toEqual(["durable", "knowledge"]);
+    expect(assembled.sections.map((section) => section.kind)).toEqual(["durable", "experience"]);
     expect(assembled.text).not.toContain("## Session memory");
     expect(assembled.text).toContain("## Durable memory");
-    expect(assembled.text).toContain("## 知识回忆");
+    expect(assembled.text).toContain("## 经验回忆");
     expect(assembled.text).toContain("Feedback memory: Prefer concise answers");
     expect(assembled.text).toContain("Project memory: Memory refactor scope");
-    expect(assembled.text).toContain("## 操作流程");
-    expect(assembled.text).toContain("【操作流程】deployment-security-checklist 适用场景：");
-    expect(assembled.text).toContain("## 决策说明");
-    expect(assembled.text).toContain("【决策说明】Use built-in memory runtime 结论：");
+    expect(assembled.text).toContain("## 操作经验");
+    expect(assembled.text).toContain("【操作经验】deployment-security-checklist 适用场景：");
+    expect(assembled.text).toContain("## 决策经验");
+    expect(assembled.text).toContain("【决策经验】Use built-in memory runtime 经验结论：");
     expect(assembled.selectedItemIds).toEqual(
       expect.arrayContaining([
         "user-memory",
@@ -161,7 +161,7 @@ describe("assembleMemoryPrompt", () => {
     const queryContextSections = assembled.queryContextSections ?? [];
     expect(queryContextSections.map((section) => section.schema?.kind)).toEqual([
       "durable_memory",
-      "knowledge",
+      "experience",
     ]);
     expect(queryContextSections[0]?.schema).toMatchObject({
       kind: "durable_memory",
@@ -170,12 +170,12 @@ describe("assembleMemoryPrompt", () => {
     });
   });
 
-  it("keeps knowledge recall inside its total allocated budget across layers", () => {
+  it("keeps experience recall inside its total allocated budget across layers", () => {
     const summary =
       "This recall item intentionally has enough detail to make the token estimate meaningful for budget enforcement.";
     const assembled = assembleMemoryPrompt({
-      knowledgeItems: [
-        makeKnowledgeItem({
+      experienceItems: [
+        makeExperienceItem({
           id: "decision-1",
           source: "notebooklm",
           title: "Decision one",
@@ -184,7 +184,7 @@ describe("assembleMemoryPrompt", () => {
           memoryKind: "decision",
           score: 0.9,
         }),
-        makeKnowledgeItem({
+        makeExperienceItem({
           id: "sop-1",
           source: "notebooklm",
           title: "Procedure one",
@@ -193,7 +193,7 @@ describe("assembleMemoryPrompt", () => {
           memoryKind: "procedure",
           score: 0.88,
         }),
-        makeKnowledgeItem({
+        makeExperienceItem({
           id: "preference-1",
           source: "notebooklm",
           title: "Preference one",
@@ -202,7 +202,7 @@ describe("assembleMemoryPrompt", () => {
           memoryKind: "preference",
           score: 0.86,
         }),
-        makeKnowledgeItem({
+        makeExperienceItem({
           id: "signal-1",
           source: "notebooklm",
           title: "Signal one",
@@ -215,9 +215,9 @@ describe("assembleMemoryPrompt", () => {
       tokenBudget: 240,
     });
 
-    const knowledgeSection = assembled.sections.find((section) => section.kind === "knowledge");
-    expect(knowledgeSection).toBeDefined();
-    expect(knowledgeSection?.estimatedTokens ?? 0).toBeLessThanOrEqual(144);
+    const experienceSection = assembled.sections.find((section) => section.kind === "experience");
+    expect(experienceSection).toBeDefined();
+    expect(experienceSection?.estimatedTokens ?? 0).toBeLessThanOrEqual(144);
     expect(assembled.omittedItemIds.length).toBeGreaterThan(0);
   });
 
@@ -247,21 +247,21 @@ describe("assembleMemoryPrompt", () => {
 
     const durableHeavy = assembleMemoryPrompt({
       durableItems,
-      knowledgeItems: [],
+      experienceItems: [],
       classification: makeClassification("preference", ["preferences"]),
       tokenBudget: 360,
     });
-    const knowledgeHeavy = assembleMemoryPrompt({
+    const experienceHeavy = assembleMemoryPrompt({
       durableItems,
-      knowledgeItems: [],
+      experienceItems: [],
       classification: makeClassification("sop", ["sop", "runtime_signals"]),
       tokenBudget: 360,
     });
 
     const durableHeavyCount =
       durableHeavy.sections.find((section) => section.kind === "durable")?.itemIds.length ?? 0;
-    const knowledgeHeavyCount =
-      knowledgeHeavy.sections.find((section) => section.kind === "durable")?.itemIds.length ?? 0;
-    expect(durableHeavyCount).toBeGreaterThan(knowledgeHeavyCount);
+    const experienceHeavyCount =
+      experienceHeavy.sections.find((section) => section.kind === "durable")?.itemIds.length ?? 0;
+    expect(durableHeavyCount).toBeGreaterThan(experienceHeavyCount);
   });
 });

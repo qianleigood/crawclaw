@@ -16,10 +16,7 @@ vi.mock("../memory/durable/worker-manager.ts", () => ({
   getSharedDurableExtractionWorkerManagerStatus: vi.fn(() => null),
 }));
 
-import {
-  checkNotebookLmMemoryHealth,
-  noteMemoryHealth,
-} from "./doctor-memory-health.js";
+import { checkNotebookLmMemoryHealth, noteMemoryHealth } from "./doctor-memory-health.js";
 
 describe("doctor-memory-health", () => {
   beforeEach(() => {
@@ -104,7 +101,7 @@ describe("doctor-memory-health", () => {
     expect(note).toHaveBeenCalledTimes(1);
     const [message, title] = note.mock.calls[0] ?? [];
     expect(title).toBe("Memory health");
-    expect(String(message)).toContain("NotebookLM knowledge: warn");
+    expect(String(message)).toContain("NotebookLM experience: warn");
     expect(String(message)).toContain("Durable memory: ok");
     expect(String(message)).toContain("Session memory: warn");
     expect(String(message)).toContain("Recommended actions:");

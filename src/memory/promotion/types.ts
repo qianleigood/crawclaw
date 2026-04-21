@@ -58,7 +58,7 @@ export interface PromotionSourceRef {
 export type PromotionCandidateKind = "decision" | "procedure" | "fact_cluster";
 export type PromotionEvidenceStrength = "moderate" | "strong";
 export type PromotionWritebackMediaMode = "preserve_primary" | "include_all" | "omit";
-export type PromotionMemoryBucket = "durable" | "knowledge";
+export type PromotionMemoryBucket = "durable" | "experience";
 
 export interface PromotionCandidateMediaItem {
   mediaId: string;
@@ -118,7 +118,7 @@ export interface PromotionCandidatePayload {
   kind: PromotionCandidateKind;
   // Promotion candidates are governance artifacts. They do not participate in
   // prompt-time recall until some later workflow explicitly writes them into a
-  // recallable durable or knowledge surface.
+  // recallable durable or experience surface.
   memoryBucket?: PromotionMemoryBucket;
   memoryKind?: MemoryKind;
   durableMemoryType?: DurableMemoryType;
@@ -180,7 +180,7 @@ export function inferPromotionDurableMemoryType(
     | "targetHint"
   >,
 ): DurableMemoryType | null {
-  if (payload.memoryBucket === "knowledge") {
+  if (payload.memoryBucket === "experience") {
     return null;
   }
   if (payload.durableMemoryType) {
@@ -248,7 +248,7 @@ export function inferPromotionMemoryBucket(
   if (payload.memoryBucket) {
     return payload.memoryBucket;
   }
-  return inferPromotionDurableMemoryType(payload) ? "durable" : "knowledge";
+  return inferPromotionDurableMemoryType(payload) ? "durable" : "experience";
 }
 
 export function inferPromotionTargetLayer(

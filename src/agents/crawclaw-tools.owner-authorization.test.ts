@@ -71,10 +71,10 @@ describe("createCrawClawTools owner authorization", () => {
     expect(tools.get("memory_note_delete")?.ownerOnly).not.toBe(true);
   });
 
-  it("registers knowledge note writing as a non-owner core tool", () => {
+  it("registers experience note writing as a non-owner core tool", () => {
     const tools = readToolByNameWithNotebookLmWrite();
-    expect(tools.get("write_knowledge_note")).toBeDefined();
-    expect(tools.get("write_knowledge_note")?.ownerOnly).not.toBe(true);
+    expect(tools.get("write_experience_note")).toBeDefined();
+    expect(tools.get("write_experience_note")?.ownerOnly).not.toBe(true);
   });
 
   it("keeps canvas non-owner-only in raw registration", () => {

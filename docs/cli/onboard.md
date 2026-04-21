@@ -12,8 +12,8 @@ Interactive onboarding for local or remote Gateway setup.
 Use `--output-preset quiet|balanced|operator` to preselect the default reply
 presentation profile during onboarding.
 
-Onboarding now includes a Memory / Knowledge decision for NotebookLM-backed
-knowledge recall. If you enable it and the provider recommends
+Onboarding now includes a Memory / Experience decision for NotebookLM-backed
+experience recall. If you enable it and the provider recommends
 `crawclaw memory login`, onboarding can offer to run that login flow near the
 end.
 

@@ -162,7 +162,7 @@ export function resolveUnifiedEntities(input: EntityResolverInput): UnifiedEntit
   const sourceBias = {
     graph: (input.classification?.routeWeights.graph ?? 0.25) * 0.08,
     notebooklm: (input.classification?.routeWeights.notebooklm ?? 0.25) * 0.08,
-    local_knowledge_index: (input.classification?.routeWeights.notebooklm ?? 0.25) * 0.08,
+    local_experience_index: (input.classification?.routeWeights.notebooklm ?? 0.25) * 0.08,
     native_memory: (input.classification?.routeWeights.nativeMemory ?? 0.25) * 0.08,
     execution: (input.classification?.routeWeights.execution ?? 0.25) * 0.08,
   } as const;

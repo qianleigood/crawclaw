@@ -140,7 +140,7 @@ export function projectMemoryKind(input: MemoryProjectionInput): MemoryKind {
     }
     return "reference";
   }
-  if (input.source === "notebooklm" || input.source === "local_knowledge_index") {
+  if (input.source === "notebooklm" || input.source === "local_experience_index") {
     return inferFromText(input) ?? "reference";
   }
 

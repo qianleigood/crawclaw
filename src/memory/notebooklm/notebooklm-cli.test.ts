@@ -57,9 +57,9 @@ describe("searchNotebookLmViaCli", () => {
           profile: "default",
           cookieFile: "",
           autoRefresh: true,
-              statusTtlMs: 60_000,
-              degradedCooldownMs: 120_000,
-              refreshCooldownMs: 180_000,
+          statusTtlMs: 60_000,
+          degradedCooldownMs: 120_000,
+          refreshCooldownMs: 180_000,
           heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
         },
         cli: {
@@ -69,7 +69,7 @@ describe("searchNotebookLmViaCli", () => {
           timeoutMs: 1000,
           limit: 5,
           notebookId: "nb-1",
-          queryInstruction: "请使用简体中文，只返回直接相关的知识卡片。",
+          queryInstruction: "请使用简体中文，只返回直接相关的经验卡片。",
         },
         write: {
           enabled: false,
@@ -130,9 +130,9 @@ describe("searchNotebookLmViaCli", () => {
           profile: "default",
           cookieFile: "",
           autoRefresh: true,
-              statusTtlMs: 60_000,
-              degradedCooldownMs: 120_000,
-              refreshCooldownMs: 180_000,
+          statusTtlMs: 60_000,
+          degradedCooldownMs: 120_000,
+          refreshCooldownMs: 180_000,
           heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
         },
         cli: {
@@ -188,9 +188,9 @@ describe("searchNotebookLmViaCli", () => {
           profile: "default",
           cookieFile: "",
           autoRefresh: true,
-              statusTtlMs: 60_000,
-              degradedCooldownMs: 120_000,
-              refreshCooldownMs: 180_000,
+          statusTtlMs: 60_000,
+          degradedCooldownMs: 120_000,
+          refreshCooldownMs: 180_000,
           heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
         },
         cli: {
@@ -238,7 +238,7 @@ describe("searchNotebookLmViaCli", () => {
           null,
           JSON.stringify({
             answer:
-              "知识卡片一：区号治理 213 是电话资源治理的经典案例。加州监管报告发现大量号码闲置。知识卡片二：文化象征 213 也是西海岸嘻哈文化的重要符号，同时带有灵性数字含义。",
+              "经验卡片一：区号治理 213 是电话资源治理的经典案例。加州监管报告发现大量号码闲置。经验卡片二：文化象征 213 也是西海岸嘻哈文化的重要符号，同时带有灵性数字含义。",
             title: "NotebookLM answer",
             source: "213-notebook",
           }),
@@ -253,9 +253,9 @@ describe("searchNotebookLmViaCli", () => {
           profile: "default",
           cookieFile: "",
           autoRefresh: true,
-              statusTtlMs: 60_000,
-              degradedCooldownMs: 120_000,
-              refreshCooldownMs: 180_000,
+          statusTtlMs: 60_000,
+          degradedCooldownMs: 120_000,
+          refreshCooldownMs: 180_000,
           heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
         },
         cli: {
@@ -265,7 +265,7 @@ describe("searchNotebookLmViaCli", () => {
           timeoutMs: 1000,
           limit: 5,
           notebookId: "nb-4",
-          queryInstruction: "请只返回简短知识卡片。",
+          queryInstruction: "请只返回简短经验卡片。",
         },
         write: {
           enabled: false,
@@ -279,9 +279,9 @@ describe("searchNotebookLmViaCli", () => {
     });
 
     expect(items).toHaveLength(2);
-    expect(items[0]?.title).toBe("知识卡片一：区号治理");
+    expect(items[0]?.title).toBe("经验卡片一：区号治理");
     expect(items[0]?.summary).toContain("213 是电话资源治理的经典案例。");
-    expect(items[1]?.title).toBe("知识卡片二：文化象征");
+    expect(items[1]?.title).toBe("经验卡片二：文化象征");
     expect(items[1]?.summary).toContain("213 也是西海岸嘻哈文化的重要符号");
   });
 });

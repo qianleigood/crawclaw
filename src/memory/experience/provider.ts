@@ -1,44 +1,44 @@
 import type { MemoryRuntimeContext } from "../engine/types.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import type { UnifiedQueryClassification, UnifiedRecallItem } from "../types/orchestration.ts";
-import { LocalKnowledgeIndexProvider } from "./local-index-provider.ts";
-import { NotebookLmKnowledgeProvider } from "./notebooklm-provider.ts";
-import { buildKnowledgeQueryPlan, type KnowledgeQueryPlan } from "./query-plan.ts";
+import { LocalExperienceIndexProvider } from "./local-index-provider.ts";
+import { NotebookLmExperienceProvider } from "./notebooklm-provider.ts";
+import { buildExperienceQueryPlan, type ExperienceQueryPlan } from "./query-plan.ts";
 
-export type KnowledgeRuntimeLogger = {
+export type ExperienceRuntimeLogger = {
   warn(message: string): void;
 };
 
-export interface KnowledgeSearchInput {
+export interface ExperienceSearchInput {
   query: string;
   classification: UnifiedQueryClassification;
   recentMessages?: string[];
   runtimeContext?: MemoryRuntimeContext;
-  plan: KnowledgeQueryPlan;
+  plan: ExperienceQueryPlan;
 }
 
-export interface KnowledgeProviderSearchResult {
+export interface ExperienceProviderSearchResult {
   providerId: string;
   items: UnifiedRecallItem[];
 }
 
-export interface KnowledgeProvider {
+export interface ExperienceProvider {
   readonly id: string;
-  search(input: KnowledgeSearchInput): Promise<KnowledgeProviderSearchResult>;
+  search(input: ExperienceSearchInput): Promise<ExperienceProviderSearchResult>;
 }
 
-export interface KnowledgeRecallResult {
+export interface ExperienceRecallResult {
   items: UnifiedRecallItem[];
-  queryPlan: KnowledgeQueryPlan;
+  queryPlan: ExperienceQueryPlan;
   providerIds: string[];
 }
 
-export class KnowledgeProviderRegistry {
+export class ExperienceProviderRegistry {
   constructor(
-    private readonly providers: readonly KnowledgeProvider[],
+    private readonly providers: readonly ExperienceProvider[],
     private readonly options: {
       defaultLimit: number;
-      logger: KnowledgeRuntimeLogger;
+      logger: ExperienceRuntimeLogger;
     },
   ) {}
 
@@ -51,9 +51,9 @@ export class KnowledgeProviderRegistry {
     classification: UnifiedQueryClassification;
     recentMessages?: string[];
     runtimeContext?: MemoryRuntimeContext;
-  }): Promise<KnowledgeRecallResult> {
+  }): Promise<ExperienceRecallResult> {
     const providerIds = this.getProviderIds();
-    const queryPlan = buildKnowledgeQueryPlan({
+    const queryPlan = buildExperienceQueryPlan({
       query: input.query,
       classification: input.classification,
       defaultLimit: this.options.defaultLimit,
@@ -79,7 +79,7 @@ export class KnowledgeProviderRegistry {
             })
             .catch((error) => {
               this.options.logger.warn(
-                `[memory] knowledge provider ${provider.id} skipped | ${
+                `[memory] experience provider ${provider.id} skipped | ${
                   error instanceof Error ? error.message : String(error)
                 }`,
               );
@@ -97,17 +97,17 @@ export class KnowledgeProviderRegistry {
   }
 }
 
-export function createDefaultKnowledgeProviderRegistry(options: {
+export function createDefaultExperienceProviderRegistry(options: {
   notebooklm?: NotebookLmConfig;
-  logger: KnowledgeRuntimeLogger;
-}): KnowledgeProviderRegistry {
-  return new KnowledgeProviderRegistry(
+  logger: ExperienceRuntimeLogger;
+}): ExperienceProviderRegistry {
+  return new ExperienceProviderRegistry(
     [
-      new NotebookLmKnowledgeProvider({
+      new NotebookLmExperienceProvider({
         config: options.notebooklm,
         logger: options.logger,
       }),
-      new LocalKnowledgeIndexProvider(),
+      new LocalExperienceIndexProvider(),
     ],
     {
       defaultLimit: options.notebooklm?.cli.limit ?? 5,

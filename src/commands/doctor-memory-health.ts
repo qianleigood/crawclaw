@@ -356,7 +356,7 @@ export async function noteMemoryHealth(
 ): Promise<DoctorMemoryHealthSummary> {
   const summary = opts?.summary ?? (await resolveDoctorMemoryHealth(cfg));
   const lines = [
-    `NotebookLM knowledge: ${formatLevel(summary.notebooklm.level)} (${summary.notebooklm.lifecycle}${summary.notebooklm.reason ? `, ${summary.notebooklm.reason}` : ""})`,
+    `NotebookLM experience: ${formatLevel(summary.notebooklm.level)} (${summary.notebooklm.lifecycle}${summary.notebooklm.reason ? `, ${summary.notebooklm.reason}` : ""})`,
     `Durable memory: ${formatLevel(summary.durable.level)} (${summary.durable.rootExists ? "root ready" : "root missing"}; extraction ${summary.durable.extractionEnabled ? "enabled" : "disabled"}; workers ${summary.durable.extractionWorkers.runningCount}/${summary.durable.extractionWorkers.workerCount} running)`,
     `Session memory: ${formatLevel(summary.session.level)} (${summary.session.dbExists ? "runtime db ready" : "runtime db missing"})`,
   ];

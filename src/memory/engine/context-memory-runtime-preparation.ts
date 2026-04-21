@@ -1,8 +1,8 @@
-import type { KnowledgeRecallResult } from "../knowledge/provider.ts";
+import type { ExperienceRecallResult } from "../experience/provider.ts";
 import {
-  selectKnowledgeRecall,
-  type KnowledgeRecallSelectionResult,
-} from "../orchestration/knowledge-recall-selector.ts";
+  selectExperienceRecall,
+  type ExperienceRecallSelectionResult,
+} from "../orchestration/experience-recall-selector.ts";
 import { selectRelevantSkills } from "../skills/skill-router.ts";
 import type {
   SkillIndex,
@@ -39,35 +39,35 @@ export async function prepareMemoryAssemblyContext(params: {
   skillIndexStore: SkillIndexStoreLike;
   skillRoutingEnabled: boolean;
   skillRoutingLimit?: number;
-  recallKnowledge(args: {
+  recallExperience(args: {
     prompt: string;
     classification: UnifiedQueryClassification;
     recentMessages?: string[];
     runtimeContext?: MemoryRuntimeContext;
-  }): Promise<KnowledgeRecallResult>;
+  }): Promise<ExperienceRecallResult>;
 }): Promise<{
   classification: UnifiedQueryClassification;
-  knowledgeRecallItems: UnifiedRecallItem[];
-  knowledgeRecall: KnowledgeRecallResult;
+  experienceRecallItems: UnifiedRecallItem[];
+  experienceRecall: ExperienceRecallResult;
   reranked: UnifiedRerankResult;
   skillRouting: SkillRoutingResult | null;
-  selectedKnowledge: KnowledgeRecallSelectionResult;
+  selectedExperience: ExperienceRecallSelectionResult;
 }> {
   const classification = params.queryClassifier.classify({
     query: params.promptText,
     recentMessages: params.recentMessages,
   });
-  const knowledgeRecall = await params.recallKnowledge({
+  const experienceRecall = await params.recallExperience({
     prompt: params.promptText,
     classification,
     recentMessages: params.recentMessages,
     runtimeContext: params.runtimeContext,
   });
-  const knowledgeRecallItems = knowledgeRecall.items;
+  const experienceRecallItems = experienceRecall.items;
   const reranked = params.reranker.rerank({
     query: params.promptText,
     classification,
-    notebooklmItems: knowledgeRecallItems,
+    notebooklmItems: experienceRecallItems,
     limit: 10,
   });
   const skillRouting = params.skillRoutingEnabled
@@ -77,14 +77,14 @@ export async function prepareMemoryAssemblyContext(params: {
         limit: params.skillRoutingLimit,
       })
     : null;
-  const selectedKnowledge = selectKnowledgeRecall({ items: reranked.items, limit: 6 });
+  const selectedExperience = selectExperienceRecall({ items: reranked.items, limit: 6 });
 
   return {
     classification,
-    knowledgeRecallItems,
-    knowledgeRecall,
+    experienceRecallItems,
+    experienceRecall,
     reranked,
     skillRouting,
-    selectedKnowledge,
+    selectedExperience,
   };
 }

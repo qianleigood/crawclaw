@@ -743,7 +743,7 @@ describe("runSetupWizard", () => {
     }) as unknown as WizardPrompter["select"];
     const prompter = buildWizardPrompter({
       select,
-      confirm: vi.fn(async (params) => params.message === "Enable NotebookLM knowledge recall?"),
+      confirm: vi.fn(async (params) => params.message === "Enable NotebookLM experience recall?"),
     });
     const runtime = createRuntime();
 

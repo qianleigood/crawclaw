@@ -6,8 +6,8 @@ import { resolveMemoryRecallDecisionCodes } from "../../shared/decision-codes.js
 import { joinPromptSections } from "../context/assembly.ts";
 import { renderContextRoutingSection } from "../context/render-routing-guidance.ts";
 import type { DurableRecallResult } from "../durable/read.ts";
-import type { KnowledgeQueryPlan } from "../knowledge/query-plan.ts";
-import type { KnowledgeRecallSelectionResult } from "../orchestration/knowledge-recall-selector.ts";
+import type { ExperienceQueryPlan } from "../experience/query-plan.ts";
+import type { ExperienceRecallSelectionResult } from "../orchestration/experience-recall-selector.ts";
 import type {
   MemoryPromptAssemblyResult,
   MemoryPromptSection,
@@ -52,19 +52,19 @@ export function buildMemoryAssemblyArtifacts(params: {
   built: MemoryPromptAssemblyResult;
   classification: UnifiedQueryClassification;
   agentMemoryRoutingContract: { text: string; estimatedTokens: number };
-  selectedKnowledge: KnowledgeRecallSelectionResult;
-  knowledgeQueryPlan?: KnowledgeQueryPlan;
+  selectedExperience: ExperienceRecallSelectionResult;
+  experienceQueryPlan?: ExperienceQueryPlan;
   durableRecall: DurableRecallResult | null;
   durableRecallSource: DurableRecallSource;
 }): {
   combined: { text: string; estimatedTokens: number };
   systemContextSections: QueryContextSection[];
   durableSection?: MemoryPromptSection;
-  knowledgeSection?: MemoryPromptSection;
+  experienceSection?: MemoryPromptSection;
   selectedDurableItemIds: string[];
   omittedDurableItemIds: string[];
-  selectedKnowledgeItemIds: string[];
-  omittedKnowledgeItemIds: string[];
+  selectedExperienceItemIds: string[];
+  omittedExperienceItemIds: string[];
   memoryRecallDiagnostics: QueryContextMemoryRecallDiagnostics;
 } {
   const contextRoutingSection = renderContextRoutingSection(params.classification);
@@ -112,43 +112,43 @@ export function buildMemoryAssemblyArtifacts(params: {
   ].filter((section): section is QueryContextSection => Boolean(section));
 
   const durableSection = getAssemblySection(params.built.sections, "durable");
-  const knowledgeSection = getAssemblySection(params.built.sections, "knowledge");
+  const experienceSection = getAssemblySection(params.built.sections, "experience");
 
   const selectedDurableItemIds = params.durableRecall?.selection.selectedItemIds ?? [];
   const omittedDurableItemIds = params.durableRecall?.selection.omittedItemIds ?? [];
-  const selectedKnowledgeItemIds = params.selectedKnowledge.selectedItemIds;
-  const omittedKnowledgeItemIds = params.selectedKnowledge.omittedItemIds;
+  const selectedExperienceItemIds = params.selectedExperience.selectedItemIds;
+  const omittedExperienceItemIds = params.selectedExperience.omittedItemIds;
 
   const hitReason = resolveMemoryRecallHitReason({
     selectedDurableCount: selectedDurableItemIds.length,
-    selectedKnowledgeCount: selectedKnowledgeItemIds.length,
+    selectedExperienceCount: selectedExperienceItemIds.length,
     selectedTotalCount: params.built.selectedItemIds.length,
     durableRecallSource: params.durableRecallSource,
   });
   const evictionReason = resolveMemoryRecallEvictionReason({
     omittedDurableCount: omittedDurableItemIds.length,
-    omittedKnowledgeCount: omittedKnowledgeItemIds.length,
+    omittedExperienceCount: omittedExperienceItemIds.length,
   });
 
   const memoryRecallDiagnostics: QueryContextMemoryRecallDiagnostics = {
     selectedItemIds: params.built.selectedItemIds,
-    omittedItemIds: [...omittedDurableItemIds, ...omittedKnowledgeItemIds],
+    omittedItemIds: [...omittedDurableItemIds, ...omittedExperienceItemIds],
     selectedDurableItemIds,
     omittedDurableItemIds,
     selectedDurableDetails: params.durableRecall?.selection.selectedDetails ?? [],
     omittedDurableDetails: params.durableRecall?.selection.omittedDetails ?? [],
     recentDreamTouchedNotes: params.durableRecall?.selection.recentDreamTouchedNotes ?? [],
-    selectedKnowledgeItemIds,
-    omittedKnowledgeItemIds,
-    ...(params.knowledgeQueryPlan
+    selectedExperienceItemIds,
+    omittedExperienceItemIds,
+    ...(params.experienceQueryPlan
       ? {
-          knowledgeQueryPlan: {
-            enabled: params.knowledgeQueryPlan.enabled,
-            query: params.knowledgeQueryPlan.query,
-            limit: params.knowledgeQueryPlan.limit,
-            targetLayers: params.knowledgeQueryPlan.targetLayers,
-            reason: params.knowledgeQueryPlan.reason,
-            providerIds: params.knowledgeQueryPlan.providerIds,
+          experienceQueryPlan: {
+            enabled: params.experienceQueryPlan.enabled,
+            query: params.experienceQueryPlan.query,
+            limit: params.experienceQueryPlan.limit,
+            targetLayers: params.experienceQueryPlan.targetLayers,
+            reason: params.experienceQueryPlan.reason,
+            providerIds: params.experienceQueryPlan.providerIds,
           },
         }
       : {}),
@@ -166,11 +166,11 @@ export function buildMemoryAssemblyArtifacts(params: {
     combined,
     systemContextSections,
     durableSection,
-    knowledgeSection,
+    experienceSection,
     selectedDurableItemIds,
     omittedDurableItemIds,
-    selectedKnowledgeItemIds,
-    omittedKnowledgeItemIds,
+    selectedExperienceItemIds,
+    omittedExperienceItemIds,
     memoryRecallDiagnostics,
   };
 }

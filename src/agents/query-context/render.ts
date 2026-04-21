@@ -52,7 +52,7 @@ function resolveSectionTypeFromSchema(
   }
   if (
     kind === "durable_memory" ||
-    kind === "knowledge" ||
+    kind === "experience" ||
     kind === "routing" ||
     kind === "hook" ||
     kind === "bootstrap" ||
@@ -77,8 +77,8 @@ function resolveSectionType(section: QueryContextSection): QueryContextSectionTy
   if (metadataKind === "durable") {
     return "durable_memory";
   }
-  if (metadataKind === "knowledge") {
-    return "knowledge";
+  if (metadataKind === "experience") {
+    return "experience";
   }
   if (metadataKind === "routing" || metadataKind === "context_routing") {
     return "routing";

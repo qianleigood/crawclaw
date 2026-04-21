@@ -3,7 +3,7 @@ summary: "Living checklist for the remaining agent/runtime work after phases one
 read_when:
   - You want a single place to track unfinished agent/runtime work
   - You are deciding what to build next after the current architecture rollout
-  - You need the current backlog for review, Action Feed, and Context Archive
+  - You need the current backlog for verifier, Action Feed, and Context Archive
 title: "Agent Runtime Open Items"
 ---
 
@@ -25,11 +25,11 @@ The following are already landed:
 - completion evidence and completion guard
 - loop policy, replay, report, and promotion gate
 - inspect, status, gateway inspection RPC, and CLI support
-- `/review` as the public two-stage review entrypoint
+- `/verify` as the public verification entrypoint
 - Context Archive foundation
 - Action Feed foundation
 - the background `memory_extractor` path for durable auto-write
-- the shared special-agent substrate for `session_summary`, `memory_extractor`, `dream`, and review
+- the shared special-agent substrate for `session_summary`, `memory_extractor`, `dream`, and verification
 
 The items below are the main gaps that still matter.
 
@@ -83,7 +83,7 @@ contracts.
     - `dream` migrated on the shared substrate
     - embedded memory special runs now record usage/history/action observations into Context Archive
     - embedded memory special runs now surface usage, including cache read/write, in Action Feed completion details
-    - review migrated
+    - verifier migrated
 - [x] Keep future task-specific special agents on case-by-case substrate opt-in.
   - Embedded maintenance forks are the default only for fire-and-forget background agents.
   - User-invoked or session-bearing task agents stay `spawned_session` unless they need parent-run cache inheritance more than child-session state.
@@ -122,7 +122,7 @@ contracts.
   - Landed:
     - base system prompt now emits structured sections instead of only one large string
     - memory assembly now emits structured `systemContextSections` as the only context-engine prompt output
-    - memory `systemContextSections` now carry machine-readable section schema (`durable_memory` / `knowledge` / `routing`) instead of relying only on free-form text + metadata
+    - memory `systemContextSections` now carry machine-readable section schema (`durable_memory` / `experience` / `routing`) instead of relying only on free-form text + metadata
     - prompt-build hooks now return structured `QueryContextPatch` objects instead of string mutations
     - cache identity is derived from the structured query context instead of ad-hoc prompt assembly paths
     - query-context tool payload normalization is now shared with query-layer cache contract helpers, reducing duplicated cache-shape logic
@@ -132,11 +132,11 @@ Design:
 
 - [`Special-Agent Substrate`](/debug/special-agent-substrate)
 
-## Priority 0: review hardening
+## Priority 0: verifier hardening
 
-The two-stage review flow is working, but it is still an MVP.
+The verifier is working, but it is still an MVP.
 
-- [x] Upgrade review output from `VERDICT + summary` to a structured report.
+- [x] Upgrade verifier output from `VERDICT + summary` to a structured report.
   - Landed fields:
     - `verdict`
     - `summary`
@@ -145,25 +145,25 @@ The two-stage review flow is working, but it is still an MVP.
     - `warnings[]`
     - `artifacts[]`
   - The structured report now flows through:
-    - review parsing
-    - `/review` tool results
-    - parent Action Feed review details
+    - verifier parsing
+    - `/verify` tool results
+    - parent Action Feed verification details
     - task-trajectory completion detail / archive payloads
-- [ ] Make review failure a first-class completion signal.
+- [ ] Make verifier failure a first-class completion signal.
   - `FAIL` and `PARTIAL` should feed parent completion state, not just the
     final textual report.
-- [ ] Add review policy.
-  - Define which task types require review by default.
+- [ ] Add verifier policy.
+  - Define which task types require verification by default.
   - Start with `fix` and `code` tasks.
-- [ ] Support automatic review triggering from completion policy.
-  - When completion blocks on `review_missing`, the system should be able to
-    launch review automatically instead of relying only on manual `/review`.
-- [ ] Tighten review capability governance further.
-  - Keep review stages read-only.
-  - Keep review stages unable to patch files or recursively spawn more agents.
-- [ ] Improve review-to-parent action bubbling.
-  - Parent chat should see the most important review checks, not only
-    `started/running/REVIEW_PASS/REVIEW_FAIL/REVIEW_PARTIAL`.
+- [ ] Support automatic verifier triggering from completion policy.
+  - When completion blocks on `verification_missing`, the system should be able
+    to launch verifier automatically instead of relying only on manual `/verify`.
+- [ ] Tighten verifier capability governance further.
+  - Keep verifier read-only.
+  - Keep verifier unable to patch files or recursively spawn more agents.
+- [ ] Improve verifier-to-parent action bubbling.
+  - Parent chat should see the most important verifier checks, not only
+    `started/running/PASS/FAIL/PARTIAL`.
 
 ## Priority 1: Action Feed completion
 
@@ -172,7 +172,7 @@ Action Feed is already live, but it is not fully productized.
 - [ ] Add richer detail rendering in chat.
   - Current `<details>` output is acceptable for debugging, but still too raw
     for normal users.
-- [ ] Surface review child actions into the parent feed more cleanly.
+- [ ] Surface verifier child actions into the parent feed more cleanly.
 - [ ] Add consistent action coverage for:
   - memory recall decisions
   - model/provider fallback
@@ -196,7 +196,7 @@ Context Archive is now useful, but not finished as the long-term replay layer.
   - tool admission/result
   - guard decisions
   - loop actions
-  - review actions
+  - verifier actions
   - completion decisions
 - [ ] Improve export ergonomics.
   - Exported bundles should be easier to inspect and share internally.
@@ -211,7 +211,7 @@ Context Archive is now useful, but not finished as the long-term replay layer.
   - parent agent
   - subagent
   - ACP
-  - review
+  - verifier
 
 ## Priority 1: UI and operator surfaces
 
@@ -221,12 +221,12 @@ The backend architecture is ahead of the current operator UI.
   - runtime state
   - trajectory
   - completion
-  - review result
+  - verifier result
   - loop and guard actions
 - [ ] Add a dedicated Action Feed view in the existing UI, not only inline chat.
 - [ ] Expose Context Archive refs in the UI.
-- [ ] Add a clearer operator view for stuck tasks, waiting approvals, and review
-      blockers.
+- [ ] Add a clearer operator view for stuck tasks, waiting approvals, and
+      verification blockers.
 - [ ] Add a human-friendly inspect page instead of relying only on CLI and raw
       JSON.
 
@@ -238,14 +238,14 @@ Memory is aligned with the current simplified model, but follow-up work remains.
   - Landed:
     - cursor-based incremental window
     - explicit durable write/delete wins
-    - `write_knowledge_note` no longer suppresses durable extraction
+    - `write_experience_note` no longer suppresses durable extraction
     - bidirectional `feedback` guidance
     - task-backed background special agent
     - Action Feed / Context Archive recording
   - Design and background:
     - [`Memory Extractor Agent Design`](/debug/memory-extractor-agent)
     - [`Durable Memory Refactor Status`](/debug/claude-memory-refactor)
-- [ ] Add agent-scoped routing guidance for `write_knowledge_note`, matching the
+- [ ] Add agent-scoped routing guidance for `write_experience_note`, matching the
       durable-memory guidance quality level.
 - [ ] Revisit candidate extraction as a future suggestion layer only.
   - It should not become a hidden writeback path again.
@@ -253,7 +253,7 @@ Memory is aligned with the current simplified model, but follow-up work remains.
       pipeline on top of the current runtime store.
 - [ ] If dreaming is added later:
   - keep NotebookLM writes on the explicit tool path
-  - keep automatic consolidation separate from formal knowledge writes
+  - keep automatic consolidation separate from formal experience writes
 
 ## Priority 2: multi-agent governance
 
@@ -273,13 +273,13 @@ more systematic validation.
   - main agent
   - subagent
   - ACP
-  - review
+  - verifier
   - Action Feed
   - Context Archive export/replay
 - [ ] Add replay datasets that specifically cover:
   - false complete
   - false loop block
-  - review failure
+  - verification failure
   - approval-unavailable paths
 - [ ] Use those datasets in the promotion workflow for future policy changes.
 
@@ -287,7 +287,7 @@ more systematic validation.
 
 These are intentionally **not** backlog items right now:
 
-- bringing back the old knowledge review queue
+- bringing back the old experience review queue
 - making NotebookLM writeback go through a hidden approval pipeline
 - replacing transcript, runtime store, or trajectory with a single new store
 - putting LLMs in charge of hard guard allow/deny decisions
@@ -297,7 +297,7 @@ These are intentionally **not** backlog items right now:
 
 When new work is added in this area, prefer this order:
 
-1. review
+1. verifier
 2. Action Feed
 3. Context Archive
 4. UI/operator surfaces

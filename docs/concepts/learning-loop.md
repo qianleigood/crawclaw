@@ -87,22 +87,23 @@ Question answered:
 
 ### 4. Retain
 
-Selected knowledge is stored in longer-lived memory structures.
+Selected experience is stored in longer-lived memory structures.
 
 Examples:
 
 - durable memory records
-- knowledge notes
+- experience notes
 - recall indexes
 - vector or graph-backed memory
-- NotebookLM-backed knowledge integration
+- NotebookLM-backed experience integration
 
-This is not raw history. It is retained knowledge.
+This is not raw history. It is retained experience.
 
 Relevant areas:
 
 - `src/memory/durable`
-- `src/memory/knowledge`
+- `src/memory/experience`
+- `src/memory/experience`
 - `src/memory/notebooklm`
 - `src/memory/search`
 - `src/memory/recall`
@@ -111,11 +112,11 @@ Relevant areas:
 
 Question answered:
 
-- "Where does long-term knowledge live?"
+- "Where does long-term experience live?"
 
 ### 5. Recall
 
-When a new task begins, the system pulls the most relevant retained knowledge back into the working context.
+When a new task begins, the system pulls the most relevant retained experience back into the working context.
 
 Examples:
 
@@ -175,7 +176,7 @@ It is:
 
 It is not:
 
-- a durable knowledge store
+- a durable experience store
 - a reusable behavior definition
 
 Use sessions for:
@@ -186,7 +187,7 @@ Use sessions for:
 
 ### Memory
 
-Memory is retained knowledge extracted from experience.
+Memory is retained information and experience extracted from prior work.
 
 It is:
 
@@ -204,11 +205,12 @@ Use memory for:
 - facts
 - preferences
 - durable context
-- recalled knowledge snippets
+- recalled experience snippets
 
-### Knowledge
+### Experience
 
-Knowledge is the structured or externalized subset of memory that is meant for explicit retrieval and reuse.
+Experience is the structured subset of memory that captures reusable context,
+trigger, action, result, lesson, applicability boundaries, and evidence.
 
 It may live in:
 
@@ -217,7 +219,7 @@ It may live in:
 - graph or vector systems
 - promoted note stores
 
-Use knowledge for:
+Use experience for:
 
 - searchable retained information
 - long-lived reference material
@@ -274,7 +276,7 @@ The intended promotion path is:
 1. A task happens inside a session.
 2. The system records the full interaction.
 3. Evaluation decides which parts matter.
-4. Important information is retained as memory or knowledge.
+4. Important information is retained as memory or experience.
 5. Repeated successful approaches are turned into skills.
 6. Stable multi-step skills become workflows.
 7. Recurrent workflows become scheduled or event-driven automation.
@@ -340,7 +342,7 @@ Today the project already contains the main pieces of this loop:
 - action: `agents/tools`, `gateway`, `plugin-sdk`, `plugins`
 - record: `sessions`, `chat`, `context-archive`, gateway execution surfaces
 - evaluate: `memory/extraction`, `memory/session-summary`, `memory/promotion`
-- retain: `memory/durable`, `memory/knowledge`, `memory/notebooklm`, `memory/vector`, `memory/graph`
+- retain: `memory/durable`, `memory/experience`, `memory/experience`, `memory/notebooklm`, `memory/vector`, `memory/graph`
 - recall: `memory/engine`, `memory/search`, `memory/recall`, `agents/query-context`, `agents/skills`
 - automate: `agents/skills`, `workflows`, `cron`, `hooks`
 

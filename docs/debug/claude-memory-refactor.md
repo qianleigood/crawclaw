@@ -38,7 +38,7 @@ Durable auto-write is now a turn-end background maintenance flow:
 - the worker reads model-visible messages from the runtime store using the
   durable extraction cursor
 - explicit durable writes/deletes suppress background extraction for that turn
-- `write_knowledge_note` does not suppress durable extraction, because knowledge
+- `write_experience_note` does not suppress durable extraction, because experience
   notes and durable collaboration memory are separate layers
 - cursor advancement happens only after the turn is handled or intentionally
   skipped
@@ -90,7 +90,7 @@ Avoid these older behaviors:
 - scheduling durable extraction directly from generic `afterTurn` ingestion
 - defining the extraction window as the last N messages from the new in-memory
   turn slice
-- treating `write_knowledge_note` as a reason to suppress durable extraction
+- treating `write_experience_note` as a reason to suppress durable extraction
 - letting subagent sessions auto-write durable memory by default
 - giving the extractor unrestricted project or shell access
 - stuffing full `MEMORY.md` contents into the system prompt as the durable recall

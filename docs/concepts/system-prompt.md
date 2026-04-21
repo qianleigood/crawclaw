@@ -97,7 +97,7 @@ memory recall, hook context, and other per-turn `system_context` sections as
 system-visible instructions in the same request.
 
 Dynamic memory context is appended after the base system prompt. That context can
-change every turn because durable memory, knowledge recall, hooks, and routing
+change every turn because durable memory, experience recall, hooks, and routing
 diagnostics are query-dependent. Keeping it after the stable prefix avoids
 invalidating the whole prompt prefix just because recall results changed.
 

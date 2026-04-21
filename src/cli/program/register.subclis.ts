@@ -104,7 +104,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "memory",
-    description: "Inspect and manage NotebookLM knowledge access",
+    description: "Inspect and manage NotebookLM experience access",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../memory-cli.js");

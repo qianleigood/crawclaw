@@ -1,7 +1,7 @@
 import type { DurableMemoryType, UnifiedRankedItem } from "../types/orchestration.ts";
 
 const USER_RE =
-  /(user profile|user persona|persona|profile|role|knowledge level|背景|角色|熟悉|不熟悉|经验)/i;
+  /(user profile|user persona|persona|profile|role|knowledge level|背景|角色|熟悉|不熟悉)/i;
 const FEEDBACK_RE =
   /(feedback|prefer|preference|default|always|never|不要|请先|偏好|习惯|默认|风格|回答方式)/i;
 const PROJECT_RE =
@@ -9,7 +9,7 @@ const PROJECT_RE =
 const REFERENCE_RE =
   /(reference|dashboard|linear|slack|notion|grafana|docs|wiki|链接|入口|文档|看板)/i;
 
-export type MemoryRecallBucket = "durable" | "knowledge";
+export type MemoryRecallBucket = "durable" | "experience";
 
 export interface MemoryRecallClassification {
   bucket: MemoryRecallBucket;
@@ -82,8 +82,8 @@ function buildDurableReasons(item: UnifiedRankedItem, durableType: DurableMemory
   return reasons;
 }
 
-function buildKnowledgeReasons(item: UnifiedRankedItem): string[] {
-  const reasons = ["bucket=knowledge"];
+function buildExperienceReasons(item: UnifiedRankedItem): string[] {
+  const reasons = ["bucket=experience"];
   if (item.memoryKind) {
     reasons.push(`memoryKind=${item.memoryKind}`);
   }
@@ -106,28 +106,28 @@ export function classifyMemoryRecallItem(item: UnifiedRankedItem): MemoryRecallC
     };
   }
   return {
-    bucket: "knowledge",
-    reasons: buildKnowledgeReasons(item),
+    bucket: "experience",
+    reasons: buildExperienceReasons(item),
   };
 }
 
 export function splitMemoryRecallItems(items: readonly UnifiedRankedItem[]): {
   durableItems: UnifiedRankedItem[];
-  knowledgeItems: UnifiedRankedItem[];
+  experienceItems: UnifiedRankedItem[];
 } {
   const durableItems: UnifiedRankedItem[] = [];
-  const knowledgeItems: UnifiedRankedItem[] = [];
+  const experienceItems: UnifiedRankedItem[] = [];
 
   for (const item of items) {
     const classification = classifyMemoryRecallItem(item);
     if (classification.bucket === "durable") {
       durableItems.push(item);
     } else {
-      knowledgeItems.push(item);
+      experienceItems.push(item);
     }
   }
 
-  return { durableItems, knowledgeItems };
+  return { durableItems, experienceItems };
 }
 
 export function inferDurableMemoryType(item: UnifiedRankedItem): DurableMemoryType | null {

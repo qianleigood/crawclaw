@@ -25,7 +25,7 @@ describe("memory prompt journal", () => {
     });
 
     expect(journal).not.toBeNull();
-    journal?.recordStage("knowledge_write", {
+    journal?.recordStage("experience_write", {
       sessionId: "session-1",
       sessionKey: "key-1",
       payload: {
@@ -36,7 +36,7 @@ describe("memory prompt journal", () => {
 
     expect(writes).toHaveLength(1);
     const parsed = JSON.parse(writes[0] ?? "{}");
-    expect(parsed.stage).toBe("knowledge_write");
+    expect(parsed.stage).toBe("experience_write");
     expect(parsed.sessionId).toBe("session-1");
     expect(parsed.payload.title).toBe("MiniMax 工具挂载调试流程");
     expect(String(parsed.payload.summary)).toContain("[truncated");

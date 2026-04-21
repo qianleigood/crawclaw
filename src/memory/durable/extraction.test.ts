@@ -58,7 +58,7 @@ describe("durable extraction helpers", () => {
       hasDurableMemoryWriteInMessages([
         makeAgentToolResultMessage({
           toolCallId: "call-3",
-          toolName: "write_knowledge_note",
+          toolName: "write_experience_note",
           content: [{ type: "text", text: "ok" }],
         }),
       ]),
@@ -90,19 +90,19 @@ describe("durable extraction helpers", () => {
       classifyAfterTurnDurableSkipReason([
         makeAgentToolResultMessage({
           toolCallId: "call-5",
-          toolName: "write_knowledge_note",
+          toolName: "write_experience_note",
           content: [{ type: "text", text: '{"status":"ok","noteId":"abc"}' }],
         }),
       ]),
     ).toBeNull();
   });
 
-  it("does not suppress after-turn durable extraction after knowledge note write", () => {
+  it("does not suppress after-turn durable extraction after experience note write", () => {
     expect(
       shouldSkipAfterTurnDurableExtraction([
         makeAgentToolResultMessage({
           toolCallId: "call-6",
-          toolName: "write_knowledge_note",
+          toolName: "write_experience_note",
           content: [{ type: "text", text: '{"status":"ok","noteId":"abc"}' }],
           details: { status: "ok", noteId: "abc" },
         }),
@@ -113,7 +113,7 @@ describe("durable extraction helpers", () => {
       shouldSkipAfterTurnDurableExtraction([
         makeAgentToolResultMessage({
           toolCallId: "call-7",
-          toolName: "write_knowledge_note",
+          toolName: "write_experience_note",
           content: [{ type: "text", text: '{"status":"error"}' }],
           details: { status: "error" },
           isError: true,

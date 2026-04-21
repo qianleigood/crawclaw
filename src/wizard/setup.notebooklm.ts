@@ -26,7 +26,7 @@ export async function promptNotebookLmEnablement(params: {
 
   const notebooklm = normalizeNotebookLmConfig(params.config.memory?.notebooklm ?? {});
   const enabled = await params.prompter.confirm({
-    message: "Enable NotebookLM knowledge recall?",
+    message: "Enable NotebookLM experience recall?",
     initialValue: notebooklm.enabled,
   });
 
@@ -44,7 +44,7 @@ export async function promptNotebookLmEnablement(params: {
 
 function formatNotebookLmStateNote(state: NotebookLmProviderState): string {
   return [
-    "NotebookLM knowledge is enabled but not ready.",
+    "NotebookLM experience is enabled but not ready.",
     `Lifecycle: ${state.lifecycle}`,
     `Reason: ${state.reason ?? "unknown"}`,
     `Profile: ${state.profile}`,
@@ -148,7 +148,7 @@ export async function maybeHandleNotebookLmOnboarding(params: {
   if (state.ready) {
     await params.prompter.note(
       [
-        "NotebookLM knowledge is now ready.",
+        "NotebookLM experience is now ready.",
         `Profile: ${state.profile}`,
         `Notebook: ${state.notebookId ?? "<unset>"}`,
       ].join("\n"),

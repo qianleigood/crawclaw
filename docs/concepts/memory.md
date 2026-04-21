@@ -1,6 +1,6 @@
 ---
 title: "Memory Overview"
-summary: "How CrawClaw uses session memory, durable memory, NotebookLM knowledge recall, and Context Archive"
+summary: "How CrawClaw uses session memory, durable memory, NotebookLM experience recall, and Context Archive"
 read_when:
   - You want to understand how memory works
   - You want to know what memory files to write
@@ -14,7 +14,7 @@ CrawClaw remembers things through a layered memory system:
 - **Session memory** for short-lived task continuity inside one session
 - **Durable memory** for long-term user and collaboration facts, scoped by
   `agentId + channel + userId`
-- **Knowledge recall** backed by NotebookLM and queried during prompt assembly
+- **Experience recall** backed by NotebookLM and queried during prompt assembly
 - **Context Archive** for replay/export/debug records of what a run actually saw
   and did
 
@@ -57,7 +57,7 @@ the system prompt. Durable recall now runs synchronously during prompt assembly:
   to the note
 - prompt assembly receives durable recall score breakdowns and can shift a
   small amount of memory budget toward durable memory for durable-heavy queries
-  or away from durable memory when knowledge/SOP recall is the stronger fit
+  or away from durable memory when experience/SOP recall is the stronger fit
 - selected durable notes older than one day still carry a freshness reminder,
   and the model is explicitly told to verify file/code/repo-state claims
   against current reality before treating them as fact
@@ -206,46 +206,48 @@ sub-agents do **not** share the same summary file. Each child run owns its own
 
 <Tip>
 If you want your agent to remember something long-term, ask it explicitly. It
-can write durable memory or a knowledge note depending on what the fact is.
+can write durable memory or an experience note depending on what should be retained.
 </Tip>
 
-## Knowledge recall
+## Experience recall
 
-Knowledge recall is a provider-backed layer. NotebookLM is the current default
-provider, but prompt assembly talks to a knowledge provider registry instead of
-calling the NotebookLM CLI directly. CrawClaw can:
+Experience recall is a provider-backed layer. NotebookLM is the current default
+provider, but prompt assembly talks to a provider registry instead of calling
+the NotebookLM CLI directly. CrawClaw can:
 
-- query NotebookLM for relevant knowledge
-- write structured knowledge notes directly through `write_knowledge_note`
+- query NotebookLM for relevant reusable experience
+- write structured experience notes directly through `write_experience_note`
 - manage login, refresh, and provider status via `crawclaw memory`
 - summarize nightly memory prompt diagnostics via `crawclaw memory prompt-journal-summary`
 
-Knowledge recall runs during the context-assembly phase of each agent turn. The
-runtime first classifies the user query, then builds a knowledge query plan from
-that classification:
+Experience recall runs during the context-assembly phase of each agent turn.
+The runtime first classifies the user query, then builds a provider query plan
+from that classification:
 
-- preference-only prompts are routed toward durable memory and skip knowledge
+- preference-only prompts are routed toward durable memory and skip experience
   provider queries
 - SOP and runbook prompts can borrow a small amount of provider search budget so
-  weak metadata does not starve operational knowledge
-- successful `write_knowledge_note` calls update a small local baseline index,
-  so recently written knowledge can still be recalled when live provider search
+  weak metadata does not starve operational experience
+- successful `write_experience_note` calls update a small local baseline index,
+  so recently written experience can still be recalled when live provider search
   returns no hits
-- local baseline hits keep their own `local_knowledge_index` source, so inspect
+- local baseline hits keep their own `local_experience_index` source, so inspect
   and prompt diagnostics can distinguish them from live NotebookLM hits
-- selected knowledge recall is still bounded by the memory prompt budget; layer
-  allocations are soft guidance, but the assembled knowledge section must fit
-  the global knowledge budget for the turn
+- selected experience recall is still bounded by the memory prompt budget; layer
+  allocations are soft guidance, but the assembled experience section must fit
+  the global experience budget for the turn
 - the selected target layers, provider ids, reason, and limit are written into
-  memory recall diagnostics so inspect/debug flows can explain why knowledge was
+  memory recall diagnostics so inspect/debug flows can explain why experience was
   queried or skipped
 
-If there is no usable prompt for the current turn, the runtime skips knowledge
+If there is no usable prompt for the current turn, the runtime skips experience
 provider querying entirely.
 
-`write_knowledge_note` is the only NotebookLM write path in the current
+`write_experience_note` is the only NotebookLM write path in the current
 runtime. It writes directly through the tool path after schema and guard
-validation.
+validation. Experience notes should capture reusable context, trigger, action,
+result, lesson, applicability boundaries, and supporting evidence rather than
+temporary task state.
 
 ## Context Archive
 
@@ -276,7 +278,7 @@ These layers do not share the same boundaries:
 - **Session memory** is isolated per session.
 - **Durable memory** is shared whenever runs resolve to the same
   `agentId + channel + userId` scope.
-- **Knowledge recall** uses the same configured NotebookLM backend across runs;
+- **Experience recall** uses the same configured NotebookLM backend across runs;
   it is not partitioned by session id.
 
 All agents that use the built-in memory runtime receive the same agent memory

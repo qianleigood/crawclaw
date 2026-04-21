@@ -13265,12 +13265,12 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm": {
       label: "NotebookLM Memory Runtime",
-      help: "Configures NotebookLM-backed knowledge recall for the built-in memory runtime. Prompt-facing knowledge retrieval uses NotebookLM only.",
+      help: "Configures NotebookLM-backed experience recall for the built-in memory runtime. Prompt-facing experience retrieval uses NotebookLM only.",
       tags: ["storage"],
     },
     "memory.notebooklm.auth": {
       label: "NotebookLM Auth",
-      help: "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by knowledge recall and knowledge-note writes.",
+      help: "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by experience recall and experience-note writes.",
       tags: ["storage"],
     },
     "memory.notebooklm.auth.profile": {
@@ -13310,7 +13310,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.auth.heartbeat.enabled": {
       label: "NotebookLM Heartbeat Enabled",
-      help: "Enables a randomized in-process NotebookLM auth heartbeat. Keep this on when NotebookLM is your active knowledge provider and long idle periods cause auth expiry.",
+      help: "Enables a randomized in-process NotebookLM auth heartbeat. Keep this on when NotebookLM is your active experience provider and long idle periods cause auth expiry.",
       tags: ["storage", "automation"],
     },
     "memory.notebooklm.auth.heartbeat.minIntervalMs": {
@@ -13325,17 +13325,17 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.cli": {
       label: "NotebookLM CLI Reader",
-      help: "Optional NotebookLM CLI adapter used for prompt-facing knowledge recall. Enable this when `nlm` is installed and authenticated, and you want CrawClaw to query NotebookLM directly.",
+      help: "Optional NotebookLM CLI adapter used for prompt-facing experience recall. Enable this when `nlm` is installed and authenticated, and you want CrawClaw to query NotebookLM directly.",
       tags: ["storage"],
     },
     "memory.notebooklm.cli.enabled": {
       label: "NotebookLM CLI Enabled",
-      help: "Enables NotebookLM CLI retrieval for prompt-facing knowledge recall. Keep disabled unless a working `nlm` command is configured and authenticated.",
+      help: "Enables NotebookLM CLI retrieval for prompt-facing experience recall. Keep disabled unless a working `nlm` command is configured and authenticated.",
       tags: ["storage"],
     },
     "memory.notebooklm.cli.command": {
       label: "NotebookLM CLI Command",
-      help: "Executable used for NotebookLM CLI retrieval, typically `nlm` or a local wrapper script. The command must return JSON that CrawClaw can normalize into knowledge recall items.",
+      help: "Executable used for NotebookLM CLI retrieval, typically `nlm` or a local wrapper script. The command must return JSON that CrawClaw can normalize into experience recall items.",
       tags: ["storage"],
     },
     "memory.notebooklm.cli.args": {
@@ -13350,7 +13350,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.cli.limit": {
       label: "NotebookLM CLI Result Limit",
-      help: "Maximum number of NotebookLM knowledge recall hits requested before reranking and prompt assembly.",
+      help: "Maximum number of NotebookLM experience recall hits requested before reranking and prompt assembly.",
       tags: ["performance", "storage"],
     },
     "memory.notebooklm.cli.notebookId": {
@@ -13360,17 +13360,17 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.cli.queryInstruction": {
       label: "NotebookLM Query Instruction",
-      help: "Optional prompt instruction prepended to every NotebookLM knowledge query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
+      help: "Optional prompt instruction prepended to every NotebookLM experience query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
       tags: ["storage"],
     },
     "memory.notebooklm.write": {
       label: "NotebookLM Writeback",
-      help: "Configures NotebookLM note writing for the knowledge layer. Use this to let CrawClaw create or update Chinese-readable knowledge notes inside a designated NotebookLM notebook.",
+      help: "Configures NotebookLM note writing for the experience layer. Use this to let CrawClaw create or update Chinese-readable experience notes inside a designated NotebookLM notebook.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.enabled": {
       label: "NotebookLM Writeback Enabled",
-      help: "Enables NotebookLM note writing for the knowledge layer. Keep disabled unless you have a working write command and a target notebook configured.",
+      help: "Enables NotebookLM note writing for the experience layer. Keep disabled unless you have a working write command and a target notebook configured.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.command": {
@@ -13390,7 +13390,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.write.notebookId": {
       label: "NotebookLM Writeback Notebook ID",
-      help: "Notebook identifier used as the target for knowledge writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
+      help: "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
       tags: ["storage"],
     },
     auth: {

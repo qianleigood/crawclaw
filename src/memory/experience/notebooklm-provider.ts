@@ -1,22 +1,22 @@
 import { searchNotebookLmViaCli } from "../notebooklm/notebooklm-cli.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import type {
-  KnowledgeProvider,
-  KnowledgeRuntimeLogger,
-  KnowledgeSearchInput,
+  ExperienceProvider,
+  ExperienceRuntimeLogger,
+  ExperienceSearchInput,
 } from "./provider.ts";
 
-export class NotebookLmKnowledgeProvider implements KnowledgeProvider {
+export class NotebookLmExperienceProvider implements ExperienceProvider {
   readonly id = "notebooklm";
 
   constructor(
     private readonly options: {
       config?: NotebookLmConfig;
-      logger: KnowledgeRuntimeLogger;
+      logger: ExperienceRuntimeLogger;
     },
   ) {}
 
-  async search(input: KnowledgeSearchInput) {
+  async search(input: ExperienceSearchInput) {
     const config = this.options.config;
     if (!input.plan.enabled || !config?.enabled || !config.cli.enabled) {
       return { providerId: this.id, items: [] };

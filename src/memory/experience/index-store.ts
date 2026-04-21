@@ -1,19 +1,19 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../../config/paths.ts";
-import type { KnowledgeNoteType, KnowledgeNoteWriteInput } from "../notebooklm/knowledge-note.ts";
-import { renderKnowledgeNoteMarkdown } from "../notebooklm/knowledge-note.ts";
-import type { NotebookLmKnowledgeWriteResult } from "../notebooklm/notebooklm-write.ts";
+import type { NotebookLmExperienceWriteResult } from "../notebooklm/notebooklm-write.ts";
 import type { MemoryKind } from "../recall/memory-kind.ts";
 import { tokenizeRecallText } from "../recall/query-analysis.ts";
 import type { UnifiedRecallItem, UnifiedRecallLayer } from "../types/orchestration.ts";
+import type { ExperienceNoteType, ExperienceNoteWriteInput } from "./note.ts";
+import { renderExperienceNoteMarkdown } from "./note.ts";
 
-export interface KnowledgeIndexEntry {
+export interface ExperienceIndexEntry {
   id: string;
   title: string;
   summary: string;
   content: string;
-  type: KnowledgeNoteType;
+  type: ExperienceNoteType;
   layer: UnifiedRecallLayer;
   memoryKind: MemoryKind;
   noteId: string | null;
@@ -24,13 +24,13 @@ export interface KnowledgeIndexEntry {
   updatedAt: number;
 }
 
-type KnowledgeIndexFile = {
+type ExperienceIndexFile = {
   version: 1;
-  entries: KnowledgeIndexEntry[];
+  entries: ExperienceIndexEntry[];
 };
 
-function resolveKnowledgeIndexPath(): string {
-  return path.join(resolveStateDir(), "knowledge", "index.json");
+function resolveExperienceIndexPath(): string {
+  return path.join(resolveStateDir(), "experience", "index.json");
 }
 
 function normalizeList(values: string[] | undefined): string[] {
@@ -46,38 +46,41 @@ function slugifyId(value: string): string {
   return slug || "note";
 }
 
-function layerForType(type: KnowledgeNoteType): UnifiedRecallLayer {
+function layerForType(type: ExperienceNoteType): UnifiedRecallLayer {
   if (type === "procedure") {
     return "sop";
   }
   if (type === "decision") {
     return "key_decisions";
   }
-  if (type === "runtime_pattern") {
+  if (type === "runtime_pattern" || type === "failure_pattern") {
     return "runtime_signals";
+  }
+  if (type === "workflow_pattern") {
+    return "sop";
   }
   return "sources";
 }
 
-function memoryKindForType(type: KnowledgeNoteType): MemoryKind {
-  if (type === "procedure") {
+function memoryKindForType(type: ExperienceNoteType): MemoryKind {
+  if (type === "procedure" || type === "workflow_pattern") {
     return "procedure";
   }
   if (type === "decision") {
     return "decision";
   }
-  if (type === "runtime_pattern") {
+  if (type === "runtime_pattern" || type === "failure_pattern") {
     return "runtime_pattern";
   }
   return "reference";
 }
 
-async function readIndexFile(): Promise<KnowledgeIndexFile> {
+async function readIndexFile(): Promise<ExperienceIndexFile> {
   try {
-    const raw = await fs.readFile(resolveKnowledgeIndexPath(), "utf8");
-    const parsed = JSON.parse(raw) as Partial<KnowledgeIndexFile>;
+    const raw = await fs.readFile(resolveExperienceIndexPath(), "utf8");
+    const parsed = JSON.parse(raw) as Partial<ExperienceIndexFile>;
     const entries = Array.isArray(parsed.entries)
-      ? parsed.entries.filter((entry): entry is KnowledgeIndexEntry => Boolean(entry?.id))
+      ? parsed.entries.filter((entry): entry is ExperienceIndexEntry => Boolean(entry?.id))
       : [];
     return { version: 1, entries };
   } catch (error) {
@@ -88,13 +91,13 @@ async function readIndexFile(): Promise<KnowledgeIndexFile> {
   }
 }
 
-async function writeIndexFile(index: KnowledgeIndexFile): Promise<void> {
-  const filePath = resolveKnowledgeIndexPath();
+async function writeIndexFile(index: ExperienceIndexFile): Promise<void> {
+  const filePath = resolveExperienceIndexPath();
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
 }
 
-export async function readKnowledgeIndexEntries(limit = 200): Promise<KnowledgeIndexEntry[]> {
+export async function readExperienceIndexEntries(limit = 200): Promise<ExperienceIndexEntry[]> {
   const index = await readIndexFile();
   return index.entries
     .toSorted(
@@ -103,18 +106,18 @@ export async function readKnowledgeIndexEntries(limit = 200): Promise<KnowledgeI
     .slice(0, Math.max(0, limit));
 }
 
-export async function upsertKnowledgeIndexEntry(params: {
-  note: KnowledgeNoteWriteInput;
-  writeResult: NotebookLmKnowledgeWriteResult;
+export async function upsertExperienceIndexEntry(params: {
+  note: ExperienceNoteWriteInput;
+  writeResult: NotebookLmExperienceWriteResult;
   updatedAt?: number;
-}): Promise<KnowledgeIndexEntry> {
+}): Promise<ExperienceIndexEntry> {
   const dedupeKey = params.note.dedupeKey?.trim() || null;
   const stableKey = dedupeKey ?? params.writeResult.noteId ?? params.note.title.trim();
-  const entry: KnowledgeIndexEntry = {
-    id: `knowledge-index:${slugifyId(stableKey)}`,
+  const entry: ExperienceIndexEntry = {
+    id: `experience-index:${slugifyId(stableKey)}`,
     title: params.writeResult.title.trim() || params.note.title.trim(),
     summary: params.note.summary.trim(),
-    content: renderKnowledgeNoteMarkdown(params.note),
+    content: renderExperienceNoteMarkdown(params.note),
     type: params.note.type,
     layer: layerForType(params.note.type),
     memoryKind: memoryKindForType(params.note.type),
@@ -141,7 +144,7 @@ export async function upsertKnowledgeIndexEntry(params: {
 }
 
 function scoreEntry(params: {
-  entry: KnowledgeIndexEntry;
+  entry: ExperienceIndexEntry;
   queryTokens: string[];
   targetLayers?: UnifiedRecallLayer[];
 }): number {
@@ -168,7 +171,7 @@ function scoreEntry(params: {
   return overlap * 0.12 + layerBoost + titleBoost + recencyBoost;
 }
 
-export async function searchKnowledgeIndexEntries(params: {
+export async function searchExperienceIndexEntries(params: {
   query: string;
   limit?: number;
   targetLayers?: UnifiedRecallLayer[];
@@ -181,7 +184,7 @@ export async function searchKnowledgeIndexEntries(params: {
   if (!queryTokens.length) {
     return [];
   }
-  const entries = await readKnowledgeIndexEntries(80);
+  const entries = await readExperienceIndexEntries(80);
   return entries
     .map((entry) => ({
       entry,
@@ -194,7 +197,7 @@ export async function searchKnowledgeIndexEntries(params: {
     .slice(0, limit)
     .map(({ entry, score }) => ({
       id: entry.id,
-      source: "local_knowledge_index",
+      source: "local_experience_index",
       title: entry.title,
       summary: entry.summary,
       content: entry.content,
@@ -206,7 +209,7 @@ export async function searchKnowledgeIndexEntries(params: {
       canonicalKey: entry.dedupeKey ?? entry.noteId ?? entry.title,
       sourceRef: entry.noteId ?? entry.dedupeKey ?? entry.title,
       metadata: {
-        indexSource: "local_knowledge_index",
+        indexSource: "local_experience_index",
         notebookId: entry.notebookId,
         noteId: entry.noteId,
         dedupeKey: entry.dedupeKey,

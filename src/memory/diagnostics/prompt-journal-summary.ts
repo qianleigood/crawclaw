@@ -34,7 +34,7 @@ export type PromptJournalSummary = {
     saveRate: number | null;
     topReasons: Array<{ reason: string; count: number }>;
   };
-  knowledgeWrite: {
+  experienceWrite: {
     statusCounts: Record<string, number>;
     actionCounts: Record<string, number>;
     titles: Array<{ title: string; count: number }>;
@@ -124,9 +124,9 @@ export async function summarizePromptJournal(
   const decisionCounts: Record<string, number> = {};
   const skipReasonCounts: Record<string, number> = {};
   const topReasonCounts: Record<string, number> = {};
-  const knowledgeStatusCounts: Record<string, number> = {};
-  const knowledgeActionCounts: Record<string, number> = {};
-  const knowledgeTitleCounts: Record<string, number> = {};
+  const experienceStatusCounts: Record<string, number> = {};
+  const experienceActionCounts: Record<string, number> = {};
+  const experienceTitleCounts: Record<string, number> = {};
   const sessionKeys = new Set<string>();
   const dateBuckets = new Set<string>();
   const promptEstimatedTokens: number[] = [];
@@ -187,17 +187,17 @@ export async function summarizePromptJournal(
       continue;
     }
 
-    if (event.stage === "knowledge_write") {
+    if (event.stage === "experience_write") {
       incrementCounter(
-        knowledgeStatusCounts,
+        experienceStatusCounts,
         typeof payload.status === "string" ? payload.status : undefined,
       );
       incrementCounter(
-        knowledgeActionCounts,
+        experienceActionCounts,
         typeof payload.action === "string" ? payload.action : undefined,
       );
       incrementCounter(
-        knowledgeTitleCounts,
+        experienceTitleCounts,
         typeof payload.title === "string" ? payload.title : undefined,
       );
     }
@@ -230,10 +230,10 @@ export async function summarizePromptJournal(
         .slice(0, 10)
         .map(([reason, count]) => ({ reason, count })),
     },
-    knowledgeWrite: {
-      statusCounts: knowledgeStatusCounts,
-      actionCounts: knowledgeActionCounts,
-      titles: Object.entries(knowledgeTitleCounts)
+    experienceWrite: {
+      statusCounts: experienceStatusCounts,
+      actionCounts: experienceActionCounts,
+      titles: Object.entries(experienceTitleCounts)
         .toSorted((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
         .slice(0, 10)
         .map(([title, count]) => ({ title, count })),

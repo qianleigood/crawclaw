@@ -1,6 +1,6 @@
-import type { UnifiedRecallTraceEnrichment } from "./orchestration.ts";
 import type { ExecutionSubgraphItem, ExecutionTask } from "./execution.ts";
 import type { GmEdge, GmNode } from "./graph.ts";
+import type { UnifiedRecallTraceEnrichment } from "./orchestration.ts";
 
 export interface RecallInput {
   query: string;
@@ -57,9 +57,22 @@ export interface ExecutionRecallItem {
   score: number;
 }
 
-export type RecallReasonSourceType = "seed" | "evidence_chunk" | "execution_hit" | "graph_node" | "graph_edge" | "fallback";
+export type RecallReasonSourceType =
+  | "seed"
+  | "evidence_chunk"
+  | "execution_hit"
+  | "graph_node"
+  | "graph_edge"
+  | "fallback";
 export type RecallReasonSourceStage = "precise" | "generalized" | "fallback";
-export type RecallReasonViaType = "seed" | "chunk" | "execution" | "node" | "edge" | "session" | "community";
+export type RecallReasonViaType =
+  | "seed"
+  | "chunk"
+  | "execution"
+  | "node"
+  | "edge"
+  | "session"
+  | "community";
 
 export interface RecallReasonLinkRef {
   refType: RecallReasonSourceType;
@@ -85,7 +98,12 @@ export interface RecallReasonPath {
 
 export interface RecallReason {
   reasonId: string;
-  kind: "knowledge_seed" | "supporting_evidence" | "execution_evidence" | "related_context" | "fallback";
+  kind:
+    | "knowledge_seed"
+    | "supporting_evidence"
+    | "execution_evidence"
+    | "related_context"
+    | "fallback";
   label: string;
   summary: string;
   sourceType: RecallReasonSourceType;
@@ -232,7 +250,7 @@ export interface RecallTrace {
     vector: number;
     evidence: number;
     merged: number;
-    selectedKnowledge: number;
+    selectedExperience: number;
     selectedExecution: number;
     expandedNodes: number;
     expandedEdges: number;

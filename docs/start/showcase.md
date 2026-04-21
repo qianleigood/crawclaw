@@ -285,7 +285,7 @@ Watches company Slack channel, responds helpfully, and forwards notifications to
 
 </CardGroup>
 
-## 🧠 Knowledge & Memory
+## 🧠 Experience & Memory
 
 <CardGroup cols={2}>
 

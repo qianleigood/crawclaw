@@ -287,7 +287,7 @@ export const MemoryPromptJournalSummaryResultSchema = Type.Object(
       },
       { additionalProperties: false },
     ),
-    knowledgeWrite: Type.Object(
+    experienceWrite: Type.Object(
       {
         statusCounts: Type.Record(Type.String(), Type.Integer({ minimum: 0 })),
         actionCounts: Type.Record(Type.String(), Type.Integer({ minimum: 0 })),

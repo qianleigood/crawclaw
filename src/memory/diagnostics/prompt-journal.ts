@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveStateDir } from "../../config/paths.js";
 import { getQueuedFileWriter, type QueuedFileWriter } from "../../agents/queued-file-writer.js";
+import { resolveStateDir } from "../../config/paths.js";
+import { resolveUserPath } from "../../utils.js";
 import { parseBooleanValue } from "../../utils/boolean.js";
 import { safeJsonStringify } from "../../utils/safe-json.js";
-import { resolveUserPath } from "../../utils.js";
 
 // Debug-only prompt journal. This is intentionally lossy/truncated and is not the
 // Context Archive truth layer used for replay/export.
@@ -13,7 +13,7 @@ export type MemoryPromptJournalStage =
   | "prompt_assembly"
   | "after_turn_decision"
   | "durable_extraction"
-  | "knowledge_write";
+  | "experience_write";
 
 export type MemoryPromptJournalEvent = {
   ts: string;
@@ -37,7 +37,10 @@ type MemoryPromptJournalConfig = {
 export type MemoryPromptJournal = {
   enabled: true;
   filePath: string;
-  recordStage: (stage: MemoryPromptJournalStage, payload: Partial<MemoryPromptJournalEvent>) => void;
+  recordStage: (
+    stage: MemoryPromptJournalStage,
+    payload: Partial<MemoryPromptJournalEvent>,
+  ) => void;
 };
 
 const writers = new Map<string, QueuedFileWriter>();
@@ -55,9 +58,10 @@ function resolveMemoryPromptJournalConfig(env: NodeJS.ProcessEnv): MemoryPromptJ
   const enabled = parseBooleanValue(env.CRAWCLAW_MEMORY_PROMPT_JOURNAL) ?? false;
   const rawRetentionDays = env.CRAWCLAW_MEMORY_PROMPT_JOURNAL_RETENTION_DAYS?.trim();
   const parsedRetentionDays = rawRetentionDays ? Number.parseInt(rawRetentionDays, 10) : Number.NaN;
-  const retentionDays = Number.isFinite(parsedRetentionDays) && parsedRetentionDays > 0
-    ? Math.floor(parsedRetentionDays)
-    : null;
+  const retentionDays =
+    Number.isFinite(parsedRetentionDays) && parsedRetentionDays > 0
+      ? Math.floor(parsedRetentionDays)
+      : null;
   const fileOverride = env.CRAWCLAW_MEMORY_PROMPT_JOURNAL_FILE?.trim();
   if (fileOverride) {
     return {

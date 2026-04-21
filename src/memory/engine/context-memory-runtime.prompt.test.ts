@@ -116,7 +116,7 @@ afterEach(async () => {
 });
 
 describe("createContextMemoryRuntime().assemble", () => {
-  it("renders final prompt additions with structured session, optional durable, and chinese knowledge cards", async () => {
+  it("renders final prompt additions with structured session, optional durable, and chinese experience cards", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-prompt-"));
     tempDirs.push(stateDir);
@@ -136,7 +136,7 @@ describe("createContextMemoryRuntime().assemble", () => {
 先判断 durable memory 是否相关
 
 ## Task Specification
-知识层保持中文卡片化
+经验层保持中文卡片化
 
 ## Key Results
 当前目标：只在相关时注入 durable memory
@@ -145,7 +145,7 @@ describe("createContextMemoryRuntime().assemble", () => {
 
     searchNotebookLmViaCliMock.mockResolvedValue([
       {
-        id: "knowledge:procedure",
+        id: "experience:procedure",
         source: "notebooklm",
         title: "本地网关异常恢复",
         summary:
@@ -159,15 +159,15 @@ describe("createContextMemoryRuntime().assemble", () => {
         metadata: {},
       },
       {
-        id: "knowledge:decision",
+        id: "experience:decision",
         source: "notebooklm",
-        title: "知识召回改用 NotebookLM",
-        summary: "知识层统一走 NotebookLM，可以把写入和读取收口到一个 provider，降低读写分裂。",
+        title: "经验召回改用 NotebookLM",
+        summary: "经验层统一走 NotebookLM，可以把写入和读取收口到一个 provider，降低读写分裂。",
         layer: "key_decisions",
         memoryKind: "decision",
         retrievalScore: 0.88,
         importance: 0.78,
-        canonicalKey: "知识召回改用 NotebookLM",
+        canonicalKey: "经验召回改用 NotebookLM",
         sourceRef: "notebooklm-note-2",
         metadata: {},
       },
@@ -265,14 +265,14 @@ describe("createContextMemoryRuntime().assemble", () => {
             args: [],
             timeoutMs: 30_000,
             limit: 5,
-            notebookId: "knowledge-notebook",
+            notebookId: "experience-notebook",
           },
           write: {
             enabled: false,
             command: "",
             args: [],
             timeoutMs: 30_000,
-            notebookId: "knowledge-notebook",
+            notebookId: "experience-notebook",
           },
         },
       },
@@ -298,11 +298,11 @@ describe("createContextMemoryRuntime().assemble", () => {
     expect(systemContextText).toContain("## Durable memory");
     expect(systemContextText).toContain("Feedback memory: 回答操作类问题先给步骤");
     expect(systemContextText).toContain("Freshness:");
-    expect(systemContextText).toContain("## 知识回忆");
-    expect(systemContextText).toContain("## 操作流程");
-    expect(systemContextText).toContain("【操作流程】本地网关异常恢复 适用场景：");
-    expect(systemContextText).not.toContain("## 决策说明");
-    expect(systemContextText).not.toContain("【决策说明】知识召回改用 NotebookLM");
+    expect(systemContextText).toContain("## 经验回忆");
+    expect(systemContextText).toContain("## 操作经验");
+    expect(systemContextText).toContain("【操作经验】本地网关异常恢复 适用场景：");
+    expect(systemContextText).not.toContain("## 决策经验");
+    expect(systemContextText).not.toContain("【决策经验】经验召回改用 NotebookLM");
     const routingContractSection = systemContextSections.find(
       (section) => section.id === "memory:routing_contract",
     );
@@ -370,12 +370,12 @@ describe("createContextMemoryRuntime().assemble", () => {
     });
   });
 
-  it("skips NotebookLM recall for preference prompts based on the knowledge query plan", async () => {
+  it("skips NotebookLM recall for preference prompts based on the experience query plan", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
 
     searchNotebookLmViaCliMock.mockResolvedValue([
       {
-        id: "knowledge:preference-noise",
+        id: "experience:preference-noise",
         source: "notebooklm",
         title: "Preference should not be queried",
         summary: "This should not be fetched for preference-only prompts.",
@@ -442,14 +442,14 @@ describe("createContextMemoryRuntime().assemble", () => {
     });
 
     expect(searchNotebookLmViaCliMock).not.toHaveBeenCalled();
-    expect(result.diagnostics?.memoryRecall?.knowledgeQueryPlan).toMatchObject({
+    expect(result.diagnostics?.memoryRecall?.experienceQueryPlan).toMatchObject({
       enabled: false,
       reason: "preference_prefers_durable_memory",
       limit: 0,
     });
   });
 
-  it("uses the knowledge query plan limit for SOP prompts", async () => {
+  it("uses the experience query plan limit for SOP prompts", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
 
     searchNotebookLmViaCliMock.mockResolvedValue([]);
@@ -515,18 +515,18 @@ describe("createContextMemoryRuntime().assemble", () => {
         limit: 7,
       }),
     );
-    expect(result.diagnostics?.memoryRecall?.knowledgeQueryPlan).toMatchObject({
+    expect(result.diagnostics?.memoryRecall?.experienceQueryPlan).toMatchObject({
       enabled: true,
       reason: "intent:sop",
       limit: 7,
-      providerIds: expect.arrayContaining(["notebooklm", "local_knowledge_index"]),
+      providerIds: expect.arrayContaining(["notebooklm", "local_experience_index"]),
     });
   });
 
-  it("falls back to the local knowledge index when provider recall has no hits", async () => {
+  it("falls back to the local experience index when provider recall has no hits", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
-    const { upsertKnowledgeIndexEntry } = await import("../knowledge/index-store.ts");
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-knowledge-index-runtime-"));
+    const { upsertExperienceIndexEntry } = await import("../experience/index-store.ts");
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-experience-index-runtime-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
 
@@ -550,13 +550,14 @@ describe("createContextMemoryRuntime().assemble", () => {
         recentDreamTouchedNotes: [],
       },
     });
-    await upsertKnowledgeIndexEntry({
+    await upsertExperienceIndexEntry({
       note: {
         type: "procedure",
         title: "本地网关恢复流程",
         summary: "网关关闭或 health 失败时，先检查端口，再重启服务，最后验证 health。",
-        body: "适用于本地网关异常关闭。",
+        body: "适用于本地网关异常关闭，也适用于用户问本地网关挂了怎么恢复。",
         steps: ["检查端口", "重启服务", "验证 health"],
+        aliases: ["本地网关挂了怎么恢复", "给我操作流程"],
         dedupeKey: "gateway-recovery-procedure",
       },
       writeResult: {
@@ -564,7 +565,7 @@ describe("createContextMemoryRuntime().assemble", () => {
         action: "upsert",
         noteId: "note-gateway",
         title: "本地网关恢复流程",
-        notebookId: "knowledge-notebook",
+        notebookId: "experience-notebook",
         payloadFile: "/tmp/payload.json",
       },
       updatedAt: 1_000,
@@ -608,10 +609,10 @@ describe("createContextMemoryRuntime().assemble", () => {
     });
 
     const systemContextText = renderQueryContextSections(result.systemContextSections);
-    expect(systemContextText).toContain("## 知识回忆");
-    expect(systemContextText).toContain("【操作流程】本地网关恢复流程");
-    expect(result.diagnostics?.memoryRecall?.knowledgeQueryPlan?.providerIds).toContain(
-      "local_knowledge_index",
+    expect(systemContextText).toContain("## 经验回忆");
+    expect(systemContextText).toContain("【操作经验】本地网关恢复流程");
+    expect(result.diagnostics?.memoryRecall?.experienceQueryPlan?.providerIds).toContain(
+      "local_experience_index",
     );
   });
 
@@ -684,7 +685,7 @@ The health probe recovered after the stale process was removed.
     expect(recallDurableMemoryMock).toHaveBeenCalledTimes(1);
   });
 
-  it("does not surface session summary even when durable and knowledge layers are empty", async () => {
+  it("does not surface session summary even when durable and experience layers are empty", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-borrow-"));
     tempDirs.push(stateDir);

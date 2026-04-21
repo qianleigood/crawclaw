@@ -61,7 +61,7 @@ describe("setup.notebooklm", () => {
     });
 
     expect(prompter.confirm).toHaveBeenCalledWith({
-      message: "Enable NotebookLM knowledge recall?",
+      message: "Enable NotebookLM experience recall?",
       initialValue: false,
     });
     expect(nextConfig).toEqual({
@@ -151,7 +151,7 @@ describe("setup.notebooklm", () => {
       initialValue: true,
     });
     expect(prompter.note).toHaveBeenCalledWith(
-      expect.stringContaining("NotebookLM knowledge is now ready."),
+      expect.stringContaining("NotebookLM experience is now ready."),
       "NotebookLM",
     );
   });

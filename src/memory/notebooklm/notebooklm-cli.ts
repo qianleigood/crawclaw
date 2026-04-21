@@ -1,7 +1,7 @@
 import { execFile as execFileCallback } from "node:child_process";
+import { projectMemoryKind } from "../recall/memory-kind.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import type { UnifiedRecallItem } from "../types/orchestration.ts";
-import { projectMemoryKind } from "../recall/memory-kind.ts";
 import { emitNotebookLmNotification } from "./notification.ts";
 import { getNotebookLmProviderState } from "./provider-state.ts";
 
@@ -37,20 +37,25 @@ type AnswerCardSegment = {
   body: string;
 };
 
-function normalizeMemoryKind(value: string | undefined): "preference" | "decision" | "procedure" | "runtime_pattern" | "reference" | undefined {
+function normalizeMemoryKind(
+  value: string | undefined,
+): "preference" | "decision" | "procedure" | "runtime_pattern" | "reference" | undefined {
   if (
-    value === "preference"
-    || value === "decision"
-    || value === "procedure"
-    || value === "runtime_pattern"
-    || value === "reference"
+    value === "preference" ||
+    value === "decision" ||
+    value === "procedure" ||
+    value === "runtime_pattern" ||
+    value === "reference"
   ) {
     return value;
   }
   return undefined;
 }
 
-function renderTemplate(value: string, params: { query: string; limit: number; notebookId?: string }): string {
+function renderTemplate(
+  value: string,
+  params: { query: string; limit: number; notebookId?: string },
+): string {
   return value
     .replaceAll("{query}", params.query)
     .replaceAll("{limit}", String(params.limit))
@@ -60,40 +65,49 @@ function renderTemplate(value: string, params: { query: string; limit: number; n
 function buildNotebookLmQuery(query: string, instruction: string | undefined): string {
   const cleanQuery = query.trim();
   const cleanInstruction = (instruction ?? "").trim();
-  if (!cleanInstruction) {return cleanQuery;}
-  return [
-    cleanInstruction,
-    "",
-    `当前问题：${cleanQuery}`,
-  ].join("\n");
+  if (!cleanInstruction) {
+    return cleanQuery;
+  }
+  return [cleanInstruction, "", `当前问题：${cleanQuery}`].join("\n");
 }
 
 function toEntries(payload: unknown): unknown[] {
-  if (Array.isArray(payload)) {return payload;}
-  if (!payload || typeof payload !== "object") {return [];}
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
   const record = payload as Record<string, unknown>;
-  const candidate = record.results
-    ?? record.items
-    ?? record.hits
-    ?? record.sources
-    ?? record.data;
-  if (Array.isArray(candidate)) {return candidate;}
-  const answer = [record.answer, record.response, record.text, record.content]
-    .find((value): value is string => typeof value === "string" && value.trim().length > 0);
-  if (!answer) {return [];}
-  return [{
-    title: typeof record.title === "string" ? record.title : "NotebookLM answer",
-    answer,
-    source: typeof record.source === "string" ? record.source : undefined,
-    score: typeof record.score === "number" ? record.score : undefined,
-  }];
+  const candidate = record.results ?? record.items ?? record.hits ?? record.sources ?? record.data;
+  if (Array.isArray(candidate)) {
+    return candidate;
+  }
+  const answer = [record.answer, record.response, record.text, record.content].find(
+    (value): value is string => typeof value === "string" && value.trim().length > 0,
+  );
+  if (!answer) {
+    return [];
+  }
+  return [
+    {
+      title: typeof record.title === "string" ? record.title : "NotebookLM answer",
+      answer,
+      source: typeof record.source === "string" ? record.source : undefined,
+      score: typeof record.score === "number" ? record.score : undefined,
+    },
+  ];
 }
 
 function normalizeHit(raw: unknown): RawNotebookLmHit | null {
-  if (!raw || typeof raw !== "object") {return null;}
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
   const record = raw as Record<string, unknown>;
   const tags = Array.isArray(record.tags)
-    ? record.tags.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    ? record.tags.filter(
+        (value): value is string => typeof value === "string" && value.trim().length > 0,
+      )
     : undefined;
   return {
     id: typeof record.id === "string" ? record.id : undefined,
@@ -123,9 +137,13 @@ function normalizeHit(raw: unknown): RawNotebookLmHit | null {
 
 function splitNotebookLmAnswerCards(value: string | undefined): AnswerCardSegment[] {
   const cleaned = stripNotebookLmArtifacts(value);
-  if (!cleaned) {return [];}
-  const matches = [...cleaned.matchAll(/知识卡片([一二三四五六七八九十\d]+)：/gu)];
-  if (matches.length === 0) {return [];}
+  if (!cleaned) {
+    return [];
+  }
+  const matches = [...cleaned.matchAll(/经验卡片([一二三四五六七八九十\d]+)：/gu)];
+  if (matches.length === 0) {
+    return [];
+  }
   const segments: AnswerCardSegment[] = [];
   for (let index = 0; index < matches.length; index += 1) {
     const match = matches[index];
@@ -138,7 +156,9 @@ function splitNotebookLmAnswerCards(value: string | undefined): AnswerCardSegmen
     const titleSuffix = titleCandidateMatch?.[1]?.trim();
     const body = (titleCandidateMatch?.[2] ?? rawSegment).trim();
     const title = titleSuffix ? `${titlePrefix}：${titleSuffix}` : titlePrefix;
-    if (!body) {continue;}
+    if (!body) {
+      continue;
+    }
     segments.push({ title, body });
   }
   return segments;
@@ -146,8 +166,12 @@ function splitNotebookLmAnswerCards(value: string | undefined): AnswerCardSegmen
 
 function compactText(value: string | undefined, maxChars: number): string {
   const normalized = (value ?? "").replace(/\s+/g, " ").trim();
-  if (!normalized) {return "";}
-  return normalized.length <= maxChars ? normalized : `${normalized.slice(0, maxChars - 1).trimEnd()}…`;
+  if (!normalized) {
+    return "";
+  }
+  return normalized.length <= maxChars
+    ? normalized
+    : `${normalized.slice(0, maxChars - 1).trimEnd()}…`;
 }
 
 function stripNotebookLmArtifacts(value: string | undefined): string {
@@ -160,7 +184,9 @@ function stripNotebookLmArtifacts(value: string | undefined): string {
 
 function extractShortChineseCardText(value: string | undefined, maxChars: number): string {
   const cleaned = stripNotebookLmArtifacts(value);
-  if (!cleaned) {return "";}
+  if (!cleaned) {
+    return "";
+  }
   const sentences = cleaned
     .split(/(?<=[。！？!?；;])/u)
     .map((part) => part.trim())
@@ -171,9 +197,13 @@ function extractShortChineseCardText(value: string | undefined, maxChars: number
   const selected: string[] = [];
   let total = 0;
   for (const sentence of sentences) {
-    if (selected.length >= 4) {break;}
+    if (selected.length >= 4) {
+      break;
+    }
     const next = sentence.length;
-    if (selected.length > 0 && total + next > maxChars) {break;}
+    if (selected.length > 0 && total + next > maxChars) {
+      break;
+    }
     selected.push(sentence);
     total += next;
   }
@@ -182,15 +212,22 @@ function extractShortChineseCardText(value: string | undefined, maxChars: number
 }
 
 function mapHit(raw: RawNotebookLmHit, rank: number): UnifiedRecallItem {
-  const title = raw.title ?? raw.name ?? raw.sourceTitle ?? raw.notebookName ?? raw.notebook ?? `NotebookLM result ${rank + 1}`;
+  const title =
+    raw.title ??
+    raw.name ??
+    raw.sourceTitle ??
+    raw.notebookName ??
+    raw.notebook ??
+    `NotebookLM result ${rank + 1}`;
   const summary = extractShortChineseCardText(
     raw.summary ?? raw.preview ?? raw.snippet ?? raw.answer ?? raw.text ?? raw.content,
     220,
   );
-  const content = extractShortChineseCardText(
-    raw.answer ?? raw.text ?? raw.content ?? raw.snippet ?? raw.preview ?? raw.summary,
-    520,
-  ) || undefined;
+  const content =
+    extractShortChineseCardText(
+      raw.answer ?? raw.text ?? raw.content ?? raw.snippet ?? raw.preview ?? raw.summary,
+      520,
+    ) || undefined;
   const retrievalScore = raw.score ?? raw.relevance ?? Math.max(0.1, 1 - rank * 0.04);
   const sourceRef = raw.url ?? raw.path ?? raw.sourceId ?? raw.id;
   const memoryKind = projectMemoryKind({
@@ -231,20 +268,25 @@ function mapHit(raw: RawNotebookLmHit, rank: number): UnifiedRecallItem {
 }
 
 function mapHitVariants(raw: RawNotebookLmHit, rank: number): UnifiedRecallItem[] {
-  const cardSegments = splitNotebookLmAnswerCards(raw.answer ?? raw.text ?? raw.content ?? raw.summary);
+  const cardSegments = splitNotebookLmAnswerCards(
+    raw.answer ?? raw.text ?? raw.content ?? raw.summary,
+  );
   if (cardSegments.length <= 1) {
     return [mapHit(raw, rank)];
   }
   return cardSegments.map((segment, index) =>
-    mapHit({
-      ...raw,
-      id: `${raw.id ?? raw.sourceId ?? rank + 1}:card:${index + 1}`,
-      title: segment.title,
-      summary: segment.body,
-      answer: segment.body,
-      text: segment.body,
-      content: segment.body,
-    }, rank + index),
+    mapHit(
+      {
+        ...raw,
+        id: `${raw.id ?? raw.sourceId ?? rank + 1}:card:${index + 1}`,
+        title: segment.title,
+        summary: segment.body,
+        answer: segment.body,
+        text: segment.body,
+        content: segment.body,
+      },
+      rank + index,
+    ),
   );
 }
 
@@ -260,7 +302,9 @@ export async function searchNotebookLmViaCli(params: {
   };
 }): Promise<UnifiedRecallItem[]> {
   const cli = params.config.cli;
-  if (!params.config.enabled || !cli.enabled || !cli.command.trim() || !params.query.trim()) {return [];}
+  if (!params.config.enabled || !cli.enabled || !cli.command.trim() || !params.query.trim()) {
+    return [];
+  }
   const limit = Math.max(1, Math.min(params.limit ?? cli.limit, 10));
   const renderedQuery = buildNotebookLmQuery(params.query, cli.queryInstruction);
   const state = await getNotebookLmProviderState({
@@ -289,11 +333,13 @@ export async function searchNotebookLmViaCli(params: {
     return [];
   }
   const notebookId = state.notebookId ?? cli.notebookId ?? "";
-  const args = cli.args.map((value) => renderTemplate(value, {
-    query: renderedQuery,
-    limit,
-    notebookId,
-  }));
+  const args = cli.args.map((value) =>
+    renderTemplate(value, {
+      query: renderedQuery,
+      limit,
+      notebookId,
+    }),
+  );
 
   try {
     const stdout = await new Promise<string>((resolve, reject) => {

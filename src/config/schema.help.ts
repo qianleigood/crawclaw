@@ -883,9 +883,9 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.backend":
     'Selects the global memory engine: "builtin" uses CrawClaw memory internals, while "qmd" uses the QMD sidecar pipeline. Keep "builtin" unless you intentionally operate QMD.',
   "memory.notebooklm":
-    "Configures NotebookLM-backed knowledge recall for the built-in memory runtime. Prompt-facing knowledge retrieval uses NotebookLM only.",
+    "Configures NotebookLM-backed experience recall for the built-in memory runtime. Prompt-facing experience retrieval uses NotebookLM only.",
   "memory.notebooklm.auth":
-    "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by knowledge recall and knowledge-note writes.",
+    "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by experience recall and experience-note writes.",
   "memory.notebooklm.auth.profile":
     "NotebookLM profile name used by the local wrapper or CLI integration. Keep this stable unless you intentionally manage multiple NotebookLM identities.",
   "memory.notebooklm.auth.cookieFile":
@@ -901,31 +901,31 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.notebooklm.auth.heartbeat":
     "Best-effort NotebookLM auth keepalive settings. CrawClaw can run lightweight randomized background status probes so long-idle profile expiry is detected before the next real knowledge query or write.",
   "memory.notebooklm.auth.heartbeat.enabled":
-    "Enables a randomized in-process NotebookLM auth heartbeat. Keep this on when NotebookLM is your active knowledge provider and long idle periods cause auth expiry.",
+    "Enables a randomized in-process NotebookLM auth heartbeat. Keep this on when NotebookLM is your active experience provider and long idle periods cause auth expiry.",
   "memory.notebooklm.auth.heartbeat.minIntervalMs":
     "Lower bound for the randomized NotebookLM auth heartbeat interval in milliseconds. Use a moderate floor to avoid noisy provider probes.",
   "memory.notebooklm.auth.heartbeat.maxIntervalMs":
     "Upper bound for the randomized NotebookLM auth heartbeat interval in milliseconds. Each keepalive run picks a random delay between min and max before the next status probe.",
   "memory.notebooklm.cli":
-    "Optional NotebookLM CLI adapter used for prompt-facing knowledge recall. Enable this when `nlm` is installed and authenticated, and you want CrawClaw to query NotebookLM directly.",
+    "Optional NotebookLM CLI adapter used for prompt-facing experience recall. Enable this when `nlm` is installed and authenticated, and you want CrawClaw to query NotebookLM directly.",
   "memory.notebooklm.cli.enabled":
-    "Enables NotebookLM CLI retrieval for prompt-facing knowledge recall. Keep disabled unless a working `nlm` command is configured and authenticated.",
+    "Enables NotebookLM CLI retrieval for prompt-facing experience recall. Keep disabled unless a working `nlm` command is configured and authenticated.",
   "memory.notebooklm.cli.command":
-    "Executable used for NotebookLM CLI retrieval, typically `nlm` or a local wrapper script. The command must return JSON that CrawClaw can normalize into knowledge recall items.",
+    "Executable used for NotebookLM CLI retrieval, typically `nlm` or a local wrapper script. The command must return JSON that CrawClaw can normalize into experience recall items.",
   "memory.notebooklm.cli.args":
     "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, and `{notebookId}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
   "memory.notebooklm.cli.timeoutMs":
     "Timeout in milliseconds for each NotebookLM CLI retrieval call. Lower values fail fast when NotebookLM hangs; higher values tolerate slower remote knowledge queries.",
   "memory.notebooklm.cli.limit":
-    "Maximum number of NotebookLM knowledge recall hits requested before reranking and prompt assembly.",
+    "Maximum number of NotebookLM experience recall hits requested before reranking and prompt assembly.",
   "memory.notebooklm.cli.notebookId":
     "Optional NotebookLM notebook identifier injected into `{notebookId}` placeholders for scoped CLI retrieval. Leave empty when your command performs cross-notebook search without a fixed notebook.",
   "memory.notebooklm.cli.queryInstruction":
-    "Optional prompt instruction prepended to every NotebookLM knowledge query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
+    "Optional prompt instruction prepended to every NotebookLM experience query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
   "memory.notebooklm.write":
-    "Configures NotebookLM note writing for the knowledge layer. Use this to let CrawClaw create or update Chinese-readable knowledge notes inside a designated NotebookLM notebook.",
+    "Configures NotebookLM note writing for the experience layer. Use this to let CrawClaw create or update Chinese-readable experience notes inside a designated NotebookLM notebook.",
   "memory.notebooklm.write.enabled":
-    "Enables NotebookLM note writing for the knowledge layer. Keep disabled unless you have a working write command and a target notebook configured.",
+    "Enables NotebookLM note writing for the experience layer. Keep disabled unless you have a working write command and a target notebook configured.",
   "memory.notebooklm.write.command":
     "Executable used for NotebookLM note writing, typically a local wrapper script or Python entrypoint that performs notebook note upsert operations.",
   "memory.notebooklm.write.args":
@@ -933,7 +933,7 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.notebooklm.write.timeoutMs":
     "Timeout in milliseconds for each NotebookLM note write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
   "memory.notebooklm.write.notebookId":
-    "Notebook identifier used as the target for knowledge writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
+    "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
   "memory.qmd.command":
     "Sets the executable path for the `qmd` binary used by the QMD backend (default: resolved from PATH). Use an explicit absolute path when multiple qmd installs exist or PATH differs across environments.",
   "memory.qmd.mcporter":

@@ -3,18 +3,18 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { getSharedMemoryPromptJournal } from "../diagnostics/prompt-journal.ts";
-import type { NotebookLmConfig } from "../types/config.ts";
 import {
-  classifyKnowledgeNoteGuardIssue,
-  renderKnowledgeNoteMarkdown,
-  type KnowledgeNoteWriteInput,
-} from "./knowledge-note.ts";
+  classifyExperienceNoteGuardIssue,
+  renderExperienceNoteMarkdown,
+  type ExperienceNoteWriteInput,
+} from "../experience/note.ts";
+import type { NotebookLmConfig } from "../types/config.ts";
 import { emitNotebookLmNotification } from "./notification.ts";
 import { getNotebookLmProviderState } from "./provider-state.ts";
 
 type RuntimeLogger = { warn(message: string): void };
 
-export interface NotebookLmKnowledgeWriteResult {
+export interface NotebookLmExperienceWriteResult {
   status: "ok" | "missing";
   action?: "create" | "update" | "upsert";
   noteId?: string;
@@ -24,7 +24,7 @@ export interface NotebookLmKnowledgeWriteResult {
   raw?: unknown;
 }
 
-export interface NotebookLmKnowledgeDeleteResult {
+export interface NotebookLmExperienceDeleteResult {
   status: "ok" | "missing";
   action?: "delete";
   noteId: string;
@@ -85,16 +85,16 @@ async function createPayloadFile(payload: unknown): Promise<string> {
   return filePath;
 }
 
-export async function writeNotebookLmKnowledgeNoteViaCli(params: {
+export async function writeNotebookLmExperienceNoteViaCli(params: {
   config?: NotebookLmConfig;
-  note: KnowledgeNoteWriteInput;
+  note: ExperienceNoteWriteInput;
   logger?: RuntimeLogger;
   notificationScope?: {
     agentId?: string | null;
     channel?: string | null;
     userId?: string | null;
   };
-}): Promise<NotebookLmKnowledgeWriteResult | null> {
+}): Promise<NotebookLmExperienceWriteResult | null> {
   const writeConfig = params.config?.write;
   if (!params.config?.enabled || !writeConfig?.enabled || !writeConfig.command.trim()) {
     return null;
@@ -119,7 +119,7 @@ export async function writeNotebookLmKnowledgeNoteViaCli(params: {
       });
     }
     const message = `NotebookLM provider not ready: ${state.reason ?? "unknown"}${state.details ? ` | ${state.details}` : ""}`;
-    getSharedMemoryPromptJournal()?.recordStage("knowledge_write", {
+    getSharedMemoryPromptJournal()?.recordStage("experience_write", {
       agentId: params.notificationScope?.agentId ?? undefined,
       channel: params.notificationScope?.channel ?? undefined,
       userId: params.notificationScope?.userId ?? undefined,
@@ -138,9 +138,9 @@ export async function writeNotebookLmKnowledgeNoteViaCli(params: {
   const notebookId =
     state.notebookId ?? (writeConfig.notebookId || params.config.cli.notebookId || "").trim();
 
-  const guardIssue = classifyKnowledgeNoteGuardIssue(params.note);
+  const guardIssue = classifyExperienceNoteGuardIssue(params.note);
   if (guardIssue) {
-    getSharedMemoryPromptJournal()?.recordStage("knowledge_write", {
+    getSharedMemoryPromptJournal()?.recordStage("experience_write", {
       agentId: params.notificationScope?.agentId ?? undefined,
       channel: params.notificationScope?.channel ?? undefined,
       userId: params.notificationScope?.userId ?? undefined,
@@ -155,7 +155,7 @@ export async function writeNotebookLmKnowledgeNoteViaCli(params: {
     throw new Error(guardIssue);
   }
 
-  const content = renderKnowledgeNoteMarkdown(params.note);
+  const content = renderExperienceNoteMarkdown(params.note);
   const payload = {
     notebookId,
     title: params.note.title.trim(),
@@ -211,9 +211,9 @@ export async function writeNotebookLmKnowledgeNoteViaCli(params: {
       normalized.action === "upsert"
         ? normalized.action
         : undefined;
-    const status: NotebookLmKnowledgeWriteResult["status"] =
+    const status: NotebookLmExperienceWriteResult["status"] =
       normalized.status === "missing" ? "missing" : "ok";
-    const result: NotebookLmKnowledgeWriteResult = {
+    const result: NotebookLmExperienceWriteResult = {
       status,
       action,
       noteId: normalized.noteId,
@@ -222,7 +222,7 @@ export async function writeNotebookLmKnowledgeNoteViaCli(params: {
       payloadFile,
       raw: normalized.raw,
     };
-    getSharedMemoryPromptJournal()?.recordStage("knowledge_write", {
+    getSharedMemoryPromptJournal()?.recordStage("experience_write", {
       agentId: params.notificationScope?.agentId ?? undefined,
       channel: params.notificationScope?.channel ?? undefined,
       userId: params.notificationScope?.userId ?? undefined,
@@ -239,7 +239,7 @@ export async function writeNotebookLmKnowledgeNoteViaCli(params: {
     });
     return result;
   } catch (error) {
-    getSharedMemoryPromptJournal()?.recordStage("knowledge_write", {
+    getSharedMemoryPromptJournal()?.recordStage("experience_write", {
       agentId: params.notificationScope?.agentId ?? undefined,
       channel: params.notificationScope?.channel ?? undefined,
       userId: params.notificationScope?.userId ?? undefined,
@@ -258,7 +258,7 @@ export async function writeNotebookLmKnowledgeNoteViaCli(params: {
   }
 }
 
-export async function deleteNotebookLmKnowledgeNoteViaCli(params: {
+export async function deleteNotebookLmExperienceNoteViaCli(params: {
   config?: NotebookLmConfig;
   notebookId: string;
   noteId: string;
@@ -268,7 +268,7 @@ export async function deleteNotebookLmKnowledgeNoteViaCli(params: {
     channel?: string | null;
     userId?: string | null;
   };
-}): Promise<NotebookLmKnowledgeDeleteResult | null> {
+}): Promise<NotebookLmExperienceDeleteResult | null> {
   const writeConfig = params.config?.write;
   if (!params.config?.enabled || !writeConfig?.enabled || !writeConfig.command.trim()) {
     return null;

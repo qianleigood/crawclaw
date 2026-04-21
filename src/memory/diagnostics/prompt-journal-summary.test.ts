@@ -42,7 +42,7 @@ describe("summarizePromptJournal", () => {
         JSON.stringify({
           ts: "2026-04-05T12:00:03.000Z",
           dateBucket: "2026-04-05",
-          stage: "knowledge_write",
+          stage: "experience_write",
           sessionKey: "s2",
           payload: { status: "ok", action: "create", title: "MiniMax 工具挂载调试流程" },
         }),
@@ -62,9 +62,9 @@ describe("summarizePromptJournal", () => {
     expect(summary.durableExtraction.nonZeroSaveCount).toBe(1);
     expect(summary.durableExtraction.zeroSaveCount).toBe(1);
     expect(summary.durableExtraction.saveRate).toBe(0.5);
-    expect(summary.knowledgeWrite.statusCounts.ok).toBe(1);
-    expect(summary.knowledgeWrite.actionCounts.create).toBe(1);
-    expect(summary.knowledgeWrite.titles[0]).toEqual({
+    expect(summary.experienceWrite.statusCounts.ok).toBe(1);
+    expect(summary.experienceWrite.actionCounts.create).toBe(1);
+    expect(summary.experienceWrite.titles[0]).toEqual({
       title: "MiniMax 工具挂载调试流程",
       count: 1,
     });

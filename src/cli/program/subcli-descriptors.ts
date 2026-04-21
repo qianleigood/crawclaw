@@ -46,7 +46,7 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "memory",
-    description: "Inspect and manage NotebookLM knowledge access",
+    description: "Inspect and manage NotebookLM experience access",
     descriptionKey: "command.memory.description",
     hasSubcommands: true,
   },

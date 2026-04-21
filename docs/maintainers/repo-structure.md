@@ -82,7 +82,7 @@ should not be added here by default without first deciding whether they are:
 - debugging and audit material
 
 That means `docs/` is not purely user-facing. Until the docs tree is split more
-aggressively, maintainers should treat it as a mixed knowledge layer.
+aggressively, maintainers should treat it as a mixed reference layer.
 
 This file lives under `docs/maintainers/` specifically to make that split more explicit.
 

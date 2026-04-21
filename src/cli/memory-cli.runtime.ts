@@ -98,7 +98,7 @@ function renderNotebookLmStateLines(state: NotebookLmProviderState): string[] {
   const warn = (text: string) => colorize(rich, theme.warn, text);
   const label = (text: string) => muted(`${text}:`);
   return [
-    `${heading("NotebookLM")} ${muted("(knowledge provider)")}`,
+    `${heading("NotebookLM")} ${muted("(experience provider)")}`,
     `${label("Lifecycle")} ${state.ready ? success(state.lifecycle) : warn(state.lifecycle)}`,
     `${label("Ready")} ${state.ready ? success("yes") : warn("no")}`,
     `${label("Reason")} ${info(state.reason ?? "ok")}`,
@@ -161,7 +161,7 @@ export async function runMemoryStatus(opts: MemoryCommandOptions) {
   }
 
   if (!notebookState) {
-    defaultRuntime.log("NotebookLM knowledge provider is disabled.");
+    defaultRuntime.log("NotebookLM experience provider is disabled.");
     return;
   }
 
@@ -561,7 +561,7 @@ export async function runMemoryRefresh(opts: MemoryCommandOptions) {
   emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
   const notebooklm = resolveNotebookLmConfig(cfg);
   if (!notebooklm.enabled) {
-    defaultRuntime.error("NotebookLM knowledge provider is disabled.");
+    defaultRuntime.error("NotebookLM experience provider is disabled.");
     process.exitCode = 1;
     return;
   }
@@ -579,7 +579,7 @@ export async function runMemoryLogin(opts: MemoryCommandOptions) {
   emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
   const notebooklm = resolveNotebookLmConfig(cfg);
   if (!notebooklm.enabled) {
-    defaultRuntime.error("NotebookLM knowledge provider is disabled.");
+    defaultRuntime.error("NotebookLM experience provider is disabled.");
     process.exitCode = 1;
     return;
   }
@@ -637,15 +637,15 @@ function renderPromptJournalSummaryLines(
     `${muted("zeroSaveCount")} ${info(String(summary.durableExtraction.zeroSaveCount))}`,
     `${muted("saveRate")} ${info(summary.durableExtraction.saveRate == null ? "(n/a)" : String(summary.durableExtraction.saveRate))}`,
     "",
-    heading("Knowledge Write"),
-    ...Object.entries(summary.knowledgeWrite.statusCounts)
+    heading("Experience Write"),
+    ...Object.entries(summary.experienceWrite.statusCounts)
       .toSorted((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
       .map(([name, count]) => `${muted(`status:${name}`)} ${info(String(count))}`),
   ];
 
-  if (summary.knowledgeWrite.titles.length > 0) {
-    lines.push("", heading("Top Knowledge Titles"));
-    for (const entry of summary.knowledgeWrite.titles) {
+  if (summary.experienceWrite.titles.length > 0) {
+    lines.push("", heading("Top Experience Titles"));
+    for (const entry of summary.experienceWrite.titles) {
       lines.push(`${muted(entry.title)} ${info(String(entry.count))}`);
     }
   }

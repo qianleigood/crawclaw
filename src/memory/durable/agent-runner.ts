@@ -139,7 +139,7 @@ export function buildMemoryExtractionSystemPrompt(): string {
     "## Constraints",
     "- Use only the scoped memory file tools for this run.",
     "- Do NOT inspect project source files, run shell commands, browse the web, or spawn other agents.",
-    "- Do NOT write knowledge notes. This task is only for durable memory.",
+    "- Do NOT write experience notes. This task is only for durable memory.",
     "- The recent messages are the source of truth for this run. Do not attempt to verify them against code, git state, or external systems.",
     "- If a parent forked conversation context is available, use it only to resolve references in the recent messages; do not extract facts solely from older context outside the cursor window.",
     "- Treat feedback as bidirectional: record both corrective guidance and non-obvious successful patterns explicitly confirmed by the user.",

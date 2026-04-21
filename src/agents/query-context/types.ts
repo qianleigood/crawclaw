@@ -3,7 +3,7 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 export type QueryContextSectionRole = "system_prompt" | "system_context" | "user_context";
 export type QueryContextSectionType =
   | "durable_memory"
-  | "knowledge"
+  | "experience"
   | "routing"
   | "hook"
   | "bootstrap"
@@ -18,7 +18,7 @@ export type QueryContextSectionSchema =
       omittedCount: number;
     }
   | {
-      kind: "knowledge";
+      kind: "experience";
       itemIds: string[];
       omittedCount: number;
     }
@@ -113,9 +113,9 @@ export type QueryContextMemoryRecallDiagnostics = {
     scoreBreakdown?: Record<string, number>;
   }>;
   recentDreamTouchedNotes?: string[];
-  selectedKnowledgeItemIds?: string[];
-  omittedKnowledgeItemIds?: string[];
-  knowledgeQueryPlan?: {
+  selectedExperienceItemIds?: string[];
+  omittedExperienceItemIds?: string[];
+  experienceQueryPlan?: {
     enabled: boolean;
     query: string;
     limit: number;

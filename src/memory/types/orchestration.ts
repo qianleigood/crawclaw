@@ -4,7 +4,7 @@ import type { MemoryKind } from "../recall/memory-kind.ts";
 export type UnifiedRecallSource =
   | "graph"
   | "notebooklm"
-  | "local_knowledge_index"
+  | "local_experience_index"
   | "native_memory"
   | "execution";
 
@@ -222,7 +222,7 @@ export interface DurableMemoryItem extends UnifiedRankedItem {
   durableReasons: string[];
 }
 
-export type MemoryPromptSectionKind = "durable" | "knowledge";
+export type MemoryPromptSectionKind = "durable" | "experience";
 
 export interface MemoryPromptSection {
   kind: MemoryPromptSectionKind;
@@ -235,7 +235,7 @@ export interface MemoryPromptSection {
 
 export interface MemoryPromptAssemblyInput {
   durableItems?: DurableMemoryItem[];
-  knowledgeItems?: UnifiedRankedItem[];
+  experienceItems?: UnifiedRankedItem[];
   classification?: UnifiedQueryClassification;
   tokenBudget?: number;
 }
@@ -273,7 +273,7 @@ export type UnifiedContextSection = MemoryPromptSection;
 
 export interface UnifiedContextAssemblyInput {
   durableItems?: DurableMemoryItem[];
-  knowledgeItems?: UnifiedRankedItem[];
+  experienceItems?: UnifiedRankedItem[];
   classification?: UnifiedQueryClassification;
   tokenBudget?: number;
 }

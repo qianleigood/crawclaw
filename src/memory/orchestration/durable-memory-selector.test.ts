@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { UnifiedRankedItem } from "../types/orchestration.ts";
 import { selectDurableMemories } from "./durable-memory-selector.js";
 
-function makeItem(overrides: Partial<UnifiedRankedItem> & Pick<UnifiedRankedItem, "id" | "source" | "title" | "summary" | "score">): UnifiedRankedItem {
+function makeItem(
+  overrides: Partial<UnifiedRankedItem> &
+    Pick<UnifiedRankedItem, "id" | "source" | "title" | "summary" | "score">,
+): UnifiedRankedItem {
   return {
     layer: "runtime_signals",
     updatedAt: 0,
@@ -29,7 +32,7 @@ function makeItem(overrides: Partial<UnifiedRankedItem> & Pick<UnifiedRankedItem
 }
 
 describe("selectDurableMemories", () => {
-  it("classifies feedback-like durable memories separately from knowledge recall", () => {
+  it("classifies feedback-like durable memories separately from experience recall", () => {
     const result = selectDurableMemories({
       items: [
         makeItem({
@@ -46,7 +49,9 @@ describe("selectDurableMemories", () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.selectedItemIds).toEqual(["feedback-1"]);
-    expect(result.items[0]?.reasons).toEqual(expect.arrayContaining(["bucket=durable", "type=feedback", "matched=feedback"]));
+    expect(result.items[0]?.reasons).toEqual(
+      expect.arrayContaining(["bucket=durable", "type=feedback", "matched=feedback"]),
+    );
   });
 
   it("prefers explicit priority over score and recency", () => {
@@ -79,7 +84,7 @@ describe("selectDurableMemories", () => {
     expect(result.items[0]?.prioritySource).toBe("explicit");
   });
 
-  it("limits durable memories and excludes knowledge recall items", () => {
+  it("limits durable memories and excludes experience recall items", () => {
     const result = selectDurableMemories({
       limit: 2,
       items: [

@@ -9,15 +9,15 @@ export type DurableRecallSource = "sync" | "sync_error";
 
 export function resolveMemoryRecallHitReason(params: {
   selectedDurableCount: number;
-  selectedKnowledgeCount: number;
+  selectedExperienceCount: number;
   selectedTotalCount: number;
   durableRecallSource: DurableRecallSource;
 }): string {
   if (params.selectedDurableCount > 0) {
     return `durable_selected:${params.durableRecallSource}`;
   }
-  if (params.selectedKnowledgeCount > 0) {
-    return "knowledge_selected";
+  if (params.selectedExperienceCount > 0) {
+    return "experience_selected";
   }
   if (params.durableRecallSource === "sync_error") {
     return `durable_unavailable:${params.durableRecallSource}`;
@@ -27,16 +27,16 @@ export function resolveMemoryRecallHitReason(params: {
 
 export function resolveMemoryRecallEvictionReason(params: {
   omittedDurableCount: number;
-  omittedKnowledgeCount: number;
+  omittedExperienceCount: number;
 }): string | undefined {
-  if (params.omittedDurableCount > 0 && params.omittedKnowledgeCount > 0) {
-    return "token_budget:durable_and_knowledge";
+  if (params.omittedDurableCount > 0 && params.omittedExperienceCount > 0) {
+    return "token_budget:durable_and_experience";
   }
   if (params.omittedDurableCount > 0) {
     return "token_budget:durable";
   }
-  if (params.omittedKnowledgeCount > 0) {
-    return "token_budget:knowledge";
+  if (params.omittedExperienceCount > 0) {
+    return "token_budget:experience";
   }
   return undefined;
 }

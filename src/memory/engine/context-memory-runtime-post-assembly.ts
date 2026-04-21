@@ -48,17 +48,17 @@ export async function runPostAssemblySideEffects(params: {
   systemContextSections: QueryContextSection[];
   sessionSummaryEstimatedTokens?: number;
   durableSectionEstimatedTokens?: number;
-  knowledgeSectionEstimatedTokens?: number;
+  experienceSectionEstimatedTokens?: number;
   memoryRecallDiagnostics: QueryContextMemoryRecallDiagnostics;
   compactionState?: SessionCompactionStateRow | null;
   rerankedItemCount: number;
-  knowledgeRecallCandidateCount: number;
+  experienceRecallCandidateCount: number;
   durableRecall: DurableRecallResult | null;
   durableRecallSource: DurableRecallSource;
   selectedDurableItemIds: string[];
   omittedDurableItemIds: string[];
-  selectedKnowledgeItemIds: string[];
-  omittedKnowledgeItemIds: string[];
+  selectedExperienceItemIds: string[];
+  omittedExperienceItemIds: string[];
   classification: UnifiedQueryClassification;
   skillRouting: SkillRoutingResult | null;
   runtimeContext?: MemoryRuntimeContext;
@@ -85,14 +85,14 @@ export async function runPostAssemblySideEffects(params: {
       durableSelectionMode: params.durableRecall?.selection.mode ?? null,
       durableRecallSource: params.durableRecallSource,
       durableScope: params.durableRecall?.scope.scopeKey ?? null,
-      selectedKnowledgeRecallIds: params.selectedKnowledgeItemIds,
-      omittedPromptFacingKnowledgeRecallIds: params.omittedKnowledgeItemIds,
+      selectedExperienceRecallIds: params.selectedExperienceItemIds,
+      omittedPromptFacingExperienceRecallIds: params.omittedExperienceItemIds,
       selectedItemIds: params.built.selectedItemIds,
       sections: params.built.sections.map((section) => section.heading),
       memorySections: {
         sessionSummary: params.sessionSummaryEstimatedTokens ?? 0,
         durable: params.durableSectionEstimatedTokens ?? 0,
-        knowledge: params.knowledgeSectionEstimatedTokens ?? 0,
+        experience: params.experienceSectionEstimatedTokens ?? 0,
       },
       memoryRecallDiagnostics: params.memoryRecallDiagnostics,
       skillRouting: {
@@ -105,12 +105,12 @@ export async function runPostAssemblySideEffects(params: {
         targetLayers: params.classification.targetLayers,
         confidence: params.classification.confidence,
       },
-      knowledgeRecallCandidateCount: params.knowledgeRecallCandidateCount,
+      experienceRecallCandidateCount: params.experienceRecallCandidateCount,
     },
   });
 
   params.logger.info(
-    `[memory] prompt assembly tokens=${params.combined.estimatedTokens}/${params.targetBudget} sessionSummary=${params.sessionSummaryEstimatedTokens ?? 0} durable=${params.durableSectionEstimatedTokens ?? 0} knowledge=${params.knowledgeSectionEstimatedTokens ?? 0} recallCandidates=${params.knowledgeRecallCandidateCount} durableManifest=${params.durableRecall?.manifest.length ?? 0} durableSource=${params.durableRecallSource} selected=${params.built.selectedItemIds.length}`,
+    `[memory] prompt assembly tokens=${params.combined.estimatedTokens}/${params.targetBudget} sessionSummary=${params.sessionSummaryEstimatedTokens ?? 0} durable=${params.durableSectionEstimatedTokens ?? 0} experience=${params.experienceSectionEstimatedTokens ?? 0} recallCandidates=${params.experienceRecallCandidateCount} durableManifest=${params.durableRecall?.manifest.length ?? 0} durableSource=${params.durableRecallSource} selected=${params.built.selectedItemIds.length}`,
   );
 
   getSharedMemoryPromptJournal()?.recordStage("prompt_assembly", {
@@ -142,15 +142,15 @@ export async function runPostAssemblySideEffects(params: {
       memorySections: {
         sessionSummary: params.sessionSummaryEstimatedTokens ?? 0,
         durable: params.durableSectionEstimatedTokens ?? 0,
-        knowledge: params.knowledgeSectionEstimatedTokens ?? 0,
+        experience: params.experienceSectionEstimatedTokens ?? 0,
       },
       memoryRecallDiagnostics: params.memoryRecallDiagnostics,
       durableManifestCount: params.durableRecall?.manifest.length ?? 0,
       durableRecallSource: params.durableRecallSource,
       selectedDurableMemoryIds: params.selectedDurableItemIds,
       omittedDurableMemoryIds: params.omittedDurableItemIds,
-      selectedKnowledgeRecallIds: params.selectedKnowledgeItemIds,
-      omittedKnowledgeRecallIds: params.omittedKnowledgeItemIds,
+      selectedExperienceRecallIds: params.selectedExperienceItemIds,
+      omittedExperienceRecallIds: params.omittedExperienceItemIds,
       selectedItemIds: params.built.selectedItemIds,
       contextRouting: {
         targetLayers: params.classification.targetLayers,
@@ -191,8 +191,8 @@ export async function runPostAssemblySideEffects(params: {
         durableRecallSource: params.durableRecallSource,
         selectedDurableMemoryIds: params.selectedDurableItemIds,
         omittedDurableMemoryIds: params.omittedDurableItemIds,
-        selectedKnowledgeRecallIds: params.selectedKnowledgeItemIds,
-        omittedKnowledgeRecallIds: params.omittedKnowledgeItemIds,
+        selectedExperienceRecallIds: params.selectedExperienceItemIds,
+        omittedExperienceRecallIds: params.omittedExperienceItemIds,
         selectedItemIds: params.built.selectedItemIds,
         contextRouting: {
           targetLayers: params.classification.targetLayers,

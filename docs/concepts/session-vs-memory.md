@@ -7,7 +7,7 @@ This document defines the boundary between sessions and memory in CrawClaw.
 - A `session` is the record of what happened.
 - `memory` is what remains valuable after the system evaluates what happened.
 
-Sessions are raw history. Memory is retained knowledge.
+Sessions are raw history. Memory is retained information and experience.
 
 ## Session
 
@@ -42,7 +42,7 @@ Memory should preserve:
 - durable preferences
 - user or project context
 - recurring constraints
-- retained knowledge worth future recall
+- retained experience worth future recall
 
 Typical uses:
 
@@ -50,7 +50,7 @@ Typical uses:
 - personalization
 - durable context assembly
 - cross-session reasoning
-- knowledge recall
+- experience recall
 
 Memory should be selective. It exists so the system does not carry all history forever.
 
@@ -141,7 +141,8 @@ Session-heavy areas today include:
 Memory-heavy areas today include:
 
 - `src/memory/durable`
-- `src/memory/knowledge`
+- `src/memory/experience`
+- `src/memory/experience`
 - `src/memory/recall`
 - `src/memory/search`
 - `src/memory/engine`

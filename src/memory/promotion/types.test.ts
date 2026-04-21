@@ -35,7 +35,7 @@ describe("promotion memory bucket inference", () => {
     expect(inferPromotionMemoryBucket(payload)).toBe("durable");
   });
 
-  it("keeps procedure-like payloads on the knowledge side", () => {
+  it("keeps procedure-like payloads on the experience side", () => {
     const payload = {
       kind: "procedure" as const,
       memoryKind: "procedure" as const,
@@ -47,7 +47,7 @@ describe("promotion memory bucket inference", () => {
     };
 
     expect(inferPromotionDurableMemoryType(payload)).toBeNull();
-    expect(inferPromotionMemoryBucket(payload)).toBe("knowledge");
+    expect(inferPromotionMemoryBucket(payload)).toBe("experience");
   });
 
   it("treats promotion candidates as governance-only artifacts by default", () => {
@@ -63,6 +63,6 @@ describe("promotion memory bucket inference", () => {
     };
 
     expect(payload.surface).toBe("governance_only");
-    expect(inferPromotionMemoryBucket(payload)).toBe("knowledge");
+    expect(inferPromotionMemoryBucket(payload)).toBe("experience");
   });
 });

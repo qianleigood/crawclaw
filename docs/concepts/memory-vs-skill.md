@@ -7,7 +7,7 @@ This document defines the boundary between memory and skills in CrawClaw.
 - `memory` stores what the system should remember
 - a `skill` stores how the system should do something
 
-Memory is retained knowledge. A skill is reusable method.
+Memory is retained information and experience. A skill is reusable method.
 
 ## Memory
 
@@ -19,7 +19,7 @@ It captures:
 - preferences
 - context
 - summaries
-- durable knowledge
+- durable experience
 
 Memory is primarily descriptive.
 
@@ -49,7 +49,7 @@ It helps the agent answer:
 
 ## Boundary Rule
 
-If something is knowledge about the world, keep it in memory.
+If something is experience about the world, keep it in memory.
 
 If something is a reusable way of working, make it a skill.
 
@@ -135,7 +135,8 @@ Memory-heavy areas today include:
 - `src/memory`
 - `src/memory/engine`
 - `src/memory/durable`
-- `src/memory/knowledge`
+- `src/memory/experience`
+- `src/memory/experience`
 
 Skill-heavy areas today include:
 

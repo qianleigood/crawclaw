@@ -40,7 +40,7 @@ import { createTtsTool } from "./tools/tts-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { createWorkflowTool } from "./tools/workflow-tool.js";
 import { createWorkflowizeTool } from "./tools/workflowize-tool.js";
-import { createKnowledgeWriteTool } from "./tools/write-knowledge-note-tool.js";
+import { createExperienceWriteTool } from "./tools/write-experience-note-tool.js";
 import { resolveWorkspaceRoot } from "./workspace-dir.js";
 
 type CrawClawToolsDeps = {
@@ -187,7 +187,7 @@ export function createCrawClawTools(
     sandboxed: options?.sandboxed,
     runtimeWebFetch: runtimeWebTools?.fetch,
   });
-  const knowledgeWriteTool = createKnowledgeWriteTool({
+  const experienceWriteTool = createExperienceWriteTool({
     config: resolvedConfig,
   });
   const memoryManifestReadTool = createMemoryManifestReadTool({
@@ -278,7 +278,7 @@ export function createCrawClawTools(
     ...(memoryNoteEditTool ? [memoryNoteEditTool] : []),
     ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
     ...(memoryTranscriptSearchTool ? [memoryTranscriptSearchTool] : []),
-    ...(knowledgeWriteTool ? [knowledgeWriteTool] : []),
+    ...(experienceWriteTool ? [experienceWriteTool] : []),
     createAgentsListTool({
       agentSessionKey: options?.agentSessionKey,
       requesterAgentIdOverride: options?.requesterAgentIdOverride,

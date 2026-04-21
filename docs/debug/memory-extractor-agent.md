@@ -45,7 +45,7 @@ Durable auto-write should eventually behave like this:
 - triggers only after a stable top-level turn ends
 - only processes model-visible messages since an extraction cursor
 - explicit durable write/delete wins, so background extraction skips
-- `write_knowledge_note` no longer suppresses durable extraction
+- `write_experience_note` no longer suppresses durable extraction
 - `feedback` supports corrective + reinforcing semantics
 - runs as a task-backed background special agent
 - is visible through Action Feed, Context Archive, and inspect
@@ -59,7 +59,7 @@ In one sentence:
 As of the current version, the main path is already landed:
 
 - cursor-based incremental extraction window
-- `write_knowledge_note` no longer suppresses durable extraction
+- `write_experience_note` no longer suppresses durable extraction
 - bidirectional `feedback` guidance
 - task-backed background `memory_extractor`
 - hard stop at `maxTurns: 5` for the extraction agent
@@ -152,7 +152,7 @@ Only trigger when all of these are true:
 
 Explicitly **not** a skip condition:
 
-- `write_knowledge_note`
+- `write_experience_note`
 
 ### Input contract
 
@@ -190,7 +190,7 @@ type MemoryExtractorInput = {
     explicitForgetAsked: boolean;
     hadDurableWriteThisTurn: boolean;
     hadDurableDeleteThisTurn: boolean;
-    hadKnowledgeWriteThisTurn: boolean;
+    hadExperienceWriteThisTurn: boolean;
   };
 };
 ```
@@ -219,7 +219,7 @@ Disallowed:
 - `exec`
 - `browser`
 - `web`
-- `write_knowledge_note`
+- `write_experience_note`
 - `sessions_spawn`
 - writes outside the current durable scope
 
@@ -271,12 +271,12 @@ If the turn already used:
 
 then the memory_extractor skips that turn and still advances the cursor.
 
-### `write_knowledge_note` should not suppress durable extraction
+### `write_experience_note` should not suppress durable extraction
 
 Reason:
 
-- NotebookLM knowledge and durable collaboration memory are different layers
-- a turn can validly write knowledge and still deserve durable feedback/project extraction
+- NotebookLM experience and durable collaboration memory are different layers
+- a turn can validly write experience and still deserve durable feedback/project extraction
 
 ### `feedback` becomes bidirectional
 
@@ -368,7 +368,7 @@ The rollout is now complete. In practice it landed in two phases.
 Completed:
 
 - cursor-based incremental window
-- remove `knowledge_write` suppression
+- remove `experience_write` suppression
 - bidirectional feedback
 
 During this transition, the legacy structured extraction + upsert path was
@@ -396,7 +396,7 @@ cursor-based durable extraction window
 
 ### PR-B
 
-remove knowledge-write suppression
+remove experience-write suppression
 
 ### PR-C
 

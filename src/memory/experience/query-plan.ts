@@ -1,6 +1,6 @@
 import type { UnifiedQueryClassification, UnifiedRecallLayer } from "../types/orchestration.ts";
 
-export interface KnowledgeQueryPlan {
+export interface ExperienceQueryPlan {
   enabled: boolean;
   query: string;
   limit: number;
@@ -43,12 +43,12 @@ function resolveLimit(params: {
   return baseLimit;
 }
 
-export function buildKnowledgeQueryPlan(params: {
+export function buildExperienceQueryPlan(params: {
   query: string;
   classification: UnifiedQueryClassification;
   defaultLimit: number;
   providerIds?: string[];
-}): KnowledgeQueryPlan {
+}): ExperienceQueryPlan {
   const providerIds = params.providerIds ?? ["notebooklm"];
   if (isPreferenceOnlyQuery(params.classification)) {
     return {

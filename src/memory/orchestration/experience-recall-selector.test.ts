@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { UnifiedRankedItem } from "../types/orchestration.ts";
-import { selectKnowledgeRecall } from "./knowledge-recall-selector.ts";
+import { selectExperienceRecall } from "./experience-recall-selector.ts";
 
 function makeItem(
   overrides: Partial<UnifiedRankedItem> &
@@ -31,9 +31,9 @@ function makeItem(
   } as UnifiedRankedItem;
 }
 
-describe("selectKnowledgeRecall", () => {
-  it("filters out durable memory items and keeps only prompt-facing knowledge recall", () => {
-    const result = selectKnowledgeRecall({
+describe("selectExperienceRecall", () => {
+  it("filters out durable memory items and keeps only prompt-facing experience recall", () => {
+    const result = selectExperienceRecall({
       items: [
         makeItem({
           id: "durable-feedback",
@@ -45,7 +45,7 @@ describe("selectKnowledgeRecall", () => {
           metadata: { tags: ["feedback"] },
         }),
         makeItem({
-          id: "knowledge-procedure",
+          id: "experience-procedure",
           source: "graph",
           title: "deployment-security-checklist",
           summary: "Deployments must check secrets and rollback.",
@@ -66,16 +66,16 @@ describe("selectKnowledgeRecall", () => {
     });
 
     expect(result.selectedItemIds).toEqual(["notebooklm-procedure"]);
-    expect(result.omittedItemIds).toEqual(["durable-feedback", "knowledge-procedure"]);
+    expect(result.omittedItemIds).toEqual(["durable-feedback", "experience-procedure"]);
     expect(result.mode).toBe("heuristic");
   });
 
-  it("accepts local knowledge index items without pretending they came from notebooklm", () => {
-    const result = selectKnowledgeRecall({
+  it("accepts local experience index items without pretending they came from notebooklm", () => {
+    const result = selectExperienceRecall({
       items: [
         makeItem({
           id: "local-sop",
-          source: "local_knowledge_index",
+          source: "local_experience_index",
           title: "gateway recovery",
           summary:
             "When gateway health fails, inspect the port, restart the service, then verify health.",
@@ -90,12 +90,12 @@ describe("selectKnowledgeRecall", () => {
     expect(result.mode).toBe("heuristic");
   });
 
-  it("can select more than four strong knowledge items when the caller lends budget", () => {
+  it("can select more than four strong experience items when the caller lends budget", () => {
     const items = Array.from({ length: 6 }, (_, index) =>
       makeItem({
-        id: `knowledge-${index + 1}`,
+        id: `experience-${index + 1}`,
         source: "notebooklm",
-        title: `knowledge ${index + 1}`,
+        title: `experience ${index + 1}`,
         summary:
           "A strong operational recall item with enough detail to pass prompt-facing filtering.",
         layer: "sop",
@@ -104,16 +104,16 @@ describe("selectKnowledgeRecall", () => {
       }),
     );
 
-    const result = selectKnowledgeRecall({ items, limit: 6 });
+    const result = selectExperienceRecall({ items, limit: 6 });
 
     expect(result.selectedItemIds).toHaveLength(6);
   });
 
-  it("can skip knowledge recall entirely when notebooklm items are too weak", () => {
-    const result = selectKnowledgeRecall({
+  it("can skip experience recall entirely when notebooklm items are too weak", () => {
+    const result = selectExperienceRecall({
       items: [
         makeItem({
-          id: "weak-knowledge",
+          id: "weak-experience",
           source: "notebooklm",
           title: "tmp",
           summary: "too short",

@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
-import { readKnowledgeIndexEntries } from "../../memory/knowledge/index-store.js";
-import { createKnowledgeWriteTool } from "./write-knowledge-note-tool.js";
+import { readExperienceIndexEntries } from "../../memory/experience/index-store.js";
+import { createExperienceWriteTool } from "./write-experience-note-tool.js";
 
 const execFileMock = vi.fn();
 const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
@@ -15,12 +15,12 @@ vi.mock("node:child_process", () => ({
 }));
 
 async function createTempDir(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-knowledge-note-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-experience-note-test-"));
   tempDirs.push(dir);
   return dir;
 }
 
-describe("createKnowledgeWriteTool", () => {
+describe("createExperienceWriteTool", () => {
   beforeEach(() => {
     vi.resetModules();
     execFileMock.mockReset();
@@ -37,7 +37,7 @@ describe("createKnowledgeWriteTool", () => {
     }
   });
 
-  it("renders a Chinese procedure card and writes it through the NotebookLM adapter", async () => {
+  it("renders a Chinese experience card and writes it through the NotebookLM adapter", async () => {
     const stateDir = await createTempDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     execFileMock
@@ -48,7 +48,7 @@ describe("createKnowledgeWriteTool", () => {
             status: "ok",
             ready: true,
             profile: "default",
-            notebookId: "knowledge-notebook",
+            notebookId: "experience-notebook",
             refreshAttempted: false,
             refreshSucceeded: false,
           }),
@@ -61,12 +61,12 @@ describe("createKnowledgeWriteTool", () => {
             status: "ok",
             action: "create",
             noteId: "note-123",
-            title: "网关恢复步骤",
+            title: "网关恢复经验",
           }),
         );
       });
 
-    const tool = createKnowledgeWriteTool({
+    const tool = createExperienceWriteTool({
       config: {
         memory: {
           notebooklm: {
@@ -85,14 +85,14 @@ describe("createKnowledgeWriteTool", () => {
               args: ["/tmp/notebooklm-cli-recall.py", "{query}", "{limit}", "{notebookId}"],
               timeoutMs: 1000,
               limit: 5,
-              notebookId: "knowledge-notebook",
+              notebookId: "experience-notebook",
             },
             write: {
               enabled: true,
               command: "python",
               args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
               timeoutMs: 1000,
-              notebookId: "knowledge-notebook",
+              notebookId: "experience-notebook",
             },
           },
         },
@@ -100,15 +100,21 @@ describe("createKnowledgeWriteTool", () => {
     });
 
     expect(tool).not.toBeNull();
+    expect(tool?.name).toBe("write_experience_note");
     const result = await tool!.execute("call_1", {
       type: "procedure",
-      title: "网关恢复步骤",
+      title: "网关恢复经验",
       summary: "在网关关闭时按顺序恢复服务。",
-      body: "先检查端口，再重启进程。",
-      steps: ["检查网关状态", "重启 LaunchAgent", "重新验证 health"],
-      validation: ["crawclaw health --json 返回 ok:true"],
+      context: "用户要求恢复网关或排查服务不可用。",
+      trigger: "health 检查失败，或者 RPC 连接关闭。",
+      action: "先检查端口，再重启进程。",
+      result: "恢复后 health 检查返回 ok:true。",
+      lesson: "恢复类问题应该先给可执行步骤，再解释原因。",
+      appliesWhen: "适用于本地网关恢复和服务健康排查。",
+      evidence: ["crawclaw health --json 返回 ok:true"],
       tags: ["网关", "恢复"],
-      dedupeKey: "gateway-recovery-procedure",
+      dedupeKey: "gateway-recovery-experience",
+      confidence: "high",
     });
 
     expect(result.details).toEqual(
@@ -116,7 +122,7 @@ describe("createKnowledgeWriteTool", () => {
         status: "ok",
         action: "create",
         noteId: "note-123",
-        title: "网关恢复步骤",
+        title: "网关恢复经验",
       }),
     );
 
@@ -127,28 +133,28 @@ describe("createKnowledgeWriteTool", () => {
     const content =
       typeof payload.content === "string" ? payload.content : JSON.stringify(payload.content ?? "");
 
-    expect(payload.notebookId).toBe("knowledge-notebook");
-    expect(content).toContain("## 适用场景");
-    expect(content).toContain("## 操作步骤");
-    expect(content).toContain("## 验证方法");
-    expect(content).toContain("知识类型：操作流程");
-    expect(content).toContain("知识键：gateway-recovery-procedure");
+    expect(payload.notebookId).toBe("experience-notebook");
+    expect(content).toContain("## 场景");
+    expect(content).toContain("## 触发信号");
+    expect(content).toContain("## 有效做法");
+    expect(content).toContain("经验类型：操作经验");
+    expect(content).toContain("经验键：gateway-recovery-experience");
 
-    const indexEntries = await readKnowledgeIndexEntries();
+    const indexEntries = await readExperienceIndexEntries();
     expect(indexEntries).toEqual([
       expect.objectContaining({
-        id: "knowledge-index:gateway-recovery-procedure",
-        title: "网关恢复步骤",
+        id: "experience-index:gateway-recovery-experience",
+        title: "网关恢复经验",
         summary: "在网关关闭时按顺序恢复服务。",
         type: "procedure",
         noteId: "note-123",
-        notebookId: "knowledge-notebook",
+        notebookId: "experience-notebook",
       }),
     ]);
   });
 
   it("rejects transient session-state style content", async () => {
-    const tool = createKnowledgeWriteTool({
+    const tool = createExperienceWriteTool({
       config: {
         memory: {
           notebooklm: {
@@ -167,14 +173,14 @@ describe("createKnowledgeWriteTool", () => {
               args: ["/tmp/notebooklm-cli-recall.py", "{query}", "{limit}", "{notebookId}"],
               timeoutMs: 1000,
               limit: 5,
-              notebookId: "knowledge-notebook",
+              notebookId: "experience-notebook",
             },
             write: {
               enabled: true,
               command: "python",
               args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
               timeoutMs: 1000,
-              notebookId: "knowledge-notebook",
+              notebookId: "experience-notebook",
             },
           },
         },
@@ -187,8 +193,8 @@ describe("createKnowledgeWriteTool", () => {
         type: "decision",
         title: "当前任务状态",
         summary: "当前任务仍在进行中，还没有形成稳定结论。",
-        why: "这只是当前会话里的临时计划。",
+        lesson: "这只是当前会话里的临时计划。",
       }),
-    ).rejects.toThrow(/knowledge note should not store transient session state/i);
+    ).rejects.toThrow(/experience note should not store transient session state/i);
   });
 });

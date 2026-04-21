@@ -46,7 +46,7 @@ function projectExtractedNodeMemoryKind(type: NodeType): MemoryKind {
   return "runtime_pattern";
 }
 
-const EXTRACT_SYS = `你是 CrawClaw memory 的经验抽取器，要从 AI Agent 对话中提取“可复用、可迁移、带结论”的结构化知识。
+const EXTRACT_SYS = `你是 CrawClaw memory 的经验抽取器，要从 AI Agent 对话中提取“可复用、可迁移、带结论”的结构化经验。
 
 输出要求：
 1. 严格只输出 JSON：{"nodes":[...],"edges":[...]}。
@@ -55,7 +55,7 @@ const EXTRACT_SYS = `你是 CrawClaw memory 的经验抽取器，要从 AI Agent
 4. 节点 name 使用全小写连字符；优先复用 Existing Nodes 中已有名字，不要无谓改名。
 5. 只提取“对以后还有复用价值”的内容：问题、原因、修复动作、验证结论、依赖关系、冲突边界。
 6. 闲聊、情绪、寒暄、一次性安排不要提取。
-7. 如果证据不足，不要硬造；没有知识产出时返回 {"nodes":[],"edges":[]}。`;
+7. 如果证据不足，不要硬造；没有经验产出时返回 {"nodes":[],"edges":[]}。`;
 
 const EXTRACT_FORMAT_HINT = `JSON schema:
 {
@@ -329,9 +329,9 @@ function buildRuleFallback(
       type: "TASK",
       memoryKind: "procedure",
       name: taskName,
-      description: "重启相关后端服务以恢复知识链路",
+      description: "重启相关后端服务以恢复记忆链路",
       content:
-        "动作: 检查相关后端依赖是否可达，必要时重启容器或服务，并再次验证知识库与启动健康状态。",
+        "动作: 检查相关后端依赖是否可达，必要时重启容器或服务，并再次验证记忆库与启动健康状态。",
       image: firstImageBlock?.url ?? null,
       imageAlt: firstImageBlock?.alt ?? null,
       mediaRefs,

@@ -736,7 +736,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     ).toBe(true);
   });
 
-  it("still allows stop-phase durable extraction when the turn already wrote a knowledge note successfully", async () => {
+  it("still allows stop-phase durable extraction when the turn already wrote an experience note successfully", async () => {
     const stateDir = await createRuntimeRoot();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -746,9 +746,9 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         notes: [
           {
             type: "reference",
-            title: "知识写入后仍可补 durable",
-            description: "知识写入成功不应再抑制 stop-phase durable extraction。",
-            dedupeKey: "knowledge-duplicate",
+            title: "经验写入后仍可补 durable",
+            description: "经验写入成功不应再抑制 stop-phase durable extraction。",
+            dedupeKey: "experience-duplicate",
           },
         ],
       },
@@ -763,26 +763,26 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     });
 
     await runtime.afterTurn?.({
-      sessionId: "session-knowledge-1",
+      sessionId: "session-experience-1",
       sessionKey: "agent:main:feishu:direct:user-1",
       sessionFile: "/tmp/session.jsonl",
       messages: castAgentMessages([
-        makeAgentUserMessage({ content: "把这条 SOP 写进知识库。" }),
+        makeAgentUserMessage({ content: "把这条 SOP 写进经验库。" }),
         makeAgentToolResultMessage({
-          toolCallId: "toolcall-knowledge-1",
-          toolName: "write_knowledge_note",
-          content: [{ type: "text", text: '{"status":"ok","noteId":"kb-1"}' }],
-          details: { status: "ok", noteId: "kb-1" },
+          toolCallId: "toolcall-experience-1",
+          toolName: "write_experience_note",
+          content: [{ type: "text", text: '{"status":"ok","noteId":"exp-1"}' }],
+          details: { status: "ok", noteId: "exp-1" },
         }),
         makeAgentAssistantMessage({
-          content: [{ type: "text", text: "知识库已更新，我也会保留必要的 durable memory。" }],
+          content: [{ type: "text", text: "经验已更新，我也会保留必要的 durable memory。" }],
         }),
       ]),
       prePromptMessageCount: 0,
       runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
     });
     await emitStopPhase({
-      sessionId: "session-knowledge-1",
+      sessionId: "session-experience-1",
       sessionKey: "agent:main:feishu:direct:user-1",
       messageCount: 3,
     });
@@ -800,11 +800,11 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
           "users",
           "user-1",
           "80 References",
-          "knowledge-duplicate.md",
+          "experience-duplicate.md",
         ),
         "utf8",
       );
-      expect(note).toContain("知识写入后仍可补 durable");
+      expect(note).toContain("经验写入后仍可补 durable");
     });
     expect(durableExtractionRunner).toHaveBeenCalledTimes(1);
     expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining("skipped_direct_write"));

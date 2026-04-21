@@ -35,10 +35,10 @@ function buildNotificationKey(
 function buildNotificationMessage(state: NotebookLmProviderState): string {
   const action = state.recommendedAction ?? "crawclaw memory status";
   if (state.lifecycle === "ready") {
-    return `[memory] NotebookLM 已恢复，知识库功能可用。可执行 ${action} 查看状态。`;
+    return `[memory] NotebookLM 已恢复，经验库功能可用。可执行 ${action} 查看状态。`;
   }
   const reason = state.reason ?? "unknown";
-  return `[memory] NotebookLM 登录已失效，知识库功能当前已降级。reason=${reason}. 请执行 ${action}。`;
+  return `[memory] NotebookLM 登录已失效，经验库功能当前已降级。reason=${reason}. 请执行 ${action}。`;
 }
 
 export function resetNotebookLmNotificationsForTests(): void {
@@ -52,7 +52,11 @@ export function emitNotebookLmNotification(params: {
   minIntervalMs?: number;
 }): boolean {
   const state = params.state;
-  if (state.lifecycle !== "degraded" && state.lifecycle !== "expired" && state.lifecycle !== "ready") {
+  if (
+    state.lifecycle !== "degraded" &&
+    state.lifecycle !== "expired" &&
+    state.lifecycle !== "ready"
+  ) {
     return false;
   }
   const key = buildNotificationKey(state, params.scope);

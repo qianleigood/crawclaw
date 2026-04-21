@@ -81,7 +81,7 @@ function inferLayer(item: UnifiedRecallItem): UnifiedRecallLayer {
   ) {
     return "runtime_signals";
   }
-  if (item.source === "notebooklm" || item.source === "local_knowledge_index") {
+  if (item.source === "notebooklm" || item.source === "local_experience_index") {
     return "key_decisions";
   }
   return "runtime_signals";
@@ -231,7 +231,7 @@ function sourcePrior(source: UnifiedRecallSource, input: UnifiedRerankInput): nu
   if (source === "graph") {
     return weights.graph * 0.3;
   }
-  if (source === "notebooklm" || source === "local_knowledge_index") {
+  if (source === "notebooklm" || source === "local_experience_index") {
     return weights.notebooklm * 0.3;
   }
   if (source === "native_memory") {
@@ -294,9 +294,10 @@ function flattenItems(input: UnifiedRerankInput): {
   const notebookLmItems = input.notebooklmItems ?? [];
   const counts = {
     graph: input.graphItems?.length ?? 0,
-    notebooklm: notebookLmItems.filter((item) => item.source !== "local_knowledge_index").length,
-    local_knowledge_index: notebookLmItems.filter((item) => item.source === "local_knowledge_index")
-      .length,
+    notebooklm: notebookLmItems.filter((item) => item.source !== "local_experience_index").length,
+    local_experience_index: notebookLmItems.filter(
+      (item) => item.source === "local_experience_index",
+    ).length,
     native_memory: input.nativeItems?.length ?? 0,
     execution: input.executionItems?.length ?? 0,
   } satisfies Record<UnifiedRecallSource, number>;

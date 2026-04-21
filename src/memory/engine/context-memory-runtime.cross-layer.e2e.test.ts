@@ -26,7 +26,7 @@ import {
   drainSharedDurableExtractionWorkers,
 } from "../durable/worker-manager.ts";
 import type { DurableExtractionRunResult } from "../durable/worker-manager.ts";
-import { upsertKnowledgeIndexEntry } from "../knowledge/index-store.ts";
+import { upsertExperienceIndexEntry } from "../experience/index-store.ts";
 import { SqliteRuntimeStore } from "../runtime/sqlite-runtime-store.ts";
 import { __testing as sessionSummaryLifecycleTesting } from "../session-summary/lifecycle-subscriber.ts";
 import { writeSessionSummaryFile } from "../session-summary/store.ts";
@@ -101,7 +101,7 @@ function rowsToAgentMessages(
 }
 
 describe("context memory runtime cross-layer e2e", () => {
-  it("connects session compaction, durable extraction, dream feedback, knowledge recall, and assembly diagnostics", async () => {
+  it("connects session compaction, durable extraction, dream feedback, experience recall, and assembly diagnostics", async () => {
     const { stateDir, store } = await createStore("crawclaw-memory-cross-layer-");
     const sessionId = "session-cross-layer";
     const sessionKey = "agent:main:feishu:direct:user-42";
@@ -182,17 +182,17 @@ describe("context memory runtime cross-layer e2e", () => {
       };
     });
 
-    await upsertKnowledgeIndexEntry({
+    await upsertExperienceIndexEntry({
       note: {
         type: "procedure",
-        title: "gateway-recovery procedure",
-        summary: "Use gateway-recovery steps: check status, inspect logs, restart, and verify.",
-        body: "The gateway-recovery procedure is durable operational knowledge and should be recalled for runbook-style prompts.",
-        steps: ["Check status", "Inspect logs", "Restart gateway", "Verify probe output"],
-        validation: ["Probe output is healthy"],
-        references: ["gateway-recovery"],
-        aliases: ["gateway-recovery", "gateway recovery"],
-        tags: ["gateway-recovery", "procedure"],
+        title: "gateway-recovery 恢复经验",
+        summary: "gateway-recovery 场景要按检查状态、查看日志、重启网关、验证探针的顺序处理。",
+        context: "用户要求 gateway-recovery procedure 或 runbook-style prompt。",
+        action: "先检查状态，再查看日志，然后重启网关，最后验证探针输出。",
+        lesson: "恢复类请求要先给步骤，再结合 step-first recall signal 调整回答顺序。",
+        evidence: ["gateway-recovery probe output healthy"],
+        aliases: ["gateway-recovery", "gateway recovery", "gateway-recovery procedure"],
+        tags: ["gateway-recovery", "procedure", "experience"],
         dedupeKey: "gateway-recovery",
       },
       writeResult: {
@@ -200,8 +200,8 @@ describe("context memory runtime cross-layer e2e", () => {
         action: "upsert",
         notebookId: "local-baseline",
         noteId: "gateway-recovery-note",
-        title: "gateway-recovery procedure",
-        payloadFile: path.join(stateDir, "knowledge-payload.json"),
+        title: "gateway-recovery 恢复经验",
+        payloadFile: path.join(stateDir, "experience-payload.json"),
       },
     });
 
@@ -284,7 +284,7 @@ Summary-backed compaction captured the earlier gateway-recovery context.
 Continue from the preserved retry tail and keep step-first answer behavior.
 
 # Task specification
-Validate that session, durable, dream, and knowledge memory all feed the next assembly.
+Validate that session, durable, dream, and experience memory all feed the next assembly.
 
 # Workflow
 Use gateway-recovery steps, then verify the probe output.
@@ -372,16 +372,16 @@ The compact summary should appear before the preserved tail.
     expect(diagnostics?.selectedDurableItemIds).toContain("durable:60 Preferences/step-first.md");
     expect(diagnostics?.recentDreamTouchedNotes).toContain("60 Preferences/step-first.md");
     expect(diagnostics?.selectedDurableDetails?.[0]?.provenance).toContain("dream_boost");
-    expect(diagnostics?.selectedKnowledgeItemIds).toEqual(
-      expect.arrayContaining(["knowledge-index:gateway-recovery"]),
+    expect(diagnostics?.selectedExperienceItemIds).toEqual(
+      expect.arrayContaining(["experience-index:gateway-recovery"]),
     );
-    expect(diagnostics?.knowledgeQueryPlan).toMatchObject({
+    expect(diagnostics?.experienceQueryPlan).toMatchObject({
       enabled: true,
       reason: "intent:sop",
     });
     const systemContextText = renderQueryContextSections(assembled.systemContextSections);
     expect(systemContextText).toContain("## Durable memory");
-    expect(systemContextText).toContain("## 知识回忆");
-    expect(systemContextText).toContain("gateway-recovery procedure");
+    expect(systemContextText).toContain("## 经验回忆");
+    expect(systemContextText).toContain("gateway-recovery 恢复经验");
   });
 });

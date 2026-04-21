@@ -73,19 +73,19 @@ export function createContextMemoryRuntime(options: {
     queryClassifier,
     reranker,
     contextAssembler,
-    knowledgeProviderRegistry,
+    experienceProviderRegistry,
     skillIndexStore,
     agentMemoryRoutingContract,
     contextArchiveTurnCapture,
   } = createContextMemoryRuntimeDeps(options);
 
-  async function recallKnowledge(params: {
+  async function recallExperience(params: {
     prompt: string;
     classification: UnifiedQueryClassification;
     recentMessages?: string[];
     runtimeContext?: MemoryRuntimeContext;
   }) {
-    return await knowledgeProviderRegistry.search({
+    return await experienceProviderRegistry.search({
       query: params.prompt,
       classification: params.classification,
       recentMessages: params.recentMessages,
@@ -164,7 +164,7 @@ export function createContextMemoryRuntime(options: {
       if (!promptText) {
         const built = contextAssembler.assemble({
           durableItems: [],
-          knowledgeItems: [],
+          experienceItems: [],
           tokenBudget: targetBudget,
         });
         const promptMissingResult = buildPromptMissingAssemblyResult({
@@ -192,7 +192,7 @@ export function createContextMemoryRuntime(options: {
               compactedMessageTokens,
               droppedMessageCount,
               selectedDurableMemoryIds: [],
-              selectedKnowledgeRecallIds: [],
+              selectedExperienceRecallIds: [],
               selectedItemIds: [],
             },
           })
@@ -206,11 +206,11 @@ export function createContextMemoryRuntime(options: {
 
       const {
         classification,
-        knowledgeRecall,
-        knowledgeRecallItems,
+        experienceRecall,
+        experienceRecallItems,
         reranked,
         skillRouting,
-        selectedKnowledge,
+        selectedExperience,
       } = await prepareMemoryAssemblyContext({
         promptText,
         recentMessages: promptContext.recentMessages,
@@ -220,7 +220,7 @@ export function createContextMemoryRuntime(options: {
         skillIndexStore,
         skillRoutingEnabled: options.config?.skillRouting.enabled !== false,
         skillRoutingLimit: options.config?.skillRouting.shortlistLimit,
-        recallKnowledge,
+        recallExperience,
       });
       const { durableRecall, durableRecallSource } = await resolveDurableRecallForAssembly({
         sessionId,
@@ -234,7 +234,7 @@ export function createContextMemoryRuntime(options: {
       });
       const built = contextAssembler.assemble({
         durableItems: durableRecall?.items ?? [],
-        knowledgeItems: selectedKnowledge.items,
+        experienceItems: selectedExperience.items,
         classification,
         tokenBudget: targetBudget,
       });
@@ -242,18 +242,18 @@ export function createContextMemoryRuntime(options: {
         combined,
         systemContextSections,
         durableSection,
-        knowledgeSection,
+        experienceSection,
         selectedDurableItemIds,
         omittedDurableItemIds,
-        selectedKnowledgeItemIds,
-        omittedKnowledgeItemIds,
+        selectedExperienceItemIds,
+        omittedExperienceItemIds,
         memoryRecallDiagnostics,
       } = buildMemoryAssemblyArtifacts({
         built,
         classification,
         agentMemoryRoutingContract,
-        selectedKnowledge,
-        knowledgeQueryPlan: knowledgeRecall.queryPlan,
+        selectedExperience,
+        experienceQueryPlan: experienceRecall.queryPlan,
         durableRecall,
         durableRecallSource,
       });
@@ -278,17 +278,17 @@ export function createContextMemoryRuntime(options: {
         combined,
         systemContextSections,
         durableSectionEstimatedTokens: durableSection?.estimatedTokens,
-        knowledgeSectionEstimatedTokens: knowledgeSection?.estimatedTokens,
+        experienceSectionEstimatedTokens: experienceSection?.estimatedTokens,
         memoryRecallDiagnostics,
         compactionState,
         rerankedItemCount: reranked.items.length,
-        knowledgeRecallCandidateCount: knowledgeRecallItems.length,
+        experienceRecallCandidateCount: experienceRecallItems.length,
         durableRecall,
         durableRecallSource,
         selectedDurableItemIds,
         omittedDurableItemIds,
-        selectedKnowledgeItemIds,
-        omittedKnowledgeItemIds,
+        selectedExperienceItemIds,
+        omittedExperienceItemIds,
         classification,
         skillRouting,
         runtimeContext,

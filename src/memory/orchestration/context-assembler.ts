@@ -3,12 +3,12 @@ import type {
   QueryContextSectionSchema,
 } from "../../agents/query-context/types.js";
 import {
-  buildKnowledgeCardSummary,
-  getKnowledgeItemLabel,
-  getKnowledgeLayerHeading,
-  getKnowledgeSourceLabel,
-  KNOWLEDGE_DISPLAY_HEADING,
-} from "../knowledge/knowledge-display.ts";
+  buildExperienceCardSummary,
+  getExperienceItemLabel,
+  getExperienceLayerHeading,
+  getExperienceSourceLabel,
+  EXPERIENCE_DISPLAY_HEADING,
+} from "../experience/display.ts";
 import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type {
   DurableMemoryItem,
@@ -22,7 +22,7 @@ import type {
   UnifiedRecallLayer,
 } from "../types/orchestration.ts";
 
-const KNOWLEDGE_LAYER_ORDER: UnifiedRecallLayer[] = [
+const EXPERIENCE_LAYER_ORDER: UnifiedRecallLayer[] = [
   "key_decisions",
   "sop",
   "preferences",
@@ -31,7 +31,7 @@ const KNOWLEDGE_LAYER_ORDER: UnifiedRecallLayer[] = [
 ];
 
 const DURABLE_HEADING = "## Durable memory";
-const KNOWLEDGE_HEADING = KNOWLEDGE_DISPLAY_HEADING;
+const EXPERIENCE_HEADING = EXPERIENCE_DISPLAY_HEADING;
 
 function estimateTokens(text: string): number {
   return estimateTokenCount(text);
@@ -69,8 +69,8 @@ function durableLabel(item: DurableMemoryItem): string {
   return item.title;
 }
 
-function knowledgeLabel(item: UnifiedRankedItem): string {
-  return `${getKnowledgeItemLabel(item)}${item.title}`;
+function experienceLabel(item: UnifiedRankedItem): string {
+  return `${getExperienceItemLabel(item)}${item.title}`;
 }
 
 function formatDurableItemLine(item: DurableMemoryItem): string {
@@ -82,15 +82,15 @@ function formatDurableItemLine(item: DurableMemoryItem): string {
   return `- ${durableLabel(item)}: ${summary}${freshness} ${citation(item)}`;
 }
 
-function formatKnowledgeItemLine(item: UnifiedRankedItem): string {
-  const summary = buildKnowledgeCardSummary(item, item.layer === "runtime_signals" ? 120 : 160);
-  return `- ${knowledgeLabel(item)} ${summary} ${citation(item)}`;
+function formatExperienceItemLine(item: UnifiedRankedItem): string {
+  const summary = buildExperienceCardSummary(item, item.layer === "runtime_signals" ? 120 : 160);
+  return `- ${experienceLabel(item)} ${summary} ${citation(item)}`;
 }
 
 function formatSourceLine(item: UnifiedRankedItem): string {
   const support =
     item.supportingSources.length > 1 ? ` supports=${item.supportingSources.join(",")}` : "";
-  return `- ${getKnowledgeSourceLabel(item)}${citation(item)} ${item.title}${support}`;
+  return `- ${getExperienceSourceLabel(item)}${citation(item)} ${item.title}${support}`;
 }
 
 function readDurableRecallScore(item: DurableMemoryItem): number {
@@ -120,7 +120,7 @@ function classificationPrefersDurable(
   );
 }
 
-function classificationPrefersKnowledge(
+function classificationPrefersExperience(
   classification: UnifiedQueryClassification | undefined,
 ): boolean {
   if (!classification) {
@@ -142,12 +142,12 @@ function allocateBudgets(params: {
   classification?: UnifiedQueryClassification;
 }): {
   durable: number;
-  knowledge: number;
-  knowledgeLayers: Record<UnifiedRecallLayer, number>;
+  experience: number;
+  experienceLayers: Record<UnifiedRecallLayer, number>;
 } {
   const signal = durableSignalStrength(params.durableItems);
   const durablePreferred = classificationPrefersDurable(params.classification);
-  const knowledgePreferred = classificationPrefersKnowledge(params.classification);
+  const experiencePreferred = classificationPrefersExperience(params.classification);
   let ratio = 0.28;
   let minDurable = 96;
   let maxDurable = 320;
@@ -160,7 +160,7 @@ function allocateBudgets(params: {
     ratio = 0.34;
     minDurable = 112;
     maxDurable = 480;
-  } else if (knowledgePreferred && signal < 1.5) {
+  } else if (experiencePreferred && signal < 1.5) {
     ratio = 0.2;
     minDurable = 72;
     maxDurable = 240;
@@ -174,16 +174,16 @@ function allocateBudgets(params: {
     maxDurable,
     Math.max(minDurable, Math.floor(params.tokenBudget * ratio)),
   );
-  const knowledge = Math.max(0, params.tokenBudget - durable);
+  const experience = Math.max(0, params.tokenBudget - durable);
   return {
     durable,
-    knowledge,
-    knowledgeLayers: {
-      key_decisions: Math.floor(knowledge * 0.3),
-      sop: Math.floor(knowledge * 0.24),
-      preferences: Math.floor(knowledge * 0.18),
-      runtime_signals: Math.floor(knowledge * 0.18),
-      sources: Math.floor(knowledge * 0.1),
+    experience,
+    experienceLayers: {
+      key_decisions: Math.floor(experience * 0.3),
+      sop: Math.floor(experience * 0.24),
+      preferences: Math.floor(experience * 0.18),
+      runtime_signals: Math.floor(experience * 0.18),
+      sources: Math.floor(experience * 0.1),
     },
   };
 }
@@ -210,11 +210,11 @@ function toQueryContextSection(section: MemoryPromptSection): QueryContextSectio
   const sectionType =
     section.kind === "durable"
       ? "durable_memory"
-      : section.kind === "knowledge"
-        ? "knowledge"
+      : section.kind === "experience"
+        ? "experience"
         : "other";
   const schema: QueryContextSectionSchema =
-    sectionType === "durable_memory" || sectionType === "knowledge"
+    sectionType === "durable_memory" || sectionType === "experience"
       ? {
           kind: sectionType,
           itemIds: [...section.itemIds],
@@ -280,11 +280,11 @@ function assembleDurableSection(
   return createSection("durable", DURABLE_HEADING, lines, itemIds, omittedCount);
 }
 
-function layerForKnowledgeItem(item: UnifiedRankedItem): UnifiedRecallLayer {
+function layerForExperienceItem(item: UnifiedRankedItem): UnifiedRecallLayer {
   return item.layer ?? "runtime_signals";
 }
 
-function assembleKnowledgeSection(
+function assembleExperienceSection(
   items: UnifiedRankedItem[],
   budget: number,
   layerBudgets: Record<UnifiedRecallLayer, number>,
@@ -293,19 +293,19 @@ function assembleKnowledgeSection(
     return null;
   }
 
-  const knowledgeLines: string[] = [];
-  const knowledgeItemIds = new Set<string>();
-  let knowledgeOmitted = 0;
-  let totalUsed = estimateTokens(KNOWLEDGE_HEADING);
+  const experienceLines: string[] = [];
+  const experienceItemIds = new Set<string>();
+  let experienceOmitted = 0;
+  let totalUsed = estimateTokens(EXPERIENCE_HEADING);
 
-  for (const layer of KNOWLEDGE_LAYER_ORDER) {
-    const candidates = items.filter((item) => layerForKnowledgeItem(item) === layer);
+  for (const layer of EXPERIENCE_LAYER_ORDER) {
+    const candidates = items.filter((item) => layerForExperienceItem(item) === layer);
     if (!candidates.length && layer !== "sources") {
       continue;
     }
 
     const layerLines: string[] = [];
-    const layerHeading = getKnowledgeLayerHeading(layer);
+    const layerHeading = getExperienceLayerHeading(layer);
     const layerHeadingTokens = estimateTokens(layerHeading);
     let used = estimateTokens(layerHeading);
     const layerBudget = Math.max(1, layerBudgets[layer] ?? budget);
@@ -316,24 +316,24 @@ function assembleKnowledgeSection(
 
     for (const item of candidates) {
       if (layerLines.length >= hardCap) {
-        knowledgeOmitted += 1;
+        experienceOmitted += 1;
         continue;
       }
-      const line = layer === "sources" ? formatSourceLine(item) : formatKnowledgeItemLine(item);
+      const line = layer === "sources" ? formatSourceLine(item) : formatExperienceItemLine(item);
       const nextUsed = used + estimateTokens(line);
       const nextTotalUsed =
         totalUsed + (layerLines.length === 0 ? layerHeadingTokens : 0) + estimateTokens(line);
       if (nextTotalUsed > budget) {
-        knowledgeOmitted += 1;
+        experienceOmitted += 1;
         continue;
       }
       if (nextUsed > layerBudget && layerLines.length > 0) {
-        knowledgeOmitted += 1;
+        experienceOmitted += 1;
         continue;
       }
       layerLines.push(line);
       used = nextUsed;
-      knowledgeItemIds.add(item.id);
+      experienceItemIds.add(item.id);
       totalUsed = nextTotalUsed;
     }
 
@@ -344,33 +344,33 @@ function assembleKnowledgeSection(
         const nextTotalUsed =
           totalUsed + (fallbackLines.length === 0 ? layerHeadingTokens : 0) + estimateTokens(line);
         if (nextTotalUsed > budget) {
-          knowledgeOmitted += 1;
+          experienceOmitted += 1;
           continue;
         }
         fallbackLines.push(line);
-        knowledgeItemIds.add(item.id);
+        experienceItemIds.add(item.id);
         totalUsed = nextTotalUsed;
       }
       if (fallbackLines.length) {
-        knowledgeLines.push(layerHeading, ...fallbackLines);
+        experienceLines.push(layerHeading, ...fallbackLines);
       }
       continue;
     }
 
     if (layerLines.length) {
-      knowledgeLines.push(layerHeading, ...layerLines);
+      experienceLines.push(layerHeading, ...layerLines);
     }
   }
 
-  if (!knowledgeLines.length) {
+  if (!experienceLines.length) {
     return null;
   }
   return createSection(
-    "knowledge",
-    KNOWLEDGE_HEADING,
-    knowledgeLines,
-    [...knowledgeItemIds],
-    knowledgeOmitted,
+    "experience",
+    EXPERIENCE_HEADING,
+    experienceLines,
+    [...experienceItemIds],
+    experienceOmitted,
   );
 }
 
@@ -386,11 +386,11 @@ export function assembleMemoryPrompt(input: MemoryPromptAssemblyInput): MemoryPr
   const includedItemIds = new Set<string>();
 
   const durableSection = assembleDurableSection(durableItems, budgets.durable);
-  const knowledgeItems = input.knowledgeItems ?? [];
-  const knowledgeSection = assembleKnowledgeSection(
-    knowledgeItems,
-    budgets.knowledge,
-    budgets.knowledgeLayers,
+  const experienceItems = input.experienceItems ?? [];
+  const experienceSection = assembleExperienceSection(
+    experienceItems,
+    budgets.experience,
+    budgets.experienceLayers,
   );
 
   if (durableSection) {
@@ -399,16 +399,16 @@ export function assembleMemoryPrompt(input: MemoryPromptAssemblyInput): MemoryPr
       includedItemIds.add(itemId);
     }
   }
-  if (knowledgeSection) {
-    sections.push(knowledgeSection);
-    for (const itemId of knowledgeSection.itemIds) {
+  if (experienceSection) {
+    sections.push(experienceSection);
+    for (const itemId of experienceSection.itemIds) {
       includedItemIds.add(itemId);
     }
   }
 
   const text = sections.flatMap((section) => [section.heading, ...section.lines]).join("\n");
   const estimatedTokens = estimateTokens(text);
-  const allItems = [...durableItems, ...knowledgeItems];
+  const allItems = [...durableItems, ...experienceItems];
   const omittedItemIds = allItems
     .filter((item) => !includedItemIds.has(item.id))
     .map((item) => item.id);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { resolveUnifiedEntities } from "./entity-resolver.ts";
 
 describe("resolveUnifiedEntities", () => {
-  it("scores local knowledge index entities with the knowledge route bias", () => {
+  it("scores local experience index entities with the experience route bias", () => {
     const result = resolveUnifiedEntities({
       query: "gateway recovery",
       classification: {
@@ -25,11 +25,11 @@ describe("resolveUnifiedEntities", () => {
       },
       registries: [
         {
-          source: "local_knowledge_index",
+          source: "local_experience_index",
           items: [
             {
               id: "local-gateway-recovery",
-              source: "local_knowledge_index",
+              source: "local_experience_index",
               title: "gateway recovery",
             },
           ],

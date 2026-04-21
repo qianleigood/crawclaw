@@ -280,7 +280,7 @@ function buildTags(kind: PromotionCandidateKind, lines: FactLine[]): string[] {
     .join("\n")
     .toLowerCase();
   if (/笔记|vault|notebooklm/.test(joined)) {
-    tags.add("knowledge-note");
+    tags.add("experience-note");
   }
   if (/neo4j/.test(joined)) {
     tags.add("neo4j");

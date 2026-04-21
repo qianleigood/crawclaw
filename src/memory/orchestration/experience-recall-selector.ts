@@ -1,7 +1,7 @@
 import { classifyMemoryRecallItem } from "../recall/durable-memory-type.ts";
 import type { UnifiedRankedItem } from "../types/orchestration.ts";
 
-export interface KnowledgeRecallSelectionResult {
+export interface ExperienceRecallSelectionResult {
   items: UnifiedRankedItem[];
   selectedItemIds: string[];
   omittedItemIds: string[];
@@ -12,18 +12,18 @@ function clampLimit(limit: number | undefined): number {
   return Math.max(1, Math.min(limit ?? 6, 10));
 }
 
-function isPromptFacingKnowledgeSource(item: UnifiedRankedItem): boolean {
-  return item.source === "notebooklm" || item.source === "local_knowledge_index";
+function isPromptFacingExperienceSource(item: UnifiedRankedItem): boolean {
+  return item.source === "notebooklm" || item.source === "local_experience_index";
 }
 
-export function selectKnowledgeRecall(input: {
+export function selectExperienceRecall(input: {
   items: readonly UnifiedRankedItem[];
   limit?: number;
-}): KnowledgeRecallSelectionResult {
+}): ExperienceRecallSelectionResult {
   const limit = clampLimit(input.limit);
   const candidates = input.items
-    .filter((item) => classifyMemoryRecallItem(item).bucket === "knowledge")
-    .filter(isPromptFacingKnowledgeSource)
+    .filter((item) => classifyMemoryRecallItem(item).bucket === "experience")
+    .filter(isPromptFacingExperienceSource)
     .filter((item) => item.summary.trim().length >= 24 || item.content?.trim().length)
     .toSorted((left, right) => right.score - left.score)
     .slice(0, Math.max(limit * 2, 6));
