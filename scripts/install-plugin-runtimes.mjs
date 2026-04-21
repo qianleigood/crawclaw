@@ -73,6 +73,40 @@ function runOrThrow(command, args, options = {}) {
   throw new Error(output || `command failed: ${command} ${args.join(" ")}`);
 }
 
+export function createNestedNpmInstallEnv(env = process.env) {
+  const nextEnv = { ...env };
+  for (const key of Object.keys(nextEnv)) {
+    const normalizedKey = key.toLowerCase();
+    if (
+      normalizedKey === "npm_config_global" ||
+      normalizedKey === "npm_config_location" ||
+      normalizedKey === "npm_config_prefix"
+    ) {
+      delete nextEnv[key];
+    }
+  }
+  return nextEnv;
+}
+
+export function createLocalPrefixNpmInstallArgs(runtimeDir, packageSpec) {
+  return [
+    "install",
+    "--global=false",
+    "--prefix",
+    runtimeDir,
+    "--no-save",
+    "--package-lock=false",
+    packageSpec,
+  ];
+}
+
+export function resolveScraplingVenvPython(venvDir, platform = process.platform) {
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  return platform === "win32"
+    ? pathImpl.join(venvDir, "Scripts", "python.exe")
+    : pathImpl.join(venvDir, "bin", "python");
+}
+
 function resolvePythonCandidates(env = process.env) {
   const candidates = [
     env.CRAWCLAW_RUNTIME_PYTHON,
@@ -153,10 +187,10 @@ function installScraplingRuntime(env = process.env) {
   const python = resolveBestPython(env);
   const lockedPackages = readLockedRequirements(SCRAPLING_REQUIREMENTS_LOCK);
   mkdirSync(runtimeDir, { recursive: true });
-  if (!existsSync(path.join(venvDir, "bin", "python"))) {
+  const venvPython = resolveScraplingVenvPython(venvDir);
+  if (!existsSync(venvPython)) {
     runOrThrow(python.command, ["-m", "venv", venvDir], { env });
   }
-  const venvPython = path.join(venvDir, "bin", "python");
   runOrThrow(venvPython, ["-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"], {
     env,
   });
@@ -179,19 +213,16 @@ function installScraplingRuntime(env = process.env) {
 function installOpenWebSearchRuntime(env = process.env) {
   const runtimeDir = path.join(resolveRuntimesRoot(env), "open-websearch");
   mkdirSync(runtimeDir, { recursive: true });
+  const nestedEnv = createNestedNpmInstallEnv(env);
   const npmRunner = resolveNpmRunner({
-    env,
-    npmArgs: [
-      "install",
-      "--prefix",
+    env: nestedEnv,
+    npmArgs: createLocalPrefixNpmInstallArgs(
       runtimeDir,
-      "--no-save",
-      "--package-lock=false",
       `open-websearch@${OPEN_WEBSEARCH_VERSION}`,
-    ],
+    ),
   });
   runOrThrow(npmRunner.command, npmRunner.args, {
-    env: npmRunner.env ?? env,
+    env: npmRunner.env ?? nestedEnv,
     shell: npmRunner.shell,
     windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,
   });
@@ -220,19 +251,13 @@ function resolveBrowserRuntimeBin(runtimeDir) {
 function installBrowserRuntime(env = process.env) {
   const runtimeDir = path.join(resolveRuntimesRoot(env), "browser");
   mkdirSync(runtimeDir, { recursive: true });
+  const nestedEnv = createNestedNpmInstallEnv(env);
   const npmRunner = resolveNpmRunner({
-    env,
-    npmArgs: [
-      "install",
-      "--prefix",
-      runtimeDir,
-      "--no-save",
-      "--package-lock=false",
-      `pinchtab@${PINCHTAB_VERSION}`,
-    ],
+    env: nestedEnv,
+    npmArgs: createLocalPrefixNpmInstallArgs(runtimeDir, `pinchtab@${PINCHTAB_VERSION}`),
   });
   runOrThrow(npmRunner.command, npmRunner.args, {
-    env: npmRunner.env ?? env,
+    env: npmRunner.env ?? nestedEnv,
     shell: npmRunner.shell,
     windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,
   });
