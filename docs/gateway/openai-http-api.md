@@ -235,7 +235,6 @@ curl -sS http://127.0.0.1:18789/v1/models/crawclaw%2Fdefault \
   -H 'Authorization: Bearer YOUR_TOKEN'
 ```
 
-
 Notes:
 
 - `/v1/models` returns CrawClaw agent targets, not raw provider catalogs.

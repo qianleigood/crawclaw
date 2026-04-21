@@ -349,10 +349,6 @@
       "destination": "/start/crawclaw"
     },
     {
-      "source": "/start/crawclaw",
-      "destination": "/start/crawclaw"
-    },
-    {
       "source": "/start/pairing",
       "destination": "/channels/pairing"
     },
@@ -382,7 +378,7 @@
     },
     {
       "source": "/device-models",
-      "destination": "/reference/device-models"
+      "destination": "/cli/devices"
     },
     {
       "source": "/discord",
@@ -534,7 +530,7 @@
     },
     {
       "source": "/mac/remote",
-      "destination": "/platforms/mac/remote"
+      "destination": "/gateway/remote"
     },
     {
       "source": "/mac/signing",
@@ -706,7 +702,7 @@
     },
     {
       "source": "/templates/IDENTITY",
-      "destination": "/reference/templates/IDENTITY"
+      "destination": "/reference/templates/IDENTITY.dev"
     },
     {
       "source": "/templates/SOUL",
@@ -718,7 +714,7 @@
     },
     {
       "source": "/templates/USER",
-      "destination": "/reference/templates/USER"
+      "destination": "/reference/templates/USER.dev"
     },
     {
       "source": "/test",
@@ -1435,7 +1431,7 @@
               },
               {
                 "group": "RPC and API",
-                "pages": ["reference/rpc", "reference/device-models"]
+                "pages": ["reference/rpc", "cli/devices"]
               },
               {
                 "group": "Templates",
@@ -1445,10 +1441,10 @@
                   "reference/templates/BOOT",
                   "reference/templates/BOOTSTRAP",
                   "reference/templates/HEARTBEAT",
-                  "reference/templates/IDENTITY",
+                  "reference/templates/IDENTITY.dev",
                   "reference/templates/SOUL",
                   "reference/templates/TOOLS",
-                  "reference/templates/USER"
+                  "reference/templates/USER.dev"
                 ]
               },
               {
@@ -1970,7 +1966,7 @@
               },
               {
                 "group": "RPC 与 API",
-                "pages": ["zh-CN/reference/rpc", "zh-CN/reference/device-models"]
+                "pages": ["zh-CN/reference/rpc", "zh-CN/cli/devices"]
               },
               {
                 "group": "模板",
@@ -1980,10 +1976,10 @@
                   "zh-CN/reference/templates/BOOT",
                   "zh-CN/reference/templates/BOOTSTRAP",
                   "zh-CN/reference/templates/HEARTBEAT",
-                  "zh-CN/reference/templates/IDENTITY",
+                  "zh-CN/reference/templates/IDENTITY.dev",
                   "zh-CN/reference/templates/SOUL",
                   "zh-CN/reference/templates/TOOLS",
-                  "zh-CN/reference/templates/USER"
+                  "zh-CN/reference/templates/USER.dev"
                 ]
               },
               {

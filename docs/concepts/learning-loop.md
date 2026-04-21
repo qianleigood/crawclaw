@@ -290,31 +290,31 @@ This promotion ladder should stay directional:
 
 Use these rules when deciding where something belongs.
 
-### Put it in session history when:
+### Put it in session history when
 
 - it is mainly useful as an audit trail
 - it is tied to a single conversation or run
 - it may be useful later, but has not been evaluated yet
 
-### Put it in memory when:
+### Put it in memory when
 
 - it is likely to matter again
 - it survives beyond the current run
 - it helps future recall or personalization
 
-### Put it in a skill when:
+### Put it in a skill when
 
 - it describes a reliable method
 - the method can be reused across many tasks
 - it improves how the agent approaches work
 
-### Put it in a workflow when:
+### Put it in a workflow when
 
 - the process has clear steps
 - state transitions matter
 - it benefits from explicit run management, deployment, or rollback
 
-### Put it behind cron/hooks when:
+### Put it behind cron/hooks when
 
 - the workflow is repeatable on a schedule
 - the workflow is triggered by external events

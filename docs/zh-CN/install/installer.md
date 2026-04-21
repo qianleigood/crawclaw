@@ -160,19 +160,19 @@ CrawClaw 提供三个安装脚本，由 `crawclaw.ai` 提供。
 
 兼容迁移期间，安装器仍接受旧版 `CRAWCLAW_*` 自动化变量。
 
-| 变量                                                    | 说明                                 |
-| ------------------------------------------------------- | ------------------------------------ |
-| `CRAWCLAW_INSTALL_METHOD=git\|npm`（兼容 `CRAWCLAW_INSTALL_METHOD`）                      | 安装方法                             |
-| `CRAWCLAW_VERSION=latest\|next\|main\|<semver>\|<spec>`（兼容 `CRAWCLAW_VERSION`）        | npm 版本、dist-tag 或包规范          |
-| `CRAWCLAW_BETA=0\|1`（兼容 `CRAWCLAW_BETA`）                                              | 如有可用则使用 beta                  |
-| `CRAWCLAW_GIT_DIR=<path>`（兼容 `CRAWCLAW_GIT_DIR`）                                       | 检出目录                             |
-| `CRAWCLAW_GIT_UPDATE=0\|1`（兼容 `CRAWCLAW_GIT_UPDATE`）                                   | 切换 git 更新                        |
-| `CRAWCLAW_NO_PROMPT=1`（兼容 `CRAWCLAW_NO_PROMPT`）                                        | 禁用提示                             |
-| `CRAWCLAW_NO_ONBOARD=1`（兼容 `CRAWCLAW_NO_ONBOARD`）                                      | 跳过新手引导                         |
-| `CRAWCLAW_DRY_RUN=1`（兼容 `CRAWCLAW_DRY_RUN`）                                            | 试运行模式                           |
-| `CRAWCLAW_VERBOSE=1`（兼容 `CRAWCLAW_VERBOSE`）                                            | 调试模式                             |
-| `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice`（兼容 `CRAWCLAW_NPM_LOGLEVEL`）                | npm 日志级别                         |
-| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`                      | 控制 sharp/libvips 行为（默认：`1`） |
+| 变量                                                                               | 说明                                 |
+| ---------------------------------------------------------------------------------- | ------------------------------------ |
+| `CRAWCLAW_INSTALL_METHOD=git\|npm`（兼容 `CRAWCLAW_INSTALL_METHOD`）               | 安装方法                             |
+| `CRAWCLAW_VERSION=latest\|next\|main\|<semver>\|<spec>`（兼容 `CRAWCLAW_VERSION`） | npm 版本、dist-tag 或包规范          |
+| `CRAWCLAW_BETA=0\|1`（兼容 `CRAWCLAW_BETA`）                                       | 如有可用则使用 beta                  |
+| `CRAWCLAW_GIT_DIR=<path>`（兼容 `CRAWCLAW_GIT_DIR`）                               | 检出目录                             |
+| `CRAWCLAW_GIT_UPDATE=0\|1`（兼容 `CRAWCLAW_GIT_UPDATE`）                           | 切换 git 更新                        |
+| `CRAWCLAW_NO_PROMPT=1`（兼容 `CRAWCLAW_NO_PROMPT`）                                | 禁用提示                             |
+| `CRAWCLAW_NO_ONBOARD=1`（兼容 `CRAWCLAW_NO_ONBOARD`）                              | 跳过新手引导                         |
+| `CRAWCLAW_DRY_RUN=1`（兼容 `CRAWCLAW_DRY_RUN`）                                    | 试运行模式                           |
+| `CRAWCLAW_VERBOSE=1`（兼容 `CRAWCLAW_VERBOSE`）                                    | 调试模式                             |
+| `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice`（兼容 `CRAWCLAW_NPM_LOGLEVEL`）        | npm 日志级别                         |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`                                                 | 控制 sharp/libvips 行为（默认：`1`） |
 
   </Accordion>
 </AccordionGroup>
@@ -244,15 +244,15 @@ CrawClaw 提供三个安装脚本，由 `crawclaw.ai` 提供。
 
 本地前缀安装器在迁移期间仍接受旧版 `CRAWCLAW_*` 变量名。
 
-| 变量                                        | 说明                                                   |
-| ------------------------------------------- | ------------------------------------------------------ |
-| `CRAWCLAW_PREFIX=<path>`（兼容 `CRAWCLAW_PREFIX`）                    | 安装前缀                                               |
-| `CRAWCLAW_VERSION=<ver>`（兼容 `CRAWCLAW_VERSION`）                    | CrawClaw 版本或 dist-tag                               |
+| 变量                                                                        | 说明                                                   |
+| --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `CRAWCLAW_PREFIX=<path>`（兼容 `CRAWCLAW_PREFIX`）                          | 安装前缀                                               |
+| `CRAWCLAW_VERSION=<ver>`（兼容 `CRAWCLAW_VERSION`）                         | CrawClaw 版本或 dist-tag                               |
 | `CRAWCLAW_NODE_VERSION=<ver>`（兼容 `CRAWCLAW_NODE_VERSION`）               | Node 版本                                              |
-| `CRAWCLAW_NO_ONBOARD=1`（兼容 `CRAWCLAW_NO_ONBOARD`）                     | 跳过新手引导                                           |
+| `CRAWCLAW_NO_ONBOARD=1`（兼容 `CRAWCLAW_NO_ONBOARD`）                       | 跳过新手引导                                           |
 | `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice`（兼容 `CRAWCLAW_NPM_LOGLEVEL`） | npm 日志级别                                           |
-| `CRAWCLAW_GIT_DIR=<path>`（兼容 `CRAWCLAW_GIT_DIR`）                   | 旧版清理查找路径（用于删除旧的 `Peekaboo` 子模块检出） |
-| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`          | 控制 sharp/libvips 行为（默认：`1`）                   |
+| `CRAWCLAW_GIT_DIR=<path>`（兼容 `CRAWCLAW_GIT_DIR`）                        | 旧版清理查找路径（用于删除旧的 `Peekaboo` 子模块检出） |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`                                          | 控制 sharp/libvips 行为（默认：`1`）                   |
 
   </Accordion>
 </AccordionGroup>
@@ -333,13 +333,13 @@ CrawClaw 提供三个安装脚本，由 `crawclaw.ai` 提供。
 
   <Accordion title="环境变量参考">
 
-| 变量                               | 说明          |
-| ---------------------------------- | ------------- |
+| 变量                                                                 | 说明          |
+| -------------------------------------------------------------------- | ------------- |
 | `CRAWCLAW_INSTALL_METHOD=git\|npm`（兼容 `CRAWCLAW_INSTALL_METHOD`） | 安装方法      |
-| `CRAWCLAW_GIT_DIR=<path>`（兼容 `CRAWCLAW_GIT_DIR`）                  | 检出目录      |
-| `CRAWCLAW_NO_ONBOARD=1`（兼容 `CRAWCLAW_NO_ONBOARD`）                 | 跳过新手引导  |
-| `CRAWCLAW_GIT_UPDATE=0`（兼容 `CRAWCLAW_GIT_UPDATE`）                 | 禁用 git pull |
-| `CRAWCLAW_DRY_RUN=1`（兼容 `CRAWCLAW_DRY_RUN`）                       | 试运行模式    |
+| `CRAWCLAW_GIT_DIR=<path>`（兼容 `CRAWCLAW_GIT_DIR`）                 | 检出目录      |
+| `CRAWCLAW_NO_ONBOARD=1`（兼容 `CRAWCLAW_NO_ONBOARD`）                | 跳过新手引导  |
+| `CRAWCLAW_GIT_UPDATE=0`（兼容 `CRAWCLAW_GIT_UPDATE`）                | 禁用 git pull |
+| `CRAWCLAW_DRY_RUN=1`（兼容 `CRAWCLAW_DRY_RUN`）                      | 试运行模式    |
 
   </Accordion>
 </AccordionGroup>

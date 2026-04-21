@@ -447,7 +447,7 @@
 
 ## workflow-step-agent 设计
 
-### 原则
+### Step agent 原则
 
 - 必须是专门的 agent profile。
 - 不复用普通聊天主 agent。
@@ -498,7 +498,7 @@
    - `requiresApproval` 是否为假
 4. 满足条件时自动调用；否则只建议给用户
 
-### 原则
+### 动态调用原则
 
 - workflow 不能像 skill 一样纯靠名称猜测。
 - 动态调用必须依赖 registry metadata。

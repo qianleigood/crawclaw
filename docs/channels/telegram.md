@@ -11,7 +11,8 @@ Status: production-ready for bot DMs + groups via grammY. Long polling is the de
 
 <CardGroup cols={3}>
   <Card title="Pairing" icon="link" href="/channels/pairing">
-    Default DM policy for Telegram is pairing.
+Default DM policy for Telegram is pairing. See
+[DM pairing](/channels/pairing#approve-a-sender) for the approval flow.
   </Card>
   <Card title="Channel troubleshooting" icon="wrench" href="/channels/troubleshooting">
     Cross-channel diagnostics and repair playbooks.
@@ -353,7 +354,7 @@ curl "https://api.telegram.org/bot<bot_token>/getUpdates"
 
     If a device retries with changed auth details (for example role/scopes/public key), the previous pending request is superseded and the new request uses a different `requestId`. Re-run `/pair pending` before approving.
 
-    More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
+    More details: [Node device pairing](/channels/pairing#approve-a-node-device).
 
   </Accordion>
 

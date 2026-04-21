@@ -1,9 +1,13 @@
 # Skills Audit
 
-This repository currently contains `69` skills across:
+This audit covers the repo-level core and optional skill catalogs, currently
+`56` skills total:
 
-- [`skills/`](/Users/qianleilei/crawclaw-source-shallow/skills) for bundled core skills
-- [`skills-optional/`](/Users/qianleilei/crawclaw-source-shallow/skills-optional) for optional skills
+- `skills/` for `18` bundled core skills
+- `skills-optional/` for `38` optional skills
+
+Extension-owned skills are tracked separately in
+[Skills catalog](/maintainers/skills-catalog).
 
 This audit applies the current `skill-creator` standard:
 
@@ -16,16 +20,16 @@ This audit applies the current `skill-creator` standard:
 
 - Restored valid frontmatter in `taskflow-inbox-triage/SKILL.md` before that example skill was later removed
 - Added missing `references/` routing in:
-  - [tikhub/SKILL.md](/Users/qianleilei/crawclaw-source-shallow/skills-optional/tikhub/SKILL.md)
+  - `skills-optional/tikhub/SKILL.md`
 - Moved extra top-level `README.md` files into `references/README.md` for:
-  - [feishu-file-sender](/Users/qianleilei/crawclaw-source-shallow/skills-optional/feishu-file-sender)
-  - [feishu-office-toolkit](/Users/qianleilei/crawclaw-source-shallow/skills-optional/feishu-office-toolkit)
-  - [humanizer-zh](/Users/qianleilei/crawclaw-source-shallow/skills-optional/humanizer-zh)
-  - [minimax-pdf](/Users/qianleilei/crawclaw-source-shallow/skills-optional/minimax-pdf)
-  - [redbook-skills](/Users/qianleilei/crawclaw-source-shallow/skills-optional/redbook-skills)
+  - `skills-optional/feishu-file-sender`
+  - `skills-optional/feishu-office-toolkit`
+  - `skills-optional/humanizer-zh`
+  - `skills-optional/minimax-pdf`
+  - `skills-optional/redbook-skills`
   - `tavily-web-search-for-crawclaw`
-  - [transnetv2-scene-detect](/Users/qianleilei/crawclaw-source-shallow/skills-optional/transnetv2-scene-detect)
-  - [vercel-react-best-practices](/Users/qianleilei/crawclaw-source-shallow/skills-optional/vercel-react-best-practices)
+  - `skills-optional/transnetv2-scene-detect`
+  - `skills-optional/vercel-react-best-practices`
 
 ## Final status
 

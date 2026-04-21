@@ -156,6 +156,20 @@ Npm specs are registry-only (package name + optional exact version or dist-tag).
 | command-logger        | `command`         | Logs all commands to `~/.crawclaw/logs/commands.log`  |
 | boot-md               | `gateway:startup` | Runs `BOOT.md` when the gateway starts                |
 
+### bootstrap-extra-files
+
+`bootstrap-extra-files` injects additional workspace bootstrap files during
+agent startup. Configure it with `hooks.internal.entries.bootstrap-extra-files`.
+
+### command-logger
+
+`command-logger` listens to command events and writes an audit log to
+`~/.crawclaw/logs/commands.log`.
+
+### boot-md
+
+`boot-md` runs the workspace `BOOT.md` file after the Gateway starts.
+
 Enable any bundled hook:
 
 ```bash

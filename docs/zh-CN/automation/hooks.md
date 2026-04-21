@@ -866,21 +866,21 @@ Gateway 网关启动
 1. 检查目录结构：
 
    ```bash
-ls -la ~/.crawclaw/hooks/my-hook/
+   ls -la ~/.crawclaw/hooks/my-hook/
    # 应显示：HOOK.md, handler.ts
    ```
 
 2. 验证 HOOK.md 格式：
 
    ```bash
-cat ~/.crawclaw/hooks/my-hook/HOOK.md
+   cat ~/.crawclaw/hooks/my-hook/HOOK.md
    # 应包含带有 name 和 metadata 的 YAML frontmatter
    ```
 
 3. 列出所有已发现的 hooks：
 
    ```bash
-crawclaw hooks list
+   crawclaw hooks list
    ```
 
 ### Hook 不符合条件
@@ -903,7 +903,7 @@ crawclaw hooks info my-hook
 1. 验证 hook 已启用：
 
    ```bash
-crawclaw hooks list
+   crawclaw hooks list
    # 应在已启用的 hooks 旁显示 ✓
    ```
 
@@ -951,8 +951,8 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 1. 创建 hook 目录：
 
    ```bash
-mkdir -p ~/.crawclaw/hooks/my-hook
-mv ./hooks/handlers/my-handler.ts ~/.crawclaw/hooks/my-hook/handler.ts
+   mkdir -p ~/.crawclaw/hooks/my-hook
+   mv ./hooks/handlers/my-handler.ts ~/.crawclaw/hooks/my-hook/handler.ts
    ```
 
 2. 创建 HOOK.md：
@@ -987,7 +987,7 @@ mv ./hooks/handlers/my-handler.ts ~/.crawclaw/hooks/my-hook/handler.ts
 4. 验证并重启你的 Gateway 网关进程：
 
    ```bash
-crawclaw hooks list
+   crawclaw hooks list
    # 应显示：🎯 my-hook ✓
    ```
 

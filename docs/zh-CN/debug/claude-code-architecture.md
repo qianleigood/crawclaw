@@ -2,7 +2,7 @@
 read_when:
   - 想系统阅读 Claude Code 源码时
   - 想把 CrawClaw 和 Claude Code 的 runtime 设计做对比时
-  - 想知道 `/Users/qianleilei/src` 该按什么顺序读时
+  - 想知道 `/path/to/claude-code` 该按什么顺序读时
 summary: 基于本地 Claude Code 源码的学习型架构拆解
 title: Claude Code 架构拆解
 ---
@@ -12,7 +12,7 @@ title: Claude Code 架构拆解
 这份文档基于你本机上的 Claude Code 源码快照：
 
 ```text
-/Users/qianleilei/src
+/path/to/claude-code
 ```
 
 它不是 Anthropic 官方文档，而是一份**面向学习的源码拆解笔记**。目标不是“把所有文件列一遍”，而是帮你抓住 Claude Code 的真正架构骨架。
@@ -632,19 +632,19 @@ Claude Code 虽然很厚，但主轴其实很清楚：
 ## 十三、如果你要从中学什么，最值得学的是这几个点
 
 1. **把 agent 做成 task-backed runtime**
-不是一次工具调用，而是正式任务单元。
+   不是一次工具调用，而是正式任务单元。
 
 2. **把恢复逻辑尽量收回主状态机**
-而不是 everywhere detector。
+   而不是 everywhere detector。
 
 3. **把权限做成分层治理**
-mode、rules、classifier、hooks、dialog，不是一层 `before_tool_call`。
+   mode、rules、classifier、hooks、dialog，不是一层 `before_tool_call`。
 
 4. **尽早做 inspection / status / structured init**
-这样后面 remote、SDK、运维面都会顺。
+   这样后面 remote、SDK、运维面都会顺。
 
 5. **把 replay / fixture / verifier 当成基础设施**
-这会直接决定这套系统能不能长期稳定进化。
+   这会直接决定这套系统能不能长期稳定进化。
 
 ## 十四、你下一步怎么继续读
 
@@ -683,4 +683,3 @@ mode、rules、classifier、hooks、dialog，不是一层 `before_tool_call`。
 > Claude Code 不是围绕“提示词”组织起来的，而是围绕“一个长期存在、可治理、可扩展、可恢复的 agent runtime”组织起来的。
 
 这也是它最值得学习的地方。
-

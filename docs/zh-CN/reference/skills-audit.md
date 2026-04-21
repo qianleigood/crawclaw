@@ -1,9 +1,11 @@
 # Skills 审计
 
-当前仓库共有 `69` 个 skill，分布在：
+本审计覆盖仓库级 core 和 optional skill 目录，目前共 `56` 个 skill：
 
-- [`skills/`](/Users/qianleilei/crawclaw-source-shallow/skills)：默认 bundled core skills
-- [`skills-optional/`](/Users/qianleilei/crawclaw-source-shallow/skills-optional)：optional skills
+- `skills/`：`18` 个 bundled core skills
+- `skills-optional/`：`38` 个 optional skills
+
+Extension-owned skills 单独在 [Skills catalog](/maintainers/skills-catalog) 中跟踪。
 
 这轮审计按当前 `skill-creator` 标准执行：
 
@@ -16,16 +18,16 @@
 
 - 修正 `taskflow-inbox-triage/SKILL.md` 的 frontmatter，之后该示例 skill 已被删除
 - 给下面两个 skill 补上 `references/` 入口：
-  - [tikhub/SKILL.md](/Users/qianleilei/crawclaw-source-shallow/skills-optional/tikhub/SKILL.md)
+  - `skills-optional/tikhub/SKILL.md`
 - 将顶层多余 `README.md` 下沉到 `references/README.md`：
-  - [feishu-file-sender](/Users/qianleilei/crawclaw-source-shallow/skills-optional/feishu-file-sender)
-  - [feishu-office-toolkit](/Users/qianleilei/crawclaw-source-shallow/skills-optional/feishu-office-toolkit)
-  - [humanizer-zh](/Users/qianleilei/crawclaw-source-shallow/skills-optional/humanizer-zh)
-  - [minimax-pdf](/Users/qianleilei/crawclaw-source-shallow/skills-optional/minimax-pdf)
-  - [redbook-skills](/Users/qianleilei/crawclaw-source-shallow/skills-optional/redbook-skills)
+  - `skills-optional/feishu-file-sender`
+  - `skills-optional/feishu-office-toolkit`
+  - `skills-optional/humanizer-zh`
+  - `skills-optional/minimax-pdf`
+  - `skills-optional/redbook-skills`
   - `tavily-web-search-for-crawclaw`
-  - [transnetv2-scene-detect](/Users/qianleilei/crawclaw-source-shallow/skills-optional/transnetv2-scene-detect)
-  - [vercel-react-best-practices](/Users/qianleilei/crawclaw-source-shallow/skills-optional/vercel-react-best-practices)
+  - `skills-optional/transnetv2-scene-detect`
+  - `skills-optional/vercel-react-best-practices`
 
 ## 最终状态
 

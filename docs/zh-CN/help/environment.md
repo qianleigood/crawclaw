@@ -82,17 +82,17 @@ CrawClaw 还会向子进程注入一些运行时标记：
 
 ## 路径相关环境变量
 
-| 变量 | 作用 |
-| --- | --- |
-| `CRAWCLAW_HOME`（兼容 `CRAWCLAW_HOME`） | 覆盖所有内部路径解析使用的主目录。 |
-| `CRAWCLAW_STATE_DIR`（兼容 `CRAWCLAW_STATE_DIR`） | 覆盖状态目录，默认 `~/.crawclaw`。 |
+| 变量                                                  | 作用                                                 |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| `CRAWCLAW_HOME`（兼容 `CRAWCLAW_HOME`）               | 覆盖所有内部路径解析使用的主目录。                   |
+| `CRAWCLAW_STATE_DIR`（兼容 `CRAWCLAW_STATE_DIR`）     | 覆盖状态目录，默认 `~/.crawclaw`。                   |
 | `CRAWCLAW_CONFIG_PATH`（兼容 `CRAWCLAW_CONFIG_PATH`） | 覆盖配置文件路径，默认 `~/.crawclaw/crawclaw.json`。 |
-| `CRAWCLAW_OAUTH_DIR`（兼容 `CRAWCLAW_OAUTH_DIR`） | 覆盖 OAuth 凭据目录。 |
+| `CRAWCLAW_OAUTH_DIR`（兼容 `CRAWCLAW_OAUTH_DIR`）     | 覆盖 OAuth 凭据目录。                                |
 
 ## 日志
 
-| 变量 | 作用 |
-| --- | --- |
+| 变量                                              | 作用                           |
+| ------------------------------------------------- | ------------------------------ |
 | `CRAWCLAW_LOG_LEVEL`（兼容 `CRAWCLAW_LOG_LEVEL`） | 覆盖文件日志和控制台日志级别。 |
 
 ## nvm 用户：web_fetch TLS 失败

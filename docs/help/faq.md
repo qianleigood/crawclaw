@@ -670,7 +670,7 @@ for usage/billing and raise limits as needed.
 
     You only need a Mac **for macOS-only tools**. For iMessage, use [BlueBubbles](/channels/bluebubbles) (recommended) - the BlueBubbles server runs on any Mac, and the Gateway can run on Linux or elsewhere. If you want other macOS-only tools, run the Gateway on a Mac or pair a macOS node.
 
-    Docs: [BlueBubbles](/channels/bluebubbles), [Nodes](/nodes), [Mac remote mode](/platforms/mac/remote).
+    Docs: [BlueBubbles](/channels/bluebubbles), [Nodes](/nodes), [Remote gateway](/gateway/remote).
 
   </Accordion>
 
@@ -684,7 +684,7 @@ for usage/billing and raise limits as needed.
     - Run everything on the Mac if you want the simplest single-machine setup.
 
     Docs: [BlueBubbles](/channels/bluebubbles), [Nodes](/nodes),
-    [Mac remote mode](/platforms/mac/remote).
+    [Remote gateway](/gateway/remote).
 
   </Accordion>
 
@@ -1527,7 +1527,7 @@ for usage/billing and raise limits as needed.
 
   <Accordion title="How do I use Brave for browser control?">
     Set `browser.executablePath` to your Brave binary (or any Chromium-based browser) and restart the Gateway.
-    See the full config examples in [Browser](/tools/browser#use-brave-or-another-chromium-based-browser).
+    See the browser selection notes in [Browser](/tools/browser#browser-selection).
   </Accordion>
 </AccordionGroup>
 
@@ -1567,7 +1567,7 @@ for usage/billing and raise limits as needed.
     Security reminder: pairing a macOS node allows `system.run` on that machine. Only
     pair devices you trust, and review [Security](/gateway/security).
 
-    Docs: [Nodes](/nodes), [Gateway protocol](/gateway/protocol), [macOS remote mode](/platforms/mac/remote), [Security](/gateway/security).
+    Docs: [Nodes](/nodes), [Gateway protocol](/gateway/protocol), [Remote gateway](/gateway/remote), [Security](/gateway/security).
 
   </Accordion>
 
@@ -1710,7 +1710,7 @@ for usage/billing and raise limits as needed.
        crawclaw devices approve <requestId>
        ```
 
-    Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery), [macOS remote mode](/platforms/mac/remote).
+    Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery), [Remote gateway](/gateway/remote).
 
   </Accordion>
 

@@ -108,8 +108,8 @@ title: Control UI Agent Runtime 模块 PR 计划
 
 见：
 
-- [registry.ts](/Users/qianlei/crawclaw/src/agents/special/runtime/registry.ts)
-- [special-agent-substrate.md](/Users/qianlei/crawclaw/docs/zh-CN/debug/special-agent-substrate.md)
+- [registry.ts](src/agents/special/runtime/registry.ts)
+- [special-agent-substrate.md](docs/zh-CN/debug/special-agent-substrate.md)
 
 #### 2. 共享可观测性
 
@@ -123,7 +123,7 @@ special-agent runtime 已经会记录：
 
 见：
 
-- [observability.ts](/Users/qianlei/crawclaw/src/agents/special/runtime/observability.ts)
+- [observability.ts](src/agents/special/runtime/observability.ts)
 
 #### 3. 统一任务账本
 
@@ -136,7 +136,7 @@ special-agent runtime 已经会记录：
 
 见：
 
-- [tasks.md](/Users/qianlei/crawclaw/docs/automation/tasks.md)
+- [tasks.md](docs/automation/tasks.md)
 
 ### 当前还缺
 

@@ -56,7 +56,7 @@ title: Control UI Stitch Channels 差异清单
 
 代码位置：
 
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
   - `renderChannels()`：`4814`
 
 ### 仍未对上的部分
@@ -70,8 +70,8 @@ title: Control UI Stitch Channels 差异清单
 
 见：
 
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5810)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5836)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
 
 问题：
 
@@ -89,10 +89,10 @@ title: Control UI Stitch Channels 差异清单
 
 见：
 
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:4919)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5207)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5049)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:4973)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
 
 问题：
 
@@ -133,8 +133,8 @@ title: Control UI Stitch Channels 差异清单
 
 代码位置：
 
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5010)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5094)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
 
 ### 仍未对上的部分
 
@@ -147,8 +147,8 @@ title: Control UI Stitch Channels 差异清单
 
 见：
 
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5008)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5094)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
 
 问题：
 
@@ -215,9 +215,9 @@ title: Control UI Stitch Channels 差异清单
 
 代码位置：
 
-- [channels.config.ts](/Users/qianlei/crawclaw/ui/src/ui/views/channels.config.ts:49)
-- [channels.config.ts](/Users/qianlei/crawclaw/ui/src/ui/views/channels.config.ts:295)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5576)
+- [channels.config.ts](ui/src/ui/views/channels.config.ts)
+- [channels.config.ts](ui/src/ui/views/channels.config.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
 
 ### 仍未对上的部分
 
@@ -231,9 +231,9 @@ title: Control UI Stitch Channels 差异清单
 
 见：
 
-- [channels.config.ts](/Users/qianlei/crawclaw/ui/src/ui/views/channels.config.ts:115)
-- [channels.config.ts](/Users/qianlei/crawclaw/ui/src/ui/views/channels.config.ts:174)
-- [channels.config.ts](/Users/qianlei/crawclaw/ui/src/ui/views/channels.config.ts:249)
+- [channels.config.ts](ui/src/ui/views/channels.config.ts)
+- [channels.config.ts](ui/src/ui/views/channels.config.ts)
+- [channels.config.ts](ui/src/ui/views/channels.config.ts)
 
 问题：
 
@@ -254,10 +254,10 @@ title: Control UI Stitch Channels 差异清单
 
 见：
 
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5632)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5703)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5740)
-- [app-root.ts](/Users/qianlei/crawclaw/ui/src/ui/rewrite/app-root.ts:5761)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
+- [app-root.ts](ui/src/ui/rewrite/app-root.ts)
 
 问题：
 

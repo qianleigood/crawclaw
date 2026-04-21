@@ -58,7 +58,7 @@ title: Control UI Channels 模块 PR 计划
 
 当前控制面登录能力在：
 
-- [web.ts](/Users/qianlei/crawclaw/src/gateway/server-methods/web.ts)
+- [web.ts](src/gateway/server-methods/web.ts)
 
 关键逻辑是：
 
@@ -104,7 +104,7 @@ title: Control UI Channels 模块 PR 计划
 
 见：
 
-- [channels.ts](/Users/qianlei/crawclaw/src/gateway/server-methods/channels.ts)
+- [channels.ts](src/gateway/server-methods/channels.ts)
 
 这意味着：
 
@@ -148,7 +148,7 @@ title: Control UI Channels 模块 PR 计划
 
 见：
 
-- [channels.ts](/Users/qianlei/crawclaw/src/gateway/server-methods/channels.ts)
+- [channels.ts](src/gateway/server-methods/channels.ts)
 
 这说明：
 

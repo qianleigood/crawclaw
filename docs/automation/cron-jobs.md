@@ -291,7 +291,10 @@ Disable cron: `cron.enabled: false` or `CRAWCLAW_SKIP_CRON=1`.
 
 **Recurring retry**: exponential backoff (30s to 60m) between retries. Backoff resets after the next successful run.
 
-**Maintenance**: `cron.sessionRetention` (default `24h`) prunes isolated run-session entries. `cron.runLog.maxBytes` / `cron.runLog.keepLines` auto-prune run-log files.
+### Maintenance
+
+`cron.sessionRetention` (default `24h`) prunes isolated run-session entries.
+`cron.runLog.maxBytes` / `cron.runLog.keepLines` auto-prune run-log files.
 
 ## Troubleshooting
 

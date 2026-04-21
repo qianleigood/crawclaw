@@ -155,19 +155,19 @@ The script exits with code `2` for invalid method selection or invalid `--instal
 
 The installer still accepts the legacy `CRAWCLAW_*` automation variables during the rename transition.
 
-| Variable                                                | Description                                   |
-| ------------------------------------------------------- | --------------------------------------------- |
-| `CRAWCLAW_INSTALL_METHOD=git\|npm` (`CRAWCLAW_INSTALL_METHOD`)                      | Install method                                |
-| `CRAWCLAW_VERSION=latest\|next\|main\|<semver>\|<spec>` (`CRAWCLAW_VERSION`)        | npm version, dist-tag, or package spec        |
-| `CRAWCLAW_BETA=0\|1` (`CRAWCLAW_BETA`)                                              | Use beta if available                         |
-| `CRAWCLAW_GIT_DIR=<path>` (`CRAWCLAW_GIT_DIR`)                                       | Checkout directory                            |
-| `CRAWCLAW_GIT_UPDATE=0\|1` (`CRAWCLAW_GIT_UPDATE`)                                   | Toggle git updates                            |
-| `CRAWCLAW_NO_PROMPT=1` (`CRAWCLAW_NO_PROMPT`)                                        | Disable prompts                               |
-| `CRAWCLAW_NO_ONBOARD=1` (`CRAWCLAW_NO_ONBOARD`)                                      | Skip onboarding                               |
-| `CRAWCLAW_DRY_RUN=1` (`CRAWCLAW_DRY_RUN`)                                            | Dry run mode                                  |
-| `CRAWCLAW_VERBOSE=1` (`CRAWCLAW_VERBOSE`)                                            | Debug mode                                    |
-| `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice` (`CRAWCLAW_NPM_LOGLEVEL`)                | npm log level                                 |
-| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`                      | Control sharp/libvips behavior (default: `1`) |
+| Variable                                                                     | Description                                   |
+| ---------------------------------------------------------------------------- | --------------------------------------------- |
+| `CRAWCLAW_INSTALL_METHOD=git\|npm` (`CRAWCLAW_INSTALL_METHOD`)               | Install method                                |
+| `CRAWCLAW_VERSION=latest\|next\|main\|<semver>\|<spec>` (`CRAWCLAW_VERSION`) | npm version, dist-tag, or package spec        |
+| `CRAWCLAW_BETA=0\|1` (`CRAWCLAW_BETA`)                                       | Use beta if available                         |
+| `CRAWCLAW_GIT_DIR=<path>` (`CRAWCLAW_GIT_DIR`)                               | Checkout directory                            |
+| `CRAWCLAW_GIT_UPDATE=0\|1` (`CRAWCLAW_GIT_UPDATE`)                           | Toggle git updates                            |
+| `CRAWCLAW_NO_PROMPT=1` (`CRAWCLAW_NO_PROMPT`)                                | Disable prompts                               |
+| `CRAWCLAW_NO_ONBOARD=1` (`CRAWCLAW_NO_ONBOARD`)                              | Skip onboarding                               |
+| `CRAWCLAW_DRY_RUN=1` (`CRAWCLAW_DRY_RUN`)                                    | Dry run mode                                  |
+| `CRAWCLAW_VERBOSE=1` (`CRAWCLAW_VERBOSE`)                                    | Debug mode                                    |
+| `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice` (`CRAWCLAW_NPM_LOGLEVEL`)        | npm log level                                 |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`                                           | Control sharp/libvips behavior (default: `1`) |
 
   </Accordion>
 </AccordionGroup>
@@ -241,15 +241,15 @@ Designed for environments where you want everything under a local prefix (defaul
 
 The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names while the rename migration is in progress.
 
-| Variable                                    | Description                                                                       |
-| ------------------------------------------- | --------------------------------------------------------------------------------- |
-| `CRAWCLAW_PREFIX=<path>` (`CRAWCLAW_PREFIX`)                                           | Install prefix                                                                    |
-| `CRAWCLAW_VERSION=<ver>` (`CRAWCLAW_VERSION`)                                          | CrawClaw version or dist-tag                                                      |
-| `CRAWCLAW_NODE_VERSION=<ver>` (`CRAWCLAW_NODE_VERSION`)                                | Node version                                                                      |
-| `CRAWCLAW_NO_ONBOARD=1` (`CRAWCLAW_NO_ONBOARD`)                                        | Skip onboarding                                                                   |
-| `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice` (`CRAWCLAW_NPM_LOGLEVEL`)                  | npm log level                                                                     |
-| `CRAWCLAW_GIT_DIR=<path>` (`CRAWCLAW_GIT_DIR`)                                         | Legacy cleanup lookup path (used when removing old `Peekaboo` submodule checkout) |
-| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`          | Control sharp/libvips behavior (default: `1`)                                     |
+| Variable                                                              | Description                                                                       |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `CRAWCLAW_PREFIX=<path>` (`CRAWCLAW_PREFIX`)                          | Install prefix                                                                    |
+| `CRAWCLAW_VERSION=<ver>` (`CRAWCLAW_VERSION`)                         | CrawClaw version or dist-tag                                                      |
+| `CRAWCLAW_NODE_VERSION=<ver>` (`CRAWCLAW_NODE_VERSION`)               | Node version                                                                      |
+| `CRAWCLAW_NO_ONBOARD=1` (`CRAWCLAW_NO_ONBOARD`)                       | Skip onboarding                                                                   |
+| `CRAWCLAW_NPM_LOGLEVEL=error\|warn\|notice` (`CRAWCLAW_NPM_LOGLEVEL`) | npm log level                                                                     |
+| `CRAWCLAW_GIT_DIR=<path>` (`CRAWCLAW_GIT_DIR`)                        | Legacy cleanup lookup path (used when removing old `Peekaboo` submodule checkout) |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`                                    | Control sharp/libvips behavior (default: `1`)                                     |
 
   </Accordion>
 </AccordionGroup>
@@ -332,13 +332,13 @@ The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names whil
 
   <Accordion title="Environment variables reference">
 
-| Variable                           | Description        |
-| ---------------------------------- | ------------------ |
+| Variable                                                       | Description        |
+| -------------------------------------------------------------- | ------------------ |
 | `CRAWCLAW_INSTALL_METHOD=git\|npm` (`CRAWCLAW_INSTALL_METHOD`) | Install method     |
 | `CRAWCLAW_GIT_DIR=<path>` (`CRAWCLAW_GIT_DIR`)                 | Checkout directory |
-| `CRAWCLAW_NO_ONBOARD=1` (`CRAWCLAW_NO_ONBOARD`)               | Skip onboarding    |
-| `CRAWCLAW_GIT_UPDATE=0` (`CRAWCLAW_GIT_UPDATE`)               | Disable git pull   |
-| `CRAWCLAW_DRY_RUN=1` (`CRAWCLAW_DRY_RUN`)                     | Dry run mode       |
+| `CRAWCLAW_NO_ONBOARD=1` (`CRAWCLAW_NO_ONBOARD`)                | Skip onboarding    |
+| `CRAWCLAW_GIT_UPDATE=0` (`CRAWCLAW_GIT_UPDATE`)                | Disable git pull   |
+| `CRAWCLAW_DRY_RUN=1` (`CRAWCLAW_DRY_RUN`)                      | Dry run mode       |
 
   </Accordion>
 </AccordionGroup>

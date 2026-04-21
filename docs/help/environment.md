@@ -103,17 +103,17 @@ Both resolve from process env at activation time. SecretRef details are document
 
 ## Path-related env vars
 
-| Variable               | Purpose                                                                                                                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable                                        | Purpose                                                                                                                                                                          |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CRAWCLAW_HOME` (`CRAWCLAW_HOME`)               | Override the home directory used for all internal path resolution (`~/.crawclaw/`, agent dirs, sessions, credentials). Useful when running CrawClaw as a dedicated service user. |
-| `CRAWCLAW_STATE_DIR` (`CRAWCLAW_STATE_DIR`)     | Override the state directory (default `~/.crawclaw`).                                                                                                                             |
-| `CRAWCLAW_CONFIG_PATH` (`CRAWCLAW_CONFIG_PATH`) | Override the config file path (default `~/.crawclaw/crawclaw.json`).                                                                                                              |
-| `CRAWCLAW_OAUTH_DIR` (`CRAWCLAW_OAUTH_DIR`)     | Override the OAuth credentials directory.                                                                                                                                           |
+| `CRAWCLAW_STATE_DIR` (`CRAWCLAW_STATE_DIR`)     | Override the state directory (default `~/.crawclaw`).                                                                                                                            |
+| `CRAWCLAW_CONFIG_PATH` (`CRAWCLAW_CONFIG_PATH`) | Override the config file path (default `~/.crawclaw/crawclaw.json`).                                                                                                             |
+| `CRAWCLAW_OAUTH_DIR` (`CRAWCLAW_OAUTH_DIR`)     | Override the OAuth credentials directory.                                                                                                                                        |
 
 ## Logging
 
-| Variable             | Purpose                                                                                                                                                                                      |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable                                    | Purpose                                                                                                                                                                                      |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CRAWCLAW_LOG_LEVEL` (`CRAWCLAW_LOG_LEVEL`) | Override log level for both file and console (e.g. `debug`, `trace`). Takes precedence over `logging.level` and `logging.consoleLevel` in config. Invalid values are ignored with a warning. |
 
 ### `CRAWCLAW_HOME`

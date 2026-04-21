@@ -13,7 +13,7 @@ CrawClaw is **not** a hostile multi-tenant security boundary for multiple advers
 If you need mixed-trust or adversarial-user operation, split trust boundaries (separate gateway + credentials, ideally separate OS users/hosts).
 </Warning>
 
-**On this page:** [Trust model](#scope-first-personal-assistant-security-model) | [Quick audit](#quick-check-crawclaw-security-audit) | [Hardened baseline](#hardened-baseline-in-60-seconds) | [DM access model](#dm-access-model-pairing--allowlist--open--disabled) | [Configuration hardening](#configuration-hardening-examples) | [Incident response](#incident-response)
+**On this page:** [Trust model](#scope-first-personal-assistant-security-model) | [Quick audit](#quick-check-crawclaw-security-audit) | [Hardened baseline](#hardened-baseline-in-60-seconds) | [DM access model](#dm-access-model) | [Configuration hardening](#configuration-hardening-examples) | [Incident response](#incident-response)
 
 ## Scope first: personal assistant security model
 
@@ -182,7 +182,7 @@ Allowlists gate triggers and command authorization. The `contextVisibility` sett
 - `contextVisibility: "allowlist"` filters supplemental context to senders allowed by the active allowlist checks.
 - `contextVisibility: "allowlist_quote"` behaves like `allowlist`, but still keeps one explicit quoted reply.
 
-Set `contextVisibility` per channel or per room/conversation. See [Group Chats](/channels/groups#context-visibility) for setup details.
+Set `contextVisibility` per channel or per room/conversation. See [Group Chats](/channels/groups#context-visibility-and-allowlists) for setup details.
 
 Advisory triage guidance:
 
@@ -487,7 +487,7 @@ Plugins run **in-process** with the Gateway. Treat them as trusted code:
 
 Details: [Plugins](/tools/plugin)
 
-## DM access model (pairing / allowlist / open / disabled)
+## DM access model
 
 All current DM-capable channels support a DM policy (`dmPolicy` or `*.dm.policy`) that gates inbound DMs **before** the message is processed:
 

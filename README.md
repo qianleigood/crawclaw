@@ -45,15 +45,15 @@ CrawClaw is built around a **Gateway-first architecture**.
 
 At the repository level, the system is split roughly like this:
 
-- [src/gateway](/Users/qianlei/crawclaw/src/gateway): control plane, protocol,
+- [src/gateway](src/gateway): control plane, protocol,
   auth, methods, gateway services
-- [src/agents](/Users/qianlei/crawclaw/src/agents): agent runtime, tool
+- [src/agents](src/agents): agent runtime, tool
   registration, sandboxing, provider integration, subagents
-- [src/memory](/Users/qianlei/crawclaw/src/memory): memory engine, extraction,
+- [src/memory](src/memory): memory engine, extraction,
   durable storage, orchestration, prompt assembly
-- [src/workflows](/Users/qianlei/crawclaw/src/workflows): workflow registry,
+- [src/workflows](src/workflows): workflow registry,
   versioning, n8n compilation and execution bridge
-- [extensions](/Users/qianlei/crawclaw/extensions): plugin-style capability
+- [extensions](extensions): plugin-style capability
   packages for channels, providers, browser backends, and more
 
 ## Memory Design
@@ -63,9 +63,9 @@ adapter.
 
 Core entrypoints:
 
-- [src/memory/index.ts](/Users/qianlei/crawclaw/src/memory/index.ts:1)
-- [src/memory/engine/memory-runtime.ts](/Users/qianlei/crawclaw/src/memory/engine/memory-runtime.ts:1)
-- [src/memory/orchestration/context-assembler.ts](/Users/qianlei/crawclaw/src/memory/orchestration/context-assembler.ts:1)
+- [src/memory/index.ts](src/memory/index.ts)
+- [src/memory/engine/memory-runtime.ts](src/memory/engine/memory-runtime.ts)
+- [src/memory/orchestration/context-assembler.ts](src/memory/orchestration/context-assembler.ts)
 
 The design has four layers:
 
@@ -75,16 +75,16 @@ The design has four layers:
    - Promotion paths exist for session summaries, durable memory, and
      knowledge-like notes.
    - Relevant modules live under
-     [src/memory/extraction](/Users/qianlei/crawclaw/src/memory/extraction) and
-     [src/memory/promotion](/Users/qianlei/crawclaw/src/memory/promotion).
+     [src/memory/extraction](src/memory/extraction) and
+     [src/memory/promotion](src/memory/promotion).
 
 2. **Storage**
    - The built-in engine is local-first and SQLite-backed.
    - Durable memory, summaries, and assembly audit data are stored in local
      runtime stores rather than outsourced to a remote-only service.
    - Relevant modules:
-     [src/memory/runtime](/Users/qianlei/crawclaw/src/memory/runtime) and
-     [src/memory/durable](/Users/qianlei/crawclaw/src/memory/durable).
+     [src/memory/runtime](src/memory/runtime) and
+     [src/memory/durable](src/memory/durable).
 
 3. **Recall and ranking**
    - Recall is hybrid by design: vector search, text search, reranking, and
@@ -92,9 +92,9 @@ The design has four layers:
    - The system distinguishes durable memory, knowledge layers, session memory,
      and runtime signals instead of flattening everything into one top-k list.
    - Relevant modules:
-     [src/memory/orchestration](/Users/qianlei/crawclaw/src/memory/orchestration),
-     [src/memory/search](/Users/qianlei/crawclaw/src/memory/search), and
-     [src/memory/recall](/Users/qianlei/crawclaw/src/memory/recall).
+     [src/memory/orchestration](src/memory/orchestration),
+     [src/memory/search](src/memory/search), and
+     [src/memory/recall](src/memory/recall).
 
 4. **Prompt assembly and compaction**
    - Memory is assembled into structured prompt sections with token budgets.
@@ -103,8 +103,8 @@ The design has four layers:
    - Compaction is treated as a first-class maintenance path, not an emergency
      fallback.
    - Relevant modules:
-     [src/memory/context](/Users/qianlei/crawclaw/src/memory/context) and
-     [src/memory/session-summary](/Users/qianlei/crawclaw/src/memory/session-summary).
+     [src/memory/context](src/memory/context) and
+     [src/memory/session-summary](src/memory/session-summary).
 
 Practical design takeaway:
 
@@ -114,7 +114,7 @@ Practical design takeaway:
 
 Configuration reference:
 
-- [docs/reference/memory-config.md](/Users/qianlei/crawclaw/docs/reference/memory-config.md)
+- [docs/reference/memory-config.md](docs/reference/memory-config.md)
 
 ## Workflow Design
 
@@ -125,9 +125,9 @@ The workflow system is designed around a hard boundary:
 
 This is already reflected in code:
 
-- [src/workflows/api.ts](/Users/qianlei/crawclaw/src/workflows/api.ts:1)
-- [src/workflows/n8n-client.ts](/Users/qianlei/crawclaw/src/workflows/n8n-client.ts:1)
-- [src/agents/tools/workflow-tool.ts](/Users/qianlei/crawclaw/src/agents/tools/workflow-tool.ts:1)
+- [src/workflows/api.ts](src/workflows/api.ts)
+- [src/workflows/n8n-client.ts](src/workflows/n8n-client.ts)
+- [src/agents/tools/workflow-tool.ts](src/agents/tools/workflow-tool.ts)
 
 The workflow model works like this:
 
@@ -147,7 +147,7 @@ This means the workflow design is intentionally split into three concerns:
 - **Registry and lifecycle**
   - list, describe, diff, versions, update, republish, rollback, archive
   - implemented in
-    [src/workflows](/Users/qianlei/crawclaw/src/workflows)
+    [src/workflows](src/workflows)
 
 - **Compilation and execution bridge**
   - compile workflow spec to n8n
@@ -167,7 +167,7 @@ Practical design takeaway:
 
 Reference:
 
-- [docs/reference/n8n-workflow-architecture.md](/Users/qianlei/crawclaw/docs/reference/n8n-workflow-architecture.md)
+- [docs/reference/n8n-workflow-architecture.md](docs/reference/n8n-workflow-architecture.md)
 
 ## Tool Substrate
 
@@ -176,13 +176,13 @@ text generation goes through tools.
 
 Tool-facing docs:
 
-- [docs/tools/index.md](/Users/qianlei/crawclaw/docs/tools/index.md)
+- [docs/tools/index.md](docs/tools/index.md)
 
 Runtime entrypoints:
 
-- [src/agents/crawclaw-tools.runtime.ts](/Users/qianlei/crawclaw/src/agents/crawclaw-tools.runtime.ts:1)
-- [src/agents/bash-tools.ts](/Users/qianlei/crawclaw/src/agents/bash-tools.ts:1)
-- [src/agents/tools/gateway.ts](/Users/qianlei/crawclaw/src/agents/tools/gateway.ts:1)
+- [src/agents/crawclaw-tools.runtime.ts](src/agents/crawclaw-tools.runtime.ts)
+- [src/agents/bash-tools.ts](src/agents/bash-tools.ts)
+- [src/agents/tools/gateway.ts](src/agents/tools/gateway.ts)
 
 The substrate is layered like this:
 
@@ -222,7 +222,7 @@ Practical design takeaway:
 
 Reference:
 
-- [docs/install/node.md](/Users/qianlei/crawclaw/docs/install/node.md)
+- [docs/install/node.md](docs/install/node.md)
 
 Requirements:
 
@@ -258,7 +258,7 @@ npm prefix -g
 
 Reference:
 
-- [docs/install/docker.md](/Users/qianlei/crawclaw/docs/install/docker.md)
+- [docs/install/docker.md](docs/install/docker.md)
 
 Docker is the containerized gateway path. It is useful when you want the
 gateway isolated from the host runtime.
@@ -305,11 +305,11 @@ curl -fsS http://127.0.0.1:18789/readyz
 
 ## Repo Pointers
 
-- Gateway: [src/gateway](/Users/qianlei/crawclaw/src/gateway)
-- Memory: [src/memory](/Users/qianlei/crawclaw/src/memory)
-- Workflows: [src/workflows](/Users/qianlei/crawclaw/src/workflows)
-- Agent runtime and tools: [src/agents](/Users/qianlei/crawclaw/src/agents)
-- Browser subsystem and plugins: [extensions](/Users/qianlei/crawclaw/extensions)
+- Gateway: [src/gateway](src/gateway)
+- Memory: [src/memory](src/memory)
+- Workflows: [src/workflows](src/workflows)
+- Agent runtime and tools: [src/agents](src/agents)
+- Browser subsystem and plugins: [extensions](extensions)
 
 ## Repository Layout
 
@@ -325,4 +325,4 @@ The monorepo currently carries several layers at once:
 
 Maintainer structure notes:
 
-- [docs/maintainers/repo-structure.md](/Users/qianlei/crawclaw/docs/maintainers/repo-structure.md)
+- [docs/maintainers/repo-structure.md](docs/maintainers/repo-structure.md)

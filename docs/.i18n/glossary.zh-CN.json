@@ -354,5 +354,29 @@
   {
     "source": "Gateway Architecture",
     "target": "Gateway 架构"
+  },
+  {
+    "source": "Durable Memory Refactor Status",
+    "target": "持久记忆重构状态"
+  },
+  {
+    "source": "Durable memory refactor status",
+    "target": "持久记忆重构状态"
+  },
+  {
+    "source": "Installer internals",
+    "target": "安装器内部机制"
+  },
+  {
+    "source": "Node.js install and troubleshooting",
+    "target": "Node.js 安装与故障排除"
+  },
+  {
+    "source": "Gateway configuration",
+    "target": "Gateway 配置"
+  },
+  {
+    "source": "Security",
+    "target": "安全"
   }
 ]

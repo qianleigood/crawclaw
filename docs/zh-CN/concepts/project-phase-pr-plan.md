@@ -1222,7 +1222,7 @@ title: Phase 对应 PR 计划
 
 已验证：
 
-- `pnpm --dir /Users/qianlei/crawclaw lint ui/src/ui/navigation.ts ui/src/ui/navigation.test.ts ui/src/ui/navigation-groups.test.ts ui/src/ui/app-render.ts ui/src/ui/views/command-palette.ts ui/src/i18n/locales/en.ts ui/src/i18n/locales/zh-CN.ts ui/src/i18n/locales/es.ts ui/src/i18n/locales/de.ts ui/src/i18n/locales/pt-BR.ts`
+- `pnpm --dir <repo> lint ui/src/ui/navigation.ts ui/src/ui/navigation.test.ts ui/src/ui/navigation-groups.test.ts ui/src/ui/app-render.ts ui/src/ui/views/command-palette.ts ui/src/i18n/locales/en.ts ui/src/i18n/locales/zh-CN.ts ui/src/i18n/locales/es.ts ui/src/i18n/locales/de.ts ui/src/i18n/locales/pt-BR.ts`
 - `../node_modules/.bin/vitest run --config vitest.config.ts src/ui/navigation.test.ts src/ui/navigation-groups.test.ts`（在 `ui/` 目录）
 - `pnpm check`
 

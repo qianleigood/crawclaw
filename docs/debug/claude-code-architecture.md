@@ -3,16 +3,16 @@ summary: "Learning-oriented architecture notes for the local Claude Code source 
 read_when:
   - You want a source-map for Claude Code
   - You are comparing CrawClaw with Claude Code's runtime design
-  - You want a guided reading order for `/Users/qianleilei/src`
+  - You want a guided reading order for a local Claude Code checkout
 title: "Claude Code Architecture Notes"
 ---
 
 # Claude Code architecture notes
 
-This page is a learning-oriented source map for the local Claude Code checkout at:
+This page is a learning-oriented source map for a local Claude Code checkout:
 
 ```text
-/Users/qianleilei/src
+/path/to/claude-code
 ```
 
 It is not product documentation from Anthropic. It is a technical reading guide
