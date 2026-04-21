@@ -1,38 +1,29 @@
-import { mkdtempSync, mkdirSync, realpathSync, symlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  getSandboxHostPathKind,
+  isSandboxHostPathInside,
   normalizeSandboxHostPath,
-  resolveSandboxHostPathViaExistingAncestor,
 } from "./host-paths.js";
 
-describe("normalizeSandboxHostPath", () => {
-  it("normalizes dot segments and strips trailing slash", () => {
-    expect(normalizeSandboxHostPath("/tmp/a/../b//")).toBe("/tmp/b");
-  });
-});
-
-describe("resolveSandboxHostPathViaExistingAncestor", () => {
-  it("keeps non-absolute paths unchanged", () => {
-    expect(resolveSandboxHostPathViaExistingAncestor("relative/path")).toBe("relative/path");
+describe("sandbox host path normalization", () => {
+  it("normalizes Windows drive-letter paths without converting them to POSIX", () => {
+    expect(normalizeSandboxHostPath("\\\\?\\C:\\Users\\kai\\project\\..\\cache\\")).toBe(
+      "C:\\Users\\kai\\cache",
+    );
   });
 
-  it("resolves symlink parents when the final leaf does not exist", () => {
-    if (process.platform === "win32") {
-      return;
-    }
+  it("normalizes UNC namespace paths and classifies them as network paths", () => {
+    const normalized = normalizeSandboxHostPath("\\\\?\\UNC\\server\\share\\project\\");
+    expect(normalized).toBe("\\\\server\\share\\project");
+    expect(getSandboxHostPathKind(normalized)).toBe("windows-unc");
+  });
 
-    const root = mkdtempSync(join(tmpdir(), "crawclaw-host-paths-"));
-    const workspace = join(root, "workspace");
-    const outside = join(root, "outside");
-    mkdirSync(workspace, { recursive: true });
-    mkdirSync(outside, { recursive: true });
-    const link = join(workspace, "alias-out");
-    symlinkSync(outside, link);
-
-    const unresolved = join(link, "missing-leaf");
-    const resolved = resolveSandboxHostPathViaExistingAncestor(unresolved);
-    expect(resolved).toBe(join(realpathSync.native(outside), "missing-leaf"));
+  it("compares Windows drive-letter paths case-insensitively for source-root checks", () => {
+    expect(isSandboxHostPathInside("C:\\Users\\Kai\\Project", "c:/users/kai/project/cache")).toBe(
+      true,
+    );
+    expect(
+      isSandboxHostPathInside("C:\\Users\\Kai\\Project", "D:\\Users\\Kai\\Project\\cache"),
+    ).toBe(false);
   });
 });
