@@ -162,6 +162,26 @@ describe("Windows startup fallback", () => {
     });
   });
 
+  it("falls back when localized schtasks output cannot be decoded", async () => {
+    await withWindowsEnv("crawclaw-win-startup-", async ({ env }) => {
+      schtasksResponses.push(
+        { code: 0, stdout: "", stderr: "" },
+        { code: 1, stdout: "", stderr: "\uFFFD\uFFFD\uFFFD\uFFFD: \uFFFD\uFFFD\uFFFD" },
+      );
+
+      const stdout = new PassThrough();
+      await installScheduledTask({
+        env,
+        stdout,
+        programArguments: ["node", "gateway.js", "--port", "18789"],
+        environment: { CRAWCLAW_GATEWAY_PORT: "18789" },
+      });
+
+      await expect(fs.access(resolveStartupEntryPath(env))).resolves.toBeUndefined();
+      expectStartupFallbackSpawn(env);
+    });
+  });
+
   it("treats an installed Startup-folder launcher as loaded", async () => {
     await withWindowsEnv("crawclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses();

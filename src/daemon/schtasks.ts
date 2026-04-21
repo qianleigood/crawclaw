@@ -36,10 +36,14 @@ function resolveTaskName(env: GatewayServiceEnv): string {
 
 const SCHTASKS_ACCESS_DENIED_RE =
   /access is denied|access denied|\u62d2\u7edd\u8bbf\u95ee|\u62d2\u7d55\u5b58\u53d6|\u62d2\u7d55\u8a2a\u554f/iu;
+const SCHTASKS_UNDECODABLE_LOCALIZED_ERROR_RE = /\uFFFD/u;
 
 function shouldFallbackToStartupEntry(params: { code: number; detail: string }): boolean {
   return (
     SCHTASKS_ACCESS_DENIED_RE.test(params.detail) ||
+    // Non-English schtasks output can arrive in the Windows console code page and decode as U+FFFD.
+    // This branch is only evaluated after `/Create` fails, so fall back to the per-user login item.
+    (params.code !== 0 && SCHTASKS_UNDECODABLE_LOCALIZED_ERROR_RE.test(params.detail)) ||
     params.code === 124 ||
     /schtasks timed out/i.test(params.detail) ||
     /schtasks produced no output/i.test(params.detail)
