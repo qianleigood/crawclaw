@@ -744,9 +744,10 @@ pack_main_tgz() {
   local mingit_name mingit_url short_head pkg packed_commit
   if [[ -n "$TARGET_PACKAGE_SPEC" ]]; then
     say "Pack target package tgz: $TARGET_PACKAGE_SPEC"
-    mapfile -t mingit_meta < <(resolve_mingit_download)
-    mingit_name="${mingit_meta[0]}"
-    mingit_url="${mingit_meta[1]}"
+    {
+      IFS= read -r mingit_name
+      IFS= read -r mingit_url
+    } < <(resolve_mingit_download)
     MINGIT_ZIP_NAME="$mingit_name"
     MINGIT_ZIP_PATH="$MAIN_TGZ_DIR/$mingit_name"
     if [[ ! -f "$MINGIT_ZIP_PATH" ]]; then
@@ -765,9 +766,10 @@ pack_main_tgz() {
   fi
   say "Pack current main tgz"
   ensure_current_build
-  mapfile -t mingit_meta < <(resolve_mingit_download)
-  mingit_name="${mingit_meta[0]}"
-  mingit_url="${mingit_meta[1]}"
+  {
+    IFS= read -r mingit_name
+    IFS= read -r mingit_url
+  } < <(resolve_mingit_download)
   MINGIT_ZIP_NAME="$mingit_name"
   MINGIT_ZIP_PATH="$MAIN_TGZ_DIR/$mingit_name"
   if [[ ! -f "$MINGIT_ZIP_PATH" ]]; then
