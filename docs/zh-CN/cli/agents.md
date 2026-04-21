@@ -151,7 +151,7 @@ crawclaw agents set-identity --identity-file ~/.crawclaw/workspace/IDENTITY.md -
 显式覆盖字段：
 
 ```bash
-crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦞" --avatar avatars/crawclaw.png
+crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦀" --avatar avatars/crawclaw.png
 ```
 
 配置示例：
@@ -165,7 +165,7 @@ crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦞" --ava
         identity: {
           name: "CrawClaw",
           theme: "space lobster",
-          emoji: "🦞",
+          emoji: "🦀",
           avatar: "avatars/crawclaw.png",
         },
       },

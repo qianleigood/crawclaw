@@ -35,7 +35,7 @@ describe("finalizeSlackPreviewEdit", () => {
   it("treats a thrown edit as success when history readback already matches", async () => {
     editSlackMessageMock.mockRejectedValueOnce(new Error("socket closed"));
     const client = createClient({
-      historyMessages: [{ ts: "171234.567", text: "fair. poke harder then 🦞" }],
+      historyMessages: [{ ts: "171234.567", text: "fair. poke harder then 🦀" }],
     });
 
     await expect(
@@ -44,7 +44,7 @@ describe("finalizeSlackPreviewEdit", () => {
         token: "xoxb-test",
         channelId: "C123",
         messageId: "171234.567",
-        text: "fair. poke harder then 🦞",
+        text: "fair. poke harder then 🦀",
       }),
     ).resolves.toBeUndefined();
 

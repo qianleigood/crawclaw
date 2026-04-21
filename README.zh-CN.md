@@ -1,4 +1,4 @@
-# 🦞 CrawClaw
+# 🦀 CrawClaw
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/qianleigood/crawclaw/main/docs/assets/crawclaw-logo-badge.png" alt="CrawClaw logo" width="360">

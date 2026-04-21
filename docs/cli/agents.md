@@ -144,7 +144,7 @@ crawclaw agents set-identity --identity-file ~/.crawclaw/workspace/IDENTITY.md -
 Override fields explicitly:
 
 ```bash
-crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦞" --avatar avatars/crawclaw.png
+crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦀" --avatar avatars/crawclaw.png
 ```
 
 Config sample:
@@ -158,7 +158,7 @@ Config sample:
         identity: {
           name: "CrawClaw",
           theme: "space lobster",
-          emoji: "🦞",
+          emoji: "🦀",
           avatar: "avatars/crawclaw.png",
         },
       },

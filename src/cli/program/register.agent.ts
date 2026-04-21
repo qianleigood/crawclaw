@@ -283,7 +283,7 @@ ${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/agent", "docs.cra
 ${theme.heading(t("cli.help.examplesHeading"))}
 ${formatHelpExamples([
   [
-    'crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦞"',
+    'crawclaw agents set-identity --agent main --name "CrawClaw" --emoji "🦀"',
     t("command.agents.setIdentity.example.nameEmoji"),
   ],
   [

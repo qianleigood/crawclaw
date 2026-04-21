@@ -25,7 +25,8 @@ try {
   // fallback
 }
 
-const QQBOT_PLUGIN_GITHUB_URL = "https://github.com/qianleigood/crawclaw/tree/main/extensions/qqbot";
+const QQBOT_PLUGIN_GITHUB_URL =
+  "https://github.com/qianleigood/crawclaw/tree/main/extensions/qqbot";
 const QQBOT_UPGRADE_GUIDE_URL = "https://q.qq.com/qqbot/crawclaw/upgrade.html";
 
 // ============ Types ============
@@ -196,7 +197,7 @@ registerCommand({
   usage: [`/bot-version`, ``, `查看当前 CrawClaw 框架版本。`].join("\n"),
   handler: async () => {
     const frameworkVersion = resolveRuntimeServiceVersion();
-    const lines = [`🦞 CrawClaw 版本：${frameworkVersion}`];
+    const lines = [`🦀 CrawClaw 版本：${frameworkVersion}`];
     lines.push(`🌟 官方 GitHub 仓库：[点击前往](${QQBOT_PLUGIN_GITHUB_URL})`);
     return lines.join("\n");
   },

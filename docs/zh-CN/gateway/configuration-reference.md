@@ -1638,7 +1638,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 ```json5
 {
   messages: {
-    responsePrefix: "🦞", // 或 "auto"
+    responsePrefix: "🦀", // 或 "auto"
     ackReaction: "👀",
     ackReactionScope: "group-mentions", // group-mentions | group-all | direct | all
     removeAckAfterReply: false,

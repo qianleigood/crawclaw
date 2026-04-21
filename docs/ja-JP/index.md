@@ -12,7 +12,7 @@ x-i18n:
   workflow: 15
 ---
 
-# CrawClaw 🦞
+# CrawClaw 🦀
 
 <p align="center">
     <img

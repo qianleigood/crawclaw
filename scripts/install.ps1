@@ -34,7 +34,7 @@ function Write-Host {
 
 function Write-Banner {
     Write-Host ""
-    Write-Host "${ACCENT}  🦞 CrawClaw Installer$NC" -Level info
+    Write-Host "${ACCENT}  🦀 CrawClaw Installer$NC" -Level info
     Write-Host "${MUTED}  All your chats, one CrawClaw.$NC" -Level info
     Write-Host ""
 }
@@ -353,7 +353,7 @@ function Main {
     }
     
     Write-Host ""
-    Write-Host "🦞 CrawClaw installed successfully!" -Level success
+    Write-Host "🦀 CrawClaw installed successfully!" -Level success
 }
 
 Main
