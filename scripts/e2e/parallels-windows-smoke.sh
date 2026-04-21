@@ -241,6 +241,33 @@ ps_array_literal() {
   printf '@(%s)' "$joined"
 }
 
+ps_resolve_crawclaw_cmd_function() {
+  cat <<'EOF'
+function Resolve-CrawClawCmd {
+  $candidates = @()
+  if ($env:APPDATA) {
+    $candidates += (Join-Path $env:APPDATA 'npm\crawclaw.cmd')
+  }
+  try {
+    $prefix = (& npm.cmd prefix -g 2>$null | Select-Object -First 1)
+    if ($LASTEXITCODE -eq 0 -and $prefix) {
+      $candidates += (Join-Path $prefix 'crawclaw.cmd')
+    }
+  } catch {}
+  $command = Get-Command crawclaw.cmd -ErrorAction SilentlyContinue
+  if ($command -and $command.Source) {
+    $candidates += $command.Source
+  }
+  foreach ($candidate in $candidates) {
+    if ($candidate -and (Test-Path $candidate)) {
+      return $candidate
+    }
+  }
+  throw ('crawclaw.cmd not found. Checked: {0}' -f ($candidates -join ', '))
+}
+EOF
+}
+
 resolve_snapshot_info() {
   local json hint
   json="$(prlctl snapshot-list "$VM_NAME" --json)"
@@ -429,7 +456,8 @@ guest_run_crawclaw() {
   env_value_q="$(ps_single_quote "$env_value")"
 
   guest_powershell "$(cat <<EOF
-\$crawclaw = Join-Path \$env:APPDATA 'npm\\crawclaw.cmd'
+$(ps_resolve_crawclaw_cmd_function)
+\$crawclaw = Resolve-CrawClawCmd
 \$args = $args_literal
 if ('${env_name_q}' -ne '') {
   Set-Item -Path ('Env:' + '${env_name_q}') -Value '${env_value_q}'
@@ -674,6 +702,11 @@ arch_suffix = os.environ.get("MINGIT_ARCH_SUFFIX", "64-bit")
 fallbacks = fallback_assets.get(arch_suffix, fallback_assets["64-bit"])
 preferred_names = [name for name, _ in fallbacks]
 
+def asset_matches_arch(name):
+    if arch_suffix == "arm64":
+        return "arm64" in name
+    return "64-bit" in name and "32-bit" not in name
+
 req = urllib.request.Request(
     "https://api.github.com/repos/git-for-windows/git/releases/latest",
     headers={
@@ -702,6 +735,18 @@ for wanted in preferred_names:
             break
     if best:
         break
+
+if best is None:
+    for asset in assets:
+        name = asset.get("name", "")
+        if (
+            name.startswith("MinGit-")
+            and name.endswith(".zip")
+            and "busybox" not in name
+            and asset_matches_arch(name)
+        ):
+            best = asset
+            break
 
 if best is None:
     for asset in assets:
@@ -885,9 +930,10 @@ install_latest_release() {
   local install_script
   install_script="$(cat <<EOF
 \$ProgressPreference = 'SilentlyContinue'
+$(ps_resolve_crawclaw_cmd_function)
 \$script = Invoke-RestMethod -Uri '$install_url_q'
 & ([scriptblock]::Create(\$script)) ${version_flag_q}-NoOnboard
-& (Join-Path \$env:APPDATA 'npm\\crawclaw.cmd') --version
+& (Resolve-CrawClawCmd) --version
 EOF
 )"
   run_windows_retry "latest release installer" 2 guest_powershell "$install_script"
@@ -896,13 +942,24 @@ EOF
 install_main_tgz() {
   local host_ip="$1"
   local temp_name="$2"
-  local tgz_url
+  local tgz_url tgz_url_q temp_name_q install_script
   tgz_url="http://$host_ip:$HOST_PORT/$(basename "$MAIN_TGZ_PATH")"
+  tgz_url_q="$(ps_single_quote "$tgz_url")"
+  temp_name_q="$(ps_single_quote "$temp_name")"
   # Global npm installs on the Windows guest can stay silent for long stretches.
   # Treat the phase log plus retry wrapper as the primary signal before assuming
   # the guest hung.
+  install_script="$(cat <<EOF
+$(ps_resolve_crawclaw_cmd_function)
+\$env:PATH = "\$env:LOCALAPPDATA\\CrawClaw\\deps\\portable-git\\cmd;\$env:LOCALAPPDATA\\CrawClaw\\deps\\portable-git\\mingw64\\bin;\$env:LOCALAPPDATA\\CrawClaw\\deps\\portable-git\\usr\\bin;\$env:PATH"
+\$tgz = Join-Path \$env:TEMP '$temp_name_q'
+curl.exe -fsSL '$tgz_url_q' -o \$tgz
+npm.cmd install -g \$tgz --no-fund --no-audit
+& (Resolve-CrawClawCmd) --version
+EOF
+)"
   run_windows_retry "main tgz install" 2 \
-    guest_exec cmd.exe /d /s /c "set \"PATH=%LOCALAPPDATA%\\CrawClaw\\deps\\portable-git\\cmd;%LOCALAPPDATA%\\CrawClaw\\deps\\portable-git\\mingw64\\bin;%LOCALAPPDATA%\\CrawClaw\\deps\\portable-git\\usr\\bin;%PATH%\" && curl.exe -fsSL \"$tgz_url\" -o \"%TEMP%\\$temp_name\" && npm.cmd install -g \"%TEMP%\\$temp_name\" --no-fund --no-audit && \"%APPDATA%\\npm\\crawclaw.cmd\" --version"
+    guest_powershell "$install_script"
 }
 
 verify_version_contains() {
@@ -930,8 +987,10 @@ param(
 \$ErrorActionPreference = 'Stop'
 \$PSNativeCommandUseErrorActionPreference = \$false
 
+$(ps_resolve_crawclaw_cmd_function)
+
 try {
-  \$crawclaw = Join-Path \$env:APPDATA 'npm\\crawclaw.cmd'
+  \$crawclaw = Resolve-CrawClawCmd
   \$cmdLine = ('"{0}" onboard --non-interactive --mode local --auth-choice ${AUTH_CHOICE} --secret-input-mode ref --gateway-port 18789 --gateway-bind loopback --install-daemon --skip-skills --accept-risk --json > "{1}" 2>&1' -f \$crawclaw, \$LogPath)
   & cmd.exe /d /s /c \$cmdLine
   Set-Content -Path \$DonePath -Value ([string]\$LASTEXITCODE)
@@ -1054,8 +1113,9 @@ Remove-Item \$runner, \$log, \$done -Force -ErrorAction SilentlyContinue
 \$PSNativeCommandUseErrorActionPreference = \$false
 \$log = Join-Path \$env:TEMP '$log_name'
 \$done = Join-Path \$env:TEMP '$done_name'
+$(ps_resolve_crawclaw_cmd_function)
 try {
-  \$crawclaw = Join-Path \$env:APPDATA 'npm\\crawclaw.cmd'
+  \$crawclaw = Resolve-CrawClawCmd
   & \$crawclaw gateway $action *>&1 | Tee-Object -FilePath \$log -Append | Out-Null
   Set-Content -Path \$done -Value ([string]\$LASTEXITCODE)
 } catch {
