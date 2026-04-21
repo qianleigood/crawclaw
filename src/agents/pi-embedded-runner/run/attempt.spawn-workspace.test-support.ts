@@ -510,7 +510,9 @@ export type MutableSession = {
   subscriptions?: Array<(event: { type: string }) => void>;
   agent: {
     streamFn?: unknown;
-    replaceMessages: (messages: unknown[]) => void;
+    state: {
+      messages: unknown[];
+    };
   };
   prompt: (prompt: string, options?: { images?: unknown[] }) => Promise<void>;
   abort: () => Promise<void>;
@@ -641,8 +643,13 @@ export function createDefaultEmbeddedSession(params?: {
     isStreaming: false,
     subscriptions: [],
     agent: {
-      replaceMessages: (messages: unknown[]) => {
-        session.messages = [...messages];
+      state: {
+        get messages() {
+          return session.messages;
+        },
+        set messages(messages: unknown[]) {
+          session.messages = [...messages];
+        },
       },
     },
     prompt: async (prompt, options) => {

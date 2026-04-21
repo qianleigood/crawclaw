@@ -249,6 +249,11 @@ validation. Experience notes should capture reusable context, trigger, action,
 result, lesson, applicability boundaries, and supporting evidence rather than
 temporary task state.
 
+The knowledge layer does not currently run a `dream`-style background
+consolidation agent. Automatic knowledge cleanup, dedupe, stale-note review, or
+cross-provider governance would need a separate design; it should not be folded
+into durable-memory dream runs or hidden behind prompt-time recall.
+
 ## Context Archive
 
 Context Archive is the replay-oriented record layer for agent runs.

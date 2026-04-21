@@ -48,7 +48,7 @@ describe("splitSdkTools", () => {
       preferBuiltInToolNames: new Set(["browser", "read"]),
     });
 
-    expect(builtInTools.map((tool) => tool.name)).toEqual(["read", "browser"]);
-    expect(customTools.map((tool) => tool.name)).toEqual(["exec", "edit", "write"]);
+    expect(builtInTools).toEqual(["read"]);
+    expect(customTools.map((tool) => tool.name)).toEqual(["exec", "edit", "write", "browser"]);
   });
 });

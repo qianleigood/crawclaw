@@ -16,7 +16,7 @@ const (
 	envDocsPiExecutable     = "CRAWCLAW_DOCS_I18N_PI_EXECUTABLE"
 	envDocsPiArgs           = "CRAWCLAW_DOCS_I18N_PI_ARGS"
 	envDocsPiPackageVersion = "CRAWCLAW_DOCS_I18N_PI_PACKAGE_VERSION"
-	defaultPiPackageVersion = "0.58.3"
+	defaultPiPackageVersion = "0.68.0"
 )
 
 type docsPiCommand struct {
@@ -81,11 +81,7 @@ func ensureMaterializedPiRuntime(ctx context.Context) (docsPiCommand, error) {
 		install := exec.CommandContext(
 			installCtx,
 			"npm",
-			"install",
-			"--silent",
-			"--no-audit",
-			"--no-fund",
-			fmt.Sprintf("@mariozechner/pi-coding-agent@%s", packageVersion),
+			materializedPiRuntimeInstallArgs(runtimeDir, packageVersion)...,
 		)
 		install.Dir = runtimeDir
 		install.Env = os.Environ()
@@ -102,6 +98,18 @@ func ensureMaterializedPiRuntime(ctx context.Context) (docsPiCommand, error) {
 	}
 	materializedPiRuntimeErr = nil
 	return materializedPiRuntimeCommand, nil
+}
+
+func materializedPiRuntimeInstallArgs(runtimeDir, packageVersion string) []string {
+	return []string{
+		"install",
+		"--prefix",
+		runtimeDir,
+		"--silent",
+		"--no-audit",
+		"--no-fund",
+		fmt.Sprintf("@mariozechner/pi-coding-agent@%s", packageVersion),
+	}
 }
 
 func getMaterializedPiRuntimeDir() (string, error) {

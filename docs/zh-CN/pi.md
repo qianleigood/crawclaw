@@ -1,128 +1,128 @@
 ---
 read_when:
-  - 理解 CrawClaw 中 Pi SDK 集成设计时
-  - 修改 Pi 的智能体会话生命周期、工具或提供商接线时
-summary: CrawClaw 内嵌 Pi 智能体集成与会话生命周期的架构
+  - 了解 CrawClaw 中 Pi SDK 集成设计
+  - 修改 Pi 智能体会话生命周期、工具或提供商布线
+summary: CrawClaw 嵌入式 Pi 智能体集成与会话生命周期的架构
 title: Pi 集成架构
 x-i18n:
-  generated_at: "2026-03-29T04:10:02Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 43a5d646ed66fab1492b6f18fb1623d895922ecf539e52e069d99e7e83c0be11
+  generated_at: "2026-04-21T13:26:16Z"
+  model: MiniMax-M2.7
+  provider: minimax
+  source_hash: 989feea2e7b77969a0d127298b8e333533ec47330116b5b98adfdf4efc6cb5f6
   source_path: pi.md
   workflow: 15
 ---
 
 # Pi 集成架构
 
-本文档介绍 CrawClaw 如何与 [pi-coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) 及其同级软件包（`pi-ai`、`pi-agent-core`、`pi-tui`）集成，以提供其 AI 智能体能力。
+本文档描述了 CrawClaw 如何与 [pi-coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) 及其兄弟包（`pi-ai`、`pi-agent-core`、`pi-tui`）集成，以提供其 AI 智能体能力。
 
-## 概览
+## 概述
 
-CrawClaw 使用 pi SDK 将 AI 编码智能体嵌入到其消息 Gateway 网关架构中。CrawClaw 不会将 pi 作为子进程启动，也不会使用 RPC 模式，而是通过 `createAgentSession()` 直接导入并实例化 pi 的 `AgentSession`。这种内嵌方式提供了：
+CrawClaw 使用 pi SDK 将 AI 编程智能体嵌入到其消息网关架构中。CrawClaw 不是将 pi 作为子进程启动或使用 RPC 模式，而是直接通过 `createAgentSession()` 导入并实例化 pi 的 `AgentSession`。这种嵌入式方法提供：
 
 - 对会话生命周期和事件处理的完全控制
 - 自定义工具注入（消息、沙箱、渠道特定操作）
-- 按渠道 / 上下文定制系统提示词
-- 支持分支 / 压缩的会话持久化
-- 带故障转移的多账户凭证配置轮换
+- 每个渠道/上下文的系统提示自定义
+- 支持分支/压缩的会话持久化
+- 多账户认证配置文件轮换及故障转移
 - 与提供商无关的模型切换
 
-## 软件包依赖
+## 包依赖
 
 ```json
 {
-  "@mariozechner/pi-agent-core": "0.61.1",
-  "@mariozechner/pi-ai": "0.61.1",
-  "@mariozechner/pi-coding-agent": "0.61.1",
-  "@mariozechner/pi-tui": "0.61.1"
+  "@mariozechner/pi-agent-core": "0.68.0",
+  "@mariozechner/pi-ai": "0.68.0",
+  "@mariozechner/pi-coding-agent": "0.68.0",
+  "@mariozechner/pi-tui": "0.68.0"
 }
 ```
 
-| 软件包            | 用途                                                                                       |
+| 包                | 用途                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------ |
 | `pi-ai`           | 核心 LLM 抽象：`Model`、`streamSimple`、消息类型、提供商 API                               |
 | `pi-agent-core`   | 智能体循环、工具执行、`AgentMessage` 类型                                                  |
-| `pi-coding-agent` | 高层 SDK：`createAgentSession`、`SessionManager`、`AuthStorage`、`ModelRegistry`、内置工具 |
+| `pi-coding-agent` | 高级 SDK：`createAgentSession`、`SessionManager`、`AuthStorage`、`ModelRegistry`、内置工具 |
 | `pi-tui`          | 终端 UI 组件（用于 CrawClaw 的本地 TUI 模式）                                              |
 
 ## 文件结构
 
 ```
 src/agents/
-├── pi-embedded-runner.ts          # Re-exports from pi-embedded-runner/
+├── pi-embedded-runner.ts          # 从 pi-embedded-runner/ 重导出
 ├── pi-embedded-runner/
-│   ├── run.ts                     # Main entry: runEmbeddedPiAgent()
+│   ├── run.ts                     # 主入口：runEmbeddedPiAgent()
 │   ├── run/
-│   │   ├── attempt.ts             # Single attempt logic with session setup
-│   │   ├── params.ts              # RunEmbeddedPiAgentParams type
-│   │   ├── payloads.ts            # Build response payloads from run results
-│   │   ├── images.ts              # Vision model image injection
+│   │   ├── attempt.ts             # 单次尝试逻辑，包含会话设置
+│   │   ├── params.ts              # RunEmbeddedPiAgentParams 类型
+│   │   ├── payloads.ts            # 从运行结果构建响应负载
+│   │   ├── images.ts              # 视觉模型图像注入
 │   │   └── types.ts               # EmbeddedRunAttemptResult
-│   ├── abort.ts                   # Abort error detection
-│   ├── cache-ttl.ts               # Cache TTL tracking for context pruning
-│   ├── compact.ts                 # Manual/auto compaction logic
-│   ├── extensions.ts              # Load pi extensions for embedded runs
-│   ├── extra-params.ts            # Provider-specific stream params
-│   ├── google.ts                  # Google/Gemini turn ordering fixes
-│   ├── history.ts                 # History limiting (DM vs group)
-│   ├── lanes.ts                   # Session/global command lanes
-│   ├── logger.ts                  # Subsystem logger
-│   ├── model.ts                   # Model resolution via ModelRegistry
-│   ├── runs.ts                    # Active run tracking, abort, queue
-│   ├── sandbox-info.ts            # Sandbox info for system prompt
-│   ├── session-manager-cache.ts   # SessionManager instance caching
-│   ├── session-manager-init.ts    # Session file initialization
-│   ├── system-prompt.ts           # System prompt builder
-│   ├── tool-split.ts              # Split tools into builtIn vs custom
-│   ├── types.ts                   # EmbeddedPiAgentMeta, EmbeddedPiRunResult
-│   └── utils.ts                   # ThinkLevel mapping, error description
-├── pi-embedded-subscribe.ts       # Session event subscription/dispatch
+│   ├── abort.ts                   # 中止错误检测
+│   ├── cache-ttl.ts               # 上下文修剪的缓存 TTL 追踪
+│   ├── compact.ts                 # 手动/自动压缩逻辑
+│   ├── extensions.ts              # 为嵌入式运行加载 pi 扩展
+│   ├── extra-params.ts            # 提供商特定的流参数
+│   ├── google.ts                  # Google/Gemini 轮次排序修复
+│   ├── history.ts                 # 历史限制（私信 vs 群组）
+│   ├── lanes.ts                   # 会话/全局命令通道
+│   ├── logger.ts                  # 子系统日志记录器
+│   ├── model.ts                   # 通过 ModelRegistry 进行模型解析
+│   ├── runs.ts                    # 活动运行追踪、中止、队列
+│   ├── sandbox-info.ts           # 系统提示的沙箱信息
+│   ├── session-manager-cache.ts   # SessionManager 实例缓存
+│   ├── session-manager-init.ts    # 会话文件初始化
+│   ├── system-prompt.ts           # 系统提示构建器
+│   ├── tool-split.ts              # 将工具拆分为 builtIn vs custom
+│   ├── types.ts                  # EmbeddedPiAgentMeta、EmbeddedPiRunResult
+│   └── utils.ts                   # ThinkLevel 映射、错误描述
+├── pi-embedded-subscribe.ts       # 会话事件订阅/分发
 ├── pi-embedded-subscribe.types.ts # SubscribeEmbeddedPiSessionParams
-├── pi-embedded-subscribe.handlers.ts # Event handler factory
+├── pi-embedded-subscribe.handlers.ts # 事件处理器工厂
 ├── pi-embedded-subscribe.handlers.lifecycle.ts
 ├── pi-embedded-subscribe.handlers.types.ts
-├── pi-embedded-block-chunker.ts   # Streaming block reply chunking
-├── pi-embedded-messaging.ts       # Messaging tool sent tracking
-├── pi-embedded-helpers.ts         # Error classification, turn validation
-├── pi-embedded-helpers/           # Helper modules
-├── pi-embedded-utils.ts           # Formatting utilities
+├── pi-embedded-block-chunker.ts   # 流式阻止回复分块
+├── pi-embedded-messaging.ts       # 消息工具发送追踪
+├── pi-embedded-helpers.ts         # 错误分类、轮次验证
+├── pi-embedded-helpers/           # 辅助模块
+├── pi-embedded-utils.ts           # 格式化工具
 ├── pi-tools.ts                    # createCrawClawCodingTools()
-├── pi-tools.abort.ts              # AbortSignal wrapping for tools
-├── pi-tools.policy.ts             # Tool allowlist/denylist policy
-├── pi-tools.read.ts               # Read tool customizations
-├── pi-tools.schema.ts             # Tool schema normalization
-├── pi-tools.types.ts              # AnyAgentTool type alias
-├── pi-tool-definition-adapter.ts  # AgentTool -> ToolDefinition adapter
-├── pi-settings.ts                 # Settings overrides
-├── pi-hooks/                      # Custom pi hooks
-│   ├── compaction-safeguard.ts    # Safeguard extension
+├── pi-tools.abort.ts              # 工具的 AbortSignal 包装
+├── pi-tools.policy.ts             # 工具白名单/黑名单策略
+├── pi-tools.read.ts               # 读取工具自定义
+├── pi-tools.schema.ts             # 工具 schema 规范化
+├── pi-tools.types.ts              # AnyAgentTool 类型别名
+├── pi-tool-definition-adapter.ts  # AgentTool -> ToolDefinition 适配器
+├── pi-settings.ts                 # 设置覆盖
+├── pi-hooks/                      # 自定义 pi 钩子
+│   ├── compaction-safeguard.ts    # 保护扩展
 │   ├── compaction-safeguard-runtime.ts
-│   ├── context-pruning.ts         # Cache-TTL context pruning extension
+│   ├── context-pruning.ts         # 基于缓存 TTL 的上下文修剪扩展
 │   └── context-pruning/
-├── model-auth.ts                  # Auth profile resolution
-├── auth-profiles.ts               # Profile store, cooldown, failover
-├── model-selection.ts             # Default model resolution
-├── models-config.ts               # models.json generation
-├── model-catalog.ts               # Model catalog cache
-├── context-window-guard.ts        # Context window validation
-├── failover-error.ts              # FailoverError class
-├── defaults.ts                    # DEFAULT_PROVIDER, DEFAULT_MODEL
+├── model-auth.ts                  # 认证配置文件解析
+├── auth-profiles.ts               # 配置文件存储、冷启动、故障转移
+├── model-selection.ts             # 默认模型解析
+├── models-config.ts               # models.json 生成
+├── model-catalog.ts               # 模型目录缓存
+├── context-window-guard.ts        # 上下文窗口验证
+├── failover-error.ts              # FailoverError 类
+├── defaults.ts                    # DEFAULT_PROVIDER、DEFAULT_MODEL
 ├── system-prompt.ts               # buildAgentSystemPrompt()
-├── system-prompt-params.ts        # System prompt parameter resolution
-├── system-prompt-report.ts        # Debug report generation
-├── tool-summaries.ts              # Tool description summaries
-├── tool-policy.ts                 # Tool policy resolution
-├── transcript-policy.ts           # Transcript validation policy
-├── skills.ts                      # Skill snapshot/prompt building
-├── skills/                        # Skill subsystem
-├── sandbox.ts                     # Sandbox context resolution
-├── sandbox/                       # Sandbox subsystem
-├── channel-tools.ts               # Channel-specific tool injection
-├── crawclaw-tools.ts              # CrawClaw 专用工具
-├── bash-tools.ts                  # exec/process tools
-├── apply-patch.ts                 # apply_patch tool (OpenAI)
-├── tools/                         # Individual tool implementations
+├── system-prompt-params.ts        # 系统提示参数解析
+├── system-prompt-report.ts        # 调试报告生成
+├── tool-summaries.ts              # 工具描述摘要
+├── tool-policy.ts                 # 工具策略解析
+├── transcript-policy.ts           # 转录验证策略
+├── skills.ts                      # 技能快照/提示构建
+├── skills/                        # 技能子系统
+├── sandbox.ts                     # 沙箱上下文解析
+├── sandbox/                       # 沙箱子系统
+├── channel-tools.ts               # 渠道特定工具注入
+├── crawclaw-tools.ts              # CrawClaw 特定工具
+├── bash-tools.ts                  # exec/process 工具
+├── apply-patch.ts                 # apply_patch 工具（OpenAI）
+├── tools/                         # 各个工具实现
 │   ├── browser-tool.ts
 │   ├── canvas-tool.ts
 │   ├── cron-tool.ts
@@ -136,16 +136,16 @@ src/agents/
 └── ...
 ```
 
-渠道特定的消息操作运行时现在位于插件自有的扩展目录中，而不是放在 `src/agents/tools` 下，例如：
+渠道特定的消息操作运行时现在位于插件所有的扩展目录中，而不是 `src/agents/tools` 下，例如：
 
-- `extensions/discord/src/actions/runtime*.ts`
-- `extensions/slack/src/action-runtime.ts`
-- `extensions/telegram/src/action-runtime.ts`
-- `extensions/whatsapp/src/action-runtime.ts`
+- Discord 插件操作运行时文件
+- Slack 插件操作运行时文件
+- Telegram 插件操作运行时文件
+- WhatsApp 插件操作运行时文件
 
 ## 核心集成流程
 
-### 1. 运行内嵌智能体
+### 1. 运行嵌入式智能体
 
 主入口是 `pi-embedded-runner/run.ts` 中的 `runEmbeddedPiAgent()`：
 
@@ -169,9 +169,9 @@ const result = await runEmbeddedPiAgent({
 });
 ```
 
-### 2. 创建会话
+### 2. 会话创建
 
-在 `runEmbeddedAttempt()`（由 `runEmbeddedPiAgent()` 调用）内部，会使用 pi SDK：
+在 `runEmbeddedPiAgent()` 调用的 `runEmbeddedAttempt()` 内部，使用 pi SDK：
 
 ```typescript
 import {
@@ -208,7 +208,7 @@ applySystemPromptOverrideToSession(session, systemPromptOverride);
 
 ### 3. 事件订阅
 
-`subscribeEmbeddedPiSession()` 会订阅 pi 的 `AgentSession` 事件：
+`subscribeEmbeddedPiSession()` 订阅 pi 的 `AgentSession` 事件：
 
 ```typescript
 const subscription = subscribeEmbeddedPiSession({
@@ -227,39 +227,39 @@ const subscription = subscribeEmbeddedPiSession({
 
 处理的事件包括：
 
-- `message_start` / `message_end` / `message_update`（流式文本 / 思考）
+- `message_start` / `message_end` / `message_update`（流式文本/思考）
 - `tool_execution_start` / `tool_execution_update` / `tool_execution_end`
 - `turn_start` / `turn_end`
 - `agent_start` / `agent_end`
 - `auto_compaction_start` / `auto_compaction_end`
 
-### 4. 发送提示
+### 4. 提示
 
-完成设置后，会向会话发送提示：
+设置完成后，向会话发送提示：
 
 ```typescript
 await session.prompt(effectivePrompt, { images: imageResult.images });
 ```
 
-SDK 会处理完整的智能体循环：发送给 LLM、执行工具调用、流式返回响应。
+SDK 处理完整的智能体循环：发送到 LLM、执行工具调用、流式传输响应。
 
-图像注入仅限当前提示：CrawClaw 会从当前提示中加载图像引用，并仅通过 `images` 将其传入该轮。它不会重新扫描较早的历史轮次来重新注入图像负载。
+图像注入是提示本地的：CrawClaw 从当前提示加载图像引用，并通过 `images` 为该轮次传递。它不会重新扫描旧的历史轮次来重新注入图像负载。
 
 ## 工具架构
 
-### 工具流水线
+### 工具管道
 
-1. **基础工具**：pi 的 `codingTools`（read、bash、edit、write）
-2. **自定义替换**：CrawClaw 用 `exec` / `process` 替换 bash，并为沙箱定制 read / edit / write
-3. **CrawClaw 工具**：消息、浏览器、画布、会话、cron、Gateway 网关 等
-4. **渠道工具**：Discord / Telegram / Slack / WhatsApp 特定操作工具
-5. **策略过滤**：按配置、提供商、智能体、群组、沙箱策略过滤工具
-6. **模式归一化**：清理模式以适配 Gemini / OpenAI 的特殊行为
-7. **AbortSignal 包装**：包装工具以遵循中止信号
+1. **基础工具**：pi 的 `codingTools`（读取、bash、编辑、写入）
+2. **自定义替换**：CrawClaw 用 `exec`/`process` 替换 bash，为沙箱自定义读取/编辑/写入
+3. **CrawClaw 工具**：消息、浏览器、画布、会话、计时器、网关等
+4. **渠道工具**：Discord/Telegram/Slack/WhatsApp 特定的操作工具
+5. **策略过滤**：工具按配置文件、提供商、智能体、群组、沙箱策略过滤
+6. **Schema 规范化**：为 Gemini/OpenAI 特性清理 schema
+7. **AbortSignal 包装**：工具被包装以尊重中止信号
 
 ### 工具定义适配器
 
-pi-agent-core 的 `AgentTool` 与 pi-coding-agent 的 `ToolDefinition` 在 `execute` 签名上不同。`pi-tool-definition-adapter.ts` 中的适配器用于桥接这一差异：
+pi-agent-core 的 `AgentTool` 与 pi-coding-agent 的 `ToolDefinition` 具有不同的 `execute` 签名。`pi-tool-definition-adapter.ts` 中的适配器弥合了这一差异：
 
 ```typescript
 export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
@@ -269,7 +269,7 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
     description: tool.description ?? "",
     parameters: tool.parameters,
     execute: async (toolCallId, params, onUpdate, _ctx, signal) => {
-      // pi-coding-agent signature differs from pi-agent-core
+      // pi-coding-agent 签名与 pi-agent-core 不同
       return await tool.execute(toolCallId, params, signal, onUpdate);
     },
   }));
@@ -278,24 +278,24 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
 
 ### 工具拆分策略
 
-`splitSdkTools()` 会通过 `customTools` 传入所有工具：
+`splitSdkTools()` 通过 `customTools` 传递所有工具：
 
 ```typescript
 export function splitSdkTools(options: { tools: AnyAgentTool[]; sandboxEnabled: boolean }) {
   return {
-    builtInTools: [], // Empty. We override everything
+    builtInTools: [], // 空。我们覆盖一切
     customTools: toToolDefinitions(options.tools),
   };
 }
 ```
 
-这样可以确保 CrawClaw 的策略过滤、沙箱集成和扩展工具集在不同提供商之间保持一致。
+这确保 CrawClaw 的策略过滤、沙箱集成和扩展工具集在提供商之间保持一致。
 
-## 系统提示词构建
+## 系统提示构建
 
-系统提示词在 `buildAgentSystemPrompt()`（`system-prompt.ts`）中构建。它会组装完整提示词，包含工具、工具调用风格、安全护栏、CrawClaw CLI 参考、Skills、文档、工作区、沙箱、消息、回复标签、语音、静默回复、心跳、运行时元数据等部分，并在启用时包含 Memory 和 Reactions，以及可选的上下文文件和额外系统提示词内容。为子智能体使用的最小提示词模式会对各部分进行裁剪。
+系统提示在 `buildAgentSystemPrompt()`（`system-prompt.ts`）中构建。它组装包含多个部分的完整提示，包括工具、工具调用风格、安全护栏、CrawClaw CLI 参考、Skills、文档、工作区、沙箱、消息、回复标签、语音、静默回复、遗留心跳、运行时元数据，加上启用时的记忆和反应，以及可选的上下文文件和额外系统提示内容。子智能体使用的最小提示模式下会修剪部分。
 
-系统提示词会在会话创建后通过 `applySystemPromptOverrideToSession()` 应用：
+提示在会话创建后通过 `applySystemPromptOverrideToSession()` 应用：
 
 ```typescript
 const systemPromptOverride = createSystemPromptOverride(appendPrompt);
@@ -306,17 +306,17 @@ applySystemPromptOverrideToSession(session, systemPromptOverride);
 
 ### 会话文件
 
-会话是具有树状结构（通过 id / parentId 关联）的 JSONL 文件。Pi 的 `SessionManager` 负责持久化：
+会话是具有树结构（id/parentId 链接）的 JSONL 文件。Pi 的 `SessionManager` 处理持久化：
 
 ```typescript
 const sessionManager = SessionManager.open(params.sessionFile);
 ```
 
-CrawClaw 通过 `guardSessionManager()` 对其进行包装，以保证工具结果安全。
+CrawClaw 用 `guardSessionManager()` 包装它以确保工具结果安全。
 
 ### 会话缓存
 
-`session-manager-cache.ts` 会缓存 `SessionManager` 实例，以避免重复解析文件：
+`session-manager-cache.ts` 缓存 SessionManager 实例以避免重复文件解析：
 
 ```typescript
 await prewarmSessionFile(params.sessionFile);
@@ -326,11 +326,11 @@ trackSessionManagerAccess(params.sessionFile);
 
 ### 历史限制
 
-`limitHistoryTurns()` 会根据渠道类型（私信 与群组）裁剪对话历史。
+`limitHistoryTurns()` 根据渠道类型（私信 vs 群组）修剪对话历史。
 
 ### 压缩
 
-上下文溢出时会触发自动压缩。`compactEmbeddedPiSessionDirect()` 负责手动压缩：
+自动压缩在上下文溢出时触发。`compactEmbeddedPiSessionDirect()` 处理手动压缩：
 
 ```typescript
 const compactResult = await compactEmbeddedPiSessionDirect({
@@ -338,18 +338,18 @@ const compactResult = await compactEmbeddedPiSessionDirect({
 });
 ```
 
-## 身份验证与模型解析
+## 认证与模型解析
 
-### 凭证配置
+### 认证配置文件
 
-CrawClaw 维护一个凭证配置存储，为每个提供商保存多个 API 密钥：
+CrawClaw 维护一个包含每个提供商多个 API 密钥的认证配置文件存储：
 
 ```typescript
 const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
 const profileOrder = resolveAuthProfileOrder({ cfg, store: authStore, provider, preferredProfile });
 ```
 
-配置会在失败时轮换，并跟踪冷却状态：
+配置文件在失败时轮换并追踪冷启动：
 
 ```typescript
 await markAuthProfileFailure({ store, profileId, reason, cfg, agentDir });
@@ -368,13 +368,13 @@ const { model, error, authStorage, modelRegistry } = resolveModel(
   config,
 );
 
-// Uses pi's ModelRegistry and AuthStorage
+// 使用 pi 的 ModelRegistry 和 AuthStorage
 authStorage.setRuntimeApiKey(model.provider, apiKeyInfo.apiKey);
 ```
 
 ### 故障转移
 
-配置了回退时，`FailoverError` 会触发模型故障转移：
+当配置时，`FailoverError` 触发模型回退：
 
 ```typescript
 if (fallbackConfigured && isFailoverErrorMessage(errorText)) {
@@ -390,11 +390,11 @@ if (fallbackConfigured && isFailoverErrorMessage(errorText)) {
 
 ## Pi 扩展
 
-CrawClaw 会加载自定义的 pi 扩展，以实现专门行为：
+CrawClaw 加载自定义 pi 扩展以实现特殊行为：
 
 ### 压缩保护
 
-`src/agents/pi-hooks/compaction-safeguard.ts` 会为压缩添加护栏，包括自适应 token 预算，以及工具失败和文件操作摘要：
+`src/agents/pi-hooks/compaction-safeguard.ts` 为压缩添加护栏，包括自适应令牌预算以及工具失败和文件操作摘要：
 
 ```typescript
 if (resolveCompactionMode(params.cfg) === "safeguard") {
@@ -403,9 +403,9 @@ if (resolveCompactionMode(params.cfg) === "safeguard") {
 }
 ```
 
-### 上下文裁剪
+### 上下文修剪
 
-`src/agents/pi-hooks/context-pruning.ts` 实现了基于 cache-TTL 的上下文裁剪：
+`src/agents/pi-hooks/context-pruning.ts` 实现基于缓存 TTL 的上下文修剪：
 
 ```typescript
 if (cfg?.agents?.defaults?.contextPruning?.mode === "cache-ttl") {
@@ -419,53 +419,41 @@ if (cfg?.agents?.defaults?.contextPruning?.mode === "cache-ttl") {
 }
 ```
 
-## 流式传输与分块回复
+## 流式传输与阻止回复
 
-### 分块处理
+### 内容
 
-`EmbeddedBlockChunker` 负责将流式文本管理为离散的回复块：
-
-```typescript
-const blockChunker = blockChunking ? new EmbeddedBlockChunker(blockChunking) : null;
-```
-
-### 思考 / 最终标签剥离
-
-流式输出会经过处理，以去除 `<think>` / `<thinking>` 块并提取 `<final>` 内容：
-
-```typescript
-const stripBlockTags = (text: string, state: { thinking: boolean; final: boolean }) => {
-  // Strip <think>...</think> content
-  // If enforceFinalTag, only return <final>...</final> content
+// 如果 enforceFinalTag，仅返回 <final>...</final> 内容
 };
-```
+
+````
 
 ### 回复指令
 
-会解析并提取诸如 `[[media:url]]`、`[[voice]]`、`[[reply:id]]` 之类的回复指令：
+回复指令如 `[[media:url]]`、`[[voice]]`、`[[reply:id]]` 被解析和提取：
 
 ```typescript
 const { text: cleanedText, mediaUrls, audioAsVoice, replyToId } = consumeReplyDirectives(chunk);
-```
+````
 
 ## 错误处理
 
 ### 错误分类
 
-`pi-embedded-helpers.ts` 会对错误进行分类，以便进行适当处理：
+`pi-embedded-helpers.ts` 对错误进行分类以进行适当处理：
 
 ```typescript
-isContextOverflowError(errorText)     // Context too large
-isCompactionFailureError(errorText)   // Compaction failed
-isAuthAssistantError(lastAssistant)   // Auth failure
-isRateLimitAssistantError(...)        // Rate limited
-isFailoverAssistantError(...)         // Should failover
+isContextOverflowError(errorText)     // 上下文过大
+isCompactionFailureError(errorText)   // 压缩失败
+isAuthAssistantError(lastAssistant)   // 认证失败
+isRateLimitAssistantError(...)        // 速率限制
+isFailoverAssistantError(...)         // 应故障转移
 classifyFailoverReason(errorText)     // "auth" | "rate_limit" | "quota" | "timeout" | ...
 ```
 
 ### 思考级别回退
 
-如果某个思考级别不受支持，它会回退：
+如果不支持某个思考级别，它会回退：
 
 ```typescript
 const fallbackThinking = pickFallbackThinkingLevel({
@@ -480,7 +468,7 @@ if (fallbackThinking) {
 
 ## 沙箱集成
 
-启用沙箱模式时，工具和路径都会受到约束：
+启用沙箱模式时，工具和路径受到约束：
 
 ```typescript
 const sandbox = await resolveSandboxContext({
@@ -490,9 +478,9 @@ const sandbox = await resolveSandboxContext({
 });
 
 if (sandboxRoot) {
-  // Use sandboxed read/edit/write tools
-  // Exec runs in container
-  // Browser uses bridge URL
+  // 使用沙箱隔离的读取/编辑/写入工具
+  // Exec 在容器中运行
+  // 浏览器使用桥接 URL
 }
 ```
 
@@ -500,24 +488,24 @@ if (sandboxRoot) {
 
 ### Anthropic
 
-- 清理拒绝魔法字符串
-- 针对连续角色的轮次验证
+- 拒绝魔法字符串清理
+- 连续角色的轮次验证
 - Claude Code 参数兼容性
 
-### Google / Gemini
+### Google/Gemini
 
-- 轮次顺序修复（`applyGoogleTurnOrderingFix`）
-- 工具模式净化（`sanitizeToolsForGoogle`）
-- 会话历史净化（`sanitizeSessionHistory`）
+- 轮次排序修复（`applyGoogleTurnOrderingFix`）
+- 工具 schema 清理（`sanitizeToolsForGoogle`）
+- 会话历史清理（`sanitizeSessionHistory`）
 
 ### OpenAI
 
-- 面向 Codex 模型的 `apply_patch` 工具
+- Codex 模型的 `apply_patch` 工具
 - 思考级别降级处理
 
 ## TUI 集成
 
-CrawClaw 还提供本地 TUI 模式，可直接使用 pi-tui 组件：
+CrawClaw 还有本地 TUI 模式，直接使用 pi-tui 组件：
 
 ```typescript
 // src/tui/tui.ts
@@ -526,31 +514,31 @@ import { ... } from "@mariozechner/pi-tui";
 
 这提供了与 pi 原生模式类似的交互式终端体验。
 
-## 与 Pi CLI 的关键差异
+## 与 Pi CLI 的主要区别
 
-| 方面       | Pi CLI                  | CrawClaw 内嵌版                                                                                 |
-| ---------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
-| 调用方式   | `pi` 命令 / RPC         | 通过 `createAgentSession()` 使用 SDK                                                            |
-| 工具       | 默认编码工具            | 自定义 CrawClaw 工具套件                                                                        |
-| 系统提示词 | AGENTS.md + prompts     | 按渠道 / 上下文动态生成                                                                         |
-| 会话存储   | `~/.pi/agent/sessions/` | `~/.crawclaw/agents/<agentId>/sessions/`（或 `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/`） |
-| 身份验证   | 单一凭证                | 支持轮换的多配置                                                                                |
-| 扩展       | 从磁盘加载              | 通过编程方式 + 磁盘路径                                                                         |
-| 事件处理   | TUI 渲染                | 基于回调（`onBlockReply` 等）                                                                   |
+| 方面     | Pi CLI                  | CrawClaw 嵌入式                                                                                 |
+| -------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| 调用方式 | `pi` 命令 / RPC         | 通过 `createAgentSession()` 的 SDK                                                              |
+| 工具     | 默认编程工具            | 自定义 CrawClaw 工具套件                                                                        |
+| 系统提示 | AGENTS.md + prompts     | 动态按渠道/上下文                                                                               |
+| 会话存储 | `~/.pi/agent/sessions/` | `~/.crawclaw/agents/<agentId>/sessions/`（或 `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/`） |
+| 认证     | 单个凭证                | 带轮换的多配置文件                                                                              |
+| 扩展     | 从磁盘加载              | 程序化 + 磁盘路径                                                                               |
+| 事件处理 | TUI 渲染                | 基于回调（onBlockReply 等）                                                                     |
 
 ## 未来考虑
 
-潜在的重构方向包括：
+潜在重工作的领域：
 
-1. **工具签名对齐**：当前需要在 pi-agent-core 与 pi-coding-agent 的签名之间进行适配
-2. **会话管理器包装**：`guardSessionManager` 增加了安全性，但也提高了复杂度
+1. **工具签名对齐**：目前在不同 pi-agent-core 和 pi-coding-agent 签名之间适配
+2. **会话管理器包装**：`guardSessionManager` 增加了安全性但也增加了复杂性
 3. **扩展加载**：可以更直接地使用 pi 的 `ResourceLoader`
-4. **流式处理器复杂度**：`subscribeEmbeddedPiSession` 已经变得较大
-5. **提供商特殊行为**：存在许多提供商特定代码路径，未来 pi 或许可以统一处理
+4. **流式处理器复杂性**：`subscribeEmbeddedPiSession` 已经变得很大
+5. **提供商特性**：许多提供商特定的代码路径 pi 可能潜在处理
 
 ## 测试
 
-Pi 集成的覆盖范围包括以下测试套件：
+Pi 集成覆盖以下测试套件：
 
 - `src/agents/pi-*.test.ts`
 - `src/agents/pi-embedded-*.test.ts`
@@ -563,8 +551,8 @@ Pi 集成的覆盖范围包括以下测试套件：
 - `src/agents/pi-settings.test.ts`
 - `src/agents/pi-hooks/**/*.test.ts`
 
-实时 / 按需启用：
+实时/可选加入：
 
 - `src/agents/pi-embedded-runner-extraparams.live.test.ts`（启用 `CRAWCLAW_LIVE_TEST=1`）
 
-有关当前运行命令，请参见 [Pi 开发工作流](/pi-dev)。
+有关当前运行命令，请参阅 [Pi 开发工作流](/pi-dev)。

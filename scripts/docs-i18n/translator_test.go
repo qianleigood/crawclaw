@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -115,6 +116,20 @@ func TestDecoratePromptErrorLeavesCleanErrorsAlone(t *testing.T) {
 	}
 }
 
+func TestNormalizeThinkingAllowsPiThinkingLevels(t *testing.T) {
+	for _, level := range []string{"off", "minimal", "low", "medium", "high", "xhigh"} {
+		if got := normalizeThinking(level); got != level {
+			t.Fatalf("expected thinking level %q, got %q", level, got)
+		}
+	}
+}
+
+func TestNormalizeThinkingDefaultsToOff(t *testing.T) {
+	if got := normalizeThinking("unexpected"); got != defaultDocsI18nThinking {
+		t.Fatalf("expected default thinking %q, got %q", defaultDocsI18nThinking, got)
+	}
+}
+
 func TestResolveDocsPiCommandUsesOverrideEnv(t *testing.T) {
 	t.Setenv(envDocsPiExecutable, "/tmp/custom-pi")
 	t.Setenv(envDocsPiArgs, "--mode rpc --foo bar")
@@ -129,6 +144,92 @@ func TestResolveDocsPiCommandUsesOverrideEnv(t *testing.T) {
 	}
 	if strings.Join(command.Args, " ") != "--mode rpc --foo bar" {
 		t.Fatalf("unexpected args %v", command.Args)
+	}
+}
+
+func TestMaterializedPiRuntimeDefaultsToCurrentPi(t *testing.T) {
+	t.Setenv(envDocsPiPackageVersion, "")
+
+	if got := getMaterializedPiPackageVersion(); got != "0.68.0" {
+		t.Fatalf("expected materialized Pi runtime 0.68.0, got %q", got)
+	}
+}
+
+func TestMaterializedPiRuntimeInstallArgsUsePrefix(t *testing.T) {
+	args := materializedPiRuntimeInstallArgs("/tmp/crawclaw-pi-runtime", "0.68.0")
+	joined := strings.Join(args, " ")
+
+	if !strings.Contains(joined, "--prefix /tmp/crawclaw-pi-runtime") {
+		t.Fatalf("expected npm install args to pin prefix, got %v", args)
+	}
+	if args[len(args)-1] != "@mariozechner/pi-coding-agent@0.68.0" {
+		t.Fatalf("expected package spec last, got %v", args)
+	}
+}
+
+func TestEnsureDocsPiModelsConfigWritesMiniMaxCnProviderWithoutSecret(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "minimax")
+	t.Setenv(envMiniMaxCnAPIKey, "secret-value")
+
+	dir := t.TempDir()
+	if err := ensureDocsPiModelsConfig(dir); err != nil {
+		t.Fatalf("ensureDocsPiModelsConfig returned error: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "models.json"))
+	if err != nil {
+		t.Fatalf("read models.json: %v", err)
+	}
+	raw := string(data)
+	if strings.Contains(raw, "secret-value") {
+		t.Fatalf("models.json must reference env names, not write secret values: %s", raw)
+	}
+
+	var config struct {
+		Providers map[string]struct {
+			BaseURL        string `json:"baseUrl"`
+			API            string `json:"api"`
+			APIKey         string `json:"apiKey"`
+			AuthHeader     bool   `json:"authHeader"`
+			ModelOverrides map[string]struct {
+				Reasoning bool `json:"reasoning"`
+			} `json:"modelOverrides"`
+		} `json:"providers"`
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("decode models.json: %v", err)
+	}
+	provider, ok := config.Providers["minimax"]
+	if !ok {
+		t.Fatalf("expected minimax provider config, got %v", config.Providers)
+	}
+	if provider.BaseURL != miniMaxCnBaseURL {
+		t.Fatalf("unexpected MiniMax CN base URL %q", provider.BaseURL)
+	}
+	if provider.API != "anthropic-messages" {
+		t.Fatalf("unexpected MiniMax API %q", provider.API)
+	}
+	if provider.APIKey != envMiniMaxCnAPIKey {
+		t.Fatalf("expected apiKey env reference %q, got %q", envMiniMaxCnAPIKey, provider.APIKey)
+	}
+	if !provider.AuthHeader {
+		t.Fatal("expected authHeader=true for MiniMax CN")
+	}
+	if !provider.ModelOverrides[defaultMiniMaxModel].Reasoning {
+		t.Fatalf("expected reasoning override for %s", defaultMiniMaxModel)
+	}
+}
+
+func TestEnsureDocsPiModelsConfigSkipsWithoutMiniMaxCnKey(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "minimax")
+	t.Setenv(envMiniMaxCnAPIKey, "")
+
+	dir := t.TempDir()
+	if err := ensureDocsPiModelsConfig(dir); err != nil {
+		t.Fatalf("ensureDocsPiModelsConfig returned error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "models.json")); !os.IsNotExist(err) {
+		t.Fatalf("expected models.json to be skipped, got err=%v", err)
 	}
 }
 

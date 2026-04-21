@@ -1409,7 +1409,7 @@ export async function runEmbeddedAttempt(
           `embedded agent transport override: ${activeSession.agent.transport} -> ${agentTransportOverride} ` +
             `(${params.provider}/${params.modelId})`,
         );
-        activeSession.agent.setTransport(agentTransportOverride);
+        activeSession.agent.transport = agentTransportOverride;
       }
 
       if (cacheTrace) {
@@ -1606,14 +1606,14 @@ export async function runEmbeddedAttempt(
 
       try {
         if (parentForkContextMessages.length > 0) {
-          activeSession.agent.replaceMessages(parentForkContextMessages as AgentMessage[]);
+          activeSession.agent.state.messages = parentForkContextMessages as AgentMessage[];
         }
 
         if (shouldEnableAnthropicThinkingRecovery(params.model.api)) {
           const originalMessageCount = activeSession.messages.length;
           const { messages, prefill } = sanitizeThinkingForRecovery(activeSession.messages);
           if (messages !== activeSession.messages) {
-            activeSession.agent.replaceMessages(messages);
+            activeSession.agent.state.messages = messages;
           }
           if (messages.length !== originalMessageCount) {
             log.warn(
@@ -1677,7 +1677,7 @@ export async function runEmbeddedAttempt(
           : truncated;
         cacheTrace?.recordStage("session:limited", { messages: limited });
         if (limited.length > 0) {
-          activeSession.agent.replaceMessages(limited);
+          activeSession.agent.state.messages = limited;
         }
 
         if (params.memoryRuntime) {
@@ -1696,7 +1696,7 @@ export async function runEmbeddedAttempt(
               throw new Error("memory runtime assemble returned no result");
             }
             if (assembled.messages !== activeSession.messages) {
-              activeSession.agent.replaceMessages(assembled.messages);
+              activeSession.agent.state.messages = assembled.messages;
             }
             const assembledMemoryRecall = assembled.diagnostics?.memoryRecall;
             queryContext = {
@@ -2101,7 +2101,7 @@ export async function runEmbeddedAttempt(
             sessionManager.resetLeaf();
           }
           const sessionContext = sessionManager.buildSessionContext();
-          activeSession.agent.replaceMessages(sessionContext.messages);
+          activeSession.agent.state.messages = sessionContext.messages;
           log.warn(
             `Removed orphaned user message to prevent consecutive user turns. ` +
               `runId=${params.runId} sessionId=${params.sessionId}`,
@@ -2115,7 +2115,7 @@ export async function runEmbeddedAttempt(
           // Called each run; only mutates already-answered user turns that still carry image blocks.
           const didPruneImages = pruneProcessedHistoryImages(activeSession.messages);
           if (didPruneImages) {
-            activeSession.agent.replaceMessages(activeSession.messages);
+            activeSession.agent.state.messages = activeSession.messages;
           }
 
           // Detect and load images referenced in the prompt for vision-capable models.

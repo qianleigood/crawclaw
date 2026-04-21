@@ -29,3 +29,9 @@ Fields:
 
 - Glossary entries are passed to the model as **prompt guidance** (no deterministic rewrites).
 - The translation memory is updated by `scripts/docs-i18n`.
+- `scripts/docs-i18n` materializes Pi `0.68.0` by default and uses
+  `minimax/MiniMax-M2.7` unless `CRAWCLAW_DOCS_I18N_PROVIDER` and
+  `CRAWCLAW_DOCS_I18N_MODEL` override it.
+- For the domestic MiniMax endpoint, set `MINIMAX_CN_API_KEY`. The script writes
+  a local Pi `models.json` that references the env var name; it must not write
+  the secret value into the repo or cache file.

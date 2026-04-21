@@ -87,6 +87,9 @@ func startDocsPiClient(ctx context.Context, options docsPiClientOptions) (*docsP
 	if err != nil {
 		return nil, err
 	}
+	if err := ensureDocsPiModelsConfig(agentDir); err != nil {
+		return nil, err
+	}
 	process.Env = append(os.Environ(), fmt.Sprintf("PI_CODING_AGENT_DIR=%s", agentDir))
 	stdin, err := process.StdinPipe()
 	if err != nil {

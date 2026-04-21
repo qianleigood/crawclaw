@@ -14,11 +14,36 @@ func TestDocsPiProviderPrefersExplicitOverride(t *testing.T) {
 
 func TestDocsPiProviderPrefersOpenAIEnvWhenAvailable(t *testing.T) {
 	t.Setenv(envDocsI18nProvider, "")
+	t.Setenv("MINIMAX_API_KEY", "")
+	t.Setenv("MINIMAX_CN_API_KEY", "")
 	t.Setenv("OPENAI_API_KEY", "openai-key")
 	t.Setenv("ANTHROPIC_API_KEY", "anthropic-key")
 
 	if got := docsPiProvider(); got != "openai" {
 		t.Fatalf("expected openai provider, got %q", got)
+	}
+}
+
+func TestDocsPiProviderPrefersMiniMaxEnvWhenAvailable(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "")
+	t.Setenv("MINIMAX_CN_API_KEY", "minimax-cn-key")
+	t.Setenv("OPENAI_API_KEY", "openai-key")
+	t.Setenv("ANTHROPIC_API_KEY", "anthropic-key")
+
+	if got := docsPiProvider(); got != "minimax" {
+		t.Fatalf("expected minimax provider, got %q", got)
+	}
+}
+
+func TestDocsPiProviderFallsBackToMiniMax(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "")
+	t.Setenv("MINIMAX_API_KEY", "")
+	t.Setenv("MINIMAX_CN_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv("ANTHROPIC_API_KEY", "")
+
+	if got := docsPiProvider(); got != "minimax" {
+		t.Fatalf("expected minimax fallback provider, got %q", got)
 	}
 }
 
@@ -37,6 +62,15 @@ func TestDocsPiModelKeepsOpenAIDefaultAtGPT54(t *testing.T) {
 
 	if got := docsPiModel(); got != defaultOpenAIModel {
 		t.Fatalf("expected OpenAI default model %q, got %q", defaultOpenAIModel, got)
+	}
+}
+
+func TestDocsPiModelKeepsMiniMaxDefaultAtM27(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "minimax")
+	t.Setenv(envDocsI18nModel, "")
+
+	if got := docsPiModel(); got != defaultMiniMaxModel {
+		t.Fatalf("expected MiniMax default model %q, got %q", defaultMiniMaxModel, got)
 	}
 }
 

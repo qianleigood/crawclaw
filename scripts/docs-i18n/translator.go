@@ -13,6 +13,7 @@ const (
 	translateMaxAttempts     = 3
 	translateBaseDelay       = 15 * time.Second
 	defaultPromptTimeout     = 2 * time.Minute
+	defaultDocsI18nThinking  = "off"
 	envDocsI18nPromptTimeout = "CRAWCLAW_DOCS_I18N_PROMPT_TIMEOUT"
 )
 
@@ -173,10 +174,10 @@ func decoratePromptError(err error, stderr string) error {
 
 func normalizeThinking(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "low", "high":
+	case "off", "minimal", "low", "medium", "high", "xhigh":
 		return strings.ToLower(strings.TrimSpace(value))
 	default:
-		return "high"
+		return defaultDocsI18nThinking
 	}
 }
 

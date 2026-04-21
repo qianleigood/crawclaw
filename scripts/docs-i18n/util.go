@@ -14,10 +14,14 @@ const (
 	docsI18nEngineName       = "pi"
 	envDocsI18nProvider      = "CRAWCLAW_DOCS_I18N_PROVIDER"
 	envDocsI18nModel         = "CRAWCLAW_DOCS_I18N_MODEL"
+	envMiniMaxAPIKey         = "MINIMAX_API_KEY"
+	envMiniMaxCnAPIKey       = "MINIMAX_CN_API_KEY"
+	defaultMiniMaxProvider   = "minimax"
+	defaultMiniMaxModel      = "MiniMax-M2.7"
 	defaultOpenAIModel       = "gpt-5.4"
 	defaultAnthropicModel    = "claude-opus-4-6"
-	defaultFallbackProvider  = "openai"
-	defaultFallbackModelName = defaultOpenAIModel
+	defaultFallbackProvider  = defaultMiniMaxProvider
+	defaultFallbackModelName = defaultMiniMaxModel
 )
 
 func cacheNamespace() string {
@@ -55,6 +59,10 @@ func docsPiProvider() string {
 	if value := strings.TrimSpace(os.Getenv(envDocsI18nProvider)); value != "" {
 		return value
 	}
+	if strings.TrimSpace(os.Getenv(envMiniMaxCnAPIKey)) != "" ||
+		strings.TrimSpace(os.Getenv(envMiniMaxAPIKey)) != "" {
+		return defaultMiniMaxProvider
+	}
 	if strings.TrimSpace(os.Getenv("OPENAI_API_KEY")) != "" {
 		return "openai"
 	}
@@ -71,6 +79,8 @@ func docsPiModel() string {
 	switch docsPiProvider() {
 	case "anthropic":
 		return defaultAnthropicModel
+	case defaultMiniMaxProvider:
+		return defaultMiniMaxModel
 	case "openai":
 		return defaultOpenAIModel
 	default:
