@@ -27,10 +27,8 @@ export function readCronRunMode(params: Record<string, unknown>): "due" | "force
   return params.runMode === "due" || params.runMode === "force" ? params.runMode : "force";
 }
 
-export function readCronWakeMode(params: Record<string, unknown>): "now" | "next-heartbeat" {
-  return params.mode === "now" || params.mode === "next-heartbeat"
-    ? params.mode
-    : "next-heartbeat";
+export function readCronWakeMode(_params: Record<string, unknown>): "now" {
+  return "now";
 }
 
 export async function getCronStatus<T = Record<string, unknown>>(
@@ -93,7 +91,7 @@ export async function listCronRuns<T = Record<string, unknown>>(
 export async function wakeGateway<T = Record<string, unknown>>(
   callGateway: CronGatewayCaller,
   gatewayOpts: GatewayCallOptions,
-  mode: "now" | "next-heartbeat",
+  mode: "now",
   text: string,
 ): Promise<T> {
   return await callGateway<T>("wake", gatewayOpts, { mode, text }, { expectFinal: false });

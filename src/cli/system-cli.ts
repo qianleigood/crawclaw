@@ -14,10 +14,10 @@ type SystemGatewayOpts = GatewayRpcOpts & { json?: boolean };
 const normalizeWakeMode = (raw: unknown) => {
   const mode = typeof raw === "string" ? raw.trim() : "";
   if (!mode) {
-    return "next-heartbeat" as const;
+    return "now" as const;
   }
   if (mode === "now" || mode === "next-heartbeat") {
-    return mode;
+    return "now" as const;
   }
   throw new Error("--mode must be now or next-heartbeat");
 };
@@ -56,7 +56,7 @@ export function registerSystemCli(program: Command) {
       .command("event")
       .description(t("command.system.event.description"))
       .requiredOption("--text <text>", t("command.system.event.option.text"))
-      .option("--mode <mode>", t("command.system.event.option.mode"), "next-heartbeat")
+      .option("--mode <mode>", t("command.system.event.option.mode"), "now")
       .option("--json", t("command.system.option.json"), false),
   ).action(async (opts: SystemEventOpts) => {
     await runSystemGatewayCommand(

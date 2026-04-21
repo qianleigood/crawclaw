@@ -335,7 +335,7 @@ function normalizeWakeMode(raw: unknown) {
   }
   const trimmed = raw.trim().toLowerCase();
   if (trimmed === "now" || trimmed === "next-heartbeat") {
-    return trimmed;
+    return "now";
   }
   return undefined;
 }

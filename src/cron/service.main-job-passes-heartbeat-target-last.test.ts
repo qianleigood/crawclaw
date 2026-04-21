@@ -11,7 +11,7 @@ type RunMainSessionOnce = NonNullable<
   ConstructorParameters<typeof CronService>[0]["runMainSessionOnce"]
 >;
 
-describe("cron main job passes heartbeat target=last", () => {
+describe("cron main job passes main-session target=last", () => {
   function createMainCronJob(params: {
     now: number;
     id: string;
@@ -56,7 +56,7 @@ describe("cron main job passes heartbeat target=last", () => {
     cron.stop();
   }
 
-  it("should pass session.target=last to runMainSessionOnce for wakeMode=now main jobs", async () => {
+  it("passes session.target=last to runMainSessionOnce for main jobs", async () => {
     const { storePath } = await makeStorePath();
     const now = Date.now();
 
@@ -91,7 +91,7 @@ describe("cron main job passes heartbeat target=last", () => {
     expect(callArgs?.session?.target).toBe("last");
   });
 
-  it("should not pass heartbeat target for wakeMode=next-heartbeat main jobs", async () => {
+  it("normalizes legacy next-heartbeat main jobs to the event-driven wake path", async () => {
     const { storePath } = await makeStorePath();
     const now = Date.now();
 
@@ -115,9 +115,11 @@ describe("cron main job passes heartbeat target=last", () => {
 
     await runSingleTick(cron);
 
-    // wakeMode=next-heartbeat uses requestMainSessionWake, not runMainSessionOnce
-    expect(requestMainSessionWake).toHaveBeenCalled();
-    // runMainSessionOnce should NOT have been called for next-heartbeat mode
-    expect(runMainSessionOnce).not.toHaveBeenCalled();
+    expect(requestMainSessionWake).not.toHaveBeenCalled();
+    expect(runMainSessionOnce).toHaveBeenCalled();
+    const callArgs = runMainSessionOnce.mock.calls[0]?.[0];
+    expect(callArgs?.session?.target).toBe("last");
+    const jobs = await cron.list({ includeDisabled: true });
+    expect(jobs.find((entry) => entry.id === job.id)?.wakeMode).toBe("now");
   });
 });

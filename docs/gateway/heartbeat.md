@@ -21,6 +21,9 @@ main-session wakes.
 ## What changed
 
 - The Gateway no longer installs a default periodic heartbeat cadence.
+- `agents.defaults.heartbeat.every` and per-agent `heartbeat.every` are ignored
+  by the runner. Status and health output report legacy cadence config as
+  disabled rather than enabled.
 - Runtime `system heartbeat enable` and `system heartbeat disable` controls were
   removed.
 - `HEARTBEAT.md` is no longer required for automatic periodic checks. Existing
@@ -55,8 +58,8 @@ surfaces, not as the recommended automation model.
 - `last-heartbeat` and `system.heartbeat.last` RPC methods are read-only
   compatibility aliases.
 - `next-heartbeat` remains accepted as a wake-mode value in cron and hook
-  surfaces. In current behavior, it means "queue for the next main-session wake"
-  rather than "wait for a periodic heartbeat tick."
+  surfaces. It is normalized to the same event-driven wake behavior as `now`
+  rather than waiting for a periodic heartbeat tick.
 
 ## Not removed
 
@@ -74,7 +77,7 @@ for compatibility.
 ## Migration checklist
 
 1. Remove `agents.defaults.heartbeat.every` and per-agent heartbeat cadence
-   settings from new configs.
+   settings from configs. Existing values are ignored.
 2. Move scheduled checks to [Scheduled Tasks](/automation/cron-jobs).
 3. Move event-driven follow-ups to [`crawclaw system event`](/cli/system) or
    hooks.

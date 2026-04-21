@@ -18,9 +18,8 @@ import { createOutboundTestPlugin, createTestRegistry } from "../test-utils/chan
 import { typedCases } from "../test-utils/typed-cases.js";
 import {
   type HeartbeatDeps,
-  isHeartbeatEnabledForAgent,
-  resolveHeartbeatIntervalMs,
   resolveHeartbeatPrompt,
+  resolveHeartbeatSummaryForAgent,
   runHeartbeatOnce,
 } from "./heartbeat-runner.js";
 import {
@@ -58,6 +57,10 @@ const createCaseDir = async (prefix: string) => {
   const dir = path.join(fixtureRoot, `${prefix}-${fixtureCount++}`);
   await fs.mkdir(dir, { recursive: true });
   return dir;
+};
+
+const enqueueTestWakeEvent = (sessionKey: string, text = "Test system event") => {
+  enqueueSystemEvent(text, { sessionKey, contextKey: "test:wake" });
 };
 
 beforeAll(async () => {
@@ -135,53 +138,6 @@ afterAll(async () => {
   }
 });
 
-describe("resolveHeartbeatIntervalMs", () => {
-  it("returns default when unset", () => {
-    expect(resolveHeartbeatIntervalMs({})).toBe(30 * 60_000);
-  });
-
-  it("returns null when invalid or zero", () => {
-    expect(
-      resolveHeartbeatIntervalMs({
-        agents: { defaults: { heartbeat: { every: "0m" } } },
-      }),
-    ).toBeNull();
-    expect(
-      resolveHeartbeatIntervalMs({
-        agents: { defaults: { heartbeat: { every: "oops" } } },
-      }),
-    ).toBeNull();
-  });
-
-  it("parses duration strings with minute defaults", () => {
-    expect(
-      resolveHeartbeatIntervalMs({
-        agents: { defaults: { heartbeat: { every: "5m" } } },
-      }),
-    ).toBe(5 * 60_000);
-    expect(
-      resolveHeartbeatIntervalMs({
-        agents: { defaults: { heartbeat: { every: "5" } } },
-      }),
-    ).toBe(5 * 60_000);
-    expect(
-      resolveHeartbeatIntervalMs({
-        agents: { defaults: { heartbeat: { every: "2h" } } },
-      }),
-    ).toBe(2 * 60 * 60_000);
-  });
-
-  it("uses explicit heartbeat overrides when provided", () => {
-    expect(
-      resolveHeartbeatIntervalMs(
-        { agents: { defaults: { heartbeat: { every: "30m" } } } },
-        undefined,
-        { every: "5m" },
-      ),
-    ).toBe(5 * 60_000);
-  });
-});
-
 describe("resolveHeartbeatPrompt", () => {
   it.each([
     { name: "default prompt", cfg: {} as CrawClawConfig, expected: HEARTBEAT_PROMPT },
@@ -197,27 +153,20 @@ describe("resolveHeartbeatPrompt", () => {
   });
 });
 
-describe("isHeartbeatEnabledForAgent", () => {
-  it("enables only explicit heartbeat agents when configured", () => {
+describe("resolveHeartbeatSummaryForAgent", () => {
+  it("reports explicit legacy cadence as disabled", () => {
     const cfg: CrawClawConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
       },
     };
-    expect(isHeartbeatEnabledForAgent(cfg, "main")).toBe(false);
-    expect(isHeartbeatEnabledForAgent(cfg, "ops")).toBe(true);
-  });
 
-  it("falls back to default agent when no explicit heartbeat entries", () => {
-    const cfg: CrawClawConfig = {
-      agents: {
-        defaults: { heartbeat: { every: "30m" } },
-        list: [{ id: "main" }, { id: "ops" }],
-      },
-    };
-    expect(isHeartbeatEnabledForAgent(cfg, "main")).toBe(true);
-    expect(isHeartbeatEnabledForAgent(cfg, "ops")).toBe(false);
+    expect(resolveHeartbeatSummaryForAgent(cfg, "ops")).toMatchObject({
+      enabled: false,
+      every: "disabled",
+      everyMs: null,
+    });
   });
 });
 
@@ -509,7 +458,7 @@ describe("runHeartbeatOnce", () => {
     }
   });
 
-  it("skips outside active hours", async () => {
+  it("skips legacy cadence before active-hours checks", async () => {
     const cfg: CrawClawConfig = {
       agents: {
         defaults: {
@@ -529,7 +478,7 @@ describe("runHeartbeatOnce", () => {
 
     expect(res.status).toBe("skipped");
     if (res.status === "skipped") {
-      expect(res.reason).toBe("quiet-hours");
+      expect(res.reason).toBe("disabled");
     }
   });
 
@@ -561,6 +510,7 @@ describe("runHeartbeatOnce", () => {
           },
         }),
       );
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockResolvedValue([{ text: "Let me check..." }, { text: "Final alert" }]);
       const sendWhatsApp = vi
@@ -578,6 +528,7 @@ describe("runHeartbeatOnce", () => {
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: createHeartbeatDeps(sendWhatsApp),
       });
 
@@ -592,7 +543,7 @@ describe("runHeartbeatOnce", () => {
     }
   });
 
-  it("uses per-agent heartbeat overrides and session keys", async () => {
+  it("uses per-agent delivery overrides and session keys for event-driven wakes", async () => {
     const tmpDir = await createCaseDir("hb-agent-overrides");
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
@@ -627,6 +578,7 @@ describe("runHeartbeatOnce", () => {
           },
         }),
       );
+      enqueueTestWakeEvent(sessionKey);
       replySpy.mockResolvedValue([{ text: "Final alert" }]);
       const sendWhatsApp = vi
         .fn<
@@ -643,6 +595,7 @@ describe("runHeartbeatOnce", () => {
       await runHeartbeatOnce({
         cfg,
         agentId: "ops",
+        reason: "wake",
         deps: createHeartbeatDeps(sendWhatsApp),
       });
       expect(sendWhatsApp).toHaveBeenCalledTimes(1);
@@ -653,13 +606,13 @@ describe("runHeartbeatOnce", () => {
       );
       expect(replySpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          Body: expect.stringMatching(/Ops check[\s\S]*Current time: /),
+          Body: expect.stringMatching(/Review the queued system events[\s\S]*Current time: /),
           SessionKey: sessionKey,
           From: "120363401234567890@g.us",
           To: "120363401234567890@g.us",
           OriginatingChannel: "whatsapp",
           OriginatingTo: "120363401234567890@g.us",
-          Provider: "heartbeat",
+          Provider: "system-event",
         }),
         expect.objectContaining({ isHeartbeat: true, suppressToolErrorWarnings: false }),
         cfg,
@@ -712,6 +665,7 @@ describe("runHeartbeatOnce", () => {
           },
         }),
       );
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockResolvedValue([{ text: "Final alert" }]);
       const sendWhatsApp = vi
@@ -729,6 +683,7 @@ describe("runHeartbeatOnce", () => {
       const result = await runHeartbeatOnce({
         cfg,
         agentId,
+        reason: "wake",
         deps: createHeartbeatDeps(sendWhatsApp),
       });
 
@@ -744,7 +699,7 @@ describe("runHeartbeatOnce", () => {
           SessionKey: sessionKey,
           From: "120363401234567890@g.us",
           To: "120363401234567890@g.us",
-          Provider: "heartbeat",
+          Provider: "system-event",
         }),
         expect.objectContaining({ isHeartbeat: true, suppressToolErrorWarnings: false }),
         cfg,
@@ -826,6 +781,7 @@ describe("runHeartbeatOnce", () => {
             },
           }),
         );
+        enqueueTestWakeEvent(overrideSessionKey);
 
         replySpy.mockClear();
         replySpy.mockResolvedValue([{ text: message }]);
@@ -842,6 +798,7 @@ describe("runHeartbeatOnce", () => {
         await runHeartbeatOnce({
           cfg,
           ...runOptions({ sessionKey: overrideSessionKey }),
+          reason: "wake",
           deps: createHeartbeatDeps(sendWhatsApp),
         });
 
@@ -852,7 +809,7 @@ describe("runHeartbeatOnce", () => {
             SessionKey: overrideSessionKey,
             From: peerId,
             To: peerId,
-            Provider: "heartbeat",
+            Provider: "system-event",
           }),
           expect.objectContaining({ isHeartbeat: true, suppressToolErrorWarnings: false }),
           cfg,
@@ -893,6 +850,7 @@ describe("runHeartbeatOnce", () => {
           },
         }),
       );
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockResolvedValue([{ text: "Final alert" }]);
       const sendWhatsApp = vi
@@ -907,6 +865,7 @@ describe("runHeartbeatOnce", () => {
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: createHeartbeatDeps(sendWhatsApp, 60_000),
       });
 
@@ -971,6 +930,7 @@ describe("runHeartbeatOnce", () => {
             },
           }),
         );
+        enqueueTestWakeEvent(sessionKey);
 
         replySpy.mockClear();
         replySpy.mockResolvedValue(replies);
@@ -986,6 +946,7 @@ describe("runHeartbeatOnce", () => {
 
         await runHeartbeatOnce({
           cfg,
+          reason: "wake",
           deps: createHeartbeatDeps(sendWhatsApp),
         });
 
@@ -1034,6 +995,7 @@ describe("runHeartbeatOnce", () => {
           },
         }),
       );
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockResolvedValue({ text: "Hello from heartbeat" });
       const sendWhatsApp = vi
@@ -1051,6 +1013,7 @@ describe("runHeartbeatOnce", () => {
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: createHeartbeatDeps(sendWhatsApp),
       });
 
@@ -1140,43 +1103,24 @@ describe("runHeartbeatOnce", () => {
     return { res, replySpy, sendWhatsApp, workspaceDir };
   }
 
-  it("adds explicit workspace HEARTBEAT.md path guidance to heartbeat prompts", async () => {
-    const { res, replySpy, sendWhatsApp, workspaceDir } = await runHeartbeatFileScenario({
-      fileState: "actionable",
-      reason: "interval",
-      replyText: "Checked logs and PRs",
-    });
-    try {
-      expect(res.status).toBe("ran");
-      expect(sendWhatsApp).toHaveBeenCalledTimes(1);
-      expect(replySpy).toHaveBeenCalledTimes(1);
-      const calledCtx = replySpy.mock.calls[0]?.[0] as { Body?: string };
-      const expectedPath = path.join(workspaceDir, "HEARTBEAT.md").replace(/\\/g, "/");
-      expect(calledCtx.Body).toContain(`use workspace file ${expectedPath} (exact case)`);
-      expect(calledCtx.Body).toContain("Do not read docs/heartbeat.md.");
-    } finally {
-      replySpy.mockRestore();
-    }
-  });
-
-  it("applies HEARTBEAT.md gating rules across file states and triggers", async () => {
+  it("ignores HEARTBEAT.md state for legacy cadence and runs only queued events", async () => {
     const cases: Array<{
       name: string;
       fileState: HeartbeatFileState;
       reason?: "interval" | "wake";
       queueCronEvent?: boolean;
       expectedStatus: "ran" | "skipped";
-      expectedSkipReason?: "empty-heartbeat-file" | "no-system-events";
+      expectedSkipReason?: "disabled" | "no-system-events";
       expectedSendCalls: number;
       expectedReplyCalls: number;
       expectCronContext?: boolean;
       replyText?: string;
     }> = [
       {
-        name: "empty file + interval skips",
+        name: "empty file + legacy cadence skips",
         fileState: "empty",
         expectedStatus: "skipped",
-        expectedSkipReason: "empty-heartbeat-file",
+        expectedSkipReason: "disabled",
         expectedSendCalls: 0,
         expectedReplyCalls: 0,
       },
@@ -1201,25 +1145,28 @@ describe("runHeartbeatOnce", () => {
         replyText: "Relay this cron update now",
       },
       {
-        name: "actionable file runs",
+        name: "actionable file + legacy cadence skips",
         fileState: "actionable",
-        expectedStatus: "ran",
-        expectedSendCalls: 1,
-        expectedReplyCalls: 1,
+        expectedStatus: "skipped",
+        expectedSkipReason: "disabled",
+        expectedSendCalls: 0,
+        expectedReplyCalls: 0,
       },
       {
-        name: "missing file runs",
+        name: "missing file + legacy cadence skips",
         fileState: "missing",
-        expectedStatus: "ran",
-        expectedSendCalls: 1,
-        expectedReplyCalls: 1,
+        expectedStatus: "skipped",
+        expectedSkipReason: "disabled",
+        expectedSendCalls: 0,
+        expectedReplyCalls: 0,
       },
       {
-        name: "read error runs",
+        name: "read error + legacy cadence skips",
         fileState: "read-error",
-        expectedStatus: "ran",
-        expectedSendCalls: 1,
-        expectedReplyCalls: 1,
+        expectedStatus: "skipped",
+        expectedSkipReason: "disabled",
+        expectedSendCalls: 0,
+        expectedReplyCalls: 0,
       },
       {
         name: "missing file + wake skips without queued system events",

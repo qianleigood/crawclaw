@@ -14369,12 +14369,12 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "hooks.mappings[].action": {
       label: "Hook Mapping Action",
-      help: 'Mapping action type: "wake" triggers agent wake flow, while "agent" sends directly to agent handling. Use "agent" for immediate execution and "wake" when heartbeat-driven processing is preferred.',
+      help: 'Mapping action type: "wake" queues an event-driven main-session wake, while "agent" sends directly to agent handling. Use "agent" for immediate execution and "wake" when queued main-session processing is preferred.',
       tags: ["advanced"],
     },
     "hooks.mappings[].wakeMode": {
       label: "Hook Mapping Wake Mode",
-      help: 'Wake scheduling mode: "now" wakes immediately, while "next-heartbeat" defers until the next heartbeat cycle. Use deferred mode for lower-priority automations that can tolerate slight delay.',
+      help: 'Wake scheduling mode. "now" wakes the main session after enqueueing the hook event. "next-heartbeat" is accepted as a compatibility alias for "now".',
       tags: ["advanced"],
     },
     "hooks.mappings[].name": {

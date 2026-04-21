@@ -40,6 +40,10 @@ function isFiniteTimestamp(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function normalizeCronWakeMode(_wakeMode: CronJob["wakeMode"]): CronJob["wakeMode"] {
+  return "now";
+}
+
 function resolveStableCronOffsetMs(jobId: string, staggerMs: number) {
   if (staggerMs <= 1) {
     return 0;
@@ -570,7 +574,7 @@ export function createJob(state: CronServiceState, input: CronJobCreate): CronJo
     updatedAtMs: now,
     schedule,
     sessionTarget: input.sessionTarget,
-    wakeMode: input.wakeMode,
+    wakeMode: normalizeCronWakeMode(input.wakeMode),
     payload: input.payload,
     delivery: resolveInitialCronDelivery(input),
     failureAlert: input.failureAlert,
@@ -625,7 +629,7 @@ export function applyJobPatch(
     job.sessionTarget = patch.sessionTarget;
   }
   if (patch.wakeMode) {
-    job.wakeMode = patch.wakeMode;
+    job.wakeMode = normalizeCronWakeMode(patch.wakeMode);
   }
   if (patch.payload) {
     job.payload = mergeCronPayload(job.payload, patch.payload);

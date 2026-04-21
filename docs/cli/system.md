@@ -24,13 +24,14 @@ crawclaw system presence
 
 Enqueue a system event on the **main** session. The next main-session run will
 inject it as a `System:` line in the prompt. Use `--mode now` to trigger the
-main-session wake immediately. `next-heartbeat` is a legacy-compatible mode
-name that queues the event for the next main-session wake.
+main-session wake immediately. `now` is the default. `next-heartbeat` is a
+legacy-compatible mode name that requests the same event-driven wake; it no
+longer waits for a periodic heartbeat tick.
 
 Flags:
 
 - `--text <text>`: required system event text.
-- `--mode <mode>`: `now` or `next-heartbeat` (default).
+- `--mode <mode>`: `now` (default) or `next-heartbeat`.
 - `--json`: machine-readable output.
 
 ## `system heartbeat last`

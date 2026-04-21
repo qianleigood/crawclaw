@@ -267,12 +267,7 @@ export function normalizeStoredCronJobs(
     }
 
     const wakeModeRaw = typeof raw.wakeMode === "string" ? raw.wakeMode.trim().toLowerCase() : "";
-    if (wakeModeRaw === "next-heartbeat") {
-      if (raw.wakeMode !== "next-heartbeat") {
-        raw.wakeMode = "next-heartbeat";
-        mutated = true;
-      }
-    } else if (wakeModeRaw === "now") {
+    if (wakeModeRaw === "now" || wakeModeRaw === "next-heartbeat") {
       if (raw.wakeMode !== "now") {
         raw.wakeMode = "now";
         mutated = true;

@@ -9,7 +9,7 @@ export type HookMappingResolved = {
   matchPath?: string;
   matchSource?: string;
   action: "wake" | "agent";
-  wakeMode?: "now" | "next-heartbeat";
+  wakeMode?: "now";
   name?: string;
   agentId?: string;
   sessionKey?: string;
@@ -41,14 +41,14 @@ export type HookAction =
   | {
       kind: "wake";
       text: string;
-      mode: "now" | "next-heartbeat";
+      mode: "now";
     }
   | {
       kind: "agent";
       message: string;
       name?: string;
       agentId?: string;
-      wakeMode: "now" | "next-heartbeat";
+      wakeMode: "now";
       sessionKey?: string;
       deliver?: boolean;
       allowUnsafeExternalContent?: boolean;
@@ -102,6 +102,10 @@ type HookTransformResult = Partial<{
 type HookTransformFn = (
   ctx: HookMappingContext,
 ) => HookTransformResult | Promise<HookTransformResult>;
+
+function normalizeHookWakeMode(_raw?: "now" | "next-heartbeat"): "now" {
+  return "now";
+}
 
 export function resolveHookMappings(
   hooks?: HooksConfig,
@@ -191,7 +195,7 @@ function normalizeHookMapping(
   const matchPath = normalizeMatchPath(mapping.match?.path);
   const matchSource = mapping.match?.source?.trim();
   const action = mapping.action ?? "agent";
-  const wakeMode = mapping.wakeMode ?? "now";
+  const wakeMode = normalizeHookWakeMode(mapping.wakeMode);
   const transform = mapping.transform
     ? {
         modulePath: resolveContainedPath(transformsDir, mapping.transform.module, "Hook transform"),
@@ -247,7 +251,7 @@ function buildActionFromMapping(
       action: {
         kind: "wake",
         text,
-        mode: mapping.wakeMode ?? "now",
+        mode: normalizeHookWakeMode(mapping.wakeMode),
       },
     };
   }
@@ -259,7 +263,7 @@ function buildActionFromMapping(
       message,
       name: renderOptional(mapping.name, ctx),
       agentId: mapping.agentId,
-      wakeMode: mapping.wakeMode ?? "now",
+      wakeMode: normalizeHookWakeMode(mapping.wakeMode),
       sessionKey: renderOptional(mapping.sessionKey, ctx),
       deliver: mapping.deliver,
       allowUnsafeExternalContent: mapping.allowUnsafeExternalContent,
@@ -284,14 +288,21 @@ function mergeAction(
   if (kind === "wake") {
     const baseWake = base.kind === "wake" ? base : undefined;
     const text = typeof override.text === "string" ? override.text : (baseWake?.text ?? "");
-    const mode = override.mode === "next-heartbeat" ? "next-heartbeat" : (baseWake?.mode ?? "now");
+    const mode = normalizeHookWakeMode(
+      override.mode === "now" || override.mode === "next-heartbeat"
+        ? override.mode
+        : baseWake?.mode,
+    );
     return validateAction({ kind: "wake", text, mode });
   }
   const baseAgent = base.kind === "agent" ? base : undefined;
   const message =
     typeof override.message === "string" ? override.message : (baseAgent?.message ?? "");
-  const wakeMode =
-    override.wakeMode === "next-heartbeat" ? "next-heartbeat" : (baseAgent?.wakeMode ?? "now");
+  const wakeMode = normalizeHookWakeMode(
+    override.wakeMode === "now" || override.wakeMode === "next-heartbeat"
+      ? override.wakeMode
+      : baseAgent?.wakeMode,
+  );
   return validateAction({
     kind: "agent",
     message,

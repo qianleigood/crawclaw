@@ -5,7 +5,7 @@ import * as taskExecutor from "../../tasks/task-executor.js";
 import { findTaskByRunId, resetTaskRegistryForTests } from "../../tasks/task-registry.js";
 import { setupCronServiceSuite, writeCronStoreSnapshot } from "../service.test-harness.js";
 import type { CronJob } from "../types.js";
-import { run, start, stop } from "./ops.js";
+import { run, start, stop, wakeNow } from "./ops.js";
 import { createCronServiceState } from "./state.js";
 
 const { logger, makeStorePath } = setupCronServiceSuite({
@@ -65,6 +65,26 @@ function createMissedIsolatedJob(now: number): CronJob {
 }
 
 describe("cron service ops seam coverage", () => {
+  it("treats next-heartbeat wake as an event-driven main-session wake", async () => {
+    const { storePath } = await makeStorePath();
+    const enqueueSystemEvent = vi.fn();
+    const requestMainSessionWake = vi.fn();
+    const state = createCronServiceState({
+      storePath,
+      cronEnabled: true,
+      log: logger,
+      enqueueSystemEvent,
+      requestMainSessionWake,
+      runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
+    });
+
+    const result = wakeNow(state, { mode: "next-heartbeat", text: "  check inbox  " });
+
+    expect(result).toEqual({ ok: true });
+    expect(enqueueSystemEvent).toHaveBeenCalledWith("check inbox");
+    expect(requestMainSessionWake).toHaveBeenCalledWith({ reason: "wake" });
+  });
+
   it("start clears stale running markers, skips startup replay, persists, and arms the timer", async () => {
     const { storePath } = await makeStorePath();
     const now = Date.parse("2026-03-23T12:00:00.000Z");

@@ -164,6 +164,29 @@ describe("cron tool", () => {
     expect(readGatewayCall().params).toEqual({ id: "job-due", mode: "due" });
   });
 
+  it("uses immediate wake by default for wake actions", async () => {
+    const tool = createTestCronTool();
+    await tool.execute("call-wake-default", {
+      action: "wake",
+      text: "check inbox",
+    });
+
+    const params = expectSingleGatewayCallMethod("wake");
+    expect(params).toEqual({ mode: "now", text: "check inbox" });
+  });
+
+  it("accepts next-heartbeat wake action as an immediate wake alias", async () => {
+    const tool = createTestCronTool();
+    await tool.execute("call-wake-alias", {
+      action: "wake",
+      mode: "next-heartbeat",
+      text: "check inbox",
+    });
+
+    const params = expectSingleGatewayCallMethod("wake");
+    expect(params).toEqual({ mode: "now", text: "check inbox" });
+  });
+
   it("normalizes cron.add job payloads", async () => {
     const tool = createTestCronTool();
     await tool.execute("call2", {

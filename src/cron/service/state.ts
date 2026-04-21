@@ -77,12 +77,12 @@ export type CronServiceDeps = {
     session?: { target?: string };
   }) => Promise<MainSessionRunResult>;
   /**
-   * WakeMode=now: max time to wait for runMainSessionOnce to stop returning
-   * { status:"skipped", reason:"requests-in-flight" } before falling back to
-   * requestMainSessionWake.
+   * Main-session cron jobs: max time to wait for runMainSessionOnce to stop
+   * returning { status:"skipped", reason:"requests-in-flight" } before falling
+   * back to requestMainSessionWake.
    */
   wakeNowHeartbeatBusyMaxWaitMs?: number;
-  /** WakeMode=now: delay between runMainSessionOnce retries while busy. */
+  /** Main-session cron jobs: delay between runMainSessionOnce retries while busy. */
   wakeNowHeartbeatBusyRetryDelayMs?: number;
   runIsolatedAgentJob: (params: {
     job: CronJob;

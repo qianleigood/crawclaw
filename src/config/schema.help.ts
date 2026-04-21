@@ -1324,9 +1324,9 @@ export const FIELD_HELP: Record<string, string> = {
   "hooks.mappings[].match.source":
     "Source match condition for a hook mapping, typically set by trusted upstream metadata or adapter logic. Use stable source identifiers so routing remains deterministic across retries.",
   "hooks.mappings[].action":
-    'Mapping action type: "wake" triggers agent wake flow, while "agent" sends directly to agent handling. Use "agent" for immediate execution and "wake" when heartbeat-driven processing is preferred.',
+    'Mapping action type: "wake" queues an event-driven main-session wake, while "agent" sends directly to agent handling. Use "agent" for immediate execution and "wake" when queued main-session processing is preferred.',
   "hooks.mappings[].wakeMode":
-    'Wake scheduling mode: "now" wakes immediately, while "next-heartbeat" defers until the next heartbeat cycle. Use deferred mode for lower-priority automations that can tolerate slight delay.',
+    'Wake scheduling mode. "now" wakes the main session after enqueueing the hook event. "next-heartbeat" is accepted as a compatibility alias for "now".',
   "hooks.mappings[].name":
     "Human-readable mapping display name used in diagnostics and operator-facing config UIs. Keep names concise and descriptive so routing intent is obvious during incident review.",
   "hooks.mappings[].agentId":

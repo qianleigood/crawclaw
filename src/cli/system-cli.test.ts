@@ -41,16 +41,27 @@ describe("system-cli", () => {
     callGatewayFromCli.mockResolvedValue({ ok: true });
   });
 
-  it("runs system event with default wake mode and text output", async () => {
+  it("runs system event with immediate wake by default and text output", async () => {
     await runCli(["system", "event", "--text", "  hello world  "]);
 
     expect(callGatewayFromCli).toHaveBeenCalledWith(
       "wake",
       expect.objectContaining({ text: "  hello world  " }),
-      { mode: "next-heartbeat", text: "hello world" },
+      { mode: "now", text: "hello world" },
       { expectFinal: false },
     );
     expect(runtimeLogs).toEqual(["ok"]);
+  });
+
+  it("accepts next-heartbeat as an alias for immediate wake", async () => {
+    await runCli(["system", "event", "--text", "hello", "--mode", "next-heartbeat"]);
+
+    expect(callGatewayFromCli).toHaveBeenCalledWith(
+      "wake",
+      expect.objectContaining({ text: "hello" }),
+      { mode: "now", text: "hello" },
+      { expectFinal: false },
+    );
   });
 
   it("prints JSON for event when --json is enabled", async () => {

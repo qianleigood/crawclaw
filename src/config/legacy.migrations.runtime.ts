@@ -257,7 +257,7 @@ const GATEWAY_BIND_RULE: LegacyConfigRule = {
 const HEARTBEAT_RULE: LegacyConfigRule = {
   path: ["heartbeat"],
   message:
-    "top-level heartbeat is not a valid config path; use agents.defaults.heartbeat (cadence/target/model settings) or channels.defaults.heartbeat (showOk/showAlerts/useIndicator).",
+    "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for compatibility delivery settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
 };
 
 const X_SEARCH_RULE: LegacyConfigRule = {

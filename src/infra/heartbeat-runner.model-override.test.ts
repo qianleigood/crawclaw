@@ -4,6 +4,7 @@ import type { CrawClawConfig } from "../config/config.js";
 import { resolveAgentMainSessionKey, resolveMainSessionKey } from "../config/sessions.js";
 import { runHeartbeatOnce } from "./heartbeat-runner.js";
 import { seedSessionStore, withTempHeartbeatSandbox } from "./heartbeat-runner.test-utils.js";
+import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
 vi.mock("./outbound/deliver.js", () => ({
   deliverOutboundPayloads: vi.fn().mockResolvedValue(undefined),
@@ -38,9 +39,12 @@ async function withHeartbeatFixture(
   );
 }
 
-beforeEach(() => {});
+beforeEach(() => {
+  resetSystemEventsForTest();
+});
 
 afterEach(() => {
+  resetSystemEventsForTest();
   vi.restoreAllMocks();
 });
 
@@ -52,6 +56,10 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
     agentId?: string;
   }) {
     await params.seedSession(params.sessionKey, { lastChannel: "whatsapp", lastTo: "+1555" });
+    enqueueSystemEvent("Test system event", {
+      sessionKey: params.sessionKey,
+      contextKey: "test:wake",
+    });
 
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
@@ -59,6 +67,7 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
     await runHeartbeatOnce({
       cfg: params.cfg,
       agentId: params.agentId,
+      reason: "wake",
       deps: {
         getQueueSize: () => 0,
         nowMs: () => 0,

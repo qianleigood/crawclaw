@@ -4,18 +4,12 @@ import {
   hasOutboundReplyContent,
   resolveSendableOutboundReplyParts,
 } from "crawclaw/plugin-sdk/reply-payload";
-import {
-  resolveAgentConfig,
-  resolveAgentWorkspaceDir,
-  resolveDefaultAgentId,
-} from "../agents/agent-scope.js";
+import { resolveAgentConfig, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { appendCronStyleCurrentTimeLine } from "../agents/current-time.js";
 import { resolveEffectiveMessagesConfig } from "../agents/identity.js";
-import { DEFAULT_HEARTBEAT_FILENAME } from "../agents/workspace.js";
 import { resolveHeartbeatReplyPayload } from "../auto-reply/heartbeat-reply-payload.js";
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
-  isHeartbeatContentEffectivelyEmpty,
   resolveHeartbeatPrompt as resolveHeartbeatPromptText,
   stripHeartbeatToken,
 } from "../auto-reply/heartbeat.js";
@@ -48,8 +42,7 @@ import {
 } from "../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { escapeRegExp } from "../utils.js";
-import { formatErrorMessage, hasErrnoCode } from "./errors.js";
-import { isWithinActiveHours } from "./heartbeat-active-hours.js";
+import { formatErrorMessage } from "./errors.js";
 import {
   buildExecEventPrompt,
   buildCronEventPrompt,
@@ -59,15 +52,9 @@ import {
 } from "./heartbeat-events-filter.js";
 import { emitHeartbeatEvent, resolveIndicatorType } from "./heartbeat-events.js";
 import { resolveHeartbeatReasonKind } from "./heartbeat-reason.js";
-import {
-  isHeartbeatEnabledForAgent,
-  resolveHeartbeatIntervalMs,
-  resolveHeartbeatSummaryForAgent,
-  type HeartbeatSummary,
-} from "./heartbeat-summary.js";
+import { resolveHeartbeatSummaryForAgent, type HeartbeatSummary } from "./heartbeat-summary.js";
 import { resolveHeartbeatVisibility } from "./heartbeat-visibility.js";
 import {
-  areHeartbeatsEnabled,
   type HeartbeatRunResult,
   type HeartbeatWakeHandler,
   setHeartbeatWakeHandler,
@@ -94,13 +81,8 @@ export type HeartbeatDeps = OutboundSendDeps &
 
 const log = createSubsystemLogger("gateway/heartbeat");
 
-export { areHeartbeatsEnabled };
-export {
-  isHeartbeatEnabledForAgent,
-  resolveHeartbeatIntervalMs,
-  resolveHeartbeatSummaryForAgent,
-  type HeartbeatSummary,
-} from "./heartbeat-summary.js";
+export { areHeartbeatsEnabled } from "./heartbeat-wake.js";
+export { resolveHeartbeatSummaryForAgent, type HeartbeatSummary } from "./heartbeat-summary.js";
 
 type HeartbeatConfig = AgentDefaultsConfig["heartbeat"];
 type HeartbeatAgent = {
@@ -394,8 +376,6 @@ type HeartbeatReasonFlags = {
   isEventDrivenReason: boolean;
 };
 
-type HeartbeatSkipReason = "empty-heartbeat-file";
-
 type HeartbeatPreflight = HeartbeatReasonFlags & {
   session: ReturnType<typeof resolveHeartbeatSession>;
   pendingEventEntries: ReturnType<typeof peekSystemEventEntries>;
@@ -403,7 +383,6 @@ type HeartbeatPreflight = HeartbeatReasonFlags & {
   turnSourceDeliveryContext: ReturnType<typeof resolveSystemEventDeliveryContext>;
   hasTaggedCronEvents: boolean;
   shouldInspectPendingEvents: boolean;
-  skipReason?: HeartbeatSkipReason;
 };
 
 function resolveHeartbeatReasonFlags(reason?: string): HeartbeatReasonFlags {
@@ -441,9 +420,9 @@ async function resolveHeartbeatPreflight(params: {
   const hasTaggedCronEvents = actionableEventEntries.some((event) =>
     event.contextKey?.startsWith("cron:"),
   );
-  const shouldInspectPendingEvents = reasonFlags.isEventDrivenReason || hasTaggedCronEvents;
-  const shouldBypassFileGates = reasonFlags.isEventDrivenReason || hasTaggedCronEvents;
-  const basePreflight = {
+  const hasActionableEvents = actionableEventEntries.length > 0;
+  const shouldInspectPendingEvents = reasonFlags.isEventDrivenReason || hasActionableEvents;
+  return {
     ...reasonFlags,
     session,
     pendingEventEntries,
@@ -451,33 +430,7 @@ async function resolveHeartbeatPreflight(params: {
     turnSourceDeliveryContext,
     hasTaggedCronEvents,
     shouldInspectPendingEvents,
-  } satisfies Omit<HeartbeatPreflight, "skipReason">;
-
-  if (shouldBypassFileGates) {
-    return basePreflight;
-  }
-
-  const workspaceDir = resolveAgentWorkspaceDir(params.cfg, params.agentId);
-  const heartbeatFilePath = path.join(workspaceDir, DEFAULT_HEARTBEAT_FILENAME);
-  try {
-    const heartbeatFileContent = await fs.readFile(heartbeatFilePath, "utf-8");
-    if (isHeartbeatContentEffectivelyEmpty(heartbeatFileContent)) {
-      return {
-        ...basePreflight,
-        skipReason: "empty-heartbeat-file",
-      };
-    }
-  } catch (err: unknown) {
-    if (hasErrnoCode(err, "ENOENT")) {
-      // Missing HEARTBEAT.md is intentional in some setups (for example, when
-      // heartbeat instructions live outside the file), so keep the run active.
-      // The heartbeat prompt already says "if it exists".
-      return basePreflight;
-    }
-    // For other read errors, proceed with heartbeat as before.
-  }
-
-  return basePreflight;
+  } satisfies HeartbeatPreflight;
 }
 
 type HeartbeatPromptResolution = {
@@ -486,18 +439,6 @@ type HeartbeatPromptResolution = {
   hasCronEvents: boolean;
   hasSystemEvents: boolean;
 };
-
-function appendHeartbeatWorkspacePathHint(prompt: string, workspaceDir: string): string {
-  if (!/heartbeat\.md/i.test(prompt)) {
-    return prompt;
-  }
-  const heartbeatFilePath = path.join(workspaceDir, DEFAULT_HEARTBEAT_FILENAME).replace(/\\/g, "/");
-  const hint = `When reading HEARTBEAT.md, use workspace file ${heartbeatFilePath} (exact case). Do not read docs/heartbeat.md.`;
-  if (prompt.includes(hint)) {
-    return prompt;
-  }
-  return `${prompt}\n${hint}`;
-}
 
 function buildSystemEventPrompt(params: { deliverToUser: boolean }): string {
   return [
@@ -514,7 +455,6 @@ function resolveHeartbeatRunPrompt(params: {
   heartbeat?: HeartbeatConfig;
   preflight: HeartbeatPreflight;
   canRelayToUser: boolean;
-  workspaceDir: string;
 }): HeartbeatPromptResolution {
   const pendingEventEntries = params.preflight.actionableEventEntries;
   const pendingEvents = params.preflight.shouldInspectPendingEvents
@@ -537,9 +477,7 @@ function resolveHeartbeatRunPrompt(params: {
       : params.preflight.isEventDrivenReason && hasSystemEvents
         ? buildSystemEventPrompt({ deliverToUser: params.canRelayToUser })
         : resolveHeartbeatPrompt(params.cfg, params.heartbeat);
-  const prompt = appendHeartbeatWorkspacePathHint(basePrompt, params.workspaceDir);
-
-  return { prompt, hasExecCompletion, hasCronEvents, hasSystemEvents };
+  return { prompt: basePrompt, hasExecCompletion, hasCronEvents, hasSystemEvents };
 }
 
 export async function runHeartbeatOnce(opts: {
@@ -573,29 +511,10 @@ export async function runHeartbeatOnce(opts: {
     forcedSessionKey: opts.sessionKey,
     reason: opts.reason,
   });
-  if (preflight.skipReason) {
-    emitHeartbeatEvent({
-      status: "skipped",
-      reason: preflight.skipReason,
-      durationMs: Date.now() - startedAt,
-    });
-    return { status: "skipped", reason: preflight.skipReason };
-  }
   const isMainSessionWake =
     preflight.isEventDrivenReason || preflight.actionableEventEntries.length > 0;
   if (!isMainSessionWake) {
-    if (!areHeartbeatsEnabled()) {
-      return { status: "skipped", reason: "disabled" };
-    }
-    if (!isHeartbeatEnabledForAgent(cfg, agentId)) {
-      return { status: "skipped", reason: "disabled" };
-    }
-    if (!resolveHeartbeatIntervalMs(cfg, undefined, heartbeat)) {
-      return { status: "skipped", reason: "disabled" };
-    }
-    if (!isWithinActiveHours(cfg, heartbeat, startedAt)) {
-      return { status: "skipped", reason: "quiet-hours" };
-    }
+    return { status: "skipped", reason: "disabled" };
   } else if (preflight.actionableEventEntries.length === 0) {
     if (preflight.pendingEventEntries.length > 0) {
       drainSystemEventEntries(preflight.session.sessionKey);
@@ -668,13 +587,11 @@ export async function runHeartbeatOnce(opts: {
   const canRelayToUser = Boolean(
     delivery.channel !== "none" && delivery.to && visibility.showAlerts,
   );
-  const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
   const { prompt, hasExecCompletion, hasCronEvents, hasSystemEvents } = resolveHeartbeatRunPrompt({
     cfg,
     heartbeat,
     preflight,
     canRelayToUser,
-    workspaceDir,
   });
   const ctx = {
     Body: appendCronStyleCurrentTimeLine(prompt, cfg, startedAt),

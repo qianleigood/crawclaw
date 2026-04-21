@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { runHeartbeatOnce, type HeartbeatDeps } from "./heartbeat-runner.js";
 import { installHeartbeatRunnerTestRuntime } from "./heartbeat-runner.test-harness.js";
@@ -8,12 +8,25 @@ import {
   withTempHeartbeatSandbox,
   withTempTelegramHeartbeatSandbox,
 } from "./heartbeat-runner.test-utils.js";
+import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
 installHeartbeatRunnerTestRuntime();
 
 describe("runHeartbeatOnce ack handling", () => {
   const WHATSAPP_GROUP = "120363140186826074@g.us";
   const TELEGRAM_GROUP = "-1001234567890";
+
+  beforeEach(() => {
+    resetSystemEventsForTest();
+  });
+
+  afterEach(() => {
+    resetSystemEventsForTest();
+  });
+
+  function enqueueTestWakeEvent(sessionKey: string) {
+    enqueueSystemEvent("Test system event", { sessionKey, contextKey: "test:wake" });
+  }
 
   function createHeartbeatConfig(params: {
     tmpDir: string;
@@ -98,16 +111,18 @@ describe("runHeartbeatOnce ack handling", () => {
       ...(params.messages ? { messages: params.messages } : {}),
     });
 
-    await seedMainSessionStore(params.storePath, cfg, {
+    const sessionKey = await seedMainSessionStore(params.storePath, cfg, {
       lastChannel: "telegram",
       lastProvider: "telegram",
       lastTo: TELEGRAM_GROUP,
     });
+    enqueueTestWakeEvent(sessionKey);
 
     params.replySpy.mockResolvedValue({ text: params.replyText });
     const sendTelegram = createMessageSendSpy();
     await runHeartbeatOnce({
       cfg,
+      reason: "wake",
       deps: makeTelegramDeps({ sendTelegram }),
     });
     return sendTelegram;
@@ -143,11 +158,12 @@ describe("runHeartbeatOnce ack handling", () => {
     visibility?: Record<string, unknown>;
   }): Promise<CrawClawConfig> {
     const cfg = createWhatsAppHeartbeatConfig(params);
-    await seedMainSessionStore(params.storePath, cfg, {
+    const sessionKey = await seedMainSessionStore(params.storePath, cfg, {
       lastChannel: "whatsapp",
       lastProvider: "whatsapp",
       lastTo: WHATSAPP_GROUP,
     });
+    enqueueTestWakeEvent(sessionKey);
     return cfg;
   }
 
@@ -159,17 +175,19 @@ describe("runHeartbeatOnce ack handling", () => {
         heartbeat: { ackMaxChars: 0 },
       });
 
-      await seedMainSessionStore(storePath, cfg, {
+      const sessionKey = await seedMainSessionStore(storePath, cfg, {
         lastChannel: "whatsapp",
         lastProvider: "whatsapp",
         lastTo: WHATSAPP_GROUP,
       });
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK 🦀" });
       const sendWhatsApp = createMessageSendSpy();
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
       });
 
@@ -185,17 +203,19 @@ describe("runHeartbeatOnce ack handling", () => {
         visibility: { showOk: true },
       });
 
-      await seedMainSessionStore(storePath, cfg, {
+      const sessionKey = await seedMainSessionStore(storePath, cfg, {
         lastChannel: "whatsapp",
         lastProvider: "whatsapp",
         lastTo: WHATSAPP_GROUP,
       });
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
       const sendWhatsApp = createMessageSendSpy();
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
       });
 
@@ -248,16 +268,18 @@ describe("runHeartbeatOnce ack handling", () => {
         visibility: { showOk: false, showAlerts: false, useIndicator: false },
       });
 
-      await seedMainSessionStore(storePath, cfg, {
+      const sessionKey = await seedMainSessionStore(storePath, cfg, {
         lastChannel: "whatsapp",
         lastProvider: "whatsapp",
         lastTo: WHATSAPP_GROUP,
       });
+      enqueueTestWakeEvent(sessionKey);
 
       const sendWhatsApp = createMessageSendSpy();
 
       const result = await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
       });
 
@@ -279,6 +301,7 @@ describe("runHeartbeatOnce ack handling", () => {
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
       });
 
@@ -301,6 +324,7 @@ describe("runHeartbeatOnce ack handling", () => {
         lastProvider: "whatsapp",
         lastTo: WHATSAPP_GROUP,
       });
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockImplementationOnce(async () => {
         const raw = await fs.readFile(storePath, "utf-8");
@@ -317,6 +341,7 @@ describe("runHeartbeatOnce ack handling", () => {
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: makeWhatsAppDeps(),
       });
 
@@ -340,6 +365,7 @@ describe("runHeartbeatOnce ack handling", () => {
 
       const res = await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: makeWhatsAppDeps({
           sendWhatsApp,
           webAuthExists: async () => false,
@@ -365,17 +391,19 @@ describe("runHeartbeatOnce ack handling", () => {
         heartbeat: params.heartbeat,
         channels: { telegram: params.telegram },
       });
-      await seedMainSessionStore(storePath, cfg, {
+      const sessionKey = await seedMainSessionStore(storePath, cfg, {
         lastChannel: "telegram",
         lastProvider: "telegram",
         lastTo: TELEGRAM_GROUP,
       });
+      enqueueTestWakeEvent(sessionKey);
 
       replySpy.mockResolvedValue({ text: "Hello from heartbeat" });
       const sendTelegram = createMessageSendSpy({ chatId: TELEGRAM_GROUP });
 
       await runHeartbeatOnce({
         cfg,
+        reason: "wake",
         deps: makeTelegramDeps({ sendTelegram }),
       });
 

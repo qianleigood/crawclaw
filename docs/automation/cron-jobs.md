@@ -58,7 +58,7 @@ Recurring top-of-hour expressions are automatically staggered by up to 5 minutes
 | Current session | `current`           | Bound at creation time   | Context-aware recurring work    |
 | Custom session  | `session:custom-id` | Persistent named session | Workflows that build on history |
 
-**Main session** jobs enqueue a system event and optionally wake the main-session runner (`--wake now` or `--wake next-heartbeat`). **Isolated** jobs run a dedicated agent turn with a fresh session. **Custom sessions** (`session:xxx`) persist context across runs, enabling workflows like daily standups that build on previous summaries.
+**Main session** jobs enqueue a system event and wake the main-session runner (`--wake now`). `--wake next-heartbeat` is still accepted as a compatibility spelling and is normalized to `now`. **Isolated** jobs run a dedicated agent turn with a fresh session. **Custom sessions** (`session:xxx`) persist context across runs, enabling workflows like daily standups that build on previous summaries.
 
 ### Payload options for isolated jobs
 
@@ -153,7 +153,8 @@ curl -X POST http://127.0.0.1:18789/hooks/wake \
 ```
 
 - `text` (required): event description
-- `mode` (optional): `now` (default) or `next-heartbeat` to queue the next main-session wake
+- `mode` (optional): `now` (default) or `next-heartbeat`. Both request an
+  event-driven main-session wake; `next-heartbeat` is kept for compatibility.
 
 ### POST /hooks/agent
 

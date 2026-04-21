@@ -223,9 +223,9 @@ export type AgentDefaultsConfig = {
   typingMode?: TypingMode;
   /** Legacy heartbeat compatibility settings. Prefer cron or hooks for new proactive work. */
   heartbeat?: {
-    /** Legacy heartbeat interval (duration string, default unit: minutes). No default is added. */
+    /** Ignored legacy heartbeat interval (duration string, default unit: minutes). */
     every?: string;
-    /** Optional active-hours window (local time) for legacy heartbeat compatibility runs. */
+    /** Ignored legacy active-hours window (local time). */
     activeHours?: {
       /** Start time (24h, HH:MM). Inclusive. */
       start?: string;
@@ -234,9 +234,9 @@ export type AgentDefaultsConfig = {
       /** Timezone for the window ("user", "local", or IANA TZ id). Default: "user". */
       timezone?: string;
     };
-    /** Legacy heartbeat model override (provider/model). */
+    /** Model override for event-driven wake compatibility turns (provider/model). */
     model?: string;
-    /** Session key for legacy heartbeat compatibility runs ("main" or explicit session key). */
+    /** Session key for event-driven wake compatibility turns ("main" or explicit session key). */
     session?: string;
     /** Delivery target ("last", "none", or a channel id). */
     target?: "last" | "none" | ChannelId;
@@ -246,26 +246,26 @@ export type AgentDefaultsConfig = {
     to?: string;
     /** Optional account id for multi-account channels. */
     accountId?: string;
-    /** Override the legacy heartbeat prompt body. */
+    /** Override the event-driven wake prompt body. */
     prompt?: string;
-    /** Max chars allowed after HEARTBEAT_OK before delivery in legacy heartbeat compatibility runs. */
+    /** Max chars allowed after HEARTBEAT_OK before delivery in event-driven wake turns. */
     ackMaxChars?: number;
-    /** Suppress tool error warning payloads during legacy heartbeat compatibility runs. */
+    /** Suppress tool error warning payloads during event-driven wake turns. */
     suppressToolErrorWarnings?: boolean;
     /**
-     * If true, run legacy heartbeat compatibility turns with lightweight bootstrap context.
+     * If true, run event-driven wake turns with lightweight bootstrap context.
      * Lightweight mode keeps only HEARTBEAT.md from workspace bootstrap files.
      */
     lightContext?: boolean;
     /**
-     * If true, run legacy heartbeat compatibility turns in an isolated session
+     * If true, run event-driven wake turns in an isolated session
      * with no prior conversation history. The run only sees its bootstrap context
      * (HEARTBEAT.md when lightContext is also enabled). Dramatically reduces
-     * per-heartbeat token cost by avoiding the full session transcript.
+     * per-wake token cost by avoiding the full session transcript.
      */
     isolatedSession?: boolean;
     /**
-     * When enabled, deliver the model's reasoning payload for legacy heartbeat runs (when available)
+     * When enabled, deliver the model's reasoning payload for event-driven wake turns (when available)
      * as a separate message prefixed with `Reasoning:` (same as `/reasoning on`).
      *
      * Default: false (only the final payload is delivered).

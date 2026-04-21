@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe("cron service timer seam coverage", () => {
-  it("persists the next schedule and hands off next-heartbeat main jobs", async () => {
+  it("persists the next schedule and normalizes legacy next-heartbeat main jobs", async () => {
     const { storePath } = await makeStorePath();
     const now = Date.parse("2026-03-23T12:00:00.000Z");
     const enqueueSystemEvent = vi.fn();
@@ -75,6 +75,7 @@ describe("cron service timer seam coverage", () => {
     expect(job?.state.lastStatus).toBe("ok");
     expect(job?.state.runningAtMs).toBeUndefined();
     expect(job?.state.nextRunAtMs).toBe(now + 60_000);
+    expect(job?.wakeMode).toBe("now");
 
     const delays = timeoutSpy.mock.calls
       .map(([, delay]) => delay)

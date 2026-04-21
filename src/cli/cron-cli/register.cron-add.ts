@@ -113,6 +113,7 @@ export function registerCronAddCommand(cron: Command, t: CliTranslator) {
           if (wakeMode !== "now" && wakeMode !== "next-heartbeat") {
             throw new Error("--wake must be now or next-heartbeat");
           }
+          const normalizedWakeMode = "now";
 
           const agentId =
             typeof opts.agent === "string" && opts.agent.trim()
@@ -237,7 +238,7 @@ export function registerCronAddCommand(cron: Command, t: CliTranslator) {
             sessionKey,
             schedule,
             sessionTarget,
-            wakeMode,
+            wakeMode: normalizedWakeMode,
             payload,
             delivery: deliveryMode
               ? {

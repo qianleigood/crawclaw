@@ -188,15 +188,12 @@ export function normalizeHookHeaders(req: IncomingMessage) {
 
 export function normalizeWakePayload(
   payload: Record<string, unknown>,
-):
-  | { ok: true; value: { text: string; mode: "now" | "next-heartbeat" } }
-  | { ok: false; error: string } {
+): { ok: true; value: { text: string; mode: "now" } } | { ok: false; error: string } {
   const text = typeof payload.text === "string" ? payload.text.trim() : "";
   if (!text) {
     return { ok: false, error: "text required" };
   }
-  const mode = payload.mode === "next-heartbeat" ? "next-heartbeat" : "now";
-  return { ok: true, value: { text, mode } };
+  return { ok: true, value: { text, mode: "now" } };
 }
 
 export type HookAgentPayload = {
@@ -204,7 +201,7 @@ export type HookAgentPayload = {
   name: string;
   agentId?: string;
   idempotencyKey?: string;
-  wakeMode: "now" | "next-heartbeat";
+  wakeMode: "now";
   sessionKey?: string;
   deliver: boolean;
   channel: HookMessageChannel;
@@ -368,7 +365,7 @@ export function normalizeAgentPayload(payload: Record<string, unknown>):
   const agentId =
     typeof agentIdRaw === "string" && agentIdRaw.trim() ? agentIdRaw.trim() : undefined;
   const idempotencyKey = resolveOptionalHookIdempotencyKey(payload.idempotencyKey);
-  const wakeMode = payload.wakeMode === "next-heartbeat" ? "next-heartbeat" : "now";
+  const wakeMode = "now";
   const sessionKeyRaw = payload.sessionKey;
   const sessionKey =
     typeof sessionKeyRaw === "string" && sessionKeyRaw.trim() ? sessionKeyRaw.trim() : undefined;

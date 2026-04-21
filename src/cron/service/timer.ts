@@ -371,9 +371,7 @@ function emitFailureAlert(
   }
 
   state.deps.enqueueSystemEvent(text, { agentId: params.job.agentId });
-  if (params.job.wakeMode === "now") {
-    state.deps.requestMainSessionWake({ reason: `cron:${params.job.id}:failure-alert` });
-  }
+  state.deps.requestMainSessionWake({ reason: `cron:${params.job.id}:failure-alert` });
 }
 
 /**
@@ -1175,7 +1173,7 @@ async function executeMainSessionCronJob(
     sessionKey: targetMainSessionKey,
     contextKey: `cron:${job.id}`,
   });
-  if (job.wakeMode === "now" && state.deps.runMainSessionOnce) {
+  if (state.deps.runMainSessionOnce) {
     const reason = `cron:${job.id}`;
     const isRecurringJob = job.schedule.kind !== "at";
     const maxWaitMs = state.deps.wakeNowHeartbeatBusyMaxWaitMs ?? 2 * 60_000;
@@ -1371,9 +1369,9 @@ export function wake(
     return { ok: false } as const;
   }
   state.deps.enqueueSystemEvent(text);
-  if (opts.mode === "now") {
-    state.deps.requestMainSessionWake({ reason: "wake" });
-  }
+  // `next-heartbeat` is now a compatibility spelling; there is no legacy
+  // periodic tick left to pick the event up later.
+  state.deps.requestMainSessionWake({ reason: "wake" });
   return { ok: true } as const;
 }
 

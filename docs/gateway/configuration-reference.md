@@ -1026,9 +1026,10 @@ automation; use [Scheduled Tasks](/automation/cron-jobs) instead.
 }
 ```
 
-- `every`, `prompt`, `model`, `lightContext`, `isolatedSession`, `includeReasoning`,
-  and `ackMaxChars` remain accepted for old configs but do not define the
-  recommended automation model.
+- `every` remains accepted for old configs but is ignored by the runner.
+- `prompt`, `model`, `lightContext`, `isolatedSession`, `includeReasoning`, and
+  `ackMaxChars` remain accepted for older wake/heartbeat paths but do not
+  define the recommended automation model.
 - `target`, `to`, `accountId`, and `directPolicy` remain compatibility delivery
   settings for older wake/heartbeat paths.
 - For new periodic work, configure cron jobs instead of heartbeat cadence.

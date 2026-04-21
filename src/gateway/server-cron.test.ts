@@ -12,12 +12,14 @@ const {
   loadConfigMock,
   fetchWithSsrFGuardMock,
   runCronIsolatedAgentTurnMock,
+  runMainSessionOnceMock,
 } = vi.hoisted(() => ({
   enqueueSystemEventMock: vi.fn(),
   requestHeartbeatNowMock: vi.fn(),
   loadConfigMock: vi.fn(),
   fetchWithSsrFGuardMock: vi.fn(),
   runCronIsolatedAgentTurnMock: vi.fn(async () => ({ status: "ok" as const, summary: "ok" })),
+  runMainSessionOnceMock: vi.fn(async () => ({ status: "ran" as const, durationMs: 1 })),
 }));
 
 function enqueueSystemEvent(...args: unknown[]) {
@@ -40,6 +42,11 @@ vi.mock("../infra/heartbeat-wake.js", async (importOriginal) => {
     }),
   );
 });
+
+vi.mock("../infra/main-session-runner.js", () => ({
+  requestMainSessionWake: requestHeartbeatNow,
+  runMainSessionOnce: runMainSessionOnceMock,
+}));
 
 vi.mock("../config/config.js", async () => {
   const actual = await vi.importActual<typeof import("../config/config.js")>("../config/config.js");
@@ -78,9 +85,11 @@ describe("buildGatewayCronService", () => {
     loadConfigMock.mockClear();
     fetchWithSsrFGuardMock.mockClear();
     runCronIsolatedAgentTurnMock.mockClear();
+    runMainSessionOnceMock.mockClear();
+    runMainSessionOnceMock.mockResolvedValue({ status: "ran", durationMs: 1 });
   });
 
-  it("routes main-target jobs to the scoped session for enqueue + wake", async () => {
+  it("normalizes legacy wake mode while routing main-target jobs to the scoped session", async () => {
     const cfg = createCronConfig("server-cron");
     loadConfigMock.mockReturnValue(cfg);
 
@@ -99,6 +108,7 @@ describe("buildGatewayCronService", () => {
         sessionKey: "discord:channel:ops",
         payload: { kind: "systemEvent", text: "hello" },
       });
+      expect(job.wakeMode).toBe("now");
 
       await state.cron.run(job.id, "force");
 
@@ -108,11 +118,13 @@ describe("buildGatewayCronService", () => {
           sessionKey: "agent:main:discord:channel:ops",
         }),
       );
-      expect(requestHeartbeatNowMock).toHaveBeenCalledWith(
+      expect(runMainSessionOnceMock).toHaveBeenCalledWith(
         expect.objectContaining({
+          reason: `cron:${job.id}`,
           sessionKey: "agent:main:discord:channel:ops",
         }),
       );
+      expect(requestHeartbeatNowMock).not.toHaveBeenCalled();
     } finally {
       state.cron.stop();
     }

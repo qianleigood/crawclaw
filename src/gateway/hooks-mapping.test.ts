@@ -391,6 +391,58 @@ describe("hooks mapping", () => {
     }
   });
 
+  it("normalizes next-heartbeat mapping wake modes to now", async () => {
+    const result = await applyGmailMappings({
+      mappings: [
+        {
+          id: "wake-alias",
+          match: { path: "gmail" },
+          action: "wake",
+          wakeMode: "next-heartbeat",
+          textTemplate: "Subject: {{messages[0].subject}}",
+        },
+      ],
+    });
+    expect(result?.ok).toBe(true);
+    if (result?.ok && result.action?.kind === "wake") {
+      expect(result.action.mode).toBe("now");
+    }
+  });
+
+  it("normalizes transform next-heartbeat wake modes to now", async () => {
+    const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-hooks-wake-alias-"));
+    const transformsRoot = path.join(configDir, "hooks", "transforms");
+    fs.mkdirSync(transformsRoot, { recursive: true });
+    fs.writeFileSync(
+      path.join(transformsRoot, "transform.mjs"),
+      'export default () => ({ kind: "wake", text: "Ping", mode: "next-heartbeat" });',
+    );
+
+    const mappings = resolveHookMappings(
+      {
+        mappings: [
+          {
+            match: { path: "custom" },
+            action: "wake",
+            transform: { module: "transform.mjs" },
+          },
+        ],
+      },
+      { configDir },
+    );
+
+    const result = await applyHookMappings(mappings, {
+      payload: {},
+      headers: {},
+      url: new URL("http://127.0.0.1:18789/hooks/custom"),
+      path: "custom",
+    });
+    expect(result?.ok).toBe(true);
+    if (result?.ok && result.action?.kind === "wake") {
+      expect(result.action.mode).toBe("now");
+    }
+  });
+
   it("agentId is undefined when not set", async () => {
     const result = await applyGmailMappings({
       mappings: [

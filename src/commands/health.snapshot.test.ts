@@ -415,7 +415,7 @@ describe("getHealthSnapshot", () => {
     expect(telegram.probe?.error).toMatch(/network down/i);
   });
 
-  it("disables heartbeat for agents without heartbeat blocks", async () => {
+  it("reports legacy heartbeat cadence as disabled for all agents", async () => {
     testConfig = {
       agents: {
         defaults: {
@@ -439,7 +439,7 @@ describe("getHealthSnapshot", () => {
 
     expect(main?.heartbeat.everyMs).toBeNull();
     expect(main?.heartbeat.every).toBe("disabled");
-    expect(ops?.heartbeat.everyMs).toBeTruthy();
-    expect(ops?.heartbeat.every).toBe("1h");
+    expect(ops?.heartbeat.everyMs).toBeNull();
+    expect(ops?.heartbeat.every).toBe("disabled");
   });
 });

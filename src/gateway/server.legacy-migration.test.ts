@@ -13,7 +13,7 @@ async function expectHeartbeatValidationError(legacyParsed: Record<string, unkno
     {
       path: "heartbeat",
       message:
-        "top-level heartbeat is not a valid config path; use agents.defaults.heartbeat (cadence/target/model settings) or channels.defaults.heartbeat (showOk/showAlerts/useIndicator).",
+        "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for compatibility delivery settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
     },
   ];
   testState.legacyParsed = legacyParsed;
@@ -36,7 +36,7 @@ async function expectHeartbeatValidationError(legacyParsed: Record<string, unkno
   const message = (thrown as Error).message;
   expect(message).toContain("Invalid config at");
   expect(message).toContain(
-    "heartbeat: top-level heartbeat is not a valid config path; use agents.defaults.heartbeat (cadence/target/model settings) or channels.defaults.heartbeat (showOk/showAlerts/useIndicator).",
+    "heartbeat: top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for compatibility delivery settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
   );
   expect(message).not.toContain("Legacy config entries detected but auto-migration failed.");
 }
