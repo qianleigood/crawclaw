@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { __testing } from "./daemon.js";
 
 const tempRoots: string[] = [];
@@ -44,5 +44,36 @@ describe("open-websearch daemon runtime resolution", () => {
       command: binPath,
       args: [],
     });
+  });
+
+  it("resolves the Windows cmd shim to the package Node entrypoint", () => {
+    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const { stateDir, binPath } = makeRuntimeBin();
+    const packageRoot = path.join(
+      stateDir,
+      "runtimes",
+      "open-websearch",
+      "node_modules",
+      "open-websearch",
+    );
+    const entrypoint = path.join(packageRoot, "dist", "cli.js");
+    fs.mkdirSync(path.dirname(entrypoint), { recursive: true });
+    fs.writeFileSync(
+      path.join(packageRoot, "package.json"),
+      JSON.stringify({ bin: { "open-websearch": "dist/cli.js" } }),
+      "utf8",
+    );
+    fs.writeFileSync(entrypoint, "", "utf8");
+
+    try {
+      expect(__testing.resolveLaunchCommand({ CRAWCLAW_STATE_DIR: stateDir })).toMatchObject({
+        command: process.execPath,
+        args: [entrypoint],
+        windowsHide: true,
+      });
+      expect(binPath.endsWith("open-websearch.cmd")).toBe(true);
+    } finally {
+      platformSpy.mockRestore();
+    }
   });
 });

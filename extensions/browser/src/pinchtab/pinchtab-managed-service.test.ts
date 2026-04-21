@@ -1,4 +1,7 @@
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   __testing,
@@ -24,10 +27,33 @@ class FakeChildProcess extends EventEmitter {
   }
 }
 
+const tempRoots: string[] = [];
+
+function makePinchTabCmdShimFixture(): { binPath: string; entrypoint: string } {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-pinchtab-runtime-"));
+  tempRoots.push(root);
+  const packageRoot = path.join(root, "node_modules", "pinchtab");
+  const entrypoint = path.join(packageRoot, "dist", "cli.js");
+  const binPath = path.join(root, "node_modules", ".bin", "pinchtab.cmd");
+  fs.mkdirSync(path.dirname(binPath), { recursive: true });
+  fs.mkdirSync(path.dirname(entrypoint), { recursive: true });
+  fs.writeFileSync(binPath, "@ECHO off\r\n", "utf8");
+  fs.writeFileSync(
+    path.join(packageRoot, "package.json"),
+    JSON.stringify({ bin: { pinchtab: "dist/cli.js" } }),
+    "utf8",
+  );
+  fs.writeFileSync(entrypoint, "", "utf8");
+  return { binPath, entrypoint };
+}
+
 afterEach(async () => {
   await stopManagedPinchTabService();
   __testing.setDepsForTest(null);
   __testing.resetState();
+  for (const root of tempRoots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 describe("pinchtab-managed-service", () => {
@@ -187,5 +213,45 @@ describe("pinchtab-managed-service", () => {
         }),
       }),
     );
+  });
+
+  it("resolves Windows PinchTab cmd shims to the package Node entrypoint", async () => {
+    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const { binPath, entrypoint } = makePinchTabCmdShimFixture();
+    const child = new FakeChildProcess();
+    let stage: "pre" | "post" = "pre";
+    const spawnImpl = vi.fn(() => {
+      stage = "post";
+      return child as never;
+    });
+    const health = vi.fn(async () => {
+      if (stage === "pre") {
+        throw new Error("offline");
+      }
+      return { ok: true };
+    });
+    __testing.setDepsForTest({
+      spawnImpl: spawnImpl as never,
+      existsSyncImpl: vi.fn(() => true),
+      resolveBrowserRuntimeBinImpl: vi.fn(() => binPath),
+      createClientImpl: vi.fn(() => ({ health })) as never,
+    });
+
+    try {
+      await ensureManagedPinchTabService({
+        config: { browser: { provider: "pinchtab" } },
+      });
+
+      expect(spawnImpl).toHaveBeenCalledWith(
+        process.execPath,
+        [entrypoint],
+        expect.objectContaining({
+          stdio: "pipe",
+          windowsHide: true,
+        }),
+      );
+    } finally {
+      platformSpy.mockRestore();
+    }
   });
 });
