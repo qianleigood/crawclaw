@@ -48,4 +48,46 @@ describe("install.ps1", () => {
     expect(installer).toContain("Invalid -InstallMethod");
     expect(installer).toContain("exit 2");
   });
+
+  it("prefers Node 24 while accepting Node 22.14 and newer", () => {
+    const installer = readInstaller();
+
+    expect(installer).toContain("$PreferredNodeMajor = 24");
+    expect(installer).toContain("$MinimumNodeMajor = 22");
+    expect(installer).toContain("$MinimumNodeMinorForMajor = 14");
+    expect(installer).toContain("function Test-NodeVersionSupported");
+    expect(installer).toContain("Node.js 24 is recommended; continuing with supported Node.js");
+  });
+
+  it("checks native command exit codes instead of trusting PowerShell success", () => {
+    const installer = readInstaller();
+
+    expect(installer).toContain("function Invoke-InstallerNativeCommand");
+    expect(installer).toContain("$LASTEXITCODE");
+    expect(installer).toContain("First actionable error:");
+    expect(installer).toContain("npm install failed");
+  });
+
+  it("requires Git before npm installs so PATH failures are actionable", () => {
+    const installer = readInstaller();
+
+    expect(installer).toContain("Git is required before installing CrawClaw packages on Windows.");
+    expect(installer).toContain(
+      "Open a new PowerShell after installing Git so PATH updates apply.",
+    );
+    expect(installer).not.toContain(
+      "Git is required for npm installs. Please install Git and try again.",
+    );
+  });
+
+  it("prints the native Windows closed-loop validation commands", () => {
+    const installer = readInstaller();
+
+    expect(installer).toContain("function Write-PostInstallNextSteps");
+    expect(installer).toContain("crawclaw doctor --non-interactive");
+    expect(installer).toContain(
+      "crawclaw onboard --non-interactive --mode local --install-daemon --skip-skills --accept-risk",
+    );
+    expect(installer).toContain("crawclaw gateway status --deep --require-rpc");
+  });
 });

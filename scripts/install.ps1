@@ -25,6 +25,9 @@ $WARN = "`e[38;2;255;176;32m"     # amber
 $ERROR = "`e[38;2;230;57;70m"     # coral-mid
 $MUTED = "`e[38;2;90;100;128m"    # text-muted
 $NC = "`e[0m"                     # No Color
+$PreferredNodeMajor = 24
+$MinimumNodeMajor = 22
+$MinimumNodeMinorForMajor = 14
 
 function Write-Host {
     param([string]$Message, [string]$Level = "info")
@@ -42,6 +45,46 @@ function Write-Banner {
     Write-Host "${ACCENT}  🦀 CrawClaw Installer$NC" -Level info
     Write-Host "${MUTED}  All your chats, one CrawClaw.$NC" -Level info
     Write-Host ""
+}
+
+function Invoke-InstallerNativeCommand {
+    param(
+        [string]$Command,
+        [string[]]$Arguments = @(),
+        [string]$Action = "command"
+    )
+
+    $global:LASTEXITCODE = 0
+    try {
+        $output = & $Command @Arguments 2>&1
+    } catch {
+        Write-Host "$Action failed" -Level error
+        Write-Host "First actionable error:" -Level error
+        Write-Host $_.Exception.Message -Level error
+        return $false
+    }
+    $exitCode = $LASTEXITCODE
+    if ($null -eq $exitCode) {
+        $exitCode = 0
+    }
+
+    if ($output) {
+        $output | ForEach-Object { Microsoft.PowerShell.Host\Write-Host $_ }
+    }
+
+    if ($exitCode -eq 0) {
+        return $true
+    }
+
+    $message = (@($output) | Select-Object -First 12) -join [Environment]::NewLine
+    if ([string]::IsNullOrWhiteSpace($message)) {
+        $message = "$Command exited with code $exitCode."
+    }
+
+    Write-Host "$Action failed (exit $exitCode)" -Level error
+    Write-Host "First actionable error:" -Level error
+    Write-Host $message -Level error
+    return $false
 }
 
 function Test-TruthyEnv {
@@ -166,64 +209,109 @@ function Get-NpmVersion {
     return $null
 }
 
+function ConvertTo-NodeVersionParts {
+    param([string]$Version)
+
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        return $null
+    }
+    $normalized = $Version.Trim() -replace '^v', ''
+    if ($normalized -notmatch '^(\d+)\.(\d+)\.(\d+)') {
+        return $null
+    }
+    return @{
+        Major = [int]$Matches[1]
+        Minor = [int]$Matches[2]
+        Patch = [int]$Matches[3]
+    }
+}
+
+function Test-NodeVersionSupported {
+    param([string]$Version)
+
+    $parts = ConvertTo-NodeVersionParts -Version $Version
+    if ($null -eq $parts) {
+        return $false
+    }
+    if ($parts.Major -gt $MinimumNodeMajor) {
+        return $true
+    }
+    if ($parts.Major -eq $MinimumNodeMajor -and $parts.Minor -ge $MinimumNodeMinorForMajor) {
+        return $true
+    }
+    return $false
+}
+
 function Install-Node {
     Write-Host "Node.js not found" -Level info
-    Write-Host "Installing Node.js..." -Level info
+    Write-Host "Installing Node.js 24 (Node 22.14+ remains compatible)..." -Level info
     
     # Try winget first
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         Write-Host "  Using winget..." -Level info
-        try {
-            winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+        if (
+            Invoke-InstallerNativeCommand `
+                -Command "winget" `
+                -Arguments @("install", "OpenJS.NodeJS.LTS", "--accept-package-agreements", "--accept-source-agreements") `
+                -Action "Node.js install via winget"
+        ) {
             # Refresh PATH
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             Write-Host "  Node.js installed via winget" -Level success
             return $true
-        } catch {
-            Write-Host "  Winget install failed: $_" -Level warn
         }
+        Write-Host "  Winget install failed; trying the next installer" -Level warn
     }
     
     # Try chocolatey
     if (Get-Command choco -ErrorAction SilentlyContinue) {
         Write-Host "  Using chocolatey..." -Level info
-        try {
-            choco install nodejs-lts -y 2>&1 | Out-Null
+        if (
+            Invoke-InstallerNativeCommand `
+                -Command "choco" `
+                -Arguments @("install", "nodejs-lts", "-y") `
+                -Action "Node.js install via Chocolatey"
+        ) {
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             Write-Host "  Node.js installed via chocolatey" -Level success
             return $true
-        } catch {
-            Write-Host "  Chocolatey install failed: $_" -Level warn
         }
+        Write-Host "  Chocolatey install failed; trying the next installer" -Level warn
     }
     
     # Try scoop
     if (Get-Command scoop -ErrorAction SilentlyContinue) {
         Write-Host "  Using scoop..." -Level info
-        try {
-            scoop install nodejs-lts 2>&1 | Out-Null
+        if (
+            Invoke-InstallerNativeCommand `
+                -Command "scoop" `
+                -Arguments @("install", "nodejs-lts") `
+                -Action "Node.js install via Scoop"
+        ) {
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             Write-Host "  Node.js installed via scoop" -Level success
             return $true
-        } catch {
-            Write-Host "  Scoop install failed: $_" -Level warn
         }
+        Write-Host "  Scoop install failed" -Level warn
     }
     
     Write-Host "Could not install Node.js automatically" -Level error
-    Write-Host "Please install Node.js 22+ manually from: https://nodejs.org" -Level info
+    Write-Host "Please install Node.js 24 from https://nodejs.org, or Node.js 22.14+ if you need the compatibility floor." -Level info
     return $false
 }
 
 function Ensure-Node {
     $nodeVersion = Get-NodeVersion
     if ($nodeVersion) {
-        $major = [int]($nodeVersion -split '\.')[0]
-        if ($major -ge 22) {
+        $parts = ConvertTo-NodeVersionParts -Version $nodeVersion
+        if (Test-NodeVersionSupported -Version $nodeVersion) {
             Write-Host "Node.js v$nodeVersion found" -Level success
+            if ($parts.Major -lt $PreferredNodeMajor) {
+                Write-Host "Node.js 24 is recommended; continuing with supported Node.js v$nodeVersion." -Level warn
+            }
             return $true
         }
-        Write-Host "Node.js v$nodeVersion found, but need v22+" -Level warn
+        Write-Host "Node.js v$nodeVersion found, but need v22.14+ (Node 24 recommended)" -Level warn
     }
     return Install-Node
 }
@@ -240,20 +328,25 @@ function Get-GitVersion {
 
 function Install-Git {
     Write-Host "Git not found" -Level info
+    Write-Host "Git is required before installing CrawClaw packages on Windows." -Level error
     
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         Write-Host "  Installing Git via winget..." -Level info
-        try {
-            winget install Git.Git --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+        if (
+            Invoke-InstallerNativeCommand `
+                -Command "winget" `
+                -Arguments @("install", "Git.Git", "--accept-package-agreements", "--accept-source-agreements") `
+                -Action "Git install via winget"
+        ) {
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             Write-Host "  Git installed" -Level success
             return $true
-        } catch {
-            Write-Host "  Winget install failed" -Level warn
         }
+        Write-Host "  Winget Git install failed" -Level warn
     }
     
     Write-Host "Please install Git for Windows from: https://git-scm.com" -Level error
+    Write-Host "Open a new PowerShell after installing Git so PATH updates apply." -Level info
     return $false
 }
 
@@ -273,18 +366,21 @@ function Install-CrawClawNpm {
     
     Write-Host "Installing CrawClaw ($installSpec)..." -Level info
     
-    try {
-        $npmArgs = @("install", "-g", $installSpec, "--no-fund", "--no-audit")
-        if (![string]::IsNullOrWhiteSpace($env:CRAWCLAW_NPM_LOGLEVEL)) {
-            $npmArgs += @("--loglevel", $env:CRAWCLAW_NPM_LOGLEVEL.Trim())
-        }
-        npm @npmArgs 2>&1
+    $npmArgs = @("install", "-g", $installSpec, "--no-fund", "--no-audit")
+    if (![string]::IsNullOrWhiteSpace($env:CRAWCLAW_NPM_LOGLEVEL)) {
+        $npmArgs += @("--loglevel", $env:CRAWCLAW_NPM_LOGLEVEL.Trim())
+    }
+    if (
+        Invoke-InstallerNativeCommand `
+            -Command "npm" `
+            -Arguments $npmArgs `
+            -Action "npm install"
+    ) {
         Write-Host "CrawClaw installed" -Level success
         return $true
-    } catch {
-        Write-Host "npm install failed: $_" -Level error
-        return $false
     }
+    Write-Host "npm install failed" -Level error
+    return $false
 }
 
 function Resolve-CrawClawGitEntryPath {
@@ -312,25 +408,35 @@ function Install-CrawClawGit {
     
     if (!(Test-Path $RepoDir)) {
         Write-Host "  Cloning repository..." -Level info
-        git clone https://github.com/qianleigood/crawclaw.git $RepoDir 2>&1
+        if (!(Invoke-InstallerNativeCommand -Command "git" -Arguments @("clone", "https://github.com/qianleigood/crawclaw.git", $RepoDir) -Action "git clone")) {
+            return $false
+        }
     } elseif ($Update) {
         Write-Host "  Updating repository..." -Level info
-        git -C $RepoDir pull --rebase 2>&1
+        if (!(Invoke-InstallerNativeCommand -Command "git" -Arguments @("-C", $RepoDir, "pull", "--rebase") -Action "git pull --rebase")) {
+            return $false
+        }
     }
     
     # Install pnpm if not present
     if (!(Get-Command pnpm -ErrorAction SilentlyContinue)) {
         Write-Host "  Installing pnpm..." -Level info
-        npm install -g pnpm 2>&1
+        if (!(Invoke-InstallerNativeCommand -Command "npm" -Arguments @("install", "-g", "pnpm") -Action "pnpm install")) {
+            return $false
+        }
     }
     
     # Install dependencies
     Write-Host "  Installing dependencies..." -Level info
-    pnpm install --dir $RepoDir 2>&1
+    if (!(Invoke-InstallerNativeCommand -Command "pnpm" -Arguments @("install", "--dir", $RepoDir) -Action "pnpm install --dir")) {
+        return $false
+    }
     
     # Build
     Write-Host "  Building..." -Level info
-    pnpm --dir $RepoDir build 2>&1
+    if (!(Invoke-InstallerNativeCommand -Command "pnpm" -Arguments @("--dir", $RepoDir, "build") -Action "pnpm build")) {
+        return $false
+    }
     
     # Create wrapper
     $wrapperDir = "$env:USERPROFILE\.local\bin"
@@ -386,6 +492,39 @@ function Add-ToPath {
         [Environment]::SetEnvironmentVariable("Path", "$currentPath;$Path", "User")
         Write-Host "Added $Path to user PATH" -Level info
     }
+    if ($env:Path -notlike "*$Path*") {
+        $env:Path = "$env:Path;$Path"
+    }
+}
+
+function Resolve-CrawClawCommand {
+    $command = Get-Command crawclaw -ErrorAction SilentlyContinue
+    if ($command -and $command.Source) {
+        return $command.Source
+    }
+    return "crawclaw"
+}
+
+function Invoke-CrawClawDoctor {
+    $crawclaw = Resolve-CrawClawCommand
+    if (
+        Invoke-InstallerNativeCommand `
+            -Command $crawclaw `
+            -Arguments @("doctor", "--non-interactive") `
+            -Action "crawclaw doctor --non-interactive"
+    ) {
+        return $true
+    }
+    Write-Host "Doctor reported issues. Fix the first actionable error above, then rerun: crawclaw doctor --non-interactive" -Level warn
+    return $false
+}
+
+function Write-PostInstallNextSteps {
+    Write-Host ""
+    Write-Host "Native Windows validation:" -Level info
+    Write-Host "  crawclaw doctor --non-interactive" -Level info
+    Write-Host "  crawclaw onboard --non-interactive --mode local --install-daemon --skip-skills --accept-risk" -Level info
+    Write-Host "  crawclaw gateway status --deep --require-rpc" -Level info
 }
 
 # Main
@@ -412,23 +551,21 @@ function Main {
     if (!(Ensure-Node)) {
         exit 1
     }
+
+    if (!(Ensure-Git)) {
+        exit 1
+    }
     
     if ($InstallMethod -eq "git") {
-        if (!(Ensure-Git)) {
-            exit 1
-        }
-        
         if ($DryRun) {
             Write-Host "[DRY RUN] Would install CrawClaw from git to $GitDir" -Level info
         } else {
-            Install-CrawClawGit -RepoDir $GitDir -Update:(-not $NoGitUpdate)
+            if (!(Install-CrawClawGit -RepoDir $GitDir -Update:(-not $NoGitUpdate))) {
+                exit 1
+            }
         }
     } else {
         # npm method
-        if (!(Ensure-Git)) {
-            Write-Host "Git is required for npm installs. Please install Git and try again." -Level warn
-        }
-        
         if ($DryRun) {
             Write-Host "[DRY RUN] Would install CrawClaw via npm ($((Resolve-PackageInstallSpec -Target $Tag)))" -Level info
         } else {
@@ -446,9 +583,13 @@ function Main {
         }
     } catch { }
     
-    if (!$NoOnboard -and !$DryRun) {
-        Write-Host ""
-        Write-Host "Run 'crawclaw onboard' to complete setup" -Level info
+    if (!$DryRun) {
+        Invoke-CrawClawDoctor | Out-Null
+        if ($NoOnboard) {
+            Write-Host "Skipping onboarding next steps output was requested with -NoOnboard." -Level info
+        } else {
+            Write-PostInstallNextSteps
+        }
     }
     
     Write-Host ""

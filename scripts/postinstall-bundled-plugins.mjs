@@ -96,9 +96,16 @@ export function discoverBundledPluginRuntimeDeps(params = {}) {
 
 export function createNestedNpmInstallEnv(env = process.env) {
   const nextEnv = { ...env };
-  delete nextEnv.npm_config_global;
-  delete nextEnv.npm_config_location;
-  delete nextEnv.npm_config_prefix;
+  for (const key of Object.keys(nextEnv)) {
+    const normalizedKey = key.toLowerCase();
+    if (
+      normalizedKey === "npm_config_global" ||
+      normalizedKey === "npm_config_location" ||
+      normalizedKey === "npm_config_prefix"
+    ) {
+      delete nextEnv[key];
+    }
+  }
   return nextEnv;
 }
 
