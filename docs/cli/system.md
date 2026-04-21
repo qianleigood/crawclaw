@@ -1,22 +1,21 @@
 ---
-summary: "CLI reference for `crawclaw system` (system events, heartbeat, presence)"
+summary: "CLI reference for `crawclaw system` (system events, heartbeat diagnostics, presence)"
 read_when:
   - You want to enqueue a system event without creating a cron job
-  - You need to enable or disable heartbeats
+  - You want to inspect the latest wake or heartbeat diagnostic event
   - You want to inspect system presence entries
 title: "system"
 ---
 
 # `crawclaw system`
 
-System-level helpers for the Gateway: enqueue system events, control heartbeats,
-and view presence.
+System-level helpers for the Gateway: enqueue system events, inspect legacy
+heartbeat diagnostics, and view presence.
 
 ## Common commands
 
 ```bash
 crawclaw system event --text "Check for urgent follow-ups" --mode now
-crawclaw system heartbeat enable
 crawclaw system heartbeat last
 crawclaw system presence
 ```
@@ -25,8 +24,8 @@ crawclaw system presence
 
 Enqueue a system event on the **main** session. The next main-session run will
 inject it as a `System:` line in the prompt. Use `--mode now` to trigger the
-main-session wake immediately; `next-heartbeat` waits for the next scheduled
-wake slot.
+main-session wake immediately. `next-heartbeat` is a legacy-compatible mode
+name that queues the event for the next main-session wake.
 
 Flags:
 
@@ -34,13 +33,11 @@ Flags:
 - `--mode <mode>`: `now` or `next-heartbeat` (default).
 - `--json`: machine-readable output.
 
-## `system heartbeat last|enable|disable`
+## `system heartbeat last`
 
-Heartbeat controls:
+Heartbeat diagnostic inspection:
 
-- `last`: show the last heartbeat event.
-- `enable`: turn heartbeats back on (use this if they were disabled).
-- `disable`: pause heartbeats.
+- `last`: show the latest heartbeat or main-session wake diagnostic event.
 
 Flags:
 
@@ -59,3 +56,5 @@ Flags:
 
 - Requires a running Gateway reachable by your current config (local or remote).
 - System events are ephemeral and not persisted across restarts.
+- Legacy periodic agent heartbeat cannot be enabled from this command group.
+  Use [Scheduled Tasks](/automation/cron-jobs) for new scheduled checks.

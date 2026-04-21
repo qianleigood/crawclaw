@@ -70,7 +70,6 @@ import {
   areHeartbeatsEnabled,
   type HeartbeatRunResult,
   type HeartbeatWakeHandler,
-  setHeartbeatsEnabled,
   setHeartbeatWakeHandler,
 } from "./heartbeat-wake.js";
 import type { OutboundSendDeps } from "./outbound/deliver.js";
@@ -95,7 +94,7 @@ export type HeartbeatDeps = OutboundSendDeps &
 
 const log = createSubsystemLogger("gateway/heartbeat");
 
-export { areHeartbeatsEnabled, setHeartbeatsEnabled };
+export { areHeartbeatsEnabled };
 export {
   isHeartbeatEnabledForAgent,
   resolveHeartbeatIntervalMs,

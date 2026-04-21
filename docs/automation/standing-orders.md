@@ -155,7 +155,7 @@ crawclaw cron add \
 
 **Authority:** Check system health, restart services, send alerts
 **Approval gate:** Restart services automatically. Escalate if restart fails twice.
-**Trigger:** Every heartbeat cycle
+**Trigger:** Cron job on the desired monitoring interval
 
 ### Checks
 

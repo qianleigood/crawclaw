@@ -74,7 +74,7 @@ flowchart TD
   B --> D[Browser client will not connect]
   B --> E[Gateway will not start or service not running]
   B --> F[Channel connects but messages do not flow]
-  B --> G[Cron or heartbeat did not fire or did not deliver]
+  B --> G[Cron or main-session wake did not fire or deliver]
   B --> H[Node is paired but camera canvas screen exec fails]
   B --> I[Browser tool fails]
 
@@ -204,7 +204,7 @@ flowchart TD
 
   </Accordion>
 
-  <Accordion title="Cron or heartbeat did not fire or did not deliver">
+  <Accordion title="Cron or main-session wake did not fire or deliver">
     ```bash
     crawclaw status
     crawclaw gateway status
@@ -218,18 +218,17 @@ flowchart TD
 
     - `cron.status` shows enabled with a next wake.
     - `cron runs` shows recent `ok` entries.
-    - Heartbeat is enabled and not outside active hours.
+    - Queued main-session wake events are visible through `crawclaw system heartbeat last --json`.
 
     Common log signatures:
 
     - `cron: scheduler disabled; jobs will not run automatically` → cron is disabled.
-    - `heartbeat skipped` with `reason=quiet-hours` → outside configured active hours.
-    - `requests-in-flight` → main lane busy; heartbeat wake was deferred.
-    - `unknown accountId` → heartbeat delivery target account does not exist.
+    - `requests-in-flight` → main lane busy; wake was deferred.
+    - `unknown accountId` → legacy heartbeat delivery target account does not exist.
 
     Deep pages:
 
-    - [/gateway/troubleshooting#cron-and-heartbeat-delivery](/gateway/troubleshooting#cron-and-heartbeat-delivery)
+    - [/gateway/troubleshooting#cron-and-main-session-wake-delivery](/gateway/troubleshooting#cron-and-main-session-wake-delivery)
     - [/automation/cron-jobs#troubleshooting](/automation/cron-jobs#troubleshooting)
     - [/gateway/heartbeat](/gateway/heartbeat)
 
@@ -348,4 +347,4 @@ flowchart TD
 - [Gateway Troubleshooting](/gateway/troubleshooting) — gateway-specific issues
 - [Doctor](/gateway/doctor) — automated health checks and repairs
 - [Channel Troubleshooting](/channels/troubleshooting) — channel connectivity issues
-- [Automation Troubleshooting](/automation/cron-jobs#troubleshooting) — cron and heartbeat issues
+- [Automation Troubleshooting](/automation/cron-jobs#troubleshooting) — cron and wake issues

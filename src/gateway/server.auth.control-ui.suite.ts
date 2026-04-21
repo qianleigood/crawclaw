@@ -92,7 +92,7 @@ export function registerControlUiAndPairingSuite(): void {
   };
 
   const expectAdminRpcOk = async (ws: WebSocket) => {
-    const admin = await rpcReq(ws, "set-heartbeats", { enabled: false });
+    const admin = await rpcReq(ws, "secrets.reload");
     expect(admin.ok).toBe(true);
   };
 
@@ -105,7 +105,7 @@ export function registerControlUiAndPairingSuite(): void {
   };
 
   const expectAdminRpcDenied = async (ws: WebSocket) => {
-    const admin = await rpcReq(ws, "set-heartbeats", { enabled: false });
+    const admin = await rpcReq(ws, "secrets.reload");
     expect(admin.ok).toBe(false);
     expect(admin.error?.message).toBe("missing scope: operator.admin");
   };

@@ -190,7 +190,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "channels.account.logout",
     "channels.login.start",
     "channels.login.wait",
-    "set-heartbeats",
     "system-event",
     "agents.files.set",
   ],

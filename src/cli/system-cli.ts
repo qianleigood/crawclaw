@@ -91,38 +91,6 @@ export function registerSystemCli(program: Command) {
   });
 
   addGatewayClientOptions(
-    heartbeat
-      .command("enable")
-      .description(t("command.system.heartbeat.enable.description"))
-      .option("--json", t("command.system.option.json"), false),
-  ).action(async (opts: SystemGatewayOpts) => {
-    await runSystemGatewayCommand(opts, async () => {
-      return await callGatewayFromCli(
-        "set-heartbeats",
-        opts,
-        { enabled: true },
-        { expectFinal: false },
-      );
-    });
-  });
-
-  addGatewayClientOptions(
-    heartbeat
-      .command("disable")
-      .description(t("command.system.heartbeat.disable.description"))
-      .option("--json", t("command.system.option.json"), false),
-  ).action(async (opts: SystemGatewayOpts) => {
-    await runSystemGatewayCommand(opts, async () => {
-      return await callGatewayFromCli(
-        "set-heartbeats",
-        opts,
-        { enabled: false },
-        { expectFinal: false },
-      );
-    });
-  });
-
-  addGatewayClientOptions(
     system
       .command("presence")
       .description(t("command.system.presence.description"))

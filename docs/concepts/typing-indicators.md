@@ -18,7 +18,7 @@ When `agents.defaults.typingMode` is **unset**, CrawClaw keeps the legacy behavi
 - **Direct chats**: typing starts immediately once the model loop begins.
 - **Group chats with a mention**: typing starts immediately.
 - **Group chats without a mention**: typing starts only when message text begins streaming.
-- **Heartbeat runs**: typing is disabled.
+- **Legacy heartbeat compatibility runs**: typing is disabled.
 
 ## Modes
 
@@ -63,6 +63,6 @@ You can override mode or cadence per session:
   token used to suppress output).
 - `thinking` only fires if the run streams reasoning (`reasoningLevel: "stream"`).
   If the model doesn’t emit reasoning deltas, typing won’t start.
-- Heartbeats never show typing, regardless of mode.
+- Legacy heartbeat compatibility runs never show typing, regardless of mode.
 - `typingIntervalSeconds` controls the **refresh cadence**, not the start time.
   The default is 6 seconds.

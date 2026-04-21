@@ -905,7 +905,7 @@ for usage/billing and raise limits as needed.
 
     - **Personal briefings:** summaries of inbox, calendar, and news you care about.
     - **Research and drafting:** quick research, summaries, and first drafts for emails or docs.
-    - **Reminders and follow ups:** cron or heartbeat driven nudges and checklists.
+    - **Reminders and follow ups:** cron, hooks, and main-session wake driven nudges and checklists.
     - **Browser automation:** filling forms, collecting data, and repeating web tasks.
     - **Cross device coordination:** send a task from your phone, let the Gateway run it on a server, and get the result back in chat.
 
@@ -1037,11 +1037,11 @@ for usage/billing and raise limits as needed.
     Yes. Use the Gateway scheduler:
 
     - **Cron jobs** for scheduled or recurring tasks (persist across restarts).
-    - **Heartbeat** for "main session" periodic checks.
+    - **Main-session cron jobs** when scheduled work needs the active conversation context.
     - **Isolated jobs** for autonomous agents that post summaries or deliver to chats.
 
     Docs: [Cron jobs](/automation/cron-jobs), [Automation & Tasks](/automation),
-    [Heartbeat](/gateway/heartbeat).
+    [Heartbeat compatibility](/gateway/heartbeat).
 
   </Accordion>
 
@@ -1915,26 +1915,17 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="Why am I getting heartbeat messages every 30 minutes?">
-    Heartbeats run every **30m** by default (**1h** when using OAuth auth). Tune or disable them:
+  <Accordion title="Why am I getting legacy heartbeat messages?">
+    Current CrawClaw releases no longer schedule periodic legacy agent heartbeat
+    by default. If you still see old heartbeat-style messages, check whether an
+    older Gateway process is running or whether a cron job, hook, or plugin is
+    sending them.
 
-    ```json5
-    {
-      agents: {
-        defaults: {
-          heartbeat: {
-            every: "2h", // or "0m" to disable
-          },
-        },
-      },
-    }
-    ```
+    Use `crawclaw system heartbeat last --json` for the latest compatibility
+    diagnostic event, then inspect `crawclaw cron list` and `crawclaw cron runs`
+    for scheduled jobs.
 
-    If `HEARTBEAT.md` exists but is effectively empty (only blank lines and markdown
-    headers like `# Heading`), CrawClaw skips the heartbeat run to save API calls.
-    If the file is missing, the heartbeat still runs and the model decides what to do.
-
-    Per-agent overrides use `agents.list[].heartbeat`. Docs: [Heartbeat](/gateway/heartbeat).
+    Docs: [Heartbeat](/gateway/heartbeat), [Cron jobs](/automation/cron-jobs).
 
   </Accordion>
 

@@ -246,6 +246,9 @@ const output = await api.runtime.system.runCommandWithTimeout(cmd, args, opts);
 const hint = api.runtime.system.formatNativeDependencyHint(pkg);
 ```
 
+`requestHeartbeatNow()` is a compatibility name for requesting an event-driven
+main-session wake. It does not enable legacy periodic agent heartbeat.
+
 ### `api.runtime.events`
 
 Event subscriptions.

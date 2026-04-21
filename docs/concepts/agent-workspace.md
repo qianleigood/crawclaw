@@ -88,9 +88,9 @@ These are the standard files CrawClaw expects inside the workspace:
   - Not injected by default.
 
 - `HEARTBEAT.md`
-  - Optional tiny checklist for heartbeat runs.
-  - Injected for heartbeat runs when lightweight context is enabled.
-  - Keep it short to avoid token burn.
+  - Compatibility checklist for legacy heartbeat-style runs.
+  - Not the recommended place for new scheduled automation.
+  - Use cron jobs or hooks for new proactive work.
 
 - `BOOT.md`
   - Optional startup checklist executed on gateway restart when internal hooks are enabled.
@@ -239,6 +239,6 @@ Suggested `.gitignore` starter:
 ## Related
 
 - [Standing Orders](/automation/standing-orders) — persistent instructions in workspace files
-- [Heartbeat](/gateway/heartbeat) — HEARTBEAT.md workspace file
+- [Heartbeat](/gateway/heartbeat) — legacy heartbeat compatibility notes
 - [Session](/concepts/session) — session storage paths
 - [Sandboxing](/gateway/sandboxing) — workspace access in sandboxed environments

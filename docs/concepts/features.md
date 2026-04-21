@@ -68,5 +68,5 @@ title: "Features"
 
 - Browser automation, exec, sandboxing
 - Web search (bundled Open-WebSearch + plugin providers)
-- Cron jobs and heartbeat scheduling
+- Cron jobs and event-driven main-session wakes
 - Skills, plugins, and workflow pipelines (Lobster)

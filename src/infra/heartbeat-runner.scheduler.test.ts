@@ -1,11 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { startHeartbeatRunner } from "./heartbeat-runner.js";
-import {
-  requestHeartbeatNow,
-  resetHeartbeatWakeStateForTests,
-  setHeartbeatsEnabled,
-} from "./heartbeat-wake.js";
+import { requestHeartbeatNow, resetHeartbeatWakeStateForTests } from "./heartbeat-wake.js";
 
 describe("startHeartbeatRunner", () => {
   type RunOnce = Parameters<typeof startHeartbeatRunner>[0]["runOnce"];
@@ -65,7 +61,6 @@ describe("startHeartbeatRunner", () => {
   }
 
   afterEach(() => {
-    setHeartbeatsEnabled(true);
     resetHeartbeatWakeStateForTests();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -253,29 +248,6 @@ describe("startHeartbeatRunner", () => {
         agentId: "ops",
         reason: "cron:job-123",
         sessionKey: "agent:ops:discord:channel:alerts",
-      },
-    });
-
-    runner.stop();
-  });
-
-  it("keeps explicit wake requests active when legacy heartbeats are runtime-disabled", async () => {
-    useFakeHeartbeatTime();
-    setHeartbeatsEnabled(false);
-
-    const runSpy = vi.fn().mockResolvedValue({ status: "ran", durationMs: 1 });
-    const runner = await expectWakeDispatch({
-      cfg: heartbeatConfig(),
-      runSpy,
-      wake: {
-        reason: "background-task",
-        sessionKey: "agent:main:main",
-        coalesceMs: 0,
-      },
-      expectedCall: {
-        agentId: "main",
-        reason: "background-task",
-        sessionKey: "agent:main:main",
       },
     });
 

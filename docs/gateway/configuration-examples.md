@@ -269,15 +269,6 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       mediaMaxMb: 5,
       typingIntervalSeconds: 5,
       maxConcurrent: 3,
-      heartbeat: {
-        every: "30m",
-        model: "anthropic/claude-sonnet-4-6",
-        target: "last",
-        directPolicy: "allow", // allow (default) | block
-        to: "+15555550123",
-        prompt: "HEARTBEAT",
-        ackMaxChars: 300,
-      },
       memorySearch: {
         provider: "gemini",
         model: "gemini-embedding-001",

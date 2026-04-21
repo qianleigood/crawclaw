@@ -1139,6 +1139,17 @@ describe("spawnAcpDirect", () => {
   });
 
   it("does not implicitly stream when heartbeats are runtime-disabled", async () => {
+    replaceSpawnConfig({
+      ...hoisted.state.cfg,
+      agents: {
+        defaults: {
+          heartbeat: {
+            every: "30m",
+            target: "last",
+          },
+        },
+      },
+    });
     hoisted.areHeartbeatsEnabledMock.mockReturnValue(false);
 
     const result = await spawnAcpDirect(

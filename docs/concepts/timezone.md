@@ -92,6 +92,6 @@ See [Date & Time](/date-time) for the full behavior and examples.
 
 ## Related
 
-- [Heartbeat](/gateway/heartbeat) — active hours use timezone for scheduling
+- [Heartbeat](/gateway/heartbeat) — legacy heartbeat compatibility notes
 - [Cron Jobs](/automation/cron-jobs) — cron expressions use timezone for scheduling
 - [Date & Time](/date-time) — full date/time behavior and examples

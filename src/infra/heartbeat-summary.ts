@@ -1,7 +1,6 @@
 import { resolveAgentConfig, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
-  DEFAULT_HEARTBEAT_EVERY,
   resolveHeartbeatPrompt as resolveHeartbeatPromptText,
 } from "../auto-reply/heartbeat.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
@@ -31,13 +30,23 @@ function hasExplicitHeartbeatAgents(cfg: CrawClawConfig) {
 export function isHeartbeatEnabledForAgent(cfg: CrawClawConfig, agentId?: string): boolean {
   const resolvedAgentId = normalizeAgentId(agentId ?? resolveDefaultAgentId(cfg));
   const list = cfg.agents?.list ?? [];
+  const defaults = cfg.agents?.defaults?.heartbeat;
+  const overrides = resolveAgentConfig(cfg, resolvedAgentId)?.heartbeat;
   const hasExplicit = hasExplicitHeartbeatAgents(cfg);
   if (hasExplicit) {
-    return list.some(
-      (entry) => Boolean(entry?.heartbeat) && normalizeAgentId(entry?.id) === resolvedAgentId,
-    );
+    if (
+      !list.some(
+        (entry) => Boolean(entry?.heartbeat) && normalizeAgentId(entry?.id) === resolvedAgentId,
+      )
+    ) {
+      return false;
+    }
+    return Boolean(resolveHeartbeatIntervalMs(cfg, undefined, { ...defaults, ...overrides }));
   }
-  return resolvedAgentId === resolveDefaultAgentId(cfg);
+  if (resolvedAgentId !== resolveDefaultAgentId(cfg)) {
+    return false;
+  }
+  return Boolean(resolveHeartbeatIntervalMs(cfg, undefined, defaults));
 }
 
 export function resolveHeartbeatIntervalMs(
@@ -45,11 +54,7 @@ export function resolveHeartbeatIntervalMs(
   overrideEvery?: string,
   heartbeat?: HeartbeatConfig,
 ) {
-  const raw =
-    overrideEvery ??
-    heartbeat?.every ??
-    cfg.agents?.defaults?.heartbeat?.every ??
-    DEFAULT_HEARTBEAT_EVERY;
+  const raw = overrideEvery ?? heartbeat?.every ?? cfg.agents?.defaults?.heartbeat?.every;
   if (!raw) {
     return null;
   }
@@ -90,7 +95,7 @@ export function resolveHeartbeatSummaryForAgent(
   }
 
   const merged = defaults || overrides ? { ...defaults, ...overrides } : undefined;
-  const every = merged?.every ?? defaults?.every ?? overrides?.every ?? DEFAULT_HEARTBEAT_EVERY;
+  const every = merged?.every ?? defaults?.every ?? overrides?.every ?? "disabled";
   const everyMs = resolveHeartbeatIntervalMs(cfg, undefined, merged);
   const prompt = resolveHeartbeatPromptText(
     merged?.prompt ?? defaults?.prompt ?? overrides?.prompt,

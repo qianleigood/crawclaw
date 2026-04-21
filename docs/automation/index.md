@@ -2,7 +2,7 @@
 summary: "Overview of automation mechanisms: tasks, cron, hooks, standing orders, and Task Flow"
 read_when:
   - Deciding how to automate work with CrawClaw
-  - Choosing between heartbeat, cron, hooks, and standing orders
+  - Choosing between cron, hooks, standing orders, and system events
   - Looking for the right automation entry point
 title: "Automation & Tasks"
 ---
@@ -21,9 +21,7 @@ flowchart TD
     START --> Q4{React to lifecycle events?}
     START --> Q5{Give the agent persistent instructions?}
 
-    Q1 -->|Yes| Q1a{Exact timing or flexible?}
-    Q1a -->|Exact| CRON["Scheduled Tasks (Cron)"]
-    Q1a -->|Flexible| HEARTBEAT[Heartbeat]
+    Q1 -->|Yes| CRON["Scheduled Tasks (Cron)"]
 
     Q2 -->|Yes| TASKS[Background Tasks]
     Q3 -->|Yes| FLOW[Task Flow]
@@ -36,8 +34,8 @@ flowchart TD
 | Send daily report at 9 AM sharp         | Scheduled Tasks (Cron) | Exact timing, isolated execution                 |
 | Remind me in 20 minutes                 | Scheduled Tasks (Cron) | One-shot with precise timing (`--at`)            |
 | Run weekly deep analysis                | Scheduled Tasks (Cron) | Standalone task, can use different model         |
-| Check inbox every 30 min                | Heartbeat              | Batches with other checks, context-aware         |
-| Monitor calendar for upcoming events    | Heartbeat              | Natural fit for periodic awareness               |
+| Check inbox every 30 min                | Scheduled Tasks (Cron) | Use a main-session cron job for shared context   |
+| Monitor calendar for upcoming events    | Scheduled Tasks (Cron) | Explicit schedule, visible run records           |
 | Inspect status of a subagent or ACP run | Background Tasks       | Tasks ledger tracks all detached work            |
 | Audit what ran and when                 | Background Tasks       | `crawclaw tasks list` and `crawclaw tasks audit` |
 | Multi-step research then summarize      | Task Flow              | Durable orchestration with revision tracking     |
@@ -45,17 +43,19 @@ flowchart TD
 | Execute code on every tool call         | Hooks                  | Hooks can filter by event type                   |
 | Always check compliance before replying | Standing Orders        | Injected into every session automatically        |
 
-### Scheduled Tasks (Cron) vs Heartbeat
+### Scheduled Tasks and main-session wakes
 
-| Dimension       | Scheduled Tasks (Cron)              | Heartbeat                             |
-| --------------- | ----------------------------------- | ------------------------------------- |
-| Timing          | Exact (cron expressions, one-shot)  | Approximate (default every 30 min)    |
-| Session context | Fresh (isolated) or shared          | Full main-session context             |
-| Task records    | Always created                      | Never created                         |
-| Delivery        | Channel, webhook, or silent         | Inline in main session                |
-| Best for        | Reports, reminders, background jobs | Inbox checks, calendar, notifications |
+| Dimension       | Scheduled Tasks (Cron)                               | Main-session wake                                 |
+| --------------- | ---------------------------------------------------- | ------------------------------------------------- |
+| Timing          | Exact (cron expressions, one-shot)                   | Triggered by cron, hooks, tasks, or system events |
+| Session context | Fresh isolated session or shared main session        | Full main-session context                         |
+| Task records    | Created for cron executions                          | Not created for normal interactive wakes          |
+| Delivery        | Channel, webhook, silent, or queued to main session  | Inline in main session when delivery is needed    |
+| Best for        | Reports, reminders, periodic checks, background jobs | Event follow-ups and queued session updates       |
 
-Use Scheduled Tasks (Cron) when you need precise timing or isolated execution. Use Heartbeat when the work benefits from full session context and approximate timing is fine.
+Use Scheduled Tasks (Cron) for new scheduled automation. When the work needs
+the main conversation context, configure the cron job to wake the main session
+instead of relying on legacy periodic heartbeat.
 
 ## Core concepts
 
@@ -89,16 +89,19 @@ Hooks are event-driven scripts triggered by agent lifecycle events (`/new`, `/st
 
 See [Hooks](/automation/hooks).
 
-### Heartbeat
+### Main-session wakes
 
-Heartbeat is a periodic main-session turn (default every 30 minutes). It batches multiple checks (inbox, calendar, notifications) in one agent turn with full session context. Heartbeat turns do not create task records. Use `HEARTBEAT.md` to define what the agent checks.
+Main-session wakes are event-driven turns requested by cron, hooks, background
+task completion, restart recovery, node notifications, or `crawclaw system
+event`. They preserve main-session context without relying on the legacy
+periodic heartbeat cadence.
 
-See [Heartbeat](/gateway/heartbeat).
+See [Heartbeat](/gateway/heartbeat) for legacy compatibility notes.
 
 ## How they work together
 
 - **Cron** handles precise schedules (daily reports, weekly reviews) and one-shot reminders. All cron executions create task records.
-- **Heartbeat** handles routine monitoring (inbox, calendar, notifications) in one batched turn every 30 minutes.
+- **Main-session wakes** handle queued event follow-ups in the active session.
 - **Hooks** react to specific events (tool calls, session resets, compaction) with custom scripts.
 - **Standing orders** give the agent persistent context and authority boundaries.
 - **Task Flow** coordinates multi-step flows above individual tasks.
@@ -111,5 +114,5 @@ See [Heartbeat](/gateway/heartbeat).
 - [Task Flow](/automation/taskflow) — durable multi-step flow orchestration
 - [Hooks](/automation/hooks) — event-driven lifecycle scripts
 - [Standing Orders](/automation/standing-orders) — persistent agent instructions
-- [Heartbeat](/gateway/heartbeat) — periodic main-session turns
+- [Heartbeat](/gateway/heartbeat) — legacy heartbeat compatibility notes
 - [Configuration Reference](/gateway/configuration-reference) — all config keys

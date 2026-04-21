@@ -19,7 +19,8 @@ CrawClaw assembles its own system prompt on every run. It includes:
 - Skills list (only metadata; instructions are loaded on demand with `read`)
 - Self-update instructions
 - Workspace bootstrap files. Default runtime injection is intentionally narrow:
-  `AGENTS.md` for normal runs, or `HEARTBEAT.md` for lightweight heartbeat runs.
+  `AGENTS.md` for normal runs, with `HEARTBEAT.md` retained only for legacy
+  heartbeat compatibility paths.
   Other workspace files such as `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`,
   `BOOTSTRAP.md`, and `MEMORY.md` remain available to tools/workflows or explicit
   extra-bootstrap hooks, but are not part of the default bootstrap surface.
@@ -28,7 +29,7 @@ CrawClaw assembles its own system prompt on every run. It includes:
   `agents.defaults.bootstrapTotalMaxChars` (default: 150000). `memory/*.md`
   files stay on-demand rather than auto-injected.
 - Time (UTC + user timezone)
-- Reply tags + heartbeat behavior
+- Reply tags + legacy heartbeat compatibility behavior
 - Runtime metadata (host/OS/model/thinking)
 
 See the full breakdown in [System Prompt](/concepts/system-prompt).
@@ -92,9 +93,9 @@ write costs lower when a session goes idle past the TTL.
 Configure it in [Gateway configuration](/gateway/configuration) and see the
 behavior details in [Session pruning](/concepts/session-pruning).
 
-Heartbeat can keep the cache **warm** across idle gaps. If your model cache TTL
-is `1h`, setting the heartbeat interval just under that (e.g., `55m`) can avoid
-re-caching the full prompt, reducing cache write costs.
+Do not add synthetic legacy heartbeat turns only to keep the cache warm. If a
+scheduled check has real product value, use a cron job and tune that job's model
+and session target deliberately.
 
 In multi-agent setups, you can keep one shared model config and tune cache behavior
 per agent with `agents.list[].params.cacheRetention`.
@@ -106,7 +107,7 @@ tokens, while cache writes are billed at a higher multiplier. See Anthropic’s
 prompt caching pricing for the latest rates and TTL multipliers:
 [https://docs.anthropic.com/docs/build-with-claude/prompt-caching](https://docs.anthropic.com/docs/build-with-claude/prompt-caching)
 
-### Example: keep 1h cache warm with heartbeat
+### Example: long cache retention
 
 ```yaml
 agents:
@@ -117,8 +118,6 @@ agents:
       "anthropic/claude-opus-4-6":
         params:
           cacheRetention: "long"
-    heartbeat:
-      every: "55m"
 ```
 
 ### Example: mixed traffic with per-agent cache strategy
@@ -135,8 +134,8 @@ agents:
   list:
     - id: "research"
       default: true
-      heartbeat:
-        every: "55m" # keep long cache warm for deep sessions
+      params:
+        cacheRetention: "long" # keep deep sessions cache-friendly
     - id: "alerts"
       params:
         cacheRetention: "none" # avoid cache writes for bursty notifications
