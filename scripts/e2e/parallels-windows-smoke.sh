@@ -629,10 +629,50 @@ resolve_latest_version() {
   npm view crawclaw version --userconfig "$(mktemp)"
 }
 
+resolve_mingit_arch_suffix() {
+  if prlctl list -i "$VM_NAME" 2>/dev/null | grep -Eiq 'efi-arm64|type=arm'; then
+    printf 'arm64\n'
+    return
+  fi
+  printf '64-bit\n'
+}
+
 resolve_mingit_download() {
-  python3 - <<'PY'
+  local arch_suffix
+  arch_suffix="$(resolve_mingit_arch_suffix)"
+  MINGIT_ARCH_SUFFIX="$arch_suffix" python3 - <<'PY'
 import json
+import os
+import sys
+import urllib.error
 import urllib.request
+
+release_tag = "v2.53.0.windows.2"
+fallback_assets = {
+    "arm64": [
+        (
+            "MinGit-2.53.0.2-arm64.zip",
+            f"https://github.com/git-for-windows/git/releases/download/{release_tag}/MinGit-2.53.0.2-arm64.zip",
+        ),
+        (
+            "MinGit-2.53.0.2-64-bit.zip",
+            f"https://github.com/git-for-windows/git/releases/download/{release_tag}/MinGit-2.53.0.2-64-bit.zip",
+        ),
+    ],
+    "64-bit": [
+        (
+            "MinGit-2.53.0.2-64-bit.zip",
+            f"https://github.com/git-for-windows/git/releases/download/{release_tag}/MinGit-2.53.0.2-64-bit.zip",
+        ),
+        (
+            "MinGit-2.53.0.2-arm64.zip",
+            f"https://github.com/git-for-windows/git/releases/download/{release_tag}/MinGit-2.53.0.2-arm64.zip",
+        ),
+    ],
+}
+arch_suffix = os.environ.get("MINGIT_ARCH_SUFFIX", "64-bit")
+fallbacks = fallback_assets.get(arch_suffix, fallback_assets["64-bit"])
+preferred_names = [name for name, _ in fallbacks]
 
 req = urllib.request.Request(
     "https://api.github.com/repos/git-for-windows/git/releases/latest",
@@ -641,33 +681,40 @@ req = urllib.request.Request(
         "Accept": "application/vnd.github+json",
     },
 )
-with urllib.request.urlopen(req, timeout=30) as response:
-    data = json.load(response)
+try:
+    with urllib.request.urlopen(req, timeout=30) as response:
+        data = json.load(response)
+except (OSError, urllib.error.HTTPError) as exc:
+    sys.stderr.write(
+        f"warn: GitHub release API unavailable ({exc}); using pinned MinGit fallback\n"
+    )
+    print(fallbacks[0][0])
+    print(fallbacks[0][1])
+    raise SystemExit(0)
 
 assets = data.get("assets", [])
-preferred_names = [
-    "MinGit-2.53.0.2-arm64.zip",
-    "MinGit-2.53.0.2-64-bit.zip",
-]
 
 best = None
 for wanted in preferred_names:
     for asset in assets:
-      if asset.get("name") == wanted:
-        best = asset
-        break
+        if asset.get("name") == wanted:
+            best = asset
+            break
     if best:
-      break
+        break
 
 if best is None:
-  for asset in assets:
-    name = asset.get("name", "")
-    if name.startswith("MinGit-") and name.endswith(".zip") and "busybox" not in name:
-      best = asset
-      break
+    for asset in assets:
+        name = asset.get("name", "")
+        if name.startswith("MinGit-") and name.endswith(".zip") and "busybox" not in name:
+            best = asset
+            break
 
 if best is None:
-  raise SystemExit("no MinGit asset found")
+    sys.stderr.write("warn: no MinGit asset found in API response; using pinned fallback\n")
+    print(fallbacks[0][0])
+    print(fallbacks[0][1])
+    raise SystemExit(0)
 
 print(best["name"])
 print(best["browser_download_url"])
