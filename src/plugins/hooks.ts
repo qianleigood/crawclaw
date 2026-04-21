@@ -209,8 +209,8 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     next: PluginHookBeforeSkillsPromptBuildResult,
   ): PluginHookBeforeSkillsPromptBuildResult => ({
     surfacedSkillNames: [
-      ...(acc?.surfacedSkillNames ?? acc?.relevantSkillNames ?? []),
-      ...(next.surfacedSkillNames ?? next.relevantSkillNames ?? []),
+      ...(acc?.surfacedSkillNames ?? []),
+      ...(next.surfacedSkillNames ?? []),
     ].filter((name, index, list) => Boolean(name) && list.indexOf(name) === index),
   });
 

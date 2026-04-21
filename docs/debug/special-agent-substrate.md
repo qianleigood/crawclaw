@@ -116,12 +116,11 @@ agents:
 - memory-oriented special agents declare cache policy in `SpecialAgentDefinition`
 - the shared runner translates those policies into provider request params
   such as short retention and cache-write suppression
-- parent runs now build a lifecycle `parentForkContext` from the final parent
+- parent runs build a lifecycle `parentForkContext` from the final parent
   prompt assembly, so `session_summary` receives the parent prompt envelope and
   model-visible messages as one captured fork object
-- parent runs no longer persist a disk-backed parent prompt artifact keyed by
-  `runId`; embedded forks either receive an explicit parent prompt envelope or run
-  from their own prompt assembly
+- embedded forks receive an explicit parent prompt envelope when the lifecycle
+  captured one; otherwise they run from their own prompt assembly
 - the parent fork context separates:
   - a canonical `CacheEnvelope` for the model-visible shared prefix
   - debug context fields for run/session metadata that should not affect cache identity
@@ -133,15 +132,13 @@ agents:
 - provider-specific request patching now only consumes direct cache hints; it no
   longer derives a parent prompt-cache key from the parent envelope
 - the substrate now supports an explicit `embedded_fork` execution mode, so special agents no longer need to be modeled only as child sessions
-- session-summary special runs now consume the lifecycle `parentForkContext`
-  directly instead of reading a `runId` snapshot for the parent envelope and a
-  separate lifecycle field for messages
+- session-summary special runs consume the lifecycle `parentForkContext` as the
+  automatic parent handoff
 - that parent fork context carries the full current model-visible
   fork-context messages, matching Claude Code's session-memory update shape
-  more closely than a recent-message excerpt
-- the old automatic recent-message excerpt fallback has been removed; lifecycle
-  updates with missing fork context are skipped, while explicit CLI/gateway
-  refresh builds a bounded manual parent fork context from persisted
+  without a recent-message excerpt fallback
+- lifecycle updates with missing fork context are skipped, while explicit
+  CLI/gateway refresh builds a bounded manual parent fork context from persisted
   model-visible rows
 - when that parent envelope is available, the summary-specific instructions
   stay in the appended task prompt instead of being appended to the parent
@@ -169,7 +166,7 @@ At the current CrawClaw runtime layer, this closes most of the substrate-level d
 - `cache-plan.ts` owns direct special-agent cache hints
 - `extra-params.ts` translates cache hints into provider payloads
 
-The main remaining difference from Claude Code is that CrawClaw still does not replay a full in-process forked query-loop identity. The parent fork context is canonical enough for session-summary history handoff, but request reconstruction is still adapter-shaped rather than a direct reuse of Claude's exact `CacheSafeParams` object model.
+The main remaining difference from Claude Code is that CrawClaw still does not replay the parent query loop as a live in-process clone. The explicit parent fork context is the supported handoff for session-summary history, while request building remains adapter-shaped and cache controls stay as direct special-agent hints.
 
 Future task-specific special agents should continue to opt in case-by-case:
 

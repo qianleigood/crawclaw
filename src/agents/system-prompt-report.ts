@@ -106,8 +106,6 @@ export function buildSystemPromptReport(params: {
   skillsPrompt: string;
   surfacedSkills?: string[];
   discoveredSkills?: string[];
-  /** Deprecated alias kept for compatibility with older callers. */
-  relevantSkills?: string[];
   tools: AgentTool[];
 }): SessionSystemPromptReport {
   const systemPrompt = params.systemPrompt.trim();
@@ -123,9 +121,9 @@ export function buildSystemPromptReport(params: {
   const toolsSchemaChars = toolsEntries.reduce((sum, t) => sum + (t.schemaChars ?? 0), 0);
   const skillsEntries = filterSkillEntries(
     parseSkillBlocks(params.skillsPrompt),
-    params.surfacedSkills ?? params.relevantSkills,
+    params.surfacedSkills,
   );
-  const surfacedSkills = params.surfacedSkills ?? params.relevantSkills;
+  const surfacedSkills = params.surfacedSkills;
 
   return {
     source: params.source,
@@ -160,8 +158,6 @@ export function buildSystemPromptReport(params: {
                   discoveredSkills: params.discoveredSkills,
                 }
               : {}),
-            filtered: true,
-            relevantSkills: surfacedSkills,
           }
         : {}),
     },

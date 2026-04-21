@@ -114,10 +114,10 @@ contracts.
       - `CacheEnvelope` identity + explicit parent fork handoff
       - direct provider cache hints
   - Remaining gap:
-    - CrawClaw still does not reuse a literal in-process Claude-style
-      `CacheSafeParams` object; request reconstruction is still adapter-shaped
-      even though the parent fork context is canonical enough for session-summary
-      history handoff.
+    - CrawClaw still does not replay the parent query loop as a live
+      in-process clone. The explicit parent fork context is the supported
+      handoff for session-summary history, while request building remains
+      adapter-shaped and cache controls stay as direct special-agent hints.
 - [x] Introduce a structured `QueryContext` owner for prompt assembly.
   - Landed:
     - base system prompt now emits structured sections instead of only one large string

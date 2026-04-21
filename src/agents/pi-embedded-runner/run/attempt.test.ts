@@ -22,6 +22,7 @@ import {
   wrapStreamFnSanitizeMalformedToolCalls,
   wrapStreamFnTrimToolCallNames,
 } from "./attempt.js";
+import type { SkillsPromptBuildHookRunner } from "./attempt.prompt-helpers.js";
 
 type FakeWrappedStream = {
   result: () => Promise<unknown>;
@@ -118,7 +119,6 @@ describe("resolveSurfacedSkillsHookResult", () => {
 
     const result = await resolveSurfacedSkillsHookResult({
       explicitSurfacedSkillNames: ["explicit-skill"],
-      explicitRelevantSkillNames: ["explicit-skill"],
       purpose: "run",
       prompt: "help me deploy",
       workspaceDir: "/tmp/crawclaw",
@@ -178,14 +178,14 @@ describe("resolveSurfacedSkillsHookResult", () => {
     expect(result).toEqual(["deploy-runbook", "repo-defaults"]);
   });
 
-  it("accepts deprecated relevant skill names from older hooks", async () => {
+  it("ignores legacy relevant skill names returned by hooks", async () => {
     const hookRunner = {
       hasHooks: vi.fn(() => true),
       runBeforeSkillsPromptBuild: vi.fn(async () => ({
         relevantSkillNames: ["legacy-skill"],
       })),
       runDiscoverSkillsForStep: vi.fn(async () => undefined),
-    };
+    } as unknown as SkillsPromptBuildHookRunner;
 
     const result = await resolveSurfacedSkillsHookResult({
       purpose: "run",
@@ -196,7 +196,7 @@ describe("resolveSurfacedSkillsHookResult", () => {
       hookRunner,
     });
 
-    expect(result).toEqual(["legacy-skill"]);
+    expect(result).toBeUndefined();
   });
 
   it("passes previously loaded skills through skillExposureState", async () => {

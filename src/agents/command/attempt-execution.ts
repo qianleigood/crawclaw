@@ -461,7 +461,6 @@ export function runAgentAttempt(params: {
     ...(params.opts.skillsAllow?.length
       ? {
           surfacedSkillNames: [...params.opts.skillsAllow],
-          relevantSkillNames: [...params.opts.skillsAllow],
         }
       : {}),
     prompt: effectivePrompt,

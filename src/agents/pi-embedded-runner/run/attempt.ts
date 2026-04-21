@@ -610,7 +610,6 @@ export async function runEmbeddedAttempt(
     const surfacedSkillNames = await resolveSurfacedSkillsHookResult({
       initialSkillExposureState: params.skillExposureState,
       explicitSurfacedSkillNames: params.surfacedSkillNames,
-      explicitRelevantSkillNames: params.relevantSkillNames,
       purpose: "run",
       prompt: params.prompt,
       workspaceDir: effectiveWorkspace,

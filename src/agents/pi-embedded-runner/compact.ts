@@ -170,8 +170,6 @@ export type CompactEmbeddedPiSessionParams = {
   skillsSnapshot?: SkillSnapshot;
   /** Optional first-pass surfaced skills for this compaction run. */
   surfacedSkillNames?: string[];
-  /** Deprecated alias kept for compatibility with older callers. */
-  relevantSkillNames?: string[];
   provider?: string;
   model?: string;
   thinkLevel?: ThinkLevel;
@@ -454,7 +452,6 @@ export async function compactEmbeddedPiSessionDirect(
     const hookRunner = getGlobalHookRunner();
     const surfacedSkillNames = await resolveSurfacedSkillsHookResult({
       explicitSurfacedSkillNames: params.surfacedSkillNames,
-      explicitRelevantSkillNames: params.relevantSkillNames,
       purpose: "compaction",
       prompt: undefined,
       customInstructions: params.customInstructions,

@@ -404,9 +404,6 @@ export type SessionSystemPromptReport = {
     prefiltered?: boolean;
     surfacedSkills?: string[];
     discoveredSkills?: string[];
-    /** Deprecated aliases retained for previously persisted reports. */
-    filtered?: boolean;
-    relevantSkills?: string[];
   };
   tools: {
     listChars: number;

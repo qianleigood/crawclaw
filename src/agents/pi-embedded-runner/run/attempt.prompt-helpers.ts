@@ -244,7 +244,6 @@ function compactQueryContextPatch(patch: QueryContextPatch): QueryContextPatch {
 export async function resolveSurfacedSkillsHookResult(params: {
   initialSkillExposureState?: PluginHookSkillExposureState;
   explicitSurfacedSkillNames?: string[];
-  explicitRelevantSkillNames?: string[];
   purpose: "run" | "compaction";
   prompt?: string;
   customInstructions?: string;
@@ -283,10 +282,6 @@ export async function resolveSurfacedSkillsHookResult(params: {
     setSurfacedSkillNames(exposureScope, params.explicitSurfacedSkillNames);
     return params.explicitSurfacedSkillNames;
   }
-  if (params.explicitRelevantSkillNames?.length) {
-    setSurfacedSkillNames(exposureScope, params.explicitRelevantSkillNames);
-    return params.explicitRelevantSkillNames;
-  }
   const hookResult = params.hookRunner?.hasHooks("before_skills_prompt_build")
     ? await params.hookRunner
         .runBeforeSkillsPromptBuild(
@@ -305,7 +300,7 @@ export async function resolveSurfacedSkillsHookResult(params: {
           return undefined;
         })
     : undefined;
-  const surfaced = hookResult?.surfacedSkillNames ?? hookResult?.relevantSkillNames ?? [];
+  const surfaced = hookResult?.surfacedSkillNames ?? [];
   if (surfaced.length) {
     setSurfacedSkillNames(exposureScope, surfaced);
   }
@@ -417,7 +412,6 @@ export function buildAfterTurnRuntimeContext(params: {
     | "config"
     | "skillsSnapshot"
     | "surfacedSkillNames"
-    | "relevantSkillNames"
     | "senderIsOwner"
     | "senderId"
     | "provider"

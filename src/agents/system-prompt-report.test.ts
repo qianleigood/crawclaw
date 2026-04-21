@@ -130,8 +130,8 @@ describe("buildSystemPromptReport", () => {
 
     expect(report.skills.prefiltered).toBe(true);
     expect(report.skills.surfacedSkills).toEqual(["deploy-runbook"]);
-    expect(report.skills.filtered).toBe(true);
-    expect(report.skills.relevantSkills).toEqual(["deploy-runbook"]);
+    expect(report.skills).not.toHaveProperty("filtered");
+    expect(report.skills).not.toHaveProperty("relevantSkills");
     expect(report.skills.entries).toEqual([{ name: "deploy-runbook", blockChars: 42 }]);
   });
 
@@ -176,8 +176,8 @@ describe("buildSystemPromptReport", () => {
 
     expect(report.skills.prefiltered).toBe(true);
     expect(report.skills.surfacedSkills).toEqual(["incident-response"]);
-    expect(report.skills.filtered).toBe(true);
-    expect(report.skills.relevantSkills).toEqual(["incident-response"]);
+    expect(report.skills).not.toHaveProperty("filtered");
+    expect(report.skills).not.toHaveProperty("relevantSkills");
     expect(report.skills.entries).toEqual([{ name: "incident-response", blockChars: 45 }]);
   });
 });

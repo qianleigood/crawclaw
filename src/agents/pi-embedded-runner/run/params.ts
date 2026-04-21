@@ -80,8 +80,6 @@ export type RunEmbeddedPiAgentParams = {
   skillExposureState?: SessionSkillExposureState;
   /** Optional first-pass surfaced skills for this run. */
   surfacedSkillNames?: string[];
-  /** Deprecated alias kept for compatibility with older callers. */
-  relevantSkillNames?: string[];
   prompt: string;
   images?: ImageContent[];
   imageOrder?: PromptImageOrderEntry[];

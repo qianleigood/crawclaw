@@ -267,8 +267,11 @@ stale lease instead of waiting on a dead summary run.
 This keeps short-term continuity on one source of truth:
 
 - the background agent updates `summary.md`
-- that agent sees the full current model-visible message context from the
-  captured parent fork context, not only a small recent-message excerpt
+- that agent sees the current model-visible message context carried by the
+  captured parent fork context
+- automatic summary updates require that parent fork context; explicit
+  CLI/gateway refresh reconstructs a bounded manual fork context from persisted
+  model-visible rows
 - compaction preserves the tail after the summarized boundary, expanding
   backward only enough to keep a usable recent working set
 - after compaction, model-visible history contains the compact summary message

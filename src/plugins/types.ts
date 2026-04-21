@@ -2117,8 +2117,8 @@ export type PluginHookBeforeSkillsPromptBuildEvent = {
 export type PluginHookBeforeSkillsPromptBuildResult = {
   /** Ordered set of skills to surface first in <available_skills> for this turn. */
   surfacedSkillNames?: readonly string[];
-  /** Deprecated alias kept for compatibility with older plugins. */
-  relevantSkillNames?: readonly string[];
+  // Keep this result contract narrow.
+  // Plugins should not return alias fields for surfaced skills.
 };
 
 export type PluginHookDiscoverSkillsForStepEvent = {
