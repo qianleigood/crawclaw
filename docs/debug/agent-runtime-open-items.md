@@ -3,7 +3,7 @@ summary: "Living checklist for the remaining agent/runtime work after phases one
 read_when:
   - You want a single place to track unfinished agent/runtime work
   - You are deciding what to build next after the current architecture rollout
-  - You need the current backlog for verifier, Action Feed, and Context Archive
+  - You need the current backlog for review, Action Feed, and Context Archive
 title: "Agent Runtime Open Items"
 ---
 
@@ -25,11 +25,11 @@ The following are already landed:
 - completion evidence and completion guard
 - loop policy, replay, report, and promotion gate
 - inspect, status, gateway inspection RPC, and CLI support
-- `/verify` as the public verification entrypoint
+- `/review` as the public two-stage review entrypoint
 - Context Archive foundation
 - Action Feed foundation
 - the background `memory_extractor` path for durable auto-write
-- the shared special-agent substrate for `session_summary`, `memory_extractor`, `dream`, and verification
+- the shared special-agent substrate for `session_summary`, `memory_extractor`, `dream`, and review
 
 The items below are the main gaps that still matter.
 
@@ -83,7 +83,7 @@ contracts.
     - `dream` migrated on the shared substrate
     - embedded memory special runs now record usage/history/action observations into Context Archive
     - embedded memory special runs now surface usage, including cache read/write, in Action Feed completion details
-    - verifier migrated
+    - review migrated
 - [x] Keep future task-specific special agents on case-by-case substrate opt-in.
   - Embedded maintenance forks are the default only for fire-and-forget background agents.
   - User-invoked or session-bearing task agents stay `spawned_session` unless they need parent-run cache inheritance more than child-session state.
@@ -132,11 +132,11 @@ Design:
 
 - [`Special-Agent Substrate`](/debug/special-agent-substrate)
 
-## Priority 0: verifier hardening
+## Priority 0: review hardening
 
-The verifier is working, but it is still an MVP.
+The two-stage review flow is working, but it is still an MVP.
 
-- [x] Upgrade verifier output from `VERDICT + summary` to a structured report.
+- [x] Upgrade review output from `VERDICT + summary` to a structured report.
   - Landed fields:
     - `verdict`
     - `summary`
@@ -145,25 +145,25 @@ The verifier is working, but it is still an MVP.
     - `warnings[]`
     - `artifacts[]`
   - The structured report now flows through:
-    - verifier parsing
-    - `/verify` tool results
-    - parent Action Feed verification details
+    - review parsing
+    - `/review` tool results
+    - parent Action Feed review details
     - task-trajectory completion detail / archive payloads
-- [ ] Make verifier failure a first-class completion signal.
+- [ ] Make review failure a first-class completion signal.
   - `FAIL` and `PARTIAL` should feed parent completion state, not just the
     final textual report.
-- [ ] Add verifier policy.
-  - Define which task types require verification by default.
+- [ ] Add review policy.
+  - Define which task types require review by default.
   - Start with `fix` and `code` tasks.
-- [ ] Support automatic verifier triggering from completion policy.
-  - When completion blocks on `verification_missing`, the system should be able
-    to launch verifier automatically instead of relying only on manual `/verify`.
-- [ ] Tighten verifier capability governance further.
-  - Keep verifier read-only.
-  - Keep verifier unable to patch files or recursively spawn more agents.
-- [ ] Improve verifier-to-parent action bubbling.
-  - Parent chat should see the most important verifier checks, not only
-    `started/running/PASS/FAIL/PARTIAL`.
+- [ ] Support automatic review triggering from completion policy.
+  - When completion blocks on `review_missing`, the system should be able to
+    launch review automatically instead of relying only on manual `/review`.
+- [ ] Tighten review capability governance further.
+  - Keep review stages read-only.
+  - Keep review stages unable to patch files or recursively spawn more agents.
+- [ ] Improve review-to-parent action bubbling.
+  - Parent chat should see the most important review checks, not only
+    `started/running/REVIEW_PASS/REVIEW_FAIL/REVIEW_PARTIAL`.
 
 ## Priority 1: Action Feed completion
 
@@ -172,7 +172,7 @@ Action Feed is already live, but it is not fully productized.
 - [ ] Add richer detail rendering in chat.
   - Current `<details>` output is acceptable for debugging, but still too raw
     for normal users.
-- [ ] Surface verifier child actions into the parent feed more cleanly.
+- [ ] Surface review child actions into the parent feed more cleanly.
 - [ ] Add consistent action coverage for:
   - memory recall decisions
   - model/provider fallback
@@ -196,7 +196,7 @@ Context Archive is now useful, but not finished as the long-term replay layer.
   - tool admission/result
   - guard decisions
   - loop actions
-  - verifier actions
+  - review actions
   - completion decisions
 - [ ] Improve export ergonomics.
   - Exported bundles should be easier to inspect and share internally.
@@ -211,7 +211,7 @@ Context Archive is now useful, but not finished as the long-term replay layer.
   - parent agent
   - subagent
   - ACP
-  - verifier
+  - review
 
 ## Priority 1: UI and operator surfaces
 
@@ -221,12 +221,12 @@ The backend architecture is ahead of the current operator UI.
   - runtime state
   - trajectory
   - completion
-  - verifier result
+  - review result
   - loop and guard actions
 - [ ] Add a dedicated Action Feed view in the existing UI, not only inline chat.
 - [ ] Expose Context Archive refs in the UI.
-- [ ] Add a clearer operator view for stuck tasks, waiting approvals, and
-      verification blockers.
+- [ ] Add a clearer operator view for stuck tasks, waiting approvals, and review
+      blockers.
 - [ ] Add a human-friendly inspect page instead of relying only on CLI and raw
       JSON.
 
@@ -273,13 +273,13 @@ more systematic validation.
   - main agent
   - subagent
   - ACP
-  - verifier
+  - review
   - Action Feed
   - Context Archive export/replay
 - [ ] Add replay datasets that specifically cover:
   - false complete
   - false loop block
-  - verification failure
+  - review failure
   - approval-unavailable paths
 - [ ] Use those datasets in the promotion workflow for future policy changes.
 
@@ -297,7 +297,7 @@ These are intentionally **not** backlog items right now:
 
 When new work is added in this area, prefer this order:
 
-1. verifier
+1. review
 2. Action Feed
 3. Context Archive
 4. UI/operator surfaces
