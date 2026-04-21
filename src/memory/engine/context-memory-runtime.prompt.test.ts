@@ -108,6 +108,8 @@ vi.mock("../durable/read.ts", () => ({
 const tempDirs: string[] = [];
 
 afterEach(async () => {
+  searchNotebookLmViaCliMock.mockReset();
+  recallDurableMemoryMock.mockReset();
   await Promise.all(
     tempDirs.splice(0).map(async (dir) => fs.rm(dir, { recursive: true, force: true })),
   );
@@ -366,6 +368,251 @@ describe("createContextMemoryRuntime().assemble", () => {
       hitReason: "durable_unavailable:sync_error",
       selectedDurableItemIds: [],
     });
+  });
+
+  it("skips NotebookLM recall for preference prompts based on the knowledge query plan", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+
+    searchNotebookLmViaCliMock.mockResolvedValue([
+      {
+        id: "knowledge:preference-noise",
+        source: "notebooklm",
+        title: "Preference should not be queried",
+        summary: "This should not be fetched for preference-only prompts.",
+        layer: "preferences",
+        memoryKind: "preference",
+        retrievalScore: 0.92,
+        importance: 0.8,
+        metadata: {},
+      },
+    ]);
+    recallDurableMemoryMock.mockResolvedValue({
+      scope: {
+        agentId: "main",
+        channel: "feishu",
+        userId: "user-42",
+        scopeKey: "main:feishu:user-42",
+        rootDir: "/tmp/durable",
+      },
+      manifest: [],
+      items: [],
+      selection: {
+        mode: "heuristic",
+        selectedItemIds: [],
+        omittedItemIds: [],
+        selectedDetails: [],
+        omittedDetails: [],
+        recentDreamTouchedNotes: [],
+      },
+    });
+
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-preference-plan"),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: {
+        ...createBaseMemoryRuntimeConfig(),
+        notebooklm: {
+          ...createBaseMemoryRuntimeConfig().notebooklm,
+          enabled: true,
+          cli: {
+            enabled: true,
+            command: "python3",
+            args: [],
+            timeoutMs: 30_000,
+            limit: 5,
+          },
+        },
+      },
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-preference-plan",
+      sessionKey: "session-preference-plan",
+      prompt: "以后默认回答短一点，这是我的偏好",
+      messages: castAgentMessages([{ role: "user", content: "以后默认回答短一点，这是我的偏好" }]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-42",
+      },
+    });
+
+    expect(searchNotebookLmViaCliMock).not.toHaveBeenCalled();
+    expect(result.diagnostics?.memoryRecall?.knowledgeQueryPlan).toMatchObject({
+      enabled: false,
+      reason: "preference_prefers_durable_memory",
+      limit: 0,
+    });
+  });
+
+  it("uses the knowledge query plan limit for SOP prompts", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+
+    searchNotebookLmViaCliMock.mockResolvedValue([]);
+    recallDurableMemoryMock.mockResolvedValue({
+      scope: {
+        agentId: "main",
+        channel: "feishu",
+        userId: "user-42",
+        scopeKey: "main:feishu:user-42",
+        rootDir: "/tmp/durable",
+      },
+      manifest: [],
+      items: [],
+      selection: {
+        mode: "heuristic",
+        selectedItemIds: [],
+        omittedItemIds: [],
+        selectedDetails: [],
+        omittedDetails: [],
+        recentDreamTouchedNotes: [],
+      },
+    });
+
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-sop-plan"),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: {
+        ...createBaseMemoryRuntimeConfig(),
+        notebooklm: {
+          ...createBaseMemoryRuntimeConfig().notebooklm,
+          enabled: true,
+          cli: {
+            enabled: true,
+            command: "python3",
+            args: [],
+            timeoutMs: 30_000,
+            limit: 5,
+          },
+        },
+      },
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-sop-plan",
+      sessionKey: "session-sop-plan",
+      prompt: "本地网关挂了怎么恢复？给我操作流程",
+      messages: castAgentMessages([
+        { role: "user", content: "本地网关挂了怎么恢复？给我操作流程" },
+      ]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-42",
+      },
+    });
+
+    expect(searchNotebookLmViaCliMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        limit: 7,
+      }),
+    );
+    expect(result.diagnostics?.memoryRecall?.knowledgeQueryPlan).toMatchObject({
+      enabled: true,
+      reason: "intent:sop",
+      limit: 7,
+      providerIds: expect.arrayContaining(["notebooklm", "local_knowledge_index"]),
+    });
+  });
+
+  it("falls back to the local knowledge index when provider recall has no hits", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const { upsertKnowledgeIndexEntry } = await import("../knowledge/index-store.ts");
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-knowledge-index-runtime-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    searchNotebookLmViaCliMock.mockResolvedValue([]);
+    recallDurableMemoryMock.mockResolvedValue({
+      scope: {
+        agentId: "main",
+        channel: "feishu",
+        userId: "user-42",
+        scopeKey: "main:feishu:user-42",
+        rootDir: "/tmp/durable",
+      },
+      manifest: [],
+      items: [],
+      selection: {
+        mode: "heuristic",
+        selectedItemIds: [],
+        omittedItemIds: [],
+        selectedDetails: [],
+        omittedDetails: [],
+        recentDreamTouchedNotes: [],
+      },
+    });
+    await upsertKnowledgeIndexEntry({
+      note: {
+        type: "procedure",
+        title: "本地网关恢复流程",
+        summary: "网关关闭或 health 失败时，先检查端口，再重启服务，最后验证 health。",
+        body: "适用于本地网关异常关闭。",
+        steps: ["检查端口", "重启服务", "验证 health"],
+        dedupeKey: "gateway-recovery-procedure",
+      },
+      writeResult: {
+        status: "ok",
+        action: "upsert",
+        noteId: "note-gateway",
+        title: "本地网关恢复流程",
+        notebookId: "knowledge-notebook",
+        payloadFile: "/tmp/payload.json",
+      },
+      updatedAt: 1_000,
+    });
+
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-local-index"),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: {
+        ...createBaseMemoryRuntimeConfig(),
+        notebooklm: {
+          ...createBaseMemoryRuntimeConfig().notebooklm,
+          enabled: true,
+          cli: {
+            enabled: true,
+            command: "python3",
+            args: [],
+            timeoutMs: 30_000,
+            limit: 5,
+          },
+        },
+      },
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-local-index",
+      sessionKey: "session-local-index",
+      prompt: "本地网关挂了怎么恢复？给我操作流程",
+      messages: castAgentMessages([
+        { role: "user", content: "本地网关挂了怎么恢复？给我操作流程" },
+      ]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-42",
+      },
+    });
+
+    const systemContextText = renderQueryContextSections(result.systemContextSections);
+    expect(systemContextText).toContain("## 知识回忆");
+    expect(systemContextText).toContain("【操作流程】本地网关恢复流程");
+    expect(result.diagnostics?.memoryRecall?.knowledgeQueryPlan?.providerIds).toContain(
+      "local_knowledge_index",
+    );
   });
 
   it("does not inject session summary into system context during assemble", async () => {

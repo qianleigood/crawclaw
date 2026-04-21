@@ -165,16 +165,32 @@ can write durable memory or a knowledge note depending on what the fact is.
 
 ## Knowledge recall
 
-Knowledge recall uses NotebookLM. CrawClaw can:
+Knowledge recall is a provider-backed layer. NotebookLM is the current default
+provider, but prompt assembly talks to a knowledge provider registry instead of
+calling the NotebookLM CLI directly. CrawClaw can:
 
 - query NotebookLM for relevant knowledge
 - write structured knowledge notes directly through `write_knowledge_note`
 - manage login, refresh, and provider status via `crawclaw memory`
 - summarize nightly memory prompt diagnostics via `crawclaw memory prompt-journal-summary`
 
-Knowledge recall runs during the context-assembly phase of each agent turn. If
-there is no usable prompt for the current turn, the runtime skips NotebookLM
-querying entirely.
+Knowledge recall runs during the context-assembly phase of each agent turn. The
+runtime first classifies the user query, then builds a knowledge query plan from
+that classification:
+
+- preference-only prompts are routed toward durable memory and skip knowledge
+  provider queries
+- SOP and runbook prompts can borrow a small amount of provider search budget so
+  weak metadata does not starve operational knowledge
+- successful `write_knowledge_note` calls update a small local baseline index,
+  so recently written knowledge can still be recalled when live provider search
+  returns no hits
+- the selected target layers, provider ids, reason, and limit are written into
+  memory recall diagnostics so inspect/debug flows can explain why knowledge was
+  queried or skipped
+
+If there is no usable prompt for the current turn, the runtime skips knowledge
+provider querying entirely.
 
 `write_knowledge_note` is the only NotebookLM write path in the current
 runtime. It writes directly through the tool path after schema and guard

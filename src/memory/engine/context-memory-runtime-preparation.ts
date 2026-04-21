@@ -1,4 +1,8 @@
-import { selectKnowledgeRecall, type KnowledgeRecallSelectionResult } from "../orchestration/knowledge-recall-selector.ts";
+import type { KnowledgeRecallResult } from "../knowledge/provider.ts";
+import {
+  selectKnowledgeRecall,
+  type KnowledgeRecallSelectionResult,
+} from "../orchestration/knowledge-recall-selector.ts";
 import { selectRelevantSkills } from "../skills/skill-router.ts";
 import type {
   SkillIndex,
@@ -10,10 +14,7 @@ import type {
 import type { MemoryRuntimeContext } from "./types.ts";
 
 type QueryClassifierLike = {
-  classify(params: {
-    query: string;
-    recentMessages?: string[];
-  }): UnifiedQueryClassification;
+  classify(params: { query: string; recentMessages?: string[] }): UnifiedQueryClassification;
 };
 
 type UnifiedRerankerLike = {
@@ -43,10 +44,11 @@ export async function prepareMemoryAssemblyContext(params: {
     classification: UnifiedQueryClassification;
     recentMessages?: string[];
     runtimeContext?: MemoryRuntimeContext;
-  }): Promise<UnifiedRecallItem[]>;
+  }): Promise<KnowledgeRecallResult>;
 }): Promise<{
   classification: UnifiedQueryClassification;
   knowledgeRecallItems: UnifiedRecallItem[];
+  knowledgeRecall: KnowledgeRecallResult;
   reranked: UnifiedRerankResult;
   skillRouting: SkillRoutingResult | null;
   selectedKnowledge: KnowledgeRecallSelectionResult;
@@ -55,12 +57,13 @@ export async function prepareMemoryAssemblyContext(params: {
     query: params.promptText,
     recentMessages: params.recentMessages,
   });
-  const knowledgeRecallItems = await params.recallKnowledge({
+  const knowledgeRecall = await params.recallKnowledge({
     prompt: params.promptText,
     classification,
     recentMessages: params.recentMessages,
     runtimeContext: params.runtimeContext,
   });
+  const knowledgeRecallItems = knowledgeRecall.items;
   const reranked = params.reranker.rerank({
     query: params.promptText,
     classification,
@@ -79,6 +82,7 @@ export async function prepareMemoryAssemblyContext(params: {
   return {
     classification,
     knowledgeRecallItems,
+    knowledgeRecall,
     reranked,
     skillRouting,
     selectedKnowledge,

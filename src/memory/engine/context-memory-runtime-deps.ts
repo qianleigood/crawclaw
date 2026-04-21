@@ -9,6 +9,7 @@ import { getSharedDurableExtractionWorkerManager } from "../durable/worker-manag
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
 import { createCompleteFn, type CompleteFn } from "../extraction/llm.ts";
 import { IngestCoordinator } from "../ingest/ingest-coordinator.ts";
+import { createDefaultKnowledgeProviderRegistry } from "../knowledge/provider.ts";
 import { UnifiedContextAssembler } from "../orchestration/context-assembler.ts";
 import { UnifiedQueryClassifier } from "../orchestration/query-classifier.ts";
 import { UnifiedReranker } from "../orchestration/unified-reranker.ts";
@@ -51,6 +52,10 @@ export function createContextMemoryRuntimeDeps(options: {
   const queryClassifier = new UnifiedQueryClassifier();
   const reranker = new UnifiedReranker();
   const contextAssembler = new UnifiedContextAssembler();
+  const knowledgeProviderRegistry = createDefaultKnowledgeProviderRegistry({
+    notebooklm: options.config?.notebooklm,
+    logger: options.logger,
+  });
   const skillIndexStore = new SkillIndexStore({
     workspaceDir: process.cwd(),
     extraRoots: options.config?.skillRouting.extraRoots,
@@ -125,6 +130,7 @@ export function createContextMemoryRuntimeDeps(options: {
     queryClassifier,
     reranker,
     contextAssembler,
+    knowledgeProviderRegistry,
     skillIndexStore,
     agentMemoryRoutingContract,
     contextArchiveTurnCapture,

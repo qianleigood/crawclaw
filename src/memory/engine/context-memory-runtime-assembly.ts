@@ -6,6 +6,7 @@ import { resolveMemoryRecallDecisionCodes } from "../../shared/decision-codes.js
 import { joinPromptSections } from "../context/assembly.ts";
 import { renderContextRoutingSection } from "../context/render-routing-guidance.ts";
 import type { DurableRecallResult } from "../durable/read.ts";
+import type { KnowledgeQueryPlan } from "../knowledge/query-plan.ts";
 import type { KnowledgeRecallSelectionResult } from "../orchestration/knowledge-recall-selector.ts";
 import type {
   MemoryPromptAssemblyResult,
@@ -52,6 +53,7 @@ export function buildMemoryAssemblyArtifacts(params: {
   classification: UnifiedQueryClassification;
   agentMemoryRoutingContract: { text: string; estimatedTokens: number };
   selectedKnowledge: KnowledgeRecallSelectionResult;
+  knowledgeQueryPlan?: KnowledgeQueryPlan;
   durableRecall: DurableRecallResult | null;
   durableRecallSource: DurableRecallSource;
 }): {
@@ -138,6 +140,18 @@ export function buildMemoryAssemblyArtifacts(params: {
     recentDreamTouchedNotes: params.durableRecall?.selection.recentDreamTouchedNotes ?? [],
     selectedKnowledgeItemIds,
     omittedKnowledgeItemIds,
+    ...(params.knowledgeQueryPlan
+      ? {
+          knowledgeQueryPlan: {
+            enabled: params.knowledgeQueryPlan.enabled,
+            query: params.knowledgeQueryPlan.query,
+            limit: params.knowledgeQueryPlan.limit,
+            targetLayers: params.knowledgeQueryPlan.targetLayers,
+            reason: params.knowledgeQueryPlan.reason,
+            providerIds: params.knowledgeQueryPlan.providerIds,
+          },
+        }
+      : {}),
     hitReason,
     evictionReason,
     durableRecallSource: params.durableRecallSource,

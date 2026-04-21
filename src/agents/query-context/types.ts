@@ -115,6 +115,14 @@ export type QueryContextMemoryRecallDiagnostics = {
   recentDreamTouchedNotes?: string[];
   selectedKnowledgeItemIds?: string[];
   omittedKnowledgeItemIds?: string[];
+  knowledgeQueryPlan?: {
+    enabled: boolean;
+    query: string;
+    limit: number;
+    targetLayers: string[];
+    reason: string;
+    providerIds: string[];
+  };
   hitReason?: string;
   evictionReason?: string;
   durableRecallSource?: string;

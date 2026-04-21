@@ -16,7 +16,7 @@ import type { SessionSummaryRunner } from "../session-summary/scheduler.ts";
 import { buildSkillIndexFromAvailableSkills } from "../skills/skill-metadata.ts";
 import { selectRelevantSkills } from "../skills/skill-router.ts";
 import type { MemoryRuntimeConfig, LlmConfig } from "../types/config.ts";
-import type { UnifiedQueryClassification, UnifiedRecallItem } from "../types/orchestration.ts";
+import type { UnifiedQueryClassification } from "../types/orchestration.ts";
 import {
   buildPromptMissingAssemblyResult,
   buildMemoryAssemblyArtifacts,
@@ -28,7 +28,6 @@ import {
 import {
   buildSkillDiscoveryCandidates,
   getMessageRole,
-  recallNotebookLm,
   resolvePromptContext,
 } from "./context-memory-runtime-helpers.ts";
 import { runPostAssemblySideEffects } from "./context-memory-runtime-post-assembly.ts";
@@ -71,6 +70,7 @@ export function createContextMemoryRuntime(options: {
     queryClassifier,
     reranker,
     contextAssembler,
+    knowledgeProviderRegistry,
     skillIndexStore,
     agentMemoryRoutingContract,
     contextArchiveTurnCapture,
@@ -81,32 +81,13 @@ export function createContextMemoryRuntime(options: {
     classification: UnifiedQueryClassification;
     recentMessages?: string[];
     runtimeContext?: MemoryRuntimeContext;
-  }): Promise<UnifiedRecallItem[]> {
-    const notebookLmItems = await recallNotebookLm({
-      config: options.config?.notebooklm,
-      logger: options.logger,
-      prompt: params.prompt,
-      notificationScope: {
-        agentId:
-          typeof params.runtimeContext?.agentId === "string"
-            ? params.runtimeContext.agentId
-            : undefined,
-        channel:
-          typeof params.runtimeContext?.messageChannel === "string"
-            ? params.runtimeContext.messageChannel
-            : undefined,
-        userId:
-          typeof params.runtimeContext?.senderId === "string"
-            ? params.runtimeContext.senderId
-            : undefined,
-      },
-    }).catch((error) => {
-      options.logger.warn(
-        `[memory] notebooklm recall skipped | ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return [] as UnifiedRecallItem[];
+  }) {
+    return await knowledgeProviderRegistry.search({
+      query: params.prompt,
+      classification: params.classification,
+      recentMessages: params.recentMessages,
+      runtimeContext: params.runtimeContext,
     });
-    return notebookLmItems;
   }
 
   return {
@@ -211,24 +192,24 @@ export function createContextMemoryRuntime(options: {
         return promptMissingResult;
       }
 
-      const { classification, knowledgeRecallItems, reranked, skillRouting, selectedKnowledge } =
-        await prepareMemoryAssemblyContext({
-          promptText,
-          recentMessages: promptContext.recentMessages,
-          runtimeContext,
-          queryClassifier,
-          reranker,
-          skillIndexStore,
-          skillRoutingEnabled: options.config?.skillRouting.enabled !== false,
-          skillRoutingLimit: options.config?.skillRouting.shortlistLimit,
-          recallKnowledge: async (args) =>
-            await recallKnowledge(args).catch((error) => {
-              options.logger.warn(
-                `[memory] knowledge recall skipped | ${error instanceof Error ? error.message : String(error)}`,
-              );
-              return [] as UnifiedRecallItem[];
-            }),
-        });
+      const {
+        classification,
+        knowledgeRecall,
+        knowledgeRecallItems,
+        reranked,
+        skillRouting,
+        selectedKnowledge,
+      } = await prepareMemoryAssemblyContext({
+        promptText,
+        recentMessages: promptContext.recentMessages,
+        runtimeContext,
+        queryClassifier,
+        reranker,
+        skillIndexStore,
+        skillRoutingEnabled: options.config?.skillRouting.enabled !== false,
+        skillRoutingLimit: options.config?.skillRouting.shortlistLimit,
+        recallKnowledge,
+      });
       const { durableRecall, durableRecallSource } = await resolveDurableRecallForAssembly({
         sessionId,
         sessionKey,
@@ -259,6 +240,7 @@ export function createContextMemoryRuntime(options: {
         classification,
         agentMemoryRoutingContract,
         selectedKnowledge,
+        knowledgeQueryPlan: knowledgeRecall.queryPlan,
         durableRecall,
         durableRecallSource,
       });

@@ -1,21 +1,29 @@
 import { Type } from "@sinclair/typebox";
 import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeNotebookLmConfig } from "../../memory/config/notebooklm.ts";
-import type { NotebookLmConfigInput } from "../../memory/types/config.ts";
-import { writeNotebookLmKnowledgeNoteViaCli } from "../../memory/notebooklm/notebooklm-write.ts";
+import { upsertKnowledgeIndexEntry } from "../../memory/knowledge/index-store.ts";
 import {
   classifyKnowledgeNoteGuardIssue,
   normalizeKnowledgeNoteType,
   type KnowledgeNoteWriteInput,
 } from "../../memory/notebooklm/knowledge-note.ts";
+import { writeNotebookLmKnowledgeNoteViaCli } from "../../memory/notebooklm/notebooklm-write.ts";
+import type { NotebookLmConfigInput } from "../../memory/types/config.ts";
 import { stringEnum } from "../schema/typebox.js";
-import { jsonResult, readStringArrayParam, readStringParam, ToolInputError, type AnyAgentTool } from "./common.js";
+import {
+  jsonResult,
+  readStringArrayParam,
+  readStringParam,
+  ToolInputError,
+  type AnyAgentTool,
+} from "./common.js";
 
 const KNOWLEDGE_NOTE_TYPES = ["procedure", "decision", "runtime_pattern", "reference"] as const;
 
 const WriteKnowledgeNoteToolSchema = Type.Object({
   type: stringEnum(KNOWLEDGE_NOTE_TYPES, {
-    description: "Knowledge note type. Must be one of procedure, decision, runtime_pattern, or reference.",
+    description:
+      "Knowledge note type. Must be one of procedure, decision, runtime_pattern, or reference.",
   }),
   title: Type.String({
     description: "Chinese-readable title for the knowledge note.",
@@ -75,7 +83,8 @@ const WriteKnowledgeNoteToolSchema = Type.Object({
   ),
   dedupeKey: Type.Optional(
     Type.String({
-      description: "Optional stable key used to update the same knowledge note instead of duplicating it.",
+      description:
+        "Optional stable key used to update the same knowledge note instead of duplicating it.",
     }),
   ),
 });
@@ -112,7 +121,9 @@ export function createKnowledgeWriteTool(options?: KnowledgeWriteToolOptions): A
       const params = args as Record<string, unknown>;
       const type = normalizeKnowledgeNoteType(readStringParam(params, "type", { required: true }));
       if (!type) {
-        throw new ToolInputError("type must be one of: procedure, decision, runtime_pattern, reference");
+        throw new ToolInputError(
+          "type must be one of: procedure, decision, runtime_pattern, reference",
+        );
       }
       const title = readStringParam(params, "title", { required: true });
       const summary = readStringParam(params, "summary", { required: true });
@@ -157,6 +168,12 @@ export function createKnowledgeWriteTool(options?: KnowledgeWriteToolOptions): A
 
       if (!result) {
         throw new ToolInputError("NotebookLM knowledge write is not configured.");
+      }
+      if (result.status === "ok") {
+        await upsertKnowledgeIndexEntry({
+          note,
+          writeResult: result,
+        });
       }
 
       return jsonResult({

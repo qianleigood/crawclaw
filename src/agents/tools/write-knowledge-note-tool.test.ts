@@ -1,18 +1,23 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
+import { readKnowledgeIndexEntries } from "../../memory/knowledge/index-store.js";
 import { createKnowledgeWriteTool } from "./write-knowledge-note-tool.js";
 
 const execFileMock = vi.fn();
+const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
+const tempDirs: string[] = [];
 
 vi.mock("node:child_process", () => ({
   execFile: (...args: unknown[]) => execFileMock(...args),
 }));
 
 async function createTempDir(): Promise<string> {
-  return await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-knowledge-note-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-knowledge-note-test-"));
+  tempDirs.push(dir);
+  return dir;
 }
 
 describe("createKnowledgeWriteTool", () => {
@@ -21,8 +26,20 @@ describe("createKnowledgeWriteTool", () => {
     execFileMock.mockReset();
   });
 
+  afterEach(async () => {
+    await Promise.all(
+      tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })),
+    );
+    if (previousStateDir === undefined) {
+      delete process.env.CRAWCLAW_STATE_DIR;
+    } else {
+      process.env.CRAWCLAW_STATE_DIR = previousStateDir;
+    }
+  });
+
   it("renders a Chinese procedure card and writes it through the NotebookLM adapter", async () => {
     const stateDir = await createTempDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
     execFileMock
       .mockImplementationOnce((_command, _args, _options, callback) => {
         callback(
@@ -116,6 +133,18 @@ describe("createKnowledgeWriteTool", () => {
     expect(content).toContain("## 验证方法");
     expect(content).toContain("知识类型：操作流程");
     expect(content).toContain("知识键：gateway-recovery-procedure");
+
+    const indexEntries = await readKnowledgeIndexEntries();
+    expect(indexEntries).toEqual([
+      expect.objectContaining({
+        id: "knowledge-index:gateway-recovery-procedure",
+        title: "网关恢复步骤",
+        summary: "在网关关闭时按顺序恢复服务。",
+        type: "procedure",
+        noteId: "note-123",
+        notebookId: "knowledge-notebook",
+      }),
+    ]);
   });
 
   it("rejects transient session-state style content", async () => {

@@ -3,11 +3,7 @@ import type {
   QueryContextSectionSchema,
   QueryContextSectionType,
 } from "../../agents/query-context/types.js";
-import { searchNotebookLmViaCli } from "../notebooklm/notebooklm-cli.ts";
-import type { NotebookLmConfig } from "../types/config.ts";
-import type { UnifiedRecallItem } from "../types/orchestration.ts";
 import { cleanPrompt } from "../util/prompt.ts";
-import type { RuntimeLogger } from "./context-memory-runtime-deps.ts";
 
 export type DurableRecallSource = "sync" | "sync_error";
 
@@ -119,28 +115,6 @@ export function resolvePromptContext(params: { prompt?: string; messages?: unkno
     : undefined;
 
   return { prompt, recentMessages };
-}
-
-export async function recallNotebookLm(params: {
-  config: NotebookLmConfig | undefined;
-  logger: RuntimeLogger;
-  prompt: string;
-  notificationScope?: {
-    agentId?: string | null;
-    channel?: string | null;
-    userId?: string | null;
-  };
-}): Promise<UnifiedRecallItem[]> {
-  if (!params.config?.enabled || !params.config.cli.enabled) {
-    return [];
-  }
-  return await searchNotebookLmViaCli({
-    config: params.config,
-    query: params.prompt,
-    limit: params.config.cli.limit,
-    logger: params.logger,
-    notificationScope: params.notificationScope,
-  });
 }
 
 function normalizeSkillDiscoveryText(value: string | null | undefined): string {
