@@ -34,9 +34,12 @@ function resolveTaskName(env: GatewayServiceEnv): string {
   return resolveGatewayWindowsTaskName(env.CRAWCLAW_PROFILE);
 }
 
+const SCHTASKS_ACCESS_DENIED_RE =
+  /access is denied|access denied|\u62d2\u7edd\u8bbf\u95ee|\u62d2\u7d55\u5b58\u53d6|\u62d2\u7d55\u8a2a\u554f/iu;
+
 function shouldFallbackToStartupEntry(params: { code: number; detail: string }): boolean {
   return (
-    /access is denied/i.test(params.detail) ||
+    SCHTASKS_ACCESS_DENIED_RE.test(params.detail) ||
     params.code === 124 ||
     /schtasks timed out/i.test(params.detail) ||
     /schtasks produced no output/i.test(params.detail)
@@ -48,8 +51,7 @@ export function resolveTaskScriptPath(env: GatewayServiceEnv): string {
   if (override) {
     return override;
   }
-  const scriptName =
-    env.CRAWCLAW_TASK_SCRIPT_NAME?.trim() || "gateway.cmd";
+  const scriptName = env.CRAWCLAW_TASK_SCRIPT_NAME?.trim() || "gateway.cmd";
   const stateDir = resolveGatewayStateDir(env);
   return path.join(stateDir, scriptName);
 }
