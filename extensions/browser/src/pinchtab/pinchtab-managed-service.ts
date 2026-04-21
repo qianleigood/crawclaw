@@ -2,6 +2,10 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {
+  materializeWindowsSpawnProgram,
+  resolveWindowsSpawnProgram,
+} from "crawclaw/plugin-sdk/windows-spawn";
 import { resolveBrowserControlAuth } from "../browser/control-auth.js";
 import { loadConfig, type CrawClawConfig } from "../config/config.js";
 import { createPinchTabClient } from "./pinchtab-client.js";
@@ -24,6 +28,13 @@ type ManagedPinchTabServiceState = {
   token?: string;
 };
 
+type ManagedPinchTabLaunchCommand = {
+  command: string;
+  args: string[];
+  shell?: boolean;
+  windowsHide?: boolean;
+};
+
 type PinchTabManagedServiceDeps = {
   spawnImpl: SpawnLike;
   existsSyncImpl: typeof existsSync;
@@ -39,6 +50,24 @@ function resolveManagedBrowserRuntimeBin(env: NodeJS.ProcessEnv = process.env): 
   return process.platform === "win32"
     ? path.join(runtimeDir, "node_modules", ".bin", "pinchtab.cmd")
     : path.join(runtimeDir, "node_modules", ".bin", "pinchtab");
+}
+
+function resolveManagedPinchTabLaunchCommand(
+  binPath: string,
+  env: NodeJS.ProcessEnv = process.env,
+): ManagedPinchTabLaunchCommand {
+  const program = resolveWindowsSpawnProgram({
+    command: binPath,
+    env,
+    packageName: "pinchtab",
+  });
+  const resolved = materializeWindowsSpawnProgram(program, []);
+  return {
+    command: resolved.command,
+    args: resolved.argv,
+    shell: resolved.shell,
+    windowsHide: resolved.windowsHide,
+  };
 }
 
 const pinchTabManagedServiceDeps: PinchTabManagedServiceDeps = {
@@ -235,9 +264,11 @@ export async function ensureManagedPinchTabService(params?: {
       );
     }
     const endpoint = new URL(resolved.baseUrl);
-    const child = pinchTabManagedServiceDeps.spawnImpl(binPath, [], {
+    const launch = resolveManagedPinchTabLaunchCommand(binPath);
+    const child = pinchTabManagedServiceDeps.spawnImpl(launch.command, launch.args, {
       stdio: "pipe",
-      windowsHide: true,
+      shell: launch.shell,
+      windowsHide: launch.windowsHide ?? true,
       env: {
         ...process.env,
         BRIDGE_BIND: endpoint.hostname,

@@ -3,6 +3,10 @@ import { existsSync, mkdirSync, openSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { CrawClawConfig } from "../plugin-sdk/config-runtime.js";
+import {
+  materializeWindowsSpawnProgram,
+  resolveWindowsSpawnProgram,
+} from "../plugin-sdk/windows-spawn.js";
 import { resolveOpenWebSearchRuntimeBin } from "../plugins/plugin-runtimes.js";
 import {
   DEFAULT_OPEN_WEBSEARCH_HOST,
@@ -22,7 +26,29 @@ const managedChildren = new Map<string, ChildProcess>();
 type LaunchCommand = {
   command: string;
   args: string[];
+  shell?: boolean;
+  windowsHide?: boolean;
 };
+
+function resolveRuntimeLaunchCommand(params: {
+  command: string;
+  args?: string[];
+  env?: NodeJS.ProcessEnv;
+  packageName: string;
+}): LaunchCommand {
+  const program = resolveWindowsSpawnProgram({
+    command: params.command,
+    env: params.env,
+    packageName: params.packageName,
+  });
+  const resolved = materializeWindowsSpawnProgram(program, params.args ?? []);
+  return {
+    command: resolved.command,
+    args: resolved.argv,
+    shell: resolved.shell,
+    windowsHide: resolved.windowsHide,
+  };
+}
 
 function buildMissingRuntimeError(): Error {
   return new Error(
@@ -71,20 +97,22 @@ function resolveDaemonLogPath(): string {
 function resolveLaunchCommand(env: NodeJS.ProcessEnv = process.env): LaunchCommand {
   const managedRuntimeBin = resolveOpenWebSearchRuntimeBin(env);
   if (existsSync(managedRuntimeBin)) {
-    return {
+    return resolveRuntimeLaunchCommand({
       command: managedRuntimeBin,
-      args: [],
-    };
+      env,
+      packageName: "open-websearch",
+    });
   }
   const localBin =
     process.platform === "win32"
       ? join(homedir(), ".local", "open-websearch", "node_modules", ".bin", "open-websearch.cmd")
       : join(homedir(), ".local", "open-websearch", "node_modules", ".bin", "open-websearch");
   if (existsSync(localBin)) {
-    return {
+    return resolveRuntimeLaunchCommand({
       command: localBin,
-      args: [],
-    };
+      env,
+      packageName: "open-websearch",
+    });
   }
   throw buildMissingRuntimeError();
 }
@@ -133,7 +161,8 @@ function spawnDaemon(params: {
     {
       detached: params.detached,
       stdio: ["ignore", logFd, logFd],
-      windowsHide: true,
+      shell: launch.shell,
+      windowsHide: launch.windowsHide ?? true,
       env: {
         ...env,
         NO_COLOR: "1",
