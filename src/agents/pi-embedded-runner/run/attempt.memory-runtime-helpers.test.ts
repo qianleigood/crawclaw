@@ -4,87 +4,10 @@ import {
   registerRunLoopLifecycleHandler,
   resetRunLoopLifecycleHandlersForTests,
 } from "../../runtime/lifecycle/bus.js";
-import {
-  finalizeAttemptMemoryRuntimeTurn,
-  startAttemptMemoryRuntimeDurableRecallPrefetch,
-} from "./attempt.memory-runtime-helpers.js";
+import { finalizeAttemptMemoryRuntimeTurn } from "./attempt.memory-runtime-helpers.js";
 
 beforeEach(() => {
   resetRunLoopLifecycleHandlersForTests();
-});
-
-describe("startAttemptMemoryRuntimeDurableRecallPrefetch", () => {
-  it("threads a prefetch handle into runtime context when supported", async () => {
-    const handle = {
-      sessionId: "session-1",
-      sessionKey: "agent:main:discord:user-1",
-      prompt: "remember this durable preference",
-      scopeKey: "main:discord:user-1",
-      startedAt: Date.now(),
-      status: "pending" as const,
-      promise: Promise.resolve(),
-    };
-    const startDurableRecallPrefetch = vi.fn(() => handle);
-
-    const runtimeContext = await startAttemptMemoryRuntimeDurableRecallPrefetch({
-      memoryRuntime: {
-        info: { id: "builtin-memory", name: "Memory" },
-        ingest: async () => ({ ingested: true }),
-        compact: async () => ({ ok: false, compacted: false }),
-        assemble: async () => ({ messages: [], estimatedTokens: 0 }),
-        startDurableRecallPrefetch,
-      },
-      sessionId: "session-1",
-      sessionKey: "agent:main:discord:user-1",
-      messages: [{ role: "user", content: "remember this durable preference" }] as AgentMessage[],
-      modelId: "gpt-test",
-      prompt: "remember this durable preference",
-      runtimeContext: { agentId: "main" },
-      warn: vi.fn(),
-    });
-
-    expect(startDurableRecallPrefetch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: "session-1",
-        sessionKey: "agent:main:discord:user-1",
-        model: "gpt-test",
-      }),
-    );
-    expect(runtimeContext).toEqual(
-      expect.objectContaining({
-        agentId: "main",
-        durableRecallPrefetchHandle: handle,
-      }),
-    );
-  });
-
-  it("falls back to the original runtime context when prefetch startup fails", async () => {
-    const warn = vi.fn();
-
-    const runtimeContext = await startAttemptMemoryRuntimeDurableRecallPrefetch({
-      memoryRuntime: {
-        info: { id: "builtin-memory", name: "Memory" },
-        ingest: async () => ({ ingested: true }),
-        compact: async () => ({ ok: false, compacted: false }),
-        assemble: async () => ({ messages: [], estimatedTokens: 0 }),
-        startDurableRecallPrefetch: async () => {
-          throw new Error("prefetch failed");
-        },
-      },
-      sessionId: "session-1",
-      sessionKey: "agent:main:discord:user-1",
-      messages: [{ role: "user", content: "remember this durable preference" }] as AgentMessage[],
-      modelId: "gpt-test",
-      prompt: "remember this durable preference",
-      runtimeContext: { agentId: "main" },
-      warn,
-    });
-
-    expect(runtimeContext).toEqual({ agentId: "main" });
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("memory runtime durable recall prefetch failed"),
-    );
-  });
 });
 
 describe("finalizeAttemptMemoryRuntimeTurn", () => {

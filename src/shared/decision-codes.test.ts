@@ -54,14 +54,14 @@ describe("decision code helpers", () => {
   it("maps memory recall reasons into unified decision code keys", () => {
     expect(
       resolveMemoryRecallDecisionCodes({
-        hitReason: "durable_selected:prefetch_hit",
+        hitReason: "durable_selected:sync",
         evictionReason: "token_budget:knowledge",
-        durableRecallSource: "prefetch_hit",
+        durableRecallSource: "sync",
       }),
     ).toEqual({
-      recallHit: "durable_selected:prefetch_hit",
+      recallHit: "durable_selected:sync",
       recallEviction: "token_budget:knowledge",
-      durableRecall: "prefetch_hit",
+      durableRecall: "sync",
     });
   });
 });
