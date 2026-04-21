@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { startHeartbeatRunner } from "./heartbeat-runner.js";
-import { requestHeartbeatNow, resetHeartbeatWakeStateForTests } from "./heartbeat-wake.js";
+import {
+  requestHeartbeatNow,
+  resetHeartbeatWakeStateForTests,
+  setHeartbeatsEnabled,
+} from "./heartbeat-wake.js";
 
 describe("startHeartbeatRunner", () => {
   type RunOnce = Parameters<typeof startHeartbeatRunner>[0]["runOnce"];
@@ -61,6 +65,7 @@ describe("startHeartbeatRunner", () => {
   }
 
   afterEach(() => {
+    setHeartbeatsEnabled(true);
     resetHeartbeatWakeStateForTests();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -75,10 +80,7 @@ describe("startHeartbeatRunner", () => {
 
     await vi.advanceTimersByTimeAsync(30 * 60_000 + 1_000);
 
-    expect(runSpy).toHaveBeenCalledTimes(1);
-    expect(runSpy.mock.calls[0]?.[0]).toEqual(
-      expect.objectContaining({ agentId: "main", reason: "interval" }),
-    );
+    expect(runSpy).not.toHaveBeenCalled();
 
     runner.updateConfig({
       agents: {
@@ -92,22 +94,16 @@ describe("startHeartbeatRunner", () => {
 
     await vi.advanceTimersByTimeAsync(10 * 60_000 + 1_000);
 
-    expect(runSpy).toHaveBeenCalledTimes(2);
-    expect(runSpy.mock.calls[1]?.[0]).toEqual(
-      expect.objectContaining({ agentId: "main", heartbeat: { every: "10m" } }),
-    );
+    expect(runSpy).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(5 * 60_000 + 1_000);
 
-    expect(runSpy).toHaveBeenCalledTimes(3);
-    expect(runSpy.mock.calls[2]?.[0]).toEqual(
-      expect.objectContaining({ agentId: "ops", heartbeat: { every: "15m" } }),
-    );
+    expect(runSpy).not.toHaveBeenCalled();
 
     runner.stop();
   });
 
-  it("continues scheduling after runOnce throws an unhandled error", async () => {
+  it("keeps the wake handler active after runOnce throws an unhandled error", async () => {
     useFakeHeartbeatTime();
 
     let callCount = 0;
@@ -122,12 +118,14 @@ describe("startHeartbeatRunner", () => {
 
     const runner = startDefaultRunner(runSpy);
 
-    // First heartbeat fires and throws
-    await vi.advanceTimersByTimeAsync(30 * 60_000 + 1_000);
+    // First explicit wake fires and throws.
+    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(1);
 
-    // Second heartbeat should still fire (scheduler must not be dead)
-    await vi.advanceTimersByTimeAsync(30 * 60_000 + 1_000);
+    // A later explicit wake should still reach the handler.
+    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(2);
 
     runner.stop();
@@ -152,8 +150,9 @@ describe("startHeartbeatRunner", () => {
     // Stop runner A (stale cleanup) — should NOT kill runner B's handler
     runnerA.stop();
 
-    // Runner B should still fire
-    await vi.advanceTimersByTimeAsync(30 * 60_000 + 1_000);
+    // Runner B should still handle explicit wakes.
+    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    await vi.advanceTimersByTimeAsync(1);
     expect(runSpy2).toHaveBeenCalledTimes(1);
     expect(runSpy1).not.toHaveBeenCalled();
 
@@ -177,7 +176,7 @@ describe("startHeartbeatRunner", () => {
     expect(runSpy).not.toHaveBeenCalled();
   });
 
-  it("reschedules timer when runOnce returns requests-in-flight", async () => {
+  it("retries explicit wakes when runOnce returns requests-in-flight", async () => {
     useFakeHeartbeatTime();
 
     const runSpy = createRequestsInFlightRunSpy(1);
@@ -187,23 +186,23 @@ describe("startHeartbeatRunner", () => {
       runOnce: runSpy,
     });
 
-    // First heartbeat returns requests-in-flight
-    await vi.advanceTimersByTimeAsync(30 * 60_000 + 1_000);
+    // First explicit wake returns requests-in-flight.
+    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(1);
 
-    // The wake layer retries after DEFAULT_RETRY_MS (1 s).  No scheduleNext()
-    // is called inside runOnce, so we must wait for the full cooldown.
+    // The wake layer retries after DEFAULT_RETRY_MS (1 s).
     await vi.advanceTimersByTimeAsync(1_000);
     expect(runSpy).toHaveBeenCalledTimes(2);
 
     runner.stop();
   });
 
-  it("does not push nextDueMs forward on repeated requests-in-flight skips", async () => {
+  it("does not create periodic interval runs after repeated requests-in-flight skips", async () => {
     useFakeHeartbeatTime();
 
-    // Simulate a long-running heartbeat: the first 5 calls return
-    // requests-in-flight (retries from the wake layer), then the 6th succeeds.
+    // Simulate a busy main lane: the first 5 calls return requests-in-flight,
+    // then the 6th succeeds through wake-layer retries.
     const runSpy = createRequestsInFlightRunSpy(5);
 
     const runner = startHeartbeatRunner({
@@ -211,19 +210,22 @@ describe("startHeartbeatRunner", () => {
       runOnce: runSpy,
     });
 
-    // Trigger the first heartbeat at t=30m — returns requests-in-flight.
-    await vi.advanceTimersByTimeAsync(30 * 60_000 + 1_000);
+    // Trigger the first explicit wake. It returns requests-in-flight.
+    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(1);
 
-    // Simulate 4 more retries at short intervals (wake layer retries).
+    // Four automatic wake-layer retries still see requests in flight.
     for (let i = 0; i < 4; i++) {
-      requestHeartbeatNow({ reason: "retry", coalesceMs: 0 });
       await vi.advanceTimersByTimeAsync(1_000);
     }
     expect(runSpy).toHaveBeenCalledTimes(5);
 
-    // The next interval tick at ~t=60m should still fire — the schedule
-    // must not have been pushed to t=30m * 6 = 180m by the 5 retries.
+    // The final retry succeeds.
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(runSpy).toHaveBeenCalledTimes(6);
+
+    // No legacy interval timer should be armed after the wake completes.
     await vi.advanceTimersByTimeAsync(30 * 60_000);
     expect(runSpy).toHaveBeenCalledTimes(6);
 
@@ -251,6 +253,29 @@ describe("startHeartbeatRunner", () => {
         agentId: "ops",
         reason: "cron:job-123",
         sessionKey: "agent:ops:discord:channel:alerts",
+      },
+    });
+
+    runner.stop();
+  });
+
+  it("keeps explicit wake requests active when legacy heartbeats are runtime-disabled", async () => {
+    useFakeHeartbeatTime();
+    setHeartbeatsEnabled(false);
+
+    const runSpy = vi.fn().mockResolvedValue({ status: "ran", durationMs: 1 });
+    const runner = await expectWakeDispatch({
+      cfg: heartbeatConfig(),
+      runSpy,
+      wake: {
+        reason: "background-task",
+        sessionKey: "agent:main:main",
+        coalesceMs: 0,
+      },
+      expectedCall: {
+        agentId: "main",
+        reason: "background-task",
+        sessionKey: "agent:main:main",
       },
     });
 

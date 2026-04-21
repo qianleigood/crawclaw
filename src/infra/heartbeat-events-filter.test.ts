@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCronEventPrompt,
   buildExecEventPrompt,
+  isActionableSystemEvent,
   isCronSystemEvent,
   isExecCompletionEvent,
 } from "./heartbeat-events-filter.js";
@@ -75,6 +76,17 @@ describe("heartbeat event classification", () => {
     { value: "cron finished", expected: false },
   ])("classifies exec completion events for %j", ({ value, expected }) => {
     expect(isExecCompletionEvent(value)).toBe(expected);
+  });
+
+  it.each([
+    { value: "Background task completed", expected: true },
+    { value: "Notification posted: Terminal", expected: true },
+    { value: "exec finished: ok", expected: true },
+    { value: "HEARTBEAT_OK", expected: false },
+    { value: "heartbeat wake: noop", expected: false },
+    { value: "   ", expected: false },
+  ])("classifies actionable system events for %j", ({ value, expected }) => {
+    expect(isActionableSystemEvent(value)).toBe(expected);
   });
 
   it.each([

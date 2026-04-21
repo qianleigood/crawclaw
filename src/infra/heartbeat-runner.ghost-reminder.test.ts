@@ -135,7 +135,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
     );
   };
 
-  it("does not use CRON_EVENT_PROMPT when only a HEARTBEAT_OK event is present", async () => {
+  it("skips legacy heartbeat ack noise when no actionable event is present", async () => {
     const { result, sendTelegram, calledCtx, replyCallCount } = await runHeartbeatCase({
       tmpPrefix: "crawclaw-ghost-",
       replyText: "Heartbeat check-in",
@@ -144,12 +144,11 @@ describe("Ghost reminder bug (issue #13317)", () => {
         enqueueSystemEvent("HEARTBEAT_OK", { sessionKey });
       },
     });
-    expect(result.status).toBe("ran");
-    expect(replyCallCount).toBe(1);
-    expect(calledCtx?.Provider).toBe("heartbeat");
-    expect(calledCtx?.Body).not.toContain("scheduled reminder has been triggered");
-    expect(calledCtx?.Body).not.toContain("relay this reminder");
-    expect(sendTelegram).toHaveBeenCalled();
+    expect(result.status).toBe("skipped");
+    expect(result).toEqual({ status: "skipped", reason: "no-system-events" });
+    expect(replyCallCount).toBe(0);
+    expect(calledCtx).toBeNull();
+    expect(sendTelegram).not.toHaveBeenCalled();
   });
 
   it("uses CRON_EVENT_PROMPT when an actionable cron event exists", async () => {

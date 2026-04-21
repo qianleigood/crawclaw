@@ -34,8 +34,18 @@ export function resolveHeartbeatReasonKind(reason?: string): HeartbeatReasonKind
   if (trimmed === "wake") {
     return "wake";
   }
+  if (
+    trimmed === "background-task" ||
+    trimmed === "background-task-blocked" ||
+    trimmed === "notifications-event"
+  ) {
+    return "wake";
+  }
   if (trimmed.startsWith("acp:spawn:")) {
     return "wake";
+  }
+  if (trimmed.startsWith("exec:") || trimmed.startsWith("cli:")) {
+    return "exec-event";
   }
   if (trimmed.startsWith("cron:")) {
     return "cron";

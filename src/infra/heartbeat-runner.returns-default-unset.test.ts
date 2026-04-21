@@ -1073,6 +1073,7 @@ describe("runHeartbeatOnce", () => {
     queueCronEvent?: boolean;
     replyText?: string;
   }) {
+    resetSystemEventsForTest();
     const tmpDir = await createCaseDir("crawclaw-hb");
     const storePath = path.join(tmpDir, "sessions.json");
     const workspaceDir = path.join(tmpDir, "workspace");
@@ -1165,7 +1166,7 @@ describe("runHeartbeatOnce", () => {
       reason?: "interval" | "wake";
       queueCronEvent?: boolean;
       expectedStatus: "ran" | "skipped";
-      expectedSkipReason?: "empty-heartbeat-file";
+      expectedSkipReason?: "empty-heartbeat-file" | "no-system-events";
       expectedSendCalls: number;
       expectedReplyCalls: number;
       expectCronContext?: boolean;
@@ -1180,13 +1181,13 @@ describe("runHeartbeatOnce", () => {
         expectedReplyCalls: 0,
       },
       {
-        name: "empty file + wake runs",
+        name: "empty file + wake skips without queued system events",
         fileState: "empty",
         reason: "wake",
-        expectedStatus: "ran",
-        expectedSendCalls: 1,
-        expectedReplyCalls: 1,
-        replyText: "wake event processed",
+        expectedStatus: "skipped",
+        expectedSkipReason: "no-system-events",
+        expectedSendCalls: 0,
+        expectedReplyCalls: 0,
       },
       {
         name: "empty file + queued cron interval runs",
@@ -1221,13 +1222,13 @@ describe("runHeartbeatOnce", () => {
         expectedReplyCalls: 1,
       },
       {
-        name: "missing file + wake runs",
+        name: "missing file + wake skips without queued system events",
         fileState: "missing",
         reason: "wake",
-        expectedStatus: "ran",
-        expectedSendCalls: 1,
-        expectedReplyCalls: 1,
-        replyText: "wake event processed",
+        expectedStatus: "skipped",
+        expectedSkipReason: "no-system-events",
+        expectedSendCalls: 0,
+        expectedReplyCalls: 0,
       },
       {
         name: "missing file + queued cron interval runs",

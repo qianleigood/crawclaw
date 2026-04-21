@@ -87,6 +87,10 @@ export function isExecCompletionEvent(evt: string): boolean {
   return evt.toLowerCase().includes("exec finished");
 }
 
+export function isActionableSystemEvent(evt: string): boolean {
+  return Boolean(evt.trim()) && !isHeartbeatNoiseEvent(evt);
+}
+
 // Returns true when a system event should be treated as real cron reminder content.
 export function isCronSystemEvent(evt: string) {
   if (!evt.trim()) {

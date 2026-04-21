@@ -138,7 +138,7 @@ describe("scheduleRestartSentinelWake", () => {
       expect.objectContaining({
         channel: "whatsapp",
         to: "+15550002",
-        session: { key: "agent:main:main", agentId: "main" },
+        session: { key: "agent:main:main", agentId: "agent-from-key" },
         deps,
         bestEffort: false,
         skipQueue: true,
