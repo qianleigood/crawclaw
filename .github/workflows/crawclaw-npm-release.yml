@@ -16,6 +16,10 @@ on:
         description: Existing successful preflight workflow run id to promote without rebuilding
         required: false
         type: string
+      windows_native_smoke_run_id:
+        description: Existing successful Windows Native Smoke workflow run id required for real publish
+        required: false
+        type: string
       npm_dist_tag:
         description: npm dist-tag to publish to for stable releases
         required: true
@@ -162,6 +166,7 @@ jobs:
     if: ${{ !inputs.preflight_only && !inputs.promote_beta_to_latest }}
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     steps:
       - name: Require main workflow ref for publish
@@ -183,6 +188,25 @@ jobs:
             echo "Real publish requires preflight_run_id from a successful npm preflight run." >&2
             exit 1
           fi
+
+      - name: Require Windows native smoke gate on real publish
+        env:
+          WINDOWS_NATIVE_SMOKE_RUN_ID: ${{ inputs.windows_native_smoke_run_id }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${WINDOWS_NATIVE_SMOKE_RUN_ID}" ]]; then
+            echo "Real publish requires windows_native_smoke_run_id from a successful Windows Native Smoke run." >&2
+            exit 1
+          fi
+
+      - name: Verify Windows native smoke run metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WINDOWS_NATIVE_SMOKE_RUN_ID: ${{ inputs.windows_native_smoke_run_id }}
+        run: |
+          set -euo pipefail
+          RUN_JSON="$(gh run view "$WINDOWS_NATIVE_SMOKE_RUN_ID" --repo "$GITHUB_REPOSITORY" --json workflowName,headBranch,event,conclusion,url)"
+          printf '%s' "$RUN_JSON" | node -e 'const fs = require("node:fs"); const run = JSON.parse(fs.readFileSync(0, "utf8")); const allowedEvents = new Set(["workflow_dispatch", "schedule"]); const checks = [["workflowName", "Windows Native Smoke"], ["headBranch", "main"], ["conclusion", "success"]]; for (const [key, expected] of checks) { if (run[key] !== expected) { console.error(`Referenced Windows native smoke run ${process.env.WINDOWS_NATIVE_SMOKE_RUN_ID} must have ${key}=${expected}, got ${run[key] ?? "<missing>"}.`); process.exit(1); } } if (!allowedEvents.has(run.event)) { console.error(`Referenced Windows native smoke run ${process.env.WINDOWS_NATIVE_SMOKE_RUN_ID} must be a workflow_dispatch or schedule run, got ${run.event ?? "<missing>"}.`); process.exit(1); } console.log(`Using Windows native smoke run ${process.env.WINDOWS_NATIVE_SMOKE_RUN_ID}: ${run.url}`);'
 
   publish_crawclaw_npm:
     # npm trusted publishing + provenance requires a GitHub-hosted runner.

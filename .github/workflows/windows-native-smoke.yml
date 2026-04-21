@@ -1,0 +1,98 @@
+name: Windows Native Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Parallels smoke lane to run
+        required: true
+        default: both
+        type: choice
+        options:
+          - fresh
+          - upgrade
+          - both
+      package_spec:
+        description: Optional npm spec or tarball URL to test instead of the checked-out package
+        required: false
+        type: string
+      provider:
+        description: Provider lane for the first agent turn
+        required: true
+        default: openai
+        type: choice
+        options:
+          - openai
+          - anthropic
+          - minimax
+      api_key_env:
+        description: Host environment variable containing the provider API key
+        required: false
+        type: string
+  schedule:
+    - cron: "23 18 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-native-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  parallels-windows:
+    name: Parallels Windows fresh and upgrade
+    runs-on: [self-hosted, macOS, parallels]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+          use-sticky-disk: "false"
+
+      - name: Run Windows native smoke
+        shell: bash
+        env:
+          SMOKE_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'both' }}
+          SMOKE_PACKAGE_SPEC: ${{ github.event_name == 'workflow_dispatch' && inputs.package_spec || '' }}
+          SMOKE_PROVIDER: ${{ github.event_name == 'workflow_dispatch' && inputs.provider || 'openai' }}
+          SMOKE_API_KEY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.api_key_env || '' }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --mode "$SMOKE_MODE"
+            --provider "$SMOKE_PROVIDER"
+            --json
+          )
+
+          if [ -n "$SMOKE_PACKAGE_SPEC" ]; then
+            args+=(--target-package-spec "$SMOKE_PACKAGE_SPEC")
+          fi
+
+          if [ -n "$SMOKE_API_KEY_ENV" ]; then
+            args+=(--api-key-env "$SMOKE_API_KEY_ENV")
+          fi
+
+          bash scripts/e2e/parallels-windows-smoke.sh "${args[@]}" | tee "$RUNNER_TEMP/windows-native-smoke.json"
+
+      - name: Upload Windows native smoke summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-native-smoke
+          path: |
+            ${{ runner.temp }}/windows-native-smoke.json
+            /tmp/crawclaw-parallels-windows.*
+          if-no-files-found: ignore

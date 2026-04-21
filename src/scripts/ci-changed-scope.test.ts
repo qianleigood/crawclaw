@@ -106,6 +106,15 @@ describe("detectChangedScope", () => {
     });
   });
 
+  it("runs Windows lane when the native Windows smoke workflow changes", () => {
+    expect(detectChangedScope([".github/workflows/windows-native-smoke.yml"])).toEqual({
+      runNode: true,
+      runWindows: true,
+      runSkillsPython: false,
+      runChangedSmoke: false,
+    });
+  });
+
   it("runs changed-smoke for install and packaging surfaces", () => {
     expect(detectChangedScope(["scripts/install.sh"])).toEqual({
       runNode: true,

@@ -7,10 +7,11 @@ const DOCS_PATH_RE = /^(docs\/|.*\.mdx?$)/;
 const SKILLS_PYTHON_SCOPE_RE = /^(skills\/|pyproject\.toml$)/;
 const CI_WORKFLOW_SCOPE_RE = /^\.github\/workflows\/ci\.yml$/;
 const INSTALL_SMOKE_WORKFLOW_SCOPE_RE = /^\.github\/workflows\/install-smoke\.yml$/;
+const WINDOWS_NATIVE_SMOKE_WORKFLOW_SCOPE_RE = /^\.github\/workflows\/windows-native-smoke\.yml$/;
 const NODE_SCOPE_RE =
   /^(src\/|test\/|extensions\/|packages\/|scripts\/|ui\/|\.github\/|crawclaw\.mjs$|crawclaw\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig.*\.json$|vitest.*\.ts$|tsdown\.config\.ts$|\.oxlintrc\.json$|\.oxfmtrc\.jsonc$)/;
 const WINDOWS_SCOPE_RE =
-  /^(src\/|test\/|extensions\/|packages\/|scripts\/|ui\/|crawclaw\.mjs$|crawclaw\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig.*\.json$|vitest.*\.ts$|tsdown\.config\.ts$|\.github\/workflows\/ci\.yml$|\.github\/actions\/setup-node-env\/action\.yml$|\.github\/actions\/setup-pnpm-store-cache\/action\.yml$)/;
+  /^(src\/|test\/|extensions\/|packages\/|scripts\/|ui\/|crawclaw\.mjs$|crawclaw\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig.*\.json$|vitest.*\.ts$|tsdown\.config\.ts$|\.github\/workflows\/ci\.yml$|\.github\/workflows\/windows-native-smoke\.yml$|\.github\/actions\/setup-node-env\/action\.yml$|\.github\/actions\/setup-pnpm-store-cache\/action\.yml$)/;
 const CHANGED_SMOKE_SCOPE_RE =
   /^(Dockerfile$|\.npmrc$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|scripts\/install\.sh$|scripts\/test-install-sh-docker\.sh$|scripts\/docker\/|extensions\/[^/]+\/package\.json$|\.github\/workflows\/install-smoke\.yml$|\.github\/actions\/setup-node-env\/action\.yml$)/;
 
@@ -56,6 +57,10 @@ export function detectChangedScope(changedPaths) {
 
     if (INSTALL_SMOKE_WORKFLOW_SCOPE_RE.test(path)) {
       runChangedSmoke = true;
+    }
+
+    if (WINDOWS_NATIVE_SMOKE_WORKFLOW_SCOPE_RE.test(path)) {
+      runWindows = true;
     }
 
     if (NODE_SCOPE_RE.test(path)) {
