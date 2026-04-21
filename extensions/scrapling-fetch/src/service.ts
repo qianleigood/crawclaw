@@ -3,7 +3,10 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CrawClawPluginService } from "crawclaw/plugin-sdk/core";
-import { resolveManagedScraplingFetchRuntimePython } from "crawclaw/plugin-sdk/state-paths";
+import {
+  resolveManagedScraplingFetchRuntimePython,
+  resolveManagedScraplingFetchRuntimeVenvDir,
+} from "crawclaw/plugin-sdk/state-paths";
 import {
   buildScraplingFetchEndpoint,
   resolveScraplingFetchBaseUrl,
@@ -49,7 +52,10 @@ function resolveScriptPath(): string {
 }
 
 function resolveManagedVenvDir(stateDir: string): string {
-  return join(stateDir, "runtimes", "scrapling-fetch", "venv");
+  return resolveManagedScraplingFetchRuntimeVenvDir({
+    ...process.env,
+    CRAWCLAW_STATE_DIR: stateDir,
+  });
 }
 
 function resolveManagedPythonPath(stateDir: string): string {
