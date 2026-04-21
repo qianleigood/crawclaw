@@ -45,7 +45,7 @@ See the [full reference](/gateway/configuration-reference) for every available f
   <Tab title="CLI (one-liners)">
     ```bash
     crawclaw config get agents.defaults.workspace
-    crawclaw config set agents.defaults.heartbeat.every "2h"
+    crawclaw config set cron.enabled true
     crawclaw config unset plugins.entries.brave.config.webSearch.apiKey
     ```
   </Tab>
@@ -308,24 +308,18 @@ When validation fails:
 
   </Accordion>
 
-  <Accordion title="Set up heartbeat (periodic check-ins)">
+  <Accordion title="Replace legacy heartbeat with cron">
     ```json5
     {
-      agents: {
-        defaults: {
-          heartbeat: {
-            every: "30m",
-            target: "last",
-          },
-        },
+      cron: {
+        enabled: true,
       },
     }
     ```
 
-    - `every`: duration string (`30m`, `2h`). Set `0m` to disable.
-    - `target`: `last` | `none` | `<channel-id>` (for example `discord`, `matrix`, `telegram`, or `whatsapp`)
-    - `directPolicy`: `allow` (default) or `block` for DM-style heartbeat targets
-    - See [Heartbeat](/gateway/heartbeat) for the full guide.
+    Legacy periodic agent heartbeat is no longer configured by default. Use
+    [Scheduled Tasks](/automation/cron-jobs) for new periodic checks and
+    [Heartbeat](/gateway/heartbeat) for compatibility notes.
 
   </Accordion>
 
@@ -458,7 +452,7 @@ Most fields hot-apply without downtime. In `hybrid` mode, restart-required chang
 | ------------------- | -------------------------------------------------------------------- | --------------- |
 | Channels            | `channels.*`, `web` (WhatsApp) — all built-in and extension channels | No              |
 | Agent & models      | `agent`, `agents`, `models`, `routing`                               | No              |
-| Automation          | `hooks`, `cron`, `agent.heartbeat`                                   | No              |
+| Automation          | `hooks`, `cron`, legacy `agent.heartbeat`                            | No              |
 | Sessions & messages | `session`, `messages`                                                | No              |
 | Tools & media       | `tools`, `browser`, `skills`, `audio`, `talk`                        | No              |
 | UI & misc           | `ui`, `logging`, `identity`, `bindings`                              | No              |

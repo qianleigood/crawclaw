@@ -32,7 +32,7 @@ Inside an agent workspace, CrawClaw keeps several user-editable files, but the
 default runtime bootstrap injection is intentionally narrow:
 
 - `AGENTS.md` — injected for normal runs
-- `HEARTBEAT.md` — injected for heartbeat runs when lightweight context is enabled
+- `HEARTBEAT.md` — compatibility file for legacy heartbeat-style runs
 
 Other workspace files such as `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`,
 and `BOOTSTRAP.md` may still exist for workspace management, but they are not

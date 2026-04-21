@@ -39,10 +39,10 @@ cache-write size, directly lowering cost.
 
 CrawClaw auto-enables pruning for Anthropic profiles:
 
-| Profile type         | Pruning enabled | Heartbeat |
-| -------------------- | --------------- | --------- |
-| OAuth or setup-token | Yes             | 1 hour    |
-| API key              | Yes             | 30 min    |
+| Profile type         | Pruning enabled |
+| -------------------- | --------------- |
+| OAuth or setup-token | Yes             |
+| API key              | Yes             |
 
 If you set explicit values, CrawClaw does not override them.
 

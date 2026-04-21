@@ -39,9 +39,10 @@ git commit -m "Add agent workspace"
 - On session start, read today + yesterday if present.
 - Capture durable facts, preferences, and decisions; avoid secrets.
 
-## Heartbeats (optional)
+## Heartbeat compatibility
 
-- HEARTBEAT.md can hold a tiny checklist for heartbeat runs; keep it small.
+- HEARTBEAT.md is for older heartbeat-style setups. Keep it small if you keep it,
+  and use cron or hooks for new proactive checks.
 
 ## Customize
 

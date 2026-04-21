@@ -89,7 +89,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Gateway lock](/gateway/gateway-lock)
 - [Background process](/gateway/background-process)
 - [Health](/gateway/health)
-- [Heartbeat](/gateway/heartbeat)
+- [Heartbeat compatibility](/gateway/heartbeat)
 - [Doctor](/gateway/doctor)
 - [Logging](/gateway/logging)
 - [Sandboxing](/gateway/sandboxing)

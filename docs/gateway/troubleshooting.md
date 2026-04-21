@@ -210,9 +210,10 @@ Related:
 - [/channels/telegram](/channels/telegram)
 - [/channels/discord](/channels/discord)
 
-## Cron and heartbeat delivery
+## Cron and main-session wake delivery
 
-If cron or heartbeat did not run or did not deliver, verify scheduler state first, then delivery target.
+If cron or a queued main-session wake did not run or did not deliver, verify
+scheduler state first, then delivery target.
 
 ```bash
 crawclaw cron status
@@ -226,15 +227,14 @@ Look for:
 
 - Cron enabled and next wake present.
 - Job run history status (`ok`, `skipped`, `error`).
-- Heartbeat skip reasons (`quiet-hours`, `requests-in-flight`, `alerts-disabled`).
+- Wake skip reasons (`requests-in-flight`, `alerts-disabled`, `no-system-events`).
 
 Common signatures:
 
 - `cron: scheduler disabled; jobs will not run automatically` → cron disabled.
 - `cron: timer tick failed` → scheduler tick failed; check file/log/runtime errors.
-- `heartbeat skipped` with `reason=quiet-hours` → outside active hours window.
-- `heartbeat: unknown accountId` → invalid account id for heartbeat delivery target.
-- `heartbeat skipped` with `reason=dm-blocked` → heartbeat target resolved to a DM-style destination while `agents.defaults.heartbeat.directPolicy` (or per-agent override) is set to `block`.
+- `heartbeat: unknown accountId` → invalid legacy heartbeat delivery account id.
+- `heartbeat skipped` with `reason=dm-blocked` → legacy heartbeat delivery resolved to a DM-style destination while `agents.defaults.heartbeat.directPolicy` (or per-agent override) is set to `block`.
 
 Related:
 

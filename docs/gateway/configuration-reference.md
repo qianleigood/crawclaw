@@ -64,9 +64,10 @@ Use `channels.modelByChannel` to pin specific channel IDs to a model. Values acc
 }
 ```
 
-### Channel defaults and heartbeat
+### Channel defaults and legacy heartbeat visibility
 
-Use `channels.defaults` for shared group-policy and heartbeat behavior across providers:
+Use `channels.defaults` for shared group policy and legacy heartbeat visibility
+behavior across providers:
 
 ```json5
 {
@@ -84,9 +85,9 @@ Use `channels.defaults` for shared group-policy and heartbeat behavior across pr
 ```
 
 - `channels.defaults.groupPolicy`: fallback group policy when a provider-level `groupPolicy` is unset.
-- `channels.defaults.heartbeat.showOk`: include healthy channel statuses in heartbeat output.
-- `channels.defaults.heartbeat.showAlerts`: include degraded/error statuses in heartbeat output.
-- `channels.defaults.heartbeat.useIndicator`: render compact indicator-style heartbeat output.
+- `channels.defaults.heartbeat.showOk`: include healthy channel statuses in legacy heartbeat output.
+- `channels.defaults.heartbeat.showAlerts`: include degraded/error statuses in legacy heartbeat output.
+- `channels.defaults.heartbeat.useIndicator`: render compact indicator-style legacy heartbeat output.
 
 ### WhatsApp
 
@@ -1008,38 +1009,29 @@ Optional CLI backends for text-only fallback runs (no tool calls). Useful as a b
 
 ### `agents.defaults.heartbeat`
 
-Periodic heartbeat runs.
+Legacy heartbeat compatibility settings. The Gateway no longer schedules
+periodic agent heartbeat runs. Do not use this namespace for new scheduled
+automation; use [Scheduled Tasks](/automation/cron-jobs) instead.
 
 ```json5
 {
   agents: {
     defaults: {
       heartbeat: {
-        every: "30m", // 0m disables
-        model: "openai/gpt-5.2-mini",
-        includeReasoning: false,
-        lightContext: false, // default: false; true keeps only HEARTBEAT.md from workspace bootstrap files
-        isolatedSession: false, // default: false; true runs each heartbeat in a fresh session (no conversation history)
-        session: "main",
-        to: "+15555550123",
         directPolicy: "allow", // allow (default) | block
-        target: "none", // default: none | options: last | whatsapp | telegram | discord | ...
-        prompt: "Read HEARTBEAT.md if it exists...",
-        ackMaxChars: 300,
-        suppressToolErrorWarnings: false,
+        target: "none",
       },
     },
   },
 }
 ```
 
-- `every`: duration string (ms/s/m/h). Default: `30m` (API-key auth) or `1h` (OAuth auth). Set to `0m` to disable.
-- `suppressToolErrorWarnings`: when true, suppresses tool error warning payloads during heartbeat runs.
-- `directPolicy`: direct/DM delivery policy. `allow` (default) permits direct-target delivery. `block` suppresses direct-target delivery and emits `reason=dm-blocked`.
-- `lightContext`: when true, heartbeat runs use lightweight bootstrap context and keep only `HEARTBEAT.md` from workspace bootstrap files.
-- `isolatedSession`: when true, each heartbeat runs in a fresh session with no prior conversation history. Same isolation pattern as cron `sessionTarget: "isolated"`. Reduces per-heartbeat token cost from ~100K to ~2-5K tokens.
-- Per-agent: set `agents.list[].heartbeat`. When any agent defines `heartbeat`, **only those agents** run heartbeats.
-- Heartbeats run full agent turns — shorter intervals burn more tokens.
+- `every`, `prompt`, `model`, `lightContext`, `isolatedSession`, `includeReasoning`,
+  and `ackMaxChars` remain accepted for old configs but do not define the
+  recommended automation model.
+- `target`, `to`, `accountId`, and `directPolicy` remain compatibility delivery
+  settings for older wake/heartbeat paths.
+- For new periodic work, configure cron jobs instead of heartbeat cadence.
 
 ### `agents.defaults.compaction`
 

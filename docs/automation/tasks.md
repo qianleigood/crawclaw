@@ -3,7 +3,7 @@ summary: "Background task tracking for ACP runs, subagents, isolated cron jobs, 
 read_when:
   - Inspecting background work in progress or recently completed
   - Debugging delivery failures for detached agent runs
-  - Understanding how background runs relate to sessions, cron, and heartbeat
+  - Understanding how background runs relate to sessions, cron, and main-session wakes
 title: "Background Tasks"
 ---
 
@@ -14,18 +14,23 @@ title: "Background Tasks"
 Background tasks track work that runs **outside your main conversation session**:
 ACP runs, subagent spawns, isolated cron job executions, and CLI-initiated operations.
 
-Tasks do **not** replace sessions, cron jobs, or heartbeats — they are the **activity ledger** that records what detached work happened, when, and whether it succeeded.
+Tasks do **not** replace sessions, cron jobs, or event-driven main-session wakes
+
+- they are the **activity ledger** that records what detached work happened,
+  when, and whether it succeeded.
 
 <Note>
-Not every agent run creates a task. Heartbeat turns and normal interactive chat do not. All cron executions, ACP spawns, subagent spawns, and CLI agent commands do.
+Not every agent run creates a task. Normal interactive chat and event-driven
+main-session wakes do not. All cron executions, ACP spawns, subagent spawns, and
+CLI agent commands do.
 </Note>
 
 ## TL;DR
 
-- Tasks are **records**, not schedulers — cron and heartbeat decide _when_ work runs, tasks track _what happened_.
-- ACP, subagents, all cron jobs, and CLI operations create tasks. Heartbeat turns do not.
+- Tasks are **records**, not schedulers - cron, hooks, and system events decide _when_ work runs, tasks track _what happened_.
+- ACP, subagents, all cron jobs, and CLI operations create tasks. Normal main-session wakes do not.
 - Each task moves through `queued → running → terminal` (succeeded, failed, timed_out, cancelled, or lost).
-- Completion notifications are delivered directly to a channel or queued for the next heartbeat.
+- Completion notifications are delivered directly to a channel or queued for the next main-session wake.
 - `crawclaw tasks list` shows all tasks; `crawclaw tasks audit` surfaces issues.
 - Terminal records are kept for 7 days, then automatically pruned.
 
@@ -65,7 +70,7 @@ Main-session cron tasks use `silent` notify policy by default — they create re
 
 **What does not create tasks:**
 
-- Heartbeat turns — main-session; see [Heartbeat](/gateway/heartbeat)
+- Normal main-session wakes; see [Heartbeat](/gateway/heartbeat) for legacy compatibility notes
 - Normal interactive chat turns
 - Direct `/command` responses
 
@@ -101,10 +106,11 @@ When a task reaches a terminal state, CrawClaw notifies you. There are two deliv
 
 **Direct delivery** — if the task has a channel target (the `requesterOrigin`), the completion message goes straight to that channel (Telegram, Discord, Slack, etc.).
 
-**Session-queued delivery** — if direct delivery fails or no origin is set, the update is queued as a system event in the requester's session and surfaces on the next heartbeat.
+**Session-queued delivery** — if direct delivery fails or no origin is set, the update is queued as a system event in the requester's session and surfaces on the next main-session wake.
 
 <Tip>
-Task completion triggers an immediate heartbeat wake so you see the result quickly — you do not have to wait for the next scheduled heartbeat tick.
+Task completion triggers an immediate main-session wake so you see the result
+quickly. It does not wait for a legacy periodic heartbeat tick.
 </Tip>
 
 ### Notification policies
@@ -236,11 +242,12 @@ A cron job **definition** lives in `~/.crawclaw/cron/jobs.json`. **Every** cron 
 
 See [Cron Jobs](/automation/cron-jobs).
 
-### Tasks and heartbeat
+### Tasks and main-session wakes
 
-Heartbeat runs are main-session turns — they do not create task records. When a task completes, it can trigger a heartbeat wake so you see the result promptly.
+Main-session wakes do not create task records. When a task completes, it can
+trigger a wake so you see the result promptly.
 
-See [Heartbeat](/gateway/heartbeat).
+See [Heartbeat](/gateway/heartbeat) for legacy compatibility notes.
 
 ### Tasks and sessions
 
@@ -255,5 +262,5 @@ A task's `runId` links to the agent run doing the work. Agent lifecycle events (
 - [Automation & Tasks](/automation) — all automation mechanisms at a glance
 - [Task Flow](/automation/taskflow) — flow orchestration above tasks
 - [Scheduled Tasks](/automation/cron-jobs) — scheduling background work
-- [Heartbeat](/gateway/heartbeat) — periodic main-session turns
+- [Heartbeat](/gateway/heartbeat) — legacy heartbeat compatibility notes
 - [CLI: Tasks](/cli/index#tasks) — CLI command reference

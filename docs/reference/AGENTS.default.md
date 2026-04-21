@@ -93,7 +93,7 @@ git commit -m "Add Clawd workspace"
 
 - Runs WhatsApp gateway + Pi coding agent so the assistant can read/write chats, fetch context, and run skills via the host Mac.
 - The local node/runtime host manages permissions (screen recording, notifications, microphone) and exposes the `crawclaw` CLI.
-- Direct chats collapse into the agent's `main` session by default; groups stay isolated as `agent:<agentId>:<channel>:group:<id>` (rooms/channels: `agent:<agentId>:<channel>:channel:<id>`); heartbeats keep background tasks alive.
+- Direct chats collapse into the agent's `main` session by default; groups stay isolated as `agent:<agentId>:<channel>:group:<id>` (rooms/channels: `agent:<agentId>:<channel>:channel:<id>`); background tasks can queue main-session wake events when they finish.
 
 ## Core Skills (enable in Settings → Skills)
 
@@ -119,7 +119,7 @@ git commit -m "Add Clawd workspace"
 
 - Prefer the `crawclaw` CLI for scripting; mac app handles permissions.
 - Run installs from the Skills tab; it hides the button if a binary is already present.
-- Keep heartbeats enabled so the assistant can schedule reminders, monitor inboxes, and trigger camera captures.
+- Use cron jobs and hooks for reminders, inbox monitoring, and camera capture automations.
 - Canvas UI runs full-screen with native overlays. Avoid placing critical controls in the top-left/top-right/bottom edges; add explicit gutters in the layout and don’t rely on safe-area insets.
 - For browser-driven verification, use `crawclaw browser` (tabs/status/screenshot) with the CrawClaw-managed Chrome profile.
 - For DOM inspection, use `crawclaw browser eval|query|dom|snapshot` (and `--json`/`--out` when you need machine output).

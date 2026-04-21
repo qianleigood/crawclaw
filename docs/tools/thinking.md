@@ -84,10 +84,11 @@ title: "Thinking Levels"
 
 - Elevated mode docs live in [Elevated mode](/tools/elevated).
 
-## Heartbeats
+## Legacy heartbeat compatibility
 
-- Heartbeat probe body is the configured heartbeat prompt (default: `Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`). Inline directives in a heartbeat message apply as usual (but avoid changing session defaults from heartbeats).
-- Heartbeat delivery defaults to the final payload only. To also send the separate `Reasoning:` message (when available), set `agents.defaults.heartbeat.includeReasoning: true` or per-agent `agents.list[].heartbeat.includeReasoning: true`.
+Legacy heartbeat-style runs can still use the configured heartbeat prompt and
+reasoning delivery options for compatibility. New scheduled automation should
+use [Scheduled Tasks](/automation/cron-jobs) instead of heartbeat prompts.
 
 ## Web chat UI
 

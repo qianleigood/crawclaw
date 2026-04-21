@@ -221,11 +221,11 @@ export type AgentDefaultsConfig = {
   typingIntervalSeconds?: number;
   /** Typing indicator start mode (never|instant|thinking|message). */
   typingMode?: TypingMode;
-  /** Periodic background heartbeat runs. */
+  /** Legacy heartbeat compatibility settings. Prefer cron or hooks for new proactive work. */
   heartbeat?: {
-    /** Heartbeat interval (duration string, default unit: minutes; default: 30m). */
+    /** Legacy heartbeat interval (duration string, default unit: minutes). No default is added. */
     every?: string;
-    /** Optional active-hours window (local time); heartbeats run only inside this window. */
+    /** Optional active-hours window (local time) for legacy heartbeat compatibility runs. */
     activeHours?: {
       /** Start time (24h, HH:MM). Inclusive. */
       start?: string;
@@ -234,9 +234,9 @@ export type AgentDefaultsConfig = {
       /** Timezone for the window ("user", "local", or IANA TZ id). Default: "user". */
       timezone?: string;
     };
-    /** Heartbeat model override (provider/model). */
+    /** Legacy heartbeat model override (provider/model). */
     model?: string;
-    /** Session key for heartbeat runs ("main" or explicit session key). */
+    /** Session key for legacy heartbeat compatibility runs ("main" or explicit session key). */
     session?: string;
     /** Delivery target ("last", "none", or a channel id). */
     target?: "last" | "none" | ChannelId;
@@ -246,29 +246,29 @@ export type AgentDefaultsConfig = {
     to?: string;
     /** Optional account id for multi-account channels. */
     accountId?: string;
-    /** Override the heartbeat prompt body (default: "Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."). */
+    /** Override the legacy heartbeat prompt body. */
     prompt?: string;
-    /** Max chars allowed after HEARTBEAT_OK before delivery (default: 30). */
+    /** Max chars allowed after HEARTBEAT_OK before delivery in legacy heartbeat compatibility runs. */
     ackMaxChars?: number;
-    /** Suppress tool error warning payloads during heartbeat runs. */
+    /** Suppress tool error warning payloads during legacy heartbeat compatibility runs. */
     suppressToolErrorWarnings?: boolean;
     /**
-     * If true, run heartbeat turns with lightweight bootstrap context.
+     * If true, run legacy heartbeat compatibility turns with lightweight bootstrap context.
      * Lightweight mode keeps only HEARTBEAT.md from workspace bootstrap files.
      */
     lightContext?: boolean;
     /**
-     * If true, run heartbeat turns in an isolated session with no prior
-     * conversation history. The heartbeat only sees its bootstrap context
+     * If true, run legacy heartbeat compatibility turns in an isolated session
+     * with no prior conversation history. The run only sees its bootstrap context
      * (HEARTBEAT.md when lightContext is also enabled). Dramatically reduces
      * per-heartbeat token cost by avoiding the full session transcript.
      */
     isolatedSession?: boolean;
     /**
-     * When enabled, deliver the model's reasoning payload for heartbeat runs (when available)
+     * When enabled, deliver the model's reasoning payload for legacy heartbeat runs (when available)
      * as a separate message prefixed with `Reasoning:` (same as `/reasoning on`).
      *
-     * Default: false (only the final heartbeat payload is delivered).
+     * Default: false (only the final payload is delivered).
      */
     includeReasoning?: boolean;
   };

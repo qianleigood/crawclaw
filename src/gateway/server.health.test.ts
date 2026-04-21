@@ -105,21 +105,6 @@ describe("gateway server health/presence", () => {
     expect(lastPayload?.status).toBe("sent");
     expect(lastPayload?.ts).toBe(evt.payload?.ts);
 
-    ws.send(
-      JSON.stringify({
-        type: "req",
-        id: "hb-toggle-off",
-        method: "set-heartbeats",
-        params: { enabled: false },
-      }),
-    );
-    const toggle = await onceMessage<GatewayFrame>(
-      ws,
-      (o) => o.type === "res" && o.id === "hb-toggle-off",
-    );
-    expect(toggle.ok).toBe(true);
-    expect((toggle.payload as { enabled?: boolean } | undefined)?.enabled).toBe(false);
-
     ws.close();
   });
 

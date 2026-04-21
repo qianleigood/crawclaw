@@ -15,14 +15,11 @@ export type HeartbeatWakeHandler = (opts: {
   sessionKey?: string;
 }) => Promise<HeartbeatRunResult>;
 
-let heartbeatsEnabled = true;
-
-export function setHeartbeatsEnabled(enabled: boolean) {
-  heartbeatsEnabled = enabled;
-}
-
 export function areHeartbeatsEnabled(): boolean {
-  return heartbeatsEnabled;
+  // Compatibility hook for callers that still gate legacy relay behavior on
+  // heartbeat availability. Periodic legacy heartbeats no longer have a runtime
+  // enable/disable toggle; explicit main-session wakes remain available.
+  return true;
 }
 
 type WakeTimerKind = "normal" | "retry";

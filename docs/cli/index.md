@@ -203,7 +203,7 @@ crawclaw [--dev] [--profile <name>] <command>
   logs
   system
     event
-    heartbeat last|enable|disable
+    heartbeat last
     presence
   models
     list
@@ -1129,7 +1129,7 @@ Options:
 
 ### `system event`
 
-Enqueue a system event and optionally trigger a heartbeat (Gateway RPC).
+Enqueue a system event and optionally trigger a main-session wake (Gateway RPC).
 
 Required:
 
@@ -1141,9 +1141,9 @@ Options:
 - `--json`
 - `--url`, `--token`, `--timeout`, `--expect-final`
 
-### `system heartbeat last|enable|disable`
+### `system heartbeat last`
 
-Heartbeat controls (Gateway RPC).
+Heartbeat diagnostic inspection (Gateway RPC).
 
 Options:
 

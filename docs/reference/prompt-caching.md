@@ -4,7 +4,7 @@ summary: "Prompt caching knobs, merge order, provider behavior, and tuning patte
 read_when:
   - You want to reduce prompt token costs with cache retention
   - You need per-agent cache behavior in multi-agent setups
-  - You are tuning heartbeat and cache-ttl pruning together
+  - You are tuning cache-ttl pruning and scheduled work together
 ---
 
 # Prompt caching
@@ -81,18 +81,12 @@ agents:
 
 See [Session Pruning](/concepts/session-pruning) for full behavior.
 
-### Heartbeat keep-warm
+### Avoid synthetic keep-warm turns
 
-Heartbeat can keep cache windows warm and reduce repeated cache writes after idle gaps.
-
-```yaml
-agents:
-  defaults:
-    heartbeat:
-      every: "55m"
-```
-
-Per-agent heartbeat is supported at `agents.list[].heartbeat`.
+Legacy periodic heartbeat is no longer the recommended way to keep cache
+windows warm after idle gaps. Use a cron job only when the scheduled work has a
+real operational purpose; do not add synthetic model turns just for cache
+retention.
 
 ## Provider behavior
 
@@ -132,8 +126,8 @@ agents:
   list:
     - id: "research"
       default: true
-      heartbeat:
-        every: "55m"
+      params:
+        cacheRetention: "long"
     - id: "alerts"
       params:
         cacheRetention: "none"
@@ -143,7 +137,8 @@ agents:
 
 - Set baseline `cacheRetention: "short"`.
 - Enable `contextPruning.mode: "cache-ttl"`.
-- Keep heartbeat below your TTL only for agents that benefit from warm caches.
+- Use cron only for scheduled work that has real operational value. Do not add
+  synthetic legacy heartbeat turns just to keep cache windows warm.
 
 ## Cache diagnostics
 

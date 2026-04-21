@@ -18,7 +18,7 @@ crawclaw config file
 crawclaw config schema
 crawclaw config get browser.executablePath
 crawclaw config set browser.executablePath "/usr/bin/google-chrome"
-crawclaw config set agents.defaults.heartbeat.every "2h"
+crawclaw config set cron.enabled true
 crawclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 crawclaw config set channels.discord.token --ref-provider default --ref-source env --ref-id DISCORD_BOT_TOKEN
 crawclaw config set secrets.providers.vaultfile --provider-source file --provider-path /etc/crawclaw/secrets.json --provider-mode json
@@ -64,7 +64,7 @@ Values are parsed as JSON5 when possible; otherwise they are treated as strings.
 Use `--strict-json` to require JSON5 parsing. `--json` remains supported as a legacy alias.
 
 ```bash
-crawclaw config set agents.defaults.heartbeat.every "0m"
+crawclaw config set cron.enabled true
 crawclaw config set gateway.port 19001 --strict-json
 crawclaw config set channels.whatsapp.groups '["*"]' --strict-json
 ```

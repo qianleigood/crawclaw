@@ -22,7 +22,7 @@ Start conservative:
 
 - Always set `channels.whatsapp.allowFrom` (never run open-to-the-world on your personal Mac).
 - Use a dedicated WhatsApp number for the assistant.
-- Heartbeats now default to every 30 minutes. Disable until you trust the setup by setting `agents.defaults.heartbeat.every: "0m"`.
+- Add proactive checks with cron only after you trust the setup and delivery target.
 
 ## Prerequisites
 
@@ -73,14 +73,14 @@ CrawClaw reads operating instructions and “memory” from its workspace direct
 
 By default, CrawClaw uses `~/.crawclaw/workspace` as the agent workspace, and
 will create starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`,
-`USER.md`, and `HEARTBEAT.md` automatically on setup/first agent run.
+`USER.md`, and compatibility `HEARTBEAT.md` automatically on setup/first agent run.
 `BOOTSTRAP.md` is only created when the workspace is brand new (it should not
 come back after you delete it). `MEMORY.md` is optional and not auto-created.
 
 Default runtime bootstrap injection is intentionally narrow:
 
 - normal runs inject `AGENTS.md`
-- lightweight heartbeat runs inject `HEARTBEAT.md`
+- legacy heartbeat compatibility runs can inject `HEARTBEAT.md`
 - `MEMORY.md` and `memory/*.md` stay on-demand through memory tools/workflows
   rather than auto-injected bootstrap context
 
@@ -115,7 +115,7 @@ CrawClaw defaults to a good assistant setup, but you’ll usually want to tune:
 
 - persona/instructions in `SOUL.md`
 - thinking defaults (if desired)
-- heartbeats (once you trust it)
+- cron jobs or hooks for proactive checks (once you trust delivery)
 
 Example:
 
@@ -128,8 +128,6 @@ Example:
       workspace: "~/.crawclaw/workspace",
       thinkingDefault: "high",
       timeoutSeconds: 1800,
-      // Start with 0; enable later.
-      heartbeat: { every: "0m" },
     },
   },
   channels: {
@@ -164,23 +162,16 @@ Example:
 - `/new` starts a fresh session for that chat (configurable via `resetTriggers`). If sent alone, the agent replies with a short hello to confirm the reset.
 - `/compact [instructions]` compacts the session context and reports the remaining context budget.
 
-## Heartbeats (proactive mode)
+## Proactive checks
 
-By default, CrawClaw runs a heartbeat every 30 minutes with the prompt:
-`Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`
-Set `agents.defaults.heartbeat.every: "0m"` to disable.
+Legacy periodic agent heartbeat is no longer configured by default. For
+proactive checks such as inbox review, calendar scans, or daily reports, create
+a cron job instead. Use a main-session cron job when the work needs conversation
+context, or an isolated cron job when you want a standalone run with its own task
+record.
 
-- If `HEARTBEAT.md` exists but is effectively empty (only blank lines and markdown headers like `# Heading`), CrawClaw skips the heartbeat run to save API calls.
-- If the file is missing, the heartbeat still runs and the model decides what to do.
-- If the agent replies with `HEARTBEAT_OK` (optionally with short padding; see `agents.defaults.heartbeat.ackMaxChars`), CrawClaw suppresses outbound delivery for that heartbeat.
-- By default, heartbeat delivery to DM-style `user:<id>` targets is allowed. Set `agents.defaults.heartbeat.directPolicy: "block"` to suppress direct-target delivery while keeping heartbeat runs active.
-- Heartbeats run full agent turns — shorter intervals burn more tokens.
-
-```json5
-{
-  agents: { defaults: { heartbeat: { every: "30m" } } },
-}
-```
+See [Scheduled Tasks](/automation/cron-jobs) and [Heartbeat](/gateway/heartbeat)
+for migration notes.
 
 ## Media in and out
 

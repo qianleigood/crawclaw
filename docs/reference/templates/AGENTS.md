@@ -47,6 +47,6 @@ put rules here that the agent would reliably get wrong without them.
 
 ## Heartbeat
 
-- `HEARTBEAT.md` is for periodic checks only.
-- Keep it short.
-- Use heartbeat for lightweight recurring checks; use cron when timing or isolation matters.
+- `HEARTBEAT.md` is a compatibility file for older heartbeat-style setups.
+- Keep it short if you keep the file.
+- Use cron or hooks for new proactive checks.

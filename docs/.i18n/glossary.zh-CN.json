@@ -376,15 +376,27 @@
     "target": "Gateway 配置"
   },
   {
+    "source": "Heartbeat compatibility",
+    "target": "Heartbeat 兼容性"
+  },
+  {
+    "source": "Scheduled Tasks",
+    "target": "定时任务"
+  },
+  {
+    "source": "System CLI",
+    "target": "系统 CLI"
+  },
+  {
+    "source": "WhatsApp",
+    "target": "WhatsApp"
+  },
+  {
+    "source": "/gateway/troubleshooting#cron-and-main-session-wake-delivery",
+    "target": "/gateway/troubleshooting#cron-and-main-session-wake-delivery"
+  },
+  {
     "source": "Security",
     "target": "安全"
-  },
-  {
-    "source": "Legacy Heartbeat Removal Plan",
-    "target": "Legacy heartbeat 移除方案"
-  },
-  {
-    "source": "Legacy heartbeat removal plan",
-    "target": "Legacy heartbeat 移除方案"
   }
 ]

@@ -328,11 +328,12 @@ crawclaw doctor
 
 - Cron without `--tz` uses the gateway host timezone.
 - `at` schedules without timezone are treated as UTC.
-- Heartbeat `activeHours` uses configured timezone resolution.
+- Legacy heartbeat `activeHours` is not used for new scheduled automation. Cron
+  schedules use the job timezone or the gateway host timezone.
 
 ## Related
 
 - [Automation & Tasks](/automation) — all automation mechanisms at a glance
 - [Background Tasks](/automation/tasks) — task ledger for cron executions
-- [Heartbeat](/gateway/heartbeat) — periodic main-session turns
+- [Heartbeat](/gateway/heartbeat) — legacy heartbeat compatibility notes
 - [Timezone](/concepts/timezone) — timezone configuration

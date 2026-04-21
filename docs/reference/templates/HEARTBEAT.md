@@ -1,14 +1,15 @@
 ---
 title: "HEARTBEAT.md Template"
-summary: "Workspace template for HEARTBEAT.md"
+summary: "Compatibility workspace template for HEARTBEAT.md"
 read_when:
   - Bootstrapping a workspace manually
 ---
 
 # HEARTBEAT.md Template
 
-```markdown
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
+`HEARTBEAT.md` is kept for compatibility with older heartbeat-style setups.
+Use cron jobs or hooks for new proactive checks.
 
-# Add tasks below when you want the agent to check something periodically.
+```markdown
+# Optional compatibility notes only.
 ```

@@ -10,7 +10,6 @@ import {
   resolveAcpThreadSessionDetailLines,
 } from "../acp/runtime/session-identifiers.js";
 import type { AcpRuntimeSessionMode } from "../acp/runtime/types.js";
-import { DEFAULT_HEARTBEAT_EVERY } from "../auto-reply/heartbeat.js";
 import {
   resolveThreadBindingIntroText,
   resolveThreadBindingThreadName,
@@ -210,8 +209,7 @@ function isHeartbeatEnabledForSessionAgent(params: {
 
   const heartbeatEvery =
     resolveAgentConfig(params.cfg, requesterAgentId)?.heartbeat?.every ??
-    params.cfg.agents?.defaults?.heartbeat?.every ??
-    DEFAULT_HEARTBEAT_EVERY;
+    params.cfg.agents?.defaults?.heartbeat?.every;
   const trimmedEvery = typeof heartbeatEvery === "string" ? heartbeatEvery.trim() : "";
   if (!trimmedEvery) {
     return false;
@@ -560,8 +558,9 @@ function resolveAcpSpawnStreamPlan(params: {
   requester: AcpSpawnRequesterState;
 }): AcpSpawnStreamPlan {
   // For mode=run without thread binding, implicitly route output to parent
-  // only for spawned subagent orchestrator sessions with heartbeat enabled
-  // AND a session-local heartbeat delivery route (target=last + usable last route).
+  // only for spawned subagent orchestrator sessions with explicit legacy
+  // heartbeat compatibility enabled AND a session-local delivery route
+  // (target=last + usable last route).
   // Skip requester sessions that are thread-bound (or carrying thread context)
   // so user-facing threads do not receive unsolicited ACP progress chatter
   // unless streamTo="parent" is explicitly requested. Use resolved spawnMode
