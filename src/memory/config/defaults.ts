@@ -19,7 +19,6 @@ export const DEFAULT_CONFIG: MemoryRuntimeConfig = {
     enabled: false,
     maxJobAttempts: 3,
     schedulerPollIntervalMs: 15_000,
-    extractionJobTimeoutMs: 120_000,
     stages: {
       ingest: true,
       distill: true,
@@ -72,6 +71,15 @@ export const DEFAULT_CONFIG: MemoryRuntimeConfig = {
     minSessions: 5,
     scanThrottleMs: 10 * 60_000,
     lockStaleAfterMs: 60 * 60_000,
+    transcriptFallback: {
+      enabled: true,
+      minSignals: 2,
+      staleSummaryMs: 6 * 60 * 60_000,
+      maxSessions: 4,
+      maxMatchesPerSession: 2,
+      maxTotalBytes: 12_000,
+      maxExcerptChars: 900,
+    },
   },
   sessionSummary: {
     enabled: true,

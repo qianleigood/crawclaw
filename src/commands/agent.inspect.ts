@@ -497,6 +497,17 @@ async function enrichInspectionWithDream(
       dream: {
         scopeKey: scope.scopeKey,
         enabled: memoryConfig.dreaming.enabled,
+        ...(memoryConfig.dreaming.transcriptFallback
+          ? {
+              transcriptFallback: {
+                enabled: memoryConfig.dreaming.transcriptFallback.enabled,
+                maxSessions: memoryConfig.dreaming.transcriptFallback.maxSessions,
+                maxMatchesPerSession: memoryConfig.dreaming.transcriptFallback.maxMatchesPerSession,
+                maxTotalBytes: memoryConfig.dreaming.transcriptFallback.maxTotalBytes,
+                maxExcerptChars: memoryConfig.dreaming.transcriptFallback.maxExcerptChars,
+              },
+            }
+          : {}),
         ...resolveDreamClosedLoopStatus({
           config: memoryConfig.dreaming,
           scopeKey: scope.scopeKey,
@@ -675,6 +686,16 @@ export function formatAgentInspection(snapshot: AgentInspectionSnapshot): string
       lines.push(
         `  Closed loop: ${snapshot.dream.closedLoopActive ? "active" : "inactive"}${
           snapshot.dream.closedLoopReason ? ` (${snapshot.dream.closedLoopReason})` : ""
+        }`,
+      );
+    }
+    if (snapshot.dream.transcriptFallback) {
+      const fallback = snapshot.dream.transcriptFallback;
+      lines.push(
+        `  Transcript fallback: ${fallback.enabled ? "enabled" : "disabled"}${
+          fallback.maxSessions
+            ? ` (maxSessions=${fallback.maxSessions}, maxMatchesPerSession=${fallback.maxMatchesPerSession ?? "?"})`
+            : ""
         }`,
       );
     }

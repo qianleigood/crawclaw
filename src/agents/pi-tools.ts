@@ -94,6 +94,13 @@ function resolveSessionSpawnContext(params: {
     channel?: string | null;
     userId?: string | null;
   };
+  specialTranscriptSearch?: {
+    sessionIds?: string[];
+    maxSessions?: number;
+    maxMatchesPerSession?: number;
+    maxTotalBytes?: number;
+    maxExcerptChars?: number;
+  };
   specialSessionSummaryTarget?: {
     agentId: string;
     sessionId: string;
@@ -414,6 +421,14 @@ export function createCrawClawCodingTools(options?: {
     channel?: string | null;
     userId?: string | null;
   };
+  /** Dream-only bounded transcript search scope and limits. */
+  specialTranscriptSearch?: {
+    sessionIds?: string[];
+    maxSessions?: number;
+    maxMatchesPerSession?: number;
+    maxTotalBytes?: number;
+    maxExcerptChars?: number;
+  };
   /** Explicit session-summary target for embedded fork runs. */
   specialSessionSummaryTarget?: {
     agentId: string;
@@ -680,6 +695,8 @@ export function createCrawClawCodingTools(options?: {
       agentChannel: resolveGatewayMessageChannel(options?.messageProvider),
       durableMemoryChannel: normalizeMessageProvider(options?.messageProvider),
       durableMemoryScope: sessionSpawnContext.durableMemoryScope,
+      specialAgentSpawnSource: sessionSpawnContext.spawnSource,
+      specialTranscriptSearch: options?.specialTranscriptSearch,
       agentAccountId: options?.agentAccountId,
       agentTo: options?.messageTo,
       agentThreadId: options?.messageThreadId,

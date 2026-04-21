@@ -142,6 +142,13 @@ export type AgentInspectionSnapshot = {
   dream?: {
     scopeKey: string;
     enabled?: boolean;
+    transcriptFallback?: {
+      enabled: boolean;
+      maxSessions?: number;
+      maxMatchesPerSession?: number;
+      maxTotalBytes?: number;
+      maxExcerptChars?: number;
+    };
     closedLoopActive?: boolean;
     closedLoopReason?: string;
     state?: {

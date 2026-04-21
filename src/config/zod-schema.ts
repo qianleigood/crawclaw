@@ -132,6 +132,18 @@ const MemoryDreamingSchema = z
     minSessions: z.number().int().positive().optional(),
     scanThrottleMs: z.number().int().nonnegative().optional(),
     lockStaleAfterMs: z.number().int().positive().optional(),
+    transcriptFallback: z
+      .object({
+        enabled: z.boolean().optional(),
+        minSignals: z.number().int().nonnegative().optional(),
+        staleSummaryMs: z.number().int().nonnegative().optional(),
+        maxSessions: z.number().int().positive().optional(),
+        maxMatchesPerSession: z.number().int().positive().optional(),
+        maxTotalBytes: z.number().int().positive().optional(),
+        maxExcerptChars: z.number().int().positive().optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 

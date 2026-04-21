@@ -23,6 +23,7 @@ import {
   createMemoryNoteDeleteTool,
   createMemoryNoteEditTool,
   createMemoryNoteReadTool,
+  createMemoryTranscriptSearchTool,
   createMemoryNoteWriteTool,
 } from "./tools/memory-file-tools.js";
 import { createMessageTool } from "./tools/message-tool.js";
@@ -102,6 +103,16 @@ export function createCrawClawTools(
       agentId?: string | null;
       channel?: string | null;
       userId?: string | null;
+    };
+    /** Explicit special-agent spawn source for embedded background sessions. */
+    specialAgentSpawnSource?: string;
+    /** Dream-only bounded transcript search scope and limits. */
+    specialTranscriptSearch?: {
+      sessionIds?: string[];
+      maxSessions?: number;
+      maxMatchesPerSession?: number;
+      maxTotalBytes?: number;
+      maxExcerptChars?: number;
     };
     /** Whether the requesting sender is an owner. */
     senderIsOwner?: boolean;
@@ -209,6 +220,17 @@ export function createCrawClawTools(
     channel: options?.durableMemoryChannel ?? options?.agentChannel,
     requesterSenderId: options?.requesterSenderId ?? undefined,
   });
+  const memoryTranscriptSearchTool =
+    options?.specialAgentSpawnSource === "dream"
+      ? createMemoryTranscriptSearchTool({
+          scope: options?.durableMemoryScope,
+          agentId: sessionAgentId,
+          channel: options?.durableMemoryChannel ?? options?.agentChannel,
+          requesterSenderId: options?.requesterSenderId ?? undefined,
+          config: resolvedConfig,
+          transcriptSearch: options?.specialTranscriptSearch,
+        })
+      : null;
   const messageTool = options?.disableMessageTool
     ? null
     : createMessageTool({
@@ -255,6 +277,7 @@ export function createCrawClawTools(
     ...(memoryNoteWriteTool ? [memoryNoteWriteTool] : []),
     ...(memoryNoteEditTool ? [memoryNoteEditTool] : []),
     ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
+    ...(memoryTranscriptSearchTool ? [memoryTranscriptSearchTool] : []),
     ...(knowledgeWriteTool ? [knowledgeWriteTool] : []),
     createAgentsListTool({
       agentSessionKey: options?.agentSessionKey,

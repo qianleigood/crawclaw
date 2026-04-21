@@ -60,7 +60,6 @@ function createMemoryRuntimeConfig(): MemoryRuntimeConfig {
       enabled: false,
       maxJobAttempts: 3,
       schedulerPollIntervalMs: 15_000,
-      extractionJobTimeoutMs: 120_000,
       stages: {
         ingest: true,
         distill: true,

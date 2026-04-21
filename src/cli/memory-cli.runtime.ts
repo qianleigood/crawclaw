@@ -251,6 +251,12 @@ export async function runMemoryDreamStatus(opts: MemoryCommandOptions) {
     defaultRuntime.log(`${theme.muted("minHours:")} ${memoryConfig.dreaming.minHours}`);
     defaultRuntime.log(`${theme.muted("minSessions:")} ${memoryConfig.dreaming.minSessions}`);
     defaultRuntime.log(`${theme.muted("scanThrottleMs:")} ${memoryConfig.dreaming.scanThrottleMs}`);
+    const transcriptFallback = memoryConfig.dreaming.transcriptFallback;
+    if (transcriptFallback) {
+      defaultRuntime.log(
+        `${theme.muted("Transcript fallback:")} ${transcriptFallback.enabled ? "enabled" : "disabled"} (maxSessions=${transcriptFallback.maxSessions}, maxMatchesPerSession=${transcriptFallback.maxMatchesPerSession})`,
+      );
+    }
     if (scope.scopeKey) {
       defaultRuntime.log(`${theme.muted("Scope:")} ${scope.scopeKey}`);
     }
@@ -366,6 +372,14 @@ export async function runMemoryDreamRun(opts: MemoryCommandOptions) {
       defaultRuntime.log(`${theme.muted("Scope:")} ${result.preview.scopeKey}`);
       defaultRuntime.log(`${theme.muted("Recent sessions:")} ${result.preview.recentSessionCount}`);
       defaultRuntime.log(`${theme.muted("Recent signals:")} ${result.preview.recentSignalCount}`);
+      defaultRuntime.log(
+        `${theme.muted("Transcript fallback:")} ${result.preview.transcriptFallback.enabled ? "available" : "unavailable"}`,
+      );
+      if (result.preview.transcriptFallback.reasons.length > 0) {
+        defaultRuntime.log(
+          `${theme.muted("Fallback reasons:")} ${result.preview.transcriptFallback.reasons.join(", ")}`,
+        );
+      }
       if (result.preview.recentSessionIds.length > 0) {
         defaultRuntime.log(theme.heading("Session IDs"));
         for (const sessionId of result.preview.recentSessionIds) {

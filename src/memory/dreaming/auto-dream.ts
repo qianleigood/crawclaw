@@ -1,5 +1,6 @@
 import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { DEFAULT_CONFIG } from "../config/defaults.ts";
 import { resolveDurableMemoryScope, type DurableMemoryScope } from "../durable/scope.ts";
 import { scanDurableMemoryScopeEntries } from "../durable/store.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
@@ -11,6 +12,7 @@ import type {
   DreamRunResult,
   DreamSignal,
   DreamSessionSummary,
+  DreamTranscriptFallbackPlan,
 } from "./agent-runner.ts";
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
@@ -54,6 +56,7 @@ type AutoDreamPreview = {
   recentSignalCount: number;
   recentSignals: DreamSignal[];
   sessionSummaries: DreamSessionSummary[];
+  transcriptFallback: DreamTranscriptFallbackPlan;
 };
 
 type AutoDreamSchedulerParams = {
@@ -68,6 +71,55 @@ function clampInt(value: number | undefined, fallback: number, minimum = 1): num
     return fallback;
   }
   return Math.max(minimum, Math.floor(value));
+}
+
+function resolveTranscriptFallbackConfig(config: DreamingConfig) {
+  return config.transcriptFallback ?? DEFAULT_CONFIG.dreaming.transcriptFallback!;
+}
+
+function buildTranscriptFallbackPlan(params: {
+  config: DreamingConfig;
+  now: number;
+  sessionIds: string[];
+  summaries: DreamSessionSummary[];
+  signals: DreamSignal[];
+}): DreamTranscriptFallbackPlan {
+  const config = resolveTranscriptFallbackConfig(params.config);
+  const limits = {
+    maxSessions: clampInt(config.maxSessions, 4),
+    maxMatchesPerSession: clampInt(config.maxMatchesPerSession, 2),
+    maxTotalBytes: clampInt(config.maxTotalBytes, 12_000, 512),
+    maxExcerptChars: clampInt(config.maxExcerptChars, 900, 80),
+  };
+  if (!config.enabled) {
+    return { enabled: false, reasons: [], sessionIds: [], limits };
+  }
+  const summaryBySession = new Map(params.summaries.map((summary) => [summary.sessionId, summary]));
+  const reasons = new Set<string>();
+  if (params.sessionIds.some((sessionId) => !summaryBySession.has(sessionId))) {
+    reasons.add("missing_session_summary");
+  }
+  const staleSummaryMs = Math.max(0, config.staleSummaryMs);
+  if (
+    staleSummaryMs > 0 &&
+    params.summaries.some(
+      (summary) => summary.updatedAt <= 0 || params.now - summary.updatedAt > staleSummaryMs,
+    )
+  ) {
+    reasons.add("stale_session_summary");
+  }
+  if (params.signals.length < Math.max(0, config.minSignals)) {
+    reasons.add("weak_structured_signals");
+  }
+  if (reasons.size === 0) {
+    return { enabled: false, reasons: [], sessionIds: [], limits };
+  }
+  return {
+    enabled: true,
+    reasons: Array.from(reasons),
+    sessionIds: params.sessionIds.slice(0, limits.maxSessions),
+    limits,
+  };
 }
 
 async function collectRecentSessionSummaries(params: {
@@ -199,11 +251,13 @@ async function collectRecentStructuredSignals(params: {
 
 async function collectDreamInputs(params: {
   runtimeStore: RuntimeStore;
+  config: DreamingConfig;
   scope: DurableMemoryScope;
   scopeKey: string;
   sessionIds: string[];
   sessionLimit?: number;
   signalLimit?: number;
+  now?: number;
 }): Promise<AutoDreamPreview> {
   const sessionIds = params.sessionIds.slice(0, Math.max(1, params.sessionLimit ?? 12));
   const summaries = await collectRecentSessionSummaries({
@@ -218,6 +272,13 @@ async function collectDreamInputs(params: {
     sessionIds,
     maxSignals: params.signalLimit,
   });
+  const transcriptFallback = buildTranscriptFallbackPlan({
+    config: params.config,
+    now: params.now ?? Date.now(),
+    sessionIds,
+    summaries,
+    signals: recentSignals,
+  });
   return {
     scopeKey: params.scopeKey,
     recentSessionIds: sessionIds,
@@ -225,6 +286,7 @@ async function collectDreamInputs(params: {
     recentSignalCount: recentSignals.length,
     recentSignals,
     sessionSummaries: summaries,
+    transcriptFallback,
   };
 }
 
@@ -322,11 +384,13 @@ export class AutoDreamScheduler {
 
     const preview = await collectDreamInputs({
       runtimeStore: this.runtimeStore,
+      config: this.config,
       scope: params.scope,
       scopeKey,
       sessionIds: recentSessionIds,
       sessionLimit: params.sessionLimit,
       signalLimit: params.signalLimit,
+      now,
     });
 
     if (params.dryRun) {
@@ -380,6 +444,7 @@ export class AutoDreamScheduler {
           lastSuccessAt: state?.lastSuccessAt ?? null,
           recentSessions: preview.sessionSummaries,
           recentSignals: preview.recentSignals,
+          transcriptFallback: preview.transcriptFallback,
         },
         this.logger,
       );
@@ -395,6 +460,12 @@ export class AutoDreamScheduler {
           updatedCount: result.updatedCount,
           deletedCount: result.deletedCount,
           touchedNotes: result.touchedNotes ?? [],
+          transcriptFallback: {
+            enabled: preview.transcriptFallback.enabled,
+            reasons: preview.transcriptFallback.reasons,
+            sessionCount: preview.transcriptFallback.sessionIds.length,
+            limits: preview.transcriptFallback.limits,
+          },
         }),
         ...(result.status === "failed" ? { error: result.summary ?? "dream failed" } : {}),
         finishedAt: Date.now(),

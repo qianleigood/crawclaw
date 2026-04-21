@@ -32,7 +32,7 @@ export interface GovernanceSummary {
   recallFailures: {
     recentCount: number;
   };
-  extractionWindows: {
+  durableExtraction: {
     recentCount: number;
     runCount: number;
     skipCount: number;
@@ -161,8 +161,8 @@ export interface GovernanceMergeAuditRow {
 export interface GovernanceDebugSummary {
   topRecallFallbackReasons: Array<{ reason: string; count: number }>;
   topRecallFailureQueries: Array<{ query: string; count: number }>;
-  extractionSkipsByReason: Array<{ reason: string; count: number }>;
-  extractionRunsByReason: Array<{ reason: string; count: number }>;
+  durableExtractionSkipsByReason: Array<{ reason: string; count: number }>;
+  durableExtractionRunsByReason: Array<{ reason: string; count: number }>;
   weakKnowledgeByValidationStatus: Array<{ validationStatus: string; count: number }>;
 }
 
@@ -189,7 +189,7 @@ export interface GovernanceConsistencyIssueRow {
 
 export interface GovernanceExecutionActivityRow {
   id: string;
-  activityType: "maintenance_run" | "merge_audit" | "recall_trace" | "extraction_window";
+  activityType: "maintenance_run" | "merge_audit" | "recall_trace" | "durable_extraction_run";
   title: string;
   status: "done" | "failed" | "running" | "pending" | "cancelled" | "info";
   createdAt: number;

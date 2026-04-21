@@ -271,6 +271,9 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
             },
           }
         : {}),
+      ...(embeddedContext?.specialAgentContext?.transcriptSearch
+        ? { specialTranscriptSearch: embeddedContext.specialAgentContext.transcriptSearch }
+        : {}),
       ...(embeddedContext?.specialAgentContext?.sessionSummaryTarget
         ? {
             specialSessionSummaryTarget: {

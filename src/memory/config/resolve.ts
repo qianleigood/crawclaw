@@ -20,6 +20,14 @@ function readConfigRecord(value: unknown): RawMemoryConfig {
   return asConfigRecord(value);
 }
 
+function readBooleanValue(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function readNumberValue(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
   const runtimeStore = readConfigRecord(raw.runtimeStore);
   const llm = readConfigRecord(raw.llm);
@@ -31,8 +39,11 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
   const governance = readConfigRecord(raw.governance);
   const durableExtraction = readConfigRecord(raw.durableExtraction);
   const dreaming = readConfigRecord(raw.dreaming);
+  const dreamingTranscriptFallback = readConfigRecord(dreaming.transcriptFallback);
+  const defaultDreamingTranscriptFallback = DEFAULT_CONFIG.dreaming.transcriptFallback!;
   const sessionSummary = readConfigRecord(raw.sessionSummary);
   const automation = asConfigRecord(raw.automation);
+  const automationStages = asConfigRecord(automation.stages);
   const multimodal = asConfigRecord(raw.multimodal);
   const skillRouting = asConfigRecord(raw.skillRouting);
   const contextArchive = normalizeContextArchiveConfig(raw.contextArchive);
@@ -40,11 +51,35 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
     runtimeStore: { ...DEFAULT_CONFIG.runtimeStore, ...runtimeStore },
     contextArchive: { ...DEFAULT_CONFIG.contextArchive, ...readConfigRecord(raw.contextArchive) },
     automation: {
-      ...DEFAULT_CONFIG.automation,
-      ...automation,
+      enabled: readBooleanValue(automation.enabled, DEFAULT_CONFIG.automation.enabled),
+      maxJobAttempts: readNumberValue(
+        automation.maxJobAttempts,
+        DEFAULT_CONFIG.automation.maxJobAttempts,
+      ),
+      schedulerPollIntervalMs: readNumberValue(
+        automation.schedulerPollIntervalMs,
+        DEFAULT_CONFIG.automation.schedulerPollIntervalMs,
+      ),
       stages: {
-        ...DEFAULT_CONFIG.automation.stages,
-        ...asConfigRecord(automation.stages),
+        ingest: readBooleanValue(automationStages.ingest, DEFAULT_CONFIG.automation.stages.ingest),
+        distill: readBooleanValue(
+          automationStages.distill,
+          DEFAULT_CONFIG.automation.stages.distill,
+        ),
+        judge: readBooleanValue(automationStages.judge, DEFAULT_CONFIG.automation.stages.judge),
+        govern: readBooleanValue(automationStages.govern, DEFAULT_CONFIG.automation.stages.govern),
+        formalize: readBooleanValue(
+          automationStages.formalize,
+          DEFAULT_CONFIG.automation.stages.formalize,
+        ),
+        reconcile: readBooleanValue(
+          automationStages.reconcile,
+          DEFAULT_CONFIG.automation.stages.reconcile,
+        ),
+        maintain: readBooleanValue(
+          automationStages.maintain,
+          DEFAULT_CONFIG.automation.stages.maintain,
+        ),
       },
     },
     multimodal: {
@@ -82,6 +117,36 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
     dreaming: {
       ...DEFAULT_CONFIG.dreaming,
       ...dreaming,
+      transcriptFallback: {
+        enabled: readBooleanValue(
+          dreamingTranscriptFallback.enabled,
+          defaultDreamingTranscriptFallback.enabled,
+        ),
+        minSignals: readNumberValue(
+          dreamingTranscriptFallback.minSignals,
+          defaultDreamingTranscriptFallback.minSignals,
+        ),
+        staleSummaryMs: readNumberValue(
+          dreamingTranscriptFallback.staleSummaryMs,
+          defaultDreamingTranscriptFallback.staleSummaryMs,
+        ),
+        maxSessions: readNumberValue(
+          dreamingTranscriptFallback.maxSessions,
+          defaultDreamingTranscriptFallback.maxSessions,
+        ),
+        maxMatchesPerSession: readNumberValue(
+          dreamingTranscriptFallback.maxMatchesPerSession,
+          defaultDreamingTranscriptFallback.maxMatchesPerSession,
+        ),
+        maxTotalBytes: readNumberValue(
+          dreamingTranscriptFallback.maxTotalBytes,
+          defaultDreamingTranscriptFallback.maxTotalBytes,
+        ),
+        maxExcerptChars: readNumberValue(
+          dreamingTranscriptFallback.maxExcerptChars,
+          defaultDreamingTranscriptFallback.maxExcerptChars,
+        ),
+      },
     },
     sessionSummary: {
       ...DEFAULT_CONFIG.sessionSummary,
@@ -336,9 +401,6 @@ export async function resolveCliConfig(): Promise<{
   config.automation.schedulerPollIntervalMs = process.env.GM_AUTOMATION_SCHEDULER_POLL_MS
     ? Number(process.env.GM_AUTOMATION_SCHEDULER_POLL_MS)
     : config.automation.schedulerPollIntervalMs;
-  config.automation.extractionJobTimeoutMs = process.env.GM_EXTRACTION_JOB_TIMEOUT_MS
-    ? Number(process.env.GM_EXTRACTION_JOB_TIMEOUT_MS)
-    : config.automation.extractionJobTimeoutMs;
   config.multimodal.storage.cacheDir =
     process.env.GM_MULTIMODAL_CACHE_DIR ?? config.multimodal.storage.cacheDir;
   config.multimodal.storage.maxAssetBytes = process.env.GM_MULTIMODAL_MAX_ASSET_BYTES

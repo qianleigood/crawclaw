@@ -56,6 +56,25 @@ export interface GmMessageRow {
   createdAt: number;
 }
 
+export interface DreamTranscriptSearchInput {
+  scopeKey: string;
+  sessionIds: string[];
+  query: string;
+  maxSessions: number;
+  maxMatchesPerSession: number;
+  maxTotalBytes: number;
+  maxExcerptChars: number;
+}
+
+export interface DreamTranscriptSearchRow {
+  sessionId: string;
+  role: string;
+  turnIndex: number;
+  createdAt: number;
+  excerpt: string;
+  matchedTerm: string;
+}
+
 export interface RawEventRow {
   id: string;
   sourceType: string;

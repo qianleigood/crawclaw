@@ -120,6 +120,15 @@ describe("memory-cli dream runtime", () => {
         minSessions: 5,
         scanThrottleMs: 600000,
         lockStaleAfterMs: 3600000,
+        transcriptFallback: {
+          enabled: true,
+          minSignals: 2,
+          staleSummaryMs: 21_600_000,
+          maxSessions: 4,
+          maxMatchesPerSession: 2,
+          maxTotalBytes: 12_000,
+          maxExcerptChars: 900,
+        },
       },
       sessionSummary: {
         enabled: true,
@@ -167,6 +176,17 @@ Nothing yet.
           recentSignalCount: 2,
           recentSignals: [],
           sessionSummaries: [],
+          transcriptFallback: {
+            enabled: false,
+            reasons: [],
+            sessionIds: [],
+            limits: {
+              maxSessions: 4,
+              maxMatchesPerSession: 2,
+              maxTotalBytes: 12_000,
+              maxExcerptChars: 900,
+            },
+          },
         },
       }),
     });
@@ -211,6 +231,8 @@ Nothing yet.
     expect(runtimeLogs.join("\n")).toContain("agent_failed");
     expect(runtimeLogs.join("\n")).toContain("Closed loop:");
     expect(runtimeLogs.join("\n")).toContain("active");
+    expect(runtimeLogs.join("\n")).toContain("Transcript fallback:");
+    expect(runtimeLogs.join("\n")).toContain("maxSessions=4");
   });
 
   it("renders dream status with touched note diagnostics", async () => {

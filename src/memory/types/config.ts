@@ -45,7 +45,6 @@ export interface AutomationConfig {
   enabled: boolean;
   maxJobAttempts: number;
   schedulerPollIntervalMs: number;
-  extractionJobTimeoutMs: number;
   stages: {
     ingest: boolean;
     distill: boolean;
@@ -89,12 +88,23 @@ export interface DurableExtractionConfig {
   workerIdleTtlMs: number;
 }
 
+export interface DreamingTranscriptFallbackConfig {
+  enabled: boolean;
+  minSignals: number;
+  staleSummaryMs: number;
+  maxSessions: number;
+  maxMatchesPerSession: number;
+  maxTotalBytes: number;
+  maxExcerptChars: number;
+}
+
 export interface DreamingConfig {
   enabled: boolean;
   minHours: number;
   minSessions: number;
   scanThrottleMs: number;
   lockStaleAfterMs: number;
+  transcriptFallback?: DreamingTranscriptFallbackConfig;
 }
 
 export interface SessionSummaryConfig {

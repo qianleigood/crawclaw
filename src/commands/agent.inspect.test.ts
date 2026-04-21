@@ -87,6 +87,15 @@ describe("agent.inspect command", () => {
         minSessions: 5,
         scanThrottleMs: 600_000,
         lockStaleAfterMs: 3_600_000,
+        transcriptFallback: {
+          enabled: true,
+          minSignals: 2,
+          staleSummaryMs: 21_600_000,
+          maxSessions: 4,
+          maxMatchesPerSession: 2,
+          maxTotalBytes: 12_000,
+          maxExcerptChars: 900,
+        },
       },
     });
     mocks.resolveSharedContextArchiveServiceMock.mockResolvedValue(undefined);
@@ -433,6 +442,9 @@ describe("agent.inspect command", () => {
     );
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Closed loop: active"));
     expect(runtime.log).toHaveBeenCalledWith(
+      expect.stringContaining("Transcript fallback: enabled"),
+    );
+    expect(runtime.log).toHaveBeenCalledWith(
       expect.stringContaining("Last skip reason: min_sessions_gate"),
     );
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("reason: agent_failed"));
@@ -570,6 +582,13 @@ describe("agent.inspect command", () => {
       dream: {
         scopeKey: "main:channel:chat%3Auser%3Auser-1",
         enabled: true,
+        transcriptFallback: {
+          enabled: true,
+          maxSessions: 4,
+          maxMatchesPerSession: 2,
+          maxTotalBytes: 12_000,
+          maxExcerptChars: 900,
+        },
         closedLoopActive: true,
         closedLoopReason: "active",
         state: {
@@ -602,6 +621,7 @@ describe("agent.inspect command", () => {
     expect(rendered).toContain("Scope: main:channel:chat%3Auser%3Auser-1");
     expect(rendered).toContain("Enabled: yes");
     expect(rendered).toContain("Closed loop: active");
+    expect(rendered).toContain("Transcript fallback: enabled");
     expect(rendered).toContain("Last skip reason: min_sessions_gate");
     expect(rendered).toContain("Lock owner: dream-1");
     expect(rendered).toContain("reason: agent_failed");

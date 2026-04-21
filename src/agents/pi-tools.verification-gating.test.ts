@@ -169,4 +169,55 @@ describe("verification session tool gating", () => {
       }),
     ).rejects.toThrow('Tool "write" is not allowed for this special-agent run');
   });
+
+  it("exposes transcript search only for embedded dream runs", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-dream-tools-"));
+    tempDirs.push(dir);
+    const config = {
+      memory: {
+        dreaming: {
+          enabled: true,
+        },
+      },
+    } as CrawClawConfig;
+    const scope = {
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    };
+
+    const dreamTools = createCrawClawCodingTools({
+      config,
+      sessionKey: "agent:main:main",
+      workspaceDir: dir,
+      specialAgentSpawnSource: "dream",
+      specialDurableMemoryScope: scope,
+      specialTranscriptSearch: {
+        sessionIds: ["s1", "s2"],
+        maxSessions: 2,
+        maxMatchesPerSession: 1,
+        maxTotalBytes: 4_000,
+        maxExcerptChars: 400,
+      },
+      senderIsOwner: true,
+    });
+    expect(dreamTools.map((tool) => tool.name)).toContain("memory_transcript_search");
+
+    const extractionTools = createCrawClawCodingTools({
+      config,
+      sessionKey: "agent:main:main",
+      workspaceDir: dir,
+      specialAgentSpawnSource: "memory-extraction",
+      specialDurableMemoryScope: scope,
+      specialTranscriptSearch: {
+        sessionIds: ["s1", "s2"],
+        maxSessions: 2,
+        maxMatchesPerSession: 1,
+        maxTotalBytes: 4_000,
+        maxExcerptChars: 400,
+      },
+      senderIsOwner: true,
+    });
+    expect(extractionTools.map((tool) => tool.name)).not.toContain("memory_transcript_search");
+  });
 });

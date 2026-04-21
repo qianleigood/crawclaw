@@ -18,6 +18,8 @@ import type {
   ContextArchiveRunRow,
   CreatePipelineJobInput,
   CreateContextArchiveRunInput,
+  DreamTranscriptSearchInput,
+  DreamTranscriptSearchRow,
   DreamLockAcquireResult,
   DreamStateRow,
   CreateMaintenanceRunInput,
@@ -118,6 +120,57 @@ const CONTEXT_ASSEMBLY_AUDIT_LEGACY_SESSION_MEMORY_TOKENS_COLUMN = "session_memo
 const CONTEXT_ASSEMBLY_AUDIT_SYSTEM_CONTEXT_TOKENS_COLUMN = "system_context_tokens";
 const CONTEXT_ASSEMBLY_AUDIT_LEGACY_SYSTEM_PROMPT_ADDITION_TOKENS_COLUMN =
   "system_prompt_addition_tokens";
+
+function normalizeTranscriptSearchTerms(query: string): string[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return [];
+  }
+  const terms = normalized.match(/[\p{L}\p{N}_-]+/gu) ?? [];
+  const out: string[] = [];
+  for (const term of [normalized, ...terms]) {
+    const cleaned = term.trim().toLowerCase();
+    if (cleaned.length < 2 || out.includes(cleaned)) {
+      continue;
+    }
+    out.push(cleaned);
+    if (out.length >= 12) {
+      break;
+    }
+  }
+  return out;
+}
+
+function findTranscriptMatch(
+  text: string,
+  terms: string[],
+): { index: number; term: string } | null {
+  const normalizedText = text.toLowerCase();
+  let best: { index: number; term: string } | null = null;
+  for (const term of terms) {
+    const index = normalizedText.indexOf(term);
+    if (index < 0) {
+      continue;
+    }
+    if (!best || index < best.index) {
+      best = { index, term };
+    }
+  }
+  return best;
+}
+
+function buildTranscriptExcerpt(text: string, matchIndex: number, maxChars: number): string {
+  const limit = Math.max(80, Math.trunc(maxChars));
+  if (text.length <= limit) {
+    return text;
+  }
+  const half = Math.floor(limit / 2);
+  const start = Math.max(0, matchIndex - half);
+  const end = Math.min(text.length, start + limit);
+  const prefix = start > 0 ? "..." : "";
+  const suffix = end < text.length ? "..." : "";
+  return `${prefix}${text.slice(start, end)}${suffix}`.slice(0, limit);
+}
 
 export class SqliteRuntimeStore implements RuntimeStore {
   private db: DatabaseSyncInstance | null = null;
@@ -983,6 +1036,72 @@ export class SqliteRuntimeStore implements RuntimeStore {
         Math.max(1, limit),
       );
     return this.mapMessageRows(rows);
+  }
+
+  async searchScopedModelVisibleMessages(
+    input: DreamTranscriptSearchInput,
+  ): Promise<DreamTranscriptSearchRow[]> {
+    const scopeKey = input.scopeKey.trim();
+    const terms = normalizeTranscriptSearchTerms(input.query);
+    const sessionIds = Array.from(
+      new Set(input.sessionIds.map((sessionId) => sessionId.trim()).filter(Boolean)),
+    ).slice(0, Math.max(1, Math.trunc(input.maxSessions)));
+    if (!scopeKey || terms.length === 0 || sessionIds.length === 0) {
+      return [];
+    }
+
+    const db = this.getDb();
+    const sessionPlaceholders = sessionIds.map(() => "?").join(", ");
+    const termPredicates = terms.map(() => `LOWER(COALESCE(m.content_text, m.content, '')) LIKE ?`);
+    const rows = db
+      .prepare(`SELECT m.id, m.session_id, m.conversation_uid, m.role, m.content, m.content_text, m.content_blocks_json, m.runtime_meta_json, m.runtime_shape_json, m.has_media, m.primary_media_id, m.turn_index, m.extracted, m.created_at
+        FROM gm_messages m
+        JOIN gm_session_scope s ON s.session_id = m.session_id
+        WHERE s.scope_key = ?
+          AND m.session_id IN (${sessionPlaceholders})
+          AND m.role IN ('user', 'assistant', 'toolResult')
+          AND (${termPredicates.join(" OR ")})
+        ORDER BY m.created_at DESC, m.turn_index DESC`)
+      .all(scopeKey, ...sessionIds, ...terms.map((term) => `%${term}%`));
+
+    const maxMatchesPerSession = Math.max(1, Math.trunc(input.maxMatchesPerSession));
+    const maxTotalBytes = Math.max(512, Math.trunc(input.maxTotalBytes));
+    const maxExcerptChars = Math.max(80, Math.trunc(input.maxExcerptChars));
+    const perSession = new Map<string, number>();
+    const out: DreamTranscriptSearchRow[] = [];
+    let totalBytes = 0;
+
+    for (const row of this.mapMessageRows(rows)) {
+      const currentCount = perSession.get(row.sessionId) ?? 0;
+      if (currentCount >= maxMatchesPerSession) {
+        continue;
+      }
+      const text = (row.contentText ?? row.content).trim();
+      if (!text) {
+        continue;
+      }
+      const match = findTranscriptMatch(text, terms);
+      if (!match) {
+        continue;
+      }
+      const excerpt = buildTranscriptExcerpt(text, match.index, maxExcerptChars);
+      const nextBytes = Buffer.byteLength(excerpt, "utf8");
+      if (out.length > 0 && totalBytes + nextBytes > maxTotalBytes) {
+        break;
+      }
+      out.push({
+        sessionId: row.sessionId,
+        role: row.role,
+        turnIndex: row.turnIndex,
+        createdAt: row.createdAt,
+        excerpt,
+        matchedTerm: match.term,
+      });
+      totalBytes += nextBytes;
+      perSession.set(row.sessionId, currentCount + 1);
+    }
+
+    return out;
   }
 
   async getSessionCompactionState(sessionId: string): Promise<SessionCompactionStateRow | null> {

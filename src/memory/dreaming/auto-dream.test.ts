@@ -268,4 +268,112 @@ describe("AutoDreamScheduler", () => {
     expect(acquireDreamLock).not.toHaveBeenCalled();
     expect(runner).not.toHaveBeenCalled();
   });
+
+  it("plans transcript fallback when summaries or structured signals are weak", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-fallback-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runner = vi.fn().mockResolvedValue({
+      status: "no_change",
+      summary: "no durable changes",
+      writtenCount: 0,
+      updatedCount: 0,
+      deletedCount: 0,
+      touchedNotes: [],
+    });
+    const createMaintenanceRun = vi.fn().mockResolvedValue("mrun-fallback");
+    const updateMaintenanceRun = vi.fn().mockResolvedValue(undefined);
+    const runtimeStore = asRuntimeStore({
+      getDreamState: vi.fn().mockResolvedValue({
+        scopeKey: "main:feishu:user-1",
+        lastSuccessAt: null,
+        lastAttemptAt: null,
+        lastFailureAt: null,
+        lockOwner: null,
+        lockAcquiredAt: null,
+        lastRunId: null,
+        updatedAt: Date.now(),
+      }),
+      listScopedSessionIdsTouchedSince: vi.fn().mockResolvedValue(["s1", "s2", "s3", "s4", "s5"]),
+      touchDreamAttempt: vi.fn().mockResolvedValue(undefined),
+      acquireDreamLock: vi.fn().mockResolvedValue({
+        acquired: true,
+        state: {
+          scopeKey: "main:feishu:user-1",
+          lastSuccessAt: null,
+          lastAttemptAt: Date.now(),
+          lastFailureAt: null,
+          lockOwner: "dream-1",
+          lockAcquiredAt: Date.now(),
+          lastRunId: null,
+          updatedAt: Date.now(),
+        },
+      }),
+      createMaintenanceRun,
+      listRecentContextArchiveRuns: vi.fn().mockResolvedValue([]),
+      listContextArchiveEvents: vi.fn().mockResolvedValue([]),
+      listRecentMaintenanceRuns: vi.fn().mockResolvedValue([]),
+      getSessionSummaryState: vi.fn().mockResolvedValue(null),
+      updateMaintenanceRun,
+      releaseDreamLock: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const scheduler = new AutoDreamScheduler({
+      config: {
+        enabled: true,
+        minHours: 24,
+        minSessions: 5,
+        scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
+        transcriptFallback: {
+          enabled: true,
+          minSignals: 2,
+          staleSummaryMs: 60_000,
+          maxSessions: 4,
+          maxMatchesPerSession: 2,
+          maxTotalBytes: 12_000,
+          maxExcerptChars: 900,
+        },
+      },
+      runtimeStore,
+      runner,
+      logger: console,
+    });
+
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      bypassGate: true,
+    });
+
+    expect(result.status).toBe("started");
+    expect(runner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transcriptFallback: expect.objectContaining({
+          enabled: true,
+          reasons: expect.arrayContaining(["missing_session_summary", "weak_structured_signals"]),
+          sessionIds: ["s1", "s2", "s3", "s4"],
+          limits: expect.objectContaining({
+            maxSessions: 4,
+            maxMatchesPerSession: 2,
+          }),
+        }),
+      }),
+      console,
+    );
+    const metricsJson = updateMaintenanceRun.mock.calls.at(-1)?.[0]?.metricsJson;
+    expect(JSON.parse(String(metricsJson))).toMatchObject({
+      transcriptFallback: {
+        enabled: true,
+        sessionCount: 4,
+      },
+    });
+  });
 });
