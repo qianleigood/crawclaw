@@ -49,19 +49,21 @@ describe("buildCompletionActionVisibilityProjection", () => {
     });
   });
 
-  it("projects verification_missing blockers", () => {
+  it("projects review_missing blockers", () => {
     expect(
       buildCompletionActionVisibilityProjection({
         status: "blocked",
-        summary: "Missing completion evidence: one of passing test, verification command.",
+        summary:
+          "Missing completion evidence: one of passing test, validation command, review pass.",
         detail: {
           completionStatus: "incomplete",
-          blockingState: "verification_missing",
+          blockingState: "review_missing",
         },
       }),
     ).toEqual({
-      projectedTitle: "Completion missing verification",
-      projectedSummary: "Missing completion evidence: one of passing test, verification command.",
+      projectedTitle: "Completion missing review",
+      projectedSummary:
+        "Missing completion evidence: one of passing test, validation command, review pass.",
     });
   });
 });

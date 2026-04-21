@@ -52,10 +52,10 @@ describe("replay", () => {
             taskType: "fix",
             completionMode: "auto",
             summary:
-              "Code fix tasks should leave a code change and at least one verification signal.",
-            deliverables: ["Applied the fix", "Captured a verification signal"],
+              "Code fix tasks should leave a code change and at least one validation signal.",
+            deliverables: ["Applied the fix", "Captured a validation signal"],
             requiredEvidence: ["file_changed"],
-            requireAnyOfEvidence: ["test_passed", "assertion_met"],
+            requireAnyOfEvidence: ["test_passed", "assertion_met", "review_passed"],
             recommendedEvidence: ["answer_provided"],
           },
           satisfiedEvidence: ["file_changed"],

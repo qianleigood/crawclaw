@@ -6,7 +6,7 @@ const NullableNumber = Type.Union([Type.Number(), Type.Null()]);
 
 export const AgentRuntimeCategorySchema = Type.Union([
   Type.Literal("memory"),
-  Type.Literal("verification"),
+  Type.Literal("review"),
   Type.Literal("subagents"),
   Type.Literal("acp"),
   Type.Literal("cron"),
@@ -71,7 +71,7 @@ export const AgentRuntimeSummaryResultSchema = Type.Object(
     byCategory: Type.Object(
       {
         memory: Type.Integer({ minimum: 0 }),
-        verification: Type.Integer({ minimum: 0 }),
+        review: Type.Integer({ minimum: 0 }),
         subagents: Type.Integer({ minimum: 0 }),
         acp: Type.Integer({ minimum: 0 }),
         cron: Type.Integer({ minimum: 0 }),

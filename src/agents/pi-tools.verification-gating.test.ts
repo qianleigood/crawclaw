@@ -16,20 +16,20 @@ afterEach(async () => {
   );
 });
 
-describe("verification session tool gating", () => {
-  it("keeps verification tool inventory broad but runtime-denies non-allowlisted tools", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-verification-tools-"));
+describe("review session tool gating", () => {
+  it("keeps review tool inventory broad but runtime-denies non-allowlisted tools", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-review-tools-"));
     tempDirs.push(dir);
     const storePath = path.join(dir, "sessions.json");
-    const sessionKey = "agent:main:subagent:verification-child";
+    const sessionKey = "agent:main:subagent:review-child";
     await fs.writeFile(
       storePath,
       JSON.stringify(
         {
           [sessionKey]: {
-            sessionId: "verification-child-session",
+            sessionId: "review-child-session",
             updatedAt: Date.now(),
-            spawnSource: "verification",
+            spawnSource: "review-spec",
           },
         },
         null,
@@ -56,12 +56,12 @@ describe("verification session tool gating", () => {
     expect(toolNames).toEqual(expect.arrayContaining(["read", "exec", "process"]));
     expect(toolNames).toContain("write");
     expect(toolNames).toContain("edit");
-    expect(toolNames).not.toContain("verify_task");
+    expect(toolNames).not.toContain("review_task");
 
     const blockedTool = tools.find((tool) => tool.name === "write");
     expect(blockedTool).toBeDefined();
     await expect(
-      blockedTool!.execute?.("call-verification-deny", {
+      blockedTool!.execute?.("call-review-deny", {
         file_path: path.join(dir, "blocked.txt"),
         content: "should-not-run",
       }),

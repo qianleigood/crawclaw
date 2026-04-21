@@ -16,8 +16,8 @@ import {
   resolveThreadBindingSpawnPolicy,
 } from "crawclaw/plugin-sdk/conversation-runtime";
 import { formatUncaughtError } from "crawclaw/plugin-sdk/error-runtime";
-import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
 import { resolveTextChunkLimit } from "crawclaw/plugin-sdk/reply-chunking";
+import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
 import { danger, logVerbose, shouldLogVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { getChildLogger } from "crawclaw/plugin-sdk/runtime-env";
 import { createSubsystemLogger } from "crawclaw/plugin-sdk/runtime-env";
@@ -192,11 +192,11 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     // causing "signals[0] must be an instance of AbortSignal" errors).
     finalFetch = (input: TelegramFetchInput, init?: TelegramFetchInit) => {
       const controller = new AbortController();
-      const abortWith = (signal: AbortSignal) => controller.abort(signal.reason);
+      const abortFetch = () => controller.abort();
       const shutdownSignal = opts.fetchAbortSignal;
       const onShutdown = () => {
         if (shutdownSignal) {
-          abortWith(shutdownSignal);
+          abortFetch();
         }
       };
       const method = extractTelegramApiMethod(input);
@@ -206,15 +206,15 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       let onRequestAbort: (() => void) | undefined;
       const requestSignal = init?.signal;
       if (shutdownSignal?.aborted) {
-        abortWith(shutdownSignal);
+        abortFetch();
       } else if (shutdownSignal) {
         shutdownSignal.addEventListener("abort", onShutdown, { once: true });
       }
       if (requestSignal) {
         if (requestSignal.aborted) {
-          abortWith(requestSignal);
+          abortFetch();
         } else {
-          onRequestAbort = () => abortWith(requestSignal);
+          onRequestAbort = abortFetch;
           requestSignal.addEventListener("abort", onRequestAbort);
         }
       }
