@@ -10,6 +10,9 @@ self-hosted-runner:
     - blacksmith-16vcpu-windows-2025
     - blacksmith-32vcpu-windows-2025
     - blacksmith-16vcpu-ubuntu-2404-arm
+    # Self-hosted Parallels smoke runners
+    - macOS
+    - parallels
 
 # Ignore patterns for known issues
 paths:

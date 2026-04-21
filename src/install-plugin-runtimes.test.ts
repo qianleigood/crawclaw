@@ -11,6 +11,7 @@ type RuntimeInstallScript = {
   };
   createLocalPrefixNpmInstallArgs: (runtimeDir: string, packageSpec: string) => string[];
   createNestedNpmInstallEnv: (env: NodeJS.ProcessEnv) => NodeJS.ProcessEnv;
+  resolvePythonCandidates: (env: NodeJS.ProcessEnv, platform?: NodeJS.Platform) => string[];
   resolveRuntimeSpawn: (
     command: string,
     args: string[],
@@ -62,6 +63,14 @@ describe("install-plugin-runtimes", () => {
     );
     expect(script.resolveScraplingVenvPython("/tmp/runtime/venv", "darwin")).toBe(
       path.posix.join("/tmp/runtime/venv", "bin", "python"),
+    );
+  });
+
+  it("includes Windows Python launcher candidates", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(script.resolvePythonCandidates({}, "win32")).toEqual(
+      expect.arrayContaining(["python", "py"]),
     );
   });
 

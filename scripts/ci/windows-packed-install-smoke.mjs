@@ -1,0 +1,420 @@
+#!/usr/bin/env node
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const SCRIPT_PATH = fileURLToPath(import.meta.url);
+const REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "..", "..");
+const MAX_OUTPUT_CHARS = 8000;
+const UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
+const REQUIRED_RUNTIME_PLUGINS = ["browser", "open-websearch", "scrapling-fetch"];
+
+const DEFAULT_TIMEOUT_MS = 120_000;
+const INSTALL_TIMEOUT_MS = 30 * 60_000;
+const GATEWAY_TIMEOUT_MS = 180_000;
+
+function isDirectRun() {
+  return process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;
+}
+
+function tailOutput(text, maxChars = MAX_OUTPUT_CHARS) {
+  if (!text) {
+    return "";
+  }
+  return text.length > maxChars
+    ? `[last ${maxChars} chars]\n${text.slice(text.length - maxChars)}`
+    : text;
+}
+
+function formatCommand(command, args) {
+  return [command, ...args].join(" ");
+}
+
+function escapeForCmdExe(arg) {
+  if (UNSAFE_CMD_CHARS_RE.test(arg)) {
+    throw new Error(`unsafe Windows cmd.exe argument detected: ${JSON.stringify(arg)}`);
+  }
+  const escaped = arg.replace(/\^/g, "^^");
+  if (!escaped.includes(" ") && !escaped.includes('"')) {
+    return escaped;
+  }
+  return `"${escaped.replace(/"/g, '""')}"`;
+}
+
+function buildCmdExeCommandLine(command, args) {
+  return [escapeForCmdExe(command), ...args.map(escapeForCmdExe)].join(" ");
+}
+
+function normalizeWindowsCmdInvocation(command, args, env, platform = process.platform) {
+  if (platform !== "win32") {
+    return { command, args };
+  }
+  const ext = path.win32.extname(command).toLowerCase();
+  if (ext !== ".cmd" && ext !== ".bat") {
+    return { command, args };
+  }
+  return {
+    command: env.ComSpec ?? "cmd.exe",
+    args: ["/d", "/s", "/c", buildCmdExeCommandLine(command, args)],
+    windowsVerbatimArguments: true,
+  };
+}
+
+function resolveNpmCliPath() {
+  const fromEnv = process.env.npm_execpath;
+  if (fromEnv && fs.existsSync(fromEnv)) {
+    return fromEnv;
+  }
+
+  const nodeDir = path.dirname(process.execPath);
+  const candidates = [
+    path.join(nodeDir, "node_modules", "npm", "bin", "npm-cli.js"),
+    path.join(nodeDir, "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+    path.join(nodeDir, "..", "node_modules", "npm", "bin", "npm-cli.js"),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+function resolveNpmInvocation(args) {
+  const npmCliPath = resolveNpmCliPath();
+  if (npmCliPath) {
+    return { command: process.execPath, args: [npmCliPath, ...args] };
+  }
+  return {
+    command: process.platform === "win32" ? "npm.cmd" : "npm",
+    args,
+  };
+}
+
+function runOrThrow(command, args, options = {}) {
+  const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
+  const invocation = normalizeWindowsCmdInvocation(command, args, env, platform);
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd: options.cwd ?? REPO_ROOT,
+    encoding: "utf8",
+    env,
+    stdio: "pipe",
+    timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    windowsHide: true,
+    windowsVerbatimArguments: invocation.windowsVerbatimArguments,
+  });
+
+  if (result.status === 0 && !result.error) {
+    return {
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+      status: result.status,
+    };
+  }
+
+  const output = [
+    result.stderr ? `stderr:\n${tailOutput(result.stderr)}` : "",
+    result.stdout ? `stdout:\n${tailOutput(result.stdout)}` : "",
+    result.error ? `error:\n${result.error.message}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  throw new Error(
+    [
+      `Command failed: ${formatCommand(command, args)}`,
+      `Exit code: ${String(result.status ?? "unknown")}`,
+      output,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  );
+}
+
+function runNpmOrThrow(args, options = {}) {
+  const invocation = resolveNpmInvocation(args);
+  return runOrThrow(invocation.command, invocation.args, options);
+}
+
+function parseJson(text, label) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${label} did not print valid JSON: ${String(error)}\n${tailOutput(text)}`, {
+      cause: error,
+    });
+  }
+}
+
+function parseArgs(argv) {
+  const parsed = {
+    includeGateway: false,
+    keepTemp: false,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--include-gateway") {
+      parsed.includeGateway = true;
+      continue;
+    }
+    if (arg === "--keep-temp") {
+      parsed.keepTemp = true;
+      continue;
+    }
+    throw new Error(`unknown arg: ${arg}`);
+  }
+  return parsed;
+}
+
+function resolvePathEnvKey(env, platform) {
+  if (platform !== "win32") {
+    return "PATH";
+  }
+  return (
+    Object.keys(env).find((key) => key === "Path") ??
+    Object.keys(env).find((key) => key.toLowerCase() === "path") ??
+    "Path"
+  );
+}
+
+export function resolveInstalledCrawClawBin({ prefixDir, platform = process.platform }) {
+  if (platform === "win32") {
+    return path.win32.join(prefixDir, "crawclaw.cmd");
+  }
+  return path.posix.join(prefixDir, "bin", "crawclaw");
+}
+
+export function createSmokeEnv({
+  env = process.env,
+  prefixDir,
+  stateDir,
+  platform = process.platform,
+}) {
+  const nextEnv = { ...env };
+  for (const key of Object.keys(nextEnv)) {
+    const normalizedKey = key.toLowerCase();
+    if (
+      normalizedKey === "npm_config_global" ||
+      normalizedKey === "npm_config_location" ||
+      normalizedKey === "npm_config_prefix"
+    ) {
+      delete nextEnv[key];
+    }
+  }
+
+  const pathKey = resolvePathEnvKey(nextEnv, platform);
+  const existingPath = nextEnv[pathKey] ?? "";
+  nextEnv[pathKey] = existingPath ? `${prefixDir}${path.delimiter}${existingPath}` : prefixDir;
+  nextEnv.CI = nextEnv.CI ?? "true";
+  nextEnv.NO_COLOR = "1";
+  nextEnv.CRAWCLAW_STATE_DIR = stateDir;
+  nextEnv.CRAWCLAW_DISABLE_UPDATE_CHECK = "1";
+  return nextEnv;
+}
+
+function assertRecord(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  return value;
+}
+
+function requireHealthyRuntimeEntry(pluginId, entry, requiredMetadataKeys = []) {
+  const record = assertRecord(entry, `runtime manifest entry ${pluginId}`);
+  if (record.state !== "healthy") {
+    throw new Error(
+      `runtime manifest entry ${pluginId} must be healthy, got ${String(record.state)}`,
+    );
+  }
+  for (const key of requiredMetadataKeys) {
+    if (typeof record[key] !== "string" || record[key].trim() === "") {
+      throw new Error(`runtime manifest entry ${pluginId} is missing ${key}`);
+    }
+  }
+}
+
+export function validateRuntimeManifest(manifest) {
+  const record = assertRecord(manifest, "runtime manifest");
+  const plugins = assertRecord(record.plugins, "runtime manifest plugins");
+  for (const pluginId of REQUIRED_RUNTIME_PLUGINS) {
+    if (!(pluginId in plugins)) {
+      throw new Error(`runtime manifest is missing ${pluginId}`);
+    }
+  }
+
+  requireHealthyRuntimeEntry("browser", plugins.browser, ["binPath"]);
+  requireHealthyRuntimeEntry("open-websearch", plugins["open-websearch"], ["binPath"]);
+  requireHealthyRuntimeEntry("scrapling-fetch", plugins["scrapling-fetch"], ["pythonVersion"]);
+}
+
+function readJsonFile(filePath, label) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    throw new Error(`${label} is missing or invalid at ${filePath}: ${String(error)}`, {
+      cause: error,
+    });
+  }
+}
+
+function verifyRuntimeBinaries(manifest, smokeEnv) {
+  const plugins = assertRecord(
+    assertRecord(manifest, "runtime manifest").plugins,
+    "runtime plugins",
+  );
+  for (const pluginId of ["browser", "open-websearch"]) {
+    const entry = assertRecord(plugins[pluginId], `runtime manifest entry ${pluginId}`);
+    const binPath = entry.binPath;
+    if (typeof binPath !== "string" || binPath.trim() === "") {
+      throw new Error(`runtime manifest entry ${pluginId} is missing binPath`);
+    }
+    runOrThrow(binPath, ["--version"], { env: smokeEnv, timeoutMs: DEFAULT_TIMEOUT_MS });
+  }
+}
+
+function resolvePackedTarball(packJson, packDir) {
+  const parsed = parseJson(packJson, "npm pack");
+  const first = Array.isArray(parsed) ? parsed[0] : null;
+  if (!first || typeof first.filename !== "string" || first.filename.trim() === "") {
+    throw new Error(`npm pack did not report a tarball filename: ${tailOutput(packJson)}`);
+  }
+  const filename = first.filename;
+  return path.isAbsolute(filename) ? filename : path.join(packDir, filename);
+}
+
+function runCrawClaw(crawclawBin, args, options = {}) {
+  return runOrThrow(crawclawBin, args, {
+    ...options,
+    timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+  });
+}
+
+function createTempLayout() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-windows-pack-smoke-"));
+  const packDir = path.join(root, "pack");
+  const prefixDir = path.join(root, "prefix");
+  const stateDir = path.join(root, "state");
+  fs.mkdirSync(packDir, { recursive: true });
+  fs.mkdirSync(prefixDir, { recursive: true });
+  fs.mkdirSync(stateDir, { recursive: true });
+  return { root, packDir, prefixDir, stateDir };
+}
+
+function runGatewayLifecycle(crawclawBin, smokeEnv) {
+  const port = String(18_789 + (process.pid % 1000));
+  console.log(`[windows-smoke] installing gateway service on port ${port}`);
+  runCrawClaw(
+    crawclawBin,
+    ["gateway", "install", "--port", port, "--runtime", "node", "--force", "--json"],
+    { env: smokeEnv, timeoutMs: GATEWAY_TIMEOUT_MS },
+  );
+  try {
+    runCrawClaw(crawclawBin, ["gateway", "status", "--json"], {
+      env: smokeEnv,
+      timeoutMs: GATEWAY_TIMEOUT_MS,
+    });
+    runCrawClaw(crawclawBin, ["gateway", "restart", "--json"], {
+      env: smokeEnv,
+      timeoutMs: GATEWAY_TIMEOUT_MS,
+    });
+    runCrawClaw(crawclawBin, ["gateway", "status", "--deep", "--require-rpc", "--json"], {
+      env: smokeEnv,
+      timeoutMs: GATEWAY_TIMEOUT_MS,
+    });
+  } finally {
+    runCrawClaw(crawclawBin, ["gateway", "stop", "--json"], {
+      env: smokeEnv,
+      timeoutMs: GATEWAY_TIMEOUT_MS,
+    });
+    runCrawClaw(crawclawBin, ["gateway", "uninstall", "--json"], {
+      env: smokeEnv,
+      timeoutMs: GATEWAY_TIMEOUT_MS,
+    });
+  }
+}
+
+function runSmoke(opts) {
+  if (
+    process.platform !== "win32" &&
+    process.env.CRAWCLAW_WINDOWS_PACKED_INSTALL_SMOKE_ALLOW_NON_WINDOWS !== "1"
+  ) {
+    throw new Error(
+      "windows-packed-install-smoke is intended for Windows runners. Set CRAWCLAW_WINDOWS_PACKED_INSTALL_SMOKE_ALLOW_NON_WINDOWS=1 to override.",
+    );
+  }
+
+  const temp = createTempLayout();
+  const smokeEnv = createSmokeEnv({
+    env: process.env,
+    prefixDir: temp.prefixDir,
+    stateDir: temp.stateDir,
+    platform: process.platform,
+  });
+  const crawclawBin = resolveInstalledCrawClawBin({
+    prefixDir: temp.prefixDir,
+    platform: process.platform,
+  });
+
+  console.log(`[windows-smoke] temp root: ${temp.root}`);
+  try {
+    console.log("[windows-smoke] packing current checkout");
+    const packResult = runNpmOrThrow(
+      ["pack", "--ignore-scripts", "--json", "--pack-destination", temp.packDir],
+      { cwd: REPO_ROOT, env: smokeEnv, timeoutMs: DEFAULT_TIMEOUT_MS },
+    );
+    const tarballPath = resolvePackedTarball(packResult.stdout, temp.packDir);
+    if (!fs.existsSync(tarballPath)) {
+      throw new Error(`packed tarball was not created: ${tarballPath}`);
+    }
+
+    console.log("[windows-smoke] installing packed tarball into temporary global prefix");
+    runNpmOrThrow(
+      ["install", "--global", "--prefix", temp.prefixDir, "--foreground-scripts", tarballPath],
+      { cwd: REPO_ROOT, env: smokeEnv, timeoutMs: INSTALL_TIMEOUT_MS },
+    );
+
+    if (!fs.existsSync(crawclawBin)) {
+      throw new Error(`installed crawclaw shim is missing: ${crawclawBin}`);
+    }
+
+    console.log("[windows-smoke] verifying installed CLI");
+    runCrawClaw(crawclawBin, ["--version"], { env: smokeEnv });
+
+    console.log("[windows-smoke] checking install-time runtime manifest");
+    const manifestPath = path.join(temp.stateDir, "runtimes", "manifest.json");
+    const manifest = readJsonFile(manifestPath, "runtime manifest");
+    validateRuntimeManifest(manifest);
+    verifyRuntimeBinaries(manifest, smokeEnv);
+
+    const runtimesList = runCrawClaw(crawclawBin, ["runtimes", "list", "--json"], {
+      env: smokeEnv,
+    });
+    const runtimesPayload = parseJson(runtimesList.stdout, "crawclaw runtimes list --json");
+    validateRuntimeManifest(assertRecord(runtimesPayload, "runtimes payload").manifest);
+
+    console.log("[windows-smoke] checking plugin catalog and doctor");
+    const pluginsList = runCrawClaw(crawclawBin, ["plugins", "list", "--json"], {
+      env: smokeEnv,
+    });
+    parseJson(pluginsList.stdout, "crawclaw plugins list --json");
+    runCrawClaw(crawclawBin, ["doctor", "--non-interactive"], { env: smokeEnv });
+
+    if (opts.includeGateway) {
+      runGatewayLifecycle(crawclawBin, smokeEnv);
+    }
+
+    console.log("[windows-smoke] packed install smoke passed");
+  } finally {
+    if (opts.keepTemp) {
+      console.log(`[windows-smoke] keeping temp root: ${temp.root}`);
+    } else {
+      fs.rmSync(temp.root, { recursive: true, force: true });
+    }
+  }
+}
+
+if (isDirectRun()) {
+  try {
+    runSmoke(parseArgs(process.argv.slice(2)));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+}

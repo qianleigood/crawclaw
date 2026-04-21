@@ -177,17 +177,33 @@ export function resolveScraplingVenvPython(venvDir, platform = process.platform)
     : pathImpl.join(venvDir, "bin", "python");
 }
 
-function resolvePythonCandidates(env = process.env) {
+export function resolvePythonCandidates(env = process.env, platform = process.platform) {
+  const platformCandidates =
+    platform === "win32"
+      ? [
+          "python3.14",
+          "python3.13",
+          "python3.12",
+          "python3.11",
+          "python3.10",
+          "python3",
+          "python",
+          "py",
+        ]
+      : [
+          "/opt/homebrew/bin/python3",
+          "python3.14",
+          "python3.13",
+          "python3.12",
+          "python3.11",
+          "python3.10",
+          "python3",
+          "python",
+        ];
   const candidates = [
     env.CRAWCLAW_RUNTIME_PYTHON,
     env.CRAWCLAW_SCRAPLING_PYTHON,
-    "/opt/homebrew/bin/python3",
-    "python3.14",
-    "python3.13",
-    "python3.12",
-    "python3.11",
-    "python3.10",
-    "python3",
+    ...platformCandidates,
   ].filter(Boolean);
   return [...new Set(candidates)];
 }

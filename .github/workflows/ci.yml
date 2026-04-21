@@ -713,7 +713,7 @@ jobs:
     needs: [preflight, build-artifacts]
     if: always() && needs.preflight.outputs.run_checks_windows == 'true' && needs.build-artifacts.result == 'success'
     runs-on: blacksmith-32vcpu-windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       NODE_OPTIONS: --max-old-space-size=6144
       # Keep total concurrency predictable on the 32 vCPU runner.
@@ -801,14 +801,14 @@ jobs:
           echo "CRAWCLAW_TEST_SHARD_INDEX=$SHARD_INDEX" >> "$GITHUB_ENV"
 
       - name: Download dist artifact
-        if: matrix.task == 'test'
+        if: matrix.task == 'test' || matrix.task == 'install-smoke'
         uses: actions/download-artifact@v8
         with:
           name: dist-build
           path: dist/
 
       - name: Download A2UI bundle artifact
-        if: matrix.task == 'test'
+        if: matrix.task == 'test' || matrix.task == 'install-smoke'
         uses: actions/download-artifact@v8
         with:
           name: canvas-a2ui-bundle
@@ -823,6 +823,12 @@ jobs:
           case "$TASK" in
             test)
               pnpm test
+              ;;
+            build)
+              pnpm build
+              ;;
+            install-smoke)
+              node scripts/ci/windows-packed-install-smoke.mjs --include-gateway
               ;;
             *)
               echo "Unsupported Windows checks task: $TASK" >&2

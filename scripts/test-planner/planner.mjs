@@ -1412,13 +1412,27 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
       ]
     : [];
   const checksWindowsInclude = windowsEligible
-    ? createShardMatrixEntries({
-        checkNamePrefix: "checks-windows-node-test",
-        runtime: "node",
-        task: "test",
-        command: "pnpm test",
-        shardCount: windowsShardCount,
-      })
+    ? [
+        ...createShardMatrixEntries({
+          checkNamePrefix: "checks-windows-node-test",
+          runtime: "node",
+          task: "test",
+          command: "pnpm test",
+          shardCount: windowsShardCount,
+        }),
+        {
+          check_name: "checks-windows-node-build",
+          runtime: "node",
+          task: "build",
+          command: "pnpm build",
+        },
+        {
+          check_name: "checks-windows-node-install-smoke",
+          runtime: "node",
+          task: "install-smoke",
+          command: "node scripts/ci/windows-packed-install-smoke.mjs --include-gateway",
+        },
+      ]
     : [];
   const extensionFastInclude = extensionFastEligible
     ? scope.changedExtensionsMatrix.include.map((entry) => ({

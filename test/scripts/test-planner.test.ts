@@ -686,7 +686,16 @@ describe("test planner", () => {
     expect(manifest.shardCounts.extensionFast).toBeLessThanOrEqual(6);
     expect(manifest.shardCounts.windows).toBe(6);
     expect(manifest.jobs.checks.matrix.include).toHaveLength(8);
-    expect(manifest.jobs.checksWindows.matrix.include).toHaveLength(6);
+    expect(manifest.jobs.checksWindows.matrix.include).toHaveLength(8);
+    expect(manifest.jobs.checksWindows.matrix.include.map((entry) => entry.check_name)).toEqual(
+      expect.arrayContaining(["checks-windows-node-build", "checks-windows-node-install-smoke"]),
+    );
+    expect(manifest.jobs.checksWindows.matrix.include.map((entry) => entry.task)).toEqual(
+      expect.arrayContaining(["build", "install-smoke"]),
+    );
+    expect(manifest.requiredCheckNames).toEqual(
+      expect.arrayContaining(["checks-windows-node-build", "checks-windows-node-install-smoke"]),
+    );
     expect(manifest.jobs.macosNode.matrix.include).toHaveLength(0);
     expect(manifest.jobs.checksFast.matrix.include).toHaveLength(
       manifest.shardCounts.extensionFast + 1,
