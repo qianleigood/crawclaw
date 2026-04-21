@@ -11,38 +11,55 @@ title: "Windows"
 # Windows
 
 CrawClaw supports both **native Windows** and **WSL2** for Gateway host use.
-WSL2 remains the lowest-risk path because the CLI, Gateway, shell tools, and
-Linux-oriented automation run in a Linux environment. Native Windows is treated
-as a first-class CLI and Gateway host target, with the support boundary below.
+WSL2 remains the lowest-risk path for Linux-oriented automation and Docker-heavy
+workflows because the CLI, Gateway, shell tools, and service manager run in a
+Linux environment. Native Windows is a first-class CLI and Gateway host target
+inside the product boundary below.
 
-Native Windows support does not mean feature parity with Apple-only local
-integrations. It means the Windows host can install CrawClaw, run the CLI, run
-the Gateway, manage startup, load supported plugins, and pass the Windows
-compatibility gates without requiring WSL2.
+Native Windows support does **not** mean full parity with macOS-only local
+integrations or every Linux sandbox behavior. It means the Windows host can
+install CrawClaw, run the CLI, run the Gateway, manage per-user startup, load
+supported plugins, and pass the Windows compatibility gates without requiring
+WSL2.
 
-## Support matrix
+## Native capability states
 
-| Surface                  | Native Windows target                                                                                                     | Status                                 |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Installer                | `install.ps1` installs Node 22+, Git when needed, CrawClaw via npm or git, and optional onboarding.                       | Supported                              |
-| CLI                      | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                         | Supported                              |
-| Gateway foreground       | `crawclaw gateway run` starts the Gateway directly on the Windows host.                                                   | Supported                              |
-| Gateway auto-start       | `crawclaw gateway install` uses Windows Scheduled Tasks when allowed, then falls back to a per-user Startup-folder entry. | Supported with caveats                 |
-| Providers and plugins    | Node-based plugins load through the bundled plugin runtime and install-time dependency setup.                             | Supported with plugin-specific caveats |
-| Browser automation       | Chrome and Edge discovery plus Playwright-backed browser plugins are validated by compatibility tests.                    | Supported with caveats                 |
-| Docker sandbox           | Requires Docker Desktop or another working Windows Docker engine.                                                         | Limited                                |
-| WSL2 Gateway host        | Linux install path inside WSL2 with systemd user service support.                                                         | Recommended                            |
-| Apple-local integrations | iMessage and BlueBubbles depend on Apple devices or bridge hosts.                                                         | Not native Windows                     |
-| Native companion app     | Windows tray or desktop companion shell.                                                                                  | Not shipped                            |
+The Windows matrix uses three support states:
+
+- `supported`: CrawClaw owns the native Windows path and validates it with
+  automated or smoke-backed gates.
+- `bridged`: CrawClaw can use the capability from Windows, but the native
+  capability runs on another host such as a Mac or headless node.
+- `not-native`: the capability is outside the current native Windows product
+  boundary.
+
+## Native capability matrix
+
+| Surface                              | Status       | Windows boundary                                                                                                      |
+| ------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Installer                            | `supported`  | `install.ps1` installs Node 24 by default, accepts Node 22.14+, checks Git/PATH prerequisites, and installs CrawClaw. |
+| CLI                                  | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                     |
+| Gateway foreground                   | `supported`  | `crawclaw gateway run` starts the Gateway directly on the Windows host.                                               |
+| Gateway service                      | `supported`  | Per-user login service: Scheduled Task when allowed, Startup-folder fallback when task creation is denied.            |
+| `exec` and `system.run` tools        | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.          |
+| Browser automation                   | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                       |
+| Docker sandbox                       | `supported`  | Supported after Windows drive-path, Docker Desktop bind, and sandbox security gates pass.                             |
+| Telegram, Discord, Slack, Matrix     | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.    |
+| Common provider plugins              | `supported`  | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                       |
+| BlueBubbles and iMessage             | `bridged`    | Bridged through a Mac server or Apple host; Windows runs the Gateway/client side, not Apple's local messaging stack.  |
+| Apple skills and macOS-only tooling  | `bridged`    | Bridged through a Mac or headless node that owns the Apple-local runtime and permissions.                             |
+| WSL2 Gateway host                    | `supported`  | Linux install path inside WSL2 with systemd user service support; still recommended for broad Linux compatibility.    |
+| macOS companion app                  | `not-native` | Not described as a native Windows deliverable in this repo.                                                           |
+| Windows tray or desktop companion UI | `not-native` | Not shipped today; native Windows support is CLI, Gateway, web UI, plugins, and runtime setup.                        |
 
 ## Choose a path
 
-Use **WSL2** when you want the broadest compatibility, Linux shell tooling, or
-Docker-heavy workflows.
+Use **WSL2** when you want the broadest Linux compatibility, Linux shell
+tooling, or Docker-heavy workflows.
 
 Use **native Windows** when you want CrawClaw installed and managed directly in
-Windows, can run PowerShell, and do not need Apple-local integrations on that
-host.
+Windows, can run PowerShell, and do not need Apple-local integrations to execute
+on that host.
 
 ## Native install
 
@@ -86,9 +103,10 @@ crawclaw gateway status --json
 ```
 
 If Scheduled Task creation is denied, CrawClaw falls back to a per-user
-Startup-folder login item and starts the Gateway immediately. Scheduled Tasks
-remain preferred because they provide better supervisor status and restart
-visibility.
+Startup-folder login item and starts the Gateway immediately. This is a
+per-user login service, not a machine service that runs before any user logs in.
+Scheduled Tasks remain preferred because they provide better supervisor status
+and restart visibility.
 
 For CLI-only setups, skip health-gated onboarding:
 
@@ -117,34 +135,42 @@ pnpm test:parallels:windows
 pnpm test:parallels:npm-update
 ```
 
-## Acceptance criteria
+## Native first-class acceptance criteria
 
-Native Windows support is considered healthy when all of these are true:
+Native Windows can be described as first-class when all of these are true:
 
 - `install.ps1` can install or update CrawClaw without manual Node or Git setup
-  on a supported Windows machine.
-- `crawclaw --version`, `crawclaw doctor --non-interactive`, and
-  `crawclaw plugins list --json` work in a fresh PowerShell session.
-- `crawclaw gateway run` starts the Gateway in the foreground.
-- `crawclaw gateway install` either creates a Scheduled Task or installs the
-  documented Startup-folder fallback without hanging.
+  on a clean supported Windows 11 machine.
+- `crawclaw --version` works in a fresh PowerShell session without manually
+  repairing PATH.
+- `crawclaw doctor --non-interactive` has no blocking errors.
+- `crawclaw onboard --non-interactive --install-daemon` completes for a local
+  Gateway setup.
+- `crawclaw gateway status --deep --require-rpc` reports a reachable Gateway.
+- `crawclaw agent --local --agent main --message "Reply OK only." --json`
+  completes a first local turn.
+- Browser runtime checks either pass or return a clear, actionable repair
+  instruction.
 - Provider and channel plugins that declare Windows support install their
   runtime dependencies during install or postinstall, not lazily during the
   first user request.
-- `pnpm test:windows:compat` passes locally, and the Parallels Windows smoke
-  gate passes before treating native Windows changes as release-ready.
+- Upgrade from the published `latest` package to the current package succeeds.
+- CI and release gates cover the Windows install, postinstall manifest,
+  Gateway lifecycle, first agent turn, and smoke-backed runtime checks.
 
-## Current caveats
+## Current boundaries
 
-- `crawclaw onboard --non-interactive` expects a reachable local Gateway unless
-  you pass `--skip-health`.
-- Windows service status is best with Scheduled Tasks. Startup-folder fallback
-  mode is intentionally simpler and only starts after user login.
-- Docker sandbox support depends on the user's Windows Docker installation.
-- Some plugins may require additional native binaries or browser/runtime
-  dependencies that are installed outside CrawClaw.
-- Apple-local integrations require an Apple device or bridge host and are not
-  native Windows capabilities.
+- Gateway auto-start is a per-user login mode. Running before any Windows user
+  signs in would require an administrator-installed Windows Service and is a
+  later phase.
+- Docker sandbox support depends on Docker Desktop or another working Windows
+  Docker engine plus passing Windows path and sandbox security checks.
+- Some plugins may require provider credentials, native binaries, browser
+  installs, or runtime dependencies outside CrawClaw's package.
+- Apple-local integrations require an Apple device or bridge host and are
+  `bridged`, not native Windows capabilities.
+- Native Windows support should not be described as full Windows parity until
+  the gates in this document are green in CI, nightly, and release validation.
 
 ## WSL2 (recommended)
 

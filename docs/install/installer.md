@@ -267,16 +267,39 @@ The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names whil
     Requires PowerShell 5+.
   </Step>
   <Step title="Ensure Node.js 24 by default">
-    If missing, attempts install via winget, then Chocolatey, then Scoop. Node 22 LTS, currently `22.14+`, remains supported for compatibility.
+    If missing, attempts install via winget, then Chocolatey, then Scoop. Node 24 is preferred; Node 22 LTS, currently `22.14+`, remains supported for compatibility.
+  </Step>
+  <Step title="Ensure Git and PATH prerequisites">
+    Checks for Git/PATH problems that commonly break npm package installs on Windows, and reports the first actionable fix instead of hiding npm or PowerShell errors.
   </Step>
   <Step title="Install CrawClaw">
     - `npm` method (default): global npm install using selected `-Tag`
     - `git` method: clone/update repo, install/build with pnpm, and install wrapper at `%USERPROFILE%\.local\bin\crawclaw.cmd`
   </Step>
   <Step title="Post-install tasks">
-    Adds needed bin directory to user PATH when possible, then runs `crawclaw doctor --non-interactive` on upgrades and git installs (best effort).
+    Adds needed bin directory to user PATH when possible, prepares bundled plugin runtimes during postinstall, and runs `crawclaw doctor --non-interactive` on upgrades and git installs (best effort).
   </Step>
 </Steps>
+
+### Native Windows boundary
+
+`install.ps1` is the supported native Windows entrypoint for CLI and Gateway
+installs. Successful installation does not imply full Windows parity with
+macOS-only integrations or every Linux sandbox behavior. Use the Windows
+platform matrix for the product boundary: [Windows](/platforms/windows).
+
+The closed-loop validation path for native Windows is:
+
+```powershell
+iwr -useb https://crawclaw.ai/install.ps1 | iex
+crawclaw doctor --non-interactive
+crawclaw onboard --non-interactive --mode local --install-daemon --skip-skills --accept-risk
+crawclaw gateway status --deep --require-rpc
+```
+
+That path validates the installer, runtime preparation, local Gateway setup,
+and RPC reachability. Apple-local features such as iMessage are bridged through
+a Mac or Apple host; they are not provided by `install.ps1` on Windows.
 
 ### Examples (install.ps1)
 
