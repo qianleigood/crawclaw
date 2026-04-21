@@ -1,3 +1,4 @@
+import { normalizeRecallText, tokenizeRecallText } from "../recall/query-analysis.ts";
 import type {
   UnifiedEntityCandidate,
   UnifiedEntityMatch,
@@ -6,11 +7,29 @@ import type {
   UnifiedEntityResolutionResult,
   UnifiedQueryClassification,
 } from "../types/orchestration.ts";
-import { normalizeRecallText, tokenizeRecallText } from "../recall/query-analysis.ts";
 
 const STOPWORDS = new Set([
-  "the", "and", "for", "with", "this", "that", "what", "which",
-  "一个", "这个", "那个", "怎么", "如何", "一下", "还有", "现在", "上次", "之前", "为什么", "如果", "按什么",
+  "the",
+  "and",
+  "for",
+  "with",
+  "this",
+  "that",
+  "what",
+  "which",
+  "一个",
+  "这个",
+  "那个",
+  "怎么",
+  "如何",
+  "一下",
+  "还有",
+  "现在",
+  "上次",
+  "之前",
+  "为什么",
+  "如果",
+  "按什么",
 ]);
 
 function unique<T>(items: T[]): T[] {
@@ -27,34 +46,59 @@ function normalizeTerm(input: string): string {
     .trim();
 }
 
-function variantsForCandidate(candidate: UnifiedEntityCandidate): Array<{ value: string; kind: "title" | "alias" }> {
+function variantsForCandidate(
+  candidate: UnifiedEntityCandidate,
+): Array<{ value: string; kind: "title" | "alias" }> {
   const values = [candidate.title, ...(candidate.aliases ?? []), candidate.path ?? ""]
     .map((value) => value.trim())
     .filter(Boolean);
-  return unique(values).map((value) => ({ value, kind: value === candidate.title ? "title" : "alias" }));
+  return unique(values).map((value) => ({
+    value,
+    kind: value === candidate.title ? "title" : "alias",
+  }));
 }
 
 function tokenOverlapScore(left: string, right: string): number {
-  const leftTokens = tokenizeRecallText(left.toLowerCase()).filter((token) => token.length >= 2 && !STOPWORDS.has(token));
-  const rightTokens = tokenizeRecallText(right.toLowerCase()).filter((token) => token.length >= 2 && !STOPWORDS.has(token));
-  if (!leftTokens.length || !rightTokens.length) {return 0;}
+  const leftTokens = tokenizeRecallText(left.toLowerCase()).filter(
+    (token) => token.length >= 2 && !STOPWORDS.has(token),
+  );
+  const rightTokens = tokenizeRecallText(right.toLowerCase()).filter(
+    (token) => token.length >= 2 && !STOPWORDS.has(token),
+  );
+  if (!leftTokens.length || !rightTokens.length) {
+    return 0;
+  }
   const rightSet = new Set(rightTokens);
   const overlap = leftTokens.filter((token) => rightSet.has(token)).length;
   return overlap / Math.max(leftTokens.length, rightTokens.length);
 }
 
-function scoreVariant(mention: string, variant: { value: string; kind: "title" | "alias" }): { score: number; matchType?: UnifiedEntityMatchType } {
+function scoreVariant(
+  mention: string,
+  variant: { value: string; kind: "title" | "alias" },
+): { score: number; matchType?: UnifiedEntityMatchType } {
   const normalizedMention = normalizeTerm(mention);
   const normalizedVariant = normalizeTerm(variant.value);
-  if (!normalizedMention || !normalizedVariant) {return { score: 0 };}
-
-  if (normalizedMention === normalizedVariant) {
-    return { score: variant.kind === "title" ? 1 : 0.98, matchType: variant.kind === "title" ? "title_exact" : "alias_exact" };
+  if (!normalizedMention || !normalizedVariant) {
+    return { score: 0 };
   }
 
-  if (normalizedVariant.includes(normalizedMention) || normalizedMention.includes(normalizedVariant)) {
+  if (normalizedMention === normalizedVariant) {
+    return {
+      score: variant.kind === "title" ? 1 : 0.98,
+      matchType: variant.kind === "title" ? "title_exact" : "alias_exact",
+    };
+  }
+
+  if (
+    normalizedVariant.includes(normalizedMention) ||
+    normalizedMention.includes(normalizedVariant)
+  ) {
     const base = variant.kind === "title" ? 0.88 : 0.84;
-    return { score: base, matchType: variant.kind === "title" ? "title_contains" : "alias_contains" };
+    return {
+      score: base,
+      matchType: variant.kind === "title" ? "title_contains" : "alias_contains",
+    };
   }
 
   const overlap = tokenOverlapScore(normalizedMention, normalizedVariant);
@@ -87,11 +131,17 @@ export interface EntityResolverInput {
   topKPerMention?: number;
 }
 
-function scoreCandidate(mention: string, candidate: UnifiedEntityCandidate, sourceBias = 0): UnifiedEntityMatch | null {
+function scoreCandidate(
+  mention: string,
+  candidate: UnifiedEntityCandidate,
+  sourceBias = 0,
+): UnifiedEntityMatch | null {
   let best: UnifiedEntityMatch | null = null;
   for (const variant of variantsForCandidate(candidate)) {
     const scored = scoreVariant(mention, variant);
-    if (!scored.matchType || scored.score <= 0) {continue;}
+    if (!scored.matchType || scored.score <= 0) {
+      continue;
+    }
     const finalScore = Math.min(1, scored.score + sourceBias);
     if (!best || finalScore > best.score) {
       best = {
@@ -112,13 +162,18 @@ export function resolveUnifiedEntities(input: EntityResolverInput): UnifiedEntit
   const sourceBias = {
     graph: (input.classification?.routeWeights.graph ?? 0.25) * 0.08,
     notebooklm: (input.classification?.routeWeights.notebooklm ?? 0.25) * 0.08,
+    local_knowledge_index: (input.classification?.routeWeights.notebooklm ?? 0.25) * 0.08,
     native_memory: (input.classification?.routeWeights.nativeMemory ?? 0.25) * 0.08,
     execution: (input.classification?.routeWeights.execution ?? 0.25) * 0.08,
   } as const;
 
   const resolved = mentions.map((mention) => {
     const matches = input.registries
-      .flatMap((registry) => registry.items.map((candidate) => scoreCandidate(mention, candidate, sourceBias[candidate.source])))
+      .flatMap((registry) =>
+        registry.items.map((candidate) =>
+          scoreCandidate(mention, candidate, sourceBias[candidate.source]),
+        ),
+      )
       .filter((match): match is UnifiedEntityMatch => Boolean(match))
       .filter((match) => match.score >= minScore)
       .toSorted((a, b) => b.score - a.score)
@@ -131,12 +186,14 @@ export function resolveUnifiedEntities(input: EntityResolverInput): UnifiedEntit
     };
   });
 
-  const selectedCandidates = Array.from(new Map(
-    resolved
-      .map((item) => item.selected?.candidate)
-      .filter((candidate): candidate is UnifiedEntityCandidate => Boolean(candidate))
-      .map((candidate) => [candidate.id, candidate]),
-  ).values());
+  const selectedCandidates = Array.from(
+    new Map(
+      resolved
+        .map((item) => item.selected?.candidate)
+        .filter((candidate): candidate is UnifiedEntityCandidate => Boolean(candidate))
+        .map((candidate) => [candidate.id, candidate]),
+    ).values(),
+  );
 
   return {
     mentions,

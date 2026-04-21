@@ -3,7 +3,8 @@ import type { UnifiedRankedItem } from "../types/orchestration.ts";
 import { selectKnowledgeRecall } from "./knowledge-recall-selector.ts";
 
 function makeItem(
-  overrides: Partial<UnifiedRankedItem> & Pick<UnifiedRankedItem, "id" | "source" | "title" | "summary" | "score">,
+  overrides: Partial<UnifiedRankedItem> &
+    Pick<UnifiedRankedItem, "id" | "source" | "title" | "summary" | "score">,
 ): UnifiedRankedItem {
   return {
     layer: "runtime_signals",
@@ -67,6 +68,45 @@ describe("selectKnowledgeRecall", () => {
     expect(result.selectedItemIds).toEqual(["notebooklm-procedure"]);
     expect(result.omittedItemIds).toEqual(["durable-feedback", "knowledge-procedure"]);
     expect(result.mode).toBe("heuristic");
+  });
+
+  it("accepts local knowledge index items without pretending they came from notebooklm", () => {
+    const result = selectKnowledgeRecall({
+      items: [
+        makeItem({
+          id: "local-sop",
+          source: "local_knowledge_index",
+          title: "gateway recovery",
+          summary:
+            "When gateway health fails, inspect the port, restart the service, then verify health.",
+          layer: "sop",
+          memoryKind: "procedure",
+          score: 0.79,
+        }),
+      ],
+    });
+
+    expect(result.selectedItemIds).toEqual(["local-sop"]);
+    expect(result.mode).toBe("heuristic");
+  });
+
+  it("can select more than four strong knowledge items when the caller lends budget", () => {
+    const items = Array.from({ length: 6 }, (_, index) =>
+      makeItem({
+        id: `knowledge-${index + 1}`,
+        source: "notebooklm",
+        title: `knowledge ${index + 1}`,
+        summary:
+          "A strong operational recall item with enough detail to pass prompt-facing filtering.",
+        layer: "sop",
+        memoryKind: "procedure",
+        score: 0.9 - index * 0.01,
+      }),
+    );
+
+    const result = selectKnowledgeRecall({ items, limit: 6 });
+
+    expect(result.selectedItemIds).toHaveLength(6);
   });
 
   it("can skip knowledge recall entirely when notebooklm items are too weak", () => {

@@ -1,7 +1,12 @@
 import type { QueryContextSection } from "../../agents/query-context/types.js";
 import type { MemoryKind } from "../recall/memory-kind.ts";
 
-export type UnifiedRecallSource = "graph" | "notebooklm" | "native_memory" | "execution";
+export type UnifiedRecallSource =
+  | "graph"
+  | "notebooklm"
+  | "local_knowledge_index"
+  | "native_memory"
+  | "execution";
 
 export type UnifiedRecallIntent =
   | "decision"

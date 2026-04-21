@@ -130,7 +130,7 @@ export function renderQueryContextSystemPrompt(
 ): string {
   const systemContext = renderQueryContextSections(context.systemContextSections, "\n\n");
   const systemPrompt = renderQueryContextSections(context.systemPromptSections, "\n");
-  return [systemContext, systemPrompt].filter(Boolean).join("\n\n");
+  return [systemPrompt, systemContext].filter(Boolean).join("\n\n");
 }
 
 export function renderQueryContextUserPrompt(
@@ -232,8 +232,8 @@ export function buildQueryContextProviderRequestSnapshot(
   const systemPromptSections = normalizeQueryContextSections(context.systemPromptSections);
   const userContextSections = normalizeQueryContextSections(context.userContextSections);
   const sectionOrder = [
-    ...systemContextSections,
     ...systemPromptSections,
+    ...systemContextSections,
     ...userContextSections,
   ].map((section) => ({
     id: section.id,

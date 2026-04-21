@@ -12,11 +12,18 @@ function clampLimit(limit: number | undefined): number {
   return Math.max(1, Math.min(limit ?? 6, 10));
 }
 
-export function selectKnowledgeRecall(input: { items: readonly UnifiedRankedItem[]; limit?: number }): KnowledgeRecallSelectionResult {
+function isPromptFacingKnowledgeSource(item: UnifiedRankedItem): boolean {
+  return item.source === "notebooklm" || item.source === "local_knowledge_index";
+}
+
+export function selectKnowledgeRecall(input: {
+  items: readonly UnifiedRankedItem[];
+  limit?: number;
+}): KnowledgeRecallSelectionResult {
   const limit = clampLimit(input.limit);
   const candidates = input.items
     .filter((item) => classifyClaudeMemoryItem(item).bucket === "knowledge")
-    .filter((item) => item.source === "notebooklm")
+    .filter(isPromptFacingKnowledgeSource)
     .filter((item) => item.summary.trim().length >= 24 || item.content?.trim().length)
     .toSorted((left, right) => right.score - left.score)
     .slice(0, Math.max(limit * 2, 6));
@@ -31,8 +38,8 @@ export function selectKnowledgeRecall(input: { items: readonly UnifiedRankedItem
   const topScore = candidates[0]?.score ?? 0;
   const scoreFloor = Math.max(0.45, topScore - 0.22);
   const items = candidates
-    .filter((item, index) => index === 0 ? item.score >= 0.45 : item.score >= scoreFloor)
-    .slice(0, Math.min(limit, 4));
+    .filter((item, index) => (index === 0 ? item.score >= 0.45 : item.score >= scoreFloor))
+    .slice(0, limit);
   if (!items.length) {
     return {
       items: [],
@@ -42,6 +49,8 @@ export function selectKnowledgeRecall(input: { items: readonly UnifiedRankedItem
     };
   }
   const selectedItemIds = items.map((item) => item.id);
-  const omittedItemIds = input.items.filter((item) => !selectedItemIds.includes(item.id)).map((item) => item.id);
+  const omittedItemIds = input.items
+    .filter((item) => !selectedItemIds.includes(item.id))
+    .map((item) => item.id);
   return { items, selectedItemIds, omittedItemIds, mode: "heuristic" };
 }

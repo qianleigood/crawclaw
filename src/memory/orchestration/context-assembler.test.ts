@@ -141,4 +141,55 @@ describe("assembleMemoryPrompt", () => {
       omittedCount: 0,
     });
   });
+
+  it("keeps knowledge recall inside its total allocated budget across layers", () => {
+    const summary =
+      "This recall item intentionally has enough detail to make the token estimate meaningful for budget enforcement.";
+    const assembled = assembleMemoryPrompt({
+      knowledgeItems: [
+        makeKnowledgeItem({
+          id: "decision-1",
+          source: "notebooklm",
+          title: "Decision one",
+          summary,
+          layer: "key_decisions",
+          memoryKind: "decision",
+          score: 0.9,
+        }),
+        makeKnowledgeItem({
+          id: "sop-1",
+          source: "notebooklm",
+          title: "Procedure one",
+          summary,
+          layer: "sop",
+          memoryKind: "procedure",
+          score: 0.88,
+        }),
+        makeKnowledgeItem({
+          id: "preference-1",
+          source: "notebooklm",
+          title: "Preference one",
+          summary,
+          layer: "preferences",
+          memoryKind: "preference",
+          score: 0.86,
+        }),
+        makeKnowledgeItem({
+          id: "signal-1",
+          source: "notebooklm",
+          title: "Signal one",
+          summary,
+          layer: "runtime_signals",
+          memoryKind: "runtime_pattern",
+          score: 0.84,
+        }),
+      ],
+      tokenBudget: 240,
+    });
+
+    const knowledgeSection = assembled.sections.find((section) => section.kind === "knowledge");
+    expect(knowledgeSection).toBeDefined();
+    expect(knowledgeSection?.estimatedTokens ?? 0).toBeLessThanOrEqual(144);
+    expect(assembled.omittedItemIds.length).toBeGreaterThan(0);
+  });
 });

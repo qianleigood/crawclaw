@@ -211,14 +211,16 @@ function layerForKnowledgeItem(item: UnifiedRankedItem): UnifiedRecallLayer {
 function assembleKnowledgeSection(
   items: UnifiedRankedItem[],
   budget: number,
+  layerBudgets: Record<UnifiedRecallLayer, number>,
 ): MemoryPromptSection | null {
   if (!items.length) {
     return null;
   }
 
   const knowledgeLines: string[] = [];
-  const knowledgeItemIds: string[] = [];
+  const knowledgeItemIds = new Set<string>();
   let knowledgeOmitted = 0;
+  let totalUsed = estimateTokens(KNOWLEDGE_HEADING);
 
   for (const layer of KNOWLEDGE_LAYER_ORDER) {
     const candidates = items.filter((item) => layerForKnowledgeItem(item) === layer);
@@ -228,7 +230,9 @@ function assembleKnowledgeSection(
 
     const layerLines: string[] = [];
     const layerHeading = getKnowledgeLayerHeading(layer);
+    const layerHeadingTokens = estimateTokens(layerHeading);
     let used = estimateTokens(layerHeading);
+    const layerBudget = Math.max(1, layerBudgets[layer] ?? budget);
     const hardCap =
       layer === "sources"
         ? Math.max(1, Math.min(6, candidates.length))
@@ -241,20 +245,38 @@ function assembleKnowledgeSection(
       }
       const line = layer === "sources" ? formatSourceLine(item) : formatKnowledgeItemLine(item);
       const nextUsed = used + estimateTokens(line);
-      if (nextUsed > budget && layerLines.length > 0) {
+      const nextTotalUsed =
+        totalUsed + (layerLines.length === 0 ? layerHeadingTokens : 0) + estimateTokens(line);
+      if (nextTotalUsed > budget) {
+        knowledgeOmitted += 1;
+        continue;
+      }
+      if (nextUsed > layerBudget && layerLines.length > 0) {
         knowledgeOmitted += 1;
         continue;
       }
       layerLines.push(line);
       used = nextUsed;
-      knowledgeItemIds.push(item.id);
+      knowledgeItemIds.add(item.id);
+      totalUsed = nextTotalUsed;
     }
 
     if (!layerLines.length && layer === "sources" && items.length) {
-      const fallback = items.slice(0, Math.min(4, items.length)).map(formatSourceLine);
-      knowledgeLines.push(layerHeading, ...fallback);
+      const fallbackLines: string[] = [];
       for (const item of items.slice(0, Math.min(4, items.length))) {
-        knowledgeItemIds.push(item.id);
+        const line = formatSourceLine(item);
+        const nextTotalUsed =
+          totalUsed + (fallbackLines.length === 0 ? layerHeadingTokens : 0) + estimateTokens(line);
+        if (nextTotalUsed > budget) {
+          knowledgeOmitted += 1;
+          continue;
+        }
+        fallbackLines.push(line);
+        knowledgeItemIds.add(item.id);
+        totalUsed = nextTotalUsed;
+      }
+      if (fallbackLines.length) {
+        knowledgeLines.push(layerHeading, ...fallbackLines);
       }
       continue;
     }
@@ -271,7 +293,7 @@ function assembleKnowledgeSection(
     "knowledge",
     KNOWLEDGE_HEADING,
     knowledgeLines,
-    knowledgeItemIds,
+    [...knowledgeItemIds],
     knowledgeOmitted,
   );
 }
@@ -285,7 +307,11 @@ export function assembleMemoryPrompt(input: MemoryPromptAssemblyInput): MemoryPr
   const durableItems = input.durableItems ?? [];
   const durableSection = assembleDurableSection(durableItems, budgets.durable);
   const knowledgeItems = input.knowledgeItems ?? [];
-  const knowledgeSection = assembleKnowledgeSection(knowledgeItems, budgets.knowledge);
+  const knowledgeSection = assembleKnowledgeSection(
+    knowledgeItems,
+    budgets.knowledge,
+    budgets.knowledgeLayers,
+  );
 
   if (durableSection) {
     sections.push(durableSection);

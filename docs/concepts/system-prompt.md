@@ -89,6 +89,18 @@ single-file bootstrap.
 
 To inspect how much each injected file contributes (raw vs injected, truncation, plus tool schema overhead), use `/context list` or `/context detail`. See [Context](/concepts/context).
 
+## Prompt ordering and dynamic context
+
+CrawClaw renders stable system prompt sections before dynamic system context.
+This keeps the long-lived prompt prefix more cache-friendly while still sending
+memory recall, hook context, and other per-turn `system_context` sections as
+system-visible instructions in the same request.
+
+Dynamic memory context is appended after the base system prompt. That context can
+change every turn because durable memory, knowledge recall, hooks, and routing
+diagnostics are query-dependent. Keeping it after the stable prefix avoids
+invalidating the whole prompt prefix just because recall results changed.
+
 ## Time handling
 
 The system prompt includes a dedicated **Current Date & Time** section when the

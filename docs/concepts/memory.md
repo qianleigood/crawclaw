@@ -185,6 +185,11 @@ that classification:
 - successful `write_knowledge_note` calls update a small local baseline index,
   so recently written knowledge can still be recalled when live provider search
   returns no hits
+- local baseline hits keep their own `local_knowledge_index` source, so inspect
+  and prompt diagnostics can distinguish them from live NotebookLM hits
+- selected knowledge recall is still bounded by the memory prompt budget; layer
+  allocations are soft guidance, but the assembled knowledge section must fit
+  the global knowledge budget for the turn
 - the selected target layers, provider ids, reason, and limit are written into
   memory recall diagnostics so inspect/debug flows can explain why knowledge was
   queried or skipped

@@ -45,12 +45,12 @@ function createContext(): QueryContext {
 }
 
 describe("query context render", () => {
-  it("renders system context before base system prompt", () => {
+  it("renders stable base system prompt before dynamic system context", () => {
     const rendered = renderQueryContextSystemPrompt(createContext());
     expect(rendered).toContain("## Durable memory");
     expect(rendered).toContain("You are CrawClaw.");
-    expect(rendered.indexOf("## Durable memory")).toBeLessThan(
-      rendered.indexOf("You are CrawClaw."),
+    expect(rendered.indexOf("You are CrawClaw.")).toBeLessThan(
+      rendered.indexOf("## Durable memory"),
     );
   });
 
@@ -136,9 +136,9 @@ describe("query context render", () => {
     const snapshot = buildQueryContextProviderRequestSnapshot(context);
     expect(snapshot.queryContextHash).toHaveLength(64);
     expect(snapshot.sectionOrder.map((section) => section.id)).toEqual([
+      "base",
       "memory:durable",
       "hook-ctx",
-      "base",
     ]);
     expect(snapshot.sectionTokenUsage.totalEstimatedTokens).toBe(usage.totalEstimatedTokens);
     expect(snapshot.hookSectionDiffs).toEqual([

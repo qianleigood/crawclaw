@@ -57,7 +57,7 @@ describe("knowledge local index", () => {
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({
       id: "knowledge-index:gateway-recovery-procedure",
-      source: "notebooklm",
+      source: "local_knowledge_index",
       title: "本地网关恢复流程",
       layer: "sop",
       memoryKind: "procedure",

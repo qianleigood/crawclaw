@@ -194,7 +194,7 @@ export async function searchKnowledgeIndexEntries(params: {
     .slice(0, limit)
     .map(({ entry, score }) => ({
       id: entry.id,
-      source: "notebooklm",
+      source: "local_knowledge_index",
       title: entry.title,
       summary: entry.summary,
       content: entry.content,
