@@ -27,13 +27,17 @@ export async function resolveDurableRecallForAssembly(params: {
   const durableScope = resolveDurableMemoryScope({
     sessionKey: params.sessionKey,
     agentId:
-      typeof params.runtimeContext?.agentId === "string" ? params.runtimeContext.agentId : undefined,
+      typeof params.runtimeContext?.agentId === "string"
+        ? params.runtimeContext.agentId
+        : undefined,
     channel:
       typeof params.runtimeContext?.messageChannel === "string"
         ? params.runtimeContext.messageChannel
         : undefined,
     userId:
-      typeof params.runtimeContext?.senderId === "string" ? params.runtimeContext.senderId : undefined,
+      typeof params.runtimeContext?.senderId === "string"
+        ? params.runtimeContext.senderId
+        : undefined,
   });
   let durableRecallSource: DurableRecallSource = durablePrefetchHandle
     ? "prefetch_pending"
