@@ -81,6 +81,13 @@ describe("agent.inspect command", () => {
     mocks.loadConfigMock.mockReturnValue({ memory: {} });
     mocks.resolveMemoryConfigMock.mockReturnValue({
       runtimeStore: { dbPath: "/tmp/memory-runtime.db" },
+      dreaming: {
+        enabled: true,
+        minHours: 24,
+        minSessions: 5,
+        scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
+      },
     });
     mocks.resolveSharedContextArchiveServiceMock.mockResolvedValue(undefined);
     mocks.readEventsMock.mockResolvedValue([]);
@@ -424,6 +431,7 @@ describe("agent.inspect command", () => {
     expect(runtime.log).toHaveBeenCalledWith(
       expect.stringContaining("Scope: main:channel:chat%3Auser%3Auser-1"),
     );
+    expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Closed loop: active"));
     expect(runtime.log).toHaveBeenCalledWith(
       expect.stringContaining("Last skip reason: min_sessions_gate"),
     );
@@ -561,6 +569,9 @@ describe("agent.inspect command", () => {
       warnings: [],
       dream: {
         scopeKey: "main:channel:chat%3Auser%3Auser-1",
+        enabled: true,
+        closedLoopActive: true,
+        closedLoopReason: "active",
         state: {
           lastSuccessAt: 100,
           lastAttemptAt: 101,
@@ -589,6 +600,8 @@ describe("agent.inspect command", () => {
 
     expect(rendered).toContain("Dream:");
     expect(rendered).toContain("Scope: main:channel:chat%3Auser%3Auser-1");
+    expect(rendered).toContain("Enabled: yes");
+    expect(rendered).toContain("Closed loop: active");
     expect(rendered).toContain("Last skip reason: min_sessions_gate");
     expect(rendered).toContain("Lock owner: dream-1");
     expect(rendered).toContain("reason: agent_failed");

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSpecialAgentCacheEnvelope,
   buildSpecialAgentParentForkContextFromModelInput,
+  resolveSpecialAgentParentForkContext,
 } from "./parent-fork-context.js";
 
 describe("special-agent cache envelope helpers", () => {
@@ -66,5 +67,41 @@ describe("special-agent cache envelope helpers", () => {
         forkContextMessages: [{ role: "assistant", content: "done" }],
       },
     });
+  });
+
+  it("normalizes lifecycle parent fork context metadata", () => {
+    const promptEnvelope = buildSpecialAgentCacheEnvelope({
+      systemPromptText: "system prompt",
+      forkContextMessages: [{ role: "user", content: "from parent" }],
+    });
+
+    expect(
+      resolveSpecialAgentParentForkContext({
+        parentRunId: " parent-run-1 ",
+        provider: " openai ",
+        modelId: " gpt-5.4 ",
+        modelApi: " openai-responses ",
+        promptEnvelope,
+      }),
+    ).toMatchObject({
+      parentRunId: "parent-run-1",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      modelApi: "openai-responses",
+      promptEnvelope,
+    });
+  });
+
+  it("rejects lifecycle parent fork metadata without fork messages", () => {
+    expect(
+      resolveSpecialAgentParentForkContext({
+        parentRunId: "parent-run-1",
+        provider: "openai",
+        modelId: "gpt-5.4",
+        promptEnvelope: {
+          systemPromptText: "system prompt",
+        },
+      }),
+    ).toBeUndefined();
   });
 });

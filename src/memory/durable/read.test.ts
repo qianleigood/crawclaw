@@ -91,7 +91,7 @@ describe("durable memory recall", () => {
           "# Durable memory index",
           "",
           "- [Prefer concise answers](./feedback-answer-style.md) - Keep operational answers short and step-first.",
-          "- [Memory refactor scope](./project-memory-refactor.md) - Tracks the Claude-style durable and knowledge split.",
+          "- [Memory refactor scope](./project-memory-refactor.md) - Tracks the durable and knowledge split.",
         ].join("\n"),
         "utf8",
       );
@@ -115,7 +115,7 @@ describe("durable memory recall", () => {
           "---",
           "title: Memory refactor scope",
           "durable_memory_type: project",
-          "description: Refactor the memory subsystem into Claude-style durable and knowledge sections.",
+          "description: Refactor the memory subsystem into durable and knowledge sections.",
           "---",
           "",
           "This note tracks the current memory architecture migration.",
@@ -144,7 +144,7 @@ describe("durable memory recall", () => {
       ).toContain("step-first");
       expect(
         manifest.find((entry) => entry.notePath === "project-memory-refactor.md")?.indexHook,
-      ).toContain("Claude-style durable and knowledge split");
+      ).toContain("durable and knowledge split");
     } finally {
       await fs.rm(rootDir, { recursive: true, force: true });
     }
@@ -510,6 +510,13 @@ describe("durable memory recall", () => {
         prompt: "candidate",
         limit: 1,
       });
+      readSpy.mockClear();
+
+      await recallDurableMemory({
+        scope,
+        prompt: "candidate",
+        limit: 1,
+      });
 
       const excerptReads = readSpy.mock.calls
         .map((call) => call[0])
@@ -520,6 +527,67 @@ describe("durable memory recall", () => {
       expect(excerptReads.length).toBeLessThanOrEqual(13);
     } finally {
       readSpy.mockRestore();
+      await fs.rm(scopeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses the body index cache to promote old body-strong durable notes into recall candidates", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-body-index-"));
+    try {
+      const scope = {
+        agentId: "main",
+        channel: "discord",
+        userId: "user-42",
+        scopeKey: "main:discord:user-42",
+        rootDir: scopeDir,
+      };
+      await fs.writeFile(
+        path.join(scopeDir, "MEMORY.md"),
+        [
+          "# Durable memory index",
+          "",
+          ...Array.from(
+            { length: 20 },
+            (_, index) =>
+              `- [Project note ${index + 1}](./project-note-${index + 1}.md) - General project context ${index + 1}.`,
+          ),
+        ].join("\n"),
+        "utf8",
+      );
+
+      const now = Date.now();
+      for (let index = 0; index < 20; index += 1) {
+        const notePath = path.join(scopeDir, `project-note-${index + 1}.md`);
+        const isTarget = index === 19;
+        await writeNote(
+          notePath,
+          [
+            "---",
+            `title: Project note ${index + 1}`,
+            "durable_memory_type: project",
+            `description: General project context ${index + 1}.`,
+            "---",
+            "",
+            isTarget
+              ? "The legacy subsystem uses needlecache routing. When asked about needlecache, recall this old note even if the title is generic."
+              : `General body ${index + 1}.`,
+          ].join("\n"),
+        );
+        const updatedAt = isTarget ? now - 20 * 60_000 : now - index * 1_000;
+        await fs.utimes(notePath, new Date(updatedAt), new Date(updatedAt));
+      }
+
+      const result = await recallDurableMemory({
+        scope,
+        prompt: "How does needlecache routing work?",
+        limit: 1,
+      });
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.metadata?.notePath).toBe("project-note-20.md");
+      expect(result.selection.selectedDetails[0]?.provenance).toContain("body_index");
+      expect(result.selection.selectedDetails[0]?.scoreBreakdown.bodyIndex).toBeGreaterThan(0);
+    } finally {
       await fs.rm(scopeDir, { recursive: true, force: true });
     }
   });
@@ -562,7 +630,7 @@ describe("durable memory recall", () => {
       const result = await recallDurableMemory({
         scope,
         prompt: "gateway recovery",
-        recentDreamTouchedNotes: ["project-gateway-b.md"],
+        recentDreamTouchedNotes: [{ notePath: "project-gateway-b.md", touchedAt: Date.now() }],
         limit: 1,
       });
 
@@ -570,6 +638,117 @@ describe("durable memory recall", () => {
       expect(result.items).toHaveLength(1);
       expect(result.items[0]?.metadata?.notePath).toBe("project-gateway-b.md");
       expect(result.selection.selectedDetails?.[0]?.provenance).toContain("dream_boost");
+    } finally {
+      await fs.rm(scopeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not apply dream boost to unrelated touched durable notes", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-dream-relevance-"));
+    try {
+      const scope = {
+        agentId: "main",
+        channel: "discord",
+        userId: "user-42",
+        scopeKey: "main:discord:user-42",
+        rootDir: scopeDir,
+      };
+      await fs.writeFile(
+        path.join(scopeDir, "MEMORY.md"),
+        [
+          "# Durable memory index",
+          "",
+          "- [Answer style](./feedback-answer-style.md) - Keep answers short.",
+          "- [Gateway recovery](./project-gateway-recovery.md) - Gateway recovery note.",
+        ].join("\n"),
+        "utf8",
+      );
+      await writeNote(
+        path.join(scopeDir, "feedback-answer-style.md"),
+        [
+          "---",
+          "title: Answer style",
+          "durable_memory_type: feedback",
+          "description: Keep answers short.",
+          "---",
+          "",
+          "Keep answers short.",
+        ].join("\n"),
+      );
+      await writeNote(
+        path.join(scopeDir, "project-gateway-recovery.md"),
+        [
+          "---",
+          "title: Gateway recovery",
+          "durable_memory_type: project",
+          "description: Gateway recovery note.",
+          "---",
+          "",
+          "Restart gateway probes after clearing stale processes.",
+        ].join("\n"),
+      );
+
+      const result = await recallDurableMemory({
+        scope,
+        prompt: "gateway recovery",
+        recentDreamTouchedNotes: [{ notePath: "feedback-answer-style.md", touchedAt: Date.now() }],
+        limit: 1,
+      });
+
+      const unrelated = result.selection.omittedDetails.find(
+        (entry) => entry.notePath === "feedback-answer-style.md",
+      );
+      expect(result.items[0]?.metadata?.notePath).toBe("project-gateway-recovery.md");
+      expect(unrelated?.provenance).not.toContain("dream_boost");
+      expect(unrelated?.scoreBreakdown.dreamBoost).toBe(0);
+    } finally {
+      await fs.rm(scopeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("decays dream boost for stale touched durable notes", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-dream-decay-"));
+    try {
+      const scope = {
+        agentId: "main",
+        channel: "discord",
+        userId: "user-42",
+        scopeKey: "main:discord:user-42",
+        rootDir: scopeDir,
+      };
+      await fs.writeFile(
+        path.join(scopeDir, "MEMORY.md"),
+        [
+          "# Durable memory index",
+          "",
+          "- [Gateway recovery](./project-gateway-recovery.md) - Gateway recovery note.",
+        ].join("\n"),
+        "utf8",
+      );
+      await writeNote(
+        path.join(scopeDir, "project-gateway-recovery.md"),
+        [
+          "---",
+          "title: Gateway recovery",
+          "durable_memory_type: project",
+          "description: Gateway recovery note.",
+          "---",
+          "",
+          "Restart gateway probes after clearing stale processes.",
+        ].join("\n"),
+      );
+
+      const result = await recallDurableMemory({
+        scope,
+        prompt: "gateway recovery",
+        recentDreamTouchedNotes: [
+          { notePath: "project-gateway-recovery.md", touchedAt: Date.now() - 20 * 86_400_000 },
+        ],
+        limit: 1,
+      });
+
+      expect(result.selection.selectedDetails[0]?.provenance).not.toContain("dream_boost");
+      expect(result.selection.selectedDetails[0]?.scoreBreakdown.dreamBoost).toBe(0);
     } finally {
       await fs.rm(scopeDir, { recursive: true, force: true });
     }

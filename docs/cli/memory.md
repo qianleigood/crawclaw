@@ -104,6 +104,10 @@ Notes:
 - `memory login` runs the interactive NotebookLM login flow and validates the rebuilt profile.
 - `memory prompt-journal-summary` aggregates the nightly memory prompt journal into counts for prompt assembly, after-turn decisions, durable extraction, and knowledge writes.
 - `memory dream status` reports auto-dream state from the runtime DB plus recent dream runs.
+- `memory dream status` explicitly reports whether the dream closed loop is
+  active for the inspected scope. `closedLoopActive=false` with
+  `closedLoopReason=disabled` means config disabled it; `scope_unresolved`
+  means status could not resolve the durable scope being inspected.
 - `memory dream status` also shows the most recent skip/gate reason, such as `min_hours_gate`, `min_sessions_gate`, `scan_throttle`, or `lock_held`.
 - `memory dream status` and `memory dream history` now surface recent
   `touchedNotes`, so you can see which durable notes were just consolidated.
@@ -116,10 +120,10 @@ Notes:
 - `memory session-summary refresh` forces one `session_summary` background update against a specific session.
 - `memory session-summary refresh` uses the same light-to-full scheduler path as
   automatic session-summary maintenance.
-- Durable `MEMORY.md` indexes are now validated as Claude-style indexes: no frontmatter, one short pointer per line, and roughly capped at 200 lines / 25KB.
+- Durable `MEMORY.md` indexes are now validated as bounded recall indexes: no frontmatter, one short pointer per line, and roughly capped at 200 lines / 25KB.
 - Durable recall observability now records whether a selected note won on
-  `index`, `header`, `body_rerank`, and/or `dream_boost` signals; inspect those
-  details with `crawclaw agent inspect`.
+  `index`, `header`, `body_index`, `body_rerank`, and/or `dream_boost` signals;
+  inspect those details with `crawclaw agent inspect`.
 - NotebookLM knowledge recall itself happens during prompt assembly for live agent turns; `crawclaw memory` does not trigger recall.
 - `write_knowledge_note` is the only NotebookLM write path in the current runtime.
 - Prompt journal is debug-only and intentionally lossy/truncated. Use Context

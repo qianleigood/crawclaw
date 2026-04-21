@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { DurableMemoryItem, UnifiedRankedItem } from "../types/orchestration.ts";
+import type {
+  DurableMemoryItem,
+  UnifiedQueryClassification,
+  UnifiedRankedItem,
+} from "../types/orchestration.ts";
 import { assembleMemoryPrompt } from "./context-assembler.ts";
 
 function makeKnowledgeItem(
@@ -62,6 +66,30 @@ function makeDurableItem(
     },
     ...overrides,
   } as DurableMemoryItem;
+}
+
+function makeClassification(
+  intent: UnifiedQueryClassification["intent"],
+  targetLayers: UnifiedQueryClassification["targetLayers"],
+): UnifiedQueryClassification {
+  return {
+    query: "query",
+    normalizedQuery: "query",
+    intent,
+    secondaryIntents: [],
+    confidence: 0.9,
+    keywords: ["query"],
+    entityHints: [],
+    temporalHints: [],
+    routeWeights: {
+      graph: 0.25,
+      notebooklm: 0.25,
+      nativeMemory: 0.25,
+      execution: 0.25,
+    },
+    targetLayers,
+    rationale: ["test"],
+  };
 }
 
 describe("assembleMemoryPrompt", () => {
@@ -191,5 +219,49 @@ describe("assembleMemoryPrompt", () => {
     expect(knowledgeSection).toBeDefined();
     expect(knowledgeSection?.estimatedTokens ?? 0).toBeLessThanOrEqual(144);
     expect(assembled.omittedItemIds.length).toBeGreaterThan(0);
+  });
+
+  it("allocates more durable budget for durable-heavy queries with strong recall evidence", () => {
+    const durableItems = Array.from({ length: 6 }, (_, index) =>
+      makeDurableItem({
+        id: `durable-${index + 1}`,
+        source: "native_memory",
+        title: `Durable preference ${index + 1}`,
+        summary:
+          "This durable item has enough wording to make the section budget meaningful when several memories compete for prompt space.",
+        durableKind: "feedback",
+        durableReasons: ["bucket=durable", "type=feedback"],
+        score: 0.9,
+        metadata: {
+          scoreBreakdown: {
+            header: 1,
+            index: 1,
+            bodyIndex: 1,
+            bodyRerank: 1,
+            dreamBoost: 0,
+            final: 4,
+          },
+        },
+      }),
+    );
+
+    const durableHeavy = assembleMemoryPrompt({
+      durableItems,
+      knowledgeItems: [],
+      classification: makeClassification("preference", ["preferences"]),
+      tokenBudget: 360,
+    });
+    const knowledgeHeavy = assembleMemoryPrompt({
+      durableItems,
+      knowledgeItems: [],
+      classification: makeClassification("sop", ["sop", "runtime_signals"]),
+      tokenBudget: 360,
+    });
+
+    const durableHeavyCount =
+      durableHeavy.sections.find((section) => section.kind === "durable")?.itemIds.length ?? 0;
+    const knowledgeHeavyCount =
+      knowledgeHeavy.sections.find((section) => section.kind === "durable")?.itemIds.length ?? 0;
+    expect(durableHeavyCount).toBeGreaterThan(knowledgeHeavyCount);
   });
 });

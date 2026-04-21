@@ -72,7 +72,7 @@ describe("runDreamAgentOnce", () => {
     });
   });
 
-  it("aligns the dream prompt with Claude-style orient/gather/consolidate/prune workflow", () => {
+  it("aligns the dream prompt with the orient/gather/consolidate/prune workflow", () => {
     expect(DREAM_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
     expect(DREAM_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: [
@@ -87,10 +87,6 @@ describe("runDreamAgentOnce", () => {
     expect(DREAM_AGENT_DEFINITION.cachePolicy).toMatchObject({
       cacheRetention: "short",
       skipWrite: true,
-      promptCache: {
-        scope: "parent_session",
-        retention: "24h",
-      },
     });
     const systemPrompt = buildDreamSystemPrompt();
     expect(systemPrompt).toContain("hard turn budget of 8 turns");

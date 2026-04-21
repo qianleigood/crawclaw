@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { getSharedMemoryPromptJournal } from "../diagnostics/prompt-journal.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
@@ -26,6 +27,7 @@ export type DurableExtractionWorkerPendingContext = {
   workspaceDir: string;
   scope: DurableMemoryScope;
   parentRunId?: string;
+  parentForkContext?: SpecialAgentParentForkContext;
   messageCursor: number;
 };
 
@@ -60,6 +62,7 @@ export type DurableExtractionRunParams = {
   workspaceDir: string;
   scope: DurableMemoryScope;
   parentRunId?: string;
+  parentForkContext?: SpecialAgentParentForkContext;
   messageCursor: number;
   recentMessages: AgentMessage[];
   recentMessageLimit: number;
@@ -87,6 +90,7 @@ type SubmitTurnParams = {
     messageChannel?: string | null;
     senderId?: string | null;
     parentRunId?: string | null;
+    parentForkContext?: SpecialAgentParentForkContext | null;
     sessionFile?: string | null;
     workspaceDir?: string | null;
   };
@@ -243,6 +247,12 @@ export class DurableExtractionWorkerManager {
       return;
     }
 
+    const parentForkContext = params.runtimeContext?.parentForkContext ?? undefined;
+    const parentForkRunId =
+      typeof parentForkContext?.parentRunId === "string"
+        ? parentForkContext.parentRunId.trim()
+        : "";
+    const parentRunId = params.runtimeContext?.parentRunId?.trim() || parentForkRunId;
     const nextPending: DurableExtractionWorkerPendingContext = {
       sessionId: params.sessionId,
       sessionKey,
@@ -251,9 +261,8 @@ export class DurableExtractionWorkerManager {
         `${params.sessionId.trim() || "session"}.jsonl`,
       workspaceDir: params.runtimeContext?.workspaceDir?.trim() || process.cwd(),
       scope,
-      ...(params.runtimeContext?.parentRunId?.trim()
-        ? { parentRunId: params.runtimeContext.parentRunId.trim() }
-        : {}),
+      ...(parentRunId ? { parentRunId } : {}),
+      ...(parentForkContext ? { parentForkContext } : {}),
       messageCursor: params.messageCursor,
     };
     if (worker.inProgress && worker.pendingContext) {
@@ -610,6 +619,9 @@ export class DurableExtractionWorkerManager {
         workspaceDir: params.pending.workspaceDir,
         scope: params.pending.scope,
         ...(params.pending.parentRunId ? { parentRunId: params.pending.parentRunId } : {}),
+        ...(params.pending.parentForkContext
+          ? { parentForkContext: params.pending.parentForkContext }
+          : {}),
         messageCursor: params.pending.messageCursor,
         recentMessages: params.recentMessages,
         recentMessageLimit: params.recentMessageLimit,

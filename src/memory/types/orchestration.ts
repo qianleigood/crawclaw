@@ -236,6 +236,7 @@ export interface MemoryPromptSection {
 export interface MemoryPromptAssemblyInput {
   durableItems?: DurableMemoryItem[];
   knowledgeItems?: UnifiedRankedItem[];
+  classification?: UnifiedQueryClassification;
   tokenBudget?: number;
 }
 
@@ -273,6 +274,7 @@ export type UnifiedContextSection = MemoryPromptSection;
 export interface UnifiedContextAssemblyInput {
   durableItems?: DurableMemoryItem[];
   knowledgeItems?: UnifiedRankedItem[];
+  classification?: UnifiedQueryClassification;
   tokenBudget?: number;
 }
 

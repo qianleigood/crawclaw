@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { UnifiedRankedItem } from "../types/orchestration.ts";
-import { classifyClaudeMemoryItem, splitClaudeMemoryItems } from "./durable-memory-type.js";
+import { classifyMemoryRecallItem, splitMemoryRecallItems } from "./durable-memory-type.js";
 
 function makeItem(
   overrides: Partial<UnifiedRankedItem> &
@@ -32,7 +32,7 @@ function makeItem(
   } as UnifiedRankedItem;
 }
 
-describe("Claude-style durable memory taxonomy", () => {
+describe("durable memory taxonomy", () => {
   it("classifies durable memory kinds from tags and layers", () => {
     const cases = [
       {
@@ -82,10 +82,12 @@ describe("Claude-style durable memory taxonomy", () => {
     ] as const;
 
     for (const testCase of cases) {
-      const classification = classifyClaudeMemoryItem(testCase.item);
+      const classification = classifyMemoryRecallItem(testCase.item);
       expect(classification.bucket).toBe("durable");
       expect(classification.durableType).toBe(testCase.expected);
-      expect(classification.reasons).toEqual(expect.arrayContaining(["bucket=durable", `type=${testCase.expected}`]));
+      expect(classification.reasons).toEqual(
+        expect.arrayContaining(["bucket=durable", `type=${testCase.expected}`]),
+      );
     }
   });
 
@@ -107,7 +109,7 @@ describe("Claude-style durable memory taxonomy", () => {
       memoryKind: "procedure",
     });
 
-    const split = splitClaudeMemoryItems([durable, knowledge]);
+    const split = splitMemoryRecallItems([durable, knowledge]);
 
     expect(split.durableItems.map((item) => item.id)).toEqual(["durable"]);
     expect(split.knowledgeItems.map((item) => item.id)).toEqual(["knowledge"]);

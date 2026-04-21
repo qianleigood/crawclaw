@@ -769,7 +769,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.memory.dream.run.option.sessionLimit": "限制一次手动运行使用的最近 session 数",
   "command.memory.dream.run.option.signalLimit": "限制一次手动运行使用的结构化 signal 数",
   "command.memory.dream.history.description": "显示最近的 auto-dream 运行",
-  "command.memory.sessionSummary.description": "查看并刷新 Claude 风格的逐 session summary 文件",
+  "command.memory.sessionSummary.description": "查看并刷新逐 session summary 文件",
   "command.memory.sessionSummary.status.description": "显示一个 session summary 文件和运行状态",
   "command.memory.sessionSummary.refresh.description": "强制为一个 session 刷新 summary",
   "command.memory.sessionSummary.option.agent": "Session summary 使用的 agent id",

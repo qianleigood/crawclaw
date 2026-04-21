@@ -141,6 +141,8 @@ export const MemoryDreamRunEntrySchema = Type.Object(
 export const MemoryDreamStatusResultSchema = Type.Object(
   {
     enabled: Type.Boolean(),
+    closedLoopActive: Type.Boolean(),
+    closedLoopReason: Type.String(),
     config: Type.Object(
       {
         minHours: Type.Number(),

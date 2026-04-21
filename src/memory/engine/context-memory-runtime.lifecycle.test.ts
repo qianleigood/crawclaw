@@ -313,6 +313,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     agentId?: string;
     messageCount: number;
     prePromptMessageCount?: number;
+    parentForkContext?: unknown;
   }): Promise<void> {
     await emitRunLoopLifecycleEvent({
       phase: "stop",
@@ -326,6 +327,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         prePromptMessageCount: params.prePromptMessageCount ?? 0,
         messageChannel: "feishu",
         senderId: "user-1",
+        ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
       },
     });
   }
@@ -357,17 +359,30 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       config: createRuntimeConfig(),
       durableExtractionRunner,
     });
+    const messages = castAgentMessages([
+      makeAgentUserMessage({ content: "以后回答操作类问题先给步骤。" }),
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "好的，以后我会先给步骤，再补充解释。" }],
+      }),
+    ]);
+    const parentForkContext = {
+      parentRunId: "parent-run-durable-1",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "parent system prompt",
+        toolNames: ["read"],
+        toolPromptPayload: [{ name: "read" }],
+        thinkingConfig: {},
+        forkContextMessages: messages,
+      }),
+    };
 
     await runtime.afterTurn?.({
       sessionId: "session-1",
       sessionKey: "agent:main:feishu:direct:user-1",
       sessionFile: "/tmp/session.jsonl",
-      messages: castAgentMessages([
-        makeAgentUserMessage({ content: "以后回答操作类问题先给步骤。" }),
-        makeAgentAssistantMessage({
-          content: [{ type: "text", text: "好的，以后我会先给步骤，再补充解释。" }],
-        }),
-      ]),
+      messages,
       prePromptMessageCount: 0,
       runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
     });
@@ -375,6 +390,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       sessionId: "session-1",
       sessionKey: "agent:main:feishu:direct:user-1",
       messageCount: 2,
+      parentForkContext,
     });
     await drainSharedDurableExtractionWorkers();
 
@@ -397,6 +413,17 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       expect(note).toContain("回答先给步骤");
     });
     expect(durableExtractionRunner).toHaveBeenCalledTimes(1);
+    const runnerInput = vi.mocked(durableExtractionRunner).mock.calls[0]?.[0] as
+      | {
+          parentForkContext?: {
+            parentRunId?: string;
+            promptEnvelope?: { forkContextMessages?: unknown[] };
+          };
+          recentMessages?: unknown[];
+        }
+      | undefined;
+    expect(runnerInput?.parentForkContext?.parentRunId).toBe("parent-run-durable-1");
+    expect(runnerInput?.parentForkContext?.promptEnvelope?.forkContextMessages).toEqual(messages);
   });
 
   it("does not schedule durable extraction from ingestion alone before the lifecycle stop phase fires", async () => {

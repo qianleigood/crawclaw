@@ -92,6 +92,38 @@ export function buildSpecialAgentCacheEnvelope(input: {
   });
 }
 
+export function resolveSpecialAgentParentForkContext(
+  value: unknown,
+): SpecialAgentParentForkContext | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const record = value as Partial<SpecialAgentParentForkContext>;
+  const parentRunId = normalizeOptionalString(record.parentRunId);
+  const provider = normalizeOptionalString(record.provider);
+  const modelId = normalizeOptionalString(record.modelId);
+  const promptEnvelope = record.promptEnvelope;
+  if (
+    !parentRunId ||
+    !provider ||
+    !modelId ||
+    !promptEnvelope ||
+    typeof promptEnvelope.systemPromptText !== "string" ||
+    !promptEnvelope.systemPromptText.trim() ||
+    !Array.isArray(promptEnvelope.forkContextMessages)
+  ) {
+    return undefined;
+  }
+  const modelApi = normalizeOptionalString(record.modelApi);
+  return {
+    parentRunId,
+    provider,
+    modelId,
+    ...(modelApi ? { modelApi } : {}),
+    promptEnvelope,
+  };
+}
+
 export function buildSpecialAgentCacheEnvelopeFromModelInput(input: {
   modelInput: Pick<
     QueryContextModelInput,

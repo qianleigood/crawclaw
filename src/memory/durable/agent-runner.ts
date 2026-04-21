@@ -141,6 +141,7 @@ export function buildMemoryExtractionSystemPrompt(): string {
     "- Do NOT inspect project source files, run shell commands, browse the web, or spawn other agents.",
     "- Do NOT write knowledge notes. This task is only for durable memory.",
     "- The recent messages are the source of truth for this run. Do not attempt to verify them against code, git state, or external systems.",
+    "- If a parent forked conversation context is available, use it only to resolve references in the recent messages; do not extract facts solely from older context outside the cursor window.",
     "- Treat feedback as bidirectional: record both corrective guidance and non-obvious successful patterns explicitly confirmed by the user.",
     "",
     "## Durable Boundary",
@@ -186,6 +187,7 @@ export function buildMemoryExtractionTaskPrompt(params: {
     : ["(none)"];
   return [
     "Maintain durable memory for the current scope using only the provided recent messages and scoped memory file tools.",
+    "The forked parent conversation may be available for continuity, but the extraction window below remains authoritative.",
     "",
     `Scope: ${params.scopeKey}`,
     `Max durable notes to create or update: ${Math.max(1, params.maxNotes)}`,
@@ -250,6 +252,9 @@ export async function runDurableExtractionAgentOnce(
   params: DurableExtractionRunParams,
 ): Promise<DurableExtractionRunResult> {
   const existingEntries = await scanDurableMemoryScopeEntries(params.scope);
+  const parentRunId =
+    normalizeOptionalString(params.parentRunId) ??
+    normalizeOptionalString(params.parentForkContext?.parentRunId);
   const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
     sessionId: params.sessionId,
@@ -257,9 +262,7 @@ export async function runDurableExtractionAgentOnce(
     ...(normalizeOptionalString(params.scope.agentId)
       ? { agentId: normalizeOptionalString(params.scope.agentId) }
       : {}),
-    ...(normalizeOptionalString(params.parentRunId)
-      ? { parentRunId: normalizeOptionalString(params.parentRunId) }
-      : {}),
+    ...(parentRunId ? { parentRunId } : {}),
   });
   const taskPrompt = buildMemoryExtractionTaskPrompt({
     scopeKey: params.scope.scopeKey ?? "durable-memory",
@@ -294,7 +297,8 @@ export async function runDurableExtractionAgentOnce(
       definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
       task: taskPrompt,
       extraSystemPrompt: buildMemoryExtractionSystemPrompt(),
-      ...(normalizeOptionalString(params.parentRunId) ? { parentRunId: params.parentRunId } : {}),
+      ...(parentRunId ? { parentRunId } : {}),
+      ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
       embeddedContext: {
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,

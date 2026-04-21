@@ -18,6 +18,7 @@ import {
   readSessionSummarySectionText,
   refreshNotebookLmProviderState,
   resolveDurableMemoryScope,
+  resolveDreamClosedLoopStatus,
   resolveMemoryConfig,
   runDreamAgentOnce,
   runSessionSummaryAgentOnce,
@@ -226,8 +227,13 @@ export async function runMemoryDreamStatus(opts: MemoryCommandOptions) {
         ...entry,
         touchedNotes: parseTouchedNotes(entry.metricsJson),
       }));
+    const closedLoop = resolveDreamClosedLoopStatus({
+      config: memoryConfig.dreaming,
+      scopeKey: scope.scopeKey,
+    });
     const payload = {
       enabled: memoryConfig.dreaming.enabled,
+      ...closedLoop,
       config: memoryConfig.dreaming,
       scopeKey: scope.scopeKey ?? null,
       state,
@@ -239,6 +245,9 @@ export async function runMemoryDreamStatus(opts: MemoryCommandOptions) {
     }
     defaultRuntime.log(theme.heading("Auto Dream"));
     defaultRuntime.log(`${theme.muted("Enabled:")} ${payload.enabled ? "yes" : "no"}`);
+    defaultRuntime.log(
+      `${theme.muted("Closed loop:")} ${payload.closedLoopActive ? "active" : "inactive"} (${payload.closedLoopReason})`,
+    );
     defaultRuntime.log(`${theme.muted("minHours:")} ${memoryConfig.dreaming.minHours}`);
     defaultRuntime.log(`${theme.muted("minSessions:")} ${memoryConfig.dreaming.minSessions}`);
     defaultRuntime.log(`${theme.muted("scanThrottleMs:")} ${memoryConfig.dreaming.scanThrottleMs}`);

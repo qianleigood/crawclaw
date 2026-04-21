@@ -27,7 +27,7 @@ Durable memory is stored as plain Markdown files under the scoped durable-memory
 directory. Each memory is a standalone note, and each scope has its own
 `MEMORY.md` index.
 
-`MEMORY.md` now follows Claude-style index constraints:
+`MEMORY.md` now follows bounded durable-index constraints:
 
 - it is an index only, not a place for memory bodies
 - it must not contain frontmatter
@@ -36,29 +36,43 @@ directory. Each memory is a standalone note, and each scope has its own
 - stale detail should move back into topic notes instead of expanding the index
 
 At recall time, CrawClaw does not blindly inject the whole durable-memory
-directory. Durable recall now runs synchronously during prompt assembly:
+directory, and it does not fall back to putting the entire `MEMORY.md` file into
+the system prompt. Durable recall now runs synchronously during prompt assembly:
 
 - `MEMORY.md` acts as the first durable-memory index surface for the current
   scope
 - header metadata such as title, description, and durable type provide the next
   recall layer
+- a lightweight body index cache keeps a short excerpt and keyword set per note,
+  so an older note with weak title/description can still enter the candidate
+  set when its body is clearly relevant
 - only a bounded top candidate slice reads body excerpts for a second-pass
   rerank
 - durable recall diagnostics now record whether a selected note won on `index`,
-  `header`, `body_rerank`, and/or `dream_boost` signals so inspect/debug flows
-  can explain why a note was selected or omitted
+  `header`, `body_index`, `body_rerank`, and/or `dream_boost` signals so
+  inspect/debug flows can explain why a note was selected or omitted
 - full note contents are loaded only for the final selected items
-- recently dream-touched notes can receive a light recall prior, so durable
-  consolidation can improve future recall quality without bypassing selector
-  ranking
+- recently dream-touched notes can receive a light recall prior, but that prior
+  decays over time and only applies when the current query is already relevant
+  to the note
+- prompt assembly receives durable recall score breakdowns and can shift a
+  small amount of memory budget toward durable memory for durable-heavy queries
+  or away from durable memory when knowledge/SOP recall is the stronger fit
 - selected durable notes older than one day still carry a freshness reminder,
   and the model is explicitly told to verify file/code/repo-state claims
   against current reality before treating them as fact
 
-Durable auto-write also follows a Claude-style completion trigger:
+Durable auto-write also follows a turn-end completion trigger:
 
 - the run-loop now emits a `stop` lifecycle phase after a final top-level turn,
   and `memory_extractor` consumes that phase as a subscriber
+- the same stop event can carry the captured parent fork context, including the
+  parent prompt envelope and full model-visible message context; the embedded
+  `memory_extractor` inherits that fork and appends only a narrow durable-memory
+  maintenance prompt
+- the cursor-based recent-message window remains the extraction boundary; older
+  forked context is available only to resolve references in the recent messages,
+  not as a source for re-extracting stale history
 - the new messages for that turn must include a final assistant reply
 - if the latest assistant reply still contains tool calls, or ended in
   `error` / `aborted`, background durable extraction is skipped for that turn
@@ -82,6 +96,9 @@ CrawClaw also has a second durable-memory maintenance layer:
   and previewed with `--dry-run` without taking the dream lock or writing memory
 - dream state now keeps the most recent skip/gate reason so status/history/
   inspect can explain why a consolidation did not start
+- status and inspect surfaces explicitly report whether the dream closed loop is
+  active for the inspected durable scope, instead of leaving dream as an opaque
+  optional background behavior
 - dream status/history surfaces now expose recent `touchedNotes`, so you can
   see which durable notes were just rewritten before checking later recall
   behavior
@@ -97,7 +114,7 @@ Promotion is separate from recall and maintenance:
 
 ## Session memory
 
-Session memory now follows a Claude-style single-track design:
+Session memory now follows a single-track design:
 
 - each session has one `summary.md` file
 - a background `session_summary` agent maintains that file from the run-loop

@@ -1,4 +1,4 @@
-import { classifyClaudeMemoryItem } from "../recall/durable-memory-type.ts";
+import { classifyMemoryRecallItem } from "../recall/durable-memory-type.ts";
 import type { UnifiedRankedItem } from "../types/orchestration.ts";
 
 export interface KnowledgeRecallSelectionResult {
@@ -22,7 +22,7 @@ export function selectKnowledgeRecall(input: {
 }): KnowledgeRecallSelectionResult {
   const limit = clampLimit(input.limit);
   const candidates = input.items
-    .filter((item) => classifyClaudeMemoryItem(item).bucket === "knowledge")
+    .filter((item) => classifyMemoryRecallItem(item).bucket === "knowledge")
     .filter(isPromptFacingKnowledgeSource)
     .filter((item) => item.summary.trim().length >= 24 || item.content?.trim().length)
     .toSorted((left, right) => right.score - left.score)

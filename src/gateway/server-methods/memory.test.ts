@@ -36,6 +36,10 @@ vi.mock("../../memory/cli-api.js", () => ({
   readSessionSummarySectionText: vi.fn(),
   refreshNotebookLmProviderState: vi.fn(),
   resolveDurableMemoryScope: vi.fn(),
+  resolveDreamClosedLoopStatus: vi.fn().mockReturnValue({
+    closedLoopActive: true,
+    closedLoopReason: "active",
+  }),
   resolveMemoryConfig: mocks.resolveMemoryConfigMock,
   runDreamAgentOnce: vi.fn(),
   runSessionSummaryAgentOnce: vi.fn(),
@@ -125,6 +129,8 @@ describe("memoryHandlers", () => {
     expect(opts.respond).toHaveBeenCalledWith(
       true,
       expect.objectContaining({
+        closedLoopActive: true,
+        closedLoopReason: "active",
         runs: [
           expect.objectContaining({
             touchedNotes: ["project/gateway-recovery.md", "feedback/answer-style.md"],

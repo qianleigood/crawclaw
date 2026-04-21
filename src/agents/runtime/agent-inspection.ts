@@ -141,6 +141,9 @@ export type AgentInspectionSnapshot = {
   };
   dream?: {
     scopeKey: string;
+    enabled?: boolean;
+    closedLoopActive?: boolean;
+    closedLoopReason?: string;
     state?: {
       lastSuccessAt: number | null;
       lastAttemptAt: number | null;

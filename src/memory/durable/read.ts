@@ -3,6 +3,7 @@ import path from "node:path";
 import { callStructuredOutput } from "../llm/structured-output.ts";
 import { parseMarkdownFrontmatter } from "../markdown/frontmatter.ts";
 import type { DurableMemoryItem, DurableMemoryKind } from "../types/orchestration.ts";
+import { loadDurableBodyIndex, type DurableBodyIndexEntry } from "./body-index.ts";
 import { durableMemoryAge, durableMemoryAgeDays, durableMemoryFreshnessText } from "./freshness.ts";
 import { scanDurableMemoryManifest, type DurableMemoryManifestEntry } from "./manifest.ts";
 import { getDurableMemoryScopeDir, type DurableMemoryScope } from "./scope.ts";
@@ -12,13 +13,27 @@ const DEFAULT_DURABLE_RECALL_LIMIT = 5;
 const MAX_SELECTOR_CANDIDATES = 48;
 const MAX_EXCERPT_CANDIDATES = 12;
 const MAX_EXCERPT_CHARS = 1_600;
+const DREAM_BOOST_MAX = 0.35;
+const DREAM_BOOST_HALF_LIFE_MS = 72 * 60 * 60 * 1000;
+const DREAM_BOOST_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const DREAM_BOOST_MIN_RELEVANCE = 0.5;
 
-export type DurableRecallProvenance = "index" | "header" | "body_rerank" | "dream_boost";
+export type DurableRecallProvenance =
+  | "index"
+  | "header"
+  | "body_index"
+  | "body_rerank"
+  | "dream_boost";
 export type DurableRecallOmittedReason =
   | "candidate_cutoff"
   | "ranked_below_limit"
   | "llm_filtered"
   | "llm_none";
+
+export interface RecentDreamTouchedNote {
+  notePath: string;
+  touchedAt: number;
+}
 
 export interface DurableRecallSelectionDetail {
   itemId: string;
@@ -29,6 +44,7 @@ export interface DurableRecallSelectionDetail {
   scoreBreakdown: {
     header: number;
     index: number;
+    bodyIndex: number;
     bodyRerank: number;
     dreamBoost: number;
     final: number;
@@ -67,6 +83,7 @@ function heuristicScoreBreakdown(
   entry: DurableMemoryManifestEntry,
   prompt: string,
   recentMessages?: string[],
+  bodyIndex?: DurableBodyIndexEntry,
 ): DurableRecallSelectionDetail["scoreBreakdown"] {
   const promptTokens = new Set(tokenize([prompt, ...(recentMessages ?? [])].join(" ")));
   const headerTokens = new Set(
@@ -76,13 +93,29 @@ function heuristicScoreBreakdown(
   const header =
     [...promptTokens].filter((token) => headerTokens.has(token)).length + typeBoost(entry);
   const index = [...promptTokens].filter((token) => indexTokens.has(token)).length;
+  const bodyIndexScore = scoreBodyIndex(promptTokens, bodyIndex);
   return {
     header,
     index,
+    bodyIndex: bodyIndexScore,
     bodyRerank: 0,
     dreamBoost: 0,
-    final: header + index,
+    final: header + index + bodyIndexScore,
   };
+}
+
+function scoreBodyIndex(
+  promptTokens: Set<string>,
+  bodyIndex: DurableBodyIndexEntry | undefined,
+): number {
+  if (!bodyIndex) {
+    return 0;
+  }
+  const keywordTokens = new Set(bodyIndex.keywords);
+  const excerptTokens = new Set(tokenize(bodyIndex.excerpt));
+  const keywordOverlap = [...promptTokens].filter((token) => keywordTokens.has(token)).length;
+  const excerptOverlap = [...promptTokens].filter((token) => excerptTokens.has(token)).length;
+  return Math.min(3, keywordOverlap * 0.65 + excerptOverlap * 0.25);
 }
 
 function excerptScore(
@@ -101,12 +134,22 @@ function excerptScore(
 
 function dreamTouchScore(
   entry: DurableMemoryManifestEntry,
-  recentDreamTouchedNotes?: string[],
+  recentDreamTouchedNotes: RecentDreamTouchedNote[] | undefined,
+  relevanceScore: number,
+  now = Date.now(),
 ): number {
-  if (!recentDreamTouchedNotes?.length) {
+  if (!recentDreamTouchedNotes?.length || relevanceScore < DREAM_BOOST_MIN_RELEVANCE) {
     return 0;
   }
-  return recentDreamTouchedNotes.includes(entry.notePath) ? 0.35 : 0;
+  const touched = recentDreamTouchedNotes.find((item) => item.notePath === entry.notePath);
+  if (!touched || !Number.isFinite(touched.touchedAt)) {
+    return 0;
+  }
+  const ageMs = Math.max(0, now - touched.touchedAt);
+  if (ageMs > DREAM_BOOST_MAX_AGE_MS) {
+    return 0;
+  }
+  return DREAM_BOOST_MAX * 2 ** (-ageMs / DREAM_BOOST_HALF_LIFE_MS);
 }
 
 function inferProvenance(
@@ -118,6 +161,9 @@ function inferProvenance(
   }
   if (scoreBreakdown.header > 0) {
     provenance.push("header");
+  }
+  if (scoreBreakdown.bodyIndex > 0) {
+    provenance.push("body_index");
   }
   if (scoreBreakdown.bodyRerank > 0) {
     provenance.push("body_rerank");
@@ -155,11 +201,17 @@ function buildSelectorCandidates(params: {
   prompt: string;
   recentMessages?: string[];
   limit: number;
+  bodyIndex: Map<string, DurableBodyIndexEntry>;
 }): DurableMemoryManifestEntry[] {
   const ranked = [...params.entries]
     .map((entry) => ({
       entry,
-      score: heuristicScoreBreakdown(entry, params.prompt, params.recentMessages).final,
+      score: heuristicScoreBreakdown(
+        entry,
+        params.prompt,
+        params.recentMessages,
+        params.bodyIndex.get(entry.notePath),
+      ).final,
     }))
     .toSorted(
       (left, right) => right.score - left.score || right.entry.updatedAt - left.entry.updatedAt,
@@ -191,15 +243,17 @@ async function buildRecallCandidates(params: {
   entries: DurableMemoryManifestEntry[];
   prompt: string;
   recentMessages?: string[];
-  recentDreamTouchedNotes?: string[];
+  recentDreamTouchedNotes?: RecentDreamTouchedNote[];
   limit: number;
   scopeDir: string;
+  bodyIndex: Map<string, DurableBodyIndexEntry>;
 }): Promise<DurableRecallCandidate[]> {
   const selectorCandidates = buildSelectorCandidates({
     entries: params.entries,
     prompt: params.prompt,
     recentMessages: params.recentMessages,
     limit: params.limit,
+    bodyIndex: params.bodyIndex,
   });
   const excerptEntries = selectorCandidates.slice(
     0,
@@ -216,14 +270,20 @@ async function buildRecallCandidates(params: {
   return selectorCandidates
     .map((entry) => {
       const excerpt = excerptByPath.get(entry.notePath) ?? "";
-      const heuristic = heuristicScoreBreakdown(entry, params.prompt, params.recentMessages);
+      const heuristic = heuristicScoreBreakdown(
+        entry,
+        params.prompt,
+        params.recentMessages,
+        params.bodyIndex.get(entry.notePath),
+      );
       const bodyRerank = excerptScore(params.prompt, params.recentMessages, excerpt);
-      const dreamBoost = dreamTouchScore(entry, params.recentDreamTouchedNotes);
+      const relevanceScore = heuristic.header + heuristic.index + heuristic.bodyIndex + bodyRerank;
+      const dreamBoost = dreamTouchScore(entry, params.recentDreamTouchedNotes, relevanceScore);
       const scoreBreakdown = {
         ...heuristic,
         bodyRerank,
         dreamBoost,
-        final: heuristic.header + heuristic.index + bodyRerank + dreamBoost,
+        final: heuristic.header + heuristic.index + heuristic.bodyIndex + bodyRerank + dreamBoost,
       };
       return {
         entry,
@@ -242,10 +302,11 @@ async function selectManifestEntries(params: {
   complete?: CompleteFn;
   prompt: string;
   recentMessages?: string[];
-  recentDreamTouchedNotes?: string[];
+  recentDreamTouchedNotes?: RecentDreamTouchedNote[];
   entries: DurableMemoryManifestEntry[];
   limit: number;
   scopeDir: string;
+  bodyIndex: Map<string, DurableBodyIndexEntry>;
 }): Promise<{
   mode: "llm" | "llm_none" | "heuristic";
   selected: DurableMemoryManifestEntry[];
@@ -260,6 +321,7 @@ async function selectManifestEntries(params: {
     recentDreamTouchedNotes: params.recentDreamTouchedNotes,
     limit: params.limit,
     scopeDir: params.scopeDir,
+    bodyIndex: params.bodyIndex,
   });
   const ranked = recallCandidates;
   const selectorCandidates = recallCandidates.map((candidate) => candidate.entry);
@@ -349,6 +411,7 @@ async function selectManifestEntries(params: {
         entry,
         params.prompt,
         params.recentMessages,
+        params.bodyIndex.get(entry.notePath),
       );
       const candidate =
         existing ??
@@ -392,7 +455,9 @@ function buildDurableItem(params: {
   durableKind: DurableMemoryKind;
   updatedAt: number;
   reason: string;
+  selectionDetail?: DurableRecallSelectionDetail;
 }): DurableMemoryItem {
+  const finalScore = params.selectionDetail?.scoreBreakdown.final ?? 1;
   return {
     id: `durable:${params.notePath}`,
     source: "native_memory",
@@ -405,11 +470,17 @@ function buildDurableItem(params: {
       freshnessText: durableMemoryFreshnessText(params.updatedAt),
       ageText: durableMemoryAge(params.updatedAt),
       ageDays: durableMemoryAgeDays(params.updatedAt),
+      ...(params.selectionDetail
+        ? {
+            provenance: params.selectionDetail.provenance,
+            scoreBreakdown: params.selectionDetail.scoreBreakdown,
+          }
+        : {}),
     },
     durableKind: params.durableKind,
     durableReasons: [params.reason],
     updatedAt: params.updatedAt,
-    score: 1,
+    score: finalScore,
     supportingSources: [],
     supportingIds: [],
     scoreBreakdown: {
@@ -426,7 +497,7 @@ function buildDurableItem(params: {
       lifecycleBoost: 0,
       mediaBoost: 0,
       penalty: 0,
-      finalScore: 1,
+      finalScore,
     },
   };
 }
@@ -435,7 +506,7 @@ export async function recallDurableMemory(params: {
   scope: DurableMemoryScope;
   prompt: string;
   recentMessages?: string[];
-  recentDreamTouchedNotes?: string[];
+  recentDreamTouchedNotes?: RecentDreamTouchedNote[];
   complete?: CompleteFn;
   limit?: number;
 }): Promise<DurableRecallResult> {
@@ -451,12 +522,15 @@ export async function recallDurableMemory(params: {
         omittedItemIds: [],
         selectedDetails: [],
         omittedDetails: [],
-        recentDreamTouchedNotes: params.recentDreamTouchedNotes ?? [],
+        recentDreamTouchedNotes: (params.recentDreamTouchedNotes ?? []).map(
+          (entry) => entry.notePath,
+        ),
       },
     };
   }
   const limit = Math.max(1, Math.min(params.limit ?? DEFAULT_DURABLE_RECALL_LIMIT, 6));
   const scopeDir = getDurableMemoryScopeDir(params.scope);
+  const bodyIndex = await loadDurableBodyIndex({ scopeDir, manifest });
   const selection = await selectManifestEntries({
     complete: params.complete,
     prompt: params.prompt,
@@ -465,8 +539,12 @@ export async function recallDurableMemory(params: {
     entries: manifest,
     limit,
     scopeDir,
+    bodyIndex,
   });
   const items: DurableMemoryItem[] = [];
+  const selectedDetailByPath = new Map(
+    selection.selectedDetails.map((detail) => [detail.notePath, detail]),
+  );
   for (const entry of selection.selected) {
     const absolutePath = path.join(scopeDir, entry.notePath);
     const raw = await fs.readFile(absolutePath, "utf8");
@@ -480,6 +558,7 @@ export async function recallDurableMemory(params: {
         durableKind: entry.durableType,
         updatedAt: entry.updatedAt,
         reason: `selected durable memory (${entry.durableType})`,
+        selectionDetail: selectedDetailByPath.get(entry.notePath),
       }),
     );
   }
@@ -493,7 +572,9 @@ export async function recallDurableMemory(params: {
       omittedItemIds: selection.omitted.map((notePath) => `durable:${notePath}`),
       selectedDetails: selection.selectedDetails,
       omittedDetails: selection.omittedDetails,
-      recentDreamTouchedNotes: params.recentDreamTouchedNotes ?? [],
+      recentDreamTouchedNotes: (params.recentDreamTouchedNotes ?? []).map(
+        (entry) => entry.notePath,
+      ),
     },
   };
 }

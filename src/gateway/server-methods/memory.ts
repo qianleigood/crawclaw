@@ -16,6 +16,7 @@ import {
   readSessionSummarySectionText,
   refreshNotebookLmProviderState,
   resolveDurableMemoryScope,
+  resolveDreamClosedLoopStatus,
   resolveMemoryConfig,
   runDreamAgentOnce,
   runSessionSummaryAgentOnce,
@@ -276,10 +277,15 @@ export const memoryHandlers: GatewayRequestHandlers = {
             ...entry,
             touchedNotes: parseTouchedNotes(entry.metricsJson),
           }));
+        const closedLoop = resolveDreamClosedLoopStatus({
+          config: memoryConfig.dreaming,
+          scopeKey: scope.scopeKey,
+        });
         respond(
           true,
           {
             enabled: memoryConfig.dreaming.enabled,
+            ...closedLoop,
             config: memoryConfig.dreaming,
             scopeKey: scope.scopeKey ?? null,
             state,

@@ -167,6 +167,12 @@ The old path used to:
 The current main path no longer does that in-process; it runs through the
 background `memory_extractor` agent and still writes through the durable store.
 
+The extractor now also receives the captured parent fork context from the
+run-loop stop event when that context is available. That means the embedded
+`memory_extractor` can see the same model-visible conversation context as the
+main run for continuity, while its durable-memory task prompt still limits
+extraction to the cursor-based recent window.
+
 ### 4. The old skip rule was too broad
 
 Today, CrawClaw skips durable extraction on:
@@ -191,21 +197,24 @@ That makes current feedback more corrective than reinforcing.
 
 We should **not** copy Claude's implementation wholesale.
 
-The biggest thing we should not transplant is:
+The biggest thing we should not transplant is an unrestricted version of:
 
 - a forked memory agent that directly edits memory files
 
-CrawClaw already has stronger infrastructure here:
+CrawClaw should keep the forked-agent shape, but constrain it through CrawClaw's
+memory runtime:
 
 - structured note normalization
 - deterministic upsert
 - prompt journal
 - Context Archive
 - task/runtime integration
+- scoped durable-memory tools
 
 So the right approach is:
 
-**borrow Claude's lifecycle and policy, keep CrawClaw's durable store model, but not the old in-process extractor path.**
+**borrow Claude's lifecycle, cursor, and parent-fork policy, keep CrawClaw's
+durable store model and scoped tool boundary.**
 
 Promotion should stay separate from that durable recall path:
 
@@ -219,11 +228,16 @@ Promotion should stay separate from that durable recall path:
 Durable recall observability should also stay explicit:
 
 - selected notes should record whether they won on `index`, `header`,
-  `body_rerank`, and/or `dream_boost`
+  `body_index`, `body_rerank`, and/or `dream_boost`
 - omitted notes should record whether they lost at `candidate_cutoff`,
   `ranked_below_limit`, `llm_filtered`, or `llm_none`
+- `dream_boost` should stay a prior, not a bypass: it decays over time and only
+  applies after the query already matches the note through index/header/body
+  evidence
 - recent dream `touchedNotes` should be surfaced in status/history/inspect so
   we can see whether consolidation is plausibly affecting later recall
+- status and inspect should show whether the dream closed loop is active for the
+  current durable scope
 
 ## Recommended target shape
 
@@ -299,7 +313,22 @@ That is the right default.
 
 Durable memory should reflect top-level collaboration, not local task noise from subagents.
 
-### 6. Keep extraction and dreaming/consolidation as separate layers
+### 6. Run extraction as a parent-context fork but keep the cursor window authoritative
+
+Claude's extractor gets the full forked conversation and then instructs the
+agent to process only recent messages. CrawClaw should follow the same shape:
+
+- pass the captured parent prompt envelope and model-visible messages into the
+  embedded `memory_extractor`
+- append a narrow durable-memory maintenance prompt
+- use older forked context only to resolve references in the recent cursor
+  window
+- never save facts solely because they appear in older pre-cursor history
+
+This keeps the benefits of a true fork without letting background extraction
+re-process the entire session on every turn.
+
+### 7. Keep extraction and dreaming/consolidation as separate layers
 
 Long term, CrawClaw should explicitly separate:
 

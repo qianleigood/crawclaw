@@ -15,6 +15,7 @@ import type {
   MemoryPromptAssemblyInput,
   MemoryPromptAssemblyResult,
   MemoryPromptSection,
+  UnifiedQueryClassification,
   UnifiedContextAssemblyInput,
   UnifiedContextAssemblyResult,
   UnifiedRankedItem,
@@ -92,13 +93,88 @@ function formatSourceLine(item: UnifiedRankedItem): string {
   return `- ${getKnowledgeSourceLabel(item)}${citation(item)} ${item.title}${support}`;
 }
 
-function allocateBudgets(tokenBudget: number): {
+function readDurableRecallScore(item: DurableMemoryItem): number {
+  const breakdown = item.metadata?.scoreBreakdown;
+  if (!breakdown || typeof breakdown !== "object") {
+    return item.score;
+  }
+  const final = (breakdown as Record<string, unknown>).final;
+  return typeof final === "number" && Number.isFinite(final) ? final : item.score;
+}
+
+function durableSignalStrength(items: DurableMemoryItem[]): number {
+  return items.reduce((max, item) => Math.max(max, readDurableRecallScore(item)), 0);
+}
+
+function classificationPrefersDurable(
+  classification: UnifiedQueryClassification | undefined,
+): boolean {
+  if (!classification) {
+    return false;
+  }
+  return (
+    classification.intent === "preference" ||
+    classification.intent === "history" ||
+    classification.targetLayers.includes("preferences") ||
+    classification.routeWeights.nativeMemory >= 0.34
+  );
+}
+
+function classificationPrefersKnowledge(
+  classification: UnifiedQueryClassification | undefined,
+): boolean {
+  if (!classification) {
+    return false;
+  }
+  return (
+    classification.intent === "decision" ||
+    classification.intent === "sop" ||
+    classification.intent === "runtime" ||
+    classification.targetLayers.includes("key_decisions") ||
+    classification.targetLayers.includes("sop") ||
+    classification.targetLayers.includes("runtime_signals")
+  );
+}
+
+function allocateBudgets(params: {
+  tokenBudget: number;
+  durableItems: DurableMemoryItem[];
+  classification?: UnifiedQueryClassification;
+}): {
   durable: number;
   knowledge: number;
   knowledgeLayers: Record<UnifiedRecallLayer, number>;
 } {
-  const durable = Math.min(320, Math.max(96, Math.floor(tokenBudget * 0.28)));
-  const knowledge = Math.max(0, tokenBudget - durable);
+  const signal = durableSignalStrength(params.durableItems);
+  const durablePreferred = classificationPrefersDurable(params.classification);
+  const knowledgePreferred = classificationPrefersKnowledge(params.classification);
+  let ratio = 0.28;
+  let minDurable = 96;
+  let maxDurable = 320;
+
+  if (durablePreferred && signal >= 1.5) {
+    ratio = 0.4;
+    minDurable = 120;
+    maxDurable = 560;
+  } else if (durablePreferred) {
+    ratio = 0.34;
+    minDurable = 112;
+    maxDurable = 480;
+  } else if (knowledgePreferred && signal < 1.5) {
+    ratio = 0.2;
+    minDurable = 72;
+    maxDurable = 240;
+  } else if (signal >= 2.5) {
+    ratio = 0.34;
+    minDurable = 112;
+    maxDurable = 420;
+  }
+
+  const durable = Math.min(
+    maxDurable,
+    Math.max(minDurable, Math.floor(params.tokenBudget * ratio)),
+  );
+  const knowledge = Math.max(0, params.tokenBudget - durable);
   return {
     durable,
     knowledge,
@@ -180,7 +256,7 @@ function assembleDurableSection(
   const itemIds: string[] = [];
   let used = estimateTokens(DURABLE_HEADING);
   let omittedCount = 0;
-  const hardCap = Math.max(1, Math.min(5, items.length));
+  const hardCap = Math.max(1, Math.min(budget >= 420 ? 7 : budget >= 240 ? 6 : 5, items.length));
 
   for (const item of items) {
     if (itemIds.length >= hardCap) {
@@ -300,11 +376,15 @@ function assembleKnowledgeSection(
 
 export function assembleMemoryPrompt(input: MemoryPromptAssemblyInput): MemoryPromptAssemblyResult {
   const tokenBudget = clamp(input.tokenBudget ?? 1100, 240, 2400);
-  const budgets = allocateBudgets(tokenBudget);
+  const durableItems = input.durableItems ?? [];
+  const budgets = allocateBudgets({
+    tokenBudget,
+    durableItems,
+    classification: input.classification,
+  });
   const sections: MemoryPromptSection[] = [];
   const includedItemIds = new Set<string>();
 
-  const durableItems = input.durableItems ?? [];
   const durableSection = assembleDurableSection(durableItems, budgets.durable);
   const knowledgeItems = input.knowledgeItems ?? [];
   const knowledgeSection = assembleKnowledgeSection(

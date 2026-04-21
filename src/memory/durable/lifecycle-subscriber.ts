@@ -4,6 +4,7 @@ import {
   createRunLoopLifecycleRegistration,
   createSharedLifecycleSubscriberAccessor,
 } from "../../agents/special/runtime/lifecycle-subscriber.js";
+import { resolveSpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
@@ -106,6 +107,9 @@ export class DurableExtractionLifecycleSubscriber {
     if (prePromptMessageCount >= currentTurnCount) {
       return;
     }
+    const parentForkContext = resolveSpecialAgentParentForkContext(
+      event.metadata?.parentForkContext,
+    );
 
     try {
       const runtimeRows = await this.runtimeStore.listMessagesByTurnRange(
@@ -131,6 +135,7 @@ export class DurableExtractionLifecycleSubscriber {
           ...(typeof event.runId === "string" && event.runId.trim()
             ? { parentRunId: event.runId.trim() }
             : {}),
+          ...(parentForkContext ? { parentForkContext } : {}),
           sessionFile,
           workspaceDir: resolveWorkspaceDir(event),
           ...(typeof event.metadata?.messageChannel === "string" &&

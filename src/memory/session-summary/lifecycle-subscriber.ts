@@ -4,7 +4,7 @@ import {
   createRunLoopLifecycleRegistration,
   createSharedLifecycleSubscriberAccessor,
 } from "../../agents/special/runtime/lifecycle-subscriber.js";
-import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
+import { resolveSpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateConversationMessageTokens } from "../context/assembly.ts";
@@ -32,25 +32,6 @@ function countToolCallsInRuntimeRow(row: {
     return structuredCount;
   }
   return Array.isArray(row.runtimeMeta?.toolUseIds) ? row.runtimeMeta.toolUseIds.length : 0;
-}
-
-function resolveLifecycleParentForkContext(
-  event: RunLoopLifecycleEvent,
-): SpecialAgentParentForkContext | undefined {
-  const context = event.metadata?.parentForkContext;
-  if (!context || typeof context !== "object") {
-    return undefined;
-  }
-  const record = context as Partial<SpecialAgentParentForkContext>;
-  if (
-    typeof record.parentRunId !== "string" ||
-    !record.parentRunId.trim() ||
-    !record.promptEnvelope?.systemPromptText ||
-    !Array.isArray(record.promptEnvelope.forkContextMessages)
-  ) {
-    return undefined;
-  }
-  return record as SpecialAgentParentForkContext;
 }
 
 function resolvePrePromptMessageCount(event: RunLoopLifecycleEvent): number {
@@ -124,7 +105,9 @@ export class SessionSummaryLifecycleSubscriber {
     if (prePromptMessageCount >= currentTurnCount) {
       return;
     }
-    const parentForkContext = resolveLifecycleParentForkContext(event);
+    const parentForkContext = resolveSpecialAgentParentForkContext(
+      event.metadata?.parentForkContext,
+    );
     const lifecycleModelVisibleMessages = parentForkContext?.promptEnvelope.forkContextMessages as
       | AgentMessage[]
       | undefined;

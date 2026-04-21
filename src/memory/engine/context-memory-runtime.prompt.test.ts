@@ -233,6 +233,7 @@ describe("createContextMemoryRuntime().assemble", () => {
             scoreBreakdown: {
               header: 1.15,
               index: 0,
+              bodyIndex: 0,
               bodyRerank: 0,
               dreamBoost: 0,
               final: 1.15,

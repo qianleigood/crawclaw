@@ -209,6 +209,8 @@ Nothing yet.
     expect(runtimeLogs.join("\n")).toContain("Last skip reason:");
     expect(runtimeLogs.join("\n")).toContain("min_sessions_gate");
     expect(runtimeLogs.join("\n")).toContain("agent_failed");
+    expect(runtimeLogs.join("\n")).toContain("Closed loop:");
+    expect(runtimeLogs.join("\n")).toContain("active");
   });
 
   it("renders dream status with touched note diagnostics", async () => {

@@ -235,6 +235,7 @@ export function createContextMemoryRuntime(options: {
       const built = contextAssembler.assemble({
         durableItems: durableRecall?.items ?? [],
         knowledgeItems: selectedKnowledge.items,
+        classification,
         tokenBudget: targetBudget,
       });
       const {

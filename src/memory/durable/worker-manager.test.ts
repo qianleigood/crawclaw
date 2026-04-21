@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
 import { makeAgentUserMessage } from "../../agents/test-helpers/agent-message-fixtures.js";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type {
@@ -456,6 +457,19 @@ describe("DurableExtractionWorkerManager", () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     const runtimeStore = createRuntimeStore();
+    const fullForkMessages = [
+      makeAgentUserMessage({ content: "旧上下文：中文回答。" }),
+      makeAgentUserMessage({ content: "以后默认先给步骤。" }),
+    ];
+    const parentForkContext = {
+      parentRunId: "parent-run-runner",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "parent system prompt",
+        forkContextMessages: fullForkMessages,
+      }),
+    };
     const runner = vi.fn().mockResolvedValue({
       status: "written",
       notesSaved: 2,
@@ -488,7 +502,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-runner",
       newMessages: [makeAgentUserMessage({ content: "以后默认先给步骤。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-runner" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-runner",
+        parentForkContext,
+      },
     });
 
     await vi.waitFor(async () => {
@@ -507,6 +526,7 @@ describe("DurableExtractionWorkerManager", () => {
         messageCursor: 1,
         recentMessageLimit: 8,
         maxNotes: 2,
+        parentForkContext,
       }),
     );
   });

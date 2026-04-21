@@ -12,6 +12,7 @@ import { loadConfig } from "../config/config.js";
 import {
   readSessionSummaryFile,
   resolveDurableMemoryScope,
+  resolveDreamClosedLoopStatus,
   resolveMemoryConfig,
   SqliteRuntimeStore,
 } from "../memory/command-api.js";
@@ -495,6 +496,11 @@ async function enrichInspectionWithDream(
       ...snapshot,
       dream: {
         scopeKey: scope.scopeKey,
+        enabled: memoryConfig.dreaming.enabled,
+        ...resolveDreamClosedLoopStatus({
+          config: memoryConfig.dreaming,
+          scopeKey: scope.scopeKey,
+        }),
         ...(state
           ? {
               state: {
@@ -662,6 +668,16 @@ export function formatAgentInspection(snapshot: AgentInspectionSnapshot): string
   if (snapshot.dream) {
     lines.push("Dream:");
     lines.push(`  Scope: ${snapshot.dream.scopeKey}`);
+    if (typeof snapshot.dream.enabled === "boolean") {
+      lines.push(`  Enabled: ${snapshot.dream.enabled ? "yes" : "no"}`);
+    }
+    if (typeof snapshot.dream.closedLoopActive === "boolean") {
+      lines.push(
+        `  Closed loop: ${snapshot.dream.closedLoopActive ? "active" : "inactive"}${
+          snapshot.dream.closedLoopReason ? ` (${snapshot.dream.closedLoopReason})` : ""
+        }`,
+      );
+    }
     if (snapshot.dream.state) {
       lines.push(`  Last success: ${snapshot.dream.state.lastSuccessAt ?? "(never)"}`);
       lines.push(`  Last attempt: ${snapshot.dream.state.lastAttemptAt ?? "(never)"}`);

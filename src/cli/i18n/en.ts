@@ -827,8 +827,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.memory.dream.run.option.signalLimit":
     "Cap how many structured signals feed one manual run",
   "command.memory.dream.history.description": "Show recent auto-dream runs",
-  "command.memory.sessionSummary.description":
-    "Inspect and refresh Claude-style per-session summary files",
+  "command.memory.sessionSummary.description": "Inspect and refresh per-session summary files",
   "command.memory.sessionSummary.status.description":
     "Show one session summary file and runtime state",
   "command.memory.sessionSummary.refresh.description":
