@@ -354,6 +354,9 @@ export async function loadRunOverflowCompactionHarness(): Promise<{
   vi.doMock("../../memory/index.js", () => ({
     resolveMemoryRuntime: mockedResolveMemoryRuntime,
   }));
+  vi.doMock("../../memory/bootstrap/init-memory-runtime.js", () => ({
+    resolveMemoryRuntime: mockedResolveMemoryRuntime,
+  }));
 
   vi.doMock("./durable-intent-gate.js", () => ({
     maybeRunExplicitDurableIntentGate: mockedMaybeRunExplicitDurableIntentGate,
@@ -503,6 +506,10 @@ export async function loadRunOverflowCompactionHarness(): Promise<{
   }));
   vi.doMock("../runtime/lifecycle/bus.js", () => ({
     emitRunLoopLifecycleEvent: mockedEmitRunLoopLifecycleEvent,
+    registerRunLoopLifecycleHandler: vi.fn(),
+    unregisterRunLoopLifecycleHandler: vi.fn(),
+    hasRunLoopLifecycleSubscribers: vi.fn(() => false),
+    resetRunLoopLifecycleHandlersForTests: vi.fn(),
   }));
   vi.doMock("../runtime/lifecycle/shared-subscribers.js", () => ({
     ensureSharedRunLoopLifecycleSubscribers: mockedEnsureSharedRunLoopLifecycleSubscribers,
