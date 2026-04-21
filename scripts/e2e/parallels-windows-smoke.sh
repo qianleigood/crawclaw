@@ -935,7 +935,7 @@ install_latest_release() {
 \$ProgressPreference = 'SilentlyContinue'
 $(ps_resolve_crawclaw_cmd_function)
 try {
-  \$script = Invoke-RestMethod -Uri '$install_url_q' -ErrorAction Stop
+  \$script = Invoke-RestMethod -Uri '$install_url_q' -TimeoutSec 30 -ErrorAction Stop
   & ([scriptblock]::Create(\$script)) ${version_flag_q}-NoOnboard
   & (Resolve-CrawClawCmd) --version
 } catch {
