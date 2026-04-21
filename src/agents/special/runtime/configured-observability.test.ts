@@ -14,9 +14,9 @@ describe("configured special agent observability", () => {
     const result = createConfiguredSpecialAgentObservability(
       {
         definition: {
-          id: "verification",
-          label: "verification",
-          spawnSource: "verification",
+          id: "review-spec",
+          label: "review spec",
+          spawnSource: "review-spec",
           toolPolicy: {
             allowlist: ["read"],
           },
@@ -38,9 +38,9 @@ describe("configured special agent observability", () => {
     });
     expect(createSpecialAgentObservability).toHaveBeenCalledWith({
       definition: {
-        id: "verification",
-        label: "verification",
-        spawnSource: "verification",
+        id: "review-spec",
+        label: "review spec",
+        spawnSource: "review-spec",
         toolPolicy: {
           allowlist: ["read"],
         },
@@ -62,9 +62,9 @@ describe("configured special agent observability", () => {
     const result = createConfiguredSpecialAgentObservability(
       {
         definition: {
-          id: "verification",
-          label: "verification",
-          spawnSource: "verification",
+          id: "review-spec",
+          label: "review spec",
+          spawnSource: "review-spec",
           toolPolicy: {
             allowlist: ["read"],
           },

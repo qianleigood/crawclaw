@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { VERIFICATION_TOOL_ALLOWLIST } from "../../verification-agent.js";
+import { REVIEW_TOOL_ALLOWLIST } from "../../review-agent.js";
 import {
   listRegisteredSpecialAgentContractIssues,
   resolveSpecialAgentDefinitionBySpawnSource,
@@ -8,17 +8,17 @@ import {
 
 describe("special agent registry", () => {
   it("resolves registered definitions by spawn source", () => {
-    const definition = resolveSpecialAgentDefinitionBySpawnSource("verification");
+    const definition = resolveSpecialAgentDefinitionBySpawnSource("review-spec");
 
-    expect(definition?.id).toBe("verification");
+    expect(definition?.id).toBe("review-spec");
     expect(definition?.executionMode).toBe("spawned_session");
     expect(definition?.transcriptPolicy).toBe("isolated");
     expect(definition?.toolPolicy?.enforcement).toBe("runtime_deny");
   });
 
   it("resolves tool allowlists through the shared registry", () => {
-    expect(resolveSpecialAgentToolAllowlistBySpawnSource("verification")).toEqual(
-      VERIFICATION_TOOL_ALLOWLIST,
+    expect(resolveSpecialAgentToolAllowlistBySpawnSource("review-quality")).toEqual(
+      REVIEW_TOOL_ALLOWLIST,
     );
     expect(resolveSpecialAgentToolAllowlistBySpawnSource("missing")).toBeUndefined();
   });

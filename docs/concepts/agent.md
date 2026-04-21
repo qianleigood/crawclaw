@@ -104,22 +104,23 @@ Task-backed runs can also be captured into Context Archive.
 This is separate from normal session transcripts. Transcripts remain the
 product-facing conversation log; Context Archive is the replay/export layer.
 
-## Verification agent
+## Review agents
 
-CrawClaw also supports a specialized verification agent path for “try to break
-it” validation before a task is considered truly done.
+CrawClaw also supports a two-stage review path for independent validation before
+a task is considered truly done.
 
-- The user-facing entrypoint is the chat command `/verify [task]`.
-- Internally, `/verify` enters a dedicated verification flow, which spawns a
-  task-backed sub-agent with `spawnSource: "verification"`.
-- `/verify` is the only public verification entrypoint.
-- Verification runs use a dedicated system prompt and a restricted validation
-  toolset rather than inheriting the full parent tool surface.
-- Verification runs are intentionally read-only: they can inspect, run checks,
-  and produce a verdict, but they cannot patch files or recursively spawn more
-  verification runs.
-- A `VERDICT: PASS` result can be recorded as completion evidence and then
-  aggregated back into the parent task trajectory.
+- The user-facing entrypoint is the chat command `/review [focus]`.
+- Internally, `/review` enters a dedicated review flow, which runs a spec
+  compliance stage with `spawnSource: "review-spec"` and, unless that stage
+  fails, a code quality stage with `spawnSource: "review-quality"`.
+- `/review` is the only public review entrypoint.
+- Review runs use dedicated system prompts and a restricted validation toolset
+  rather than inheriting the full parent tool surface.
+- Review runs are intentionally read-only: they can inspect, run checks, and
+  produce verdicts, but they cannot patch files or recursively spawn more review
+  runs.
+- A `REVIEW_PASS` aggregate result can be recorded as completion evidence and
+  then aggregated back into the parent task trajectory.
 
 ## Sessions
 

@@ -5,7 +5,7 @@ export type AgentActionKind =
   | "approval"
   | "guard"
   | "loop"
-  | "verification"
+  | "review"
   | "completion"
   | "memory"
   | "compaction"

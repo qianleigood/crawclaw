@@ -67,15 +67,15 @@ describe("agentRuntimeHandlers", () => {
       runtime: "subagent",
       requesterSessionKey: "agent:main:parent-2",
       childSessionKey: "agent:main:child-2",
-      runId: "run-verify-1",
+      runId: "run-review-1",
       status: "failed",
-      label: "verification",
-      task: "verification for workflow output",
+      label: "review spec",
+      task: "spec review for workflow output",
       agentMetadata: {
-        spawnSource: "verification",
+        spawnSource: "review-spec",
         mode: "background",
       },
-      terminalSummary: "Verification failed",
+      terminalSummary: "Review failed",
     });
     const acpTask = createTaskRecord({
       runtime: "acp",
@@ -98,7 +98,7 @@ describe("agentRuntimeHandlers", () => {
         waiting: 1,
         byCategory: expect.objectContaining({
           memory: 1,
-          verification: 1,
+          review: 1,
           acp: 1,
         }),
       }),
@@ -125,9 +125,9 @@ describe("agentRuntimeHandlers", () => {
             summary: "Writing durable memory",
           }),
           expect.objectContaining({
-            category: "verification",
-            title: "Verification run",
-            summary: "Verification failed",
+            category: "review",
+            title: "Spec review run",
+            summary: "Review failed",
           }),
         ]),
       }),
