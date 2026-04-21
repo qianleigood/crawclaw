@@ -6,16 +6,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { installScheduledTask, readScheduledTaskCommand } from "./schtasks.js";
 
 const schtasksCalls: string[][] = [];
+const schtasksResponses: Array<{ code: number; stdout: string; stderr: string }> = [];
 
 vi.mock("./schtasks-exec.js", () => ({
   execSchtasks: async (argv: string[]) => {
     schtasksCalls.push(argv);
-    return { code: 0, stdout: "", stderr: "" };
+    return schtasksResponses.shift() ?? { code: 0, stdout: "", stderr: "" };
   },
 }));
 
 beforeEach(() => {
   schtasksCalls.length = 0;
+  schtasksResponses.length = 0;
 });
 
 describe("installScheduledTask", () => {
@@ -149,6 +151,27 @@ describe("installScheduledTask", () => {
       const script = await fs.readFile(scriptPath, "utf8");
       expect(script).not.toContain('set "PATH=');
       expect(script).toContain('set "CRAWCLAW_GATEWAY_PORT=18789"');
+    });
+  });
+
+  it("fails when the created task cannot be started", async () => {
+    await withUserProfileDir(async (_tmpDir, env) => {
+      schtasksResponses.push(
+        { code: 0, stdout: "", stderr: "" },
+        { code: 0, stdout: "", stderr: "" },
+        { code: 1, stdout: "", stderr: "ERROR: The system cannot find the file specified." },
+      );
+
+      await expect(
+        installScheduledTask({
+          env,
+          stdout: new PassThrough(),
+          programArguments: ["node", "gateway.js"],
+          environment: {},
+        }),
+      ).rejects.toThrow("schtasks run failed: ERROR: The system cannot find the file specified.");
+
+      expect(schtasksCalls.at(-1)).toEqual(["/Run", "/TN", "CrawClaw Gateway"]);
     });
   });
 });
