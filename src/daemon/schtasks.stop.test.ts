@@ -124,7 +124,7 @@ describe("Scheduled Task stop/restart cleanup", () => {
     });
   });
 
-  it("force-kills remaining busy port listeners when the first stop pass does not free the port", async () => {
+  it("does not kill an unverified busy port listener when the first stop pass does not free the port", async () => {
     await withPreparedGatewayTask(async ({ env, stdout }) => {
       pushSuccessfulSchtasksResponses(3);
       findVerifiedGatewayListenerPidsOnPortSync.mockReturnValue([4242]);
@@ -132,19 +132,19 @@ describe("Scheduled Task stop/restart cleanup", () => {
       for (let i = 0; i < 20; i += 1) {
         inspectPortUsage.mockResolvedValueOnce(busyPortUsage(4242));
       }
-      inspectPortUsage
-        .mockResolvedValueOnce(busyPortUsage(5252))
-        .mockResolvedValueOnce(freePortUsage());
+      inspectPortUsage.mockResolvedValue(busyPortUsage(5252, { commandLine: "notepad.exe" }));
 
-      await stopScheduledTask({ env, stdout });
+      await expect(stopScheduledTask({ env, stdout })).rejects.toThrow(
+        "gateway port 18789 is still busy after stop; remaining listener is not a verified CrawClaw gateway process",
+      );
 
       if (process.platform !== "win32") {
-        expect(killProcessTree).toHaveBeenNthCalledWith(1, 4242, { graceMs: 300 });
-        expect(killProcessTree).toHaveBeenNthCalledWith(2, expect.any(Number), { graceMs: 300 });
+        expect(killProcessTree).toHaveBeenCalledTimes(1);
+        expect(killProcessTree).toHaveBeenCalledWith(4242, { graceMs: 300 });
       } else {
         expect(killProcessTree).not.toHaveBeenCalled();
       }
-      expect(inspectPortUsage.mock.calls.length).toBeGreaterThanOrEqual(22);
+      expect(inspectPortUsage.mock.calls.length).toBeGreaterThanOrEqual(21);
     });
   });
 
@@ -184,6 +184,35 @@ describe("Scheduled Task stop/restart cleanup", () => {
       expectGatewayTermination(5151);
       expect(inspectPortUsage).toHaveBeenCalledTimes(2);
       expect(schtasksCalls.at(-1)).toEqual(["/Run", "/TN", "CrawClaw Gateway"]);
+    });
+  });
+
+  it("does not run the task when restart cannot free a port owned by another process", async () => {
+    await withPreparedGatewayTask(async ({ env, stdout }) => {
+      pushSuccessfulSchtasksResponses(4);
+      findVerifiedGatewayListenerPidsOnPortSync.mockReturnValue([5151]);
+      inspectPortUsage.mockResolvedValueOnce(busyPortUsage(5151));
+      for (let i = 0; i < 20; i += 1) {
+        inspectPortUsage.mockResolvedValueOnce(busyPortUsage(5151));
+      }
+      inspectPortUsage.mockResolvedValue(
+        busyPortUsage(6161, {
+          commandLine:
+            '"C:\\Program Files\\nodejs\\node.exe" "C:\\tools\\other-service.js" --port 18789',
+        }),
+      );
+
+      await expect(restartScheduledTask({ env, stdout })).rejects.toThrow(
+        "gateway port 18789 is still busy before restart; remaining listener is not a verified CrawClaw gateway process",
+      );
+
+      expect(schtasksCalls).not.toContainEqual(["/Run", "/TN", "CrawClaw Gateway"]);
+      if (process.platform !== "win32") {
+        expect(killProcessTree).toHaveBeenCalledTimes(1);
+        expect(killProcessTree).toHaveBeenCalledWith(5151, { graceMs: 300 });
+      } else {
+        expect(killProcessTree).not.toHaveBeenCalled();
+      }
     });
   });
 });

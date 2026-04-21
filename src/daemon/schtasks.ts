@@ -382,7 +382,18 @@ async function resolveScheduledTaskGatewayListenerPids(port: number): Promise<nu
     return [];
   }
 
-  const matchedGatewayPids = Array.from(
+  const matchedGatewayPids = collectGatewayListenerPids(diagnostics);
+  if (matchedGatewayPids.length > 0) {
+    return matchedGatewayPids;
+  }
+
+  return [];
+}
+
+function collectGatewayListenerPids(
+  diagnostics: Awaited<ReturnType<typeof inspectPortUsage>>,
+): number[] {
+  return Array.from(
     new Set(
       diagnostics.listeners
         .filter(
@@ -394,17 +405,6 @@ async function resolveScheduledTaskGatewayListenerPids(port: number): Promise<nu
             }),
         )
         .map((listener) => listener.pid as number),
-    ),
-  );
-  if (matchedGatewayPids.length > 0) {
-    return matchedGatewayPids;
-  }
-
-  return Array.from(
-    new Set(
-      diagnostics.listeners
-        .map((listener) => listener.pid)
-        .filter((pid): pid is number => typeof pid === "number" && Number.isFinite(pid) && pid > 0),
     ),
   );
 }
@@ -475,22 +475,49 @@ async function waitForGatewayPortRelease(port: number, timeoutMs = 5_000): Promi
   return false;
 }
 
-async function terminateBusyPortListeners(port: number): Promise<number[]> {
+function formatBusyPortListenerDetail(
+  diagnostics: Awaited<ReturnType<typeof inspectPortUsage>>,
+): string {
+  const listeners = diagnostics.listeners
+    .map((listener) => {
+      const pid = typeof listener.pid === "number" ? `pid ${listener.pid}` : "unknown pid";
+      const command = listener.command ? ` ${listener.command}` : "";
+      return `${pid}${command}`;
+    })
+    .join(", ");
+  return listeners ? ` (${listeners})` : "";
+}
+
+async function terminateRemainingGatewayPortListeners(port: number): Promise<string | undefined> {
   const diagnostics = await inspectPortUsage(port).catch(() => null);
   if (diagnostics?.status !== "busy") {
-    return [];
+    return undefined;
   }
-  const pids = Array.from(
-    new Set(
-      diagnostics.listeners
-        .map((listener) => listener.pid)
-        .filter((pid): pid is number => typeof pid === "number" && Number.isFinite(pid) && pid > 0),
-    ),
-  );
+  const pids = collectGatewayListenerPids(diagnostics);
+  if (pids.length === 0) {
+    return formatBusyPortListenerDetail(diagnostics);
+  }
   for (const pid of pids) {
     await terminateGatewayProcessTree(pid, 300);
   }
-  return pids;
+  return undefined;
+}
+
+async function releaseGatewayPortOrThrow(port: number, busyContext: string): Promise<void> {
+  const released = await waitForGatewayPortRelease(port);
+  if (released) {
+    return;
+  }
+  const unverifiedBusyDetail = await terminateRemainingGatewayPortListeners(port);
+  if (unverifiedBusyDetail !== undefined) {
+    throw new Error(
+      `gateway port ${port} is still busy ${busyContext}; remaining listener is not a verified CrawClaw gateway process${unverifiedBusyDetail}`,
+    );
+  }
+  const releasedAfterGatewayCleanup = await waitForGatewayPortRelease(port, 2_000);
+  if (!releasedAfterGatewayCleanup) {
+    throw new Error(`gateway port ${port} is still busy ${busyContext}`);
+  }
 }
 
 async function resolveFallbackRuntime(env: GatewayServiceEnv): Promise<GatewayServiceRuntime> {
@@ -641,7 +668,10 @@ async function activateScheduledTask(params: {
     throw new Error(`schtasks create failed: ${detail}`.trim());
   }
 
-  await execSchtasks(["/Run", "/TN", taskName]);
+  const run = await execSchtasks(["/Run", "/TN", taskName]);
+  if (run.code !== 0) {
+    throw new Error(`schtasks run failed: ${run.stderr || run.stdout}`.trim());
+  }
   // Ensure we don't end up writing to a clack spinner line (wizards show progress without a newline).
   writeFormattedLines(
     params.stdout,
@@ -723,14 +753,7 @@ export async function stopScheduledTask({ stdout, env }: GatewayServiceControlAr
   await terminateScheduledTaskGatewayListeners(effectiveEnv);
   await terminateInstalledStartupRuntime(effectiveEnv);
   if (stopPort) {
-    const released = await waitForGatewayPortRelease(stopPort);
-    if (!released) {
-      await terminateBusyPortListeners(stopPort);
-      const releasedAfterForce = await waitForGatewayPortRelease(stopPort, 2_000);
-      if (!releasedAfterForce) {
-        throw new Error(`gateway port ${stopPort} is still busy after stop`);
-      }
-    }
+    await releaseGatewayPortOrThrow(stopPort, "after stop");
   }
   stdout.write(`${formatLine("Stopped Scheduled Task", taskName)}\n`);
 }
@@ -759,14 +782,7 @@ export async function restartScheduledTask({
   await terminateScheduledTaskGatewayListeners(effectiveEnv);
   await terminateInstalledStartupRuntime(effectiveEnv);
   if (restartPort) {
-    const released = await waitForGatewayPortRelease(restartPort);
-    if (!released) {
-      await terminateBusyPortListeners(restartPort);
-      const releasedAfterForce = await waitForGatewayPortRelease(restartPort, 2_000);
-      if (!releasedAfterForce) {
-        throw new Error(`gateway port ${restartPort} is still busy before restart`);
-      }
-    }
+    await releaseGatewayPortOrThrow(restartPort, "before restart");
   }
   const res = await execSchtasks(["/Run", "/TN", taskName]);
   if (res.code !== 0) {
