@@ -82,7 +82,9 @@ Durable auto-write also follows a turn-end completion trigger:
 CrawClaw also has a second durable-memory maintenance layer:
 
 - `memory_extractor` is the light per-turn background writer
-- `dream` (auto-dream) is the lower-frequency consolidator
+- `dream` (auto-dream) is enabled by default as the lower-frequency
+  consolidator; the runtime gates still require the configured minimum session
+  count, minimum hours between successful runs, scan throttle, and DB lock
 - `session_summary` is the short-term continuity agent for one session
 - both `memory_extractor` and `dream` now subscribe to the same
   run-loop `stop` phase instead of being scheduled directly from `afterTurn`

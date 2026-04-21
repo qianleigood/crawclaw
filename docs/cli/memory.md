@@ -103,6 +103,9 @@ Notes:
 - `memory refresh` rebuilds the local NotebookLM profile from the configured cookie fallback.
 - `memory login` runs the interactive NotebookLM login flow and validates the rebuilt profile.
 - `memory prompt-journal-summary` aggregates the nightly memory prompt journal into counts for prompt assembly, after-turn decisions, durable extraction, and knowledge writes.
+- auto-dream is enabled by default, but it still respects minimum-session,
+  minimum-hour, scan-throttle, and DB-lock gates before starting a background
+  dream pass.
 - `memory dream status` reports auto-dream state from the runtime DB plus recent dream runs.
 - `memory dream status` explicitly reports whether the dream closed loop is
   active for the inspected scope. `closedLoopActive=false` with

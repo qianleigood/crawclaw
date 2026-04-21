@@ -74,8 +74,10 @@ Durable recall is prompt-time read behavior, separate from writing:
 - prompt assembly can shift a small budget share toward or away from durable
   memory based on query classification and durable score strength
 
-`dream` remains the slower consolidation layer. It can repair, dedupe, and
-improve durable notes, but it does not replace per-turn extraction.
+`dream` remains the slower consolidation layer. It is enabled by default, but
+run startup is still gated by minimum-session, minimum-hour, scan-throttle, and
+DB-lock checks. It can repair, dedupe, and improve durable notes, but it does
+not replace per-turn extraction.
 
 Promotion is governance, not recall. Promotion candidates are marked as
 `surface: governance_only` so they cannot become a hidden prompt-time recall

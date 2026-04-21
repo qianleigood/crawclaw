@@ -66,7 +66,7 @@ export const DEFAULT_CONFIG: MemoryRuntimeConfig = {
     workerIdleTtlMs: 15 * 60_000,
   },
   dreaming: {
-    enabled: false,
+    enabled: true,
     minHours: 24,
     minSessions: 5,
     scanThrottleMs: 10 * 60_000,
