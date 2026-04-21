@@ -378,5 +378,13 @@
   {
     "source": "Security",
     "target": "安全"
+  },
+  {
+    "source": "Legacy Heartbeat Removal Plan",
+    "target": "Legacy heartbeat 移除方案"
+  },
+  {
+    "source": "Legacy heartbeat removal plan",
+    "target": "Legacy heartbeat 移除方案"
   }
 ]

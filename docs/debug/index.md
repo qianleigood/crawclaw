@@ -13,6 +13,7 @@ title: Debug Docs
 ## Runtime And Lifecycle
 
 - [Agent runtime open items](/debug/agent-runtime-open-items)
+- [Legacy heartbeat removal plan](/debug/legacy-heartbeat-removal-plan)
 - [Run loop lifecycle spine](/debug/run-loop-lifecycle-spine)
 - [Node issue notes](/debug/node-issue)
 
