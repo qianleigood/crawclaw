@@ -68,4 +68,20 @@ describe("plugin-runtimes", () => {
       "scrapling-fetch: healthy (python 3.14.4)",
     ]);
   });
+
+  it("formats unavailable runtime reasons", () => {
+    const env = makeEnv();
+    writePluginRuntimeManifest(
+      {
+        plugins: {
+          "scrapling-fetch": { state: "unavailable", reason: "missing-python" },
+        },
+      },
+      env,
+    );
+
+    expect(formatPluginRuntimeDoctorLines(env)).toEqual([
+      "scrapling-fetch: unavailable (missing-python)",
+    ]);
+  });
 });
