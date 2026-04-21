@@ -1107,7 +1107,7 @@ verify_gateway() {
 run_gateway_daemon_action() {
   local action="$1"
   local runner_name log_name done_name done_status launcher_state
-  local poll_rc state_rc log_rc start_seconds poll_deadline startup_checked
+  local launch_attempt launch_rc poll_rc state_rc log_rc start_seconds poll_deadline startup_checked
   runner_name="crawclaw-gateway-$action-$RANDOM-$RANDOM.ps1"
   log_name="crawclaw-gateway-$action-$RANDOM-$RANDOM.log"
   done_name="crawclaw-gateway-$action-$RANDOM-$RANDOM.done"
@@ -1115,7 +1115,10 @@ run_gateway_daemon_action() {
   poll_deadline=$((SECONDS + TIMEOUT_GATEWAY_S + 60))
   startup_checked=0
 
-  guest_powershell "$(cat <<EOF
+  launch_rc=1
+  for launch_attempt in 1 2; do
+    set +e
+    guest_powershell_poll 30 "$(cat <<EOF
 \$runner = Join-Path \$env:TEMP '$runner_name'
 \$log = Join-Path \$env:TEMP '$log_name'
 \$done = Join-Path \$env:TEMP '$done_name'
@@ -1142,6 +1145,18 @@ try {
 Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', \$runner) -WindowStyle Hidden | Out-Null
 EOF
 )"
+    launch_rc=$?
+    set -e
+    if [[ $launch_rc -eq 0 ]]; then
+      break
+    fi
+    warn "windows gateway $action helper launch attempt $launch_attempt failed (rc=$launch_rc)"
+    sleep 2
+  done
+  if [[ $launch_rc -ne 0 ]]; then
+    warn "windows gateway $action helper launch failed"
+    return "$launch_rc"
+  fi
 
   while :; do
     set +e
@@ -1278,7 +1293,7 @@ run_upgrade_lane() {
   # Stop the old managed gateway before ref-mode onboard rewrites config and
   # gateway auth. Restarting first can leave the old token alive and make the
   # onboard health probe fail against a stale daemon.
-  phase_run "upgrade.gateway-stop" "$TIMEOUT_GATEWAY_S" stop_gateway || return $?
+  phase_run "upgrade.gateway-stop" "$((TIMEOUT_GATEWAY_S + 90))" stop_gateway || return $?
   phase_run "upgrade.onboard-ref" "$TIMEOUT_ONBOARD_S" run_ref_onboard || return $?
   phase_run "upgrade.gateway-status" "$TIMEOUT_GATEWAY_S" verify_gateway || return $?
   UPGRADE_GATEWAY_STATUS="pass"
