@@ -1,12 +1,16 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { runMainSessionOnce } from "./main-session-runner.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
+
+beforeEach(() => {
+  resetSystemEventsForTest();
+});
 
 afterEach(() => {
   resetSystemEventsForTest();
