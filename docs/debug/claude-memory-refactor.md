@@ -207,6 +207,13 @@ So the right approach is:
 
 **borrow Claude's lifecycle and policy, keep CrawClaw's durable store model, but not the old in-process extractor path.**
 
+Promotion should stay separate from that durable recall path:
+
+- durable notes are the prompt-time recall surface
+- `dream` is the consolidation and repair layer for those notes
+- promotion candidates are governance inputs for later review/writeback, not a
+  third recall layer
+
 ## Recommended target shape
 
 I recommend the following target model for CrawClaw.
@@ -256,11 +263,11 @@ Suggested state:
 
 ```ts
 type DurableExtractionCursor = {
-  sessionKey: string
-  lastExtractedMessageId?: string
-  lastExtractedTurn?: number
-  lastRunAt?: number
-}
+  sessionKey: string;
+  lastExtractedMessageId?: string;
+  lastExtractedTurn?: number;
+  lastRunAt?: number;
+};
 ```
 
 The extraction input should come from runtime-store queries, not just from in-memory turn slices.

@@ -4,7 +4,6 @@ import type {
   QueryContextMemoryRecallDiagnostics,
   QueryContextSection,
 } from "../../agents/query-context/types.js";
-import type { DurableRecallPrefetchHandle } from "../durable/prefetch.ts";
 
 export type MemoryAssembleResult = {
   messages: AgentMessage[];
@@ -156,13 +155,4 @@ export interface MemoryRuntime {
   }): Promise<void>;
 
   dispose?(): Promise<void>;
-
-  startDurableRecallPrefetch?(params: {
-    sessionId: string;
-    sessionKey?: string;
-    messages: AgentMessage[];
-    prompt?: string;
-    model?: string;
-    runtimeContext?: MemoryRuntimeContext;
-  }): DurableRecallPrefetchHandle | undefined | Promise<DurableRecallPrefetchHandle | undefined>;
 }

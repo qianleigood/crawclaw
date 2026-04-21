@@ -6,7 +6,6 @@ import { runSessionMemoryCompaction } from "../context/compaction-runner.ts";
 import { applyCompactionStateToMessages } from "../context/compaction.ts";
 import { runTranscriptMaintenance } from "../context/transcript-maintenance.ts";
 import type { AutoDreamRunner } from "../dreaming/auto-dream.ts";
-import { startDurableRecallPrefetch as startDurableRecallPrefetchHandle } from "../durable/prefetch.ts";
 import { resolveDurableMemoryScope } from "../durable/scope.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
 import type { CompleteFn } from "../extraction/llm.ts";
@@ -236,6 +235,7 @@ export function createContextMemoryRuntime(options: {
         promptText,
         recentMessages: promptContext.recentMessages,
         runtimeContext,
+        runtimeStore: options.runtimeStore,
         logger: options.logger,
         complete: structuredComplete,
       });
@@ -306,36 +306,6 @@ export function createContextMemoryRuntime(options: {
           memoryRecall: memoryRecallDiagnostics,
         },
       };
-    },
-
-    startDurableRecallPrefetch({ sessionId, sessionKey, messages, prompt, model, runtimeContext }) {
-      void model;
-      const promptContext = resolvePromptContext({ prompt, messages });
-      const promptText = promptContext.prompt;
-      if (!promptText) {
-        return undefined;
-      }
-      const durableScope = resolveDurableMemoryScope({
-        sessionKey,
-        agentId: typeof runtimeContext?.agentId === "string" ? runtimeContext.agentId : undefined,
-        channel:
-          typeof runtimeContext?.messageChannel === "string"
-            ? runtimeContext.messageChannel
-            : undefined,
-        userId: typeof runtimeContext?.senderId === "string" ? runtimeContext.senderId : undefined,
-      });
-      if (!durableScope) {
-        return undefined;
-      }
-      return startDurableRecallPrefetchHandle({
-        sessionId,
-        sessionKey,
-        prompt: promptText,
-        recentMessages: promptContext.recentMessages,
-        scope: durableScope,
-        complete: structuredComplete,
-        limit: 5,
-      });
     },
 
     async afterTurn({ sessionId, sessionKey, messages, prePromptMessageCount, runtimeContext }) {

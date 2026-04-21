@@ -91,6 +91,7 @@ describe("AutoDreamScheduler", () => {
       writtenCount: 1,
       updatedCount: 2,
       deletedCount: 1,
+      touchedNotes: ["feedback/answer-style.md", "project/gateway-recovery.md"],
     });
     const acquireDreamLock = vi.fn().mockResolvedValue({
       acquired: true,
@@ -106,6 +107,7 @@ describe("AutoDreamScheduler", () => {
       },
     });
     const createMaintenanceRun = vi.fn().mockResolvedValue("mrun-1");
+    const updateMaintenanceRun = vi.fn().mockResolvedValue(undefined);
     const releaseDreamLock = vi.fn().mockResolvedValue(undefined);
     const runtimeStore = asRuntimeStore({
       getDreamState: vi.fn().mockResolvedValue({
@@ -131,7 +133,7 @@ describe("AutoDreamScheduler", () => {
         tokensAtLastSummary: 120,
         summaryInProgress: false,
       }),
-      updateMaintenanceRun: vi.fn().mockResolvedValue(undefined),
+      updateMaintenanceRun,
       releaseDreamLock,
     });
 
@@ -181,6 +183,17 @@ describe("AutoDreamScheduler", () => {
       }),
       console,
     );
+    expect(updateMaintenanceRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "mrun-1",
+        metricsJson: expect.any(String),
+      }),
+    );
+    const finalMetricsJson = updateMaintenanceRun.mock.calls.at(-1)?.[0]?.metricsJson;
+    expect(typeof finalMetricsJson).toBe("string");
+    expect(JSON.parse(String(finalMetricsJson))).toMatchObject({
+      touchedNotes: ["feedback/answer-style.md", "project/gateway-recovery.md"],
+    });
     expect(releaseDreamLock).toHaveBeenCalledWith(
       expect.objectContaining({
         scopeKey: scope!.scopeKey,

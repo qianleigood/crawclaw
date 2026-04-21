@@ -36,22 +36,21 @@ directory. Each memory is a standalone note, and each scope has its own
 - stale detail should move back into topic notes instead of expanding the index
 
 At recall time, CrawClaw does not blindly inject the whole durable-memory
-directory. It scans note headers for the current scope, builds a lightweight
-manifest, and selects only a small set of clearly relevant notes for the
-current prompt. Full note contents are loaded only for the selected items.
+directory. Durable recall now runs synchronously during prompt assembly:
 
-On the main agent run path, durable recall now follows a Claude-style
-`prefetch + consume` flow:
-
-- the runner starts durable recall asynchronously before prompt assembly
-- assembly consumes the prefetched result if it is already ready
-- if the prefetch is still pending, the current turn proceeds without durable
-  recall instead of blocking the model call
-- if no prefetch handle exists for the turn, durable recall is skipped rather
-  than falling back to an in-assemble synchronous lookup
-- selected durable notes older than one day now carry a freshness reminder, and
-  the model is explicitly told to verify file/code/repo-state claims against
-  current reality before treating them as fact
+- `MEMORY.md` acts as the first durable-memory index surface for the current
+  scope
+- header metadata such as title, description, and durable type provide the next
+  recall layer
+- only a bounded top candidate slice reads body excerpts for a second-pass
+  rerank
+- full note contents are loaded only for the final selected items
+- recently dream-touched notes can receive a light recall prior, so durable
+  consolidation can improve future recall quality without bypassing selector
+  ranking
+- selected durable notes older than one day still carry a freshness reminder,
+  and the model is explicitly told to verify file/code/repo-state claims
+  against current reality before treating them as fact
 
 Durable auto-write also follows a Claude-style completion trigger:
 
@@ -80,6 +79,13 @@ CrawClaw also has a second durable-memory maintenance layer:
   and previewed with `--dry-run` without taking the dream lock or writing memory
 - dream state now keeps the most recent skip/gate reason so status/history/
   inspect can explain why a consolidation did not start
+
+Promotion is separate from recall and maintenance:
+
+- durable recall reads scoped durable notes directly
+- `dream` consolidates and repairs those durable notes
+- promotion candidates are governance artifacts for later review/writeback, not
+  prompt-time durable recall inputs
 
 ## Session memory
 
@@ -136,7 +142,9 @@ structured compacted view from the most continuity-critical sections, including
 Session summary can also seed durable-memory promotion candidates. After a
 successful summary update, CrawClaw distills stable long-term facts from the
 structured summary sections and records them as promotion candidates instead of
-writing durable memory directly.
+writing durable memory directly. Those candidates enter the promotion/governance
+pipeline; they are not a third recall layer and are not injected into prompt
+assembly until some later workflow explicitly materializes them elsewhere.
 
 Session memory is still keyed by `sessionId`, so parent agents and spawned
 sub-agents do **not** share the same summary file. Each child run owns its own

@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { scanDurableMemoryManifest } from "./manifest.ts";
 import { recallDurableMemory } from "./read.ts";
 
@@ -14,7 +14,15 @@ describe("durable memory recall", () => {
   it("applies maxFiles after sorting by freshness when building the manifest", async () => {
     const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-maxfiles-"));
     try {
-      const scopeDir = path.join(rootDir, "agents", "main", "channels", "discord", "users", "user-42");
+      const scopeDir = path.join(
+        rootDir,
+        "agents",
+        "main",
+        "channels",
+        "discord",
+        "users",
+        "user-42",
+      );
       await fs.mkdir(scopeDir, { recursive: true });
       await writeNote(
         path.join(scopeDir, "old-note.md"),
@@ -67,15 +75,23 @@ describe("durable memory recall", () => {
   it("scans only notes under the durable scope directory and builds a manifest from MEMORY.md", async () => {
     const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-scope-"));
     try {
-      const scopeDir = path.join(rootDir, "agents", "main", "channels", "discord", "users", "user-42");
+      const scopeDir = path.join(
+        rootDir,
+        "agents",
+        "main",
+        "channels",
+        "discord",
+        "users",
+        "user-42",
+      );
       await fs.mkdir(scopeDir, { recursive: true });
       await fs.writeFile(
         path.join(scopeDir, "MEMORY.md"),
         [
           "# Durable memory index",
           "",
-          "- [Prefer concise answers](./feedback-answer-style.md)",
-          "- [Memory refactor scope](./project-memory-refactor.md)",
+          "- [Prefer concise answers](./feedback-answer-style.md) - Keep operational answers short and step-first.",
+          "- [Memory refactor scope](./project-memory-refactor.md) - Tracks the Claude-style durable and knowledge split.",
         ].join("\n"),
         "utf8",
       );
@@ -117,12 +133,18 @@ describe("durable memory recall", () => {
         },
       });
 
-      expect(manifest.map((entry) => entry.notePath).toSorted()).toEqual([
-        "feedback-answer-style.md",
-        "project-memory-refactor.md",
-      ].toSorted());
-      expect(manifest.find((entry) => entry.notePath === "project-memory-refactor.md")?.durableType).toBe("project");
-      expect(manifest.find((entry) => entry.notePath === "feedback-answer-style.md")?.description).toContain("step-first");
+      expect(manifest.map((entry) => entry.notePath).toSorted()).toEqual(
+        ["feedback-answer-style.md", "project-memory-refactor.md"].toSorted(),
+      );
+      expect(
+        manifest.find((entry) => entry.notePath === "project-memory-refactor.md")?.durableType,
+      ).toBe("project");
+      expect(
+        manifest.find((entry) => entry.notePath === "feedback-answer-style.md")?.description,
+      ).toContain("step-first");
+      expect(
+        manifest.find((entry) => entry.notePath === "project-memory-refactor.md")?.indexHook,
+      ).toContain("Claude-style durable and knowledge split");
     } finally {
       await fs.rm(rootDir, { recursive: true, force: true });
     }
@@ -247,7 +269,9 @@ describe("durable memory recall", () => {
 
       expect(result.items).toHaveLength(1);
       expect(String(result.items[0]?.metadata?.freshnessText)).toContain("3 days old");
-      expect(String(result.items[0]?.metadata?.freshnessText)).toContain("Verify against current files");
+      expect(String(result.items[0]?.metadata?.freshnessText)).toContain(
+        "Verify against current files",
+      );
     } finally {
       await fs.rm(scopeDir, { recursive: true, force: true });
     }
@@ -312,8 +336,8 @@ describe("durable memory recall", () => {
     }
   });
 
-  it("respects an explicit llm choice to select no durable memory", async () => {
-    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-none-"));
+  it("uses MEMORY.md index hooks during heuristic durable selection", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-index-hook-"));
     try {
       const scope = {
         agentId: "main",
@@ -327,8 +351,230 @@ describe("durable memory recall", () => {
         [
           "# Durable memory index",
           "",
-          "- [Answer style](./feedback-answer-style.md)",
+          "- [Ops scratchpad](./project-ops-scratchpad.md) - Clear stale gateway processes before restarting probes.",
+          "- [Gateway overview](./project-gateway-overview.md) - General gateway background and setup context.",
         ].join("\n"),
+        "utf8",
+      );
+      await writeNote(
+        path.join(scopeDir, "project-ops-scratchpad.md"),
+        [
+          "---",
+          "title: Ops scratchpad",
+          "durable_memory_type: project",
+          "description: Miscellaneous operational notes.",
+          "---",
+          "",
+          "Internal ops scratchpad.",
+        ].join("\n"),
+      );
+      await writeNote(
+        path.join(scopeDir, "project-gateway-overview.md"),
+        [
+          "---",
+          "title: Gateway overview",
+          "durable_memory_type: project",
+          "description: Gateway setup and background.",
+          "---",
+          "",
+          "Gateway background.",
+        ].join("\n"),
+      );
+
+      const result = await recallDurableMemory({
+        scope,
+        prompt: "How do I clear a stale gateway process before restarting probes?",
+        limit: 1,
+      });
+
+      expect(result.selection.mode).toBe("heuristic");
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.metadata?.notePath).toBe("project-ops-scratchpad.md");
+    } finally {
+      await fs.rm(scopeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses note body excerpts to rerank durable recall candidates", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-excerpt-rerank-"));
+    try {
+      const scope = {
+        agentId: "main",
+        channel: "discord",
+        userId: "user-42",
+        scopeKey: "main:discord:user-42",
+        rootDir: scopeDir,
+      };
+      await fs.writeFile(
+        path.join(scopeDir, "MEMORY.md"),
+        [
+          "# Durable memory index",
+          "",
+          "- [Gateway note](./project-gateway-note.md) - General gateway maintenance note.",
+          "- [Probe note](./project-probe-note.md) - General probe maintenance note.",
+        ].join("\n"),
+        "utf8",
+      );
+      await writeNote(
+        path.join(scopeDir, "project-gateway-note.md"),
+        [
+          "---",
+          "title: Gateway note",
+          "durable_memory_type: project",
+          "description: General gateway maintenance note.",
+          "---",
+          "",
+          "Gateway process checklist.",
+        ].join("\n"),
+      );
+      await writeNote(
+        path.join(scopeDir, "project-probe-note.md"),
+        [
+          "---",
+          "title: Probe note",
+          "durable_memory_type: project",
+          "description: General probe maintenance note.",
+          "---",
+          "",
+          "If probes stay stale after a restart, clear the stale gateway process first, then restart the probes.",
+        ].join("\n"),
+      );
+
+      const result = await recallDurableMemory({
+        scope,
+        prompt: "How do I clear a stale gateway process before restarting probes?",
+        limit: 1,
+      });
+
+      expect(result.selection.mode).toBe("heuristic");
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.metadata?.notePath).toBe("project-probe-note.md");
+    } finally {
+      await fs.rm(scopeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("bounds durable excerpt reads to the top candidate slice", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-excerpt-bound-"));
+    const readSpy = vi.spyOn(fs, "readFile");
+    try {
+      const scope = {
+        agentId: "main",
+        channel: "discord",
+        userId: "user-42",
+        scopeKey: "main:discord:user-42",
+        rootDir: scopeDir,
+      };
+      await fs.writeFile(
+        path.join(scopeDir, "MEMORY.md"),
+        [
+          "# Durable memory index",
+          "",
+          ...Array.from(
+            { length: 20 },
+            (_, index) =>
+              `- [Note ${index + 1}](./project-note-${index + 1}.md) - Candidate ${index + 1}.`,
+          ),
+        ].join("\n"),
+        "utf8",
+      );
+      for (let index = 0; index < 20; index += 1) {
+        await writeNote(
+          path.join(scopeDir, `project-note-${index + 1}.md`),
+          [
+            "---",
+            `title: Note ${index + 1}`,
+            "durable_memory_type: project",
+            `description: Candidate ${index + 1}.`,
+            "---",
+            "",
+            `Body ${index + 1}.`,
+          ].join("\n"),
+        );
+      }
+
+      await recallDurableMemory({
+        scope,
+        prompt: "candidate",
+        limit: 1,
+      });
+
+      const excerptReads = readSpy.mock.calls
+        .map((call) => call[0])
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.includes("project-note-") && value.endsWith(".md"),
+        );
+      expect(excerptReads.length).toBeLessThanOrEqual(13);
+    } finally {
+      readSpy.mockRestore();
+      await fs.rm(scopeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("boosts recently dream-touched notes during heuristic recall", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-dream-boost-"));
+    try {
+      const scope = {
+        agentId: "main",
+        channel: "discord",
+        userId: "user-42",
+        scopeKey: "main:discord:user-42",
+        rootDir: scopeDir,
+      };
+      await fs.writeFile(
+        path.join(scopeDir, "MEMORY.md"),
+        [
+          "# Durable memory index",
+          "",
+          "- [Gateway recovery A](./project-gateway-a.md) - Gateway recovery note.",
+          "- [Gateway recovery B](./project-gateway-b.md) - Gateway recovery note.",
+        ].join("\n"),
+        "utf8",
+      );
+      for (const suffix of ["a", "b"]) {
+        await writeNote(
+          path.join(scopeDir, `project-gateway-${suffix}.md`),
+          [
+            "---",
+            `title: Gateway recovery ${suffix.toUpperCase()}`,
+            "durable_memory_type: project",
+            "description: Gateway recovery note.",
+            "---",
+            "",
+            "Gateway recovery baseline note.",
+          ].join("\n"),
+        );
+      }
+
+      const result = await recallDurableMemory({
+        scope,
+        prompt: "gateway recovery",
+        recentDreamTouchedNotes: ["project-gateway-b.md"],
+        limit: 1,
+      });
+
+      expect(result.selection.mode).toBe("heuristic");
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.metadata?.notePath).toBe("project-gateway-b.md");
+    } finally {
+      await fs.rm(scopeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("respects an explicit llm choice to select no durable memory", async () => {
+    const scopeDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-none-"));
+    try {
+      const scope = {
+        agentId: "main",
+        channel: "discord",
+        userId: "user-42",
+        scopeKey: "main:discord:user-42",
+        rootDir: scopeDir,
+      };
+      await fs.writeFile(
+        path.join(scopeDir, "MEMORY.md"),
+        ["# Durable memory index", "", "- [Answer style](./feedback-answer-style.md)"].join("\n"),
         "utf8",
       );
       await writeNote(
@@ -347,7 +593,8 @@ describe("durable memory recall", () => {
       const result = await recallDurableMemory({
         scope,
         prompt: "What database schema should I use?",
-        complete: async () => JSON.stringify({ selectedIds: [], reason: "no relevant durable memory" }),
+        complete: async () =>
+          JSON.stringify({ selectedIds: [], reason: "no relevant durable memory" }),
         limit: 1,
       });
 

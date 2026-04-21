@@ -94,6 +94,9 @@ export async function persistSessionSummaryPromotionCandidates(params: {
   document: SessionSummaryDocument | null | undefined;
   summaryUpdatedAt?: number | null;
 }): Promise<{ created: number; updated: number; candidateIds: string[] }> {
+  // Session summary only feeds the promotion/governance queue here. This path
+  // deliberately does not write durable memory directly and does not create a
+  // prompt-time recall surface on its own.
   const drafts = await extractSessionSummaryPromotionCandidates({
     sessionId: params.sessionId,
     document: params.document,

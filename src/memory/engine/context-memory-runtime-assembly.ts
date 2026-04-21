@@ -41,7 +41,7 @@ export function buildPromptMissingAssemblyResult(params: {
         selectedItemIds: [],
         omittedItemIds: [],
         hitReason: "prompt_missing",
-        durableRecallSource: "prefetch_missing",
+        durableRecallSource: "sync",
       },
     },
   };

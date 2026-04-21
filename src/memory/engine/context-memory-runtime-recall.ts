@@ -1,15 +1,40 @@
-import { getSettledDurableRecallPrefetch } from "../durable/prefetch.ts";
 import { recallDurableMemory, type DurableRecallResult } from "../durable/read.ts";
 import { resolveDurableMemoryScope } from "../durable/scope.ts";
 import type { CompleteFn } from "../extraction/llm.ts";
+import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { RuntimeLogger } from "./context-memory-runtime-deps.ts";
-import {
-  getDurableRecallPrefetchHandle,
-  resolveDurablePrefetchWaitMs,
-  waitForDurableRecallPrefetch,
-  type DurableRecallSource,
-} from "./context-memory-runtime-helpers.ts";
+import { type DurableRecallSource } from "./context-memory-runtime-helpers.ts";
 import type { MemoryRuntimeContext } from "./types.ts";
+
+function collectRecentDreamTouchedNotes(params: {
+  scopeKey: string;
+  runs: Array<{ kind: string; status: string; scope: string | null; metricsJson: string | null }>;
+  limit?: number;
+}): string[] {
+  const touched = new Set<string>();
+  for (const run of params.runs) {
+    if (run.kind !== "dream" || run.status !== "done" || run.scope !== params.scopeKey) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(run.metricsJson ?? "{}") as Record<string, unknown>;
+      const touchedNotes = Array.isArray(parsed.touchedNotes)
+        ? parsed.touchedNotes.filter(
+            (value): value is string => typeof value === "string" && value.trim().length > 0,
+          )
+        : [];
+      for (const notePath of touchedNotes) {
+        touched.add(notePath.trim());
+        if (touched.size >= Math.max(1, params.limit ?? 8)) {
+          return [...touched];
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+  return [...touched];
+}
 
 export async function resolveDurableRecallForAssembly(params: {
   sessionId: string;
@@ -17,13 +42,13 @@ export async function resolveDurableRecallForAssembly(params: {
   promptText: string;
   recentMessages?: string[];
   runtimeContext?: MemoryRuntimeContext;
+  runtimeStore: RuntimeStore;
   logger: RuntimeLogger;
   complete?: CompleteFn;
 }): Promise<{
   durableRecall: DurableRecallResult | null;
   durableRecallSource: DurableRecallSource;
 }> {
-  const durablePrefetchHandle = getDurableRecallPrefetchHandle(params.runtimeContext);
   const durableScope = resolveDurableMemoryScope({
     sessionKey: params.sessionKey,
     agentId:
@@ -39,70 +64,39 @@ export async function resolveDurableRecallForAssembly(params: {
         ? params.runtimeContext.senderId
         : undefined,
   });
-  let durableRecallSource: DurableRecallSource = durablePrefetchHandle
-    ? "prefetch_pending"
-    : "prefetch_missing";
-
-  const durableRecall = await (async () => {
-    if (
-      durablePrefetchHandle &&
-      durablePrefetchHandle.sessionId === params.sessionId &&
-      durablePrefetchHandle.prompt === params.promptText
-    ) {
-      const settled = getSettledDurableRecallPrefetch(durablePrefetchHandle);
-      if (!settled.ready) {
-        const waitMs = resolveDurablePrefetchWaitMs();
-        const waited = await waitForDurableRecallPrefetch({
-          handle: durablePrefetchHandle,
-          waitMs,
-        });
-        if (waited.ready) {
-          if (waited.status === "rejected") {
-            durableRecallSource = "prefetch_error";
-            params.logger.warn(
-              `[memory] durable recall prefetch skipped after wait | ${
-                waited.error instanceof Error ? waited.error.message : String(waited.error)
-              }`,
-            );
-          } else {
-            durableRecallSource = "prefetch_wait_hit";
-            return waited.result ?? null;
-          }
-        } else if (durableScope) {
-          durableRecallSource = "prefetch_pending_fallback";
-          try {
-            return await recallDurableMemory({
-              scope: durableScope,
-              prompt: params.promptText,
-              recentMessages: params.recentMessages,
-              complete: params.complete,
-              limit: 5,
-            });
-          } catch (error) {
-            durableRecallSource = "prefetch_pending_fallback_error";
-            params.logger.warn(
-              `[memory] durable recall fallback failed | ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            );
-          }
-        }
-        return null;
-      }
-      if (settled.status === "rejected") {
-        durableRecallSource = "prefetch_error";
-        params.logger.warn(
-          `[memory] durable recall prefetch skipped | ${
-            settled.error instanceof Error ? settled.error.message : String(settled.error)
-          }`,
-        );
-        return null;
-      }
-      durableRecallSource = "prefetch_hit";
-      return settled.result ?? null;
-    }
-    return null;
-  })();
+  let durableRecallSource: DurableRecallSource = "sync";
+  if (!durableScope) {
+    return {
+      durableRecall: null,
+      durableRecallSource,
+    };
+  }
+  let durableRecall: DurableRecallResult | null = null;
+  try {
+    const recentMaintenanceRuns =
+      typeof params.runtimeStore.listRecentMaintenanceRuns === "function"
+        ? await params.runtimeStore.listRecentMaintenanceRuns(20).catch(() => [])
+        : [];
+    durableRecall = await recallDurableMemory({
+      scope: durableScope,
+      prompt: params.promptText,
+      recentMessages: params.recentMessages,
+      recentDreamTouchedNotes:
+        typeof durableScope.scopeKey === "string" && durableScope.scopeKey
+          ? collectRecentDreamTouchedNotes({
+              scopeKey: durableScope.scopeKey,
+              runs: recentMaintenanceRuns,
+            })
+          : [],
+      complete: params.complete,
+      limit: 5,
+    });
+  } catch (error) {
+    durableRecallSource = "sync_error";
+    params.logger.warn(
+      `[memory] durable recall failed | ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 
   return {
     durableRecall,

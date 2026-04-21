@@ -112,7 +112,6 @@ afterEach(async () => {
     tempDirs.splice(0).map(async (dir) => fs.rm(dir, { recursive: true, force: true })),
   );
   delete process.env.CRAWCLAW_STATE_DIR;
-  delete process.env.CRAWCLAW_MEMORY_DURABLE_PREFETCH_WAIT_MS;
 });
 
 describe("createContextMemoryRuntime().assemble", () => {
@@ -260,19 +259,6 @@ describe("createContextMemoryRuntime().assemble", () => {
       },
     });
 
-    const durableRecallPrefetchHandle = await runtime.startDurableRecallPrefetch?.({
-      sessionId: "session-1",
-      sessionKey: "session-1",
-      prompt: "本地网关挂了怎么恢复？",
-      messages: castAgentMessages([{ role: "user", content: "本地网关挂了怎么恢复？" }]),
-      runtimeContext: {
-        agentId: "main",
-        messageChannel: "feishu",
-        senderId: "user-42",
-      },
-    });
-    await durableRecallPrefetchHandle?.promise;
-
     const result = await runtime.assemble({
       sessionId: "session-1",
       sessionKey: "session-1",
@@ -283,7 +269,6 @@ describe("createContextMemoryRuntime().assemble", () => {
         agentId: "main",
         messageChannel: "feishu",
         senderId: "user-42",
-        durableRecallPrefetchHandle,
       },
     });
 
@@ -311,390 +296,35 @@ describe("createContextMemoryRuntime().assemble", () => {
       kind: "durable_memory",
       itemIds: expect.arrayContaining(["durable:feedback-1"]),
     });
-  });
-
-  it("consumes a settled durable recall prefetch without re-running synchronous recall", async () => {
-    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-prefetch-"));
-    tempDirs.push(stateDir);
-    process.env.CRAWCLAW_STATE_DIR = stateDir;
-
-    searchNotebookLmViaCliMock.mockResolvedValue([]);
-    recallDurableMemoryMock.mockReset();
-
-    const runtime = createContextMemoryRuntime({
-      runtimeStore: asRuntimeStore({
-        getSessionCompactionState: vi.fn().mockResolvedValue(null),
-        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-2"),
-      }),
-      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-      config: createBaseMemoryRuntimeConfig(),
-    });
-
-    const prefetched = {
-      scope: {
-        agentId: "main",
-        channel: "feishu",
-        userId: "user-42",
-        scopeKey: "main:feishu:user-42",
-        rootDir: "/tmp/durable",
-      },
-      manifest: [],
-      items: [
-        {
-          id: "durable:prefetch-note",
-          source: "native_memory",
-          title: "Prefetched memory",
-          summary: "This was loaded by prefetch.",
-          content: "prefetched",
-          layer: "preferences",
-          durableKind: "feedback",
-          durableReasons: ["prefetched"],
-          updatedAt: 0,
-          score: 1,
-          supportingSources: [],
-          supportingIds: [],
-          scoreBreakdown: {
-            retrieval: 1,
-            sourcePrior: 0,
-            layerPrior: 0,
-            memoryKindPrior: 0,
-            entityBoost: 0,
-            keywordBoost: 0,
-            exactTitleBoost: 0,
-            recencyBoost: 0,
-            importanceBoost: 0,
-            supportBoost: 0,
-            lifecycleBoost: 0,
-            mediaBoost: 0,
-            penalty: 0,
-            finalScore: 1,
-          },
-        },
-      ],
-      selection: {
-        mode: "llm" as const,
-        selectedItemIds: ["durable:prefetch-note"],
-        omittedItemIds: [],
-      },
-    };
-
-    const result = await runtime.assemble({
-      sessionId: "session-prefetch",
-      sessionKey: "session-prefetch",
-      prompt: "现在按照之前的偏好回答",
-      messages: castAgentMessages([{ role: "user", content: "现在按照之前的偏好回答" }]),
-      tokenBudget: 900,
-      runtimeContext: {
-        agentId: "main",
-        messageChannel: "feishu",
-        senderId: "user-42",
-        durableRecallPrefetchHandle: {
-          sessionId: "session-prefetch",
-          sessionKey: "session-prefetch",
-          prompt: "现在按照之前的偏好回答",
-          scopeKey: "main:feishu:user-42",
-          startedAt: Date.now(),
-          status: "fulfilled",
-          result: prefetched,
-          promise: Promise.resolve(),
-        },
-      },
-    });
-
-    expect(renderQueryContextSections(result.systemContextSections)).toContain("Prefetched memory");
-    expect(recallDurableMemoryMock).not.toHaveBeenCalled();
-    expect(result.diagnostics?.memoryRecall).toMatchObject({
-      durableRecallSource: "prefetch_hit",
-      hitReason: "durable_selected:prefetch_hit",
-      selectedDurableItemIds: ["durable:prefetch-note"],
-    });
-  });
-
-  it("falls back to synchronous durable recall when prefetch is still pending after wait window", async () => {
-    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
-
-    searchNotebookLmViaCliMock.mockResolvedValue([]);
-    process.env.CRAWCLAW_MEMORY_DURABLE_PREFETCH_WAIT_MS = "1";
-    recallDurableMemoryMock.mockReset().mockResolvedValue({
-      scope: {
-        agentId: "main",
-        channel: "feishu",
-        userId: "user-42",
-        scopeKey: "main:feishu:user-42",
-        rootDir: "/tmp/durable",
-      },
-      manifest: [],
-      items: [
-        {
-          id: "durable:fallback-note",
-          source: "native_memory",
-          title: "Fallback memory",
-          summary: "loaded by sync fallback",
-          content: "loaded by sync fallback",
-          layer: "preferences",
-          durableKind: "feedback",
-          durableReasons: ["sync-fallback"],
-          updatedAt: 0,
-          score: 1,
-          supportingSources: [],
-          supportingIds: [],
-          scoreBreakdown: {
-            retrieval: 1,
-            sourcePrior: 0,
-            layerPrior: 0,
-            memoryKindPrior: 0,
-            entityBoost: 0,
-            keywordBoost: 0,
-            exactTitleBoost: 0,
-            recencyBoost: 0,
-            importanceBoost: 0,
-            supportBoost: 0,
-            lifecycleBoost: 0,
-            mediaBoost: 0,
-            penalty: 0,
-            finalScore: 1,
-          },
-        },
-      ],
-      selection: {
-        mode: "heuristic" as const,
-        selectedItemIds: ["durable:fallback-note"],
-        omittedItemIds: [],
-      },
-    });
-
-    const runtime = createContextMemoryRuntime({
-      runtimeStore: asRuntimeStore({
-        getSessionCompactionState: vi.fn().mockResolvedValue(null),
-        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-3"),
-      }),
-      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-      config: createBaseMemoryRuntimeConfig(),
-    });
-
-    const result = await runtime.assemble({
-      sessionId: "session-pending",
-      sessionKey: "session-pending",
-      prompt: "这轮先不阻塞 recall",
-      messages: castAgentMessages([{ role: "user", content: "这轮先不阻塞 recall" }]),
-      tokenBudget: 900,
-      runtimeContext: {
-        agentId: "main",
-        messageChannel: "feishu",
-        senderId: "user-42",
-        durableRecallPrefetchHandle: {
-          sessionId: "session-pending",
-          sessionKey: "session-pending",
-          prompt: "这轮先不阻塞 recall",
-          scopeKey: "main:feishu:user-42",
-          startedAt: Date.now(),
-          status: "pending",
-          promise: new Promise(() => undefined),
-        },
-      },
-    });
-
-    expect(renderQueryContextSections(result.systemContextSections)).toContain("Fallback memory");
     expect(recallDurableMemoryMock).toHaveBeenCalledTimes(1);
     expect(result.diagnostics?.memoryRecall).toMatchObject({
-      durableRecallSource: "prefetch_pending_fallback",
-      hitReason: "durable_selected:prefetch_pending_fallback",
-      selectedDurableItemIds: ["durable:fallback-note"],
+      durableRecallSource: "sync",
+      hitReason: "durable_selected:sync",
+      selectedDurableItemIds: ["durable:feedback-1"],
     });
   });
 
-  it("uses prefetch result when pending prefetch settles within the wait window", async () => {
-    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
-    process.env.CRAWCLAW_MEMORY_DURABLE_PREFETCH_WAIT_MS = "50";
-    searchNotebookLmViaCliMock.mockResolvedValue([]);
-    recallDurableMemoryMock.mockReset();
-
-    const runtime = createContextMemoryRuntime({
-      runtimeStore: asRuntimeStore({
-        getSessionCompactionState: vi.fn().mockResolvedValue(null),
-        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-prefetch-wait-hit"),
-      }),
-      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-      config: createBaseMemoryRuntimeConfig(),
-    });
-
-    const pendingHandle = {
-      sessionId: "session-prefetch-wait-hit",
-      sessionKey: "session-prefetch-wait-hit",
-      prompt: "等待 prefetch 完成后再组装",
-      scopeKey: "main:feishu:user-42",
-      startedAt: Date.now(),
-      status: "pending" as const,
-      result: undefined,
-      promise: Promise.resolve(),
-    };
-    pendingHandle.promise = new Promise<void>((resolve) => {
-      setTimeout(() => {
-        (pendingHandle as { status: "fulfilled" | "pending" }).status = "fulfilled";
-        (
-          pendingHandle as {
-            result?: {
-              scope: {
-                agentId: string;
-                channel: string;
-                userId: string;
-                scopeKey: string;
-                rootDir: string;
-              };
-              manifest: [];
-              items: Array<Record<string, unknown>>;
-              selection: {
-                mode: "llm";
-                selectedItemIds: string[];
-                omittedItemIds: string[];
-              };
-            };
-          }
-        ).result = {
-          scope: {
-            agentId: "main",
-            channel: "feishu",
-            userId: "user-42",
-            scopeKey: "main:feishu:user-42",
-            rootDir: "/tmp/durable",
-          },
-          manifest: [],
-          items: [
-            {
-              id: "durable:prefetch-wait-hit",
-              source: "native_memory",
-              title: "Wait-hit memory",
-              summary: "loaded by settled prefetch",
-              content: "loaded by settled prefetch",
-              layer: "preferences",
-              durableKind: "feedback",
-              durableReasons: ["prefetch-wait-hit"],
-              updatedAt: 0,
-              score: 1,
-              supportingSources: [],
-              supportingIds: [],
-              scoreBreakdown: {
-                retrieval: 1,
-                sourcePrior: 0,
-                layerPrior: 0,
-                memoryKindPrior: 0,
-                entityBoost: 0,
-                keywordBoost: 0,
-                exactTitleBoost: 0,
-                recencyBoost: 0,
-                importanceBoost: 0,
-                supportBoost: 0,
-                lifecycleBoost: 0,
-                mediaBoost: 0,
-                penalty: 0,
-                finalScore: 1,
-              },
-            },
-          ],
-          selection: {
-            mode: "llm",
-            selectedItemIds: ["durable:prefetch-wait-hit"],
-            omittedItemIds: [],
-          },
-        };
-        resolve();
-      }, 0);
-    });
-
-    const result = await runtime.assemble({
-      sessionId: "session-prefetch-wait-hit",
-      sessionKey: "session-prefetch-wait-hit",
-      prompt: "等待 prefetch 完成后再组装",
-      messages: castAgentMessages([{ role: "user", content: "等待 prefetch 完成后再组装" }]),
-      tokenBudget: 900,
-      runtimeContext: {
-        agentId: "main",
-        messageChannel: "feishu",
-        senderId: "user-42",
-        durableRecallPrefetchHandle: pendingHandle,
-      },
-    });
-
-    expect(renderQueryContextSections(result.systemContextSections)).toContain("Wait-hit memory");
-    expect(recallDurableMemoryMock).not.toHaveBeenCalled();
-    expect(["prefetch_hit", "prefetch_wait_hit"]).toContain(
-      result.diagnostics?.memoryRecall?.durableRecallSource,
-    );
-    expect(["durable_selected:prefetch_hit", "durable_selected:prefetch_wait_hit"]).toContain(
-      result.diagnostics?.memoryRecall?.hitReason,
-    );
-    expect(result.diagnostics?.memoryRecall?.selectedDurableItemIds).toEqual([
-      "durable:prefetch-wait-hit",
-    ]);
-  });
-
-  it("does not fall back to synchronous durable recall when no prefetch handle is present", async () => {
+  it("reports sync_error when synchronous durable recall fails", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
 
     searchNotebookLmViaCliMock.mockResolvedValue([]);
-    recallDurableMemoryMock.mockReset().mockResolvedValue({
-      scope: {
-        agentId: "main",
-        channel: "feishu",
-        userId: "user-42",
-        scopeKey: "main:feishu:user-42",
-        rootDir: "/tmp/durable",
-      },
-      manifest: [],
-      items: [
-        {
-          id: "durable:should-not-appear",
-          source: "native_memory",
-          title: "Should not appear",
-          summary: "sync fallback should be disabled",
-          content: "sync fallback should be disabled",
-          layer: "preferences",
-          durableKind: "feedback",
-          durableReasons: ["sync-fallback"],
-          updatedAt: 0,
-          score: 1,
-          supportingSources: [],
-          supportingIds: [],
-          scoreBreakdown: {
-            retrieval: 1,
-            sourcePrior: 0,
-            layerPrior: 0,
-            memoryKindPrior: 0,
-            entityBoost: 0,
-            keywordBoost: 0,
-            exactTitleBoost: 0,
-            recencyBoost: 0,
-            importanceBoost: 0,
-            supportBoost: 0,
-            lifecycleBoost: 0,
-            mediaBoost: 0,
-            penalty: 0,
-            finalScore: 1,
-          },
-        },
-      ],
-      selection: {
-        mode: "heuristic" as const,
-        selectedItemIds: ["durable:should-not-appear"],
-        omittedItemIds: [],
-      },
-    });
+    recallDurableMemoryMock.mockReset().mockRejectedValue(new Error("recall exploded"));
 
+    const warn = vi.fn();
     const runtime = createContextMemoryRuntime({
       runtimeStore: asRuntimeStore({
         getSessionCompactionState: vi.fn().mockResolvedValue(null),
-        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-4"),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-sync-error"),
       }),
-      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      logger: { info: vi.fn(), warn, error: vi.fn() },
       config: createBaseMemoryRuntimeConfig(),
     });
 
     const result = await runtime.assemble({
-      sessionId: "session-no-fallback",
-      sessionKey: "session-no-fallback",
-      prompt: "不要回退成同步 recall",
-      messages: castAgentMessages([{ role: "user", content: "不要回退成同步 recall" }]),
+      sessionId: "session-sync-error",
+      sessionKey: "session-sync-error",
+      prompt: "现在按照之前的偏好回答",
+      messages: castAgentMessages([{ role: "user", content: "现在按照之前的偏好回答" }]),
       tokenBudget: 900,
       runtimeContext: {
         agentId: "main",
@@ -706,7 +336,13 @@ describe("createContextMemoryRuntime().assemble", () => {
     expect(renderQueryContextSections(result.systemContextSections)).not.toContain(
       "## Durable memory",
     );
-    expect(recallDurableMemoryMock).not.toHaveBeenCalled();
+    expect(recallDurableMemoryMock).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("durable recall failed"));
+    expect(result.diagnostics?.memoryRecall).toMatchObject({
+      durableRecallSource: "sync_error",
+      hitReason: "durable_unavailable:sync_error",
+      selectedDurableItemIds: [],
+    });
   });
 
   it("does not inject session summary into system context during assemble", async () => {
@@ -775,7 +411,7 @@ The health probe recovered after the stale process was removed.
     expect(systemContextText).not.toContain("## Session memory");
     expect(systemContextText).not.toContain("Gateway health checks are failing intermittently.");
     expect(systemContextText).not.toContain("Run crawclaw channels status --probe");
-    expect(recallDurableMemoryMock).not.toHaveBeenCalled();
+    expect(recallDurableMemoryMock).toHaveBeenCalledTimes(1);
   });
 
   it("does not surface session summary even when durable and knowledge layers are empty", async () => {

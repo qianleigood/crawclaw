@@ -1,18 +1,23 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { callStructuredOutput } from "../llm/structured-output.ts";
+import { parseMarkdownFrontmatter } from "../markdown/frontmatter.ts";
 import type { DurableMemoryItem, DurableMemoryKind } from "../types/orchestration.ts";
-import {
-  durableMemoryAge,
-  durableMemoryAgeDays,
-  durableMemoryFreshnessText,
-} from "./freshness.ts";
-import { getDurableMemoryScopeDir, type DurableMemoryScope } from "./scope.ts";
+import { durableMemoryAge, durableMemoryAgeDays, durableMemoryFreshnessText } from "./freshness.ts";
 import { scanDurableMemoryManifest, type DurableMemoryManifestEntry } from "./manifest.ts";
+import { getDurableMemoryScopeDir, type DurableMemoryScope } from "./scope.ts";
 
 type CompleteFn = ReturnType<typeof import("../extraction/llm.ts").createCompleteFn>;
 const DEFAULT_DURABLE_RECALL_LIMIT = 5;
 const MAX_SELECTOR_CANDIDATES = 48;
+const MAX_EXCERPT_CANDIDATES = 12;
+const MAX_EXCERPT_CHARS = 1_600;
+
+interface DurableRecallCandidate {
+  entry: DurableMemoryManifestEntry;
+  excerpt: string;
+  score: number;
+}
 
 function normalizeText(value: string | null | undefined): string {
   return (value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -31,7 +36,7 @@ function heuristicScore(
 ): number {
   const promptTokens = new Set(tokenize([prompt, ...(recentMessages ?? [])].join(" ")));
   const entryTokens = new Set(
-    tokenize(`${entry.title} ${entry.description} ${entry.durableType}`),
+    tokenize(`${entry.indexHook} ${entry.title} ${entry.description} ${entry.durableType}`),
   );
   const overlap = [...promptTokens].filter((token) => entryTokens.has(token)).length;
   const typeBoost =
@@ -43,6 +48,30 @@ function heuristicScore(
           ? 0.08
           : 0.04;
   return overlap + typeBoost;
+}
+
+function excerptScore(
+  prompt: string,
+  recentMessages: string[] | undefined,
+  excerpt: string,
+): number {
+  if (!excerpt.trim()) {
+    return 0;
+  }
+  const promptTokens = new Set(tokenize([prompt, ...(recentMessages ?? [])].join(" ")));
+  const excerptTokens = new Set(tokenize(excerpt));
+  const overlap = [...promptTokens].filter((token) => excerptTokens.has(token)).length;
+  return overlap * 0.6;
+}
+
+function dreamTouchScore(
+  entry: DurableMemoryManifestEntry,
+  recentDreamTouchedNotes?: string[],
+): number {
+  if (!recentDreamTouchedNotes?.length) {
+    return 0;
+  }
+  return recentDreamTouchedNotes.includes(entry.notePath) ? 0.35 : 0;
 }
 
 function formatSelectorTimestamp(updatedAt: number): string {
@@ -65,11 +94,12 @@ function buildSelectorCandidates(params: {
       score: heuristicScore(entry, params.prompt, params.recentMessages),
     }))
     .toSorted(
-      (left, right) =>
-        right.score - left.score || right.entry.updatedAt - left.entry.updatedAt,
+      (left, right) => right.score - left.score || right.entry.updatedAt - left.entry.updatedAt,
     );
-  const recentHead = params.entries
-    .slice(0, Math.min(params.entries.length, Math.max(params.limit * 3, 12)));
+  const recentHead = params.entries.slice(
+    0,
+    Math.min(params.entries.length, Math.max(params.limit * 3, 12)),
+  );
   const heuristicHead = ranked
     .slice(0, Math.min(ranked.length, Math.max(params.limit * 4, 16)))
     .map((item) => item.entry);
@@ -83,37 +113,93 @@ function buildSelectorCandidates(params: {
   return [...merged.values()];
 }
 
-async function selectManifestEntries(params: {
-  complete?: CompleteFn;
+async function readCandidateExcerpt(absolutePath: string): Promise<string> {
+  const raw = await fs.readFile(absolutePath, "utf8");
+  const parsed = parseMarkdownFrontmatter(raw);
+  return parsed.body.replace(/\s+/g, " ").trim().slice(0, MAX_EXCERPT_CHARS);
+}
+
+async function buildRecallCandidates(params: {
+  entries: DurableMemoryManifestEntry[];
   prompt: string;
   recentMessages?: string[];
-  entries: DurableMemoryManifestEntry[];
+  recentDreamTouchedNotes?: string[];
   limit: number;
-}): Promise<{
-  mode: "llm" | "llm_none" | "heuristic";
-  selected: DurableMemoryManifestEntry[];
-  omitted: string[];
-}> {
-  const ranked = [...params.entries]
-    .map((entry) => ({
-      entry,
-      score: heuristicScore(entry, params.prompt, params.recentMessages),
-    }))
-    .toSorted(
-      (left, right) =>
-        right.score - left.score || right.entry.updatedAt - left.entry.updatedAt,
-    );
+  scopeDir: string;
+}): Promise<DurableRecallCandidate[]> {
   const selectorCandidates = buildSelectorCandidates({
     entries: params.entries,
     prompt: params.prompt,
     recentMessages: params.recentMessages,
     limit: params.limit,
   });
+  const excerptEntries = selectorCandidates.slice(
+    0,
+    Math.min(selectorCandidates.length, MAX_EXCERPT_CANDIDATES),
+  );
+  const excerptByPath = new Map<string, string>();
+  await Promise.all(
+    excerptEntries.map(async (entry) => {
+      const absolutePath = path.join(params.scopeDir, entry.notePath);
+      const excerpt = await readCandidateExcerpt(absolutePath).catch(() => "");
+      excerptByPath.set(entry.notePath, excerpt);
+    }),
+  );
+  return selectorCandidates
+    .map((entry) => {
+      const excerpt = excerptByPath.get(entry.notePath) ?? "";
+      return {
+        entry,
+        excerpt,
+        score:
+          heuristicScore(entry, params.prompt, params.recentMessages) +
+          excerptScore(params.prompt, params.recentMessages, excerpt) +
+          dreamTouchScore(entry, params.recentDreamTouchedNotes),
+      };
+    })
+    .toSorted(
+      (left, right) => right.score - left.score || right.entry.updatedAt - left.entry.updatedAt,
+    );
+}
+
+async function selectManifestEntries(params: {
+  complete?: CompleteFn;
+  prompt: string;
+  recentMessages?: string[];
+  recentDreamTouchedNotes?: string[];
+  entries: DurableMemoryManifestEntry[];
+  limit: number;
+  scopeDir: string;
+}): Promise<{
+  mode: "llm" | "llm_none" | "heuristic";
+  selected: DurableMemoryManifestEntry[];
+  omitted: string[];
+}> {
+  const recallCandidates = await buildRecallCandidates({
+    entries: params.entries,
+    prompt: params.prompt,
+    recentMessages: params.recentMessages,
+    recentDreamTouchedNotes: params.recentDreamTouchedNotes,
+    limit: params.limit,
+    scopeDir: params.scopeDir,
+  });
+  const ranked = recallCandidates;
+  const selectorCandidates = recallCandidates.map((candidate) => candidate.entry);
+  const excerptByPath = new Map(
+    recallCandidates.map((candidate) => [candidate.entry.notePath, candidate.excerpt]),
+  );
   const candidateMap = new Map<string, DurableMemoryManifestEntry>();
   const candidateLines = selectorCandidates.map((entry, index) => {
     const id = `cand_${index + 1}`;
     candidateMap.set(id, entry);
-    return `${id} | [${entry.durableType}] ${entry.notePath} (${formatSelectorTimestamp(entry.updatedAt)}; ${formatSelectorAge(entry.updatedAt)}): ${entry.description || entry.title}`;
+    const excerpt = excerptByPath.get(entry.notePath) ?? "";
+    return [
+      `${id} | [${entry.durableType}] ${entry.notePath} (${formatSelectorTimestamp(entry.updatedAt)}; ${formatSelectorAge(entry.updatedAt)})`,
+      `title: ${entry.title}`,
+      `description: ${entry.description || entry.title}`,
+      ...(entry.indexHook ? [`index-hook: ${entry.indexHook}`] : []),
+      ...(excerpt ? [`excerpt: ${excerpt}`] : []),
+    ].join(" | ");
   });
 
   let selected = ranked.slice(0, params.limit).map((item) => item.entry);
@@ -124,7 +210,7 @@ async function selectManifestEntries(params: {
         system: [
           "You are selecting durable memory notes that will clearly help with the current task.",
           "You will be given the current task, recent messages, and a manifest of available durable memory notes.",
-          "Each candidate line contains only note metadata: durable type, path, updated timestamp, and description.",
+          "Each candidate line contains note metadata: durable type, path, updated timestamp, title, description, optional MEMORY.md index hook, and sometimes a short note excerpt.",
           "Durable memories are point-in-time observations and may be stale.",
           "Prefer memories that are clearly helpful and still likely to be trustworthy.",
           "If a memory only sounds useful because it mentions old repo state, files, flags, or code behavior, be conservative.",
@@ -141,8 +227,7 @@ async function selectManifestEntries(params: {
           "Available durable memory notes:",
           ...candidateLines,
         ].join("\n\n"),
-        formatHint:
-          'Output JSON only with shape {"selectedIds":["cand_1"],"reason":"..."}.',
+        formatHint: 'Output JSON only with shape {"selectedIds":["cand_1"],"reason":"..."}.',
         retries: 1,
         validator: (value) => {
           if (!value || typeof value !== "object") {
@@ -152,8 +237,7 @@ async function selectManifestEntries(params: {
           const selectedIds = Array.isArray(record.selectedIds)
             ? record.selectedIds
                 .filter(
-                  (item): item is string =>
-                    typeof item === "string" && candidateMap.has(item),
+                  (item): item is string => typeof item === "string" && candidateMap.has(item),
                 )
                 .slice(0, params.limit)
             : [];
@@ -234,6 +318,7 @@ export async function recallDurableMemory(params: {
   scope: DurableMemoryScope;
   prompt: string;
   recentMessages?: string[];
+  recentDreamTouchedNotes?: string[];
   complete?: CompleteFn;
   limit?: number;
 }): Promise<DurableRecallResult> {
@@ -247,14 +332,16 @@ export async function recallDurableMemory(params: {
     };
   }
   const limit = Math.max(1, Math.min(params.limit ?? DEFAULT_DURABLE_RECALL_LIMIT, 6));
+  const scopeDir = getDurableMemoryScopeDir(params.scope);
   const selection = await selectManifestEntries({
     complete: params.complete,
     prompt: params.prompt,
     recentMessages: params.recentMessages,
+    recentDreamTouchedNotes: params.recentDreamTouchedNotes,
     entries: manifest,
     limit,
+    scopeDir,
   });
-  const scopeDir = getDurableMemoryScopeDir(params.scope);
   const items: DurableMemoryItem[] = [];
   for (const entry of selection.selected) {
     const absolutePath = path.join(scopeDir, entry.notePath);

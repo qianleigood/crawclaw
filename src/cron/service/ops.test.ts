@@ -69,7 +69,7 @@ describe("cron service ops seam coverage", () => {
     const { storePath } = await makeStorePath();
     const now = Date.parse("2026-03-23T12:00:00.000Z");
     const enqueueSystemEvent = vi.fn();
-    const requestHeartbeatNow = vi.fn();
+    const requestMainSessionWake = vi.fn();
     const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
 
     await writeCronStoreSnapshot({
@@ -83,7 +83,7 @@ describe("cron service ops seam coverage", () => {
       log: logger,
       nowMs: () => now,
       enqueueSystemEvent,
-      requestHeartbeatNow,
+      requestMainSessionWake,
       runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
     });
 
@@ -94,7 +94,7 @@ describe("cron service ops seam coverage", () => {
       "cron: clearing stale running marker on startup",
     );
     expect(enqueueSystemEvent).not.toHaveBeenCalled();
-    expect(requestHeartbeatNow).not.toHaveBeenCalled();
+    expect(requestMainSessionWake).not.toHaveBeenCalled();
     expect(state.timer).not.toBeNull();
 
     const persisted = JSON.parse(await fs.readFile(storePath, "utf8")) as {
@@ -134,7 +134,7 @@ describe("cron service ops seam coverage", () => {
       log: logger,
       nowMs: () => now,
       enqueueSystemEvent: vi.fn(),
-      requestHeartbeatNow: vi.fn(),
+      requestMainSessionWake: vi.fn(),
       runIsolatedAgentJob: vi.fn(async () => {
         throw new Error("cron: job execution timed out");
       }),
@@ -177,7 +177,7 @@ describe("cron service ops seam coverage", () => {
       log: logger,
       nowMs: () => now,
       enqueueSystemEvent: vi.fn(),
-      requestHeartbeatNow: vi.fn(),
+      requestMainSessionWake: vi.fn(),
       runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const, summary: "done" })),
     });
 
@@ -221,7 +221,7 @@ describe("cron service ops seam coverage", () => {
       log: logger,
       nowMs: () => now,
       enqueueSystemEvent: vi.fn(),
-      requestHeartbeatNow: vi.fn(),
+      requestMainSessionWake: vi.fn(),
       runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const, summary: "done" })),
     });
 
@@ -265,7 +265,7 @@ describe("cron service ops seam coverage", () => {
       log: logger,
       nowMs: () => now,
       enqueueSystemEvent: vi.fn(),
-      requestHeartbeatNow: vi.fn(),
+      requestMainSessionWake: vi.fn(),
       runIsolatedAgentJob: vi.fn(async () => {
         throw new Error("cron: job execution timed out");
       }),

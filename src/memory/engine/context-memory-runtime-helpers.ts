@@ -3,26 +3,13 @@ import type {
   QueryContextSectionSchema,
   QueryContextSectionType,
 } from "../../agents/query-context/types.js";
-import {
-  getSettledDurableRecallPrefetch,
-  type DurableRecallPrefetchHandle,
-} from "../durable/prefetch.ts";
-import type { DurableRecallResult } from "../durable/read.ts";
 import { searchNotebookLmViaCli } from "../notebooklm/notebooklm-cli.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import type { UnifiedRecallItem } from "../types/orchestration.ts";
 import { cleanPrompt } from "../util/prompt.ts";
 import type { RuntimeLogger } from "./context-memory-runtime-deps.ts";
-import type { MemoryRuntimeContext } from "./types.ts";
 
-export type DurableRecallSource =
-  | "prefetch_hit"
-  | "prefetch_wait_hit"
-  | "prefetch_pending"
-  | "prefetch_pending_fallback"
-  | "prefetch_pending_fallback_error"
-  | "prefetch_error"
-  | "prefetch_missing";
+export type DurableRecallSource = "sync" | "sync_error";
 
 export function resolveMemoryRecallHitReason(params: {
   selectedDurableCount: number;
@@ -36,11 +23,7 @@ export function resolveMemoryRecallHitReason(params: {
   if (params.selectedKnowledgeCount > 0) {
     return "knowledge_selected";
   }
-  if (
-    params.durableRecallSource === "prefetch_pending" ||
-    params.durableRecallSource === "prefetch_pending_fallback_error" ||
-    params.durableRecallSource === "prefetch_error"
-  ) {
+  if (params.durableRecallSource === "sync_error") {
     return `durable_unavailable:${params.durableRecallSource}`;
   }
   return "no_recall_items";
@@ -60,44 +43,6 @@ export function resolveMemoryRecallEvictionReason(params: {
     return "token_budget:knowledge";
   }
   return undefined;
-}
-
-const DEFAULT_DURABLE_PREFETCH_WAIT_MS = 180;
-const MAX_DURABLE_PREFETCH_WAIT_MS = 1_000;
-
-export function resolveDurablePrefetchWaitMs(): number {
-  const raw = process.env.CRAWCLAW_MEMORY_DURABLE_PREFETCH_WAIT_MS?.trim();
-  if (!raw) {
-    return DEFAULT_DURABLE_PREFETCH_WAIT_MS;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_DURABLE_PREFETCH_WAIT_MS;
-  }
-  return Math.max(0, Math.min(MAX_DURABLE_PREFETCH_WAIT_MS, parsed));
-}
-
-export async function waitForDurableRecallPrefetch(params: {
-  handle: DurableRecallPrefetchHandle;
-  waitMs: number;
-}): Promise<
-  | { ready: false }
-  | {
-      ready: true;
-      status: "fulfilled" | "rejected";
-      result?: DurableRecallResult | null;
-      error?: unknown;
-    }
-> {
-  const initial = getSettledDurableRecallPrefetch(params.handle);
-  if (initial.ready || params.waitMs <= 0) {
-    return initial;
-  }
-  await Promise.race([
-    params.handle.promise.catch(() => undefined),
-    new Promise<void>((resolve) => setTimeout(resolve, params.waitMs)),
-  ]);
-  return getSettledDurableRecallPrefetch(params.handle);
 }
 
 export function createMemorySystemContextSection(params: {
@@ -122,26 +67,6 @@ export function createMemorySystemContextSection(params: {
     cacheable: true,
     ...(params.metadata ? { metadata: params.metadata } : {}),
   };
-}
-
-export function getDurableRecallPrefetchHandle(
-  runtimeContext: MemoryRuntimeContext | undefined,
-): DurableRecallPrefetchHandle | undefined {
-  const candidate = runtimeContext?.durableRecallPrefetchHandle;
-  if (!candidate || typeof candidate !== "object") {
-    return undefined;
-  }
-  const record = candidate as Partial<DurableRecallPrefetchHandle>;
-  if (
-    typeof record.sessionId !== "string" ||
-    typeof record.prompt !== "string" ||
-    typeof record.scopeKey !== "string" ||
-    typeof record.startedAt !== "number" ||
-    typeof record.status !== "string"
-  ) {
-    return undefined;
-  }
-  return record as DurableRecallPrefetchHandle;
 }
 
 export function getMessageRole(message: unknown): string {

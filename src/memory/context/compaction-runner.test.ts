@@ -145,6 +145,9 @@ Summary-backed compaction result.
         preservedTailStartTurn: expect.any(Number),
         summarizedMessages: expect.any(Number),
         keptMessages: expect.any(Number),
+        summaryProfile: "light",
+        summaryAgeMs: expect.any(Number),
+        waitedForSummaryMs: expect.any(Number),
       }),
     );
   });

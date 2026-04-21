@@ -1,9 +1,16 @@
-import type { MessageBlock, MessageMediaRef } from "../types/media.ts";
-import type { PromotionCandidateStatus } from "../types/runtime.ts";
-import type { DurableMemoryType } from "../types/orchestration.ts";
 import type { MemoryKind } from "../recall/memory-kind.ts";
+import type { MessageBlock, MessageMediaRef } from "../types/media.ts";
+import type { DurableMemoryType } from "../types/orchestration.ts";
+import type { PromotionCandidateStatus } from "../types/runtime.ts";
 
-export type PromotionSourceRefKind = "message" | "window" | "recall_trace" | "existing_note" | "candidate" | "graph_node" | "graph_cluster";
+export type PromotionSourceRefKind =
+  | "message"
+  | "window"
+  | "recall_trace"
+  | "existing_note"
+  | "candidate"
+  | "graph_node"
+  | "graph_cluster";
 
 export interface PromotionMessageLike {
   id?: string;
@@ -108,6 +115,9 @@ export interface PromotionGovernanceMeta {
 export interface PromotionCandidatePayload {
   schemaVersion: "promotion-candidate.v1";
   kind: PromotionCandidateKind;
+  // Promotion candidates are governance artifacts. They do not participate in
+  // prompt-time recall until some later workflow explicitly writes them into a
+  // recallable durable or knowledge surface.
   memoryBucket?: PromotionMemoryBucket;
   memoryKind?: MemoryKind;
   durableMemoryType?: DurableMemoryType;
@@ -133,62 +143,88 @@ export interface PromotionCandidatePayload {
 }
 
 export function projectPromotionCandidateMemoryKind(kind: PromotionCandidateKind): MemoryKind {
-  if (kind === "procedure") {return "procedure";}
-  if (kind === "decision") {return "decision";}
+  if (kind === "procedure") {
+    return "procedure";
+  }
+  if (kind === "decision") {
+    return "decision";
+  }
   return "reference";
 }
 
-function normalizedSignalText(payload: Pick<PromotionCandidatePayload, "title" | "summary" | "facts" | "tags" | "targetHint">): string {
+function normalizedSignalText(
+  payload: Pick<PromotionCandidatePayload, "title" | "summary" | "facts" | "tags" | "targetHint">,
+): string {
   return [
     payload.title,
     payload.summary,
     ...(payload.facts ?? []),
     ...(payload.tags ?? []),
     payload.targetHint ?? "",
-  ].join("\n").toLowerCase();
+  ]
+    .join("\n")
+    .toLowerCase();
 }
 
 export function inferPromotionDurableMemoryType(
-  payload: Pick<PromotionCandidatePayload, "memoryBucket" | "durableMemoryType" | "memoryKind" | "title" | "summary" | "facts" | "tags" | "targetHint">,
+  payload: Pick<
+    PromotionCandidatePayload,
+    | "memoryBucket"
+    | "durableMemoryType"
+    | "memoryKind"
+    | "title"
+    | "summary"
+    | "facts"
+    | "tags"
+    | "targetHint"
+  >,
 ): DurableMemoryType | null {
-  if (payload.memoryBucket === "knowledge") {return null;}
-  if (payload.durableMemoryType) {return payload.durableMemoryType;}
+  if (payload.memoryBucket === "knowledge") {
+    return null;
+  }
+  if (payload.durableMemoryType) {
+    return payload.durableMemoryType;
+  }
 
   const text = normalizedSignalText(payload);
-  const tags = new Set((payload.tags ?? []).map((item) => item.trim().toLowerCase()).filter(Boolean));
+  const tags = new Set(
+    (payload.tags ?? []).map((item) => item.trim().toLowerCase()).filter(Boolean),
+  );
 
   if (
-    tags.has("feedback")
-    || tags.has("preference")
-    || tags.has("preferences")
-    || /(prefer|preference|feedback|默认|习惯|总是|不要|先给|回答风格|交付方式)/i.test(text)
+    tags.has("feedback") ||
+    tags.has("preference") ||
+    tags.has("preferences") ||
+    /(prefer|preference|feedback|默认|习惯|总是|不要|先给|回答风格|交付方式)/i.test(text)
   ) {
     return "feedback";
   }
   if (
-    tags.has("user")
-    || tags.has("person")
-    || tags.has("people")
-    || tags.has("profile")
-    || /(user|persona|profile|maintainer|owner|负责人|对接人|用户画像|角色分工)/i.test(text)
+    tags.has("user") ||
+    tags.has("person") ||
+    tags.has("people") ||
+    tags.has("profile") ||
+    /(user|persona|profile|maintainer|owner|负责人|对接人|用户画像|角色分工)/i.test(text)
   ) {
     return "user";
   }
   if (
-    tags.has("project")
-    || tags.has("projects")
-    || /(project|roadmap|milestone|release train|项目|版本冻结|里程碑|范围|目标)/i.test(text)
+    tags.has("project") ||
+    tags.has("projects") ||
+    /(project|roadmap|milestone|release train|项目|版本冻结|里程碑|范围|目标)/i.test(text)
   ) {
     return "project";
   }
   if (
-    payload.memoryKind === "reference"
-    || tags.has("reference")
-    || tags.has("doc")
-    || tags.has("docs")
-    || tags.has("link")
-    || tags.has("links")
-    || /(reference|doc|docs|runbook link|dashboard|wiki|notion|notebooklm|grafana|linear|参考资料|文档入口|在哪里看)/i.test(text)
+    payload.memoryKind === "reference" ||
+    tags.has("reference") ||
+    tags.has("doc") ||
+    tags.has("docs") ||
+    tags.has("link") ||
+    tags.has("links") ||
+    /(reference|doc|docs|runbook link|dashboard|wiki|notion|notebooklm|grafana|linear|参考资料|文档入口|在哪里看)/i.test(
+      text,
+    )
   ) {
     return "reference";
   }
@@ -196,53 +232,128 @@ export function inferPromotionDurableMemoryType(
 }
 
 export function inferPromotionMemoryBucket(
-  payload: Pick<PromotionCandidatePayload, "memoryBucket" | "durableMemoryType" | "memoryKind" | "title" | "summary" | "facts" | "tags" | "targetHint">,
+  payload: Pick<
+    PromotionCandidatePayload,
+    | "memoryBucket"
+    | "durableMemoryType"
+    | "memoryKind"
+    | "title"
+    | "summary"
+    | "facts"
+    | "tags"
+    | "targetHint"
+  >,
 ): PromotionMemoryBucket {
-  if (payload.memoryBucket) {return payload.memoryBucket;}
+  if (payload.memoryBucket) {
+    return payload.memoryBucket;
+  }
   return inferPromotionDurableMemoryType(payload) ? "durable" : "knowledge";
 }
 
 export function inferPromotionTargetLayer(
-  payload: Pick<PromotionCandidatePayload, "memoryBucket" | "durableMemoryType" | "memoryKind" | "kind" | "title" | "summary" | "facts" | "tags" | "targetHint">,
+  payload: Pick<
+    PromotionCandidatePayload,
+    | "memoryBucket"
+    | "durableMemoryType"
+    | "memoryKind"
+    | "kind"
+    | "title"
+    | "summary"
+    | "facts"
+    | "tags"
+    | "targetHint"
+  >,
 ): PromotionGovernanceMeta["targetLayer"] {
   const bucket = inferPromotionMemoryBucket(payload);
   if (bucket === "durable") {
     const durableType = inferPromotionDurableMemoryType(payload);
-    if (durableType === "feedback") {return "preferences";}
+    if (durableType === "feedback") {
+      return "preferences";
+    }
     return "sources";
   }
-  if (payload.kind === "decision" || payload.memoryKind === "decision") {return "key_decisions";}
-  if (payload.kind === "procedure" || payload.memoryKind === "procedure") {return "sop";}
-  if (payload.memoryKind === "runtime_pattern") {return "runtime_signals";}
+  if (payload.kind === "decision" || payload.memoryKind === "decision") {
+    return "key_decisions";
+  }
+  if (payload.kind === "procedure" || payload.memoryKind === "procedure") {
+    return "sop";
+  }
+  if (payload.memoryKind === "runtime_pattern") {
+    return "runtime_signals";
+  }
   return "sources";
 }
 
 export function mapPromotionPayloadToNoteType(
-  payload: Pick<PromotionCandidatePayload, "memoryBucket" | "durableMemoryType" | "memoryKind" | "kind" | "title" | "summary" | "facts" | "tags" | "targetHint">,
+  payload: Pick<
+    PromotionCandidatePayload,
+    | "memoryBucket"
+    | "durableMemoryType"
+    | "memoryKind"
+    | "kind"
+    | "title"
+    | "summary"
+    | "facts"
+    | "tags"
+    | "targetHint"
+  >,
 ): string {
   const bucket = inferPromotionMemoryBucket(payload);
   if (bucket === "durable") {
     const durableType = inferPromotionDurableMemoryType(payload);
-    if (durableType === "feedback") {return "preference";}
-    if (durableType === "user") {return "profile";}
-    if (durableType === "project") {return "project";}
+    if (durableType === "feedback") {
+      return "preference";
+    }
+    if (durableType === "user") {
+      return "profile";
+    }
+    if (durableType === "project") {
+      return "project";
+    }
     return "reference";
   }
-  if (payload.kind === "decision") {return "decision";}
-  if (payload.kind === "procedure") {return "sop";}
+  if (payload.kind === "decision") {
+    return "decision";
+  }
+  if (payload.kind === "procedure") {
+    return "sop";
+  }
   return "concept";
 }
 
 export function derivePromotionTargetFolder(
-  payload: Pick<PromotionCandidatePayload, "memoryBucket" | "durableMemoryType" | "memoryKind" | "kind" | "title" | "summary" | "facts" | "tags" | "targetHint">,
+  payload: Pick<
+    PromotionCandidatePayload,
+    | "memoryBucket"
+    | "durableMemoryType"
+    | "memoryKind"
+    | "kind"
+    | "title"
+    | "summary"
+    | "facts"
+    | "tags"
+    | "targetHint"
+  >,
 ): string {
   const noteType = mapPromotionPayloadToNoteType(payload);
-  if (noteType === "project") {return "20 Projects";}
-  if (noteType === "profile") {return "30 People";}
-  if (noteType === "decision") {return "40 Decisions";}
-  if (noteType === "sop") {return "50 SOP";}
-  if (noteType === "preference") {return "60 Preferences";}
-  if (noteType === "reference") {return "80 References";}
+  if (noteType === "project") {
+    return "20 Projects";
+  }
+  if (noteType === "profile") {
+    return "30 People";
+  }
+  if (noteType === "decision") {
+    return "40 Decisions";
+  }
+  if (noteType === "sop") {
+    return "50 SOP";
+  }
+  if (noteType === "preference") {
+    return "60 Preferences";
+  }
+  if (noteType === "reference") {
+    return "80 References";
+  }
   return "70 Concepts";
 }
 
