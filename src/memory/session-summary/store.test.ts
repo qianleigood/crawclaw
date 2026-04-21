@@ -24,7 +24,7 @@ describe("session summary store", () => {
     clearSessionSummaryReadCache();
   });
 
-  it("renders a Claude-style summary template", () => {
+  it("renders a structured summary template", () => {
     const template = renderSessionSummaryTemplate();
     expect(template).toContain("# Session Title");
     expect(template).toContain("# Current State");

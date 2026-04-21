@@ -1,7 +1,6 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { CronDeliverySchema, CronJobStateSchema } from "../gateway/protocol/schema.js";
+import type { CronDeliveryMode } from "./types.js";
 
 type SchemaLike = {
   anyOf?: Array<SchemaLike>;
@@ -38,30 +37,16 @@ function extractConstUnionValues(schema: SchemaLike): string[] {
   );
 }
 
-const UI_FILES = ["ui/src/ui/types.ts", "ui/src/ui/ui-types.ts"];
+const RUNTIME_DELIVERY_MODES = [
+  "none",
+  "announce",
+  "webhook",
+] as const satisfies readonly CronDeliveryMode[];
 
 describe("cron protocol conformance", () => {
-  it("ui includes all cron delivery modes from gateway schema", async () => {
+  it("gateway schema includes all runtime cron delivery modes", () => {
     const modes = extractDeliveryModes(CronDeliverySchema as SchemaLike);
-    expect(modes.length).toBeGreaterThan(0);
-
-    const cwd = process.cwd();
-    for (const relPath of UI_FILES) {
-      const content = await fs.readFile(path.join(cwd, relPath), "utf-8");
-      for (const mode of modes) {
-        expect(content.includes(`"${mode}"`), `${relPath} missing delivery mode ${mode}`).toBe(
-          true,
-        );
-      }
-    }
-  });
-
-  it("cron status shape matches gateway fields in UI", async () => {
-    const cwd = process.cwd();
-    const uiTypes = await fs.readFile(path.join(cwd, "ui/src/ui/types.ts"), "utf-8");
-    expect(uiTypes.includes("export type CronStatus")).toBe(true);
-    expect(uiTypes.includes("jobs:")).toBe(true);
-    expect(uiTypes.includes("jobCount")).toBe(false);
+    expect(modes).toEqual([...RUNTIME_DELIVERY_MODES]);
   });
 
   it("cron job state schema keeps the full failover reason set", () => {

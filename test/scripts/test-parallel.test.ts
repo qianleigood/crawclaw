@@ -394,7 +394,6 @@ describe("scripts/test-parallel lane planning", () => {
     expect(unitBatchFilterCounts.reduce((sum, count) => sum + count, 0)).toBe(
       sharedTargetedUnitProxyFiles.length,
     );
-    expect(output).toContain("unit-qr-dashboard.integration-isolated filters=1 maxWorkers=2");
   });
 
   it("explains targeted file ownership and execution policy", () => {

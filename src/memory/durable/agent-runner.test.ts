@@ -209,9 +209,6 @@ describe("runDurableExtractionAgentOnce", () => {
         workspaceDir: dir,
       }),
     );
-    expect(runEmbeddedPiAgent.mock.calls[0]?.[0]).not.toHaveProperty(
-      "specialInheritedPromptEnvelope",
-    );
     const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as
       | {
           sessionId?: string;

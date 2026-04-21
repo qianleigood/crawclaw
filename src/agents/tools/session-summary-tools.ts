@@ -57,7 +57,7 @@ export function createSessionSummaryReadTool(
     label: "Read Session Summary",
     name: "session_summary_file_read",
     description:
-      "Read the current Claude-style session summary.md file for this session. Use this first before editing.",
+      "Read the current structured session summary.md file for this session. Use this first before editing.",
     parameters: Type.Object({}),
     execute: async () => {
       const snapshot = await ensureSessionSummaryFile(target);

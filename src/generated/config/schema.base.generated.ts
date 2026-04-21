@@ -9451,9 +9451,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               basePath: {
                 type: "string",
               },
-              root: {
-                type: "string",
-              },
               allowedOrigins: {
                 type: "array",
                 items: {

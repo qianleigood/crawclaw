@@ -106,7 +106,7 @@ This is now close to Claude Code at the substrate-design level:
 - shared lifecycle spine
 - shared special-agent runtime
 - explicit transcript isolation for maintenance agents
-- explicit tool policy per special agent, with Claude-style runtime deny instead of prompt-time tool inventory shrinking
+- explicit tool policy per special agent, with runtime deny instead of prompt-time tool inventory shrinking
 - explicit provider-level cache policy per special agent
 - shared event/history/usage hooks in the runner
 

@@ -110,7 +110,7 @@ describe("memory file tools", () => {
     expect(JSON.stringify(deleteResult.details)).toContain('"status":"deleted"');
   });
 
-  it("rejects MEMORY.md content that violates Claude-style index constraints", async () => {
+  it("rejects MEMORY.md content that violates bounded index constraints", async () => {
     process.env.CRAWCLAW_STATE_DIR = await createStateDir();
     const { write } = createScopedTools();
     expect(write).toBeTruthy();

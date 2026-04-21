@@ -71,7 +71,7 @@ describe("session summary agent runner", () => {
     expect(SESSION_SUMMARY_AGENT_DEFINITION.cachePolicy?.skipWrite).toBeUndefined();
   });
 
-  it("builds a Claude-style fork-context task prompt that keeps the edit set narrow", () => {
+  it("builds a fork-context task prompt that keeps the edit set narrow", () => {
     const taskPrompt = buildSessionSummaryTaskPrompt({
       sessionId: "session-1",
       summaryPath: "/tmp/session-summary/agents/main/sessions/session-1/summary.md",

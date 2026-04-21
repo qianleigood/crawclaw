@@ -1,6 +1,5 @@
 export const CACHE_GOVERNANCE_CATEGORIES = [
   "query_prompt_identity",
-  "special_agent_snapshot",
   "runtime_ttl",
   "plugin_routing_control_plane",
   "file_ui",

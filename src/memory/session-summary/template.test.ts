@@ -7,12 +7,12 @@ import {
 } from "./template.js";
 
 describe("session summary template", () => {
-  it("renders and parses a Claude-style session summary document", () => {
+  it("renders and parses a structured session summary document", () => {
     const rendered = renderSessionSummaryDocument({
       sections: {
         currentState: ["Working on summary support."],
         openLoops: ["Need to confirm the compaction boundary."],
-        taskSpecification: ["Add a Claude-style summary.md workflow."],
+        taskSpecification: ["Add a structured summary.md workflow."],
         keyResults: ["Session summary files now exist."],
       },
     });
@@ -32,7 +32,7 @@ describe("session summary template", () => {
       "Need to confirm the compaction boundary.",
     );
     expect(getSessionSummarySectionText(parsed, "taskSpecification")).toBe(
-      "Add a Claude-style summary.md workflow.",
+      "Add a structured summary.md workflow.",
     );
     expect(getSessionSummarySectionText(parsed, "keyResults")).toBe(
       "Session summary files now exist.",

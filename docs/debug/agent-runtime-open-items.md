@@ -72,7 +72,7 @@ contracts.
     - dual execution modes: `spawned_session` and `embedded_fork`
     - explicit transcript policy on special-agent definitions
     - explicit tool policies resolved from the shared special-agent registry
-    - Claude-style runtime deny for special-agent tool enforcement
+    - runtime deny for special-agent tool enforcement
     - explicit provider-level cache policy on special-agent definitions
     - parent-run `parentForkContext` capture with no disk-backed parent prompt
       fallback artifact
@@ -244,7 +244,7 @@ Memory is aligned with the current simplified model, but follow-up work remains.
     - Action Feed / Context Archive recording
   - Design and background:
     - [`Memory Extractor Agent Design`](/debug/memory-extractor-agent)
-    - [`Claude-style Durable Memory Refactor`](/debug/claude-memory-refactor)
+    - [`Durable Memory Refactor Status`](/debug/claude-memory-refactor)
 - [ ] Add agent-scoped routing guidance for `write_knowledge_note`, matching the
       durable-memory guidance quality level.
 - [ ] Revisit candidate extraction as a future suggestion layer only.

@@ -100,10 +100,7 @@ describe("docker build cache layout", () => {
       ),
     ).toBeLessThan(installIndex);
     expect(
-      indexOfPattern(
-        dockerfile,
-        /^COPY(?:\s+--chown=\S+)?\s+ui\/package\.json \.\/ui\/package\.json$/m,
-      ),
+      indexOfPattern(dockerfile, /^COPY(?:\s+--chown=\S+)?\s+patches \.\/patches$/m),
     ).toBeLessThan(installIndex);
     expect(
       indexOfPattern(
@@ -120,9 +117,9 @@ describe("docker build cache layout", () => {
     expect(
       indexOfPattern(dockerfile, /^COPY(?:\s+--chown=\S+)?\s+scripts \.\/scripts$/m),
     ).toBeGreaterThan(installIndex);
-    expect(indexOfPattern(dockerfile, /^COPY(?:\s+--chown=\S+)?\s+ui \.\/ui$/m)).toBeGreaterThan(
-      installIndex,
-    );
+    expect(
+      indexOfPattern(dockerfile, /^COPY(?:\s+--chown=\S+)?\s+docs \.\/docs$/m),
+    ).toBeGreaterThan(installIndex);
   });
 
   it("copies manifests before install in the qr-import image", async () => {
@@ -136,10 +133,7 @@ describe("docker build cache layout", () => {
       ),
     ).toBeLessThan(installIndex);
     expect(
-      indexOfPattern(
-        dockerfile,
-        /^COPY(?:\s+--chown=\S+)?\s+ui\/package\.json \.\/ui\/package\.json$/m,
-      ),
+      indexOfPattern(dockerfile, /^COPY(?:\s+--chown=\S+)?\s+patches \.\/patches$/m),
     ).toBeLessThan(installIndex);
     expect(dockerfile).toContain(
       "This image only exercises the root qrcode-terminal dependency path.",

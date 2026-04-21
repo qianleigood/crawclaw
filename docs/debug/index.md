@@ -18,7 +18,7 @@ title: Debug Docs
 
 ## Memory And Special Agents
 
-- [Claude memory refactor](/debug/claude-memory-refactor)
+- [Durable memory refactor status](/debug/claude-memory-refactor)
 - [Memory extractor agent](/debug/memory-extractor-agent)
 - [Special agent substrate](/debug/special-agent-substrate)
 
