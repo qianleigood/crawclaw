@@ -390,6 +390,12 @@ describe("durable memory recall", () => {
       expect(result.selection.mode).toBe("heuristic");
       expect(result.items).toHaveLength(1);
       expect(result.items[0]?.metadata?.notePath).toBe("project-ops-scratchpad.md");
+      expect(result.selection.selectedDetails?.[0]?.provenance).toContain("index");
+      expect(
+        result.selection.omittedDetails?.find(
+          (entry) => entry.notePath === "project-gateway-overview.md",
+        )?.provenance,
+      ).toContain("header");
     } finally {
       await fs.rm(scopeDir, { recursive: true, force: true });
     }
@@ -449,6 +455,12 @@ describe("durable memory recall", () => {
       expect(result.selection.mode).toBe("heuristic");
       expect(result.items).toHaveLength(1);
       expect(result.items[0]?.metadata?.notePath).toBe("project-probe-note.md");
+      expect(result.selection.selectedDetails?.[0]?.provenance).toContain("body_rerank");
+      expect(
+        result.selection.omittedDetails?.find(
+          (entry) => entry.notePath === "project-gateway-note.md",
+        )?.omittedReason,
+      ).toBe("ranked_below_limit");
     } finally {
       await fs.rm(scopeDir, { recursive: true, force: true });
     }
@@ -557,6 +569,7 @@ describe("durable memory recall", () => {
       expect(result.selection.mode).toBe("heuristic");
       expect(result.items).toHaveLength(1);
       expect(result.items[0]?.metadata?.notePath).toBe("project-gateway-b.md");
+      expect(result.selection.selectedDetails?.[0]?.provenance).toContain("dream_boost");
     } finally {
       await fs.rm(scopeDir, { recursive: true, force: true });
     }
@@ -601,6 +614,12 @@ describe("durable memory recall", () => {
       expect(result.selection.mode).toBe("llm_none");
       expect(result.selection.selectedItemIds).toEqual([]);
       expect(result.items).toEqual([]);
+      expect(result.selection.omittedDetails?.[0]?.omittedReason).toBe("llm_none");
+      expect(
+        result.selection.omittedDetails?.find(
+          (entry) => entry.notePath === "feedback-answer-style.md",
+        )?.provenance,
+      ).toContain("header");
     } finally {
       await fs.rm(scopeDir, { recursive: true, force: true });
     }

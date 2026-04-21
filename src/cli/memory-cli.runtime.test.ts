@@ -211,6 +211,32 @@ Nothing yet.
     expect(runtimeLogs.join("\n")).toContain("agent_failed");
   });
 
+  it("renders dream status with touched note diagnostics", async () => {
+    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([
+      {
+        id: "mr-1",
+        kind: "dream",
+        scope: "main:telegram:alice",
+        status: "done",
+        triggerSource: "manual_cli",
+        summary: "Consolidated gateway notes",
+        error: null,
+        metricsJson: JSON.stringify({
+          touchedNotes: ["project/gateway-recovery.md", "feedback/answer-style.md"],
+        }),
+      },
+    ]);
+
+    await runMemoryDreamStatus({
+      agent: "main",
+      channel: "telegram",
+      user: "alice",
+    });
+
+    expect(runtimeLogs.join("\n")).toContain("touched: project/gateway-recovery.md");
+    expect(runtimeLogs.join("\n")).toContain("touched: feedback/answer-style.md");
+  });
+
   it("renders dream history with failure reason", async () => {
     mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([
       {

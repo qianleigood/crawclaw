@@ -446,6 +446,7 @@ function buildCandidateDraft(params: {
 
   const candidate: PromotionCandidatePayload = {
     schemaVersion: "promotion-candidate.v1",
+    surface: "governance_only",
     kind,
     memoryKind: projectPromotionCandidateMemoryKind(kind),
     title,

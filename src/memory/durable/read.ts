@@ -13,10 +13,34 @@ const MAX_SELECTOR_CANDIDATES = 48;
 const MAX_EXCERPT_CANDIDATES = 12;
 const MAX_EXCERPT_CHARS = 1_600;
 
+export type DurableRecallProvenance = "index" | "header" | "body_rerank" | "dream_boost";
+export type DurableRecallOmittedReason =
+  | "candidate_cutoff"
+  | "ranked_below_limit"
+  | "llm_filtered"
+  | "llm_none";
+
+export interface DurableRecallSelectionDetail {
+  itemId: string;
+  notePath: string;
+  title: string;
+  provenance: DurableRecallProvenance[];
+  omittedReason?: DurableRecallOmittedReason;
+  scoreBreakdown: {
+    header: number;
+    index: number;
+    bodyRerank: number;
+    dreamBoost: number;
+    final: number;
+  };
+}
+
 interface DurableRecallCandidate {
   entry: DurableMemoryManifestEntry;
   excerpt: string;
   score: number;
+  scoreBreakdown: DurableRecallSelectionDetail["scoreBreakdown"];
+  provenance: DurableRecallProvenance[];
 }
 
 function normalizeText(value: string | null | undefined): string {
@@ -29,25 +53,36 @@ function tokenize(value: string | null | undefined): string[] {
     .filter((token) => token.length >= 2);
 }
 
-function heuristicScore(
+function typeBoost(entry: DurableMemoryManifestEntry): number {
+  return entry.durableType === "feedback"
+    ? 0.15
+    : entry.durableType === "project"
+      ? 0.1
+      : entry.durableType === "user"
+        ? 0.08
+        : 0.04;
+}
+
+function heuristicScoreBreakdown(
   entry: DurableMemoryManifestEntry,
   prompt: string,
   recentMessages?: string[],
-): number {
+): DurableRecallSelectionDetail["scoreBreakdown"] {
   const promptTokens = new Set(tokenize([prompt, ...(recentMessages ?? [])].join(" ")));
-  const entryTokens = new Set(
-    tokenize(`${entry.indexHook} ${entry.title} ${entry.description} ${entry.durableType}`),
+  const headerTokens = new Set(
+    tokenize(`${entry.title} ${entry.description} ${entry.durableType}`),
   );
-  const overlap = [...promptTokens].filter((token) => entryTokens.has(token)).length;
-  const typeBoost =
-    entry.durableType === "feedback"
-      ? 0.15
-      : entry.durableType === "project"
-        ? 0.1
-        : entry.durableType === "user"
-          ? 0.08
-          : 0.04;
-  return overlap + typeBoost;
+  const indexTokens = new Set(tokenize(entry.indexHook));
+  const header =
+    [...promptTokens].filter((token) => headerTokens.has(token)).length + typeBoost(entry);
+  const index = [...promptTokens].filter((token) => indexTokens.has(token)).length;
+  return {
+    header,
+    index,
+    bodyRerank: 0,
+    dreamBoost: 0,
+    final: header + index,
+  };
 }
 
 function excerptScore(
@@ -61,7 +96,7 @@ function excerptScore(
   const promptTokens = new Set(tokenize([prompt, ...(recentMessages ?? [])].join(" ")));
   const excerptTokens = new Set(tokenize(excerpt));
   const overlap = [...promptTokens].filter((token) => excerptTokens.has(token)).length;
-  return overlap * 0.6;
+  return overlap * 0.8;
 }
 
 function dreamTouchScore(
@@ -72,6 +107,39 @@ function dreamTouchScore(
     return 0;
   }
   return recentDreamTouchedNotes.includes(entry.notePath) ? 0.35 : 0;
+}
+
+function inferProvenance(
+  scoreBreakdown: DurableRecallSelectionDetail["scoreBreakdown"],
+): DurableRecallProvenance[] {
+  const provenance: DurableRecallProvenance[] = [];
+  if (scoreBreakdown.index > 0) {
+    provenance.push("index");
+  }
+  if (scoreBreakdown.header > 0) {
+    provenance.push("header");
+  }
+  if (scoreBreakdown.bodyRerank > 0) {
+    provenance.push("body_rerank");
+  }
+  if (scoreBreakdown.dreamBoost > 0) {
+    provenance.push("dream_boost");
+  }
+  return provenance.length ? provenance : ["header"];
+}
+
+function toSelectionDetail(
+  candidate: DurableRecallCandidate,
+  omittedReason?: DurableRecallOmittedReason,
+): DurableRecallSelectionDetail {
+  return {
+    itemId: `durable:${candidate.entry.notePath}`,
+    notePath: candidate.entry.notePath,
+    title: candidate.entry.title,
+    provenance: candidate.provenance,
+    ...(omittedReason ? { omittedReason } : {}),
+    scoreBreakdown: candidate.scoreBreakdown,
+  };
 }
 
 function formatSelectorTimestamp(updatedAt: number): string {
@@ -91,7 +159,7 @@ function buildSelectorCandidates(params: {
   const ranked = [...params.entries]
     .map((entry) => ({
       entry,
-      score: heuristicScore(entry, params.prompt, params.recentMessages),
+      score: heuristicScoreBreakdown(entry, params.prompt, params.recentMessages).final,
     }))
     .toSorted(
       (left, right) => right.score - left.score || right.entry.updatedAt - left.entry.updatedAt,
@@ -148,13 +216,21 @@ async function buildRecallCandidates(params: {
   return selectorCandidates
     .map((entry) => {
       const excerpt = excerptByPath.get(entry.notePath) ?? "";
+      const heuristic = heuristicScoreBreakdown(entry, params.prompt, params.recentMessages);
+      const bodyRerank = excerptScore(params.prompt, params.recentMessages, excerpt);
+      const dreamBoost = dreamTouchScore(entry, params.recentDreamTouchedNotes);
+      const scoreBreakdown = {
+        ...heuristic,
+        bodyRerank,
+        dreamBoost,
+        final: heuristic.header + heuristic.index + bodyRerank + dreamBoost,
+      };
       return {
         entry,
         excerpt,
-        score:
-          heuristicScore(entry, params.prompt, params.recentMessages) +
-          excerptScore(params.prompt, params.recentMessages, excerpt) +
-          dreamTouchScore(entry, params.recentDreamTouchedNotes),
+        score: scoreBreakdown.final,
+        scoreBreakdown,
+        provenance: inferProvenance(scoreBreakdown),
       };
     })
     .toSorted(
@@ -174,6 +250,8 @@ async function selectManifestEntries(params: {
   mode: "llm" | "llm_none" | "heuristic";
   selected: DurableMemoryManifestEntry[];
   omitted: string[];
+  selectedDetails: DurableRecallSelectionDetail[];
+  omittedDetails: DurableRecallSelectionDetail[];
 }> {
   const recallCandidates = await buildRecallCandidates({
     entries: params.entries,
@@ -185,6 +263,10 @@ async function selectManifestEntries(params: {
   });
   const ranked = recallCandidates;
   const selectorCandidates = recallCandidates.map((candidate) => candidate.entry);
+  const candidateByPath = new Map(
+    recallCandidates.map((candidate) => [candidate.entry.notePath, candidate]),
+  );
+  const selectorCandidatePaths = new Set(selectorCandidates.map((entry) => entry.notePath));
   const excerptByPath = new Map(
     recallCandidates.map((candidate) => [candidate.entry.notePath, candidate.excerpt]),
   );
@@ -254,12 +336,47 @@ async function selectManifestEntries(params: {
     }
   }
 
+  const selectedPathSet = new Set(selected.map((entry) => entry.notePath));
+  const selectedDetails = selected
+    .map((entry) => candidateByPath.get(entry.notePath))
+    .filter((candidate): candidate is DurableRecallCandidate => Boolean(candidate))
+    .map((candidate) => toSelectionDetail(candidate));
+  const omittedDetails = params.entries
+    .filter((entry) => !selectedPathSet.has(entry.notePath))
+    .map((entry) => {
+      const existing = candidateByPath.get(entry.notePath);
+      const fallbackBreakdown = heuristicScoreBreakdown(
+        entry,
+        params.prompt,
+        params.recentMessages,
+      );
+      const candidate =
+        existing ??
+        ({
+          entry,
+          excerpt: "",
+          score: fallbackBreakdown.final,
+          scoreBreakdown: fallbackBreakdown,
+          provenance: inferProvenance(fallbackBreakdown),
+        } satisfies DurableRecallCandidate);
+      const omittedReason: DurableRecallOmittedReason = selectorCandidatePaths.has(entry.notePath)
+        ? mode === "llm"
+          ? "llm_filtered"
+          : mode === "llm_none"
+            ? "llm_none"
+            : "ranked_below_limit"
+        : "candidate_cutoff";
+      return toSelectionDetail(candidate, omittedReason);
+    });
+
   return {
     mode,
     selected,
     omitted: params.entries
       .map((entry) => entry.notePath)
       .filter((notePath) => !selected.some((entry) => entry.notePath === notePath)),
+    selectedDetails,
+    omittedDetails,
   };
 }
 
@@ -328,7 +445,14 @@ export async function recallDurableMemory(params: {
       scope: params.scope,
       manifest: [],
       items: [],
-      selection: { mode: "heuristic", selectedItemIds: [], omittedItemIds: [] },
+      selection: {
+        mode: "heuristic",
+        selectedItemIds: [],
+        omittedItemIds: [],
+        selectedDetails: [],
+        omittedDetails: [],
+        recentDreamTouchedNotes: params.recentDreamTouchedNotes ?? [],
+      },
     };
   }
   const limit = Math.max(1, Math.min(params.limit ?? DEFAULT_DURABLE_RECALL_LIMIT, 6));
@@ -367,6 +491,9 @@ export async function recallDurableMemory(params: {
       mode: selection.mode,
       selectedItemIds: selection.selected.map((entry) => `durable:${entry.notePath}`),
       omittedItemIds: selection.omitted.map((notePath) => `durable:${notePath}`),
+      selectedDetails: selection.selectedDetails,
+      omittedDetails: selection.omittedDetails,
+      recentDreamTouchedNotes: params.recentDreamTouchedNotes ?? [],
     },
   };
 }
@@ -379,5 +506,8 @@ export type DurableRecallResult = {
     mode: "llm" | "llm_none" | "heuristic";
     selectedItemIds: string[];
     omittedItemIds: string[];
+    selectedDetails: DurableRecallSelectionDetail[];
+    omittedDetails: DurableRecallSelectionDetail[];
+    recentDreamTouchedNotes: string[];
   };
 };

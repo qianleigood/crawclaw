@@ -71,7 +71,18 @@ When onboarding finishes, use a channel or launch the terminal interface with `c
 
 CrawClaw reads operating instructions and “memory” from its workspace directory.
 
-By default, CrawClaw uses `~/.crawclaw/workspace` as the agent workspace, and will create it (plus starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`) automatically on setup/first agent run. `BOOTSTRAP.md` is only created when the workspace is brand new (it should not come back after you delete it). `MEMORY.md` is optional (not auto-created); when present, it is loaded for normal sessions. Subagent sessions only inject `AGENTS.md` and `TOOLS.md`.
+By default, CrawClaw uses `~/.crawclaw/workspace` as the agent workspace, and
+will create starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`,
+`USER.md`, and `HEARTBEAT.md` automatically on setup/first agent run.
+`BOOTSTRAP.md` is only created when the workspace is brand new (it should not
+come back after you delete it). `MEMORY.md` is optional and not auto-created.
+
+Default runtime bootstrap injection is intentionally narrow:
+
+- normal runs inject `AGENTS.md`
+- lightweight heartbeat runs inject `HEARTBEAT.md`
+- `MEMORY.md` and `memory/*.md` stay on-demand through memory tools/workflows
+  rather than auto-injected bootstrap context
 
 Tip: treat this folder like CrawClaw’s “memory” and make it a git repo (ideally private) so your `AGENTS.md` + memory files are backed up. If git is installed, brand-new workspaces are auto-initialized.
 
@@ -86,9 +97,7 @@ Optional: choose a different workspace with `agents.defaults.workspace` (support
 
 ```json5
 {
-  agent: {
-    workspace: "~/.crawclaw/workspace",
-  },
+  agents: { defaults: { workspace: "~/.crawclaw/workspace" } },
 }
 ```
 
@@ -96,9 +105,7 @@ If you already ship your own workspace files from a repo, you can disable bootst
 
 ```json5
 {
-  agent: {
-    skipBootstrap: true,
-  },
+  agents: { defaults: { skipBootstrap: true } },
 }
 ```
 
@@ -115,13 +122,15 @@ Example:
 ```json5
 {
   logging: { level: "info" },
-  agent: {
-    model: "anthropic/claude-opus-4-6",
-    workspace: "~/.crawclaw/workspace",
-    thinkingDefault: "high",
-    timeoutSeconds: 1800,
-    // Start with 0; enable later.
-    heartbeat: { every: "0m" },
+  agents: {
+    defaults: {
+      model: { primary: "anthropic/claude-opus-4-6" },
+      workspace: "~/.crawclaw/workspace",
+      thinkingDefault: "high",
+      timeoutSeconds: 1800,
+      // Start with 0; enable later.
+      heartbeat: { every: "0m" },
+    },
   },
   channels: {
     whatsapp: {
@@ -169,9 +178,7 @@ Set `agents.defaults.heartbeat.every: "0m"` to disable.
 
 ```json5
 {
-  agent: {
-    heartbeat: { every: "30m" },
-  },
+  agents: { defaults: { heartbeat: { every: "30m" } } },
 }
 ```
 

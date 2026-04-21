@@ -18,7 +18,15 @@ CrawClaw assembles its own system prompt on every run. It includes:
 - Tool list + short descriptions
 - Skills list (only metadata; instructions are loaded on demand with `read`)
 - Self-update instructions
-- Workspace + bootstrap files (`AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, `BOOTSTRAP.md` when new, plus `MEMORY.md` when present or `memory.md` as a lowercase fallback). Large files are truncated by `agents.defaults.bootstrapMaxChars` (default: 20000), and total bootstrap injection is capped by `agents.defaults.bootstrapTotalMaxChars` (default: 150000). `memory/*.md` files are on-demand via memory tools and are not auto-injected.
+- Workspace bootstrap files. Default runtime injection is intentionally narrow:
+  `AGENTS.md` for normal runs, or `HEARTBEAT.md` for lightweight heartbeat runs.
+  Other workspace files such as `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`,
+  `BOOTSTRAP.md`, and `MEMORY.md` remain available to tools/workflows or explicit
+  extra-bootstrap hooks, but are not part of the default bootstrap surface.
+  Large injected files are truncated by `agents.defaults.bootstrapMaxChars`
+  (default: 20000), and total bootstrap injection is capped by
+  `agents.defaults.bootstrapTotalMaxChars` (default: 150000). `memory/*.md`
+  files stay on-demand rather than auto-injected.
 - Time (UTC + user timezone)
 - Reply tags + heartbeat behavior
 - Runtime metadata (host/OS/model/thinking)

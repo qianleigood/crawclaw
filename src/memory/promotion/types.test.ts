@@ -49,4 +49,20 @@ describe("promotion memory bucket inference", () => {
     expect(inferPromotionDurableMemoryType(payload)).toBeNull();
     expect(inferPromotionMemoryBucket(payload)).toBe("knowledge");
   });
+
+  it("treats promotion candidates as governance-only artifacts by default", () => {
+    const payload = {
+      kind: "decision" as const,
+      memoryKind: "decision" as const,
+      title: "Gateway policy",
+      summary: "Keep promotion separate from prompt-time recall.",
+      facts: ["promotion remains governance-only"],
+      tags: ["promotion", "governance"],
+      targetHint: "40 Decisions/gateway-policy.md",
+      surface: "governance_only" as const,
+    };
+
+    expect(payload.surface).toBe("governance_only");
+    expect(inferPromotionMemoryBucket(payload)).toBe("knowledge");
+  });
 });

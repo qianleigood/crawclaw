@@ -58,6 +58,7 @@ Session summary now starts with a light profile before upgrading to full.
     expect(result.length).toBeGreaterThan(0);
     expect(result[0]?.sourceType).toBe("session_summary_distillation");
     expect(result[0]?.candidate.memoryBucket).toBe("durable");
+    expect(result[0]?.candidate.surface).toBe("governance_only");
     expect(result[0]?.candidate.facts.join("\n")).toContain(
       "prompt-time session summary injection",
     );

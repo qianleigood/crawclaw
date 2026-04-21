@@ -213,6 +213,17 @@ Promotion should stay separate from that durable recall path:
 - `dream` is the consolidation and repair layer for those notes
 - promotion candidates are governance inputs for later review/writeback, not a
   third recall layer
+- promotion payloads should keep an explicit `surface: governance_only` marker
+  so tooling cannot accidentally treat them as prompt-time recall inputs
+
+Durable recall observability should also stay explicit:
+
+- selected notes should record whether they won on `index`, `header`,
+  `body_rerank`, and/or `dream_boost`
+- omitted notes should record whether they lost at `candidate_cutoff`,
+  `ranked_below_limit`, `llm_filtered`, or `llm_none`
+- recent dream `touchedNotes` should be surfaced in status/history/inspect so
+  we can see whether consolidation is plausibly affecting later recall
 
 ## Recommended target shape
 

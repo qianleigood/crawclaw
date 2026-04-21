@@ -99,6 +99,22 @@ export type AgentInspectionSnapshot = {
     memoryRecall?: {
       selectedItemIds?: string[];
       omittedItemIds?: string[];
+      selectedDurableDetails?: Array<{
+        itemId: string;
+        notePath: string;
+        title: string;
+        provenance: string[];
+        scoreBreakdown?: Record<string, number>;
+      }>;
+      omittedDurableDetails?: Array<{
+        itemId: string;
+        notePath: string;
+        title: string;
+        provenance: string[];
+        omittedReason?: string;
+        scoreBreakdown?: Record<string, number>;
+      }>;
+      recentDreamTouchedNotes?: string[];
       hitReason?: string;
       evictionReason?: string;
       durableRecallSource?: string;

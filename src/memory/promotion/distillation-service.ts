@@ -501,6 +501,7 @@ export class DistillationService {
         const sourceRefs = chooseSourceRefs(candidate, fallback.candidates, baseSourceRefs);
         const payload: PromotionCandidatePayload = {
           schemaVersion: "promotion-candidate.v1",
+          surface: "governance_only",
           kind: candidate.kind,
           memoryKind: projectPromotionCandidateMemoryKind(candidate.kind),
           title: candidate.title,

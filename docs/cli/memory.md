@@ -9,7 +9,8 @@ title: "memory"
 
 # `crawclaw memory`
 
-Inspect and manage NotebookLM knowledge access.
+Inspect and manage NotebookLM knowledge access, durable-memory maintenance, and
+session-summary maintenance.
 
 Related:
 
@@ -104,6 +105,8 @@ Notes:
 - `memory prompt-journal-summary` aggregates the nightly memory prompt journal into counts for prompt assembly, after-turn decisions, durable extraction, and knowledge writes.
 - `memory dream status` reports auto-dream state from the runtime DB plus recent dream runs.
 - `memory dream status` also shows the most recent skip/gate reason, such as `min_hours_gate`, `min_sessions_gate`, `scan_throttle`, or `lock_held`.
+- `memory dream status` and `memory dream history` now surface recent
+  `touchedNotes`, so you can see which durable notes were just consolidated.
 - `memory dream run` triggers one manual durable-memory dream pass for a scope.
 - `memory dream run --dry-run` previews the same gating/input collection path without spawning the dream agent.
 - `memory dream history` shows recent dream runs for one scope or all scopes, including failure reasons when a dream run ends in `failed`.
@@ -114,6 +117,9 @@ Notes:
 - `memory session-summary refresh` uses the same light-to-full scheduler path as
   automatic session-summary maintenance.
 - Durable `MEMORY.md` indexes are now validated as Claude-style indexes: no frontmatter, one short pointer per line, and roughly capped at 200 lines / 25KB.
+- Durable recall observability now records whether a selected note won on
+  `index`, `header`, `body_rerank`, and/or `dream_boost` signals; inspect those
+  details with `crawclaw agent inspect`.
 - NotebookLM knowledge recall itself happens during prompt assembly for live agent turns; `crawclaw memory` does not trigger recall.
 - `write_knowledge_note` is the only NotebookLM write path in the current runtime.
 - Prompt journal is debug-only and intentionally lossy/truncated. Use Context

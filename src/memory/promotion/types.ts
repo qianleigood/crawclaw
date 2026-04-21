@@ -114,6 +114,7 @@ export interface PromotionGovernanceMeta {
 
 export interface PromotionCandidatePayload {
   schemaVersion: "promotion-candidate.v1";
+  surface: "governance_only";
   kind: PromotionCandidateKind;
   // Promotion candidates are governance artifacts. They do not participate in
   // prompt-time recall until some later workflow explicitly writes them into a

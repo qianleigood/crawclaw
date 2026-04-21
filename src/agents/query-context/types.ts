@@ -97,6 +97,22 @@ export type QueryContextMemoryRecallDiagnostics = {
   omittedItemIds?: string[];
   selectedDurableItemIds?: string[];
   omittedDurableItemIds?: string[];
+  selectedDurableDetails?: Array<{
+    itemId: string;
+    notePath: string;
+    title: string;
+    provenance: string[];
+    scoreBreakdown?: Record<string, number>;
+  }>;
+  omittedDurableDetails?: Array<{
+    itemId: string;
+    notePath: string;
+    title: string;
+    provenance: string[];
+    omittedReason?: string;
+    scoreBreakdown?: Record<string, number>;
+  }>;
+  recentDreamTouchedNotes?: string[];
   selectedKnowledgeItemIds?: string[];
   omittedKnowledgeItemIds?: string[];
   hitReason?: string;

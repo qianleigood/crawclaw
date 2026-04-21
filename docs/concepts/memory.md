@@ -44,6 +44,9 @@ directory. Durable recall now runs synchronously during prompt assembly:
   recall layer
 - only a bounded top candidate slice reads body excerpts for a second-pass
   rerank
+- durable recall diagnostics now record whether a selected note won on `index`,
+  `header`, `body_rerank`, and/or `dream_boost` signals so inspect/debug flows
+  can explain why a note was selected or omitted
 - full note contents are loaded only for the final selected items
 - recently dream-touched notes can receive a light recall prior, so durable
   consolidation can improve future recall quality without bypassing selector
@@ -79,6 +82,9 @@ CrawClaw also has a second durable-memory maintenance layer:
   and previewed with `--dry-run` without taking the dream lock or writing memory
 - dream state now keeps the most recent skip/gate reason so status/history/
   inspect can explain why a consolidation did not start
+- dream status/history surfaces now expose recent `touchedNotes`, so you can
+  see which durable notes were just rewritten before checking later recall
+  behavior
 
 Promotion is separate from recall and maintenance:
 
@@ -86,6 +92,8 @@ Promotion is separate from recall and maintenance:
 - `dream` consolidates and repairs those durable notes
 - promotion candidates are governance artifacts for later review/writeback, not
   prompt-time durable recall inputs
+- promotion payloads are explicitly marked `surface: governance_only` to make
+  that boundary machine-readable as well as documented
 
 ## Session memory
 

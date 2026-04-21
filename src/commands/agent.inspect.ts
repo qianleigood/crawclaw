@@ -365,6 +365,22 @@ async function enrichInspectionWithArchive(
         memoryRecall?: {
           selectedItemIds?: string[];
           omittedItemIds?: string[];
+          selectedDurableDetails?: Array<{
+            itemId: string;
+            notePath: string;
+            title: string;
+            provenance: string[];
+            scoreBreakdown?: Record<string, number>;
+          }>;
+          omittedDurableDetails?: Array<{
+            itemId: string;
+            notePath: string;
+            title: string;
+            provenance: string[];
+            omittedReason?: string;
+            scoreBreakdown?: Record<string, number>;
+          }>;
+          recentDreamTouchedNotes?: string[];
           hitReason?: string;
           evictionReason?: string;
           durableRecallSource?: string;
@@ -776,6 +792,35 @@ export function formatAgentInspection(snapshot: AgentInspectionSnapshot): string
           ...formatArray(
             "  Memory omitted IDs:",
             snapshot.queryContext.memoryRecall.omittedItemIds,
+          ),
+        );
+      }
+      if (snapshot.queryContext.memoryRecall.selectedDurableDetails?.length) {
+        lines.push(
+          ...formatArray(
+            "  Durable selected details:",
+            snapshot.queryContext.memoryRecall.selectedDurableDetails.map(
+              (entry) => `${entry.itemId} [${entry.provenance.join(", ")}]`,
+            ),
+          ),
+        );
+      }
+      if (snapshot.queryContext.memoryRecall.omittedDurableDetails?.length) {
+        lines.push(
+          ...formatArray(
+            "  Durable omitted details:",
+            snapshot.queryContext.memoryRecall.omittedDurableDetails.map(
+              (entry) =>
+                `${entry.itemId} [${entry.provenance.join(", ")}] reason=${entry.omittedReason ?? "unknown"}`,
+            ),
+          ),
+        );
+      }
+      if (snapshot.queryContext.memoryRecall.recentDreamTouchedNotes?.length) {
+        lines.push(
+          ...formatArray(
+            "  Dream touched durable notes:",
+            snapshot.queryContext.memoryRecall.recentDreamTouchedNotes,
           ),
         );
       }

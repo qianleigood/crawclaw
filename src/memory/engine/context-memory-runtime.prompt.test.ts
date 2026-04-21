@@ -222,6 +222,23 @@ describe("createContextMemoryRuntime().assemble", () => {
         mode: "llm",
         selectedItemIds: ["durable:feedback-1"],
         omittedItemIds: [],
+        selectedDetails: [
+          {
+            itemId: "durable:feedback-1",
+            notePath: "feedback-1.md",
+            title: "回答操作类问题先给步骤",
+            provenance: ["header"],
+            scoreBreakdown: {
+              header: 1.15,
+              index: 0,
+              bodyRerank: 0,
+              dreamBoost: 0,
+              final: 1.15,
+            },
+          },
+        ],
+        omittedDetails: [],
+        recentDreamTouchedNotes: [],
       },
     });
 
@@ -301,6 +318,12 @@ describe("createContextMemoryRuntime().assemble", () => {
       durableRecallSource: "sync",
       hitReason: "durable_selected:sync",
       selectedDurableItemIds: ["durable:feedback-1"],
+      selectedDurableDetails: [
+        expect.objectContaining({
+          itemId: "durable:feedback-1",
+          provenance: expect.arrayContaining(["header"]),
+        }),
+      ],
     });
   });
 

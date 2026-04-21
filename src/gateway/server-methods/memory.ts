@@ -69,6 +69,17 @@ function readOptionalPositiveInt(value: unknown): number | undefined {
   return value;
 }
 
+function parseTouchedNotes(value: string | null | undefined): string[] {
+  try {
+    const parsed = JSON.parse(value ?? "{}") as Record<string, unknown>;
+    return Array.isArray(parsed.touchedNotes)
+      ? parsed.touchedNotes.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 async function loadResolvedMemoryConfig(): Promise<CrawClawConfig> {
   const prepared = await prepareSecretsRuntimeSnapshot({
     config: loadConfig(),
@@ -267,7 +278,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
         const runs = (await store.listRecentMaintenanceRuns(Math.max(limit * 3, 20)))
           .filter((entry) => entry.kind === "dream")
           .filter((entry) => !scope.scopeKey || entry.scope === scope.scopeKey)
-          .slice(0, limit);
+          .slice(0, limit)
+          .map((entry) => ({
+            ...entry,
+            touchedNotes: parseTouchedNotes(entry.metricsJson),
+          }));
         respond(
           true,
           {
@@ -301,7 +316,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
         const runs = (await store.listRecentMaintenanceRuns(Math.max(limit * 3, 40)))
           .filter((entry) => entry.kind === "dream")
           .filter((entry) => !scope.scopeKey || entry.scope === scope.scopeKey)
-          .slice(0, limit);
+          .slice(0, limit)
+          .map((entry) => ({
+            ...entry,
+            touchedNotes: parseTouchedNotes(entry.metricsJson),
+          }));
         respond(true, { scopeKey: scope.scopeKey ?? null, runs }, undefined);
       });
     } catch (error) {

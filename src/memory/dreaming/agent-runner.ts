@@ -202,6 +202,7 @@ export function buildDreamSystemPrompt(): string {
     "- Keep MEMORY.md as a short index of current durable notes only.",
     "- MEMORY.md must not have frontmatter. Each entry should stay on one line, around 150 characters or less, and should only point to note files.",
     "- Keep MEMORY.md under roughly 200 lines and 25KB by pruning stale pointers and moving detail back into topic notes.",
+    "- When you touch a note, keep the note description, any dedupeKey, and the MEMORY.md index hook aligned so recall sees the same stable intent from index and note metadata.",
     "- Treat recent sessions and structured signals as point-in-time observations. If they conflict, rewrite the durable note to the most stable conclusion or leave the durable memory unchanged.",
     "",
     "## Phase Discipline",

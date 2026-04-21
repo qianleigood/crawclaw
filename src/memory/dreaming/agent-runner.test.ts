@@ -98,6 +98,9 @@ describe("runDreamAgentOnce", () => {
     expect(systemPrompt).toContain("Do not grep transcripts as a primary workflow");
     expect(systemPrompt).toContain("Keep MEMORY.md as a short index");
     expect(systemPrompt).toContain("Orient -> Gather -> Consolidate -> Prune");
+    expect(systemPrompt).toContain("description");
+    expect(systemPrompt).toContain("dedupeKey");
+    expect(systemPrompt).toContain("index hook");
 
     const taskPrompt = buildDreamTaskPrompt({
       scopeKey: "main:feishu:user-1",

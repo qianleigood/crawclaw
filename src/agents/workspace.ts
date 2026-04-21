@@ -512,8 +512,6 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
 
 const DEFAULT_MAIN_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME]);
 
-const MINIMAL_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME]);
-
 export function filterBootstrapFilesForSession(
   files: WorkspaceBootstrapFile[],
   sessionKey?: string,
@@ -524,7 +522,7 @@ export function filterBootstrapFilesForSession(
   if (!isSubagentSessionKey(sessionKey) && !isCronSessionKey(sessionKey)) {
     return files.filter((file) => DEFAULT_MAIN_BOOTSTRAP_ALLOWLIST.has(file.name));
   }
-  return files.filter((file) => MINIMAL_BOOTSTRAP_ALLOWLIST.has(file.name));
+  return files.filter((file) => DEFAULT_MAIN_BOOTSTRAP_ALLOWLIST.has(file.name));
 }
 
 export async function loadExtraBootstrapFiles(

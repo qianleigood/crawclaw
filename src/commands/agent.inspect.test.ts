@@ -621,6 +621,53 @@ describe("agent.inspect command", () => {
     expect(rendered).toContain("/tmp/session-summary/agents/main/sessions/sess-1/summary.md");
   });
 
+  it("renders durable recall provenance details when present", () => {
+    const rendered = formatAgentInspection({
+      lookup: { runId: "run-1" },
+      runId: "run-1",
+      refs: {},
+      warnings: [],
+      queryContext: {
+        archiveRunId: "carun-1",
+        eventId: "evt-1",
+        memoryRecall: {
+          durableRecallSource: "sync",
+          hitReason: "durable_selected:sync",
+          selectedItemIds: ["durable:project-probe-note.md"],
+          omittedItemIds: ["durable:project-gateway-note.md"],
+          selectedDurableDetails: [
+            {
+              itemId: "durable:project-probe-note.md",
+              notePath: "project-probe-note.md",
+              title: "Probe note",
+              provenance: ["header", "body_rerank"],
+            },
+          ],
+          omittedDurableDetails: [
+            {
+              itemId: "durable:project-gateway-note.md",
+              notePath: "project-gateway-note.md",
+              title: "Gateway note",
+              provenance: ["header"],
+              omittedReason: "ranked_below_limit",
+            },
+          ],
+          recentDreamTouchedNotes: ["project-probe-note.md"],
+        },
+      },
+    } as never);
+
+    expect(rendered).toContain("Durable recall source: sync");
+    expect(rendered).toContain("Durable selected details:");
+    expect(rendered).toContain("- durable:project-probe-note.md [header, body_rerank]");
+    expect(rendered).toContain("Durable omitted details:");
+    expect(rendered).toContain(
+      "- durable:project-gateway-note.md [header] reason=ranked_below_limit",
+    );
+    expect(rendered).toContain("Dream touched durable notes:");
+    expect(rendered).toContain("project-probe-note.md");
+  });
+
   it("renders timeline entries when present", () => {
     const rendered = formatAgentInspection({
       lookup: { runId: "run-1" },

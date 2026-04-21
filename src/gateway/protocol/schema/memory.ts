@@ -133,6 +133,7 @@ export const MemoryDreamRunEntrySchema = Type.Object(
     summary: Type.Optional(NullableString),
     error: Type.Optional(NullableString),
     createdAt: Type.Optional(NullableString),
+    touchedNotes: Type.Optional(Type.Array(Type.String())),
   },
   { additionalProperties: true },
 );
