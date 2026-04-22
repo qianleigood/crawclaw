@@ -10,7 +10,18 @@ import {
 import { killProcessTree } from "../../process/kill-tree.js";
 import { sleep } from "../../utils.js";
 
-export const DEFAULT_RESTART_HEALTH_TIMEOUT_MS = process.platform === "win32" ? 120_000 : 60_000;
+function resolveRestartHealthTimeoutMs(): number {
+  const raw = process.env.CRAWCLAW_RESTART_HEALTH_TIMEOUT_MS?.trim();
+  if (raw) {
+    const parsed = Number(raw);
+    if (Number.isSafeInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return process.platform === "win32" ? 120_000 : 60_000;
+}
+
+export const DEFAULT_RESTART_HEALTH_TIMEOUT_MS = resolveRestartHealthTimeoutMs();
 export const DEFAULT_RESTART_HEALTH_DELAY_MS = 500;
 export const DEFAULT_RESTART_HEALTH_ATTEMPTS = Math.ceil(
   DEFAULT_RESTART_HEALTH_TIMEOUT_MS / DEFAULT_RESTART_HEALTH_DELAY_MS,

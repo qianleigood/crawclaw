@@ -63,6 +63,7 @@ describe("windows packed install smoke helpers", () => {
 
     expect(env.Path).toBe(`C:\\Temp\\prefix${path.delimiter}C:\\Windows\\System32`);
     expect(env.CRAWCLAW_STATE_DIR).toBe("C:\\Temp\\state");
+    expect(env.CRAWCLAW_RESTART_HEALTH_TIMEOUT_MS).toBe("360000");
     expect(env.npm_config_prefix).toBeUndefined();
   });
 

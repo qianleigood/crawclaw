@@ -230,6 +230,7 @@ export function createSmokeEnv({
   nextEnv.NO_COLOR = "1";
   nextEnv.CRAWCLAW_STATE_DIR = stateDir;
   nextEnv.CRAWCLAW_DISABLE_UPDATE_CHECK = "1";
+  nextEnv.CRAWCLAW_RESTART_HEALTH_TIMEOUT_MS = String(GATEWAY_TIMEOUT_MS);
   return nextEnv;
 }
 

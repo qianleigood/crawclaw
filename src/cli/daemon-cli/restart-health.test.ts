@@ -99,6 +99,7 @@ describe("inspectGatewayRestart", () => {
 
   afterEach(() => {
     Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    delete process.env.CRAWCLAW_RESTART_HEALTH_TIMEOUT_MS;
   });
 
   it("uses a longer default restart health budget on Windows", async () => {
@@ -110,6 +111,17 @@ describe("inspectGatewayRestart", () => {
 
     expect(DEFAULT_RESTART_HEALTH_TIMEOUT_MS).toBe(120_000);
     expect(DEFAULT_RESTART_HEALTH_ATTEMPTS).toBe(240);
+  });
+
+  it("allows restart health timeout to be configured from env", async () => {
+    process.env.CRAWCLAW_RESTART_HEALTH_TIMEOUT_MS = "360000";
+    vi.resetModules();
+
+    const { DEFAULT_RESTART_HEALTH_TIMEOUT_MS, DEFAULT_RESTART_HEALTH_ATTEMPTS } =
+      await import("./restart-health.js");
+
+    expect(DEFAULT_RESTART_HEALTH_TIMEOUT_MS).toBe(360_000);
+    expect(DEFAULT_RESTART_HEALTH_ATTEMPTS).toBe(720);
   });
 
   it("treats a gateway listener child pid as healthy ownership", async () => {
