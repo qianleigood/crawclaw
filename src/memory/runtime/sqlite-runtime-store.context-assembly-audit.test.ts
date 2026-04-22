@@ -8,6 +8,11 @@ const stores: SqliteRuntimeStore[] = [];
 
 afterEach(async () => {
   await Promise.all(stores.splice(0).map(async (store) => store.close()));
+  if (process.platform === "win32") {
+    // Windows CI can keep sqlite WAL sidecars locked briefly after close; the
+    // runner is ephemeral, so avoid letting best-effort cleanup trip the hook.
+    return;
+  }
   await tempDirs.cleanup();
 });
 

@@ -15,7 +15,9 @@ RUN --mount=type=cache,id=crawclaw-install-sh-smoke-apt-cache,target=/var/cache/
   done; \
   apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
     bash \
+    build-essential \
     ca-certificates \
+    cmake \
     curl \
     git \
     g++ \

@@ -11,6 +11,10 @@ import {
   resolveDurableMemoryScopeDir,
 } from "./scope.ts";
 
+function toPosixPathForAssert(filePath: string): string {
+  return filePath.replaceAll("\\", "/");
+}
+
 describe("durable memory common helpers", () => {
   it("normalizes durable types", () => {
     expect(normalizeDurableMemoryType("feedback")).toBe("feedback");
@@ -18,7 +22,11 @@ describe("durable memory common helpers", () => {
   });
 
   it("renders note frontmatter and body with durable metadata", () => {
-    const scope = resolveDurableMemoryScope({ agentId: "main", channel: "discord", userId: "user-42" });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "discord",
+      userId: "user-42",
+    });
     const frontmatter = buildDurableMemoryFrontmatterLines({
       type: "feedback",
       title: "Step-first answers",
@@ -45,8 +53,12 @@ describe("durable memory common helpers", () => {
     expect(body).toContain("## Why");
     expect(body).toContain("## How to apply");
     expect(scope).not.toBeNull();
-    expect(resolveDurableMemoryScopeDir(scope!)).toContain("/durable-memory/agents/main/channels/discord/users/user-42");
-    expect(resolveDurableMemoryIndexPath(scope!)).toContain("/durable-memory/agents/main/channels/discord/users/user-42/MEMORY.md");
-    expect(resolveDurableMemoryRootDir()).toContain("/durable-memory");
+    expect(toPosixPathForAssert(resolveDurableMemoryScopeDir(scope!))).toContain(
+      "/durable-memory/agents/main/channels/discord/users/user-42",
+    );
+    expect(toPosixPathForAssert(resolveDurableMemoryIndexPath(scope!))).toContain(
+      "/durable-memory/agents/main/channels/discord/users/user-42/MEMORY.md",
+    );
+    expect(toPosixPathForAssert(resolveDurableMemoryRootDir())).toContain("/durable-memory");
   });
 });

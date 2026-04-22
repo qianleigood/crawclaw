@@ -1,3 +1,4 @@
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HookRunner } from "../../plugins/hooks.js";
 
@@ -41,7 +42,7 @@ describe("loadBeforeResetTranscript", () => {
     });
 
     expect(result).toEqual({
-      sessionFile: "/tmp/prev-session.jsonl.reset.2026-02-16T22-26-33.000Z",
+      sessionFile: path.join("/tmp", "prev-session.jsonl.reset.2026-02-16T22-26-33.000Z"),
       messages: [{ role: "user", content: "Recovered from archive" }],
     });
   });
