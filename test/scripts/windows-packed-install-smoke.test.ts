@@ -9,6 +9,7 @@ type WindowsPackedInstallSmoke = {
     stateDir: string;
     platform: NodeJS.Platform;
   }) => NodeJS.ProcessEnv;
+  readTimeoutMsFromEnv: (env: NodeJS.ProcessEnv, key: string, fallbackMs: number) => number;
   resolveInstalledCrawClawBin: (params: { prefixDir: string; platform: NodeJS.Platform }) => string;
   validateRuntimeManifest: (manifest: unknown) => void;
 };
@@ -50,6 +51,25 @@ describe("windows packed install smoke helpers", () => {
     expect(env.Path).toBe(`C:\\Temp\\prefix${path.delimiter}C:\\Windows\\System32`);
     expect(env.CRAWCLAW_STATE_DIR).toBe("C:\\Temp\\state");
     expect(env.npm_config_prefix).toBeUndefined();
+  });
+
+  it("allows the packed install timeout to be configured from env", async () => {
+    const script = await loadSmokeScript();
+
+    expect(
+      script.readTimeoutMsFromEnv(
+        { CRAWCLAW_WINDOWS_PACKED_INSTALL_TIMEOUT_MS: "2700000" },
+        "CRAWCLAW_WINDOWS_PACKED_INSTALL_TIMEOUT_MS",
+        1800000,
+      ),
+    ).toBe(2700000);
+    expect(
+      script.readTimeoutMsFromEnv(
+        { CRAWCLAW_WINDOWS_PACKED_INSTALL_TIMEOUT_MS: "invalid" },
+        "CRAWCLAW_WINDOWS_PACKED_INSTALL_TIMEOUT_MS",
+        1800000,
+      ),
+    ).toBe(1800000);
   });
 
   it("accepts a complete postinstall runtime manifest", async () => {

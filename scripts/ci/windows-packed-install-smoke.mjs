@@ -12,8 +12,26 @@ const UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
 const REQUIRED_RUNTIME_PLUGINS = ["browser", "open-websearch", "scrapling-fetch"];
 
 const DEFAULT_TIMEOUT_MS = 120_000;
-const INSTALL_TIMEOUT_MS = 30 * 60_000;
+const DEFAULT_INSTALL_TIMEOUT_MS = 45 * 60_000;
 const GATEWAY_TIMEOUT_MS = 180_000;
+
+export function readTimeoutMsFromEnv(env, key, fallbackMs) {
+  const raw = env[key]?.trim();
+  if (!raw) {
+    return fallbackMs;
+  }
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    return fallbackMs;
+  }
+  return parsed;
+}
+
+const INSTALL_TIMEOUT_MS = readTimeoutMsFromEnv(
+  process.env,
+  "CRAWCLAW_WINDOWS_PACKED_INSTALL_TIMEOUT_MS",
+  DEFAULT_INSTALL_TIMEOUT_MS,
+);
 
 function isDirectRun() {
   return process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;

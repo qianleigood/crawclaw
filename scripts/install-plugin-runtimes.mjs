@@ -135,11 +135,17 @@ export function createUnavailableRuntimeEntry(error) {
   };
 }
 
-function installRuntimeOrUnavailable(installer, env = process.env) {
+export function installRuntimeOrUnavailable(pluginId, installer, env = process.env, log = console) {
+  log.log(`[postinstall] installing plugin runtime: ${pluginId}`);
+  const startedAt = Date.now();
   try {
-    return installer(env);
+    const entry = installer(env);
+    log.log(`[postinstall] plugin runtime ready: ${pluginId} (${Date.now() - startedAt}ms)`);
+    return entry;
   } catch (error) {
-    return createUnavailableRuntimeEntry(error);
+    const entry = createUnavailableRuntimeEntry(error);
+    log.warn(`[postinstall] plugin runtime unavailable: ${pluginId} (${entry.reason})`);
+    return entry;
   }
 }
 
@@ -371,9 +377,19 @@ export function runPluginRuntimeInstall(params = {}) {
   const manifest = readManifest(env);
   const nextPlugins = {
     ...manifest.plugins,
-    browser: installRuntimeOrUnavailable(installBrowserRuntime, env),
-    "open-websearch": installRuntimeOrUnavailable(installOpenWebSearchRuntime, env),
-    "scrapling-fetch": installRuntimeOrUnavailable(installScraplingRuntime, env),
+    browser: installRuntimeOrUnavailable("browser", installBrowserRuntime, env, log),
+    "open-websearch": installRuntimeOrUnavailable(
+      "open-websearch",
+      installOpenWebSearchRuntime,
+      env,
+      log,
+    ),
+    "scrapling-fetch": installRuntimeOrUnavailable(
+      "scrapling-fetch",
+      installScraplingRuntime,
+      env,
+      log,
+    ),
   };
   const nextManifest = {
     ...manifest,

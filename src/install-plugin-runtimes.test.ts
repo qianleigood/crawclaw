@@ -9,6 +9,15 @@ type RuntimeInstallScript = {
     reason: string;
     state: string;
   };
+  installRuntimeOrUnavailable: (
+    pluginId: string,
+    installer: (env: NodeJS.ProcessEnv) => Record<string, unknown>,
+    env: NodeJS.ProcessEnv,
+    log: {
+      log: (message: string) => void;
+      warn: (message: string) => void;
+    },
+  ) => Record<string, unknown>;
   createLocalPrefixNpmInstallArgs: (runtimeDir: string, packageSpec: string) => string[];
   createNestedNpmInstallEnv: (env: NodeJS.ProcessEnv) => NodeJS.ProcessEnv;
   resolvePythonCandidates: (env: NodeJS.ProcessEnv, platform?: NodeJS.Platform) => string[];
@@ -104,5 +113,52 @@ describe("install-plugin-runtimes", () => {
       reason: "missing-python",
       state: "unavailable",
     });
+  });
+
+  it("logs each runtime install phase", async () => {
+    const script = await loadRuntimeInstallScript();
+    const messages: string[] = [];
+    const warnings: string[] = [];
+
+    const result = script.installRuntimeOrUnavailable(
+      "browser",
+      () => ({ state: "healthy", version: "pinchtab 0.9.1" }),
+      {},
+      {
+        log: (message) => messages.push(message),
+        warn: (message) => warnings.push(message),
+      },
+    );
+
+    expect(result).toMatchObject({ state: "healthy", version: "pinchtab 0.9.1" });
+    expect(messages[0]).toBe("[postinstall] installing plugin runtime: browser");
+    expect(messages[1]).toMatch(/^\[postinstall\] plugin runtime ready: browser \(\d+ms\)$/);
+    expect(warnings).toEqual([]);
+  });
+
+  it("logs unavailable runtime phases", async () => {
+    const script = await loadRuntimeInstallScript();
+    const messages: string[] = [];
+    const warnings: string[] = [];
+
+    const result = script.installRuntimeOrUnavailable(
+      "scrapling-fetch",
+      () => {
+        throw new Error(
+          "No supported Python interpreter found for scrapling-fetch; requires Python >= 3.10.",
+        );
+      },
+      {},
+      {
+        log: (message) => messages.push(message),
+        warn: (message) => warnings.push(message),
+      },
+    );
+
+    expect(result).toMatchObject({ state: "unavailable", reason: "missing-python" });
+    expect(messages).toEqual(["[postinstall] installing plugin runtime: scrapling-fetch"]);
+    expect(warnings).toEqual([
+      "[postinstall] plugin runtime unavailable: scrapling-fetch (missing-python)",
+    ]);
   });
 });
