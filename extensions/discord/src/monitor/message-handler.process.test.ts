@@ -195,7 +195,7 @@ function createNoQueuedDispatchResult() {
 }
 
 async function processStreamOffDiscordMessage() {
-  const ctx = await createBaseContext({ discordConfig: { streamMode: "off" } });
+  const ctx = await createBaseContext({ discordConfig: { streaming: "off" } });
   // oxlint-disable-next-line typescript/no-explicit-any
   await processDiscordMessage(ctx as any);
 }
@@ -261,7 +261,7 @@ async function runProcessDiscordMessage(ctx: unknown): Promise<void> {
 
 async function runInPartialStreamMode(): Promise<void> {
   const ctx = await createBaseContext({
-    discordConfig: { streamMode: "partial" },
+    discordConfig: { streaming: "partial" },
   });
   await runProcessDiscordMessage(ctx);
 }
@@ -570,18 +570,13 @@ describe("processDiscordMessage draft streaming", () => {
       cfg: {
         messages: { ackReaction: "👀" },
         session: { store: "/tmp/crawclaw-discord-process-test-sessions.json" },
-        channels: {
-          discord: {
-            draftChunk: { minChars: 1, maxChars: 5, breakPreference: "newline" },
-          },
-        },
       },
-      discordConfig: { streamMode: "block" },
+      discordConfig: { streaming: "block" },
     });
   }
 
   it("finalizes via preview edit when final fits one chunk", async () => {
-    await runSingleChunkFinalScenario({ streamMode: "partial", maxLinesPerMessage: 5 });
+    await runSingleChunkFinalScenario({ streaming: "partial", maxLinesPerMessage: 5 });
     expectSinglePreviewEdit();
   });
 
@@ -597,7 +592,7 @@ describe("processDiscordMessage draft streaming", () => {
   });
 
   it("falls back to standard send when final needs multiple chunks", async () => {
-    await runSingleChunkFinalScenario({ streamMode: "partial", maxLinesPerMessage: 1 });
+    await runSingleChunkFinalScenario({ streaming: "partial", maxLinesPerMessage: 1 });
 
     expect(editMessageDiscord).not.toHaveBeenCalled();
     expect(deliverDiscordReply).toHaveBeenCalledTimes(1);
@@ -620,7 +615,7 @@ describe("processDiscordMessage draft streaming", () => {
           },
         },
       },
-      discordConfig: { streamMode: "partial" },
+      discordConfig: { streaming: "partial" },
     });
 
     // oxlint-disable-next-line typescript/no-explicit-any
@@ -651,7 +646,7 @@ describe("processDiscordMessage draft streaming", () => {
       return { queuedFinal: true, counts: { final: 1, tool: 0, block: 0 } };
     });
 
-    const ctx = await createBaseContext({ discordConfig: { streamMode: "off" } });
+    const ctx = await createBaseContext({ discordConfig: { streaming: "off" } });
 
     // oxlint-disable-next-line typescript/no-explicit-any
     await processDiscordMessage(ctx as any);
@@ -669,9 +664,12 @@ describe("processDiscordMessage draft streaming", () => {
 
   it("streams block previews using draft chunking", async () => {
     const draftStream = createMockDraftStreamForTest();
+    const firstBlock = `${"A".repeat(210)}\n\n`;
+    const secondBlock = `${"B".repeat(210)}\n\n`;
 
     dispatchInboundMessage.mockImplementationOnce(async (params?: DispatchInboundParams) => {
-      await params?.replyOptions?.onPartialReply?.({ text: "HelloWorld" });
+      await params?.replyOptions?.onPartialReply?.({ text: firstBlock });
+      await params?.replyOptions?.onPartialReply?.({ text: `${firstBlock}${secondBlock}` });
       return createNoQueuedDispatchResult();
     });
 
@@ -681,7 +679,9 @@ describe("processDiscordMessage draft streaming", () => {
     await processDiscordMessage(ctx as any);
 
     const updates = draftStream.update.mock.calls.map((call) => call[0]);
-    expect(updates).toEqual(["Hello", "HelloWorld"]);
+    const expectedFirst = firstBlock.trimEnd();
+    const expectedSecond = `${expectedFirst}${secondBlock.trimEnd()}`;
+    expect(updates).toEqual([expectedFirst, expectedSecond]);
   });
 
   it("forces new preview messages on assistant boundaries in block mode", async () => {
