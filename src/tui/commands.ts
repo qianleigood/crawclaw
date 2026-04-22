@@ -9,6 +9,7 @@ const REASONING_LEVELS = ["on", "off"];
 const ELEVATED_LEVELS = ["on", "off", "ask", "full"];
 const ACTIVATION_LEVELS = ["mention", "always"];
 const USAGE_FOOTER_LEVELS = ["off", "tokens", "full"];
+const DELIVER_LEVELS = ["status", "on", "off"];
 
 export type ParsedCommand = {
   name: string;
@@ -58,6 +59,7 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
   const usageCompletions = createLevelCompletion(USAGE_FOOTER_LEVELS);
   const elevatedCompletions = createLevelCompletion(ELEVATED_LEVELS);
   const activationCompletions = createLevelCompletion(ACTIVATION_LEVELS);
+  const deliverCompletions = createLevelCompletion(DELIVER_LEVELS);
   const commands: SlashCommand[] = [
     { name: "help", description: "Show slash command help" },
     { name: "status", description: "Show gateway status summary" },
@@ -113,6 +115,11 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
       description: "Set group activation",
       getArgumentCompletions: activationCompletions,
     },
+    {
+      name: "deliver",
+      description: "Set external delivery on/off",
+      getArgumentCompletions: deliverCompletions,
+    },
     { name: "abort", description: "Abort active run" },
     { name: "new", description: "Start a fresh session" },
     { name: "settings", description: "Open settings" },
@@ -155,6 +162,7 @@ export function helpText(options: SlashCommandOptions = {}): string {
     "/elevated <on|off|ask|full>",
     "/elev <on|off|ask|full>",
     "/activation <mention|always>",
+    "/deliver <status|on|off>",
     "/new",
     "/abort",
     "/settings",

@@ -23,7 +23,7 @@ import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
-import { formatTokens } from "./tui-formatters.js";
+import { formatTuiFooterLine } from "./tui-formatters.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
@@ -210,10 +210,11 @@ export async function runTui(opts: TuiOptions) {
   let toolsExpanded = false;
   let showThinking = false;
   let pairingHintShown = false;
+  let deliverEnabled = opts.deliver ?? false;
   const localRunIds = new Set<string>();
   const localBtwRunIds = new Set<string>();
 
-  const deliverDefault = opts.deliver ?? false;
+  const deliverDefault = deliverEnabled;
   const autoMessage = opts.message?.trim();
   let autoMessageSent = false;
   let sessionInfo: SessionInfo = {};
@@ -310,6 +311,12 @@ export async function runTui(opts: TuiOptions) {
     },
     set autoMessageSent(value) {
       autoMessageSent = value;
+    },
+    get deliverEnabled() {
+      return deliverEnabled;
+    },
+    set deliverEnabled(value) {
+      deliverEnabled = value;
     },
     get toolsExpanded() {
       return toolsExpanded;
@@ -642,29 +649,23 @@ export async function runTui(opts: TuiOptions) {
       ? `${sessionKeyLabel} (${sessionInfo.displayName})`
       : sessionKeyLabel;
     const agentLabel = formatAgentLabel(currentAgentId);
-    const modelLabel = sessionInfo.model
-      ? sessionInfo.modelProvider
-        ? `${sessionInfo.modelProvider}/${sessionInfo.model}`
-        : sessionInfo.model
-      : "unknown";
-    const tokens = formatTokens(sessionInfo.totalTokens ?? null, sessionInfo.contextTokens ?? null);
-    const think = sessionInfo.thinkingLevel ?? "off";
-    const fast = sessionInfo.fastMode === true;
-    const verbose = sessionInfo.verboseLevel ?? "off";
-    const reasoning = sessionInfo.reasoningLevel ?? "off";
-    const reasoningLabel =
-      reasoning === "on" ? "reasoning" : reasoning === "stream" ? "reasoning:stream" : null;
-    const footerParts = [
-      `agent ${agentLabel}`,
-      `session ${sessionLabel}`,
-      modelLabel,
-      think !== "off" ? `think ${think}` : null,
-      fast ? "fast" : null,
-      verbose !== "off" ? `verbose ${verbose}` : null,
-      reasoningLabel,
-      tokens,
-    ].filter(Boolean);
-    footer.setText(theme.dim(footerParts.join(" | ")));
+    footer.setText(
+      theme.dim(
+        formatTuiFooterLine({
+          agentLabel,
+          sessionLabel,
+          model: sessionInfo.model,
+          modelProvider: sessionInfo.modelProvider,
+          totalTokens: sessionInfo.totalTokens ?? null,
+          contextTokens: sessionInfo.contextTokens ?? null,
+          thinkingLevel: sessionInfo.thinkingLevel,
+          fastMode: sessionInfo.fastMode,
+          verboseLevel: sessionInfo.verboseLevel,
+          reasoningLevel: sessionInfo.reasoningLevel,
+          deliverEnabled,
+        }),
+      ),
+    );
   };
 
   const { openOverlay, closeOverlay } = createOverlayHandlers(tui, editor);

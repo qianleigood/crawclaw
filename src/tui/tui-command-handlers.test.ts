@@ -36,6 +36,7 @@ function createHarness(params?: {
     activeChatRunId: params?.activeChatRunId ?? null,
     pendingOptimisticUserMessage: false,
     isConnected: params?.isConnected ?? true,
+    deliverEnabled: false,
     sessionInfo: {},
   };
 
@@ -125,6 +126,34 @@ describe("tui command handlers", () => {
       }),
     );
     expect(requestRender).toHaveBeenCalled();
+  });
+
+  it("uses the current deliver toggle for sends", async () => {
+    const { handleCommand, sendChat, state } = createHarness();
+    state.deliverEnabled = true;
+
+    await handleCommand("hello from tui");
+
+    expect(sendChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "hello from tui",
+        deliver: true,
+      }),
+    );
+  });
+
+  it("toggles delivery without forwarding /deliver to the gateway", async () => {
+    const { handleCommand, sendChat, addSystem, state } = createHarness();
+
+    await handleCommand("/deliver on");
+    await handleCommand("/deliver status");
+    await handleCommand("/deliver off");
+
+    expect(sendChat).not.toHaveBeenCalled();
+    expect(state.deliverEnabled).toBe(false);
+    expect(addSystem).toHaveBeenCalledWith("deliver enabled");
+    expect(addSystem).toHaveBeenCalledWith("deliver: on");
+    expect(addSystem).toHaveBeenCalledWith("deliver disabled");
   });
 
   it("defers local run binding until gateway events provide a real run id", async () => {

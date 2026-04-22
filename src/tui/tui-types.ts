@@ -114,6 +114,7 @@ export type TuiStateAccess = {
   initialSessionApplied: boolean;
   isConnected: boolean;
   autoMessageSent: boolean;
+  deliverEnabled: boolean;
   toolsExpanded: boolean;
   showThinking: boolean;
   connectionStatus: string;
