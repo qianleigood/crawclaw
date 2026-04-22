@@ -31,8 +31,19 @@ const startupPromises = new Map<string, Promise<void>>();
 
 const DEFAULT_READY_POLL_INTERVAL_MS = 250;
 const STOP_TIMEOUT_MS = 5_000;
-const SCRAPLING_IMPORT_CHECK_SCRIPT =
-  "from scrapling.fetchers import Fetcher, StealthyFetcher, DynamicFetcher";
+
+export function buildScraplingImportCheckScript(): string {
+  return [
+    "import os",
+    "import sys",
+    "if os.name == 'nt':",
+    "    _dll_handles = []",
+    "    for _path in (sys.prefix, os.path.join(sys.prefix, 'Scripts')):",
+    "        if os.path.isdir(_path):",
+    "            _dll_handles.append(os.add_dll_directory(_path))",
+    "from scrapling.fetchers import Fetcher, StealthyFetcher, DynamicFetcher",
+  ].join("\n");
+}
 
 export function getScraplingFetchServiceState(stateDir: string): ScraplingFetchServiceState | null {
   return serviceState.get(stateDir) ?? null;
@@ -120,7 +131,7 @@ function verifyManagedRuntimeAvailable(params: {
 }): boolean {
   const result = runSyncCommand({
     command: params.pythonCommand,
-    args: ["-c", SCRAPLING_IMPORT_CHECK_SCRIPT],
+    args: ["-c", buildScraplingImportCheckScript()],
     spawnSyncImpl: params.spawnSyncImpl,
   });
   return !result.error && result.status === 0;
@@ -354,6 +365,7 @@ export function createScraplingFetchPluginService(): CrawClawPluginService {
 export const __testing = {
   buildLaunchCommand,
   buildLaunchArgs,
+  buildScraplingImportCheckScript,
   ensureManagedRuntimeBootstrap,
   resolveManagedPythonPath,
   resolveManagedVenvDir,

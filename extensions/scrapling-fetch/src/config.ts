@@ -16,6 +16,7 @@ export const SCRAPLING_FETCH_DEFAULT_BOOTSTRAP_PACKAGES = [
   "browserforge==1.2.4",
   "patchright==1.58.2",
   "msgspec==0.20.0",
+  "msvc-runtime==14.44.35112; platform_system == 'Windows'",
 ] as const;
 
 export type ScraplingFetchServiceMode = "python-http";

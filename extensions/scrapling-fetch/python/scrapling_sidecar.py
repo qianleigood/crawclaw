@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -13,6 +14,20 @@ from typing import Any, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+
+
+_WINDOWS_DLL_DIRECTORY_HANDLES = []
+
+
+def configure_windows_venv_dll_dirs() -> None:
+    if sys.platform != "win32" or not hasattr(os, "add_dll_directory"):
+        return
+    for candidate in (sys.prefix, os.path.join(sys.prefix, "Scripts")):
+        if os.path.isdir(candidate):
+            _WINDOWS_DLL_DIRECTORY_HANDLES.append(os.add_dll_directory(candidate))
+
+
+configure_windows_venv_dll_dirs()
 
 try:
     from scrapling.fetchers import DynamicFetcher, Fetcher, StealthyFetcher  # type: ignore

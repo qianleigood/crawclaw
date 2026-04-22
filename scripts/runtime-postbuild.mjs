@@ -48,6 +48,12 @@ export const STATIC_EXTENSION_ASSETS = [
     src: "extensions/diffs/assets/viewer-runtime.js",
     dest: "dist/extensions/diffs/assets/viewer-runtime.js",
   },
+  // Scrapling sidecar is a Python runtime asset resolved next to the bundled
+  // plugin entry at runtime.
+  {
+    src: "extensions/scrapling-fetch/python/scrapling_sidecar.py",
+    dest: "dist/extensions/scrapling-fetch/python/scrapling_sidecar.py",
+  },
   // Sqlite runtime migrations are runtime data, not transpiled modules. Ship
   // them under dist/ so published installs do not rely on src/ being present.
   ...listStaticRuntimeMigrationAssets(),

@@ -179,7 +179,7 @@ describe("scrapling fetch service", () => {
     expect(runtimeCommand).toBe(managedPython);
     expect(spawnSyncMock).toHaveBeenCalledWith(
       managedPython,
-      ["-c", expect.stringContaining("from scrapling.fetchers import")],
+      ["-c", expect.stringContaining("os.path.join(sys.prefix, 'Scripts')")],
       expect.objectContaining({
         stdio: "pipe",
         windowsHide: true,

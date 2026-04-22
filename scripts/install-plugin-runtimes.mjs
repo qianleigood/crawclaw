@@ -19,6 +19,7 @@ const SCRAPLING_REQUIREMENTS_LOCK = path.join(
   "runtime",
   "requirements.lock.txt",
 );
+const WINDOWS_SCRAPLING_RUNTIME_PACKAGES = ["msvc-runtime==14.44.35112"];
 
 function resolveStateRoot(env = process.env) {
   const override = env.CRAWCLAW_STATE_DIR?.trim();
@@ -183,6 +184,14 @@ export function resolveScraplingVenvPython(venvDir, platform = process.platform)
     : pathImpl.join(venvDir, "bin", "python");
 }
 
+export function resolveScraplingRuntimePackages(lockedPackages, platform = process.platform) {
+  const packages =
+    platform === "win32"
+      ? [...lockedPackages, ...WINDOWS_SCRAPLING_RUNTIME_PACKAGES]
+      : [...lockedPackages];
+  return [...new Set(packages)];
+}
+
 export function resolvePythonCandidates(env = process.env, platform = process.platform) {
   const platformCandidates =
     platform === "win32"
@@ -265,11 +274,26 @@ function resolveBestPython(env = process.env) {
   return best;
 }
 
+export function buildScraplingImportCheckScript() {
+  return [
+    "import os",
+    "import sys",
+    "if os.name == 'nt':",
+    "    _dll_handles = []",
+    "    for _path in (sys.prefix, os.path.join(sys.prefix, 'Scripts')):",
+    "        if os.path.isdir(_path):",
+    "            _dll_handles.append(os.add_dll_directory(_path))",
+    "from scrapling.fetchers import Fetcher, StealthyFetcher, DynamicFetcher",
+    "import curl_cffi",
+    "import playwright",
+    "import browserforge",
+    "import msgspec",
+    "print('ok')",
+  ].join("\n");
+}
+
 function verifyScraplingRuntime(pythonBin) {
-  runOrThrow(pythonBin, [
-    "-c",
-    "from scrapling.fetchers import Fetcher, StealthyFetcher, DynamicFetcher; import curl_cffi; import playwright; import browserforge; import msgspec; print('ok')",
-  ]);
+  runOrThrow(pythonBin, ["-c", buildScraplingImportCheckScript()]);
 }
 
 function installScraplingRuntime(env = process.env) {
@@ -277,7 +301,9 @@ function installScraplingRuntime(env = process.env) {
   const runtimeDir = path.join(runtimesRoot, "scrapling-fetch");
   const venvDir = path.join(runtimeDir, "venv");
   const python = resolveBestPython(env);
-  const lockedPackages = readLockedRequirements(SCRAPLING_REQUIREMENTS_LOCK);
+  const lockedPackages = resolveScraplingRuntimePackages(
+    readLockedRequirements(SCRAPLING_REQUIREMENTS_LOCK),
+  );
   mkdirSync(runtimeDir, { recursive: true });
   const venvPython = resolveScraplingVenvPython(venvDir);
   if (!existsSync(venvPython)) {

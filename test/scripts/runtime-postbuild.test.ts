@@ -27,6 +27,9 @@ describe("runtime postbuild static assets", () => {
     expect(listStaticExtensionAssetOutputs()).toContain(
       "dist/extensions/diffs/assets/viewer-runtime.js",
     );
+    expect(listStaticExtensionAssetOutputs()).toContain(
+      "dist/extensions/scrapling-fetch/python/scrapling_sidecar.py",
+    );
   });
 
   it("tracks sqlite runtime migrations that release packaging must ship", () => {

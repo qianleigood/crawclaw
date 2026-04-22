@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 type RuntimeInstallScript = {
+  buildScraplingImportCheckScript: () => string;
   createUnavailableRuntimeEntry: (error: unknown) => {
     error: string;
     installedAt: string;
@@ -20,6 +21,10 @@ type RuntimeInstallScript = {
   ) => Record<string, unknown>;
   createLocalPrefixNpmInstallArgs: (runtimeDir: string, packageSpec: string) => string[];
   createNestedNpmInstallEnv: (env: NodeJS.ProcessEnv) => NodeJS.ProcessEnv;
+  resolveScraplingRuntimePackages: (
+    lockedPackages: readonly string[],
+    platform?: NodeJS.Platform,
+  ) => string[];
   resolvePythonCandidates: (env: NodeJS.ProcessEnv, platform?: NodeJS.Platform) => string[];
   resolveRuntimeSpawn: (
     command: string,
@@ -80,6 +85,30 @@ describe("install-plugin-runtimes", () => {
 
     expect(script.resolvePythonCandidates({}, "win32")).toEqual(
       expect.arrayContaining(["python", "py"]),
+    );
+  });
+
+  it("installs the app-local MSVC runtime for Windows Scrapling venvs", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(script.resolveScraplingRuntimePackages(["Scrapling==0.4.6"], "win32")).toEqual([
+      "Scrapling==0.4.6",
+      "msvc-runtime==14.44.35112",
+    ]);
+    expect(script.resolveScraplingRuntimePackages(["Scrapling==0.4.6"], "darwin")).toEqual([
+      "Scrapling==0.4.6",
+    ]);
+  });
+
+  it("adds Windows venv DLL directories before verifying Scrapling imports", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(script.buildScraplingImportCheckScript()).toContain("os.add_dll_directory(_path)");
+    expect(script.buildScraplingImportCheckScript()).toContain(
+      "os.path.join(sys.prefix, 'Scripts')",
+    );
+    expect(script.buildScraplingImportCheckScript()).toContain(
+      "from scrapling.fetchers import Fetcher, StealthyFetcher, DynamicFetcher",
     );
   });
 
