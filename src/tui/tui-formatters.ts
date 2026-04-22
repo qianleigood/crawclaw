@@ -360,6 +360,43 @@ export function formatTokens(total?: number | null, context?: number | null) {
   return `tokens ${totalLabel}/${formatTokenCount(context)}${pct !== null ? ` (${pct}%)` : ""}`;
 }
 
+export function formatTuiFooterLine(params: {
+  agentLabel: string;
+  sessionLabel: string;
+  model?: string;
+  modelProvider?: string;
+  totalTokens?: number | null;
+  contextTokens?: number | null;
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+  reasoningLevel?: string;
+  deliverEnabled: boolean;
+}) {
+  const modelLabel = params.model
+    ? params.modelProvider
+      ? `${params.modelProvider}/${params.model}`
+      : params.model
+    : "unknown";
+  const think = params.thinkingLevel ?? "off";
+  const verbose = params.verboseLevel ?? "off";
+  const reasoning = params.reasoningLevel ?? "off";
+  const reasoningLabel =
+    reasoning === "on" ? "reasoning" : reasoning === "stream" ? "reasoning:stream" : null;
+  const footerParts = [
+    `agent ${params.agentLabel}`,
+    `session ${params.sessionLabel}`,
+    modelLabel,
+    think !== "off" ? `think ${think}` : null,
+    params.fastMode === true ? "fast" : null,
+    verbose !== "off" ? `verbose ${verbose}` : null,
+    reasoningLabel,
+    `deliver ${params.deliverEnabled ? "on" : "off"}`,
+    formatTokens(params.totalTokens ?? null, params.contextTokens ?? null),
+  ].filter(Boolean);
+  return footerParts.join(" | ");
+}
+
 export function formatContextUsageLine(params: {
   total?: number | null;
   context?: number | null;

@@ -207,6 +207,12 @@ export function createCommandHandlers(context: CommandHandlerContext) {
   const openSettings = () => {
     const items = [
       {
+        id: "deliver",
+        label: "Deliver replies",
+        currentValue: state.deliverEnabled ? "on" : "off",
+        values: ["off", "on"],
+      },
+      {
         id: "tools",
         label: "Tool output",
         currentValue: state.toolsExpanded ? "expanded" : "collapsed",
@@ -225,6 +231,10 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         if (id === "tools") {
           state.toolsExpanded = value === "expanded";
           chatLog.setToolsExpanded(state.toolsExpanded);
+        }
+        if (id === "deliver") {
+          state.deliverEnabled = value === "on";
+          setActivityStatus(`deliver ${state.deliverEnabled ? "enabled" : "disabled"}`);
         }
         if (id === "thinking") {
           state.showThinking = value === "on";
@@ -457,6 +467,19 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           chatLog.addSystem(`activation failed: ${String(err)}`);
         }
         break;
+      case "deliver":
+        if (!args || args === "status") {
+          chatLog.addSystem(`deliver: ${state.deliverEnabled ? "on" : "off"}`);
+          break;
+        }
+        if (args !== "on" && args !== "off") {
+          chatLog.addSystem("usage: /deliver <status|on|off>");
+          break;
+        }
+        state.deliverEnabled = args === "on";
+        chatLog.addSystem(`deliver ${state.deliverEnabled ? "enabled" : "disabled"}`);
+        setActivityStatus(`deliver ${state.deliverEnabled ? "enabled" : "disabled"}`);
+        break;
       case "new":
         try {
           // Clear token counts immediately to avoid stale display (#1523)
@@ -514,7 +537,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         sessionKey: state.currentSessionKey,
         message: text,
         thinking: opts.thinking,
-        deliver: deliverDefault,
+        deliver: state.deliverEnabled ?? deliverDefault,
         timeoutMs: opts.timeoutMs,
         runId,
       });

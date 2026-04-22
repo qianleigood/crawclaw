@@ -16,12 +16,17 @@ describe("getSlashCommands", () => {
     const commands = getSlashCommands();
     const verbose = commands.find((command) => command.name === "verbose");
     const activation = commands.find((command) => command.name === "activation");
+    const deliver = commands.find((command) => command.name === "deliver");
     expect(verbose?.getArgumentCompletions?.("o")).toEqual([
       { value: "on", label: "on" },
       { value: "off", label: "off" },
     ]);
     expect(activation?.getArgumentCompletions?.("a")).toEqual([
       { value: "always", label: "always" },
+    ]);
+    expect(deliver?.getArgumentCompletions?.("o")).toEqual([
+      { value: "on", label: "on" },
+      { value: "off", label: "off" },
     ]);
   });
 });
@@ -31,5 +36,6 @@ describe("helpText", () => {
     const output = helpText();
     expect(output).toContain("/elevated <on|off|ask|full>");
     expect(output).toContain("/elev <on|off|ask|full>");
+    expect(output).toContain("/deliver <status|on|off>");
   });
 });

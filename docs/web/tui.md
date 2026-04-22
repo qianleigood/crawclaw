@@ -98,7 +98,7 @@ Session controls:
 - `/usage <off|tokens|full>`
 - `/elevated <on|off|ask|full>` (alias: `/elev`)
 - `/activation <mention|always>`
-- `/deliver <on|off>`
+- `/deliver <status|on|off>`
 
 Session lifecycle:
 
@@ -149,6 +149,7 @@ Other Gateway slash commands (for example, `/context`) are forwarded to the Gate
 - `--deliver`: Deliver assistant replies to the provider (default off)
 - `--thinking <level>`: Override thinking level for sends
 - `--timeout-ms <ms>`: Agent timeout in ms (defaults to `agents.defaults.timeoutSeconds`)
+- `--history-limit <n>`: History entries to load (default 200)
 
 Note: when you set `--url`, the TUI does not fall back to config or environment credentials.
 Pass `--token` or `--password` explicitly. Missing explicit credentials is an error.
@@ -161,7 +162,6 @@ No output after sending a message:
 - Check the Gateway logs: `crawclaw logs --follow`.
 - Confirm the agent can run: `crawclaw status` and `crawclaw models status`.
 - If you expect messages in a chat channel, enable delivery (`/deliver on` or `--deliver`).
-- `--history-limit <n>`: History entries to load (default 200)
 
 ## Connection troubleshooting
 
