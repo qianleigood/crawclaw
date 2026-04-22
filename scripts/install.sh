@@ -755,6 +755,9 @@ print_npm_failure_diagnostics() {
         echo "  Command: ${LAST_NPM_INSTALL_CMD}"
     fi
     echo "  Installer log: ${log}"
+    if [[ ! -s "$log" ]]; then
+        echo "  Installer log is empty; rerun with CRAWCLAW_NPM_SILENT=0 for npm diagnostics."
+    fi
 
     error_code="$(extract_npm_error_code "$log")"
     if [[ -n "$error_code" ]]; then
@@ -971,7 +974,11 @@ GIT_DIR=${CRAWCLAW_GIT_DIR:-${CRAWCLAW_GIT_DIR:-$GIT_DIR_DEFAULT}}
 GIT_UPDATE=${CRAWCLAW_GIT_UPDATE:-${CRAWCLAW_GIT_UPDATE:-1}}
 SHARP_IGNORE_GLOBAL_LIBVIPS="${SHARP_IGNORE_GLOBAL_LIBVIPS:-1}"
 NPM_LOGLEVEL="${CRAWCLAW_NPM_LOGLEVEL:-${CRAWCLAW_NPM_LOGLEVEL:-error}}"
-NPM_SILENT_FLAG="--silent"
+NPM_SILENT="${CRAWCLAW_NPM_SILENT:-${CRAWCLAW_NPM_SILENT:-1}}"
+NPM_SILENT_FLAG=""
+if [[ "$NPM_SILENT" != "0" ]]; then
+    NPM_SILENT_FLAG="--silent"
+fi
 VERBOSE="${CRAWCLAW_VERBOSE:-${CRAWCLAW_VERBOSE:-0}}"
 VERIFY_INSTALL="${CRAWCLAW_VERIFY_INSTALL:-${CRAWCLAW_VERIFY_INSTALL:-0}}"
 CRAWCLAW_BIN=""
@@ -1004,6 +1011,7 @@ Environment variables:
   CRAWCLAW_INSTALL_METHOD=git|npm
   CRAWCLAW_VERSION=latest|next|main|<semver>|<spec>
   CRAWCLAW_BETA=0|1
+  CRAWCLAW_NPM_SILENT=0|1
   CRAWCLAW_GIT_DIR=...
   CRAWCLAW_GIT_UPDATE=0|1
   CRAWCLAW_NO_PROMPT=1
