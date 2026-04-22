@@ -11,11 +11,12 @@ Usage:
 Env: MINIMAX_API_KEY (required)
 """
 
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import argparse
+
 import requests
 
 API_KEY = os.getenv("MINIMAX_API_KEY")
