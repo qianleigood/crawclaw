@@ -84,7 +84,7 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
     it("writes back matching config and cron targets", async () => {
       readConfigFileSnapshotForWrite.mockResolvedValue({
         snapshot: {
-          config: {
+          resolved: {
             channels: {
               telegram: {
                 defaultTo: "t.me/mychannel",
@@ -146,7 +146,7 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
     it("preserves topic suffix style in writeback target", async () => {
       readConfigFileSnapshotForWrite.mockResolvedValue({
         snapshot: {
-          config: {
+          resolved: {
             channels: {
               telegram: {
                 defaultTo: "t.me/mychannel:topic:9",
@@ -179,7 +179,7 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
     it("matches username targets case-insensitively", async () => {
       readConfigFileSnapshotForWrite.mockResolvedValue({
         snapshot: {
-          config: {
+          resolved: {
             channels: {
               telegram: {
                 defaultTo: "https://t.me/mychannel",
