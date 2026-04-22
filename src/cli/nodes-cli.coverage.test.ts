@@ -116,11 +116,22 @@ describe("nodes-cli coverage", () => {
   });
 
   it("does not register the removed run wrapper", async () => {
-    await expect(
-      sharedProgram.parseAsync(["nodes", "run", "--node", "mac-1"], { from: "user" }),
-    ).rejects.toMatchObject({
-      code: "commander.unknownCommand",
-    });
+    const program = new Command();
+    program.exitOverride();
+    program.configureOutput({ writeErr: () => {} });
+    registerNodesCli(program);
+
+    const stderrWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      await expect(
+        program.parseAsync(["nodes", "run", "--node", "mac-1"], { from: "user" }),
+      ).rejects.toMatchObject({
+        code: "commander.unknownCommand",
+      });
+      expect(stderrWrite).not.toHaveBeenCalled();
+    } finally {
+      stderrWrite.mockRestore();
+    }
   });
 
   it("blocks system.run on nodes invoke", async () => {
