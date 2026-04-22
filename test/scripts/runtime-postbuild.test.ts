@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   copyStaticExtensionAssets,
   listStaticExtensionAssetOutputs,
+  writeStableRootHelpAlias,
   writeStableRootRuntimeAliases,
 } from "../../scripts/runtime-postbuild.mjs";
 
@@ -97,5 +98,22 @@ describe("runtime postbuild static assets", () => {
       'export * from "./runtime-tts.runtime-AbCd1234.js";\n',
     );
     await expect(fs.stat(path.join(distDir, "library.js"))).rejects.toThrow();
+  });
+
+  it("writes the stable root help alias used by the CLI launcher", async () => {
+    const rootDir = await createTempRoot();
+    const distDir = path.join(rootDir, "dist");
+    await fs.mkdir(distDir, { recursive: true });
+    await fs.writeFile(
+      path.join(distDir, "root-help-AbCd1234.js"),
+      "export const outputRootHelp = true;\n",
+      "utf8",
+    );
+
+    writeStableRootHelpAlias({ rootDir });
+
+    expect(await fs.readFile(path.join(distDir, "cli/program/root-help.js"), "utf8")).toBe(
+      'export * from "../../root-help-AbCd1234.js";\n',
+    );
   });
 });

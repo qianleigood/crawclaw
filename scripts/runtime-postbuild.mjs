@@ -10,6 +10,7 @@ import { writeOfficialChannelCatalog } from "./write-official-channel-catalog.mj
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT_RUNTIME_ALIAS_PATTERN = /^(?<base>.+\.(?:runtime|contract))-[A-Za-z0-9_-]+\.js$/u;
+const ROOT_HELP_CHUNK_PATTERN = /^root-help-[A-Za-z0-9_-]+\.js$/u;
 
 function listStaticRuntimeMigrationAssets(params = {}) {
   const rootDir = params.rootDir ?? ROOT;
@@ -107,6 +108,26 @@ export function writeStableRootRuntimeAliases(params = {}) {
   }
 }
 
+export function writeStableRootHelpAlias(params = {}) {
+  const rootDir = params.rootDir ?? ROOT;
+  const distDir = path.join(rootDir, "dist");
+  const fsImpl = params.fs ?? fs;
+  let entries = [];
+  try {
+    entries = fsImpl.readdirSync(distDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  const match = entries.find((entry) => entry.isFile() && ROOT_HELP_CHUNK_PATTERN.test(entry.name));
+  if (!match) {
+    return;
+  }
+
+  const aliasPath = path.join(distDir, "cli", "program", "root-help.js");
+  writeTextFileIfChanged(aliasPath, `export * from "../../${match.name}";\n`);
+}
+
 export function runRuntimePostBuild(params = {}) {
   copyPluginSdkRootAlias(params);
   copyBundledPluginMetadata(params);
@@ -114,6 +135,7 @@ export function runRuntimePostBuild(params = {}) {
   stageBundledPluginRuntimeDeps(params);
   stageBundledPluginRuntime(params);
   writeStableRootRuntimeAliases(params);
+  writeStableRootHelpAlias(params);
   copyStaticExtensionAssets(params);
 }
 
