@@ -287,13 +287,27 @@ function verifyRuntimeBinaries(manifest, smokeEnv) {
   }
 }
 
-function resolvePackedTarball(packJson, packDir) {
-  const parsed = parseJson(packJson, "npm pack");
-  const first = Array.isArray(parsed) ? parsed[0] : null;
-  if (!first || typeof first.filename !== "string" || first.filename.trim() === "") {
-    throw new Error(`npm pack did not report a tarball filename: ${tailOutput(packJson)}`);
+export function resolvePackedTarball(packOutput, packDir) {
+  const trimmedOutput = packOutput.trim();
+  if (trimmedOutput.startsWith("[")) {
+    const parsed = parseJson(trimmedOutput, "npm pack");
+    const first = Array.isArray(parsed) ? parsed[0] : null;
+    if (first && typeof first.filename === "string" && first.filename.trim() !== "") {
+      const filename = first.filename;
+      return path.isAbsolute(filename) ? filename : path.join(packDir, filename);
+    }
   }
-  const filename = first.filename;
+
+  const filename =
+    trimmedOutput
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .toReversed()
+      .find((line) => line.endsWith(".tgz")) ??
+    fs.readdirSync(packDir).find((entry) => entry.endsWith(".tgz"));
+  if (!filename) {
+    throw new Error(`npm pack did not report a tarball filename: ${tailOutput(packOutput)}`);
+  }
   return path.isAbsolute(filename) ? filename : path.join(packDir, filename);
 }
 
@@ -374,7 +388,7 @@ function runSmoke(opts) {
   try {
     console.log("[windows-smoke] packing current checkout");
     const packResult = runNpmOrThrow(
-      ["pack", "--ignore-scripts", "--json", "--pack-destination", temp.packDir],
+      ["pack", "--ignore-scripts", "--silent", "--pack-destination", temp.packDir],
       { cwd: REPO_ROOT, env: smokeEnv, timeoutMs: DEFAULT_TIMEOUT_MS },
     );
     const tarballPath = resolvePackedTarball(packResult.stdout, temp.packDir);

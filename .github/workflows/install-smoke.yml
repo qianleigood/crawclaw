@@ -217,8 +217,9 @@ jobs:
 
       - name: Run installer docker tests
         env:
-          CRAWCLAW_INSTALL_URL: https://crawclaw.ai/install.sh
+          CRAWCLAW_INSTALL_URL: ${{ github.event_name == 'pull_request' && 'file:///tmp/crawclaw-install.sh' || 'https://crawclaw.ai/install.sh' }}
           CRAWCLAW_INSTALL_CLI_URL: https://crawclaw.ai/install-cli.sh
+          CRAWCLAW_INSTALL_LOCAL_SCRIPT: ${{ github.event_name == 'pull_request' && 'scripts/install.sh' || '' }}
           CRAWCLAW_NO_ONBOARD: "1"
           CRAWCLAW_INSTALL_SMOKE_SKIP_CLI: "1"
           CRAWCLAW_INSTALL_SMOKE_SKIP_IMAGE_BUILD: "1"

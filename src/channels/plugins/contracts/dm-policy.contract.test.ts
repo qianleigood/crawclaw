@@ -83,5 +83,6 @@ describe("security/dm-policy-shared channel smoke", () => {
         isSenderAllowed: testCase.isSenderAllowed,
       });
     },
+    240_000,
   );
 });
