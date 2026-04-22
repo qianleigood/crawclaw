@@ -93,7 +93,7 @@ jobs:
 
       # Keep smoke builds driver-agnostic so they work on GitHub-hosted runners.
       - name: Build root Dockerfile smoke image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -117,7 +117,7 @@ jobs:
       # runtime deps declared by the plugin and that matrix discovery stays
       # healthy in the final runtime image.
       - name: Build extension Dockerfile smoke image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -195,7 +195,7 @@ jobs:
           '
 
       - name: Build installer smoke image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./scripts/docker
           file: ./scripts/docker/install-sh-smoke/Dockerfile
@@ -239,7 +239,7 @@ jobs:
 
       - name: Build installer non-root image
         if: steps.installer_source.outputs.skip_nonroot != '1'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./scripts/docker
           file: ./scripts/docker/install-sh-nonroot/Dockerfile
