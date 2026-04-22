@@ -445,17 +445,8 @@ describe("task-trajectory", () => {
     });
   });
 
-  it("records verifier PASS verdicts as assertion evidence for related parent completion", async () => {
-    await withStateDirEnv("crawclaw-task-trajectory-verification-", async () => {
-      const actionEvents: Array<{ runId: string; data: Record<string, unknown> }> = [];
-      const stopActions = onAgentEvent((event) => {
-        if (event.stream === "action") {
-          actionEvents.push({
-            runId: event.runId,
-            data: event.data,
-          });
-        }
-      });
+  it("records REVIEW_PASS tool results as review evidence", async () => {
+    await withStateDirEnv("crawclaw-task-trajectory-review-", async () => {
       const parentTask = createRunningTaskRun({
         runtime: "cli",
         ownerKey: "agent:main:main",
@@ -468,20 +459,6 @@ describe("task-trajectory", () => {
         runId: "run-parent-fix",
         task: "Fix the worker failure on empty payload",
       });
-      const childTask = createRunningTaskRun({
-        runtime: "subagent",
-        ownerKey: "agent:main:main",
-        scopeKind: "session",
-        childSessionKey: "agent:main:subagent:verify-pass",
-        agentId: "main",
-        agentMetadata: {
-          parentAgentId: "main",
-          mode: "background",
-          spawnSource: "verification",
-        },
-        runId: "run-child-verify-pass",
-        task: "Verify the worker failure fix",
-      });
 
       const parentMetadata = await upsertAgentTaskRuntimeMetadata({
         taskId: parentTask.taskId,
@@ -492,65 +469,6 @@ describe("task-trajectory", () => {
         sessionId: "sess-parent-fix",
         runId: "run-parent-fix",
         task: "Fix the worker failure on empty payload",
-      });
-      const childMetadata = await upsertAgentTaskRuntimeMetadata({
-        taskId: childTask.taskId,
-        runtime: "subagent",
-        agentId: "main",
-        parentAgentId: "main",
-        mode: "background",
-        spawnSource: "verification",
-        sessionKey: "agent:main:subagent:verify-pass",
-        sessionId: "sess-child-verify-pass",
-        runId: "run-child-verify-pass",
-        task: "Verify the worker failure fix",
-      });
-
-      registerAgentRunContext("run-child-verify-pass", {
-        sessionKey: "agent:main:subagent:verify-pass",
-        sessionId: "sess-child-verify-pass",
-        agentId: "main",
-        parentAgentId: "main",
-        taskId: childTask.taskId,
-        taskRuntime: "subagent",
-        taskMode: "background",
-      });
-      registerAgentRuntimeRun({
-        runId: "run-child-verify-pass",
-        taskId: childTask.taskId,
-        runtime: "subagent",
-        mode: "background",
-        agentId: "main",
-        parentAgentId: "main",
-        sessionId: "sess-child-verify-pass",
-        sessionKey: "agent:main:subagent:verify-pass",
-        status: "created",
-        startedAt: 5,
-        updatedAt: 5,
-      });
-      emitAgentEvent({
-        runId: "run-child-verify-pass",
-        stream: "assistant",
-        data: {
-          text: [
-            "VERDICT: PASS",
-            "SUMMARY: Reproduced the old path and confirmed the crash is gone.",
-            "CHECKS:",
-            "- PASS: Empty payload no longer crashes the worker.",
-            "- WARN: Did not rerun the ARM-only scenario.",
-            "FAILING_COMMANDS:",
-            "- none",
-            "WARNINGS:",
-            "- ARM-only coverage remains manual.",
-            "ARTIFACTS:",
-            "- logs/verification-pass.txt",
-          ].join("\n"),
-        },
-      });
-      emitAgentEvent({
-        runId: "run-child-verify-pass",
-        stream: "lifecycle",
-        data: { phase: "end", endedAt: 6 },
       });
 
       registerAgentRunContext("run-parent-fix", {
@@ -596,8 +514,50 @@ describe("task-trajectory", () => {
       });
       emitAgentEvent({
         runId: "run-parent-fix",
+        stream: "tool",
+        data: {
+          phase: "start",
+          name: "exec",
+          toolCallId: "tool-parent-test",
+          args: { cmd: "pnpm test --filter worker" },
+        },
+      });
+      emitAgentEvent({
+        runId: "run-parent-fix",
+        stream: "tool",
+        data: {
+          phase: "result",
+          name: "exec",
+          toolCallId: "tool-parent-test",
+          isError: false,
+          result: { details: { exitCode: 0 } },
+        },
+      });
+      emitAgentEvent({
+        runId: "run-parent-fix",
+        stream: "tool",
+        data: {
+          phase: "start",
+          name: "review_task",
+          toolCallId: "tool-parent-review",
+          args: { task: "Fix the worker failure on empty payload" },
+        },
+      });
+      emitAgentEvent({
+        runId: "run-parent-fix",
+        stream: "tool",
+        data: {
+          phase: "result",
+          name: "review_task",
+          toolCallId: "tool-parent-review",
+          isError: false,
+          result: { details: { status: "completed", verdict: "REVIEW_PASS" } },
+        },
+      });
+      emitAgentEvent({
+        runId: "run-parent-fix",
         stream: "assistant",
-        data: { text: "Patched the worker guard and requested verification." },
+        data: { text: "Patched the worker guard and passed two-stage review." },
       });
       emitAgentEvent({
         runId: "run-parent-fix",
@@ -606,56 +566,23 @@ describe("task-trajectory", () => {
       });
 
       await flushTaskTrajectoryWritesForTest();
-      stopActions();
 
-      const childTrajectory = readTaskTrajectorySync(childMetadata.metadata.trajectoryRef);
-      expect(childTrajectory?.evidence).toEqual(
+      const parentTrajectory = readTaskTrajectorySync(parentMetadata.metadata.trajectoryRef);
+      expect(parentTrajectory?.evidence).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            kind: "assertion_met",
-            summary: expect.stringContaining("Verification passed"),
-            source: "assistant",
+            kind: "review_passed",
+            summary: "Two-stage review passed.",
+            source: "tool",
           }),
         ]),
       );
-
-      const parentTrajectory = readTaskTrajectorySync(parentMetadata.metadata.trajectoryRef);
       expect(parentTrajectory?.completion).toMatchObject({
         status: "accepted",
         spec: {
           taskType: "fix",
         },
       });
-      expect(actionEvents).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            runId: "run-child-verify-pass",
-            data: expect.objectContaining({
-              actionId: "completion:run-child-verify-pass",
-              kind: "completion",
-              projectedTitle: "Completion incomplete",
-              projectedSummary: "Missing completion evidence: file change.",
-              detail: expect.objectContaining({
-                verificationVerdict: "PASS",
-                verificationSummary: "Reproduced the old path and confirmed the crash is gone.",
-                verificationChecks: [
-                  {
-                    status: "PASS",
-                    summary: "Empty payload no longer crashes the worker.",
-                  },
-                  {
-                    status: "WARN",
-                    summary: "Did not rerun the ARM-only scenario.",
-                  },
-                ],
-                verificationFailingCommands: [],
-                verificationWarnings: ["ARM-only coverage remains manual."],
-                verificationArtifacts: ["logs/verification-pass.txt"],
-              }),
-            }),
-          }),
-        ]),
-      );
     });
   });
 });

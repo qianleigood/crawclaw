@@ -104,22 +104,22 @@ Task-backed runs can also be captured into Context Archive.
 This is separate from normal session transcripts. Transcripts remain the
 product-facing conversation log; Context Archive is the replay/export layer.
 
-## Verification agent
+## Two-stage review
 
-CrawClaw also supports a specialized verification agent path for “try to break
-it” validation before a task is considered truly done.
+CrawClaw supports a specialized two-stage review path for “try to break it”
+validation before a task is considered truly done.
 
-- The user-facing entrypoint is the chat command `/verify [task]`.
-- Internally, `/verify` enters a dedicated verification flow, which spawns a
-  task-backed sub-agent with `spawnSource: "verification"`.
-- `/verify` is the only public verification entrypoint.
-- Verification runs use a dedicated system prompt and a restricted validation
-  toolset rather than inheriting the full parent tool surface.
-- Verification runs are intentionally read-only: they can inspect, run checks,
-  and produce a verdict, but they cannot patch files or recursively spawn more
-  verification runs.
-- A `VERDICT: PASS` result can be recorded as completion evidence and then
-  aggregated back into the parent task trajectory.
+- The user-facing entrypoint is the chat command `/review [focus]`.
+- Internally, `/review` calls the `review_task` flow, which first spawns
+  `review-spec` and then, unless spec fails, spawns `review-quality`.
+- `/review` is the only public review entrypoint.
+- Review runs use dedicated system prompts and a restricted validation toolset
+  rather than inheriting the full parent tool surface.
+- Review runs are intentionally read-only: they can inspect, run checks, and
+  produce verdicts, but they cannot patch files or recursively spawn more
+  review runs.
+- The deterministic aggregator produces `REVIEW_PASS`, `REVIEW_FAIL`, or
+  `REVIEW_PARTIAL`. Only `REVIEW_PASS` can become review completion evidence.
 
 ## Sessions
 

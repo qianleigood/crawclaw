@@ -41,7 +41,7 @@ describe("commands registry", () => {
     expect(specs.find((spec) => spec.name === "stop")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "skill")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "tasks")).toBeTruthy();
-    expect(specs.find((spec) => spec.name === "verify")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "review")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "whoami")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "compact")).toBeTruthy();
   });

@@ -9,6 +9,7 @@ import { normalizeDeliveryContext } from "../utils/delivery-context.js";
 import type { GatewayMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentWorkspaceDir, resolveSessionAgentId } from "./agent-scope.js";
 import { applyPluginToolDeliveryDefaults } from "./plugin-tool-delivery-defaults.js";
+import { isReviewSpawnSource } from "./review-agent.js";
 import type { SandboxFsBridge } from "./sandbox/fs-bridge.js";
 import type { SpawnedToolContext } from "./spawned-context.js";
 import type { ToolFsPolicy } from "./tool-fs-policy.js";
@@ -29,6 +30,7 @@ import {
 import { createMessageTool } from "./tools/message-tool.js";
 import { createNodesTool } from "./tools/nodes-tool.js";
 import { createPdfTool } from "./tools/pdf-tool.js";
+import { createReviewTaskTool } from "./tools/review-task-tool.js";
 import { createSessionStatusTool } from "./tools/session-status-tool.js";
 import { createSessionsHistoryTool } from "./tools/sessions-history-tool.js";
 import { createSessionsListTool } from "./tools/sessions-list-tool.js";
@@ -231,6 +233,21 @@ export function createCrawClawTools(
           transcriptSearch: options?.specialTranscriptSearch,
         })
       : null;
+  const reviewTaskTool = isReviewSpawnSource(options?.specialAgentSpawnSource)
+    ? null
+    : createReviewTaskTool({
+        agentSessionKey: options?.agentSessionKey,
+        agentChannel: options?.agentChannel,
+        agentAccountId: options?.agentAccountId,
+        agentTo: options?.agentTo,
+        agentThreadId: options?.agentThreadId,
+        agentGroupId: options?.agentGroupId,
+        agentGroupChannel: options?.agentGroupChannel,
+        agentGroupSpace: options?.agentGroupSpace,
+        sandboxed: options?.sandboxed,
+        requesterAgentIdOverride: options?.requesterAgentIdOverride,
+        workspaceDir: spawnWorkspaceDir,
+      });
   const messageTool = options?.disableMessageTool
     ? null
     : createMessageTool({
@@ -279,6 +296,7 @@ export function createCrawClawTools(
     ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
     ...(memoryTranscriptSearchTool ? [memoryTranscriptSearchTool] : []),
     ...(experienceWriteTool ? [experienceWriteTool] : []),
+    ...(reviewTaskTool ? [reviewTaskTool] : []),
     createAgentsListTool({
       agentSessionKey: options?.agentSessionKey,
       requesterAgentIdOverride: options?.requesterAgentIdOverride,

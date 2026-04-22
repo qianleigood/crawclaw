@@ -5,7 +5,7 @@ import type { TaskRecord } from "../../tasks/task-registry.types.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
-type AgentRuntimeCategory = "memory" | "verification" | "subagents" | "acp" | "cron" | "cli";
+type AgentRuntimeCategory = "memory" | "review" | "subagents" | "acp" | "cron" | "cli";
 type AgentRuntimeStatusFilter =
   | "all"
   | "running"
@@ -51,8 +51,8 @@ function resolveCategory(task: TaskRecord): AgentRuntimeCategory {
   ) {
     return "memory";
   }
-  if (spawnSource === "verification") {
-    return "verification";
+  if (spawnSource === "review-spec" || spawnSource === "review-quality") {
+    return "review";
   }
   if (task.runtime === "acp") {
     return "acp";
@@ -83,8 +83,9 @@ function resolveTaskTitle(task: TaskRecord): string {
       return "Session summary refresh";
     case "dream":
       return "Memory dream run";
-    case "verification":
-      return "Verification run";
+    case "review-spec":
+    case "review-quality":
+      return "Review run";
     default:
       break;
   }
@@ -221,7 +222,7 @@ function filterTasks(params: {
 function buildSummary(tasks: TaskRecord[]) {
   const byCategory: Record<AgentRuntimeCategory, number> = {
     memory: 0,
-    verification: 0,
+    review: 0,
     subagents: 0,
     acp: 0,
     cron: 0,

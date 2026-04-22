@@ -16,6 +16,7 @@ import {
   captureContextArchiveRunEvent,
   updateContextArchiveRunState,
 } from "../context-archive/run-capture.js";
+import { isReviewSpawnSource, parseReviewStageReport, type ReviewStage } from "../review-agent.js";
 import {
   resolveAgentTaskTrajectoryPath,
   resolveAgentTaskTrajectoryRef,
@@ -23,7 +24,6 @@ import {
 import type { AgentProgressEvent } from "../runtime/agent-progress.js";
 import type { AgentRuntimeStatus } from "../runtime/agent-runtime-state.js";
 import { getAgentRuntimeState } from "../runtime/agent-runtime-state.js";
-import { parseVerificationReport, VERIFICATION_SPAWN_SOURCE } from "../verification-agent.js";
 import type { CompletionEvidence } from "./completion-evidence.js";
 import { evaluateCompletionGuard, type CompletionGuardResult } from "./completion-guard.js";
 import { buildCompletionActionVisibilityProjection } from "./completion-visibility.js";
@@ -266,6 +266,7 @@ function normalizeCompletionEvidence(value: unknown): CompletionEvidence | undef
     record.kind === "file_changed" ||
     record.kind === "test_passed" ||
     record.kind === "assertion_met" ||
+    record.kind === "review_passed" ||
     record.kind === "external_state_changed" ||
     record.kind === "user_confirmed"
       ? record.kind
@@ -359,7 +360,7 @@ function normalizeCompletionGuardResult(value: unknown): CompletionGuardResult |
     ...(missingAnyOfEvidence.length > 0 ? { missingAnyOfEvidence } : {}),
     ...(record.blockingState === "waiting_user" ||
     record.blockingState === "waiting_external" ||
-    record.blockingState === "verification_missing"
+    record.blockingState === "review_missing"
       ? { blockingState: record.blockingState }
       : {}),
     ...(typeof record.relatedEvidenceCount === "number" &&
@@ -427,6 +428,7 @@ function normalizeCompletionEvidenceKindArray(value: unknown): CompletionEvidenc
       entry === "file_changed" ||
       entry === "test_passed" ||
       entry === "assertion_met" ||
+      entry === "review_passed" ||
       entry === "external_state_changed" ||
       entry === "user_confirmed",
   );
@@ -653,8 +655,31 @@ function addEvidence(trajectory: TaskTrajectory, evidence: CompletionEvidence): 
   }
 }
 
-function isVerificationTask(trajectory: TaskTrajectory): boolean {
-  return getTaskById(trajectory.taskId)?.agentMetadata?.spawnSource === VERIFICATION_SPAWN_SOURCE;
+function resolveReviewTaskStage(trajectory: TaskTrajectory): ReviewStage | undefined {
+  const spawnSource = getTaskById(trajectory.taskId)?.agentMetadata?.spawnSource;
+  if (spawnSource === "review-spec") {
+    return "spec";
+  }
+  if (spawnSource === "review-quality") {
+    return "quality";
+  }
+  return undefined;
+}
+
+function isReviewTask(trajectory: TaskTrajectory): boolean {
+  return isReviewSpawnSource(getTaskById(trajectory.taskId)?.agentMetadata?.spawnSource);
+}
+
+function extractReviewVerdict(result: unknown): string | undefined {
+  if (!result || typeof result !== "object") {
+    return undefined;
+  }
+  const details = (result as { details?: unknown }).details;
+  if (!details || typeof details !== "object") {
+    return undefined;
+  }
+  const verdict = (details as { verdict?: unknown }).verdict;
+  return typeof verdict === "string" ? verdict : undefined;
 }
 
 function collectToolEvidence(params: {
@@ -700,7 +725,7 @@ function collectToolEvidence(params: {
         evidence.push({
           kind: "assertion_met",
           at: params.at,
-          summary: `Verification passed: ${truncateText(command)}`,
+          summary: `Assertion passed: ${truncateText(command)}`,
           toolName: params.toolName,
           ...(params.toolCallId ? { toolCallId: params.toolCallId } : {}),
           command,
@@ -708,6 +733,17 @@ function collectToolEvidence(params: {
         });
       }
     }
+  }
+  if (params.toolName === "review_task" && extractReviewVerdict(params.result) === "REVIEW_PASS") {
+    evidence.push({
+      kind: "review_passed",
+      at: params.at,
+      summary: "Two-stage review passed.",
+      toolName: params.toolName,
+      ...(params.toolCallId ? { toolCallId: params.toolCallId } : {}),
+      confidence: 0.95,
+      source: "tool",
+    });
   }
   if (
     params.toolName === "process" &&
@@ -769,19 +805,8 @@ function upsertAssistantCompletionFromText(
     confidence: 1,
     source: "assistant",
   });
-  if (isVerificationTask(trajectory)) {
-    const parsed = parseVerificationReport(text);
-    if (parsed.verdict === "PASS") {
-      addEvidence(trajectory, {
-        kind: "assertion_met",
-        at,
-        summary: parsed.summary
-          ? `Verification passed: ${parsed.summary}`
-          : "Verification agent reported PASS.",
-        confidence: 0.9,
-        source: "assistant",
-      });
-    }
+  if (isReviewTask(trajectory)) {
+    return;
   }
 }
 
@@ -830,9 +855,10 @@ function captureTrajectoryCompletionDecision(params: {
   if (!completion || !trajectory.sessionId) {
     return;
   }
-  const parsedVerification =
-    isVerificationTask(trajectory) && runState.lastAssistantText
-      ? parseVerificationReport(runState.lastAssistantText)
+  const reviewStage = resolveReviewTaskStage(trajectory);
+  const parsedReview =
+    reviewStage && runState.lastAssistantText
+      ? parseReviewStageReport(runState.lastAssistantText, reviewStage)
       : undefined;
   emitAgentActionEvent({
     runId: trajectory.runId,
@@ -849,14 +875,16 @@ function captureTrajectoryCompletionDecision(params: {
         ...(completion.blockingState ? { blockingState: completion.blockingState } : {}),
         evidenceCount: trajectory.evidence.length,
         stepCount: trajectory.steps.length,
-        ...(parsedVerification?.verdict
+        ...(parsedReview
           ? {
-              verificationVerdict: parsedVerification.verdict,
-              verificationSummary: parsedVerification.summary ?? null,
-              verificationChecks: parsedVerification.checks,
-              verificationFailingCommands: parsedVerification.failingCommands,
-              verificationWarnings: parsedVerification.warnings,
-              verificationArtifacts: parsedVerification.artifacts,
+              reviewStage: parsedReview.stage,
+              reviewVerdict: parsedReview.verdict,
+              reviewSummary: parsedReview.summary,
+              reviewValid: parsedReview.valid,
+              reviewBlockingIssues: parsedReview.blockingIssues,
+              reviewWarnings: parsedReview.warnings,
+              reviewEvidence: parsedReview.evidence,
+              reviewRecommendedFixes: parsedReview.recommendedFixes,
             }
           : {}),
       };
@@ -894,15 +922,17 @@ function captureTrajectoryCompletionDecision(params: {
       completion,
       evidenceCount: trajectory.evidence.length,
       stepCount: trajectory.steps.length,
-      ...(parsedVerification?.verdict
+      ...(parsedReview
         ? {
-            verification: {
-              verdict: parsedVerification.verdict,
-              summary: parsedVerification.summary ?? null,
-              checks: parsedVerification.checks,
-              failingCommands: parsedVerification.failingCommands,
-              warnings: parsedVerification.warnings,
-              artifacts: parsedVerification.artifacts,
+            review: {
+              stage: parsedReview.stage,
+              verdict: parsedReview.verdict,
+              summary: parsedReview.summary,
+              valid: parsedReview.valid,
+              blockingIssues: parsedReview.blockingIssues,
+              warnings: parsedReview.warnings,
+              evidence: parsedReview.evidence,
+              recommendedFixes: parsedReview.recommendedFixes,
             },
           }
         : {}),

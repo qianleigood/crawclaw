@@ -66,9 +66,12 @@ The shared substrate is now used by:
 - dream
   - `src/memory/dreaming/agent-runner.ts`
   - definition: `DREAM_AGENT_DEFINITION`
-- verification
-  - `src/agents/verification-agent.ts`
-  - definition: `VERIFICATION_AGENT_DEFINITION`
+- review-spec
+  - `src/agents/review-agent.ts`
+  - definition: `REVIEW_SPEC_AGENT_DEFINITION`
+- review-quality
+  - `src/agents/review-agent.ts`
+  - definition: `REVIEW_QUALITY_AGENT_DEFINITION`
 
 These pilots keep their existing:
 
@@ -95,7 +98,7 @@ That gives the shared runtime coverage across:
 - session-summary maintenance
 - durable memory extraction
 - dream / auto-dream
-- verification
+- review
 
 The prompts, tool contracts, and result schemas remain specialized.
 
@@ -157,7 +160,7 @@ agents:
 - embedded memory special runs now record shared agent-event / history / usage observations into Context Archive without depending on child-session transcript state
 - the same embedded memory runs now surface usage, including `cacheRead` / `cacheWrite`, back into their Action Feed completion details
 - embedded memory special agents now declare explicit cache-write suppression on the substrate, which maps to provider-supported "do not create new cache entries" controls while preserving prompt-cache reads when possible
-- verification is intentionally explicit about staying on `spawned_session`; it uses the shared substrate contract, but it is not treated as a fire-and-forget maintenance fork
+- review stage agents are intentionally explicit about staying on `spawned_session`; they use the shared substrate contract, but they are not treated as fire-and-forget maintenance forks
 
 At the current CrawClaw runtime layer, this closes most of the substrate-level design gap that was still open after the first embedded-fork rollout while also simplifying ownership:
 

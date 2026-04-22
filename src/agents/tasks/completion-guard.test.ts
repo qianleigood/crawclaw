@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { evaluateCompletionGuard } from "./completion-guard.js";
 
 describe("completion-guard", () => {
-  it("accepts fix tasks when change and verification evidence are present", () => {
+  it("accepts fix tasks when change and validation evidence are present", () => {
     const result = evaluateCompletionGuard({
       task: {
         label: "Fix worker regression",
@@ -45,7 +45,7 @@ describe("completion-guard", () => {
     });
   });
 
-  it("marks fix tasks incomplete when no verification evidence is present", () => {
+  it("marks fix tasks incomplete when no validation evidence is present", () => {
     const result = evaluateCompletionGuard({
       task: {
         task: "Patch the broken worker flow",
@@ -72,6 +72,52 @@ describe("completion-guard", () => {
       },
       missingEvidence: [],
       missingAnyOfEvidence: ["test_passed", "assertion_met"],
+      blockingState: "review_missing",
+    });
+  });
+
+  it("recognizes review_passed as first-class evidence", () => {
+    const result = evaluateCompletionGuard({
+      task: {
+        task: "Patch the broken worker flow",
+      },
+      trajectory: {
+        status: "completed",
+        evidence: [
+          {
+            kind: "file_changed",
+            at: 10,
+            summary: "Modified /tmp/worker.ts",
+            path: "/tmp/worker.ts",
+            source: "tool",
+          },
+          {
+            kind: "test_passed",
+            at: 11,
+            summary: "Command passed: pnpm test --filter worker",
+            command: "pnpm test --filter worker",
+            source: "tool",
+          },
+          {
+            kind: "review_passed",
+            at: 12,
+            summary: "Two-stage review passed.",
+            source: "tool",
+          },
+          {
+            kind: "answer_provided",
+            at: 13,
+            summary: "Patched the worker flow and reported the review result.",
+            source: "assistant",
+          },
+        ],
+      },
+      evaluatedAt: 13,
+    });
+
+    expect(result).toMatchObject({
+      status: "accepted",
+      missingEvidence: [],
     });
   });
 

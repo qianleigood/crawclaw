@@ -609,16 +609,16 @@ export function buildBuiltinChatCommands(): ChatCommandDefinition[] {
       category: "session",
     }),
     defineChatCommand({
-      key: "verify",
-      nativeName: "verify",
-      description: "Run a dedicated verification agent for the current task.",
-      textAlias: "/verify",
+      key: "review",
+      nativeName: "review",
+      description: "Run a two-stage review pipeline for the current task.",
+      textAlias: "/review",
       acceptsArgs: true,
       category: "session",
       args: [
         {
-          name: "task",
-          description: "Optional verification focus or task description",
+          name: "focus",
+          description: "Optional review focus",
           type: "string",
           captureRemaining: true,
         },

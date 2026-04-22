@@ -85,7 +85,7 @@ Text + native (when enabled):
 - `/btw <question>` (ask an ephemeral side question about the current session without changing future session context; see [/tools/btw](/tools/btw))
 - `/export-session [path]` (alias: `/export`) (export current session to HTML with full system prompt)
 - `/whoami` (show your sender id; alias: `/id`)
-- `/verify [task]` (spawn a dedicated verification agent for the current task or for the supplied verification focus)
+- `/review [focus]` (run the two-stage review pipeline for the current task, optionally with a review focus)
 - `/session idle <duration|off>` (manage inactivity auto-unfocus for focused thread bindings)
 - `/session max-age <duration|off>` (manage hard max-age auto-unfocus for focused thread bindings)
 - `/subagents list|kill|log|info|send|steer|spawn` (inspect, control, or spawn sub-agent runs for the current session)
@@ -135,11 +135,11 @@ Notes:
 
 - Commands accept an optional `:` between the command and args (e.g. `/think: high`, `/send: on`, `/help:`).
 - `/new <model>` accepts a model alias, `provider/model`, or a provider name (fuzzy match); if no match, the text is treated as the message body.
-- `/verify` runs a specialized verification sub-agent through the same task-backed runtime as other sub-agents.
-  - With no argument, it verifies the current task outcome, recent workspace changes, and user-visible behavior for the current session.
-  - With an argument, the remainder becomes the verifier task, for example: `/verify reproduce login twice and confirm retry flow`.
-  - Verification sessions are read-only by policy: they are restricted to validation tools and cannot recursively start another verification run.
-  - `/verify` is the only user-facing verification entry. The internal verification tool flow is not exposed as a public tool surface.
+- `/review` runs a two-stage review pipeline through task-backed special agents.
+  - With no argument, it reviews the current task outcome, recent workspace changes, and user-visible behavior for the current session.
+  - With an argument, the remainder becomes review focus, for example: `/review check plugin SDK boundary coverage`.
+  - Review sessions are read-only by policy: they are restricted to validation tools and cannot recursively start another review run.
+  - `/review` is the only user-facing review entry. The internal `review_task` tool flow is not exposed as a public slash command.
 - For full provider usage breakdown, use `crawclaw status --usage`.
 - `/allowlist add|remove` requires `commands.config=true` and honors channel `configWrites`.
 - In multi-account channels, config-targeted `/allowlist --account <id>` and `/config set channels.<provider>.accounts.<id>...` also honor the target account's `configWrites`.
@@ -183,28 +183,32 @@ this conversation**.
 For profile and override editing, use config/catalog surfaces instead
 of treating `/tools` as a static catalog.
 
-## `/verify`
+## `/review`
 
-`/verify` is a chat command wrapper around the internal verification flow. It
-starts a dedicated verification agent as a background sub-agent run, waits for a
-strict verdict, and then returns a short result to the current conversation.
+`/review` is a chat command wrapper around the internal two-stage review flow.
+It starts independent spec-compliance and code-quality review agents, waits for
+their reports, applies the deterministic aggregator, and then returns a short
+result to the current conversation.
 
 Examples:
 
 ```text
-/verify
-/verify rerun the onboarding flow and confirm the final success message appears
-/verify check that the recent fix does not break image uploads
+/review
+/review check plugin SDK boundaries
+/review check that the refactor covers all built-in and plugin channels
 ```
 
 Behavior:
 
-- The verifier receives a specialized verification system prompt rather than the
-  full parent transcript.
-- The verifier must report `VERDICT: PASS`, `VERDICT: FAIL`, or `VERDICT: PARTIAL`.
-- `PASS` can be recorded as completion evidence for the parent task.
-- Verification sessions cannot spawn nested verification sessions.
-- `/verify` is the only public verification entrypoint.
+- The spec reviewer and quality reviewer receive specialized review prompts
+  rather than the full parent transcript.
+- Each reviewer must report a strict `STAGE`, `VERDICT`, `SUMMARY`,
+  `BLOCKING_ISSUES`, `WARNINGS`, `EVIDENCE`, and `RECOMMENDED_FIXES` shape.
+- The final verdict is `REVIEW_PASS`, `REVIEW_FAIL`, or `REVIEW_PARTIAL`.
+- Only `REVIEW_PASS` can be recorded as review completion evidence for the
+  parent task.
+- Review sessions cannot spawn nested review sessions.
+- `/review` is the only public review entrypoint.
 
 ## Usage surfaces (what shows where)
 
