@@ -64,6 +64,7 @@ describe("tui-event-handlers: handleAgentEvent", () => {
     initialSessionApplied: true,
     isConnected: true,
     autoMessageSent: false,
+    deliverEnabled: false,
     toolsExpanded: false,
     showThinking: false,
     connectionStatus: "connected",

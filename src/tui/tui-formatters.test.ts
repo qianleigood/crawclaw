@@ -1,11 +1,50 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatTuiFooterLine,
   extractContentFromMessage,
   extractTextFromMessage,
   extractThinkingFromMessage,
   isCommandMessage,
   sanitizeRenderableText,
 } from "./tui-formatters.js";
+
+describe("formatTuiFooterLine", () => {
+  it("shows the current deliver mode alongside session controls", () => {
+    expect(
+      formatTuiFooterLine({
+        agentLabel: "main",
+        sessionLabel: "main",
+        model: "gpt-5.4",
+        modelProvider: "openai",
+        contextTokens: 200_000,
+        totalTokens: 12_345,
+        thinkingLevel: "off",
+        fastMode: false,
+        verboseLevel: "off",
+        reasoningLevel: "off",
+        deliverEnabled: false,
+      }),
+    ).toBe("agent main | session main | openai/gpt-5.4 | deliver off | tokens 12k/200k (6%)");
+
+    expect(
+      formatTuiFooterLine({
+        agentLabel: "main",
+        sessionLabel: "main",
+        model: "gpt-5.4",
+        modelProvider: "openai",
+        contextTokens: 200_000,
+        totalTokens: 12_345,
+        thinkingLevel: "medium",
+        fastMode: true,
+        verboseLevel: "on",
+        reasoningLevel: "stream",
+        deliverEnabled: true,
+      }),
+    ).toBe(
+      "agent main | session main | openai/gpt-5.4 | think medium | fast | verbose on | reasoning:stream | deliver on | tokens 12k/200k (6%)",
+    );
+  });
+});
 
 describe("extractTextFromMessage", () => {
   it("renders errorMessage when assistant content is empty", () => {
