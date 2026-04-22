@@ -27,6 +27,16 @@ import {
 } from "../durable/worker-manager.ts";
 import type { DurableExtractionRunResult } from "../durable/worker-manager.ts";
 import { upsertExperienceIndexEntry } from "../experience/index-store.ts";
+import {
+  readExperienceIndexEntries,
+  upsertExperienceIndexEntryFromNote,
+} from "../experience/index-store.ts";
+import { __testing as experienceLifecycleTesting } from "../experience/lifecycle-subscriber.ts";
+import {
+  __testing as experienceWorkerTesting,
+  drainSharedExperienceExtractionWorkers,
+} from "../experience/worker-manager.ts";
+import type { ExperienceExtractionRunResult } from "../experience/worker-manager.ts";
 import { SqliteRuntimeStore } from "../runtime/sqlite-runtime-store.ts";
 import { __testing as sessionSummaryLifecycleTesting } from "../session-summary/lifecycle-subscriber.ts";
 import { writeSessionSummaryFile } from "../session-summary/store.ts";
@@ -43,7 +53,9 @@ const previousDurableRoot = process.env.CRAWCLAW_DURABLE_MEMORY_DIR;
 
 afterEach(async () => {
   await durableWorkerTesting.resetSharedDurableExtractionWorkerManager();
+  await experienceWorkerTesting.resetSharedExperienceExtractionWorkerManager();
   durableLifecycleTesting.resetSharedDurableExtractionLifecycleSubscriber();
+  experienceLifecycleTesting.resetSharedExperienceExtractionLifecycleSubscriber();
   dreamLifecycleTesting.resetSharedAutoDreamLifecycleSubscriber();
   autoDreamTesting.resetSharedAutoDreamScheduler();
   sessionSummaryLifecycleTesting.resetSharedSessionSummaryLifecycleSubscriber();
@@ -101,6 +113,128 @@ function rowsToAgentMessages(
 }
 
 describe("context memory runtime cross-layer e2e", () => {
+  it("lets the experience agent auto-write an index entry that the next assembly recalls", async () => {
+    const { stateDir, store } = await createStore("crawclaw-memory-experience-agent-");
+    const sessionId = "session-experience-agent";
+    const sessionKey = "agent:main:feishu:direct:user-77";
+    const sessionFile = path.join(stateDir, "session.jsonl");
+    const config = resolveMemoryConfig({
+      runtimeStore: { type: "sqlite", dbPath: path.join(stateDir, "memory-runtime.sqlite") },
+      skillRouting: { enabled: false },
+      durableExtraction: { enabled: false },
+      experience: {
+        enabled: true,
+        recentMessageLimit: 8,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 2,
+        workerIdleTtlMs: 60_000,
+      },
+      dreaming: { enabled: false },
+      notebooklm: {
+        enabled: false,
+        auth: { heartbeat: { enabled: false } },
+        cli: { enabled: false },
+        write: { enabled: false },
+      },
+      sessionSummary: {
+        enabled: false,
+        rootDir: stateDir,
+        minTokensToInit: 10_000,
+        minTokensBetweenUpdates: 5_000,
+        toolCallsBetweenUpdates: 3,
+        maxWaitMs: 10,
+        maxTurns: 5,
+      },
+    });
+    const experienceExtractionRunner = vi.fn(async (): Promise<ExperienceExtractionRunResult> => {
+      await upsertExperienceIndexEntryFromNote({
+        note: {
+          type: "failure_pattern",
+          title: "网关发布失败顺序经验",
+          summary: "网关发布失败时先回滚 service，再验证 secret 和探针输出。",
+          context: "发布 gateway 后 health probe 失败。",
+          trigger: "gateway 发布失败，probe 返回 unhealthy。",
+          action: "先回滚 service，再检查 secret，最后验证 probe。",
+          result: "回滚后 probe 恢复 healthy。",
+          lesson: "发布失败经验应先保护可恢复路径，再查配置。",
+          appliesWhen: "适用于 gateway 发布失败和 service/secret 顺序问题。",
+          evidence: ["本轮任务验证了先回滚再查 secret 的顺序。"],
+          confidence: "high",
+          dedupeKey: "gateway-release-order",
+          aliases: ["gateway 发布失败", "gateway release failure"],
+        },
+        notebookId: "local",
+      });
+      return {
+        status: "written",
+        summary: "wrote gateway release failure experience",
+        writtenCount: 1,
+        updatedCount: 0,
+        deletedCount: 0,
+        touchedNotes: ["gateway-release-order"],
+        advanceCursor: true,
+      };
+    });
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: store,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config,
+      experienceExtractionRunner,
+    });
+    const messages = castAgentMessages([
+      makeAgentUserMessage({ content: "这次 gateway 发布失败是因为先改 service 再改 secret。" }),
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "已验证：以后先回滚 service，再检查 secret 和 probe。" }],
+      }),
+    ]);
+
+    await runtime.afterTurn?.({
+      sessionId,
+      sessionKey,
+      sessionFile,
+      messages,
+      prePromptMessageCount: 0,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-77" },
+    });
+    await emitRunLoopLifecycleEvent({
+      phase: "stop",
+      sessionId,
+      sessionKey,
+      agentId: "main",
+      isTopLevel: true,
+      sessionFile,
+      messageCount: messages.length,
+      metadata: {
+        prePromptMessageCount: 0,
+        messageChannel: "feishu",
+        senderId: "user-77",
+        workspaceDir: stateDir,
+      },
+    });
+    await drainSharedExperienceExtractionWorkers();
+
+    expect(experienceExtractionRunner).toHaveBeenCalledTimes(1);
+    expect((await readExperienceIndexEntries()).map((entry) => entry.id)).toContain(
+      "experience-index:gateway-release-order",
+    );
+    const rowsForAssembly = await store.listMessagesByTurnRange(sessionId, 1, messages.length);
+    const assembled = await runtime.assemble({
+      sessionId,
+      sessionKey,
+      prompt: "给我 gateway release failure SOP runbook，说明发布失败后应该怎么处理。",
+      messages: rowsToAgentMessages(rowsForAssembly),
+      tokenBudget: 1_000,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-77" },
+    });
+    expect(assembled.diagnostics?.memoryRecall?.selectedExperienceItemIds).toContain(
+      "experience-index:gateway-release-order",
+    );
+    expect(renderQueryContextSections(assembled.systemContextSections)).toContain(
+      "网关发布失败顺序经验",
+    );
+  });
+
   it("connects session compaction, durable extraction, dream feedback, experience recall, and assembly diagnostics", async () => {
     const { stateDir, store } = await createStore("crawclaw-memory-cross-layer-");
     const sessionId = "session-cross-layer";

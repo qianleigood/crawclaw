@@ -14,7 +14,8 @@ CrawClaw remembers things through a layered memory system:
 - **Session memory** for short-lived task continuity inside one session
 - **Durable memory** for long-term user and collaboration facts, scoped by
   `agentId + channel + userId`
-- **Experience recall** backed by NotebookLM and queried during prompt assembly
+- **Experience memory** backed by a local index, an optional NotebookLM provider,
+  a background Experience Agent, and prompt-time recall
 - **Context Archive** for replay/export/debug records of what a run actually saw
   and did
 
@@ -211,18 +212,33 @@ can write durable memory or an experience note depending on what should be retai
 
 ## Experience recall
 
-Experience recall is a provider-backed layer. NotebookLM is the current default
-provider, but prompt assembly talks to a provider registry instead of calling
-the NotebookLM CLI directly. CrawClaw can:
+Experience memory is a separate memory layer for validated lessons from prior
+work. It stores reusable procedures, decisions, runtime patterns, failure
+patterns, workflow patterns, and references. NotebookLM can be used as a
+provider, but prompt assembly talks to a provider registry and local experience
+index instead of binding the recall path to NotebookLM directly. CrawClaw can:
 
 - query NotebookLM for relevant reusable experience
 - write structured experience notes directly through `write_experience_note`
+- run a background Experience Agent after top-level turns to extract reusable
+  experience without blocking the main task
 - manage login, refresh, and provider status via `crawclaw memory`
 - summarize nightly memory prompt diagnostics via `crawclaw memory prompt-journal-summary`
 
-Experience recall runs during the context-assembly phase of each agent turn.
-The runtime first classifies the user query, then builds a provider query plan
-from that classification:
+Experience extraction and recall are deliberately split:
+
+- lifecycle `stop` captures the just-finished top-level turn
+- the Experience Agent reviews recent model-visible messages, session summary
+  context, and the existing experience index
+- the agent can only use `write_experience_note`; it cannot run shell commands,
+  browse, inspect source files, write durable memory, or spawn agents
+- successful writes update the local experience index and optionally sync to
+  NotebookLM when a write adapter is configured
+- the next prompt assembly synchronously recalls the most relevant experience
+
+Experience recall runs during the context-assembly phase of each agent turn. The
+runtime first classifies the user query, then builds a provider query plan from
+that classification:
 
 - preference-only prompts are routed toward durable memory and skip experience
   provider queries
@@ -233,6 +249,9 @@ from that classification:
   returns no hits
 - local baseline hits keep their own `local_experience_index` source, so inspect
   and prompt diagnostics can distinguish them from live NotebookLM hits
+- recall ranking records experience-specific signals such as trigger match,
+  applicability match, failure/workflow pattern boosts, recent-success wording,
+  and confidence
 - selected experience recall is still bounded by the memory prompt budget; layer
   allocations are soft guidance, but the assembled experience section must fit
   the global experience budget for the turn
@@ -243,16 +262,11 @@ from that classification:
 If there is no usable prompt for the current turn, the runtime skips experience
 provider querying entirely.
 
-`write_experience_note` is the only NotebookLM write path in the current
-runtime. It writes directly through the tool path after schema and guard
-validation. Experience notes should capture reusable context, trigger, action,
-result, lesson, applicability boundaries, and supporting evidence rather than
-temporary task state.
-
-The knowledge layer does not currently run a `dream`-style background
-consolidation agent. Automatic knowledge cleanup, dedupe, stale-note review, or
-cross-provider governance would need a separate design; it should not be folded
-into durable-memory dream runs or hidden behind prompt-time recall.
+`write_experience_note` is the only experience write tool in the current
+runtime. It writes a local experience index entry first and can also sync to
+NotebookLM when `memory.notebooklm.write` is configured. Experience notes should
+capture reusable context, trigger, action, result, lesson, applicability
+boundaries, and supporting evidence rather than temporary task state.
 
 ## Context Archive
 

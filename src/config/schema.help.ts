@@ -934,6 +934,20 @@ export const FIELD_HELP: Record<string, string> = {
     "Timeout in milliseconds for each NotebookLM note write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
   "memory.notebooklm.write.notebookId":
     "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
+  "memory.experience":
+    "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local experience index entries, and optionally syncs through the NotebookLM write path when configured.",
+  "memory.experience.enabled":
+    "Enables the background Experience Agent. Keep enabled to let CrawClaw automatically retain validated procedures, decisions, failure patterns, workflow patterns, and references after tasks complete.",
+  "memory.experience.recentMessageLimit":
+    "Maximum number of recent model-visible messages passed into each experience extraction run.",
+  "memory.experience.maxNotesPerTurn":
+    "Maximum number of experience notes the background agent should create or update for one completed turn.",
+  "memory.experience.minEligibleTurnsBetweenRuns":
+    "Minimum eligible top-level turns between background experience extraction runs for the same session.",
+  "memory.experience.maxConcurrentWorkers":
+    "Maximum number of in-process experience extraction workers that may run concurrently.",
+  "memory.experience.workerIdleTtlMs":
+    "How long idle experience workers may remain resident before cleanup.",
   "memory.qmd.command":
     "Sets the executable path for the `qmd` binary used by the QMD backend (default: resolved from PATH). Use an explicit absolute path when multiple qmd installs exist or PATH differs across environments.",
   "memory.qmd.mcporter":

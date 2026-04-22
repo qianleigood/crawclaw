@@ -26,7 +26,6 @@ import type {
   CreatePromotionCandidateInput,
   DeadLetter,
   DurableExtractionCursorRow,
-  KnowledgeSyncState,
   GmMessageRow,
   MaintenanceRun,
   MergeAudit,
@@ -47,7 +46,6 @@ import type {
   UpsertMediaAssetInput,
   UpsertDurableExtractionCursorInput,
   UpsertSessionScopeInput,
-  UpsertKnowledgeSyncStateInput,
   UpsertContextArchiveBlobInput,
   UpsertSessionCompactionStateInput,
   UpsertSessionSummaryStateInput,
@@ -208,7 +206,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     }
     this.ensureCanonicalMessageSchema();
     this.ensureAutomationMultimodalRuntimeSchema();
-    this.ensureKnowledgeSyncColumns();
     this.ensureDreamStateColumns();
     this.ensureMessageRuntimeMetaColumns();
     this.ensureMessageRuntimeShapeColumns();
@@ -1271,37 +1268,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     return rows.map((row) => this.mapPromotionCandidateRow(row));
   }
 
-  async upsertKnowledgeSyncState(input: UpsertKnowledgeSyncStateInput): Promise<void> {
-    const db = this.getDb();
-    db.prepare(`INSERT INTO gm_knowledge_sync_state
-      (id, note_path, note_id, content_hash, indexed_at, last_error, sync_json, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(note_path) DO UPDATE SET
-        note_id = excluded.note_id,
-        content_hash = excluded.content_hash,
-        indexed_at = excluded.indexed_at,
-        last_error = excluded.last_error,
-        sync_json = excluded.sync_json,
-        status = excluded.status`).run(
-      newId("osync"),
-      input.notePath,
-      input.noteId ?? null,
-      input.contentHash ?? null,
-      input.indexedAt ?? Date.now(),
-      input.lastError ?? null,
-      input.syncJson ?? null,
-      input.status,
-    );
-  }
-
-  async listRecentKnowledgeSyncStates(limit: number): Promise<KnowledgeSyncState[]> {
-    const db = this.getDb();
-    const rows = db
-      .prepare(`SELECT * FROM gm_knowledge_sync_state ORDER BY indexed_at DESC LIMIT ?`)
-      .all(limit);
-    return rows.map((row) => this.mapKnowledgeSyncStateRow(row));
-  }
-
   async listRecentMaintenanceRuns(limit: number): Promise<MaintenanceRun[]> {
     const db = this.getDb();
     const rows = db
@@ -1401,10 +1367,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
       throw new Error("RuntimeStore not initialized");
     }
     return this.db;
-  }
-
-  private ensureKnowledgeSyncColumns() {
-    this.ensureColumn("gm_knowledge_sync_state", "sync_json", "TEXT");
   }
 
   private ensureDreamStateColumns() {
@@ -1907,20 +1869,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
       status: String(rec.status ?? "") as PromotionCandidate["status"],
       createdAt: sqliteNumber(rec.created_at),
       updatedAt: sqliteNumber(rec.updated_at),
-    };
-  }
-
-  private mapKnowledgeSyncStateRow(row: unknown): KnowledgeSyncState {
-    const rec = requireSqliteRow(row, "Invalid knowledge sync state row");
-    return {
-      id: String(rec.id ?? ""),
-      notePath: String(rec.note_path ?? ""),
-      noteId: sqliteNullableString(rec.note_id),
-      contentHash: sqliteNullableString(rec.content_hash),
-      indexedAt: sqliteNumber(rec.indexed_at),
-      lastError: sqliteNullableString(rec.last_error),
-      syncJson: sqliteNullableString(rec.sync_json),
-      status: String(rec.status ?? "") as KnowledgeSyncState["status"],
     };
   }
 }

@@ -17,6 +17,11 @@ import type {
   DurableExtractionRunner,
 } from "../durable/worker-manager.ts";
 import { drainSharedDurableExtractionWorkers } from "../durable/worker-manager.ts";
+import type {
+  ExperienceExtractionRunParams,
+  ExperienceExtractionRunResult,
+  ExperienceExtractionRunner,
+} from "../experience/worker-manager.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { MemoryRuntimeConfig } from "../types/config.ts";
 import type {
@@ -44,6 +49,14 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     return import("../durable/worker-manager.ts")
       .then(async ({ __testing }) => {
         await __testing.resetSharedDurableExtractionWorkerManager();
+      })
+      .then(async () => {
+        const { __testing } = await import("../experience/worker-manager.ts");
+        await __testing.resetSharedExperienceExtractionWorkerManager();
+      })
+      .then(async () => {
+        const { __testing } = await import("../experience/lifecycle-subscriber.ts");
+        __testing.resetSharedExperienceExtractionLifecycleSubscriber();
       })
       .then(async () => {
         const { __testing } = await import("../durable/lifecycle-subscriber.ts");
@@ -257,6 +270,14 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         cli: { enabled: false, command: "", args: [], timeoutMs: 1, limit: 5 },
         write: { enabled: false, command: "", args: [], timeoutMs: 1 },
       },
+      experience: {
+        enabled: true,
+        recentMessageLimit: 8,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 2,
+        workerIdleTtlMs: 60_000,
+      },
       dreaming: {
         enabled: false,
         minHours: 24,
@@ -304,6 +325,12 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         advanceCursor: plan.current.status !== "failed",
       };
     });
+  }
+
+  function createExperienceExtractionRunner(
+    result: ExperienceExtractionRunResult,
+  ): ExperienceExtractionRunner {
+    return vi.fn().mockResolvedValue(result);
   }
 
   async function emitStopPhase(params: {
@@ -423,6 +450,59 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       | undefined;
     expect(runnerInput?.parentForkContext?.parentRunId).toBe("parent-run-durable-1");
     expect(runnerInput?.parentForkContext?.promptEnvelope?.forkContextMessages).toEqual(messages);
+  });
+
+  it("schedules experience extraction from the lifecycle spine stop phase", async () => {
+    const stateDir = await createRuntimeRoot();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const experienceExtractionRunner = createExperienceExtractionRunner({
+      status: "written",
+      summary: "extracted release-order experience",
+      writtenCount: 1,
+      updatedCount: 0,
+      deletedCount: 0,
+      touchedNotes: ["release-order"],
+      advanceCursor: true,
+    });
+
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const { drainSharedExperienceExtractionWorkers } =
+      await import("../experience/worker-manager.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: createRuntimeStore(),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createRuntimeConfig(),
+      experienceExtractionRunner,
+    });
+    const messages = castAgentMessages([
+      makeAgentUserMessage({ content: "这次发布失败是因为先改了 service 再改 secret。" }),
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "已验证：以后先更新 secret，再滚动 service。" }],
+      }),
+    ]);
+
+    await runtime.afterTurn?.({
+      sessionId: "session-experience-extract-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      sessionFile: "/tmp/session.jsonl",
+      messages,
+      prePromptMessageCount: 0,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await emitStopPhase({
+      sessionId: "session-experience-extract-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      messageCount: 2,
+    });
+    await drainSharedExperienceExtractionWorkers();
+
+    expect(experienceExtractionRunner).toHaveBeenCalledTimes(1);
+    const runnerInput = vi.mocked(experienceExtractionRunner).mock.calls[0]?.[0] as
+      | ExperienceExtractionRunParams
+      | undefined;
+    expect(runnerInput?.sessionId).toBe("session-experience-extract-1");
+    expect(runnerInput?.scope.scopeKey).toBe("main:feishu:user-1");
+    expect(runnerInput?.recentMessages).toHaveLength(2);
   });
 
   it("does not schedule durable extraction from ingestion alone before the lifecycle stop phase fires", async () => {

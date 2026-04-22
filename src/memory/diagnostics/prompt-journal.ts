@@ -13,6 +13,7 @@ export type MemoryPromptJournalStage =
   | "prompt_assembly"
   | "after_turn_decision"
   | "durable_extraction"
+  | "experience_extract"
   | "experience_write";
 
 export type MemoryPromptJournalEvent = {

@@ -38,6 +38,7 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
   const dedup = readConfigRecord(raw.dedup);
   const governance = readConfigRecord(raw.governance);
   const durableExtraction = readConfigRecord(raw.durableExtraction);
+  const experience = readConfigRecord(raw.experience);
   const dreaming = readConfigRecord(raw.dreaming);
   const dreamingTranscriptFallback = readConfigRecord(dreaming.transcriptFallback);
   const defaultDreamingTranscriptFallback = DEFAULT_CONFIG.dreaming.transcriptFallback!;
@@ -113,6 +114,10 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
     durableExtraction: {
       ...DEFAULT_CONFIG.durableExtraction,
       ...durableExtraction,
+    },
+    experience: {
+      ...DEFAULT_CONFIG.experience!,
+      ...experience,
     },
     dreaming: {
       ...DEFAULT_CONFIG.dreaming,
@@ -318,6 +323,7 @@ export async function resolveCliConfig(): Promise<{
   const rawMemoryConfig = {
     notebooklm: memoryConfig.notebooklm ?? {},
     durableExtraction: memoryConfig.durableExtraction ?? {},
+    experience: memoryConfig.experience ?? {},
     dreaming: memoryConfig.dreaming ?? {},
     sessionSummary: memoryConfig.sessionSummary ?? {},
     contextArchive: memoryConfig.contextArchive ?? undefined,

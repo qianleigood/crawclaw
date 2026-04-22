@@ -21,7 +21,6 @@ import type {
   DreamTranscriptSearchRow,
   DreamLockAcquireResult,
   DreamStateRow,
-  KnowledgeSyncState,
   GmMessageRow,
   MaintenanceRun,
   MergeAudit,
@@ -39,7 +38,6 @@ import type {
   UpdatePromotionCandidateInput,
   UpsertMediaAssetInput,
   UpsertDurableExtractionCursorInput,
-  UpsertKnowledgeSyncStateInput,
   UpsertContextArchiveBlobInput,
   UpsertSessionScopeInput,
   UpsertSessionCompactionStateInput,
@@ -134,8 +132,6 @@ export interface RuntimeStore {
   updatePromotionCandidate(input: UpdatePromotionCandidateInput): Promise<void>;
   getPromotionCandidate(id: string): Promise<PromotionCandidate | null>;
   listRecentPromotionCandidates(limit: number): Promise<PromotionCandidate[]>;
-  upsertKnowledgeSyncState(input: UpsertKnowledgeSyncStateInput): Promise<void>;
-  listRecentKnowledgeSyncStates(limit: number): Promise<KnowledgeSyncState[]>;
   listRecentMaintenanceRuns(limit: number): Promise<MaintenanceRun[]>;
   listRecentMergeAudits(limit: number): Promise<MergeAudit[]>;
   listRecentRecallTraces(limit: number): Promise<RecallTrace[]>;

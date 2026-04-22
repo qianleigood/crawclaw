@@ -11,6 +11,7 @@ import { runTranscriptMaintenance } from "../context/transcript-maintenance.ts";
 import type { AutoDreamRunner } from "../dreaming/auto-dream.ts";
 import { resolveDurableMemoryScope } from "../durable/scope.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
+import type { ExperienceExtractionRunner } from "../experience/worker-manager.ts";
 import type { CompleteFn } from "../extraction/llm.ts";
 import { callStructuredOutput } from "../llm/structured-output.ts";
 import { startNotebookLmHeartbeat } from "../notebooklm/heartbeat.ts";
@@ -45,6 +46,7 @@ export function createContextMemoryRuntime(options: {
   llm?: LlmConfig;
   complete?: CompleteFn;
   durableExtractionRunner?: DurableExtractionRunner;
+  experienceExtractionRunner?: ExperienceExtractionRunner;
   dreamRunner?: AutoDreamRunner;
   sessionSummaryRunner?: SessionSummaryRunner;
   contextArchive?: Pick<ContextArchiveService, "createRun" | "appendEvent">;

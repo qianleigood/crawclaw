@@ -13352,6 +13352,41 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
       tags: ["storage"],
     },
+    "memory.experience": {
+      label: "Experience Memory Agent",
+      help: "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local experience index entries, and optionally syncs through the NotebookLM write path when configured.",
+      tags: ["storage"],
+    },
+    "memory.experience.enabled": {
+      label: "Experience Agent Enabled",
+      help: "Enables the background Experience Agent. Keep enabled to let CrawClaw automatically retain validated procedures, decisions, failure patterns, workflow patterns, and references after tasks complete.",
+      tags: ["storage"],
+    },
+    "memory.experience.recentMessageLimit": {
+      label: "Experience Agent Recent Message Limit",
+      help: "Maximum number of recent model-visible messages passed into each experience extraction run.",
+      tags: ["performance", "storage"],
+    },
+    "memory.experience.maxNotesPerTurn": {
+      label: "Experience Agent Max Notes Per Turn",
+      help: "Maximum number of experience notes the background agent should create or update for one completed turn.",
+      tags: ["performance", "storage"],
+    },
+    "memory.experience.minEligibleTurnsBetweenRuns": {
+      label: "Experience Agent Min Turns Between Runs",
+      help: "Minimum eligible top-level turns between background experience extraction runs for the same session.",
+      tags: ["storage"],
+    },
+    "memory.experience.maxConcurrentWorkers": {
+      label: "Experience Agent Max Concurrent Workers",
+      help: "Maximum number of in-process experience extraction workers that may run concurrently.",
+      tags: ["performance", "storage"],
+    },
+    "memory.experience.workerIdleTtlMs": {
+      label: "Experience Agent Worker Idle TTL (ms)",
+      help: "How long idle experience workers may remain resident before cleanup.",
+      tags: ["storage"],
+    },
     auth: {
       label: "Auth",
       help: "Authentication profile root used for multi-profile provider credentials and cooldown-based failover ordering. Keep profiles minimal and explicit so automatic failover behavior stays auditable.",

@@ -7,7 +7,12 @@ import { getSharedAutoDreamLifecycleSubscriber } from "../dreaming/lifecycle-sub
 import { getSharedDurableExtractionLifecycleSubscriber } from "../durable/lifecycle-subscriber.ts";
 import { getSharedDurableExtractionWorkerManager } from "../durable/worker-manager.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
+import { getSharedExperienceExtractionLifecycleSubscriber } from "../experience/lifecycle-subscriber.ts";
 import { createDefaultExperienceProviderRegistry } from "../experience/provider.ts";
+import {
+  getSharedExperienceExtractionWorkerManager,
+  type ExperienceExtractionRunner,
+} from "../experience/worker-manager.ts";
 import { createCompleteFn, type CompleteFn } from "../extraction/llm.ts";
 import { IngestCoordinator } from "../ingest/ingest-coordinator.ts";
 import { UnifiedContextAssembler } from "../orchestration/context-assembler.ts";
@@ -33,6 +38,7 @@ export function createContextMemoryRuntimeDeps(options: {
   llm?: LlmConfig;
   complete?: CompleteFn;
   durableExtractionRunner?: DurableExtractionRunner;
+  experienceExtractionRunner?: ExperienceExtractionRunner;
   dreamRunner?: AutoDreamRunner;
   sessionSummaryRunner?: SessionSummaryRunner;
   contextArchive?: Pick<ContextArchiveService, "createRun" | "appendEvent">;
@@ -79,6 +85,19 @@ export function createContextMemoryRuntimeDeps(options: {
     runner: options.durableExtractionRunner,
     logger: options.logger,
   });
+  const experienceExtractionManager = getSharedExperienceExtractionWorkerManager({
+    config: options.config?.experience ?? {
+      enabled: false,
+      recentMessageLimit: 24,
+      maxNotesPerTurn: 2,
+      minEligibleTurnsBetweenRuns: 1,
+      maxConcurrentWorkers: 2,
+      workerIdleTtlMs: 15 * 60_000,
+    },
+    runtimeStore: options.runtimeStore,
+    runner: options.experienceExtractionRunner,
+    logger: options.logger,
+  });
   const autoDreamScheduler = getSharedAutoDreamScheduler({
     config: options.config?.dreaming ?? {
       enabled: false,
@@ -119,6 +138,11 @@ export function createContextMemoryRuntimeDeps(options: {
     manager: durableExtractionManager,
     logger: options.logger,
   });
+  getSharedExperienceExtractionLifecycleSubscriber({
+    runtimeStore: options.runtimeStore,
+    manager: experienceExtractionManager,
+    logger: options.logger,
+  });
   getSharedAutoDreamLifecycleSubscriber({
     scheduler: autoDreamScheduler,
     logger: options.logger,
@@ -135,6 +159,7 @@ export function createContextMemoryRuntimeDeps(options: {
     agentMemoryRoutingContract,
     contextArchiveTurnCapture,
     durableExtractionManager,
+    experienceExtractionManager,
     autoDreamScheduler,
     sessionSummaryScheduler,
   };

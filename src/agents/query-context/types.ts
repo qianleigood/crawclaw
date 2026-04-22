@@ -115,6 +115,21 @@ export type QueryContextMemoryRecallDiagnostics = {
   recentDreamTouchedNotes?: string[];
   selectedExperienceItemIds?: string[];
   omittedExperienceItemIds?: string[];
+  selectedExperienceDetails?: Array<{
+    itemId: string;
+    title: string;
+    source: string;
+    memoryKind?: string;
+    scoreBreakdown?: Record<string, number>;
+  }>;
+  omittedExperienceDetails?: Array<{
+    itemId: string;
+    title: string;
+    source: string;
+    memoryKind?: string;
+    omittedReason?: string;
+    scoreBreakdown?: Record<string, number>;
+  }>;
   experienceQueryPlan?: {
     enabled: boolean;
     query: string;

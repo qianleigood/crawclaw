@@ -625,26 +625,3 @@ export interface PromotionCandidate {
   createdAt: number;
   updatedAt: number;
 }
-
-export type KnowledgeSyncStatus = "pending" | "synced" | "failed" | "stale";
-
-export interface UpsertKnowledgeSyncStateInput {
-  notePath: string;
-  noteId?: string | null;
-  contentHash?: string | null;
-  indexedAt?: number;
-  lastError?: string | null;
-  syncJson?: string | null;
-  status: KnowledgeSyncStatus;
-}
-
-export interface KnowledgeSyncState {
-  id: string;
-  notePath: string;
-  noteId: string | null;
-  contentHash: string | null;
-  indexedAt: number;
-  lastError: string | null;
-  syncJson: string | null;
-  status: KnowledgeSyncStatus;
-}

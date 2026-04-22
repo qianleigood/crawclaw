@@ -257,6 +257,70 @@ function mediaBoost(item: UnifiedRecallItem, input: UnifiedRerankInput): number 
   return 0;
 }
 
+function isExperienceItem(item: UnifiedRecallItem): boolean {
+  return item.source === "notebooklm" || item.source === "local_experience_index";
+}
+
+function itemText(item: UnifiedRecallItem): string {
+  return `${item.title}\n${item.summary}\n${item.content ?? ""}`;
+}
+
+function experienceSignalScores(params: { item: UnifiedRecallItem; queryTokens: string[] }): {
+  triggerMatch: number;
+  appliesWhen: number;
+  failurePattern: number;
+  workflowPattern: number;
+  recentSuccess: number;
+  confidenceBoost: number;
+} {
+  if (!isExperienceItem(params.item)) {
+    return {
+      triggerMatch: 0,
+      appliesWhen: 0,
+      failurePattern: 0,
+      workflowPattern: 0,
+      recentSuccess: 0,
+      confidenceBoost: 0,
+    };
+  }
+  const text = itemText(params.item);
+  const lower = text.toLowerCase();
+  const triggerTokens = tokenizeRecallText(
+    [
+      params.item.metadata?.trigger,
+      params.item.metadata?.signals,
+      text.match(/触发信号([\s\S]*?)(##|$)/)?.[1],
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const appliesTokens = tokenizeRecallText(
+    [params.item.metadata?.appliesWhen, text.match(/适用边界([\s\S]*?)(##|$)/)?.[1]]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const tokenOverlap = (tokens: string[]) =>
+    params.queryTokens.filter((token) => tokens.includes(token)).length;
+  const rawExperienceType = params.item.metadata?.experienceType;
+  const experienceType = typeof rawExperienceType === "string" ? rawExperienceType : "";
+  const rawConfidence = params.item.metadata?.confidence;
+  const confidence = typeof rawConfidence === "string" ? rawConfidence.toLowerCase() : "";
+  return {
+    triggerMatch: clamp(tokenOverlap(triggerTokens) * 0.035, 0, 0.1),
+    appliesWhen: clamp(tokenOverlap(appliesTokens) * 0.03, 0, 0.08),
+    failurePattern:
+      experienceType === "failure_pattern" || /(失败|故障|incident|postmortem)/i.test(lower)
+        ? 0.07
+        : 0,
+    workflowPattern:
+      experienceType === "workflow_pattern" || /(协作|handoff|review|workflow)/i.test(lower)
+        ? 0.05
+        : 0,
+    recentSuccess: /(已验证|验证通过|成功|worked|validated)/i.test(lower) ? 0.05 : 0,
+    confidenceBoost: confidence === "high" ? 0.06 : confidence === "medium" ? 0.03 : 0,
+  };
+}
+
 function dedupeKey(item: UnifiedRecallItem): string {
   return item.canonicalKey
     ? normalizeKey(item.canonicalKey)
@@ -358,6 +422,7 @@ export function rerankUnifiedResults(input: UnifiedRerankInput): UnifiedRerankRe
       );
       const lifecycleBoost = parseLifecycleWeight(item);
       const mediaScore = mediaBoost(item, input);
+      const experienceScores = experienceSignalScores({ item, queryTokens });
       const penalty = item.source === "execution" && layer !== "runtime_signals" ? 0.04 : 0;
       const finalScore =
         retrieval +
@@ -372,7 +437,13 @@ export function rerankUnifiedResults(input: UnifiedRerankInput): UnifiedRerankRe
         supportScore +
         lifecycleBoost +
         mediaScore -
-        penalty;
+        penalty +
+        experienceScores.triggerMatch +
+        experienceScores.appliesWhen +
+        experienceScores.failurePattern +
+        experienceScores.workflowPattern +
+        experienceScores.recentSuccess +
+        experienceScores.confidenceBoost;
 
       return {
         ...item,
@@ -394,6 +465,12 @@ export function rerankUnifiedResults(input: UnifiedRerankInput): UnifiedRerankRe
           supportBoost: Number(supportScore.toFixed(6)),
           lifecycleBoost: Number(lifecycleBoost.toFixed(6)),
           mediaBoost: Number(mediaScore.toFixed(6)),
+          triggerMatch: Number(experienceScores.triggerMatch.toFixed(6)),
+          appliesWhen: Number(experienceScores.appliesWhen.toFixed(6)),
+          failurePattern: Number(experienceScores.failurePattern.toFixed(6)),
+          workflowPattern: Number(experienceScores.workflowPattern.toFixed(6)),
+          recentSuccess: Number(experienceScores.recentSuccess.toFixed(6)),
+          confidenceBoost: Number(experienceScores.confidenceBoost.toFixed(6)),
           penalty: Number(penalty.toFixed(6)),
           finalScore: Number(finalScore.toFixed(6)),
         },

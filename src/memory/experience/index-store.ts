@@ -111,18 +111,34 @@ export async function upsertExperienceIndexEntry(params: {
   writeResult: NotebookLmExperienceWriteResult;
   updatedAt?: number;
 }): Promise<ExperienceIndexEntry> {
+  return await upsertExperienceIndexEntryFromNote({
+    note: params.note,
+    title: params.writeResult.title,
+    notebookId: params.writeResult.notebookId,
+    noteId: params.writeResult.noteId ?? null,
+    updatedAt: params.updatedAt,
+  });
+}
+
+export async function upsertExperienceIndexEntryFromNote(params: {
+  note: ExperienceNoteWriteInput;
+  title?: string;
+  notebookId?: string;
+  noteId?: string | null;
+  updatedAt?: number;
+}): Promise<ExperienceIndexEntry> {
   const dedupeKey = params.note.dedupeKey?.trim() || null;
-  const stableKey = dedupeKey ?? params.writeResult.noteId ?? params.note.title.trim();
+  const stableKey = dedupeKey ?? params.noteId ?? params.note.title.trim();
   const entry: ExperienceIndexEntry = {
     id: `experience-index:${slugifyId(stableKey)}`,
-    title: params.writeResult.title.trim() || params.note.title.trim(),
+    title: params.title?.trim() || params.note.title.trim(),
     summary: params.note.summary.trim(),
     content: renderExperienceNoteMarkdown(params.note),
     type: params.note.type,
     layer: layerForType(params.note.type),
     memoryKind: memoryKindForType(params.note.type),
-    noteId: params.writeResult.noteId ?? null,
-    notebookId: params.writeResult.notebookId,
+    noteId: params.noteId ?? null,
+    notebookId: params.notebookId?.trim() || "local",
     dedupeKey,
     aliases: normalizeList(params.note.aliases),
     tags: normalizeList(params.note.tags),
@@ -210,6 +226,7 @@ export async function searchExperienceIndexEntries(params: {
       sourceRef: entry.noteId ?? entry.dedupeKey ?? entry.title,
       metadata: {
         indexSource: "local_experience_index",
+        experienceType: entry.type,
         notebookId: entry.notebookId,
         noteId: entry.noteId,
         dedupeKey: entry.dedupeKey,

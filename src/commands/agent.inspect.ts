@@ -382,6 +382,21 @@ async function enrichInspectionWithArchive(
             scoreBreakdown?: Record<string, number>;
           }>;
           recentDreamTouchedNotes?: string[];
+          selectedExperienceDetails?: Array<{
+            itemId: string;
+            title: string;
+            source: string;
+            memoryKind?: string;
+            scoreBreakdown?: Record<string, number>;
+          }>;
+          omittedExperienceDetails?: Array<{
+            itemId: string;
+            title: string;
+            source: string;
+            memoryKind?: string;
+            omittedReason?: string;
+            scoreBreakdown?: Record<string, number>;
+          }>;
           hitReason?: string;
           evictionReason?: string;
           durableRecallSource?: string;
@@ -849,6 +864,28 @@ export function formatAgentInspection(snapshot: AgentInspectionSnapshot): string
             snapshot.queryContext.memoryRecall.omittedDurableDetails.map(
               (entry) =>
                 `${entry.itemId} [${entry.provenance.join(", ")}] reason=${entry.omittedReason ?? "unknown"}`,
+            ),
+          ),
+        );
+      }
+      if (snapshot.queryContext.memoryRecall.selectedExperienceDetails?.length) {
+        lines.push(
+          ...formatArray(
+            "  Experience selected details:",
+            snapshot.queryContext.memoryRecall.selectedExperienceDetails.map(
+              (entry) =>
+                `${entry.itemId} source=${entry.source} kind=${entry.memoryKind ?? "unknown"}`,
+            ),
+          ),
+        );
+      }
+      if (snapshot.queryContext.memoryRecall.omittedExperienceDetails?.length) {
+        lines.push(
+          ...formatArray(
+            "  Experience omitted details:",
+            snapshot.queryContext.memoryRecall.omittedExperienceDetails.map(
+              (entry) =>
+                `${entry.itemId} source=${entry.source} kind=${entry.memoryKind ?? "unknown"} reason=${entry.omittedReason ?? "unknown"}`,
             ),
           ),
         );

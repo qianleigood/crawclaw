@@ -204,6 +204,12 @@ export interface UnifiedRerankScoreBreakdown {
   supportBoost: number;
   lifecycleBoost: number;
   mediaBoost: number;
+  triggerMatch?: number;
+  appliesWhen?: number;
+  failurePattern?: number;
+  workflowPattern?: number;
+  recentSuccess?: number;
+  confidenceBoost?: number;
   penalty: number;
   finalScore: number;
 }

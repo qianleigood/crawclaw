@@ -197,4 +197,49 @@ describe("createExperienceWriteTool", () => {
       }),
     ).rejects.toThrow(/experience note should not store transient session state/i);
   });
+
+  it("writes to the local experience index when NotebookLM writeback is not configured", async () => {
+    const stateDir = await createTempDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    const tool = createExperienceWriteTool();
+
+    expect(tool).not.toBeNull();
+    const result = await tool!.execute("call_1", {
+      type: "failure_pattern",
+      title: "工具缺失排查经验",
+      summary: "工具没有进入模型 payload 时，先检查实际 payload 再看注册路径。",
+      context: "模型回答说工具不可用，或者 tool payload 缺少目标工具。",
+      trigger: "payload.tools 为空，或缺少预期工具名。",
+      action: "先抓取模型可见 payload，再检查工具注册、allowlist 和 channel 分支。",
+      result: "能把问题定位到注入路径，而不是误判为模型问题。",
+      lesson: "工具可见性问题必须先用运行时 payload 证据定界。",
+      appliesWhen: "适用于 agent 工具没有出现、allowlist 失效、特殊 agent 工具边界排查。",
+      evidence: ["实际 payload 是模型能否调用工具的直接证据。"],
+      dedupeKey: "missing-tool-payload-debug",
+      confidence: "high",
+    });
+
+    expect(result.details).toEqual(
+      expect.objectContaining({
+        status: "ok",
+        action: "upsert",
+        notebookId: "local",
+        syncStatus: "skipped",
+      }),
+    );
+    expect(execFileMock).not.toHaveBeenCalled();
+
+    const indexEntries = await readExperienceIndexEntries();
+    expect(indexEntries).toEqual([
+      expect.objectContaining({
+        id: "experience-index:missing-tool-payload-debug",
+        title: "工具缺失排查经验",
+        summary: "工具没有进入模型 payload 时，先检查实际 payload 再看注册路径。",
+        type: "failure_pattern",
+        noteId: null,
+        notebookId: "local",
+      }),
+    ]);
+  });
 });

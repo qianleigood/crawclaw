@@ -34,6 +34,13 @@ export type PromptJournalSummary = {
     saveRate: number | null;
     topReasons: Array<{ reason: string; count: number }>;
   };
+  experienceExtraction: {
+    statusCounts: Record<string, number>;
+    decisionCounts: Record<string, number>;
+    writtenCount: number;
+    updatedCount: number;
+    deletedCount: number;
+  };
   experienceWrite: {
     statusCounts: Record<string, number>;
     actionCounts: Record<string, number>;
@@ -125,6 +132,8 @@ export async function summarizePromptJournal(
   const skipReasonCounts: Record<string, number> = {};
   const topReasonCounts: Record<string, number> = {};
   const experienceStatusCounts: Record<string, number> = {};
+  const experienceExtractStatusCounts: Record<string, number> = {};
+  const experienceExtractDecisionCounts: Record<string, number> = {};
   const experienceActionCounts: Record<string, number> = {};
   const experienceTitleCounts: Record<string, number> = {};
   const sessionKeys = new Set<string>();
@@ -136,6 +145,9 @@ export async function summarizePromptJournal(
   let durableNotesSavedTotal = 0;
   let durableNonZeroSaveCount = 0;
   let durableZeroSaveCount = 0;
+  let experienceExtractWrittenCount = 0;
+  let experienceExtractUpdatedCount = 0;
+  let experienceExtractDeletedCount = 0;
   let promptAssemblyCount = 0;
 
   for (const event of events) {
@@ -201,6 +213,23 @@ export async function summarizePromptJournal(
         typeof payload.title === "string" ? payload.title : undefined,
       );
     }
+
+    if (event.stage === "experience_extract") {
+      incrementCounter(
+        experienceExtractStatusCounts,
+        typeof payload.status === "string" ? payload.status : undefined,
+      );
+      incrementCounter(
+        experienceExtractDecisionCounts,
+        typeof payload.decision === "string" ? payload.decision : undefined,
+      );
+      experienceExtractWrittenCount +=
+        typeof payload.writtenCount === "number" ? payload.writtenCount : 0;
+      experienceExtractUpdatedCount +=
+        typeof payload.updatedCount === "number" ? payload.updatedCount : 0;
+      experienceExtractDeletedCount +=
+        typeof payload.deletedCount === "number" ? payload.deletedCount : 0;
+    }
   }
 
   return {
@@ -229,6 +258,13 @@ export async function summarizePromptJournal(
         .toSorted((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
         .slice(0, 10)
         .map(([reason, count]) => ({ reason, count })),
+    },
+    experienceExtraction: {
+      statusCounts: experienceExtractStatusCounts,
+      decisionCounts: experienceExtractDecisionCounts,
+      writtenCount: experienceExtractWrittenCount,
+      updatedCount: experienceExtractUpdatedCount,
+      deletedCount: experienceExtractDeletedCount,
     },
     experienceWrite: {
       statusCounts: experienceStatusCounts,

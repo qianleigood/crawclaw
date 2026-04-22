@@ -102,7 +102,7 @@ Notes:
 - `memory status` reports the current NotebookLM provider state, including lifecycle, reason, and recommended action.
 - `memory refresh` rebuilds the local NotebookLM profile from the configured cookie fallback.
 - `memory login` runs the interactive NotebookLM login flow and validates the rebuilt profile.
-- `memory prompt-journal-summary` aggregates the nightly memory prompt journal into counts for prompt assembly, after-turn decisions, durable extraction, and experience writes.
+- `memory prompt-journal-summary` aggregates the nightly memory prompt journal into counts for prompt assembly, after-turn decisions, durable extraction, experience extraction, and experience writes.
 - auto-dream is enabled by default, but it still respects minimum-session,
   minimum-hour, scan-throttle, and DB-lock gates before starting a background
   dream pass.
@@ -127,8 +127,9 @@ Notes:
 - Durable recall observability now records whether a selected note won on
   `index`, `header`, `body_index`, `body_rerank`, and/or `dream_boost` signals;
   inspect those details with `crawclaw agent inspect`.
-- NotebookLM experience recall itself happens during prompt assembly for live agent turns; `crawclaw memory` does not trigger recall.
-- `write_experience_note` is the only NotebookLM write path in the current runtime.
+- NotebookLM and local-index experience recall happen during prompt assembly for live agent turns; `crawclaw memory` does not trigger recall.
+- The Experience Agent runs after eligible top-level turns and records `experience_extract` diagnostics when prompt journaling is enabled.
+- `write_experience_note` is the only experience write path in the current runtime.
 - Prompt journal is debug-only and intentionally lossy/truncated. Use Context
   Archive, `crawclaw agent inspect`, or `crawclaw agent export-context` when
   you need replay/export-grade records instead of prompt-tuning diagnostics.
@@ -158,6 +159,7 @@ The journal is intended for prompt tuning and behavior audits. It captures:
 - memory prompt assembly context
 - after-turn durable extraction decisions
 - durable extraction prompts and outcomes
+- background experience extraction decisions and outcomes
 - NotebookLM experience write outcomes
 
 The summary command also surfaces durable-extraction save rate and top extraction reasons so prompt regressions are easier to spot.

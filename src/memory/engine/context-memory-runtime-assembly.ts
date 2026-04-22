@@ -28,6 +28,16 @@ function getAssemblySection(
   return sections.find((section) => section.kind === kind);
 }
 
+function toNumericRecord(values: object): Record<string, number> {
+  const record: Record<string, number> = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (typeof value === "number") {
+      record[key] = value;
+    }
+  }
+  return record;
+}
+
 export function buildPromptMissingAssemblyResult(params: {
   built: MemoryPromptAssemblyResult;
   messages: MemoryAssembleResult["messages"];
@@ -118,6 +128,21 @@ export function buildMemoryAssemblyArtifacts(params: {
   const omittedDurableItemIds = params.durableRecall?.selection.omittedItemIds ?? [];
   const selectedExperienceItemIds = params.selectedExperience.selectedItemIds;
   const omittedExperienceItemIds = params.selectedExperience.omittedItemIds;
+  const selectedExperienceDetails = params.selectedExperience.items.map((item) => ({
+    itemId: item.id,
+    title: item.title,
+    source: item.source,
+    ...(item.memoryKind ? { memoryKind: item.memoryKind } : {}),
+    scoreBreakdown: toNumericRecord(item.scoreBreakdown),
+  }));
+  const omittedExperienceDetails = params.selectedExperience.omittedItems.map((item) => ({
+    itemId: item.id,
+    title: item.title,
+    source: item.source,
+    ...(item.memoryKind ? { memoryKind: item.memoryKind } : {}),
+    omittedReason: "selection_floor",
+    scoreBreakdown: toNumericRecord(item.scoreBreakdown),
+  }));
 
   const hitReason = resolveMemoryRecallHitReason({
     selectedDurableCount: selectedDurableItemIds.length,
@@ -140,6 +165,8 @@ export function buildMemoryAssemblyArtifacts(params: {
     recentDreamTouchedNotes: params.durableRecall?.selection.recentDreamTouchedNotes ?? [],
     selectedExperienceItemIds,
     omittedExperienceItemIds,
+    selectedExperienceDetails,
+    omittedExperienceDetails,
     ...(params.experienceQueryPlan
       ? {
           experienceQueryPlan: {

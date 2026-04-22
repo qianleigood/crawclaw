@@ -88,6 +88,15 @@ export interface DurableExtractionConfig {
   workerIdleTtlMs: number;
 }
 
+export interface ExperienceExtractionConfig {
+  enabled: boolean;
+  recentMessageLimit: number;
+  maxNotesPerTurn: number;
+  minEligibleTurnsBetweenRuns: number;
+  maxConcurrentWorkers: number;
+  workerIdleTtlMs: number;
+}
+
 export interface DreamingTranscriptFallbackConfig {
   enabled: boolean;
   minSignals: number;
@@ -181,6 +190,7 @@ export interface MemoryRuntimeConfig {
   governance: GovernanceConfig;
   skillRouting: SkillRoutingConfig;
   durableExtraction: DurableExtractionConfig;
+  experience?: ExperienceExtractionConfig;
   dreaming: DreamingConfig;
   sessionSummary: SessionSummaryConfig;
   notebooklm: NotebookLmConfig;

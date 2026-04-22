@@ -5,6 +5,7 @@ import { normalizeSecretInputString } from "../../config/types.secrets.js";
 import { resolveMemoryConfig } from "../config/resolve.js";
 import { runDreamAgentOnce } from "../dreaming/agent-runner.js";
 import { runDurableExtractionAgentOnce } from "../durable/agent-runner.js";
+import { runExperienceExtractionAgentOnce } from "../experience/agent-runner.js";
 import type { CompleteFn } from "../extraction/llm.js";
 import { SqliteRuntimeStore } from "../runtime/sqlite-runtime-store.js";
 import { runSessionSummaryAgentOnce } from "../session-summary/agent-runner.ts";
@@ -43,15 +44,24 @@ export const BUILT_IN_MEMORY_RUNTIME_BOOTSTRAP_CACHE_DESCRIPTOR: CacheGovernance
 
 function resolveRawMemoryConfig(config?: CrawClawConfig): unknown {
   const notebooklm = config?.memory?.notebooklm;
+  const experience = config?.memory?.experience;
   const durableExtraction = config?.memory?.durableExtraction;
   const contextArchive = config?.memory?.contextArchive;
   const dreaming = config?.memory?.dreaming;
   const sessionSummary = config?.memory?.sessionSummary;
-  if (!notebooklm && !durableExtraction && !contextArchive && !dreaming && !sessionSummary) {
+  if (
+    !notebooklm &&
+    !experience &&
+    !durableExtraction &&
+    !contextArchive &&
+    !dreaming &&
+    !sessionSummary
+  ) {
     return undefined;
   }
   return {
     ...(notebooklm ? { notebooklm } : {}),
+    ...(experience ? { experience } : {}),
     ...(durableExtraction ? { durableExtraction } : {}),
     ...(contextArchive ? { contextArchive } : {}),
     ...(dreaming ? { dreaming } : {}),
@@ -167,6 +177,7 @@ async function bootstrapBuiltInMemoryRuntime(
     llm: llmConfig,
     complete: overrides?.complete,
     durableExtractionRunner: runDurableExtractionAgentOnce,
+    experienceExtractionRunner: runExperienceExtractionAgentOnce,
     dreamRunner: runDreamAgentOnce,
     sessionSummaryRunner: runSessionSummaryAgentOnce,
     contextArchive,

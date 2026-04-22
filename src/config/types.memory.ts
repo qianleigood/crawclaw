@@ -8,6 +8,7 @@ export type MemoryConfig = {
   backend?: MemoryBackend;
   qmd?: MemoryQmdConfig;
   notebooklm?: Record<string, unknown>;
+  experience?: Record<string, unknown>;
   durableExtraction?: Record<string, unknown>;
   dreaming?: Record<string, unknown>;
   sessionSummary?: Record<string, unknown>;

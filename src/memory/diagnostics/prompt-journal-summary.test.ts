@@ -42,6 +42,13 @@ describe("summarizePromptJournal", () => {
         JSON.stringify({
           ts: "2026-04-05T12:00:03.000Z",
           dateBucket: "2026-04-05",
+          stage: "experience_extract",
+          sessionKey: "s2",
+          payload: { status: "written", writtenCount: 1, updatedCount: 0, deletedCount: 0 },
+        }),
+        JSON.stringify({
+          ts: "2026-04-05T12:00:04.000Z",
+          dateBucket: "2026-04-05",
           stage: "experience_write",
           sessionKey: "s2",
           payload: { status: "ok", action: "create", title: "MiniMax 工具挂载调试流程" },
@@ -51,7 +58,7 @@ describe("summarizePromptJournal", () => {
     );
 
     const summary = await summarizePromptJournal({ dir, days: 1 });
-    expect(summary.totalEvents).toBe(5);
+    expect(summary.totalEvents).toBe(6);
     expect(summary.stageCounts.prompt_assembly).toBe(1);
     expect(summary.uniqueSessions).toBe(3);
     expect(summary.promptAssembly.avgEstimatedTokens).toBe(800);
@@ -62,6 +69,8 @@ describe("summarizePromptJournal", () => {
     expect(summary.durableExtraction.nonZeroSaveCount).toBe(1);
     expect(summary.durableExtraction.zeroSaveCount).toBe(1);
     expect(summary.durableExtraction.saveRate).toBe(0.5);
+    expect(summary.experienceExtraction.statusCounts.written).toBe(1);
+    expect(summary.experienceExtraction.writtenCount).toBe(1);
     expect(summary.experienceWrite.statusCounts.ok).toBe(1);
     expect(summary.experienceWrite.actionCounts.create).toBe(1);
     expect(summary.experienceWrite.titles[0]).toEqual({

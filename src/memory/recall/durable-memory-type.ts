@@ -97,6 +97,20 @@ function buildExperienceReasons(item: UnifiedRankedItem): string[] {
 }
 
 export function classifyMemoryRecallItem(item: UnifiedRankedItem): MemoryRecallClassification {
+  const tags = readTags(item).map((tag) => tag.toLowerCase());
+  const hasExplicitDurableTag = tags.some((tag) =>
+    ["user", "person", "feedback", "preference", "project", "reference"].includes(tag),
+  );
+  if (
+    !item.durableMemoryType &&
+    !hasExplicitDurableTag &&
+    (item.source === "notebooklm" || item.source === "local_experience_index")
+  ) {
+    return {
+      bucket: "experience",
+      reasons: buildExperienceReasons(item),
+    };
+  }
   const durableType = inferDurableMemoryType(item);
   if (durableType) {
     return {

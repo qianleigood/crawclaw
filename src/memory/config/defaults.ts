@@ -65,6 +65,14 @@ export const DEFAULT_CONFIG: MemoryRuntimeConfig = {
     maxConcurrentWorkers: 2,
     workerIdleTtlMs: 15 * 60_000,
   },
+  experience: {
+    enabled: true,
+    recentMessageLimit: 24,
+    maxNotesPerTurn: 2,
+    minEligibleTurnsBetweenRuns: 1,
+    maxConcurrentWorkers: 2,
+    workerIdleTtlMs: 15 * 60_000,
+  },
   dreaming: {
     enabled: true,
     minHours: 24,

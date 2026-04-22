@@ -5,6 +5,7 @@ export interface ExperienceRecallSelectionResult {
   items: UnifiedRankedItem[];
   selectedItemIds: string[];
   omittedItemIds: string[];
+  omittedItems: UnifiedRankedItem[];
   mode: "heuristic" | "none";
 }
 
@@ -32,6 +33,7 @@ export function selectExperienceRecall(input: {
       items: [],
       selectedItemIds: [],
       omittedItemIds: input.items.map((item) => item.id),
+      omittedItems: [...input.items],
       mode: "none",
     };
   }
@@ -45,6 +47,7 @@ export function selectExperienceRecall(input: {
       items: [],
       selectedItemIds: [],
       omittedItemIds: input.items.map((item) => item.id),
+      omittedItems: [...input.items],
       mode: "none",
     };
   }
@@ -52,5 +55,6 @@ export function selectExperienceRecall(input: {
   const omittedItemIds = input.items
     .filter((item) => !selectedItemIds.includes(item.id))
     .map((item) => item.id);
-  return { items, selectedItemIds, omittedItemIds, mode: "heuristic" };
+  const omittedItems = input.items.filter((item) => !selectedItemIds.includes(item.id));
+  return { items, selectedItemIds, omittedItemIds, omittedItems, mode: "heuristic" };
 }

@@ -99,7 +99,7 @@ export interface RecallReasonPath {
 export interface RecallReason {
   reasonId: string;
   kind:
-    | "knowledge_seed"
+    | "experience_seed"
     | "supporting_evidence"
     | "execution_evidence"
     | "related_context"

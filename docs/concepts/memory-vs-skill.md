@@ -136,7 +136,6 @@ Memory-heavy areas today include:
 - `src/memory/engine`
 - `src/memory/durable`
 - `src/memory/experience`
-- `src/memory/experience`
 
 Skill-heavy areas today include:
 

@@ -162,10 +162,16 @@ export async function runMemoryStatus(opts: MemoryCommandOptions) {
 
   if (!notebookState) {
     defaultRuntime.log("NotebookLM experience provider is disabled.");
+    defaultRuntime.log(
+      `Experience Agent: ${cfg.memory?.experience?.enabled === false ? "disabled" : "enabled"} (background extraction)`,
+    );
     return;
   }
 
   defaultRuntime.log(renderNotebookLmStateLines(notebookState).join("\n"));
+  defaultRuntime.log(
+    `Experience Agent: ${cfg.memory?.experience?.enabled === false ? "disabled" : "enabled"} (background extraction)`,
+  );
   defaultRuntime.log("");
 }
 
@@ -636,6 +642,17 @@ function renderPromptJournalSummaryLines(
     `${muted("nonZeroSaveCount")} ${info(String(summary.durableExtraction.nonZeroSaveCount))}`,
     `${muted("zeroSaveCount")} ${info(String(summary.durableExtraction.zeroSaveCount))}`,
     `${muted("saveRate")} ${info(summary.durableExtraction.saveRate == null ? "(n/a)" : String(summary.durableExtraction.saveRate))}`,
+    "",
+    heading("Experience Extraction"),
+    ...Object.entries(summary.experienceExtraction.statusCounts)
+      .toSorted((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .map(([name, count]) => `${muted(`status:${name}`)} ${info(String(count))}`),
+    ...Object.entries(summary.experienceExtraction.decisionCounts)
+      .toSorted((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .map(([name, count]) => `${muted(`decision:${name}`)} ${info(String(count))}`),
+    `${muted("writtenCount")} ${info(String(summary.experienceExtraction.writtenCount))}`,
+    `${muted("updatedCount")} ${info(String(summary.experienceExtraction.updatedCount))}`,
+    `${muted("deletedCount")} ${info(String(summary.experienceExtraction.deletedCount))}`,
     "",
     heading("Experience Write"),
     ...Object.entries(summary.experienceWrite.statusCounts)

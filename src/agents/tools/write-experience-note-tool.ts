@@ -1,7 +1,11 @@
 import { Type } from "@sinclair/typebox";
 import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeNotebookLmConfig } from "../../memory/config/notebooklm.ts";
-import { upsertExperienceIndexEntry } from "../../memory/experience/index-store.ts";
+import { getSharedMemoryPromptJournal } from "../../memory/diagnostics/prompt-journal.ts";
+import {
+  upsertExperienceIndexEntry,
+  upsertExperienceIndexEntryFromNote,
+} from "../../memory/experience/index-store.ts";
 import {
   classifyExperienceNoteGuardIssue,
   normalizeExperienceConfidence,
@@ -150,24 +154,13 @@ type ExperienceWriteToolOptions = {
 
 function resolveNotebookLmExperienceWriteConfig(config?: CrawClawConfig) {
   const notebooklm = normalizeNotebookLmConfig(config?.memory?.notebooklm as NotebookLmConfigInput);
-  if (!notebooklm.enabled || !notebooklm.write?.enabled || !notebooklm.write.command.trim()) {
-    return null;
-  }
-  const notebookId = (notebooklm.write.notebookId || notebooklm.cli.notebookId || "").trim();
-  if (!notebookId) {
-    return null;
-  }
-  return { notebooklm, notebookId };
+  return notebooklm;
 }
 
 export function createExperienceWriteTool(
   options?: ExperienceWriteToolOptions,
 ): AnyAgentTool | null {
-  const resolved = resolveNotebookLmExperienceWriteConfig(options?.config);
-  if (!resolved) {
-    return null;
-  }
-
+  const notebooklm = resolveNotebookLmExperienceWriteConfig(options?.config);
   return {
     label: "Write Experience Note",
     name: "write_experience_note",
@@ -236,15 +229,36 @@ export function createExperienceWriteTool(
         throw new ToolInputError(guardIssue);
       }
 
-      const result = await writeNotebookLmExperienceNoteViaCli({
-        config: resolved.notebooklm,
+      const localIndexEntry = await upsertExperienceIndexEntryFromNote({
         note,
+        notebookId: "local",
+      });
+      getSharedMemoryPromptJournal()?.recordStage("experience_write", {
+        payload: {
+          status: "ok",
+          action: "upsert",
+          noteId: localIndexEntry.noteId,
+          notebookId: localIndexEntry.notebookId,
+          title: localIndexEntry.title,
+          noteType: note.type,
+          summary: note.summary,
+          dedupeKey: dedupeKey ?? null,
+          storage: "local_experience_index",
+        },
       });
 
-      if (!result) {
-        throw new ToolInputError("NotebookLM experience write is not configured.");
+      let result = null;
+      let syncError: string | null = null;
+      try {
+        result = await writeNotebookLmExperienceNoteViaCli({
+          config: notebooklm,
+          note,
+        });
+      } catch (error) {
+        syncError = error instanceof Error ? error.message : String(error);
       }
-      if (result.status === "ok") {
+
+      if (result?.status === "ok") {
         await upsertExperienceIndexEntry({
           note,
           writeResult: result,
@@ -252,14 +266,16 @@ export function createExperienceWriteTool(
       }
 
       return jsonResult({
-        status: result.status,
-        action: result.action ?? "upsert",
-        notebookId: result.notebookId,
-        noteId: result.noteId ?? null,
-        title: result.title,
+        status: "ok",
+        action: result?.action ?? "upsert",
+        notebookId: result?.notebookId ?? localIndexEntry.notebookId,
+        noteId: result?.noteId ?? localIndexEntry.id,
+        title: result?.title ?? localIndexEntry.title ?? title,
         type,
         dedupeKey: dedupeKey ?? null,
-        payloadFile: result.payloadFile,
+        syncStatus: result?.status ?? (syncError ? "failed" : "skipped"),
+        syncError,
+        payloadFile: result?.payloadFile ?? null,
       });
     },
   };

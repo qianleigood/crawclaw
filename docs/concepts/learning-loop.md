@@ -103,7 +103,6 @@ Relevant areas:
 
 - `src/memory/durable`
 - `src/memory/experience`
-- `src/memory/experience`
 - `src/memory/notebooklm`
 - `src/memory/search`
 - `src/memory/recall`
@@ -214,15 +213,17 @@ trigger, action, result, lesson, applicability boundaries, and evidence.
 
 It may live in:
 
-- local durable memory
+- the local experience index
 - notebook-backed stores
 - graph or vector systems
 - promoted note stores
 
 Use experience for:
 
-- searchable retained information
-- long-lived reference material
+- validated procedures and runbooks
+- decisions and tradeoffs that should guide similar future work
+- runtime or failure patterns discovered through completed tasks
+- collaboration workflow patterns
 - cross-session recall
 
 ### Skill
@@ -342,7 +343,7 @@ Today the project already contains the main pieces of this loop:
 - action: `agents/tools`, `gateway`, `plugin-sdk`, `plugins`
 - record: `sessions`, `chat`, `context-archive`, gateway execution surfaces
 - evaluate: `memory/extraction`, `memory/session-summary`, `memory/promotion`
-- retain: `memory/durable`, `memory/experience`, `memory/experience`, `memory/notebooklm`, `memory/vector`, `memory/graph`
+- retain: `memory/durable`, `memory/experience`, `memory/notebooklm`, `memory/vector`, `memory/graph`
 - recall: `memory/engine`, `memory/search`, `memory/recall`, `agents/query-context`, `agents/skills`
 - automate: `agents/skills`, `workflows`, `cron`, `hooks`
 

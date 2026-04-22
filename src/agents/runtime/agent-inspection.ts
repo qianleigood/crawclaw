@@ -115,6 +115,21 @@ export type AgentInspectionSnapshot = {
         scoreBreakdown?: Record<string, number>;
       }>;
       recentDreamTouchedNotes?: string[];
+      selectedExperienceDetails?: Array<{
+        itemId: string;
+        title: string;
+        source: string;
+        memoryKind?: string;
+        scoreBreakdown?: Record<string, number>;
+      }>;
+      omittedExperienceDetails?: Array<{
+        itemId: string;
+        title: string;
+        source: string;
+        memoryKind?: string;
+        omittedReason?: string;
+        scoreBreakdown?: Record<string, number>;
+      }>;
       hitReason?: string;
       evictionReason?: string;
       durableRecallSource?: string;
