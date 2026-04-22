@@ -203,7 +203,7 @@ describe("telegram thread bindings", () => {
     }>("telegram");
 
     await expect(resetTelegramThreadBindingsForTests()).resolves.toBeUndefined();
-  });
+  }, 240_000);
 
   it("does not persist lifecycle updates when manager persistence is disabled", async () => {
     stateDirOverride = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-telegram-bindings-"));

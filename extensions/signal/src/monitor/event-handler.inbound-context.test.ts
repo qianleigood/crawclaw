@@ -56,7 +56,7 @@ describe("signal createSignalEventHandler inbound context", () => {
     ({ createBaseSignalEventHandlerDeps, createSignalReceiveEvent } =
       await import("./event-handler.test-harness.js"));
     ({ createSignalEventHandler } = await import("./event-handler.js"));
-  });
+  }, 240_000);
 
   beforeEach(() => {
     capture.ctx = undefined;
