@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { loadConfig } from "../../config/config.js";
 import { getPluginCliCommandDescriptors } from "../../plugins/cli.js";
 import { VERSION } from "../../version.js";
 import { createCliTranslator, resolveCliLocale, setActiveCliLocale } from "../i18n/index.js";
@@ -8,7 +9,17 @@ import { localizeSubCliEntries } from "./subcli-descriptors.js";
 
 async function buildRootHelpProgram(): Promise<Command> {
   const program = new Command();
-  const locale = resolveCliLocale({ argv: process.argv, env: process.env.CRAWCLAW_LANG });
+  let configLanguage: string | undefined;
+  try {
+    configLanguage = loadConfig().cli?.language;
+  } catch {
+    configLanguage = undefined;
+  }
+  const locale = resolveCliLocale({
+    argv: process.argv,
+    config: configLanguage,
+    env: process.env.CRAWCLAW_LANG,
+  });
   setActiveCliLocale(locale);
   const t = createCliTranslator(locale);
   configureProgramHelp(program, {

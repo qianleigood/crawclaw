@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderRootHelpText } from "./root-help.js";
 
+const configLanguageMock = vi.hoisted(() => ({ value: undefined as string | undefined }));
+
+vi.mock("../../config/config.js", () => ({
+  loadConfig: () => ({
+    cli: {
+      language: configLanguageMock.value,
+    },
+  }),
+}));
+
 vi.mock("./core-command-descriptors.js", () => ({
   localizeCoreCliCommandDescriptors: () => [
     {
@@ -54,6 +64,17 @@ describe("root help", () => {
       expect(text).toContain("文档：");
     } finally {
       process.argv = originalArgv;
+    }
+  });
+
+  it("renders localized help copy from cli.language config", async () => {
+    configLanguageMock.value = "zh-CN";
+    try {
+      const text = await renderRootHelpText();
+      expect(text).toContain("示例：");
+      expect(text).toContain("文档：");
+    } finally {
+      configLanguageMock.value = undefined;
     }
   });
 });
