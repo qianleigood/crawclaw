@@ -21,7 +21,7 @@ describe("resolveDiscordDraftStreamingChunking", () => {
     } as CrawClawConfig;
 
     expect(resolveDiscordDraftStreamingChunking(cfg)).toEqual({
-      minChars: 500,
+      minChars: 200,
       maxChars: 500,
       breakPreference: "paragraph",
     });

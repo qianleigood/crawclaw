@@ -65,6 +65,12 @@ vi.mock("crawclaw/plugin-sdk/config-runtime", async (importOriginal) => {
         return DEFAULT_CONFIG;
       },
     },
+    resolveOAuthDir: {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: () => "/tmp/crawclaw-oauth",
+    },
     updateLastRoute: {
       configurable: true,
       enumerable: true,
@@ -158,14 +164,6 @@ vi.mock("crawclaw/plugin-sdk/media-runtime", async (importOriginal) => {
     })),
   });
   return mockModule;
-});
-
-vi.mock("crawclaw/plugin-sdk/config-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/config-runtime")>();
-  return {
-    ...actual,
-    resolveOAuthDir: () => "/tmp/crawclaw-oauth",
-  };
 });
 
 vi.mock("@whiskeysockets/baileys", async (importOriginal) => {

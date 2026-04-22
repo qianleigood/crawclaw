@@ -76,7 +76,7 @@ describe("buildSlackThreadingToolContext", () => {
     expect(result.replyToMode).toBe("first");
   });
 
-  it("uses legacy dm.replyToMode for direct messages when no chat-type override exists", () => {
+  it("ignores legacy dm.replyToMode for direct messages when no chat-type override exists", () => {
     expect(
       resolveReplyToModeWithConfig({
         slackConfig: {
@@ -85,7 +85,7 @@ describe("buildSlackThreadingToolContext", () => {
         },
         context: { ChatType: "direct" },
       }),
-    ).toBe("all");
+    ).toBe("off");
   });
 
   it("uses all mode when MessageThreadId is present", () => {

@@ -28,7 +28,7 @@ type MockWebListener = {
   sendComposingTo: () => Promise<void>;
 };
 
-export const TEST_NET_IP = "203.0.113.10";
+export const TEST_NET_IP = "93.184.216.34";
 
 vi.mock("crawclaw/plugin-sdk/agent-runtime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/agent-runtime")>();
@@ -131,30 +131,37 @@ export async function makeSessionStore(
 
 export function installWebAutoReplyUnitTestHooks(opts?: { pinDns?: boolean }) {
   let resolvePinnedHostnameSpy: { mockRestore: () => unknown } | undefined;
+  let resolvePinnedHostnameWithPolicySpy: { mockRestore: () => unknown } | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
     _resetBaileysMocks();
     _resetLoadConfigMock();
     if (opts?.pinDns) {
+      const resolvePinnedForTest = async (hostname: string) => {
+        // SSRF guard pins DNS; stub resolution to avoid live lookups in unit tests.
+        const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+        const addresses = [TEST_NET_IP];
+        return {
+          hostname: normalized,
+          addresses,
+          lookup: createPinnedLookup({ hostname: normalized, addresses }),
+        };
+      };
       resolvePinnedHostnameSpy = vi
         .spyOn(ssrf, "resolvePinnedHostname")
-        .mockImplementation(async (hostname) => {
-          // SSRF guard pins DNS; stub resolution to avoid live lookups in unit tests.
-          const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
-          const addresses = [TEST_NET_IP];
-          return {
-            hostname: normalized,
-            addresses,
-            lookup: createPinnedLookup({ hostname: normalized, addresses }),
-          };
-        });
+        .mockImplementation(resolvePinnedForTest);
+      resolvePinnedHostnameWithPolicySpy = vi
+        .spyOn(ssrf, "resolvePinnedHostnameWithPolicy")
+        .mockImplementation(async (hostname) => resolvePinnedForTest(hostname));
     }
   });
 
   afterEach(() => {
     resolvePinnedHostnameSpy?.mockRestore();
+    resolvePinnedHostnameWithPolicySpy?.mockRestore();
     resolvePinnedHostnameSpy = undefined;
+    resolvePinnedHostnameWithPolicySpy = undefined;
     resetLogger();
     setLoggerOverride(null);
     vi.useRealTimers();
