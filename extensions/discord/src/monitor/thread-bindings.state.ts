@@ -182,6 +182,18 @@ function normalizePersistedBinding(threadIdKey: string, raw: unknown): ThreadBin
     typeof value.maxAgeMs === "number" && Number.isFinite(value.maxAgeMs)
       ? Math.max(0, Math.floor(value.maxAgeMs))
       : undefined;
+  const legacyExpiresAt =
+    typeof value.expiresAt === "number" && Number.isFinite(value.expiresAt)
+      ? Math.max(0, Math.floor(value.expiresAt))
+      : undefined;
+  const migratedIdleTimeoutMs = idleTimeoutMs ?? (legacyExpiresAt !== undefined ? 0 : undefined);
+  const migratedMaxAgeMs =
+    maxAgeMs ??
+    (legacyExpiresAt !== undefined
+      ? legacyExpiresAt > 0
+        ? Math.max(0, legacyExpiresAt - boundAt)
+        : 0
+      : undefined);
   const metadata =
     value.metadata && typeof value.metadata === "object" ? { ...value.metadata } : undefined;
   return {
@@ -197,8 +209,8 @@ function normalizePersistedBinding(threadIdKey: string, raw: unknown): ThreadBin
     boundBy,
     boundAt,
     lastActivityAt,
-    idleTimeoutMs,
-    maxAgeMs,
+    idleTimeoutMs: migratedIdleTimeoutMs,
+    maxAgeMs: migratedMaxAgeMs,
     metadata,
   };
 }
