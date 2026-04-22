@@ -14,6 +14,7 @@ const REQUIRED_RUNTIME_PLUGINS = ["browser", "open-websearch", "scrapling-fetch"
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_INSTALL_TIMEOUT_MS = 45 * 60_000;
 const GATEWAY_TIMEOUT_MS = 180_000;
+const CLEANUP_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000];
 
 export function readTimeoutMsFromEnv(env, key, fallbackMs) {
   const raw = env[key]?.trim();
@@ -328,6 +329,47 @@ function runCrawClaw(crawclawBin, args, options = {}) {
   });
 }
 
+function sleepSync(ms) {
+  const buffer = new SharedArrayBuffer(4);
+  const view = new Int32Array(buffer);
+  Atomics.wait(view, 0, 0, ms);
+}
+
+function isWindowsCleanupTransientError(error) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  return ["EBUSY", "ENOTEMPTY", "EPERM", "EACCES"].includes(error.code);
+}
+
+export function cleanupTempRoot(root, options = {}) {
+  const fsImpl = options.fsImpl ?? fs;
+  const sleepImpl = options.sleepImpl ?? sleepSync;
+  const warn = options.warn ?? console.warn;
+  const retryDelaysMs = options.retryDelaysMs ?? CLEANUP_RETRY_DELAYS_MS;
+
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    try {
+      fsImpl.rmSync(root, { recursive: true, force: true });
+      return true;
+    } catch (error) {
+      const canRetry = isWindowsCleanupTransientError(error) && attempt < retryDelaysMs.length;
+      if (canRetry) {
+        sleepImpl(retryDelaysMs[attempt]);
+        continue;
+      }
+      if (isWindowsCleanupTransientError(error)) {
+        warn(
+          `[windows-smoke] warning: leaving temp root after cleanup failed with ${error.code}: ${root}`,
+        );
+        return false;
+      }
+      throw error;
+    }
+  }
+  return false;
+}
+
 function createTempLayout() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-windows-pack-smoke-"));
   const packDir = path.join(root, "pack");
@@ -447,7 +489,7 @@ function runSmoke(opts) {
     if (opts.keepTemp) {
       console.log(`[windows-smoke] keeping temp root: ${temp.root}`);
     } else {
-      fs.rmSync(temp.root, { recursive: true, force: true });
+      cleanupTempRoot(temp.root);
     }
   }
 }

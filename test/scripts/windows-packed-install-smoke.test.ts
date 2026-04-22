@@ -5,6 +5,15 @@ import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 type WindowsPackedInstallSmoke = {
+  cleanupTempRoot: (
+    root: string,
+    options?: {
+      fsImpl?: Pick<typeof fs, "rmSync">;
+      retryDelaysMs?: number[];
+      sleepImpl?: (ms: number) => void;
+      warn?: (message: string) => void;
+    },
+  ) => boolean;
   createSmokeEnv: (params: {
     env: NodeJS.ProcessEnv;
     prefixDir: string;
@@ -107,6 +116,48 @@ describe("windows packed install smoke helpers", () => {
     } finally {
       fs.rmSync(packDir, { recursive: true, force: true });
     }
+  });
+
+  it("treats persistent Windows cleanup locks as non-fatal after retries", async () => {
+    const script = await loadSmokeScript();
+    const calls: string[] = [];
+    const sleeps: number[] = [];
+    const warnings: string[] = [];
+    const fsImpl = {
+      rmSync: () => {
+        calls.push("rm");
+        throw Object.assign(new Error("locked"), { code: "EPERM" });
+      },
+    };
+
+    expect(
+      script.cleanupTempRoot("C:\\Temp\\crawclaw-smoke", {
+        fsImpl,
+        retryDelaysMs: [1, 2],
+        sleepImpl: (ms) => sleeps.push(ms),
+        warn: (message) => warnings.push(message),
+      }),
+    ).toBe(false);
+    expect(calls).toEqual(["rm", "rm", "rm"]);
+    expect(sleeps).toEqual([1, 2]);
+    expect(warnings[0]).toContain("leaving temp root");
+  });
+
+  it("still fails on unexpected cleanup errors", async () => {
+    const script = await loadSmokeScript();
+    const fsImpl = {
+      rmSync: () => {
+        throw Object.assign(new Error("bad path"), { code: "EINVAL" });
+      },
+    };
+
+    expect(() =>
+      script.cleanupTempRoot("C:\\Temp\\crawclaw-smoke", {
+        fsImpl,
+        retryDelaysMs: [1],
+        sleepImpl: () => {},
+      }),
+    ).toThrow(/bad path/);
   });
 
   it("rejects missing install-time runtime manifest entries", async () => {
