@@ -23,8 +23,15 @@ import {
 import { applyNonInteractiveSkillsConfig } from "./local/skills-config.js";
 import { resolveNonInteractiveWorkspaceDir } from "./local/workspace.js";
 
-const INSTALL_DAEMON_HEALTH_DEADLINE_MS = 45_000;
+const DEFAULT_INSTALL_DAEMON_HEALTH_DEADLINE_MS = 45_000;
+const WINDOWS_INSTALL_DAEMON_HEALTH_DEADLINE_MS = 180_000;
 const ATTACH_EXISTING_GATEWAY_HEALTH_DEADLINE_MS = 15_000;
+
+function resolveInstallDaemonHealthDeadlineMs(): number {
+  return process.platform === "win32"
+    ? WINDOWS_INSTALL_DAEMON_HEALTH_DEADLINE_MS
+    : DEFAULT_INSTALL_DAEMON_HEALTH_DEADLINE_MS;
+}
 
 async function collectGatewayHealthFailureDiagnostics(): Promise<
   GatewayHealthFailureDiagnostics | undefined
@@ -205,7 +212,7 @@ export async function runNonInteractiveLocalSetup(params: {
       url: links.wsUrl,
       token: gatewayResult.gatewayToken,
       deadlineMs: opts.installDaemon
-        ? INSTALL_DAEMON_HEALTH_DEADLINE_MS
+        ? resolveInstallDaemonHealthDeadlineMs()
         : ATTACH_EXISTING_GATEWAY_HEALTH_DEADLINE_MS,
     });
     if (!probe.ok) {

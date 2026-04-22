@@ -468,7 +468,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       );
 
       expect(installGatewayDaemonNonInteractiveMock).toHaveBeenCalledTimes(1);
-      expect(capturedDeadlineMs).toBe(45_000);
+      expect(capturedDeadlineMs).toBe(process.platform === "win32" ? 180_000 : 45_000);
     });
   }, 60_000);
 
