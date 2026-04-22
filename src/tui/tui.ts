@@ -2,7 +2,6 @@ import {
   CombinedAutocompleteProvider,
   Container,
   Key,
-  Loader,
   matchesKey,
   ProcessTerminal,
   Text,
@@ -24,11 +23,13 @@ import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
-import { formatTuiFooterLine, sanitizeRenderableText } from "./tui-formatters.js";
+import { formatTuiFooter } from "./tui-footer.js";
+import { sanitizeRenderableText } from "./tui-formatters.js";
 import { registerTuiKeybindings } from "./tui-keybindings.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
+import { createTuiStatusLineController } from "./tui-status-line.js";
 import {
   createEditorSubmitHandler,
   createSubmitBurstCoalescer,
@@ -41,7 +42,6 @@ import type {
   TuiOptions,
   TuiStateAccess,
 } from "./tui-types.js";
-import { buildWaitingStatusMessage, defaultWaitingPhrases } from "./tui-waiting.js";
 
 export { resolveFinalAssistantText } from "./tui-formatters.js";
 export type { TuiOptions } from "./tui-types.js";
@@ -226,9 +226,6 @@ export async function runTui(opts: TuiOptions) {
   let connectionStatus = "connecting";
   let lastError: string | null = null;
   let statusTimeout: NodeJS.Timeout | null = null;
-  let statusTimer: NodeJS.Timeout | null = null;
-  let statusStartedAt: number | null = null;
-  let lastActivityStatus = activityStatus;
 
   const state: TuiStateAccess = {
     get agentDefaultId() {
@@ -488,195 +485,41 @@ export async function runTui(opts: TuiOptions) {
     );
   };
 
-  const busyStates = new Set(["sending", "waiting", "streaming", "running"]);
-  let statusText: Text | null = null;
-  let statusLoader: Loader | null = null;
+  const statusLine = createTuiStatusLineController({
+    tui,
+    statusContainer,
+    getConnectionStatus: () => connectionStatus,
+    setConnectionStatusValue: (value) => {
+      connectionStatus = value;
+    },
+    getActivityStatus: () => activityStatus,
+    setActivityStatusValue: (value) => {
+      activityStatus = value;
+    },
+    getIsConnected: () => isConnected,
+    getStatusTimeout: () => statusTimeout,
+    setStatusTimeout: (value) => {
+      statusTimeout = value;
+    },
+  });
 
-  const formatElapsed = (startMs: number) => {
-    const totalSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-    if (totalSeconds < 60) {
-      return `${totalSeconds}s`;
-    }
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}m ${seconds}s`;
-  };
-
-  const ensureStatusText = () => {
-    if (statusText) {
-      return;
-    }
-    statusContainer.clear();
-    statusLoader?.stop();
-    statusLoader = null;
-    statusText = new Text("", 1, 0);
-    statusContainer.addChild(statusText);
-  };
-
-  const ensureStatusLoader = () => {
-    if (statusLoader) {
-      return;
-    }
-    statusContainer.clear();
-    statusText = null;
-    statusLoader = new Loader(
-      tui,
-      (spinner) => theme.accent(spinner),
-      (text) => theme.bold(theme.accentSoft(text)),
-      "",
-    );
-    statusContainer.addChild(statusLoader);
-  };
-
-  let waitingTick = 0;
-  let waitingTimer: NodeJS.Timeout | null = null;
-  let waitingPhrase: string | null = null;
-
-  const updateBusyStatusMessage = () => {
-    if (!statusLoader || !statusStartedAt) {
-      return;
-    }
-    const elapsed = formatElapsed(statusStartedAt);
-
-    if (activityStatus === "waiting") {
-      waitingTick++;
-      statusLoader.setMessage(
-        buildWaitingStatusMessage({
-          theme,
-          tick: waitingTick,
-          elapsed,
-          connectionStatus,
-          phrases: waitingPhrase ? [waitingPhrase] : undefined,
-        }),
-      );
-      return;
-    }
-
-    statusLoader.setMessage(`${activityStatus} • ${elapsed} | ${connectionStatus}`);
-  };
-
-  const startStatusTimer = () => {
-    if (statusTimer) {
-      return;
-    }
-    statusTimer = setInterval(() => {
-      if (!busyStates.has(activityStatus)) {
-        return;
-      }
-      updateBusyStatusMessage();
-    }, 1000);
-  };
-
-  const stopStatusTimer = () => {
-    if (!statusTimer) {
-      return;
-    }
-    clearInterval(statusTimer);
-    statusTimer = null;
-  };
-
-  const startWaitingTimer = () => {
-    if (waitingTimer) {
-      return;
-    }
-
-    // Pick a phrase once per waiting session.
-    if (!waitingPhrase) {
-      const idx = Math.floor(Math.random() * defaultWaitingPhrases.length);
-      waitingPhrase = defaultWaitingPhrases[idx] ?? defaultWaitingPhrases[0] ?? "waiting";
-    }
-
-    waitingTick = 0;
-
-    waitingTimer = setInterval(() => {
-      if (activityStatus !== "waiting") {
-        return;
-      }
-      updateBusyStatusMessage();
-    }, 120);
-  };
-
-  const stopWaitingTimer = () => {
-    if (!waitingTimer) {
-      return;
-    }
-    clearInterval(waitingTimer);
-    waitingTimer = null;
-    waitingPhrase = null;
-  };
-
-  const renderStatus = () => {
-    const isBusy = busyStates.has(activityStatus);
-    if (isBusy) {
-      if (!statusStartedAt || lastActivityStatus !== activityStatus) {
-        statusStartedAt = Date.now();
-      }
-      ensureStatusLoader();
-      if (activityStatus === "waiting") {
-        stopStatusTimer();
-        startWaitingTimer();
-      } else {
-        stopWaitingTimer();
-        startStatusTimer();
-      }
-      updateBusyStatusMessage();
-    } else {
-      statusStartedAt = null;
-      stopStatusTimer();
-      stopWaitingTimer();
-      statusLoader?.stop();
-      statusLoader = null;
-      ensureStatusText();
-      const text = activityStatus ? `${connectionStatus} | ${activityStatus}` : connectionStatus;
-      statusText?.setText(theme.dim(text));
-    }
-    lastActivityStatus = activityStatus;
-  };
-
-  const setConnectionStatus = (text: string, ttlMs?: number) => {
-    connectionStatus = text;
-    renderStatus();
-    if (statusTimeout) {
-      clearTimeout(statusTimeout);
-    }
-    if (ttlMs && ttlMs > 0) {
-      statusTimeout = setTimeout(() => {
-        connectionStatus = isConnected ? "connected" : "disconnected";
-        renderStatus();
-      }, ttlMs);
-    }
-  };
-
-  const setActivityStatus = (text: string) => {
-    activityStatus = text;
-    renderStatus();
-  };
+  const setConnectionStatus = statusLine.setConnectionStatus;
+  const setActivityStatus = statusLine.setActivityStatus;
 
   const recordError = (message: string) => {
     lastError = sanitizeRenderableText(message);
   };
 
   const updateFooter = () => {
-    const sessionKeyLabel = formatSessionKey(currentSessionKey);
-    const sessionLabel = sessionInfo.displayName
-      ? `${sessionKeyLabel} (${sessionInfo.displayName})`
-      : sessionKeyLabel;
-    const agentLabel = formatAgentLabel(currentAgentId);
     footer.setText(
       theme.dim(
-        formatTuiFooterLine({
-          agentLabel,
-          sessionLabel,
-          model: sessionInfo.model,
-          modelProvider: sessionInfo.modelProvider,
-          totalTokens: sessionInfo.totalTokens ?? null,
-          contextTokens: sessionInfo.contextTokens ?? null,
-          thinkingLevel: sessionInfo.thinkingLevel,
-          fastMode: sessionInfo.fastMode,
-          verboseLevel: sessionInfo.verboseLevel,
-          reasoningLevel: sessionInfo.reasoningLevel,
+        formatTuiFooter({
+          currentAgentId,
+          currentSessionKey,
+          sessionInfo,
           deliverEnabled,
-          hint: "Ctrl+P sessions; /help",
+          formatAgentLabel,
+          formatSessionKey,
         }),
       ),
     );
