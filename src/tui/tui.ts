@@ -19,11 +19,13 @@ import {
 import { getSlashCommands } from "./commands.js";
 import { ChatLog } from "./components/chat-log.js";
 import { CustomEditor } from "./components/custom-editor.js";
+import { ToolOverlayComponent } from "./components/tool-overlay.js";
 import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
 import { formatTuiFooterLine, sanitizeRenderableText } from "./tui-formatters.js";
+import { registerTuiKeybindings } from "./tui-keybindings.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
@@ -825,31 +827,45 @@ export async function runTui(opts: TuiOptions) {
     setActivityStatus("press ctrl+c again to exit");
     tui.requestRender();
   };
-  editor.onCtrlC = () => {
-    handleCtrlC();
-  };
-  editor.onCtrlD = () => {
-    requestExit();
-  };
-  editor.onCtrlO = () => {
-    toolsExpanded = !toolsExpanded;
-    chatLog.setToolsExpanded(toolsExpanded);
-    setActivityStatus(toolsExpanded ? "tools expanded" : "tools collapsed");
+
+  const openToolOverlay = () => {
+    if (!chatLog.hasTools()) {
+      setActivityStatus("no tool output yet");
+      tui.requestRender();
+      return;
+    }
+    const overlay = new ToolOverlayComponent({
+      getTools: () => chatLog.listTools(),
+      onToggleTool: (toolCallId) => {
+        const expanded = chatLog.toggleToolExpanded(toolCallId);
+        const tool = chatLog.listTools().find((entry) => entry.id === toolCallId);
+        setActivityStatus(`${tool?.toolName ?? "tool"} ${expanded ? "expanded" : "collapsed"}`);
+        tui.requestRender();
+      },
+      onToggleAll: () => {
+        toolsExpanded = chatLog.toggleAllToolsExpanded();
+        setActivityStatus(toolsExpanded ? "tools expanded" : "tools collapsed");
+        tui.requestRender();
+      },
+      onClose: closeOverlay,
+    });
+    openOverlay(overlay);
     tui.requestRender();
   };
-  editor.onCtrlL = () => {
-    void openModelSelector();
-  };
-  editor.onCtrlG = () => {
-    void openAgentSelector();
-  };
-  editor.onCtrlP = () => {
-    void openSessionSelector();
-  };
-  editor.onCtrlT = () => {
-    showThinking = !showThinking;
-    void loadHistory();
-  };
+
+  registerTuiKeybindings({
+    editor,
+    handleCtrlC,
+    requestExit,
+    openToolOverlay,
+    openModelSelector,
+    openAgentSelector,
+    openSessionSelector,
+    toggleThinking: () => {
+      showThinking = !showThinking;
+      void loadHistory();
+    },
+  });
 
   tui.addInputListener((data) => {
     if (!chatLog.hasVisibleBtw()) {

@@ -77,7 +77,7 @@ Use `--password` if your Gateway uses password auth.
 - Ctrl+L: model picker
 - Ctrl+G: agent picker
 - Ctrl+P: session picker
-- Ctrl+O: toggle tool output expansion
+- Ctrl+O: tool output overlay
 - Ctrl+T: toggle thinking visibility (reloads history)
 
 ## Slash commands
@@ -121,7 +121,9 @@ Other Gateway slash commands (for example, `/context`) are forwarded to the Gate
 ## Tool output
 
 - Tool calls show as cards with args + results.
-- Ctrl+O toggles between collapsed/expanded views.
+- Ctrl+O opens a tool output overlay.
+- In the overlay, Enter toggles the selected tool, `a` toggles all tools, and Esc closes it.
+- Failed tools are marked in the overlay.
 - While tools run, partial updates stream into the same card.
 
 ## Terminal colors
