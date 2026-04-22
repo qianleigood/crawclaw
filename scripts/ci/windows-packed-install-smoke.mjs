@@ -13,7 +13,7 @@ const REQUIRED_RUNTIME_PLUGINS = ["browser", "open-websearch", "scrapling-fetch"
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_INSTALL_TIMEOUT_MS = 45 * 60_000;
-const GATEWAY_TIMEOUT_MS = 180_000;
+const DEFAULT_GATEWAY_TIMEOUT_MS = 6 * 60_000;
 const CLEANUP_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000];
 
 export function readTimeoutMsFromEnv(env, key, fallbackMs) {
@@ -32,6 +32,11 @@ const INSTALL_TIMEOUT_MS = readTimeoutMsFromEnv(
   process.env,
   "CRAWCLAW_WINDOWS_PACKED_INSTALL_TIMEOUT_MS",
   DEFAULT_INSTALL_TIMEOUT_MS,
+);
+const GATEWAY_TIMEOUT_MS = readTimeoutMsFromEnv(
+  process.env,
+  "CRAWCLAW_WINDOWS_PACKED_GATEWAY_TIMEOUT_MS",
+  DEFAULT_GATEWAY_TIMEOUT_MS,
 );
 
 function isDirectRun() {

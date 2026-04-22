@@ -83,6 +83,13 @@ describe("windows packed install smoke helpers", () => {
         1800000,
       ),
     ).toBe(1800000);
+    expect(
+      script.readTimeoutMsFromEnv(
+        { CRAWCLAW_WINDOWS_PACKED_GATEWAY_TIMEOUT_MS: "360000" },
+        "CRAWCLAW_WINDOWS_PACKED_GATEWAY_TIMEOUT_MS",
+        180000,
+      ),
+    ).toBe(360000);
   });
 
   it("accepts a complete postinstall runtime manifest", async () => {
