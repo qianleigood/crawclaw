@@ -1160,7 +1160,6 @@
     "file-type": "22.0.0",
     "gaxios": "7.1.4",
     "hono": "4.12.14",
-    "https-proxy-agent": "^8.0.0",
     "ipaddr.js": "^2.3.0",
     "jiti": "^2.6.1",
     "json5": "^2.2.3",

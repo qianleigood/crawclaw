@@ -227,7 +227,7 @@ describe("plugin-sdk root alias", () => {
 
     expect((lazyModule.moduleExports.slowHelper as () => string)()).toBe("loaded");
     expect(lazyModule.loadedSpecifiers).toContain(
-      path.join(packageRoot, "src", "plugin-sdk", "compat.ts"),
+      path.join(packageRoot, "src", "plugin-sdk", "index.ts"),
     );
     expect(
       typeof (lazyModule.moduleExports.onDiagnosticEvent as (listener: () => void) => () => void)(

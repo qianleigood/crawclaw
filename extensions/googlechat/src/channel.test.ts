@@ -1,9 +1,10 @@
+import type { CrawClawConfig } from "crawclaw/plugin-sdk/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createDirectoryTestRuntime,
   expectDirectorySurface,
 } from "../../../test/helpers/plugins/directory.ts";
-import type { CrawClawConfig, PluginRuntime } from "../runtime-api.js";
+import type { PluginRuntime } from "../runtime-api.js";
 
 const uploadGoogleChatAttachmentMock = vi.hoisted(() => vi.fn());
 const sendGoogleChatMessageMock = vi.hoisted(() => vi.fn());

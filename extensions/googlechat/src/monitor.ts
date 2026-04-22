@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { CrawClawConfig } from "crawclaw/plugin-sdk/core";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
 } from "crawclaw/plugin-sdk/reply-payload";
-import type { CrawClawConfig } from "../runtime-api.js";
 import {
   createChannelReplyPipeline,
   createWebhookInFlightLimiter,

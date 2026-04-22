@@ -4,6 +4,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 
 let diagnosticEventsModule = null;
+let rootSdkModule = null;
 const jitiLoaders = new Map();
 const pluginSdkSubpathsCache = new Map();
 const isDistRootAlias = __filename.includes(
@@ -205,6 +206,53 @@ function normalizeDiagnosticEventsModule(mod) {
   return mod;
 }
 
+function loadRootSdkModule() {
+  if (rootSdkModule) {
+    return rootSdkModule;
+  }
+
+  const packageRoot = getPackageRoot();
+  const directDistCandidate = path.join(packageRoot, "dist", "plugin-sdk", "index.js");
+  if (!shouldPreferSourceGraph && fs.existsSync(directDistCandidate)) {
+    try {
+      rootSdkModule = getJiti(true)(directDistCandidate);
+      return rootSdkModule;
+    } catch {
+      // Fall through to source path if dist is unavailable or stale.
+    }
+  }
+
+  rootSdkModule = getJiti(false)(path.join(packageRoot, "src", "plugin-sdk", "index.ts"));
+  return rootSdkModule;
+}
+
+function getRootExport(property) {
+  if (property === "then") {
+    return undefined;
+  }
+  if (Object.prototype.hasOwnProperty.call(fastExports, property)) {
+    return fastExports[property];
+  }
+  const mod = loadRootSdkModule();
+  return mod?.[property];
+}
+
+function hasRootExport(property) {
+  if (property === "then") {
+    return false;
+  }
+  if (Object.prototype.hasOwnProperty.call(fastExports, property)) {
+    return true;
+  }
+  const mod = loadRootSdkModule();
+  return Boolean(mod && property in mod);
+}
+
+function listRootExportKeys() {
+  const mod = loadRootSdkModule();
+  return [...new Set([...Object.keys(fastExports), ...Object.keys(mod ?? {})])];
+}
+
 const fastExports = {
   emptyPluginConfigSchema,
   onDiagnosticEvent,
@@ -212,7 +260,45 @@ const fastExports = {
 };
 
 const target = { ...fastExports };
-const rootExports = target;
+const rootExports = new Proxy(target, {
+  get(currentTarget, property, receiver) {
+    if (property === "default") {
+      return rootExports;
+    }
+    if (property === "__esModule") {
+      return true;
+    }
+    if (typeof property === "symbol") {
+      return Reflect.get(currentTarget, property, receiver);
+    }
+    return getRootExport(property);
+  },
+  has(currentTarget, property) {
+    if (typeof property === "symbol") {
+      return Reflect.has(currentTarget, property);
+    }
+    return hasRootExport(property);
+  },
+  ownKeys(currentTarget) {
+    return [...new Set([...Reflect.ownKeys(currentTarget), ...listRootExportKeys()])];
+  },
+  getOwnPropertyDescriptor(currentTarget, property) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(currentTarget, property);
+    if (descriptor) {
+      return descriptor;
+    }
+    if (typeof property === "symbol" || !hasRootExport(property)) {
+      return undefined;
+    }
+    return {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return getRootExport(property);
+      },
+    };
+  },
+});
 
 Object.defineProperty(target, "__esModule", {
   configurable: true,

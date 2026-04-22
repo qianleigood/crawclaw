@@ -1,3 +1,4 @@
+import type { CrawClawConfig } from "crawclaw/plugin-sdk/core";
 import { DEFAULT_ACCOUNT_ID } from "crawclaw/plugin-sdk/setup";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -12,7 +13,6 @@ import {
   startAccountAndTrackLifecycle,
   waitForStartedMocks,
 } from "../../../test/helpers/plugins/start-account-lifecycle.js";
-import type { CrawClawConfig } from "../runtime-api.js";
 import { resolveGoogleChatAccount, type ResolvedGoogleChatAccount } from "./accounts.js";
 import { googlechatPlugin } from "./channel.js";
 import { googlechatSetupAdapter } from "./setup-core.js";

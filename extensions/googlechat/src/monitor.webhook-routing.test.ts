@@ -1,10 +1,11 @@
 import { EventEmitter } from "node:events";
 import type { IncomingMessage } from "node:http";
+import type { CrawClawConfig } from "crawclaw/plugin-sdk/core";
 import { createEmptyPluginRegistry } from "crawclaw/plugin-sdk/testing";
 import { setActivePluginRegistry } from "crawclaw/plugin-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMockServerResponse } from "../../../test/helpers/plugins/mock-http-response.js";
-import type { CrawClawConfig, PluginRuntime } from "../runtime-api.js";
+import type { PluginRuntime } from "../runtime-api.js";
 import type { ResolvedGoogleChatAccount } from "./accounts.js";
 import { verifyGoogleChatRequest } from "./auth.js";
 import { handleGoogleChatWebhookRequest, registerGoogleChatWebhookTarget } from "./monitor.js";
