@@ -389,6 +389,11 @@ function createTempLayout() {
 
 function runGatewayLifecycle(crawclawBin, smokeEnv) {
   const port = String(18_789 + (process.pid % 1000));
+  console.log("[windows-smoke] configuring local gateway mode");
+  runCrawClaw(crawclawBin, ["config", "set", "gateway.mode", "local"], {
+    env: smokeEnv,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+  });
   console.log(`[windows-smoke] installing gateway service on port ${port}`);
   runCrawClaw(
     crawclawBin,
