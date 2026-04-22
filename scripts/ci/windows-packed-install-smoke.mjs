@@ -283,8 +283,18 @@ function verifyRuntimeBinaries(manifest, smokeEnv) {
     if (typeof binPath !== "string" || binPath.trim() === "") {
       throw new Error(`runtime manifest entry ${pluginId} is missing binPath`);
     }
-    runOrThrow(binPath, ["--version"], { env: smokeEnv, timeoutMs: DEFAULT_TIMEOUT_MS });
+    runOrThrow(binPath, resolveRuntimeBinaryProbeArgs(pluginId), {
+      env: smokeEnv,
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+    });
   }
+}
+
+export function resolveRuntimeBinaryProbeArgs(pluginId) {
+  if (pluginId === "open-websearch") {
+    return ["--help"];
+  }
+  return ["--version"];
 }
 
 export function resolvePackedTarball(packOutput, packDir) {

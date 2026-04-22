@@ -14,6 +14,7 @@ type WindowsPackedInstallSmoke = {
   readTimeoutMsFromEnv: (env: NodeJS.ProcessEnv, key: string, fallbackMs: number) => number;
   resolveInstalledCrawClawBin: (params: { prefixDir: string; platform: NodeJS.Platform }) => string;
   resolvePackedTarball: (packOutput: string, packDir: string) => string;
+  resolveRuntimeBinaryProbeArgs: (pluginId: string) => string[];
   validateRuntimeManifest: (manifest: unknown) => void;
 };
 
@@ -87,6 +88,13 @@ describe("windows packed install smoke helpers", () => {
         },
       }),
     ).not.toThrow();
+  });
+
+  it("uses runtime-compatible binary probes", async () => {
+    const script = await loadSmokeScript();
+
+    expect(script.resolveRuntimeBinaryProbeArgs("browser")).toEqual(["--version"]);
+    expect(script.resolveRuntimeBinaryProbeArgs("open-websearch")).toEqual(["--help"]);
   });
 
   it("resolves plain npm pack output without requiring the large JSON file list", async () => {
