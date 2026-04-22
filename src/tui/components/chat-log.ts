@@ -3,8 +3,12 @@ import { Container, Spacer, Text } from "@mariozechner/pi-tui";
 import { theme } from "../theme/theme.js";
 import { AssistantMessageComponent } from "./assistant-message.js";
 import { BtwInlineMessage } from "./btw-inline-message.js";
-import { ToolExecutionComponent } from "./tool-execution.js";
+import { ToolExecutionComponent, type ToolExecutionState } from "./tool-execution.js";
 import { UserMessageComponent } from "./user-message.js";
+
+export type ChatLogToolState = ToolExecutionState & {
+  id: string;
+};
 
 export class ChatLog extends Container {
   private readonly maxComponents: number;
@@ -191,5 +195,31 @@ export class ChatLog extends Container {
     for (const tool of this.toolById.values()) {
       tool.setExpanded(expanded);
     }
+  }
+
+  hasTools() {
+    return this.toolById.size > 0;
+  }
+
+  listTools(): ChatLogToolState[] {
+    return [...this.toolById.entries()].map(([id, tool]) => ({
+      id,
+      ...tool.getState(),
+    }));
+  }
+
+  toggleToolExpanded(toolCallId: string) {
+    const tool = this.toolById.get(toolCallId);
+    if (!tool) {
+      return false;
+    }
+    return tool.toggleExpanded();
+  }
+
+  toggleAllToolsExpanded() {
+    const tools = [...this.toolById.values()];
+    const nextExpanded = tools.some((tool) => !tool.isExpanded());
+    this.setToolsExpanded(nextExpanded);
+    return nextExpanded;
   }
 }

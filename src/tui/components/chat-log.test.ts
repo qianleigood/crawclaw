@@ -53,6 +53,66 @@ describe("ChatLog", () => {
     expect(chatLog.children.length).toBe(20);
   });
 
+  it("lists tool states and toggles one tool without expanding all tools", () => {
+    const chatLog = new ChatLog(40);
+    chatLog.startTool("tool-1", "exec", { command: "echo hi" });
+    chatLog.startTool("tool-2", "read_file", { path: "a.txt" });
+    chatLog.updateToolResult("tool-2", {
+      content: [{ type: "text", text: "done" }],
+    });
+
+    expect(chatLog.listTools()).toEqual([
+      expect.objectContaining({
+        id: "tool-1",
+        toolName: "exec",
+        status: "running",
+        expanded: false,
+      }),
+      expect.objectContaining({
+        id: "tool-2",
+        toolName: "read_file",
+        status: "done",
+        expanded: false,
+      }),
+    ]);
+
+    expect(chatLog.toggleToolExpanded("tool-1")).toBe(true);
+    expect(chatLog.listTools()[0]).toEqual(
+      expect.objectContaining({
+        id: "tool-1",
+        expanded: true,
+      }),
+    );
+    expect(chatLog.listTools()[1]).toEqual(
+      expect.objectContaining({
+        id: "tool-2",
+        expanded: false,
+      }),
+    );
+
+    expect(chatLog.toggleAllToolsExpanded()).toBe(true);
+    expect(chatLog.listTools().map((tool) => tool.expanded)).toEqual([true, true]);
+  });
+
+  it("marks failed tools in the listed state", () => {
+    const chatLog = new ChatLog(40);
+    chatLog.startTool("tool-err", "exec", { command: "false" });
+    chatLog.updateToolResult(
+      "tool-err",
+      {
+        content: [{ type: "text", text: "exit 1" }],
+      },
+      { isError: true },
+    );
+
+    expect(chatLog.listTools()).toEqual([
+      expect.objectContaining({
+        id: "tool-err",
+        status: "error",
+      }),
+    ]);
+  });
+
   it("prunes system messages atomically when a non-system entry overflows the log", () => {
     const chatLog = new ChatLog(20);
     for (let i = 1; i <= 20; i++) {

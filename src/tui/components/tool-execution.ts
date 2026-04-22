@@ -18,6 +18,14 @@ type ToolResult = {
 
 const PREVIEW_LINES = 12;
 
+export type ToolExecutionStatus = "running" | "done" | "error";
+
+export type ToolExecutionState = {
+  toolName: string;
+  status: ToolExecutionStatus;
+  expanded: boolean;
+};
+
 function formatArgs(toolName: string, args: unknown): string {
   const display = resolveToolDisplay({ name: toolName, args });
   const detail = formatToolDetail(display);
@@ -92,6 +100,23 @@ export class ToolExecutionComponent extends Container {
     this.refresh();
   }
 
+  toggleExpanded() {
+    this.setExpanded(!this.expanded);
+    return this.expanded;
+  }
+
+  isExpanded() {
+    return this.expanded;
+  }
+
+  getState(): ToolExecutionState {
+    return {
+      toolName: this.toolName,
+      status: this.resolveStatus(),
+      expanded: this.expanded,
+    };
+  }
+
   setResult(result: ToolResult | undefined, opts?: { isError?: boolean }) {
     this.result = result;
     this.isPartial = false;
@@ -103,6 +128,13 @@ export class ToolExecutionComponent extends Container {
     this.result = result;
     this.isPartial = true;
     this.refresh();
+  }
+
+  private resolveStatus(): ToolExecutionStatus {
+    if (this.isPartial) {
+      return "running";
+    }
+    return this.isError ? "error" : "done";
   }
 
   private refresh() {
