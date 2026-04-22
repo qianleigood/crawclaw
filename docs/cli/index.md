@@ -57,7 +57,6 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`secrets`](/cli/secrets)
 - [`skills`](/cli/skills)
 - [`daemon`](/cli/daemon) (legacy alias for gateway service commands)
-- [`clawbot`](/cli/clawbot) (legacy alias namespace)
 - [`voicecall`](/cli/voicecall) (plugin; if installed)
 
 ## Global flags
@@ -287,8 +286,6 @@ crawclaw [--dev] [--profile <name>] <command>
     list
     approve
   qr
-  clawbot
-    qr
   docs
   dns
     setup

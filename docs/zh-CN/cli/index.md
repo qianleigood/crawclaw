@@ -62,7 +62,6 @@ x-i18n:
 - [`secrets`](/cli/secrets)
 - [`skills`](/cli/skills)
 - [`daemon`](/cli/daemon)（Gateway 网关服务命令的旧别名）
-- [`clawbot`](/cli/clawbot)（旧别名命名空间）
 - [`voicecall`](/cli/voicecall)（插件；如已安装）
 
 ## 全局标志
@@ -287,8 +286,6 @@ crawclaw [--dev] [--profile <name>] <command>
     list
     approve
   qr
-  clawbot
-    qr
   docs
   dns
     setup

@@ -1336,7 +1336,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.hooks.update.option.dryRun": "Show what would change without writing",
   "command.webhooks.description": "Webhook helpers and integrations",
   "command.qr.description": "Generate a node pairing QR code and setup code",
-  "command.clawbot.description": "Legacy clawbot command aliases",
   "command.pairing.description": "Secure DM pairing (approve inbound requests)",
   "command.runtimes.description": "Install, inspect, and repair plugin runtimes",
   "command.runtimes.option.json": "Print JSON",

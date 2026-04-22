@@ -1256,7 +1256,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.hooks.update.option.dryRun": "显示会发生什么变化，但不写入",
   "command.webhooks.description": "Webhook 辅助工具和集成",
   "command.qr.description": "生成节点配对二维码和 setup code",
-  "command.clawbot.description": "旧版 clawbot 命令别名",
   "command.pairing.description": "安全 DM 配对（批准传入请求）",
   "command.runtimes.description": "安装、检查并修复插件运行时",
   "command.runtimes.option.json": "打印 JSON",
