@@ -3,7 +3,7 @@ name: summarize
 description: Summarize URLs or files with the summarize CLI (web, PDFs, images, audio, YouTube).
 metadata:
   {
-    "clawdbot":
+    "crawclaw":
       {
         "emoji": "🧾",
         "requires": { "bins": ["summarize"] },

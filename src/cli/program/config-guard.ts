@@ -46,8 +46,6 @@ export async function ensureConfigReady(params: {
     const runDoctorConfigPreflight = async () =>
       (await import("../../commands/doctor-config-preflight.js")).runDoctorConfigPreflight({
         // Keep ordinary CLI startup on the lightweight validation path.
-        migrateState: false,
-        migrateLegacyConfig: false,
         invalidConfigNote: false,
       });
     if (!params.suppressDoctorStdout) {

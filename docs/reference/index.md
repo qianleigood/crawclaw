@@ -28,7 +28,6 @@ title: Reference Docs
 
 ## Migration And Compatibility
 
-- [CrawClaw migration](/reference/crawclaw-migration)
 - [Open source release checklist](/reference/open-source-release-checklist)
 - [Support matrix](/reference/support-matrix)
 

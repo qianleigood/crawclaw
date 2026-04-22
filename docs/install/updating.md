@@ -132,4 +132,3 @@ To return to latest: `git checkout main && git pull`.
 - [Install Overview](/install) — all installation methods
 - [Doctor](/gateway/doctor) — health checks after updates
 - [Migrating](/install/migrating) — major version migration guides
-- [CrawClaw to CrawClaw migration](/reference/crawclaw-migration) — legacy state migration

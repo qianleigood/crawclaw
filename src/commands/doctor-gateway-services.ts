@@ -1,16 +1,9 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import { writeConfigFile, type CrawClawConfig } from "../config/config.js";
 import { resolveGatewayPort, resolveIsNixMode } from "../config/paths.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
-import {
-  findExtraGatewayServices,
-  renderGatewayServiceCleanupHints,
-  type ExtraGatewayService,
-} from "../daemon/inspect.js";
+import { findExtraGatewayServices, renderGatewayServiceCleanupHints } from "../daemon/inspect.js";
 import { renderSystemNodeWarning, resolveSystemNodeInfo } from "../daemon/runtime-paths.js";
 import {
   auditGatewayServiceConfig,
@@ -19,7 +12,6 @@ import {
   SERVICE_AUDIT_CODES,
 } from "../daemon/service-audit.js";
 import { resolveGatewayService } from "../daemon/service.js";
-import { uninstallLegacySystemdUnits } from "../daemon/systemd.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
 import { buildGatewayInstallPlan } from "./daemon-install-helpers.js";
@@ -27,8 +19,6 @@ import { DEFAULT_GATEWAY_DAEMON_RUNTIME, type GatewayDaemonRuntime } from "./dae
 import { resolveGatewayAuthTokenForService } from "./doctor-gateway-auth-token.js";
 import type { DoctorOptions, DoctorPrompter } from "./doctor-prompter.js";
 import { isDoctorUpdateRepairMode } from "./doctor-repair-mode.js";
-
-const execFileAsync = promisify(execFile);
 
 function detectGatewayRuntime(programArguments: string[] | undefined): GatewayDaemonRuntime {
   const first = programArguments?.[0];
@@ -62,133 +52,6 @@ async function normalizeExecutablePath(value: string): Promise<string> {
   } catch {
     return resolvedPath;
   }
-}
-
-function extractDetailPath(detail: string, prefix: string): string | null {
-  if (!detail.startsWith(prefix)) {
-    return null;
-  }
-  const value = detail.slice(prefix.length).trim();
-  return value.length > 0 ? value : null;
-}
-
-async function cleanupLegacyLaunchdService(params: {
-  label: string;
-  plistPath: string;
-}): Promise<string | null> {
-  const domain = typeof process.getuid === "function" ? `gui/${process.getuid()}` : "gui/501";
-  await execFileAsync("launchctl", ["bootout", domain, params.plistPath]).catch(() => undefined);
-  await execFileAsync("launchctl", ["unload", params.plistPath]).catch(() => undefined);
-
-  const trashDir = path.join(os.homedir(), ".Trash");
-  try {
-    await fs.mkdir(trashDir, { recursive: true });
-  } catch {
-    // ignore
-  }
-
-  try {
-    await fs.access(params.plistPath);
-  } catch {
-    return null;
-  }
-
-  const dest = path.join(trashDir, `${params.label}-${Date.now()}.plist`);
-  try {
-    await fs.rename(params.plistPath, dest);
-    return dest;
-  } catch {
-    return null;
-  }
-}
-
-function classifyLegacyServices(legacyServices: ExtraGatewayService[]): {
-  darwinUserServices: ExtraGatewayService[];
-  linuxUserServices: ExtraGatewayService[];
-  failed: string[];
-} {
-  const darwinUserServices: ExtraGatewayService[] = [];
-  const linuxUserServices: ExtraGatewayService[] = [];
-  const failed: string[] = [];
-
-  for (const svc of legacyServices) {
-    if (svc.platform === "darwin") {
-      if (svc.scope === "user") {
-        darwinUserServices.push(svc);
-      } else {
-        failed.push(`${svc.label} (${svc.scope})`);
-      }
-      continue;
-    }
-
-    if (svc.platform === "linux") {
-      if (svc.scope === "user") {
-        linuxUserServices.push(svc);
-      } else {
-        failed.push(`${svc.label} (${svc.scope})`);
-      }
-      continue;
-    }
-
-    failed.push(`${svc.label} (${svc.platform})`);
-  }
-
-  return { darwinUserServices, linuxUserServices, failed };
-}
-
-async function cleanupLegacyDarwinServices(
-  services: ExtraGatewayService[],
-): Promise<{ removed: string[]; failed: string[] }> {
-  const removed: string[] = [];
-  const failed: string[] = [];
-
-  for (const svc of services) {
-    const plistPath = extractDetailPath(svc.detail, "plist:");
-    if (!plistPath) {
-      failed.push(`${svc.label} (missing plist path)`);
-      continue;
-    }
-    const dest = await cleanupLegacyLaunchdService({
-      label: svc.label,
-      plistPath,
-    });
-    removed.push(dest ? `${svc.label} -> ${dest}` : svc.label);
-  }
-
-  return { removed, failed };
-}
-
-async function cleanupLegacyLinuxUserServices(
-  services: ExtraGatewayService[],
-  runtime: RuntimeEnv,
-): Promise<{ removed: string[]; failed: string[] }> {
-  const removed: string[] = [];
-  const failed: string[] = [];
-
-  try {
-    const removedUnits = await uninstallLegacySystemdUnits({
-      env: process.env,
-      stdout: process.stdout,
-    });
-    const removedByLabel: Map<string, (typeof removedUnits)[number]> = new Map(
-      removedUnits.map((unit) => [`${unit.name}.service`, unit] as const),
-    );
-    for (const svc of services) {
-      const removedUnit = removedByLabel.get(svc.label);
-      if (!removedUnit) {
-        failed.push(`${svc.label} (legacy unit name not recognized)`);
-        continue;
-      }
-      removed.push(`${svc.label} -> ${removedUnit.unitPath}`);
-    }
-  } catch (err) {
-    runtime.error(`Legacy Linux gateway cleanup failed: ${String(err)}`);
-    for (const svc of services) {
-      failed.push(`${svc.label} (linux cleanup failed)`);
-    }
-  }
-
-  return { removed, failed };
 }
 
 export async function maybeRepairGatewayServiceConfig(
@@ -396,6 +259,8 @@ export async function maybeScanExtraGatewayServices(
   runtime: RuntimeEnv,
   prompter: DoctorPrompter,
 ) {
+  void runtime;
+  void prompter;
   const extraServices = await findExtraGatewayServices(process.env, {
     deep: options.deep,
   });
@@ -407,41 +272,6 @@ export async function maybeScanExtraGatewayServices(
     extraServices.map((svc) => `- ${svc.label} (${svc.scope}, ${svc.detail})`).join("\n"),
     "Other gateway-like services detected",
   );
-
-  const legacyServices = extraServices.filter((svc) => svc.legacy === true);
-  if (legacyServices.length > 0) {
-    const shouldRemove = await prompter.confirmRuntimeRepair({
-      message: "Remove legacy gateway services now?",
-      initialValue: true,
-    });
-    if (shouldRemove) {
-      const removed: string[] = [];
-      const { darwinUserServices, linuxUserServices, failed } =
-        classifyLegacyServices(legacyServices);
-
-      if (darwinUserServices.length > 0) {
-        const result = await cleanupLegacyDarwinServices(darwinUserServices);
-        removed.push(...result.removed);
-        failed.push(...result.failed);
-      }
-
-      if (linuxUserServices.length > 0) {
-        const result = await cleanupLegacyLinuxUserServices(linuxUserServices, runtime);
-        removed.push(...result.removed);
-        failed.push(...result.failed);
-      }
-
-      if (removed.length > 0) {
-        note(removed.map((line) => `- ${line}`).join("\n"), "Legacy gateway removed");
-      }
-      if (failed.length > 0) {
-        note(failed.map((line) => `- ${line}`).join("\n"), "Legacy gateway cleanup skipped");
-      }
-      if (removed.length > 0) {
-        runtime.log("Legacy gateway services removed. Installing CrawClaw gateway next.");
-      }
-    }
-  }
 
   const cleanupHints = renderGatewayServiceCleanupHints();
   if (cleanupHints.length > 0) {

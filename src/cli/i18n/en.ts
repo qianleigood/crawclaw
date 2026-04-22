@@ -518,9 +518,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.backup.verify.example.default":
     "Check that the archive structure and manifest are intact.",
   "command.backup.verify.example.json": "Emit machine-readable verification output.",
-  "command.migrate-crawclaw.description":
-    "One-time migration of legacy CrawClaw state into CrawClaw runtime paths",
-  "command.migrate-crawclaw.option.dryRun": "Preview migration actions without moving files",
   "command.doctor.description": "Health checks + quick fixes for the gateway and channels",
   "command.doctor.option.noWorkspaceSuggestions": "Disable workspace memory system suggestions",
   "command.doctor.option.yes": "Accept defaults without prompting",

@@ -2063,9 +2063,9 @@ install_crawclaw() {
     ui_success "CrawClaw installed"
 }
 
-# Run doctor for migrations (safe, non-interactive)
+# Run doctor for health checks (safe, non-interactive)
 run_doctor() {
-    ui_info "Running doctor to migrate settings"
+    ui_info "Running doctor"
     local claw="${CRAWCLAW_BIN:-}"
     if [[ -z "$claw" ]]; then
         claw="$(resolve_crawclaw_bin || true)"
@@ -2094,7 +2094,7 @@ run_bootstrap_onboarding_if_needed() {
     fi
 
     local config_path="${CRAWCLAW_CONFIG_PATH:-$HOME/.crawclaw/crawclaw.json}"
-    if [[ -f "${config_path}" || -f "$HOME/.clawdbot/clawdbot.json" ]]; then
+    if [[ -f "${config_path}" ]]; then
         return
     fi
 
@@ -2516,7 +2516,7 @@ main() {
             ui_info "Skipping onboard (requested); run crawclaw onboard later"
         else
             local config_path="${CRAWCLAW_CONFIG_PATH:-$HOME/.crawclaw/crawclaw.json}"
-            if [[ -f "${config_path}" || -f "$HOME/.clawdbot/clawdbot.json" ]]; then
+            if [[ -f "${config_path}" ]]; then
                 ui_info "Config already present; running doctor"
                 run_doctor
                 ui_info "Config already present; skipping onboarding"

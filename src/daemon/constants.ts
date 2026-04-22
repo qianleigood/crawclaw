@@ -1,4 +1,4 @@
-// Default service labels (canonical + legacy compatibility)
+// Default service labels
 export const GATEWAY_LAUNCH_AGENT_LABEL = "ai.crawclaw.gateway";
 export const GATEWAY_SYSTEMD_SERVICE_NAME = "crawclaw-gateway";
 export const GATEWAY_WINDOWS_TASK_NAME = "CrawClaw Gateway";
@@ -10,9 +10,6 @@ export const NODE_WINDOWS_TASK_NAME = "CrawClaw Node";
 export const NODE_SERVICE_MARKER = "crawclaw";
 export const NODE_SERVICE_KIND = "node";
 export const NODE_WINDOWS_TASK_SCRIPT_NAME = "node.cmd";
-export const LEGACY_GATEWAY_LAUNCH_AGENT_LABELS: string[] = [];
-export const LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES: string[] = ["clawdbot-gateway"];
-
 export function normalizeGatewayProfile(profile?: string): string | null {
   const trimmed = profile?.trim();
   if (!trimmed || trimmed.toLowerCase() === "default") {
@@ -32,11 +29,6 @@ export function resolveGatewayLaunchAgentLabel(profile?: string): string {
     return GATEWAY_LAUNCH_AGENT_LABEL;
   }
   return `ai.crawclaw.${normalized}`;
-}
-
-export function resolveLegacyGatewayLaunchAgentLabels(profile?: string): string[] {
-  void profile;
-  return [];
 }
 
 export function resolveGatewaySystemdServiceName(profile?: string): string {

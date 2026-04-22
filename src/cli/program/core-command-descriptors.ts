@@ -40,12 +40,6 @@ export const CORE_CLI_COMMAND_DESCRIPTORS = [
     hasSubcommands: true,
   },
   {
-    name: "migrate-crawclaw",
-    description: "One-time migration of legacy CrawClaw state into CrawClaw runtime paths",
-    descriptionKey: "command.migrate-crawclaw.description",
-    hasSubcommands: false,
-  },
-  {
     name: "doctor",
     description: "Health checks + quick fixes for the gateway and channels",
     descriptionKey: "command.doctor.description",

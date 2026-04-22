@@ -45,7 +45,6 @@ describe("oauth paths", () => {
       path.join("/custom/state", "credentials", "oauth.json"),
     );
   });
-
 });
 
 describe("gateway port resolution", () => {
@@ -71,15 +70,6 @@ describe("gateway port resolution", () => {
         envWith({ CRAWCLAW_GATEWAY_PORT: "[::1]:28789" }),
       ),
     ).toBe(28789);
-  });
-
-  it("ignores the legacy env name and falls back to config", () => {
-    expect(
-      resolveGatewayPort(
-        { gateway: { port: 19002 } },
-        envWith({ CLAWDBOT_GATEWAY_PORT: "127.0.0.1:18789" }),
-      ),
-    ).toBe(19002);
   });
 
   it("falls back to config when the Compose-style suffix is invalid", () => {

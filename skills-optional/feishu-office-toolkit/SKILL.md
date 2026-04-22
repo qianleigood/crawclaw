@@ -3,7 +3,7 @@ name: feishu-office-toolkit
 description: |
   飞书办公自动化综合技能，覆盖日历、消息、审批、多维表格、通讯录和考勤等核心办公场景。适合用户明确要“在飞书里”完成办公动作，且需求跨多个飞书模块时使用。
 metadata:
-  clawdbot:
+  crawclaw:
     emoji: "\U0001F3E2"
     requires:
       bins:

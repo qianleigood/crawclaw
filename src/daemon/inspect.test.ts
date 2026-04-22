@@ -45,14 +45,6 @@ Restart=on-failure
 WantedBy=default.target
 `;
 
-const CLAWDBOT_GATEWAY_CONTENTS = `\
-[Unit]
-Description=Clawdbot Gateway
-[Service]
-ExecStart=/usr/bin/node /opt/clawdbot/dist/entry.js gateway --port 18789
-Environment=HOME=/home/clawdbot
-`;
-
 describe("detectMarkerLineWithGateway", () => {
   it("returns null for crawclaw-test.service (crawclaw only in description, no gateway on same line)", () => {
     expect(detectMarkerLineWithGateway(TEST_SERVICE_CONTENTS)).toBeNull();
@@ -60,10 +52,6 @@ describe("detectMarkerLineWithGateway", () => {
 
   it("returns crawclaw for the canonical gateway unit (ExecStart has both crawclaw and gateway)", () => {
     expect(detectMarkerLineWithGateway(GATEWAY_SERVICE_CONTENTS)).toBe("crawclaw");
-  });
-
-  it("returns clawdbot for a clawdbot gateway unit", () => {
-    expect(detectMarkerLineWithGateway(CLAWDBOT_GATEWAY_CONTENTS)).toBe("clawdbot");
   });
 
   it("handles line continuations — marker and gateway split across physical lines", () => {
@@ -109,32 +97,6 @@ describe("findExtraGatewayServices (linux / scanSystemdDir) — real filesystem"
       }
     },
   );
-
-  it.skipIf(!isLinux)(
-    "reports a legacy clawdbot-gateway service as an extra gateway service",
-    async () => {
-      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-test-"));
-      const systemdDir = path.join(tmpHome, ".config", "systemd", "user");
-      const unitPath = path.join(systemdDir, "clawdbot-gateway.service");
-      try {
-        await fs.mkdir(systemdDir, { recursive: true });
-        await fs.writeFile(unitPath, CLAWDBOT_GATEWAY_CONTENTS);
-        const result = await findExtraGatewayServices({ HOME: tmpHome });
-        expect(result).toEqual([
-          {
-            platform: "linux",
-            label: "clawdbot-gateway.service",
-            detail: `unit: ${unitPath}`,
-            scope: "user",
-            marker: "clawdbot",
-            legacy: true,
-          },
-        ]);
-      } finally {
-        await fs.rm(tmpHome, { recursive: true, force: true });
-      }
-    },
-  );
 });
 
 describe("findExtraGatewayServices (win32)", () => {
@@ -172,15 +134,15 @@ describe("findExtraGatewayServices (win32)", () => {
     expect(result).toEqual([]);
   });
 
-  it("collects only non-canonical marker tasks from schtasks output", async () => {
+  it("collects only non-canonical CrawClaw marker tasks from schtasks output", async () => {
     execSchtasksMock.mockResolvedValueOnce({
       code: 0,
       stdout: [
         "TaskName: CrawClaw Gateway",
         "Task To Run: C:\\Program Files\\CrawClaw\\crawclaw.exe gateway run",
         "",
-        "TaskName: Clawdbot Legacy",
-        "Task To Run: C:\\clawdbot\\clawdbot.exe run",
+        "TaskName: CrawClaw Extra Gateway",
+        "Task To Run: C:\\Program Files\\CrawClaw\\crawclaw.exe gateway run --port 19001",
         "",
         "TaskName: Other Task",
         "Task To Run: C:\\tools\\helper.exe",
@@ -193,11 +155,12 @@ describe("findExtraGatewayServices (win32)", () => {
     expect(result).toEqual([
       {
         platform: "win32",
-        label: "Clawdbot Legacy",
-        detail: "task: Clawdbot Legacy, run: C:\\clawdbot\\clawdbot.exe run",
+        label: "CrawClaw Extra Gateway",
+        detail:
+          "task: CrawClaw Extra Gateway, run: C:\\Program Files\\CrawClaw\\crawclaw.exe gateway run --port 19001",
         scope: "system",
-        marker: "clawdbot",
-        legacy: true,
+        marker: "crawclaw",
+        legacy: false,
       },
     ]);
   });

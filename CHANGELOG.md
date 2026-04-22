@@ -9,6 +9,7 @@ Docs: https://docs.crawclaw.ai
 - Android/assistant: auto-send Google Assistant App Actions prompts once chat is healthy and idle, while keeping bare assistant launches as open-only. (#59721) Thanks @obviyus.
 - Matrix/exec approvals: add Matrix-native exec approval prompts with account-scoped approvers, channel-or-DM delivery, and room-thread aware resolution handling. (#58635) Thanks @gumadeiras.
 - Channels/context visibility: add configurable `contextVisibility` per channel (`all`, `allowlist`, `allowlist_quote`) so supplemental room context such as quoted replies, thread roots, and fetched history can be filtered by sender allowlists instead of always passing through as received.
+- CLI/install: remove old pre-CrawClaw compatibility entrypoints, migration command surface, and legacy state-root auto-detection so new installs only advertise the canonical CrawClaw paths.
 
 ### Fixes
 

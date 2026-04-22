@@ -98,8 +98,6 @@ describe("ensureConfigReady", () => {
     expect(loadAndMaybeMigrateDoctorConfigMock).toHaveBeenCalledTimes(expectedDoctorCalls);
     if (expectedDoctorCalls > 0) {
       expect(loadAndMaybeMigrateDoctorConfigMock).toHaveBeenCalledWith({
-        migrateState: false,
-        migrateLegacyConfig: false,
         invalidConfigNote: false,
       });
     }

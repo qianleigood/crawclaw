@@ -14,7 +14,7 @@ describe("gateway/node-catalog", () => {
           deviceId: "legacy-mac",
           publicKey: "legacy-public-key",
           displayName: "Peter's Mac Studio",
-          clientId: "clawdbot-macos",
+          clientId: "crawclaw-macos",
           role: "node",
           roles: ["node"],
           tokens: {

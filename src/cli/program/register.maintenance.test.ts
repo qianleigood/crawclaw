@@ -5,7 +5,6 @@ import { setProgramContext } from "./program-context.js";
 import { registerMaintenanceCommands } from "./register.maintenance.js";
 
 const mocks = vi.hoisted(() => ({
-  migrateCrawClawCommand: vi.fn(),
   doctorCommand: vi.fn(),
   doctorMemoryCommand: vi.fn(),
   uninstallCommand: vi.fn(),
@@ -16,11 +15,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-const { migrateCrawClawCommand, doctorCommand, uninstallCommand, runtime } = mocks;
-
-vi.mock("../../commands/migrate-legacy-state.js", () => ({
-  migrateCrawClawCommand: mocks.migrateCrawClawCommand,
-}));
+const { doctorCommand, uninstallCommand, runtime } = mocks;
 
 vi.mock("../../commands/doctor.js", () => ({
   doctorCommand: mocks.doctorCommand,
@@ -85,17 +80,6 @@ describe("registerMaintenanceCommands doctor action", () => {
       }),
     );
     expect(runtime.exit).toHaveBeenCalledWith(0);
-  });
-
-  it("runs migrate-crawclaw with dry-run support", async () => {
-    migrateCrawClawCommand.mockResolvedValue(undefined);
-
-    await runMaintenanceCli(["migrate-crawclaw", "--dry-run"]);
-
-    expect(migrateCrawClawCommand).toHaveBeenCalledWith(
-      expect.objectContaining({ dryRun: true }),
-      runtime,
-    );
   });
 
   it("exits with code 1 when doctor fails", async () => {

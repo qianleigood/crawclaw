@@ -233,9 +233,3 @@ export PATH="$(npm prefix -g)/bin:$PATH"
     完全移除 CrawClaw。
   </Card>
 </CardGroup>
-
-<Note>
-如果你已经有旧版 CrawClaw 状态目录 `~/.crawclaw`，先运行一次
-`crawclaw migrate-crawclaw`。说明见
-[CrawClaw 到 CrawClaw 迁移](/zh-CN/reference/crawclaw-migration)。
-</Note>

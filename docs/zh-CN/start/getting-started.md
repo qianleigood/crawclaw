@@ -137,12 +137,6 @@ x-i18n:
 - 已配置好的认证
 - `crawclaw tui` 访问能力或一个已连接的渠道
 
-<Note>
-如果你已经有旧版 CrawClaw 状态目录 `~/.crawclaw`，先运行一次
-`crawclaw migrate-crawclaw`。说明见
-[CrawClaw 到 CrawClaw 迁移](/zh-CN/reference/crawclaw-migration)。
-</Note>
-
 ## 后续步骤
 
 - 私信安全和批准：[Pairing](/channels/pairing)

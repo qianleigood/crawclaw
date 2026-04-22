@@ -34,7 +34,6 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
   ```
   安装程序**仅**在仓库干净时才会执行 `git pull --rebase`。
 - 对于**全局安装**，脚本底层使用 `npm install -g crawclaw@latest`。
-- 旧版说明：`clawdbot` 仍可作为兼容性垫片使用。
 
 ## 更新之前
 
@@ -233,5 +232,3 @@ git pull
 - 在 Discord 上提问：https://discord.gg/clawd
 
 另请参阅：
-
-- [CrawClaw 到 CrawClaw 迁移](/zh-CN/reference/crawclaw-migration)

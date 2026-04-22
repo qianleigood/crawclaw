@@ -497,8 +497,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.backup.verify.option.json": "输出 JSON",
   "command.backup.verify.example.default": "检查归档结构和 manifest 是否完整。",
   "command.backup.verify.example.json": "输出机器可读的校验结果。",
-  "command.migrate-crawclaw.description": "一次性迁移旧版 CrawClaw 状态到当前运行目录",
-  "command.migrate-crawclaw.option.dryRun": "预览迁移动作而不移动文件",
   "command.doctor.description": "检查并修复网关与渠道健康状态",
   "command.doctor.option.noWorkspaceSuggestions": "禁用工作区记忆系统建议",
   "command.doctor.option.yes": "不提示，直接接受默认值",

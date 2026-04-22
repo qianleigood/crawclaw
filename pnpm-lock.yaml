@@ -720,12 +720,6 @@ importers:
         specifier: workspace:*
         version: link:../..
 
-  packages/clawdbot:
-    dependencies:
-      crawclaw:
-        specifier: workspace:*
-        version: link:../..
-
   packages/moltbot:
     dependencies:
       crawclaw:

@@ -180,17 +180,17 @@ describe("local media roots", () => {
     expect(roots.map(normalizeHostPath)).not.toContain(normalizeHostPath("/"));
   });
 
-  it("includes the config media root when legacy state and config dirs diverge", () => {
-    const homeRoot = path.join(os.tmpdir(), "crawclaw-legacy-home-test");
+  it("includes the config media root when state and config dirs diverge", () => {
+    const homeRoot = path.join(os.tmpdir(), "crawclaw-home-test");
     const roots = buildMediaLocalRoots(
-      path.join(homeRoot, ".clawdbot"),
+      path.join(homeRoot, ".crawclaw-state"),
       path.join(homeRoot, ".crawclaw"),
     );
 
     expectNormalizedRootsContain(roots, [
-      path.join(homeRoot, ".clawdbot", "media"),
-      path.join(homeRoot, ".clawdbot", "workspace"),
-      path.join(homeRoot, ".clawdbot", "sandboxes"),
+      path.join(homeRoot, ".crawclaw-state", "media"),
+      path.join(homeRoot, ".crawclaw-state", "workspace"),
+      path.join(homeRoot, ".crawclaw-state", "sandboxes"),
       path.join(homeRoot, ".crawclaw", "media"),
     ]);
   });

@@ -36,10 +36,6 @@ import { maybeRepairSandboxImages, noteSandboxScopeWarnings } from "../commands/
 import { noteSecurityWarnings } from "../commands/doctor-security.js";
 import { noteSessionLockHealth } from "../commands/doctor-session-locks.js";
 import { noteStateIntegrity, noteWorkspaceBackupTip } from "../commands/doctor-state-integrity.js";
-import {
-  detectLegacyStateMigrations,
-  runLegacyStateMigrations,
-} from "../commands/doctor-state-migrations.js";
 import { noteWorkspaceStatus } from "../commands/doctor-workspace-status.js";
 import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "../commands/doctor-workspace.js";
 import { noteOpenAIOAuthTlsPrerequisites } from "../commands/oauth-tls-preflight.js";
@@ -208,33 +204,6 @@ async function runGatewayAuthHealth(ctx: DoctorHealthFlowContext): Promise<void>
     },
   };
   note("Gateway token configured.", "Gateway auth");
-}
-
-async function runLegacyStateHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  const legacyState = await detectLegacyStateMigrations({ cfg: ctx.cfg });
-  if (legacyState.preview.length === 0) {
-    return;
-  }
-  note(legacyState.preview.join("\n"), "Legacy state detected");
-  const migrate =
-    ctx.options.nonInteractive === true || ctx.prompter.shouldRepair
-      ? true
-      : await ctx.prompter.confirm({
-          message: "Migrate legacy state (sessions/agent/WhatsApp auth) now?",
-          initialValue: true,
-        });
-  if (!migrate) {
-    return;
-  }
-  const migrated = await runLegacyStateMigrations({
-    detected: legacyState,
-  });
-  if (migrated.changes.length > 0) {
-    note(migrated.changes.join("\n"), "Doctor changes");
-  }
-  if (migrated.warnings.length > 0) {
-    note(migrated.warnings.join("\n"), "Doctor warnings");
-  }
 }
 
 async function runLegacyPluginManifestHealth(ctx: DoctorHealthFlowContext): Promise<void> {
@@ -502,11 +471,6 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
       id: "doctor:gateway-auth",
       label: "Gateway auth",
       run: runGatewayAuthHealth,
-    }),
-    createDoctorHealthContribution({
-      id: "doctor:legacy-state",
-      label: "Legacy state",
-      run: runLegacyStateHealth,
     }),
     createDoctorHealthContribution({
       id: "doctor:legacy-plugin-manifests",

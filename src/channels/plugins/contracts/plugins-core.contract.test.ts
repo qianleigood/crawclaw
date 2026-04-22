@@ -299,7 +299,6 @@ describe("channel plugin catalog", () => {
           env: {
             ...process.env,
             CRAWCLAW_STATE_DIR: stateDir,
-            CLAWDBOT_STATE_DIR: undefined,
             CRAWCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
           },
           expected: {

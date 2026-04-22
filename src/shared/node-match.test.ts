@@ -47,28 +47,6 @@ describe("shared/node-match", () => {
     ).toBe("mac-studio");
   });
 
-  it("prefers a unique current CrawClaw client over a legacy clawdbot client", () => {
-    expect(
-      resolveNodeIdFromCandidates(
-        [
-          {
-            nodeId: "legacy-mac",
-            displayName: "Peter’s Mac Studio",
-            clientId: "clawdbot-macos",
-            connected: false,
-          },
-          {
-            nodeId: "current-mac",
-            displayName: "Peter’s Mac Studio",
-            clientId: "crawclaw-macos",
-            connected: false,
-          },
-        ],
-        "Peter's Mac Studio",
-      ),
-    ).toBe("current-mac");
-  });
-
   it("falls back to raw ambiguous matches when none of them are connected", () => {
     expect(() =>
       resolveNodeIdFromCandidates(
@@ -110,9 +88,9 @@ describe("shared/node-match", () => {
       resolveNodeIdFromCandidates(
         [
           {
-            nodeId: "legacy-mac",
+            nodeId: "first-mac",
             displayName: "Peter’s Mac Studio",
-            clientId: "clawdbot-macos",
+            clientId: "crawclaw-macos",
             connected: true,
           },
           {
@@ -131,7 +109,7 @@ describe("shared/node-match", () => {
         "Peter's Mac Studio",
       ),
     ).toThrow(
-      /ambiguous node: Peter's Mac Studio.*node=other-mac.*client=crawclaw-macos.*node=third-mac.*client=crawclaw-macos/,
+      /ambiguous node: Peter's Mac Studio.*node=first-mac.*client=crawclaw-macos.*node=other-mac.*client=crawclaw-macos.*node=third-mac.*client=crawclaw-macos/,
     );
   });
 

@@ -181,8 +181,3 @@ export PATH="$(npm prefix -g)/bin:$PATH"
 ```
 
 Then open a new terminal. See [Node setup](/install/node) for more details.
-
-<Note>
-If you already have legacy CrawClaw state under `~/.crawclaw`, migrate it once with
-`crawclaw migrate-crawclaw`. See [CrawClaw to CrawClaw migration](/reference/crawclaw-migration).
-</Note>

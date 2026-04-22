@@ -17,7 +17,6 @@ export function resolveIsNixMode(env: NodeJS.ProcessEnv = process.env): boolean 
 
 export const isNixMode = resolveIsNixMode();
 
-const LEGACY_STATE_DIRNAMES = [".crawclaw", ".clawdbot"] as const;
 const NEW_STATE_DIRNAME = ".crawclaw";
 const CONFIG_FILENAME = "crawclaw.json";
 function readEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
@@ -38,24 +37,8 @@ function envHomedir(env: NodeJS.ProcessEnv): () => string {
   return () => resolveRequiredHomeDir(env, os.homedir);
 }
 
-function legacyStateDirs(homedir: () => string = resolveDefaultHomeDir): string[] {
-  return LEGACY_STATE_DIRNAMES.map((dir) => path.join(homedir(), dir));
-}
-
-function newStateDir(homedir: () => string = resolveDefaultHomeDir): string {
+function resolveDefaultStateDir(homedir: () => string = resolveDefaultHomeDir): string {
   return path.join(homedir(), NEW_STATE_DIRNAME);
-}
-
-export function resolveLegacyStateDir(homedir: () => string = resolveDefaultHomeDir): string {
-  return legacyStateDirs(homedir)[0] ?? newStateDir(homedir);
-}
-
-export function resolveLegacyStateDirs(homedir: () => string = resolveDefaultHomeDir): string[] {
-  return legacyStateDirs(homedir);
-}
-
-export function resolveNewStateDir(homedir: () => string = resolveDefaultHomeDir): string {
-  return newStateDir(homedir);
 }
 
 /**
@@ -72,7 +55,7 @@ export function resolveStateDir(
   if (override) {
     return resolveUserPath(override, env, effectiveHomedir);
   }
-  return newStateDir(effectiveHomedir);
+  return resolveDefaultStateDir(effectiveHomedir);
 }
 
 function resolveUserPath(
@@ -164,7 +147,7 @@ export function resolveDefaultConfigCandidates(
     candidates.push(path.join(resolved, CONFIG_FILENAME));
   }
 
-  const defaultDirs = [newStateDir(effectiveHomedir)];
+  const defaultDirs = [resolveDefaultStateDir(effectiveHomedir)];
   for (const dir of defaultDirs) {
     candidates.push(path.join(dir, CONFIG_FILENAME));
   }

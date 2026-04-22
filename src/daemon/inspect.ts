@@ -15,7 +15,7 @@ export type ExtraGatewayService = {
   label: string;
   detail: string;
   scope: "user" | "system";
-  marker?: "crawclaw" | "clawdbot";
+  marker?: "crawclaw";
   legacy?: boolean;
 };
 
@@ -23,7 +23,7 @@ export type FindExtraGatewayServicesOptions = {
   deep?: boolean;
 };
 
-const EXTRA_MARKERS = ["crawclaw", "clawdbot"] as const;
+const EXTRA_MARKERS = ["crawclaw"] as const;
 
 export function renderGatewayServiceCleanupHints(
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
@@ -140,11 +140,6 @@ function isIgnoredSystemdName(name: string): boolean {
   return name === resolveGatewaySystemdServiceName();
 }
 
-function isLegacyLabel(label: string): boolean {
-  const lower = label.toLowerCase();
-  return lower.includes("clawdbot");
-}
-
 async function readDirEntries(dir: string): Promise<string[]> {
   try {
     return await fs.readdir(dir);
@@ -208,33 +203,21 @@ async function scanLaunchdDir(params: {
     const marker = detectMarker(contents);
     const label = tryExtractPlistLabel(contents) ?? labelFromName;
     if (!marker) {
-      const legacyLabel = isLegacyLabel(labelFromName) || isLegacyLabel(label);
-      if (!legacyLabel) {
-        continue;
-      }
-      results.push({
-        platform: "darwin",
-        label,
-        detail: `plist: ${fullPath}`,
-        scope: params.scope,
-        marker: "clawdbot",
-        legacy: true,
-      });
       continue;
     }
     if (isIgnoredLaunchdLabel(label)) {
       continue;
     }
-      if (marker === "crawclaw" && isCanonicalGatewayLaunchdService(label, contents)) {
-        continue;
-      }
+    if (marker === "crawclaw" && isCanonicalGatewayLaunchdService(label, contents)) {
+      continue;
+    }
     results.push({
       platform: "darwin",
       label,
       detail: `plist: ${fullPath}`,
       scope: params.scope,
       marker,
-        legacy: marker !== "crawclaw" || isLegacyLabel(label),
+      legacy: false,
     });
   }
 
@@ -266,7 +249,7 @@ async function scanSystemdDir(params: {
       detail: `unit: ${fullPath}`,
       scope: params.scope,
       marker,
-      legacy: marker !== "crawclaw",
+      legacy: false,
     });
   }
 
@@ -431,7 +414,7 @@ export async function findExtraGatewayServices(
         detail: task.taskToRun ? `task: ${name}, run: ${task.taskToRun}` : name,
         scope: "system",
         marker,
-        legacy: marker !== "crawclaw",
+        legacy: false,
       });
     }
     return results;

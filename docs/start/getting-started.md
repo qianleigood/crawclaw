@@ -112,8 +112,3 @@ Legacy `CRAWCLAW_*` aliases are still accepted while older installs migrate.
 
 Full reference: [Environment variables](/help/environment).
 </Accordion>
-
-<Note>
-If you already have legacy CrawClaw state under `~/.crawclaw`, migrate it once with
-`crawclaw migrate-crawclaw`. See [CrawClaw to CrawClaw migration](/reference/crawclaw-migration).
-</Note>

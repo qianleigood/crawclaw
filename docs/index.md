@@ -117,8 +117,6 @@ Config lives at `~/.crawclaw/crawclaw.json`.
 - If you **do nothing**, CrawClaw uses the bundled Pi binary in RPC mode with per-sender sessions.
 - If you want to lock it down, start with `channels.whatsapp.allowFrom` and (for groups) mention rules.
 
-If you already have legacy CrawClaw state under `~/.crawclaw`, migrate it once with `crawclaw migrate-crawclaw`.
-
 Example:
 
 ```json5

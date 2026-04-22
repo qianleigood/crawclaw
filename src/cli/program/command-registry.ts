@@ -110,11 +110,6 @@ const coreEntries: CoreCliEntry[] = [
   {
     commands: [
       {
-        name: "migrate-crawclaw",
-        description: "One-time migration of legacy CrawClaw state into CrawClaw runtime paths",
-        hasSubcommands: false,
-      },
-      {
         name: "doctor",
         description: "Health checks + quick fixes for the gateway and channels",
         hasSubcommands: false,

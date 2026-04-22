@@ -35,7 +35,6 @@ const mocks = vi.hoisted(() => ({
   resolveIsNixMode: vi.fn(() => false),
   findExtraGatewayServices: vi.fn().mockResolvedValue([]),
   renderGatewayServiceCleanupHints: vi.fn().mockReturnValue([]),
-  uninstallLegacySystemdUnits: vi.fn().mockResolvedValue([]),
   note: vi.fn(),
 }));
 
@@ -77,10 +76,6 @@ vi.mock("../daemon/service.js", () => ({
     stage: mocks.stage,
     install: mocks.install,
   }),
-}));
-
-vi.mock("../daemon/systemd.js", () => ({
-  uninstallLegacySystemdUnits: mocks.uninstallLegacySystemdUnits,
 }));
 
 vi.mock("../terminal/note.js", () => ({
@@ -424,9 +419,9 @@ describe("maybeRepairGatewayServiceConfig", () => {
   it("treats SecretRef-managed gateway token as non-persisted service state", async () => {
     mocks.readCommand.mockResolvedValue({
       programArguments: gatewayProgramArguments,
-        environment: {
-          CRAWCLAW_GATEWAY_TOKEN: "stale-token",
-        },
+      environment: {
+        CRAWCLAW_GATEWAY_TOKEN: "stale-token",
+      },
     });
     mocks.auditGatewayServiceConfig.mockResolvedValue({
       ok: false,
@@ -600,26 +595,21 @@ describe("maybeScanExtraGatewayServices", () => {
     vi.clearAllMocks();
     mocks.findExtraGatewayServices.mockResolvedValue([]);
     mocks.renderGatewayServiceCleanupHints.mockReturnValue([]);
-    mocks.uninstallLegacySystemdUnits.mockResolvedValue([]);
   });
 
-  it("removes legacy Linux user systemd services", async () => {
+  it("shows cleanup hints for extra gateway-like services", async () => {
     mocks.findExtraGatewayServices.mockResolvedValue([
       {
         platform: "linux",
-        label: "clawdbot-gateway.service",
-        detail: "unit: /home/test/.config/systemd/user/clawdbot-gateway.service",
+        label: "crawclaw-gateway-extra.service",
+        detail: "unit: /home/test/.config/systemd/user/crawclaw-gateway-extra.service",
         scope: "user",
-        legacy: true,
+        marker: "crawclaw",
+        legacy: false,
       },
     ]);
-    mocks.uninstallLegacySystemdUnits.mockResolvedValue([
-      {
-        name: "clawdbot-gateway",
-        unitPath: "/home/test/.config/systemd/user/clawdbot-gateway.service",
-        enabled: true,
-        exists: true,
-      },
+    mocks.renderGatewayServiceCleanupHints.mockReturnValue([
+      "systemctl --user disable --now crawclaw-gateway.service",
     ]);
 
     const runtime = { log: vi.fn(), error: vi.fn(), exit: vi.fn() };
@@ -642,17 +632,15 @@ describe("maybeScanExtraGatewayServices", () => {
 
     await maybeScanExtraGatewayServices({ deep: false }, runtime, prompter);
 
-    expect(mocks.uninstallLegacySystemdUnits).toHaveBeenCalledTimes(1);
-    expect(mocks.uninstallLegacySystemdUnits).toHaveBeenCalledWith({
-      env: process.env,
-      stdout: process.stdout,
-    });
     expect(mocks.note).toHaveBeenCalledWith(
-      expect.stringContaining("clawdbot-gateway.service"),
-      "Legacy gateway removed",
+      expect.stringContaining("crawclaw-gateway-extra.service"),
+      "Other gateway-like services detected",
     );
-    expect(runtime.log).toHaveBeenCalledWith(
-      "Legacy gateway services removed. Installing CrawClaw gateway next.",
+    expect(mocks.note).toHaveBeenCalledWith(
+      expect.stringContaining("systemctl --user disable --now crawclaw-gateway.service"),
+      "Cleanup hints",
     );
+    expect(prompter.confirmRuntimeRepair).not.toHaveBeenCalled();
+    expect(runtime.log).not.toHaveBeenCalled();
   });
 });

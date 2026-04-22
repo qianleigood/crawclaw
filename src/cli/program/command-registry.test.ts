@@ -20,7 +20,6 @@ vi.mock("./register.backup.js", () => ({
 
 vi.mock("./register.maintenance.js", () => ({
   registerMaintenanceCommands: (program: Command) => {
-    program.command("migrate-crawclaw");
     program.command("doctor");
     program.command("reset");
     program.command("uninstall");
@@ -139,7 +138,6 @@ describe("command-registry", () => {
     expect(await registerCoreCliByName(program, testProgramContext, "doctor")).toBe(true);
 
     const names = getCoreCliCommandNames();
-    expect(names).toContain("migrate-crawclaw");
     expect(names).toContain("doctor");
     expect(names).toContain("reset");
     expect(names).toContain("uninstall");
@@ -168,6 +166,6 @@ describe("command-registry", () => {
 
     const found = await registerCoreCliByName(program, testProgramContext, "reset");
     expect(found).toBe(true);
-    expect(namesOf(program)).toEqual(["migrate-crawclaw", "doctor", "reset", "uninstall"]);
+    expect(namesOf(program)).toEqual(["doctor", "reset", "uninstall"]);
   });
 });

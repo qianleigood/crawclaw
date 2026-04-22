@@ -3,10 +3,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createPinnedLookup } from "crawclaw/plugin-sdk/fetch-runtime";
+import * as ssrf from "crawclaw/plugin-sdk/infra-runtime";
 import { resetInboundDedupe } from "crawclaw/plugin-sdk/reply-runtime";
 import { resetLogger, setLoggerOverride } from "crawclaw/plugin-sdk/runtime-env";
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
-import * as ssrf from "../../../src/infra/net/ssrf.js";
 import type { WebInboundMessage, WebListenerCloseReason } from "./inbound.js";
 import {
   resetBaileysMocks as _resetBaileysMocks,

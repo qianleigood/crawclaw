@@ -1,7 +1,24 @@
 ---
 name: gog
 description: Google Workspace CLI for Gmail, Calendar, Drive, Contacts, Sheets, and Docs.
-metadata: {"clawdbot":{"emoji":"🎮","requires":{"bins":["gog"]},"install":[{"id":"brew","kind":"brew","formula":"steipete/tap/gogcli","bins":["gog"],"label":"Install gog (brew)"}]}}
+metadata:
+  {
+    "crawclaw":
+      {
+        "emoji": "🎮",
+        "requires": { "bins": ["gog"] },
+        "install":
+          [
+            {
+              "id": "brew",
+              "kind": "brew",
+              "formula": "steipete/tap/gogcli",
+              "bins": ["gog"],
+              "label": "Install gog (brew)",
+            },
+          ],
+      },
+  }
 ---
 
 # gog
@@ -9,11 +26,13 @@ metadata: {"clawdbot":{"emoji":"🎮","requires":{"bins":["gog"]},"install":[{"i
 Use `gog` for Gmail/Calendar/Drive/Contacts/Sheets/Docs. Requires OAuth setup.
 
 Setup (once)
+
 - `gog auth credentials /path/to/client_secret.json`
 - `gog auth add you@gmail.com --services gmail,calendar,drive,contacts,sheets,docs`
 - `gog auth list`
 
 Common commands
+
 - Gmail search: `gog gmail search 'newer_than:7d' --max 10`
 - Gmail send: `gog gmail send --to a@b.com --subject "Hi" --body "Hello"`
 - Calendar: `gog calendar events <calendarId> --from <iso> --to <iso>`
@@ -28,6 +47,7 @@ Common commands
 - Docs cat: `gog docs cat <docId>`
 
 Notes
+
 - Set `GOG_ACCOUNT=you@gmail.com` to avoid repeating `--account`.
 - For scripting, prefer `--json` plus `--no-input`.
 - Sheets values can be passed via `--values-json` (recommended) or as inline rows.

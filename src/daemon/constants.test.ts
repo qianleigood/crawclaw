@@ -4,7 +4,6 @@ import {
   GATEWAY_LAUNCH_AGENT_LABEL,
   GATEWAY_SYSTEMD_SERVICE_NAME,
   GATEWAY_WINDOWS_TASK_NAME,
-  LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES,
   normalizeGatewayProfile,
   resolveGatewayLaunchAgentLabel,
   resolveGatewayProfileSuffix,
@@ -127,11 +126,5 @@ describe("resolveGatewayServiceDescription", () => {
         environment: { CRAWCLAW_SERVICE_VERSION: "remote" },
       }),
     ).toBe("CrawClaw Gateway (profile: work, vremote)");
-  });
-});
-
-describe("LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES", () => {
-  it("includes known pre-rebrand gateway unit names", () => {
-    expect(LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES).toContain("clawdbot-gateway");
   });
 });

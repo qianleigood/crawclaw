@@ -1,7 +1,6 @@
 import type { Command } from "commander";
 import { doctorMemoryCommand } from "../../commands/doctor-memory-health.js";
 import { doctorCommand } from "../../commands/doctor.js";
-import { migrateCrawClawCommand } from "../../commands/migrate-legacy-state.js";
 import { uninstallCommand } from "../../commands/uninstall.js";
 import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
@@ -12,21 +11,6 @@ import { getProgramContext } from "./program-context.js";
 
 export function registerMaintenanceCommands(program: Command) {
   const t = getProgramContext(program)?.t ?? createCliTranslator("en");
-  program
-    .command("migrate-crawclaw")
-    .description(t("command.migrate-crawclaw.description"))
-    .option("--dry-run", t("command.migrate-crawclaw.option.dryRun"), false)
-    .action(async (opts) => {
-      await runCommandWithRuntime(defaultRuntime, async () => {
-        await migrateCrawClawCommand(
-          {
-            dryRun: Boolean(opts.dryRun),
-          },
-          defaultRuntime,
-        );
-      });
-    });
-
   const doctor = program
     .command("doctor")
     .description(t("command.doctor.description"))
