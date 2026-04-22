@@ -36,9 +36,10 @@ BUILD_LOCK_DIR="${TMPDIR:-/tmp}/crawclaw-parallels-build.lock"
 TIMEOUT_SNAPSHOT_S=240
 TIMEOUT_INSTALL_S=1200
 TIMEOUT_VERIFY_S=120
-TIMEOUT_ONBOARD_S=240
+TIMEOUT_ONBOARD_S=420
 TIMEOUT_GATEWAY_S=120
 TIMEOUT_AGENT_S=180
+TIMEOUT_GUEST_POLL_S=45
 
 FRESH_MAIN_STATUS="skip"
 FRESH_MAIN_VERSION="skip"
@@ -1046,7 +1047,7 @@ EOF
   while :; do
     set +e
     done_status="$(
-      guest_powershell_poll 20 "\$done = Join-Path \$env:TEMP '$done_name'; if (Test-Path \$done) { (Get-Content \$done -Raw).Trim() }"
+      guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$done = Join-Path \$env:TEMP '$done_name'; if (Test-Path \$done) { (Get-Content \$done -Raw).Trim() }"
     )"
     poll_rc=$?
     set -e
@@ -1062,7 +1063,7 @@ EOF
     fi
     if [[ -n "$done_status" ]]; then
       set +e
-      guest_powershell_poll 20 "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
+      guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
       log_rc=$?
       set -e
       if [[ $log_rc -ne 0 ]]; then
@@ -1074,7 +1075,7 @@ EOF
     if [[ "$startup_checked" -eq 0 && $((SECONDS - start_seconds)) -ge 20 ]]; then
       set +e
       launcher_state="$(
-        guest_powershell_poll 20 "\$runner = Join-Path \$env:TEMP '$runner_name'; \$log = Join-Path \$env:TEMP '$log_name'; \$done = Join-Path \$env:TEMP '$done_name'; 'runner=' + (Test-Path \$runner) + ' log=' + (Test-Path \$log) + ' done=' + (Test-Path \$done)"
+        guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$runner = Join-Path \$env:TEMP '$runner_name'; \$log = Join-Path \$env:TEMP '$log_name'; \$done = Join-Path \$env:TEMP '$done_name'; 'runner=' + (Test-Path \$runner) + ' log=' + (Test-Path \$log) + ' done=' + (Test-Path \$done)"
       )"
       state_rc=$?
       set -e
@@ -1087,7 +1088,7 @@ EOF
     fi
     if (( SECONDS >= poll_deadline )); then
       set +e
-      guest_powershell_poll 20 "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
+      guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
       log_rc=$?
       set -e
       if [[ $log_rc -ne 0 ]]; then
@@ -1161,7 +1162,7 @@ EOF
   while :; do
     set +e
     done_status="$(
-      guest_powershell_poll 20 "\$done = Join-Path \$env:TEMP '$done_name'; if (Test-Path \$done) { (Get-Content \$done -Raw).Trim() }"
+      guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$done = Join-Path \$env:TEMP '$done_name'; if (Test-Path \$done) { (Get-Content \$done -Raw).Trim() }"
     )"
     poll_rc=$?
     set -e
@@ -1177,7 +1178,7 @@ EOF
     fi
     if [[ -n "$done_status" ]]; then
       set +e
-      guest_powershell_poll 20 "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
+      guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
       log_rc=$?
       set -e
       if [[ $log_rc -ne 0 ]]; then
@@ -1189,7 +1190,7 @@ EOF
     if [[ "$startup_checked" -eq 0 && $((SECONDS - start_seconds)) -ge 20 ]]; then
       set +e
       launcher_state="$(
-        guest_powershell_poll 20 "\$runner = Join-Path \$env:TEMP '$runner_name'; \$log = Join-Path \$env:TEMP '$log_name'; \$done = Join-Path \$env:TEMP '$done_name'; 'runner=' + (Test-Path \$runner) + ' log=' + (Test-Path \$log) + ' done=' + (Test-Path \$done)"
+        guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$runner = Join-Path \$env:TEMP '$runner_name'; \$log = Join-Path \$env:TEMP '$log_name'; \$done = Join-Path \$env:TEMP '$done_name'; 'runner=' + (Test-Path \$runner) + ' log=' + (Test-Path \$log) + ' done=' + (Test-Path \$done)"
       )"
       state_rc=$?
       set -e
@@ -1202,7 +1203,7 @@ EOF
     fi
     if (( SECONDS >= poll_deadline )); then
       set +e
-      guest_powershell_poll 20 "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
+      guest_powershell_poll "$TIMEOUT_GUEST_POLL_S" "\$log = Join-Path \$env:TEMP '$log_name'; if (Test-Path \$log) { Get-Content \$log }"
       log_rc=$?
       set -e
       if [[ $log_rc -ne 0 ]]; then
