@@ -101,6 +101,17 @@ describe("inspectGatewayRestart", () => {
     Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
   });
 
+  it("uses a longer default restart health budget on Windows", async () => {
+    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    vi.resetModules();
+
+    const { DEFAULT_RESTART_HEALTH_TIMEOUT_MS, DEFAULT_RESTART_HEALTH_ATTEMPTS } =
+      await import("./restart-health.js");
+
+    expect(DEFAULT_RESTART_HEALTH_TIMEOUT_MS).toBe(120_000);
+    expect(DEFAULT_RESTART_HEALTH_ATTEMPTS).toBe(240);
+  });
+
   it("treats a gateway listener child pid as healthy ownership", async () => {
     const snapshot = await inspectGatewayRestartWithSnapshot({
       runtime: { status: "running", pid: 7000 },
