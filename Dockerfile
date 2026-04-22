@@ -146,7 +146,7 @@ RUN --mount=type=cache,id=crawclaw-bookworm-apt-cache,target=/var/cache/apt,shar
       DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends; \
     fi && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      procps hostname curl git lsof openssl
+      procps hostname curl git lsof openssl python3 python3-venv
 
 RUN chown node:node /app
 
@@ -154,6 +154,8 @@ COPY --from=runtime-assets --chown=node:node /app/dist ./dist
 COPY --from=runtime-assets --chown=node:node /app/node_modules ./node_modules
 COPY --from=runtime-assets --chown=node:node /app/package.json .
 COPY --from=runtime-assets --chown=node:node /app/crawclaw.mjs .
+COPY --from=runtime-assets --chown=node:node /app/scripts/install-plugin-runtimes.mjs ./scripts/install-plugin-runtimes.mjs
+COPY --from=runtime-assets --chown=node:node /app/scripts/npm-runner.mjs ./scripts/npm-runner.mjs
 COPY --from=runtime-assets --chown=node:node /app/${CRAWCLAW_BUNDLED_PLUGIN_DIR} ./${CRAWCLAW_BUNDLED_PLUGIN_DIR}
 COPY --from=runtime-assets --chown=node:node /app/skills ./skills
 COPY --from=runtime-assets --chown=node:node /app/docs ./docs
@@ -247,6 +249,8 @@ ENV NODE_ENV=production
 # The node:24-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
 USER node
+
+RUN node scripts/install-plugin-runtimes.mjs
 
 # Start gateway server with default config.
 # Binds to loopback (127.0.0.1) by default for security.
