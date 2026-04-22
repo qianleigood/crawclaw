@@ -10,6 +10,17 @@ import {
 } from "./auto-reply.test-harness.js";
 import type { WebInboundMessage } from "./inbound.js";
 
+const fetchRemoteMediaMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../../../src/media/fetch.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/media/fetch.js")>();
+  return {
+    ...actual,
+    fetchRemoteMedia: (...args: Parameters<typeof actual.fetchRemoteMedia>) =>
+      fetchRemoteMediaMock(...args),
+  };
+});
+
 installWebAutoReplyTestHomeHooks();
 
 let monitorWebChannel: typeof import("./auto-reply.js").monitorWebChannel;
@@ -93,15 +104,13 @@ describe("web auto-reply", () => {
     }
   }
 
-  function mockFetchMediaBuffer(buffer: Buffer, mime: string) {
-    return vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      body: true,
-      arrayBuffer: async () =>
-        buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
-      headers: { get: () => mime },
-      status: 200,
-    } as unknown as Response);
+  function mockFetchMediaBuffer(buffer: Buffer, mime: string, fileName?: string) {
+    fetchRemoteMediaMock.mockResolvedValue({
+      buffer,
+      contentType: mime,
+      fileName,
+    });
+    return { mockRestore: () => fetchRemoteMediaMock.mockReset() };
   }
 
   async function expectCompressedImageWithinCap(params: {
@@ -186,19 +195,16 @@ describe("web auto-reply", () => {
       });
       let fetchIndex = 0;
 
-      const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+      fetchRemoteMediaMock.mockImplementation(async () => {
         const matched =
           renderedFormats[Math.min(fetchIndex, renderedFormats.length - 1)] ?? renderedFormats[0];
         fetchIndex += 1;
         const { image, mime } = matched;
         return {
-          ok: true,
-          body: true,
-          arrayBuffer: async () =>
-            image.buffer.slice(image.byteOffset, image.byteOffset + image.byteLength),
-          headers: { get: () => mime },
-          status: 200,
-        } as unknown as Response;
+          buffer: image,
+          contentType: mime,
+          fileName: `big.${matched.name}`,
+        };
       });
 
       try {
@@ -222,7 +228,7 @@ describe("web auto-reply", () => {
         expect(sendMedia).toHaveBeenCalledTimes(renderedFormats.length);
         expect(reply).not.toHaveBeenCalled();
       } finally {
-        fetchMock.mockRestore();
+        fetchRemoteMediaMock.mockReset();
       }
     });
   });
@@ -281,7 +287,7 @@ describe("web auto-reply", () => {
         resolverValue: { text: "hi", mediaUrl: "https://example.com/account-big.png" },
         sendMedia,
       });
-      const fetchMock = mockFetchMediaBuffer(bigPng, "image/png");
+      const fetchMock = mockFetchMediaBuffer(bigPng, "image/png", "account-big.png");
 
       await dispatch("msg-account-cap", { accountId: "work" });
 
@@ -301,13 +307,7 @@ describe("web auto-reply", () => {
       sendMedia,
     });
 
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      body: true,
-      arrayBuffer: async () => Buffer.from("%PDF-1.4").buffer,
-      headers: { get: () => "application/pdf" },
-      status: 200,
-    } as unknown as Response);
+    const fetchMock = mockFetchMediaBuffer(Buffer.from("%PDF-1.4"), "application/pdf", "file.pdf");
 
     await dispatch("msg-pdf");
 
@@ -345,14 +345,7 @@ describe("web auto-reply", () => {
     })
       .png()
       .toBuffer();
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      body: true,
-      arrayBuffer: async () =>
-        smallPng.buffer.slice(smallPng.byteOffset, smallPng.byteOffset + smallPng.byteLength),
-      headers: { get: () => "image/png" },
-      status: 200,
-    } as unknown as Response);
+    const fetchMock = mockFetchMediaBuffer(smallPng, "image/png", "img.png");
 
     await dispatch("msg1");
 
@@ -372,13 +365,9 @@ describe("web auto-reply", () => {
       sendMedia,
     });
 
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: false,
-      status: 404,
-      body: null,
-      arrayBuffer: async () => new ArrayBuffer(0),
-      headers: { get: () => "text/plain" },
-    } as unknown as Response);
+    fetchRemoteMediaMock.mockRejectedValue(
+      new Error("Failed to fetch media from https://example.com/missing.jpg: HTTP 404"),
+    );
 
     await dispatch("msg1");
 
@@ -388,7 +377,7 @@ describe("web auto-reply", () => {
     expect(fallback).toContain("Media failed");
     expect(fallback).toContain("404");
 
-    fetchMock.mockRestore();
+    fetchRemoteMediaMock.mockReset();
   });
   it("sends media with a caption when delivery succeeds", async () => {
     const sendMedia = vi.fn().mockResolvedValue(undefined);
@@ -411,13 +400,7 @@ describe("web auto-reply", () => {
       .png()
       .toBuffer();
 
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      body: true,
-      arrayBuffer: async () => png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength),
-      headers: { get: () => "image/png" },
-      status: 200,
-    } as unknown as Response);
+    const fetchMock = mockFetchMediaBuffer(png, "image/png", "img.png");
 
     await dispatch("msg1");
 
