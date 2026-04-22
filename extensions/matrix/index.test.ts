@@ -38,6 +38,7 @@ describe("matrix plugin", () => {
         {
           name: "matrix",
           description: "Manage Matrix accounts, verification, devices, and profile state",
+          descriptionZhCN: "管理 Matrix 账号、验证、设备和资料状态",
           hasSubcommands: true,
         },
       ],
@@ -49,7 +50,7 @@ describe("matrix plugin", () => {
     const result = registrar?.({ program } as never);
 
     await result;
-    expect(cliMocks.registerMatrixCli).toHaveBeenCalledWith({ program });
+    expect(cliMocks.registerMatrixCli).toHaveBeenCalledWith({ program, locale: undefined });
     expect(registerGatewayMethod).not.toHaveBeenCalled();
   });
 

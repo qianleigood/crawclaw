@@ -244,7 +244,7 @@
           "exportName": "CliBackendPlugin",
           "kind": "type",
           "source": {
-            "line": 1829,
+            "line": 1833,
             "path": "src/plugins/types.ts"
           }
         },
@@ -289,7 +289,7 @@
           "exportName": "CrawClawPluginApi",
           "kind": "type",
           "source": {
-            "line": 1873,
+            "line": 1877,
             "path": "src/plugins/types.ts"
           }
         },
@@ -3792,7 +3792,7 @@
           "exportName": "CrawClawPluginApi",
           "kind": "type",
           "source": {
-            "line": 1873,
+            "line": 1877,
             "path": "src/plugins/types.ts"
           }
         },
@@ -3819,7 +3819,7 @@
           "exportName": "CrawClawPluginDefinition",
           "kind": "type",
           "source": {
-            "line": 1855,
+            "line": 1859,
             "path": "src/plugins/types.ts"
           }
         },
@@ -3828,7 +3828,7 @@
           "exportName": "CrawClawPluginService",
           "kind": "type",
           "source": {
-            "line": 1822,
+            "line": 1826,
             "path": "src/plugins/types.ts"
           }
         },
@@ -3837,7 +3837,7 @@
           "exportName": "CrawClawPluginServiceContext",
           "kind": "type",
           "source": {
-            "line": 1814,
+            "line": 1818,
             "path": "src/plugins/types.ts"
           }
         },
@@ -4451,7 +4451,7 @@
           "exportName": "CrawClawPluginApi",
           "kind": "type",
           "source": {
-            "line": 1873,
+            "line": 1877,
             "path": "src/plugins/types.ts"
           }
         },
@@ -4478,7 +4478,7 @@
           "exportName": "CrawClawPluginDefinition",
           "kind": "type",
           "source": {
-            "line": 1855,
+            "line": 1859,
             "path": "src/plugins/types.ts"
           }
         },
@@ -4487,7 +4487,7 @@
           "exportName": "CrawClawPluginService",
           "kind": "type",
           "source": {
-            "line": 1822,
+            "line": 1826,
             "path": "src/plugins/types.ts"
           }
         },
@@ -4496,7 +4496,7 @@
           "exportName": "CrawClawPluginServiceContext",
           "kind": "type",
           "source": {
-            "line": 1814,
+            "line": 1818,
             "path": "src/plugins/types.ts"
           }
         },

@@ -43,7 +43,7 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
   program
     .name(CLI_NAME)
     .description("")
-    .version(ctx.programVersion)
+    .version(ctx.programVersion, "-V, --version", ctx.t("cli.option.version"))
     .option("--lang <locale>", ctx.t("cli.option.lang"))
     .option("--container <name>", ctx.t("cli.option.container"))
     .option("--dev", ctx.t("cli.option.dev"))
@@ -84,9 +84,9 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
     }
 
     return output
-      .replace(/^Usage:/gm, theme.heading("Usage:"))
-      .replace(/^Options:/gm, theme.heading("Options:"))
-      .replace(/^Commands:/gm, theme.heading("Commands:"));
+      .replace(/^Usage:/gm, theme.heading(ctx.t("cli.help.usageHeading")))
+      .replace(/^Options:/gm, theme.heading(ctx.t("cli.help.optionsHeading")))
+      .replace(/^Commands:/gm, theme.heading(ctx.t("cli.help.commandsHeading")));
   };
 
   program.configureOutput({
@@ -116,7 +116,10 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
       return "";
     }
     const rich = isRich();
-    const line = formatCliBannerLine(ctx.programVersion, { richTty: rich });
+    const line = formatCliBannerLine(ctx.programVersion, {
+      richTty: rich,
+      mode: ctx.locale === "zh-CN" ? "off" : undefined,
+    });
     return `\n${line}\n`;
   });
 

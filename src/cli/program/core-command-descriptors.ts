@@ -70,6 +70,12 @@ export const CORE_CLI_COMMAND_DESCRIPTORS = [
     hasSubcommands: true,
   },
   {
+    name: "mcp",
+    description: "Manage CrawClaw MCP config and channel bridge",
+    descriptionKey: "command.mcp.description",
+    hasSubcommands: true,
+  },
+  {
     name: "agent",
     description: "Run one agent turn via the Gateway",
     descriptionKey: "command.agent.description",

@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createCliTranslator } from "../cli/i18n/index.js";
+import { setProgramContext } from "../cli/program/program-context.js";
 import type { CrawClawConfig } from "../config/config.js";
 
 const mocks = vi.hoisted(() => ({
@@ -36,6 +38,7 @@ function createCliRegistry(params?: {
   memoryDescriptors?: Array<{
     name: string;
     description: string;
+    descriptionZhCN?: string;
     hasSubcommands: boolean;
   }>;
 }) {
@@ -238,6 +241,38 @@ describe("registerPluginCliCommands", () => {
     );
   });
 
+  it("localizes plugin CLI descriptors for zh-CN root help", async () => {
+    mocks.loadCrawClawPluginCliRegistry.mockResolvedValue({
+      cliRegistrars: [
+        {
+          pluginId: "matrix",
+          register: vi.fn(),
+          commands: ["matrix"],
+          descriptors: [
+            {
+              name: "matrix",
+              description: "Matrix channel utilities",
+              descriptionZhCN: "Matrix 渠道工具",
+              hasSubcommands: true,
+            },
+          ],
+          source: "bundled",
+        },
+      ],
+    });
+
+    await expect(
+      getPluginCliCommandDescriptors({} as CrawClawConfig, undefined, { locale: "zh-CN" }),
+    ).resolves.toEqual([
+      {
+        name: "matrix",
+        description: "Matrix 渠道工具",
+        descriptionZhCN: "Matrix 渠道工具",
+        hasSubcommands: true,
+      },
+    ]);
+  });
+
   it("keeps runtime CLI command registration on the full plugin loader for legacy channel plugins", async () => {
     const { rawConfig, autoEnabledConfig } = createAutoEnabledCliFixture();
     mocks.applyPluginAutoEnable.mockReturnValue({
@@ -337,6 +372,28 @@ describe("registerPluginCliCommands", () => {
 
     expect(mocks.memoryRegister).toHaveBeenCalledTimes(1);
     expect(mocks.memoryListAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes the root CLI locale to plugin registrars", async () => {
+    const program = createProgram();
+    setProgramContext(program, {
+      programVersion: "0.0.0-test",
+      locale: "zh-CN",
+      t: createCliTranslator("zh-CN"),
+      channelOptions: [],
+      messageChannelOptions: "",
+      agentChannelOptions: "",
+    });
+
+    await registerPluginCliCommands(program, {} as CrawClawConfig);
+
+    expect(mocks.memoryRegister).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locale: "zh-CN",
+        t: expect.any(Function),
+      }),
+    );
+    expect(mocks.memoryRegister.mock.calls[0]?.[0].t("common.confirm")).toBe("确认");
   });
 
   it("falls back to eager registration when descriptors do not cover every command root", async () => {

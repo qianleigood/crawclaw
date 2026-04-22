@@ -171,5 +171,5 @@ export function registerFeishuPermTools(api: CrawClawPluginApi) {
     { name: "feishu_perm" },
   );
 
-  api.logger.info?.(`feishu_perm: Registered feishu_perm tool`);
+  api.logger.debug?.(`feishu_perm: Registered feishu_perm tool`);
 }

@@ -31,7 +31,7 @@ async function buildRootHelpProgram(): Promise<Command> {
     program.command(command.name).description(command.description);
     existingCommands.add(command.name);
   }
-  for (const command of await getPluginCliCommandDescriptors()) {
+  for (const command of await getPluginCliCommandDescriptors(undefined, undefined, { locale })) {
     if (existingCommands.has(command.name)) {
       continue;
     }

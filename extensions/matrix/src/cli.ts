@@ -29,6 +29,12 @@ import type { CoreConfig } from "./types.js";
 
 let matrixCliExitScheduled = false;
 
+type MatrixCliLocale = "en" | "zh-CN";
+
+function matrixCliText(locale: MatrixCliLocale | undefined, en: string, zhCN: string): string {
+  return locale === "zh-CN" ? zhCN : en;
+}
+
 export function resetMatrixCliStateForTests(): void {
   matrixCliExitScheduled = false;
 }
@@ -666,37 +672,75 @@ function printVerificationStatus(
   printVerificationGuidance(status, accountId);
 }
 
-export function registerMatrixCli(params: { program: Command }): void {
+export function registerMatrixCli(params: { program: Command; locale?: MatrixCliLocale }): void {
+  const text = (en: string, zhCN: string) => matrixCliText(params.locale, en, zhCN);
   const root = params.program
     .command("matrix")
-    .description("Matrix channel utilities")
-    .addHelpText("after", () => "\nDocs: https://docs.crawclaw.ai/channels/matrix\n");
+    .description(text("Matrix channel utilities", "Matrix 渠道工具"))
+    .addHelpText(
+      "after",
+      () => `\n${text("Docs:", "文档：")} https://docs.crawclaw.ai/channels/matrix\n`,
+    );
 
-  const account = root.command("account").description("Manage matrix channel accounts");
+  const account = root
+    .command("account")
+    .description(text("Manage matrix channel accounts", "管理 Matrix 渠道账号"));
 
   account
     .command("add")
-    .description("Add or update a matrix account (wrapper around channel setup)")
-    .option("--account <id>", "Account ID (default: normalized --name, else default)")
-    .option("--name <name>", "Optional display name for this account")
-    .option("--avatar-url <url>", "Optional Matrix avatar URL (mxc:// or http(s) URL)")
-    .option("--homeserver <url>", "Matrix homeserver URL")
-    .option("--proxy <url>", "Optional HTTP(S) proxy URL for Matrix requests")
+    .description(
+      text(
+        "Add or update a matrix account (wrapper around channel setup)",
+        "添加或更新 Matrix 账号（channel setup 的封装）",
+      ),
+    )
+    .option(
+      "--account <id>",
+      text(
+        "Account ID (default: normalized --name, else default)",
+        "账号 ID（默认使用规范化后的 --name，否则为 default）",
+      ),
+    )
+    .option("--name <name>", text("Optional display name for this account", "此账号的可选显示名称"))
+    .option(
+      "--avatar-url <url>",
+      text(
+        "Optional Matrix avatar URL (mxc:// or http(s) URL)",
+        "可选 Matrix 头像 URL（mxc:// 或 http(s) URL）",
+      ),
+    )
+    .option("--homeserver <url>", text("Matrix homeserver URL", "Matrix homeserver URL"))
+    .option(
+      "--proxy <url>",
+      text(
+        "Optional HTTP(S) proxy URL for Matrix requests",
+        "Matrix 请求使用的可选 HTTP(S) 代理 URL",
+      ),
+    )
     .option(
       "--allow-private-network",
-      "Allow Matrix homeserver traffic to private/internal hosts for this account",
+      text(
+        "Allow Matrix homeserver traffic to private/internal hosts for this account",
+        "允许此账号访问私有/内网 Matrix homeserver",
+      ),
     )
-    .option("--user-id <id>", "Matrix user ID")
-    .option("--access-token <token>", "Matrix access token")
-    .option("--password <password>", "Matrix password")
-    .option("--device-name <name>", "Matrix device display name")
-    .option("--initial-sync-limit <n>", "Matrix initial sync limit")
+    .option("--user-id <id>", text("Matrix user ID", "Matrix 用户 ID"))
+    .option("--access-token <token>", text("Matrix access token", "Matrix access token"))
+    .option("--password <password>", text("Matrix password", "Matrix 密码"))
+    .option("--device-name <name>", text("Matrix device display name", "Matrix 设备显示名称"))
+    .option(
+      "--initial-sync-limit <n>",
+      text("Matrix initial sync limit", "Matrix 初始同步数量上限"),
+    )
     .option(
       "--use-env",
-      "Use MATRIX_* env vars (or MATRIX_<ACCOUNT_ID>_* for non-default accounts)",
+      text(
+        "Use MATRIX_* env vars (or MATRIX_<ACCOUNT_ID>_* for non-default accounts)",
+        "使用 MATRIX_* 环境变量（非默认账号使用 MATRIX_<ACCOUNT_ID>_*）",
+      ),
     )
-    .option("--verbose", "Show setup details")
-    .option("--json", "Output as JSON")
+    .option("--verbose", text("Show setup details", "显示设置详情"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: {
         account?: string;
@@ -781,16 +825,26 @@ export function registerMatrixCli(params: { program: Command }): void {
       },
     );
 
-  const profile = root.command("profile").description("Manage Matrix bot profile");
+  const profile = root
+    .command("profile")
+    .description(text("Manage Matrix bot profile", "管理 Matrix bot 资料"));
 
   profile
     .command("set")
-    .description("Update Matrix profile display name and/or avatar")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--name <name>", "Profile display name")
-    .option("--avatar-url <url>", "Profile avatar URL (mxc:// or http(s) URL)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text("Update Matrix profile display name and/or avatar", "更新 Matrix 资料显示名和/或头像"),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--name <name>", text("Profile display name", "资料显示名"))
+    .option(
+      "--avatar-url <url>",
+      text("Profile avatar URL (mxc:// or http(s) URL)", "资料头像 URL（mxc:// 或 http(s) URL）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: {
         account?: string;
@@ -823,15 +877,24 @@ export function registerMatrixCli(params: { program: Command }): void {
       },
     );
 
-  const direct = root.command("direct").description("Inspect and repair Matrix direct-room state");
+  const direct = root
+    .command("direct")
+    .description(
+      text("Inspect and repair Matrix direct-room state", "检查并修复 Matrix direct-room 状态"),
+    );
 
   direct
     .command("inspect")
-    .description("Inspect direct-room mappings for a Matrix user")
-    .requiredOption("--user-id <id>", "Peer Matrix user ID")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text("Inspect direct-room mappings for a Matrix user", "检查 Matrix 用户的 direct-room 映射"),
+    )
+    .requiredOption("--user-id <id>", text("Peer Matrix user ID", "对端 Matrix 用户 ID"))
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: { userId: string; account?: string; verbose?: boolean; json?: boolean }) => {
         const accountId = resolveMatrixCliAccountId(options.account);
@@ -853,11 +916,19 @@ export function registerMatrixCli(params: { program: Command }): void {
 
   direct
     .command("repair")
-    .description("Repair Matrix direct-room mappings for a Matrix user")
-    .requiredOption("--user-id <id>", "Peer Matrix user ID")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text(
+        "Repair Matrix direct-room mappings for a Matrix user",
+        "修复 Matrix 用户的 direct-room 映射",
+      ),
+    )
+    .requiredOption("--user-id <id>", text("Peer Matrix user ID", "对端 Matrix 用户 ID"))
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: { userId: string; account?: string; verbose?: boolean; json?: boolean }) => {
         const accountId = resolveMatrixCliAccountId(options.account);
@@ -888,15 +959,23 @@ export function registerMatrixCli(params: { program: Command }): void {
       },
     );
 
-  const verify = root.command("verify").description("Device verification for Matrix E2EE");
+  const verify = root
+    .command("verify")
+    .description(text("Device verification for Matrix E2EE", "Matrix E2EE 设备验证"));
 
   verify
     .command("status")
-    .description("Check Matrix device verification status")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--include-recovery-key", "Include stored recovery key in output")
-    .option("--json", "Output as JSON")
+    .description(text("Check Matrix device verification status", "检查 Matrix 设备验证状态"))
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option(
+      "--include-recovery-key",
+      text("Include stored recovery key in output", "在输出中包含已存储的 recovery key"),
+    )
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: {
         account?: string;
@@ -922,14 +1001,26 @@ export function registerMatrixCli(params: { program: Command }): void {
       },
     );
 
-  const backup = verify.command("backup").description("Matrix room-key backup health and restore");
+  const backup = verify
+    .command("backup")
+    .description(
+      text("Matrix room-key backup health and restore", "Matrix room-key 备份健康检查和恢复"),
+    );
 
   backup
     .command("status")
-    .description("Show Matrix room-key backup status for this device")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text(
+        "Show Matrix room-key backup status for this device",
+        "显示此设备的 Matrix room-key 备份状态",
+      ),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(async (options: { account?: string; verbose?: boolean; json?: boolean }) => {
       const accountId = resolveMatrixCliAccountId(options.account);
       await runMatrixCliCommand({
@@ -949,11 +1040,19 @@ export function registerMatrixCli(params: { program: Command }): void {
 
   backup
     .command("reset")
-    .description("Delete the current server backup and create a fresh room-key backup baseline")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--yes", "Confirm destructive backup reset", false)
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text(
+        "Delete the current server backup and create a fresh room-key backup baseline",
+        "删除当前服务端备份并创建新的 room-key 备份基线",
+      ),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--yes", text("Confirm destructive backup reset", "确认执行破坏性的备份重置"), false)
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: { account?: string; yes?: boolean; verbose?: boolean; json?: boolean }) => {
         const accountId = resolveMatrixCliAccountId(options.account);
@@ -990,11 +1089,19 @@ export function registerMatrixCli(params: { program: Command }): void {
 
   backup
     .command("restore")
-    .description("Restore encrypted room keys from server backup")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--recovery-key <key>", "Optional recovery key to load before restoring")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text("Restore encrypted room keys from server backup", "从服务端备份恢复加密 room keys"),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option(
+      "--recovery-key <key>",
+      text("Optional recovery key to load before restoring", "恢复前要加载的可选 recovery key"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: {
         account?: string;
@@ -1037,12 +1144,29 @@ export function registerMatrixCli(params: { program: Command }): void {
 
   verify
     .command("bootstrap")
-    .description("Bootstrap Matrix cross-signing and device verification state")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--recovery-key <key>", "Recovery key to apply before bootstrap")
-    .option("--force-reset-cross-signing", "Force reset cross-signing identity before bootstrap")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text(
+        "Bootstrap Matrix cross-signing and device verification state",
+        "初始化 Matrix cross-signing 和设备验证状态",
+      ),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option(
+      "--recovery-key <key>",
+      text("Recovery key to apply before bootstrap", "初始化前要应用的 recovery key"),
+    )
+    .option(
+      "--force-reset-cross-signing",
+      text(
+        "Force reset cross-signing identity before bootstrap",
+        "初始化前强制重置 cross-signing 身份",
+      ),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (options: {
         account?: string;
@@ -1100,10 +1224,15 @@ export function registerMatrixCli(params: { program: Command }): void {
 
   verify
     .command("device <key>")
-    .description("Verify device using a Matrix recovery key")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text("Verify device using a Matrix recovery key", "使用 Matrix recovery key 验证设备"),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(
       async (key: string, options: { account?: string; verbose?: boolean; json?: boolean }) => {
         const accountId = resolveMatrixCliAccountId(options.account);
@@ -1141,14 +1270,21 @@ export function registerMatrixCli(params: { program: Command }): void {
       },
     );
 
-  const devices = root.command("devices").description("Inspect and clean up Matrix devices");
+  const devices = root
+    .command("devices")
+    .description(text("Inspect and clean up Matrix devices", "检查并清理 Matrix 设备"));
 
   devices
     .command("list")
-    .description("List server-side Matrix devices for this account")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text("List server-side Matrix devices for this account", "列出此账号的服务端 Matrix 设备"),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(async (options: { account?: string; verbose?: boolean; json?: boolean }) => {
       const accountId = resolveMatrixCliAccountId(options.account);
       await runMatrixCliCommand({
@@ -1165,10 +1301,18 @@ export function registerMatrixCli(params: { program: Command }): void {
 
   devices
     .command("prune-stale")
-    .description("Delete stale CrawClaw-managed devices for this account")
-    .option("--account <id>", "Account ID (for multi-account setups)")
-    .option("--verbose", "Show detailed diagnostics")
-    .option("--json", "Output as JSON")
+    .description(
+      text(
+        "Delete stale CrawClaw-managed devices for this account",
+        "删除此账号中过期的 CrawClaw 托管设备",
+      ),
+    )
+    .option(
+      "--account <id>",
+      text("Account ID (for multi-account setups)", "账号 ID（多账号设置）"),
+    )
+    .option("--verbose", text("Show detailed diagnostics", "显示详细诊断信息"))
+    .option("--json", text("Output as JSON", "输出 JSON"))
     .action(async (options: { account?: string; verbose?: boolean; json?: boolean }) => {
       const accountId = resolveMatrixCliAccountId(options.account);
       await runMatrixCliCommand({

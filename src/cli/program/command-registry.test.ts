@@ -79,11 +79,24 @@ describe("command-registry", () => {
     expect(names).toContain("config");
     expect(names).toContain("agents");
     expect(names).toContain("backup");
+    expect(names).toContain("mcp");
     expect(names).toContain("sessions");
     expect(names).toContain("tasks");
     expect(names).not.toContain("agent");
     expect(names).not.toContain("status");
     expect(names).not.toContain("doctor");
+  });
+
+  it("localizes lazy command placeholders", () => {
+    const program = createProgram();
+    registerCoreCliCommands(
+      program,
+      { ...testProgramContext, locale: "zh-CN", t: createCliTranslator("zh-CN") },
+      ["node", "crawclaw", "--lang", "zh-CN", "--help"],
+    );
+
+    const mcp = program.commands.find((command) => command.name() === "mcp");
+    expect(mcp?.description()).toBe("管理 CrawClaw MCP 配置和渠道桥接");
   });
 
   it("registerCoreCliByName resolves agents to the agent entry", async () => {

@@ -521,14 +521,25 @@ export default definePluginEntry({
     });
 
     api.registerCli(
-      ({ program }) =>
+      ({ program, locale }) =>
         registerVoiceCallCli({
           program,
           config,
           ensureRuntime,
           logger: api.logger,
+          locale,
         }),
-      { commands: ["voicecall"] },
+      {
+        commands: ["voicecall"],
+        descriptors: [
+          {
+            name: "voicecall",
+            description: "Voice call utilities",
+            descriptionZhCN: "语音通话工具",
+            hasSubcommands: true,
+          },
+        ],
+      },
     );
 
     api.registerService({

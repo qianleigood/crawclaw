@@ -1792,6 +1792,8 @@ export type CrawClawPluginCliContext = {
   config: CrawClawConfig;
   workspaceDir?: string;
   logger: PluginLogger;
+  locale?: "en" | "zh-CN";
+  t?: (key: string, params?: Record<string, string | number>) => string;
 };
 
 export type CrawClawPluginCliRegistrar = (ctx: CrawClawPluginCliContext) => void | Promise<void>;
@@ -1807,6 +1809,8 @@ export type CrawClawPluginCliRegistrar = (ctx: CrawClawPluginCliContext) => void
 export type CrawClawPluginCliCommandDescriptor = {
   name: string;
   description: string;
+  /** Root-help label used when the CLI locale is zh-CN. */
+  descriptionZhCN?: string;
   hasSubcommands: boolean;
 };
 

@@ -107,6 +107,8 @@ export default defineChannelPluginEntry({
   when you want the command to stay lazy-loaded without disappearing from the
   root CLI parse tree. For channel plugins, prefer registering those descriptors
   from `registerCliMetadata(...)` and keep `registerFull(...)` focused on runtime-only work.
+  Add `descriptionZhCN` to descriptors that should show a translated root-help
+  label when the CLI runs with `--lang zh-CN`.
 
 ## `defineSetupPluginEntry`
 

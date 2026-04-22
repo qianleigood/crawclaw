@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { removeCommandByName } from "../cli/program/command-tree.js";
+import { getProgramContext } from "../cli/program/program-context.js";
 import { registerLazyCommand } from "../cli/program/register-lazy-command.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
@@ -23,6 +24,23 @@ type RegisterPluginCliOptions = {
   mode?: PluginCliRegistrationMode;
   primary?: string | null;
 };
+
+type PluginCliDescriptorOptions = {
+  locale?: "en" | "zh-CN";
+};
+
+function localizePluginCliDescriptor(
+  descriptor: CrawClawPluginCliCommandDescriptor,
+  options?: PluginCliDescriptorOptions,
+): CrawClawPluginCliCommandDescriptor {
+  if (options?.locale === "zh-CN" && descriptor.descriptionZhCN) {
+    return {
+      ...descriptor,
+      description: descriptor.descriptionZhCN,
+    };
+  }
+  return descriptor;
+}
 
 function canRegisterPluginCliLazily(entry: {
   commands: string[];
@@ -155,6 +173,7 @@ async function loadPluginCliCommandRegistry(
 export async function getPluginCliCommandDescriptors(
   cfg?: CrawClawConfig,
   env?: NodeJS.ProcessEnv,
+  options?: PluginCliDescriptorOptions,
 ): Promise<CrawClawPluginCliCommandDescriptor[]> {
   try {
     const { registry } = await loadPluginCliMetadataRegistry(cfg, env);
@@ -166,7 +185,7 @@ export async function getPluginCliCommandDescriptors(
           continue;
         }
         seen.add(descriptor.name);
-        descriptors.push(descriptor);
+        descriptors.push(localizePluginCliDescriptor(descriptor, options));
       }
     }
     return descriptors;
@@ -189,6 +208,7 @@ export async function registerPluginCliCommands(
   );
   const mode = options?.mode ?? "eager";
   const primary = options?.primary ?? null;
+  const cliContext = getProgramContext(program);
 
   const existingCommands = new Set(program.commands.map((cmd) => cmd.name()));
 
@@ -199,6 +219,8 @@ export async function registerPluginCliCommands(
         config,
         workspaceDir,
         logger,
+        locale: cliContext?.locale,
+        t: cliContext?.t,
       });
     };
 
@@ -228,10 +250,13 @@ export async function registerPluginCliCommands(
     try {
       if (mode === "lazy" && canRegisterPluginCliLazily(entry)) {
         for (const descriptor of entry.descriptors) {
+          const localizedDescriptor = localizePluginCliDescriptor(descriptor, {
+            locale: cliContext?.locale,
+          });
           registerLazyCommand({
             program,
-            name: descriptor.name,
-            description: descriptor.description,
+            name: localizedDescriptor.name,
+            description: localizedDescriptor.description,
             removeNames: entry.commands,
             register: async () => {
               await registerEntry();

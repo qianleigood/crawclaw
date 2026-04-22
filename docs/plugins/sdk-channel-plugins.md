@@ -264,6 +264,7 @@ Auth-only channels can usually stop at the default path: core handles approvals 
               {
                 name: "acme-chat",
                 description: "Acme Chat management",
+                descriptionZhCN: "Acme Chat 管理",
                 hasSubcommands: false,
               },
             ],

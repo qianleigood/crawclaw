@@ -148,6 +148,14 @@ describe("configureProgramHelp", () => {
     expect(help).toContain("示例：");
     expect(help).toContain("文档：");
     expect(help).toContain("提示与帮助语言（en 或 zh-CN）");
+    expect(help).toContain("用法：");
+    expect(help).toContain("选项：");
+    expect(help).toContain("命令：");
+    expect(help).toContain("输出版本号");
+    expect(help).not.toContain("Usage:");
+    expect(help).not.toContain("Options:");
+    expect(help).not.toContain("Commands:");
+    expect(help).not.toContain("output the version number");
   });
 
   it("prints version and exits immediately when version flags are present", () => {

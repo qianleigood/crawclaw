@@ -13,15 +13,16 @@ export default defineChannelPluginEntry({
   setRuntime: setMatrixRuntime,
   registerCliMetadata(api) {
     api.registerCli(
-      async ({ program }) => {
+      async ({ program, locale }) => {
         const { registerMatrixCli } = await import("./src/cli.js");
-        registerMatrixCli({ program });
+        registerMatrixCli({ program, locale });
       },
       {
         descriptors: [
           {
             name: "matrix",
             description: "Manage Matrix accounts, verification, devices, and profile state",
+            descriptionZhCN: "管理 Matrix 账号、验证、设备和资料状态",
             hasSubcommands: true,
           },
         ],

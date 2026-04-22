@@ -1,5 +1,9 @@
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
 import { describe, expect, it } from "vitest";
+import { EN_CLI_TRANSLATIONS } from "./en.js";
 import { createCliTranslator, parseCliLocaleFlag, resolveCliLocale } from "./index.js";
+import { ZH_CN_CLI_TRANSLATIONS } from "./zh-CN.js";
 
 describe("parseCliLocaleFlag", () => {
   it("reads --lang <value>", () => {
@@ -39,5 +43,47 @@ describe("createCliTranslator", () => {
     const t = createCliTranslator("zh-CN");
     expect(t("unknown.key")).toBe("unknown.key");
     expect(t("common.cancel")).toBe("取消");
+  });
+});
+
+describe("CLI translation coverage", () => {
+  it("keeps the zh-CN dictionary aligned with English", () => {
+    expect(Object.keys(ZH_CN_CLI_TRANSLATIONS).toSorted()).toEqual(
+      Object.keys(EN_CLI_TRANSLATIONS).toSorted(),
+    );
+  });
+
+  it("defines every literal production translator key", () => {
+    const productionFiles = execFileSync(
+      "rg",
+      ["--files", "src/cli", "src/commands", "extensions"],
+      {
+        encoding: "utf8",
+      },
+    )
+      .trim()
+      .split("\n")
+      .filter((file) => /\.(ts|tsx)$/.test(file))
+      .filter(
+        (file) => !/(^|[./-])(test|e2e|coverage|harness|fixtures|test-helpers|mock)/.test(file),
+      )
+      .filter((file) => !file.includes("/node_modules/"));
+    const usedKeys = new Set<string>();
+    for (const file of productionFiles) {
+      const source = fs.readFileSync(file, "utf8");
+      for (const match of source.matchAll(
+        /(?<![\w$])(?:(?:ctx|params)\.)?t\(\s*([`'"])([^`'"]+)\1/g,
+      )) {
+        usedKeys.add(match[2]);
+      }
+    }
+
+    const englishKeys = new Set(Object.keys(EN_CLI_TRANSLATIONS));
+    const zhKeys = new Set(Object.keys(ZH_CN_CLI_TRANSLATIONS));
+    const missing = [...usedKeys]
+      .filter((key) => !englishKeys.has(key) || !zhKeys.has(key))
+      .toSorted();
+
+    expect(missing).toEqual([]);
   });
 });

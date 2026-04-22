@@ -157,7 +157,9 @@ methods:
 
 If you want a plugin command to stay lazy-loaded in the normal root CLI path,
 provide `descriptors` that cover every top-level command root exposed by that
-registrar.
+registrar. Set `descriptionZhCN` when the plugin has a zh-CN root-help label;
+CrawClaw uses the English `description` for the default locale and swaps in
+`descriptionZhCN` when the root CLI runs with `--lang zh-CN`.
 
 ```typescript
 api.registerCli(
@@ -170,6 +172,7 @@ api.registerCli(
       {
         name: "matrix",
         description: "Manage Matrix accounts, verification, devices, and profile state",
+        descriptionZhCN: "管理 Matrix 账号、验证、设备和资料状态",
         hasSubcommands: true,
       },
     ],
