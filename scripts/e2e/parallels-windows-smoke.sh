@@ -34,7 +34,10 @@ RUN_DIR="$(mktemp -d /tmp/crawclaw-parallels-windows.XXXXXX)"
 BUILD_LOCK_DIR="${TMPDIR:-/tmp}/crawclaw-parallels-build.lock"
 
 TIMEOUT_SNAPSHOT_S=240
-TIMEOUT_INSTALL_S=1200
+# Fresh Windows installs run npm lifecycle hooks that install bundled plugin
+# dependencies and managed runtimes. Slow Windows VMs can exceed 20 minutes
+# before the first CLI is available, so keep this separately configurable.
+TIMEOUT_INSTALL_S="${CRAWCLAW_PARALLELS_INSTALL_TIMEOUT_S:-3600}"
 TIMEOUT_VERIFY_S=120
 TIMEOUT_ONBOARD_S=420
 TIMEOUT_GATEWAY_S=120
