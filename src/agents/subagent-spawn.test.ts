@@ -224,7 +224,7 @@ describe("spawnSubagentDirect seam flow", () => {
       }) => {
         if (request.method === "agent") {
           agentParams = request.params;
-          return { runId: "run-review" };
+          return { runId: "run-verify" };
         }
         if (request.method?.startsWith("sessions.")) {
           return { ok: true };
@@ -236,13 +236,13 @@ describe("spawnSubagentDirect seam flow", () => {
 
     const result = await spawnSubagentDirect(
       {
-        task: "Review the current implementation.",
+        task: "Verify the current implementation.",
         extraSystemPrompt: "VERDICT: PASS | FAIL | PARTIAL",
-        spawnSource: "review-spec",
+        spawnSource: "verification",
         expectsCompletionMessage: false,
         streamParams: {
           cacheRetention: "short",
-          promptCacheKey: "review:agent:main:main",
+          promptCacheKey: "verification:agent:main:main",
           promptCacheRetention: "24h",
         },
       },
@@ -256,12 +256,12 @@ describe("spawnSubagentDirect seam flow", () => {
     expect(agentParams?.extraSystemPrompt).toContain("VERDICT: PASS | FAIL | PARTIAL");
     expect(agentParams?.streamParams).toEqual({
       cacheRetention: "short",
-      promptCacheKey: "review:agent:main:main",
+      promptCacheKey: "verification:agent:main:main",
       promptCacheRetention: "24h",
     });
     expect(hoisted.registerSubagentRunMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        spawnSource: "review-spec",
+        spawnSource: "verification",
         expectsCompletionMessage: false,
       }),
     );

@@ -26,7 +26,7 @@ function createDueIsolatedJob(params: { id: string; nowMs: number }): CronJob {
     updatedAtMs: params.nowMs,
     schedule: { kind: "every", everyMs: 60_000 },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "test" },
     delivery: { mode: "none" },
     state: { nextRunAtMs: params.nowMs },

@@ -53,15 +53,11 @@ describe("system-cli", () => {
     expect(runtimeLogs).toEqual(["ok"]);
   });
 
-  it("accepts next-heartbeat as an alias for immediate wake", async () => {
+  it("rejects legacy next-heartbeat wake mode", async () => {
     await runCli(["system", "event", "--text", "hello", "--mode", "next-heartbeat"]);
 
-    expect(callGatewayFromCli).toHaveBeenCalledWith(
-      "wake",
-      expect.objectContaining({ text: "hello" }),
-      { mode: "now", text: "hello" },
-      { expectFinal: false },
-    );
+    expect(callGatewayFromCli).not.toHaveBeenCalled();
+    expect(runtimeErrors[0]).toContain("--mode must be now");
   });
 
   it("prints JSON for event when --json is enabled", async () => {
@@ -76,7 +72,7 @@ describe("system-cli", () => {
     await runCli(["system", "event", "--text", "hello", "--mode", "later"]);
 
     expect(callGatewayFromCli).not.toHaveBeenCalled();
-    expect(runtimeErrors[0]).toContain("--mode must be now or next-heartbeat");
+    expect(runtimeErrors[0]).toContain("--mode must be now");
   });
 
   it.each([

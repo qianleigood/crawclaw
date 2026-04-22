@@ -27,7 +27,7 @@ describe("issue #17852 - daily cron jobs should not skip days", () => {
       schedule: { kind: "cron", expr: "0 3 * * *", tz: "UTC" },
       payload: { kind: "systemEvent", text: "daily task" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       createdAtMs: threeAM - DAY_MS,
       updatedAtMs: threeAM - DAY_MS,
       state: {

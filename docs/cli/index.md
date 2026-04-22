@@ -1137,7 +1137,7 @@ Required:
 
 Options:
 
-- `--mode <now|next-heartbeat>`
+- `--mode <now>`
 - `--json`
 - `--url`, `--token`, `--timeout`, `--expect-final`
 

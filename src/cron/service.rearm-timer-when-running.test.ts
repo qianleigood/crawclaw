@@ -27,7 +27,7 @@ function createDueRecurringJob(params: {
     updatedAtMs: params.nowMs,
     schedule: { kind: "every", everyMs: 5 * 60_000 },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "test" },
     delivery: { mode: "none" },
     state: { nextRunAtMs: params.nextRunAtMs },

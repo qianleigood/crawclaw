@@ -27,8 +27,8 @@ function resolveCompletionTitle(params: {
     case "waiting_external":
       return "Waiting for external condition";
     case "incomplete":
-      if (blockingState === "review_missing") {
-        return "Completion missing review";
+      if (blockingState === "verification_missing") {
+        return "Completion missing verification";
       }
       return "Completion incomplete";
   }

@@ -105,7 +105,7 @@ Full breakdown: [System Prompt](/concepts/system-prompt).
 By default, CrawClaw injects only:
 
 - `AGENTS.md` for normal runs
-- `HEARTBEAT.md` for legacy heartbeat compatibility runs using lightweight context
+- `HEARTBEAT.md` for event-driven main-session wake runs using lightweight context
 
 Large files are truncated per-file using `agents.defaults.bootstrapMaxChars` (default `20000` chars). CrawClaw also enforces a total bootstrap injection cap across files with `agents.defaults.bootstrapTotalMaxChars` (default `150000` chars). `/context` shows **raw vs injected** sizes and whether truncation happened.
 

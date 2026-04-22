@@ -318,23 +318,19 @@ describe("legacy migrate x_search auth", () => {
 });
 
 describe("legacy migrate heartbeat config", () => {
-  it("moves top-level heartbeat into agents.defaults.heartbeat", () => {
+  it("does not auto-migrate removed top-level heartbeat", () => {
     const res = migrateLegacyConfig({
       heartbeat: {
         model: "anthropic/claude-3-5-haiku-20241022",
-        every: "30m",
+        target: "telegram",
       },
     });
 
-    expect(res.changes).toContain("Moved heartbeat → agents.defaults.heartbeat.");
-    expect(res.config?.agents?.defaults?.heartbeat).toEqual({
-      model: "anthropic/claude-3-5-haiku-20241022",
-      every: "30m",
-    });
-    expect((res.config as { heartbeat?: unknown } | null)?.heartbeat).toBeUndefined();
+    expect(res.changes).toEqual([]);
+    expect(res.config).toBeNull();
   });
 
-  it("moves top-level heartbeat visibility into channels.defaults.heartbeat", () => {
+  it("does not auto-migrate top-level heartbeat visibility", () => {
     const res = migrateLegacyConfig({
       heartbeat: {
         showOk: true,
@@ -343,118 +339,19 @@ describe("legacy migrate heartbeat config", () => {
       },
     });
 
-    expect(res.changes).toContain("Moved heartbeat visibility → channels.defaults.heartbeat.");
-    expect(res.config?.channels?.defaults?.heartbeat).toEqual({
-      showOk: true,
-      showAlerts: false,
-      useIndicator: false,
-    });
-    expect((res.config as { heartbeat?: unknown } | null)?.heartbeat).toBeUndefined();
+    expect(res.changes).toEqual([]);
+    expect(res.config).toBeNull();
   });
 
-  it("keeps explicit agents.defaults.heartbeat values when merging top-level heartbeat", () => {
-    const res = migrateLegacyConfig({
-      heartbeat: {
-        model: "anthropic/claude-3-5-haiku-20241022",
-        every: "30m",
-      },
-      agents: {
-        defaults: {
-          heartbeat: {
-            every: "1h",
-            target: "telegram",
-          },
-        },
-      },
-    });
-
-    expect(res.changes).toContain(
-      "Merged heartbeat → agents.defaults.heartbeat (filled missing fields from legacy; kept explicit agents.defaults values).",
-    );
-    expect(res.config?.agents?.defaults?.heartbeat).toEqual({
-      every: "1h",
-      target: "telegram",
-      model: "anthropic/claude-3-5-haiku-20241022",
-    });
-    expect((res.config as { heartbeat?: unknown } | null)?.heartbeat).toBeUndefined();
-  });
-
-  it("keeps explicit channels.defaults.heartbeat values when merging top-level heartbeat visibility", () => {
-    const res = migrateLegacyConfig({
-      heartbeat: {
-        showOk: true,
-        showAlerts: true,
-      },
-      channels: {
-        defaults: {
-          heartbeat: {
-            showOk: false,
-            useIndicator: false,
-          },
-        },
-      },
-    });
-
-    expect(res.changes).toContain(
-      "Merged heartbeat visibility → channels.defaults.heartbeat (filled missing fields from legacy; kept explicit channels.defaults values).",
-    );
-    expect(res.config?.channels?.defaults?.heartbeat).toEqual({
-      showOk: false,
-      showAlerts: true,
-      useIndicator: false,
-    });
-    expect((res.config as { heartbeat?: unknown } | null)?.heartbeat).toBeUndefined();
-  });
-
-  it("preserves agents.defaults.heartbeat precedence over top-level heartbeat legacy key", () => {
-    const res = migrateLegacyConfig({
-      agents: {
-        defaults: {
-          heartbeat: {
-            every: "1h",
-            target: "telegram",
-          },
-        },
-      },
-      heartbeat: {
-        every: "30m",
-        target: "discord",
-        model: "anthropic/claude-3-5-haiku-20241022",
-      },
-    });
-
-    expect(res.config?.agents?.defaults?.heartbeat).toEqual({
-      every: "1h",
-      target: "telegram",
-      model: "anthropic/claude-3-5-haiku-20241022",
-    });
-    expect((res.config as { heartbeat?: unknown } | null)?.heartbeat).toBeUndefined();
-  });
-
-  it("drops blocked prototype keys when migrating top-level heartbeat", () => {
+  it("leaves removed top-level heartbeat for validation", () => {
     const res = migrateLegacyConfig(
       JSON.parse(
-        '{"heartbeat":{"every":"30m","__proto__":{"polluted":true},"showOk":true}}',
+        '{"heartbeat":{"target":"telegram","__proto__":{"polluted":true},"showOk":true}}',
       ) as Record<string, unknown>,
     );
 
-    const heartbeat = res.config?.agents?.defaults?.heartbeat as
-      | Record<string, unknown>
-      | undefined;
-    expect(heartbeat?.every).toBe("30m");
-    expect((heartbeat as { polluted?: unknown } | undefined)?.polluted).toBeUndefined();
-    expect(Object.prototype.hasOwnProperty.call(heartbeat ?? {}, "__proto__")).toBe(false);
-    expect(res.config?.channels?.defaults?.heartbeat).toEqual({ showOk: true });
-  });
-
-  it("records a migration change when removing empty top-level heartbeat", () => {
-    const res = migrateLegacyConfig({
-      heartbeat: {},
-    });
-
-    expect(res.changes).toContain("Removed empty top-level heartbeat.");
-    expect(res.config).not.toBeNull();
-    expect((res.config as { heartbeat?: unknown } | null)?.heartbeat).toBeUndefined();
+    expect(res.changes).toEqual([]);
+    expect(res.config).toBeNull();
   });
 });
 

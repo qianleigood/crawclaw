@@ -22,7 +22,6 @@ import {
   resolveThreadBindingMaxAgeMsForChannel,
   resolveThreadBindingSpawnPolicy,
 } from "../channels/thread-bindings-policy.js";
-import { parseDurationMs } from "../cli/parse-duration.js";
 import { loadConfig } from "../config/config.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
@@ -207,18 +206,7 @@ function isHeartbeatEnabledForSessionAgent(params: {
     return false;
   }
 
-  const heartbeatEvery =
-    resolveAgentConfig(params.cfg, requesterAgentId)?.heartbeat?.every ??
-    params.cfg.agents?.defaults?.heartbeat?.every;
-  const trimmedEvery = typeof heartbeatEvery === "string" ? heartbeatEvery.trim() : "";
-  if (!trimmedEvery) {
-    return false;
-  }
-  try {
-    return parseDurationMs(trimmedEvery, { defaultUnit: "m" }) > 0;
-  } catch {
-    return false;
-  }
+  return true;
 }
 
 function resolveHeartbeatConfigForAgent(params: {
@@ -558,8 +546,8 @@ function resolveAcpSpawnStreamPlan(params: {
   requester: AcpSpawnRequesterState;
 }): AcpSpawnStreamPlan {
   // For mode=run without thread binding, implicitly route output to parent
-  // only for spawned subagent orchestrator sessions with explicit legacy
-  // heartbeat compatibility enabled AND a session-local delivery route
+  // only for spawned subagent orchestrator sessions with main-session wake
+  // delivery enabled AND a session-local delivery route
   // (target=last + usable last route).
   // Skip requester sessions that are thread-bound (or carrying thread context)
   // so user-facing threads do not receive unsolicited ACP progress chatter

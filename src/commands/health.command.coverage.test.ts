@@ -89,7 +89,6 @@ describe("healthCommand (coverage)", () => {
         telegram: "Telegram",
         discord: "Discord",
       },
-      heartbeatSeconds: 60,
       defaultAgentId: "main",
       agents: [
         {
@@ -97,8 +96,6 @@ describe("healthCommand (coverage)", () => {
           isDefault: true,
           heartbeat: {
             enabled: true,
-            every: "1m",
-            everyMs: 60_000,
             prompt: "hi",
             target: "last",
             ackMaxChars: 160,

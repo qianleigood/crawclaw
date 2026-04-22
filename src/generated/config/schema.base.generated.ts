@@ -2726,24 +2726,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               heartbeat: {
                 type: "object",
                 properties: {
-                  every: {
-                    type: "string",
-                  },
-                  activeHours: {
-                    type: "object",
-                    properties: {
-                      start: {
-                        type: "string",
-                      },
-                      end: {
-                        type: "string",
-                      },
-                      timezone: {
-                        type: "string",
-                      },
-                    },
-                    additionalProperties: false,
-                  },
                   model: {
                     type: "string",
                   },
@@ -3908,24 +3890,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 heartbeat: {
                   type: "object",
                   properties: {
-                    every: {
-                      type: "string",
-                    },
-                    activeHours: {
-                      type: "object",
-                      properties: {
-                        start: {
-                          type: "string",
-                        },
-                        end: {
-                          type: "string",
-                        },
-                        timezone: {
-                          type: "string",
-                        },
-                      },
-                      additionalProperties: false,
-                    },
                     model: {
                       type: "string",
                     },
@@ -8754,16 +8718,8 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                   ],
                 },
                 wakeMode: {
-                  anyOf: [
-                    {
-                      type: "string",
-                      const: "now",
-                    },
-                    {
-                      type: "string",
-                      const: "next-heartbeat",
-                    },
-                  ],
+                  type: "string",
+                  const: "now",
                 },
                 name: {
                   type: "string",
@@ -14377,7 +14333,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "hooks.mappings[].wakeMode": {
       label: "Hook Mapping Wake Mode",
-      help: 'Wake scheduling mode. Use "now" to wake the main session after enqueueing the hook event. "next-heartbeat" is accepted as a compatibility alias for "now".',
+      help: 'Wake scheduling mode. Use only "now"; it wakes the main session after enqueueing the hook event.',
       tags: ["advanced"],
     },
     "hooks.mappings[].name": {

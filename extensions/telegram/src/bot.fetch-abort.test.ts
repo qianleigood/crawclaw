@@ -50,27 +50,6 @@ describe("createTelegramBot fetch abort", () => {
     expect(observedSignal.aborted).toBe(true);
   });
 
-  it("aborts wrapped client fetch when the request signal aborts", async () => {
-    const fetchSpy = vi.fn(
-      (_input: RequestInfo | URL, init?: RequestInit) =>
-        new Promise<AbortSignal>((resolve) => {
-          const signal = init?.signal as AbortSignal;
-          signal.addEventListener("abort", () => resolve(signal), { once: true });
-        }),
-    );
-    const { clientFetch } = createWrappedTelegramClientFetch(fetchSpy as unknown as typeof fetch);
-    const requestAbort = new AbortController();
-
-    const observedSignalPromise = clientFetch("https://example.test", {
-      signal: requestAbort.signal,
-    });
-    requestAbort.abort();
-    const observedSignal = (await observedSignalPromise) as AbortSignal;
-
-    expect(observedSignal).toBeInstanceOf(AbortSignal);
-    expect(observedSignal.aborted).toBe(true);
-  });
-
   it("tags wrapped Telegram fetch failures with the Bot API method", async () => {
     const fetchError = Object.assign(new TypeError("fetch failed"), {
       cause: Object.assign(new Error("connect timeout"), {

@@ -33,7 +33,7 @@ describe("CronService.getJob", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "ping" },
       });
 
@@ -55,7 +55,7 @@ describe("CronService.getJob", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "ping" },
         delivery: { mode: "webhook", to: "https://example.invalid/cron" },
       });

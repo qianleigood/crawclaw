@@ -25,7 +25,7 @@ describe("main-session wake runner", () => {
       agents: {
         defaults: {
           workspace: tmpDir,
-          heartbeat: { every: "0m", target: "none" },
+          heartbeat: { target: "none" },
         },
       },
       session: { store: storePath },

@@ -13,7 +13,7 @@ function makeLegacyJob(overrides: Record<string, unknown>): Record<string, unkno
     createdAtMs: 1_700_000_000_000,
     updatedAtMs: 1_700_000_000_000,
     sessionTarget: "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: {
       kind: "systemEvent",
       text: "tick",

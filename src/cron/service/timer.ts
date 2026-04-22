@@ -1360,17 +1360,12 @@ function emitJobFinished(
   });
 }
 
-export function wake(
-  state: CronServiceState,
-  opts: { mode: "now" | "next-heartbeat"; text: string },
-) {
+export function wake(state: CronServiceState, opts: { mode: "now"; text: string }) {
   const text = opts.text.trim();
   if (!text) {
     return { ok: false } as const;
   }
   state.deps.enqueueSystemEvent(text);
-  // `next-heartbeat` is now a compatibility spelling; there is no legacy
-  // periodic tick left to pick the event up later.
   state.deps.requestMainSessionWake({ reason: "wake" });
   return { ok: true } as const;
 }

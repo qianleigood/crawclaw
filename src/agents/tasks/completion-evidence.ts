@@ -3,7 +3,6 @@ export type CompletionEvidenceKind =
   | "file_changed"
   | "test_passed"
   | "assertion_met"
-  | "review_passed"
   | "external_state_changed"
   | "user_confirmed";
 

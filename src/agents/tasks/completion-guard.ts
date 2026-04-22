@@ -12,7 +12,10 @@ export type CompletionGuardStatus =
   | "incomplete"
   | "waiting_user"
   | "waiting_external";
-export type CompletionGuardBlockingState = "waiting_user" | "waiting_external" | "review_missing";
+export type CompletionGuardBlockingState =
+  | "waiting_user"
+  | "waiting_external"
+  | "verification_missing";
 
 export type CompletionGuardResult = {
   version: 1;
@@ -39,9 +42,7 @@ function formatEvidenceLabel(kind: CompletionEvidenceKind): string {
     case "test_passed":
       return "passing test";
     case "assertion_met":
-      return "validation command";
-    case "review_passed":
-      return "review pass";
+      return "verification command";
     case "user_confirmed":
       return "user confirmation";
     default:
@@ -119,11 +120,9 @@ export function evaluateCompletionGuard(params: {
     summary = `Missing completion evidence: ${missingParts.join("; ")}.`;
     if (
       spec.taskType === "fix" &&
-      missingAnyOfEvidence.some(
-        (kind) => kind === "test_passed" || kind === "assertion_met" || kind === "review_passed",
-      )
+      missingAnyOfEvidence.some((kind) => kind === "test_passed" || kind === "assertion_met")
     ) {
-      blockingState = "review_missing";
+      blockingState = "verification_missing";
     }
   } else if (warnings.length > 0) {
     status = "accepted_with_warnings";

@@ -73,14 +73,14 @@ CrawClaw reads operating instructions and “memory” from its workspace direct
 
 By default, CrawClaw uses `~/.crawclaw/workspace` as the agent workspace, and
 will create starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`,
-`USER.md`, and compatibility `HEARTBEAT.md` automatically on setup/first agent run.
+`USER.md`, and `HEARTBEAT.md` automatically on setup/first agent run.
 `BOOTSTRAP.md` is only created when the workspace is brand new (it should not
 come back after you delete it). `MEMORY.md` is optional and not auto-created.
 
 Default runtime bootstrap injection is intentionally narrow:
 
 - normal runs inject `AGENTS.md`
-- legacy heartbeat compatibility runs can inject `HEARTBEAT.md`
+- event-driven main-session wake runs can inject `HEARTBEAT.md`
 - `MEMORY.md` and `memory/*.md` stay on-demand through memory tools/workflows
   rather than auto-injected bootstrap context
 

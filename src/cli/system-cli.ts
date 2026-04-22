@@ -16,10 +16,10 @@ const normalizeWakeMode = (raw: unknown) => {
   if (!mode) {
     return "now" as const;
   }
-  if (mode === "now" || mode === "next-heartbeat") {
+  if (mode === "now") {
     return "now" as const;
   }
-  throw new Error("--mode must be now or next-heartbeat");
+  throw new Error("--mode must be now");
 };
 
 async function runSystemGatewayCommand(

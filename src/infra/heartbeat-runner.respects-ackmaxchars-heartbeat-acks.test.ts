@@ -99,7 +99,7 @@ describe("runHeartbeatOnce ack handling", () => {
     const cfg = createHeartbeatConfig({
       tmpDir: params.tmpDir,
       storePath: params.storePath,
-      heartbeat: { every: "5m", target: "telegram" },
+      heartbeat: { target: "telegram" },
       channels: {
         telegram: {
           token: "test-token",
@@ -138,7 +138,6 @@ describe("runHeartbeatOnce ack handling", () => {
       tmpDir: params.tmpDir,
       storePath: params.storePath,
       heartbeat: {
-        every: "5m",
         target: "whatsapp",
         ...params.heartbeat,
       },
@@ -419,13 +418,13 @@ describe("runHeartbeatOnce ack handling", () => {
   it.each([
     {
       title: "passes through accountId for telegram heartbeats",
-      heartbeat: { every: "5m", target: "telegram" },
+      heartbeat: { target: "telegram" },
       telegram: { botToken: "test-bot-token-123" },
       expectedAccountId: undefined,
     },
     {
       title: "does not pre-resolve telegram accountId (allows config-only account tokens)",
-      heartbeat: { every: "5m", target: "telegram" },
+      heartbeat: { target: "telegram" },
       telegram: {
         accounts: {
           work: { botToken: "test-bot-token-123" },
@@ -435,7 +434,7 @@ describe("runHeartbeatOnce ack handling", () => {
     },
     {
       title: "uses explicit heartbeat accountId for telegram delivery",
-      heartbeat: { every: "5m", target: "telegram", accountId: "work" },
+      heartbeat: { target: "telegram", accountId: "work" },
       telegram: {
         accounts: {
           work: { botToken: "test-bot-token-123" },

@@ -154,18 +154,16 @@ describe("resolveHeartbeatPrompt", () => {
 });
 
 describe("resolveHeartbeatSummaryForAgent", () => {
-  it("reports explicit legacy cadence as disabled", () => {
+  it("reports main-session wake settings as unscheduled", () => {
     const cfg: CrawClawConfig = {
       agents: {
-        defaults: { heartbeat: { every: "30m" } },
-        list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
+        defaults: { heartbeat: { target: "none" } },
+        list: [{ id: "main" }, { id: "ops", heartbeat: { target: "none" } }],
       },
     };
 
     expect(resolveHeartbeatSummaryForAgent(cfg, "ops")).toMatchObject({
       enabled: false,
-      every: "disabled",
-      everyMs: null,
     });
   });
 });
@@ -446,36 +444,11 @@ describe("runHeartbeatOnce", () => {
   it("skips when agent heartbeat is not enabled", async () => {
     const cfg: CrawClawConfig = {
       agents: {
-        defaults: { heartbeat: { every: "30m" } },
-        list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
+        list: [{ id: "main" }, { id: "ops" }],
       },
     };
 
     const res = await runHeartbeatOnce({ cfg, agentId: "main" });
-    expect(res.status).toBe("skipped");
-    if (res.status === "skipped") {
-      expect(res.reason).toBe("disabled");
-    }
-  });
-
-  it("skips legacy cadence before active-hours checks", async () => {
-    const cfg: CrawClawConfig = {
-      agents: {
-        defaults: {
-          userTimezone: "UTC",
-          heartbeat: {
-            every: "30m",
-            activeHours: { start: "08:00", end: "24:00", timezone: "user" },
-          },
-        },
-      },
-    };
-
-    const res = await runHeartbeatOnce({
-      cfg,
-      deps: { nowMs: () => Date.UTC(2025, 0, 1, 7, 0, 0) },
-    });
-
     expect(res.status).toBe("skipped");
     if (res.status === "skipped") {
       expect(res.reason).toBe("disabled");
@@ -491,7 +464,7 @@ describe("runHeartbeatOnce", () => {
         agents: {
           defaults: {
             workspace: tmpDir,
-            heartbeat: { every: "5m", target: "whatsapp" },
+            heartbeat: { target: "whatsapp" },
           },
         },
         channels: { whatsapp: { allowFrom: ["*"] } },
@@ -551,14 +524,14 @@ describe("runHeartbeatOnce", () => {
       const cfg: CrawClawConfig = {
         agents: {
           defaults: {
-            heartbeat: { every: "30m", prompt: "Default prompt" },
+            heartbeat: { prompt: "Default prompt" },
           },
           list: [
             { id: "main", default: true },
             {
               id: "ops",
               workspace: tmpDir,
-              heartbeat: { every: "5m", target: "whatsapp", prompt: "Ops check" },
+              heartbeat: { target: "whatsapp", prompt: "Ops check" },
             },
           ],
         },
@@ -631,14 +604,14 @@ describe("runHeartbeatOnce", () => {
       const cfg: CrawClawConfig = {
         agents: {
           defaults: {
-            heartbeat: { every: "30m", prompt: "Default prompt" },
+            heartbeat: { prompt: "Default prompt" },
           },
           list: [
             { id: "main", default: true },
             {
               id: agentId,
               workspace: tmpDir,
-              heartbeat: { every: "5m", target: "whatsapp", prompt: "Ops check" },
+              heartbeat: { target: "whatsapp", prompt: "Ops check" },
             },
           ],
         },
@@ -746,7 +719,6 @@ describe("runHeartbeatOnce", () => {
             defaults: {
               workspace: tmpDir,
               heartbeat: {
-                every: "5m",
                 target: "last",
               },
             },
@@ -829,7 +801,7 @@ describe("runHeartbeatOnce", () => {
         agents: {
           defaults: {
             workspace: tmpDir,
-            heartbeat: { every: "5m", target: "whatsapp" },
+            heartbeat: { target: "whatsapp" },
           },
         },
         channels: { whatsapp: { allowFrom: ["*"] } },
@@ -907,7 +879,6 @@ describe("runHeartbeatOnce", () => {
             defaults: {
               workspace: tmpDir,
               heartbeat: {
-                every: "5m",
                 target: "whatsapp",
                 includeReasoning: true,
               },
@@ -972,7 +943,7 @@ describe("runHeartbeatOnce", () => {
     try {
       const cfg: CrawClawConfig = {
         agents: {
-          defaults: { workspace: tmpDir, heartbeat: { every: "5m", target: "whatsapp" } },
+          defaults: { workspace: tmpDir, heartbeat: { target: "whatsapp" } },
           list: [{ id: "work", default: true }],
         },
         channels: { whatsapp: { allowFrom: ["*"] } },
@@ -1063,7 +1034,7 @@ describe("runHeartbeatOnce", () => {
       agents: {
         defaults: {
           workspace: workspaceDir,
-          heartbeat: { every: "5m", target: "whatsapp" },
+          heartbeat: { target: "whatsapp" },
         },
       },
       channels: { whatsapp: { allowFrom: ["*"] } },
@@ -1225,7 +1196,7 @@ describe("runHeartbeatOnce", () => {
       agents: {
         defaults: {
           workspace: tmpDir,
-          heartbeat: { every: "5m", target: "none" },
+          heartbeat: { target: "none" },
         },
       },
       channels: { whatsapp: { allowFrom: ["*"] } },
@@ -1280,7 +1251,7 @@ describe("runHeartbeatOnce", () => {
       agents: {
         defaults: {
           workspace: tmpDir,
-          heartbeat: { every: "5m", target: "none" },
+          heartbeat: { target: "none" },
         },
       },
       channels: { whatsapp: { allowFrom: ["*"] } },

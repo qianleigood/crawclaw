@@ -12,7 +12,7 @@ function createCronSystemEventJob(now: number, overrides: Partial<CronJob> = {})
     schedule: { kind: "cron", expr: "0 8 * * *", tz: "UTC" },
     payload: { kind: "systemEvent", text: "test" },
     sessionTarget: "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     createdAtMs: now,
     updatedAtMs: now,
     ...jobOverrides,
@@ -148,7 +148,7 @@ describe("issue #13992 regression - cron jobs skip execution", () => {
       schedule: { kind: "cron", expr: "0 8 * * *", tz: "UTC" },
       payload: { kind: "systemEvent", text: "due" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       createdAtMs: now - 3600_000,
       updatedAtMs: now - 3600_000,
       state: {
@@ -163,7 +163,7 @@ describe("issue #13992 regression - cron jobs skip execution", () => {
       schedule: { kind: "cron", expr: "not a valid cron", tz: "UTC" },
       payload: { kind: "systemEvent", text: "bad" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       createdAtMs: now - 3600_000,
       updatedAtMs: now - 3600_000,
       state: {
@@ -190,7 +190,7 @@ describe("issue #13992 regression - cron jobs skip execution", () => {
       schedule: { kind: "cron", expr: "0 8 * * *", tz: "UTC" },
       payload: { kind: "systemEvent", text: "done" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       createdAtMs: now - 86400_000,
       updatedAtMs: now - 86400_000,
       state: {
@@ -206,7 +206,7 @@ describe("issue #13992 regression - cron jobs skip execution", () => {
       schedule: { kind: "cron", expr: "0 8 * * *", tz: "UTC" },
       payload: { kind: "systemEvent", text: "pending" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       createdAtMs: now - 86400_000 * 2,
       updatedAtMs: now - 86400_000 * 2,
       state: {
@@ -237,7 +237,7 @@ describe("issue #13992 regression - cron jobs skip execution", () => {
       schedule: { kind: "cron", expr: "0 8 * * *", tz: "UTC" },
       payload: { kind: "systemEvent", text: "test" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       createdAtMs: now - 86400_000,
       updatedAtMs: now - 86400_000,
       state: {

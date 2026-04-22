@@ -41,7 +41,7 @@ describe("CronService restart catch-up", () => {
       updatedAtMs: nextRunAtMs - 60_000,
       schedule: { kind: "every", everyMs: 60_000, anchorMs: nextRunAtMs - 60_000 },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: `tick-${id}` },
       state: { nextRunAtMs },
     };
@@ -90,7 +90,7 @@ describe("CronService restart catch-up", () => {
           updatedAtMs: Date.parse("2025-12-12T15:00:00.000Z"),
           schedule: { kind: "cron", expr: "0 15 * * *", tz: "UTC" },
           sessionTarget: "main",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "systemEvent", text: "digest now" },
           state: {
             nextRunAtMs: dueAt,
@@ -129,7 +129,7 @@ describe("CronService restart catch-up", () => {
           updatedAtMs: Date.parse("2025-12-13T16:30:00.000Z"),
           schedule: { kind: "cron", expr: "0 16 * * *", tz: "UTC" },
           sessionTarget: "main",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "systemEvent", text: "resume stale marker" },
           state: {
             nextRunAtMs: dueAt,
@@ -167,7 +167,7 @@ describe("CronService restart catch-up", () => {
           updatedAtMs: Date.parse("2025-12-13T04:01:00.000Z"),
           schedule: { kind: "cron", expr: "1,11,21,31,41,51 4-20 * * *", tz: "UTC" },
           sessionTarget: "main",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "systemEvent", text: "catch missed slot" },
           state: {
             // Persisted state may already be recomputed from restart time and
@@ -206,7 +206,7 @@ describe("CronService restart catch-up", () => {
           updatedAtMs: Date.parse("2025-12-13T16:30:00.000Z"),
           schedule: { kind: "at", at: "2025-12-13T16:00:00.000Z" },
           sessionTarget: "main",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "systemEvent", text: "one-shot stale marker" },
           state: {
             nextRunAtMs: dueAt,
@@ -237,7 +237,7 @@ describe("CronService restart catch-up", () => {
           updatedAtMs: Date.parse("2025-12-13T04:01:00.000Z"),
           schedule: { kind: "cron", expr: "1,11,21,31,41,51 4-20 * * *", tz: "UTC" },
           sessionTarget: "main",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "systemEvent", text: "already ran" },
           state: {
             nextRunAtMs: Date.parse("2025-12-13T04:11:00.000Z"),
@@ -265,7 +265,7 @@ describe("CronService restart catch-up", () => {
           updatedAtMs: Date.parse("2025-12-13T04:01:10.000Z"),
           schedule: { kind: "cron", expr: "* * * * *", tz: "UTC" },
           sessionTarget: "main",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "systemEvent", text: "do not run during backoff" },
           state: {
             // Next retry is intentionally delayed by backoff despite a newer cron slot.
@@ -295,7 +295,7 @@ describe("CronService restart catch-up", () => {
           updatedAtMs: Date.parse("2025-12-13T04:01:10.000Z"),
           schedule: { kind: "cron", expr: "1,11,21,31,41,51 4-20 * * *", tz: "UTC" },
           sessionTarget: "main",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "systemEvent", text: "replay after backoff elapsed" },
           state: {
             // Startup maintenance may already point to a future slot (04:11) even

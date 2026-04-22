@@ -1568,46 +1568,6 @@
       "hasChildren": false
     },
     {
-      "path": "agents.defaults.heartbeat.activeHours",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.heartbeat.activeHours.end",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.heartbeat.activeHours.start",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.heartbeat.activeHours.timezone",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
       "path": "agents.defaults.heartbeat.directPolicy",
       "kind": "core",
       "type": "string",
@@ -1621,16 +1581,6 @@
       ],
       "label": "Heartbeat Direct Policy",
       "help": "Controls whether heartbeat delivery may target direct/DM chats: \"allow\" (default) permits DM delivery and \"block\" suppresses direct-target sends.",
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.heartbeat.every",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
       "hasChildren": false
     },
     {
@@ -4310,46 +4260,6 @@
       "hasChildren": false
     },
     {
-      "path": "agents.list.*.heartbeat.activeHours",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.list.*.heartbeat.activeHours.end",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.list.*.heartbeat.activeHours.start",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.list.*.heartbeat.activeHours.timezone",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
       "path": "agents.list.*.heartbeat.directPolicy",
       "kind": "core",
       "type": "string",
@@ -4363,16 +4273,6 @@
       ],
       "label": "Heartbeat Direct Policy",
       "help": "Per-agent override for heartbeat direct/DM delivery policy; use \"block\" for agents that should only send heartbeat alerts to non-DM destinations.",
-      "hasChildren": false
-    },
-    {
-      "path": "agents.list.*.heartbeat.every",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
       "hasChildren": false
     },
     {
@@ -44035,7 +43935,7 @@
         "advanced"
       ],
       "label": "Hook Mapping Wake Mode",
-      "help": "Wake scheduling mode. Use \"now\" to wake the main session after enqueueing the hook event. \"next-heartbeat\" is accepted as a compatibility alias for \"now\".",
+      "help": "Wake scheduling mode. Use only \"now\"; it wakes the main session after enqueueing the hook event.",
       "hasChildren": false
     },
     {

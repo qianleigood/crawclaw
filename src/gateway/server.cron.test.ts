@@ -149,7 +149,7 @@ async function addMainSystemEventCronJob(params: { ws: WebSocket; name: string; 
     enabled: true,
     schedule: { kind: "every", everyMs: 60_000 },
     sessionTarget: "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "systemEvent", text: params.text ?? "hello" },
   });
   return expectCronJobIdFromResponse(response);
@@ -167,7 +167,7 @@ async function addWebhookCronJob(params: {
     enabled: true,
     schedule: { kind: "every", everyMs: 60_000 },
     sessionTarget: params.sessionTarget ?? "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: {
       kind: params.sessionTarget === "isolated" ? "agentTurn" : "systemEvent",
       ...(params.sessionTarget === "isolated"
@@ -250,7 +250,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "hello" },
         delivery: { mode: "webhook", to: "https://example.invalid/cron-finished" },
       });
@@ -275,7 +275,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(routeAtMs).toISOString() },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "cron route check" },
       });
       expect(routeRes.ok).toBe(true);
@@ -327,7 +327,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "isolated",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "agentTurn", message: "hello", model: "opus" },
       });
       expect(mergeRes.ok).toBe(true);
@@ -340,7 +340,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "isolated",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "agentTurn", message: "hello", timeoutSeconds: 0 },
       });
       expect(noTimeoutRes.ok).toBe(true);
@@ -477,7 +477,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(atMs).toISOString() },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "hello" },
       });
       expect(addRes.ok).toBe(true);
@@ -536,7 +536,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(Date.now() + 200).toISOString() },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "auto" },
       });
       expect(autoRes.ok).toBe(true);
@@ -581,7 +581,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "isolated",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "agentTurn", message: "do work" },
         delivery: { mode: "none" },
       });
@@ -638,7 +638,7 @@ describe("gateway server cron", () => {
           updatedAtMs: now - 60_000,
           schedule: { kind: "at", at: new Date(now + 60_000).toISOString() },
           sessionTarget: "isolated",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "agentTurn", message: "still busy" },
           delivery: { mode: "none" },
           state: {
@@ -691,7 +691,7 @@ describe("gateway server cron", () => {
           updatedAtMs: now - 60_000,
           schedule: { kind: "at", at: new Date(now + 60_000).toISOString() },
           sessionTarget: "isolated",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "agentTurn", message: "not yet" },
           delivery: { mode: "none" },
           state: {
@@ -725,7 +725,7 @@ describe("gateway server cron", () => {
       updatedAtMs: Date.now(),
       schedule: { kind: "every", everyMs: 60_000 },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "legacy webhook" },
       state: {},
     };
@@ -753,7 +753,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "invalid" },
         delivery: { mode: "webhook", to: "ftp://example.invalid/cron-finished" },
       });
@@ -800,7 +800,7 @@ describe("gateway server cron", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 60_000 },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "do not send" },
       });
       expect(silentRes.ok).toBe(true);

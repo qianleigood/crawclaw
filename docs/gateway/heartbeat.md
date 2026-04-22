@@ -21,9 +21,8 @@ main-session wakes.
 ## What changed
 
 - The Gateway no longer installs a default periodic heartbeat cadence.
-- `agents.defaults.heartbeat.every` and per-agent `heartbeat.every` are ignored
-  by the runner. Status and health output report legacy cadence config as
-  disabled rather than enabled.
+- `agents.defaults.heartbeat.every`, per-agent `heartbeat.every`, and
+  `activeHours` are no longer accepted as config keys.
 - Runtime `system heartbeat enable` and `system heartbeat disable` controls were
   removed.
 - `HEARTBEAT.md` is no longer required for automatic periodic checks. Existing
@@ -49,17 +48,15 @@ task record.
 
 ## Compatibility notes
 
-Some config and RPC names still contain `heartbeat` for compatibility with older
-clients and existing config files. Treat those names as legacy compatibility
-surfaces, not as the recommended automation model.
+Some diagnostic RPC names still contain `heartbeat` for older clients. Treat
+those names as read-only diagnostics, not as an automation model.
 
 - `crawclaw system heartbeat last` reads the last diagnostic event. It does not
   enable scheduling.
 - `last-heartbeat` and `system.heartbeat.last` RPC methods are read-only
   compatibility aliases.
-- `next-heartbeat` remains accepted as a wake-mode value in cron and hook
-  surfaces. It is normalized to the same event-driven wake behavior as `now`
-  rather than waiting for a periodic heartbeat tick.
+- `next-heartbeat` is no longer accepted as a wake-mode value. Use `now` for
+  event-driven main-session wakes.
 
 ## Not removed
 
@@ -76,8 +73,8 @@ for compatibility.
 
 ## Migration checklist
 
-1. Remove `agents.defaults.heartbeat.every` and per-agent heartbeat cadence
-   settings from configs. Existing values are ignored.
+1. Remove `agents.defaults.heartbeat.every`, per-agent heartbeat cadence
+   settings, and `activeHours` from configs.
 2. Move scheduled checks to [Scheduled Tasks](/automation/cron-jobs).
 3. Move event-driven follow-ups to [`crawclaw system event`](/cli/system) or
    hooks.

@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe("cron service timer seam coverage", () => {
-  it("persists the next schedule and normalizes legacy next-heartbeat main jobs", async () => {
+  it("persists the next schedule and normalizes legacy now main jobs", async () => {
     const { storePath } = await makeStorePath();
     const now = Date.parse("2026-03-23T12:00:00.000Z");
     const enqueueSystemEvent = vi.fn();
@@ -41,7 +41,7 @@ describe("cron service timer seam coverage", () => {
 
     await writeCronStoreSnapshot({
       storePath,
-      jobs: [createDueMainJob({ now, wakeMode: "next-heartbeat" })],
+      jobs: [createDueMainJob({ now, wakeMode: "now" })],
     });
 
     const state = createCronServiceState({
@@ -93,7 +93,7 @@ describe("cron service timer seam coverage", () => {
 
     await writeCronStoreSnapshot({
       storePath,
-      jobs: [createDueMainJob({ now, wakeMode: "next-heartbeat" })],
+      jobs: [createDueMainJob({ now, wakeMode: "now" })],
     });
 
     const createTaskRecordSpy = vi

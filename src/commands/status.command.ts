@@ -398,11 +398,10 @@ export async function statusCommand(
   const heartbeatValue = (() => {
     const parts = summary.heartbeat.agents
       .map((agent) => {
-        if (!agent.enabled || !agent.everyMs) {
+        if (!agent.enabled) {
           return `disabled (${agent.agentId})`;
         }
-        const everyLabel = agent.every;
-        return `${everyLabel} (${agent.agentId})`;
+        return `enabled (${agent.agentId})`;
       })
       .filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : "disabled";

@@ -1310,7 +1310,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.cron.option.deleteAfterRun": "Delete one-shot job after it succeeds",
   "command.cron.option.keepAfterRun": "Keep one-shot job after it succeeds",
   "command.cron.option.session": "Session target (main|isolated)",
-  "command.cron.option.wake": "Wake mode (now|next-heartbeat)",
+  "command.cron.option.wake": "Wake mode (now)",
   "command.cron.option.tz": "Timezone for cron expressions (IANA)",
   "command.cron.option.stagger": "Cron stagger window (e.g. 30s, 5m)",
   "command.cron.option.exact": "Disable cron staggering (set stagger to 0)",
@@ -1427,7 +1427,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.system.event.description":
     "Enqueue a system event and optionally trigger a main-session wake",
   "command.system.event.option.text": "System event text",
-  "command.system.event.option.mode": "Wake mode (now|next-heartbeat)",
+  "command.system.event.option.mode": "Wake mode (now)",
   "command.system.heartbeat.description": "Heartbeat event inspection",
   "command.system.heartbeat.last.description": "Show the last heartbeat event",
   "command.system.presence.description": "List system presence entries",

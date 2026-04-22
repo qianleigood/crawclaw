@@ -32,8 +32,6 @@ export type SessionStatus = {
 export type HeartbeatStatus = {
   agentId: string;
   enabled: boolean;
-  every: string;
-  everyMs: number | null;
 };
 
 export type StatusSummary = {

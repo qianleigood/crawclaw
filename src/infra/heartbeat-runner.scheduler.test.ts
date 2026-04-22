@@ -23,7 +23,7 @@ describe("startHeartbeatRunner", () => {
   ): CrawClawConfig {
     return {
       agents: {
-        defaults: { heartbeat: { every: "30m" } },
+        defaults: { heartbeat: { target: "none" } },
         ...(list ? { list } : {}),
       },
     } as CrawClawConfig;
@@ -79,10 +79,10 @@ describe("startHeartbeatRunner", () => {
 
     runner.updateConfig({
       agents: {
-        defaults: { heartbeat: { every: "30m" } },
+        defaults: { heartbeat: { target: "none" } },
         list: [
-          { id: "main", heartbeat: { every: "10m" } },
-          { id: "ops", heartbeat: { every: "15m" } },
+          { id: "main", heartbeat: { target: "none" } },
+          { id: "ops", heartbeat: { target: "none" } },
         ],
       },
     } as CrawClawConfig);
@@ -133,7 +133,7 @@ describe("startHeartbeatRunner", () => {
     const runSpy2 = vi.fn().mockResolvedValue({ status: "ran", durationMs: 1 });
 
     const cfg = {
-      agents: { defaults: { heartbeat: { every: "30m" } } },
+      agents: { defaults: { heartbeat: { target: "none" } } },
     } as CrawClawConfig;
 
     // Start runner A
@@ -233,8 +233,8 @@ describe("startHeartbeatRunner", () => {
     const runner = await expectWakeDispatch({
       cfg: {
         ...heartbeatConfig([
-          { id: "main", heartbeat: { every: "30m" } },
-          { id: "ops", heartbeat: { every: "15m" } },
+          { id: "main", heartbeat: { target: "none" } },
+          { id: "ops", heartbeat: { target: "none" } },
         ]),
       } as CrawClawConfig,
       runSpy,
@@ -260,8 +260,8 @@ describe("startHeartbeatRunner", () => {
     const runner = await expectWakeDispatch({
       cfg: {
         ...heartbeatConfig([
-          { id: "main", heartbeat: { every: "30m" } },
-          { id: "finance", heartbeat: { every: "30m" } },
+          { id: "main", heartbeat: { target: "none" } },
+          { id: "finance", heartbeat: { target: "none" } },
         ]),
       } as CrawClawConfig,
       runSpy,

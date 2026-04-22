@@ -114,5 +114,5 @@ See [Heartbeat](/gateway/heartbeat) for legacy compatibility notes.
 - [Task Flow](/automation/taskflow) — durable multi-step flow orchestration
 - [Hooks](/automation/hooks) — event-driven lifecycle scripts
 - [Standing Orders](/automation/standing-orders) — persistent agent instructions
-- [Heartbeat](/gateway/heartbeat) — legacy heartbeat compatibility notes
+- [Heartbeat](/gateway/heartbeat) — heartbeat migration notes
 - [Configuration Reference](/gateway/configuration-reference) — all config keys

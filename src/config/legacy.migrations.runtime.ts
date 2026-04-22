@@ -16,24 +16,6 @@ import {
 import { DEFAULT_GATEWAY_PORT } from "./paths.js";
 import { isBlockedObjectKey } from "./prototype-keys.js";
 
-const AGENT_HEARTBEAT_KEYS = new Set([
-  "every",
-  "activeHours",
-  "model",
-  "session",
-  "includeReasoning",
-  "target",
-  "directPolicy",
-  "to",
-  "accountId",
-  "prompt",
-  "ackMaxChars",
-  "suppressToolErrorWarnings",
-  "lightContext",
-  "isolatedSession",
-]);
-
-const CHANNEL_HEARTBEAT_KEYS = new Set(["showOk", "showAlerts", "useIndicator"]);
 const LEGACY_TTS_PROVIDER_KEYS = ["openai", "elevenlabs", "microsoft", "edge"] as const;
 const LEGACY_TTS_PLUGIN_IDS = new Set(["voice-call"]);
 
@@ -68,36 +50,6 @@ function isLegacyGatewayBindHostAlias(value: unknown): boolean {
 
 function escapeControlForLog(value: string): string {
   return value.replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t");
-}
-
-function splitLegacyHeartbeat(legacyHeartbeat: Record<string, unknown>): {
-  agentHeartbeat: Record<string, unknown> | null;
-  channelHeartbeat: Record<string, unknown> | null;
-} {
-  const agentHeartbeat: Record<string, unknown> = {};
-  const channelHeartbeat: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(legacyHeartbeat)) {
-    if (isBlockedObjectKey(key)) {
-      continue;
-    }
-    if (CHANNEL_HEARTBEAT_KEYS.has(key)) {
-      channelHeartbeat[key] = value;
-      continue;
-    }
-    if (AGENT_HEARTBEAT_KEYS.has(key)) {
-      agentHeartbeat[key] = value;
-      continue;
-    }
-    // Preserve unknown fields under the agent heartbeat namespace so validation
-    // still surfaces unsupported keys instead of silently dropping user input.
-    agentHeartbeat[key] = value;
-  }
-
-  return {
-    agentHeartbeat: Object.keys(agentHeartbeat).length > 0 ? agentHeartbeat : null,
-    channelHeartbeat: Object.keys(channelHeartbeat).length > 0 ? channelHeartbeat : null,
-  };
 }
 
 function mergeLegacyIntoDefaults(params: {
@@ -257,7 +209,7 @@ const GATEWAY_BIND_RULE: LegacyConfigRule = {
 const HEARTBEAT_RULE: LegacyConfigRule = {
   path: ["heartbeat"],
   message:
-    "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for compatibility delivery settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
+    "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for event-driven wake settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
 };
 
 const X_SEARCH_RULE: LegacyConfigRule = {
@@ -514,47 +466,9 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME: LegacyConfigMigrationSpec[] = [
     },
   }),
   defineLegacyConfigMigration({
-    id: "heartbeat->agents.defaults.heartbeat",
-    describe: "Move top-level heartbeat to agents.defaults.heartbeat/channels.defaults.heartbeat",
+    id: "top-level-heartbeat-removed",
+    describe: "Reject removed top-level heartbeat config",
     legacyRules: [HEARTBEAT_RULE],
-    apply: (raw, changes) => {
-      const legacyHeartbeat = getRecord(raw.heartbeat);
-      if (!legacyHeartbeat) {
-        return;
-      }
-
-      const { agentHeartbeat, channelHeartbeat } = splitLegacyHeartbeat(legacyHeartbeat);
-
-      if (agentHeartbeat) {
-        mergeLegacyIntoDefaults({
-          raw,
-          rootKey: "agents",
-          fieldKey: "heartbeat",
-          legacyValue: agentHeartbeat,
-          changes,
-          movedMessage: "Moved heartbeat → agents.defaults.heartbeat.",
-          mergedMessage:
-            "Merged heartbeat → agents.defaults.heartbeat (filled missing fields from legacy; kept explicit agents.defaults values).",
-        });
-      }
-
-      if (channelHeartbeat) {
-        mergeLegacyIntoDefaults({
-          raw,
-          rootKey: "channels",
-          fieldKey: "heartbeat",
-          legacyValue: channelHeartbeat,
-          changes,
-          movedMessage: "Moved heartbeat visibility → channels.defaults.heartbeat.",
-          mergedMessage:
-            "Merged heartbeat visibility → channels.defaults.heartbeat (filled missing fields from legacy; kept explicit channels.defaults values).",
-        });
-      }
-
-      if (!agentHeartbeat && !channelHeartbeat) {
-        changes.push("Removed empty top-level heartbeat.");
-      }
-      delete raw.heartbeat;
-    },
+    apply: () => {},
   }),
 ];

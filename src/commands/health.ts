@@ -57,8 +57,6 @@ export type HealthSummary = {
   channels: Record<string, ChannelHealthSummary>;
   channelOrder: string[];
   channelLabels: Record<string, string>;
-  /** Legacy: default agent heartbeat seconds (rounded). */
-  heartbeatSeconds: number;
   defaultAgentId: string;
   agents: AgentHealthSummary[];
   sessions: {
@@ -409,9 +407,6 @@ export async function getHealthSnapshot(params?: {
     } satisfies AgentHealthSummary;
   });
   const defaultAgent = agents.find((agent) => agent.isDefault) ?? agents[0];
-  const heartbeatSeconds = defaultAgent?.heartbeat.everyMs
-    ? Math.round(defaultAgent.heartbeat.everyMs / 1000)
-    : 0;
   const sessions =
     defaultAgent?.sessions ??
     buildSessionSummary(resolveStorePath(cfg.session?.store, { agentId: defaultAgentId }));
@@ -552,7 +547,6 @@ export async function getHealthSnapshot(params?: {
     channels,
     channelOrder,
     channelLabels,
-    heartbeatSeconds,
     defaultAgentId,
     agents,
     sessions: {

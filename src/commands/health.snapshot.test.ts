@@ -420,13 +420,12 @@ describe("getHealthSnapshot", () => {
       agents: {
         defaults: {
           heartbeat: {
-            every: "30m",
             target: "last",
           },
         },
         list: [
           { id: "main", default: true },
-          { id: "ops", heartbeat: { every: "1h", target: "whatsapp" } },
+          { id: "ops", heartbeat: { target: "whatsapp" } },
         ],
       },
     };
@@ -437,9 +436,7 @@ describe("getHealthSnapshot", () => {
     const main = byAgent.get("main");
     const ops = byAgent.get("ops");
 
-    expect(main?.heartbeat.everyMs).toBeNull();
-    expect(main?.heartbeat.every).toBe("disabled");
-    expect(ops?.heartbeat.everyMs).toBeNull();
-    expect(ops?.heartbeat.every).toBe("disabled");
+    expect(main?.heartbeat.enabled).toBe(false);
+    expect(ops?.heartbeat.enabled).toBe(false);
   });
 });

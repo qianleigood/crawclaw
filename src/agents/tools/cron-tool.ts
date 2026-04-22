@@ -107,7 +107,6 @@ Default: prefer isolated agentTurn jobs unless the user explicitly wants current
 
 WAKE MODES (for wake action):
 - "now" (default): Request the next main-session wake
-- "next-heartbeat": Compatibility alias; it is normalized to "now"
 
 Use jobId as the canonical identifier; id is accepted for compatibility. Use contextMessages (0-10) to add previous messages as context to the job text.`,
     parameters: CronToolSchema,

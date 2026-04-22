@@ -43,7 +43,6 @@ describe("Ghost reminder bug (issue #13317)", () => {
         defaults: {
           workspace: params.tmpDir,
           heartbeat: {
-            every: "5m",
             target: params.target ?? "telegram",
           },
         },
@@ -239,7 +238,6 @@ describe("Ghost reminder bug (issue #13317)", () => {
           defaults: {
             workspace: tmpDir,
             heartbeat: {
-              every: "5m",
               target: "last",
             },
           },
@@ -298,7 +296,6 @@ describe("Ghost reminder bug (issue #13317)", () => {
           defaults: {
             workspace: tmpDir,
             heartbeat: {
-              every: "5m",
               target: "last",
               isolatedSession: true,
             },

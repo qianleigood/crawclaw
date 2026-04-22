@@ -334,7 +334,7 @@ function normalizeWakeMode(raw: unknown) {
     return undefined;
   }
   const trimmed = raw.trim().toLowerCase();
-  if (trimmed === "now" || trimmed === "next-heartbeat") {
+  if (trimmed === "now") {
     return "now";
   }
   return undefined;
@@ -460,12 +460,14 @@ export function normalizeCronJobInput(
     }
   }
 
+  let invalidWakeMode = false;
   if ("wakeMode" in base) {
     const normalized = normalizeWakeMode(base.wakeMode);
     if (normalized) {
       next.wakeMode = normalized;
     } else {
       delete next.wakeMode;
+      invalidWakeMode = true;
     }
   }
 
@@ -499,7 +501,7 @@ export function normalizeCronJobInput(
   stripLegacyTopLevelFields(next);
 
   if (options.applyDefaults) {
-    if (!next.wakeMode) {
+    if (!next.wakeMode && !invalidWakeMode) {
       next.wakeMode = "now";
     }
     if (typeof next.enabled !== "boolean") {

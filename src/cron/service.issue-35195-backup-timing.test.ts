@@ -23,7 +23,7 @@ describe("cron backup timing for edit", () => {
         updatedAtMs: base,
         schedule: { kind: "every", everyMs: 60_000, anchorMs: base },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "hello" },
         state: {},
       },

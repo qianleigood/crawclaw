@@ -94,7 +94,6 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
           defaults: {
             workspace: tmpDir,
             heartbeat: {
-              every: "5m",
               target: "whatsapp",
               model: params.model,
               suppressToolErrorWarnings: params.suppressToolErrorWarnings,
@@ -154,7 +153,6 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
           defaults: {
             workspace: tmpDir,
             heartbeat: {
-              every: "5m",
               target: "whatsapp",
               isolatedSession: true,
             },
@@ -182,7 +180,6 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
           defaults: {
             workspace: tmpDir,
             heartbeat: {
-              every: "5m",
               target: "whatsapp",
             },
           },
@@ -207,7 +204,6 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         agents: {
           defaults: {
             heartbeat: {
-              every: "30m",
               model: "openai/gpt-5.4",
             },
           },
@@ -217,7 +213,6 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
               id: "ops",
               workspace: tmpDir,
               heartbeat: {
-                every: "5m",
                 target: "whatsapp",
                 model: "ollama/llama3.2:1b",
               },

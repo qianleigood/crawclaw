@@ -104,7 +104,7 @@ describe("buildGatewayCronService", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(1).toISOString() },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         sessionKey: "discord:channel:ops",
         payload: { kind: "systemEvent", text: "hello" },
       });
@@ -148,7 +148,7 @@ describe("buildGatewayCronService", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(1).toISOString() },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "hello" },
         delivery: {
           mode: "webhook",
@@ -198,7 +198,7 @@ describe("buildGatewayCronService", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(1).toISOString() },
         sessionTarget: "session:project-alpha-monitor",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "agentTurn", message: "hello" },
       });
 

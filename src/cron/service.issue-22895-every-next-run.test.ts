@@ -14,7 +14,7 @@ function createEveryJob(state: CronJob["state"]): CronJob {
     updatedAtMs: ANCHOR_MS,
     schedule: { kind: "every", everyMs: EVERY_30_MIN_MS, anchorMs: ANCHOR_MS },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "check cadence" },
     delivery: { mode: "none" },
     state,

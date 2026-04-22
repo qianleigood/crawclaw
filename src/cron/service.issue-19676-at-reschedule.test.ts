@@ -17,7 +17,7 @@ function createAtJob(
     updatedAtMs: ORIGINAL_AT_MS - 60_000,
     schedule: overrides.schedule ?? { kind: "at", at: new Date(ORIGINAL_AT_MS).toISOString() },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "reminder" },
     delivery: { mode: "none" },
     state: { ...overrides.state },

@@ -175,11 +175,24 @@ describe("cron tool", () => {
     expect(params).toEqual({ mode: "now", text: "check inbox" });
   });
 
-  it("accepts next-heartbeat wake action as an immediate wake alias", async () => {
+  it("rejects legacy next-heartbeat wake actions", async () => {
     const tool = createTestCronTool();
-    await tool.execute("call-wake-alias", {
+    await expect(
+      tool.execute("call-wake-alias", {
+        action: "wake",
+        mode: "next-heartbeat",
+        text: "check inbox",
+      }),
+    ).rejects.toThrow(/mode must be "now"/);
+
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("passes explicit now wake actions", async () => {
+    const tool = createTestCronTool();
+    await tool.execute("call-wake-now", {
       action: "wake",
-      mode: "next-heartbeat",
+      mode: "now",
       text: "check inbox",
     });
 

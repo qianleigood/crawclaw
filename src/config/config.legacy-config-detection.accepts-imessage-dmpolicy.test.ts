@@ -284,9 +284,9 @@ describe("legacy config detection", () => {
   });
   it("flags top-level heartbeat as legacy in snapshot", async () => {
     await withSnapshotForConfig(
-      { heartbeat: { model: "anthropic/claude-3-5-haiku-20241022", every: "30m" } },
+      { heartbeat: { model: "anthropic/claude-3-5-haiku-20241022", target: "telegram" } },
       async (ctx) => {
-        expect(ctx.snapshot.valid).toBe(true);
+        expect(ctx.snapshot.valid).toBe(false);
         expect(ctx.snapshot.legacyIssues.some((issue) => issue.path === "heartbeat")).toBe(true);
       },
     );

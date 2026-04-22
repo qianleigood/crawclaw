@@ -1096,7 +1096,6 @@ describe("doctor config flow", () => {
       config: {
         heartbeat: {
           model: "anthropic/claude-3-5-haiku-20241022",
-          every: "30m",
         },
       },
       run: loadAndMaybeMigrateDoctorConfig,
@@ -1116,7 +1115,6 @@ describe("doctor config flow", () => {
     expect(cfg.heartbeat).toBeUndefined();
     expect(cfg.agents?.defaults?.heartbeat).toMatchObject({
       model: "anthropic/claude-3-5-haiku-20241022",
-      every: "30m",
     });
   });
 

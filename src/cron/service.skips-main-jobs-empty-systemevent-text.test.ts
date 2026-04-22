@@ -116,7 +116,7 @@ describe("CronService", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(atMs).toISOString() },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "hello" },
       });
 

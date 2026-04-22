@@ -27,7 +27,11 @@ export function readCronRunMode(params: Record<string, unknown>): "due" | "force
   return params.runMode === "due" || params.runMode === "force" ? params.runMode : "force";
 }
 
-export function readCronWakeMode(_params: Record<string, unknown>): "now" {
+export function readCronWakeMode(params: Record<string, unknown>): "now" {
+  const mode = readStringParam(params, "mode");
+  if (mode && mode.trim() !== "now") {
+    throw new Error('mode must be "now"');
+  }
   return "now";
 }
 

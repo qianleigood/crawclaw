@@ -950,7 +950,6 @@ describe("spawnAcpDirect", () => {
       agents: {
         defaults: {
           heartbeat: {
-            every: "30m",
             target: "last",
           },
         },
@@ -1028,7 +1027,6 @@ describe("spawnAcpDirect", () => {
       agents: {
         defaults: {
           heartbeat: {
-            every: "30m",
             target: "discord",
             to: "channel:ops-room",
           },
@@ -1062,7 +1060,6 @@ describe("spawnAcpDirect", () => {
       agents: {
         defaults: {
           heartbeat: {
-            every: "30m",
             target: "last",
           },
         },
@@ -1085,11 +1082,11 @@ describe("spawnAcpDirect", () => {
     expect(hoisted.startAcpSpawnParentStreamRelayMock).not.toHaveBeenCalled();
   });
 
-  it("does not implicitly stream for subagent requester sessions when heartbeat is disabled", async () => {
+  it("does not implicitly stream for subagent requester sessions without wake settings", async () => {
     replaceSpawnConfig({
       ...hoisted.state.cfg,
       agents: {
-        list: [{ id: "main", heartbeat: { every: "30m" } }, { id: "research" }],
+        list: [{ id: "main", heartbeat: { target: "last" } }, { id: "research" }],
       },
     });
 
@@ -1109,14 +1106,14 @@ describe("spawnAcpDirect", () => {
     expect(hoisted.startAcpSpawnParentStreamRelayMock).not.toHaveBeenCalled();
   });
 
-  it("does not implicitly stream for subagent requester sessions when heartbeat cadence is invalid", async () => {
+  it("does not implicitly stream for subagent requester sessions when no wake route is configured", async () => {
     replaceSpawnConfig({
       ...hoisted.state.cfg,
       agents: {
         list: [
           {
             id: "research",
-            heartbeat: { every: "0m" },
+            heartbeat: {},
           },
         ],
       },
@@ -1144,7 +1141,6 @@ describe("spawnAcpDirect", () => {
       agents: {
         defaults: {
           heartbeat: {
-            every: "30m",
             target: "last",
           },
         },

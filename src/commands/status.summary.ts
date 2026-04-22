@@ -129,8 +129,6 @@ export async function getStatusSummary(
     return {
       agentId: agent.id,
       enabled: summary.enabled,
-      every: summary.every,
-      everyMs: summary.everyMs,
     } satisfies HeartbeatStatus;
   });
   const channelSummary = needsChannelPlugins

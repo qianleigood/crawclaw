@@ -82,7 +82,7 @@ describe("CronService failure alerts", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000 },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "run report" },
       delivery: { mode: "announce", channel: "telegram", to: "19098680" },
     });
@@ -142,7 +142,7 @@ describe("CronService failure alerts", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000 },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "run report" },
       failureAlert: {
         after: 1,
@@ -191,7 +191,7 @@ describe("CronService failure alerts", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000 },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "run report" },
       failureAlert: false,
     });
@@ -232,7 +232,7 @@ describe("CronService failure alerts", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000 },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "run report" },
       delivery: { mode: "announce", channel: "telegram", to: "19098680" },
     });
@@ -241,7 +241,7 @@ describe("CronService failure alerts", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000 },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "run report" },
       delivery: {
         mode: "announce",

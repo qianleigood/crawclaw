@@ -16,7 +16,7 @@ function makeJob(payload: CronJob["payload"]): CronJob {
     enabled: true,
     schedule: { kind: "every", everyMs: 60_000 },
     sessionTarget,
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload,
     state: {},
   };

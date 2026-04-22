@@ -18,7 +18,6 @@ import { handleMcpCommand } from "./commands-mcp.js";
 import { handleModelsCommand } from "./commands-models.js";
 import { handlePluginCommand } from "./commands-plugin.js";
 import { handlePluginsCommand } from "./commands-plugins.js";
-import { handleReviewCommand } from "./commands-review.js";
 import {
   handleAbortTrigger,
   handleActivationCommand,
@@ -33,6 +32,7 @@ import { handleSubagentsCommand } from "./commands-subagents.js";
 import { handleTasksCommand } from "./commands-tasks.js";
 import { handleTtsCommands } from "./commands-tts.js";
 import type { CommandHandler } from "./commands-types.js";
+import { handleVerifyCommand } from "./commands-verify.js";
 import { handleWorkflowCommand } from "./commands-workflow.js";
 
 export function loadCommandHandlers(): CommandHandler[] {
@@ -52,7 +52,7 @@ export function loadCommandHandlers(): CommandHandler[] {
     handleToolsCommand,
     handleStatusCommand,
     handleWorkflowCommand,
-    handleReviewCommand,
+    handleVerifyCommand,
     handleTasksCommand,
     handleAllowlistCommand,
     handleApproveCommand,

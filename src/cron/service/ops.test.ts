@@ -21,7 +21,7 @@ function createInterruptedMainJob(now: number): CronJob {
     updatedAtMs: now - 30 * 60_000,
     schedule: { kind: "cron", expr: "0 * * * *", tz: "UTC" },
     sessionTarget: "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "systemEvent", text: "should not replay on startup" },
     state: {
       nextRunAtMs: now - 60_000,
@@ -39,7 +39,7 @@ function createDueIsolatedJob(now: number): CronJob {
     updatedAtMs: now - 60_000,
     schedule: { kind: "every", everyMs: 60_000, anchorMs: now - 60_000 },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "do work" },
     sessionKey: "agent:main:main",
     state: { nextRunAtMs: now - 1 },
@@ -55,7 +55,7 @@ function createMissedIsolatedJob(now: number): CronJob {
     updatedAtMs: now - 30 * 60_000,
     schedule: { kind: "cron", expr: "0 * * * *", tz: "UTC" },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "should timeout" },
     sessionKey: "agent:main:main",
     state: {
@@ -65,7 +65,7 @@ function createMissedIsolatedJob(now: number): CronJob {
 }
 
 describe("cron service ops seam coverage", () => {
-  it("treats next-heartbeat wake as an event-driven main-session wake", async () => {
+  it("treats now wake as an event-driven main-session wake", async () => {
     const { storePath } = await makeStorePath();
     const enqueueSystemEvent = vi.fn();
     const requestMainSessionWake = vi.fn();
@@ -78,7 +78,7 @@ describe("cron service ops seam coverage", () => {
       runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
     });
 
-    const result = wakeNow(state, { mode: "next-heartbeat", text: "  check inbox  " });
+    const result = wakeNow(state, { mode: "now", text: "  check inbox  " });
 
     expect(result).toEqual({ ok: true });
     expect(enqueueSystemEvent).toHaveBeenCalledWith("check inbox");

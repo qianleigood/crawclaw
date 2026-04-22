@@ -24,7 +24,7 @@ function createCronJob(params: {
     updatedAtMs: Date.parse("2026-02-06T00:00:00.000Z"),
     schedule: { kind: "cron", expr: params.expr, tz: params.tz, staggerMs: params.staggerMs },
     sessionTarget: "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "systemEvent", text: "tick" },
     state: params.state ?? {},
   };

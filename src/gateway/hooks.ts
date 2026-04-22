@@ -193,6 +193,9 @@ export function normalizeWakePayload(
   if (!text) {
     return { ok: false, error: "text required" };
   }
+  if (payload.mode !== undefined && payload.mode !== "now") {
+    return { ok: false, error: "mode must be now" };
+  }
   return { ok: true, value: { text, mode: "now" } };
 }
 

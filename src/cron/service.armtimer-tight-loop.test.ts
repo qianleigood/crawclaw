@@ -26,7 +26,7 @@ function createStuckPastDueJob(params: { id: string; nowMs: number; pastDueMs: n
     updatedAtMs: pastDueAt - 60_000,
     schedule: { kind: "cron", expr: "*/15 * * * *" },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "monitor" },
     delivery: { mode: "none" },
     state: {
@@ -123,7 +123,7 @@ describe("CronService - armTimer tight loop prevention", () => {
           updatedAtMs: now,
           schedule: { kind: "cron", expr: "*/15 * * * *" },
           sessionTarget: "isolated" as const,
-          wakeMode: "next-heartbeat" as const,
+          wakeMode: "now" as const,
           payload: { kind: "agentTurn" as const, message: "test" },
           delivery: { mode: "none" as const },
           state: { nextRunAtMs: now + 10_000 }, // 10 seconds in the future

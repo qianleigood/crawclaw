@@ -108,6 +108,10 @@ describe("gateway hooks helpers", () => {
       value: { text: "hi", mode: "now" },
     });
     expect(normalizeWakePayload({ text: "  ", mode: "now" }).ok).toBe(false);
+    expect(normalizeWakePayload({ text: "hi", mode: "next-heartbeat" })).toEqual({
+      ok: false,
+      error: "mode must be now",
+    });
   });
 
   test("normalizeAgentPayload defaults + validates channel", () => {

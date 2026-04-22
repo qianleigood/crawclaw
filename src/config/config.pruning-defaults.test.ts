@@ -25,7 +25,7 @@ async function loadConfigForHome(config: unknown) {
 function expectAnthropicPruningDefaults(cfg: ReturnType<typeof loadConfig>) {
   expect(cfg.agents?.defaults?.contextPruning?.mode).toBe("cache-ttl");
   expect(cfg.agents?.defaults?.contextPruning?.ttl).toBe("1h");
-  expect(cfg.agents?.defaults?.heartbeat?.every).toBeUndefined();
+  expect(cfg.agents?.defaults?.heartbeat).toBeUndefined();
 }
 
 describe("config pruning defaults", () => {

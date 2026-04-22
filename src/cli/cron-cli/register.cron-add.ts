@@ -110,8 +110,8 @@ export function registerCronAddCommand(cron: Command, t: CliTranslator) {
 
           const wakeModeRaw = typeof opts.wake === "string" ? opts.wake : "now";
           const wakeMode = wakeModeRaw.trim() || "now";
-          if (wakeMode !== "now" && wakeMode !== "next-heartbeat") {
-            throw new Error("--wake must be now or next-heartbeat");
+          if (wakeMode !== "now") {
+            throw new Error("--wake must be now");
           }
           const normalizedWakeMode = "now";
 

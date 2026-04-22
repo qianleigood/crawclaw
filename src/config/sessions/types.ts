@@ -93,7 +93,7 @@ export type SessionEntry = {
   sessionFile?: string;
   /** Parent session key that spawned this session (used for sandbox session-tool scoping). */
   spawnedBy?: string;
-  /** Spawn source tag for specialized child-session policies such as review agents. */
+  /** Spawn source tag for specialized child-session policies such as verification agents. */
   spawnSource?: string;
   /** Explicit durable-memory scope for special background sessions such as memory extraction. */
   durableMemoryScope?: {

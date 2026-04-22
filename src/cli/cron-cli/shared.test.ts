@@ -31,7 +31,7 @@ function createBaseJob(overrides: Partial<CronJob>): CronJob {
     createdAtMs: now,
     updatedAtMs: now,
     schedule: { kind: "at", at: new Date(now + 3600000).toISOString() },
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "systemEvent", text: "test" },
     state: { nextRunAtMs: now + 3600000 },
     ...overrides,

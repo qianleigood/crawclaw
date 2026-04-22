@@ -211,7 +211,7 @@ export const AgentInspectionSnapshotSchema = Type.Object(
 
 export const WakeParamsSchema = Type.Object(
   {
-    mode: Type.Union([Type.Literal("now"), Type.Literal("next-heartbeat")]),
+    mode: Type.Literal("now"),
     text: NonEmptyString,
   },
   { additionalProperties: false },

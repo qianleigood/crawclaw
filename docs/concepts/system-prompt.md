@@ -26,7 +26,7 @@ The prompt is intentionally compact and uses fixed sections:
 - **Sandbox** (when enabled): indicates sandboxed runtime, sandbox paths, and whether elevated exec is available.
 - **Current Date & Time**: user-local time, timezone, and time format.
 - **Reply Tags**: optional reply tag syntax for supported providers.
-- **Heartbeats**: legacy heartbeat compatibility prompt and ack behavior, when a compatibility run provides a heartbeat prompt.
+- **Heartbeats**: event-driven main-session wake prompt and ack behavior, when a wake run provides a heartbeat prompt.
 - **Runtime**: host, OS, node, model, repo root (when detected), thinking level (one line).
 - **Reasoning**: current visibility level + /reasoning toggle hint.
 
@@ -65,7 +65,7 @@ CrawClaw no longer injects these files by default on ordinary chat turns:
 - `MEMORY.md` / `memory.md`
 
 This keeps the default bootstrap set to a single file and avoids burning prompt
-budget on persona, startup, tool notes, identity, legacy heartbeat, or memory files
+budget on persona, startup, tool notes, identity, event wake, or memory files
 every turn.
 
 > **Note:** `memory/*.md` daily files are **not** injected automatically. They

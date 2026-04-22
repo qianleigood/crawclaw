@@ -35,7 +35,7 @@ It owns:
 
 - Do not import `src/gateway/server-methods/**`, `server.impl.ts`, or other control-plane internals from here.
 - If agent code needs new gateway behavior, add or extend a narrow runtime seam first.
-- Do not create a private background-agent mechanism. Use `src/agents/special/runtime/**` for maintenance or review agents.
+- Do not create a private background-agent mechanism. Use `src/agents/special/runtime/**` for maintenance or verification agents.
 - Keep execution visibility, tool lifecycle output, and workflow projection on the shared event path instead of ad hoc strings.
 - Prefer an existing subdomain such as `tools`, `runtime`, `special`, `skills`, `sandbox`, or `query-context` before adding another top-level catch-all file.
 

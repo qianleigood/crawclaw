@@ -39,9 +39,6 @@ export async function ensureLoaded(
     if (typeof job.enabled !== "boolean") {
       job.enabled = true;
     }
-    if (job.wakeMode === "next-heartbeat") {
-      job.wakeMode = "now";
-    }
   }
   state.store = {
     version: 1,

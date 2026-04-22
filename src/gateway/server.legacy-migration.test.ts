@@ -13,7 +13,7 @@ async function expectHeartbeatValidationError(legacyParsed: Record<string, unkno
     {
       path: "heartbeat",
       message:
-        "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for compatibility delivery settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
+        "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for event-driven wake settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
     },
   ];
   testState.legacyParsed = legacyParsed;
@@ -36,7 +36,7 @@ async function expectHeartbeatValidationError(legacyParsed: Record<string, unkno
   const message = (thrown as Error).message;
   expect(message).toContain("Invalid config at");
   expect(message).toContain(
-    "heartbeat: top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for compatibility delivery settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
+    "heartbeat: top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for event-driven wake settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
   );
   expect(message).not.toContain("Legacy config entries detected but auto-migration failed.");
 }
@@ -44,7 +44,7 @@ async function expectHeartbeatValidationError(legacyParsed: Record<string, unkno
 describe("gateway startup legacy migration fallback", () => {
   test("surfaces detailed validation errors when legacy entries have no migration output", async () => {
     await expectHeartbeatValidationError({
-      heartbeat: { model: "anthropic/claude-3-5-haiku-20241022", every: "30m" },
+      heartbeat: { model: "anthropic/claude-3-5-haiku-20241022", target: "telegram" },
     });
   });
 

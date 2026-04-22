@@ -12,7 +12,7 @@ function makeJob(overrides: Partial<CronJob>): CronJob {
     updatedAtMs: now,
     schedule: { kind: "every", everyMs: 60_000 },
     sessionTarget: "isolated",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: { kind: "agentTurn", message: "hello" },
     state: {},
     ...overrides,

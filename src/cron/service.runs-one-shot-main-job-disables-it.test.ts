@@ -660,7 +660,7 @@ describe("CronService", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 1000 },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "agentTurn", message: "nope" },
       }),
     ).rejects.toThrow(/main cron jobs require/);
@@ -671,7 +671,7 @@ describe("CronService", () => {
         enabled: true,
         schedule: { kind: "every", everyMs: 1000 },
         sessionTarget: "isolated",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "nope" },
       }),
     ).rejects.toThrow(/isolated.*cron jobs require/);

@@ -9,7 +9,7 @@ export type HookMappingResolved = {
   matchPath?: string;
   matchSource?: string;
   action: "wake" | "agent";
-  wakeMode?: "now";
+  wakeMode?: "now" | null;
   name?: string;
   agentId?: string;
   sessionKey?: string;
@@ -84,10 +84,10 @@ const transformCache = new Map<string, HookTransformFn>();
 type HookTransformResult = Partial<{
   kind: HookAction["kind"];
   text: string;
-  mode: "now" | "next-heartbeat";
+  mode: string;
   message: string;
   agentId: string;
-  wakeMode: "now" | "next-heartbeat";
+  wakeMode: string;
   name: string;
   sessionKey: string;
   deliver: boolean;
@@ -103,8 +103,8 @@ type HookTransformFn = (
   ctx: HookMappingContext,
 ) => HookTransformResult | Promise<HookTransformResult>;
 
-function normalizeHookWakeMode(_raw?: "now" | "next-heartbeat"): "now" {
-  return "now";
+function normalizeHookWakeMode(raw?: unknown): "now" | null {
+  return raw === undefined || raw === "now" ? "now" : null;
 }
 
 export function resolveHookMappings(
@@ -246,16 +246,24 @@ function buildActionFromMapping(
 ): HookMappingResult {
   if (mapping.action === "wake") {
     const text = renderTemplate(mapping.textTemplate ?? "", ctx);
+    const mode = normalizeHookWakeMode(mapping.wakeMode);
+    if (!mode) {
+      return { ok: false, error: "wakeMode must be now" };
+    }
     return {
       ok: true,
       action: {
         kind: "wake",
         text,
-        mode: normalizeHookWakeMode(mapping.wakeMode),
+        mode,
       },
     };
   }
   const message = renderTemplate(mapping.messageTemplate ?? "", ctx);
+  const wakeMode = normalizeHookWakeMode(mapping.wakeMode);
+  if (!wakeMode) {
+    return { ok: false, error: "wakeMode must be now" };
+  }
   return {
     ok: true,
     action: {
@@ -263,7 +271,7 @@ function buildActionFromMapping(
       message,
       name: renderOptional(mapping.name, ctx),
       agentId: mapping.agentId,
-      wakeMode: normalizeHookWakeMode(mapping.wakeMode),
+      wakeMode,
       sessionKey: renderOptional(mapping.sessionKey, ctx),
       deliver: mapping.deliver,
       allowUnsafeExternalContent: mapping.allowUnsafeExternalContent,
@@ -288,21 +296,19 @@ function mergeAction(
   if (kind === "wake") {
     const baseWake = base.kind === "wake" ? base : undefined;
     const text = typeof override.text === "string" ? override.text : (baseWake?.text ?? "");
-    const mode = normalizeHookWakeMode(
-      override.mode === "now" || override.mode === "next-heartbeat"
-        ? override.mode
-        : baseWake?.mode,
-    );
+    const mode = normalizeHookWakeMode(override.mode ?? baseWake?.mode);
+    if (!mode) {
+      return { ok: false, error: "mode must be now" };
+    }
     return validateAction({ kind: "wake", text, mode });
   }
   const baseAgent = base.kind === "agent" ? base : undefined;
   const message =
     typeof override.message === "string" ? override.message : (baseAgent?.message ?? "");
-  const wakeMode = normalizeHookWakeMode(
-    override.wakeMode === "now" || override.wakeMode === "next-heartbeat"
-      ? override.wakeMode
-      : baseAgent?.wakeMode,
-  );
+  const wakeMode = normalizeHookWakeMode(override.wakeMode ?? baseAgent?.wakeMode);
+  if (!wakeMode) {
+    return { ok: false, error: "wakeMode must be now" };
+  }
   return validateAction({
     kind: "agent",
     message,
@@ -328,10 +334,16 @@ function validateAction(action: HookAction): HookMappingResult {
     if (!action.text?.trim()) {
       return { ok: false, error: "hook mapping requires text" };
     }
+    if (action.mode !== "now") {
+      return { ok: false, error: "wakeMode must be now" };
+    }
     return { ok: true, action };
   }
   if (!action.message?.trim()) {
     return { ok: false, error: "hook mapping requires message" };
+  }
+  if (action.wakeMode !== "now") {
+    return { ok: false, error: "wakeMode must be now" };
   }
   return { ok: true, action };
 }

@@ -29,7 +29,7 @@ CrawClaw assembles its own system prompt on every run. It includes:
   `agents.defaults.bootstrapTotalMaxChars` (default: 150000). `memory/*.md`
   files stay on-demand rather than auto-injected.
 - Time (UTC + user timezone)
-- Reply tags + legacy heartbeat compatibility behavior
+- Reply tags + event-driven main-session wake behavior
 - Runtime metadata (host/OS/model/thinking)
 
 See the full breakdown in [System Prompt](/concepts/system-prompt).
@@ -93,9 +93,9 @@ write costs lower when a session goes idle past the TTL.
 Configure it in [Gateway configuration](/gateway/configuration) and see the
 behavior details in [Session pruning](/concepts/session-pruning).
 
-Do not add synthetic legacy heartbeat turns only to keep the cache warm. If a
-scheduled check has real product value, use a cron job and tune that job's model
-and session target deliberately.
+Do not add synthetic wake turns only to keep the cache warm. If a scheduled
+check has real product value, use a cron job and tune that job's model and
+session target deliberately.
 
 In multi-agent setups, you can keep one shared model config and tune cache behavior
 per agent with `agents.list[].params.cacheRetention`.

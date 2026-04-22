@@ -7,8 +7,6 @@ import type { CrawClawConfig } from "../config/config.js";
 
 export type HeartbeatSummary = {
   enabled: boolean;
-  every: string;
-  everyMs: number | null;
   prompt: string;
   target: string;
   model?: string;
@@ -40,8 +38,6 @@ export function resolveHeartbeatSummaryForAgent(
 
   return {
     enabled: false,
-    every: "disabled",
-    everyMs: null,
     prompt,
     target,
     model,

@@ -452,7 +452,7 @@ describe("gateway hot reload", () => {
           gmail: { account: "me@example.com" },
         },
         cron: { enabled: true, store: "/tmp/cron.json" },
-        agents: { defaults: { heartbeat: { every: "1m" }, maxConcurrent: 2 } },
+        agents: { defaults: { heartbeat: { target: "last" }, maxConcurrent: 2 } },
         web: { enabled: true },
         channels: {
           telegram: { botToken: "token" },
@@ -467,7 +467,7 @@ describe("gateway hot reload", () => {
           changedPaths: [
             "hooks.gmail.account",
             "cron.enabled",
-            "agents.defaults.heartbeat.every",
+            "agents.defaults.heartbeat.target",
             "web.enabled",
             "channels.telegram.botToken",
             "channels.discord.token",

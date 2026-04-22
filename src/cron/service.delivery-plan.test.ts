@@ -43,7 +43,7 @@ async function addIsolatedAgentTurnJob(
   cron: CronService,
   params: {
     name: string;
-    wakeMode: "next-heartbeat" | "now";
+    wakeMode: "now";
     delivery?: DeliveryOverride;
   },
 ) {
@@ -74,7 +74,7 @@ describe("CronService delivery plan consistency", () => {
     await withCronService({}, async ({ cron, enqueueSystemEvent }) => {
       const job = await addIsolatedAgentTurnJob(cron, {
         name: "delivery-off",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         delivery: { mode: "none" },
       });
 
@@ -88,7 +88,7 @@ describe("CronService delivery plan consistency", () => {
     await withCronService({}, async ({ cron, enqueueSystemEvent }) => {
       const job = await addIsolatedAgentTurnJob(cron, {
         name: "partial-delivery",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         delivery: { channel: "telegram", to: "123" } as DeliveryOverride,
       });
 

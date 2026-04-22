@@ -54,7 +54,7 @@ describe("CronService interval/cron jobs fire on time", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 10_000 },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "tick" },
     });
 
@@ -92,7 +92,7 @@ describe("CronService interval/cron jobs fire on time", () => {
       enabled: true,
       schedule: { kind: "cron", expr: "* * * * *" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "cron-tick" },
     });
 

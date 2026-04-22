@@ -25,7 +25,7 @@ describe("redactSensitiveStatusSummary", () => {
       runtimeVersion: "2026.3.8",
       heartbeat: {
         defaultAgentId: "main",
-        agents: [{ agentId: "main", enabled: true, every: "5m", everyMs: 300_000 }],
+        agents: [{ agentId: "main", enabled: true }],
       },
       channelSummary: ["ok"],
       queuedSystemEvents: ["none"],

@@ -24,7 +24,7 @@ const CronSessionTargetSchema = Type.Union([
   Type.Literal("current"),
   Type.String({ pattern: "^session:.+" }),
 ]);
-const CronWakeModeSchema = Type.Union([Type.Literal("next-heartbeat"), Type.Literal("now")]);
+const CronWakeModeSchema = Type.Literal("now");
 const CronRunStatusSchema = Type.Union([
   Type.Literal("ok"),
   Type.Literal("error"),

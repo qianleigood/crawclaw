@@ -9,7 +9,7 @@ function expectNormalizedAtSchedule(scheduleInput: Record<string, unknown>) {
     enabled: true,
     schedule: scheduleInput,
     sessionTarget: "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: {
       kind: "systemEvent",
       text: "hi",
@@ -68,7 +68,7 @@ function normalizeMainSystemEventCreateJob(params: {
     enabled: true,
     schedule: params.schedule,
     sessionTarget: "main",
-    wakeMode: "next-heartbeat",
+    wakeMode: "now",
     payload: {
       kind: "systemEvent",
       text: "tick",
@@ -132,7 +132,7 @@ describe("normalizeCronJobCreate", () => {
       enabled: true,
       schedule: { kind: "cron", expr: "* * * * *" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       sessionKey: "  agent:main:discord:channel:ops  ",
       payload: { kind: "systemEvent", text: "hi" },
     }) as unknown as Record<string, unknown>;
@@ -143,7 +143,7 @@ describe("normalizeCronJobCreate", () => {
       enabled: true,
       schedule: { kind: "cron", expr: "* * * * *" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       sessionKey: "   ",
       payload: { kind: "systemEvent", text: "hi" },
     }) as unknown as Record<string, unknown>;
@@ -246,7 +246,7 @@ describe("normalizeCronJobCreate", () => {
       enabled: true,
       schedule: { at: "2026-01-12T18:00:00Z" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: {
         kind: "systemEvent",
         text: "hi",
@@ -493,7 +493,7 @@ describe("normalizeCronJobCreate", () => {
         staggerMs: 30_000,
       },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: {
         kind: "systemEvent",
         text: "hi",
@@ -517,7 +517,7 @@ describe("normalizeCronJobCreate", () => {
         staggerMs: 30_000,
       },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: {
         kind: "systemEvent",
         text: "hi",
@@ -543,6 +543,18 @@ describe("normalizeCronJobCreate", () => {
 
     expect(normalized.sessionTarget).toBe("isolated");
     expect(normalized.wakeMode).toBe("now");
+  });
+
+  it("drops legacy next-heartbeat wakeMode from normalized input", () => {
+    const normalized = normalizeCronJobCreate({
+      name: "legacy wake mode",
+      schedule: { kind: "cron", expr: "* * * * *" },
+      sessionTarget: "main",
+      wakeMode: "next-heartbeat",
+      payload: { kind: "systemEvent", text: "hello" },
+    }) as unknown as Record<string, unknown>;
+
+    expect(normalized.wakeMode).toBeUndefined();
   });
 
   it("strips invalid delivery mode from partial delivery objects", () => {

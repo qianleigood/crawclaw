@@ -117,7 +117,7 @@ describe("CronService read ops while job is running", () => {
           at: new Date("2025-12-13T00:00:01.000Z").toISOString(),
         },
         sessionTarget: "isolated",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "agentTurn", message: "long task" },
         delivery: { mode: "none" },
       });
@@ -188,7 +188,7 @@ describe("CronService read ops while job is running", () => {
           at: new Date("2030-01-01T00:00:00.000Z").toISOString(),
         },
         sessionTarget: "isolated",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "agentTurn", message: "manual run" },
         delivery: { mode: "none" },
       });
@@ -232,7 +232,7 @@ describe("CronService read ops while job is running", () => {
           updatedAtMs: nowMs - 86_400_000,
           schedule: { kind: "at", at: new Date(nowMs - 60_000).toISOString() },
           sessionTarget: "isolated",
-          wakeMode: "next-heartbeat",
+          wakeMode: "now",
           payload: { kind: "agentTurn", message: "startup replay" },
           delivery: { mode: "none" },
           state: { nextRunAtMs: nowMs - 60_000 },

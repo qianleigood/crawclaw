@@ -221,22 +221,11 @@ export type AgentDefaultsConfig = {
   typingIntervalSeconds?: number;
   /** Typing indicator start mode (never|instant|thinking|message). */
   typingMode?: TypingMode;
-  /** Legacy heartbeat compatibility settings. Prefer cron or hooks for new proactive work. */
+  /** Event-driven main-session wake settings. Prefer cron or hooks for new proactive work. */
   heartbeat?: {
-    /** Ignored legacy heartbeat interval (duration string, default unit: minutes). */
-    every?: string;
-    /** Ignored legacy active-hours window (local time). */
-    activeHours?: {
-      /** Start time (24h, HH:MM). Inclusive. */
-      start?: string;
-      /** End time (24h, HH:MM). Exclusive. Use "24:00" for end-of-day. */
-      end?: string;
-      /** Timezone for the window ("user", "local", or IANA TZ id). Default: "user". */
-      timezone?: string;
-    };
-    /** Model override for event-driven wake compatibility turns (provider/model). */
+    /** Model override for event-driven main-session wake turns (provider/model). */
     model?: string;
-    /** Session key for event-driven wake compatibility turns ("main" or explicit session key). */
+    /** Session key for event-driven main-session wake turns ("main" or explicit session key). */
     session?: string;
     /** Delivery target ("last", "none", or a channel id). */
     target?: "last" | "none" | ChannelId;

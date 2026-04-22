@@ -54,8 +54,6 @@ vi.mock("../infra/channel-summary.js", () => ({
 vi.mock("../infra/heartbeat-summary.js", () => ({
   resolveHeartbeatSummaryForAgent: vi.fn(() => ({
     enabled: true,
-    every: "5m",
-    everyMs: 300_000,
   })),
 }));
 

@@ -1009,9 +1009,9 @@ Optional CLI backends for text-only fallback runs (no tool calls). Useful as a b
 
 ### `agents.defaults.heartbeat`
 
-Legacy heartbeat compatibility settings. The Gateway no longer schedules
-periodic agent heartbeat runs. Do not use this namespace for new scheduled
-automation; use [Scheduled Tasks](/automation/cron-jobs) instead.
+Event-driven main-session wake settings. The Gateway no longer schedules
+periodic agent heartbeat runs, and legacy cadence keys are not accepted. Use
+[Scheduled Tasks](/automation/cron-jobs) for scheduled automation.
 
 ```json5
 {
@@ -1026,13 +1026,11 @@ automation; use [Scheduled Tasks](/automation/cron-jobs) instead.
 }
 ```
 
-- `every` remains accepted for old configs but is ignored by the runner.
-- `prompt`, `model`, `lightContext`, `isolatedSession`, `includeReasoning`, and
-  `ackMaxChars` remain accepted for older wake/heartbeat paths but do not
-  define the recommended automation model.
-- `target`, `to`, `accountId`, and `directPolicy` remain compatibility delivery
-  settings for older wake/heartbeat paths.
-- For new periodic work, configure cron jobs instead of heartbeat cadence.
+- `every` and `activeHours` are not valid here. For periodic work, configure
+  cron jobs instead of heartbeat cadence.
+- `prompt`, `model`, `lightContext`, `isolatedSession`, `includeReasoning`,
+  `ackMaxChars`, `target`, `to`, `accountId`, and `directPolicy` apply only to
+  event-driven main-session wake runs.
 
 ### `agents.defaults.compaction`
 
@@ -2745,7 +2743,7 @@ Auth: `Authorization: Bearer <token>` or `x-crawclaw-token: <token>`.
 
 **Endpoints:**
 
-- `POST /hooks/wake` → `{ text, mode?: "now"|"next-heartbeat" }`
+- `POST /hooks/wake` → `{ text, mode?: "now" }`
 - `POST /hooks/agent` → `{ message, name?, agentId?, sessionKey?, wakeMode?, deliver?, channel?, to?, model?, thinking?, timeoutSeconds? }`
   - `sessionKey` from request payload is accepted only when `hooks.allowRequestSessionKey=true` (default: `false`).
 - `POST /hooks/<name>` → resolved via `hooks.mappings`

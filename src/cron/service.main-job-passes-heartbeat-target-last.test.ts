@@ -91,14 +91,14 @@ describe("cron main job passes main-session target=last", () => {
     expect(callArgs?.session?.target).toBe("last");
   });
 
-  it("normalizes legacy next-heartbeat main jobs to the event-driven wake path", async () => {
+  it("normalizes legacy now main jobs to the event-driven wake path", async () => {
     const { storePath } = await makeStorePath();
     const now = Date.now();
 
     const job = createMainCronJob({
       now,
-      id: "test-next-heartbeat",
-      wakeMode: "next-heartbeat",
+      id: "test-now",
+      wakeMode: "now",
     });
 
     await writeCronStoreSnapshot({ storePath, jobs: [job] });

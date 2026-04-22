@@ -61,7 +61,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "cron", expr: "0 * * * *", tz: "UTC" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "tick" },
     });
     const offsetMs = topOfHourOffsetMs(created.id);
@@ -78,7 +78,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000, anchorMs: Date.now() },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "hi" },
     });
 
@@ -150,7 +150,7 @@ describe("Cron issue regressions", () => {
         enabled: true,
         schedule: { kind: "at", at: new Date(scheduledAt).toISOString() },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "stable" },
         state: { nextRunAtMs: scheduledAt },
       },
@@ -176,7 +176,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "cron", expr: "0 * * * *", tz: "UTC" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "tick" },
     });
     const updated = await cron.update(created.id, {
@@ -202,7 +202,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000, anchorMs: now },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "due-preserved" },
     });
     const otherJob = await cron.add({
@@ -210,7 +210,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "cron", expr: "0 * * * *", tz: "UTC" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "other" },
     });
 
@@ -244,7 +244,7 @@ describe("Cron issue regressions", () => {
         updatedAtMs: now - 60_000,
         schedule: { kind: "cron", expr: "0 */2 * * *", tz: "UTC" },
         sessionTarget: "main",
-        wakeMode: "next-heartbeat",
+        wakeMode: "now",
         payload: { kind: "systemEvent", text: "legacy" },
         state: {},
       },
@@ -311,7 +311,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "at", at: "2035-01-01T00:00:00.000Z" },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "future" },
     });
 
@@ -389,7 +389,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "at", at: new Date(runAt).toISOString() },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "long task" },
       delivery: { mode: "none" },
     });
@@ -446,7 +446,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "at", at: new Date(dueAt).toISOString() },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "overlap" },
       delivery: { mode: "none" },
     });
@@ -549,7 +549,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000, anchorMs: Date.now() },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "test" },
       delivery: {
         mode: "announce",
@@ -1237,7 +1237,7 @@ describe("Cron issue regressions", () => {
       enabled: true,
       schedule: { kind: "every", everyMs: 60_000, anchorMs: Date.now() },
       sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "agentTurn", message: "work", timeoutSeconds: FAST_TIMEOUT_SECONDS },
       delivery: { mode: "none" },
     });
@@ -1873,7 +1873,7 @@ describe("Cron issue regressions", () => {
       updatedAtMs: lastScheduledRunMs,
       schedule: { kind: "every", everyMs, anchorMs: lastScheduledRunMs - everyMs },
       sessionTarget: "main",
-      wakeMode: "next-heartbeat",
+      wakeMode: "now",
       payload: { kind: "systemEvent", text: "daily check-in" },
       state: {
         lastRunAtMs: lastScheduledRunMs,

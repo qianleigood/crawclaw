@@ -12,7 +12,7 @@ export type HookMappingConfig = {
   id?: string;
   match?: HookMappingMatch;
   action?: "wake" | "agent";
-  wakeMode?: "now" | "next-heartbeat";
+  wakeMode?: "now";
   name?: string;
   /** Route this hook to a specific agent (unknown ids fall back to the default agent). */
   agentId?: string;

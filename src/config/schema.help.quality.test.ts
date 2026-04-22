@@ -404,7 +404,7 @@ const ENUM_EXPECTATIONS: Record<string, string[]> = {
   "bindings[].match.peer.kind": ['"direct"', '"group"', '"channel"', '"dm"'],
   "broadcast.strategy": ['"parallel"', '"sequential"'],
   "hooks.mappings[].action": ['"wake"', '"agent"'],
-  "hooks.mappings[].wakeMode": ['"now"', '"next-heartbeat"'],
+  "hooks.mappings[].wakeMode": ['"now"'],
   "hooks.gmail.tailscale.mode": ['"off"', '"serve"', '"funnel"'],
   "hooks.gmail.thinking": ['"off"', '"minimal"', '"low"', '"medium"', '"high"'],
   "messages.queue.mode": [
