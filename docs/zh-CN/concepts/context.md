@@ -114,17 +114,12 @@ Top tools (schema size):
 
 ## 注入的工作区文件（项目上下文）
 
-默认情况下，CrawClaw 注入一组固定的工作区文件（如果存在）：
+默认情况下，CrawClaw 只注入：
 
-- `AGENTS.md`
-- `SOUL.md`
-- `TOOLS.md`
-- `IDENTITY.md`
-- `USER.md`
-- `HEARTBEAT.md`
-- `BOOTSTRAP.md`（仅首次运行）
+- 普通运行注入 `AGENTS.md`
+- 使用轻量上下文的事件驱动主会话唤醒运行注入 `HEARTBEAT.md`
 
-大文件按文件使用 `agents.defaults.bootstrapMaxChars`（默认 `20000` 字符）截断。`/context` 显示**原始 vs 注入**大小以及是否发生了截断。
+大文件按文件使用 `agents.defaults.bootstrapMaxChars`（默认 `20000` 字符）截断。CrawClaw 还会用 `agents.defaults.bootstrapTotalMaxChars`（默认 `150000` 字符）限制跨文件的 bootstrap 注入总量。`/context` 显示**原始 vs 注入**大小以及是否发生了截断。
 
 ## Skills：注入的内容 vs 按需加载的内容
 

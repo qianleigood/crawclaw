@@ -10,7 +10,7 @@ import * as sessionPaths from "../config/sessions/paths.js";
 import * as sessionStore from "../config/sessions/store.js";
 import * as sessionTranscript from "../config/sessions/transcript.js";
 import * as gatewayCall from "../gateway/call.js";
-import * as heartbeatWake from "../infra/heartbeat-wake.js";
+import * as heartbeatWake from "../infra/main-session-wake.js";
 import {
   __testing as sessionBindingServiceTesting,
   registerSessionBindingAdapter,
@@ -56,7 +56,7 @@ const hoisted = vi.hoisted(() => {
   const loadSessionStoreMock = vi.fn();
   const resolveStorePathMock = vi.fn();
   const resolveSessionTranscriptFileMock = vi.fn();
-  const areHeartbeatsEnabledMock = vi.fn();
+  const areMainSessionWakesAvailableMock = vi.fn();
   const state = {
     cfg: createDefaultSpawnConfig(),
   };
@@ -73,7 +73,7 @@ const hoisted = vi.hoisted(() => {
     loadSessionStoreMock,
     resolveStorePathMock,
     resolveSessionTranscriptFileMock,
-    areHeartbeatsEnabledMock,
+    areMainSessionWakesAvailableMock,
     state,
   };
 });
@@ -83,7 +83,7 @@ const getAcpSessionManagerSpy = vi.spyOn(acpSessionManager, "getAcpSessionManage
 const loadSessionStoreSpy = vi.spyOn(sessionStore, "loadSessionStore");
 const resolveStorePathSpy = vi.spyOn(sessionPaths, "resolveStorePath");
 const resolveSessionTranscriptFileSpy = vi.spyOn(sessionTranscript, "resolveSessionTranscriptFile");
-const areHeartbeatsEnabledSpy = vi.spyOn(heartbeatWake, "areHeartbeatsEnabled");
+const areMainSessionWakesAvailableSpy = vi.spyOn(heartbeatWake, "areMainSessionWakesAvailable");
 const startAcpSpawnParentStreamRelaySpy = vi.spyOn(
   acpSpawnParentStream,
   "startAcpSpawnParentStreamRelay",
@@ -253,7 +253,7 @@ describe("spawnAcpDirect", () => {
   beforeEach(() => {
     replaceSpawnConfig(createDefaultSpawnConfig());
     resetTaskRegistryForTests();
-    hoisted.areHeartbeatsEnabledMock.mockReset().mockReturnValue(true);
+    hoisted.areMainSessionWakesAvailableMock.mockReset().mockReturnValue(true);
 
     hoisted.callGatewayMock.mockReset();
     hoisted.callGatewayMock.mockImplementation(async (argsUnknown: unknown) => {
@@ -411,9 +411,9 @@ describe("spawnAcpDirect", () => {
     resolveSessionTranscriptFileSpy
       .mockReset()
       .mockImplementation(async (params) => await hoisted.resolveSessionTranscriptFileMock(params));
-    areHeartbeatsEnabledSpy
+    areMainSessionWakesAvailableSpy
       .mockReset()
-      .mockImplementation(() => hoisted.areHeartbeatsEnabledMock());
+      .mockImplementation(() => hoisted.areMainSessionWakesAvailableMock());
   });
 
   afterEach(() => {
@@ -1146,7 +1146,7 @@ describe("spawnAcpDirect", () => {
         },
       },
     });
-    hoisted.areHeartbeatsEnabledMock.mockReturnValue(false);
+    hoisted.areMainSessionWakesAvailableMock.mockReturnValue(false);
 
     const result = await spawnAcpDirect(
       {

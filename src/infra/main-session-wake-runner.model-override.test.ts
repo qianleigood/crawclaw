@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveAgentMainSessionKey, resolveMainSessionKey } from "../config/sessions.js";
-import { runHeartbeatOnce } from "./heartbeat-runner.js";
-import { seedSessionStore, withTempHeartbeatSandbox } from "./heartbeat-runner.test-utils.js";
+import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
+import {
+  seedSessionStore,
+  withTempHeartbeatSandbox,
+} from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
 vi.mock("./outbound/deliver.js", () => ({
@@ -48,7 +51,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("runHeartbeatOnce – heartbeat model override", () => {
+describe("runMainSessionWakeOnce – heartbeat model override", () => {
   async function runHeartbeatWithSeed(params: {
     seedSession: (sessionKey: string, input: SeedSessionInput) => Promise<void>;
     cfg: CrawClawConfig;
@@ -64,7 +67,7 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
 
-    await runHeartbeatOnce({
+    await runMainSessionWakeOnce({
       cfg: params.cfg,
       agentId: params.agentId,
       reason: "wake",
@@ -168,7 +171,7 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         sessionKey,
       });
 
-      // Isolated heartbeat runs use a dedicated session key with :heartbeat suffix
+      // Isolated wake runs use a dedicated session key with :heartbeat suffix
       expect(result.ctx?.SessionKey).toBe(`${sessionKey}:heartbeat`);
     });
   });

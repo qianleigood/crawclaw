@@ -182,7 +182,7 @@ function resolveDeviceIdentityForGatewayCall(): ReturnType<
 > | null {
   // Shared-auth local calls should still stay device-bound so operator scopes
   // remain available for detail RPCs such as status / system-presence /
-  // last-heartbeat.
+  // last-main-session-wake.
   try {
     return gatewayCallDeps.loadOrCreateDeviceIdentity();
   } catch {

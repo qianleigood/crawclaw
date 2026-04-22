@@ -28,7 +28,7 @@ const hoisted = vi.hoisted(() => {
 
   const heartbeatStop = vi.fn();
   const heartbeatUpdateConfig = vi.fn();
-  const startHeartbeatRunner = vi.fn(() => ({
+  const startMainSessionWakeRunner = vi.fn(() => ({
     stop: heartbeatStop,
     updateConfig: heartbeatUpdateConfig,
   }));
@@ -128,7 +128,7 @@ const hoisted = vi.hoisted(() => {
     cronInstances,
     heartbeatStop,
     heartbeatUpdateConfig,
-    startHeartbeatRunner,
+    startMainSessionWakeRunner,
     startGmailWatcher,
     stopGmailWatcher,
     providerManager,
@@ -144,8 +144,8 @@ vi.mock("../cron/service.js", () => ({
   CronService: hoisted.CronService,
 }));
 
-vi.mock("../infra/heartbeat-runner.js", () => ({
-  startHeartbeatRunner: hoisted.startHeartbeatRunner,
+vi.mock("../infra/main-session-wake-runner.js", () => ({
+  startMainSessionWakeRunner: hoisted.startMainSessionWakeRunner,
 }));
 
 vi.mock("../hooks/gmail-watcher.js", () => ({
@@ -490,7 +490,7 @@ describe("gateway hot reload", () => {
       expect(hoisted.stopGmailWatcher).toHaveBeenCalled();
       expect(hoisted.startGmailWatcher).toHaveBeenCalledWith(expect.objectContaining(nextConfig));
 
-      expect(hoisted.startHeartbeatRunner).toHaveBeenCalledTimes(1);
+      expect(hoisted.startMainSessionWakeRunner).toHaveBeenCalledTimes(1);
       expect(hoisted.heartbeatUpdateConfig).toHaveBeenCalledTimes(1);
       expect(hoisted.heartbeatUpdateConfig).toHaveBeenCalledWith(
         expect.objectContaining(nextConfig),

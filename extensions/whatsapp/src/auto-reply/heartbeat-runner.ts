@@ -1,7 +1,7 @@
 import { appendCronStyleCurrentTimeLine } from "crawclaw/plugin-sdk/agent-runtime";
 import {
-  emitHeartbeatEvent,
-  resolveHeartbeatVisibility,
+  emitMainSessionWakeEvent,
+  resolveMainSessionWakeVisibility,
   resolveIndicatorType,
 } from "crawclaw/plugin-sdk/channel-runtime";
 import { canonicalizeMainSessionAlias, loadConfig } from "crawclaw/plugin-sdk/config-runtime";
@@ -63,7 +63,7 @@ export async function runWebHeartbeatOnce(opts: {
   const cfg = cfgOverride ?? loadConfig();
 
   // Resolve heartbeat visibility settings for WhatsApp
-  const visibility = resolveHeartbeatVisibility({ cfg, channel: "whatsapp" });
+  const visibility = resolveMainSessionWakeVisibility({ cfg, channel: "whatsapp" });
   const heartbeatOkText = HEARTBEAT_TOKEN;
 
   const maybeSendHeartbeatOk = async (): Promise<boolean> => {
@@ -147,7 +147,7 @@ export async function runWebHeartbeatOnce(opts: {
         return;
       }
       const sendResult = await sender(to, overrideBody, { verbose });
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "sent",
         to,
         preview: overrideBody.slice(0, 160),
@@ -172,7 +172,7 @@ export async function runWebHeartbeatOnce(opts: {
 
     if (!visibility.showAlerts && !visibility.showOk && !visibility.useIndicator) {
       heartbeatLogger.info({ to: redactedTo, reason: "alerts-disabled" }, "heartbeat skipped");
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "skipped",
         to,
         reason: "alerts-disabled",
@@ -207,7 +207,7 @@ export async function runWebHeartbeatOnce(opts: {
         "heartbeat skipped",
       );
       const okSent = await maybeSendHeartbeatOk();
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "ok-empty",
         to,
         channel: "whatsapp",
@@ -250,7 +250,7 @@ export async function runWebHeartbeatOnce(opts: {
         "heartbeat skipped",
       );
       const okSent = await maybeSendHeartbeatOk();
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "ok-token",
         to,
         channel: "whatsapp",
@@ -272,7 +272,7 @@ export async function runWebHeartbeatOnce(opts: {
     // Check if alerts are disabled for WhatsApp
     if (!visibility.showAlerts) {
       heartbeatLogger.info({ to: redactedTo, reason: "alerts-disabled" }, "heartbeat skipped");
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "skipped",
         to,
         reason: "alerts-disabled",
@@ -294,7 +294,7 @@ export async function runWebHeartbeatOnce(opts: {
     }
 
     const sendResult = await sender(to, finalText, { verbose });
-    emitHeartbeatEvent({
+    emitMainSessionWakeEvent({
       status: "sent",
       to,
       preview: finalText.slice(0, 160),
@@ -315,7 +315,7 @@ export async function runWebHeartbeatOnce(opts: {
     const reason = formatError(err);
     heartbeatLogger.warn({ to: redactedTo, error: reason }, "heartbeat failed");
     whatsappHeartbeatLog.warn(`heartbeat failed (${reason})`);
-    emitHeartbeatEvent({
+    emitMainSessionWakeEvent({
       status: "failed",
       to,
       reason,

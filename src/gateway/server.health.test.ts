@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { emitAgentEvent } from "../infra/agent-events.js";
-import { emitHeartbeatEvent } from "../infra/heartbeat-events.js";
+import { emitMainSessionWakeEvent } from "../infra/main-session-wake-events.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { startGatewayServerHarness, type GatewayServerHarness } from "./server.e2e-ws-harness.js";
 import { installGatewayTestHooks, onceMessage } from "./test-helpers.js";
@@ -65,8 +65,8 @@ describe("gateway server health/presence", () => {
     },
   );
 
-  test("broadcasts heartbeat events and serves last-heartbeat", async () => {
-    type HeartbeatPayload = {
+  test("broadcasts main-session wake events and serves last-main-session-wake", async () => {
+    type MainSessionWakePayload = {
       ts: number;
       status: string;
       to?: string;
@@ -78,17 +78,17 @@ describe("gateway server health/presence", () => {
     type EventFrame = {
       type: "event";
       event: string;
-      payload?: HeartbeatPayload | null;
+      payload?: MainSessionWakePayload | null;
     };
 
     const { ws } = await harness.openClient();
 
-    const waitHeartbeat = onceMessage<EventFrame>(
+    const waitMainSessionWake = onceMessage<EventFrame>(
       ws,
-      (o) => o.type === "event" && o.event === "heartbeat",
+      (o) => o.type === "event" && o.event === "main-session-wake",
     );
-    emitHeartbeatEvent({ status: "sent", to: "+123", preview: "ping" });
-    const evt = await waitHeartbeat;
+    emitMainSessionWakeEvent({ status: "sent", to: "+123", preview: "ping" });
+    const evt = await waitMainSessionWake;
     expect(evt.payload?.status).toBe("sent");
     expect(typeof evt.payload?.ts).toBe("number");
 
@@ -96,12 +96,12 @@ describe("gateway server health/presence", () => {
       JSON.stringify({
         type: "req",
         id: "hb-last",
-        method: "system.heartbeat.last",
+        method: "system.mainSessionWake.last",
       }),
     );
     const last = await onceMessage<GatewayFrame>(ws, (o) => o.type === "res" && o.id === "hb-last");
     expect(last.ok).toBe(true);
-    const lastPayload = last.payload as HeartbeatPayload | null | undefined;
+    const lastPayload = last.payload as MainSessionWakePayload | null | undefined;
     expect(lastPayload?.status).toBe("sent");
     expect(lastPayload?.ts).toBe(evt.payload?.ts);
 

@@ -1,10 +1,10 @@
 import { shouldLogVerbose } from "../../globals.js";
 import { isTruthyEnvValue } from "../../infra/env.js";
-import { requestHeartbeatNow as requestHeartbeatNowImpl } from "../../infra/heartbeat-wake.js";
 import { sanitizeHostExecEnv } from "../../infra/host-env-security.js";
+import { requestMainSessionWakeNow as requestMainSessionWakeNowImpl } from "../../infra/main-session-wake.js";
 import { enqueueSystemEvent as enqueueSystemEventImpl } from "../../infra/system-events.js";
 import { getProcessSupervisor as getProcessSupervisorImpl } from "../../process/supervisor/index.js";
-import { scopedHeartbeatWakeOptions } from "../../routing/session-key.js";
+import { scopedMainSessionWakeOptions } from "../../routing/session-key.js";
 import { appendBootstrapPromptWarning } from "../bootstrap-budget.js";
 import { parseCliOutput, type CliOutput } from "../cli-output.js";
 import { FailoverError, resolveFailoverStatus } from "../failover-error.js";
@@ -31,7 +31,7 @@ import type { PreparedCliRunContext } from "./types.js";
 const executeDeps = {
   getProcessSupervisor: getProcessSupervisorImpl,
   enqueueSystemEvent: enqueueSystemEventImpl,
-  requestHeartbeatNow: requestHeartbeatNowImpl,
+  requestMainSessionWakeNow: requestMainSessionWakeNowImpl,
 };
 
 export function setCliRunnerExecuteTestDeps(overrides: Partial<typeof executeDeps>): void {
@@ -233,8 +233,8 @@ export async function executePreparedCliRun(
               "For Claude Code, prefer --permission-mode bypassPermissions --print.",
             ].join(" ");
             executeDeps.enqueueSystemEvent(stallNotice, { sessionKey: params.sessionKey });
-            executeDeps.requestHeartbeatNow(
-              scopedHeartbeatWakeOptions(params.sessionKey, { reason: "cli:watchdog:stall" }),
+            executeDeps.requestMainSessionWakeNow(
+              scopedMainSessionWakeOptions(params.sessionKey, { reason: "cli:watchdog:stall" }),
             );
           }
           throw new FailoverError(timeoutReason, {

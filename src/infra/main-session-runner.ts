@@ -1,24 +1,24 @@
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import { type HeartbeatDeps, runHeartbeatOnce } from "./heartbeat-runner.js";
-import { requestHeartbeatNow } from "./heartbeat-wake.js";
+import { type MainSessionWakeDeps, runMainSessionWakeOnce } from "./main-session-wake-runner.js";
+import { requestMainSessionWakeNow } from "./main-session-wake.js";
 
-type HeartbeatConfig = AgentDefaultsConfig["heartbeat"];
+type MainSessionWakeConfig = AgentDefaultsConfig["heartbeat"];
 
-export type MainSessionRunResult = Awaited<ReturnType<typeof runHeartbeatOnce>>;
+export type MainSessionRunResult = Awaited<ReturnType<typeof runMainSessionWakeOnce>>;
 
 export type MainSessionRunOptions = {
-  cfg?: Parameters<typeof runHeartbeatOnce>[0]["cfg"];
+  cfg?: Parameters<typeof runMainSessionWakeOnce>[0]["cfg"];
   agentId?: string;
   sessionKey?: string;
   reason?: string;
-  deps?: HeartbeatDeps;
-  session?: Pick<NonNullable<HeartbeatConfig>, "target">;
+  deps?: MainSessionWakeDeps;
+  session?: Pick<NonNullable<MainSessionWakeConfig>, "target">;
 };
 
 export async function runMainSessionOnce(
   opts: MainSessionRunOptions = {},
 ): Promise<MainSessionRunResult> {
-  return await runHeartbeatOnce({
+  return await runMainSessionWakeOnce({
     cfg: opts.cfg,
     agentId: opts.agentId,
     sessionKey: opts.sessionKey,
@@ -34,5 +34,5 @@ export function requestMainSessionWake(opts?: {
   agentId?: string;
   sessionKey?: string;
 }) {
-  requestHeartbeatNow(opts);
+  requestMainSessionWakeNow(opts);
 }

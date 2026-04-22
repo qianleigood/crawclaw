@@ -53,8 +53,8 @@ vi.mock("crawclaw/plugin-sdk/channel-runtime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/channel-runtime")>();
   return {
     ...actual,
-    resolveHeartbeatVisibility: () => state.visibility,
-    emitHeartbeatEvent: (event: unknown) => state.events.push(event),
+    resolveMainSessionWakeVisibility: () => state.visibility,
+    emitMainSessionWakeEvent: (event: unknown) => state.events.push(event),
     resolveIndicatorType: (status: string) => `indicator:${status}`,
   };
 });

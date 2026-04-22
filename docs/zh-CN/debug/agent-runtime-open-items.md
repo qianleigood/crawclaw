@@ -219,14 +219,14 @@ memory 当前已经按简化模型收口，但还有后续工作。
   - 当前已完成：
     - cursor-based 增量窗口
     - 显式 durable write/delete 优先
-    - `write_knowledge_note` 不再抑制 durable extraction
+    - `write_experience_note` 不再抑制 durable extraction
     - `feedback` 双向 guidance
     - task-backed background special agent
     - Action Feed / Context Archive 记录
   - 设计与背景：
     - [`Memory Extractor Agent 设计`](/debug/memory-extractor-agent)
     - [`Claude 式 Durable Memory 重构方案`](/debug/claude-memory-refactor)
-- [ ] 给 `write_knowledge_note` 补一段和 durable memory 对等质量的
+- [ ] 给 `write_experience_note` 补一段和 durable memory 对等质量的
       agent-scoped routing guidance。
 - [ ] 重新定位 candidate extraction，只保留为未来建议层。
   - 不要再把它变回隐藏写入链。

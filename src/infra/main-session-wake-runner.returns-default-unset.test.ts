@@ -17,11 +17,11 @@ import { buildAgentPeerSessionKey } from "../routing/session-key.js";
 import { createOutboundTestPlugin, createTestRegistry } from "../test-utils/channel-plugins.js";
 import { typedCases } from "../test-utils/typed-cases.js";
 import {
-  type HeartbeatDeps,
-  resolveHeartbeatPrompt,
-  resolveHeartbeatSummaryForAgent,
-  runHeartbeatOnce,
-} from "./heartbeat-runner.js";
+  type MainSessionWakeDeps,
+  resolveMainSessionWakePrompt,
+  resolveMainSessionWakeSummaryForAgent,
+  runMainSessionWakeOnce,
+} from "./main-session-wake-runner.js";
 import {
   resolveHeartbeatDeliveryTarget,
   resolveHeartbeatSenderContext,
@@ -138,7 +138,7 @@ afterAll(async () => {
   }
 });
 
-describe("resolveHeartbeatPrompt", () => {
+describe("resolveMainSessionWakePrompt", () => {
   it.each([
     { name: "default prompt", cfg: {} as CrawClawConfig, expected: HEARTBEAT_PROMPT },
     {
@@ -149,11 +149,11 @@ describe("resolveHeartbeatPrompt", () => {
       expected: "ping",
     },
   ])("uses $name", ({ cfg, expected }) => {
-    expect(resolveHeartbeatPrompt(cfg)).toBe(expected);
+    expect(resolveMainSessionWakePrompt(cfg)).toBe(expected);
   });
 });
 
-describe("resolveHeartbeatSummaryForAgent", () => {
+describe("resolveMainSessionWakeSummaryForAgent", () => {
   it("reports main-session wake settings as unscheduled", () => {
     const cfg: CrawClawConfig = {
       agents: {
@@ -162,7 +162,7 @@ describe("resolveHeartbeatSummaryForAgent", () => {
       },
     };
 
-    expect(resolveHeartbeatSummaryForAgent(cfg, "ops")).toMatchObject({
+    expect(resolveMainSessionWakeSummaryForAgent(cfg, "ops")).toMatchObject({
       enabled: false,
     });
   });
@@ -425,15 +425,15 @@ describe("resolveHeartbeatSenderContext", () => {
   });
 });
 
-describe("runHeartbeatOnce", () => {
-  const createHeartbeatDeps = (
+describe("runMainSessionWakeOnce", () => {
+  const createMainSessionWakeDeps = (
     sendWhatsApp: (
       to: string,
       text: string,
       opts?: unknown,
     ) => Promise<{ messageId: string; toJid: string }>,
     nowMs = 0,
-  ): HeartbeatDeps => ({
+  ): MainSessionWakeDeps => ({
     whatsapp: sendWhatsApp,
     getQueueSize: () => 0,
     nowMs: () => nowMs,
@@ -448,7 +448,7 @@ describe("runHeartbeatOnce", () => {
       },
     };
 
-    const res = await runHeartbeatOnce({ cfg, agentId: "main" });
+    const res = await runMainSessionWakeOnce({ cfg, agentId: "main" });
     expect(res.status).toBe("skipped");
     if (res.status === "skipped") {
       expect(res.reason).toBe("disabled");
@@ -499,10 +499,10 @@ describe("runHeartbeatOnce", () => {
           toJid: "jid",
         });
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
-        deps: createHeartbeatDeps(sendWhatsApp),
+        deps: createMainSessionWakeDeps(sendWhatsApp),
       });
 
       expect(sendWhatsApp).toHaveBeenCalledTimes(1);
@@ -565,11 +565,11 @@ describe("runHeartbeatOnce", () => {
           messageId: "m1",
           toJid: "jid",
         });
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         agentId: "ops",
         reason: "wake",
-        deps: createHeartbeatDeps(sendWhatsApp),
+        deps: createMainSessionWakeDeps(sendWhatsApp),
       });
       expect(sendWhatsApp).toHaveBeenCalledTimes(1);
       expect(sendWhatsApp).toHaveBeenCalledWith(
@@ -653,11 +653,11 @@ describe("runHeartbeatOnce", () => {
           messageId: "m1",
           toJid: "jid",
         });
-      const result = await runHeartbeatOnce({
+      const result = await runMainSessionWakeOnce({
         cfg,
         agentId,
         reason: "wake",
-        deps: createHeartbeatDeps(sendWhatsApp),
+        deps: createMainSessionWakeDeps(sendWhatsApp),
       });
 
       expect(result.status).toBe("ran");
@@ -699,7 +699,7 @@ describe("runHeartbeatOnce", () => {
       }),
     },
     {
-      name: "runHeartbeatOnce sessionKey arg",
+      name: "runMainSessionWakeOnce sessionKey arg",
       caseDir: "hb-forced-session-override",
       peerKind: "group" as const,
       peerId: "120363401234567891@g.us",
@@ -767,11 +767,11 @@ describe("runHeartbeatOnce", () => {
           >()
           .mockResolvedValue({ messageId: "m1", toJid: "jid" });
 
-        await runHeartbeatOnce({
+        await runMainSessionWakeOnce({
           cfg,
           ...runOptions({ sessionKey: overrideSessionKey }),
           reason: "wake",
-          deps: createHeartbeatDeps(sendWhatsApp),
+          deps: createMainSessionWakeDeps(sendWhatsApp),
         });
 
         expect(sendWhatsApp, name).toHaveBeenCalledTimes(1);
@@ -792,7 +792,7 @@ describe("runHeartbeatOnce", () => {
     },
   );
 
-  it("suppresses duplicate heartbeat payloads within 24h", async () => {
+  it("suppresses duplicate wake payloads within 24h", async () => {
     const tmpDir = await createCaseDir("hb-dup-suppress");
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
@@ -835,10 +835,10 @@ describe("runHeartbeatOnce", () => {
         >()
         .mockResolvedValue({ messageId: "m1", toJid: "jid" });
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
-        deps: createHeartbeatDeps(sendWhatsApp, 60_000),
+        deps: createMainSessionWakeDeps(sendWhatsApp, 60_000),
       });
 
       expect(sendWhatsApp).toHaveBeenCalledTimes(0);
@@ -915,10 +915,10 @@ describe("runHeartbeatOnce", () => {
           >()
           .mockResolvedValue({ messageId: "m1", toJid: "jid" });
 
-        await runHeartbeatOnce({
+        await runMainSessionWakeOnce({
           cfg,
           reason: "wake",
-          deps: createHeartbeatDeps(sendWhatsApp),
+          deps: createMainSessionWakeDeps(sendWhatsApp),
         });
 
         expect(sendWhatsApp, name).toHaveBeenCalledTimes(expectedTexts.length);
@@ -982,10 +982,10 @@ describe("runHeartbeatOnce", () => {
           toJid: "jid",
         });
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
-        deps: createHeartbeatDeps(sendWhatsApp),
+        deps: createMainSessionWakeDeps(sendWhatsApp),
       });
 
       expect(sendWhatsApp).toHaveBeenCalledTimes(1);
@@ -1066,10 +1066,10 @@ describe("runHeartbeatOnce", () => {
         (to: string, text: string, opts?: unknown) => Promise<{ messageId: string; toJid: string }>
       >()
       .mockResolvedValue({ messageId: "m1", toJid: "jid" });
-    const res = await runHeartbeatOnce({
+    const res = await runMainSessionWakeOnce({
       cfg,
       reason: params.reason,
-      deps: createHeartbeatDeps(sendWhatsApp),
+      deps: createMainSessionWakeDeps(sendWhatsApp),
     });
     return { res, replySpy, sendWhatsApp, workspaceDir };
   }
@@ -1228,10 +1228,10 @@ describe("runHeartbeatOnce", () => {
       .mockResolvedValue({ messageId: "m1", toJid: "jid" });
 
     try {
-      const res = await runHeartbeatOnce({
+      const res = await runMainSessionWakeOnce({
         cfg,
         reason: "interval",
-        deps: createHeartbeatDeps(sendWhatsApp),
+        deps: createMainSessionWakeDeps(sendWhatsApp),
       });
       expect(res.status).toBe("ran");
       expect(sendWhatsApp).toHaveBeenCalledTimes(0);
@@ -1283,10 +1283,10 @@ describe("runHeartbeatOnce", () => {
       .mockResolvedValue({ messageId: "m1", toJid: "jid" });
 
     try {
-      const res = await runHeartbeatOnce({
+      const res = await runMainSessionWakeOnce({
         cfg,
         reason: "exec-event",
-        deps: createHeartbeatDeps(sendWhatsApp),
+        deps: createMainSessionWakeDeps(sendWhatsApp),
       });
       expect(res.status).toBe("ran");
       expect(sendWhatsApp).toHaveBeenCalledTimes(0);

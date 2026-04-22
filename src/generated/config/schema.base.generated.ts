@@ -13223,8 +13223,8 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       tags: ["storage"],
     },
     "memory.notebooklm": {
-      label: "NotebookLM Memory Runtime",
-      help: "Configures NotebookLM-backed experience recall for the built-in memory runtime. Prompt-facing experience retrieval uses NotebookLM only.",
+      label: "NotebookLM Experience Provider",
+      help: "Configures the optional NotebookLM provider for experience memory. Prompt-facing experience recall also uses the local experience index when NotebookLM is disabled or returns no hits.",
       tags: ["storage"],
     },
     "memory.notebooklm.auth": {
@@ -13264,7 +13264,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.auth.heartbeat": {
       label: "NotebookLM Auth Heartbeat",
-      help: "Best-effort NotebookLM auth keepalive settings. CrawClaw can run lightweight randomized background status probes so long-idle profile expiry is detected before the next real knowledge query or write.",
+      help: "Best-effort NotebookLM auth keepalive settings. CrawClaw can run lightweight randomized background status probes so long-idle profile expiry is detected before the next NotebookLM-backed experience query or write.",
       tags: ["storage", "automation"],
     },
     "memory.notebooklm.auth.heartbeat.enabled": {
@@ -13304,7 +13304,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.cli.timeoutMs": {
       label: "NotebookLM CLI Timeout (ms)",
-      help: "Timeout in milliseconds for each NotebookLM CLI retrieval call. Lower values fail fast when NotebookLM hangs; higher values tolerate slower remote knowledge queries.",
+      help: "Timeout in milliseconds for each NotebookLM CLI retrieval call. Lower values fail fast when NotebookLM hangs; higher values tolerate slower remote experience queries.",
       tags: ["performance", "storage"],
     },
     "memory.notebooklm.cli.limit": {

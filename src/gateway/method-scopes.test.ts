@@ -20,7 +20,7 @@ describe("method scope resolution", () => {
     ["agent.inspect", ["operator.read"]],
     ["system.health", ["operator.read"]],
     ["system.status", ["operator.read"]],
-    ["system.heartbeat.last", ["operator.read"]],
+    ["system.mainSessionWake.last", ["operator.read"]],
     ["workflow.list", ["operator.read"]],
     ["workflow.get", ["operator.read"]],
     ["workflow.status", ["operator.read"]],

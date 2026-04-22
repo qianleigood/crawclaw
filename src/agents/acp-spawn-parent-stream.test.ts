@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mergeMockedModule } from "../test-utils/vitest-module-mocks.js";
 
 const enqueueSystemEventMock = vi.fn();
-const requestHeartbeatNowMock = vi.fn();
+const requestMainSessionWakeNowMock = vi.fn();
 const readAcpSessionEntryMock = vi.fn();
 const resolveSessionFilePathMock = vi.fn();
 const resolveSessionFilePathOptionsMock = vi.fn();
@@ -11,11 +11,11 @@ vi.mock("../infra/system-events.js", () => ({
   enqueueSystemEvent: (...args: unknown[]) => enqueueSystemEventMock(...args),
 }));
 
-vi.mock("../infra/heartbeat-wake.js", async (importOriginal) => {
+vi.mock("../infra/main-session-wake.js", async (importOriginal) => {
   return await mergeMockedModule(
-    await importOriginal<typeof import("../infra/heartbeat-wake.js")>(),
+    await importOriginal<typeof import("../infra/main-session-wake.js")>(),
     () => ({
-      requestHeartbeatNow: (...args: unknown[]) => requestHeartbeatNowMock(...args),
+      requestMainSessionWakeNow: (...args: unknown[]) => requestMainSessionWakeNowMock(...args),
     }),
   );
 });
@@ -49,13 +49,13 @@ async function loadFreshAcpSpawnParentStreamModulesForTest() {
   vi.doMock("../infra/system-events.js", () => ({
     enqueueSystemEvent: (...args: unknown[]) => enqueueSystemEventMock(...args),
   }));
-  vi.doMock("../infra/heartbeat-wake.js", async () => {
+  vi.doMock("../infra/main-session-wake.js", async () => {
     return await mergeMockedModule(
-      await vi.importActual<typeof import("../infra/heartbeat-wake.js")>(
-        "../infra/heartbeat-wake.js",
+      await vi.importActual<typeof import("../infra/main-session-wake.js")>(
+        "../infra/main-session-wake.js",
       ),
       () => ({
-        requestHeartbeatNow: (...args: unknown[]) => requestHeartbeatNowMock(...args),
+        requestMainSessionWakeNow: (...args: unknown[]) => requestMainSessionWakeNowMock(...args),
       }),
     );
   });
@@ -99,7 +99,7 @@ function collectedTexts() {
 describe("startAcpSpawnParentStreamRelay", () => {
   beforeEach(async () => {
     enqueueSystemEventMock.mockClear();
-    requestHeartbeatNowMock.mockClear();
+    requestMainSessionWakeNowMock.mockClear();
     readAcpSessionEntryMock.mockReset();
     resolveSessionFilePathMock.mockReset();
     resolveSessionFilePathOptionsMock.mockReset();
@@ -147,7 +147,7 @@ describe("startAcpSpawnParentStreamRelay", () => {
     expect(texts.some((text) => text.includes("Started codex session"))).toBe(true);
     expect(texts.some((text) => text.includes("codex: hello from child"))).toBe(true);
     expect(texts.some((text) => text.includes("codex run completed in 2s"))).toBe(true);
-    expect(requestHeartbeatNowMock).toHaveBeenCalledWith(
+    expect(requestMainSessionWakeNowMock).toHaveBeenCalledWith(
       expect.objectContaining({
         reason: "acp:spawn:stream",
         sessionKey: "agent:main:main",
@@ -273,7 +273,7 @@ describe("startAcpSpawnParentStreamRelay", () => {
     });
 
     expect(collectedTexts()).toEqual([]);
-    expect(requestHeartbeatNowMock).not.toHaveBeenCalled();
+    expect(requestMainSessionWakeNowMock).not.toHaveBeenCalled();
     relay.dispose();
   });
 

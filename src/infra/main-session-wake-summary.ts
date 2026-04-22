@@ -5,7 +5,7 @@ import {
 } from "../auto-reply/heartbeat.js";
 import type { CrawClawConfig } from "../config/config.js";
 
-export type HeartbeatSummary = {
+export type MainSessionWakeSummary = {
   enabled: boolean;
   prompt: string;
   target: string;
@@ -15,10 +15,10 @@ export type HeartbeatSummary = {
 
 const DEFAULT_HEARTBEAT_TARGET = "none";
 
-export function resolveHeartbeatSummaryForAgent(
+export function resolveMainSessionWakeSummaryForAgent(
   cfg: CrawClawConfig,
   agentId?: string,
-): HeartbeatSummary {
+): MainSessionWakeSummary {
   const defaults = cfg.agents?.defaults?.heartbeat;
   const overrides = agentId ? resolveAgentConfig(cfg, agentId)?.heartbeat : undefined;
   const merged = defaults || overrides ? { ...defaults, ...overrides } : undefined;

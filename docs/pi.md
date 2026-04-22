@@ -245,7 +245,7 @@ to re-inject image payloads.
 
 ### Tool Pipeline
 
-1. **Base Tools**: pi's `codingTools` (read, bash, edit, write)
+1. **Base Tools**: pi's `createCodingTools` / `createReadTool` output (read, bash, edit, write)
 2. **Custom Replacements**: CrawClaw replaces bash with `exec`/`process`, customizes read/edit/write for sandbox
 3. **CrawClaw Tools**: messaging, browser, canvas, sessions, cron, gateway, etc.
 4. **Channel Tools**: Discord/Telegram/Slack/WhatsApp-specific action tools

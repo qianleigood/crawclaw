@@ -44638,8 +44638,8 @@
       "tags": [
         "storage"
       ],
-      "label": "NotebookLM Memory Runtime",
-      "help": "Configures NotebookLM-backed experience recall for the built-in memory runtime. Prompt-facing experience retrieval uses NotebookLM only.",
+      "label": "NotebookLM Experience Provider",
+      "help": "Configures the optional NotebookLM provider for experience memory. Prompt-facing experience recall also uses the local experience index when NotebookLM is disabled or returns no hits.",
       "hasChildren": true
     },
     {

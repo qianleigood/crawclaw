@@ -44,9 +44,10 @@ git commit -m "Add agent workspace"
 - 会话开始时，读取今天和昨天的日志（如果存在）。
 - 记录持久性事实、偏好和决策；避免记录密钥。
 
-## 心跳检查（可选）
+## Heartbeat（兼容）
 
-- HEARTBEAT.md 可以保存一个小型心跳运行检查清单；请保持精简。
+- HEARTBEAT.md 用于旧 heartbeat 风格配置。如果保留，请保持精简；
+  新的主动检查请使用 cron 或 hooks。
 
 ## 自定义
 

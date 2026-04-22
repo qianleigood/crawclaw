@@ -2,13 +2,13 @@ import type { CrawClawConfig } from "../config/config.js";
 import type { ChannelHeartbeatVisibilityConfig } from "../config/types.channels.js";
 import type { GatewayMessageChannel } from "../utils/message-channel.js";
 
-export type ResolvedHeartbeatVisibility = {
+export type ResolvedMainSessionWakeVisibility = {
   showOk: boolean;
   showAlerts: boolean;
   useIndicator: boolean;
 };
 
-const DEFAULT_VISIBILITY: ResolvedHeartbeatVisibility = {
+const DEFAULT_VISIBILITY: ResolvedMainSessionWakeVisibility = {
   showOk: false, // Silent by default
   showAlerts: true, // Show content messages
   useIndicator: true, // Emit indicator events
@@ -19,11 +19,11 @@ const DEFAULT_VISIBILITY: ResolvedHeartbeatVisibility = {
  * Supports both deliverable channels (telegram, signal, etc.) and webchat.
  * For webchat, uses channels.defaults.heartbeat since webchat doesn't have per-channel config.
  */
-export function resolveHeartbeatVisibility(params: {
+export function resolveMainSessionWakeVisibility(params: {
   cfg: CrawClawConfig;
   channel: GatewayMessageChannel;
   accountId?: string;
-}): ResolvedHeartbeatVisibility {
+}): ResolvedMainSessionWakeVisibility {
   const { cfg, channel, accountId } = params;
 
   // Webchat uses channel defaults only (no per-channel or per-account config)

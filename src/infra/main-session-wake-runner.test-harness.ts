@@ -5,9 +5,9 @@ import {
   heartbeatRunnerSlackPlugin,
   heartbeatRunnerTelegramPlugin,
   heartbeatRunnerWhatsAppPlugin,
-} from "./heartbeat-runner.test-channel-plugins.js";
+} from "./main-session-wake-runner.test-channel-plugins.js";
 
-export function installHeartbeatRunnerTestRuntime(params?: { includeSlack?: boolean }): void {
+export function installMainSessionWakeRunnerTestRuntime(params?: { includeSlack?: boolean }): void {
   beforeEach(() => {
     if (params?.includeSlack) {
       setActivePluginRegistry(

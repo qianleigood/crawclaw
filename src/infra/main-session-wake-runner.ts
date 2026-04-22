@@ -10,14 +10,14 @@ import { resolveEffectiveMessagesConfig } from "../agents/identity.js";
 import { resolveHeartbeatReplyPayload } from "../auto-reply/heartbeat-reply-payload.js";
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
-  resolveHeartbeatPrompt as resolveHeartbeatPromptText,
+  resolveHeartbeatPrompt as resolveMainSessionWakePromptText,
   stripHeartbeatToken,
 } from "../auto-reply/heartbeat.js";
 import { getReplyFromConfig } from "../auto-reply/reply.js";
 import { HEARTBEAT_TOKEN } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { getChannelPlugin } from "../channels/plugins/index.js";
-import type { ChannelHeartbeatDeps } from "../channels/plugins/types.js";
+import type { ChannelMainSessionWakeDeps } from "../channels/plugins/types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import {
@@ -49,16 +49,19 @@ import {
   isActionableSystemEvent,
   isCronSystemEvent,
   isExecCompletionEvent,
-} from "./heartbeat-events-filter.js";
-import { emitHeartbeatEvent, resolveIndicatorType } from "./heartbeat-events.js";
-import { resolveHeartbeatReasonKind } from "./heartbeat-reason.js";
-import { resolveHeartbeatSummaryForAgent, type HeartbeatSummary } from "./heartbeat-summary.js";
-import { resolveHeartbeatVisibility } from "./heartbeat-visibility.js";
+} from "./main-session-wake-events-filter.js";
+import { emitMainSessionWakeEvent, resolveIndicatorType } from "./main-session-wake-events.js";
+import { resolveMainSessionWakeReasonKind } from "./main-session-wake-reason.js";
 import {
-  type HeartbeatRunResult,
-  type HeartbeatWakeHandler,
-  setHeartbeatWakeHandler,
-} from "./heartbeat-wake.js";
+  resolveMainSessionWakeSummaryForAgent,
+  type MainSessionWakeSummary,
+} from "./main-session-wake-summary.js";
+import { resolveMainSessionWakeVisibility } from "./main-session-wake-visibility.js";
+import {
+  type MainSessionWakeRunResult,
+  type MainSessionWakeHandler,
+  setMainSessionWakeHandler,
+} from "./main-session-wake.js";
 import type { OutboundSendDeps } from "./outbound/deliver.js";
 import { deliverOutboundPayloads } from "./outbound/deliver.js";
 import { buildOutboundSessionContext } from "./outbound/session-context.js";
@@ -72,40 +75,43 @@ import {
   resolveSystemEventDeliveryContext,
 } from "./system-events.js";
 
-export type HeartbeatDeps = OutboundSendDeps &
-  ChannelHeartbeatDeps & {
+export type MainSessionWakeDeps = OutboundSendDeps &
+  ChannelMainSessionWakeDeps & {
     runtime?: RuntimeEnv;
     getQueueSize?: (lane?: string) => number;
     nowMs?: () => number;
   };
 
-const log = createSubsystemLogger("gateway/heartbeat");
+const log = createSubsystemLogger("gateway/main-session-wake");
 
-export { areHeartbeatsEnabled } from "./heartbeat-wake.js";
-export { resolveHeartbeatSummaryForAgent, type HeartbeatSummary } from "./heartbeat-summary.js";
+export { areMainSessionWakesAvailable } from "./main-session-wake.js";
+export {
+  resolveMainSessionWakeSummaryForAgent,
+  type MainSessionWakeSummary,
+} from "./main-session-wake-summary.js";
 
-type HeartbeatConfig = AgentDefaultsConfig["heartbeat"];
-type HeartbeatAgent = {
+type MainSessionWakeConfig = AgentDefaultsConfig["heartbeat"];
+type MainSessionWakeAgent = {
   agentId: string;
-  heartbeat?: HeartbeatConfig;
+  heartbeat?: MainSessionWakeConfig;
 };
 
 export { isCronSystemEvent };
 
-type HeartbeatAgentState = {
+type MainSessionWakeAgentState = {
   agentId: string;
-  heartbeat?: HeartbeatConfig;
+  heartbeat?: MainSessionWakeConfig;
 };
 
-export type HeartbeatRunner = {
+export type MainSessionWakeRunner = {
   stop: () => void;
   updateConfig: (cfg: CrawClawConfig) => void;
 };
 
-function resolveHeartbeatConfig(
+function resolveMainSessionWakeConfig(
   cfg: CrawClawConfig,
   agentId?: string,
-): HeartbeatConfig | undefined {
+): MainSessionWakeConfig | undefined {
   const defaults = cfg.agents?.defaults?.heartbeat;
   if (!agentId) {
     return defaults;
@@ -117,16 +123,16 @@ function resolveHeartbeatConfig(
   return { ...defaults, ...overrides };
 }
 
-function resolveMainSessionWakeAgents(cfg: CrawClawConfig): HeartbeatAgent[] {
+function resolveMainSessionWakeAgents(cfg: CrawClawConfig): MainSessionWakeAgent[] {
   const seen = new Set<string>();
-  const agents: HeartbeatAgent[] = [];
+  const agents: MainSessionWakeAgent[] = [];
   const appendAgent = (agentId: string) => {
     const normalized = normalizeAgentId(agentId);
     if (!normalized || seen.has(normalized)) {
       return;
     }
     seen.add(normalized);
-    agents.push({ agentId: normalized, heartbeat: resolveHeartbeatConfig(cfg, normalized) });
+    agents.push({ agentId: normalized, heartbeat: resolveMainSessionWakeConfig(cfg, normalized) });
   };
   appendAgent(resolveDefaultAgentId(cfg));
   for (const entry of cfg.agents?.list ?? []) {
@@ -137,11 +143,16 @@ function resolveMainSessionWakeAgents(cfg: CrawClawConfig): HeartbeatAgent[] {
   return agents;
 }
 
-export function resolveHeartbeatPrompt(cfg: CrawClawConfig, heartbeat?: HeartbeatConfig) {
-  return resolveHeartbeatPromptText(heartbeat?.prompt ?? cfg.agents?.defaults?.heartbeat?.prompt);
+export function resolveMainSessionWakePrompt(
+  cfg: CrawClawConfig,
+  heartbeat?: MainSessionWakeConfig,
+) {
+  return resolveMainSessionWakePromptText(
+    heartbeat?.prompt ?? cfg.agents?.defaults?.heartbeat?.prompt,
+  );
 }
 
-function resolveHeartbeatAckMaxChars(cfg: CrawClawConfig, heartbeat?: HeartbeatConfig) {
+function resolveMainSessionWakeAckMaxChars(cfg: CrawClawConfig, heartbeat?: MainSessionWakeConfig) {
   return Math.max(
     0,
     heartbeat?.ackMaxChars ??
@@ -150,10 +161,10 @@ function resolveHeartbeatAckMaxChars(cfg: CrawClawConfig, heartbeat?: HeartbeatC
   );
 }
 
-function resolveHeartbeatSession(
+function resolveMainSessionWakeSession(
   cfg: CrawClawConfig,
   agentId?: string,
-  heartbeat?: HeartbeatConfig,
+  heartbeat?: MainSessionWakeConfig,
   forcedSessionKey?: string,
 ) {
   const sessionCfg = cfg.session;
@@ -242,7 +253,7 @@ function resolveHeartbeatReasoningPayloads(
   });
 }
 
-async function restoreHeartbeatUpdatedAt(params: {
+async function restoreMainSessionWakeUpdatedAt(params: {
   storePath: string;
   sessionKey: string;
   updatedAt?: number;
@@ -274,23 +285,23 @@ async function restoreHeartbeatUpdatedAt(params: {
 }
 
 /**
- * Prune heartbeat transcript entries by truncating the file back to a previous size.
- * This removes the user+assistant turns that were written during a HEARTBEAT_OK run,
+ * Prune wake transcript entries by truncating the file back to a previous size.
+ * This removes the user+assistant turns written during HEARTBEAT_OK acknowledgements,
  * preventing context pollution from zero-information exchanges.
  */
-async function pruneHeartbeatTranscript(params: {
+async function pruneMainSessionWakeTranscript(params: {
   transcriptPath?: string;
-  preHeartbeatSize?: number;
+  preWakeSize?: number;
 }) {
-  const { transcriptPath, preHeartbeatSize } = params;
-  if (!transcriptPath || typeof preHeartbeatSize !== "number" || preHeartbeatSize < 0) {
+  const { transcriptPath, preWakeSize } = params;
+  if (!transcriptPath || typeof preWakeSize !== "number" || preWakeSize < 0) {
     return;
   }
   try {
     const stat = await fs.stat(transcriptPath);
-    // Only truncate if the file has grown during the heartbeat run
-    if (stat.size > preHeartbeatSize) {
-      await fs.truncate(transcriptPath, preHeartbeatSize);
+    // Only truncate if the file has grown during the wake run.
+    if (stat.size > preWakeSize) {
+      await fs.truncate(transcriptPath, preWakeSize);
     }
   } catch {
     // File may not exist or may have been removed - ignore errors
@@ -298,14 +309,14 @@ async function pruneHeartbeatTranscript(params: {
 }
 
 /**
- * Get the transcript file path and its current size before a heartbeat run.
+ * Get the transcript file path and its current size before a wake run.
  * Returns undefined values if the session or transcript doesn't exist yet.
  */
 async function captureTranscriptState(params: {
   storePath: string;
   sessionKey: string;
   agentId?: string;
-}): Promise<{ transcriptPath?: string; preHeartbeatSize?: number }> {
+}): Promise<{ transcriptPath?: string; preWakeSize?: number }> {
   const { storePath, sessionKey, agentId } = params;
   try {
     const store = loadSessionStore(storePath);
@@ -318,7 +329,7 @@ async function captureTranscriptState(params: {
       sessionsDir: path.dirname(storePath),
     });
     const stat = await fs.stat(transcriptPath);
-    return { transcriptPath, preHeartbeatSize: stat.size };
+    return { transcriptPath, preWakeSize: stat.size };
   } catch {
     // Session or transcript doesn't exist yet - nothing to prune
     return {};
@@ -369,15 +380,15 @@ function normalizeHeartbeatReply(
   return { shouldSkip: false, text: finalText, hasMedia };
 }
 
-type HeartbeatReasonFlags = {
+type MainSessionWakeReasonFlags = {
   isExecEventReason: boolean;
   isCronEventReason: boolean;
   isWakeReason: boolean;
   isEventDrivenReason: boolean;
 };
 
-type HeartbeatPreflight = HeartbeatReasonFlags & {
-  session: ReturnType<typeof resolveHeartbeatSession>;
+type MainSessionWakePreflight = MainSessionWakeReasonFlags & {
+  session: ReturnType<typeof resolveMainSessionWakeSession>;
   pendingEventEntries: ReturnType<typeof peekSystemEventEntries>;
   actionableEventEntries: ReturnType<typeof peekSystemEventEntries>;
   turnSourceDeliveryContext: ReturnType<typeof resolveSystemEventDeliveryContext>;
@@ -385,8 +396,8 @@ type HeartbeatPreflight = HeartbeatReasonFlags & {
   shouldInspectPendingEvents: boolean;
 };
 
-function resolveHeartbeatReasonFlags(reason?: string): HeartbeatReasonFlags {
-  const reasonKind = resolveHeartbeatReasonKind(reason);
+function resolveMainSessionWakeReasonFlags(reason?: string): MainSessionWakeReasonFlags {
+  const reasonKind = resolveMainSessionWakeReasonKind(reason);
   const isExecEventReason = reasonKind === "exec-event";
   const isCronEventReason = reasonKind === "cron";
   const isWakeReason = reasonKind === "wake" || reasonKind === "hook" || reasonKind === "manual";
@@ -398,15 +409,15 @@ function resolveHeartbeatReasonFlags(reason?: string): HeartbeatReasonFlags {
   };
 }
 
-async function resolveHeartbeatPreflight(params: {
+async function resolveMainSessionWakePreflight(params: {
   cfg: CrawClawConfig;
   agentId: string;
-  heartbeat?: HeartbeatConfig;
+  heartbeat?: MainSessionWakeConfig;
   forcedSessionKey?: string;
   reason?: string;
-}): Promise<HeartbeatPreflight> {
-  const reasonFlags = resolveHeartbeatReasonFlags(params.reason);
-  const session = resolveHeartbeatSession(
+}): Promise<MainSessionWakePreflight> {
+  const reasonFlags = resolveMainSessionWakeReasonFlags(params.reason);
+  const session = resolveMainSessionWakeSession(
     params.cfg,
     params.agentId,
     params.heartbeat,
@@ -430,10 +441,10 @@ async function resolveHeartbeatPreflight(params: {
     turnSourceDeliveryContext,
     hasTaggedCronEvents,
     shouldInspectPendingEvents,
-  } satisfies HeartbeatPreflight;
+  } satisfies MainSessionWakePreflight;
 }
 
-type HeartbeatPromptResolution = {
+type MainSessionWakePromptResolution = {
   prompt: string;
   hasExecCompletion: boolean;
   hasCronEvents: boolean;
@@ -450,12 +461,12 @@ function buildSystemEventPrompt(params: { deliverToUser: boolean }): string {
   ].join(" ");
 }
 
-function resolveHeartbeatRunPrompt(params: {
+function resolveMainSessionWakeRunPrompt(params: {
   cfg: CrawClawConfig;
-  heartbeat?: HeartbeatConfig;
-  preflight: HeartbeatPreflight;
+  heartbeat?: MainSessionWakeConfig;
+  preflight: MainSessionWakePreflight;
   canRelayToUser: boolean;
-}): HeartbeatPromptResolution {
+}): MainSessionWakePromptResolution {
   const pendingEventEntries = params.preflight.actionableEventEntries;
   const pendingEvents = params.preflight.shouldInspectPendingEvents
     ? pendingEventEntries.map((event) => event.text)
@@ -476,18 +487,18 @@ function resolveHeartbeatRunPrompt(params: {
       ? buildCronEventPrompt(cronEvents, { deliverToUser: params.canRelayToUser })
       : params.preflight.isEventDrivenReason && hasSystemEvents
         ? buildSystemEventPrompt({ deliverToUser: params.canRelayToUser })
-        : resolveHeartbeatPrompt(params.cfg, params.heartbeat);
+        : resolveMainSessionWakePrompt(params.cfg, params.heartbeat);
   return { prompt: basePrompt, hasExecCompletion, hasCronEvents, hasSystemEvents };
 }
 
-export async function runHeartbeatOnce(opts: {
+export async function runMainSessionWakeOnce(opts: {
   cfg?: CrawClawConfig;
   agentId?: string;
   sessionKey?: string;
-  heartbeat?: HeartbeatConfig;
+  heartbeat?: MainSessionWakeConfig;
   reason?: string;
-  deps?: HeartbeatDeps;
-}): Promise<HeartbeatRunResult> {
+  deps?: MainSessionWakeDeps;
+}): Promise<MainSessionWakeRunResult> {
   const cfg = opts.cfg ?? loadConfig();
   const explicitAgentId = typeof opts.agentId === "string" ? opts.agentId.trim() : "";
   const forcedSessionAgentId =
@@ -495,7 +506,7 @@ export async function runHeartbeatOnce(opts: {
   const agentId = normalizeAgentId(
     explicitAgentId || forcedSessionAgentId || resolveDefaultAgentId(cfg),
   );
-  const heartbeat = opts.heartbeat ?? resolveHeartbeatConfig(cfg, agentId);
+  const heartbeat = opts.heartbeat ?? resolveMainSessionWakeConfig(cfg, agentId);
   const startedAt = opts.deps?.nowMs?.() ?? Date.now();
 
   const queueSize = (opts.deps?.getQueueSize ?? getQueueSize)(CommandLane.Main);
@@ -504,7 +515,7 @@ export async function runHeartbeatOnce(opts: {
   }
 
   // Preflight centralizes trigger classification, event inspection, and HEARTBEAT.md gating.
-  const preflight = await resolveHeartbeatPreflight({
+  const preflight = await resolveMainSessionWakePreflight({
     cfg,
     agentId,
     heartbeat,
@@ -525,7 +536,7 @@ export async function runHeartbeatOnce(opts: {
   const previousUpdatedAt = entry?.updatedAt;
 
   // When isolatedSession is enabled, create a fresh session via the same
-  // pattern as cron sessionTarget: "isolated". This gives the heartbeat
+  // pattern as cron sessionTarget: "isolated". This gives the wake
   // a new session ID (empty transcript) each run, avoiding the cost of
   // sending the full conversation history (~100K tokens) to the LLM.
   // Delivery routing still uses the main session entry (lastChannel, lastTo).
@@ -551,7 +562,7 @@ export async function runHeartbeatOnce(opts: {
     cfg,
     entry,
     heartbeat,
-    // Isolated heartbeat runs drain system events from their dedicated
+    // Isolated wake runs drain system events from their dedicated
     // `:heartbeat` session, not from the base session we peek during preflight.
     // Reusing base-session turnSource routing here can pin later isolated runs
     // to stale channels/threads because that base-session event context remains queued.
@@ -559,12 +570,12 @@ export async function runHeartbeatOnce(opts: {
   });
   const heartbeatAccountId = heartbeat?.accountId?.trim();
   if (delivery.reason === "unknown-account") {
-    log.warn("heartbeat: unknown accountId", {
+    log.warn("main-session wake: unknown accountId", {
       accountId: delivery.accountId ?? heartbeatAccountId ?? null,
       target: heartbeat?.target ?? "none",
     });
   } else if (heartbeatAccountId) {
-    log.info("heartbeat: using explicit accountId", {
+    log.info("main-session wake: using explicit accountId", {
       accountId: delivery.accountId ?? heartbeatAccountId,
       target: heartbeat?.target ?? "none",
       channel: delivery.channel,
@@ -572,7 +583,7 @@ export async function runHeartbeatOnce(opts: {
   }
   const visibility =
     delivery.channel !== "none"
-      ? resolveHeartbeatVisibility({
+      ? resolveMainSessionWakeVisibility({
           cfg,
           channel: delivery.channel,
           accountId: delivery.accountId,
@@ -587,12 +598,13 @@ export async function runHeartbeatOnce(opts: {
   const canRelayToUser = Boolean(
     delivery.channel !== "none" && delivery.to && visibility.showAlerts,
   );
-  const { prompt, hasExecCompletion, hasCronEvents, hasSystemEvents } = resolveHeartbeatRunPrompt({
-    cfg,
-    heartbeat,
-    preflight,
-    canRelayToUser,
-  });
+  const { prompt, hasExecCompletion, hasCronEvents, hasSystemEvents } =
+    resolveMainSessionWakeRunPrompt({
+      cfg,
+      heartbeat,
+      preflight,
+      canRelayToUser,
+    });
   const ctx = {
     Body: appendCronStyleCurrentTimeLine(prompt, cfg, startedAt),
     From: sender,
@@ -612,7 +624,7 @@ export async function runHeartbeatOnce(opts: {
     ForceSenderIsOwnerFalse: hasExecCompletion,
   };
   if (!visibility.showAlerts && !visibility.showOk && !visibility.useIndicator) {
-    emitHeartbeatEvent({
+    emitMainSessionWakeEvent({
       status: "skipped",
       reason: "alerts-disabled",
       durationMs: Date.now() - startedAt,
@@ -660,7 +672,7 @@ export async function runHeartbeatOnce(opts: {
   };
 
   try {
-    // Capture transcript state before the heartbeat run so we can prune if HEARTBEAT_OK.
+    // Capture transcript state before the wake run so we can prune if HEARTBEAT_OK.
     // For isolated sessions, capture the isolated transcript (not the main session's).
     const transcriptState = await captureTranscriptState({
       storePath: runStorePath,
@@ -688,15 +700,15 @@ export async function runHeartbeatOnce(opts: {
       : [];
 
     if (!replyPayload || !hasOutboundReplyContent(replyPayload)) {
-      await restoreHeartbeatUpdatedAt({
+      await restoreMainSessionWakeUpdatedAt({
         storePath,
         sessionKey,
         updatedAt: previousUpdatedAt,
       });
       // Prune the transcript to remove HEARTBEAT_OK turns
-      await pruneHeartbeatTranscript(transcriptState);
+      await pruneMainSessionWakeTranscript(transcriptState);
       const okSent = await maybeSendHeartbeatOk();
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "ok-empty",
         reason: opts.reason,
         durationMs: Date.now() - startedAt,
@@ -708,7 +720,7 @@ export async function runHeartbeatOnce(opts: {
       return { status: "ran", durationMs: Date.now() - startedAt };
     }
 
-    const ackMaxChars = resolveHeartbeatAckMaxChars(cfg, heartbeat);
+    const ackMaxChars = resolveMainSessionWakeAckMaxChars(cfg, heartbeat);
     const normalized = normalizeHeartbeatReply(replyPayload, responsePrefix, ackMaxChars);
     // For exec completion events, don't skip even if the response looks like HEARTBEAT_OK.
     // The model should be responding with exec results, not ack tokens.
@@ -724,15 +736,15 @@ export async function runHeartbeatOnce(opts: {
     }
     const shouldSkipMain = normalized.shouldSkip && !normalized.hasMedia && !hasExecCompletion;
     if (shouldSkipMain && reasoningPayloads.length === 0) {
-      await restoreHeartbeatUpdatedAt({
+      await restoreMainSessionWakeUpdatedAt({
         storePath,
         sessionKey,
         updatedAt: previousUpdatedAt,
       });
       // Prune the transcript to remove HEARTBEAT_OK turns
-      await pruneHeartbeatTranscript(transcriptState);
+      await pruneMainSessionWakeTranscript(transcriptState);
       const okSent = await maybeSendHeartbeatOk();
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "ok-token",
         reason: opts.reason,
         durationMs: Date.now() - startedAt,
@@ -746,7 +758,7 @@ export async function runHeartbeatOnce(opts: {
 
     const mediaUrls = resolveSendableOutboundReplyParts(replyPayload).mediaUrls;
 
-    // Suppress duplicate heartbeats (same payload) within a short window.
+    // Suppress duplicate wake payloads within a short window.
     // This prevents "nagging" when nothing changed but the model repeats the same items.
     const prevHeartbeatText =
       typeof entry?.lastHeartbeatText === "string" ? entry.lastHeartbeatText : "";
@@ -761,14 +773,14 @@ export async function runHeartbeatOnce(opts: {
       startedAt - prevHeartbeatAt < 24 * 60 * 60 * 1000;
 
     if (isDuplicateMain) {
-      await restoreHeartbeatUpdatedAt({
+      await restoreMainSessionWakeUpdatedAt({
         storePath,
         sessionKey,
         updatedAt: previousUpdatedAt,
       });
-      // Prune the transcript to remove duplicate heartbeat turns
-      await pruneHeartbeatTranscript(transcriptState);
-      emitHeartbeatEvent({
+      // Prune the transcript to remove duplicate wake turns.
+      await pruneMainSessionWakeTranscript(transcriptState);
+      emitMainSessionWakeEvent({
         status: "skipped",
         reason: "duplicate",
         preview: normalized.text.slice(0, 200),
@@ -789,7 +801,7 @@ export async function runHeartbeatOnce(opts: {
       : normalized.text;
 
     if (delivery.channel === "none" || !delivery.to) {
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "skipped",
         reason: delivery.reason ?? "no-target",
         preview: previewText?.slice(0, 200),
@@ -801,12 +813,12 @@ export async function runHeartbeatOnce(opts: {
     }
 
     if (!visibility.showAlerts) {
-      await restoreHeartbeatUpdatedAt({
+      await restoreMainSessionWakeUpdatedAt({
         storePath,
         sessionKey,
         updatedAt: previousUpdatedAt,
       });
-      emitHeartbeatEvent({
+      emitMainSessionWakeEvent({
         status: "skipped",
         reason: "alerts-disabled",
         preview: previewText?.slice(0, 200),
@@ -828,7 +840,7 @@ export async function runHeartbeatOnce(opts: {
         deps: opts.deps,
       });
       if (!readiness.ok) {
-        emitHeartbeatEvent({
+        emitMainSessionWakeEvent({
           status: "skipped",
           reason: readiness.reason,
           preview: previewText?.slice(0, 200),
@@ -837,7 +849,7 @@ export async function runHeartbeatOnce(opts: {
           channel: delivery.channel,
           accountId: delivery.accountId,
         });
-        log.info("heartbeat: channel not ready", {
+        log.info("main-session wake: channel not ready", {
           channel: delivery.channel,
           reason: readiness.reason,
         });
@@ -866,7 +878,7 @@ export async function runHeartbeatOnce(opts: {
       deps: opts.deps,
     });
 
-    // Record last delivered heartbeat payload for dedupe.
+    // Record last delivered wake payload for dedupe.
     if (!shouldSkipMain && normalized.text.trim()) {
       const store = loadSessionStore(storePath);
       const current = store[sessionKey];
@@ -880,7 +892,7 @@ export async function runHeartbeatOnce(opts: {
       }
     }
 
-    emitHeartbeatEvent({
+    emitMainSessionWakeEvent({
       status: "sent",
       to: delivery.to,
       preview: previewText?.slice(0, 200),
@@ -893,7 +905,7 @@ export async function runHeartbeatOnce(opts: {
     return { status: "ran", durationMs: Date.now() - startedAt };
   } catch (err) {
     const reason = formatErrorMessage(err);
-    emitHeartbeatEvent({
+    emitMainSessionWakeEvent({
       status: "failed",
       reason,
       durationMs: Date.now() - startedAt,
@@ -901,23 +913,23 @@ export async function runHeartbeatOnce(opts: {
       accountId: delivery.accountId,
       indicatorType: visibility.useIndicator ? resolveIndicatorType("failed") : undefined,
     });
-    log.error(`heartbeat failed: ${reason}`, { error: reason });
+    log.error(`main-session wake failed: ${reason}`, { error: reason });
     return { status: "failed", reason };
   }
 }
 
-export function startHeartbeatRunner(opts: {
+export function startMainSessionWakeRunner(opts: {
   cfg?: CrawClawConfig;
   runtime?: RuntimeEnv;
   abortSignal?: AbortSignal;
-  runOnce?: typeof runHeartbeatOnce;
-}): HeartbeatRunner {
+  runOnce?: typeof runMainSessionWakeOnce;
+}): MainSessionWakeRunner {
   const runtime = opts.runtime ?? defaultRuntime;
-  const runOnce = opts.runOnce ?? runHeartbeatOnce;
+  const runOnce = opts.runOnce ?? runMainSessionWakeOnce;
   const state = {
     cfg: opts.cfg ?? loadConfig(),
     runtime,
-    agents: new Map<string, HeartbeatAgentState>(),
+    agents: new Map<string, MainSessionWakeAgentState>(),
     timer: null as NodeJS.Timeout | null,
     stopped: false,
   };
@@ -934,7 +946,7 @@ export function startHeartbeatRunner(opts: {
     if (state.stopped) {
       return;
     }
-    const nextAgents = new Map<string, HeartbeatAgentState>();
+    const nextAgents = new Map<string, MainSessionWakeAgentState>();
     for (const agent of resolveMainSessionWakeAgents(cfg)) {
       nextAgents.set(agent.agentId, {
         agentId: agent.agentId,
@@ -952,18 +964,18 @@ export function startHeartbeatRunner(opts: {
     scheduleNext();
   };
 
-  const run: HeartbeatWakeHandler = async (params) => {
+  const run: MainSessionWakeHandler = async (params) => {
     if (state.stopped) {
       return {
         status: "skipped",
         reason: "disabled",
-      } satisfies HeartbeatRunResult;
+      } satisfies MainSessionWakeRunResult;
     }
     if (state.agents.size === 0) {
       return {
         status: "skipped",
         reason: "disabled",
-      } satisfies HeartbeatRunResult;
+      } satisfies MainSessionWakeRunResult;
     }
 
     const reason = params?.reason;
@@ -986,7 +998,7 @@ export function startHeartbeatRunner(opts: {
           resolveDefaultAgentId(state.cfg);
         const targetAgent = state.agents.get(targetAgentId) ?? {
           agentId: targetAgentId,
-          heartbeat: resolveHeartbeatConfig(state.cfg, targetAgentId),
+          heartbeat: resolveMainSessionWakeConfig(state.cfg, targetAgentId),
         };
         if (!targetAgent) {
           return { status: "skipped", reason: "disabled" };
@@ -1013,7 +1025,7 @@ export function startHeartbeatRunner(opts: {
       const defaultAgentId = resolveDefaultAgentId(state.cfg);
       const defaultAgent = state.agents.get(defaultAgentId) ?? {
         agentId: defaultAgentId,
-        heartbeat: resolveHeartbeatConfig(state.cfg, defaultAgentId),
+        heartbeat: resolveMainSessionWakeConfig(state.cfg, defaultAgentId),
       };
       try {
         const res = await runOnce({
@@ -1043,13 +1055,13 @@ export function startHeartbeatRunner(opts: {
     }
   };
 
-  const wakeHandler: HeartbeatWakeHandler = async (params) =>
+  const wakeHandler: MainSessionWakeHandler = async (params) =>
     run({
       reason: params.reason,
       agentId: params.agentId,
       sessionKey: params.sessionKey,
     });
-  const disposeWakeHandler = setHeartbeatWakeHandler(wakeHandler);
+  const disposeWakeHandler = setMainSessionWakeHandler(wakeHandler);
   updateConfig(state.cfg);
 
   const cleanup = () => {

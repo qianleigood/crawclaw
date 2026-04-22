@@ -8,14 +8,14 @@ import { mergeMockedModule } from "../test-utils/vitest-module-mocks.js";
 
 const {
   enqueueSystemEventMock,
-  requestHeartbeatNowMock,
+  requestMainSessionWakeNowMock,
   loadConfigMock,
   fetchWithSsrFGuardMock,
   runCronIsolatedAgentTurnMock,
   runMainSessionOnceMock,
 } = vi.hoisted(() => ({
   enqueueSystemEventMock: vi.fn(),
-  requestHeartbeatNowMock: vi.fn(),
+  requestMainSessionWakeNowMock: vi.fn(),
   loadConfigMock: vi.fn(),
   fetchWithSsrFGuardMock: vi.fn(),
   runCronIsolatedAgentTurnMock: vi.fn(async () => ({ status: "ok" as const, summary: "ok" })),
@@ -26,25 +26,25 @@ function enqueueSystemEvent(...args: unknown[]) {
   return enqueueSystemEventMock(...args);
 }
 
-function requestHeartbeatNow(...args: unknown[]) {
-  return requestHeartbeatNowMock(...args);
+function requestMainSessionWakeNow(...args: unknown[]) {
+  return requestMainSessionWakeNowMock(...args);
 }
 
 vi.mock("../infra/system-events.js", () => ({
   enqueueSystemEvent,
 }));
 
-vi.mock("../infra/heartbeat-wake.js", async (importOriginal) => {
+vi.mock("../infra/main-session-wake.js", async (importOriginal) => {
   return await mergeMockedModule(
-    await importOriginal<typeof import("../infra/heartbeat-wake.js")>(),
+    await importOriginal<typeof import("../infra/main-session-wake.js")>(),
     () => ({
-      requestHeartbeatNow,
+      requestMainSessionWakeNow,
     }),
   );
 });
 
 vi.mock("../infra/main-session-runner.js", () => ({
-  requestMainSessionWake: requestHeartbeatNow,
+  requestMainSessionWake: requestMainSessionWakeNow,
   runMainSessionOnce: runMainSessionOnceMock,
 }));
 
@@ -81,7 +81,7 @@ function createCronConfig(name: string): CrawClawConfig {
 describe("buildGatewayCronService", () => {
   beforeEach(() => {
     enqueueSystemEventMock.mockClear();
-    requestHeartbeatNowMock.mockClear();
+    requestMainSessionWakeNowMock.mockClear();
     loadConfigMock.mockClear();
     fetchWithSsrFGuardMock.mockClear();
     runCronIsolatedAgentTurnMock.mockClear();
@@ -124,7 +124,7 @@ describe("buildGatewayCronService", () => {
           sessionKey: "agent:main:discord:channel:ops",
         }),
       );
-      expect(requestHeartbeatNowMock).not.toHaveBeenCalled();
+      expect(requestMainSessionWakeNowMock).not.toHaveBeenCalled();
     } finally {
       state.cron.stop();
     }

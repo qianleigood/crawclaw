@@ -220,7 +220,7 @@ export function buildDreamSystemPrompt(): string {
     "## Constraints",
     "- Use only the scoped memory file tools for this run.",
     "- Do NOT inspect project source files, run shell commands, browse the web, or spawn other agents.",
-    "- Do NOT write NotebookLM experience notes. This task is only for durable memory.",
+    "- Do NOT write experience notes. This task is only for durable memory.",
     "- The provided recent session summaries are the primary signal. Do not grep transcripts as a primary workflow.",
     "- memory_transcript_search is fallback only: use it only when the task says transcript fallback is available and only for the allowed session ids.",
     "",

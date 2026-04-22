@@ -3,12 +3,12 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
-import { runHeartbeatOnce } from "./heartbeat-runner.js";
+import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import {
   seedSessionStore,
   setupTelegramHeartbeatPluginRuntimeForTests,
   withTempTelegramHeartbeatSandbox,
-} from "./heartbeat-runner.test-utils.js";
+} from "./main-session-wake-runner.test-utils.js";
 
 beforeEach(() => {
   setupTelegramHeartbeatPluginRuntimeForTests();
@@ -66,7 +66,7 @@ describe("heartbeat transcript pruning", () => {
           channels: { telegram: {} },
         } as unknown as CrawClawConfig;
 
-        await runHeartbeatOnce({
+        await runMainSessionWakeOnce({
           agentId: undefined,
           reason: "test",
           cfg,

@@ -12,9 +12,9 @@ import { info } from "../globals.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
-  type HeartbeatSummary,
-  resolveHeartbeatSummaryForAgent,
-} from "../infra/heartbeat-summary.js";
+  type MainSessionWakeSummary,
+  resolveMainSessionWakeSummaryForAgent,
+} from "../infra/main-session-wake-summary.js";
 import { buildChannelAccountBindings, resolvePreferredAccountId } from "../routing/bindings.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
@@ -35,13 +35,13 @@ export type ChannelHealthSummary = ChannelAccountHealthSummary & {
   accounts?: Record<string, ChannelAccountHealthSummary>;
 };
 
-export type AgentHeartbeatSummary = HeartbeatSummary;
+export type AgentMainSessionWakeSummary = MainSessionWakeSummary;
 
 export type AgentHealthSummary = {
   agentId: string;
   name?: string;
   isDefault: boolean;
-  heartbeat: AgentHeartbeatSummary;
+  mainSessionWake: AgentMainSessionWakeSummary;
   sessions: HealthSummary["sessions"];
 };
 
@@ -78,8 +78,8 @@ const debugHealth = (...args: unknown[]) => {
   }
 };
 
-const resolveHeartbeatSummary = (cfg: ReturnType<typeof loadConfig>, agentId: string) =>
-  resolveHeartbeatSummaryForAgent(cfg, agentId);
+const resolveMainSessionWakeSummary = (cfg: ReturnType<typeof loadConfig>, agentId: string) =>
+  resolveMainSessionWakeSummaryForAgent(cfg, agentId);
 
 const resolveAgentOrder = (cfg: ReturnType<typeof loadConfig>) => {
   const defaultAgentId = resolveDefaultAgentId(cfg);
@@ -402,7 +402,7 @@ export async function getHealthSnapshot(params?: {
       agentId: entry.id,
       name: entry.name,
       isDefault: entry.id === defaultAgentId,
-      heartbeat: resolveHeartbeatSummary(cfg, entry.id),
+      mainSessionWake: resolveMainSessionWakeSummary(cfg, entry.id),
       sessions,
     } satisfies AgentHealthSummary;
   });
@@ -603,7 +603,7 @@ export async function healthCommand(
         agentId: entry.id,
         name: entry.name,
         isDefault: entry.id === localAgents.defaultAgentId,
-        heartbeat: resolveHeartbeatSummary(cfg, entry.id),
+        mainSessionWake: resolveMainSessionWakeSummary(cfg, entry.id),
         sessions: buildSessionSummary(storePath),
       } satisfies AgentHealthSummary;
     });

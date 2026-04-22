@@ -86,7 +86,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "system",
-    description: "System events, heartbeat, and presence",
+    description: "System events, main-session wake, and presence",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../system-cli.js");
@@ -104,7 +104,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "memory",
-    description: "Inspect and manage NotebookLM experience access",
+    description: "Inspect and manage experience memory access",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../memory-cli.js");

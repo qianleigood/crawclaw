@@ -1921,7 +1921,7 @@ for usage/billing and raise limits as needed.
     older Gateway process is running or whether a cron job, hook, or plugin is
     sending them.
 
-    Use `crawclaw system heartbeat last --json` for the latest compatibility
+    Use `crawclaw system main-session-wake last --json` for the latest main-session wake
     diagnostic event, then inspect `crawclaw cron list` and `crawclaw cron runs`
     for scheduled jobs.
 

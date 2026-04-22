@@ -13,7 +13,7 @@ import type { WorkspaceBootstrapFile } from "./workspace.js";
 
 export const supervisorSpawnMock = vi.fn();
 export const enqueueSystemEventMock = vi.fn();
-export const requestHeartbeatNowMock = vi.fn();
+export const requestMainSessionWakeNowMock = vi.fn();
 export const SMALL_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/woAAn8B9FD5fHAAAAAASUVORK5CYII=";
 
@@ -40,7 +40,7 @@ setCliRunnerExecuteTestDeps({
     getRecord: vi.fn(),
   }),
   enqueueSystemEvent: (...args: unknown[]) => enqueueSystemEventMock(...args),
-  requestHeartbeatNow: (...args: unknown[]) => requestHeartbeatNowMock(...args),
+  requestMainSessionWakeNow: (...args: unknown[]) => requestMainSessionWakeNowMock(...args),
 });
 
 setCliRunnerPrepareTestDeps({
@@ -136,7 +136,7 @@ export async function setupCliRunnerTestModule() {
   setActivePluginRegistry(registry);
   supervisorSpawnMock.mockClear();
   enqueueSystemEventMock.mockClear();
-  requestHeartbeatNowMock.mockClear();
+  requestMainSessionWakeNowMock.mockClear();
   hoisted.resolveBootstrapContextForRunMock.mockReset().mockResolvedValue({
     bootstrapFiles: [],
     contextFiles: [],

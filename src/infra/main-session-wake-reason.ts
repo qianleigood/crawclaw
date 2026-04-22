@@ -12,12 +12,12 @@ function trimReason(reason?: string): string {
   return typeof reason === "string" ? reason.trim() : "";
 }
 
-export function normalizeHeartbeatWakeReason(reason?: string): string {
+export function normalizeMainSessionWakeReason(reason?: string): string {
   const trimmed = trimReason(reason);
   return trimmed.length > 0 ? trimmed : "requested";
 }
 
-export function resolveHeartbeatReasonKind(reason?: string): HeartbeatReasonKind {
+export function resolveMainSessionWakeReasonKind(reason?: string): HeartbeatReasonKind {
   const trimmed = trimReason(reason);
   if (trimmed === "retry") {
     return "retry";
@@ -56,12 +56,12 @@ export function resolveHeartbeatReasonKind(reason?: string): HeartbeatReasonKind
   return "other";
 }
 
-export function isHeartbeatEventDrivenReason(reason?: string): boolean {
-  const kind = resolveHeartbeatReasonKind(reason);
+export function isMainSessionWakeEventDrivenReason(reason?: string): boolean {
+  const kind = resolveMainSessionWakeReasonKind(reason);
   return kind === "exec-event" || kind === "cron" || kind === "wake" || kind === "hook";
 }
 
-export function isHeartbeatActionWakeReason(reason?: string): boolean {
-  const kind = resolveHeartbeatReasonKind(reason);
+export function isMainSessionWakeActionReason(reason?: string): boolean {
+  const kind = resolveMainSessionWakeReasonKind(reason);
   return kind === "manual" || kind === "exec-event" || kind === "hook";
 }

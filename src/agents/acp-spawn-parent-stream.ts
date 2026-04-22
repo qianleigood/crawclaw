@@ -3,9 +3,9 @@ import path from "node:path";
 import { readAcpSessionEntry } from "../acp/runtime/session-meta.js";
 import { resolveSessionFilePath, resolveSessionFilePathOptions } from "../config/sessions/paths.js";
 import { onAgentEvent } from "../infra/agent-events.js";
-import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
+import { requestMainSessionWakeNow } from "../infra/main-session-wake.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
-import { scopedHeartbeatWakeOptions } from "../routing/session-key.js";
+import { scopedMainSessionWakeOptions } from "../routing/session-key.js";
 import { recordTaskRunProgressByRunId } from "../tasks/task-executor.js";
 
 const DEFAULT_STREAM_FLUSH_MS = 2_500;
@@ -185,8 +185,8 @@ export function startAcpSpawnParentStreamRelay(params: {
     if (!shouldSurfaceUpdates) {
       return;
     }
-    requestHeartbeatNow(
-      scopedHeartbeatWakeOptions(parentSessionKey, {
+    requestMainSessionWakeNow(
+      scopedMainSessionWakeOptions(parentSessionKey, {
         reason: "acp:spawn:stream",
       }),
     );

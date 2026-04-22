@@ -29,7 +29,7 @@ import { loadSessionStore } from "../config/sessions/store.js";
 import { resolveSessionTranscriptFile } from "../config/sessions/transcript.js";
 import type { SessionEntry } from "../config/sessions/types.js";
 import { callGateway } from "../gateway/call.js";
-import { areHeartbeatsEnabled } from "../infra/heartbeat-wake.js";
+import { areMainSessionWakesAvailable } from "../infra/main-session-wake.js";
 import { resolveConversationIdFromTargets } from "../infra/outbound/conversation-id.js";
 import {
   getSessionBindingService,
@@ -150,8 +150,8 @@ type AcpSpawnRequesterState = {
   isSubagentSession: boolean;
   hasActiveSubagentBinding: boolean;
   hasThreadContext: boolean;
-  heartbeatEnabled: boolean;
-  heartbeatRelayRouteUsable: boolean;
+  mainSessionWakeEnabled: boolean;
+  mainSessionWakeRelayRouteUsable: boolean;
   origin: ReturnType<typeof normalizeDeliveryContext>;
 };
 
@@ -183,11 +183,11 @@ function resolveAcpSessionMode(mode: SpawnAcpMode): AcpRuntimeSessionMode {
   return mode === "session" ? "persistent" : "oneshot";
 }
 
-function isHeartbeatEnabledForSessionAgent(params: {
+function isMainSessionWakeEnabledForSessionAgent(params: {
   cfg: CrawClawConfig;
   sessionKey?: string;
 }): boolean {
-  if (!areHeartbeatsEnabled()) {
+  if (!areMainSessionWakesAvailable()) {
     return false;
   }
   const requesterAgentId = parseAgentSessionKey(params.sessionKey)?.agentId;
@@ -196,8 +196,8 @@ function isHeartbeatEnabledForSessionAgent(params: {
   }
 
   const agentEntries = params.cfg.agents?.list ?? [];
-  const hasExplicitHeartbeatAgents = agentEntries.some((entry) => Boolean(entry?.heartbeat));
-  const enabledByPolicy = hasExplicitHeartbeatAgents
+  const hasExplicitMainSessionWakeAgents = agentEntries.some((entry) => Boolean(entry?.heartbeat));
+  const enabledByPolicy = hasExplicitMainSessionWakeAgents
     ? agentEntries.some(
         (entry) => Boolean(entry?.heartbeat) && normalizeAgentId(entry?.id) === requesterAgentId,
       )
@@ -209,7 +209,7 @@ function isHeartbeatEnabledForSessionAgent(params: {
   return true;
 }
 
-function resolveHeartbeatConfigForAgent(params: {
+function resolveMainSessionWakeConfigForAgent(params: {
   cfg: CrawClawConfig;
   agentId: string;
 }): NonNullable<NonNullable<CrawClawConfig["agents"]>["defaults"]>["heartbeat"] {
@@ -224,7 +224,7 @@ function resolveHeartbeatConfigForAgent(params: {
   };
 }
 
-function hasSessionLocalHeartbeatRelayRoute(params: {
+function hasSessionLocalMainSessionWakeRelayRoute(params: {
   cfg: CrawClawConfig;
   parentSessionKey: string;
   requesterAgentId: string;
@@ -234,7 +234,7 @@ function hasSessionLocalHeartbeatRelayRoute(params: {
     return false;
   }
 
-  const heartbeat = resolveHeartbeatConfigForAgent({
+  const heartbeat = resolveMainSessionWakeConfigForAgent({
     cfg: params.cfg,
     agentId: params.requesterAgentId,
   });
@@ -518,13 +518,13 @@ function resolveAcpSpawnRequesterState(params: {
     isSubagentSession,
     hasActiveSubagentBinding,
     hasThreadContext,
-    heartbeatEnabled: isHeartbeatEnabledForSessionAgent({
+    mainSessionWakeEnabled: isMainSessionWakeEnabledForSessionAgent({
       cfg: params.cfg,
       sessionKey: params.parentSessionKey,
     }),
-    heartbeatRelayRouteUsable:
+    mainSessionWakeRelayRouteUsable:
       params.parentSessionKey && requesterAgentId
-        ? hasSessionLocalHeartbeatRelayRoute({
+        ? hasSessionLocalMainSessionWakeRelayRoute({
             cfg: params.cfg,
             parentSessionKey: params.parentSessionKey,
             requesterAgentId,
@@ -560,8 +560,8 @@ function resolveAcpSpawnStreamPlan(params: {
     params.requester.isSubagentSession &&
     !params.requester.hasActiveSubagentBinding &&
     !params.requester.hasThreadContext &&
-    params.requester.heartbeatEnabled &&
-    params.requester.heartbeatRelayRouteUsable;
+    params.requester.mainSessionWakeEnabled &&
+    params.requester.mainSessionWakeRelayRouteUsable;
 
   return {
     implicitStreamToParent,

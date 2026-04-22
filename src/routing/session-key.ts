@@ -30,7 +30,7 @@ function normalizeToken(value: string | undefined | null): string {
   return (value ?? "").trim().toLowerCase();
 }
 
-export function scopedHeartbeatWakeOptions<T extends object>(
+export function scopedMainSessionWakeOptions<T extends object>(
   sessionKey: string,
   wakeOptions: T,
 ): T | (T & { sessionKey: string }) {

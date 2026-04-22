@@ -307,7 +307,7 @@ crawclaw gateway status
 crawclaw cron status
 crawclaw cron list
 crawclaw cron runs --id <jobId> --limit 20
-crawclaw system heartbeat last
+crawclaw system main-session-wake last
 crawclaw logs --follow
 crawclaw doctor
 ```

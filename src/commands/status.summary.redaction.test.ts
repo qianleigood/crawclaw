@@ -23,7 +23,7 @@ describe("redactSensitiveStatusSummary", () => {
   it("removes sensitive session and path details while preserving summary structure", () => {
     const input: StatusSummary = {
       runtimeVersion: "2026.3.8",
-      heartbeat: {
+      mainSessionWake: {
         defaultAgentId: "main",
         agents: [{ agentId: "main", enabled: true }],
       },
@@ -87,7 +87,7 @@ describe("redactSensitiveStatusSummary", () => {
     expect(redacted.sessions.byAgent[0]?.path).toBe("[redacted]");
     expect(redacted.sessions.byAgent[0]?.recent).toEqual([]);
     expect(redacted.runtimeVersion).toBe("2026.3.8");
-    expect(redacted.heartbeat).toEqual(input.heartbeat);
+    expect(redacted.mainSessionWake).toEqual(input.mainSessionWake);
     expect(redacted.channelSummary).toEqual(input.channelSummary);
     expect(redacted.tasks).toEqual(input.tasks);
     expect(redacted.taskAudit).toEqual(input.taskAudit);

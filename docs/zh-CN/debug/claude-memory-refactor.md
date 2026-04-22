@@ -182,7 +182,7 @@ CrawClaw 当前是在：
 会因为这两类情况跳过：
 
 - 显式 durable memory write
-- 成功的 `write_knowledge_note`
+- 成功的 `write_experience_note`
 
 第二条是有问题的。
 
@@ -260,7 +260,7 @@ CrawClaw 已经有这些更强的基础设施：
 
 - 显式 durable write：跳过自动补写
 - 显式 durable delete：跳过自动补写
-- `write_knowledge_note`：**不再作为 durable extraction 的 skip 条件**
+- `write_experience_note`：**不再作为 durable extraction 的 skip 条件**
 
 原因：
 

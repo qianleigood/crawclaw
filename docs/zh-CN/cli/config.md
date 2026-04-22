@@ -22,7 +22,7 @@ x-i18n:
 ```bash
 crawclaw config get browser.executablePath
 crawclaw config set browser.executablePath "/usr/bin/google-chrome"
-crawclaw config set agents.defaults.heartbeat.every "2h"
+crawclaw config set cron.enabled true
 crawclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 crawclaw config unset plugins.entries.brave.config.webSearch.apiKey
 ```
@@ -49,7 +49,7 @@ crawclaw config set agents.list[1].tools.exec.node "node-id-or-name"
 使用 `--json` 强制要求 JSON5 解析。
 
 ```bash
-crawclaw config set agents.defaults.heartbeat.every "0m"
+crawclaw config set cron.enabled true
 crawclaw config set gateway.port 19001 --json
 crawclaw config set channels.whatsapp.groups '["*"]' --json
 ```

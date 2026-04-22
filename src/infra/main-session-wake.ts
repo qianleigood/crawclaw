@@ -1,24 +1,23 @@
 import {
-  isHeartbeatActionWakeReason,
-  normalizeHeartbeatWakeReason,
-  resolveHeartbeatReasonKind,
-} from "./heartbeat-reason.js";
+  isMainSessionWakeActionReason,
+  normalizeMainSessionWakeReason,
+  resolveMainSessionWakeReasonKind,
+} from "./main-session-wake-reason.js";
 
-export type HeartbeatRunResult =
+export type MainSessionWakeRunResult =
   | { status: "ran"; durationMs: number }
   | { status: "skipped"; reason: string }
   | { status: "failed"; reason: string };
 
-export type HeartbeatWakeHandler = (opts: {
+export type MainSessionWakeHandler = (opts: {
   reason?: string;
   agentId?: string;
   sessionKey?: string;
-}) => Promise<HeartbeatRunResult>;
+}) => Promise<MainSessionWakeRunResult>;
 
-export function areHeartbeatsEnabled(): boolean {
-  // Compatibility hook for callers that still gate legacy relay behavior on
-  // heartbeat availability. Periodic legacy heartbeats no longer have a runtime
-  // enable/disable toggle; explicit main-session wakes remain available.
+export function areMainSessionWakesAvailable(): boolean {
+  // Main-session wakes are an event-driven gateway capability. They no longer
+  // depend on a periodic heartbeat cadence toggle.
   return true;
 }
 
@@ -31,7 +30,7 @@ type PendingWakeReason = {
   sessionKey?: string;
 };
 
-let handler: HeartbeatWakeHandler | null = null;
+let handler: MainSessionWakeHandler | null = null;
 let handlerGeneration = 0;
 const pendingWakes = new Map<string, PendingWakeReason>();
 let scheduled = false;
@@ -50,21 +49,21 @@ const REASON_PRIORITY = {
 } as const;
 
 function resolveReasonPriority(reason: string): number {
-  const kind = resolveHeartbeatReasonKind(reason);
+  const kind = resolveMainSessionWakeReasonKind(reason);
   if (kind === "retry") {
     return REASON_PRIORITY.RETRY;
   }
   if (kind === "interval") {
     return REASON_PRIORITY.INTERVAL;
   }
-  if (isHeartbeatActionWakeReason(reason)) {
+  if (isMainSessionWakeActionReason(reason)) {
     return REASON_PRIORITY.ACTION;
   }
   return REASON_PRIORITY.DEFAULT;
 }
 
 function normalizeWakeReason(reason?: string): string {
-  return normalizeHeartbeatWakeReason(reason);
+  return normalizeMainSessionWakeReason(reason);
 }
 
 function normalizeWakeTarget(value?: string): string | undefined {
@@ -171,7 +170,7 @@ function schedule(coalesceMs: number, kind: WakeTimerKind = "normal") {
         }
       }
     } catch {
-      // Error is already logged by the heartbeat runner; schedule a retry.
+      // Error is already logged by the main-session wake runner; schedule a retry.
       for (const pendingWake of pendingBatch) {
         queuePendingWakeReason({
           reason: pendingWake.reason ?? "retry",
@@ -191,12 +190,12 @@ function schedule(coalesceMs: number, kind: WakeTimerKind = "normal") {
 }
 
 /**
- * Register (or clear) the heartbeat wake handler.
+ * Register (or clear) the main-session wake handler.
  * Returns a disposer function that clears this specific registration.
  * Stale disposers (from previous registrations) are no-ops, preventing
  * a race where an old runner's cleanup clears a newer runner's handler.
  */
-export function setHeartbeatWakeHandler(next: HeartbeatWakeHandler | null): () => void {
+export function setMainSessionWakeHandler(next: MainSessionWakeHandler | null): () => void {
   handlerGeneration += 1;
   const generation = handlerGeneration;
   handler = next;
@@ -212,7 +211,7 @@ export function setHeartbeatWakeHandler(next: HeartbeatWakeHandler | null): () =
     timerKind = null;
     // Reset module-level execution state that may be stale from interrupted
     // runs in the previous lifecycle. Without this, `running === true` from
-    // an interrupted heartbeat blocks all future schedule() attempts, and
+    // an interrupted wake blocks all future schedule() attempts, and
     // `scheduled === true` can cause spurious immediate re-runs.
     running = false;
     scheduled = false;
@@ -232,7 +231,7 @@ export function setHeartbeatWakeHandler(next: HeartbeatWakeHandler | null): () =
   };
 }
 
-export function requestHeartbeatNow(opts?: {
+export function requestMainSessionWakeNow(opts?: {
   reason?: string;
   coalesceMs?: number;
   agentId?: string;
@@ -246,15 +245,15 @@ export function requestHeartbeatNow(opts?: {
   schedule(opts?.coalesceMs ?? DEFAULT_COALESCE_MS, "normal");
 }
 
-export function hasHeartbeatWakeHandler() {
+export function hasMainSessionWakeHandler() {
   return handler !== null;
 }
 
-export function hasPendingHeartbeatWake() {
+export function hasPendingMainSessionWake() {
   return pendingWakes.size > 0 || Boolean(timer) || scheduled;
 }
 
-export function resetHeartbeatWakeStateForTests() {
+export function resetMainSessionWakeStateForTests() {
   if (timer) {
     clearTimeout(timer);
   }

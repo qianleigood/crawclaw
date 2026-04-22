@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { startHeartbeatRunner } from "./heartbeat-runner.js";
-import { requestHeartbeatNow, resetHeartbeatWakeStateForTests } from "./heartbeat-wake.js";
+import { startMainSessionWakeRunner } from "./main-session-wake-runner.js";
+import {
+  requestMainSessionWakeNow,
+  resetMainSessionWakeStateForTests,
+} from "./main-session-wake.js";
 
-describe("startHeartbeatRunner", () => {
-  type RunOnce = Parameters<typeof startHeartbeatRunner>[0]["runOnce"];
+describe("startMainSessionWakeRunner", () => {
+  type RunOnce = Parameters<typeof startMainSessionWakeRunner>[0]["runOnce"];
 
   function useFakeHeartbeatTime() {
     vi.useFakeTimers();
@@ -12,7 +15,7 @@ describe("startHeartbeatRunner", () => {
   }
 
   function startDefaultRunner(runOnce: RunOnce) {
-    return startHeartbeatRunner({
+    return startMainSessionWakeRunner({
       cfg: heartbeatConfig(),
       runOnce,
     });
@@ -46,12 +49,12 @@ describe("startHeartbeatRunner", () => {
     wake: { reason: string; agentId?: string; sessionKey?: string; coalesceMs: number };
     expectedCall: Record<string, unknown>;
   }) {
-    const runner = startHeartbeatRunner({
+    const runner = startMainSessionWakeRunner({
       cfg: params.cfg,
       runOnce: params.runSpy,
     });
 
-    requestHeartbeatNow(params.wake);
+    requestMainSessionWakeNow(params.wake);
     await vi.advanceTimersByTimeAsync(1);
 
     expect(params.runSpy).toHaveBeenCalledTimes(1);
@@ -61,7 +64,7 @@ describe("startHeartbeatRunner", () => {
   }
 
   afterEach(() => {
-    resetHeartbeatWakeStateForTests();
+    resetMainSessionWakeStateForTests();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -114,12 +117,12 @@ describe("startHeartbeatRunner", () => {
     const runner = startDefaultRunner(runSpy);
 
     // First explicit wake fires and throws.
-    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    requestMainSessionWakeNow({ reason: "hook:wake", coalesceMs: 0 });
     await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(1);
 
     // A later explicit wake should still reach the handler.
-    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    requestMainSessionWakeNow({ reason: "hook:wake", coalesceMs: 0 });
     await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(2);
 
@@ -137,16 +140,16 @@ describe("startHeartbeatRunner", () => {
     } as CrawClawConfig;
 
     // Start runner A
-    const runnerA = startHeartbeatRunner({ cfg, runOnce: runSpy1 });
+    const runnerA = startMainSessionWakeRunner({ cfg, runOnce: runSpy1 });
 
     // Start runner B (simulates lifecycle reload)
-    const runnerB = startHeartbeatRunner({ cfg, runOnce: runSpy2 });
+    const runnerB = startMainSessionWakeRunner({ cfg, runOnce: runSpy2 });
 
     // Stop runner A (stale cleanup) — should NOT kill runner B's handler
     runnerA.stop();
 
     // Runner B should still handle explicit wakes.
-    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    requestMainSessionWakeNow({ reason: "hook:wake", coalesceMs: 0 });
     await vi.advanceTimersByTimeAsync(1);
     expect(runSpy2).toHaveBeenCalledTimes(1);
     expect(runSpy1).not.toHaveBeenCalled();
@@ -176,13 +179,13 @@ describe("startHeartbeatRunner", () => {
 
     const runSpy = createRequestsInFlightRunSpy(1);
 
-    const runner = startHeartbeatRunner({
+    const runner = startMainSessionWakeRunner({
       cfg: heartbeatConfig(),
       runOnce: runSpy,
     });
 
     // First explicit wake returns requests-in-flight.
-    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    requestMainSessionWakeNow({ reason: "hook:wake", coalesceMs: 0 });
     await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(1);
 
@@ -200,13 +203,13 @@ describe("startHeartbeatRunner", () => {
     // then the 6th succeeds through wake-layer retries.
     const runSpy = createRequestsInFlightRunSpy(5);
 
-    const runner = startHeartbeatRunner({
+    const runner = startMainSessionWakeRunner({
       cfg: heartbeatConfig(),
       runOnce: runSpy,
     });
 
     // Trigger the first explicit wake. It returns requests-in-flight.
-    requestHeartbeatNow({ reason: "hook:wake", coalesceMs: 0 });
+    requestMainSessionWakeNow({ reason: "hook:wake", coalesceMs: 0 });
     await vi.advanceTimersByTimeAsync(1);
     expect(runSpy).toHaveBeenCalledTimes(1);
 

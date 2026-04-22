@@ -94,7 +94,7 @@ describe("healthCommand (coverage)", () => {
         {
           agentId: "main",
           isDefault: true,
-          heartbeat: {
+          mainSessionWake: {
             enabled: true,
             prompt: "hi",
             target: "last",

@@ -971,38 +971,25 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
 
 ### `agents.defaults.heartbeat`
 
-周期性心跳运行。
+事件驱动的主会话唤醒设置。Gateway 不再调度周期性 agent heartbeat
+运行，也不再接受旧的 cadence 配置键。计划性自动化请使用
+[Scheduled Tasks](/automation/cron-jobs)。
 
 ```json5
 {
   agents: {
     defaults: {
       heartbeat: {
-        every: "30m", // 0m 表示禁用
-        model: "openai/gpt-5.2-mini",
-        includeReasoning: false,
-        lightContext: false, // 默认：false；true 仅保留工作区引导文件中的 HEARTBEAT.md
-        isolatedSession: false, // 默认：false；true 表示每次心跳都在全新会话中运行（无对话历史）
-        session: "main",
-        to: "+15555550123",
         directPolicy: "allow", // allow（默认）| block
         target: "none", // 默认：none | 可选：last | whatsapp | telegram | discord | ...
-        prompt: "Read HEARTBEAT.md if it exists...",
-        ackMaxChars: 300,
-        suppressToolErrorWarnings: false,
       },
     },
   },
 }
 ```
 
-- `every`：时长字符串（ms/s/m/h）。默认：`30m`。
-- `suppressToolErrorWarnings`：为 true 时，在心跳运行期间抑制工具错误警告负载。
-- `directPolicy`：直接/私信投递策略。`allow`（默认）允许直接目标投递。`block` 会抑制直接目标投递，并发出 `reason=dm-blocked`。
-- `lightContext`：为 true 时，心跳运行使用轻量引导上下文，并且只保留工作区引导文件中的 `HEARTBEAT.md`。
-- `isolatedSession`：为 true 时，每次心跳都会在无先前对话历史的全新会话中运行。与 cron `sessionTarget: "isolated"` 使用相同的隔离模式。可将每次心跳的 token 成本从约 100K 降到约 2-5K。
-- 按智能体设置：使用 `agents.list[].heartbeat`。当任一智能体定义了 `heartbeat` 时，**只有这些智能体**会运行心跳。
-- 心跳会执行完整的智能体轮次——间隔越短，消耗的 token 越多。
+- `every` 和 `activeHours` 在这里不是有效配置。周期性工作请配置 cron jobs，而不是 heartbeat cadence。
+- `prompt`、`model`、`lightContext`、`isolatedSession`、`includeReasoning`、`ackMaxChars`、`target`、`to`、`accountId` 和 `directPolicy` 只作用于事件驱动的主会话唤醒运行。
 
 ### `agents.defaults.compaction`
 
@@ -2658,7 +2645,7 @@ crawclaw gateway --port 19001
 
 **端点：**
 
-- `POST /hooks/wake` → `{ text, mode?: "now"|"next-heartbeat" }`
+- `POST /hooks/wake` → `{ text, mode?: "now" }`
 - `POST /hooks/agent` → `{ message, name?, agentId?, sessionKey?, wakeMode?, deliver?, channel?, to?, model?, thinking?, timeoutSeconds? }`
   - 仅当 `hooks.allowRequestSessionKey=true`（默认：`false`）时，才接受请求负载中的 `sessionKey`。
 - `POST /hooks/<name>` → 通过 `hooks.mappings` 解析

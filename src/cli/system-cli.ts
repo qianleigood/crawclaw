@@ -73,18 +73,16 @@ export function registerSystemCli(program: Command) {
     );
   });
 
-  const heartbeat = system
-    .command("heartbeat")
-    .description(t("command.system.heartbeat.description"));
-
   addGatewayClientOptions(
-    heartbeat
+    system
+      .command("main-session-wake")
+      .description(t("command.system.mainSessionWake.description"))
       .command("last")
-      .description(t("command.system.heartbeat.last.description"))
+      .description(t("command.system.mainSessionWake.last.description"))
       .option("--json", t("command.system.option.json"), false),
   ).action(async (opts: SystemGatewayOpts) => {
     await runSystemGatewayCommand(opts, async () => {
-      return await callGatewayFromCli("last-heartbeat", opts, undefined, {
+      return await callGatewayFromCli("last-main-session-wake", opts, undefined, {
         expectFinal: false,
       });
     });

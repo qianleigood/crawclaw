@@ -25,9 +25,16 @@ CrawClaw 在每次运行时组装自己的系统提示词。它包括：
 - 工具列表 + 简短描述
 - Skills 列表（仅元数据；指令通过 `read` 按需加载）
 - 自我更新指令
-- 工作区 + 引导文件（默认仅 `AGENTS.md`；其他根目录文件仅在显式注入时进入上下文）。大文件会被 `agents.defaults.bootstrapMaxChars`（默认：20000）截断。
+- 工作区引导文件。默认运行时注入刻意保持很窄：普通运行注入
+  `AGENTS.md`，仅在旧版 heartbeat 兼容路径中保留 `HEARTBEAT.md`。
+  其他工作区文件（如 `SOUL.md`、`TOOLS.md`、`IDENTITY.md`、`USER.md`、
+  `BOOTSTRAP.md` 和 `MEMORY.md`）仍可由工具、工作流或显式 extra-bootstrap
+  hook 使用，但不属于默认 bootstrap surface。大文件会被
+  `agents.defaults.bootstrapMaxChars`（默认：20000）截断，总 bootstrap
+  注入量受 `agents.defaults.bootstrapTotalMaxChars`（默认：150000）限制。
+  `memory/*.md` 文件保持按需加载，不会自动注入。
 - 时间（UTC + 用户时区）
-- 回复标签 + 心跳行为
+- 回复标签 + 事件驱动的主会话唤醒行为
 - 运行时元数据（主机/操作系统/模型/思考）
 
 完整分解参见[系统提示词](/concepts/system-prompt)。
@@ -85,16 +92,18 @@ models.providers.<provider>.models[].cost
 在 [Gateway 网关配置](/gateway/configuration) 中配置它，并在
 [会话修剪](/concepts/session-pruning) 中查看行为详情。
 
-心跳可以在空闲间隙中保持缓存**热**。如果你的模型缓存 TTL
-是 `1h`，将心跳间隔设置为略低于此（例如 `55m`）可以避免
-重新缓存完整提示，从而降低缓存写入成本。
+不要只为了保持缓存热而添加合成唤醒轮次。如果计划检查有真实产品价值，请使用 cron job，并有意设置该 job 的模型和 session target。
+
+在多智能体配置中，你可以保留一套共享模型配置，并通过 `agents.list[].params.cacheRetention` 按智能体调节缓存行为。
+
+完整逐项配置指南见[提示缓存](/reference/prompt-caching)。
 
 有关 Anthropic API 定价，缓存读取比输入
 token 便宜得多，而缓存写入以更高的倍率计费。参见 Anthropic 的
 提示缓存定价了解最新费率和 TTL 倍率：
-https://docs.anthropic.com/docs/build-with-claude/prompt-caching
+[https://docs.anthropic.com/docs/build-with-claude/prompt-caching](https://docs.anthropic.com/docs/build-with-claude/prompt-caching)
 
-### 示例：用心跳保持 1 小时缓存热
+### 示例：长缓存保留
 
 ```yaml
 agents:
@@ -105,8 +114,6 @@ agents:
       "anthropic/claude-opus-4-5":
         params:
           cacheRetention: "long"
-    heartbeat:
-      every: "55m"
 ```
 
 ## 减少 token 压力的技巧

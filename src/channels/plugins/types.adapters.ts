@@ -18,7 +18,7 @@ import type {
   ChannelAccountState,
   ChannelDirectoryEntry,
   ChannelGroupContext,
-  ChannelHeartbeatDeps,
+  ChannelMainSessionWakeDeps,
   ChannelLogSink,
   ChannelOutboundTargetMode,
   ChannelPollContext,
@@ -421,7 +421,7 @@ export type ChannelHeartbeatAdapter = {
   checkReady?: (params: {
     cfg: CrawClawConfig;
     accountId?: string | null;
-    deps?: ChannelHeartbeatDeps;
+    deps?: ChannelMainSessionWakeDeps;
   }) => Promise<{ ok: boolean; reason: string }>;
   resolveRecipients?: (params: { cfg: CrawClawConfig; opts?: { to?: string; all?: boolean } }) => {
     recipients: string[];

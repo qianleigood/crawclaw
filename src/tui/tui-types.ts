@@ -68,7 +68,7 @@ export type GatewayStatusSummary = {
     linked?: boolean;
     authAgeMs?: number | null;
   };
-  heartbeat?: {
+  mainSessionWake?: {
     defaultAgentId?: string;
     agents?: Array<{
       agentId?: string;

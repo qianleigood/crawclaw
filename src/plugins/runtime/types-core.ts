@@ -1,7 +1,7 @@
-import type { HeartbeatRunResult } from "../../infra/heartbeat-wake.js";
+import type { MainSessionWakeRunResult } from "../../infra/main-session-wake.js";
 import type { LogLevel } from "../../logging/levels.js";
 
-export type { HeartbeatRunResult };
+export type { MainSessionWakeRunResult };
 
 /** Structured logger surface injected into runtime-backed plugin helpers. */
 export type RuntimeLogger = {
@@ -11,7 +11,7 @@ export type RuntimeLogger = {
   error: (message: string, meta?: Record<string, unknown>) => void;
 };
 
-export type RunHeartbeatOnceOptions = {
+export type RunMainSessionWakeOnceOptions = {
   reason?: string;
   agentId?: string;
   sessionKey?: string;
@@ -47,14 +47,16 @@ export type PluginRuntimeCore = {
   };
   system: {
     enqueueSystemEvent: typeof import("../../infra/system-events.js").enqueueSystemEvent;
-    requestHeartbeatNow: typeof import("../../infra/heartbeat-wake.js").requestHeartbeatNow;
+    requestMainSessionWakeNow: typeof import("../../infra/main-session-wake.js").requestMainSessionWakeNow;
     /**
      * Run a single event-driven main-session wake turn immediately.
      * Accepts an optional `heartbeat` config override so callers can force
      * delivery to the last active channel — the same pattern the cron service
      * uses to avoid the default `target: "none"` suppression.
      */
-    runHeartbeatOnce: (opts?: RunHeartbeatOnceOptions) => Promise<HeartbeatRunResult>;
+    runMainSessionWakeOnce: (
+      opts?: RunMainSessionWakeOnceOptions,
+    ) => Promise<MainSessionWakeRunResult>;
     runCommandWithTimeout: typeof import("../../process/exec.js").runCommandWithTimeout;
     formatNativeDependencyHint: typeof import("./native-deps.js").formatNativeDependencyHint;
   };

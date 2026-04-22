@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
-import { runHeartbeatOnce } from "./heartbeat-runner.js";
+import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import {
   seedMainSessionStore,
   setupTelegramHeartbeatPluginRuntimeForTests,
   withTempHeartbeatSandbox,
-} from "./heartbeat-runner.test-utils.js";
+} from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
 beforeEach(() => {
@@ -22,7 +22,7 @@ afterEach(() => {
 });
 
 describe("Ghost reminder bug (issue #13317)", () => {
-  const createHeartbeatDeps = (replyText: string) => {
+  const createMainSessionWakeDeps = (replyText: string) => {
     const sendTelegram = vi.fn().mockResolvedValue({
       messageId: "m1",
       chatId: "155462274",
@@ -78,7 +78,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
     tmpPrefix: string,
     enqueue: (sessionKey: string) => void,
   ): Promise<{
-    result: Awaited<ReturnType<typeof runHeartbeatOnce>>;
+    result: Awaited<ReturnType<typeof runMainSessionWakeOnce>>;
     sendTelegram: ReturnType<typeof vi.fn>;
     calledCtx: { Provider?: string; Body?: string; ForceSenderIsOwnerFalse?: boolean } | null;
   }> => {
@@ -97,21 +97,21 @@ describe("Ghost reminder bug (issue #13317)", () => {
     enqueue: (sessionKey: string) => void;
     target?: "telegram" | "none";
   }): Promise<{
-    result: Awaited<ReturnType<typeof runHeartbeatOnce>>;
+    result: Awaited<ReturnType<typeof runMainSessionWakeOnce>>;
     sendTelegram: ReturnType<typeof vi.fn>;
     calledCtx: { Provider?: string; Body?: string; ForceSenderIsOwnerFalse?: boolean } | null;
     replyCallCount: number;
   }> => {
     return withTempHeartbeatSandbox(
       async ({ tmpDir, storePath }) => {
-        const { sendTelegram, getReplySpy } = createHeartbeatDeps(params.replyText);
+        const { sendTelegram, getReplySpy } = createMainSessionWakeDeps(params.replyText);
         const { cfg, sessionKey } = await createConfig({
           tmpDir,
           storePath,
           target: params.target,
         });
         params.enqueue(sessionKey);
-        const result = await runHeartbeatOnce({
+        const result = await runMainSessionWakeOnce({
           cfg,
           agentId: "main",
           reason: params.reason,
@@ -270,7 +270,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
         },
       });
 
-      const result = await runHeartbeatOnce({
+      const result = await runMainSessionWakeOnce({
         cfg,
         agentId: "main",
         reason: "wake",
@@ -331,7 +331,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
         },
       });
 
-      const result = await runHeartbeatOnce({
+      const result = await runMainSessionWakeOnce({
         cfg,
         agentId: "main",
         reason: "wake",

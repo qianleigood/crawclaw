@@ -15,13 +15,13 @@ x-i18n:
 
 # 使用 CrawClaw 构建个人助手
 
-CrawClaw 是 **Pi** 智能体的 WhatsApp + Telegram + Discord + iMessage Gateway 网关。插件可添加 Mattermost。本指南是"个人助手"设置：一个专用的 WhatsApp 号码，表现得像你的常驻智能体。
+CrawClaw 是一个自托管 Gateway，可以把 WhatsApp、Telegram、Discord、iMessage 等渠道连接到 AI agents。本指南是"个人助手"设置：一个专用的 WhatsApp 号码，表现得像你的常驻 AI 助手。
 
 ## ⚠️ 安全第一
 
 你正在让智能体处于可以：
 
-- 在你的机器上运行命令（取决于你的 Pi 工具设置）
+- 在你的机器上运行命令（取决于你的工具策略）
 - 在你的工作区读/写文件
 - 通过 WhatsApp/Telegram/Discord/Mattermost（插件）发送消息
 
@@ -29,29 +29,12 @@ CrawClaw 是 **Pi** 智能体的 WhatsApp + Telegram + Discord + iMessage Gatewa
 
 - 始终设置 `channels.whatsapp.allowFrom`（永远不要在你的个人 Mac 上对全世界开放）。
 - 为助手使用专用的 WhatsApp 号码。
-- 心跳现在默认每 30 分钟一次。在你信任设置之前，通过设置 `agents.defaults.heartbeat.every: "0m"` 来禁用。
+- 只有在信任设置和投递目标后，才用 cron 添加主动检查。
 
 ## 先决条件
 
-- Node **22+**
-- CrawClaw 在 PATH 中可用（推荐：全局安装）
-- 助手的第二个手机号码（SIM/eSIM/预付费）
-
-```bash
-npm install -g crawclaw@latest
-# 或：pnpm add -g crawclaw@latest
-```
-
-从源代码（开发）：
-
-```bash
-git clone https://github.com/qianleigood/crawclaw.git
-cd crawclaw
-pnpm install
-pnpm ui:build # 首次运行时自动安装 UI 依赖
-pnpm build
-pnpm link --global
-```
+- 已安装并完成引导的 CrawClaw。如果还没有，请参阅 [Getting Started](/start/getting-started)。
+- 助手的第二个手机号码（SIM/eSIM/预付费）。
 
 ## 双手机设置（推荐）
 
@@ -98,13 +81,19 @@ crawclaw gateway --port 18789
 
 现在从你允许列表中的手机向助手号码发消息。
 
-新手引导完成后，我们会自动打开带有 Gateway 网关令牌的仪表板并打印带令牌的链接。稍后重新打开：`crawclaw dashboard`。
+新手引导完成后，可使用渠道发送消息，或通过 `crawclaw tui` 打开终端界面。
 
 ## 给智能体一个工作区（AGENTS）
 
 CrawClaw 从其工作区目录读取操作指令和"记忆"。
 
-默认情况下，CrawClaw 使用 `~/.crawclaw/workspace` 作为智能体工作区，并会在设置/首次智能体运行时自动创建它（加上起始的 `AGENTS.md`、`SOUL.md`、`TOOLS.md`、`IDENTITY.md`、`USER.md`）。`BOOTSTRAP.md` 仅在工作区是全新的时候创建（删除后不应再出现）。
+默认情况下，CrawClaw 使用 `~/.crawclaw/workspace` 作为智能体工作区，并会在设置/首次智能体运行时自动创建起始的 `AGENTS.md`、`SOUL.md`、`TOOLS.md`、`IDENTITY.md`、`USER.md` 和 `HEARTBEAT.md`。`BOOTSTRAP.md` 仅在工作区是全新的时候创建（删除后不应再出现）。`MEMORY.md` 是可选文件，不会自动创建。
+
+默认运行时 bootstrap 注入故意保持窄范围：
+
+- 普通运行注入 `AGENTS.md`
+- 事件驱动的主会话唤醒运行可以注入 `HEARTBEAT.md`
+- `MEMORY.md` 和 `memory/*.md` 通过 memory tools/workflows 按需使用，而不是作为 bootstrap context 自动注入
 
 提示：将此文件夹视为 CrawClaw 的"记忆"，并将其设为 git 仓库（最好是私有的），这样你的 `AGENTS.md` + 记忆文件就有了备份。如果安装了 git，全新的工作区会自动初始化。
 
@@ -119,9 +108,7 @@ crawclaw setup
 
 ```json5
 {
-  agent: {
-    workspace: "~/.crawclaw/workspace",
-  },
+  agents: { defaults: { workspace: "~/.crawclaw/workspace" } },
 }
 ```
 
@@ -129,9 +116,7 @@ crawclaw setup
 
 ```json5
 {
-  agent: {
-    skipBootstrap: true,
-  },
+  agents: { defaults: { skipBootstrap: true } },
 }
 ```
 
@@ -141,20 +126,20 @@ CrawClaw 默认为良好的助手设置，但你通常需要调整：
 
 - `SOUL.md` 中的人设/指令
 - 思考默认值（如果需要）
-- 心跳（一旦你信任它）
+- 主动检查用 cron jobs 或 hooks（一旦你信任投递目标）
 
 示例：
 
 ```json5
 {
   logging: { level: "info" },
-  agent: {
-    model: "anthropic/claude-opus-4-5",
-    workspace: "~/.crawclaw/workspace",
-    thinkingDefault: "high",
-    timeoutSeconds: 1800,
-    // 从 0 开始；稍后启用。
-    heartbeat: { every: "0m" },
+  agents: {
+    defaults: {
+      model: { primary: "anthropic/claude-opus-4-6" },
+      workspace: "~/.crawclaw/workspace",
+      thinkingDefault: "high",
+      timeoutSeconds: 1800,
+    },
   },
   channels: {
     whatsapp: {
@@ -188,24 +173,11 @@ CrawClaw 默认为良好的助手设置，但你通常需要调整：
 - `/new` 为该聊天启动新会话（可通过 `resetTriggers` 配置）。如果单独发送，智能体会回复一个简短的问候来确认重置。
 - `/compact [instructions]` 压缩会话上下文并报告剩余的上下文预算。
 
-## 心跳（主动模式）
+## 主动检查
 
-默认情况下，CrawClaw 每 30 分钟运行一次心跳，提示词为：
-`Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`
-设置 `agents.defaults.heartbeat.every: "0m"` 来禁用。
+旧版周期性 agent heartbeat 不再默认配置。对于收件箱审查、日历扫描或每日报告等主动检查，请改用 cron job。需要对话上下文时使用主会话 cron job；需要独立运行和独立 task record 时使用隔离 cron job。
 
-- 如果 `HEARTBEAT.md` 存在但实际上是空的（只有空行和 markdown 标题如 `# Heading`），CrawClaw 会跳过心跳运行以节省 API 调用。
-- 如果文件不存在，心跳仍然运行，模型决定做什么。
-- 如果智能体回复 `HEARTBEAT_OK`（可选带有短填充；参见 `agents.defaults.heartbeat.ackMaxChars`），CrawClaw 会为该心跳抑制出站投递。
-- 心跳运行完整的智能体轮次 — 更短的间隔会消耗更多 token。
-
-```json5
-{
-  agent: {
-    heartbeat: { every: "30m" },
-  },
-}
-```
+迁移说明请参阅 [Scheduled Tasks](/automation/cron-jobs) 和 [Heartbeat](/gateway/heartbeat)。
 
 ## 媒体输入和输出
 

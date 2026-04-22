@@ -342,11 +342,8 @@ WhatsApp 将音频作为**语音消息**（PTT 气泡）发送。
 
 ## 心跳
 
-- **Gateway 网关心跳**记录连接健康状态（`web.heartbeatSeconds`，默认 60 秒）。
-- **智能体心跳**可以按智能体配置（`agents.list[].heartbeat`）或通过
-  `agents.defaults.heartbeat` 全局配置（当没有设置按智能体条目时的降级）。
-  - 使用配置的心跳提示词（默认：`Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`）+ `HEARTBEAT_OK` 跳过行为。
-  - 投递默认为最后使用的渠道（或配置的目标）。
+- **Gateway 网关心跳**记录 Web 渠道连接健康状态（`web.heartbeatSeconds`，默认 60 秒）。
+- 旧版周期性 agent heartbeat 不再用于配置 WhatsApp 主动检查。新的计划性检查请使用 [Scheduled Tasks](/automation/cron-jobs)，兼容性说明请参阅 [Heartbeat](/gateway/heartbeat)。
 
 ## 重连行为
 
@@ -376,12 +373,6 @@ WhatsApp 将音频作为**语音消息**（PTT 气泡）发送。
 - `channels.whatsapp.messagePrefix`（入站前缀；按账户：`channels.whatsapp.accounts.<accountId>.messagePrefix`）
 - `messages.responsePrefix`（出站前缀）
 - `agents.defaults.mediaMaxMb`
-- `agents.defaults.heartbeat.every`
-- `agents.defaults.heartbeat.model`（可选覆盖）
-- `agents.defaults.heartbeat.target`
-- `agents.defaults.heartbeat.to`
-- `agents.defaults.heartbeat.session`
-- `agents.list[].heartbeat.*`（按智能体覆盖）
 - `session.*`（scope、idle、store、mainKey）
 - `web.enabled`（为 false 时禁用渠道启动）
 - `web.heartbeatSeconds`

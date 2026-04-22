@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../config/config.js";
 import { registerAgentRunContext, resetAgentRunContextForTest } from "../infra/agent-events.js";
-import { resolveHeartbeatVisibility } from "../infra/heartbeat-visibility.js";
+import { resolveMainSessionWakeVisibility } from "../infra/main-session-wake-visibility.js";
 import { loadGatewaySessionRow } from "./session-utils.js";
 
 const persistGatewaySessionLifecycleEventMock = vi.fn();
@@ -26,8 +26,8 @@ vi.mock("../config/config.js", () => ({
   loadConfig: vi.fn(() => ({})),
 }));
 
-vi.mock("../infra/heartbeat-visibility.js", () => ({
-  resolveHeartbeatVisibility: vi.fn(() => ({
+vi.mock("../infra/main-session-wake-visibility.js", () => ({
+  resolveMainSessionWakeVisibility: vi.fn(() => ({
     showOk: false,
     showAlerts: true,
     useIndicator: true,
@@ -45,7 +45,7 @@ vi.mock("./session-utils.js", async (importOriginal) => {
 describe("agent event handler", () => {
   beforeEach(() => {
     vi.mocked(loadConfig).mockReturnValue({});
-    vi.mocked(resolveHeartbeatVisibility).mockReturnValue({
+    vi.mocked(resolveMainSessionWakeVisibility).mockReturnValue({
       showOk: false,
       showAlerts: true,
       useIndicator: true,

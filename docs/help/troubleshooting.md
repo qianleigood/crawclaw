@@ -218,7 +218,7 @@ flowchart TD
 
     - `cron.status` shows enabled with a next wake.
     - `cron runs` shows recent `ok` entries.
-    - Queued main-session wake events are visible through `crawclaw system heartbeat last --json`.
+    - Queued main-session wake events are visible through `crawclaw system main-session-wake last --json`.
 
     Common log signatures:
 

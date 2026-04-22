@@ -1,6 +1,6 @@
 ---
 title: "Memory Overview"
-summary: "How CrawClaw uses session memory, durable memory, NotebookLM experience recall, and Context Archive"
+summary: "How CrawClaw uses session memory, durable memory, experience memory, and Context Archive"
 read_when:
   - You want to understand how memory works
   - You want to know what memory files to write
@@ -297,8 +297,8 @@ These layers do not share the same boundaries:
 - **Session memory** is isolated per session.
 - **Durable memory** is shared whenever runs resolve to the same
   `agentId + channel + userId` scope.
-- **Experience recall** uses the same configured NotebookLM backend across runs;
-  it is not partitioned by session id.
+- **Experience memory** uses the same local experience index and optional
+  provider configuration across runs; it is not partitioned by session id.
 
 All agents that use the built-in memory runtime receive the same agent memory
 routing contract. This guidance is not limited to the `main` agent.

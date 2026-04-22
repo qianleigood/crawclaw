@@ -1,5 +1,5 @@
 import { withProgress } from "../cli/progress.js";
-import type { HeartbeatEventPayload } from "../infra/heartbeat-events.js";
+import type { MainSessionWakeEventPayload } from "../infra/main-session-wake-events.js";
 import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
 import type { Tone } from "../memory/search/status-format.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
@@ -187,12 +187,12 @@ export async function statusCommand(
         },
       )
     : undefined;
-  const lastHeartbeat =
+  const lastMainSessionWake =
     opts.deep && gatewayReachable
       ? await loadGatewayCallModule()
           .then(({ callGateway }) =>
-            callGateway<HeartbeatEventPayload | null>({
-              method: "last-heartbeat",
+            callGateway<MainSessionWakeEventPayload | null>({
+              method: "last-main-session-wake",
               params: {},
               timeoutMs: opts.timeoutMs,
               config: scan.cfg,
@@ -242,7 +242,7 @@ export async function statusCommand(
         count: pluginCompatibility.length,
         warnings: pluginCompatibility,
       },
-      ...(health || usage || lastHeartbeat ? { health, usage, lastHeartbeat } : {}),
+      ...(health || usage || lastMainSessionWake ? { health, usage, lastMainSessionWake } : {}),
     });
     return;
   }
@@ -395,8 +395,8 @@ export async function statusCommand(
 
   const probesValue = health ? ok("enabled") : muted("skipped (use --deep)");
 
-  const heartbeatValue = (() => {
-    const parts = summary.heartbeat.agents
+  const mainSessionWakeValue = (() => {
+    const parts = summary.mainSessionWake.agents
       .map((agent) => {
         if (!agent.enabled) {
           return `disabled (${agent.agentId})`;
@@ -406,20 +406,24 @@ export async function statusCommand(
       .filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : "disabled";
   })();
-  const lastHeartbeatValue = (() => {
+  const lastMainSessionWakeValue = (() => {
     if (!opts.deep) {
       return null;
     }
     if (!gatewayReachable) {
       return warn("unavailable");
     }
-    if (!lastHeartbeat) {
+    if (!lastMainSessionWake) {
       return muted("none");
     }
-    const age = formatTimeAgo(Date.now() - lastHeartbeat.ts);
-    const channel = lastHeartbeat.channel ?? "unknown";
-    const accountLabel = lastHeartbeat.accountId ? `account ${lastHeartbeat.accountId}` : null;
-    return [lastHeartbeat.status, `${age} ago`, channel, accountLabel].filter(Boolean).join(" · ");
+    const age = formatTimeAgo(Date.now() - lastMainSessionWake.ts);
+    const channel = lastMainSessionWake.channel ?? "unknown";
+    const accountLabel = lastMainSessionWake.accountId
+      ? `account ${lastMainSessionWake.accountId}`
+      : null;
+    return [lastMainSessionWake.status, `${age} ago`, channel, accountLabel]
+      .filter(Boolean)
+      .join(" · ");
   })();
 
   const storeLabel =
@@ -500,8 +504,10 @@ export async function statusCommand(
     { Item: "Probes", Value: probesValue },
     { Item: "Events", Value: eventsValue },
     { Item: "Tasks", Value: tasksValue },
-    { Item: "Heartbeat", Value: heartbeatValue },
-    ...(lastHeartbeatValue ? [{ Item: "Last heartbeat", Value: lastHeartbeatValue }] : []),
+    { Item: "Main-session wake", Value: mainSessionWakeValue },
+    ...(lastMainSessionWakeValue
+      ? [{ Item: "Last main-session wake", Value: lastMainSessionWakeValue }]
+      : []),
     {
       Item: "Sessions",
       Value: `${summary.sessions.count} active · default ${defaults.model ?? "unknown"}${defaultCtx} · ${storeLabel}`,

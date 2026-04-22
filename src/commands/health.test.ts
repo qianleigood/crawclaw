@@ -19,7 +19,7 @@ const defaultSessions: HealthSummary["sessions"] = {
 const createMainAgentSummary = (sessions = defaultSessions) => ({
   agentId: "main",
   isDefault: true,
-  heartbeat: {
+  mainSessionWake: {
     enabled: true,
     prompt: "hi",
     target: "last",

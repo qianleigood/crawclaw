@@ -241,13 +241,13 @@ System-level utilities.
 
 ```typescript
 await api.runtime.system.enqueueSystemEvent(event);
-api.runtime.system.requestHeartbeatNow();
+api.runtime.system.requestMainSessionWakeNow();
 const output = await api.runtime.system.runCommandWithTimeout(cmd, args, opts);
 const hint = api.runtime.system.formatNativeDependencyHint(pkg);
 ```
 
-`requestHeartbeatNow()` is a compatibility name for requesting an event-driven
-main-session wake. It does not enable legacy periodic agent heartbeat.
+`requestMainSessionWakeNow()` queues an event-driven main-session wake. It does not
+schedule or enable legacy periodic agent heartbeat.
 
 ### `api.runtime.events`
 

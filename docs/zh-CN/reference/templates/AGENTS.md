@@ -50,6 +50,6 @@ x-i18n:
 
 ## 心跳
 
-- `HEARTBEAT.md` 只用于周期性检查。
-- 保持简短。
-- 轻量定期检查用 heartbeat；需要精确时间或隔离执行时用 cron。
+- `HEARTBEAT.md` 是旧 heartbeat 风格配置的兼容文件。
+- 如果保留此文件，请保持简短。
+- 新的主动检查请使用 cron 或 hooks。

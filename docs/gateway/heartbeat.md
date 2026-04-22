@@ -1,5 +1,5 @@
 ---
-summary: "Legacy agent heartbeat status, compatibility surfaces, and replacements"
+summary: "Legacy agent heartbeat status, removed surfaces, and replacements"
 read_when:
   - Migrating old heartbeat configuration
   - Deciding how to replace periodic main-session checks
@@ -29,8 +29,8 @@ main-session wakes.
   files can stay in a workspace as normal notes, but new automation should live
   in cron jobs, hooks, or standing orders.
 - `HEARTBEAT_OK` should not be used as an automation contract for new flows.
-- `crawclaw system heartbeat last` remains as a compatibility inspection command
-  for the most recent wake/heartbeat diagnostic event.
+- `crawclaw system main-session-wake last` inspects the most recent
+  main-session wake diagnostic event.
 
 ## Use these instead
 
@@ -46,15 +46,15 @@ For context-aware periodic checks, create a cron job that targets the main
 session. For precise or isolated work, create a normal cron job with its own
 task record.
 
-## Compatibility notes
+## Diagnostic notes
 
-Some diagnostic RPC names still contain `heartbeat` for older clients. Treat
-those names as read-only diagnostics, not as an automation model.
+The remaining diagnostic names use `main-session-wake`, not legacy heartbeat
+module names.
 
-- `crawclaw system heartbeat last` reads the last diagnostic event. It does not
-  enable scheduling.
-- `last-heartbeat` and `system.heartbeat.last` RPC methods are read-only
-  compatibility aliases.
+- `crawclaw system main-session-wake last` reads the last diagnostic event. It
+  does not enable scheduling.
+- `last-main-session-wake` and `system.mainSessionWake.last` RPC methods are
+  read-only diagnostics.
 - `next-heartbeat` is no longer accepted as a wake-mode value. Use `now` for
   event-driven main-session wakes.
 
@@ -79,8 +79,7 @@ for compatibility.
 3. Move event-driven follow-ups to [`crawclaw system event`](/cli/system) or
    hooks.
 4. Keep channel keepalive settings such as `web.heartbeatSeconds` unchanged.
-5. Use `crawclaw system heartbeat last --json` only for diagnostics while older
-   event names are still present.
+5. Use `crawclaw system main-session-wake last --json` only for diagnostics.
 
 ## Related
 

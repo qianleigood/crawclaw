@@ -883,7 +883,7 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.backend":
     'Selects the global memory engine: "builtin" uses CrawClaw memory internals, while "qmd" uses the QMD sidecar pipeline. Keep "builtin" unless you intentionally operate QMD.',
   "memory.notebooklm":
-    "Configures NotebookLM-backed experience recall for the built-in memory runtime. Prompt-facing experience retrieval uses NotebookLM only.",
+    "Configures the optional NotebookLM provider for experience memory. Prompt-facing experience recall also uses the local experience index when NotebookLM is disabled or returns no hits.",
   "memory.notebooklm.auth":
     "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by experience recall and experience-note writes.",
   "memory.notebooklm.auth.profile":
@@ -899,7 +899,7 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.notebooklm.auth.refreshCooldownMs":
     "Cooldown window after an explicit NotebookLM refresh failure. This limits repeated refresh attempts until the next eligible recovery window or a forced manual refresh.",
   "memory.notebooklm.auth.heartbeat":
-    "Best-effort NotebookLM auth keepalive settings. CrawClaw can run lightweight randomized background status probes so long-idle profile expiry is detected before the next real knowledge query or write.",
+    "Best-effort NotebookLM auth keepalive settings. CrawClaw can run lightweight randomized background status probes so long-idle profile expiry is detected before the next NotebookLM-backed experience query or write.",
   "memory.notebooklm.auth.heartbeat.enabled":
     "Enables a randomized in-process NotebookLM auth heartbeat. Keep this on when NotebookLM is your active experience provider and long idle periods cause auth expiry.",
   "memory.notebooklm.auth.heartbeat.minIntervalMs":
@@ -915,7 +915,7 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.notebooklm.cli.args":
     "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, and `{notebookId}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
   "memory.notebooklm.cli.timeoutMs":
-    "Timeout in milliseconds for each NotebookLM CLI retrieval call. Lower values fail fast when NotebookLM hangs; higher values tolerate slower remote knowledge queries.",
+    "Timeout in milliseconds for each NotebookLM CLI retrieval call. Lower values fail fast when NotebookLM hangs; higher values tolerate slower remote experience queries.",
   "memory.notebooklm.cli.limit":
     "Maximum number of NotebookLM experience recall hits requested before reranking and prompt assembly.",
   "memory.notebooklm.cli.notebookId":

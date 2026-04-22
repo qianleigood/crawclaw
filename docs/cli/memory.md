@@ -1,7 +1,7 @@
 ---
 summary: "CLI reference for `crawclaw memory` (status/login/refresh/dream/session-summary/prompt-journal-summary)"
 read_when:
-  - You want to inspect NotebookLM experience availability
+  - You want to inspect experience memory availability
   - You need to log in, refresh, or debug experience access
   - You want a nightly summary of memory prompt journal data
 title: "memory"
@@ -9,8 +9,8 @@ title: "memory"
 
 # `crawclaw memory`
 
-Inspect and manage NotebookLM experience access, durable-memory maintenance, and
-session-summary maintenance.
+Inspect and manage experience memory access, optional NotebookLM provider
+integration, durable-memory maintenance, and session-summary maintenance.
 
 Related:
 
@@ -160,7 +160,7 @@ The journal is intended for prompt tuning and behavior audits. It captures:
 - after-turn durable extraction decisions
 - durable extraction prompts and outcomes
 - background experience extraction decisions and outcomes
-- NotebookLM experience write outcomes
+- experience write outcomes, including local-index writes and optional NotebookLM sync
 
 The summary command also surfaces durable-extraction save rate and top extraction reasons so prompt regressions are easier to spot.
 

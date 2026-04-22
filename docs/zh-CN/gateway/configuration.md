@@ -52,7 +52,7 @@ CrawClaw 会从 `~/.crawclaw/crawclaw.json` 读取可选的 <Tooltip tip="JSON5 
   <Tab title="CLI (one-liners)">
     ```bash
     crawclaw config get agents.defaults.workspace
-    crawclaw config set agents.defaults.heartbeat.every "2h"
+    crawclaw config set cron.enabled true
     crawclaw config unset plugins.entries.brave.config.webSearch.apiKey
     ```
   </Tab>
@@ -319,24 +319,18 @@ CrawClaw 只接受完全符合 schema 的配置。未知键、类型格式错误
 
   </Accordion>
 
-  <Accordion title="设置 heartbeat（周期性报到）">
+  <Accordion title="设置自动化">
     ```json5
     {
-      agents: {
-        defaults: {
-          heartbeat: {
-            every: "30m",
-            target: "last",
-          },
-        },
+      cron: {
+        enabled: true,
       },
     }
     ```
 
-    - `every`：时长字符串（`30m`、`2h`）。设置为 `0m` 可禁用。
-    - `target`：`last` | `whatsapp` | `telegram` | `discord` | `none`
-    - `directPolicy`：用于私信风格 heartbeat 目标时，设为 `allow`（默认）或 `block`
-    - 完整指南请参阅 [Heartbeat](/gateway/heartbeat)。
+    旧版周期性 agent heartbeat 不再默认配置。新的周期性检查请使用
+    [Scheduled Tasks](/automation/cron-jobs)，兼容性说明请参阅
+    [Heartbeat](/gateway/heartbeat)。
 
   </Accordion>
 

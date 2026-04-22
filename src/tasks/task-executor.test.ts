@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resetAgentEventsForTest, resetAgentRunContextForTest } from "../infra/agent-events.js";
-import { resetHeartbeatWakeStateForTests } from "../infra/heartbeat-wake.js";
+import { resetMainSessionWakeStateForTests } from "../infra/main-session-wake.js";
 import { resetSystemEventsForTest } from "../infra/system-events.js";
 import { withStateDirEnv } from "../test-helpers/state-dir-env.js";
 import {
@@ -61,7 +61,7 @@ vi.mock("../agents/subagent-control.js", () => ({
 async function withTaskExecutorStateDir(run: (stateDir: string) => Promise<void>): Promise<void> {
   await withStateDirEnv("crawclaw-task-executor-", async ({ stateDir }) => {
     resetSystemEventsForTest();
-    resetHeartbeatWakeStateForTests();
+    resetMainSessionWakeStateForTests();
     resetAgentEventsForTest();
     resetTaskRegistryDeliveryRuntimeForTests();
     resetAgentRunContextForTest();
@@ -71,7 +71,7 @@ async function withTaskExecutorStateDir(run: (stateDir: string) => Promise<void>
       await run(stateDir);
     } finally {
       resetSystemEventsForTest();
-      resetHeartbeatWakeStateForTests();
+      resetMainSessionWakeStateForTests();
       resetAgentEventsForTest();
       resetTaskRegistryDeliveryRuntimeForTests();
       resetAgentRunContextForTest();
@@ -89,7 +89,7 @@ describe("task-executor", () => {
       process.env.CRAWCLAW_STATE_DIR = ORIGINAL_STATE_DIR;
     }
     resetSystemEventsForTest();
-    resetHeartbeatWakeStateForTests();
+    resetMainSessionWakeStateForTests();
     resetAgentEventsForTest();
     resetTaskRegistryDeliveryRuntimeForTests();
     resetAgentRunContextForTest();

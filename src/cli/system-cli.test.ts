@@ -76,7 +76,11 @@ describe("system-cli", () => {
   });
 
   it.each([
-    { args: ["system", "heartbeat", "last"], method: "last-heartbeat", params: undefined },
+    {
+      args: ["system", "main-session-wake", "last"],
+      method: "last-main-session-wake",
+      params: undefined,
+    },
     { args: ["system", "presence"], method: "system-presence", params: undefined },
   ])("routes $args to gateway", async ({ args, method, params }) => {
     callGatewayFromCli.mockResolvedValueOnce({ method });

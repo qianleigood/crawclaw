@@ -31,7 +31,7 @@ const mocks = vi.hoisted(() => ({
   ackDelivery: vi.fn(async () => {}),
   failDelivery: vi.fn(async () => {}),
   enqueueSystemEvent: vi.fn(),
-  requestHeartbeatNow: vi.fn(),
+  requestMainSessionWakeNow: vi.fn(),
   logWarn: vi.fn(),
 }));
 
@@ -88,11 +88,11 @@ vi.mock("../infra/system-events.js", () => ({
   enqueueSystemEvent: mocks.enqueueSystemEvent,
 }));
 
-vi.mock("../infra/heartbeat-wake.js", async (importOriginal) => {
+vi.mock("../infra/main-session-wake.js", async (importOriginal) => {
   return await mergeMockedModule(
-    await importOriginal<typeof import("../infra/heartbeat-wake.js")>(),
+    await importOriginal<typeof import("../infra/main-session-wake.js")>(),
     () => ({
-      requestHeartbeatNow: mocks.requestHeartbeatNow,
+      requestMainSessionWakeNow: mocks.requestMainSessionWakeNow,
     }),
   );
 });
@@ -125,7 +125,7 @@ describe("scheduleRestartSentinelWake", () => {
     mocks.ackDelivery.mockClear();
     mocks.failDelivery.mockClear();
     mocks.enqueueSystemEvent.mockClear();
-    mocks.requestHeartbeatNow.mockClear();
+    mocks.requestMainSessionWakeNow.mockClear();
     mocks.logWarn.mockClear();
   });
 
@@ -160,7 +160,7 @@ describe("scheduleRestartSentinelWake", () => {
         sessionKey: "agent:main:main",
       }),
     );
-    expect(mocks.requestHeartbeatNow).toHaveBeenCalledWith({
+    expect(mocks.requestMainSessionWakeNow).toHaveBeenCalledWith({
       reason: "wake",
       sessionKey: "agent:main:main",
     });
@@ -194,7 +194,7 @@ describe("scheduleRestartSentinelWake", () => {
     expect(mocks.ackDelivery).toHaveBeenCalledWith("queue-1");
     expect(mocks.failDelivery).not.toHaveBeenCalled();
     expect(mocks.enqueueSystemEvent).toHaveBeenCalledTimes(1);
-    expect(mocks.requestHeartbeatNow).toHaveBeenCalledTimes(1);
+    expect(mocks.requestMainSessionWakeNow).toHaveBeenCalledTimes(1);
     expect(mocks.logWarn).toHaveBeenCalledWith(
       expect.stringContaining("retrying in 750ms"),
       expect.objectContaining({
@@ -263,7 +263,7 @@ describe("scheduleRestartSentinelWake", () => {
     expect(mocks.enqueueSystemEvent).toHaveBeenCalledWith("restart message", {
       sessionKey: "agent:main:main",
     });
-    expect(mocks.requestHeartbeatNow).not.toHaveBeenCalled();
+    expect(mocks.requestMainSessionWakeNow).not.toHaveBeenCalled();
     expect(mocks.deliverOutboundPayloads).not.toHaveBeenCalled();
   });
 });

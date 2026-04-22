@@ -47,7 +47,7 @@ x-i18n:
 
 ## 配置
 
-- `tools.exec.notifyOnExit`（默认：true）：为 true 时，后台 exec 会话在退出时会入队系统事件并请求心跳。
+- `tools.exec.notifyOnExit`（默认：true）：为 true 时，后台 exec 会话在退出时会入队系统事件并请求主会话唤醒。
 - `tools.exec.approvalRunningNoticeMs`（默认：10000）：当需要审批的 exec 运行时间超过此值时发出单次"运行中"通知（0 表示禁用）。
 - `tools.exec.host`（默认：`sandbox`）
 - `tools.exec.security`（默认：sandbox 为 `deny`，gateway + node 未设置时为 `allowlist`）

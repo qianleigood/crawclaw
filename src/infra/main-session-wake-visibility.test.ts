@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { resolveHeartbeatVisibility } from "./heartbeat-visibility.js";
+import { resolveMainSessionWakeVisibility } from "./main-session-wake-visibility.js";
 
-describe("resolveHeartbeatVisibility", () => {
+describe("resolveMainSessionWakeVisibility", () => {
   function createChannelDefaultsHeartbeatConfig(heartbeat: {
     showOk?: boolean;
     showAlerts?: boolean;
@@ -38,7 +38,7 @@ describe("resolveHeartbeatVisibility", () => {
 
   it("returns default values when no config is provided", () => {
     const cfg = {} as CrawClawConfig;
-    const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
 
     expect(result).toEqual({
       showOk: false,
@@ -54,7 +54,7 @@ describe("resolveHeartbeatVisibility", () => {
       useIndicator: false,
     });
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
 
     expect(result).toEqual({
       showOk: true,
@@ -81,7 +81,7 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
 
     expect(result).toEqual({
       showOk: true,
@@ -117,7 +117,7 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({
+    const result = resolveMainSessionWakeVisibility({
       cfg,
       channel: "telegram",
       accountId: "primary",
@@ -149,7 +149,7 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({
+    const result = resolveMainSessionWakeVisibility({
       cfg,
       channel: "telegram",
       accountId: "primary",
@@ -164,14 +164,14 @@ describe("resolveHeartbeatVisibility", () => {
 
   it("handles missing accountId gracefully", () => {
     const cfg = createTelegramAccountHeartbeatConfig();
-    const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
 
     expect(result.showOk).toBe(true);
   });
 
   it("handles non-existent account gracefully", () => {
     const cfg = createTelegramAccountHeartbeatConfig();
-    const result = resolveHeartbeatVisibility({
+    const result = resolveMainSessionWakeVisibility({
       cfg,
       channel: "telegram",
       accountId: "nonexistent",
@@ -192,7 +192,7 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "whatsapp" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "whatsapp" });
 
     expect(result).toEqual({
       showOk: true,
@@ -212,7 +212,7 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "discord" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "discord" });
 
     expect(result).toEqual({
       showOk: false,
@@ -234,7 +234,7 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "slack" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "slack" });
 
     expect(result).toEqual({
       showOk: true,
@@ -250,7 +250,7 @@ describe("resolveHeartbeatVisibility", () => {
       useIndicator: false,
     });
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "webchat" });
 
     expect(result).toEqual({
       showOk: true,
@@ -262,7 +262,7 @@ describe("resolveHeartbeatVisibility", () => {
   it("webchat returns defaults when no channel defaults configured", () => {
     const cfg = {} as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "webchat" });
 
     expect(result).toEqual({
       showOk: false,
@@ -282,7 +282,7 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveHeartbeatVisibility({
+    const result = resolveMainSessionWakeVisibility({
       cfg,
       channel: "webchat",
       accountId: "some-account",

@@ -68,10 +68,9 @@ x-i18n:
 
 - 提权模式文档位于[提权模式](/tools/elevated)。
 
-## 心跳
+## 旧版 heartbeat 兼容性
 
-- 心跳探测正文为配置的心跳提示词（默认：`Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`）。心跳消息中的内联指令照常生效（但避免从心跳中更改会话默认值）。
-- 心跳投递默认仅包含最终负载。要同时发送单独的 `Reasoning:` 消息（如果可用），请设置 `agents.defaults.heartbeat.includeReasoning: true` 或按智能体 `agents.list[].heartbeat.includeReasoning: true`。
+旧版 heartbeat 风格运行仍可出于兼容性使用配置的 heartbeat prompt 和 reasoning 投递选项。新的计划性自动化应使用 [Scheduled Tasks](/automation/cron-jobs)，不要继续依赖 heartbeat prompts。
 
 ## Web 聊天 UI
 

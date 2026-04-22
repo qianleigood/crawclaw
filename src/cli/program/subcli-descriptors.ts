@@ -34,7 +34,7 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "system",
-    description: "System events, heartbeat, and presence",
+    description: "System events, main-session wake, and presence",
     descriptionKey: "command.system.description",
     hasSubcommands: true,
   },
@@ -46,7 +46,7 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "memory",
-    description: "Inspect and manage NotebookLM experience access",
+    description: "Inspect and manage experience memory access",
     descriptionKey: "command.memory.description",
     hasSubcommands: true,
   },

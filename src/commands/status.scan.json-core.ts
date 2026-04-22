@@ -74,7 +74,7 @@ function buildColdStartAgentLocalStatuses(): Awaited<ReturnType<typeof getAgentL
 function buildColdStartStatusSummary(): Awaited<ReturnType<typeof getStatusSummaryFn>> {
   return {
     runtimeVersion: null,
-    heartbeat: {
+    mainSessionWake: {
       defaultAgentId: "main",
       agents: [],
     },

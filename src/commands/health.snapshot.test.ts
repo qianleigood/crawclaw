@@ -436,7 +436,7 @@ describe("getHealthSnapshot", () => {
     const main = byAgent.get("main");
     const ops = byAgent.get("ops");
 
-    expect(main?.heartbeat.enabled).toBe(false);
-    expect(ops?.heartbeat.enabled).toBe(false);
+    expect(main?.mainSessionWake.enabled).toBe(false);
+    expect(ops?.mainSessionWake.enabled).toBe(false);
   });
 });

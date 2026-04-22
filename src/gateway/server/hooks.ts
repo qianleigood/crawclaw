@@ -4,7 +4,7 @@ import { loadConfig, type CrawClawConfig } from "../../config/config.js";
 import { resolveMainSessionKeyFromConfig } from "../../config/sessions.js";
 import { runCronIsolatedAgentTurn } from "../../cron/isolated-agent.js";
 import type { CronJob } from "../../cron/types.js";
-import { requestHeartbeatNow } from "../../infra/heartbeat-wake.js";
+import { requestMainSessionWakeNow } from "../../infra/main-session-wake.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
 import { type HookAgentDispatchPayload, type HooksConfigResolved } from "../hooks.js";
@@ -32,7 +32,7 @@ export function createGatewayHooksRequestHandler(params: {
   const dispatchWakeHook = (value: { text: string; mode: "now" }) => {
     const sessionKey = resolveMainSessionKeyFromConfig();
     enqueueSystemEvent(value.text, { sessionKey });
-    requestHeartbeatNow({ reason: "hook:wake" });
+    requestMainSessionWakeNow({ reason: "hook:wake" });
   };
 
   const dispatchAgentHook = (value: HookAgentDispatchPayload) => {
@@ -90,14 +90,14 @@ export function createGatewayHooksRequestHandler(params: {
           enqueueSystemEvent(`${prefix}: ${summary}`.trim(), {
             sessionKey: mainSessionKey,
           });
-          requestHeartbeatNow({ reason: `hook:${jobId}` });
+          requestMainSessionWakeNow({ reason: `hook:${jobId}` });
         }
       } catch (err) {
         logHooks.warn(`hook agent failed: ${String(err)}`);
         enqueueSystemEvent(`Hook ${value.name} (error): ${String(err)}`, {
           sessionKey: mainSessionKey,
         });
-        requestHeartbeatNow({ reason: `hook:${jobId}:error` });
+        requestMainSessionWakeNow({ reason: `hook:${jobId}:error` });
       }
     })();
 

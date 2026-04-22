@@ -29,7 +29,7 @@ export type SessionStatus = {
   flags: string[];
 };
 
-export type HeartbeatStatus = {
+export type MainSessionWakeStatus = {
   agentId: string;
   enabled: boolean;
 };
@@ -42,9 +42,9 @@ export type StatusSummary = {
     linked: boolean;
     authAgeMs: number | null;
   };
-  heartbeat: {
+  mainSessionWake: {
     defaultAgentId: string;
-    agents: HeartbeatStatus[];
+    agents: MainSessionWakeStatus[];
   };
   channelSummary: string[];
   queuedSystemEvents: string[];

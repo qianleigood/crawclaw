@@ -27,9 +27,12 @@ import { clearAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
 import { logAcceptedEnvOption } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
-import { onHeartbeatEvent } from "../infra/heartbeat-events.js";
-import { startHeartbeatRunner, type HeartbeatRunner } from "../infra/heartbeat-runner.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
+import { onMainSessionWakeEvent } from "../infra/main-session-wake-events.js";
+import {
+  startMainSessionWakeRunner,
+  type MainSessionWakeRunner,
+} from "../infra/main-session-wake-runner.js";
 import { ensureCrawClawCliOnPath } from "../infra/path-env.js";
 import {
   detectPluginInstallPathIssue,
@@ -730,7 +733,7 @@ export async function startGatewayServer(
   let healthInterval = noopInterval();
   let dedupeCleanup = noopInterval();
   let mediaCleanup: ReturnType<typeof setInterval> | null = null;
-  let heartbeatRunner: HeartbeatRunner = {
+  let mainSessionWakeRunner: MainSessionWakeRunner = {
     stop: () => {},
     updateConfig: () => {},
   };
@@ -765,7 +768,7 @@ export async function startGatewayServer(
       stopChannel,
       pluginServices,
       cron,
-      heartbeatRunner,
+      mainSessionWakeRunner,
       updateCheckStop: stopGatewayUpdateCheck,
       nodePresenceTimers,
       broadcast,
@@ -774,7 +777,7 @@ export async function startGatewayServer(
       dedupeCleanup,
       mediaCleanup,
       agentUnsub,
-      heartbeatUnsub,
+      mainSessionWakeUnsub,
       transcriptUnsub,
       lifecycleUnsub,
       chatRunState,
@@ -817,7 +820,7 @@ export async function startGatewayServer(
   const { getRuntimeSnapshot, startChannels, startChannel, stopChannel, markChannelLoggedOut } =
     channelManager;
   let agentUnsub: (() => void) | null = null;
-  let heartbeatUnsub: (() => void) | null = null;
+  let mainSessionWakeUnsub: (() => void) | null = null;
   let transcriptUnsub: (() => void) | null = null;
   let lifecycleUnsub: (() => void) | null = null;
   try {
@@ -902,10 +905,10 @@ export async function startGatewayServer(
           }),
         );
 
-    heartbeatUnsub = minimalTestGateway
+    mainSessionWakeUnsub = minimalTestGateway
       ? null
-      : onHeartbeatEvent((evt) => {
-          broadcast("heartbeat", evt, { dropIfSlow: true });
+      : onMainSessionWakeEvent((evt) => {
+          broadcast("main-session-wake", evt, { dropIfSlow: true });
         });
 
     transcriptUnsub = minimalTestGateway
@@ -1089,7 +1092,7 @@ export async function startGatewayServer(
         });
 
     if (!minimalTestGateway) {
-      heartbeatRunner = startHeartbeatRunner({ cfg: cfgAtStart });
+      mainSessionWakeRunner = startMainSessionWakeRunner({ cfg: cfgAtStart });
     }
 
     const healthCheckMinutes = cfgAtStart.gateway?.channelHealthCheckMinutes;
@@ -1353,14 +1356,14 @@ export async function startGatewayServer(
             getState: () => ({
               hooksConfig,
               hookClientIpConfig,
-              heartbeatRunner,
+              mainSessionWakeRunner,
               cronState,
               channelHealthMonitor,
             }),
             setState: (nextState) => {
               hooksConfig = nextState.hooksConfig;
               hookClientIpConfig = nextState.hookClientIpConfig;
-              heartbeatRunner = nextState.heartbeatRunner;
+              mainSessionWakeRunner = nextState.mainSessionWakeRunner;
               cronState = nextState.cronState;
               cron = cronState.cron;
               cronStorePath = cronState.storePath;
@@ -1440,7 +1443,7 @@ export async function startGatewayServer(
     stopChannel,
     pluginServices,
     cron,
-    heartbeatRunner,
+    mainSessionWakeRunner,
     updateCheckStop: stopGatewayUpdateCheck,
     nodePresenceTimers,
     broadcast,
@@ -1449,7 +1452,7 @@ export async function startGatewayServer(
     dedupeCleanup,
     mediaCleanup,
     agentUnsub,
-    heartbeatUnsub,
+    mainSessionWakeUnsub,
     transcriptUnsub,
     lifecycleUnsub,
     chatRunState,

@@ -6,12 +6,12 @@ import { readSessionStoreReadOnly } from "../config/sessions/store-read.js";
 import { resolveFreshSessionTotalTokens, type SessionEntry } from "../config/sessions/types.js";
 import type { CrawClawConfig } from "../config/types.js";
 import { listGatewayAgentsBasic } from "../gateway/agent-list.js";
-import { resolveHeartbeatSummaryForAgent } from "../infra/heartbeat-summary.js";
+import { resolveMainSessionWakeSummaryForAgent } from "../infra/main-session-wake-summary.js";
 import { peekSystemEvents } from "../infra/system-events.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { createLazyRuntimeSurface } from "../shared/lazy-runtime.js";
 import { resolveRuntimeServiceVersion } from "../version.js";
-import type { HeartbeatStatus, SessionStatus, StatusSummary } from "./status.types.js";
+import type { MainSessionWakeStatus, SessionStatus, StatusSummary } from "./status.types.js";
 
 let channelSummaryModulePromise: Promise<typeof import("../infra/channel-summary.js")> | undefined;
 let linkChannelModulePromise: Promise<typeof import("./status.link-channel.js")> | undefined;
@@ -124,12 +124,12 @@ export async function getStatusSummary(
       )
     : null;
   const agentList = listGatewayAgentsBasic(cfg);
-  const heartbeatAgents: HeartbeatStatus[] = agentList.agents.map((agent) => {
-    const summary = resolveHeartbeatSummaryForAgent(cfg, agent.id);
+  const mainSessionWakeAgents: MainSessionWakeStatus[] = agentList.agents.map((agent) => {
+    const summary = resolveMainSessionWakeSummaryForAgent(cfg, agent.id);
     return {
       agentId: agent.id,
       enabled: summary.enabled,
-    } satisfies HeartbeatStatus;
+    } satisfies MainSessionWakeStatus;
   });
   const channelSummary = needsChannelPlugins
     ? await loadChannelSummaryModule().then(({ buildChannelSummary }) =>
@@ -266,9 +266,9 @@ export async function getStatusSummary(
           authAgeMs: linkContext.authAgeMs,
         }
       : undefined,
-    heartbeat: {
+    mainSessionWake: {
       defaultAgentId: agentList.defaultId,
-      agents: heartbeatAgents,
+      agents: mainSessionWakeAgents,
     },
     channelSummary,
     queuedSystemEvents,

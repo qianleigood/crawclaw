@@ -249,7 +249,7 @@ SDK 处理完整的智能体循环：发送到 LLM、执行工具调用、流式
 
 ### 工具管道
 
-1. **基础工具**：pi 的 `codingTools`（读取、bash、编辑、写入）
+1. **基础工具**：pi 的 `createCodingTools` / `createReadTool` 输出（读取、bash、编辑、写入）
 2. **自定义替换**：CrawClaw 用 `exec`/`process` 替换 bash，为沙箱自定义读取/编辑/写入
 3. **CrawClaw 工具**：消息、浏览器、画布、会话、计时器、网关等
 4. **渠道工具**：Discord/Telegram/Slack/WhatsApp 特定的操作工具

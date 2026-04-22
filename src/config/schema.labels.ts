@@ -407,7 +407,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "memory.qmd.limits.maxInjectedChars": "QMD Max Injected Chars",
   "memory.qmd.limits.timeoutMs": "QMD Search Timeout (ms)",
   "memory.qmd.scope": "QMD Surface Scope",
-  "memory.notebooklm": "NotebookLM Memory Runtime",
+  "memory.notebooklm": "NotebookLM Experience Provider",
   "memory.notebooklm.auth": "NotebookLM Auth",
   "memory.notebooklm.auth.profile": "NotebookLM Auth Profile",
   "memory.notebooklm.auth.cookieFile": "NotebookLM Cookie File",

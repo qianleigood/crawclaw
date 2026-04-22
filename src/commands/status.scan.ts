@@ -19,11 +19,11 @@ import type { RuntimeEnv } from "../runtime.js";
 import { createLazyRuntimeSurface } from "../shared/lazy-runtime.js";
 import { createEmptyTaskAuditSummary } from "../tasks/task-registry.audit.shared.js";
 import { createEmptyTaskRegistrySummary } from "../tasks/task-registry.summary.js";
+import type { FeishuCliStatusResolution } from "./feishu-cli-status.js";
+import { resolveFeishuCliStatusViaGateway } from "./feishu-cli-status.js";
 import type { buildChannelsTable as buildChannelsTableFn } from "./status-all/channels.js";
 import type { getAgentLocalStatuses as getAgentLocalStatusesFn } from "./status.agent-local.js";
 import { buildColdStartUpdateResult, scanStatusJsonCore } from "./status.scan.json-core.js";
-import type { FeishuCliStatusResolution } from "./feishu-cli-status.js";
-import { resolveFeishuCliStatusViaGateway } from "./feishu-cli-status.js";
 import {
   buildTailscaleHttpsUrl,
   pickGatewaySelfPresence,
@@ -166,7 +166,7 @@ function buildColdStartAgentLocalStatuses(): Awaited<ReturnType<typeof getAgentL
 function buildColdStartStatusSummary(): Awaited<ReturnType<typeof getStatusSummaryFn>> {
   return {
     runtimeVersion: null,
-    heartbeat: {
+    mainSessionWake: {
       defaultAgentId: "main",
       agents: [],
     },
@@ -206,7 +206,8 @@ async function scanStatusJsonFast(opts: {
     hasConfiguredChannels: hasPotentialConfiguredChannels(cfg),
     opts,
     resolveOsSummary,
-    resolveMemory: async ({ cfg, agentStatus }) => await resolveMemoryStatusSnapshot({ cfg, agentStatus }),
+    resolveMemory: async ({ cfg, agentStatus }) =>
+      await resolveMemoryStatusSnapshot({ cfg, agentStatus }),
     runtime: opts.runtime,
   });
 }

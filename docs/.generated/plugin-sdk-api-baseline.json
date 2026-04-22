@@ -961,7 +961,7 @@
           "exportName": "BlockStreamingCoalesceSchema",
           "kind": "const",
           "source": {
-            "line": 341,
+            "line": 342,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -970,7 +970,7 @@
           "exportName": "ContextVisibilityModeSchema",
           "kind": "const",
           "source": {
-            "line": 339,
+            "line": 340,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -988,7 +988,7 @@
           "exportName": "DmConfigSchema",
           "kind": "const",
           "source": {
-            "line": 294,
+            "line": 295,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -997,7 +997,7 @@
           "exportName": "DmPolicySchema",
           "kind": "const",
           "source": {
-            "line": 338,
+            "line": 339,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -1015,7 +1015,7 @@
           "exportName": "GroupPolicySchema",
           "kind": "const",
           "source": {
-            "line": 336,
+            "line": 337,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -1033,7 +1033,7 @@
           "exportName": "MarkdownConfigSchema",
           "kind": "const",
           "source": {
-            "line": 374,
+            "line": 375,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -1051,7 +1051,7 @@
           "exportName": "ReplyRuntimeConfigSchemaShape",
           "kind": "const",
           "source": {
-            "line": 349,
+            "line": 350,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -1060,7 +1060,7 @@
           "exportName": "requireOpenAllowFrom",
           "kind": "const",
           "source": {
-            "line": 489,
+            "line": 490,
             "path": "src/config/zod-schema.core.ts"
           }
         },
@@ -1096,7 +1096,7 @@
           "exportName": "ToolPolicySchema",
           "kind": "const",
           "source": {
-            "line": 253,
+            "line": 189,
             "path": "src/config/zod-schema.agent-runtime.ts"
           }
         },
@@ -1460,12 +1460,12 @@
           }
         },
         {
-          "declaration": "export function emitHeartbeatEvent(evt: Omit<HeartbeatEventPayload, \"ts\">): void;",
-          "exportName": "emitHeartbeatEvent",
+          "declaration": "export function emitMainSessionWakeEvent(evt: Omit<MainSessionWakeEventPayload, \"ts\">): void;",
+          "exportName": "emitMainSessionWakeEvent",
           "kind": "function",
           "source": {
-            "line": 53,
-            "path": "src/infra/heartbeat-events.ts"
+            "line": 56,
+            "path": "src/infra/main-session-wake-events.ts"
           }
         },
         {
@@ -1478,12 +1478,12 @@
           }
         },
         {
-          "declaration": "export function getLastHeartbeatEvent(): HeartbeatEventPayload | null;",
-          "exportName": "getLastHeartbeatEvent",
+          "declaration": "export function getLastMainSessionWakeEvent(): MainSessionWakeEventPayload | null;",
+          "exportName": "getLastMainSessionWakeEvent",
           "kind": "function",
           "source": {
-            "line": 63,
-            "path": "src/infra/heartbeat-events.ts"
+            "line": 68,
+            "path": "src/infra/main-session-wake-events.ts"
           }
         },
         {
@@ -1577,12 +1577,12 @@
           }
         },
         {
-          "declaration": "export function onHeartbeatEvent(listener: (evt: HeartbeatEventPayload) => void): () => void;",
-          "exportName": "onHeartbeatEvent",
+          "declaration": "export function onMainSessionWakeEvent(listener: (evt: MainSessionWakeEventPayload) => void): () => void;",
+          "exportName": "onMainSessionWakeEvent",
           "kind": "function",
           "source": {
-            "line": 59,
-            "path": "src/infra/heartbeat-events.ts"
+            "line": 62,
+            "path": "src/infra/main-session-wake-events.ts"
           }
         },
         {
@@ -1604,12 +1604,12 @@
           }
         },
         {
-          "declaration": "export function resetHeartbeatEventsForTest(): void;",
-          "exportName": "resetHeartbeatEventsForTest",
+          "declaration": "export function resetMainSessionWakeEventsForTest(): void;",
+          "exportName": "resetMainSessionWakeEventsForTest",
           "kind": "function",
           "source": {
-            "line": 67,
-            "path": "src/infra/heartbeat-events.ts"
+            "line": 72,
+            "path": "src/infra/main-session-wake-events.ts"
           }
         },
         {
@@ -1622,21 +1622,21 @@
           }
         },
         {
-          "declaration": "export function resolveHeartbeatVisibility(params: { cfg: CrawClawConfig; channel: GatewayMessageChannel; accountId?: string | undefined; }): ResolvedHeartbeatVisibility;",
-          "exportName": "resolveHeartbeatVisibility",
-          "kind": "function",
-          "source": {
-            "line": 22,
-            "path": "src/infra/heartbeat-visibility.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveIndicatorType(status: \"sent\" | \"ok-empty\" | \"ok-token\" | \"skipped\" | \"failed\"): HeartbeatIndicatorType | undefined;",
+          "declaration": "export function resolveIndicatorType(status: \"sent\" | \"ok-empty\" | \"ok-token\" | \"skipped\" | \"failed\"): MainSessionWakeIndicatorType | undefined;",
           "exportName": "resolveIndicatorType",
           "kind": "function",
           "source": {
             "line": 23,
-            "path": "src/infra/heartbeat-events.ts"
+            "path": "src/infra/main-session-wake-events.ts"
+          }
+        },
+        {
+          "declaration": "export function resolveMainSessionWakeVisibility(params: { cfg: CrawClawConfig; channel: GatewayMessageChannel; accountId?: string | undefined; }): ResolvedMainSessionWakeVisibility;",
+          "exportName": "resolveMainSessionWakeVisibility",
+          "kind": "function",
+          "source": {
+            "line": 22,
+            "path": "src/infra/main-session-wake-visibility.ts"
           }
         },
         {
@@ -2027,15 +2027,6 @@
           }
         },
         {
-          "declaration": "export type ChannelHeartbeatDeps = ChannelHeartbeatDeps;",
-          "exportName": "ChannelHeartbeatDeps",
-          "kind": "type",
-          "source": {
-            "line": 118,
-            "path": "src/channels/plugins/types.core.ts"
-          }
-        },
-        {
           "declaration": "export type ChannelId = ChannelId;",
           "exportName": "ChannelId",
           "kind": "type",
@@ -2095,6 +2086,15 @@
           "kind": "type",
           "source": {
             "line": 223,
+            "path": "src/channels/plugins/types.core.ts"
+          }
+        },
+        {
+          "declaration": "export type ChannelMainSessionWakeDeps = ChannelMainSessionWakeDeps;",
+          "exportName": "ChannelMainSessionWakeDeps",
+          "kind": "type",
+          "source": {
+            "line": 118,
             "path": "src/channels/plugins/types.core.ts"
           }
         },
@@ -2432,21 +2432,21 @@
           }
         },
         {
-          "declaration": "export type HeartbeatEventPayload = HeartbeatEventPayload;",
-          "exportName": "HeartbeatEventPayload",
+          "declaration": "export type MainSessionWakeEventPayload = MainSessionWakeEventPayload;",
+          "exportName": "MainSessionWakeEventPayload",
           "kind": "type",
           "source": {
             "line": 6,
-            "path": "src/infra/heartbeat-events.ts"
+            "path": "src/infra/main-session-wake-events.ts"
           }
         },
         {
-          "declaration": "export type HeartbeatIndicatorType = HeartbeatIndicatorType;",
-          "exportName": "HeartbeatIndicatorType",
+          "declaration": "export type MainSessionWakeIndicatorType = MainSessionWakeIndicatorType;",
+          "exportName": "MainSessionWakeIndicatorType",
           "kind": "type",
           "source": {
             "line": 4,
-            "path": "src/infra/heartbeat-events.ts"
+            "path": "src/infra/main-session-wake-events.ts"
           }
         },
         {
@@ -2486,12 +2486,12 @@
           }
         },
         {
-          "declaration": "export type ResolvedHeartbeatVisibility = ResolvedHeartbeatVisibility;",
-          "exportName": "ResolvedHeartbeatVisibility",
+          "declaration": "export type ResolvedMainSessionWakeVisibility = ResolvedMainSessionWakeVisibility;",
+          "exportName": "ResolvedMainSessionWakeVisibility",
           "kind": "type",
           "source": {
             "line": 5,
-            "path": "src/infra/heartbeat-visibility.ts"
+            "path": "src/infra/main-session-wake-visibility.ts"
           }
         },
         {

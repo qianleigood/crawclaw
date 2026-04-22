@@ -1,10 +1,10 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-const requestHeartbeatNowMock = vi.hoisted(() => vi.fn());
+const requestMainSessionWakeNowMock = vi.hoisted(() => vi.fn());
 const enqueueSystemEventMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../infra/heartbeat-wake.js", () => ({
-  requestHeartbeatNow: requestHeartbeatNowMock,
+vi.mock("../infra/main-session-wake.js", () => ({
+  requestMainSessionWakeNow: requestMainSessionWakeNowMock,
 }));
 
 vi.mock("../infra/system-events.js", () => ({
@@ -170,7 +170,7 @@ describe("resolveExecTarget", () => {
 
 describe("emitExecSystemEvent", () => {
   beforeEach(() => {
-    requestHeartbeatNowMock.mockClear();
+    requestMainSessionWakeNowMock.mockClear();
     enqueueSystemEventMock.mockClear();
   });
 
@@ -184,7 +184,7 @@ describe("emitExecSystemEvent", () => {
       sessionKey: "agent:ops:main",
       contextKey: "exec:run-1",
     });
-    expect(requestHeartbeatNowMock).toHaveBeenCalledWith({
+    expect(requestMainSessionWakeNowMock).toHaveBeenCalledWith({
       reason: "exec-event",
       sessionKey: "agent:ops:main",
     });
@@ -200,7 +200,7 @@ describe("emitExecSystemEvent", () => {
       sessionKey: "global",
       contextKey: "exec:run-global",
     });
-    expect(requestHeartbeatNowMock).toHaveBeenCalledWith({
+    expect(requestMainSessionWakeNowMock).toHaveBeenCalledWith({
       reason: "exec-event",
     });
   });
@@ -212,7 +212,7 @@ describe("emitExecSystemEvent", () => {
     });
 
     expect(enqueueSystemEventMock).not.toHaveBeenCalled();
-    expect(requestHeartbeatNowMock).not.toHaveBeenCalled();
+    expect(requestMainSessionWakeNowMock).not.toHaveBeenCalled();
   });
 });
 

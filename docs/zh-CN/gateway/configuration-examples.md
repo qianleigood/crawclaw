@@ -262,14 +262,6 @@ x-i18n:
       mediaMaxMb: 5,
       typingIntervalSeconds: 5,
       maxConcurrent: 3,
-      heartbeat: {
-        every: "30m",
-        model: "anthropic/claude-sonnet-4-5",
-        target: "last",
-        to: "+15555550123",
-        prompt: "HEARTBEAT",
-        ackMaxChars: 300,
-      },
       memorySearch: {
         provider: "gemini",
         model: "gemini-embedding-001",

@@ -1,18 +1,18 @@
 import fs from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { runHeartbeatOnce, type HeartbeatDeps } from "./heartbeat-runner.js";
-import { installHeartbeatRunnerTestRuntime } from "./heartbeat-runner.test-harness.js";
+import { runMainSessionWakeOnce, type MainSessionWakeDeps } from "./main-session-wake-runner.js";
+import { installMainSessionWakeRunnerTestRuntime } from "./main-session-wake-runner.test-harness.js";
 import {
   seedMainSessionStore,
   withTempHeartbeatSandbox,
   withTempTelegramHeartbeatSandbox,
-} from "./heartbeat-runner.test-utils.js";
+} from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
-installHeartbeatRunnerTestRuntime();
+installMainSessionWakeRunnerTestRuntime();
 
-describe("runHeartbeatOnce ack handling", () => {
+describe("runMainSessionWakeOnce ack handling", () => {
   const WHATSAPP_GROUP = "120363140186826074@g.us";
   const TELEGRAM_GROUP = "-1001234567890";
 
@@ -63,7 +63,7 @@ describe("runHeartbeatOnce ack handling", () => {
       nowMs: params.nowMs ?? (() => 0),
       webAuthExists: params.webAuthExists ?? (async () => true),
       hasActiveWebListener: params.hasActiveWebListener ?? (() => true),
-    } satisfies HeartbeatDeps;
+    } satisfies MainSessionWakeDeps;
   }
 
   function makeTelegramDeps(
@@ -77,7 +77,7 @@ describe("runHeartbeatOnce ack handling", () => {
       ...(params.sendTelegram ? { telegram: params.sendTelegram as unknown } : {}),
       getQueueSize: params.getQueueSize ?? (() => 0),
       nowMs: params.nowMs ?? (() => 0),
-    } satisfies HeartbeatDeps;
+    } satisfies MainSessionWakeDeps;
   }
 
   function createMessageSendSpy(extra: Record<string, unknown> = {}) {
@@ -120,7 +120,7 @@ describe("runHeartbeatOnce ack handling", () => {
 
     params.replySpy.mockResolvedValue({ text: params.replyText });
     const sendTelegram = createMessageSendSpy();
-    await runHeartbeatOnce({
+    await runMainSessionWakeOnce({
       cfg,
       reason: "wake",
       deps: makeTelegramDeps({ sendTelegram }),
@@ -184,7 +184,7 @@ describe("runHeartbeatOnce ack handling", () => {
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK 🦀" });
       const sendWhatsApp = createMessageSendSpy();
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
@@ -212,7 +212,7 @@ describe("runHeartbeatOnce ack handling", () => {
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
       const sendWhatsApp = createMessageSendSpy();
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
@@ -276,7 +276,7 @@ describe("runHeartbeatOnce ack handling", () => {
 
       const sendWhatsApp = createMessageSendSpy();
 
-      const result = await runHeartbeatOnce({
+      const result = await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
@@ -298,7 +298,7 @@ describe("runHeartbeatOnce ack handling", () => {
       replySpy.mockResolvedValue({ text: "<b>HEARTBEAT_OK</b>" });
       const sendWhatsApp = createMessageSendSpy();
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
         deps: makeWhatsAppDeps({ sendWhatsApp }),
@@ -338,7 +338,7 @@ describe("runHeartbeatOnce ack handling", () => {
         return { text: "" };
       });
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
         deps: makeWhatsAppDeps(),
@@ -362,7 +362,7 @@ describe("runHeartbeatOnce ack handling", () => {
       replySpy.mockResolvedValue({ text: "Heartbeat alert" });
       const sendWhatsApp = createMessageSendSpy();
 
-      const res = await runHeartbeatOnce({
+      const res = await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
         deps: makeWhatsAppDeps({
@@ -400,7 +400,7 @@ describe("runHeartbeatOnce ack handling", () => {
       replySpy.mockResolvedValue({ text: "Hello from heartbeat" });
       const sendTelegram = createMessageSendSpy({ chatId: TELEGRAM_GROUP });
 
-      await runHeartbeatOnce({
+      await runMainSessionWakeOnce({
         cfg,
         reason: "wake",
         deps: makeTelegramDeps({ sendTelegram }),

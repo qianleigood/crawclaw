@@ -4,7 +4,7 @@ import { killSubagentRunAdmin } from "../agents/subagent-control.js";
 import { resolveDeliverableTarget } from "../channels/deliverable-target.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { onAgentEvent } from "../infra/agent-events.js";
-import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
+import { requestMainSessionWakeNow } from "../infra/main-session-wake.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
@@ -1095,7 +1095,7 @@ function queueTaskSystemEvent(task: TaskRecord, text: string) {
     contextKey: `task:${task.taskId}`,
     deliveryContext: owner.requesterOrigin,
   });
-  requestHeartbeatNow({
+  requestMainSessionWakeNow({
     reason: "background-task",
     sessionKey: ownerKey,
   });
@@ -1117,7 +1117,7 @@ function queueBlockedTaskFollowup(task: TaskRecord) {
     contextKey: `task:${task.taskId}:blocked-followup`,
     deliveryContext: owner.requesterOrigin,
   });
-  requestHeartbeatNow({
+  requestMainSessionWakeNow({
     reason: "background-task-blocked",
     sessionKey: ownerKey,
   });

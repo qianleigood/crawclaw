@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { runHeartbeatOnce } from "./heartbeat-runner.js";
-import { installHeartbeatRunnerTestRuntime } from "./heartbeat-runner.test-harness.js";
-import { seedMainSessionStore, withTempHeartbeatSandbox } from "./heartbeat-runner.test-utils.js";
+import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
+import { installMainSessionWakeRunnerTestRuntime } from "./main-session-wake-runner.test-harness.js";
+import {
+  seedMainSessionStore,
+  withTempHeartbeatSandbox,
+} from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
-installHeartbeatRunnerTestRuntime({ includeSlack: true });
+installMainSessionWakeRunnerTestRuntime({ includeSlack: true });
 
-describe("runHeartbeatOnce", () => {
+describe("runMainSessionWakeOnce", () => {
   beforeEach(() => {
     resetSystemEventsForTest();
   });
@@ -50,7 +53,7 @@ describe("runHeartbeatOnce", () => {
           channelId: "C0A9P2N8QHY",
         });
 
-        await runHeartbeatOnce({
+        await runMainSessionWakeOnce({
           cfg,
           reason: "wake",
           deps: {

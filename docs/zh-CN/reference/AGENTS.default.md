@@ -97,7 +97,7 @@ git commit -m "Add Clawd workspace"
 
 - 运行 WhatsApp Gateway 网关 + Pi 编程智能体，使助手可以读写聊天、获取上下文，并通过主机 Mac 运行 Skills。
 - macOS 应用管理权限（屏幕录制、通知、麦克风）并通过其内置二进制文件暴露 `crawclaw` CLI。
-- 私聊默认折叠到智能体的 `main` 会话；群组保持隔离为 `agent:<agentId>:<channel>:group:<id>`（房间/频道：`agent:<agentId>:<channel>:channel:<id>`）；心跳保持后台任务存活。
+- 私聊默认折叠到智能体的 `main` 会话；群组保持隔离为 `agent:<agentId>:<channel>:group:<id>`（房间/频道：`agent:<agentId>:<channel>:channel:<id>`）；后台任务完成时可以入队主会话唤醒事件。
 
 ## 核心 Skills（在设置 → Skills 中启用）
 

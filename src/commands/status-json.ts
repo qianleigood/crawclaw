@@ -1,4 +1,4 @@
-import type { HeartbeatEventPayload } from "../infra/heartbeat-events.js";
+import type { MainSessionWakeEventPayload } from "../infra/main-session-wake-events.js";
 import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import { getDaemonStatusSummary, getNodeDaemonStatusSummary } from "./status.daemon.js";
@@ -62,10 +62,10 @@ export async function statusJsonCommand(
           config: scan.cfg,
         }).catch(() => undefined)
       : undefined;
-  const lastHeartbeat =
+  const lastMainSessionWake =
     gatewayCall != null && scan.gatewayReachable
-      ? await gatewayCall<HeartbeatEventPayload | null>({
-          method: "last-heartbeat",
+      ? await gatewayCall<MainSessionWakeEventPayload | null>({
+          method: "last-main-session-wake",
           params: {},
           timeoutMs: opts.timeoutMs,
           config: scan.cfg,
@@ -107,6 +107,6 @@ export async function statusJsonCommand(
     agents: scan.agentStatus,
     secretDiagnostics: scan.secretDiagnostics,
     ...(securityAudit ? { securityAudit } : {}),
-    ...(health || usage || lastHeartbeat ? { health, usage, lastHeartbeat } : {}),
+    ...(health || usage || lastMainSessionWake ? { health, usage, lastMainSessionWake } : {}),
   });
 }

@@ -3,7 +3,7 @@ import type { WebSocketServer } from "ws";
 import type { CanvasHostHandler, CanvasHostServer } from "../canvas-host/server.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
 import { stopGmailWatcher } from "../hooks/gmail-watcher.js";
-import type { HeartbeatRunner } from "../infra/heartbeat-runner.js";
+import type { MainSessionWakeRunner } from "../infra/main-session-wake-runner.js";
 import { drainSharedDurableExtractionWorkers } from "../memory/durable/worker-manager.ts";
 import type { PluginServicesHandle } from "../plugins/services.js";
 
@@ -16,7 +16,7 @@ export function createGatewayCloseHandler(params: {
   stopChannel: (name: ChannelId, accountId?: string) => Promise<void>;
   pluginServices: PluginServicesHandle | null;
   cron: { stop: () => void };
-  heartbeatRunner: HeartbeatRunner;
+  mainSessionWakeRunner: MainSessionWakeRunner;
   updateCheckStop?: (() => void) | null;
   nodePresenceTimers: Map<string, ReturnType<typeof setInterval>>;
   broadcast: (event: string, payload: unknown, opts?: { dropIfSlow?: boolean }) => void;
@@ -25,7 +25,7 @@ export function createGatewayCloseHandler(params: {
   dedupeCleanup: ReturnType<typeof setInterval>;
   mediaCleanup: ReturnType<typeof setInterval> | null;
   agentUnsub: (() => void) | null;
-  heartbeatUnsub: (() => void) | null;
+  mainSessionWakeUnsub: (() => void) | null;
   transcriptUnsub: (() => void) | null;
   lifecycleUnsub: (() => void) | null;
   chatRunState: { clear: () => void };
@@ -76,7 +76,7 @@ export function createGatewayCloseHandler(params: {
       await drainSharedDurableExtractionWorkers(5_000).catch(() => {});
       await stopGmailWatcher();
       params.cron.stop();
-      params.heartbeatRunner.stop();
+      params.mainSessionWakeRunner.stop();
       try {
         params.updateCheckStop?.();
       } catch {
@@ -103,9 +103,9 @@ export function createGatewayCloseHandler(params: {
           /* ignore */
         }
       }
-      if (params.heartbeatUnsub) {
+      if (params.mainSessionWakeUnsub) {
         try {
-          params.heartbeatUnsub();
+          params.mainSessionWakeUnsub();
         } catch {
           /* ignore */
         }

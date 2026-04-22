@@ -3,7 +3,7 @@ import {
   loadOrCreateDeviceIdentity,
   publicKeyRawBase64UrlFromPem,
 } from "../../infra/device-identity.js";
-import { getLastHeartbeatEvent } from "../../infra/heartbeat-events.js";
+import { getLastMainSessionWakeEvent } from "../../infra/main-session-wake-events.js";
 import { enqueueSystemEvent, isSystemEventContextChanged } from "../../infra/system-events.js";
 import { listSystemPresence, updateSystemPresence } from "../../infra/system-presence.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
@@ -22,11 +22,11 @@ export const systemHandlers: GatewayRequestHandlers = {
       undefined,
     );
   },
-  "last-heartbeat": ({ respond }) => {
-    respond(true, getLastHeartbeatEvent(), undefined);
+  "last-main-session-wake": ({ respond }) => {
+    respond(true, getLastMainSessionWakeEvent(), undefined);
   },
-  "system.heartbeat.last": ({ respond }) => {
-    respond(true, getLastHeartbeatEvent(), undefined);
+  "system.mainSessionWake.last": ({ respond }) => {
+    respond(true, getLastMainSessionWakeEvent(), undefined);
   },
   "system-presence": ({ respond }) => {
     const presence = listSystemPresence();

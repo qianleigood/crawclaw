@@ -325,14 +325,14 @@ Most plugin changes require a gateway restart. See [/plugin](/tools/plugin).
 
 ## Memory
 
-NotebookLM experience access and memory prompt diagnostics:
+Experience memory access and memory prompt diagnostics:
 
 - `crawclaw memory status` — show NotebookLM provider status.
 - `crawclaw memory refresh` — refresh NotebookLM auth from the configured cookie fallback.
 - `crawclaw memory login` — rebuild the NotebookLM profile interactively.
 - `crawclaw memory prompt-journal-summary --json` — summarize nightly memory prompt journal data (debug-only, truncated diagnostics).
 
-NotebookLM writes go through `write_experience_note`.
+Experience writes go through `write_experience_note`; NotebookLM sync is optional.
 
 ## Agent runtime ops
 
@@ -1141,7 +1141,7 @@ Options:
 - `--json`
 - `--url`, `--token`, `--timeout`, `--expect-final`
 
-### `system heartbeat last`
+### `system main-session-wake last`
 
 Heartbeat diagnostic inspection (Gateway RPC).
 

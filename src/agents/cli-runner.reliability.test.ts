@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createManagedRun,
   enqueueSystemEventMock,
-  requestHeartbeatNowMock,
+  requestMainSessionWakeNowMock,
   setupCliRunnerTestModule,
   supervisorSpawnMock,
 } from "./cli-runner.test-support.js";
@@ -74,7 +74,7 @@ describe("runCliAgent reliability", () => {
     expect(String(notice)).toContain("produced no output");
     expect(String(notice)).toContain("interactive input or an approval prompt");
     expect(opts).toMatchObject({ sessionKey: "agent:main:main" });
-    expect(requestHeartbeatNowMock).toHaveBeenCalledWith({
+    expect(requestMainSessionWakeNowMock).toHaveBeenCalledWith({
       reason: "cli:watchdog:stall",
       sessionKey: "agent:main:main",
     });

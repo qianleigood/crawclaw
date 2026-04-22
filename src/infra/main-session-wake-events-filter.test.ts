@@ -5,7 +5,7 @@ import {
   isActionableSystemEvent,
   isCronSystemEvent,
   isExecCompletionEvent,
-} from "./heartbeat-events-filter.js";
+} from "./main-session-wake-events-filter.js";
 
 describe("heartbeat event prompts", () => {
   it.each([

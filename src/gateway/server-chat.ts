@@ -3,7 +3,7 @@ import { normalizeVerboseLevel } from "../auto-reply/thinking.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { loadConfig } from "../config/config.js";
 import { type AgentEventPayload, getAgentRunContext } from "../infra/agent-events.js";
-import { resolveHeartbeatVisibility } from "../infra/heartbeat-visibility.js";
+import { resolveMainSessionWakeVisibility } from "../infra/main-session-wake-visibility.js";
 import { stripInlineDirectiveTagsForDisplay } from "../utils/directive-tags.js";
 import {
   deriveGatewaySessionLifecycleSnapshot,
@@ -49,7 +49,7 @@ function shouldHideHeartbeatChatOutput(runId: string, sourceRunId?: string): boo
 
   try {
     const cfg = loadConfig();
-    const visibility = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const visibility = resolveMainSessionWakeVisibility({ cfg, channel: "webchat" });
     return !visibility.showOk;
   } catch {
     // Default to suppressing if we can't load config

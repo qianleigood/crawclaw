@@ -7,7 +7,7 @@ import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
-import { heartbeatRunnerTelegramPlugin } from "./heartbeat-runner.test-channel-plugins.js";
+import { heartbeatRunnerTelegramPlugin } from "./main-session-wake-runner.test-channel-plugins.js";
 
 export type HeartbeatSessionSeed = {
   sessionId?: string;

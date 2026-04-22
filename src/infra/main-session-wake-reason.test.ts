@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
-  isHeartbeatActionWakeReason,
-  isHeartbeatEventDrivenReason,
-  normalizeHeartbeatWakeReason,
-  resolveHeartbeatReasonKind,
-} from "./heartbeat-reason.js";
+  isMainSessionWakeActionReason,
+  isMainSessionWakeEventDrivenReason,
+  normalizeMainSessionWakeReason,
+  resolveMainSessionWakeReasonKind,
+} from "./main-session-wake-reason.js";
 
-describe("heartbeat-reason", () => {
+describe("main-session-wake-reason", () => {
   it.each([
     { value: "  cron:job-1  ", expected: "cron:job-1" },
     { value: "  ", expected: "requested" },
     { value: undefined, expected: "requested" },
   ])("normalizes wake reasons for %j", ({ value, expected }) => {
-    expect(normalizeHeartbeatWakeReason(value)).toBe(expected);
+    expect(normalizeMainSessionWakeReason(value)).toBe(expected);
   });
 
   it.each([
@@ -31,7 +31,7 @@ describe("heartbeat-reason", () => {
     { value: "", expected: "other" },
     { value: undefined, expected: "other" },
   ])("classifies reason kinds for %j", ({ value, expected }) => {
-    expect(resolveHeartbeatReasonKind(value)).toBe(expected);
+    expect(resolveMainSessionWakeReasonKind(value)).toBe(expected);
   });
 
   it.each([
@@ -44,7 +44,7 @@ describe("heartbeat-reason", () => {
     { value: "manual", expected: false },
     { value: "other", expected: false },
   ])("matches event-driven behavior for %j", ({ value, expected }) => {
-    expect(isHeartbeatEventDrivenReason(value)).toBe(expected);
+    expect(isMainSessionWakeEventDrivenReason(value)).toBe(expected);
   });
 
   it.each([
@@ -55,6 +55,6 @@ describe("heartbeat-reason", () => {
     { value: "cron:job-1", expected: false },
     { value: "retry", expected: false },
   ])("matches action-priority wake behavior for %j", ({ value, expected }) => {
-    expect(isHeartbeatActionWakeReason(value)).toBe(expected);
+    expect(isMainSessionWakeActionReason(value)).toBe(expected);
   });
 });

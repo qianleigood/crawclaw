@@ -117,8 +117,8 @@ crawclaw memory prompt-journal-summary --date 2026-04-05 --json
 - `memory session-summary status` 会显示某个 session 当前 `summary.md` 的路径、文件状态以及 runtime 里的 summary boundary。
 - `memory session-summary refresh` 会对某个 session 强制触发一次 `session_summary` 后台更新。
 - durable `MEMORY.md` 索引现在会按 Claude 风格做校验：不能带 frontmatter、每条索引应保持单行短 hook，并整体控制在约 200 行 / 25KB 以内。
-- NotebookLM 的 knowledge recall 本身发生在 live agent turn 的 prompt assembly 阶段；`crawclaw memory` 不会主动触发 recall。
-- 当前运行时只有 `write_knowledge_note` 这一条 NotebookLM 写入路径。
+- NotebookLM 的 experience recall 本身发生在 live agent turn 的 prompt assembly 阶段；`crawclaw memory` 不会主动触发 recall。
+- 当前运行时只有 `write_experience_note` 这一条 NotebookLM 写入路径。
 - prompt journal 只用于 debug，而且会被截断/清洗；如果你要拿到可回放、
   可导出的运行真相层，应使用 Context Archive、`crawclaw agent inspect`
   或 `crawclaw agent export-context`。

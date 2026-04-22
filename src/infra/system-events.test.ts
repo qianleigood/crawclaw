@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { drainFormattedSystemEvents } from "../auto-reply/reply/session-updates.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
-import { isCronSystemEvent } from "./heartbeat-runner.js";
+import { isCronSystemEvent } from "./main-session-wake-runner.js";
 import {
   drainSystemEventEntries,
   enqueueSystemEvent,

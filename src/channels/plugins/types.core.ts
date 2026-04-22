@@ -115,7 +115,7 @@ export type ChannelAccountState =
   | "enabled"
   | "disabled";
 
-export type ChannelHeartbeatDeps = {
+export type ChannelMainSessionWakeDeps = {
   webAuthExists?: () => Promise<boolean>;
   hasActiveWebListener?: () => boolean;
 };

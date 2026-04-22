@@ -16,7 +16,7 @@ heartbeat diagnostics, and view presence.
 
 ```bash
 crawclaw system event --text "Check for urgent follow-ups" --mode now
-crawclaw system heartbeat last
+crawclaw system main-session-wake last
 crawclaw system presence
 ```
 
@@ -33,7 +33,7 @@ Flags:
 - `--mode <mode>`: `now` (default).
 - `--json`: machine-readable output.
 
-## `system heartbeat last`
+## `system main-session-wake last`
 
 Heartbeat diagnostic inspection:
 
