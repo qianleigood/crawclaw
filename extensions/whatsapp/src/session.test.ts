@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import fsSync from "node:fs";
 import path from "node:path";
 import { resetLogger, setLoggerOverride } from "crawclaw/plugin-sdk/runtime-env";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { baileys, getLastSocket, resetBaileysMocks, resetLoadConfigMock } from "./test-helpers.js";
 
 const useMultiFileAuthStateMock = vi.mocked(baileys.useMultiFileAuthState);
@@ -18,14 +18,18 @@ async function flushCredsUpdate() {
 
 async function emitCredsUpdateAndReadSaveCreds() {
   const sock = getLastSocket();
-  const saveCreds = (await useMultiFileAuthStateMock.mock.results[0]?.value)?.saveCreds;
+  const lastResult = useMultiFileAuthStateMock.mock.results.at(-1);
+  const saveCreds = (await lastResult?.value)?.saveCreds;
   sock.ev.emit("creds.update", {});
   await flushCredsUpdate();
   return saveCreds;
 }
 
-function mockCredsJsonSpies(readContents: string) {
-  const credsSuffix = path.join("/tmp", "crawclaw-oauth", "whatsapp", "default", "creds.json");
+function mockCredsJsonSpies(
+  readContents: string,
+  authDir = "/tmp/crawclaw-oauth/whatsapp/default",
+) {
+  const credsSuffix = path.join(authDir, "creds.json");
   const copySpy = vi.spyOn(fsSync, "copyFileSync").mockImplementation(() => {});
   const existsSpy = vi.spyOn(fsSync, "existsSync").mockImplementation((p) => {
     if (typeof p !== "string") {
@@ -58,10 +62,12 @@ function mockCredsJsonSpies(readContents: string) {
 }
 
 describe("web session", () => {
-  beforeEach(async () => {
-    vi.resetModules();
+  beforeAll(async () => {
     ({ createWaSocket, formatError, logWebSelfId, waitForWaConnection } =
       await import("./session.js"));
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
     resetBaileysMocks();
     resetLoadConfigMock();
@@ -84,7 +90,7 @@ describe("web session", () => {
     expect(passedLogger?.level).toBe("silent");
     expect(typeof passedLogger?.trace).toBe("function");
     const sock = getLastSocket();
-    const saveCreds = (await useMultiFileAuthStateMock.mock.results[0]?.value)?.saveCreds;
+    const saveCreds = (await useMultiFileAuthStateMock.mock.results.at(-1)?.value)?.saveCreds;
     // trigger creds.update listener
     sock.ev.emit("creds.update", {});
     await flushCredsUpdate();
@@ -297,16 +303,11 @@ describe("web session", () => {
   });
 
   it("rotates creds backup when creds.json is valid JSON", async () => {
-    const creds = mockCredsJsonSpies("{}");
-    const backupSuffix = path.join(
-      "/tmp",
-      "crawclaw-oauth",
-      "whatsapp",
-      "default",
-      "creds.json.bak",
-    );
+    const authDir = "/tmp/crawclaw-oauth/whatsapp/backup-test";
+    const creds = mockCredsJsonSpies("{}", authDir);
+    const backupSuffix = path.join(authDir, "creds.json.bak");
 
-    await createWaSocket(false, false);
+    await createWaSocket(false, false, { authDir });
     const saveCreds = await emitCredsUpdateAndReadSaveCreds();
 
     expect(creds.copySpy).toHaveBeenCalledTimes(1);

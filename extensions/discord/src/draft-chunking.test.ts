@@ -11,7 +11,7 @@ describe("resolveDiscordDraftStreamingChunking", () => {
     });
   });
 
-  it("clamps defaults to the resolved text limit", () => {
+  it("clamps the max default to the resolved text limit", () => {
     const cfg = {
       channels: {
         discord: {
@@ -21,8 +21,24 @@ describe("resolveDiscordDraftStreamingChunking", () => {
     } as CrawClawConfig;
 
     expect(resolveDiscordDraftStreamingChunking(cfg)).toEqual({
-      minChars: 500,
+      minChars: 200,
       maxChars: 500,
+      breakPreference: "paragraph",
+    });
+  });
+
+  it("clamps the min default when the resolved text limit is smaller", () => {
+    const cfg = {
+      channels: {
+        discord: {
+          textChunkLimit: 100,
+        },
+      },
+    } as CrawClawConfig;
+
+    expect(resolveDiscordDraftStreamingChunking(cfg)).toEqual({
+      minChars: 100,
+      maxChars: 100,
       breakPreference: "paragraph",
     });
   });

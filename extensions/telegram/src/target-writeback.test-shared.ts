@@ -1,11 +1,21 @@
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/testing";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 export const readConfigFileSnapshotForWrite = vi.fn();
 export const writeConfigFile = vi.fn();
 export const loadCronStore = vi.fn();
 export const resolveCronStorePath = vi.fn();
 export const saveCronStore = vi.fn();
+
+function mockConfigSnapshot(config: CrawClawConfig): {
+  snapshot: { resolved: CrawClawConfig };
+  writeOptions: Record<string, unknown>;
+} {
+  return {
+    snapshot: { resolved: config },
+    writeOptions: {},
+  };
+}
 
 vi.mock("crawclaw/plugin-sdk/config-runtime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/config-runtime")>();
@@ -25,9 +35,11 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
   describe("maybePersistResolvedTelegramTarget", () => {
     let maybePersistResolvedTelegramTarget: typeof import("./target-writeback.js").maybePersistResolvedTelegramTarget;
 
-    beforeEach(async () => {
-      vi.resetModules();
+    beforeAll(async () => {
       ({ maybePersistResolvedTelegramTarget } = await import("./target-writeback.js"));
+    });
+
+    beforeEach(() => {
       readConfigFileSnapshotForWrite.mockReset();
       writeConfigFile.mockReset();
       loadCronStore.mockReset();
@@ -83,20 +95,18 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
 
     it("writes back matching config and cron targets", async () => {
       readConfigFileSnapshotForWrite.mockResolvedValue({
-        snapshot: {
-          config: {
-            channels: {
-              telegram: {
-                defaultTo: "t.me/mychannel",
-                accounts: {
-                  alerts: {
-                    defaultTo: "@mychannel",
-                  },
+        ...mockConfigSnapshot({
+          channels: {
+            telegram: {
+              defaultTo: "t.me/mychannel",
+              accounts: {
+                alerts: {
+                  defaultTo: "@mychannel",
                 },
               },
             },
           },
-        },
+        } as CrawClawConfig),
         writeOptions: { expectedConfigPath: "/tmp/crawclaw.json" },
       });
       loadCronStore.mockResolvedValue({
@@ -144,18 +154,15 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
     });
 
     it("preserves topic suffix style in writeback target", async () => {
-      readConfigFileSnapshotForWrite.mockResolvedValue({
-        snapshot: {
-          config: {
-            channels: {
-              telegram: {
-                defaultTo: "t.me/mychannel:topic:9",
-              },
+      readConfigFileSnapshotForWrite.mockResolvedValue(
+        mockConfigSnapshot({
+          channels: {
+            telegram: {
+              defaultTo: "t.me/mychannel:topic:9",
             },
           },
-        },
-        writeOptions: {},
-      });
+        } as CrawClawConfig),
+      );
       loadCronStore.mockResolvedValue({ version: 1, jobs: [] });
 
       await maybePersistResolvedTelegramTarget({
@@ -177,18 +184,15 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
     });
 
     it("matches username targets case-insensitively", async () => {
-      readConfigFileSnapshotForWrite.mockResolvedValue({
-        snapshot: {
-          config: {
-            channels: {
-              telegram: {
-                defaultTo: "https://t.me/mychannel",
-              },
+      readConfigFileSnapshotForWrite.mockResolvedValue(
+        mockConfigSnapshot({
+          channels: {
+            telegram: {
+              defaultTo: "https://t.me/mychannel",
             },
           },
-        },
-        writeOptions: {},
-      });
+        } as CrawClawConfig),
+      );
       loadCronStore.mockResolvedValue({
         version: 1,
         jobs: [{ id: "a", delivery: { channel: "telegram", to: "https://t.me/mychannel" } }],

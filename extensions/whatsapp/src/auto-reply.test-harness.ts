@@ -5,8 +5,8 @@ import path from "node:path";
 import { createPinnedLookup } from "crawclaw/plugin-sdk/fetch-runtime";
 import { resetInboundDedupe } from "crawclaw/plugin-sdk/reply-runtime";
 import { resetLogger, setLoggerOverride } from "crawclaw/plugin-sdk/runtime-env";
-import * as ssrf from "crawclaw/plugin-sdk/ssrf-runtime";
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
+import * as ssrf from "../../../src/infra/net/ssrf.js";
 import type { WebInboundMessage, WebListenerCloseReason } from "./inbound.js";
 import {
   resetBaileysMocks as _resetBaileysMocks,
@@ -28,7 +28,7 @@ type MockWebListener = {
   sendComposingTo: () => Promise<void>;
 };
 
-export const TEST_NET_IP = "203.0.113.10";
+export const TEST_PUBLIC_IP = "93.184.216.34";
 
 vi.mock("crawclaw/plugin-sdk/agent-runtime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/agent-runtime")>();
@@ -131,30 +131,37 @@ export async function makeSessionStore(
 
 export function installWebAutoReplyUnitTestHooks(opts?: { pinDns?: boolean }) {
   let resolvePinnedHostnameSpy: { mockRestore: () => unknown } | undefined;
+  let resolvePinnedHostnameWithPolicySpy: { mockRestore: () => unknown } | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
     _resetBaileysMocks();
     _resetLoadConfigMock();
     if (opts?.pinDns) {
+      const resolvePinned = async (hostname: string) => {
+        // SSRF guard pins DNS; stub resolution to avoid live lookups in unit tests.
+        const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+        const addresses = [TEST_PUBLIC_IP];
+        return {
+          hostname: normalized,
+          addresses,
+          lookup: createPinnedLookup({ hostname: normalized, addresses }),
+        };
+      };
       resolvePinnedHostnameSpy = vi
         .spyOn(ssrf, "resolvePinnedHostname")
-        .mockImplementation(async (hostname) => {
-          // SSRF guard pins DNS; stub resolution to avoid live lookups in unit tests.
-          const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
-          const addresses = [TEST_NET_IP];
-          return {
-            hostname: normalized,
-            addresses,
-            lookup: createPinnedLookup({ hostname: normalized, addresses }),
-          };
-        });
+        .mockImplementation(async (hostname) => await resolvePinned(hostname));
+      resolvePinnedHostnameWithPolicySpy = vi
+        .spyOn(ssrf, "resolvePinnedHostnameWithPolicy")
+        .mockImplementation(async (hostname) => await resolvePinned(hostname));
     }
   });
 
   afterEach(() => {
     resolvePinnedHostnameSpy?.mockRestore();
+    resolvePinnedHostnameWithPolicySpy?.mockRestore();
     resolvePinnedHostnameSpy = undefined;
+    resolvePinnedHostnameWithPolicySpy = undefined;
     resetLogger();
     setLoggerOverride(null);
     vi.useRealTimers();

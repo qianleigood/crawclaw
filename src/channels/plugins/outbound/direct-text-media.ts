@@ -36,7 +36,7 @@ export {
   sendPayloadMediaSequenceAndFinalize,
   sendPayloadMediaSequenceOrFallback,
   sendTextMediaPayload,
-  } from "crawclaw/plugin-sdk/reply-payload";
+} from "crawclaw/plugin-sdk/reply-payload";
 
 export function resolveScopedChannelMediaMaxBytes(params: {
   cfg: CrawClawConfig;
@@ -45,8 +45,8 @@ export function resolveScopedChannelMediaMaxBytes(params: {
 }): number | undefined {
   return resolveChannelMediaMaxBytes({
     cfg: params.cfg,
-  resolveChannelLimitMb: params.resolveChannelLimitMb,
-  accountId: params.accountId,
+    resolveChannelLimitMb: params.resolveChannelLimitMb,
+    accountId: params.accountId,
   });
 }
 
@@ -54,21 +54,18 @@ export function createScopedChannelMediaMaxBytesResolver(channel: "imessage" | "
   return (params: { cfg: CrawClawConfig; accountId?: string | null }) =>
     resolveScopedChannelMediaMaxBytes({
       cfg: params.cfg,
-  resolveChannelLimitMb: ({ cfg,
-  accountId }) =>
+      resolveChannelLimitMb: ({ cfg, accountId }) =>
         cfg.channels?.[channel]?.accounts?.[accountId]?.mediaMaxMb ??
         cfg.channels?.[channel]?.mediaMaxMb,
-  });
+    });
 }
 
 export function createDirectTextMediaOutbound<
-  TOpts extends Record<string,
-  unknown>,
+  TOpts extends Record<string, unknown>,
   TResult extends DirectSendResult,
-  >(params: {
+>(params: {
   channel: "imessage" | "signal";
-  resolveSender: (deps: OutboundSendDeps | undefined) => DirectSendFn<TOpts,
-  TResult>;
+  resolveSender: (deps: OutboundSendDeps | undefined) => DirectSendFn<TOpts, TResult>;
   resolveMaxBytes: (params: {
     cfg: CrawClawConfig;
     accountId?: string | null;
@@ -90,24 +87,23 @@ export function createDirectTextMediaOutbound<
     const send = params.resolveSender(sendParams.deps);
     const maxBytes = params.resolveMaxBytes({
       cfg: sendParams.cfg,
-  accountId: sendParams.accountId,
-  });
+      accountId: sendParams.accountId,
+    });
     const result = await send(
       sendParams.to,
-  sendParams.text,
-  sendParams.buildOptions({
+      sendParams.text,
+      sendParams.buildOptions({
         cfg: sendParams.cfg,
-  mediaUrl: sendParams.mediaUrl,
-  mediaAccess: sendParams.mediaAccess,
-  mediaLocalRoots: sendParams.mediaAccess?.localRoots,
-  mediaReadFile: sendParams.mediaAccess?.readFile,
-  replyToId: sendParams.replyToId,
-  maxBytes,
-  }),
-  );
-    return { channel: params.channel,
-  ...result,
-};
+        accountId: sendParams.accountId,
+        mediaUrl: sendParams.mediaUrl,
+        mediaAccess: sendParams.mediaAccess,
+        mediaLocalRoots: sendParams.mediaAccess?.localRoots,
+        mediaReadFile: sendParams.mediaAccess?.readFile,
+        replyToId: sendParams.replyToId,
+        maxBytes,
+      }),
+    );
+    return { channel: params.channel, ...result };
   };
 
   const outbound: ChannelOutboundAdapter = {
