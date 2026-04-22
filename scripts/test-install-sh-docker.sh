@@ -9,8 +9,13 @@ CLI_INSTALL_URL="${CRAWCLAW_INSTALL_CLI_URL:-${CRAWCLAW_INSTALL_CLI_URL:-https:/
 SKIP_NONROOT="${CRAWCLAW_INSTALL_SMOKE_SKIP_NONROOT:-${CRAWCLAW_INSTALL_SMOKE_SKIP_NONROOT:-0}}"
 SKIP_SMOKE_IMAGE_BUILD="${CRAWCLAW_INSTALL_SMOKE_SKIP_IMAGE_BUILD:-${CRAWCLAW_INSTALL_SMOKE_SKIP_IMAGE_BUILD:-0}}"
 SKIP_NONROOT_IMAGE_BUILD="${CRAWCLAW_INSTALL_NONROOT_SKIP_IMAGE_BUILD:-${CRAWCLAW_INSTALL_NONROOT_SKIP_IMAGE_BUILD:-0}}"
+DOCKER_NETWORK="${CRAWCLAW_INSTALL_SMOKE_DOCKER_NETWORK:-${CRAWCLAW_INSTALL_SMOKE_DOCKER_NETWORK:-}}"
 LATEST_DIR="$(mktemp -d)"
 LATEST_FILE="${LATEST_DIR}/latest"
+DOCKER_NETWORK_ARGS=()
+if [[ -n "$DOCKER_NETWORK" ]]; then
+  DOCKER_NETWORK_ARGS=(--network "$DOCKER_NETWORK")
+fi
 
 if [[ "$SKIP_SMOKE_IMAGE_BUILD" == "1" ]]; then
   echo "==> Reuse prebuilt smoke image: $SMOKE_IMAGE"
@@ -24,6 +29,7 @@ fi
 
 echo "==> Run installer smoke test (root): $INSTALL_URL"
 docker run --rm -t \
+  "${DOCKER_NETWORK_ARGS[@]}" \
   -v "${LATEST_DIR}:/out" \
   -e CRAWCLAW_INSTALL_URL="$INSTALL_URL" \
   -e CRAWCLAW_INSTALL_URL="$INSTALL_URL" \
@@ -60,6 +66,7 @@ else
 
   echo "==> Run installer non-root test: $INSTALL_URL"
   docker run --rm -t \
+    "${DOCKER_NETWORK_ARGS[@]}" \
     -e CRAWCLAW_INSTALL_URL="$INSTALL_URL" \
     -e CRAWCLAW_INSTALL_URL="$INSTALL_URL" \
     -e CRAWCLAW_INSTALL_METHOD=npm \
@@ -84,6 +91,7 @@ fi
 
 echo "==> Run CLI installer non-root test (same image)"
 docker run --rm -t \
+  "${DOCKER_NETWORK_ARGS[@]}" \
   --entrypoint /bin/bash \
   -e CRAWCLAW_INSTALL_URL="$INSTALL_URL" \
   -e CRAWCLAW_INSTALL_URL="$INSTALL_URL" \
@@ -92,4 +100,4 @@ docker run --rm -t \
   -e CRAWCLAW_NO_ONBOARD=1 \
   -e CRAWCLAW_NO_ONBOARD=1 \
   -e DEBIAN_FRONTEND=noninteractive \
-  "$NONROOT_IMAGE" -lc "curl -fsSL \"$CLI_INSTALL_URL\" | bash -s -- --set-npm-prefix --no-onboard"
+  "$NONROOT_IMAGE" -lc "curl --retry 5 --retry-delay 3 --retry-all-errors --connect-timeout 20 -fsSL \"$CLI_INSTALL_URL\" | bash -s -- --set-npm-prefix --no-onboard"

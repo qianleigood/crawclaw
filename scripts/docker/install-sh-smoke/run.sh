@@ -56,7 +56,7 @@ else
 fi
 
 echo "==> Run official installer one-liner"
-curl -fsSL "$INSTALL_URL" | bash
+curl --retry 5 --retry-delay 3 --retry-all-errors --connect-timeout 20 -fsSL "$INSTALL_URL" | bash
 
 echo "==> Verify installed version"
 if [[ -n "${CRAWCLAW_INSTALL_LATEST_OUT:-${CRAWCLAW_INSTALL_LATEST_OUT:-}}" ]]; then

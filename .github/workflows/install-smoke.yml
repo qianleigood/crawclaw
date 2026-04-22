@@ -222,6 +222,7 @@ jobs:
           CRAWCLAW_NO_ONBOARD: "1"
           CRAWCLAW_INSTALL_SMOKE_SKIP_CLI: "1"
           CRAWCLAW_INSTALL_SMOKE_SKIP_IMAGE_BUILD: "1"
+          CRAWCLAW_INSTALL_SMOKE_DOCKER_NETWORK: host
           CRAWCLAW_INSTALL_NONROOT_SKIP_IMAGE_BUILD: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           CRAWCLAW_INSTALL_SMOKE_SKIP_NONROOT: ${{ github.event_name == 'pull_request' && '1' || '0' }}
           CRAWCLAW_INSTALL_SMOKE_SKIP_PREVIOUS: "1"
