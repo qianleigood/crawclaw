@@ -88,13 +88,14 @@ describe("createPersistentDedupe", () => {
     {
       name: "skips expired entries",
       setup: async (root: string) => {
-        const writer = createDedupe(root, { ttlMs: 1000 });
-        const oldNow = Date.now() - 2000;
+        const ttlMs = 60_000;
+        const writer = createDedupe(root, { ttlMs });
+        const oldNow = Date.now() - ttlMs * 2;
         expect(await writer.checkAndRecord("old-msg", { namespace: "acct", now: oldNow })).toBe(
           true,
         );
         expect(await writer.checkAndRecord("new-msg", { namespace: "acct" })).toBe(true);
-        return createDedupe(root, { ttlMs: 1000 });
+        return createDedupe(root, { ttlMs });
       },
       namespace: "acct",
       expectedLoaded: 1,

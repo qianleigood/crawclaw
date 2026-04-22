@@ -227,5 +227,6 @@ jobs:
           CRAWCLAW_INSTALL_NONROOT_SKIP_IMAGE_BUILD: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           CRAWCLAW_INSTALL_SMOKE_SKIP_NONROOT: ${{ github.event_name == 'pull_request' && '1' || '0' }}
           CRAWCLAW_INSTALL_SMOKE_SKIP_PREVIOUS: "1"
+          CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL: ${{ github.event_name == 'pull_request' && '1' || '' }}
           CRAWCLAW_NPM_SILENT: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         run: bash scripts/test-install-sh-docker.sh
