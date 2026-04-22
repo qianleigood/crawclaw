@@ -43754,7 +43754,7 @@
         "advanced"
       ],
       "label": "Hook Mapping Action",
-      "help": "Mapping action type: \"wake\" triggers agent wake flow, while \"agent\" sends directly to agent handling. Use \"agent\" for immediate execution and \"wake\" when heartbeat-driven processing is preferred.",
+      "help": "Mapping action type: \"wake\" queues an event-driven main-session wake, while \"agent\" sends directly to agent handling. Use \"agent\" for immediate execution and \"wake\" when queued main-session processing is preferred.",
       "hasChildren": false
     },
     {
@@ -44035,7 +44035,7 @@
         "advanced"
       ],
       "label": "Hook Mapping Wake Mode",
-      "help": "Wake scheduling mode: \"now\" wakes immediately, while \"next-heartbeat\" defers until the next heartbeat cycle. Use deferred mode for lower-priority automations that can tolerate slight delay.",
+      "help": "Wake scheduling mode. Use \"now\" to wake the main session after enqueueing the hook event. \"next-heartbeat\" is accepted as a compatibility alias for \"now\".",
       "hasChildren": false
     },
     {
@@ -44739,7 +44739,7 @@
         "storage"
       ],
       "label": "NotebookLM Memory Runtime",
-      "help": "Configures NotebookLM-backed knowledge recall for the built-in memory runtime. Prompt-facing knowledge retrieval uses NotebookLM only.",
+      "help": "Configures NotebookLM-backed experience recall for the built-in memory runtime. Prompt-facing experience retrieval uses NotebookLM only.",
       "hasChildren": true
     },
     {

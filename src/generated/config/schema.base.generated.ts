@@ -577,6 +577,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                       exclusiveMinimum: 0,
                       maximum: 20971520,
                     },
+                    allowInsecurePath: {
+                      type: "boolean",
+                    },
                   },
                   required: ["source", "path"],
                   additionalProperties: false,
@@ -14374,7 +14377,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "hooks.mappings[].wakeMode": {
       label: "Hook Mapping Wake Mode",
-      help: 'Wake scheduling mode. "now" wakes the main session after enqueueing the hook event. "next-heartbeat" is accepted as a compatibility alias for "now".',
+      help: 'Wake scheduling mode. Use "now" to wake the main session after enqueueing the hook event. "next-heartbeat" is accepted as a compatibility alias for "now".',
       tags: ["advanced"],
     },
     "hooks.mappings[].name": {

@@ -1326,7 +1326,7 @@ export const FIELD_HELP: Record<string, string> = {
   "hooks.mappings[].action":
     'Mapping action type: "wake" queues an event-driven main-session wake, while "agent" sends directly to agent handling. Use "agent" for immediate execution and "wake" when queued main-session processing is preferred.',
   "hooks.mappings[].wakeMode":
-    'Wake scheduling mode. "now" wakes the main session after enqueueing the hook event. "next-heartbeat" is accepted as a compatibility alias for "now".',
+    'Wake scheduling mode. Use "now" to wake the main session after enqueueing the hook event. "next-heartbeat" is accepted as a compatibility alias for "now".',
   "hooks.mappings[].name":
     "Human-readable mapping display name used in diagnostics and operator-facing config UIs. Keep names concise and descriptive so routing intent is obvious during incident review.",
   "hooks.mappings[].agentId":
