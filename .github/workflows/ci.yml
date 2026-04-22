@@ -706,7 +706,12 @@ jobs:
         run: python -m ruff check skills
 
       - name: Test skill Python scripts
-        run: python -m pytest -q skills
+        run: |
+          if find skills -type f \( -name 'test_*.py' -o -name '*_test.py' \) | grep -q .; then
+            python -m pytest -q skills
+          else
+            echo "No Python skill tests found; skipping pytest."
+          fi
 
   checks-windows:
     name: ${{ matrix.check_name }}
