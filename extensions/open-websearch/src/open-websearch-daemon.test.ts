@@ -1,17 +1,71 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const spawnMock = vi.hoisted(() => vi.fn());
-const mkdirSyncMock = vi.hoisted(() => vi.fn());
-const openSyncMock = vi.hoisted(() => vi.fn(() => 42));
+const homedirMock = vi.hoisted(() => vi.fn(() => "/tmp"));
 
-vi.mock("node:child_process", () => ({
-  spawn: spawnMock,
-}));
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return {
+    ...actual,
+    spawn: spawnMock,
+  };
+});
 
-vi.mock("node:fs", () => ({
-  mkdirSync: mkdirSyncMock,
-  openSync: openSyncMock,
-}));
+vi.mock("node:os", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:os")>();
+  return {
+    ...actual,
+    homedir: homedirMock,
+  };
+});
+
+const tempRoots: string[] = [];
+
+function makeRuntimeBin(): {
+  env: NodeJS.ProcessEnv;
+  launch: { command: string; args: string[] };
+} {
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-open-websearch-"));
+  tempRoots.push(stateDir);
+  const packageRoot = path.join(
+    stateDir,
+    "runtimes",
+    "open-websearch",
+    "node_modules",
+    "open-websearch",
+  );
+  const entrypoint = path.join(packageRoot, "dist", "cli.js");
+  const binPath =
+    process.platform === "win32"
+      ? path.join(
+          stateDir,
+          "runtimes",
+          "open-websearch",
+          "node_modules",
+          ".bin",
+          "open-websearch.cmd",
+        )
+      : path.join(stateDir, "runtimes", "open-websearch", "node_modules", ".bin", "open-websearch");
+  fs.mkdirSync(path.dirname(binPath), { recursive: true });
+  fs.mkdirSync(path.dirname(entrypoint), { recursive: true });
+  fs.writeFileSync(binPath, "", "utf8");
+  fs.writeFileSync(
+    path.join(packageRoot, "package.json"),
+    JSON.stringify({ bin: { "open-websearch": "dist/cli.js" } }),
+    "utf8",
+  );
+  fs.writeFileSync(entrypoint, "", "utf8");
+  return {
+    env: { ...process.env, CRAWCLAW_STATE_DIR: stateDir },
+    launch:
+      process.platform === "win32"
+        ? { command: process.execPath, args: [entrypoint] }
+        : { command: binPath, args: [] },
+  };
+}
 
 describe("open-websearch daemon manager", () => {
   let ensureManagedOpenWebSearchDaemon: typeof import("./open-websearch-daemon.js").ensureManagedOpenWebSearchDaemon;
@@ -50,8 +104,9 @@ describe("open-websearch daemon manager", () => {
       };
       return child;
     });
-    mkdirSyncMock.mockReset();
-    openSyncMock.mockReset().mockReturnValue(42);
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-open-websearch-home-"));
+    tempRoots.push(homeDir);
+    homedirMock.mockReset().mockReturnValue(homeDir);
     vi.unstubAllGlobals();
     vi.stubGlobal(
       "fetch",
@@ -63,6 +118,12 @@ describe("open-websearch daemon manager", () => {
       stopManagedOpenWebSearchDaemonService,
       __testing: testing,
     } = await import("./open-websearch-daemon.js"));
+  });
+
+  afterEach(() => {
+    for (const root of tempRoots.splice(0)) {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("skips spawning when auto-start is disabled", async () => {
@@ -87,7 +148,8 @@ describe("open-websearch daemon manager", () => {
     expect(spawnMock).not.toHaveBeenCalled();
   });
 
-  it("spawns the managed daemon through npx when local loopback is not ready", async () => {
+  it("spawns the managed daemon runtime when local loopback is not ready", async () => {
+    const { env, launch } = makeRuntimeBin();
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({ ok: false })
@@ -97,12 +159,13 @@ describe("open-websearch daemon manager", () => {
     await expect(
       ensureManagedOpenWebSearchDaemon({
         config: {} as never,
+        env,
       }),
     ).resolves.toBe("http://127.0.0.1:3210");
 
     expect(spawnMock).toHaveBeenCalledWith(
-      process.platform === "win32" ? "npx.cmd" : "npx",
-      ["--yes", "open-websearch@2.1.5", "serve", "--host", "127.0.0.1", "--port", "3210"],
+      launch.command,
+      [...launch.args, "serve", "--host", "127.0.0.1", "--port", "3210"],
       expect.objectContaining({
         detached: true,
         windowsHide: true,
@@ -116,14 +179,13 @@ describe("open-websearch daemon manager", () => {
     );
   });
 
-  it("resolves the managed launch command through npx", async () => {
-    expect(testing.resolveLaunchCommand()).toEqual({
-      command: process.platform === "win32" ? "npx.cmd" : "npx",
-      args: ["--yes", "open-websearch@2.1.5"],
-    });
+  it("resolves the managed launch command from CRAWCLAW_STATE_DIR", async () => {
+    const { env, launch } = makeRuntimeBin();
+    expect(testing.resolveLaunchCommand(env)).toMatchObject(launch);
   });
 
   it("starts and stops a gateway-managed daemon through the plugin service lifecycle", async () => {
+    const { env, launch } = makeRuntimeBin();
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({ ok: false })
@@ -133,12 +195,13 @@ describe("open-websearch daemon manager", () => {
     await expect(
       startManagedOpenWebSearchDaemonService({
         config: {} as never,
+        env,
       }),
     ).resolves.toBe("http://127.0.0.1:3210");
 
     expect(spawnMock).toHaveBeenCalledWith(
-      process.platform === "win32" ? "npx.cmd" : "npx",
-      ["--yes", "open-websearch@2.1.5", "serve", "--host", "127.0.0.1", "--port", "3210"],
+      launch.command,
+      [...launch.args, "serve", "--host", "127.0.0.1", "--port", "3210"],
       expect.objectContaining({
         detached: false,
         windowsHide: true,
@@ -149,6 +212,7 @@ describe("open-websearch daemon manager", () => {
     await expect(
       stopManagedOpenWebSearchDaemonService({
         config: {} as never,
+        env,
       }),
     ).resolves.toBeUndefined();
     expect(child.kill).toHaveBeenCalledWith("SIGTERM");

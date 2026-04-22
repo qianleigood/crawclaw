@@ -46,7 +46,16 @@ export function createTrackedTempDirs() {
       cleanupRoots.clear();
       prefixRoots.clear();
       pendingPrefixRoots.clear();
-      await Promise.all(roots.map((dir) => fs.rm(dir, { recursive: true, force: true })));
+      await Promise.all(
+        roots.map((dir) =>
+          fs.rm(dir, {
+            recursive: true,
+            force: true,
+            maxRetries: process.platform === "win32" ? 10 : 3,
+            retryDelay: 100,
+          }),
+        ),
+      );
     },
   };
 }

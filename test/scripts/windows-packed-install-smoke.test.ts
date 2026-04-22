@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -10,6 +12,7 @@ type WindowsPackedInstallSmoke = {
     platform: NodeJS.Platform;
   }) => NodeJS.ProcessEnv;
   resolveInstalledCrawClawBin: (params: { prefixDir: string; platform: NodeJS.Platform }) => string;
+  resolvePackedTarball: (packOutput: string, packDir: string) => string;
   validateRuntimeManifest: (manifest: unknown) => void;
 };
 
@@ -64,6 +67,18 @@ describe("windows packed install smoke helpers", () => {
         },
       }),
     ).not.toThrow();
+  });
+
+  it("resolves plain npm pack output without requiring the large JSON file list", async () => {
+    const script = await loadSmokeScript();
+    const packDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-pack-test-"));
+    try {
+      const tarballPath = path.join(packDir, "crawclaw-2026.4.15.tgz");
+      fs.writeFileSync(tarballPath, "");
+      expect(script.resolvePackedTarball("crawclaw-2026.4.15.tgz\n", packDir)).toBe(tarballPath);
+    } finally {
+      fs.rmSync(packDir, { recursive: true, force: true });
+    }
   });
 
   it("rejects missing install-time runtime manifest entries", async () => {
