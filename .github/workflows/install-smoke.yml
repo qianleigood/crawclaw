@@ -204,8 +204,41 @@ jobs:
           push: false
           provenance: false
 
+      - name: Select installer smoke source
+        id: installer_source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          use_local=0
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            use_local=1
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.ref_type }}" == "branch" && "${{ github.ref }}" != "refs/heads/main" ]]; then
+            use_local=1
+          fi
+
+          if [[ "$use_local" == "1" ]]; then
+            {
+              echo "install_url=file:///tmp/crawclaw-install.sh"
+              echo "local_script=scripts/install.sh"
+              echo "skip_nonroot=1"
+              echo "nonroot_skip_image_build=0"
+              echo "disable_runtime_postinstall=1"
+              echo "npm_silent=0"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "install_url=https://crawclaw.ai/install.sh"
+              echo "local_script="
+              echo "skip_nonroot=0"
+              echo "nonroot_skip_image_build=1"
+              echo "disable_runtime_postinstall="
+              echo "npm_silent=1"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build installer non-root image
-        if: github.event_name != 'pull_request'
+        if: steps.installer_source.outputs.skip_nonroot != '1'
         uses: docker/build-push-action@v6
         with:
           context: ./scripts/docker
@@ -217,16 +250,16 @@ jobs:
 
       - name: Run installer docker tests
         env:
-          CRAWCLAW_INSTALL_URL: ${{ github.event_name == 'pull_request' && 'file:///tmp/crawclaw-install.sh' || 'https://crawclaw.ai/install.sh' }}
+          CRAWCLAW_INSTALL_URL: ${{ steps.installer_source.outputs.install_url }}
           CRAWCLAW_INSTALL_CLI_URL: https://crawclaw.ai/install-cli.sh
-          CRAWCLAW_INSTALL_LOCAL_SCRIPT: ${{ github.event_name == 'pull_request' && 'scripts/install.sh' || '' }}
+          CRAWCLAW_INSTALL_LOCAL_SCRIPT: ${{ steps.installer_source.outputs.local_script }}
           CRAWCLAW_NO_ONBOARD: "1"
           CRAWCLAW_INSTALL_SMOKE_SKIP_CLI: "1"
           CRAWCLAW_INSTALL_SMOKE_SKIP_IMAGE_BUILD: "1"
           CRAWCLAW_INSTALL_SMOKE_DOCKER_NETWORK: host
-          CRAWCLAW_INSTALL_NONROOT_SKIP_IMAGE_BUILD: ${{ github.event_name == 'pull_request' && '0' || '1' }}
-          CRAWCLAW_INSTALL_SMOKE_SKIP_NONROOT: ${{ github.event_name == 'pull_request' && '1' || '0' }}
+          CRAWCLAW_INSTALL_NONROOT_SKIP_IMAGE_BUILD: ${{ steps.installer_source.outputs.nonroot_skip_image_build }}
+          CRAWCLAW_INSTALL_SMOKE_SKIP_NONROOT: ${{ steps.installer_source.outputs.skip_nonroot }}
           CRAWCLAW_INSTALL_SMOKE_SKIP_PREVIOUS: "1"
-          CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL: ${{ github.event_name == 'pull_request' && '1' || '' }}
-          CRAWCLAW_NPM_SILENT: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+          CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL: ${{ steps.installer_source.outputs.disable_runtime_postinstall }}
+          CRAWCLAW_NPM_SILENT: ${{ steps.installer_source.outputs.npm_silent }}
         run: bash scripts/test-install-sh-docker.sh
