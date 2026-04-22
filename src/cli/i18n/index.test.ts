@@ -55,8 +55,8 @@ describe("CLI translation coverage", () => {
 
   it("defines every literal production translator key", () => {
     const productionFiles = execFileSync(
-      "rg",
-      ["--files", "src/cli", "src/commands", "extensions"],
+      "git",
+      ["ls-files", "--", "src/cli", "src/commands", "extensions"],
       {
         encoding: "utf8",
       },
