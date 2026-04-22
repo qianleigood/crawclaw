@@ -1,4 +1,5 @@
 import { note as clackNote } from "@clack/prompts";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import { visibleWidth } from "./ansi.js";
 import { stylePromptTitle } from "./prompt-style.js";
 
@@ -158,8 +159,12 @@ export function wrapNoteMessage(
 }
 
 export function note(message: string, title?: string) {
-  if (isSuppressedByEnv(process.env.CRAWCLAW_SUPPRESS_NOTES ?? process.env.CRAWCLAW_SUPPRESS_NOTES)) {
+  if (
+    isSuppressedByEnv(process.env.CRAWCLAW_SUPPRESS_NOTES ?? process.env.CRAWCLAW_SUPPRESS_NOTES)
+  ) {
     return;
   }
-  clackNote(wrapNoteMessage(message), stylePromptTitle(title));
+  const translatedMessage = translateActiveCliText(message);
+  const translatedTitle = title === undefined ? undefined : translateActiveCliText(title);
+  clackNote(wrapNoteMessage(translatedMessage), stylePromptTitle(translatedTitle));
 }

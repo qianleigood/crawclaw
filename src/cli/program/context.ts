@@ -1,7 +1,7 @@
 import { loadConfig } from "../../config/config.js";
 import { VERSION } from "../../version.js";
 import { resolveCliChannelOptions } from "../channel-options.js";
-import { createCliTranslator, resolveCliLocale } from "../i18n/index.js";
+import { createCliTranslator, resolveCliLocale, setActiveCliLocale } from "../i18n/index.js";
 import type { CliLocale, CliTranslator } from "../i18n/types.js";
 
 export type ProgramContext = {
@@ -31,6 +31,7 @@ export function createProgramContext(options?: {
     config: configLanguage,
     env: options?.envLanguage ?? process.env.CRAWCLAW_LANG,
   });
+  setActiveCliLocale(locale);
   const t = createCliTranslator(locale);
 
   return {

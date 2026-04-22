@@ -11,7 +11,11 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
-import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
+import {
+  createCliTranslator,
+  resolveCliLocaleFromRuntime,
+  translateCliText,
+} from "../cli/i18n/index.js";
 import { createCliProgress } from "../cli/progress.js";
 import { stripAnsi } from "../terminal/ansi.js";
 import { note as emitNote } from "../terminal/note.js";
@@ -54,38 +58,45 @@ export function tokenizedOptionFilter<T>(search: string, option: Option<T>): boo
 }
 
 export function createClackPrompter(): WizardPrompter {
-  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
+  const locale = resolveCliLocaleFromRuntime(process.argv);
+  const t = createCliTranslator(locale);
+  const tr = (value: string | undefined): string | undefined =>
+    value === undefined ? undefined : translateCliText(locale, value);
   return {
     intro: async (title) => {
-      intro(stylePromptTitle(title) ?? title);
+      const translated = tr(title) ?? title;
+      intro(stylePromptTitle(translated) ?? translated);
     },
     outro: async (message) => {
-      outro(stylePromptTitle(message) ?? message);
+      const translated = tr(message) ?? message;
+      outro(stylePromptTitle(translated) ?? translated);
     },
     note: async (message, title) => {
-      emitNote(message, title);
+      emitNote(tr(message) ?? message, tr(title));
     },
     select: async (params) =>
       guardCancel(
         await select({
-          message: stylePromptMessage(params.message),
+          message: stylePromptMessage(tr(params.message) ?? params.message),
           options: params.options.map((opt) => {
-            const base = { value: opt.value, label: opt.label };
-            return opt.hint === undefined ? base : { ...base, hint: stylePromptHint(opt.hint) };
+            const base = { value: opt.value, label: tr(opt.label) ?? opt.label };
+            const hint = tr(opt.hint);
+            return hint === undefined ? base : { ...base, hint: stylePromptHint(hint) };
           }) as Option<(typeof params.options)[number]["value"]>[],
           initialValue: params.initialValue,
         }),
       ),
     multiselect: async (params) => {
       const options = params.options.map((opt) => {
-        const base = { value: opt.value, label: opt.label };
-        return opt.hint === undefined ? base : { ...base, hint: stylePromptHint(opt.hint) };
+        const base = { value: opt.value, label: tr(opt.label) ?? opt.label };
+        const hint = tr(opt.hint);
+        return hint === undefined ? base : { ...base, hint: stylePromptHint(hint) };
       }) as Option<(typeof params.options)[number]["value"]>[];
 
       if (params.searchable) {
         return guardCancel(
           await autocompleteMultiselect({
-            message: stylePromptMessage(params.message),
+            message: stylePromptMessage(tr(params.message) ?? params.message),
             options,
             initialValues: params.initialValues,
             filter: tokenizedOptionFilter,
@@ -95,7 +106,7 @@ export function createClackPrompter(): WizardPrompter {
 
       return guardCancel(
         await multiselect({
-          message: stylePromptMessage(params.message),
+          message: stylePromptMessage(tr(params.message) ?? params.message),
           options,
           initialValues: params.initialValues,
         }),
@@ -105,35 +116,42 @@ export function createClackPrompter(): WizardPrompter {
       const validate = params.validate;
       return guardCancel(
         await text({
-          message: stylePromptMessage(params.message),
+          message: stylePromptMessage(tr(params.message) ?? params.message),
           initialValue: params.initialValue,
-          placeholder: params.placeholder,
-          validate: validate ? (value) => validate(value ?? "") : undefined,
+          placeholder: tr(params.placeholder),
+          validate: validate
+            ? (value) => {
+                const result = validate(value ?? "");
+                return typeof result === "string" ? (tr(result) ?? result) : result;
+              }
+            : undefined,
         }),
       );
     },
     confirm: async (params) =>
       guardCancel(
         await confirm({
-          message: stylePromptMessage(params.message),
+          message: stylePromptMessage(tr(params.message) ?? params.message),
           initialValue: params.initialValue,
           active: t("common.confirm"),
           inactive: t("common.cancel"),
         }),
       ),
     progress: (label: string): WizardProgress => {
+      const translatedLabel = tr(label) ?? label;
       const spin = spinner();
-      spin.start(theme.accent(label));
+      spin.start(theme.accent(translatedLabel));
       const osc = createCliProgress({
-        label,
+        label: translatedLabel,
         indeterminate: true,
         enabled: true,
         fallback: "none",
       });
       return {
         update: (message) => {
-          spin.message(theme.accent(message));
-          osc.setLabel(message);
+          const translated = tr(message) ?? message;
+          spin.message(theme.accent(translated));
+          osc.setLabel(translated);
         },
         stop: (message) => {
           osc.done();

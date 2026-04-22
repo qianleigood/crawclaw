@@ -1,14 +1,16 @@
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { confirm, select, text } from "@clack/prompts";
+import { confirm as clackConfirm, select as clackSelect, text as clackText } from "@clack/prompts";
 import { listAgentIds, resolveAgentDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
 import { AUTH_STORE_VERSION } from "../agents/auth-profiles/constants.js";
 import { resolveAuthStorePath } from "../agents/auth-profiles/paths.js";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { SecretProviderConfig, SecretRef, SecretRefSource } from "../config/types.secrets.js";
 import { isSafeExecutableValue } from "../infra/exec-safety.js";
 import { normalizeAgentId } from "../routing/session-key.js";
+import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
 import { runSecretsApply, type SecretsApplyResult } from "./apply.js";
 import { createSecretsConfigIO } from "./config-io.js";
 import {
@@ -40,6 +42,44 @@ export type SecretsConfigureResult = {
 const ENV_NAME_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
 const WINDOWS_ABS_PATH_PATTERN = /^[A-Za-z]:[\\/]/;
 const WINDOWS_UNC_PATH_PATTERN = /^\\\\[^\\]+\\[^\\]+/;
+
+const text = (params: Parameters<typeof clackText>[0]) =>
+  clackText({
+    ...params,
+    message: stylePromptMessage(params.message),
+    placeholder:
+      params.placeholder === undefined ? undefined : translateActiveCliText(params.placeholder),
+    validate: params.validate
+      ? (value) => {
+          const result = params.validate?.(value);
+          return typeof result === "string" ? translateActiveCliText(result) : result;
+        }
+      : undefined,
+  });
+
+const confirm = (params: Parameters<typeof clackConfirm>[0]) =>
+  clackConfirm({
+    ...params,
+    message: stylePromptMessage(params.message),
+  });
+
+const translateOptionLabel = (label: string | undefined, fallback: unknown): string =>
+  translateActiveCliText(label ?? String(fallback));
+
+const select = <T>(params: Parameters<typeof clackSelect<T>>[0]) =>
+  clackSelect({
+    ...params,
+    message: stylePromptMessage(params.message),
+    options: params.options.map((opt) =>
+      opt.hint === undefined
+        ? { ...opt, label: translateOptionLabel(opt.label, opt.value) }
+        : {
+            ...opt,
+            label: translateOptionLabel(opt.label, opt.value),
+            hint: stylePromptHint(opt.hint),
+          },
+    ),
+  });
 
 function isAbsolutePathValue(value: string): boolean {
   return (

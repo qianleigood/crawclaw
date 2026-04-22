@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { visibleWidth } from "./ansi.js";
 import { wrapNoteMessage } from "./note.js";
 import { renderTable } from "./table.js";
@@ -7,10 +8,27 @@ describe("renderTable", () => {
   const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
 
   afterEach(() => {
+    setActiveCliLocale("en");
     vi.unstubAllEnvs();
     if (originalPlatformDescriptor) {
       Object.defineProperty(process, "platform", originalPlatformDescriptor);
     }
+  });
+
+  it("localizes exact table headers while preserving row values", () => {
+    setActiveCliLocale("zh-CN");
+
+    const out = renderTable({
+      border: "none",
+      columns: [
+        { key: "Item", header: "Item" },
+        { key: "Value", header: "Value" },
+      ],
+      rows: [{ Item: "Gateway", Value: "127.0.0.1" }],
+    });
+
+    expect(out.split("\n")[0]).toBe("项目 | 值");
+    expect(out).toContain("Gateway | 127.0.0.1");
   });
 
   it("prefers shrinking flex columns to avoid wrapping non-flex labels", () => {

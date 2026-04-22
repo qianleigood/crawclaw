@@ -1,6 +1,7 @@
 import { cancel, multiselect as clackMultiselect, isCancel } from "@clack/prompts";
 import { resolveApiKeyForProvider } from "../../agents/model-auth.js";
 import { type ModelScanResult, scanOpenRouterModels } from "../../agents/model-scan.js";
+import { translateActiveCliText } from "../../cli/i18n/text.js";
 import { withProgressTotals } from "../../cli/progress.js";
 import { logConfigUpdated } from "../../config/logging.js";
 import { toAgentModelListLike } from "../../config/model-input.js";
@@ -17,12 +18,21 @@ import { formatMs, formatTokenK, updateConfig } from "./shared.js";
 const MODEL_PAD = 42;
 const CTX_PAD = 8;
 
+const translateOptionLabel = (label: string | undefined, fallback: unknown): string =>
+  translateActiveCliText(label ?? String(fallback));
+
 const multiselect = <T>(params: Parameters<typeof clackMultiselect<T>>[0]) =>
   clackMultiselect({
     ...params,
     message: stylePromptMessage(params.message),
     options: params.options.map((opt) =>
-      opt.hint === undefined ? opt : { ...opt, hint: stylePromptHint(opt.hint) },
+      opt.hint === undefined
+        ? { ...opt, label: translateOptionLabel(opt.label, opt.value) }
+        : {
+            ...opt,
+            label: translateOptionLabel(opt.label, opt.value),
+            hint: stylePromptHint(opt.hint),
+          },
     ),
   });
 

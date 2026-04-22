@@ -5,6 +5,7 @@ import {
   select as clackSelect,
   text as clackText,
 } from "@clack/prompts";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import { stylePromptHint, stylePromptMessage, stylePromptTitle } from "../terminal/prompt-style.js";
 
 export const CONFIGURE_WIZARD_SECTIONS = [
@@ -72,23 +73,45 @@ export const CONFIGURE_SECTION_OPTIONS: Array<{
   },
 ];
 
-export const intro = (message: string) => clackIntro(stylePromptTitle(message) ?? message);
-export const outro = (message: string) => clackOutro(stylePromptTitle(message) ?? message);
+const tr = (value: string | undefined): string | undefined =>
+  value === undefined ? undefined : translateActiveCliText(value);
+
+export const intro = (message: string) => {
+  const translated = tr(message) ?? message;
+  return clackIntro(stylePromptTitle(translated) ?? translated);
+};
+export const outro = (message: string) => {
+  const translated = tr(message) ?? message;
+  return clackOutro(stylePromptTitle(translated) ?? translated);
+};
 export const text = (params: Parameters<typeof clackText>[0]) =>
   clackText({
     ...params,
-    message: stylePromptMessage(params.message),
+    message: stylePromptMessage(tr(params.message) ?? params.message),
+    placeholder: tr(params.placeholder),
+    validate: params.validate
+      ? (value) => {
+          const result = params.validate?.(value);
+          return typeof result === "string" ? (tr(result) ?? result) : result;
+        }
+      : undefined,
   });
 export const confirm = (params: Parameters<typeof clackConfirm>[0]) =>
   clackConfirm({
     ...params,
-    message: stylePromptMessage(params.message),
+    message: stylePromptMessage(tr(params.message) ?? params.message),
   });
 export const select = <T>(params: Parameters<typeof clackSelect<T>>[0]) =>
   clackSelect({
     ...params,
-    message: stylePromptMessage(params.message),
+    message: stylePromptMessage(tr(params.message) ?? params.message),
     options: params.options.map((opt) =>
-      opt.hint === undefined ? opt : { ...opt, hint: stylePromptHint(opt.hint) },
+      opt.hint === undefined
+        ? { ...opt, label: tr(opt.label) ?? opt.label }
+        : {
+            ...opt,
+            label: tr(opt.label) ?? opt.label,
+            hint: stylePromptHint(tr(opt.hint) ?? opt.hint),
+          },
     ),
   });

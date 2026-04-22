@@ -1,5 +1,6 @@
 import { confirm, select } from "@clack/prompts";
 import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
 import {
@@ -29,6 +30,9 @@ export type DoctorPrompter = {
   shouldForce: boolean;
   repairMode: DoctorRepairMode;
 };
+
+const translateOptionLabel = (label: string | undefined, fallback: unknown): string =>
+  translateActiveCliText(label ?? String(fallback));
 
 export function createDoctorPrompter(params: {
   runtime: RuntimeEnv;
@@ -112,7 +116,13 @@ export function createDoctorPrompter(params: {
           ...p,
           message: stylePromptMessage(p.message),
           options: p.options.map((opt) =>
-            opt.hint === undefined ? opt : { ...opt, hint: stylePromptHint(opt.hint) },
+            opt.hint === undefined
+              ? { ...opt, label: translateOptionLabel(opt.label, opt.value) }
+              : {
+                  ...opt,
+                  label: translateOptionLabel(opt.label, opt.value),
+                  hint: stylePromptHint(opt.hint),
+                },
           ),
         }),
         params.runtime,

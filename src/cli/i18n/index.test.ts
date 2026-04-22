@@ -2,7 +2,14 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import { EN_CLI_TRANSLATIONS } from "./en.js";
-import { createCliTranslator, parseCliLocaleFlag, resolveCliLocale } from "./index.js";
+import {
+  createCliTranslator,
+  getActiveCliLocale,
+  parseCliLocaleFlag,
+  resolveCliLocale,
+  setActiveCliLocale,
+  translateCliText,
+} from "./index.js";
 import { ZH_CN_CLI_TRANSLATIONS } from "./zh-CN.js";
 
 describe("parseCliLocaleFlag", () => {
@@ -43,6 +50,21 @@ describe("createCliTranslator", () => {
     const t = createCliTranslator("zh-CN");
     expect(t("unknown.key")).toBe("unknown.key");
     expect(t("common.cancel")).toBe("取消");
+  });
+});
+
+describe("active CLI text translation", () => {
+  it("tracks the active locale for shared CLI prompt surfaces", () => {
+    setActiveCliLocale("zh-CN");
+    expect(getActiveCliLocale()).toBe("zh-CN");
+    setActiveCliLocale("en");
+    expect(getActiveCliLocale()).toBe("en");
+  });
+
+  it("translates exact English CLI copy through the active dictionary", () => {
+    expect(translateCliText("zh-CN", "Gateway port")).toBe("网关端口");
+    expect(translateCliText("zh-CN", "Unknown prompt")).toBe("Unknown prompt");
+    expect(translateCliText("en", "Gateway port")).toBe("Gateway port");
   });
 });
 

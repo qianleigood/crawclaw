@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "./i18n/index.js";
 import { createCliProgress } from "./progress.js";
 
 describe("cli progress", () => {
@@ -42,5 +43,30 @@ describe("cli progress", () => {
     progress.done();
 
     expect(write).not.toHaveBeenCalled();
+  });
+
+  it("localizes exact English labels through the active CLI locale", () => {
+    setActiveCliLocale("zh-CN");
+    const writes: string[] = [];
+    const stream = {
+      isTTY: false,
+      write: vi.fn((chunk: string) => {
+        writes.push(chunk);
+      }),
+    } as unknown as NodeJS.WriteStream;
+
+    const progress = createCliProgress({
+      label: "Checking gateway health…",
+      total: 2,
+      stream,
+      fallback: "log",
+    });
+    progress.setLabel("Fetching usage snapshot…");
+    progress.done();
+
+    const output = writes.join("");
+    expect(output).toContain("检查网关健康状态");
+    expect(output).toContain("获取用量快照");
+    setActiveCliLocale("en");
   });
 });

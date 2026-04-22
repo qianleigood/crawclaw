@@ -8,6 +8,7 @@ import {
   type SandboxContainerInfo,
 } from "../agents/sandbox.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
+import { stylePromptMessage } from "../terminal/prompt-style.js";
 import {
   displayBrowsers,
   displayContainers,
@@ -143,7 +144,7 @@ function createAgentMatcher(agentId: string) {
 
 async function confirmRecreate(): Promise<boolean> {
   const result = await clackConfirm({
-    message: "This will stop and remove these containers. Continue?",
+    message: stylePromptMessage("This will stop and remove these containers. Continue?"),
     initialValue: false,
   });
 

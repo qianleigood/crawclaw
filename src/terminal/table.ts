@@ -1,3 +1,4 @@
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import { displayString } from "../utils.js";
 import { splitGraphemes, visibleWidth } from "./ansi.js";
 
@@ -280,6 +281,10 @@ export function getTerminalTableWidth(minWidth = 60, fallbackWidth = 120): numbe
 }
 
 export function renderTable(opts: RenderTableOptions): string {
+  const columns = opts.columns.map((column) => ({
+    ...column,
+    header: translateActiveCliText(column.header),
+  }));
   const rows = opts.rows.map((row) => {
     const next: Record<string, string> = {};
     for (const [key, value] of Object.entries(row)) {
@@ -289,14 +294,12 @@ export function renderTable(opts: RenderTableOptions): string {
   });
   const border = opts.border ?? resolveDefaultBorder(process.platform, process.env);
   if (border === "none") {
-    const columns = opts.columns;
     const header = columns.map((c) => c.header).join(" | ");
     const lines = [header, ...rows.map((r) => columns.map((c) => r[c.key] ?? "").join(" | "))];
     return `${lines.join("\n")}\n`;
   }
 
   const padding = Math.max(0, opts.padding ?? 1);
-  const columns = opts.columns;
 
   const metrics = columns.map((c) => {
     const headerW = visibleWidth(c.header);

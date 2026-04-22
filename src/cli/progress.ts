@@ -6,6 +6,7 @@ import {
   unregisterActiveProgressLine,
 } from "../terminal/progress-line.js";
 import { theme } from "../terminal/theme.js";
+import { translateActiveCliText } from "./i18n/text.js";
 
 const DEFAULT_DELAY_MS = 0;
 let activeProgress = 0;
@@ -61,7 +62,7 @@ export function createCliProgress(options: ProgressOptions): ProgressReporter {
   const allowLine = isTty && options.fallback === "line";
 
   let started = false;
-  let label = options.label;
+  let label = translateActiveCliText(options.label);
   const total = options.total ?? null;
   let completed = 0;
   let percent = 0;
@@ -155,7 +156,7 @@ export function createCliProgress(options: ProgressOptions): ProgressReporter {
   }
 
   const setLabel = (next: string) => {
-    label = next;
+    label = translateActiveCliText(next);
     applyState();
   };
 

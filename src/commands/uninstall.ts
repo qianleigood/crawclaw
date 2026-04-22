@@ -1,6 +1,7 @@
 import path from "node:path";
 import { cancel, confirm, isCancel, multiselect } from "@clack/prompts";
 import { formatCliCommand } from "../cli/command-format.js";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import { isNixMode } from "../config/config.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -22,12 +23,21 @@ export type UninstallOptions = {
   dryRun?: boolean;
 };
 
+const translateOptionLabel = (label: string | undefined, fallback: unknown): string =>
+  translateActiveCliText(label ?? String(fallback));
+
 const multiselectStyled = <T>(params: Parameters<typeof multiselect<T>>[0]) =>
   multiselect({
     ...params,
     message: stylePromptMessage(params.message),
     options: params.options.map((opt) =>
-      opt.hint === undefined ? opt : { ...opt, hint: stylePromptHint(opt.hint) },
+      opt.hint === undefined
+        ? { ...opt, label: translateOptionLabel(opt.label, opt.value) }
+        : {
+            ...opt,
+            label: translateOptionLabel(opt.label, opt.value),
+            hint: stylePromptHint(opt.hint),
+          },
     ),
   });
 

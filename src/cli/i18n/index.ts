@@ -1,7 +1,14 @@
 import { loadConfig } from "../../config/config.js";
-import { EN_CLI_TRANSLATIONS } from "./en.js";
-import type { CliLocale, CliTranslationParams, CliTranslations, CliTranslator } from "./types.js";
-import { ZH_CN_CLI_TRANSLATIONS } from "./zh-CN.js";
+import { setActiveCliLocale } from "./text.js";
+import type { CliLocale } from "./types.js";
+
+export {
+  createCliTranslator,
+  getActiveCliLocale,
+  setActiveCliLocale,
+  translateActiveCliText,
+  translateCliText,
+} from "./text.js";
 
 const SUPPORTED_CLI_LOCALES = new Set<CliLocale>(["en", "zh-CN"]);
 
@@ -43,19 +50,6 @@ export function resolveCliLocale(params?: {
   return flag ?? config ?? env ?? "en";
 }
 
-function applyParams(template: string, params?: CliTranslationParams): string {
-  if (!params) {
-    return template;
-  }
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(params[key] ?? `{${key}}`));
-}
-
-export function createCliTranslator(locale: CliLocale): CliTranslator {
-  const primary: CliTranslations =
-    locale === "zh-CN" ? ZH_CN_CLI_TRANSLATIONS : EN_CLI_TRANSLATIONS;
-  return (key, params) => applyParams(primary[key] ?? EN_CLI_TRANSLATIONS[key] ?? key, params);
-}
-
 export function resolveCliLocaleFromRuntime(argv: readonly string[]): CliLocale {
   let configLanguage: string | undefined;
   try {
@@ -65,9 +59,11 @@ export function resolveCliLocaleFromRuntime(argv: readonly string[]): CliLocale 
     // mock the config reads they exercise. Fall back to env/flag/default.
     configLanguage = undefined;
   }
-  return resolveCliLocale({
+  const locale = resolveCliLocale({
     argv,
     config: configLanguage,
     env: process.env.CRAWCLAW_LANG,
   });
+  setActiveCliLocale(locale);
+  return locale;
 }

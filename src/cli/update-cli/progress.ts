@@ -7,6 +7,7 @@ import type {
 } from "../../infra/update-runner.js";
 import { defaultRuntime } from "../../runtime.js";
 import { theme } from "../../terminal/theme.js";
+import { translateActiveCliText } from "../i18n/text.js";
 import type { UpdateCommandOptions } from "./shared.js";
 
 const STEP_LABELS: Record<string, string> = {
@@ -30,7 +31,7 @@ const STEP_LABELS: Record<string, string> = {
 };
 
 function getStepLabel(step: UpdateStepInfo): string {
-  return STEP_LABELS[step.name] ?? step.name;
+  return translateActiveCliText(STEP_LABELS[step.name] ?? step.name);
 }
 
 export function inferUpdateFailureHints(result: UpdateRunResult): string[] {
