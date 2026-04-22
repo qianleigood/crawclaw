@@ -7,6 +7,7 @@ import {
 } from "../routing/session-key.js";
 import type { ChatLog } from "./components/chat-log.js";
 import type { GatewayAgentsList, GatewayChatClient } from "./gateway-chat.js";
+import { formatTuiFirstScreenHint } from "./tui-discovery.js";
 import { asString, extractTextFromMessage, isCommandMessage } from "./tui-formatters.js";
 import type { SessionInfo, TuiOptions, TuiStateAccess } from "./tui-types.js";
 
@@ -327,10 +328,14 @@ export function createSessionActions(context: SessionActionContext) {
       state.sessionInfo.fastMode = record.fastMode ?? state.sessionInfo.fastMode;
       state.sessionInfo.verboseLevel = record.verboseLevel ?? state.sessionInfo.verboseLevel;
       const showTools = (state.sessionInfo.verboseLevel ?? "off") !== "off";
+      const messages = record.messages ?? [];
       chatLog.clearAll();
       btw.clear();
       chatLog.addSystem(`session ${state.currentSessionKey}`);
-      for (const entry of record.messages ?? []) {
+      if (messages.length === 0) {
+        chatLog.addSystem(formatTuiFirstScreenHint());
+      }
+      for (const entry of messages) {
         if (!entry || typeof entry !== "object") {
           continue;
         }

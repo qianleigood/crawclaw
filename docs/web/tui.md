@@ -67,6 +67,7 @@ Use `--password` if your Gateway uses password auth.
 - Session picker: shows only sessions for the current agent. Rows include title/key, recent activity, model, token usage, flags, delivery route, and last-message preview when available.
 - Settings: toggle deliver, tool output expansion, and thinking visibility.
 - Status overlay: `/status` opens a compact overlay with the current run, model, token usage, delivery route, Gateway link/auth status, queued system events, recent sessions, and the latest TUI error.
+- Empty sessions show one short tip with the main pickers and `/help`; the footer keeps the same hint compactly visible.
 
 ## Keyboard shortcuts
 

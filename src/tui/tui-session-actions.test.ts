@@ -284,4 +284,76 @@ describe("tui session actions", () => {
     expect(state.sessionInfo.updatedAt).toBe(50);
     expect(btw.clear).toHaveBeenCalled();
   });
+
+  it("adds a short discovery hint when loading an empty session", async () => {
+    const listSessions = vi.fn().mockResolvedValue({
+      ts: Date.now(),
+      path: "/tmp/sessions.json",
+      count: 1,
+      defaults: {},
+      sessions: [
+        {
+          key: "agent:main:main",
+          model: "gpt-5.4",
+          modelProvider: "openai",
+        },
+      ],
+    });
+    const loadHistory = vi.fn().mockResolvedValue({
+      sessionId: "session-1",
+      messages: [],
+    });
+    const addSystem = vi.fn();
+    const state: TuiStateAccess = {
+      agentDefaultId: "main",
+      sessionMainKey: "agent:main:main",
+      sessionScope: "global",
+      agents: [],
+      currentAgentId: "main",
+      currentSessionKey: "agent:main:main",
+      currentSessionId: null,
+      activeChatRunId: null,
+      historyLoaded: false,
+      sessionInfo: {},
+      initialSessionApplied: true,
+      isConnected: true,
+      autoMessageSent: false,
+      deliverEnabled: false,
+      toolsExpanded: false,
+      showThinking: false,
+      connectionStatus: "connected",
+      activityStatus: "idle",
+      statusTimeout: null,
+      lastCtrlCAt: 0,
+    };
+
+    const { loadHistory: runLoadHistory } = createSessionActions({
+      client: {
+        listSessions,
+        loadHistory,
+      } as unknown as GatewayChatClient,
+      chatLog: {
+        addSystem,
+        clearAll: vi.fn(),
+      } as unknown as import("./components/chat-log.js").ChatLog,
+      btw: createBtwPresenter(),
+      tui: { requestRender: vi.fn() } as unknown as import("@mariozechner/pi-tui").TUI,
+      opts: {},
+      state,
+      agentNames: new Map(),
+      initialSessionInput: "",
+      initialSessionAgentId: null,
+      resolveSessionKey: vi.fn(),
+      updateHeader: vi.fn(),
+      updateFooter: vi.fn(),
+      updateAutocompleteProvider: vi.fn(),
+      setActivityStatus: vi.fn(),
+    });
+
+    await runLoadHistory();
+
+    expect(addSystem).toHaveBeenCalledWith("session agent:main:main");
+    expect(addSystem).toHaveBeenCalledWith(expect.stringContaining("/help"));
+    expect(addSystem).toHaveBeenCalledWith(expect.stringContaining("Ctrl+O"));
+  });
 });
