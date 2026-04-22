@@ -15,7 +15,9 @@ RUN --mount=type=cache,id=crawclaw-install-sh-nonroot-apt-cache,target=/var/cach
   done; \
   apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
     bash \
+    build-essential \
     ca-certificates \
+    cmake \
     curl \
     g++ \
     make \

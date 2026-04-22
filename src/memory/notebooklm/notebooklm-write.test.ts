@@ -2,8 +2,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { __testing as promptJournalTesting } from "../diagnostics/prompt-journal.ts";
+import { writeNotebookLmExperienceNoteViaCli } from "./notebooklm-write.ts";
+import { clearNotebookLmProviderStateCache } from "./provider-state.ts";
 
-const execFileMock = vi.fn();
+const execFileMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", () => ({
   execFile: (...args: unknown[]) => execFileMock(...args),
@@ -12,12 +15,15 @@ vi.mock("node:child_process", () => ({
 describe("writeNotebookLmExperienceNoteViaCli", () => {
   beforeEach(() => {
     execFileMock.mockReset();
+    clearNotebookLmProviderStateCache();
+    promptJournalTesting.resetSharedMemoryPromptJournal();
   });
 
   afterEach(() => {
     delete process.env.CRAWCLAW_MEMORY_PROMPT_JOURNAL;
     delete process.env.CRAWCLAW_MEMORY_PROMPT_JOURNAL_FILE;
-    vi.resetModules();
+    clearNotebookLmProviderStateCache();
+    promptJournalTesting.resetSharedMemoryPromptJournal();
   });
 
   it("writes a payload file through the configured write command", async () => {
@@ -48,7 +54,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
         );
       });
 
-    const { writeNotebookLmExperienceNoteViaCli } = await import("./notebooklm-write.ts");
     const result = await writeNotebookLmExperienceNoteViaCli({
       config: {
         enabled: true,
@@ -118,7 +123,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
     });
 
     const logger = { warn: vi.fn() };
-    const { writeNotebookLmExperienceNoteViaCli } = await import("./notebooklm-write.ts");
     await expect(() =>
       writeNotebookLmExperienceNoteViaCli({
         config: {
@@ -196,7 +200,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
         );
       });
 
-    const { writeNotebookLmExperienceNoteViaCli } = await import("./notebooklm-write.ts");
     await writeNotebookLmExperienceNoteViaCli({
       config: {
         enabled: true,
@@ -241,7 +244,7 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
       },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await expect.poll(async () => (await fs.readFile(logFile, "utf8")).trim()).not.toBe("");
     const lines = (await fs.readFile(logFile, "utf8")).trim().split("\n");
     expect(lines.length).toBeGreaterThan(0);
     const event = JSON.parse(lines.at(-1) ?? "{}");
