@@ -1130,7 +1130,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.security.audit.option.password": "Deep probe 认证使用的 gateway 密码",
   "command.security.audit.option.fix": "应用安全修复（收紧默认值 + chmod 状态/配置）",
   "command.security.audit.option.json": "打印 JSON",
-  "command.secrets.description": "密钥运行时控制",
+  "command.secrets.description": "Secrets 运行时控制",
   "command.secrets.option.json": "输出 JSON",
   "command.secrets.reload.description": "重新解析 secret 引用，并原子替换运行时快照",
   "command.secrets.audit.description": "审计明文 secrets、未解析引用和优先级漂移",
