@@ -177,7 +177,7 @@ describe("Scheduled Task stop/restart cleanup", () => {
         .mockResolvedValueOnce(freePortUsage());
 
       await expect(restartScheduledTask({ env, stdout })).resolves.toEqual({
-        outcome: "completed",
+        outcome: "scheduled",
       });
 
       expect(findVerifiedGatewayListenerPidsOnPortSync).toHaveBeenCalledWith(GATEWAY_PORT);

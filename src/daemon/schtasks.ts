@@ -789,7 +789,7 @@ export async function restartScheduledTask({
     throw new Error(`schtasks run failed: ${res.stderr || res.stdout}`.trim());
   }
   stdout.write(`${formatLine("Restarted Scheduled Task", taskName)}\n`);
-  return { outcome: "completed" };
+  return { outcome: "scheduled" };
 }
 
 export async function isScheduledTaskInstalled(args: GatewayServiceEnvArgs): Promise<boolean> {
