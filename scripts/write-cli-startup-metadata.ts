@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 function dedupe(values: string[]): string[] {
   const seen = new Set<string>();
@@ -78,42 +78,6 @@ export function readBundledChannelCatalogIds(
     .map((entry) => entry.id);
 }
 
-async function captureStdout(action: () => void | Promise<void>): Promise<string> {
-  let output = "";
-  const originalWrite = process.stdout.write.bind(process.stdout);
-  const captureWrite: typeof process.stdout.write = ((chunk: string | Uint8Array) => {
-    output += String(chunk);
-    return true;
-  }) as typeof process.stdout.write;
-  process.stdout.write = captureWrite;
-  try {
-    await action();
-  } finally {
-    process.stdout.write = originalWrite;
-  }
-  return output;
-}
-
-export async function renderBundledRootHelpText(
-  distDirOverride: string = distDir,
-): Promise<string> {
-  const bundleName = readdirSync(distDirOverride).find(
-    (entry) => entry.startsWith("root-help-") && entry.endsWith(".js"),
-  );
-  if (!bundleName) {
-    throw new Error("No root-help bundle found in dist; cannot write CLI startup metadata.");
-  }
-  const moduleUrl = pathToFileURL(path.join(distDirOverride, bundleName)).href;
-  const mod = (await import(moduleUrl)) as { outputRootHelp?: () => void | Promise<void> };
-  if (typeof mod.outputRootHelp !== "function") {
-    throw new Error(`Bundle ${bundleName} does not export outputRootHelp.`);
-  }
-
-  return captureStdout(async () => {
-    await mod.outputRootHelp?.();
-  });
-}
-
 export async function writeCliStartupMetadata(options?: {
   distDir?: string;
   outputPath?: string;
@@ -124,7 +88,6 @@ export async function writeCliStartupMetadata(options?: {
   const resolvedExtensionsDir = options?.extensionsDir ?? extensionsDir;
   const catalog = readBundledChannelCatalogIds(resolvedExtensionsDir);
   const channelOptions = dedupe([...CORE_CHANNEL_ORDER, ...catalog]);
-  const rootHelpText = await renderBundledRootHelpText(resolvedDistDir);
 
   mkdirSync(resolvedDistDir, { recursive: true });
   writeFileSync(
@@ -133,7 +96,6 @@ export async function writeCliStartupMetadata(options?: {
       {
         generatedBy: "scripts/write-cli-startup-metadata.ts",
         channelOptions,
-        rootHelpText,
       },
       null,
       2,

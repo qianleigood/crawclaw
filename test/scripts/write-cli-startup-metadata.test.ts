@@ -2,10 +2,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  renderBundledRootHelpText,
-  writeCliStartupMetadata,
-} from "../../scripts/write-cli-startup-metadata.ts";
+import { writeCliStartupMetadata } from "../../scripts/write-cli-startup-metadata.ts";
 
 function createTempDir(prefix: string): string {
   return mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -20,25 +17,7 @@ describe("write-cli-startup-metadata", () => {
     }
   });
 
-  it("captures async root help bundle output", async () => {
-    const distDir = createTempDir("crawclaw-root-help-");
-    tempDirs.push(distDir);
-    writeFileSync(
-      path.join(distDir, "root-help-async.js"),
-      [
-        "export async function outputRootHelp() {",
-        "  await Promise.resolve();",
-        "  process.stdout.write('CrawClaw help\\n');",
-        "}",
-        "",
-      ].join("\n"),
-      "utf8",
-    );
-
-    await expect(renderBundledRootHelpText(distDir)).resolves.toBe("CrawClaw help\n");
-  });
-
-  it("writes startup metadata with populated root help text", async () => {
+  it("writes startup metadata with precomputed channel options", async () => {
     const tempRoot = createTempDir("crawclaw-startup-metadata-");
     tempDirs.push(tempRoot);
     const distDir = path.join(tempRoot, "dist");
@@ -47,11 +26,6 @@ describe("write-cli-startup-metadata", () => {
 
     mkdirSync(distDir, { recursive: true });
     mkdirSync(path.join(extensionsDir, "matrix"), { recursive: true });
-    writeFileSync(
-      path.join(distDir, "root-help-fixture.js"),
-      "export async function outputRootHelp() { process.stdout.write('Usage: crawclaw\\n'); }\n",
-      "utf8",
-    );
     writeFileSync(
       path.join(extensionsDir, "matrix", "package.json"),
       JSON.stringify({
@@ -70,9 +44,8 @@ describe("write-cli-startup-metadata", () => {
 
     const written = JSON.parse(readFileSync(outputPath, "utf8")) as {
       channelOptions: string[];
-      rootHelpText: string;
     };
     expect(written.channelOptions).toContain("matrix");
-    expect(written.rootHelpText).toBe("Usage: crawclaw\n");
+    expect(written).not.toHaveProperty("rootHelpText");
   });
 });
