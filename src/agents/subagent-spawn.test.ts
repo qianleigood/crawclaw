@@ -204,7 +204,7 @@ describe("spawnSubagentDirect seam flow", () => {
     }
   });
 
-  it("threads verifier-specific spawn metadata and extra system prompt into the child run", async () => {
+  it("threads review-specific spawn metadata and extra system prompt into the child run", async () => {
     let agentParams:
       | {
           lane?: string;

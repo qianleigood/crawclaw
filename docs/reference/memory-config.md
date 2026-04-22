@@ -291,7 +291,7 @@ It is the replay/export-facing truth layer for:
 
 - model-visible prompt/messages/tool surface
 - tool admission, loop policy, and tool results
-- post-turn updates such as session-summary maintenance, compaction, completion, and verifier results
+- post-turn updates such as session-summary maintenance, compaction, completion, and review results
 
 It is **not** the same as:
 

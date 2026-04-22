@@ -823,7 +823,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - 已新增 `src/infra/approval-visibility.ts`，把 approval waiting / granted / denied / unavailable 的 projectedTitle / projectedSummary 生成收成 shared seam。
 - `src/agents/action-feed/projector.ts` 与 gateway approval handlers 已开始复用 shared approval visibility；approval action feed / inspect / UI 的标题不再依赖通用 `wait_approval` intent fallback。
 - UI focused tests 也已开始锁住 approval projected fields；approval 这条主线现在和 workflow 一样开始走明确的 shared visibility seam。
-- 已新增 `src/agents/tasks/completion-visibility.ts`，把 completion accepted / waiting_user / waiting_external / verification_missing 的 projectedTitle / projectedSummary 生成收成 shared seam。
+- 已新增 `src/agents/tasks/completion-visibility.ts`，把 completion accepted / waiting_user / waiting_external / review_missing 的 projectedTitle / projectedSummary 生成收成 shared seam。
 - `src/agents/tasks/task-trajectory.ts` 与 `src/agents/action-feed/projector.ts` 已开始复用 shared completion visibility；completion action feed 不再只显示泛化的 `Completion decision`。
 - UI focused tests 也已开始锁住 completion projected fields；completion 这条主线现在也开始走 shared visibility seam。
 - 已新增 `src/memory/action-visibility.ts`，把 memory-extraction / session-summary / dream 的 projectedTitle / projectedSummary 生成收成 shared seam。

@@ -135,9 +135,9 @@ Introduce a special built-in agent profile:
 - task-backed
 - hidden from ordinary chat transcript by default
 
-This is conceptually similar to verifier:
+This is conceptually similar to review stages:
 
-- verifier = read-only validation agent
+- review stages = read-only validation agents
 - memory_extractor = durable-memory maintenance agent
 
 ### Trigger rules
@@ -203,7 +203,7 @@ The most important constraint is:
 
 ### Capability boundary
 
-This agent should be even narrower than verifier.
+This agent should be even narrower than review stages.
 
 Allowed:
 

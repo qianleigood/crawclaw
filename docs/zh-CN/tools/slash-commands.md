@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-02-03T10:12:40Z"
   model: claude-opus-4-5
   provider: pi
-  source_hash: ca0deebf89518e8c62828fbb9bf4621c5fff8ab86ccb22e37da61a28f9a7886a
+  source_hash: e44c1796704b5623e14500be06caa51932541f875f1ee2cd443fdb7a0f32d64a
   source_path: tools/slash-commands.md
   workflow: 15
 ---
@@ -21,7 +21,7 @@ x-i18n:
 有两个相关系统：
 
 - **命令**：独立的 `/...` 消息。
-- **指令**：`/think`、`/verbose`、`/reasoning`、`/elevated`、`/exec`、`/model`、`/queue`。
+- **指令**：`/think`、`/fast`、`/verbose`、`/reasoning`、`/elevated`、`/exec`、`/model`、`/queue`。
   - 指令在模型看到消息之前被剥离。
   - 在普通聊天消息中（不是仅指令消息），它们被视为"内联提示"，**不会**持久化会话设置。
   - 在仅指令消息中（消息只包含指令），它们会持久化到会话并回复确认。
@@ -89,7 +89,7 @@ x-i18n:
 - `/btw <question>`（针对当前会话发起一个不改变后续上下文的侧问）
 - `/export-session [path]`（别名：`/export`，导出当前会话 HTML）
 - `/whoami`（显示你的发送者 ID；别名：`/id`）
-- `/verify [task]`（为当前任务，或为你提供的验证目标，启动一个专用验证智能体）
+- `/review [focus]`（为当前任务运行两阶段 review pipeline，可选指定 review focus）
 - `/session idle <duration|off>`（管理 focused thread binding 的闲置超时）
 - `/session max-age <duration|off>`（管理 focused thread binding 的最大存活时间）
 - `/subagents list|kill|log|info|send|steer|spawn`（检查、控制或创建当前会话的子智能体运行）
@@ -136,11 +136,11 @@ x-i18n:
 
 - 命令接受命令和参数之间的可选 `:`（例如 `/think: high`、`/send: on`、`/help:`）。
 - `/new <model>` 接受模型别名、`provider/model` 或提供商名称（模糊匹配）；如果没有匹配，文本被视为消息正文。
-- `/verify` 会通过同一套 task-backed runtime 启动一个专用 verification sub-agent。
-  - 不带参数时，它会验证当前任务结果、最近的工作区改动和当前会话的用户可见行为。
-  - 带参数时，后面的文本会直接成为 verifier 的任务，例如：`/verify 重跑登录两次并确认重试流程`。
-  - verification 会话按策略是只读的：只保留验证类工具，并且不能递归再次启动验证。
-  - `/verify` 是唯一的用户可见验证入口；内部 verification tool flow 不作为公开工具面暴露。
+- `/review` 会通过 task-backed special agents 运行两阶段 review pipeline。
+  - 不带参数时，它会 review 当前任务结果、最近的工作区改动和当前会话的用户可见行为。
+  - 带参数时，后面的文本会成为 review focus，例如：`/review check plugin SDK boundary coverage`。
+  - review 会话按策略是只读的：只保留验证类工具，并且不能递归再次启动 review。
+  - `/review` 是唯一的用户可见 review 入口；内部 `review_task` tool flow 不作为公开 slash command 暴露。
 - 要获取完整的提供商使用量分解，使用 `crawclaw status --usage`。
 - `/allowlist add|remove` 需要 `commands.config=true` 并遵循渠道 `configWrites`。
 - `/plugins install <spec>` 接受与 `crawclaw plugins install` 相同的 plugin spec。
@@ -161,32 +161,44 @@ x-i18n:
   - 示例：`/prose`（OpenProse 插件）— 参见 [OpenProse](/prose)。
 - **原生命令参数：** Discord 使用自动完成进行动态选项（以及当你省略必需参数时的按钮菜单）。当命令支持选择且你省略参数时，Telegram 和 Slack 显示按钮菜单。
 
+## `/tools`
+
+`/tools` 回答的是运行时问题，不是配置问题：**这个 agent 在当前对话里现在能用什么工具**。
+
+- 默认 `/tools` 是 compact 模式，适合快速扫描。
+- `/tools verbose` 会附带简短描述。
+- 支持参数的原生命令面也暴露同一个 `compact|verbose` 模式切换。
+- 结果是 session-scoped，因此 agent、channel、thread、sender authorization 或 model 改变后，输出也可能改变。
+- `/tools` 包含运行时实际可达的工具，包括 core tools、已连接 plugin tools 和 channel-owned tools。
+
+编辑 profile 和 override 时，应使用 config/catalog surface，不要把 `/tools` 当成静态 catalog。
+
+## `/review`
+
+`/review` 是内部两阶段 review flow 的聊天命令包装层。它会启动独立的 spec-compliance 和 code-quality review agents，等待它们的报告，应用确定性聚合器，然后把简短结果返回到当前对话。
+
+示例：
+
+```text
+/review
+/review check plugin SDK boundaries
+/review check that the refactor covers all built-in and plugin channels
+```
+
+行为：
+
+- spec reviewer 和 quality reviewer 拿到的是专用 review prompt，而不是完整父 transcript。
+- 每个 reviewer 都必须输出严格的 `STAGE`、`VERDICT`、`SUMMARY`、`BLOCKING_ISSUES`、`WARNINGS`、`EVIDENCE` 和 `RECOMMENDED_FIXES` 结构。
+- 最终 verdict 是 `REVIEW_PASS`、`REVIEW_FAIL` 或 `REVIEW_PARTIAL`。
+- 只有 `REVIEW_PASS` 可以作为父任务的 review completion evidence。
+- review 会话不能再次创建嵌套 review 会话。
+- `/review` 是唯一公开的 review 入口。
+
 ## 使用量显示（什么显示在哪里）
 
 - **提供商使用量/配额**（示例："Claude 80% left"）在启用使用量跟踪时显示在 `/status` 中，针对当前模型提供商。
 - **每响应令牌/成本**由 `/usage off|tokens|full` 控制（附加到普通回复）。
 - `/model status` 是关于**模型/认证/端点**的，不是使用量。
-
-## `/verify`
-
-`/verify` 是内部 verification flow 的聊天命令包装层。它会启动一个专门的
-verification agent 作为后台 sub-agent 运行，等待严格 verdict，然后把简短结果返回到当前对话。
-
-示例：
-
-```text
-/verify
-/verify 重跑 onboarding 流程并确认最后出现成功提示
-/verify 检查最近的修复是否破坏了图片上传
-```
-
-行为：
-
-- verifier 拿到的是专用的 verification system prompt，而不是完整父 transcript。
-- verifier 必须输出 `VERDICT: PASS`、`VERDICT: FAIL` 或 `VERDICT: PARTIAL`。
-- `PASS` 可以回流为父任务的 completion evidence。
-- verification 会话不能再次创建嵌套 verification 会话。
-- `/verify` 是唯一公开的验证入口。
 
 ## 模型选择（`/model`）
 

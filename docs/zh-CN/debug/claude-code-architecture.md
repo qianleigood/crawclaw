@@ -643,7 +643,7 @@ Claude Code 虽然很厚，但主轴其实很清楚：
 4. **尽早做 inspection / status / structured init**
    这样后面 remote、SDK、运维面都会顺。
 
-5. **把 replay / fixture / verifier 当成基础设施**
+5. **把 replay / fixture / review 当成基础设施**
    这会直接决定这套系统能不能长期稳定进化。
 
 ## 十四、你下一步怎么继续读

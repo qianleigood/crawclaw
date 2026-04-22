@@ -277,7 +277,7 @@ It captures:
 - model-visible context, including the assembled prompt/messages/tool surface
 - tool admission decisions, loop policy actions, and tool results
 - post-turn updates such as session-summary maintenance, compaction,
-  completion, and verifier outcomes
+  completion, and review outcomes
 
 Context Archive is distinct from the older record layers:
 

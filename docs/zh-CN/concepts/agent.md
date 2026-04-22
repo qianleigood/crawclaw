@@ -7,7 +7,7 @@ x-i18n:
   generated_at: "2026-02-03T10:04:53Z"
   model: claude-opus-4-5
   provider: pi
-  source_hash: 04b4e0bc6345d2afd9a93186e5d7a02a393ec97da2244e531703cb6a1c182325
+  source_hash: c3dae51493da0c047435d3adf2992fdb6cdec551c071c987f3040b601573b462
   source_path: concepts/agent.md
   workflow: 15
 ---
@@ -110,19 +110,16 @@ task-backed run 现在还可以被捕获到 Context Archive。
 它和普通 session transcript 不是一回事。transcript 仍然是产品侧会话记录，
 Context Archive 则是 replay / export 层。
 
-## Verification agent
+## 两阶段 review
 
-CrawClaw 还支持一条专门的 verification agent 路径，用来在任务被视为真正完成前做“尽量找问题”的验证。
+CrawClaw 支持一条专门的两阶段 review 路径，用来在任务被视为真正完成前做“尽量找问题”的验证。
 
-- 用户入口是聊天命令 `/verify [task]`
-- 内部实现上，`/verify` 会进入一条专门的 verification flow，再创建一个带
-  `spawnSource: "verification"` 的 task-backed sub-agent
-- `/verify` 是唯一公开的验证入口
-- verification 运行使用专用 system prompt 和受限的验证类工具集，而不是继承父 agent 的完整工具面
-- verification 运行被刻意设计成只读：它可以检查、运行验证、给出 verdict，但不能改文件，也不能递归再创建 verification run
-- 当 verifier 输出 `VERDICT: PASS` 时，这个结果可以被记录为 completion evidence，并聚合回父任务 trajectory
-
-Verification agent 只是当前 special agent substrate 的一个公开入口。更多项目级说明见 [项目整体架构总览](/concepts/project-architecture-overview)。
+- 用户入口是聊天命令 `/review [focus]`。
+- 内部实现上，`/review` 会调用 `review_task` flow，先创建 `review-spec`，如果 spec 阶段没有失败，再创建 `review-quality`。
+- `/review` 是唯一公开的 review 入口。
+- review 运行使用专用 system prompt 和受限的验证工具集，而不是继承父 agent 的完整工具面。
+- review 运行被刻意设计成只读：它可以检查、运行验证、给出 verdict，但不能改文件，也不能递归再创建 review run。
+- 确定性聚合器会产出 `REVIEW_PASS`、`REVIEW_FAIL` 或 `REVIEW_PARTIAL`。只有 `REVIEW_PASS` 可以成为 review completion evidence。
 
 ## 会话
 
