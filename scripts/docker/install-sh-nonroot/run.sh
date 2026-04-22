@@ -29,7 +29,7 @@ node -e '
 command -v npm >/dev/null
 
 echo "==> Run installer (non-root user)"
-curl -fsSL "$INSTALL_URL" | bash
+curl --retry 5 --retry-delay 3 --retry-all-errors --connect-timeout 20 -fsSL "$INSTALL_URL" | bash
 
 # Ensure PATH picks up user npm prefix
 export PATH="$HOME/.npm-global/bin:$PATH"
