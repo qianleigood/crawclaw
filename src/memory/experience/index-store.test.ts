@@ -31,7 +31,7 @@ describe("experience local index", () => {
         type: "procedure",
         title: "本地网关恢复流程",
         summary: "网关关闭或 health 失败时，按端口检查、重启服务、重新验证的顺序恢复。",
-        body: "适用于本地网关异常关闭。",
+        context: "适用于本地网关异常关闭。",
         steps: ["检查 18789 端口", "重启 CrawClaw 网关", "重新运行 health probe"],
         validation: ["health probe 返回 ok:true"],
         dedupeKey: "gateway-recovery-procedure",

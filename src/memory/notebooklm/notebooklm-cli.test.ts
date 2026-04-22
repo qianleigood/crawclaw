@@ -56,7 +56,6 @@ describe("searchNotebookLmViaCli", () => {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: true,
           statusTtlMs: 60_000,
           degradedCooldownMs: 120_000,
           refreshCooldownMs: 180_000,
@@ -129,7 +128,6 @@ describe("searchNotebookLmViaCli", () => {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: true,
           statusTtlMs: 60_000,
           degradedCooldownMs: 120_000,
           refreshCooldownMs: 180_000,
@@ -187,7 +185,6 @@ describe("searchNotebookLmViaCli", () => {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: true,
           statusTtlMs: 60_000,
           degradedCooldownMs: 120_000,
           refreshCooldownMs: 180_000,
@@ -252,7 +249,6 @@ describe("searchNotebookLmViaCli", () => {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: true,
           statusTtlMs: 60_000,
           degradedCooldownMs: 120_000,
           refreshCooldownMs: 180_000,

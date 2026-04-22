@@ -20,7 +20,6 @@ function createBaseMemoryRuntimeConfig(): MemoryRuntimeConfig {
       auth: {
         profile: "default",
         cookieFile: "",
-        autoRefresh: false,
         statusTtlMs: 60_000,
         degradedCooldownMs: 120_000,
         refreshCooldownMs: 180_000,
@@ -555,7 +554,7 @@ describe("createContextMemoryRuntime().assemble", () => {
         type: "procedure",
         title: "本地网关恢复流程",
         summary: "网关关闭或 health 失败时，先检查端口，再重启服务，最后验证 health。",
-        body: "适用于本地网关异常关闭，也适用于用户问本地网关挂了怎么恢复。",
+        context: "适用于本地网关异常关闭，也适用于用户问本地网关挂了怎么恢复。",
         steps: ["检查端口", "重启服务", "验证 health"],
         aliases: ["本地网关挂了怎么恢复", "给我操作流程"],
         dedupeKey: "gateway-recovery-procedure",

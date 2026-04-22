@@ -55,7 +55,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: true,
           statusTtlMs: 60_000,
           degradedCooldownMs: 120_000,
           refreshCooldownMs: 180_000,
@@ -81,8 +80,8 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
         type: "decision",
         title: "经验召回改用 NotebookLM 的原因",
         summary: "前台经验召回改用 NotebookLM，可以减少宿主维护的重型召回逻辑。",
-        body: "NotebookLM 更适合作为经验库问答层。",
-        why: "它能把查询和来源综合交给同一套经验后端处理。",
+        context: "NotebookLM 更适合作为经验库问答层。",
+        lesson: "它能把查询和来源综合交给同一套经验后端处理。",
       },
     });
 
@@ -126,7 +125,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
           auth: {
             profile: "default",
             cookieFile: "",
-            autoRefresh: true,
             statusTtlMs: 60_000,
             degradedCooldownMs: 120_000,
             refreshCooldownMs: 180_000,
@@ -203,7 +201,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: true,
           statusTtlMs: 60_000,
           degradedCooldownMs: 120_000,
           refreshCooldownMs: 180_000,

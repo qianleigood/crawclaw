@@ -148,7 +148,6 @@ export interface NotebookLmWriteConfig {
 export interface NotebookLmAuthConfig {
   profile: string;
   cookieFile?: string;
-  autoRefresh: boolean;
   statusTtlMs: number;
   degradedCooldownMs: number;
   refreshCooldownMs: number;

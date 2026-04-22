@@ -448,11 +448,6 @@ export async function resolveCliConfig(): Promise<{
   config.notebooklm.auth.cookieFile =
     pickEnv("GM_NOTEBOOKLM_COOKIE_FILE", "NOTEBOOKLM_COOKIE_FILE") ??
     config.notebooklm.auth.cookieFile;
-  config.notebooklm.auth.autoRefresh = setBooleanFromEnv(
-    config.notebooklm.auth.autoRefresh,
-    "GM_NOTEBOOKLM_AUTO_REFRESH",
-    "NOTEBOOKLM_AUTO_REFRESH",
-  );
   config.notebooklm.auth.statusTtlMs = setNumberFromEnv(
     config.notebooklm.auth.statusTtlMs,
     "GM_NOTEBOOKLM_STATUS_TTL_MS",

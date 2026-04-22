@@ -13242,11 +13242,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Optional cookie file used as a manual or explicit refresh source when the NotebookLM profile expires. Treat this file as sensitive and store it outside version control.",
       tags: ["storage"],
     },
-    "memory.notebooklm.auth.autoRefresh": {
-      label: "NotebookLM Auto Refresh",
-      help: "Legacy compatibility switch for wrapper-driven auto refresh. Prefer explicit `refresh` flows; the default source-aligned behavior is profile-first status probing plus manual refresh when auth expires.",
-      tags: ["storage"],
-    },
     "memory.notebooklm.auth.statusTtlMs": {
       label: "NotebookLM Auth Status TTL (ms)",
       help: "How long a healthy NotebookLM provider status can be reused in memory before CrawClaw probes again. This reduces noisy repeated status checks during active sessions.",

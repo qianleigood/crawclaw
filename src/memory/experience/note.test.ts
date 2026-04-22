@@ -49,7 +49,7 @@ describe("experience note", () => {
     ).toMatch(/Chinese-first/);
   });
 
-  it("rejects English-heavy body sections even when title and summary are Chinese", () => {
+  it("rejects English-heavy structured sections even when title and summary are Chinese", () => {
     expect(
       classifyExperienceNoteGuardIssue({
         type: "procedure",

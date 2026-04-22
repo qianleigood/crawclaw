@@ -12,7 +12,6 @@ const baseConfig: NotebookLmConfig = {
   auth: {
     profile: "default",
     cookieFile: "/tmp/notebooklm-cookies.txt",
-    autoRefresh: false,
     statusTtlMs: 60_000,
     degradedCooldownMs: 120_000,
     refreshCooldownMs: 180_000,
@@ -157,21 +156,20 @@ describe("getNotebookLmProviderState", () => {
 
   it("runs explicit refresh and enforces refresh cooldown after failure", async () => {
     vi.useFakeTimers();
-    execFileMock
-      .mockImplementationOnce((_command, _args, _options, callback) => {
-        callback(
-          null,
-          JSON.stringify({
-            status: "missing",
-            ready: false,
-            reason: "cookie_invalid",
-            profile: "default",
-            refreshAttempted: true,
-            refreshSucceeded: false,
-            error: "Invalid cookie fallback",
-          }),
-        );
-      });
+    execFileMock.mockImplementationOnce((_command, _args, _options, callback) => {
+      callback(
+        null,
+        JSON.stringify({
+          status: "missing",
+          ready: false,
+          reason: "cookie_invalid",
+          profile: "default",
+          refreshAttempted: true,
+          refreshSucceeded: false,
+          error: "Invalid cookie fallback",
+        }),
+      );
+    });
 
     const { refreshNotebookLmProviderState } = await import("./provider-state.ts");
     const config = {

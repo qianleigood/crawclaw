@@ -307,7 +307,6 @@ export async function getNotebookLmProviderState(params: {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: false,
           statusTtlMs: 5 * 60_000,
           degradedCooldownMs: 15 * 60_000,
           refreshCooldownMs: 30 * 60_000,
@@ -391,7 +390,6 @@ export async function refreshNotebookLmProviderState(params: {
         auth: {
           profile: "default",
           cookieFile: "",
-          autoRefresh: false,
           statusTtlMs: 5 * 60_000,
           degradedCooldownMs: 15 * 60_000,
           refreshCooldownMs: 30 * 60_000,

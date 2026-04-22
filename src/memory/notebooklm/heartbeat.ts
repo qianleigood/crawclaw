@@ -19,7 +19,6 @@ function buildHeartbeatKey(config: NotebookLmConfig): string {
     args: config.cli.args,
     profile: config.auth.profile,
     cookieFile: config.auth.cookieFile ?? "",
-    autoRefresh: config.auth.autoRefresh,
     notebookId: config.cli.notebookId || config.write.notebookId || "",
     enabled: config.auth.heartbeat.enabled,
     minIntervalMs: config.auth.heartbeat.minIntervalMs,
@@ -30,7 +29,9 @@ function buildHeartbeatKey(config: NotebookLmConfig): string {
 function computeNextDelay(config: NotebookLmConfig): number {
   const min = Math.max(60_000, config.auth.heartbeat.minIntervalMs || 0);
   const max = Math.max(min, config.auth.heartbeat.maxIntervalMs || min);
-  if (max === min) {return min;}
+  if (max === min) {
+    return min;
+  }
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
@@ -51,13 +52,19 @@ export function startNotebookLmHeartbeat(params: {
   probe?: HeartbeatStateProbe;
 }): void {
   const config = params.config;
-  if (!config?.enabled || !config.cli.enabled || !config.auth.heartbeat.enabled) {return;}
+  if (!config?.enabled || !config.cli.enabled || !config.auth.heartbeat.enabled) {
+    return;
+  }
 
   const notebookId = (config.cli.notebookId || config.write.notebookId || "").trim();
-  if (!notebookId) {return;}
+  if (!notebookId) {
+    return;
+  }
 
   const key = buildHeartbeatKey(config);
-  if (activeHeartbeat?.key === key) {return;}
+  if (activeHeartbeat?.key === key) {
+    return;
+  }
 
   activeHeartbeat?.stop();
 
@@ -68,7 +75,9 @@ export function startNotebookLmHeartbeat(params: {
   const probe = params.probe ?? getNotebookLmProviderState;
 
   const scheduleNext = () => {
-    if (stopped) {return;}
+    if (stopped) {
+      return;
+    }
     timer = setTimeout(async () => {
       if (stopped || running) {
         scheduleNext();
@@ -112,7 +121,9 @@ export function startNotebookLmHeartbeat(params: {
     key,
     stop: () => {
       stopped = true;
-      if (timer) {clearTimeout(timer);}
+      if (timer) {
+        clearTimeout(timer);
+      }
     },
   };
 }

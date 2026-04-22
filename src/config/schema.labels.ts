@@ -411,7 +411,6 @@ export const FIELD_LABELS: Record<string, string> = {
   "memory.notebooklm.auth": "NotebookLM Auth",
   "memory.notebooklm.auth.profile": "NotebookLM Auth Profile",
   "memory.notebooklm.auth.cookieFile": "NotebookLM Cookie File",
-  "memory.notebooklm.auth.autoRefresh": "NotebookLM Auto Refresh",
   "memory.notebooklm.auth.statusTtlMs": "NotebookLM Auth Status TTL (ms)",
   "memory.notebooklm.auth.degradedCooldownMs": "NotebookLM Auth Degraded Cooldown (ms)",
   "memory.notebooklm.auth.refreshCooldownMs": "NotebookLM Auth Refresh Cooldown (ms)",

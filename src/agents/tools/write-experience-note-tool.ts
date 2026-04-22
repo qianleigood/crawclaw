@@ -90,16 +90,6 @@ const WriteExperienceNoteToolSchema = Type.Object({
       description: "Confidence in the experience: low, medium, or high.",
     }),
   ),
-  body: Type.Optional(
-    Type.String({
-      description: "Optional legacy scenario/body text. Prefer context for new writes.",
-    }),
-  ),
-  why: Type.Optional(
-    Type.String({
-      description: "Optional legacy rationale. Prefer lesson for new writes.",
-    }),
-  ),
   steps: Type.Optional(
     Type.Array(Type.String(), {
       description: "Detailed steps for procedure or workflow experience.",
@@ -165,7 +155,7 @@ export function createExperienceWriteTool(
     label: "Write Experience Note",
     name: "write_experience_note",
     description:
-      "Write a Chinese-readable experience note into NotebookLM. Use this for reusable procedures, decisions, runtime/failure patterns, collaboration workflows, or references. Update existing notes instead of duplicating them.",
+      "Write a Chinese-readable experience note into the local experience index, with optional NotebookLM sync when configured. Use this for reusable procedures, decisions, runtime/failure patterns, collaboration workflows, or references. Update existing notes instead of duplicating them.",
     parameters: WriteExperienceNoteToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -184,8 +174,6 @@ export function createExperienceWriteTool(
       const lesson = readStringParam(params, "lesson");
       const appliesWhen = readStringParam(params, "appliesWhen");
       const avoidWhen = readStringParam(params, "avoidWhen");
-      const body = readStringParam(params, "body");
-      const why = readStringParam(params, "why");
       const whenToRevisit = readStringParam(params, "whenToRevisit");
       const confidence = normalizeExperienceConfidence(readStringParam(params, "confidence"));
       const dedupeKey = readStringParam(params, "dedupeKey");
@@ -211,8 +199,6 @@ export function createExperienceWriteTool(
         avoidWhen,
         evidence,
         confidence,
-        body,
-        why,
         steps,
         validation,
         signals,

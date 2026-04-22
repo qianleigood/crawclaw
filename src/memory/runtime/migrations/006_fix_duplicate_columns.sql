@@ -27,6 +27,6 @@ FROM gm_messages_old;
 -- Step 4: Drop old table
 DROP TABLE gm_messages_old;
 
--- Step 5: Recreate canonical index and remove legacy one if present
+-- Step 5: Recreate canonical index and remove obsolete duplicate-column index if present
 DROP INDEX IF EXISTS ix_gm_messages_bot_user;
 CREATE INDEX IF NOT EXISTS ix_gm_messages_session_turn ON gm_messages(session_id, turn_index);

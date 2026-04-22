@@ -257,7 +257,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         enabled: false,
         auth: {
           profile: "default",
-          autoRefresh: false,
           statusTtlMs: 60_000,
           degradedCooldownMs: 60_000,
           refreshCooldownMs: 60_000,

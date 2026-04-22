@@ -266,7 +266,9 @@ provider querying entirely.
 runtime. It writes a local experience index entry first and can also sync to
 NotebookLM when `memory.notebooklm.write` is configured. Experience notes should
 capture reusable context, trigger, action, result, lesson, applicability
-boundaries, and supporting evidence rather than temporary task state.
+boundaries, and supporting evidence rather than temporary task state. The
+write schema only accepts the current structured fields; legacy aliases such as
+freeform body/rationale fields are not kept as compatibility inputs.
 
 ## Context Archive
 

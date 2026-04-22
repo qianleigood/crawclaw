@@ -16,7 +16,6 @@ export const DEFAULT_NOTEBOOKLM_HEARTBEAT: NotebookLmHeartbeatConfig = {
 export const DEFAULT_NOTEBOOKLM_AUTH: NotebookLmAuthConfig = {
   profile: "default",
   cookieFile: "",
-  autoRefresh: false,
   statusTtlMs: 5 * 60_000,
   degradedCooldownMs: 15 * 60_000,
   refreshCooldownMs: 30 * 60_000,
@@ -76,10 +75,6 @@ export function normalizeNotebookLmConfig(raw?: NotebookLmConfigInput | null): N
         typeof raw?.auth?.cookieFile === "string"
           ? raw.auth.cookieFile
           : DEFAULT_NOTEBOOKLM_AUTH.cookieFile,
-      autoRefresh:
-        typeof raw?.auth?.autoRefresh === "boolean"
-          ? raw.auth.autoRefresh
-          : DEFAULT_NOTEBOOKLM_AUTH.autoRefresh,
       statusTtlMs:
         typeof raw?.auth?.statusTtlMs === "number"
           ? raw.auth.statusTtlMs

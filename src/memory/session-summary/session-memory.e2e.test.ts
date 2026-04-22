@@ -63,7 +63,6 @@ function createMemoryRuntimeConfig(stateDir: string): MemoryRuntimeConfig {
       auth: {
         profile: "default",
         cookieFile: "",
-        autoRefresh: false,
         statusTtlMs: 60_000,
         degradedCooldownMs: 120_000,
         refreshCooldownMs: 180_000,

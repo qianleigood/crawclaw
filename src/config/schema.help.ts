@@ -890,8 +890,6 @@ export const FIELD_HELP: Record<string, string> = {
     "NotebookLM profile name used by the local wrapper or CLI integration. Keep this stable unless you intentionally manage multiple NotebookLM identities.",
   "memory.notebooklm.auth.cookieFile":
     "Optional cookie file used as a manual or explicit refresh source when the NotebookLM profile expires. Treat this file as sensitive and store it outside version control.",
-  "memory.notebooklm.auth.autoRefresh":
-    "Legacy compatibility switch for wrapper-driven auto refresh. Prefer explicit `refresh` flows; the default source-aligned behavior is profile-first status probing plus manual refresh when auth expires.",
   "memory.notebooklm.auth.statusTtlMs":
     "How long a healthy NotebookLM provider status can be reused in memory before CrawClaw probes again. This reduces noisy repeated status checks during active sessions.",
   "memory.notebooklm.auth.degradedCooldownMs":

@@ -19,8 +19,6 @@ export interface ExperienceNoteWriteInput {
   avoidWhen?: string;
   evidence?: string[];
   confidence?: "low" | "medium" | "high";
-  body?: string;
-  why?: string;
   steps?: string[];
   validation?: string[];
   signals?: string[];
@@ -85,18 +83,16 @@ function mergeEvidence(input: ExperienceNoteWriteInput): string[] {
 }
 
 function renderExperienceBody(input: ExperienceNoteWriteInput): string[] {
-  const context = input.context ?? input.body;
   const actionLines = normalizeBlockLines([input.action, ...(input.steps ?? [])]);
   const triggerLines = normalizeBlockLines([input.trigger, ...(input.signals ?? [])]);
-  const lesson = input.lesson ?? input.why;
   const evidence = mergeEvidence(input);
 
   return [
-    ...renderParagraph("## 场景", context),
+    ...renderParagraph("## 场景", input.context),
     ...renderBulletSection("## 触发信号", triggerLines),
     ...renderBulletSection("## 有效做法", actionLines),
     ...renderParagraph("## 结果", input.result),
-    ...renderParagraph("## 经验结论", lesson),
+    ...renderParagraph("## 经验结论", input.lesson),
     ...renderParagraph("## 适用边界", input.appliesWhen),
     ...renderParagraph("## 不适用 / 避免", input.avoidWhen),
     ...renderBulletSection("## 验证 / 证据", evidence),
@@ -182,8 +178,6 @@ function collectSubstantiveFields(input: ExperienceNoteWriteInput): string[] {
     input.lesson,
     input.appliesWhen,
     input.avoidWhen,
-    input.body,
-    input.why,
     input.whenToRevisit,
     ...(input.steps ?? []),
     ...(input.validation ?? []),
@@ -209,7 +203,7 @@ export function classifyExperienceNoteGuardIssue(input: ExperienceNoteWriteInput
   }
 
   if (substantiveFields.some((value) => /[A-Za-z]/.test(value) && !hasChinese(value))) {
-    return "experience note body and structured sections must remain Chinese-readable";
+    return "experience note structured sections must remain Chinese-readable";
   }
 
   if (
@@ -221,8 +215,6 @@ export function classifyExperienceNoteGuardIssue(input: ExperienceNoteWriteInput
       input.result,
       input.lesson,
       input.appliesWhen,
-      input.body,
-      input.why,
       ...(input.steps ?? []),
       ...(input.signals ?? []),
       ...(input.evidence ?? []),

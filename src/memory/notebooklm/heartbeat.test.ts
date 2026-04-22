@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { startNotebookLmHeartbeat, stopNotebookLmHeartbeatForTests } from "./heartbeat.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
+import { startNotebookLmHeartbeat, stopNotebookLmHeartbeatForTests } from "./heartbeat.ts";
 
 describe("startNotebookLmHeartbeat", () => {
   const logger = {
@@ -13,7 +13,6 @@ describe("startNotebookLmHeartbeat", () => {
     auth: {
       profile: "default",
       cookieFile: "/tmp/notebooklm-cookies.txt",
-      autoRefresh: true,
       statusTtlMs: 60_000,
       degradedCooldownMs: 120_000,
       refreshCooldownMs: 180_000,
