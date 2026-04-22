@@ -97,6 +97,7 @@ export type GatewaySessionList = {
       updatedAt?: number | null;
       fastMode?: boolean;
       sendPolicy?: string;
+      status?: string;
       responseUsage?: ResponseUsageMode;
       label?: string;
       provider?: string;
@@ -105,8 +106,10 @@ export type GatewaySessionList = {
       subject?: string;
       chatType?: string;
       lastProvider?: string;
+      lastChannel?: string;
       lastTo?: string;
       lastAccountId?: string;
+      lastThreadId?: string | number;
       derivedTitle?: string;
       lastMessagePreview?: string;
     }

@@ -51,6 +51,12 @@ export type SessionInfo = {
   responseUsage?: ResponseUsageMode;
   updatedAt?: number | null;
   displayName?: string;
+  status?: string;
+  sendPolicy?: string;
+  lastChannel?: string;
+  lastTo?: string;
+  lastAccountId?: string;
+  lastThreadId?: string | number;
 };
 
 export type SessionScope = "per-sender" | "global";
@@ -119,6 +125,7 @@ export type TuiStateAccess = {
   showThinking: boolean;
   connectionStatus: string;
   activityStatus: string;
+  lastError?: string | null;
   statusTimeout: ReturnType<typeof setTimeout> | null;
   lastCtrlCAt: number;
 };

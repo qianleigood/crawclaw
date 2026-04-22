@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   formatTuiFooterLine,
+  formatSessionPickerDescription,
+  formatStatusOverlayLines,
   extractContentFromMessage,
   extractTextFromMessage,
   extractThinkingFromMessage,
@@ -42,6 +44,105 @@ describe("formatTuiFooterLine", () => {
       }),
     ).toBe(
       "agent main | session main | openai/gpt-5.4 | think medium | fast | verbose on | reasoning:stream | deliver on | tokens 12k/200k (6%)",
+    );
+  });
+
+  it("adds a restrained discovery hint when provided", () => {
+    expect(
+      formatTuiFooterLine({
+        agentLabel: "main",
+        sessionLabel: "main",
+        model: "gpt-5.4",
+        modelProvider: "openai",
+        contextTokens: null,
+        totalTokens: null,
+        deliverEnabled: false,
+        hint: "Ctrl+P sessions; /help",
+      }),
+    ).toBe(
+      "agent main | session main | openai/gpt-5.4 | deliver off | tokens ? | Ctrl+P sessions; /help",
+    );
+  });
+});
+
+describe("formatSessionPickerDescription", () => {
+  it("summarizes model, tokens, flags, delivery route, and preview", () => {
+    const description = formatSessionPickerDescription({
+      updatedAt: Date.now(),
+      modelProvider: "openai",
+      model: "gpt-5.4",
+      totalTokens: 12_345,
+      contextTokens: 200_000,
+      fastMode: true,
+      verboseLevel: "on",
+      sendPolicy: "deny",
+      lastChannel: "discord",
+      lastTo: "channel:C123",
+      lastAccountId: "work",
+      lastMessagePreview: "Latest assistant reply",
+    });
+
+    expect(description).toContain("openai/gpt-5.4");
+    expect(description).toContain("tokens 12k/200k (6%)");
+    expect(description).toContain("fast");
+    expect(description).toContain("verbose on");
+    expect(description).toContain("send deny");
+    expect(description).toContain("deliver discord:channel:C123 (acct work)");
+    expect(description).toContain("Latest assistant reply");
+  });
+});
+
+describe("formatStatusOverlayLines", () => {
+  it("renders the active run, model, delivery, gateway auth, recent errors, and queues", () => {
+    const lines = formatStatusOverlayLines({
+      connectionStatus: "connected",
+      activityStatus: "streaming",
+      activeRunId: "run-1234567890",
+      agentLabel: "main",
+      sessionLabel: "main",
+      modelProvider: "openai",
+      model: "gpt-5.4",
+      totalTokens: 12_345,
+      contextTokens: 200_000,
+      deliverEnabled: true,
+      deliveryRoute: "deliver discord:channel:C123",
+      lastError: "send failed: timeout",
+      summary: {
+        runtimeVersion: "2026.4.22",
+        linkChannel: {
+          label: "Discord",
+          linked: true,
+          authAgeMs: 90_000,
+        },
+        queuedSystemEvents: ["Post-Compaction Audit"],
+        sessions: {
+          count: 2,
+          recent: [
+            {
+              key: "agent:main:main",
+              kind: "direct",
+              model: "gpt-5.4",
+              totalTokens: 12_345,
+              contextTokens: 200_000,
+              percentUsed: 6,
+              flags: ["fast"],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(lines).toContain("Run: run-1234567890");
+    expect(lines).toContain("Model: openai/gpt-5.4");
+    expect(lines).toContain("Tokens: tokens 12k/200k (6%)");
+    expect(lines).toContain("Deliver: on");
+    expect(lines).toContain("Route: deliver discord:channel:C123");
+    expect(lines.some((line) => line.startsWith("Gateway: connected | streaming"))).toBe(true);
+    expect(lines.some((line) => line.startsWith("Discord: linked"))).toBe(true);
+    expect(lines).toContain("Last error: send failed: timeout");
+    expect(lines).toContain("Queued system events (1): Post-Compaction Audit");
+    expect(lines).toContain(
+      "- agent:main:main [direct] | model gpt-5.4 | tokens 12k/200k (6%) | flags: fast",
     );
   });
 });
