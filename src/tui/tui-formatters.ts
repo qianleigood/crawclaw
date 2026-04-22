@@ -1,7 +1,9 @@
 import { stripLeadingInboundMetadata } from "../auto-reply/reply/strip-inbound-meta.js";
+import { formatTimeAgo, formatRelativeTimestamp } from "../infra/format-time/format-relative.ts";
 import { formatRawAssistantErrorForUi } from "../shared/assistant-error-format.js";
 import { stripAnsi } from "../terminal/ansi.js";
 import { formatTokenCount } from "../utils/usage-format.js";
+import type { GatewayStatusSummary } from "./tui-types.js";
 
 const REPLACEMENT_CHAR_RE = /\uFFFD/g;
 const MAX_TOKEN_CHARS = 32;
@@ -372,6 +374,7 @@ export function formatTuiFooterLine(params: {
   verboseLevel?: string;
   reasoningLevel?: string;
   deliverEnabled: boolean;
+  hint?: string;
 }) {
   const modelLabel = params.model
     ? params.modelProvider
@@ -393,8 +396,174 @@ export function formatTuiFooterLine(params: {
     reasoningLabel,
     `deliver ${params.deliverEnabled ? "on" : "off"}`,
     formatTokens(params.totalTokens ?? null, params.contextTokens ?? null),
+    params.hint?.trim() || null,
   ].filter(Boolean);
   return footerParts.join(" | ");
+}
+
+type DeliveryRouteInput = {
+  lastChannel?: string | null;
+  lastTo?: string | null;
+  lastAccountId?: string | null;
+  lastThreadId?: string | number | null;
+  sendPolicy?: string | null;
+};
+
+function trimOptional(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+export function formatDeliveryRoute(params: DeliveryRouteInput): string | null {
+  const channel = trimOptional(params.lastChannel);
+  const target = trimOptional(params.lastTo);
+  const account = trimOptional(params.lastAccountId);
+  const thread = trimOptional(params.lastThreadId);
+  const route = channel && target ? `${channel}:${target}` : (channel ?? target);
+  const extras = [account ? `acct ${account}` : null, thread ? `thread ${thread}` : null].filter(
+    Boolean,
+  );
+  const routeLabel = route ? `deliver ${route}` : null;
+  const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
+  if (params.sendPolicy === "deny") {
+    return routeLabel ? `${routeLabel}${suffix}` : "send deny";
+  }
+  return routeLabel ? `${routeLabel}${suffix}` : null;
+}
+
+type SessionPickerDescriptionInput = DeliveryRouteInput & {
+  updatedAt?: number | null;
+  modelProvider?: string | null;
+  model?: string | null;
+  totalTokens?: number | null;
+  contextTokens?: number | null;
+  fastMode?: boolean;
+  verboseLevel?: string | null;
+  thinkingLevel?: string | null;
+  reasoningLevel?: string | null;
+  status?: string | null;
+  lastMessagePreview?: string | null;
+};
+
+export function formatSessionPickerDescription(session: SessionPickerDescriptionInput): string {
+  const timePart =
+    typeof session.updatedAt === "number"
+      ? formatRelativeTimestamp(session.updatedAt, { dateFallback: true, fallback: "" })
+      : "";
+  const model =
+    session.modelProvider && session.model
+      ? `${session.modelProvider}/${session.model}`
+      : (session.model ?? "");
+  const tokens =
+    typeof session.totalTokens === "number" || typeof session.contextTokens === "number"
+      ? formatTokens(session.totalTokens ?? null, session.contextTokens ?? null)
+      : "";
+  const flags = [
+    session.status && session.status !== "done" ? session.status : null,
+    session.fastMode === true ? "fast" : null,
+    session.verboseLevel && session.verboseLevel !== "off"
+      ? `verbose ${session.verboseLevel}`
+      : null,
+    session.thinkingLevel && session.thinkingLevel !== "off"
+      ? `think ${session.thinkingLevel}`
+      : null,
+    session.reasoningLevel && session.reasoningLevel !== "off"
+      ? `reasoning ${session.reasoningLevel}`
+      : null,
+    session.sendPolicy === "deny" ? "send deny" : null,
+  ].filter(Boolean);
+  const route = formatDeliveryRoute(session);
+  const preview = session.lastMessagePreview?.replace(/\s+/g, " ").trim() ?? "";
+  return [timePart, model, tokens, ...flags, route, preview].filter(Boolean).join(" | ");
+}
+
+export function formatStatusOverlayLines(params: {
+  connectionStatus: string;
+  activityStatus: string;
+  activeRunId?: string | null;
+  agentLabel: string;
+  sessionLabel: string;
+  modelProvider?: string | null;
+  model?: string | null;
+  totalTokens?: number | null;
+  contextTokens?: number | null;
+  deliverEnabled: boolean;
+  deliveryRoute?: string | null;
+  lastError?: string | null;
+  summary?: GatewayStatusSummary | null;
+}): string[] {
+  const lines: string[] = ["Gateway status"];
+  const model =
+    params.modelProvider && params.model
+      ? `${params.modelProvider}/${params.model}`
+      : (params.model ?? "unknown");
+  lines.push(`Gateway: ${params.connectionStatus} | ${params.activityStatus}`);
+  lines.push(`Run: ${params.activeRunId?.trim() || "none"}`);
+  lines.push(`Agent: ${params.agentLabel}`);
+  lines.push(`Session: ${params.sessionLabel}`);
+  lines.push(`Model: ${model}`);
+  lines.push(`Tokens: ${formatTokens(params.totalTokens ?? null, params.contextTokens ?? null)}`);
+  lines.push(`Deliver: ${params.deliverEnabled ? "on" : "off"}`);
+  lines.push(`Route: ${params.deliveryRoute?.trim() || "none"}`);
+
+  if (params.summary?.runtimeVersion) {
+    lines.push(`Version: ${params.summary.runtimeVersion}`);
+  }
+
+  const link = params.summary?.linkChannel;
+  if (link) {
+    const label = link.label ?? "Link channel";
+    const authAge =
+      link.linked === true && typeof link.authAgeMs === "number"
+        ? ` (last refreshed ${formatTimeAgo(link.authAgeMs)})`
+        : "";
+    lines.push(`${label}: ${link.linked === true ? "linked" : "not linked"}${authAge}`);
+  } else {
+    lines.push("Link channel: unknown");
+  }
+
+  if (/pairing required/i.test(params.activityStatus)) {
+    lines.push(`Pairing/Auth: ${params.activityStatus}`);
+  }
+
+  if (params.lastError?.trim()) {
+    lines.push(`Last error: ${sanitizeRenderableText(params.lastError.trim())}`);
+  }
+
+  const queued = Array.isArray(params.summary?.queuedSystemEvents)
+    ? params.summary.queuedSystemEvents
+    : [];
+  if (queued.length > 0) {
+    lines.push(`Queued system events (${queued.length}): ${queued.slice(0, 3).join(" | ")}`);
+  }
+
+  const recent = Array.isArray(params.summary?.sessions?.recent)
+    ? params.summary.sessions.recent
+    : [];
+  if (recent.length > 0) {
+    lines.push("Recent sessions:");
+    for (const entry of recent.slice(0, 6)) {
+      const modelLabel = entry.model ?? "unknown";
+      const usage = formatContextUsageLine({
+        total: entry.totalTokens ?? null,
+        context: entry.contextTokens ?? null,
+        remaining: entry.remainingTokens ?? null,
+        percent: entry.percentUsed ?? null,
+      });
+      const flags = entry.flags?.length ? ` | flags: ${entry.flags.join(", ")}` : "";
+      lines.push(
+        `- ${entry.key}${entry.kind ? ` [${entry.kind}]` : ""} | model ${modelLabel} | ${usage}${flags}`,
+      );
+    }
+  }
+
+  return lines;
 }
 
 export function formatContextUsageLine(params: {

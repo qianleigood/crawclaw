@@ -30,6 +30,7 @@ type SessionActionContext = {
   updateAutocompleteProvider: () => void;
   setActivityStatus: (text: string) => void;
   clearLocalRunIds?: () => void;
+  recordError?: (message: string) => void;
 };
 
 type SessionInfoDefaults = {
@@ -60,6 +61,7 @@ export function createSessionActions(context: SessionActionContext) {
     updateAutocompleteProvider,
     setActivityStatus,
     clearLocalRunIds,
+    recordError,
   } = context;
   let refreshSessionInfoPromise: Promise<void> = Promise.resolve();
   let lastSessionDefaults: SessionInfoDefaults | null = null;
@@ -105,7 +107,9 @@ export function createSessionActions(context: SessionActionContext) {
       const result = await client.listAgents();
       applyAgentsResult(result);
     } catch (err) {
-      chatLog.addSystem(`agents list failed: ${String(err)}`);
+      const message = `agents list failed: ${String(err)}`;
+      recordError?.(message);
+      chatLog.addSystem(message);
     }
   };
 
@@ -199,6 +203,24 @@ export function createSessionActions(context: SessionActionContext) {
     if (entry?.displayName !== undefined) {
       next.displayName = entry.displayName;
     }
+    if (entry?.status !== undefined) {
+      next.status = entry.status;
+    }
+    if (entry?.sendPolicy !== undefined) {
+      next.sendPolicy = entry.sendPolicy;
+    }
+    if (entry?.lastChannel !== undefined) {
+      next.lastChannel = entry.lastChannel;
+    }
+    if (entry?.lastTo !== undefined) {
+      next.lastTo = entry.lastTo;
+    }
+    if (entry?.lastAccountId !== undefined) {
+      next.lastAccountId = entry.lastAccountId;
+    }
+    if (entry?.lastThreadId !== undefined) {
+      next.lastThreadId = entry.lastThreadId;
+    }
     if (entry?.updatedAt !== undefined) {
       next.updatedAt = entry.updatedAt;
     }
@@ -252,7 +274,9 @@ export function createSessionActions(context: SessionActionContext) {
         defaults: result.defaults,
       });
     } catch (err) {
-      chatLog.addSystem(`sessions list failed: ${String(err)}`);
+      const message = `sessions list failed: ${String(err)}`;
+      recordError?.(message);
+      chatLog.addSystem(message);
     }
   };
 
@@ -357,7 +381,9 @@ export function createSessionActions(context: SessionActionContext) {
       }
       state.historyLoaded = true;
     } catch (err) {
-      chatLog.addSystem(`history failed: ${String(err)}`);
+      const message = `history failed: ${String(err)}`;
+      recordError?.(message);
+      chatLog.addSystem(message);
     }
     await refreshSessionInfo();
     tui.requestRender();
@@ -393,7 +419,9 @@ export function createSessionActions(context: SessionActionContext) {
       });
       setActivityStatus("aborted");
     } catch (err) {
-      chatLog.addSystem(`abort failed: ${String(err)}`);
+      const message = `abort failed: ${String(err)}`;
+      recordError?.(message);
+      chatLog.addSystem(message);
       setActivityStatus("abort failed");
     }
     tui.requestRender();
