@@ -23,7 +23,7 @@ import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
-import { formatTuiFooterLine } from "./tui-formatters.js";
+import { formatTuiFooterLine, sanitizeRenderableText } from "./tui-formatters.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
@@ -222,6 +222,7 @@ export async function runTui(opts: TuiOptions) {
   let exitRequested = false;
   let activityStatus = "idle";
   let connectionStatus = "connecting";
+  let lastError: string | null = null;
   let statusTimeout: NodeJS.Timeout | null = null;
   let statusTimer: NodeJS.Timeout | null = null;
   let statusStartedAt: number | null = null;
@@ -341,6 +342,12 @@ export async function runTui(opts: TuiOptions) {
     },
     set activityStatus(value) {
       activityStatus = value;
+    },
+    get lastError() {
+      return lastError;
+    },
+    set lastError(value) {
+      lastError = value;
     },
     get statusTimeout() {
       return statusTimeout;
@@ -643,6 +650,10 @@ export async function runTui(opts: TuiOptions) {
     renderStatus();
   };
 
+  const recordError = (message: string) => {
+    lastError = sanitizeRenderableText(message);
+  };
+
   const updateFooter = () => {
     const sessionKeyLabel = formatSessionKey(currentSessionKey);
     const sessionLabel = sessionInfo.displayName
@@ -663,6 +674,7 @@ export async function runTui(opts: TuiOptions) {
           verboseLevel: sessionInfo.verboseLevel,
           reasoningLevel: sessionInfo.reasoningLevel,
           deliverEnabled,
+          hint: "Ctrl+P sessions; /help",
         }),
       ),
     );
@@ -702,6 +714,7 @@ export async function runTui(opts: TuiOptions) {
     updateAutocompleteProvider,
     setActivityStatus,
     clearLocalRunIds,
+    recordError,
   });
   const {
     refreshAgents,
@@ -761,6 +774,7 @@ export async function runTui(opts: TuiOptions) {
       noteLocalBtwRunId,
       forgetLocalRunId,
       forgetLocalBtwRunId,
+      recordError,
       requestExit,
     });
 

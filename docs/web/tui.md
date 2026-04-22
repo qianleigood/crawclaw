@@ -37,7 +37,7 @@ Use `--password` if your Gateway uses password auth.
 - Header: connection URL, current agent, current session.
 - Chat log: user messages, assistant replies, system notices, tool cards.
 - Status line: connection/run state (connecting, running, streaming, idle, error).
-- Footer: connection state + agent + session + model + think/fast/verbose/reasoning + token counts + deliver.
+- Footer: agent + session + model + think/fast/verbose/reasoning + token counts + deliver + a short command hint.
 - Input: text editor with autocomplete.
 
 ## Mental model: agents + sessions
@@ -64,8 +64,9 @@ Use `--password` if your Gateway uses password auth.
 
 - Model picker: list available models and set the session override.
 - Agent picker: choose a different agent.
-- Session picker: shows only sessions for the current agent.
+- Session picker: shows only sessions for the current agent. Rows include title/key, recent activity, model, token usage, flags, delivery route, and last-message preview when available.
 - Settings: toggle deliver, tool output expansion, and thinking visibility.
+- Status overlay: `/status` opens a compact overlay with the current run, model, token usage, delivery route, Gateway link/auth status, queued system events, recent sessions, and the latest TUI error.
 
 ## Keyboard shortcuts
 
@@ -84,7 +85,7 @@ Use `--password` if your Gateway uses password auth.
 Core:
 
 - `/help`
-- `/status`
+- `/status` (open status overlay)
 - `/agent <id>` (or `/agents`)
 - `/session <key>` (or `/sessions`)
 - `/model <provider/model>` (or `/models`)
@@ -158,7 +159,7 @@ Pass `--token` or `--password` explicitly. Missing explicit credentials is an er
 
 No output after sending a message:
 
-- Run `/status` in the TUI to confirm the Gateway is connected and idle/busy.
+- Run `/status` in the TUI to confirm the Gateway is connected and idle/busy, check the current run, and inspect the latest TUI error.
 - Check the Gateway logs: `crawclaw logs --follow`.
 - Confirm the agent can run: `crawclaw status` and `crawclaw models status`.
 - If you expect messages in a chat channel, enable delivery (`/deliver on` or `--deliver`).

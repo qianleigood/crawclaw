@@ -1,9 +1,12 @@
+import type { Component } from "@mariozechner/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 
 type LoadHistoryMock = ReturnType<typeof vi.fn> & (() => Promise<void>);
 type SetActivityStatusMock = ReturnType<typeof vi.fn> & ((text: string) => void);
 type SetSessionMock = ReturnType<typeof vi.fn> & ((key: string) => Promise<void>);
+type OpenOverlayMock = ReturnType<typeof vi.fn> & ((component: Component) => void);
+type RecordErrorMock = ReturnType<typeof vi.fn> & ((message: string) => void);
 
 function createHarness(params?: {
   sendChat?: ReturnType<typeof vi.fn>;
@@ -14,6 +17,10 @@ function createHarness(params?: {
   refreshSessionInfo?: ReturnType<typeof vi.fn>;
   applySessionInfoFromPatch?: ReturnType<typeof vi.fn>;
   setActivityStatus?: SetActivityStatusMock;
+  getStatus?: ReturnType<typeof vi.fn>;
+  listSessions?: ReturnType<typeof vi.fn>;
+  openOverlay?: OpenOverlayMock;
+  recordError?: RecordErrorMock;
   isConnected?: boolean;
   activeChatRunId?: string | null;
 }) {
@@ -31,23 +38,35 @@ function createHarness(params?: {
   const refreshSessionInfo = params?.refreshSessionInfo ?? vi.fn().mockResolvedValue(undefined);
   const applySessionInfoFromPatch = params?.applySessionInfoFromPatch ?? vi.fn();
   const setActivityStatus = params?.setActivityStatus ?? (vi.fn() as SetActivityStatusMock);
+  const getStatus = params?.getStatus ?? vi.fn().mockResolvedValue("ok");
+  const listSessions =
+    params?.listSessions ??
+    vi.fn().mockResolvedValue({
+      sessions: [],
+    });
+  const openOverlay = params?.openOverlay ?? (vi.fn() as OpenOverlayMock);
+  const recordError = params?.recordError ?? (vi.fn() as RecordErrorMock);
   const state = {
     currentSessionKey: "agent:main:main",
+    currentAgentId: "main",
     activeChatRunId: params?.activeChatRunId ?? null,
     pendingOptimisticUserMessage: false,
     isConnected: params?.isConnected ?? true,
     deliverEnabled: false,
     sessionInfo: {},
+    connectionStatus: "connected",
+    activityStatus: "idle",
+    lastError: null,
   };
 
-  const { handleCommand } = createCommandHandlers({
-    client: { sendChat, patchSession, resetSession } as never,
+  const { handleCommand, openSessionSelector } = createCommandHandlers({
+    client: { sendChat, patchSession, resetSession, getStatus, listSessions } as never,
     chatLog: { addUser, addSystem } as never,
     tui: { requestRender } as never,
     opts: {},
     state: state as never,
     deliverDefault: false,
-    openOverlay: vi.fn(),
+    openOverlay,
     closeOverlay: vi.fn(),
     refreshSessionInfo: refreshSessionInfo as never,
     loadHistory,
@@ -61,18 +80,24 @@ function createHarness(params?: {
     noteLocalBtwRunId,
     forgetLocalRunId: vi.fn(),
     forgetLocalBtwRunId: vi.fn(),
+    recordError,
     requestExit: vi.fn(),
   });
 
   return {
     handleCommand,
+    openSessionSelector,
     sendChat,
     patchSession,
     resetSession,
+    getStatus,
+    listSessions,
     setSession,
     addUser,
     addSystem,
     requestRender,
+    openOverlay,
+    recordError,
     loadHistory,
     refreshSessionInfo,
     applySessionInfoFromPatch,
@@ -154,6 +179,75 @@ describe("tui command handlers", () => {
     expect(addSystem).toHaveBeenCalledWith("deliver enabled");
     expect(addSystem).toHaveBeenCalledWith("deliver: on");
     expect(addSystem).toHaveBeenCalledWith("deliver disabled");
+  });
+
+  it("opens a status overlay for structured gateway status", async () => {
+    const openOverlay = vi.fn();
+    const { handleCommand, addSystem } = createHarness({
+      openOverlay,
+      getStatus: vi.fn().mockResolvedValue({
+        runtimeVersion: "2026.4.22",
+        linkChannel: { label: "Discord", linked: true, authAgeMs: 60_000 },
+        queuedSystemEvents: ["queued wake"],
+      }),
+    });
+
+    await handleCommand("/status");
+
+    expect(addSystem).not.toHaveBeenCalledWith(expect.stringContaining("Gateway status"));
+    expect(openOverlay).toHaveBeenCalledTimes(1);
+    expect(openOverlay.mock.calls[0]?.[0].render(120).join("\n")).toContain("Gateway status");
+    expect(openOverlay.mock.calls[0]?.[0].render(120).join("\n")).toContain("Discord: linked");
+  });
+
+  it("records status failures and falls back to chat log output", async () => {
+    const recordError = vi.fn();
+    const { handleCommand, addSystem, openOverlay } = createHarness({
+      recordError,
+      getStatus: vi.fn().mockRejectedValue(new Error("auth rejected")),
+    });
+
+    await handleCommand("/status");
+
+    expect(openOverlay).not.toHaveBeenCalled();
+    expect(addSystem).toHaveBeenCalledWith("status failed: Error: auth rejected");
+    expect(recordError).toHaveBeenCalledWith("status failed: Error: auth rejected");
+  });
+
+  it("uses dense session picker descriptions", async () => {
+    const openOverlay = vi.fn();
+    const { openSessionSelector } = createHarness({
+      openOverlay,
+      listSessions: vi.fn().mockResolvedValue({
+        sessions: [
+          {
+            key: "agent:main:main",
+            derivedTitle: "Main work",
+            updatedAt: Date.now(),
+            modelProvider: "openai",
+            model: "gpt-5.4",
+            totalTokens: 12_345,
+            contextTokens: 200_000,
+            fastMode: true,
+            verboseLevel: "on",
+            sendPolicy: "deny",
+            lastChannel: "discord",
+            lastTo: "channel:C123",
+            lastMessagePreview: "Latest assistant reply",
+          },
+        ],
+      }),
+    });
+
+    await openSessionSelector();
+
+    const rendered = openOverlay.mock.calls[0]?.[0].render(220).join("\n") ?? "";
+    expect(rendered).toContain("Main work");
+    expect(rendered).toContain("openai/gpt-5.4");
+    expect(rendered).toContain("tokens 12k/200k (6%)");
+    expect(rendered).toContain("fast");
+    expect(rendered).toContain("send deny");
+    expect(rendered).toContain("deliver discord:channel:C123");
   });
 
   it("defers local run binding until gateway events provide a real run id", async () => {

@@ -7,7 +7,6 @@ import {
   resolveResponseUsageMode,
 } from "../auto-reply/thinking.js";
 import type { SessionsPatchResult } from "../gateway/protocol/index.js";
-import { formatRelativeTimestamp } from "../infra/format-time/format-relative.ts";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { helpText, parseCommand } from "./commands.js";
 import type { ChatLog } from "./components/chat-log.js";
@@ -16,9 +15,14 @@ import {
   createSearchableSelectList,
   createSettingsList,
 } from "./components/selectors.js";
+import { StatusOverlayComponent } from "./components/status-overlay.js";
 import type { GatewayChatClient } from "./gateway-chat.js";
-import { sanitizeRenderableText } from "./tui-formatters.js";
-import { formatStatusSummary } from "./tui-status-summary.js";
+import {
+  formatDeliveryRoute,
+  formatSessionPickerDescription,
+  formatStatusOverlayLines,
+  sanitizeRenderableText,
+} from "./tui-formatters.js";
 import type {
   AgentSummary,
   GatewayStatusSummary,
@@ -47,6 +51,7 @@ type CommandHandlerContext = {
   noteLocalBtwRunId?: (runId: string) => void;
   forgetLocalRunId?: (runId: string) => void;
   forgetLocalBtwRunId?: (runId: string) => void;
+  recordError?: (message: string) => void;
   requestExit: () => void;
 };
 
@@ -75,8 +80,14 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     noteLocalBtwRunId,
     forgetLocalRunId,
     forgetLocalBtwRunId,
+    recordError,
     requestExit,
   } = context;
+
+  const addErrorSystem = (message: string) => {
+    recordError?.(message);
+    chatLog.addSystem(message);
+  };
 
   const setAgent = async (id: string) => {
     state.currentAgentId = normalizeAgentId(id);
@@ -130,11 +141,11 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await refreshSessionInfo();
         } catch (err) {
-          chatLog.addSystem(`model set failed: ${String(err)}`);
+          addErrorSystem(`model set failed: ${String(err)}`);
         }
       });
     } catch (err) {
-      chatLog.addSystem(`model list failed: ${String(err)}`);
+      addErrorSystem(`model list failed: ${String(err)}`);
       tui.requestRender();
     }
   };
@@ -171,13 +182,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         const formattedKey = formatSessionKey(session.key);
         // Avoid redundant "title (key)" when title matches key
         const label = title && title !== formattedKey ? `${title} (${formattedKey})` : formattedKey;
-        // Build description: time + message preview
-        const timePart = session.updatedAt
-          ? formatRelativeTimestamp(session.updatedAt, { dateFallback: true, fallback: "" })
-          : "";
-        const preview = session.lastMessagePreview?.replace(/\s+/g, " ").trim();
-        const description =
-          timePart && preview ? `${timePart} · ${preview}` : (preview ?? timePart);
+        const description = formatSessionPickerDescription(session);
         return {
           value: session.key,
           label,
@@ -188,6 +193,11 @@ export function createCommandHandlers(context: CommandHandlerContext) {
             session.subject,
             session.sessionId,
             session.key,
+            session.modelProvider,
+            session.model,
+            session.lastChannel,
+            session.lastTo,
+            session.lastAccountId,
             session.lastMessagePreview,
           ]
             .filter(Boolean)
@@ -199,7 +209,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         await setSession(value);
       });
     } catch (err) {
-      chatLog.addSystem(`sessions list failed: ${String(err)}`);
+      addErrorSystem(`sessions list failed: ${String(err)}`);
       tui.requestRender();
     }
   };
@@ -251,6 +261,38 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     tui.requestRender();
   };
 
+  const openStatusOverlay = async () => {
+    try {
+      const status = await client.getStatus();
+      if (typeof status === "string") {
+        chatLog.addSystem(status);
+        return;
+      }
+      if (status && typeof status === "object") {
+        const lines = formatStatusOverlayLines({
+          summary: status as GatewayStatusSummary,
+          connectionStatus: state.connectionStatus,
+          activityStatus: state.activityStatus,
+          activeRunId: state.activeChatRunId,
+          agentLabel: state.currentAgentId,
+          sessionLabel: formatSessionKey(state.currentSessionKey),
+          modelProvider: state.sessionInfo.modelProvider,
+          model: state.sessionInfo.model,
+          totalTokens: state.sessionInfo.totalTokens ?? null,
+          contextTokens: state.sessionInfo.contextTokens ?? null,
+          deliverEnabled: state.deliverEnabled,
+          deliveryRoute: formatDeliveryRoute(state.sessionInfo),
+          lastError: state.lastError,
+        });
+        openOverlay(new StatusOverlayComponent(lines, closeOverlay));
+        return;
+      }
+      chatLog.addSystem("status: unknown response");
+    } catch (err) {
+      addErrorSystem(`status failed: ${String(err)}`);
+    }
+  };
+
   const handleCommand = async (raw: string) => {
     const { name, args } = parseCommand(raw);
     if (!name) {
@@ -266,23 +308,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         );
         break;
       case "status":
-        try {
-          const status = await client.getStatus();
-          if (typeof status === "string") {
-            chatLog.addSystem(status);
-            break;
-          }
-          if (status && typeof status === "object") {
-            const lines = formatStatusSummary(status as GatewayStatusSummary);
-            for (const line of lines) {
-              chatLog.addSystem(line);
-            }
-            break;
-          }
-          chatLog.addSystem("status: unknown response");
-        } catch (err) {
-          chatLog.addSystem(`status failed: ${String(err)}`);
-        }
+        await openStatusOverlay();
         break;
       case "agent":
         if (!args) {
@@ -317,7 +343,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
             applySessionInfoFromPatch(result);
             await refreshSessionInfo();
           } catch (err) {
-            chatLog.addSystem(`model set failed: ${String(err)}`);
+            addErrorSystem(`model set failed: ${String(err)}`);
           }
         }
         break;
@@ -343,7 +369,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await refreshSessionInfo();
         } catch (err) {
-          chatLog.addSystem(`think failed: ${String(err)}`);
+          addErrorSystem(`think failed: ${String(err)}`);
         }
         break;
       case "verbose":
@@ -360,7 +386,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await loadHistory();
         } catch (err) {
-          chatLog.addSystem(`verbose failed: ${String(err)}`);
+          addErrorSystem(`verbose failed: ${String(err)}`);
         }
         break;
       case "fast":
@@ -381,7 +407,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await refreshSessionInfo();
         } catch (err) {
-          chatLog.addSystem(`fast failed: ${String(err)}`);
+          addErrorSystem(`fast failed: ${String(err)}`);
         }
         break;
       case "reasoning":
@@ -398,7 +424,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await refreshSessionInfo();
         } catch (err) {
-          chatLog.addSystem(`reasoning failed: ${String(err)}`);
+          addErrorSystem(`reasoning failed: ${String(err)}`);
         }
         break;
       case "usage": {
@@ -420,7 +446,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await refreshSessionInfo();
         } catch (err) {
-          chatLog.addSystem(`usage failed: ${String(err)}`);
+          addErrorSystem(`usage failed: ${String(err)}`);
         }
         break;
       }
@@ -442,7 +468,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await refreshSessionInfo();
         } catch (err) {
-          chatLog.addSystem(`elevated failed: ${String(err)}`);
+          addErrorSystem(`elevated failed: ${String(err)}`);
         }
         break;
       case "activation":
@@ -464,7 +490,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           applySessionInfoFromPatch(result);
           await refreshSessionInfo();
         } catch (err) {
-          chatLog.addSystem(`activation failed: ${String(err)}`);
+          addErrorSystem(`activation failed: ${String(err)}`);
         }
         break;
       case "deliver":
@@ -495,7 +521,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           await setSession(uniqueKey);
           chatLog.addSystem(`new session: ${uniqueKey}`);
         } catch (err) {
-          chatLog.addSystem(`new session failed: ${sanitizeRenderableText(String(err))}`);
+          addErrorSystem(`new session failed: ${sanitizeRenderableText(String(err))}`);
         }
         break;
       case "abort":
@@ -556,7 +582,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         state.pendingOptimisticUserMessage = false;
         state.activeChatRunId = null;
       }
-      chatLog.addSystem(`${isBtw ? "btw failed" : "send failed"}: ${String(err)}`);
+      addErrorSystem(`${isBtw ? "btw failed" : "send failed"}: ${String(err)}`);
       if (!isBtw) {
         setActivityStatus("error");
       }
