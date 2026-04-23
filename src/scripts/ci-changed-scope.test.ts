@@ -122,6 +122,24 @@ describe("detectChangedScope", () => {
       runSkillsPython: false,
       runChangedSmoke: true,
     });
+    expect(detectChangedScope(["scripts/install.ps1"])).toEqual({
+      runNode: true,
+      runWindows: true,
+      runSkillsPython: false,
+      runChangedSmoke: true,
+    });
+    expect(detectChangedScope(["scripts/ci/windows-packed-install-smoke.mjs"])).toEqual({
+      runNode: true,
+      runWindows: true,
+      runSkillsPython: false,
+      runChangedSmoke: true,
+    });
+    expect(detectChangedScope(["scripts/postinstall-bundled-plugins.mjs"])).toEqual({
+      runNode: true,
+      runWindows: true,
+      runSkillsPython: false,
+      runChangedSmoke: true,
+    });
     expect(detectChangedScope([bundledPluginFile("matrix", "package.json")])).toEqual({
       runNode: true,
       runWindows: true,
