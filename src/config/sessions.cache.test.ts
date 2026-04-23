@@ -91,9 +91,8 @@ describe("Session Store Cache", () => {
     const testStore = createSingleSessionStore(
       createSessionEntry({
         cliSessionIds: { openai: "sess-1" },
-        skillsSnapshot: {
-          prompt: "skills",
-          skills: [{ name: "alpha" }],
+        skillExposureState: {
+          surfacedSkillNames: ["alpha"],
         },
       }),
     );
@@ -102,13 +101,13 @@ describe("Session Store Cache", () => {
 
     const loaded1 = loadSessionStore(storePath);
     loaded1["session:1"].cliSessionIds = { openai: "mutated" };
-    if (loaded1["session:1"].skillsSnapshot?.skills?.length) {
-      loaded1["session:1"].skillsSnapshot.skills[0].name = "mutated";
+    if (loaded1["session:1"].skillExposureState?.surfacedSkillNames?.length) {
+      loaded1["session:1"].skillExposureState.surfacedSkillNames[0] = "mutated";
     }
 
     const loaded2 = loadSessionStore(storePath);
     expect(loaded2["session:1"].cliSessionIds?.openai).toBe("sess-1");
-    expect(loaded2["session:1"].skillsSnapshot?.skills?.[0]?.name).toBe("alpha");
+    expect(loaded2["session:1"].skillExposureState?.surfacedSkillNames?.[0]).toBe("alpha");
   });
 
   it("should refresh cache when store file changes on disk", async () => {
@@ -131,6 +130,26 @@ describe("Session Store Cache", () => {
     // Second load - should return the updated store
     const loaded2 = loadSessionStore(storePath);
     expect(loaded2).toEqual(modifiedStore);
+  });
+
+  it("should write over externally changed files when serialized cache still matches the new store", async () => {
+    const originalStore = createSingleSessionStore(
+      createSessionEntry({ sessionId: "id-1", displayName: "Original" }),
+    );
+    const externalStore = createSingleSessionStore(
+      createSessionEntry({ sessionId: "id-2", displayName: "External" }),
+      "session:2",
+    );
+
+    await saveSessionStore(storePath, originalStore);
+    expect(loadSessionStore(storePath)).toEqual(originalStore);
+
+    fs.writeFileSync(storePath, JSON.stringify(externalStore, null, 2));
+
+    await saveSessionStore(storePath, originalStore);
+
+    expect(JSON.parse(fs.readFileSync(storePath, "utf8"))).toEqual(originalStore);
+    expect(loadSessionStore(storePath)).toEqual(originalStore);
   });
 
   it("should invalidate cache on write", async () => {

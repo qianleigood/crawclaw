@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { logger } from "./logger.js";
 import type { ResolvedDingTalkAccount, WebhookResponse, MarkdownReplyBody } from "./types.js";
 
@@ -46,11 +47,23 @@ interface TokenCache {
 
 const tokenCacheMap = new Map<string, TokenCache>();
 
+function hashCredential(value: string): string {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
+function buildAccessTokenCacheKey(account: ResolvedDingTalkAccount): string {
+  return JSON.stringify({
+    accountId: account.accountId,
+    clientId: account.clientId,
+    clientSecretHash: hashCredential(account.clientSecret),
+  });
+}
+
 /**
  * 获取钉钉 access_token
  */
 export async function getAccessToken(account: ResolvedDingTalkAccount): Promise<string> {
-  const cacheKey = `${account.clientId}`;
+  const cacheKey = buildAccessTokenCacheKey(account);
   const cached = tokenCacheMap.get(cacheKey);
 
   // 检查缓存的 token 是否有效（提前5分钟过期）

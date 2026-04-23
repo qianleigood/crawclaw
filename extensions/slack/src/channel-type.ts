@@ -1,9 +1,30 @@
+import crypto from "node:crypto";
 import { resolveSlackAccount } from "./accounts.js";
 import { createSlackWebClient } from "./client.js";
 import { normalizeAllowListLower } from "./monitor/allow-list.js";
 import type { CrawClawConfig } from "./runtime-api.js";
 
 const SLACK_CHANNEL_TYPE_CACHE = new Map<string, "channel" | "group" | "dm" | "unknown">();
+
+function hashCredential(value: string): string {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
+function buildSlackChannelTypeCacheKey(params: {
+  accountId: string;
+  channelId: string;
+  groupChannels: string[];
+  channelKeys: string[];
+  token?: string;
+}): string {
+  return JSON.stringify({
+    accountId: params.accountId,
+    channelId: params.channelId,
+    groupChannels: params.groupChannels,
+    channelKeys: params.channelKeys,
+    tokenHash: params.token ? hashCredential(params.token) : null,
+  });
+}
 
 export async function resolveSlackChannelType(params: {
   cfg: CrawClawConfig;
@@ -14,14 +35,24 @@ export async function resolveSlackChannelType(params: {
   if (!channelId) {
     return "unknown";
   }
-  const cacheKey = `${params.accountId ?? "default"}:${channelId}`;
+  const account = resolveSlackAccount({ cfg: params.cfg, accountId: params.accountId });
+  const groupChannels = normalizeAllowListLower(account.dm?.groupChannels).toSorted();
+  const channelKeys = Object.keys(account.channels ?? {})
+    .map((key) => key.trim())
+    .toSorted();
+  const token = account.botToken?.trim() || account.config.userToken?.trim() || "";
+  const cacheKey = buildSlackChannelTypeCacheKey({
+    accountId: account.accountId,
+    channelId,
+    groupChannels,
+    channelKeys,
+    token,
+  });
   const cached = SLACK_CHANNEL_TYPE_CACHE.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const account = resolveSlackAccount({ cfg: params.cfg, accountId: params.accountId });
-  const groupChannels = normalizeAllowListLower(account.dm?.groupChannels);
   const channelIdLower = channelId.toLowerCase();
   if (
     groupChannels.includes(channelIdLower) ||
@@ -34,7 +65,6 @@ export async function resolveSlackChannelType(params: {
     return "group";
   }
 
-  const channelKeys = Object.keys(account.channels ?? {});
   if (
     channelKeys.some((key) => {
       const normalized = key.trim().toLowerCase();
@@ -49,7 +79,6 @@ export async function resolveSlackChannelType(params: {
     return "channel";
   }
 
-  const token = account.botToken?.trim() || account.config.userToken?.trim() || "";
   if (!token) {
     SLACK_CHANNEL_TYPE_CACHE.set(cacheKey, "unknown");
     return "unknown";
@@ -66,4 +95,8 @@ export async function resolveSlackChannelType(params: {
     SLACK_CHANNEL_TYPE_CACHE.set(cacheKey, "unknown");
     return "unknown";
   }
+}
+
+export function clearSlackChannelTypeCacheForTest(): void {
+  SLACK_CHANNEL_TYPE_CACHE.clear();
 }

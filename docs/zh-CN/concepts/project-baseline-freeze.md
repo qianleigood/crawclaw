@@ -139,12 +139,13 @@ title: 项目基线冻结
 关键位置：
 
 - `src/agents/bootstrap-cache.ts`
-- `src/agents/special/runtime/cache-safe-params.ts`
+- `src/agents/special/runtime/parent-fork-context.ts`
+- `src/agents/special/runtime/cache-plan.ts`
 
 职责：
 
 - workspace bootstrap snapshot
-- special-agent cache safety
+- special-agent parent fork context 与 cache hints
 
 ### 3. Memory / Summary / Built-in Runtime
 

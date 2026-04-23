@@ -1,9 +1,9 @@
 import type { WebClient as SlackWebClient } from "@slack/web-api";
+import { resolveRequestUrl } from "crawclaw/plugin-sdk/fetch-runtime";
 import { normalizeHostname } from "crawclaw/plugin-sdk/infra-runtime";
 import type { FetchLike } from "crawclaw/plugin-sdk/media-runtime";
 import { fetchRemoteMedia } from "crawclaw/plugin-sdk/media-runtime";
 import { saveMediaBuffer } from "crawclaw/plugin-sdk/media-runtime";
-import { resolveRequestUrl } from "crawclaw/plugin-sdk/fetch-runtime";
 import type { SlackAttachment, SlackFile } from "../types.js";
 
 function isSlackHostname(hostname: string): boolean {
@@ -373,12 +373,13 @@ function evictThreadStarterCache(): void {
 }
 
 export async function resolveSlackThreadStarter(params: {
+  accountId?: string;
   channelId: string;
   threadTs: string;
   client: SlackWebClient;
 }): Promise<SlackThreadStarter | null> {
   evictThreadStarterCache();
-  const cacheKey = `${params.channelId}:${params.threadTs}`;
+  const cacheKey = `${params.accountId ?? "default"}:${params.channelId}:${params.threadTs}`;
   const cached = THREAD_STARTER_CACHE.get(cacheKey);
   if (cached && Date.now() - cached.cachedAt <= THREAD_STARTER_CACHE_TTL_MS) {
     return cached.value;

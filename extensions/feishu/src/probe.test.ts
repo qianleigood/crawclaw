@@ -259,6 +259,16 @@ describe("probeFeishu", () => {
     expect(requestFn).toHaveBeenCalledTimes(2);
   });
 
+  it("does not reuse cache when credentials change for the same accountId", async () => {
+    const requestFn = setupClient(BOT1_RESPONSE);
+
+    await probeFeishu({ accountId: "acct-1", appId: "cli_123", appSecret: "secret-a" }); // pragma: allowlist secret
+    expect(requestFn).toHaveBeenCalledTimes(1);
+
+    await probeFeishu({ accountId: "acct-1", appId: "cli_123", appSecret: "secret-b" }); // pragma: allowlist secret
+    expect(requestFn).toHaveBeenCalledTimes(2);
+  });
+
   it("clearProbeCache forces fresh API call", async () => {
     const requestFn = setupSuccessClient();
 

@@ -329,6 +329,30 @@ describe("resolveSlackThreadStarter cache", () => {
     expect(replies).toHaveBeenCalledTimes(1);
   });
 
+  it("scopes cached thread starters by account", async () => {
+    const { replies, client } = createThreadStarterRepliesClient();
+    replies
+      .mockResolvedValueOnce({ messages: [{ text: "root for acct 1", user: "U1", ts: "1000.1" }] })
+      .mockResolvedValueOnce({ messages: [{ text: "root for acct 2", user: "U2", ts: "1000.1" }] });
+
+    const first = await resolveSlackThreadStarter({
+      accountId: "acct-1",
+      channelId: "C1",
+      threadTs: "1000.1",
+      client,
+    } as Parameters<typeof resolveSlackThreadStarter>[0] & { accountId: string });
+    const second = await resolveSlackThreadStarter({
+      accountId: "acct-2",
+      channelId: "C1",
+      threadTs: "1000.1",
+      client,
+    } as Parameters<typeof resolveSlackThreadStarter>[0] & { accountId: string });
+
+    expect(first?.text).toBe("root for acct 1");
+    expect(second?.text).toBe("root for acct 2");
+    expect(replies).toHaveBeenCalledTimes(2);
+  });
+
   it("expires stale cache entries and refetches after ttl", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));

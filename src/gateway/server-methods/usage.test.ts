@@ -158,4 +158,48 @@ describe("gateway usage helpers", () => {
     expect(b.totals.totalTokens).toBe(1);
     expect(vi.mocked(loadCostUsageSummary)).toHaveBeenCalledTimes(1);
   });
+
+  it("loadCostUsageSummaryCached keeps different model pricing config in separate cache entries", async () => {
+    const makePricingConfig = (modelId: string) =>
+      ({
+        models: { providers: { openai: { models: [{ id: modelId }] } } },
+      }) as unknown as CrawClawConfig;
+
+    vi.mocked(loadCostUsageSummary).mockImplementation(async (params) => ({
+      updatedAt: Date.now(),
+      days: 2,
+      startDate: "2026-02-01",
+      endDate: "2026-02-02",
+      daily: [],
+      totals: {
+        totalTokens:
+          params?.config?.models?.providers?.openai?.models?.[0]?.id === "cheap" ? 11 : 22,
+        input: 0,
+        output: 0,
+        cacheRead: 0,
+        cacheWrite: 0,
+        totalCost: 0,
+        inputCost: 0,
+        outputCost: 0,
+        cacheReadCost: 0,
+        cacheWriteCost: 0,
+        missingCostEntries: 0,
+      },
+    }));
+
+    const first = await __test.loadCostUsageSummaryCached({
+      startMs: 1,
+      endMs: 2,
+      config: makePricingConfig("cheap"),
+    });
+    const second = await __test.loadCostUsageSummaryCached({
+      startMs: 1,
+      endMs: 2,
+      config: makePricingConfig("expensive"),
+    });
+
+    expect(first.totals.totalTokens).toBe(11);
+    expect(second.totals.totalTokens).toBe(22);
+    expect(vi.mocked(loadCostUsageSummary)).toHaveBeenCalledTimes(2);
+  });
 });

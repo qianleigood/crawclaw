@@ -47,7 +47,6 @@ import {
   CacheEntry,
   DEFAULT_CACHE_TTL_MINUTES,
   DEFAULT_TIMEOUT_SECONDS,
-  normalizeCacheKey,
   readCache,
   readResponseText,
   resolveCacheTtlMs,
@@ -70,6 +69,29 @@ const DEFAULT_WEB_FETCH_SSRF_POLICY = {
 } as const;
 
 const FETCH_CACHE = new Map<string, CacheEntry<Record<string, unknown>>>();
+
+function buildWebFetchCacheKey(params: WebFetchRuntimeParams): string {
+  return JSON.stringify({
+    kind: "web_fetch",
+    url: params.url,
+    detail: params.detail,
+    output: params.output,
+    render: params.render,
+    extract: params.extract,
+    mainContentOnly: params.mainContentOnly,
+    waitUntil: params.waitUntil ?? null,
+    waitFor: params.waitFor ?? null,
+    sessionId: params.sessionId ?? null,
+    extractMode: params.extractMode,
+    maxChars: params.maxChars,
+    maxResponseBytes: params.maxResponseBytes,
+    maxRedirects: params.maxRedirects,
+    timeoutSeconds: params.timeoutSeconds,
+    userAgent: params.userAgent,
+    readabilityEnabled: params.readabilityEnabled,
+    providerId: params.providerFallback?.provider.id ?? "http",
+  });
+}
 
 const WebFetchSchema = Type.Object({
   url: Type.String({ description: "HTTP or HTTPS URL to fetch." }),
@@ -140,9 +162,7 @@ const WebFetchSchema = Type.Object({
   ),
 });
 async function runWebFetch(params: WebFetchRuntimeParams): Promise<Record<string, unknown>> {
-  const cacheKey = normalizeCacheKey(
-    `fetch:${params.url}:${params.detail}:${params.output}:${params.render}:${params.extract}:${params.mainContentOnly ? "main" : "all"}:${params.extractMode}:${params.maxChars}`,
-  );
+  const cacheKey = buildWebFetchCacheKey(params);
   const cached = readCache(FETCH_CACHE, cacheKey);
   if (cached) {
     return { ...cached.value, cached: true };

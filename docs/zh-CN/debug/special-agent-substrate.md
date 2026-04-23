@@ -139,8 +139,8 @@ CrawClaw 现在也已经接入了 Claude cache 设计里可以直接移植的那
 
 在当前 CrawClaw 的 runtime 层，这意味着 special-agent substrate 的主要设计缺口已经基本收口，而且 cache 语义的 owner 也更清楚了：
 
-- `cache-safe-params.ts` 负责 canonical cache identity 和 snapshot 持久化
-- `cache-plan.ts` 负责 parent-prefix 复用与 drift 判断
+- `parent-fork-context.ts` 负责 canonical cache identity 和 parent fork context
+- `cache-plan.ts` 负责 direct special-agent cache hints
 - `extra-params.ts` 只负责把 cache hints 映射到 provider payload
 
 和 Claude Code 还保留的一条主要差异是：CrawClaw 还没有完全复用同一条 in-process forked query-loop identity。现在继承的 envelope 已经足够形成稳定的 cache identity 和 drift 保护，但 request 重建仍然是适配层语义，而不是 Claude 那个原生 `CacheSafeParams` 对象模型的逐字复用。

@@ -736,7 +736,8 @@ title: Phase 对应 PR 计划
   - `src/agents/query-context/cache-contract.ts`
   - `src/agents/context-cache.ts`
   - `src/agents/bootstrap-cache.ts`
-  - `src/agents/special/runtime/cache-safe-params.ts`
+  - `src/agents/special/runtime/parent-fork-context.ts`
+  - `src/agents/special/runtime/cache-plan.ts`
   - `src/memory/engine/built-in-memory-runtime.ts`
   - `src/memory/session-summary/store.ts`
   - `src/routing/resolve-route.ts`
@@ -759,7 +760,7 @@ title: Phase 对应 PR 计划
   - `src/cache/governance.test.ts`
   - `src/agents/context-cache.test.ts`
   - `src/agents/bootstrap-cache.test.ts`
-  - `src/agents/special/runtime/cache-safe-params.test.ts`
+  - `src/agents/special/runtime/parent-fork-context.test.ts`
   - `src/memory/engine/built-in-memory-runtime.test.ts`
   - `src/memory/session-summary/store.test.ts`
   - `src/routing/resolve-route.test.ts`
@@ -770,7 +771,7 @@ title: Phase 对应 PR 计划
 
 已验证：
 
-- `vitest run src/cache/governance.test.ts src/agents/context-cache.test.ts src/agents/bootstrap-cache.test.ts src/agents/special/runtime/cache-safe-params.test.ts src/memory/engine/built-in-memory-runtime.test.ts src/memory/session-summary/store.test.ts src/routing/resolve-route.test.ts src/gateway/model-pricing-cache.test.ts ui/src/ui/chat/session-cache.test.ts`
+- `vitest run src/cache/governance.test.ts src/agents/context-cache.test.ts src/agents/bootstrap-cache.test.ts src/agents/special/runtime/parent-fork-context.test.ts src/memory/engine/built-in-memory-runtime.test.ts src/memory/session-summary/store.test.ts src/routing/resolve-route.test.ts src/gateway/model-pricing-cache.test.ts ui/src/ui/chat/session-cache.test.ts`
 - `vitest run src/memory/engine/context-memory-runtime.lifecycle.test.ts`
 - `vitest run -c vitest.e2e.config.ts src/agents/pi-embedded-runner.e2e.test.ts -t "prefers the built-in memory runtime over the legacy context engine path"`
 - `pnpm check`

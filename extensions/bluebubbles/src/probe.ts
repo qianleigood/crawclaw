@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { BaseProbeResult } from "./runtime-api.js";
 import { normalizeSecretInputString } from "./secret-input.js";
 import { buildBlueBubblesApiUrl, blueBubblesFetchWithTimeout } from "./types.js";
@@ -20,10 +21,23 @@ export type BlueBubblesServerInfo = {
  * Size-capped to prevent unbounded growth (#4948). */
 const MAX_SERVER_INFO_CACHE_SIZE = 64;
 const serverInfoCache = new Map<string, { info: BlueBubblesServerInfo; expires: number }>();
+const serverInfoCacheKeyByAccount = new Map<string, string>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-function buildCacheKey(accountId?: string): string {
+function normalizeAccountCacheKey(accountId?: string): string {
   return accountId?.trim() || "default";
+}
+
+function hashCredential(value: string): string {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
+function buildCacheKey(params: { accountId?: string; baseUrl: string; password: string }): string {
+  return JSON.stringify({
+    accountId: normalizeAccountCacheKey(params.accountId),
+    baseUrl: params.baseUrl,
+    passwordHash: hashCredential(params.password),
+  });
 }
 
 /**
@@ -43,7 +57,8 @@ export async function fetchBlueBubblesServerInfo(params: {
     return null;
   }
 
-  const cacheKey = buildCacheKey(params.accountId);
+  const accountCacheKey = normalizeAccountCacheKey(params.accountId);
+  const cacheKey = buildCacheKey({ accountId: params.accountId, baseUrl, password });
   const cached = serverInfoCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     return cached.info;
@@ -65,11 +80,17 @@ export async function fetchBlueBubblesServerInfo(params: {
     const data = payload?.data as BlueBubblesServerInfo | undefined;
     if (data) {
       serverInfoCache.set(cacheKey, { info: data, expires: Date.now() + CACHE_TTL_MS });
+      serverInfoCacheKeyByAccount.set(accountCacheKey, cacheKey);
       // Evict oldest entries if cache exceeds max size
       if (serverInfoCache.size > MAX_SERVER_INFO_CACHE_SIZE) {
         const oldest = serverInfoCache.keys().next().value;
         if (oldest !== undefined) {
           serverInfoCache.delete(oldest);
+          for (const [accountKey, indexedKey] of serverInfoCacheKeyByAccount.entries()) {
+            if (indexedKey === oldest) {
+              serverInfoCacheKeyByAccount.delete(accountKey);
+            }
+          }
         }
       }
     }
@@ -84,7 +105,10 @@ export async function fetchBlueBubblesServerInfo(params: {
  * Returns null if not cached or expired.
  */
 export function getCachedBlueBubblesServerInfo(accountId?: string): BlueBubblesServerInfo | null {
-  const cacheKey = buildCacheKey(accountId);
+  const cacheKey = serverInfoCacheKeyByAccount.get(normalizeAccountCacheKey(accountId));
+  if (!cacheKey) {
+    return null;
+  }
   const cached = serverInfoCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     return cached.info;
@@ -139,6 +163,7 @@ export function isMacOS26OrHigher(accountId?: string): boolean {
 /** Clear the server info cache (for testing) */
 export function clearServerInfoCache(): void {
   serverInfoCache.clear();
+  serverInfoCacheKeyByAccount.clear();
 }
 
 export async function probeBlueBubbles(params: {

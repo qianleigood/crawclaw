@@ -534,6 +534,7 @@ export async function prepareSlackMessage(params: {
   const threadStarter =
     isThreadReply && threadTs
       ? await resolveSlackThreadStarter({
+          accountId: ctx.accountId,
           channelId: message.channel,
           threadTs,
           client: ctx.app.client,

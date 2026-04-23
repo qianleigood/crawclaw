@@ -1,3 +1,4 @@
+import type { CacheGovernanceDescriptor } from "../../cache/governance-types.js";
 import { createExpiringMapCache, isCacheEnabled, resolveCacheTtlMs } from "../cache-utils.js";
 import type { SessionEntry } from "./types.js";
 
@@ -8,12 +9,37 @@ type SessionStoreCacheEntry = {
   serialized?: string;
 };
 
+type SerializedSessionStoreCacheEntry = {
+  serialized: string;
+  mtimeMs?: number;
+  sizeBytes?: number;
+};
+
 const DEFAULT_SESSION_STORE_TTL_MS = 45_000; // 45 seconds (between 30-60s)
 
 const SESSION_STORE_CACHE = createExpiringMapCache<string, SessionStoreCacheEntry>({
   ttlMs: getSessionStoreTtl,
 });
-const SESSION_STORE_SERIALIZED_CACHE = new Map<string, string>();
+const SESSION_STORE_SERIALIZED_CACHE = new Map<string, SerializedSessionStoreCacheEntry>();
+
+export const SESSION_STORE_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
+  id: "config.sessions.store",
+  module: "src/config/sessions/store-cache.ts",
+  category: "file_ui",
+  owner: "config/sessions",
+  key: "storePath + file mtimeMs + sizeBytes for object and serialized write-through entries",
+  lifecycle:
+    "Per-process cache retained until TTL expiry, file fingerprint mismatch, explicit invalidation, or process restart.",
+  invalidation: [
+    "File mtime or size differs from the cached fingerprint",
+    "invalidateSessionStoreCache(storePath) or clearSessionStoreCaches()",
+    "CRAWCLAW_SESSION_CACHE_TTL_MS=0 disables object-cache reuse",
+  ],
+  observability: [
+    "src/config/sessions.cache.test.ts covers external-write and same-mtime rewrite cases",
+    "clearSessionStoreCacheForTest() resets state for targeted tests",
+  ],
+};
 
 export function getSessionStoreTtl(): number {
   return resolveCacheTtlMs({
@@ -36,16 +62,37 @@ export function invalidateSessionStoreCache(storePath: string): void {
   SESSION_STORE_SERIALIZED_CACHE.delete(storePath);
 }
 
-export function getSerializedSessionStore(storePath: string): string | undefined {
-  return SESSION_STORE_SERIALIZED_CACHE.get(storePath);
+export function getSerializedSessionStore(params: {
+  storePath: string;
+  mtimeMs?: number;
+  sizeBytes?: number;
+}): string | undefined {
+  const cached = SESSION_STORE_SERIALIZED_CACHE.get(params.storePath);
+  if (!cached) {
+    return undefined;
+  }
+  if (params.mtimeMs !== cached.mtimeMs || params.sizeBytes !== cached.sizeBytes) {
+    SESSION_STORE_SERIALIZED_CACHE.delete(params.storePath);
+    return undefined;
+  }
+  return cached.serialized;
 }
 
-export function setSerializedSessionStore(storePath: string, serialized?: string): void {
-  if (serialized === undefined) {
-    SESSION_STORE_SERIALIZED_CACHE.delete(storePath);
+export function setSerializedSessionStore(params: {
+  storePath: string;
+  serialized?: string;
+  mtimeMs?: number;
+  sizeBytes?: number;
+}): void {
+  if (params.serialized === undefined) {
+    SESSION_STORE_SERIALIZED_CACHE.delete(params.storePath);
     return;
   }
-  SESSION_STORE_SERIALIZED_CACHE.set(storePath, serialized);
+  SESSION_STORE_SERIALIZED_CACHE.set(params.storePath, {
+    serialized: params.serialized,
+    mtimeMs: params.mtimeMs,
+    sizeBytes: params.sizeBytes,
+  });
 }
 
 export function dropSessionStoreObjectCache(storePath: string): void {
@@ -82,6 +129,10 @@ export function writeSessionStoreCache(params: {
     serialized: params.serialized,
   });
   if (params.serialized !== undefined) {
-    SESSION_STORE_SERIALIZED_CACHE.set(params.storePath, params.serialized);
+    SESSION_STORE_SERIALIZED_CACHE.set(params.storePath, {
+      serialized: params.serialized,
+      mtimeMs: params.mtimeMs,
+      sizeBytes: params.sizeBytes,
+    });
   }
 }

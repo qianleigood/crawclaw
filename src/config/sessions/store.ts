@@ -7,6 +7,7 @@ import {
 import type { MsgContext } from "../../auto-reply/templating.js";
 import { writeTextAtomic } from "../../infra/json-files.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
+import { stopSharedDurableExtractionWorkerForSession } from "../../memory/durable/worker-manager.ts";
 import {
   deliveryContextFromSession,
   mergeDeliveryContext,
@@ -36,7 +37,6 @@ import {
   type SessionMaintenanceWarning,
 } from "./store-maintenance.js";
 import { applySessionStoreMigrations } from "./store-migrations.js";
-import { stopSharedDurableExtractionWorkerForSession } from "../../memory/durable/worker-manager.ts";
 import {
   mergeSessionEntry,
   mergeSessionEntryPreserveActivity,
@@ -270,9 +270,14 @@ export function loadSessionStore(
     }
   }
   if (serializedFromDisk !== undefined) {
-    setSerializedSessionStore(storePath, serializedFromDisk);
+    setSerializedSessionStore({
+      storePath,
+      serialized: serializedFromDisk,
+      mtimeMs: fileStat?.mtimeMs,
+      sizeBytes: fileStat?.sizeBytes,
+    });
   } else {
-    setSerializedSessionStore(storePath, undefined);
+    setSerializedSessionStore({ storePath, serialized: undefined });
   }
 
   applySessionStoreMigrations(store);
@@ -351,7 +356,12 @@ function updateSessionStoreWriteCaches(params: {
   serialized: string;
 }): void {
   const fileStat = getFileStatSnapshot(params.storePath);
-  setSerializedSessionStore(params.storePath, params.serialized);
+  setSerializedSessionStore({
+    storePath: params.storePath,
+    serialized: params.serialized,
+    mtimeMs: fileStat?.mtimeMs,
+    sizeBytes: fileStat?.sizeBytes,
+  });
   if (!isSessionStoreCacheEnabled()) {
     dropSessionStoreObjectCache(params.storePath);
     return;
@@ -545,7 +555,14 @@ async function saveSessionStoreUnlocked(
 
   await fs.promises.mkdir(path.dirname(storePath), { recursive: true });
   const json = JSON.stringify(store, null, 2);
-  if (getSerializedSessionStore(storePath) === json) {
+  const currentFileStat = getFileStatSnapshot(storePath);
+  if (
+    getSerializedSessionStore({
+      storePath,
+      mtimeMs: currentFileStat?.mtimeMs,
+      sizeBytes: currentFileStat?.sizeBytes,
+    }) === json
+  ) {
     updateSessionStoreWriteCaches({ storePath, store, serialized: json });
     return;
   }

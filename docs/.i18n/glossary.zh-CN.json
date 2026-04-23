@@ -402,5 +402,9 @@
   {
     "source": "Security",
     "target": "安全"
+  },
+  {
+    "source": "Project Cache Strategy",
+    "target": "项目缓存策略"
   }
 ]

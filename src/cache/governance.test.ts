@@ -15,6 +15,12 @@ describe("CACHE_GOVERNANCE_REGISTRY", () => {
     }
   });
 
+  it("registers critical mutable and provider-backed runtime caches", () => {
+    const ids = new Set(CACHE_GOVERNANCE_REGISTRY.map((descriptor) => descriptor.id));
+    expect(ids).toContain("config.sessions.store");
+    expect(ids).toContain("agents.web-fetch.response");
+  });
+
   it("requires owner, invalidation, and observability details for every descriptor", () => {
     for (const descriptor of CACHE_GOVERNANCE_REGISTRY) {
       expect(descriptor.owner).toBeTruthy();

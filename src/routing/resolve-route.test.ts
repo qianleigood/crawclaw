@@ -604,6 +604,32 @@ describe("resolve-route cache governance", () => {
       "getResolveRouteCacheMeta(cfg).resolvedRouteEntries",
     );
   });
+
+  test("refreshes cached routes when bindings are mutated in place", () => {
+    const cfg: CrawClawConfig = {
+      bindings: [],
+      agents: {
+        list: [{ id: "main" }, { id: "special" }],
+      },
+    };
+    const input = {
+      cfg,
+      channel: "telegram" as const,
+      accountId: "default",
+      peer: { kind: "direct" as const, id: "user-1" },
+    };
+
+    expect(resolveAgentRoute(input).agentId).toBe("main");
+    cfg.bindings?.push({
+      agentId: "special",
+      match: {
+        channel: "telegram",
+        peer: { kind: "direct", id: "user-1" },
+      },
+    });
+
+    expect(resolveAgentRoute(input).agentId).toBe("special");
+  });
 });
 
 test.each([

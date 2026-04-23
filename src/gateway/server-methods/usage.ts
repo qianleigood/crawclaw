@@ -61,6 +61,18 @@ type CostUsageCacheEntry = {
 
 const costUsageCache = new Map<string, CostUsageCacheEntry>();
 
+function buildCostUsageCacheKey(params: {
+  startMs: number;
+  endMs: number;
+  config: ReturnType<typeof loadConfig>;
+}): string {
+  return JSON.stringify({
+    startMs: params.startMs,
+    endMs: params.endMs,
+    modelProviders: params.config.models?.providers ?? null,
+  });
+}
+
 function resolveSessionUsageFileOrRespond(
   key: string,
   respond: RespondFn,
@@ -301,7 +313,7 @@ async function loadCostUsageSummaryCached(params: {
   endMs: number;
   config: ReturnType<typeof loadConfig>;
 }): Promise<CostUsageSummary> {
-  const cacheKey = `${params.startMs}-${params.endMs}`;
+  const cacheKey = buildCostUsageCacheKey(params);
   const now = Date.now();
   const cached = costUsageCache.get(cacheKey);
   if (cached?.summary && cached.updatedAt && now - cached.updatedAt < COST_USAGE_CACHE_TTL_MS) {

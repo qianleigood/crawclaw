@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { raceWithTimeoutAndAbort } from "./async.js";
 import { createFeishuClient, type FeishuClientCredentials } from "./client.js";
 import type { FeishuProbeResult } from "./types.js";
@@ -33,6 +34,23 @@ type FeishuRequestClient = ReturnType<typeof createFeishuClient> & {
   }): Promise<FeishuBotInfoResponse>;
 };
 
+type ResolvedFeishuProbeCredentials = FeishuClientCredentials & {
+  appId: string;
+  appSecret: string;
+};
+
+function hashCredential(value: string): string {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
+function buildProbeCacheKey(creds: ResolvedFeishuProbeCredentials): string {
+  return JSON.stringify({
+    accountId: creds.accountId ?? null,
+    appId: creds.appId,
+    appSecretHash: hashCredential(creds.appSecret),
+  });
+}
+
 function setCachedProbeResult(
   cacheKey: string,
   result: FeishuProbeResult,
@@ -66,13 +84,16 @@ export async function probeFeishu(
     };
   }
 
+  const resolvedCreds: ResolvedFeishuProbeCredentials = {
+    ...creds,
+    appId: creds.appId,
+    appSecret: creds.appSecret,
+  };
   const timeoutMs = options.timeoutMs ?? FEISHU_PROBE_REQUEST_TIMEOUT_MS;
 
-  // Return cached result if still valid.
-  // Use accountId when available; otherwise include appSecret prefix so two
-  // accounts sharing the same appId (e.g. after secret rotation) don't
-  // pollute each other's cache entry.
-  const cacheKey = creds.accountId ?? `${creds.appId}:${creds.appSecret.slice(0, 8)}`;
+  // Return cached result if still valid. Include a secret fingerprint so secret
+  // rotation never reuses a stale success result for the same accountId.
+  const cacheKey = buildProbeCacheKey(resolvedCreds);
   const cached = probeCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.result;

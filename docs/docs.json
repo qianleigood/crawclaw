@@ -1020,6 +1020,7 @@
                   "concepts/agent-loop",
                   "concepts/system-prompt",
                   "concepts/context",
+                  "concepts/project-cache-strategy",
                   "concepts/context-engine",
                   "concepts/agent-workspace",
                   "concepts/oauth",

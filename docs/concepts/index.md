@@ -18,6 +18,7 @@ Use these groups instead of jumping through filenames at random.
 - [Agent Loop](/concepts/agent-loop)
 - [Agent Workspace](/concepts/agent-workspace)
 - [Context](/concepts/context)
+- [Project Cache Strategy](/concepts/project-cache-strategy)
 - [Streaming](/concepts/streaming)
 - [System Prompt](/concepts/system-prompt)
 
@@ -64,4 +65,4 @@ Use these groups instead of jumping through filenames at random.
 
 ## Related Maintainer Docs
 
-Project governance and phase-by-phase refactor docs currently live in `docs/zh-CN/concepts/project-*`. Use those when you are working on architecture cleanup, boundaries, cache governance, or execution visibility unification.
+Project governance and phase-by-phase refactor docs currently live in `docs/zh-CN/concepts/project-*`. Use those when you are working on architecture cleanup, boundaries, or execution visibility unification.

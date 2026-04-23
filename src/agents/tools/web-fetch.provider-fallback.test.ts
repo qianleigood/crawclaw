@@ -182,6 +182,45 @@ describe("web_fetch provider fallback normalization", () => {
     );
   });
 
+  it("does not reuse provider-backed fetch cache entries across sticky sessions", async () => {
+    global.fetch = withFetchPreconnect(
+      vi.fn(async () => {
+        throw new Error("network failed");
+      }),
+    );
+    const providerExecute = vi.fn(async (input: { sessionId?: string }) => ({
+      text: `provider body for ${input.sessionId}`,
+    }));
+    resolveWebFetchDefinitionMock.mockReturnValue({
+      provider: { id: "scrapling" },
+      definition: {
+        description: "scrapling",
+        parameters: {},
+        execute: providerExecute,
+      },
+    });
+
+    const tool = createWebFetchTool({
+      config: {} as CrawClawConfig,
+      sandboxed: false,
+    });
+
+    await tool?.execute?.("call-provider-session-a", {
+      url: "https://example.com/provider-session-cache",
+      render: "dynamic",
+      sessionId: "session-a",
+    });
+    const result = await tool?.execute?.("call-provider-session-b", {
+      url: "https://example.com/provider-session-cache",
+      render: "dynamic",
+      sessionId: "session-b",
+    });
+    const details = result?.details as { text?: string };
+
+    expect(providerExecute).toHaveBeenCalledTimes(2);
+    expect(details.text).toContain("provider body for session-b");
+  });
+
   it("prefers a provider-backed payload on the primary guarded path before local readability shaping", async () => {
     global.fetch = withFetchPreconnect(
       vi.fn(async () => ({

@@ -115,8 +115,17 @@ function listAgents(cfg: CrawClawConfig) {
   return Array.isArray(agents) ? agents : [];
 }
 
+function buildCacheSignature(value: unknown): string {
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return String(value);
+  }
+}
+
 type AgentLookupCache = {
   agentsRef: CrawClawConfig["agents"] | undefined;
+  agentsSignature: string;
   byNormalizedId: Map<string, string>;
   fallbackDefaultAgentId: string;
 };
@@ -130,9 +139,9 @@ export const ROUTE_AGENT_LOOKUP_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
   owner: "routing/resolve-route",
   key: "WeakMap<CrawClawConfig, normalized agent-id lookup>",
   lifecycle:
-    "Per-config in-memory lookup cache reused until agents config reference changes, explicit clear, or process restart.",
+    "Per-config in-memory lookup cache reused until agents config reference/signature changes, explicit clear, or process restart.",
   invalidation: [
-    "Automatic replacement when cfg.agents reference changes",
+    "Automatic replacement when cfg.agents reference or serialized signature changes",
     "clearResolveRouteCaches(cfg) deletes the cache for one config",
   ],
   observability: ["getResolveRouteCacheMeta(cfg).agentLookupEntries"],
@@ -140,8 +149,13 @@ export const ROUTE_AGENT_LOOKUP_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
 
 function resolveAgentLookupCache(cfg: CrawClawConfig): AgentLookupCache {
   const agentsRef = cfg.agents;
+  const agentsSignature = buildCacheSignature(agentsRef);
   const existing = agentLookupCacheByCfg.get(cfg);
-  if (existing && existing.agentsRef === agentsRef) {
+  if (
+    existing &&
+    existing.agentsRef === agentsRef &&
+    existing.agentsSignature === agentsSignature
+  ) {
     return existing;
   }
 
@@ -155,6 +169,7 @@ function resolveAgentLookupCache(cfg: CrawClawConfig): AgentLookupCache {
   }
   const next: AgentLookupCache = {
     agentsRef,
+    agentsSignature,
     byNormalizedId,
     fallbackDefaultAgentId: sanitizeAgentId(resolveDefaultAgentId(cfg)),
   };
@@ -208,6 +223,7 @@ type BindingScope = {
 
 type EvaluatedBindingsCache = {
   bindingsRef: CrawClawConfig["bindings"];
+  bindingsSignature: string;
   byChannel: Map<string, EvaluatedBindingsByChannel>;
   byChannelAccount: Map<string, EvaluatedBinding[]>;
   byChannelAccountIndex: Map<string, EvaluatedBindingsIndex>;
@@ -219,8 +235,11 @@ const resolvedRouteCacheByCfg = new WeakMap<
   CrawClawConfig,
   {
     bindingsRef: CrawClawConfig["bindings"];
+    bindingsSignature: string;
     agentsRef: CrawClawConfig["agents"];
+    agentsSignature: string;
     sessionRef: CrawClawConfig["session"];
+    sessionSignature: string;
     byKey: Map<string, ResolvedAgentRoute>;
   }
 >();
@@ -233,9 +252,9 @@ export const ROUTE_EVALUATED_BINDINGS_CACHE_DESCRIPTOR: CacheGovernanceDescripto
   owner: "routing/resolve-route",
   key: "WeakMap<CrawClawConfig, channel/account evaluated bindings and indexes>",
   lifecycle:
-    "Per-config route binding cache retained until bindings ref changes, explicit clear, cache-key cap reset, or process restart.",
+    "Per-config route binding cache retained until bindings ref/signature changes, explicit clear, cache-key cap reset, or process restart.",
   invalidation: [
-    "Automatic replacement when cfg.bindings reference changes",
+    "Automatic replacement when cfg.bindings reference or serialized signature changes",
     "byChannelAccount/byChannelAccountIndex clear when key count exceeds max",
     "clearResolveRouteCaches(cfg) deletes the cache for one config",
   ],
@@ -253,9 +272,9 @@ export const ROUTE_RESOLVED_ROUTE_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = 
   owner: "routing/resolve-route",
   key: "WeakMap<CrawClawConfig, normalized inbound route cache key>",
   lifecycle:
-    "Per-config resolved-route cache retained until bindings/agents/session refs change, explicit clear, size-cap reset, or process restart.",
+    "Per-config resolved-route cache retained until bindings/agents/session refs or serialized signatures change, explicit clear, size-cap reset, or process restart.",
   invalidation: [
-    "Automatic replacement when cfg.bindings/cfg.agents/cfg.session reference changes",
+    "Automatic replacement when cfg.bindings/cfg.agents/cfg.session references or serialized signatures change",
     "Cache clear when resolved-route key count exceeds max",
     "clearResolveRouteCaches(cfg) deletes the cache for one config",
   ],
@@ -477,12 +496,16 @@ function getEvaluatedBindingsForChannelAccount(
   accountId: string,
 ): EvaluatedBinding[] {
   const bindingsRef = cfg.bindings;
+  const bindingsSignature = buildCacheSignature(bindingsRef);
   const existing = evaluatedBindingsCacheByCfg.get(cfg);
   const cache =
-    existing && existing.bindingsRef === bindingsRef
+    existing &&
+    existing.bindingsRef === bindingsRef &&
+    existing.bindingsSignature === bindingsSignature
       ? existing
       : {
           bindingsRef,
+          bindingsSignature,
           byChannel: buildEvaluatedBindingsByChannel(cfg),
           byChannelAccount: new Map<string, EvaluatedBinding[]>(),
           byChannelAccountIndex: new Map<string, EvaluatedBindingsIndex>(),
@@ -570,20 +593,29 @@ function normalizeBindingMatch(
 }
 
 function resolveRouteCacheForConfig(cfg: CrawClawConfig): Map<string, ResolvedAgentRoute> {
+  const bindingsSignature = buildCacheSignature(cfg.bindings);
+  const agentsSignature = buildCacheSignature(cfg.agents);
+  const sessionSignature = buildCacheSignature(cfg.session);
   const existing = resolvedRouteCacheByCfg.get(cfg);
   if (
     existing &&
     existing.bindingsRef === cfg.bindings &&
+    existing.bindingsSignature === bindingsSignature &&
     existing.agentsRef === cfg.agents &&
-    existing.sessionRef === cfg.session
+    existing.agentsSignature === agentsSignature &&
+    existing.sessionRef === cfg.session &&
+    existing.sessionSignature === sessionSignature
   ) {
     return existing.byKey;
   }
   const byKey = new Map<string, ResolvedAgentRoute>();
   resolvedRouteCacheByCfg.set(cfg, {
     bindingsRef: cfg.bindings,
+    bindingsSignature,
     agentsRef: cfg.agents,
+    agentsSignature,
     sessionRef: cfg.session,
+    sessionSignature,
     byKey,
   });
   return byKey;
