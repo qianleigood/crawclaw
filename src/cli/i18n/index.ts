@@ -31,6 +31,7 @@ export function resolveCliLocaleFromRuntime(argv: readonly string[]): CliLocale 
     argv,
     config: configLanguage,
     env: process.env.CRAWCLAW_LANG,
+    systemEnv: [process.env.LC_ALL, process.env.LC_MESSAGES, process.env.LANG],
   });
   setActiveCliLocale(locale);
   return locale;

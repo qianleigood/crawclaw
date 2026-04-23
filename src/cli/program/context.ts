@@ -30,6 +30,7 @@ export function createProgramContext(options?: {
     argv: options?.argv ?? process.argv,
     config: configLanguage,
     env: options?.envLanguage ?? process.env.CRAWCLAW_LANG,
+    systemEnv: [process.env.LC_ALL, process.env.LC_MESSAGES, process.env.LANG],
   });
   setActiveCliLocale(locale);
   const t = createCliTranslator(locale);

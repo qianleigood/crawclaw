@@ -38,6 +38,14 @@ describe("resolveCliLocale", () => {
     expect(resolveCliLocale({ argv: [], config: undefined, env: "zh-CN" })).toBe("zh-CN");
     expect(resolveCliLocale({ argv: [], config: "fr", env: "de" })).toBe("en");
   });
+
+  it("uses the system locale when no explicit CLI locale is configured", () => {
+    expect(resolveCliLocale({ argv: [], systemEnv: "zh_CN.UTF-8" })).toBe("zh-CN");
+    expect(resolveCliLocale({ argv: [], systemEnv: "zh-Hans-CN" })).toBe("zh-CN");
+    expect(resolveCliLocale({ argv: [], systemEnv: ["C.UTF-8", "zh_CN.UTF-8"] })).toBe("zh-CN");
+    expect(resolveCliLocale({ argv: [], env: "en", systemEnv: "zh_CN.UTF-8" })).toBe("en");
+    expect(resolveCliLocale({ argv: [], config: "zh-CN", systemEnv: "en_US.UTF-8" })).toBe("zh-CN");
+  });
 });
 
 describe("createCliTranslator", () => {

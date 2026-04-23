@@ -146,6 +146,7 @@ async function buildRootHelpProgram(): Promise<Command> {
     argv: process.argv,
     config: configHints.cliLanguage,
     env: process.env.CRAWCLAW_LANG,
+    systemEnv: [process.env.LC_ALL, process.env.LC_MESSAGES, process.env.LANG],
   });
   const t = await createRootHelpTranslator(locale);
   configureProgramHelp(program, {
