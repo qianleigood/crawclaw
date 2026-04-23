@@ -79,10 +79,9 @@ vi.mock("./route-reply.runtime.js", () => ({
 }));
 
 vi.mock("./session-updates.runtime.js", () => ({
-  ensureSkillSnapshot: vi.fn().mockImplementation(async ({ sessionEntry, systemSent }) => ({
+  ensureSessionSystemSent: vi.fn().mockImplementation(async ({ sessionEntry, systemSent }) => ({
     sessionEntry,
     systemSent,
-    skillsSnapshot: undefined,
   })),
 }));
 

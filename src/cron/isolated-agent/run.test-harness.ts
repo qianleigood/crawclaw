@@ -4,7 +4,6 @@ type CronSessionEntry = {
   sessionId: string;
   updatedAt: number;
   systemSent: boolean;
-  skillsSnapshot: unknown;
   model?: string;
   modelProvider?: string;
   [key: string]: unknown;
@@ -23,7 +22,6 @@ function createMock(): Mock {
   return vi.fn();
 }
 
-export const buildWorkspaceSkillSnapshotMock = createMock();
 export const resolveAgentConfigMock = createMock();
 export const resolveAgentModelFallbacksOverrideMock = createMock();
 export const resolveAgentSkillsFilterMock = createMock();
@@ -58,22 +56,6 @@ vi.mock("../../agents/agent-scope.js", async (importOriginal) => {
     resolveAgentWorkspaceDir: vi.fn().mockReturnValue("/tmp/workspace"),
     resolveDefaultAgentId: vi.fn().mockReturnValue("default"),
     resolveAgentSkillsFilter: resolveAgentSkillsFilterMock,
-  };
-});
-
-vi.mock("../../agents/skills.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../agents/skills.js")>();
-  return {
-    ...actual,
-    buildWorkspaceSkillSnapshot: buildWorkspaceSkillSnapshotMock,
-  };
-});
-
-vi.mock("../../agents/skills/refresh.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../agents/skills/refresh.js")>();
-  return {
-    ...actual,
-    getSkillsSnapshotVersion: vi.fn().mockReturnValue(42),
   };
 });
 
@@ -319,7 +301,6 @@ export function makeCronSessionEntry(overrides?: Record<string, unknown>): CronS
     sessionId: "test-session-id",
     updatedAt: 0,
     systemSent: false,
-    skillsSnapshot: undefined,
     ...overrides,
   };
 }
@@ -363,11 +344,6 @@ export function mockRunCronFallbackPassthrough(): void {
 export function resetRunCronIsolatedAgentTurnHarness(): void {
   vi.clearAllMocks();
 
-  buildWorkspaceSkillSnapshotMock.mockReturnValue({
-    prompt: "<available_skills></available_skills>",
-    resolvedSkills: [],
-    version: 42,
-  });
   resolveAgentConfigMock.mockReturnValue(undefined);
   resolveAgentModelFallbacksOverrideMock.mockReturnValue(undefined);
   resolveAgentSkillsFilterMock.mockReturnValue(undefined);

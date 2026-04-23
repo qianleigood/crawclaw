@@ -5,7 +5,6 @@ import {
   setupRunCronIsolatedAgentTurnSuite,
 } from "./run.suite-helpers.js";
 import {
-  buildWorkspaceSkillSnapshotMock,
   getCliSessionIdMock,
   isCliProviderMock,
   loadRunCronIsolatedAgentTurn,
@@ -14,6 +13,7 @@ import {
   resolveAgentSkillsFilterMock,
   resolveAllowedModelRefMock,
   resolveCronSessionMock,
+  runEmbeddedPiAgentMock,
   runCliAgentMock,
   runWithModelFallbackMock,
 } from "./run.test-harness.js";
@@ -50,71 +50,50 @@ describe("runCronIsolatedAgentTurn — skill filter", () => {
     );
   }
 
-  it("passes agent-level skillFilter to buildWorkspaceSkillSnapshot", async () => {
+  function mockEmbeddedFallbackInvocation() {
+    runWithModelFallbackMock.mockImplementationOnce(
+      async (params: { run: (provider: string, model: string) => Promise<unknown> }) => {
+        const result = await params.run("openai", "gpt-4");
+        return { result, provider: "openai", model: "gpt-4", attempts: [] };
+      },
+    );
+  }
+
+  it("passes agent-level skill filter to embedded runs", async () => {
     resolveAgentSkillsFilterMock.mockReturnValue(["meme-factory", "weather"]);
+    mockEmbeddedFallbackInvocation();
 
     await runSkillFilterCase({
       cfg: { agents: { list: [{ id: "scout", skills: ["meme-factory", "weather"] }] } },
       agentId: "scout",
     });
-    expect(buildWorkspaceSkillSnapshotMock).toHaveBeenCalledOnce();
-    expect(buildWorkspaceSkillSnapshotMock.mock.calls[0][1]).toHaveProperty("skillFilter", [
+    expect(runWithModelFallbackMock).toHaveBeenCalledOnce();
+    expect(runEmbeddedPiAgentMock.mock.calls[0][0]).toHaveProperty("surfacedSkillNames", [
       "meme-factory",
       "weather",
     ]);
   });
 
-  it("omits skillFilter when agent has no skills config", async () => {
+  it("omits surfaced skills when agent has no skills config", async () => {
     resolveAgentSkillsFilterMock.mockReturnValue(undefined);
+    mockEmbeddedFallbackInvocation();
 
     await runSkillFilterCase({
       cfg: { agents: { list: [{ id: "general" }] } },
       agentId: "general",
     });
-    expect(buildWorkspaceSkillSnapshotMock).toHaveBeenCalledOnce();
-    // When no skills config, skillFilter should be undefined (no filtering applied)
-    expect(buildWorkspaceSkillSnapshotMock.mock.calls[0][1].skillFilter).toBeUndefined();
+    expect(runEmbeddedPiAgentMock.mock.calls[0][0]).not.toHaveProperty("surfacedSkillNames");
   });
 
-  it("passes empty skillFilter when agent explicitly disables all skills", async () => {
+  it("passes empty surfaced skills when agent explicitly disables all skills", async () => {
     resolveAgentSkillsFilterMock.mockReturnValue([]);
+    mockEmbeddedFallbackInvocation();
 
     await runSkillFilterCase({
       cfg: { agents: { list: [{ id: "silent", skills: [] }] } },
       agentId: "silent",
     });
-    expect(buildWorkspaceSkillSnapshotMock).toHaveBeenCalledOnce();
-    // Explicit empty skills list should forward [] to filter out all skills
-    expect(buildWorkspaceSkillSnapshotMock.mock.calls[0][1]).toHaveProperty("skillFilter", []);
-  });
-
-  it("refreshes cached snapshot when skillFilter changes without version bump", async () => {
-    resolveAgentSkillsFilterMock.mockReturnValue(["weather"]);
-    resolveCronSessionMock.mockReturnValue({
-      storePath: "/tmp/store.json",
-      store: {},
-      sessionEntry: {
-        sessionId: "test-session-id",
-        updatedAt: 0,
-        systemSent: false,
-        skillsSnapshot: {
-          prompt: "<available_skills><skill>meme-factory</skill></available_skills>",
-          skills: [{ name: "meme-factory" }],
-          version: 42,
-        },
-      },
-      systemSent: false,
-      isNewSession: true,
-    });
-
-    await runSkillFilterCase({
-      cfg: { agents: { list: [{ id: "weather-bot", skills: ["weather"] }] } },
-      agentId: "weather-bot",
-    });
-    expect(buildWorkspaceSkillSnapshotMock).toHaveBeenCalledOnce();
-    expect(buildWorkspaceSkillSnapshotMock.mock.calls[0][1]).toHaveProperty("skillFilter", [
-      "weather",
-    ]);
+    expect(runEmbeddedPiAgentMock.mock.calls[0][0]).toHaveProperty("surfacedSkillNames", []);
   });
 
   it("forces a fresh session for isolated cron runs", async () => {
@@ -123,33 +102,6 @@ describe("runCronIsolatedAgentTurn — skill filter", () => {
     expect(resolveCronSessionMock.mock.calls[0]?.[0]).toMatchObject({
       forceNew: true,
     });
-  });
-
-  it("reuses cached snapshot when version and normalized skillFilter are unchanged", async () => {
-    resolveAgentSkillsFilterMock.mockReturnValue([" weather ", "meme-factory", "weather"]);
-    resolveCronSessionMock.mockReturnValue({
-      storePath: "/tmp/store.json",
-      store: {},
-      sessionEntry: {
-        sessionId: "test-session-id",
-        updatedAt: 0,
-        systemSent: false,
-        skillsSnapshot: {
-          prompt: "<available_skills><skill>weather</skill></available_skills>",
-          skills: [{ name: "weather" }],
-          skillFilter: ["meme-factory", "weather"],
-          version: 42,
-        },
-      },
-      systemSent: false,
-      isNewSession: true,
-    });
-
-    await runSkillFilterCase({
-      cfg: { agents: { list: [{ id: "weather-bot", skills: ["weather", "meme-factory"] }] } },
-      agentId: "weather-bot",
-    });
-    expect(buildWorkspaceSkillSnapshotMock).not.toHaveBeenCalled();
   });
 
   describe("model fallbacks", () => {
@@ -271,7 +223,6 @@ describe("runCronIsolatedAgentTurn — skill filter", () => {
           sessionId: "test-session-fresh",
           updatedAt: 0,
           systemSent: false,
-          skillsSnapshot: undefined,
           // A stored CLI session ID that should NOT be reused on fresh runs.
           cliSessionIds: { "claude-cli": "prev-cli-session-abc" },
         },
@@ -303,7 +254,6 @@ describe("runCronIsolatedAgentTurn — skill filter", () => {
           sessionId: "test-session-continuation",
           updatedAt: 0,
           systemSent: false,
-          skillsSnapshot: undefined,
           cliSessionIds: { "claude-cli": "existing-cli-session-def" },
         },
         systemSent: false,

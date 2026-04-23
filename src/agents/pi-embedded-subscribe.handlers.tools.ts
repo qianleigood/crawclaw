@@ -27,6 +27,8 @@ import {
 import { inferToolMetaFromArgs } from "./pi-embedded-utils.js";
 import { consumeAdjustedParamsForToolCall } from "./pi-tools.before-tool-call.js";
 import { emitRunLoopLifecycleEvent } from "./runtime/lifecycle/bus.js";
+import { discoverDynamicSkillDirsFromToolCall } from "./skills/discover-from-paths.js";
+import { recordDiscoveredSkillDirs } from "./skills/dynamic-discovery-state.js";
 import {
   inferLoadedSkillNameFromToolCall,
   recordLoadedSkillName,
@@ -669,6 +671,23 @@ export async function handleToolExecutionEnd(
         sessionKey: ctx.params.sessionKey,
       },
       loadedSkillName,
+    );
+  }
+  const discoveredSkillDirs =
+    !isToolError && typeof ctx.params.workspaceDir === "string"
+      ? discoverDynamicSkillDirsFromToolCall({
+          workspaceDir: ctx.params.workspaceDir,
+          toolName,
+          toolParams: afterToolCallArgs,
+        })
+      : [];
+  if (discoveredSkillDirs.length > 0) {
+    recordDiscoveredSkillDirs(
+      {
+        sessionId: ctx.params.sessionId,
+        sessionKey: ctx.params.sessionKey,
+      },
+      discoveredSkillDirs,
     );
   }
 

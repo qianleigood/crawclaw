@@ -65,6 +65,7 @@ import {
   mergeAlsoAllowPolicy,
   resolveToolProfilePolicy,
 } from "./tool-policy.js";
+import { createDiscoverSkillsTool } from "./tools/discover-skills-tool.js";
 import { createSessionSummaryTools } from "./tools/session-summary-tools.js";
 import { resolveWorkspaceRoot } from "./workspace-dir.js";
 
@@ -77,7 +78,7 @@ const TOOL_DENY_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>>
   voice: ["tts"],
 };
 const TOOL_ALLOW_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>> = {
-  node: ["canvas", "image", "pdf", "tts", "web_fetch", "web_search"],
+  node: ["canvas", "discover_skills", "image", "pdf", "tts", "web_fetch", "web_search"],
 };
 const MEMORY_FLUSH_ALLOWED_TOOL_NAMES = new Set(["read", "write"]);
 function normalizeMessageProvider(messageProvider?: string): string | undefined {
@@ -684,6 +685,12 @@ export function createCrawClawCodingTools(options?: {
     ...(applyPatchTool ? [applyPatchTool as unknown as AnyAgentTool] : []),
     execTool as unknown as AnyAgentTool,
     processTool as unknown as AnyAgentTool,
+    createDiscoverSkillsTool({
+      workspaceDir: workspaceRoot,
+      config: options?.config,
+      sessionId: options?.sessionId,
+      sessionKey: options?.sessionKey,
+    }),
     // Channel docking: include channel-defined agent tools (login, etc.).
     ...listChannelAgentTools({ cfg: options?.config }),
     ...createCrawClawTools({

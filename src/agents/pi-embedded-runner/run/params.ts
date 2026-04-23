@@ -10,7 +10,6 @@ import type { ExecElevatedDefaults, ExecToolDefaults } from "../../bash-tools.js
 import type { AgentStreamParams } from "../../command/types.js";
 import type { BlockReplyPayload } from "../../pi-embedded-payloads.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
-import type { SkillSnapshot } from "../../skills.js";
 import type { SpecialAgentCacheEnvelope } from "../../special/runtime/parent-fork-context.js";
 
 // Simplified tool definition for client-provided tools (OpenResponses hosted tools)
@@ -76,7 +75,6 @@ export type RunEmbeddedPiAgentParams = {
   workspaceDir: string;
   agentDir?: string;
   config?: CrawClawConfig;
-  skillsSnapshot?: SkillSnapshot;
   skillExposureState?: SessionSkillExposureState;
   /** Optional first-pass surfaced skills for this run. */
   surfacedSkillNames?: string[];

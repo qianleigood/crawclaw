@@ -9,7 +9,7 @@ import { sanitizeEnvVars, validateEnvVarValue } from "../sandbox/sanitize-env-va
 import { resolveSkillConfig } from "./config.js";
 import { resolveSkillKey } from "./frontmatter.js";
 import { resolveSkillRuntimeConfig } from "./runtime-config.js";
-import type { SkillEntry, SkillSnapshot } from "./types.js";
+import type { SkillEntry } from "./types.js";
 
 const log = createSubsystemLogger("env-overrides");
 
@@ -234,35 +234,6 @@ export function applySkillEnvOverrides(params: { skills: SkillEntry[]; config?: 
       primaryEnv: entry.metadata?.primaryEnv,
       requiredEnv: entry.metadata?.requires?.env,
       skillKey,
-    });
-  }
-
-  return createEnvReverter(updates);
-}
-
-export function applySkillEnvOverridesFromSnapshot(params: {
-  snapshot?: SkillSnapshot;
-  config?: CrawClawConfig;
-}) {
-  const { snapshot } = params;
-  const config = resolveSkillRuntimeConfig(params.config);
-  if (!snapshot) {
-    return () => {};
-  }
-  const updates: EnvUpdate[] = [];
-
-  for (const skill of snapshot.skills) {
-    const skillConfig = resolveSkillConfig(config, skill.name);
-    if (!skillConfig) {
-      continue;
-    }
-
-    applySkillConfigEnvOverrides({
-      updates,
-      skillConfig,
-      primaryEnv: skill.primaryEnv,
-      requiredEnv: skill.requiredEnv,
-      skillKey: skill.name,
     });
   }
 

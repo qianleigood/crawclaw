@@ -1,1 +1,1 @@
-export { ensureSkillSnapshot } from "./session-updates.js";
+export { ensureSessionSystemSent } from "./session-updates.js";

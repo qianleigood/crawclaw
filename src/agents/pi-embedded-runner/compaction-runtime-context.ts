@@ -1,7 +1,6 @@
 import type { ReasoningLevel, ThinkLevel } from "../../auto-reply/thinking.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { ExecElevatedDefaults } from "../bash-tools.js";
-import type { SkillSnapshot } from "../skills.js";
 
 export type EmbeddedCompactionRuntimeContext = {
   sessionKey?: string;
@@ -16,7 +15,6 @@ export type EmbeddedCompactionRuntimeContext = {
   workspaceDir: string;
   agentDir: string;
   config?: CrawClawConfig;
-  skillsSnapshot?: SkillSnapshot;
   senderIsOwner?: boolean;
   senderId?: string;
   provider?: string;
@@ -82,7 +80,6 @@ export function buildEmbeddedCompactionRuntimeContext(params: {
   workspaceDir: string;
   agentDir: string;
   config?: CrawClawConfig;
-  skillsSnapshot?: SkillSnapshot;
   senderIsOwner?: boolean;
   senderId?: string | null;
   provider?: string | null;
@@ -112,7 +109,6 @@ export function buildEmbeddedCompactionRuntimeContext(params: {
     workspaceDir: params.workspaceDir,
     agentDir: params.agentDir,
     config: params.config,
-    skillsSnapshot: params.skillsSnapshot,
     senderIsOwner: params.senderIsOwner,
     senderId: params.senderId ?? undefined,
     provider: resolved.provider,

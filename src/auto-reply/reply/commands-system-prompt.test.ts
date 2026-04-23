@@ -17,11 +17,7 @@ vi.mock("../../agents/sandbox.js", () => ({
 }));
 
 vi.mock("../../agents/skills.js", () => ({
-  buildWorkspaceSkillSnapshot: vi.fn(() => ({ prompt: "", skills: [], resolvedSkills: [] })),
-}));
-
-vi.mock("../../agents/skills/refresh.js", () => ({
-  getSkillsSnapshotVersion: vi.fn(() => "test-snapshot"),
+  buildWorkspaceSkillsPrompt: vi.fn(() => ""),
 }));
 
 vi.mock("../../agents/agent-scope.js", () => ({

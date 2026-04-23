@@ -14,8 +14,10 @@ import { resolveSessionTranscriptFile } from "../../config/sessions/transcript.j
 import { emitAgentEvent } from "../../infra/agent-events.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { emitSessionTranscriptUpdate } from "../../sessions/transcript-events.js";
+import { normalizeStringEntries } from "../../shared/string-normalization.js";
 import { sanitizeForLog } from "../../terminal/ansi.js";
 import { resolveMessageChannel } from "../../utils/message-channel.js";
+import { resolveAgentSkillsFilter } from "../agent-scope.js";
 import { resolveBootstrapWarningSignaturesSeen } from "../bootstrap-budget.js";
 import { runCliAgent } from "../cli-runner.js";
 import { clearCliSession, getCliSessionBinding, setCliSessionBinding } from "../cli-session.js";
@@ -25,11 +27,29 @@ import { hasInternalRuntimeContext } from "../internal-runtime-context.js";
 import { isCliProvider } from "../model-selection.js";
 import { prepareSessionManagerForRun } from "../pi-embedded-runner/session-manager-init.js";
 import { runEmbeddedPiAgent } from "../pi-embedded.js";
-import { buildWorkspaceSkillSnapshot } from "../skills.js";
 import { resolveAgentRunContext } from "./run-context.js";
 import type { AgentCommandOpts } from "./types.js";
 
 const log = createSubsystemLogger("agents/agent-command");
+
+function mergeSkillFilters(channelFilter?: string[], agentFilter?: string[]): string[] | undefined {
+  const channel = Array.isArray(channelFilter) ? normalizeStringEntries(channelFilter) : undefined;
+  const agent = Array.isArray(agentFilter) ? normalizeStringEntries(agentFilter) : undefined;
+  if (!channel && !agent) {
+    return undefined;
+  }
+  if (!channel) {
+    return agent;
+  }
+  if (!agent) {
+    return channel;
+  }
+  if (channel.length === 0 || agent.length === 0) {
+    return [];
+  }
+  const agentSet = new Set(agent);
+  return channel.filter((name) => agentSet.has(name));
+}
 
 /** Maximum number of JSONL records to inspect before giving up. */
 const SESSION_FILE_MAX_RECORDS = 500;
@@ -322,7 +342,6 @@ export function runAgentAttempt(params: {
   runContext: ReturnType<typeof resolveAgentRunContext>;
   spawnedBy: string | undefined;
   messageChannel: ReturnType<typeof resolveMessageChannel>;
-  skillsSnapshot: ReturnType<typeof buildWorkspaceSkillSnapshot> | undefined;
   resolvedVerboseLevel: VerboseLevel | undefined;
   agentDir: string;
   onAgentEvent: (evt: { stream: string; data?: Record<string, unknown> }) => void;
@@ -337,6 +356,10 @@ export function runAgentAttempt(params: {
     isFallbackRetry: params.isFallbackRetry,
     sessionHasHistory: params.sessionHasHistory,
   });
+  const surfacedSkillNames = mergeSkillFilters(
+    params.opts.skillsAllow,
+    resolveAgentSkillsFilter(params.cfg, params.sessionAgentId),
+  );
   const bootstrapPromptWarningSignaturesSeen = resolveBootstrapWarningSignaturesSeen(
     params.sessionEntry?.systemPromptReport,
   );
@@ -456,13 +479,8 @@ export function runAgentAttempt(params: {
     sessionFile: params.sessionFile,
     workspaceDir: params.workspaceDir,
     config: params.cfg,
-    skillsSnapshot: params.skillsSnapshot,
     skillExposureState: params.sessionEntry?.skillExposureState,
-    ...(params.opts.skillsAllow?.length
-      ? {
-          surfacedSkillNames: [...params.opts.skillsAllow],
-        }
-      : {}),
+    ...(surfacedSkillNames !== undefined ? { surfacedSkillNames } : {}),
     prompt: effectivePrompt,
     images: params.isFallbackRetry ? undefined : params.opts.images,
     imageOrder: params.isFallbackRetry ? undefined : params.opts.imageOrder,

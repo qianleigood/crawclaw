@@ -100,11 +100,8 @@ import {
   resolveSessionLockMaxHoldFromTimeout,
 } from "../../session-write-lock.js";
 import { detectRuntimeShell } from "../../shell-utils.js";
-import {
-  applySkillEnvOverrides,
-  applySkillEnvOverridesFromSnapshot,
-  resolveSkillsPromptForRun,
-} from "../../skills.js";
+import { applySkillEnvOverrides, resolveSkillsPromptForRun } from "../../skills.js";
+import { createModelSkillDiscoveryReranker } from "../../skills/discovery-reranker.js";
 import { getSkillExposureState } from "../../skills/exposure-state.js";
 import { buildSpecialAgentParentForkContextFromModelInput } from "../../special/runtime/parent-fork-context.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
@@ -590,21 +587,17 @@ export async function runEmbeddedAttempt(
       agentId: params.agentId,
     });
     log = log.withContext({ agentId: sessionAgentId });
-    const { shouldLoadSkillEntries, skillEntries } = resolveEmbeddedRunSkillEntries({
+    const { skillEntries } = resolveEmbeddedRunSkillEntries({
       workspaceDir: effectiveWorkspace,
       config: params.config,
-      skillsSnapshot: params.skillsSnapshot,
+      sessionId: params.sessionId,
+      sessionKey: params.sessionKey,
       prompt: params.prompt,
     });
-    restoreSkillEnv = params.skillsSnapshot
-      ? applySkillEnvOverridesFromSnapshot({
-          snapshot: params.skillsSnapshot,
-          config: params.config,
-        })
-      : applySkillEnvOverrides({
-          skills: skillEntries ?? [],
-          config: params.config,
-        });
+    restoreSkillEnv = applySkillEnvOverrides({
+      skills: skillEntries ?? [],
+      config: params.config,
+    });
 
     const hookRunner = getGlobalHookRunner();
     const surfacedSkillNames = await resolveSurfacedSkillsHookResult({
@@ -615,7 +608,6 @@ export async function runEmbeddedAttempt(
       workspaceDir: effectiveWorkspace,
       availableSkills: buildAvailableSkillsForHook({
         skillEntries,
-        skillsSnapshot: params.skillsSnapshot,
       }),
       hookCtx: {
         runId: params.runId,
@@ -628,11 +620,14 @@ export async function runEmbeddedAttempt(
         channelId: params.messageChannel ?? params.messageProvider ?? undefined,
       },
       hookRunner,
+      skillDiscoveryRerank: createModelSkillDiscoveryReranker({
+        model: params.model,
+        authStorage: params.authStorage,
+      }),
     });
 
     const skillsPrompt = resolveSkillsPromptForRun({
-      skillsSnapshot: params.skillsSnapshot,
-      entries: shouldLoadSkillEntries ? skillEntries : undefined,
+      entries: skillEntries,
       config: params.config,
       workspaceDir: effectiveWorkspace,
       skillFilter: surfacedSkillNames,
@@ -1873,6 +1868,7 @@ export async function runEmbeddedAttempt(
         enforceFinalTag: params.enforceFinalTag,
         silentExpected: params.silentExpected,
         config: params.config,
+        workspaceDir: effectiveWorkspace,
         sessionKey: sandboxSessionKey,
         sessionId: params.sessionId,
         agentId: sessionAgentId,

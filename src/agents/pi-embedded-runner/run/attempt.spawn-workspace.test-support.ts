@@ -156,14 +156,12 @@ vi.mock("../../bootstrap-files.js", () => ({
 
 vi.mock("../../skills.js", () => ({
   applySkillEnvOverrides: () => () => {},
-  applySkillEnvOverridesFromSnapshot: () => () => {},
   resolveSkillsPromptForRun: () => "",
 }));
 
 vi.mock("../skills-runtime.js", () => ({
   resolveEmbeddedRunSkillEntries: () => ({
-    shouldLoadSkillEntries: false,
-    skillEntries: undefined,
+    skillEntries: [],
   }),
 }));
 

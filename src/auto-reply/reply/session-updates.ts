@@ -1,20 +1,12 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
-import {
-  discoverDynamicSkillDirsFromPrompt,
-  withDynamicSkillExtraDirs,
-} from "../../agents/skills/dynamic-load.js";
-import { ensureSkillsWatcher, getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
-import type { CrawClawConfig } from "../../config/config.js";
 import {
   resolveSessionFilePath,
   resolveSessionFilePathOptions,
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
-import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 export { drainFormattedSystemEvents } from "./session-system-events.js";
 
@@ -39,58 +31,30 @@ async function persistSessionEntryUpdate(params: {
   });
 }
 
-export async function ensureSkillSnapshot(params: {
+export async function ensureSessionSystemSent(params: {
   sessionEntry?: SessionEntry;
   sessionStore?: Record<string, SessionEntry>;
   sessionKey?: string;
   storePath?: string;
   sessionId?: string;
   isFirstTurnInSession: boolean;
-  workspaceDir: string;
-  cfg: CrawClawConfig;
-  prompt?: string;
-  /** If provided, only load skills with these names (for per-channel skill filtering) */
-  skillFilter?: string[];
 }): Promise<{
   sessionEntry?: SessionEntry;
-  skillsSnapshot?: SessionEntry["skillsSnapshot"];
   systemSent: boolean;
 }> {
   if (process.env.CRAWCLAW_TEST_FAST === "1") {
-    // In fast unit-test runs we skip filesystem scanning, watchers, and session-store writes.
-    // Dedicated skills tests cover snapshot generation behavior.
+    // In fast unit-test runs we skip session-store writes.
     return {
       sessionEntry: params.sessionEntry,
-      skillsSnapshot: params.sessionEntry?.skillsSnapshot,
       systemSent: params.sessionEntry?.systemSent ?? false,
     };
   }
 
-  const {
-    sessionEntry,
-    sessionStore,
-    sessionKey,
-    storePath,
-    sessionId,
-    isFirstTurnInSession,
-    workspaceDir,
-    cfg,
-    prompt,
-    skillFilter,
-  } = params;
-  const dynamicSkillDirs = discoverDynamicSkillDirsFromPrompt({
-    workspaceDir,
-    prompt,
-  });
-  const skillConfig = withDynamicSkillExtraDirs(cfg, dynamicSkillDirs) ?? cfg;
+  const { sessionEntry, sessionStore, sessionKey, storePath, sessionId, isFirstTurnInSession } =
+    params;
 
   let nextEntry = sessionEntry;
   let systemSent = sessionEntry?.systemSent ?? false;
-  const remoteEligibility = getRemoteSkillEligibility();
-  const snapshotVersion = getSkillsSnapshotVersion(workspaceDir);
-  ensureSkillsWatcher({ workspaceDir, config: skillConfig });
-  const shouldRefreshSnapshot =
-    snapshotVersion > 0 && (nextEntry?.skillsSnapshot?.version ?? 0) < snapshotVersion;
 
   if (isFirstTurnInSession && sessionStore && sessionKey) {
     const current = nextEntry ??
@@ -98,63 +62,17 @@ export async function ensureSkillSnapshot(params: {
         sessionId: sessionId ?? crypto.randomUUID(),
         updatedAt: Date.now(),
       };
-    const skillSnapshot =
-      isFirstTurnInSession || !current.skillsSnapshot || shouldRefreshSnapshot
-        ? buildWorkspaceSkillSnapshot(workspaceDir, {
-            config: skillConfig,
-            skillFilter,
-            eligibility: { remote: remoteEligibility },
-            snapshotVersion,
-          })
-        : current.skillsSnapshot;
     nextEntry = {
       ...current,
       sessionId: sessionId ?? current.sessionId ?? crypto.randomUUID(),
       updatedAt: Date.now(),
       systemSent: true,
-      skillsSnapshot: skillSnapshot,
     };
     await persistSessionEntryUpdate({ sessionStore, sessionKey, storePath, nextEntry });
     systemSent = true;
   }
 
-  const skillsSnapshot = shouldRefreshSnapshot
-    ? buildWorkspaceSkillSnapshot(workspaceDir, {
-        config: skillConfig,
-        skillFilter,
-        eligibility: { remote: remoteEligibility },
-        snapshotVersion,
-      })
-    : (nextEntry?.skillsSnapshot ??
-      (isFirstTurnInSession
-        ? undefined
-        : buildWorkspaceSkillSnapshot(workspaceDir, {
-            config: skillConfig,
-            skillFilter,
-            eligibility: { remote: remoteEligibility },
-            snapshotVersion,
-          })));
-  if (
-    skillsSnapshot &&
-    sessionStore &&
-    sessionKey &&
-    !isFirstTurnInSession &&
-    (!nextEntry?.skillsSnapshot || shouldRefreshSnapshot)
-  ) {
-    const current = nextEntry ?? {
-      sessionId: sessionId ?? crypto.randomUUID(),
-      updatedAt: Date.now(),
-    };
-    nextEntry = {
-      ...current,
-      sessionId: sessionId ?? current.sessionId ?? crypto.randomUUID(),
-      updatedAt: Date.now(),
-      skillsSnapshot,
-    };
-    await persistSessionEntryUpdate({ sessionStore, sessionKey, storePath, nextEntry });
-  }
-
-  return { sessionEntry: nextEntry, skillsSnapshot, systemSent };
+  return { sessionEntry: nextEntry, systemSent };
 }
 
 export async function incrementCompactionCount(params: {

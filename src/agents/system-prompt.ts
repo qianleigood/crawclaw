@@ -18,22 +18,39 @@ import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 export type PromptMode = "full" | "minimal" | "none";
 type OwnerIdDisplay = "raw" | "hash";
 
-function buildSkillsSection(params: { skillsPrompt?: string; readToolName: string }) {
+function buildSkillsSection(params: {
+  skillsPrompt?: string;
+  readToolName: string;
+  discoverSkillsToolName?: string;
+}) {
   const trimmed = params.skillsPrompt?.trim();
-  if (!trimmed) {
+  const discoverSkillsToolName = params.discoverSkillsToolName?.trim();
+  if (!trimmed && !discoverSkillsToolName) {
     return [];
   }
-  return [
+  const lines = [
     "## Skills (mandatory)",
-    "Before replying: scan <available_skills> <description> entries.",
-    `- If exactly one skill clearly applies: read its SKILL.md at <location> with \`${params.readToolName}\`, then follow it.`,
-    "- If multiple could apply: choose the most specific one, then read/follow it.",
-    "- If none clearly apply: do not read any SKILL.md.",
-    "Constraints: never read more than one skill up front; only read after selecting.",
+    "Relevant skills are surfaced for the current task.",
+    ...(discoverSkillsToolName
+      ? [
+          `If the surfaced skills do not cover your next action, call \`${discoverSkillsToolName}\` with a specific description of what you are about to do.`,
+          "Skip discovery if the surfaced skills already cover the next action.",
+        ]
+      : []),
+    ...(trimmed
+      ? [
+          "Before replying: scan <available_skills> <description> entries.",
+          `- If exactly one skill clearly applies: read its SKILL.md at <location> with \`${params.readToolName}\`, then follow it.`,
+          "- If multiple could apply: choose the most specific one, then read/follow it.",
+          "- If none clearly apply: do not read any SKILL.md.",
+          "Constraints: never read more than one skill up front; only read after selecting.",
+        ]
+      : []),
     "- When a skill drives external API writes, assume rate limits: prefer fewer larger writes, avoid tight one-item loops, serialize bursts when possible, and respect 429/Retry-After.",
-    trimmed,
+    ...(trimmed ? [trimmed] : []),
     "",
   ];
+  return lines;
 }
 
 function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<string> }) {
@@ -277,10 +294,12 @@ export function buildAgentSystemPromptSections(params: {
     session_status:
       "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
     image: "Analyze an image with the configured image model",
+    discover_skills: "Search available skills for the current task",
   };
 
   const toolOrder = [
     "read",
+    "discover_skills",
     "write",
     "edit",
     "apply_patch",
@@ -349,6 +368,9 @@ export function buildAgentSystemPromptSections(params: {
 
   const hasGateway = availableTools.has("gateway");
   const readToolName = resolveToolName("read");
+  const discoverSkillsToolName = availableTools.has("discover_skills")
+    ? resolveToolName("discover_skills")
+    : undefined;
   const execToolName = resolveToolName("exec");
   const processToolName = resolveToolName("process");
   const extraSystemPrompt = params.extraSystemPrompt?.trim();
@@ -407,6 +429,7 @@ export function buildAgentSystemPromptSections(params: {
   const skillsSection = buildSkillsSection({
     skillsPrompt,
     readToolName,
+    discoverSkillsToolName,
   });
   const memorySection = buildMemorySection({
     isMinimal,

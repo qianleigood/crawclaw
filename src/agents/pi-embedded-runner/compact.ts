@@ -85,12 +85,7 @@ import {
   resolveSessionLockMaxHoldFromTimeout,
 } from "../session-write-lock.js";
 import { detectRuntimeShell } from "../shell-utils.js";
-import {
-  applySkillEnvOverrides,
-  applySkillEnvOverridesFromSnapshot,
-  resolveSkillsPromptForRun,
-  type SkillSnapshot,
-} from "../skills.js";
+import { applySkillEnvOverrides, resolveSkillsPromptForRun } from "../skills.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import { classifyCompactionReason, resolveCompactionFailureReason } from "./compact-reasons.js";
 import {
@@ -167,7 +162,6 @@ export type CompactEmbeddedPiSessionParams = {
   workspaceDir: string;
   agentDir?: string;
   config?: CrawClawConfig;
-  skillsSnapshot?: SkillSnapshot;
   /** Optional first-pass surfaced skills for this compaction run. */
   surfacedSkillNames?: string[];
   provider?: string;
@@ -435,20 +429,16 @@ export async function compactEmbeddedPiSessionDirect(
   let restoreSkillEnv: (() => void) | undefined;
   let compactionSessionManager: unknown = null;
   try {
-    const { shouldLoadSkillEntries, skillEntries } = resolveEmbeddedRunSkillEntries({
+    const { skillEntries } = resolveEmbeddedRunSkillEntries({
       workspaceDir: effectiveWorkspace,
       config: params.config,
-      skillsSnapshot: params.skillsSnapshot,
+      sessionId: params.sessionId,
+      sessionKey: params.sessionKey,
     });
-    restoreSkillEnv = params.skillsSnapshot
-      ? applySkillEnvOverridesFromSnapshot({
-          snapshot: params.skillsSnapshot,
-          config: params.config,
-        })
-      : applySkillEnvOverrides({
-          skills: skillEntries ?? [],
-          config: params.config,
-        });
+    restoreSkillEnv = applySkillEnvOverrides({
+      skills: skillEntries ?? [],
+      config: params.config,
+    });
     const hookRunner = getGlobalHookRunner();
     const surfacedSkillNames = await resolveSurfacedSkillsHookResult({
       explicitSurfacedSkillNames: params.surfacedSkillNames,
@@ -458,7 +448,6 @@ export async function compactEmbeddedPiSessionDirect(
       workspaceDir: effectiveWorkspace,
       availableSkills: buildAvailableSkillsForHook({
         skillEntries,
-        skillsSnapshot: params.skillsSnapshot,
       }),
       hookCtx: {
         runId: params.runId,
@@ -473,8 +462,7 @@ export async function compactEmbeddedPiSessionDirect(
       hookRunner,
     });
     const skillsPrompt = resolveSkillsPromptForRun({
-      skillsSnapshot: params.skillsSnapshot,
-      entries: shouldLoadSkillEntries ? skillEntries : undefined,
+      entries: skillEntries,
       config: params.config,
       workspaceDir: effectiveWorkspace,
       skillFilter: surfacedSkillNames,
@@ -1212,7 +1200,6 @@ export async function compactEmbeddedPiSession(
             workspaceDir: params.workspaceDir,
             agentDir,
             config: params.config,
-            skillsSnapshot: params.skillsSnapshot,
             senderIsOwner: params.senderIsOwner,
             senderId: params.senderId,
             provider: params.provider,

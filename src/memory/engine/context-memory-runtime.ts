@@ -13,12 +13,9 @@ import { resolveDurableMemoryScope } from "../durable/scope.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
 import type { ExperienceExtractionRunner } from "../experience/worker-manager.ts";
 import type { CompleteFn } from "../extraction/llm.ts";
-import { callStructuredOutput } from "../llm/structured-output.ts";
 import { startNotebookLmHeartbeat } from "../notebooklm/heartbeat.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { SessionSummaryRunner } from "../session-summary/scheduler.ts";
-import { buildSkillIndexFromAvailableSkills } from "../skills/skill-metadata.ts";
-import { selectRelevantSkills } from "../skills/skill-router.ts";
 import type { MemoryRuntimeConfig, LlmConfig } from "../types/config.ts";
 import type { UnifiedQueryClassification } from "../types/orchestration.ts";
 import {
@@ -29,11 +26,7 @@ import {
   createContextMemoryRuntimeDeps,
   type RuntimeLogger,
 } from "./context-memory-runtime-deps.ts";
-import {
-  buildSkillDiscoveryCandidates,
-  getMessageRole,
-  resolvePromptContext,
-} from "./context-memory-runtime-helpers.ts";
+import { getMessageRole, resolvePromptContext } from "./context-memory-runtime-helpers.ts";
 import { runPostAssemblySideEffects } from "./context-memory-runtime-post-assembly.ts";
 import { prepareMemoryAssemblyContext } from "./context-memory-runtime-preparation.ts";
 import { resolveDurableRecallForAssembly } from "./context-memory-runtime-recall.ts";
@@ -50,24 +43,7 @@ export function createContextMemoryRuntime(options: {
   dreamRunner?: AutoDreamRunner;
   sessionSummaryRunner?: SessionSummaryRunner;
   contextArchive?: Pick<ContextArchiveService, "createRun" | "appendEvent">;
-}): MemoryRuntime & {
-  resolveRelevantSkills(event: {
-    prompt?: string;
-    customInstructions?: string;
-    messages?: Array<{ content?: unknown }>;
-    availableSkills?: Array<{ name: string; description?: string; location: string }>;
-  }): Promise<string[]>;
-  resolveDiscoveredSkills(event: {
-    prompt?: string;
-    customInstructions?: string;
-    availableSkills?: Array<{ name: string; description?: string; location: string }>;
-    skillExposureState?: {
-      surfacedSkillNames?: string[];
-      loadedSkillNames?: string[];
-      discoverBudgetRemaining?: number;
-    };
-  }): Promise<{ discoveredSkillNames: string[]; reason?: string; confidence?: number }>;
-} {
+}): MemoryRuntime {
   const turnIndex = new Map<string, number>();
   const {
     structuredComplete,
@@ -449,115 +425,6 @@ export function createContextMemoryRuntime(options: {
     async dispose() {
       turnIndex.clear();
       contextArchiveTurnCapture.reset();
-    },
-
-    async resolveRelevantSkills(event) {
-      if (options.config?.skillRouting.enabled === false) {
-        return [];
-      }
-      const promptContext = resolvePromptContext({
-        prompt: typeof event.prompt === "string" ? event.prompt : event.customInstructions,
-        messages: event.messages,
-      });
-      if (!promptContext.prompt) {
-        return [];
-      }
-      const classification = queryClassifier.classify({
-        query: promptContext.prompt,
-        recentMessages: promptContext.recentMessages,
-      });
-      const skillIndex = event.availableSkills?.length
-        ? buildSkillIndexFromAvailableSkills({
-            availableSkills: event.availableSkills,
-            logger: options.logger,
-          })
-        : skillIndexStore.getIndex();
-      const skillRouting = selectRelevantSkills({
-        classification,
-        skillIndex,
-        limit: options.config?.skillRouting.shortlistLimit,
-      });
-      return skillRouting.surfacedSkills;
-    },
-
-    async resolveDiscoveredSkills(event) {
-      const prompt = typeof event.prompt === "string" ? event.prompt : event.customInstructions;
-      const loadedSkillNames = event.skillExposureState?.loadedSkillNames ?? [];
-      const surfacedSkillNames = event.skillExposureState?.surfacedSkillNames ?? [];
-      const maxDiscover = Math.max(
-        0,
-        Math.min(2, event.skillExposureState?.discoverBudgetRemaining ?? 0),
-      );
-      if (!structuredComplete || !prompt?.trim() || !maxDiscover || !loadedSkillNames.length) {
-        return { discoveredSkillNames: [] };
-      }
-
-      const candidates = buildSkillDiscoveryCandidates({
-        prompt,
-        loadedSkillNames,
-        surfacedSkillNames,
-        availableSkills: event.availableSkills ?? [],
-      });
-      if (!candidates.length) {
-        return { discoveredSkillNames: [] };
-      }
-
-      const candidateNames = new Set(candidates.map((skill) => skill.name));
-      try {
-        const structured = await callStructuredOutput(structuredComplete, {
-          system: [
-            "You select additional supporting skills for the next step of a coding agent workflow.",
-            "Only choose from the provided candidate skills.",
-            `Return at most ${maxDiscover} skill names.`,
-            "Prefer supporting skills that complement already loaded skills for adjacent tasks such as documentation, messaging, reporting, or follow-up execution.",
-            "If no additional skill is clearly needed, return an empty list.",
-          ].join("\n"),
-          user: [
-            `Current task:\n${prompt.trim()}`,
-            `Already surfaced skills:\n${surfacedSkillNames.join(", ") || "(none)"}`,
-            `Already loaded skills:\n${loadedSkillNames.join(", ") || "(none)"}`,
-            "Candidate skills:",
-            ...candidates.map((skill) => `- ${skill.name}: ${skill.description ?? ""}`.trim()),
-          ].join("\n\n"),
-          formatHint:
-            'Output JSON only with shape {"discoveredSkillNames":["..."],"reason":"...","confidence":0.0}.',
-          retries: 1,
-          validator: (value: unknown) => {
-            if (!value || typeof value !== "object") {
-              throw new Error("discover result must be an object");
-            }
-            const record = value as Record<string, unknown>;
-            const discoveredSkillNames = Array.isArray(record.discoveredSkillNames)
-              ? record.discoveredSkillNames
-                  .filter(
-                    (item): item is string => typeof item === "string" && item.trim().length > 0,
-                  )
-                  .map((item) => item.trim())
-                  .filter((item, index, list) => list.indexOf(item) === index)
-                  .filter((item) => candidateNames.has(item))
-                  .slice(0, maxDiscover)
-              : [];
-            return {
-              discoveredSkillNames,
-              reason:
-                typeof record.reason === "string" && record.reason.trim()
-                  ? record.reason.trim()
-                  : undefined,
-              confidence:
-                typeof record.confidence === "number"
-                  ? Number(Math.max(0, Math.min(1, record.confidence)).toFixed(3))
-                  : undefined,
-            };
-          },
-          fallback: () => ({ discoveredSkillNames: [] as string[] }),
-        });
-        return structured.value;
-      } catch (error) {
-        options.logger.warn(
-          `[memory] discover skills failed; continuing without expansion | ${error instanceof Error ? error.message : String(error)}`,
-        );
-        return { discoveredSkillNames: [] };
-      }
     },
   };
 }

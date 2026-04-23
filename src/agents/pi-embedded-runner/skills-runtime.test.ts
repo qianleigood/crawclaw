@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearRuntimeConfigSnapshot,
@@ -5,7 +8,10 @@ import {
   type CrawClawConfig,
 } from "../../config/config.js";
 import * as skillsModule from "../skills.js";
-import type { SkillSnapshot } from "../skills.js";
+import {
+  clearDiscoveredSkillDirsForTest,
+  recordDiscoveredSkillDirs,
+} from "../skills/dynamic-discovery-state.js";
 
 const { resolveEmbeddedRunSkillEntries } = await import("./skills-runtime.js");
 
@@ -14,11 +20,12 @@ describe("resolveEmbeddedRunSkillEntries", () => {
 
   beforeEach(() => {
     clearRuntimeConfigSnapshot();
+    clearDiscoveredSkillDirsForTest();
     loadWorkspaceSkillEntriesSpy.mockReset();
     loadWorkspaceSkillEntriesSpy.mockReturnValue([]);
   });
 
-  it("loads skill entries with config when no resolved snapshot skills exist", () => {
+  it("loads skill entries with current config", () => {
     const config: CrawClawConfig = {
       plugins: {
         entries: {
@@ -30,13 +37,9 @@ describe("resolveEmbeddedRunSkillEntries", () => {
     const result = resolveEmbeddedRunSkillEntries({
       workspaceDir: "/tmp/workspace",
       config,
-      skillsSnapshot: {
-        prompt: "skills prompt",
-        skills: [],
-      },
     });
 
-    expect(result.shouldLoadSkillEntries).toBe(true);
+    expect(result.skillEntries).toEqual([]);
     expect(loadWorkspaceSkillEntriesSpy).toHaveBeenCalledTimes(1);
     expect(loadWorkspaceSkillEntriesSpy).toHaveBeenCalledWith("/tmp/workspace", { config });
   });
@@ -69,10 +72,6 @@ describe("resolveEmbeddedRunSkillEntries", () => {
     resolveEmbeddedRunSkillEntries({
       workspaceDir: "/tmp/workspace",
       config: sourceConfig,
-      skillsSnapshot: {
-        prompt: "skills prompt",
-        skills: [],
-      },
     });
 
     expect(loadWorkspaceSkillEntriesSpy).toHaveBeenCalledWith("/tmp/workspace", {
@@ -80,23 +79,68 @@ describe("resolveEmbeddedRunSkillEntries", () => {
     });
   });
 
-  it("skips skill entry loading when resolved snapshot skills are present", () => {
-    const snapshot: SkillSnapshot = {
-      prompt: "skills prompt",
-      skills: [{ name: "diffs" }],
-      resolvedSkills: [],
-    };
+  it("does not load prompt-discovered skill dirs from the user prompt", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-dynamic-runtime-"));
+    try {
+      await fs.mkdir(path.join(workspaceDir, "apps", "alpha", "src"), { recursive: true });
+      await fs.mkdir(path.join(workspaceDir, "apps", "alpha", "skills", "nested-skill"), {
+        recursive: true,
+      });
+      await fs.writeFile(
+        path.join(workspaceDir, "apps", "alpha", "src", "index.ts"),
+        "export {};\n",
+      );
+      await fs.writeFile(
+        path.join(workspaceDir, "apps", "alpha", "skills", "nested-skill", "SKILL.md"),
+        "---\nname: nested-skill\ndescription: nested\n---\n",
+      );
 
-    const result = resolveEmbeddedRunSkillEntries({
-      workspaceDir: "/tmp/workspace",
-      config: {},
-      skillsSnapshot: snapshot,
-    });
+      const result = resolveEmbeddedRunSkillEntries({
+        workspaceDir,
+        config: {},
+        prompt: "look at apps/alpha/src/index.ts",
+      });
 
-    expect(result).toEqual({
-      shouldLoadSkillEntries: false,
-      skillEntries: [],
-    });
-    expect(loadWorkspaceSkillEntriesSpy).not.toHaveBeenCalled();
+      expect(result.skillEntries).toEqual([]);
+      expect(loadWorkspaceSkillEntriesSpy).toHaveBeenCalledWith(workspaceDir, {
+        config: {},
+      });
+    } finally {
+      await fs.rm(workspaceDir, { recursive: true, force: true });
+    }
+  });
+
+  it("loads session-discovered skill dirs from prior file activity", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-dynamic-runtime-"));
+    const discoveredDir = path.join(workspaceDir, "apps", "alpha", "skills");
+    try {
+      await fs.mkdir(path.join(discoveredDir, "nested-skill"), {
+        recursive: true,
+      });
+      await fs.writeFile(
+        path.join(discoveredDir, "nested-skill", "SKILL.md"),
+        "---\nname: nested-skill\ndescription: nested\n---\n",
+      );
+      recordDiscoveredSkillDirs({ sessionId: "session-discovered" }, [discoveredDir]);
+
+      const result = resolveEmbeddedRunSkillEntries({
+        workspaceDir,
+        config: {},
+        sessionId: "session-discovered",
+      });
+
+      expect(result.skillEntries).toEqual([]);
+      expect(loadWorkspaceSkillEntriesSpy).toHaveBeenCalledWith(workspaceDir, {
+        config: {
+          skills: {
+            load: {
+              extraDirs: [discoveredDir],
+            },
+          },
+        },
+      });
+    } finally {
+      await fs.rm(workspaceDir, { recursive: true, force: true });
+    }
   });
 });

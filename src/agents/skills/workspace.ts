@@ -20,7 +20,6 @@ import type {
   SkillEligibilityContext,
   SkillCommandSpec,
   SkillEntry,
-  SkillSnapshot,
 } from "./types.js";
 
 const fsp = fs.promises;
@@ -612,25 +611,6 @@ function applySkillsPromptLimits(params: { skills: Skill[]; config?: CrawClawCon
   return { skillsForPrompt, truncated, compact };
 }
 
-export function buildWorkspaceSkillSnapshot(
-  workspaceDir: string,
-  opts?: WorkspaceSkillBuildOptions & { snapshotVersion?: number },
-): SkillSnapshot {
-  const { eligible, prompt, resolvedSkills } = resolveWorkspaceSkillPromptState(workspaceDir, opts);
-  const skillFilter = normalizeSkillFilter(opts?.skillFilter);
-  return {
-    prompt,
-    skills: eligible.map((entry) => ({
-      name: entry.skill.name,
-      primaryEnv: entry.metadata?.primaryEnv,
-      requiredEnv: entry.metadata?.requires?.env?.slice(),
-    })),
-    ...(skillFilter === undefined ? {} : { skillFilter }),
-    resolvedSkills,
-    version: opts?.snapshotVersion,
-  };
-}
-
 export function buildWorkspaceSkillsPrompt(
   workspaceDir: string,
   opts?: WorkspaceSkillBuildOptions,
@@ -671,7 +651,7 @@ function resolveWorkspaceSkillPromptState(
   // Derive prompt-facing skills with compacted paths (e.g. ~/...) once.
   // Budget checks and final render both use this same representation so the
   // tier decision is based on the exact strings that end up in the prompt.
-  // resolvedSkills keeps canonical paths for snapshot / runtime consumers.
+  // Keep prompt rendering based on the same compacted paths used by budget checks.
   const promptSkills = compactSkillPaths(resolvedSkills);
   const { skillsForPrompt, truncated, compact } = applySkillsPromptLimits({
     skills: promptSkills,
@@ -693,16 +673,11 @@ function resolveWorkspaceSkillPromptState(
 }
 
 export function resolveSkillsPromptForRun(params: {
-  skillsSnapshot?: SkillSnapshot;
   entries?: SkillEntry[];
   config?: CrawClawConfig;
   workspaceDir: string;
   skillFilter?: string[];
 }): string {
-  const snapshotPrompt = params.skillsSnapshot?.prompt?.trim();
-  if (snapshotPrompt) {
-    return snapshotPrompt;
-  }
   if (params.entries && params.entries.length > 0) {
     const prompt = buildWorkspaceSkillsPrompt(params.workspaceDir, {
       entries: params.entries,

@@ -73,12 +73,7 @@ vi.mock("../agents/command/session-store.js", async (importOriginal) => {
 });
 
 vi.mock("../agents/skills.js", () => ({
-  buildWorkspaceSkillSnapshot: vi.fn(() => undefined),
   loadWorkspaceSkillEntries: vi.fn(() => []),
-}));
-
-vi.mock("../agents/skills/refresh.js", () => ({
-  getSkillsSnapshotVersion: vi.fn(() => 0),
 }));
 
 const runtime: RuntimeEnv = {

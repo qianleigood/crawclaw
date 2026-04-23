@@ -3,37 +3,47 @@ import os from "node:os";
 import path from "node:path";
 import type { CrawClawConfig } from "../../config/config.js";
 
-const MAX_PROMPT_PATH_TOKENS = 20;
-const PATH_TOKEN_REGEX = /(?:["'`])([^"'`\n]{1,320})(?:["'`])|([^\s"'`]{1,320})/g;
+const FILE_PATH_PARAM_KEYS = ["path", "file_path", "filePath", "file"] as const;
 
-function normalizeToken(raw: string): string {
-  return raw.trim().replace(/[),.:;!?]+$/g, "");
+function realpathOrNull(filePath: string): string | null {
+  try {
+    return fs.realpathSync(filePath);
+  } catch {
+    return null;
+  }
 }
 
-function isLikelyLocalPathToken(token: string): boolean {
-  if (!token) {
-    return false;
-  }
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(token)) {
-    return false;
-  }
-  if (token.startsWith("mcp://") || token.startsWith("plugin://") || token.startsWith("app://")) {
-    return false;
-  }
-  if (
-    !token.includes("/") &&
-    !token.includes("\\") &&
-    !token.startsWith(".") &&
-    !token.startsWith("~")
-  ) {
-    return false;
-  }
-  return true;
+function isPathInsideRoot(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
-function resolvePromptPathToken(token: string, workspaceDir: string): string | null {
-  const normalized = normalizeToken(token);
-  if (!isLikelyLocalPathToken(normalized)) {
+function nearestExistingPathStaysInside(params: {
+  absolute: string;
+  lexicalRoot: string;
+  realRoot: string;
+}): boolean {
+  let cursor = path.resolve(params.absolute);
+  while (true) {
+    const lexicalRelative = path.relative(params.lexicalRoot, cursor);
+    if (!lexicalRelative || lexicalRelative.startsWith("..") || path.isAbsolute(lexicalRelative)) {
+      return true;
+    }
+    const realPath = realpathOrNull(cursor);
+    if (realPath) {
+      return isPathInsideRoot(params.realRoot, realPath);
+    }
+    const parent = path.dirname(cursor);
+    if (!parent || parent === cursor) {
+      return true;
+    }
+    cursor = parent;
+  }
+}
+
+function resolveWorkspacePath(candidatePath: string, workspaceDir: string): string | null {
+  const normalized = candidatePath.trim();
+  if (!normalized) {
     return null;
   }
   const expandedHome = normalized.startsWith("~")
@@ -46,7 +56,14 @@ function resolvePromptPathToken(token: string, workspaceDir: string): string | n
   if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
     return null;
   }
-  return absolute;
+  const workspaceRealPath = realpathOrNull(workspaceDir) ?? workspaceDir;
+  return nearestExistingPathStaysInside({
+    absolute,
+    lexicalRoot: workspaceDir,
+    realRoot: workspaceRealPath,
+  })
+    ? absolute
+    : null;
 }
 
 function hasSkillMarkdown(rootDir: string): boolean {
@@ -71,39 +88,31 @@ function hasSkillMarkdown(rootDir: string): boolean {
   return false;
 }
 
-export function discoverDynamicSkillDirsFromPrompt(params: {
+function extractToolCallPaths(toolParams: Record<string, unknown> | undefined): string[] {
+  if (!toolParams) {
+    return [];
+  }
+  return FILE_PATH_PARAM_KEYS.flatMap((key) => {
+    const value = toolParams[key];
+    return typeof value === "string" && value.trim().length > 0 ? [value.trim()] : [];
+  });
+}
+
+export function discoverDynamicSkillDirsFromPaths(params: {
   workspaceDir: string;
-  prompt?: string;
+  paths: readonly string[];
 }): string[] {
-  const prompt = params.prompt?.trim();
-  if (!prompt) {
+  if (params.paths.length === 0) {
     return [];
   }
   const workspaceDir = path.resolve(params.workspaceDir);
-  const seenTokens = new Set<string>();
-  const resolvedPaths: string[] = [];
-  let match: RegExpExecArray | null = null;
-  while ((match = PATH_TOKEN_REGEX.exec(prompt)) !== null) {
-    const token = normalizeToken(match[1] ?? match[2] ?? "");
-    if (!token || seenTokens.has(token)) {
-      continue;
-    }
-    seenTokens.add(token);
-    const absolute = resolvePromptPathToken(token, workspaceDir);
-    if (!absolute) {
-      continue;
-    }
-    resolvedPaths.push(absolute);
-    if (resolvedPaths.length >= MAX_PROMPT_PATH_TOKENS) {
-      break;
-    }
-  }
-  if (resolvedPaths.length === 0) {
-    return [];
-  }
-
+  const workspaceRealPath = realpathOrNull(workspaceDir) ?? workspaceDir;
   const discovered = new Set<string>();
-  for (const resolvedPath of resolvedPaths) {
+  for (const rawPath of params.paths) {
+    const resolvedPath = resolveWorkspacePath(rawPath, workspaceDir);
+    if (!resolvedPath) {
+      continue;
+    }
     const seedDir = (() => {
       try {
         if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
@@ -126,11 +135,15 @@ export function discoverDynamicSkillDirsFromPrompt(params: {
           if (!fs.existsSync(candidate) || !fs.statSync(candidate).isDirectory()) {
             continue;
           }
+          const candidateRealPath = realpathOrNull(candidate);
+          if (!candidateRealPath || !isPathInsideRoot(workspaceRealPath, candidateRealPath)) {
+            continue;
+          }
           if (hasSkillMarkdown(candidate)) {
             discovered.add(path.resolve(candidate));
           }
         } catch {
-          // Ignore inaccessible skill candidates.
+          // Ignore inaccessible candidates.
         }
       }
       const parent = path.dirname(cursor);
@@ -143,9 +156,28 @@ export function discoverDynamicSkillDirsFromPrompt(params: {
   return Array.from(discovered).toSorted();
 }
 
-export function withDynamicSkillExtraDirs(
+export function discoverDynamicSkillDirsFromToolCall(params: {
+  workspaceDir: string;
+  toolName?: string;
+  toolParams?: Record<string, unknown>;
+}): string[] {
+  const normalizedToolName = params.toolName?.trim().toLowerCase();
+  if (
+    normalizedToolName !== "read" &&
+    normalizedToolName !== "write" &&
+    normalizedToolName !== "edit"
+  ) {
+    return [];
+  }
+  return discoverDynamicSkillDirsFromPaths({
+    workspaceDir: params.workspaceDir,
+    paths: extractToolCallPaths(params.toolParams),
+  });
+}
+
+export function withDiscoveredSkillExtraDirs(
   config: CrawClawConfig | undefined,
-  extraDirs: string[] | undefined,
+  extraDirs: readonly string[] | undefined,
 ): CrawClawConfig | undefined {
   const normalized = (extraDirs ?? [])
     .map((entry) => (typeof entry === "string" ? entry.trim() : ""))

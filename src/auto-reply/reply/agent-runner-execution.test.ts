@@ -151,7 +151,6 @@ function createFollowupRun(): FollowupRun {
       sessionFile: "/tmp/session.jsonl",
       workspaceDir: "/tmp",
       config: {},
-      skillsSnapshot: {},
       provider: "anthropic",
       model: "claude",
       thinkLevel: "low",

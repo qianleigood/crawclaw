@@ -12,10 +12,8 @@ import { createTempHomeEnv, type TempHomeEnv } from "../test-utils/temp-home.js"
 import { writeSkill } from "./skills.e2e-test-helpers.js";
 import {
   applySkillEnvOverrides,
-  applySkillEnvOverridesFromSnapshot,
   buildWorkspaceSkillCommandSpecs,
   buildWorkspaceSkillsPrompt,
-  buildWorkspaceSkillSnapshot,
   loadWorkspaceSkillEntries,
 } from "./skills.js";
 import { getActiveSkillEnvKeys } from "./skills/env-overrides.js";
@@ -362,30 +360,6 @@ describe("applySkillEnvOverrides", () => {
     });
   });
 
-  it("applies env overrides from snapshots", async () => {
-    const workspaceDir = await makeWorkspace();
-    await writeEnvSkill(workspaceDir);
-
-    const snapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
-      ...resolveTestSkillDirs(workspaceDir),
-      config: { skills: { entries: { "env-skill": { apiKey: "snap-key" } } } }, // pragma: allowlist secret
-    });
-
-    withClearedEnv(["ENV_KEY"], () => {
-      const restore = applySkillEnvOverridesFromSnapshot({
-        snapshot,
-        config: { skills: { entries: { "env-skill": { apiKey: "snap-key" } } } }, // pragma: allowlist secret
-      });
-
-      try {
-        expect(process.env.ENV_KEY).toBe("snap-key");
-      } finally {
-        restore();
-        expect(process.env.ENV_KEY).toBeUndefined();
-      }
-    });
-  });
-
   it("prefers the active runtime snapshot over raw SecretRef skill config", async () => {
     const workspaceDir = await makeWorkspace();
     await writeEnvSkill(workspaceDir);
@@ -551,47 +525,6 @@ describe("applySkillEnvOverrides", () => {
         expect(process.env.HTTPS_PROXY).toBeUndefined();
         expect(process.env.NODE_TLS_REJECT_UNAUTHORIZED).toBeUndefined();
         expect(process.env.DOCKER_HOST).toBeUndefined();
-      }
-    });
-  });
-
-  it("allows required env overrides from snapshots", async () => {
-    const workspaceDir = await makeWorkspace();
-    const skillDir = path.join(workspaceDir, "skills", "snapshot-env-skill");
-    await writeSkill({
-      dir: skillDir,
-      name: "snapshot-env-skill",
-      description: "Needs env",
-      metadata: '{"crawclaw":{"requires":{"env":["OPENAI_API_KEY"]}}}',
-    });
-
-    const config = {
-      skills: {
-        entries: {
-          "snapshot-env-skill": {
-            env: {
-              OPENAI_API_KEY: "snap-secret", // pragma: allowlist secret
-            },
-          },
-        },
-      },
-    };
-    const snapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
-      ...resolveTestSkillDirs(workspaceDir),
-      config,
-    });
-
-    withClearedEnv(["OPENAI_API_KEY"], () => {
-      const restore = applySkillEnvOverridesFromSnapshot({
-        snapshot,
-        config,
-      });
-
-      try {
-        expect(process.env.OPENAI_API_KEY).toBe("snap-secret");
-      } finally {
-        restore();
-        expect(process.env.OPENAI_API_KEY).toBeUndefined();
       }
     });
   });

@@ -4,11 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
 import { createCanonicalFixtureSkill } from "../skills.test-helpers.js";
 import type { SkillEntry } from "./types.js";
-import {
-  formatSkillsCompact,
-  buildWorkspaceSkillsPrompt,
-  buildWorkspaceSkillSnapshot,
-} from "./workspace.js";
+import { formatSkillsCompact, buildWorkspaceSkillsPrompt } from "./workspace.js";
 
 function makeSkill(name: string, desc = "A skill", filePath = `/skills/${name}/SKILL.md`): Skill {
   return createCanonicalFixtureSkill({
@@ -209,23 +205,5 @@ describe("applySkillsPromptLimits (via buildWorkspaceSkillsPrompt)", () => {
     // Verify paths in output are compacted
     expect(prompt).toContain("~/");
     expect(prompt).not.toContain(home);
-  });
-
-  it("resolvedSkills in snapshot keeps canonical paths, not compacted", () => {
-    const home = os.homedir();
-    const skills = Array.from({ length: 5 }, (_, i) =>
-      makeSkill(`skill-${i}`, "A skill", `${home}/.crawclaw/workspace/skills/skill-${i}/SKILL.md`),
-    );
-    const snapshot = buildWorkspaceSkillSnapshot("/fake", {
-      entries: skills.map(makeEntry),
-    });
-    // Prompt should use compacted paths
-    expect(snapshot.prompt).toContain("~/");
-    // resolvedSkills should preserve canonical (absolute) paths
-    expect(snapshot.resolvedSkills).toBeDefined();
-    for (const skill of snapshot.resolvedSkills!) {
-      expect(skill.filePath).toContain(home);
-      expect(skill.filePath).not.toMatch(/^~\//);
-    }
   });
 });

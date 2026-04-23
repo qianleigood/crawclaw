@@ -396,31 +396,25 @@ export async function runPreparedReply(
     : threadStarterBody
       ? `[Thread starter - for context]\n${threadStarterBody}`
       : undefined;
-  const skillResult =
+  const systemSentResult =
     process.env.CRAWCLAW_TEST_FAST === "1"
       ? {
           sessionEntry,
-          skillsSnapshot: sessionEntry?.skillsSnapshot,
           systemSent: currentSystemSent,
         }
       : await (async () => {
-          const { ensureSkillSnapshot } = await loadSessionUpdatesRuntime();
-          return ensureSkillSnapshot({
+          const { ensureSessionSystemSent } = await loadSessionUpdatesRuntime();
+          return ensureSessionSystemSent({
             sessionEntry,
             sessionStore,
             sessionKey,
             storePath,
             sessionId,
             isFirstTurnInSession,
-            workspaceDir,
-            cfg,
-            prompt: prefixedBodyBase,
-            skillFilter: opts?.skillFilter,
           });
         })();
-  sessionEntry = skillResult.sessionEntry ?? sessionEntry;
-  currentSystemSent = skillResult.systemSent;
-  const skillsSnapshot = skillResult.skillsSnapshot;
+  sessionEntry = systemSentResult.sessionEntry ?? sessionEntry;
+  currentSystemSent = systemSentResult.systemSent;
   const prefixedBody = [threadContextNote, prefixedBodyBase].filter(Boolean).join("\n\n");
   const mediaNote = buildInboundMediaNote(ctx);
   const mediaReplyHint = mediaNote
@@ -553,7 +547,7 @@ export async function runPreparedReply(
       sessionFile,
       workspaceDir,
       config: cfg,
-      skillsSnapshot,
+      ...(opts?.skillFilter !== undefined ? { surfacedSkillNames: opts.skillFilter } : {}),
       provider,
       model,
       authProfileId,

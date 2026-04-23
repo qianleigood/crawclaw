@@ -2,6 +2,7 @@ import {
   resolveAgentConfig,
   resolveAgentDir,
   resolveAgentModelFallbacksOverride,
+  resolveAgentSkillsFilter,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../../agents/agent-scope.js";
@@ -66,7 +67,6 @@ import { resolveCronModelSelection } from "./model-selection.js";
 import { buildCronAgentDefaultsConfig } from "./run-config.js";
 import { resolveCronAgentSessionKey } from "./session-key.js";
 import { resolveCronSession } from "./session.js";
-import { resolveCronSkillsSnapshot } from "./skills-snapshot.js";
 import { isLikelyInterimCronMessage } from "./subagent-followup.js";
 
 function resolveNonNegativeNumber(value: number | undefined): number | undefined {
@@ -385,22 +385,9 @@ export async function runCronIsolatedAgentTurn(params: {
   }
   commandBody = appendCronDeliveryInstruction({ commandBody, deliveryRequested });
 
-  const existingSkillsSnapshot = cronSession.sessionEntry.skillsSnapshot;
-  const skillsSnapshot = resolveCronSkillsSnapshot({
-    workspaceDir,
-    config: cfgWithAgentDefaults,
-    agentId,
-    existingSnapshot: existingSkillsSnapshot,
-    isFastTestEnv,
-  });
-  if (!isFastTestEnv && skillsSnapshot !== existingSkillsSnapshot) {
-    cronSession.sessionEntry = {
-      ...cronSession.sessionEntry,
-      updatedAt: Date.now(),
-      skillsSnapshot,
-    };
-    await persistSessionEntry();
-  }
+  const surfacedSkillNames = isFastTestEnv
+    ? undefined
+    : resolveAgentSkillsFilter(cfgWithAgentDefaults, agentId);
 
   // Persist the intended model and systemSent before the run so that
   // sessions_list reflects the cron override even if the run fails or is
@@ -543,7 +530,7 @@ export async function runCronIsolatedAgentTurn(params: {
             agentDir,
             workspaceDir,
             config: cfgWithAgentDefaults,
-            skillsSnapshot,
+            ...(surfacedSkillNames !== undefined ? { surfacedSkillNames } : {}),
             prompt: promptText,
             lane: resolveNestedAgentLane(params.lane),
             provider: providerOverride,

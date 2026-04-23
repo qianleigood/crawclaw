@@ -5,8 +5,7 @@ import { resolveDefaultModelForAgent } from "../../agents/model-selection.js";
 import type { EmbeddedContextFile } from "../../agents/pi-embedded-helpers.js";
 import { createCrawClawCodingTools } from "../../agents/pi-tools.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
-import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
-import { getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
+import { buildWorkspaceSkillsPrompt } from "../../agents/skills.js";
 import { buildSystemPromptParams } from "../../agents/system-prompt-params.js";
 import { buildAgentSystemPrompt } from "../../agents/system-prompt.js";
 import { buildToolSummaryMap } from "../../agents/tool-summaries.js";
@@ -34,18 +33,16 @@ export async function resolveCommandsSystemPromptBundle(
     sessionKey: params.sessionKey,
     sessionId: params.sessionEntry?.sessionId,
   });
-  const skillsSnapshot = (() => {
+  const skillsPrompt = (() => {
     try {
-      return buildWorkspaceSkillSnapshot(workspaceDir, {
+      return buildWorkspaceSkillsPrompt(workspaceDir, {
         config: params.cfg,
         eligibility: { remote: getRemoteSkillEligibility() },
-        snapshotVersion: getSkillsSnapshotVersion(workspaceDir),
       });
     } catch {
-      return { prompt: "", skills: [], resolvedSkills: [] };
+      return "";
     }
   })();
-  const skillsPrompt = skillsSnapshot.prompt ?? "";
   const sandboxRuntime = resolveSandboxRuntimeStatus({
     cfg: params.cfg,
     sessionKey: params.ctx.SessionKey ?? params.sessionKey,

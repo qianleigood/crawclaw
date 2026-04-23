@@ -53,7 +53,6 @@ const GATEWAY_RESET_EXTRA_FIELDS = [
   "lastTo",
   "lastAccountId",
   "lastThreadId",
-  "skillsSnapshot",
   "acp",
 ] as const satisfies readonly (keyof SessionEntry)[];
 

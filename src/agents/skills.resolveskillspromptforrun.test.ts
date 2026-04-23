@@ -4,14 +4,7 @@ import { createCanonicalFixtureSkill } from "./skills.test-helpers.js";
 import type { SkillEntry } from "./skills/types.js";
 
 describe("resolveSkillsPromptForRun", () => {
-  it("prefers snapshot prompt when available", () => {
-    const prompt = resolveSkillsPromptForRun({
-      skillsSnapshot: { prompt: "SNAPSHOT", skills: [] },
-      workspaceDir: "/tmp/crawclaw",
-    });
-    expect(prompt).toBe("SNAPSHOT");
-  });
-  it("builds prompt from entries when snapshot is missing", () => {
+  it("builds prompt from current entries", () => {
     const entry: SkillEntry = {
       skill: createFixtureSkill({
         name: "demo-skill",

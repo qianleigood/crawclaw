@@ -4,9 +4,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { withEnv } from "../test-utils/env.js";
 import { createFixtureSuite } from "../test-utils/fixture-suite.js";
 import { writeSkill } from "./skills.e2e-test-helpers.js";
-import { buildWorkspaceSkillSnapshot, buildWorkspaceSkillsPrompt } from "./skills.js";
+import { buildWorkspaceSkillsPrompt } from "./skills.js";
 
-const fixtureSuite = createFixtureSuite("crawclaw-skills-snapshot-suite-");
+const fixtureSuite = createFixtureSuite("crawclaw-skills-prompt-suite-");
 let truncationWorkspaceTemplateDir = "";
 let nestedRepoTemplateDir = "";
 
@@ -43,12 +43,12 @@ function withWorkspaceHome<T>(workspaceDir: string, cb: () => T): T {
   return withEnv({ HOME: workspaceDir, PATH: "" }, cb);
 }
 
-function buildSnapshot(
+function buildPrompt(
   workspaceDir: string,
-  options?: Parameters<typeof buildWorkspaceSkillSnapshot>[1],
+  options?: Parameters<typeof buildWorkspaceSkillsPrompt>[1],
 ) {
   return withWorkspaceHome(workspaceDir, () =>
-    buildWorkspaceSkillSnapshot(workspaceDir, {
+    buildWorkspaceSkillsPrompt(workspaceDir, {
       managedSkillsDir: path.join(workspaceDir, ".managed"),
       bundledSkillsDir: path.join(workspaceDir, ".bundled"),
       ...options,
@@ -62,28 +62,22 @@ async function cloneTemplateDir(templateDir: string, prefix: string): Promise<st
   return cloned;
 }
 
-function expectSnapshotNamesAndPrompt(
-  snapshot: ReturnType<typeof buildWorkspaceSkillSnapshot>,
-  params: { contains?: string[]; omits?: string[] },
-) {
+function expectPromptNames(prompt: string, params: { contains?: string[]; omits?: string[] }) {
   for (const name of params.contains ?? []) {
-    expect(snapshot.skills.map((skill) => skill.name)).toContain(name);
-    expect(snapshot.prompt).toContain(name);
+    expect(prompt).toContain(name);
   }
   for (const name of params.omits ?? []) {
-    expect(snapshot.skills.map((skill) => skill.name)).not.toContain(name);
-    expect(snapshot.prompt).not.toContain(name);
+    expect(prompt).not.toContain(name);
   }
 }
 
-describe("buildWorkspaceSkillSnapshot", () => {
-  it("returns an empty snapshot when skills dirs are missing", async () => {
+describe("buildWorkspaceSkillsPrompt", () => {
+  it("returns an empty prompt when skills dirs are missing", async () => {
     const workspaceDir = await fixtureSuite.createCaseDir("workspace");
 
-    const snapshot = buildSnapshot(workspaceDir);
+    const prompt = buildPrompt(workspaceDir);
 
-    expect(snapshot.prompt).toBe("");
-    expect(snapshot.skills).toEqual([]);
+    expect(prompt).toBe("");
   });
 
   it("omits disable-model-invocation skills from the prompt", async () => {
@@ -100,66 +94,17 @@ describe("buildWorkspaceSkillSnapshot", () => {
       frontmatterExtra: "disable-model-invocation: true",
     });
 
-    const snapshot = buildSnapshot(workspaceDir);
+    const prompt = buildPrompt(workspaceDir);
 
-    expect(snapshot.prompt).toContain("visible-skill");
-    expect(snapshot.prompt).not.toContain("hidden-skill");
-    expect(snapshot.skills.map((skill) => skill.name).toSorted()).toEqual([
-      "hidden-skill",
-      "visible-skill",
-    ]);
-  });
-
-  it("keeps prompt output aligned with buildWorkspaceSkillsPrompt", async () => {
-    const workspaceDir = await fixtureSuite.createCaseDir("workspace");
-    await writeSkill({
-      dir: path.join(workspaceDir, "skills", "visible"),
-      name: "visible",
-      description: "Visible",
-    });
-    await writeSkill({
-      dir: path.join(workspaceDir, "skills", "hidden"),
-      name: "hidden",
-      description: "Hidden",
-      frontmatterExtra: "disable-model-invocation: true",
-    });
-    const config = {
-      skills: {
-        limits: {
-          maxSkillsInPrompt: 1,
-          maxSkillsPromptChars: 200,
-        },
-      },
-    } as const;
-    const opts = {
-      config,
-      managedSkillsDir: path.join(workspaceDir, ".managed"),
-      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
-      eligibility: {
-        remote: {
-          platforms: ["linux"],
-          hasBin: (_bin: string) => true,
-          hasAnyBin: (_bins: string[]) => true,
-          note: "Remote note",
-        },
-      },
-    };
-
-    const snapshot = withWorkspaceHome(workspaceDir, () =>
-      buildWorkspaceSkillSnapshot(workspaceDir, opts),
-    );
-    const prompt = withWorkspaceHome(workspaceDir, () =>
-      buildWorkspaceSkillsPrompt(workspaceDir, opts),
-    );
-
-    expect(snapshot.prompt).toBe(prompt);
+    expect(prompt).toContain("visible-skill");
+    expect(prompt).not.toContain("hidden-skill");
   });
 
   it("truncates the skills prompt when it exceeds the configured char budget", async () => {
     const workspaceDir = await cloneTemplateDir(truncationWorkspaceTemplateDir, "workspace");
 
-    const snapshot = withWorkspaceHome(workspaceDir, () =>
-      buildWorkspaceSkillSnapshot(workspaceDir, {
+    const prompt = withWorkspaceHome(workspaceDir, () =>
+      buildWorkspaceSkillsPrompt(workspaceDir, {
         config: {
           skills: {
             limits: {
@@ -173,16 +118,16 @@ describe("buildWorkspaceSkillSnapshot", () => {
       }),
     );
 
-    expect(snapshot.prompt).toContain("⚠️ Skills truncated");
-    expect(snapshot.prompt.length).toBeLessThan(2000);
+    expect(prompt).toContain("⚠️ Skills truncated");
+    expect(prompt.length).toBeLessThan(2000);
   });
 
   it("limits discovery for nested repo-style skills roots (dir/skills/*)", async () => {
     const workspaceDir = await fixtureSuite.createCaseDir("workspace");
     const repoDir = await cloneTemplateDir(nestedRepoTemplateDir, "skills-repo");
 
-    const snapshot = withWorkspaceHome(workspaceDir, () =>
-      buildWorkspaceSkillSnapshot(workspaceDir, {
+    const prompt = withWorkspaceHome(workspaceDir, () =>
+      buildWorkspaceSkillsPrompt(workspaceDir, {
         config: {
           skills: {
             load: {
@@ -199,10 +144,8 @@ describe("buildWorkspaceSkillSnapshot", () => {
       }),
     );
 
-    // We should only have loaded a small subset.
-    expect(snapshot.skills.length).toBeLessThanOrEqual(5);
-    expect(snapshot.prompt).toContain("repo-skill-00");
-    expect(snapshot.prompt).not.toContain("repo-skill-07");
+    expect(prompt).toContain("repo-skill-00");
+    expect(prompt).not.toContain("repo-skill-07");
   });
 
   it("skips skills whose SKILL.md exceeds maxSkillFileBytes", async () => {
@@ -221,7 +164,7 @@ describe("buildWorkspaceSkillSnapshot", () => {
       body: "x".repeat(5_000),
     });
 
-    const snapshot = buildSnapshot(workspaceDir, {
+    const prompt = buildPrompt(workspaceDir, {
       config: {
         skills: {
           limits: {
@@ -231,7 +174,7 @@ describe("buildWorkspaceSkillSnapshot", () => {
       },
     });
 
-    expectSnapshotNamesAndPrompt(snapshot, {
+    expectPromptNames(prompt, {
       contains: ["small-skill"],
       omits: ["big-skill"],
     });
@@ -254,7 +197,7 @@ describe("buildWorkspaceSkillSnapshot", () => {
       description: "Nested skill discovered late",
     });
 
-    const snapshot = buildSnapshot(workspaceDir, {
+    const prompt = buildPrompt(workspaceDir, {
       config: {
         skills: {
           load: {
@@ -268,7 +211,7 @@ describe("buildWorkspaceSkillSnapshot", () => {
       },
     });
 
-    expectSnapshotNamesAndPrompt(snapshot, {
+    expectPromptNames(prompt, {
       contains: ["late-skill"],
     });
   });
@@ -284,7 +227,7 @@ describe("buildWorkspaceSkillSnapshot", () => {
       body: "x".repeat(5_000),
     });
 
-    const snapshot = buildSnapshot(workspaceDir, {
+    const prompt = buildPrompt(workspaceDir, {
       config: {
         skills: {
           load: {
@@ -297,7 +240,7 @@ describe("buildWorkspaceSkillSnapshot", () => {
       },
     });
 
-    expectSnapshotNamesAndPrompt(snapshot, {
+    expectPromptNames(prompt, {
       omits: ["root-big-skill"],
     });
   });

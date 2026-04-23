@@ -22,7 +22,6 @@ import {
   wrapStreamFnSanitizeMalformedToolCalls,
   wrapStreamFnTrimToolCallNames,
 } from "./attempt.js";
-import type { SkillsPromptBuildHookRunner } from "./attempt.prompt-helpers.js";
 
 type FakeWrappedStream = {
   result: () => Promise<unknown>;
@@ -167,7 +166,7 @@ describe("resolveSurfacedSkillsHookResult", () => {
         workspaceDir: "/tmp/crawclaw",
         availableSkills,
         skillExposureState: {
-          surfacedSkillNames: undefined,
+          surfacedSkillNames: ["deploy-runbook"],
           loadedSkillNames: [],
           discoverCount: 0,
           discoverBudgetRemaining: 2,
@@ -178,25 +177,80 @@ describe("resolveSurfacedSkillsHookResult", () => {
     expect(result).toEqual(["deploy-runbook", "repo-defaults"]);
   });
 
-  it("ignores legacy relevant skill names returned by hooks", async () => {
+  it("uses built-in skill discovery as the default surfaced set", async () => {
+    const result = await resolveSurfacedSkillsHookResult({
+      purpose: "run",
+      prompt: "help me deploy this safely",
+      workspaceDir: "/tmp/crawclaw",
+      availableSkills: [
+        {
+          name: "deploy-runbook",
+          description: "Deploy services using the standard runbook",
+          location: "/tmp/skills/deploy-runbook/SKILL.md",
+        },
+        {
+          name: "repo-defaults",
+          description: "Repository defaults and conventions",
+          location: "/tmp/skills/repo-defaults/SKILL.md",
+        },
+      ],
+      hookCtx: { sessionId: "memory-surfaced" },
+    });
+
+    expect(result).toEqual(["deploy-runbook"]);
+  });
+
+  it("keeps long-tail skills out of the prompt when built-in discovery finds no relevant match", async () => {
+    const result = await resolveSurfacedSkillsHookResult({
+      purpose: "run",
+      prompt: "just answer a simple question",
+      workspaceDir: "/tmp/crawclaw",
+      availableSkills: [
+        {
+          name: "deploy-runbook",
+          description: "Use when deploying production services.",
+          location: "/tmp/skills/deploy-runbook/SKILL.md",
+        },
+      ],
+      hookCtx: { sessionId: "memory-empty-surfaced" },
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it("merges hook-provided surfaced skills on top of built-in discovery defaults", async () => {
     const hookRunner = {
-      hasHooks: vi.fn(() => true),
+      hasHooks: vi.fn(
+        (hookName: "before_skills_prompt_build" | "discover_skills_for_step") =>
+          hookName === "before_skills_prompt_build",
+      ),
       runBeforeSkillsPromptBuild: vi.fn(async () => ({
-        relevantSkillNames: ["legacy-skill"],
+        surfacedSkillNames: ["repo-defaults"],
       })),
       runDiscoverSkillsForStep: vi.fn(async () => undefined),
-    } as unknown as SkillsPromptBuildHookRunner;
+    };
 
     const result = await resolveSurfacedSkillsHookResult({
       purpose: "run",
-      prompt: "legacy compatibility",
+      prompt: "help me deploy this safely",
       workspaceDir: "/tmp/crawclaw",
-      availableSkills: [],
-      hookCtx: {},
+      availableSkills: [
+        {
+          name: "deploy-runbook",
+          description: "Deploy services using the standard runbook",
+          location: "/tmp/skills/deploy-runbook/SKILL.md",
+        },
+        {
+          name: "repo-defaults",
+          description: "Repository defaults and conventions",
+          location: "/tmp/skills/repo-defaults/SKILL.md",
+        },
+      ],
+      hookCtx: { sessionId: "memory-and-hook-surfaced" },
       hookRunner,
     });
 
-    expect(result).toBeUndefined();
+    expect(result).toEqual(["deploy-runbook", "repo-defaults"]);
   });
 
   it("passes previously loaded skills through skillExposureState", async () => {
@@ -1929,7 +1983,6 @@ describe("buildAfterTurnRuntimeContext", () => {
         agentAccountId: "acct-1",
         authProfileId: "openai:p1",
         config: {} as CrawClawConfig,
-        skillsSnapshot: undefined,
         senderIsOwner: true,
         provider: "openai-codex",
         modelId: "gpt-5.4",
@@ -1965,7 +2018,6 @@ describe("buildAfterTurnRuntimeContext", () => {
             },
           },
         } as CrawClawConfig,
-        skillsSnapshot: undefined,
         senderIsOwner: true,
         provider: "openai-codex",
         modelId: "gpt-5.4",
@@ -1997,7 +2049,6 @@ describe("buildAfterTurnRuntimeContext", () => {
         agentAccountId: "acct-1",
         authProfileId: "openai:p1",
         config: {} as CrawClawConfig,
-        skillsSnapshot: undefined,
         senderIsOwner: true,
         provider: "openai-codex",
         modelId: "gpt-5.4",
@@ -2031,7 +2082,6 @@ describe("buildAfterTurnRuntimeContext", () => {
         currentMessageId: "msg-42",
         authProfileId: "openai:p1",
         config: {} as CrawClawConfig,
-        skillsSnapshot: undefined,
         senderIsOwner: true,
         senderId: "user-123",
         provider: "openai-codex",

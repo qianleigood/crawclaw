@@ -9,29 +9,24 @@ export {
   resolveConfigPath,
   resolveRuntimePlatform,
   resolveSkillConfig,
-  } from "./skills/config.js";
-export {
-  applySkillEnvOverrides,
-  applySkillEnvOverridesFromSnapshot,
-  } from "./skills/env-overrides.js";
+} from "./skills/config.js";
+export { applySkillEnvOverrides } from "./skills/env-overrides.js";
 export type {
   CrawClawSkillMetadata,
   SkillEligibilityContext,
   SkillCommandSpec,
   SkillEntry,
   SkillInstallSpec,
-  SkillSnapshot,
   SkillsInstallPreferences,
-  } from "./skills/types.js";
+} from "./skills/types.js";
 export {
-  buildWorkspaceSkillSnapshot,
   buildWorkspaceSkillsPrompt,
   buildWorkspaceSkillCommandSpecs,
   filterWorkspaceSkillEntries,
   loadWorkspaceSkillEntries,
   resolveSkillsPromptForRun,
   syncSkillsToWorkspace,
-  } from "./skills/workspace.js";
+} from "./skills/workspace.js";
 
 export function resolveSkillsInstallPreferences(config?: CrawClawConfig): SkillsInstallPreferences {
   const raw = config?.skills?.install;
@@ -42,7 +37,5 @@ export function resolveSkillsInstallPreferences(config?: CrawClawConfig): Skills
     manager === "pnpm" || manager === "yarn" || manager === "bun" || manager === "npm"
       ? manager
       : "npm";
-  return { preferBrew,
-  nodeManager,
-};
+  return { preferBrew, nodeManager };
 }

@@ -14,7 +14,6 @@ import {
   emitAgentEvent,
   registerAgentRunContext,
 } from "../infra/agent-events.js";
-import { getRemoteSkillEligibility } from "../infra/skills-remote.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
@@ -23,7 +22,7 @@ import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js
 import { resolveSendPolicy } from "../sessions/send-policy.js";
 import { sanitizeForLog } from "../terminal/ansi.js";
 import { resolveMessageChannel } from "../utils/message-channel.js";
-import { resolveEffectiveModelFallbacks, resolveAgentSkillsFilter } from "./agent-scope.js";
+import { resolveEffectiveModelFallbacks } from "./agent-scope.js";
 import { ensureAuthProfileStore } from "./auth-profiles.js";
 import { clearSessionAuthProfileOverride } from "./auth-profiles/session-override.js";
 import {
@@ -57,8 +56,6 @@ import {
   resolveThinkingDefault,
 } from "./model-selection.js";
 import { registerAgentRuntimeRun } from "./runtime/agent-progress.js";
-import { buildWorkspaceSkillSnapshot } from "./skills.js";
-import { getSkillsSnapshotVersion } from "./skills/refresh.js";
 
 const log = createSubsystemLogger("agents/agent-command");
 
@@ -262,38 +259,6 @@ async function agentCommandInternal(
       status: "created",
       updatedAt: Date.now(),
     });
-
-    const needsSkillsSnapshot = isNewSession || !sessionEntry?.skillsSnapshot;
-    const skillsSnapshotVersion = getSkillsSnapshotVersion(workspaceDir);
-    const skillFilter = resolveAgentSkillsFilter(cfg, sessionAgentId);
-    const skillsSnapshot = needsSkillsSnapshot
-      ? buildWorkspaceSkillSnapshot(workspaceDir, {
-          config: cfg,
-          eligibility: { remote: getRemoteSkillEligibility() },
-          snapshotVersion: skillsSnapshotVersion,
-          skillFilter,
-        })
-      : sessionEntry?.skillsSnapshot;
-
-    if (skillsSnapshot && sessionStore && sessionKey && needsSkillsSnapshot) {
-      const current = sessionEntry ?? {
-        sessionId,
-        updatedAt: Date.now(),
-      };
-      const next: SessionEntry = {
-        ...current,
-        sessionId,
-        updatedAt: Date.now(),
-        skillsSnapshot,
-      };
-      await persistSessionEntry({
-        sessionStore,
-        sessionKey,
-        storePath,
-        entry: next,
-      });
-      sessionEntry = next;
-    }
 
     // Persist explicit /command overrides to the session store when we have a key.
     if (sessionStore && sessionKey) {
@@ -546,7 +511,6 @@ async function agentCommandInternal(
             runContext,
             spawnedBy,
             messageChannel,
-            skillsSnapshot,
             resolvedVerboseLevel,
             agentDir,
             authProfileProvider: providerForAuthProfileValidation,

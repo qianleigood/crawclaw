@@ -8,7 +8,8 @@ import type {
 } from "../../../plugins/types.js";
 import { isCronSessionKey, isSubagentSessionKey } from "../../../routing/session-key.js";
 import type { QueryContextPatch, QueryContextSection } from "../../query-context/types.js";
-import type { SkillEntry, SkillSnapshot } from "../../skills.js";
+import type { SkillEntry } from "../../skills.js";
+import { discoverSkillsForTask, type SkillDiscoveryReranker } from "../../skills/discovery.js";
 import {
   getSkillExposureState,
   recordDiscoveredSkills,
@@ -80,6 +81,20 @@ function createQueryContextSection(params: {
 }
 
 const DEFAULT_SKILL_DISCOVER_BUDGET = 2;
+
+function mergeSkillNames(...groups: Array<readonly string[] | undefined>): string[] {
+  const merged: string[] = [];
+  for (const group of groups) {
+    for (const skillName of group ?? []) {
+      const normalized = typeof skillName === "string" ? skillName.trim() : "";
+      if (!normalized || merged.includes(normalized)) {
+        continue;
+      }
+      merged.push(normalized);
+    }
+  }
+  return merged;
+}
 
 export function shouldTriggerSkillDiscovery(params: {
   purpose: "run" | "compaction";
@@ -251,6 +266,7 @@ export async function resolveSurfacedSkillsHookResult(params: {
   availableSkills: Array<{ name: string; description?: string; location: string }>;
   hookCtx: PluginHookAgentContext;
   hookRunner?: SkillsPromptBuildHookRunner | null;
+  skillDiscoveryRerank?: SkillDiscoveryReranker;
 }): Promise<string[] | undefined> {
   const exposureScope = {
     sessionId: params.hookCtx.sessionId,
@@ -278,10 +294,38 @@ export async function resolveSurfacedSkillsHookResult(params: {
       DEFAULT_SKILL_DISCOVER_BUDGET,
   };
   updateSkillExposureState(exposureScope, skillExposureState);
-  if (params.explicitSurfacedSkillNames?.length) {
-    setSurfacedSkillNames(exposureScope, params.explicitSurfacedSkillNames);
+  if (params.explicitSurfacedSkillNames !== undefined) {
+    if (params.explicitSurfacedSkillNames.length > 0) {
+      setSurfacedSkillNames(exposureScope, params.explicitSurfacedSkillNames);
+    }
     return params.explicitSurfacedSkillNames;
   }
+  const taskDescription = (params.prompt ?? params.customInstructions ?? "").trim();
+  const defaultDiscoveryEnabled = Boolean(taskDescription && params.availableSkills.length);
+  const defaultDiscovery = defaultDiscoveryEnabled
+    ? await discoverSkillsForTask({
+        taskDescription,
+        availableSkills: params.availableSkills,
+        excludeSkillNames: mergeSkillNames(
+          skillExposureState.loadedSkillNames,
+          skillExposureState.discoveredSkillNames,
+        ),
+        signal: params.purpose === "run" ? "turn_zero" : "manual",
+        rerank: params.skillDiscoveryRerank,
+      }).catch((error: unknown) => {
+        log.warn(`skill discovery failed: ${String(error)}`);
+        return { skills: [], signal: "manual" as const, source: "native" as const };
+      })
+    : { skills: [] };
+  const defaultSurfaced = defaultDiscovery.skills.map((skill) => skill.name);
+  if (defaultSurfaced.length) {
+    setSurfacedSkillNames(exposureScope, defaultSurfaced);
+  }
+  const baseExposureState: PluginHookSkillExposureState = {
+    ...skillExposureState,
+    surfacedSkillNames:
+      defaultSurfaced.length > 0 ? defaultSurfaced : skillExposureState.surfacedSkillNames,
+  };
   const hookResult = params.hookRunner?.hasHooks("before_skills_prompt_build")
     ? await params.hookRunner
         .runBeforeSkillsPromptBuild(
@@ -291,7 +335,7 @@ export async function resolveSurfacedSkillsHookResult(params: {
             customInstructions: params.customInstructions,
             workspaceDir: params.workspaceDir,
             availableSkills: params.availableSkills,
-            skillExposureState,
+            skillExposureState: baseExposureState,
           },
           params.hookCtx,
         )
@@ -300,22 +344,23 @@ export async function resolveSurfacedSkillsHookResult(params: {
           return undefined;
         })
     : undefined;
-  const surfaced = hookResult?.surfacedSkillNames ?? [];
-  if (surfaced.length) {
+  const surfaced = mergeSkillNames(defaultSurfaced, hookResult?.surfacedSkillNames);
+  if (surfaced.length > 0) {
     setSurfacedSkillNames(exposureScope, surfaced);
   }
   const nextExposureState: PluginHookSkillExposureState = {
-    ...skillExposureState,
+    ...baseExposureState,
     surfacedSkillNames: surfaced.length ? surfaced : skillExposureState.surfacedSkillNames,
   };
-  const discoverResult =
-    params.hookRunner?.hasHooks("discover_skills_for_step") &&
+  const shouldDiscover =
     shouldTriggerSkillDiscovery({
       purpose: params.purpose,
       prompt: params.prompt ?? params.customInstructions,
       availableSkills: params.availableSkills,
       skillExposureState: nextExposureState,
-    })
+    }) && params.hookRunner?.hasHooks("discover_skills_for_step") === true;
+  const hookDiscoverResult =
+    shouldDiscover && params.hookRunner?.hasHooks("discover_skills_for_step")
       ? await params.hookRunner
           .runDiscoverSkillsForStep(
             {
@@ -333,7 +378,7 @@ export async function resolveSurfacedSkillsHookResult(params: {
             return undefined;
           })
       : undefined;
-  const discovered = discoverResult?.discoveredSkillNames ?? [];
+  const discovered = mergeSkillNames(hookDiscoverResult?.discoveredSkillNames);
   if (discovered.length) {
     recordDiscoveredSkills({
       scope: exposureScope,
@@ -346,28 +391,18 @@ export async function resolveSurfacedSkillsHookResult(params: {
       ),
     });
   }
-  const mergedSurfaced = [...surfaced, ...discovered].filter(
-    (skillName, index, list) => Boolean(skillName) && list.indexOf(skillName) === index,
-  );
-  return mergedSurfaced.length ? mergedSurfaced : undefined;
+  const mergedSurfaced = mergeSkillNames(surfaced, discovered);
+  return mergedSurfaced.length ? mergedSurfaced : defaultDiscoveryEnabled ? [] : undefined;
 }
 
 export function buildAvailableSkillsForHook(params: {
   skillEntries?: SkillEntry[];
-  skillsSnapshot?: SkillSnapshot;
 }): Array<{ name: string; description?: string; location: string }> {
   if (params.skillEntries?.length) {
     return params.skillEntries.map((entry) => ({
       name: entry.skill.name,
       description: entry.skill.description,
       location: entry.skill.filePath,
-    }));
-  }
-  if (params.skillsSnapshot?.resolvedSkills?.length) {
-    return params.skillsSnapshot.resolvedSkills.map((skill) => ({
-      name: skill.name,
-      description: skill.description,
-      location: skill.filePath,
     }));
   }
   return [];
@@ -410,7 +445,6 @@ export function buildAfterTurnRuntimeContext(params: {
     | "currentThreadTs"
     | "currentMessageId"
     | "config"
-    | "skillsSnapshot"
     | "surfacedSkillNames"
     | "senderIsOwner"
     | "senderId"
@@ -439,7 +473,6 @@ export function buildAfterTurnRuntimeContext(params: {
     workspaceDir: params.workspaceDir,
     agentDir: params.agentDir,
     config: params.attempt.config,
-    skillsSnapshot: params.attempt.skillsSnapshot,
     senderIsOwner: params.attempt.senderIsOwner,
     senderId: params.attempt.senderId,
     provider: params.attempt.provider,

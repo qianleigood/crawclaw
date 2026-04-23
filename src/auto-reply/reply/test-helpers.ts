@@ -36,10 +36,6 @@ export function createMockFollowupRun(
       sessionFile: "/tmp/session.jsonl",
       workspaceDir: "/tmp",
       config: {},
-      skillsSnapshot: {
-        prompt: "",
-        skills: [],
-      },
       provider: "anthropic",
       model: "claude",
       thinkLevel: "low",

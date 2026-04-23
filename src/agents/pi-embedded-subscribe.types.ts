@@ -32,6 +32,7 @@ export type SubscribeEmbeddedPiSessionParams = {
   enforceFinalTag?: boolean;
   silentExpected?: boolean;
   config?: CrawClawConfig;
+  workspaceDir?: string;
   sessionKey?: string;
   /** Ephemeral session UUID — regenerated on /new. */
   sessionId?: string;

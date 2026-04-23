@@ -226,7 +226,6 @@ describe("performGatewaySessionReset", () => {
       lastChannel: "telegram",
       lastTo: "telegram:user",
       lastThreadId: "topic-1",
-      skillsSnapshot: { version: 1 } as never,
       inputTokens: 42,
       outputTokens: 84,
       totalTokens: 126,
