@@ -1,4 +1,5 @@
 import { formatCliCommand } from "../cli/command-format.js";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
 import { readConfigFileSnapshot } from "../config/config.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
 import { resolveManifestDeprecatedProviderAuthChoice } from "../plugins/provider-auth-choices.js";
@@ -17,8 +18,14 @@ export async function setupWizardCommand(
   runtime: RuntimeEnv = defaultRuntime,
 ) {
   assertSupportedRuntime(runtime);
+  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
   if (opts.authChoice === "oauth") {
-    runtime.error('Auth choice "oauth" has been removed. Use "--auth-choice setup-token".');
+    runtime.error(
+      t("wizard.setup.error.authChoiceRemoved", {
+        choice: "oauth",
+        replacement: "setup-token",
+      }),
+    );
     runtime.exit(1);
     return;
   }
@@ -28,7 +35,10 @@ export async function setupWizardCommand(
     });
     if (deprecatedChoice) {
       runtime.error(
-        `Auth choice "${opts.authChoice}" has been removed. Use "--auth-choice ${deprecatedChoice.choiceId}".`,
+        t("wizard.setup.error.authChoiceRemoved", {
+          choice: opts.authChoice,
+          replacement: deprecatedChoice.choiceId,
+        }),
       );
       runtime.exit(1);
       return;
@@ -41,13 +51,13 @@ export async function setupWizardCommand(
     normalizedOpts.secretInputMode !== "plaintext" && // pragma: allowlist secret
     normalizedOpts.secretInputMode !== "ref" // pragma: allowlist secret
   ) {
-    runtime.error('Invalid --secret-input-mode. Use "plaintext" or "ref".');
+    runtime.error(t("wizard.setup.error.invalidSecretInputMode"));
     runtime.exit(1);
     return;
   }
 
   if (normalizedOpts.resetScope && !VALID_RESET_SCOPES.has(normalizedOpts.resetScope)) {
-    runtime.error('Invalid --reset-scope. Use "config", "config+creds+sessions", or "full".');
+    runtime.error(t("wizard.setup.error.invalidResetScope"));
     runtime.exit(1);
     return;
   }
@@ -55,9 +65,11 @@ export async function setupWizardCommand(
   if (normalizedOpts.nonInteractive && normalizedOpts.acceptRisk !== true) {
     runtime.error(
       [
-        "Non-interactive setup requires explicit risk acknowledgement.",
-        "Read: https://docs.crawclaw.ai/security",
-        `Re-run with: ${formatCliCommand("crawclaw onboard --non-interactive --accept-risk ...")}`,
+        t("wizard.setup.error.riskRequired"),
+        t("wizard.setup.error.readSecurityDocs"),
+        t("wizard.setup.error.rerunWithAcceptRisk", {
+          command: formatCliCommand("crawclaw onboard --non-interactive --accept-risk ..."),
+        }),
       ].join("\n"),
     );
     runtime.exit(1);
@@ -76,10 +88,10 @@ export async function setupWizardCommand(
   if (process.platform === "win32") {
     runtime.log(
       [
-        "Windows detected - CrawClaw runs great on WSL2!",
-        "Native Windows might be trickier.",
-        "Quick setup: wsl --install (one command, one reboot)",
-        "Guide: https://docs.crawclaw.ai/windows",
+        t("wizard.setup.windows.detected"),
+        t("wizard.setup.windows.nativeWarning"),
+        t("wizard.setup.windows.quickSetup"),
+        t("wizard.setup.windows.guide"),
       ].join("\n"),
     );
   }

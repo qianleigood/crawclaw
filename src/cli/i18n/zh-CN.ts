@@ -8,6 +8,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "common.progress.checkingGatewayHealth": "检查网关健康状态…",
   "common.progress.fetchingUsageSnapshot": "获取用量快照…",
   "common.progress.runningSecurityAudit": "运行安全审计…",
+  "config.updated": "已更新 {path}{suffix}",
   "table.header.active": "活跃",
   "table.header.age": "时长",
   "table.header.agent": "Agent",
@@ -318,6 +319,25 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.mode.remoteReachable": "网关可访问（{url}）",
   "wizard.setup.mode.remoteUnreachable": "已配置但无法访问（{url}）",
   "wizard.setup.remoteConfigured": "远程网关已配置。",
+  "wizard.setup.workspaceOk": "工作区 OK: {path}",
+  "wizard.setup.sessionsOk": "会话 OK: {path}",
+  "wizard.setup.remoteGateway": "远程网关：{url}",
+  "wizard.setup.remoteAuth": "认证：{auth}",
+  "wizard.setup.webSearchTip":
+    "提示：运行 `{command}` 保存 Brave API key 以启用 web_search。文档：https://docs.crawclaw.ai/tools/web",
+  "wizard.setup.error.authChoiceRemoved":
+    '认证方式 "{choice}" 已移除。请使用 "--auth-choice {replacement}"。',
+  "wizard.setup.error.invalidSecretInputMode":
+    '无效的 --secret-input-mode。请使用 "plaintext" 或 "ref"。',
+  "wizard.setup.error.invalidResetScope":
+    '无效的 --reset-scope。请使用 "config"、"config+creds+sessions" 或 "full"。',
+  "wizard.setup.error.riskRequired": "非交互设置需要明确确认风险。",
+  "wizard.setup.error.readSecurityDocs": "阅读：https://docs.crawclaw.ai/security",
+  "wizard.setup.error.rerunWithAcceptRisk": "重新运行：{command}",
+  "wizard.setup.windows.detected": "检测到 Windows - 建议在 WSL2 中运行 CrawClaw。",
+  "wizard.setup.windows.nativeWarning": "原生 Windows 环境可能需要更多手动处理。",
+  "wizard.setup.windows.quickSetup": "快速设置：wsl --install（一个命令，重启一次）",
+  "wizard.setup.windows.guide": "指南：https://docs.crawclaw.ai/windows",
   "wizard.setup.skip.channels": "已跳过渠道设置。",
   "wizard.setup.skip.channelsTitle": "渠道",
   "wizard.setup.skip.search": "已跳过搜索设置。",

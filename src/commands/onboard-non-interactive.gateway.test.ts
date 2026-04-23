@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { makeTempWorkspace } from "../test-helpers/workspace.js";
 import { captureEnv } from "../test-utils/env.js";
@@ -162,6 +163,7 @@ async function expectLocalJsonSetupFailure(stateDir: string, runtimeWithCapture:
 }
 
 describe("onboard (non-interactive): gateway and remote auth", () => {
+  const originalArgv = process.argv;
   let envSnapshot: ReturnType<typeof captureEnv>;
   let tempHome: string | undefined;
 
@@ -224,6 +226,8 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
   });
 
   afterEach(() => {
+    process.argv = originalArgv;
+    setActiveCliLocale("en");
     waitForGatewayReachableMock = undefined;
     installGatewayDaemonNonInteractiveMock.mockClear();
     gatewayServiceMock.isLoaded.mockClear();
@@ -264,6 +268,42 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       expect(cfg?.tools?.profile).toBe("coding");
       expect(cfg?.gateway?.auth?.mode).toBe("token");
       expect(cfg?.gateway?.auth?.token).toBe(token);
+    });
+  }, 60_000);
+
+  it("localizes non-interactive completion guidance when zh-CN is active", async () => {
+    await withStateDir("state-zh-guidance-", async (stateDir) => {
+      setActiveCliLocale("zh-CN");
+      process.argv = ["node", "crawclaw", "--lang", "zh-CN", "onboard", "--non-interactive"];
+      const log = vi.fn();
+      const zhRuntime: RuntimeEnv = {
+        log,
+        error: vi.fn((...args: unknown[]) => {
+          throw new Error(args.map(String).join(" "));
+        }),
+        exit: vi.fn((code: number) => {
+          throw new Error(`exit:${code}`);
+        }) as unknown as RuntimeEnv["exit"],
+      };
+
+      await runNonInteractiveSetup(
+        {
+          nonInteractive: true,
+          mode: "local",
+          workspace: path.join(stateDir, "crawclaw"),
+          authChoice: "skip",
+          skipSkills: true,
+          skipHealth: true,
+          installDaemon: false,
+          gatewayBind: "loopback",
+          json: false,
+        },
+        zhRuntime,
+      );
+
+      expect(log).toHaveBeenCalledWith(
+        "提示：运行 `crawclaw configure --section web` 保存 Brave API key 以启用 web_search。文档：https://docs.crawclaw.ai/tools/web",
+      );
     });
   }, 60_000);
 

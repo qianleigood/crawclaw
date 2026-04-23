@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/text.js";
 
 const mocks = vi.hoisted(() => ({
   createConfigIO: vi.fn().mockReturnValue({
@@ -19,6 +20,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mocks.createConfigIO.mockClear();
+  setActiveCliLocale("en");
 });
 
 describe("config logging", () => {
@@ -30,5 +32,12 @@ describe("config logging", () => {
     const runtime = { log: vi.fn() };
     logConfigUpdated(runtime as never);
     expect(runtime.log).toHaveBeenCalledWith("Updated /tmp/crawclaw-dev/crawclaw.json");
+  });
+
+  it("localizes the update message when zh-CN is active", () => {
+    setActiveCliLocale("zh-CN");
+    const runtime = { log: vi.fn() };
+    logConfigUpdated(runtime as never);
+    expect(runtime.log).toHaveBeenCalledWith("已更新 /tmp/crawclaw-dev/crawclaw.json");
   });
 });

@@ -1,7 +1,12 @@
+import fs from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/text.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { makeTempWorkspace } from "../test-helpers/workspace.js";
 import {
+  ensureWorkspaceAndSessions,
   normalizeGatewayTokenInput,
   openUrl,
   printWizardHeader,
@@ -37,6 +42,7 @@ vi.mock("../infra/tailnet.js", () => ({
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
+  setActiveCliLocale("en");
 });
 
 describe("openUrl", () => {
@@ -202,5 +208,45 @@ describe("printWizardHeader", () => {
     expect(output).not.toContain("██░");
     expect(output).not.toContain("▀▀▀▀");
     expect(output.toLowerCase()).toContain("crawclaw");
+  });
+
+  it("localizes the setup header when zh-CN is active", () => {
+    setActiveCliLocale("zh-CN");
+    const log = vi.fn();
+    const runtime: RuntimeEnv = {
+      log,
+      error: vi.fn(),
+      exit: vi.fn(),
+    };
+
+    printWizardHeader(runtime);
+
+    expect(log).toHaveBeenCalledWith("CrawClaw 设置");
+  });
+});
+
+describe("ensureWorkspaceAndSessions", () => {
+  it("localizes workspace and sessions ready logs when zh-CN is active", async () => {
+    const tempDir = await makeTempWorkspace("crawclaw-onboard-helpers-");
+    try {
+      setActiveCliLocale("zh-CN");
+      vi.stubEnv("CRAWCLAW_STATE_DIR", path.join(tempDir, "state"));
+      const log = vi.fn();
+      const runtime: RuntimeEnv = {
+        log,
+        error: vi.fn(),
+        exit: vi.fn(),
+      };
+      const workspaceDir = path.join(tempDir, "workspace");
+
+      await ensureWorkspaceAndSessions(workspaceDir, runtime, { skipBootstrap: true });
+
+      expect(log.mock.calls.map((call) => String(call[0]))).toEqual([
+        `工作区 OK: ${workspaceDir}`,
+        `会话 OK: ${path.join(tempDir, "state", "agents", "main", "sessions")}`,
+      ]);
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   });
 });

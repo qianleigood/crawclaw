@@ -4,6 +4,7 @@ import path from "node:path";
 import { inspect } from "node:util";
 import { cancel, isCancel } from "@clack/prompts";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../agents/workspace.js";
+import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { CONFIG_PATH } from "../config/config.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
@@ -104,7 +105,8 @@ export function validateGatewayPasswordInput(value: unknown): string | undefined
 }
 
 export function printWizardHeader(runtime: RuntimeEnv) {
-  runtime.log("CrawClaw setup");
+  const t = createCliTranslator(getActiveCliLocale());
+  runtime.log(t("wizard.setup.intro"));
 }
 
 export function applyWizardMetadata(
@@ -163,14 +165,15 @@ export async function ensureWorkspaceAndSessions(
   runtime: RuntimeEnv,
   options?: { skipBootstrap?: boolean; agentId?: string },
 ) {
+  const t = createCliTranslator(getActiveCliLocale());
   const ws = await ensureAgentWorkspace({
     dir: workspaceDir,
     ensureBootstrapFiles: !options?.skipBootstrap,
   });
-  runtime.log(`Workspace OK: ${shortenHomePath(ws.dir)}`);
+  runtime.log(t("wizard.setup.workspaceOk", { path: shortenHomePath(ws.dir) }));
   const sessionsDir = resolveSessionTranscriptsDirForAgent(options?.agentId);
   await fs.mkdir(sessionsDir, { recursive: true });
-  runtime.log(`Sessions OK: ${shortenHomePath(sessionsDir)}`);
+  runtime.log(t("wizard.setup.sessionsOk", { path: shortenHomePath(sessionsDir) }));
 }
 
 export function resolveNodeManagerOptions(): Array<{

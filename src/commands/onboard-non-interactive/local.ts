@@ -1,4 +1,5 @@
 import { formatCliCommand } from "../../cli/command-format.js";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../../cli/i18n/index.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { replaceConfigFile, resolveGatewayPort } from "../../config/config.js";
 import { logConfigUpdated } from "../../config/logging.js";
@@ -81,6 +82,7 @@ export async function runNonInteractiveLocalSetup(params: {
   baseHash?: string;
 }) {
   const { opts, runtime, baseConfig, baseHash } = params;
+  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
   const mode = "local" as const;
 
   const workspaceDir = resolveNonInteractiveWorkspaceDir({
@@ -271,7 +273,9 @@ export async function runNonInteractiveLocalSetup(params: {
 
   if (!opts.json) {
     runtime.log(
-      `Tip: run \`${formatCliCommand("crawclaw configure --section web")}\` to store your Brave API key for web_search. Docs: https://docs.crawclaw.ai/tools/web`,
+      t("wizard.setup.webSearchTip", {
+        command: formatCliCommand("crawclaw configure --section web"),
+      }),
     );
   }
 }

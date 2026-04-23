@@ -1,4 +1,5 @@
 import { formatCliCommand } from "../../cli/command-format.js";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../../cli/i18n/index.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { replaceConfigFile } from "../../config/config.js";
 import { logConfigUpdated } from "../../config/logging.js";
@@ -13,6 +14,7 @@ export async function runNonInteractiveRemoteSetup(params: {
   baseHash?: string;
 }) {
   const { opts, runtime, baseConfig, baseHash } = params;
+  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
   const mode = "remote" as const;
 
   const remoteUrl = opts.remoteUrl?.trim();
@@ -48,10 +50,12 @@ export async function runNonInteractiveRemoteSetup(params: {
   if (opts.json) {
     writeRuntimeJson(runtime, payload);
   } else {
-    runtime.log(`Remote gateway: ${remoteUrl}`);
-    runtime.log(`Auth: ${payload.auth}`);
+    runtime.log(t("wizard.setup.remoteGateway", { url: remoteUrl }));
+    runtime.log(t("wizard.setup.remoteAuth", { auth: payload.auth }));
     runtime.log(
-      `Tip: run \`${formatCliCommand("crawclaw configure --section web")}\` to store your Brave API key for web_search. Docs: https://docs.crawclaw.ai/tools/web`,
+      t("wizard.setup.webSearchTip", {
+        command: formatCliCommand("crawclaw configure --section web"),
+      }),
     );
   }
 }

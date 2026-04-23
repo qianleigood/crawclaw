@@ -6,7 +6,7 @@ import { setupWizardCommand } from "./onboard.js";
 const mocks = vi.hoisted(() => ({
   runInteractiveSetup: vi.fn(async () => {}),
   runNonInteractiveSetup: vi.fn(async () => {}),
-  readConfigFileSnapshot: vi.fn(async () => ({ exists: false, valid: false, config: {} })),
+  readConfigFileSnapshot: vi.fn(async () => ({ exists: false, valid: false, runtimeConfig: {} })),
   handleReset: vi.fn(async () => {}),
 }));
 
@@ -36,9 +36,16 @@ function makeRuntime(): RuntimeEnv {
 }
 
 describe("setupWizardCommand", () => {
+  const originalArgv = process.argv;
+
   afterEach(() => {
+    process.argv = originalArgv;
     vi.clearAllMocks();
-    mocks.readConfigFileSnapshot.mockResolvedValue({ exists: false, valid: false, config: {} });
+    mocks.readConfigFileSnapshot.mockResolvedValue({
+      exists: false,
+      valid: false,
+      runtimeConfig: {},
+    });
   });
 
   it("fails fast for invalid secret-input-mode before setup starts", async () => {
@@ -56,6 +63,28 @@ describe("setupWizardCommand", () => {
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);
     expect(mocks.runInteractiveSetup).not.toHaveBeenCalled();
+    expect(mocks.runNonInteractiveSetup).not.toHaveBeenCalled();
+  });
+
+  it("localizes non-interactive risk acknowledgement errors", async () => {
+    process.argv = ["node", "crawclaw", "--lang", "zh-CN", "onboard", "--non-interactive"];
+    const runtime = makeRuntime();
+
+    await setupWizardCommand(
+      {
+        nonInteractive: true,
+      },
+      runtime,
+    );
+
+    expect(runtime.error).toHaveBeenCalledWith(
+      [
+        "非交互设置需要明确确认风险。",
+        "阅读：https://docs.crawclaw.ai/security",
+        "重新运行：crawclaw onboard --non-interactive --accept-risk ...",
+      ].join("\n"),
+    );
+    expect(runtime.exit).toHaveBeenCalledWith(1);
     expect(mocks.runNonInteractiveSetup).not.toHaveBeenCalled();
   });
 
@@ -101,7 +130,7 @@ describe("setupWizardCommand", () => {
     mocks.readConfigFileSnapshot.mockResolvedValue({
       exists: true,
       valid: true,
-      config: {
+      runtimeConfig: {
         agents: {
           defaults: {
             workspace: "/tmp/crawclaw-custom-workspace",

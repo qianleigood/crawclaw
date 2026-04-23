@@ -8,6 +8,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "common.progress.checkingGatewayHealth": "Checking gateway health…",
   "common.progress.fetchingUsageSnapshot": "Fetching usage snapshot…",
   "common.progress.runningSecurityAudit": "Running security audit…",
+  "config.updated": "Updated {path}{suffix}",
   "table.header.active": "Active",
   "table.header.age": "Age",
   "table.header.agent": "Agent",
@@ -326,6 +327,26 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.mode.remoteReachable": "Gateway reachable ({url})",
   "wizard.setup.mode.remoteUnreachable": "Configured but unreachable ({url})",
   "wizard.setup.remoteConfigured": "Remote gateway configured.",
+  "wizard.setup.workspaceOk": "Workspace OK: {path}",
+  "wizard.setup.sessionsOk": "Sessions OK: {path}",
+  "wizard.setup.remoteGateway": "Remote gateway: {url}",
+  "wizard.setup.remoteAuth": "Auth: {auth}",
+  "wizard.setup.webSearchTip":
+    "Tip: run `{command}` to store your Brave API key for web_search. Docs: https://docs.crawclaw.ai/tools/web",
+  "wizard.setup.error.authChoiceRemoved":
+    'Auth choice "{choice}" has been removed. Use "--auth-choice {replacement}".',
+  "wizard.setup.error.invalidSecretInputMode":
+    'Invalid --secret-input-mode. Use "plaintext" or "ref".',
+  "wizard.setup.error.invalidResetScope":
+    'Invalid --reset-scope. Use "config", "config+creds+sessions", or "full".',
+  "wizard.setup.error.riskRequired":
+    "Non-interactive setup requires explicit risk acknowledgement.",
+  "wizard.setup.error.readSecurityDocs": "Read: https://docs.crawclaw.ai/security",
+  "wizard.setup.error.rerunWithAcceptRisk": "Re-run with: {command}",
+  "wizard.setup.windows.detected": "Windows detected - CrawClaw runs great on WSL2!",
+  "wizard.setup.windows.nativeWarning": "Native Windows might be trickier.",
+  "wizard.setup.windows.quickSetup": "Quick setup: wsl --install (one command, one reboot)",
+  "wizard.setup.windows.guide": "Guide: https://docs.crawclaw.ai/windows",
   "wizard.setup.skip.channels": "Skipping channel setup.",
   "wizard.setup.skip.channelsTitle": "Channels",
   "wizard.setup.skip.search": "Skipping search setup.",

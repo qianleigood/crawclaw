@@ -1,3 +1,4 @@
+import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/text.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { displayPath } from "../utils.js";
 import { createConfigIO } from "./io.js";
@@ -14,5 +15,6 @@ export function formatConfigPath(path: string = createConfigIO().configPath): st
 export function logConfigUpdated(runtime: RuntimeEnv, opts: LogConfigUpdatedOptions = {}): void {
   const path = formatConfigPath(opts.path ?? createConfigIO().configPath);
   const suffix = opts.suffix ? ` ${opts.suffix}` : "";
-  runtime.log(`Updated ${path}${suffix}`);
+  const t = createCliTranslator(getActiveCliLocale());
+  runtime.log(t("config.updated", { path, suffix }));
 }
