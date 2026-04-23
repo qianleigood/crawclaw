@@ -2,6 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { hasBundledChannelConfiguredState } from "../channels/plugins/configured-state.js";
+import { __testing as packageStateProbeTesting } from "../channels/plugins/package-state-probes.js";
 import { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } from "../config/config.js";
 import {
   canLoadActivatedBundledPluginPublicSurface,
@@ -69,9 +71,52 @@ function createCircularPluginDir(prefix: string): string {
   return rootDir;
 }
 
+function createConfiguredStatePluginDir(prefix: string): string {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempDirs.push(rootDir);
+  fs.mkdirSync(path.join(rootDir, "demo"), { recursive: true });
+  fs.writeFileSync(
+    path.join(rootDir, "demo", "package.json"),
+    JSON.stringify({
+      name: "@crawclaw/demo",
+      crawclaw: {
+        extensions: ["./api.js"],
+        channel: {
+          id: "demo",
+          label: "Demo",
+          selectionLabel: "Demo",
+          docsPath: "/demo",
+          blurb: "Demo channel",
+          configuredState: {
+            specifier: "./api",
+            exportName: "hasDemoConfiguredState",
+          },
+        },
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(rootDir, "demo", "crawclaw.plugin.json"),
+    JSON.stringify({ id: "demo", channels: ["demo"], configSchema: {} }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(rootDir, "demo", "api.js"),
+    [
+      'export const marker = "configured-state";',
+      'export function hasDemoConfiguredState(params) { return params.env?.DEMO_TOKEN === "configured"; }',
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  return rootDir;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   clearRuntimeConfigSnapshot();
+  packageStateProbeTesting.clearPackageStateProbeCache();
   resetFacadeRuntimeStateForTest();
   if (originalBundledPluginsDir === undefined) {
     delete process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR;
@@ -130,6 +175,31 @@ describe("plugin-sdk facade runtime", () => {
     });
 
     expect(loaded.marker).toBe("circular-ok");
+  });
+
+  it("does not poison package state probes while tracking facade imports", () => {
+    const dir = createConfiguredStatePluginDir("crawclaw-facade-configured-state-");
+    process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR = dir;
+    packageStateProbeTesting.clearPackageStateProbeCache();
+
+    const loaded = loadBundledPluginPublicSurfaceModuleSync<{ marker: string }>({
+      dirName: "demo",
+      artifactBasename: "api.js",
+    });
+
+    expect(loaded.marker).toBe("configured-state");
+    expect(listImportedBundledPluginFacadeIds()).toEqual(["demo"]);
+    expect(
+      hasBundledChannelConfiguredState({
+        channelId: "demo",
+        cfg: {},
+        env: {
+          ...process.env,
+          CRAWCLAW_BUNDLED_PLUGINS_DIR: dir,
+          DEMO_TOKEN: "configured",
+        } as NodeJS.ProcessEnv,
+      }),
+    ).toBe(true);
   });
 
   it("clears the cache on load failure so retries re-execute", () => {

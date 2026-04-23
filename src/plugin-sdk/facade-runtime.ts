@@ -13,9 +13,7 @@ import {
   loadPluginManifestRegistry,
   type PluginManifestRecord,
 } from "../plugins/manifest-registry.js";
-import {
-  resolveLoaderPackageRoot,
-} from "../plugins/sdk-alias.js";
+import { resolveLoaderPackageRoot } from "../plugins/sdk-alias.js";
 import {
   ALWAYS_ALLOWED_RUNTIME_DIR_NAMES,
   createLazyFacadeArrayValue,
@@ -23,7 +21,10 @@ import {
   getOrCreateFacadeJitiLoader,
   resolveFacadeModuleLocation,
 } from "./facade-runtime-helpers.js";
-export { createLazyFacadeArrayValue, createLazyFacadeObjectValue } from "./facade-runtime-helpers.js";
+export {
+  createLazyFacadeArrayValue,
+  createLazyFacadeObjectValue,
+} from "./facade-runtime-helpers.js";
 
 const CRAWCLAW_PACKAGE_ROOT =
   resolveLoaderPackageRoot({
@@ -100,7 +101,13 @@ function resolveBundledPluginManifestRecordByDirName(dirName: string): PluginMan
 }
 
 function resolveTrackedFacadePluginId(dirName: string): string {
-  return resolveBundledPluginManifestRecordByDirName(dirName)?.id ?? dirName;
+  return (
+    loadPluginManifestRegistry({
+      cache: true,
+    }).plugins.find(
+      (plugin) => plugin.origin === "bundled" && path.basename(plugin.rootDir) === dirName,
+    )?.id ?? dirName
+  );
 }
 
 function resolveBundledPluginPublicSurfaceAccess(params: {
