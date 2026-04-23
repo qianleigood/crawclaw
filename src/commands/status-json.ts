@@ -89,7 +89,6 @@ export async function statusJsonCommand(
     update: scan.update,
     updateChannel: channelInfo.channel,
     updateChannelSource: channelInfo.source,
-    memory: scan.memory,
     feishuCli: scan.feishuCli,
     gateway: {
       mode: scan.gatewayMode,

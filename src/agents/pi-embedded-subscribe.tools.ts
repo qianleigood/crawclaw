@@ -142,8 +142,6 @@ const TRUSTED_TOOL_RESULT_MEDIA = new Set([
   "exec",
   "gateway",
   "image",
-  "memory_get",
-  "memory_search",
   "message",
   "nodes",
   "process",

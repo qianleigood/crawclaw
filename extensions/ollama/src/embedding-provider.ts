@@ -26,9 +26,9 @@ type OllamaEmbeddingOptions = {
   provider?: string;
   remote?: {
     baseUrl?: string;
-    apiKey?: unknown;
     headers?: Record<string, string>;
   };
+  providerApiKey?: string;
   model: string;
   fallback?: string;
   local?: unknown;
@@ -100,30 +100,17 @@ function normalizeEmbeddingModel(model: string): string {
   return trimmed.startsWith("ollama/") ? trimmed.slice("ollama/".length) : trimmed;
 }
 
-function resolveMemorySecretInputString(params: {
-  value: unknown;
-  path: string;
-}): string | undefined {
-  if (!hasConfiguredSecretInput(params.value)) {
-    return undefined;
-  }
-  return normalizeResolvedSecretInputString({
-    value: params.value,
-    path: params.path,
-  });
-}
-
 function resolveOllamaApiKey(options: OllamaEmbeddingOptions): string | undefined {
-  const remoteApiKey = resolveMemorySecretInputString({
-    value: options.remote?.apiKey,
-    path: "agents.*.memorySearch.remote.apiKey",
-  });
-  if (remoteApiKey) {
-    return remoteApiKey;
+  if (options.providerApiKey) {
+    return options.providerApiKey;
   }
-  const providerApiKey = normalizeOptionalSecretInput(
-    options.config.models?.providers?.ollama?.apiKey,
-  );
+  const configuredProviderApiKey = options.config.models?.providers?.ollama?.apiKey;
+  const providerApiKey = hasConfiguredSecretInput(configuredProviderApiKey)
+    ? normalizeResolvedSecretInputString({
+        value: configuredProviderApiKey,
+        path: "models.providers.ollama.apiKey",
+      })
+    : normalizeOptionalSecretInput(configuredProviderApiKey);
   if (providerApiKey) {
     return providerApiKey;
   }

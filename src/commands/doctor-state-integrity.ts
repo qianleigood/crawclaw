@@ -477,18 +477,6 @@ function shouldRequireOAuthDir(cfg: CrawClawConfig, env: NodeJS.ProcessEnv): boo
   return false;
 }
 
-function shouldSuppressOrphanTranscriptWarning(cfg: CrawClawConfig, agentId: string): boolean {
-  const defaults = cfg.agents?.defaults?.memorySearch;
-  const overrides = Array.isArray(cfg.agents?.list)
-    ? cfg.agents.list.find((agent) => agent?.id === agentId)?.memorySearch
-    : undefined;
-  const enabled = overrides?.enabled ?? defaults?.enabled ?? true;
-  const sessionMemoryEnabled =
-    overrides?.experimental?.sessionMemory ?? defaults?.experimental?.sessionMemory ?? false;
-  const sources = overrides?.sources ?? defaults?.sources ?? ["memory"];
-  return enabled && sessionMemoryEnabled && Array.isArray(sources) && sources.includes("sessions");
-}
-
 export async function noteStateIntegrity(
   cfg: CrawClawConfig,
   prompter: DoctorPrompterLike,
@@ -514,7 +502,6 @@ export async function noteStateIntegrity(
   const requireOAuthDir = shouldRequireOAuthDir(cfg, env);
   const cloudSyncedStateDir = detectMacCloudSyncedStateDir(stateDir);
   const linuxSdBackedStateDir = detectLinuxSdBackedStateDir(stateDir);
-  const suppressOrphanTranscriptWarning = shouldSuppressOrphanTranscriptWarning(cfg, agentId);
 
   if (cloudSyncedStateDir) {
     warnings.push(
@@ -792,7 +779,7 @@ export async function noteStateIntegrity(
       .filter((entry) => entry.isFile() && isPrimarySessionTranscriptFileName(entry.name))
       .map((entry) => path.resolve(path.join(sessionsDir, entry.name)))
       .filter((filePath) => !referencedTranscriptPaths.has(filePath));
-    if (orphanTranscriptPaths.length > 0 && !suppressOrphanTranscriptWarning) {
+    if (orphanTranscriptPaths.length > 0) {
       const orphanCount = countLabel(orphanTranscriptPaths.length, "orphan transcript file");
       const orphanPreview = formatFilePreview(orphanTranscriptPaths);
       warnings.push(

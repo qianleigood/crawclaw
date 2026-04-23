@@ -608,22 +608,19 @@ describe("secrets apply", () => {
     );
   });
 
-  it("applies array-indexed targets for agent memory search", async () => {
+  it("applies wildcard targets for channel account tokens", async () => {
     await fs.writeFile(
       fixture.configPath,
       `${JSON.stringify(
         {
-          agents: {
-            list: [
-              {
-                id: "main",
-                memorySearch: {
-                  remote: {
-                    apiKey: "sk-memory-plaintext", // pragma: allowlist secret
-                  },
+          channels: {
+            discord: {
+              accounts: {
+                main: {
+                  token: "discord-token-plaintext", // pragma: allowlist secret
                 },
               },
-            ],
+            },
           },
         },
         null,
@@ -639,10 +636,10 @@ describe("secrets apply", () => {
       generatedBy: "manual",
       targets: [
         {
-          type: "agents.list[].memorySearch.remote.apiKey",
-          path: "agents.list.0.memorySearch.remote.apiKey",
-          pathSegments: ["agents", "list", "0", "memorySearch", "remote", "apiKey"],
-          ref: { source: "env", provider: "default", id: "MEMORY_REMOTE_API_KEY" },
+          type: "channels.discord.accounts.*.token",
+          path: "channels.discord.accounts.main.token",
+          pathSegments: ["channels", "discord", "accounts", "main", "token"],
+          ref: { source: "env", provider: "default", id: "DISCORD_ACCOUNT_TOKEN" },
         },
       ],
       options: {
@@ -652,25 +649,21 @@ describe("secrets apply", () => {
       },
     };
 
-    fixture.env.MEMORY_REMOTE_API_KEY = "sk-memory-live-env"; // pragma: allowlist secret
+    fixture.env.DISCORD_ACCOUNT_TOKEN = "discord-token-live-env"; // pragma: allowlist secret
     const result = await runSecretsApply({ plan, env: fixture.env, write: true });
     expect(result.changed).toBe(true);
 
     const nextConfig = JSON.parse(await fs.readFile(fixture.configPath, "utf8")) as {
-      agents?: {
-        list?: Array<{
-          memorySearch?: {
-            remote?: {
-              apiKey?: unknown;
-            };
-          };
-        }>;
+      channels?: {
+        discord?: {
+          accounts?: Record<string, { token?: unknown }>;
+        };
       };
     };
-    expect(nextConfig.agents?.list?.[0]?.memorySearch?.remote?.apiKey).toEqual({
+    expect(nextConfig.channels?.discord?.accounts?.main?.token).toEqual({
       source: "env",
       provider: "default",
-      id: "MEMORY_REMOTE_API_KEY",
+      id: "DISCORD_ACCOUNT_TOKEN",
     });
   });
 

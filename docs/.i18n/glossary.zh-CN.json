@@ -328,6 +328,10 @@
     "target": "记忆"
   },
   {
+    "source": "Builtin Memory Runtime",
+    "target": "内置记忆运行时"
+  },
+  {
     "source": "Agent Runtime",
     "target": "后台运行"
   },

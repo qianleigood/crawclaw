@@ -74,9 +74,8 @@ Point QMD at additional directories to make them searchable:
 }
 ```
 
-Snippets from extra paths appear as `qmd/<collection>/<relative-path>` in
-search results. `memory_get` understands this prefix and reads from the correct
-collection root.
+Snippets from extra paths appear as `qmd/<collection>/<relative-path>` in QMD
+results so callers can trace the source collection and relative file path.
 
 ## Indexing session transcripts
 

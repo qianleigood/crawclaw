@@ -2,7 +2,6 @@ import type { CrawClawConfig } from "../config/types.js";
 import type { UpdateCheckResult } from "../infra/update-check.js";
 import { loggingState } from "../logging/state.js";
 import { runExec } from "../process/exec.js";
-import type { RuntimeEnv } from "../runtime.js";
 import { createEmptyTaskAuditSummary } from "../tasks/task-registry.audit.shared.js";
 import { createEmptyTaskRegistrySummary } from "../tasks/task-registry.summary.js";
 import { resolveFeishuCliStatusViaGateway } from "./feishu-cli-status.js";
@@ -100,12 +99,6 @@ export async function scanStatusJsonCore(params: {
   hasConfiguredChannels: boolean;
   opts: { timeoutMs?: number; all?: boolean };
   resolveOsSummary: () => StatusScanResult["osSummary"];
-  resolveMemory: (args: {
-    cfg: CrawClawConfig;
-    agentStatus: Awaited<ReturnType<typeof getAgentLocalStatusesFn>>;
-    runtime: RuntimeEnv;
-  }) => Promise<StatusScanResult["memory"]>;
-  runtime: RuntimeEnv;
 }): Promise<StatusScanResult> {
   const { cfg, sourceConfig, secretDiagnostics, hasConfiguredChannels, opts } = params;
   if (hasConfiguredChannels) {
@@ -193,11 +186,6 @@ export async function scanStatusJsonCore(params: {
       timeoutMs: Math.min(8000, opts.timeoutMs ?? 10_000),
     }),
   );
-  const memory = await params.resolveMemory({
-    cfg,
-    agentStatus,
-    runtime: params.runtime,
-  });
   // `status --json` does not serialize plugin compatibility notices, so keep
   // both routes off the full plugin status graph after the scoped preload.
   const pluginCompatibility: StatusScanResult["pluginCompatibility"] = [];
@@ -223,7 +211,6 @@ export async function scanStatusJsonCore(params: {
     agentStatus,
     channels: { rows: [], details: [] },
     summary,
-    memory,
     feishuCli,
     pluginCompatibility,
   };

@@ -42,7 +42,7 @@ CrawClaw 可以从以下来源获取凭据：
 
 - **认证配置文件**（按智能体配置，存储在 `auth-profiles.json` 中）。
 - **环境变量**（例如 `OPENAI_API_KEY`、`BRAVE_API_KEY`）。
-- **配置文件**（`models.providers.*.apiKey`、`tools.web.search.*`、`memorySearch.*`、`talk.apiKey`）。
+- **配置文件**（`models.providers.*.apiKey`、`tools.web.search.*`、`talk.apiKey`）。
 - **Skills**（`skills.entries.<name>.apiKey`），可能会将密钥导出到 Skills 进程的环境变量中。
 
 ## 可能消耗密钥的功能
@@ -63,15 +63,9 @@ CrawClaw 可以从以下来源获取凭据：
 
 请参阅[媒体理解](/nodes/media-understanding)。
 
-### 3）记忆嵌入 + 语义搜索
+### 3）记忆
 
-语义记忆搜索在配置为远程提供商时使用**嵌入 API**：
-
-- `memorySearch.provider = "openai"` → OpenAI 嵌入
-- `memorySearch.provider = "gemini"` → Gemini 嵌入
-- 本地嵌入失败时可选回退到 OpenAI
-
-你可以使用 `memorySearch.provider = "local"` 保持本地运行（无 API 用量）。
+内置记忆 runtime 可以调用配置的 LLM roles，用于 durable extraction、experience extraction、dream consolidation 和 session summaries。启用 NotebookLM 集成时，也可以调用你配置的本地 NotebookLM 命令。
 
 请参阅[记忆](/concepts/memory)。
 

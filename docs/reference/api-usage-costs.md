@@ -38,7 +38,7 @@ CrawClaw can pick up credentials from:
 - **Auth profiles** (per-agent, stored in `auth-profiles.json`).
 - **Environment variables** (e.g. `OPENAI_API_KEY`, `BRAVE_API_KEY`).
 - **Config** (`models.providers.*.apiKey`, `tools.web.search.*`,
-  `memorySearch.*`, `talk.apiKey`).
+  `talk.apiKey`).
 - **Skills** (`skills.entries.<name>.apiKey`) which may export keys to the skill process env.
 
 ## Features that can spend keys
@@ -60,18 +60,12 @@ Inbound media can be summarized/transcribed before the reply runs. This uses mod
 
 See [Media understanding](/nodes/media-understanding).
 
-### 3) Memory embeddings + semantic search
+### 3) Memory
 
-Semantic memory search uses **embedding APIs** when configured for remote providers:
-
-- `memorySearch.provider = "openai"` → OpenAI embeddings
-- `memorySearch.provider = "gemini"` → Gemini embeddings
-- `memorySearch.provider = "voyage"` → Voyage embeddings
-- `memorySearch.provider = "mistral"` → Mistral embeddings
-- `memorySearch.provider = "ollama"` → Ollama embeddings (local/self-hosted; typically no hosted API billing)
-- Optional fallback to a remote provider if local embeddings fail
-
-You can keep it local with `memorySearch.provider = "local"` (no API usage).
+The built-in memory runtime can call the configured LLM roles for durable
+extraction, experience extraction, dream consolidation, and session summaries.
+NotebookLM integration can also invoke your configured local NotebookLM command
+when enabled.
 
 See [Memory](/concepts/memory).
 

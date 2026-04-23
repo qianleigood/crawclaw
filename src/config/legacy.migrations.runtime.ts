@@ -52,33 +52,6 @@ function escapeControlForLog(value: string): string {
   return value.replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t");
 }
 
-function mergeLegacyIntoDefaults(params: {
-  raw: Record<string, unknown>;
-  rootKey: "agents" | "channels";
-  fieldKey: string;
-  legacyValue: Record<string, unknown>;
-  changes: string[];
-  movedMessage: string;
-  mergedMessage: string;
-}) {
-  const root = ensureRecord(params.raw, params.rootKey);
-  const defaults = ensureRecord(root, "defaults");
-  const existing = getRecord(defaults[params.fieldKey]);
-  if (!existing) {
-    defaults[params.fieldKey] = params.legacyValue;
-    params.changes.push(params.movedMessage);
-  } else {
-    // defaults stays authoritative; legacy top-level config only fills gaps.
-    const merged = structuredClone(existing);
-    mergeMissing(merged, params.legacyValue);
-    defaults[params.fieldKey] = merged;
-    params.changes.push(params.mergedMessage);
-  }
-
-  root.defaults = defaults;
-  params.raw[params.rootKey] = root;
-}
-
 function hasLegacyTtsProviderKeys(value: unknown): boolean {
   const tts = getRecord(value);
   if (!tts) {
@@ -185,12 +158,6 @@ function resolveCompatibleDefaultGroupEntry(section: Record<string, unknown>): {
   const entry = getRecord(existingEntry) ?? {};
   return { groups, entry };
 }
-
-const MEMORY_SEARCH_RULE: LegacyConfigRule = {
-  path: ["memorySearch"],
-  message:
-    "top-level memorySearch was moved; use agents.defaults.memorySearch instead (auto-migrated on load).",
-};
 
 const GROUP_MENTIONS_ONLY_RULE: LegacyConfigRule = {
   path: ["channels", "telegram", "groupMentionsOnly"],
@@ -351,29 +318,6 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME: LegacyConfigMigrationSpec[] = [
       delete telegram.groupMentionsOnly;
       channels.telegram = telegram;
       raw.channels = channels;
-    },
-  }),
-  defineLegacyConfigMigration({
-    id: "memorySearch->agents.defaults.memorySearch",
-    describe: "Move top-level memorySearch to agents.defaults.memorySearch",
-    legacyRules: [MEMORY_SEARCH_RULE],
-    apply: (raw, changes) => {
-      const legacyMemorySearch = getRecord(raw.memorySearch);
-      if (!legacyMemorySearch) {
-        return;
-      }
-
-      mergeLegacyIntoDefaults({
-        raw,
-        rootKey: "agents",
-        fieldKey: "memorySearch",
-        legacyValue: legacyMemorySearch,
-        changes,
-        movedMessage: "Moved memorySearch → agents.defaults.memorySearch.",
-        mergedMessage:
-          "Merged memorySearch → agents.defaults.memorySearch (filled missing fields from legacy; kept explicit agents.defaults values).",
-      });
-      delete raw.memorySearch;
     },
   }),
   defineLegacyConfigMigration({

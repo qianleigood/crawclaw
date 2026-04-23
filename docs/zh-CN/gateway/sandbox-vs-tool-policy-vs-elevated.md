@@ -83,7 +83,7 @@ crawclaw sandbox explain --json
   tools: {
     sandbox: {
       tools: {
-        allow: ["group:runtime", "group:fs", "group:sessions", "group:memory"],
+        allow: ["group:runtime", "group:fs", "group:sessions", "group:web"],
       },
     },
   },
@@ -95,7 +95,6 @@ crawclaw sandbox explain --json
 - `group:runtime`：`exec`、`bash`、`process`
 - `group:fs`：`read`、`write`、`edit`、`apply_patch`
 - `group:sessions`：`sessions_list`、`sessions_history`、`sessions_send`、`sessions_spawn`、`session_status`
-- `group:memory`：`memory_search`、`memory_get`
 - `group:ui`：`browser`、`canvas`
 - `group:automation`：`cron`、`gateway`
 - `group:messaging`：`message`

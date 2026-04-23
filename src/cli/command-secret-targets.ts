@@ -30,17 +30,11 @@ const COMMAND_SECRET_TARGETS = {
   agentRuntime: idsByPrefix([
     "channels.",
     "models.providers.",
-    "agents.defaults.memorySearch.remote.",
-    "agents.list[].memorySearch.remote.",
     "skills.entries.",
     "messages.tts.",
     "tools.web.search",
   ]).concat(WEB_PLUGIN_SECRET_TARGETS),
-  status: idsByPrefix([
-    "channels.",
-    "agents.defaults.memorySearch.remote.",
-    "agents.list[].memorySearch.remote.",
-  ]),
+  status: idsByPrefix(["channels."]),
   securityAudit: idsByPrefix(["channels.", "gateway.auth.", "gateway.remote."]),
 } as const;
 

@@ -289,36 +289,6 @@ vi.mock("../channels/config-presence.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../plugins/memory-runtime.js", () => ({
-  getActiveMemorySearchManager: vi.fn(async ({ agentId }: { agentId: string }) => ({
-    manager: {
-      probeVectorAvailability: vi.fn(async () => true),
-      status: () => ({
-        files: 2,
-        chunks: 3,
-        dirty: false,
-        workspaceDir: "/tmp/crawclaw",
-        dbPath: "/tmp/memory.sqlite",
-        provider: "openai",
-        model: "text-embedding-3-small",
-        requestedProvider: "openai",
-        sources: ["memory"],
-        sourceCounts: [{ source: "memory", files: 2, chunks: 3 }],
-        cache: { enabled: true, entries: 10, maxEntries: 500 },
-        fts: { enabled: true, available: true },
-        vector: {
-          enabled: true,
-          available: true,
-          extensionPath: "/opt/vec0.dylib",
-          dims: 1024,
-        },
-      }),
-      close: vi.fn(async () => {}),
-      __agentId: agentId,
-    },
-  })),
-}));
-
 vi.mock("../config/sessions/main-session.js", () => ({
   resolveMainSessionKey: mocks.resolveMainSessionKey,
 }));
@@ -609,7 +579,7 @@ describe("statusCommand", () => {
     await statusCommand({ json: true }, runtime as never);
     const payload = JSON.parse(String(runtimeLogMock.mock.calls[0]?.[0]));
     expect(payload.linkChannel).toBeUndefined();
-    expect(payload.memory).toBeNull();
+    expect(payload).not.toHaveProperty("memory");
     expect(payload.sessions.count).toBe(1);
     expect(payload.sessions.paths).toContain("/tmp/sessions.json");
     expect(payload.sessions.defaults.model).toBeTruthy();
@@ -667,15 +637,13 @@ describe("statusCommand", () => {
       createCompatibilityNotice({ pluginId: "legacy-plugin", code: "hook-only" }),
     ]);
     const logs = await runStatusAndGetLogs();
-    for (const token of [
+    const expectedTokens = [
       "CrawClaw status",
       "Overview",
       "Security audit",
       "Summary:",
       "CRITICAL",
-      "Dashboard",
       "macos 14.0 (arm64)",
-      "Memory",
       "Plugin compatibility",
       "Channels",
       "WhatsApp",
@@ -689,9 +657,11 @@ describe("statusCommand", () => {
       "FAQ:",
       "Troubleshooting:",
       "Next steps:",
-    ]) {
-      expect(logs.some((line) => line.includes(token))).toBe(true);
-    }
+    ];
+    const missingTokens = expectedTokens.filter(
+      (token) => !logs.some((line) => line.includes(token)),
+    );
+    expect(missingTokens).toEqual([]);
     expect(logs.some((line) => line.includes("legacy-plugin is hook-only"))).toBe(true);
     expect(
       logs.some(

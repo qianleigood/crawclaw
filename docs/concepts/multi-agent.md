@@ -129,47 +129,12 @@ With **multiple agents**, each `agentId` becomes a **fully isolated persona**:
 
 This lets **multiple people** share one Gateway server while keeping their AI “brains” and data isolated.
 
-## Cross-agent QMD memory search
+## Cross-agent memory
 
-If one agent should search another agent's QMD session transcripts, add
-extra collections under `agents.list[].memorySearch.qmd.extraCollections`.
-Use `agents.defaults.memorySearch.qmd.extraCollections` only when every agent
-should inherit the same shared transcript collections.
-
-```json5
-{
-  agents: {
-    defaults: {
-      workspace: "~/workspaces/main",
-      memorySearch: {
-        qmd: {
-          extraCollections: [{ path: "~/agents/family/sessions", name: "family-sessions" }],
-        },
-      },
-    },
-    list: [
-      {
-        id: "main",
-        workspace: "~/workspaces/main",
-        memorySearch: {
-          qmd: {
-            extraCollections: [{ path: "notes" }], // resolves inside workspace -> collection named "notes-main"
-          },
-        },
-      },
-      { id: "family", workspace: "~/workspaces/family" },
-    ],
-  },
-  memory: {
-    backend: "qmd",
-    qmd: { includeDefaultMemory: false },
-  },
-}
-```
-
-The extra collection path can be shared across agents, but the collection name
-stays explicit when the path is outside the agent workspace. Paths inside the
-workspace remain agent-scoped so each agent keeps its own transcript search set.
+Agents keep separate workspaces, sessions, durable memory, and auth by default.
+If you need shared long-term context, keep it in explicit shared project docs or
+shared durable notes and reference that boundary in each agent's `AGENTS.md`.
+Do not rely on hidden cross-agent transcript search.
 
 ## One WhatsApp number, multiple people (DM split)
 

@@ -61,7 +61,6 @@ function createScanResult() {
     summary: { ok: true, configuredChannels: [] },
     osSummary: { platform: "linux" },
     update: { installKind: "npm", git: { tag: null, branch: null } },
-    memory: null,
     feishuCli: {
       supported: true,
       status: {

@@ -1199,33 +1199,22 @@ for usage/billing and raise limits as needed.
   <Accordion title="Does memory persist forever? What are the limits?">
     Memory files live on disk and persist until you delete them. The limit is your
     storage, not the model. The **session context** is still limited by the model
-    context window, so long conversations can compact or truncate. That is why
-    memory search exists - it pulls only the relevant parts back into context.
+    context window, so long conversations can compact or truncate. Durable memory,
+    experience recall, and session summaries pull bounded relevant context back
+    into later turns.
 
     Docs: [Memory](/concepts/memory), [Context](/concepts/context).
 
   </Accordion>
 
-  <Accordion title="Does semantic memory search require an OpenAI API key?">
-    Only if you use **OpenAI embeddings**. Codex OAuth covers chat/completions and
-    does **not** grant embeddings access, so **signing in with Codex (OAuth or the
-    Codex CLI login)** does not help for semantic memory search. OpenAI embeddings
-    still need a real API key (`OPENAI_API_KEY` or `models.providers.openai.apiKey`).
+  <Accordion title="Does memory require an OpenAI API key?">
+    Not by itself. The built-in memory runtime uses your configured model roles
+    for extraction, summaries, and consolidation. Codex OAuth covers supported
+    model calls but does not replace provider keys for any provider-specific
+    commands you configure.
 
-    If you don't set a provider explicitly, CrawClaw auto-selects a provider when it
-    can resolve an API key (auth profiles, `models.providers.*.apiKey`, or env vars).
-    It prefers OpenAI if an OpenAI key resolves, otherwise Gemini if a Gemini key
-    resolves, then Voyage, then Mistral. If no remote key is available, memory
-    search stays disabled until you configure it. If you have a local model path
-    configured and present, CrawClaw
-    prefers `local`. Ollama is supported when you explicitly set
-    `memorySearch.provider = "ollama"`.
-
-    If you'd rather stay local, set `memorySearch.provider = "local"` (and optionally
-    `memorySearch.fallback = "none"`). If you want Gemini embeddings, set
-    `memorySearch.provider = "gemini"` and provide `GEMINI_API_KEY` (or
-    `memorySearch.remote.apiKey`). We support **OpenAI, Gemini, Voyage, Mistral, Ollama, or local** embedding
-    models - see [Memory](/concepts/memory) for the setup details.
+    NotebookLM-backed experience recall is optional and uses the command/profile
+    you configure under `memory.notebooklm`.
 
   </Accordion>
 </AccordionGroup>

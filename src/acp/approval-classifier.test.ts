@@ -44,7 +44,7 @@ describe("classifyAcpToolApproval", () => {
     });
   });
 
-  it("auto-approves readonly search tools", () => {
+  it("does not auto-approve removed memory search tools", () => {
     expect(
       classify({
         title: "memory_search: vectors",
@@ -52,8 +52,8 @@ describe("classifyAcpToolApproval", () => {
       }),
     ).toEqual({
       toolName: "memory_search",
-      approvalClass: "readonly_search",
-      autoApprove: true,
+      approvalClass: "other",
+      autoApprove: false,
     });
   });
 

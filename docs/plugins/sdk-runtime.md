@@ -296,8 +296,7 @@ const stateDir = api.runtime.state.resolveStateDir();
 Tool factories and CLI helpers.
 
 ```typescript
-const getTool = api.runtime.tools.createMemoryGetTool(/* ... */);
-const searchTool = api.runtime.tools.createMemorySearchTool(/* ... */);
+const tool = api.runtime.tools.createCliTool(/* ... */);
 ```
 
 ### `api.runtime.channel`

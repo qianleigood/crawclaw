@@ -23,7 +23,7 @@ describe("config schema regressions", () => {
     expect(res.ok).toBe(true);
   });
 
-  it('accepts memorySearch fallback "voyage"', () => {
+  it("rejects removed memorySearch config", () => {
     const res = validateConfigObject({
       agents: {
         defaults: {
@@ -34,60 +34,21 @@ describe("config schema regressions", () => {
       },
     });
 
-    expect(res.ok).toBe(true);
+    expect(res.ok).toBe(false);
   });
 
-  it('accepts memorySearch provider "mistral"', () => {
+  it("rejects removed NotebookLM autoRefresh config", () => {
     const res = validateConfigObject({
-      agents: {
-        defaults: {
-          memorySearch: {
-            provider: "mistral",
+      memory: {
+        notebooklm: {
+          auth: {
+            autoRefresh: true,
           },
         },
       },
     });
 
-    expect(res.ok).toBe(true);
-  });
-
-  it("accepts memorySearch.qmd.extraCollections", () => {
-    const res = validateConfigObject({
-      agents: {
-        defaults: {
-          memorySearch: {
-            qmd: {
-              extraCollections: [
-                { path: "/shared/team-notes", name: "team-notes", pattern: "**/*.md" },
-              ],
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
-  });
-
-  it("accepts agents.list[].memorySearch.qmd.extraCollections", () => {
-    const res = validateConfigObject({
-      agents: {
-        list: [
-          {
-            id: "main",
-            memorySearch: {
-              qmd: {
-                extraCollections: [
-                  { path: "/shared/team-notes", name: "team-notes", pattern: "**/*.md" },
-                ],
-              },
-            },
-          },
-        ],
-      },
-    });
-
-    expect(res.ok).toBe(true);
+    expect(res.ok).toBe(false);
   });
 
   it("accepts safe iMessage remoteHost", () => {

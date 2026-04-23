@@ -101,7 +101,7 @@ describe("buildAgentSystemPrompt", () => {
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
       heartbeatPrompt: "ping",
-      toolNames: ["message", "memory_search"],
+      toolNames: ["message"],
       docsPath: "/tmp/crawclaw/docs",
       extraSystemPrompt: "Subagent details",
       ttsHint: "Voice (TTS) is enabled.",
@@ -529,6 +529,17 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain(
       "- If exactly one skill clearly applies: read its SKILL.md at <location> with `read`, then follow it.",
     );
+  });
+
+  it("includes discover_skills guidance when the tool is available without surfaced skills", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/crawclaw",
+      toolNames: ["read", "discover_skills"],
+    });
+
+    expect(prompt).toContain("## Skills");
+    expect(prompt).toContain("Relevant skills are surfaced for the current task.");
+    expect(prompt).toContain("call `discover_skills`");
   });
 
   it("appends available skills when provided", () => {

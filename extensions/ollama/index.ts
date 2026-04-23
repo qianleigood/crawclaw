@@ -152,10 +152,11 @@ export default definePluginEntry({
       wrapStreamFn: (ctx) => {
         return createConfiguredOllamaCompatStreamWrapper(ctx);
       },
-      createEmbeddingProvider: async ({ config, model, remote }) => {
+      createEmbeddingProvider: async ({ config, model, providerApiKey, remote }) => {
         const { provider, client } = await createOllamaEmbeddingProvider({
           config,
           remote,
+          providerApiKey,
           model: model || DEFAULT_OLLAMA_EMBEDDING_MODEL,
         });
         return {

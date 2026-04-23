@@ -19,9 +19,3 @@ export type MemoryCommandOptions = {
   sessionLimit?: string;
   signalLimit?: string;
 };
-
-export type MemorySearchCommandOptions = MemoryCommandOptions & {
-  query?: string;
-  maxResults?: number;
-  minScore?: number;
-};

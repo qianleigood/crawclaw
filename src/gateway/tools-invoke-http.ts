@@ -22,7 +22,6 @@ import { ToolInputError } from "../agents/tools/common.js";
 import { loadConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { logWarn } from "../logger.js";
-import { isTestDefaultMemorySlotDisabled } from "../plugins/config-state.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
 import { DEFAULT_GATEWAY_HTTP_TOOL_DENY } from "../security/dangerous-tools.js";
@@ -44,7 +43,6 @@ import {
 import { authorizeOperatorScopesForMethod } from "./method-scopes.js";
 
 const DEFAULT_BODY_BYTES = 2 * 1024 * 1024;
-const MEMORY_TOOL_NAMES = new Set(["memory_search", "memory_get"]);
 
 type ToolsInvokeBody = {
   tool?: unknown;
@@ -59,23 +57,6 @@ function resolveSessionKeyFromBody(body: ToolsInvokeBody): string | undefined {
     return body.sessionKey.trim();
   }
   return undefined;
-}
-
-function resolveMemoryToolDisableReasons(cfg: ReturnType<typeof loadConfig>): string[] {
-  if (!process.env.VITEST) {
-    return [];
-  }
-  const reasons: string[] = [];
-  const plugins = cfg.plugins;
-  const pluginsDisabled = plugins?.enabled === false;
-
-  if (pluginsDisabled) {
-    reasons.push("plugins.enabled=false");
-  }
-  if (!pluginsDisabled && isTestDefaultMemorySlotDisabled(cfg)) {
-    reasons.push("memory plugin disabled by test default");
-  }
-  return reasons;
 }
 
 function mergeActionIntoArgsIfSupported(params: {
@@ -193,23 +174,6 @@ export async function handleToolsInvokeHttpRequest(
   if (!toolName) {
     sendInvalidRequest(res, "tools.invoke requires body.tool");
     return true;
-  }
-
-  if (process.env.VITEST && MEMORY_TOOL_NAMES.has(toolName)) {
-    const reasons = resolveMemoryToolDisableReasons(cfg);
-    if (reasons.length > 0) {
-      const suffix = reasons.length > 0 ? ` (${reasons.join(", ")})` : "";
-      sendJson(res, 400, {
-        ok: false,
-        error: {
-          type: "invalid_request",
-          message:
-            `memory tools are disabled in tests${suffix}. ` +
-            "Memory plugins are no longer supported in the main runtime.",
-        },
-      });
-      return true;
-    }
   }
 
   const action = typeof body.action === "string" ? body.action.trim() : undefined;

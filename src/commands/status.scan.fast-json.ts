@@ -1,28 +1,17 @@
 import { existsSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { hasPotentialConfiguredChannels } from "../channels/config-presence.js";
-import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
+import { resolveConfigPath } from "../config/paths.js";
 import type { CrawClawConfig } from "../config/types.js";
 import { resolveOsSummary } from "../infra/os-summary.js";
 import type { RuntimeEnv } from "../runtime.js";
-import type { getAgentLocalStatuses as getAgentLocalStatusesFn } from "./status.agent-local.js";
 import type { StatusScanResult } from "./status.scan.js";
 import { scanStatusJsonCore } from "./status.scan.json-core.js";
-import {
-  resolveSharedMemoryStatusSnapshot,
-  type MemoryStatusSnapshot,
-} from "./status.scan.shared.js";
 let configIoModulePromise: Promise<typeof import("../config/io.js")> | undefined;
 let commandSecretTargetsModulePromise:
   | Promise<typeof import("../cli/command-secret-targets.js")>
   | undefined;
 let commandSecretGatewayModulePromise:
   | Promise<typeof import("../cli/command-secret-gateway.js")>
-  | undefined;
-let memorySearchModulePromise: Promise<typeof import("../agents/memory-search.js")> | undefined;
-let statusScanDepsRuntimeModulePromise:
-  | Promise<typeof import("./status.scan.deps.runtime.js")>
   | undefined;
 
 function loadConfigIoModule() {
@@ -40,16 +29,6 @@ function loadCommandSecretGatewayModule() {
   return commandSecretGatewayModulePromise;
 }
 
-function loadMemorySearchModule() {
-  memorySearchModulePromise ??= import("../agents/memory-search.js");
-  return memorySearchModulePromise;
-}
-
-function loadStatusScanDepsRuntimeModule() {
-  statusScanDepsRuntimeModulePromise ??= import("./status.scan.deps.runtime.js");
-  return statusScanDepsRuntimeModulePromise;
-}
-
 function shouldSkipMissingConfigFastPath(): boolean {
   return (
     process.env.VITEST === "true" ||
@@ -60,25 +39,6 @@ function shouldSkipMissingConfigFastPath(): boolean {
 
 function isMissingConfigColdStart(): boolean {
   return !shouldSkipMissingConfigFastPath() && !existsSync(resolveConfigPath(process.env));
-}
-
-function resolveDefaultMemoryStorePath(agentId: string): string {
-  return path.join(resolveStateDir(process.env, os.homedir), "memory", `${agentId}.sqlite`);
-}
-
-async function resolveMemoryStatusSnapshot(params: {
-  cfg: CrawClawConfig;
-  agentStatus: Awaited<ReturnType<typeof getAgentLocalStatusesFn>>;
-}): Promise<MemoryStatusSnapshot | null> {
-  const { resolveMemorySearchConfig } = await loadMemorySearchModule();
-  const { getMemorySearchManager } = await loadStatusScanDepsRuntimeModule();
-  return await resolveSharedMemoryStatusSnapshot({
-    cfg: params.cfg,
-    agentStatus: params.agentStatus,
-    resolveMemoryConfig: resolveMemorySearchConfig,
-    getMemorySearchManager,
-    requireDefaultStore: resolveDefaultMemoryStorePath,
-  });
 }
 
 async function readStatusSourceConfig(): Promise<CrawClawConfig> {
@@ -111,7 +71,7 @@ export async function scanStatusJsonFast(
     timeoutMs?: number;
     all?: boolean;
   },
-  runtime: RuntimeEnv,
+  _runtime: RuntimeEnv,
 ): Promise<StatusScanResult> {
   const coldStart = isMissingConfigColdStart();
   const loadedRaw = await readStatusSourceConfig();
@@ -127,8 +87,5 @@ export async function scanStatusJsonFast(
     hasConfiguredChannels: hasPotentialConfiguredChannels(cfg),
     opts,
     resolveOsSummary,
-    resolveMemory: async ({ cfg, agentStatus }) =>
-      opts.all ? await resolveMemoryStatusSnapshot({ cfg, agentStatus }) : null,
-    runtime,
   });
 }

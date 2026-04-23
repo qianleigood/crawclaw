@@ -1,105 +1,53 @@
 ---
-title: "Builtin Memory Engine"
-summary: "The default SQLite-based memory backend with keyword, vector, and hybrid search"
+title: "Builtin Memory Runtime"
+summary: "The default CrawClaw memory runtime for durable notes, experience recall, session summaries, and Context Archive"
 read_when:
-  - You want to understand the default memory backend
-  - You want to configure embedding providers or hybrid search
+  - You want to understand the default memory runtime
+  - You want to configure the built-in memory database
+  - You want to understand which memory layers run without plugins
 ---
 
-# Builtin Memory Engine
+# Builtin Memory Runtime
 
-The builtin engine is the default memory backend. It stores your memory index in
-a per-agent SQLite database and needs no extra dependencies to get started.
+The builtin memory runtime is CrawClaw's default memory backend. It runs inside
+the agent lifecycle and provides:
 
-## What it provides
+- **Durable memory** for scoped long-term Markdown notes
+- **Experience memory** for reusable procedures, decisions, and failure patterns
+- **Session summaries** for compacted long-session continuity
+- **Dream consolidation** for lower-frequency durable-memory maintenance
+- **Context Archive** for replay, export, and debug records
 
-- **Keyword search** via FTS5 full-text indexing (BM25 scoring).
-- **Vector search** via embeddings from any supported provider.
-- **Hybrid search** that combines both for best results.
-- **CJK support** via trigram tokenization for Chinese, Japanese, and Korean.
-- **sqlite-vec acceleration** for in-database vector queries (optional).
+The runtime state is stored in SQLite at `memory.runtimeStore.dbPath`, which
+defaults to `~/.crawclaw/memory-runtime.db`.
 
-## Getting started
+## Minimal config
 
-If you have an API key for OpenAI, Gemini, Voyage, or Mistral, the builtin
-engine auto-detects it and enables vector search. No config needed.
-
-To set a provider explicitly:
+Most users do not need to configure the builtin runtime. To pin the runtime DB:
 
 ```json5
 {
-  agents: {
-    defaults: {
-      memorySearch: {
-        provider: "openai",
-      },
+  memory: {
+    backend: "builtin",
+    runtimeStore: {
+      type: "sqlite",
+      dbPath: "~/.crawclaw/memory-runtime.db",
     },
   },
 }
 ```
 
-Without an embedding provider, only keyword search is available.
+NotebookLM is optional and is configured under `memory.notebooklm`. When it is
+disabled or returns no useful result, CrawClaw still uses the local experience
+index and durable-memory recall.
 
-## Supported embedding providers
+## Operational notes
 
-| Provider | ID        | Auto-detected | Notes                               |
-| -------- | --------- | ------------- | ----------------------------------- |
-| OpenAI   | `openai`  | Yes           | Default: `text-embedding-3-small`   |
-| Gemini   | `gemini`  | Yes           | Supports multimodal (image + audio) |
-| Voyage   | `voyage`  | Yes           |                                     |
-| Mistral  | `mistral` | Yes           |                                     |
-| Ollama   | `ollama`  | No            | Local, set explicitly               |
-| Local    | `local`   | Yes (first)   | GGUF model, ~0.6 GB download        |
+- Durable notes live in scoped Markdown files and are recalled during prompt
+  assembly.
+- Experience extraction runs after eligible completed turns.
+- Session summaries are maintained separately from durable memory and are used
+  as compaction continuity.
+- Context Archive is off by default unless enabled under `memory.contextArchive`.
 
-Auto-detection picks the first provider whose API key can be resolved, in the
-order shown. Set `memorySearch.provider` to override.
-
-## How indexing works
-
-CrawClaw indexes `MEMORY.md` and `memory/*.md` into chunks (~400 tokens with
-80-token overlap) and stores them in a per-agent SQLite database.
-
-- **Index location:** `~/.crawclaw/memory/<agentId>.sqlite`
-- **File watching:** changes to memory files trigger a debounced reindex (1.5s).
-- **Auto-reindex:** when the embedding provider, model, or chunking config
-  changes, the entire index is rebuilt automatically.
-- **Reindex on demand:** `crawclaw memory index --force`
-
-<Info>
-You can also index Markdown files outside the workspace with
-`memorySearch.extraPaths`. See the
-[configuration reference](/reference/memory-config#additional-memory-paths).
-</Info>
-
-## When to use
-
-The builtin engine is the right choice for most users:
-
-- Works out of the box with no extra dependencies.
-- Handles keyword and vector search well.
-- Supports all embedding providers.
-- Hybrid search combines the best of both retrieval approaches.
-
-Consider switching to [QMD](/concepts/memory-qmd) if you need reranking, query
-expansion, or want to index directories outside the workspace.
-
-Consider [Honcho](/concepts/memory-honcho) if you want cross-session memory with
-automatic user modeling.
-
-## Troubleshooting
-
-**Memory search disabled?** Check `crawclaw memory status`. If no provider is
-detected, set one explicitly or add an API key.
-
-**Stale results?** Run `crawclaw memory index --force` to rebuild. The watcher
-may miss changes in rare edge cases.
-
-**sqlite-vec not loading?** CrawClaw falls back to in-process cosine similarity
-automatically. Check logs for the specific load error.
-
-## Configuration
-
-For embedding provider setup, hybrid search tuning (weights, MMR, temporal
-decay), batch indexing, multimodal memory, sqlite-vec, extra paths, and all
-other config knobs, see the
-[Memory configuration reference](/reference/memory-config).
+For the full memory model, see [Memory Overview](/concepts/memory).

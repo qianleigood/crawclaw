@@ -273,12 +273,11 @@ describe("legacy config detection", () => {
       expectSnapshotInvalidRootKey(ctx, "routing");
     });
   });
-  it("flags top-level memorySearch as legacy in snapshot", async () => {
+  it("rejects removed top-level memorySearch in snapshot", async () => {
     await withSnapshotForConfig(
       { memorySearch: { provider: "local", fallback: "none" } },
       async (ctx) => {
-        expect(ctx.snapshot.valid).toBe(true);
-        expect(ctx.snapshot.legacyIssues.some((issue) => issue.path === "memorySearch")).toBe(true);
+        expectSnapshotInvalidRootKey(ctx, "memorySearch");
       },
     );
   });
@@ -326,12 +325,11 @@ describe("legacy config detection", () => {
       expect(parsed.auth?.profiles?.["anthropic:claude-cli"]?.mode).toBe("token");
     });
   });
-  it("still flags memorySearch in snapshot under the shorter support window", async () => {
+  it("still rejects memorySearch in snapshot under the shorter support window", async () => {
     await withSnapshotForConfig(
       { memorySearch: { provider: "local", fallback: "none" } },
       async (ctx) => {
-        expect(ctx.snapshot.valid).toBe(true);
-        expect(ctx.snapshot.legacyIssues.some((issue) => issue.path === "memorySearch")).toBe(true);
+        expectSnapshotInvalidRootKey(ctx, "memorySearch");
       },
     );
   });

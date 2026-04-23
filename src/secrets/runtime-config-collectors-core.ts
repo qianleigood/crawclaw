@@ -80,91 +80,6 @@ function collectSkillAssignments(params: {
   }
 }
 
-function collectAgentMemorySearchAssignments(params: {
-  config: CrawClawConfig;
-  defaults: SecretDefaults | undefined;
-  context: ResolverContext;
-}): void {
-  const agents = params.config.agents as Record<string, unknown> | undefined;
-  if (!isRecord(agents)) {
-    return;
-  }
-  const defaultsConfig = isRecord(agents.defaults) ? agents.defaults : undefined;
-  const defaultsMemorySearch = isRecord(defaultsConfig?.memorySearch)
-    ? defaultsConfig.memorySearch
-    : undefined;
-  const defaultsEnabled = defaultsMemorySearch?.enabled !== false;
-
-  const list = Array.isArray(agents.list) ? agents.list : [];
-  let hasEnabledAgentWithoutOverride = false;
-  for (const rawAgent of list) {
-    if (!isRecord(rawAgent)) {
-      continue;
-    }
-    if (rawAgent.enabled === false) {
-      continue;
-    }
-    const memorySearch = isRecord(rawAgent.memorySearch) ? rawAgent.memorySearch : undefined;
-    if (memorySearch?.enabled === false) {
-      continue;
-    }
-    if (!memorySearch || !Object.prototype.hasOwnProperty.call(memorySearch, "remote")) {
-      hasEnabledAgentWithoutOverride = true;
-      continue;
-    }
-    const remote = isRecord(memorySearch.remote) ? memorySearch.remote : undefined;
-    if (!remote || !Object.prototype.hasOwnProperty.call(remote, "apiKey")) {
-      hasEnabledAgentWithoutOverride = true;
-      continue;
-    }
-  }
-
-  if (defaultsMemorySearch && isRecord(defaultsMemorySearch.remote)) {
-    const remote = defaultsMemorySearch.remote;
-    collectSecretInputAssignment({
-      value: remote.apiKey,
-      path: "agents.defaults.memorySearch.remote.apiKey",
-      expected: "string",
-      defaults: params.defaults,
-      context: params.context,
-      active: defaultsEnabled && (hasEnabledAgentWithoutOverride || list.length === 0),
-      inactiveReason: hasEnabledAgentWithoutOverride
-        ? undefined
-        : "all enabled agents override memorySearch.remote.apiKey.",
-      apply: (value) => {
-        remote.apiKey = value;
-      },
-    });
-  }
-
-  list.forEach((rawAgent, index) => {
-    if (!isRecord(rawAgent)) {
-      return;
-    }
-    const memorySearch = isRecord(rawAgent.memorySearch) ? rawAgent.memorySearch : undefined;
-    if (!memorySearch) {
-      return;
-    }
-    const remote = isRecord(memorySearch.remote) ? memorySearch.remote : undefined;
-    if (!remote || !Object.prototype.hasOwnProperty.call(remote, "apiKey")) {
-      return;
-    }
-    const enabled = rawAgent.enabled !== false && memorySearch.enabled !== false;
-    collectSecretInputAssignment({
-      value: remote.apiKey,
-      path: `agents.list.${index}.memorySearch.remote.apiKey`,
-      expected: "string",
-      defaults: params.defaults,
-      context: params.context,
-      active: enabled,
-      inactiveReason: "agent or memorySearch override is disabled.",
-      apply: (value) => {
-        remote.apiKey = value;
-      },
-    });
-  });
-}
-
 function collectTalkAssignments(params: {
   config: CrawClawConfig;
   defaults: SecretDefaults | undefined;
@@ -420,7 +335,6 @@ export function collectCoreConfigAssignments(params: {
     });
   }
 
-  collectAgentMemorySearchAssignments(params);
   collectTalkAssignments(params);
   collectGatewayAssignments(params);
   collectSandboxSshAssignments(params);

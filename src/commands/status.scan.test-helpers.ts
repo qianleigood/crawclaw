@@ -10,7 +10,6 @@ export function createStatusScanSharedMocks(configPathLabel: string) {
     getUpdateCheckResult: vi.fn(),
     getAgentLocalStatuses: vi.fn(),
     getStatusSummary: vi.fn(),
-    getMemorySearchManager: vi.fn(),
     buildGatewayConnectionDetails: vi.fn(),
     probeGateway: vi.fn(),
     resolveGatewayProbeAuthResolution: vi.fn(),
@@ -27,12 +26,9 @@ export function createStatusOsSummaryModuleMock() {
   };
 }
 
-export function createStatusScanDepsRuntimeModuleMock(
-  mocks: Pick<StatusScanSharedMocks, "getMemorySearchManager">,
-) {
+export function createStatusScanDepsRuntimeModuleMock() {
   return {
     getTailnetHostname: vi.fn(),
-    getMemorySearchManager: mocks.getMemorySearchManager,
   };
 }
 
@@ -106,7 +102,6 @@ type StatusScanModuleTestMocks = StatusScanSharedMocks & {
   buildChannelsTable?: ReturnType<typeof vi.fn>;
   callGateway?: ReturnType<typeof vi.fn>;
   getStatusCommandSecretTargetIds?: ReturnType<typeof vi.fn>;
-  resolveMemorySearchConfig?: ReturnType<typeof vi.fn>;
 };
 
 export async function loadStatusScanModuleForTest(
@@ -139,9 +134,6 @@ export async function loadStatusScanModuleForTest(
     }));
     vi.doMock("../cli/command-secret-targets.js", () => ({
       getStatusCommandSecretTargetIds: mocks.getStatusCommandSecretTargetIds,
-    }));
-    vi.doMock("../agents/memory-search.js", () => ({
-      resolveMemorySearchConfig: mocks.resolveMemorySearchConfig,
     }));
   } else {
     vi.doMock("../cli/progress.js", () => ({
@@ -176,7 +168,7 @@ export async function loadStatusScanModuleForTest(
   vi.doMock("./status.agent-local.js", () => createStatusAgentLocalModuleMock(mocks));
   vi.doMock("./status.summary.js", () => createStatusSummaryModuleMock(mocks));
   vi.doMock("../infra/os-summary.js", () => createStatusOsSummaryModuleMock());
-  vi.doMock("./status.scan.deps.runtime.js", () => createStatusScanDepsRuntimeModuleMock(mocks));
+  vi.doMock("./status.scan.deps.runtime.js", () => createStatusScanDepsRuntimeModuleMock());
   vi.doMock("../gateway/call.js", () => createStatusGatewayCallModuleMock(mocks));
   vi.doMock("../gateway/probe.js", () => ({
     probeGateway: mocks.probeGateway,
@@ -283,35 +275,6 @@ export function createStatusGatewayProbeFailure() {
   };
 }
 
-export function createStatusMemorySearchConfig(): CrawClawConfig {
-  return createStatusScanConfig({
-    plugins: {
-      slots: {
-        memory: "legacy-memory",
-      },
-    },
-    agents: {
-      defaults: {
-        memorySearch: {
-          provider: "local",
-          local: { modelPath: "/tmp/model.gguf" },
-          fallback: "none",
-        },
-      },
-    },
-  });
-}
-
-export function createStatusMemorySearchManager() {
-  return {
-    manager: {
-      probeVectorAvailability: vi.fn(async () => true),
-      status: vi.fn(() => ({ files: 0, chunks: 0, dirty: false })),
-      close: vi.fn(async () => {}),
-    },
-  };
-}
-
 export function applyStatusScanDefaults(
   mocks: StatusScanSharedMocks,
   options: {
@@ -321,7 +284,6 @@ export function applyStatusScanDefaults(
     summary?: ReturnType<typeof createStatusSummary>;
     update?: ReturnType<typeof createStatusUpdateResult> | false;
     gatewayProbe?: ReturnType<typeof createStatusGatewayProbeFailure> | false;
-    memoryManager?: ReturnType<typeof createStatusMemorySearchManager>;
   } = {},
 ) {
   const sourceConfig = options.sourceConfig ?? createStatusScanConfig();
@@ -349,10 +311,6 @@ export function applyStatusScanDefaults(
 
   if (options.gatewayProbe !== false) {
     mocks.probeGateway.mockResolvedValue(options.gatewayProbe ?? createStatusGatewayProbeFailure());
-  }
-
-  if (options.memoryManager) {
-    mocks.getMemorySearchManager.mockResolvedValue(options.memoryManager);
   }
 }
 

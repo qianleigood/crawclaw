@@ -118,7 +118,6 @@ Use `group:*` shorthands in allow/deny lists:
 | `group:runtime`    | exec, bash, process, code_execution                                                                       |
 | `group:fs`         | read, write, edit, apply_patch                                                                            |
 | `group:web`        | web_search, web_fetch, x_search                                                                           |
-| `group:memory`     | memory_search, memory_get                                                                                 |
 | `group:sessions`   | sessions_list, sessions_history, sessions_send, sessions_spawn, sessions_yield, subagents, session_status |
 | `group:ui`         | browser, canvas                                                                                           |
 | `group:automation` | cron, gateway                                                                                             |

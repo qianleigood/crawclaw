@@ -209,10 +209,6 @@ exclusive plugin slot still supported is `kind: "memory"` via plugin manifests.
 or more embedding adapter ids (for example `openai`, `gemini`, or a custom
 plugin-defined id).
 
-- User config such as `agents.defaults.memorySearch.provider` and
-  `agents.defaults.memorySearch.fallback` resolves against those registered
-  adapter ids.
-
 ### Events and lifecycle
 
 | Method                                       | What it does                  |

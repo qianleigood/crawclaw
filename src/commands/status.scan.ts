@@ -1,5 +1,4 @@
 import { existsSync } from "node:fs";
-import { resolveMemorySearchConfig } from "../agents/memory-search.js";
 import { hasPotentialConfiguredChannels } from "../channels/config-presence.js";
 import { resolveCommandSecretRefsViaGateway } from "../cli/command-secret-gateway.js";
 import { getStatusCommandSecretTargetIds } from "../cli/command-secret-targets.js";
@@ -28,31 +27,24 @@ import {
   buildTailscaleHttpsUrl,
   pickGatewaySelfPresence,
   resolveGatewayProbeSnapshot,
-  resolveSharedMemoryStatusSnapshot,
   type GatewayProbeSnapshot,
-  type MemoryStatusSnapshot,
 } from "./status.scan.shared.js";
 import type { getStatusSummary as getStatusSummaryFn } from "./status.summary.js";
 
 type DeferredResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
 
-let statusScanDepsRuntimeModulePromise:
-  | Promise<typeof import("./status.scan.deps.runtime.js")>
-  | undefined;
 let statusAgentLocalModulePromise: Promise<typeof import("./status.agent-local.js")> | undefined;
 let statusSummaryModulePromise: Promise<typeof import("./status.summary.js")> | undefined;
 let statusUpdateModulePromise: Promise<typeof import("./status.update.js")> | undefined;
 let gatewayCallModulePromise: Promise<typeof import("../gateway/call.js")> | undefined;
+let statusScanDepsRuntimeModulePromise:
+  | Promise<typeof import("./status.scan.deps.runtime.js")>
+  | undefined;
 
 const loadStatusScanRuntimeModule = createLazyRuntimeSurface(
   () => import("./status.scan.runtime.js"),
   ({ statusScanRuntime }) => statusScanRuntime,
 );
-
-function loadStatusScanDepsRuntimeModule() {
-  statusScanDepsRuntimeModulePromise ??= import("./status.scan.deps.runtime.js");
-  return statusScanDepsRuntimeModulePromise;
-}
 
 function loadStatusAgentLocalModule() {
   statusAgentLocalModulePromise ??= import("./status.agent-local.js");
@@ -67,6 +59,11 @@ function loadStatusSummaryModule() {
 function loadStatusUpdateModule() {
   statusUpdateModulePromise ??= import("./status.update.js");
   return statusUpdateModulePromise;
+}
+
+function loadStatusScanDepsRuntimeModule() {
+  statusScanDepsRuntimeModulePromise ??= import("./status.scan.deps.runtime.js");
+  return statusScanDepsRuntimeModulePromise;
 }
 
 function loadGatewayCallModule() {
@@ -136,23 +133,9 @@ export type StatusScanResult = {
   agentStatus: Awaited<ReturnType<typeof getAgentLocalStatusesFn>>;
   channels: Awaited<ReturnType<typeof buildChannelsTableFn>>;
   summary: Awaited<ReturnType<typeof getStatusSummaryFn>>;
-  memory: MemoryStatusSnapshot | null;
   feishuCli: FeishuCliStatusResolution | null;
   pluginCompatibility: PluginCompatibilityNotice[];
 };
-
-async function resolveMemoryStatusSnapshot(params: {
-  cfg: CrawClawConfig;
-  agentStatus: Awaited<ReturnType<typeof getAgentLocalStatusesFn>>;
-}): Promise<MemoryStatusSnapshot | null> {
-  const { getMemorySearchManager } = await loadStatusScanDepsRuntimeModule();
-  return await resolveSharedMemoryStatusSnapshot({
-    cfg: params.cfg,
-    agentStatus: params.agentStatus,
-    resolveMemoryConfig: resolveMemorySearchConfig,
-    getMemorySearchManager,
-  });
-}
 
 function buildColdStartAgentLocalStatuses(): Awaited<ReturnType<typeof getAgentLocalStatusesFn>> {
   return {
@@ -206,9 +189,6 @@ async function scanStatusJsonFast(opts: {
     hasConfiguredChannels: hasPotentialConfiguredChannels(cfg),
     opts,
     resolveOsSummary,
-    resolveMemory: async ({ cfg, agentStatus }) =>
-      await resolveMemoryStatusSnapshot({ cfg, agentStatus }),
-    runtime: opts.runtime,
   });
 }
 
@@ -230,7 +210,7 @@ export async function scanStatus(
   return await withProgress(
     {
       label: "Scanning status…",
-      total: 12,
+      total: 11,
       enabled: true,
     },
     async (progress) => {
@@ -341,10 +321,6 @@ export async function scanStatus(
       });
       progress.tick();
 
-      progress.setLabel("Checking memory…");
-      const memory = await resolveMemoryStatusSnapshot({ cfg, agentStatus });
-      progress.tick();
-
       progress.setLabel("Checking Feishu user tools…");
       const { callGateway } = await loadGatewayCallModule();
       const feishuCli = await resolveFeishuCliStatusViaGateway({
@@ -387,7 +363,6 @@ export async function scanStatus(
         agentStatus,
         channels,
         summary,
-        memory,
         feishuCli,
         pluginCompatibility,
       };

@@ -158,7 +158,7 @@ MCP servers can use stdio or HTTP transport:
 
 CrawClaw registers bundle MCP tools with provider-safe names in the form
 `serverName__toolName`. For example, a server keyed `"vigil-harbor"` exposing a
-`memory_search` tool registers as `vigil-harbor__memory_search`.
+`search_notes` tool registers as `vigil-harbor__search_notes`.
 
 - characters outside `A-Za-z0-9_-` are replaced with `-`
 - server prefixes are capped at 30 characters

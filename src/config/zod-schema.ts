@@ -125,6 +125,56 @@ const MemoryContextArchiveSchema = z
   })
   .strict();
 
+const MemoryNotebookLmAuthHeartbeatSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    minIntervalMs: z.number().int().positive().optional(),
+    maxIntervalMs: z.number().int().positive().optional(),
+  })
+  .strict();
+
+const MemoryNotebookLmAuthSchema = z
+  .object({
+    profile: z.string().optional(),
+    cookieFile: z.string().optional(),
+    statusTtlMs: z.number().int().nonnegative().optional(),
+    degradedCooldownMs: z.number().int().nonnegative().optional(),
+    refreshCooldownMs: z.number().int().nonnegative().optional(),
+    heartbeat: MemoryNotebookLmAuthHeartbeatSchema.optional(),
+  })
+  .strict();
+
+const MemoryNotebookLmCliSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    command: z.string().optional(),
+    args: z.array(z.string()).optional(),
+    timeoutMs: z.number().int().nonnegative().optional(),
+    limit: z.number().int().positive().optional(),
+    notebookId: z.string().optional(),
+    queryInstruction: z.string().optional(),
+  })
+  .strict();
+
+const MemoryNotebookLmWriteSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    command: z.string().optional(),
+    args: z.array(z.string()).optional(),
+    timeoutMs: z.number().int().nonnegative().optional(),
+    notebookId: z.string().optional(),
+  })
+  .strict();
+
+const MemoryNotebookLmSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    auth: MemoryNotebookLmAuthSchema.optional(),
+    cli: MemoryNotebookLmCliSchema.optional(),
+    write: MemoryNotebookLmWriteSchema.optional(),
+  })
+  .strict();
+
 const MemoryDreamingSchema = z
   .object({
     enabled: z.boolean().optional(),
@@ -151,7 +201,7 @@ const MemorySchema = z
   .object({
     backend: z.union([z.literal("builtin"), z.literal("qmd")]).optional(),
     qmd: MemoryQmdSchema.optional(),
-    notebooklm: z.record(z.string(), z.unknown()).optional(),
+    notebooklm: MemoryNotebookLmSchema.optional(),
     durableExtraction: z.record(z.string(), z.unknown()).optional(),
     dreaming: z.record(z.string(), z.unknown()).optional().or(MemoryDreamingSchema),
     sessionSummary: z.record(z.string(), z.unknown()).optional(),

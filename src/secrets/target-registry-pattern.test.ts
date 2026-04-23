@@ -8,9 +8,9 @@ import {
 
 describe("target registry pattern helpers", () => {
   it("matches wildcard and array tokens with stable capture ordering", () => {
-    const tokens = parsePathPattern("agents.list[].memorySearch.providers.*.apiKey");
+    const tokens = parsePathPattern("agents.list[].tools.byProvider.*.apiKey");
     const match = matchPathTokens(
-      ["agents", "list", "2", "memorySearch", "providers", "openai", "apiKey"],
+      ["agents", "list", "2", "tools", "byProvider", "openai", "apiKey"],
       tokens,
     );
 
@@ -18,21 +18,18 @@ describe("target registry pattern helpers", () => {
       captures: ["2", "openai"],
     });
     expect(
-      matchPathTokens(
-        ["agents", "list", "x", "memorySearch", "providers", "openai", "apiKey"],
-        tokens,
-      ),
+      matchPathTokens(["agents", "list", "x", "tools", "byProvider", "openai", "apiKey"], tokens),
     ).toBeNull();
   });
 
   it("materializes sibling ref paths from wildcard and array captures", () => {
-    const refTokens = parsePathPattern("agents.list[].memorySearch.providers.*.apiKeyRef");
+    const refTokens = parsePathPattern("agents.list[].tools.byProvider.*.apiKeyRef");
     expect(materializePathTokens(refTokens, ["1", "anthropic"])).toEqual([
       "agents",
       "list",
       "1",
-      "memorySearch",
-      "providers",
+      "tools",
+      "byProvider",
       "anthropic",
       "apiKeyRef",
     ]);
@@ -54,8 +51,8 @@ describe("target registry pattern helpers", () => {
     const root = {
       agents: {
         list: [
-          { memorySearch: { remote: { apiKey: "a" } } },
-          { memorySearch: { remote: { apiKey: "b" } } },
+          { sandbox: { ssh: { identityData: "a" } } },
+          { sandbox: { ssh: { identityData: "b" } } },
         ],
       },
       talk: {
@@ -68,7 +65,7 @@ describe("target registry pattern helpers", () => {
 
     const arrayMatches = expandPathTokens(
       root,
-      parsePathPattern("agents.list[].memorySearch.remote.apiKey"),
+      parsePathPattern("agents.list[].sandbox.ssh.identityData"),
     );
     expect(
       arrayMatches.map((entry) => ({
@@ -78,12 +75,12 @@ describe("target registry pattern helpers", () => {
       })),
     ).toEqual([
       {
-        segments: "agents.list.0.memorySearch.remote.apiKey",
+        segments: "agents.list.0.sandbox.ssh.identityData",
         captures: ["0"],
         value: "a",
       },
       {
-        segments: "agents.list.1.memorySearch.remote.apiKey",
+        segments: "agents.list.1.sandbox.ssh.identityData",
         captures: ["1"],
         value: "b",
       },

@@ -68,9 +68,9 @@ This keeps the default bootstrap set to a single file and avoids burning prompt
 budget on persona, startup, tool notes, identity, event wake, or memory files
 every turn.
 
-> **Note:** `memory/*.md` daily files are **not** injected automatically. They
-> are accessed on demand via the `memory_search` and `memory_get` tools, so they
-> do not count against the context window unless the model explicitly reads them.
+> **Note:** `memory/*.md` daily files are **not** injected automatically. Durable
+> memory recall selects bounded relevant notes during prompt assembly instead of
+> burning context on the entire memory directory every turn.
 
 Large files are truncated with a marker. The max per-file size is controlled by
 `agents.defaults.bootstrapMaxChars` (default: 20000). Total injected bootstrap

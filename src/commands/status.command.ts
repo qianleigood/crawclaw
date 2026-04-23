@@ -2,7 +2,6 @@ import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/index.js";
 import { withProgress } from "../cli/progress.js";
 import type { MainSessionWakeEventPayload } from "../infra/main-session-wake-events.js";
 import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
-import type { Tone } from "../memory/search/status-format.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import type { HealthSummary } from "./health.js";
 import { getDaemonStatusSummary, getNodeDaemonStatusSummary } from "./status.daemon.js";
@@ -152,7 +151,6 @@ export async function statusCommand(
     channels,
     summary,
     secretDiagnostics,
-    memory,
     feishuCli,
     pluginCompatibility,
   } = scan;
@@ -221,7 +219,6 @@ export async function statusCommand(
       update,
       updateChannel: channelInfo.channel,
       updateChannelSource: channelInfo.source,
-      memory,
       feishuCli,
       gateway: {
         mode: gatewayMode,
@@ -265,9 +262,6 @@ export async function statusCommand(
     groupChannelIssuesByChannel,
     info,
     renderTable,
-    resolveMemoryCacheSummary,
-    resolveMemoryFtsState,
-    resolveMemoryVectorState,
     resolveUpdateAvailability,
     shortenText,
     summarizePluginCompatibility,
@@ -432,38 +426,6 @@ export async function statusCommand(
       ? `${summary.sessions.paths.length} stores`
       : (summary.sessions.paths[0] ?? "unknown");
 
-  const memoryValue = (() => {
-    if (!memory) {
-      return muted("unavailable");
-    }
-    const parts: string[] = [];
-    const dirtySuffix = memory.dirty ? ` · ${warn("dirty")}` : "";
-    parts.push(`${memory.files} files · ${memory.chunks} chunks${dirtySuffix}`);
-    if (memory.sources?.length) {
-      parts.push(`sources ${memory.sources.join(", ")}`);
-    }
-    const colorByTone = (tone: Tone, text: string) =>
-      tone === "ok" ? ok(text) : tone === "warn" ? warn(text) : muted(text);
-    const vector = memory.vector;
-    if (vector) {
-      const state = resolveMemoryVectorState(vector);
-      const label = state.state === "disabled" ? "vector off" : `vector ${state.state}`;
-      parts.push(colorByTone(state.tone, label));
-    }
-    const fts = memory.fts;
-    if (fts) {
-      const state = resolveMemoryFtsState(fts);
-      const label = state.state === "disabled" ? "fts off" : `fts ${state.state}`;
-      parts.push(colorByTone(state.tone, label));
-    }
-    const cache = memory.cache;
-    if (cache) {
-      const summary = resolveMemoryCacheSummary(cache);
-      parts.push(colorByTone(summary.tone, summary.text));
-    }
-    return parts.join(" · ");
-  })();
-
   const updateAvailability = resolveUpdateAvailability(update);
   const updateLine = formatUpdateOneLiner(update).replace(/^Update:\s*/i, "");
   const channelLabel = channelInfo.label;
@@ -500,7 +462,6 @@ export async function statusCommand(
     { Item: "Gateway service", Value: daemonValue },
     { Item: "Node service", Value: nodeDaemonValue },
     { Item: "Agents", Value: agentsValue },
-    { Item: "Memory", Value: memoryValue },
     { Item: "Plugin compatibility", Value: pluginCompatibilityValue },
     { Item: "Probes", Value: probesValue },
     { Item: "Events", Value: eventsValue },

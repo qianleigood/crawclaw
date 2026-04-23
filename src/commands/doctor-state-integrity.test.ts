@@ -161,47 +161,8 @@ describe("doctor state integrity oauth dir checks", () => {
     expect(files.some((name) => name.startsWith("orphan-session.jsonl.deleted."))).toBe(true);
   });
 
-  it("suppresses orphan transcript warnings when session memory search is enabled", async () => {
-    const cfg: CrawClawConfig = {
-      agents: {
-        defaults: {
-          memorySearch: {
-            enabled: true,
-            experimental: {
-              sessionMemory: true,
-            },
-            sources: ["memory", "sessions"],
-          },
-        },
-      },
-    };
-    setupSessionState(cfg, process.env, process.env.HOME ?? "");
-    const sessionsDir = resolveSessionTranscriptsDirForAgent("main", process.env, () => tempHome);
-    fs.writeFileSync(path.join(sessionsDir, "orphan-session.jsonl"), '{"type":"session"}\n');
-
-    const confirmRuntimeRepair = vi.fn(async () => false);
-    await noteStateIntegrity(cfg, { confirmRuntimeRepair });
-
-    expect(stateIntegrityText()).not.toContain(
-      "These .jsonl files are no longer referenced by sessions.json",
-    );
-    expect(confirmRuntimeRepair).not.toHaveBeenCalled();
-  });
-
-  it("still detects orphan transcripts when session memory search is not sourcing sessions", async () => {
-    const cfg: CrawClawConfig = {
-      agents: {
-        defaults: {
-          memorySearch: {
-            enabled: true,
-            experimental: {
-              sessionMemory: false,
-            },
-            sources: ["memory"],
-          },
-        },
-      },
-    };
+  it("detects orphan transcripts without removed memory suppression", async () => {
+    const cfg: CrawClawConfig = {};
     setupSessionState(cfg, process.env, process.env.HOME ?? "");
     const sessionsDir = resolveSessionTranscriptsDirForAgent("main", process.env, () => tempHome);
     fs.writeFileSync(path.join(sessionsDir, "orphan-session.jsonl"), '{"type":"session"}\n');

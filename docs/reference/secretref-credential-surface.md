@@ -25,8 +25,6 @@ Scope intent:
 - `models.providers.*.apiKey`
 - `models.providers.*.headers.*`
 - `skills.entries.*.apiKey`
-- `agents.defaults.memorySearch.remote.apiKey`
-- `agents.list[].memorySearch.remote.apiKey`
 - `talk.apiKey`
 - `talk.providers.*.apiKey`
 - `messages.tts.providers.*.apiKey`

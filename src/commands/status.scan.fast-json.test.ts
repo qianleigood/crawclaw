@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyStatusScanDefaults,
-  createStatusMemorySearchConfig,
-  createStatusMemorySearchManager,
   createStatusScanSharedMocks,
+  createStatusScanConfig,
   createStatusSummary,
   loadStatusScanModuleForTest,
   withTemporaryEnv,
@@ -13,7 +12,6 @@ const mocks = {
   ...createStatusScanSharedMocks("status-fast-json"),
   callGateway: vi.fn(),
   getStatusCommandSecretTargetIds: vi.fn(() => []),
-  resolveMemorySearchConfig: vi.fn(),
 };
 
 let originalForceStderr: boolean;
@@ -23,15 +21,11 @@ let scanStatusJsonFast: typeof import("./status.scan.fast-json.js").scanStatusJs
 beforeEach(async () => {
   vi.clearAllMocks();
   applyStatusScanDefaults(mocks, {
-    sourceConfig: createStatusMemorySearchConfig(),
-    resolvedConfig: createStatusMemorySearchConfig(),
+    sourceConfig: createStatusScanConfig(),
+    resolvedConfig: createStatusScanConfig(),
     summary: createStatusSummary({ byAgent: [] }),
-    memoryManager: createStatusMemorySearchManager(),
   });
   mocks.getStatusCommandSecretTargetIds.mockReturnValue([]);
-  mocks.resolveMemorySearchConfig.mockReturnValue({
-    store: { path: "/tmp/main.sqlite" },
-  });
   mocks.callGateway.mockResolvedValue(null);
   ({ scanStatusJsonFast } = await loadStatusScanModuleForTest(mocks, { fastJson: true }));
   ({ loggingState: loggingStateRef } = await import("../logging/state.js"));
@@ -79,32 +73,6 @@ describe("scanStatusJsonFast", () => {
     expect(mocks.buildPluginCompatibilityNotices).not.toHaveBeenCalled();
   });
 
-  it("skips memory inspection for the lean status --json fast path", async () => {
-    const result = await scanStatusJsonFast({}, {} as never);
-
-    expect(result.memory).toBeNull();
-    expect(mocks.resolveMemorySearchConfig).not.toHaveBeenCalled();
-    expect(mocks.getMemorySearchManager).not.toHaveBeenCalled();
-  });
-
-  it("restores memory inspection when --all is requested", async () => {
-    const result = await scanStatusJsonFast({ all: true }, {} as never);
-
-    expect(result.memory).toEqual(expect.objectContaining({ agentId: "main" }));
-    expect(mocks.resolveMemorySearchConfig).toHaveBeenCalled();
-    expect(mocks.getMemorySearchManager).toHaveBeenCalledWith({
-      cfg: expect.objectContaining({
-        agents: expect.objectContaining({
-          defaults: expect.objectContaining({
-            memorySearch: expect.any(Object),
-          }),
-        }),
-      }),
-      agentId: "main",
-      purpose: "status",
-    });
-  });
-
   it("skips gateway and update probes on cold-start status --json", async () => {
     await withTemporaryEnv(
       {
@@ -122,11 +90,11 @@ describe("scanStatusJsonFast", () => {
   });
 
   it("captures Feishu CLI support status during the fast JSON scan", async () => {
+    const config = createStatusScanConfig();
     applyStatusScanDefaults(mocks, {
-      sourceConfig: createStatusMemorySearchConfig(),
-      resolvedConfig: createStatusMemorySearchConfig(),
+      sourceConfig: config,
+      resolvedConfig: config,
       summary: createStatusSummary({ byAgent: [] }),
-      memoryManager: createStatusMemorySearchManager(),
       gatewayProbe: reachableGatewayProbe as never,
     });
     mocks.callGateway?.mockRejectedValueOnce(new Error("unknown method: feishu.cli.status"));

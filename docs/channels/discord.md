@@ -246,10 +246,10 @@ Once DMs are working, you can set up your Discord server as a full workspace whe
 
     <Tabs>
       <Tab title="Ask your agent">
-        > "When I ask questions in Discord channels, use memory_search or memory_get if you need long-term context from MEMORY.md."
+        > "When I ask questions in Discord channels, prefer durable memory or workspace notes when you need long-term context."
       </Tab>
       <Tab title="Manual">
-        If you need shared context in every channel, put the stable instructions in `AGENTS.md` so they are available through the default bootstrap. Keep long-term notes in `MEMORY.md` and access them on demand with memory tools.
+        If you need shared context in every channel, put the stable instructions in `AGENTS.md` so they are available through the default bootstrap. Keep long-term notes in durable memory.
       </Tab>
     </Tabs>
 

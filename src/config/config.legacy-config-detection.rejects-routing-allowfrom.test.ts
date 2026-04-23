@@ -99,7 +99,7 @@ describe("legacy config detection", () => {
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
   });
-  it("migrates top-level memorySearch to agents.defaults.memorySearch", async () => {
+  it("does not rewrite removed memorySearch migrations", async () => {
     const res = migrateLegacyConfig({
       memorySearch: {
         provider: "local",
@@ -107,68 +107,8 @@ describe("legacy config detection", () => {
         query: { maxResults: 7 },
       },
     });
-    expect(res.changes).toContain("Moved memorySearch → agents.defaults.memorySearch.");
-    expect(res.config?.agents?.defaults?.memorySearch).toMatchObject({
-      provider: "local",
-      fallback: "none",
-      query: { maxResults: 7 },
-    });
-    expect((res.config as { memorySearch?: unknown }).memorySearch).toBeUndefined();
-  });
-  it("merges top-level memorySearch into agents.defaults.memorySearch", async () => {
-    const res = migrateLegacyConfig({
-      memorySearch: {
-        provider: "local",
-        fallback: "none",
-        query: { maxResults: 7 },
-      },
-      agents: {
-        defaults: {
-          memorySearch: {
-            provider: "openai",
-            model: "text-embedding-3-small",
-          },
-        },
-      },
-    });
-    expect(res.changes).toContain(
-      "Merged memorySearch → agents.defaults.memorySearch (filled missing fields from legacy; kept explicit agents.defaults values).",
-    );
-    expect(res.config?.agents?.defaults?.memorySearch).toMatchObject({
-      provider: "openai",
-      model: "text-embedding-3-small",
-      fallback: "none",
-      query: { maxResults: 7 },
-    });
-  });
-  it("keeps nested agents.defaults.memorySearch values when merging legacy defaults", async () => {
-    const res = migrateLegacyConfig({
-      memorySearch: {
-        query: {
-          maxResults: 7,
-          minScore: 0.25,
-          hybrid: { enabled: true, textWeight: 0.8, vectorWeight: 0.2 },
-        },
-      },
-      agents: {
-        defaults: {
-          memorySearch: {
-            query: {
-              maxResults: 3,
-              hybrid: { enabled: false },
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.config?.agents?.defaults?.memorySearch).toMatchObject({
-      query: {
-        maxResults: 3,
-        minScore: 0.25,
-        hybrid: { enabled: false, textWeight: 0.8, vectorWeight: 0.2 },
-      },
-    });
+    expect(res.changes).toEqual([]);
+    expect(res.config).toBeNull();
   });
   it("does not rewrite removed tools.bash migrations", async () => {
     const res = migrateLegacyConfig({

@@ -4,11 +4,6 @@ export { info } from "../globals.js";
 export { formatTimeAgo } from "../infra/format-time/format-relative.ts";
 export { formatGitInstallLabel } from "../infra/update-check.js";
 export {
-  resolveMemoryCacheSummary,
-  resolveMemoryFtsState,
-  resolveMemoryVectorState,
-} from "../memory/search/status-format.js";
-export {
   formatPluginCompatibilityNotice,
   summarizePluginCompatibility,
 } from "../plugins/status.js";

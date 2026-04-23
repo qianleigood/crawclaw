@@ -74,7 +74,6 @@ describe("createExperienceWriteTool", () => {
             auth: {
               profile: "default",
               cookieFile: path.join(stateDir, "cookies.txt"),
-              autoRefresh: true,
               statusTtlMs: 60_000,
               degradedCooldownMs: 120_000,
               refreshCooldownMs: 180_000,
@@ -162,7 +161,6 @@ describe("createExperienceWriteTool", () => {
             auth: {
               profile: "default",
               cookieFile: "",
-              autoRefresh: true,
               statusTtlMs: 60_000,
               degradedCooldownMs: 120_000,
               refreshCooldownMs: 180_000,

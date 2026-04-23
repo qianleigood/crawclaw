@@ -97,31 +97,28 @@ describe("resolveCommandSecretRefsViaGateway", () => {
 
   it("skips gateway resolution when all configured target refs are inactive", async () => {
     const config = {
-      agents: {
-        list: [
-          {
-            id: "main",
-            memorySearch: {
+      channels: {
+        telegram: {
+          accounts: {
+            disabled: {
               enabled: false,
-              remote: {
-                apiKey: { source: "env", provider: "default", id: "AGENT_MEMORY_API_KEY" },
-              },
+              botToken: { source: "env", provider: "default", id: "TELEGRAM_BOT_TOKEN" },
             },
           },
-        ],
+        },
       },
     } as unknown as CrawClawConfig;
 
     const result = await resolveCommandSecretRefsViaGateway({
       config,
       commandName: "status",
-      targetIds: new Set(["agents.list[].memorySearch.remote.apiKey"]),
+      targetIds: new Set(["channels.telegram.accounts.*.botToken"]),
     });
 
     expect(callGateway).not.toHaveBeenCalled();
     expect(result.resolvedConfig).toEqual(config);
     expect(result.diagnostics).toEqual([
-      "agents.list.0.memorySearch.remote.apiKey: agent or memorySearch override is disabled.",
+      "channels.telegram.accounts.disabled.botToken: Telegram account is disabled or tokenFile is configured.",
     ]);
   });
 
@@ -461,37 +458,34 @@ describe("resolveCommandSecretRefsViaGateway", () => {
   it("allows unresolved array-index refs when gateway marks concrete paths inactive", async () => {
     callGateway.mockResolvedValueOnce({
       assignments: [],
-      diagnostics: ["memory search ref inactive"],
-      inactiveRefPaths: ["agents.list.0.memorySearch.remote.apiKey"],
+      diagnostics: ["telegram account token inactive"],
+      inactiveRefPaths: ["channels.telegram.accounts.main.botToken"],
     });
 
     const config = {
-      agents: {
-        list: [
-          {
-            id: "main",
-            memorySearch: {
-              remote: {
-                apiKey: { source: "env", provider: "default", id: "MISSING_MEMORY_API_KEY" },
-              },
+      channels: {
+        telegram: {
+          accounts: {
+            main: {
+              botToken: { source: "env", provider: "default", id: "MISSING_TELEGRAM_BOT_TOKEN" },
             },
           },
-        ],
+        },
       },
     } as unknown as CrawClawConfig;
 
     const result = await resolveCommandSecretRefsViaGateway({
       config,
-      commandName: "memory status",
-      targetIds: new Set(["agents.list[].memorySearch.remote.apiKey"]),
+      commandName: "status",
+      targetIds: new Set(["channels.telegram.accounts.*.botToken"]),
     });
 
-    expect(result.resolvedConfig.agents?.list?.[0]?.memorySearch?.remote?.apiKey).toEqual({
+    expect(result.resolvedConfig.channels?.telegram?.accounts?.main?.botToken).toEqual({
       source: "env",
       provider: "default",
-      id: "MISSING_MEMORY_API_KEY",
+      id: "MISSING_TELEGRAM_BOT_TOKEN",
     });
-    expect(result.diagnostics).toEqual(["memory search ref inactive"]);
+    expect(result.diagnostics).toEqual(["telegram account token inactive"]);
   });
 
   it("degrades unresolved refs in read-only status mode instead of throwing", async () => {

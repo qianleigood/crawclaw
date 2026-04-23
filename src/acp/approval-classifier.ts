@@ -4,7 +4,7 @@ import { isKnownCoreToolId } from "../agents/tool-catalog.js";
 import { isMutatingToolCall } from "../agents/tool-mutation.js";
 import { resolveOwnerOnlyToolApprovalClass } from "../agents/tool-policy.js";
 
-const SAFE_SEARCH_TOOL_IDS = new Set(["search", "web_search", "memory_search"]);
+const SAFE_SEARCH_TOOL_IDS = new Set(["search", "web_search"]);
 const TRUSTED_SAFE_TOOL_ALIASES = new Set(["search"]);
 const EXEC_CAPABLE_TOOL_IDS = new Set([
   "exec",

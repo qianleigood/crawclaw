@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyStatusScanDefaults,
-  createStatusMemorySearchConfig,
-  createStatusMemorySearchManager,
   createStatusScanSharedMocks,
   createStatusScanConfig,
   createStatusSummary,
@@ -41,15 +39,10 @@ function configureScanStatus(
     summary?: ReturnType<typeof createStatusSummary>;
     update?: false;
     gatewayProbe?: false;
-    memoryConfigured?: boolean;
   } = {},
 ) {
-  const sourceConfig = options.memoryConfigured
-    ? createStatusMemorySearchConfig()
-    : (options.sourceConfig ?? createStatusScanConfig());
-  const resolvedConfig = options.memoryConfigured
-    ? createStatusMemorySearchConfig()
-    : (options.resolvedConfig ?? sourceConfig);
+  const sourceConfig = options.sourceConfig ?? createStatusScanConfig();
+  const resolvedConfig = options.resolvedConfig ?? sourceConfig;
 
   applyStatusScanDefaults(mocks, {
     hasConfiguredChannels: options.hasConfiguredChannels,
@@ -58,7 +51,6 @@ function configureScanStatus(
     summary: options.summary,
     update: options.update,
     gatewayProbe: options.gatewayProbe,
-    ...(options.memoryConfigured ? { memoryManager: createStatusMemorySearchManager() } : {}),
   });
   mocks.buildChannelsTable.mockResolvedValue({
     rows: [],
@@ -166,32 +158,6 @@ describe("scanStatus", () => {
 
     expect(mocks.getUpdateCheckResult).not.toHaveBeenCalled();
     expect(mocks.probeGateway).not.toHaveBeenCalled();
-  });
-
-  it("skips memory backend inspection when no memory plugin is selected", async () => {
-    configureScanStatus();
-
-    await scanStatus({ json: true }, {} as never);
-
-    expect(mocks.getMemorySearchManager).not.toHaveBeenCalled();
-  });
-
-  it("inspects memory backend when memory search is explicitly configured", async () => {
-    configureScanStatus({ memoryConfigured: true });
-
-    await scanStatus({ json: true }, {} as never);
-
-    expect(mocks.getMemorySearchManager).toHaveBeenCalledWith({
-      cfg: expect.objectContaining({
-        agents: expect.objectContaining({
-          defaults: expect.objectContaining({
-            memorySearch: expect.any(Object),
-          }),
-        }),
-      }),
-      agentId: "main",
-      purpose: "status",
-    });
   });
 
   it("preloads configured channel plugins for status --json when channel config exists", async () => {

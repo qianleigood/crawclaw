@@ -145,15 +145,6 @@ describe("secrets runtime snapshot", () => {
 
   it("resolves env refs for config and auth profiles", async () => {
     const config = asConfig({
-      agents: {
-        defaults: {
-          memorySearch: {
-            remote: {
-              apiKey: { source: "env", provider: "default", id: "MEMORY_REMOTE_API_KEY" },
-            },
-          },
-        },
-      },
       models: {
         providers: {
           openai: {
@@ -277,9 +268,6 @@ describe("secrets runtime snapshot", () => {
       "Bearer sk-env-header",
     );
     expect(snapshot.runtimeConfig.skills?.entries?.["review-pr"]?.apiKey).toBe("sk-skill-ref");
-    expect(snapshot.runtimeConfig.agents?.defaults?.memorySearch?.remote?.apiKey).toBe(
-      "mem-ref-key",
-    );
     expect(snapshot.runtimeConfig.talk?.apiKey).toBe("talk-ref-key");
     expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.apiKey).toBe(
       "talk-provider-ref-key",
@@ -1087,16 +1075,6 @@ describe("secrets runtime snapshot", () => {
 
   it("skips inactive-surface refs and emits diagnostics", async () => {
     const config = asConfig({
-      agents: {
-        defaults: {
-          memorySearch: {
-            enabled: false,
-            remote: {
-              apiKey: { source: "env", provider: "default", id: "DISABLED_MEMORY_API_KEY" },
-            },
-          },
-        },
-      },
       gateway: {
         auth: {
           mode: "token",
@@ -1158,10 +1136,9 @@ describe("secrets runtime snapshot", () => {
     const ignoredInactiveWarnings = snapshot.warnings.filter(
       (warning) => warning.code === "SECRETS_REF_IGNORED_INACTIVE_SURFACE",
     );
-    expect(ignoredInactiveWarnings).toHaveLength(9);
+    expect(ignoredInactiveWarnings).toHaveLength(8);
     expect(snapshot.warnings.map((warning) => warning.path)).toEqual(
       expect.arrayContaining([
-        "agents.defaults.memorySearch.remote.apiKey",
         "gateway.auth.password",
         "channels.telegram.botToken",
         "channels.telegram.accounts.disabled.botToken",
@@ -1671,46 +1648,6 @@ describe("secrets runtime snapshot", () => {
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain("gateway.remote.token");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
       "gateway.remote.password",
-    );
-  });
-
-  it("treats defaults memorySearch ref as inactive when all enabled agents disable memorySearch", async () => {
-    const snapshot = await prepareSecretsRuntimeSnapshot({
-      config: asConfig({
-        agents: {
-          defaults: {
-            memorySearch: {
-              remote: {
-                apiKey: {
-                  source: "env",
-                  provider: "default",
-                  id: "DEFAULT_MEMORY_REMOTE_API_KEY",
-                },
-              },
-            },
-          },
-          list: [
-            {
-              enabled: true,
-              memorySearch: {
-                enabled: false,
-              },
-            },
-          ],
-        },
-      }),
-      env: {},
-      agentDirs: ["/tmp/crawclaw-agent-main"],
-      loadAuthStore: () => ({ version: 1, profiles: {} }),
-    });
-
-    expect(snapshot.runtimeConfig.agents?.defaults?.memorySearch?.remote?.apiKey).toEqual({
-      source: "env",
-      provider: "default",
-      id: "DEFAULT_MEMORY_REMOTE_API_KEY",
-    });
-    expect(snapshot.warnings.map((warning) => warning.path)).toContain(
-      "agents.defaults.memorySearch.remote.apiKey",
     );
   });
 

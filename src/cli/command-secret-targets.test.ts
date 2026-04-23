@@ -6,10 +6,10 @@ import {
 } from "./command-secret-targets.js";
 
 describe("command secret target ids", () => {
-  it("includes memorySearch remote targets for agent runtime commands", () => {
+  it("does not include removed memorySearch remote targets for agent runtime commands", () => {
     const ids = getAgentRuntimeCommandSecretTargetIds();
-    expect(ids.has("agents.defaults.memorySearch.remote.apiKey")).toBe(true);
-    expect(ids.has("agents.list[].memorySearch.remote.apiKey")).toBe(true);
+    expect(ids.has("agents.defaults.memorySearch.remote.apiKey")).toBe(false);
+    expect(ids.has("agents.list[].memorySearch.remote.apiKey")).toBe(false);
     expect(ids.has("plugins.entries.brave.config.webSearch.apiKey")).toBe(true);
   });
 

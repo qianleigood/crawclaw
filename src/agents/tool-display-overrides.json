@@ -72,16 +72,6 @@
       "title": "Agents",
       "detailKeys": []
     },
-    "memory_search": {
-      "emoji": "🧠",
-      "title": "Memory Search",
-      "detailKeys": ["query"]
-    },
-    "memory_get": {
-      "emoji": "📓",
-      "title": "Memory Get",
-      "detailKeys": ["path", "from", "lines"]
-    },
     "web_search": {
       "emoji": "🔎",
       "title": "Web Search",

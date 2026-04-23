@@ -44,7 +44,7 @@ describe("sandbox explain helpers", () => {
             id: "work",
             workspace: "~/crawclaw-work",
             tools: {
-              sandbox: { tools: { allow: ["group:memory", "group:fs"] } },
+              sandbox: { tools: { allow: ["group:fs"] } },
             },
           },
         ],
@@ -52,15 +52,7 @@ describe("sandbox explain helpers", () => {
     };
 
     const policy = resolveSandboxToolPolicyForAgent(cfg, "work");
-    expect(policy.allow).toEqual([
-      "memory_search",
-      "memory_get",
-      "read",
-      "write",
-      "edit",
-      "apply_patch",
-      "image",
-    ]);
+    expect(policy.allow).toEqual(["read", "write", "edit", "apply_patch", "image"]);
   });
 
   it("denies still win after group expansion", () => {
@@ -73,17 +65,17 @@ describe("sandbox explain helpers", () => {
       tools: {
         sandbox: {
           tools: {
-            allow: ["group:memory"],
-            deny: ["memory_get"],
+            allow: ["group:fs"],
+            deny: ["read"],
           },
         },
       },
     };
 
     const policy = resolveSandboxToolPolicyForAgent(cfg, "main");
-    expect(policy.allow).toContain("memory_search");
-    expect(policy.allow).toContain("memory_get");
-    expect(policy.deny).toContain("memory_get");
+    expect(policy.allow).toContain("read");
+    expect(policy.allow).toContain("write");
+    expect(policy.deny).toContain("read");
   });
 
   it("includes config key paths + main-session hint for non-main mode", () => {
