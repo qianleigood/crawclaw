@@ -36,14 +36,16 @@ crawclaw plugins install crawclaw-codex-app-server
 
 ### DingTalk
 
-Enterprise robot integration using Stream mode. Supports text, images, and
-file messages via any DingTalk client.
+DingTalk is now bundled as a primary China channel. CrawClaw keeps the original
+community package identity and plugin id (`@largezhou/ddingtalk`, `ddingtalk`)
+for compatibility.
 
 - **npm:** `@largezhou/ddingtalk`
-- **repo:** [github.com/largezhou/crawclaw-dingtalk](https://github.com/largezhou/crawclaw-dingtalk)
+- **repo:** [github.com/largezhou/openclaw-dingtalk](https://github.com/largezhou/openclaw-dingtalk)
+- **docs:** [DingTalk](/channels/ddingtalk)
 
 ```bash
-crawclaw plugins install @largezhou/ddingtalk
+crawclaw channels add
 ```
 
 ### Lossless Claw (LCM)

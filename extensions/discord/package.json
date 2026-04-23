@@ -35,7 +35,8 @@
       "docsLabel": "discord",
       "blurb": "very well supported right now.",
       "systemImage": "bubble.left.and.bubble.right",
-      "markdownCapable": true
+      "markdownCapable": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/discord",

@@ -1,12 +1,13 @@
 {
   "name": "@crawclaw/feishu",
-  "version": "2026.4.1-beta.1",
+  "version": "2026.4.20",
   "description": "CrawClaw Feishu/Lark channel plugin (community maintained by @m1heng)",
   "type": "module",
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.60.0",
     "@sinclair/typebox": "0.34.49",
-    "https-proxy-agent": "^8.0.0"
+    "https-proxy-agent": "^8.0.0",
+    "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {
     "crawclaw": "workspace:*"
@@ -35,12 +36,13 @@
         "lark"
       ],
       "order": 35,
-      "quickstartAllowFrom": true
+      "quickstartAllowFrom": true,
+      "profile": "primary-cn"
     },
     "install": {
       "npmSpec": "@crawclaw/feishu",
       "defaultChoice": "npm",
-      "minHostVersion": ">=2026.4.1"
+      "minHostVersion": ">=2026.4.10"
     },
     "bundle": {
       "stageRuntimeDependencies": true

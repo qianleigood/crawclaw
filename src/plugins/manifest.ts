@@ -375,6 +375,7 @@ export type PluginPackageChannel = {
   quickstartAllowFrom?: boolean;
   forceAccountBinding?: boolean;
   preferSessionLookupForAnnounceTarget?: boolean;
+  profile?: "primary-cn" | "optional" | "legacy";
 };
 
 export type PluginPackageInstall = {

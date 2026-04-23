@@ -30,7 +30,8 @@
       "blurb": "LINE Messaging API webhook bot.",
       "systemImage": "message",
       "order": 75,
-      "quickstartAllowFrom": true
+      "quickstartAllowFrom": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/line",

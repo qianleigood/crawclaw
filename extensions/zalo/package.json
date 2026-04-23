@@ -33,7 +33,8 @@
         "zl"
       ],
       "order": 80,
-      "quickstartAllowFrom": true
+      "quickstartAllowFrom": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/zalo",

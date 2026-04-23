@@ -1,13 +1,14 @@
 {
   "name": "@crawclaw/qqbot",
-  "version": "2026.4.1-beta.1",
+  "version": "2026.4.20",
   "private": false,
   "description": "CrawClaw QQ Bot channel plugin",
   "type": "module",
   "dependencies": {
     "mpg123-decoder": "^1.0.3",
     "silk-wasm": "^3.7.1",
-    "ws": "^8.20.0"
+    "ws": "^8.20.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/ws": "^8.18.1",
@@ -34,13 +35,15 @@
       "docsPath": "/channels/qqbot",
       "docsLabel": "qqbot",
       "blurb": "connect to QQ via official QQ Bot API with group chat and direct message support.",
-      "systemImage": "bubble.left.and.bubble.right"
+      "systemImage": "bubble.left.and.bubble.right",
+      "profile": "primary-cn",
+      "order": 40
     },
     "install": {
       "npmSpec": "@crawclaw/qqbot",
       "localPath": "extensions/qqbot",
       "defaultChoice": "npm",
-      "minHostVersion": ">=2026.4.1"
+      "minHostVersion": ">=2026.4.10"
     },
     "bundle": {
       "stageRuntimeDependencies": true

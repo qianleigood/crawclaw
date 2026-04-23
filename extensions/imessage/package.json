@@ -20,7 +20,8 @@
       "aliases": [
         "imsg"
       ],
-      "systemImage": "message.fill"
+      "systemImage": "message.fill",
+      "profile": "legacy"
     }
   }
 }

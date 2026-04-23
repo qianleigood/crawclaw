@@ -58,6 +58,7 @@ export type {
   ChannelDirectoryEntryKind,
   ChannelGroupContext,
   ChannelMainSessionWakeDeps,
+  ChannelProfile,
   ChannelId,
   ChannelLogSink,
   ChannelMentionAdapter,

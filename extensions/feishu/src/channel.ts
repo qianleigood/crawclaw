@@ -109,7 +109,8 @@ const meta: ChannelMeta = {
   docsLabel: "feishu",
   blurb: "飞书/Lark enterprise messaging.",
   aliases: ["lark"],
-  order: 70,
+  order: 35,
+  profile: "primary-cn",
 };
 
 const loadFeishuChannelRuntime = createLazyRuntimeNamedExport(

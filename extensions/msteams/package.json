@@ -34,7 +34,8 @@
       "aliases": [
         "teams"
       ],
-      "order": 60
+      "order": 60,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/msteams",

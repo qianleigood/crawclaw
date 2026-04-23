@@ -37,7 +37,8 @@
       ],
       "order": 55,
       "systemImage": "message.badge",
-      "markdownCapable": true
+      "markdownCapable": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/googlechat",

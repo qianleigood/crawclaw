@@ -22,7 +22,8 @@
       "aliases": [
         "internet-relay-chat"
       ],
-      "systemImage": "network"
+      "systemImage": "network",
+      "profile": "optional"
     }
   }
 }

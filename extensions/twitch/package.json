@@ -23,7 +23,8 @@
       "blurb": "Twitch chat integration",
       "aliases": [
         "twitch-chat"
-      ]
+      ],
+      "profile": "optional"
     }
   }
 }

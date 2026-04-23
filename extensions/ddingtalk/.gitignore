@@ -1,0 +1,11 @@
+node_modules/
+.env
+*.log
+.DS_Store
+tmp
+dist
+/*.tgz
+CODEBUDDY.md
+.idea
+.vscode
+.codebuddy

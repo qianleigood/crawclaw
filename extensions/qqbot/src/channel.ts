@@ -40,7 +40,8 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
     selectionLabel: "QQ Bot",
     docsPath: "/channels/qqbot",
     blurb: "Connect to QQ via official QQ Bot API",
-    order: 50,
+    order: 40,
+    profile: "primary-cn",
   },
   capabilities: {
     chatTypes: ["direct", "group"],

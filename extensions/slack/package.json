@@ -22,7 +22,8 @@
       "docsLabel": "slack",
       "blurb": "supported (Socket Mode).",
       "systemImage": "number",
-      "markdownCapable": true
+      "markdownCapable": true,
+      "profile": "optional"
     },
     "bundle": {
       "stageRuntimeDependencies": true

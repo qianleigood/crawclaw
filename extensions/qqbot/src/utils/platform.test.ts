@@ -118,7 +118,7 @@ describe("qqbot local media path remapping", () => {
     fs.writeFileSync(mediaFile, "image", "utf8");
     createdPaths.push(path.dirname(mediaFile));
 
-    expect(resolveQQBotPayloadLocalFilePath(mediaFile)).toBe(mediaFile);
+    expect(resolveQQBotPayloadLocalFilePath(mediaFile)).toBe(fs.realpathSync(mediaFile));
   });
 
   it("blocks structured payload files inside the QQ Bot data directory", () => {
@@ -173,6 +173,6 @@ describe("qqbot local media path remapping", () => {
       "legacy.png",
     );
 
-    expect(resolveQQBotPayloadLocalFilePath(missingWorkspacePath)).toBe(mediaFile);
+    expect(resolveQQBotPayloadLocalFilePath(missingWorkspacePath)).toBe(fs.realpathSync(mediaFile));
   });
 });

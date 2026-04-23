@@ -1,0 +1,70 @@
+{
+  "name": "@largezhou/ddingtalk",
+  "version": "2.0.1",
+  "description": "CrawClaw DingTalk (钉钉) channel plugin",
+  "keywords": [
+    "crawclaw",
+    "dingtalk",
+    "robot",
+    "stream",
+    "typescript"
+  ],
+  "homepage": "https://github.com/largezhou/openclaw-dingtalk#readme",
+  "bugs": {
+    "url": "https://github.com/largezhou/openclaw-dingtalk/issues"
+  },
+  "license": "MIT",
+  "author": "largezhou",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/largezhou/openclaw-dingtalk.git"
+  },
+  "files": [
+    "src",
+    "index.ts",
+    "crawclaw.plugin.json",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {},
+  "dependencies": {
+    "dingtalk-stream": "^2.1.4",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "dotenv": "^17.3.1",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "crawclaw": ">=2026.3.22"
+  },
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "ddingtalk",
+      "label": "DingTalk",
+      "selectionLabel": "DingTalk (钉钉 Stream)",
+      "docsPath": "/channels/ddingtalk",
+      "docsLabel": "ddingtalk",
+      "blurb": "DingTalk enterprise robot with Stream mode for Chinese market.",
+      "order": 45,
+      "quickstartAllowFrom": true,
+      "profile": "primary-cn",
+      "aliases": [
+        "dingtalk",
+        "dingding",
+        "钉钉"
+      ]
+    },
+    "install": {
+      "npmSpec": "@largezhou/ddingtalk",
+      "localPath": "extensions/ddingtalk",
+      "defaultChoice": "npm"
+    }
+  }
+}

@@ -36,7 +36,12 @@ crawclaw pairing list telegram
 crawclaw pairing approve telegram <CODE>
 ```
 
-Supported channels: `bluebubbles`, `discord`, `feishu`, `googlechat`, `imessage`, `irc`, `line`, `matrix`, `mattermost`, `msteams`, `nextcloud-talk`, `nostr`, `crawclaw-weixin`, `signal`, `slack`, `synology-chat`, `telegram`, `twitch`, `whatsapp`, `zalo`, `zalouser`.
+Primary QuickStart channels: `ddingtalk`, `feishu`, `qqbot`.
+
+Advanced setup can still use optional and legacy channels: `bluebubbles`,
+`discord`, `googlechat`, `imessage`, `irc`, `line`, `matrix`, `mattermost`,
+`msteams`, `nextcloud-talk`, `nostr`, `crawclaw-weixin`, `signal`, `slack`,
+`synology-chat`, `telegram`, `twitch`, `whatsapp`, `zalo`, `zalouser`.
 
 ### Where the state lives
 
@@ -91,10 +96,7 @@ Stored under `~/.crawclaw/devices/`:
 - Security model + prompt injection: [Security](/gateway/security)
 - Updating safely (run doctor): [Updating](/install/updating)
 - Channel configs:
-  - Telegram: [Telegram](/channels/telegram)
-  - WhatsApp: [WhatsApp](/channels/whatsapp)
-  - Signal: [Signal](/channels/signal)
-  - BlueBubbles (iMessage): [BlueBubbles](/channels/bluebubbles)
-  - iMessage (legacy): [iMessage](/channels/imessage)
-  - Discord: [Discord](/channels/discord)
-  - Slack: [Slack](/channels/slack)
+  - DingTalk: [DingTalk](/channels/ddingtalk)
+  - Feishu: [Feishu](/channels/feishu)
+  - QQ Bot: [QQ Bot](/channels/qqbot)
+  - Optional channel index: [Channels](/channels)

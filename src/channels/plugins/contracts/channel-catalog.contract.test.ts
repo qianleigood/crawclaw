@@ -1,8 +1,13 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
 import {
   describeBundledMetadataOnlyChannelCatalogContract,
   describeChannelCatalogEntryContract,
   describeOfficialFallbackChannelCatalogContract,
 } from "../../../../test/helpers/channels/channel-catalog-contract.js";
+import { listChannelPluginCatalogEntries } from "../catalog.js";
 
 describeChannelCatalogEntryContract({
   channelId: "msteams",
@@ -35,4 +40,43 @@ describeOfficialFallbackChannelCatalogContract({
   pluginId: "whatsapp",
   externalNpmSpec: "@vendor/whatsapp-fork",
   externalLabel: "WhatsApp Fork",
+});
+
+describe("channel catalog profile metadata", () => {
+  it("preserves channel profile from package metadata", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-profile-catalog-"));
+    const catalogPath = path.join(dir, "channel-catalog.json");
+    fs.writeFileSync(
+      catalogPath,
+      JSON.stringify({
+        entries: [
+          {
+            name: "@crawclaw/feishu",
+            crawclaw: {
+              channel: {
+                id: "feishu",
+                label: "Feishu",
+                selectionLabel: "Feishu",
+                docsPath: "/channels/feishu",
+                blurb: "Feishu messaging",
+                profile: "primary-cn",
+              },
+              install: { npmSpec: "@crawclaw/feishu" },
+            },
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const entry = listChannelPluginCatalogEntries({
+      officialCatalogPaths: [catalogPath],
+      env: {
+        ...process.env,
+        CRAWCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
+      },
+    }).find((item) => item.id === "feishu");
+
+    expect(entry?.meta.profile).toBe("primary-cn");
+  });
 });

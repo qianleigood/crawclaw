@@ -34,7 +34,8 @@
         "imessage"
       ],
       "systemImage": "bubble.left.and.text.bubble.right",
-      "order": 75
+      "order": 75,
+      "profile": "legacy"
     },
     "install": {
       "npmSpec": "@crawclaw/bluebubbles",

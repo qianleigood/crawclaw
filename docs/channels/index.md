@@ -8,14 +8,23 @@ title: "Chat Channels"
 
 # Chat Channels
 
-CrawClaw can talk to you on any chat app you already use. Each channel connects via the Gateway.
-Text is supported everywhere; media and reactions vary by channel.
+CrawClaw defaults to a China-first channel surface. QuickStart and the main
+channel picker prioritize Feishu, DingTalk, and QQ Bot. Other channel plugins
+remain available for explicit installation or advanced setup.
 
-## Supported channels
+## Primary China channels
 
-- [BlueBubbles](/channels/bluebubbles) — **Recommended for iMessage**; uses the BlueBubbles macOS server REST API with full feature support (edit, unsend, effects, reactions, group management — edit currently broken on macOS 26 Tahoe).
+- [DingTalk](/channels/ddingtalk) — DingTalk enterprise robot via Stream mode; supports text, images, files, group routing, and allowlists.
+- [Feishu](/channels/feishu) — Feishu/Lark bot via WebSocket with docs, wiki, drive, chat, and bot tools.
+- [QQ Bot](/channels/qqbot) — QQ Bot API; private chats, group chats, channels, and rich media.
+
+## Optional and legacy channels
+
+These channels are still maintained as optional or legacy plugin paths. They are
+not shown as the default QuickStart recommendation.
+
+- [BlueBubbles](/channels/bluebubbles) — Legacy iMessage-adjacent option through the BlueBubbles macOS server REST API.
 - [Discord](/channels/discord) — Discord Bot API + Gateway; supports servers, channels, and DMs.
-- [Feishu](/channels/feishu) — Feishu/Lark bot via WebSocket (plugin, installed separately).
 - [Google Chat](/channels/googlechat) — Google Chat API app via HTTP webhook.
 - [iMessage (legacy)](/channels/imessage) — Legacy macOS integration via imsg CLI (deprecated, use BlueBubbles for new setups).
 - [IRC](/channels/irc) — Classic IRC servers; channels + DMs with pairing/allowlist controls.
@@ -25,7 +34,6 @@ Text is supported everywhere; media and reactions vary by channel.
 - [Microsoft Teams](/channels/msteams) — Bot Framework; enterprise support (plugin, installed separately).
 - [Nextcloud Talk](/channels/nextcloud-talk) — Self-hosted chat via Nextcloud Talk (plugin, installed separately).
 - [Nostr](/channels/nostr) — Decentralized DMs via NIP-04 (plugin, installed separately).
-- [QQ Bot](/channels/qqbot) — QQ Bot API; private chat, group chat, and rich media.
 - [Signal](/channels/signal) — signal-cli; privacy-focused.
 - [Slack](/channels/slack) — Bolt SDK; workspace apps.
 - [Synology Chat](/channels/synology-chat) — Synology NAS Chat via outgoing+incoming webhooks (plugin, installed separately).
@@ -42,8 +50,8 @@ Text is supported everywhere; media and reactions vary by channel.
 ## Notes
 
 - Channels can run simultaneously; configure multiple and CrawClaw will route per chat.
-- Fastest setup is usually **Telegram** (simple bot token). WhatsApp requires QR pairing and
-  stores more state on disk.
+- QuickStart highlights the primary China channels by default. Use advanced or
+  manual setup for optional and legacy channel plugins.
 - Group behavior varies by channel; see [Groups](/channels/groups).
 - DM pairing and allowlists are enforced for safety; see [Security](/gateway/security).
 - Troubleshooting: [Channel troubleshooting](/channels/troubleshooting).

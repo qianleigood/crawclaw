@@ -34,7 +34,8 @@
         "zlu"
       ],
       "order": 85,
-      "quickstartAllowFrom": false
+      "quickstartAllowFrom": false,
+      "profile": "legacy"
     },
     "install": {
       "npmSpec": "@crawclaw/zalouser",

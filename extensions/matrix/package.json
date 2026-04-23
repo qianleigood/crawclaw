@@ -35,7 +35,8 @@
       "docsLabel": "matrix",
       "blurb": "open protocol; install the plugin to enable.",
       "order": 70,
-      "quickstartAllowFrom": true
+      "quickstartAllowFrom": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/matrix",

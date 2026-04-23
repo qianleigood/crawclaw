@@ -1,0 +1,614 @@
+import { logger } from "./logger.js";
+import type { ResolvedDingTalkAccount, WebhookResponse, MarkdownReplyBody } from "./types.js";
+
+// ======================= 钉钉 API 基础封装 =======================
+
+const DINGTALK_API_BASE = "https://api.dingtalk.com";
+
+/**
+ * 钉钉新版 API 统一调用（v1.0 接口）
+ * @param path - API 路径，如 `/v1.0/oauth2/accessToken`
+ * @param body - 请求体
+ * @param accessToken - 可选，需要鉴权的接口传入
+ */
+async function dingtalkApi<T = Record<string, unknown>>(
+  path: string,
+  body: Record<string, unknown>,
+  accessToken?: string,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (accessToken) {
+    headers["x-acs-dingtalk-access-token"] = accessToken;
+  }
+
+  const response = await fetch(`${DINGTALK_API_BASE}${path}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`钉钉 API 请求失败 [${response.status}]: ${text}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+// ======================= Access Token 缓存 =======================
+
+interface TokenCache {
+  token: string;
+  expireTime: number;
+}
+
+const tokenCacheMap = new Map<string, TokenCache>();
+
+/**
+ * 获取钉钉 access_token
+ */
+export async function getAccessToken(account: ResolvedDingTalkAccount): Promise<string> {
+  const cacheKey = `${account.clientId}`;
+  const cached = tokenCacheMap.get(cacheKey);
+
+  // 检查缓存的 token 是否有效（提前5分钟过期）
+  if (cached && Date.now() < cached.expireTime - 5 * 60 * 1000) {
+    return cached.token;
+  }
+
+  const result = await dingtalkApi<{ accessToken?: string; expireIn?: number }>(
+    "/v1.0/oauth2/accessToken",
+    {
+      appKey: account.clientId,
+      appSecret: account.clientSecret,
+    },
+  );
+
+  if (result.accessToken) {
+    const token = result.accessToken;
+    const expireTime = Date.now() + (result.expireIn ?? 7200) * 1000;
+    tokenCacheMap.set(cacheKey, { token, expireTime });
+    return token;
+  }
+
+  throw new Error("获取 access_token 失败: 返回结果为空");
+}
+
+// ======================= 发送消息 =======================
+
+export interface SendMessageOptions {
+  account: ResolvedDingTalkAccount;
+  verbose?: boolean;
+}
+
+export interface SendMessageResult {
+  messageId: string;
+  chatId: string;
+}
+
+/**
+ * 通过 sessionWebhook 回复消息（markdown 格式）
+ */
+export async function replyViaWebhook(
+  webhook: string,
+  content: string,
+  options?: {
+    atUserIds?: string[];
+    isAtAll?: boolean;
+  },
+): Promise<WebhookResponse> {
+  const contentPreview = content.slice(0, 50).replace(/\n/g, " ");
+  logger.log(`[回复消息] via Webhook | ${contentPreview}${content.length > 50 ? "..." : ""}`);
+
+  const title = content.slice(0, 10).replace(/\n/g, " ");
+  const body: MarkdownReplyBody = {
+    msgtype: "markdown",
+    markdown: {
+      title,
+      text: content,
+    },
+    at: {
+      atUserIds: options?.atUserIds ?? [],
+      isAtAll: options?.isAtAll ?? false,
+    },
+  };
+
+  const response = await fetch(webhook, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const result = (await response.json()) as WebhookResponse;
+
+  if (result.errcode === 0) {
+    logger.log(`[回复消息] 发送成功`);
+  } else {
+    logger.error(`[回复消息] 发送失败: ${result.errmsg ?? JSON.stringify(result)}`);
+  }
+
+  return result;
+}
+
+// ======================= 主动发送消息（BatchSendOTO / OrgGroupSend） =======================
+
+/**
+ * 钉钉机器人消息类型（msgKey）
+ * @see https://open.dingtalk.com/document/orgapp/types-of-messages-sent-by-enterprise-robots
+ */
+export type DingTalkMsgKey =
+  | "sampleText" // 文本
+  | "sampleMarkdown" // Markdown
+  | "sampleImageMsg" // 图片
+  | "sampleLink" // 链接
+  | "sampleAudio" // 语音
+  | "sampleVideo" // 视频
+  | "sampleFile" // 文件
+  | "sampleActionCard" // 卡片
+  | "sampleActionCard2" // 卡片（独立跳转）
+  | "sampleActionCard3" // 卡片（竖向按钮）
+  | "sampleActionCard4" // 卡片（横向按钮）
+  | "sampleActionCard5" // 卡片（横向2按钮）
+  | "sampleActionCard6"; // 卡片（横向3按钮）
+
+/**
+ * 底层通用方法：主动发送单聊消息（BatchSendOTO）
+ * 所有 sendXxxMessage 方法都基于此方法实现
+ */
+async function sendOTOMessage(
+  userId: string,
+  msgKey: DingTalkMsgKey,
+  msgParam: Record<string, unknown>,
+  options: SendMessageOptions,
+): Promise<SendMessageResult> {
+  const accessToken = await getAccessToken(options.account);
+
+  const result = await dingtalkApi<{ processQueryKey?: string }>(
+    "/v1.0/robot/oToMessages/batchSend",
+    {
+      robotCode: options.account.clientId,
+      userIds: [userId],
+      msgKey,
+      msgParam: JSON.stringify(msgParam),
+    },
+    accessToken,
+  );
+
+  const processQueryKey = result.processQueryKey ?? `dingtalk-${Date.now()}`;
+
+  return {
+    messageId: processQueryKey,
+    chatId: userId,
+  };
+}
+
+/**
+ * 底层通用方法：主动发送群聊消息（OrgGroupSend）
+ */
+async function sendGroupMessage(
+  openConversationId: string,
+  msgKey: DingTalkMsgKey,
+  msgParam: Record<string, unknown>,
+  options: SendMessageOptions,
+): Promise<SendMessageResult> {
+  const accessToken = await getAccessToken(options.account);
+
+  const result = await dingtalkApi<{ processQueryKey?: string }>(
+    "/v1.0/robot/groupMessages/send",
+    {
+      robotCode: options.account.clientId,
+      openConversationId,
+      msgKey,
+      msgParam: JSON.stringify(msgParam),
+    },
+    accessToken,
+  );
+
+  const processQueryKey = result.processQueryKey ?? `dingtalk-group-${Date.now()}`;
+
+  return {
+    messageId: processQueryKey,
+    chatId: openConversationId,
+  };
+}
+
+// ======================= 统一目标路由 =======================
+
+/**
+ * 判断目标是否为群聊
+ * 群聊目标格式：chat:<openConversationId>
+ * 单聊目标格式：user:<userId> 或直接 <userId>
+ */
+export function isGroupTarget(to: string): boolean {
+  return to.startsWith("chat:");
+}
+
+/** 从 to 中提取实际 ID（去除 chat: / user: 前缀） */
+export function extractTargetId(to: string): string {
+  if (to.startsWith("chat:")) return to.slice(5);
+  if (to.startsWith("user:")) return to.slice(5);
+  return to;
+}
+
+/**
+ * 统一发送消息（自动根据 to 格式路由到单聊或群聊）
+ */
+async function sendMessage(
+  to: string,
+  msgKey: DingTalkMsgKey,
+  msgParam: Record<string, unknown>,
+  options: SendMessageOptions,
+): Promise<SendMessageResult> {
+  const targetId = extractTargetId(to);
+  if (isGroupTarget(to)) {
+    return sendGroupMessage(targetId, msgKey, msgParam, options);
+  }
+  return sendOTOMessage(targetId, msgKey, msgParam, options);
+}
+
+/**
+ * 发送文本消息（markdown 格式，自动路由群聊/单聊）
+ */
+export async function sendTextMessage(
+  to: string,
+  content: string,
+  options: SendMessageOptions,
+): Promise<SendMessageResult> {
+  const contentPreview = content.slice(0, 50).replace(/\n/g, " ");
+  const isGroup = isGroupTarget(to);
+  logger.log(
+    `[主动发送] 文本消息 | ${isGroup ? "群聊" : "单聊"} | to: ${to} | ${contentPreview}${content.length > 50 ? "..." : ""}`,
+  );
+
+  const title = content.slice(0, 10).replace(/\n/g, " ");
+  const result = await sendMessage(to, "sampleMarkdown", { title, text: content }, options);
+
+  logger.log(`[主动发送] 文本消息发送成功 | messageId: ${result.messageId}`);
+  return result;
+}
+
+/**
+ * 发送图片消息（自动路由群聊/单聊）
+ * @param photoURL - 图片的公网可访问 URL
+ */
+export async function sendImageMessage(
+  to: string,
+  photoURL: string,
+  options: SendMessageOptions,
+): Promise<SendMessageResult> {
+  const isGroup = isGroupTarget(to);
+  logger.log(
+    `[主动发送] 图片消息 | ${isGroup ? "群聊" : "单聊"} | to: ${to} | photoURL: ${photoURL.slice(0, 80)}...`,
+  );
+
+  const result = await sendMessage(to, "sampleImageMsg", { photoURL }, options);
+
+  logger.log(`[主动发送] 图片消息发送成功 | messageId: ${result.messageId}`);
+  return result;
+}
+
+/**
+ * 发送语音消息（自动路由群聊/单聊）
+ * @param mediaId - 语音文件的 mediaId（通过 uploadMedia 获取）
+ * @param duration - 语音时长（毫秒），可选
+ */
+export async function sendAudioMessage(
+  to: string,
+  mediaId: string,
+  options: SendMessageOptions & {
+    duration?: string;
+  },
+): Promise<SendMessageResult> {
+  logger.log(
+    `[主动发送] 语音消息 | to: ${to} | mediaId: ${mediaId} | duration: ${options.duration ?? "未知"}`,
+  );
+
+  const msgParam: Record<string, string> = { mediaId };
+  if (options.duration) {
+    msgParam.duration = options.duration;
+  }
+
+  const result = await sendMessage(to, "sampleAudio", msgParam, options);
+
+  logger.log(`[主动发送] 语音消息发送成功 | messageId: ${result.messageId}`);
+  return result;
+}
+
+/**
+ * 发送视频消息（自动路由群聊/单聊）
+ * @param duration - 视频时长（秒），可选
+ */
+export async function sendVideoMessage(
+  to: string,
+  videoMediaId: string,
+  options: SendMessageOptions & {
+    duration?: string;
+    picMediaId?: string;
+    width?: string;
+    height?: string;
+  },
+): Promise<SendMessageResult> {
+  logger.log(`[主动发送] 视频消息 | to: ${to} | videoMediaId: ${videoMediaId}`);
+
+  const msgParam: Record<string, string> = {
+    videoMediaId,
+    videoType: "mp4",
+  };
+  if (options.duration) {
+    msgParam.duration = options.duration;
+  }
+  if (options.picMediaId) {
+    msgParam.picMediaId = options.picMediaId;
+  }
+  if (options.width) {
+    msgParam.width = options.width;
+  }
+  if (options.height) {
+    msgParam.height = options.height;
+  }
+
+  const result = await sendMessage(to, "sampleVideo", msgParam, options);
+
+  logger.log(`[主动发送] 视频消息发送成功 | messageId: ${result.messageId}`);
+  return result;
+}
+
+/**
+ * 发送文件消息（自动路由群聊/单聊）
+ * @param mediaId - 文件的 mediaId（通过 uploadMedia 获取）
+ * @param fileName - 文件名
+ * @param fileType - 文件扩展名（如 pdf、doc 等）
+ */
+export async function sendFileMessage(
+  to: string,
+  mediaId: string,
+  fileName: string,
+  fileType: string,
+  options: SendMessageOptions,
+): Promise<SendMessageResult> {
+  logger.log(`[主动发送] 文件消息 | to: ${to} | fileName: ${fileName} | fileType: ${fileType}`);
+
+  const result = await sendMessage(to, "sampleFile", { mediaId, fileName, fileType }, options);
+
+  logger.log(`[主动发送] 文件消息发送成功 | messageId: ${result.messageId}`);
+  return result;
+}
+
+/**
+ * 发送链接消息（自动路由群聊/单聊）
+ */
+export async function sendLinkMessage(
+  to: string,
+  options: SendMessageOptions & {
+    title: string;
+    text: string;
+    messageUrl: string;
+    picUrl?: string;
+  },
+): Promise<SendMessageResult> {
+  logger.log(`[主动发送] 链接消息 | to: ${to} | title: ${options.title}`);
+
+  const result = await sendMessage(
+    to,
+    "sampleLink",
+    {
+      title: options.title,
+      text: options.text,
+      messageUrl: options.messageUrl,
+      picUrl: options.picUrl ?? "",
+    },
+    options,
+  );
+
+  logger.log(`[主动发送] 链接消息发送成功 | messageId: ${result.messageId}`);
+  return result;
+}
+
+// ======================= 探测 Bot =======================
+
+export interface DingTalkProbeResult {
+  ok: boolean;
+  bot?: {
+    name?: string;
+    robotCode?: string;
+  };
+  error?: string;
+}
+
+/**
+ * 探测钉钉机器人状态
+ */
+export async function probeDingTalkBot(
+  account: ResolvedDingTalkAccount,
+  _timeoutMs?: number,
+): Promise<DingTalkProbeResult> {
+  try {
+    // 尝试获取 access_token 来验证凭据是否有效
+    await getAccessToken(account);
+    return {
+      ok: true,
+      bot: {
+        robotCode: account.clientId,
+        name: account.name,
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+// ======================= 图片处理 =======================
+
+/**
+ * 获取钉钉文件下载链接
+ * @param downloadCode - 文件下载码
+ * @param account - 钉钉账户配置
+ * @returns 下载链接
+ */
+export async function getFileDownloadUrl(
+  downloadCode: string,
+  account: ResolvedDingTalkAccount,
+): Promise<string> {
+  const accessToken = await getAccessToken(account);
+
+  const result = await dingtalkApi<{ downloadUrl?: string }>(
+    "/v1.0/robot/messageFiles/download",
+    {
+      downloadCode,
+      robotCode: account.clientId,
+    },
+    accessToken,
+  );
+
+  if (result.downloadUrl) {
+    return result.downloadUrl;
+  }
+
+  throw new Error("获取下载链接失败: 返回结果为空");
+}
+
+/**
+ * 从 URL 下载文件
+ * @param url - 下载链接
+ * @returns 文件内容 Buffer
+ */
+export async function downloadFromUrl(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`下载文件失败: ${response.status} ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+// ======================= 媒体文件上传 =======================
+
+/**
+ * 钉钉支持的媒体类型（media/upload 接口）
+ * - image: 图片，最大 20MB，支持 jpg/gif/png/bmp
+ * - voice: 语音，最大 2MB，支持 amr/mp3/wav
+ * - video: 视频，最大 20MB，支持 mp4
+ * - file: 普通文件，最大 20MB，支持 doc/docx/xls/xlsx/ppt/pptx/zip/pdf/rar
+ */
+export type DingTalkMediaType = "image" | "voice" | "video" | "file";
+
+export interface UploadMediaResult {
+  mediaId: string;
+  /** 图片类型返回公网可访问 URL，其他类型返回空字符串 */
+  url: string;
+  /** 媒体类型 */
+  type: DingTalkMediaType;
+}
+
+/**
+ * 根据 MIME 类型推断钉钉媒体类型
+ */
+export function inferMediaType(mimeType: string): DingTalkMediaType {
+  if (mimeType.startsWith("image/")) {
+    return "image";
+  }
+  if (mimeType.startsWith("audio/")) {
+    return "voice";
+  }
+  if (mimeType.startsWith("video/")) {
+    return "video";
+  }
+  return "file";
+}
+
+/**
+ * 根据媒体类型获取对应的 Content-Type
+ */
+function getContentType(type: DingTalkMediaType, mimeType?: string): string {
+  if (mimeType) {
+    return mimeType;
+  }
+  switch (type) {
+    case "image":
+      return "image/png";
+    case "voice":
+      return "audio/amr";
+    case "video":
+      return "video/mp4";
+    case "file":
+    default:
+      return "application/octet-stream";
+  }
+}
+
+/**
+ * 上传媒体文件到钉钉（使用旧版 oapi 接口）
+ * @param fileBuffer - 文件 Buffer
+ * @param fileName - 文件名
+ * @param account - 钉钉账户配置
+ * @param options - 上传选项
+ * @returns 包含 media_id 和公网可访问 URL 的对象
+ */
+export async function uploadMedia(
+  fileBuffer: Buffer,
+  fileName: string,
+  account: ResolvedDingTalkAccount,
+  options?: {
+    /** 媒体类型，不传则根据 mimeType 自动推断 */
+    type?: DingTalkMediaType;
+    /** MIME 类型，用于推断媒体类型和设置 Content-Type */
+    mimeType?: string;
+  },
+): Promise<UploadMediaResult> {
+  const mimeType = options?.mimeType;
+  const type = options?.type ?? (mimeType ? inferMediaType(mimeType) : "image");
+  const contentType = getContentType(type, mimeType);
+
+  logger.log(`[上传媒体] type: ${type} | fileName: ${fileName} | size: ${fileBuffer.length} bytes`);
+
+  const accessToken = await getAccessToken(account);
+
+  // 使用 FormData 上传
+  const formData = new FormData();
+  const uint8Array = new Uint8Array(fileBuffer);
+  const blob = new Blob([uint8Array], { type: contentType });
+  formData.append("media", blob, fileName);
+  formData.append("type", type);
+
+  const response = await fetch(
+    `https://oapi.dingtalk.com/media/upload?access_token=${accessToken}`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+
+  const result = (await response.json()) as {
+    errcode?: number;
+    errmsg?: string;
+    media_id?: string;
+  };
+
+  if (result.errcode === 0 && result.media_id) {
+    logger.log(`[上传媒体] 上传成功 | mediaId: ${result.media_id}`);
+
+    // 只有图片类型才构造公网可访问的 URL
+    const url =
+      type === "image"
+        ? `https://oapi.dingtalk.com/media/downloadFile?access_token=${accessToken}&media_id=${result.media_id}`
+        : "";
+
+    return {
+      mediaId: result.media_id,
+      url,
+      type,
+    };
+  }
+
+  logger.error(`[上传媒体] 上传失败: ${result.errmsg ?? JSON.stringify(result)}`);
+  throw new Error(`上传媒体文件失败: ${result.errmsg ?? JSON.stringify(result)}`);
+}

@@ -28,7 +28,8 @@
       "selectionExtras": [
         "https://docs.crawclaw.ai"
       ],
-      "markdownCapable": true
+      "markdownCapable": true,
+      "profile": "optional"
     },
     "bundle": {
       "stageRuntimeDependencies": true

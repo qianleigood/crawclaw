@@ -2,6 +2,7 @@ import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent
 import { listChannelPluginCatalogEntries } from "../channels/plugins/catalog.js";
 import { listChannelSetupPlugins } from "../channels/plugins/setup-registry.js";
 import type { ChannelSetupPlugin } from "../channels/plugins/setup-wizard-types.js";
+import type { ChannelProfile } from "../channels/plugins/types.js";
 import {
   formatChannelPrimerLine,
   formatChannelSelectionLine,
@@ -235,12 +236,23 @@ export function resolveChannelSelectionNoteLines(params: {
 export function resolveChannelSetupSelectionContributions(params: {
   entries: Array<{
     id: ChannelChoice;
-    meta: { id: string; label: string; selectionLabel?: string };
+    meta: {
+      id: string;
+      label: string;
+      selectionLabel?: string;
+      profile?: ChannelProfile;
+    };
   }>;
   statusByChannel: Map<ChannelChoice, { selectionHint?: string }>;
   resolveDisabledHint: (channel: ChannelChoice) => string | undefined;
+  profile?: ChannelProfile;
 }): ChannelSetupSelectionContribution[] {
-  return params.entries.map((entry) => {
+  const matchingEntries = params.profile
+    ? params.entries.filter((entry) => entry.meta.profile === params.profile)
+    : params.entries;
+  const entries = matchingEntries.length > 0 ? matchingEntries : params.entries;
+
+  return entries.map((entry) => {
     const disabledHint = params.resolveDisabledHint(entry.id);
     const hint =
       [params.statusByChannel.get(entry.id)?.selectionHint, disabledHint]

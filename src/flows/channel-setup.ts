@@ -530,21 +530,28 @@ export async function setupChannels(
 
   if (options?.quickstartDefaults) {
     const { entries } = getChannelEntries();
+    const channelOptions = resolveChannelSetupSelectionContributions({
+      entries,
+      statusByChannel,
+      resolveDisabledHint,
+      profile: "primary-cn",
+    }).map((contribution) => contribution.option);
+    const initialQuickstartValue = channelOptions.some(
+      (option) => option.value === quickstartDefault,
+    )
+      ? quickstartDefault
+      : undefined;
     const choice = (await prompter.select({
       message: "Select channel (QuickStart)",
       options: [
-        ...resolveChannelSetupSelectionContributions({
-          entries,
-          statusByChannel,
-          resolveDisabledHint,
-        }).map((contribution) => contribution.option),
+        ...channelOptions,
         {
           value: "__skip__",
           label: "Skip for now",
           hint: `You can add channels later via \`${formatCliCommand("crawclaw channels add")}\``,
         },
       ],
-      initialValue: quickstartDefault,
+      initialValue: initialQuickstartValue,
     })) as ChannelChoice | "__skip__";
     if (choice !== "__skip__") {
       await handleChannelChoice(choice);

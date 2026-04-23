@@ -30,7 +30,8 @@
       "docsPath": "/channels/mattermost",
       "docsLabel": "mattermost",
       "blurb": "self-hosted Slack-style chat; install the plugin to enable.",
-      "order": 65
+      "order": 65,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/mattermost",

@@ -9,6 +9,7 @@ import type { PackageManifest as PluginPackageManifest } from "../../plugins/man
 import type { PluginOrigin } from "../../plugins/types.js";
 import { MANIFEST_KEY } from "../../shared/manifest-key.js";
 import { isRecord, resolveConfigDir, resolveUserPath } from "../../utils.js";
+import type { ChannelProfile } from "./types.core.js";
 import type { ChannelMeta } from "./types.js";
 
 export type ChannelUiMetaEntry = {
@@ -67,6 +68,7 @@ type ExternalCatalogEntry = {
 
 const ENV_CATALOG_PATHS = ["CRAWCLAW_PLUGIN_CATALOG_PATHS", "CRAWCLAW_MPM_CATALOG_PATHS"];
 const OFFICIAL_CHANNEL_CATALOG_RELATIVE_PATH = path.join("dist", "channel-catalog.json");
+const CHANNEL_PROFILES = new Set<ChannelProfile>(["primary-cn", "optional", "legacy"]);
 
 type ManifestKey = typeof MANIFEST_KEY;
 
@@ -184,6 +186,9 @@ function toChannelMeta(params: {
   const docsPath = params.channel.docsPath?.trim() || `/channels/${params.id}`;
   const blurb = params.channel.blurb?.trim() || "";
   const systemImage = params.channel.systemImage?.trim();
+  const profile = CHANNEL_PROFILES.has(params.channel.profile as ChannelProfile)
+    ? (params.channel.profile as ChannelProfile)
+    : undefined;
 
   return {
     id: params.id,
@@ -221,6 +226,7 @@ function toChannelMeta(params: {
           preferSessionLookupForAnnounceTarget: params.channel.preferSessionLookupForAnnounceTarget,
         }
       : {}),
+    ...(profile ? { profile } : {}),
   };
 }
 

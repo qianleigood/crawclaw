@@ -31,6 +31,10 @@ const DIR_ID_EXCEPTIONS = new Map<string, string>([
   // Historical directory name kept until a wider repo cleanup is worth the churn.
   ["kimi-coding", "kimi"],
 ]);
+const PACKAGE_NAME_EXCEPTIONS = new Map<string, string>([
+  // Bundled from the community OpenClaw DingTalk plugin without renaming its npm identity.
+  ["ddingtalk", "@largezhou/ddingtalk"],
+]);
 const ALLOWED_PACKAGE_SUFFIXES = [
   "",
   "-provider",
@@ -95,7 +99,11 @@ function readBundledPluginRecords(): BundledPluginRecord[] {
 }
 
 function resolveAllowedPackageNamesForId(pluginId: string): string[] {
-  return ALLOWED_PACKAGE_SUFFIXES.map((suffix) => `@crawclaw/${pluginId}${suffix}`);
+  const exception = PACKAGE_NAME_EXCEPTIONS.get(pluginId);
+  return [
+    ...ALLOWED_PACKAGE_SUFFIXES.map((suffix) => `@crawclaw/${pluginId}${suffix}`),
+    ...(exception ? [exception] : []),
+  ];
 }
 
 function resolveBundledPluginMismatches(

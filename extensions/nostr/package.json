@@ -30,7 +30,8 @@
       "docsLabel": "nostr",
       "blurb": "Decentralized protocol; encrypted DMs via NIP-04.",
       "order": 55,
-      "quickstartAllowFrom": true
+      "quickstartAllowFrom": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/nostr",

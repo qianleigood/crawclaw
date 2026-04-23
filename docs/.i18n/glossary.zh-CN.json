@@ -392,6 +392,10 @@
     "target": "WhatsApp"
   },
   {
+    "source": "DingTalk",
+    "target": "DingTalk"
+  },
+  {
     "source": "/gateway/troubleshooting#cron-and-main-session-wake-delivery",
     "target": "/gateway/troubleshooting#cron-and-main-session-wake-delivery"
   },

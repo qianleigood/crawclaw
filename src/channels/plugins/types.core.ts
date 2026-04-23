@@ -120,6 +120,8 @@ export type ChannelMainSessionWakeDeps = {
   hasActiveWebListener?: () => boolean;
 };
 
+export type ChannelProfile = "primary-cn" | "optional" | "legacy";
+
 /** User-facing metadata used in docs, pickers, and setup surfaces. */
 export type ChannelMeta = {
   id: ChannelId;
@@ -141,6 +143,7 @@ export type ChannelMeta = {
   forceAccountBinding?: boolean;
   preferSessionLookupForAnnounceTarget?: boolean;
   preferOver?: readonly string[];
+  profile?: ChannelProfile;
 };
 
 /** Snapshot row returned by channel status and lifecycle surfaces. */

@@ -33,7 +33,8 @@
       "docsLabel": "tlon",
       "blurb": "decentralized messaging on Urbit; install the plugin to enable.",
       "order": 90,
-      "quickstartAllowFrom": true
+      "quickstartAllowFrom": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/tlon",

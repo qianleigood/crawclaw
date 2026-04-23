@@ -31,7 +31,8 @@
       "docsPath": "/channels/whatsapp",
       "docsLabel": "whatsapp",
       "blurb": "works with your own number; recommend a separate phone + eSIM.",
-      "systemImage": "message"
+      "systemImage": "message",
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/whatsapp",

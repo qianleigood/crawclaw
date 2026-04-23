@@ -15,7 +15,8 @@
       "docsPath": "/channels/synology-chat",
       "docsLabel": "synology-chat",
       "blurb": "Connect your Synology NAS Chat to CrawClaw with full agent capabilities.",
-      "order": 90
+      "order": 90,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/synology-chat",

@@ -31,7 +31,8 @@
         "nc"
       ],
       "order": 65,
-      "quickstartAllowFrom": true
+      "quickstartAllowFrom": true,
+      "profile": "optional"
     },
     "install": {
       "npmSpec": "@crawclaw/nextcloud-talk",
