@@ -12,6 +12,85 @@ import {
 } from "./index.js";
 import { ZH_CN_CLI_TRANSLATIONS } from "./zh-CN.js";
 
+function listTrackedTsFiles(paths: string[]): string[] {
+  return execFileSync("git", ["ls-files", "--", ...paths], {
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")
+    .filter((file) => /\.(ts|tsx)$/.test(file))
+    .filter((file) => !/(^|[./-])(test|e2e|coverage|harness|fixtures|test-helpers|mock)/.test(file))
+    .filter((file) => !file.includes("/node_modules/"));
+}
+
+function isCliVisibleTechnicalLiteral(value: string): boolean {
+  const trimmed = value.trim();
+  const exactTechnical = new Set([
+    "/Applications/CrawClaw.app",
+    "~/.crawclaw",
+    "--custom-base-url/--custom-model-id/--custom-api-key",
+    "Auth profiles",
+    "Beta",
+    "Daemon",
+    "Fallbacks",
+    "Gateway daemon",
+    "Gateway runtime",
+    "Git main",
+    "Image fallbacks",
+    "Node daemon runtime",
+    "OAuth TLS",
+    "Profile id",
+    "Provider id",
+    "Sandbox",
+    "Token",
+    "Token provider",
+    "bun",
+    "custom",
+    "e.g. llama3, claude-3-7-sonnet",
+    "e.g. local, ollama",
+    "launchd / systemd / schtasks",
+    "live",
+    "macOS app",
+    "nick@example.com,admin@company.com",
+    "npm",
+    "pnpm",
+    "provider/model, other-provider/model",
+    "systemd linger",
+    "x-forwarded-proto,x-forwarded-host",
+    "x-forwarded-user",
+  ]);
+  return (
+    trimmed.length === 0 ||
+    exactTechnical.has(trimmed) ||
+    trimmed.includes("${") ||
+    trimmed.startsWith("[") ||
+    /^[A-Z0-9_./:@<>{}[\]|=-]+$/.test(trimmed) ||
+    /^https?:\/\//.test(trimmed) ||
+    /^crawclaw(\s|$)/.test(trimmed) ||
+    /^--?[a-z0-9-]+(?:\s|$)/i.test(trimmed) ||
+    /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/i.test(trimmed) ||
+    /^(true|false|null|undefined|json|text|auto|none)$/i.test(trimmed)
+  );
+}
+
+function extractCliVisibleLiterals(file: string): string[] {
+  const source = fs.readFileSync(file, "utf8");
+  const literals = new Set<string>();
+  const literalPatterns = [
+    /\b(?:message|title|label|hint|placeholder|emptyMessage|clearedMessage)\s*:\s*([`'"])([^`'"]*[A-Za-z][^`'"]*)\1/g,
+    /\b(?:runtime\.(?:log|error|warn)|console\.(?:log|error|warn)|process\.(?:stdout|stderr)\.write|logger\.(?:info|warn|error)|writeStdoutLine)\s*\(\s*([`'"])([^`'"]*[A-Za-z][^`'"]*)\1/g,
+  ];
+  for (const pattern of literalPatterns) {
+    for (const match of source.matchAll(pattern)) {
+      const value = match[2];
+      if (value && !isCliVisibleTechnicalLiteral(value)) {
+        literals.add(value);
+      }
+    }
+  }
+  return [...literals];
+}
+
 describe("parseCliLocaleFlag", () => {
   it("reads --lang <value>", () => {
     expect(parseCliLocaleFlag(["node", "crawclaw", "--lang", "zh-CN"])).toBe("zh-CN");
@@ -87,13 +166,7 @@ describe("shared CLI/TUI translation catalog", () => {
   });
 
   it("defines every literal TUI translation key in the shared dictionaries", () => {
-    const productionFiles = execFileSync("git", ["ls-files", "--", "src/tui"], {
-      encoding: "utf8",
-    })
-      .trim()
-      .split("\n")
-      .filter((file) => /\.(ts|tsx)$/.test(file))
-      .filter((file) => !/(^|[./-])(test|e2e|coverage|fixtures|test-helpers|mock)/.test(file));
+    const productionFiles = listTrackedTsFiles(["src/tui"]);
     const usedKeys = new Set<string>();
     for (const file of productionFiles) {
       const source = fs.readFileSync(file, "utf8");
@@ -120,20 +193,7 @@ describe("CLI translation coverage", () => {
   });
 
   it("defines every literal production translator key", () => {
-    const productionFiles = execFileSync(
-      "git",
-      ["ls-files", "--", "src/cli", "src/commands", "extensions"],
-      {
-        encoding: "utf8",
-      },
-    )
-      .trim()
-      .split("\n")
-      .filter((file) => /\.(ts|tsx)$/.test(file))
-      .filter(
-        (file) => !/(^|[./-])(test|e2e|coverage|harness|fixtures|test-helpers|mock)/.test(file),
-      )
-      .filter((file) => !file.includes("/node_modules/"));
+    const productionFiles = listTrackedTsFiles(["src/cli", "src/commands", "extensions"]);
     const usedKeys = new Set<string>();
     for (const file of productionFiles) {
       const source = fs.readFileSync(file, "utf8");
@@ -151,5 +211,27 @@ describe("CLI translation coverage", () => {
       .toSorted();
 
     expect(missing).toEqual([]);
+  });
+
+  it("has zh-CN copy for literal CLI-visible English text", () => {
+    const productionFiles = listTrackedTsFiles([
+      "src/cli",
+      "src/commands",
+      "src/wizard",
+      "src/flows",
+      "src/terminal",
+      "extensions",
+    ]).filter((file) => !file.startsWith("extensions/") || file.endsWith("/src/cli.ts"));
+    const untranslated = new Set<string>();
+    for (const file of productionFiles) {
+      for (const literal of extractCliVisibleLiterals(file)) {
+        const translated = translateCliText("zh-CN", literal);
+        if (translated === literal) {
+          untranslated.add(`${file}: ${literal}`);
+        }
+      }
+    }
+
+    expect([...untranslated].toSorted()).toEqual([]);
   });
 });

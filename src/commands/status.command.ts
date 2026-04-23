@@ -1,3 +1,4 @@
+import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/index.js";
 import { withProgress } from "../cli/progress.js";
 import type { MainSessionWakeEventPayload } from "../infra/main-session-wake-events.js";
 import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
@@ -765,14 +766,25 @@ export async function statusCommand(
     runtime.log(theme.warn(updateHint));
     runtime.log("");
   }
+  const t = createCliTranslator(getActiveCliLocale());
   runtime.log("Next steps:");
-  runtime.log(`  Need to share?      ${formatCliCommand("crawclaw status --all")}`);
-  runtime.log(`  Need to debug live? ${formatCliCommand("crawclaw logs --follow")}`);
+  runtime.log(
+    `  ${t("status.next.needShare").padEnd(19)} ${formatCliCommand("crawclaw status --all")}`,
+  );
+  runtime.log(
+    `  ${t("status.next.needDebugLive").padEnd(19)} ${formatCliCommand("crawclaw logs --follow")}`,
+  );
   if (nodeOnlyGateway) {
-    runtime.log(`  Need node service?  ${formatCliCommand("crawclaw node status")}`);
+    runtime.log(
+      `  ${t("status.next.needNodeService").padEnd(19)} ${formatCliCommand("crawclaw node status")}`,
+    );
   } else if (gatewayReachable) {
-    runtime.log(`  Need to test channels? ${formatCliCommand("crawclaw status --deep")}`);
+    runtime.log(
+      `  ${t("status.next.needTestChannels").padEnd(19)} ${formatCliCommand("crawclaw status --deep")}`,
+    );
   } else {
-    runtime.log(`  Fix reachability first: ${formatCliCommand("crawclaw gateway probe")}`);
+    runtime.log(
+      `  ${t("status.next.fixReachabilityFirst")}: ${formatCliCommand("crawclaw gateway probe")}`,
+    );
   }
 }

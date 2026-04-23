@@ -1,3 +1,4 @@
+import { translateActiveCliText } from "../../cli/i18n/text.js";
 import type { ProgressReporter } from "../../cli/progress.js";
 import { formatConfigIssueLine } from "../../config/issue-format.js";
 import { resolveGatewayLogPaths } from "../../daemon/launchd.js";
@@ -267,7 +268,9 @@ export async function appendStatusAllDiagnosis(params: {
     ]);
     if (stderrTail.length > 0 || stdoutTail.length > 0) {
       lines.push("");
-      lines.push(muted(`Gateway logs (tail, summarized): ${logPaths.logDir}`));
+      lines.push(
+        muted(`${translateActiveCliText("Gateway logs (tail, summarized):")} ${logPaths.logDir}`),
+      );
       lines.push(`  ${muted(`# stderr: ${logPaths.stderrPath}`)}`);
       for (const line of summarizeLogTail(stderrTail, { maxLines: 22 }).map(redactSecrets)) {
         lines.push(`  ${muted(line)}`);
@@ -335,6 +338,6 @@ export async function appendStatusAllDiagnosis(params: {
 
   lines.push("");
   lines.push(muted("Pasteable debug report. Auth tokens redacted."));
-  lines.push("Troubleshooting: https://docs.crawclaw.ai/troubleshooting");
+  lines.push(translateActiveCliText("Troubleshooting: https://docs.crawclaw.ai/troubleshooting"));
   lines.push("");
 }

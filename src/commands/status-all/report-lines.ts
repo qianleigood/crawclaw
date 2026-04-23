@@ -1,3 +1,4 @@
+import { translateActiveCliText } from "../../cli/i18n/text.js";
 import type { ProgressReporter } from "../../cli/progress.js";
 import { getTerminalTableWidth, renderTable } from "../../terminal/table.js";
 import { isRich, theme } from "../../terminal/theme.js";
@@ -51,11 +52,12 @@ export async function buildStatusAllReportLines(params: {
   >;
 }) {
   const rich = isRich();
-  const heading = (text: string) => (rich ? theme.heading(text) : text);
-  const ok = (text: string) => (rich ? theme.success(text) : text);
-  const warn = (text: string) => (rich ? theme.warn(text) : text);
-  const fail = (text: string) => (rich ? theme.error(text) : text);
-  const muted = (text: string) => (rich ? theme.muted(text) : text);
+  const tr = (text: string) => translateActiveCliText(text);
+  const heading = (text: string) => (rich ? theme.heading(tr(text)) : tr(text));
+  const ok = (text: string) => (rich ? theme.success(tr(text)) : tr(text));
+  const warn = (text: string) => (rich ? theme.warn(tr(text)) : tr(text));
+  const fail = (text: string) => (rich ? theme.error(tr(text)) : tr(text));
+  const muted = (text: string) => (rich ? theme.muted(tr(text)) : tr(text));
 
   const tableWidth = getTerminalTableWidth();
 
@@ -65,7 +67,10 @@ export async function buildStatusAllReportLines(params: {
       { key: "Item", header: "Item", minWidth: 10 },
       { key: "Value", header: "Value", flex: true, minWidth: 24 },
     ],
-    rows: params.overviewRows,
+    rows: params.overviewRows.map((row) => ({
+      Item: tr(row.Item),
+      Value: tr(row.Value),
+    })),
   });
 
   const channelRows = params.channels.rows.map((row) => ({

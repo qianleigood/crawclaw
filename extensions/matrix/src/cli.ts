@@ -777,50 +777,64 @@ export function registerMatrixCli(params: { program: Command; locale?: MatrixCli
               useEnv: options.useEnv === true,
             }),
           onText: (result) => {
-            console.log(`Saved matrix account: ${result.accountId}`);
-            console.log(`Config path: ${result.configPath}`);
             console.log(
-              `Credentials source: ${result.useEnv ? "MATRIX_* / MATRIX_<ACCOUNT_ID>_* env vars" : "inline config"}`,
+              `${text("Saved matrix account", "已保存 Matrix 账号")}: ${result.accountId}`,
+            );
+            console.log(`${text("Config path", "配置路径")}: ${result.configPath}`);
+            console.log(
+              `${text("Credentials source", "凭据来源")}: ${result.useEnv ? "MATRIX_* / MATRIX_<ACCOUNT_ID>_* env vars" : text("inline config", "内联配置")}`,
             );
             if (result.verificationBootstrap.attempted) {
               if (result.verificationBootstrap.success) {
-                console.log("Matrix verification bootstrap: complete");
+                console.log(
+                  text("Matrix verification bootstrap: complete", "Matrix 验证引导已完成"),
+                );
                 printTimestamp(
-                  "Recovery key created at",
+                  text("Recovery key created at", "Recovery key 创建时间"),
                   result.verificationBootstrap.recoveryKeyCreatedAt,
                 );
                 if (result.verificationBootstrap.backupVersion) {
-                  console.log(`Backup version: ${result.verificationBootstrap.backupVersion}`);
+                  console.log(
+                    `${text("Backup version", "Backup 版本")}: ${result.verificationBootstrap.backupVersion}`,
+                  );
                 }
               } else {
                 console.error(
-                  `Matrix verification bootstrap warning: ${result.verificationBootstrap.error}`,
+                  `${text("Matrix verification bootstrap warning", "Matrix 验证引导警告")}: ${result.verificationBootstrap.error}`,
                 );
               }
             }
             if (result.deviceHealth.error) {
-              console.error(`Matrix device health warning: ${result.deviceHealth.error}`);
+              console.error(
+                `${text("Matrix device health warning", "Matrix 设备健康警告")}: ${result.deviceHealth.error}`,
+              );
             } else if (result.deviceHealth.staleCrawClawDeviceIds.length > 0) {
               console.log(
-                `Matrix device hygiene warning: stale CrawClaw devices detected (${result.deviceHealth.staleCrawClawDeviceIds.join(", ")}). Run 'crawclaw matrix devices prune-stale --account ${result.accountId}'.`,
+                `${text("Matrix device hygiene warning: stale CrawClaw devices detected", "Matrix 设备卫生警告：检测到陈旧的 CrawClaw 设备")} (${result.deviceHealth.staleCrawClawDeviceIds.join(", ")}). ${text("Run", "运行")} 'crawclaw matrix devices prune-stale --account ${result.accountId}'.`,
               );
             }
             if (result.profile.attempted) {
               if (result.profile.error) {
-                console.error(`Profile sync warning: ${result.profile.error}`);
+                console.error(
+                  `${text("Profile sync warning", "Profile 同步警告")}: ${result.profile.error}`,
+                );
               } else {
                 console.log(
-                  `Profile sync: name ${result.profile.displayNameUpdated ? "updated" : "unchanged"}, avatar ${result.profile.avatarUpdated ? "updated" : "unchanged"}`,
+                  `${text("Profile sync", "Profile 同步")}: ${text("name", "名称")} ${result.profile.displayNameUpdated ? text("updated", "已更新") : text("unchanged", "未变化")}, ${text("avatar", "头像")} ${result.profile.avatarUpdated ? text("updated", "已更新") : text("unchanged", "未变化")}`,
                 );
                 if (result.profile.convertedAvatarFromHttp && result.profile.resolvedAvatarUrl) {
-                  console.log(`Avatar converted and saved as: ${result.profile.resolvedAvatarUrl}`);
+                  console.log(
+                    `${text("Avatar converted and saved as", "头像已转换并保存为")}: ${result.profile.resolvedAvatarUrl}`,
+                  );
                 }
               }
             }
             const bindHint = `crawclaw agents bind --agent <id> --bind matrix:${result.accountId}`;
-            console.log(`Bind this account to an agent: ${bindHint}`);
+            console.log(
+              `${text("Bind this account to an agent", "将此账号绑定到 agent")}: ${bindHint}`,
+            );
           },
-          errorPrefix: "Account setup failed",
+          errorPrefix: text("Account setup failed", "账号设置失败"),
         });
       },
     );
@@ -864,15 +878,17 @@ export function registerMatrixCli(params: { program: Command; locale?: MatrixCli
             }),
           onText: (result) => {
             printAccountLabel(result.accountId);
-            console.log(`Config path: ${result.configPath}`);
+            console.log(`${text("Config path", "配置路径")}: ${result.configPath}`);
             console.log(
-              `Profile update: name ${result.profile.displayNameUpdated ? "updated" : "unchanged"}, avatar ${result.profile.avatarUpdated ? "updated" : "unchanged"}`,
+              `${text("Profile update", "Profile 更新")}: ${text("name", "名称")} ${result.profile.displayNameUpdated ? text("updated", "已更新") : text("unchanged", "未变化")}, ${text("avatar", "头像")} ${result.profile.avatarUpdated ? text("updated", "已更新") : text("unchanged", "未变化")}`,
             );
             if (result.profile.convertedAvatarFromHttp && result.avatarUrl) {
-              console.log(`Avatar converted and saved as: ${result.avatarUrl}`);
+              console.log(
+                `${text("Avatar converted and saved as", "头像已转换并保存为")}: ${result.avatarUrl}`,
+              );
             }
           },
-          errorPrefix: "Profile update failed",
+          errorPrefix: text("Profile update failed", "Profile 更新失败"),
         });
       },
     );

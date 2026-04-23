@@ -1,3 +1,4 @@
+import { translateActiveCliText } from "./cli/i18n/text.js";
 import { clearActiveProgressLine } from "./terminal/progress-line.js";
 import { restoreTerminalState } from "./terminal/restore.js";
 
@@ -66,17 +67,19 @@ function writeStdout(value: string): void {
 }
 
 function createRuntimeIo(): Pick<OutputRuntimeEnv, "log" | "error" | "writeStdout" | "writeJson"> {
+  const localizeArgs = (args: unknown[]): unknown[] =>
+    args.map((arg) => (typeof arg === "string" ? translateActiveCliText(arg) : arg));
   return {
     log: (...args: Parameters<typeof console.log>) => {
       if (!shouldEmitRuntimeLog()) {
         return;
       }
       clearActiveProgressLine();
-      console.log(...args);
+      console.log(...localizeArgs(args));
     },
     error: (...args: Parameters<typeof console.error>) => {
       clearActiveProgressLine();
-      console.error(...args);
+      console.error(...localizeArgs(args));
     },
     writeStdout,
     writeJson: (value: unknown, space = 2) => {

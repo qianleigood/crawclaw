@@ -2,6 +2,7 @@ import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveCommandSecretRefsViaGateway } from "../cli/command-secret-gateway.js";
 import { getStatusCommandSecretTargetIds } from "../cli/command-secret-targets.js";
+import { resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
 import { withProgress } from "../cli/progress.js";
 import {
   readBestEffortConfig,
@@ -73,6 +74,7 @@ export async function statusAllCommand(
   runtime: RuntimeEnv,
   opts?: { timeoutMs?: number },
 ): Promise<void> {
+  resolveCliLocaleFromRuntime(process.argv);
   await withProgress({ label: "Scanning status --all…", total: 11 }, async (progress) => {
     progress.setLabel("Loading config…");
     const loadedRaw = await readBestEffortConfig();
