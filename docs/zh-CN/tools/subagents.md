@@ -132,7 +132,8 @@ task-backed 子智能体运行现在还会持久化：
 自动归档：
 
 - 子智能体会话在 `agents.defaults.subagents.archiveAfterMinutes` 后自动归档（默认：60）。
-- 归档使用 `sessions.delete` 并将转录重命名为 `*.deleted.<timestamp>`（同一文件夹）。
+- 这条自动归档路径只用于已完成子智能体会话的清理。它使用 `sessions.delete`，并将转录重命名为 `*.deleted.<timestamp>`（同一文件夹）。
+- 不要把 `sessions.delete` 当成用户聊天归档命令；它会移除 session store 条目，也不会额外执行最终的 memory、dream 或经验维护。
 - `cleanup: "delete"` 在通告后立即归档（仍通过重命名保留转录）。
 - 自动归档是尽力而为的；如果 Gateway 网关重启，待处理的定时器会丢失。
 - `runTimeoutSeconds` **不会**自动归档；它只停止运行。会话会保留直到自动归档。

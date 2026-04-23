@@ -178,6 +178,7 @@ x-i18n:
 - 在通告步骤中精确回复 `ANNOUNCE_SKIP` 以保持静默。
 - 通告回复规范化为 `Status`/`Result`/`Notes`；`Status` 来自运行时结果（不是模型文本）。
 - 子智能体会话在 `agents.defaults.subagents.archiveAfterMinutes` 后自动归档（默认：60）。
+- 这类自动归档是子智能体清理路径，不是用户聊天归档命令；底层 `sessions.delete` 会移除 session store 条目，且不会额外执行最终的 memory、dream 或经验维护。
 - 通告回复包含统计行（运行时间、token 数、sessionKey/sessionId、记录路径和可选成本）。
 
 ## 沙箱会话可见性

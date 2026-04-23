@@ -169,7 +169,8 @@ Discovery:
 Auto-archive:
 
 - Sub-agent sessions are automatically archived after `agents.defaults.subagents.archiveAfterMinutes` (default: 60).
-- Archive uses `sessions.delete` and renames the transcript to `*.deleted.<timestamp>` (same folder).
+- This auto-archive path is cleanup for completed sub-agent sessions only. It uses `sessions.delete` and renames the transcript to `*.deleted.<timestamp>` (same folder).
+- Do not treat `sessions.delete` as a user chat archive command; it removes the session store entry and does not run a final memory, dream, or experience-maintenance pass.
 - `cleanup: "delete"` archives immediately after announce (still keeps the transcript via rename).
 - Auto-archive is best-effort; pending timers are lost if the gateway restarts.
 - `runTimeoutSeconds` does **not** auto-archive; it only stops the run. The session remains until auto-archive.
