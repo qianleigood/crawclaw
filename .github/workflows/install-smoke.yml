@@ -210,12 +210,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          use_local=0
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            use_local=1
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.ref_type }}" == "branch" && "${{ github.ref }}" != "refs/heads/main" ]]; then
-            use_local=1
-          fi
+          use_local=1
 
           if [[ "$use_local" == "1" ]]; then
             {
