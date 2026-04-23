@@ -7,6 +7,7 @@ import {
   resolveStdioMcpServerLaunchConfig,
   describeStdioMcpServerLaunchConfig,
 } from "./mcp-stdio.js";
+import { sanitizeServerName } from "./pi-bundle-mcp-names.js";
 import type { AnyAgentTool } from "./tools/common.js";
 
 // Minimal LSP JSON-RPC framing over stdio (Content-Length header + JSON body).
@@ -19,6 +20,7 @@ type LspSession = {
   buffer: string;
   initialized: boolean;
   capabilities: LspServerCapabilities;
+  lifecycleError?: Error;
 };
 
 type LspServerCapabilities = {
@@ -85,12 +87,30 @@ function parseLspMessages(buffer: string): { messages: unknown[]; remaining: str
 }
 
 function sendRequest(session: LspSession, method: string, params?: unknown): Promise<unknown> {
+  if (session.lifecycleError) {
+    return Promise.reject(session.lifecycleError);
+  }
   const id = ++session.requestId;
   return new Promise((resolve, reject) => {
     session.pendingRequests.set(id, { resolve, reject });
     const message = { jsonrpc: "2.0", id, method, params };
     const encoded = encodeLspMessage(message);
-    session.process.stdin?.write(encoded, "utf-8");
+    try {
+      if (!session.process.stdin) {
+        throw new Error("LSP process stdin is unavailable");
+      }
+      session.process.stdin.write(encoded, "utf-8", (error) => {
+        if (!error || !session.pendingRequests.has(id)) {
+          return;
+        }
+        session.pendingRequests.delete(id);
+        reject(error);
+      });
+    } catch (error) {
+      session.pendingRequests.delete(id);
+      reject(error instanceof Error ? error : new Error(String(error)));
+      return;
+    }
 
     // Timeout after 10 seconds
     setTimeout(() => {
@@ -100,6 +120,14 @@ function sendRequest(session: LspSession, method: string, params?: unknown): Pro
       }
     }, 10_000);
   });
+}
+
+function rejectPendingRequests(session: LspSession, error: Error) {
+  session.lifecycleError = error;
+  for (const [, pending] of session.pendingRequests) {
+    pending.reject(error);
+  }
+  session.pendingRequests.clear();
 }
 
 function handleIncomingData(session: LspSession, chunk: string) {
@@ -206,7 +234,7 @@ function createLspPositionTool(params: {
   };
 }
 
-function buildLspTools(session: LspSession): AnyAgentTool[] {
+function buildLspTools(session: LspSession, safeServerName: string): AnyAgentTool[] {
   const tools: AnyAgentTool[] = [];
   const caps = session.capabilities;
   const serverLabel = session.serverName;
@@ -215,7 +243,7 @@ function buildLspTools(session: LspSession): AnyAgentTool[] {
     tools.push(
       createLspPositionTool({
         session,
-        toolName: `lsp_hover_${serverLabel}`,
+        toolName: `lsp_hover_${safeServerName}`,
         label: `LSP Hover (${serverLabel})`,
         description: `Get hover information for a symbol at a position in a file via the ${serverLabel} language server.`,
         method: "textDocument/hover",
@@ -228,7 +256,7 @@ function buildLspTools(session: LspSession): AnyAgentTool[] {
     tools.push(
       createLspPositionTool({
         session,
-        toolName: `lsp_definition_${serverLabel}`,
+        toolName: `lsp_definition_${safeServerName}`,
         label: `LSP Go to Definition (${serverLabel})`,
         description: `Find the definition of a symbol at a position in a file via the ${serverLabel} language server.`,
         method: "textDocument/definition",
@@ -239,7 +267,7 @@ function buildLspTools(session: LspSession): AnyAgentTool[] {
 
   if (caps.referencesProvider) {
     tools.push({
-      name: `lsp_references_${serverLabel}`,
+      name: `lsp_references_${safeServerName}`,
       label: `LSP Find References (${serverLabel})`,
       description: `Find all references to a symbol at a position in a file via the ${serverLabel} language server.`,
       parameters: {
@@ -312,6 +340,7 @@ export async function createBundleLspToolRuntime(params: {
   );
   const sessions: LspSession[] = [];
   const tools: AnyAgentTool[] = [];
+  const usedServerNames = new Set<string>();
 
   try {
     for (const [serverName, rawServer] of Object.entries(loaded.lspServers)) {
@@ -321,6 +350,12 @@ export async function createBundleLspToolRuntime(params: {
         continue;
       }
       const launchConfig = launch.config;
+      const safeServerName = sanitizeServerName(serverName, usedServerNames);
+      if (safeServerName !== serverName) {
+        logWarn(
+          `bundle-lsp: server key "${serverName}" registered as "${safeServerName}" for provider-safe tool names.`,
+        );
+      }
 
       try {
         const child = spawn(launchConfig.command, launchConfig.args ?? [], {
@@ -339,6 +374,21 @@ export async function createBundleLspToolRuntime(params: {
           capabilities: {},
         };
 
+        child.once("error", (error) => {
+          rejectPendingRequests(session, error instanceof Error ? error : new Error(String(error)));
+        });
+        child.once("exit", (code, signal) => {
+          const reason = signal
+            ? `signal ${signal}`
+            : typeof code === "number"
+              ? `exit code ${code}`
+              : "exit";
+          rejectPendingRequests(
+            session,
+            new Error(`LSP server "${serverName}" exited (${reason})`),
+          );
+        });
+
         child.stdout?.setEncoding("utf-8");
         child.stdout?.on("data", (chunk: string) => handleIncomingData(session, chunk));
         child.stderr?.setEncoding("utf-8");
@@ -352,7 +402,7 @@ export async function createBundleLspToolRuntime(params: {
         session.capabilities = capabilities;
         sessions.push(session);
 
-        const serverTools = buildLspTools(session);
+        const serverTools = buildLspTools(session, safeServerName);
         for (const tool of serverTools) {
           const normalizedName = tool.name.trim().toLowerCase();
           if (reservedNames.has(normalizedName)) {

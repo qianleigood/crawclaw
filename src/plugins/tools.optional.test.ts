@@ -279,6 +279,26 @@ describe("resolvePluginTools optional tools", () => {
     });
   });
 
+  it("rejects plugin tool names that normalize to existing core tool names", () => {
+    const registry = setRegistry([
+      {
+        pluginId: "case-tool",
+        optional: false,
+        source: "/tmp/case-tool.js",
+        factory: () => makeTool("Read"),
+      },
+    ]);
+
+    const tools = resolvePluginTools(
+      createResolveToolsParams({
+        existingToolNames: new Set(["read"]),
+      }),
+    );
+
+    expect(tools).toEqual([]);
+    expectSingleDiagnosticMessage(registry.diagnostics, "plugin tool name conflict");
+  });
+
   it.each([
     {
       name: "forwards an explicit env to plugin loading",
