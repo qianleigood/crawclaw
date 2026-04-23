@@ -25,6 +25,21 @@ type WindowsPackedInstallSmoke = {
   resolvePackedTarball: (packOutput: string, packDir: string) => string;
   resolveRuntimeBinaryProbeArgs: (pluginId: string) => string[];
   validateRuntimeManifest: (manifest: unknown) => void;
+  waitForGatewayRpcStatus: (
+    crawclawBin: string,
+    smokeEnv: NodeJS.ProcessEnv,
+    options?: {
+      now?: () => number;
+      retryDelayMs?: number;
+      run?: (
+        crawclawBin: string,
+        args: string[],
+        options?: { env?: NodeJS.ProcessEnv; timeoutMs?: number },
+      ) => unknown;
+      sleep?: (ms: number) => void;
+      timeoutMs?: number;
+    },
+  ) => unknown;
 };
 
 async function loadSmokeScript(): Promise<WindowsPackedInstallSmoke> {
@@ -112,6 +127,64 @@ describe("windows packed install smoke helpers", () => {
 
     expect(script.resolveRuntimeBinaryProbeArgs("browser")).toEqual(["--version"]);
     expect(script.resolveRuntimeBinaryProbeArgs("open-websearch")).toEqual(["--help"]);
+  });
+
+  it("retries gateway RPC status while the Windows task is still starting", async () => {
+    const script = await loadSmokeScript();
+    let now = 0;
+    const sleeps: number[] = [];
+    const attempts: string[][] = [];
+    const result = script.waitForGatewayRpcStatus(
+      "crawclaw.cmd",
+      { CRAWCLAW_STATE_DIR: "state" },
+      {
+        now: () => now,
+        retryDelayMs: 50,
+        timeoutMs: 500,
+        sleep: (ms) => {
+          sleeps.push(ms);
+          now += ms;
+        },
+        run: (_bin, args) => {
+          attempts.push(args);
+          if (attempts.length < 3) {
+            throw new Error("gateway port is still free");
+          }
+          return { stdout: '{"health":{"healthy":true}}' };
+        },
+      },
+    );
+
+    expect(result).toEqual({ stdout: '{"health":{"healthy":true}}' });
+    expect(attempts).toEqual([
+      ["gateway", "status", "--deep", "--require-rpc", "--json"],
+      ["gateway", "status", "--deep", "--require-rpc", "--json"],
+      ["gateway", "status", "--deep", "--require-rpc", "--json"],
+    ]);
+    expect(sleeps).toEqual([50, 50]);
+  });
+
+  it("reports the last gateway RPC status error after the retry budget expires", async () => {
+    const script = await loadSmokeScript();
+    let now = 0;
+
+    expect(() =>
+      script.waitForGatewayRpcStatus(
+        "crawclaw.cmd",
+        {},
+        {
+          now: () => now,
+          retryDelayMs: 40,
+          timeoutMs: 100,
+          sleep: (ms) => {
+            now += ms;
+          },
+          run: () => {
+            throw new Error(`not ready at ${now}`);
+          },
+        },
+      ),
+    ).toThrow(/not ready at 100/);
   });
 
   it("resolves plain npm pack output without requiring the large JSON file list", async () => {

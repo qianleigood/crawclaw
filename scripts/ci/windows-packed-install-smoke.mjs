@@ -15,6 +15,7 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_INSTALL_TIMEOUT_MS = 45 * 60_000;
 const DEFAULT_GATEWAY_TIMEOUT_MS = 6 * 60_000;
 const CLEANUP_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000];
+const GATEWAY_STATUS_RETRY_DELAY_MS = 2_000;
 
 export function readTimeoutMsFromEnv(env, key, fallbackMs) {
   const raw = env[key]?.trim();
@@ -341,6 +342,39 @@ function sleepSync(ms) {
   Atomics.wait(view, 0, 0, ms);
 }
 
+export function waitForGatewayRpcStatus(crawclawBin, smokeEnv, options = {}) {
+  const timeoutMs = options.timeoutMs ?? GATEWAY_TIMEOUT_MS;
+  const retryDelayMs = options.retryDelayMs ?? GATEWAY_STATUS_RETRY_DELAY_MS;
+  const now = options.now ?? (() => Date.now());
+  const sleep = options.sleep ?? sleepSync;
+  const run = options.run ?? runCrawClaw;
+  const deadline = now() + timeoutMs;
+  let lastError = null;
+
+  while (now() <= deadline) {
+    try {
+      return run(crawclawBin, ["gateway", "status", "--deep", "--require-rpc", "--json"], {
+        env: smokeEnv,
+        timeoutMs: Math.max(1, Math.min(DEFAULT_TIMEOUT_MS, deadline - now())),
+      });
+    } catch (error) {
+      lastError = error;
+      const remainingMs = deadline - now();
+      if (remainingMs <= 0) {
+        break;
+      }
+      sleep(Math.min(retryDelayMs, remainingMs));
+    }
+  }
+
+  throw new Error(
+    `gateway did not become RPC-ready within ${timeoutMs}ms after Scheduled Task start: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
+    { cause: lastError },
+  );
+}
+
 function isWindowsCleanupTransientError(error) {
   if (!error || typeof error !== "object") {
     return false;
@@ -409,10 +443,7 @@ function runGatewayLifecycle(crawclawBin, smokeEnv) {
       env: smokeEnv,
       timeoutMs: GATEWAY_TIMEOUT_MS,
     });
-    runCrawClaw(crawclawBin, ["gateway", "status", "--deep", "--require-rpc", "--json"], {
-      env: smokeEnv,
-      timeoutMs: GATEWAY_TIMEOUT_MS,
-    });
+    waitForGatewayRpcStatus(crawclawBin, smokeEnv);
   } finally {
     runCrawClaw(crawclawBin, ["gateway", "stop", "--json"], {
       env: smokeEnv,
