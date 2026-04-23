@@ -1,6 +1,6 @@
 {
   "name": "@crawclaw/nostr",
-  "version": "2026.4.1-beta.1",
+  "version": "2026.4.20",
   "description": "CrawClaw Nostr channel plugin for NIP-04 encrypted DMs",
   "type": "module",
   "dependencies": {

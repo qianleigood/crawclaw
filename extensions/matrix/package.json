@@ -1,6 +1,6 @@
 {
   "name": "@crawclaw/matrix",
-  "version": "2026.4.1-beta.1",
+  "version": "2026.4.20",
   "description": "CrawClaw Matrix channel plugin",
   "type": "module",
   "dependencies": {

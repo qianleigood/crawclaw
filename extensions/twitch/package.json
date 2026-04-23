@@ -1,6 +1,6 @@
 {
   "name": "@crawclaw/twitch",
-  "version": "2026.4.1-beta.1",
+  "version": "2026.4.20",
   "description": "CrawClaw Twitch channel plugin",
   "type": "module",
   "dependencies": {

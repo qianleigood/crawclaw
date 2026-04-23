@@ -1,6 +1,6 @@
 {
   "name": "@crawclaw/irc",
-  "version": "2026.4.1-beta.1",
+  "version": "2026.4.20",
   "description": "CrawClaw IRC channel plugin",
   "type": "module",
   "crawclaw": {

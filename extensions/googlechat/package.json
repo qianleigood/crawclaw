@@ -1,6 +1,6 @@
 {
   "name": "@crawclaw/googlechat",
-  "version": "2026.4.1-beta.1",
+  "version": "2026.4.20",
   "private": true,
   "description": "CrawClaw Google Chat channel plugin",
   "type": "module",
