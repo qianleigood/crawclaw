@@ -28,21 +28,26 @@ type docsPiModelOverrideCapabilities struct {
 
 func ensureDocsPiModelsConfig(agentDir string) error {
 	modelsPath := filepath.Join(agentDir, "models.json")
-	if docsPiProvider() != defaultMiniMaxProvider ||
-		strings.TrimSpace(os.Getenv(envMiniMaxCnAPIKey)) == "" {
+	if docsPiProvider() != defaultMiniMaxProvider {
 		return removeDocsPiManagedModelsConfig(modelsPath)
 	}
+	baseURL, apiKeyEnv, ok := resolveMiniMaxManagedProviderConfig()
+	if !ok {
+		return removeDocsPiManagedModelsConfig(modelsPath)
+	}
+	model := docsPiModel()
 
 	config := docsPiModelsConfig{
 		Providers: map[string]docsPiModelProviderConfig{
 			defaultMiniMaxProvider: {
-				BaseURL:    miniMaxCnBaseURL,
+				BaseURL:    baseURL,
 				API:        "anthropic-messages",
-				APIKey:     envMiniMaxCnAPIKey,
+				APIKey:     apiKeyEnv,
 				AuthHeader: true,
 				ModelOverrides: map[string]docsPiModelOverrideCapabilities{
 					defaultMiniMaxModel:      {Reasoning: true},
 					"MiniMax-M2.7-highspeed": {Reasoning: true},
+					model:                    {Reasoning: true},
 				},
 			},
 		},
@@ -55,6 +60,25 @@ func ensureDocsPiModelsConfig(agentDir string) error {
 	return os.WriteFile(modelsPath, data, 0o600)
 }
 
+func resolveMiniMaxManagedProviderConfig() (baseURL string, apiKeyEnv string, ok bool) {
+	customBaseURL := strings.TrimSpace(os.Getenv(envMiniMaxBaseURL))
+	hasCnKey := strings.TrimSpace(os.Getenv(envMiniMaxCnAPIKey)) != ""
+	hasGlobalKey := strings.TrimSpace(os.Getenv(envMiniMaxAPIKey)) != ""
+	if customBaseURL != "" {
+		if hasGlobalKey {
+			return customBaseURL, envMiniMaxAPIKey, true
+		}
+		if hasCnKey {
+			return customBaseURL, envMiniMaxCnAPIKey, true
+		}
+		return "", "", false
+	}
+	if hasCnKey {
+		return miniMaxCnBaseURL, envMiniMaxCnAPIKey, true
+	}
+	return "", "", false
+}
+
 func removeDocsPiManagedModelsConfig(modelsPath string) error {
 	data, err := os.ReadFile(modelsPath)
 	if errors.Is(err, os.ErrNotExist) {
@@ -64,8 +88,15 @@ func removeDocsPiManagedModelsConfig(modelsPath string) error {
 		return err
 	}
 	raw := string(data)
-	if strings.Contains(raw, miniMaxCnBaseURL) && strings.Contains(raw, envMiniMaxCnAPIKey) {
+	if isDocsPiManagedMiniMaxModelsConfig(raw) {
 		return os.Remove(modelsPath)
 	}
 	return nil
+}
+
+func isDocsPiManagedMiniMaxModelsConfig(raw string) bool {
+	return strings.Contains(raw, "\""+defaultMiniMaxProvider+"\"") &&
+		strings.Contains(raw, "\"anthropic-messages\"") &&
+		(strings.Contains(raw, "\""+envMiniMaxCnAPIKey+"\"") ||
+			strings.Contains(raw, "\""+envMiniMaxAPIKey+"\""))
 }

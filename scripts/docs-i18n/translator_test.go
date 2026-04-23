@@ -170,6 +170,8 @@ func TestMaterializedPiRuntimeInstallArgsUsePrefix(t *testing.T) {
 func TestEnsureDocsPiModelsConfigWritesMiniMaxCnProviderWithoutSecret(t *testing.T) {
 	t.Setenv(envDocsI18nProvider, "minimax")
 	t.Setenv(envMiniMaxCnAPIKey, "secret-value")
+	t.Setenv(envMiniMaxBaseURL, "")
+	t.Setenv(envMiniMaxModel, "")
 
 	dir := t.TempDir()
 	if err := ensureDocsPiModelsConfig(dir); err != nil {
@@ -223,6 +225,8 @@ func TestEnsureDocsPiModelsConfigWritesMiniMaxCnProviderWithoutSecret(t *testing
 func TestEnsureDocsPiModelsConfigSkipsWithoutMiniMaxCnKey(t *testing.T) {
 	t.Setenv(envDocsI18nProvider, "minimax")
 	t.Setenv(envMiniMaxCnAPIKey, "")
+	t.Setenv(envMiniMaxAPIKey, "")
+	t.Setenv(envMiniMaxBaseURL, "")
 
 	dir := t.TempDir()
 	if err := ensureDocsPiModelsConfig(dir); err != nil {
@@ -230,6 +234,88 @@ func TestEnsureDocsPiModelsConfigSkipsWithoutMiniMaxCnKey(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "models.json")); !os.IsNotExist(err) {
 		t.Fatalf("expected models.json to be skipped, got err=%v", err)
+	}
+}
+
+func TestEnsureDocsPiModelsConfigRemovesManagedCustomProviderWithoutKey(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "minimax")
+	t.Setenv(envMiniMaxCnAPIKey, "")
+	t.Setenv(envMiniMaxAPIKey, "")
+	t.Setenv(envMiniMaxBaseURL, "")
+
+	dir := t.TempDir()
+	modelsPath := filepath.Join(dir, "models.json")
+	data := []byte(`{
+  "providers": {
+    "minimax": {
+      "baseUrl": "https://custom.minimax.example/anthropic",
+      "api": "anthropic-messages",
+      "apiKey": "MINIMAX_API_KEY",
+      "authHeader": true
+    }
+  }
+}
+`)
+	if err := os.WriteFile(modelsPath, data, 0o600); err != nil {
+		t.Fatalf("write models.json: %v", err)
+	}
+
+	if err := ensureDocsPiModelsConfig(dir); err != nil {
+		t.Fatalf("ensureDocsPiModelsConfig returned error: %v", err)
+	}
+	if _, err := os.Stat(modelsPath); !os.IsNotExist(err) {
+		t.Fatalf("expected managed models.json to be removed, got err=%v", err)
+	}
+}
+
+func TestEnsureDocsPiModelsConfigWritesMiniMaxCustomProviderWithoutSecret(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "minimax")
+	t.Setenv(envDocsI18nModel, "")
+	t.Setenv(envMiniMaxCnAPIKey, "")
+	t.Setenv(envMiniMaxAPIKey, "secret-value")
+	t.Setenv(envMiniMaxBaseURL, "https://custom.minimax.example/anthropic")
+	t.Setenv(envMiniMaxModel, "MiniMax-M2.7-highspeed")
+
+	dir := t.TempDir()
+	if err := ensureDocsPiModelsConfig(dir); err != nil {
+		t.Fatalf("ensureDocsPiModelsConfig returned error: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "models.json"))
+	if err != nil {
+		t.Fatalf("read models.json: %v", err)
+	}
+	raw := string(data)
+	if strings.Contains(raw, "secret-value") {
+		t.Fatalf("models.json must reference env names, not write secret values: %s", raw)
+	}
+
+	var config struct {
+		Providers map[string]struct {
+			BaseURL        string `json:"baseUrl"`
+			API            string `json:"api"`
+			APIKey         string `json:"apiKey"`
+			AuthHeader     bool   `json:"authHeader"`
+			ModelOverrides map[string]struct {
+				Reasoning bool `json:"reasoning"`
+			} `json:"modelOverrides"`
+		} `json:"providers"`
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("decode models.json: %v", err)
+	}
+	provider, ok := config.Providers["minimax"]
+	if !ok {
+		t.Fatalf("expected minimax provider config, got %v", config.Providers)
+	}
+	if provider.BaseURL != "https://custom.minimax.example/anthropic" {
+		t.Fatalf("unexpected MiniMax base URL %q", provider.BaseURL)
+	}
+	if provider.APIKey != envMiniMaxAPIKey {
+		t.Fatalf("expected apiKey env reference %q, got %q", envMiniMaxAPIKey, provider.APIKey)
+	}
+	if !provider.ModelOverrides["MiniMax-M2.7-highspeed"].Reasoning {
+		t.Fatalf("expected reasoning override for custom MiniMax model")
 	}
 }
 

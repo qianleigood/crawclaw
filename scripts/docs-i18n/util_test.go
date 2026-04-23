@@ -68,15 +68,27 @@ func TestDocsPiModelKeepsOpenAIDefaultAtGPT54(t *testing.T) {
 func TestDocsPiModelKeepsMiniMaxDefaultAtM27(t *testing.T) {
 	t.Setenv(envDocsI18nProvider, "minimax")
 	t.Setenv(envDocsI18nModel, "")
+	t.Setenv(envMiniMaxModel, "")
 
 	if got := docsPiModel(); got != defaultMiniMaxModel {
 		t.Fatalf("expected MiniMax default model %q, got %q", defaultMiniMaxModel, got)
 	}
 }
 
+func TestDocsPiModelUsesMiniMaxModelEnvForMiniMax(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "minimax")
+	t.Setenv(envDocsI18nModel, "")
+	t.Setenv(envMiniMaxModel, "MiniMax-M2.7-highspeed")
+
+	if got := docsPiModel(); got != "MiniMax-M2.7-highspeed" {
+		t.Fatalf("expected MiniMax model env override, got %q", got)
+	}
+}
+
 func TestDocsPiModelPrefersExplicitOverride(t *testing.T) {
 	t.Setenv(envDocsI18nProvider, "openai")
 	t.Setenv(envDocsI18nModel, "gpt-5.2")
+	t.Setenv(envMiniMaxModel, "MiniMax-M2.7-highspeed")
 
 	if got := docsPiModel(); got != "gpt-5.2" {
 		t.Fatalf("expected explicit model override, got %q", got)

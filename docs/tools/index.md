@@ -102,12 +102,12 @@ config. Deny always wins over allow.
 `tools.profile` sets a base allowlist before `allow`/`deny` is applied.
 Per-agent override: `agents.list[].tools.profile`.
 
-| Profile     | What it includes                                              |
-| ----------- | ------------------------------------------------------------- |
-| `full`      | All tools (default)                                           |
-| `coding`    | File I/O, runtime, web, sessions, memory, image understanding |
-| `messaging` | Messaging, session list/history/send/status                   |
-| `minimal`   | `session_status` only                                         |
+| Profile     | What it includes                                  |
+| ----------- | ------------------------------------------------- |
+| `full`      | All tools (default)                               |
+| `coding`    | File I/O, runtime, web, sessions, cron, and image |
+| `messaging` | Messaging, session list/history/send/status       |
+| `minimal`   | `session_status` only                             |
 
 ### Tool groups
 
@@ -124,6 +124,7 @@ Use `group:*` shorthands in allow/deny lists:
 | `group:messaging`  | message                                                                                                   |
 | `group:nodes`      | nodes                                                                                                     |
 | `group:agents`     | agents_list                                                                                               |
+| `group:media`      | image, tts                                                                                                |
 | `group:media`      | image, tts                                                                                                |
 | `group:crawclaw`   | All built-in CrawClaw tools (excludes plugin tools)                                                       |
 

@@ -16,6 +16,8 @@ const (
 	envDocsI18nModel         = "CRAWCLAW_DOCS_I18N_MODEL"
 	envMiniMaxAPIKey         = "MINIMAX_API_KEY"
 	envMiniMaxCnAPIKey       = "MINIMAX_CN_API_KEY"
+	envMiniMaxBaseURL        = "MINIMAX_BASE_URL"
+	envMiniMaxModel          = "MINIMAX_MODEL"
 	defaultMiniMaxProvider   = "minimax"
 	defaultMiniMaxModel      = "MiniMax-M2.7"
 	defaultOpenAIModel       = "gpt-5.4"
@@ -80,6 +82,9 @@ func docsPiModel() string {
 	case "anthropic":
 		return defaultAnthropicModel
 	case defaultMiniMaxProvider:
+		if value := strings.TrimSpace(os.Getenv(envMiniMaxModel)); value != "" {
+			return value
+		}
 		return defaultMiniMaxModel
 	case "openai":
 		return defaultOpenAIModel
