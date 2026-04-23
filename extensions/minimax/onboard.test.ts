@@ -2,12 +2,14 @@ import {
   resolveAgentModelFallbackValues,
   resolveAgentModelPrimaryValue,
 } from "crawclaw/plugin-sdk/provider-onboard";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createConfigWithFallbacks,
   createLegacyProviderConfig,
   EXPECTED_FALLBACKS,
 } from "../../test/helpers/plugins/onboard-config.js";
+import { createTestPluginApi } from "../../test/helpers/plugins/plugin-api.js";
+import plugin from "./index.js";
 import { applyMinimaxApiConfig, applyMinimaxApiProviderConfig } from "./onboard.js";
 
 describe("minimax onboard", () => {
@@ -119,5 +121,30 @@ describe("minimax onboard", () => {
     expect(resolveAgentModelFallbackValues(cfg.agents?.defaults?.model)).toEqual([
       ...EXPECTED_FALLBACKS,
     ]);
+  });
+
+  it("forces model selection for all MiniMax onboard auth methods", () => {
+    const registerProvider = vi.fn();
+    plugin.register(
+      createTestPluginApi({
+        id: "minimax",
+        name: "MiniMax",
+        source: "test",
+        config: {},
+        runtime: {} as never,
+        registerProvider,
+      }),
+    );
+
+    const providers = registerProvider.mock.calls.map((call) => call[0]);
+    expect(providers).toHaveLength(2);
+    const authMethods = providers.flatMap((provider) => provider.auth);
+    expect(authMethods).toHaveLength(4);
+    for (const method of authMethods) {
+      expect(method.wizard?.modelSelection).toEqual({
+        promptWhenAuthChoiceProvided: true,
+        allowKeepCurrent: false,
+      });
+    }
   });
 });

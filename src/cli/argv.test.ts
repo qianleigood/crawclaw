@@ -114,6 +114,11 @@ describe("argv helpers", () => {
       expected: true,
     },
     {
+      name: "root --help with lang",
+      argv: ["node", "crawclaw", "--lang", "zh-CN", "--help"],
+      expected: true,
+    },
+    {
       name: "subcommand --help",
       argv: ["node", "crawclaw", "status", "--help"],
       expected: false,
@@ -172,6 +177,8 @@ describe("argv helpers", () => {
           "work",
           "--container",
           "demo",
+          "--lang",
+          "zh-CN",
           "--no-color",
           "config",
           "validate",
@@ -231,6 +238,11 @@ describe("argv helpers", () => {
       name: "skips known root option values",
       argv: ["node", "crawclaw", "--log-level", "debug", "status"],
       expected: "status",
+    },
+    {
+      name: "skips --lang value",
+      argv: ["node", "crawclaw", "--lang", "zh-CN", "onboard", "--help"],
+      expected: "onboard",
     },
   ])("returns primary command: $name", ({ argv, expected }) => {
     expect(getPrimaryCommand(argv)).toBe(expected);

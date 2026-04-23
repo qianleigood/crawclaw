@@ -27,6 +27,10 @@ const PROVIDER_LABEL = "MiniMax";
 const DEFAULT_MODEL = MINIMAX_DEFAULT_MODEL_ID;
 const DEFAULT_BASE_URL_CN = "https://api.minimaxi.com/anthropic";
 const DEFAULT_BASE_URL_GLOBAL = "https://api.minimax.io/anthropic";
+const MINIMAX_MODEL_SELECTION = {
+  promptWhenAuthChoiceProvided: true,
+  allowKeepCurrent: false,
+} as const;
 
 function getDefaultBaseUrl(region: MiniMaxRegion): string {
   return region === "cn" ? DEFAULT_BASE_URL_CN : DEFAULT_BASE_URL_GLOBAL;
@@ -188,6 +192,7 @@ export default definePluginEntry({
             groupId: "minimax",
             groupLabel: "MiniMax",
             groupHint: "M2.7 (recommended)",
+            modelSelection: MINIMAX_MODEL_SELECTION,
           },
         }),
         createProviderApiKeyAuthMethod({
@@ -212,6 +217,7 @@ export default definePluginEntry({
             groupId: "minimax",
             groupLabel: "MiniMax",
             groupHint: "M2.7 (recommended)",
+            modelSelection: MINIMAX_MODEL_SELECTION,
           },
         }),
       ],
@@ -255,6 +261,7 @@ export default definePluginEntry({
             groupId: "minimax",
             groupLabel: "MiniMax",
             groupHint: "M2.7 (recommended)",
+            modelSelection: MINIMAX_MODEL_SELECTION,
           },
           run: createOAuthHandler("global"),
         },
@@ -270,6 +277,7 @@ export default definePluginEntry({
             groupId: "minimax",
             groupLabel: "MiniMax",
             groupHint: "M2.7 (recommended)",
+            modelSelection: MINIMAX_MODEL_SELECTION,
           },
           run: createOAuthHandler("cn"),
         },
