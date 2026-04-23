@@ -1,6 +1,7 @@
 import { CONTEXT_WINDOW_HARD_MIN_TOKENS } from "../agents/context-window-guard.js";
 import { DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { buildModelAliasIndex, modelKey } from "../agents/model-selection.js";
+import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderConfig } from "../config/types.models.js";
 import { isSecretRef, type SecretInput } from "../config/types.secrets.js";
@@ -164,25 +165,29 @@ export type ResolvedCustomProviderId = {
 
 const COMPATIBILITY_OPTIONS: Array<{
   value: CustomApiCompatibilityChoice;
-  label: string;
-  hint: string;
+  labelKey: string;
+  hintKey: string;
 }> = [
   {
     value: "openai",
-    label: "OpenAI-compatible",
-    hint: "Uses /chat/completions",
+    labelKey: "ui.text.openaiCompatible",
+    hintKey: "ui.text.usesChatCompletions",
   },
   {
     value: "anthropic",
-    label: "Anthropic-compatible",
-    hint: "Uses /messages",
+    labelKey: "ui.text.anthropicCompatible",
+    hintKey: "ui.text.usesMessages",
   },
   {
     value: "unknown",
-    label: "Unknown (detect automatically)",
-    hint: "Probes OpenAI then Anthropic endpoints",
+    labelKey: "ui.text.unknownDetectAutomatically",
+    hintKey: "wizard.customApi.probesOpenAiAnthropic",
   },
 ];
+
+function t(key: string, params?: Record<string, string | number>): string {
+  return createCliTranslator(getActiveCliLocale())(key, params);
+}
 
 function normalizeEndpointId(raw: string): string {
   const trimmed = raw.trim().toLowerCase();
@@ -240,7 +245,7 @@ function resolveAliasError(params: {
   try {
     normalized = normalizeAlias(trimmed);
   } catch (err) {
-    return err instanceof Error ? err.message : "Alias is invalid.";
+    return err instanceof Error ? err.message : t("wizard.customApi.aliasInvalid");
   }
   const aliasIndex = buildModelAliasIndex({
     cfg: params.cfg,
@@ -255,7 +260,7 @@ function resolveAliasError(params: {
   if (existingKey === params.modelRef) {
     return undefined;
   }
-  return `Alias ${normalized} already points to ${existingKey}.`;
+  return t("wizard.customApi.aliasCollision", { alias: normalized, target: existingKey });
 }
 
 function buildAzureOpenAiHeaders(apiKey: string) {
@@ -434,7 +439,7 @@ async function promptBaseUrlAndKey(params: {
   initialBaseUrl?: string;
 }): Promise<{ baseUrl: string; apiKey?: SecretInput; resolvedApiKey: string }> {
   const baseUrlInput = await params.prompter.text({
-    message: "API Base URL",
+    message: t("ui.text.apiBaseUrl"),
     initialValue: params.initialBaseUrl ?? OLLAMA_DEFAULT_BASE_URL,
     placeholder: "https://api.example.com/v1",
     validate: (val) => {
@@ -442,7 +447,7 @@ async function promptBaseUrlAndKey(params: {
         new URL(val);
         return undefined;
       } catch {
-        return "Please enter a valid URL (e.g. http://...)";
+        return t("wizard.customApi.validUrl");
       }
     },
   });
@@ -453,7 +458,7 @@ async function promptBaseUrlAndKey(params: {
     config: params.config,
     provider: providerHint,
     envLabel: "CUSTOM_API_KEY",
-    promptMessage: "API Key (leave blank if not required)",
+    promptMessage: t("ui.text.apiKeyOptional"),
     normalize: normalizeSecretInput,
     validate: () => undefined,
     prompter: params.prompter,
@@ -473,11 +478,11 @@ type CustomApiRetryChoice = "baseUrl" | "model" | "both";
 
 async function promptCustomApiRetryChoice(prompter: WizardPrompter): Promise<CustomApiRetryChoice> {
   return await prompter.select({
-    message: "What would you like to change?",
+    message: t("wizard.customApi.retryChoice"),
     options: [
-      { value: "baseUrl", label: "Change base URL" },
-      { value: "model", label: "Change model" },
-      { value: "both", label: "Change base URL and model" },
+      { value: "baseUrl", label: t("ui.text.changeBaseUrl") },
+      { value: "model", label: t("ui.text.changeModel") },
+      { value: "both", label: t("ui.text.changeBaseUrlAndModel") },
     ],
   });
 }
@@ -485,9 +490,9 @@ async function promptCustomApiRetryChoice(prompter: WizardPrompter): Promise<Cus
 async function promptCustomApiModelId(prompter: WizardPrompter): Promise<string> {
   return (
     await prompter.text({
-      message: "Model ID",
+      message: t("ui.text.modelId"),
       placeholder: "e.g. llama3, claude-3-7-sonnet",
-      validate: (val) => (val.trim() ? undefined : "Model ID is required"),
+      validate: (val) => (val.trim() ? undefined : t("wizard.customApi.modelRequired")),
     })
   ).trim();
 }
@@ -531,7 +536,7 @@ function parseCustomApiCompatibility(raw?: string): CustomApiCompatibility {
   if (compatibilityRaw !== "openai" && compatibilityRaw !== "anthropic") {
     throw new CustomApiError(
       "invalid_compatibility",
-      'Invalid --custom-compatibility (use "openai" or "anthropic").',
+      t("wizard.customApi.invalidCompatibilityFlag"),
     );
   }
   return compatibilityRaw;
@@ -544,10 +549,7 @@ export function resolveCustomProviderId(
   const baseUrl = params.baseUrl.trim();
   const explicitProviderId = params.providerId?.trim();
   if (explicitProviderId && !normalizeEndpointId(explicitProviderId)) {
-    throw new CustomApiError(
-      "invalid_provider_id",
-      "Custom provider ID must include letters, numbers, or hyphens.",
-    );
+    throw new CustomApiError("invalid_provider_id", t("wizard.customApi.invalidProviderId"));
   }
   const requestedProviderId = explicitProviderId || buildEndpointIdFromUrl(baseUrl);
   const providerIdResult = resolveUniqueEndpointId({
@@ -576,7 +578,7 @@ export function parseNonInteractiveCustomApiFlags(
       "missing_required",
       [
         'Auth choice "custom-api-key" requires a base URL and model ID.',
-        "Use --custom-base-url and --custom-model-id.",
+        t("wizard.customApi.useBaseUrlAndModelFlags"),
       ].join("\n"),
     );
   }
@@ -584,10 +586,7 @@ export function parseNonInteractiveCustomApiFlags(
   const apiKey = params.apiKey?.trim();
   const providerId = params.providerId?.trim();
   if (providerId && !normalizeEndpointId(providerId)) {
-    throw new CustomApiError(
-      "invalid_provider_id",
-      "Custom provider ID must include letters, numbers, or hyphens.",
-    );
+    throw new CustomApiError("invalid_provider_id", t("wizard.customApi.invalidProviderId"));
   }
   return {
     baseUrl,
@@ -603,19 +602,16 @@ export function applyCustomApiConfig(params: ApplyCustomApiConfigParams): Custom
   try {
     new URL(baseUrl);
   } catch {
-    throw new CustomApiError("invalid_base_url", "Custom provider base URL must be a valid URL.");
+    throw new CustomApiError("invalid_base_url", t("wizard.customApi.invalidBaseUrl"));
   }
 
   if (params.compatibility !== "openai" && params.compatibility !== "anthropic") {
-    throw new CustomApiError(
-      "invalid_compatibility",
-      'Custom provider compatibility must be "openai" or "anthropic".',
-    );
+    throw new CustomApiError("invalid_compatibility", t("wizard.customApi.invalidCompatibility"));
   }
 
   const modelId = params.modelId.trim();
   if (!modelId) {
-    throw new CustomApiError("invalid_model_id", "Custom provider model ID is required.");
+    throw new CustomApiError("invalid_model_id", t("wizard.customApi.invalidModelId"));
   }
 
   const isAzure = isAzureUrl(baseUrl);
@@ -783,11 +779,11 @@ export async function promptCustomApiConfig(params: {
   let resolvedApiKey = baseInput.resolvedApiKey;
 
   const compatibilityChoice = await prompter.select({
-    message: "Endpoint compatibility",
+    message: t("ui.text.endpointCompatibility"),
     options: COMPATIBILITY_OPTIONS.map((option) => ({
       value: option.value,
-      label: option.label,
-      hint: option.hint,
+      label: t(option.labelKey),
+      hint: t(option.hintKey),
     })),
   });
 
@@ -799,14 +795,14 @@ export async function promptCustomApiConfig(params: {
   while (true) {
     let verifiedFromProbe = false;
     if (!compatibility) {
-      const probeSpinner = prompter.progress("Detecting endpoint type...");
+      const probeSpinner = prompter.progress(t("wizard.customApi.detectingEndpoint"));
       const openaiProbe = await requestOpenAiVerification({
         baseUrl,
         apiKey: resolvedApiKey,
         modelId,
       });
       if (openaiProbe.ok) {
-        probeSpinner.stop("Detected OpenAI-compatible endpoint.");
+        probeSpinner.stop(t("wizard.customApi.detectedOpenAi"));
         compatibility = "openai";
         verifiedFromProbe = true;
       } else {
@@ -816,14 +812,14 @@ export async function promptCustomApiConfig(params: {
           modelId,
         });
         if (anthropicProbe.ok) {
-          probeSpinner.stop("Detected Anthropic-compatible endpoint.");
+          probeSpinner.stop(t("wizard.customApi.detectedAnthropic"));
           compatibility = "anthropic";
           verifiedFromProbe = true;
         } else {
-          probeSpinner.stop("Could not detect endpoint type.");
+          probeSpinner.stop(t("wizard.customApi.detectFailed"));
           await prompter.note(
-            "This endpoint did not respond to OpenAI or Anthropic style requests.",
-            "Endpoint detection",
+            t("wizard.customApi.detectFailedDetail"),
+            t("wizard.customApi.detectTitle"),
           );
           const retryChoice = await promptCustomApiRetryChoice(prompter);
           ({ baseUrl, apiKey, resolvedApiKey, modelId } = await applyCustomApiRetryChoice({
@@ -842,19 +838,21 @@ export async function promptCustomApiConfig(params: {
       break;
     }
 
-    const verifySpinner = prompter.progress("Verifying...");
+    const verifySpinner = prompter.progress(t("wizard.customApi.verifying"));
     const result =
       compatibility === "anthropic"
         ? await requestAnthropicVerification({ baseUrl, apiKey: resolvedApiKey, modelId })
         : await requestOpenAiVerification({ baseUrl, apiKey: resolvedApiKey, modelId });
     if (result.ok) {
-      verifySpinner.stop("Verification successful.");
+      verifySpinner.stop(t("wizard.customApi.verifySuccess"));
       break;
     }
     if (result.status !== undefined) {
-      verifySpinner.stop(`Verification failed: status ${result.status}`);
+      verifySpinner.stop(t("wizard.customApi.verifyStatusFailed", { status: result.status }));
     } else {
-      verifySpinner.stop(`Verification failed: ${formatVerificationError(result.error)}`);
+      verifySpinner.stop(
+        t("wizard.customApi.verifyFailed", { error: formatVerificationError(result.error) }),
+      );
     }
     const retryChoice = await promptCustomApiRetryChoice(prompter);
     ({ baseUrl, apiKey, resolvedApiKey, modelId } = await applyCustomApiRetryChoice({
@@ -872,19 +870,19 @@ export async function promptCustomApiConfig(params: {
   const providers = config.models?.providers ?? {};
   const suggestedId = buildEndpointIdFromUrl(baseUrl);
   const providerIdInput = await prompter.text({
-    message: "Endpoint ID",
+    message: t("ui.text.endpointId"),
     initialValue: suggestedId,
     placeholder: "custom",
     validate: (value) => {
       const normalized = normalizeEndpointId(value);
       if (!normalized) {
-        return "Endpoint ID is required.";
+        return t("wizard.customApi.endpointIdRequired");
       }
       return undefined;
     },
   });
   const aliasInput = await prompter.text({
-    message: "Model alias (optional)",
+    message: t("ui.text.modelAliasOptional"),
     placeholder: "e.g. local, ollama",
     initialValue: "",
     validate: (value) => {
@@ -911,11 +909,19 @@ export async function promptCustomApiConfig(params: {
 
   if (result.providerIdRenamedFrom && result.providerId) {
     await prompter.note(
-      `Endpoint ID "${result.providerIdRenamedFrom}" already exists for a different base URL. Using "${result.providerId}".`,
-      "Endpoint ID",
+      t("wizard.customApi.endpointIdRenamed", {
+        from: result.providerIdRenamedFrom,
+        to: result.providerId,
+      }),
+      t("ui.text.endpointId"),
     );
   }
 
-  runtime.log(`Configured custom provider: ${result.providerId}/${result.modelId}`);
+  runtime.log(
+    t("wizard.customApi.configured", {
+      provider: result.providerId ?? "",
+      model: result.modelId ?? "",
+    }),
+  );
   return result;
 }

@@ -4,6 +4,7 @@ import {
   resolveAuthProfileOrder,
 } from "../../agents/auth-profiles.js";
 import { resolveEnvApiKey } from "../../agents/model-auth.js";
+import { createCliTranslator, getActiveCliLocale } from "../../cli/i18n/text.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import { normalizeOptionalSecretInput } from "../../utils/normalize-secret-input.js";
@@ -62,6 +63,7 @@ export async function resolveNonInteractiveApiKey(params: {
   secretInputMode?: SecretInputMode;
 }): Promise<{ key: string; source: NonInteractiveApiKeySource; envVarName?: string } | null> {
   const flagKey = normalizeOptionalSecretInput(params.flagValue);
+  const t = createCliTranslator(getActiveCliLocale());
   const envResolved = resolveEnvApiKey(params.provider);
   const explicitEnvVar = params.envVarName?.trim();
   const explicitEnvKey = explicitEnvVar
@@ -74,10 +76,10 @@ export async function resolveNonInteractiveApiKey(params: {
   if (useSecretRefMode) {
     if (!resolvedEnvKey && flagKey) {
       params.runtime.error(
-        [
-          `${params.flagName} cannot be used with --secret-input-mode ref unless ${params.envVar} is set in env.`,
-          `Set ${params.envVar} in env and omit ${params.flagName}, or use --secret-input-mode plaintext.`,
-        ].join("\n"),
+        t("wizard.auth.error.flagRequiresEnvRef", {
+          flag: params.flagName,
+          env: params.envVar,
+        }),
       );
       params.runtime.exit(1);
       return null;
@@ -85,10 +87,7 @@ export async function resolveNonInteractiveApiKey(params: {
     if (resolvedEnvKey) {
       if (!resolvedEnvVarName) {
         params.runtime.error(
-          [
-            `--secret-input-mode ref requires an explicit environment variable for provider "${params.provider}".`,
-            `Set ${params.envVar} in env and retry, or use --secret-input-mode plaintext.`,
-          ].join("\n"),
+          t("wizard.auth.error.refRequiresExplicitEnv", { provider: params.provider }),
         );
         params.runtime.exit(1);
         return null;
@@ -121,8 +120,16 @@ export async function resolveNonInteractiveApiKey(params: {
   }
 
   const profileHint =
-    params.allowProfile === false ? "" : `, or existing ${params.provider} API-key profile`;
-  params.runtime.error(`Missing ${params.flagName} (or ${params.envVar} in env${profileHint}).`);
+    params.allowProfile === false
+      ? ""
+      : t("wizard.auth.error.profileHint", { provider: params.provider });
+  params.runtime.error(
+    t("wizard.auth.error.missingApiKey", {
+      flag: params.flagName,
+      env: params.envVar,
+      profileHint,
+    }),
+  );
   params.runtime.exit(1);
   return null;
 }

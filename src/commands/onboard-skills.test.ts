@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
@@ -130,6 +131,14 @@ const runtime: RuntimeEnv = {
 };
 
 describe("setupSkills", () => {
+  beforeEach(() => {
+    setActiveCliLocale("en");
+  });
+
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   it("does not recommend Homebrew when user skips installing brew-backed deps", async () => {
     if (process.platform === "win32") {
       return;
@@ -181,5 +190,35 @@ describe("setupSkills", () => {
 
     const brewNote = notes.find((n) => n.title === "Homebrew recommended");
     expect(brewNote).toBeDefined();
+  });
+
+  it("localizes skills setup chrome in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    mockMissingBrewStatus([
+      createBundledSkill({
+        name: "video-frames",
+        description: "ffmpeg",
+        bins: ["ffmpeg"],
+        installLabel: "Install ffmpeg (brew)",
+      }),
+    ]);
+
+    const { prompter, notes } = createPrompter({ multiselect: ["__skip__"] });
+    await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
+
+    const status = notes.find((n) => n.title === "技能状态")?.message ?? "";
+    expect(status).toContain("符合条件：0");
+    expect(status).toContain("缺失要求：1");
+    expect(prompter.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "现在配置技能吗？（推荐）" }),
+    );
+    expect(prompter.multiselect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "安装缺失的技能依赖",
+        options: expect.arrayContaining([
+          expect.objectContaining({ label: "暂时跳过", hint: "不安装依赖并继续" }),
+        ]),
+      }),
+    );
   });
 });

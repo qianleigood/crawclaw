@@ -1,3 +1,4 @@
+import { createCliTranslator, getActiveCliLocale } from "../../../cli/i18n/text.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import type { RuntimeEnv } from "../../../runtime.js";
 import type { OnboardOptions } from "../../onboard-types.js";
@@ -14,7 +15,9 @@ export function applyNonInteractiveSkillsConfig(params: {
 
   const nodeManager = opts.nodeManager ?? "npm";
   if (!["npm", "pnpm", "bun"].includes(nodeManager)) {
-    runtime.error("Invalid --node-manager (use npm, pnpm, or bun)");
+    runtime.error(
+      createCliTranslator(getActiveCliLocale())("wizard.setup.error.invalidNodeManager"),
+    );
     runtime.exit(1);
     return nextConfig;
   }

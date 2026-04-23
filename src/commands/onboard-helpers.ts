@@ -36,7 +36,9 @@ export { detectBrowserOpenSupport, openUrl, openUrlInBackground, resolveBrowserO
 
 export function guardCancel<T>(value: T | symbol, runtime: RuntimeEnv): T {
   if (isCancel(value)) {
-    cancel(stylePromptTitle("Setup cancelled.") ?? "Setup cancelled.");
+    const t = createCliTranslator(getActiveCliLocale());
+    const message = t("wizard.cancelled");
+    cancel(stylePromptTitle(message) ?? message);
     runtime.exit(0);
     throw new Error("unreachable");
   }
@@ -70,7 +72,9 @@ export function summarizeExistingConfig(config: CrawClawConfig): string {
   if (config.skills?.install?.nodeManager) {
     rows.push(shortenHomeInString(`skills.nodeManager: ${config.skills.install.nodeManager}`));
   }
-  return rows.length ? rows.join("\n") : "No key settings detected.";
+  return rows.length
+    ? rows.join("\n")
+    : createCliTranslator(getActiveCliLocale())("wizard.noKeySettingsDetected");
 }
 
 export function randomToken(): string {
@@ -91,15 +95,16 @@ export function normalizeGatewayTokenInput(value: unknown): string {
 }
 
 export function validateGatewayPasswordInput(value: unknown): string | undefined {
+  const t = createCliTranslator(getActiveCliLocale());
   if (typeof value !== "string") {
-    return "Required";
+    return t("wizard.required");
   }
   const trimmed = value.trim();
   if (!trimmed) {
-    return "Required";
+    return t("wizard.required");
   }
   if (trimmed === "undefined" || trimmed === "null") {
-    return 'Cannot be the literal string "undefined" or "null"';
+    return t("wizard.customApi.literalUndefinedNull");
   }
   return undefined;
 }
@@ -139,13 +144,14 @@ export function formatControlUiSshHint(params: {
     ? `${localUrl}#token=${encodeURIComponent(params.token)}`
     : undefined;
   const sshTarget = resolveSshTargetHint();
+  const t = createCliTranslator(getActiveCliLocale());
   return [
-    "No GUI detected. Open from your computer:",
+    t("wizard.gateway.noGuiOpen"),
     `ssh -N -L ${params.port}:127.0.0.1:${params.port} ${sshTarget}`,
-    "Then open:",
+    t("wizard.gateway.thenOpen"),
     localUrl,
     authedUrl,
-    "Docs:",
+    t("wizard.gateway.docs"),
     "https://docs.crawclaw.ai/gateway/remote",
     "https://docs.crawclaw.ai/web",
   ]
@@ -198,9 +204,17 @@ export async function moveToTrash(pathname: string, runtime: RuntimeEnv): Promis
   }
   try {
     await runCommandWithTimeout(["trash", pathname], { timeoutMs: 5000 });
-    runtime.log(`Moved to Trash: ${shortenHomePath(pathname)}`);
+    runtime.log(
+      createCliTranslator(getActiveCliLocale())("wizard.movedToTrash", {
+        path: shortenHomePath(pathname),
+      }),
+    );
   } catch {
-    runtime.log(`Failed to move to Trash (manual delete): ${shortenHomePath(pathname)}`);
+    runtime.log(
+      createCliTranslator(getActiveCliLocale())("wizard.moveToTrashFailed", {
+        path: shortenHomePath(pathname),
+      }),
+    );
   }
 }
 

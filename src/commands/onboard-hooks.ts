@@ -1,5 +1,6 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { formatCliCommand } from "../cli/command-format.js";
+import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { buildWorkspaceHookStatus } from "../hooks/hooks-status.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -10,15 +11,8 @@ export async function setupInternalHooks(
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
 ): Promise<CrawClawConfig> {
-  await prompter.note(
-    [
-      "Hooks let you automate actions when agent commands are issued.",
-      "Example: Log command activity or run startup automation when the gateway boots.",
-      "",
-      "Learn more: https://docs.crawclaw.ai/automation/hooks",
-    ].join("\n"),
-    "Hooks",
-  );
+  const t = createCliTranslator(getActiveCliLocale());
+  await prompter.note(t("wizard.hooks.intro"), t("wizard.hooks.title"));
 
   // Discover available hooks using the hook discovery system
   const workspaceDir = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
@@ -28,17 +22,14 @@ export async function setupInternalHooks(
   const eligibleHooks = report.hooks.filter((h) => h.loadable);
 
   if (eligibleHooks.length === 0) {
-    await prompter.note(
-      "No eligible hooks found. You can configure hooks later in your config.",
-      "No Hooks Available",
-    );
+    await prompter.note(t("wizard.hooks.none"), t("wizard.hooks.noneTitle"));
     return cfg;
   }
 
   const toEnable = await prompter.multiselect({
-    message: "Enable hooks?",
+    message: t("ui.text.enableHooks"),
     options: [
-      { value: "__skip__", label: "Skip for now" },
+      { value: "__skip__", label: t("ui.text.skipForNow") },
       ...eligibleHooks.map((hook) => ({
         value: hook.name,
         label: `${hook.emoji ?? "🔗"} ${hook.name}`,
@@ -70,15 +61,15 @@ export async function setupInternalHooks(
   };
 
   await prompter.note(
-    [
-      `Enabled ${selected.length} hook${selected.length > 1 ? "s" : ""}: ${selected.join(", ")}`,
-      "",
-      "You can manage hooks later with:",
-      `  ${formatCliCommand("crawclaw hooks list")}`,
-      `  ${formatCliCommand("crawclaw hooks enable <name>")}`,
-      `  ${formatCliCommand("crawclaw hooks disable <name>")}`,
-    ].join("\n"),
-    "Hooks Configured",
+    t("wizard.hooks.configured", {
+      count: selected.length,
+      noun: t(selected.length > 1 ? "wizard.hooks.noun.many" : "wizard.hooks.noun.one"),
+      names: selected.join(", "),
+      list: formatCliCommand("crawclaw hooks list"),
+      enable: formatCliCommand("crawclaw hooks enable <name>"),
+      disable: formatCliCommand("crawclaw hooks disable <name>"),
+    }),
+    t("wizard.hooks.configuredTitle"),
   );
 
   return next;

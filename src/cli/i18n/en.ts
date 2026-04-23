@@ -169,6 +169,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.allowedUsers": "Allowed users (comma-separated, blank = all authenticated users)",
   "ui.text.anthropicCompatible": "Anthropic-compatible",
   "ui.text.apiBaseUrl": "API Base URL",
+  "ui.text.apiKeyOptional": "API Key (leave blank if not required)",
   "ui.text.autoLoopbackLanArrow": "Auto (Loopback → LAN)",
   "ui.text.back": "Back",
   "ui.text.balanced": "Balanced",
@@ -266,6 +267,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.showHomebrewInstall": "Show Homebrew install command?",
   "ui.text.skip": "Skip",
   "ui.text.skipForNow": "Skip for now",
+  "ui.text.continueWithoutInstallingDeps": "Continue without installing dependencies",
   "ui.text.startGatewayNow": "Start gateway service now?",
   "ui.text.streamReplies": "Stream replies and show key execution steps.",
   "ui.text.tailnetTailscaleIp": "Tailnet (Tailscale IP)",
@@ -297,6 +299,10 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "update.step.verifyingUpdate": "Verifying update",
   "update.step.worktreeClean": "Working directory is clean",
   "wizard.cancelled": "Setup cancelled.",
+  "wizard.required": "Required",
+  "wizard.noKeySettingsDetected": "No key settings detected.",
+  "wizard.movedToTrash": "Moved to Trash: {path}",
+  "wizard.moveToTrashFailed": "Failed to move to Trash (manual delete): {path}",
   "wizard.setup.intro": "CrawClaw setup",
   "wizard.setup.invalidConfig.title": "Invalid config",
   "wizard.setup.invalidConfig.issuesTitle": "Config issues",
@@ -353,6 +359,153 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.skip.searchTitle": "Search",
   "wizard.setup.skip.skills": "Skipping skills setup.",
   "wizard.setup.skip.skillsTitle": "Skills",
+  "wizard.setup.error.invalidMode": 'Invalid --mode "{mode}" (use local|remote).',
+  "wizard.setup.error.configInvalid":
+    "Config invalid. Run `{doctor}` to repair it, then re-run setup.",
+  "wizard.setup.error.missingRemoteUrl": "Missing --remote-url for remote mode.",
+  "wizard.setup.error.multipleApiKeyFlags":
+    "Multiple API key flags were provided for non-interactive setup.\nUse a single provider flag or pass --auth-choice explicitly.\nFlags: {flags}",
+  "wizard.setup.error.invalidNodeManager": "Invalid --node-manager (use npm, pnpm, or bun)",
+  "wizard.gateway.error.invalidPort": "Invalid --gateway-port",
+  "wizard.gateway.error.invalidAuth": "Invalid --gateway-auth (use token|password).",
+  "wizard.gateway.error.invalidTokenRefEnv":
+    "Invalid --gateway-token-ref-env (use env var name like CRAWCLAW_GATEWAY_TOKEN).",
+  "wizard.gateway.error.tokenOrRef":
+    "Use either --gateway-token or --gateway-token-ref-env, not both.",
+  "wizard.gateway.error.envMissing": 'Environment variable "{env}" is missing or empty.',
+  "wizard.gateway.error.missingPassword": "Missing --gateway-password for password auth.",
+  "wizard.gateway.noGuiOpen": "No GUI detected. Open from your computer:",
+  "wizard.gateway.thenOpen": "Then open:",
+  "wizard.gateway.docs": "Docs:",
+  "wizard.gateway.healthUnavailableSystemd":
+    "Gateway service install is unavailable because systemd user services are not reachable in this Linux session.",
+  "wizard.gateway.healthInstallIncomplete":
+    "Gateway service install did not complete successfully.",
+  "wizard.gateway.hintNoInstallDaemon":
+    "Fix: rerun without `--install-daemon` for one-shot setup, or enable a working user-systemd session and retry.",
+  "wizard.gateway.hintEnvRefs":
+    "If your auth profile uses env-backed refs, keep those env vars set in the shell that runs `crawclaw gateway run` or `crawclaw agent --local`.",
+  "wizard.gateway.hintStatusDeep": "Run `{command}` for more detail.",
+  "wizard.gateway.healthUnreachable": "Gateway did not become reachable at {url}.",
+  "wizard.gateway.hintAlreadyRunning":
+    "Non-interactive local setup only waits for an already-running gateway unless you pass --install-daemon.",
+  "wizard.gateway.hintStartOrInstall":
+    "Fix: start `{run}`, re-run with `--install-daemon`, or use `--skip-health`.",
+  "wizard.gateway.hintWindowsInstall":
+    "Native Windows managed gateway install tries Scheduled Tasks first and falls back to a per-user Startup-folder login item when task creation is denied.",
+  "wizard.daemon.systemdUnavailable":
+    "Systemd user services are unavailable; skipping service install. Use a direct shell run (`crawclaw gateway run`) or rerun without --install-daemon on this session.",
+  "wizard.daemon.invalidRuntime": "Invalid --daemon-runtime (use node or bun)",
+  "wizard.daemon.installBlocked":
+    "Gateway install blocked: {reason} Fix gateway auth config/token input and rerun setup.",
+  "wizard.daemon.installFailed": "Gateway service install failed: {error}",
+  "wizard.auth.error.storeRefEnvMissing":
+    'Unable to determine which environment variable to store as a ref for provider "{provider}".\nSet an explicit provider env var and retry, or use --secret-input-mode plaintext.',
+  "wizard.auth.error.refRequiresExplicitEnv":
+    '--secret-input-mode ref requires an explicit environment variable for provider "{provider}".\nSet the provider API key env var and retry, or use --secret-input-mode plaintext.',
+  "wizard.auth.error.setupTokenInteractive":
+    'Auth choice "setup-token" requires interactive mode.\nUse "--auth-choice token" with --token and --token-provider anthropic.',
+  "wizard.auth.error.oauthRemoved":
+    'Auth choice "oauth" has been removed. Use "--auth-choice setup-token".',
+  "wizard.auth.error.deprecatedChoice":
+    '"{choice}" is no longer supported. Use --auth-choice {replacement} instead.',
+  "wizard.auth.error.invalidCustomProviderConfig": "Invalid custom provider config: {reason}",
+  "wizard.auth.error.oauthInteractive": "OAuth requires interactive mode.",
+  "wizard.auth.error.flagRequiresEnvRef":
+    "{flag} cannot be used with --secret-input-mode ref unless {env} is set in env.\nSet {env} in env and omit {flag}, or use --secret-input-mode plaintext.",
+  "wizard.auth.error.missingApiKey": "Missing {flag} (or {env} in env{profileHint}).",
+  "wizard.auth.error.profileHint": ", or existing {provider} API-key profile",
+  "wizard.plugin.error.disabled": "{label} plugin is disabled ({reason}).",
+  "wizard.plugin.error.nonInteractiveMissing":
+    'Auth choice "{choice}" requires interactive mode.\nThe {label} provider plugin does not implement non-interactive setup.',
+  "wizard.customApi.validUrl": "Please enter a valid URL (e.g. http://...)",
+  "wizard.customApi.probesOpenAiAnthropic": "Probes OpenAI then Anthropic endpoints",
+  "wizard.customApi.aliasInvalid": "Alias is invalid.",
+  "wizard.customApi.aliasCollision": "Alias {alias} already points to {target}.",
+  "wizard.customApi.invalidCompatibilityFlag":
+    'Invalid --custom-compatibility (use "openai" or "anthropic").',
+  "wizard.customApi.invalidProviderId":
+    "Custom provider ID must include letters, numbers, or hyphens.",
+  "wizard.customApi.useBaseUrlAndModelFlags": "Use --custom-base-url and --custom-model-id.",
+  "wizard.customApi.invalidBaseUrl": "Custom provider base URL must be a valid URL.",
+  "wizard.customApi.invalidCompatibility":
+    'Custom provider compatibility must be "openai" or "anthropic".',
+  "wizard.customApi.invalidModelId": "Custom provider model ID is required.",
+  "wizard.customApi.literalUndefinedNull": 'Cannot be the literal string "undefined" or "null"',
+  "wizard.customApi.retryChoice": "What would you like to change?",
+  "wizard.customApi.modelRequired": "Model ID is required",
+  "wizard.customApi.detectingEndpoint": "Detecting endpoint type...",
+  "wizard.customApi.detectedOpenAi": "Detected OpenAI-compatible endpoint.",
+  "wizard.customApi.detectedAnthropic": "Detected Anthropic-compatible endpoint.",
+  "wizard.customApi.detectFailed": "Could not detect endpoint type.",
+  "wizard.customApi.detectFailedDetail":
+    "This endpoint did not respond to OpenAI or Anthropic style requests.",
+  "wizard.customApi.detectTitle": "Endpoint detection",
+  "wizard.customApi.verifying": "Verifying...",
+  "wizard.customApi.verifySuccess": "Verification successful.",
+  "wizard.customApi.verifyStatusFailed": "Verification failed: status {status}",
+  "wizard.customApi.verifyFailed": "Verification failed: {error}",
+  "wizard.customApi.endpointIdRequired": "Endpoint ID is required.",
+  "wizard.customApi.endpointIdRenamed":
+    'Endpoint ID "{from}" already exists for a different base URL. Using "{to}".',
+  "wizard.customApi.configured": "Configured custom provider: {provider}/{model}",
+  "wizard.remote.urlMustStartWs": "URL must start with ws:// or wss://",
+  "wizard.remote.urlSecurity":
+    "Use wss:// for remote hosts, or ws://127.0.0.1/localhost via SSH tunnel. Break-glass: CRAWCLAW_ALLOW_INSECURE_PRIVATE_WS=1 for trusted private networks.",
+  "wizard.remote.discoveryMissing":
+    "Bonjour discovery requires dns-sd (macOS) or avahi-browse (Linux).\nDocs: https://docs.crawclaw.ai/gateway/discovery",
+  "wizard.remote.discoveryTitle": "Discovery",
+  "wizard.remote.searching": "Searching for gateways…",
+  "wizard.remote.foundGateways": "Found {count} gateway(s)",
+  "wizard.remote.noGateways": "No gateways found",
+  "wizard.remote.directGateway": "Direct gateway WS ({host}:{port})",
+  "wizard.remote.sshTunnelLoopback": "SSH tunnel (loopback)",
+  "wizard.remote.trustGateway":
+    "Trust this gateway? Host: {host}:{port} TLS fingerprint: {fingerprint}",
+  "wizard.remote.fingerprintMissing": "not advertised (connection will not be pinned)",
+  "wizard.remote.directNote":
+    "Direct remote access defaults to TLS.\nUsing: {url}{fingerprintLine}\nIf your gateway is loopback-only, choose SSH tunnel and keep ws://127.0.0.1:18789.",
+  "wizard.remote.tlsPinLine": "\nTLS pin: {fingerprint}",
+  "wizard.remote.directTitle": "Direct remote",
+  "wizard.remote.sshNote":
+    "Start a tunnel before using the CLI:\nssh -N -L 18789:127.0.0.1:18789 <user>@{host}{portArg}\nDocs: https://docs.crawclaw.ai/gateway/remote",
+  "wizard.remote.sshTitle": "SSH tunnel",
+  "wizard.remote.tokenModeMessage": "How do you want to provide this gateway token?",
+  "wizard.remote.tokenPlaintextLabel": "Enter token now",
+  "wizard.remote.tokenPlaintextHint": "Stores the token directly in CrawClaw config",
+  "wizard.remote.tokenSourceMessage": "Where is this gateway token stored?",
+  "wizard.remote.passwordModeMessage": "How do you want to provide this gateway password?",
+  "wizard.remote.passwordPlaintextLabel": "Enter password now",
+  "wizard.remote.passwordPlaintextHint": "Stores the password directly in CrawClaw config",
+  "wizard.remote.passwordSourceMessage": "Where is this gateway password stored?",
+  "wizard.hooks.intro":
+    "Hooks let you automate actions when agent commands are issued.\nExample: Log command activity or run startup automation when the gateway boots.\n\nLearn more: https://docs.crawclaw.ai/automation/hooks",
+  "wizard.hooks.title": "Hooks",
+  "wizard.hooks.none": "No eligible hooks found. You can configure hooks later in your config.",
+  "wizard.hooks.noneTitle": "No Hooks Available",
+  "wizard.hooks.configured":
+    "Enabled {count} {noun}: {names}\n\nYou can manage hooks later with:\n  {list}\n  {enable}\n  {disable}",
+  "wizard.hooks.noun.one": "hook",
+  "wizard.hooks.noun.many": "hooks",
+  "wizard.hooks.configuredTitle": "Hooks Configured",
+  "wizard.skills.status":
+    "Eligible: {eligible}\nMissing requirements: {missing}\nUnsupported on this OS: {unsupported}\nBlocked by allowlist: {blocked}",
+  "wizard.skills.statusTitle": "Skills status",
+  "wizard.skills.homebrewRecommended":
+    "Many skill dependencies are shipped via Homebrew.\nWithout brew, you'll need to build from source or download releases manually.",
+  "wizard.skills.homebrewRecommendedTitle": "Homebrew recommended",
+  "wizard.skills.homebrewInstall": "Run:\n{command}",
+  "wizard.skills.homebrewInstallTitle": "Homebrew install",
+  "wizard.skills.installing": "Installing {name}…",
+  "wizard.skills.installed": "Installed {name}",
+  "wizard.skills.installedWithWarnings": "Installed {name} (with warnings)",
+  "wizard.skills.installFailed": "Install failed: {name}{code}{detail}",
+  "wizard.skills.exitCode": " (exit {code})",
+  "wizard.skills.failureDetail": " — {detail}",
+  "wizard.skills.doctorTip": "Tip: run `{doctor}` to review skills + requirements.",
+  "wizard.skills.docs": "Docs: https://docs.crawclaw.ai/skills",
+  "wizard.skills.setEnv": "Set {env} for {skill}?",
+  "wizard.skills.enterEnv": "Enter {env}",
   "wizard.gateway.port.message": "Gateway port",
   "wizard.gateway.port.invalid": "Invalid port",
   "wizard.gateway.bind.message": "Gateway bind",

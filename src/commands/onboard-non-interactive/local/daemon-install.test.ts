@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../../../cli/i18n/index.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import { installGatewayDaemonNonInteractive } from "./daemon-install.js";
 
@@ -39,6 +40,7 @@ vi.mock("../../systemd-linger.js", () => ({
 
 describe("installGatewayDaemonNonInteractive", () => {
   beforeEach(() => {
+    setActiveCliLocale("en");
     vi.clearAllMocks();
     isSystemdUserServiceAvailable.mockResolvedValue(true);
     resolveGatewayInstallToken.mockResolvedValue({

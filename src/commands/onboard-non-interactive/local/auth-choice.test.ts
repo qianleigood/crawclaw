@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../../../cli/i18n/index.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import { applyNonInteractiveAuthChoice } from "./auth-choice.js";
 
@@ -20,6 +21,7 @@ vi.mock("../../../plugins/provider-auth-choices.js", () => ({
 }));
 
 beforeEach(() => {
+  setActiveCliLocale("en");
   vi.clearAllMocks();
 });
 

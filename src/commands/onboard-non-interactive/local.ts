@@ -96,11 +96,9 @@ export async function runNonInteractiveLocalSetup(params: {
   const inferredAuthChoice = inferAuthChoiceFromFlags(opts);
   if (!opts.authChoice && inferredAuthChoice.matches.length > 1) {
     runtime.error(
-      [
-        "Multiple API key flags were provided for non-interactive setup.",
-        "Use a single provider flag or pass --auth-choice explicitly.",
-        `Flags: ${inferredAuthChoice.matches.map((match) => match.label).join(", ")}`,
-      ].join("\n"),
+      t("wizard.setup.error.multipleApiKeyFlags", {
+        flags: inferredAuthChoice.matches.map((match) => match.label).join(", "),
+      }),
     );
     runtime.exit(1);
     return;
@@ -180,8 +178,8 @@ export async function runNonInteractiveLocalSetup(params: {
         phase: "daemon-install",
         message:
           daemonInstall.skippedReason === "systemd-user-unavailable"
-            ? "Gateway service install is unavailable because systemd user services are not reachable in this Linux session."
-            : "Gateway service install did not complete successfully.",
+            ? t("wizard.gateway.healthUnavailableSystemd")
+            : t("wizard.gateway.healthInstallIncomplete"),
         installDaemon: true,
         daemonInstall: {
           requested: true,
@@ -191,11 +189,12 @@ export async function runNonInteractiveLocalSetup(params: {
         daemonRuntime: daemonRuntimeRaw,
         hints:
           daemonInstall.skippedReason === "systemd-user-unavailable"
-            ? [
-                "Fix: rerun without `--install-daemon` for one-shot setup, or enable a working user-systemd session and retry.",
-                "If your auth profile uses env-backed refs, keep those env vars set in the shell that runs `crawclaw gateway run` or `crawclaw agent --local`.",
-              ]
-            : [`Run \`${formatCliCommand("crawclaw gateway status --deep")}\` for more detail.`],
+            ? [t("wizard.gateway.hintNoInstallDaemon"), t("wizard.gateway.hintEnvRefs")]
+            : [
+                t("wizard.gateway.hintStatusDeep", {
+                  command: formatCliCommand("crawclaw gateway status --deep"),
+                }),
+              ],
       });
       runtime.exit(1);
       return;
@@ -226,7 +225,7 @@ export async function runNonInteractiveLocalSetup(params: {
         runtime,
         mode,
         phase: "gateway-health",
-        message: `Gateway did not become reachable at ${links.wsUrl}.`,
+        message: t("wizard.gateway.healthUnreachable", { url: links.wsUrl }),
         detail: probe.detail,
         gateway: {
           wsUrl: links.wsUrl,
@@ -238,13 +237,17 @@ export async function runNonInteractiveLocalSetup(params: {
         diagnostics,
         hints: !opts.installDaemon
           ? [
-              "Non-interactive local setup only waits for an already-running gateway unless you pass --install-daemon.",
-              `Fix: start \`${formatCliCommand("crawclaw gateway run")}\`, re-run with \`--install-daemon\`, or use \`--skip-health\`.`,
-              process.platform === "win32"
-                ? "Native Windows managed gateway install tries Scheduled Tasks first and falls back to a per-user Startup-folder login item when task creation is denied."
-                : undefined,
+              t("wizard.gateway.hintAlreadyRunning"),
+              t("wizard.gateway.hintStartOrInstall", {
+                run: formatCliCommand("crawclaw gateway run"),
+              }),
+              process.platform === "win32" ? t("wizard.gateway.hintWindowsInstall") : undefined,
             ].filter((value): value is string => Boolean(value))
-          : [`Run \`${formatCliCommand("crawclaw gateway status --deep")}\` for more detail.`],
+          : [
+              t("wizard.gateway.hintStatusDeep", {
+                command: formatCliCommand("crawclaw gateway status --deep"),
+              }),
+            ],
       });
       runtime.exit(1);
       return;

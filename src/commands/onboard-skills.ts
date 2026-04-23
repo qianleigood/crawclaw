@@ -1,6 +1,7 @@
 import { installSkill } from "../agents/skills-install.js";
 import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
 import { formatCliCommand } from "../cli/command-format.js";
+import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
@@ -53,6 +54,7 @@ export async function setupSkills(
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
 ): Promise<CrawClawConfig> {
+  const t = createCliTranslator(getActiveCliLocale());
   const report = buildWorkspaceSkillStatus(workspaceDir, { config: cfg });
   const eligible = report.skills.filter((s) => s.eligible);
   const unsupportedOs = report.skills.filter(
@@ -64,17 +66,17 @@ export async function setupSkills(
   const blocked = report.skills.filter((s) => s.blockedByAllowlist);
 
   await prompter.note(
-    [
-      `Eligible: ${eligible.length}`,
-      `Missing requirements: ${missing.length}`,
-      `Unsupported on this OS: ${unsupportedOs.length}`,
-      `Blocked by allowlist: ${blocked.length}`,
-    ].join("\n"),
-    "Skills status",
+    t("wizard.skills.status", {
+      eligible: eligible.length,
+      missing: missing.length,
+      unsupported: unsupportedOs.length,
+      blocked: blocked.length,
+    }),
+    t("wizard.skills.statusTitle"),
   );
 
   const shouldConfigure = await prompter.confirm({
-    message: "Configure skills now? (recommended)",
+    message: t("ui.text.configureSkillsNow"),
     initialValue: true,
   });
   if (!shouldConfigure) {
@@ -87,12 +89,12 @@ export async function setupSkills(
   let next: CrawClawConfig = cfg;
   if (installable.length > 0) {
     const toInstall = await prompter.multiselect({
-      message: "Install missing skill dependencies",
+      message: t("ui.text.installMissingSkillDeps"),
       options: [
         {
           value: "__skip__",
-          label: "Skip for now",
-          hint: "Continue without installing dependencies",
+          label: t("ui.text.skipForNow"),
+          hint: t("ui.text.continueWithoutInstallingDeps"),
         },
         ...installable.map((skill) => ({
           value: skill.name,
@@ -115,23 +117,20 @@ export async function setupSkills(
 
     if (needsBrewPrompt) {
       await prompter.note(
-        [
-          "Many skill dependencies are shipped via Homebrew.",
-          "Without brew, you'll need to build from source or download releases manually.",
-        ].join("\n"),
-        "Homebrew recommended",
+        t("wizard.skills.homebrewRecommended"),
+        t("wizard.skills.homebrewRecommendedTitle"),
       );
       const showBrewInstall = await prompter.confirm({
-        message: "Show Homebrew install command?",
+        message: t("ui.text.showHomebrewInstall"),
         initialValue: true,
       });
       if (showBrewInstall) {
         await prompter.note(
-          [
-            "Run:",
-            '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
-          ].join("\n"),
-          "Homebrew install",
+          t("wizard.skills.homebrewInstall", {
+            command:
+              '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+          }),
+          t("wizard.skills.homebrewInstallTitle"),
         );
       }
     }
@@ -141,7 +140,7 @@ export async function setupSkills(
     );
     if (needsNodeManagerPrompt) {
       const nodeManager = (await prompter.select({
-        message: "Preferred node manager for skill installs",
+        message: t("ui.text.preferredNodeManager"),
         options: resolveNodeManagerOptions(),
       })) as "npm" | "pnpm" | "bun";
       next = {
@@ -165,7 +164,7 @@ export async function setupSkills(
       if (!installId) {
         continue;
       }
-      const spin = prompter.progress(`Installing ${name}…`);
+      const spin = prompter.progress(t("wizard.skills.installing", { name }));
       const result = await installSkill({
         workspaceDir,
         skillName: target.name,
@@ -174,15 +173,27 @@ export async function setupSkills(
       });
       const warnings = result.warnings ?? [];
       if (result.ok) {
-        spin.stop(warnings.length > 0 ? `Installed ${name} (with warnings)` : `Installed ${name}`);
+        spin.stop(
+          warnings.length > 0
+            ? t("wizard.skills.installedWithWarnings", { name })
+            : t("wizard.skills.installed", { name }),
+        );
         for (const warning of warnings) {
           runtime.log(warning);
         }
         continue;
       }
       const code = result.code == null ? "" : ` (exit ${result.code})`;
+      const codeText =
+        result.code == null ? "" : t("wizard.skills.exitCode", { code: result.code });
       const detail = summarizeInstallFailure(result.message);
-      spin.stop(`Install failed: ${name}${code}${detail ? ` — ${detail}` : ""}`);
+      spin.stop(
+        t("wizard.skills.installFailed", {
+          name,
+          code: codeText || code,
+          detail: detail ? t("wizard.skills.failureDetail", { detail }) : "",
+        }),
+      );
       for (const warning of warnings) {
         runtime.log(warning);
       }
@@ -191,10 +202,8 @@ export async function setupSkills(
       } else if (result.stdout) {
         runtime.log(result.stdout.trim());
       }
-      runtime.log(
-        `Tip: run \`${formatCliCommand("crawclaw doctor")}\` to review skills + requirements.`,
-      );
-      runtime.log("Docs: https://docs.crawclaw.ai/skills");
+      runtime.log(t("wizard.skills.doctorTip", { doctor: formatCliCommand("crawclaw doctor") }));
+      runtime.log(t("wizard.skills.docs"));
     }
   }
 
@@ -203,15 +212,15 @@ export async function setupSkills(
       continue;
     }
     const wantsKey = await prompter.confirm({
-      message: `Set ${skill.primaryEnv} for ${skill.name}?`,
+      message: t("wizard.skills.setEnv", { env: skill.primaryEnv, skill: skill.name }),
       initialValue: false,
     });
     if (!wantsKey) {
       continue;
     }
     const apiKey = await prompter.text({
-      message: `Enter ${skill.primaryEnv}`,
-      validate: (value) => (value?.trim() ? undefined : "Required"),
+      message: t("wizard.skills.enterEnv", { env: skill.primaryEnv }),
+      validate: (value) => (value?.trim() ? undefined : t("wizard.required")),
     });
     next = upsertSkillEntry(next, skill.skillKey, { apiKey: normalizeSecretInput(apiKey) });
   }

@@ -1,3 +1,4 @@
+import { createCliTranslator, getActiveCliLocale } from "../../../cli/i18n/text.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import { resolveGatewayService } from "../../../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../../../daemon/systemd.js";
@@ -23,6 +24,7 @@ export async function installGatewayDaemonNonInteractive(params: {
     }
 > {
   const { opts, runtime, port } = params;
+  const t = createCliTranslator(getActiveCliLocale());
   if (!opts.installDaemon) {
     return { installed: false };
   }
@@ -31,14 +33,12 @@ export async function installGatewayDaemonNonInteractive(params: {
   const systemdAvailable =
     process.platform === "linux" ? await isSystemdUserServiceAvailable() : true;
   if (process.platform === "linux" && !systemdAvailable) {
-    runtime.log(
-      "Systemd user services are unavailable; skipping service install. Use a direct shell run (`crawclaw gateway run`) or rerun without --install-daemon on this session.",
-    );
+    runtime.log(t("wizard.daemon.systemdUnavailable"));
     return { installed: false, skippedReason: "systemd-user-unavailable" };
   }
 
   if (!isGatewayDaemonRuntime(daemonRuntimeRaw)) {
-    runtime.error("Invalid --daemon-runtime (use node or bun)");
+    runtime.error(t("wizard.daemon.invalidRuntime"));
     runtime.exit(1);
     return { installed: false };
   }
@@ -52,13 +52,7 @@ export async function installGatewayDaemonNonInteractive(params: {
     runtime.log(warning);
   }
   if (tokenResolution.unavailableReason) {
-    runtime.error(
-      [
-        "Gateway install blocked:",
-        tokenResolution.unavailableReason,
-        "Fix gateway auth config/token input and rerun setup.",
-      ].join(" "),
-    );
+    runtime.error(t("wizard.daemon.installBlocked", { reason: tokenResolution.unavailableReason }));
     runtime.exit(1);
     return { installed: false };
   }
@@ -78,7 +72,7 @@ export async function installGatewayDaemonNonInteractive(params: {
       environment,
     });
   } catch (err) {
-    runtime.error(`Gateway service install failed: ${String(err)}`);
+    runtime.error(t("wizard.daemon.installFailed", { error: String(err) }));
     runtime.log(gatewayInstallErrorHint());
     return { installed: false };
   }

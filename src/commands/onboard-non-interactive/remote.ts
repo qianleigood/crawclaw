@@ -19,7 +19,7 @@ export async function runNonInteractiveRemoteSetup(params: {
 
   const remoteUrl = opts.remoteUrl?.trim();
   if (!remoteUrl) {
-    runtime.error("Missing --remote-url for remote mode.");
+    runtime.error(t("wizard.setup.error.missingRemoteUrl"));
     runtime.exit(1);
     return;
   }

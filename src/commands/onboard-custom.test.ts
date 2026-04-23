@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONTEXT_WINDOW_HARD_MIN_TOKENS } from "../agents/context-window-guard.js";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
 import {
@@ -133,7 +134,12 @@ function applyCustomModelConfigWithContextWindow(contextWindow?: number) {
 }
 
 describe("promptCustomApiConfig", () => {
+  beforeEach(() => {
+    setActiveCliLocale("en");
+  });
+
   afterEach(() => {
+    setActiveCliLocale("en");
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.useRealTimers();
@@ -166,6 +172,35 @@ describe("promptCustomApiConfig", () => {
         initialValue: OLLAMA_DEFAULT_BASE_URL_FOR_TEST,
       }),
     );
+  });
+
+  it("localizes custom provider prompt chrome in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const runtime = { ...defaultRuntime, log: vi.fn() };
+    const prompter = createTestPrompter({
+      text: ["http://localhost:11434/v1", "", "llama3", "custom", "local"],
+      select: ["plaintext", "openai"],
+    });
+    stubFetchSequence([{ ok: true }]);
+
+    await promptCustomApiConfig({
+      prompter: prompter as unknown as Parameters<typeof promptCustomApiConfig>[0]["prompter"],
+      runtime,
+      config: {},
+    });
+
+    expect(prompter.text).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "API 基础 URL" }),
+    );
+    expect(prompter.select).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "端点兼容性" }),
+    );
+    expect(prompter.text).toHaveBeenCalledWith(expect.objectContaining({ message: "模型 ID" }));
+    expect(prompter.text).toHaveBeenCalledWith(expect.objectContaining({ message: "端点 ID" }));
+    expect(prompter.text).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "模型别名（可选）" }),
+    );
+    expect(runtime.log).toHaveBeenCalledWith("已配置自定义 provider：custom/llama3");
   });
 
   it("retries when verification fails", async () => {

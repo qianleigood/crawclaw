@@ -5,6 +5,7 @@ import {
 } from "../../../agents/agent-scope.js";
 import type { ApiKeyCredential } from "../../../agents/auth-profiles/types.js";
 import { resolveDefaultAgentWorkspaceDir } from "../../../agents/workspace.js";
+import { createCliTranslator, getActiveCliLocale } from "../../../cli/i18n/text.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import { enablePluginInConfig } from "../../../plugins/enable.js";
 import { resolvePreferredProviderForAuthChoice } from "../../../plugins/provider-auth-choice-preference.js";
@@ -78,6 +79,7 @@ export async function applyNonInteractivePluginProviderChoice(params: {
   ) => ApiKeyCredential | null;
 }): Promise<CrawClawConfig | null | undefined> {
   const agentId = resolveDefaultAgentId(params.nextConfig);
+  const t = createCliTranslator(getActiveCliLocale());
   const agentDir = resolveAgentDir(params.nextConfig, agentId);
   const workspaceDir =
     resolveAgentWorkspaceDir(params.nextConfig, agentId) ?? resolveDefaultAgentWorkspaceDir();
@@ -124,7 +126,10 @@ export async function applyNonInteractivePluginProviderChoice(params: {
   );
   if (!enableResult.enabled) {
     params.runtime.error(
-      `${providerChoice.provider.label} plugin is disabled (${enableResult.reason ?? "blocked"}).`,
+      t("wizard.plugin.error.disabled", {
+        label: providerChoice.provider.label,
+        reason: enableResult.reason ?? "blocked",
+      }),
     );
     params.runtime.exit(1);
     return null;
@@ -133,10 +138,10 @@ export async function applyNonInteractivePluginProviderChoice(params: {
   const method = providerChoice.method;
   if (!method.runNonInteractive) {
     params.runtime.error(
-      [
-        `Auth choice "${params.authChoice}" requires interactive mode.`,
-        `The ${providerChoice.provider.label} provider plugin does not implement non-interactive setup.`,
-      ].join("\n"),
+      t("wizard.plugin.error.nonInteractiveMissing", {
+        choice: params.authChoice,
+        label: providerChoice.provider.label,
+      }),
     );
     params.runtime.exit(1);
     return null;

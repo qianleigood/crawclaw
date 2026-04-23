@@ -1,4 +1,5 @@
 import type { ApiKeyCredential } from "../../../agents/auth-profiles/types.js";
+import { createCliTranslator, getActiveCliLocale } from "../../../cli/i18n/text.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import type { SecretInput } from "../../../config/types.secrets.js";
 import { resolveManifestDeprecatedProviderAuthChoice } from "../../../plugins/provider-auth-choices.js";
@@ -28,6 +29,7 @@ export async function applyNonInteractiveAuthChoice(params: {
   baseConfig: CrawClawConfig;
 }): Promise<CrawClawConfig | null> {
   const { opts, runtime, baseConfig } = params;
+  const t = createCliTranslator(getActiveCliLocale());
   const authChoice = normalizeApiKeyTokenProviderAuthChoice({
     authChoice: params.authChoice,
     tokenProvider: opts.tokenProvider,
@@ -37,7 +39,7 @@ export async function applyNonInteractiveAuthChoice(params: {
   let nextConfig = params.nextConfig;
   const requestedSecretInputMode = normalizeSecretInputModeInput(opts.secretInputMode);
   if (opts.secretInputMode && !requestedSecretInputMode) {
-    runtime.error('Invalid --secret-input-mode. Use "plaintext" or "ref".');
+    runtime.error(t("wizard.setup.error.invalidSecretInputMode"));
     runtime.exit(1);
     return null;
   }
@@ -50,12 +52,7 @@ export async function applyNonInteractiveAuthChoice(params: {
       return resolved.key;
     }
     if (!resolved.envVarName) {
-      runtime.error(
-        [
-          `Unable to determine which environment variable to store as a ref for provider "${authChoice}".`,
-          "Set an explicit provider env var and retry, or use --secret-input-mode plaintext.",
-        ].join("\n"),
-      );
+      runtime.error(t("wizard.auth.error.storeRefEnvMissing", { provider: authChoice }));
       runtime.exit(1);
       return null;
     }
@@ -81,12 +78,7 @@ export async function applyNonInteractiveAuthChoice(params: {
     const storeSecretRef = requestedSecretInputMode === "ref" && params.resolved.source === "env"; // pragma: allowlist secret
     if (storeSecretRef) {
       if (!params.resolved.envVarName) {
-        runtime.error(
-          [
-            `--secret-input-mode ref requires an explicit environment variable for provider "${params.provider}".`,
-            "Set the provider API key env var and retry, or use --secret-input-mode plaintext.",
-          ].join("\n"),
-        );
+        runtime.error(t("wizard.auth.error.refRequiresExplicitEnv", { provider: params.provider }));
         runtime.exit(1);
         return null;
       }
@@ -113,18 +105,13 @@ export async function applyNonInteractiveAuthChoice(params: {
     };
   };
   if (authChoice === "setup-token") {
-    runtime.error(
-      [
-        'Auth choice "setup-token" requires interactive mode.',
-        'Use "--auth-choice token" with --token and --token-provider anthropic.',
-      ].join("\n"),
-    );
+    runtime.error(t("wizard.auth.error.setupTokenInteractive"));
     runtime.exit(1);
     return null;
   }
 
   if (authChoice === "oauth") {
-    runtime.error('Auth choice "oauth" has been removed. Use "--auth-choice setup-token".');
+    runtime.error(t("wizard.auth.error.oauthRemoved"));
     runtime.exit(1);
     return null;
   }
@@ -153,7 +140,10 @@ export async function applyNonInteractiveAuthChoice(params: {
   });
   if (deprecatedChoice) {
     runtime.error(
-      `"${authChoice as string}" is no longer supported. Use --auth-choice ${deprecatedChoice.choiceId} instead.`,
+      t("wizard.auth.error.deprecatedChoice", {
+        choice: authChoice as string,
+        replacement: deprecatedChoice.choiceId,
+      }),
     );
     runtime.exit(1);
     return null;
@@ -206,7 +196,10 @@ export async function applyNonInteractiveAuthChoice(params: {
       });
       if (result.providerIdRenamedFrom && result.providerId) {
         runtime.log(
-          `Custom provider ID "${result.providerIdRenamedFrom}" already exists for a different base URL. Using "${result.providerId}".`,
+          t("wizard.customApi.endpointIdRenamed", {
+            from: result.providerIdRenamedFrom,
+            to: result.providerId,
+          }),
         );
       }
       return result.config;
@@ -218,14 +211,16 @@ export async function applyNonInteractiveAuthChoice(params: {
             runtime.error(err.message);
             break;
           default:
-            runtime.error(`Invalid custom provider config: ${err.message}`);
+            runtime.error(
+              t("wizard.auth.error.invalidCustomProviderConfig", { reason: err.message }),
+            );
             break;
         }
         runtime.exit(1);
         return null;
       }
       const reason = err instanceof Error ? err.message : String(err);
-      runtime.error(`Invalid custom provider config: ${reason}`);
+      runtime.error(t("wizard.auth.error.invalidCustomProviderConfig", { reason }));
       runtime.exit(1);
       return null;
     }
@@ -236,7 +231,7 @@ export async function applyNonInteractiveAuthChoice(params: {
     authChoice === "minimax-global-oauth" ||
     authChoice === "minimax-cn-oauth"
   ) {
-    runtime.error("OAuth requires interactive mode.");
+    runtime.error(t("wizard.auth.error.oauthInteractive"));
     runtime.exit(1);
     return null;
   }

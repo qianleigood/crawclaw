@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { HookStatusEntry, HookStatusReport } from "../hooks/hooks-status.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -17,6 +18,7 @@ vi.mock("../agents/agent-scope.js", () => ({
 
 describe("onboard-hooks", () => {
   beforeEach(() => {
+    setActiveCliLocale("en");
     vi.clearAllMocks();
   });
 
@@ -217,6 +219,29 @@ describe("onboard-hooks", () => {
       // Second note should confirm configuration
       expect(noteCalls[1][0]).toContain("Enabled 1 hook: command-logger");
       expect(noteCalls[1][0]).toMatch(/(?:crawclaw)( --profile isolated)? hooks list/);
+    });
+
+    it("localizes hook setup chrome in zh-CN", async () => {
+      setActiveCliLocale("zh-CN");
+      const { prompter } = await runSetupInternalHooks({
+        selected: ["command-logger"],
+      });
+
+      expect(prompter.multiselect).toHaveBeenCalledWith({
+        message: "启用 hooks 吗？",
+        options: [
+          { value: "__skip__", label: "暂时跳过" },
+          {
+            value: "command-logger",
+            label: "📝 command-logger",
+            hint: "Log all command events to a centralized audit file",
+          },
+        ],
+      });
+      const noteCalls = (prompter.note as ReturnType<typeof vi.fn>).mock.calls;
+      expect(noteCalls[0][0]).toContain("Hooks 可在 agent 命令发出时自动执行动作。");
+      expect(noteCalls[1][0]).toContain("已启用 1 个 hook：command-logger");
+      expect(noteCalls[1][1]).toBe("Hooks 已配置");
     });
   });
 });

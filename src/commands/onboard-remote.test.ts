@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { GatewayBonjourBeacon } from "../infra/bonjour-discovery.js";
 import { captureEnv } from "../test-utils/env.js";
@@ -61,6 +62,7 @@ describe("promptRemoteGatewayConfig", () => {
   }
 
   beforeEach(() => {
+    setActiveCliLocale("en");
     vi.clearAllMocks();
     envSnapshot.restore();
     delete process.env.CRAWCLAW_ALLOW_INSECURE_PRIVATE_WS;
@@ -70,8 +72,50 @@ describe("promptRemoteGatewayConfig", () => {
   });
 
   afterEach(() => {
+    setActiveCliLocale("en");
     envSnapshot.restore();
     delete process.env.CRAWCLAW_ALLOW_INSECURE_PRIVATE_WS;
+  });
+
+  it("localizes remote gateway prompts in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    detectBinary.mockResolvedValue(false);
+    const text: WizardPrompter["text"] = vi.fn(async (params) => {
+      if (params.message === "网关 WebSocket URL") {
+        return "ws://127.0.0.1:18789";
+      }
+      if (params.message === "网关 token") {
+        return "token-123";
+      }
+      return "";
+    }) as WizardPrompter["text"];
+    const select = createSelectPrompter({
+      网关认证方式: "token",
+    });
+    const prompter = createPrompter({
+      confirm: vi.fn(async () => false),
+      select,
+      text,
+    });
+
+    const next = await promptRemoteGatewayConfig({} as CrawClawConfig, prompter);
+
+    expect(next.gateway?.remote?.token).toBe("token-123");
+    expect(prompter.note).toHaveBeenCalledWith(
+      expect.stringContaining("Bonjour 发现需要 dns-sd"),
+      "发现",
+    );
+    expect(text).toHaveBeenCalledWith(expect.objectContaining({ message: "网关 WebSocket URL" }));
+    expect(select).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "网关认证方式",
+        options: expect.arrayContaining([
+          expect.objectContaining({ label: "Token（推荐）" }),
+          expect.objectContaining({ label: "密码" }),
+          expect.objectContaining({ label: "无认证" }),
+        ]),
+      }),
+    );
   });
 
   it("defaults discovered direct remote URLs to wss://", async () => {

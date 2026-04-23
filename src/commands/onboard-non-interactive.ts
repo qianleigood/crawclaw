@@ -1,4 +1,5 @@
 import { formatCliCommand } from "../cli/command-format.js";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { readConfigFileSnapshot } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -11,10 +12,11 @@ export async function runNonInteractiveSetup(
   opts: OnboardOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
+  const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
   const snapshot = await readConfigFileSnapshot();
   if (snapshot.exists && !snapshot.valid) {
     runtime.error(
-      `Config invalid. Run \`${formatCliCommand("crawclaw doctor")}\` to repair it, then re-run setup.`,
+      t("wizard.setup.error.configInvalid", { doctor: formatCliCommand("crawclaw doctor") }),
     );
     runtime.exit(1);
     return;
@@ -27,7 +29,7 @@ export async function runNonInteractiveSetup(
     : {};
   const mode = opts.mode ?? "local";
   if (mode !== "local" && mode !== "remote") {
-    runtime.error(`Invalid --mode "${String(mode)}" (use local|remote).`);
+    runtime.error(t("wizard.setup.error.invalidMode", { mode: String(mode) }));
     runtime.exit(1);
     return;
   }
