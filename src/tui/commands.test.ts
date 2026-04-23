@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { getSlashCommands, helpText, parseCommand } from "./commands.js";
+
+afterEach(() => {
+  setActiveCliLocale("en");
+});
 
 describe("parseCommand", () => {
   it("normalizes aliases and keeps command args", () => {
@@ -29,6 +34,16 @@ describe("getSlashCommands", () => {
       { value: "off", label: "off" },
     ]);
   });
+
+  it("localizes command descriptions in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+
+    const commands = getSlashCommands();
+
+    expect(commands.find((command) => command.name === "status")?.description).toBe(
+      "显示网关状态摘要",
+    );
+  });
 });
 
 describe("helpText", () => {
@@ -36,6 +51,15 @@ describe("helpText", () => {
     const output = helpText();
     expect(output).toContain("/elevated <on|off|ask|full>");
     expect(output).toContain("/elev <on|off|ask|full>");
+    expect(output).toContain("/deliver <status|on|off>");
+  });
+
+  it("localizes help title in zh-CN while preserving command syntax", () => {
+    setActiveCliLocale("zh-CN");
+
+    const output = helpText();
+
+    expect(output).toContain("斜杠命令：");
     expect(output).toContain("/deliver <status|on|off>");
   });
 });

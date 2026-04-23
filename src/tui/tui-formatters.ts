@@ -1,4 +1,5 @@
 import { stripLeadingInboundMetadata } from "../auto-reply/reply/strip-inbound-meta.js";
+import { formatTuiOnOff, formatTuiStateLabel, translateTuiText } from "../cli/i18n/tui.js";
 import { formatTimeAgo, formatRelativeTimestamp } from "../infra/format-time/format-relative.ts";
 import { formatRawAssistantErrorForUi } from "../shared/assistant-error-format.js";
 import { stripAnsi } from "../terminal/ansi.js";
@@ -172,7 +173,7 @@ export function resolveFinalAssistantText(params: {
   if (errorMessage.trim()) {
     return formatRawAssistantErrorForUi(errorMessage);
   }
-  return "(no output)";
+  return translateTuiText("tui.message.noOutput");
 }
 
 export function composeThinkingAndContent(params: {
@@ -349,17 +350,17 @@ export function isCommandMessage(message: unknown): boolean {
 
 export function formatTokens(total?: number | null, context?: number | null) {
   if (total == null && context == null) {
-    return "tokens ?";
+    return `${translateTuiText("tui.common.tokens")} ?`;
   }
   const totalLabel = total == null ? "?" : formatTokenCount(total);
   if (context == null) {
-    return `tokens ${totalLabel}`;
+    return `${translateTuiText("tui.common.tokens")} ${totalLabel}`;
   }
   const pct =
     typeof total === "number" && context > 0
       ? Math.min(999, Math.round((total / context) * 100))
       : null;
-  return `tokens ${totalLabel}/${formatTokenCount(context)}${pct !== null ? ` (${pct}%)` : ""}`;
+  return `${translateTuiText("tui.common.tokens")} ${totalLabel}/${formatTokenCount(context)}${pct !== null ? ` (${pct}%)` : ""}`;
 }
 
 export function formatTuiFooterLine(params: {
@@ -380,21 +381,25 @@ export function formatTuiFooterLine(params: {
     ? params.modelProvider
       ? `${params.modelProvider}/${params.model}`
       : params.model
-    : "unknown";
+    : translateTuiText("tui.common.unknown");
   const think = params.thinkingLevel ?? "off";
   const verbose = params.verboseLevel ?? "off";
   const reasoning = params.reasoningLevel ?? "off";
   const reasoningLabel =
-    reasoning === "on" ? "reasoning" : reasoning === "stream" ? "reasoning:stream" : null;
+    reasoning === "on"
+      ? translateTuiText("tui.common.reasoning")
+      : reasoning === "stream"
+        ? `${translateTuiText("tui.common.reasoning")}:stream`
+        : null;
   const footerParts = [
-    `agent ${params.agentLabel}`,
-    `session ${params.sessionLabel}`,
+    `${translateTuiText("tui.common.agent")} ${params.agentLabel}`,
+    `${translateTuiText("tui.common.session")} ${params.sessionLabel}`,
     modelLabel,
-    think !== "off" ? `think ${think}` : null,
-    params.fastMode === true ? "fast" : null,
-    verbose !== "off" ? `verbose ${verbose}` : null,
+    think !== "off" ? `${translateTuiText("tui.common.think")} ${think}` : null,
+    params.fastMode === true ? translateTuiText("tui.common.fast") : null,
+    verbose !== "off" ? `${translateTuiText("tui.common.verbose")} ${verbose}` : null,
     reasoningLabel,
-    `deliver ${params.deliverEnabled ? "on" : "off"}`,
+    `${translateTuiText("tui.common.deliver")} ${formatTuiOnOff(params.deliverEnabled)}`,
     formatTokens(params.totalTokens ?? null, params.contextTokens ?? null),
     params.hint?.trim() || null,
   ].filter(Boolean);
@@ -426,13 +431,19 @@ export function formatDeliveryRoute(params: DeliveryRouteInput): string | null {
   const account = trimOptional(params.lastAccountId);
   const thread = trimOptional(params.lastThreadId);
   const route = channel && target ? `${channel}:${target}` : (channel ?? target);
-  const extras = [account ? `acct ${account}` : null, thread ? `thread ${thread}` : null].filter(
-    Boolean,
-  );
-  const routeLabel = route ? `deliver ${route}` : null;
-  const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
+  const extras = [
+    account ? translateTuiText("tui.route.account", { account }) : null,
+    thread ? translateTuiText("tui.route.thread", { thread }) : null,
+  ].filter(Boolean);
+  const routeLabel = route ? `${translateTuiText("tui.common.deliver")} ${route}` : null;
+  const suffix =
+    extras.length > 0
+      ? translateTuiText("tui.route.extrasWithPrefix", {
+          extras: extras.join(translateTuiText("tui.route.extraSeparator")),
+        })
+      : "";
   if (params.sendPolicy === "deny") {
-    return routeLabel ? `${routeLabel}${suffix}` : "send deny";
+    return routeLabel ? `${routeLabel}${suffix}` : translateTuiText("tui.common.sendDeny");
   }
   return routeLabel ? `${routeLabel}${suffix}` : null;
 }
@@ -443,6 +454,8 @@ type SessionPickerDescriptionInput = DeliveryRouteInput & {
   model?: string | null;
   totalTokens?: number | null;
   contextTokens?: number | null;
+  remainingTokens?: number | null;
+  percentUsed?: number | null;
   fastMode?: boolean;
   verboseLevel?: string | null;
   thinkingLevel?: string | null;
@@ -462,21 +475,26 @@ export function formatSessionPickerDescription(session: SessionPickerDescription
       : (session.model ?? "");
   const tokens =
     typeof session.totalTokens === "number" || typeof session.contextTokens === "number"
-      ? formatTokens(session.totalTokens ?? null, session.contextTokens ?? null)
+      ? formatContextUsageLine({
+          total: session.totalTokens ?? null,
+          context: session.contextTokens ?? null,
+          remaining: session.remainingTokens ?? null,
+          percent: session.percentUsed ?? null,
+        })
       : "";
   const flags = [
     session.status && session.status !== "done" ? session.status : null,
-    session.fastMode === true ? "fast" : null,
+    session.fastMode === true ? translateTuiText("tui.common.fast") : null,
     session.verboseLevel && session.verboseLevel !== "off"
-      ? `verbose ${session.verboseLevel}`
+      ? `${translateTuiText("tui.common.verbose")} ${session.verboseLevel}`
       : null,
     session.thinkingLevel && session.thinkingLevel !== "off"
-      ? `think ${session.thinkingLevel}`
+      ? `${translateTuiText("tui.common.think")} ${session.thinkingLevel}`
       : null,
     session.reasoningLevel && session.reasoningLevel !== "off"
-      ? `reasoning ${session.reasoningLevel}`
+      ? `${translateTuiText("tui.common.reasoning")} ${session.reasoningLevel}`
       : null,
-    session.sendPolicy === "deny" ? "send deny" : null,
+    session.sendPolicy === "deny" ? translateTuiText("tui.common.sendDeny") : null,
   ].filter(Boolean);
   const route = formatDeliveryRoute(session);
   const preview = session.lastMessagePreview?.replace(/\s+/g, " ").trim() ?? "";
@@ -498,67 +516,103 @@ export function formatStatusOverlayLines(params: {
   lastError?: string | null;
   summary?: GatewayStatusSummary | null;
 }): string[] {
-  const lines: string[] = ["Gateway status"];
+  const lines: string[] = [translateTuiText("tui.status.gatewayStatus")];
   const model =
     params.modelProvider && params.model
       ? `${params.modelProvider}/${params.model}`
-      : (params.model ?? "unknown");
-  lines.push(`Gateway: ${params.connectionStatus} | ${params.activityStatus}`);
-  lines.push(`Run: ${params.activeRunId?.trim() || "none"}`);
-  lines.push(`Agent: ${params.agentLabel}`);
-  lines.push(`Session: ${params.sessionLabel}`);
-  lines.push(`Model: ${model}`);
-  lines.push(`Tokens: ${formatTokens(params.totalTokens ?? null, params.contextTokens ?? null)}`);
-  lines.push(`Deliver: ${params.deliverEnabled ? "on" : "off"}`);
-  lines.push(`Route: ${params.deliveryRoute?.trim() || "none"}`);
+      : (params.model ?? translateTuiText("tui.common.unknown"));
+  lines.push(
+    translateTuiText("tui.status.gateway", {
+      connection: formatTuiStatusText(params.connectionStatus),
+      activity: formatTuiStatusText(params.activityStatus),
+    }),
+  );
+  lines.push(
+    translateTuiText("tui.status.run", {
+      run: params.activeRunId?.trim() || translateTuiText("tui.common.none"),
+    }),
+  );
+  lines.push(translateTuiText("tui.status.agent", { agent: params.agentLabel }));
+  lines.push(translateTuiText("tui.status.session", { session: params.sessionLabel }));
+  lines.push(translateTuiText("tui.status.model", { model }));
+  lines.push(
+    translateTuiText("tui.status.tokens", {
+      tokens: formatTokens(params.totalTokens ?? null, params.contextTokens ?? null),
+    }),
+  );
+  lines.push(
+    translateTuiText("tui.status.deliver", { value: formatTuiOnOff(params.deliverEnabled) }),
+  );
+  lines.push(
+    translateTuiText("tui.status.route", {
+      route: params.deliveryRoute?.trim() || translateTuiText("tui.common.none"),
+    }),
+  );
 
   if (params.summary?.runtimeVersion) {
-    lines.push(`Version: ${params.summary.runtimeVersion}`);
+    lines.push(translateTuiText("tui.status.version", { version: params.summary.runtimeVersion }));
   }
 
   const link = params.summary?.linkChannel;
   if (link) {
-    const label = link.label ?? "Link channel";
+    const label = link.label ?? translateTuiText("tui.status.linkChannel");
     const authAge =
       link.linked === true && typeof link.authAgeMs === "number"
-        ? ` (last refreshed ${formatTimeAgo(link.authAgeMs)})`
+        ? ` (${translateTuiText("tui.status.lastRefreshed", { age: formatTimeAgo(link.authAgeMs) })})`
         : "";
-    lines.push(`${label}: ${link.linked === true ? "linked" : "not linked"}${authAge}`);
+    lines.push(
+      `${label}: ${link.linked === true ? translateTuiText("tui.common.linked") : translateTuiText("tui.common.notLinked")}${authAge}`,
+    );
   } else {
-    lines.push("Link channel: unknown");
+    lines.push(translateTuiText("tui.status.linkChannelUnknown"));
   }
 
   if (/pairing required/i.test(params.activityStatus)) {
-    lines.push(`Pairing/Auth: ${params.activityStatus}`);
+    lines.push(
+      translateTuiText("tui.status.pairingAuth", {
+        value: formatTuiStatusText(params.activityStatus),
+      }),
+    );
   }
 
   if (params.lastError?.trim()) {
-    lines.push(`Last error: ${sanitizeRenderableText(params.lastError.trim())}`);
+    lines.push(
+      translateTuiText("tui.status.lastError", {
+        error: sanitizeRenderableText(params.lastError.trim()),
+      }),
+    );
   }
 
   const queued = Array.isArray(params.summary?.queuedSystemEvents)
     ? params.summary.queuedSystemEvents
     : [];
   if (queued.length > 0) {
-    lines.push(`Queued system events (${queued.length}): ${queued.slice(0, 3).join(" | ")}`);
+    lines.push(
+      translateTuiText("tui.status.queuedSystemEvents", {
+        count: queued.length,
+        preview: queued.slice(0, 3).join(" | "),
+      }),
+    );
   }
 
   const recent = Array.isArray(params.summary?.sessions?.recent)
     ? params.summary.sessions.recent
     : [];
   if (recent.length > 0) {
-    lines.push("Recent sessions:");
+    lines.push(translateTuiText("tui.status.recentSessions"));
     for (const entry of recent.slice(0, 6)) {
-      const modelLabel = entry.model ?? "unknown";
+      const modelLabel = entry.model ?? translateTuiText("tui.common.unknown");
       const usage = formatContextUsageLine({
         total: entry.totalTokens ?? null,
         context: entry.contextTokens ?? null,
         remaining: entry.remainingTokens ?? null,
         percent: entry.percentUsed ?? null,
       });
-      const flags = entry.flags?.length ? ` | flags: ${entry.flags.join(", ")}` : "";
+      const flags = entry.flags?.length
+        ? ` | ${translateTuiText("tui.status.flags", { flags: entry.flags.join(", ") })}`
+        : "";
       lines.push(
-        `- ${entry.key}${entry.kind ? ` [${entry.kind}]` : ""} | model ${modelLabel} | ${usage}${flags}`,
+        `- ${entry.key}${entry.kind ? ` [${entry.kind}]` : ""} | ${translateTuiText("tui.common.model")} ${modelLabel} | ${usage}${flags}`,
       );
     }
   }
@@ -574,12 +628,31 @@ export function formatContextUsageLine(params: {
 }) {
   const totalLabel = typeof params.total === "number" ? formatTokenCount(params.total) : "?";
   const ctxLabel = typeof params.context === "number" ? formatTokenCount(params.context) : "?";
-  const pct = typeof params.percent === "number" ? Math.min(999, Math.round(params.percent)) : null;
+  const pct =
+    typeof params.percent === "number"
+      ? Math.min(999, Math.round(params.percent))
+      : typeof params.total === "number" && typeof params.context === "number" && params.context > 0
+        ? Math.min(999, Math.round((params.total / params.context) * 100))
+        : null;
   const remainingLabel =
-    typeof params.remaining === "number" ? `${formatTokenCount(params.remaining)} left` : null;
+    typeof params.remaining === "number"
+      ? `${formatTokenCount(params.remaining)} ${translateTuiText("tui.common.remaining")}`
+      : null;
   const pctLabel = pct !== null ? `${pct}%` : null;
   const extra = [remainingLabel, pctLabel].filter(Boolean).join(", ");
-  return `tokens ${totalLabel}/${ctxLabel}${extra ? ` (${extra})` : ""}`;
+  return `${translateTuiText("tui.common.tokens")} ${totalLabel}/${ctxLabel}${extra ? ` (${extra})` : ""}`;
+}
+
+export function formatTuiStatusText(text: string): string {
+  return text
+    .split(/(\s+\|\s+| • |: )/)
+    .map((part) => {
+      if (part === " | " || part === " • " || part === ": ") {
+        return part;
+      }
+      return formatTuiStateLabel(part);
+    })
+    .join("");
 }
 
 export function asString(value: unknown, fallback = ""): string {

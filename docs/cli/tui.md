@@ -18,6 +18,7 @@ Notes:
 
 - `tui` resolves configured gateway auth SecretRefs for token/password auth when possible (`env`/`file`/`exec` providers).
 - When launched from inside a configured agent workspace directory, TUI auto-selects that agent for the session key default (unless `--session` is explicitly `agent:<id>:...`).
+- TUI uses the same language selection as the root CLI: `--lang` first, then `cli.language`, then `CRAWCLAW_LANG`, then English.
 
 ## Examples
 
@@ -25,6 +26,7 @@ Notes:
 crawclaw tui
 crawclaw tui --url ws://127.0.0.1:18789 --token <token>
 crawclaw tui --session main --deliver
+crawclaw --lang zh-CN tui
 # when run inside an agent workspace, infers that agent automatically
 crawclaw tui --session bugfix
 ```

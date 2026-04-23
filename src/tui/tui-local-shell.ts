@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import type { Component, SelectItem } from "@mariozechner/pi-tui";
+import { translateTuiText } from "../cli/i18n/tui.js";
 import { createSearchableSelectList } from "./components/selectors.js";
 
 type LocalShellDeps = {
@@ -43,15 +44,13 @@ export function createLocalShellRunner(deps: LocalShellDeps) {
     localExecAsked = true;
 
     return await new Promise<boolean>((resolve) => {
-      deps.chatLog.addSystem("Allow local shell commands for this session?");
-      deps.chatLog.addSystem(
-        "This runs commands on YOUR machine (not the gateway) and may delete files or reveal secrets.",
-      );
-      deps.chatLog.addSystem("Select Yes/No (arrows + Enter), Esc to cancel.");
+      deps.chatLog.addSystem(translateTuiText("tui.local.allowQuestion"));
+      deps.chatLog.addSystem(translateTuiText("tui.local.danger"));
+      deps.chatLog.addSystem(translateTuiText("tui.local.select"));
       const selector = createSelector(
         [
-          { value: "no", label: "No" },
-          { value: "yes", label: "Yes" },
+          { value: "no", label: translateTuiText("tui.local.no") },
+          { value: "yes", label: translateTuiText("tui.local.yes") },
         ],
         2,
       );
@@ -59,17 +58,17 @@ export function createLocalShellRunner(deps: LocalShellDeps) {
         deps.closeOverlay();
         if (item.value === "yes") {
           localExecAllowed = true;
-          deps.chatLog.addSystem("local shell: enabled for this session");
+          deps.chatLog.addSystem(translateTuiText("tui.local.enabled"));
           resolve(true);
         } else {
-          deps.chatLog.addSystem("local shell: not enabled");
+          deps.chatLog.addSystem(translateTuiText("tui.local.notEnabled"));
           resolve(false);
         }
         deps.tui.requestRender();
       };
       selector.onCancel = () => {
         deps.closeOverlay();
-        deps.chatLog.addSystem("local shell: cancelled");
+        deps.chatLog.addSystem(translateTuiText("tui.local.cancelled"));
         deps.tui.requestRender();
         resolve(false);
       };
@@ -87,7 +86,7 @@ export function createLocalShellRunner(deps: LocalShellDeps) {
     }
 
     if (localExecAsked && !localExecAllowed) {
-      deps.chatLog.addSystem("local shell: not enabled for this session");
+      deps.chatLog.addSystem(translateTuiText("tui.local.notEnabledSession"));
       deps.tui.requestRender();
       return;
     }

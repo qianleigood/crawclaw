@@ -1,3 +1,4 @@
+import { translateTuiText } from "../cli/i18n/tui.js";
 import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
 import { asString, extractTextFromMessage, isCommandMessage } from "./tui-formatters.js";
 import { TuiStreamAssembler } from "./tui-stream-assembler.js";
@@ -290,7 +291,7 @@ export function createEventHandlers(context: EventHandlerContext) {
         evt.errorMessage,
       );
       const suppressEmptyExternalPlaceholder =
-        finalText === "(no output)" && !isLocalRunId?.(evt.runId);
+        finalText === translateTuiText("tui.message.noOutput") && !isLocalRunId?.(evt.runId);
       if (suppressEmptyExternalPlaceholder) {
         chatLog.dropAssistant(evt.runId);
       } else {
@@ -305,14 +306,18 @@ export function createEventHandlers(context: EventHandlerContext) {
     if (evt.state === "aborted") {
       forgetLocalBtwRunId?.(evt.runId);
       const wasActiveRun = state.activeChatRunId === evt.runId;
-      chatLog.addSystem("run aborted");
+      chatLog.addSystem(translateTuiText("tui.message.runAborted"));
       terminateRun({ runId: evt.runId, wasActiveRun, status: "aborted" });
       maybeRefreshHistoryForRun(evt.runId);
     }
     if (evt.state === "error") {
       forgetLocalBtwRunId?.(evt.runId);
       const wasActiveRun = state.activeChatRunId === evt.runId;
-      chatLog.addSystem(`run error: ${evt.errorMessage ?? "unknown"}`);
+      chatLog.addSystem(
+        translateTuiText("tui.message.runError", {
+          error: evt.errorMessage ?? translateTuiText("tui.common.unknown"),
+        }),
+      );
       terminateRun({ runId: evt.runId, wasActiveRun, status: "error" });
       maybeRefreshHistoryForRun(evt.runId);
     }

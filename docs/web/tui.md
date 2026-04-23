@@ -32,6 +32,21 @@ crawclaw tui --url ws://<host>:<port> --token <gateway-token>
 
 Use `--password` if your Gateway uses password auth.
 
+## Language
+
+The TUI shares the root CLI language system. Use the same controls for CLI help,
+prompts, and TUI text:
+
+```bash
+crawclaw --lang zh-CN tui
+crawclaw config set cli.language zh-CN
+CRAWCLAW_LANG=zh-CN crawclaw tui
+```
+
+Language resolution order is `--lang`, then `cli.language`, then `CRAWCLAW_LANG`,
+then English. TUI translation keys live in the shared CLI translation catalog so
+CLI and TUI copy do not drift into separate dictionaries.
+
 ## What you see
 
 - Header: connection URL, current agent, current session.

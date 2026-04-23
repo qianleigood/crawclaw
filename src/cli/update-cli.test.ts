@@ -2,11 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig, ConfigFileSnapshot } from "../config/types.crawclaw.js";
 import type { UpdateRunResult } from "../infra/update-runner.js";
 import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../plugins/public-artifacts.js";
 import { withEnvAsync } from "../test-utils/env.js";
+import { setActiveCliLocale } from "./i18n/index.js";
 import { createCliRuntimeCapture } from "./test-runtime-capture.js";
 
 const confirm = vi.fn();
@@ -410,6 +411,10 @@ describe("update-cli", () => {
     setStdoutTty(false);
   });
 
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   it.each([
     {
       name: "preview mode",
@@ -443,6 +448,18 @@ describe("update-cli", () => {
       },
     },
   ] as const)("updateCommand dry-run behavior: $name", runUpdateCliScenario);
+
+  it("localizes update dry-run preview in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    serviceLoaded.mockResolvedValue(true);
+
+    await updateCommand({ dryRun: true, channel: "beta" });
+
+    const logs = vi.mocked(defaultRuntime.log).mock.calls.map((call) => String(call[0]));
+    const output = logs.join("\n");
+    expect(output).toContain("更新预览");
+    expect(output).toContain("未应用任何更改。");
+  });
 
   it.each([
     {

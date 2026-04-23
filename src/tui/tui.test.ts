@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { getActiveCliLocale, setActiveCliLocale } from "../cli/i18n/index.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { getSlashCommands, parseCommand } from "./commands.js";
 import {
+  applyTuiLocaleFromConfig,
   createBackspaceDeduper,
   isIgnorableTuiStopError,
   resolveCtrlCAction,
@@ -11,6 +13,10 @@ import {
   resolveTuiSessionKey,
   stopTuiSafely,
 } from "./tui.js";
+
+afterEach(() => {
+  setActiveCliLocale("en");
+});
 
 describe("resolveFinalAssistantText", () => {
   it("falls back to streamed text when final text is empty", () => {
@@ -150,6 +156,30 @@ describe("resolveInitialTuiAgentId", () => {
         cwd: "/var/tmp/unrelated",
       }),
     ).toBe("main");
+  });
+});
+
+describe("applyTuiLocaleFromConfig", () => {
+  it("uses the same language precedence as the CLI", () => {
+    const cfg = { cli: { language: "zh-CN" } } as CrawClawConfig;
+
+    expect(
+      applyTuiLocaleFromConfig({
+        cfg,
+        argv: ["node", "crawclaw", "tui", "--lang", "en"],
+        envLanguage: "zh-CN",
+      }),
+    ).toBe("en");
+    expect(getActiveCliLocale()).toBe("en");
+
+    expect(
+      applyTuiLocaleFromConfig({
+        cfg,
+        argv: ["node", "crawclaw", "tui"],
+        envLanguage: "en",
+      }),
+    ).toBe("zh-CN");
+    expect(getActiveCliLocale()).toBe("zh-CN");
   });
 });
 

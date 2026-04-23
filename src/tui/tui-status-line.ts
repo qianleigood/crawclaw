@@ -1,5 +1,6 @@
 import { Container, Loader, Text, type TUI } from "@mariozechner/pi-tui";
 import { theme } from "./theme/theme.js";
+import { formatTuiStatusText } from "./tui-formatters.js";
 import { buildWaitingStatusMessage, defaultWaitingPhrases } from "./tui-waiting.js";
 
 const BUSY_STATUSES = new Set(["sending", "waiting", "streaming", "running"]);
@@ -19,7 +20,9 @@ export function formatStatusElapsed(startMs: number, nowMs = Date.now()) {
 }
 
 export function formatIdleStatusText(connectionStatus: string, activityStatus: string) {
-  return activityStatus ? `${connectionStatus} | ${activityStatus}` : connectionStatus;
+  const connection = formatTuiStatusText(connectionStatus);
+  const activity = formatTuiStatusText(activityStatus);
+  return activity ? `${connection} | ${activity}` : connection;
 }
 
 export function createTuiStatusLineController(params: {

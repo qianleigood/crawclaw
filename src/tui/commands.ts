@@ -1,6 +1,7 @@
 import type { SlashCommand } from "@mariozechner/pi-tui";
 import { listChatCommands, listChatCommandsForConfig } from "../auto-reply/commands-registry.js";
 import { formatThinkingLevels, listThinkingLevelLabels } from "../auto-reply/thinking.js";
+import { translateTuiText } from "../cli/i18n/tui.js";
 import type { CrawClawConfig } from "../config/types.js";
 
 const VERBOSE_LEVELS = ["on", "off"];
@@ -61,20 +62,20 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
   const activationCompletions = createLevelCompletion(ACTIVATION_LEVELS);
   const deliverCompletions = createLevelCompletion(DELIVER_LEVELS);
   const commands: SlashCommand[] = [
-    { name: "help", description: "Show slash command help" },
-    { name: "status", description: "Show gateway status summary" },
-    { name: "agent", description: "Switch agent (or open picker)" },
-    { name: "agents", description: "Open agent picker" },
-    { name: "session", description: "Switch session (or open picker)" },
-    { name: "sessions", description: "Open session picker" },
+    { name: "help", description: translateTuiText("tui.command.help") },
+    { name: "status", description: translateTuiText("tui.command.status") },
+    { name: "agent", description: translateTuiText("tui.command.agent") },
+    { name: "agents", description: translateTuiText("tui.command.agents") },
+    { name: "session", description: translateTuiText("tui.command.session") },
+    { name: "sessions", description: translateTuiText("tui.command.sessions") },
     {
       name: "model",
-      description: "Set model (or open picker)",
+      description: translateTuiText("tui.command.model"),
     },
-    { name: "models", description: "Open model picker" },
+    { name: "models", description: translateTuiText("tui.command.models") },
     {
       name: "think",
-      description: "Set thinking level",
+      description: translateTuiText("tui.command.think"),
       getArgumentCompletions: (prefix) =>
         thinkLevels
           .filter((v) => v.startsWith(prefix.toLowerCase()))
@@ -82,49 +83,49 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
     },
     {
       name: "fast",
-      description: "Set fast mode on/off",
+      description: translateTuiText("tui.command.fast"),
       getArgumentCompletions: fastCompletions,
     },
     {
       name: "verbose",
-      description: "Set verbose on/off",
+      description: translateTuiText("tui.command.verbose"),
       getArgumentCompletions: verboseCompletions,
     },
     {
       name: "reasoning",
-      description: "Set reasoning on/off",
+      description: translateTuiText("tui.command.reasoning"),
       getArgumentCompletions: reasoningCompletions,
     },
     {
       name: "usage",
-      description: "Toggle per-response usage line",
+      description: translateTuiText("tui.command.usage"),
       getArgumentCompletions: usageCompletions,
     },
     {
       name: "elevated",
-      description: "Set elevated on/off/ask/full",
+      description: translateTuiText("tui.command.elevated"),
       getArgumentCompletions: elevatedCompletions,
     },
     {
       name: "elev",
-      description: "Alias for /elevated",
+      description: translateTuiText("tui.command.elev"),
       getArgumentCompletions: elevatedCompletions,
     },
     {
       name: "activation",
-      description: "Set group activation",
+      description: translateTuiText("tui.command.activation"),
       getArgumentCompletions: activationCompletions,
     },
     {
       name: "deliver",
-      description: "Set external delivery on/off",
+      description: translateTuiText("tui.command.deliver"),
       getArgumentCompletions: deliverCompletions,
     },
-    { name: "abort", description: "Abort active run" },
-    { name: "new", description: "Start a fresh session" },
-    { name: "settings", description: "Open settings" },
-    { name: "exit", description: "Exit the TUI" },
-    { name: "quit", description: "Exit the TUI" },
+    { name: "abort", description: translateTuiText("tui.command.abort") },
+    { name: "new", description: translateTuiText("tui.command.new") },
+    { name: "settings", description: translateTuiText("tui.command.settings") },
+    { name: "exit", description: translateTuiText("tui.command.exit") },
+    { name: "quit", description: translateTuiText("tui.command.exit") },
   ];
 
   const seen = new Set(commands.map((command) => command.name));
@@ -147,7 +148,7 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
 export function helpText(options: SlashCommandOptions = {}): string {
   const thinkLevels = formatThinkingLevels(options.provider, options.model, "|");
   return [
-    "Slash commands:",
+    translateTuiText("tui.help.title"),
     "/help",
     "/commands",
     "/status",

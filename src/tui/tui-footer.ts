@@ -1,3 +1,4 @@
+import { translateTuiText } from "../cli/i18n/tui.js";
 import { formatTuiFooterLine } from "./tui-formatters.js";
 import type { SessionInfo } from "./tui-types.js";
 
@@ -29,6 +30,6 @@ export function formatTuiFooter(params: {
     verboseLevel: params.sessionInfo.verboseLevel,
     reasoningLevel: params.sessionInfo.reasoningLevel,
     deliverEnabled: params.deliverEnabled,
-    hint: params.hint ?? TUI_FOOTER_HINT,
+    hint: params.hint ?? translateTuiText("tui.footer.hint"),
   });
 }

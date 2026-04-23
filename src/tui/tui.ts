@@ -8,6 +8,9 @@ import {
   TUI,
 } from "@mariozechner/pi-tui";
 import { resolveAgentIdByWorkspacePath, resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { resolveCliLocale, setActiveCliLocale } from "../cli/i18n/index.js";
+import { translateTuiText } from "../cli/i18n/tui.js";
+import type { CliLocale } from "../cli/i18n/types.js";
 import { loadConfig, type CrawClawConfig } from "../config/config.js";
 import {
   buildAgentMainSessionKey,
@@ -98,6 +101,20 @@ export function resolveInitialTuiAgentId(params: {
   return normalizeAgentId(params.fallbackAgentId);
 }
 
+export function applyTuiLocaleFromConfig(params: {
+  cfg: CrawClawConfig;
+  argv?: readonly string[];
+  envLanguage?: string;
+}): CliLocale {
+  const locale = resolveCliLocale({
+    argv: params.argv ?? process.argv,
+    config: params.cfg.cli?.language,
+    env: params.envLanguage ?? process.env.CRAWCLAW_LANG,
+  });
+  setActiveCliLocale(locale);
+  return locale;
+}
+
 export function resolveGatewayDisconnectState(reason?: string): {
   connectionStatus: string;
   activityStatus: string;
@@ -106,14 +123,17 @@ export function resolveGatewayDisconnectState(reason?: string): {
   const reasonLabel = reason?.trim() ? reason.trim() : "closed";
   if (/pairing required/i.test(reasonLabel)) {
     return {
-      connectionStatus: `gateway disconnected: ${reasonLabel}`,
-      activityStatus: "pairing required: run crawclaw devices list",
-      pairingHint:
-        "Pairing required. Run `crawclaw devices list`, approve your request ID, then reconnect.",
+      connectionStatus: translateTuiText("tui.message.gatewayDisconnected", {
+        reason: reasonLabel,
+      }),
+      activityStatus: translateTuiText("tui.pairing.activity"),
+      pairingHint: translateTuiText("tui.pairing.hint"),
     };
   }
   return {
-    connectionStatus: `gateway disconnected: ${reasonLabel}`,
+    connectionStatus: translateTuiText("tui.message.gatewayDisconnected", {
+      reason: reasonLabel,
+    }),
     activityStatus: "idle",
   };
 }
@@ -189,6 +209,7 @@ export function resolveCtrlCAction(params: {
 
 export async function runTui(opts: TuiOptions) {
   const config = loadConfig();
+  applyTuiLocaleFromConfig({ cfg: config });
   const initialSessionInput = (opts.session ?? "").trim();
   let sessionScope: SessionScope = (config.session?.scope ?? "per-sender") as SessionScope;
   let sessionMainKey = normalizeMainKey(config.session?.mainKey);
@@ -480,7 +501,11 @@ export async function runTui(opts: TuiOptions) {
     const agentLabel = formatAgentLabel(currentAgentId);
     header.setText(
       theme.header(
-        `crawclaw tui - ${client.connection.url} - agent ${agentLabel} - session ${sessionLabel}`,
+        translateTuiText("tui.header.title", {
+          url: client.connection.url,
+          agent: agentLabel,
+          session: sessionLabel,
+        }),
       ),
     );
   };
@@ -659,7 +684,7 @@ export async function runTui(opts: TuiOptions) {
     lastCtrlCAt = decision.nextLastCtrlCAt;
     if (decision.action === "clear") {
       editor.setText("");
-      setActivityStatus("cleared input; press ctrl+c again to exit");
+      setActivityStatus(translateTuiText("tui.message.clearedInput"));
       tui.requestRender();
       return;
     }
@@ -667,13 +692,13 @@ export async function runTui(opts: TuiOptions) {
       requestExit();
       return;
     }
-    setActivityStatus("press ctrl+c again to exit");
+    setActivityStatus(translateTuiText("tui.message.pressCtrlCAgain"));
     tui.requestRender();
   };
 
   const openToolOverlay = () => {
     if (!chatLog.hasTools()) {
-      setActivityStatus("no tool output yet");
+      setActivityStatus(translateTuiText("tui.message.noToolOutputYet"));
       tui.requestRender();
       return;
     }
@@ -682,12 +707,25 @@ export async function runTui(opts: TuiOptions) {
       onToggleTool: (toolCallId) => {
         const expanded = chatLog.toggleToolExpanded(toolCallId);
         const tool = chatLog.listTools().find((entry) => entry.id === toolCallId);
-        setActivityStatus(`${tool?.toolName ?? "tool"} ${expanded ? "expanded" : "collapsed"}`);
+        setActivityStatus(
+          translateTuiText("tui.message.toolToggled", {
+            tool: tool?.toolName ?? "tool",
+            value: expanded
+              ? translateTuiText("tui.common.expanded")
+              : translateTuiText("tui.common.collapsed"),
+          }),
+        );
         tui.requestRender();
       },
       onToggleAll: () => {
         toolsExpanded = chatLog.toggleAllToolsExpanded();
-        setActivityStatus(toolsExpanded ? "tools expanded" : "tools collapsed");
+        setActivityStatus(
+          translateTuiText("tui.message.toolsToggled", {
+            value: toolsExpanded
+              ? translateTuiText("tui.common.expanded")
+              : translateTuiText("tui.common.collapsed"),
+          }),
+        );
         tui.requestRender();
       },
       onClose: closeOverlay,
@@ -747,7 +785,12 @@ export async function runTui(opts: TuiOptions) {
       await refreshAgents();
       updateHeader();
       await loadHistory();
-      setConnectionStatus(reconnected ? "gateway reconnected" : "gateway connected", 4000);
+      setConnectionStatus(
+        reconnected
+          ? translateTuiText("tui.message.gatewayReconnected")
+          : translateTuiText("tui.message.gatewayConnected"),
+        4000,
+      );
       tui.requestRender();
       if (!autoMessageSent && autoMessage) {
         autoMessageSent = true;

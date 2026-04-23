@@ -1,4 +1,5 @@
 import { type Component, isKeyRelease, matchesKey, truncateToWidth } from "@mariozechner/pi-tui";
+import { translateTuiText } from "../../cli/i18n/tui.js";
 import { visibleWidth } from "../../terminal/ansi.js";
 import { theme } from "../theme/theme.js";
 import type { ChatLogToolState } from "./chat-log.js";
@@ -25,13 +26,19 @@ export class ToolOverlayComponent implements Component {
     this.clampSelection(tools);
 
     const lines = [
-      theme.header("Tool output"),
-      theme.dim("Enter toggle selected | a toggle all | Esc close"),
+      theme.header(translateTuiText("tui.overlay.toolOutput")),
+      theme.dim(
+        [
+          translateTuiText("tui.overlay.toggleSelected"),
+          translateTuiText("tui.overlay.toggleAll"),
+          translateTuiText("tui.overlay.close"),
+        ].join(" | "),
+      ),
       theme.border("-".repeat(Math.max(0, width))),
     ];
 
     if (tools.length === 0) {
-      lines.push(theme.dim("No tool output yet"));
+      lines.push(theme.dim(translateTuiText("tui.overlay.noToolOutputYet")));
       return lines;
     }
 
@@ -99,7 +106,9 @@ export class ToolOverlayComponent implements Component {
   private renderToolLine(tool: ChatLogToolState, selected: boolean, width: number) {
     const prefix = selected ? "> " : "  ";
     const status = this.formatStatus(tool.status);
-    const expansion = tool.expanded ? "expanded" : "collapsed";
+    const expansion = tool.expanded
+      ? translateTuiText("tui.common.expanded")
+      : translateTuiText("tui.common.collapsed");
     const line = `${prefix}${status} ${expansion} ${tool.id} ${tool.toolName}`;
     const maxWidth = Math.max(1, width - RIGHT_MARGIN);
     const truncated = visibleWidth(line) > maxWidth ? truncateToWidth(line, maxWidth, "") : line;
@@ -108,12 +117,12 @@ export class ToolOverlayComponent implements Component {
 
   private formatStatus(status: ChatLogToolState["status"]) {
     if (status === "error") {
-      return theme.error("error");
+      return theme.error(translateTuiText("tui.common.error"));
     }
     if (status === "running") {
-      return theme.accentSoft("running");
+      return theme.accentSoft(translateTuiText("tui.common.running"));
     }
-    return theme.success("done");
+    return theme.success(translateTuiText("tui.common.done"));
   }
 
   private clampSelection(tools: ChatLogToolState[]) {

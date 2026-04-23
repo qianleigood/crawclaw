@@ -1,5 +1,6 @@
 import type { Component } from "@mariozechner/pi-tui";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 
 type LoadHistoryMock = ReturnType<typeof vi.fn> & (() => Promise<void>);
@@ -109,6 +110,10 @@ function createHarness(params?: {
 }
 
 describe("tui command handlers", () => {
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   it("renders the sending indicator before chat.send resolves", async () => {
     let resolveSend: (value: { runId: string }) => void = () => {
       throw new Error("sendChat promise resolver was not initialized");
@@ -333,7 +338,7 @@ describe("tui command handlers", () => {
 
     expect(sendChat).not.toHaveBeenCalled();
     expect(addUser).not.toHaveBeenCalled();
-    expect(addSystem).toHaveBeenCalledWith("not connected to gateway — message not sent");
+    expect(addSystem).toHaveBeenCalledWith("not connected to gateway - message not sent");
     expect(setActivityStatus).toHaveBeenLastCalledWith("disconnected");
   });
 
@@ -344,6 +349,25 @@ describe("tui command handlers", () => {
 
     expect(patchSession).not.toHaveBeenCalled();
     expect(addSystem).toHaveBeenCalledWith("usage: /activation <mention|always>");
+  });
+
+  it("localizes command usage and patch failures in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const { handleCommand, patchSession, addSystem } = createHarness({
+      patchSession: vi.fn().mockRejectedValue(new Error("bad model")),
+    });
+
+    await handleCommand("/verbose");
+    await handleCommand("/fast maybe");
+    await handleCommand("/think high");
+
+    expect(addSystem).toHaveBeenCalledWith("用法：/verbose <on|off>");
+    expect(addSystem).toHaveBeenCalledWith("用法：/fast <status|on|off>");
+    expect(addSystem).toHaveBeenCalledWith("思考设置失败：Error: bad model");
+    expect(patchSession).toHaveBeenCalledWith({
+      key: "agent:main:main",
+      thinkingLevel: "high",
+    });
   });
 
   it("patches the session for valid /activation values", async () => {

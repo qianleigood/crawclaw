@@ -52,6 +52,7 @@ import {
   terminateStaleGatewayPids,
   waitForGatewayHealthyRestart,
 } from "../daemon-cli/restart-health.js";
+import { createCliTranslator, getActiveCliLocale } from "../i18n/index.js";
 import { createUpdateProgress, printResult } from "./progress.js";
 import { prepareRestartScript, runRestartScript } from "./restart-helper.js";
 import {
@@ -217,33 +218,43 @@ function printDryRunPreview(preview: UpdateDryRunPreview, jsonMode: boolean): vo
     return;
   }
 
-  defaultRuntime.log(theme.heading("Update dry-run"));
-  defaultRuntime.log(theme.muted("No changes were applied."));
+  const t = createCliTranslator(getActiveCliLocale());
+
+  defaultRuntime.log(theme.heading(t("update.dryRun.title")));
+  defaultRuntime.log(theme.muted(t("update.dryRun.noChanges")));
   defaultRuntime.log("");
-  defaultRuntime.log(`  Root: ${theme.muted(preview.root)}`);
-  defaultRuntime.log(`  Install kind: ${theme.muted(preview.installKind)}`);
-  defaultRuntime.log(`  Mode: ${theme.muted(preview.mode)}`);
-  defaultRuntime.log(`  Channel: ${theme.muted(preview.effectiveChannel)}`);
-  defaultRuntime.log(`  Tag/spec: ${theme.muted(preview.tag)}`);
+  defaultRuntime.log(`  ${t("update.dryRun.label.root")}: ${theme.muted(preview.root)}`);
+  defaultRuntime.log(
+    `  ${t("update.dryRun.label.installKind")}: ${theme.muted(preview.installKind)}`,
+  );
+  defaultRuntime.log(`  ${t("update.dryRun.label.mode")}: ${theme.muted(preview.mode)}`);
+  defaultRuntime.log(
+    `  ${t("update.dryRun.label.channel")}: ${theme.muted(preview.effectiveChannel)}`,
+  );
+  defaultRuntime.log(`  ${t("update.dryRun.label.tagSpec")}: ${theme.muted(preview.tag)}`);
   if (preview.currentVersion) {
-    defaultRuntime.log(`  Current version: ${theme.muted(preview.currentVersion)}`);
+    defaultRuntime.log(
+      `  ${t("update.dryRun.label.currentVersion")}: ${theme.muted(preview.currentVersion)}`,
+    );
   }
   if (preview.targetVersion) {
-    defaultRuntime.log(`  Target version: ${theme.muted(preview.targetVersion)}`);
+    defaultRuntime.log(
+      `  ${t("update.dryRun.label.targetVersion")}: ${theme.muted(preview.targetVersion)}`,
+    );
   }
   if (preview.downgradeRisk) {
-    defaultRuntime.log(theme.warn("  Downgrade confirmation would be required in a real run."));
+    defaultRuntime.log(theme.warn(`  ${t("update.dryRun.downgradeWarning")}`));
   }
 
   defaultRuntime.log("");
-  defaultRuntime.log(theme.heading("Planned actions:"));
+  defaultRuntime.log(theme.heading(t("update.dryRun.plannedActions")));
   for (const action of preview.actions) {
     defaultRuntime.log(`  - ${action}`);
   }
 
   if (preview.notes.length > 0) {
     defaultRuntime.log("");
-    defaultRuntime.log(theme.heading("Notes:"));
+    defaultRuntime.log(theme.heading(t("update.dryRun.notes")));
     for (const note of preview.notes) {
       defaultRuntime.log(`  - ${theme.muted(note)}`);
     }
@@ -820,6 +831,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   }
 
   if (opts.dryRun) {
+    const t = createCliTranslator(getActiveCliLocale());
     let mode: UpdateRunResult["mode"] = "unknown";
     if (updateInstallKind === "git") {
       mode = "git";
@@ -833,34 +845,34 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 
     const actions: string[] = [];
     if (requestedChannel && requestedChannel !== storedChannel) {
-      actions.push(`Persist update.channel=${requestedChannel} in config`);
+      actions.push(t("update.dryRun.action.persistChannel", { channel: requestedChannel }));
     }
     if (switchToGit) {
-      actions.push("Switch install mode from package to git checkout (dev channel)");
+      actions.push(t("update.dryRun.action.switchToGit"));
     } else if (switchToPackage) {
-      actions.push(`Switch install mode from git to package manager (${mode})`);
+      actions.push(t("update.dryRun.action.switchToPackage", { mode }));
     } else if (updateInstallKind === "git") {
-      actions.push(`Run git update flow on channel ${channel} (fetch/rebase/build/doctor)`);
+      actions.push(t("update.dryRun.action.gitFlow", { channel }));
     } else {
-      actions.push(`Run global package manager update with spec ${packageInstallSpec ?? tag}`);
+      actions.push(t("update.dryRun.action.packageFlow", { spec: packageInstallSpec ?? tag }));
     }
-    actions.push("Run plugin update sync after core update");
-    actions.push("Refresh shell completion cache (if needed)");
+    actions.push(t("update.dryRun.action.pluginSync"));
+    actions.push(t("update.dryRun.action.refreshCompletion"));
     actions.push(
       shouldRestart
-        ? "Restart gateway service and run doctor checks"
-        : "Skip restart (because --no-restart is set)",
+        ? t("update.dryRun.action.restartAndDoctor")
+        : t("update.dryRun.action.skipRestart"),
     );
 
     const notes: string[] = [];
     if (opts.tag && updateInstallKind === "git") {
-      notes.push("--tag applies to npm installs only; git updates ignore it.");
+      notes.push(t("update.dryRun.note.tagNpmOnly"));
     }
     if (fallbackToLatest) {
-      notes.push("Beta channel resolves to latest for this run (fallback).");
+      notes.push(t("update.dryRun.note.betaFallback"));
     }
     if (explicitTag && !canResolveRegistryVersionForPackageTarget(tag)) {
-      notes.push("Non-registry package specs skip npm version lookup and downgrade previews.");
+      notes.push(t("update.dryRun.note.nonRegistrySpec"));
     }
 
     printDryRunPreview(

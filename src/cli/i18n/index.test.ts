@@ -68,6 +68,42 @@ describe("active CLI text translation", () => {
   });
 });
 
+describe("shared CLI/TUI translation catalog", () => {
+  it("serves TUI copy from the CLI dictionaries", () => {
+    expect(createCliTranslator("en")("tui.message.runAborted")).toBe("run aborted");
+    expect(createCliTranslator("zh-CN")("tui.message.runAborted")).toBe("运行已中止");
+  });
+
+  it("does not keep the old TUI locale wrapper", () => {
+    expect(fs.existsSync("src/tui/tui-i18n.ts")).toBe(false);
+  });
+
+  it("defines every literal TUI translation key in the shared dictionaries", () => {
+    const productionFiles = execFileSync("git", ["ls-files", "--", "src/tui"], {
+      encoding: "utf8",
+    })
+      .trim()
+      .split("\n")
+      .filter((file) => /\.(ts|tsx)$/.test(file))
+      .filter((file) => !/(^|[./-])(test|e2e|coverage|fixtures|test-helpers|mock)/.test(file));
+    const usedKeys = new Set<string>();
+    for (const file of productionFiles) {
+      const source = fs.readFileSync(file, "utf8");
+      for (const match of source.matchAll(/translateTuiText\(\s*([`'"])([^`'"]+)\1/g)) {
+        usedKeys.add(match[2]);
+      }
+    }
+
+    const englishKeys = new Set(Object.keys(EN_CLI_TRANSLATIONS));
+    const zhKeys = new Set(Object.keys(ZH_CN_CLI_TRANSLATIONS));
+    const missing = [...usedKeys]
+      .filter((key) => !englishKeys.has(key) || !zhKeys.has(key))
+      .toSorted();
+
+    expect(missing).toEqual([]);
+  });
+});
+
 describe("CLI translation coverage", () => {
   it("keeps the zh-CN dictionary aligned with English", () => {
     expect(Object.keys(ZH_CN_CLI_TRANSLATIONS).toSorted()).toEqual(

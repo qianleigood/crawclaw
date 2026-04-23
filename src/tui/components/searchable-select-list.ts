@@ -7,6 +7,7 @@ import {
   type SelectListTheme,
   truncateToWidth,
 } from "@mariozechner/pi-tui";
+import { translateTuiText } from "../../cli/i18n/tui.js";
 import { stripAnsi, visibleWidth } from "../../terminal/ansi.js";
 import { findWordBoundaryIndex, fuzzyFilterLower } from "./fuzzy-filter.js";
 
@@ -212,7 +213,7 @@ export class SearchableSelectList implements Component {
     const lines: string[] = [];
 
     // Search input line
-    const promptText = "search: ";
+    const promptText = translateTuiText("tui.picker.search");
     const prompt = this.theme.searchPrompt(promptText);
     const inputWidth = Math.max(1, width - visibleWidth(prompt));
     const inputLines = this.searchInput.render(inputWidth);
@@ -224,7 +225,7 @@ export class SearchableSelectList implements Component {
 
     // If no items match filter, show message
     if (this.filteredItems.length === 0) {
-      lines.push(this.theme.noMatch("  No matches"));
+      lines.push(this.theme.noMatch(translateTuiText("tui.picker.noMatches")));
       return lines;
     }
 

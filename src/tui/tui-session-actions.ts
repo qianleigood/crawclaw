@@ -1,4 +1,5 @@
 import type { TUI } from "@mariozechner/pi-tui";
+import { translateTuiText } from "../cli/i18n/tui.js";
 import type { SessionsPatchResult } from "../gateway/protocol/index.js";
 import {
   normalizeAgentId,
@@ -108,7 +109,7 @@ export function createSessionActions(context: SessionActionContext) {
       const result = await client.listAgents();
       applyAgentsResult(result);
     } catch (err) {
-      const message = `agents list failed: ${String(err)}`;
+      const message = translateTuiText("tui.error.agentsListFailed", { error: String(err) });
       recordError?.(message);
       chatLog.addSystem(message);
     }
@@ -275,7 +276,7 @@ export function createSessionActions(context: SessionActionContext) {
         defaults: result.defaults,
       });
     } catch (err) {
-      const message = `sessions list failed: ${String(err)}`;
+      const message = translateTuiText("tui.error.sessionsListFailed", { error: String(err) });
       recordError?.(message);
       chatLog.addSystem(message);
     }
@@ -331,7 +332,7 @@ export function createSessionActions(context: SessionActionContext) {
       const messages = record.messages ?? [];
       chatLog.clearAll();
       btw.clear();
-      chatLog.addSystem(`session ${state.currentSessionKey}`);
+      chatLog.addSystem(translateTuiText("tui.message.session", { key: state.currentSessionKey }));
       if (messages.length === 0) {
         chatLog.addSystem(formatTuiFirstScreenHint());
       }
@@ -386,7 +387,7 @@ export function createSessionActions(context: SessionActionContext) {
       }
       state.historyLoaded = true;
     } catch (err) {
-      const message = `history failed: ${String(err)}`;
+      const message = translateTuiText("tui.error.historyFailed", { error: String(err) });
       recordError?.(message);
       chatLog.addSystem(message);
     }
@@ -413,7 +414,7 @@ export function createSessionActions(context: SessionActionContext) {
 
   const abortActive = async () => {
     if (!state.activeChatRunId) {
-      chatLog.addSystem("no active run");
+      chatLog.addSystem(translateTuiText("tui.message.noActiveRun"));
       tui.requestRender();
       return;
     }
@@ -422,12 +423,12 @@ export function createSessionActions(context: SessionActionContext) {
         sessionKey: state.currentSessionKey,
         runId: state.activeChatRunId,
       });
-      setActivityStatus("aborted");
+      setActivityStatus(translateTuiText("tui.common.aborted"));
     } catch (err) {
-      const message = `abort failed: ${String(err)}`;
+      const message = translateTuiText("tui.error.abortFailed", { error: String(err) });
       recordError?.(message);
       chatLog.addSystem(message);
-      setActivityStatus("abort failed");
+      setActivityStatus(translateTuiText("tui.common.abortFailed"));
     }
     tui.requestRender();
   };

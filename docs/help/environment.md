@@ -70,6 +70,7 @@ to apply context-specific rules.
 
 ## UI env vars
 
+- `CRAWCLAW_LANG=zh-CN`: set the CLI and TUI language when `--lang` and `cli.language` are not set.
 - `CRAWCLAW_THEME=light` (legacy: `CRAWCLAW_THEME=light`): force the light TUI palette when your terminal has a light background.
 - `CRAWCLAW_THEME=dark` (legacy: `CRAWCLAW_THEME=dark`): force the dark TUI palette.
 - `COLORFGBG`: if your terminal exports it, CrawClaw uses the background color hint to auto-pick the TUI palette.

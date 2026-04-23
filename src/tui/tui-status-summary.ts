@@ -1,3 +1,4 @@
+import { formatTuiEnabledDisabled, translateTuiText } from "../cli/i18n/tui.js";
 import { formatTimeAgo } from "../infra/format-time/format-relative.ts";
 import { formatTokenCount } from "../utils/usage-format.js";
 import { formatContextUsageLine } from "./tui-formatters.js";
@@ -5,27 +6,33 @@ import type { GatewayStatusSummary } from "./tui-types.js";
 
 export function formatStatusSummary(summary: GatewayStatusSummary) {
   const lines: string[] = [];
-  lines.push("Gateway status");
+  lines.push(translateTuiText("tui.status.gatewayStatus"));
   if (summary.runtimeVersion) {
-    lines.push(`Version: ${summary.runtimeVersion}`);
+    lines.push(translateTuiText("tui.status.version", { version: summary.runtimeVersion }));
   }
 
   if (!summary.linkChannel) {
-    lines.push("Link channel: unknown");
+    lines.push(translateTuiText("tui.status.linkChannelUnknown"));
   } else {
-    const linkLabel = summary.linkChannel.label ?? "Link channel";
+    const linkLabel = summary.linkChannel.label ?? translateTuiText("tui.status.linkChannel");
     const linked = summary.linkChannel.linked === true;
     const authAge =
       linked && typeof summary.linkChannel.authAgeMs === "number"
-        ? ` (last refreshed ${formatTimeAgo(summary.linkChannel.authAgeMs)})`
+        ? ` (${translateTuiText("tui.status.lastRefreshed", {
+            age: formatTimeAgo(summary.linkChannel.authAgeMs),
+          })})`
         : "";
-    lines.push(`${linkLabel}: ${linked ? "linked" : "not linked"}${authAge}`);
+    lines.push(
+      `${linkLabel}: ${
+        linked ? translateTuiText("tui.common.linked") : translateTuiText("tui.common.notLinked")
+      }${authAge}`,
+    );
   }
 
   const providerSummary = Array.isArray(summary.providerSummary) ? summary.providerSummary : [];
   if (providerSummary.length > 0) {
     lines.push("");
-    lines.push("System:");
+    lines.push(translateTuiText("tui.status.system"));
     for (const line of providerSummary) {
       lines.push(`  ${line}`);
     }
@@ -34,46 +41,55 @@ export function formatStatusSummary(summary: GatewayStatusSummary) {
   const mainSessionWakeAgents = summary.mainSessionWake?.agents ?? [];
   if (mainSessionWakeAgents.length > 0) {
     const mainSessionWakeParts = mainSessionWakeAgents.map((agent) => {
-      const agentId = agent.agentId ?? "unknown";
-      return `${agent.enabled ? "enabled" : "disabled"} (${agentId})`;
+      const agentId = agent.agentId ?? translateTuiText("tui.common.unknown");
+      return `${formatTuiEnabledDisabled(Boolean(agent.enabled))} (${agentId})`;
     });
     lines.push("");
-    lines.push(`Main-session wake: ${mainSessionWakeParts.join(", ")}`);
+    lines.push(
+      translateTuiText("tui.status.mainSessionWake", {
+        value: mainSessionWakeParts.join(", "),
+      }),
+    );
   }
 
   const sessionPaths = summary.sessions?.paths ?? [];
   if (sessionPaths.length === 1) {
-    lines.push(`Session store: ${sessionPaths[0]}`);
+    lines.push(translateTuiText("tui.status.sessionStore", { path: sessionPaths[0] ?? "" }));
   } else if (sessionPaths.length > 1) {
-    lines.push(`Session stores: ${sessionPaths.length}`);
+    lines.push(translateTuiText("tui.status.sessionStores", { count: sessionPaths.length }));
   }
 
   const defaults = summary.sessions?.defaults;
-  const defaultModel = defaults?.model ?? "unknown";
+  const defaultModel = defaults?.model ?? translateTuiText("tui.common.unknown");
   const defaultCtx =
     typeof defaults?.contextTokens === "number"
       ? ` (${formatTokenCount(defaults.contextTokens)} ctx)`
       : "";
-  lines.push(`Default model: ${defaultModel}${defaultCtx}`);
+  lines.push(translateTuiText("tui.status.defaultModel", { model: defaultModel, ctx: defaultCtx }));
 
   const sessionCount = summary.sessions?.count ?? 0;
-  lines.push(`Active sessions: ${sessionCount}`);
+  lines.push(translateTuiText("tui.status.activeSessions", { count: sessionCount }));
 
   const recent = Array.isArray(summary.sessions?.recent) ? summary.sessions?.recent : [];
   if (recent.length > 0) {
-    lines.push("Recent sessions:");
+    lines.push(translateTuiText("tui.status.recentSessions"));
     for (const entry of recent) {
-      const ageLabel = typeof entry.age === "number" ? formatTimeAgo(entry.age) : "no activity";
-      const model = entry.model ?? "unknown";
+      const ageLabel =
+        typeof entry.age === "number"
+          ? formatTimeAgo(entry.age)
+          : translateTuiText("tui.status.noActivity");
+      const model = entry.model ?? translateTuiText("tui.common.unknown");
       const usage = formatContextUsageLine({
         total: entry.totalTokens ?? null,
         context: entry.contextTokens ?? null,
         remaining: entry.remainingTokens ?? null,
         percent: entry.percentUsed ?? null,
       });
-      const flags = entry.flags?.length ? ` | flags: ${entry.flags.join(", ")}` : "";
+      const flags = entry.flags?.length
+        ? ` | ${translateTuiText("tui.status.flags", { flags: entry.flags.join(", ") })}`
+        : "";
       lines.push(
-        `- ${entry.key}${entry.kind ? ` [${entry.kind}]` : ""} | ${ageLabel} | model ${model} | ${usage}${flags}`,
+        `- ${entry.key}${entry.kind ? ` [${entry.kind}]` : ""} | ${ageLabel} | ${translateTuiText("tui.common.model")} ${model} | ${usage}${flags}`,
       );
     }
   }
@@ -81,7 +97,12 @@ export function formatStatusSummary(summary: GatewayStatusSummary) {
   const queued = Array.isArray(summary.queuedSystemEvents) ? summary.queuedSystemEvents : [];
   if (queued.length > 0) {
     const preview = queued.slice(0, 3).join(" | ");
-    lines.push(`Queued system events (${queued.length}): ${preview}`);
+    lines.push(
+      translateTuiText("tui.status.queuedSystemEvents", {
+        count: queued.length,
+        preview,
+      }),
+    );
   }
 
   return lines;

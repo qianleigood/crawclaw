@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
 import type { AgentEvent, BtwEvent, ChatEvent, TuiStateAccess } from "./tui-types.js";
 
@@ -49,6 +50,10 @@ function createMockBtwPresenter(): MockBtwPresenter & HandlerBtwPresenter {
 }
 
 describe("tui-event-handlers: handleAgentEvent", () => {
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   const makeState = (overrides?: Partial<TuiStateAccess>): TuiStateAccess => ({
     agentDefaultId: "main",
     sessionMainKey: "agent:main:main",
@@ -570,6 +575,28 @@ describe("tui-event-handlers: handleAgentEvent", () => {
     expect(String(rendered)).toContain("HTTP 401");
     expect(String(rendered)).toContain("Missing scopes: model.request");
     expect(chatLog.dropAssistant).not.toHaveBeenCalledWith("run-error-envelope");
+  });
+
+  it("localizes aborted and error chat events in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+    const { state, chatLog, handleChatEvent } = createHandlersHarness({
+      state: { activeChatRunId: "run-localized" },
+    });
+
+    handleChatEvent({
+      runId: "run-localized",
+      sessionKey: state.currentSessionKey,
+      state: "aborted",
+    });
+    handleChatEvent({
+      runId: "run-localized-2",
+      sessionKey: state.currentSessionKey,
+      state: "error",
+      errorMessage: "boom",
+    });
+
+    expect(chatLog.addSystem).toHaveBeenCalledWith("运行已中止");
+    expect(chatLog.addSystem).toHaveBeenCalledWith("运行错误：boom");
   });
 
   it("drops streaming assistant when chat final has no message", () => {

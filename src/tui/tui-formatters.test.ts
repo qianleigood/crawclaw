@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import {
   formatTuiFooterLine,
   formatSessionPickerDescription,
@@ -66,6 +67,10 @@ describe("formatTuiFooterLine", () => {
 });
 
 describe("formatSessionPickerDescription", () => {
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   it("summarizes model, tokens, flags, delivery route, and preview", () => {
     const description = formatSessionPickerDescription({
       updatedAt: Date.now(),
@@ -90,9 +95,39 @@ describe("formatSessionPickerDescription", () => {
     expect(description).toContain("deliver discord:channel:C123 (acct work)");
     expect(description).toContain("Latest assistant reply");
   });
+
+  it("localizes zh-CN session flags and token remainder labels", () => {
+    setActiveCliLocale("zh-CN");
+
+    const description = formatSessionPickerDescription({
+      updatedAt: Date.now(),
+      modelProvider: "openai",
+      model: "gpt-5.4",
+      totalTokens: 12_345,
+      contextTokens: 200_000,
+      remainingTokens: 187_655,
+      percentUsed: 6,
+      fastMode: true,
+      verboseLevel: "on",
+      sendPolicy: "deny",
+      lastChannel: "discord",
+      lastTo: "channel:C123",
+      lastAccountId: "work",
+    });
+
+    expect(description).toContain("快速");
+    expect(description).toContain("详细 on");
+    expect(description).toContain("发送禁止");
+    expect(description).toContain("tokens 12k/200k (188k 剩余, 6%)");
+    expect(description).toContain("投递 discord:channel:C123（账号 work）");
+  });
 });
 
 describe("formatStatusOverlayLines", () => {
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   it("renders the active run, model, delivery, gateway auth, recent errors, and queues", () => {
     const lines = formatStatusOverlayLines({
       connectionStatus: "connected",
@@ -144,6 +179,30 @@ describe("formatStatusOverlayLines", () => {
     expect(lines).toContain(
       "- agent:main:main [direct] | model gpt-5.4 | tokens 12k/200k (6%) | flags: fast",
     );
+  });
+
+  it("localizes status overlay labels in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+
+    const lines = formatStatusOverlayLines({
+      connectionStatus: "connected",
+      activityStatus: "idle",
+      activeRunId: null,
+      agentLabel: "main",
+      sessionLabel: "main",
+      modelProvider: "openai",
+      model: "gpt-5.4",
+      totalTokens: 12_345,
+      contextTokens: 200_000,
+      deliverEnabled: true,
+      deliveryRoute: "deliver discord:channel:C123",
+      summary: null,
+    });
+
+    expect(lines).toContain("网关状态");
+    expect(lines).toContain("网关：已连接 | 空闲");
+    expect(lines).toContain("投递：开启");
+    expect(lines).toContain("连接渠道：未知");
   });
 });
 

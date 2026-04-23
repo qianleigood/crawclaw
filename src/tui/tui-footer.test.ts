@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { formatTuiFooter, TUI_FOOTER_HINT } from "./tui-footer.js";
 
 describe("tui footer model", () => {
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   it("keeps a restrained discovery hint in the footer", () => {
     expect(TUI_FOOTER_HINT).toContain("Ctrl+P");
     expect(TUI_FOOTER_HINT).toContain("Ctrl+O");
@@ -27,5 +32,27 @@ describe("tui footer model", () => {
     expect(line).toBe(
       "agent main (Main Agent) | session main (Daily Ops) | openai/gpt-5.4 | deliver on | tokens 12k/200k (6%) | Ctrl+P sessions; Ctrl+O tools; /help",
     );
+  });
+
+  it("localizes the footer chrome in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+
+    const line = formatTuiFooter({
+      currentAgentId: "main",
+      currentSessionKey: "agent:main:main",
+      sessionInfo: {
+        model: "gpt-5.4",
+        modelProvider: "openai",
+        totalTokens: 12_345,
+        contextTokens: 200_000,
+      },
+      deliverEnabled: true,
+      formatAgentLabel: (agentId) => agentId,
+      formatSessionKey: (sessionKey) => sessionKey.replace("agent:main:", ""),
+    });
+
+    expect(line).toContain("会话 main");
+    expect(line).toContain("投递 开启");
+    expect(line).toContain("Ctrl+P 会话");
   });
 });

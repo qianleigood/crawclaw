@@ -7,6 +7,7 @@ import {
   type SelectListTheme,
 } from "@mariozechner/pi-tui";
 import chalk from "chalk";
+import { translateTuiText } from "../../cli/i18n/tui.js";
 import { fuzzyFilterLower, prepareSearchItems } from "./fuzzy-filter.js";
 
 export interface FilterableSelectItem extends SelectItem {
@@ -62,7 +63,7 @@ export class FilterableSelectList implements Component {
     const lines: string[] = [];
 
     // Filter input row
-    const filterLabel = this.theme.filterLabel("Filter: ");
+    const filterLabel = this.theme.filterLabel(translateTuiText("tui.picker.filter"));
     const inputLines = this.input.render(width - 8);
     const inputText = inputLines[0] ?? "";
     lines.push(filterLabel + inputText);
