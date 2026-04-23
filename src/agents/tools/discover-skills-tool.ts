@@ -2,7 +2,11 @@ import { Type } from "@sinclair/typebox";
 import type { CrawClawConfig } from "../../config/config.js";
 import { loadWorkspaceSkillEntries } from "../skills.js";
 import { withDiscoveredSkillExtraDirs } from "../skills/discover-from-paths.js";
-import { discoverSkillsForTask, renderSkillDiscoveryReminder } from "../skills/discovery.js";
+import {
+  discoverSkillsForTask,
+  renderSkillDiscoveryReminder,
+  type SkillSemanticRetriever,
+} from "../skills/discovery.js";
 import { getDiscoveredSkillDirs } from "../skills/dynamic-discovery-state.js";
 import { getSkillExposureState, recordDiscoveredSkills } from "../skills/exposure-state.js";
 import { resolveSkillRuntimeConfig } from "../skills/runtime-config.js";
@@ -13,6 +17,7 @@ export function createDiscoverSkillsTool(options: {
   config?: CrawClawConfig;
   sessionId?: string;
   sessionKey?: string;
+  semanticRetrieve?: SkillSemanticRetriever;
 }): AnyAgentTool {
   return {
     label: "Discover Skills",
@@ -62,6 +67,7 @@ export function createDiscoverSkillsTool(options: {
         excludeSkillNames,
         limit: rawLimit,
         signal: "next_action",
+        semanticRetrieve: options.semanticRetrieve,
       });
       const skillNames = discovery.skills.map((skill) => skill.name);
       if (skillNames.length > 0) {

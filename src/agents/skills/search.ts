@@ -2,6 +2,8 @@ export type SkillSearchCandidate = {
   name: string;
   description?: string;
   location: string;
+  semanticScore?: number;
+  semanticSource?: "vector";
 };
 
 export type SkillSearchResult = SkillSearchCandidate & {

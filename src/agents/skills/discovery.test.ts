@@ -3,6 +3,7 @@ import {
   discoverSkillsForTask,
   renderSkillDiscoveryReminder,
   type SkillDiscoveryCandidate,
+  type SkillDiscoveryRerankRequest,
 } from "./discovery.js";
 
 const availableSkills: SkillDiscoveryCandidate[] = [
@@ -65,6 +66,82 @@ describe("discoverSkillsForTask", () => {
     expect(result.skills.map((skill) => skill.name)).toEqual(["release-risk"]);
   });
 
+  it("passes semantic matches to rerankers even when lexical search has no overlap", async () => {
+    const rerank = vi.fn(async ({ candidates }: SkillDiscoveryRerankRequest) => ({
+      skillNames: candidates.map((candidate) => candidate.name),
+    }));
+
+    const result = await discoverSkillsForTask({
+      taskDescription: "上线前把风险过一遍",
+      availableSkills,
+      limit: 1,
+      signal: "turn_zero",
+      semanticRetrieve: async () => [
+        {
+          ...availableSkills[2]!,
+          semanticScore: 0.91,
+          semanticSource: "vector",
+        },
+      ],
+      rerank,
+    });
+
+    expect(rerank).toHaveBeenCalledWith(
+      expect.objectContaining({
+        candidates: [
+          expect.objectContaining({
+            name: "release-risk",
+            semanticScore: 0.91,
+            semanticSource: "vector",
+          }),
+        ],
+      }),
+    );
+    expect(result.source).toBe("llm");
+    expect(result.skills.map((skill) => skill.name)).toEqual(["release-risk"]);
+    expect(result.skills[0]).toMatchObject({
+      semanticScore: 0.91,
+      semanticSource: "vector",
+    });
+  });
+
+  it("falls back to lexical matches when semantic retrieval fails", async () => {
+    const result = await discoverSkillsForTask({
+      taskDescription: "fix failing CI",
+      availableSkills,
+      limit: 2,
+      semanticRetrieve: async () => {
+        throw new Error("embedding unavailable");
+      },
+    });
+
+    expect(result.source).toBe("native");
+    expect(result.skills.map((skill) => skill.name)).toEqual(["ci-fix"]);
+  });
+
+  it("prefers semantic candidates and uses lexical matches to fill rerank recall", async () => {
+    const seenNames: string[][] = [];
+    await discoverSkillsForTask({
+      taskDescription: "deployment workflow slack",
+      availableSkills,
+      limit: 2,
+      recallLimit: 3,
+      semanticRetrieve: async () => [
+        {
+          ...availableSkills[2]!,
+          semanticScore: 0.88,
+          semanticSource: "vector",
+        },
+      ],
+      rerank: async ({ candidates }) => {
+        seenNames.push(candidates.map((candidate) => candidate.name));
+        return { skillNames: candidates.map((candidate) => candidate.name) };
+      },
+    });
+
+    expect(seenNames[0]).toEqual(["release-risk", "slack-update"]);
+  });
+
   it("passes a wider recall set to rerankers than the final surfaced limit", async () => {
     const candidates = Array.from({ length: 12 }, (_, index) => ({
       name: `candidate-${index}`,
@@ -99,6 +176,27 @@ describe("discoverSkillsForTask", () => {
 
     expect(result.source).toBe("native");
     expect(result.skills.map((skill) => skill.name)).toEqual(["ci-fix"]);
+  });
+
+  it("keeps semantic native candidates when reranking fails", async () => {
+    const result = await discoverSkillsForTask({
+      taskDescription: "上线前把风险过一遍",
+      availableSkills,
+      limit: 1,
+      semanticRetrieve: async () => [
+        {
+          ...availableSkills[2]!,
+          semanticScore: 0.9,
+          semanticSource: "vector",
+        },
+      ],
+      rerank: async () => {
+        throw new Error("rerank unavailable");
+      },
+    });
+
+    expect(result.source).toBe("native");
+    expect(result.skills.map((skill) => skill.name)).toEqual(["release-risk"]);
   });
 });
 

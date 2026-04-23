@@ -21,6 +21,18 @@ export type SkillDiscoveryRerankRequest = {
   limit: number;
 };
 
+export type SkillSemanticRetrieveRequest = {
+  taskDescription: string;
+  availableSkills: readonly SkillDiscoveryCandidate[];
+  excludeSkillNames?: readonly string[];
+  limit: number;
+  recallLimit: number;
+};
+
+export type SkillSemanticRetriever = (
+  request: SkillSemanticRetrieveRequest,
+) => Promise<SkillDiscoveryCandidate[]>;
+
 export type SkillDiscoveryRerankResult = {
   skillNames: string[];
   reason?: string;
@@ -68,17 +80,44 @@ function toMatch(params: {
 
 function selectRerankCandidates(params: {
   availableSkills: readonly SkillDiscoveryCandidate[];
+  semanticMatches: readonly SkillDiscoveryCandidate[];
   localMatches: readonly SkillSearchResult[];
   excludeSkillNames?: readonly string[];
   recallLimit: number;
+  allowAvailableFallback?: boolean;
 }): SkillDiscoveryCandidate[] {
   const excluded = new Set(normalizeSkillNames(params.excludeSkillNames));
-  if (params.localMatches.length > 0) {
-    return params.localMatches.slice(0, params.recallLimit);
+  const candidates = new Map<string, SkillDiscoveryCandidate>();
+  for (const skill of params.semanticMatches) {
+    if (!skill.name.trim() || excluded.has(skill.name)) {
+      continue;
+    }
+    candidates.set(skill.name, skill);
   }
-  return params.availableSkills
-    .filter((skill) => skill.name.trim() && !excluded.has(skill.name))
-    .slice(0, params.recallLimit);
+  if (params.localMatches.length > 0) {
+    for (const match of params.localMatches) {
+      if (!match.name.trim() || excluded.has(match.name) || candidates.has(match.name)) {
+        continue;
+      }
+      candidates.set(match.name, match);
+      if (candidates.size >= params.recallLimit) {
+        break;
+      }
+    }
+    return [...candidates.values()].slice(0, params.recallLimit);
+  }
+  if (candidates.size === 0 && params.allowAvailableFallback === true) {
+    for (const skill of params.availableSkills) {
+      if (!skill.name.trim() || excluded.has(skill.name)) {
+        continue;
+      }
+      candidates.set(skill.name, skill);
+      if (candidates.size >= params.recallLimit) {
+        break;
+      }
+    }
+  }
+  return [...candidates.values()].slice(0, params.recallLimit);
 }
 
 export async function discoverSkillsForTask(params: {
@@ -88,6 +127,7 @@ export async function discoverSkillsForTask(params: {
   limit?: number;
   recallLimit?: number;
   signal?: SkillDiscoverySignal;
+  semanticRetrieve?: SkillSemanticRetriever;
   rerank?: SkillDiscoveryReranker;
 }): Promise<SkillDiscoveryResult> {
   const taskDescription = params.taskDescription.trim();
@@ -105,13 +145,30 @@ export async function discoverSkillsForTask(params: {
     limit: recallLimit,
   });
   const localByName = new Map(localMatches.map((match) => [match.name, match]));
+  const semanticMatches =
+    (await params
+      .semanticRetrieve?.({
+        taskDescription,
+        availableSkills: params.availableSkills,
+        excludeSkillNames: params.excludeSkillNames,
+        limit,
+        recallLimit,
+      })
+      .catch(() => [])) ?? [];
+  const mergedNativeCandidates = selectRerankCandidates({
+    availableSkills: params.availableSkills,
+    semanticMatches,
+    localMatches,
+    excludeSkillNames: params.excludeSkillNames,
+    recallLimit,
+  });
 
   if (!params.rerank) {
     return {
-      skills: localMatches.slice(0, limit).map((match) =>
+      skills: mergedNativeCandidates.slice(0, limit).map((match) =>
         toMatch({
           candidate: match,
-          localMatch: match,
+          localMatch: localByName.get(match.name),
           source: "native",
         }),
       ),
@@ -122,9 +179,11 @@ export async function discoverSkillsForTask(params: {
 
   const rerankCandidates = selectRerankCandidates({
     availableSkills: params.availableSkills,
+    semanticMatches,
     localMatches,
     excludeSkillNames: params.excludeSkillNames,
     recallLimit,
+    allowAvailableFallback: true,
   });
   if (rerankCandidates.length === 0) {
     return { skills: [], signal, source: "native" };
@@ -140,10 +199,10 @@ export async function discoverSkillsForTask(params: {
     .catch(() => undefined);
   if (!reranked) {
     return {
-      skills: localMatches.slice(0, limit).map((match) =>
+      skills: mergedNativeCandidates.slice(0, limit).map((match) =>
         toMatch({
           candidate: match,
-          localMatch: match,
+          localMatch: localByName.get(match.name),
           source: "native",
         }),
       ),
@@ -157,10 +216,10 @@ export async function discoverSkillsForTask(params: {
 
   if (rerankedNames.length === 0) {
     return {
-      skills: localMatches.slice(0, limit).map((match) =>
+      skills: mergedNativeCandidates.slice(0, limit).map((match) =>
         toMatch({
           candidate: match,
-          localMatch: match,
+          localMatch: localByName.get(match.name),
           source: "native",
         }),
       ),

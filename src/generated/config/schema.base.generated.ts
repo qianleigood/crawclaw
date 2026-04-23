@@ -12083,6 +12083,31 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Debounce window in milliseconds for coalescing rapid skill file changes before reload logic runs. Increase to reduce reload churn on frequent writes, or lower for faster edit feedback.",
       tags: ["performance", "automation"],
     },
+    "skills.discovery.semantic.enabled": {
+      label: "Semantic Skill Discovery",
+      help: "Enable vector-based semantic recall for skill discovery before lexical fallback and reranking. Keep disabled unless an embedding provider and model are explicitly configured.",
+      tags: ["advanced"],
+    },
+    "skills.discovery.semantic.provider": {
+      label: "Semantic Skill Provider",
+      help: "Embedding provider id for semantic skill discovery, such as ollama. Use a provider with a registered embedding implementation.",
+      tags: ["advanced"],
+    },
+    "skills.discovery.semantic.model": {
+      label: "Semantic Skill Model",
+      help: "Embedding model id for semantic skill discovery. Choose a model supported by the configured provider and sized for short skill descriptions.",
+      tags: ["models"],
+    },
+    "skills.discovery.semantic.recallLimit": {
+      label: "Semantic Skill Recall Limit",
+      help: "Maximum semantic skill candidates to retrieve before reranking. Values are capped internally to keep prompt and embedding work bounded.",
+      tags: ["performance"],
+    },
+    "skills.discovery.semantic.batchSize": {
+      label: "Semantic Skill Batch Size",
+      help: "Number of skill descriptions embedded per provider batch when building the in-memory semantic index. Lower this for constrained providers.",
+      tags: ["advanced"],
+    },
     "agents.defaults.workspace": {
       label: "Workspace",
       help: "Default workspace path exposed to agent runtime tools for filesystem context and repo-aware behavior. Set this explicitly when running from wrappers so path resolution stays deterministic.",

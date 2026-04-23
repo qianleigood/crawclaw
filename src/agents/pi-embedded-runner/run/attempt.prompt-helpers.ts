@@ -9,7 +9,11 @@ import type {
 import { isCronSessionKey, isSubagentSessionKey } from "../../../routing/session-key.js";
 import type { QueryContextPatch, QueryContextSection } from "../../query-context/types.js";
 import type { SkillEntry } from "../../skills.js";
-import { discoverSkillsForTask, type SkillDiscoveryReranker } from "../../skills/discovery.js";
+import {
+  discoverSkillsForTask,
+  type SkillDiscoveryReranker,
+  type SkillSemanticRetriever,
+} from "../../skills/discovery.js";
 import {
   getSkillExposureState,
   recordDiscoveredSkills,
@@ -267,6 +271,7 @@ export async function resolveSurfacedSkillsHookResult(params: {
   hookCtx: PluginHookAgentContext;
   hookRunner?: SkillsPromptBuildHookRunner | null;
   skillDiscoveryRerank?: SkillDiscoveryReranker;
+  skillSemanticRetrieve?: SkillSemanticRetriever;
 }): Promise<string[] | undefined> {
   const exposureScope = {
     sessionId: params.hookCtx.sessionId,
@@ -311,6 +316,7 @@ export async function resolveSurfacedSkillsHookResult(params: {
           skillExposureState.discoveredSkillNames,
         ),
         signal: params.purpose === "run" ? "turn_zero" : "manual",
+        semanticRetrieve: params.skillSemanticRetrieve,
         rerank: params.skillDiscoveryRerank,
       }).catch((error: unknown) => {
         log.warn(`skill discovery failed: ${String(error)}`);

@@ -64,4 +64,45 @@ describe("createDiscoverSkillsTool", () => {
       getSkillExposureState({ sessionId: "discover-tool-session" })?.discoveredSkillNames,
     ).toEqual(["pr-review"]);
   });
+
+  it("uses semantic retrieval when provided", async () => {
+    const workspaceDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-discover-skills-semantic-"),
+    );
+    tempDirs.push(workspaceDir);
+    await writeSkill({
+      root: workspaceDir,
+      name: "release-risk",
+      description: "Use when validating deployment gates and launch risk before release.",
+    });
+
+    const tool = createDiscoverSkillsTool({
+      workspaceDir,
+      sessionId: "discover-tool-semantic-session",
+      semanticRetrieve: async ({ availableSkills }) => {
+        const skill = availableSkills.find((candidate) => candidate.name === "release-risk");
+        return skill ? [{ ...skill, semanticScore: 0.93, semanticSource: "vector" }] : [];
+      },
+    });
+
+    const result = await tool.execute("call-1", {
+      taskDescription: "上线前把风险过一遍",
+      limit: 1,
+    });
+
+    expect(result.details).toMatchObject({
+      status: "ok",
+      source: "native",
+      skills: [
+        expect.objectContaining({
+          name: "release-risk",
+          semanticScore: 0.93,
+          semanticSource: "vector",
+        }),
+      ],
+    });
+    expect(
+      getSkillExposureState({ sessionId: "discover-tool-semantic-session" })?.discoveredSkillNames,
+    ).toEqual(["release-risk"]);
+  });
 });

@@ -53,6 +53,8 @@ import { normalizeToolParameters } from "./pi-tools.schema.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxContext } from "./sandbox.js";
 import { cleanSchemaForGemini } from "./schema/clean-for-gemini.js";
+import type { SkillSemanticRetriever } from "./skills/discovery.js";
+import { createSkillSemanticRetrieverFromConfig } from "./skills/semantic-retrieval.js";
 import { resolveSpecialAgentDefinitionBySpawnSource } from "./special/runtime/registry.js";
 import { createToolFsPolicy, resolveToolFsConfig } from "./tool-fs-policy.js";
 import {
@@ -414,6 +416,8 @@ export function createCrawClawCodingTools(options?: {
   senderIsOwner?: boolean;
   /** Callback invoked when sessions_yield tool is called. */
   onYield?: (message: string) => Promise<void> | void;
+  /** Optional semantic skill retriever shared with the current run. */
+  skillSemanticRetrieve?: SkillSemanticRetriever;
   /** Explicit special-agent spawn source for embedded fork runs. */
   specialAgentSpawnSource?: string;
   /** Explicit durable-memory scope for embedded fork runs. */
@@ -656,6 +660,12 @@ export function createCrawClawCodingTools(options?: {
               : undefined,
           workspaceOnly: applyPatchWorkspaceOnly,
         });
+  const skillSemanticRetrieve =
+    options?.skillSemanticRetrieve ??
+    createSkillSemanticRetrieverFromConfig({
+      config: options?.config,
+      workspaceDir: workspaceRoot,
+    });
   const tools: AnyAgentTool[] = [
     ...base,
     ...(sandboxRoot
@@ -690,6 +700,7 @@ export function createCrawClawCodingTools(options?: {
       config: options?.config,
       sessionId: options?.sessionId,
       sessionKey: options?.sessionKey,
+      semanticRetrieve: skillSemanticRetrieve,
     }),
     // Channel docking: include channel-defined agent tools (login, etc.).
     ...listChannelAgentTools({ cfg: options?.config }),

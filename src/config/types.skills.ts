@@ -19,6 +19,23 @@ export type SkillsLoadConfig = {
   watchDebounceMs?: number;
 };
 
+export type SkillsSemanticDiscoveryConfig = {
+  /** Enable vector-based skill semantic recall before lexical fallback and reranking. */
+  enabled?: boolean;
+  /** Provider id used to create the embedding provider. */
+  provider?: string;
+  /** Embedding model id passed to the provider. */
+  model?: string;
+  /** Maximum semantic recall candidates before reranking. */
+  recallLimit?: number;
+  /** Number of skill descriptions embedded per provider batch. */
+  batchSize?: number;
+};
+
+export type SkillsDiscoveryConfig = {
+  semantic?: SkillsSemanticDiscoveryConfig;
+};
+
 export type SkillsInstallConfig = {
   preferBrew?: boolean;
   nodeManager?: "npm" | "pnpm" | "yarn" | "bun";
@@ -40,6 +57,7 @@ export type SkillsLimitsConfig = {
 export type SkillsConfig = {
   /** Optional bundled-skill allowlist (only affects bundled skills). */
   allowBundled?: string[];
+  discovery?: SkillsDiscoveryConfig;
   load?: SkillsLoadConfig;
   install?: SkillsInstallConfig;
   limits?: SkillsLimitsConfig;

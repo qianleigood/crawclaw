@@ -617,6 +617,16 @@ export const FIELD_HELP: Record<string, string> = {
     "Enable filesystem watching for skill-definition changes so updates can be applied without full process restart. Keep enabled in development workflows and disable in immutable production images.",
   "skills.load.watchDebounceMs":
     "Debounce window in milliseconds for coalescing rapid skill file changes before reload logic runs. Increase to reduce reload churn on frequent writes, or lower for faster edit feedback.",
+  "skills.discovery.semantic.enabled":
+    "Enable vector-based semantic recall for skill discovery before lexical fallback and reranking. Keep disabled unless an embedding provider and model are explicitly configured.",
+  "skills.discovery.semantic.provider":
+    "Embedding provider id for semantic skill discovery, such as ollama. Use a provider with a registered embedding implementation.",
+  "skills.discovery.semantic.model":
+    "Embedding model id for semantic skill discovery. Choose a model supported by the configured provider and sized for short skill descriptions.",
+  "skills.discovery.semantic.recallLimit":
+    "Maximum semantic skill candidates to retrieve before reranking. Values are capped internally to keep prompt and embedding work bounded.",
+  "skills.discovery.semantic.batchSize":
+    "Number of skill descriptions embedded per provider batch when building the in-memory semantic index. Lower this for constrained providers.",
   approvals:
     "Approval routing controls for forwarding exec and plugin approval requests to chat destinations outside the originating session. Keep these disabled unless operators need explicit out-of-band approval visibility.",
   "approvals.exec":

@@ -103,6 +103,7 @@ import { detectRuntimeShell } from "../../shell-utils.js";
 import { applySkillEnvOverrides, resolveSkillsPromptForRun } from "../../skills.js";
 import { createModelSkillDiscoveryReranker } from "../../skills/discovery-reranker.js";
 import { getSkillExposureState } from "../../skills/exposure-state.js";
+import { createSkillSemanticRetrieverFromConfig } from "../../skills/semantic-retrieval.js";
 import { buildSpecialAgentParentForkContextFromModelInput } from "../../special/runtime/parent-fork-context.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
@@ -600,6 +601,11 @@ export async function runEmbeddedAttempt(
     });
 
     const hookRunner = getGlobalHookRunner();
+    const skillSemanticRetrieve = createSkillSemanticRetrieverFromConfig({
+      config: params.config,
+      workspaceDir: effectiveWorkspace,
+      getProviderApiKey: async (provider) => await params.authStorage.getApiKey(provider),
+    });
     const surfacedSkillNames = await resolveSurfacedSkillsHookResult({
       initialSkillExposureState: params.skillExposureState,
       explicitSurfacedSkillNames: params.surfacedSkillNames,
@@ -624,6 +630,7 @@ export async function runEmbeddedAttempt(
         model: params.model,
         authStorage: params.authStorage,
       }),
+      skillSemanticRetrieve,
     });
 
     const skillsPrompt = resolveSkillsPromptForRun({
@@ -742,6 +749,7 @@ export async function runEmbeddedAttempt(
             requireExplicitMessageTarget:
               params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
             disableMessageTool: params.disableMessageTool,
+            skillSemanticRetrieve,
             onYield: (message) => {
               yieldDetected = true;
               yieldMessage = message;
