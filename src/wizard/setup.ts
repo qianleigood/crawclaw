@@ -79,46 +79,19 @@ async function resolveAuthChoiceModelSelectionPolicy(params: {
 async function requireRiskAcknowledgement(params: {
   opts: OnboardOptions;
   prompter: WizardPrompter;
+  t: ReturnType<typeof createCliTranslator>;
 }) {
   if (params.opts.acceptRisk === true) {
     return;
   }
 
   await params.prompter.note(
-    [
-      "Security warning — please read.",
-      "",
-      "CrawClaw is a hobby project and still in beta. Expect sharp edges.",
-      "By default, CrawClaw is a personal agent: one trusted operator boundary.",
-      "This bot can read files and run actions if tools are enabled.",
-      "A bad prompt can trick it into doing unsafe things.",
-      "",
-      "CrawClaw is not a hostile multi-tenant boundary by default.",
-      "If multiple users can message one tool-enabled agent, they share that delegated tool authority.",
-      "",
-      "If you’re not comfortable with security hardening and access control, don’t run CrawClaw.",
-      "Ask someone experienced to help before enabling tools or exposing it to the internet.",
-      "",
-      "Recommended baseline:",
-      "- Pairing/allowlists + mention gating.",
-      "- Multi-user/shared inbox: split trust boundaries (separate gateway/credentials, ideally separate OS users/hosts).",
-      "- Sandbox + least-privilege tools.",
-      "- Shared inboxes: isolate DM sessions (`session.dmScope: per-channel-peer`) and keep tool access minimal.",
-      "- Keep secrets out of the agent’s reachable filesystem.",
-      "- Use the strongest available model for any bot with tools or untrusted inboxes.",
-      "",
-      "Run regularly:",
-      "crawclaw security audit --deep",
-      "crawclaw security audit --fix",
-      "",
-      "Must read: https://docs.crawclaw.ai/gateway/security",
-    ].join("\n"),
-    "Security",
+    params.t("wizard.setup.security.body"),
+    params.t("wizard.setup.security.title"),
   );
 
   const ok = await params.prompter.confirm({
-    message:
-      "I understand this is personal-by-default and shared/multi-user use requires lock-down. Continue?",
+    message: params.t("wizard.setup.security.confirm"),
     initialValue: false,
   });
   if (!ok) {
@@ -135,7 +108,7 @@ export async function runSetupWizard(
   const onboardHelpers = await import("../commands/onboard-helpers.js");
   onboardHelpers.printWizardHeader(runtime);
   await prompter.intro(t("wizard.setup.intro"));
-  await requireRiskAcknowledgement({ opts, prompter });
+  await requireRiskAcknowledgement({ opts, prompter, t });
 
   const snapshot = await readConfigFileSnapshot();
   let baseConfig: CrawClawConfig = snapshot.valid
@@ -200,7 +173,7 @@ export async function runSetupWizard(
     normalizedExplicitFlow !== "quickstart" &&
     normalizedExplicitFlow !== "advanced"
   ) {
-    runtime.error("Invalid --flow (use quickstart, manual, or advanced).");
+    runtime.error(t("wizard.setup.error.invalidFlow"));
     runtime.exit(1);
     return;
   }
@@ -322,54 +295,68 @@ export async function runSetupWizard(
   if (flow === "quickstart") {
     const formatBind = (value: "loopback" | "lan" | "auto" | "custom" | "tailnet") => {
       if (value === "loopback") {
-        return "Loopback (127.0.0.1)";
+        return t("wizard.setup.quickstart.bind.loopback");
       }
       if (value === "lan") {
-        return "LAN";
+        return t("wizard.setup.quickstart.bind.lan");
       }
       if (value === "custom") {
-        return "Custom IP";
+        return t("wizard.setup.quickstart.bind.custom");
       }
       if (value === "tailnet") {
-        return "Tailnet (Tailscale IP)";
+        return t("wizard.setup.quickstart.bind.tailnet");
       }
-      return "Auto";
+      return t("wizard.setup.quickstart.bind.auto");
     };
     const formatAuth = (value: GatewayAuthChoice) => {
       if (value === "token") {
-        return "Token (default)";
+        return t("wizard.setup.quickstart.auth.token");
       }
-      return "Password";
+      return t("wizard.setup.quickstart.auth.password");
     };
     const formatTailscale = (value: "off" | "serve" | "funnel") => {
       if (value === "off") {
-        return "Off";
+        return t("wizard.setup.quickstart.tailscale.off");
       }
       if (value === "serve") {
-        return "Serve";
+        return t("wizard.setup.quickstart.tailscale.serve");
       }
-      return "Funnel";
+      return t("wizard.setup.quickstart.tailscale.funnel");
     };
     const quickstartLines = quickstartGateway.hasExisting
       ? [
-          "Keeping your current gateway settings:",
-          `Gateway port: ${quickstartGateway.port}`,
-          `Gateway bind: ${formatBind(quickstartGateway.bind)}`,
+          t("wizard.setup.quickstart.keepExisting"),
+          t("wizard.setup.quickstart.gatewayPort", { port: quickstartGateway.port }),
+          t("wizard.setup.quickstart.gatewayBind", { bind: formatBind(quickstartGateway.bind) }),
           ...(quickstartGateway.bind === "custom" && quickstartGateway.customBindHost
-            ? [`Gateway custom IP: ${quickstartGateway.customBindHost}`]
+            ? [
+                t("wizard.setup.quickstart.gatewayCustomIp", {
+                  host: quickstartGateway.customBindHost,
+                }),
+              ]
             : []),
-          `Gateway auth: ${formatAuth(quickstartGateway.authMode)}`,
-          `Tailscale exposure: ${formatTailscale(quickstartGateway.tailscaleMode)}`,
-          "Direct to chat channels.",
+          t("wizard.setup.quickstart.gatewayAuth", {
+            auth: formatAuth(quickstartGateway.authMode),
+          }),
+          t("wizard.setup.quickstart.tailscaleExposure", {
+            mode: formatTailscale(quickstartGateway.tailscaleMode),
+          }),
+          t("wizard.setup.quickstart.directToChannels"),
         ]
       : [
-          `Gateway port: ${quickstartGateway.port}`,
-          "Gateway bind: Loopback (127.0.0.1)",
-          "Gateway auth: Token (default)",
-          "Tailscale exposure: Off",
-          "Direct to chat channels.",
+          t("wizard.setup.quickstart.gatewayPort", { port: quickstartGateway.port }),
+          t("wizard.setup.quickstart.gatewayBind", {
+            bind: t("wizard.setup.quickstart.bind.loopback"),
+          }),
+          t("wizard.setup.quickstart.gatewayAuth", {
+            auth: t("wizard.setup.quickstart.auth.token"),
+          }),
+          t("wizard.setup.quickstart.tailscaleExposure", {
+            mode: t("wizard.setup.quickstart.tailscale.off"),
+          }),
+          t("wizard.setup.quickstart.directToChannels"),
         ];
-    await prompter.note(quickstartLines.join("\n"), "QuickStart");
+    await prompter.note(quickstartLines.join("\n"), t("wizard.setup.flow.quickstartLabel"));
   }
 
   const localPort = resolveGatewayPort(baseConfig);
@@ -388,10 +375,10 @@ export async function runSetupWizard(
   } catch (error) {
     await prompter.note(
       [
-        "Could not resolve gateway.auth.token SecretRef for setup probe.",
+        t("wizard.setup.secretRefProbeFailed", { path: "gateway.auth.token" }),
         error instanceof Error ? error.message : String(error),
       ].join("\n"),
-      "Gateway auth",
+      t("wizard.setup.gatewayAuthTitle"),
     );
   }
   let localGatewayPassword = process.env.CRAWCLAW_GATEWAY_PASSWORD;
@@ -408,10 +395,10 @@ export async function runSetupWizard(
   } catch (error) {
     await prompter.note(
       [
-        "Could not resolve gateway.auth.password SecretRef for setup probe.",
+        t("wizard.setup.secretRefProbeFailed", { path: "gateway.auth.password" }),
         error instanceof Error ? error.message : String(error),
       ].join("\n"),
-      "Gateway auth",
+      t("wizard.setup.gatewayAuthTitle"),
     );
   }
 
@@ -435,10 +422,10 @@ export async function runSetupWizard(
   } catch (error) {
     await prompter.note(
       [
-        "Could not resolve gateway.remote.token SecretRef for setup probe.",
+        t("wizard.setup.secretRefProbeFailed", { path: "gateway.remote.token" }),
         error instanceof Error ? error.message : String(error),
       ].join("\n"),
-      "Gateway auth",
+      t("wizard.setup.gatewayAuthTitle"),
     );
   }
   const remoteProbe = remoteUrl
@@ -492,7 +479,7 @@ export async function runSetupWizard(
     (flow === "quickstart"
       ? (baseConfig.agents?.defaults?.workspace ?? onboardHelpers.DEFAULT_WORKSPACE)
       : await prompter.text({
-          message: "Workspace directory",
+          message: t("wizard.setup.workspaceDirectory"),
           initialValue: baseConfig.agents?.defaults?.workspace ?? onboardHelpers.DEFAULT_WORKSPACE,
         }));
 

@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import { DEFAULT_BOOTSTRAP_FILENAME } from "../agents/workspace.js";
+import { setActiveCliLocale } from "../cli/i18n/text.js";
 import type { PluginCompatibilityNotice } from "../plugins/status.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter, WizardSelectParams } from "./prompts.js";
@@ -266,6 +267,50 @@ describe("runSetupWizard", () => {
     await fs.mkdir(dir, { recursive: true });
     return dir;
   }
+
+  it("localizes the interactive security warning when zh-CN is active", async () => {
+    const previousLang = process.env.CRAWCLAW_LANG;
+    process.env.CRAWCLAW_LANG = "zh-CN";
+    const note: WizardPrompter["note"] = vi.fn(async () => {});
+    const confirm: WizardPrompter["confirm"] = vi.fn(async () => true);
+    const prompter = buildWizardPrompter({ note, confirm });
+    const runtime = createRuntime();
+
+    try {
+      await runSetupWizard(
+        {
+          acceptRisk: false,
+          flow: "quickstart",
+          authChoice: "skip",
+          installDaemon: false,
+          skipChannels: true,
+          skipSkills: true,
+          skipSearch: true,
+          skipHealth: true,
+          skipUi: true,
+        },
+        runtime,
+        prompter,
+      );
+    } finally {
+      if (previousLang === undefined) {
+        delete process.env.CRAWCLAW_LANG;
+      } else {
+        process.env.CRAWCLAW_LANG = previousLang;
+      }
+      setActiveCliLocale("en");
+    }
+
+    expect(note).toHaveBeenCalledWith(expect.stringContaining("安全警告"), "安全");
+    expect(
+      String((note as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0]),
+    ).not.toContain("Security warning");
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("我理解"),
+      }),
+    );
+  });
 
   it("exits when config is invalid", async () => {
     readConfigFileSnapshot.mockResolvedValueOnce({
