@@ -140,6 +140,24 @@ describe("detectChangedScope", () => {
       runSkillsPython: false,
       runChangedSmoke: true,
     });
+    expect(detectChangedScope(["scripts/ci-changed-scope.mjs"])).toEqual({
+      runNode: true,
+      runWindows: true,
+      runSkillsPython: false,
+      runChangedSmoke: true,
+    });
+    expect(detectChangedScope(["scripts/ci-write-manifest-outputs.mjs"])).toEqual({
+      runNode: true,
+      runWindows: true,
+      runSkillsPython: false,
+      runChangedSmoke: true,
+    });
+    expect(detectChangedScope(["scripts/test-planner/planner.mjs"])).toEqual({
+      runNode: true,
+      runWindows: true,
+      runSkillsPython: false,
+      runChangedSmoke: true,
+    });
     expect(detectChangedScope([bundledPluginFile("matrix", "package.json")])).toEqual({
       runNode: true,
       runWindows: true,
