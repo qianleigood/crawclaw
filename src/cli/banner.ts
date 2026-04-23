@@ -14,22 +14,6 @@ type BannerOptions = TaglineOptions & {
 
 let bannerEmitted = false;
 
-const graphemeSegmenter =
-  typeof Intl !== "undefined" && "Segmenter" in Intl
-    ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
-    : null;
-
-function splitGraphemes(value: string): string[] {
-  if (!graphemeSegmenter) {
-    return Array.from(value);
-  }
-  try {
-    return Array.from(graphemeSegmenter.segment(value), (seg) => seg.segment);
-  } catch {
-    return Array.from(value);
-  }
-}
-
 const hasJsonFlag = (argv: string[]) =>
   argv.some((arg) => arg === "--json" || arg.startsWith("--json="));
 
@@ -90,50 +74,6 @@ export function formatCliBannerLine(version: string, options: BannerOptions = {}
   }
   const line2 = `${" ".repeat(prefix.length)}${tagline}`;
   return `${line1}\n${line2}`;
-}
-
-const CRAB_ASCII = [
-  "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄",
-  "██░▄▄▄░██░▄▄░██░▄▄▄██░▀██░██░▄▄▀██░████░▄▄▀██░███░██",
-  "██░███░██░▀▀░██░▄▄▄██░█░█░██░█████░████░▀▀░██░█░█░██",
-  "██░▀▀▀░██░█████░▀▀▀██░██▄░██░▀▀▄██░▀▀░█░██░██▄▀▄▀▄██",
-  "▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀",
-  "                  🦀 CRAWCLAW 🦀                    ",
-  " ",
-];
-
-export function formatCliBannerArt(options: BannerOptions = {}): string {
-  const rich = options.richTty ?? isRich();
-  if (!rich) {
-    return CRAB_ASCII.join("\n");
-  }
-
-  const colorChar = (ch: string) => {
-    if (ch === "█") {
-      return theme.accentBright(ch);
-    }
-    if (ch === "░") {
-      return theme.accentDim(ch);
-    }
-    if (ch === "▀") {
-      return theme.accent(ch);
-    }
-    return theme.muted(ch);
-  };
-
-  const colored = CRAB_ASCII.map((line) => {
-    if (line.includes("CRAWCLAW")) {
-      return (
-        theme.muted("              ") +
-        theme.accent("🦀") +
-        theme.info(" CRAWCLAW ") +
-        theme.accent("🦀")
-      );
-    }
-    return splitGraphemes(line).map(colorChar).join("");
-  });
-
-  return colored.join("\n");
 }
 
 export function emitCliBanner(version: string, options: BannerOptions = {}) {

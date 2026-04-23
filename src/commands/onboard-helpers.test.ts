@@ -1,8 +1,10 @@
 import os from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { RuntimeEnv } from "../runtime.js";
 import {
   normalizeGatewayTokenInput,
   openUrl,
+  printWizardHeader,
   resolveBrowserOpenCommand,
   resolveControlUiLinks,
   validateGatewayPasswordInput,
@@ -181,5 +183,24 @@ describe("validateGatewayPasswordInput", () => {
 
   it("accepts a normal password", () => {
     expect(validateGatewayPasswordInput(" secret ")).toBeUndefined();
+  });
+});
+
+describe("printWizardHeader", () => {
+  it("does not print the block art banner", () => {
+    const log = vi.fn();
+    const runtime: RuntimeEnv = {
+      log,
+      error: vi.fn(),
+      exit: vi.fn(),
+    };
+
+    printWizardHeader(runtime);
+
+    const output = String(log.mock.calls[0]?.[0] ?? "");
+    expect(output).not.toContain("▄▄▄▄");
+    expect(output).not.toContain("██░");
+    expect(output).not.toContain("▀▀▀▀");
+    expect(output.toLowerCase()).toContain("crawclaw");
   });
 });
