@@ -9,6 +9,7 @@ import {
   listChatChannels,
 } from "../channels/registry.js";
 import { formatCliCommand } from "../cli/command-format.js";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import { resolveChannelSetupEntries } from "../commands/channel-setup/discovery.js";
 import { resolveChannelSetupWizardAdapterForPlugin } from "../commands/channel-setup/registry.js";
 import type {
@@ -175,27 +176,33 @@ export async function noteChannelPrimer(
   channels: Array<{ id: ChannelChoice; blurb: string; label: string }>,
 ): Promise<void> {
   const channelLines = channels.map((channel) =>
-    formatChannelPrimerLine({
-      id: channel.id,
-      label: channel.label,
-      selectionLabel: channel.label,
-      docsPath: "/",
-      blurb: channel.blurb,
-    }),
+    translateActiveCliText(
+      formatChannelPrimerLine({
+        id: channel.id,
+        label: channel.label,
+        selectionLabel: channel.label,
+        docsPath: "/",
+        blurb: channel.blurb,
+      }),
+    ),
   );
   await prompter.note(
     [
-      "DM security: default is pairing; unknown DMs get a pairing code.",
-      `Approve with: ${formatCliCommand("crawclaw pairing approve <channel> <code>")}`,
-      'Public DMs require dmPolicy="open" + allowFrom=["*"].',
-      "Multi-user DMs: run: " +
+      translateActiveCliText("DM security: default is pairing; unknown DMs get a pairing code."),
+      translateActiveCliText(
+        `Approve with: ${formatCliCommand("crawclaw pairing approve <channel> <code>")}`,
+      ),
+      translateActiveCliText('Public DMs require dmPolicy="open" + allowFrom=["*"].'),
+      translateActiveCliText("Multi-user DMs: run: ") +
         formatCliCommand('crawclaw config set session.dmScope "per-channel-peer"') +
-        ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
-      `Docs: ${formatDocsLink("/channels/pairing", "channels/pairing")}`,
+        translateActiveCliText(
+          ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
+        ),
+      translateActiveCliText(`Docs: ${formatDocsLink("/channels/pairing", "channels/pairing")}`),
       "",
       ...channelLines,
     ].join("\n"),
-    "How channels work",
+    translateActiveCliText("How channels work"),
   );
 }
 

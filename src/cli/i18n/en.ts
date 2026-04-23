@@ -340,6 +340,63 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.gatewayAuthTitle": "Gateway authentication",
   "wizard.setup.secretRefProbeFailed": "Could not resolve {path} SecretRef for setup probe.",
   "wizard.setup.workspaceDirectory": "Workspace directory",
+  "How channels work": "How channels work",
+  "DM security: default is pairing; unknown DMs get a pairing code.":
+    "DM security: default is pairing; unknown DMs get a pairing code.",
+  "Approve with: crawclaw pairing approve <channel> <code>":
+    "Approve with: crawclaw pairing approve <channel> <code>",
+  'Public DMs require dmPolicy="open" + allowFrom=["*"].':
+    'Public DMs require dmPolicy="open" + allowFrom=["*"].',
+  "Multi-user DMs: run: ": "Multi-user DMs: run: ",
+  ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.':
+    ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
+  "Docs: channels/pairing": "Docs: channels/pairing",
+  "Telegram: simplest way to get started — register a bot with @BotFather and get going.":
+    "Telegram: simplest way to get started — register a bot with @BotFather and get going.",
+  "WhatsApp: works with your own number; recommend a separate phone + eSIM.":
+    "WhatsApp: works with your own number; recommend a separate phone + eSIM.",
+  "Discord: very well supported right now.": "Discord: very well supported right now.",
+  "IRC: classic IRC networks with DM/channel routing and pairing controls.":
+    "IRC: classic IRC networks with DM/channel routing and pairing controls.",
+  "Google Chat: Google Workspace Chat app with HTTP webhook.":
+    "Google Chat: Google Workspace Chat app with HTTP webhook.",
+  "Slack: supported (Socket Mode).": "Slack: supported (Socket Mode).",
+  'Signal: signal-cli linked device; more setup (David Reagans: "Hop on Discord.").':
+    'Signal: signal-cli linked device; more setup (David Reagans: "Hop on Discord.").',
+  "iMessage: this is still a work in progress.": "iMessage: this is still a work in progress.",
+  "LINE: LINE Messaging API webhook bot.": "LINE: LINE Messaging API webhook bot.",
+  "Feishu: 飞书/Lark enterprise messaging.": "Feishu: 飞书/Lark enterprise messaging.",
+  "QQ Bot: Connect to QQ via official QQ Bot API": "QQ Bot: Connect to QQ via official QQ Bot API",
+  "Microsoft Teams: Teams SDK; enterprise support.":
+    "Microsoft Teams: Teams SDK; enterprise support.",
+  "Mattermost: self-hosted Slack-style chat; install the plugin to enable.":
+    "Mattermost: self-hosted Slack-style chat; install the plugin to enable.",
+  "Nextcloud Talk: Self-hosted chat via Nextcloud Talk webhook bots.":
+    "Nextcloud Talk: Self-hosted chat via Nextcloud Talk webhook bots.",
+  "Matrix: open protocol; configure a homeserver + access token.":
+    "Matrix: open protocol; configure a homeserver + access token.",
+  "BlueBubbles: iMessage via the BlueBubbles mac app + REST API.":
+    "BlueBubbles: iMessage via the BlueBubbles mac app + REST API.",
+  "Zalo: Vietnam-focused messaging platform with Bot API.":
+    "Zalo: Vietnam-focused messaging platform with Bot API.",
+  "Zalo Personal: Zalo personal account via QR code login.":
+    "Zalo Personal: Zalo personal account via QR code login.",
+  "Synology Chat: Connect your Synology NAS Chat to CrawClaw":
+    "Synology Chat: Connect your Synology NAS Chat to CrawClaw",
+  "Tlon: Decentralized messaging on Urbit": "Tlon: Decentralized messaging on Urbit",
+  "Nostr: Decentralized DMs via Nostr relays (NIP-04)":
+    "Nostr: Decentralized DMs via Nostr relays (NIP-04)",
+  "DingTalk: DingTalk enterprise robot with Stream mode for Chinese market.":
+    "DingTalk: DingTalk enterprise robot with Stream mode for Chinese market.",
+  "Twitch: Twitch chat integration": "Twitch: Twitch chat integration",
+  "Configure DM access policies now? (default: pairing)":
+    "Configure DM access policies now? (default: pairing)",
+  "Default: pairing (unknown DMs get a pairing code).":
+    "Default: pairing (unknown DMs get a pairing code).",
+  "Pairing (recommended)": "Pairing (recommended)",
+  "Allowlist (specific users only)": "Allowlist (specific users only)",
+  "Open (public inbound DMs)": "Open (public inbound DMs)",
+  "Disabled (ignore DMs)": "Disabled (ignore DMs)",
   "wizard.setup.existingConfig.title": "Existing config detected",
   "wizard.setup.existingConfig.message": "Config handling",
   "wizard.setup.existingConfig.keep": "Use existing values",

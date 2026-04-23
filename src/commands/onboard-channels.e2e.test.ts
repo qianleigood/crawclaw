@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { matrixSetupAdapter, matrixSetupWizard } from "../../test/helpers/plugins/matrix-setup.js";
 import type { ChannelPluginCatalogEntry } from "../channels/plugins/catalog.js";
+import { setActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { createEmptyPluginRegistry } from "../plugins/registry.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
@@ -622,6 +623,7 @@ vi.mock("./channel-setup/plugin-install.js", async (importOriginal) => {
 
 describe("setupChannels", () => {
   beforeEach(() => {
+    setActiveCliLocale("en");
     setMinimalOnboardingRegistryForTests();
     catalogMocks.listChannelPluginCatalogEntries.mockReset();
     manifestRegistryMocks.loadPluginManifestRegistry.mockReset();
@@ -762,6 +764,30 @@ describe("setupChannels", () => {
     );
     expect(sawPrimer).toBe(true);
     expect(multiselect).not.toHaveBeenCalled();
+  });
+
+  it("localizes the channel primer in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const note = vi.fn(async (_message?: string, _title?: string) => {});
+    const select = vi.fn(async () => "__done__");
+    const { multiselect, text } = createUnexpectedPromptGuards();
+
+    const prompter = createPrompter({
+      note,
+      select: select as unknown as WizardPrompter["select"],
+      multiselect,
+      text,
+    });
+
+    await runSetupChannels({} as CrawClawConfig, prompter);
+
+    const primerCall = note.mock.calls.find(([, title]) => title === "渠道工作方式");
+    expect(primerCall).toBeDefined();
+    const primer = primerCall?.[0] ?? "";
+    expect(primer).toContain("私信安全");
+    expect(primer).toContain("Telegram：最简单的入门方式");
+    expect(primer).not.toContain("How channels work");
+    expect(primer).not.toContain("DM security: default is pairing");
   });
 
   it("keeps configured external plugin channels visible when the active registry starts empty", async () => {

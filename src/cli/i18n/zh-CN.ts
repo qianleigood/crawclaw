@@ -331,6 +331,62 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.gatewayAuthTitle": "网关认证",
   "wizard.setup.secretRefProbeFailed": "无法解析 {path} SecretRef 用于设置探测。",
   "wizard.setup.workspaceDirectory": "工作区目录",
+  "How channels work": "渠道工作方式",
+  "DM security: default is pairing; unknown DMs get a pairing code.":
+    "私信安全：默认使用 pairing；未知私信会收到一个配对码。",
+  "Approve with: crawclaw pairing approve <channel> <code>":
+    "批准命令：crawclaw pairing approve <channel> <code>",
+  'Public DMs require dmPolicy="open" + allowFrom=["*"].':
+    '公开私信需要设置 dmPolicy="open" + allowFrom=["*"]。',
+  "Multi-user DMs: run: ": "多用户私信：运行：",
+  ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.':
+    '（多账号渠道则使用 "per-account-channel-peer"）来隔离会话。',
+  "Docs: channels/pairing": "文档：channels/pairing",
+  "Telegram: simplest way to get started — register a bot with @BotFather and get going.":
+    "Telegram：最简单的入门方式，找 @BotFather 注册一个 bot 就能开始。",
+  "WhatsApp: works with your own number; recommend a separate phone + eSIM.":
+    "WhatsApp：可直接使用你自己的号码；建议单独准备一台手机和 eSIM。",
+  "Discord: very well supported right now.": "Discord：当前支持非常完善。",
+  "IRC: classic IRC networks with DM/channel routing and pairing controls.":
+    "IRC：支持经典 IRC 网络，带私信/频道路由和 pairing 控制。",
+  "Google Chat: Google Workspace Chat app with HTTP webhook.":
+    "Google Chat：Google Workspace Chat 应用，使用 HTTP webhook。",
+  "Slack: supported (Socket Mode).": "Slack：已支持（Socket Mode）。",
+  'Signal: signal-cli linked device; more setup (David Reagans: "Hop on Discord.").':
+    'Signal：基于 signal-cli 的关联设备；配置会更复杂一些（David Reagans: "Hop on Discord."）。',
+  "iMessage: this is still a work in progress.": "iMessage：这部分仍在开发中。",
+  "LINE: LINE Messaging API webhook bot.": "LINE：LINE Messaging API webhook bot。",
+  "Feishu: 飞书/Lark enterprise messaging.": "Feishu：飞书/Lark 企业消息。",
+  "QQ Bot: Connect to QQ via official QQ Bot API": "QQ Bot：通过官方 QQ Bot API 连接 QQ。",
+  "Microsoft Teams: Teams SDK; enterprise support.": "Microsoft Teams：Teams SDK；企业场景支持。",
+  "Mattermost: self-hosted Slack-style chat; install the plugin to enable.":
+    "Mattermost：自托管的 Slack 风格聊天；安装插件后可启用。",
+  "Nextcloud Talk: Self-hosted chat via Nextcloud Talk webhook bots.":
+    "Nextcloud Talk：通过 Nextcloud Talk webhook bots 接入自托管聊天。",
+  "Matrix: open protocol; configure a homeserver + access token.":
+    "Matrix：开放协议；配置 homeserver + access token 即可。",
+  "BlueBubbles: iMessage via the BlueBubbles mac app + REST API.":
+    "BlueBubbles：通过 BlueBubbles mac 应用 + REST API 接入 iMessage。",
+  "Zalo: Vietnam-focused messaging platform with Bot API.":
+    "Zalo：面向越南市场的消息平台，提供 Bot API。",
+  "Zalo Personal: Zalo personal account via QR code login.":
+    "Zalo Personal：通过扫码登录接入 Zalo 个人账号。",
+  "Synology Chat: Connect your Synology NAS Chat to CrawClaw":
+    "Synology Chat：把你的 Synology NAS Chat 接到 CrawClaw。",
+  "Tlon: Decentralized messaging on Urbit": "Tlon：Urbit 上的去中心化消息。",
+  "Nostr: Decentralized DMs via Nostr relays (NIP-04)":
+    "Nostr：通过 Nostr relays（NIP-04）实现去中心化私信。",
+  "DingTalk: DingTalk enterprise robot with Stream mode for Chinese market.":
+    "DingTalk：面向中国市场的钉钉企业机器人，使用 Stream 模式。",
+  "Twitch: Twitch chat integration": "Twitch：Twitch 聊天集成。",
+  "Configure DM access policies now? (default: pairing)":
+    "现在配置私信访问策略吗？（默认：pairing）",
+  "Default: pairing (unknown DMs get a pairing code).":
+    "默认：pairing（未知私信会收到一个配对码）。",
+  "Pairing (recommended)": "Pairing（推荐）",
+  "Allowlist (specific users only)": "Allowlist（仅允许指定用户）",
+  "Open (public inbound DMs)": "Open（公开接收入站私信）",
+  "Disabled (ignore DMs)": "Disabled（忽略私信）",
   "wizard.setup.existingConfig.title": "检测到已有配置",
   "wizard.setup.existingConfig.message": "如何处理配置",
   "wizard.setup.existingConfig.keep": "使用现有值",

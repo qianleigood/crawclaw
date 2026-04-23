@@ -2,6 +2,7 @@ import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { getChannelSetupPlugin } from "../channels/plugins/setup-registry.js";
 import type { ChannelSetupPlugin } from "../channels/plugins/setup-wizard-types.js";
 import { formatCliCommand } from "../cli/command-format.js";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import type {
   ChannelSetupDmPolicy,
   ChannelSetupWizardAdapter,
@@ -104,7 +105,7 @@ export async function maybeConfigureDmPolicies(params: {
   }
 
   const wants = await prompter.confirm({
-    message: "Configure DM access policies now? (default: pairing)",
+    message: translateActiveCliText("Configure DM access policies now? (default: pairing)"),
     initialValue: false,
   });
   if (!wants) {
@@ -120,24 +121,33 @@ export async function maybeConfigureDmPolicies(params: {
     };
     await prompter.note(
       [
-        "Default: pairing (unknown DMs get a pairing code).",
-        `Approve: ${formatCliCommand(`crawclaw pairing approve ${policy.channel} <code>`)}`,
-        `Allowlist DMs: ${policyKey}="allowlist" + ${allowFromKey} entries.`,
-        `Public DMs: ${policyKey}="open" + ${allowFromKey} includes "*".`,
-        "Multi-user DMs: run: " +
+        translateActiveCliText("Default: pairing (unknown DMs get a pairing code)."),
+        translateActiveCliText(
+          `Approve: ${formatCliCommand(`crawclaw pairing approve ${policy.channel} <code>`)}`,
+        ),
+        translateActiveCliText(
+          `Allowlist DMs: ${policyKey}="allowlist" + ${allowFromKey} entries.`,
+        ),
+        translateActiveCliText(`Public DMs: ${policyKey}="open" + ${allowFromKey} includes "*".`),
+        translateActiveCliText("Multi-user DMs: run: ") +
           formatCliCommand('crawclaw config set session.dmScope "per-channel-peer"') +
-          ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
-        `Docs: ${formatDocsLink("/channels/pairing", "channels/pairing")}`,
+          translateActiveCliText(
+            ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
+          ),
+        translateActiveCliText(`Docs: ${formatDocsLink("/channels/pairing", "channels/pairing")}`),
       ].join("\n"),
-      `${policy.label} DM access`,
+      translateActiveCliText(`${policy.label} DM access`),
     );
     const nextPolicy = (await prompter.select({
-      message: `${policy.label} DM policy`,
+      message: translateActiveCliText(`${policy.label} DM policy`),
       options: [
-        { value: "pairing", label: "Pairing (recommended)" },
-        { value: "allowlist", label: "Allowlist (specific users only)" },
-        { value: "open", label: "Open (public inbound DMs)" },
-        { value: "disabled", label: "Disabled (ignore DMs)" },
+        { value: "pairing", label: translateActiveCliText("Pairing (recommended)") },
+        {
+          value: "allowlist",
+          label: translateActiveCliText("Allowlist (specific users only)"),
+        },
+        { value: "open", label: translateActiveCliText("Open (public inbound DMs)") },
+        { value: "disabled", label: translateActiveCliText("Disabled (ignore DMs)") },
       ],
     })) as DmPolicy;
     const current = policy.getCurrent(cfg, accountId);
