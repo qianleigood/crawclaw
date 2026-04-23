@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { MessageEvent, PostbackEvent } from "@line/bot-sdk";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { getSessionBindingService } from "crawclaw/plugin-sdk/conversation-runtime";
 import { __testing as sessionBindingTesting } from "crawclaw/plugin-sdk/conversation-runtime";
@@ -13,6 +12,7 @@ import {
 import { createTestRegistry } from "../../../test/helpers/plugins/plugin-registry.js";
 import { buildLineMessageContext, buildLinePostbackContext } from "./bot-message-context.js";
 import { linePlugin } from "./channel.js";
+import type { MessageEvent, PostbackEvent } from "./line-sdk-types.js";
 import type { ResolvedLineAccount } from "./types.js";
 
 type AgentBinding = NonNullable<CrawClawConfig["bindings"]>[number];

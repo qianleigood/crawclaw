@@ -1,6 +1,6 @@
-import type { MessageEvent, PostbackEvent } from "@line/bot-sdk";
 import type { HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MessageEvent, PostbackEvent } from "./line-sdk-types.js";
 import type { LineAccountConfig } from "./types.js";
 
 // Avoid pulling in globals/pairing/media dependencies; this suite only asserts

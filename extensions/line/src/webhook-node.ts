@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { WebhookRequestBody } from "@line/bot-sdk";
 import { danger, logVerbose, type RuntimeEnv } from "crawclaw/plugin-sdk/runtime";
 import {
   isRequestBodyLimitError,
   readRequestBodyWithLimit,
   requestBodyErrorToText,
 } from "crawclaw/plugin-sdk/webhook-request-guards";
+import type { WebhookRequestBody } from "./line-sdk-types.js";
 import { parseLineWebhookBody, validateLineSignature } from "./webhook-utils.js";
 
 const LINE_WEBHOOK_MAX_BODY_BYTES = 1024 * 1024;

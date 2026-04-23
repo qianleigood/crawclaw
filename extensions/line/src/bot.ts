@@ -1,5 +1,3 @@
-import type { WebhookRequestBody } from "@line/bot-sdk";
-import type { NextFunction, Request, Response } from "express";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
@@ -8,9 +6,11 @@ import {
   logVerbose,
   type RuntimeEnv,
 } from "crawclaw/plugin-sdk/runtime-env";
+import type { NextFunction, Request, Response } from "express";
 import { resolveLineAccount } from "./accounts.js";
 import { createLineWebhookReplayCache, handleLineWebhookEvents } from "./bot-handlers.js";
 import type { LineInboundContext } from "./bot-message-context.js";
+import type { WebhookRequestBody } from "./line-sdk-types.js";
 import type { ResolvedLineAccount } from "./types.js";
 import { startLineWebhook } from "./webhook.js";
 

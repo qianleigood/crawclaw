@@ -1,12 +1,3 @@
-import type {
-  FollowEvent,
-  JoinEvent,
-  LeaveEvent,
-  MessageEvent,
-  PostbackEvent,
-  UnfollowEvent,
-  WebhookEvent,
-} from "@line/bot-sdk";
 import {
   buildMentionRegexes,
   matchesMentionPatterns,
@@ -50,6 +41,15 @@ import {
 } from "./bot-message-context.js";
 import { downloadLineMedia } from "./download.js";
 import { resolveLineGroupConfigEntry } from "./group-keys.js";
+import type {
+  FollowEvent,
+  JoinEvent,
+  LeaveEvent,
+  MessageEvent,
+  PostbackEvent,
+  UnfollowEvent,
+  WebhookEvent,
+} from "./line-sdk-types.js";
 import { pushMessageLine, replyMessageLine } from "./send.js";
 import type { LineGroupConfig, ResolvedLineAccount } from "./types.js";
 

@@ -1,3 +1,4 @@
+import type { BaseProbeResult } from "crawclaw/plugin-sdk/channel-contract";
 import type {
   AudioMessage,
   ImageMessage,
@@ -6,8 +7,7 @@ import type {
   TextMessage,
   VideoMessage,
   WebhookEvent,
-} from "@line/bot-sdk";
-import type { BaseProbeResult } from "crawclaw/plugin-sdk/channel-contract";
+} from "./line-sdk-types.js";
 
 export type LineTokenSource = "config" | "env" | "file" | "none";
 

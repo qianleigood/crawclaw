@@ -1,4 +1,3 @@
-import type { EventSource, MessageEvent, PostbackEvent, StickerEventMessage } from "@line/bot-sdk";
 import {
   formatInboundEnvelope,
   formatLocationText,
@@ -14,8 +13,8 @@ import {
   resolvePinnedMainDmOwnerFromAllowlist,
   resolveConfiguredBindingRoute,
 } from "crawclaw/plugin-sdk/conversation-runtime";
-import type { HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
 import { finalizeInboundContext } from "crawclaw/plugin-sdk/reply-dispatch-runtime";
+import type { HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
 import {
   deriveLastRoutePolicy,
   resolveAgentIdFromSessionKey,
@@ -24,6 +23,12 @@ import {
 import { logVerbose, shouldLogVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { normalizeAllowFrom } from "./bot-access.js";
 import { resolveLineGroupConfigEntry, resolveLineGroupHistoryKey } from "./group-keys.js";
+import type {
+  EventSource,
+  MessageEvent,
+  PostbackEvent,
+  StickerEventMessage,
+} from "./line-sdk-types.js";
 import type { LineGroupConfig, ResolvedLineAccount } from "./types.js";
 
 interface MediaRef {

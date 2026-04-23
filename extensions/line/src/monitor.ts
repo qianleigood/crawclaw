@@ -1,4 +1,3 @@
-import type { WebhookRequestBody } from "@line/bot-sdk";
 import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
@@ -21,6 +20,7 @@ import {
 } from "crawclaw/plugin-sdk/webhook-request-guards";
 import { deliverLineAutoReply } from "./auto-reply-delivery.js";
 import { createLineBot } from "./bot.js";
+import type { WebhookRequestBody } from "./line-sdk-types.js";
 import { processLineMessage } from "./markdown-to-line.js";
 import { sendLineReplyChunks } from "./reply-chunks.js";
 import {
