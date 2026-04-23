@@ -1,9 +1,36 @@
 import { describe, expect, it } from "vitest";
 import { compileWorkflowSpecToN8n, getWorkflowN8nCallbackCompileError } from "./n8n-compiler.js";
+import type { WorkflowSpec } from "./types.js";
+
+function compileWorkflowSpecToN8nForTest(
+  spec: WorkflowSpec,
+  options?: Parameters<typeof compileWorkflowSpecToN8n>[1],
+) {
+  return compileWorkflowSpecToN8n(spec, {
+    triggerBearerToken: "trigger-secret",
+    ...options,
+  });
+}
 
 describe("n8n compiler", () => {
+  it("requires trigger bearer token for n8n webhook workflows", () => {
+    expect(() =>
+      compileWorkflowSpecToN8n({
+        workflowId: "wf_trigger_auth_123",
+        name: "Trigger Auth",
+        goal: "Require trigger auth",
+        tags: [],
+        inputs: [],
+        outputs: [],
+        steps: [{ id: "prepare", kind: "native", title: "Prepare" }],
+        createdAt: 0,
+        updatedAt: 0,
+      }),
+    ).toThrow(/triggerBearerToken/);
+  });
+
   it("compiles workflow steps into a sequential n8n draft", () => {
-    const compiled = compileWorkflowSpecToN8n({
+    const compiled = compileWorkflowSpecToN8nForTest({
       workflowId: "wf_publish_redbook_123",
       name: "Publish Redbook Note",
       goal: "Generate and publish a redbook post",
@@ -21,13 +48,15 @@ describe("n8n compiler", () => {
       updatedAt: 0,
     });
 
-    expect(compiled.nodes).toHaveLength(5);
+    expect(compiled.nodes).toHaveLength(6);
     expect(compiled.nodes[0]?.type).toBe("n8n-nodes-base.webhook");
     expect(compiled.nodes[1]?.type).toBe("n8n-nodes-base.code");
     expect(compiled.nodes[2]?.type).toBe("n8n-nodes-base.code");
-    expect(compiled.nodes[3]?.type).toBe("n8n-nodes-base.wait");
-    expect(compiled.nodes[4]?.type).toBe("n8n-nodes-base.code");
+    expect(compiled.nodes[3]?.type).toBe("n8n-nodes-base.code");
+    expect(compiled.nodes[4]?.type).toBe("n8n-nodes-base.wait");
+    expect(compiled.nodes[5]?.type).toBe("n8n-nodes-base.code");
     expect(compiled.connections["When webhook is called"]).toBeTruthy();
+    expect(compiled.connections["Validate CrawClaw trigger token"]).toBeTruthy();
     expect(compiled.connections["Normalize workflow input"]).toBeTruthy();
     expect(compiled.staticData.crawclawWorkflowId).toBe("wf_publish_redbook_123");
     expect(compiled.staticData.crawclawTriggerPath).toBe("crawclaw-wf_publish_redbook_123");
@@ -47,7 +76,7 @@ describe("n8n compiler", () => {
     ]);
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           meta?: {
             crawclawAgentContract?: { workspaceBinding?: { workspaceDir?: string } };
             crawclawStepContract?: { path?: string; activation?: { mode?: string } };
@@ -57,7 +86,7 @@ describe("n8n compiler", () => {
     ).toBe("/tmp/workspace-redbook");
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           meta?: { crawclawStepContract?: { path?: string; activation?: { mode?: string } } };
         }
       ).meta?.crawclawStepContract,
@@ -68,7 +97,7 @@ describe("n8n compiler", () => {
   });
 
   it("compiles crawclaw_agent steps into HTTP callback nodes with n8n credentials when callback config is set", () => {
-    const compiled = compileWorkflowSpecToN8n(
+    const compiled = compileWorkflowSpecToN8nForTest(
       {
         workflowId: "wf_publish_redbook_123",
         name: "Publish Redbook Note",
@@ -91,11 +120,11 @@ describe("n8n compiler", () => {
       },
     );
 
-    expect(compiled.nodes).toHaveLength(3);
-    expect(compiled.nodes[2]?.type).toBe("n8n-nodes-base.httpRequest");
+    expect(compiled.nodes).toHaveLength(4);
+    expect(compiled.nodes[3]?.type).toBe("n8n-nodes-base.httpRequest");
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           parameters?: {
             url?: string;
             authentication?: string;
@@ -112,7 +141,7 @@ describe("n8n compiler", () => {
     });
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           credentials?: { httpHeaderAuth?: { id?: string; name?: string } };
         }
       ).credentials,
@@ -124,7 +153,7 @@ describe("n8n compiler", () => {
     });
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           parameters?: {
             jsonBody?: string;
             headerParameters?: { parameters?: Array<{ name?: string; value?: string }> };
@@ -134,7 +163,7 @@ describe("n8n compiler", () => {
     ).toContain("$execution.id");
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           parameters?: {
             jsonBody?: string;
           };
@@ -148,7 +177,7 @@ describe("n8n compiler", () => {
     ).not.toContain("{{ $");
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           meta?: {
             crawclawAgentContract?: {
               activation?: { when?: string };
@@ -159,7 +188,7 @@ describe("n8n compiler", () => {
     ).toBeUndefined();
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           parameters?: {
             headerParameters?: { parameters?: Array<{ name?: string; value?: string }> };
           };
@@ -172,7 +201,7 @@ describe("n8n compiler", () => {
   });
 
   it("normalizes conditional activation metadata in crawclaw_agent callback contracts", () => {
-    const compiled = compileWorkflowSpecToN8n(
+    const compiled = compileWorkflowSpecToN8nForTest(
       {
         workflowId: "wf_branch_agent_123",
         name: "Branch Agent Workflow",
@@ -254,7 +283,7 @@ describe("n8n compiler", () => {
   });
 
   it("compiles service steps with serviceRequest into httpRequest nodes", () => {
-    const compiled = compileWorkflowSpecToN8n({
+    const compiled = compileWorkflowSpecToN8nForTest({
       workflowId: "wf_publish_redbook_123",
       name: "Publish Redbook Note",
       goal: "Generate and publish a redbook post",
@@ -270,9 +299,6 @@ describe("n8n compiler", () => {
           serviceRequest: {
             url: "https://api.example.com/publish",
             method: "POST",
-            headers: {
-              Authorization: "Bearer token",
-            },
             body: {
               topic: "$json.topic",
             },
@@ -283,17 +309,44 @@ describe("n8n compiler", () => {
       updatedAt: 0,
     });
 
-    expect(compiled.nodes[2]?.type).toBe("n8n-nodes-base.httpRequest");
+    expect(compiled.nodes[3]?.type).toBe("n8n-nodes-base.httpRequest");
     expect(
-      (compiled.nodes[2] as { parameters?: { method?: string; url?: string } }).parameters,
+      (compiled.nodes[3] as { parameters?: { method?: string; url?: string } }).parameters,
     ).toMatchObject({
       method: "POST",
       url: "https://api.example.com/publish",
     });
   });
 
+  it("rejects plaintext sensitive serviceRequest headers", () => {
+    expect(() =>
+      compileWorkflowSpecToN8nForTest({
+        workflowId: "wf_publish_redbook_123",
+        name: "Publish Redbook Note",
+        goal: "Generate and publish a redbook post",
+        tags: ["redbook"],
+        inputs: [],
+        outputs: [],
+        steps: [
+          {
+            id: "publish",
+            kind: "service",
+            serviceRequest: {
+              url: "https://api.example.com/publish",
+              headers: {
+                Authorization: "Bearer token",
+              },
+            },
+          },
+        ],
+        createdAt: 0,
+        updatedAt: 0,
+      }),
+    ).toThrow(/sensitive serviceRequest header "Authorization"/);
+  });
+
   it("compiles native placeholder steps into real Set nodes", () => {
-    const compiled = compileWorkflowSpecToN8n({
+    const compiled = compileWorkflowSpecToN8nForTest({
       workflowId: "wf_native_123",
       name: "Prepare Inputs",
       goal: "Prepare workflow inputs",
@@ -311,10 +364,10 @@ describe("n8n compiler", () => {
       updatedAt: 0,
     });
 
-    expect(compiled.nodes[2]?.type).toBe("n8n-nodes-base.set");
+    expect(compiled.nodes[3]?.type).toBe("n8n-nodes-base.set");
     expect(
       (
-        compiled.nodes[2] as {
+        compiled.nodes[3] as {
           parameters?: {
             includeOtherFields?: boolean;
             assignments?: { assignments?: Array<{ name?: string }> };
@@ -335,7 +388,7 @@ describe("n8n compiler", () => {
   });
 
   it("compiles branch_v2 workflows into conditional gates and join helpers", () => {
-    const compiled = compileWorkflowSpecToN8n({
+    const compiled = compileWorkflowSpecToN8nForTest({
       workflowId: "wf_branchy_123",
       name: "Branchy Workflow",
       goal: "Branch on approval and join before publish",
@@ -415,7 +468,7 @@ describe("n8n compiler", () => {
   });
 
   it("compiles branch_v2 fan_out workflows into parallel branch connections without conditional gates", () => {
-    const compiled = compileWorkflowSpecToN8n({
+    const compiled = compileWorkflowSpecToN8nForTest({
       workflowId: "wf_branch_fan_out_123",
       name: "Fan Out Workflow",
       goal: "Run parallel branches and join them",
@@ -497,7 +550,7 @@ describe("n8n compiler", () => {
   });
 
   it("applies fan_out failure and retry controls to compiled step nodes", () => {
-    const compiled = compileWorkflowSpecToN8n(
+    const compiled = compileWorkflowSpecToN8nForTest(
       {
         workflowId: "wf_branch_fan_out_controls_123",
         name: "Fan Out Controls",
@@ -581,7 +634,7 @@ describe("n8n compiler", () => {
 
   it("fails fast when fan_out width exceeds the declared maxActiveBranches cap", () => {
     expect(() =>
-      compileWorkflowSpecToN8n({
+      compileWorkflowSpecToN8nForTest({
         workflowId: "wf_branch_fan_out_throttle_123",
         name: "Fan Out Throttle",
         goal: "Reject unsupported lower-width fan out",
@@ -628,7 +681,7 @@ describe("n8n compiler", () => {
 
   it("fails fast when a linear workflow includes branch-aware step metadata", () => {
     expect(() =>
-      compileWorkflowSpecToN8n({
+      compileWorkflowSpecToN8nForTest({
         workflowId: "wf_branch_contract_123",
         name: "Branch Contract Workflow",
         goal: "Try conditional activation metadata",

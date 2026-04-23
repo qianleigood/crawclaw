@@ -119,7 +119,11 @@ function checkpoint(label: string) {
   }
 }
 
-async function startFakeN8nServer(params: { apiKey: string; gatewayToken: string }) {
+async function startFakeN8nServer(params: {
+  apiKey: string;
+  gatewayToken: string;
+  triggerBearerToken: string;
+}) {
   checkpoint("fake-n8n:create");
   const workflows = new Map<string, FakeN8nWorkflow>();
   const executions = new Map<string, FakeN8nExecution>();
@@ -177,6 +181,9 @@ async function startFakeN8nServer(params: { apiKey: string; gatewayToken: string
 
     const webhookTriggerMatch = url.pathname.match(/^\/webhook\/([^/]+)$/);
     if (req.method === "POST" && webhookTriggerMatch) {
+      if (req.headers.authorization !== `Bearer ${params.triggerBearerToken}`) {
+        return sendJson(res, 401, { message: "invalid trigger token" });
+      }
       const webhookPath = decodeURIComponent(webhookTriggerMatch[1] ?? "");
       const triggerBody = await readJsonBody(req);
       const workflow = [...workflows.values()].find((candidate) => {
@@ -198,7 +205,11 @@ async function startFakeN8nServer(params: { apiKey: string; gatewayToken: string
         status: "running",
         finished: false,
         startedAt: new Date().toISOString(),
-        data: {},
+        data: {
+          trigger: {
+            body: triggerBody,
+          },
+        },
       };
       executions.set(executionId, execution);
 
@@ -354,6 +365,7 @@ describe("workflow n8n e2e", () => {
     "CRAWCLAW_STATE_DIR",
     "CRAWCLAW_N8N_BASE_URL",
     "CRAWCLAW_N8N_API_KEY",
+    "CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN",
     "CRAWCLAW_N8N_CALLBACK_BASE_URL",
     "CRAWCLAW_N8N_CALLBACK_BEARER_ENV_VAR",
     "CRAWCLAW_GATEWAY_TOKEN",
@@ -413,10 +425,12 @@ describe("workflow n8n e2e", () => {
       const configPath = path.join(homeDir, "crawclaw.json");
       const gatewayToken = "gateway-workflow-e2e-token";
       const n8nApiKey = "n8n-e2e-api-key";
+      const triggerBearerToken = "n8n-trigger-e2e-token";
 
       fakeN8n = await startFakeN8nServer({
         apiKey: n8nApiKey,
         gatewayToken,
+        triggerBearerToken,
       });
       checkpoint(`fake-n8n-started:${fakeN8n.baseUrl}`);
 
@@ -425,6 +439,7 @@ describe("workflow n8n e2e", () => {
 
       process.env.CRAWCLAW_N8N_BASE_URL = fakeN8n.baseUrl;
       process.env.CRAWCLAW_N8N_API_KEY = n8nApiKey;
+      process.env.CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN = triggerBearerToken;
       process.env.CRAWCLAW_N8N_CALLBACK_BEARER_ENV_VAR = "CRAWCLAW_GATEWAY_TOKEN";
       process.env.CRAWCLAW_GATEWAY_TOKEN = gatewayToken;
       process.env.CRAWCLAW_CONFIG_PATH = configPath;
@@ -526,6 +541,7 @@ describe("workflow n8n e2e", () => {
       }>(gateway.client, "workflow.run", {
         workflow: created.details.workflowId,
         workspaceDir,
+        approved: true,
       });
       checkpoint(`run-started:${run.execution.executionId}:${run.execution.n8nExecutionId}`);
       expect(["running", "succeeded"]).toContain(run.execution.status);

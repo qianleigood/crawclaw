@@ -5,6 +5,8 @@ export type WorkflowN8nConfig = {
   apiKey?: string;
   /** Optional n8n project ID for created workflows. */
   projectId?: string;
+  /** Bearer token CrawClaw sends to n8n trigger webhooks. Required for deploy/run. */
+  triggerBearerToken?: string;
   /** External CrawClaw Gateway base URL reachable by n8n callback nodes. */
   callbackBaseUrl?: string;
   /** Optional n8n credential id to attach to CrawClaw callback HTTP nodes. */

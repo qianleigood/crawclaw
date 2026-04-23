@@ -60,6 +60,12 @@ const WorkflowToolSchema = Type.Object({
         "Optional structured workflow input payload for action=run. These values are passed to n8n as workflowInput and also mirrored at the top level for backward compatibility.",
     }),
   ),
+  approved: Type.Optional(
+    Type.Boolean({
+      description:
+        "For action=run, confirms an upstream explicit user approval for workflows that require approval.",
+    }),
+  ),
   patch: Type.Optional(
     Type.Record(Type.String(), Type.Unknown(), {
       description:

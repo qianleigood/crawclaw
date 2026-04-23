@@ -10593,6 +10593,47 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
         },
         additionalProperties: false,
       },
+      workflow: {
+        type: "object",
+        properties: {
+          n8n: {
+            type: "object",
+            properties: {
+              baseUrl: {
+                type: "string",
+                format: "uri",
+              },
+              apiKey: {
+                type: "string",
+              },
+              projectId: {
+                type: "string",
+              },
+              triggerBearerToken: {
+                type: "string",
+              },
+              callbackBaseUrl: {
+                type: "string",
+                format: "uri",
+              },
+              callbackCredentialId: {
+                type: "string",
+              },
+              callbackCredentialName: {
+                type: "string",
+              },
+              callbackBearerEnvVar: {
+                type: "string",
+              },
+              callbackBearerToken: {
+                type: "string",
+              },
+            },
+            additionalProperties: false,
+          },
+        },
+        additionalProperties: false,
+      },
       mcp: {
         type: "object",
         properties: {
@@ -15163,6 +15204,18 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       sensitive: true,
       tags: ["security", "auth", "tools"],
     },
+    "workflow.n8n.apiKey": {
+      sensitive: true,
+      tags: ["security", "auth"],
+    },
+    "workflow.n8n.triggerBearerToken": {
+      sensitive: true,
+      tags: ["security", "auth"],
+    },
+    "workflow.n8n.callbackBearerToken": {
+      sensitive: true,
+      tags: ["security", "auth"],
+    },
     "mcp.servers.*.headers.*": {
       sensitive: true,
       tags: ["security"],
@@ -15194,6 +15247,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "tools.media.video.models[].baseUrl": {
       tags: ["media", "tools", "url-secret"],
+    },
+    "workflow.n8n.baseUrl": {
+      tags: ["advanced", "url-secret"],
     },
     "mcp.servers.*.url": {
       tags: ["advanced", "url-secret"],

@@ -20,6 +20,7 @@ describe("crawclaw-tools workflow registration", () => {
           n8n: {
             baseUrl: "https://n8n.example.com",
             apiKey: "secret-token",
+            triggerBearerToken: "trigger-secret",
             callbackBaseUrl: "https://gateway.example.com",
             callbackBearerToken: "callback-secret",
           },

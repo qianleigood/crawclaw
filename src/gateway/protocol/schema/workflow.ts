@@ -589,6 +589,7 @@ export const WorkflowRollbackParamsSchema = defineWorkflowContextParamsSchema({
 export const WorkflowRunParamsSchema = defineWorkflowContextParamsSchema({
   workflow: NonEmptyString,
   inputs: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  approved: Type.Optional(Type.Boolean()),
 });
 
 export const WorkflowExecutionControlParamsSchema = defineWorkflowContextParamsSchema({

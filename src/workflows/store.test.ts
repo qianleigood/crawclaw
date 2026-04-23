@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
 import { loadWorkflowExecutionStore, mutateWorkflowExecutionStore } from "./store.js";
@@ -24,6 +26,9 @@ describe("workflow store mutation queue", () => {
 
     const firstMutation = mutateWorkflowExecutionStore({ workspaceDir }, async (store) => {
       firstHolding = true;
+      await expect(
+        fs.stat(path.join(workspaceDir, ".crawclaw", "workflows", ".store.lock")),
+      ).resolves.toMatchObject({ isFile: expect.any(Function) });
       resolveFirstStarted?.();
       await firstRelease;
       store.executions.push({

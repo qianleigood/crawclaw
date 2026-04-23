@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { withFileLock } from "../infra/file-lock.js";
 import type {
   WorkflowDeploymentStore,
   WorkflowExecutionStore,
@@ -20,7 +21,18 @@ const EXECUTIONS_FILE = "executions.json";
 const DEPLOYMENTS_FILE = "deployments.json";
 const SPECS_DIR = "specs";
 const SPEC_VERSIONS_DIR = "spec-versions";
+const STORE_LOCK_FILE = ".store";
 const workflowRootMutationQueues = new Map<string, Promise<void>>();
+const WORKFLOW_STORE_LOCK_OPTIONS = {
+  retries: {
+    retries: 120,
+    factor: 1.2,
+    minTimeout: 25,
+    maxTimeout: 250,
+    randomize: true,
+  },
+  stale: 30_000,
+};
 
 function defaultRegistryStore(): WorkflowRegistryStore {
   return {
@@ -243,41 +255,54 @@ export async function withWorkflowStoreMutation<T>(
   mutation: (api: WorkflowStoreMutationApi) => Promise<T>,
 ): Promise<T> {
   const root = requireWorkflowRoot(context);
-  return await queueWorkflowRootMutation(root, async () => {
-    const api: WorkflowStoreMutationApi = {
-      root,
-      loadRegistryStore: async () =>
-        await loadWorkflowRegistryStoreInternal(path.join(root, REGISTRY_FILE)),
-      saveRegistryStore: async (store) =>
-        await saveWorkflowRegistryStoreInternal(path.join(root, REGISTRY_FILE), store),
-      loadExecutionStore: async () =>
-        await loadWorkflowExecutionStoreInternal(path.join(root, EXECUTIONS_FILE)),
-      saveExecutionStore: async (store) =>
-        await saveWorkflowExecutionStoreInternal(path.join(root, EXECUTIONS_FILE), store),
-      loadDeploymentStore: async () =>
-        await loadWorkflowDeploymentStoreInternal(path.join(root, DEPLOYMENTS_FILE)),
-      saveDeploymentStore: async (store) =>
-        await saveWorkflowDeploymentStoreInternal(path.join(root, DEPLOYMENTS_FILE), store),
-      loadSpec: async (workflowId) =>
-        await readJsonFile<WorkflowSpec>(path.join(root, SPECS_DIR, `${workflowId}.json`)),
-      saveSpec: async (spec) =>
-        await saveWorkflowSpecInternal(path.join(root, SPECS_DIR, `${spec.workflowId}.json`), spec),
-      deleteSpec: async (workflowId) =>
-        await deleteFileIfExists(path.join(root, SPECS_DIR, `${workflowId}.json`)),
-      loadSpecVersion: async (workflowId, specVersion) =>
-        await readJsonFile<WorkflowVersionSnapshot>(
-          path.join(root, SPEC_VERSIONS_DIR, workflowId, `${specVersion}.json`),
-        ),
-      saveSpecVersion: async (snapshot) =>
-        await saveWorkflowSpecVersionInternal(
-          path.join(root, SPEC_VERSIONS_DIR, snapshot.workflowId, `${snapshot.specVersion}.json`),
-          snapshot,
-        ),
-      deleteSpecVersions: async (workflowId) =>
-        await deleteDirectoryIfExists(path.join(root, SPEC_VERSIONS_DIR, workflowId)),
-    };
-    return await mutation(api);
-  });
+  return await withFileLock(
+    path.join(root, STORE_LOCK_FILE),
+    WORKFLOW_STORE_LOCK_OPTIONS,
+    async () =>
+      await queueWorkflowRootMutation(root, async () => {
+        const api: WorkflowStoreMutationApi = {
+          root,
+          loadRegistryStore: async () =>
+            await loadWorkflowRegistryStoreInternal(path.join(root, REGISTRY_FILE)),
+          saveRegistryStore: async (store) =>
+            await saveWorkflowRegistryStoreInternal(path.join(root, REGISTRY_FILE), store),
+          loadExecutionStore: async () =>
+            await loadWorkflowExecutionStoreInternal(path.join(root, EXECUTIONS_FILE)),
+          saveExecutionStore: async (store) =>
+            await saveWorkflowExecutionStoreInternal(path.join(root, EXECUTIONS_FILE), store),
+          loadDeploymentStore: async () =>
+            await loadWorkflowDeploymentStoreInternal(path.join(root, DEPLOYMENTS_FILE)),
+          saveDeploymentStore: async (store) =>
+            await saveWorkflowDeploymentStoreInternal(path.join(root, DEPLOYMENTS_FILE), store),
+          loadSpec: async (workflowId) =>
+            await readJsonFile<WorkflowSpec>(path.join(root, SPECS_DIR, `${workflowId}.json`)),
+          saveSpec: async (spec) =>
+            await saveWorkflowSpecInternal(
+              path.join(root, SPECS_DIR, `${spec.workflowId}.json`),
+              spec,
+            ),
+          deleteSpec: async (workflowId) =>
+            await deleteFileIfExists(path.join(root, SPECS_DIR, `${workflowId}.json`)),
+          loadSpecVersion: async (workflowId, specVersion) =>
+            await readJsonFile<WorkflowVersionSnapshot>(
+              path.join(root, SPEC_VERSIONS_DIR, workflowId, `${specVersion}.json`),
+            ),
+          saveSpecVersion: async (snapshot) =>
+            await saveWorkflowSpecVersionInternal(
+              path.join(
+                root,
+                SPEC_VERSIONS_DIR,
+                snapshot.workflowId,
+                `${snapshot.specVersion}.json`,
+              ),
+              snapshot,
+            ),
+          deleteSpecVersions: async (workflowId) =>
+            await deleteDirectoryIfExists(path.join(root, SPEC_VERSIONS_DIR, workflowId)),
+        };
+        return await mutation(api);
+      }),
+  );
 }
 
 export async function loadWorkflowRegistryStore(

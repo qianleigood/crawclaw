@@ -15,6 +15,7 @@ import {
   buildCrawClawWorkflowWebhookPath,
   compileWorkflowSpecToN8n,
   getWorkflowN8nCallbackCompileError,
+  getWorkflowN8nTriggerCompileError,
 } from "./n8n-compiler.js";
 import {
   deleteWorkflow,
@@ -143,7 +144,7 @@ export async function deployWorkflowDefinition(params: {
   remote: N8nWorkflowRecord;
   compiled: ReturnType<typeof compileWorkflowSpecToN8n>;
 }> {
-  const { client } = requireWorkflowN8nRuntime(params.config);
+  const { client, resolved } = requireWorkflowN8nRuntime(params.config);
   const described = await describeWorkflow(params.context, params.workflowRef);
   if (!described || !described.spec) {
     throw new Error(`Workflow "${params.workflowRef}" not found.`);
@@ -154,14 +155,25 @@ export async function deployWorkflowDefinition(params: {
     );
   }
   const callbackConfig = resolveN8nCallbackConfig(params.config) ?? undefined;
+  const triggerCompileError = getWorkflowN8nTriggerCompileError(described.spec, {
+    triggerBearerToken: resolved.triggerBearerToken,
+  });
+  if (triggerCompileError) {
+    throw new Error(triggerCompileError);
+  }
   const compileError = getWorkflowN8nCallbackCompileError(described.spec, callbackConfig);
   if (compileError) {
     throw new Error(compileError);
   }
   const compiled = compileWorkflowSpecToN8n(described.spec, {
+    specVersion: described.entry.specVersion,
+    triggerBearerToken: resolved.triggerBearerToken,
     ...callbackConfig,
   });
-  const workflowData = { ...compiled };
+  const workflowData = {
+    ...compiled,
+    ...(resolved.projectId ? { projectId: resolved.projectId } : {}),
+  };
   const createdOrUpdated = described.entry.n8nWorkflowId
     ? await client.updateWorkflow(described.entry.n8nWorkflowId, workflowData)
     : await client.createWorkflow(workflowData);
@@ -269,6 +281,7 @@ export async function buildWorkflowMatchPayload(params: {
 export async function resolveRunnableWorkflowForExecution(
   context: WorkflowStoreContext,
   workflowRef: string,
+  options?: { approved?: boolean },
 ): Promise<{
   entry: WorkflowRegistryEntry & { n8nWorkflowId: string };
   spec: WorkflowSpec;
@@ -279,13 +292,36 @@ export async function resolveRunnableWorkflowForExecution(
   if (!described) {
     throw new WorkflowOperationInputError(`Workflow "${workflowRef}" not found.`);
   }
-  if (
-    described.entry.deploymentState !== "deployed" ||
-    !described.entry.n8nWorkflowId ||
-    !described.spec
-  ) {
+  const invocation = getWorkflowInvocationHint(described.entry);
+  if (described.entry.archivedAt) {
+    throw new WorkflowOperationInputError(`Workflow "${workflowRef}" is archived and cannot run.`);
+  }
+  if (!described.entry.enabled) {
+    throw new WorkflowOperationInputError(`Workflow "${workflowRef}" is disabled and cannot run.`);
+  }
+  if (described.entry.deploymentState !== "deployed") {
     throw new WorkflowOperationInputError(
       `Workflow "${workflowRef}" is not currently deployed. Run workflow.deploy or workflow.republish first.`,
+    );
+  }
+  if (!described.entry.n8nWorkflowId) {
+    throw new WorkflowOperationInputError(
+      `Workflow "${workflowRef}" is missing its n8n workflow id. Run workflow.republish before running it.`,
+    );
+  }
+  if (!described.spec) {
+    throw new WorkflowOperationInputError(
+      `Workflow "${workflowRef}" is missing its workflow spec and cannot run.`,
+    );
+  }
+  if (described.entry.requiresApproval && options?.approved !== true) {
+    throw new WorkflowOperationInputError(
+      `Workflow "${workflowRef}" requires explicit approval before running.`,
+    );
+  }
+  if (!invocation.canRun) {
+    throw new WorkflowOperationInputError(
+      `Workflow "${workflowRef}" cannot run: ${invocation.reason}.`,
     );
   }
   return {
@@ -468,12 +504,22 @@ export async function updateWorkflowDefinitionPayload(params: {
 
 export async function setWorkflowEnabledPayload(params: {
   context: WorkflowStoreContext;
+  config?: CrawClawConfig;
   workflowRef: string;
   enabled: boolean;
 }) {
+  const described = await describeWorkflow(params.context, params.workflowRef);
   const updated = await setWorkflowEnabled(params.context, params.workflowRef, params.enabled);
   if (!updated) {
     throw new WorkflowOperationInputError(`Workflow "${params.workflowRef}" not found.`);
+  }
+  if (described?.entry.n8nWorkflowId) {
+    const { client } = requireWorkflowN8nRuntime(params.config);
+    if (params.enabled) {
+      await client.activateWorkflow(described.entry.n8nWorkflowId);
+    } else {
+      await client.deactivateWorkflow(described.entry.n8nWorkflowId);
+    }
   }
   return {
     workflow: updated,
@@ -483,12 +529,18 @@ export async function setWorkflowEnabledPayload(params: {
 
 export async function setWorkflowArchivedPayload(params: {
   context: WorkflowStoreContext;
+  config?: CrawClawConfig;
   workflowRef: string;
   archived: boolean;
 }) {
+  const described = await describeWorkflow(params.context, params.workflowRef);
   const updated = await setWorkflowArchived(params.context, params.workflowRef, params.archived);
   if (!updated) {
     throw new WorkflowOperationInputError(`Workflow "${params.workflowRef}" not found.`);
+  }
+  if (params.archived && described?.entry.n8nWorkflowId) {
+    const { client } = requireWorkflowN8nRuntime(params.config);
+    await client.deactivateWorkflow(described.entry.n8nWorkflowId);
   }
   return {
     workflow: updated,
@@ -520,6 +572,36 @@ function buildWorkflowExecutionResponse(params: {
     ...(localExecution ? { localExecution } : {}),
     ...(remoteExecution ? { remoteExecution } : {}),
   };
+}
+
+function valueContainsLocalExecutionId(value: unknown, executionId: string): boolean {
+  if (typeof value === "string") {
+    return value === executionId;
+  }
+  if (Array.isArray(value)) {
+    return value.some((entry) => valueContainsLocalExecutionId(entry, executionId));
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some((entry) =>
+      valueContainsLocalExecutionId(entry, executionId),
+    );
+  }
+  return false;
+}
+
+function normalizeN8nExecutionId(execution: N8nExecutionRecord): string | null {
+  const executionId = execution.executionId ?? execution.id;
+  return typeof executionId === "string" && executionId.trim() ? executionId.trim() : null;
+}
+
+function findExecutionByLocalMarker(
+  executions: N8nExecutionRecord[],
+  localExecutionId: string,
+): N8nExecutionRecord | null {
+  return (
+    executions.find((execution) => valueContainsLocalExecutionId(execution, localExecutionId)) ??
+    null
+  );
 }
 
 export async function startWorkflowExecution(params: {
@@ -557,23 +639,6 @@ export async function startWorkflowExecution(params: {
   });
   let execution = localExecution;
   let remoteExecution: N8nExecutionRecord | undefined;
-  const listed = await params.client.listExecutions({
-    workflowId: params.n8nWorkflowId,
-    limit: 10,
-  });
-  const latestRemote = listed.data[0];
-  if (latestRemote) {
-    remoteExecution = {
-      executionId: latestRemote.executionId ?? latestRemote.id ?? "",
-      ...latestRemote,
-    };
-    execution =
-      (await attachWorkflowExecutionRemoteRef(params.context, localExecution.executionId, {
-        n8nExecutionId: latestRemote.executionId ?? latestRemote.id ?? "",
-        n8nWorkflowId: params.n8nWorkflowId,
-        remote: latestRemote,
-      })) ?? execution;
-  }
   const deadline = Date.now() + 5_000;
   while (Date.now() < deadline) {
     if (!execution.n8nExecutionId) {
@@ -581,17 +646,21 @@ export async function startWorkflowExecution(params: {
         .listExecutions({
           workflowId: params.n8nWorkflowId,
           limit: 10,
+          includeData: true,
         })
         .catch(() => null);
-      const candidate = refreshedList?.data[0];
-      if (candidate) {
+      const candidate = refreshedList
+        ? findExecutionByLocalMarker(refreshedList.data, localExecution.executionId)
+        : null;
+      const remoteExecutionId = candidate ? normalizeN8nExecutionId(candidate) : null;
+      if (candidate && remoteExecutionId) {
         remoteExecution = {
-          executionId: candidate.executionId ?? candidate.id ?? "",
+          executionId: remoteExecutionId,
           ...candidate,
         };
         execution =
           (await attachWorkflowExecutionRemoteRef(params.context, localExecution.executionId, {
-            n8nExecutionId: candidate.executionId ?? candidate.id ?? "",
+            n8nExecutionId: remoteExecutionId,
             n8nWorkflowId: params.n8nWorkflowId,
             remote: candidate,
           })) ?? execution;

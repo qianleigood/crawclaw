@@ -591,6 +591,7 @@ export const workflowHandlers: GatewayRequestHandlers = {
           agentId: resolved.agentId,
           ...(await setWorkflowEnabledPayload({
             context: resolved,
+            config: resolved.cfg,
             workflowRef: params.workflow,
             enabled: true,
           })),
@@ -631,6 +632,7 @@ export const workflowHandlers: GatewayRequestHandlers = {
           agentId: resolved.agentId,
           ...(await setWorkflowEnabledPayload({
             context: resolved,
+            config: resolved.cfg,
             workflowRef: params.workflow,
             enabled: false,
           })),
@@ -671,6 +673,7 @@ export const workflowHandlers: GatewayRequestHandlers = {
           agentId: resolved.agentId,
           ...(await setWorkflowArchivedPayload({
             context: resolved,
+            config: resolved.cfg,
             workflowRef: params.workflow,
             archived: true,
           })),
@@ -711,6 +714,7 @@ export const workflowHandlers: GatewayRequestHandlers = {
           agentId: resolved.agentId,
           ...(await setWorkflowArchivedPayload({
             context: resolved,
+            config: resolved.cfg,
             workflowRef: params.workflow,
             archived: false,
           })),
@@ -908,11 +912,12 @@ export const workflowHandlers: GatewayRequestHandlers = {
       !isOptionalString(params.agentDir) ||
       typeof params.workflow !== "string" ||
       !params.workflow.trim() ||
+      !isOptionalBoolean(params.approved) ||
       (params.inputs !== undefined && !isPlainRecord(params.inputs))
     ) {
       respondInvalid(
         respond,
-        "invalid workflow.run params: expected workflow plus optional agentId/workspaceDir/agentDir and optional object inputs",
+        "invalid workflow.run params: expected workflow plus optional agentId/workspaceDir/agentDir, approved, and optional object inputs",
       );
       return;
     }
@@ -927,7 +932,9 @@ export const workflowHandlers: GatewayRequestHandlers = {
     const { client, resolved: n8nResolved } = runtime;
     let described;
     try {
-      described = await resolveRunnableWorkflowForExecution(resolved, params.workflow);
+      described = await resolveRunnableWorkflowForExecution(resolved, params.workflow, {
+        approved: params.approved === true,
+      });
     } catch (error) {
       if (error instanceof WorkflowOperationInputError) {
         respondInvalid(respond, error.message);

@@ -168,6 +168,26 @@ const HttpUrlSchema = z
     return protocol === "http:" || protocol === "https:";
   }, "Expected http:// or https:// URL");
 
+const WorkflowSchema = z
+  .object({
+    n8n: z
+      .object({
+        baseUrl: HttpUrlSchema.optional(),
+        apiKey: z.string().optional().register(sensitive),
+        projectId: z.string().optional(),
+        triggerBearerToken: z.string().optional().register(sensitive),
+        callbackBaseUrl: HttpUrlSchema.optional(),
+        callbackCredentialId: z.string().optional(),
+        callbackCredentialName: z.string().optional(),
+        callbackBearerEnvVar: z.string().optional(),
+        callbackBearerToken: z.string().optional().register(sensitive),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .optional();
+
 const ResponsesEndpointUrlFetchShape = {
   allowUrl: z.boolean().optional(),
   urlAllowlist: z.array(z.string()).optional(),
@@ -924,6 +944,7 @@ export const CrawClawSchema = z
       })
       .optional(),
     memory: MemorySchema,
+    workflow: WorkflowSchema,
     mcp: McpConfigSchema,
     skills: z
       .object({

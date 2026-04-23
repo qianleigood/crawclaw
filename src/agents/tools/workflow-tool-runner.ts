@@ -201,6 +201,7 @@ export async function executeWorkflowToolAction(
           status: "ok",
           ...(await setWorkflowEnabledPayload({
             context,
+            config: opts?.config,
             workflowRef: workflow,
             enabled: action === "enable",
           })),
@@ -220,6 +221,7 @@ export async function executeWorkflowToolAction(
           status: "ok",
           ...(await setWorkflowArchivedPayload({
             context,
+            config: opts?.config,
             workflowRef: workflow,
             archived: action === "archive",
           })),
@@ -316,7 +318,9 @@ export async function executeWorkflowToolAction(
       })();
       let described;
       try {
-        described = await resolveRunnableWorkflowForExecution(context, workflow);
+        described = await resolveRunnableWorkflowForExecution(context, workflow, {
+          approved: args.approved === true,
+        });
       } catch (error) {
         if (error instanceof WorkflowOperationInputError) {
           throw new ToolInputError(error.message);

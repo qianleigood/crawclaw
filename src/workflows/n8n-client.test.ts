@@ -24,6 +24,7 @@ describe("n8n client", () => {
               baseUrl: "https://n8n.example.com/",
               apiKey: "token-1",
               projectId: "proj-1",
+              triggerBearerToken: "trigger-token-1",
             },
           },
         },
@@ -33,16 +34,19 @@ describe("n8n client", () => {
       baseUrl: "https://n8n.example.com",
       apiKey: "token-1",
       projectId: "proj-1",
+      triggerBearerToken: "trigger-token-1",
     });
 
     expect(
       resolveN8nConfig(undefined, {
         CRAWCLAW_N8N_BASE_URL: "https://n8n.example.com",
         CRAWCLAW_N8N_API_KEY: "token-2",
+        CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN: "trigger-token-2",
       }),
     ).toEqual({
       baseUrl: "https://n8n.example.com",
       apiKey: "token-2",
+      triggerBearerToken: "trigger-token-2",
     });
 
     expect(
@@ -151,6 +155,7 @@ describe("n8n client", () => {
     const client = createN8nClient({
       baseUrl: "https://n8n.example.com",
       apiKey: "secret-token",
+      triggerBearerToken: "trigger-secret",
     });
 
     await client.createWorkflow({
@@ -181,6 +186,10 @@ describe("n8n client", () => {
     }
     const createBody = parseJsonBody(calls[0]?.init?.body);
     expect(createBody.nodes).toEqual([]);
+    const webhookCall = calls.find((call) => call.url.endsWith("/webhook/crawclaw-wf_remote"));
+    expect(((webhookCall?.init?.headers ?? {}) as Record<string, string>).Authorization).toBe(
+      "Bearer trigger-secret",
+    );
   });
 
   it("strips CrawClaw node meta before sending workflow payloads to n8n", async () => {

@@ -45,6 +45,23 @@
   - 稳定命名空间是 `workflowInput`
   - 条件表达式应优先写成 `$workflowInput.someField`
   - 同一份输入会在顶层镜像一份，仅用于兼容旧草图，不建议再依赖
+- `workflow.run` 必须服从 registry policy：
+  - archived、disabled、draft、缺 spec、缺 `n8nWorkflowId` 都不能运行
+  - `requiresApproval = true` 时调用层必须传入 `approved: true`
+  - 动态调用默认不能设置 `approved: true`
+- n8n trigger webhook 必须使用共享 bearer token：
+  - 配置项是 `workflow.n8n.triggerBearerToken`
+  - 环境变量是 `CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN`
+  - CrawClaw 触发 webhook 时发送 `Authorization: Bearer <token>`
+  - 编译后的 n8n workflow 会在 Webhook 后插入 token 校验节点
+- `workflow.disable`、`workflow.enable`、`workflow.archive` 会同步远端 n8n active 状态：
+  - disable / archive 会 deactivate 已部署 workflow
+  - enable 会 activate 已部署 workflow
+  - unarchive 只解除 archived，不自动 enable
+- 本地 execution 与 n8n execution 的绑定必须依赖 CrawClaw 本地 marker：
+  - 触发 payload 中带 `crawclawExecutionId`
+  - 只有包含该 marker 的远端 execution 才能绑定
+  - 找不到 marker 时保持本地 execution 未绑定，不取 n8n executions 列表第一项
 - `branch_v2` 当前仍未支持：
   - 图形化分支编辑
   - 更高保真的原生 n8n 分支节点生成
@@ -279,6 +296,9 @@
 
 当前约定的配置项：
 
+- `workflow.n8n.triggerBearerToken`
+  - 必填。CrawClaw 触发 n8n webhook 时使用的共享 bearer token
+  - 可用 `CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN` 提供
 - `workflow.n8n.callbackBaseUrl`
   - n8n 能访问到的 CrawClaw Gateway 外部地址
 - `workflow.n8n.callbackCredentialId`
@@ -289,6 +309,21 @@
   - 本地或开发环境可用的显式 bearer token
 - `workflow.n8n.callbackBearerEnvVar`
   - 仅作为 token 解析来源，不建议再依赖 n8n 节点运行时 `$env`
+
+### 6. serviceRequest secret 约束
+
+`serviceRequest.headers` 只能保存非敏感明文 header。编译到 n8n 前会拒绝常见敏感 header 名，包括：
+
+- `Authorization`
+- `Proxy-Authorization`
+- `Cookie`
+- `Set-Cookie`
+- `X-API-Key`
+- `Api-Key`
+- `X-Auth-Token`
+- `*-Token`
+
+需要认证的 service step 应通过 n8n credential 或后续 SecretRef 编译机制接入，不能把密钥明文写进 workflow spec。
 
 ## 数据模型
 

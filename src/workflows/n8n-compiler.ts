@@ -12,6 +12,8 @@ import type {
 } from "./types.js";
 
 export type CompileWorkflowSpecToN8nOptions = {
+  specVersion?: number;
+  triggerBearerToken?: string;
   callbackBaseUrl?: string;
   callbackCredentialId?: string;
   callbackCredentialName?: string;
@@ -60,6 +62,20 @@ type ResolvedWorkflowStep = {
 
 function trimToUndefined(value: string | undefined): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function isSensitiveServiceHeaderName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized === "authorization" ||
+    normalized === "proxy-authorization" ||
+    normalized === "cookie" ||
+    normalized === "set-cookie" ||
+    normalized === "x-api-key" ||
+    normalized === "api-key" ||
+    normalized === "x-auth-token" ||
+    normalized.endsWith("-token")
+  );
 }
 
 function buildCrawClawStepContract(
@@ -140,6 +156,10 @@ function buildWorkflowMergeNodeName(
 
 function buildWorkflowInputNormalizerNodeName(): string {
   return "Normalize workflow input";
+}
+
+function buildWorkflowTriggerAuthNodeName(): string {
+  return "Validate CrawClaw trigger token";
 }
 
 function resolveStepPath(step: WorkflowStepSpec): string {
@@ -420,6 +440,15 @@ function assertBranchWorkflowSpec(spec: WorkflowSpec): ResolvedWorkflowStep[] {
 }
 
 function validateWorkflowSpec(spec: WorkflowSpec): ResolvedWorkflowStep[] {
+  for (const step of spec.steps) {
+    for (const headerName of Object.keys(step.serviceRequest?.headers ?? {})) {
+      if (isSensitiveServiceHeaderName(headerName)) {
+        throw new Error(
+          `Workflow "${spec.name}" step "${step.id}" declares sensitive serviceRequest header "${headerName}". Store secrets in n8n credentials instead of compiling plaintext headers.`,
+        );
+      }
+    }
+  }
   const topology = spec.topology?.trim() ?? "linear_v1";
   if (topology === "linear_v1") {
     assertLinearWorkflowSpec(spec);
@@ -485,6 +514,16 @@ export function getWorkflowN8nCallbackCompileError(
   }
   if (!callbackConfig.callbackCredentialId && !callbackConfig.callbackBearerToken) {
     return "Workflow contains crawclaw_agent steps but callback auth is not configured. Set workflow.n8n.callbackCredentialId or workflow.n8n.callbackBearerToken.";
+  }
+  return null;
+}
+
+export function getWorkflowN8nTriggerCompileError(
+  _spec: WorkflowSpec,
+  options?: CompileWorkflowSpecToN8nOptions,
+): string | null {
+  if (!trimToUndefined(options?.triggerBearerToken)) {
+    return "workflow.n8n.triggerBearerToken is required to compile n8n trigger webhooks.";
   }
   return null;
 }
@@ -789,6 +828,37 @@ function buildWorkflowInputNormalizerNode(position: [number, number]): Record<st
   };
 }
 
+function buildWorkflowTriggerAuthNode(
+  position: [number, number],
+  triggerBearerToken: string,
+): Record<string, unknown> {
+  return {
+    id: `auth_${randomUUID().slice(0, 8)}`,
+    name: buildWorkflowTriggerAuthNodeName(),
+    type: "n8n-nodes-base.code",
+    typeVersion: 2,
+    position,
+    parameters: {
+      jsCode: [
+        `const expected = ${JSON.stringify(`Bearer ${triggerBearerToken}`)};`,
+        "const items = $input.all();",
+        "for (const item of items) {",
+        "  const headers = item?.json?.headers ?? {};",
+        "  const auth = headers.authorization ?? headers.Authorization;",
+        "  if (auth !== expected) {",
+        "    throw new Error('CrawClaw workflow trigger authorization failed.');",
+        "  }",
+        "}",
+        "return items;",
+      ].join("\n"),
+    },
+    meta: {
+      source: "crawclaw",
+      crawclawHelperKind: "trigger_bearer_auth",
+    },
+  };
+}
+
 function addConnection(
   connections: Record<string, unknown>,
   fromNodeName: string,
@@ -1028,9 +1098,19 @@ export function compileWorkflowSpecToN8n(
   meta: Record<string, unknown>;
 } {
   const resolvedSteps = validateWorkflowSpec(spec);
+  const triggerCompileError = getWorkflowN8nTriggerCompileError(spec, options);
+  if (triggerCompileError) {
+    throw new Error(triggerCompileError);
+  }
+  const triggerBearerToken = trimToUndefined(options?.triggerBearerToken)!;
+  const specVersion =
+    typeof options?.specVersion === "number" && Number.isInteger(options.specVersion)
+      ? options.specVersion
+      : 1;
   const callbackConfig = resolveCrawClawCallbackConfig(options);
   const webhookPath = buildCrawClawWorkflowWebhookPath(spec.workflowId);
   const triggerName = "When webhook is called";
+  const triggerAuthName = buildWorkflowTriggerAuthNodeName();
   const triggerNormalizerName = buildWorkflowInputNormalizerNodeName();
   const stepContracts = spec.steps.map((step) => buildCrawClawStepContract(spec, step));
   const summary = {
@@ -1053,9 +1133,11 @@ export function compileWorkflowSpecToN8n(
     },
   };
   const nodes: Array<Record<string, unknown>> = [triggerNode];
-  nodes.push(buildWorkflowInputNormalizerNode([400, 300]));
+  nodes.push(buildWorkflowTriggerAuthNode([400, 300], triggerBearerToken));
+  nodes.push(buildWorkflowInputNormalizerNode([560, 300]));
   const connections: Record<string, unknown> = {};
-  addConnection(connections, triggerName, triggerNormalizerName);
+  addConnection(connections, triggerName, triggerAuthName);
+  addConnection(connections, triggerAuthName, triggerNormalizerName);
   const pathSlots = buildPathSlots(resolvedSteps);
   const stepNodeNames = new Map<string, string>();
   const stepPositions = new Map<string, [number, number]>();
@@ -1180,7 +1262,7 @@ export function compileWorkflowSpecToN8n(
     staticData: {
       crawclawWorkflowId: spec.workflowId,
       crawclawTopology: spec.topology ?? "linear_v1",
-      crawclawSpecVersion: 1,
+      crawclawSpecVersion: specVersion,
       crawclawTriggerPath: webhookPath,
       crawclawWorkflowInputNamespace: "workflowInput",
       crawclawSummary: summary,
@@ -1191,6 +1273,7 @@ export function compileWorkflowSpecToN8n(
       source: "crawclaw",
       crawclawWorkflowId: spec.workflowId,
       crawclawTopology: spec.topology ?? "linear_v1",
+      crawclawSpecVersion: specVersion,
       crawclawTriggerPath: webhookPath,
       crawclawWorkflowInputNamespace: "workflowInput",
       crawclawSummary: summary,

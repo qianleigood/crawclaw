@@ -20,6 +20,7 @@ export type N8nResolvedConfig = {
   baseUrl: string;
   apiKey: string;
   projectId?: string;
+  triggerBearerToken?: string;
 };
 
 export type N8nCallbackConfig = {
@@ -119,16 +120,14 @@ export function resolveN8nConfig(
     baseUrl?: unknown;
     apiKey?: unknown;
     projectId?: unknown;
+    triggerBearerToken?: unknown;
   };
-  const baseUrl =
-    trimToUndefined(raw.baseUrl) ??
-    trimToUndefined(env.CRAWCLAW_N8N_BASE_URL);
-  const apiKey =
-    trimToUndefined(raw.apiKey) ??
-    trimToUndefined(env.CRAWCLAW_N8N_API_KEY);
-  const projectId =
-    trimToUndefined(raw.projectId) ??
-    trimToUndefined(env.CRAWCLAW_N8N_PROJECT_ID);
+  const baseUrl = trimToUndefined(raw.baseUrl) ?? trimToUndefined(env.CRAWCLAW_N8N_BASE_URL);
+  const apiKey = trimToUndefined(raw.apiKey) ?? trimToUndefined(env.CRAWCLAW_N8N_API_KEY);
+  const projectId = trimToUndefined(raw.projectId) ?? trimToUndefined(env.CRAWCLAW_N8N_PROJECT_ID);
+  const triggerBearerToken =
+    trimToUndefined(raw.triggerBearerToken) ??
+    trimToUndefined(env.CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN);
   if (!baseUrl || !apiKey) {
     return null;
   }
@@ -136,6 +135,7 @@ export function resolveN8nConfig(
     baseUrl: baseUrl.replace(/\/+$/, ""),
     apiKey,
     ...(projectId ? { projectId } : {}),
+    ...(triggerBearerToken ? { triggerBearerToken } : {}),
   };
 }
 
@@ -151,8 +151,7 @@ export function resolveN8nCallbackConfig(
     callbackBearerToken?: unknown;
   };
   const callbackBaseUrl =
-    trimToUndefined(raw.callbackBaseUrl) ??
-    trimToUndefined(env.CRAWCLAW_N8N_CALLBACK_BASE_URL);
+    trimToUndefined(raw.callbackBaseUrl) ?? trimToUndefined(env.CRAWCLAW_N8N_CALLBACK_BASE_URL);
   if (!callbackBaseUrl) {
     return null;
   }
@@ -192,7 +191,9 @@ async function expectOk(response: Response, method: string, url: string) {
     return;
   }
   const text = await response.text().catch(() => "");
-  throw new Error(`n8n ${method} ${url} failed (${response.status}): ${text || response.statusText}`);
+  throw new Error(
+    `n8n ${method} ${url} failed (${response.status}): ${text || response.statusText}`,
+  );
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -202,6 +203,14 @@ async function readJson<T>(response: Response): Promise<T> {
 
 function joinBaseUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+function buildTriggerWebhookHeaders(config: N8nResolvedConfig): Record<string, string> {
+  return {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    ...(config.triggerBearerToken ? { Authorization: `Bearer ${config.triggerBearerToken}` } : {}),
+  };
 }
 
 function normalizeExecutionListPayload(payload: unknown): N8nExecutionListResponse {
@@ -254,7 +263,7 @@ export function createN8nClient(config: N8nResolvedConfig) {
       return await readJson<T>(response);
     }
     const text = await response.text();
-    return (text ? ({ text } as T) : ({} as T));
+    return text ? ({ text } as T) : ({} as T);
   }
 
   return {
@@ -275,11 +284,14 @@ export function createN8nClient(config: N8nResolvedConfig) {
         body: JSON.stringify(sanitizeWorkflowPatchForApi(payload)),
       }),
     activateWorkflow: async (workflowId: string) =>
-      await requestJson<N8nWorkflowRecord>(`/workflows/${encodeURIComponent(workflowId)}/activate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      }),
+      await requestJson<N8nWorkflowRecord>(
+        `/workflows/${encodeURIComponent(workflowId)}/activate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        },
+      ),
     deactivateWorkflow: async (workflowId: string) =>
       await requestJson<N8nWorkflowRecord>(
         `/workflows/${encodeURIComponent(workflowId)}/deactivate`,
@@ -297,7 +309,11 @@ export function createN8nClient(config: N8nResolvedConfig) {
       if (options?.workflowId?.trim()) {
         query.set("workflowId", options.workflowId.trim());
       }
-      if (typeof options?.limit === "number" && Number.isFinite(options.limit) && options.limit > 0) {
+      if (
+        typeof options?.limit === "number" &&
+        Number.isFinite(options.limit) &&
+        options.limit > 0
+      ) {
         query.set("limit", String(Math.floor(options.limit)));
       }
       if (options?.cursor?.trim()) {
@@ -316,10 +332,7 @@ export function createN8nClient(config: N8nResolvedConfig) {
         joinBaseUrl(config.baseUrl, `/webhook/${encodeURIComponent(webhookPath)}`),
         {
           method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
+          headers: buildTriggerWebhookHeaders(config),
           body: JSON.stringify(payload ?? {}),
         },
       ),
@@ -338,10 +351,7 @@ export function createN8nClient(config: N8nResolvedConfig) {
         joinBaseUrl(config.baseUrl, `/webhook/${encodeURIComponent(params.webhookPath)}`),
         {
           method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
+          headers: buildTriggerWebhookHeaders(config),
           body: JSON.stringify(params.payload ?? {}),
         },
       );

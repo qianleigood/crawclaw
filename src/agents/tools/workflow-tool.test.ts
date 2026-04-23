@@ -44,6 +44,8 @@ const TEST_N8N_CONFIG = {
     n8n: {
       baseUrl: "https://n8n.example.com",
       apiKey: "secret-token",
+      projectId: "proj-workflows",
+      triggerBearerToken: "trigger-secret",
       callbackBaseUrl: "https://crawclaw.example.com/",
       callbackBearerToken: "secret-gateway-token",
     },
@@ -149,10 +151,12 @@ describe("workflow tools", () => {
     const { workflowize, workflow } = createWorkflowToolSet({ workspaceDir });
 
     let webhookBody: Record<string, unknown> | null = null;
+    let createdWorkflowBody: Record<string, unknown> | null = null;
     n8nTesting.setDepsForTest({
       fetchImpl: async (input, init) => {
         const url = requestUrl(input);
         if (url.endsWith("/api/v1/workflows")) {
+          createdWorkflowBody = parseJsonRequestBody(init) ?? {};
           return new Response(JSON.stringify(createRemoteWorkflowResponse("wf_remote")), {
             status: 200,
             headers: { "Content-Type": "application/json" },
@@ -170,7 +174,16 @@ describe("workflow tools", () => {
             { status: 200, headers: { "Content-Type": "application/json" } },
           );
         }
+        if (url.endsWith("/api/v1/workflows/wf_remote/deactivate")) {
+          return new Response(
+            JSON.stringify(createRemoteWorkflowResponse("wf_remote", { active: false })),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
         if (url.includes("/webhook/crawclaw-wf_publish_redbook_note")) {
+          expect(((init?.headers ?? {}) as Record<string, string>).Authorization).toBe(
+            "Bearer trigger-secret",
+          );
           webhookBody = parseJsonRequestBody(init) ?? {};
           return new Response(JSON.stringify({ message: "Workflow was started" }), {
             status: 200,
@@ -182,11 +195,42 @@ describe("workflow tools", () => {
             JSON.stringify({
               data: [
                 {
+                  id: "exec_unrelated",
+                  workflowId: "wf_remote",
+                  status: "running",
+                  finished: false,
+                  startedAt: new Date().toISOString(),
+                  data: {
+                    resultData: { runData: { trigger: [{ data: { main: [[{}]] } }] } },
+                  },
+                },
+                {
                   id: "exec_1",
                   workflowId: "wf_remote",
                   status: "running",
                   finished: false,
                   startedAt: new Date().toISOString(),
+                  data: {
+                    resultData: {
+                      runData: {
+                        trigger: [
+                          {
+                            data: {
+                              main: [
+                                [
+                                  {
+                                    json: {
+                                      crawclawExecutionId: webhookBody?.crawclawExecutionId,
+                                    },
+                                  },
+                                ],
+                              ],
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
                 },
               ],
             }),
@@ -293,20 +337,32 @@ describe("workflow tools", () => {
     ).details as {
       workflow: { deploymentState: string; n8nWorkflowId: string };
       compiled: {
+        staticData?: { crawclawSpecVersion?: number };
         nodes: Array<{ type?: string; parameters?: { url?: string } }>;
       };
     };
     expect(deployed.workflow.deploymentState).toBe("deployed");
     expect(deployed.workflow.n8nWorkflowId).toBe("wf_remote");
-    expect(deployed.compiled.nodes[2]?.type).toBe("n8n-nodes-base.httpRequest");
-    expect(deployed.compiled.nodes[2]?.parameters?.url).toBe(
+    expect(createdWorkflowBody?.["projectId"]).toBe("proj-workflows");
+    expect(deployed.compiled.staticData?.crawclawSpecVersion).toBe(1);
+    expect(deployed.compiled.nodes[3]?.type).toBe("n8n-nodes-base.httpRequest");
+    expect(deployed.compiled.nodes[3]?.parameters?.url).toBe(
       "https://crawclaw.example.com/workflows/agent/run",
     );
+
+    const enabledAfterDeploy = (
+      await workflow.execute("workflow-enable-after-deploy", {
+        action: "enable",
+        workflow: TEST_WORKFLOW_NAME,
+      })
+    ).details as { workflow: { enabled: boolean } };
+    expect(enabledAfterDeploy.workflow.enabled).toBe(true);
 
     const run = (
       await workflow.execute("workflow-run", {
         action: "run",
         workflow: TEST_WORKFLOW_NAME,
+        approved: true,
         inputs: {
           topic: "AI workflow",
           requiresApproval: true,
@@ -401,10 +457,10 @@ describe("workflow tools", () => {
       fetchImpl: async (input, init) => {
         const url = requestUrl(input);
         if (url.endsWith("/api/v1/workflows")) {
-          return new Response(
-            JSON.stringify(createRemoteWorkflowResponse("wf_remote_versions")),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify(createRemoteWorkflowResponse("wf_remote_versions")), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
         }
         if (url.endsWith("/api/v1/workflows/wf_remote_versions")) {
           return new Response(

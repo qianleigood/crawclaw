@@ -27,6 +27,7 @@ export {
   buildCrawClawWorkflowWebhookPath,
   compileWorkflowSpecToN8n,
   getWorkflowN8nCallbackCompileError,
+  getWorkflowN8nTriggerCompileError,
 } from "./n8n-compiler.js";
 export {
   createWorkflowDraft,

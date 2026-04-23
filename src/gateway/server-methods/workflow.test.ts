@@ -22,6 +22,7 @@ afterEach(async () => {
   n8nTesting.setDepsForTest(null);
   delete process.env.CRAWCLAW_N8N_BASE_URL;
   delete process.env.CRAWCLAW_N8N_API_KEY;
+  delete process.env.CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN;
   delete process.env.CRAWCLAW_N8N_CALLBACK_BASE_URL;
   delete process.env.CRAWCLAW_N8N_CALLBACK_BEARER_TOKEN;
   await tempDirs.cleanup();
@@ -265,6 +266,7 @@ describe("workflow management handlers", () => {
     const workspaceDir = await tempDirs.make("gateway-workflow-versioning-");
     process.env.CRAWCLAW_N8N_BASE_URL = "https://n8n.example.com";
     process.env.CRAWCLAW_N8N_API_KEY = "secret-token";
+    process.env.CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN = "trigger-secret";
     process.env.CRAWCLAW_N8N_CALLBACK_BASE_URL = "https://crawclaw.example.com";
     process.env.CRAWCLAW_N8N_CALLBACK_BEARER_TOKEN = "secret-gateway-token";
     const created = await createWorkflowDraft({
@@ -426,6 +428,7 @@ describe("workflow management handlers", () => {
     const workspaceDir = await tempDirs.make("gateway-workflow-run-");
     process.env.CRAWCLAW_N8N_BASE_URL = "https://n8n.example.com";
     process.env.CRAWCLAW_N8N_API_KEY = "secret-token";
+    process.env.CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN = "trigger-secret";
     process.env.CRAWCLAW_N8N_CALLBACK_BASE_URL = "https://crawclaw.example.com";
     process.env.CRAWCLAW_N8N_CALLBACK_BEARER_TOKEN = "secret-gateway-token";
     await createWorkflowDraft({
@@ -478,6 +481,9 @@ describe("workflow management handlers", () => {
           );
         }
         if (url.includes("/webhook/crawclaw-wf_publish_redbook_note")) {
+          expect(((init?.headers ?? {}) as Record<string, string>).Authorization).toBe(
+            "Bearer trigger-secret",
+          );
           webhookBody = parseJsonRequestBody(init) ?? {};
           return new Response(JSON.stringify({ message: "Workflow was started" }), {
             status: 200,
@@ -489,11 +495,42 @@ describe("workflow management handlers", () => {
             JSON.stringify({
               data: [
                 {
+                  id: "exec_unrelated",
+                  workflowId: "wf_remote",
+                  status: "running",
+                  finished: false,
+                  startedAt: new Date().toISOString(),
+                  data: {
+                    resultData: { runData: { trigger: [{ data: { main: [[{}]] } }] } },
+                  },
+                },
+                {
                   id: "exec_1",
                   workflowId: "wf_remote",
                   status: "running",
                   finished: false,
                   startedAt: new Date().toISOString(),
+                  data: {
+                    resultData: {
+                      runData: {
+                        trigger: [
+                          {
+                            data: {
+                              main: [
+                                [
+                                  {
+                                    json: {
+                                      crawclawExecutionId: webhookBody?.crawclawExecutionId,
+                                    },
+                                  },
+                                ],
+                              ],
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
                 },
               ],
             }),
@@ -527,6 +564,7 @@ describe("workflow management handlers", () => {
     const run = createInvokeParams("workflow.run", {
       workspaceDir,
       workflow: "Publish Redbook Note",
+      approved: true,
       inputs: {
         topic: "AI workflow",
         requiresApproval: true,
@@ -579,6 +617,7 @@ describe("workflow management handlers", () => {
     const workspaceDir = await tempDirs.make("gateway-workflow-resume-");
     process.env.CRAWCLAW_N8N_BASE_URL = "https://n8n.example.com";
     process.env.CRAWCLAW_N8N_API_KEY = "secret-token";
+    process.env.CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN = "trigger-secret";
     const created = await createWorkflowDraft({
       workspaceDir,
       name: "Approval Flow",
