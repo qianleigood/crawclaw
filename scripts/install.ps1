@@ -508,6 +508,15 @@ function Resolve-CrawClawCommand {
 function Invoke-CrawClawDoctor {
     $crawclaw = Resolve-CrawClawCommand
     if (
+        !(Invoke-InstallerNativeCommand `
+            -Command $crawclaw `
+            -Arguments @("doctor", "--non-interactive", "--fix") `
+            -Action "crawclaw doctor --non-interactive --fix")
+    ) {
+        Write-Host "Doctor repair failed. Fix the first actionable error above, then rerun: crawclaw doctor --fix --non-interactive" -Level warn
+        return $false
+    }
+    if (
         Invoke-InstallerNativeCommand `
             -Command $crawclaw `
             -Arguments @("doctor", "--non-interactive") `
@@ -584,7 +593,9 @@ function Main {
     } catch { }
     
     if (!$DryRun) {
-        Invoke-CrawClawDoctor | Out-Null
+        if (!(Invoke-CrawClawDoctor)) {
+            exit 1
+        }
         if ($NoOnboard) {
             Write-Host "Skipping onboarding next steps output was requested with -NoOnboard." -Level info
         } else {

@@ -20,8 +20,19 @@ type WindowsPackedInstallSmoke = {
     stateDir: string;
     platform: NodeJS.Platform;
   }) => NodeJS.ProcessEnv;
+  assertBundledPluginRuntimeDepsInstalled: (params: {
+    packageRoot: string;
+    existsSync?: (path: string) => boolean;
+    runtimeDeps?: Array<{
+      name: string;
+      version: string;
+      sentinelPath: string;
+      pluginIds: string[];
+    }>;
+  }) => void;
   readTimeoutMsFromEnv: (env: NodeJS.ProcessEnv, key: string, fallbackMs: number) => number;
   resolveInstalledCrawClawBin: (params: { prefixDir: string; platform: NodeJS.Platform }) => string;
+  resolveInstalledPackageRoot: (params: { prefixDir: string; platform: NodeJS.Platform }) => string;
   resolvePackedTarball: (packOutput: string, packDir: string) => string;
   resolveRuntimeBinaryProbeArgs: (pluginId: string) => string[];
   validateRuntimeManifest: (manifest: unknown) => void;
@@ -65,6 +76,69 @@ describe("windows packed install smoke helpers", () => {
         platform: "linux",
       }),
     ).toBe(path.posix.join("/tmp/prefix", "bin", "crawclaw"));
+  });
+
+  it("resolves installed package roots by platform", async () => {
+    const script = await loadSmokeScript();
+
+    expect(
+      script.resolveInstalledPackageRoot({
+        prefixDir: "C:\\Users\\runner\\AppData\\Local\\Temp\\prefix",
+        platform: "win32",
+      }),
+    ).toBe(
+      path.win32.join(
+        "C:\\Users\\runner\\AppData\\Local\\Temp\\prefix",
+        "node_modules",
+        "crawclaw",
+      ),
+    );
+    expect(
+      script.resolveInstalledPackageRoot({
+        prefixDir: "/tmp/prefix",
+        platform: "linux",
+      }),
+    ).toBe(path.posix.join("/tmp/prefix", "lib", "node_modules", "crawclaw"));
+  });
+
+  it("requires bundled plugin runtime deps in the installed package root", async () => {
+    const script = await loadSmokeScript();
+    const packageRoot = path.join("C:\\Temp", "prefix", "node_modules", "crawclaw");
+    const sentinelPath = path.join("node_modules", "@larksuiteoapi", "node-sdk", "package.json");
+
+    expect(() =>
+      script.assertBundledPluginRuntimeDepsInstalled({
+        packageRoot,
+        runtimeDeps: [
+          {
+            name: "@larksuiteoapi/node-sdk",
+            version: "^1.60.0",
+            sentinelPath,
+            pluginIds: ["feishu"],
+          },
+        ],
+        existsSync: (candidate) => candidate.endsWith(sentinelPath),
+      }),
+    ).not.toThrow();
+  });
+
+  it("fails when bundled plugin runtime deps are only plugin-local", async () => {
+    const script = await loadSmokeScript();
+
+    expect(() =>
+      script.assertBundledPluginRuntimeDepsInstalled({
+        packageRoot: path.join("C:\\Temp", "prefix", "node_modules", "crawclaw"),
+        runtimeDeps: [
+          {
+            name: "@larksuiteoapi/node-sdk",
+            version: "^1.60.0",
+            sentinelPath: path.join("node_modules", "@larksuiteoapi", "node-sdk", "package.json"),
+            pluginIds: ["feishu"],
+          },
+        ],
+        existsSync: () => false,
+      }),
+    ).toThrow(/@larksuiteoapi\/node-sdk@.*feishu/);
   });
 
   it("prepends the global install prefix to PATH on Windows", async () => {

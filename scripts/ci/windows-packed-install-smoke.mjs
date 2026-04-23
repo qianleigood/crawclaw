@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { discoverBundledPluginRuntimeDeps } from "../postinstall-bundled-plugins.mjs";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "..", "..");
@@ -206,6 +207,13 @@ export function resolveInstalledCrawClawBin({ prefixDir, platform = process.plat
   return path.posix.join(prefixDir, "bin", "crawclaw");
 }
 
+export function resolveInstalledPackageRoot({ prefixDir, platform = process.platform }) {
+  if (platform === "win32") {
+    return path.win32.join(prefixDir, "node_modules", "crawclaw");
+  }
+  return path.posix.join(prefixDir, "lib", "node_modules", "crawclaw");
+}
+
 export function createSmokeEnv({
   env = process.env,
   prefixDir,
@@ -268,6 +276,35 @@ export function validateRuntimeManifest(manifest) {
   requireHealthyRuntimeEntry("browser", plugins.browser, ["binPath"]);
   requireHealthyRuntimeEntry("open-websearch", plugins["open-websearch"], ["binPath"]);
   requireHealthyRuntimeEntry("scrapling-fetch", plugins["scrapling-fetch"], ["pythonVersion"]);
+}
+
+export function assertBundledPluginRuntimeDepsInstalled(params) {
+  const packageRoot = params.packageRoot;
+  if (typeof packageRoot !== "string" || packageRoot.trim() === "") {
+    throw new Error("packageRoot is required");
+  }
+  const pathExists = params.existsSync ?? fs.existsSync;
+  const extensionsDir = params.extensionsDir ?? path.join(packageRoot, "dist", "extensions");
+  const runtimeDeps =
+    params.runtimeDeps ??
+    discoverBundledPluginRuntimeDeps({ extensionsDir, existsSync: pathExists });
+  const missing = runtimeDeps.filter(
+    (dep) => !pathExists(path.join(packageRoot, dep.sentinelPath)),
+  );
+  if (missing.length === 0) {
+    return;
+  }
+
+  const missingDetails = missing
+    .map((dep) => `${dep.name}@${dep.version} (used by ${dep.pluginIds.join(", ")})`)
+    .join(", ");
+  throw new Error(
+    [
+      `bundled plugin runtime deps are missing from the installed package root: ${missingDetails}`,
+      `Expected them under: ${path.join(packageRoot, "node_modules")}`,
+      "The package postinstall or doctor repair step must install these before bundled plugins are loaded.",
+    ].join("\n"),
+  );
 }
 
 function readJsonFile(filePath, label) {
@@ -477,6 +514,10 @@ function runSmoke(opts) {
     prefixDir: temp.prefixDir,
     platform: process.platform,
   });
+  const packageRoot = resolveInstalledPackageRoot({
+    prefixDir: temp.prefixDir,
+    platform: process.platform,
+  });
 
   console.log(`[windows-smoke] temp root: ${temp.root}`);
   try {
@@ -502,6 +543,9 @@ function runSmoke(opts) {
 
     console.log("[windows-smoke] verifying installed CLI");
     runCrawClaw(crawclawBin, ["--version"], { env: smokeEnv });
+
+    console.log("[windows-smoke] checking bundled plugin runtime deps");
+    assertBundledPluginRuntimeDepsInstalled({ packageRoot });
 
     console.log("[windows-smoke] checking install-time runtime manifest");
     const manifestPath = path.join(temp.stateDir, "runtimes", "manifest.json");

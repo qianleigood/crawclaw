@@ -90,4 +90,13 @@ describe("install.ps1", () => {
     );
     expect(installer).toContain("crawclaw gateway status --deep --require-rpc");
   });
+
+  it("repairs and enforces doctor after npm install", () => {
+    const installer = readInstaller();
+
+    expect(installer).toContain('Arguments @("doctor", "--non-interactive", "--fix")');
+    expect(installer).toContain("Doctor repair failed.");
+    expect(installer).toContain("if (!(Invoke-CrawClawDoctor))");
+    expect(installer).not.toContain("Invoke-CrawClawDoctor | Out-Null");
+  });
 });
