@@ -1,5 +1,7 @@
 import { normalizeProviderId } from "../agents/model-selection.js";
 import { formatCliCommand } from "../cli/command-format.js";
+import { createCliTranslator } from "../cli/i18n/index.js";
+import { getActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolvePluginProviders } from "../plugins/providers.runtime.js";
 
@@ -44,25 +46,35 @@ export function buildProviderAuthRecoveryHint(params: {
   includeConfigure?: boolean;
   includeEnvVar?: boolean;
 }): string {
+  const t = createCliTranslator(getActiveCliLocale());
   const loginCommand = resolveProviderAuthLoginCommand(params);
   const parts: string[] = [];
   if (loginCommand) {
-    parts.push(`Run \`${loginCommand}\``);
+    parts.push(t("wizard.modelCheck.recovery.run", { command: loginCommand }));
   }
   if (params.includeConfigure !== false) {
     parts.push(`\`${formatCliCommand("crawclaw configure")}\``);
   }
   if (params.includeEnvVar) {
-    parts.push("set an API key env var");
+    parts.push(t("wizard.modelCheck.recovery.setEnvVar"));
   }
   if (parts.length === 0) {
-    return `Run \`${formatCliCommand("crawclaw configure")}\`.`;
+    return t("wizard.modelCheck.recovery.onlyConfigure", {
+      command: formatCliCommand("crawclaw configure"),
+    });
   }
   if (parts.length === 1) {
     return `${parts[0]}.`;
   }
   if (parts.length === 2) {
-    return `${parts[0]} or ${parts[1]}.`;
+    return t("wizard.modelCheck.recovery.or", {
+      first: parts[0],
+      second: parts[1],
+    });
   }
-  return `${parts[0]}, ${parts[1]}, or ${parts[2]}.`;
+  return t("wizard.modelCheck.recovery.list", {
+    first: parts[0],
+    second: parts[1],
+    third: parts[2],
+  });
 }

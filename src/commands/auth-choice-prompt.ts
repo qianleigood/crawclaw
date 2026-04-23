@@ -1,4 +1,5 @@
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { buildAuthChoiceGroups } from "./auth-choice-options.js";
@@ -28,8 +29,12 @@ export async function promptAuthChoiceGrouped(params: {
     ];
 
     const providerSelection = (await params.prompter.select({
-      message: "Model/auth provider",
-      options: providerOptions,
+      message: translateActiveCliText("Model/auth provider"),
+      options: providerOptions.map((option) => ({
+        ...option,
+        label: translateActiveCliText(option.label),
+        ...(option.hint ? { hint: translateActiveCliText(option.hint) } : {}),
+      })),
     })) as string;
 
     if (providerSelection === "skip") {
@@ -40,8 +45,8 @@ export async function promptAuthChoiceGrouped(params: {
 
     if (!group || group.options.length === 0) {
       await params.prompter.note(
-        "No auth methods available for that provider.",
-        "Model/auth choice",
+        translateActiveCliText("No auth methods available for that provider."),
+        translateActiveCliText("Model/auth choice"),
       );
       continue;
     }
@@ -51,8 +56,15 @@ export async function promptAuthChoiceGrouped(params: {
     }
 
     const methodSelection = await params.prompter.select({
-      message: `${group.label} auth method`,
-      options: [...group.options, { value: BACK_VALUE, label: "Back" }],
+      message: `${group.label} ${translateActiveCliText("auth method")}`,
+      options: [
+        ...group.options.map((option) => ({
+          ...option,
+          label: translateActiveCliText(option.label),
+          ...(option.hint ? { hint: translateActiveCliText(option.hint) } : {}),
+        })),
+        { value: BACK_VALUE, label: translateActiveCliText("Back") },
+      ],
     });
 
     if (methodSelection === BACK_VALUE) {

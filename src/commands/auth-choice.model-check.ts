@@ -2,6 +2,8 @@ import { ensureAuthProfileStore, listProfilesForProvider } from "../agents/auth-
 import { hasUsableCustomProviderApiKey, resolveEnvApiKey } from "../agents/model-auth.js";
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import { resolveDefaultModelForAgent } from "../agents/model-selection.js";
+import { createCliTranslator } from "../cli/i18n/index.js";
+import { getActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { buildProviderAuthRecoveryHint } from "./provider-auth-guidance.js";
@@ -11,6 +13,7 @@ export async function warnIfModelConfigLooksOff(
   prompter: WizardPrompter,
   options?: { agentId?: string; agentDir?: string },
 ) {
+  const t = createCliTranslator(getActiveCliLocale());
   const ref = resolveDefaultModelForAgent({
     cfg: config,
     agentId: options?.agentId,
@@ -26,7 +29,9 @@ export async function warnIfModelConfigLooksOff(
     );
     if (!known) {
       warnings.push(
-        `Model not found: ${ref.provider}/${ref.model}. Update agents.defaults.model or run /models list.`,
+        t("wizard.modelCheck.missingModel", {
+          model: `${ref.provider}/${ref.model}`,
+        }),
       );
     }
   }
@@ -36,18 +41,17 @@ export async function warnIfModelConfigLooksOff(
   const envKey = resolveEnvApiKey(ref.provider);
   const hasCustomKey = hasUsableCustomProviderApiKey(config, ref.provider);
   if (!hasProfile && !envKey && !hasCustomKey) {
+    warnings.push(t("wizard.modelCheck.missingAuth", { provider: ref.provider }));
     warnings.push(
-      `No auth configured for provider "${ref.provider}". The agent may fail until credentials are added. ${buildProviderAuthRecoveryHint(
-        {
-          provider: ref.provider,
-          config,
-          includeEnvVar: true,
-        },
-      )}`,
+      buildProviderAuthRecoveryHint({
+        provider: ref.provider,
+        config,
+        includeEnvVar: true,
+      }),
     );
   }
 
   if (warnings.length > 0) {
-    await prompter.note(warnings.join("\n"), "Model check");
+    await prompter.note(warnings.join("\n"), t("wizard.modelCheck.title"));
   }
 }

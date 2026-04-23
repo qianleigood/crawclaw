@@ -54,8 +54,11 @@ export async function promptConfiguredAction(params: {
     },
   ];
   return await prompter.select({
-    message: `${label} already configured. What do you want to do?`,
-    options,
+    message: translateActiveCliText(`${label} already configured. What do you want to do?`),
+    options: options.map((option) => ({
+      ...option,
+      label: translateActiveCliText(option.label),
+    })),
     initialValue: "update",
   });
 }

@@ -790,6 +790,63 @@ describe("setupChannels", () => {
     expect(primer).not.toContain("DM security: default is pairing");
   });
 
+  it("localizes channel selection chrome in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const select = vi.fn(async ({ message, options }: { message: string; options: unknown[] }) => {
+      if (message === "选择渠道（快速开始）") {
+        const entries = options as Array<{ value: string; label: string; hint?: string }>;
+        const skip = entries.find((entry) => entry.value === "__skip__");
+        expect(skip).toEqual(
+          expect.objectContaining({
+            label: "暂时跳过",
+            hint: "你之后也可以通过 `crawclaw channels add` 添加渠道",
+          }),
+        );
+        return "__skip__";
+      }
+      throw new Error(`unexpected select prompt: ${message}`);
+    });
+    const { multiselect, text } = createUnexpectedPromptGuards();
+    const prompter = createPrompter({
+      select: select as unknown as WizardPrompter["select"],
+      multiselect,
+      text,
+    });
+
+    await runSetupChannels({} as CrawClawConfig, prompter, { quickstartDefaults: true });
+
+    expect(multiselect).not.toHaveBeenCalled();
+  });
+
+  it("localizes configured channel actions in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const select = vi.fn(async ({ message, options }: { message: string; options: unknown[] }) => {
+      if (message === "选择一个渠道") {
+        return "telegram";
+      }
+      if (message === "Telegram 已配置。你想执行什么操作？") {
+        expect(options).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ label: "修改设置" }),
+            expect.objectContaining({ label: "跳过（保持不变）" }),
+          ]),
+        );
+        return "skip";
+      }
+      throw new Error(`unexpected select prompt: ${message}`);
+    });
+    const { multiselect, text } = createUnexpectedPromptGuards();
+    const prompter = createPrompter({
+      select: select as unknown as WizardPrompter["select"],
+      multiselect,
+      text,
+    });
+
+    await runSetupChannels(createTelegramCfg("token"), prompter, { allowDisable: true });
+
+    expect(multiselect).not.toHaveBeenCalled();
+  });
+
   it("keeps configured external plugin channels visible when the active registry starts empty", async () => {
     setActivePluginRegistry(createEmptyPluginRegistry());
     catalogMocks.listChannelPluginCatalogEntries.mockReturnValue([createMSTeamsCatalogEntry()]);

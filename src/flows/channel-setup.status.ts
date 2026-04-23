@@ -39,6 +39,27 @@ export type ChannelSetupSelectionContribution = FlowContribution<ChannelChoice> 
   source: "catalog" | "core" | "plugin";
 };
 
+function translateChannelStatusPart(part: string): string {
+  const trimmed = part.trim();
+  if (trimmed.length === 0) {
+    return part;
+  }
+  const colonIndex = trimmed.indexOf(": ");
+  if (colonIndex >= 0) {
+    const left = trimmed.slice(0, colonIndex);
+    const right = trimmed.slice(colonIndex + 2);
+    return `${translateActiveCliText(left)}: ${translateActiveCliText(right)}`;
+  }
+  return translateActiveCliText(trimmed);
+}
+
+function translateChannelStatusLine(line: string): string {
+  return line
+    .split(" · ")
+    .map((part) => translateChannelStatusPart(part))
+    .join(" · ");
+}
+
 function buildChannelSetupSelectionContribution(params: {
   channel: ChannelChoice;
   label: string;
@@ -140,8 +161,15 @@ export async function collectChannelStatus(params: {
     ...discoveredPluginStatuses,
     ...catalogStatuses,
   ];
-  const mergedStatusByChannel = new Map(combinedStatuses.map((entry) => [entry.channel, entry]));
-  const statusLines = combinedStatuses.flatMap((entry) => entry.statusLines);
+  const localizedStatuses = combinedStatuses.map((entry) => ({
+    ...entry,
+    statusLines: entry.statusLines.map((line) => translateChannelStatusLine(line)),
+    ...(entry.selectionHint
+      ? { selectionHint: translateChannelStatusLine(entry.selectionHint) }
+      : {}),
+  }));
+  const mergedStatusByChannel = new Map(localizedStatuses.map((entry) => [entry.channel, entry]));
+  const statusLines = localizedStatuses.flatMap((entry) => entry.statusLines);
   return {
     installedPlugins,
     catalogEntries: installableCatalogEntries,
@@ -167,7 +195,7 @@ export async function noteChannelStatus(params: {
     resolveAdapter: params.resolveAdapter,
   });
   if (statusLines.length > 0) {
-    await params.prompter.note(statusLines.join("\n"), "Channel status");
+    await params.prompter.note(statusLines.join("\n"), translateActiveCliText("Channel status"));
   }
 }
 
@@ -198,7 +226,8 @@ export async function noteChannelPrimer(
         translateActiveCliText(
           ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
         ),
-      translateActiveCliText(`Docs: ${formatDocsLink("/channels/pairing", "channels/pairing")}`),
+      translateActiveCliText("Docs:") +
+        ` ${formatDocsLink("/channels/pairing", "channels/pairing")}`,
       "",
       ...channelLines,
     ].join("\n"),

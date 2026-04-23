@@ -8,6 +8,7 @@ import {
 import type { ChannelSetupPlugin } from "../channels/plugins/setup-wizard-types.js";
 import { listChatChannels } from "../channels/registry.js";
 import { formatCliCommand } from "../cli/command-format.js";
+import { translateActiveCliText } from "../cli/i18n/text.js";
 import { resolveChannelSetupEntries } from "../commands/channel-setup/discovery.js";
 import {
   ensureChannelSetupPluginInstalled,
@@ -542,13 +543,15 @@ export async function setupChannels(
       ? quickstartDefault
       : undefined;
     const choice = (await prompter.select({
-      message: "Select channel (QuickStart)",
+      message: translateActiveCliText("Select channel (QuickStart)"),
       options: [
         ...channelOptions,
         {
           value: "__skip__",
-          label: "Skip for now",
-          hint: `You can add channels later via \`${formatCliCommand("crawclaw channels add")}\``,
+          label: translateActiveCliText("Skip for now"),
+          hint: translateActiveCliText(
+            `You can add channels later via \`${formatCliCommand("crawclaw channels add")}\``,
+          ),
         },
       ],
       initialValue: initialQuickstartValue,
@@ -562,7 +565,7 @@ export async function setupChannels(
     while (true) {
       const { entries } = getChannelEntries();
       const choice = (await prompter.select({
-        message: "Select a channel",
+        message: translateActiveCliText("Select a channel"),
         options: [
           ...resolveChannelSetupSelectionContributions({
             entries,
@@ -571,8 +574,8 @@ export async function setupChannels(
           }).map((contribution) => contribution.option),
           {
             value: doneValue,
-            label: "Finished",
-            hint: selection.length > 0 ? "Done" : "Skip for now",
+            label: translateActiveCliText("Finished"),
+            hint: translateActiveCliText(selection.length > 0 ? "Done" : "Skip for now"),
           },
         ],
         initialValue,
