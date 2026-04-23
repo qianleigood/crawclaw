@@ -1,8 +1,12 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { CrawClawConfig } from "../config/config.js";
-import { resolveOAuthDir } from "../config/paths.js";
-import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
+import {
+  hasBundledChannelConfiguredState,
+  listBundledChannelIdsWithConfiguredState,
+} from "./plugins/configured-state.js";
+import {
+  hasBundledChannelPersistedAuthState,
+  listBundledChannelIdsWithPersistedAuthState,
+} from "./plugins/persisted-auth-state.js";
 
 const IGNORED_CHANNEL_CONFIG_KEYS = new Set(["defaults", "modelByChannel"]);
 
@@ -37,32 +41,6 @@ export function hasMeaningfulChannelConfig(value: unknown): boolean {
   return Object.keys(value).some((key) => key !== "enabled");
 }
 
-function hasWhatsAppAuthState(env: NodeJS.ProcessEnv): boolean {
-  try {
-    const oauthDir = resolveOAuthDir(env);
-    const legacyCreds = path.join(oauthDir, "creds.json");
-    if (fs.existsSync(legacyCreds)) {
-      return true;
-    }
-
-    const accountsRoot = path.join(oauthDir, "whatsapp");
-    const defaultCreds = path.join(accountsRoot, DEFAULT_ACCOUNT_ID, "creds.json");
-    if (fs.existsSync(defaultCreds)) {
-      return true;
-    }
-
-    const entries = fs.readdirSync(accountsRoot, { withFileTypes: true });
-    return entries.some((entry) => {
-      if (!entry.isDirectory()) {
-        return false;
-      }
-      return fs.existsSync(path.join(accountsRoot, entry.name, "creds.json"));
-    });
-  } catch {
-    return false;
-  }
-}
-
 export function listPotentialConfiguredChannelIds(
   cfg: CrawClawConfig,
   env: NodeJS.ProcessEnv = process.env,
@@ -93,13 +71,21 @@ export function listPotentialConfiguredChannelIds(
       configuredChannelIds.add("telegram");
     }
   }
-  if (hasWhatsAppAuthState(env)) {
-    configuredChannelIds.add("whatsapp");
+
+  for (const channelId of listBundledChannelIdsWithConfiguredState()) {
+    if (hasBundledChannelConfiguredState({ channelId, cfg, env })) {
+      configuredChannelIds.add(channelId);
+    }
+  }
+  for (const channelId of listBundledChannelIdsWithPersistedAuthState()) {
+    if (hasBundledChannelPersistedAuthState({ channelId, cfg, env })) {
+      configuredChannelIds.add(channelId);
+    }
   }
   return [...configuredChannelIds];
 }
 
-function hasEnvConfiguredChannel(env: NodeJS.ProcessEnv): boolean {
+function hasEnvConfiguredChannel(cfg: CrawClawConfig, env: NodeJS.ProcessEnv): boolean {
   for (const [key, value] of Object.entries(env)) {
     if (!hasNonEmptyString(value)) {
       continue;
@@ -111,7 +97,14 @@ function hasEnvConfiguredChannel(env: NodeJS.ProcessEnv): boolean {
       return true;
     }
   }
-  return hasWhatsAppAuthState(env);
+  return (
+    listBundledChannelIdsWithConfiguredState().some((channelId) =>
+      hasBundledChannelConfiguredState({ channelId, cfg, env }),
+    ) ||
+    listBundledChannelIdsWithPersistedAuthState().some((channelId) =>
+      hasBundledChannelPersistedAuthState({ channelId, cfg, env }),
+    )
+  );
 }
 
 export function hasPotentialConfiguredChannels(
@@ -129,5 +122,5 @@ export function hasPotentialConfiguredChannels(
       }
     }
   }
-  return hasEnvConfiguredChannel(env);
+  return hasEnvConfiguredChannel(cfg ?? {}, env);
 }

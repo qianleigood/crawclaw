@@ -75,4 +75,38 @@ describe("buildOutboundSessionContext", () => {
       agentId: "explicit-agent",
     });
   });
+
+  it("includes requester sender fields for media policy resolution", () => {
+    expect(
+      buildOutboundSessionContext({
+        cfg: {} as never,
+        sessionKey: "agent:main:forum:group:ops",
+        requesterSenderId: "  id:forum:123  ",
+        requesterSenderName: "  Alice  ",
+        requesterSenderUsername: "  alice_u  ",
+        requesterSenderE164: "  +15551234567  ",
+      }),
+    ).toMatchObject({
+      key: "agent:main:forum:group:ops",
+      requesterSenderId: "id:forum:123",
+      requesterSenderName: "Alice",
+      requesterSenderUsername: "alice_u",
+      requesterSenderE164: "+15551234567",
+    });
+  });
+
+  it("includes requester account and policy session key without replacing mirror key", () => {
+    expect(
+      buildOutboundSessionContext({
+        cfg: {} as never,
+        sessionKey: "agent:main:forum:dm:123456",
+        policySessionKey: "agent:main:directchat:group:ops",
+        requesterAccountId: "  work  ",
+      }),
+    ).toMatchObject({
+      key: "agent:main:forum:dm:123456",
+      policyKey: "agent:main:directchat:group:ops",
+      requesterAccountId: "work",
+    });
+  });
 });

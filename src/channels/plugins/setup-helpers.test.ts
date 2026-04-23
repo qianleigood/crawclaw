@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
+import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
+import {
+  createChannelTestPluginBase,
+  createTestRegistry,
+} from "../../test-utils/channel-plugins.js";
 import {
   applySetupAccountConfigPatch,
   createEnvPatchedAccountSetupAdapter,
@@ -8,10 +13,15 @@ import {
   moveSingleAccountChannelSectionToDefaultAccount,
   prepareScopedSetupConfig,
 } from "./setup-helpers.js";
+import type { ChannelSetupAdapter } from "./types.adapters.js";
 
 function asConfig(value: unknown): CrawClawConfig {
   return value as CrawClawConfig;
 }
+
+afterEach(() => {
+  setActivePluginRegistry(createTestRegistry([]));
+});
 
 describe("applySetupAccountConfigPatch", () => {
   it("patches top-level config for default account and enables channel", () => {
@@ -264,6 +274,52 @@ describe("moveSingleAccountChannelSectionToDefaultAccount", () => {
     expect(next.channels?.matrix?.homeserver).toBeUndefined();
     expect(next.channels?.matrix?.userId).toBeUndefined();
     expect(next.channels?.matrix?.accessToken).toBeUndefined();
+  });
+
+  it("uses setup promotion contracts from channel plugins", () => {
+    setActivePluginRegistry(
+      createTestRegistry([
+        {
+          pluginId: "demo-setup",
+          source: "test",
+          plugin: {
+            ...createChannelTestPluginBase({ id: "demo-setup" }),
+            setup: {
+              applyAccountConfig: ({ cfg }) => cfg,
+              singleAccountKeysToMove: ["apiKey", "sharedPolicy"],
+              namedAccountPromotionKeys: ["apiKey"],
+              resolveSingleAccountPromotionTarget: () => "work",
+            } satisfies ChannelSetupAdapter,
+          },
+        },
+      ]),
+    );
+
+    const next = moveSingleAccountChannelSectionToDefaultAccount({
+      cfg: asConfig({
+        channels: {
+          "demo-setup": {
+            apiKey: "secret",
+            sharedPolicy: "keep-at-root",
+            accounts: {
+              work: { enabled: true },
+            },
+          },
+        },
+      }),
+      channelKey: "demo-setup",
+    });
+
+    expect(next.channels?.["demo-setup"]).toMatchObject({
+      sharedPolicy: "keep-at-root",
+      accounts: {
+        work: {
+          enabled: true,
+          apiKey: "secret",
+        },
+      },
+    });
+    expect(next.channels?.["demo-setup"]?.apiKey).toBeUndefined();
   });
 });
 

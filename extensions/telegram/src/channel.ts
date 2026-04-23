@@ -9,6 +9,7 @@ import { createChatChannelPlugin } from "crawclaw/plugin-sdk/core";
 import { createChannelDirectoryAdapter } from "crawclaw/plugin-sdk/directory-runtime";
 import {
   resolveOutboundSendDep,
+  sanitizeForPlainText,
   type OutboundSendDeps,
 } from "crawclaw/plugin-sdk/outbound-runtime";
 import {
@@ -296,6 +297,50 @@ function parseTelegramExplicitTarget(raw: string) {
     threadId: target.messageThreadId,
     chatType: target.chatType === "unknown" ? undefined : target.chatType,
   };
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function normalizeOptionalLowercaseString(value: unknown): string | undefined {
+  return normalizeOptionalString(value)?.toLowerCase();
+}
+
+function shouldTreatTelegramDeliveredTextAsVisible(params: {
+  kind: "tool" | "block" | "final";
+  text?: string;
+}): boolean {
+  void params.text;
+  return params.kind !== "final";
+}
+
+function targetsMatchTelegramReplySuppression(params: {
+  originTarget: string;
+  targetKey: string;
+  targetThreadId?: string;
+}): boolean {
+  const origin = parseTelegramTarget(params.originTarget);
+  const target = parseTelegramTarget(params.targetKey);
+  const originThreadId =
+    origin.messageThreadId != null
+      ? normalizeOptionalString(String(origin.messageThreadId))
+      : undefined;
+  const targetThreadId =
+    normalizeOptionalString(params.targetThreadId) ??
+    (target.messageThreadId != null
+      ? normalizeOptionalString(String(target.messageThreadId))
+      : undefined);
+  if (
+    normalizeOptionalLowercaseString(origin.chatId) !==
+    normalizeOptionalLowercaseString(target.chatId)
+  ) {
+    return false;
+  }
+  if (originThreadId && targetThreadId) {
+    return originThreadId === targetThreadId;
+  }
+  return originThreadId == null && targetThreadId == null;
 }
 
 function buildTelegramBaseSessionKey(params: {
@@ -824,8 +869,7 @@ export const telegramPlugin = createChatChannelPlugin({
   threading: {
     topLevelReplyToMode: "telegram",
     buildToolContext: (params) => buildTelegramThreadingToolContext(params),
-    resolveAutoThreadId: ({ to, toolContext }) =>
-      resolveTelegramAutoThreadId({ to, toolContext }),
+    resolveAutoThreadId: ({ to, toolContext }) => resolveTelegramAutoThreadId({ to, toolContext }),
   },
   outbound: {
     base: {
@@ -834,6 +878,7 @@ export const telegramPlugin = createChatChannelPlugin({
       chunkerMode: "markdown",
       textChunkLimit: 4000,
       pollMaxOptions: 10,
+      sanitizeText: ({ text }) => sanitizeForPlainText(text),
       shouldSuppressLocalPayloadPrompt: ({ cfg, accountId, payload }) =>
         shouldSuppressLocalTelegramExecApprovalPrompt({
           cfg,
@@ -857,8 +902,12 @@ export const telegramPlugin = createChatChannelPlugin({
         }).catch(() => {});
       },
       shouldSkipPlainTextSanitization: ({ payload }) => Boolean(payload.channelData),
+      shouldTreatDeliveredTextAsVisible: shouldTreatTelegramDeliveredTextAsVisible,
+      targetsMatchForReplySuppression: targetsMatchTelegramReplySuppression,
       resolveEffectiveTextChunkLimit: ({ fallbackLimit }) =>
         typeof fallbackLimit === "number" ? Math.min(fallbackLimit, 4096) : 4096,
+      supportsPollDurationSeconds: true,
+      supportsAnonymousPolls: true,
       sendPayload: async ({
         cfg,
         to,

@@ -93,6 +93,11 @@ export type ChannelSetupAdapter = {
     accountId: string;
     input: ChannelSetupInput;
   }) => string | null;
+  singleAccountKeysToMove?: readonly string[];
+  namedAccountPromotionKeys?: readonly string[];
+  resolveSingleAccountPromotionTarget?: (params: {
+    channel: Record<string, unknown>;
+  }) => string | undefined;
 };
 
 export type ChannelConfigAdapter<ResolvedAccount> = {
@@ -179,7 +184,19 @@ export type ChannelOutboundAdapter = {
   textChunkLimit?: number;
   pollMaxOptions?: number;
   normalizePayload?: (params: { payload: ReplyPayload }) => ReplyPayload | null;
+  sanitizeText?: (params: { text: string; payload: ReplyPayload }) => string;
+  supportsPollDurationSeconds?: boolean;
+  supportsAnonymousPolls?: boolean;
   shouldSkipPlainTextSanitization?: (params: { payload: ReplyPayload }) => boolean;
+  shouldTreatDeliveredTextAsVisible?: (params: {
+    kind: "tool" | "block" | "final";
+    text?: string;
+  }) => boolean;
+  targetsMatchForReplySuppression?: (params: {
+    originTarget: string;
+    targetKey: string;
+    targetThreadId?: string;
+  }) => boolean;
   resolveEffectiveTextChunkLimit?: (params: {
     cfg: CrawClawConfig;
     accountId?: string | null;

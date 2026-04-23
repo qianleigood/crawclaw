@@ -23,7 +23,11 @@
         "internet-relay-chat"
       ],
       "systemImage": "network",
-      "profile": "optional"
+      "profile": "optional",
+      "configuredState": {
+        "specifier": "./configured-state",
+        "exportName": "hasIrcConfiguredState"
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 import type { ReplyDispatchKind } from "../auto-reply/reply/reply-dispatcher.js";
+import { getChannelPlugin, normalizeChannelId } from "./plugins/index.js";
 
 export function resolveAcpDeliveryChannel(value: string | undefined): string | undefined {
   const normalized = value?.trim().toLowerCase();
@@ -13,8 +14,17 @@ export function shouldTreatAcpDeliveredTextAsVisible(params: {
   if (!params.text?.trim()) {
     return false;
   }
+  const channel = resolveAcpDeliveryChannel(params.channel);
+  const normalizedChannel = normalizeChannelId(channel);
+  const adapter = normalizedChannel ? getChannelPlugin(normalizedChannel)?.outbound : undefined;
+  if (adapter?.shouldTreatDeliveredTextAsVisible) {
+    return adapter.shouldTreatDeliveredTextAsVisible({
+      kind: params.kind,
+      text: params.text,
+    });
+  }
   if (params.kind === "final") {
     return true;
   }
-  return resolveAcpDeliveryChannel(params.channel) === "telegram";
+  return false;
 }

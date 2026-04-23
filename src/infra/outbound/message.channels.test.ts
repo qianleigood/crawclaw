@@ -246,6 +246,68 @@ describe("sendPoll channel normalization", () => {
     expect(gatewayCall()?.params?.channel).toBe("demo-alias-channel");
     expect(result.channel).toBe("demo-alias-channel");
   });
+
+  it("rejects poll duration when the outbound adapter does not declare support", async () => {
+    setRegistry(
+      createTestRegistry([
+        {
+          pluginId: "demo-alias-channel",
+          source: "test",
+          plugin: createDemoAliasPlugin({
+            outbound: createDemoAliasOutbound({ includePoll: true }),
+          }),
+        },
+      ]),
+    );
+
+    await expect(
+      sendPoll({
+        cfg: {},
+        to: "conversation:demo-target",
+        question: "Lunch?",
+        options: ["Pizza", "Sushi"],
+        channel: "demo-alias-channel",
+        durationSeconds: 60,
+      }),
+    ).rejects.toThrow("durationSeconds is not supported for demo-alias-channel polls");
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("forwards poll duration and anonymity when the outbound adapter declares support", async () => {
+    callGatewayMock.mockResolvedValueOnce({ messageId: "p1" });
+    setRegistry(
+      createTestRegistry([
+        {
+          pluginId: "demo-alias-channel",
+          source: "test",
+          plugin: createDemoAliasPlugin({
+            outbound: createDemoAliasOutbound({
+              includePoll: true,
+              supportsPollDurationSeconds: true,
+              supportsAnonymousPolls: true,
+            }),
+          }),
+        },
+      ]),
+    );
+
+    await sendPoll({
+      cfg: {},
+      to: "conversation:demo-target",
+      question: "Lunch?",
+      options: ["Pizza", "Sushi"],
+      channel: "demo-alias-channel",
+      durationSeconds: 60,
+      isAnonymous: false,
+    });
+
+    expect(gatewayCall()?.params).toEqual(
+      expect.objectContaining({
+        durationSeconds: 60,
+        isAnonymous: false,
+      }),
+    );
+  });
 });
 
 const setMattermostGatewayRegistry = () => {
@@ -338,7 +400,11 @@ const createDemoAliasPlugin = (params?: {
   };
 };
 
-const createDemoAliasOutbound = (opts?: { includePoll?: boolean }): ChannelOutboundAdapter => ({
+const createDemoAliasOutbound = (opts?: {
+  includePoll?: boolean;
+  supportsPollDurationSeconds?: boolean;
+  supportsAnonymousPolls?: boolean;
+}): ChannelOutboundAdapter => ({
   deliveryMode: "direct",
   sendText: async ({ deps, to, text }) => {
     const send = deps?.sendDemoAliasChannel as
@@ -363,6 +429,8 @@ const createDemoAliasOutbound = (opts?: { includePoll?: boolean }): ChannelOutbo
   ...(opts?.includePoll
     ? {
         pollMaxOptions: 12,
+        supportsPollDurationSeconds: opts.supportsPollDurationSeconds,
+        supportsAnonymousPolls: opts.supportsAnonymousPolls,
         sendPoll: async () => ({ channel: "demo-alias-channel", messageId: "p1" }),
       }
     : {}),

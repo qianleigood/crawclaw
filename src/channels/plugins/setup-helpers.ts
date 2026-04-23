@@ -1,6 +1,7 @@
 import { z, type ZodType } from "zod";
 import type { CrawClawConfig } from "../../config/config.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
+import { getChannelPlugin } from "./registry.js";
 import type { ChannelSetupAdapter } from "./types.adapters.js";
 import type { ChannelSetupInput } from "./types.core.js";
 
@@ -405,7 +406,7 @@ const COMMON_SINGLE_ACCOUNT_KEYS_TO_MOVE = new Set([
   "defaultTo",
 ]);
 
-const SINGLE_ACCOUNT_KEYS_TO_MOVE_BY_CHANNEL: Record<string, ReadonlySet<string>> = {
+const BUNDLED_SINGLE_ACCOUNT_PROMOTION_FALLBACKS: Record<string, ReadonlySet<string>> = {
   matrix: new Set([
     "deviceId",
     "avatarUrl",
@@ -435,18 +436,21 @@ const SINGLE_ACCOUNT_KEYS_TO_MOVE_BY_CHANNEL: Record<string, ReadonlySet<string>
   telegram: new Set(["streaming"]),
 };
 
-const MATRIX_NAMED_ACCOUNT_PROMOTION_KEYS = new Set([
-  "name",
-  "homeserver",
-  "userId",
-  "accessToken",
-  "password",
-  "deviceId",
-  "deviceName",
-  "avatarUrl",
-  "initialSyncLimit",
-  "encryption",
-]);
+const BUNDLED_NAMED_ACCOUNT_PROMOTION_FALLBACKS: Record<string, ReadonlySet<string>> = {
+  matrix: new Set([
+    "name",
+    "homeserver",
+    "userId",
+    "accessToken",
+    "password",
+    "deviceId",
+    "deviceName",
+    "avatarUrl",
+    "initialSyncLimit",
+    "encryption",
+  ]),
+  telegram: new Set(["botToken", "tokenFile"]),
+};
 
 export const MATRIX_SHARED_MULTI_ACCOUNT_DEFAULT_KEYS = new Set([
   "dmPolicy",
@@ -474,14 +478,40 @@ export const MATRIX_SHARED_MULTI_ACCOUNT_DEFAULT_KEYS = new Set([
   "actions",
 ]);
 
+type ChannelSetupPromotionSurface = Pick<
+  ChannelSetupAdapter,
+  "singleAccountKeysToMove" | "namedAccountPromotionKeys" | "resolveSingleAccountPromotionTarget"
+>;
+
+function getChannelSetupPromotionSurface(channelKey: string): ChannelSetupPromotionSurface | null {
+  const setup = getChannelPlugin(channelKey as Parameters<typeof getChannelPlugin>[0])?.setup;
+  return setup && typeof setup === "object" ? setup : null;
+}
+
+function isStaticSingleAccountPromotionKey(channelKey: string, key: string): boolean {
+  if (COMMON_SINGLE_ACCOUNT_KEYS_TO_MOVE.has(key)) {
+    return true;
+  }
+  return BUNDLED_SINGLE_ACCOUNT_PROMOTION_FALLBACKS[channelKey]?.has(key) ?? false;
+}
+
+function includesPromotionKey(keys: readonly string[] | ReadonlySet<string>, key: string): boolean {
+  const maybeSet = keys as ReadonlySet<string>;
+  if (typeof maybeSet.has === "function") {
+    return maybeSet.has(key);
+  }
+  return (keys as readonly string[]).includes(key);
+}
+
 export function shouldMoveSingleAccountChannelKey(params: {
   channelKey: string;
   key: string;
 }): boolean {
-  if (COMMON_SINGLE_ACCOUNT_KEYS_TO_MOVE.has(params.key)) {
+  if (isStaticSingleAccountPromotionKey(params.channelKey, params.key)) {
     return true;
   }
-  return SINGLE_ACCOUNT_KEYS_TO_MOVE_BY_CHANNEL[params.channelKey]?.has(params.key) ?? false;
+  const keys = getChannelSetupPromotionSurface(params.channelKey)?.singleAccountKeysToMove;
+  return keys ? includesPromotionKey(keys, params.key) : false;
 }
 
 export function resolveSingleAccountKeysToMove(params: {
@@ -491,30 +521,55 @@ export function resolveSingleAccountKeysToMove(params: {
   const hasNamedAccounts =
     Object.keys((params.channel.accounts as Record<string, unknown>) ?? {}).filter(Boolean).length >
     0;
-  return Object.entries(params.channel)
+  const setupSurface = getChannelSetupPromotionSurface(params.channelKey);
+  const keysToMove = Object.entries(params.channel)
     .filter(([key, value]) => {
       if (key === "accounts" || key === "enabled" || value === undefined) {
         return false;
       }
-      if (!shouldMoveSingleAccountChannelKey({ channelKey: params.channelKey, key })) {
-        return false;
-      }
       if (
-        params.channelKey === "matrix" &&
-        hasNamedAccounts &&
-        !MATRIX_NAMED_ACCOUNT_PROMOTION_KEYS.has(key)
+        !isStaticSingleAccountPromotionKey(params.channelKey, key) &&
+        !(
+          setupSurface?.singleAccountKeysToMove &&
+          includesPromotionKey(setupSurface.singleAccountKeysToMove, key)
+        )
       ) {
         return false;
       }
       return true;
     })
     .map(([key]) => key);
+  if (!hasNamedAccounts || keysToMove.length === 0) {
+    return keysToMove;
+  }
+  const namedAccountPromotionKeys =
+    setupSurface?.namedAccountPromotionKeys ??
+    BUNDLED_NAMED_ACCOUNT_PROMOTION_FALLBACKS[params.channelKey];
+  if (!namedAccountPromotionKeys) {
+    return keysToMove;
+  }
+  return keysToMove.filter((key) => includesPromotionKey(namedAccountPromotionKeys, key));
 }
 
 export function resolveSingleAccountPromotionTarget(params: {
   channelKey: string;
   channel: ChannelSectionBase;
 }): string {
+  const resolved = getChannelSetupPromotionSurface(
+    params.channelKey,
+  )?.resolveSingleAccountPromotionTarget?.({
+    channel: params.channel as Record<string, unknown>,
+  });
+  const normalizedResolved = typeof resolved === "string" ? resolved.trim() : "";
+  if (normalizedResolved) {
+    const normalizedTargetAccountId = normalizeAccountId(normalizedResolved);
+    const accounts = params.channel.accounts ?? {};
+    return (
+      Object.keys(accounts).find(
+        (accountId) => normalizeAccountId(accountId) === normalizedTargetAccountId,
+      ) ?? normalizedTargetAccountId
+    );
+  }
   if (params.channelKey !== "matrix") {
     return DEFAULT_ACCOUNT_ID;
   }
@@ -610,7 +665,11 @@ export function moveSingleAccountChannelSectionToDefaultAccount(params: {
 
   const accounts = base.accounts ?? {};
   if (Object.keys(accounts).length > 0) {
-    if (params.channelKey !== "matrix") {
+    const canPromoteIntoNamedAccount =
+      params.channelKey === "matrix" ||
+      Boolean(getChannelSetupPromotionSurface(params.channelKey)) ||
+      Boolean(BUNDLED_NAMED_ACCOUNT_PROMOTION_FALLBACKS[params.channelKey]);
+    if (!canPromoteIntoNamedAccount) {
       return params.cfg;
     }
     const keysToMove = resolveSingleAccountKeysToMove({

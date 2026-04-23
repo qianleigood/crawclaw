@@ -399,6 +399,25 @@ Write colocated tests in `src/channel.test.ts`:
     └── runtime.ts            # Runtime store (if needed)
 ```
 
+## Hot path metadata
+
+Channel discovery, setup, status, and message-tool discovery should stay light.
+Do not statically import provider runtimes, large SDK clients, gateway loops, or
+action handlers from `channel.ts`, `shared.ts`, `channel.setup.ts`, `gateway.ts`,
+or `outbound.ts` unless that file is already runtime-only.
+
+Use small public artifacts for metadata that core needs without starting the
+plugin runtime:
+
+- `message-tool-api.ts` for message tool discovery.
+- `configured-state.ts` for env/config presence checks.
+- `auth-presence.ts` for persisted login state checks.
+- Setup contract exports for account promotion keys.
+
+Put execution handlers behind `*.runtime.ts` files and load them dynamically
+from the execution path. After changing a lazy-loading or module-boundary path,
+run `pnpm build` and check for ineffective dynamic import warnings.
+
 ## Advanced topics
 
 <CardGroup cols={2}>

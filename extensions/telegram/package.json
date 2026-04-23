@@ -7,7 +7,9 @@
   "dependencies": {
     "@grammyjs/runner": "^2.0.3",
     "@grammyjs/transformer-throttler": "^1.2.1",
-    "grammy": "^1.41.1"
+    "@sinclair/typebox": "0.34.49",
+    "grammy": "^1.42.0",
+    "undici": "8.1.0"
   },
   "crawclaw": {
     "extensions": [
@@ -29,7 +31,11 @@
         "https://docs.crawclaw.ai"
       ],
       "markdownCapable": true,
-      "profile": "optional"
+      "profile": "optional",
+      "configuredState": {
+        "specifier": "./configured-state",
+        "exportName": "hasTelegramConfiguredState"
+      }
     },
     "bundle": {
       "stageRuntimeDependencies": true

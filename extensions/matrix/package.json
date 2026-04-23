@@ -5,10 +5,12 @@
   "type": "module",
   "dependencies": {
     "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0",
-    "@matrix-org/matrix-sdk-crypto-wasm": "18.0.0",
+    "@matrix-org/matrix-sdk-crypto-wasm": "18.1.0",
+    "@sinclair/typebox": "0.34.49",
     "fake-indexeddb": "^6.2.5",
+    "jiti": "^2.6.1",
     "markdown-it": "14.1.1",
-    "matrix-js-sdk": "41.3.0-rc.0",
+    "matrix-js-sdk": "41.3.0",
     "music-metadata": "^11.12.3"
   },
   "devDependencies": {
@@ -36,7 +38,11 @@
       "blurb": "open protocol; install the plugin to enable.",
       "order": 70,
       "quickstartAllowFrom": true,
-      "profile": "optional"
+      "profile": "optional",
+      "persistedAuthState": {
+        "specifier": "./auth-presence",
+        "exportName": "hasAnyMatrixAuth"
+      }
     },
     "install": {
       "npmSpec": "@crawclaw/matrix",

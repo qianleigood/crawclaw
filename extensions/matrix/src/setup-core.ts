@@ -5,6 +5,11 @@ import {
   type ChannelSetupAdapter,
 } from "crawclaw/plugin-sdk/setup";
 import { applyMatrixSetupAccountConfig, validateMatrixSetupInput } from "./setup-config.js";
+import {
+  namedAccountPromotionKeys,
+  resolveSingleAccountPromotionTarget,
+  singleAccountKeysToMove,
+} from "./setup-contract.js";
 import type { CoreConfig } from "./types.js";
 
 const channel = "matrix" as const;
@@ -14,6 +19,9 @@ function resolveMatrixSetupAccountId(params: { accountId?: string; name?: string
 }
 
 export const matrixSetupAdapter: ChannelSetupAdapter = {
+  singleAccountKeysToMove,
+  namedAccountPromotionKeys,
+  resolveSingleAccountPromotionTarget,
   resolveAccountId: ({ accountId, input }) =>
     resolveMatrixSetupAccountId({
       accountId,

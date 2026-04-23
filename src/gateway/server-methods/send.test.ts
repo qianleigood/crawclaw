@@ -414,6 +414,53 @@ describe("gateway send mirroring", () => {
     );
   });
 
+  it("rejects poll duration when the outbound adapter does not declare support", async () => {
+    const { respond } = await runPoll({
+      to: "channel:C1",
+      question: "Q?",
+      options: ["A", "B"],
+      durationSeconds: 60,
+      channel: "slack",
+      idempotencyKey: "idem-poll-duration-unsupported",
+    });
+
+    expect(mocks.sendPoll).not.toHaveBeenCalled();
+    expect(respond).toHaveBeenCalledWith(
+      false,
+      undefined,
+      expect.objectContaining({
+        message: "durationSeconds is not supported for slack polls",
+      }),
+    );
+  });
+
+  it("allows poll duration and anonymity when the outbound adapter declares support", async () => {
+    mocks.getChannelPlugin.mockReturnValue({
+      outbound: {
+        sendPoll: mocks.sendPoll,
+        supportsPollDurationSeconds: true,
+        supportsAnonymousPolls: true,
+      },
+    });
+
+    await runPoll({
+      to: "channel:C1",
+      question: "Q?",
+      options: ["A", "B"],
+      durationSeconds: 60,
+      isAnonymous: false,
+      channel: "telegram",
+      idempotencyKey: "idem-poll-duration-supported",
+    });
+
+    expect(mocks.sendPoll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        poll: expect.objectContaining({ durationSeconds: 60 }),
+        isAnonymous: false,
+      }),
+    );
+  });
+
   it("auto-picks the single configured channel for poll", async () => {
     const { respond } = await runPoll({
       to: "x",

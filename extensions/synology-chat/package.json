@@ -3,6 +3,9 @@
   "version": "2026.4.1-beta.1",
   "description": "Synology Chat channel plugin for CrawClaw",
   "type": "module",
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
   "crawclaw": {
     "extensions": [
       "./index.ts"

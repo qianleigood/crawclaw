@@ -56,4 +56,18 @@ describe("config presence", () => {
       expectedConfigured: false,
     });
   });
+
+  it("uses package persisted-auth metadata when listing configured channels", () => {
+    const stateDir = makeTempStateDir();
+    const authDir = path.join(stateDir, "credentials", "whatsapp", "default");
+    fs.mkdirSync(authDir, { recursive: true });
+    fs.writeFileSync(path.join(authDir, "creds.json"), "{}", "utf8");
+
+    expectPotentialConfiguredChannelCase({
+      cfg: {},
+      env: { CRAWCLAW_STATE_DIR: stateDir } as NodeJS.ProcessEnv,
+      expectedIds: ["whatsapp"],
+      expectedConfigured: true,
+    });
+  });
 });

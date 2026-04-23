@@ -1,6 +1,6 @@
 import { isMessagingToolDuplicate } from "../../agents/pi-embedded-helpers.js";
 import type { MessagingToolSend } from "../../agents/pi-embedded-runner.js";
-import { normalizeChannelId } from "../../channels/plugins/index.js";
+import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { parseExplicitTargetForChannel } from "../../channels/plugins/target-parsing.js";
 import { normalizeTargetForProvider } from "../../infra/outbound/target-normalization.js";
 import { normalizeOptionalAccountId } from "../../routing/account-id.js";
@@ -89,6 +89,32 @@ function normalizeThreadIdForComparison(value?: string): string | undefined {
   return trimmed.toLowerCase();
 }
 
+function parseTelegramSuppressionTarget(raw: string): { to: string; threadId?: string } | null {
+  let target = raw.trim();
+  while (true) {
+    const next = target
+      .replace(/^(telegram|tg):/i, "")
+      .replace(/^group:/i, "")
+      .trim();
+    if (next === target) {
+      break;
+    }
+    target = next;
+  }
+  if (!target) {
+    return null;
+  }
+  const topicMatch = /^(.+?):topic:(\d+)$/i.exec(target);
+  if (topicMatch?.[1] && topicMatch[2]) {
+    return { to: topicMatch[1], threadId: normalizeThreadIdForComparison(topicMatch[2]) };
+  }
+  const suffixMatch = /^(.+):(\d+)$/.exec(target);
+  if (suffixMatch?.[1] && suffixMatch[2]) {
+    return { to: suffixMatch[1], threadId: normalizeThreadIdForComparison(suffixMatch[2]) };
+  }
+  return { to: target };
+}
+
 function resolveTargetProviderForComparison(params: {
   currentProvider: string;
   targetProvider?: string;
@@ -106,12 +132,28 @@ function targetsMatchForSuppression(params: {
   targetKey: string;
   targetThreadId?: string;
 }): boolean {
+  const channel = normalizeChannelId(params.provider);
+  const matcher = channel
+    ? getChannelPlugin(channel)?.outbound?.targetsMatchForReplySuppression
+    : undefined;
+  if (matcher) {
+    return matcher({
+      originTarget: params.originTarget,
+      targetKey: params.targetKey,
+      targetThreadId: params.targetThreadId,
+    });
+  }
+
   if (params.provider !== "telegram") {
     return params.targetKey === params.originTarget;
   }
 
-  const origin = parseExplicitTargetForChannel("telegram", params.originTarget);
-  const target = parseExplicitTargetForChannel("telegram", params.targetKey);
+  const origin =
+    parseExplicitTargetForChannel("telegram", params.originTarget) ??
+    parseTelegramSuppressionTarget(params.originTarget);
+  const target =
+    parseExplicitTargetForChannel("telegram", params.targetKey) ??
+    parseTelegramSuppressionTarget(params.targetKey);
   if (!origin || !target) {
     return params.targetKey === params.originTarget;
   }

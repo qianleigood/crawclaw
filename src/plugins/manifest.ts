@@ -376,6 +376,13 @@ export type PluginPackageChannel = {
   forceAccountBinding?: boolean;
   preferSessionLookupForAnnounceTarget?: boolean;
   profile?: "primary-cn" | "optional" | "legacy";
+  configuredState?: PluginPackageStateProbe;
+  persistedAuthState?: PluginPackageStateProbe;
+};
+
+export type PluginPackageStateProbe = {
+  specifier?: string;
+  exportName?: string;
 };
 
 export type PluginPackageInstall = {

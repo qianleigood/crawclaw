@@ -193,6 +193,32 @@ describe("telegramMessageActions", () => {
     }
   });
 
+  it("honors account-scoped action gates during discovery", () => {
+    const actions =
+      telegramMessageActions.describeMessageTool?.({
+        cfg: {
+          channels: {
+            telegram: {
+              botToken: "default-token",
+              accounts: {
+                ops: {
+                  botToken: "ops-token",
+                  actions: {
+                    poll: false,
+                    sendMessage: true,
+                  },
+                },
+              },
+            },
+          },
+        } as CrawClawConfig,
+        accountId: "ops",
+      })?.actions ?? [];
+
+    expect(actions).toContain("send");
+    expect(actions).not.toContain("poll");
+  });
+
   it("normalizes reaction message identifiers before dispatch", async () => {
     const cfg = { channels: { telegram: { botToken: "tok" } } } as CrawClawConfig;
     const cases = [

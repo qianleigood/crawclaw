@@ -1,4 +1,5 @@
 import type { CrawClawConfig } from "../../config/config.js";
+import { sanitizeForPlainText } from "../../infra/outbound/sanitize-text.js";
 import { resolveOutboundSendDep } from "../../infra/outbound/send-deps.js";
 import { createAttachedChannelResultAdapter } from "../../plugin-sdk/channel-send-result.js";
 import type { PollInput } from "../../polls.js";
@@ -69,6 +70,7 @@ export function createWhatsAppOutboundBase({
   | "chunker"
   | "chunkerMode"
   | "textChunkLimit"
+  | "sanitizeText"
   | "pollMaxOptions"
   | "resolveTarget"
   | "sendText"
@@ -80,6 +82,7 @@ export function createWhatsAppOutboundBase({
     chunker,
     chunkerMode: "text",
     textChunkLimit: 4000,
+    sanitizeText: ({ text }) => sanitizeForPlainText(text),
     pollMaxOptions: 12,
     resolveTarget,
     ...createAttachedChannelResultAdapter({

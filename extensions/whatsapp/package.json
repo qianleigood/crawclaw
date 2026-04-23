@@ -4,8 +4,11 @@
   "description": "CrawClaw WhatsApp channel plugin",
   "type": "module",
   "dependencies": {
+    "@sinclair/typebox": "0.34.49",
     "@whiskeysockets/baileys": "7.0.0-rc.9",
-    "jimp": "^1.6.0"
+    "jimp": "^1.6.1",
+    "qrcode-terminal": "^0.12.0",
+    "undici": "8.1.0"
   },
   "devDependencies": {
     "crawclaw": "workspace:*"
@@ -32,7 +35,11 @@
       "docsLabel": "whatsapp",
       "blurb": "works with your own number; recommend a separate phone + eSIM.",
       "systemImage": "message",
-      "profile": "optional"
+      "profile": "optional",
+      "persistedAuthState": {
+        "specifier": "./auth-presence",
+        "exportName": "hasAnyWhatsAppAuth"
+      }
     },
     "install": {
       "npmSpec": "@crawclaw/whatsapp",

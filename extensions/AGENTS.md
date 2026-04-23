@@ -37,6 +37,26 @@ third-party plugins see.
 - If core or core tests need a bundled plugin helper, export it from `api.ts`
   first instead of letting them deep-import extension internals.
 
+## Channel Hot Paths
+
+For channel plugins, keep these files as lightweight metadata/setup surfaces:
+
+- `channel.ts`
+- `shared.ts`
+- `channel.setup.ts`
+- `gateway.ts`
+- `outbound.ts`
+- top-level artifacts such as `api.ts`, `message-tool-api.ts`,
+  `configured-state.ts`, `auth-presence.ts`, and `setup-entry.ts`
+
+Do not statically import heavy runtimes from discovery, schema, status, setup,
+or message-tool discovery paths. Put action handlers, long-running gateway
+monitors, SDK clients, and media runtimes behind `*.runtime.ts` files and load
+them with dynamic `import()` from the execution path.
+
+When changing lazy-loading or module-boundary behavior, run `pnpm build` and
+inspect the output for ineffective dynamic import warnings.
+
 ## Expanding The Boundary
 
 - If an extension needs a new seam, add a typed Plugin SDK subpath or additive

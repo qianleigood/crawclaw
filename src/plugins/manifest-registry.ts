@@ -9,6 +9,7 @@ import { discoverCrawClawPlugins, type PluginCandidate } from "./discovery.js";
 import {
   loadPluginManifest,
   type CrawClawPackageManifest,
+  type PluginPackageStateProbe,
   type PluginManifest,
   type PluginManifestChannelConfig,
   type PluginManifestContracts,
@@ -76,6 +77,10 @@ export type PluginManifestRecord = {
     blurb?: string;
     preferOver?: readonly string[];
   };
+  channelStateProbes?: {
+    configuredState?: PluginPackageStateProbe;
+    persistedAuthState?: PluginPackageStateProbe;
+  };
 };
 
 export type PluginManifestRegistry = {
@@ -94,8 +99,7 @@ export function clearPluginManifestRegistryCache(): void {
 
 function resolveManifestCacheMs(env: NodeJS.ProcessEnv): number {
   const raw =
-    env.CRAWCLAW_PLUGIN_MANIFEST_CACHE_MS?.trim() ??
-    env.CRAWCLAW_PLUGIN_MANIFEST_CACHE_MS?.trim();
+    env.CRAWCLAW_PLUGIN_MANIFEST_CACHE_MS?.trim() ?? env.CRAWCLAW_PLUGIN_MANIFEST_CACHE_MS?.trim();
   if (raw === "" || raw === "0") {
     return 0;
   }
@@ -222,6 +226,7 @@ function buildRecord(params: {
     channelConfigs: params.manifest.channelConfigs,
     packageChannel: params.candidate.packageManifest?.channel,
   });
+  const packageChannel = params.candidate.packageManifest?.channel;
   return {
     id: params.manifest.id,
     name: normalizeManifestLabel(params.manifest.name) ?? params.candidate.packageName,
@@ -255,20 +260,26 @@ function buildRecord(params: {
     configUiHints: params.manifest.uiHints,
     contracts: params.manifest.contracts,
     channelConfigs,
-    ...(params.candidate.packageManifest?.channel?.id
+    ...(packageChannel?.id
       ? {
           channelCatalogMeta: {
-            id: params.candidate.packageManifest.channel.id,
-            ...(typeof params.candidate.packageManifest.channel.label === "string"
-              ? { label: params.candidate.packageManifest.channel.label }
-              : {}),
-            ...(typeof params.candidate.packageManifest.channel.blurb === "string"
-              ? { blurb: params.candidate.packageManifest.channel.blurb }
-              : {}),
-            ...(params.candidate.packageManifest.channel.preferOver
-              ? { preferOver: params.candidate.packageManifest.channel.preferOver }
-              : {}),
+            id: packageChannel.id,
+            ...(typeof packageChannel.label === "string" ? { label: packageChannel.label } : {}),
+            ...(typeof packageChannel.blurb === "string" ? { blurb: packageChannel.blurb } : {}),
+            ...(packageChannel.preferOver ? { preferOver: packageChannel.preferOver } : {}),
           },
+          ...(packageChannel.configuredState || packageChannel.persistedAuthState
+            ? {
+                channelStateProbes: {
+                  ...(packageChannel.configuredState
+                    ? { configuredState: packageChannel.configuredState }
+                    : {}),
+                  ...(packageChannel.persistedAuthState
+                    ? { persistedAuthState: packageChannel.persistedAuthState }
+                    : {}),
+                },
+              }
+            : {}),
         }
       : {}),
   };

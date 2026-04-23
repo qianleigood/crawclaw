@@ -670,4 +670,67 @@ describe("runMessageAction media behavior", () => {
       }
     });
   });
+
+  describe("plugin-declared media params", () => {
+    const avatarPlugin: ChannelPlugin = {
+      ...createChannelTestPluginBase({
+        id: "avatar-chat",
+        label: "AvatarChat",
+        capabilities: { chatTypes: ["direct", "group"] },
+        config: {
+          listAccountIds: () => ["default"],
+        },
+      }),
+      actions: {
+        describeMessageTool: () => ({
+          actions: ["set-profile"],
+          mediaSourceParams: {
+            "set-profile": ["avatarUrl", "avatarPath"],
+          },
+        }),
+        supportsAction: ({ action }) => action === "set-profile",
+        handleAction: async ({ params }) =>
+          jsonResult({
+            ok: true,
+            avatarPath: params.avatarPath,
+          }),
+      },
+    };
+
+    beforeEach(() => {
+      setActivePluginRegistry(
+        createTestRegistry([
+          {
+            pluginId: "avatar-chat",
+            source: "test",
+            plugin: avatarPlugin,
+          },
+        ]),
+      );
+    });
+
+    afterEach(() => {
+      setActivePluginRegistry(createTestRegistry([]));
+    });
+
+    it("normalizes plugin-declared avatar paths before custom actions", async () => {
+      await withSandbox(async (sandboxDir) => {
+        const result = await runMessageAction({
+          cfg: {} as CrawClawConfig,
+          action: "set-profile",
+          params: {
+            channel: "avatar-chat",
+            avatarPath: "./avatars/bot.png",
+          },
+          sandboxRoot: sandboxDir,
+        });
+
+        expect(result.kind).toBe("action");
+        expect(result.payload).toMatchObject({
+          ok: true,
+          avatarPath: path.join(sandboxDir, "avatars", "bot.png"),
+        });
+      });
+    });
+  });
 });

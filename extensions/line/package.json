@@ -4,6 +4,9 @@
   "private": true,
   "description": "CrawClaw LINE channel plugin",
   "type": "module",
+  "dependencies": {
+    "@line/bot-sdk": "^11.0.0"
+  },
   "devDependencies": {
     "crawclaw": "workspace:*"
   },

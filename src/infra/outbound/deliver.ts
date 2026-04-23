@@ -72,6 +72,7 @@ type ChannelHandler = {
   textChunkLimit?: number;
   supportsMedia: boolean;
   normalizePayload?: (payload: ReplyPayload) => ReplyPayload | null;
+  sanitizeText?: (payload: ReplyPayload) => string;
   shouldSkipPlainTextSanitization?: (payload: ReplyPayload) => boolean;
   resolveEffectiveTextChunkLimit?: (fallbackLimit?: number) => number | undefined;
   sendPayload?: (
@@ -180,6 +181,9 @@ function createPluginHandler(
     supportsMedia: Boolean(sendMedia),
     normalizePayload: outbound.normalizePayload
       ? (payload) => outbound.normalizePayload!({ payload })
+      : undefined,
+    sanitizeText: outbound.sanitizeText
+      ? (payload) => outbound.sanitizeText!({ text: payload.text ?? "", payload })
       : undefined,
     shouldSkipPlainTextSanitization: outbound.shouldSkipPlainTextSanitization
       ? (payload) => outbound.shouldSkipPlainTextSanitization!({ payload })
@@ -330,7 +334,14 @@ function normalizePayloadsForChannelDelivery(
     // Strip HTML tags for plain-text surfaces (WhatsApp, Signal, etc.)
     // Models occasionally produce <br>, <b>, etc. that render as literal text.
     // See https://github.com/qianleigood/crawclaw/issues/31884
-    if (isPlainTextSurface(channel) && sanitizedPayload.text) {
+    if (handler.sanitizeText && sanitizedPayload.text) {
+      if (!handler.shouldSkipPlainTextSanitization?.(sanitizedPayload)) {
+        sanitizedPayload = {
+          ...sanitizedPayload,
+          text: handler.sanitizeText(sanitizedPayload),
+        };
+      }
+    } else if (isPlainTextSurface(channel) && sanitizedPayload.text) {
       if (!handler.shouldSkipPlainTextSanitization?.(sanitizedPayload)) {
         sanitizedPayload = {
           ...sanitizedPayload,
@@ -564,11 +575,22 @@ async function deliverOutboundPayloadsCore(
   const accountId = params.accountId;
   const deps = params.deps;
   const abortSignal = params.abortSignal;
-  const mediaAccess = resolveAgentScopedOutboundMediaAccess({
-    cfg,
-    agentId: params.session?.agentId ?? params.mirror?.agentId,
-    mediaSources: collectPayloadMediaSources(payloads),
-  });
+  const mediaSources = collectPayloadMediaSources(payloads);
+  const mediaAccess =
+    mediaSources.length > 0
+      ? resolveAgentScopedOutboundMediaAccess({
+          cfg,
+          agentId: params.session?.agentId ?? params.mirror?.agentId,
+          mediaSources,
+          sessionKey: params.session?.policyKey ?? params.session?.key,
+          messageProvider: params.session?.key ? undefined : channel,
+          accountId: params.session?.requesterAccountId ?? accountId,
+          requesterSenderId: params.session?.requesterSenderId,
+          requesterSenderName: params.session?.requesterSenderName,
+          requesterSenderUsername: params.session?.requesterSenderUsername,
+          requesterSenderE164: params.session?.requesterSenderE164,
+        })
+      : {};
   const results: OutboundDeliveryResult[] = [];
   const handler = await createChannelHandler({
     cfg,

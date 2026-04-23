@@ -40,6 +40,7 @@ export type ChannelMessageActionDiscoveryContext = {
   sessionId?: string | null;
   agentId?: string | null;
   requesterSenderId?: string | null;
+  senderIsOwner?: boolean;
 };
 
 /**
@@ -54,10 +55,20 @@ export type ChannelMessageToolSchemaContribution = {
   visibility?: "current-channel" | "all-configured";
 };
 
+type ChannelMessageToolMediaSourceParams =
+  | readonly string[]
+  | Partial<Record<ChannelMessageActionName, readonly string[]>>;
+
 export type ChannelMessageToolDiscovery = {
   actions?: readonly ChannelMessageActionName[] | null;
   capabilities?: readonly ChannelMessageCapability[] | null;
   schema?: ChannelMessageToolSchemaContribution | ChannelMessageToolSchemaContribution[] | null;
+  /**
+   * Plugin-owned message-tool params that carry media sources. Core uses this
+   * to derive sandbox path normalization and host media access without
+   * hardcoding plugin-specific param names.
+   */
+  mediaSourceParams?: ChannelMessageToolMediaSourceParams | null;
 };
 
 /** Shared setup input bag used by CLI, onboarding, and setup adapters. */
@@ -540,6 +551,7 @@ export type ChannelMessageActionContext = {
    * never be sourced from tool/model-controlled params.
    */
   requesterSenderId?: string | null;
+  senderIsOwner?: boolean;
   sessionKey?: string | null;
   sessionId?: string | null;
   agentId?: string | null;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import { createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import {
   filterMessagingToolMediaDuplicates,
   shouldSuppressMessagingToolReplies,
@@ -152,6 +152,33 @@ describe("shouldSuppressMessagingToolReplies", () => {
         messageProvider: "telegram",
         originatingTo: "telegram:group:-100123",
         messagingToolSentTargets: [{ tool: "message", provider: "telegram", to: "-100123" }],
+      }),
+    ).toBe(true);
+  });
+
+  it("uses channel outbound reply suppression hooks", () => {
+    setActivePluginRegistry(
+      createTestRegistry([
+        {
+          pluginId: "telegram",
+          source: "test",
+          plugin: createOutboundTestPlugin({
+            id: "telegram",
+            outbound: {
+              deliveryMode: "direct",
+              targetsMatchForReplySuppression: ({ originTarget, targetKey }) =>
+                originTarget === "origin" && targetKey === "tool-target",
+            },
+          }),
+        },
+      ]),
+    );
+
+    expect(
+      shouldSuppressMessagingToolReplies({
+        messageProvider: "telegram",
+        originatingTo: "origin",
+        messagingToolSentTargets: [{ tool: "message", provider: "telegram", to: "tool-target" }],
       }),
     ).toBe(true);
   });

@@ -32,6 +32,7 @@ import {
 import type { OutboundSendDeps } from "./deliver.js";
 import { normalizeMessageActionInput } from "./message-action-normalization.js";
 import {
+  collectActionMediaSourceHints,
   hydrateAttachmentParamsForAction,
   normalizeSandboxMediaList,
   normalizeSandboxMediaParams,
@@ -41,6 +42,7 @@ import {
   parseInteractiveParam,
   readBooleanParam,
   resolveAttachmentMediaPolicy,
+  resolveExtraActionMediaSourceParamKeys,
 } from "./message-action-params.js";
 import {
   prepareOutboundMirrorRoute,
@@ -73,7 +75,12 @@ export type RunMessageActionParams = {
   action: ChannelMessageActionName;
   params: Record<string, unknown>;
   defaultAccountId?: string;
+  requesterAccountId?: string | null;
   requesterSenderId?: string | null;
+  requesterSenderName?: string | null;
+  requesterSenderUsername?: string | null;
+  requesterSenderE164?: string | null;
+  senderIsOwner?: boolean;
   sessionId?: string;
   toolContext?: ChannelThreadingToolContext;
   gateway?: MessageActionRunnerGateway;
@@ -138,17 +145,6 @@ export function getToolResult(
   result: MessageActionRunResult,
 ): AgentToolResult<unknown> | undefined {
   return "toolResult" in result ? result.toolResult : undefined;
-}
-
-function collectActionMediaSourceHints(params: Record<string, unknown>): string[] {
-  const sources: string[] = [];
-  for (const key of ["media", "mediaUrl", "path", "filePath", "fileUrl"] as const) {
-    const value = params[key];
-    if (typeof value === "string" && value.trim()) {
-      sources.push(value);
-    }
-  }
-  return sources;
 }
 
 function applyCrossContextMessageDecoration({
@@ -517,8 +513,16 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
       channel,
       params,
       agentId,
+      sessionKey: input.sessionKey,
+      requesterAccountId: input.requesterAccountId ?? undefined,
+      requesterSenderId: input.requesterSenderId ?? undefined,
+      requesterSenderName: input.requesterSenderName ?? undefined,
+      requesterSenderUsername: input.requesterSenderUsername ?? undefined,
+      requesterSenderE164: input.requesterSenderE164 ?? undefined,
       mediaAccess: ctx.mediaAccess,
       accountId: accountId ?? undefined,
+      senderIsOwner: input.senderIsOwner,
+      sessionId: input.sessionId,
       gateway,
       toolContext: input.toolContext,
       deps: input.deps,
@@ -560,7 +564,7 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
 }
 
 async function handlePollAction(ctx: ResolvedActionContext): Promise<MessageActionRunResult> {
-  const { cfg, params, channel, accountId, dryRun, gateway, input, abortSignal } = ctx;
+  const { cfg, params, channel, accountId, dryRun, gateway, input, abortSignal, agentId } = ctx;
   throwIfAborted(abortSignal);
   const action: ChannelMessageActionName = "poll";
   const to = readStringParam(params, "to", { required: true });
@@ -592,7 +596,17 @@ async function handlePollAction(ctx: ResolvedActionContext): Promise<MessageActi
       cfg,
       channel,
       params,
+      agentId,
+      sessionKey: ctx.input.sessionKey,
+      requesterAccountId: ctx.input.requesterAccountId ?? undefined,
+      requesterSenderId: ctx.input.requesterSenderId ?? undefined,
+      requesterSenderName: ctx.input.requesterSenderName ?? undefined,
+      requesterSenderUsername: ctx.input.requesterSenderUsername ?? undefined,
+      requesterSenderE164: ctx.input.requesterSenderE164 ?? undefined,
+      mediaAccess: ctx.mediaAccess,
       accountId: accountId ?? undefined,
+      senderIsOwner: ctx.input.senderIsOwner,
+      sessionId: ctx.input.sessionId,
       gateway,
       toolContext: input.toolContext,
       dryRun,
@@ -677,6 +691,7 @@ async function handlePluginAction(ctx: ResolvedActionContext): Promise<MessageAc
     mediaReadFile: mediaAccess.readFile,
     accountId: accountId ?? undefined,
     requesterSenderId: input.requesterSenderId ?? undefined,
+    senderIsOwner: input.senderIsOwner,
     sessionKey: input.sessionKey,
     sessionId: input.sessionId,
     agentId,
@@ -736,6 +751,18 @@ export async function runMessageAction(
     params.accountId = accountId;
   }
   const dryRun = Boolean(input.dryRun ?? readBooleanParam(params, "dryRun"));
+  const extraMediaSourceParamKeys = resolveExtraActionMediaSourceParamKeys({
+    cfg,
+    action,
+    args: params,
+    channel,
+    accountId,
+    sessionKey: input.sessionKey,
+    sessionId: input.sessionId,
+    agentId: resolvedAgentId,
+    requesterSenderId: input.requesterSenderId,
+    senderIsOwner: input.senderIsOwner,
+  });
   const normalizationPolicy = resolveAttachmentMediaPolicy({
     sandboxRoot: input.sandboxRoot,
     mediaLocalRoots: getAgentScopedMediaLocalRoots(cfg, resolvedAgentId),
@@ -744,12 +771,20 @@ export async function runMessageAction(
   await normalizeSandboxMediaParams({
     args: params,
     mediaPolicy: normalizationPolicy,
+    extraParamKeys: extraMediaSourceParamKeys,
   });
 
   const mediaAccess = resolveAgentScopedOutboundMediaAccess({
     cfg,
     agentId: resolvedAgentId,
-    mediaSources: collectActionMediaSourceHints(params),
+    mediaSources: collectActionMediaSourceHints(params, extraMediaSourceParamKeys),
+    sessionKey: input.sessionKey,
+    messageProvider: input.sessionKey ? undefined : channel,
+    accountId: input.sessionKey ? (input.requesterAccountId ?? accountId) : accountId,
+    requesterSenderId: input.requesterSenderId,
+    requesterSenderName: input.requesterSenderName,
+    requesterSenderUsername: input.requesterSenderUsername,
+    requesterSenderE164: input.requesterSenderE164,
   });
   const mediaPolicy = resolveAttachmentMediaPolicy({
     sandboxRoot: input.sandboxRoot,
@@ -814,6 +849,7 @@ export async function runMessageAction(
       dryRun,
       gateway,
       input,
+      agentId: resolvedAgentId,
       abortSignal: input.abortSignal,
     });
   }

@@ -10,6 +10,7 @@ export {
   readReactionParams,
   readStringArrayParam,
   readStringParam,
+  ToolAuthorizationError,
 } from "../agents/tools/common.js";
 export type { BlockReplyContext, ReplyPayload } from "../auto-reply/types.js";
 export { resolveAckReaction } from "../agents/identity.js";

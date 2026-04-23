@@ -36,6 +36,18 @@ type MessageSendParams = {
   content: string;
   /** Active agent id for per-agent outbound media root scoping. */
   agentId?: string;
+  /** Originating session key used for requester-scoped outbound media policy. */
+  requesterSessionKey?: string;
+  /** Originating account id used for requester-scoped outbound media policy. */
+  requesterAccountId?: string;
+  /** Originating sender id used for sender-scoped outbound media policy. */
+  requesterSenderId?: string;
+  /** Originating sender display name for name-keyed sender policy matching. */
+  requesterSenderName?: string;
+  /** Originating sender username for username-keyed sender policy matching. */
+  requesterSenderUsername?: string;
+  /** Originating sender E.164 phone number for e164-keyed sender policy matching. */
+  requesterSenderE164?: string;
   channel?: string;
   mediaUrl?: string;
   mediaUrls?: string[];
@@ -235,7 +247,13 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
     const outboundSession = buildOutboundSessionContext({
       cfg,
       agentId: params.agentId,
-      sessionKey: params.mirror?.sessionKey,
+      sessionKey: params.requesterSessionKey ?? params.mirror?.sessionKey,
+      policySessionKey: params.requesterSessionKey,
+      requesterAccountId: params.requesterAccountId ?? params.accountId,
+      requesterSenderId: params.requesterSenderId,
+      requesterSenderName: params.requesterSenderName,
+      requesterSenderUsername: params.requesterSenderUsername,
+      requesterSenderE164: params.requesterSenderE164,
     });
     const results = await deliverOutboundPayloads({
       cfg,
@@ -318,6 +336,12 @@ export async function sendPoll(params: MessagePollParams): Promise<MessagePollRe
   const normalized = outbound.pollMaxOptions
     ? normalizePollInput(pollInput, { maxOptions: outbound.pollMaxOptions })
     : normalizePollInput(pollInput);
+  if (normalized.durationSeconds !== undefined && outbound.supportsPollDurationSeconds !== true) {
+    throw new Error(`durationSeconds is not supported for ${channel} polls`);
+  }
+  if (params.isAnonymous !== undefined && outbound.supportsAnonymousPolls !== true) {
+    throw new Error(`isAnonymous is not supported for ${channel} polls`);
+  }
 
   if (params.dryRun) {
     return buildMessagePollResult({

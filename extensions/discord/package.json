@@ -36,7 +36,11 @@
       "blurb": "very well supported right now.",
       "systemImage": "bubble.left.and.bubble.right",
       "markdownCapable": true,
-      "profile": "optional"
+      "profile": "optional",
+      "configuredState": {
+        "specifier": "./configured-state",
+        "exportName": "hasDiscordConfiguredState"
+      }
     },
     "install": {
       "npmSpec": "@crawclaw/discord",

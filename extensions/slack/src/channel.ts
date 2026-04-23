@@ -147,6 +147,15 @@ function parseSlackExplicitTarget(raw: string) {
   };
 }
 
+function shouldTreatSlackDeliveredTextAsVisible(params: {
+  kind: "tool" | "block" | "final";
+  text?: string;
+}): boolean {
+  return (
+    params.kind === "block" && typeof params.text === "string" && params.text.trim().length > 0
+  );
+}
+
 function buildSlackBaseSessionKey(params: {
   cfg: CrawClawConfig;
   agentId: string;
@@ -517,6 +526,7 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount, SlackProbe> = crea
       deliveryMode: "direct",
       chunker: null,
       textChunkLimit: SLACK_TEXT_LIMIT,
+      shouldTreatDeliveredTextAsVisible: shouldTreatSlackDeliveredTextAsVisible,
       shouldSuppressLocalPayloadPrompt: ({ cfg, accountId, payload }) =>
         shouldSuppressLocalSlackExecApprovalPrompt({
           cfg,

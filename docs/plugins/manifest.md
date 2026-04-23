@@ -231,6 +231,31 @@ If you are unsure where a piece of metadata belongs, use this rule:
 - if CrawClaw must know it before loading plugin code, put it in `crawclaw.plugin.json`
 - if it is about packaging, entry files, or npm install behavior, put it in `package.json`
 
+Channel package metadata can also point to tiny public state probes under
+`crawclaw.channel`:
+
+```json
+{
+  "crawclaw": {
+    "channel": {
+      "id": "acme-chat",
+      "configuredState": {
+        "specifier": "./configured-state",
+        "exportName": "hasAcmeChatConfiguredState"
+      },
+      "persistedAuthState": {
+        "specifier": "./auth-presence",
+        "exportName": "hasAnyAcmeChatAuth"
+      }
+    }
+  }
+}
+```
+
+Use `configuredState` for cheap env/config presence and `persistedAuthState`
+for local login artifacts such as QR or OAuth state. These artifacts must stay
+lightweight and must not import the full channel runtime.
+
 ## JSON Schema requirements
 
 - **Every plugin must ship a JSON Schema**, even if it accepts no config.

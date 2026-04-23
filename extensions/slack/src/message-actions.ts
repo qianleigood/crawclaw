@@ -2,12 +2,15 @@ import { createActionGate } from "crawclaw/plugin-sdk/agent-runtime";
 import type { ChannelMessageActionName } from "crawclaw/plugin-sdk/channel-contract";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { ChannelToolSend } from "crawclaw/plugin-sdk/tool-send";
-import { listEnabledSlackAccounts } from "./accounts.js";
+import { listEnabledSlackAccounts, resolveSlackAccount } from "./accounts.js";
 
-export function listSlackMessageActions(cfg: CrawClawConfig): ChannelMessageActionName[] {
-  const accounts = listEnabledSlackAccounts(cfg).filter(
-    (account) => account.botTokenSource !== "none",
-  );
+export function listSlackMessageActions(
+  cfg: CrawClawConfig,
+  accountId?: string | null,
+): ChannelMessageActionName[] {
+  const accounts = (
+    accountId ? [resolveSlackAccount({ cfg, accountId })] : listEnabledSlackAccounts(cfg)
+  ).filter((account) => account.enabled && account.botTokenSource !== "none");
   if (accounts.length === 0) {
     return [];
   }

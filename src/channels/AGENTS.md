@@ -25,3 +25,24 @@ import from this tree directly.
 - Remember that shared channel changes affect both built-in and extension
   channels. Check routing, pairing, allowlists, command gating, onboarding, and
   reply behavior across the full set.
+
+## Hot Import Paths
+
+Channel discovery and setup run on startup and CLI metadata paths. Keep these
+paths lightweight and free of provider runtimes, network clients, and large SDKs:
+
+- `channel.ts`
+- `shared.ts`
+- `channel.setup.ts`
+- `gateway.ts`
+- `outbound.ts`
+- `src/channels/plugins/**` discovery helpers
+
+If discovery needs message actions, config presence, auth presence, or setup
+promotion metadata, prefer a small public artifact such as `message-tool-api.ts`,
+`configured-state.ts`, `auth-presence.ts`, or a setup contract export. Runtime
+handlers should stay behind `*.runtime.ts` boundaries and be loaded with dynamic
+`import()`.
+
+After changing a lazy-loading or module-boundary path, run `pnpm build` and
+check for ineffective dynamic import warnings.
