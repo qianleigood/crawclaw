@@ -6,9 +6,13 @@ const telemetryState = vi.hoisted(() => {
   const counters = new Map<string, { add: ReturnType<typeof vi.fn> }>();
   const histograms = new Map<string, { record: ReturnType<typeof vi.fn> }>();
   const tracer = {
-    startSpan: vi.fn((_name: string, _opts?: unknown) => ({
+    startSpan: vi.fn((_name: string, _opts?: unknown, _ctx?: unknown) => ({
       end: vi.fn(),
       setStatus: vi.fn(),
+    })),
+    setSpanContext: vi.fn((ctx: Record<string, unknown>, spanContext: Record<string, unknown>) => ({
+      ...ctx,
+      spanContext,
     })),
   };
   const meter = {
@@ -33,14 +37,21 @@ const logShutdown = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const traceExporterCtor = vi.hoisted(() => vi.fn());
 
 vi.mock("@opentelemetry/api", () => ({
+  context: {
+    active: () => ({ active: true }),
+  },
   metrics: {
     getMeter: () => telemetryState.meter,
   },
   trace: {
     getTracer: () => telemetryState.tracer,
+    setSpanContext: telemetryState.tracer.setSpanContext,
   },
   SpanStatusCode: {
     ERROR: 2,
+  },
+  TraceFlags: {
+    SAMPLED: 1,
   },
 }));
 
@@ -193,6 +204,7 @@ describe("diagnostics-otel service", () => {
     telemetryState.counters.clear();
     telemetryState.histograms.clear();
     telemetryState.tracer.startSpan.mockClear();
+    telemetryState.tracer.setSpanContext.mockClear();
     telemetryState.meter.createCounter.mockClear();
     telemetryState.meter.createHistogram.mockClear();
     sdkStart.mockClear();
@@ -309,6 +321,16 @@ describe("diagnostics-otel service", () => {
         }),
       }),
     );
+    expect(messageSpanCall?.[2]).toEqual(
+      expect.objectContaining({
+        spanContext: expect.objectContaining({
+          traceId: "5f00af73e8c20a4c4fd1f85efc4ce7a8",
+          spanId: "215ea94ab6e4d36f",
+          traceFlags: 1,
+          isRemote: false,
+        }),
+      }),
+    );
 
     expect(registerLogTransportMock).toHaveBeenCalledTimes(1);
     expect(registeredTransports).toHaveLength(1);
@@ -373,6 +395,13 @@ describe("diagnostics-otel service", () => {
         }),
         startTime: expect.any(Number),
       }),
+      expect.objectContaining({
+        spanContext: expect.objectContaining({
+          traceId: "5f00af73e8c20a4c4fd1f85efc4ce7a8",
+          spanId: "215ea94ab6e4d36f",
+          traceFlags: 1,
+        }),
+      }),
     );
 
     await service.stop?.(ctx);
@@ -426,6 +455,11 @@ describe("diagnostics-otel service", () => {
           "crawclaw.sessionKey": "session-key-1",
           "crawclaw.sessionId": "session-1",
           "crawclaw.chatId": "chat-1",
+        }),
+      }),
+      expect.objectContaining({
+        spanContext: expect.objectContaining({
+          traceFlags: 1,
         }),
       }),
     );
@@ -522,6 +556,44 @@ describe("diagnostics-otel service", () => {
     expect(String(attrs?.["crawclaw.reason"])).not.toContain(
       "ghp_abcdefghijklmnopqrstuvwxyz123456", // pragma: allowlist secret
     );
+    await service.stop?.(ctx);
+  });
+
+  test("keeps high-cardinality observation ids out of metric attributes", async () => {
+    const service = createDiagnosticsOtelService();
+    const ctx = createOtelContext(OTEL_TEST_ENDPOINT, { metrics: true });
+    await service.start(ctx);
+
+    emitDiagnosticEvent({
+      type: "message.processed",
+      observation: testObservation({
+        source: "message",
+        runtime: {
+          runId: "run-metric-1",
+          sessionId: "session-metric-1",
+          sessionKey: "session-key-metric-1",
+        },
+        trace: {
+          traceId: "run-loop:run-metric-1",
+          spanId: "span-metric-1",
+          parentSpanId: "root:run-loop:run-metric-1",
+        },
+      }),
+      channel: "telegram",
+      outcome: "completed",
+      durationMs: 12,
+    });
+
+    const attrs = telemetryState.counters.get("crawclaw.message.processed")?.add.mock
+      .calls[0]?.[1] as Record<string, unknown> | undefined;
+    expect(attrs).toBeDefined();
+    expect(attrs).not.toHaveProperty("crawclaw.traceId");
+    expect(attrs).not.toHaveProperty("crawclaw.spanId");
+    expect(attrs).not.toHaveProperty("crawclaw.parentSpanId");
+    expect(attrs).not.toHaveProperty("crawclaw.runId");
+    expect(attrs).not.toHaveProperty("crawclaw.sessionId");
+    expect(attrs).not.toHaveProperty("crawclaw.sessionKey");
+
     await service.stop?.(ctx);
   });
 });

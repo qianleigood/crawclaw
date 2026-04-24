@@ -1051,6 +1051,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.agent.inspect.description": "Inspect a task-backed agent run",
   "command.agent.inspect.option.runId": "Inspect by run id",
   "command.agent.inspect.option.taskId": "Inspect by task id",
+  "command.agent.inspect.option.traceId": "Inspect by trace id",
   "command.agent.inspect.option.json": "Output JSON instead of text",
   "command.agent.exportContext.description":
     "Export Context Archive records for a task-backed agent run",

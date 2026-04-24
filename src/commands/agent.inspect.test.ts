@@ -191,6 +191,24 @@ describe("agent.inspect command", () => {
     expect(mocks.writeRuntimeJsonMock).toHaveBeenCalledWith(runtime, snapshot);
   });
 
+  it("looks up inspection snapshots by trace id", async () => {
+    const runtime = createRuntime();
+    const snapshot = {
+      lookup: { traceId: "run-loop:run-json" },
+      runId: "run-json",
+      refs: {},
+      warnings: [],
+    };
+    mocks.inspectAgentRuntimeMock.mockReturnValue(snapshot);
+
+    await agentInspectCommand({ traceId: "run-loop:run-json", json: true }, runtime);
+
+    expect(mocks.inspectAgentRuntimeMock).toHaveBeenCalledWith({
+      traceId: "run-loop:run-json",
+    });
+    expect(mocks.writeRuntimeJsonMock).toHaveBeenCalledWith(runtime, snapshot);
+  });
+
   it("enriches the inspection from the archive service when available", async () => {
     const runtime = createRuntime();
     const snapshot = {
@@ -507,7 +525,7 @@ describe("agent.inspect command", () => {
     const result = resolveAgentInspectionOrExit({}, runtime);
 
     expect(result).toBeUndefined();
-    expect(runtime.error).toHaveBeenCalledWith("Pass --run-id or --task-id.");
+    expect(runtime.error).toHaveBeenCalledWith("Pass --run-id, --task-id, or --trace-id.");
     expect(runtime.exit).toHaveBeenCalledWith(1);
   });
 

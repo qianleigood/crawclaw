@@ -232,10 +232,45 @@ function readLastAgentCommandCall():
   | {
       message?: string;
       sessionId?: string;
+      observation?: {
+        trace?: {
+          traceId?: string;
+          spanId?: string;
+          parentSpanId?: string | null;
+          traceparent?: string;
+          tracestate?: string;
+        };
+        runtime?: {
+          runId?: string;
+          sessionId?: string;
+          sessionKey?: string;
+          agentId?: string;
+        };
+        source?: string;
+      };
     }
   | undefined {
   return mocks.agentCommand.mock.calls.at(-1)?.[0] as
-    | { message?: string; sessionId?: string }
+    | {
+        message?: string;
+        sessionId?: string;
+        observation?: {
+          trace?: {
+            traceId?: string;
+            spanId?: string;
+            parentSpanId?: string | null;
+            traceparent?: string;
+            tracestate?: string;
+          };
+          runtime?: {
+            runId?: string;
+            sessionId?: string;
+            sessionKey?: string;
+            agentId?: string;
+          };
+          source?: string;
+        };
+      }
     | undefined;
 }
 
@@ -380,6 +415,87 @@ describe("gateway agent handler", () => {
       expect.objectContaining({
         provider: "anthropic",
         model: "claude-haiku-4-5",
+      }),
+    );
+  });
+
+  it("passes inbound observation through to the agent run", async () => {
+    primeMainAgentRun();
+    const observation = {
+      trace: {
+        traceId: "trace-parent-1",
+        spanId: "span-parent-1",
+        parentSpanId: null,
+      },
+      runtime: {
+        runId: "upstream-run-1",
+        sessionId: "upstream-session-1",
+      },
+      source: "gateway-test",
+    };
+
+    await invokeAgent(
+      {
+        message: "test observation",
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        observation,
+        idempotencyKey: "test-observation-pass-through",
+      },
+      { reqId: "test-observation-pass-through" },
+    );
+
+    await waitForAssertion(() => expect(mocks.agentCommand).toHaveBeenCalled());
+    expect(readLastAgentCommandCall()?.observation).toEqual(
+      expect.objectContaining({
+        trace: expect.objectContaining({
+          traceId: "trace-parent-1",
+          spanId: "span-parent-1",
+          parentSpanId: null,
+        }),
+        runtime: expect.objectContaining({
+          runId: expect.any(String),
+          sessionId: "reused-session-id",
+          sessionKey: "agent:main:main",
+          agentId: "main",
+        }),
+        source: "gateway",
+      }),
+    );
+  });
+
+  it("creates an agent run observation from inbound W3C propagation headers", async () => {
+    primeMainAgentRun();
+    const traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+
+    await invokeAgent(
+      {
+        message: "test traceparent",
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        traceparent,
+        tracestate: "vendor=state",
+        idempotencyKey: "test-traceparent-pass-through",
+      },
+      { reqId: "test-traceparent-pass-through" },
+    );
+
+    await waitForAssertion(() => expect(mocks.agentCommand).toHaveBeenCalled());
+    expect(readLastAgentCommandCall()?.observation).toEqual(
+      expect.objectContaining({
+        trace: expect.objectContaining({
+          traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+          parentSpanId: "00f067aa0ba902b7",
+          traceparent,
+          tracestate: "vendor=state",
+        }),
+        runtime: expect.objectContaining({
+          runId: expect.any(String),
+          sessionId: "reused-session-id",
+          sessionKey: "agent:main:main",
+          agentId: "main",
+        }),
+        source: "gateway",
       }),
     );
   });

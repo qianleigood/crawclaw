@@ -9,6 +9,7 @@ import {
   mergeAgentInspectionArchive,
 } from "../agents/runtime/agent-inspection.js";
 import { loadConfig } from "../config/config.js";
+import type { ObservationContext } from "../infra/observation/types.js";
 import {
   readSessionSummaryFile,
   resolveDurableMemoryScope,
@@ -22,6 +23,7 @@ import { defaultRuntime } from "../runtime.js";
 export type AgentInspectOptions = {
   runId?: string;
   taskId?: string;
+  traceId?: string;
   json?: boolean;
 };
 
@@ -46,6 +48,33 @@ function formatArray(label: string, values: string[] | undefined): string[] {
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isObservationContext(value: unknown): value is ObservationContext {
+  if (!isObjectRecord(value) || !isObjectRecord(value.trace) || !isObjectRecord(value.runtime)) {
+    return false;
+  }
+  return (
+    typeof value.trace.traceId === "string" &&
+    typeof value.trace.spanId === "string" &&
+    (typeof value.trace.parentSpanId === "string" || value.trace.parentSpanId === null) &&
+    typeof value.source === "string"
+  );
+}
+
+function eventObservation(event: {
+  payload?: unknown;
+  metadata?: Record<string, unknown>;
+}): ObservationContext | undefined {
+  const payload = isObjectRecord(event.payload) ? event.payload : undefined;
+  const metadata = isObjectRecord(event.metadata) ? event.metadata : undefined;
+  if (isObservationContext(payload?.observation)) {
+    return payload.observation;
+  }
+  if (isObservationContext(metadata?.observation)) {
+    return metadata.observation;
+  }
+  return undefined;
 }
 
 function joinProjectedSummary(params: {
@@ -178,7 +207,7 @@ function buildInspectionTimeline(
     metadata?: Record<string, unknown>;
   }>,
 ): AgentInspectionTimelineEntry[] {
-  return events.flatMap((event) => {
+  return events.flatMap<AgentInspectionTimelineEntry>((event) => {
     if (event.type === "agent.action" && isAgentActionEventData(event.payload)) {
       const action = event.payload;
       const summary =
@@ -206,6 +235,7 @@ function buildInspectionTimeline(
           type: event.type,
           phase: `action.${action.kind}`,
           createdAt: event.createdAt,
+          source: "action",
           status: action.status,
           summary,
           ...(Object.keys(refs).length > 0 ? { refs } : {}),
@@ -217,6 +247,7 @@ function buildInspectionTimeline(
     }
     const payload = isObjectRecord(event.payload) ? event.payload : {};
     const metadata = isObjectRecord(event.metadata) ? event.metadata : undefined;
+    const observation = eventObservation(event);
     const phase =
       typeof payload.phase === "string" ? payload.phase : event.type.slice("run.lifecycle.".length);
     const decision = isObjectRecord(payload.decision) ? payload.decision : undefined;
@@ -252,11 +283,11 @@ function buildInspectionTimeline(
         type: event.type,
         phase,
         createdAt: event.createdAt,
-        ...(typeof payload.traceId === "string" ? { traceId: payload.traceId } : {}),
-        ...(typeof payload.spanId === "string" ? { spanId: payload.spanId } : {}),
-        ...(typeof payload.parentSpanId === "string" || payload.parentSpanId === null
-          ? { parentSpanId: payload.parentSpanId }
-          : {}),
+        source: "lifecycle",
+        ...(observation ? { observation } : {}),
+        ...(observation ? { traceId: observation.trace.traceId } : {}),
+        ...(observation ? { spanId: observation.trace.spanId } : {}),
+        ...(observation ? { parentSpanId: observation.trace.parentSpanId } : {}),
         ...(resolveLifecycleStatus(phase, payload)
           ? { status: resolveLifecycleStatus(phase, payload) }
           : {}),
@@ -307,7 +338,7 @@ function formatArchive(snapshot: AgentInspectionSnapshot): string[] {
 async function enrichInspectionWithArchive(
   snapshot: AgentInspectionSnapshot,
 ): Promise<AgentInspectionSnapshot> {
-  if (!snapshot.runId && !snapshot.taskId) {
+  if (!snapshot.runId && !snapshot.taskId && !snapshot.lookup.traceId) {
     return snapshot;
   }
   try {
@@ -315,11 +346,25 @@ async function enrichInspectionWithArchive(
     if (!archive) {
       return snapshot;
     }
-    const archived = await archive.inspect({
+    let archived = await archive.inspect({
       ...(snapshot.runId ? { runId: snapshot.runId } : {}),
       ...(snapshot.taskId ? { taskId: snapshot.taskId } : {}),
       limit: 20,
     });
+    const lookupTraceId = normalizeOptionalString(snapshot.lookup.traceId);
+    if (lookupTraceId && !snapshot.runId && !snapshot.taskId) {
+      const matchingRuns = [];
+      for (const run of archived.runs) {
+        const events = await archive.readEvents(run.id, {
+          hydratePayload: true,
+          limit: 50,
+        });
+        if (events.some((event) => eventObservation(event)?.trace.traceId === lookupTraceId)) {
+          matchingRuns.push(run);
+        }
+      }
+      archived = { runs: matchingRuns };
+    }
     const merged = mergeAgentInspectionArchive(snapshot, archived);
     const latestTurnRun = archived.runs
       .filter((run) => run.kind === "turn")
@@ -938,8 +983,9 @@ export function resolveAgentInspectionOrExit(
 ): AgentInspectionSnapshot | undefined {
   const runId = normalizeOptionalString(opts.runId);
   const taskId = normalizeOptionalString(opts.taskId);
-  if (!runId && !taskId) {
-    runtime.error("Pass --run-id or --task-id.");
+  const traceId = normalizeOptionalString(opts.traceId);
+  if (!runId && !taskId && !traceId) {
+    runtime.error("Pass --run-id, --task-id, or --trace-id.");
     runtime.exit(1);
     return undefined;
   }
@@ -947,10 +993,18 @@ export function resolveAgentInspectionOrExit(
   const inspection = inspectAgentRuntime({
     ...(runId ? { runId } : {}),
     ...(taskId ? { taskId } : {}),
+    ...(traceId ? { traceId } : {}),
   });
+  if (!inspection && traceId && !runId && !taskId) {
+    return {
+      lookup: { traceId },
+      refs: {},
+      warnings: ["Runtime state not found"],
+    };
+  }
   if (!inspection) {
     runtime.error(
-      `Agent inspection target not found${runId ? ` for run ${runId}` : ""}${taskId ? ` for task ${taskId}` : ""}.`,
+      `Agent inspection target not found${runId ? ` for run ${runId}` : ""}${taskId ? ` for task ${taskId}` : ""}${traceId ? ` for trace ${traceId}` : ""}.`,
     );
     runtime.exit(1);
     return undefined;

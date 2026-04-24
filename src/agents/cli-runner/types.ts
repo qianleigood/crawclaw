@@ -4,6 +4,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import type { CliSessionBinding } from "../../config/sessions.js";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
 import type { CliBackendConfig } from "../../config/types.js";
+import type { ObservationContext } from "../../infra/observation/types.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";
 import type { ResolvedCliBackend } from "../cli-backends.js";
 
@@ -20,6 +21,7 @@ export type RunCliAgentParams = {
   thinkLevel?: ThinkLevel;
   timeoutMs: number;
   runId: string;
+  observation?: ObservationContext;
   extraSystemPrompt?: string;
   streamParams?: import("../command/types.js").AgentStreamParams;
   ownerNumbers?: string[];

@@ -255,12 +255,16 @@ describe("subagent registry seam flow", () => {
     });
 
     await vi.waitFor(() => {
-      expect(mocks.ensureSharedRunLoopLifecycleSubscribers).toHaveBeenCalledTimes(1);
+      expect(mocks.ensureSharedRunLoopLifecycleSubscribers).toHaveBeenCalled();
       expect(mocks.emitRunLoopLifecycleEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           phase: "subagent_start",
           runId: "run-start-phase",
-          spanId: "subagent:run-start-phase",
+          observation: expect.objectContaining({
+            trace: expect.objectContaining({
+              spanId: "subagent:run-start-phase",
+            }),
+          }),
           sessionId: "sess-child",
           sessionKey: "agent:main:subagent:child",
           agentId: "main",

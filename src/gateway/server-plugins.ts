@@ -339,6 +339,7 @@ export function createGatewaySubagentRuntime(): PluginRuntime["subagent"] {
           ...(params.extraSystemPrompt && { extraSystemPrompt: params.extraSystemPrompt }),
           ...(params.lane && { lane: params.lane }),
           ...(params.idempotencyKey && { idempotencyKey: params.idempotencyKey }),
+          ...(params.observation ? { observation: params.observation } : {}),
         },
         {
           allowSyntheticModelOverride,

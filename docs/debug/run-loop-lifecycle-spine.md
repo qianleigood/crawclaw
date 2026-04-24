@@ -290,10 +290,10 @@ PR1 through PR6 are landed:
   translations and side effects
 - Action Feed and Context Archive now consume the same lifecycle spine for
   run-loop phase visibility
-- lifecycle archive records now preserve a shared trace envelope
-  (`traceId`, `spanId`, `parentSpanId`, `decision`, `metrics`, `refs`)
+- lifecycle archive records now preserve `ObservationContext` plus lifecycle
+  `decision`, `metrics`, and `refs`
 - lifecycle events now bridge into diagnostic events as `run.lifecycle`, and
-  diagnostic/cache trace/OTel/log surfaces reuse the same internal trace envelope
+  diagnostic/cache trace/OTel/log surfaces read the same observation context
 - `agent inspect` now reconstructs a run timeline from archived
   `run.lifecycle.*` events instead of only showing the latest context snapshot
 - operator-facing subsystem logs now bind run/session/agent context at the

@@ -260,7 +260,7 @@ describe("createCacheTrace", () => {
     });
   });
 
-  it("writes the shared trace envelope to JSONL events", () => {
+  it("writes the shared observation context to JSONL events", () => {
     const lines: string[] = [];
     const trace = createCacheTrace({
       cfg: {

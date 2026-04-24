@@ -385,6 +385,7 @@ export function runAgentAttempt(params: {
         thinkLevel: params.resolvedThinkLevel,
         timeoutMs: params.timeoutMs,
         runId: params.runId,
+        observation: params.opts.observation,
         extraSystemPrompt: params.opts.extraSystemPrompt,
         cliSessionId: nextCliSessionId,
         cliSessionBinding:
@@ -495,6 +496,7 @@ export function runAgentAttempt(params: {
     ...(typeof params.maxTurns === "number" ? { maxTurns: params.maxTurns } : {}),
     ...(params.opts.toolsAllow?.length ? { toolsAllow: [...params.opts.toolsAllow] } : {}),
     runId: params.runId,
+    observation: params.opts.observation,
     lane: params.opts.lane,
     abortSignal: params.opts.abortSignal,
     extraSystemPrompt: params.opts.extraSystemPrompt,

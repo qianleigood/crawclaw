@@ -1,11 +1,7 @@
 import { loadConfig } from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
 import { getAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
-import {
-  createObservationRoot,
-  deriveObservationChild,
-  observationRef,
-} from "../infra/observation/context.js";
+import { createObservationRoot, deriveObservationChild } from "../infra/observation/context.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { MemoryRuntime, MemorySubagentEndReason } from "../memory/engine/types.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
@@ -403,32 +399,9 @@ const subagentLifecycleController = createSubagentRegistryLifecycleController({
       typeof meta?.childSessionKey === "string" ? meta.childSessionKey : undefined;
     const parsed = childSessionKey ? parseAgentSessionKey(childSessionKey) : undefined;
     const runId = typeof meta?.runId === "string" ? meta.runId : undefined;
-    const trace = runId
-      ? observationRef(
-          createObservationRoot({
-            source: "subagent",
-            runtime: {
-              runId,
-              ...(childSessionKey ? { sessionId: childSessionKey } : {}),
-              ...(parsed?.agentId ? { agentId: parsed.agentId } : {}),
-            },
-            phase: "subagent_stop",
-            trace: {
-              spanId: `subagent:${runId}`,
-            },
-          }),
-        )
-      : undefined;
     log
       .withContext({
         ...(runId ? { runId } : {}),
-        ...(trace
-          ? {
-              traceId: trace.traceId,
-              spanId: trace.spanId,
-              ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
-            }
-          : {}),
         ...(childSessionKey ? { sessionId: childSessionKey } : {}),
         ...(parsed?.agentId ? { agentId: parsed.agentId } : {}),
         phase: "subagent_stop",

@@ -8,7 +8,6 @@ import { createStreamingDirectiveAccumulator } from "../auto-reply/reply/streami
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { setReplyPayloadMetadata } from "../auto-reply/types.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
-import { createObservationRoot, observationRef } from "../infra/observation/context.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { InlineCodeState } from "../markdown/code-spans.js";
 import { buildCodeSpanIndex, createInlineCodeState } from "../markdown/code-spans.js";
@@ -41,25 +40,10 @@ export type {
 } from "./pi-embedded-subscribe.types.js";
 
 export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionParams) {
-  const observation =
-    params.observation ??
-    createObservationRoot({
-      source: "run-loop",
-      runtime: {
-        runId: params.runId,
-        ...(params.sessionId ? { sessionId: params.sessionId } : {}),
-        ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
-        ...(params.agentId ? { agentId: params.agentId } : {}),
-      },
-    });
-  const trace = observationRef(observation);
   const log = embeddedSubscribeLog.withContext({
     runId: params.runId,
     sessionId: params.sessionId,
     ...(params.agentId ? { agentId: params.agentId } : {}),
-    traceId: trace.traceId,
-    spanId: trace.spanId,
-    parentSpanId: trace.parentSpanId,
   });
   const reasoningMode = params.reasoningMode ?? "off";
   const toolResultFormat = params.toolResultFormat ?? "markdown";

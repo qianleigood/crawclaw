@@ -126,9 +126,6 @@ function emitToolLifecycleEvent(params: {
     },
   }).catch((err) => {
     params.ctx.log.warn("tool lifecycle event emission failed", {
-      traceId: observation.trace.traceId,
-      spanId: observation.trace.spanId,
-      parentSpanId: observation.trace.parentSpanId,
       toolName: params.toolName,
       toolCallId: params.toolCallId,
       phase: params.phase,

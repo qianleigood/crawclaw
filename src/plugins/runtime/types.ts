@@ -1,3 +1,4 @@
+import type { ObservationContext } from "../../infra/observation/types.js";
 import type { PluginRuntimeChannel } from "./types-channel.js";
 import type { PluginRuntimeCore, RuntimeLogger } from "./types-core.js";
 
@@ -16,6 +17,7 @@ export type SubagentRunParams = {
   lane?: string;
   deliver?: boolean;
   idempotencyKey?: string;
+  observation?: ObservationContext;
 };
 
 export type SubagentRunResult = {

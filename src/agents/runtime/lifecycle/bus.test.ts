@@ -200,4 +200,41 @@ describe("run-loop lifecycle bus", () => {
         ?.parentSpanId,
     ).toBeNull();
   });
+
+  it("normalizes repeated root lifecycle events for one run to the same root observation", async () => {
+    const handler = vi.fn();
+    registerRunLoopLifecycleHandler("*", handler);
+
+    await emitRunLoopLifecycleEvent({
+      phase: "turn_started",
+      runId: "run-single-root",
+      sessionId: "session-1",
+      isTopLevel: true,
+    });
+    await emitRunLoopLifecycleEvent({
+      phase: "settled_turn",
+      runId: "run-single-root",
+      sessionId: "session-1",
+      isTopLevel: true,
+    });
+
+    const observations = handler.mock.calls.map(
+      (call) =>
+        (
+          call[0] as {
+            observation: {
+              trace: { traceId: string; spanId: string; parentSpanId: string | null };
+            };
+          }
+        ).observation,
+    );
+    expect(new Set(observations.map((observation) => observation.trace.traceId))).toEqual(
+      new Set(["run-loop:run-single-root"]),
+    );
+    expect(observations.map((observation) => observation.trace.spanId)).toEqual([
+      "root:run-loop:run-single-root",
+      "root:run-loop:run-single-root",
+    ]);
+    expect(observations.map((observation) => observation.trace.parentSpanId)).toEqual([null, null]);
+  });
 });

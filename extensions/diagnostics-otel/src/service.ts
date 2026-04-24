@@ -1,4 +1,10 @@
-import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
+import {
+  context as otelContext,
+  metrics,
+  trace,
+  SpanStatusCode,
+  TraceFlags,
+} from "@opentelemetry/api";
 import type { SeverityNumber } from "@opentelemetry/api-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-proto";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
@@ -16,6 +22,8 @@ import {
   onDiagnosticEvent,
   redactSensitiveText,
   registerLogTransport,
+  toW3cSpanId,
+  toW3cTraceId,
 } from "../api.js";
 
 const DEFAULT_SERVICE_NAME = "crawclaw";
@@ -86,6 +94,16 @@ function withObservationMetricAttributes(
     ...attributes,
     ...observationToMetricAttributes(evt.observation),
   };
+}
+
+function observationParentContext(observation: DiagnosticEventPayload["observation"]) {
+  const parentSpanId = observation.trace.parentSpanId ?? observation.trace.spanId;
+  return trace.setSpanContext(otelContext.active(), {
+    traceId: toW3cTraceId(observation.trace.traceId),
+    spanId: toW3cSpanId(parentSpanId),
+    traceFlags: TraceFlags.SAMPLED,
+    isRemote: Boolean(observation.trace.traceparent),
+  });
 }
 
 export function createDiagnosticsOtelService(): CrawClawPluginService {
@@ -394,14 +412,19 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const spanWithDuration = (
         name: string,
         attributes: Record<string, string | number | boolean>,
+        evt: DiagnosticEventPayload,
         durationMs?: number,
       ) => {
         const startTime =
           typeof durationMs === "number" ? Date.now() - Math.max(0, durationMs) : undefined;
-        const span = tracer.startSpan(name, {
-          attributes,
-          ...(startTime ? { startTime } : {}),
-        });
+        const span = tracer.startSpan(
+          name,
+          {
+            attributes,
+            ...(startTime ? { startTime } : {}),
+          },
+          observationParentContext(evt.observation),
+        );
         return span;
       };
 
@@ -476,7 +499,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
           "crawclaw.tokens.total": usage.total ?? 0,
         };
 
-        const span = spanWithDuration("crawclaw.model.usage", spanAttrs, evt.durationMs);
+        const span = spanWithDuration("crawclaw.model.usage", spanAttrs, evt, evt.durationMs);
         span.end();
       };
 
@@ -519,7 +542,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (evt.chatId !== undefined) {
           spanAttrs["crawclaw.chatId"] = String(evt.chatId);
         }
-        const span = spanWithDuration("crawclaw.webhook.processed", spanAttrs, evt.durationMs);
+        const span = spanWithDuration("crawclaw.webhook.processed", spanAttrs, evt, evt.durationMs);
         span.end();
       };
 
@@ -551,9 +574,13 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (evt.chatId !== undefined) {
           spanAttrs["crawclaw.chatId"] = String(evt.chatId);
         }
-        const span = tracer.startSpan("crawclaw.webhook.error", {
-          attributes: spanAttrs,
-        });
+        const span = tracer.startSpan(
+          "crawclaw.webhook.error",
+          {
+            attributes: spanAttrs,
+          },
+          observationParentContext(evt.observation),
+        );
         span.setStatus({ code: SpanStatusCode.ERROR, message: redactedError });
         span.end();
       };
@@ -620,7 +647,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (evt.reason) {
           spanAttrs["crawclaw.reason"] = redactSensitiveText(evt.reason);
         }
-        const span = spanWithDuration("crawclaw.message.processed", spanAttrs, evt.durationMs);
+        const span = spanWithDuration("crawclaw.message.processed", spanAttrs, evt, evt.durationMs);
         if (evt.outcome === "error" && evt.error) {
           span.setStatus({ code: SpanStatusCode.ERROR, message: redactSensitiveText(evt.error) });
         }
@@ -680,7 +707,11 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         addSessionIdentityAttrs(spanAttrs, evt);
         spanAttrs["crawclaw.queueDepth"] = evt.queueDepth ?? 0;
         spanAttrs["crawclaw.ageMs"] = evt.ageMs;
-        const span = tracer.startSpan("crawclaw.session.stuck", { attributes: spanAttrs });
+        const span = tracer.startSpan(
+          "crawclaw.session.stuck",
+          { attributes: spanAttrs },
+          observationParentContext(evt.observation),
+        );
         span.setStatus({ code: SpanStatusCode.ERROR, message: "session stuck" });
         span.end();
       };
@@ -735,9 +766,13 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (evt.chatId !== undefined) {
           spanAttrs["crawclaw.chatId"] = String(evt.chatId);
         }
-        const span = tracer.startSpan("crawclaw.channel.streaming.decision", {
-          attributes: spanAttrs,
-        });
+        const span = tracer.startSpan(
+          "crawclaw.channel.streaming.decision",
+          {
+            attributes: spanAttrs,
+          },
+          observationParentContext(evt.observation),
+        );
         span.end();
       };
 
@@ -773,6 +808,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         const span = spanWithDuration(
           `crawclaw.run.lifecycle.${evt.phase}`,
           spanAttrs,
+          evt,
           evt.metrics?.durationMs,
         );
         if (evt.error || evt.phase.endsWith("_error") || evt.phase === "stop_failure") {

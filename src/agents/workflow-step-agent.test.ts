@@ -53,6 +53,18 @@ describe("workflow-step-agent helpers", () => {
     expect(runParams.idempotencyKey).toBe(
       "workflow-step:wf_publish_redbook_123:exec_456:draft_post",
     );
+    expect(runParams.observation).toEqual(
+      expect.objectContaining({
+        source: "workflow",
+        runtime: expect.objectContaining({
+          workflowRunId: "exec_456",
+          workflowStepId: "draft_post",
+        }),
+        trace: expect.objectContaining({
+          spanId: "workflow:exec_456:draft_post",
+        }),
+      }),
+    );
   });
 
   it("extracts structured results and runs workflow step agents through the subagent runtime", async () => {
@@ -118,5 +130,13 @@ describe("workflow-step-agent helpers", () => {
     expect(ran.runId).toBe("run-1");
     expect(ran.waitStatus).toBe("ok");
     expect(ran.result?.status).toBe("succeeded");
+    expect(ran.result?.observation).toEqual(
+      expect.objectContaining({
+        runtime: expect.objectContaining({
+          workflowRunId: "exec_456",
+          workflowStepId: "draft_post",
+        }),
+      }),
+    );
   });
 });

@@ -91,6 +91,7 @@ ${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/agent", "docs.cra
     .description(t("command.agent.inspect.description"))
     .option("--run-id <id>", t("command.agent.inspect.option.runId"))
     .option("--task-id <id>", t("command.agent.inspect.option.taskId"))
+    .option("--trace-id <id>", t("command.agent.inspect.option.traceId"))
     .option("--json", t("command.agent.inspect.option.json"), false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
@@ -98,6 +99,7 @@ ${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/agent", "docs.cra
           {
             runId: opts.runId as string | undefined,
             taskId: opts.taskId as string | undefined,
+            traceId: opts.traceId as string | undefined,
             json: Boolean(opts.json || agent.opts().json),
           },
           defaultRuntime,

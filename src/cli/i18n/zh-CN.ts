@@ -1005,6 +1005,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.agent.inspect.description": "查看基于任务的 agent 运行",
   "command.agent.inspect.option.runId": "按 run id 查看",
   "command.agent.inspect.option.taskId": "按 task id 查看",
+  "command.agent.inspect.option.traceId": "按 trace id 查看",
   "command.agent.inspect.option.json": "输出 JSON 而不是文本",
   "command.agent.exportContext.description": "导出基于任务的 agent 运行的 Context Archive 记录",
   "command.agent.exportContext.option.runId": "按 run id 导出",

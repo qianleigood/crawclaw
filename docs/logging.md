@@ -354,9 +354,9 @@ Queues + sessions:
   `crawclaw.streaming.surface`, `crawclaw.streaming.reason`,
   `crawclaw.streaming.enabled`)
 
-When a diagnostic event carries the internal trace envelope, the exporter also
-adds the shared `crawclaw.traceId` / `crawclaw.spanId` correlation attributes to
-the emitted metric attributes.
+When a diagnostic event carries `ObservationContext`, trace spans and logs get
+the shared `crawclaw.traceId` / `crawclaw.spanId` correlation attributes.
+Metric attributes intentionally omit those high-cardinality ids.
 
 ### Exported spans (names + key attributes)
 

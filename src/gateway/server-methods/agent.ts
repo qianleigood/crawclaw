@@ -20,6 +20,11 @@ import {
 } from "../../config/sessions.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import {
+  createObservationRoot,
+  normalizeObservationContext,
+} from "../../infra/observation/context.js";
+import type { ObservationContext } from "../../infra/observation/types.js";
+import {
   resolveAgentDeliveryPlan,
   resolveAgentOutboundTarget,
 } from "../../infra/outbound/agent-delivery.js";
@@ -111,6 +116,45 @@ function parseAgentInspectParams(
     ...(taskId ? { taskId } : {}),
     ...(traceId ? { traceId } : {}),
   };
+}
+
+function buildGatewayObservation(params: {
+  observation?: ObservationContext;
+  traceparent?: string;
+  tracestate?: string;
+  runId: string;
+  sessionId?: string;
+  sessionKey?: string;
+  agentId?: string;
+}): ObservationContext | undefined {
+  const runtime = {
+    runId: params.runId,
+    ...(params.sessionId ? { sessionId: params.sessionId } : {}),
+    ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
+    ...(params.agentId ? { agentId: params.agentId } : {}),
+  };
+  if (params.observation) {
+    return normalizeObservationContext({
+      ...params.observation,
+      source: "gateway",
+      runtime: {
+        ...params.observation.runtime,
+        ...runtime,
+      },
+      trace: params.observation.trace,
+    });
+  }
+  if (params.traceparent || params.tracestate) {
+    return createObservationRoot({
+      source: "gateway",
+      runtime,
+      trace: {
+        ...(params.traceparent ? { traceparent: params.traceparent } : {}),
+        ...(params.tracestate ? { tracestate: params.tracestate } : {}),
+      },
+    });
+  }
+  return undefined;
 }
 
 async function runSessionResetFromAgent(params: {
@@ -332,6 +376,9 @@ export const agentHandlers: GatewayRequestHandlers = {
       skillsAllow?: string[];
       label?: string;
       inputProvenance?: InputProvenance;
+      observation?: ObservationContext;
+      traceparent?: string;
+      tracestate?: string;
       streamParams?: AgentStreamParams;
     };
     const senderIsOwner = resolveSenderIsOwnerFromClient(client);
@@ -826,6 +873,17 @@ export const agentHandlers: GatewayRequestHandlers = {
     }
 
     const resolvedThreadId = explicitThreadId ?? deliveryPlan.resolvedThreadId;
+    const observation = buildGatewayObservation({
+      observation: request.observation,
+      traceparent: request.traceparent,
+      tracestate: request.tracestate,
+      runId,
+      sessionId: resolvedSessionId,
+      sessionKey: resolvedSessionKey,
+      agentId:
+        agentId ??
+        (resolvedSessionKey ? resolveAgentIdFromSessionKey(resolvedSessionKey) : undefined),
+    });
 
     dispatchAgentRunFromGateway({
       ingressOpts: {
@@ -868,6 +926,7 @@ export const agentHandlers: GatewayRequestHandlers = {
         extraSystemPrompt: request.extraSystemPrompt,
         internalEvents: request.internalEvents,
         inputProvenance,
+        ...(observation ? { observation } : {}),
         streamParams: request.streamParams,
         // Internal-only: allow workspace override for spawned subagent runs.
         workspaceDir: resolveIngressWorkspaceOverrideForSpawnedRun({

@@ -1,3 +1,5 @@
+import { createObservationRoot, deriveObservationChild } from "../infra/observation/context.js";
+import type { ObservationContext } from "../infra/observation/types.js";
 import type { PluginRuntime, SubagentRunParams } from "../plugins/runtime/types.js";
 import {
   normalizeWorkflowAgentNodeRequest,
@@ -96,10 +98,45 @@ export function buildWorkflowStepAgentMessage(request: WorkflowAgentNodeRequest)
   ].join("\n");
 }
 
+function buildWorkflowStepObservation(request: WorkflowAgentNodeRequest): ObservationContext {
+  const normalized = normalizeWorkflowAgentNodeRequest(request);
+  const runtime = {
+    workflowRunId: normalized.executionId,
+    workflowStepId: normalized.stepId,
+    ...(normalized.sessionBinding?.sessionId
+      ? { sessionId: normalized.sessionBinding.sessionId }
+      : {}),
+    ...(normalized.sessionBinding?.sessionKey
+      ? { sessionKey: normalized.sessionBinding.sessionKey }
+      : {}),
+  };
+  const refs = {
+    workflowId: normalized.workflowId,
+    executionId: normalized.executionId,
+    stepId: normalized.stepId,
+    ...(normalized.localExecutionId ? { localExecutionId: normalized.localExecutionId } : {}),
+  };
+  const parent =
+    normalized.observation ??
+    createObservationRoot({
+      source: "workflow",
+      runtime,
+      refs,
+    });
+  return deriveObservationChild(parent, {
+    source: "workflow",
+    spanId: `workflow:${normalized.executionId}:${normalized.stepId}`,
+    runtime,
+    phase: "workflow_step",
+    refs,
+  });
+}
+
 export function buildWorkflowStepAgentRunParams(
   request: WorkflowAgentNodeRequest,
 ): SubagentRunParams {
   const normalized = normalizeWorkflowAgentNodeRequest(request);
+  const observation = buildWorkflowStepObservation(normalized);
   return {
     sessionKey: buildWorkflowStepAgentSessionKey(normalized),
     message: buildWorkflowStepAgentMessage(normalized),
@@ -114,6 +151,7 @@ export function buildWorkflowStepAgentRunParams(
       normalized.executionId,
       normalized.stepId,
     ].join(":"),
+    observation,
   };
 }
 
@@ -235,12 +273,18 @@ export async function runWorkflowStepAgent(
           })
         ).messages
       : [];
+  const result = extractWorkflowStepAgentResult(messages);
   return {
     runId: run.runId,
     sessionKey: runParams.sessionKey,
     waitStatus: waited.status,
     ...(waited.error ? { waitError: waited.error } : {}),
     messages,
-    result: extractWorkflowStepAgentResult(messages),
+    result: result
+      ? {
+          ...result,
+          observation: result.observation ?? runParams.observation,
+        }
+      : null,
   };
 }

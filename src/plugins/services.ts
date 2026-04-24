@@ -1,5 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { STATE_DIR } from "../config/paths.js";
+import { createObservationRoot } from "../infra/observation/context.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { getPluginRuntimeStatus } from "./plugin-runtimes.js";
 import type { PluginRegistry } from "./registry.js";
@@ -23,6 +24,10 @@ function createServiceContext(params: {
     config: params.config,
     workspaceDir: params.workspaceDir,
     stateDir: STATE_DIR,
+    observation: createObservationRoot({
+      source: "plugin-service",
+      runtime: {},
+    }),
     logger: createPluginLogger(),
   };
 }

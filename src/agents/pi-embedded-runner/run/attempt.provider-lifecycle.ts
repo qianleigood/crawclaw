@@ -102,9 +102,6 @@ function emitProviderLifecycleEvent(params: {
     },
   }).catch((error) => {
     params.logger?.warn?.("provider lifecycle event emission failed", {
-      traceId: observation.trace.traceId,
-      spanId: observation.trace.spanId,
-      parentSpanId: observation.trace.parentSpanId,
       phase: params.phase,
       decision: decisionCode,
       error: stringifyError(error),
