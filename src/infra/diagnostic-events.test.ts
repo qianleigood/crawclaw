@@ -87,6 +87,86 @@ describe("diagnostic-events", () => {
     expect(seen).toEqual(["webhook.received"]);
   });
 
+  it("accepts diagnostic events with a trace envelope", () => {
+    const seen: unknown[] = [];
+    onDiagnosticEvent((event) => {
+      seen.push(event);
+    });
+
+    emitDiagnosticEvent({
+      type: "message.processed",
+      channel: "telegram",
+      outcome: "completed",
+      trace: {
+        traceId: "run-loop:run-1",
+        spanId: "span-message-1",
+        parentSpanId: "root:run-loop:run-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        sessionKey: "session-key-1",
+      },
+    });
+
+    expect(seen).toEqual([
+      expect.objectContaining({
+        type: "message.processed",
+        trace: {
+          traceId: "run-loop:run-1",
+          spanId: "span-message-1",
+          parentSpanId: "root:run-loop:run-1",
+          runId: "run-1",
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+        },
+      }),
+    ]);
+  });
+
+  it("accepts run lifecycle diagnostic events", () => {
+    const seen: unknown[] = [];
+    onDiagnosticEvent((event) => {
+      seen.push(event);
+    });
+
+    emitDiagnosticEvent({
+      type: "run.lifecycle",
+      phase: "provider_request_start",
+      runId: "run-1",
+      sessionId: "session-1",
+      sessionKey: "session-key-1",
+      isTopLevel: true,
+      decision: { code: "provider_request" },
+      metrics: { durationMs: 7 },
+      refs: { provider: "openai" },
+      trace: {
+        traceId: "run-loop:run-1",
+        spanId: "span-provider-1",
+        parentSpanId: "root:run-loop:run-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        sessionKey: "session-key-1",
+        phase: "provider_request_start",
+        decisionCode: "provider_request",
+      },
+    });
+
+    expect(seen).toEqual([
+      expect.objectContaining({
+        type: "run.lifecycle",
+        phase: "provider_request_start",
+        decision: { code: "provider_request" },
+        metrics: { durationMs: 7 },
+        refs: { provider: "openai" },
+        trace: expect.objectContaining({
+          traceId: "run-loop:run-1",
+          spanId: "span-provider-1",
+          phase: "provider_request_start",
+          decisionCode: "provider_request",
+        }),
+      }),
+    ]);
+  });
+
   it("drops recursive emissions after the guard threshold", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     let calls = 0;

@@ -10,6 +10,7 @@ import {
 import { resolveHeartbeatPrompt } from "../../../auto-reply/heartbeat.js";
 import type { ReasoningLevel, ThinkLevel, VerboseLevel } from "../../../auto-reply/thinking.js";
 import { resolveChannelCapabilities } from "../../../config/channel-capabilities.js";
+import { buildDiagnosticTraceRootSpanId } from "../../../infra/diagnostic-trace.js";
 import { getMachineDisplayName } from "../../../infra/machine-name.js";
 import {
   ensureGlobalUndiciEnvProxyDispatcher,
@@ -546,12 +547,23 @@ export async function runEmbeddedAttempt(
   params: EmbeddedRunAttemptParams,
 ): Promise<EmbeddedRunAttemptResult> {
   const runTraceId = `run-loop:${params.runId}`;
+  const runRootSpanId = buildDiagnosticTraceRootSpanId(runTraceId);
+  const runTrace = {
+    traceId: runTraceId,
+    spanId: runRootSpanId,
+    parentSpanId: null,
+    runId: params.runId,
+    sessionId: params.sessionId,
+    ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
+    ...(params.agentId ? { agentId: params.agentId } : {}),
+  };
   let log = embeddedAttemptLog.withContext({
     runId: params.runId,
     sessionId: params.sessionId,
     ...(params.agentId ? { agentId: params.agentId } : {}),
-    traceId: runTraceId,
-    spanId: `root:${runTraceId}`,
+    traceId: runTrace.traceId,
+    spanId: runTrace.spanId,
+    parentSpanId: runTrace.parentSpanId,
   });
   const resolvedWorkspace = resolveUserPath(params.workspaceDir);
   const runAbortController = new AbortController();
@@ -1342,6 +1354,11 @@ export async function runEmbeddedAttempt(
         runId: params.runId,
         sessionId: activeSession.sessionId,
         sessionKey: params.sessionKey,
+        agentId: params.agentId,
+        trace: {
+          ...runTrace,
+          sessionId: activeSession.sessionId,
+        },
         provider: params.provider,
         modelId: params.modelId,
         modelApi: params.model.api,

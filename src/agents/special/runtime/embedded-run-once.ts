@@ -139,12 +139,17 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
   const provider =
     modelOverride.provider ??
     normalizeOptionalText(embeddedContext?.provider) ??
+    normalizeOptionalText(request.parentForkContext?.provider) ??
     configuredDefaultModel.provider;
-  const model = modelOverride.model ?? embeddedModel.model ?? configuredDefaultModel.model;
+  const model =
+    modelOverride.model ??
+    embeddedModel.model ??
+    normalizeOptionalText(request.parentForkContext?.modelId) ??
+    configuredDefaultModel.model;
   if (!provider || !model) {
     return {
       error:
-        "embedded_fork special agents require provider/model resolution from spawnOverrides.model, embeddedContext, or configured defaults",
+        "embedded_fork special agents require provider/model resolution from spawnOverrides.model, embeddedContext, parentForkContext, or configured defaults",
     };
   }
 

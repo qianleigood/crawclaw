@@ -1,5 +1,6 @@
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { appendAssistantMessageToSessionTranscript } from "../config/sessions/transcript.js";
+import { normalizeDiagnosticTraceEnvelope } from "../infra/diagnostic-trace.js";
 import { formatErrorMessage, readErrorName } from "../infra/errors.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
@@ -115,12 +116,25 @@ export function createSubagentRegistryLifecycleController(params: {
     status?: string;
   }): Record<string, string> => {
     const parsed = parseAgentSessionKey(args.childSessionKey);
+    const trace = normalizeDiagnosticTraceEnvelope({
+      runId: args.runId,
+      sessionId: args.childSessionKey,
+      agentId: parsed?.agentId,
+      phase: args.phase ?? "subagent_stop",
+      decisionCode: args.decision,
+      spanId: `subagent:${args.runId}`,
+    });
     return {
       runId: args.runId,
       sessionId: args.childSessionKey,
       ...(parsed?.agentId ? { agentId: parsed.agentId } : {}),
-      traceId: `run-loop:${args.runId}`,
-      spanId: `subagent:${args.runId}`,
+      ...(trace
+        ? {
+            traceId: trace.traceId,
+            spanId: trace.spanId,
+            ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
+          }
+        : {}),
       phase: args.phase ?? "subagent_stop",
       decision: args.decision,
       status: args.status ?? "error",

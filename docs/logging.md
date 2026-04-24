@@ -152,9 +152,30 @@ diagnostics + the exporter plugin are enabled.
 ### Signals exported
 
 - **Metrics**: counters + histograms (token usage, message flow, queueing).
-- **Traces**: spans for model usage + webhook/message processing.
+- **Traces**: spans for run lifecycle, model usage, webhook/message processing,
+  and channel streaming decisions.
 - **Logs**: exported over OTLP when `diagnostics.otel.logs` is enabled. Log
   volume can be high; keep `logging.level` and exporter filters in mind.
+
+### Internal trace envelope
+
+Diagnostics, cache trace JSONL, subsystem logs, and OTel export share the same
+internal trace envelope when a run-loop event is involved:
+
+- `traceId`: defaults to `run-loop:${runId ?? sessionKey ?? sessionId}`.
+- `spanId`: the current operation span, such as a run root, provider request,
+  tool call, or subagent span.
+- `parentSpanId`: usually the run root span for operation spans.
+- `runId`, `sessionId`, `sessionKey`, `agentId`: correlation ids.
+- `phase`: run-loop lifecycle phase when available.
+- `decisionCode`: stable decision code when a lifecycle decision exists.
+
+This is an internal correlation model for debugging. It is not a full W3C
+`traceparent` implementation, and CrawClaw does not require OTel context
+propagation through every async boundary. The first goal is practical
+correlation: use the same `traceId`, `runId`, and `sessionId` to connect agent
+timeline records, logs, diagnostics events, cache trace entries, and OTel
+attributes.
 
 ### Diagnostic event catalog
 
@@ -177,6 +198,8 @@ Queue + session:
 - `session.state`: session state transition + reason.
 - `session.stuck`: session stuck warning + age.
 - `run.attempt`: run retry/attempt metadata.
+- `run.lifecycle`: run-loop lifecycle phase, shared trace envelope, decision,
+  metrics, and refs.
 - `diagnostic.heartbeat`: aggregate counters (webhooks/queue/session).
 - `channel.streaming.decision`: per-channel streaming enable/disable decision
   with `surface` and `reason` metadata.
@@ -257,7 +280,13 @@ Notes:
 - Metrics include token usage, cost, context size, run duration, and message-flow
   counters/histograms (webhooks, queueing, session state, queue depth/wait).
 - Traces/metrics can be toggled with `traces` / `metrics` (default: on). Traces
-  include model usage spans plus webhook/message processing spans when enabled.
+  include `crawclaw.run.lifecycle.<phase>` spans, model usage spans, and
+  webhook/message processing spans when enabled.
+- Events with a `trace` envelope export the shared attributes
+  `crawclaw.traceId`, `crawclaw.spanId`, `crawclaw.parentSpanId`,
+  `crawclaw.runId`, `crawclaw.sessionId`, `crawclaw.sessionKey`,
+  `crawclaw.agentId`, `crawclaw.lifecycle.phase`, and
+  `crawclaw.decisionCode` when those fields are present.
 - Channel streaming decisions are exported as the metric
   `crawclaw.channel.streaming.decision` with attributes such as
   `crawclaw.channel`, `crawclaw.streaming.surface`,
@@ -312,8 +341,17 @@ Queues + sessions:
   `crawclaw.streaming.surface`, `crawclaw.streaming.reason`,
   `crawclaw.streaming.enabled`)
 
+When a diagnostic event carries the internal trace envelope, the exporter also
+adds the shared `crawclaw.traceId` / `crawclaw.spanId` correlation attributes to
+the emitted metric attributes.
+
 ### Exported spans (names + key attributes)
 
+- `crawclaw.run.lifecycle.<phase>`
+  - `crawclaw.lifecycle.phase`, `crawclaw.decisionCode`
+  - shared trace attributes when present
+  - `crawclaw.metrics.*` and `crawclaw.refs.*` for small lifecycle metrics and
+    references
 - `crawclaw.model.usage`
   - `crawclaw.channel`, `crawclaw.provider`, `crawclaw.model`
   - `crawclaw.sessionKey`, `crawclaw.sessionId`

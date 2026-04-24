@@ -10,7 +10,12 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { ParentBasedSampler, TraceIdRatioBasedSampler } from "@opentelemetry/sdk-trace-base";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import type { DiagnosticEventPayload, CrawClawPluginService } from "../api.js";
-import { onDiagnosticEvent, redactSensitiveText, registerLogTransport } from "../api.js";
+import {
+  diagnosticTraceEnvelopeToAttributes,
+  onDiagnosticEvent,
+  redactSensitiveText,
+  registerLogTransport,
+} from "../api.js";
 
 const DEFAULT_SERVICE_NAME = "crawclaw";
 
@@ -60,6 +65,16 @@ function redactOtelAttributes(attributes: Record<string, string | number | boole
     redactedAttributes[key] = typeof value === "string" ? redactSensitiveText(value) : value;
   }
   return redactedAttributes;
+}
+
+function withDiagnosticTraceAttributes(
+  attributes: Record<string, string | number | boolean>,
+  evt: DiagnosticEventPayload,
+): Record<string, string | number | boolean> {
+  return {
+    ...attributes,
+    ...diagnosticTraceEnvelopeToAttributes(evt.trace),
+  };
 }
 
 export function createDiagnosticsOtelService(): CrawClawPluginService {
@@ -367,7 +382,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
 
       const spanWithDuration = (
         name: string,
-        attributes: Record<string, string | number>,
+        attributes: Record<string, string | number | boolean>,
         durationMs?: number,
       ) => {
         const startTime =
@@ -380,11 +395,14 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       };
 
       const recordModelUsage = (evt: Extract<DiagnosticEventPayload, { type: "model.usage" }>) => {
-        const attrs = {
-          "crawclaw.channel": evt.channel ?? "unknown",
-          "crawclaw.provider": evt.provider ?? "unknown",
-          "crawclaw.model": evt.model ?? "unknown",
-        };
+        const attrs = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.provider": evt.provider ?? "unknown",
+            "crawclaw.model": evt.model ?? "unknown",
+          },
+          evt,
+        );
 
         const usage = evt.usage;
         if (usage.input) {
@@ -428,7 +446,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number> = {
+        const spanAttrs: Record<string, string | number | boolean> = {
           ...attrs,
           "crawclaw.sessionKey": evt.sessionKey ?? "",
           "crawclaw.sessionId": evt.sessionId ?? "",
@@ -446,27 +464,33 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordWebhookReceived = (
         evt: Extract<DiagnosticEventPayload, { type: "webhook.received" }>,
       ) => {
-        const attrs = {
-          "crawclaw.channel": evt.channel ?? "unknown",
-          "crawclaw.webhook": evt.updateType ?? "unknown",
-        };
+        const attrs = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.webhook": evt.updateType ?? "unknown",
+          },
+          evt,
+        );
         webhookReceivedCounter.add(1, attrs);
       };
 
       const recordWebhookProcessed = (
         evt: Extract<DiagnosticEventPayload, { type: "webhook.processed" }>,
       ) => {
-        const attrs = {
-          "crawclaw.channel": evt.channel ?? "unknown",
-          "crawclaw.webhook": evt.updateType ?? "unknown",
-        };
+        const attrs = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.webhook": evt.updateType ?? "unknown",
+          },
+          evt,
+        );
         if (typeof evt.durationMs === "number") {
           webhookDurationHistogram.record(evt.durationMs, attrs);
         }
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
         if (evt.chatId !== undefined) {
           spanAttrs["crawclaw.chatId"] = String(evt.chatId);
         }
@@ -477,16 +501,19 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordWebhookError = (
         evt: Extract<DiagnosticEventPayload, { type: "webhook.error" }>,
       ) => {
-        const attrs = {
-          "crawclaw.channel": evt.channel ?? "unknown",
-          "crawclaw.webhook": evt.updateType ?? "unknown",
-        };
+        const attrs = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.webhook": evt.updateType ?? "unknown",
+          },
+          evt,
+        );
         webhookErrorCounter.add(1, attrs);
         if (!tracesEnabled) {
           return;
         }
         const redactedError = redactSensitiveText(evt.error);
-        const spanAttrs: Record<string, string | number> = {
+        const spanAttrs: Record<string, string | number | boolean> = {
           ...attrs,
           "crawclaw.error": redactedError,
         };
@@ -503,10 +530,13 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordMessageQueued = (
         evt: Extract<DiagnosticEventPayload, { type: "message.queued" }>,
       ) => {
-        const attrs = {
-          "crawclaw.channel": evt.channel ?? "unknown",
-          "crawclaw.source": evt.source ?? "unknown",
-        };
+        const attrs = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.source": evt.source ?? "unknown",
+          },
+          evt,
+        );
         messageQueuedCounter.add(1, attrs);
         if (typeof evt.queueDepth === "number") {
           queueDepthHistogram.record(evt.queueDepth, attrs);
@@ -514,7 +544,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       };
 
       const addSessionIdentityAttrs = (
-        spanAttrs: Record<string, string | number>,
+        spanAttrs: Record<string, string | number | boolean>,
         evt: { sessionKey?: string; sessionId?: string },
       ) => {
         if (evt.sessionKey) {
@@ -528,10 +558,13 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordMessageProcessed = (
         evt: Extract<DiagnosticEventPayload, { type: "message.processed" }>,
       ) => {
-        const attrs = {
-          "crawclaw.channel": evt.channel ?? "unknown",
-          "crawclaw.outcome": evt.outcome ?? "unknown",
-        };
+        const attrs = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.outcome": evt.outcome ?? "unknown",
+          },
+          evt,
+        );
         messageProcessedCounter.add(1, attrs);
         if (typeof evt.durationMs === "number") {
           messageDurationHistogram.record(evt.durationMs, attrs);
@@ -539,7 +572,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
         addSessionIdentityAttrs(spanAttrs, evt);
         if (evt.chatId !== undefined) {
           spanAttrs["crawclaw.chatId"] = String(evt.chatId);
@@ -560,7 +593,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordLaneEnqueue = (
         evt: Extract<DiagnosticEventPayload, { type: "queue.lane.enqueue" }>,
       ) => {
-        const attrs = { "crawclaw.lane": evt.lane };
+        const attrs = withDiagnosticTraceAttributes({ "crawclaw.lane": evt.lane }, evt);
         laneEnqueueCounter.add(1, attrs);
         queueDepthHistogram.record(evt.queueSize, attrs);
       };
@@ -568,7 +601,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordLaneDequeue = (
         evt: Extract<DiagnosticEventPayload, { type: "queue.lane.dequeue" }>,
       ) => {
-        const attrs = { "crawclaw.lane": evt.lane };
+        const attrs = withDiagnosticTraceAttributes({ "crawclaw.lane": evt.lane }, evt);
         laneDequeueCounter.add(1, attrs);
         queueDepthHistogram.record(evt.queueSize, attrs);
         if (typeof evt.waitMs === "number") {
@@ -579,7 +612,10 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordSessionState = (
         evt: Extract<DiagnosticEventPayload, { type: "session.state" }>,
       ) => {
-        const attrs: Record<string, string> = { "crawclaw.state": evt.state };
+        const attrs: Record<string, string | number | boolean> = withDiagnosticTraceAttributes(
+          { "crawclaw.state": evt.state },
+          evt,
+        );
         if (evt.reason) {
           attrs["crawclaw.reason"] = redactSensitiveText(evt.reason);
         }
@@ -589,7 +625,10 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordSessionStuck = (
         evt: Extract<DiagnosticEventPayload, { type: "session.stuck" }>,
       ) => {
-        const attrs: Record<string, string> = { "crawclaw.state": evt.state };
+        const attrs: Record<string, string | number | boolean> = withDiagnosticTraceAttributes(
+          { "crawclaw.state": evt.state },
+          evt,
+        );
         sessionStuckCounter.add(1, attrs);
         if (typeof evt.ageMs === "number") {
           sessionStuckAgeHistogram.record(evt.ageMs, attrs);
@@ -597,7 +636,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
         addSessionIdentityAttrs(spanAttrs, evt);
         spanAttrs["crawclaw.queueDepth"] = evt.queueDepth ?? 0;
         spanAttrs["crawclaw.ageMs"] = evt.ageMs;
@@ -607,7 +646,10 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       };
 
       const recordRunAttempt = (evt: Extract<DiagnosticEventPayload, { type: "run.attempt" }>) => {
-        runAttemptCounter.add(1, { "crawclaw.attempt": evt.attempt });
+        runAttemptCounter.add(
+          1,
+          withDiagnosticTraceAttributes({ "crawclaw.attempt": evt.attempt }, evt),
+        );
       };
 
       const recordHeartbeat = (
@@ -619,17 +661,20 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordChannelStreamingDecision = (
         evt: Extract<DiagnosticEventPayload, { type: "channel.streaming.decision" }>,
       ) => {
-        const attrs = {
-          "crawclaw.channel": evt.channel ?? "unknown",
-          "crawclaw.streaming.surface": evt.surface,
-          "crawclaw.streaming.reason": evt.reason,
-          "crawclaw.streaming.enabled": evt.enabled ? "true" : "false",
-        };
+        const attrs = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.streaming.surface": evt.surface,
+            "crawclaw.streaming.reason": evt.reason,
+            "crawclaw.streaming.enabled": evt.enabled ? "true" : "false",
+          },
+          evt,
+        );
         channelStreamingDecisionCounter.add(1, attrs);
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
         if (evt.accountId) {
           spanAttrs["crawclaw.accountId"] = evt.accountId;
         }
@@ -645,6 +690,49 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         const span = tracer.startSpan("crawclaw.channel.streaming.decision", {
           attributes: spanAttrs,
         });
+        span.end();
+      };
+
+      const recordRunLifecycle = (
+        evt: Extract<DiagnosticEventPayload, { type: "run.lifecycle" }>,
+      ) => {
+        if (!tracesEnabled) {
+          return;
+        }
+        const spanAttrs: Record<string, string | number | boolean> = withDiagnosticTraceAttributes(
+          {
+            "crawclaw.lifecycle.phase": evt.phase,
+            ...(evt.runId ? { "crawclaw.runId": evt.runId } : {}),
+            "crawclaw.sessionId": evt.sessionId,
+            ...(evt.sessionKey ? { "crawclaw.sessionKey": evt.sessionKey } : {}),
+            ...(evt.agentId ? { "crawclaw.agentId": evt.agentId } : {}),
+            "crawclaw.lifecycle.isTopLevel": evt.isTopLevel,
+            ...(evt.decision?.code ? { "crawclaw.decisionCode": evt.decision.code } : {}),
+          },
+          evt,
+        );
+        for (const [key, value] of Object.entries(evt.metrics ?? {})) {
+          spanAttrs[`crawclaw.metrics.${key}`] = value;
+        }
+        for (const [key, value] of Object.entries(evt.refs ?? {})) {
+          if (value === null) {
+            continue;
+          }
+          spanAttrs[`crawclaw.refs.${key}`] =
+            typeof value === "string" ? redactSensitiveText(value) : value;
+        }
+
+        const span = spanWithDuration(
+          `crawclaw.run.lifecycle.${evt.phase}`,
+          spanAttrs,
+          evt.metrics?.durationMs,
+        );
+        if (evt.error || evt.phase.endsWith("_error") || evt.phase === "stop_failure") {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: redactSensitiveText(evt.error ?? evt.phase),
+          });
+        }
         span.end();
       };
 
@@ -683,6 +771,9 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
               return;
             case "run.attempt":
               recordRunAttempt(evt);
+              return;
+            case "run.lifecycle":
+              recordRunLifecycle(evt);
               return;
             case "diagnostic.heartbeat":
               recordHeartbeat(evt);

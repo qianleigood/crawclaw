@@ -1,10 +1,12 @@
 import type { CrawClawConfig } from "../config/config.js";
+import type { DiagnosticTraceEnvelope } from "./diagnostic-trace.js";
 
 export type DiagnosticSessionState = "idle" | "processing" | "waiting";
 
 type DiagnosticBaseEvent = {
   ts: number;
   seq: number;
+  trace?: DiagnosticTraceEnvelope;
 };
 
 export type DiagnosticUsageEvent = DiagnosticBaseEvent & {
@@ -122,6 +124,30 @@ export type DiagnosticRunAttemptEvent = DiagnosticBaseEvent & {
   attempt: number;
 };
 
+export type DiagnosticRunLifecycleEvent = DiagnosticBaseEvent & {
+  type: "run.lifecycle";
+  phase: string;
+  runId?: string;
+  sessionId: string;
+  sessionKey?: string;
+  agentId?: string;
+  parentSessionKey?: string;
+  isTopLevel: boolean;
+  sessionFile?: string;
+  turnIndex?: number;
+  messageCount?: number;
+  tokenCount?: number;
+  stopReason?: string | null;
+  error?: string | null;
+  decision?: {
+    code: string;
+    summary?: string;
+    details?: Record<string, unknown>;
+  } | null;
+  metrics?: Record<string, number>;
+  refs?: Record<string, string | number | boolean | null>;
+};
+
 export type DiagnosticHeartbeatEvent = DiagnosticBaseEvent & {
   type: "diagnostic.heartbeat";
   webhooks: {
@@ -175,6 +201,7 @@ export type DiagnosticEventPayload =
   | DiagnosticLaneEnqueueEvent
   | DiagnosticLaneDequeueEvent
   | DiagnosticRunAttemptEvent
+  | DiagnosticRunLifecycleEvent
   | DiagnosticHeartbeatEvent
   | DiagnosticToolLoopEvent
   | DiagnosticChannelStreamingDecisionEvent;

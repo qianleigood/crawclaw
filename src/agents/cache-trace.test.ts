@@ -258,4 +258,49 @@ describe("createCacheTrace", () => {
       runOutcome: "run_outcome_success",
     });
   });
+
+  it("writes the shared trace envelope to JSONL events", () => {
+    const lines: string[] = [];
+    const trace = createCacheTrace({
+      cfg: {
+        diagnostics: {
+          cacheTrace: {
+            enabled: true,
+          },
+        },
+      },
+      env: {},
+      runId: "run-1",
+      sessionId: "session-1",
+      sessionKey: "session-key-1",
+      trace: {
+        traceId: "run-loop:run-1",
+        spanId: "root:run-loop:run-1",
+        parentSpanId: null,
+        runId: "run-1",
+        sessionId: "session-1",
+        sessionKey: "session-key-1",
+      },
+      writer: {
+        filePath: "memory",
+        write: (line) => lines.push(line),
+      },
+    });
+
+    trace?.recordStage("session:loaded", {
+      decisionCodes: {
+        runOutcome: "run_outcome_success",
+      },
+    });
+
+    const event = JSON.parse(lines[0]?.trim() ?? "{}") as Record<string, unknown>;
+    expect(event).toMatchObject({
+      runId: "run-1",
+      sessionId: "session-1",
+      sessionKey: "session-key-1",
+      traceId: "run-loop:run-1",
+      spanId: "root:run-loop:run-1",
+      parentSpanId: null,
+    });
+  });
 });

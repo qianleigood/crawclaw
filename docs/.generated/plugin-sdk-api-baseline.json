@@ -19,7 +19,7 @@
           "exportName": "onDiagnosticEvent",
           "kind": "function",
           "source": {
-            "line": 246,
+            "line": 273,
             "path": "src/infra/diagnostic-events.ts"
           }
         },
@@ -307,8 +307,17 @@
           "exportName": "DiagnosticEventPayload",
           "kind": "type",
           "source": {
-            "line": 166,
+            "line": 192,
             "path": "src/infra/diagnostic-events.ts"
+          }
+        },
+        {
+          "declaration": "export type DiagnosticTraceEnvelope = DiagnosticTraceEnvelope;",
+          "exportName": "DiagnosticTraceEnvelope",
+          "kind": "type",
+          "source": {
+            "line": 1,
+            "path": "src/infra/diagnostic-trace.ts"
           }
         },
         {

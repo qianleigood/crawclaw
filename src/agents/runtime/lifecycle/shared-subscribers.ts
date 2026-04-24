@@ -10,11 +10,16 @@ import {
   __testing as compatTesting,
   getSharedRunLoopLifecycleCompatSubscriber,
 } from "./compat/subscriber.js";
+import {
+  getSharedRunLoopDiagnosticLifecycleSubscriber,
+  __testing as diagnosticLifecycleTesting,
+} from "./diagnostic-subscriber.js";
 
 export function ensureSharedRunLoopLifecycleSubscribers(): void {
   getSharedRunLoopLifecycleCompatSubscriber();
   getSharedRunLoopActionFeedLifecycleSubscriber();
   getSharedRunLoopContextArchiveLifecycleSubscriber();
+  getSharedRunLoopDiagnosticLifecycleSubscriber();
 }
 
 export const __testing = {
@@ -22,5 +27,6 @@ export const __testing = {
     compatTesting.resetSharedRunLoopLifecycleCompatSubscriber();
     actionFeedTesting.resetSharedRunLoopActionFeedLifecycleSubscriber();
     contextArchiveTesting.resetSharedRunLoopContextArchiveLifecycleSubscriber();
+    diagnosticLifecycleTesting.resetRunLoopDiagnosticLifecycleSubscriber();
   },
 };

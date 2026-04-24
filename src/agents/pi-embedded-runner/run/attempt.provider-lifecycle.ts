@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 import { streamSimple } from "@mariozechner/pi-ai";
-import { emitRunLoopLifecycleEvent } from "../../runtime/lifecycle/bus.js";
-import type { QueryContextProviderRequestSnapshot } from "../../query-context/types.js";
+import { normalizeDiagnosticTraceEnvelope } from "../../../infra/diagnostic-trace.js";
 import { resolveProviderLifecycleDecisionCode } from "../../../shared/decision-codes.js";
+import type { QueryContextProviderRequestSnapshot } from "../../query-context/types.js";
+import { emitRunLoopLifecycleEvent } from "../../runtime/lifecycle/bus.js";
 
 type ProviderLifecycleLogger = {
   warn?: (message: string, meta?: Record<string, unknown>) => void;
@@ -36,8 +37,24 @@ function emitProviderLifecycleEvent(params: {
   const decisionCode = resolveProviderLifecycleDecisionCode({
     phase: params.phase,
   });
+  const trace = normalizeDiagnosticTraceEnvelope({
+    runId: params.runId,
+    sessionId: params.sessionId,
+    sessionKey: params.sessionKey,
+    agentId: params.agentId,
+    phase: params.phase,
+    decisionCode,
+    spanId: `provider:${params.requestId}`,
+  });
   void emitRunLoopLifecycleEvent({
     phase: params.phase,
+    ...(trace
+      ? {
+          traceId: trace.traceId,
+          spanId: trace.spanId,
+          parentSpanId: trace.parentSpanId,
+        }
+      : { spanId: `provider:${params.requestId}` }),
     runId: params.runId,
     sessionId: params.sessionId,
     ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
@@ -45,7 +62,6 @@ function emitProviderLifecycleEvent(params: {
     ...(params.parentSessionKey ? { parentSessionKey: params.parentSessionKey } : {}),
     isTopLevel: params.isTopLevel,
     ...(params.sessionFile ? { sessionFile: params.sessionFile } : {}),
-    spanId: `provider:${params.requestId}`,
     decision: {
       code: decisionCode,
       summary: `${params.provider}/${params.modelId}`,
@@ -82,7 +98,9 @@ function emitProviderLifecycleEvent(params: {
     },
   }).catch((error) => {
     params.logger?.warn?.("provider lifecycle event emission failed", {
+      ...trace,
       phase: params.phase,
+      decision: decisionCode,
       error: stringifyError(error),
       requestId: params.requestId,
     });
@@ -100,7 +118,10 @@ function wrapProviderLifecycleStream(params: {
   };
 }): ReturnType<typeof streamSimple> {
   let settled = false;
-  const emitSettled = (phase: "provider_request_stop" | "provider_request_error", error?: unknown) => {
+  const emitSettled = (
+    phase: "provider_request_stop" | "provider_request_error",
+    error?: unknown,
+  ) => {
     if (settled) {
       return;
     }
@@ -114,7 +135,9 @@ function wrapProviderLifecycleStream(params: {
   };
 
   const originalResult =
-    typeof params.stream.result === "function" ? params.stream.result.bind(params.stream) : undefined;
+    typeof params.stream.result === "function"
+      ? params.stream.result.bind(params.stream)
+      : undefined;
   if (originalResult) {
     params.stream.result = async () => {
       try {
@@ -129,42 +152,45 @@ function wrapProviderLifecycleStream(params: {
   }
 
   const originalAsyncIterator = params.stream[Symbol.asyncIterator].bind(params.stream);
-  (params.stream as { [Symbol.asyncIterator]: typeof originalAsyncIterator })[Symbol.asyncIterator] =
-    function () {
-      const iterator = originalAsyncIterator();
-      return {
-        async next() {
-          try {
-            const result = await iterator.next();
-            if (result.done) {
-              emitSettled("provider_request_stop");
-            }
-            return result;
-          } catch (error) {
-            emitSettled("provider_request_error", error);
-            throw error;
-          }
-        },
-        async return(value?: unknown) {
-          try {
-            const result =
-              (await iterator.return?.(value)) ?? { done: true as const, value: undefined };
+  (params.stream as { [Symbol.asyncIterator]: typeof originalAsyncIterator })[
+    Symbol.asyncIterator
+  ] = function () {
+    const iterator = originalAsyncIterator();
+    return {
+      async next() {
+        try {
+          const result = await iterator.next();
+          if (result.done) {
             emitSettled("provider_request_stop");
-            return result;
-          } catch (error) {
-            emitSettled("provider_request_error", error);
-            throw error;
           }
-        },
-        async throw(error?: unknown) {
+          return result;
+        } catch (error) {
           emitSettled("provider_request_error", error);
-          return iterator.throw?.(error) ?? Promise.reject(error);
-        },
-        [Symbol.asyncIterator]() {
-          return this;
-        },
-      };
+          throw error;
+        }
+      },
+      async return(value?: unknown) {
+        try {
+          const result = (await iterator.return?.(value)) ?? {
+            done: true as const,
+            value: undefined,
+          };
+          emitSettled("provider_request_stop");
+          return result;
+        } catch (error) {
+          emitSettled("provider_request_error", error);
+          throw error;
+        }
+      },
+      async throw(error?: unknown) {
+        emitSettled("provider_request_error", error);
+        return iterator.throw?.(error) ?? Promise.reject(error);
+      },
+      [Symbol.asyncIterator]() {
+        return this;
+      },
     };
+  };
 
   return params.stream;
 }
@@ -190,7 +216,9 @@ export function wrapStreamFnWithProviderLifecycle(params: {
     const startedAt = Date.now();
     const snapshot = params.getProviderRequestSnapshot();
     const transport =
-      options && typeof options === "object" && typeof (options as { transport?: unknown }).transport === "string"
+      options &&
+      typeof options === "object" &&
+      typeof (options as { transport?: unknown }).transport === "string"
         ? ((options as { transport?: string }).transport ?? undefined)
         : undefined;
     emitProviderLifecycleEvent({

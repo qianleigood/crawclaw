@@ -2,7 +2,13 @@
 // Keep this list additive and scoped to the bundled diagnostics-otel surface.
 
 export type { DiagnosticEventPayload } from "../infra/diagnostic-events.js";
-export { emitDiagnosticEvent, isDiagnosticsEnabled, onDiagnosticEvent } from "../infra/diagnostic-events.js";
+export type { DiagnosticTraceEnvelope } from "../infra/diagnostic-trace.js";
+export {
+  emitDiagnosticEvent,
+  isDiagnosticsEnabled,
+  onDiagnosticEvent,
+} from "../infra/diagnostic-events.js";
+export { diagnosticTraceEnvelopeToAttributes } from "../infra/diagnostic-trace.js";
 export { registerLogTransport } from "../logging/logger.js";
 export { redactSensitiveText } from "../logging/redact.js";
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";

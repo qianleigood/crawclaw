@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import {
+  buildDiagnosticTraceId,
+  buildDiagnosticTraceRootSpanId,
+} from "../../../infra/diagnostic-trace.js";
 import { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { resolveGlobalSingleton } from "../../../shared/global-singleton.js";
 import type {
@@ -26,19 +30,11 @@ function normalizeLifecycleString(value: string | undefined | null): string | un
 }
 
 function buildDefaultTraceId(event: RunLoopLifecycleEventInput): string {
-  const existing = normalizeLifecycleString(event.traceId);
-  if (existing) {
-    return existing;
-  }
-  const seed =
-    normalizeLifecycleString(event.runId) ??
-    normalizeLifecycleString(event.sessionKey) ??
-    normalizeLifecycleString(event.sessionId);
-  return `run-loop:${seed}`;
+  return buildDiagnosticTraceId(event) ?? `run-loop:${event.sessionId}`;
 }
 
 function buildDefaultRootSpanId(traceId: string): string {
-  return `root:${traceId}`;
+  return buildDiagnosticTraceRootSpanId(traceId);
 }
 
 function buildLifecycleMetrics(event: RunLoopLifecycleEventInput): Record<string, number> {

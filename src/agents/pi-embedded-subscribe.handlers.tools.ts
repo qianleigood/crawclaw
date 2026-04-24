@@ -1,5 +1,6 @@
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import { emitAgentEvent } from "../infra/agent-events.js";
+import { normalizeDiagnosticTraceEnvelope } from "../infra/diagnostic-trace.js";
 import {
   buildExecApprovalPendingReplyPayload,
   buildExecApprovalUnavailableReplyPayload,
@@ -71,14 +72,29 @@ function emitToolLifecycleEvent(params: {
         : params.timedOut
           ? "tool_call_timed_out"
           : "tool_call_failed";
+  const trace = normalizeDiagnosticTraceEnvelope({
+    runId: params.ctx.params.runId,
+    sessionId,
+    sessionKey: params.ctx.params.sessionKey,
+    agentId: params.ctx.params.agentId,
+    phase: params.phase,
+    decisionCode,
+    spanId: `tool:${params.toolCallId}`,
+  });
   void emitRunLoopLifecycleEvent({
     phase: params.phase,
+    ...(trace
+      ? {
+          traceId: trace.traceId,
+          spanId: trace.spanId,
+          parentSpanId: trace.parentSpanId,
+        }
+      : { spanId: `tool:${params.toolCallId}` }),
     runId: params.ctx.params.runId,
     sessionId,
     ...(params.ctx.params.sessionKey ? { sessionKey: params.ctx.params.sessionKey } : {}),
     ...(params.ctx.params.agentId ? { agentId: params.ctx.params.agentId } : {}),
     isTopLevel: true,
-    spanId: `tool:${params.toolCallId}`,
     decision: {
       code: decisionCode,
       summary: params.toolName,
@@ -98,8 +114,11 @@ function emitToolLifecycleEvent(params: {
     },
   }).catch((err) => {
     params.ctx.log.warn("tool lifecycle event emission failed", {
+      ...trace,
       toolName: params.toolName,
       toolCallId: params.toolCallId,
+      phase: params.phase,
+      decision: decisionCode,
       error: err instanceof Error ? err.message : String(err),
     });
   });

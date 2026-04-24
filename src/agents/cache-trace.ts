@@ -3,6 +3,10 @@ import path from "node:path";
 import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
+import {
+  type DiagnosticTraceEnvelope,
+  normalizeDiagnosticTraceEnvelope,
+} from "../infra/diagnostic-trace.js";
 import { resolveUserPath } from "../utils.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 import { safeJsonStringify } from "../utils/safe-json.js";
@@ -26,6 +30,12 @@ export type CacheTraceEvent = {
   runId?: string;
   sessionId?: string;
   sessionKey?: string;
+  agentId?: string;
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string | null;
+  phase?: string;
+  decisionCode?: string;
   provider?: string;
   modelId?: string;
   modelApi?: string | null;
@@ -61,6 +71,8 @@ type CacheTraceInit = {
   runId?: string;
   sessionId?: string;
   sessionKey?: string;
+  agentId?: string;
+  trace?: DiagnosticTraceEnvelope;
   provider?: string;
   modelId?: string;
   modelApi?: string | null;
@@ -188,7 +200,27 @@ export function createCacheTrace(params: CacheTraceInit): CacheTrace | null {
   const writer = params.writer ?? getWriter(cfg.filePath);
   let seq = 0;
 
-  const base: Omit<CacheTraceEvent, "ts" | "seq" | "stage"> = buildAgentTraceBase(params);
+  const trace = normalizeDiagnosticTraceEnvelope(params.trace ?? params);
+  const base: Omit<CacheTraceEvent, "ts" | "seq" | "stage"> = {
+    ...buildAgentTraceBase(params),
+    ...((params.runId ?? trace?.runId) ? { runId: params.runId ?? trace?.runId } : {}),
+    ...((params.sessionId ?? trace?.sessionId)
+      ? { sessionId: params.sessionId ?? trace?.sessionId }
+      : {}),
+    ...((params.sessionKey ?? trace?.sessionKey)
+      ? { sessionKey: params.sessionKey ?? trace?.sessionKey }
+      : {}),
+    ...((params.agentId ?? trace?.agentId) ? { agentId: params.agentId ?? trace?.agentId } : {}),
+    ...(trace
+      ? {
+          traceId: trace.traceId,
+          spanId: trace.spanId,
+          ...(trace.parentSpanId !== undefined ? { parentSpanId: trace.parentSpanId } : {}),
+          ...(trace.phase ? { phase: trace.phase } : {}),
+          ...(trace.decisionCode ? { decisionCode: trace.decisionCode } : {}),
+        }
+      : {}),
+  };
 
   const recordStage: CacheTrace["recordStage"] = (stage, payload = {}) => {
     const event: CacheTraceEvent = {

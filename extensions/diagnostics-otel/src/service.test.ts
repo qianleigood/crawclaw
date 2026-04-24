@@ -223,6 +223,15 @@ describe("diagnostics-otel service", () => {
       channel: "telegram",
       outcome: "completed",
       durationMs: 55,
+      trace: {
+        traceId: "run-loop:run-1",
+        spanId: "span-message-1",
+        parentSpanId: "root:run-loop:run-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        sessionKey: "session-key-1",
+        agentId: "agent-1",
+      },
     });
     emitDiagnosticEvent({
       type: "queue.lane.dequeue",
@@ -261,6 +270,22 @@ describe("diagnostics-otel service", () => {
     expect(spanNames).toContain("crawclaw.webhook.processed");
     expect(spanNames).toContain("crawclaw.message.processed");
     expect(spanNames).toContain("crawclaw.session.stuck");
+    const messageSpanCall = telemetryState.tracer.startSpan.mock.calls.find(
+      (call) => call[0] === "crawclaw.message.processed",
+    );
+    expect(messageSpanCall?.[1]).toEqual(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          "crawclaw.traceId": "run-loop:run-1",
+          "crawclaw.spanId": "span-message-1",
+          "crawclaw.parentSpanId": "root:run-loop:run-1",
+          "crawclaw.runId": "run-1",
+          "crawclaw.sessionId": "session-1",
+          "crawclaw.sessionKey": "session-key-1",
+          "crawclaw.agentId": "agent-1",
+        }),
+      }),
+    );
 
     expect(registerLogTransportMock).toHaveBeenCalledTimes(1);
     expect(registeredTransports).toHaveLength(1);
@@ -270,6 +295,57 @@ describe("diagnostics-otel service", () => {
       _meta: { logLevelName: "INFO", date: new Date() },
     });
     expect(logEmit).toHaveBeenCalled();
+
+    await service.stop?.(ctx);
+  });
+
+  test("records run lifecycle spans with shared trace attributes", async () => {
+    const service = createDiagnosticsOtelService();
+    const ctx = createOtelContext(OTEL_TEST_ENDPOINT, { traces: true, metrics: true });
+    await service.start(ctx);
+
+    emitDiagnosticEvent({
+      type: "run.lifecycle",
+      phase: "provider_request_start",
+      runId: "run-1",
+      sessionId: "session-1",
+      sessionKey: "session-key-1",
+      agentId: "agent-1",
+      isTopLevel: true,
+      decision: { code: "provider_request" },
+      metrics: { durationMs: 17 },
+      refs: { provider: "openai" },
+      trace: {
+        traceId: "run-loop:run-1",
+        spanId: "span-provider-1",
+        parentSpanId: "root:run-loop:run-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        sessionKey: "session-key-1",
+        agentId: "agent-1",
+        phase: "provider_request_start",
+        decisionCode: "provider_request",
+      },
+    });
+
+    expect(telemetryState.tracer.startSpan).toHaveBeenCalledWith(
+      "crawclaw.run.lifecycle.provider_request_start",
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          "crawclaw.traceId": "run-loop:run-1",
+          "crawclaw.spanId": "span-provider-1",
+          "crawclaw.parentSpanId": "root:run-loop:run-1",
+          "crawclaw.runId": "run-1",
+          "crawclaw.sessionId": "session-1",
+          "crawclaw.sessionKey": "session-key-1",
+          "crawclaw.agentId": "agent-1",
+          "crawclaw.lifecycle.phase": "provider_request_start",
+          "crawclaw.decisionCode": "provider_request",
+          "crawclaw.refs.provider": "openai",
+        }),
+        startTime: expect.any(Number),
+      }),
+    );
 
     await service.stop?.(ctx);
   });

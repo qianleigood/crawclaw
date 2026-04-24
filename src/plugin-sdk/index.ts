@@ -82,6 +82,7 @@ export type { HookEntry } from "../hooks/types.js";
 export type { ReplyPayload } from "../auto-reply/types.js";
 export type { WizardPrompter } from "../wizard/prompts.js";
 export type { DiagnosticEventPayload } from "../infra/diagnostic-events.js";
+export type { DiagnosticTraceEnvelope } from "../infra/diagnostic-trace.js";
 
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 export { onDiagnosticEvent } from "../infra/diagnostic-events.js";
