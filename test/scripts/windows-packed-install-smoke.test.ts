@@ -31,6 +31,13 @@ type WindowsPackedInstallSmoke = {
     }>;
   }) => void;
   readTimeoutMsFromEnv: (env: NodeJS.ProcessEnv, key: string, fallbackMs: number) => number;
+  resolveGatewaySmokePort: (options?: {
+    base?: number;
+    listeningPorts?: Set<number>;
+    pid?: number;
+    span?: number;
+  }) => number;
+  resolveGatewaySmokeTaskName: (stateDir: string, platform?: NodeJS.Platform) => string;
   resolveInstalledCrawClawBin: (params: { prefixDir: string; platform: NodeJS.Platform }) => string;
   resolveInstalledPackageRoot: (params: { prefixDir: string; platform: NodeJS.Platform }) => string;
   resolvePackedTarball: (packOutput: string, packDir: string) => string;
@@ -153,7 +160,35 @@ describe("windows packed install smoke helpers", () => {
     expect(env.Path).toBe(`C:\\Temp\\prefix${path.delimiter}C:\\Windows\\System32`);
     expect(env.CRAWCLAW_STATE_DIR).toBe("C:\\Temp\\state");
     expect(env.CRAWCLAW_RESTART_HEALTH_TIMEOUT_MS).toBe("360000");
+    expect(env.CRAWCLAW_WINDOWS_TASK_NAME).toBe("crawclaw-gateway-smoke-Temp");
     expect(env.npm_config_prefix).toBeUndefined();
+  });
+
+  it("derives stable smoke task names from the temporary root", async () => {
+    const script = await loadSmokeScript();
+
+    expect(
+      script.resolveGatewaySmokeTaskName(
+        "C:\\Users\\runner\\AppData\\Local\\Temp\\crawclaw-smoke-a1B2\\state",
+        "win32",
+      ),
+    ).toBe("crawclaw-gateway-smoke-crawclaw-smoke-a1B2");
+    expect(script.resolveGatewaySmokeTaskName("/tmp/crawclaw smoke/state", "linux")).toBe(
+      "crawclaw-gateway-smoke-crawclaw-smoke",
+    );
+  });
+
+  it("skips occupied ports when choosing the gateway smoke port", async () => {
+    const script = await loadSmokeScript();
+
+    expect(
+      script.resolveGatewaySmokePort({
+        base: 50_000,
+        span: 4,
+        pid: 4,
+        listeningPorts: new Set([50_000, 50_001]),
+      }),
+    ).toBe(50_002);
   });
 
   it("allows the packed install timeout to be configured from env", async () => {

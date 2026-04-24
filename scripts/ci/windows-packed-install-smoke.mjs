@@ -17,6 +17,8 @@ const DEFAULT_INSTALL_TIMEOUT_MS = 45 * 60_000;
 const DEFAULT_GATEWAY_TIMEOUT_MS = 6 * 60_000;
 const CLEANUP_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000];
 const GATEWAY_STATUS_RETRY_DELAY_MS = 2_000;
+const GATEWAY_SMOKE_PORT_BASE = 49_152;
+const GATEWAY_SMOKE_PORT_SPAN = 10_000;
 
 export function readTimeoutMsFromEnv(env, key, fallbackMs) {
   const raw = env[key]?.trim();
@@ -240,7 +242,15 @@ export function createSmokeEnv({
   nextEnv.CRAWCLAW_STATE_DIR = stateDir;
   nextEnv.CRAWCLAW_DISABLE_UPDATE_CHECK = "1";
   nextEnv.CRAWCLAW_RESTART_HEALTH_TIMEOUT_MS = String(GATEWAY_TIMEOUT_MS);
+  nextEnv.CRAWCLAW_WINDOWS_TASK_NAME ??= resolveGatewaySmokeTaskName(stateDir, platform);
   return nextEnv;
+}
+
+export function resolveGatewaySmokeTaskName(stateDir, platform = process.platform) {
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  const tempRootName = pathImpl.basename(pathImpl.dirname(stateDir)) || "default";
+  const suffix = tempRootName.replace(/[^A-Za-z0-9_.-]/g, "-").slice(0, 48) || "default";
+  return `crawclaw-gateway-smoke-${suffix}`;
 }
 
 function assertRecord(value, label) {
@@ -412,6 +422,55 @@ export function waitForGatewayRpcStatus(crawclawBin, smokeEnv, options = {}) {
   );
 }
 
+function parseNetstatListeningPorts(output) {
+  const ports = new Set();
+  for (const rawLine of output.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!/^tcp\b/i.test(line) || !/\blisten/i.test(line)) {
+      continue;
+    }
+    const parts = line.split(/\s+/);
+    const localAddress = parts[1] ?? "";
+    const match = localAddress.match(/:(\d+)$/);
+    if (!match) {
+      continue;
+    }
+    const port = Number.parseInt(match[1], 10);
+    if (Number.isFinite(port)) {
+      ports.add(port);
+    }
+  }
+  return ports;
+}
+
+function readListeningPortsSync() {
+  const res = spawnSync("netstat", ["-ano", "-p", "tcp"], {
+    encoding: "utf8",
+    timeout: 5_000,
+    windowsHide: true,
+  });
+  if (res.error || res.status !== 0) {
+    return new Set();
+  }
+  return parseNetstatListeningPorts(res.stdout);
+}
+
+export function resolveGatewaySmokePort(options = {}) {
+  const listeningPorts = options.listeningPorts ?? readListeningPortsSync();
+  const pid = options.pid ?? process.pid;
+  const base = options.base ?? GATEWAY_SMOKE_PORT_BASE;
+  const span = options.span ?? GATEWAY_SMOKE_PORT_SPAN;
+  const startOffset = ((pid % span) * 37) % span;
+
+  for (let offset = 0; offset < span; offset += 1) {
+    const port = base + ((startOffset + offset) % span);
+    if (!listeningPorts.has(port)) {
+      return port;
+    }
+  }
+  throw new Error(`could not find a free gateway smoke port in ${base}-${base + span - 1}`);
+}
+
 function isWindowsCleanupTransientError(error) {
   if (!error || typeof error !== "object") {
     return false;
@@ -459,7 +518,7 @@ function createTempLayout() {
 }
 
 function runGatewayLifecycle(crawclawBin, smokeEnv) {
-  const port = String(18_789 + (process.pid % 1000));
+  const port = String(resolveGatewaySmokePort());
   console.log("[windows-smoke] configuring local gateway mode");
   runCrawClaw(crawclawBin, ["config", "set", "gateway.mode", "local"], {
     env: smokeEnv,
