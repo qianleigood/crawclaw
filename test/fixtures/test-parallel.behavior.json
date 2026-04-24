@@ -231,6 +231,10 @@
         "reason": "This plugin command suite contains a broad parameterized binding matrix and can time out only under the congested unit-fast lane; keep it isolated so command binding coverage remains deterministic."
       },
       {
+        "file": "src/plugins/bundled-capability-runtime.test.ts",
+        "reason": "This bundled browser capability loader suite passes direct reruns but can time out when the shared unit-fast lane is already saturated with plugin runtime imports; keep it isolated so loader coverage stays deterministic."
+      },
+      {
         "file": "src/cron/isolated-agent/run.cron-model-override.test.ts",
         "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
       },
