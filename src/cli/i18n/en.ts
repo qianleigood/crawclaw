@@ -2234,7 +2234,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.020": "Context Archive is disabled.",
   "cli.visible.021": "No matching context archive runs found.",
   "cli.visible.022": "Pass --run-id, --task-id, --session-id, or --agent-id.",
-  "cli.visible.023": "Pass --run-id or --task-id.",
+  "cli.visible.023": "Pass --run-id, --task-id, or --trace-id.",
   "cli.visible.024": "Agent name is required in non-interactive mode.",
   "cli.visible.025":
     "Non-interactive mode requires --workspace. Re-run without flags to use the wizard.",

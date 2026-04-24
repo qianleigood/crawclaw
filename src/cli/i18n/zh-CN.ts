@@ -2117,7 +2117,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.020": "Context Archive 已禁用。",
   "cli.visible.021": "未找到匹配的 context archive runs。",
   "cli.visible.022": "请传入 --run-id、--task-id、--session-id 或 --agent-id。",
-  "cli.visible.023": "请传入 --run-id 或 --task-id。",
+  "cli.visible.023": "请传入 --run-id、--task-id 或 --trace-id。",
   "cli.visible.024": "非交互模式需要 agent 名称。",
   "cli.visible.025": "非交互模式需要 --workspace。不带 flags 重新运行可使用向导。",
   "cli.visible.026": "已添加 bindings：",
