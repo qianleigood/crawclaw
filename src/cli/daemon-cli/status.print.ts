@@ -10,7 +10,6 @@ import {
   renderSystemdUnavailableHints,
 } from "../../daemon/systemd-hints.js";
 import { classifySystemdUnavailableDetail } from "../../daemon/systemd-unavailable.js";
-import { isWSLEnv } from "../../infra/wsl.js";
 import { getResolvedLoggerSettings } from "../../logging.js";
 import { defaultRuntime } from "../../runtime.js";
 import { colorize } from "../../terminal/theme.js";
@@ -211,7 +210,6 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     );
     defaultRuntime.error(errorText("systemd user services unavailable."));
     for (const hint of renderSystemdUnavailableHints({
-      wsl: isWSLEnv(),
       kind: classifySystemdUnavailableDetail(service.runtime?.detail),
       container,
     })) {

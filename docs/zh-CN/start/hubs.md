@@ -154,7 +154,7 @@ x-i18n:
 ## 平台
 
 - [平台概览](/platforms)
-- [Windows (WSL2)](/platforms/windows)
+- [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
 - [Web 界面](/web)
 

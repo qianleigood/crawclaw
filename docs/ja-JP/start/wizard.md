@@ -16,7 +16,7 @@ x-i18n:
 
 # オンボーディングウィザード（CLI）
 
-CLIオンボーディングウィザードは、macOS、Linux、Windows（WSL2経由）でCrawClawをセットアップする際の推奨パスです。ローカルGatewayまたはリモートGateway接続に加えて、ワークスペースのデフォルト設定、チャンネル、Skillsを構成します。
+CLIオンボーディングウィザードは、macOS、Linux、ネイティブWindowsでCrawClawをセットアップする際の推奨パスです。ローカルGatewayまたはリモートGateway接続に加えて、ワークスペースのデフォルト設定、チャンネル、Skillsを構成します。
 
 ```bash
 crawclaw onboard

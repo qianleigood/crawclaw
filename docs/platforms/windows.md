@@ -1,26 +1,23 @@
 ---
-summary: "Windows support matrix for native and WSL2 installs, Gateway service mode, plugins, and validation gates"
+summary: "Windows support matrix for native installs, Gateway service mode, plugins, and validation gates"
 read_when:
   - Installing CrawClaw on Windows
-  - Choosing between native Windows and WSL2
-  - Defining native Windows support scope
+  - Defining Windows support scope
   - Looking for Windows companion app status
 title: "Windows"
 ---
 
 # Windows
 
-CrawClaw supports both **native Windows** and **WSL2** for Gateway host use.
-WSL2 remains the lowest-risk path for Linux-oriented automation and Docker-heavy
-workflows because the CLI, Gateway, shell tools, and service manager run in a
-Linux environment. Native Windows is a first-class CLI and Gateway host target
-inside the product boundary below.
+CrawClaw supports **native Windows** for Gateway host use. The Windows product
+boundary is the CLI, Gateway, web UI, plugins, install/runtime setup, and
+per-user startup on the Windows host.
 
 Native Windows support does **not** mean full parity with macOS-only local
 integrations or every Linux sandbox behavior. It means the Windows host can
 install CrawClaw, run the CLI, run the Gateway, manage per-user startup, load
 supported plugins, and pass the Windows compatibility gates without requiring
-WSL2.
+Linux compatibility layers.
 
 ## Native capability states
 
@@ -48,20 +45,10 @@ The Windows matrix uses three support states:
 | Common provider plugins              | `supported`  | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                       |
 | BlueBubbles and iMessage             | `bridged`    | Bridged through a Mac server or Apple host; Windows runs the Gateway/client side, not Apple's local messaging stack.  |
 | Apple skills and macOS-only tooling  | `bridged`    | Bridged through a Mac or headless node that owns the Apple-local runtime and permissions.                             |
-| WSL2 Gateway host                    | `supported`  | Linux install path inside WSL2 with systemd user service support; still recommended for broad Linux compatibility.    |
 | macOS companion app                  | `not-native` | Not described as a native Windows deliverable in this repo.                                                           |
 | Windows tray or desktop companion UI | `not-native` | Not shipped today; native Windows support is CLI, Gateway, web UI, plugins, and runtime setup.                        |
 
-## Choose a path
-
-Use **WSL2** when you want the broadest Linux compatibility, Linux shell
-tooling, or Docker-heavy workflows.
-
-Use **native Windows** when you want CrawClaw installed and managed directly in
-Windows, can run PowerShell, and do not need Apple-local integrations to execute
-on that host.
-
-## Native install
+## Install
 
 Run PowerShell as your normal user:
 
@@ -87,7 +74,7 @@ crawclaw plugins list --json
 If PowerShell cannot find `crawclaw` in a new terminal, see
 [Node.js troubleshooting](/install/node#troubleshooting).
 
-## Native Gateway
+## Gateway references
 
 Run the Gateway in the foreground:
 
@@ -114,7 +101,7 @@ For CLI-only setups, skip health-gated onboarding:
 crawclaw onboard --non-interactive --skip-health
 ```
 
-## Native compatibility gate
+## Compatibility gate
 
 The repo keeps a focused Windows compatibility gate for code paths that can be
 validated from any development host:
@@ -135,7 +122,7 @@ pnpm test:parallels:windows
 pnpm test:parallels:npm-update
 ```
 
-## Native first-class acceptance criteria
+## First-class acceptance criteria
 
 Native Windows can be described as first-class when all of these are true:
 
@@ -172,20 +159,12 @@ Native Windows can be described as first-class when all of these are true:
 - Native Windows support should not be described as full Windows parity until
   the gates in this document are green in CI, nightly, and release validation.
 
-## WSL2 (recommended)
-
-- [Getting Started](/start/getting-started) (use inside WSL)
-- [Install & updates](/install/updating)
-- Official WSL2 guide (Microsoft): [https://learn.microsoft.com/windows/wsl/install](https://learn.microsoft.com/windows/wsl/install)
-
 ## Gateway
 
 - [Gateway runbook](/gateway)
 - [Configuration](/gateway/configuration)
 
 ## Gateway service install (CLI)
-
-Inside WSL2:
 
 ```
 crawclaw onboard --install-daemon
@@ -210,147 +189,6 @@ Repair/migrate:
 ```
 crawclaw doctor
 ```
-
-## Gateway auto-start before Windows login
-
-For headless setups, ensure the full boot chain runs even when no one logs into
-Windows.
-
-### 1) Keep user services running without login
-
-Inside WSL:
-
-```bash
-sudo loginctl enable-linger "$(whoami)"
-```
-
-### 2) Install the CrawClaw gateway user service
-
-Inside WSL:
-
-```bash
-crawclaw gateway install
-```
-
-### 3) Start WSL automatically at Windows boot
-
-In PowerShell as Administrator:
-
-```powershell
-schtasks /create /tn "WSL Boot" /tr "wsl.exe -d Ubuntu --exec /bin/true" /sc onstart /ru SYSTEM
-```
-
-Replace `Ubuntu` with your distro name from:
-
-```powershell
-wsl --list --verbose
-```
-
-### Verify startup chain
-
-After a reboot (before Windows sign-in), check from WSL:
-
-```bash
-systemctl --user is-enabled crawclaw-gateway
-systemctl --user status crawclaw-gateway --no-pager
-```
-
-## Advanced: expose WSL services over LAN (portproxy)
-
-WSL has its own virtual network. If another machine needs to reach a service
-running **inside WSL** (SSH, a local TTS server, or the Gateway), you must
-forward a Windows port to the current WSL IP. The WSL IP changes after restarts,
-so you may need to refresh the forwarding rule.
-
-Example (PowerShell **as Administrator**):
-
-```powershell
-$Distro = "Ubuntu-24.04"
-$ListenPort = 2222
-$TargetPort = 22
-
-$WslIp = (wsl -d $Distro -- hostname -I).Trim().Split(" ")[0]
-if (-not $WslIp) { throw "WSL IP not found." }
-
-netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$ListenPort `
-  connectaddress=$WslIp connectport=$TargetPort
-```
-
-Allow the port through Windows Firewall (one-time):
-
-```powershell
-New-NetFirewallRule -DisplayName "WSL SSH $ListenPort" -Direction Inbound `
-  -Protocol TCP -LocalPort $ListenPort -Action Allow
-```
-
-Refresh the portproxy after WSL restarts:
-
-```powershell
-netsh interface portproxy delete v4tov4 listenport=$ListenPort listenaddress=0.0.0.0 | Out-Null
-netsh interface portproxy add v4tov4 listenport=$ListenPort listenaddress=0.0.0.0 `
-  connectaddress=$WslIp connectport=$TargetPort | Out-Null
-```
-
-Notes:
-
-- SSH from another machine targets the **Windows host IP** (example: `ssh user@windows-host -p 2222`).
-- Remote nodes must point at a **reachable** Gateway URL (not `127.0.0.1`); use
-  `crawclaw status --all` to confirm.
-- Use `listenaddress=0.0.0.0` for LAN access; `127.0.0.1` keeps it local only.
-- If you want this automatic, register a Scheduled Task to run the refresh
-  step at login.
-
-## Step-by-step WSL2 install
-
-### 1) Install WSL2 + Ubuntu
-
-Open PowerShell (Admin):
-
-```powershell
-wsl --install
-# Or pick a distro explicitly:
-wsl --list --online
-wsl --install -d Ubuntu-24.04
-```
-
-Reboot if Windows asks.
-
-### 2) Enable systemd (required for gateway install)
-
-In your WSL terminal:
-
-```bash
-sudo tee /etc/wsl.conf >/dev/null <<'EOF'
-[boot]
-systemd=true
-EOF
-```
-
-Then from PowerShell:
-
-```powershell
-wsl --shutdown
-```
-
-Re-open Ubuntu, then verify:
-
-```bash
-systemctl --user status
-```
-
-### 3) Install CrawClaw (inside WSL)
-
-Follow the Linux Getting Started flow inside WSL:
-
-```bash
-git clone https://github.com/qianleigood/crawclaw.git
-cd crawclaw
-pnpm install
-pnpm build
-crawclaw onboard
-```
-
-Full guide: [Getting Started](/start/getting-started)
 
 ## Windows companion app
 

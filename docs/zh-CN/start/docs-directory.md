@@ -58,7 +58,7 @@ x-i18n:
 
 ## 平台
 
-- [Windows (WSL2)](/platforms/windows)
+- [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
 
 ## 运维与安全

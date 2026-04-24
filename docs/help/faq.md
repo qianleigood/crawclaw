@@ -429,7 +429,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - Add that directory to your user PATH (no `\bin` suffix needed on Windows; on most systems it is `%AppData%\npm`).
     - Close and reopen PowerShell after updating PATH.
 
-    If you want the smoothest Windows setup, use **WSL2** instead of native Windows.
     Docs: [Windows](/platforms/windows).
 
   </Accordion>
@@ -546,7 +545,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - **Workspace** location + bootstrap files
     - **Gateway settings** (bind/port/auth/tailscale)
     - **Providers** (WhatsApp, Telegram, Discord, Mattermost (plugin), Signal, iMessage)
-    - **Daemon install** (LaunchAgent on macOS; systemd user unit on Linux/WSL2)
+    - **Daemon install** (LaunchAgent on macOS; systemd user unit on Linux; Scheduled Task or Startup-folder fallback on Windows)
     - **Health checks** and **skills** selection
 
     It also warns if your configured model is unknown or missing auth.
@@ -665,7 +664,7 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="Do I have to buy a Mac Mini to install this?">
-    No. CrawClaw runs on macOS or Linux (Windows via WSL2). A Mac mini is optional - some people
+    No. CrawClaw runs on macOS, Linux, or native Windows. A Mac mini is optional - some people
     buy one as an always-on host, but a small VPS, home server, or Raspberry Pi-class box works too.
 
     You only need a Mac **for macOS-only tools**. For iMessage, use [BlueBubbles](/channels/bluebubbles) (recommended) - the BlueBubbles server runs on any Mac, and the Gateway can run on Linux or elsewhere. If you want other macOS-only tools, run the Gateway on a Mac or pair a macOS node.
@@ -849,8 +848,7 @@ for usage/billing and raise limits as needed.
     - **Recommended:** 2GB RAM or more if you run multiple channels, browser automation, or media tools.
     - **OS:** Ubuntu LTS or another modern Debian/Ubuntu.
 
-    If you are on Windows, **WSL2 is the easiest VM style setup** and has the best tooling
-    compatibility. See [Windows](/platforms/windows), [VPS hosting](/vps).
+    If you are on Windows, use the native Windows install path. See [Windows](/platforms/windows), [VPS hosting](/vps).
     If you are running macOS in a VM, see [macOS VM](/install/macos-vm).
 
   </Accordion>
@@ -1615,7 +1613,7 @@ for usage/billing and raise limits as needed.
 
   <Accordion title="Is there a benefit to using a node on my personal laptop instead of SSH from a VPS?">
     Yes - nodes are the first-class way to reach your laptop from a remote Gateway, and they
-    unlock more than shell access. The Gateway runs on macOS/Linux (Windows via WSL2) and is
+    unlock more than shell access. The Gateway runs on macOS, Linux, or native Windows and is
     lightweight (a small VPS or Raspberry Pi-class box is fine; 4 GB RAM is plenty), so a common
     setup is an always-on host plus your laptop as a node.
 
@@ -2627,27 +2625,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
   </Accordion>
 
   <Accordion title="I closed my terminal on Windows - how do I restart CrawClaw?">
-    There are **two Windows install modes**:
-
-    **1) WSL2 (recommended):** the Gateway runs inside Linux.
-
-    Open PowerShell, enter WSL, then restart:
-
-    ```powershell
-    wsl
-    crawclaw gateway status
-    crawclaw gateway restart
-    ```
-
-    If you never installed the service, start it in the foreground:
-
-    ```bash
-    crawclaw gateway run
-    ```
-
-    **2) Native Windows (not recommended):** the Gateway runs directly in Windows.
-
-    Open PowerShell and run:
+    The supported Windows path is native Windows. Open PowerShell and run:
 
     ```powershell
     crawclaw gateway status
@@ -2660,7 +2638,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     crawclaw gateway run
     ```
 
-    Docs: [Windows (WSL2)](/platforms/windows), [Gateway service runbook](/gateway).
+    Docs: [Windows](/platforms/windows), [Gateway service runbook](/gateway).
 
   </Accordion>
 

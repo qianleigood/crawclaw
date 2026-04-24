@@ -105,9 +105,10 @@ For a high-level overview, see [Onboarding (CLI)](/start/wizard).
   <Step title="Daemon install">
     - macOS: LaunchAgent
       - Requires a logged-in user session; for headless, use a custom LaunchDaemon (not shipped).
-    - Linux (and Windows via WSL2): systemd user unit
+    - Linux: systemd user unit
       - Onboarding attempts to enable lingering via `loginctl enable-linger <user>` so the Gateway stays up after logout.
       - May prompt for sudo (writes `/var/lib/systemd/linger`); it tries without sudo first.
+    - Native Windows: Scheduled Task with per-user Startup-folder fallback.
     - **Runtime selection:** Node (recommended; required for WhatsApp/Telegram). Bun is **not recommended**.
     - If token auth requires a token and `gateway.auth.token` is SecretRef-managed, daemon install validates it but does not persist resolved plaintext token values into supervisor service environment metadata.
     - If token auth requires a token and the configured token SecretRef is unresolved, daemon install is blocked with actionable guidance.
@@ -197,7 +198,7 @@ Notes:
 
 - JVM builds require **Java 21**.
 - Native builds are used when available.
-- Windows uses WSL2; signal-cli install follows the Linux flow inside WSL.
+- Native Windows uses the Windows-native `signal-cli` asset when available.
 
 ## What the wizard writes
 

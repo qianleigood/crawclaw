@@ -1,6 +1,6 @@
 import process from "node:process";
 import type { TelegramNetworkConfig } from "crawclaw/plugin-sdk/config-runtime";
-import { isTruthyEnvValue, isWSL2Sync } from "crawclaw/plugin-sdk/runtime-env";
+import { isTruthyEnvValue } from "crawclaw/plugin-sdk/runtime-env";
 
 export const TELEGRAM_DISABLE_AUTO_SELECT_FAMILY_ENV =
   "CRAWCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY";
@@ -16,16 +16,6 @@ export type TelegramAutoSelectFamilyDecision = {
   value: boolean | null;
   source?: string;
 };
-
-let wsl2SyncCache: boolean | undefined;
-
-function isWSL2SyncCached(): boolean {
-  if (typeof wsl2SyncCache === "boolean") {
-    return wsl2SyncCache;
-  }
-  wsl2SyncCache = isWSL2Sync();
-  return wsl2SyncCache;
-}
 
 export type TelegramDnsResultOrderDecision = {
   value: string | null;
@@ -62,10 +52,6 @@ export function resolveTelegramAutoSelectFamilyDecision(params?: {
   if (typeof params?.network?.autoSelectFamily === "boolean") {
     return { value: params.network.autoSelectFamily, source: "config" };
   }
-  // WSL2 has unstable IPv6 connectivity; disable autoSelectFamily to use IPv4 directly
-  if (isWSL2SyncCached()) {
-    return { value: false, source: "default-wsl2" };
-  }
   if (Number.isFinite(nodeMajor) && nodeMajor >= 22) {
     return { value: true, source: "default-node22" };
   }
@@ -94,7 +80,9 @@ export function resolveTelegramDnsResultOrderDecision(params?: {
       : Number(process.versions.node.split(".")[0]);
 
   // Check environment variable
-  const envValue = (env[TELEGRAM_DNS_RESULT_ORDER_ENV] ?? env[TELEGRAM_DNS_RESULT_ORDER_ENV_FALLBACK])
+  const envValue = (
+    env[TELEGRAM_DNS_RESULT_ORDER_ENV] ?? env[TELEGRAM_DNS_RESULT_ORDER_ENV_FALLBACK]
+  )
     ?.trim()
     .toLowerCase();
   if (envValue === "ipv4first" || envValue === "verbatim") {
@@ -115,8 +103,4 @@ export function resolveTelegramDnsResultOrderDecision(params?: {
   }
 
   return { value: null };
-}
-
-export function resetTelegramNetworkConfigStateForTests(): void {
-  wsl2SyncCache = undefined;
 }

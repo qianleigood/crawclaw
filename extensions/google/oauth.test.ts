@@ -1,10 +1,6 @@
 import { join, parse } from "node:path";
 import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from "vitest";
 
-vi.mock("../../src/infra/wsl.js", () => ({
-  isWSL2Sync: () => false,
-}));
-
 vi.mock("../../src/infra/net/fetch-guard.js", () => ({
   fetchWithSsrFGuard: async (params: {
     url: string;

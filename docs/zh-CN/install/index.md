@@ -21,12 +21,8 @@ x-i18n:
 ## 系统要求
 
 - **[Node 24（推荐）](/install/node)**（出于兼容性考虑，仍支持 Node 22 LTS，目前为 `22.16+`；如果缺失，[安装脚本](#install-methods) 会安装 Node 24）
-- macOS、Linux 或 Windows
+- macOS、Linux 或 Windows。Windows 使用原生 PowerShell 安装器。参阅 [Windows](/platforms/windows)。
 - 仅当你从源码构建时需要 `pnpm`
-
-<Note>
-在 Windows 上，我们强烈建议你在 [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) 下运行 CrawClaw。
-</Note>
 
 ## 安装方法
 
@@ -43,7 +39,7 @@ x-i18n:
     下载 CLI，通过 npm 全局安装，并启动设置向导。
 
     <Tabs>
-      <Tab title="macOS / Linux / WSL2">
+      <Tab title="macOS / Linux">
         ```bash
         curl -fsSL https://crawclaw.ai/install.sh | bash
         ```
@@ -60,7 +56,7 @@ x-i18n:
     如果要跳过新手引导，只安装二进制文件：
 
     <Tabs>
-      <Tab title="macOS / Linux / WSL2">
+      <Tab title="macOS / Linux">
         ```bash
         curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --no-onboard
         ```

@@ -97,10 +97,10 @@ describe("setupWizardCommand", () => {
 
       expect(runtime.log).toHaveBeenCalledWith(
         [
-          "Windows detected - CrawClaw runs great on WSL2!",
-          "Native Windows might be trickier.",
-          "Quick setup: wsl --install (one command, one reboot)",
-          "Guide: https://docs.crawclaw.ai/windows",
+          "Windows detected - CrawClaw supports native Windows.",
+          "Use PowerShell and the native installer for the supported Windows path.",
+          "Quick setup: iwr -useb https://crawclaw.ai/install.ps1 | iex",
+          "Guide: https://docs.crawclaw.ai/platforms/windows",
         ].join("\n"),
       );
     } finally {

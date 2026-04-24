@@ -13,7 +13,6 @@ import {
   renderSystemdUnavailableHints,
 } from "../daemon/systemd-hints.js";
 import { classifySystemdUnavailableDetail } from "../daemon/systemd-unavailable.js";
-import { isWSLEnv } from "../infra/wsl.js";
 import { getResolvedLoggerSettings } from "../logging.js";
 
 type RuntimeHintOptions = {
@@ -48,7 +47,6 @@ export function buildGatewayRuntimeHints(
   if (platform === "linux" && isSystemdUnavailableDetail(runtime.detail)) {
     hints.push(
       ...renderSystemdUnavailableHints({
-        wsl: isWSLEnv(),
         kind: classifySystemdUnavailableDetail(runtime.detail),
         container,
       }),

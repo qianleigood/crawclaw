@@ -10,7 +10,6 @@ export type DaemonHintKind =
   | "container-foreground"
   | "systemd-unavailable"
   | "systemd-headless"
-  | "wsl-systemd"
   | "generic";
 
 export type DaemonHintItem = {
@@ -57,13 +56,6 @@ function classifyDaemonHintText(text: string): DaemonHintKind {
   }
   if (text.startsWith("If you're in a container, run the gateway in the foreground instead of")) {
     return "container-foreground";
-  }
-  if (
-    text.startsWith("WSL2 needs systemd enabled:") ||
-    text.startsWith("Then run: wsl --shutdown") ||
-    text.startsWith("Verify: systemctl --user status")
-  ) {
-    return "wsl-systemd";
   }
   return "generic";
 }

@@ -173,7 +173,7 @@ crawclaw logs --follow
 
 - macOS launchd（应用捆绑的 LaunchAgent）：`launchctl kickstart -k gui/$UID/bot.molt.gateway`（使用 `bot.molt.<profile>`；旧版 `com.crawclaw.*` 仍然有效）
 - Linux systemd 用户服务：`systemctl --user restart crawclaw-gateway[-<profile>].service`
-- Windows（WSL2）：`systemctl --user restart crawclaw-gateway[-<profile>].service`
+- Windows：`crawclaw gateway restart`
   - `launchctl`/`systemctl` 仅在服务已安装时有效；否则运行 `crawclaw gateway install`。
 
 运行手册 + 确切的服务标签：[Gateway 网关运行手册](/gateway)

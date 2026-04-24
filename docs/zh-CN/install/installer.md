@@ -20,8 +20,8 @@ CrawClaw 提供三个安装脚本，由 `crawclaw.ai` 提供。
 
 | 脚本                               | 平台                  | 功能                                                                          |
 | ---------------------------------- | --------------------- | ----------------------------------------------------------------------------- |
-| [`install.sh`](#installsh)         | macOS / Linux / WSL   | 如有需要则安装 Node，通过 npm（默认）或 git 安装 CrawClaw，并可运行新手引导。 |
-| [`install-cli.sh`](#install-clish) | macOS / Linux / WSL   | 将 Node + CrawClaw 安装到本地前缀（`~/.crawclaw`）中。无需 root。             |
+| [`install.sh`](#installsh)         | macOS / Linux         | 如有需要则安装 Node，通过 npm（默认）或 git 安装 CrawClaw，并可运行新手引导。 |
+| [`install-cli.sh`](#install-clish) | macOS / Linux         | 将 Node + CrawClaw 安装到本地前缀（`~/.crawclaw`）中。无需 root。             |
 | [`install.ps1`](#installps1)       | Windows（PowerShell） | 如有需要则安装 Node，通过 npm（默认）或 git 安装 CrawClaw，并可运行新手引导。 |
 
 ## 快速命令
@@ -68,14 +68,14 @@ CrawClaw 提供三个安装脚本，由 `crawclaw.ai` 提供。
 ## install.sh
 
 <Tip>
-推荐用于大多数 macOS/Linux/WSL 上的交互式安装。
+推荐用于大多数 macOS/Linux 上的交互式安装。
 </Tip>
 
 ### 流程（install.sh）
 
 <Steps>
   <Step title="检测操作系统">
-    支持 macOS 和 Linux（包括 WSL）。如果检测到 macOS，则会在缺少 Homebrew 时安装它。
+    支持 macOS 和 Linux。如果检测到 macOS，则会在缺少 Homebrew 时安装它。
   </Step>
   <Step title="默认确保使用 Node.js 24">
     检查 Node 版本，并在需要时安装 Node 24（macOS 上使用 Homebrew，Linux apt/dnf/yum 上使用 NodeSource 设置脚本）。为了兼容性，CrawClaw 仍支持 Node 22 LTS，目前为 `22.16+`。

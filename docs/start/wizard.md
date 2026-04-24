@@ -10,7 +10,7 @@ sidebarTitle: "Onboarding: CLI"
 # Onboarding (CLI)
 
 CLI onboarding is the **recommended** way to set up CrawClaw on macOS,
-Linux, or Windows (via WSL2; strongly recommended).
+Linux, or native Windows.
 It configures a local Gateway or a remote Gateway connection, plus channels, skills,
 and workspace defaults in one guided flow.
 
@@ -80,7 +80,7 @@ Onboarding starts with **QuickStart** (defaults) vs **Advanced** (full control).
    local experience index and optional NotebookLM-backed provider recall. If the
    NotebookLM provider is enabled and recommends `crawclaw memory login`,
    onboarding can offer to run that login flow near the end.
-7. **Daemon** — Installs a LaunchAgent (macOS) or systemd user unit (Linux/WSL2).
+7. **Daemon** — Installs a LaunchAgent (macOS), systemd user unit (Linux), or Scheduled Task with Startup-folder fallback (native Windows).
    If token auth requires a token and `gateway.auth.token` is SecretRef-managed, daemon install validates it but does not persist the resolved token into supervisor service environment metadata.
    If token auth requires a token and the configured token SecretRef is unresolved, daemon install is blocked with actionable guidance.
    If both `gateway.auth.token` and `gateway.auth.password` are configured and `gateway.auth.mode` is unset, daemon install is blocked until mode is set explicitly.

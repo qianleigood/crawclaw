@@ -16,7 +16,7 @@ channels across supported hosts.
 
 |                | CLI onboarding                  |
 | -------------- | ------------------------------- |
-| **Platforms**  | macOS, Linux, Windows (WSL2)    |
+| **Platforms**  | macOS, Linux, native Windows    |
 | **Interface**  | Terminal wizard                 |
 | **Best for**   | Servers, headless, full control |
 | **Automation** | `--non-interactive` for scripts |

@@ -9,7 +9,6 @@ import type { GatewayService } from "../../daemon/service.js";
 import { renderSystemdUnavailableHints } from "../../daemon/systemd-hints.js";
 import { isSystemdUserServiceAvailable } from "../../daemon/systemd.js";
 import { isGatewaySecretRefUnavailableError } from "../../gateway/credentials.js";
-import { isWSL } from "../../infra/wsl.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveGatewayTokenForDriftCheck } from "./gateway-token-drift.js";
 import {
@@ -50,10 +49,7 @@ async function maybeAugmentSystemdHints(hints: string[]): Promise<string[]> {
   if (systemdAvailable) {
     return hints;
   }
-  return [
-    ...hints,
-    ...renderSystemdUnavailableHints({ wsl: await isWSL(), kind: "generic_unavailable" }),
-  ];
+  return [...hints, ...renderSystemdUnavailableHints({ kind: "generic_unavailable" })];
 }
 
 function emitActionMessage(params: {

@@ -10,7 +10,6 @@ describe("buildDaemonHintItems", () => {
         "systemd user services are unavailable; install/enable systemd or run the gateway under your supervisor.",
         "On a headless server (SSH/no desktop session): run `sudo loginctl enable-linger $(whoami)` to persist your systemd user session across logins.",
         "If you're in a container, run the gateway in the foreground instead of `crawclaw gateway`.",
-        "WSL2 needs systemd enabled: edit /etc/wsl.conf with [boot]\\nsystemd=true",
       ]),
     ).toEqual([
       { kind: "install", text: "crawclaw gateway install" },
@@ -29,10 +28,6 @@ describe("buildDaemonHintItems", () => {
       {
         kind: "container-foreground",
         text: "If you're in a container, run the gateway in the foreground instead of `crawclaw gateway`.",
-      },
-      {
-        kind: "wsl-systemd",
-        text: "WSL2 needs systemd enabled: edit /etc/wsl.conf with [boot]\\nsystemd=true",
       },
     ]);
   });

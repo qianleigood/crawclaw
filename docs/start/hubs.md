@@ -133,7 +133,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 ## Platforms
 
 - [Platforms overview](/platforms)
-- [Windows (WSL2)](/platforms/windows)
+- [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
 - [Web surfaces](/web)
 

@@ -112,7 +112,8 @@ x-i18n:
   <Step title="守护进程安装">
     - macOS：LaunchAgent
       - 需要已登录的用户会话；无头场景请使用自定义 LaunchDaemon（未随产品提供）。
-    - Linux（以及通过 WSL2 的 Windows）：systemd 用户单元
+    - Linux：systemd 用户单元
+    - Windows：每用户启动模式
       - 向导会尝试启用 lingering：`loginctl enable-linger <user>`，以便 Gateway 网关在注销后仍保持运行。
       - 可能会提示输入 sudo（会写入 `/var/lib/systemd/linger`）；它会先尝试不使用 sudo。
     - **运行时选择：** Node（推荐；WhatsApp/Telegram 必需）。**不推荐** Bun。
@@ -204,7 +205,7 @@ Gateway 网关通过 RPC 暴露向导流程（`wizard.start`、`wizard.next`、`
 
 - JVM 构建需要 **Java 21**。
 - 在可用时会使用原生构建。
-- Windows 使用 WSL2；`signal-cli` 安装会在 WSL 中遵循 Linux 流程。
+- Windows 使用可用的原生构建。
 
 ## 向导会写入的内容
 

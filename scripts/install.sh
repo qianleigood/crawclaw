@@ -255,13 +255,13 @@ detect_os_or_die() {
     OS="unknown"
     if [[ "$OSTYPE" == "darwin"* ]]; then
         OS="macos"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         OS="linux"
     fi
 
     if [[ "$OS" == "unknown" ]]; then
         ui_error "Unsupported operating system"
-        echo "This installer supports macOS and Linux (including WSL)."
+        echo "This installer supports macOS and Linux."
         echo "For Windows, use: iwr -useb https://crawclaw.ai/install.ps1 | iex"
         exit 1
     fi

@@ -1,6 +1,5 @@
 import * as net from "node:net";
 import { Agent, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from "undici";
-import { isWSL2Sync } from "../wsl.js";
 import { hasEnvHttpProxyConfigured } from "./proxy-env.js";
 
 export const DEFAULT_UNDICI_STREAM_TIMEOUT_MS = 30 * 60 * 1000;
@@ -34,14 +33,7 @@ function resolveAutoSelectFamily(): boolean | undefined {
     return undefined;
   }
   try {
-    const systemDefault = net.getDefaultAutoSelectFamily();
-    // WSL2 has unstable IPv6 connectivity; disable autoSelectFamily to
-    // force IPv4 connections and avoid "fetch failed" errors when reaching
-    // Windows-host services (e.g. Ollama) from inside WSL2.
-    if (systemDefault && isWSL2Sync()) {
-      return false;
-    }
-    return systemDefault;
+    return net.getDefaultAutoSelectFamily();
   } catch {
     return undefined;
   }

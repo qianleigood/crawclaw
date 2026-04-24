@@ -831,7 +831,7 @@ function collectBrowserControlFindings(
         title: "Remote CDP targets a private/internal host",
         detail:
           `browser profile "${name}" points at a private/internal CDP host (${redactedCdpUrl}). ` +
-          "This is expected for LAN/tailnet/WSL-style setups, but treat it as a trusted-network endpoint.",
+          "This is expected for LAN or tailnet setups, but treat it as a trusted-network endpoint.",
         remediation:
           "Prefer a tailnet or tunnel for remote CDP. If you want strict blocking, set browser.ssrfPolicy.dangerouslyAllowPrivateNetwork=false and allow only explicit hosts.",
       });

@@ -5,7 +5,6 @@ import {
 } from "./systemd-unavailable.js";
 
 type SystemdUnavailableHintOptions = {
-  wsl?: boolean;
   kind?: SystemdUnavailableKind | null;
   container?: boolean;
 };
@@ -24,13 +23,6 @@ function renderSystemdHeadlessServerHints(): string[] {
 export function renderSystemdUnavailableHints(
   options: SystemdUnavailableHintOptions = {},
 ): string[] {
-  if (options.wsl) {
-    return [
-      "WSL2 needs systemd enabled: edit /etc/wsl.conf with [boot]\\nsystemd=true",
-      "Then run: wsl --shutdown (from PowerShell) and reopen your distro.",
-      "Verify: systemctl --user status",
-    ];
-  }
   return [
     "systemd user services are unavailable; install/enable systemd or run the gateway under your supervisor.",
     ...(options.container || options.kind !== "user_bus_unavailable"

@@ -215,6 +215,6 @@ Logs live under `/tmp/crawclaw/` (default: `crawclaw-YYYY-MM-DD.log`).
 - Gateway ops: [Gateway runbook](/gateway)
 - Cron + wakeups: [Cron jobs](/automation/cron-jobs)
 - Historical mobile note: iOS and Android source trees were removed from this repository.
-- Windows status: [Windows (WSL2)](/platforms/windows)
+- Windows status: [Windows](/platforms/windows)
 - Linux status: [Linux](/platforms/linux)
 - Security: [Security](/gateway/security)

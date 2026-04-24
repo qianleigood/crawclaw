@@ -126,12 +126,20 @@ describe("stageBundledPluginRuntimeDeps", () => {
       "utf8",
     );
     fs.writeFileSync(path.join(rootDepDir, "index.js"), "module.exports = 1;\n", "utf8");
+    fs.writeFileSync(path.join(rootDepDir, "index.d.ts"), "export default 1;\n", "utf8");
+    fs.writeFileSync(path.join(rootDepDir, "index.js.map"), "{}\n", "utf8");
 
     stageBundledPluginRuntimeDeps({ cwd: repoRoot });
 
     expect(
       fs.readFileSync(path.join(pluginDir, "node_modules", "left-pad", "index.js"), "utf8"),
     ).toBe("module.exports = 1;\n");
+    expect(fs.existsSync(path.join(pluginDir, "node_modules", "left-pad", "index.d.ts"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(path.join(pluginDir, "node_modules", "left-pad", "index.js.map"))).toBe(
+      false,
+    );
     expect(fs.existsSync(path.join(pluginDir, ".crawclaw-runtime-deps-stamp.json"))).toBe(true);
   });
 

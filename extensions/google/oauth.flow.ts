@@ -1,11 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
-import { isWSL2Sync } from "crawclaw/plugin-sdk/runtime-env";
 import { resolveOAuthClientConfig } from "./oauth.credentials.js";
 import { AUTH_URL, REDIRECT_URI, SCOPES } from "./oauth.shared.js";
 
 export function shouldUseManualOAuthFlow(isRemote: boolean): boolean {
-  return isRemote || isWSL2Sync();
+  return isRemote;
 }
 
 export function generatePkce(): { verifier: string; challenge: string } {

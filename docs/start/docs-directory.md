@@ -54,7 +54,7 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 
 ## Platforms
 
-- [Windows (WSL2)](/platforms/windows)
+- [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
 
 ## Operations and safety

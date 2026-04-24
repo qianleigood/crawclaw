@@ -17,15 +17,7 @@ describe("isSystemdUnavailableDetail", () => {
 });
 
 describe("renderSystemdUnavailableHints", () => {
-  it("renders WSL2-specific recovery hints", () => {
-    expect(renderSystemdUnavailableHints({ wsl: true })).toEqual([
-      "WSL2 needs systemd enabled: edit /etc/wsl.conf with [boot]\\nsystemd=true",
-      "Then run: wsl --shutdown (from PowerShell) and reopen your distro.",
-      "Verify: systemctl --user status",
-    ]);
-  });
-
-  it("renders generic Linux recovery hints outside WSL", () => {
+  it("renders generic Linux recovery hints", () => {
     expect(renderSystemdUnavailableHints({ kind: "generic_unavailable" })).toEqual([
       "systemd user services are unavailable; install/enable systemd or run the gateway under your supervisor.",
       `If you're in a container, run the gateway in the foreground instead of \`${formatCliCommand("crawclaw gateway")}\`.`,

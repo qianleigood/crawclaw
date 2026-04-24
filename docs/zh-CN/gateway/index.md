@@ -254,7 +254,7 @@ crawclaw logs --follow
 
 ## 监管（systemd 用户单元）
 
-CrawClaw 在 Linux/WSL2 上默认安装 **systemd 用户服务**。我们
+CrawClaw 在 Linux 上默认安装 **systemd 用户服务**。我们
 建议单用户机器使用用户服务（更简单的 env，按用户配置）。
 对于多用户或常驻服务器使用**系统服务**（无需 lingering，
 共享监管）。
@@ -287,7 +287,7 @@ WantedBy=default.target
 sudo loginctl enable-linger youruser
 ```
 
-新手引导在 Linux/WSL2 上运行此命令（可能提示输入 sudo；写入 `/var/lib/systemd/linger`）。
+新手引导在 Linux 上运行此命令（可能提示输入 sudo；写入 `/var/lib/systemd/linger`）。
 然后启用服务：
 
 ```
@@ -304,9 +304,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now crawclaw-gateway[-<profile>].service
 ```
 
-## Windows（WSL2）
+## Windows
 
-Windows 安装应使用 **WSL2** 并遵循上面的 Linux systemd 部分。
+Windows 安装使用原生 PowerShell 安装器和每用户启动模式。参阅 [Windows](/platforms/windows)。
 
 ## 运维检查
 

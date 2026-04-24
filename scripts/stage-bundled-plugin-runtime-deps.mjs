@@ -42,6 +42,24 @@ function replaceDir(targetPath, sourcePath) {
   removePathIfExists(sourcePath);
 }
 
+const PRUNED_RUNTIME_DEP_EXTENSIONS = new Set([".cts", ".map", ".mts", ".ts", ".tsx"]);
+
+function pruneBundledRuntimeDependencyFiles(targetDir) {
+  if (!fs.existsSync(targetDir)) {
+    return;
+  }
+  for (const dirent of fs.readdirSync(targetDir, { withFileTypes: true })) {
+    const entryPath = path.join(targetDir, dirent.name);
+    if (dirent.isDirectory()) {
+      pruneBundledRuntimeDependencyFiles(entryPath);
+      continue;
+    }
+    if (dirent.isFile() && PRUNED_RUNTIME_DEP_EXTENSIONS.has(path.extname(dirent.name))) {
+      fs.rmSync(entryPath, { force: true });
+    }
+  }
+}
+
 function dependencyNodeModulesPath(nodeModulesDir, depName) {
   return path.join(nodeModulesDir, ...depName.split("/"));
 }
@@ -234,6 +252,7 @@ function stageInstalledRootRuntimeDeps(params) {
     }
 
     replaceDir(nodeModulesDir, stagedNodeModulesDir);
+    pruneBundledRuntimeDependencyFiles(nodeModulesDir);
     writeJson(stampPath, {
       fingerprint,
       generatedAt: new Date().toISOString(),
@@ -293,6 +312,7 @@ function installPluginRuntimeDeps(params) {
     }
 
     replaceDir(nodeModulesDir, stagedNodeModulesDir);
+    pruneBundledRuntimeDependencyFiles(nodeModulesDir);
     writeJson(stampPath, {
       fingerprint,
       generatedAt: new Date().toISOString(),
@@ -337,6 +357,7 @@ export function stageBundledPluginRuntimeDeps(params = {}) {
     const fingerprint = createRuntimeDepsFingerprint(packageJson);
     const stamp = readRuntimeDepsStamp(stampPath);
     if (fs.existsSync(nodeModulesDir) && stamp?.fingerprint === fingerprint) {
+      pruneBundledRuntimeDependencyFiles(nodeModulesDir);
       continue;
     }
     installPluginRuntimeDepsWithRetries({

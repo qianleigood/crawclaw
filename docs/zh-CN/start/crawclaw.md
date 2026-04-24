@@ -213,6 +213,6 @@ crawclaw health --json   # Gateway 网关健康快照（WS）
 - Gateway 网关运维：[Gateway 网关运行手册](/gateway)
 - 定时任务 + 唤醒：[定时任务](/automation/cron-jobs)
 - 历史移动端说明：iOS / Android 源码已从本仓库移除
-- Windows 状态：[Windows (WSL2)](/platforms/windows)
+- Windows 状态：[Windows](/platforms/windows)
 - Linux 状态：[Linux](/platforms/linux)
 - 安全：[安全](/gateway/security)

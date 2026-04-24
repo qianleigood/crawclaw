@@ -68,10 +68,6 @@ vi.mock("../infra/ports.js", () => ({
   formatPortDiagnostics: vi.fn(() => []),
 }));
 
-vi.mock("../infra/wsl.js", () => ({
-  isWSL: vi.fn(async () => false),
-}));
-
 vi.mock("../terminal/note.js", () => ({
   note,
 }));

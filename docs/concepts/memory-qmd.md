@@ -28,7 +28,7 @@ binary, and can index content beyond your workspace memory files.
 - Install QMD: `bun install -g @tobilu/qmd`
 - SQLite build that allows extensions (`brew install sqlite` on macOS).
 - QMD must be on the gateway's `PATH`.
-- macOS and Linux work out of the box. Windows is best supported via WSL2.
+- macOS and Linux work out of the box. Windows support uses the native Windows path.
 
 ### Enable
 

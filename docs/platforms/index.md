@@ -12,8 +12,7 @@ CrawClaw core is written in TypeScript. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
 CrawClaw focuses on the Gateway, CLI, web surfaces, and node integrations.
-Windows and Linux are supported Gateway host targets today, with WSL2
-recommended on Windows when you want the broadest compatibility.
+Windows and Linux are supported Gateway host targets today.
 
 ## Choose your OS
 
@@ -48,5 +47,5 @@ Use one of these (all supported):
 The service target depends on OS:
 
 - macOS: LaunchAgent (`ai.crawclaw.gateway` or `ai.crawclaw.<profile>`; legacy `com.crawclaw.*`)
-- Linux/WSL2: systemd user service (`crawclaw-gateway[-<profile>].service`)
+- Linux: systemd user service (`crawclaw-gateway[-<profile>].service`)
 - Windows: Scheduled Task with per-user Startup-folder fallback

@@ -13,8 +13,8 @@ CrawClaw ships three installer scripts, served from `crawclaw.ai`.
 
 | Script                             | Platform             | What it does                                                                                 |
 | ---------------------------------- | -------------------- | -------------------------------------------------------------------------------------------- |
-| [`install.sh`](#installsh)         | macOS / Linux / WSL  | Installs Node if needed, installs CrawClaw via npm (default) or git, and can run onboarding. |
-| [`install-cli.sh`](#install-clish) | macOS / Linux / WSL  | Installs Node + CrawClaw into a local prefix (`~/.crawclaw`). No root required.              |
+| [`install.sh`](#installsh)         | macOS / Linux        | Installs Node if needed, installs CrawClaw via npm (default) or git, and can run onboarding. |
+| [`install-cli.sh`](#install-clish) | macOS / Linux        | Installs Node + CrawClaw into a local prefix (`~/.crawclaw`). No root required.              |
 | [`install.ps1`](#installps1)       | Windows (PowerShell) | Installs Node if needed, installs CrawClaw via npm (default) or git, and can run onboarding. |
 
 ## Quick commands
@@ -63,14 +63,14 @@ If install succeeds but `crawclaw` is not found in a new terminal, see [Node.js 
 ## install.sh
 
 <Tip>
-Recommended for most interactive installs on macOS/Linux/WSL.
+Recommended for most interactive installs on macOS/Linux.
 </Tip>
 
 ### Flow (install.sh)
 
 <Steps>
   <Step title="Detect OS">
-    Supports macOS and Linux (including WSL). If macOS is detected, installs Homebrew if missing.
+    Supports macOS and Linux. If macOS is detected, installs Homebrew if missing.
   </Step>
   <Step title="Ensure Node.js 24 by default">
     Checks Node version and installs Node 24 if needed (Homebrew on macOS, NodeSource setup scripts on Linux apt/dnf/yum). CrawClaw still supports Node 22 LTS, currently `22.14+`, for compatibility.
@@ -290,7 +290,7 @@ platform matrix for the product boundary: [Windows](/platforms/windows).
 
 ### Native Windows validation path
 
-The closed-loop validation path for native Windows is:
+The closed-loop validation path for Windows is:
 
 ```powershell
 iwr -useb https://crawclaw.ai/install.ps1 | iex

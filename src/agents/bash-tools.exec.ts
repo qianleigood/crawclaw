@@ -1123,7 +1123,7 @@ function buildExecToolDescription(agentId?: string): string {
   }
   const lines: string[] = [base];
   lines.push(
-    "IMPORTANT (Windows): Run executables directly — do NOT wrap commands in `cmd /c`, `powershell -Command`, `& ` prefix, or WSL. Use backslash paths (C:\\path), not forward slashes. Use short executable names (e.g. `node`, `python3`) instead of full paths.",
+    "IMPORTANT (Windows): Run executables directly — do NOT wrap commands in `cmd /c`, `powershell -Command`, or `& ` prefix. Use backslash paths (C:\\path), not forward slashes. Use short executable names (e.g. `node`, `python3`) instead of full paths.",
   );
   try {
     const approvalsFile = loadExecApprovals();

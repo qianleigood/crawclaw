@@ -14,7 +14,7 @@ title: "Install"
 The fastest way to install. It detects your OS, installs Node if needed, installs CrawClaw, and launches onboarding.
 
 <Tabs>
-  <Tab title="macOS / Linux / WSL2">
+  <Tab title="macOS / Linux">
     ```bash
     curl -fsSL https://crawclaw.ai/install.sh | bash
     ```
@@ -29,7 +29,7 @@ The fastest way to install. It detects your OS, installs Node if needed, install
 To install without running onboarding:
 
 <Tabs>
-  <Tab title="macOS / Linux / WSL2">
+  <Tab title="macOS / Linux">
     ```bash
     curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --no-onboard
     ```
@@ -46,7 +46,7 @@ For all flags and CI/automation options, see [Installer internals](/install/inst
 ## System requirements
 
 - **Node 24** (recommended) or Node 22.14+ — the installer script handles this automatically
-- **macOS, Linux, or Windows** — both native Windows and WSL2 are supported; WSL2 is more stable. See [Windows](/platforms/windows).
+- **macOS, Linux, or Windows** — Windows uses the native PowerShell installer. See [Windows](/platforms/windows).
 - `pnpm` is only needed if you build from source
 
 ## Alternative install methods

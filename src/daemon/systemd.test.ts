@@ -209,7 +209,7 @@ describe("isSystemdServiceEnabled", () => {
     expect(result).toBe(false);
   });
 
-  it("returns false for the WSL2 Ubuntu 24.04 wrapper-only is-enabled failure", async () => {
+  it("reports wrapper-only is-enabled failures as unavailable", async () => {
     execFileMock.mockImplementationOnce((_cmd, args, _opts, cb) => {
       assertUserSystemctlArgs(args, "is-enabled", GATEWAY_SERVICE);
       const err = new Error(
@@ -323,7 +323,7 @@ describe("isSystemdServiceEnabled", () => {
 });
 
 describe("isNonFatalSystemdInstallProbeError", () => {
-  it("matches wrapper-only WSL install probe failures", () => {
+  it("matches wrapper-only install probe failures", () => {
     expect(
       isNonFatalSystemdInstallProbeError(
         new Error("Command failed: systemctl --user is-enabled crawclaw-gateway.service"),

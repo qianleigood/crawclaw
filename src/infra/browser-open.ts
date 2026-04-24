@@ -1,6 +1,5 @@
 import { runCommandWithTimeout } from "../process/exec.js";
 import { detectBinary } from "./detect-binary.js";
-import { isWSL } from "./wsl.js";
 
 export type BrowserOpenCommand = {
   argv: string[] | null;
@@ -48,18 +47,8 @@ export async function resolveBrowserOpenCommand(): Promise<BrowserOpenCommand> {
   }
 
   if (platform === "linux") {
-    const wsl = await isWSL();
-    if (!hasDisplay && !wsl) {
+    if (!hasDisplay) {
       return { argv: null, reason: "no-display" };
-    }
-    if (wsl) {
-      const hasWslview = await detectBinary("wslview");
-      if (hasWslview) {
-        return { argv: ["wslview"], command: "wslview" };
-      }
-      if (!hasDisplay) {
-        return { argv: null, reason: "wsl-no-wslview" };
-      }
     }
     const hasXdgOpen = await detectBinary("xdg-open");
     return hasXdgOpen

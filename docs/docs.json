@@ -1132,8 +1132,7 @@
                     "pages": [
                       "tools/browser",
                       "tools/browser-login",
-                      "tools/browser-linux-troubleshooting",
-                      "tools/browser-wsl2-windows-remote-cdp-troubleshooting"
+                      "tools/browser-linux-troubleshooting"
                     ]
                   },
                   {

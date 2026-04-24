@@ -94,7 +94,8 @@ x-i18n:
   <Step title="守护进程安装">
     - macOS：LaunchAgent
       - 需要已登录的用户会话；对于无头环境，请使用自定义 LaunchDaemon（未随附）。
-    - Linux 和通过 WSL2 的 Windows：systemd 用户单元
+    - Linux：systemd 用户单元
+    - Windows：每用户启动模式
       - 向导会尝试执行 `loginctl enable-linger <user>`，使网关在注销后仍保持运行。
       - 可能会提示输入 sudo（写入 `/var/lib/systemd/linger`）；会先尝试不使用 sudo。
     - 运行时选择：Node（推荐；WhatsApp 和 Telegram 必需）。不建议使用 Bun。
@@ -312,7 +313,7 @@ Signal 设置行为：
 - 在配置中写入 `channels.signal.cliPath`
 - JVM 构建需要 Java 21
 - 在可用时使用原生构建
-- Windows 使用 WSL2，并在 WSL 内遵循 Linux 的 signal-cli 流程
+- Windows 使用可用的原生构建。
 
 ## 相关文档
 

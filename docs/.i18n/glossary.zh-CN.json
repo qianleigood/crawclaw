@@ -4,6 +4,10 @@
     "target": "CrawClaw"
   },
   {
+    "source": "Windows",
+    "target": "Windows"
+  },
+  {
     "source": "Gateway",
     "target": "Gateway 网关"
   },

@@ -89,9 +89,10 @@ It does not install or modify anything on the remote host.
   <Step title="Daemon install">
     - macOS: LaunchAgent
       - Requires logged-in user session; for headless, use a custom LaunchDaemon (not shipped).
-    - Linux and Windows via WSL2: systemd user unit
+    - Linux: systemd user unit
       - Wizard attempts `loginctl enable-linger <user>` so gateway stays up after logout.
       - May prompt for sudo (writes `/var/lib/systemd/linger`); it tries without sudo first.
+    - Native Windows: Scheduled Task with per-user Startup-folder fallback.
     - Runtime selection: Node (recommended; required for WhatsApp and Telegram). Bun is not recommended.
   </Step>
   <Step title="Health check">
@@ -309,7 +310,7 @@ Signal setup behavior:
 - Writes `channels.signal.cliPath` in config
 - JVM builds require Java 21
 - Native builds are used when available
-- Windows uses WSL2 and follows Linux signal-cli flow inside WSL
+- Native Windows uses the Windows-native `signal-cli` asset when available.
 
 ## Related docs
 

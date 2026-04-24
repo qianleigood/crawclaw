@@ -153,7 +153,7 @@ describe("maybeInstallDaemon", () => {
     expect(serviceInstall).not.toHaveBeenCalled();
   });
 
-  it("continues the WSL2 daemon install flow when service status probe reports systemd unavailability", async () => {
+  it("continues the daemon install flow when service status probe reports systemd unavailability", async () => {
     serviceIsLoaded.mockRejectedValueOnce(
       new Error("systemctl --user unavailable: Failed to connect to bus: No medium found"),
     );

@@ -904,8 +904,8 @@ channels:
     proxy: socks5://<user>:<password>@proxy-host:1080
 ```
 
-    - Node 22+ defaults to `autoSelectFamily=true` (except WSL2) and `dnsResultOrder=ipv4first`.
-    - If your host is WSL2 or explicitly works better with IPv4-only behavior, force family selection:
+    - Node 22+ defaults to `autoSelectFamily=true` and `dnsResultOrder=ipv4first`.
+    - If your host works better with IPv4-only behavior, force family selection:
 
 ```yaml
 channels:
@@ -978,7 +978,7 @@ Primary reference:
 - `channels.telegram.streaming`: `off | partial | block | progress` (live stream preview; default: `partial`; `progress` maps to `partial`; `block` is legacy preview mode compatibility). Telegram preview streaming uses a single preview message that is edited in place.
 - `channels.telegram.mediaMaxMb`: inbound/outbound Telegram media cap (MB, default: 100).
 - `channels.telegram.retry`: retry policy for Telegram send helpers (CLI/tools/actions) on recoverable outbound API errors (attempts, minDelayMs, maxDelayMs, jitter).
-- `channels.telegram.network.autoSelectFamily`: override Node autoSelectFamily (true=enable, false=disable). Defaults to enabled on Node 22+, with WSL2 defaulting to disabled.
+- `channels.telegram.network.autoSelectFamily`: override Node autoSelectFamily (true=enable, false=disable). Defaults to enabled on Node 22+.
 - `channels.telegram.network.dnsResultOrder`: override DNS result order (`ipv4first` or `verbatim`). Defaults to `ipv4first` on Node 22+.
 - `channels.telegram.proxy`: proxy URL for Bot API calls (SOCKS/HTTP).
 - `channels.telegram.webhookUrl`: enable webhook mode (requires `channels.telegram.webhookSecret`).

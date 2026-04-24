@@ -39,10 +39,6 @@ vi.mock("../../daemon/systemd-hints.js", () => ({
   renderSystemdUnavailableHints: () => [],
 }));
 
-vi.mock("../../infra/wsl.js", () => ({
-  isWSLEnv: () => false,
-}));
-
 vi.mock("../../logging.js", () => ({
   getResolvedLoggerSettings: () => ({ file: "/tmp/crawclaw.log" }),
 }));
