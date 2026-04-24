@@ -1048,18 +1048,32 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       prePromptMessageCount: 0,
       runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
     });
+    const parentForkContext = {
+      parentRunId: "parent-run-dream-1",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "Parent dream prompt",
+        forkContextMessages: [{ role: "user", content: "整理最近几次协作事实。" }],
+      }),
+    };
     await emitStopPhase({
       sessionId: "session-dream-1",
       sessionKey: "agent:main:feishu:direct:user-1",
       messageCount: 2,
+      parentForkContext,
     });
 
     expect(submitTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: "session-dream-1",
         sessionKey: "agent:main:feishu:direct:user-1",
+        runtimeContext: expect.objectContaining({
+          parentForkContext,
+        }),
       }),
     );
+    expect(submitTurn.mock.calls[0]?.[0]?.runtimeContext).not.toHaveProperty("parentRunId");
   });
 
   it("does not schedule auto-dream from ingestion alone before the lifecycle stop phase fires", async () => {

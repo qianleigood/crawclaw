@@ -1,6 +1,7 @@
 import { emitSpecialAgentActionEvent } from "../../agents/special/runtime/action-feed.js";
 import { createConfiguredSpecialAgentObservability } from "../../agents/special/runtime/configured-observability.js";
 import { createEmbeddedMemorySpecialAgentDefinition } from "../../agents/special/runtime/definition-presets.js";
+import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import {
   buildSpecialAgentCompletionDetail,
   buildSpecialAgentRunRefDetail,
@@ -62,6 +63,7 @@ export type DreamRunParams = {
   sessionFile: string;
   workspaceDir: string;
   parentRunId?: string;
+  parentForkContext?: SpecialAgentParentForkContext;
   scope: DurableMemoryScope;
   sessionKey?: string;
   triggerSource: string;
@@ -369,6 +371,11 @@ export async function runDreamAgentOnce(
   logger?: RuntimeLogger,
 ): Promise<DreamRunResult> {
   const existingEntries = await scanDurableMemoryScopeEntries(params.scope);
+  const parentRunId =
+    normalizeOptionalString(params.parentForkContext?.parentRunId) ??
+    normalizeOptionalString(params.parentRunId);
+  const parentProvider = normalizeOptionalString(params.parentForkContext?.provider);
+  const parentModel = normalizeOptionalString(params.parentForkContext?.modelId);
   const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: DREAM_AGENT_DEFINITION,
     sessionId: params.sessionId,
@@ -378,9 +385,7 @@ export async function runDreamAgentOnce(
     ...(normalizeOptionalString(params.scope.agentId)
       ? { agentId: normalizeOptionalString(params.scope.agentId) }
       : {}),
-    ...(normalizeOptionalString(params.parentRunId)
-      ? { parentRunId: normalizeOptionalString(params.parentRunId) }
-      : {}),
+    ...(parentRunId ? { parentRunId } : {}),
   });
   const taskPrompt = buildDreamTaskPrompt({
     scopeKey: params.scope.scopeKey ?? "durable-memory",
@@ -432,7 +437,7 @@ export async function runDreamAgentOnce(
       definition: DREAM_AGENT_DEFINITION,
       task: taskPrompt,
       extraSystemPrompt: buildDreamSystemPrompt(),
-      ...(normalizeOptionalString(params.parentRunId) ? { parentRunId: params.parentRunId } : {}),
+      ...(parentRunId ? { parentRunId } : {}),
       embeddedContext: {
         sessionId: params.sessionId,
         ...(normalizeOptionalString(params.sessionKey)
@@ -443,6 +448,8 @@ export async function runDreamAgentOnce(
         ...(normalizeOptionalString(params.scope.agentId)
           ? { agentId: normalizeOptionalString(params.scope.agentId) }
           : {}),
+        ...(parentProvider ? { provider: parentProvider } : {}),
+        ...(parentModel ? { model: parentModel } : {}),
         ...(runtimeConfig ? { config: runtimeConfig } : {}),
         specialAgentContext: {
           durableMemoryScope: {

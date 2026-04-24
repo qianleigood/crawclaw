@@ -1,3 +1,4 @@
+import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { DEFAULT_CONFIG } from "../config/defaults.ts";
@@ -32,6 +33,7 @@ type SubmitAutoDreamTurnParams = {
     messageChannel?: string | null;
     senderId?: string | null;
     parentRunId?: string | null;
+    parentForkContext?: SpecialAgentParentForkContext | null;
   };
 };
 
@@ -42,6 +44,7 @@ type RunAutoDreamNowParams = {
   workspaceDir?: string;
   sessionKey?: string;
   parentRunId?: string;
+  parentForkContext?: SpecialAgentParentForkContext;
   triggerSource: string;
   bypassGate?: boolean;
   dryRun?: boolean;
@@ -331,6 +334,9 @@ export class AutoDreamScheduler {
     if (this.inFlightScopes.has(scope.scopeKey)) {
       return;
     }
+    const parentForkContext = params.runtimeContext?.parentForkContext ?? undefined;
+    const parentRunId =
+      parentForkContext?.parentRunId?.trim() || params.runtimeContext?.parentRunId?.trim();
     this.inFlightScopes.add(scope.scopeKey);
     void this.runNow({
       scope,
@@ -338,9 +344,8 @@ export class AutoDreamScheduler {
       ...(params.sessionFile?.trim() ? { sessionFile: params.sessionFile.trim() } : {}),
       ...(params.workspaceDir?.trim() ? { workspaceDir: params.workspaceDir.trim() } : {}),
       sessionKey,
-      ...(params.runtimeContext?.parentRunId?.trim()
-        ? { parentRunId: params.runtimeContext.parentRunId.trim() }
-        : {}),
+      ...(parentForkContext ? { parentForkContext } : {}),
+      ...(!parentForkContext && parentRunId ? { parentRunId } : {}),
       triggerSource: "stop",
     }).finally(() => {
       this.inFlightScopes.delete(scope.scopeKey ?? "");
@@ -437,7 +442,10 @@ export class AutoDreamScheduler {
           sessionId: embeddedSessionId,
           sessionFile: embeddedSessionFile,
           workspaceDir: embeddedWorkspaceDir,
-          ...(params.parentRunId ? { parentRunId: params.parentRunId } : {}),
+          ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
+          ...(!params.parentForkContext && params.parentRunId
+            ? { parentRunId: params.parentRunId }
+            : {}),
           scope: params.scope,
           sessionKey: params.sessionKey,
           triggerSource: params.triggerSource,

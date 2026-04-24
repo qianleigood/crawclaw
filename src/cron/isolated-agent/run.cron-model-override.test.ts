@@ -156,11 +156,11 @@ describe("runCronIsolatedAgentTurn — cron model override (#21057)", () => {
 
     await runCronIsolatedAgentTurn(makeParams());
 
-    // Persist ordering: [0] skills snapshot, [1] pre-run model+systemSent,
-    // [2] post-run telemetry.  Index 1 is what a concurrent sessions_list
+    // Persist ordering: [0] pre-run model+systemSent,
+    // [1] post-run telemetry.  Index 0 is what a concurrent sessions_list
     // would read while the agent run is in flight.
-    expect(persistedSnapshots.length).toBeGreaterThanOrEqual(3);
-    const preRunSnapshot = persistedSnapshots[1];
+    expect(persistedSnapshots.length).toBeGreaterThanOrEqual(2);
+    const preRunSnapshot = persistedSnapshots[0];
     expect(preRunSnapshot.model).toBe("claude-sonnet-4-6");
     expect(preRunSnapshot.modelProvider).toBe("anthropic");
     expect(preRunSnapshot.systemSent).toBe(true);
@@ -212,13 +212,12 @@ describe("runCronIsolatedAgentTurn — cron model override (#21057)", () => {
   });
 
   it("logs warning and continues when pre-run persist fails", async () => {
-    // Persist ordering: [1] skills snapshot, [2] pre-run, [3] post-run.
-    // Only the pre-run persist (call 2) should fail — the skills snapshot
-    // persist is pre-existing code without a try-catch guard.
+    // Persist ordering: [1] pre-run, [2] post-run.
+    // Only the pre-run persist should fail.
     let callCount = 0;
     updateSessionStoreMock.mockImplementation(async () => {
       callCount++;
-      if (callCount === 2) {
+      if (callCount === 1) {
         throw new Error("ENOSPC: no space left on device");
       }
     });

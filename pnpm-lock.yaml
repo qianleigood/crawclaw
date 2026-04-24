@@ -70,8 +70,8 @@ importers:
         specifier: 0.68.0
         version: 0.68.0
       '@matrix-org/matrix-sdk-crypto-wasm':
-        specifier: 18.0.0
-        version: 18.0.0
+        specifier: 18.1.0
+        version: 18.1.0
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@4.3.6)
@@ -145,8 +145,8 @@ importers:
         specifier: ^14.1.1
         version: 14.1.1
       matrix-js-sdk:
-        specifier: 41.3.0-rc.0
-        version: 41.3.0-rc.0
+        specifier: 41.3.0
+        version: 41.3.0
       node-edge-tts:
         specifier: ^1.2.10
         version: 1.2.10
@@ -11115,7 +11115,7 @@ snapshots:
       '@mariozechner/pi-ai': 0.64.0(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.20.0)(zod@4.3.6)
       '@mariozechner/pi-coding-agent': 0.64.0(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.20.0)(zod@4.3.6)
       '@mariozechner/pi-tui': 0.64.0
-      '@matrix-org/matrix-sdk-crypto-wasm': 18.0.0
+      '@matrix-org/matrix-sdk-crypto-wasm': 18.1.0
       '@modelcontextprotocol/sdk': 1.29.0(zod@4.3.6)
       '@mozilla/readability': 0.6.0
       '@napi-rs/canvas': 0.1.97
@@ -11141,7 +11141,7 @@ snapshots:
       linkedom: 0.18.12
       long: 5.3.2
       markdown-it: 14.1.1
-      matrix-js-sdk: 41.3.0-rc.0
+      matrix-js-sdk: 41.3.0
       node-edge-tts: 1.2.10
       osc-progress: 0.3.0
       pdfjs-dist: 5.6.205

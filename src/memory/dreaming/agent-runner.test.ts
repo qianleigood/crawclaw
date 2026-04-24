@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
 import { resolveDurableMemoryScope } from "../durable/scope.js";
 import {
   __testing,
@@ -190,12 +191,22 @@ describe("runDreamAgentOnce", () => {
       emitAgentActionEvent,
       runEmbeddedPiAgent,
     });
+    const parentForkContext = {
+      parentRunId: "parent-run-dream-1",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "Parent system prompt",
+        forkContextMessages: [{ role: "user", content: "remember step-first answers" }],
+      }),
+    };
 
     const result = await runDreamAgentOnce({
       runId: "mrun-1",
       sessionId: "session-1",
       sessionFile: "/tmp/session-1.jsonl",
       workspaceDir: dir,
+      parentForkContext,
       scope: scope!,
       sessionKey: "agent:main:feishu:user-1",
       triggerSource: "stop",
@@ -226,6 +237,8 @@ describe("runDreamAgentOnce", () => {
     expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         specialAgentSpawnSource: "dream",
+        provider: "openai",
+        model: "gpt-5.4",
         maxTurns: 8,
         specialDurableMemoryScope: {
           agentId: "main",
@@ -240,6 +253,7 @@ describe("runDreamAgentOnce", () => {
       | undefined;
     expect(embeddedParams?.sessionId).not.toBe("session-1");
     expect(embeddedParams?.sessionFile).not.toBe("/tmp/session-1.jsonl");
+    expect(runEmbeddedPiAgent.mock.calls[0]?.[0]).not.toHaveProperty("specialParentPromptEnvelope");
     expect(emitAgentActionEvent).toHaveBeenCalledTimes(4);
     expect(emitAgentActionEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({

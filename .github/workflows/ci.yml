@@ -806,18 +806,28 @@ jobs:
           echo "CRAWCLAW_TEST_SHARD_INDEX=$SHARD_INDEX" >> "$GITHUB_ENV"
 
       - name: Download dist artifact
+        id: download_dist
         if: matrix.task == 'test' || matrix.task == 'install-smoke'
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: dist-build
           path: dist/
 
       - name: Download A2UI bundle artifact
+        id: download_a2ui
         if: matrix.task == 'test' || matrix.task == 'install-smoke'
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: canvas-a2ui-bundle
           path: src/canvas-host/a2ui/
+
+      - name: Build dist when artifact download fails
+        if: (matrix.task == 'test' || matrix.task == 'install-smoke') && (steps.download_dist.outcome != 'success' || steps.download_a2ui.outcome != 'success')
+        run: |
+          echo "::warning title=Artifact download fallback::Building dist locally because one or more Windows artifact downloads failed."
+          pnpm build
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
         env:
