@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LiveSessionModelSwitchError } from "../../agents/live-model-switch.js";
+import { LiveSessionModelSwitchError } from "../../agents/live-model-switch-error.js";
 import type { TypingSignaler } from "../../channels/typing-mode.js";
 import type { TemplateContext } from "../templating.js";
 import type { GetReplyOptions } from "../types.js";

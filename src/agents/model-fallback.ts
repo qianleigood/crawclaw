@@ -26,7 +26,7 @@ import {
   shouldPreserveTransientCooldownProbeSlot,
   shouldUseTransientCooldownProbeSlot,
 } from "./failover-policy.js";
-import { LiveSessionModelSwitchError } from "./live-model-switch.js";
+import { LiveSessionModelSwitchError } from "./live-model-switch-error.js";
 import { logModelFallbackDecision } from "./model-fallback-observation.js";
 import type { FallbackAttempt, ModelCandidate } from "./model-fallback.types.js";
 import {
@@ -344,8 +344,8 @@ function resolveFallbackCandidates(params: {
     : null;
   const defaultProvider = primary?.provider ?? DEFAULT_PROVIDER;
   const defaultModel = primary?.model ?? DEFAULT_MODEL;
-  const providerRaw = params.provider.trim() || defaultProvider;
-  const modelRaw = params.model.trim() || defaultModel;
+  const providerRaw = params.provider?.trim() || defaultProvider;
+  const modelRaw = params.model?.trim() || defaultModel;
   const normalizedPrimary = normalizeModelRef(providerRaw, modelRaw);
   const configuredPrimary = normalizeModelRef(defaultProvider, defaultModel);
   const aliasIndex = buildModelAliasIndex({

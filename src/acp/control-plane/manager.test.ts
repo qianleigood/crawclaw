@@ -11,11 +11,13 @@ const hoisted = vi.hoisted(() => {
   const readAcpSessionEntryMock = vi.fn();
   const upsertAcpSessionMetaMock = vi.fn();
   const requireAcpRuntimeBackendMock = vi.fn();
+  const upsertAgentTaskRuntimeMetadataMock = vi.fn();
   return {
     listAcpSessionEntriesMock,
     readAcpSessionEntryMock,
     upsertAcpSessionMetaMock,
     requireAcpRuntimeBackendMock,
+    upsertAgentTaskRuntimeMetadataMock,
   };
 });
 
@@ -31,6 +33,16 @@ vi.mock("../runtime/registry.js", async (importOriginal) => {
     ...actual,
     requireAcpRuntimeBackend: (backendId?: string) =>
       hoisted.requireAcpRuntimeBackendMock(backendId),
+  };
+});
+
+vi.mock("../../agents/runtime/agent-metadata-store.js", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../agents/runtime/agent-metadata-store.js")>();
+  return {
+    ...actual,
+    upsertAgentTaskRuntimeMetadata: (...args: unknown[]) =>
+      hoisted.upsertAgentTaskRuntimeMetadataMock(...args),
   };
 });
 
@@ -196,6 +208,9 @@ describe("AcpSessionManager", () => {
     hoisted.readAcpSessionEntryMock.mockReset();
     hoisted.upsertAcpSessionMetaMock.mockReset().mockResolvedValue(null);
     hoisted.requireAcpRuntimeBackendMock.mockReset();
+    hoisted.upsertAgentTaskRuntimeMetadataMock
+      .mockReset()
+      .mockResolvedValue({ task: null, metadata: {} });
   });
 
   afterEach(() => {
