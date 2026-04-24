@@ -770,6 +770,29 @@ print(best["browser_download_url"])
 PY
 }
 
+download_file() {
+  local url="$1"
+  local output="$2"
+  local attempt
+  for attempt in 1 2 3; do
+    if curl -fL \
+      --retry 8 \
+      --retry-all-errors \
+      --retry-delay 3 \
+      --connect-timeout 20 \
+      --speed-time 30 \
+      --speed-limit 1024 \
+      -C - \
+      "$url" \
+      -o "$output"; then
+      return 0
+    fi
+    warn "download attempt $attempt failed for $(basename "$output")"
+    sleep "$((attempt * 5))"
+  done
+  return 1
+}
+
 current_build_commit() {
   python3 - <<'PY'
 import json
@@ -848,7 +871,7 @@ pack_main_tgz() {
     MINGIT_ZIP_PATH="$MAIN_TGZ_DIR/$mingit_name"
     if [[ ! -f "$MINGIT_ZIP_PATH" ]]; then
       say "Download $MINGIT_ZIP_NAME"
-      curl -fsSL "$mingit_url" -o "$MINGIT_ZIP_PATH"
+      download_file "$mingit_url" "$MINGIT_ZIP_PATH"
     fi
     pkg="$(
       npm pack "$TARGET_PACKAGE_SPEC" --ignore-scripts --json --pack-destination "$MAIN_TGZ_DIR" \
@@ -870,7 +893,7 @@ pack_main_tgz() {
   MINGIT_ZIP_PATH="$MAIN_TGZ_DIR/$mingit_name"
   if [[ ! -f "$MINGIT_ZIP_PATH" ]]; then
     say "Download $MINGIT_ZIP_NAME"
-    curl -fsSL "$mingit_url" -o "$MINGIT_ZIP_PATH"
+    download_file "$mingit_url" "$MINGIT_ZIP_PATH"
   fi
   short_head="$(git rev-parse --short HEAD)"
   pkg="$(
