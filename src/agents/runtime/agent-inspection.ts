@@ -1,4 +1,9 @@
-import { getAgentRunContext, type AgentRunContext } from "../../infra/agent-events.js";
+import {
+  getAgentRunContext,
+  listAgentRunContexts,
+  type AgentRunContext,
+} from "../../infra/agent-events.js";
+import type { ObservationContext } from "../../infra/observation/types.js";
 import {
   type ChannelStreamingDecisionSnapshot,
   peekDiagnosticSessionState,
@@ -40,6 +45,8 @@ export type AgentInspectionTimelineEntry = {
   type: string;
   phase?: string;
   createdAt: number;
+  source?: "lifecycle" | "diagnostic" | "action" | "archive" | "trajectory" | "log" | "otel";
+  observation?: ObservationContext;
   traceId?: string;
   spanId?: string;
   parentSpanId?: string | null;
@@ -55,6 +62,7 @@ export type AgentInspectionSnapshot = {
   lookup: {
     runId?: string;
     taskId?: string;
+    traceId?: string;
   };
   runId?: string;
   taskId?: string;
@@ -207,6 +215,7 @@ export type AgentInspectionSnapshot = {
 function resolveInspectionRunState(params: {
   runId?: string;
   taskId?: string;
+  traceId?: string;
 }): AgentRuntimeState | undefined {
   const runId = normalizeOptionalString(params.runId);
   if (runId) {
@@ -214,9 +223,84 @@ function resolveInspectionRunState(params: {
   }
   const taskId = normalizeOptionalString(params.taskId);
   if (!taskId) {
-    return undefined;
+    const traceId = normalizeOptionalString(params.traceId);
+    if (!traceId) {
+      return undefined;
+    }
+    const contextRun = listAgentRunContexts().find(
+      (entry) => entry.context.observation.trace.traceId === traceId,
+    );
+    return contextRun ? getAgentRuntimeState(contextRun.runId) : undefined;
   }
   return listAgentRuntimeStates().find((entry) => entry.taskId === taskId);
+}
+
+function resolveRunIdFromTraceId(traceId: string | undefined): string | undefined {
+  const normalized = normalizeOptionalString(traceId);
+  if (!normalized) {
+    return undefined;
+  }
+  return listAgentRunContexts().find(
+    (entry) => entry.context.observation.trace.traceId === normalized,
+  )?.runId;
+}
+
+function buildObservationTimeline(params: {
+  runId?: string;
+  runContext?: AgentRunContext;
+  trajectory?: TaskTrajectory;
+}): AgentInspectionTimelineEntry[] | undefined {
+  const entries: AgentInspectionTimelineEntry[] = [];
+  if (params.runContext?.observation) {
+    const observation = params.runContext.observation;
+    entries.push({
+      eventId: `observation:${observation.trace.spanId}`,
+      source: "lifecycle",
+      type: "run.observation",
+      ...(observation.phase ? { phase: observation.phase } : {}),
+      createdAt: 0,
+      observation,
+      traceId: observation.trace.traceId,
+      spanId: observation.trace.spanId,
+      parentSpanId: observation.trace.parentSpanId,
+      ...(observation.decisionCode ? { decisionCode: observation.decisionCode } : {}),
+      summary: `run observation ${params.runId ?? observation.runtime.runId ?? "unknown"}`,
+      ...(observation.refs ? { refs: observation.refs } : {}),
+    });
+  }
+  if (params.trajectory) {
+    for (const step of params.trajectory.steps) {
+      entries.push({
+        eventId: `trajectory:${step.stepId}`,
+        source: "trajectory",
+        type: `trajectory.${step.kind}`,
+        createdAt: step.startedAt,
+        ...(step.observationRef
+          ? {
+              traceId: step.observationRef.traceId,
+              spanId: step.observationRef.spanId,
+              parentSpanId: step.observationRef.parentSpanId,
+            }
+          : params.trajectory.observation
+            ? {
+                observation: params.trajectory.observation,
+                traceId: params.trajectory.observation.trace.traceId,
+                spanId: params.trajectory.observation.trace.spanId,
+                parentSpanId: params.trajectory.observation.trace.parentSpanId,
+              }
+            : {}),
+        status: step.status,
+        summary: step.summary ?? step.title,
+        refs: {
+          stepId: step.stepId,
+          ...(step.toolName ? { toolName: step.toolName } : {}),
+          ...(step.toolCallId ? { toolCallId: step.toolCallId } : {}),
+        },
+      });
+    }
+  }
+  const sorted = entries.toSorted((left, right) => left.createdAt - right.createdAt);
+  return sorted.length > 0 ? sorted : undefined;
 }
 
 function resolveInspectionTask(params: {
@@ -309,18 +393,24 @@ export function mergeAgentInspectionArchive(
 export function inspectAgentRuntime(params: {
   runId?: string;
   taskId?: string;
+  traceId?: string;
 }): AgentInspectionSnapshot | undefined {
   const lookupRunId = normalizeOptionalString(params.runId);
   const lookupTaskId = normalizeOptionalString(params.taskId);
-  if (!lookupRunId && !lookupTaskId) {
+  const lookupTraceId = normalizeOptionalString(params.traceId);
+  if (!lookupRunId && !lookupTaskId && !lookupTraceId) {
     return undefined;
   }
 
   const runtimeState = resolveInspectionRunState({
     runId: lookupRunId,
     taskId: lookupTaskId,
+    traceId: lookupTraceId,
   });
-  const resolvedRunId = lookupRunId ?? normalizeOptionalString(runtimeState?.runId);
+  const resolvedRunId =
+    lookupRunId ??
+    normalizeOptionalString(runtimeState?.runId) ??
+    resolveRunIdFromTraceId(lookupTraceId);
   const runContext = resolvedRunId ? getAgentRunContext(resolvedRunId) : undefined;
   const task = resolveInspectionTask({
     runId: resolvedRunId,
@@ -392,6 +482,7 @@ export function inspectAgentRuntime(params: {
     lookup: {
       ...(lookupRunId ? { runId: lookupRunId } : {}),
       ...(lookupTaskId ? { taskId: lookupTaskId } : {}),
+      ...(lookupTraceId ? { traceId: lookupTraceId } : {}),
     },
     ...(finalRunId ? { runId: finalRunId } : {}),
     ...(resolvedTaskId ? { taskId: resolvedTaskId } : {}),
@@ -405,6 +496,9 @@ export function inspectAgentRuntime(params: {
     ...(guard ? { guard } : {}),
     ...(loop ? { loop } : {}),
     ...(channelStreaming ? { channelStreaming } : {}),
+    ...(buildObservationTimeline({ runId: finalRunId, runContext, trajectory })
+      ? { timeline: buildObservationTimeline({ runId: finalRunId, runContext, trajectory }) }
+      : {}),
     refs: {
       ...(runtimeStateRef ? { runtimeStateRef } : {}),
       ...((task?.agentMetadata?.transcriptRef ?? runtimeMetadata?.transcriptRef)

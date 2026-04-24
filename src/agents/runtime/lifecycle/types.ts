@@ -1,3 +1,5 @@
+import type { ObservationContext } from "../../../infra/observation/types.js";
+
 export type RunLoopLifecyclePhase =
   | "turn_started"
   | "provider_request_start"
@@ -27,13 +29,12 @@ export type RunLoopLifecycleRefs = Record<string, string | number | boolean | nu
 
 export type RunLoopLifecycleEventInput = {
   phase: RunLoopLifecyclePhase;
-  traceId?: string;
-  spanId?: string;
-  parentSpanId?: string | null;
+  observation?: ObservationContext;
   runId?: string;
   sessionId: string;
   sessionKey?: string;
   agentId?: string;
+  parentAgentId?: string;
   parentSessionKey?: string;
   isTopLevel: boolean;
   sessionFile?: string;
@@ -50,11 +51,9 @@ export type RunLoopLifecycleEventInput = {
 
 export type RunLoopLifecycleEvent = Omit<
   RunLoopLifecycleEventInput,
-  "traceId" | "spanId" | "decision" | "metrics" | "refs"
+  "observation" | "decision" | "metrics" | "refs"
 > & {
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string | null;
+  observation: ObservationContext;
   decision: RunLoopLifecycleDecision | null;
   metrics: RunLoopLifecycleMetrics;
   refs: RunLoopLifecycleRefs;

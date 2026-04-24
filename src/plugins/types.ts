@@ -36,6 +36,7 @@ import type { OperatorScope } from "../gateway/method-scopes.js";
 import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
 import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
+import type { ObservationContext } from "../infra/observation/types.js";
 import type { ProviderUsageSnapshot } from "../infra/provider-usage.types.js";
 import type { MediaUnderstandingProvider } from "../media-understanding/types.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -120,6 +121,8 @@ export type CrawClawPluginConfigSchema = {
   jsonSchema?: Record<string, unknown>;
 };
 
+export type PluginObservationContext = ObservationContext;
+
 /** Trusted execution context passed to plugin-owned agent tool factories. */
 export type CrawClawPluginToolContext = {
   config?: CrawClawConfig;
@@ -141,6 +144,7 @@ export type CrawClawPluginToolContext = {
   agentAccountId?: string;
   /** Trusted ambient delivery route for the active agent/session. */
   deliveryContext?: DeliveryContext;
+  observation?: PluginObservationContext;
   /** Trusted sender id from inbound context (runtime-provided, not tool args). */
   requesterSenderId?: string;
   /** Whether the trusted sender is an owner. */
@@ -1820,6 +1824,7 @@ export type CrawClawPluginServiceContext = {
   workspaceDir?: string;
   stateDir: string;
   logger: PluginLogger;
+  observation?: PluginObservationContext;
 };
 
 /** Background service registered by a plugin during `register(api)`. */

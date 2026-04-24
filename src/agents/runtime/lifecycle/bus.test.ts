@@ -4,6 +4,10 @@ import {
   resetDiagnosticEventsForTest,
 } from "../../../infra/diagnostic-events.js";
 import {
+  createObservationRoot,
+  deriveObservationChild,
+} from "../../../infra/observation/context.js";
+import {
   emitRunLoopLifecycleEvent,
   registerRunLoopLifecycleHandler,
   resetRunLoopLifecycleHandlersForTests,
@@ -41,16 +45,22 @@ describe("run-loop lifecycle bus", () => {
         phase: "post_sampling",
         sessionId: "session-1",
         isTopLevel: true,
-        traceId: "run-loop:session-1",
         decision: null,
         metrics: {},
         refs: {
           isTopLevel: true,
         },
+        observation: expect.objectContaining({
+          trace: {
+            traceId: "run-loop:session-1",
+            spanId: "root:run-loop:session-1",
+            parentSpanId: null,
+          },
+          phase: "post_sampling",
+          source: "run-loop",
+        }),
       }),
     );
-    expect(delivered.spanId).toMatch(/^span:post_sampling:/);
-    expect(delivered.parentSpanId).toBe("root:run-loop:session-1");
   });
 
   it("allows handlers to be unregistered", async () => {
@@ -67,15 +77,27 @@ describe("run-loop lifecycle bus", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("preserves explicit trace envelope fields when provided", async () => {
+  it("derives lifecycle observations from an explicit parent observation", async () => {
     const handler = vi.fn();
     registerRunLoopLifecycleHandler("stop", handler);
+    const parent = createObservationRoot({
+      source: "run-loop",
+      runtime: {
+        runId: "run-1",
+        sessionId: "session-1",
+      },
+      phase: "turn_started",
+    });
+    const child = deriveObservationChild(parent, {
+      source: "run-loop",
+      phase: "stop",
+      decisionCode: "completed",
+    });
 
     await emitRunLoopLifecycleEvent({
       phase: "stop",
-      traceId: "trace-1",
-      spanId: "span-1",
-      parentSpanId: "parent-1",
+      observation: child,
+      runId: "run-1",
       sessionId: "session-1",
       isTopLevel: false,
       decision: {
@@ -88,9 +110,15 @@ describe("run-loop lifecycle bus", () => {
 
     expect(handler).toHaveBeenCalledWith(
       expect.objectContaining({
-        traceId: "trace-1",
-        spanId: "span-1",
-        parentSpanId: "parent-1",
+        observation: expect.objectContaining({
+          trace: expect.objectContaining({
+            traceId: "run-loop:run-1",
+            parentSpanId: "root:run-loop:run-1",
+          }),
+          phase: "stop",
+          decisionCode: "completed",
+          source: "run-loop",
+        }),
         decision: {
           code: "completed",
           summary: "turn completed without retry",
@@ -98,10 +126,12 @@ describe("run-loop lifecycle bus", () => {
         metrics: { toolCalls: 2 },
         refs: {
           provider: "openai",
+          runId: "run-1",
           isTopLevel: false,
         },
       }),
     );
+    expect(handler.mock.calls[0]?.[0].observation.trace.spanId).toBe(child.trace.spanId);
   });
 
   it("bridges lifecycle events to diagnostic run.lifecycle events", async () => {
@@ -146,22 +176,28 @@ describe("run-loop lifecycle bus", () => {
           provider: "openai",
           isTopLevel: true,
         }),
-        trace: expect.objectContaining({
-          traceId: "run-loop:run-1",
-          runId: "run-1",
-          sessionId: "session-1",
-          sessionKey: "session-key-1",
-          agentId: "agent-1",
+        observation: expect.objectContaining({
           phase: "provider_request_start",
           decisionCode: "provider_request",
+          runtime: {
+            runId: "run-1",
+            sessionId: "session-1",
+            sessionKey: "session-key-1",
+            agentId: "agent-1",
+          },
+          trace: expect.objectContaining({
+            traceId: "run-loop:run-1",
+            parentSpanId: null,
+          }),
         }),
       }),
     );
-    expect((seen[0] as { trace?: { spanId?: string } }).trace?.spanId).toMatch(
-      /^span:provider_request_start:/,
-    );
-    expect((seen[0] as { trace?: { parentSpanId?: string } }).trace?.parentSpanId).toBe(
-      "root:run-loop:run-1",
-    );
+    expect(
+      (seen[0] as { observation?: { trace?: { spanId?: string } } }).observation?.trace?.spanId,
+    ).toBe("root:run-loop:run-1");
+    expect(
+      (seen[0] as { observation?: { trace?: { parentSpanId?: string | null } } }).observation?.trace
+        ?.parentSpanId,
+    ).toBeNull();
   });
 });

@@ -78,6 +78,7 @@ export class AutoDreamLifecycleSubscriber {
             ? { senderId: event.metadata.senderId.trim() }
             : {}),
           ...(parentForkContext ? { parentForkContext } : {}),
+          observation: event.observation,
           ...(!parentForkContext && parentRunId ? { parentRunId } : {}),
         },
       });

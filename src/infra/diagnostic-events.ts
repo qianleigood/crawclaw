@@ -1,12 +1,12 @@
 import type { CrawClawConfig } from "../config/config.js";
-import type { DiagnosticTraceEnvelope } from "./diagnostic-trace.js";
+import type { ObservationContext } from "./observation/types.js";
 
 export type DiagnosticSessionState = "idle" | "processing" | "waiting";
 
 type DiagnosticBaseEvent = {
   ts: number;
   seq: number;
-  trace?: DiagnosticTraceEnvelope;
+  observation: ObservationContext;
 };
 
 export type DiagnosticUsageEvent = DiagnosticBaseEvent & {

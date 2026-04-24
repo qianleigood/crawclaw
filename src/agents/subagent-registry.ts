@@ -1,7 +1,11 @@
 import { loadConfig } from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
 import { getAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
-import { normalizeDiagnosticTraceEnvelope } from "../infra/diagnostic-trace.js";
+import {
+  createObservationRoot,
+  deriveObservationChild,
+  observationRef,
+} from "../infra/observation/context.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { MemoryRuntime, MemorySubagentEndReason } from "../memory/engine/types.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
@@ -190,26 +194,38 @@ async function emitTrackedSubagentLifecycleEvent(params: {
           : params.outcome?.status === "error"
             ? "subagent_failed"
             : (params.reason ?? "subagent_stopped");
-  const trace = normalizeDiagnosticTraceEnvelope({
-    runId: params.runId,
-    sessionId,
-    sessionKey: params.entry.childSessionKey,
-    agentId,
+  const parentObservation =
+    runContext?.observation ??
+    createObservationRoot({
+      source: "run-loop",
+      runtime: {
+        runId: params.runId,
+        sessionId,
+        sessionKey: params.entry.childSessionKey,
+        ...(agentId ? { agentId } : {}),
+      },
+    });
+  const observation = deriveObservationChild(parentObservation, {
+    source: "subagent",
+    spanId: `subagent:${params.runId}`,
+    runtime: {
+      runId: params.runId,
+      sessionId,
+      sessionKey: params.entry.childSessionKey,
+      ...(agentId ? { agentId } : {}),
+    },
     phase: params.phase,
     decisionCode,
-    spanId: `subagent:${params.runId}`,
+    refs: {
+      childSessionKey: params.entry.childSessionKey,
+      requesterSessionKey: params.entry.requesterSessionKey,
+    },
   });
 
   ensureSharedRunLoopLifecycleSubscribers();
   await emitRunLoopLifecycleEvent({
     phase: params.phase,
-    ...(trace
-      ? {
-          traceId: trace.traceId,
-          spanId: trace.spanId,
-          parentSpanId: trace.parentSpanId,
-        }
-      : { spanId: `subagent:${params.runId}` }),
+    observation,
     runId: params.runId,
     sessionId,
     sessionKey: params.entry.childSessionKey,
@@ -388,13 +404,20 @@ const subagentLifecycleController = createSubagentRegistryLifecycleController({
     const parsed = childSessionKey ? parseAgentSessionKey(childSessionKey) : undefined;
     const runId = typeof meta?.runId === "string" ? meta.runId : undefined;
     const trace = runId
-      ? normalizeDiagnosticTraceEnvelope({
-          runId,
-          sessionId: childSessionKey,
-          agentId: parsed?.agentId,
-          phase: "subagent_stop",
-          spanId: `subagent:${runId}`,
-        })
+      ? observationRef(
+          createObservationRoot({
+            source: "subagent",
+            runtime: {
+              runId,
+              ...(childSessionKey ? { sessionId: childSessionKey } : {}),
+              ...(parsed?.agentId ? { agentId: parsed.agentId } : {}),
+            },
+            phase: "subagent_stop",
+            trace: {
+              spanId: `subagent:${runId}`,
+            },
+          }),
+        )
       : undefined;
     log
       .withContext({

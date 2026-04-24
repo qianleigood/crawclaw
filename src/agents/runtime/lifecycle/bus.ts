@@ -1,8 +1,7 @@
-import { randomUUID } from "node:crypto";
 import {
-  buildDiagnosticTraceId,
-  buildDiagnosticTraceRootSpanId,
-} from "../../../infra/diagnostic-trace.js";
+  createObservationRoot,
+  normalizeObservationContext,
+} from "../../../infra/observation/context.js";
 import { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { resolveGlobalSingleton } from "../../../shared/global-singleton.js";
 import type {
@@ -27,14 +26,6 @@ function normalizeLifecycleString(value: string | undefined | null): string | un
   }
   const normalized = value.trim();
   return normalized ? normalized : undefined;
-}
-
-function buildDefaultTraceId(event: RunLoopLifecycleEventInput): string {
-  return buildDiagnosticTraceId(event) ?? `run-loop:${event.sessionId}`;
-}
-
-function buildDefaultRootSpanId(traceId: string): string {
-  return buildDiagnosticTraceRootSpanId(traceId);
 }
 
 function buildLifecycleMetrics(event: RunLoopLifecycleEventInput): Record<string, number> {
@@ -73,18 +64,46 @@ function buildLifecycleDecision(
 }
 
 function normalizeRunLoopLifecycleEvent(event: RunLoopLifecycleEventInput): RunLoopLifecycleEvent {
-  const traceId = buildDefaultTraceId(event);
+  const decision = buildLifecycleDecision(event);
+  const metrics = buildLifecycleMetrics(event);
+  const refs = buildLifecycleRefs(event);
+  const runtime = {
+    ...(event.runId ? { runId: event.runId } : {}),
+    sessionId: event.sessionId,
+    ...(event.sessionKey ? { sessionKey: event.sessionKey } : {}),
+    ...(event.agentId ? { agentId: event.agentId } : {}),
+    ...(event.parentAgentId ? { parentAgentId: event.parentAgentId } : {}),
+  };
+  const observation = event.observation
+    ? normalizeObservationContext({
+        ...event.observation,
+        source: event.observation.source,
+        runtime: {
+          ...event.observation.runtime,
+          ...runtime,
+        },
+        trace: event.observation.trace,
+        phase: event.phase,
+        ...(decision?.code ? { decisionCode: decision.code } : {}),
+        refs: {
+          ...event.observation.refs,
+          ...refs,
+        },
+      })
+    : createObservationRoot({
+        source: "run-loop",
+        runtime,
+        phase: event.phase,
+        ...(decision?.code ? { decisionCode: decision.code } : {}),
+        refs,
+      });
+
   return {
     ...event,
-    traceId,
-    spanId: normalizeLifecycleString(event.spanId) ?? `span:${event.phase}:${randomUUID()}`,
-    parentSpanId:
-      event.parentSpanId === null
-        ? null
-        : (normalizeLifecycleString(event.parentSpanId) ?? buildDefaultRootSpanId(traceId)),
-    decision: buildLifecycleDecision(event),
-    metrics: buildLifecycleMetrics(event),
-    refs: buildLifecycleRefs(event),
+    observation,
+    decision,
+    metrics,
+    refs,
   };
 }
 

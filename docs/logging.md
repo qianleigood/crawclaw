@@ -157,25 +157,38 @@ diagnostics + the exporter plugin are enabled.
 - **Logs**: exported over OTLP when `diagnostics.otel.logs` is enabled. Log
   volume can be high; keep `logging.level` and exporter filters in mind.
 
-### Internal trace envelope
+### Observation context
 
-Diagnostics, cache trace JSONL, subsystem logs, and OTel export share the same
-internal trace envelope when a run-loop event is involved:
+CrawClaw now uses `ObservationContext` as the single tracing and correlation
+contract. Modules should pass observation context instead of hand-building
+`traceId`, `spanId`, or `parentSpanId` fields.
 
-- `traceId`: defaults to `run-loop:${runId ?? sessionKey ?? sessionId}`.
-- `spanId`: the current operation span, such as a run root, provider request,
-  tool call, or subagent span.
-- `parentSpanId`: usually the run root span for operation spans.
-- `runId`, `sessionId`, `sessionKey`, `agentId`: correlation ids.
-- `phase`: run-loop lifecycle phase when available.
-- `decisionCode`: stable decision code when a lifecycle decision exists.
+An observation contains:
 
-This is an internal correlation model for debugging. It is not a full W3C
-`traceparent` implementation, and CrawClaw does not require OTel context
-propagation through every async boundary. The first goal is practical
-correlation: use the same `traceId`, `runId`, and `sessionId` to connect agent
-timeline records, logs, diagnostics events, cache trace entries, and OTel
-attributes.
+- `trace.traceId`: defaults to `run-loop:${runId ?? sessionKey ?? sessionId}`.
+- `trace.spanId`: the current operation span.
+- `trace.parentSpanId`: the parent span or `null` for the run root.
+- `trace.traceparent` and `trace.tracestate`: optional W3C propagation values at
+  process or channel boundaries.
+- `runtime.runId`, `runtime.sessionId`, `runtime.sessionKey`, `runtime.agentId`,
+  `runtime.taskId`, and workflow ids: runtime correlation ids.
+- `phase` and `decisionCode`: lifecycle semantics owned by the run-loop spine.
+- `refs`: small business references such as `requestId`, `messageId`,
+  `toolCallId`, or `correlationId`.
+
+The run-loop lifecycle bus is the owner of runtime lifecycle semantics.
+Diagnostic events, cache trace JSONL, Action Feed, Context Archive, task
+trajectory, logs, and OTel export are projections or sinks. They read
+`ObservationContext`; they do not create a second lifecycle model.
+
+Subsystem logs automatically attach the current observation scope to console and
+file metadata. `withContext` is still useful for business fields, but tracing
+identity should come from observation context.
+
+Metrics exported to OTel intentionally avoid high-cardinality observation ids
+such as `traceId`, `spanId`, `runId`, `sessionId`, and `sessionKey`. Spans and
+logs keep those ids so a debugging session can connect timeline records, logs,
+diagnostic events, cache trace entries, and OTel attributes.
 
 ### Diagnostic event catalog
 
@@ -198,7 +211,7 @@ Queue + session:
 - `session.state`: session state transition + reason.
 - `session.stuck`: session stuck warning + age.
 - `run.attempt`: run retry/attempt metadata.
-- `run.lifecycle`: run-loop lifecycle phase, shared trace envelope, decision,
+- `run.lifecycle`: run-loop lifecycle phase, observation context, decision,
   metrics, and refs.
 - `diagnostic.heartbeat`: aggregate counters (webhooks/queue/session).
 - `channel.streaming.decision`: per-channel streaming enable/disable decision

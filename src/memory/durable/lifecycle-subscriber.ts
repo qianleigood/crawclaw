@@ -135,6 +135,7 @@ export class DurableExtractionLifecycleSubscriber {
           ...(typeof event.runId === "string" && event.runId.trim()
             ? { parentRunId: event.runId.trim() }
             : {}),
+          observation: event.observation,
           ...(parentForkContext ? { parentForkContext } : {}),
           sessionFile,
           workspaceDir: resolveWorkspaceDir(event),

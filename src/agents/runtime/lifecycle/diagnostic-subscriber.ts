@@ -1,5 +1,4 @@
 import { emitDiagnosticEvent } from "../../../infra/diagnostic-events.js";
-import { normalizeDiagnosticTraceEnvelope } from "../../../infra/diagnostic-trace.js";
 import { registerRunLoopLifecycleHandler, unregisterRunLoopLifecycleHandler } from "./bus.js";
 import type { RunLoopLifecycleEvent } from "./types.js";
 
@@ -42,17 +41,7 @@ export class RunLoopDiagnosticLifecycleSubscriber {
       decision: event.decision,
       metrics: event.metrics,
       refs: event.refs,
-      trace: normalizeDiagnosticTraceEnvelope({
-        traceId: event.traceId,
-        spanId: event.spanId,
-        parentSpanId: event.parentSpanId,
-        runId: event.runId,
-        sessionId: event.sessionId,
-        sessionKey: event.sessionKey,
-        agentId: event.agentId,
-        phase: event.phase,
-        decisionCode: event.decision?.code,
-      }),
+      observation: event.observation,
     });
   }
 }

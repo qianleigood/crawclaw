@@ -3,6 +3,7 @@ import type { ReasoningLevel, ThinkLevel, VerboseLevel } from "../../../auto-rep
 import type { ReplyPayload } from "../../../auto-reply/types.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import type { SessionSkillExposureState } from "../../../config/sessions/types.js";
+import type { ObservationContext } from "../../../infra/observation/types.js";
 import type { PromptImageOrderEntry } from "../../../media/prompt-image-order.js";
 import type { enqueueCommand } from "../../../process/command-queue.js";
 import type { InputProvenance } from "../../../sessions/input-provenance.js";
@@ -134,6 +135,7 @@ export type RunEmbeddedPiAgentParams = {
   timeoutMs: number;
   maxTurns?: number;
   runId: string;
+  observation?: ObservationContext;
   abortSignal?: AbortSignal;
   shouldEmitToolResult?: () => boolean;
   shouldEmitToolOutput?: () => boolean;

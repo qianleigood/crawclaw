@@ -10,12 +10,16 @@ import {
 import { resolveHeartbeatPrompt } from "../../../auto-reply/heartbeat.js";
 import type { ReasoningLevel, ThinkLevel, VerboseLevel } from "../../../auto-reply/thinking.js";
 import { resolveChannelCapabilities } from "../../../config/channel-capabilities.js";
-import { buildDiagnosticTraceRootSpanId } from "../../../infra/diagnostic-trace.js";
 import { getMachineDisplayName } from "../../../infra/machine-name.js";
 import {
   ensureGlobalUndiciEnvProxyDispatcher,
   ensureGlobalUndiciStreamTimeouts,
 } from "../../../infra/net/undici-global-dispatcher.js";
+import {
+  createObservationRoot,
+  deriveObservationChild,
+  observationRef,
+} from "../../../infra/observation/context.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
 import {
   isOllamaCompatProvider,
@@ -546,24 +550,36 @@ function summarizeSessionContext(messages: AgentMessage[]): {
 export async function runEmbeddedAttempt(
   params: EmbeddedRunAttemptParams,
 ): Promise<EmbeddedRunAttemptResult> {
-  const runTraceId = `run-loop:${params.runId}`;
-  const runRootSpanId = buildDiagnosticTraceRootSpanId(runTraceId);
-  const runTrace = {
-    traceId: runTraceId,
-    spanId: runRootSpanId,
-    parentSpanId: null,
-    runId: params.runId,
-    sessionId: params.sessionId,
-    ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
-    ...(params.agentId ? { agentId: params.agentId } : {}),
-  };
+  const runObservation = params.observation
+    ? deriveObservationChild(params.observation, {
+        source: "run-loop",
+        spanId: `run:${params.runId}`,
+        runtime: {
+          runId: params.runId,
+          sessionId: params.sessionId,
+          ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
+          ...(params.agentId ? { agentId: params.agentId } : {}),
+        },
+        phase: "turn_started",
+      })
+    : createObservationRoot({
+        source: "run-loop",
+        runtime: {
+          runId: params.runId,
+          sessionId: params.sessionId,
+          ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
+          ...(params.agentId ? { agentId: params.agentId } : {}),
+        },
+        phase: "turn_started",
+      });
+  const runObservationRef = observationRef(runObservation);
   let log = embeddedAttemptLog.withContext({
     runId: params.runId,
     sessionId: params.sessionId,
     ...(params.agentId ? { agentId: params.agentId } : {}),
-    traceId: runTrace.traceId,
-    spanId: runTrace.spanId,
-    parentSpanId: runTrace.parentSpanId,
+    traceId: runObservationRef.traceId,
+    spanId: runObservationRef.spanId,
+    parentSpanId: runObservationRef.parentSpanId,
   });
   const resolvedWorkspace = resolveUserPath(params.workspaceDir);
   const runAbortController = new AbortController();
@@ -1355,10 +1371,7 @@ export async function runEmbeddedAttempt(
         sessionId: activeSession.sessionId,
         sessionKey: params.sessionKey,
         agentId: params.agentId,
-        trace: {
-          ...runTrace,
-          sessionId: activeSession.sessionId,
-        },
+        observation: runObservation,
         provider: params.provider,
         modelId: params.modelId,
         modelApi: params.model.api,
@@ -1584,6 +1597,7 @@ export async function runEmbeddedAttempt(
       );
       activeSession.agent.streamFn = wrapStreamFnWithProviderLifecycle({
         streamFn: activeSession.agent.streamFn,
+        observation: runObservation,
         runId: params.runId,
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,
@@ -1897,6 +1911,7 @@ export async function runEmbeddedAttempt(
         sessionKey: sandboxSessionKey,
         sessionId: params.sessionId,
         agentId: sessionAgentId,
+        observation: runObservation,
       });
 
       const {

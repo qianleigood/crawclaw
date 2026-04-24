@@ -93,19 +93,23 @@ function resolveCanResetSessionFromClient(client: GatewayRequestHandlerOptions["
   return resolveSenderIsOwnerFromClient(client);
 }
 
-function parseAgentInspectParams(params: unknown): { runId?: string; taskId?: string } | null {
+function parseAgentInspectParams(
+  params: unknown,
+): { runId?: string; taskId?: string; traceId?: string } | null {
   if (!params || typeof params !== "object") {
     return null;
   }
-  const raw = params as { runId?: unknown; taskId?: unknown };
+  const raw = params as { runId?: unknown; taskId?: unknown; traceId?: unknown };
   const runId = typeof raw.runId === "string" ? raw.runId.trim() : "";
   const taskId = typeof raw.taskId === "string" ? raw.taskId.trim() : "";
-  if (!runId && !taskId) {
+  const traceId = typeof raw.traceId === "string" ? raw.traceId.trim() : "";
+  if (!runId && !taskId && !traceId) {
     return null;
   }
   return {
     ...(runId ? { runId } : {}),
     ...(taskId ? { taskId } : {}),
+    ...(traceId ? { traceId } : {}),
   };
 }
 
@@ -939,7 +943,7 @@ export const agentHandlers: GatewayRequestHandlers = {
       respond(
         false,
         undefined,
-        errorShape(ErrorCodes.INVALID_REQUEST, "agent.inspect requires runId or taskId"),
+        errorShape(ErrorCodes.INVALID_REQUEST, "agent.inspect requires runId, taskId, or traceId"),
       );
       return;
     }

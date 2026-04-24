@@ -51,7 +51,13 @@ describe("run-loop Context Archive lifecycle subscriber", () => {
         type: "run.lifecycle.post_sampling",
         turnIndex: 4,
         payload: expect.objectContaining({
-          traceId: "run-loop:run-1",
+          observation: expect.objectContaining({
+            trace: {
+              traceId: "run-loop:run-1",
+              spanId: "root:run-loop:run-1",
+              parentSpanId: null,
+            },
+          }),
           isTopLevel: true,
           metrics: {
             turnIndex: 4,
@@ -64,7 +70,11 @@ describe("run-loop Context Archive lifecycle subscriber", () => {
           },
         }),
         metadata: expect.objectContaining({
-          traceId: "run-loop:run-1",
+          observation: expect.objectContaining({
+            trace: expect.objectContaining({
+              traceId: "run-loop:run-1",
+            }),
+          }),
           phase: "post_sampling",
         }),
       }),

@@ -1,7 +1,7 @@
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { appendAssistantMessageToSessionTranscript } from "../config/sessions/transcript.js";
-import { normalizeDiagnosticTraceEnvelope } from "../infra/diagnostic-trace.js";
 import { formatErrorMessage, readErrorName } from "../infra/errors.js";
+import { createObservationRoot, observationRef } from "../infra/observation/context.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
 import { emitSessionLifecycleEvent } from "../sessions/session-lifecycle-events.js";
@@ -116,25 +116,28 @@ export function createSubagentRegistryLifecycleController(params: {
     status?: string;
   }): Record<string, string> => {
     const parsed = parseAgentSessionKey(args.childSessionKey);
-    const trace = normalizeDiagnosticTraceEnvelope({
-      runId: args.runId,
-      sessionId: args.childSessionKey,
-      agentId: parsed?.agentId,
-      phase: args.phase ?? "subagent_stop",
-      decisionCode: args.decision,
-      spanId: `subagent:${args.runId}`,
-    });
+    const trace = observationRef(
+      createObservationRoot({
+        source: "subagent",
+        runtime: {
+          runId: args.runId,
+          sessionId: args.childSessionKey,
+          ...(parsed?.agentId ? { agentId: parsed.agentId } : {}),
+        },
+        phase: args.phase ?? "subagent_stop",
+        decisionCode: args.decision,
+        trace: {
+          spanId: `subagent:${args.runId}`,
+        },
+      }),
+    );
     return {
       runId: args.runId,
       sessionId: args.childSessionKey,
       ...(parsed?.agentId ? { agentId: parsed.agentId } : {}),
-      ...(trace
-        ? {
-            traceId: trace.traceId,
-            spanId: trace.spanId,
-            ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
-          }
-        : {}),
+      traceId: trace.traceId,
+      spanId: trace.spanId,
+      ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
       phase: args.phase ?? "subagent_stop",
       decision: args.decision,
       status: args.status ?? "error",

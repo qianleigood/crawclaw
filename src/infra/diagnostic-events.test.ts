@@ -5,6 +5,16 @@ import {
   onDiagnosticEvent,
   resetDiagnosticEventsForTest,
 } from "./diagnostic-events.js";
+import { createObservationRoot } from "./observation/context.js";
+
+function testObservation() {
+  return createObservationRoot({
+    source: "test",
+    runtime: {
+      sessionId: "session-1",
+    },
+  });
+}
 
 describe("diagnostic-events", () => {
   beforeEach(() => {
@@ -25,10 +35,12 @@ describe("diagnostic-events", () => {
 
     emitDiagnosticEvent({
       type: "model.usage",
+      observation: testObservation(),
       usage: { total: 1 },
     });
     emitDiagnosticEvent({
       type: "session.state",
+      observation: testObservation(),
       state: "processing",
     });
     stop();
@@ -51,6 +63,7 @@ describe("diagnostic-events", () => {
 
     emitDiagnosticEvent({
       type: "message.queued",
+      observation: testObservation(),
       source: "telegram",
     });
 
@@ -68,11 +81,13 @@ describe("diagnostic-events", () => {
 
     emitDiagnosticEvent({
       type: "webhook.received",
+      observation: testObservation(),
       channel: "telegram",
     });
     stop();
     emitDiagnosticEvent({
       type: "webhook.processed",
+      observation: testObservation(),
       channel: "telegram",
     });
 
@@ -81,13 +96,14 @@ describe("diagnostic-events", () => {
     resetDiagnosticEventsForTest();
     emitDiagnosticEvent({
       type: "webhook.error",
+      observation: testObservation(),
       channel: "telegram",
       error: "failed",
     });
     expect(seen).toEqual(["webhook.received"]);
   });
 
-  it("accepts diagnostic events with a trace envelope", () => {
+  it("accepts diagnostic events with an observation context", () => {
     const seen: unknown[] = [];
     onDiagnosticEvent((event) => {
       seen.push(event);
@@ -97,27 +113,31 @@ describe("diagnostic-events", () => {
       type: "message.processed",
       channel: "telegram",
       outcome: "completed",
-      trace: {
-        traceId: "run-loop:run-1",
-        spanId: "span-message-1",
-        parentSpanId: "root:run-loop:run-1",
-        runId: "run-1",
-        sessionId: "session-1",
-        sessionKey: "session-key-1",
-      },
+      observation: createObservationRoot({
+        source: "diagnostic",
+        runtime: {
+          runId: "run-1",
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+        },
+      }),
     });
 
     expect(seen).toEqual([
       expect.objectContaining({
         type: "message.processed",
-        trace: {
-          traceId: "run-loop:run-1",
-          spanId: "span-message-1",
-          parentSpanId: "root:run-loop:run-1",
-          runId: "run-1",
-          sessionId: "session-1",
-          sessionKey: "session-key-1",
-        },
+        observation: expect.objectContaining({
+          trace: {
+            traceId: "run-loop:run-1",
+            spanId: "root:run-loop:run-1",
+            parentSpanId: null,
+          },
+          runtime: {
+            runId: "run-1",
+            sessionId: "session-1",
+            sessionKey: "session-key-1",
+          },
+        }),
       }),
     ]);
   });
@@ -131,6 +151,17 @@ describe("diagnostic-events", () => {
     emitDiagnosticEvent({
       type: "run.lifecycle",
       phase: "provider_request_start",
+      observation: createObservationRoot({
+        source: "run-loop",
+        runtime: {
+          runId: "run-1",
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+        },
+        phase: "provider_request_start",
+        decisionCode: "provider_request",
+        refs: { provider: "openai" },
+      }),
       runId: "run-1",
       sessionId: "session-1",
       sessionKey: "session-key-1",
@@ -138,16 +169,6 @@ describe("diagnostic-events", () => {
       decision: { code: "provider_request" },
       metrics: { durationMs: 7 },
       refs: { provider: "openai" },
-      trace: {
-        traceId: "run-loop:run-1",
-        spanId: "span-provider-1",
-        parentSpanId: "root:run-loop:run-1",
-        runId: "run-1",
-        sessionId: "session-1",
-        sessionKey: "session-key-1",
-        phase: "provider_request_start",
-        decisionCode: "provider_request",
-      },
     });
 
     expect(seen).toEqual([
@@ -157,11 +178,14 @@ describe("diagnostic-events", () => {
         decision: { code: "provider_request" },
         metrics: { durationMs: 7 },
         refs: { provider: "openai" },
-        trace: expect.objectContaining({
-          traceId: "run-loop:run-1",
-          spanId: "span-provider-1",
+        observation: expect.objectContaining({
           phase: "provider_request_start",
           decisionCode: "provider_request",
+          trace: {
+            traceId: "run-loop:run-1",
+            spanId: "root:run-loop:run-1",
+            parentSpanId: null,
+          },
         }),
       }),
     ]);
@@ -174,6 +198,7 @@ describe("diagnostic-events", () => {
       calls += 1;
       emitDiagnosticEvent({
         type: "queue.lane.enqueue",
+        observation: testObservation(),
         lane: "main",
         queueSize: calls,
       });
@@ -181,6 +206,7 @@ describe("diagnostic-events", () => {
 
     emitDiagnosticEvent({
       type: "queue.lane.enqueue",
+      observation: testObservation(),
       lane: "main",
       queueSize: 0,
     });

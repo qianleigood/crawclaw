@@ -88,13 +88,12 @@ The canonical event should stay small and stable:
 ```ts
 type RunLoopLifecycleEvent = {
   phase: RunLoopLifecyclePhase;
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string | null;
+  observation: ObservationContext;
   runId?: string;
   sessionId: string;
   sessionKey?: string;
   agentId?: string;
+  parentAgentId?: string;
   isTopLevel: boolean;
   sessionFile?: string;
   turnIndex?: number;
@@ -118,8 +117,9 @@ Rules:
 - do not embed full transcript payloads in lifecycle events
 - large payloads belong in Context Archive refs
 - lifecycle events are coordination signals, not replay blobs
-- trace fields are an internal correlation envelope for diagnostics, cache
-  trace JSONL, subsystem logs, and OTel attributes
+- `ObservationContext` is the only tracing and correlation contract
+- local ids such as `requestId`, `messageId`, and `toolCallId` stay in `refs` or
+  event-specific business fields
 
 ## Target ownership model
 
@@ -186,37 +186,64 @@ They should not define new phase semantics.
 - Action Feed subscribes to lifecycle phases
 - Context Archive subscribes to lifecycle phases
 - internal hooks and plugin hooks translate lifecycle events outward
-- lifecycle events carry a shared trace envelope (`traceId/spanId/decision/metrics/refs`)
+- lifecycle events carry a shared observation context plus `decision`, `metrics`,
+  and `refs`
 - `agent inspect` renders a run timeline from archived lifecycle events
-- operator logs inherit run/session/phase/decision/trace fields from bound logger context
+- operator logs inherit run/session/phase/decision/trace fields from observation
+  scope
 
-### Trace envelope
+### ObservationContext
 
-The lifecycle spine owns CrawClaw's internal trace envelope. The default trace id
-rule is:
+The lifecycle spine owns CrawClaw's runtime lifecycle semantics.
+`ObservationContext` owns tracing identity and propagation:
 
 ```ts
-traceId = `run-loop:${runId ?? sessionKey ?? sessionId}`;
+type ObservationContext = {
+  trace: {
+    traceId: string;
+    spanId: string;
+    parentSpanId: string | null;
+    traceparent?: string;
+    tracestate?: string;
+  };
+  runtime: {
+    runId?: string;
+    sessionId?: string;
+    sessionKey?: string;
+    agentId?: string;
+    parentAgentId?: string;
+    taskId?: string;
+    workflowRunId?: string;
+    workflowStepId?: string;
+  };
+  phase?: string;
+  decisionCode?: string;
+  source: string;
+  refs?: Record<string, string | number | boolean | null>;
+};
 ```
 
-Run root spans use `root:${traceId}`. Provider requests, tool calls, and
-subagents use operation spans with `parentSpanId` pointing back to the run root.
-Lifecycle decisions expose `decision.code` and the derived `decisionCode`
-attribute used by diagnostics and logs.
+The default root trace id rule is:
+
+```ts
+trace.traceId = `run-loop:${runId ?? sessionKey ?? sessionId}`;
+```
+
+Run root spans use `root:${trace.traceId}`. Provider requests, tool calls,
+subagents, workflow steps, and memory agents derive child observations from the
+parent observation. Lifecycle decisions expose `decision.code` and the derived
+`decisionCode` attribute used by diagnostics and logs.
 
 The diagnostic bridge emits every lifecycle phase as a `run.lifecycle`
-diagnostic event with the same envelope. Cache trace entries flatten the same
-fields into JSONL, subsystem log contexts bind the same ids, and the
-`diagnostics-otel` plugin exports them as `crawclaw.traceId`,
-`crawclaw.spanId`, `crawclaw.parentSpanId`, `crawclaw.runId`,
-`crawclaw.sessionId`, `crawclaw.sessionKey`, `crawclaw.agentId`,
-`crawclaw.lifecycle.phase`, and `crawclaw.decisionCode` attributes.
+diagnostic event with the same observation. Cache trace entries carry the same
+observation identity, subsystem logs read the current observation scope, and
+the `diagnostics-otel` plugin exports observation ids as span/log attributes.
+OTel metrics intentionally exclude high-cardinality ids such as `traceId`,
+`spanId`, `runId`, `sessionId`, and `sessionKey`.
 
-This is intentionally not a second lifecycle spine. It is also not a full W3C
-`traceparent` implementation and does not require OTel context propagation
-through every async boundary. The first version is for reliable debugging
-correlation across agent timeline, logs, diagnostic events, cache trace, and
-OTel export.
+This is intentionally not a second lifecycle spine. W3C `traceparent` and
+`tracestate` are boundary propagation fields inside `ObservationContext`, not a
+replacement for the run-loop lifecycle owner.
 
 ### PR6: remove legacy callback ownership
 

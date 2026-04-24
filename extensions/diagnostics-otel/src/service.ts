@@ -11,7 +11,8 @@ import { ParentBasedSampler, TraceIdRatioBasedSampler } from "@opentelemetry/sdk
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import type { DiagnosticEventPayload, CrawClawPluginService } from "../api.js";
 import {
-  diagnosticTraceEnvelopeToAttributes,
+  observationToAttributes,
+  observationToMetricAttributes,
   onDiagnosticEvent,
   redactSensitiveText,
   registerLogTransport,
@@ -67,13 +68,23 @@ function redactOtelAttributes(attributes: Record<string, string | number | boole
   return redactedAttributes;
 }
 
-function withDiagnosticTraceAttributes(
+function withObservationAttributes(
   attributes: Record<string, string | number | boolean>,
   evt: DiagnosticEventPayload,
 ): Record<string, string | number | boolean> {
   return {
     ...attributes,
-    ...diagnosticTraceEnvelopeToAttributes(evt.trace),
+    ...observationToAttributes(evt.observation),
+  };
+}
+
+function withObservationMetricAttributes(
+  attributes: Record<string, string | number | boolean>,
+  evt: DiagnosticEventPayload,
+): Record<string, string | number | boolean> {
+  return {
+    ...attributes,
+    ...observationToMetricAttributes(evt.observation),
   };
 }
 
@@ -395,7 +406,15 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       };
 
       const recordModelUsage = (evt: Extract<DiagnosticEventPayload, { type: "model.usage" }>) => {
-        const attrs = withDiagnosticTraceAttributes(
+        const metricAttrs = withObservationMetricAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.provider": evt.provider ?? "unknown",
+            "crawclaw.model": evt.model ?? "unknown",
+          },
+          evt,
+        );
+        const spanAttrsBase = withObservationAttributes(
           {
             "crawclaw.channel": evt.channel ?? "unknown",
             "crawclaw.provider": evt.provider ?? "unknown",
@@ -406,39 +425,39 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
 
         const usage = evt.usage;
         if (usage.input) {
-          tokensCounter.add(usage.input, { ...attrs, "crawclaw.token": "input" });
+          tokensCounter.add(usage.input, { ...metricAttrs, "crawclaw.token": "input" });
         }
         if (usage.output) {
-          tokensCounter.add(usage.output, { ...attrs, "crawclaw.token": "output" });
+          tokensCounter.add(usage.output, { ...metricAttrs, "crawclaw.token": "output" });
         }
         if (usage.cacheRead) {
-          tokensCounter.add(usage.cacheRead, { ...attrs, "crawclaw.token": "cache_read" });
+          tokensCounter.add(usage.cacheRead, { ...metricAttrs, "crawclaw.token": "cache_read" });
         }
         if (usage.cacheWrite) {
-          tokensCounter.add(usage.cacheWrite, { ...attrs, "crawclaw.token": "cache_write" });
+          tokensCounter.add(usage.cacheWrite, { ...metricAttrs, "crawclaw.token": "cache_write" });
         }
         if (usage.promptTokens) {
-          tokensCounter.add(usage.promptTokens, { ...attrs, "crawclaw.token": "prompt" });
+          tokensCounter.add(usage.promptTokens, { ...metricAttrs, "crawclaw.token": "prompt" });
         }
         if (usage.total) {
-          tokensCounter.add(usage.total, { ...attrs, "crawclaw.token": "total" });
+          tokensCounter.add(usage.total, { ...metricAttrs, "crawclaw.token": "total" });
         }
 
         if (evt.costUsd) {
-          costCounter.add(evt.costUsd, attrs);
+          costCounter.add(evt.costUsd, metricAttrs);
         }
         if (evt.durationMs) {
-          durationHistogram.record(evt.durationMs, attrs);
+          durationHistogram.record(evt.durationMs, metricAttrs);
         }
         if (evt.context?.limit) {
           contextHistogram.record(evt.context.limit, {
-            ...attrs,
+            ...metricAttrs,
             "crawclaw.context": "limit",
           });
         }
         if (evt.context?.used) {
           contextHistogram.record(evt.context.used, {
-            ...attrs,
+            ...metricAttrs,
             "crawclaw.context": "used",
           });
         }
@@ -447,7 +466,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
           return;
         }
         const spanAttrs: Record<string, string | number | boolean> = {
-          ...attrs,
+          ...spanAttrsBase,
           "crawclaw.sessionKey": evt.sessionKey ?? "",
           "crawclaw.sessionId": evt.sessionId ?? "",
           "crawclaw.tokens.input": usage.input ?? 0,
@@ -464,7 +483,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordWebhookReceived = (
         evt: Extract<DiagnosticEventPayload, { type: "webhook.received" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes(
+        const attrs = withObservationMetricAttributes(
           {
             "crawclaw.channel": evt.channel ?? "unknown",
             "crawclaw.webhook": evt.updateType ?? "unknown",
@@ -477,7 +496,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordWebhookProcessed = (
         evt: Extract<DiagnosticEventPayload, { type: "webhook.processed" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes(
+        const metricAttrs = withObservationMetricAttributes(
           {
             "crawclaw.channel": evt.channel ?? "unknown",
             "crawclaw.webhook": evt.updateType ?? "unknown",
@@ -485,12 +504,18 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
           evt,
         );
         if (typeof evt.durationMs === "number") {
-          webhookDurationHistogram.record(evt.durationMs, attrs);
+          webhookDurationHistogram.record(evt.durationMs, metricAttrs);
         }
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = withObservationAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.webhook": evt.updateType ?? "unknown",
+          },
+          evt,
+        );
         if (evt.chatId !== undefined) {
           spanAttrs["crawclaw.chatId"] = String(evt.chatId);
         }
@@ -501,20 +526,26 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordWebhookError = (
         evt: Extract<DiagnosticEventPayload, { type: "webhook.error" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes(
+        const metricAttrs = withObservationMetricAttributes(
           {
             "crawclaw.channel": evt.channel ?? "unknown",
             "crawclaw.webhook": evt.updateType ?? "unknown",
           },
           evt,
         );
-        webhookErrorCounter.add(1, attrs);
+        webhookErrorCounter.add(1, metricAttrs);
         if (!tracesEnabled) {
           return;
         }
         const redactedError = redactSensitiveText(evt.error);
         const spanAttrs: Record<string, string | number | boolean> = {
-          ...attrs,
+          ...withObservationAttributes(
+            {
+              "crawclaw.channel": evt.channel ?? "unknown",
+              "crawclaw.webhook": evt.updateType ?? "unknown",
+            },
+            evt,
+          ),
           "crawclaw.error": redactedError,
         };
         if (evt.chatId !== undefined) {
@@ -530,7 +561,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordMessageQueued = (
         evt: Extract<DiagnosticEventPayload, { type: "message.queued" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes(
+        const attrs = withObservationMetricAttributes(
           {
             "crawclaw.channel": evt.channel ?? "unknown",
             "crawclaw.source": evt.source ?? "unknown",
@@ -558,21 +589,27 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordMessageProcessed = (
         evt: Extract<DiagnosticEventPayload, { type: "message.processed" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes(
+        const metricAttrs = withObservationMetricAttributes(
           {
             "crawclaw.channel": evt.channel ?? "unknown",
             "crawclaw.outcome": evt.outcome ?? "unknown",
           },
           evt,
         );
-        messageProcessedCounter.add(1, attrs);
+        messageProcessedCounter.add(1, metricAttrs);
         if (typeof evt.durationMs === "number") {
-          messageDurationHistogram.record(evt.durationMs, attrs);
+          messageDurationHistogram.record(evt.durationMs, metricAttrs);
         }
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = withObservationAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.outcome": evt.outcome ?? "unknown",
+          },
+          evt,
+        );
         addSessionIdentityAttrs(spanAttrs, evt);
         if (evt.chatId !== undefined) {
           spanAttrs["crawclaw.chatId"] = String(evt.chatId);
@@ -593,7 +630,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordLaneEnqueue = (
         evt: Extract<DiagnosticEventPayload, { type: "queue.lane.enqueue" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes({ "crawclaw.lane": evt.lane }, evt);
+        const attrs = withObservationMetricAttributes({ "crawclaw.lane": evt.lane }, evt);
         laneEnqueueCounter.add(1, attrs);
         queueDepthHistogram.record(evt.queueSize, attrs);
       };
@@ -601,7 +638,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordLaneDequeue = (
         evt: Extract<DiagnosticEventPayload, { type: "queue.lane.dequeue" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes({ "crawclaw.lane": evt.lane }, evt);
+        const attrs = withObservationMetricAttributes({ "crawclaw.lane": evt.lane }, evt);
         laneDequeueCounter.add(1, attrs);
         queueDepthHistogram.record(evt.queueSize, attrs);
         if (typeof evt.waitMs === "number") {
@@ -612,7 +649,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordSessionState = (
         evt: Extract<DiagnosticEventPayload, { type: "session.state" }>,
       ) => {
-        const attrs: Record<string, string | number | boolean> = withDiagnosticTraceAttributes(
+        const attrs: Record<string, string | number | boolean> = withObservationMetricAttributes(
           { "crawclaw.state": evt.state },
           evt,
         );
@@ -625,7 +662,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordSessionStuck = (
         evt: Extract<DiagnosticEventPayload, { type: "session.stuck" }>,
       ) => {
-        const attrs: Record<string, string | number | boolean> = withDiagnosticTraceAttributes(
+        const attrs: Record<string, string | number | boolean> = withObservationMetricAttributes(
           { "crawclaw.state": evt.state },
           evt,
         );
@@ -636,7 +673,10 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = withObservationAttributes(
+          { "crawclaw.state": evt.state },
+          evt,
+        );
         addSessionIdentityAttrs(spanAttrs, evt);
         spanAttrs["crawclaw.queueDepth"] = evt.queueDepth ?? 0;
         spanAttrs["crawclaw.ageMs"] = evt.ageMs;
@@ -648,7 +688,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordRunAttempt = (evt: Extract<DiagnosticEventPayload, { type: "run.attempt" }>) => {
         runAttemptCounter.add(
           1,
-          withDiagnosticTraceAttributes({ "crawclaw.attempt": evt.attempt }, evt),
+          withObservationMetricAttributes({ "crawclaw.attempt": evt.attempt }, evt),
         );
       };
 
@@ -661,7 +701,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
       const recordChannelStreamingDecision = (
         evt: Extract<DiagnosticEventPayload, { type: "channel.streaming.decision" }>,
       ) => {
-        const attrs = withDiagnosticTraceAttributes(
+        const metricAttrs = withObservationMetricAttributes(
           {
             "crawclaw.channel": evt.channel ?? "unknown",
             "crawclaw.streaming.surface": evt.surface,
@@ -670,11 +710,19 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
           },
           evt,
         );
-        channelStreamingDecisionCounter.add(1, attrs);
+        channelStreamingDecisionCounter.add(1, metricAttrs);
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number | boolean> = { ...attrs };
+        const spanAttrs: Record<string, string | number | boolean> = withObservationAttributes(
+          {
+            "crawclaw.channel": evt.channel ?? "unknown",
+            "crawclaw.streaming.surface": evt.surface,
+            "crawclaw.streaming.reason": evt.reason,
+            "crawclaw.streaming.enabled": evt.enabled ? "true" : "false",
+          },
+          evt,
+        );
         if (evt.accountId) {
           spanAttrs["crawclaw.accountId"] = evt.accountId;
         }
@@ -699,7 +747,7 @@ export function createDiagnosticsOtelService(): CrawClawPluginService {
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number | boolean> = withDiagnosticTraceAttributes(
+        const spanAttrs: Record<string, string | number | boolean> = withObservationAttributes(
           {
             "crawclaw.lifecycle.phase": evt.phase,
             ...(evt.runId ? { "crawclaw.runId": evt.runId } : {}),

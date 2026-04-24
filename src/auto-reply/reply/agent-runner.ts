@@ -21,6 +21,7 @@ import {
 import type { TypingMode } from "../../config/types.js";
 import { emitAgentEvent } from "../../infra/agent-events.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import { createObservationRoot } from "../../infra/observation/context.js";
 import { generateSecureUuid } from "../../infra/secure-random.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -618,6 +619,18 @@ export async function runReplyAgent(params: {
       const costUsd = estimateUsageCost({ usage, cost: costConfig });
       emitDiagnosticEvent({
         type: "model.usage",
+        observation: createObservationRoot({
+          source: "agent-runner.model-usage",
+          runtime: {
+            sessionId: followupRun.run.sessionId,
+            ...(sessionKey ? { sessionKey } : {}),
+          },
+          refs: {
+            ...(replyToChannel ? { channel: replyToChannel } : {}),
+            provider: providerUsed,
+            model: modelUsed,
+          },
+        }),
         sessionKey,
         sessionId: followupRun.run.sessionId,
         channel: replyToChannel,

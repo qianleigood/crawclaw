@@ -1,3 +1,4 @@
+import type { ObservationContext } from "../infra/observation/types.js";
 import type {
   WorkflowCompensationMode,
   WorkflowFanOutFailurePolicy,
@@ -48,6 +49,7 @@ export type WorkflowAgentNodeRequest = {
     ownerSessionKey?: string;
     sessionId?: string;
   };
+  observation?: ObservationContext;
 };
 
 export type WorkflowAgentNodeResult = {
@@ -61,6 +63,7 @@ export type WorkflowAgentNodeResult = {
   }>;
   summary?: string;
   error?: string;
+  observation?: ObservationContext;
 };
 
 function normalizeStringList(values: readonly string[] | undefined): string[] | undefined {

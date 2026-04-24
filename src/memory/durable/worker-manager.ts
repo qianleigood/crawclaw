@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
+import type { ObservationContext } from "../../infra/observation/types.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { getSharedMemoryPromptJournal } from "../diagnostics/prompt-journal.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
@@ -28,6 +29,7 @@ export type DurableExtractionWorkerPendingContext = {
   scope: DurableMemoryScope;
   parentRunId?: string;
   parentForkContext?: SpecialAgentParentForkContext;
+  observation?: ObservationContext;
   messageCursor: number;
 };
 
@@ -63,6 +65,7 @@ export type DurableExtractionRunParams = {
   scope: DurableMemoryScope;
   parentRunId?: string;
   parentForkContext?: SpecialAgentParentForkContext;
+  observation?: ObservationContext;
   messageCursor: number;
   recentMessages: AgentMessage[];
   recentMessageLimit: number;
@@ -91,6 +94,7 @@ type SubmitTurnParams = {
     senderId?: string | null;
     parentRunId?: string | null;
     parentForkContext?: SpecialAgentParentForkContext | null;
+    observation?: ObservationContext;
     sessionFile?: string | null;
     workspaceDir?: string | null;
   };
@@ -263,6 +267,9 @@ export class DurableExtractionWorkerManager {
       scope,
       ...(parentRunId ? { parentRunId } : {}),
       ...(parentForkContext ? { parentForkContext } : {}),
+      ...(params.runtimeContext?.observation
+        ? { observation: params.runtimeContext.observation }
+        : {}),
       messageCursor: params.messageCursor,
     };
     if (worker.inProgress && worker.pendingContext) {
@@ -622,6 +629,7 @@ export class DurableExtractionWorkerManager {
         ...(params.pending.parentForkContext
           ? { parentForkContext: params.pending.parentForkContext }
           : {}),
+        ...(params.pending.observation ? { observation: params.pending.observation } : {}),
         messageCursor: params.pending.messageCursor,
         recentMessages: params.recentMessages,
         recentMessageLimit: params.recentMessageLimit,

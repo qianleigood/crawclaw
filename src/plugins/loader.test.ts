@@ -5,6 +5,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { clearInternalHooks, getRegisteredEventKeys } from "../hooks/internal-hooks.js";
 import { emitDiagnosticEvent, resetDiagnosticEventsForTest } from "../infra/diagnostic-events.js";
+import { createObservationRoot } from "../infra/observation/context.js";
 import { withEnv } from "../test-utils/env.js";
 import { clearPluginCommands, getPluginCommandSpecs } from "./command-registry-state.js";
 import { clearPluginDiscoveryCache } from "./discovery.js";
@@ -4078,6 +4079,10 @@ module.exports = {
 
       emitDiagnosticEvent({
         type: "model.usage",
+        observation: createObservationRoot({
+          source: "test",
+          runtime: { sessionKey: "agent:main:test:dm:peer" },
+        }),
         sessionKey: "agent:main:test:dm:peer",
         usage: { total: 1 },
       });

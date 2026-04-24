@@ -1,3 +1,5 @@
+import type { ObservationRef } from "../../infra/observation/types.js";
+
 export type AgentActionKind =
   | "system"
   | "tool"
@@ -32,6 +34,7 @@ export type AgentActionEventData = {
   projectedSummary?: string;
   toolName?: string;
   toolCallId?: string;
+  observationRef?: ObservationRef;
   detail?: Record<string, unknown>;
 };
 

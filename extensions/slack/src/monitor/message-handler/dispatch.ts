@@ -11,7 +11,11 @@ import { formatChannelStreamingDecision } from "crawclaw/plugin-sdk/channel-life
 import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
 import { resolveStorePath, updateLastRoute } from "crawclaw/plugin-sdk/config-runtime";
 import { recordDiagnosticChannelStreamingDecision } from "crawclaw/plugin-sdk/diagnostic-runtime";
-import { emitDiagnosticEvent, isDiagnosticsEnabled } from "crawclaw/plugin-sdk/diagnostics-otel";
+import {
+  createObservationRoot,
+  emitDiagnosticEvent,
+  isDiagnosticsEnabled,
+} from "crawclaw/plugin-sdk/diagnostics-otel";
 import { resolveAgentOutboundIdentity } from "crawclaw/plugin-sdk/outbound-runtime";
 import { clearHistoryEntriesIfEnabled } from "crawclaw/plugin-sdk/reply-history";
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
@@ -361,6 +365,17 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
   if (isDiagnosticsEnabled(cfg)) {
     emitDiagnosticEvent({
       type: "channel.streaming.decision",
+      observation: createObservationRoot({
+        source: "channel.slack",
+        runtime: {
+          ...(route.sessionKey ? { sessionKey: route.sessionKey } : {}),
+        },
+        refs: {
+          channel: "slack",
+          accountId: account.accountId,
+          chatId: prepared.replyTarget,
+        },
+      }),
       channel: "slack",
       accountId: account.accountId,
       sessionKey: route.sessionKey,

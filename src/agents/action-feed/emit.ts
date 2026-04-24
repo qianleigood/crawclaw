@@ -5,6 +5,7 @@ import {
   resolveStorePath,
 } from "../../config/sessions.js";
 import { emitAgentEvent, getAgentRunContext } from "../../infra/agent-events.js";
+import { observationRef } from "../../infra/observation/context.js";
 import { captureContextArchiveRunEvent } from "../context-archive/run-capture.js";
 import { projectAgentActionEventData } from "./projector.js";
 import type { AgentActionEventData } from "./types.js";
@@ -55,11 +56,14 @@ export function emitAgentActionEvent(params: {
   parentAgentId?: string;
   data: Omit<AgentActionEventData, "version"> & { version?: 1 };
 }) {
+  const runtimeContext = getAgentRunContext(params.runId);
   const projectedData = projectAgentActionEventData({
     version: 1,
+    ...(runtimeContext?.observation
+      ? { observationRef: observationRef(runtimeContext.observation) }
+      : {}),
     ...params.data,
   });
-  const runtimeContext = getAgentRunContext(params.runId);
   const runtimeSessionKey = normalizeOptionalString(runtimeContext?.sessionKey);
   const runtimeSessionId = normalizeOptionalString(runtimeContext?.sessionId);
   const runtimeTaskId = normalizeOptionalString(runtimeContext?.taskId);
@@ -108,9 +112,11 @@ export function emitAgentActionEvent(params: {
       action: {
         ...projectedData,
       },
+      ...(runtimeContext?.observation ? { observation: runtimeContext.observation } : {}),
     },
     metadata: {
       source: "action-feed",
+      ...(runtimeContext?.observation ? { observation: runtimeContext.observation } : {}),
       actionId: projectedData.actionId,
       kind: projectedData.kind,
       status: projectedData.status,

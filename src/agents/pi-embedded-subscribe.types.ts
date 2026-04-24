@@ -2,6 +2,7 @@ import type { AgentSession } from "@mariozechner/pi-coding-agent";
 import type { ReasoningLevel, VerboseLevel } from "../auto-reply/thinking.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import type { CrawClawConfig } from "../config/types.crawclaw.js";
+import type { ObservationContext } from "../infra/observation/types.js";
 import type { HookRunner } from "../plugins/hooks.js";
 import type { BlockReplyChunking } from "./pi-embedded-block-chunker.js";
 import type { BlockReplyPayload } from "./pi-embedded-payloads.js";
@@ -38,6 +39,7 @@ export type SubscribeEmbeddedPiSessionParams = {
   sessionId?: string;
   /** Agent identity for hook context — resolved from session config in attempt.ts. */
   agentId?: string;
+  observation?: ObservationContext;
 };
 
 export type { BlockReplyChunking } from "./pi-embedded-block-chunker.js";

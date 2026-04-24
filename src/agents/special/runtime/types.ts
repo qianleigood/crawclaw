@@ -1,6 +1,7 @@
 import type { ThinkLevel } from "../../../auto-reply/thinking.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import type { AgentEventPayload } from "../../../infra/agent-events.js";
+import type { ObservationContext } from "../../../infra/observation/types.js";
 import type { AgentStreamParams } from "../../command/types.js";
 import type { SpawnAgentSessionParams } from "../../runtime/spawn-session.js";
 import type { AgentSpawnToolContext } from "../../runtime/subagent-context.js";
@@ -61,6 +62,7 @@ export type SpecialAgentEmbeddedContext = {
   currentThreadTs?: string;
   currentMessageId?: string | number;
   allowGatewaySubagentBinding?: boolean;
+  observation?: ObservationContext;
 };
 
 export type SpecialAgentDefinition = {
@@ -107,6 +109,7 @@ export type SpecialAgentSpawnRequest = {
   task: string;
   extraSystemPrompt?: string;
   parentRunId?: string;
+  observation?: ObservationContext;
   parentForkContext?: SpecialAgentParentForkContext;
   embeddedContext?: SpecialAgentEmbeddedContext;
   spawnContext?: AgentSpawnToolContext;

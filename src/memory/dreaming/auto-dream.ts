@@ -1,4 +1,5 @@
 import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
+import type { ObservationContext } from "../../infra/observation/types.js";
 import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
 import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
 import { DEFAULT_CONFIG } from "../config/defaults.ts";
@@ -34,6 +35,7 @@ type SubmitAutoDreamTurnParams = {
     senderId?: string | null;
     parentRunId?: string | null;
     parentForkContext?: SpecialAgentParentForkContext | null;
+    observation?: ObservationContext;
   };
 };
 

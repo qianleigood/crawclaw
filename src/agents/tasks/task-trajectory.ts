@@ -7,6 +7,7 @@ import {
   type AgentEventPayload,
 } from "../../infra/agent-events.js";
 import { writeJsonAtomic } from "../../infra/json-files.js";
+import type { ObservationContext, ObservationRef } from "../../infra/observation/types.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { resolveGlobalSingleton } from "../../shared/global-singleton.js";
 import { getTaskById, listTasksForParentAgentId } from "../../tasks/runtime-internal.js";
@@ -43,6 +44,7 @@ export type TaskStepTrace = {
   summary?: string;
   toolName?: string;
   toolCallId?: string;
+  observationRef?: ObservationRef;
   isError?: boolean;
 };
 
@@ -56,6 +58,7 @@ export type TaskTrajectory = {
   parentAgentId?: string;
   sessionId?: string;
   sessionKey?: string;
+  observation?: ObservationContext;
   status: AgentRuntimeStatus;
   startedAt: number;
   updatedAt: number;
@@ -197,6 +200,9 @@ function normalizeTaskTrajectory(value: unknown): TaskTrajectory | undefined {
     )
       ? { sessionKey: normalizeOptionalString(record.sessionKey as string) }
       : {}),
+    ...(record.observation && typeof record.observation === "object"
+      ? { observation: record.observation as ObservationContext }
+      : {}),
     status,
     startedAt,
     updatedAt,
@@ -251,6 +257,9 @@ function normalizeTaskStepTrace(value: unknown): TaskStepTrace | undefined {
       typeof record.toolCallId === "string" ? record.toolCallId : undefined,
     )
       ? { toolCallId: normalizeOptionalString(record.toolCallId as string) }
+      : {}),
+    ...(record.observationRef && typeof record.observationRef === "object"
+      ? { observationRef: record.observationRef as ObservationRef }
       : {}),
     ...(record.isError === true ? { isError: true } : {}),
   };
@@ -444,6 +453,7 @@ function resolveTrajectoryIdentity(event: AgentEventPayload): {
   sessionKey?: string;
   status?: AgentRuntimeStatus;
   startedAt?: number;
+  observation?: ObservationContext;
 } | null {
   const runtimeState = getAgentRuntimeState(event.runId);
   const runContext = getAgentRunContext(event.runId);
@@ -483,6 +493,7 @@ function resolveTrajectoryIdentity(event: AgentEventPayload): {
       : {}),
     ...(runtimeState?.status ? { status: runtimeState.status } : {}),
     ...(typeof runtimeState?.startedAt === "number" ? { startedAt: runtimeState.startedAt } : {}),
+    ...(runContext?.observation ? { observation: runContext.observation } : {}),
   };
 }
 
@@ -497,6 +508,7 @@ function buildBaseTrajectory(params: {
   sessionKey?: string;
   status?: AgentRuntimeStatus;
   startedAt?: number;
+  observation?: ObservationContext;
 }): TaskTrajectory {
   return {
     version: TASK_TRAJECTORY_VERSION,
@@ -508,6 +520,7 @@ function buildBaseTrajectory(params: {
     ...(params.parentAgentId ? { parentAgentId: params.parentAgentId } : {}),
     ...(params.sessionId ? { sessionId: params.sessionId } : {}),
     ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
+    ...(params.observation ? { observation: params.observation } : {}),
     status: params.status ?? "created",
     startedAt: params.startedAt ?? params.event.ts,
     updatedAt: params.event.ts,
@@ -1055,6 +1068,7 @@ function handleToolEvent(event: AgentEventPayload): void {
         startedAt: event.ts,
         toolName,
         ...(toolCallId ? { toolCallId } : {}),
+        ...(event.observationRef ? { observationRef: event.observationRef } : {}),
         ...(summarizeToolInput(toolName, event.data?.args)
           ? { summary: summarizeToolInput(toolName, event.data?.args) }
           : {}),
@@ -1077,6 +1091,9 @@ function handleToolEvent(event: AgentEventPayload): void {
     step.endedAt = event.ts;
     step.isError = isError;
     step.summary = isError ? `${toolName} failed` : (step.summary ?? `${toolName} completed`);
+    if (event.observationRef) {
+      step.observationRef = event.observationRef;
+    }
   } else {
     trajectory.steps.push({
       stepId,
@@ -1088,6 +1105,7 @@ function handleToolEvent(event: AgentEventPayload): void {
       summary: isError ? `${toolName} failed` : `${toolName} completed`,
       toolName,
       ...(toolCallId ? { toolCallId } : {}),
+      ...(event.observationRef ? { observationRef: event.observationRef } : {}),
       ...(isError ? { isError: true } : {}),
     });
   }
@@ -1152,6 +1170,7 @@ function getOrCreateTrajectoryForProgress(event: AgentProgressEvent): {
   }
   const agentId = normalizeOptionalString(event.agentId);
   const runState = getRunState(event.runId);
+  const runContext = getAgentRunContext(event.runId);
   if (runState.trajectory?.taskId === taskId) {
     return {
       trajectory: runState.trajectory,
@@ -1185,6 +1204,7 @@ function getOrCreateTrajectoryForProgress(event: AgentProgressEvent): {
       ...(normalizeOptionalString(event.sessionKey)
         ? { sessionKey: normalizeOptionalString(event.sessionKey) }
         : {}),
+      ...(runContext?.observation ? { observation: runContext.observation } : {}),
       status: event.status,
       startedAt: event.at,
       updatedAt: event.at,

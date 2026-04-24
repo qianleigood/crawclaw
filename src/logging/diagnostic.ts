@@ -1,6 +1,12 @@
 import { getRuntimeConfig } from "../config/config.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { emitDiagnosticEvent } from "../infra/diagnostic-events.js";
+import {
+  emitDiagnosticEvent as emitDiagnosticEventImpl,
+  type DiagnosticEventInput,
+} from "../infra/diagnostic-events.js";
+import { createObservationRoot } from "../infra/observation/context.js";
+import { getCurrentObservationContext } from "../infra/observation/scope.js";
+import type { ObservationContext } from "../infra/observation/types.js";
 import {
   diagnosticSessionStates,
   getDiagnosticSessionState,
@@ -36,6 +42,43 @@ function loadCommandPollBackoffRuntime() {
 
 function markActivity() {
   lastActivityAt = Date.now();
+}
+
+function diagnosticEventObservation(
+  event: { type: string; observation?: ObservationContext } & Record<string, unknown>,
+): ObservationContext {
+  const current = getCurrentObservationContext();
+  if (event.observation) {
+    return event.observation;
+  }
+  if (current) {
+    return current;
+  }
+  return createObservationRoot({
+    source: `diagnostic.${event.type}`,
+    runtime: {
+      ...(typeof event.runId === "string" ? { runId: event.runId } : {}),
+      ...(typeof event.sessionId === "string" ? { sessionId: event.sessionId } : {}),
+      ...(typeof event.sessionKey === "string" ? { sessionKey: event.sessionKey } : {}),
+      ...(typeof event.agentId === "string" ? { agentId: event.agentId } : {}),
+    },
+    refs: {
+      ...(typeof event.channel === "string" ? { channel: event.channel } : {}),
+      ...(typeof event.source === "string" ? { source: event.source } : {}),
+    },
+  });
+}
+
+function emitDiagnosticEvent(
+  event: Record<string, unknown> & {
+    type: DiagnosticEventInput["type"];
+    observation?: ObservationContext;
+  },
+): void {
+  emitDiagnosticEventImpl({
+    ...event,
+    observation: diagnosticEventObservation(event),
+  } as DiagnosticEventInput);
 }
 
 export function resolveStuckSessionWarnMs(config?: CrawClawConfig): number {

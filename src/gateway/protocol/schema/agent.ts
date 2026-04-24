@@ -1,6 +1,64 @@
 import { Type } from "@sinclair/typebox";
 import { InputProvenanceSchema, NonEmptyString, SessionLabelString } from "./primitives.js";
 
+const ObservationRefValueSchema = Type.Union([
+  Type.String(),
+  Type.Number(),
+  Type.Boolean(),
+  Type.Null(),
+]);
+
+export const ObservationTraceContextSchema = Type.Object(
+  {
+    traceId: NonEmptyString,
+    spanId: NonEmptyString,
+    parentSpanId: Type.Union([Type.String(), Type.Null()]),
+    traceparent: Type.Optional(Type.String()),
+    tracestate: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ObservationRuntimeContextSchema = Type.Object(
+  {
+    runId: Type.Optional(Type.String()),
+    sessionId: Type.Optional(Type.String()),
+    sessionKey: Type.Optional(Type.String()),
+    agentId: Type.Optional(Type.String()),
+    parentAgentId: Type.Optional(Type.String()),
+    taskId: Type.Optional(Type.String()),
+    workflowRunId: Type.Optional(Type.String()),
+    workflowStepId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ObservationContextSchema = Type.Object(
+  {
+    trace: ObservationTraceContextSchema,
+    runtime: ObservationRuntimeContextSchema,
+    phase: Type.Optional(Type.String()),
+    decisionCode: Type.Optional(Type.String()),
+    source: NonEmptyString,
+    refs: Type.Optional(Type.Record(Type.String(), ObservationRefValueSchema)),
+  },
+  { additionalProperties: false },
+);
+
+export const ObservationRefSchema = Type.Object(
+  {
+    traceId: NonEmptyString,
+    spanId: NonEmptyString,
+    parentSpanId: Type.Union([Type.String(), Type.Null()]),
+    runId: Type.Optional(Type.String()),
+    sessionId: Type.Optional(Type.String()),
+    sessionKey: Type.Optional(Type.String()),
+    agentId: Type.Optional(Type.String()),
+    taskId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 export const AgentInternalEventSchema = Type.Object(
   {
     type: Type.Literal("task_completion"),
@@ -25,6 +83,7 @@ export const AgentEventSchema = Type.Object(
     stream: NonEmptyString,
     ts: Type.Integer({ minimum: 0 }),
     data: Type.Record(Type.String(), Type.Unknown()),
+    observationRef: Type.Optional(ObservationRefSchema),
   },
   { additionalProperties: false },
 );
@@ -101,6 +160,9 @@ export const AgentParamsSchema = Type.Object(
     extraSystemPrompt: Type.Optional(Type.String()),
     internalEvents: Type.Optional(Type.Array(AgentInternalEventSchema)),
     inputProvenance: Type.Optional(InputProvenanceSchema),
+    observation: Type.Optional(ObservationContextSchema),
+    traceparent: Type.Optional(Type.String()),
+    tracestate: Type.Optional(Type.String()),
     streamParams: Type.Optional(
       Type.Object(
         {
@@ -154,6 +216,7 @@ export const AgentInspectParamsSchema = Type.Object(
   {
     runId: Type.Optional(Type.String()),
     taskId: Type.Optional(Type.String()),
+    traceId: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
 );
@@ -164,6 +227,12 @@ export const AgentInspectionTimelineEntrySchema = Type.Object(
     type: NonEmptyString,
     phase: Type.Optional(Type.String()),
     createdAt: Type.Integer({ minimum: 0 }),
+    source: Type.Optional(
+      Type.String({
+        enum: ["lifecycle", "diagnostic", "action", "archive", "trajectory", "log", "otel"],
+      }),
+    ),
+    observation: Type.Optional(ObservationContextSchema),
     traceId: Type.Optional(Type.String()),
     spanId: Type.Optional(Type.String()),
     parentSpanId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
@@ -188,6 +257,7 @@ export const AgentInspectionSnapshotSchema = Type.Object(
       {
         runId: Type.Optional(Type.String()),
         taskId: Type.Optional(Type.String()),
+        traceId: Type.Optional(Type.String()),
       },
       { additionalProperties: false },
     ),

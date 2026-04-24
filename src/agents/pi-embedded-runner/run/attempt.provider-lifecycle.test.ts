@@ -1,6 +1,7 @@
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 import { createAssistantMessageEventStream, type Context, type Model } from "@mariozechner/pi-ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createObservationRoot } from "../../../infra/observation/context.js";
 import {
   registerRunLoopLifecycleHandler,
   resetRunLoopLifecycleHandlersForTests,
@@ -60,6 +61,10 @@ describe("wrapStreamFnWithProviderLifecycle", () => {
 
     const wrapped = wrapStreamFnWithProviderLifecycle({
       streamFn: baseStreamFn,
+      observation: createObservationRoot({
+        source: "run-loop",
+        runtime: { runId: "run-1", sessionId: "session-1", agentId: "main" },
+      }),
       runId: "run-1",
       sessionId: "session-1",
       sessionKey: "agent:main:discord:user-1",
@@ -106,7 +111,7 @@ describe("wrapStreamFnWithProviderLifecycle", () => {
         decision: expect.objectContaining({ code: "provider_request_completed" }),
       }),
     );
-    expect(events[0]?.spanId).toBe(events[1]?.spanId);
+    expect(events[0]?.observation.trace.spanId).toBe(events[1]?.observation.trace.spanId);
   });
 
   it("emits an error event when the provider stream throws synchronously", async () => {
@@ -121,6 +126,10 @@ describe("wrapStreamFnWithProviderLifecycle", () => {
 
     const wrapped = wrapStreamFnWithProviderLifecycle({
       streamFn: baseStreamFn,
+      observation: createObservationRoot({
+        source: "run-loop",
+        runtime: { runId: "run-2", sessionId: "session-2" },
+      }),
       runId: "run-2",
       sessionId: "session-2",
       isTopLevel: false,
@@ -146,6 +155,6 @@ describe("wrapStreamFnWithProviderLifecycle", () => {
         decision: expect.objectContaining({ code: "provider_request_failed" }),
       }),
     );
-    expect(events[0]?.spanId).toBe(events[1]?.spanId);
+    expect(events[0]?.observation.trace.spanId).toBe(events[1]?.observation.trace.spanId);
   });
 });

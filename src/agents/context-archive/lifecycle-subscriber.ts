@@ -53,11 +53,7 @@ export class RunLoopContextArchiveLifecycleSubscriber {
       ...(typeof event.turnIndex === "number" ? { turnIndex: event.turnIndex } : {}),
       payload: {
         phase: event.phase,
-        traceId: event.traceId,
-        spanId: event.spanId,
-        ...(typeof event.parentSpanId === "string" || event.parentSpanId === null
-          ? { parentSpanId: event.parentSpanId }
-          : {}),
+        observation: event.observation,
         isTopLevel: event.isTopLevel,
         ...(typeof event.messageCount === "number" ? { messageCount: event.messageCount } : {}),
         ...(typeof event.tokenCount === "number" ? { tokenCount: event.tokenCount } : {}),
@@ -69,11 +65,7 @@ export class RunLoopContextArchiveLifecycleSubscriber {
       },
       metadata: {
         phase: event.phase,
-        traceId: event.traceId,
-        spanId: event.spanId,
-        ...(typeof event.parentSpanId === "string" || event.parentSpanId === null
-          ? { parentSpanId: event.parentSpanId }
-          : {}),
+        observation: event.observation,
         ...(event.decision ? { decisionCode: event.decision.code } : {}),
         ...(event.stopReason ? { stopReason: event.stopReason } : {}),
         ...(event.error ? { error: event.error } : {}),

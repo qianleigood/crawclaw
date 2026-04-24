@@ -1,11 +1,11 @@
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import { emitAgentEvent } from "../infra/agent-events.js";
-import { normalizeDiagnosticTraceEnvelope } from "../infra/diagnostic-trace.js";
 import {
   buildExecApprovalPendingReplyPayload,
   buildExecApprovalUnavailableReplyPayload,
 } from "../infra/exec-approval-reply.js";
 import type { ExecApprovalDecision } from "../infra/exec-approvals.js";
+import { createObservationRoot, deriveObservationChild } from "../infra/observation/context.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import type { PluginHookAfterToolCallEvent } from "../plugins/types.js";
 import { normalizeTextForComparison } from "./pi-embedded-helpers.js";
@@ -72,24 +72,36 @@ function emitToolLifecycleEvent(params: {
         : params.timedOut
           ? "tool_call_timed_out"
           : "tool_call_failed";
-  const trace = normalizeDiagnosticTraceEnvelope({
-    runId: params.ctx.params.runId,
-    sessionId,
-    sessionKey: params.ctx.params.sessionKey,
-    agentId: params.ctx.params.agentId,
+  const parentObservation =
+    params.ctx.params.observation ??
+    createObservationRoot({
+      source: "run-loop",
+      runtime: {
+        runId: params.ctx.params.runId,
+        sessionId,
+        ...(params.ctx.params.sessionKey ? { sessionKey: params.ctx.params.sessionKey } : {}),
+        ...(params.ctx.params.agentId ? { agentId: params.ctx.params.agentId } : {}),
+      },
+    });
+  const observation = deriveObservationChild(parentObservation, {
+    source: "tool",
+    spanId: `tool:${params.toolCallId}`,
+    runtime: {
+      runId: params.ctx.params.runId,
+      sessionId,
+      ...(params.ctx.params.sessionKey ? { sessionKey: params.ctx.params.sessionKey } : {}),
+      ...(params.ctx.params.agentId ? { agentId: params.ctx.params.agentId } : {}),
+    },
     phase: params.phase,
     decisionCode,
-    spanId: `tool:${params.toolCallId}`,
+    refs: {
+      toolName: params.toolName,
+      toolCallId: params.toolCallId,
+    },
   });
   void emitRunLoopLifecycleEvent({
     phase: params.phase,
-    ...(trace
-      ? {
-          traceId: trace.traceId,
-          spanId: trace.spanId,
-          parentSpanId: trace.parentSpanId,
-        }
-      : { spanId: `tool:${params.toolCallId}` }),
+    observation,
     runId: params.ctx.params.runId,
     sessionId,
     ...(params.ctx.params.sessionKey ? { sessionKey: params.ctx.params.sessionKey } : {}),
@@ -114,7 +126,9 @@ function emitToolLifecycleEvent(params: {
     },
   }).catch((err) => {
     params.ctx.log.warn("tool lifecycle event emission failed", {
-      ...trace,
+      traceId: observation.trace.traceId,
+      spanId: observation.trace.spanId,
+      parentSpanId: observation.trace.parentSpanId,
       toolName: params.toolName,
       toolCallId: params.toolCallId,
       phase: params.phase,

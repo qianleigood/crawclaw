@@ -1102,7 +1102,35 @@ describe("gateway agent handler", () => {
     );
   });
 
-  it("rejects agent.inspect without a runId or taskId", async () => {
+  it("passes traceId through for agent.inspect", async () => {
+    mocks.inspectAgentRuntime.mockReturnValue({
+      lookup: { traceId: "run-loop:run-123" },
+      runId: "run-123",
+      warnings: [],
+      refs: {},
+    });
+
+    const respond = vi.fn();
+    await agentHandlers["agent.inspect"]({
+      params: { traceId: "run-loop:run-123" },
+      respond: respond as never,
+      context: makeContext(),
+      req: { type: "req", id: "inspect-trace", method: "agent.inspect" },
+      client: { connect: { role: "operator", scopes: ["operator.read"] } } as never,
+      isWebchatConnect: () => false,
+    });
+
+    expect(mocks.inspectAgentRuntime).toHaveBeenCalledWith({ traceId: "run-loop:run-123" });
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        runId: "run-123",
+      }),
+      undefined,
+    );
+  });
+
+  it("rejects agent.inspect without a runId, taskId, or traceId", async () => {
     const respond = vi.fn();
     await agentHandlers["agent.inspect"]({
       params: {},
@@ -1118,7 +1146,7 @@ describe("gateway agent handler", () => {
       false,
       undefined,
       expect.objectContaining({
-        message: "agent.inspect requires runId or taskId",
+        message: "agent.inspect requires runId, taskId, or traceId",
       }),
     );
   });

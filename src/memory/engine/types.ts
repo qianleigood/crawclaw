@@ -4,6 +4,7 @@ import type {
   QueryContextMemoryRecallDiagnostics,
   QueryContextSection,
 } from "../../agents/query-context/types.js";
+import type { ObservationContext } from "../../infra/observation/types.js";
 
 export type MemoryAssembleResult = {
   messages: AgentMessage[];
@@ -74,6 +75,7 @@ export type MemoryTranscriptRewriteResult = {
 export type MemoryMaintenanceResult = MemoryTranscriptRewriteResult;
 
 export type MemoryRuntimeContext = Record<string, unknown> & {
+  observation?: ObservationContext;
   rewriteTranscriptEntries?: (
     request: MemoryTranscriptRewriteRequest,
   ) => Promise<MemoryTranscriptRewriteResult>;

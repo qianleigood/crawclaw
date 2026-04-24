@@ -107,7 +107,7 @@ vi.mock("../api.js", async () => {
 });
 
 import type { CrawClawPluginServiceContext } from "../api.js";
-import { emitDiagnosticEvent } from "../api.js";
+import { createObservationRoot, emitDiagnosticEvent } from "../api.js";
 import { createDiagnosticsOtelService } from "./service.js";
 
 const OTEL_TEST_STATE_DIR = "/tmp/crawclaw-diagnostics-otel-test";
@@ -153,6 +153,15 @@ function createOtelContext(
 
 function createTraceOnlyContext(endpoint: string): CrawClawPluginServiceContext {
   return createOtelContext(endpoint, { traces: true });
+}
+
+function testObservation(
+  input: Parameters<typeof createObservationRoot>[0] = {
+    source: "diagnostics-otel-test",
+    runtime: { sessionId: "session-1" },
+  },
+) {
+  return createObservationRoot(input);
 }
 
 type RegisteredLogTransport = (logObj: Record<string, unknown>) => void;
@@ -203,49 +212,63 @@ describe("diagnostics-otel service", () => {
 
     emitDiagnosticEvent({
       type: "webhook.received",
+      observation: testObservation({ source: "webhook", runtime: { sessionId: "session-1" } }),
       channel: "telegram",
       updateType: "telegram-post",
     });
     emitDiagnosticEvent({
       type: "webhook.processed",
+      observation: testObservation({ source: "webhook", runtime: { sessionId: "session-1" } }),
       channel: "telegram",
       updateType: "telegram-post",
       durationMs: 120,
     });
     emitDiagnosticEvent({
       type: "message.queued",
+      observation: testObservation({ source: "message", runtime: { sessionId: "session-1" } }),
       channel: "telegram",
       source: "telegram",
       queueDepth: 2,
     });
     emitDiagnosticEvent({
       type: "message.processed",
+      observation: testObservation({
+        source: "message",
+        runtime: {
+          runId: "run-1",
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+          agentId: "agent-1",
+        },
+        trace: {
+          traceId: "run-loop:run-1",
+          spanId: "span-message-1",
+          parentSpanId: "root:run-loop:run-1",
+        },
+      }),
       channel: "telegram",
       outcome: "completed",
       durationMs: 55,
-      trace: {
-        traceId: "run-loop:run-1",
-        spanId: "span-message-1",
-        parentSpanId: "root:run-loop:run-1",
-        runId: "run-1",
-        sessionId: "session-1",
-        sessionKey: "session-key-1",
-        agentId: "agent-1",
-      },
     });
     emitDiagnosticEvent({
       type: "queue.lane.dequeue",
+      observation: testObservation({ source: "queue", runtime: { sessionId: "session-1" } }),
       lane: "main",
       queueSize: 3,
       waitMs: 10,
     });
     emitDiagnosticEvent({
       type: "session.stuck",
+      observation: testObservation({ source: "session", runtime: { sessionId: "session-1" } }),
       state: "processing",
       ageMs: 125_000,
     });
     emitDiagnosticEvent({
       type: "run.attempt",
+      observation: testObservation({
+        source: "run",
+        runtime: { runId: "run-1", sessionId: "session-1" },
+      }),
       runId: "run-1",
       attempt: 2,
     });
@@ -307,6 +330,22 @@ describe("diagnostics-otel service", () => {
     emitDiagnosticEvent({
       type: "run.lifecycle",
       phase: "provider_request_start",
+      observation: testObservation({
+        source: "run-loop",
+        runtime: {
+          runId: "run-1",
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+          agentId: "agent-1",
+        },
+        phase: "provider_request_start",
+        decisionCode: "provider_request",
+        trace: {
+          traceId: "run-loop:run-1",
+          spanId: "span-provider-1",
+          parentSpanId: "root:run-loop:run-1",
+        },
+      }),
       runId: "run-1",
       sessionId: "session-1",
       sessionKey: "session-key-1",
@@ -315,17 +354,6 @@ describe("diagnostics-otel service", () => {
       decision: { code: "provider_request" },
       metrics: { durationMs: 17 },
       refs: { provider: "openai" },
-      trace: {
-        traceId: "run-loop:run-1",
-        spanId: "span-provider-1",
-        parentSpanId: "root:run-loop:run-1",
-        runId: "run-1",
-        sessionId: "session-1",
-        sessionKey: "session-key-1",
-        agentId: "agent-1",
-        phase: "provider_request_start",
-        decisionCode: "provider_request",
-      },
     });
 
     expect(telemetryState.tracer.startSpan).toHaveBeenCalledWith(
@@ -357,6 +385,13 @@ describe("diagnostics-otel service", () => {
 
     emitDiagnosticEvent({
       type: "channel.streaming.decision",
+      observation: testObservation({
+        source: "channel.feishu",
+        runtime: {
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+        },
+      }),
       channel: "feishu",
       accountId: "account-1",
       sessionKey: "session-key-1",
@@ -470,6 +505,7 @@ describe("diagnostics-otel service", () => {
 
     emitDiagnosticEvent({
       type: "session.state",
+      observation: testObservation({ source: "session", runtime: { sessionId: "session-1" } }),
       state: "waiting",
       reason: "token=ghp_abcdefghijklmnopqrstuvwxyz123456", // pragma: allowlist secret
     });

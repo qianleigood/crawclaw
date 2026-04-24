@@ -1,6 +1,8 @@
 import { Chalk } from "chalk";
 import type { Logger as TsLogger } from "tslog";
 import { isVerbose } from "../global-state.js";
+import { observationRef } from "../infra/observation/context.js";
+import { getCurrentObservationContext } from "../infra/observation/scope.js";
 import { defaultRuntime, type OutputRuntimeEnv, type RuntimeEnv } from "../runtime.js";
 import { clearActiveProgressLine } from "../terminal/progress-line.js";
 import {
@@ -244,12 +246,30 @@ function mergeSubsystemLogMeta(
   baseMeta: SubsystemLogMeta | undefined,
   meta: SubsystemLogMeta | undefined,
 ): SubsystemLogMeta | undefined {
-  if (!baseMeta && !meta) {
+  const observation = getCurrentObservationContext();
+  if (!baseMeta && !meta && !observation) {
     return undefined;
   }
-  return {
+  const merged = {
     ...baseMeta,
     ...meta,
+  };
+  if (!observation) {
+    return merged;
+  }
+  const ref = observationRef(observation);
+  return {
+    ...merged,
+    traceId: ref.traceId,
+    spanId: ref.spanId,
+    parentSpanId: ref.parentSpanId,
+    ...(ref.runId ? { runId: ref.runId } : {}),
+    ...(ref.sessionId ? { sessionId: ref.sessionId } : {}),
+    ...(ref.sessionKey ? { sessionKey: ref.sessionKey } : {}),
+    ...(ref.agentId ? { agentId: ref.agentId } : {}),
+    ...(ref.taskId ? { taskId: ref.taskId } : {}),
+    phase: observation.phase ?? merged.phase,
+    decisionCode: observation.decisionCode ?? merged.decisionCode,
   };
 }
 

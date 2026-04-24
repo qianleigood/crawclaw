@@ -4,7 +4,11 @@ import {
   type ChannelStreamingDecisionReason,
 } from "crawclaw/plugin-sdk/channel-lifecycle";
 import { recordDiagnosticChannelStreamingDecision } from "crawclaw/plugin-sdk/diagnostic-runtime";
-import { emitDiagnosticEvent, isDiagnosticsEnabled } from "crawclaw/plugin-sdk/diagnostics-otel";
+import {
+  createObservationRoot,
+  emitDiagnosticEvent,
+  isDiagnosticsEnabled,
+} from "crawclaw/plugin-sdk/diagnostics-otel";
 import {
   resolveSendableOutboundReplyParts,
   resolveTextChunksWithFallback,
@@ -230,6 +234,17 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
   if (isDiagnosticsEnabled(cfg)) {
     emitDiagnosticEvent({
       type: "channel.streaming.decision",
+      observation: createObservationRoot({
+        source: "channel.feishu",
+        runtime: {
+          ...(sessionKey ? { sessionKey } : {}),
+        },
+        refs: {
+          channel: "feishu",
+          accountId: account.accountId,
+          chatId,
+        },
+      }),
       channel: "feishu",
       accountId: account.accountId,
       sessionKey,

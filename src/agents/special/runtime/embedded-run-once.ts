@@ -261,6 +261,9 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
       ...(thinkLevel ? { thinkLevel: thinkLevel as RunEmbeddedPiAgentParams["thinkLevel"] } : {}),
       timeoutMs,
       runId,
+      ...((request.observation ?? embeddedContext?.observation)
+        ? { observation: request.observation ?? embeddedContext?.observation }
+        : {}),
       ...(typeof maxTurns === "number" ? { maxTurns } : {}),
       ...(request.extraSystemPrompt ? { extraSystemPrompt: request.extraSystemPrompt } : {}),
       ...(streamParams ? { streamParams } : {}),

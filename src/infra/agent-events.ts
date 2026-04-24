@@ -2,6 +2,8 @@ import type { VerboseLevel } from "../auto-reply/thinking.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import { notifyListeners, registerListener } from "../shared/listeners.js";
 import type { AgentTaskMode, TaskRuntime } from "../tasks/task-registry.types.js";
+import { createObservationRoot, observationRef } from "./observation/context.js";
+import type { ObservationContext, ObservationRef } from "./observation/types.js";
 
 export type AgentEventStream = "lifecycle" | "tool" | "assistant" | "error" | (string & {});
 
@@ -12,6 +14,7 @@ export type AgentEventPayload = {
   ts: number;
   data: Record<string, unknown>;
   sessionKey?: string;
+  observationRef?: ObservationRef;
 };
 
 export type AgentRunContext = {
@@ -26,8 +29,13 @@ export type AgentRunContext = {
   task?: string;
   verboseLevel?: VerboseLevel;
   isHeartbeat?: boolean;
+  observation: ObservationContext;
   /** Whether control UI clients should receive chat/agent updates for this run. */
   isControlUiVisible?: boolean;
+};
+
+export type AgentRunContextInput = Omit<AgentRunContext, "observation"> & {
+  observation?: ObservationContext;
 };
 
 type AgentEventState = {
@@ -46,56 +54,90 @@ function getAgentEventState(): AgentEventState {
   }));
 }
 
-export function registerAgentRunContext(runId: string, context: AgentRunContext) {
+function normalizeAgentRunContext(runId: string, context: AgentRunContextInput): AgentRunContext {
+  return {
+    ...context,
+    observation:
+      context.observation ??
+      createObservationRoot({
+        source: "agent-events",
+        runtime: {
+          runId,
+          ...(context.sessionId ? { sessionId: context.sessionId } : {}),
+          ...(context.sessionKey ? { sessionKey: context.sessionKey } : {}),
+          ...(context.agentId ? { agentId: context.agentId } : {}),
+          ...(context.parentAgentId ? { parentAgentId: context.parentAgentId } : {}),
+          ...(context.taskId ? { taskId: context.taskId } : {}),
+        },
+      }),
+  };
+}
+
+export function registerAgentRunContext(runId: string, context: AgentRunContextInput) {
   if (!runId) {
     return;
   }
+  const normalizedContext = normalizeAgentRunContext(runId, context);
   const state = getAgentEventState();
   const existing = state.runContextById.get(runId);
   if (!existing) {
-    state.runContextById.set(runId, { ...context });
+    state.runContextById.set(runId, { ...normalizedContext });
     return;
   }
-  if (context.sessionKey && existing.sessionKey !== context.sessionKey) {
-    existing.sessionKey = context.sessionKey;
+  if (normalizedContext.sessionKey && existing.sessionKey !== normalizedContext.sessionKey) {
+    existing.sessionKey = normalizedContext.sessionKey;
   }
-  if (context.sessionId && existing.sessionId !== context.sessionId) {
-    existing.sessionId = context.sessionId;
+  if (normalizedContext.sessionId && existing.sessionId !== normalizedContext.sessionId) {
+    existing.sessionId = normalizedContext.sessionId;
   }
-  if (context.agentId && existing.agentId !== context.agentId) {
-    existing.agentId = context.agentId;
+  if (normalizedContext.agentId && existing.agentId !== normalizedContext.agentId) {
+    existing.agentId = normalizedContext.agentId;
   }
-  if (context.parentAgentId && existing.parentAgentId !== context.parentAgentId) {
-    existing.parentAgentId = context.parentAgentId;
+  if (
+    normalizedContext.parentAgentId &&
+    existing.parentAgentId !== normalizedContext.parentAgentId
+  ) {
+    existing.parentAgentId = normalizedContext.parentAgentId;
   }
-  if (context.taskId && existing.taskId !== context.taskId) {
-    existing.taskId = context.taskId;
+  if (normalizedContext.taskId && existing.taskId !== normalizedContext.taskId) {
+    existing.taskId = normalizedContext.taskId;
   }
-  if (context.taskRuntime && existing.taskRuntime !== context.taskRuntime) {
-    existing.taskRuntime = context.taskRuntime;
+  if (normalizedContext.taskRuntime && existing.taskRuntime !== normalizedContext.taskRuntime) {
+    existing.taskRuntime = normalizedContext.taskRuntime;
   }
-  if (context.taskMode && existing.taskMode !== context.taskMode) {
-    existing.taskMode = context.taskMode;
+  if (normalizedContext.taskMode && existing.taskMode !== normalizedContext.taskMode) {
+    existing.taskMode = normalizedContext.taskMode;
   }
-  if (context.label && existing.label !== context.label) {
-    existing.label = context.label;
+  if (normalizedContext.label && existing.label !== normalizedContext.label) {
+    existing.label = normalizedContext.label;
   }
-  if (context.task && existing.task !== context.task) {
-    existing.task = context.task;
+  if (normalizedContext.task && existing.task !== normalizedContext.task) {
+    existing.task = normalizedContext.task;
   }
-  if (context.verboseLevel && existing.verboseLevel !== context.verboseLevel) {
-    existing.verboseLevel = context.verboseLevel;
+  if (normalizedContext.verboseLevel && existing.verboseLevel !== normalizedContext.verboseLevel) {
+    existing.verboseLevel = normalizedContext.verboseLevel;
   }
-  if (context.isControlUiVisible !== undefined) {
-    existing.isControlUiVisible = context.isControlUiVisible;
+  if (normalizedContext.isControlUiVisible !== undefined) {
+    existing.isControlUiVisible = normalizedContext.isControlUiVisible;
   }
-  if (context.isHeartbeat !== undefined && existing.isHeartbeat !== context.isHeartbeat) {
-    existing.isHeartbeat = context.isHeartbeat;
+  if (
+    normalizedContext.isHeartbeat !== undefined &&
+    existing.isHeartbeat !== normalizedContext.isHeartbeat
+  ) {
+    existing.isHeartbeat = normalizedContext.isHeartbeat;
   }
+  existing.observation = normalizedContext.observation;
 }
 
 export function getAgentRunContext(runId: string) {
   return getAgentEventState().runContextById.get(runId);
+}
+
+export function listAgentRunContexts(): Array<{ runId: string; context: AgentRunContext }> {
+  return [...getAgentEventState().runContextById.entries()].map(([runId, context]) => ({
+    runId,
+    context,
+  }));
 }
 
 export function clearAgentRunContext(runId: string) {
@@ -118,6 +160,7 @@ export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
   const enriched: AgentEventPayload = {
     ...event,
     sessionKey,
+    ...(context?.observation ? { observationRef: observationRef(context.observation) } : {}),
     seq: nextSeq,
     ts: Date.now(),
   };

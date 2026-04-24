@@ -3,7 +3,11 @@ import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
 import { resolveChannelContextVisibilityMode } from "crawclaw/plugin-sdk/config-runtime";
 import { getSessionBindingService } from "crawclaw/plugin-sdk/conversation-runtime";
 import { recordDiagnosticChannelStreamingDecision } from "crawclaw/plugin-sdk/diagnostic-runtime";
-import { emitDiagnosticEvent, isDiagnosticsEnabled } from "crawclaw/plugin-sdk/diagnostics-otel";
+import {
+  createObservationRoot,
+  emitDiagnosticEvent,
+  isDiagnosticsEnabled,
+} from "crawclaw/plugin-sdk/diagnostics-otel";
 import { evaluateSupplementalContextVisibility } from "crawclaw/plugin-sdk/security-runtime";
 import type { CoreConfig, MatrixRoomConfig, ReplyToMode } from "../../types.js";
 import { createMatrixDraftStream } from "../draft-stream.js";
@@ -1165,11 +1169,23 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         `matrix[${accountId}] streaming ${formatChannelStreamingDecision(matrixStreamingDecision)}`,
       );
       if (isDiagnosticsEnabled(cfg)) {
+        const matrixSessionKey = ctxPayload.SessionKey ?? _route.sessionKey;
         emitDiagnosticEvent({
           type: "channel.streaming.decision",
+          observation: createObservationRoot({
+            source: "channel.matrix",
+            runtime: {
+              ...(matrixSessionKey ? { sessionKey: matrixSessionKey } : {}),
+            },
+            refs: {
+              channel: "matrix",
+              accountId: _route.accountId,
+              chatId: roomId,
+            },
+          }),
           channel: "matrix",
           accountId: _route.accountId,
-          sessionKey: ctxPayload.SessionKey ?? _route.sessionKey,
+          sessionKey: matrixSessionKey,
           chatId: roomId,
           enabled: matrixStreamingDecision.enabled,
           surface: matrixStreamingDecision.surface,

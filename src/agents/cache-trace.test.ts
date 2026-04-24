@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
+import { createObservationRoot } from "../infra/observation/context.js";
 import { resolveUserPath } from "../utils.js";
 import { createCacheTrace } from "./cache-trace.js";
 
@@ -273,14 +274,14 @@ describe("createCacheTrace", () => {
       runId: "run-1",
       sessionId: "session-1",
       sessionKey: "session-key-1",
-      trace: {
-        traceId: "run-loop:run-1",
-        spanId: "root:run-loop:run-1",
-        parentSpanId: null,
-        runId: "run-1",
-        sessionId: "session-1",
-        sessionKey: "session-key-1",
-      },
+      observation: createObservationRoot({
+        source: "cache-trace",
+        runtime: {
+          runId: "run-1",
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+        },
+      }),
       writer: {
         filePath: "memory",
         write: (line) => lines.push(line),
@@ -301,6 +302,19 @@ describe("createCacheTrace", () => {
       traceId: "run-loop:run-1",
       spanId: "root:run-loop:run-1",
       parentSpanId: null,
+      observation: {
+        trace: {
+          traceId: "run-loop:run-1",
+          spanId: "root:run-loop:run-1",
+          parentSpanId: null,
+        },
+        runtime: {
+          runId: "run-1",
+          sessionId: "session-1",
+          sessionKey: "session-key-1",
+        },
+        source: "cache-trace",
+      },
     });
   });
 });

@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 import { streamSimple } from "@mariozechner/pi-ai";
-import { normalizeDiagnosticTraceEnvelope } from "../../../infra/diagnostic-trace.js";
+import { deriveObservationChild } from "../../../infra/observation/context.js";
+import type { ObservationContext } from "../../../infra/observation/types.js";
 import { resolveProviderLifecycleDecisionCode } from "../../../shared/decision-codes.js";
 import type { QueryContextProviderRequestSnapshot } from "../../query-context/types.js";
 import { emitRunLoopLifecycleEvent } from "../../runtime/lifecycle/bus.js";
@@ -17,6 +18,7 @@ function stringifyError(error: unknown): string {
 function emitProviderLifecycleEvent(params: {
   phase: "provider_request_start" | "provider_request_stop" | "provider_request_error";
   runId: string;
+  observation: ObservationContext;
   sessionId: string;
   sessionKey?: string;
   agentId?: string;
@@ -37,24 +39,26 @@ function emitProviderLifecycleEvent(params: {
   const decisionCode = resolveProviderLifecycleDecisionCode({
     phase: params.phase,
   });
-  const trace = normalizeDiagnosticTraceEnvelope({
-    runId: params.runId,
-    sessionId: params.sessionId,
-    sessionKey: params.sessionKey,
-    agentId: params.agentId,
+  const observation = deriveObservationChild(params.observation, {
+    source: "provider",
+    spanId: `provider:${params.requestId}`,
+    runtime: {
+      runId: params.runId,
+      sessionId: params.sessionId,
+      ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
+      ...(params.agentId ? { agentId: params.agentId } : {}),
+    },
     phase: params.phase,
     decisionCode,
-    spanId: `provider:${params.requestId}`,
+    refs: {
+      provider: params.provider,
+      modelId: params.modelId,
+      requestId: params.requestId,
+    },
   });
   void emitRunLoopLifecycleEvent({
     phase: params.phase,
-    ...(trace
-      ? {
-          traceId: trace.traceId,
-          spanId: trace.spanId,
-          parentSpanId: trace.parentSpanId,
-        }
-      : { spanId: `provider:${params.requestId}` }),
+    observation,
     runId: params.runId,
     sessionId: params.sessionId,
     ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
@@ -98,7 +102,9 @@ function emitProviderLifecycleEvent(params: {
     },
   }).catch((error) => {
     params.logger?.warn?.("provider lifecycle event emission failed", {
-      ...trace,
+      traceId: observation.trace.traceId,
+      spanId: observation.trace.spanId,
+      parentSpanId: observation.trace.parentSpanId,
       phase: params.phase,
       decision: decisionCode,
       error: stringifyError(error),
@@ -197,6 +203,7 @@ function wrapProviderLifecycleStream(params: {
 
 export function wrapStreamFnWithProviderLifecycle(params: {
   streamFn: StreamFn;
+  observation: ObservationContext;
   runId: string;
   sessionId: string;
   sessionKey?: string;
@@ -224,6 +231,7 @@ export function wrapStreamFnWithProviderLifecycle(params: {
     emitProviderLifecycleEvent({
       phase: "provider_request_start",
       runId: params.runId,
+      observation: params.observation,
       sessionId: params.sessionId,
       ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
       ...(params.agentId ? { agentId: params.agentId } : {}),
@@ -242,6 +250,7 @@ export function wrapStreamFnWithProviderLifecycle(params: {
 
     const lifecycle = {
       runId: params.runId,
+      observation: params.observation,
       sessionId: params.sessionId,
       ...(params.sessionKey ? { sessionKey: params.sessionKey } : {}),
       ...(params.agentId ? { agentId: params.agentId } : {}),

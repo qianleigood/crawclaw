@@ -112,6 +112,9 @@ describe("agent-events sequencing", () => {
       verboseLevel: "full",
       isHeartbeat: true,
       isControlUiVisible: true,
+      observation: expect.objectContaining({
+        trace: expect.objectContaining({ traceId: "run-loop:run-ctx" }),
+      }),
     });
   });
 
@@ -186,7 +189,14 @@ describe("agent-events sequencing", () => {
 
     stop();
 
-    expect(second.getAgentRunContext("run-dup")).toEqual({ sessionKey: "session-dup" });
+    expect(second.getAgentRunContext("run-dup")).toEqual(
+      expect.objectContaining({
+        sessionKey: "session-dup",
+        observation: expect.objectContaining({
+          trace: expect.objectContaining({ traceId: "run-loop:run-dup" }),
+        }),
+      }),
+    );
     expect(seen).toEqual([
       { seq: 1, sessionKey: "session-dup" },
       { seq: 2, sessionKey: "session-dup" },

@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createObservationRoot } from "../infra/observation/context.js";
+import { withObservationContext } from "../infra/observation/scope.js";
 import { setConsoleSubsystemFilter } from "./console.js";
 import { resetLogger, setLoggerOverride } from "./logger.js";
 import { loggingState } from "./state.js";
@@ -187,6 +189,40 @@ describe("createSubsystemLogger().isEnabled", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]?.[0] ?? "")).toContain(
       "[run=run-ctx session=sess-ctx phase=tool_call_error decision=tool_call_failed trace=run-loop:run-ctx]",
+    );
+  });
+
+  it("adds current observation identity to console metadata", () => {
+    setLoggerOverride({ level: "silent", consoleLevel: "info" });
+    const info = vi.fn();
+    loggingState.rawConsole = {
+      log: info,
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const log = createSubsystemLogger("agent/embedded");
+    const observation = createObservationRoot({
+      source: "run-loop",
+      runtime: {
+        runId: "run-scope",
+        sessionId: "session-scope",
+        agentId: "agent-scope",
+      },
+      phase: "provider_request_start",
+      decisionCode: "provider_model_selected",
+    });
+
+    withObservationContext(observation, () => {
+      log.info("scoped operator decision", {
+        status: "ok",
+        traceId: "hand-written-trace",
+      });
+    });
+
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(String(info.mock.calls[0]?.[0] ?? "")).toContain(
+      "[run=run-scope session=session-scope agent=agent-scope phase=provider_request_start decision=provider_model_selected status=ok trace=run-loop:run-scope span=root:run-loop:run-scope]",
     );
   });
 });

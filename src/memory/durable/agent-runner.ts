@@ -299,6 +299,7 @@ export async function runDurableExtractionAgentOnce(
       extraSystemPrompt: buildMemoryExtractionSystemPrompt(),
       ...(parentRunId ? { parentRunId } : {}),
       ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
+      ...(params.observation ? { observation: params.observation } : {}),
       embeddedContext: {
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,
