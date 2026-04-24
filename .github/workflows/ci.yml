@@ -804,6 +804,9 @@ jobs:
         run: |
           echo "CRAWCLAW_TEST_SHARDS=$SHARD_COUNT" >> "$GITHUB_ENV"
           echo "CRAWCLAW_TEST_SHARD_INDEX=$SHARD_INDEX" >> "$GITHUB_ENV"
+          # Windows Node 24 can hit Node/Vitest module-status assertions when
+          # large shared unit shards reuse a non-isolated module graph.
+          echo "CRAWCLAW_TEST_ISOLATE=1" >> "$GITHUB_ENV"
 
       - name: Download dist artifact
         id: download_dist
