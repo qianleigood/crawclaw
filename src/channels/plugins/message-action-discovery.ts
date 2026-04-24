@@ -1,4 +1,7 @@
-import type { TSchema } from "@sinclair/typebox";
+import type {
+  CrawClawToolSchema,
+  CrawClawToolSchemaProperties,
+} from "../../agents/tools/schema-types.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { defaultRuntime } from "../../runtime.js";
 import { normalizeAnyChannelId } from "../registry.js";
@@ -239,8 +242,8 @@ export function listChannelMessageCapabilitiesForChannel(params: {
 }
 
 function mergeToolSchemaProperties(
-  target: Record<string, TSchema>,
-  source: Record<string, TSchema> | undefined,
+  target: CrawClawToolSchemaProperties,
+  source: CrawClawToolSchemaProperties | undefined,
 ) {
   if (!source) {
     return;
@@ -263,8 +266,8 @@ export function resolveChannelMessageToolSchemaProperties(params: {
   sessionId?: string | null;
   agentId?: string | null;
   requesterSenderId?: string | null;
-}): Record<string, TSchema> {
-  const properties: Record<string, TSchema> = {};
+}): Record<string, CrawClawToolSchema> {
+  const properties: CrawClawToolSchemaProperties = {};
   const currentChannel = resolveMessageActionDiscoveryChannelId(params.channel);
   const discoveryBase = createMessageActionDiscoveryContext(params);
 

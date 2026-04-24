@@ -46,6 +46,7 @@ export type {
   ProviderWrapStreamFnContext,
   SpeechProviderPlugin,
 } from "./plugin-entry.js";
+export type { CrawClawToolSchema } from "./plugin-entry.js";
 export type { CrawClawPluginToolContext, CrawClawPluginToolFactory } from "../plugins/types.js";
 export type { CrawClawConfig } from "../config/config.js";
 export { isSecretRef } from "../config/types.secrets.js";

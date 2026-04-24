@@ -1,4 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
+import { coerceModelCompatConfig } from "../plugins/provider-model-compat.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import { resolveAgentDir, resolveAgentWorkspaceDir, resolveSessionAgentId } from "./agent-scope.js";
 import { getChannelAgentToolMeta } from "./channel-tools.js";
@@ -162,7 +163,7 @@ export function resolveEffectiveToolInventory(
     config: params.cfg,
     modelProvider: params.modelProvider,
     modelId: params.modelId,
-    modelCompat,
+    modelCompat: coerceModelCompatConfig(modelCompat),
     messageProvider: params.messageProvider,
     senderIsOwner: params.senderIsOwner,
     senderId: params.senderId,

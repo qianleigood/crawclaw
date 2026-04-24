@@ -1,7 +1,6 @@
 import { EventEmitter } from "node:events";
 import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { SessionManager } from "@mariozechner/pi-coding-agent";
-import type { TSchema } from "@sinclair/typebox";
 import type { CrawClawConfig } from "../../config/config.js";
 import { registerUnhandledRejectionHandler } from "../../infra/unhandled-rejections.js";
 import {
@@ -32,6 +31,7 @@ import {
   sanitizeToolUseResultPairing,
 } from "../session-transcript-repair.js";
 import type { AnyAgentTool } from "../tools/common.js";
+import type { CrawClawToolSchema } from "../tools/schema-types.js";
 import type { TranscriptPolicy } from "../transcript-policy.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import {
@@ -410,11 +410,8 @@ export function findUnsupportedSchemaKeywords(schema: unknown, path: string): st
   return violations;
 }
 
-export function sanitizeToolsForGoogle<
-  TSchemaType extends TSchema = TSchema,
-  TResult = unknown,
->(params: {
-  tools: AgentTool<TSchemaType, TResult>[];
+export function sanitizeToolsForGoogle<TResult = unknown>(params: {
+  tools: AgentTool<CrawClawToolSchema, TResult>[];
   provider: string;
   config?: CrawClawConfig;
   workspaceDir?: string;
@@ -422,7 +419,7 @@ export function sanitizeToolsForGoogle<
   modelId?: string;
   modelApi?: string | null;
   model?: ProviderRuntimeModel;
-}): AgentTool<TSchemaType, TResult>[] {
+}): AgentTool<CrawClawToolSchema, TResult>[] {
   const provider = params.provider.trim();
   const pluginNormalized = normalizeProviderToolSchemasWithPlugin({
     provider,
@@ -441,7 +438,7 @@ export function sanitizeToolsForGoogle<
     },
   });
   if (Array.isArray(pluginNormalized)) {
-    return pluginNormalized as AgentTool<TSchemaType, TResult>[];
+    return pluginNormalized as AgentTool<CrawClawToolSchema, TResult>[];
   }
 
   // Cloud Code Assist uses the OpenAPI 3.03 `parameters` field for both Gemini
@@ -457,7 +454,9 @@ export function sanitizeToolsForGoogle<
     }
     return {
       ...tool,
-      parameters: cleanSchemaForGemini(tool.parameters as Record<string, unknown>) as TSchemaType,
+      parameters: cleanSchemaForGemini(
+        tool.parameters as Record<string, unknown>,
+      ) as CrawClawToolSchema,
     };
   });
 }

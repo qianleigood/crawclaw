@@ -25,16 +25,24 @@ function resolveOpenAIRequestCapabilities(model: {
   api?: unknown;
   provider?: unknown;
   baseUrl?: unknown;
-  compat?: { supportsStore?: boolean };
+  compat?: unknown;
 }) {
   return resolveProviderRequestPolicyConfig({
     provider: typeof model.provider === "string" ? model.provider : undefined,
     api: typeof model.api === "string" ? model.api : undefined,
     baseUrl: typeof model.baseUrl === "string" ? model.baseUrl : undefined,
-    compat: model.compat,
+    compat: readOpenAIStoreCompat(model.compat),
     capability: "llm",
     transport: "stream",
   }).capabilities;
+}
+
+function readOpenAIStoreCompat(value: unknown): { supportsStore?: boolean } | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const supportsStore = (value as { supportsStore?: unknown }).supportsStore;
+  return typeof supportsStore === "boolean" ? { supportsStore } : undefined;
 }
 
 function shouldApplyOpenAIAttributionHeaders(model: {
@@ -60,7 +68,7 @@ function shouldForceResponsesStore(model: {
   api?: unknown;
   provider?: unknown;
   baseUrl?: unknown;
-  compat?: { supportsStore?: boolean };
+  compat?: unknown;
 }): boolean {
   return resolveOpenAIRequestCapabilities(model).allowsResponsesStore;
 }
@@ -91,7 +99,7 @@ function shouldEnableOpenAIResponsesServerCompaction(
     api?: unknown;
     provider?: unknown;
     baseUrl?: unknown;
-    compat?: { supportsStore?: boolean };
+    compat?: unknown;
   },
   extraParams: Record<string, unknown> | undefined,
 ): boolean {
@@ -109,7 +117,7 @@ function shouldEnableOpenAIResponsesServerCompaction(
 }
 
 function shouldStripResponsesStore(
-  model: { api?: unknown; compat?: { supportsStore?: boolean } },
+  model: { api?: unknown; compat?: unknown },
   forceStore: boolean,
 ): boolean {
   if (forceStore) {
@@ -118,7 +126,10 @@ function shouldStripResponsesStore(
   if (typeof model.api !== "string") {
     return false;
   }
-  return OPENAI_RESPONSES_APIS.has(model.api) && model.compat?.supportsStore === false;
+  return (
+    OPENAI_RESPONSES_APIS.has(model.api) &&
+    readOpenAIStoreCompat(model.compat)?.supportsStore === false
+  );
 }
 
 function shouldStripResponsesPromptCache(model: { api?: unknown; baseUrl?: unknown }): boolean {

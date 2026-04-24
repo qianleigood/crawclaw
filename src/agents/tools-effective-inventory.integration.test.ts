@@ -83,7 +83,7 @@ describe("resolveEffectiveToolInventory integration", () => {
       source: "test",
       enabled: true,
     });
-    setActivePluginRegistry(registry, "tools-effective-integration");
+    setActivePluginRegistry(registry, "tools-effective-integration", "gateway-bindable");
 
     const result = resolveEffectiveToolInventory({ cfg: { plugins: { enabled: true } } });
 

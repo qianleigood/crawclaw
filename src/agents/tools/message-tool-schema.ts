@@ -16,6 +16,7 @@ import { POLL_CREATION_PARAM_DEFS, SHARED_POLL_CREATION_PARAM_NAMES } from "../.
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import { listChannelSupportedActions } from "../channel-tools.js";
 import { channelTargetSchema, channelTargetsSchema, stringEnum } from "../schema/typebox.js";
+import type { CrawClawToolSchemaProperties } from "./schema-types.js";
 
 const AllMessageActions = CHANNEL_MESSAGE_ACTION_NAMES;
 const EXPLICIT_TARGET_ACTIONS = new Set<ChannelMessageActionName>([
@@ -351,7 +352,7 @@ function buildChannelManagementSchema() {
 
 function buildMessageToolSchemaProps(options: {
   includeInteractive: boolean;
-  extraProperties?: Record<string, TSchema>;
+  extraProperties?: CrawClawToolSchemaProperties;
 }) {
   return {
     ...buildRoutingSchema(),
@@ -375,10 +376,10 @@ function buildMessageToolSchemaFromActions(
   actions: readonly string[],
   options: {
     includeInteractive: boolean;
-    extraProperties?: Record<string, TSchema>;
+    extraProperties?: CrawClawToolSchemaProperties;
   },
 ) {
-  const props = buildMessageToolSchemaProps(options);
+  const props = buildMessageToolSchemaProps(options) as Record<string, TSchema>;
   return Type.Object({
     action: stringEnum(actions),
     ...props,

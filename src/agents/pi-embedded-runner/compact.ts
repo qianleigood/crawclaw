@@ -15,6 +15,7 @@ import { getMachineDisplayName } from "../../infra/machine-name.js";
 import { generateSecureToken } from "../../infra/secure-random.js";
 import { resolveMemoryRuntime } from "../../memory/bootstrap/init-memory-runtime.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
+import { coerceModelCompatConfig } from "../../plugins/provider-model-compat.js";
 import { prepareProviderRuntimeAuth } from "../../plugins/provider-runtime.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isCronSessionKey, isSubagentSessionKey } from "../../routing/session-key.js";
@@ -526,7 +527,7 @@ export async function compactEmbeddedPiSessionDirect(
       abortSignal: runAbortController.signal,
       modelProvider: model.provider,
       modelId,
-      modelCompat: effectiveModel.compat,
+      modelCompat: coerceModelCompatConfig(effectiveModel.compat),
       modelApi: model.api,
       modelContextWindowTokens: ctxInfo.tokens,
       modelAuthMode: resolveModelAuthMode(model.provider, params.config),

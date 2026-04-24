@@ -43,6 +43,12 @@ export class ToolAuthorizationError extends ToolInputError {
   }
 }
 
+export function readRecordParam(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 export function createActionGate<T extends Record<string, boolean | undefined>>(
   actions: T | undefined,
 ): ActionGate<T> {

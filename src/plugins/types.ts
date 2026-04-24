@@ -118,7 +118,7 @@ export type CrawClawPluginConfigSchema = {
   parse?: (value: unknown) => unknown;
   validate?: (value: unknown) => PluginConfigValidation;
   uiHints?: Record<string, PluginConfigUiHint>;
-  jsonSchema?: Record<string, unknown>;
+  jsonSchema?: CrawClawToolSchema;
 };
 
 export type PluginObservationContext = ObservationContext;
@@ -1308,13 +1308,13 @@ export type WebFetchProviderId = string;
 
 export type WebSearchProviderToolDefinition = {
   description: string;
-  parameters: Record<string, unknown>;
+  parameters: CrawClawToolSchema;
   execute: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
 };
 
 export type WebFetchProviderToolDefinition = {
   description: string;
-  parameters: Record<string, unknown>;
+  parameters: CrawClawToolSchema;
   execute: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
 };
 
@@ -2845,3 +2845,5 @@ export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = 
   priority?: number;
   source: string;
 };
+
+export type CrawClawToolSchema = import("../agents/tools/schema-types.js").CrawClawToolSchema;

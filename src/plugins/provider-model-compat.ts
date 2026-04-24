@@ -2,6 +2,40 @@ import type { Api, Model } from "@mariozechner/pi-ai";
 import { resolveProviderRequestCapabilities } from "../agents/provider-attribution.js";
 import type { ModelCompatConfig } from "../config/types.models.js";
 
+const CRAWCLAW_MODEL_COMPAT_KEYS = [
+  "supportsStore",
+  "supportsDeveloperRole",
+  "supportsReasoningEffort",
+  "supportsUsageInStreaming",
+  "supportsStrictMode",
+  "maxTokensField",
+  "requiresToolResultName",
+  "requiresAssistantAfterToolResult",
+  "requiresThinkingAsText",
+  "thinkingFormat",
+  "supportsTools",
+  "toolSchemaProfile",
+  "unsupportedToolSchemaKeywords",
+  "nativeWebSearchTool",
+  "toolCallArgumentsEncoding",
+  "requiresMistralToolIds",
+  "requiresOpenAiAnthropicToolPayload",
+] as const satisfies readonly (keyof ModelCompatConfig)[];
+
+export function coerceModelCompatConfig(value: unknown): ModelCompatConfig | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const record = value as Record<string, unknown>;
+  const compat: Record<string, unknown> = {};
+  for (const key of CRAWCLAW_MODEL_COMPAT_KEYS) {
+    if (key in record) {
+      compat[key] = record[key];
+    }
+  }
+  return Object.keys(compat).length > 0 ? (compat as ModelCompatConfig) : undefined;
+}
+
 function extractModelCompat(
   modelOrCompat: { compat?: unknown } | ModelCompatConfig | undefined,
 ): ModelCompatConfig | undefined {
@@ -9,10 +43,9 @@ function extractModelCompat(
     return undefined;
   }
   if ("compat" in modelOrCompat) {
-    const compat = (modelOrCompat as { compat?: unknown }).compat;
-    return compat && typeof compat === "object" ? (compat as ModelCompatConfig) : undefined;
+    return coerceModelCompatConfig((modelOrCompat as { compat?: unknown }).compat);
   }
-  return modelOrCompat as ModelCompatConfig;
+  return coerceModelCompatConfig(modelOrCompat);
 }
 
 export function applyModelCompatPatch<T extends { compat?: ModelCompatConfig }>(

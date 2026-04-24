@@ -150,19 +150,19 @@ func TestResolveDocsPiCommandUsesOverrideEnv(t *testing.T) {
 func TestMaterializedPiRuntimeDefaultsToCurrentPi(t *testing.T) {
 	t.Setenv(envDocsPiPackageVersion, "")
 
-	if got := getMaterializedPiPackageVersion(); got != "0.68.0" {
-		t.Fatalf("expected materialized Pi runtime 0.68.0, got %q", got)
+	if got := getMaterializedPiPackageVersion(); got != "0.70.0" {
+		t.Fatalf("expected materialized Pi runtime 0.70.0, got %q", got)
 	}
 }
 
 func TestMaterializedPiRuntimeInstallArgsUsePrefix(t *testing.T) {
-	args := materializedPiRuntimeInstallArgs("/tmp/crawclaw-pi-runtime", "0.68.0")
+	args := materializedPiRuntimeInstallArgs("/tmp/crawclaw-pi-runtime", "0.70.0")
 	joined := strings.Join(args, " ")
 
 	if !strings.Contains(joined, "--prefix /tmp/crawclaw-pi-runtime") {
 		t.Fatalf("expected npm install args to pin prefix, got %v", args)
 	}
-	if args[len(args)-1] != "@mariozechner/pi-coding-agent@0.68.0" {
+	if args[len(args)-1] != "@mariozechner/pi-coding-agent@0.70.0" {
 		t.Fatalf("expected package spec last, got %v", args)
 	}
 }

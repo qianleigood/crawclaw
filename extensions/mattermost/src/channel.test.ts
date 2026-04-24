@@ -250,7 +250,9 @@ describe("mattermostPlugin", () => {
         throw new Error("expected mattermost message-tool schema");
       }
 
-      expect(Type.Object(schema.properties).required).toBeUndefined();
+      expect(
+        Type.Object(schema.properties as Record<string, ReturnType<typeof Type.String>>).required,
+      ).toBeUndefined();
     });
 
     it("hides react when actions.reactions is false", () => {

@@ -74,7 +74,9 @@ describe("discordMessageActions", () => {
       throw new Error("expected discord message-tool schema");
     }
 
-    expect(Type.Object(schema.properties).required).toBeUndefined();
+    expect(
+      Type.Object(schema.properties as Record<string, ReturnType<typeof Type.String>>).required,
+    ).toBeUndefined();
   });
 
   it("extracts send targets for message and thread reply actions", () => {

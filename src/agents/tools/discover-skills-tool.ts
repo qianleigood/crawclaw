@@ -10,7 +10,13 @@ import {
 import { getDiscoveredSkillDirs } from "../skills/dynamic-discovery-state.js";
 import { getSkillExposureState, recordDiscoveredSkills } from "../skills/exposure-state.js";
 import { resolveSkillRuntimeConfig } from "../skills/runtime-config.js";
-import { jsonResult, readNumberParam, readStringParam, type AnyAgentTool } from "./common.js";
+import {
+  jsonResult,
+  readNumberParam,
+  readRecordParam,
+  readStringParam,
+  type AnyAgentTool,
+} from "./common.js";
 
 export function createDiscoverSkillsTool(options: {
   workspaceDir: string;
@@ -35,7 +41,7 @@ export function createDiscoverSkillsTool(options: {
       ),
     }),
     execute: async (_toolCallId, params) => {
-      const record = params && typeof params === "object" ? params : {};
+      const record = readRecordParam(params);
       const taskDescription = readStringParam(record, "taskDescription", {
         required: true,
         label: "taskDescription",

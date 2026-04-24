@@ -1,5 +1,5 @@
 import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
-import type { TSchema } from "@sinclair/typebox";
+import type { CrawClawToolSchema } from "../../agents/tools/schema-types.js";
 import type { MsgContext } from "../../auto-reply/templating.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
@@ -16,7 +16,7 @@ export type ChannelId = ChatChannelId | (string & {});
 export type ChannelOutboundTargetMode = "explicit" | "implicit" | "heartbeat";
 
 /** Agent tool registered by a channel plugin. */
-export type ChannelAgentTool = AgentTool<TSchema, unknown> & {
+export type ChannelAgentTool = AgentTool<CrawClawToolSchema, unknown> & {
   ownerOnly?: boolean;
 };
 
@@ -51,7 +51,7 @@ export type ChannelMessageActionDiscoveryContext = {
  * sends from cron or isolated agents.
  */
 export type ChannelMessageToolSchemaContribution = {
-  properties: Record<string, TSchema>;
+  properties: CrawClawToolSchemaProperties;
   visibility?: "current-channel" | "all-configured";
 };
 
@@ -627,3 +627,6 @@ export type BaseTokenResolution = {
   token: string;
   source: string;
 };
+
+type CrawClawToolSchemaProperties =
+  import("../../agents/tools/schema-types.js").CrawClawToolSchemaProperties;

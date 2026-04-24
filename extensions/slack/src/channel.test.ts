@@ -115,7 +115,9 @@ describe("slackPlugin actions", () => {
       throw new Error("expected slack message-tool schema");
     }
 
-    expect(Type.Object(schema.properties).required).toBeUndefined();
+    expect(
+      Type.Object(schema.properties as Record<string, ReturnType<typeof Type.String>>).required,
+    ).toBeUndefined();
   });
 
   it("treats interactive reply payloads as structured Slack payloads", () => {

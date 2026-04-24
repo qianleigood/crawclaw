@@ -404,6 +404,10 @@ export default definePluginEntry({
       description: "Make phone calls and have voice conversations via the voice-call plugin.",
       parameters: VoiceCallToolSchema,
       async execute(_toolCallId, params) {
+        const record =
+          params && typeof params === "object" && !Array.isArray(params)
+            ? (params as Record<string, unknown>)
+            : {};
         const json = (payload: unknown) => ({
           content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
           details: payload,
@@ -412,16 +416,16 @@ export default definePluginEntry({
         try {
           const rt = await ensureRuntime();
 
-          if (typeof params?.action === "string") {
-            switch (params.action) {
+          if (typeof record.action === "string") {
+            switch (record.action) {
               case "initiate_call": {
-                const message = String(params.message || "").trim();
+                const message = String(record.message || "").trim();
                 if (!message) {
                   throw new Error("message required");
                 }
                 const to =
-                  typeof params.to === "string" && params.to.trim()
-                    ? params.to.trim()
+                  typeof record.to === "string" && record.to.trim()
+                    ? record.to.trim()
                     : rt.config.toNumber;
                 if (!to) {
                   throw new Error("to required");
@@ -429,8 +433,8 @@ export default definePluginEntry({
                 const result = await rt.manager.initiateCall(to, undefined, {
                   message,
                   mode:
-                    params.mode === "notify" || params.mode === "conversation"
-                      ? params.mode
+                    record.mode === "notify" || record.mode === "conversation"
+                      ? record.mode
                       : undefined,
                 });
                 if (!result.success) {
@@ -439,8 +443,8 @@ export default definePluginEntry({
                 return json({ callId: result.callId, initiated: true });
               }
               case "continue_call": {
-                const callId = String(params.callId || "").trim();
-                const message = String(params.message || "").trim();
+                const callId = String(record.callId || "").trim();
+                const message = String(record.message || "").trim();
                 if (!callId || !message) {
                   throw new Error("callId and message required");
                 }
@@ -451,8 +455,8 @@ export default definePluginEntry({
                 return json({ success: true, transcript: result.transcript });
               }
               case "speak_to_user": {
-                const callId = String(params.callId || "").trim();
-                const message = String(params.message || "").trim();
+                const callId = String(record.callId || "").trim();
+                const message = String(record.message || "").trim();
                 if (!callId || !message) {
                   throw new Error("callId and message required");
                 }
@@ -463,7 +467,7 @@ export default definePluginEntry({
                 return json({ success: true });
               }
               case "end_call": {
-                const callId = String(params.callId || "").trim();
+                const callId = String(record.callId || "").trim();
                 if (!callId) {
                   throw new Error("callId required");
                 }
@@ -474,7 +478,7 @@ export default definePluginEntry({
                 return json({ success: true });
               }
               case "get_status": {
-                const callId = String(params.callId || "").trim();
+                const callId = String(record.callId || "").trim();
                 if (!callId) {
                   throw new Error("callId required");
                 }
@@ -485,9 +489,9 @@ export default definePluginEntry({
             }
           }
 
-          const mode = params?.mode ?? "call";
+          const mode = record.mode ?? "call";
           if (mode === "status") {
-            const sid = typeof params.sid === "string" ? params.sid.trim() : "";
+            const sid = typeof record.sid === "string" ? record.sid.trim() : "";
             if (!sid) {
               throw new Error("sid required for status");
             }
@@ -496,16 +500,16 @@ export default definePluginEntry({
           }
 
           const to =
-            typeof params.to === "string" && params.to.trim()
-              ? params.to.trim()
+            typeof record.to === "string" && record.to.trim()
+              ? record.to.trim()
               : rt.config.toNumber;
           if (!to) {
             throw new Error("to required for call");
           }
           const result = await rt.manager.initiateCall(to, undefined, {
             message:
-              typeof params.message === "string" && params.message.trim()
-                ? params.message.trim()
+              typeof record.message === "string" && record.message.trim()
+                ? record.message.trim()
                 : undefined,
           });
           if (!result.success) {

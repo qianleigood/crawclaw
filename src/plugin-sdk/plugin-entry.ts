@@ -166,3 +166,5 @@ export function definePluginEntry({
     register,
   };
 }
+
+export type { CrawClawToolSchema } from "../plugins/types.js";

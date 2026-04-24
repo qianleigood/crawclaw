@@ -28,7 +28,10 @@ import {
   wrapOllamaCompatNumCtx,
 } from "../../../plugin-sdk/ollama.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
-import { resolveToolCallArgumentsEncoding } from "../../../plugins/provider-model-compat.js";
+import {
+  coerceModelCompatConfig,
+  resolveToolCallArgumentsEncoding,
+} from "../../../plugins/provider-model-compat.js";
 import { isSubagentSessionKey } from "../../../routing/session-key.js";
 import { resolvePromptCacheDecisionCodes } from "../../../shared/decision-codes.js";
 import { buildTtsSystemPromptHint } from "../../../tts/tts.js";
@@ -764,7 +767,7 @@ export async function runEmbeddedAttempt(
             abortSignal: runAbortController.signal,
             modelProvider: params.model.provider,
             modelId: params.modelId,
-            modelCompat: params.model.compat,
+            modelCompat: coerceModelCompatConfig(params.model.compat),
             modelApi: params.model.api,
             modelContextWindowTokens: params.model.contextWindow,
             modelAuthMode: resolveModelAuthMode(params.model.provider, params.config),

@@ -3878,6 +3878,15 @@
           }
         },
         {
+          "declaration": "export type CrawClawToolSchema = import(\"../agents/tools/schema-types.js\").CrawClawToolSchema;",
+          "exportName": "CrawClawToolSchema",
+          "kind": "type",
+          "source": {
+            "line": 2849,
+            "path": "src/plugins/types.ts"
+          }
+        },
+        {
           "declaration": "export type GatewayBindUrlResult = GatewayBindUrlResult;",
           "exportName": "GatewayBindUrlResult",
           "kind": "type",
@@ -4533,6 +4542,15 @@
           "kind": "type",
           "source": {
             "line": 155,
+            "path": "src/plugins/types.ts"
+          }
+        },
+        {
+          "declaration": "export type CrawClawToolSchema = import(\"../agents/tools/schema-types.js\").CrawClawToolSchema;",
+          "exportName": "CrawClawToolSchema",
+          "kind": "type",
+          "source": {
+            "line": 2849,
             "path": "src/plugins/types.ts"
           }
         },

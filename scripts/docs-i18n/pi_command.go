@@ -16,7 +16,7 @@ const (
 	envDocsPiExecutable     = "CRAWCLAW_DOCS_I18N_PI_EXECUTABLE"
 	envDocsPiArgs           = "CRAWCLAW_DOCS_I18N_PI_ARGS"
 	envDocsPiPackageVersion = "CRAWCLAW_DOCS_I18N_PI_PACKAGE_VERSION"
-	defaultPiPackageVersion = "0.68.0"
+	defaultPiPackageVersion = "0.70.0"
 )
 
 type docsPiCommand struct {

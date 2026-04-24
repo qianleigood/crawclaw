@@ -122,7 +122,11 @@ export function createCodeExecutionTool(options?: {
           "The full analysis task for xAI's remote Python sandbox. Include any data to analyze directly in the task.",
       }),
     }),
-    execute: async (_toolCallId: string, args: Record<string, unknown>) => {
+    execute: async (_toolCallId: string, args: unknown) => {
+      const record =
+        args && typeof args === "object" && !Array.isArray(args)
+          ? (args as Record<string, unknown>)
+          : {};
       const apiKey =
         resolveFallbackXaiApiKey(runtimeConfig ?? undefined) ??
         resolveFallbackXaiApiKey(options?.config) ??
@@ -136,7 +140,7 @@ export function createCodeExecutionTool(options?: {
         });
       }
 
-      const task = readStringParam(args, "task", { required: true });
+      const task = readStringParam(record, "task", { required: true });
       const codeExecutionConfigRecord = readCodeExecutionConfigRecord(codeExecutionConfig);
       const model = resolveXaiCodeExecutionModel(codeExecutionConfigRecord);
       const maxTurns = resolveXaiCodeExecutionMaxTurns(codeExecutionConfigRecord);

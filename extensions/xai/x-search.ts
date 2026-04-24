@@ -197,7 +197,11 @@ export function createXSearchTool(options?: {
         Type.Boolean({ description: "Allow xAI to inspect videos attached to matching posts." }),
       ),
     }),
-    execute: async (_toolCallId: string, args: Record<string, unknown>) => {
+    execute: async (_toolCallId: string, args: unknown) => {
+      const record =
+        args && typeof args === "object" && !Array.isArray(args)
+          ? (args as Record<string, unknown>)
+          : {};
       const apiKey = resolveXSearchApiKey({
         sourceConfig: options?.config,
         runtimeConfig: runtimeConfig ?? undefined,
@@ -211,11 +215,11 @@ export function createXSearchTool(options?: {
         });
       }
 
-      const query = readStringParam(args, "query", { required: true });
-      const allowedXHandles = readStringArrayParam(args, "allowed_x_handles");
-      const excludedXHandles = readStringArrayParam(args, "excluded_x_handles");
-      const fromDate = normalizeOptionalIsoDate(readStringParam(args, "from_date"), "from_date");
-      const toDate = normalizeOptionalIsoDate(readStringParam(args, "to_date"), "to_date");
+      const query = readStringParam(record, "query", { required: true });
+      const allowedXHandles = readStringArrayParam(record, "allowed_x_handles");
+      const excludedXHandles = readStringArrayParam(record, "excluded_x_handles");
+      const fromDate = normalizeOptionalIsoDate(readStringParam(record, "from_date"), "from_date");
+      const toDate = normalizeOptionalIsoDate(readStringParam(record, "to_date"), "to_date");
       if (fromDate && toDate && fromDate > toDate) {
         throw new PluginToolInputError("from_date must be on or before to_date");
       }
@@ -226,8 +230,8 @@ export function createXSearchTool(options?: {
         excludedXHandles,
         fromDate,
         toDate,
-        enableImageUnderstanding: args.enable_image_understanding === true,
-        enableVideoUnderstanding: args.enable_video_understanding === true,
+        enableImageUnderstanding: record.enable_image_understanding === true,
+        enableVideoUnderstanding: record.enable_video_understanding === true,
       };
       const xSearchConfigRecord = xSearchConfig as Record<string, unknown> | undefined;
       const model = resolveXaiXSearchModel(xSearchConfigRecord);
