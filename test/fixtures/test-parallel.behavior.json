@@ -231,6 +231,38 @@
         "reason": "This plugin command suite contains a broad parameterized binding matrix and can time out only under the congested unit-fast lane; keep it isolated so command binding coverage remains deterministic."
       },
       {
+        "file": "src/cron/isolated-agent/run.cron-model-override.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
+        "file": "src/cron/isolated-agent/run.fast-mode.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
+        "file": "src/cron/isolated-agent/run.interim-retry.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
+        "file": "src/cron/isolated-agent/run.live-session-model-switch.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
+        "file": "src/cron/isolated-agent/run.message-tool-policy.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
+        "file": "src/cron/isolated-agent/run.owner-auth.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
+        "file": "src/cron/isolated-agent/run.payload-fallbacks.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
+        "file": "src/cron/isolated-agent/run.skill-filter.test.ts",
+        "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
+      },
+      {
         "file": "src/plugin-sdk/package-contract-guardrails.test.ts",
         "reason": "This packed-artifact contract suite shells out through npm pack/install and passes alone but can overrun the shared unit-fast lane when it competes with other package-heavy unit batches."
       },
