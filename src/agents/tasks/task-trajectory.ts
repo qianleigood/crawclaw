@@ -7,6 +7,7 @@ import {
   type AgentEventPayload,
 } from "../../infra/agent-events.js";
 import { writeJsonAtomic } from "../../infra/json-files.js";
+import { indexObservationEventWithDefaultStore } from "../../infra/observation/history-runtime.js";
 import type { ObservationContext, ObservationRef } from "../../infra/observation/types.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { resolveGlobalSingleton } from "../../shared/global-singleton.js";
@@ -586,6 +587,7 @@ function enqueueTrajectoryPersist(runState: TaskTrajectoryRunState, filePath: st
       await writeJsonAtomic(filePath, snapshot, {
         trailingNewline: true,
       });
+      await indexTaskTrajectorySnapshot(snapshot);
     })
     .catch((error) => {
       log.warn("Failed to persist task trajectory", {
@@ -594,6 +596,67 @@ function enqueueTrajectoryPersist(runState: TaskTrajectoryRunState, filePath: st
         error,
       });
     });
+}
+
+async function indexTaskTrajectorySnapshot(trajectory: TaskTrajectory): Promise<void> {
+  if (!trajectory.observation) {
+    return;
+  }
+  await indexObservationEventWithDefaultStore({
+    eventKey: `trajectory:${trajectory.taskId}:run`,
+    observation: trajectory.observation,
+    source: "trajectory",
+    type: "trajectory.run",
+    status:
+      trajectory.status === "completed"
+        ? "ok"
+        : trajectory.status === "failed"
+          ? "error"
+          : trajectory.status === "running" || trajectory.status === "waiting"
+            ? "running"
+            : "unknown",
+    summary: `task trajectory ${trajectory.taskId}`,
+    payloadRef: {
+      trajectoryRef: resolveAgentTaskTrajectoryRef({
+        taskId: trajectory.taskId,
+        agentId: trajectory.agentId,
+      }),
+    },
+    createdAt: trajectory.startedAt,
+  });
+  for (const step of trajectory.steps) {
+    const observation = step.observationRef
+      ? {
+          ...trajectory.observation,
+          trace: {
+            traceId: step.observationRef.traceId,
+            spanId: step.observationRef.spanId,
+            parentSpanId: step.observationRef.parentSpanId,
+          },
+        }
+      : trajectory.observation;
+    await indexObservationEventWithDefaultStore({
+      eventKey: `trajectory:${trajectory.taskId}:${step.stepId}`,
+      observation,
+      source: "trajectory",
+      type: `trajectory.${step.kind}`,
+      status: step.status === "completed" ? "ok" : step.status === "failed" ? "error" : "running",
+      summary: step.summary ?? step.title,
+      refs: {
+        stepId: step.stepId,
+        ...(step.toolName ? { toolName: step.toolName } : {}),
+        ...(step.toolCallId ? { toolCallId: step.toolCallId } : {}),
+      },
+      payloadRef: {
+        trajectoryRef: resolveAgentTaskTrajectoryRef({
+          taskId: trajectory.taskId,
+          agentId: trajectory.agentId,
+        }),
+        trajectoryStepId: step.stepId,
+      },
+      createdAt: step.startedAt,
+    });
+  }
 }
 
 function buildStepId(toolCallId: string | undefined, seq: number): string {

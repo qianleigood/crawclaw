@@ -188,6 +188,14 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
     caller-supplied auth or delivery context.
   - The response is session-scoped and reflects what the active conversation can use right now,
     including core, plugin, and channel tools.
+- Operators may call `agent.observations.list` (`operator.read`) to fetch historical
+  ObservationContext run summaries for the Observation Workbench.
+  - Filters: `query`, `status`, `source`, `from`, `to`, `limit`, and `cursor`.
+  - `query` matches `runId`, `taskId`, `traceId`, `sessionKey`, and `agentId`.
+  - `from` and `to` are inclusive epoch-millisecond time bounds.
+  - The result is metadata-only and excludes prompt, transcript, and tool result bodies.
+- Operators may call `agent.inspect` (`operator.read`) with `runId`, `taskId`, or
+  `traceId` to fetch the unified observation timeline for a selected run.
 
 ## Exec approvals
 

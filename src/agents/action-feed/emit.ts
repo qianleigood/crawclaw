@@ -6,6 +6,7 @@ import {
 } from "../../config/sessions.js";
 import { emitAgentEvent, getAgentRunContext } from "../../infra/agent-events.js";
 import { observationRef } from "../../infra/observation/context.js";
+import { indexObservationEventWithDefaultStore } from "../../infra/observation/history-runtime.js";
 import { captureContextArchiveRunEvent } from "../context-archive/run-capture.js";
 import { projectAgentActionEventData } from "./projector.js";
 import type { AgentActionEventData } from "./types.js";
@@ -47,6 +48,26 @@ function resolveArchiveSessionId(params: {
   }
 }
 
+function observationStatusFromActionStatus(
+  status: AgentActionEventData["status"],
+): "running" | "ok" | "error" | "unknown" {
+  switch (status) {
+    case "completed":
+      return "ok";
+    case "failed":
+    case "blocked":
+      return "error";
+    case "started":
+    case "running":
+    case "waiting":
+      return "running";
+    case "cancelled":
+      return "unknown";
+    default:
+      return "unknown";
+  }
+}
+
 export function emitAgentActionEvent(params: {
   runId: string;
   sessionKey?: string;
@@ -82,6 +103,27 @@ export function emitAgentActionEvent(params: {
     stream: "action",
     data: projectedData,
   });
+
+  if (runtimeContext?.observation) {
+    void indexObservationEventWithDefaultStore({
+      config: getRuntimeConfigSnapshot() ?? undefined,
+      eventKey: `action:${params.runId}:${projectedData.actionId}`,
+      observation: runtimeContext.observation,
+      source: "action",
+      type: "agent.action",
+      phase: `action.${projectedData.kind}`,
+      status: observationStatusFromActionStatus(projectedData.status),
+      summary: projectedData.projectedTitle ?? projectedData.title ?? projectedData.kind,
+      refs: {
+        actionId: projectedData.actionId,
+        kind: projectedData.kind,
+        ...(projectedData.toolName ? { toolName: projectedData.toolName } : {}),
+        ...(projectedData.toolCallId ? { toolCallId: projectedData.toolCallId } : {}),
+      },
+      payloadRef: { actionId: projectedData.actionId },
+      createdAt: Date.now(),
+    }).catch(() => {});
+  }
 
   if (!archiveSession.sessionId) {
     return;

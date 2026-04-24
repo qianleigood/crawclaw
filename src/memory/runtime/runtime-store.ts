@@ -25,6 +25,12 @@ import type {
   MaintenanceRun,
   MergeAudit,
   MergeAuditInput,
+  ListObservationRunsInput,
+  ObservationBackfillCheckpointRow,
+  ObservationEventIndexRow,
+  ObservationRunIndexListResult,
+  ObservationRunIndexRow,
+  ObservationRunLookupInput,
   PipelineJob,
   PromotionCandidate,
   RecallFeedback,
@@ -39,6 +45,9 @@ import type {
   UpsertMediaAssetInput,
   UpsertDurableExtractionCursorInput,
   UpsertContextArchiveBlobInput,
+  UpsertObservationBackfillCheckpointInput,
+  UpsertObservationEventInput,
+  UpsertObservationRunInput,
   UpsertSessionScopeInput,
   UpsertSessionCompactionStateInput,
   UpsertSessionSummaryStateInput,
@@ -97,6 +106,19 @@ export interface RuntimeStore {
   upsertContextArchiveBlob(input: UpsertContextArchiveBlobInput): Promise<void>;
   getContextArchiveBlob(runId: string, blobKey: string): Promise<ContextArchiveBlobRow | null>;
   listContextArchiveBlobs(runId: string, limit?: number): Promise<ContextArchiveBlobRow[]>;
+  upsertObservationRun(input: UpsertObservationRunInput): Promise<void>;
+  upsertObservationEvent(input: UpsertObservationEventInput): Promise<void>;
+  listObservationRuns(input?: ListObservationRunsInput): Promise<ObservationRunIndexListResult>;
+  getObservationRunByLookup(
+    input: ObservationRunLookupInput,
+  ): Promise<ObservationRunIndexRow | null>;
+  listObservationEvents(traceId: string, limit?: number): Promise<ObservationEventIndexRow[]>;
+  upsertObservationBackfillCheckpoint(
+    input: UpsertObservationBackfillCheckpointInput,
+  ): Promise<void>;
+  getObservationBackfillCheckpoint(
+    source: string,
+  ): Promise<ObservationBackfillCheckpointRow | null>;
   getSessionSummaryState(sessionId: string): Promise<SessionSummaryStateRow | null>;
   upsertSessionSummaryState(input: UpsertSessionSummaryStateInput): Promise<void>;
   getDurableExtractionCursor(sessionId: string): Promise<DurableExtractionCursorRow | null>;

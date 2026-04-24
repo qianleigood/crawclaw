@@ -14,9 +14,14 @@ import {
   getSharedRunLoopDiagnosticLifecycleSubscriber,
   __testing as diagnosticLifecycleTesting,
 } from "./diagnostic-subscriber.js";
+import {
+  getSharedRunLoopObservationIndexLifecycleSubscriber,
+  __testing as observationIndexTesting,
+} from "./observation-index-subscriber.js";
 
 export function ensureSharedRunLoopLifecycleSubscribers(): void {
   getSharedRunLoopLifecycleCompatSubscriber();
+  getSharedRunLoopObservationIndexLifecycleSubscriber();
   getSharedRunLoopActionFeedLifecycleSubscriber();
   getSharedRunLoopContextArchiveLifecycleSubscriber();
   getSharedRunLoopDiagnosticLifecycleSubscriber();
@@ -25,6 +30,7 @@ export function ensureSharedRunLoopLifecycleSubscribers(): void {
 export const __testing = {
   resetSharedRunLoopLifecycleSubscribers(): void {
     compatTesting.resetSharedRunLoopLifecycleCompatSubscriber();
+    observationIndexTesting.resetSharedRunLoopObservationIndexLifecycleSubscriber();
     actionFeedTesting.resetSharedRunLoopActionFeedLifecycleSubscriber();
     contextArchiveTesting.resetSharedRunLoopContextArchiveLifecycleSubscriber();
     diagnosticLifecycleTesting.resetRunLoopDiagnosticLifecycleSubscriber();

@@ -559,6 +559,154 @@ export interface ContextArchiveBlobRow {
   updatedAt: number;
 }
 
+export type ObservationIndexSource =
+  | "lifecycle"
+  | "diagnostic"
+  | "action"
+  | "archive"
+  | "trajectory"
+  | "log"
+  | "otel";
+
+export type ObservationIndexRunStatus =
+  | "running"
+  | "ok"
+  | "error"
+  | "timeout"
+  | "archived"
+  | "unknown";
+
+export interface UpsertObservationRunInput {
+  traceId: string;
+  rootSpanId?: string | null;
+  runId?: string | null;
+  taskId?: string | null;
+  sessionId?: string | null;
+  sessionKey?: string | null;
+  agentId?: string | null;
+  parentAgentId?: string | null;
+  workflowRunId?: string | null;
+  status: ObservationIndexRunStatus;
+  startedAt?: number | null;
+  endedAt?: number | null;
+  lastEventAt?: number | null;
+  eventCount: number;
+  errorCount: number;
+  sourcesJson: string;
+  refsJson?: string | null;
+  summary: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface ObservationRunIndexRow {
+  traceId: string;
+  rootSpanId: string | null;
+  runId: string | null;
+  taskId: string | null;
+  sessionId: string | null;
+  sessionKey: string | null;
+  agentId: string | null;
+  parentAgentId: string | null;
+  workflowRunId: string | null;
+  status: ObservationIndexRunStatus;
+  startedAt: number | null;
+  endedAt: number | null;
+  lastEventAt: number | null;
+  eventCount: number;
+  errorCount: number;
+  sourcesJson: string;
+  refsJson: string | null;
+  summary: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface UpsertObservationEventInput {
+  eventId: string;
+  eventKey: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string | null;
+  runId?: string | null;
+  taskId?: string | null;
+  sessionId?: string | null;
+  sessionKey?: string | null;
+  agentId?: string | null;
+  parentAgentId?: string | null;
+  source: ObservationIndexSource;
+  type: string;
+  phase?: string | null;
+  status?: string | null;
+  decisionCode?: string | null;
+  summary: string;
+  observationJson: string;
+  metricsJson?: string | null;
+  refsJson?: string | null;
+  payloadRefJson?: string | null;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface ObservationEventIndexRow {
+  eventId: string;
+  eventKey: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId: string | null;
+  runId: string | null;
+  taskId: string | null;
+  sessionId: string | null;
+  sessionKey: string | null;
+  agentId: string | null;
+  parentAgentId: string | null;
+  source: ObservationIndexSource;
+  type: string;
+  phase: string | null;
+  status: string | null;
+  decisionCode: string | null;
+  summary: string;
+  observationJson: string;
+  metricsJson: string | null;
+  refsJson: string | null;
+  payloadRefJson: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ListObservationRunsInput {
+  query?: string;
+  status?: ObservationIndexRunStatus;
+  source?: ObservationIndexSource;
+  limit?: number;
+  cursor?: string;
+  from?: number;
+  to?: number;
+}
+
+export interface ObservationRunIndexListResult {
+  items: ObservationRunIndexRow[];
+  nextCursor?: string;
+}
+
+export interface ObservationRunLookupInput {
+  traceId?: string;
+  runId?: string;
+  taskId?: string;
+}
+
+export interface UpsertObservationBackfillCheckpointInput {
+  source: string;
+  cursor: string;
+  updatedAt?: number;
+}
+
+export interface ObservationBackfillCheckpointRow {
+  source: string;
+  cursor: string;
+  updatedAt: number;
+}
+
 export const PROMOTION_CANDIDATE_STATUSES = [
   "pending",
   "reviewed",

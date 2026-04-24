@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../agents/runtime/agent-inspection.js", () => ({
   inspectAgentRuntime: mocks.inspectAgentRuntimeMock,
+  inspectAgentRuntimeHistory: mocks.inspectAgentRuntimeMock,
   mergeAgentInspectionArchive: (snapshot: unknown, archive: unknown) =>
     archive ? { ...(snapshot as Record<string, unknown>), archive } : snapshot,
 }));

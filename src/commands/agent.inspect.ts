@@ -6,6 +6,7 @@ import type {
 } from "../agents/runtime/agent-inspection.js";
 import {
   inspectAgentRuntime,
+  inspectAgentRuntimeHistory,
   mergeAgentInspectionArchive,
 } from "../agents/runtime/agent-inspection.js";
 import { loadConfig } from "../config/config.js";
@@ -1012,11 +1013,46 @@ export function resolveAgentInspectionOrExit(
   return inspection;
 }
 
+async function resolveAgentInspectionHistoryOrExit(
+  opts: AgentInspectOptions,
+  runtime: RuntimeEnv,
+): Promise<AgentInspectionSnapshot | undefined> {
+  const runId = normalizeOptionalString(opts.runId);
+  const taskId = normalizeOptionalString(opts.taskId);
+  const traceId = normalizeOptionalString(opts.traceId);
+  if (!runId && !taskId && !traceId) {
+    runtime.error("Pass --run-id, --task-id, or --trace-id.");
+    runtime.exit(1);
+    return undefined;
+  }
+
+  const inspection = await inspectAgentRuntimeHistory({
+    ...(runId ? { runId } : {}),
+    ...(taskId ? { taskId } : {}),
+    ...(traceId ? { traceId } : {}),
+  });
+  if (!inspection && traceId && !runId && !taskId) {
+    return {
+      lookup: { traceId },
+      refs: {},
+      warnings: ["Runtime state not found"],
+    };
+  }
+  if (!inspection) {
+    runtime.error(
+      `Agent inspection target not found${runId ? ` for run ${runId}` : ""}${taskId ? ` for task ${taskId}` : ""}${traceId ? ` for trace ${traceId}` : ""}.`,
+    );
+    runtime.exit(1);
+    return undefined;
+  }
+  return inspection;
+}
+
 export async function agentInspectCommand(
   opts: AgentInspectOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ): Promise<AgentInspectionSnapshot | undefined> {
-  const inspection = resolveAgentInspectionOrExit(opts, runtime);
+  const inspection = await resolveAgentInspectionHistoryOrExit(opts, runtime);
   if (!inspection) {
     return undefined;
   }

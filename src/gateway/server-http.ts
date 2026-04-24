@@ -50,9 +50,14 @@ import {
   resolveHookDeliver,
 } from "./hooks.js";
 import { sendGatewayAuthFailure, setDefaultSecurityHeaders } from "./http-common.js";
-import { getBearerToken, resolveHttpBrowserOriginPolicy } from "./http-utils.js";
+import {
+  authorizeGatewayHttpRequestOrReply,
+  getBearerToken,
+  resolveHttpBrowserOriginPolicy,
+} from "./http-utils.js";
 import { handleOpenAiModelsHttpRequest } from "./models-http.js";
 import { resolveRequestClientIp } from "./net.js";
+import { handleObservationWorkbenchHttpRequest } from "./observation-workbench.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
 import { DEDUPE_MAX, DEDUPE_TTL_MS } from "./server-constants.js";
@@ -966,6 +971,37 @@ export function createGatewayHttpServer(opts: {
           rateLimiter,
         }),
       );
+
+      requestStages.push({
+        name: "observation-workbench",
+        run: async () => {
+          if (
+            requestPath !== "/observations" &&
+            requestPath !== "/observations/" &&
+            requestPath !== "/observations/app.js" &&
+            requestPath !== "/observations/styles.css"
+          ) {
+            return false;
+          }
+          const requestAuth = await authorizeGatewayHttpRequestOrReply({
+            req,
+            res,
+            auth: resolvedAuth,
+            trustedProxies,
+            allowRealIpFallback,
+            rateLimiter,
+          });
+          if (!requestAuth) {
+            return true;
+          }
+          return handleObservationWorkbenchHttpRequest({
+            req,
+            res,
+            requestPath,
+            bootstrapLocale: (configSnapshot as { cli?: { language?: unknown } }).cli?.language,
+          });
+        },
+      });
 
       requestStages.push({
         name: "gateway-probes",

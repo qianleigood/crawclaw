@@ -13,6 +13,8 @@ import {
 } from "./agent-runtime.js";
 import {
   AgentEventSchema,
+  AgentObservationsListParamsSchema,
+  AgentObservationsListResultSchema,
   AgentInspectionSnapshotSchema,
   AgentInspectionTimelineEntrySchema,
   AgentInspectParamsSchema,
@@ -300,6 +302,8 @@ export const ProtocolSchemas = {
   Snapshot: SnapshotSchema,
   ErrorShape: ErrorShapeSchema,
   AgentEvent: AgentEventSchema,
+  AgentObservationsListParams: AgentObservationsListParamsSchema,
+  AgentObservationsListResult: AgentObservationsListResultSchema,
   AgentRuntimeCategory: AgentRuntimeCategorySchema,
   AgentRuntimeSummaryParams: AgentRuntimeSummaryParamsSchema,
   AgentRuntimeSummaryResult: AgentRuntimeSummaryResultSchema,

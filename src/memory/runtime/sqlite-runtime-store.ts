@@ -27,9 +27,14 @@ import type {
   DeadLetter,
   DurableExtractionCursorRow,
   GmMessageRow,
+  ListObservationRunsInput,
   MaintenanceRun,
   MergeAudit,
   MergeAuditInput,
+  ObservationBackfillCheckpointRow,
+  ObservationEventIndexRow,
+  ObservationRunIndexListResult,
+  ObservationRunIndexRow,
   PipelineJob,
   PromotionCandidate,
   RecallFeedback,
@@ -47,6 +52,9 @@ import type {
   UpsertDurableExtractionCursorInput,
   UpsertSessionScopeInput,
   UpsertContextArchiveBlobInput,
+  UpsertObservationBackfillCheckpointInput,
+  UpsertObservationEventInput,
+  UpsertObservationRunInput,
   UpsertSessionCompactionStateInput,
   UpsertSessionSummaryStateInput,
   MessageRuntimeShapeBlock,
@@ -118,6 +126,40 @@ const CONTEXT_ASSEMBLY_AUDIT_LEGACY_SESSION_MEMORY_TOKENS_COLUMN = "session_memo
 const CONTEXT_ASSEMBLY_AUDIT_SYSTEM_CONTEXT_TOKENS_COLUMN = "system_context_tokens";
 const CONTEXT_ASSEMBLY_AUDIT_LEGACY_SYSTEM_PROMPT_ADDITION_TOKENS_COLUMN =
   "system_prompt_addition_tokens";
+
+function encodeObservationRunCursor(row: ObservationRunIndexRow): string {
+  return Buffer.from(
+    JSON.stringify({
+      lastEventAt: row.lastEventAt ?? 0,
+      traceId: row.traceId,
+    }),
+    "utf8",
+  ).toString("base64url");
+}
+
+function decodeObservationRunCursor(
+  cursor: string | undefined,
+): { lastEventAt: number; traceId: string } | undefined {
+  if (!cursor?.trim()) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+    const record = parsed as Record<string, unknown>;
+    const lastEventAt =
+      typeof record.lastEventAt === "number" && Number.isFinite(record.lastEventAt)
+        ? record.lastEventAt
+        : undefined;
+    const traceId =
+      typeof record.traceId === "string" && record.traceId.trim() ? record.traceId : undefined;
+    return lastEventAt !== undefined && traceId ? { lastEventAt, traceId } : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function normalizeTranscriptSearchTerms(query: string): string[] {
   const normalized = query.trim().toLowerCase();
@@ -765,6 +807,239 @@ export class SqliteRuntimeStore implements RuntimeStore {
       )
       .all(runId, limit);
     return rows.map((row) => this.mapContextArchiveBlobRow(row));
+  }
+
+  async upsertObservationRun(input: UpsertObservationRunInput): Promise<void> {
+    const db = this.getDb();
+    const now = input.updatedAt ?? Date.now();
+    db.prepare(`INSERT INTO gm_observation_runs
+      (trace_id, root_span_id, run_id, task_id, session_id, session_key, agent_id, parent_agent_id, workflow_run_id, status, started_at, ended_at, last_event_at, event_count, error_count, sources_json, refs_json, summary, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(trace_id) DO UPDATE SET
+        root_span_id = COALESCE(excluded.root_span_id, gm_observation_runs.root_span_id),
+        run_id = COALESCE(excluded.run_id, gm_observation_runs.run_id),
+        task_id = COALESCE(excluded.task_id, gm_observation_runs.task_id),
+        session_id = COALESCE(excluded.session_id, gm_observation_runs.session_id),
+        session_key = COALESCE(excluded.session_key, gm_observation_runs.session_key),
+        agent_id = COALESCE(excluded.agent_id, gm_observation_runs.agent_id),
+        parent_agent_id = COALESCE(excluded.parent_agent_id, gm_observation_runs.parent_agent_id),
+        workflow_run_id = COALESCE(excluded.workflow_run_id, gm_observation_runs.workflow_run_id),
+        status = excluded.status,
+        started_at = COALESCE(gm_observation_runs.started_at, excluded.started_at),
+        ended_at = COALESCE(excluded.ended_at, gm_observation_runs.ended_at),
+        last_event_at = COALESCE(excluded.last_event_at, gm_observation_runs.last_event_at),
+        event_count = excluded.event_count,
+        error_count = excluded.error_count,
+        sources_json = excluded.sources_json,
+        refs_json = COALESCE(excluded.refs_json, gm_observation_runs.refs_json),
+        summary = excluded.summary,
+        updated_at = excluded.updated_at`).run(
+      input.traceId,
+      input.rootSpanId ?? null,
+      input.runId ?? null,
+      input.taskId ?? null,
+      input.sessionId ?? null,
+      input.sessionKey ?? null,
+      input.agentId ?? null,
+      input.parentAgentId ?? null,
+      input.workflowRunId ?? null,
+      input.status,
+      input.startedAt ?? null,
+      input.endedAt ?? null,
+      input.lastEventAt ?? null,
+      input.eventCount,
+      input.errorCount,
+      input.sourcesJson,
+      input.refsJson ?? null,
+      input.summary,
+      input.createdAt ?? now,
+      now,
+    );
+  }
+
+  async upsertObservationEvent(input: UpsertObservationEventInput): Promise<void> {
+    const db = this.getDb();
+    const now = input.updatedAt ?? Date.now();
+    db.prepare(`INSERT INTO gm_observation_events
+      (id, event_key, trace_id, span_id, parent_span_id, run_id, task_id, session_id, session_key, agent_id, parent_agent_id, source, type, phase, status, decision_code, summary, observation_json, metrics_json, refs_json, payload_ref_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(event_key) DO UPDATE SET
+        trace_id = excluded.trace_id,
+        span_id = excluded.span_id,
+        parent_span_id = excluded.parent_span_id,
+        run_id = COALESCE(excluded.run_id, gm_observation_events.run_id),
+        task_id = COALESCE(excluded.task_id, gm_observation_events.task_id),
+        session_id = COALESCE(excluded.session_id, gm_observation_events.session_id),
+        session_key = COALESCE(excluded.session_key, gm_observation_events.session_key),
+        agent_id = COALESCE(excluded.agent_id, gm_observation_events.agent_id),
+        parent_agent_id = COALESCE(excluded.parent_agent_id, gm_observation_events.parent_agent_id),
+        source = excluded.source,
+        type = excluded.type,
+        phase = COALESCE(excluded.phase, gm_observation_events.phase),
+        status = COALESCE(excluded.status, gm_observation_events.status),
+        decision_code = COALESCE(excluded.decision_code, gm_observation_events.decision_code),
+        summary = excluded.summary,
+        observation_json = excluded.observation_json,
+        metrics_json = COALESCE(excluded.metrics_json, gm_observation_events.metrics_json),
+        refs_json = COALESCE(excluded.refs_json, gm_observation_events.refs_json),
+        payload_ref_json = COALESCE(excluded.payload_ref_json, gm_observation_events.payload_ref_json),
+        created_at = MIN(gm_observation_events.created_at, excluded.created_at),
+        updated_at = excluded.updated_at`).run(
+      input.eventId,
+      input.eventKey,
+      input.traceId,
+      input.spanId,
+      input.parentSpanId ?? null,
+      input.runId ?? null,
+      input.taskId ?? null,
+      input.sessionId ?? null,
+      input.sessionKey ?? null,
+      input.agentId ?? null,
+      input.parentAgentId ?? null,
+      input.source,
+      input.type,
+      input.phase ?? null,
+      input.status ?? null,
+      input.decisionCode ?? null,
+      input.summary,
+      input.observationJson,
+      input.metricsJson ?? null,
+      input.refsJson ?? null,
+      input.payloadRefJson ?? null,
+      input.createdAt,
+      now,
+    );
+  }
+
+  async listObservationRuns(
+    input: ListObservationRunsInput = {},
+  ): Promise<ObservationRunIndexListResult> {
+    const db = this.getDb();
+    const conditions: string[] = [];
+    const args: Array<string | number> = [];
+    const query = input.query?.trim();
+    if (query) {
+      const like = `%${query}%`;
+      conditions.push(`(
+        trace_id LIKE ? OR run_id LIKE ? OR task_id LIKE ? OR session_id LIKE ? OR session_key LIKE ? OR agent_id LIKE ?
+      )`);
+      args.push(like, like, like, like, like, like);
+    }
+    if (input.status) {
+      conditions.push("status = ?");
+      args.push(input.status);
+    }
+    if (input.source) {
+      conditions.push("sources_json LIKE ?");
+      args.push(`%"${input.source}"%`);
+    }
+    if (typeof input.from === "number" && Number.isFinite(input.from)) {
+      conditions.push("COALESCE(last_event_at, started_at, created_at, 0) >= ?");
+      args.push(input.from);
+    }
+    if (typeof input.to === "number" && Number.isFinite(input.to)) {
+      conditions.push("COALESCE(last_event_at, started_at, created_at, 0) <= ?");
+      args.push(input.to);
+    }
+    const cursor = decodeObservationRunCursor(input.cursor);
+    if (cursor) {
+      conditions.push(`(
+        COALESCE(last_event_at, started_at, created_at, 0) < ? OR
+        (COALESCE(last_event_at, started_at, created_at, 0) = ? AND trace_id < ?)
+      )`);
+      args.push(cursor.lastEventAt, cursor.lastEventAt, cursor.traceId);
+    }
+    const limit = Math.min(Math.max(Math.trunc(input.limit ?? 50), 1), 200);
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const rows = db
+      .prepare(
+        `SELECT * FROM gm_observation_runs ${where}
+        ORDER BY COALESCE(last_event_at, started_at, created_at, 0) DESC, trace_id DESC
+        LIMIT ?`,
+      )
+      .all(...args, limit + 1)
+      .map((row) => this.mapObservationRunRow(row));
+    const items = rows.slice(0, limit);
+    return {
+      items,
+      ...(rows.length > limit && items.at(-1)
+        ? { nextCursor: encodeObservationRunCursor(items.at(-1)!) }
+        : {}),
+    };
+  }
+
+  async getObservationRunByLookup(input: {
+    traceId?: string;
+    runId?: string;
+    taskId?: string;
+  }): Promise<ObservationRunIndexRow | null> {
+    const db = this.getDb();
+    const traceId = input.traceId?.trim();
+    const runId = input.runId?.trim();
+    const taskId = input.taskId?.trim();
+    const row = traceId
+      ? db.prepare(`SELECT * FROM gm_observation_runs WHERE trace_id = ? LIMIT 1`).get(traceId)
+      : runId
+        ? db
+            .prepare(
+              `SELECT * FROM gm_observation_runs WHERE run_id = ? ORDER BY COALESCE(last_event_at, started_at, created_at, 0) DESC LIMIT 1`,
+            )
+            .get(runId)
+        : taskId
+          ? db
+              .prepare(
+                `SELECT * FROM gm_observation_runs WHERE task_id = ? ORDER BY COALESCE(last_event_at, started_at, created_at, 0) DESC LIMIT 1`,
+              )
+              .get(taskId)
+          : null;
+    return row ? this.mapObservationRunRow(row) : null;
+  }
+
+  async listObservationEvents(
+    traceId: string,
+    limit = 10_000,
+  ): Promise<ObservationEventIndexRow[]> {
+    const db = this.getDb();
+    const rows = db
+      .prepare(
+        `SELECT * FROM gm_observation_events WHERE trace_id = ? ORDER BY created_at ASC, id ASC LIMIT ?`,
+      )
+      .all(traceId, Math.min(Math.max(Math.trunc(limit), 1), 10_000));
+    return rows.map((row) => this.mapObservationEventRow(row));
+  }
+
+  async upsertObservationBackfillCheckpoint(
+    input: UpsertObservationBackfillCheckpointInput,
+  ): Promise<void> {
+    const db = this.getDb();
+    db.prepare(`INSERT INTO gm_observation_backfill_checkpoints
+      (source, cursor, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(source) DO UPDATE SET
+        cursor = excluded.cursor,
+        updated_at = excluded.updated_at`).run(
+      input.source,
+      input.cursor,
+      input.updatedAt ?? Date.now(),
+    );
+  }
+
+  async getObservationBackfillCheckpoint(
+    source: string,
+  ): Promise<ObservationBackfillCheckpointRow | null> {
+    const db = this.getDb();
+    const row = db
+      .prepare(`SELECT * FROM gm_observation_backfill_checkpoints WHERE source = ? LIMIT 1`)
+      .get(source);
+    if (!row) {
+      return null;
+    }
+    const rec = requireSqliteRow(row, "Invalid observation backfill checkpoint row");
+    return {
+      source: String(rec.source ?? ""),
+      cursor: String(rec.cursor ?? ""),
+      updatedAt: sqliteNumber(rec.updated_at),
+    };
   }
 
   async getSessionSummaryState(sessionId: string): Promise<SessionSummaryStateRow | null> {
@@ -1853,6 +2128,61 @@ export class SqliteRuntimeStore implements RuntimeStore {
       contentType: sqliteNullableString(rec.content_type),
       byteLength: sqliteNullableNumber(rec.byte_length),
       metadataJson: sqliteNullableString(rec.metadata_json),
+      createdAt: sqliteNumber(rec.created_at),
+      updatedAt: sqliteNumber(rec.updated_at),
+    };
+  }
+
+  private mapObservationRunRow(row: unknown): ObservationRunIndexRow {
+    const rec = requireSqliteRow(row, "Invalid observation run row");
+    return {
+      traceId: String(rec.trace_id ?? ""),
+      rootSpanId: sqliteNullableString(rec.root_span_id),
+      runId: sqliteNullableString(rec.run_id),
+      taskId: sqliteNullableString(rec.task_id),
+      sessionId: sqliteNullableString(rec.session_id),
+      sessionKey: sqliteNullableString(rec.session_key),
+      agentId: sqliteNullableString(rec.agent_id),
+      parentAgentId: sqliteNullableString(rec.parent_agent_id),
+      workflowRunId: sqliteNullableString(rec.workflow_run_id),
+      status: String(rec.status ?? "unknown") as ObservationRunIndexRow["status"],
+      startedAt: sqliteNullableNumber(rec.started_at),
+      endedAt: sqliteNullableNumber(rec.ended_at),
+      lastEventAt: sqliteNullableNumber(rec.last_event_at),
+      eventCount: sqliteNumber(rec.event_count),
+      errorCount: sqliteNumber(rec.error_count),
+      sourcesJson: String(rec.sources_json ?? "[]"),
+      refsJson: sqliteNullableString(rec.refs_json),
+      summary: String(rec.summary ?? ""),
+      createdAt: sqliteNumber(rec.created_at),
+      updatedAt: sqliteNumber(rec.updated_at),
+    };
+  }
+
+  private mapObservationEventRow(row: unknown): ObservationEventIndexRow {
+    const rec = requireSqliteRow(row, "Invalid observation event row");
+    return {
+      eventId: String(rec.id ?? ""),
+      eventKey: String(rec.event_key ?? ""),
+      traceId: String(rec.trace_id ?? ""),
+      spanId: String(rec.span_id ?? ""),
+      parentSpanId: sqliteNullableString(rec.parent_span_id),
+      runId: sqliteNullableString(rec.run_id),
+      taskId: sqliteNullableString(rec.task_id),
+      sessionId: sqliteNullableString(rec.session_id),
+      sessionKey: sqliteNullableString(rec.session_key),
+      agentId: sqliteNullableString(rec.agent_id),
+      parentAgentId: sqliteNullableString(rec.parent_agent_id),
+      source: String(rec.source ?? "") as ObservationEventIndexRow["source"],
+      type: String(rec.type ?? ""),
+      phase: sqliteNullableString(rec.phase),
+      status: sqliteNullableString(rec.status),
+      decisionCode: sqliteNullableString(rec.decision_code),
+      summary: String(rec.summary ?? ""),
+      observationJson: String(rec.observation_json ?? ""),
+      metricsJson: sqliteNullableString(rec.metrics_json),
+      refsJson: sqliteNullableString(rec.refs_json),
+      payloadRefJson: sqliteNullableString(rec.payload_ref_json),
       createdAt: sqliteNumber(rec.created_at),
       updatedAt: sqliteNumber(rec.updated_at),
     };

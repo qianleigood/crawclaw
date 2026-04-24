@@ -1,5 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { writeJsonAtomic } from "../../infra/json-files.js";
+import { indexObservationEvent } from "../../infra/observation/history-index.js";
+import type { ObservationContext } from "../../infra/observation/types.js";
 import {
   resolveContextArchiveEventPath,
   resolveContextArchiveRunRefs,
@@ -7,11 +10,7 @@ import {
   sha256Hex,
   resolveContextArchiveRootDir,
 } from "./archive-id.js";
-import {
-  createContextArchiveBlobStore,
-  type ContextArchiveBlobStore,
-} from "./blob-store.js";
-import { writeJsonAtomic } from "../../infra/json-files.js";
+import { createContextArchiveBlobStore, type ContextArchiveBlobStore } from "./blob-store.js";
 import type {
   ContextArchiveBlobInput,
   ContextArchiveBlobRecord,
@@ -68,6 +67,40 @@ function normalizeMetadata(value: unknown): Record<string, unknown> | undefined 
     return undefined;
   }
   return value as Record<string, unknown>;
+}
+
+function isObservationContext(value: unknown): value is ObservationContext {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  const trace = record.trace as Record<string, unknown> | undefined;
+  const runtime = record.runtime as Record<string, unknown> | undefined;
+  return (
+    Boolean(trace && runtime) &&
+    typeof trace?.traceId === "string" &&
+    typeof trace.spanId === "string" &&
+    (typeof trace.parentSpanId === "string" || trace.parentSpanId === null) &&
+    typeof record.source === "string"
+  );
+}
+
+function resolveArchiveObservation(params: {
+  run: ContextArchiveRunRecord;
+  payload?: unknown;
+  metadata?: Record<string, unknown>;
+}): ObservationContext | undefined {
+  const payload = normalizeMetadata(params.payload);
+  if (isObservationContext(payload?.observation)) {
+    return payload.observation;
+  }
+  if (isObservationContext(params.metadata?.observation)) {
+    return params.metadata.observation;
+  }
+  if (isObservationContext(params.run.metadata?.observation)) {
+    return params.run.metadata.observation;
+  }
+  return undefined;
 }
 
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
@@ -182,11 +215,10 @@ export function createContextArchiveService(options: ContextArchiveServiceOption
   async function appendEventMirror(event: ContextArchiveEventRecord): Promise<void> {
     const eventPath = resolveContextArchiveEventPath(rootDir, event.runId);
     await fs.mkdir(path.dirname(eventPath), { recursive: true, mode: 0o700 });
-    await fs.appendFile(
-      eventPath,
-      `${serializeArchiveEventMirror(event)}\n`,
-      { encoding: "utf8", mode: 0o600 },
-    );
+    await fs.appendFile(eventPath, `${serializeArchiveEventMirror(event)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
   }
 
   async function removeRunMirror(runId: string): Promise<void> {
@@ -199,8 +231,7 @@ export function createContextArchiveService(options: ContextArchiveServiceOption
   async function createRun(input: ContextArchiveRunInput): Promise<ContextArchiveRunRecord> {
     const id = await options.runtimeStore.createContextArchiveRun({
       sessionId: input.sessionId,
-      conversationUid:
-        input.conversationUid?.trim() || input.sessionKey?.trim() || input.sessionId,
+      conversationUid: input.conversationUid?.trim() || input.sessionKey?.trim() || input.sessionId,
       runKind: input.kind ?? (input.taskId || input.agentId ? "task" : "session"),
       archiveMode: input.archiveMode ?? options.defaultArchiveMode ?? "replay",
       status: input.status ?? "recording",
@@ -208,8 +239,7 @@ export function createContextArchiveService(options: ContextArchiveServiceOption
       taskId: input.taskId ?? null,
       agentId: input.agentId ?? null,
       parentAgentId: input.parentAgentId ?? null,
-      summaryJson:
-        input.summary !== undefined ? JSON.stringify(input.summary) : null,
+      summaryJson: input.summary !== undefined ? JSON.stringify(input.summary) : null,
       metadataJson: (() => {
         const envelope = buildRunMetadataEnvelope(input);
         return envelope ? JSON.stringify(envelope) : null;
@@ -440,8 +470,7 @@ export function createContextArchiveService(options: ContextArchiveServiceOption
 
     for (const run of sortedRuns) {
       const ageExpired = retentionCutoffAt != null && run.createdAt <= retentionCutoffAt;
-      const overBudget =
-        effectiveMaxTotalBytes != null && totalBytes > effectiveMaxTotalBytes;
+      const overBudget = effectiveMaxTotalBytes != null && totalBytes > effectiveMaxTotalBytes;
       if (!ageExpired && !overBudget) {
         continue;
       }
@@ -473,9 +502,7 @@ export function createContextArchiveService(options: ContextArchiveServiceOption
     if (retentionDays == null && maxBlobBytes == null && maxTotalBytes == null) {
       return undefined;
     }
-    cleanupQueue = cleanupQueue
-      .then(async () => await pruneRetention())
-      .catch(() => undefined);
+    cleanupQueue = cleanupQueue.then(async () => await pruneRetention()).catch(() => undefined);
     return await cleanupQueue;
   }
 
@@ -633,6 +660,44 @@ export function createContextArchiveService(options: ContextArchiveServiceOption
       createdAt: input.createdAt ?? Date.now(),
     };
     await appendEventMirror(event);
+    const observation = resolveArchiveObservation({
+      run,
+      payload: input.payload,
+      metadata: normalizeMetadata(input.metadata),
+    });
+    if (observation) {
+      const payload = normalizeMetadata(input.payload);
+      await indexObservationEvent({
+        store: options.runtimeStore,
+        eventKey: `archive:${input.runId}:${id}`,
+        eventId: `archive:${id}`,
+        observation,
+        source: "archive",
+        type: event.type,
+        phase: typeof payload?.phase === "string" ? payload.phase : undefined,
+        status:
+          run.status === "complete" ? "archived" : run.status === "failed" ? "error" : undefined,
+        summary:
+          typeof payload?.phase === "string"
+            ? payload.phase
+            : typeof input.type === "string"
+              ? input.type
+              : "archive event",
+        metrics:
+          payload?.metrics && typeof payload.metrics === "object" && !Array.isArray(payload.metrics)
+            ? (payload.metrics as Record<string, number>)
+            : undefined,
+        refs:
+          payload?.refs && typeof payload.refs === "object" && !Array.isArray(payload.refs)
+            ? (payload.refs as Record<string, unknown>)
+            : undefined,
+        payloadRef: {
+          archiveRunId: input.runId,
+          archiveEventId: id,
+        },
+        createdAt: event.createdAt,
+      });
+    }
     await cleanupRetention();
     return event;
   }
@@ -708,9 +773,7 @@ export function createContextArchiveService(options: ContextArchiveServiceOption
     const runs = await findRuns(params);
     const inspectedRuns = await Promise.all(runs.map(async (run) => describeRun(run.id)));
     return {
-      runs: inspectedRuns.filter(
-        (run): run is ContextArchiveInspectionRun => run != null,
-      ),
+      runs: inspectedRuns.filter((run): run is ContextArchiveInspectionRun => run != null),
     };
   }
 

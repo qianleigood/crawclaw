@@ -6,18 +6,23 @@ import {
   resetAgentRunContextForTest,
 } from "../../infra/agent-events.js";
 import { writeJsonAtomic } from "../../infra/json-files.js";
+import { createObservationRoot } from "../../infra/observation/context.js";
+import { indexObservationEvent } from "../../infra/observation/history-index.js";
 import {
   resetDiagnosticSessionStateForTest,
   updateDiagnosticSessionState,
 } from "../../logging/diagnostic-session-state.js";
+import { SqliteRuntimeStore } from "../../memory/runtime/sqlite-runtime-store.js";
 import { createRunningTaskRun } from "../../tasks/task-executor.js";
 import { resetTaskRegistryForTests } from "../../tasks/task-registry.js";
 import { withStateDirEnv } from "../../test-helpers/state-dir-env.js";
+import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import {
   flushTaskTrajectoryWritesForTest,
   resetTaskTrajectoryBridgeForTest,
 } from "../tasks/task-trajectory.js";
 import { inspectAgentRuntime } from "./agent-inspection.js";
+import * as agentInspection from "./agent-inspection.js";
 import {
   resolveAgentTaskTrajectoryPath,
   upsertAgentTaskRuntimeMetadata,
@@ -29,8 +34,15 @@ import {
 } from "./agent-progress.js";
 import { resetAgentRuntimeStateForTest } from "./agent-runtime-state.js";
 
+const tempDirs = createTrackedTempDirs();
+const stores: SqliteRuntimeStore[] = [];
+
 describe("agent-inspection", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await Promise.all(stores.splice(0).map(async (store) => store.close()));
+    if (process.platform !== "win32") {
+      await tempDirs.cleanup();
+    }
     resetAgentEventsForTest();
     resetAgentRunContextForTest();
     resetAgentProgressEventsForTest();
@@ -385,6 +397,153 @@ describe("agent-inspection", () => {
       expect(inspection?.warnings).not.toContain(
         `Task trajectory missing or unreadable: ${metadata.trajectoryRef}`,
       );
+    });
+  });
+
+  it("lists observation run summaries without transcript or tool result bodies", async () => {
+    registerAgentRunContext("run-list-1", {
+      sessionKey: "agent:main:main",
+      sessionId: "sess-list-1",
+      agentId: "main",
+      taskId: "task-list-1",
+      task: "Do not leak this prompt body",
+    });
+    registerAgentRuntimeRun({
+      runId: "run-list-1",
+      taskId: "task-list-1",
+      agentId: "main",
+      sessionId: "sess-list-1",
+      sessionKey: "agent:main:main",
+      status: "running",
+      startedAt: 10,
+      updatedAt: 20,
+      task: "Do not leak this prompt body",
+    });
+    emitAgentEvent({
+      runId: "run-list-1",
+      stream: "tool",
+      data: {
+        phase: "result",
+        name: "exec",
+        result: "tool result body should not appear",
+      },
+    });
+
+    const listObservationRunSummaries = (
+      agentInspection as typeof agentInspection & {
+        listObservationRunSummaries?: (params: {
+          query?: string;
+          status?: string;
+          source?: string;
+          limit?: number;
+        }) => {
+          items: Array<{
+            runId?: string;
+            taskId?: string;
+            traceId: string;
+            status: string;
+            eventCount: number;
+            sources: string[];
+            summary: string;
+          }>;
+          generatedAt: number;
+        };
+      }
+    ).listObservationRunSummaries;
+
+    const result = await listObservationRunSummaries?.({ query: "task-list-1", limit: 10 });
+
+    expect(result).toMatchObject({
+      items: [
+        expect.objectContaining({
+          runId: "run-list-1",
+          taskId: "task-list-1",
+          status: "running",
+          eventCount: expect.any(Number),
+          sources: expect.arrayContaining(["lifecycle"]),
+        }),
+      ],
+      generatedAt: expect.any(Number),
+    });
+    expect(result?.items[0]?.traceId).toBeTruthy();
+    expect(JSON.stringify(result)).not.toContain("Do not leak this prompt body");
+    expect(JSON.stringify(result)).not.toContain("tool result body should not appear");
+  });
+
+  it("resolves historical observation summaries and timelines when runtime memory is empty", async () => {
+    const rootDir = await tempDirs.make("agent-inspection-observation-history-");
+    const store = new SqliteRuntimeStore(`${rootDir}/runtime.sqlite`);
+    await store.init();
+    stores.push(store);
+    const observation = createObservationRoot({
+      source: "run-loop",
+      runtime: {
+        runId: "run-indexed",
+        taskId: "task-indexed",
+        sessionId: "session-indexed",
+        sessionKey: "agent:main:main",
+        agentId: "main",
+      },
+      trace: {
+        traceId: "trace-indexed",
+        spanId: "span-root-indexed",
+        parentSpanId: null,
+      },
+    });
+    await indexObservationEvent({
+      store,
+      eventKey: "lifecycle:run-indexed:turn_started",
+      observation,
+      source: "lifecycle",
+      type: "run.lifecycle.turn_started",
+      phase: "turn_started",
+      status: "running",
+      summary: "turn started",
+      createdAt: 1_000,
+      refs: { requestId: "request-indexed" },
+    });
+
+    resetAgentEventsForTest();
+    resetAgentRunContextForTest();
+    resetAgentRuntimeStateForTest();
+
+    await expect(
+      agentInspection.listObservationRunSummaries(
+        { query: "task-indexed", limit: 10 },
+        { store, skipBackfill: true },
+      ),
+    ).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          runId: "run-indexed",
+          taskId: "task-indexed",
+          traceId: "trace-indexed",
+          eventCount: 1,
+        }),
+      ],
+    });
+
+    await expect(
+      agentInspection.inspectAgentRuntimeHistory(
+        { traceId: "trace-indexed" },
+        { store, skipBackfill: true },
+      ),
+    ).resolves.toMatchObject({
+      lookup: { traceId: "trace-indexed" },
+      runId: "run-indexed",
+      taskId: "task-indexed",
+      timeline: [
+        expect.objectContaining({
+          eventId: expect.any(String),
+          type: "run.lifecycle.turn_started",
+          source: "lifecycle",
+          observation,
+          traceId: "trace-indexed",
+          spanId: "span-root-indexed",
+          summary: "turn started",
+          refs: { requestId: "request-indexed" },
+        }),
+      ],
     });
   });
 });

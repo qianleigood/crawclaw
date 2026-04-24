@@ -16,7 +16,8 @@ const mocks = vi.hoisted(() => ({
   performGatewaySessionReset: vi.fn(),
   getLatestSubagentRunByChildSessionKey: vi.fn(),
   replaceSubagentRunAfterSteer: vi.fn(),
-  inspectAgentRuntime: vi.fn(),
+  inspectAgentRuntimeHistory: vi.fn(),
+  listObservationRunSummaries: vi.fn(),
   loadConfigReturn: {} as Record<string, unknown>,
 }));
 
@@ -76,7 +77,8 @@ vi.mock("../../agents/subagent-registry-read.js", () => ({
 }));
 
 vi.mock("../../agents/runtime/agent-inspection.js", () => ({
-  inspectAgentRuntime: mocks.inspectAgentRuntime,
+  inspectAgentRuntimeHistory: mocks.inspectAgentRuntimeHistory,
+  listObservationRunSummariesWithHistory: mocks.listObservationRunSummaries,
 }));
 
 vi.mock("../session-subagent-reactivation.runtime.js", () => ({
@@ -348,7 +350,8 @@ describe("gateway agent handler", () => {
     } else {
       process.env.CRAWCLAW_STATE_DIR = ORIGINAL_STATE_DIR;
     }
-    mocks.inspectAgentRuntime.mockReset();
+    mocks.inspectAgentRuntimeHistory.mockReset();
+    mocks.listObservationRunSummaries.mockReset();
     resetTaskRegistryForTests();
   });
 
@@ -1189,7 +1192,7 @@ describe("gateway agent handler", () => {
   });
 
   it("returns a runtime inspection snapshot for agent.inspect", async () => {
-    mocks.inspectAgentRuntime.mockReturnValue({
+    mocks.inspectAgentRuntimeHistory.mockResolvedValue({
       lookup: { runId: "run-123" },
       runId: "run-123",
       taskId: "task-123",
@@ -1207,7 +1210,7 @@ describe("gateway agent handler", () => {
       isWebchatConnect: () => false,
     });
 
-    expect(mocks.inspectAgentRuntime).toHaveBeenCalledWith({ runId: "run-123" });
+    expect(mocks.inspectAgentRuntimeHistory).toHaveBeenCalledWith({ runId: "run-123" });
     expect(respond).toHaveBeenCalledWith(
       true,
       expect.objectContaining({
@@ -1219,7 +1222,7 @@ describe("gateway agent handler", () => {
   });
 
   it("passes traceId through for agent.inspect", async () => {
-    mocks.inspectAgentRuntime.mockReturnValue({
+    mocks.inspectAgentRuntimeHistory.mockResolvedValue({
       lookup: { traceId: "run-loop:run-123" },
       runId: "run-123",
       warnings: [],
@@ -1236,7 +1239,7 @@ describe("gateway agent handler", () => {
       isWebchatConnect: () => false,
     });
 
-    expect(mocks.inspectAgentRuntime).toHaveBeenCalledWith({ traceId: "run-loop:run-123" });
+    expect(mocks.inspectAgentRuntimeHistory).toHaveBeenCalledWith({ traceId: "run-loop:run-123" });
     expect(respond).toHaveBeenCalledWith(
       true,
       expect.objectContaining({
@@ -1257,12 +1260,99 @@ describe("gateway agent handler", () => {
       isWebchatConnect: () => false,
     });
 
-    expect(mocks.inspectAgentRuntime).not.toHaveBeenCalled();
+    expect(mocks.inspectAgentRuntimeHistory).not.toHaveBeenCalled();
     expect(respond).toHaveBeenCalledWith(
       false,
       undefined,
       expect.objectContaining({
         message: "agent.inspect requires runId, taskId, or traceId",
+      }),
+    );
+  });
+
+  it("returns redacted observation run summaries for agent.observations.list", async () => {
+    mocks.listObservationRunSummaries.mockResolvedValue({
+      items: [
+        {
+          runId: "run-123",
+          taskId: "task-123",
+          traceId: "trace-123",
+          sessionId: "sess-123",
+          sessionKey: "agent:main:main",
+          agentId: "main",
+          status: "running",
+          startedAt: 10,
+          lastEventAt: 20,
+          eventCount: 3,
+          errorCount: 1,
+          sources: ["lifecycle", "trajectory"],
+          summary: "running main",
+        },
+      ],
+      generatedAt: 25,
+    });
+
+    const respond = vi.fn();
+    await agentHandlers["agent.observations.list"]({
+      params: {
+        query: "trace-123",
+        status: "running",
+        source: "trajectory",
+        limit: 500,
+        from: 10,
+        to: 30,
+      },
+      respond: respond as never,
+      context: makeContext(),
+      req: { type: "req", id: "observations-1", method: "agent.observations.list" },
+      client: { connect: { role: "operator", scopes: ["operator.read"] } } as never,
+      isWebchatConnect: () => false,
+    });
+
+    expect(mocks.listObservationRunSummaries).toHaveBeenCalledWith({
+      query: "trace-123",
+      status: "running",
+      source: "trajectory",
+      limit: 200,
+      from: 10,
+      to: 30,
+    });
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        generatedAt: 25,
+        items: [
+          expect.objectContaining({
+            runId: "run-123",
+            traceId: "trace-123",
+            eventCount: 3,
+          }),
+        ],
+      }),
+      undefined,
+    );
+    expect(JSON.stringify(respond.mock.calls[0]?.[1])).not.toContain("prompt");
+    expect(JSON.stringify(respond.mock.calls[0]?.[1])).not.toContain("transcript");
+    expect(JSON.stringify(respond.mock.calls[0]?.[1])).not.toContain("tool result");
+  });
+
+  it("rejects invalid observation list filters", async () => {
+    const respond = vi.fn();
+    await agentHandlers["agent.observations.list"]({
+      params: { status: "done" },
+      respond: respond as never,
+      context: makeContext(),
+      req: { type: "req", id: "observations-2", method: "agent.observations.list" },
+      client: { connect: { role: "operator", scopes: ["operator.read"] } } as never,
+      isWebchatConnect: () => false,
+    });
+
+    expect(mocks.listObservationRunSummaries).not.toHaveBeenCalled();
+    expect(respond).toHaveBeenCalledWith(
+      false,
+      undefined,
+      expect.objectContaining({
+        message: expect.stringContaining("invalid agent.observations.list params"),
       }),
     );
   });

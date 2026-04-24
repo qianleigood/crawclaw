@@ -1,4 +1,4 @@
-summary: "Gateway web surfaces that remain after Control UI removal"
+summary: "Gateway web surfaces, including Observation Workbench"
 read_when:
 
 - You want to access the Gateway over Tailscale
@@ -15,9 +15,32 @@ The Gateway still exposes HTTP/WebSocket surfaces for:
 
 - [WebChat](/web/webchat)
 - [TUI over the gateway](/web/tui)
+- Observation Workbench at `/observations`
 - webhook receivers such as channel integrations
 
 This page focuses on the remaining bind modes, security constraints, and web-facing surfaces.
+
+## Observation Workbench
+
+Open `/observations` on the Gateway HTTP port to inspect unified ObservationContext timelines.
+The workbench is read-only. It uses `agent.observations.list` for historical run summaries from
+the durable Observation Index and `agent.inspect` for run, task, or trace details.
+
+The page shows:
+
+- run summaries filtered by `runId`, `taskId`, `traceId`, `sessionKey`, `agentId`, source,
+  status, or time range
+- a mixed timeline for lifecycle, diagnostic, action-feed, archive, trajectory, log, and OTel sources
+- an evidence panel with ObservationContext, refs, metrics, and redacted raw JSON
+- Trace Map and Ops tabs for span relationships and sink coverage
+
+List responses contain only metadata, status, counts, source coverage, and trace refs. Prompt,
+transcript, and tool result bodies are not included in the list payload, and the Raw JSON tab
+redacts sensitive or heavy fields before display.
+
+The index is stored in the existing runtime SQLite database. Context archive and task trajectory
+records remain the durable evidence stores; the index keeps only search metadata and refs needed
+to hydrate details on demand.
 
 ## Webhooks
 

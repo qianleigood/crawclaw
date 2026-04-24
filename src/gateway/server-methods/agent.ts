@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import { listAgentIds } from "../../agents/agent-scope.js";
 import type { AgentStreamParams } from "../../agents/command/types.js";
 import type { AgentInternalEvent } from "../../agents/internal-events.js";
-import { inspectAgentRuntime } from "../../agents/runtime/agent-inspection.js";
+import {
+  inspectAgentRuntimeHistory,
+  listObservationRunSummariesWithHistory,
+} from "../../agents/runtime/agent-inspection.js";
 import {
   normalizeSpawnedRunMetadata,
   resolveIngressWorkspaceOverrideForSpawnedRun,
@@ -56,6 +59,7 @@ import {
   errorShape,
   formatValidationErrors,
   validateAgentIdentityParams,
+  validateAgentObservationsListParams,
   validateAgentParams,
   validateAgentWaitParams,
 } from "../protocol/index.js";
@@ -996,7 +1000,7 @@ export const agentHandlers: GatewayRequestHandlers = {
       }) ?? identity.avatar;
     respond(true, { ...identity, avatar: avatarValue }, undefined);
   },
-  "agent.inspect": ({ params, respond }) => {
+  "agent.inspect": async ({ params, respond }) => {
     const parsed = parseAgentInspectParams(params);
     if (!parsed) {
       respond(
@@ -1007,7 +1011,7 @@ export const agentHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const inspection = inspectAgentRuntime(parsed);
+    const inspection = await inspectAgentRuntimeHistory(parsed);
     if (!inspection) {
       respond(
         false,
@@ -1018,6 +1022,43 @@ export const agentHandlers: GatewayRequestHandlers = {
     }
 
     respond(true, inspection, undefined);
+  },
+  "agent.observations.list": async ({ params, respond }) => {
+    if (!validateAgentObservationsListParams(params ?? {})) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid agent.observations.list params: ${formatValidationErrors(
+            validateAgentObservationsListParams.errors,
+          )}`,
+        ),
+      );
+      return;
+    }
+    const p = (params ?? {}) as {
+      query?: string;
+      status?: "running" | "ok" | "error" | "timeout" | "archived" | "unknown";
+      source?: "lifecycle" | "diagnostic" | "action" | "archive" | "trajectory" | "log" | "otel";
+      limit?: number;
+      cursor?: string;
+      from?: number;
+      to?: number;
+    };
+    respond(
+      true,
+      await listObservationRunSummariesWithHistory({
+        ...(typeof p.query === "string" && p.query.trim() ? { query: p.query.trim() } : {}),
+        ...(p.status ? { status: p.status } : {}),
+        ...(p.source ? { source: p.source } : {}),
+        ...(typeof p.limit === "number" ? { limit: Math.min(p.limit, 200) } : {}),
+        ...(typeof p.cursor === "string" && p.cursor.trim() ? { cursor: p.cursor.trim() } : {}),
+        ...(typeof p.from === "number" ? { from: p.from } : {}),
+        ...(typeof p.to === "number" ? { to: p.to } : {}),
+      }),
+      undefined,
+    );
   },
   "agent.wait": async ({ params, respond, context }) => {
     if (!validateAgentWaitParams(params)) {

@@ -221,6 +221,56 @@ export const AgentInspectParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ObservationSourceSchema = Type.String({
+  enum: ["lifecycle", "diagnostic", "action", "archive", "trajectory", "log", "otel"],
+});
+
+export const ObservationRunStatusSchema = Type.String({
+  enum: ["running", "ok", "error", "timeout", "archived", "unknown"],
+});
+
+export const AgentObservationsListParamsSchema = Type.Object(
+  {
+    query: Type.Optional(Type.String()),
+    status: Type.Optional(ObservationRunStatusSchema),
+    source: Type.Optional(ObservationSourceSchema),
+    limit: Type.Optional(Type.Integer({ minimum: 1 })),
+    cursor: Type.Optional(Type.String()),
+    from: Type.Optional(Type.Integer({ minimum: 0 })),
+    to: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+export const ObservationRunSummarySchema = Type.Object(
+  {
+    runId: Type.Optional(Type.String()),
+    taskId: Type.Optional(Type.String()),
+    traceId: NonEmptyString,
+    sessionId: Type.Optional(Type.String()),
+    sessionKey: Type.Optional(Type.String()),
+    agentId: Type.Optional(Type.String()),
+    status: ObservationRunStatusSchema,
+    startedAt: Type.Optional(Type.Integer({ minimum: 0 })),
+    endedAt: Type.Optional(Type.Integer({ minimum: 0 })),
+    lastEventAt: Type.Optional(Type.Integer({ minimum: 0 })),
+    eventCount: Type.Integer({ minimum: 0 }),
+    errorCount: Type.Integer({ minimum: 0 }),
+    sources: Type.Array(ObservationSourceSchema),
+    summary: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
+export const AgentObservationsListResultSchema = Type.Object(
+  {
+    items: Type.Array(ObservationRunSummarySchema),
+    nextCursor: Type.Optional(Type.String()),
+    generatedAt: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
 export const AgentInspectionTimelineEntrySchema = Type.Object(
   {
     eventId: NonEmptyString,

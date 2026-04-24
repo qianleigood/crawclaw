@@ -151,6 +151,7 @@ const BASE_METHODS = [
   "agent",
   "agent.identity.get",
   "agent.inspect",
+  "agent.observations.list",
   "agent.wait",
   "workflow.agent.run",
   // WebChat WebSocket-native chat methods
