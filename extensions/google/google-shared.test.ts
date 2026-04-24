@@ -309,12 +309,17 @@ describe("google-shared convertMessages", () => {
     } as unknown as Context;
 
     const contents = convertMessages(model, context);
-    expectConvertedRoles(contents, ["user", "model", "model"]);
+    expectConvertedRoles(contents, ["user", "model", "model", "user"]);
     const toolCallPart = contents[2].parts?.find(
       (part) => typeof part === "object" && part !== null && "functionCall" in part,
     );
     const toolCall = asRecord(toolCallPart);
     expect(toolCall.functionCall).toBeTruthy();
+    const syntheticToolResponsePart = contents[3].parts?.find(
+      (part) => typeof part === "object" && part !== null && "functionResponse" in part,
+    );
+    const syntheticToolResponse = asRecord(syntheticToolResponsePart);
+    expect(syntheticToolResponse.functionResponse).toBeTruthy();
   });
 
   it("strips tool call and response ids for google-gemini-cli", () => {

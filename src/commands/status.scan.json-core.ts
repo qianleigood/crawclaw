@@ -178,14 +178,16 @@ export async function scanStatusJsonCore(params: {
   const gatewaySelf = gatewayProbe?.presence
     ? pickGatewaySelfPresence(gatewayProbe.presence)
     : null;
-  const feishuCli = await loadGatewayCallModule().then(({ callGateway }) =>
-    resolveFeishuCliStatusViaGateway({
-      callGateway,
-      config: cfg,
-      gatewayReachable,
-      timeoutMs: Math.min(8000, opts.timeoutMs ?? 10_000),
-    }),
-  );
+  const feishuCli = gatewayReachable
+    ? await loadGatewayCallModule().then(({ callGateway }) =>
+        resolveFeishuCliStatusViaGateway({
+          callGateway,
+          config: cfg,
+          gatewayReachable,
+          timeoutMs: Math.min(8000, opts.timeoutMs ?? 10_000),
+        }),
+      )
+    : null;
   // `status --json` does not serialize plugin compatibility notices, so keep
   // both routes off the full plugin status graph after the scoped preload.
   const pluginCompatibility: StatusScanResult["pluginCompatibility"] = [];

@@ -52,6 +52,15 @@ describe("scanStatusJsonFast", () => {
 
   it("routes plugin logs to stderr during deferred plugin loading", async () => {
     mocks.hasPotentialConfiguredChannels.mockReturnValue(true);
+    const config = createStatusScanConfig({
+      channels: { telegram: { token: "test-token" } },
+    });
+    applyStatusScanDefaults(mocks, {
+      hasConfiguredChannels: true,
+      sourceConfig: config,
+      resolvedConfig: config,
+      summary: createStatusSummary({ byAgent: [] }),
+    });
 
     let stderrDuringLoad = false;
     mocks.ensurePluginRegistryLoaded.mockImplementation(() => {
@@ -67,6 +76,15 @@ describe("scanStatusJsonFast", () => {
 
   it("skips plugin compatibility loading even when configured channels are present", async () => {
     mocks.hasPotentialConfiguredChannels.mockReturnValue(true);
+    const config = createStatusScanConfig({
+      channels: { telegram: { token: "test-token" } },
+    });
+    applyStatusScanDefaults(mocks, {
+      hasConfiguredChannels: true,
+      sourceConfig: config,
+      resolvedConfig: config,
+      summary: createStatusSummary({ byAgent: [] }),
+    });
 
     await scanStatusJsonFast({}, {} as never);
 

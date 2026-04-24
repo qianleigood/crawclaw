@@ -583,7 +583,7 @@ function runSmoke(opts) {
     console.log("[windows-smoke] packing current checkout");
     const packResult = runNpmOrThrow(
       ["pack", "--ignore-scripts", "--silent", "--pack-destination", temp.packDir],
-      { cwd: REPO_ROOT, env: smokeEnv, timeoutMs: DEFAULT_TIMEOUT_MS },
+      { cwd: REPO_ROOT, env: smokeEnv, timeoutMs: INSTALL_TIMEOUT_MS },
     );
     const tarballPath = resolvePackedTarball(packResult.stdout, temp.packDir);
     if (!fs.existsSync(tarballPath)) {

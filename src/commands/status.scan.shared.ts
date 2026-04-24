@@ -1,14 +1,19 @@
 import type { CrawClawConfig } from "../config/types.js";
 import { buildGatewayConnectionDetailsWithResolvers } from "../gateway/connection-details.js";
 import { normalizeControlUiBasePath } from "../gateway/control-ui-shared.js";
-import { probeGateway } from "../gateway/probe.js";
 export { pickGatewaySelfPresence } from "./gateway-presence.js";
 
 let gatewayProbeModulePromise: Promise<typeof import("./status.gateway-probe.js")> | undefined;
+let gatewayProbeRuntimeModulePromise: Promise<typeof import("../gateway/probe.js")> | undefined;
 
 function loadGatewayProbeModule() {
   gatewayProbeModulePromise ??= import("./status.gateway-probe.js");
   return gatewayProbeModulePromise;
+}
+
+function loadGatewayProbeRuntimeModule() {
+  gatewayProbeRuntimeModulePromise ??= import("../gateway/probe.js");
+  return gatewayProbeRuntimeModulePromise;
 }
 
 export type GatewayProbeSnapshot = {
@@ -20,7 +25,7 @@ export type GatewayProbeSnapshot = {
     password?: string;
   };
   gatewayProbeAuthWarning?: string;
-  gatewayProbe: Awaited<ReturnType<typeof probeGateway>> | null;
+  gatewayProbe: Awaited<ReturnType<typeof import("../gateway/probe.js").probeGateway>> | null;
 };
 
 export async function resolveGatewayProbeSnapshot(params: {
@@ -46,6 +51,7 @@ export async function resolveGatewayProbeSnapshot(params: {
   const { resolveGatewayProbeAuthResolution } = await loadGatewayProbeModule();
   const gatewayProbeAuthResolution = await resolveGatewayProbeAuthResolution(params.cfg);
   let gatewayProbeAuthWarning = gatewayProbeAuthResolution.warning;
+  const { probeGateway } = await loadGatewayProbeRuntimeModule();
   const gatewayProbe = await probeGateway({
     url: gatewayConnection.url,
     auth: gatewayProbeAuthResolution.auth,
