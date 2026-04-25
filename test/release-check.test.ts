@@ -233,11 +233,13 @@ describe("collectMissingPackPaths", () => {
 
     expect(missing).toEqual(
       expect.arrayContaining([
+        "docs/reference/templates/AGENTS.md",
         "dist/channel-catalog.json",
         "extensions/scrapling-fetch/runtime/requirements.lock.txt",
         "scripts/install-plugin-runtimes.mjs",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
+        "skills/coding-agent/SKILL.md",
         bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
         bundledDistPluginFile("matrix", "helper-api.js"),
         bundledDistPluginFile("matrix", "runtime-api.js"),
@@ -265,6 +267,8 @@ describe("collectMissingPackPaths", () => {
         "scripts/install-plugin-runtimes.mjs",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
+        "skills/coding-agent/SKILL.md",
+        "docs/reference/templates/AGENTS.md",
         "dist/plugin-sdk/root-alias.cjs",
         "dist/build-info.json",
         "dist/channel-catalog.json",
