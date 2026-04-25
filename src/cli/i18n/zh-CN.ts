@@ -1085,6 +1085,8 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.status.example.usage": "显示模型提供商用量/配额快照。",
   "command.status.example.deep": "运行渠道探测（WA + Telegram + Discord + Slack + Signal）。",
   "command.status.example.deepTimeout": "收紧探测超时时间。",
+  "command.status.help.jsonSnapshot":
+    "默认 `status --json` 输出快速本地快照；需要实时探测和完整诊断时请使用 `--deep` 或 `--all`。",
   "command.health.description": "从运行中的网关获取健康状态",
   "command.health.option.json": "输出 JSON 而不是文本",
   "command.health.option.timeout": "连接超时时间（毫秒）",

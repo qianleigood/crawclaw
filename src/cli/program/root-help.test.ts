@@ -8,12 +8,7 @@ const configPluginsMock = vi.hoisted(() => ({
   value: undefined as Record<string, unknown> | undefined,
 }));
 const getPluginCliCommandDescriptorsMock = vi.hoisted(() => vi.fn());
-
-vi.mock("../../config/config.js", () => ({
-  loadConfig: () => ({
-    plugins: configPluginsMock.value,
-  }),
-}));
+const resolvePrecomputedPluginHelpDescriptorsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("./core-command-descriptors.js", () => ({
   getCoreCliCommandDescriptors: () => [
@@ -55,8 +50,12 @@ vi.mock("./subcli-descriptors.js", () => ({
   getSubCliCommandsWithSubcommands: () => ["config"],
 }));
 
-vi.mock("../../plugins/cli.js", () => ({
+vi.mock("../../plugins/cli-metadata.js", () => ({
   getPluginCliCommandDescriptors: getPluginCliCommandDescriptorsMock,
+}));
+
+vi.mock("../plugin-help-metadata.js", () => ({
+  resolvePrecomputedPluginHelpDescriptors: resolvePrecomputedPluginHelpDescriptorsMock,
 }));
 
 describe("root help", () => {
@@ -82,6 +81,8 @@ describe("root help", () => {
         hasSubcommands: true,
       },
     ]);
+    resolvePrecomputedPluginHelpDescriptorsMock.mockReset();
+    resolvePrecomputedPluginHelpDescriptorsMock.mockReturnValue([]);
   });
 
   afterEach(async () => {
@@ -106,6 +107,13 @@ describe("root help", () => {
         matrix: {},
       },
     };
+    resolvePrecomputedPluginHelpDescriptorsMock.mockReturnValue([
+      {
+        name: "matrix",
+        description: "Matrix channel utilities",
+        hasSubcommands: true,
+      },
+    ]);
     await writeRootHelpConfig({ plugins: configPluginsMock.value });
 
     const text = await renderRootHelpText();
@@ -114,6 +122,8 @@ describe("root help", () => {
     expect(text).toContain("config");
     expect(text).toContain("matrix");
     expect(text).toContain("Matrix channel utilities");
+    expect(resolvePrecomputedPluginHelpDescriptorsMock).toHaveBeenCalledWith(["matrix"], "en");
+    expect(getPluginCliCommandDescriptorsMock).not.toHaveBeenCalled();
   });
 
   it("renders localized help copy when --lang zh-CN is present", async () => {

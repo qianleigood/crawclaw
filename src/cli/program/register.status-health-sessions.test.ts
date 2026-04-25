@@ -394,4 +394,23 @@ describe("registerStatusHealthSessionsCommands", () => {
 
     expect(program.commands.find((command) => command.name() === "flows")).toBeUndefined();
   });
+
+  it("documents JSON snapshot semantics in status help", () => {
+    const program = new Command();
+    registerStatusHealthSessionsCommands(program);
+
+    let help = "";
+    const status = program.commands.find((command) => command.name() === "status");
+    status?.configureOutput({
+      writeOut: (value) => {
+        help += value;
+      },
+      writeErr: (value) => {
+        help += value;
+      },
+    });
+    status?.outputHelp();
+    expect(help).toContain("Default `status --json` is a fast local snapshot");
+    expect(help).toContain("use `--deep` or `--all`");
+  });
 });

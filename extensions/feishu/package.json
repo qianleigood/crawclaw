@@ -47,6 +47,9 @@
     "bundle": {
       "stageRuntimeDependencies": true
     },
+    "startup": {
+      "deferConfiguredChannelFullLoadUntilAfterListen": true
+    },
     "release": {
       "publishToNpm": true
     }

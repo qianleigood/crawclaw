@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
+import type { CrawClawConfig } from "../../config/config.js";
 import { VERSION } from "../../version.js";
 import { resolveCliLocale } from "../i18n/locale.js";
 import type {
@@ -10,6 +11,7 @@ import type {
   CliTranslations,
   CliTranslator,
 } from "../i18n/types.js";
+import { resolvePrecomputedPluginHelpDescriptors } from "../plugin-help-metadata.js";
 import {
   getCoreCliCommandDescriptors,
   localizeCoreCliCommandDescriptors,
@@ -122,6 +124,39 @@ function readRootHelpConfigHints(env: NodeJS.ProcessEnv = process.env): RootHelp
   }
 }
 
+function createRootHelpPluginConfig(configHints: RootHelpConfigHints) {
+  if (!configHints.plugins) {
+    return undefined;
+  }
+  return {
+    plugins: configHints.plugins,
+  } as CrawClawConfig;
+}
+
+function resolveExplicitPluginIds(plugins: unknown): string[] | null {
+  if (!isRecord(plugins)) {
+    return null;
+  }
+  const ids = new Set<string>();
+  const allow = plugins.allow;
+  if (Array.isArray(allow)) {
+    for (const pluginId of allow) {
+      if (typeof pluginId === "string" && pluginId.trim()) {
+        ids.add(pluginId.trim());
+      }
+    }
+  }
+  const entries = plugins.entries;
+  if (isRecord(entries)) {
+    for (const pluginId of Object.keys(entries)) {
+      if (pluginId.trim()) {
+        ids.add(pluginId.trim());
+      }
+    }
+  }
+  return ids.size > 0 ? [...ids] : null;
+}
+
 function applyTranslationParams(template: string, params?: CliTranslationParams): string {
   if (!params) {
     return template;
@@ -174,10 +209,16 @@ async function buildRootHelpProgram(): Promise<Command> {
     existingCommands.add(command.name);
   }
   if (hasExplicitPluginConfig(configHints.plugins)) {
-    const { loadConfig } = await import("../../config/config.js");
-    const { getPluginCliCommandDescriptors } = await import("../../plugins/cli.js");
-    const config = loadConfig();
-    for (const command of await getPluginCliCommandDescriptors(config, undefined, { locale })) {
+    const configuredPluginIds = resolveExplicitPluginIds(configHints.plugins);
+    const commands =
+      configuredPluginIds && configuredPluginIds.length > 0
+        ? resolvePrecomputedPluginHelpDescriptors(configuredPluginIds, locale)
+        : await import("../../plugins/cli-metadata.js").then(({ getPluginCliCommandDescriptors }) =>
+            getPluginCliCommandDescriptors(createRootHelpPluginConfig(configHints), undefined, {
+              locale,
+            }),
+          );
+    for (const command of commands) {
       if (existingCommands.has(command.name)) {
         continue;
       }

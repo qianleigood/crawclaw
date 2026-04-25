@@ -32,7 +32,10 @@ export async function statusJsonCommand(
   },
   runtime: RuntimeEnv,
 ) {
-  const scan = await scanStatusJsonFast({ timeoutMs: opts.timeoutMs, all: opts.all }, runtime);
+  const scan = await scanStatusJsonFast(
+    { timeoutMs: opts.timeoutMs, all: opts.all, deep: opts.deep },
+    runtime,
+  );
   const securityAudit = opts.all
     ? await loadSecurityAuditModule().then(({ runSecurityAudit }) =>
         runSecurityAudit({

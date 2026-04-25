@@ -15,6 +15,7 @@ import {
 import type { PluginRegistry } from "./registry.js";
 import type { CrawClawPluginCliCommandDescriptor } from "./types.js";
 import type { PluginLogger } from "./types.js";
+export { getPluginCliCommandDescriptors } from "./cli-metadata.js";
 
 const log = createSubsystemLogger("plugins");
 
@@ -98,26 +99,6 @@ function resolvePluginCliLoadContext(cfg?: CrawClawConfig, env?: NodeJS.ProcessE
   };
 }
 
-async function loadPluginCliMetadataRegistry(
-  cfg?: CrawClawConfig,
-  env?: NodeJS.ProcessEnv,
-  loaderOptions?: Pick<PluginLoadOptions, "pluginSdkResolution">,
-) {
-  const context = resolvePluginCliLoadContext(cfg, env);
-  return {
-    ...context,
-    registry: await loadCrawClawPluginCliRegistry({
-      config: context.config,
-      activationSourceConfig: context.rawConfig,
-      autoEnabledReasons: context.autoEnabledReasons,
-      workspaceDir: context.workspaceDir,
-      env,
-      logger: context.logger,
-      ...loaderOptions,
-    }),
-  };
-}
-
 async function loadPluginCliCommandRegistry(
   cfg?: CrawClawConfig,
   env?: NodeJS.ProcessEnv,
@@ -167,30 +148,6 @@ async function loadPluginCliCommandRegistry(
       ...context,
       registry: runtimeRegistry,
     };
-  }
-}
-
-export async function getPluginCliCommandDescriptors(
-  cfg?: CrawClawConfig,
-  env?: NodeJS.ProcessEnv,
-  options?: PluginCliDescriptorOptions,
-): Promise<CrawClawPluginCliCommandDescriptor[]> {
-  try {
-    const { registry } = await loadPluginCliMetadataRegistry(cfg, env);
-    const seen = new Set<string>();
-    const descriptors: CrawClawPluginCliCommandDescriptor[] = [];
-    for (const entry of registry.cliRegistrars) {
-      for (const descriptor of entry.descriptors) {
-        if (seen.has(descriptor.name)) {
-          continue;
-        }
-        seen.add(descriptor.name);
-        descriptors.push(localizePluginCliDescriptor(descriptor, options));
-      }
-    }
-    return descriptors;
-  } catch {
-    return [];
   }
 }
 

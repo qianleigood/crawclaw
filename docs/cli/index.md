@@ -794,6 +794,7 @@ Options:
 
 Notes:
 
+- Default `status --json` is a fast local snapshot; use `status --json --deep` or `status --json --all` when you need live probes.
 - Overview includes Gateway + node host service status when available.
 
 ### Usage tracking

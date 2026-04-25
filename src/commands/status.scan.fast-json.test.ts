@@ -67,9 +67,12 @@ describe("scanStatusJsonFast", () => {
       stderrDuringLoad = loggingStateRef.forceConsoleToStderr;
     });
 
-    await scanStatusJsonFast({}, {} as never);
+    await scanStatusJsonFast({ all: true }, {} as never);
 
-    expect(mocks.ensurePluginRegistryLoaded).toHaveBeenCalled();
+    expect(mocks.ensurePluginRegistryLoaded).toHaveBeenCalledWith({
+      scope: "configured-channels",
+      preferSetupRuntimeForChannelPlugins: true,
+    });
     expect(stderrDuringLoad).toBe(true);
     expect(loggingStateRef.forceConsoleToStderr).toBe(false);
   });
@@ -91,6 +94,23 @@ describe("scanStatusJsonFast", () => {
     expect(mocks.buildPluginCompatibilityNotices).not.toHaveBeenCalled();
   });
 
+  it("keeps default status --json off configured channel plugin preload", async () => {
+    mocks.hasPotentialConfiguredChannels.mockReturnValue(true);
+    const config = createStatusScanConfig({
+      channels: { telegram: { token: "test-token" } },
+    });
+    applyStatusScanDefaults(mocks, {
+      hasConfiguredChannels: true,
+      sourceConfig: config,
+      resolvedConfig: config,
+      summary: createStatusSummary({ byAgent: [] }),
+    });
+
+    await scanStatusJsonFast({}, {} as never);
+
+    expect(mocks.ensurePluginRegistryLoaded).not.toHaveBeenCalled();
+  });
+
   it("skips gateway and update probes on cold-start status --json", async () => {
     await withTemporaryEnv(
       {
@@ -107,6 +127,70 @@ describe("scanStatusJsonFast", () => {
     expect(mocks.probeGateway).not.toHaveBeenCalled();
   });
 
+  it("keeps default status --json on the local-only snapshot path", async () => {
+    const config = createStatusScanConfig({
+      channels: { telegram: { token: "test-token" } },
+    });
+    applyStatusScanDefaults(mocks, {
+      hasConfiguredChannels: true,
+      sourceConfig: config,
+      resolvedConfig: config,
+      summary: createStatusSummary({ byAgent: [] }),
+    });
+
+    await scanStatusJsonFast({}, {} as never);
+
+    expect(mocks.getUpdateCheckResult).not.toHaveBeenCalled();
+    expect(mocks.getStatusSummary).not.toHaveBeenCalled();
+    expect(mocks.probeGateway).not.toHaveBeenCalled();
+  });
+
+  it("restores live probes for deep status --json", async () => {
+    const config = createStatusScanConfig({
+      channels: { telegram: { token: "test-token" } },
+    });
+    applyStatusScanDefaults(mocks, {
+      hasConfiguredChannels: true,
+      sourceConfig: config,
+      resolvedConfig: config,
+      summary: createStatusSummary({ byAgent: [] }),
+      gatewayProbe: reachableGatewayProbe as never,
+    });
+
+    await scanStatusJsonFast({ deep: true }, {} as never);
+
+    expect(mocks.getUpdateCheckResult).not.toHaveBeenCalled();
+    expect(mocks.getStatusSummary).toHaveBeenCalled();
+    expect(mocks.probeGateway).toHaveBeenCalledWith(
+      expect.objectContaining({ detailLevel: "presence" }),
+    );
+  });
+
+  it("restores live update checks for status --json --all", async () => {
+    const config = createStatusScanConfig({
+      channels: { telegram: { token: "test-token" } },
+    });
+    applyStatusScanDefaults(mocks, {
+      hasConfiguredChannels: true,
+      sourceConfig: config,
+      resolvedConfig: config,
+      summary: createStatusSummary({ byAgent: [] }),
+      gatewayProbe: reachableGatewayProbe as never,
+    });
+
+    await scanStatusJsonFast({ all: true }, {} as never);
+
+    expect(mocks.getUpdateCheckResult).toHaveBeenCalledWith({
+      timeoutMs: 6500,
+      fetchGit: true,
+      includeRegistry: true,
+    });
+    expect(mocks.getStatusSummary).toHaveBeenCalled();
+    expect(mocks.probeGateway).toHaveBeenCalledWith(
+      expect.objectContaining({ detailLevel: "presence" }),
+    );
+  });
+
   it("captures Feishu CLI support status during the fast JSON scan", async () => {
     const config = createStatusScanConfig();
     applyStatusScanDefaults(mocks, {
@@ -117,7 +201,7 @@ describe("scanStatusJsonFast", () => {
     });
     mocks.callGateway?.mockRejectedValueOnce(new Error("unknown method: feishu.cli.status"));
 
-    const result = await scanStatusJsonFast({}, {} as never);
+    const result = await scanStatusJsonFast({ deep: true }, {} as never);
 
     expect(result.feishuCli).toEqual({
       supported: false,

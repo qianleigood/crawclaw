@@ -73,7 +73,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
           ["crawclaw status --usage", t("command.status.example.usage")],
           ["crawclaw status --deep", t("command.status.example.deep")],
           ["crawclaw status --deep --timeout 5000", t("command.status.example.deepTimeout")],
-        ])}`,
+        ])}\n\n${theme.muted(t("command.status.help.jsonSnapshot"))}`,
     )
     .addHelpText(
       "after",

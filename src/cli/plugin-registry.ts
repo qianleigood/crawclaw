@@ -51,7 +51,10 @@ function activeRegistrySatisfiesScope(
   return scope satisfies never;
 }
 
-export function ensurePluginRegistryLoaded(options?: { scope?: PluginRegistryScope }): void {
+export function ensurePluginRegistryLoaded(options?: {
+  scope?: PluginRegistryScope;
+  preferSetupRuntimeForChannelPlugins?: boolean;
+}): void {
   const scope = options?.scope ?? "all";
   if (scopeRank(pluginRegistryLoaded) >= scopeRank(scope)) {
     return;
@@ -99,6 +102,11 @@ export function ensurePluginRegistryLoaded(options?: { scope?: PluginRegistrySco
     autoEnabledReasons: autoEnabled.autoEnabledReasons,
     workspaceDir,
     logger,
+    ...(options?.preferSetupRuntimeForChannelPlugins === true
+      ? {
+          preferSetupRuntimeForChannelPlugins: true,
+        }
+      : {}),
     throwOnLoadError: true,
     ...(scope === "configured-channels"
       ? {

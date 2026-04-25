@@ -1,9 +1,14 @@
+import { resolveMainSessionKey } from "../config/sessions/main-session.js";
 import type { CrawClawConfig } from "../config/types.js";
+import { listGatewayAgentsBasic } from "../gateway/agent-list.js";
+import { resolveMainSessionWakeSummaryForAgent } from "../infra/main-session-wake-summary.js";
+import { peekSystemEvents } from "../infra/system-events.js";
 import type { UpdateCheckResult } from "../infra/update-check.js";
 import { loggingState } from "../logging/state.js";
 import { runExec } from "../process/exec.js";
 import { createEmptyTaskAuditSummary } from "../tasks/task-registry.audit.shared.js";
 import { createEmptyTaskRegistrySummary } from "../tasks/task-registry.summary.js";
+import { resolveRuntimeServiceVersion } from "../version.js";
 import { resolveFeishuCliStatusViaGateway } from "./feishu-cli-status.js";
 import type { getAgentLocalStatuses as getAgentLocalStatusesFn } from "./status.agent-local.js";
 import type { StatusScanResult } from "./status.scan.js";
@@ -91,23 +96,66 @@ function buildColdStartStatusSummary(): Awaited<ReturnType<typeof getStatusSumma
   };
 }
 
+function buildStatusJsonSnapshotSummary(params: {
+  cfg: CrawClawConfig;
+  agentStatus: Awaited<ReturnType<typeof getAgentLocalStatusesFn>>;
+}): Awaited<ReturnType<typeof getStatusSummaryFn>> {
+  const mainSessionWakeAgents = listGatewayAgentsBasic(params.cfg).agents.map((agent) => {
+    const summary = resolveMainSessionWakeSummaryForAgent(params.cfg, agent.id);
+    return {
+      agentId: agent.id,
+      enabled: summary.enabled,
+    };
+  });
+  const sessionsByAgent = params.agentStatus.agents.map((agent) => ({
+    agentId: agent.id,
+    path: agent.sessionsPath,
+    count: agent.sessionsCount,
+    recent: [],
+  }));
+
+  return {
+    runtimeVersion: resolveRuntimeServiceVersion(process.env),
+    mainSessionWake: {
+      defaultAgentId: params.agentStatus.defaultId,
+      agents: mainSessionWakeAgents,
+    },
+    channelSummary: [],
+    queuedSystemEvents: peekSystemEvents(resolveMainSessionKey(params.cfg)),
+    tasks: createEmptyTaskRegistrySummary(),
+    taskAudit: createEmptyTaskAuditSummary(),
+    sessions: {
+      paths: sessionsByAgent.map((agent) => agent.path),
+      count: params.agentStatus.totalSessions,
+      defaults: { model: null, contextTokens: null },
+      recent: [],
+      byAgent: sessionsByAgent,
+    },
+  };
+}
+
 export async function scanStatusJsonCore(params: {
   coldStart: boolean;
   cfg: CrawClawConfig;
   sourceConfig: CrawClawConfig;
   secretDiagnostics: string[];
   hasConfiguredChannels: boolean;
-  opts: { timeoutMs?: number; all?: boolean };
+  opts: { timeoutMs?: number; all?: boolean; deep?: boolean };
   resolveOsSummary: () => StatusScanResult["osSummary"];
 }): Promise<StatusScanResult> {
   const { cfg, sourceConfig, secretDiagnostics, hasConfiguredChannels, opts } = params;
-  if (hasConfiguredChannels) {
+  const shouldPreloadConfiguredChannelPlugins =
+    hasConfiguredChannels && (opts.all === true || opts.deep === true);
+  if (shouldPreloadConfiguredChannelPlugins) {
     const { ensurePluginRegistryLoaded } = await loadPluginRegistryModule();
     // Route plugin registration logs to stderr so they don't corrupt JSON on stdout.
     const previousForceStderr = loggingState.forceConsoleToStderr;
     loggingState.forceConsoleToStderr = true;
     try {
-      ensurePluginRegistryLoaded({ scope: "configured-channels" });
+      ensurePluginRegistryLoaded({
+        scope: "configured-channels",
+        preferSetupRuntimeForChannelPlugins: true,
+      });
     } finally {
       loggingState.forceConsoleToStderr = previousForceStderr;
     }
@@ -116,9 +164,9 @@ export async function scanStatusJsonCore(params: {
   const osSummary = params.resolveOsSummary();
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
   const updateTimeoutMs = opts.all ? 6500 : 2500;
-  const skipColdStartNetworkChecks =
-    params.coldStart && !hasConfiguredChannels && opts.all !== true;
-  const updatePromise = skipColdStartNetworkChecks
+  const defaultSnapshotMode = opts.all !== true && opts.deep !== true;
+  const skipUpdateChecks = opts.all !== true || (params.coldStart && !hasConfiguredChannels);
+  const updatePromise = skipUpdateChecks
     ? Promise.resolve(buildColdStartUpdateResult())
     : loadStatusUpdateModule().then(({ getUpdateCheckResult }) =>
         getUpdateCheckResult({
@@ -127,14 +175,20 @@ export async function scanStatusJsonCore(params: {
           includeRegistry: true,
         }),
       );
-  const agentStatusPromise = skipColdStartNetworkChecks
-    ? Promise.resolve(buildColdStartAgentLocalStatuses())
-    : loadStatusAgentLocalModule().then(({ getAgentLocalStatuses }) => getAgentLocalStatuses(cfg));
-  const summaryPromise = skipColdStartNetworkChecks
-    ? Promise.resolve(buildColdStartStatusSummary())
-    : loadStatusSummaryModule().then(({ getStatusSummary }) =>
-        getStatusSummary({ config: cfg, sourceConfig }),
-      );
+  const agentStatusPromise =
+    params.coldStart && !hasConfiguredChannels && defaultSnapshotMode
+      ? Promise.resolve(buildColdStartAgentLocalStatuses())
+      : loadStatusAgentLocalModule().then(({ getAgentLocalStatuses }) =>
+          getAgentLocalStatuses(cfg),
+        );
+  const summaryPromise =
+    params.coldStart && !hasConfiguredChannels && defaultSnapshotMode
+      ? Promise.resolve(buildColdStartStatusSummary())
+      : defaultSnapshotMode
+        ? Promise.resolve<Awaited<ReturnType<typeof getStatusSummaryFn>> | null>(null)
+        : loadStatusSummaryModule().then(({ getStatusSummary }) =>
+            getStatusSummary({ config: cfg, sourceConfig }),
+          );
   const tailscaleDnsPromise =
     tailscaleMode === "off"
       ? Promise.resolve<string | null>(null)
@@ -149,7 +203,7 @@ export async function scanStatusJsonCore(params: {
     cfg,
     opts: {
       ...opts,
-      ...(skipColdStartNetworkChecks ? { skipProbe: true } : {}),
+      ...(defaultSnapshotMode ? { skipProbe: true } : {}),
     },
   });
 
@@ -160,6 +214,7 @@ export async function scanStatusJsonCore(params: {
     gatewayProbePromise,
     summaryPromise,
   ]);
+  const resolvedSummary = summary ?? buildStatusJsonSnapshotSummary({ cfg, agentStatus });
   const tailscaleHttpsUrl = buildTailscaleHttpsUrl({
     tailscaleMode,
     tailscaleDns,
@@ -212,7 +267,7 @@ export async function scanStatusJsonCore(params: {
     channelIssues: [],
     agentStatus,
     channels: { rows: [], details: [] },
-    summary,
+    summary: resolvedSummary,
     feishuCli,
     pluginCompatibility,
   };

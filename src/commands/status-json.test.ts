@@ -103,9 +103,24 @@ describe("statusJsonCommand", () => {
 
     await statusJsonCommand({}, runtime);
 
+    expect(mocks.scanStatusJsonFast).toHaveBeenCalledWith(
+      { timeoutMs: undefined, all: undefined, deep: undefined },
+      runtime,
+    );
     expect(mocks.runSecurityAudit).not.toHaveBeenCalled();
     expect(logs).toHaveLength(1);
     expect(JSON.parse(logs[0] ?? "{}")).not.toHaveProperty("securityAudit");
+  });
+
+  it("forwards deep mode into the JSON scan fast path", async () => {
+    const { runtime } = createRuntimeCapture();
+
+    await statusJsonCommand({ deep: true }, runtime);
+
+    expect(mocks.scanStatusJsonFast).toHaveBeenCalledWith(
+      { timeoutMs: undefined, all: undefined, deep: true },
+      runtime,
+    );
   });
 
   it("includes security audit details only when --all is requested", async () => {

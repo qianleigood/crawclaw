@@ -105,7 +105,7 @@ describe("scanStatus", () => {
       }),
     });
 
-    await scanStatus({ json: true }, {} as never);
+    await scanStatus({ json: true, all: true }, {} as never);
 
     expect(mocks.ensurePluginRegistryLoaded).not.toHaveBeenCalled();
   });
@@ -120,7 +120,7 @@ describe("scanStatus", () => {
       }),
     });
 
-    await scanStatus({ json: true }, {} as never);
+    await scanStatus({ json: true, all: true }, {} as never);
 
     expect(mocks.buildPluginCompatibilityNotices).not.toHaveBeenCalled();
   });
@@ -136,7 +136,7 @@ describe("scanStatus", () => {
       }),
     });
 
-    await scanStatus({ json: true }, {} as never);
+    await scanStatus({ json: true, all: true }, {} as never);
 
     expect(mocks.buildPluginCompatibilityNotices).not.toHaveBeenCalled();
   });
@@ -174,10 +174,11 @@ describe("scanStatus", () => {
       summary: createStatusSummary({ linkChannel: { linked: false } }),
     });
 
-    await scanStatus({ json: true }, {} as never);
+    await scanStatus({ json: true, all: true }, {} as never);
 
     expect(mocks.ensurePluginRegistryLoaded).toHaveBeenCalledWith({
       scope: "configured-channels",
+      preferSetupRuntimeForChannelPlugins: true,
     });
     // Verify plugin logs were routed to stderr during loading and restored after
     expect(loggingStateRef.forceConsoleToStderr).toBe(false);
@@ -187,6 +188,29 @@ describe("scanStatus", () => {
     expect(mocks.callGateway).not.toHaveBeenCalledWith(
       expect.objectContaining({ method: "channels.status" }),
     );
+  });
+
+  it("keeps default status --json off the live gateway probe path", async () => {
+    configureScanStatus({
+      hasConfiguredChannels: true,
+      sourceConfig: createStatusScanConfig({
+        plugins: { enabled: false },
+        channels: { telegram: { enabled: false } },
+      }),
+      resolvedConfig: createStatusScanConfig({
+        plugins: { enabled: false },
+        channels: { telegram: { enabled: false } },
+      }),
+      summary: createStatusSummary({ linkChannel: { linked: false } }),
+      gatewayProbe: false,
+    });
+
+    await scanStatus({ json: true }, {} as never);
+
+    expect(mocks.ensurePluginRegistryLoaded).not.toHaveBeenCalled();
+    expect(mocks.getUpdateCheckResult).not.toHaveBeenCalled();
+    expect(mocks.getStatusSummary).not.toHaveBeenCalled();
+    expect(mocks.probeGateway).not.toHaveBeenCalled();
   });
 
   it("preloads configured channel plugins for status --json when channel auth is env-only", async () => {
@@ -202,11 +226,12 @@ describe("scanStatus", () => {
     });
 
     await withTemporaryEnv({ MATRIX_ACCESS_TOKEN: "token" }, async () => {
-      await scanStatus({ json: true }, {} as never);
+      await scanStatus({ json: true, all: true }, {} as never);
     });
 
     expect(mocks.ensurePluginRegistryLoaded).toHaveBeenCalledWith({
       scope: "configured-channels",
+      preferSetupRuntimeForChannelPlugins: true,
     });
   });
 
@@ -229,7 +254,7 @@ describe("scanStatus", () => {
       version: "1.0.7",
     });
 
-    const result = await scanStatus({ json: true }, {} as never);
+    const result = await scanStatus({ json: true, all: true }, {} as never);
 
     expect(result.feishuCli).toEqual({
       supported: true,

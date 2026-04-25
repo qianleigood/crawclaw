@@ -1137,6 +1137,8 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.status.example.usage": "Show model provider usage/quota snapshots.",
   "command.status.example.deep": "Run channel probes (WA + Telegram + Discord + Slack + Signal).",
   "command.status.example.deepTimeout": "Tighten probe timeout.",
+  "command.status.help.jsonSnapshot":
+    "Default `status --json` is a fast local snapshot; use `--deep` or `--all` for live probes and full diagnosis.",
   "command.health.description": "Fetch health from the running gateway",
   "command.health.option.json": "Output JSON instead of text",
   "command.health.option.timeout": "Connection timeout in milliseconds",

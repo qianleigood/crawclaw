@@ -120,8 +120,9 @@ async function readStatusSourceConfig(): Promise<CrawClawConfig> {
   if (!shouldSkipMissingConfigFastPath() && !existsSync(resolveConfigPath(process.env))) {
     return {};
   }
-  const { readBestEffortConfig } = await loadConfigIoModule();
-  return await readBestEffortConfig();
+  const { readConfigFileSnapshot } = await loadConfigIoModule();
+  const snapshot = await readConfigFileSnapshot();
+  return snapshot.runtimeConfig;
 }
 
 async function resolveStatusConfig(params: {
@@ -145,6 +146,7 @@ export async function scanStatusJsonFast(
   opts: {
     timeoutMs?: number;
     all?: boolean;
+    deep?: boolean;
   },
   _runtime: RuntimeEnv,
 ): Promise<StatusScanResult> {

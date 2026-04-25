@@ -1,6 +1,16 @@
 {
   "id": "feishu-cli",
   "enabledByDefault": false,
+  "cli": {
+    "descriptors": [
+      {
+        "name": "feishu-cli",
+        "description": "Inspect Feishu user-identity tooling via the official lark-cli",
+        "descriptionZhCN": "通过官方 lark-cli 检查飞书用户身份工具",
+        "hasSubcommands": true
+      }
+    ]
+  },
   "skills": ["./skills"],
   "contracts": {
     "tools": ["feishu_user_calendar", "feishu_user_task", "feishu_user_messages"]

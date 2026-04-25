@@ -106,7 +106,7 @@ export async function statusCommand(
 
   const scan = opts.json
     ? await loadStatusScanFastJsonModule().then(({ scanStatusJsonFast }) =>
-        scanStatusJsonFast({ timeoutMs: opts.timeoutMs, all: opts.all }, runtime),
+        scanStatusJsonFast({ timeoutMs: opts.timeoutMs, all: opts.all, deep: opts.deep }, runtime),
       )
     : await loadStatusScanModule().then(({ scanStatus }) =>
         scanStatus({ json: false, timeoutMs: opts.timeoutMs, all: opts.all }, runtime),

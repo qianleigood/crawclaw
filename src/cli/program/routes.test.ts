@@ -7,6 +7,7 @@ const modelsListCommandMock = vi.hoisted(() => vi.fn(async () => {}));
 const modelsStatusCommandMock = vi.hoisted(() => vi.fn(async () => {}));
 const runDaemonStatusMock = vi.hoisted(() => vi.fn(async () => {}));
 const statusJsonCommandMock = vi.hoisted(() => vi.fn(async () => {}));
+const agentsListCommandMock = vi.hoisted(() => vi.fn(async () => {}));
 
 vi.mock("../config-cli.js", () => ({
   runConfigGet: runConfigGetMock,
@@ -16,6 +17,16 @@ vi.mock("../config-cli.js", () => ({
 vi.mock("../../commands/models.js", () => ({
   modelsListCommand: modelsListCommandMock,
   modelsStatusCommand: modelsStatusCommandMock,
+}));
+
+vi.mock("../../commands/agents.commands.list.js", () => ({
+  agentsListCommand: agentsListCommandMock,
+}));
+
+vi.mock("../../commands/agents.js", () => ({
+  get agentsListCommand() {
+    throw new Error("routes should not import ../../commands/agents.js for agents list");
+  },
 }));
 
 vi.mock("../daemon-cli/status.js", () => ({
@@ -185,6 +196,18 @@ describe("program routes", () => {
 
   it("returns false for sessions route when --agent value is missing", async () => {
     await expectRunFalse(["sessions"], ["node", "crawclaw", "sessions", "--agent"]);
+  });
+
+  it("routes agents list through the narrow list command module", async () => {
+    const route = expectRoute(["agents", "list"]);
+    await expect(
+      route?.run(["node", "crawclaw", "agents", "list", "--json", "--bindings"]),
+    ).resolves.toBe(true);
+
+    expect(agentsListCommandMock).toHaveBeenCalledWith(
+      { json: true, bindings: true },
+      expect.any(Object),
+    );
   });
 
   it("does not fast-route sessions subcommands", () => {

@@ -170,6 +170,7 @@ function buildColdStartStatusSummary(): Awaited<ReturnType<typeof getStatusSumma
 async function scanStatusJsonFast(opts: {
   timeoutMs?: number;
   all?: boolean;
+  deep?: boolean;
   runtime: RuntimeEnv;
 }): Promise<StatusScanResult> {
   const coldStart = isMissingConfigColdStart();
@@ -204,6 +205,7 @@ export async function scanStatus(
     return await scanStatusJsonFast({
       timeoutMs: opts.timeoutMs,
       all: opts.all,
+      deep: false,
       runtime: _runtime,
     });
   }

@@ -1,4 +1,6 @@
 import { defineSetupPluginEntry } from "crawclaw/plugin-sdk/core";
-import { feishuPlugin } from "./src/channel.js";
+import { feishuSetupPlugin } from "./src/channel.setup.js";
 
-export default defineSetupPluginEntry(feishuPlugin);
+export { feishuSetupPlugin } from "./src/channel.setup.js";
+
+export default defineSetupPluginEntry(feishuSetupPlugin);

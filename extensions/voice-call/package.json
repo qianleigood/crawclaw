@@ -23,6 +23,16 @@
     "extensions": [
       "./index.ts"
     ],
+    "cli": {
+      "descriptors": [
+        {
+          "name": "voicecall",
+          "description": "Voice call utilities",
+          "descriptionZhCN": "语音通话工具",
+          "hasSubcommands": true
+        }
+      ]
+    },
     "install": {
       "minHostVersion": ">=2026.4.1"
     },

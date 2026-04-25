@@ -43,6 +43,20 @@ function replaceDir(targetPath, sourcePath) {
 }
 
 const PRUNED_RUNTIME_DEP_EXTENSIONS = new Set([".cts", ".map", ".mts", ".ts", ".tsx"]);
+const PRUNED_RUNTIME_DEP_DIR_NAMES = new Set([
+  ".github",
+  "__tests__",
+  "doc",
+  "docs",
+  "example",
+  "examples",
+  "test",
+  "tests",
+]);
+
+function isLicenseLikeFile(fileName) {
+  return /^(copying|license|licence|notice)(\.[^.]+)?$/i.test(fileName);
+}
 
 function pruneBundledRuntimeDependencyFiles(targetDir) {
   if (!fs.existsSync(targetDir)) {
@@ -51,10 +65,25 @@ function pruneBundledRuntimeDependencyFiles(targetDir) {
   for (const dirent of fs.readdirSync(targetDir, { withFileTypes: true })) {
     const entryPath = path.join(targetDir, dirent.name);
     if (dirent.isDirectory()) {
+      if (PRUNED_RUNTIME_DEP_DIR_NAMES.has(dirent.name)) {
+        fs.rmSync(entryPath, { recursive: true, force: true });
+        continue;
+      }
       pruneBundledRuntimeDependencyFiles(entryPath);
       continue;
     }
-    if (dirent.isFile() && PRUNED_RUNTIME_DEP_EXTENSIONS.has(path.extname(dirent.name))) {
+    if (!dirent.isFile()) {
+      continue;
+    }
+    if (PRUNED_RUNTIME_DEP_EXTENSIONS.has(path.extname(dirent.name))) {
+      fs.rmSync(entryPath, { force: true });
+      continue;
+    }
+    const lowerName = dirent.name.toLowerCase();
+    if (
+      (lowerName.endsWith(".md") || lowerName.endsWith(".markdown")) &&
+      !isLicenseLikeFile(dirent.name)
+    ) {
       fs.rmSync(entryPath, { force: true });
     }
   }

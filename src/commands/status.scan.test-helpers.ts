@@ -6,6 +6,7 @@ export function createStatusScanSharedMocks(configPathLabel: string) {
     resolveConfigPath: vi.fn(() => `/tmp/crawclaw-${configPathLabel}-missing-${process.pid}.json`),
     hasPotentialConfiguredChannels: vi.fn(),
     readBestEffortConfig: vi.fn(),
+    readConfigFileSnapshot: vi.fn(),
     resolveCommandSecretRefsViaGateway: vi.fn(),
     getUpdateCheckResult: vi.fn(),
     getAgentLocalStatuses: vi.fn(),
@@ -130,7 +131,7 @@ export async function loadStatusScanModuleForTest(
 
   if (options.fastJson) {
     vi.doMock("../config/io.js", () => ({
-      readBestEffortConfig: mocks.readBestEffortConfig,
+      readConfigFileSnapshot: mocks.readConfigFileSnapshot,
     }));
     vi.doMock("../cli/command-secret-targets.js", () => ({
       getStatusCommandSecretTargetIds: mocks.getStatusCommandSecretTargetIds,
@@ -290,7 +291,12 @@ export function applyStatusScanDefaults(
   const resolvedConfig = options.resolvedConfig ?? sourceConfig;
 
   mocks.hasPotentialConfiguredChannels.mockReturnValue(options.hasConfiguredChannels ?? false);
+  const configSnapshot = {
+    runtimeConfig: sourceConfig,
+    valid: true,
+  };
   mocks.readBestEffortConfig.mockResolvedValue(sourceConfig);
+  mocks.readConfigFileSnapshot.mockResolvedValue(configSnapshot);
   mocks.resolveCommandSecretRefsViaGateway.mockResolvedValue({
     resolvedConfig,
     diagnostics: [],

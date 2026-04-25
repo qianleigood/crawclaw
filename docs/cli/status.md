@@ -20,6 +20,7 @@ crawclaw status --usage
 Notes:
 
 - `--deep` runs live probes (WhatsApp Web + Telegram + Discord + Google Chat + Slack + Signal).
+- Default `status --json` is a fast local snapshot. Use `status --json --deep` for live probes, or `status --json --all` for the full diagnosis path.
 - Output includes per-agent session stores when multiple agents are configured.
 - Overview includes Gateway + node host service install/runtime status when available.
 - Overview includes update channel + git SHA (for source checkouts).

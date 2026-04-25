@@ -108,6 +108,40 @@ describe("ensurePluginRegistryLoaded", () => {
     );
   });
 
+  it("forwards setup-runtime preference for configured channel startup loads", () => {
+    const config = {
+      plugins: { enabled: true },
+      channels: {
+        "demo-chat": {
+          enabled: true,
+        },
+      },
+    };
+
+    mocks.loadConfig.mockReturnValue(config);
+    mocks.applyPluginAutoEnable.mockReturnValue({
+      config,
+      changes: [],
+      autoEnabledReasons: {},
+    });
+    mocks.loadPluginManifestRegistry.mockReturnValue({
+      plugins: [{ id: "demo-chat", channels: ["demo-chat"] }],
+      diagnostics: [],
+    });
+
+    ensurePluginRegistryLoaded({
+      scope: "configured-channels",
+      preferSetupRuntimeForChannelPlugins: true,
+    });
+
+    expect(mocks.loadCrawClawPlugins).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferSetupRuntimeForChannelPlugins: true,
+        throwOnLoadError: true,
+      }),
+    );
+  });
+
   it("reloads when escalating from configured-channels to channels", async () => {
     const config = {
       plugins: { enabled: true },
