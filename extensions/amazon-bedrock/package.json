@@ -8,9 +8,6 @@
     "@aws-sdk/client-bedrock": "3.1020.0"
   },
   "crawclaw": {
-    "bundle": {
-      "stageRuntimeDependencies": true
-    },
     "extensions": [
       "./index.ts"
     ],

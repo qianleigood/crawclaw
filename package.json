@@ -1145,6 +1145,7 @@
     "@modelcontextprotocol/sdk": "1.29.0",
     "@mozilla/readability": "^0.6.0",
     "@photostructure/sqlite": "^1.0.0",
+    "@pierre/diffs": "1.1.7",
     "@pierre/theme": "0.0.26",
     "@sinclair/typebox": "0.34.49",
     "ajv": "^8.18.0",

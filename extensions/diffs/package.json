@@ -14,11 +14,15 @@
     "playwright-core": "1.58.2"
   },
   "crawclaw": {
-    "bundle": {
-      "stageRuntimeDependencies": true
-    },
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "releaseChecks": {
+      "rootDependencyMirrorAllowlist": [
+        "@pierre/diffs",
+        "@pierre/theme",
+        "playwright-core"
+      ]
+    }
   }
 }

@@ -86,6 +86,9 @@ function readAmazonBedrockPackageJson(): {
   dependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
   crawclaw?: {
+    bundle?: {
+      stageRuntimeDependencies?: boolean;
+    };
     releaseChecks?: {
       rootDependencyMirrorAllowlist?: unknown;
     };
@@ -94,6 +97,29 @@ function readAmazonBedrockPackageJson(): {
   return JSON.parse(
     readFileSync(resolve(REPO_ROOT, "extensions/amazon-bedrock/package.json"), "utf8"),
   ) as {
+    dependencies?: Record<string, string>;
+    optionalDependencies?: Record<string, string>;
+    crawclaw?: {
+      bundle?: {
+        stageRuntimeDependencies?: boolean;
+      };
+      releaseChecks?: {
+        rootDependencyMirrorAllowlist?: unknown;
+      };
+    };
+  };
+}
+
+function readDiffsPackageJson(): {
+  dependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+  crawclaw?: {
+    releaseChecks?: {
+      rootDependencyMirrorAllowlist?: unknown;
+    };
+  };
+} {
+  return JSON.parse(readFileSync(resolve(REPO_ROOT, "extensions/diffs/package.json"), "utf8")) as {
     dependencies?: Record<string, string>;
     optionalDependencies?: Record<string, string>;
     crawclaw?: {
@@ -357,11 +383,27 @@ describe("plugin-sdk package contract guardrails", () => {
     const allowlist = bedrockPackageJson.crawclaw?.releaseChecks?.rootDependencyMirrorAllowlist;
 
     expect(Array.isArray(allowlist)).toBe(true);
+    expect(bedrockPackageJson.crawclaw?.bundle?.stageRuntimeDependencies).not.toBe(true);
     const bedrockRootMirrorAllowlist = allowlist as string[];
     expect(bedrockRootMirrorAllowlist).toEqual(expect.arrayContaining(["@aws-sdk/client-bedrock"]));
 
     for (const dep of bedrockRootMirrorAllowlist) {
       expect(rootRuntimeDeps.get(dep)).toBe(bedrockRuntimeDeps.get(dep));
+    }
+  });
+
+  it("mirrors diffs runtime deps needed by the bundled host graph", () => {
+    const rootRuntimeDeps = collectRuntimeDependencySpecs(readRootPackageJson());
+    const diffsPackageJson = readDiffsPackageJson();
+    const diffsRuntimeDeps = collectRuntimeDependencySpecs(diffsPackageJson);
+    const allowlist = diffsPackageJson.crawclaw?.releaseChecks?.rootDependencyMirrorAllowlist;
+
+    expect(Array.isArray(allowlist)).toBe(true);
+    const diffsRootMirrorAllowlist = allowlist as string[];
+    expect(diffsRootMirrorAllowlist).toEqual(expect.arrayContaining(["@pierre/diffs"]));
+
+    for (const dep of diffsRootMirrorAllowlist) {
+      expect(rootRuntimeDeps.get(dep)).toBe(diffsRuntimeDeps.get(dep));
     }
   });
 
@@ -385,12 +427,16 @@ describe("plugin-sdk package contract guardrails", () => {
       const packedPackageJson = await readPackedRootPackageJson(archivePath);
       const matrixPackageJson = readMatrixPackageJson();
       const bedrockPackageJson = readAmazonBedrockPackageJson();
+      const diffsPackageJson = readDiffsPackageJson();
 
       expect(packedPackageJson.dependencies?.["@matrix-org/matrix-sdk-crypto-wasm"]).toBe(
         matrixPackageJson.dependencies?.["@matrix-org/matrix-sdk-crypto-wasm"],
       );
       expect(packedPackageJson.dependencies?.["@aws-sdk/client-bedrock"]).toBe(
         bedrockPackageJson.dependencies?.["@aws-sdk/client-bedrock"],
+      );
+      expect(packedPackageJson.dependencies?.["@pierre/diffs"]).toBe(
+        diffsPackageJson.dependencies?.["@pierre/diffs"],
       );
       expect(packedPackageJson.dependencies?.["@crawclaw/plugin-package-contract"]).toBeUndefined();
     } finally {
