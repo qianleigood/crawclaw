@@ -501,8 +501,13 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.error.multipleApiKeyFlags":
     "Multiple API key flags were provided for non-interactive setup.\nUse a single provider flag or pass --auth-choice explicitly.\nFlags: {flags}",
   "wizard.setup.error.invalidNodeManager": "Invalid --node-manager (use npm, pnpm, or bun)",
+  "wizard.setup.error.invalidOutputPreset":
+    "Invalid --output-preset (use quiet, balanced, or operator).",
   "wizard.gateway.error.invalidPort": "Invalid --gateway-port",
+  "wizard.gateway.error.invalidBind":
+    "Invalid --gateway-bind (use loopback, tailnet, lan, auto, or custom).",
   "wizard.gateway.error.invalidAuth": "Invalid --gateway-auth (use token|password).",
+  "wizard.gateway.error.invalidTailscale": "Invalid --tailscale (use off, serve, or funnel).",
   "wizard.gateway.error.invalidTokenRefEnv":
     "Invalid --gateway-token-ref-env (use env var name like CRAWCLAW_GATEWAY_TOKEN).",
   "wizard.gateway.error.tokenOrRef":

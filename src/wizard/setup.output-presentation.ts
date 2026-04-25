@@ -20,6 +20,8 @@ const OUTPUT_PRESENTATION_OPTIONS: Array<WizardSelectOption<OnboardOutputPreset>
   },
 ];
 
+const OUTPUT_PRESENTATION_PRESETS = new Set<OnboardOutputPreset>(["quiet", "balanced", "operator"]);
+
 const STREAMING_BY_PRESET: Record<OnboardOutputPreset, "off" | "partial" | "block"> = {
   quiet: "off",
   balanced: "partial",
@@ -50,6 +52,10 @@ const ACP_DELIVERY_BY_PRESET: Record<OnboardOutputPreset, "live" | "final_only">
   operator: "live",
 };
 
+export function isOnboardOutputPreset(value: unknown): value is OnboardOutputPreset {
+  return typeof value === "string" && OUTPUT_PRESENTATION_PRESETS.has(value as OnboardOutputPreset);
+}
+
 const CHANNELS_WITH_STREAMING = ["telegram", "discord", "slack"] as const;
 const CHANNELS_WITH_REPLY_TO_MODE = ["telegram", "discord", "slack", "googlechat"] as const;
 
@@ -69,6 +75,10 @@ export function applyOnboardOutputPresentationConfig(
   config: CrawClawConfig,
   preset: OnboardOutputPreset,
 ): CrawClawConfig {
+  if (!isOnboardOutputPreset(preset)) {
+    throw new Error(`Invalid output preset: ${String(preset)}`);
+  }
+
   const channels = config.channels
     ? ({ ...config.channels } as Record<string, WritableChannelConfig>)
     : undefined;

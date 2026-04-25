@@ -4,6 +4,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { replaceConfigFile } from "../../config/config.js";
 import { logConfigUpdated } from "../../config/logging.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../../runtime.js";
+import { applyOnboardOutputPresentationConfig } from "../../wizard/setup.output-presentation.js";
 import { applyWizardMetadata } from "../onboard-helpers.js";
 import type { OnboardOptions } from "../onboard-types.js";
 
@@ -35,6 +36,9 @@ export async function runNonInteractiveRemoteSetup(params: {
       },
     },
   };
+  if (opts.outputPreset) {
+    nextConfig = applyOnboardOutputPresentationConfig(nextConfig, opts.outputPreset);
+  }
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await replaceConfigFile({
     nextConfig,

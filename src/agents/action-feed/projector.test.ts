@@ -108,6 +108,79 @@ describe("projectAgentActionEventData", () => {
     });
   });
 
+  it("uses shared readable tool visibility for failed tool actions", () => {
+    const projected = projectAgentActionEventData({
+      version: 1,
+      actionId: "tool:read-1",
+      kind: "tool",
+      status: "failed",
+      title: "raw read title",
+      toolName: "read",
+      summary: "from package.json",
+    });
+
+    expect(projected).toMatchObject({
+      kind: "tool",
+      projectedTitle: "Read failed: from package.json",
+    });
+  });
+
+  it("uses tool args from action details when available", () => {
+    const projected = projectAgentActionEventData({
+      version: 1,
+      actionId: "tool:read-args",
+      kind: "tool",
+      status: "running",
+      title: "Running read",
+      toolName: "read",
+      detail: {
+        toolArgs: { path: "package.json" },
+      },
+    });
+
+    expect(projected).toMatchObject({
+      kind: "tool",
+      projectedTitle: "Reading from package.json",
+    });
+  });
+
+  it("does not treat legacy lifecycle summaries as tool details", () => {
+    const projected = projectAgentActionEventData({
+      version: 1,
+      actionId: "tool:web-fetch-1",
+      kind: "tool",
+      status: "running",
+      title: "Running web_fetch",
+      toolName: "web_fetch",
+      summary: "Calling web_fetch",
+    });
+
+    expect(projected).toMatchObject({
+      kind: "tool",
+      projectedTitle: "Fetching",
+    });
+  });
+
+  it("prefers structured tool meta over already projected summaries", () => {
+    const projected = projectAgentActionEventData({
+      version: 1,
+      actionId: "tool:web-fetch-2",
+      kind: "tool",
+      status: "completed",
+      title: "web_fetch completed",
+      toolName: "web_fetch",
+      summary: "Fetched from https://docs.crawclaw.ai/plugins",
+      detail: {
+        toolMeta: "from https://docs.crawclaw.ai/plugins",
+      },
+    });
+
+    expect(projected).toMatchObject({
+      kind: "tool",
+      projectedTitle: "Fetched from https://docs.crawclaw.ai/plugins",
+    });
+  });
+
   it("uses shared memory visibility for memory detail fallback", () => {
     const projected = projectAgentActionEventData({
       version: 1,

@@ -8,6 +8,7 @@ import {
   ensureTaskTrajectoryBridge,
   recordTaskTrajectoryProgressEvent,
 } from "../tasks/task-trajectory.js";
+import { buildToolExecutionDisplayText } from "../tool-display.js";
 import {
   clearAgentRuntimeState,
   getAgentRuntimeState,
@@ -44,6 +45,8 @@ export type AgentProgressEvent = {
   summary?: string;
   toolName?: string;
   toolCallId?: string;
+  toolArgs?: unknown;
+  toolMeta?: string;
   isError?: boolean;
 };
 
@@ -72,6 +75,8 @@ function buildProgressEvent(params: {
   summary?: string;
   toolName?: string;
   toolCallId?: string;
+  toolArgs?: unknown;
+  toolMeta?: string;
   isError?: boolean;
 }): AgentProgressEvent {
   return {
@@ -89,6 +94,8 @@ function buildProgressEvent(params: {
     ...(params.summary ? { summary: params.summary } : {}),
     ...(params.toolName ? { toolName: params.toolName } : {}),
     ...(params.toolCallId ? { toolCallId: params.toolCallId } : {}),
+    ...(params.toolArgs !== undefined ? { toolArgs: params.toolArgs } : {}),
+    ...(params.toolMeta ? { toolMeta: params.toolMeta } : {}),
     ...(typeof params.isError === "boolean" ? { isError: params.isError } : {}),
   };
 }
@@ -114,6 +121,11 @@ function maybeEmitActionEvent(event: AgentProgressEvent): void {
     ...(event.agentId ? { agentId: event.agentId } : {}),
     ...(event.parentAgentId ? { parentAgentId: event.parentAgentId } : {}),
     ...(event.sessionId ? { sessionId: event.sessionId } : {}),
+  };
+  const toolDetail: Record<string, unknown> = {
+    ...baseDetail,
+    ...(event.toolArgs !== undefined ? { toolArgs: event.toolArgs } : {}),
+    ...(event.toolMeta ? { toolMeta: event.toolMeta } : {}),
   };
 
   switch (event.kind) {
@@ -144,7 +156,7 @@ function maybeEmitActionEvent(event: AgentProgressEvent): void {
           ...(event.summary ? { summary: event.summary } : {}),
           ...(event.toolName ? { toolName: event.toolName } : {}),
           ...(event.toolCallId ? { toolCallId: event.toolCallId } : {}),
-          detail: baseDetail,
+          detail: toolDetail,
         },
       });
       return;
@@ -168,7 +180,7 @@ function maybeEmitActionEvent(event: AgentProgressEvent): void {
           ...(event.toolName ? { toolName: event.toolName } : {}),
           ...(event.toolCallId ? { toolCallId: event.toolCallId } : {}),
           detail: {
-            ...baseDetail,
+            ...toolDetail,
             ...(typeof event.isError === "boolean" ? { isError: event.isError } : {}),
           },
         },
@@ -349,8 +361,21 @@ function handleToolEvent(event: AgentEventPayload): void {
   if (!phase || !toolName) {
     return;
   }
+  const toolArgs = event.data?.args;
+  const toolMeta = normalizeOptionalString(
+    typeof event.data?.meta === "string" ? event.data.meta : undefined,
+  );
 
   if (phase === "start") {
+    const summary =
+      buildToolExecutionDisplayText({
+        toolName,
+        args: toolArgs,
+        meta: toolMeta,
+        phase: "start",
+        mode: "summary",
+        status: "in_progress",
+      }) ?? `Calling ${toolName}`;
     const state = incrementAgentRuntimeToolCall({
       runId: event.runId,
       toolName,
@@ -368,9 +393,11 @@ function handleToolEvent(event: AgentEventPayload): void {
         state,
         kind: "tool_called",
         at: event.ts,
-        summary: `Calling ${toolName}`,
+        summary,
         toolName,
         toolCallId: extractToolCallId(event),
+        toolArgs,
+        toolMeta,
       }),
     );
     return;
@@ -381,6 +408,14 @@ function handleToolEvent(event: AgentEventPayload): void {
   }
 
   const isError = event.data?.isError === true;
+  const summary =
+    buildToolExecutionDisplayText({
+      toolName,
+      meta: toolMeta,
+      phase: isError ? "error" : "end",
+      mode: "summary",
+      status: isError ? "failed" : "completed",
+    }) ?? (isError ? `${toolName} failed` : `${toolName} completed`);
   const state = registerAgentRuntimeState({
     runId: event.runId,
     status: "running",
@@ -399,9 +434,10 @@ function handleToolEvent(event: AgentEventPayload): void {
       state,
       kind: "tool_completed",
       at: event.ts,
-      summary: isError ? `${toolName} failed` : `${toolName} completed`,
+      summary,
       toolName,
       toolCallId: extractToolCallId(event),
+      toolMeta,
       isError,
     }),
   );
@@ -410,9 +446,10 @@ function handleToolEvent(event: AgentEventPayload): void {
       state,
       kind: "agent_progressed",
       at: event.ts,
-      summary: isError ? `${toolName} failed` : `${toolName} completed`,
+      summary,
       toolName,
       toolCallId: extractToolCallId(event),
+      toolMeta,
       isError,
     }),
   );

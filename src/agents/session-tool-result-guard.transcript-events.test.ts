@@ -49,4 +49,47 @@ describe("guardSessionManager transcript updates", () => {
       },
     });
   });
+
+  it("includes the session key when broadcasting appended tool result messages", () => {
+    const updates: SessionTranscriptUpdate[] = [];
+    listeners.push(onSessionTranscriptUpdate((update) => updates.push(update)));
+
+    const sm = SessionManager.inMemory();
+    const sessionFile = "/tmp/crawclaw-session-tool-result-events.jsonl";
+    Object.assign(sm, {
+      getSessionFile: () => sessionFile,
+    });
+
+    const guarded = guardSessionManager(sm, {
+      agentId: "main",
+      sessionKey: "agent:main:worker",
+    });
+    const appendMessage = guarded.appendMessage.bind(guarded) as unknown as (
+      message: AgentMessage,
+    ) => void;
+
+    appendMessage({
+      role: "assistant",
+      content: [{ type: "toolCall", id: "call_1", name: "read", arguments: {} }],
+      stopReason: "toolUse",
+      timestamp: Date.now(),
+    } as AgentMessage);
+    appendMessage({
+      role: "toolResult",
+      toolCallId: "call_1",
+      content: [{ type: "text", text: "file contents" }],
+      isError: false,
+      timestamp: Date.now(),
+    } as AgentMessage);
+
+    expect(updates).toHaveLength(2);
+    expect(updates[1]).toMatchObject({
+      sessionFile,
+      sessionKey: "agent:main:worker",
+      message: {
+        role: "toolResult",
+        toolCallId: "call_1",
+      },
+    });
+  });
 });

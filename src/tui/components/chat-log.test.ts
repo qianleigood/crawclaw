@@ -113,6 +113,16 @@ describe("ChatLog", () => {
     ]);
   });
 
+  it("renders tool headers with shared readable execution summaries", () => {
+    const chatLog = new ChatLog(40);
+    chatLog.startTool("tool-read", "read", { path: "package.json" });
+
+    const rendered = chatLog.render(120).join("\n");
+
+    expect(rendered).toContain("Reading from package.json");
+    expect(rendered).not.toContain("Read (running)");
+  });
+
   it("prunes system messages atomically when a non-system entry overflows the log", () => {
     const chatLog = new ChatLog(20);
     for (let i = 1; i <= 20; i++) {

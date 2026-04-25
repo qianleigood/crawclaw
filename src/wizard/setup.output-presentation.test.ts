@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import {
   applyOnboardOutputPresentationConfig,
+  isOnboardOutputPreset,
   promptOutputPresentationPreset,
 } from "./setup.output-presentation.js";
 
@@ -83,5 +84,13 @@ describe("setup.output-presentation", () => {
     expect(config.acp?.stream?.deliveryMode).toBe("live");
     expect(config.channels?.telegram?.streaming).toBe("block");
     expect(config.channels?.telegram?.replyToMode).toBe("all");
+  });
+
+  it("rejects invalid output presets", () => {
+    expect(isOnboardOutputPreset("balanced")).toBe(true);
+    expect(isOnboardOutputPreset("verbose")).toBe(false);
+    expect(() => applyOnboardOutputPresentationConfig({}, "verbose" as never)).toThrow(
+      "Invalid output preset: verbose",
+    );
   });
 });

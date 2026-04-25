@@ -488,8 +488,13 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.error.multipleApiKeyFlags":
     "非交互设置传入了多个 API key flag。\n请只使用一个 provider flag，或显式传入 --auth-choice。\nFlags：{flags}",
   "wizard.setup.error.invalidNodeManager": "无效的 --node-manager（请使用 npm、pnpm 或 bun）",
+  "wizard.setup.error.invalidOutputPreset":
+    "无效的 --output-preset（请使用 quiet、balanced 或 operator）。",
   "wizard.gateway.error.invalidPort": "无效的 --gateway-port",
+  "wizard.gateway.error.invalidBind":
+    "无效的 --gateway-bind（请使用 loopback、tailnet、lan、auto 或 custom）。",
   "wizard.gateway.error.invalidAuth": "无效的 --gateway-auth（请使用 token|password）。",
+  "wizard.gateway.error.invalidTailscale": "无效的 --tailscale（请使用 off、serve 或 funnel）。",
   "wizard.gateway.error.invalidTokenRefEnv":
     "无效的 --gateway-token-ref-env（请使用类似 CRAWCLAW_GATEWAY_TOKEN 的环境变量名）。",
   "wizard.gateway.error.tokenOrRef":

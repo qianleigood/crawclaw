@@ -66,6 +66,24 @@ describe("setupWizardCommand", () => {
     expect(mocks.runNonInteractiveSetup).not.toHaveBeenCalled();
   });
 
+  it("fails fast for invalid output-preset before setup starts", async () => {
+    const runtime = makeRuntime();
+
+    await setupWizardCommand(
+      {
+        outputPreset: "verbose" as never,
+      },
+      runtime,
+    );
+
+    expect(runtime.error).toHaveBeenCalledWith(
+      "Invalid --output-preset (use quiet, balanced, or operator).",
+    );
+    expect(runtime.exit).toHaveBeenCalledWith(1);
+    expect(mocks.runInteractiveSetup).not.toHaveBeenCalled();
+    expect(mocks.runNonInteractiveSetup).not.toHaveBeenCalled();
+  });
+
   it("localizes non-interactive risk acknowledgement errors", async () => {
     process.argv = ["node", "crawclaw", "--lang", "zh-CN", "onboard", "--non-interactive"];
     const runtime = makeRuntime();

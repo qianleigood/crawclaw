@@ -6,6 +6,9 @@ import { resolveDefaultSecretProviderAlias } from "../../../secrets/ref-contract
 import { normalizeGatewayTokenInput, randomToken } from "../../onboard-helpers.js";
 import type { OnboardOptions } from "../../onboard-types.js";
 
+const VALID_GATEWAY_BINDS = new Set(["loopback", "lan", "auto", "custom", "tailnet"]);
+const VALID_TAILSCALE_MODES = new Set(["off", "serve", "funnel"]);
+
 export function applyNonInteractiveGatewayConfig(params: {
   nextConfig: CrawClawConfig;
   opts: OnboardOptions;
@@ -32,6 +35,11 @@ export function applyNonInteractiveGatewayConfig(params: {
 
   const port = hasGatewayPort ? (opts.gatewayPort as number) : params.defaultPort;
   let bind = opts.gatewayBind ?? "loopback";
+  if (!VALID_GATEWAY_BINDS.has(bind)) {
+    runtime.error(t("wizard.gateway.error.invalidBind"));
+    runtime.exit(1);
+    return null;
+  }
   const authModeRaw = opts.gatewayAuth ?? "token";
   if (authModeRaw !== "token" && authModeRaw !== "password") {
     runtime.error(t("wizard.gateway.error.invalidAuth"));
@@ -40,6 +48,11 @@ export function applyNonInteractiveGatewayConfig(params: {
   }
   let authMode = authModeRaw;
   const tailscaleMode = opts.tailscale ?? "off";
+  if (!VALID_TAILSCALE_MODES.has(tailscaleMode)) {
+    runtime.error(t("wizard.gateway.error.invalidTailscale"));
+    runtime.exit(1);
+    return null;
+  }
   const tailscaleResetOnExit = Boolean(opts.tailscaleResetOnExit);
 
   // Tighten config to safe combos:

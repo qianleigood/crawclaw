@@ -6,6 +6,7 @@ import { resolveManifestDeprecatedProviderAuthChoice } from "../plugins/provider
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { resolveUserPath } from "../utils.js";
+import { isOnboardOutputPreset } from "../wizard/setup.output-presentation.js";
 import { DEFAULT_WORKSPACE, handleReset } from "./onboard-helpers.js";
 import { runInteractiveSetup } from "./onboard-interactive.js";
 import { runNonInteractiveSetup } from "./onboard-non-interactive.js";
@@ -58,6 +59,12 @@ export async function setupWizardCommand(
 
   if (normalizedOpts.resetScope && !VALID_RESET_SCOPES.has(normalizedOpts.resetScope)) {
     runtime.error(t("wizard.setup.error.invalidResetScope"));
+    runtime.exit(1);
+    return;
+  }
+
+  if (normalizedOpts.outputPreset && !isOnboardOutputPreset(normalizedOpts.outputPreset)) {
+    runtime.error(t("wizard.setup.error.invalidOutputPreset"));
     runtime.exit(1);
     return;
   }

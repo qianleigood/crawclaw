@@ -387,10 +387,14 @@ export function ensureAllowedToolsActiveInSession<TTool extends { name: string }
 
   // Keep the session registry in sync for prompt/tool metadata, then force the
   // runtime agent tool list to the exact CrawClaw tool objects for deterministic
-  // allowlisted execution. createAgentSession({ tools }) only enables SDK built-ins,
-  // so CrawClaw-owned tools must remain custom tools and be pushed into agent.state.tools here.
+  // execution. createAgentSession({ tools }) only enables SDK built-ins, so
+  // CrawClaw-owned tools must remain custom tools and be pushed into agent.state.tools here.
   if (params.session.agent.setTools) {
     params.session.agent.setTools(expectedTools);
+    missingAfter = findMissing(readActiveToolNames());
+    usedDirectRuntimeRegistration = true;
+  } else if (params.session.agent.state && "tools" in params.session.agent.state) {
+    params.session.agent.state.tools = expectedTools;
     missingAfter = findMissing(readActiveToolNames());
     usedDirectRuntimeRegistration = true;
   }
@@ -1274,20 +1278,18 @@ export async function runEmbeddedAttempt(
           throw new Error("Embedded agent session missing");
         }
         const activeSession = session;
-        if (params.toolsAllow?.length) {
-          const activation = ensureAllowedToolsActiveInSession({
-            session: activeSession as SessionToolCarrier<(typeof effectiveTools)[number]>,
-            toolsAllow: params.toolsAllow,
-            effectiveTools,
+        const activation = ensureAllowedToolsActiveInSession({
+          session: activeSession as SessionToolCarrier<(typeof effectiveTools)[number]>,
+          toolsAllow: params.toolsAllow,
+          effectiveTools,
+        });
+        if (activation.missingBefore.length > 0) {
+          log.warn("session tool activation recovered missing active tools", {
+            sessionId: params.sessionId,
+            missingBefore: activation.missingBefore,
+            missingAfter: activation.missingAfter,
+            usedDirectRuntimeRegistration: activation.usedDirectRuntimeRegistration,
           });
-          if (activation.missingBefore.length > 0) {
-            log.warn("session tool activation recovered missing allowed tools", {
-              sessionId: params.sessionId,
-              missingBefore: activation.missingBefore,
-              missingAfter: activation.missingAfter,
-              usedDirectRuntimeRegistration: activation.usedDirectRuntimeRegistration,
-            });
-          }
         }
         let toolRefreshInFlight: Promise<void> | null = null;
         let lastToolRefreshAt = 0;

@@ -1,4 +1,5 @@
 import type { AcpRuntimeEvent } from "../../acp/runtime/types.js";
+import { buildToolExecutionDisplayText } from "../../agents/tool-display.js";
 import type {
   WorkflowExecutionStatus,
   WorkflowExecutionStepStatus,
@@ -532,6 +533,7 @@ function resolveExecutionKindFromToolName(toolName?: string): ExecutionEventKind
 
 export function buildToolExecutionVisibilityText(params: {
   toolName?: string;
+  args?: unknown;
   meta?: string;
   phase: ExecutionEventPhase;
   mode: ExecutionVisibilityMode;
@@ -548,17 +550,13 @@ export function buildToolExecutionVisibilityText(params: {
       });
     }
   }
-  return buildExecutionVisibilityText({
+  return buildToolExecutionDisplayText({
+    toolName: params.toolName,
+    args: params.args,
+    meta: params.meta,
+    phase: params.phase,
     mode: params.mode,
-    event: {
-      kind,
-      phase: params.phase,
-      sourceType: kind === "workflow" ? "workflow" : "tool",
-      sourceName: normalizeOptionalString(params.toolName),
-      object: simplifyObjectLabel(params.meta),
-      detail: params.meta,
-      status: normalizeOptionalString(params.status),
-    },
+    status: params.status,
   });
 }
 

@@ -87,8 +87,14 @@ export type EmbeddedPiSubscribeContext = {
 
   shouldEmitToolResult: () => boolean;
   shouldEmitToolOutput: () => boolean;
-  emitToolSummary: (toolName?: string, meta?: string) => void;
-  emitToolOutput: (toolName?: string, meta?: string, output?: string, result?: unknown) => void;
+  emitToolSummary: (toolName?: string, meta?: string, args?: unknown) => void;
+  emitToolOutput: (
+    toolName?: string,
+    meta?: string,
+    output?: string,
+    result?: unknown,
+    opts?: { isError?: boolean },
+  ) => void;
   stripBlockTags: (
     text: string,
     state: { thinking: boolean; final: boolean; inlineCode?: InlineCodeState },
@@ -168,8 +174,14 @@ export type ToolHandlerContext = {
   flushBlockReplyBuffer: () => void | Promise<void>;
   shouldEmitToolResult: () => boolean;
   shouldEmitToolOutput: () => boolean;
-  emitToolSummary: (toolName?: string, meta?: string) => void;
-  emitToolOutput: (toolName?: string, meta?: string, output?: string, result?: unknown) => void;
+  emitToolSummary: (toolName?: string, meta?: string, args?: unknown) => void;
+  emitToolOutput: (
+    toolName?: string,
+    meta?: string,
+    output?: string,
+    result?: unknown,
+    opts?: { isError?: boolean },
+  ) => void;
   trimMessagingToolSent: () => void;
 };
 

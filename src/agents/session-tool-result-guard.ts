@@ -142,6 +142,21 @@ export function installSessionToolResultGuard(
 
   const allowSyntheticToolResults = opts?.allowSyntheticToolResults ?? true;
   const beforeWrite = opts?.beforeMessageWriteHook;
+  const appendAndEmitTranscriptUpdate = (message: AgentMessage) => {
+    const result = originalAppend(message as never);
+    const sessionFile = (
+      sessionManager as { getSessionFile?: () => string | null }
+    ).getSessionFile?.();
+    if (sessionFile) {
+      emitSessionTranscriptUpdate({
+        sessionFile,
+        sessionKey: opts?.sessionKey,
+        message,
+        messageId: typeof result === "string" ? result : undefined,
+      });
+    }
+    return result;
+  };
 
   /**
    * Run the before_message_write hook. Returns the (possibly modified) message,
@@ -176,7 +191,7 @@ export function installSessionToolResultGuard(
           }),
         );
         if (flushed) {
-          originalAppend(flushed as never);
+          appendAndEmitTranscriptUpdate(flushed);
         }
       }
     }
@@ -224,7 +239,7 @@ export function installSessionToolResultGuard(
       if (!persisted) {
         return undefined;
       }
-      return originalAppend(persisted as never);
+      return appendAndEmitTranscriptUpdate(persisted);
     }
 
     // Skip tool call extraction for aborted/errored assistant messages.
@@ -257,19 +272,7 @@ export function installSessionToolResultGuard(
     if (!finalMessage) {
       return undefined;
     }
-    const result = originalAppend(finalMessage as never);
-
-    const sessionFile = (
-      sessionManager as { getSessionFile?: () => string | null }
-    ).getSessionFile?.();
-    if (sessionFile) {
-      emitSessionTranscriptUpdate({
-        sessionFile,
-        sessionKey: opts?.sessionKey,
-        message: finalMessage,
-        messageId: typeof result === "string" ? result : undefined,
-      });
-    }
+    const result = appendAndEmitTranscriptUpdate(finalMessage);
 
     if (toolCalls.length > 0) {
       pendingState.trackToolCalls(toolCalls);

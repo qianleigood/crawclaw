@@ -38,9 +38,7 @@ describe("ensureAllowedToolsActiveInSession", () => {
     expect(result.missingBefore).toEqual(["memory_manifest_read"]);
     expect(result.missingAfter).toEqual([]);
     expect(result.usedDirectRuntimeRegistration).toBe(true);
-    expect(session.agent.state.tools.map((tool) => tool.name)).toEqual([
-      "memory_manifest_read",
-    ]);
+    expect(session.agent.state.tools.map((tool) => tool.name)).toEqual(["memory_manifest_read"]);
   });
 
   it("uses direct runtime registration when session activation still misses allowlisted tools", () => {
@@ -68,8 +66,34 @@ describe("ensureAllowedToolsActiveInSession", () => {
     expect(result.missingBefore).toEqual(["memory_manifest_read"]);
     expect(result.missingAfter).toEqual([]);
     expect(result.usedDirectRuntimeRegistration).toBe(true);
+    expect(session.agent.state.tools.map((tool) => tool.name)).toEqual(["memory_manifest_read"]);
+  });
+
+  it("uses the agent state tools setter when no setTools helper exists", () => {
+    const tools = [{ name: "session_status" }, { name: "sessions_list" }];
+    const session = {
+      agent: {
+        state: {
+          tools: [] as Array<{ name: string }>,
+        },
+      },
+      setActiveToolsByName() {
+        // Simulate the runtime registry not exposing CrawClaw-owned tools.
+      },
+    };
+
+    const result = ensureAllowedToolsActiveInSession({
+      session,
+      effectiveTools: tools,
+    });
+
+    expect(result.expectedToolNames).toEqual(["session_status", "sessions_list"]);
+    expect(result.missingBefore).toEqual(["session_status", "sessions_list"]);
+    expect(result.missingAfter).toEqual([]);
+    expect(result.usedDirectRuntimeRegistration).toBe(true);
     expect(session.agent.state.tools.map((tool) => tool.name)).toEqual([
-      "memory_manifest_read",
+      "session_status",
+      "sessions_list",
     ]);
   });
 

@@ -154,6 +154,22 @@ describe("handleToolExecutionStart read path checks", () => {
 
     expect(ctx.state.toolMetaById.has("tool-await-flush")).toBe(true);
   });
+
+  it("passes original args to the shared tool summary projector", async () => {
+    const { ctx } = createTestContext();
+    ctx.params.onToolResult = vi.fn();
+    ctx.shouldEmitToolResult = () => true;
+    const args = { path: "package.json" };
+
+    await handleToolExecutionStart(ctx, {
+      type: "tool_execution_start",
+      toolName: "read",
+      toolCallId: "tool-readable-summary",
+      args,
+    });
+
+    expect(ctx.emitToolSummary).toHaveBeenCalledWith("read", "from package.json", args);
+  });
 });
 
 describe("handleToolExecutionEnd cron.add commitment tracking", () => {

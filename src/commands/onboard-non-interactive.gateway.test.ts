@@ -271,6 +271,72 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
     });
   }, 60_000);
 
+  it("applies non-interactive output preset into config", async () => {
+    await withStateDir("state-output-preset-", async (stateDir) => {
+      await runNonInteractiveSetup(
+        {
+          nonInteractive: true,
+          mode: "local",
+          workspace: path.join(stateDir, "crawclaw"),
+          authChoice: "skip",
+          skipSkills: true,
+          skipHealth: true,
+          installDaemon: false,
+          gatewayBind: "loopback",
+          outputPreset: "operator",
+        },
+        runtime,
+      );
+
+      const configPath = resolveStateConfigPath(process.env, stateDir);
+      const cfg = await readJsonFile<{
+        agents?: { defaults?: { verboseDefault?: string; blockStreamingDefault?: string } };
+        acp?: { stream?: { visibilityMode?: string; deliveryMode?: string } };
+      }>(configPath);
+
+      expect(cfg.agents?.defaults?.verboseDefault).toBe("full");
+      expect(cfg.agents?.defaults?.blockStreamingDefault).toBe("on");
+      expect(cfg.acp?.stream?.visibilityMode).toBe("full");
+      expect(cfg.acp?.stream?.deliveryMode).toBe("live");
+    });
+  }, 60_000);
+
+  it("rejects invalid non-interactive gateway enum options", async () => {
+    await withStateDir("state-invalid-gateway-options-", async (stateDir) => {
+      await expect(
+        runNonInteractiveSetup(
+          {
+            nonInteractive: true,
+            mode: "local",
+            workspace: path.join(stateDir, "crawclaw"),
+            authChoice: "skip",
+            skipSkills: true,
+            skipHealth: true,
+            installDaemon: false,
+            gatewayBind: "public" as never,
+          },
+          runtime,
+        ),
+      ).rejects.toThrow("Invalid --gateway-bind");
+
+      await expect(
+        runNonInteractiveSetup(
+          {
+            nonInteractive: true,
+            mode: "local",
+            workspace: path.join(stateDir, "crawclaw"),
+            authChoice: "skip",
+            skipSkills: true,
+            skipHealth: true,
+            installDaemon: false,
+            tailscale: "banana" as never,
+          },
+          runtime,
+        ),
+      ).rejects.toThrow("Invalid --tailscale");
+    });
+  }, 60_000);
+
   it("localizes non-interactive completion guidance when zh-CN is active", async () => {
     await withStateDir("state-zh-guidance-", async (stateDir) => {
       setActiveCliLocale("zh-CN");

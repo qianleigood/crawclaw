@@ -4,6 +4,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { replaceConfigFile, resolveGatewayPort } from "../../config/config.js";
 import { logConfigUpdated } from "../../config/logging.js";
 import type { RuntimeEnv } from "../../runtime.js";
+import { applyOnboardOutputPresentationConfig } from "../../wizard/setup.output-presentation.js";
 import { DEFAULT_GATEWAY_DAEMON_RUNTIME } from "../daemon-runtime.js";
 import { applyLocalSetupWorkspaceConfig } from "../onboard-config.js";
 import {
@@ -132,6 +133,9 @@ export async function runNonInteractiveLocalSetup(params: {
   nextConfig = gatewayResult.nextConfig;
 
   nextConfig = applyNonInteractiveSkillsConfig({ nextConfig, opts, runtime });
+  if (opts.outputPreset) {
+    nextConfig = applyOnboardOutputPresentationConfig(nextConfig, opts.outputPreset);
+  }
 
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await replaceConfigFile({

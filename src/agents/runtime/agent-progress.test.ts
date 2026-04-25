@@ -108,7 +108,12 @@ describe("agent-progress", () => {
     emitAgentEvent({
       runId: "run-action",
       stream: "tool",
-      data: { phase: "start", name: "web_fetch", toolCallId: "tool-action-1" },
+      data: {
+        phase: "start",
+        name: "web_fetch",
+        toolCallId: "tool-action-1",
+        args: { url: "https://docs.crawclaw.ai/plugins" },
+      },
     });
     emitAgentEvent({
       runId: "run-action",
@@ -135,6 +140,9 @@ describe("agent-progress", () => {
       "completed",
       "completed",
     ]);
+    expect(actions[1]?.data).toMatchObject({
+      projectedTitle: "Fetching from https://docs.crawclaw.ai/plugins",
+    });
   });
 
   it("emits workflow action kind for workflow tools", () => {

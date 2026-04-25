@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatToolDetail, resolveToolDisplay } from "./tool-display.js";
+import {
+  buildToolExecutionDisplayText,
+  formatToolDetail,
+  resolveToolDisplay,
+} from "./tool-display.js";
 
 describe("tool display details", () => {
   it("skips zero/false values for optional detail fields", () => {
@@ -291,5 +295,76 @@ describe("tool display details", () => {
     expect(pyDetail).toContain("run python3 inline script (heredoc)");
     expect(nodeCheckDetail).toContain("check js syntax for /tmp/test.js");
     expect(nodeShortCheckDetail).toContain("check js syntax for /tmp/test.js");
+  });
+});
+
+describe("tool execution display text", () => {
+  it("renders phase-aware read summaries from args", () => {
+    const args = { path: "package.json" };
+
+    expect(
+      buildToolExecutionDisplayText({
+        toolName: "read",
+        args,
+        phase: "start",
+        mode: "summary",
+      }),
+    ).toBe("Reading from package.json");
+    expect(
+      buildToolExecutionDisplayText({
+        toolName: "read",
+        args,
+        phase: "end",
+        mode: "summary",
+      }),
+    ).toBe("Read from package.json");
+    expect(
+      buildToolExecutionDisplayText({
+        toolName: "read",
+        args,
+        phase: "error",
+        mode: "summary",
+        status: "failed",
+      }),
+    ).toBe("Read failed: from package.json");
+  });
+
+  it("renders readable sessions_list summaries", () => {
+    expect(
+      buildToolExecutionDisplayText({
+        toolName: "sessions_list",
+        args: { limit: 5, activeMinutes: 10 },
+        phase: "start",
+        mode: "summary",
+      }),
+    ).toBe("Listing sessions: limit 5, active minutes 10");
+  });
+
+  it("falls back to a title-cased unknown tool with truncated details", () => {
+    const longPath = `/tmp/${"a".repeat(220)}`;
+    const summary = buildToolExecutionDisplayText({
+      toolName: "custom_reader",
+      args: { path: longPath },
+      phase: "start",
+      mode: "summary",
+    });
+
+    expect(summary).toMatch(/^Custom Reader: \/tmp\/a+/);
+    expect(summary?.length).toBeLessThan(190);
+  });
+
+  it("redacts sensitive exec details", () => {
+    const summary = buildToolExecutionDisplayText({
+      toolName: "exec",
+      args: {
+        command:
+          "curl -H 'Authorization: Bearer abcdefghijklmnopqrstuvwxyz123456' https://example.com",
+      },
+      phase: "start",
+      mode: "summary",
+    });
+
+    expect(summary).toContain("Running");
+    expect(summary).not.toContain("abcdefghijklmnopqrstuvwxyz123456");
   });
 });

@@ -408,9 +408,10 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
       // ignore tool result delivery failures
     }
   };
-  const emitToolSummary = (toolName?: string, meta?: string) => {
+  const emitToolSummary = (toolName?: string, meta?: string, args?: unknown) => {
     const projected = buildToolExecutionVisibilityText({
       toolName,
+      args,
       meta,
       phase: "start",
       mode: resolveCurrentVisibilityMode(),
@@ -421,16 +422,22 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     }
     emitToolResultMessage(toolName, projected);
   };
-  const emitToolOutput = (toolName?: string, meta?: string, output?: string, result?: unknown) => {
+  const emitToolOutput = (
+    toolName?: string,
+    meta?: string,
+    output?: string,
+    result?: unknown,
+    opts?: { isError?: boolean },
+  ) => {
     if (!output) {
       return;
     }
     const agg = buildToolExecutionVisibilityText({
       toolName,
       meta,
-      phase: "end",
+      phase: opts?.isError ? "error" : "end",
       mode: resolveCurrentVisibilityMode(),
-      status: "completed",
+      status: opts?.isError ? "failed" : "completed",
     });
     if (!agg) {
       return;

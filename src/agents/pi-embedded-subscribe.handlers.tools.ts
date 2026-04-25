@@ -415,7 +415,7 @@ async function emitToolResultOutput(params: {
   if (ctx.shouldEmitToolOutput()) {
     const outputText = extractToolResultText(sanitizedResult);
     if (outputText) {
-      ctx.emitToolOutput(toolName, meta, outputText, result);
+      ctx.emitToolOutput(toolName, meta, outputText, result, { isError: isToolError });
     }
     if (!hasStructuredMedia) {
       return;
@@ -512,7 +512,7 @@ export function handleToolExecutionStart(
     // Best-effort typing signal; do not block tool summaries on slow emitters.
     void ctx.params.onAgentEvent?.({
       stream: "tool",
-      data: { phase: "start", name: toolName, toolCallId },
+      data: { phase: "start", name: toolName, toolCallId, args, meta },
     });
 
     if (
@@ -521,7 +521,7 @@ export function handleToolExecutionStart(
       !ctx.state.toolSummaryById.has(toolCallId)
     ) {
       ctx.state.toolSummaryById.add(toolCallId);
-      ctx.emitToolSummary(toolName, meta);
+      ctx.emitToolSummary(toolName, meta, args);
     }
 
     // Track messaging tool sends (pending until confirmed in tool_execution_end).

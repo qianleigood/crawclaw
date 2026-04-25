@@ -13,9 +13,9 @@ describe("convertMinimaxXmlToolCallsInMessage", () => {
           text:
             "好的，我来记住这个偏好。\n" +
             "<minimax:tool_call>\n" +
-            "<invoke name=\"memory_note_write\">\n" +
-            "<parameter name=\"note_path\">60 Preferences/step-first.md</parameter>\n" +
-            "<parameter name=\"content\">---\ntitle: Step-first\n---</parameter>\n" +
+            '<invoke name="memory_note_write">\n' +
+            '<parameter name="note_path">60 Preferences/step-first.md</parameter>\n' +
+            '<parameter name="content">---\ntitle: Step-first\n---</parameter>\n' +
             "</invoke>\n" +
             "</minimax:tool_call>\n" +
             "以后按这个来。",
@@ -23,10 +23,7 @@ describe("convertMinimaxXmlToolCallsInMessage", () => {
       ],
     };
 
-    const changed = convertMinimaxXmlToolCallsInMessage(
-      message,
-      new Set(["memory_note_write"]),
-    );
+    const changed = convertMinimaxXmlToolCallsInMessage(message, new Set(["memory_note_write"]));
 
     expect(changed).toBe(true);
     expect(message.stopReason).toBe("toolUse");
@@ -44,6 +41,39 @@ describe("convertMinimaxXmlToolCallsInMessage", () => {
     ]);
   });
 
+  it("converts minimax bracket tool call blocks into structured tool calls", () => {
+    const message = {
+      role: "assistant",
+      stopReason: "stop",
+      content: [
+        {
+          type: "text",
+          text:
+            "[TOOL_CALL]\n" +
+            '{tool => "read", args => {\n' +
+            '  --path "/opt/homebrew/lib/node_modules/crawclaw/skills/weather/SKILL.md"\n' +
+            "}}\n" +
+            "[/TOOL_CALL]",
+        },
+      ],
+    };
+
+    const changed = convertMinimaxXmlToolCallsInMessage(message, new Set(["read"]));
+
+    expect(changed).toBe(true);
+    expect(message.stopReason).toBe("toolUse");
+    expect(message.content).toEqual([
+      {
+        type: "toolCall",
+        id: "call_minimax_text_1",
+        name: "read",
+        arguments: {
+          path: "/opt/homebrew/lib/node_modules/crawclaw/skills/weather/SKILL.md",
+        },
+      },
+    ]);
+  });
+
   it("ignores minimax xml invokes that do not match allowed tools", () => {
     const message = {
       role: "assistant",
@@ -53,16 +83,13 @@ describe("convertMinimaxXmlToolCallsInMessage", () => {
           type: "text",
           text:
             "<minimax:tool_call>\n" +
-            "<invoke name=\"sessions_list\"></invoke>\n" +
+            '<invoke name="sessions_list"></invoke>\n' +
             "</minimax:tool_call>",
         },
       ],
     };
 
-    const changed = convertMinimaxXmlToolCallsInMessage(
-      message,
-      new Set(["memory_note_write"]),
-    );
+    const changed = convertMinimaxXmlToolCallsInMessage(message, new Set(["memory_note_write"]));
 
     expect(changed).toBe(false);
     expect(message.stopReason).toBe("stop");

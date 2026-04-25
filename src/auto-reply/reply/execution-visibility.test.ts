@@ -125,6 +125,18 @@ describe("execution visibility", () => {
     ).toBe("Workflow waiting: Publish Redbook");
   });
 
+  it("projects CrawClaw tool args through the shared tool display layer", () => {
+    expect(
+      buildToolExecutionVisibilityText({
+        toolName: "read",
+        args: { path: "package.json" },
+        phase: "error",
+        mode: "summary",
+        status: "failed",
+      }),
+    ).toBe("Read failed: from package.json");
+  });
+
   it("projects ACP tool calls through the semantic layer", () => {
     expect(
       projectAcpToolCallEvent({

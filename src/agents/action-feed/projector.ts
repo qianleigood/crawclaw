@@ -75,6 +75,53 @@ function resolveProjectedSummary(params: {
   return summary;
 }
 
+function normalizeToolSummaryToken(value: string | undefined): string | undefined {
+  return normalizeOptionalString(value)?.replace(/[_-]+/g, " ").replace(/\s+/g, " ").toLowerCase();
+}
+
+function isLegacyToolLifecycleSummary(params: {
+  summary: string;
+  title?: string;
+  toolName?: string;
+}): boolean {
+  const summary = normalizeToolSummaryToken(params.summary);
+  if (!summary) {
+    return false;
+  }
+  const title = normalizeToolSummaryToken(params.title);
+  if (title && summary === title) {
+    return true;
+  }
+  const tool = normalizeToolSummaryToken(params.toolName);
+  if (!tool) {
+    return /^(calling|running)\s+\S+$/i.test(summary) || /\S+\s+(completed|failed)$/i.test(summary);
+  }
+  return (
+    summary === `calling ${tool}` ||
+    summary === `running ${tool}` ||
+    summary === `${tool} completed` ||
+    summary === `${tool} failed`
+  );
+}
+
+function resolveToolProjectionMeta(input: AgentActionEventData): string | undefined {
+  const toolMeta = normalizeOptionalString(input.detail?.toolMeta);
+  if (toolMeta) {
+    return toolMeta;
+  }
+  const summary = normalizeOptionalString(input.summary);
+  if (!summary) {
+    return undefined;
+  }
+  return isLegacyToolLifecycleSummary({
+    summary,
+    title: input.title,
+    toolName: input.toolName,
+  })
+    ? undefined
+    : summary;
+}
+
 export function projectAgentActionEventData(input: AgentActionEventData): AgentActionEventData {
   const projectedKind = resolveProjectedKind({
     kind: input.kind,
@@ -110,7 +157,8 @@ export function projectAgentActionEventData(input: AgentActionEventData): AgentA
     if (!projectedTitle) {
       projectedTitle = buildToolExecutionVisibilityText({
         toolName: input.toolName ?? (projectedKind === "workflow" ? "workflow" : undefined),
-        meta: normalizeOptionalString(input.summary),
+        args: input.detail?.toolArgs,
+        meta: resolveToolProjectionMeta(input),
         phase,
         mode: "summary",
         status: input.status,

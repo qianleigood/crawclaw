@@ -5,6 +5,9 @@ import { normalizeToolName } from "../../tool-policy.js";
 const MINIMAX_TOOL_CALL_SECTION_RE = /<minimax:tool_call>[\s\S]*?<\/minimax:tool_call>/gi;
 const MINIMAX_INVOKE_RE = /<invoke\b[^>]*name=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/invoke>/gi;
 const MINIMAX_PARAMETER_RE = /<parameter\b[^>]*name=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/parameter>/gi;
+const MINIMAX_BRACKET_TOOL_CALL_SECTION_RE = /\[TOOL_CALL\]([\s\S]*?)\[\/TOOL_CALL\]/gi;
+const MINIMAX_BRACKET_TOOL_NAME_RE = /\btool\s*=>\s*(["'])(.*?)\1/i;
+const MINIMAX_BRACKET_ARGS_START_RE = /\bargs\s*=>\s*\{/i;
 
 type ToolCallLikeBlock = {
   type: "toolCall";
@@ -113,6 +116,159 @@ function extractMinimaxXmlToolCalls(
   return toolCalls;
 }
 
+function extractBalancedBraceBody(text: string, openBraceIndex: number): string | null {
+  let depth = 1;
+  let inQuote: string | null = null;
+  let escaped = false;
+  const start = openBraceIndex + 1;
+  for (let index = start; index < text.length; index += 1) {
+    const char = text[index];
+    if (inQuote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === inQuote) {
+        inQuote = null;
+      }
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      inQuote = char;
+      continue;
+    }
+    if (char === "{") {
+      depth += 1;
+      continue;
+    }
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return text.slice(start, index);
+      }
+    }
+  }
+  return null;
+}
+
+function extractMinimaxBracketArgsBody(block: string): string | null {
+  const match = MINIMAX_BRACKET_ARGS_START_RE.exec(block);
+  if (!match || match.index === undefined) {
+    return "";
+  }
+  const openBraceIndex = match.index + match[0].length - 1;
+  return extractBalancedBraceBody(block, openBraceIndex);
+}
+
+function decodeQuotedArgumentValue(value: string): string {
+  return value
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .replace(/\\t/g, "\t")
+    .replace(/\\(["'\\])/g, "$1");
+}
+
+function tokenizeMinimaxBracketArgs(input: string): string[] {
+  const tokens: string[] = [];
+  let token = "";
+  let inQuote: string | null = null;
+  let escaped = false;
+
+  const flush = () => {
+    if (token) {
+      tokens.push(token);
+      token = "";
+    }
+  };
+
+  for (const char of input) {
+    if (inQuote) {
+      if (escaped) {
+        token += "\\" + char;
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === inQuote) {
+        inQuote = null;
+      } else {
+        token += char;
+      }
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      inQuote = char;
+      continue;
+    }
+    if (/\s/.test(char)) {
+      flush();
+      continue;
+    }
+    token += char;
+  }
+  if (escaped) {
+    token += "\\";
+  }
+  flush();
+  return tokens;
+}
+
+function extractBracketArguments(body: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+  const tokens = tokenizeMinimaxBracketArgs(body);
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index] ?? "";
+    if (!token.startsWith("--") || token.length <= 2) {
+      continue;
+    }
+    const assignmentIndex = token.indexOf("=");
+    const rawKey = assignmentIndex > 2 ? token.slice(2, assignmentIndex) : token.slice(2);
+    const key = normalizeInvokeArgumentKey(rawKey);
+    if (!key) {
+      continue;
+    }
+    if (assignmentIndex > 2) {
+      args[key] = decodeQuotedArgumentValue(token.slice(assignmentIndex + 1));
+      continue;
+    }
+    const nextToken = tokens[index + 1];
+    if (nextToken && !nextToken.startsWith("--")) {
+      args[key] = decodeQuotedArgumentValue(nextToken);
+      index += 1;
+    } else {
+      args[key] = true;
+    }
+  }
+  return args;
+}
+
+function extractMinimaxBracketToolCalls(
+  text: string,
+  allowedToolNames?: Set<string>,
+): ToolCallLikeBlock[] {
+  const toolCalls: ToolCallLikeBlock[] = [];
+  let nextIndex = 1;
+  for (const section of text.matchAll(MINIMAX_BRACKET_TOOL_CALL_SECTION_RE)) {
+    const block = section[1] ?? "";
+    const nameMatch = MINIMAX_BRACKET_TOOL_NAME_RE.exec(block);
+    const rawName = nameMatch?.[2] ?? "";
+    const toolName = resolveAllowedToolName(rawName, allowedToolNames);
+    if (!toolName) {
+      continue;
+    }
+    const argsBody = extractMinimaxBracketArgsBody(block);
+    if (argsBody === null) {
+      continue;
+    }
+    toolCalls.push({
+      type: "toolCall",
+      id: `call_minimax_text_${nextIndex++}`,
+      name: toolName,
+      arguments: extractBracketArguments(argsBody),
+    });
+  }
+  return toolCalls;
+}
+
 export function convertMinimaxXmlToolCallsInMessage(
   message: unknown,
   allowedToolNames?: Set<string>,
@@ -143,11 +299,14 @@ export function convertMinimaxXmlToolCallsInMessage(
       nextContent.push(block);
       continue;
     }
-    if (!/minimax:tool_call/i.test(typedBlock.text)) {
+    if (!/minimax:tool_call|\[TOOL_CALL\]/i.test(typedBlock.text)) {
       nextContent.push(block);
       continue;
     }
-    const toolCalls = extractMinimaxXmlToolCalls(typedBlock.text, allowedToolNames);
+    const toolCalls = [
+      ...extractMinimaxXmlToolCalls(typedBlock.text, allowedToolNames),
+      ...extractMinimaxBracketToolCalls(typedBlock.text, allowedToolNames),
+    ];
     if (!toolCalls.length) {
       nextContent.push(block);
       continue;
