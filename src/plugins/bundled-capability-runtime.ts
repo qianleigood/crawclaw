@@ -34,9 +34,8 @@ function applyVitestCapabilityAliasOverrides(params: {
     return params.aliasMap;
   }
 
-  const { ["crawclaw/plugin-sdk"]: _ignoredRootAlias, ...scopedAliasMap } = params.aliasMap;
   return {
-    ...scopedAliasMap,
+    ...params.aliasMap,
     // Capability contract loads only need a narrow SDK slice. Keep those
     // helpers on a tiny source graph so Vitest does not pull the dist chunk
     // bundle that also drags Matrix/WhatsApp code into these tests.

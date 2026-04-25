@@ -55,11 +55,7 @@ function createExitedProcess(code: number | null, signal: string | null = null) 
 }
 
 async function writeRuntimePostBuildScaffold(tmp: string): Promise<void> {
-  const pluginSdkAliasPath = path.join(tmp, "src", "plugin-sdk", "root-alias.cjs");
-  await fs.mkdir(path.dirname(pluginSdkAliasPath), { recursive: true });
   await fs.mkdir(path.join(tmp, "extensions"), { recursive: true });
-  await fs.writeFile(pluginSdkAliasPath, "module.exports = {};\n", "utf-8");
-  await fs.utimes(pluginSdkAliasPath, BUILD_TIME, BUILD_TIME);
 }
 
 function expectedBuildSpawn() {
@@ -268,9 +264,6 @@ describe("run-node script", () => {
       expect(exitCode).toBe(0);
       expect(spawnCalls).toEqual([expectedBuildSpawn(), statusCommandSpawn()]);
 
-      await expect(
-        fs.readFile(resolvePath(tmp, "dist/plugin-sdk/root-alias.cjs"), "utf-8"),
-      ).resolves.toContain("module.exports = {};");
       await expect(
         fs
           .readFile(resolvePath(tmp, DIST_EXTENSION_MANIFEST), "utf-8")

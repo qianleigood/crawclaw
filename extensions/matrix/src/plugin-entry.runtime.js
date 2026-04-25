@@ -39,7 +39,10 @@ function findCrawClawPackageRoot(startDir) {
   let cursor = path.resolve(startDir);
   for (let i = 0; i < 12; i += 1) {
     const pkg = readPackageJson(cursor);
-    if (pkg?.name === "crawclaw" && pkg.exports?.["./plugin-sdk"]) {
+    if (
+      pkg?.name === "crawclaw" &&
+      Object.keys(pkg.exports ?? {}).some((key) => key.startsWith("./plugin-sdk/"))
+    ) {
       return { packageRoot: cursor, packageJson: pkg };
     }
     const parent = path.dirname(cursor);
@@ -71,12 +74,6 @@ function buildPluginSdkAliasMap(moduleUrl) {
   const sourcePluginSdkDir = path.join(packageRoot, "src", "plugin-sdk");
   const distPluginSdkDir = path.join(packageRoot, "dist", "plugin-sdk");
   const aliasMap = {};
-  const rootAlias =
-    resolveExistingFile(path.join(sourcePluginSdkDir, "root-alias"), [".cjs"]) ??
-    resolveExistingFile(path.join(distPluginSdkDir, "root-alias"), [".cjs"]);
-  if (rootAlias) {
-    aliasMap[CRAWCLAW_PLUGIN_SDK_PREFIX] = rootAlias;
-  }
 
   for (const exportKey of Object.keys(packageJson.exports ?? {})) {
     if (!exportKey.startsWith(PLUGIN_SDK_EXPORT_PREFIX)) {
@@ -92,13 +89,6 @@ function buildPluginSdkAliasMap(moduleUrl) {
     if (resolvedPath) {
       aliasMap[`${CRAWCLAW_PLUGIN_SDK_PREFIX}/${subpath}`] = resolvedPath;
     }
-  }
-
-  const extensionApi =
-    resolveExistingFile(path.join(packageRoot, "src", "extensionAPI"), [".ts", ".js"]) ??
-    resolveExistingFile(path.join(packageRoot, "dist", "extensionAPI"), [".js"]);
-  if (extensionApi) {
-    aliasMap["crawclaw/extension-api"] = extensionApi;
   }
 
   return aliasMap;

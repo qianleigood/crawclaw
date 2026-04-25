@@ -1,4 +1,4 @@
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import { parseSlackModalPrivateMetadata } from "../../modal-metadata.js";
 import { authorizeSlackSystemEventSender } from "../auth.js";
 import type { SlackMonitorContext } from "../context.js";

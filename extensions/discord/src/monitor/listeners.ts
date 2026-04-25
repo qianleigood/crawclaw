@@ -8,8 +8,8 @@ import {
   ThreadUpdateListener,
   type User,
 } from "@buape/carbon";
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import { resolveAgentRoute } from "crawclaw/plugin-sdk/routing";
 import {
   createSubsystemLogger,

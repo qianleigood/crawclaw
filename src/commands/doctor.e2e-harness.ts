@@ -127,8 +127,6 @@ export const callGateway = vi
   .fn()
   .mockRejectedValue(new Error("gateway closed")) as unknown as MockFn;
 
-export const runStartupMatrixMigration = vi.fn().mockResolvedValue(undefined) as unknown as MockFn;
-
 function createLegacyStateMigrationDetectionResult(params?: {
   hasLegacySessions?: boolean;
   preview?: string[];
@@ -357,10 +355,6 @@ vi.mock("./doctor-state-migrations.js", () => ({
   runLegacyStateMigrations,
 }));
 
-vi.mock("../gateway/server-startup-matrix-migration.js", () => ({
-  runStartupMatrixMigration,
-}));
-
 export function mockDoctorConfigSnapshot(
   params: {
     config?: Record<string, unknown>;
@@ -463,8 +457,6 @@ beforeEach(() => {
   serviceUninstall.mockReset().mockResolvedValue(undefined);
   serviceReadCommand.mockReset().mockResolvedValue(null);
   callGateway.mockReset().mockRejectedValue(new Error("gateway closed"));
-  runStartupMatrixMigration.mockReset().mockResolvedValue(undefined);
-
   originalIsTTY = process.stdin.isTTY;
   setStdinTty(true);
   originalStateDir = process.env.CRAWCLAW_STATE_DIR;

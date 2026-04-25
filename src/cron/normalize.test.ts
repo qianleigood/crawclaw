@@ -30,13 +30,16 @@ function expectAnnounceDeliveryTarget(
   expect(delivery.to).toBe(params.to);
 }
 
-function expectPayloadDeliveryHintsCleared(payload: Record<string, unknown>): void {
-  expect(payload.channel).toBeUndefined();
-  expect(payload.deliver).toBeUndefined();
-  expect(payload.to).toBeUndefined();
-  expect(payload.threadId).toBeUndefined();
-  expect(payload.bestEffortDeliver).toBeUndefined();
-  expect(payload.provider).toBeUndefined();
+function expectPayloadDeliveryHintsPreserved(
+  payload: Record<string, unknown>,
+  expected: Partial<Record<string, unknown>>,
+): void {
+  expect(payload.channel).toBe(expected.channel);
+  expect(payload.deliver).toBe(expected.deliver);
+  expect(payload.to).toBe(expected.to);
+  expect(payload.threadId).toBe(expected.threadId);
+  expect(payload.bestEffortDeliver).toBe(expected.bestEffortDeliver);
+  expect(payload.provider).toBe(expected.provider);
 }
 
 function normalizeIsolatedAgentTurnCreateJob(params: {
@@ -77,7 +80,7 @@ function normalizeMainSystemEventCreateJob(params: {
 }
 
 describe("normalizeCronJobCreate", () => {
-  it("strips payload-level legacy delivery hints from live input", () => {
+  it("preserves payload-level legacy delivery hints so validation can reject them", () => {
     const normalized = normalizeIsolatedAgentTurnCreateJob({
       name: "legacy",
       payload: {
@@ -88,10 +91,13 @@ describe("normalizeCronJobCreate", () => {
     });
 
     const payload = normalized.payload as Record<string, unknown>;
-    expectPayloadDeliveryHintsCleared(payload);
-
-    const delivery = normalized.delivery as Record<string, unknown>;
-    expect(delivery).toEqual({ mode: "announce" });
+    expectPayloadDeliveryHintsPreserved(payload, {
+      deliver: true,
+      provider: " TeLeGrAm ",
+      to: "7200373102",
+    });
+    expect(normalized.delivery).toBeUndefined();
+    expect(validateCronAddParams(normalized)).toBe(false);
   });
 
   it("trims agentId and drops null", () => {
@@ -150,7 +156,7 @@ describe("normalizeCronJobCreate", () => {
     expect("sessionKey" in cleared).toBe(false);
   });
 
-  it("strips top-level legacy delivery hints from live input", () => {
+  it("preserves top-level legacy delivery hints so validation can reject them", () => {
     const normalized = normalizeIsolatedAgentTurnCreateJob({
       name: "legacy top-level delivery",
       payload: {
@@ -177,13 +183,12 @@ describe("normalizeCronJobCreate", () => {
     }) as unknown as Record<string, unknown>;
 
     expect(normalized.delivery).toEqual({ mode: "announce" });
-    expect(withLegacyTopLevel.deliver).toBeUndefined();
-    expect(withLegacyTopLevel.channel).toBeUndefined();
-    expect(withLegacyTopLevel.to).toBeUndefined();
-    expect(withLegacyTopLevel.threadId).toBeUndefined();
-
-    const delivery = withLegacyTopLevel.delivery as Record<string, unknown>;
-    expect(delivery).toEqual({ mode: "announce" });
+    expect(withLegacyTopLevel.deliver).toBe(false);
+    expect(withLegacyTopLevel.channel).toBe("Telegram");
+    expect(withLegacyTopLevel.to).toBe("-1001234567890");
+    expect(withLegacyTopLevel.threadId).toBe(" 99 ");
+    expect(withLegacyTopLevel.delivery).toBeUndefined();
+    expect(validateCronAddParams(withLegacyTopLevel)).toBe(false);
   });
 
   it("canonicalizes delivery.channel casing", () => {
@@ -761,7 +766,11 @@ describe("normalizeCronJobPatch", () => {
 
     const payload = normalized.payload as Record<string, unknown>;
     expect(payload.kind).toBeUndefined();
-    expectPayloadDeliveryHintsCleared(payload);
+    expectPayloadDeliveryHintsPreserved(payload, {
+      channel: "telegram",
+      to: "+15550001111",
+    });
+    expect(validateCronUpdateParams({ id: "job-1", patch: normalized })).toBe(false);
   });
 
   it("preserves null sessionKey patches and trims string values", () => {
@@ -785,7 +794,7 @@ describe("normalizeCronJobPatch", () => {
     expect(schedule.staggerMs).toBe(30_000);
   });
 
-  it("strips legacy patch threadId hints from live input", () => {
+  it("preserves legacy patch threadId hints so validation can reject them", () => {
     const normalized = normalizeCronJobPatch({
       payload: {
         kind: "agentTurn",
@@ -794,7 +803,8 @@ describe("normalizeCronJobPatch", () => {
     }) as unknown as Record<string, unknown>;
 
     expect(normalized.delivery).toBeUndefined();
-    expect((normalized.payload as Record<string, unknown>).threadId).toBeUndefined();
+    expect((normalized.payload as Record<string, unknown>).threadId).toBe(77);
+    expect(validateCronUpdateParams({ id: "job-1", patch: normalized })).toBe(false);
   });
 
   it("prunes agentTurn-only payload fields from systemEvent patch payloads", () => {

@@ -74,7 +74,7 @@ describe("thread binding config keys", () => {
     );
   });
 
-  it("migrates session.threadBindings.ttlHours to idleHours", () => {
+  it("does not auto-migrate session.threadBindings.ttlHours", () => {
     const result = migrateLegacyConfig({
       session: {
         threadBindings: {
@@ -83,17 +83,10 @@ describe("thread binding config keys", () => {
       },
     });
 
-    expect(result.config?.session?.threadBindings?.idleHours).toBe(24);
-    const normalized = result.config?.session?.threadBindings as
-      | Record<string, unknown>
-      | undefined;
-    expect(normalized?.ttlHours).toBeUndefined();
-    expect(result.changes).toContain(
-      "Moved session.threadBindings.ttlHours → session.threadBindings.idleHours.",
-    );
+    expect(result).toEqual({ config: null, changes: [] });
   });
 
-  it("migrates Discord threadBindings.ttlHours for root and account entries", () => {
+  it("does not auto-migrate Discord threadBindings.ttlHours for root and account entries", () => {
     const result = migrateLegacyConfig({
       channels: {
         discord: {
@@ -117,30 +110,6 @@ describe("thread binding config keys", () => {
       },
     });
 
-    const discord = result.config?.channels?.discord;
-    expect(discord?.threadBindings?.idleHours).toBe(12);
-    expect(
-      (discord?.threadBindings as Record<string, unknown> | undefined)?.ttlHours,
-    ).toBeUndefined();
-
-    expect(discord?.accounts?.alpha?.threadBindings?.idleHours).toBe(6);
-    expect(
-      (discord?.accounts?.alpha?.threadBindings as Record<string, unknown> | undefined)?.ttlHours,
-    ).toBeUndefined();
-
-    expect(discord?.accounts?.beta?.threadBindings?.idleHours).toBe(4);
-    expect(
-      (discord?.accounts?.beta?.threadBindings as Record<string, unknown> | undefined)?.ttlHours,
-    ).toBeUndefined();
-
-    expect(result.changes).toContain(
-      "Moved channels.discord.threadBindings.ttlHours → channels.discord.threadBindings.idleHours.",
-    );
-    expect(result.changes).toContain(
-      "Moved channels.discord.accounts.alpha.threadBindings.ttlHours → channels.discord.accounts.alpha.threadBindings.idleHours.",
-    );
-    expect(result.changes).toContain(
-      "Removed channels.discord.accounts.beta.threadBindings.ttlHours (channels.discord.accounts.beta.threadBindings.idleHours already set).",
-    );
+    expect(result).toEqual({ config: null, changes: [] });
   });
 });

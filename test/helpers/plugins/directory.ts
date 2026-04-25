@@ -1,4 +1,4 @@
-import type { ChannelDirectoryAdapter } from "crawclaw/plugin-sdk/channel-runtime";
+import type { ChannelDirectoryAdapter } from "crawclaw/plugin-sdk/directory-runtime";
 
 type DirectorySurface = {
   listPeers: NonNullable<ChannelDirectoryAdapter["listPeers"]>;

@@ -4,9 +4,9 @@ import {
   type MessagePayloadObject,
   type RequestClient,
 } from "@buape/carbon";
-import { ChannelType, Routes } from "discord-api-types/v10";
-import { recordChannelActivity } from "crawclaw/plugin-sdk/channel-runtime";
 import { loadConfig, type CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { recordChannelActivity } from "crawclaw/plugin-sdk/infra-runtime";
+import { ChannelType, Routes } from "discord-api-types/v10";
 import { resolveDiscordAccount } from "./accounts.js";
 import { registerDiscordComponentEntries } from "./components-registry.js";
 import {

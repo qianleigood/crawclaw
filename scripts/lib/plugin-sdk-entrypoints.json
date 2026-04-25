@@ -1,5 +1,4 @@
 [
-  "index",
   "core",
   "provider-setup",
   "sandbox",
@@ -19,7 +18,7 @@
   "reply-chunking",
   "reply-payload",
   "channel-reply-pipeline",
-  "channel-runtime",
+  "channel-id",
   "interactive-runtime",
   "outbound-runtime",
   "infra-runtime",

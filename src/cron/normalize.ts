@@ -230,24 +230,6 @@ function coercePayload(payload: UnknownRecord) {
   } else if (next.kind === "agentTurn") {
     delete next.text;
   }
-  if ("deliver" in next) {
-    delete next.deliver;
-  }
-  if ("channel" in next) {
-    delete next.channel;
-  }
-  if ("to" in next) {
-    delete next.to;
-  }
-  if ("threadId" in next) {
-    delete next.threadId;
-  }
-  if ("bestEffortDeliver" in next) {
-    delete next.bestEffortDeliver;
-  }
-  if ("provider" in next) {
-    delete next.provider;
-  }
   return next;
 }
 
@@ -389,13 +371,7 @@ function stripLegacyTopLevelFields(next: UnknownRecord) {
   delete next.allowUnsafeExternalContent;
   delete next.message;
   delete next.text;
-  delete next.deliver;
-  delete next.channel;
-  delete next.to;
   delete next.toolsAllow;
-  delete next.threadId;
-  delete next.bestEffortDeliver;
-  delete next.provider;
 }
 
 export function normalizeCronJobInput(
@@ -589,7 +565,28 @@ export function normalizeCronJobInput(
       sessionTarget.startsWith("session:") ||
       (sessionTarget === "" && payloadKind === "agentTurn");
     const hasDelivery = "delivery" in next && next.delivery !== undefined;
-    if (!hasDelivery && isIsolatedAgentTurn && payloadKind === "agentTurn") {
+    const hasLegacyPayloadDeliveryHints =
+      payload !== null &&
+      ("deliver" in payload ||
+        "channel" in payload ||
+        "provider" in payload ||
+        "to" in payload ||
+        "threadId" in payload ||
+        "bestEffortDeliver" in payload);
+    const hasLegacyTopLevelDeliveryHints =
+      "deliver" in next ||
+      "channel" in next ||
+      "provider" in next ||
+      "to" in next ||
+      "threadId" in next ||
+      "bestEffortDeliver" in next;
+    if (
+      !hasDelivery &&
+      isIsolatedAgentTurn &&
+      payloadKind === "agentTurn" &&
+      !hasLegacyPayloadDeliveryHints &&
+      !hasLegacyTopLevelDeliveryHints
+    ) {
       next.delivery = { mode: "announce" };
     }
   }

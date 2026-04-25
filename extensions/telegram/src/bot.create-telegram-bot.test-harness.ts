@@ -296,8 +296,8 @@ const execApprovalHoisted = vi.hoisted(() => ({
 }));
 export const resolveExecApprovalSpy = execApprovalHoisted.resolveExecApprovalSpy;
 
-vi.doMock("crawclaw/plugin-sdk/channel-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/channel-runtime")>();
+vi.doMock("crawclaw/plugin-sdk/infra-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/infra-runtime")>();
   return {
     ...actual,
     enqueueSystemEvent: systemEventsHoisted.enqueueSystemEventSpy,

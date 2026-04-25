@@ -1,9 +1,4 @@
 import { appendCronStyleCurrentTimeLine } from "crawclaw/plugin-sdk/agent-runtime";
-import {
-  emitMainSessionWakeEvent,
-  resolveMainSessionWakeVisibility,
-  resolveIndicatorType,
-} from "crawclaw/plugin-sdk/channel-runtime";
 import { canonicalizeMainSessionAlias, loadConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
   loadSessionStore,
@@ -11,6 +6,11 @@ import {
   resolveStorePath,
   updateSessionStore,
 } from "crawclaw/plugin-sdk/config-runtime";
+import {
+  emitMainSessionWakeEvent,
+  resolveMainSessionWakeVisibility,
+  resolveIndicatorType,
+} from "crawclaw/plugin-sdk/infra-runtime";
 import {
   hasOutboundReplyContent,
   resolveSendableOutboundReplyParts,

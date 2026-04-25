@@ -25,10 +25,6 @@ function collectPluginSdkPackageExports(): string[] {
   const exports = packageJson.exports ?? {};
   const subpaths: string[] = [];
   for (const key of Object.keys(exports)) {
-    if (key === "./plugin-sdk") {
-      subpaths.push("index");
-      continue;
-    }
     if (!key.startsWith("./plugin-sdk/")) {
       continue;
     }

@@ -1,83 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { migrateLegacyConfig } from "./legacy-migrate.js";
 
-describe("legacy migrate audio transcription", () => {
-  it("does not rewrite removed routing.transcribeAudio migrations", () => {
+describe("migrateLegacyConfig", () => {
+  it("does not rewrite removed routing.transcribeAudio config", () => {
     const res = migrateLegacyConfig({
       routing: {
         transcribeAudio: {
           command: ["whisper", "--model", "base"],
-          timeoutSeconds: 2,
         },
       },
     });
 
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
+    expect(res).toEqual({ config: null, changes: [] });
   });
 
-  it("does not rewrite removed routing.transcribeAudio migrations when new config exists", () => {
-    const res = migrateLegacyConfig({
-      routing: {
-        transcribeAudio: {
-          command: ["whisper", "--model", "tiny"],
-        },
-      },
-      tools: {
-        media: {
-          audio: {
-            models: [{ command: "existing", type: "cli" }],
-          },
-        },
-      },
-    });
-
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-
-  it("does not rewrite removed audio.transcription payloads", () => {
-    const res = migrateLegacyConfig({
-      audio: {
-        transcription: {
-          command: [{}],
-        },
-      },
-    });
-
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-});
-
-describe("legacy migrate mention routing", () => {
-  it("does not rewrite removed routing.groupChat.requireMention migrations", () => {
-    const res = migrateLegacyConfig({
-      routing: {
-        groupChat: {
-          requireMention: true,
-        },
-      },
-    });
-
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-
-  it("does not rewrite removed channels.telegram.requireMention migrations", () => {
-    const res = migrateLegacyConfig({
-      channels: {
-        telegram: {
-          requireMention: false,
-        },
-      },
-    });
-
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-
-  it("moves channels.telegram.groupMentionsOnly into groups.*.requireMention", () => {
+  it("does not rewrite removed channels.telegram.groupMentionsOnly config", () => {
     const res = migrateLegacyConfig({
       channels: {
         telegram: {
@@ -86,381 +23,56 @@ describe("legacy migrate mention routing", () => {
       },
     });
 
-    expect(res.changes).toContain(
-      'Moved channels.telegram.groupMentionsOnly → channels.telegram.groups."*".requireMention.',
-    );
-    expect(res.config?.channels?.telegram?.groups?.["*"]?.requireMention).toBe(true);
-    expect(
-      (res.config?.channels?.telegram as { groupMentionsOnly?: unknown } | undefined)
-        ?.groupMentionsOnly,
-    ).toBeUndefined();
+    expect(res).toEqual({ config: null, changes: [] });
   });
 
-  it('keeps explicit channels.telegram.groups."*".requireMention when migrating groupMentionsOnly', () => {
-    const res = migrateLegacyConfig({
-      channels: {
-        telegram: {
-          groupMentionsOnly: true,
-          groups: {
-            "*": {
-              requireMention: false,
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.changes).toContain(
-      'Removed channels.telegram.groupMentionsOnly (channels.telegram.groups."*" already set).',
-    );
-    expect(res.config?.channels?.telegram?.groups?.["*"]?.requireMention).toBe(false);
-    expect(
-      (res.config?.channels?.telegram as { groupMentionsOnly?: unknown } | undefined)
-        ?.groupMentionsOnly,
-    ).toBeUndefined();
-  });
-
-  it("does not overwrite invalid channels.telegram.groups when migrating groupMentionsOnly", () => {
-    const res = migrateLegacyConfig({
-      channels: {
-        telegram: {
-          groupMentionsOnly: true,
-          groups: [],
-        },
-      },
-    });
-
-    expect(res.config).toBeNull();
-    expect(res.changes).toContain(
-      "Skipped channels.telegram.groupMentionsOnly migration because channels.telegram.groups already has an incompatible shape; fix remaining issues manually.",
-    );
-    expect(res.changes).toContain(
-      "Migration applied, but config still invalid; fix remaining issues manually.",
-    );
-  });
-
-  it('does not overwrite invalid channels.telegram.groups."*" when migrating groupMentionsOnly', () => {
-    const res = migrateLegacyConfig({
-      channels: {
-        telegram: {
-          groupMentionsOnly: true,
-          groups: {
-            "*": false,
-          },
-        },
-      },
-    });
-
-    expect(res.config).toBeNull();
-    expect(res.changes).toContain(
-      "Skipped channels.telegram.groupMentionsOnly migration because channels.telegram.groups already has an incompatible shape; fix remaining issues manually.",
-    );
-    expect(res.changes).toContain(
-      "Migration applied, but config still invalid; fix remaining issues manually.",
-    );
-  });
-});
-
-describe("legacy migrate tts provider shape", () => {
-  it("moves messages.tts.<provider> keys into messages.tts.providers", () => {
+  it("does not rewrite removed legacy tts provider shapes", () => {
     const res = migrateLegacyConfig({
       messages: {
         tts: {
           provider: "elevenlabs",
           elevenlabs: {
             apiKey: "test-key",
-            voiceId: "voice-1",
           },
         },
       },
     });
 
-    expect(res.changes).toContain(
-      "Moved messages.tts.elevenlabs → messages.tts.providers.elevenlabs.",
-    );
-    expect(res.config?.messages?.tts).toEqual({
-      provider: "elevenlabs",
-      providers: {
-        elevenlabs: {
-          apiKey: "test-key",
-          voiceId: "voice-1",
-        },
-      },
-    });
+    expect(res).toEqual({ config: null, changes: [] });
   });
 
-  it("moves channels.discord.accounts.<id>.voice.tts.edge into providers.microsoft", () => {
-    const res = migrateLegacyConfig({
-      channels: {
-        discord: {
-          accounts: {
-            main: {
-              voice: {
-                tts: {
-                  edge: {
-                    voice: "en-US-JennyNeural",
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.changes).toContain(
-      "Moved channels.discord.accounts.main.voice.tts.edge → channels.discord.accounts.main.voice.tts.providers.microsoft.",
-    );
-    const mainTts = (
-      res.config?.channels?.discord?.accounts as
-        | Record<string, { voice?: { tts?: Record<string, unknown> } }>
-        | undefined
-    )?.main?.voice?.tts;
-    expect(mainTts?.providers).toEqual({
-      microsoft: {
-        voice: "en-US-JennyNeural",
-      },
-    });
-    expect(mainTts?.edge).toBeUndefined();
-  });
-
-  it("moves plugins.entries.voice-call.config.tts.<provider> keys into providers", () => {
-    const res = migrateLegacyConfig({
-      plugins: {
-        entries: {
-          "voice-call": {
-            config: {
-              tts: {
-                provider: "openai",
-                openai: {
-                  model: "gpt-4o-mini-tts",
-                  voice: "alloy",
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.changes).toContain(
-      "Moved plugins.entries.voice-call.config.tts.openai → plugins.entries.voice-call.config.tts.providers.openai.",
-    );
-    const voiceCallTts = (
-      res.config?.plugins?.entries as
-        | Record<string, { config?: { tts?: Record<string, unknown> } }>
-        | undefined
-    )?.["voice-call"]?.config?.tts;
-    expect(voiceCallTts).toEqual({
-      provider: "openai",
-      providers: {
-        openai: {
-          model: "gpt-4o-mini-tts",
-          voice: "alloy",
-        },
-      },
-    });
-  });
-
-  it("does not migrate legacy tts provider keys for unknown plugin ids", () => {
-    const res = migrateLegacyConfig({
-      plugins: {
-        entries: {
-          "third-party-plugin": {
-            config: {
-              tts: {
-                provider: "openai",
-                openai: {
-                  model: "custom-tts",
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-});
-
-describe("legacy migrate x_search auth", () => {
-  it("moves only legacy x_search auth into plugin-owned xai config", () => {
+  it("does not rewrite removed x_search auth config", () => {
     const res = migrateLegacyConfig({
       tools: {
         web: {
           x_search: {
             apiKey: "xai-legacy-key",
-            enabled: true,
-            model: "grok-4-1-fast",
           },
         },
       },
     });
 
-    expect((res.config?.tools?.web as Record<string, unknown> | undefined)?.x_search).toEqual({
-      enabled: true,
-      model: "grok-4-1-fast",
-    });
-    expect(res.config?.plugins?.entries?.xai).toEqual({
-      enabled: true,
-      config: {
-        webSearch: {
-          apiKey: "xai-legacy-key",
-        },
+    expect(res).toEqual({ config: null, changes: [] });
+  });
+
+  it("does not seed gateway.controlUi.allowedOrigins anymore", () => {
+    const res = migrateLegacyConfig({
+      gateway: {
+        bind: "lan",
+        auth: { mode: "token", token: "tok" },
       },
     });
-    expect(res.changes).toEqual([
-      "Moved tools.web.x_search.apiKey → plugins.entries.xai.config.webSearch.apiKey.",
-    ]);
-  });
-});
 
-describe("legacy migrate heartbeat config", () => {
-  it("does not auto-migrate removed top-level heartbeat", () => {
+    expect(res).toEqual({ config: null, changes: [] });
+  });
+
+  it("does not rewrite removed top-level heartbeat config", () => {
     const res = migrateLegacyConfig({
       heartbeat: {
-        model: "anthropic/claude-3-5-haiku-20241022",
         target: "telegram",
       },
     });
 
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-
-  it("does not auto-migrate top-level heartbeat visibility", () => {
-    const res = migrateLegacyConfig({
-      heartbeat: {
-        showOk: true,
-        showAlerts: false,
-        useIndicator: false,
-      },
-    });
-
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-
-  it("leaves removed top-level heartbeat for validation", () => {
-    const res = migrateLegacyConfig(
-      JSON.parse(
-        '{"heartbeat":{"target":"telegram","__proto__":{"polluted":true},"showOk":true}}',
-      ) as Record<string, unknown>,
-    );
-
-    expect(res.changes).toEqual([]);
-    expect(res.config).toBeNull();
-  });
-});
-
-describe("legacy migrate controlUi.allowedOrigins seed (issue #29385)", () => {
-  it("seeds allowedOrigins for bind=lan with no existing controlUi config", () => {
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "lan",
-        auth: { mode: "token", token: "tok" },
-      },
-    });
-    expect(res.config?.gateway?.controlUi?.allowedOrigins).toEqual([
-      "http://localhost:18789",
-      "http://127.0.0.1:18789",
-    ]);
-    expect(res.changes.some((c) => c.includes("gateway.controlUi.allowedOrigins"))).toBe(true);
-    expect(res.changes.some((c) => c.includes("bind=lan"))).toBe(true);
-  });
-
-  it("seeds allowedOrigins using configured port", () => {
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "lan",
-        port: 9000,
-        auth: { mode: "token", token: "tok" },
-      },
-    });
-    expect(res.config?.gateway?.controlUi?.allowedOrigins).toEqual([
-      "http://localhost:9000",
-      "http://127.0.0.1:9000",
-    ]);
-  });
-
-  it("seeds allowedOrigins including custom bind host for bind=custom", () => {
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "custom",
-        customBindHost: "192.168.1.100",
-        auth: { mode: "token", token: "tok" },
-      },
-    });
-    expect(res.config?.gateway?.controlUi?.allowedOrigins).toContain("http://192.168.1.100:18789");
-    expect(res.config?.gateway?.controlUi?.allowedOrigins).toContain("http://localhost:18789");
-  });
-
-  it("does not overwrite existing allowedOrigins — returns null (no migration needed)", () => {
-    // When allowedOrigins already exists, the migration is a no-op.
-    // applyLegacyMigrations returns next=null when changes.length===0, so config is null.
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "lan",
-        auth: { mode: "token", token: "tok" },
-        controlUi: { allowedOrigins: ["https://control.example.com"] },
-      },
-    });
-    expect(res.config).toBeNull();
-    expect(res.changes).toHaveLength(0);
-  });
-
-  it("does not migrate when dangerouslyAllowHostHeaderOriginFallback is set — returns null", () => {
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "lan",
-        auth: { mode: "token", token: "tok" },
-        controlUi: { dangerouslyAllowHostHeaderOriginFallback: true },
-      },
-    });
-    expect(res.config).toBeNull();
-    expect(res.changes).toHaveLength(0);
-  });
-
-  it("seeds allowedOrigins when existing entries are blank strings", () => {
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "lan",
-        auth: { mode: "token", token: "tok" },
-        controlUi: { allowedOrigins: ["", "   "] },
-      },
-    });
-    expect(res.config?.gateway?.controlUi?.allowedOrigins).toEqual([
-      "http://localhost:18789",
-      "http://127.0.0.1:18789",
-    ]);
-    expect(res.changes.some((c) => c.includes("gateway.controlUi.allowedOrigins"))).toBe(true);
-  });
-
-  it("does not migrate loopback bind — returns null", () => {
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "loopback",
-        auth: { mode: "token", token: "tok" },
-      },
-    });
-    expect(res.config).toBeNull();
-    expect(res.changes).toHaveLength(0);
-  });
-
-  it("preserves existing controlUi fields when seeding allowedOrigins", () => {
-    const res = migrateLegacyConfig({
-      gateway: {
-        bind: "lan",
-        auth: { mode: "token", token: "tok" },
-        controlUi: { basePath: "/app" },
-      },
-    });
-    expect(res.config?.gateway?.controlUi?.basePath).toBe("/app");
-    expect(res.config?.gateway?.controlUi?.allowedOrigins).toEqual([
-      "http://localhost:18789",
-      "http://127.0.0.1:18789",
-    ]);
+    expect(res).toEqual({ config: null, changes: [] });
   });
 });

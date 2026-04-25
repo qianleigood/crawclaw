@@ -6,7 +6,6 @@ import {
 } from "crawclaw/plugin-sdk/channel-inbound";
 import { createChannelPairingChallengeIssuer } from "crawclaw/plugin-sdk/channel-pairing";
 import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
-import { waitForTransportReady } from "crawclaw/plugin-sdk/channel-runtime";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
   resolveOpenProviderRuntimeGroupPolicy,
@@ -19,6 +18,7 @@ import {
   upsertChannelPairingRequest,
 } from "crawclaw/plugin-sdk/conversation-runtime";
 import { recordInboundSession } from "crawclaw/plugin-sdk/conversation-runtime";
+import { waitForTransportReady } from "crawclaw/plugin-sdk/infra-runtime";
 import { normalizeScpRemoteHost } from "crawclaw/plugin-sdk/infra-runtime";
 import {
   isInboundPathAllowed,

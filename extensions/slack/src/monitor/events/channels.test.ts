@@ -5,7 +5,7 @@ let registerSlackChannelEvents: typeof import("./channels.js").registerSlackChan
 let createSlackSystemEventTestHarness: typeof import("./system-event-test-harness.js").createSlackSystemEventTestHarness;
 
 async function createChannelRuntimeMock(
-  importOriginal: () => Promise<typeof import("crawclaw/plugin-sdk/channel-runtime")>,
+  importOriginal: () => Promise<typeof import("crawclaw/plugin-sdk/infra-runtime")>,
 ) {
   const actual = await importOriginal();
   return {
@@ -14,8 +14,8 @@ async function createChannelRuntimeMock(
   };
 }
 
-vi.mock("crawclaw/plugin-sdk/channel-runtime", createChannelRuntimeMock);
-vi.mock("crawclaw/plugin-sdk/channel-runtime.js", createChannelRuntimeMock);
+vi.mock("crawclaw/plugin-sdk/infra-runtime", createChannelRuntimeMock);
+vi.mock("crawclaw/plugin-sdk/infra-runtime.js", createChannelRuntimeMock);
 
 type SlackChannelHandler = (args: {
   event: Record<string, unknown>;

@@ -4,8 +4,7 @@ import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { clearInternalHooks, getRegisteredEventKeys } from "../hooks/internal-hooks.js";
-import { emitDiagnosticEvent, resetDiagnosticEventsForTest } from "../infra/diagnostic-events.js";
-import { createObservationRoot } from "../infra/observation/context.js";
+import { resetDiagnosticEventsForTest } from "../infra/diagnostic-events.js";
 import { withEnv } from "../test-utils/env.js";
 import { clearPluginCommands, getPluginCommandSpecs } from "./command-registry-state.js";
 import { clearPluginDiscoveryCache } from "./discovery.js";
@@ -4002,7 +4001,7 @@ module.exports = {
     expect(record?.status).toBe("loaded");
   });
 
-  it("supports legacy plugins importing monolithic plugin-sdk root", async () => {
+  it("rejects legacy plugins importing the removed monolithic plugin-sdk root", async () => {
     useNoBundledPlugins();
     const plugin = writePlugin({
       id: "legacy-root-import",
@@ -4027,14 +4026,12 @@ module.exports = {
       }),
     );
     const record = registry.plugins.find((entry) => entry.id === "legacy-root-import");
-    expect(record?.status).toBe("loaded");
+    expect(record?.status).toBe("error");
+    expect(record?.error).toContain("crawclaw/plugin-sdk");
   });
 
-  it("supports legacy plugins subscribing to diagnostic events from the root sdk", async () => {
+  it("rejects legacy plugins subscribing to diagnostic events from the removed root sdk", async () => {
     useNoBundledPlugins();
-    const seenKey = "__crawclawLegacyRootDiagnosticSeen";
-    delete (globalThis as Record<string, unknown>)[seenKey];
-
     const plugin = writePlugin({
       id: "legacy-root-diagnostic-listener",
       filename: "legacy-root-diagnostic-listener.cjs",
@@ -4046,56 +4043,26 @@ module.exports = {
     if (typeof onDiagnosticEvent !== "function") {
       throw new Error("missing onDiagnosticEvent root export");
     }
-    globalThis.${seenKey} = [];
-    onDiagnosticEvent((event) => {
-      globalThis.${seenKey}.push({
-        type: event.type,
-        sessionKey: event.sessionKey,
-      });
-    });
+    onDiagnosticEvent(() => {});
   },
 };`,
     });
 
-    try {
-      const registry = withEnv(
-        { CRAWCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins" },
-        () =>
-          loadCrawClawPlugins({
-            cache: false,
-            workspaceDir: plugin.dir,
-            config: {
-              plugins: {
-                load: { paths: [plugin.file] },
-                allow: ["legacy-root-diagnostic-listener"],
-              },
-            },
-          }),
-      );
-      const record = registry.plugins.find(
-        (entry) => entry.id === "legacy-root-diagnostic-listener",
-      );
-      expect(record?.status).toBe("loaded");
-
-      emitDiagnosticEvent({
-        type: "model.usage",
-        observation: createObservationRoot({
-          source: "test",
-          runtime: { sessionKey: "agent:main:test:dm:peer" },
-        }),
-        sessionKey: "agent:main:test:dm:peer",
-        usage: { total: 1 },
-      });
-
-      expect((globalThis as Record<string, unknown>)[seenKey]).toEqual([
-        {
-          type: "model.usage",
-          sessionKey: "agent:main:test:dm:peer",
+    const registry = withEnv({ CRAWCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins" }, () =>
+      loadCrawClawPlugins({
+        cache: false,
+        workspaceDir: plugin.dir,
+        config: {
+          plugins: {
+            load: { paths: [plugin.file] },
+            allow: ["legacy-root-diagnostic-listener"],
+          },
         },
-      ]);
-    } finally {
-      delete (globalThis as Record<string, unknown>)[seenKey];
-    }
+      }),
+    );
+    const record = registry.plugins.find((entry) => entry.id === "legacy-root-diagnostic-listener");
+    expect(record?.status).toBe("error");
+    expect(record?.error).toContain("crawclaw/plugin-sdk");
   });
 
   it("loads source TypeScript plugins that route through local runtime shims", () => {

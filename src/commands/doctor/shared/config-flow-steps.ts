@@ -1,4 +1,3 @@
-import { migrateLegacyConfig } from "../../../config/config.js";
 import { formatConfigIssueLines } from "../../../config/issue-format.js";
 import { stripUnknownConfigKeys } from "../../doctor-config-analysis.js";
 import type { DoctorConfigPreflightResult } from "../../doctor-config-preflight.js";
@@ -23,37 +22,18 @@ export function applyLegacyCompatibilityStep(params: {
   }
 
   const issueLines = formatConfigIssueLines(params.snapshot.legacyIssues, "-");
-  const { config: migrated, changes } = migrateLegacyConfig(params.snapshot.parsed);
-  if (!migrated) {
-    return {
-      state: {
-        ...params.state,
-        fixHints: params.shouldRepair
-          ? params.state.fixHints
-          : [
-              ...params.state.fixHints,
-              `Run "${params.doctorFixCommand}" to apply compatibility migrations.`,
-            ],
-      },
-      issueLines,
-      changeLines: changes,
-    };
-  }
-
   return {
     state: {
-      cfg: params.shouldRepair ? migrated : params.state.cfg,
-      candidate: migrated,
-      pendingChanges: params.state.pendingChanges || changes.length > 0,
-      fixHints: params.shouldRepair
-        ? params.state.fixHints
-        : [
-            ...params.state.fixHints,
-            `Run "${params.doctorFixCommand}" to apply compatibility migrations.`,
-          ],
+      ...params.state,
+      fixHints: [
+        ...params.state.fixHints,
+        params.shouldRepair
+          ? "Removed legacy config paths require manual edits; doctor --fix will not rewrite them."
+          : `Review the reported config paths, update them manually, then rerun "${params.doctorFixCommand}".`,
+      ],
     },
     issueLines,
-    changeLines: changes,
+    changeLines: [],
   };
 }
 

@@ -39,10 +39,6 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./plugin-sdk": {
-      "types": "./dist/plugin-sdk/index.d.ts",
-      "default": "./dist/plugin-sdk/index.js"
-    },
     "./plugin-sdk/core": {
       "types": "./dist/plugin-sdk/core.d.ts",
       "default": "./dist/plugin-sdk/core.js"
@@ -119,9 +115,9 @@
       "types": "./dist/plugin-sdk/channel-reply-pipeline.d.ts",
       "default": "./dist/plugin-sdk/channel-reply-pipeline.js"
     },
-    "./plugin-sdk/channel-runtime": {
-      "types": "./dist/plugin-sdk/channel-runtime.d.ts",
-      "default": "./dist/plugin-sdk/channel-runtime.js"
+    "./plugin-sdk/channel-id": {
+      "types": "./dist/plugin-sdk/channel-id.d.ts",
+      "default": "./dist/plugin-sdk/channel-id.js"
     },
     "./plugin-sdk/interactive-runtime": {
       "types": "./dist/plugin-sdk/interactive-runtime.d.ts",
@@ -947,7 +943,6 @@
       "types": "./dist/plugin-sdk/zod.d.ts",
       "default": "./dist/plugin-sdk/zod.js"
     },
-    "./extension-api": "./dist/extensionAPI.js",
     "./cli-entry": "./crawclaw.mjs"
   },
   "scripts": {
@@ -1031,7 +1026,6 @@
     "lint:web-fetch-provider-boundaries": "node scripts/check-web-fetch-provider-boundaries.mjs",
     "lint:web-search-provider-boundaries": "node scripts/check-web-search-provider-boundaries.mjs",
     "lint:webhook:no-low-level-body-read": "node scripts/check-webhook-auth-body-order.mjs",
-    "moltbot:rpc": "node scripts/run-node.mjs agent --mode rpc --json",
     "plugin-sdk:api:check": "node --import tsx scripts/generate-plugin-sdk-api-baseline.ts --check",
     "plugin-sdk:api:gen": "node --import tsx scripts/generate-plugin-sdk-api-baseline.ts --write",
     "plugin-sdk:check-exports": "node scripts/sync-plugin-sdk-exports.mjs --check",

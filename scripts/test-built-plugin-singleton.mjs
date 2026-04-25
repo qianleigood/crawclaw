@@ -107,8 +107,7 @@ fs.writeFileSync(
 fs.writeFileSync(
   path.join(distPluginDir, "index.js"),
   [
-    "import sdk from 'crawclaw/plugin-sdk';",
-    "const { emptyPluginConfigSchema } = sdk;",
+    "import { emptyPluginConfigSchema } from 'crawclaw/plugin-sdk/core';",
     "",
     "export default {",
     `  id: ${JSON.stringify(pluginId)},`,

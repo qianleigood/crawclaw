@@ -15,7 +15,6 @@ import {
   getRuntimeConfig,
   isNixMode,
   loadConfig,
-  migrateLegacyConfig,
   registerConfigWriteListener,
   readConfigFileSnapshot,
   writeConfigFile,
@@ -119,7 +118,6 @@ import { resolveGatewayRuntimeConfig } from "./server-runtime-config.js";
 import { createGatewayRuntimeState } from "./server-runtime-state.js";
 import { resolveSessionKeyForRun } from "./server-session-key.js";
 import { logGatewayStartup } from "./server-startup-log.js";
-import { runStartupMatrixMigration } from "./server-startup-matrix-migration.js";
 import { runStartupSessionMigration } from "./server-startup-session-migration.js";
 import { startGatewaySidecars } from "./server-startup.js";
 import { startGatewayTailscaleExposure } from "./server-tailscale.js";
@@ -389,29 +387,19 @@ export async function startGatewayServer(
 
   let configSnapshot = await readConfigFileSnapshot();
   if (configSnapshot.legacyIssues.length > 0) {
+    const detail = configSnapshot.legacyIssues
+      .map((issue) => `- ${issue.path}: ${issue.message}`)
+      .join("\n");
     if (isNixMode) {
       throw new Error(
-        "Legacy config entries detected while running in Nix mode. Update your Nix config to the latest schema and restart.",
+        `Legacy config entries detected while running in Nix mode. Update your Nix config to the latest schema and restart.\n${detail}`,
       );
     }
-    const { config: migrated, changes } = migrateLegacyConfig(configSnapshot.parsed);
-    if (!migrated) {
-      log.warn(
-        "gateway: legacy config entries detected but no auto-migration changes were produced; continuing with validation.",
-      );
-    } else {
-      await writeConfigFile(migrated);
-      if (changes.length > 0) {
-        log.info(
-          `gateway: migrated legacy config entries:\n${changes
-            .map((entry) => `- ${entry}`)
-            .join("\n")}`,
-        );
-      }
-    }
+    throw new Error(
+      `Legacy config entries were removed in v2026.4.24. Update the config manually before starting the gateway.\n${detail}`,
+    );
   }
 
-  configSnapshot = await readConfigFileSnapshot();
   if (configSnapshot.exists) {
     assertValidGatewayStartupConfigSnapshot(configSnapshot, { includeDoctorHint: true });
   }
@@ -544,11 +532,6 @@ export async function startGatewayServer(
     const startupSnapshot = await readConfigFileSnapshot();
     startupInternalWriteHash = startupSnapshot.hash ?? null;
   }
-  await runStartupMatrixMigration({
-    cfg: cfgAtStart,
-    env: process.env,
-    log,
-  });
   await runStartupSessionMigration({
     cfg: cfgAtStart,
     env: process.env,

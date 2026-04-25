@@ -31,9 +31,9 @@ describe("doctor config flow steps", () => {
     });
 
     expect(result.issueLines).toEqual([expect.stringContaining("- heartbeat:")]);
-    expect(result.changeLines).not.toEqual([]);
+    expect(result.changeLines).toEqual([]);
     expect(result.state.fixHints).toContain(
-      'Run "crawclaw doctor --fix" to apply compatibility migrations.',
+      'Review the reported config paths, update them manually, then rerun "crawclaw doctor --fix".',
     );
   });
 

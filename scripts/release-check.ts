@@ -30,7 +30,6 @@ const requiredPathGroups = [
   "scripts/npm-runner.mjs",
   "scripts/postinstall-bundled-plugins.mjs",
   "skills/coding-agent/SKILL.md",
-  "dist/plugin-sdk/root-alias.cjs",
   "dist/build-info.json",
   "dist/channel-catalog.json",
 ];

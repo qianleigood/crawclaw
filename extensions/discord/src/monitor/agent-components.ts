@@ -16,14 +16,11 @@ import {
   type TopLevelComponents,
   type UserSelectMenuInteraction,
 } from "@buape/carbon";
-import type { APIStringSelectComponent } from "discord-api-types/v10";
-import { ButtonStyle, ChannelType } from "discord-api-types/v10";
 import { resolveHumanDelayConfig } from "crawclaw/plugin-sdk/agent-runtime";
 import {
   formatInboundEnvelope,
   resolveEnvelopeFormatOptions,
 } from "crawclaw/plugin-sdk/channel-inbound";
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
   isDangerousNameMatchingEnabled,
@@ -33,18 +30,19 @@ import {
   resolveStorePath,
 } from "crawclaw/plugin-sdk/config-runtime";
 import type { DiscordAccountConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import { getAgentScopedMediaLocalRoots } from "crawclaw/plugin-sdk/media-runtime";
-import {
-  type PluginInteractiveDiscordHandlerContext,
-} from "crawclaw/plugin-sdk/plugin-runtime";
+import { type PluginInteractiveDiscordHandlerContext } from "crawclaw/plugin-sdk/plugin-runtime";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { createNonExitingRuntime, type RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
 import { logDebug, logError } from "crawclaw/plugin-sdk/text-runtime";
+import type { APIStringSelectComponent } from "discord-api-types/v10";
+import { ButtonStyle, ChannelType } from "discord-api-types/v10";
+import { resolveDiscordMaxLinesPerMessage } from "../accounts.js";
 import {
   parseDiscordComponentCustomIdForCarbon,
   parseDiscordModalCustomIdForCarbon,
 } from "../component-custom-id.js";
-import { resolveDiscordMaxLinesPerMessage } from "../accounts.js";
 import { resolveDiscordComponentEntry, resolveDiscordModalEntry } from "../components-registry.js";
 import type { DiscordComponentEntry, DiscordModalEntry } from "../components.js";
 import {
@@ -904,7 +902,9 @@ async function handleDiscordModalTrigger(params: {
   }
 
   try {
-    await params.interaction.showModal((await loadComponentsRuntime()).createDiscordFormModal(modalEntry));
+    await params.interaction.showModal(
+      (await loadComponentsRuntime()).createDiscordFormModal(modalEntry),
+    );
   } catch (err) {
     logError(`${params.label}: failed to show modal: ${String(err)}`);
   }

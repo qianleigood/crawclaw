@@ -14,7 +14,6 @@ import {
   resolveMentionGatingWithBypass,
 } from "crawclaw/plugin-sdk/channel-inbound";
 import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
 import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
 import { hasControlCommand } from "crawclaw/plugin-sdk/command-auth";
 import {
@@ -29,6 +28,7 @@ import {
   toInternalMessageReceivedContext,
   triggerInternalHook,
 } from "crawclaw/plugin-sdk/hook-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import { kindFromMime } from "crawclaw/plugin-sdk/media-runtime";
 import {
   buildPendingHistoryContextFromMap,

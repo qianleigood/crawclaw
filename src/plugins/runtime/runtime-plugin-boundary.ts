@@ -5,7 +5,6 @@ import { loadConfig } from "../../config/config.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
 import {
   buildPluginLoaderJitiOptions,
-  resolvePluginSdkAliasFile,
   resolvePluginSdkScopedAliasMap,
   shouldPreferNativeJiti,
 } from "../sdk-alias.js";
@@ -81,15 +80,7 @@ export function getPluginBoundaryJiti(
   if (cached) {
     return cached;
   }
-  const pluginSdkAlias = resolvePluginSdkAliasFile({
-    srcFile: "root-alias.cjs",
-    distFile: "root-alias.cjs",
-    modulePath,
-  });
-  const aliasMap = {
-    ...(pluginSdkAlias ? { "crawclaw/plugin-sdk": pluginSdkAlias } : {}),
-    ...resolvePluginSdkScopedAliasMap({ modulePath }),
-  };
+  const aliasMap = resolvePluginSdkScopedAliasMap({ modulePath });
   const loader = createJiti(import.meta.url, {
     ...buildPluginLoaderJitiOptions(aliasMap),
     tryNative,

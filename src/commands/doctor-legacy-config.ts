@@ -8,8 +8,6 @@ import {
   resolveSlackStreamingMode,
   type StreamingMode,
 } from "../config/discord-preview-streaming.js";
-import { migrateLegacyWebSearchConfig } from "../config/legacy-web-search.js";
-import { migrateLegacyXSearchConfig } from "../config/legacy-x-search.js";
 import { LEGACY_TALK_PROVIDER_ID, normalizeTalkSection } from "../config/talk.js";
 import { DEFAULT_GOOGLE_API_BASE_URL } from "../infra/google-api-base-url.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
@@ -357,16 +355,6 @@ export function normalizeCompatibilityConfigValues(cfg: CrawClawConfig): {
   normalizeProvider("discord");
   seedMissingDefaultAccountsFromSingleAccountBase();
   normalizeLegacyBrowserProfiles();
-  const webSearchMigration = migrateLegacyWebSearchConfig(next);
-  if (webSearchMigration.changes.length > 0) {
-    next = webSearchMigration.config;
-    changes.push(...webSearchMigration.changes);
-  }
-  const xSearchMigration = migrateLegacyXSearchConfig(next);
-  if (xSearchMigration.changes.length > 0) {
-    next = xSearchMigration.config;
-    changes.push(...xSearchMigration.changes);
-  }
 
   const normalizeBrowserSsrFPolicyAlias = () => {
     const rawBrowser = next.browser;

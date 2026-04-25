@@ -69,14 +69,14 @@ it("loads the packaged runtime wrapper without recursing through the stable root
         name: "crawclaw",
         type: "module",
         exports: {
-          "./plugin-sdk": "./dist/plugin-sdk/index.js",
+          "./plugin-sdk/core": "./dist/plugin-sdk/core.js",
         },
       },
       null,
       2,
     ) + "\n",
   );
-  writeFixtureFile(fixtureRoot, "dist/plugin-sdk/index.js", "export {};\n");
+  writeFixtureFile(fixtureRoot, "dist/plugin-sdk/core.js", "export {};\n");
   writeFixtureFile(
     fixtureRoot,
     "node_modules/jiti/index.js",

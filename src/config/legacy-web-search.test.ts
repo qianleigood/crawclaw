@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "./config.js";
 import {
+  findLegacyWebSearchConfigIssues,
   listLegacyWebSearchConfigPaths,
   migrateLegacyWebSearchConfig,
 } from "./legacy-web-search.js";
 
 describe("legacy web search config", () => {
-  it("migrates legacy global apiKey to brave plugin-owned config", () => {
-    const res = migrateLegacyWebSearchConfig<CrawClawConfig>({
+  it("does not auto-migrate removed web search provider config", () => {
+    const config = {
       tools: {
         web: {
           search: {
@@ -16,25 +17,15 @@ describe("legacy web search config", () => {
           },
         },
       },
-    });
+    } as CrawClawConfig;
 
-    expect(res.config.tools?.web?.search).toEqual({
-      provider: "grok",
+    expect(migrateLegacyWebSearchConfig(config)).toEqual({
+      config,
+      changes: [],
     });
-    expect(res.config.plugins?.entries?.brave).toEqual({
-      enabled: true,
-      config: {
-        webSearch: {
-          apiKey: "brave-key",
-        },
-      },
-    });
-    expect(res.changes).toEqual([
-      "Moved tools.web.search.apiKey → plugins.entries.brave.config.webSearch.apiKey.",
-    ]);
   });
 
-  it("lists legacy paths for metadata-owned provider config", () => {
+  it("lists legacy paths for removed provider config", () => {
     expect(
       listLegacyWebSearchConfigPaths({
         tools: {
@@ -46,5 +37,25 @@ describe("legacy web search config", () => {
         },
       }),
     ).toEqual(["tools.web.search.apiKey"]);
+  });
+
+  it("reports legacy web search issues with the plugin-owned target path", () => {
+    expect(
+      findLegacyWebSearchConfigIssues({
+        tools: {
+          web: {
+            search: {
+              apiKey: "brave-key",
+            },
+          },
+        },
+      }),
+    ).toEqual([
+      {
+        path: "tools.web.search.apiKey",
+        message:
+          "tools.web.search.apiKey was removed; use plugins.entries.brave.config.webSearch.apiKey instead.",
+      },
+    ]);
   });
 });

@@ -330,7 +330,7 @@ describe("doctor config flow", () => {
     expect(result.cfg.plugins?.entries?.browser?.enabled).toBe(true);
   });
 
-  it("previews Matrix legacy sync-store migration in read-only mode", async () => {
+  it("previews Matrix legacy sync-store issues in read-only mode", async () => {
     const noteSpy = vi.spyOn(noteModule, "note").mockImplementation(() => {});
     try {
       await withTempHome(async (home) => {
@@ -360,12 +360,10 @@ describe("doctor config flow", () => {
 
       const warning = noteSpy.mock.calls.find(
         (call) =>
-          call[1] === "Doctor warnings" && call[0].includes("Matrix plugin upgraded in place."),
+          call[1] === "Doctor warnings" && call[0].includes("Matrix legacy state was detected."),
       );
       expect(warning?.[0]).toContain("Legacy sync store:");
-      expect(warning?.[0]).toContain(
-        'Run "crawclaw doctor --fix" to migrate this Matrix state now.',
-      );
+      expect(warning?.[0]).toContain("Automatic Matrix state migration was removed");
     } finally {
       noteSpy.mockRestore();
     }
@@ -417,7 +415,7 @@ describe("doctor config flow", () => {
     }
   });
 
-  it("migrates Matrix legacy state on doctor repair", async () => {
+  it("does not migrate Matrix legacy state on doctor repair", async () => {
     const noteSpy = vi.spyOn(noteModule, "note").mockImplementation(() => {});
     try {
       await withTempHome(async (home) => {
@@ -444,33 +442,24 @@ describe("doctor config flow", () => {
           confirm: async () => false,
         });
 
-        const migratedRoot = path.join(
-          stateDir,
-          "matrix",
-          "accounts",
-          "default",
-          "matrix.example.org__bot_example.org",
-        );
-        const migratedChildren = await fs.readdir(migratedRoot);
-        expect(migratedChildren.length).toBe(1);
-        expect(
-          await fs
-            .access(path.join(migratedRoot, migratedChildren[0] ?? "", "bot-storage.json"))
-            .then(() => true)
-            .catch(() => false),
-        ).toBe(true);
         expect(
           await fs
             .access(path.join(stateDir, "matrix", "bot-storage.json"))
             .then(() => true)
             .catch(() => false),
-        ).toBe(false);
+        ).toBe(true);
       });
 
       expect(
         noteSpy.mock.calls.some(
+          (call) => call[1] === "Doctor changes" && call[0].includes("Matrix legacy state"),
+        ),
+      ).toBe(false);
+      expect(
+        noteSpy.mock.calls.some(
           (call) =>
-            call[1] === "Doctor changes" && call[0].includes("Matrix plugin upgraded in place."),
+            call[1] === "Doctor warnings" &&
+            call[0].includes("Automatic Matrix state migration was removed"),
         ),
       ).toBe(true);
     } finally {
@@ -478,7 +467,7 @@ describe("doctor config flow", () => {
     }
   });
 
-  it("creates a Matrix migration snapshot before doctor repair mutates Matrix state", async () => {
+  it("does not create a Matrix migration snapshot during doctor repair", async () => {
     await withTempHome(async (home) => {
       const stateDir = path.join(home, ".crawclaw");
       await fs.mkdir(path.join(stateDir, "matrix"), { recursive: true });
@@ -502,15 +491,16 @@ describe("doctor config flow", () => {
       });
 
       const snapshotDir = path.join(home, "Backups", "crawclaw-migrations");
-      const snapshotEntries = await fs.readdir(snapshotDir);
-      expect(snapshotEntries.some((entry) => entry.endsWith(".tar.gz"))).toBe(true);
-
-      const marker = JSON.parse(
-        await fs.readFile(path.join(stateDir, "matrix", "migration-snapshot.json"), "utf8"),
-      ) as {
-        archivePath: string;
-      };
-      expect(marker.archivePath).toContain(path.join("Backups", "crawclaw-migrations"));
+      const snapshotExists = await fs
+        .access(snapshotDir)
+        .then(() => true)
+        .catch(() => false);
+      expect(snapshotExists).toBe(false);
+      const markerExists = await fs
+        .access(path.join(stateDir, "matrix", "migration-snapshot.json"))
+        .then(() => true)
+        .catch(() => false);
+      expect(markerExists).toBe(false);
     });
   });
 
@@ -1090,63 +1080,80 @@ describe("doctor config flow", () => {
     expectGoogleChatDmAllowFromRepaired(result.cfg);
   });
 
-  it("migrates top-level heartbeat into agents.defaults.heartbeat on repair", async () => {
-    const result = await runDoctorConfigWithInput({
-      repair: true,
-      config: {
-        heartbeat: {
-          model: "anthropic/claude-3-5-haiku-20241022",
+  it("does not migrate removed top-level heartbeat config on repair", async () => {
+    const noteSpy = vi.spyOn(noteModule, "note").mockImplementation(() => {});
+    try {
+      const result = await runDoctorConfigWithInput({
+        repair: true,
+        config: {
+          heartbeat: {
+            model: "anthropic/claude-3-5-haiku-20241022",
+          },
         },
-      },
-      run: loadAndMaybeMigrateDoctorConfig,
-    });
+        run: loadAndMaybeMigrateDoctorConfig,
+      });
 
-    const cfg = result.cfg as {
-      heartbeat?: unknown;
-      agents?: {
-        defaults?: {
-          heartbeat?: {
-            model?: string;
-            every?: string;
+      const cfg = result.cfg as {
+        heartbeat?: unknown;
+        agents?: {
+          defaults?: {
+            heartbeat?: {
+              model?: string;
+            };
           };
         };
       };
-    };
-    expect(cfg.heartbeat).toBeUndefined();
-    expect(cfg.agents?.defaults?.heartbeat).toMatchObject({
-      model: "anthropic/claude-3-5-haiku-20241022",
-    });
+      expect(cfg.heartbeat).toBeUndefined();
+      expect(cfg.agents?.defaults?.heartbeat).toBeUndefined();
+      expect(
+        noteSpy.mock.calls.some(
+          (call) =>
+            call[1] === "Compatibility config keys detected" &&
+            call[0].includes("top-level heartbeat is not a valid config path"),
+        ),
+      ).toBe(true);
+    } finally {
+      noteSpy.mockRestore();
+    }
   });
 
-  it("migrates top-level heartbeat visibility into channels.defaults.heartbeat on repair", async () => {
-    const result = await runDoctorConfigWithInput({
-      repair: true,
-      config: {
-        heartbeat: {
-          showOk: true,
-          showAlerts: false,
+  it("does not migrate removed top-level heartbeat visibility config on repair", async () => {
+    const noteSpy = vi.spyOn(noteModule, "note").mockImplementation(() => {});
+    try {
+      const result = await runDoctorConfigWithInput({
+        repair: true,
+        config: {
+          heartbeat: {
+            showOk: true,
+            showAlerts: false,
+          },
         },
-      },
-      run: loadAndMaybeMigrateDoctorConfig,
-    });
+        run: loadAndMaybeMigrateDoctorConfig,
+      });
 
-    const cfg = result.cfg as {
-      heartbeat?: unknown;
-      channels?: {
-        defaults?: {
-          heartbeat?: {
-            showOk?: boolean;
-            showAlerts?: boolean;
-            useIndicator?: boolean;
+      const cfg = result.cfg as {
+        heartbeat?: unknown;
+        channels?: {
+          defaults?: {
+            heartbeat?: {
+              showOk?: boolean;
+              showAlerts?: boolean;
+            };
           };
         };
       };
-    };
-    expect(cfg.heartbeat).toBeUndefined();
-    expect(cfg.channels?.defaults?.heartbeat).toMatchObject({
-      showOk: true,
-      showAlerts: false,
-    });
+      expect(cfg.heartbeat).toBeUndefined();
+      expect(cfg.channels?.defaults?.heartbeat).toBeUndefined();
+      expect(
+        noteSpy.mock.calls.some(
+          (call) =>
+            call[1] === "Compatibility config keys detected" &&
+            call[0].includes("top-level heartbeat is not a valid config path"),
+        ),
+      ).toBe(true);
+    } finally {
+      noteSpy.mockRestore();
+    }
   });
 
   it("repairs googlechat account dm.policy open by setting dm.allowFrom on repair", async () => {

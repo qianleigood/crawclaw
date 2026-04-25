@@ -6,7 +6,6 @@ import { createJiti } from "jiti";
 import { buildChannelConfigSchema } from "../src/channels/plugins/config-schema.js";
 import {
   buildPluginLoaderJitiOptions,
-  resolvePluginSdkAliasFile,
   resolvePluginSdkScopedAliasMap,
 } from "../src/plugins/sdk-alias.js";
 
@@ -255,19 +254,10 @@ export async function loadChannelConfigSurfaceModule(
   };
   const loadViaJiti = (candidatePath: string) => {
     const resolvedPath = path.resolve(candidatePath);
-    const pluginSdkAlias = resolvePluginSdkAliasFile({
-      srcFile: "root-alias.cjs",
-      distFile: "root-alias.cjs",
+    const aliasMap = resolvePluginSdkScopedAliasMap({
       modulePath: resolvedPath,
       pluginSdkResolution: "src",
     });
-    const aliasMap = {
-      ...(pluginSdkAlias ? { "crawclaw/plugin-sdk": pluginSdkAlias } : {}),
-      ...resolvePluginSdkScopedAliasMap({
-        modulePath: resolvedPath,
-        pluginSdkResolution: "src",
-      }),
-    };
     const jiti = createJiti(import.meta.url, {
       ...buildPluginLoaderJitiOptions(aliasMap),
       interopDefault: true,

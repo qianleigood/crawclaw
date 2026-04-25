@@ -1,18 +1,8 @@
 import { formatCliCommand } from "../../../cli/command-format.js";
 import type { CrawClawConfig } from "../../../config/config.js";
-import {
-  autoPrepareLegacyMatrixCrypto,
-  detectLegacyMatrixCrypto,
-} from "../../../infra/matrix-legacy-crypto.js";
-import {
-  autoMigrateLegacyMatrixState,
-  detectLegacyMatrixState,
-} from "../../../infra/matrix-legacy-state.js";
-import {
-  hasActionableMatrixMigration,
-  hasPendingMatrixMigration,
-  maybeCreateMatrixMigrationSnapshot,
-} from "../../../infra/matrix-migration-snapshot.js";
+import { detectLegacyMatrixCrypto } from "../../../infra/matrix-legacy-crypto.js";
+import { detectLegacyMatrixState } from "../../../infra/matrix-legacy-state.js";
+import { hasPendingMatrixMigration } from "../../../infra/matrix-migration-snapshot.js";
 import {
   detectPluginInstallPathIssue,
   formatPluginInstallPathIssue,
@@ -25,13 +15,15 @@ import type { DoctorConfigMutationResult } from "../shared/config-mutation-state
 export function formatMatrixLegacyStatePreview(
   detection: Exclude<ReturnType<typeof detectLegacyMatrixState>, null | { warning: string }>,
 ): string {
-    return [
-      "- Matrix plugin upgraded in place.",
-      `- Legacy sync store: ${detection.legacyStoragePath} -> ${detection.targetStoragePath}`,
-      `- Legacy crypto store: ${detection.legacyCryptoPath} -> ${detection.targetCryptoPath}`,
-      ...(detection.selectionNote ? [`- ${detection.selectionNote}`] : []),
-      '- Run "crawclaw doctor --fix" to migrate this Matrix state now.',
-    ].join("\n");
+  return [
+    "- Matrix legacy state was detected.",
+    `- Legacy sync store: ${detection.legacyStoragePath}`,
+    `- Current sync store: ${detection.targetStoragePath}`,
+    `- Legacy crypto store: ${detection.legacyCryptoPath}`,
+    `- Current crypto store: ${detection.targetCryptoPath}`,
+    ...(detection.selectionNote ? [`- ${detection.selectionNote}`] : []),
+    "- Automatic Matrix state migration was removed in v2026.4.24; move or rebuild this state manually.",
+  ].join("\n");
 }
 
 export function formatMatrixLegacyCryptoPreview(
@@ -48,7 +40,7 @@ export function formatMatrixLegacyCryptoPreview(
         `- Legacy crypto store: ${plan.legacyCryptoPath}`,
         `- New recovery key file: ${plan.recoveryKeyPath}`,
         `- Migration state file: ${plan.statePath}`,
-        '- Run "crawclaw doctor --fix" to extract any saved backup key now. Backed-up room keys will restore automatically on next gateway start.',
+        "- Automatic Matrix crypto migration was removed in v2026.4.24; extract or rebuild this account manually before relying on the current store layout.",
       ].join("\n"),
     );
   }
@@ -149,78 +141,27 @@ export async function applyMatrixDoctorRepair(params: {
   cfg: CrawClawConfig;
   env: NodeJS.ProcessEnv;
 }): Promise<{ changes: string[]; warnings: string[] }> {
-  const changes: string[] = [];
   const warnings: string[] = [];
-  const pendingMatrixMigration = hasPendingMatrixMigration({
-    cfg: params.cfg,
-    env: params.env,
-  });
-  const actionableMatrixMigration = hasActionableMatrixMigration({
-    cfg: params.cfg,
-    env: params.env,
-  });
+  const legacyState = detectLegacyMatrixState({ cfg: params.cfg, env: params.env });
+  const legacyCrypto = detectLegacyMatrixCrypto({ cfg: params.cfg, env: params.env });
 
-  let matrixSnapshotReady = true;
-  if (actionableMatrixMigration) {
-    try {
-      const snapshot = await maybeCreateMatrixMigrationSnapshot({
-        trigger: "doctor-fix",
-        env: params.env,
-      });
-      changes.push(
-        `Matrix migration snapshot ${snapshot.created ? "created" : "reused"} before applying Matrix upgrades.\n- ${snapshot.archivePath}`,
-      );
-    } catch (err) {
-      matrixSnapshotReady = false;
-      warnings.push(`- Failed creating a Matrix migration snapshot before repair: ${String(err)}`);
-      warnings.push(
-        '- Skipping Matrix migration changes for now. Resolve the snapshot failure, then rerun "crawclaw doctor --fix".',
-      );
+  if (legacyState) {
+    if ("warning" in legacyState) {
+      warnings.push(`- ${legacyState.warning}`);
+    } else {
+      warnings.push(formatMatrixLegacyStatePreview(legacyState));
     }
-  } else if (pendingMatrixMigration) {
+  }
+  if (legacyCrypto.warnings.length > 0 || legacyCrypto.plans.length > 0) {
+    warnings.push(...formatMatrixLegacyCryptoPreview(legacyCrypto));
+  }
+  if (warnings.length === 0 && hasPendingMatrixMigration({ cfg: params.cfg, env: params.env })) {
     warnings.push(
-      "- Matrix migration warnings are present, but no on-disk Matrix mutation is actionable yet. No pre-migration snapshot was needed.",
+      "- Matrix legacy migration state is present, but automatic migration was removed in v2026.4.24.",
     );
   }
 
-  if (!matrixSnapshotReady) {
-    return { changes, warnings };
-  }
-
-  const matrixStateRepair = await autoMigrateLegacyMatrixState({
-    cfg: params.cfg,
-    env: params.env,
-  });
-  if (matrixStateRepair.changes.length > 0) {
-    changes.push(
-      [
-        "Matrix plugin upgraded in place.",
-        ...matrixStateRepair.changes.map((entry) => `- ${entry}`),
-        "- No user action required.",
-      ].join("\n"),
-    );
-  }
-  if (matrixStateRepair.warnings.length > 0) {
-    warnings.push(matrixStateRepair.warnings.map((entry) => `- ${entry}`).join("\n"));
-  }
-
-  const matrixCryptoRepair = await autoPrepareLegacyMatrixCrypto({
-    cfg: params.cfg,
-    env: params.env,
-  });
-  if (matrixCryptoRepair.changes.length > 0) {
-    changes.push(
-      [
-        "Matrix encrypted-state migration prepared.",
-        ...matrixCryptoRepair.changes.map((entry) => `- ${entry}`),
-      ].join("\n"),
-    );
-  }
-  if (matrixCryptoRepair.warnings.length > 0) {
-    warnings.push(matrixCryptoRepair.warnings.map((entry) => `- ${entry}`).join("\n"));
-  }
-
-  return { changes, warnings };
+  return { changes: [], warnings };
 }
 
 export async function runMatrixDoctorSequence(params: {

@@ -1,5 +1,5 @@
 import type { AnyMessageContent, WAPresence } from "@whiskeysockets/baileys";
-import { recordChannelActivity } from "crawclaw/plugin-sdk/channel-runtime";
+import { recordChannelActivity } from "crawclaw/plugin-sdk/infra-runtime";
 import { toWhatsappJid } from "crawclaw/plugin-sdk/text-runtime";
 import type { ActiveWebSendOptions } from "../active-listener.js";
 

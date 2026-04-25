@@ -979,8 +979,10 @@ authoring plugins:
   contract on the plugin. Core then reads approval auth, delivery, render, and
   native-routing behavior through that one capability instead of mixing
   approval behavior into unrelated plugin fields.
-- `crawclaw/plugin-sdk/channel-runtime` remains only as a compatibility shim.
-  New code should import the narrower primitives instead.
+- The legacy channel runtime barrel has been removed. Import the narrower
+  primitives directly, such as `crawclaw/plugin-sdk/channel-id`,
+  `crawclaw/plugin-sdk/infra-runtime`, or
+  `crawclaw/plugin-sdk/directory-runtime`.
 - Bundled extension internals remain private. External plugins should use only
   `crawclaw/plugin-sdk/*` subpaths. CrawClaw core/test code may use the repo
   public entry points under a plugin package root such as `index.js`, `api.js`,

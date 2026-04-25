@@ -51,11 +51,10 @@ function hasTrustedCrawClawRootIndicator(params: {
   packageJson: PluginSdkPackageJson;
 }): boolean {
   const packageExports = params.packageJson.exports ?? {};
-  const hasPluginSdkRootExport = Object.prototype.hasOwnProperty.call(
-    packageExports,
-    "./plugin-sdk",
+  const hasPluginSdkExport = Object.keys(packageExports).some((key) =>
+    key.startsWith("./plugin-sdk/"),
   );
-  if (!hasPluginSdkRootExport) {
+  if (!hasPluginSdkExport) {
     return false;
   }
   const hasCliEntryExport = Object.prototype.hasOwnProperty.call(packageExports, "./cli-entry");
@@ -325,53 +324,13 @@ export function resolvePluginSdkScopedAliasMap(
   return aliasMap;
 }
 
-export function resolveExtensionApiAlias(params: LoaderModuleResolveParams = {}): string | null {
-  try {
-    const modulePath = resolveLoaderModulePath(params);
-    const packageRoot = resolveLoaderPackageRoot({ ...params, modulePath });
-    if (!packageRoot) {
-      return null;
-    }
-
-    const orderedKinds = resolvePluginSdkAliasCandidateOrder({
-      modulePath,
-      isProduction: process.env.NODE_ENV === "production",
-      pluginSdkResolution: params.pluginSdkResolution,
-    });
-    const candidateMap = {
-      src: path.join(packageRoot, "src", "extensionAPI.ts"),
-      dist: path.join(packageRoot, "dist", "extensionAPI.js"),
-    } as const;
-    for (const kind of orderedKinds) {
-      const candidate = candidateMap[kind];
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
 export function buildPluginLoaderAliasMap(
   modulePath: string,
   argv1: string | undefined = STARTUP_ARGV1,
   moduleUrl?: string,
   pluginSdkResolution: PluginSdkResolutionPreference = "auto",
 ): Record<string, string> {
-  const pluginSdkAlias = resolvePluginSdkAliasFile({
-    srcFile: "root-alias.cjs",
-    distFile: "root-alias.cjs",
-    modulePath,
-    argv1,
-    moduleUrl,
-    pluginSdkResolution,
-  });
-  const extensionApiAlias = resolveExtensionApiAlias({ modulePath, pluginSdkResolution });
   return {
-    ...(extensionApiAlias ? { "crawclaw/extension-api": extensionApiAlias } : {}),
-    ...(pluginSdkAlias ? { "crawclaw/plugin-sdk": pluginSdkAlias } : {}),
     ...resolvePluginSdkScopedAliasMap({ modulePath, argv1, moduleUrl, pluginSdkResolution }),
   };
 }

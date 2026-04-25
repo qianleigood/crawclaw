@@ -1,5 +1,4 @@
 import { ChannelType, MessageType, type Message, type User } from "@buape/carbon";
-import { Routes, type APIMessage } from "discord-api-types/v10";
 import { formatAllowlistMatchMeta } from "crawclaw/plugin-sdk/allow-from";
 import {
   buildMentionRegexes,
@@ -7,12 +6,12 @@ import {
   matchesMentionWithExplicit,
   resolveMentionGatingWithBypass,
 } from "crawclaw/plugin-sdk/channel-inbound";
-import { enqueueSystemEvent, recordChannelActivity } from "crawclaw/plugin-sdk/channel-runtime";
 import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
 import { hasControlCommand, shouldHandleTextCommands } from "crawclaw/plugin-sdk/command-surface";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { isDangerousNameMatchingEnabled } from "crawclaw/plugin-sdk/config-runtime";
 import type { SessionBindingRecord } from "crawclaw/plugin-sdk/conversation-runtime";
+import { enqueueSystemEvent, recordChannelActivity } from "crawclaw/plugin-sdk/infra-runtime";
 import {
   recordPendingHistoryEntryIfEnabled,
   type HistoryEntry,
@@ -21,6 +20,7 @@ import { DEFAULT_ACCOUNT_ID } from "crawclaw/plugin-sdk/routing";
 import { logVerbose, shouldLogVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { getChildLogger } from "crawclaw/plugin-sdk/runtime-env";
 import { logDebug } from "crawclaw/plugin-sdk/text-runtime";
+import { Routes, type APIMessage } from "discord-api-types/v10";
 import {
   isDiscordGroupAllowedByPolicy,
   normalizeDiscordSlug,
@@ -58,11 +58,9 @@ import { isRecentlyUnboundThreadWebhookMessage } from "./thread-bindings.js";
 export type {
   DiscordMessagePreflightContext,
   DiscordMessagePreflightParams,
-  } from "./message-handler.preflight.types.js";
+} from "./message-handler.preflight.types.js";
 
-const DISCORD_BOUND_THREAD_SYSTEM_PREFIXES = ["⚙️",
-  "🤖",
-  "🧰"];
+const DISCORD_BOUND_THREAD_SYSTEM_PREFIXES = ["⚙️", "🤖", "🧰"];
 
 let conversationRuntimePromise:
   | Promise<typeof import("crawclaw/plugin-sdk/conversation-runtime")>
@@ -153,22 +151,21 @@ export function shouldIgnoreBoundThreadWebhookMessage(params: {
     }
     return isRecentlyUnboundThreadWebhookMessage({
       accountId: params.accountId,
-  threadId,
-  webhookId,
-  });
+      threadId,
+      webhookId,
+    });
   }
   return webhookId === boundWebhookId;
 }
 
-function mergeFetchedDiscordMessage(base: Message,
-  fetched: APIMessage): Message {
+function mergeFetchedDiscordMessage(base: Message, fetched: APIMessage): Message {
   const baseReferenced = (
     base as unknown as {
       referencedMessage?: {
         mentionedUsers?: unknown[];
         mentionedRoles?: unknown[];
         mentionedEveryone?: boolean;
-};
+      };
     }
   ).referencedMessage;
   const fetchedMentions = Array.isArray(fetched.mentions)
@@ -291,8 +288,9 @@ export async function preflightDiscordMessage(
   const pluralkitConfig = params.discordConfig?.pluralkit;
   const webhookId = resolveDiscordWebhookId(message);
   const shouldCheckPluralKit = Boolean(pluralkitConfig?.enabled) && !webhookId;
-  let pluralkitInfo: Awaited<ReturnType<typeof import("../pluralkit.js").fetchPluralKitMessageInfo>> =
-    null;
+  let pluralkitInfo: Awaited<
+    ReturnType<typeof import("../pluralkit.js").fetchPluralKitMessageInfo>
+  > = null;
   if (shouldCheckPluralKit) {
     try {
       const { fetchPluralKitMessageInfo } = await loadPluralKitRuntime();

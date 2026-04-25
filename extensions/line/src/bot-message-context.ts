@@ -4,7 +4,6 @@ import {
   resolveInboundSessionEnvelopeContext,
   toLocationContext,
 } from "crawclaw/plugin-sdk/channel-inbound";
-import { recordChannelActivity } from "crawclaw/plugin-sdk/channel-runtime";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
   ensureConfiguredBindingRouteReady,
@@ -13,6 +12,7 @@ import {
   resolvePinnedMainDmOwnerFromAllowlist,
   resolveConfiguredBindingRoute,
 } from "crawclaw/plugin-sdk/conversation-runtime";
+import { recordChannelActivity } from "crawclaw/plugin-sdk/infra-runtime";
 import { finalizeInboundContext } from "crawclaw/plugin-sdk/reply-dispatch-runtime";
 import type { HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
 import {

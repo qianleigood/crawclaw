@@ -36,8 +36,8 @@ function createBundledWhatsAppRuntimeFixture() {
           crawclaw: "crawclaw.mjs",
         },
         exports: {
-          "./plugin-sdk": {
-            default: "./dist/plugin-sdk/index.js",
+          "./plugin-sdk/core": {
+            default: "./dist/plugin-sdk/core.js",
           },
         },
       },
@@ -45,6 +45,7 @@ function createBundledWhatsAppRuntimeFixture() {
       2,
     ),
     "crawclaw.mjs": "export {};\n",
+    "dist/plugin-sdk/core.js": "export {};\n",
     [bundledDistPluginFile("whatsapp", "index.js")]: "export default {};\n",
     [bundledDistPluginFile("whatsapp", "light-runtime-api.js")]:
       'export { getActiveWebListener } from "../../active-listener.js";\n',

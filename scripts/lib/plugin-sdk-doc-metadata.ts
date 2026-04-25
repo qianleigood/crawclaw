@@ -11,11 +11,8 @@ export type PluginSdkDocMetadata = {
 };
 
 export const pluginSdkDocMetadata = {
-  index: {
-    category: "legacy",
-  },
-  "channel-runtime": {
-    category: "legacy",
+  "channel-id": {
+    category: "channel",
   },
   core: {
     category: "core",
@@ -83,5 +80,5 @@ export const pluginSdkDocEntrypoints = Object.keys(
 ) as PluginSdkDocEntrypoint[];
 
 export function resolvePluginSdkDocImportSpecifier(entrypoint: PluginSdkDocEntrypoint): string {
-  return entrypoint === "index" ? "crawclaw/plugin-sdk" : `crawclaw/plugin-sdk/${entrypoint}`;
+  return `crawclaw/plugin-sdk/${entrypoint}`;
 }

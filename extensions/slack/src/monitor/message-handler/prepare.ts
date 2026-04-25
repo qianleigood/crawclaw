@@ -11,7 +11,6 @@ import {
   resolveEnvelopeFormatOptions,
   resolveMentionGatingWithBypass,
 } from "crawclaw/plugin-sdk/channel-inbound";
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
 import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
 import { hasControlCommand } from "crawclaw/plugin-sdk/command-auth";
 import { shouldHandleTextCommands } from "crawclaw/plugin-sdk/command-auth";
@@ -24,6 +23,7 @@ import {
   recordInboundSession,
   resolveConversationLabel,
 } from "crawclaw/plugin-sdk/conversation-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import {
   buildPendingHistoryContextFromMap,
   recordPendingHistoryEntryIfEnabled,

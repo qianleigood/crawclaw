@@ -1,6 +1,6 @@
 import { messagingApi } from "@line/bot-sdk";
-import { recordChannelActivity } from "crawclaw/plugin-sdk/channel-runtime";
 import { loadConfig, type CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { recordChannelActivity } from "crawclaw/plugin-sdk/infra-runtime";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { resolveLineAccount } from "./accounts.js";
 import { resolveLineChannelAccessToken } from "./channel-access-token.js";

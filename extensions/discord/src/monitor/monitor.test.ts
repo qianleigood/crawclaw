@@ -5,11 +5,11 @@ import type {
   StringSelectMenuInteraction,
 } from "@buape/carbon";
 import type { Client } from "@buape/carbon";
-import { ChannelType } from "discord-api-types/v10";
-import type { GatewayPresenceUpdate } from "discord-api-types/v10";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { DiscordAccountConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { buildPluginBindingApprovalCustomId } from "crawclaw/plugin-sdk/conversation-runtime";
+import { ChannelType } from "discord-api-types/v10";
+import type { GatewayPresenceUpdate } from "discord-api-types/v10";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { type DiscordComponentEntry, type DiscordModalEntry } from "../components.js";
 import {
@@ -65,7 +65,7 @@ const dispatchPluginInteractiveHandlerMock = vi.hoisted(() => vi.fn());
 let lastDispatchCtx: Record<string, unknown> | undefined;
 
 async function createChannelRuntimeMock(
-  importOriginal: () => Promise<typeof import("crawclaw/plugin-sdk/channel-runtime")>,
+  importOriginal: () => Promise<typeof import("crawclaw/plugin-sdk/infra-runtime")>,
 ) {
   const actual = await importOriginal();
   return {
@@ -74,8 +74,8 @@ async function createChannelRuntimeMock(
   };
 }
 
-vi.mock("crawclaw/plugin-sdk/channel-runtime", createChannelRuntimeMock);
-vi.mock("crawclaw/plugin-sdk/channel-runtime.js", createChannelRuntimeMock);
+vi.mock("crawclaw/plugin-sdk/infra-runtime", createChannelRuntimeMock);
+vi.mock("crawclaw/plugin-sdk/infra-runtime.js", createChannelRuntimeMock);
 
 vi.mock("crawclaw/plugin-sdk/reply-runtime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/reply-runtime")>();

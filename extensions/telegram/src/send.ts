@@ -4,12 +4,10 @@ import type {
   ReactionType,
   ReactionTypeEmoji,
 } from "@grammyjs/types";
-import { type ApiClientOptions, Bot, HttpError } from "grammy";
-import * as grammy from "grammy";
-import { recordChannelActivity } from "crawclaw/plugin-sdk/channel-runtime";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { resolveMarkdownTableMode } from "crawclaw/plugin-sdk/config-runtime";
 import { formatUncaughtError } from "crawclaw/plugin-sdk/error-runtime";
+import { recordChannelActivity } from "crawclaw/plugin-sdk/infra-runtime";
 import { isDiagnosticFlagEnabled } from "crawclaw/plugin-sdk/infra-runtime";
 import type { MediaKind } from "crawclaw/plugin-sdk/media-runtime";
 import { buildOutboundMediaLoadOptions } from "crawclaw/plugin-sdk/media-runtime";
@@ -22,6 +20,8 @@ import { createSubsystemLogger } from "crawclaw/plugin-sdk/runtime-env";
 import { formatErrorMessage } from "crawclaw/plugin-sdk/ssrf-runtime";
 import { redactSensitiveText } from "crawclaw/plugin-sdk/text-runtime";
 import { loadWebMedia } from "crawclaw/plugin-sdk/web-media";
+import { type ApiClientOptions, Bot, HttpError } from "grammy";
+import * as grammy from "grammy";
 import { type ResolvedTelegramAccount, resolveTelegramAccount } from "./accounts.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 import { buildTelegramThreadParams, buildTypingThreadParams } from "./bot/helpers.js";

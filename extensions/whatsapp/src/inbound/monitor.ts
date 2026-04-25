@@ -1,7 +1,7 @@
 import type { AnyMessageContent, proto, WAMessage } from "@whiskeysockets/baileys";
 import { DisconnectReason, isJidGroup } from "@whiskeysockets/baileys";
 import { createInboundDebouncer, formatLocationText } from "crawclaw/plugin-sdk/channel-inbound";
-import { recordChannelActivity } from "crawclaw/plugin-sdk/channel-runtime";
+import { recordChannelActivity } from "crawclaw/plugin-sdk/infra-runtime";
 import { saveMediaBuffer } from "crawclaw/plugin-sdk/media-runtime";
 import { logVerbose, shouldLogVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { createSubsystemLogger } from "crawclaw/plugin-sdk/runtime-env";

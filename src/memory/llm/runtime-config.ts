@@ -1,4 +1,4 @@
-import type { CrawClawPluginApi } from "crawclaw/plugin-sdk";
+import type { CrawClawPluginApi } from "crawclaw/plugin-sdk/plugin-runtime";
 import type { LlmConfig } from "../types/config.ts";
 
 type ConfigRecord = Record<string, unknown>;

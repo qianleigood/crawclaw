@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { copyBundledPluginMetadata } from "./copy-bundled-plugin-metadata.mjs";
-import { copyPluginSdkRootAlias } from "./copy-plugin-sdk-root-alias.mjs";
 import { writeTextFileIfChanged } from "./runtime-postbuild-shared.mjs";
 import { stageBundledPluginRuntimeDeps } from "./stage-bundled-plugin-runtime-deps.mjs";
 import { stageBundledPluginRuntime } from "./stage-bundled-plugin-runtime.mjs";
@@ -129,7 +128,6 @@ export function writeStableRootHelpAlias(params = {}) {
 }
 
 export function runRuntimePostBuild(params = {}) {
-  copyPluginSdkRootAlias(params);
   copyBundledPluginMetadata(params);
   writeOfficialChannelCatalog(params);
   stageBundledPluginRuntimeDeps(params);

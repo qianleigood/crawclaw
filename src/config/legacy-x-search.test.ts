@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "./config.js";
-import { listLegacyXSearchConfigPaths, migrateLegacyXSearchConfig } from "./legacy-x-search.js";
+import {
+  findLegacyXSearchConfigIssues,
+  listLegacyXSearchConfigPaths,
+  migrateLegacyXSearchConfig,
+} from "./legacy-x-search.js";
 
-describe("legacy x_search config migration", () => {
-  it("moves only legacy x_search auth into the xai plugin config", () => {
-    const res = migrateLegacyXSearchConfig({
+describe("legacy x_search config", () => {
+  it("does not auto-migrate removed x_search auth", () => {
+    const config = {
       tools: {
         web: {
           x_search: {
@@ -14,66 +18,11 @@ describe("legacy x_search config migration", () => {
           },
         } as Record<string, unknown>,
       },
-    } as CrawClawConfig);
+    } as CrawClawConfig;
 
-    expect((res.config.tools?.web as Record<string, unknown> | undefined)?.x_search).toEqual({
-      enabled: true,
-      model: "grok-4-1-fast",
-    });
-    expect(res.config.plugins?.entries?.xai).toEqual({
-      enabled: true,
-      config: {
-        webSearch: {
-          apiKey: "xai-legacy-key",
-        },
-      },
-    });
-    expect(res.changes).toEqual([
-      "Moved tools.web.x_search.apiKey → plugins.entries.xai.config.webSearch.apiKey.",
-    ]);
-  });
-
-  it("keeps explicit plugin-owned auth when migrating legacy x_search config", () => {
-    const res = migrateLegacyXSearchConfig({
-      tools: {
-        web: {
-          x_search: {
-            apiKey: "xai-legacy-key",
-            enabled: true,
-            model: "legacy-model",
-            cacheTtlMinutes: 5,
-          },
-        } as Record<string, unknown>,
-      },
-      plugins: {
-        entries: {
-          xai: {
-            enabled: true,
-            config: {
-              webSearch: {
-                apiKey: "plugin-key",
-              },
-              xSearch: {
-                model: "plugin-model",
-              },
-            },
-          },
-        },
-      },
-    } as CrawClawConfig);
-
-    expect((res.config.tools?.web as Record<string, unknown> | undefined)?.x_search).toEqual({
-      enabled: true,
-      model: "legacy-model",
-      cacheTtlMinutes: 5,
-    });
-    expect(res.config.plugins?.entries?.xai?.config).toEqual({
-      webSearch: {
-        apiKey: "plugin-key",
-      },
-      xSearch: {
-        model: "plugin-model",
-      },
+    expect(migrateLegacyXSearchConfig(config)).toEqual({
+      config,
+      changes: [],
     });
   });
 
@@ -89,11 +38,10 @@ describe("legacy x_search config migration", () => {
       },
     } as CrawClawConfig;
 
-    const res = migrateLegacyXSearchConfig(config);
-
-    expect(res.config).toEqual(config);
-    expect(res.changes).toEqual([]);
-    expect(res.config.plugins?.entries?.xai).toBeUndefined();
+    expect(migrateLegacyXSearchConfig(config)).toEqual({
+      config,
+      changes: [],
+    });
   });
 
   it("lists legacy x_search paths", () => {
@@ -109,5 +57,25 @@ describe("legacy x_search config migration", () => {
         },
       } as CrawClawConfig),
     ).toEqual(["tools.web.x_search.apiKey"]);
+  });
+
+  it("reports legacy x_search issues with the plugin-owned target path", () => {
+    expect(
+      findLegacyXSearchConfigIssues({
+        tools: {
+          web: {
+            x_search: {
+              apiKey: "xai-legacy-key",
+            },
+          },
+        },
+      }),
+    ).toEqual([
+      {
+        path: "tools.web.x_search.apiKey",
+        message:
+          "tools.web.x_search.apiKey was removed; use plugins.entries.xai.config.webSearch.apiKey instead.",
+      },
+    ]);
   });
 });

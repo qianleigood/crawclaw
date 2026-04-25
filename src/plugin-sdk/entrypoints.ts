@@ -11,16 +11,14 @@ export function buildPluginSdkEntrySources(entries: readonly string[] = pluginSd
 
 /** List the public package specifiers that should resolve to plugin SDK entrypoints. */
 export function buildPluginSdkSpecifiers() {
-  return pluginSdkEntrypoints.map((entry) =>
-    entry === "index" ? "crawclaw/plugin-sdk" : `crawclaw/plugin-sdk/${entry}`,
-  );
+  return pluginSdkEntrypoints.map((entry) => `crawclaw/plugin-sdk/${entry}`);
 }
 
 /** Build the package.json exports map for all plugin SDK subpaths. */
 export function buildPluginSdkPackageExports() {
   return Object.fromEntries(
     pluginSdkEntrypoints.map((entry) => [
-      entry === "index" ? "./plugin-sdk" : `./plugin-sdk/${entry}`,
+      `./plugin-sdk/${entry}`,
       {
         types: `./dist/plugin-sdk/${entry}.d.ts`,
         default: `./dist/plugin-sdk/${entry}.js`,

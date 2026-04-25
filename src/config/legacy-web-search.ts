@@ -1,33 +1,17 @@
 import { BUNDLED_WEB_SEARCH_PROVIDER_PLUGIN_IDS } from "../plugins/bundled-capability-metadata.js";
 import type { CrawClawConfig } from "./config.js";
-import { mergeMissing } from "./legacy.shared.js";
+import type { LegacyConfigIssue } from "./types.js";
 
 type JsonRecord = Record<string, unknown>;
 
-const MODERN_SCOPED_WEB_SEARCH_KEYS = new Set(["openaiCodex"]);
 const LEGACY_WEB_SEARCH_PROVIDER_PLUGIN_IDS = Object.fromEntries(
   Object.entries(BUNDLED_WEB_SEARCH_PROVIDER_PLUGIN_IDS),
 );
 const LEGACY_WEB_SEARCH_PROVIDER_IDS = Object.keys(LEGACY_WEB_SEARCH_PROVIDER_PLUGIN_IDS);
-const LEGACY_WEB_SEARCH_PROVIDER_ID_SET = new Set(LEGACY_WEB_SEARCH_PROVIDER_IDS);
 const LEGACY_GLOBAL_WEB_SEARCH_PROVIDER_ID = "brave";
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function cloneRecord<T extends JsonRecord>(value: T | undefined): T {
-  return { ...value } as T;
-}
-
-function ensureRecord(target: JsonRecord, key: string): JsonRecord {
-  const current = target[key];
-  if (isRecord(current)) {
-    return current;
-  }
-  const next: JsonRecord = {};
-  target[key] = next;
-  return next;
 }
 
 function resolveLegacySearchConfig(raw: unknown): JsonRecord | undefined {
@@ -41,27 +25,10 @@ function resolveLegacySearchConfig(raw: unknown): JsonRecord | undefined {
 
 function copyLegacyProviderConfig(search: JsonRecord, providerKey: string): JsonRecord | undefined {
   const current = search[providerKey];
-  return isRecord(current) ? cloneRecord(current) : undefined;
+  return isRecord(current) ? { ...current } : undefined;
 }
 
-function hasOwnKey(target: JsonRecord, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(target, key);
-}
-
-function hasMappedLegacyWebSearchConfig(raw: unknown): boolean {
-  const search = resolveLegacySearchConfig(raw);
-  if (!search) {
-    return false;
-  }
-  if (hasOwnKey(search, "apiKey")) {
-    return true;
-  }
-  return LEGACY_WEB_SEARCH_PROVIDER_IDS.some((providerId) => isRecord(search[providerId]));
-}
-
-function resolveLegacyGlobalWebSearchMigration(search: JsonRecord): {
-  pluginId: string;
-  payload: JsonRecord;
+function resolveLegacyGlobalWebSearchTarget(search: JsonRecord): {
   legacyPath: string;
   targetPath: string;
 } | null {
@@ -69,20 +36,17 @@ function resolveLegacyGlobalWebSearchMigration(search: JsonRecord): {
     search,
     LEGACY_GLOBAL_WEB_SEARCH_PROVIDER_ID,
   );
-  const payload = legacyProviderConfig ?? {};
-  const hasLegacyApiKey = hasOwnKey(search, "apiKey");
-  if (hasLegacyApiKey) {
-    payload.apiKey = search.apiKey;
-  }
-  if (Object.keys(payload).length === 0) {
+  const hasLegacyApiKey = Object.prototype.hasOwnProperty.call(search, "apiKey");
+  if (
+    !hasLegacyApiKey &&
+    (!legacyProviderConfig || Object.keys(legacyProviderConfig).length === 0)
+  ) {
     return null;
   }
   const pluginId =
     LEGACY_WEB_SEARCH_PROVIDER_PLUGIN_IDS[LEGACY_GLOBAL_WEB_SEARCH_PROVIDER_ID] ??
     LEGACY_GLOBAL_WEB_SEARCH_PROVIDER_ID;
   return {
-    pluginId,
-    payload,
     legacyPath: hasLegacyApiKey
       ? "tools.web.search.apiKey"
       : `tools.web.search.${LEGACY_GLOBAL_WEB_SEARCH_PROVIDER_ID}`,
@@ -93,129 +57,40 @@ function resolveLegacyGlobalWebSearchMigration(search: JsonRecord): {
   };
 }
 
-function migratePluginWebSearchConfig(params: {
-  root: JsonRecord;
-  legacyPath: string;
-  targetPath: string;
-  pluginId: string;
-  payload: JsonRecord;
-  changes: string[];
-}) {
-  const plugins = ensureRecord(params.root, "plugins");
-  const entries = ensureRecord(plugins, "entries");
-  const entry = ensureRecord(entries, params.pluginId);
-  const config = ensureRecord(entry, "config");
-  const hadEnabled = entry.enabled !== undefined;
-  const existing = isRecord(config.webSearch) ? cloneRecord(config.webSearch) : undefined;
-
-  if (!hadEnabled) {
-    entry.enabled = true;
-  }
-
-  if (!existing) {
-    config.webSearch = cloneRecord(params.payload);
-    params.changes.push(`Moved ${params.legacyPath} → ${params.targetPath}.`);
-    return;
-  }
-
-  const merged = cloneRecord(existing);
-  mergeMissing(merged, params.payload);
-  const changed = JSON.stringify(merged) !== JSON.stringify(existing) || !hadEnabled;
-  config.webSearch = merged;
-  if (changed) {
-    params.changes.push(
-      `Merged ${params.legacyPath} → ${params.targetPath} (filled missing fields from legacy; kept explicit plugin config values).`,
-    );
-    return;
-  }
-
-  params.changes.push(`Removed ${params.legacyPath} (${params.targetPath} already set).`);
-}
-
 export function listLegacyWebSearchConfigPaths(raw: unknown): string[] {
   const search = resolveLegacySearchConfig(raw);
   if (!search) {
     return [];
   }
-  const paths: string[] = [];
 
+  const paths: string[] = [];
   if ("apiKey" in search) {
     paths.push("tools.web.search.apiKey");
   }
   for (const providerId of LEGACY_WEB_SEARCH_PROVIDER_IDS) {
     const scoped = search[providerId];
-    if (isRecord(scoped)) {
-      for (const key of Object.keys(scoped)) {
-        paths.push(`tools.web.search.${providerId}.${key}`);
-      }
+    if (!isRecord(scoped)) {
+      continue;
+    }
+    for (const key of Object.keys(scoped)) {
+      paths.push(`tools.web.search.${providerId}.${key}`);
     }
   }
   return paths;
 }
 
-export function normalizeLegacyWebSearchConfig<T>(raw: T): T {
-  if (!isRecord(raw)) {
-    return raw;
-  }
-
+export function findLegacyWebSearchConfigIssues(raw: unknown): LegacyConfigIssue[] {
   const search = resolveLegacySearchConfig(raw);
   if (!search) {
-    return raw;
+    return [];
   }
 
-  return normalizeLegacyWebSearchConfigRecord(raw).config;
-}
-
-export function migrateLegacyWebSearchConfig<T>(raw: T): { config: T; changes: string[] } {
-  if (!isRecord(raw)) {
-    return { config: raw, changes: [] };
-  }
-
-  if (!hasMappedLegacyWebSearchConfig(raw)) {
-    return { config: raw, changes: [] };
-  }
-
-  return normalizeLegacyWebSearchConfigRecord(raw);
-}
-
-function normalizeLegacyWebSearchConfigRecord<T extends JsonRecord>(
-  raw: T,
-): {
-  config: T;
-  changes: string[];
-} {
-  const nextRoot = cloneRecord(raw);
-  const tools = ensureRecord(nextRoot, "tools");
-  const web = ensureRecord(tools, "web");
-  const search = resolveLegacySearchConfig(nextRoot);
-  if (!search) {
-    return { config: raw, changes: [] };
-  }
-  const nextSearch: JsonRecord = {};
-  const changes: string[] = [];
-
-  for (const [key, value] of Object.entries(search)) {
-    if (key === "apiKey") {
-      continue;
-    }
-    if (LEGACY_WEB_SEARCH_PROVIDER_ID_SET.has(key) && isRecord(value)) {
-      continue;
-    }
-    if (MODERN_SCOPED_WEB_SEARCH_KEYS.has(key) || !isRecord(value)) {
-      nextSearch[key] = value;
-    }
-  }
-  web.search = nextSearch;
-
-  const globalSearchMigration = resolveLegacyGlobalWebSearchMigration(search);
-  if (globalSearchMigration) {
-    migratePluginWebSearchConfig({
-      root: nextRoot,
-      legacyPath: globalSearchMigration.legacyPath,
-      targetPath: globalSearchMigration.targetPath,
-      pluginId: globalSearchMigration.pluginId,
-      payload: globalSearchMigration.payload,
-      changes,
+  const issues: LegacyConfigIssue[] = [];
+  const legacyGlobalTarget = resolveLegacyGlobalWebSearchTarget(search);
+  if (legacyGlobalTarget) {
+    issues.push({
+      path: legacyGlobalTarget.legacyPath,
+      message: `${legacyGlobalTarget.legacyPath} was removed; use ${legacyGlobalTarget.targetPath} instead.`,
     });
   }
 
@@ -231,17 +106,19 @@ function normalizeLegacyWebSearchConfigRecord<T extends JsonRecord>(
     if (!pluginId) {
       continue;
     }
-    migratePluginWebSearchConfig({
-      root: nextRoot,
-      legacyPath: `tools.web.search.${providerId}`,
-      targetPath: `plugins.entries.${pluginId}.config.webSearch`,
-      pluginId,
-      payload: scoped,
-      changes,
+    issues.push({
+      path: `tools.web.search.${providerId}`,
+      message:
+        `tools.web.search.${providerId} was removed; ` +
+        `use plugins.entries.${pluginId}.config.webSearch instead.`,
     });
   }
 
-  return { config: nextRoot, changes };
+  return issues;
+}
+
+export function migrateLegacyWebSearchConfig<T>(raw: T): { config: T; changes: string[] } {
+  return { config: raw, changes: [] };
 }
 
 export function resolvePluginWebSearchConfig(

@@ -49,7 +49,6 @@ import { resolveGatewayService } from "../daemon/service.js";
 import { hasAmbiguousGatewayAuthModeConfig } from "../gateway/auth-mode-policy.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { buildGatewayConnectionDetails } from "../gateway/call.js";
-import { runStartupMatrixMigration } from "../gateway/server-startup-matrix-migration.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
 import { shortenHomePath } from "../utils.js";
@@ -262,19 +261,7 @@ async function runGatewayServicesHealth(ctx: DoctorHealthFlowContext): Promise<v
 }
 
 async function runStartupMatrixHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  if (!ctx.prompter.shouldRepair) {
-    return;
-  }
-  await runStartupMatrixMigration({
-    cfg: ctx.cfg,
-    env: process.env,
-    log: {
-      info: (message) => ctx.runtime.log(message),
-      warn: (message) => ctx.runtime.error(message),
-    },
-    trigger: "doctor-fix",
-    logPrefix: "doctor",
-  });
+  void ctx;
 }
 
 async function runSecurityHealth(ctx: DoctorHealthFlowContext): Promise<void> {

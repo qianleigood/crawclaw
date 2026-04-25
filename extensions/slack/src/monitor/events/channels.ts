@@ -1,7 +1,7 @@
 import type { SlackEventMiddlewareArgs } from "@slack/bolt";
 import { resolveChannelConfigWrites } from "crawclaw/plugin-sdk/channel-config-writes";
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
 import { loadConfig, writeConfigFile } from "crawclaw/plugin-sdk/config-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import { danger, warn } from "crawclaw/plugin-sdk/runtime-env";
 import { migrateSlackChannelConfig } from "../../channel-migration.js";
 import { resolveSlackChannelLabel } from "../channel-config.js";

@@ -8,7 +8,7 @@ const messageQueueMock = vi.fn();
 const messageAllowMock = vi.fn();
 
 async function createChannelRuntimeMock(
-  importOriginal: () => Promise<typeof import("crawclaw/plugin-sdk/channel-runtime")>,
+  importOriginal: () => Promise<typeof import("crawclaw/plugin-sdk/infra-runtime")>,
 ) {
   const actual = await importOriginal();
   return {
@@ -17,8 +17,8 @@ async function createChannelRuntimeMock(
   };
 }
 
-vi.mock("crawclaw/plugin-sdk/channel-runtime", createChannelRuntimeMock);
-vi.mock("crawclaw/plugin-sdk/channel-runtime.js", createChannelRuntimeMock);
+vi.mock("crawclaw/plugin-sdk/infra-runtime", createChannelRuntimeMock);
+vi.mock("crawclaw/plugin-sdk/infra-runtime.js", createChannelRuntimeMock);
 
 vi.mock("crawclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/conversation-runtime")>();

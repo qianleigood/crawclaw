@@ -223,7 +223,7 @@ Always import from focused `crawclaw/plugin-sdk/<subpath>` paths:
 import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
 import { createPluginRuntimeStore } from "crawclaw/plugin-sdk/runtime-store";
 
-// Wrong: monolithic root (deprecated, will be removed)
+// Wrong: removed monolithic root entry
 import { ... } from "crawclaw/plugin-sdk";
 ```
 

@@ -1,9 +1,9 @@
 import { resolveInboundDebounceMs } from "crawclaw/plugin-sdk/channel-inbound";
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
 import { formatCliCommand } from "crawclaw/plugin-sdk/cli-runtime";
 import { waitForever } from "crawclaw/plugin-sdk/cli-runtime";
 import { hasControlCommand } from "crawclaw/plugin-sdk/command-surface";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import { DEFAULT_GROUP_HISTORY_LIMIT } from "crawclaw/plugin-sdk/reply-history";
 import { getReplyFromConfig } from "crawclaw/plugin-sdk/reply-runtime";
 import { resolveAgentRoute } from "crawclaw/plugin-sdk/routing";

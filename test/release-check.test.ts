@@ -225,9 +225,8 @@ describe("collectMissingPackPaths", () => {
     const missing = collectMissingPackPaths([
       "dist/index.js",
       "dist/entry.js",
-      "dist/plugin-sdk/index.js",
-      "dist/plugin-sdk/index.d.ts",
-      "dist/plugin-sdk/root-alias.cjs",
+      "dist/plugin-sdk/core.js",
+      "dist/plugin-sdk/core.d.ts",
       "dist/build-info.json",
     ]);
 
@@ -269,7 +268,6 @@ describe("collectMissingPackPaths", () => {
         "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",
         "docs/reference/templates/AGENTS.md",
-        "dist/plugin-sdk/root-alias.cjs",
         "dist/build-info.json",
         "dist/channel-catalog.json",
         ...requiredStaticExtensionAssetPaths,

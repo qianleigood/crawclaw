@@ -1,9 +1,9 @@
 import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
-import { enqueueSystemEvent } from "crawclaw/plugin-sdk/channel-runtime";
 import { loadConfig, resolveStorePath } from "crawclaw/plugin-sdk/config-runtime";
 import { loadSessionStore } from "crawclaw/plugin-sdk/config-runtime";
 import { readChannelAllowFromStore } from "crawclaw/plugin-sdk/conversation-runtime";
 import { upsertChannelPairingRequest } from "crawclaw/plugin-sdk/conversation-runtime";
+import { enqueueSystemEvent } from "crawclaw/plugin-sdk/infra-runtime";
 import { buildModelsProviderData } from "crawclaw/plugin-sdk/models-provider-runtime";
 import { dispatchReplyWithBufferedBlockDispatcher } from "crawclaw/plugin-sdk/reply-dispatch-runtime";
 import { listSkillCommandsForAgents } from "crawclaw/plugin-sdk/skill-commands-runtime";

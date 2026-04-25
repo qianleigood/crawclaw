@@ -9,10 +9,7 @@ import {
 import { loadBundledCapabilityRuntimeRegistry } from "../bundled-capability-runtime.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
 import { buildPluginLoaderAliasMap, buildPluginLoaderJitiOptions } from "../sdk-alias.js";
-import type {
-  MediaUnderstandingProviderPlugin,
-  SpeechProviderPlugin,
-} from "../types.js";
+import type { MediaUnderstandingProviderPlugin, SpeechProviderPlugin } from "../types.js";
 
 export type SpeechProviderContractEntry = {
   pluginId: string;
@@ -25,8 +22,12 @@ export type MediaUnderstandingProviderContractEntry = {
 };
 
 function buildVitestCapabilityAliasMap(modulePath: string): Record<string, string> {
-  const { ["crawclaw/plugin-sdk"]: _ignoredRootAlias, ...scopedAliasMap } =
-    buildPluginLoaderAliasMap(modulePath, process.argv[1], import.meta.url, "dist");
+  const scopedAliasMap = buildPluginLoaderAliasMap(
+    modulePath,
+    process.argv[1],
+    import.meta.url,
+    "dist",
+  );
   return {
     ...scopedAliasMap,
     "crawclaw/plugin-sdk/llm-task": fileURLToPath(

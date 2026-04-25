@@ -49,8 +49,8 @@ vi.mock("crawclaw/plugin-sdk/routing", async (importOriginal) => {
   };
 });
 
-vi.mock("crawclaw/plugin-sdk/channel-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/channel-runtime")>();
+vi.mock("crawclaw/plugin-sdk/infra-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("crawclaw/plugin-sdk/infra-runtime")>();
   return {
     ...actual,
     resolveMainSessionWakeVisibility: () => state.visibility,

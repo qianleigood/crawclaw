@@ -63,13 +63,10 @@ describe("normalizeStoredCronJobs", () => {
       tz: "UTC",
     });
     expect(job?.message).toBeUndefined();
-    expect(job?.provider).toBeUndefined();
-    expect(job?.delivery).toMatchObject({
-      mode: "announce",
-      channel: "telegram",
-      to: "12345",
-      threadId: "77",
-    });
+    expect(job?.provider).toBe(" TeLeGrAm ");
+    expect(job?.to).toBe("12345");
+    expect(job?.threadId).toBe(" 77 ");
+    expect(job?.delivery).toBeUndefined();
     expect(job?.payload).toMatchObject({
       kind: "agentTurn",
       message: "say hi",
@@ -93,17 +90,13 @@ describe("normalizeStoredCronJobs", () => {
     const result = normalizeStoredCronJobs(jobs);
 
     expect(result.mutated).toBe(true);
-    expect(result.issues.legacyPayloadProvider).toBe(1);
+    expect(result.issues.legacyPayloadProvider).toBeUndefined();
     expect(jobs[0]?.payload).toMatchObject({
       kind: "agentTurn",
       message: "ping",
+      provider: " Slack ",
     });
-    const payload = jobs[0]?.payload as Record<string, unknown> | undefined;
-    expect(payload?.provider).toBeUndefined();
-    expect(jobs[0]?.delivery).toMatchObject({
-      mode: "announce",
-      channel: "slack",
-    });
+    expect(jobs[0]?.delivery).toBeUndefined();
   });
 
   it("does not report legacyPayloadKind for already-normalized payload kinds", () => {
@@ -182,19 +175,14 @@ describe("normalizeStoredCronJobs", () => {
 
     expect(result.mutated).toBe(true);
     expect(job.sessionKey).toBe("agent:main:discord:channel:ops");
-    expect(job.delivery).toEqual({
-      mode: "announce",
-      channel: "telegram",
-      to: "7200373102",
-      bestEffort: true,
-    });
+    expect(job.delivery).toBeUndefined();
     expect("isolation" in job).toBe(false);
 
     const payload = job.payload as Record<string, unknown>;
-    expect(payload.deliver).toBeUndefined();
-    expect(payload.channel).toBeUndefined();
-    expect(payload.to).toBeUndefined();
-    expect(payload.bestEffortDeliver).toBeUndefined();
+    expect(payload.deliver).toBe(true);
+    expect(payload.channel).toBe("telegram");
+    expect(payload.to).toBe("7200373102");
+    expect(payload.bestEffortDeliver).toBe(true);
 
     const schedule = job.schedule as Record<string, unknown>;
     expect(schedule.kind).toBe("at");

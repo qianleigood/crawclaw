@@ -4,7 +4,7 @@ sidebarTitle: "Migrate to SDK"
 summary: "Migrate from the legacy backwards-compatibility layer to the modern plugin SDK"
 read_when:
   - You see a module-not-found error for crawclaw/plugin-sdk/compat
-  - You see the CRAWCLAW_EXTENSION_API_DEPRECATED warning
+  - You see a module-not-found error for crawclaw/extension-api
   - You are updating a plugin to the modern plugin architecture
   - You maintain an external CrawClaw plugin
 ---
@@ -25,13 +25,17 @@ anything they needed from a single entry point:
   new plugin architecture was being built.
 - **`crawclaw/extension-api`** — a bridge that gave plugins direct access to
   host-side helpers like the embedded agent runner.
+- **`crawclaw/plugin-sdk/channel-runtime`** — a broad runtime helper barrel that
+  mixed channel ids, transport readiness, activity tracking, system events, and
+  other unrelated surfaces.
 
-`crawclaw/plugin-sdk/compat` has been removed. `crawclaw/extension-api` remains
-deprecated and should still be migrated away from.
+All three legacy surfaces have now been removed.
 
 <Warning>
-  Plugins that still import `crawclaw/plugin-sdk/compat` will now fail to load.
-  Migrate those imports to focused `crawclaw/plugin-sdk/<subpath>` entries.
+  Plugins that still import `crawclaw/plugin-sdk/compat`,
+  `crawclaw/extension-api`, or `crawclaw/plugin-sdk/channel-runtime` will now
+  fail to load. Migrate those imports to focused
+  `crawclaw/plugin-sdk/<subpath>` entries.
 </Warning>
 
 ## Why this changed
@@ -77,6 +81,7 @@ is a small, self-contained module with a clear purpose and documented contract.
     ```bash
     grep -r "plugin-sdk/compat" my-plugin/
     grep -r "crawclaw/extension-api" my-plugin/
+    grep -r "plugin-sdk/channel-runtime" my-plugin/
     ```
 
   </Step>
@@ -146,7 +151,8 @@ is a small, self-contained module with a clear purpose and documented contract.
   | `plugin-sdk/channel-config-schema` | Config schema builders | Channel config schema types |
   | `plugin-sdk/channel-policy` | Group/DM policy resolution | `resolveChannelGroupRequireMention` |
   | `plugin-sdk/channel-lifecycle` | Account status tracking | `createAccountStatusSink` |
-  | `plugin-sdk/channel-runtime` | Runtime wiring helpers | Channel runtime utilities |
+  | `plugin-sdk/channel-id` | Channel id normalization | `normalizeChannelId`, `ChannelId` |
+  | `plugin-sdk/infra-runtime` | Shared infra/runtime helpers | `enqueueSystemEvent`, `recordChannelActivity`, `waitForTransportReady` |
   | `plugin-sdk/channel-send-result` | Send result types | Reply result types |
   | `plugin-sdk/runtime-store` | Persistent plugin storage | `createPluginRuntimeStore` |
   | `plugin-sdk/approval-runtime` | Approval prompt helpers | Exec/plugin approval payload, approval capability/profile helpers, native approval routing/runtime helpers |
@@ -173,23 +179,12 @@ check the source at `src/plugin-sdk/` or ask in Discord.
 
 ## Removal timeline
 
-| When                   | What happens                                            |
-| ---------------------- | ------------------------------------------------------- |
-| **Now**                | `plugin-sdk/compat` is removed; importing it fails      |
-| **Next major release** | Other deprecated surfaces may be removed; migrate early |
+| When    | What happens                                                                                  |
+| ------- | --------------------------------------------------------------------------------------------- |
+| **Now** | `plugin-sdk/compat`, `extension-api`, and `channel-runtime` are removed; importing them fails |
 
-All core plugins have already been migrated. External plugins should migrate
-before the next major release.
-
-## Suppressing the warnings temporarily
-
-Set these environment variables while you work on migrating:
-
-```bash
-CRAWCLAW_SUPPRESS_EXTENSION_API_WARNING=1 crawclaw gateway run
-```
-
-This is a temporary escape hatch, not a permanent solution.
+All core plugins have already been migrated. External plugins should migrate to
+the focused subpaths before updating to this release.
 
 ## Related
 

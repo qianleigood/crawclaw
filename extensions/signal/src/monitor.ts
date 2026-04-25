@@ -1,4 +1,3 @@
-import { waitForTransportReady } from "crawclaw/plugin-sdk/channel-runtime";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { SignalReactionNotificationMode } from "crawclaw/plugin-sdk/config-runtime";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
@@ -7,6 +6,7 @@ import {
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
 } from "crawclaw/plugin-sdk/config-runtime";
+import { waitForTransportReady } from "crawclaw/plugin-sdk/infra-runtime";
 import { saveMediaBuffer } from "crawclaw/plugin-sdk/media-runtime";
 import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "crawclaw/plugin-sdk/reply-history";
 import {

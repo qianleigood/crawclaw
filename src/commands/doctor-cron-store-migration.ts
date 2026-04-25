@@ -2,8 +2,6 @@ import { parseAbsoluteTimeMs } from "../cron/parse.js";
 import { coerceFiniteScheduleNumber } from "../cron/schedule.js";
 import { inferLegacyName, normalizeOptionalText } from "../cron/service/normalize.js";
 import { normalizeCronStaggerMs, resolveDefaultCronStaggerMs } from "../cron/stagger.js";
-import { normalizeLegacyDeliveryInput } from "./doctor-cron-legacy-delivery.js";
-import { migrateLegacyCronPayload } from "./doctor-cron-payload-migration.js";
 
 type CronStoreIssueKey =
   | "jobId"
@@ -102,46 +100,6 @@ function copyTopLevelAgentTurnFields(
     mutated = true;
   }
 
-  if (typeof payload.deliver !== "boolean" && typeof raw.deliver === "boolean") {
-    payload.deliver = raw.deliver;
-    mutated = true;
-  }
-  if (
-    typeof payload.channel !== "string" &&
-    typeof raw.channel === "string" &&
-    raw.channel.trim()
-  ) {
-    payload.channel = raw.channel.trim();
-    mutated = true;
-  }
-  if (typeof payload.to !== "string" && typeof raw.to === "string" && raw.to.trim()) {
-    payload.to = raw.to.trim();
-    mutated = true;
-  }
-  if (
-    !("threadId" in payload) &&
-    ((typeof raw.threadId === "number" && Number.isFinite(raw.threadId)) ||
-      (typeof raw.threadId === "string" && raw.threadId.trim()))
-  ) {
-    payload.threadId = typeof raw.threadId === "string" ? raw.threadId.trim() : raw.threadId;
-    mutated = true;
-  }
-  if (
-    typeof payload.bestEffortDeliver !== "boolean" &&
-    typeof raw.bestEffortDeliver === "boolean"
-  ) {
-    payload.bestEffortDeliver = raw.bestEffortDeliver;
-    mutated = true;
-  }
-  if (
-    typeof payload.provider !== "string" &&
-    typeof raw.provider === "string" &&
-    raw.provider.trim()
-  ) {
-    payload.provider = raw.provider.trim();
-    mutated = true;
-  }
-
   return mutated;
 }
 
@@ -163,24 +121,6 @@ function stripLegacyTopLevelFields(raw: Record<string, unknown>) {
   }
   if ("text" in raw) {
     delete raw.text;
-  }
-  if ("deliver" in raw) {
-    delete raw.deliver;
-  }
-  if ("channel" in raw) {
-    delete raw.channel;
-  }
-  if ("to" in raw) {
-    delete raw.to;
-  }
-  if ("threadId" in raw) {
-    delete raw.threadId;
-  }
-  if ("bestEffortDeliver" in raw) {
-    delete raw.bestEffortDeliver;
-  }
-  if ("provider" in raw) {
-    delete raw.provider;
   }
   if ("command" in raw) {
     delete raw.command;
@@ -339,17 +279,6 @@ export function normalizeStoredCronJobs(
       }
     }
 
-    if (payloadRecord) {
-      const hadLegacyPayloadProvider =
-        typeof payloadRecord.provider === "string" && payloadRecord.provider.trim().length > 0;
-      if (migrateLegacyCronPayload(payloadRecord)) {
-        mutated = true;
-        if (hadLegacyPayloadProvider) {
-          trackIssue("legacyPayloadProvider");
-        }
-      }
-    }
-
     const schedule = raw.schedule;
     if (schedule && typeof schedule === "object" && !Array.isArray(schedule)) {
       const sched = schedule as Record<string, unknown>;
@@ -495,25 +424,27 @@ export function normalizeStoredCronJobs(
       sessionTarget.startsWith("session:") ||
       (sessionTarget === "" && payloadKind === "agentTurn");
     const hasDelivery = delivery && typeof delivery === "object" && !Array.isArray(delivery);
-    const normalizedLegacy = normalizeLegacyDeliveryInput({
-      delivery: hasDelivery ? (delivery as Record<string, unknown>) : null,
-      payload: payloadRecord,
-    });
+    const hasLegacyPayloadDeliveryHints =
+      payloadRecord !== null &&
+      ("deliver" in payloadRecord ||
+        "channel" in payloadRecord ||
+        "provider" in payloadRecord ||
+        "to" in payloadRecord ||
+        "threadId" in payloadRecord ||
+        "bestEffortDeliver" in payloadRecord);
+    const hasLegacyTopLevelDeliveryHints =
+      "deliver" in raw ||
+      "channel" in raw ||
+      "provider" in raw ||
+      "to" in raw ||
+      "threadId" in raw ||
+      "bestEffortDeliver" in raw;
 
     if (isIsolatedAgentTurn && payloadKind === "agentTurn") {
-      if (!hasDelivery && normalizedLegacy.delivery) {
-        raw.delivery = normalizedLegacy.delivery;
-        mutated = true;
-      } else if (!hasDelivery) {
+      if (!hasDelivery && !hasLegacyPayloadDeliveryHints && !hasLegacyTopLevelDeliveryHints) {
         raw.delivery = { mode: "announce" };
         mutated = true;
-      } else if (normalizedLegacy.mutated && normalizedLegacy.delivery) {
-        raw.delivery = normalizedLegacy.delivery;
-        mutated = true;
       }
-    } else if (normalizedLegacy.mutated && normalizedLegacy.delivery) {
-      raw.delivery = normalizedLegacy.delivery;
-      mutated = true;
     }
   }
 

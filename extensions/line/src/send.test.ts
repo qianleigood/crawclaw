@@ -59,7 +59,7 @@ vi.mock("./channel-access-token.js", () => ({
   resolveLineChannelAccessToken: resolveLineChannelAccessTokenMock,
 }));
 
-vi.mock("crawclaw/plugin-sdk/channel-runtime", () => ({
+vi.mock("crawclaw/plugin-sdk/infra-runtime", () => ({
   recordChannelActivity: recordChannelActivityMock,
 }));
 
