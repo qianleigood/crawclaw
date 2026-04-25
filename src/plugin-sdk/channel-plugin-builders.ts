@@ -33,7 +33,7 @@ type DefineChannelPluginEntryOptions<TPlugin = ChannelPlugin> = {
   configSchema?: CrawClawPluginConfigSchema | (() => CrawClawPluginConfigSchema);
   setRuntime?: (runtime: PluginRuntime) => void;
   registerCliMetadata?: (api: CrawClawPluginApi) => void;
-  registerFull?: (api: CrawClawPluginApi) => void;
+  registerFull?: (api: CrawClawPluginApi) => MaybePromise<void>;
 };
 
 type DefinedChannelPluginEntry<TPlugin> = {
@@ -42,7 +42,7 @@ type DefinedChannelPluginEntry<TPlugin> = {
   name: string;
   description: string;
   configSchema: CrawClawPluginConfigSchema;
-  register: (api: CrawClawPluginApi) => void;
+  register: (api: CrawClawPluginApi) => MaybePromise<void>;
   channelPlugin: TPlugin;
   setChannelRuntime?: (runtime: PluginRuntime) => void;
 };
@@ -378,7 +378,7 @@ export function defineChannelPluginEntry<TPlugin>({
         return;
       }
       registerCliMetadata?.(api);
-      registerFull?.(api);
+      return registerFull?.(api);
     },
   };
   return {

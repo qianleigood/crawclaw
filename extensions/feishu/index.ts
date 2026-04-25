@@ -1,13 +1,6 @@
 import { defineChannelPluginEntry } from "crawclaw/plugin-sdk/core";
-import { registerFeishuBitableTools } from "./src/bitable.js";
 import { feishuPlugin } from "./src/channel.js";
-import { registerFeishuChatTools } from "./src/chat.js";
-import { registerFeishuDocTools } from "./src/docx.js";
-import { registerFeishuDriveTools } from "./src/drive.js";
-import { registerFeishuPermTools } from "./src/perm.js";
 import { setFeishuRuntime } from "./src/runtime.js";
-import { registerFeishuSubagentHooks } from "./src/subagent-hooks.js";
-import { registerFeishuWikiTools } from "./src/wiki.js";
 
 export { feishuPlugin } from "./src/channel.js";
 export { setFeishuRuntime } from "./src/runtime.js";
@@ -46,12 +39,19 @@ export {
 } from "./src/mention.js";
 
 type MonitorFeishuProvider = typeof import("./src/monitor.js").monitorFeishuProvider;
+type FeishuFullRuntimeModule = typeof import("./full.runtime.js");
 
 let feishuMonitorPromise: Promise<typeof import("./src/monitor.js")> | null = null;
+let feishuFullRuntimePromise: Promise<FeishuFullRuntimeModule> | null = null;
 
 function loadFeishuMonitorModule() {
   feishuMonitorPromise ??= import("./src/monitor.js");
   return feishuMonitorPromise;
+}
+
+function loadFeishuFullRuntimeModule() {
+  feishuFullRuntimePromise ??= import("./full.runtime.js");
+  return feishuFullRuntimePromise;
 }
 
 export async function monitorFeishuProvider(
@@ -68,12 +68,8 @@ export default defineChannelPluginEntry({
   plugin: feishuPlugin,
   setRuntime: setFeishuRuntime,
   registerFull(api) {
-    registerFeishuSubagentHooks(api);
-    registerFeishuDocTools(api);
-    registerFeishuChatTools(api);
-    registerFeishuWikiTools(api);
-    registerFeishuDriveTools(api);
-    registerFeishuPermTools(api);
-    registerFeishuBitableTools(api);
+    return loadFeishuFullRuntimeModule().then(({ registerFeishuFull }) => {
+      registerFeishuFull(api);
+    });
   },
 });
