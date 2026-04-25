@@ -37,6 +37,9 @@ Treat these as different distribution surfaces, not three random directories.
 ## Bundled Core Skills
 
 `skills/` is the default bundled skill surface for CrawClaw.
+It ships in published installs, and the runtime resolves bundled skills from
+that install root. Treat removals or publish-whitelist changes here as package
+surface changes, not cleanup.
 
 Use this directory for repo-wide, broadly reusable skills that make sense as part
 of the default runtime experience.

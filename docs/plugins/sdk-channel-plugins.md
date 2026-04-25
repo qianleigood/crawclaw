@@ -272,7 +272,9 @@ Auth-only channels can usually stop at the default path: core handles approvals 
         );
       },
       registerFull(api) {
-        api.registerGatewayMethod(/* ... */);
+        return import("./full.runtime.js").then(({ registerAcmeChatFull }) => {
+          registerAcmeChatFull(api);
+        });
       },
     });
     ```
@@ -280,7 +282,10 @@ Auth-only channels can usually stop at the default path: core handles approvals 
     Put channel-owned CLI descriptors in `registerCliMetadata(...)` so CrawClaw
     can show them in root help without activating the full channel runtime,
     while normal full loads still pick up the same descriptors for real command
-    registration. Keep `registerFull(...)` for runtime-only work.
+    registration. Keep `registerFull(...)` for runtime-only work. If that work
+    pulls in heavy SDKs, routes, or tool graphs, return a dynamic import from
+    `registerFull(...)` and move the heavy registration logic into a dedicated
+    `full.runtime.ts` or `full.runtime.js` module.
     `defineChannelPluginEntry` handles the registration-mode split automatically. See
     [Entry Points](/plugins/sdk-entrypoints#definechannelpluginentry) for all
     options.

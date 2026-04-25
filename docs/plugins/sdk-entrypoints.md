@@ -77,7 +77,9 @@ export default defineChannelPluginEntry({
     api.registerCli(/* ... */);
   },
   registerFull(api) {
-    api.registerGatewayMethod(/* ... */);
+    return import("./full.runtime.js").then(({ registerMyChannelFull }) => {
+      registerMyChannelFull(api);
+    });
   },
 });
 ```
@@ -91,7 +93,7 @@ export default defineChannelPluginEntry({
 | `configSchema`        | `CrawClawPluginConfigSchema \| () => CrawClawPluginConfigSchema` | No       | Empty object schema |
 | `setRuntime`          | `(runtime: PluginRuntime) => void`                               | No       | —                   |
 | `registerCliMetadata` | `(api: CrawClawPluginApi) => void`                               | No       | —                   |
-| `registerFull`        | `(api: CrawClawPluginApi) => void`                               | No       | —                   |
+| `registerFull`        | `(api: CrawClawPluginApi) => void \| Promise<void>`              | No       | —                   |
 
 - `setRuntime` is called during registration so you can store the runtime reference
   (typically via `createPluginRuntimeStore`). It is skipped during CLI metadata
@@ -102,7 +104,9 @@ export default defineChannelPluginEntry({
   stays non-activating while normal CLI command registration remains compatible
   with full plugin loads.
 - `registerFull` only runs when `api.registrationMode === "full"`. It is skipped
-  during setup-only loading.
+  during setup-only loading. It may return a promise, which makes it the right
+  place to lazily import heavy runtime-only registration code from a dedicated
+  `full.runtime.ts` or `full.runtime.js` boundary.
 - For plugin-owned root CLI commands, prefer `api.registerCli(..., { descriptors: [...] })`
   when you want the command to stay lazy-loaded without disappearing from the
   root CLI parse tree. For channel plugins, prefer registering those descriptors
