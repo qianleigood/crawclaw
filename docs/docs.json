@@ -1153,6 +1153,7 @@
                   },
                   "tools/btw",
                   "tools/code-execution",
+                  "tools/comfyui",
                   "tools/diffs",
                   "tools/elevated",
                   "tools/exec",

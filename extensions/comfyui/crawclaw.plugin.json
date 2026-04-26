@@ -1,0 +1,23 @@
+{
+  "id": "comfyui",
+  "enabledByDefault": true,
+  "name": "ComfyUI",
+  "description": "Build, validate, run, and download local ComfyUI workflows.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "baseUrl": { "type": "string" },
+      "allowRemote": { "type": "boolean" },
+      "outputDir": { "type": "string" },
+      "workflowsDir": { "type": "string" },
+      "maxPlanRepairAttempts": { "type": "number" },
+      "requestTimeoutMs": { "type": "number" },
+      "runTimeoutMs": { "type": "number" },
+      "allowedInputDirs": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}
