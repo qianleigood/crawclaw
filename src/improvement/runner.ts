@@ -38,6 +38,14 @@ import type {
   WorkflowImprovementPatch,
 } from "./types.js";
 
+export type ImprovementWorkflowDeps = {
+  runPromotionJudge: typeof runPromotionJudge;
+};
+
+const defaultImprovementWorkflowDeps: ImprovementWorkflowDeps = {
+  runPromotionJudge,
+};
+
 function slugify(value: string): string {
   const slug = value
     .trim()
@@ -45,6 +53,28 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return slug || "improvement";
+}
+
+function buildDefaultPromotionJudgeContext(params: {
+  workspaceDir: string;
+  runId: string;
+  config?: CrawClawConfig;
+}): Parameters<typeof runPromotionJudge>[0]["embeddedContext"] {
+  const sessionId = `improvement-center-${slugify(params.runId)}`;
+  return {
+    sessionId,
+    sessionFile: path.join(
+      params.workspaceDir,
+      ".crawclaw",
+      "improvements",
+      "runs",
+      `${sessionId}.jsonl`,
+    ),
+    workspaceDir: params.workspaceDir,
+    agentId: "main",
+    spawnedBy: "improvement-center",
+    ...(params.config ? { config: params.config } : {}),
+  };
 }
 
 function trimToSentence(value: string | undefined, fallback: string): string {
@@ -385,15 +415,18 @@ async function writePromotionExperienceNote(params: {
   });
 }
 
-export async function runImprovementWorkflow(params: {
-  workspaceDir: string;
-  judge?: (input: {
-    candidate: PromotionCandidate;
-    assessment: PromotionCandidateAssessment;
-  }) => Promise<PromotionVerdict>;
-  embeddedJudgeContext?: Parameters<typeof runPromotionJudge>[0]["embeddedContext"];
-  config?: CrawClawConfig;
-}): Promise<ImprovementWorkflowResult> {
+export async function runImprovementWorkflow(
+  params: {
+    workspaceDir: string;
+    judge?: (input: {
+      candidate: PromotionCandidate;
+      assessment: PromotionCandidateAssessment;
+    }) => Promise<PromotionVerdict>;
+    embeddedJudgeContext?: Parameters<typeof runPromotionJudge>[0]["embeddedContext"];
+    config?: CrawClawConfig;
+  },
+  deps: ImprovementWorkflowDeps = defaultImprovementWorkflowDeps,
+): Promise<ImprovementWorkflowResult> {
   const assessments = await buildPromotionCandidateAssessments();
   const selected = pickCandidate(assessments);
   const baseRun = await saveImprovementRunRecord(
@@ -423,10 +456,16 @@ export async function runImprovementWorkflow(params: {
 
   const verdict = params.judge
     ? await params.judge({ candidate: selected.candidate, assessment: selected })
-    : await runPromotionJudge({
+    : await deps.runPromotionJudge({
         workspaceDir: params.workspaceDir,
         candidate: selected.candidate,
-        embeddedContext: params.embeddedJudgeContext!,
+        embeddedContext:
+          params.embeddedJudgeContext ??
+          buildDefaultPromotionJudgeContext({
+            workspaceDir: params.workspaceDir,
+            runId: baseRun.runId,
+            config: params.config,
+          }),
       });
 
   const proposalDraft = createProposalFromVerdict({

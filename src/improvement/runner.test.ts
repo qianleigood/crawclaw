@@ -118,6 +118,42 @@ describe("improvement runner", () => {
     });
   });
 
+  it("creates a local embedded judge context when no parent context is supplied", async () => {
+    await withStateDirEnv("crawclaw-improvement-runner-", async () => {
+      const workspaceDir = await tempDirs.make("improvement-runner-local-context-");
+      const config = {} as never;
+      await seedRepeatedExperience();
+
+      let observedContext:
+        | Parameters<typeof runImprovementWorkflow>[0]["embeddedJudgeContext"]
+        | undefined;
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          config,
+        },
+        {
+          runPromotionJudge: async ({ candidate, embeddedContext }) => {
+            observedContext = embeddedContext;
+            return buildSkillVerdict(candidate.id);
+          },
+        },
+      );
+
+      expect(result.proposal?.status).toBe("pending_review");
+      expect(observedContext).toMatchObject({
+        workspaceDir,
+        agentId: "main",
+        spawnedBy: "improvement-center",
+        config,
+      });
+      expect(observedContext?.sessionId).toMatch(/^improvement-center-/);
+      expect(observedContext?.sessionFile).toContain(
+        path.join(".crawclaw", "improvements", "runs"),
+      );
+    });
+  });
+
   it("refuses to apply proposals before approval", async () => {
     await withStateDirEnv("crawclaw-improvement-runner-", async () => {
       const workspaceDir = await tempDirs.make("improvement-runner-unapproved-");

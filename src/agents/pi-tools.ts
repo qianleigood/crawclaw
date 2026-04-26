@@ -485,11 +485,6 @@ export function createCrawClawCodingTools(options?: {
   const profilePolicy = resolveToolProfilePolicy(profile);
   const providerProfilePolicy = resolveToolProfilePolicy(providerProfile);
 
-  const profilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(profilePolicy, profileAlsoAllow);
-  const providerProfilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(
-    providerProfilePolicy,
-    providerProfileAlsoAllow,
-  );
   // Prefer sessionKey for process isolation scope to prevent cross-session process visibility/killing.
   // Fallback to agentId if no sessionKey is available (e.g. legacy or global contexts).
   const scopeKey =
@@ -521,14 +516,34 @@ export function createCrawClawCodingTools(options?: {
     (specialAgentToolPolicy.enforcement ?? "prompt_allowlist") === "runtime_deny"
       ? [...specialAgentToolPolicy.allowlist]
       : undefined;
+  const specialAgentAlsoAllow = specialAgentRuntimeAllowlist ?? [];
+  const profilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(profilePolicy, [
+    ...(profileAlsoAllow ?? []),
+    ...specialAgentAlsoAllow,
+  ]);
+  const providerProfilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(providerProfilePolicy, [
+    ...(providerProfileAlsoAllow ?? []),
+    ...specialAgentAlsoAllow,
+  ]);
+  const globalPolicyWithSpecialAllow = mergeAlsoAllowPolicy(globalPolicy, specialAgentAlsoAllow);
+  const globalProviderPolicyWithSpecialAllow = mergeAlsoAllowPolicy(
+    globalProviderPolicy,
+    specialAgentAlsoAllow,
+  );
+  const agentPolicyWithSpecialAllow = mergeAlsoAllowPolicy(agentPolicy, specialAgentAlsoAllow);
+  const agentProviderPolicyWithSpecialAllow = mergeAlsoAllowPolicy(
+    agentProviderPolicy,
+    specialAgentAlsoAllow,
+  );
+  const groupPolicyWithSpecialAllow = mergeAlsoAllowPolicy(groupPolicy, specialAgentAlsoAllow);
   const allowBackground = isToolAllowedByPolicies("process", [
     profilePolicyWithAlsoAllow,
     providerProfilePolicyWithAlsoAllow,
-    globalPolicy,
-    globalProviderPolicy,
-    agentPolicy,
-    agentProviderPolicy,
-    groupPolicy,
+    globalPolicyWithSpecialAllow,
+    globalProviderPolicyWithSpecialAllow,
+    agentPolicyWithSpecialAllow,
+    agentProviderPolicyWithSpecialAllow,
+    groupPolicyWithSpecialAllow,
     sandboxToolPolicy,
     subagentPolicy,
     specialAgentPromptAllowPolicy,
@@ -814,11 +829,11 @@ export function createCrawClawCodingTools(options?: {
         providerProfilePolicy: providerProfilePolicyWithAlsoAllow,
         providerProfile,
         providerProfileAlsoAllow,
-        globalPolicy,
-        globalProviderPolicy,
-        agentPolicy,
-        agentProviderPolicy,
-        groupPolicy,
+        globalPolicy: globalPolicyWithSpecialAllow,
+        globalProviderPolicy: globalProviderPolicyWithSpecialAllow,
+        agentPolicy: agentPolicyWithSpecialAllow,
+        agentProviderPolicy: agentProviderPolicyWithSpecialAllow,
+        groupPolicy: groupPolicyWithSpecialAllow,
         agentId,
       }),
       { policy: sandboxToolPolicy, label: "sandbox tools.allow" },

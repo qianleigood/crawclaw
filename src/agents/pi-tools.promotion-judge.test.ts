@@ -52,4 +52,19 @@ describe("pi-tools promotion judge gating", () => {
       }),
     ).rejects.toThrow('Tool "write" is not allowed for this special-agent run');
   });
+
+  it("keeps the verdict tool even when config allowlists other tools", async () => {
+    const workspaceDir = await tempDirs.make("pi-tools-promotion-judge-policy-");
+    const tools = createCrawClawCodingTools({
+      workspaceDir,
+      specialAgentSpawnSource: "promotion-judge",
+      config: {
+        tools: {
+          allow: ["read"],
+        },
+      } as never,
+    });
+
+    expect(tools.map((tool) => tool.name)).toContain("submit_promotion_verdict");
+  });
 });
