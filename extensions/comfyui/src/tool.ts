@@ -10,7 +10,7 @@ import { normalizeNodeCatalog } from "./catalog.js";
 import { ComfyUiClient } from "./client.js";
 import { compileGraphIrToPrompt } from "./compiler.js";
 import { resolveComfyUiConfig, type ComfyUiResolvedConfig } from "./config.js";
-import { parseGraphIr, type ComfyGraphIr } from "./graph-ir.js";
+import { isRecord, parseGraphIr, type ComfyGraphIr } from "./graph-ir.js";
 import { collectOutputArtifacts, downloadOutputArtifacts } from "./outputs.js";
 import { createGraphPlan } from "./planner.js";
 import { repairGraphIr } from "./repair.js";
@@ -76,6 +76,49 @@ async function resolveIrForRun(
     return (await loadWorkflowArtifacts({ workflowsDir: config.workflowsDir, workflowId })).ir;
   }
   return requireIr(params.ir);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function promptHistoryEntry(
+  promptId: string,
+  history: unknown,
+): Record<string, unknown> | undefined {
+  if (!isRecord(history)) {
+    return undefined;
+  }
+  const entry = history[promptId] ?? history;
+  return isRecord(entry) ? entry : undefined;
+}
+
+function promptStatus(entry: Record<string, unknown> | undefined): string | undefined {
+  const status = entry?.status;
+  return isRecord(status) && typeof status.status_str === "string" ? status.status_str : undefined;
+}
+
+async function waitForPromptHistory(params: {
+  client: Pick<ComfyUiClient, "getHistory">;
+  promptId: string;
+  timeoutMs: number;
+  pollIntervalMs: number;
+}): Promise<unknown> {
+  const deadline = Date.now() + params.timeoutMs;
+  let lastHistory: unknown = {};
+  while (Date.now() <= deadline) {
+    lastHistory = await params.client.getHistory(params.promptId);
+    const entry = promptHistoryEntry(params.promptId, lastHistory);
+    const status = promptStatus(entry);
+    if (status === "success") {
+      return lastHistory;
+    }
+    if (status && status !== "running") {
+      throw new Error(`ComfyUI prompt ${params.promptId} failed with status: ${status}`);
+    }
+    await sleep(Math.min(params.pollIntervalMs, Math.max(1, deadline - Date.now())));
+  }
+  throw new Error(`Timed out waiting for ComfyUI prompt ${params.promptId}`);
 }
 
 export function createComfyUiWorkflowTool(
@@ -198,7 +241,12 @@ export function createComfyUiWorkflowTool(
           let history: unknown;
           let outputs;
           if (params.waitForCompletion === true || params.downloadOutputs === true) {
-            history = await client.getHistory(started.prompt_id);
+            history = await waitForPromptHistory({
+              client,
+              promptId: started.prompt_id,
+              timeoutMs: config.runTimeoutMs,
+              pollIntervalMs: config.runPollIntervalMs,
+            });
             outputs = collectOutputArtifacts(started.prompt_id, history);
             if (params.downloadOutputs === true) {
               outputs = await downloadOutputArtifacts({

@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { objectInfoFixture } from "./test-fixtures.js";
+import { imageIrFixture, objectInfoFixture } from "./test-fixtures.js";
 import { createComfyUiWorkflowTool } from "./tool.js";
 
 const tempDirs: string[] = [];
@@ -80,5 +80,49 @@ describe("comfyui_workflow tool", () => {
         prompt: { "1": { class_type: "SaveImage", inputs: {} } },
       }),
     ).rejects.toThrow(/raw prompt json/i);
+  });
+
+  it("waits for completion before downloading run outputs", async () => {
+    const workspaceDir = await createTempDir();
+    const history = {
+      "prompt-1": {
+        status: { status_str: "success", completed: true },
+        outputs: {
+          "7": {
+            images: [{ filename: "a.png", subfolder: "", type: "output" }],
+          },
+        },
+      },
+    };
+    const getHistory = vi.fn(async () => history);
+    const tool = createComfyUiWorkflowTool(
+      { workspaceDir },
+      {
+        pluginConfig: { runPollIntervalMs: 1 },
+        createClient: () =>
+          ({
+            getObjectInfo: vi.fn(async () => objectInfoFixture),
+            submitPrompt: vi.fn(async () => ({ prompt_id: "prompt-1", number: 1 })),
+            getHistory,
+            downloadView: vi.fn(async () => new Uint8Array(Buffer.from("image-bytes"))),
+          }) as never,
+      },
+    );
+
+    const result = parseToolJson(
+      await tool.execute("call-1", {
+        action: "run",
+        ir: imageIrFixture,
+        downloadOutputs: true,
+      }),
+    );
+
+    expect(getHistory).toHaveBeenCalledWith("prompt-1");
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        kind: "image",
+        localPath: expect.stringContaining(path.join("prompt-1", "a.png")),
+      }),
+    ]);
   });
 });

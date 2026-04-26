@@ -42,17 +42,19 @@ function hasCommonImagePath(catalog: ComfyNodeCatalog): boolean {
   ].every((classType) => requireClass(catalog, classType));
 }
 
-function firstChoice(
-  catalog: ComfyNodeCatalog,
-  classType: string,
-  field: string,
-  fallback: string,
-): string {
-  const node = catalog.getNode(classType);
+function firstImageCheckpoint(catalog: ComfyNodeCatalog): string {
+  const node = catalog.getNode("CheckpointLoaderSimple");
   const input = [...(node?.requiredInputs ?? []), ...(node?.optionalInputs ?? [])].find(
-    (entry) => entry.name === field,
+    (entry) => entry.name === "ckpt_name",
   );
-  return input?.choices?.[0] ?? fallback;
+  const choices = input?.choices ?? [];
+  return (
+    choices.find(
+      (choice) => !/svd|video|img2vid|i2v|animatediff|wan|hunyuan|ltxv|mochi/i.test(choice),
+    ) ??
+    choices[0] ??
+    "model.safetensors"
+  );
 }
 
 function imageGraph(goal: string, catalog: ComfyNodeCatalog): ComfyGraphIr {
@@ -66,14 +68,7 @@ function imageGraph(goal: string, catalog: ComfyNodeCatalog): ComfyGraphIr {
         id: "loader",
         classType: "CheckpointLoaderSimple",
         purpose: "load checkpoint",
-        inputs: {
-          ckpt_name: firstChoice(
-            catalog,
-            "CheckpointLoaderSimple",
-            "ckpt_name",
-            "model.safetensors",
-          ),
-        },
+        inputs: { ckpt_name: firstImageCheckpoint(catalog) },
       },
       {
         id: "positive",

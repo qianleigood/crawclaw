@@ -8,6 +8,7 @@ export type ComfyUiResolvedConfig = {
   maxPlanRepairAttempts: number;
   requestTimeoutMs: number;
   runTimeoutMs: number;
+  runPollIntervalMs: number;
 };
 
 export type ResolveComfyUiConfigParams = {
@@ -106,5 +107,6 @@ export function resolveComfyUiConfig(
     maxPlanRepairAttempts: readNumber(pluginConfig, "maxPlanRepairAttempts", 3),
     requestTimeoutMs: readNumber(pluginConfig, "requestTimeoutMs", 30_000),
     runTimeoutMs: readNumber(pluginConfig, "runTimeoutMs", 900_000),
+    runPollIntervalMs: readNumber(pluginConfig, "runPollIntervalMs", 1_000),
   };
 }

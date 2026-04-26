@@ -31,6 +31,31 @@ describe("createGraphPlan", () => {
     expect(result.ir?.nodes.map((node) => node.classType)).toContain("KSampler");
   });
 
+  it("does not choose video checkpoints for built-in image plans", () => {
+    const catalog = normalizeNodeCatalog({
+      ...objectInfoFixture,
+      CheckpointLoaderSimple: {
+        ...objectInfoFixture.CheckpointLoaderSimple,
+        input: {
+          required: {
+            ckpt_name: [["svd_xt_1_1.safetensors", "v1-5-pruned-emaonly-fp16.safetensors"], {}],
+          },
+        },
+      },
+    });
+
+    const result = createGraphPlan({
+      goal: "Create a tiny image",
+      catalog,
+      mediaKind: "image",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.ir?.nodes.find((node) => node.id === "loader")?.inputs.ckpt_name).toBe(
+      "v1-5-pruned-emaonly-fp16.safetensors",
+    );
+  });
+
   it("does not downgrade video requests to image when video nodes are missing", () => {
     const { VHS_VideoCombine: _video, ...imageOnlyObjectInfo } = objectInfoFixture;
     const catalog = normalizeNodeCatalog(imageOnlyObjectInfo);

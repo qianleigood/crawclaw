@@ -38,6 +38,26 @@ describe("collectOutputArtifacts", () => {
       "unknown",
     ]);
   });
+
+  it("classifies animated image outputs as video artifacts", () => {
+    const artifacts = collectOutputArtifacts("prompt-1", {
+      "prompt-1": {
+        outputs: {
+          "7": {
+            images: [{ filename: "animation.webp", subfolder: "", type: "output" }],
+            animated: [true],
+          },
+        },
+      },
+    });
+
+    expect(artifacts).toEqual([
+      expect.objectContaining({
+        kind: "video",
+        filename: "animation.webp",
+      }),
+    ]);
+  });
 });
 
 describe("downloadOutputArtifacts", () => {

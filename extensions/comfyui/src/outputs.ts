@@ -46,6 +46,8 @@ export function collectOutputArtifacts(promptId: string, history: unknown): Comf
     if (!isRecord(nodeOutput)) {
       continue;
     }
+    const animated =
+      Array.isArray(nodeOutput.animated) && nodeOutput.animated.some((value) => value === true);
     for (const [key, value] of Object.entries(nodeOutput)) {
       if (!Array.isArray(value)) {
         continue;
@@ -55,7 +57,7 @@ export function collectOutputArtifacts(promptId: string, history: unknown): Comf
           continue;
         }
         artifacts.push({
-          kind: fileKind(key, item.filename),
+          kind: animated && key === "images" ? "video" : fileKind(key, item.filename),
           nodeId,
           filename: item.filename,
           subfolder: typeof item.subfolder === "string" ? item.subfolder : undefined,
