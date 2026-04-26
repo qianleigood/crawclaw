@@ -243,6 +243,40 @@ describe("tui command handlers", () => {
     );
   });
 
+  it("localizes improvement inbox metadata in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const improvements: TuiImprovementApi = {
+      list: vi.fn().mockResolvedValue([
+        {
+          id: "proposal-1",
+          status: "pending_review",
+          candidateId: "candidate-1",
+          kind: "skill",
+          signalSummary: "Repeated workflow diagnosis",
+          decision: "propose_skill",
+          riskLevel: "low",
+          confidence: "high",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ]),
+      detail: vi.fn(),
+      run: vi.fn(),
+      review: vi.fn(),
+      apply: vi.fn(),
+      verify: vi.fn(),
+      rollback: vi.fn(),
+    };
+    const openOverlay = vi.fn();
+    const { handleCommand } = createHarness({ improvements, openOverlay });
+
+    await handleCommand("/improve");
+
+    const rendered = openOverlay.mock.calls[0]?.[0].render(220).join("\n") ?? "";
+    expect(rendered).toContain("技能 待审核 proposal-1");
+    expect(rendered).not.toContain("skill pending_review proposal-1");
+  });
+
   it("opens improvement details and runs approval action", async () => {
     const improvements: TuiImprovementApi = {
       list: vi.fn(),
@@ -303,6 +337,68 @@ describe("tui command handlers", () => {
 
     expect(improvements.review).toHaveBeenCalledWith("proposal-1", true);
     expect(addSystem).toHaveBeenCalledWith("improvement approve: proposal-1");
+  });
+
+  it("localizes improvement action feedback in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const improvements: TuiImprovementApi = {
+      list: vi.fn(),
+      detail: vi.fn().mockResolvedValue({
+        proposal: {
+          id: "proposal-1",
+          status: "pending_review",
+          candidate: {
+            id: "candidate-1",
+            sourceRefs: [{ kind: "experience", ref: "exp-1" }],
+            signalSummary: "Repeated workflow diagnosis",
+            observedFrequency: 2,
+            currentReuseLevel: "experience",
+            repeatedActions: ["Check registry"],
+            validationEvidence: ["Validated"],
+            firstSeenAt: 1,
+            lastSeenAt: 2,
+          },
+          verdict: {
+            candidateId: "candidate-1",
+            decision: "propose_skill",
+            confidence: "high",
+            riskLevel: "low",
+            reasonsFor: ["Stable"],
+            reasonsAgainst: [],
+            missingEvidence: [],
+            verificationPlan: ["Verify"],
+          },
+          patchPlan: {
+            kind: "skill",
+            targetDir: ".agents/skills",
+            skillName: "workflow-diagnosis",
+            markdown: "skill",
+          },
+          policyResult: { allowed: true, blockers: [] },
+          rollbackPlan: ["Delete skill"],
+          createdAt: 1,
+          updatedAt: 2,
+        },
+        evidenceRefs: [{ kind: "experience", ref: "exp-1" }],
+        policyBlockers: [],
+        availableActions: ["approve", "reject"],
+      }),
+      run: vi.fn(),
+      review: vi.fn().mockResolvedValue({ id: "proposal-1", status: "approved" }),
+      apply: vi.fn(),
+      verify: vi.fn(),
+      rollback: vi.fn(),
+    };
+    const openOverlay = vi.fn();
+    const { handleCommand, addSystem } = createHarness({ improvements, openOverlay });
+
+    await handleCommand("/improve proposal-1");
+    const overlay = openOverlay.mock.calls[0]?.[0] as Component;
+    overlay.handleInput?.("a");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(addSystem).toHaveBeenCalledWith("改进 批准：proposal-1");
   });
 
   it("records status failures and falls back to chat log output", async () => {

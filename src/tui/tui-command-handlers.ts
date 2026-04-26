@@ -27,6 +27,9 @@ import {
 import {
   createDefaultTuiImprovementApi,
   ImprovementProposalOverlayComponent,
+  formatImprovementProposalListLabel,
+  formatTuiImprovementAction,
+  formatTuiImprovementStatus,
   type ImprovementOverlayAction,
   type TuiImprovementApi,
 } from "./tui-improvement-center.js";
@@ -324,7 +327,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           }
           chatLog.addSystem(
             translateTuiText("tui.message.improveAction", {
-              action,
+              action: formatTuiImprovementAction(action),
               id: proposalId,
             }),
           );
@@ -363,7 +366,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
       const selector = createFilterableSelectList(
         proposals.map((proposal) => ({
           value: proposal.id,
-          label: `${proposal.kind} ${proposal.status} ${proposal.id}`,
+          label: formatImprovementProposalListLabel(proposal),
           description: proposal.signalSummary,
           searchText: [
             proposal.id,
@@ -395,7 +398,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
       const result = await improvements.run();
       chatLog.addSystem(
         translateTuiText("tui.message.improveRun", {
-          status: result.run.status,
+          status: formatTuiImprovementStatus(result.run.status),
           id: result.proposal?.id ?? result.run.runId,
         }),
       );

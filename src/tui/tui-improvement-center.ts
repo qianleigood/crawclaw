@@ -26,6 +26,49 @@ export type TuiImprovementApi = {
   rollback: (proposalId: string) => Promise<{ id: string; status: string }>;
 };
 
+function translateImprovementValue(group: string, value: string): string {
+  const key = `tui.improve.${group}.${value}`;
+  const translated = translateTuiText(key);
+  return translated === key ? value : translated;
+}
+
+export function formatTuiImprovementAction(action: string): string {
+  return translateImprovementValue("action", action);
+}
+
+export function formatTuiImprovementStatus(status: string): string {
+  return translateImprovementValue("statusValue", status);
+}
+
+export function formatTuiImprovementKind(kind: string): string {
+  return translateImprovementValue("kindValue", kind);
+}
+
+function formatTuiImprovementRisk(risk: string): string {
+  return translateImprovementValue("riskValue", risk);
+}
+
+function formatTuiImprovementConfidence(confidence: string): string {
+  return translateImprovementValue("confidenceValue", confidence);
+}
+
+function formatTuiImprovementMode(mode: string): string {
+  return translateImprovementValue("mode", mode);
+}
+
+function formatTuiImprovementActions(actions: readonly string[]): string {
+  if (actions.length === 0) {
+    return translateTuiText("tui.common.none");
+  }
+  return actions.map(formatTuiImprovementAction).join(", ");
+}
+
+export function formatImprovementProposalListLabel(
+  proposal: Pick<ImprovementProposalListItem, "id" | "kind" | "status">,
+): string {
+  return `${formatTuiImprovementKind(proposal.kind)} ${formatTuiImprovementStatus(proposal.status)} ${proposal.id}`;
+}
+
 export function createDefaultTuiImprovementApi(workspaceDir = process.cwd()): TuiImprovementApi {
   return {
     list: async () => await listImprovementProposals({ workspaceDir }, { limit: 50 }),
@@ -61,23 +104,23 @@ export function createDefaultTuiImprovementApi(workspaceDir = process.cwd()): Tu
 function patchSummary(detail: ImprovementProposalDetail): string {
   const proposal = detail.proposal;
   if (proposal.patchPlan.kind === "skill") {
-    return `skill ${proposal.patchPlan.targetDir}/${proposal.patchPlan.skillName}/SKILL.md`;
+    return `${formatTuiImprovementKind("skill")} ${proposal.patchPlan.targetDir}/${proposal.patchPlan.skillName}/SKILL.md`;
   }
   if (proposal.patchPlan.kind === "workflow") {
-    return `workflow ${proposal.patchPlan.patch.mode} ${proposal.patchPlan.workflowRef ?? "new"}`;
+    return `${formatTuiImprovementKind("workflow")} ${formatTuiImprovementMode(proposal.patchPlan.patch.mode)} ${proposal.patchPlan.workflowRef ?? translateTuiText("tui.improve.workflow.new")}`;
   }
-  return `code ${proposal.patchPlan.summary}`;
+  return `${formatTuiImprovementKind("code")} ${proposal.patchPlan.summary}`;
 }
 
 export function formatImprovementProposalOverlayLines(detail: ImprovementProposalDetail): string[] {
   const proposal = detail.proposal;
   return [
     translateTuiText("tui.improve.detailTitle", { id: proposal.id }),
-    `${translateTuiText("tui.improve.status")}: ${proposal.status}`,
-    `${translateTuiText("tui.improve.kind")}: ${proposal.patchPlan.kind}`,
-    `${translateTuiText("tui.improve.risk")}: ${proposal.verdict.riskLevel}`,
-    `${translateTuiText("tui.improve.confidence")}: ${proposal.verdict.confidence}`,
-    `${translateTuiText("tui.improve.actions")}: ${detail.availableActions.join(", ") || "none"}`,
+    `${translateTuiText("tui.improve.status")}: ${formatTuiImprovementStatus(proposal.status)}`,
+    `${translateTuiText("tui.improve.kind")}: ${formatTuiImprovementKind(proposal.patchPlan.kind)}`,
+    `${translateTuiText("tui.improve.risk")}: ${formatTuiImprovementRisk(proposal.verdict.riskLevel)}`,
+    `${translateTuiText("tui.improve.confidence")}: ${formatTuiImprovementConfidence(proposal.verdict.confidence)}`,
+    `${translateTuiText("tui.improve.actions")}: ${formatTuiImprovementActions(detail.availableActions)}`,
     "",
     translateTuiText("tui.improve.signal"),
     proposal.candidate.signalSummary,

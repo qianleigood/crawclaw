@@ -76,7 +76,7 @@ export function createTuiStatusLineController(params: {
       return;
     }
     const activityStatus = params.getActivityStatus();
-    const connectionStatus = params.getConnectionStatus();
+    const connectionStatus = formatTuiStatusText(params.getConnectionStatus());
     const elapsed = formatStatusElapsed(statusStartedAt);
 
     if (activityStatus === "waiting") {
@@ -93,7 +93,9 @@ export function createTuiStatusLineController(params: {
       return;
     }
 
-    statusLoader.setMessage(`${activityStatus} • ${elapsed} | ${connectionStatus}`);
+    statusLoader.setMessage(
+      `${formatTuiStatusText(activityStatus)} • ${elapsed} | ${connectionStatus}`,
+    );
   };
 
   const stopStatusTimer = () => {

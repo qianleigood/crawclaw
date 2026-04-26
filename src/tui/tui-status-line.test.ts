@@ -1,6 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setActiveCliLocale } from "../cli/i18n/index.js";
-import { formatIdleStatusText, formatStatusElapsed, isBusyStatus } from "./tui-status-line.js";
+import { stripAnsi } from "../terminal/ansi.js";
+import {
+  createTuiStatusLineController,
+  formatIdleStatusText,
+  formatStatusElapsed,
+  isBusyStatus,
+} from "./tui-status-line.js";
 
 describe("tui status line", () => {
   afterEach(() => {
@@ -30,5 +36,38 @@ describe("tui status line", () => {
     setActiveCliLocale("zh-CN");
 
     expect(formatIdleStatusText("connected", "idle")).toBe("已连接 | 空闲");
+  });
+
+  it("localizes busy status text in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+    const children: Array<{ render: (width: number) => string[] }> = [];
+    const controller = createTuiStatusLineController({
+      tui: { requestRender: vi.fn() } as never,
+      statusContainer: {
+        clear: () => {
+          children.length = 0;
+        },
+        addChild: (child: { render: (width: number) => string[] }) => {
+          children.push(child);
+        },
+      } as never,
+      getConnectionStatus: () => "connected",
+      setConnectionStatusValue: vi.fn(),
+      getActivityStatus: () => "running",
+      setActivityStatusValue: vi.fn(),
+      getIsConnected: () => true,
+      getStatusTimeout: () => null,
+      setStatusTimeout: vi.fn(),
+    });
+
+    controller.renderStatus();
+
+    const rendered = stripAnsi(children[0]?.render(80).join("\n") ?? "");
+    expect(rendered).toContain("运行中");
+    expect(rendered).toContain("已连接");
+    expect(rendered).not.toContain("running");
+    expect(rendered).not.toContain("connected");
+
+    controller.stop();
   });
 });

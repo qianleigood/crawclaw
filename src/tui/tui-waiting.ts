@@ -1,3 +1,5 @@
+import { translateTuiText } from "../cli/i18n/tui.js";
+
 type MinimalTheme = {
   dim: (s: string) => string;
   bold: (s: string) => string;
@@ -20,6 +22,15 @@ export const defaultWaitingPhrases = [
 export function pickWaitingPhrase(tick: number, phrases = defaultWaitingPhrases) {
   const idx = Math.floor(tick / 10) % phrases.length;
   return phrases[idx] ?? phrases[0] ?? "waiting";
+}
+
+export function getLocalizedWaitingPhrases(): string[] {
+  const translated = translateTuiText("tui.waiting.phrases");
+  const phrases = translated
+    .split("|")
+    .map((phrase) => phrase.trim())
+    .filter(Boolean);
+  return phrases.length > 0 ? phrases : defaultWaitingPhrases;
 }
 
 export function shimmerText(theme: MinimalTheme, text: string, tick: number) {
@@ -45,7 +56,7 @@ export function buildWaitingStatusMessage(params: {
   connectionStatus: string;
   phrases?: string[];
 }) {
-  const phrase = pickWaitingPhrase(params.tick, params.phrases);
+  const phrase = pickWaitingPhrase(params.tick, params.phrases ?? getLocalizedWaitingPhrases());
   const cute = shimmerText(params.theme, `${phrase}…`, params.tick);
   return `${cute} • ${params.elapsed} | ${params.connectionStatus}`;
 }

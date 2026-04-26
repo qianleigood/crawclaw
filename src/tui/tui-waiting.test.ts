@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { buildWaitingStatusMessage, pickWaitingPhrase } from "./tui-waiting.js";
 
 const theme = {
@@ -9,6 +10,10 @@ const theme = {
 } as any;
 
 describe("tui-waiting", () => {
+  afterEach(() => {
+    setActiveCliLocale("en");
+  });
+
   it("pickWaitingPhrase rotates every 10 ticks", () => {
     const phrases = ["a", "b", "c"];
     expect(pickWaitingPhrase(0, phrases)).toBe("a");
@@ -37,5 +42,20 @@ describe("tui-waiting", () => {
     // shimmer should contain both highlighted and dim parts
     expect(msg).toContain("<b><a>");
     expect(msg).toContain("<d>");
+  });
+
+  it("uses localized default waiting text in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+
+    const msg = buildWaitingStatusMessage({
+      theme,
+      tick: 0,
+      elapsed: "3s",
+      connectionStatus: "已连接",
+    });
+    const plain = msg.replace(/<\/?[a-z]>/g, "");
+
+    expect(plain).toContain("思考中");
+    expect(plain).not.toContain("flibbertigibbeting");
   });
 });
