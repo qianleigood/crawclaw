@@ -40,6 +40,9 @@ describe("getSlashCommands", () => {
 
     const commands = getSlashCommands();
 
+    expect(commands.find((command) => command.name === "improve")?.description).toBe(
+      "打开改进提案",
+    );
     expect(commands.find((command) => command.name === "status")?.description).toBe(
       "显示网关状态摘要",
     );
@@ -52,6 +55,7 @@ describe("helpText", () => {
     expect(output).toContain("/elevated <on|off|ask|full>");
     expect(output).toContain("/elev <on|off|ask|full>");
     expect(output).toContain("/deliver <status|on|off>");
+    expect(output).toContain("/improve [id|run]");
   });
 
   it("localizes help title in zh-CN while preserving command syntax", () => {

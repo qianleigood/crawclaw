@@ -35,6 +35,7 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`system`](/cli/system)
 - [`models`](/cli/models)
 - [`memory`](/cli/memory)
+- [`improve`](/cli/improve)
 - [`directory`](/cli/directory)
 - [`nodes`](/cli/nodes)
 - [`devices`](/cli/devices)
@@ -330,6 +331,18 @@ Experience memory access and memory prompt diagnostics:
 - `crawclaw memory prompt-journal-summary --json` — summarize nightly memory prompt journal data (debug-only, truncated diagnostics).
 
 Experience writes go through `write_experience_note`; NotebookLM sync is optional.
+
+## Improve
+
+Governed improvement proposals for promoting repeated experience into skills or
+workflows:
+
+- `crawclaw improve run` — scan experience signals and create a proposal when evidence is strong enough.
+- `crawclaw improve inbox` — list proposal status, risk, kind, and summary.
+- `crawclaw improve show <id>` — inspect evidence, policy blockers, and patch preview.
+- `crawclaw improve review <id> --approve|--reject` — record a human review decision.
+- `crawclaw improve apply <id>` — apply an approved skill or workflow proposal.
+- `crawclaw improve rollback <id>` — rollback an applied skill or workflow proposal.
 
 ## Agent runtime ops
 

@@ -64,6 +64,7 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
   const commands: SlashCommand[] = [
     { name: "help", description: translateTuiText("tui.command.help") },
     { name: "status", description: translateTuiText("tui.command.status") },
+    { name: "improve", description: translateTuiText("tui.command.improve") },
     { name: "agent", description: translateTuiText("tui.command.agent") },
     { name: "agents", description: translateTuiText("tui.command.agents") },
     { name: "session", description: translateTuiText("tui.command.session") },
@@ -152,6 +153,7 @@ export function helpText(options: SlashCommandOptions = {}): string {
     "/help",
     "/commands",
     "/status",
+    "/improve [id|run]",
     "/agent <id> (or /agents)",
     "/session <key> (or /sessions)",
     "/model <provider/model> (or /models)",

@@ -26,6 +26,7 @@ import {
   saveImprovementRunRecord,
 } from "./store.js";
 import type {
+  ImprovementApplication,
   ImprovementProposal,
   ImprovementReview,
   ImprovementVerificationResult,
@@ -342,6 +343,24 @@ async function verifyWorkflowApplication(params: {
   };
 }
 
+async function readTextFileIfExists(filePath: string): Promise<string | null> {
+  try {
+    return await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function buildSkillRelativePath(params: { targetDir: string; skillName: string }): string {
+  return [params.targetDir, params.skillName, "SKILL.md"]
+    .map((part) => part.replace(/^\/+|\/+$/g, ""))
+    .filter(Boolean)
+    .join("/");
+}
+
 async function writePromotionExperienceNote(params: {
   proposal: ImprovementProposal;
   verification: ImprovementVerificationResult;
@@ -484,6 +503,55 @@ export async function reviewImprovementProposal(params: {
   );
 }
 
+export async function verifyImprovementProposalApplication(params: {
+  workspaceDir: string;
+  proposalId: string;
+  config?: CrawClawConfig;
+}): Promise<ImprovementProposal> {
+  const proposal = await loadImprovementProposal(
+    { workspaceDir: params.workspaceDir },
+    params.proposalId,
+  );
+  if (!proposal) {
+    throw new Error(`Improvement proposal "${params.proposalId}" not found.`);
+  }
+  if (!proposal.application) {
+    throw new Error("Improvement proposal must be applied before verification.");
+  }
+  if (proposal.patchPlan.kind === "code") {
+    throw new Error("Code proposal verification requires the manual code-improvement flow.");
+  }
+
+  let verification: ImprovementVerificationResult;
+  if (proposal.application.kind === "skill") {
+    verification = await verifySkillApplication({
+      workspaceDir: params.workspaceDir,
+      proposal,
+      skillName: proposal.application.skillName,
+      skillPath: path.join(params.workspaceDir, proposal.application.relativePath),
+    });
+  } else {
+    verification = await verifyWorkflowApplication({
+      workspaceDir: params.workspaceDir,
+      workflowRef: proposal.application.workflowRef,
+      config: params.config,
+    });
+  }
+  return await saveImprovementProposal(
+    { workspaceDir: params.workspaceDir },
+    {
+      ...proposal,
+      verificationResult: verification,
+      status:
+        proposal.status === "rolled_back"
+          ? "rolled_back"
+          : verification.passed
+            ? "applied"
+            : "failed",
+    },
+  );
+}
+
 export async function applyImprovementProposal(params: {
   workspaceDir: string;
   proposalId: string;
@@ -516,13 +584,27 @@ export async function applyImprovementProposal(params: {
       const skillName = working.patchPlan.skillName;
       const skillDir = path.join(params.workspaceDir, working.patchPlan.targetDir, skillName);
       const skillPath = path.join(skillDir, "SKILL.md");
+      const previousMarkdown = await readTextFileIfExists(skillPath);
       await fs.mkdir(skillDir, { recursive: true });
       await fs.writeFile(skillPath, params.overrideMarkdown ?? working.patchPlan.markdown, "utf8");
+      const application: ImprovementApplication = {
+        kind: "skill",
+        targetDir: working.patchPlan.targetDir,
+        skillName,
+        relativePath: buildSkillRelativePath({
+          targetDir: working.patchPlan.targetDir,
+          skillName,
+        }),
+        created: previousMarkdown === null,
+        ...(previousMarkdown !== null ? { previousMarkdown } : {}),
+        appliedAt: Date.now(),
+      };
       working = await saveImprovementProposal(
         { workspaceDir: params.workspaceDir },
         {
           ...working,
           status: "verifying",
+          application,
           patchPlan: {
             ...working.patchPlan,
             markdown: params.overrideMarkdown ?? working.patchPlan.markdown,
@@ -554,6 +636,7 @@ export async function applyImprovementProposal(params: {
     if (working.patchPlan.kind === "workflow") {
       let workflowRef = working.patchPlan.workflowRef;
       const workflowPatch: WorkflowImprovementPatch = working.patchPlan.patch;
+      let application: ImprovementApplication;
       if (workflowPatch.mode === "create") {
         const created = await createWorkflowDraft({
           workspaceDir: params.workspaceDir,
@@ -568,7 +651,18 @@ export async function applyImprovementProposal(params: {
           sessionKey: params.sessionKey,
         });
         workflowRef = created.entry.workflowId;
+        application = {
+          kind: "workflow",
+          workflowRef,
+          created: true,
+          appliedSpecVersion: created.entry.specVersion,
+          appliedAt: Date.now(),
+        };
       } else {
+        const before = await describeWorkflow(
+          { workspaceDir: params.workspaceDir },
+          workflowPatch.workflowRef,
+        );
         const updated = await updateWorkflowDefinition(
           { workspaceDir: params.workspaceDir, sessionKey: params.sessionKey },
           workflowPatch.workflowRef,
@@ -578,12 +672,21 @@ export async function applyImprovementProposal(params: {
           throw new Error(`Workflow "${workflowPatch.workflowRef}" not found.`);
         }
         workflowRef = updated.entry.workflowId;
+        application = {
+          kind: "workflow",
+          workflowRef,
+          created: false,
+          ...(before?.entry.specVersion ? { previousSpecVersion: before.entry.specVersion } : {}),
+          appliedSpecVersion: updated.entry.specVersion,
+          appliedAt: Date.now(),
+        };
       }
       working = await saveImprovementProposal(
         { workspaceDir: params.workspaceDir },
         {
           ...working,
           status: "verifying",
+          application,
           patchPlan: {
             ...working.patchPlan,
             workflowRef,

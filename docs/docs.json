@@ -1373,6 +1373,7 @@
                       "cli/agent",
                       "cli/agents",
                       "cli/hooks",
+                      "cli/improve",
                       "cli/memory",
                       "cli/message",
                       "cli/models",

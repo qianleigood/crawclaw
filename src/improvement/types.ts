@@ -103,6 +103,33 @@ export type ImprovementVerificationResult = {
   errors: string[];
 };
 
+export type ImprovementApplication =
+  | {
+      kind: "skill";
+      targetDir: string;
+      skillName: string;
+      relativePath: string;
+      created: boolean;
+      previousMarkdown?: string;
+      appliedAt: number;
+    }
+  | {
+      kind: "workflow";
+      workflowRef: string;
+      created: boolean;
+      previousSpecVersion?: number;
+      appliedSpecVersion: number;
+      appliedAt: number;
+    };
+
+export type ImprovementRollbackResult = {
+  kind: ImprovementPatchPlan["kind"];
+  rolledBackAt: number;
+  success: boolean;
+  note?: string;
+  errors: string[];
+};
+
 export type ImprovementProposalStatus =
   | "draft"
   | "policy_blocked"
@@ -113,7 +140,8 @@ export type ImprovementProposalStatus =
   | "applied"
   | "rejected"
   | "failed"
-  | "superseded";
+  | "superseded"
+  | "rolled_back";
 
 export type ImprovementProposal = {
   id: string;
@@ -124,6 +152,8 @@ export type ImprovementProposal = {
   policyResult?: ImprovementPolicyResult;
   review?: ImprovementReview;
   verificationResult?: ImprovementVerificationResult;
+  application?: ImprovementApplication;
+  rollback?: ImprovementRollbackResult;
   rollbackPlan: string[];
   createdAt: number;
   updatedAt: number;
