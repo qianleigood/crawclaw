@@ -14,6 +14,7 @@ export type SpecialAgentExecutionMode = "embedded_fork" | "spawned_session";
 export type SpecialAgentToolPolicy = {
   allowlist: readonly string[];
   enforcement?: "prompt_allowlist" | "runtime_deny";
+  modelVisibility?: "allowlist" | "full_inventory";
 };
 
 export type SpecialAgentCachePolicy = {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { PROMOTION_JUDGE_AGENT_DEFINITION } from "../../../improvement/promotion-judge.js";
 import { MEMORY_EXTRACTION_AGENT_DEFINITION } from "../../../memory/durable/agent-runner.js";
 import { buildSpecialAgentCacheEnvelope } from "./parent-fork-context.js";
 import { runSpecialAgentToCompletion } from "./run-once.js";
@@ -595,6 +596,49 @@ describe("runSpecialAgentToCompletion", () => {
     expect(params?.specialParentPromptEnvelope).toEqual(
       expect.objectContaining({
         toolPromptPayload: [{ name: "read" }, { name: "exec" }],
+      }),
+    );
+  });
+
+  it("surfaces only the verdict tool for promotion-judge embedded runs", async () => {
+    const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
+      payloads: [{ text: "STATUS: OK" }],
+      meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
+    });
+
+    await runSpecialAgentToCompletion(
+      {
+        definition: PROMOTION_JUDGE_AGENT_DEFINITION,
+        task: "review the candidate",
+        embeddedContext: {
+          sessionId: "session-promotion-judge-1",
+          sessionKey: "agent:main:main",
+          sessionFile: "/tmp/crawclaw-promotion-judge-session.jsonl",
+          workspaceDir: "/tmp/crawclaw-promotion-judge",
+          agentId: "main",
+          provider: "openai",
+          model: "gpt-5.4",
+        },
+      },
+      {
+        spawnAgentSessionDirect: vi.fn(),
+        captureSubagentCompletionReply: vi.fn(),
+        callGateway: vi.fn(),
+        onAgentEvent: vi.fn(),
+        runEmbeddedPiAgent,
+      },
+    );
+
+    const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    expect(params?.toolsAllow).toEqual(["submit_promotion_verdict"]);
+    expect(params?.streamParams).toEqual(
+      expect.objectContaining({
+        cacheRetention: "short",
+        skipCacheWrite: true,
+        toolChoice: {
+          type: "tool",
+          name: "submit_promotion_verdict",
+        },
       }),
     );
   });

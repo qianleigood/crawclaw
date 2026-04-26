@@ -580,6 +580,10 @@ export async function runEmbeddedPiAgent(
             clientTools: params.clientTools,
             disableTools: params.disableTools,
             toolsAllow: params.toolsAllow,
+            specialAgentSpawnSource: params.specialAgentSpawnSource,
+            specialDurableMemoryScope: params.specialDurableMemoryScope,
+            specialTranscriptSearch: params.specialTranscriptSearch,
+            specialSessionSummaryTarget: params.specialSessionSummaryTarget,
             provider,
             modelId,
             model: applyAuthHeaderOverride(

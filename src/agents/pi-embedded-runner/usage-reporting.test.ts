@@ -168,6 +168,57 @@ describe("runEmbeddedPiAgent usage reporting", () => {
     );
   });
 
+  it("forwards special-agent runtime context into embedded attempts", async () => {
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(
+      makeAttemptResult({
+        assistantTexts: ["Response 1"],
+      }),
+    );
+
+    await runEmbeddedPiAgent({
+      sessionId: "test-session",
+      sessionKey: "test-key",
+      sessionFile: "/tmp/session.json",
+      workspaceDir: "/tmp/workspace",
+      prompt: "judge this candidate",
+      timeoutMs: 30000,
+      runId: "run-special-agent-forwarding",
+      specialAgentSpawnSource: "promotion-judge",
+      specialDurableMemoryScope: {
+        agentId: "main",
+        channel: "local",
+        userId: "owner",
+      },
+      specialTranscriptSearch: {
+        sessionIds: ["session-a"],
+        maxSessions: 2,
+      },
+      specialSessionSummaryTarget: {
+        agentId: "main",
+        sessionId: "summary-session",
+      },
+    });
+
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        specialAgentSpawnSource: "promotion-judge",
+        specialDurableMemoryScope: {
+          agentId: "main",
+          channel: "local",
+          userId: "owner",
+        },
+        specialTranscriptSearch: {
+          sessionIds: ["session-a"],
+          maxSessions: 2,
+        },
+        specialSessionSummaryTarget: {
+          agentId: "main",
+          sessionId: "summary-session",
+        },
+      }),
+    );
+  });
+
   it("appends durable tool-call instructions to the attempt system prompt", async () => {
     mockedMaybeRunExplicitDurableIntentGate.mockResolvedValueOnce({
       applied: false,
@@ -175,7 +226,8 @@ describe("runEmbeddedPiAgent usage reporting", () => {
       notesSaved: 0,
       forcedToolName: "memory_manifest_read",
       toolChoice: { type: "tool", name: "memory_manifest_read" },
-      systemPromptInstruction: "must start the durable-memory workflow with the memory_manifest_read tool",
+      systemPromptInstruction:
+        "must start the durable-memory workflow with the memory_manifest_read tool",
     });
     mockedRunEmbeddedAttempt.mockResolvedValueOnce(
       makeAttemptResult({
@@ -210,7 +262,9 @@ describe("runEmbeddedPiAgent usage reporting", () => {
     );
     expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(
       expect.objectContaining({
-        extraSystemPrompt: expect.stringContaining("must start the durable-memory workflow with the memory_manifest_read tool"),
+        extraSystemPrompt: expect.stringContaining(
+          "must start the durable-memory workflow with the memory_manifest_read tool",
+        ),
       }),
     );
     expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(

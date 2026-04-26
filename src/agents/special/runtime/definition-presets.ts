@@ -4,10 +4,16 @@ import type {
   SpecialAgentToolPolicy,
 } from "./types.js";
 
-export function createRuntimeDenyToolPolicy(allowlist: readonly string[]): SpecialAgentToolPolicy {
+export function createRuntimeDenyToolPolicy(
+  allowlist: readonly string[],
+  options?: {
+    modelVisibility?: SpecialAgentToolPolicy["modelVisibility"];
+  },
+): SpecialAgentToolPolicy {
   return {
     allowlist: [...allowlist],
     enforcement: "runtime_deny",
+    ...(options?.modelVisibility ? { modelVisibility: options.modelVisibility } : {}),
   };
 }
 
@@ -23,6 +29,7 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
   label: string;
   spawnSource: string;
   allowlist: readonly string[];
+  modelVisibility?: SpecialAgentToolPolicy["modelVisibility"];
   defaultRunTimeoutSeconds: number;
   defaultMaxTurns: number;
 }): SpecialAgentDefinition {
@@ -32,7 +39,9 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
     spawnSource: params.spawnSource,
     executionMode: "embedded_fork",
     transcriptPolicy: "isolated",
-    toolPolicy: createRuntimeDenyToolPolicy(params.allowlist),
+    toolPolicy: createRuntimeDenyToolPolicy(params.allowlist, {
+      modelVisibility: params.modelVisibility,
+    }),
     cachePolicy: createShortMemoryCachePolicy(),
     mode: "run",
     cleanup: "keep",

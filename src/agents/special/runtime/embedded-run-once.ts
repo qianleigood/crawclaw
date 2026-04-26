@@ -68,7 +68,24 @@ function resolveEmbeddedToolsAllow(
     return undefined;
   }
   const enforcement = toolPolicy.enforcement ?? "prompt_allowlist";
-  return enforcement === "prompt_allowlist" ? [...toolPolicy.allowlist] : undefined;
+  return enforcement === "prompt_allowlist" || toolPolicy.modelVisibility === "allowlist"
+    ? [...toolPolicy.allowlist]
+    : undefined;
+}
+
+function resolveEmbeddedToolChoice(
+  toolPolicy: SpecialAgentToolPolicy | undefined,
+): { type: "tool"; name: string } | undefined {
+  if (toolPolicy?.modelVisibility !== "allowlist") {
+    return undefined;
+  }
+  if (toolPolicy.allowlist.length !== 1) {
+    return undefined;
+  }
+  return {
+    type: "tool",
+    name: toolPolicy.allowlist[0],
+  };
 }
 
 function deriveEmbeddedReply(result: EmbeddedPiRunResult): string {
@@ -180,6 +197,9 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
     fallback: request.definition.defaultMaxTurns,
   });
   const streamParams = await resolveSpecialAgentCacheHints(request);
+  const toolChoice = resolveEmbeddedToolChoice(request.definition.toolPolicy);
+  const effectiveStreamParams =
+    toolChoice === undefined ? streamParams : { ...streamParams, toolChoice };
   const agentId =
     normalizeOptionalText(request.spawnOverrides?.agentId) ??
     normalizeOptionalText(embeddedContext?.agentId) ??
@@ -266,7 +286,7 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
         : {}),
       ...(typeof maxTurns === "number" ? { maxTurns } : {}),
       ...(request.extraSystemPrompt ? { extraSystemPrompt: request.extraSystemPrompt } : {}),
-      ...(streamParams ? { streamParams } : {}),
+      ...(effectiveStreamParams ? { streamParams: effectiveStreamParams } : {}),
       ...(toolsAllow ? { toolsAllow: [...toolsAllow] } : {}),
       ...(parentPromptEnvelope ? { specialParentPromptEnvelope: parentPromptEnvelope } : {}),
       specialAgentSpawnSource: request.definition.spawnSource,

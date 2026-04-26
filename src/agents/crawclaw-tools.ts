@@ -38,6 +38,7 @@ import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createSessionsYieldTool } from "./tools/sessions-yield-tool.js";
 import { createSubagentsTool } from "./tools/subagents-tool.js";
+import { createSubmitPromotionVerdictTool } from "./tools/submit-promotion-verdict-tool.js";
 import { createTtsTool } from "./tools/tts-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { createWorkflowTool } from "./tools/workflow-tool.js";
@@ -233,6 +234,12 @@ export function createCrawClawTools(
           transcriptSearch: options?.specialTranscriptSearch,
         })
       : null;
+  const submitPromotionVerdictTool =
+    options?.specialAgentSpawnSource === "promotion-judge"
+      ? createSubmitPromotionVerdictTool({
+          workspaceDir,
+        })
+      : null;
   const reviewTaskTool = isReviewSpawnSource(options?.specialAgentSpawnSource)
     ? null
     : createReviewTaskTool({
@@ -295,6 +302,7 @@ export function createCrawClawTools(
     ...(memoryNoteEditTool ? [memoryNoteEditTool] : []),
     ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
     ...(memoryTranscriptSearchTool ? [memoryTranscriptSearchTool] : []),
+    ...(submitPromotionVerdictTool ? [submitPromotionVerdictTool] : []),
     ...(experienceWriteTool ? [experienceWriteTool] : []),
     ...(reviewTaskTool ? [reviewTaskTool] : []),
     createAgentsListTool({
