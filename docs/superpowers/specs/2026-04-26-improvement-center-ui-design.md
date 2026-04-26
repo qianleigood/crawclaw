@@ -2,8 +2,8 @@
 
 ## Summary
 
-Add a local, beginner-readable UI for Improvement Center proposals. The UI is
-not a new execution engine. It is a product surface over the existing
+Add a local, beginner-readable browser UI for Improvement Center proposals. The
+UI is not a new execution engine. It is a product surface over the existing
 Improvement Center API, so CLI, TUI, and UI keep the same proposal state,
 policy gates, apply behavior, verification, and rollback semantics.
 
@@ -196,23 +196,35 @@ Advanced terms can still appear in technical detail sections:
 
 The first screen should not require understanding those terms.
 
+## Current Web Surface Reality
+
+The old dedicated browser Control UI has been removed from this repository.
+The remaining browser surfaces are local Gateway pages such as Observation
+Workbench at `/observations`, WebChat, TUI over the gateway, webhooks, and
+Canvas/A2UI surfaces.
+
+Therefore v2.1 should not assume an existing Control UI shell. It should add a
+small local Gateway-hosted Improvement Center page, modeled after the
+Observation Workbench pattern: static HTML/CSS/JS served by the Gateway, using
+authenticated Gateway WebSocket RPC methods for data and actions.
+
 ## Architecture
 
 The UI should be a frontend over the existing product API:
 
 ```text
-UI route
-  -> local control-plane method or local UI bridge
+Gateway local page (/improvements)
+  -> authenticated Gateway WebSocket RPC
+  -> improvement.* gateway handlers
   -> src/improvement/center.ts
   -> src/improvement/store.ts
   -> src/improvement/runner.ts
 ```
 
 The UI must not read `.crawclaw/improvements` directly. It should consume
-structured responses from `center.ts` or a thin gateway/control-plane adapter
-that delegates to `center.ts`.
+structured responses from Gateway handlers that delegate to `center.ts`.
 
-The adapter should expose only product operations:
+The Gateway handlers should expose only product operations:
 
 - list proposals
 - get proposal detail
@@ -336,13 +348,13 @@ Phase 3:
 
 ## Implementation Defaults
 
-- Host surface: integrate this as a local Control UI page. Do not create a
-  standalone web app for v2.1. If implementation inspection proves the current
-  Control UI shell cannot host the page cleanly, stop and return with the
-  smallest viable bridge proposal before writing product code.
-- Component style: follow the active Control UI component system at
-  implementation time. Do not introduce a new UI kit only for Improvement
-  Center.
+- Host surface: add a local Gateway page at `/improvements`, plus
+  `/improvements/app.js` and `/improvements/styles.css`.
+- Transport: use the same authenticated Gateway WebSocket request flow as
+  Observation Workbench, with `operator.read` for read-only methods and
+  `operator.write` for scan/review/apply/verify/rollback.
+- Component style: use plain HTML/CSS/JS in the existing Gateway-served page
+  pattern. Do not introduce a new UI kit only for Improvement Center.
 - Metrics depth: keep metrics secondary unless existing proposal data supports
   them without adding new persistence fields.
 
