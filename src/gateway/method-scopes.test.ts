@@ -18,6 +18,7 @@ describe("method scope resolution", () => {
     ["sessions.resolve", ["operator.read"]],
     ["config.schema.lookup", ["operator.read"]],
     ["agent.inspect", ["operator.read"]],
+    ["agent.observations.list", ["operator.read"]],
     ["system.health", ["operator.read"]],
     ["system.status", ["operator.read"]],
     ["system.mainSessionWake.last", ["operator.read"]],

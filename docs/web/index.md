@@ -1,4 +1,4 @@
-summary: "Gateway web surfaces, including Observation Workbench"
+summary: "Gateway web surfaces, including Improvement Center and Observation Workbench"
 read_when:
 
 - You want to access the Gateway over Tailscale
@@ -13,12 +13,28 @@ The dedicated browser Control UI has been removed from the project.
 
 The Gateway still exposes HTTP/WebSocket surfaces for:
 
+- [Improvement Center](/web/improvements)
 - [WebChat](/web/webchat)
 - [TUI over the gateway](/web/tui)
 - Observation Workbench at `/observations`
 - webhook receivers such as channel integrations
 
 This page focuses on the remaining bind modes, security constraints, and web-facing surfaces.
+
+## Improvement Center
+
+Open `/improvements` on the Gateway HTTP port to review self-improvement proposals in a
+browser. The page is a local Gateway surface over the same Improvement Center API used by
+`crawclaw improve` and TUI `/improve`.
+
+Use it to:
+
+- scan for repeated, validated work that could become a Skill or Workflow
+- read proposals in plain language before reviewing technical details
+- approve, reject, apply, verify, or rollback proposals through Gateway RPC methods
+- confirm code proposals stay display-only and require manual implementation review
+
+See [Improvement Center](/web/improvements) for the UI workflow and safety model.
 
 ## Observation Workbench
 

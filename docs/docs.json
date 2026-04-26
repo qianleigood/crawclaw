@@ -1338,7 +1338,7 @@
               },
               {
                 "group": "Web interfaces",
-                "pages": ["web/index", "web/webchat", "web/tui"]
+                "pages": ["web/index", "web/improvements", "web/webchat", "web/tui"]
               }
             ]
           },

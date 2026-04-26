@@ -12,6 +12,10 @@
     "target": "Gateway 网关"
   },
   {
+    "source": "Improvement Center",
+    "target": "改进中心"
+  },
+  {
     "source": "Pi",
     "target": "Pi"
   },

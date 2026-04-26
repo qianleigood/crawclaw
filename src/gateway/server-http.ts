@@ -55,6 +55,10 @@ import {
   getBearerToken,
   resolveHttpBrowserOriginPolicy,
 } from "./http-utils.js";
+import {
+  handleImprovementCenterHttpRequest,
+  isImprovementCenterRequestPath,
+} from "./improvement-center-web.js";
 import { handleOpenAiModelsHttpRequest } from "./models-http.js";
 import { resolveRequestClientIp } from "./net.js";
 import { handleObservationWorkbenchHttpRequest } from "./observation-workbench.js";
@@ -971,6 +975,34 @@ export function createGatewayHttpServer(opts: {
           rateLimiter,
         }),
       );
+
+      requestStages.push({
+        name: "improvement-center",
+        run: async () => {
+          if (!isImprovementCenterRequestPath(requestPath)) {
+            return false;
+          }
+          const requestAuth = await authorizeGatewayHttpRequestOrReply({
+            req,
+            res,
+            auth: resolvedAuth,
+            trustedProxies,
+            allowRealIpFallback,
+            rateLimiter,
+          });
+          if (!requestAuth) {
+            return true;
+          }
+          return handleImprovementCenterHttpRequest({
+            req,
+            res,
+            requestPath,
+            bootstrapLocale: (configSnapshot as { cli?: { language?: unknown } }).cli?.language,
+            workspaceDir: process.cwd(),
+            config: configSnapshot,
+          });
+        },
+      });
 
       requestStages.push({
         name: "observation-workbench",

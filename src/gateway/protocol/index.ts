@@ -162,6 +162,18 @@ import {
   GatewayFrameSchema,
   type HelloOk,
   HelloOkSchema,
+  type ImprovementGetParams,
+  ImprovementGetParamsSchema,
+  type ImprovementListParams,
+  ImprovementListParamsSchema,
+  type ImprovementMetricsParams,
+  ImprovementMetricsParamsSchema,
+  type ImprovementMutationParams,
+  ImprovementMutationParamsSchema,
+  type ImprovementReviewParams,
+  ImprovementReviewParamsSchema,
+  type ImprovementRunParams,
+  ImprovementRunParamsSchema,
   type LogsTailParams,
   LogsTailParamsSchema,
   type LogsTailResult,
@@ -357,6 +369,24 @@ export const validateNodePendingEnqueueParams = ajv.compile<NodePendingEnqueuePa
   NodePendingEnqueueParamsSchema,
 );
 export const validatePushTestParams = ajv.compile<PushTestParams>(PushTestParamsSchema);
+export const validateImprovementListParams = ajv.compile<ImprovementListParams>(
+  ImprovementListParamsSchema,
+);
+export const validateImprovementGetParams = ajv.compile<ImprovementGetParams>(
+  ImprovementGetParamsSchema,
+);
+export const validateImprovementRunParams = ajv.compile<ImprovementRunParams>(
+  ImprovementRunParamsSchema,
+);
+export const validateImprovementReviewParams = ajv.compile<ImprovementReviewParams>(
+  ImprovementReviewParamsSchema,
+);
+export const validateImprovementMutationParams = ajv.compile<ImprovementMutationParams>(
+  ImprovementMutationParamsSchema,
+);
+export const validateImprovementMetricsParams = ajv.compile<ImprovementMetricsParams>(
+  ImprovementMetricsParamsSchema,
+);
 export const validateSecretsResolveParams = ajv.compile<SecretsResolveParams>(
   SecretsResolveParamsSchema,
 );
@@ -581,6 +611,12 @@ export {
   WakeParamsSchema,
   PushTestParamsSchema,
   PushTestResultSchema,
+  ImprovementListParamsSchema,
+  ImprovementGetParamsSchema,
+  ImprovementRunParamsSchema,
+  ImprovementReviewParamsSchema,
+  ImprovementMutationParamsSchema,
+  ImprovementMetricsParamsSchema,
   NodePairRequestParamsSchema,
   NodePairListParamsSchema,
   NodePairApproveParamsSchema,
@@ -709,6 +745,12 @@ export type {
   DevicePairListParams,
   DevicePairApproveParams,
   DevicePairRejectParams,
+  ImprovementListParams,
+  ImprovementGetParams,
+  ImprovementRunParams,
+  ImprovementReviewParams,
+  ImprovementMutationParams,
+  ImprovementMetricsParams,
   ConfigGetParams,
   ConfigSetParams,
   ConfigApplyParams,
