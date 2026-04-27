@@ -1111,10 +1111,10 @@ for usage/billing and raise limits as needed.
     Use a managed browser profile or a remote CDP profile. The legacy host-local
     attach mode is no longer part of the supported browser path.
 
-    ```bash
-    crawclaw browser start --browser-profile crawclaw
-    crawclaw browser tabs --browser-profile crawclaw
-    ```
+    From an agent session, use the `browser` tool with `profile: "crawclaw"`.
+    For direct Gateway `/tools/invoke` calls, pass
+    `{ "action": "status", "profile": "crawclaw" }` or
+    `{ "action": "tabs", "profile": "crawclaw" }` as `args`.
 
     If Chrome runs on another host, point a named profile at that remote CDP
     endpoint instead:

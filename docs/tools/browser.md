@@ -31,18 +31,27 @@ agent automation and verification.
 
 ## Quick start
 
-```bash
-crawclaw browser --browser-profile crawclaw status
-crawclaw browser --browser-profile crawclaw start
-crawclaw browser --browser-profile crawclaw open https://example.com
-crawclaw browser --browser-profile crawclaw snapshot
+Use the agent `browser` tool. When calling it directly through
+[`/tools/invoke`](/gateway/tools-invoke-http-api), put the object below under
+`args`:
+
+```json
+{ "action": "status", "profile": "crawclaw" }
+```
+
+```json
+{ "action": "open", "profile": "crawclaw", "url": "https://example.com" }
+```
+
+```json
+{ "action": "snapshot", "profile": "crawclaw", "interactive": true }
 ```
 
 If you get “Browser disabled”, enable it in config (see below) and restart the
 Gateway.
 
-If `crawclaw browser` is missing entirely, or the agent says the browser tool
-is unavailable, jump to [Missing browser command or tool](/tools/browser#missing-browser-command-or-tool).
+If the agent says the browser tool is unavailable, jump to
+[Missing browser tool](/tools/browser#missing-browser-tool).
 
 ## Plugin control
 
@@ -101,11 +110,10 @@ Current action coverage:
 Browser config changes still require a Gateway restart so the bundled plugin
 can re-register with the new settings.
 
-## Missing browser command or tool
+## Missing browser tool
 
-If `crawclaw browser` suddenly becomes an unknown command after an upgrade, or
-the agent reports that the browser tool is missing, the most common cause is a
-restrictive `plugins.allow` list that does not include `browser`.
+If the agent reports that the browser tool is missing, the most common cause is
+a restrictive `plugins.allow` list that does not include `browser`.
 
 Example broken config:
 
@@ -136,9 +144,11 @@ Important notes:
 
 Typical symptoms:
 
-- `crawclaw browser` is an unknown command.
-- `browser.request` is missing.
 - The agent reports the browser tool as unavailable or missing.
+
+If an old example shows `crawclaw browser`, use the current `browser` tool
+instead. The standalone browser CLI is no longer registered in current CrawClaw
+builds.
 
 ## Profiles
 
@@ -335,7 +345,8 @@ Defaults:
 - Local CDP ports allocate from **18800–18899** by default.
 - Deleting a profile moves its local data directory to Trash.
 
-All control endpoints accept `?profile=<name>`; the CLI uses `--browser-profile`.
+All control endpoints accept `?profile=<name>`; the agent tool uses the
+`profile` argument.
 
 Notes:
 
@@ -410,7 +421,7 @@ High-level flow:
   `sandbox`, or `node`.
 - The browser control server now uses the same PinchTab backend for browser
   lifecycle and tab management endpoints such as status/start/stop/reset and
-  tab list/open/focus/close, so CLI and HTTP entrypoints share the same runtime
+  tab list/open/focus/close, so tool and HTTP entrypoints share the same runtime
   for these operations.
 - PinchTab is the single execution backend for the bundled browser server and
   tool routes on `host`, `sandbox`, and `node`.
@@ -418,86 +429,62 @@ High-level flow:
 This design keeps the agent on a stable, deterministic interface while letting
 you keep browser automation on one control plane.
 
-## CLI quick reference
+## Agent tool quick reference
 
-All commands accept `--browser-profile <name>` to target a specific profile.
-All commands also accept `--json` for machine-readable output (stable payloads).
+The `browser` tool accepts a top-level `action` plus optional `profile`,
+`target`, `node`, `targetId`, and action-specific fields. When calling through
+[`/tools/invoke`](/gateway/tools-invoke-http-api), pass the same object as
+`args`.
 
 Basics:
 
-- `crawclaw browser status`
-- `crawclaw browser start`
-- `crawclaw browser stop`
-- `crawclaw browser tabs`
-- `crawclaw browser tab`
-- `crawclaw browser tab new`
-- `crawclaw browser tab select 2`
-- `crawclaw browser tab close 2`
-- `crawclaw browser open https://example.com`
-- `crawclaw browser focus abcd1234`
-- `crawclaw browser close abcd1234`
+- Status: `{ "action": "status" }`
+- Start: `{ "action": "start" }`
+- Stop: `{ "action": "stop" }`
+- Profiles: `{ "action": "profiles" }`
+- Tabs: `{ "action": "tabs" }`
+- Open: `{ "action": "open", "url": "https://example.com" }`
+- Focus: `{ "action": "focus", "targetId": "abcd1234" }`
+- Close: `{ "action": "close", "targetId": "abcd1234" }`
 
 Inspection:
 
-- `crawclaw browser screenshot`
-- `crawclaw browser screenshot --full-page`
-- `crawclaw browser screenshot --ref 12`
-- `crawclaw browser screenshot --ref e12`
-- `crawclaw browser snapshot`
-- `crawclaw browser snapshot --format aria --limit 200`
-- `crawclaw browser snapshot --interactive --compact --depth 6`
-- `crawclaw browser snapshot --efficient`
-- `crawclaw browser snapshot --labels`
-- `crawclaw browser snapshot --selector "#main" --interactive`
-- `crawclaw browser snapshot --frame "iframe#main" --interactive`
-- `crawclaw browser console --level error`
-- `crawclaw browser errors --clear`
-- `crawclaw browser requests --filter api --clear`
-- `crawclaw browser pdf`
-- `crawclaw browser responsebody "**/api" --max-chars 5000`
+- Screenshot: `{ "action": "screenshot", "fullPage": true }`
+- Element screenshot: `{ "action": "screenshot", "ref": "e12" }`
+- AI snapshot: `{ "action": "snapshot", "snapshotFormat": "ai" }`
+- Role snapshot: `{ "action": "snapshot", "interactive": true, "compact": true, "depth": 6 }`
+- Scoped snapshot: `{ "action": "snapshot", "selector": "#main", "interactive": true }`
+- Frame snapshot: `{ "action": "snapshot", "frame": "iframe#main", "interactive": true }`
+- Console: `{ "action": "console", "level": "error" }`
+- PDF: `{ "action": "pdf" }`
 
 Actions:
 
-- `crawclaw browser navigate https://example.com`
-- `crawclaw browser resize 1280 720`
-- `crawclaw browser click 12 --double`
-- `crawclaw browser click e12 --double`
-- `crawclaw browser type 23 "hello" --submit`
-- `crawclaw browser press Enter`
-- `crawclaw browser hover 44`
-- `crawclaw browser scrollintoview e12`
-- `crawclaw browser drag 10 11`
-- `crawclaw browser select 9 OptionA OptionB`
-- `crawclaw browser download e12 report.pdf`
-- `crawclaw browser waitfordownload report.pdf`
-- `crawclaw browser upload /tmp/crawclaw/uploads/file.pdf`
-- `crawclaw browser fill --fields '[{"ref":"1","type":"text","value":"Ada"}]'`
-- `crawclaw browser dialog --accept`
-- `crawclaw browser wait --text "Done"`
-- `crawclaw browser wait "#main" --url "**/dash" --load networkidle --fn "window.ready===true"`
-- `crawclaw browser evaluate --fn '(el) => el.textContent' --ref 7`
-- `crawclaw browser highlight e12`
-- `crawclaw browser trace start`
-- `crawclaw browser trace stop`
+- Navigate: `{ "action": "navigate", "url": "https://example.com" }`
+- Resize: `{ "action": "act", "kind": "resize", "width": 1280, "height": 720 }`
+- Click: `{ "action": "act", "kind": "click", "ref": "e12" }`
+- Type: `{ "action": "act", "kind": "type", "ref": "e12", "text": "hello", "submit": true }`
+- Press: `{ "action": "act", "kind": "press", "key": "Enter" }`
+- Hover: `{ "action": "act", "kind": "hover", "ref": "e12" }`
+- Drag: `{ "action": "act", "kind": "drag", "startRef": "e10", "endRef": "e11" }`
+- Select: `{ "action": "act", "kind": "select", "ref": "e9", "values": ["OptionA", "OptionB"] }`
+- Upload: `{ "action": "upload", "paths": ["/tmp/crawclaw/uploads/file.pdf"] }`
+- File input upload: `{ "action": "upload", "inputRef": "e12", "paths": ["/tmp/crawclaw/uploads/file.pdf"] }`
+- Dialog: `{ "action": "dialog", "accept": true }`
+- Wait: `{ "action": "act", "kind": "wait", "selector": "#main", "timeoutMs": 15000 }`
+- Evaluate: `{ "action": "act", "kind": "evaluate", "ref": "e7", "fn": "(el) => el.textContent" }`
 
-State:
+State and network:
 
-- `crawclaw browser cookies`
-- `crawclaw browser cookies set session abc123 --url "https://example.com"`
-- `crawclaw browser cookies clear`
-- `crawclaw browser storage local get`
-- `crawclaw browser storage local set theme dark`
-- `crawclaw browser storage session clear`
-- `crawclaw browser set offline on`
-- `crawclaw browser set headers --headers-json '{"X-Debug":"1"}'`
-- `crawclaw browser set credentials user pass`
-- `crawclaw browser set credentials --clear`
-- `crawclaw browser set geo 37.7749 -122.4194 --origin "https://example.com"`
-- `crawclaw browser set geo --clear`
-- `crawclaw browser set media dark`
-- `crawclaw browser set timezone America/New_York`
-- `crawclaw browser set locale en-US`
-- `crawclaw browser set device "iPhone 14"`
+- Cookies: `{ "action": "cookies" }`
+- Local storage: `{ "action": "storage", "storageKind": "local" }`
+- Session storage: `{ "action": "storage", "storageKind": "session" }`
+- Network requests: `{ "action": "network", "pattern": "api" }`
+- Downloads: `{ "action": "download", "filename": "report.pdf" }`
+
+Migration note: old `crawclaw browser ...` examples have no current standalone
+CLI equivalent. Use the `browser` tool from an agent session or call it through
+the Gateway [Tools Invoke API](/gateway/tools-invoke-http-api).
 
 Notes:
 
@@ -508,16 +495,16 @@ Notes:
   - downloads: `/tmp/crawclaw/downloads` (fallback: `${os.tmpdir()}/crawclaw/downloads`)
 - Upload paths are constrained to a CrawClaw temp uploads root:
   - uploads: `/tmp/crawclaw/uploads` (fallback: `${os.tmpdir()}/crawclaw/uploads`)
-- `upload` can also set file inputs directly via `--input-ref` or `--element`.
+- `upload` can also set file inputs directly with `inputRef` or `element`.
 - `snapshot`:
-  - `--format ai` (default when Playwright is installed): returns an AI snapshot with numeric refs (`aria-ref="<n>"`).
-  - `--format aria`: returns the accessibility tree (no refs; inspection only).
-  - `--efficient` (or `--mode efficient`): compact role snapshot preset (interactive + compact + depth + lower maxChars).
-  - Config default (tool/CLI only): set `browser.snapshotDefaults.mode: "efficient"` to use efficient snapshots when the caller does not pass a mode (see [Gateway configuration](/gateway/configuration-reference#browser)).
-  - Role snapshot options (`--interactive`, `--compact`, `--depth`, `--selector`) force a role-based snapshot with refs like `ref=e12`.
-  - `--frame "<iframe selector>"` scopes role snapshots to an iframe (pairs with role refs like `e12`).
-  - `--interactive` outputs a flat, easy-to-pick list of interactive elements (best for driving actions).
-  - `--labels` adds a viewport-only screenshot with overlayed ref labels (prints `MEDIA:<path>`).
+  - `snapshotFormat: "ai"` (default when Playwright is installed): returns an AI snapshot with numeric refs (`aria-ref="<n>"`).
+  - `snapshotFormat: "aria"`: returns the accessibility tree (no refs; inspection only).
+  - `mode: "efficient"`: compact role snapshot preset (interactive + compact + depth + lower maxChars).
+  - Config default: set `browser.snapshotDefaults.mode: "efficient"` to use efficient snapshots when the caller does not pass a mode (see [Gateway configuration](/gateway/configuration-reference#browser)).
+  - Role snapshot fields (`interactive`, `compact`, `depth`, `selector`) force a role-based snapshot with refs like `ref=e12`.
+  - `frame: "<iframe selector>"` scopes role snapshots to an iframe (pairs with role refs like `e12`).
+  - `interactive: true` outputs a flat, easy-to-pick list of interactive elements (best for driving actions).
+  - `labels: true` adds a viewport-only screenshot with overlayed ref labels.
 - `click`/`type`/etc require a `ref` from `snapshot` (either numeric `12` or role ref `e12`).
   CSS selectors are intentionally not supported for actions.
 
@@ -525,16 +512,16 @@ Notes:
 
 CrawClaw supports two “snapshot” styles:
 
-- **AI snapshot (numeric refs)**: `crawclaw browser snapshot` (default; `--format ai`)
+- **AI snapshot (numeric refs)**: `{ "action": "snapshot", "snapshotFormat": "ai" }`
   - Output: a text snapshot that includes numeric refs.
-  - Actions: `crawclaw browser click 12`, `crawclaw browser type 23 "hello"`.
+  - Actions: `{ "action": "act", "kind": "click", "ref": "12" }` and `{ "action": "act", "kind": "type", "ref": "23", "text": "hello" }`.
   - Internally, the ref is resolved via Playwright’s `aria-ref`.
 
-- **Role snapshot (role refs like `e12`)**: `crawclaw browser snapshot --interactive` (or `--compact`, `--depth`, `--selector`, `--frame`)
+- **Role snapshot (role refs like `e12`)**: `{ "action": "snapshot", "interactive": true }` (optionally with `compact`, `depth`, `selector`, or `frame`)
   - Output: a role-based list/tree with `[ref=e12]` (and optional `[nth=1]`).
-  - Actions: `crawclaw browser click e12`, `crawclaw browser highlight e12`.
+  - Actions: `{ "action": "act", "kind": "click", "ref": "e12" }`.
   - Internally, the ref is resolved via `getByRole(...)` (plus `nth()` for duplicates).
-  - Add `--labels` to include a viewport screenshot with overlayed `e12` labels.
+  - Add `"labels": true` to include a viewport screenshot with overlayed `e12` labels.
 
 Ref behavior:
 
@@ -546,50 +533,55 @@ Ref behavior:
 You can wait on more than just time/text:
 
 - Wait for URL (globs supported by Playwright):
-  - `crawclaw browser wait --url "**/dash"`
+  - `{ "action": "act", "kind": "wait", "url": "**/dash" }`
 - Wait for load state:
-  - `crawclaw browser wait --load networkidle`
+  - `{ "action": "act", "kind": "wait", "loadState": "networkidle" }`
 - Wait for a JS predicate:
-  - `crawclaw browser wait --fn "window.ready===true"`
+  - `{ "action": "act", "kind": "wait", "fn": "window.ready===true" }`
 - Wait for a selector to become visible:
-  - `crawclaw browser wait "#main"`
+  - `{ "action": "act", "kind": "wait", "selector": "#main" }`
 
 These can be combined:
 
-```bash
-crawclaw browser wait "#main" \
-  --url "**/dash" \
-  --load networkidle \
-  --fn "window.ready===true" \
-  --timeout-ms 15000
+```json
+{
+  "action": "act",
+  "kind": "wait",
+  "selector": "#main",
+  "url": "**/dash",
+  "loadState": "networkidle",
+  "fn": "window.ready===true",
+  "timeoutMs": 15000
+}
 ```
 
 ## Debug workflows
 
 When an action fails (e.g. “not visible”, “strict mode violation”, “covered”):
 
-1. `crawclaw browser snapshot --interactive`
-2. Use `click <ref>` / `type <ref>` (prefer role refs in interactive mode)
-3. If it still fails: `crawclaw browser highlight <ref>` to see what Playwright is targeting
-4. If the page behaves oddly:
-   - `crawclaw browser errors --clear`
-   - `crawclaw browser requests --filter api --clear`
-5. For deep debugging: record a trace:
-   - `crawclaw browser trace start`
-   - reproduce the issue
-   - `crawclaw browser trace stop` (prints `TRACE:<path>`)
+1. Run `{ "action": "snapshot", "interactive": true }`.
+2. Use `{ "action": "act", "kind": "click", "ref": "<ref>" }` or `{ "action": "act", "kind": "type", "ref": "<ref>", "text": "..." }`.
+3. If the page behaves oddly, inspect `{ "action": "console", "level": "error" }` and `{ "action": "network", "pattern": "api" }`.
 
-## JSON output
+## Structured output
 
-`--json` is for scripting and structured tooling.
+Agent tool calls and `/tools/invoke` responses are already structured JSON.
+Useful direct calls include:
 
-Examples:
+```json
+{ "action": "status" }
+```
 
-```bash
-crawclaw browser status --json
-crawclaw browser snapshot --interactive --json
-crawclaw browser requests --filter api --json
-crawclaw browser cookies --json
+```json
+{ "action": "snapshot", "interactive": true }
+```
+
+```json
+{ "action": "network", "pattern": "api" }
+```
+
+```json
+{ "action": "cookies" }
 ```
 
 Role snapshots in JSON include `refs` plus a small `stats` block (lines/chars/refs/interactive) so tools can reason about payload size and density.
@@ -613,7 +605,7 @@ These are useful for “make the site behave like X” workflows:
 ## Security & privacy
 
 - The crawclaw browser profile may contain logged-in sessions; treat it as sensitive.
-- `browser act kind=evaluate` / `crawclaw browser evaluate` and `wait --fn`
+- `browser` tool evaluate actions and `wait` calls with `fn`
   execute arbitrary JavaScript in the page context. Prompt injection can steer
   this. Disable it with `browser.evaluateEnabled=false` if you do not need it.
 - For logins and anti-bot notes (X/Twitter, etc.), see [Browser login + X/Twitter posting](/tools/browser-login).

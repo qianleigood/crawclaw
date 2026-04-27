@@ -1,40 +1,66 @@
 ---
-summary: "CLI reference for `crawclaw browser` (PinchTab-backed browser automation)"
+summary: "Legacy browser CLI URL; current browser automation uses the agent browser tool"
 read_when:
-  - You use `crawclaw browser` and want examples for common tasks
-  - You want to control a browser running on another machine via a node host
+  - You followed an old `crawclaw browser` link
+  - You need the current browser automation entrypoint
 title: "browser"
 ---
 
-# `crawclaw browser`
+# Browser automation
 
-Manage CrawClaw browser automation and run browser actions (tabs, snapshots, screenshots, navigation, clicks, typing).
+`crawclaw browser` is not registered as a standalone CLI command in current
+CrawClaw builds. Browser automation is exposed as the agent `browser` tool from
+the bundled browser plugin.
 
-Related:
+Current entrypoints:
 
-- Browser tool + API: [Browser tool](/tools/browser)
+- In an agent session, use the `browser` tool or inspect available tools with `/tools`.
+- For direct automation, call the Gateway [Tools Invoke API](/gateway/tools-invoke-http-api) with `tool: "browser"`.
+- Configure profiles, routing, and PinchTab behavior in [Browser tool](/tools/browser).
 
-## Common flags
+## Tool quick start
 
-- `--url <gatewayWsUrl>`: Gateway WebSocket URL (defaults to config).
-- `--token <token>`: Gateway token (if required).
-- `--timeout <ms>`: request timeout (ms).
-- `--browser-profile <name>`: choose a browser profile (default from config).
-- `--json`: machine-readable output (where supported).
+When calling the tool directly through `/tools/invoke`, put these fields under
+`args`:
 
-## Quick start (local)
-
-```bash
-crawclaw browser profiles
-crawclaw browser --browser-profile crawclaw start
-crawclaw browser --browser-profile crawclaw open https://example.com
-crawclaw browser --browser-profile crawclaw snapshot
+```json
+{ "action": "status", "profile": "crawclaw" }
 ```
 
-## If the command is missing
+```json
+{ "action": "open", "profile": "crawclaw", "url": "https://example.com" }
+```
 
-If `crawclaw browser` is an unknown command, check `plugins.allow` in
-`~/.crawclaw/crawclaw.json`.
+```json
+{ "action": "snapshot", "profile": "crawclaw", "interactive": true }
+```
+
+```json
+{ "action": "act", "profile": "crawclaw", "kind": "click", "ref": "e12" }
+```
+
+## Migration from old examples
+
+Use the tool argument instead of the old CLI form:
+
+| Old CLI form                    | Current `browser` tool args                                        |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `crawclaw browser status`       | `{ "action": "status" }`                                           |
+| `crawclaw browser profiles`     | `{ "action": "profiles" }`                                         |
+| `crawclaw browser tabs`         | `{ "action": "tabs" }`                                             |
+| `crawclaw browser open <url>`   | `{ "action": "open", "url": "<url>" }`                             |
+| `crawclaw browser snapshot`     | `{ "action": "snapshot" }`                                         |
+| `crawclaw browser click <ref>`  | `{ "action": "act", "kind": "click", "ref": "<ref>" }`             |
+| `crawclaw browser type <ref> x` | `{ "action": "act", "kind": "type", "ref": "<ref>", "text": "x" }` |
+
+The old `--browser-profile <name>` flag maps to the tool's `profile` argument.
+Use `target` (`sandbox`, `host`, or `node`) when you need to pin where the
+browser runs.
+
+## If the browser tool is missing
+
+If the agent reports that the `browser` tool is unavailable, check
+`plugins.allow` in `~/.crawclaw/crawclaw.json`.
 
 When `plugins.allow` is present, the bundled browser plugin must be listed
 explicitly:
@@ -47,76 +73,18 @@ explicitly:
 }
 ```
 
-`browser.enabled=true` does not restore the CLI subcommand when the plugin
-allowlist excludes `browser`.
+`browser.enabled=true` does not load the plugin when the plugin allowlist
+excludes `browser`.
 
-Related: [Browser tool](/tools/browser#missing-browser-command-or-tool)
+Related: [Browser tool](/tools/browser#missing-browser-tool)
 
-## Profiles
+## Remote browser control
 
-Profiles are named browser routing configs. In practice:
+If the Gateway runs on a different machine than the browser, run a **node host**
+on the machine that has Chrome/Brave/Edge/Chromium. The Gateway can proxy
+`browser` tool actions to that node.
 
-- `crawclaw`: the default managed browser profile.
-- additional profiles: named browser routes/config labels that still run through
-  the bundled PinchTab-backed browser server.
-
-If you migrated from an older CrawClaw install, you may still see the legacy
-managed profile name `crawclaw` until you recreate or rename local browser
-profiles.
-
-```bash
-crawclaw browser profiles
-crawclaw browser create-profile --name work --color "#FF5A36"
-crawclaw browser delete-profile --name work
-```
-
-Use a specific profile:
-
-```bash
-crawclaw browser --browser-profile work tabs
-```
-
-## Tabs
-
-```bash
-crawclaw browser tabs
-crawclaw browser open https://docs.crawclaw.ai
-crawclaw browser focus <targetId>
-crawclaw browser close <targetId>
-```
-
-## Snapshot / screenshot / actions
-
-Snapshot:
-
-```bash
-crawclaw browser snapshot
-```
-
-Screenshot:
-
-```bash
-crawclaw browser screenshot
-```
-
-Navigate/click/type (ref-based UI automation):
-
-```bash
-crawclaw browser navigate https://example.com
-crawclaw browser click <ref>
-crawclaw browser type <ref> "hello"
-```
-
-## Managed profiles
-
-The bundled browser server standardizes on PinchTab-backed managed profiles.
-Use `crawclaw browser create-profile --name <name>` to add another managed
-profile with a distinct color/runtime identity.
-
-## Remote browser control (node host proxy)
-
-If the Gateway runs on a different machine than the browser, run a **node host** on the machine that has Chrome/Brave/Edge/Chromium. The Gateway will proxy browser actions to that node (no separate local compatibility service required).
-
-Use `gateway.nodes.browser.mode` to control auto-routing and `gateway.nodes.browser.node` to pin a specific node if multiple are connected.
+Use `gateway.nodes.browser.mode` to control auto-routing and
+`gateway.nodes.browser.node` to pin a specific node if multiple are connected.
 
 Security + remote setup: [Browser tool](/tools/browser), [Remote access](/gateway/remote), [Tailscale](/gateway/tailscale), [Security](/gateway/security)

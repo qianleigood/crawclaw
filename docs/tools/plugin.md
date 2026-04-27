@@ -99,7 +99,7 @@ and the [Plugin SDK Overview](/plugins/sdk-overview).
   </Accordion>
 
   <Accordion title="Other">
-    - `browser` — bundled browser plugin for the `browser` tool, `crawclaw browser` CLI, and the PinchTab-backed host/sandbox/node browser routing path (enabled by default; disable before replacing it)
+    - `browser` — bundled browser plugin for the `browser` tool and the PinchTab-backed host/sandbox/node browser routing path (enabled by default; disable before replacing it)
     - `copilot-proxy` — VS Code Copilot Proxy bridge (disabled by default)
   </Accordion>
 </AccordionGroup>

@@ -18,6 +18,9 @@ const pinchTabExecutorDeps: PinchTabExecutorDeps = {
   createClient: createPinchTabClient,
 };
 
+const INSTANCE_READY_TIMEOUT_MS = 15_000;
+const INSTANCE_READY_POLL_MS = 250;
+
 export const __testing = {
   setDepsForTest(overrides: Partial<PinchTabExecutorDeps> | null) {
     pinchTabExecutorDeps.createClient = overrides?.createClient ?? createPinchTabClient;
@@ -59,6 +62,48 @@ function unwrapEvalPayload<T>(value: Record<string, unknown> | null | undefined)
     }
   }
   return result as T;
+}
+
+function isPinchTabInstanceStartingError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("status: starting");
+}
+
+async function waitForPinchTabInstanceReady(client: PinchTabClient, instanceId: string) {
+  const deadline = Date.now() + INSTANCE_READY_TIMEOUT_MS;
+  let lastError: unknown;
+  while (Date.now() <= deadline) {
+    try {
+      await client.listTabs(instanceId);
+      return;
+    } catch (error) {
+      if (!isPinchTabInstanceStartingError(error)) {
+        throw error;
+      }
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, INSTANCE_READY_POLL_MS));
+    }
+  }
+  throw new Error(
+    `PinchTab instance "${instanceId}" did not become ready within ${INSTANCE_READY_TIMEOUT_MS}ms.`,
+    lastError instanceof Error ? { cause: lastError } : undefined,
+  );
+}
+
+async function withPinchTabReadinessRetry<T>(
+  client: PinchTabClient,
+  instanceId: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isPinchTabInstanceStartingError(error)) {
+      throw error;
+    }
+    await waitForPinchTabInstanceReady(client, instanceId);
+    return await operation();
+  }
 }
 
 function wrapExternalJson(payload: unknown, kind: string): AgentToolResult<unknown> {
@@ -135,7 +180,9 @@ async function ensureTabId(params: {
   if (state.tabId) {
     return { ...state, tabId: state.tabId };
   }
-  const tabs = await params.client.listTabs(state.instanceId!);
+  const tabs = await withPinchTabReadinessRetry(params.client, state.instanceId!, () =>
+    params.client.listTabs(state.instanceId!),
+  );
   const first = tabs.find((entry) => typeof entry.id === "string");
   if (first?.id && typeof first.id === "string") {
     return updatePinchTabSessionState(params.sessionName, { tabId: first.id });
@@ -252,7 +299,9 @@ export async function tryExecutePinchTabHostAction(params: {
         throw new Error("targetUrl required");
       }
       const state = await ensureSessionRuntime({ client, sessionName, profile: params.profile });
-      const opened = await client.openTab(state.instanceId!, targetUrl);
+      const opened = await withPinchTabReadinessRetry(client, state.instanceId!, () =>
+        client.openTab(state.instanceId!, targetUrl),
+      );
       const tabId =
         typeof opened.id === "string"
           ? opened.id
@@ -292,7 +341,9 @@ export async function tryExecutePinchTabHostAction(params: {
     }
     case "tabs": {
       const state = await ensureSessionRuntime({ client, sessionName, profile: params.profile });
-      const tabs = await client.listTabs(state.instanceId!);
+      const tabs = await withPinchTabReadinessRetry(client, state.instanceId!, () =>
+        client.listTabs(state.instanceId!),
+      );
       return wrapExternalJson({ tabs }, "tabs");
     }
     case "focus": {

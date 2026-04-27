@@ -52,6 +52,31 @@ async function readJson<T>(response: Response): Promise<T> {
   return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
+function decodeJsonBase64Payload(buffer: Buffer): Buffer | null {
+  const text = buffer.toString("utf8").trim();
+  if (!text.startsWith("{")) {
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  const base64 = (parsed as { base64?: unknown }).base64;
+  if (typeof base64 !== "string" || !base64.trim()) {
+    return null;
+  }
+  const raw = base64.includes(",") ? base64.split(",").at(-1) : base64;
+  if (!raw) {
+    return null;
+  }
+  return Buffer.from(raw, "base64");
+}
+
 export function createPinchTabClient(params: { baseUrl: string; token?: string }) {
   const baseUrl = params.baseUrl.replace(/\/$/, "");
   const token = params.token?.trim() || undefined;
@@ -73,7 +98,8 @@ export function createPinchTabClient(params: { baseUrl: string; token?: string }
     });
     await expectOk(response, "GET", url);
     const buf = await response.arrayBuffer();
-    return Buffer.from(buf);
+    const buffer = Buffer.from(buf);
+    return decodeJsonBase64Payload(buffer) ?? buffer;
   }
 
   return {

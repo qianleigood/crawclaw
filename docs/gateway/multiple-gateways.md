@@ -108,5 +108,5 @@ crawclaw gateway --port 19001
 ```bash
 crawclaw --profile main status
 crawclaw --profile rescue status
-crawclaw --profile rescue browser status
+crawclaw --profile rescue gateway status
 ```

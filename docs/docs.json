@@ -1397,7 +1397,6 @@
                     "group": "Tools and execution",
                     "pages": [
                       "cli/approvals",
-                      "cli/browser",
                       "cli/cron",
                       "cli/flows",
                       "cli/node",
@@ -1921,7 +1920,6 @@
                   "zh-CN/cli/agent",
                   "zh-CN/cli/agents",
                   "zh-CN/cli/approvals",
-                  "zh-CN/cli/browser",
                   "zh-CN/cli/channels",
                   "zh-CN/cli/config",
                   "zh-CN/cli/configure",

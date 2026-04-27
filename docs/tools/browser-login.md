@@ -29,14 +29,14 @@ For agent browser tool calls:
 Two easy ways to access it:
 
 1. **Ask the agent to open the browser** and then log in yourself.
-2. **Open it via CLI**:
+2. **Call the browser tool directly**:
 
-```bash
-crawclaw browser start
-crawclaw browser open https://x.com
+```json
+{ "action": "open", "profile": "crawclaw", "url": "https://x.com" }
 ```
 
-If you have multiple profiles, pass `--browser-profile <name>` (the default is `crawclaw`).
+If you have multiple profiles, pass the tool's `profile` argument explicitly
+(the default is `crawclaw`).
 
 ## X/Twitter: recommended flow
 
@@ -66,8 +66,13 @@ If the agent is sandboxed, the browser tool defaults to the sandbox. To allow ho
 
 Then target the host browser:
 
-```bash
-crawclaw browser open https://x.com --browser-profile crawclaw --target host
+```json
+{
+  "action": "open",
+  "target": "host",
+  "profile": "crawclaw",
+  "url": "https://x.com"
+}
 ```
 
 Or disable sandboxing for the agent that posts updates.

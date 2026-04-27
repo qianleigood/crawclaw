@@ -30,7 +30,7 @@ async function saveNormalizedScreenshotResponse(params: {
   await saveBrowserMediaResponse({
     res: params.res,
     buffer: normalized.buffer,
-    contentType: normalized.contentType ?? `image/${params.type}`,
+    contentType: normalized.contentType,
     maxBytes: DEFAULT_BROWSER_SCREENSHOT_MAX_BYTES,
     targetId: params.targetId,
     url: params.url,
@@ -40,7 +40,7 @@ async function saveNormalizedScreenshotResponse(params: {
 async function saveBrowserMediaResponse(params: {
   res: BrowserResponse;
   buffer: Buffer;
-  contentType: string;
+  contentType?: string;
   maxBytes: number;
   targetId: string;
   url: string;

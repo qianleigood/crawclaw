@@ -4,6 +4,14 @@ import { __testing as pinchTabStateTesting } from "../../pinchtab/pinchtab-state
 import { registerBrowserAgentRoutes } from "./agent.js";
 import { createBrowserRouteApp, createBrowserRouteResponse } from "./test-helpers.js";
 
+const mediaStoreMocks = vi.hoisted(() => ({
+  saveMediaBuffer: vi.fn(
+    async (_buffer: Buffer, _contentType: string | undefined, _scope: string) => ({
+      path: "/tmp/pinchtab-output.bin",
+    }),
+  ),
+}));
+
 vi.mock("../../config/config.js", () => ({
   loadConfig: () => ({
     browser: {
@@ -23,9 +31,7 @@ vi.mock("../navigation-guard.js", () => ({
 
 vi.mock("../../media/store.js", () => ({
   ensureMediaDir: async () => {},
-  saveMediaBuffer: async (_buffer: Buffer, _contentType: string, _scope: string) => ({
-    path: "/tmp/pinchtab-output.bin",
-  }),
+  saveMediaBuffer: mediaStoreMocks.saveMediaBuffer,
 }));
 
 function createCtx() {
@@ -86,6 +92,7 @@ beforeAll(async () => {
 afterEach(() => {
   pinchTabStateTesting.reset();
   pinchTabClientTesting.setDepsForTest(null);
+  mediaStoreMocks.saveMediaBuffer.mockClear();
 });
 
 describe("agent routes PinchTab backend", () => {
@@ -164,6 +171,44 @@ describe("agent routes PinchTab backend", () => {
       path: "/tmp/pinchtab-output.bin",
       targetId: "tab-1",
     });
+  });
+
+  it("decodes PinchTab JSON screenshot payloads before saving media", async () => {
+    const tabs = [{ id: "tab-1", title: "Example", url: "https://example.com", type: "page" }];
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43]);
+    pinchTabStateTesting.reset();
+    pinchTabClientTesting.setDepsForTest({
+      fetchImpl: vi.fn(async (url, init) => {
+        const method = init?.method ?? "GET";
+        if (method === "GET" && String(url).endsWith("/profiles?all=true")) {
+          return buildJsonResponse([{ id: "profile-browser", name: "browser" }]);
+        }
+        if (method === "POST" && String(url).endsWith("/instances/start")) {
+          return buildJsonResponse({ id: "instance-1" });
+        }
+        if (method === "GET" && String(url).endsWith("/instances/instance-1/tabs")) {
+          return buildJsonResponse(tabs);
+        }
+        if (method === "GET" && String(url).endsWith("/tabs/tab-1/screenshot")) {
+          return new Response(JSON.stringify({ base64: jpeg.toString("base64") }), {
+            headers: { "content-type": "application/json" },
+          });
+        }
+        throw new Error(`unexpected request: ${method} ${String(url)}`);
+      }),
+    });
+
+    const screenshot = await callRoute({
+      method: "post",
+      path: "/screenshot",
+      body: { profile: "browser" },
+    });
+
+    expect(screenshot.statusCode).toBe(200);
+    expect(mediaStoreMocks.saveMediaBuffer).toHaveBeenCalledTimes(1);
+    const [savedBuffer, contentType] = mediaStoreMocks.saveMediaBuffer.mock.calls[0] ?? [];
+    expect(savedBuffer).toEqual(jpeg);
+    expect(contentType).toBeUndefined();
   });
 
   it("serves basic act requests through pinchtab", async () => {

@@ -284,6 +284,56 @@ describe("browser tool", () => {
     expect(result?.details).toMatchObject({ ok: true, instanceId: "inst_1", tabId: "tab_1" });
   });
 
+  it("retries host open after PinchTab reports a newly started instance", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: "inst_retry", status: "starting" }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: "error",
+            error: 'instance "inst_retry" is not running (status: starting)',
+          }),
+          { status: 503 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: "tab_retry", url: "https://example.com" }), {
+          status: 200,
+        }),
+      );
+    pinchTabClientTesting.setDepsForTest({ fetchImpl: fetchMock as never });
+
+    const tool = createBrowserTool();
+    const result = await tool.execute?.("call-1", { action: "open", url: "https://example.com" });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:9867/instances/inst_retry/tabs/open",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "http://127.0.0.1:9867/instances/inst_retry/tabs",
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      "http://127.0.0.1:9867/instances/inst_retry/tabs/open",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(result?.details).toMatchObject({
+      ok: true,
+      instanceId: "inst_retry",
+      tabId: "tab_retry",
+    });
+  });
+
   it("uses PinchTab for host status when browser.provider=pinchtab", async () => {
     const fetchMock = vi
       .fn()

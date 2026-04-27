@@ -178,4 +178,68 @@ describe("tab routes PinchTab backend", () => {
     });
     expect(listedAfterClose.body).toMatchObject({ running: true, tabs: [] });
   });
+
+  it("waits for a newly started PinchTab instance before opening a tab", async () => {
+    const tabs: TabRecord[] = [];
+    let ready = false;
+    let listAttempts = 0;
+    pinchTabClientTesting.setDepsForTest({
+      fetchImpl: vi.fn(async (url, init) => {
+        const method = init?.method ?? "GET";
+        if (method === "GET" && String(url).endsWith("/profiles?all=true")) {
+          return buildJsonResponse([{ id: "profile-browser", name: "browser" }]);
+        }
+        if (method === "POST" && String(url).endsWith("/instances/start")) {
+          return buildJsonResponse({ id: "instance-1" });
+        }
+        if (method === "GET" && String(url).endsWith("/instances/instance-1/tabs")) {
+          listAttempts += 1;
+          if (listAttempts === 1) {
+            return new Response(
+              JSON.stringify({
+                code: "error",
+                error: 'instance "instance-1" is not running (status: starting)',
+              }),
+              { status: 503 },
+            );
+          }
+          ready = true;
+          return buildJsonResponse(tabs);
+        }
+        if (method === "POST" && String(url).endsWith("/instances/instance-1/tabs/open")) {
+          if (!ready) {
+            return new Response(
+              JSON.stringify({
+                code: "error",
+                error: 'instance "instance-1" is not running (status: starting)',
+              }),
+              { status: 503 },
+            );
+          }
+          const body = JSON.parse(String(init?.body ?? "{}")) as { url?: string };
+          return buildJsonResponse({
+            id: "tab-1",
+            title: "Opened",
+            url: body.url ?? "about:blank",
+            type: "page",
+          });
+        }
+        throw new Error(`unexpected request: ${method} ${String(url)}`);
+      }),
+    });
+
+    const opened = await callRoute({
+      method: "post",
+      path: "/tabs/open",
+      body: { url: "https://example.com", profile: "browser" },
+    });
+
+    expect(opened.statusCode).toBe(200);
+    expect(opened.body).toMatchObject({
+      targetId: "tab-1",
+      title: "Opened",
+      url: "https://example.com",
+    });
+    expect(listAttempts).toBe(2);
+  });
 });

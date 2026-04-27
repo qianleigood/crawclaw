@@ -278,11 +278,19 @@ Related:
 Use this when browser tool actions fail even though the gateway itself is healthy.
 
 ```bash
-crawclaw browser status
-crawclaw browser start --browser-profile crawclaw
-crawclaw browser profiles
 crawclaw logs --follow
 crawclaw doctor
+```
+
+From the current agent or Gateway `/tools/invoke` path, check the browser tool
+directly:
+
+```json
+{ "action": "status", "profile": "crawclaw" }
+```
+
+```json
+{ "action": "profiles" }
 ```
 
 Look for:
@@ -294,8 +302,7 @@ Look for:
 
 Common signatures:
 
-- `unknown command "browser"` or `unknown command 'browser'` → the bundled browser plugin is excluded by `plugins.allow`.
-- browser tool missing / unavailable while `browser.enabled=true` → `plugins.allow` excludes `browser`, so the plugin never loaded.
+- Agent reports browser tool missing / unavailable while `browser.enabled=true` → `plugins.allow` excludes `browser`, so the plugin never loaded.
 - `Failed to start Chrome CDP on port` → browser process failed to launch.
 - `browser.executablePath not found` → configured path is invalid.
 - `Remote CDP for profile "<name>" is not reachable` → configured remote CDP endpoint is unreachable.

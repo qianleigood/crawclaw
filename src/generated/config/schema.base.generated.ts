@@ -388,6 +388,22 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
           enabled: {
             type: "boolean",
           },
+          provider: {
+            type: "string",
+            const: "pinchtab",
+          },
+          pinchtab: {
+            type: "object",
+            properties: {
+              baseUrl: {
+                type: "string",
+              },
+              token: {
+                type: "string",
+              },
+            },
+            additionalProperties: false,
+          },
           evaluateEnabled: {
             type: "boolean",
           },
@@ -11090,6 +11106,27 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Enables browser capability wiring in the gateway so browser tools and CDP-driven workflows can run. Disable when browser automation is not needed to reduce surface area and startup work.",
       tags: ["advanced"],
     },
+    "browser.provider": {
+      label: "Browser Provider",
+      help: 'Browser runtime provider. Currently "pinchtab" selects the bundled PinchTab-backed automation path.',
+      tags: ["advanced"],
+    },
+    "browser.pinchtab": {
+      label: "Browser PinchTab Server",
+      help: "PinchTab HTTP server settings for browser automation. Leave unset to use the managed local PinchTab runtime.",
+      tags: ["advanced"],
+    },
+    "browser.pinchtab.baseUrl": {
+      label: "Browser PinchTab Base URL",
+      help: "External PinchTab HTTP API base URL. Set only when an independently managed PinchTab server should handle browser automation.",
+      tags: ["advanced", "url-secret"],
+    },
+    "browser.pinchtab.token": {
+      label: "Browser PinchTab Token",
+      help: "Bearer token used when connecting to the configured PinchTab HTTP API. Treat it as a gateway-adjacent automation secret.",
+      tags: ["security", "auth"],
+      sensitive: true,
+    },
     "browser.cdpUrl": {
       label: "Browser CDP URL",
       help: "Remote CDP URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep access restricted to trusted network paths.",
@@ -12370,7 +12407,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.cli.args": {
       label: "NotebookLM CLI Arguments",
-      help: "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, and `{notebookId}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
+      help: "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, `{notebookId}`, and `{profile}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
       tags: ["storage"],
     },
     "memory.notebooklm.cli.timeoutMs": {

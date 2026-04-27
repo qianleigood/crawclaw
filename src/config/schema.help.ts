@@ -243,6 +243,14 @@ export const FIELD_HELP: Record<string, string> = {
     "Browser runtime controls for local or remote CDP attachment, profile routing, and screenshot/snapshot behavior. Keep defaults unless your automation workflow requires custom browser transport settings.",
   "browser.enabled":
     "Enables browser capability wiring in the gateway so browser tools and CDP-driven workflows can run. Disable when browser automation is not needed to reduce surface area and startup work.",
+  "browser.provider":
+    'Browser runtime provider. Currently "pinchtab" selects the bundled PinchTab-backed automation path.',
+  "browser.pinchtab":
+    "PinchTab HTTP server settings for browser automation. Leave unset to use the managed local PinchTab runtime.",
+  "browser.pinchtab.baseUrl":
+    "External PinchTab HTTP API base URL. Set only when an independently managed PinchTab server should handle browser automation.",
+  "browser.pinchtab.token":
+    "Bearer token used when connecting to the configured PinchTab HTTP API. Treat it as a gateway-adjacent automation secret.",
   "browser.cdpUrl":
     "Remote CDP URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep access restricted to trusted network paths.",
   "browser.color":

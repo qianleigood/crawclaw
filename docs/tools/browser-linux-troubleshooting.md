@@ -126,8 +126,9 @@ cannot complete browser operations.
 
 Fix options:
 
-1. **Use the managed browser:** `crawclaw browser start --browser-profile crawclaw`
-   (or set `browser.defaultProfile: "crawclaw"`).
+1. **Use the managed browser:** use the agent `browser` tool with
+   `{ "action": "start", "profile": "crawclaw" }` (or set
+   `browser.defaultProfile: "crawclaw"`).
 2. **Use remote CDP:** make sure the configured browser is still serving
    `browser.profiles.<name>.cdpUrl` from the same host/namespace CrawClaw uses.
 

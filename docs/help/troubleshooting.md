@@ -314,19 +314,21 @@ flowchart TD
     ```bash
     crawclaw status
     crawclaw gateway status
-    crawclaw browser status
     crawclaw logs --follow
     crawclaw doctor
     ```
 
+    From the current agent or Gateway `/tools/invoke` path, run the `browser` tool
+    with `{ "action": "status", "profile": "crawclaw" }`.
+
     Good output looks like:
 
-    - Browser status shows `running: true` and a chosen browser/profile.
+    - Browser tool status shows `running: true` and a chosen browser/profile.
     - `crawclaw` starts, or a remote CDP profile is reachable.
 
     Common log signatures:
 
-    - `unknown command "browser"` or `unknown command 'browser'` → `plugins.allow` is set and does not include `browser`.
+    - Browser tool missing / unavailable while `browser.enabled=true` → `plugins.allow` is set and does not include `browser`.
     - `Failed to start Chrome CDP on port` → local browser launch failed.
     - `browser.executablePath not found` → configured binary path is wrong.
     - `Remote CDP for profile "<name>" is not reachable` → configured remote CDP endpoint is unreachable.

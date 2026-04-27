@@ -43,7 +43,6 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`approvals`](/cli/approvals)
 - [`sandbox`](/cli/sandbox)
 - [`tui`](/cli/tui)
-- [`browser`](/cli/browser)
 - [`cron`](/cli/cron)
 - [`tasks`](/cli/index#tasks)
 - [`dns`](/cli/dns)
@@ -1250,49 +1249,9 @@ Location:
 
 ## Browser
 
-Browser control CLI (dedicated Chrome/Brave/Edge/Chromium). See [`crawclaw browser`](/cli/browser) and the [Browser tool](/tools/browser).
-
-Common options:
-
-- `--url`, `--token`, `--timeout`, `--json`
-- `--browser-profile <name>`
-
-Manage:
-
-- `browser status`
-- `browser start`
-- `browser stop`
-- `browser reset-profile`
-- `browser tabs`
-- `browser open <url>`
-- `browser focus <targetId>`
-- `browser close [targetId]`
-- `browser profiles`
-- `browser create-profile --name <name> [--color <hex>] [--cdp-url <url>]`
-- `browser delete-profile --name <name>`
-
-Inspect:
-
-- `browser screenshot [targetId] [--full-page] [--ref <ref>] [--element <selector>] [--type png|jpeg]`
-- `browser snapshot [--format aria|ai] [--target-id <id>] [--limit <n>] [--interactive] [--compact] [--depth <n>] [--selector <sel>] [--out <path>]`
-
-Actions:
-
-- `browser navigate <url> [--target-id <id>]`
-- `browser resize <width> <height> [--target-id <id>]`
-- `browser click <ref> [--double] [--button <left|right|middle>] [--modifiers <csv>] [--target-id <id>]`
-- `browser type <ref> <text> [--submit] [--slowly] [--target-id <id>]`
-- `browser press <key> [--target-id <id>]`
-- `browser hover <ref> [--target-id <id>]`
-- `browser drag <startRef> <endRef> [--target-id <id>]`
-- `browser select <ref> <values...> [--target-id <id>]`
-- `browser upload <paths...> [--ref <ref>] [--input-ref <ref>] [--element <selector>] [--target-id <id>] [--timeout-ms <ms>]`
-- `browser fill [--fields <json>] [--fields-file <path>] [--target-id <id>]`
-- `browser dialog --accept|--dismiss [--prompt <text>] [--target-id <id>] [--timeout-ms <ms>]`
-- `browser wait [--time <ms>] [--text <value>] [--text-gone <value>] [--target-id <id>]`
-- `browser evaluate --fn <code> [--ref <ref>] [--target-id <id>]`
-- `browser console [--level <error|warn|info>] [--target-id <id>]`
-- `browser pdf [--target-id <id>]`
+Browser automation is exposed as the agent `browser` tool, not as a standalone
+CLI command in current CrawClaw builds. See [Browser tool](/tools/browser) and
+the Gateway [Tools Invoke API](/gateway/tools-invoke-http-api).
 
 ## Docs search
 

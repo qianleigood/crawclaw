@@ -6531,6 +6531,50 @@
       "hasChildren": false
     },
     {
+      "path": "browser.pinchtab",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Browser PinchTab Server",
+      "help": "PinchTab HTTP server settings for browser automation. Leave unset to use the managed local PinchTab runtime.",
+      "hasChildren": true
+    },
+    {
+      "path": "browser.pinchtab.baseUrl",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced",
+        "url-secret"
+      ],
+      "label": "Browser PinchTab Base URL",
+      "help": "External PinchTab HTTP API base URL. Set only when an independently managed PinchTab server should handle browser automation.",
+      "hasChildren": false
+    },
+    {
+      "path": "browser.pinchtab.token",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": true,
+      "tags": [
+        "auth",
+        "security"
+      ],
+      "label": "Browser PinchTab Token",
+      "help": "Bearer token used when connecting to the configured PinchTab HTTP API. Treat it as a gateway-adjacent automation secret.",
+      "hasChildren": false
+    },
+    {
       "path": "browser.profiles",
       "kind": "core",
       "type": "object",
@@ -6594,6 +6638,20 @@
       ],
       "label": "Browser Profile Accent Color",
       "help": "Per-profile accent color for visual differentiation in dashboards and browser-related UI hints. Use distinct colors for high-signal operator recognition of active profiles.",
+      "hasChildren": false
+    },
+    {
+      "path": "browser.provider",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Browser Provider",
+      "help": "Browser runtime provider. Currently \"pinchtab\" selects the bundled PinchTab-backed automation path.",
       "hasChildren": false
     },
     {
@@ -43022,7 +43080,7 @@
         "storage"
       ],
       "label": "NotebookLM CLI Arguments",
-      "help": "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, and `{notebookId}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
+      "help": "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, `{notebookId}`, and `{profile}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
       "hasChildren": true
     },
     {

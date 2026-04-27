@@ -192,6 +192,19 @@ describe("config schema regressions", () => {
     expect(res.ok).toBe(true);
   });
 
+  it("accepts browser.pinchtab connection overrides", () => {
+    const res = validateConfigObject({
+      browser: {
+        pinchtab: {
+          baseUrl: "http://127.0.0.1:9867",
+          token: "secret",
+        },
+      },
+    });
+
+    expect(res.ok).toBe(true);
+  });
+
   it("rejects browser.extraArgs with non-array value", () => {
     const res = validateConfigObject({
       browser: {

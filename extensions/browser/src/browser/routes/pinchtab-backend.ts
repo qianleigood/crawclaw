@@ -12,6 +12,9 @@ import type { BrowserRouteContext } from "../server-context.types.js";
 
 type PinchTabTab = Record<string, unknown>;
 
+const INSTANCE_READY_TIMEOUT_MS = 15_000;
+const INSTANCE_READY_POLL_MS = 250;
+
 function sanitizeSessionPart(value: string): string {
   return value
     .trim()
@@ -32,6 +35,35 @@ function resolvePinchTabConfig() {
 
 async function createClient() {
   return createPinchTabClient(resolvePinchTabConfig());
+}
+
+function isPinchTabInstanceStartingError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("status: starting");
+}
+
+async function waitForPinchTabInstanceReady(
+  client: ReturnType<typeof createPinchTabClient>,
+  instanceId: string,
+): Promise<void> {
+  const deadline = Date.now() + INSTANCE_READY_TIMEOUT_MS;
+  let lastError: unknown;
+  while (Date.now() <= deadline) {
+    try {
+      await client.listTabs(instanceId);
+      return;
+    } catch (error) {
+      if (!isPinchTabInstanceStartingError(error)) {
+        throw error;
+      }
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, INSTANCE_READY_POLL_MS));
+    }
+  }
+  throw new Error(
+    `PinchTab instance "${instanceId}" did not become ready within ${INSTANCE_READY_TIMEOUT_MS}ms.`,
+    lastError instanceof Error ? { cause: lastError } : undefined,
+  );
 }
 
 function toBrowserTab(tab: PinchTabTab): BrowserTab {
@@ -78,6 +110,7 @@ async function ensureRuntime(profileName: string) {
     throw new Error("PinchTab instance start failed.");
   }
   const state = updatePinchTabSessionState(sessionName, { instanceId, profileId });
+  await waitForPinchTabInstanceReady(client, instanceId);
   return { client, sessionName, state };
 }
 
