@@ -15,314 +15,256 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**CrawClaw** is a local-first assistant runtime with one control plane for chat,
-memory, workflows, browser automation, host tools, and a web control UI.
+**CrawClaw** is a local-first Gateway for AI agents. It connects messaging
+channels, Gateway clients, memory, workflows, host tools, model providers, and
+plugins through one runtime you control.
 
-This README only covers five things:
+Use it when you want an always-available assistant that can be reached from chat
+apps, a terminal UI, WebChat, node integrations, or repeatable workflows while
+keeping configuration and runtime state on your own machine.
 
-- the project design
-- memory design
-- workflow design
-- the tool substrate
-- installation through npm and Docker
-
-For the wider product docs, see [docs.crawclaw.ai](https://docs.crawclaw.ai).
-
-## Project Design
-
-CrawClaw is built around a **Gateway-first architecture**.
-
-- The **Gateway** is the system control plane. It owns sessions, auth, config,
-  web UI, agent calls, events, and tool invocation surfaces.
-- The **agent runtime** sits behind that gateway and executes model calls,
-  tool calls, subagents, streaming, and safety policy.
-- The **memory runtime** is not a side note; it is part of prompt assembly,
-  compaction, durable recall, and long-running assistant behavior.
-- The **workflow layer** is not a second assistant runtime. It turns successful
-  runs into deployable workflows and uses n8n as the execution engine.
-- The **tool layer** is typed and policy-controlled. Tools are the substrate;
-  skills and plugins sit above that substrate to teach or extend behavior.
-
-At the repository level, the system is split roughly like this:
-
-- [src/gateway](src/gateway): control plane, protocol,
-  auth, methods, gateway services
-- [src/agents](src/agents): agent runtime, tool
-  registration, sandboxing, provider integration, subagents
-- [src/memory](src/memory): memory engine, extraction,
-  durable storage, orchestration, prompt assembly
-- [src/workflows](src/workflows): workflow registry,
-  versioning, n8n compilation and execution bridge
-- [extensions](extensions): plugin-style capability
-  packages for channels, providers, browser backends, and more
-
-## Memory Design
-
-The memory system is designed as a **runtime service**, not just a vector search
-adapter.
-
-Core entrypoints:
-
-- [src/memory/index.ts](src/memory/index.ts)
-- [src/memory/engine/memory-runtime.ts](src/memory/engine/memory-runtime.ts)
-- [src/memory/orchestration/context-assembler.ts](src/memory/orchestration/context-assembler.ts)
-
-The design has four layers:
-
-1. **Ingest and extraction**
-   - CrawClaw extracts candidate memories from transcripts, files, and runtime
-     signals.
-   - Promotion paths exist for session summaries, durable memory, and
-     knowledge-like notes.
-   - Relevant modules live under
-     [src/memory/extraction](src/memory/extraction) and
-     [src/memory/promotion](src/memory/promotion).
-
-2. **Storage**
-   - The built-in engine is local-first and SQLite-backed.
-   - Durable memory, summaries, and assembly audit data are stored in local
-     runtime stores rather than outsourced to a remote-only service.
-   - Relevant modules:
-     [src/memory/runtime](src/memory/runtime) and
-     [src/memory/durable](src/memory/durable).
-
-3. **Recall and ranking**
-   - Recall is hybrid by design: vector search, text search, reranking, and
-     freshness all participate.
-   - The system distinguishes durable memory, knowledge layers, session memory,
-     and runtime signals instead of flattening everything into one top-k list.
-   - Relevant modules:
-     [src/memory/orchestration](src/memory/orchestration),
-     [src/memory/search](src/memory/search), and
-     [src/memory/recall](src/memory/recall).
-
-4. **Prompt assembly and compaction**
-   - Memory is assembled into structured prompt sections with token budgets.
-   - Session summaries and durable recall are explicitly budgeted and rendered
-     as separate prompt sections.
-   - Compaction is treated as a first-class maintenance path, not an emergency
-     fallback.
-   - Relevant modules:
-     [src/memory/context](src/memory/context) and
-     [src/memory/session-summary](src/memory/session-summary).
-
-Practical design takeaway:
-
-- CrawClaw memory is meant to preserve assistant continuity over time.
-- It is designed to be local-first, query-aware, and layered.
-- It is not just “embed everything and stuff the nearest chunks back in”.
-
-Configuration reference:
-
-- [docs/reference/memory-config.md](docs/reference/memory-config.md)
-
-## Workflow Design
-
-The workflow system is designed around a hard boundary:
-
-- **CrawClaw designs and controls workflows**
-- **n8n executes workflows**
-
-This is already reflected in code:
-
-- [src/workflows/api.ts](src/workflows/api.ts)
-- [src/workflows/n8n-client.ts](src/workflows/n8n-client.ts)
-- [src/agents/tools/workflow-tool.ts](src/agents/tools/workflow-tool.ts)
-
-The workflow model works like this:
-
-1. A user task is first completed normally by the agent runtime.
-2. When the user explicitly wants repeatability, CrawClaw derives a workflow
-   spec from that successful execution path.
-3. CrawClaw stores the workflow spec locally, versions it, diffs it, and
-   exposes it through registry operations.
-4. CrawClaw compiles that spec to n8n workflow JSON.
-5. n8n becomes the execution plane for triggers, waits, retries, branching,
-   and external integration.
-6. High-intelligence steps can call back into CrawClaw through dedicated
-   workflow-step agent surfaces instead of embedding all reasoning inside n8n.
-
-This means the workflow design is intentionally split into three concerns:
-
-- **Registry and lifecycle**
-  - list, describe, diff, versions, update, republish, rollback, archive
-  - implemented in
-    [src/workflows](src/workflows)
-
-- **Compilation and execution bridge**
-  - compile workflow spec to n8n
-  - push to n8n
-  - map execution IDs and statuses back into CrawClaw
-  - implemented through `n8n-client`, compiler, and execution sync helpers
-
-- **Agent step execution**
-  - workflow steps that still need model reasoning call back into CrawClaw
-  - this avoids turning n8n into a prompt-heavy agent host
-
-Practical design takeaway:
-
-- CrawClaw does not try to become a second general-purpose workflow engine.
-- It owns the authoring, versioning, and assistant-facing side.
-- n8n owns the durable workflow execution side.
-
-Reference:
-
-- [docs/reference/n8n-workflow-architecture.md](docs/reference/n8n-workflow-architecture.md)
-
-## Tool Substrate
-
-The agent runtime is built on a **typed tool layer**. Everything beyond plain
-text generation goes through tools.
-
-Tool-facing docs:
-
-- [docs/tools/index.md](docs/tools/index.md)
-
-Runtime entrypoints:
-
-- [src/agents/crawclaw-tools.runtime.ts](src/agents/crawclaw-tools.runtime.ts)
-- [src/agents/bash-tools.ts](src/agents/bash-tools.ts)
-- [src/agents/tools/gateway.ts](src/agents/tools/gateway.ts)
-
-The substrate is layered like this:
-
-1. **Built-in tools**
-   - file IO, patching, shell/process execution, browser, web, PDF, image,
-     messaging, sessions, cron, nodes, gateway operations
-
-2. **Skills**
-   - markdown instructions that teach the model when and how to use tools
-   - skills are not tools themselves; they are behavior overlays
-
-3. **Plugins**
-   - packages that can register tools, channels, model providers, skills,
-     browser capabilities, and other runtime extensions
-
-4. **Policy and scoping**
-   - tool profiles, allow/deny rules, provider-specific restrictions,
-     sandbox/elevation gates, and gateway auth scopes sit between the model and
-     execution
-
-The important design choice here is that CrawClaw does not treat tools as an
-afterthought.
-
-- Tool definitions are typed
-- tool surfaces are grouped and policy-controlled
-- gateway calls are explicit and scope-aware
-- shell access is modeled separately from higher-level control surfaces
-
-Practical design takeaway:
-
-- The tool layer is the real execution substrate.
-- Skills explain behavior.
-- Plugins extend the substrate.
-- Gateway auth and sandbox policy decide what actually gets executed.
-
-## Install With npm
-
-Reference:
-
-- [docs/install/node.md](docs/install/node.md)
+## Quick Start
 
 Requirements:
 
 - Node **24** recommended
 - Node **22.14+** supported
+- A model provider account or API key
 
-Install globally from npm:
+Install from npm:
 
 ```bash
 npm install -g crawclaw@latest
 ```
 
-Then run onboarding:
+Run onboarding and install the local Gateway service:
 
 ```bash
 crawclaw onboard --install-daemon
 ```
 
-Useful follow-up commands:
+Check the Gateway and open the terminal UI:
 
 ```bash
-crawclaw gateway --port 18789 --verbose
-crawclaw doctor
-```
-
-If `crawclaw` is not found after install, check your global npm bin path:
-
-```bash
-npm prefix -g
-```
-
-## Install With Docker
-
-Reference:
-
-- [docs/install/docker.md](docs/install/docker.md)
-
-Docker is the containerized gateway path. It is useful when you want the
-gateway isolated from the host runtime.
-
-Quick path from the repo root:
-
-```bash
-./scripts/docker/setup.sh
-```
-
-That flow will:
-
-- build the image locally, or use `CRAWCLAW_IMAGE` if you point it at GHCR
-- run onboarding
-- write config and token state
-- start the gateway with Docker Compose
-
-If you want to use the published image:
-
-```bash
-export CRAWCLAW_IMAGE="ghcr.io/qianleigood/crawclaw:latest"
-./scripts/docker/setup.sh
-```
-
-Connect to the gateway after setup:
-
-```bash
+crawclaw gateway status
 crawclaw tui
 ```
 
-Manual Docker path:
+Useful docs:
+
+- [Getting Started](https://docs.crawclaw.ai/start/getting-started)
+- [Install Overview](https://docs.crawclaw.ai/install)
+- [Node.js Install](https://docs.crawclaw.ai/install/node)
+- [Channels](https://docs.crawclaw.ai/channels)
+- [Model Providers](https://docs.crawclaw.ai/providers)
+
+## Docker Quick Start
+
+Docker is optional. Use it when you want an isolated Gateway container or a
+server-style deployment.
+
+From the repo root:
 
 ```bash
-docker build -t crawclaw:local -f Dockerfile .
-docker compose up -d crawclaw-gateway
+./scripts/docker/setup.sh
 ```
 
-Health endpoints:
+That script builds or pulls the image, runs onboarding, writes the Gateway token
+state, and starts Docker Compose.
+
+To use the published image:
 
 ```bash
-curl -fsS http://127.0.0.1:18789/healthz
-curl -fsS http://127.0.0.1:18789/readyz
+export CRAWCLAW_IMAGE="ghcr.io/crawclaw/crawclaw:latest"
+./scripts/docker/setup.sh
 ```
 
-## Repo Pointers
+Then open the terminal UI through the CLI container:
 
-- Gateway: [src/gateway](src/gateway)
-- Memory: [src/memory](src/memory)
-- Workflows: [src/workflows](src/workflows)
-- Agent runtime and tools: [src/agents](src/agents)
-- Browser subsystem and plugins: [extensions](extensions)
+```bash
+docker compose run --rm crawclaw-cli tui
+```
 
-## Repository Layout
+Docker docs:
 
-The monorepo currently carries several layers at once:
+- [Docker Install](https://docs.crawclaw.ai/install/docker)
+- [Docker VM Runtime](https://docs.crawclaw.ai/install/docker-vm-runtime)
+- [Sandboxing](https://docs.crawclaw.ai/gateway/sandboxing)
 
-- runtime core in `src/`
-- capability ecosystem packages in `extensions/`
-- support packages in `packages/`
-- optional skill catalog content in `skills-optional/`
-- sidecar code in `Swabble/`
-- shared test infrastructure in `test/`
-- build output in `dist/`
+## What CrawClaw Provides
+
+- **Self-hosted Gateway**: one long-running process owns sessions, auth,
+  routing, client connections, channel events, and Gateway APIs.
+- **Multi-channel messaging**: built-in and plugin-backed channels can connect
+  chat apps such as WhatsApp, Telegram, Discord, iMessage, Slack, Matrix, and
+  more.
+- **Agent runtime**: model calls, streaming, tool calls, subagents, special
+  agents, sandboxing, and execution visibility run behind the Gateway.
+- **Memory runtime**: durable memory, session summaries, compaction, recall
+  planning, and prompt assembly are first-class runtime services.
+- **Workflow system**: CrawClaw authors, versions, diffs, and controls workflow
+  specs; n8n is used as the durable execution plane.
+- **Typed tool substrate**: file operations, shell execution, browser actions,
+  media, web, messaging, Gateway operations, and plugin tools are registered as
+  typed, policy-controlled tools.
+- **Plugin ecosystem**: plugins can add channels, providers, tools, skills,
+  browser backends, media capabilities, and setup flows through documented SDK
+  contracts.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Channels["Chat channels and plugins"] --> Gateway["Gateway"]
+  Clients["CLI, TUI, WebChat, node clients"] --> Gateway
+  Gateway --> Agent["Agent runtime"]
+  Agent --> Tools["Typed tools and sandbox policy"]
+  Agent --> Providers["Model providers"]
+  Agent --> Memory["Memory runtime"]
+  Agent --> Workflows["Workflow registry"]
+  Workflows --> N8N["n8n execution plane"]
+  Plugins["Plugin SDK"] --> Channels
+  Plugins --> Tools
+  Plugins --> Providers
+```
+
+The central boundary is the **Gateway**. Clients and channels talk to it; the
+agent runtime sits behind it; memory, workflows, plugins, and tools integrate
+through explicit runtime seams.
+
+### Gateway
+
+The Gateway is the control plane. It owns WebSocket and HTTP surfaces, auth,
+pairing, health, sessions, routing, channel events, Gateway clients, and tool
+invocation APIs.
+
+Start here:
+
+- [src/gateway](src/gateway)
+- [Gateway Architecture](https://docs.crawclaw.ai/concepts/architecture)
+- [Gateway Runbook](https://docs.crawclaw.ai/gateway)
+- [Gateway Protocol](https://docs.crawclaw.ai/gateway/protocol)
+
+### Agent Runtime
+
+The agent runtime owns model/provider execution, tool registration, subagent
+orchestration, special agents, sandboxed execution, streaming glue, and
+execution-event emission.
+
+Start here:
+
+- [src/agents](src/agents)
+- [src/agents/crawclaw-tools.runtime.ts](src/agents/crawclaw-tools.runtime.ts)
+- [src/agents/tools](src/agents/tools)
+- [Agent Loop](https://docs.crawclaw.ai/concepts/agent-loop)
+- [Tools](https://docs.crawclaw.ai/tools)
+
+### Memory Runtime
+
+Memory is a runtime service, not only a vector-search adapter. It owns context
+assembly, compaction, durable extraction and recall, session summaries,
+experience recall planning, and maintenance flows.
+
+Start here:
+
+- [src/memory](src/memory)
+- [src/memory/engine/memory-runtime.ts](src/memory/engine/memory-runtime.ts)
+- [src/memory/orchestration/context-assembler.ts](src/memory/orchestration/context-assembler.ts)
+- [Memory Concept](https://docs.crawclaw.ai/concepts/memory)
+- [Memory Config](https://docs.crawclaw.ai/reference/memory-config)
+
+### Workflow System
+
+The workflow boundary is deliberate: CrawClaw owns workflow authoring,
+versioning, registry operations, visibility, and agent-facing control. n8n owns
+durable trigger and execution behavior.
+
+Start here:
+
+- [src/workflows](src/workflows)
+- [src/workflows/api.ts](src/workflows/api.ts)
+- [src/workflows/n8n-client.ts](src/workflows/n8n-client.ts)
+- [src/agents/tools/workflow-tool.ts](src/agents/tools/workflow-tool.ts)
+- [n8n Workflow Architecture](https://docs.crawclaw.ai/reference/n8n-workflow-architecture)
+- [Learning Loop](https://docs.crawclaw.ai/concepts/learning-loop)
+
+### Plugin And Tool Boundary
+
+Plugins extend CrawClaw without importing core internals. The public boundary is
+the plugin SDK, manifest metadata, setup/runtime helpers, and documented
+contracts. Tools remain typed and policy-controlled even when they come from
+plugins.
+
+Start here:
+
+- [src/plugins](src/plugins)
+- [src/plugin-sdk](src/plugin-sdk)
+- [extensions](extensions)
+- [Plugin Architecture](https://docs.crawclaw.ai/plugins/architecture)
+- [Building Plugins](https://docs.crawclaw.ai/plugins/building-plugins)
+- [Plugin SDK Overview](https://docs.crawclaw.ai/plugins/sdk-overview)
+
+## Repository Map
+
+| Path                               | Purpose                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| [src/gateway](src/gateway)         | Gateway control plane, protocol, auth, health, pairing, and runtime services                |
+| [src/agents](src/agents)           | Agent runtime, tools, subagents, sandboxing, provider integration, and execution events     |
+| [src/memory](src/memory)           | Durable memory, session summaries, recall, context assembly, and maintenance flows          |
+| [src/workflows](src/workflows)     | Workflow registry, versioning, n8n bridge, execution records, and action feed projection    |
+| [src/channels](src/channels)       | Core channel implementation details behind the channel/plugin boundary                      |
+| [src/plugins](src/plugins)         | Plugin discovery, manifest validation, loader, registry, and contract enforcement           |
+| [src/plugin-sdk](src/plugin-sdk)   | Public SDK surface for plugin-facing contracts                                              |
+| [extensions](extensions)           | Bundled plugin packages for channels, providers, browser backends, and runtime capabilities |
+| [packages](packages)               | Support packages used by the workspace                                                      |
+| [skills](skills)                   | Shipped runtime skills                                                                      |
+| [skills-optional](skills-optional) | Optional skill catalog content                                                              |
+| [docs](docs)                       | Mintlify documentation source                                                               |
+| [test](test)                       | Shared test infrastructure and fixtures                                                     |
+| [scripts](scripts)                 | Build, install, Docker, release, and maintenance scripts                                    |
 
 Maintainer structure notes:
 
-- [docs/maintainers/repo-structure.md](docs/maintainers/repo-structure.md)
+- [Repository Structure](https://docs.crawclaw.ai/maintainers/repo-structure)
+- [Skills Catalog](https://docs.crawclaw.ai/maintainers/skills-catalog)
+
+## Development
+
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Run the CLI from source:
+
+```bash
+pnpm crawclaw --help
+pnpm crawclaw gateway status
+```
+
+Common local gates:
+
+```bash
+pnpm check
+pnpm test
+pnpm build
+```
+
+Docs-only checks:
+
+```bash
+pnpm check:docs
+pnpm docs:check-links
+```
+
+More detail:
+
+- [Testing](https://docs.crawclaw.ai/help/testing)
+- [CLI Reference](https://docs.crawclaw.ai/cli)
+- [Configuration](https://docs.crawclaw.ai/gateway/configuration)
+- [Security](https://docs.crawclaw.ai/gateway/security)
+
+## License
+
+CrawClaw is MIT licensed. See [LICENSE](LICENSE).
