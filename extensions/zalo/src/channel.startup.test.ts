@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   expectLifecyclePatch,
   expectPendingUntilAbort,
@@ -32,7 +32,7 @@ vi.mock("./probe.js", async () => {
   };
 });
 
-import { zaloPlugin } from "./channel.js";
+let zaloPlugin: typeof import("./channel.js").zaloPlugin;
 
 function buildAccount(): ResolvedZaloAccount {
   return {
@@ -45,6 +45,11 @@ function buildAccount(): ResolvedZaloAccount {
 }
 
 describe("zaloPlugin gateway.startAccount", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ zaloPlugin } = await import("./channel.js"));
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });

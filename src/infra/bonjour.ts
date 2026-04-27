@@ -39,11 +39,6 @@ function isDisabledByEnv() {
   return false;
 }
 
-function safeServiceName(name: string) {
-  const trimmed = name.trim();
-  return trimmed.length > 0 ? trimmed : "CrawClaw";
-}
-
 function prettifyInstanceName(name: string) {
   const normalized = name.trim().replace(/\s+/g, " ");
   return normalized.replace(/\s+\(CrawClaw\)\s*$/i, "").trim() || normalized;
@@ -69,8 +64,37 @@ type ConsoleLogFn = (...args: unknown[]) => void;
 const WATCHDOG_INTERVAL_MS = 5_000;
 const REPAIR_DEBOUNCE_MS = 30_000;
 const STUCK_ANNOUNCING_MS = 8_000;
+const MAX_DNS_LABEL_BYTES = 63;
+const CRAWCLAW_INSTANCE_SUFFIX = " (CrawClaw)";
 const CIAO_SELF_PROBE_RETRY_FRAGMENT =
   "failed probing with reason: Error: Can't probe for a service which is announced already.";
+
+function truncateUtf8Bytes(value: string, maxBytes: number) {
+  let next = "";
+  let usedBytes = 0;
+  for (const char of value) {
+    const charBytes = Buffer.byteLength(char, "utf8");
+    if (usedBytes + charBytes > maxBytes) {
+      break;
+    }
+    next += char;
+    usedBytes += charBytes;
+  }
+  return next.trimEnd();
+}
+
+function safeServiceName(name: string) {
+  const trimmed = name.trim() || "CrawClaw";
+  if (Buffer.byteLength(trimmed, "utf8") <= MAX_DNS_LABEL_BYTES) {
+    return trimmed;
+  }
+  if (trimmed.toLowerCase().endsWith(CRAWCLAW_INSTANCE_SUFFIX.toLowerCase())) {
+    const suffixBytes = Buffer.byteLength(CRAWCLAW_INSTANCE_SUFFIX, "utf8");
+    const prefix = trimmed.slice(0, -CRAWCLAW_INSTANCE_SUFFIX.length).trimEnd();
+    return `${truncateUtf8Bytes(prefix, MAX_DNS_LABEL_BYTES - suffixBytes)}${CRAWCLAW_INSTANCE_SUFFIX}`;
+  }
+  return truncateUtf8Bytes(trimmed, MAX_DNS_LABEL_BYTES) || "CrawClaw";
+}
 
 function serviceSummary(label: string, svc: BonjourService): string {
   let fqdn = "unknown";

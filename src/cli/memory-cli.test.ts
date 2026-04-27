@@ -30,7 +30,7 @@ describe("registerMemoryCli", () => {
     );
     const sessionSummary = memory?.commands.find((command) => command.name() === "session-summary");
 
-    expect(memory?.description()).toBe("查看和管理 NotebookLM 经验访问");
+    expect(memory?.description()).toBe("查看记忆提供方访问状态；上下文明细见 /context");
     expect(status?.description()).toBe("显示 NotebookLM 经验 provider 状态");
     expect(promptJournalSummary?.helpInformation()).toContain("读取指定 journal JSONL 文件");
     expect(dream?.description()).toBe("查看并运行 durable-memory dream 过程");

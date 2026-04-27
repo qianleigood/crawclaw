@@ -15,6 +15,7 @@ import {
   loadImprovementProposal,
   loadImprovementRunRecord,
   loadImprovementStoreIndex,
+  resolveImprovementRunPath,
 } from "./store.js";
 import type { PromotionVerdict } from "./types.js";
 
@@ -115,6 +116,9 @@ describe("improvement runner", () => {
 
       const run = await loadImprovementRunRecord({ workspaceDir }, result.run.runId);
       expect(run?.status).toBe("pending_review");
+      expect(
+        path.basename(resolveImprovementRunPath({ workspaceDir }, result.run.runId)),
+      ).not.toMatch(/[:<>"/\\|?*]/);
     });
   });
 

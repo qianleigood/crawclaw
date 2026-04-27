@@ -74,8 +74,32 @@ export function resolveImprovementProposalPath(
   return path.join(requireImprovementRoot(context), PROPOSALS_DIR, `${proposalId}.json`);
 }
 
+const UNSAFE_FILE_SEGMENT_CHARS = new Set(["%", "<", ">", ":", '"', "/", "\\", "|", "?", "*"]);
+
+function isUnsafeFileSegmentChar(char: string): boolean {
+  return char.charCodeAt(0) <= 0x1f || UNSAFE_FILE_SEGMENT_CHARS.has(char);
+}
+
+function encodeUnsafeFileSegmentChars(value: string): string {
+  let encoded = "";
+  let changed = false;
+  for (const char of value) {
+    if (!isUnsafeFileSegmentChar(char)) {
+      encoded += char;
+      continue;
+    }
+    changed = true;
+    encoded += `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`;
+  }
+  return changed ? encoded : value;
+}
+
+function runFileName(runId: string): string {
+  return `${encodeUnsafeFileSegmentChars(runId)}.json`;
+}
+
 export function resolveImprovementRunPath(context: ImprovementStoreContext, runId: string): string {
-  return path.join(requireImprovementRoot(context), RUNS_DIR, `${runId}.json`);
+  return path.join(requireImprovementRoot(context), RUNS_DIR, runFileName(runId));
 }
 
 export function resolvePromotionJudgeVerdictPath(params: {
@@ -193,9 +217,11 @@ export async function withImprovementStoreMutation<T>(
                 proposal,
               ),
             loadRun: async (runId) =>
-              await readJsonFile<ImprovementRunRecord>(path.join(root, RUNS_DIR, `${runId}.json`)),
+              await readJsonFile<ImprovementRunRecord>(
+                path.join(root, RUNS_DIR, runFileName(runId)),
+              ),
             saveRun: async (run) =>
-              await writeJsonFileAtomic(path.join(root, RUNS_DIR, `${run.runId}.json`), run),
+              await writeJsonFileAtomic(path.join(root, RUNS_DIR, runFileName(run.runId)), run),
           }),
       ),
   );

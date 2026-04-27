@@ -190,6 +190,26 @@ describe("gateway bonjour advertiser", () => {
     await started.stop();
   });
 
+  it("caps the service instance label to the DNS label byte limit", async () => {
+    enableAdvertiserUnitMode("sat12-dp151-ca4cf4f1-cb9a-4596-ace7-25ee101235f8-72B21C5C3ECF");
+
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    const advertise = vi.fn().mockResolvedValue(undefined);
+    mockCiaoService({ advertise, destroy });
+
+    const started = await startGatewayBonjourAdvertiser({
+      gatewayPort: 18789,
+      sshPort: 2222,
+    });
+
+    const [gatewayCall] = createService.mock.calls as Array<[Record<string, unknown>]>;
+    const serviceName = asString(gatewayCall?.[0]?.name, "");
+    expect(Buffer.byteLength(serviceName, "utf8")).toBeLessThanOrEqual(63);
+    expect(serviceName).toContain("(CrawClaw)");
+
+    await started.stop();
+  });
+
   it("attaches conflict listeners for services", async () => {
     enableAdvertiserUnitMode();
 

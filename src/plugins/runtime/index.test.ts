@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../agents/defaults.js";
+import { getApiKeyForModel } from "../../agents/model-auth.js";
 import { onAgentEvent } from "../../infra/agent-events.js";
 import { requestMainSessionWakeNow } from "../../infra/main-session-wake.js";
 import * as execModule from "../../process/exec.js";
@@ -226,10 +227,9 @@ describe("plugin runtime command execution", () => {
     // The wrappers should not forward agentDir or store from plugin callers.
     // We verify this by checking the wrapper functions exist and are not the
     // raw implementations (they are wrapped, not direct references).
-    const { getApiKeyForModel: rawGetApiKey } = await import("../../agents/model-auth.js");
     const runtime = createPluginRuntime();
     // Wrappers should NOT be the same reference as the raw functions
-    expect(runtime.modelAuth.getApiKeyForModel).not.toBe(rawGetApiKey);
+    expect(runtime.modelAuth.getApiKeyForModel).not.toBe(getApiKeyForModel);
   });
 
   it("keeps subagent unavailable by default even after gateway initialization", async () => {

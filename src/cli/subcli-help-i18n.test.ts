@@ -1,13 +1,24 @@
 import { Command } from "commander";
-import { describe, expect, it } from "vitest";
-import { registerCompletionCli } from "./completion-cli.js";
-import { registerDnsCli } from "./dns-cli.js";
-import { registerDocsCli } from "./docs-cli.js";
-import { createCliTranslator } from "./i18n/index.js";
-import { registerLogsCli } from "./logs-cli.js";
-import { setProgramContext } from "./program/program-context.js";
+import { describe, expect, it, vi } from "vitest";
 
-function createZhProgram() {
+async function importForHelpTest<T>(label: string, load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to import ${label}: ${message}`, { cause: error });
+  }
+}
+
+async function createZhProgram() {
+  const { createCliTranslator } = await importForHelpTest(
+    "cli i18n",
+    () => import("./i18n/index.js"),
+  );
+  const { setProgramContext } = await importForHelpTest(
+    "program context",
+    () => import("./program/program-context.js"),
+  );
   const program = new Command();
   setProgramContext(program, {
     programVersion: "9.9.9-test",
@@ -21,8 +32,16 @@ function createZhProgram() {
 }
 
 describe("sub CLI help i18n", () => {
-  it("localizes small subcli help copy", () => {
-    const program = createZhProgram();
+  it("localizes small subcli help copy", async () => {
+    vi.resetModules();
+    const program = await createZhProgram();
+    const { registerCompletionCli } = await importForHelpTest(
+      "completion cli",
+      () => import("./completion-cli.js"),
+    );
+    const { registerDnsCli } = await importForHelpTest("dns cli", () => import("./dns-cli.js"));
+    const { registerDocsCli } = await importForHelpTest("docs cli", () => import("./docs-cli.js"));
+    const { registerLogsCli } = await importForHelpTest("logs cli", () => import("./logs-cli.js"));
 
     registerCompletionCli(program);
     registerDnsCli(program);

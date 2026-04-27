@@ -27,7 +27,7 @@ describe("registerDevicesCli", () => {
     const approve = devices?.commands.find((command) => command.name() === "approve");
     const rotate = devices?.commands.find((command) => command.name() === "rotate");
 
-    expect(devices?.description()).toBe("设备配对与 token 管理");
+    expect(devices?.description()).toBe("管理聊天/移动设备配对；节点主机在 nodes 下");
     expect(list?.description()).toBe("列出待审批和已配对设备");
     expect(list?.helpInformation()).toContain("Gateway WebSocket URL");
     expect(approve?.description()).toBe("批准待审批设备配对请求");

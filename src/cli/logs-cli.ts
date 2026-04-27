@@ -1,6 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
 import type { Command } from "commander";
-import { buildGatewayConnectionDetails } from "../gateway/call.js";
 import { parseLogLine } from "../logging/parse-log-line.js";
 import { formatTimestamp, isValidTimeZone } from "../logging/timestamps.js";
 import { formatDocsLink } from "../terminal/links.js";
@@ -8,7 +7,6 @@ import { clearActiveProgressLine } from "../terminal/progress-line.js";
 import { createSafeStreamWriter } from "../terminal/stream-writer.js";
 import { colorize, isRich, theme } from "../terminal/theme.js";
 import { formatCliCommand } from "./command-format.js";
-import { addGatewayClientOptions, callGatewayFromCli } from "./gateway-rpc.js";
 import { createCliTranslator } from "./i18n/index.js";
 import { getProgramContext } from "./program/program-context.js";
 
@@ -51,6 +49,7 @@ async function fetchLogs(
 ): Promise<LogsTailPayload> {
   const limit = parsePositiveInt(opts.limit, 200);
   const maxBytes = parsePositiveInt(opts.maxBytes, 250_000);
+  const { callGatewayFromCli } = await import("./gateway-rpc.js");
   const payload = await callGatewayFromCli(
     "logs.tail",
     opts,
@@ -151,7 +150,7 @@ function createLogWriters() {
   };
 }
 
-function emitGatewayError(
+async function emitGatewayError(
   err: unknown,
   opts: LogsCliOptions,
   mode: "json" | "text",
@@ -159,6 +158,7 @@ function emitGatewayError(
   emitJsonLine: (payload: Record<string, unknown>, toStdErr?: boolean) => boolean,
   errorLine: (text: string) => boolean,
 ) {
+  const { buildGatewayConnectionDetails } = await import("../gateway/call.js");
   const details = buildGatewayConnectionDetails({ url: opts.url });
   const message = "Gateway not reachable. Is it running and accessible?";
   const hint = `Hint: run \`${formatCliCommand("crawclaw doctor")}\`.`;
@@ -204,13 +204,15 @@ export function registerLogsCli(program: Command) {
     .option("--plain", t("command.logs.option.plain"), false)
     .option("--no-color", t("command.logs.option.noColor"))
     .option("--local-time", t("command.logs.option.localTime"), false)
+    .option("--url <url>", t("command.gatewayRpc.option.url"))
+    .option("--token <token>", t("command.gatewayRpc.option.token"))
+    .option("--timeout <ms>", t("command.gatewayRpc.option.timeout"), "30000")
+    .option("--expect-final", t("command.gatewayRpc.option.expectFinal"), false)
     .addHelpText(
       "after",
       () =>
         `\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink("/cli/logs", "docs.crawclaw.ai/cli/logs")}\n`,
     );
-
-  addGatewayClientOptions(logs);
 
   logs.action(async (opts: LogsCliOptions) => {
     const { logLine, errorLine, emitJsonLine } = createLogWriters();
@@ -230,7 +232,14 @@ export function registerLogsCli(program: Command) {
       try {
         payload = await fetchLogs(opts, cursor, showProgress);
       } catch (err) {
-        emitGatewayError(err, opts, jsonMode ? "json" : "text", rich, emitJsonLine, errorLine);
+        await emitGatewayError(
+          err,
+          opts,
+          jsonMode ? "json" : "text",
+          rich,
+          emitJsonLine,
+          errorLine,
+        );
         process.exit(1);
         return;
       }

@@ -129,6 +129,9 @@ describe("basic browser routes PinchTab backend", () => {
         if (method === "POST" && String(url).endsWith("/instances/start")) {
           return buildJsonResponse({ id: "instance-1" }) as Response;
         }
+        if (method === "GET" && String(url).endsWith("/instances/instance-1/tabs")) {
+          return buildJsonResponse([]) as Response;
+        }
         if (method === "POST" && String(url).endsWith("/instances/instance-1/stop")) {
           return buildJsonResponse({ ok: true }) as Response;
         }

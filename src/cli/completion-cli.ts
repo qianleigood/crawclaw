@@ -12,13 +12,7 @@ import {
   buildFishSubcommandCompletionLine,
 } from "./completion-fish.js";
 import { createCliTranslator, getActiveCliLocale } from "./i18n/index.js";
-import { getCoreCliCommandNames, registerCoreCliByName } from "./program/command-registry.js";
 import { getProgramContext } from "./program/program-context.js";
-import {
-  getSubCliEntries,
-  loadValidatedConfigForPluginRegistration,
-  registerSubCliByName,
-} from "./program/register.subclis.js";
 
 const COMPLETION_SHELLS = ["zsh", "bash", "powershell", "fish"] as const;
 type CompletionShell = (typeof COMPLETION_SHELLS)[number];
@@ -261,12 +255,16 @@ export function registerCompletionCli(program: Command) {
       // Our CLI defaults to lazy registration for perf; force-register core commands here.
       const ctx = getProgramContext(program);
       if (ctx) {
+        const { getCoreCliCommandNames, registerCoreCliByName } =
+          await import("./program/command-registry.js");
         for (const name of getCoreCliCommandNames()) {
           await registerCoreCliByName(program, ctx, name);
         }
       }
 
       // Eagerly register all subcommands to build the full tree
+      const { getSubCliEntries, loadValidatedConfigForPluginRegistration, registerSubCliByName } =
+        await import("./program/register.subclis.js");
       const entries = getSubCliEntries();
       for (const entry of entries) {
         // Skip completion command itself to avoid cycle if we were to add it to the list
