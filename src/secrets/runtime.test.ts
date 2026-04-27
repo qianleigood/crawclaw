@@ -2227,22 +2227,14 @@ describe("secrets runtime snapshot", () => {
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.runtimeConfig.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toEqual(
-      {
-        source: "env",
-        provider: "default",
-        id: "MISSING_DISCORD_VOICE_TTS_OPENAI",
-      },
+    expect(snapshot.runtimeConfig.channels?.discord?.voice?.tts?.providers?.openai?.apiKey).toBe(
+      undefined,
     );
     expect(
       snapshot.runtimeConfig.channels?.discord?.accounts?.work?.voice?.tts?.providers?.openai
         ?.apiKey,
-    ).toEqual({
-      source: "env",
-      provider: "default",
-      id: "MISSING_DISCORD_WORK_VOICE_TTS_OPENAI",
-    });
-    expect(snapshot.warnings.map((warning) => warning.path)).toEqual(
+    ).toBe(undefined);
+    expect(snapshot.warnings.map((warning) => warning.path)).not.toEqual(
       expect.arrayContaining([
         "channels.discord.voice.tts.providers.openai.apiKey",
         "channels.discord.accounts.work.voice.tts.providers.openai.apiKey",
@@ -2669,7 +2661,7 @@ describe("secrets runtime snapshot", () => {
     }
   });
 
-  it("migrates legacy x_search SecretRefs into the xai plugin webSearch auth at runtime", async () => {
+  it("preserves removed legacy x_search SecretRefs without runtime migration", async () => {
     const snapshot = await prepareSecretsRuntimeSnapshot({
       config: asConfig({
         tools: {
@@ -2692,17 +2684,14 @@ describe("secrets runtime snapshot", () => {
     expect(
       (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
     ).toEqual({
+      apiKey: { source: "env", provider: "default", id: "X_SEARCH_KEY_REF" },
       enabled: true,
       model: "grok-4-1-fast",
     });
-    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toEqual({
-      webSearch: {
-        apiKey: "xai-runtime-key",
-      },
-    });
+    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toBeUndefined();
   });
 
-  it("still migrates legacy x_search auth when general legacy migration returns an invalid config", async () => {
+  it("preserves removed legacy x_search auth when general legacy migration returns an invalid config", async () => {
     const snapshot = await prepareSecretsRuntimeSnapshot({
       config: asConfig({
         tools: {
@@ -2730,13 +2719,10 @@ describe("secrets runtime snapshot", () => {
     expect(
       (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
     ).toEqual({
+      apiKey: { source: "env", provider: "default", id: "X_SEARCH_KEY_REF" },
       enabled: true,
     });
-    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toEqual({
-      webSearch: {
-        apiKey: "xai-runtime-key-invalid-config",
-      },
-    });
+    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toBeUndefined();
   });
 
   it("does not force-enable xai at runtime for knob-only x_search config", async () => {

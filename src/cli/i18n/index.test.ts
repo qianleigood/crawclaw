@@ -51,6 +51,7 @@ function isCliVisibleTechnicalLiteral(value: string): boolean {
     "launchd / systemd / schtasks",
     "live",
     "macOS app",
+    "nlm",
     "nick@example.com,admin@company.com",
     "npm",
     "pnpm",
