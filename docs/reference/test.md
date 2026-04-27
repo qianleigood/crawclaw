@@ -14,9 +14,9 @@ title: "Tests"
 - `pnpm test:coverage:changed`: Runs unit coverage only for files changed since `origin/main`.
 - `pnpm test:changed`: runs the wrapper with `--changed origin/main`. The base Vitest config treats the wrapper manifests/config files as `forceRerunTriggers` so scheduler changes still rerun broadly when needed.
 - `pnpm test`: runs the full wrapper. It keeps only a small behavioral override manifest in git, then uses a checked-in timing snapshot to peel the heaviest measured unit files into dedicated lanes.
-- Unit files default to `threads` in the wrapper; keep fork-only exceptions documented in `test/fixtures/test-parallel.behavior.json`.
-- `pnpm test:channels` now defaults to `threads` via `vitest.channels.config.ts`; the March 22, 2026 direct full-suite control run passed clean without channel-specific fork exceptions.
-- `pnpm test:extensions` runs through the wrapper and keeps documented extension fork-only exceptions in `test/fixtures/test-parallel.behavior.json`; the shared extension lane still defaults to `threads`.
+- Unit, channel, extension, and gateway wrapper lanes default to Vitest `forks`.
+- `pnpm test:channels` runs through the wrapper and uses `forks`; channel-specific isolated and hotspot lanes are tracked in `test/fixtures/test-parallel.behavior.json`.
+- `pnpm test:extensions` runs through the wrapper and uses `forks` for shared and isolated extension lanes.
 - `pnpm test:extensions`: runs extension/plugin suites.
 - `pnpm test:perf:imports`: enables Vitest import-duration + import-breakdown reporting for the wrapper.
 - `pnpm test:perf:imports:changed`: same import profiling, but only for files changed since `origin/main`.

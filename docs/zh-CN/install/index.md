@@ -20,7 +20,7 @@ x-i18n:
 
 ## 系统要求
 
-- **[Node 24（推荐）](/install/node)**（出于兼容性考虑，仍支持 Node 22 LTS，目前为 `22.16+`；如果缺失，[安装脚本](#install-methods) 会安装 Node 24）
+- **[Node 24（推荐）](/install/node)**（出于兼容性考虑，仍支持 Node 22 LTS，目前为 `22.14+`；如果缺失，[安装脚本](#install-methods) 会安装 Node 24）
 - macOS、Linux 或 Windows。Windows 使用原生 PowerShell 安装器。参阅 [Windows](/platforms/windows)。
 - 仅当你从源码构建时需要 `pnpm`
 
@@ -73,7 +73,7 @@ x-i18n:
   </Accordion>
 
   <Accordion title="npm / pnpm" icon="package">
-    如果你已经自行管理 Node，我们推荐使用 Node 24。出于兼容性考虑，CrawClaw 仍支持 Node 22 LTS，目前为 `22.16+`：
+    如果你已经自行管理 Node，我们推荐使用 Node 24。出于兼容性考虑，CrawClaw 仍支持 Node 22 LTS，目前为 `22.14+`：
 
     <Tabs>
       <Tab title="npm">

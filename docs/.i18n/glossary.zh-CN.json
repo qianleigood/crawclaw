@@ -8,6 +8,10 @@
     "target": "Windows"
   },
   {
+    "source": "Weixin",
+    "target": "Weixin"
+  },
+  {
     "source": "macOS",
     "target": "macOS"
   },

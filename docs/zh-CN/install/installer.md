@@ -78,7 +78,7 @@ CrawClaw 提供三个安装脚本，由 `crawclaw.ai` 提供。
     支持 macOS 和 Linux。如果检测到 macOS，则会在缺少 Homebrew 时安装它。
   </Step>
   <Step title="默认确保使用 Node.js 24">
-    检查 Node 版本，并在需要时安装 Node 24（macOS 上使用 Homebrew，Linux apt/dnf/yum 上使用 NodeSource 设置脚本）。为了兼容性，CrawClaw 仍支持 Node 22 LTS，目前为 `22.16+`。
+    检查 Node 版本，并在需要时安装 Node 24（macOS 上使用 Homebrew，Linux apt/dnf/yum 上使用 NodeSource 设置脚本）。为了兼容性，CrawClaw 仍支持 Node 22 LTS，目前为 `22.14+`。
   </Step>
   <Step title="确保安装 Git">
     如果缺少 Git，则安装它。
@@ -268,7 +268,7 @@ CrawClaw 提供三个安装脚本，由 `crawclaw.ai` 提供。
     需要 PowerShell 5+。
   </Step>
   <Step title="默认确保使用 Node.js 24">
-    如果缺少，则依次尝试通过 winget、Chocolatey、Scoop 安装。为了兼容性，Node 22 LTS（当前为 `22.16+`）仍然受支持。
+    如果缺少，则依次尝试通过 winget、Chocolatey、Scoop 安装。为了兼容性，Node 22 LTS（当前为 `22.14+`）仍然受支持。
   </Step>
   <Step title="安装 CrawClaw">
     - `npm` 方法（默认）：使用所选 `-Tag` 进行全局 npm 安装

@@ -1671,7 +1671,7 @@ crawclaw onboard --install-daemon
 
 当前 CrawClaw 版本默认不再调度周期性的旧版 agent heartbeat。如果你仍然看到旧 heartbeat 风格的消息，请检查是否有旧 Gateway 进程仍在运行，或者是否有 cron job、hook、plugin 在发送这些消息。
 
-使用 `crawclaw system heartbeat last --json` 查看最新的兼容性诊断事件，然后检查 `crawclaw cron list` 和 `crawclaw cron runs` 中的计划任务。
+使用 `crawclaw system main-session-wake last --json` 查看最新的主会话唤醒诊断事件，然后检查 `crawclaw cron list` 和 `crawclaw cron runs` 中的计划任务。
 
 文档：[心跳](/gateway/heartbeat)、[Cron jobs](/automation/cron-jobs)。
 

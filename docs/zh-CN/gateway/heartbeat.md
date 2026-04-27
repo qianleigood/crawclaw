@@ -30,7 +30,7 @@ x-i18n:
 - 运行时 `system heartbeat enable` 和 `system heartbeat disable` 控制已移除。
 - 自动周期性检查不再要求 `HEARTBEAT.md`。已有文件可以继续作为工作区里的普通笔记保留，但新的自动化应放在 cron jobs、hooks 或 standing orders 中。
 - 新流程不应把 `HEARTBEAT_OK` 当作自动化契约。
-- `crawclaw system heartbeat last` 仍作为兼容性检查命令存在，用来读取最近一次 wake/heartbeat 诊断事件。
+- `crawclaw system main-session-wake last` 用来读取最近一次 main-session wake 诊断事件。
 
 ## 改用这些机制
 
@@ -44,12 +44,12 @@ x-i18n:
 
 需要对话上下文的周期性检查，可以创建目标为主会话的 cron job。需要精确或隔离的工作，则创建普通 cron job，并让它拥有自己的 task record。
 
-## 兼容性说明
+## 诊断说明
 
-某些诊断 RPC 名称仍然包含 `heartbeat`，用于兼容旧客户端。请把这些名称视为只读诊断入口，而不是自动化模型。
+剩余诊断名称使用 `main-session-wake`，不再使用旧版 heartbeat 模块名。请把这些名称视为只读诊断入口，而不是自动化模型。
 
-- `crawclaw system heartbeat last` 读取最近一次诊断事件。它不会启用调度。
-- `last-heartbeat` 和 `system.heartbeat.last` RPC 方法是只读兼容别名。
+- `crawclaw system main-session-wake last` 读取最近一次诊断事件。它不会启用调度。
+- `last-main-session-wake` 和 `system.mainSessionWake.last` RPC 方法是只读诊断方法。
 - `next-heartbeat` 不再是有效的 wake-mode 值。事件驱动的主会话唤醒请使用 `now`。
 
 ## 未移除的内容
@@ -68,7 +68,7 @@ x-i18n:
 2. 将计划性检查迁移到 [Scheduled Tasks](/automation/cron-jobs)。
 3. 将事件驱动的 follow-up 迁移到 [`crawclaw system event`](/cli/system) 或 hooks。
 4. 保留 `web.heartbeatSeconds` 这类渠道 keepalive 设置。
-5. 在旧事件名仍存在期间，只把 `crawclaw system heartbeat last --json` 用作诊断。
+5. 只把 `crawclaw system main-session-wake last --json` 用作诊断。
 
 ## 相关内容
 

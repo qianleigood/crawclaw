@@ -66,7 +66,7 @@ title: 控制面 RPC
 - `system.health`
 - `system.status`
 - `system-presence`
-- `system.heartbeat.last`
+- `system.mainSessionWake.last`
 
 当前 optional capability-gated methods 包括：
 
@@ -77,13 +77,13 @@ title: 控制面 RPC
 
 当前仍保留的 legacy alias 如下：
 
-| Preferred name          | Legacy alias      |
-| ----------------------- | ----------------- |
-| `channels.login.start`  | `web.login.start` |
-| `channels.login.wait`   | `web.login.wait`  |
-| `system.health`         | `health`          |
-| `system.status`         | `status`          |
-| `system.heartbeat.last` | `last-heartbeat`  |
+| Preferred name                | Legacy alias             |
+| ----------------------------- | ------------------------ |
+| `channels.login.start`        | `web.login.start`        |
+| `channels.login.wait`         | `web.login.wait`         |
+| `system.health`               | `health`                 |
+| `system.status`               | `status`                 |
+| `system.mainSessionWake.last` | `last-main-session-wake` |
 
 完整列表以这里为准：
 

@@ -22,7 +22,7 @@ Gateway 网关的系统级辅助工具：入队系统事件、查看旧版 heart
 
 ```bash
 crawclaw system event --text "Check for urgent follow-ups" --mode now
-crawclaw system heartbeat last
+crawclaw system main-session-wake last
 crawclaw system presence
 ```
 
@@ -36,7 +36,7 @@ crawclaw system presence
 - `--mode <mode>`：`now`（默认）。
 - `--json`：机器可读输出。
 
-## `system heartbeat last`
+## `system main-session-wake last`
 
 Heartbeat 诊断查看：
 
