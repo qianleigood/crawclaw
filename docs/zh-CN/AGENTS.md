@@ -1,3 +1,11 @@
+---
+title: "zh-CN 文档翻译工作区"
+summary: "zh-CN 文档翻译流水线、样式规则和术语维护说明"
+read_when:
+  - 维护 docs/zh-CN 文档或翻译流水线
+  - 更新 zh-CN glossary、翻译记忆库或翻译提示词
+---
+
 # AGENTS.md - zh-CN 文档翻译工作区
 
 ## Read When

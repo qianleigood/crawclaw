@@ -1,5 +1,6 @@
 ---
 title: 创建 Skills
+summary: "创建自定义 Skills 的入门指南"
 x-i18n:
   generated_at: "2026-02-03T10:10:19Z"
   model: claude-opus-4-5

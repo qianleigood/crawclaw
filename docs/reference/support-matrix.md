@@ -1,3 +1,11 @@
+---
+title: "Support Matrix"
+summary: "Current support posture for CrawClaw runtime, agent, channel, and plugin surfaces"
+read_when:
+  - You are documenting support status for CrawClaw surfaces
+  - You need to distinguish supported, beta, and experimental areas
+---
+
 # Support Matrix
 
 This matrix describes the current support posture for CrawClaw surfaces. It is not a feature checklist. It tells you which areas are safest to rely on, which are moving quickly, and which should be treated as experimental.

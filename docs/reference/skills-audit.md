@@ -1,3 +1,11 @@
+---
+title: "Skills Audit"
+summary: "Audit of repo-level core and optional skill catalog structure"
+read_when:
+  - You are cleaning skill catalog structure
+  - You are checking whether skill docs follow the current skill-creator standard
+---
+
 # Skills Audit
 
 This audit covers the repo-level core and optional skill catalogs, currently

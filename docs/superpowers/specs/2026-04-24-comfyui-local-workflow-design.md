@@ -1,3 +1,11 @@
+---
+title: "Local ComfyUI Workflow Builder Design"
+summary: "Design for the local ComfyUI workflow builder plugin"
+read_when:
+  - You are implementing or reviewing the ComfyUI workflow builder
+  - You need the local ComfyUI graph planning, validation, and run boundaries
+---
+
 # Local ComfyUI Workflow Builder Design
 
 ## Summary

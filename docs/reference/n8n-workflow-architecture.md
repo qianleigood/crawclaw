@@ -1,3 +1,11 @@
+---
+title: "n8n Workflow Architecture"
+summary: "Architecture plan for CrawClaw-controlled n8n workflow execution"
+read_when:
+  - You are changing workflow execution, compilation, or n8n callbacks
+  - You need the boundary between CrawClaw control and n8n execution
+---
+
 # CrawClaw n8n 工作流架构方案
 
 ## 目标

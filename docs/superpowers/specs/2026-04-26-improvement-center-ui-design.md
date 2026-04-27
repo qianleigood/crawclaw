@@ -1,3 +1,11 @@
+---
+title: "Improvement Center UI v2.1 Design"
+summary: "Design for the local beginner-readable Improvement Center browser UI"
+read_when:
+  - You are reviewing the Improvement Center UI design
+  - You need the safety and UX model for proposal review actions
+---
+
 # Improvement Center UI v2.1 Design
 
 ## Summary

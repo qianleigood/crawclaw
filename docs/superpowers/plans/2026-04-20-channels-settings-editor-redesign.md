@@ -1,3 +1,11 @@
+---
+title: "Channels Settings Editor Redesign Plan"
+summary: "Implementation plan for a tabbed Channels settings and account editor"
+read_when:
+  - You are implementing the Channels settings editor redesign
+  - You need the planned file split for the Channels tabbed editor
+---
+
 # Channels Settings Editor Redesign Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

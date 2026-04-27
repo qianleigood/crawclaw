@@ -1,3 +1,11 @@
+---
+title: "Session vs Memory"
+summary: "Boundary between raw session history and retained memory"
+read_when:
+  - You are working on sessions, transcript storage, or memory extraction
+  - You need to explain what remains after a session is evaluated
+---
+
 # Session vs Memory
 
 This document defines the boundary between sessions and memory in CrawClaw.

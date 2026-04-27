@@ -1,3 +1,11 @@
+---
+title: "CrawClaw Learning Loop"
+summary: "How CrawClaw turns action history into retained memory, skills, and workflows"
+read_when:
+  - You are designing memory, skill, workflow, or improvement-loop behavior
+  - You need the boundary between action, retention, recall, and automation
+---
+
 # CrawClaw Learning Loop
 
 This document explains how CrawClaw should be understood as a learning system rather than a flat collection of tools, memory, and automation features.

@@ -1,3 +1,11 @@
+---
+title: "Improvement Center UI Plan"
+summary: "Implementation plan for the local Gateway-hosted Improvement Center UI"
+read_when:
+  - You are implementing the Improvement Center browser UI
+  - You need the planned RPC, view-model, and Gateway serving work
+---
+
 # Improvement Center UI Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

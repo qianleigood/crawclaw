@@ -1,3 +1,11 @@
+---
+title: "Control UI Stitch Rebuild Design"
+summary: "Design for rebuilding Control UI against the canonical Stitch screens"
+read_when:
+  - You are reviewing the Control UI Stitch rebuild
+  - You need the source-of-truth and migration goals for the UI rebuild
+---
+
 # Control UI Stitch Rebuild Design
 
 ## Summary

@@ -1,10 +1,9 @@
+---
+title: "Web"
 summary: "Gateway web surfaces, including Improvement Center and Observation Workbench"
 read_when:
-
-- You want to access the Gateway over Tailscale
-- You want the remaining browser-facing Gateway surfaces
-  title: "Web"
-
+  - You want to access the Gateway over Tailscale
+  - You want the remaining browser-facing Gateway surfaces
 ---
 
 # Web (Gateway)

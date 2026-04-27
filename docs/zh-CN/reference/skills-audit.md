@@ -1,3 +1,11 @@
+---
+title: "Skills 审计"
+summary: "仓库级 core 和 optional skill 目录结构审计"
+read_when:
+  - 清理 skill 目录结构
+  - 检查 skill 文档是否符合当前 skill-creator 标准
+---
+
 # Skills 审计
 
 本审计覆盖仓库级 core 和 optional skill 目录，目前共 `56` 个 skill：

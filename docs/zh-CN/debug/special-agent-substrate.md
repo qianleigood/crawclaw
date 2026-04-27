@@ -1,3 +1,11 @@
+---
+title: "特殊智能体底座"
+summary: "CrawClaw 后台维护型特殊智能体的共享运行时底座"
+read_when:
+  - 修改 special-agent 生成或 transcript policy
+  - 审计后台维护型 agent 的运行时行为
+---
+
 # Special-Agent Substrate
 
 CrawClaw 现在已经有一层统一的 special-agent 运行底座，专门服务 run-loop lifecycle spine 上的后台维护型 agent。

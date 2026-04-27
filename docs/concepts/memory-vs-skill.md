@@ -1,3 +1,11 @@
+---
+title: "Memory vs Skill"
+summary: "Boundary between retained memory and reusable skills in CrawClaw"
+read_when:
+  - You are deciding whether knowledge belongs in memory or a skill
+  - You are reviewing skill promotion or memory retention behavior
+---
+
 # Memory vs Skill
 
 This document defines the boundary between memory and skills in CrawClaw.

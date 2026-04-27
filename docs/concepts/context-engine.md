@@ -1,3 +1,11 @@
+---
+title: "Context Engine Removal"
+summary: "Migration note for the removed legacy context-engine plugin surface"
+read_when:
+  - You are migrating an older context-engine plugin
+  - You are checking current context assembly and compaction boundaries
+---
+
 # Context Engine Removal
 
 The legacy `context-engine` plugin surface has been removed from CrawClaw.

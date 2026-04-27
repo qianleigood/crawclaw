@@ -418,5 +418,101 @@
   {
     "source": "Project Cache Strategy",
     "target": "项目缓存策略"
+  },
+  {
+    "source": "Context Engine Removal",
+    "target": "Context Engine 移除"
+  },
+  {
+    "source": "CrawClaw Learning Loop",
+    "target": "CrawClaw 学习循环"
+  },
+  {
+    "source": "Memory vs Skill",
+    "target": "记忆与 Skill 的区别"
+  },
+  {
+    "source": "Session vs Memory",
+    "target": "会话与记忆的区别"
+  },
+  {
+    "source": "Skill vs Workflow",
+    "target": "Skill 与工作流的区别"
+  },
+  {
+    "source": "Special-Agent Substrate",
+    "target": "特殊智能体底座"
+  },
+  {
+    "source": "Repository Structure",
+    "target": "仓库结构"
+  },
+  {
+    "source": "DeepSeek",
+    "target": "DeepSeek"
+  },
+  {
+    "source": "Browser Redesign PinchTab Plan",
+    "target": "Browser PinchTab 重设计计划"
+  },
+  {
+    "source": "n8n Workflow Architecture",
+    "target": "n8n 工作流架构"
+  },
+  {
+    "source": "Open Source Release Checklist",
+    "target": "开源发布检查清单"
+  },
+  {
+    "source": "Skills Audit",
+    "target": "Skills 审计"
+  },
+  {
+    "source": "Support Matrix",
+    "target": "支持矩阵"
+  },
+  {
+    "source": "Channels Settings Editor Redesign Plan",
+    "target": "渠道设置编辑器重设计计划"
+  },
+  {
+    "source": "Channels Settings Editor Web Awesome Plan",
+    "target": "渠道设置编辑器 Web Awesome 计划"
+  },
+  {
+    "source": "Control UI Stitch Rebuild Plan",
+    "target": "Control UI Stitch 重建计划"
+  },
+  {
+    "source": "CLI zh-CN Prompts Plan",
+    "target": "CLI zh-CN 提示计划"
+  },
+  {
+    "source": "Improvement Center UI Plan",
+    "target": "改进中心 UI 计划"
+  },
+  {
+    "source": "Channels Settings Editor Redesign Design",
+    "target": "渠道设置编辑器重设计方案"
+  },
+  {
+    "source": "Channels Settings Editor Web Awesome Design",
+    "target": "渠道设置编辑器 Web Awesome 方案"
+  },
+  {
+    "source": "Control UI Stitch Rebuild Design",
+    "target": "Control UI Stitch 重建方案"
+  },
+  {
+    "source": "Local ComfyUI Workflow Builder Design",
+    "target": "本地 ComfyUI 工作流构建器方案"
+  },
+  {
+    "source": "Improvement Center UI v2.1 Design",
+    "target": "改进中心 UI v2.1 方案"
+  },
+  {
+    "source": "Web",
+    "target": "Web"
   }
 ]

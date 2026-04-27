@@ -1,3 +1,11 @@
+---
+title: "Open Source Release Checklist"
+summary: "Checklist for preparing CrawClaw for a public open source release"
+read_when:
+  - You are preparing a public repository or major open release
+  - You are auditing release readiness, secrets, metadata, and docs
+---
+
 # Open Source Release Checklist
 
 Use this checklist before making the repository public or announcing a major open release.

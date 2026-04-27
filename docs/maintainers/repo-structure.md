@@ -1,3 +1,11 @@
+---
+title: "Repository Structure"
+summary: "Maintainer map for the CrawClaw monorepo layout and source boundaries"
+read_when:
+  - You are orienting before broad repo cleanup or file moves
+  - You need to explain which top-level directories are product, docs, tests, or sidecars
+---
+
 # Repository Structure
 
 This document explains how to read the CrawClaw monorepo before making

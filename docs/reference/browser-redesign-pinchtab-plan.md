@@ -1,3 +1,11 @@
+---
+title: "Browser Redesign PinchTab Plan"
+summary: "Plan for consolidating the browser tool on a single PinchTab execution core"
+read_when:
+  - You are changing the browser tool execution stack
+  - You are reviewing the PinchTab migration plan
+---
+
 # Browser 重设计计划（PinchTab 单内核）
 
 ## 目标

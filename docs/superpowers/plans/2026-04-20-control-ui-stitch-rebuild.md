@@ -1,3 +1,11 @@
+---
+title: "Control UI Stitch Rebuild Plan"
+summary: "Implementation plan for rebuilding the Control UI against the Stitch baseline"
+read_when:
+  - You are implementing the Control UI Stitch rebuild
+  - You need the planned app shell, screen, and controller split
+---
+
 # Control UI Stitch Rebuild Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

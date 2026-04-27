@@ -1,3 +1,11 @@
+---
+title: "Special-Agent Substrate"
+summary: "Shared runtime substrate for CrawClaw background maintenance agents"
+read_when:
+  - You are changing special-agent spawning or transcript policy
+  - You are auditing background maintenance agent runtime behavior
+---
+
 # Special-Agent Substrate
 
 CrawClaw now has a shared special-agent substrate for background maintenance agents that run on top of the run-loop lifecycle spine.

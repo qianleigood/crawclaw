@@ -1,3 +1,11 @@
+---
+title: "Channels Settings Editor Web Awesome Design"
+summary: "Design for the Web Awesome based multi-account Channels editor"
+read_when:
+  - You are reviewing the Web Awesome Channels editor design
+  - You need the account-editing model for the Channels subflow
+---
+
 # 渠道设置编辑器 Web Awesome 重设计
 
 ## 概述

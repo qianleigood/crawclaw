@@ -1,3 +1,11 @@
+---
+title: "CLI zh-CN Prompts Plan"
+summary: "Implementation plan for Simplified Chinese CLI prompts and help text"
+read_when:
+  - You are implementing zh-CN CLI localization
+  - You need the planned i18n files and command coverage
+---
+
 # CLI 中文提示 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

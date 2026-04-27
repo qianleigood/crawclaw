@@ -1,3 +1,11 @@
+---
+title: "Skill vs Workflow"
+summary: "Boundary between reusable skill guidance and executable workflow processes"
+read_when:
+  - You are deciding whether reuse belongs in a skill or workflow
+  - You are designing skill promotion or workflow automation
+---
+
 # Skill vs Workflow
 
 This document defines the boundary between skills and workflows in CrawClaw.

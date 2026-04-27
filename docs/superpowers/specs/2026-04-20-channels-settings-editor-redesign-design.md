@@ -1,3 +1,11 @@
+---
+title: "Channels Settings Editor Redesign Design"
+summary: "Design for a clearer tabbed Channels settings and account-editing flow"
+read_when:
+  - You are reviewing the Channels settings editor redesign
+  - You need the UX goals and non-goals for the tabbed editor
+---
+
 # Channels Settings Editor Redesign Design
 
 ## Summary

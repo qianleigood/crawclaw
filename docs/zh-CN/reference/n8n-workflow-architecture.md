@@ -1,3 +1,11 @@
+---
+title: "n8n 工作流架构"
+summary: "CrawClaw 控制 n8n 工作流执行的架构方案"
+read_when:
+  - 修改 workflow 执行、编译或 n8n 回调
+  - 理解 CrawClaw 控制面和 n8n 执行面的边界
+---
+
 # CrawClaw n8n 工作流架构方案
 
 ## 目标
