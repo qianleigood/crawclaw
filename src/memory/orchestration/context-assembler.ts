@@ -235,6 +235,10 @@ function toQueryContextSection(section: MemoryPromptSection): QueryContextSectio
     content: [section.heading, ...section.lines].join("\n"),
     source: "memory-context",
     cacheable: true,
+    budget: {
+      priority: "normal",
+      eviction: "drop",
+    },
     metadata: {
       kind: section.kind,
       sectionType,
@@ -256,7 +260,13 @@ function assembleDurableSection(
   const itemIds: string[] = [];
   let used = estimateTokens(DURABLE_HEADING);
   let omittedCount = 0;
-  const hardCap = Math.max(1, Math.min(budget >= 420 ? 7 : budget >= 240 ? 6 : 5, items.length));
+  const hardCap = Math.max(
+    1,
+    Math.min(
+      budget >= 4_000 ? 12 : budget >= 2_400 ? 9 : budget >= 420 ? 7 : budget >= 240 ? 6 : 5,
+      items.length,
+    ),
+  );
 
   for (const item of items) {
     if (itemIds.length >= hardCap) {
@@ -311,8 +321,8 @@ function assembleExperienceSection(
     const layerBudget = Math.max(1, layerBudgets[layer] ?? budget);
     const hardCap =
       layer === "sources"
-        ? Math.max(1, Math.min(6, candidates.length))
-        : Math.max(1, Math.min(3, candidates.length));
+        ? Math.max(1, Math.min(budget >= 4_000 ? 10 : 6, candidates.length))
+        : Math.max(1, Math.min(budget >= 4_000 ? 6 : 3, candidates.length));
 
     for (const item of candidates) {
       if (layerLines.length >= hardCap) {
@@ -375,7 +385,7 @@ function assembleExperienceSection(
 }
 
 export function assembleMemoryPrompt(input: MemoryPromptAssemblyInput): MemoryPromptAssemblyResult {
-  const tokenBudget = clamp(input.tokenBudget ?? 1100, 240, 2400);
+  const tokenBudget = clamp(input.tokenBudget ?? 1100, 240, 6000);
   const durableItems = input.durableItems ?? [];
   const budgets = allocateBudgets({
     tokenBudget,

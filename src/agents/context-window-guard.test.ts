@@ -4,6 +4,7 @@ import {
   CONTEXT_WINDOW_HARD_MIN_TOKENS,
   CONTEXT_WINDOW_WARN_BELOW_TOKENS,
   evaluateContextWindowGuard,
+  resolveModelContextBudget,
   resolveContextWindowInfo,
 } from "./context-window-guard.js";
 
@@ -182,5 +183,44 @@ describe("context-window-guard", () => {
   it("exports thresholds as expected", () => {
     expect(CONTEXT_WINDOW_HARD_MIN_TOKENS).toBe(16_000);
     expect(CONTEXT_WINDOW_WARN_BELOW_TOKENS).toBe(32_000);
+  });
+
+  it("resolves a conservative usable input budget from the effective window", () => {
+    const info = resolveContextWindowInfo({
+      cfg: undefined,
+      provider: "openai",
+      modelId: "small",
+      modelContextWindow: 16_000,
+      defaultTokens: 200_000,
+    });
+    const budget = resolveModelContextBudget({
+      info,
+      modelMaxTokens: 4_096,
+      toolSchemaTokens: 1_000,
+    });
+
+    expect(budget).toMatchObject({
+      windowTokens: 16_000,
+      outputReserveTokens: 3_200,
+      providerOverheadTokens: 512,
+      toolSchemaTokens: 1_000,
+      usableInputTokens: 9_368,
+      memoryBudgetTokens: 640,
+      source: "model",
+      confidence: "high",
+    });
+  });
+
+  it("scales memory budget for large context windows without exceeding the hard cap", () => {
+    const budget = resolveModelContextBudget({
+      info: { tokens: 1_048_576, source: "modelsConfig" },
+      modelMaxTokens: 65_536,
+      toolSchemaTokens: 20_000,
+    });
+
+    expect(budget.windowTokens).toBe(1_048_576);
+    expect(budget.memoryBudgetTokens).toBe(6_000);
+    expect(budget.usableInputTokens).toBeGreaterThan(800_000);
+    expect(budget.confidence).toBe("high");
   });
 });

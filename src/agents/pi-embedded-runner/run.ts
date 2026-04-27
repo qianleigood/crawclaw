@@ -309,6 +309,8 @@ export async function runEmbeddedPiAgent(
       let overloadProfileRotations = 0;
       let rateLimitProfileRotations = 0;
       let timeoutCompactionAttempts = 0;
+      let overflowBudgetAdjustmentAttempts = 0;
+      let contextUsableInputBudgetCap: number | undefined;
       const overloadFailoverBackoffMs = resolveOverloadFailoverBackoffMs(params.config);
       const overloadProfileRotationLimit = resolveOverloadProfileRotationLimit(params.config);
       const rateLimitProfileRotationLimit = resolveRateLimitProfileRotationLimit(params.config);
@@ -573,6 +575,8 @@ export async function runEmbeddedPiAgent(
             allowGatewaySubagentBinding: params.allowGatewaySubagentBinding,
             memoryRuntime,
             contextTokenBudget: ctxInfo.tokens,
+            contextWindowInfo: ctxInfo,
+            contextUsableInputBudgetCap,
             skillExposureState: params.skillExposureState,
             prompt,
             images: params.images,
@@ -828,6 +832,23 @@ export async function runEmbeddedPiAgent(
             );
             const isCompactionFailure = isCompactionFailureError(errorText);
             const hadAttemptLevelCompaction = attemptCompactionCount > 0;
+            if (
+              attempt.contextBudget &&
+              !isCompactionFailure &&
+              overflowBudgetAdjustmentAttempts < 1
+            ) {
+              overflowBudgetAdjustmentAttempts++;
+              const currentUsableBudget =
+                attempt.contextBudget?.usableInputTokens ??
+                contextUsableInputBudgetCap ??
+                Math.floor(ctxInfo.tokens * 0.7);
+              contextUsableInputBudgetCap = Math.max(1_024, Math.floor(currentUsableBudget * 0.85));
+              log.warn(
+                `[context-budget] context overflow detected; retrying once with lower usable input budget ` +
+                  `for ${provider}/${modelId} cap=${contextUsableInputBudgetCap}`,
+              );
+              continue;
+            }
             // If this attempt already compacted (SDK auto-compaction), avoid immediately
             // running another explicit compaction for the same overflow trigger.
             if (

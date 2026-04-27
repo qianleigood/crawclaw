@@ -121,6 +121,43 @@ describe("overflow compaction in run loop", () => {
     expect(result.meta.error).toBeUndefined();
   });
 
+  it("retries once with a lower input budget when overflow attempts include budget diagnostics", async () => {
+    const overflowError = makeOverflowError();
+
+    mockedRunEmbeddedAttempt
+      .mockResolvedValueOnce(
+        makeAttemptResult({
+          promptError: overflowError,
+          contextBudget: {
+            windowTokens: 200_000,
+            usableInputTokens: 120_000,
+            outputReserveTokens: 16_000,
+            providerOverheadTokens: 6_000,
+            toolSchemaTokens: 4_000,
+            memoryBudgetTokens: 4_000,
+            source: "model",
+            confidence: "high",
+            originalEstimatedTokens: 118_000,
+            remainingEstimatedTokens: 118_000,
+            pruningActions: [],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(makeAttemptResult({ promptError: null }));
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(mockedCompactDirect).not.toHaveBeenCalled();
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(2);
+    expect(mockedRunEmbeddedAttempt).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        contextUsableInputBudgetCap: 102_000,
+      }),
+    );
+    expect(result.meta.error).toBeUndefined();
+  });
+
   it("returns error if compaction fails", async () => {
     const overflowError = makeOverflowError();
 

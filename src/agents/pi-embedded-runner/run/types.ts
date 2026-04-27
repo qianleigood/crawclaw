@@ -7,7 +7,9 @@ import type {
   SessionSystemPromptReport,
 } from "../../../config/sessions/types.js";
 import type { MemoryRuntime } from "../../../memory/index.js";
+import type { ContextWindowInfo } from "../../context-window-guard.js";
 import type { MessagingToolSend } from "../../pi-embedded-messaging.js";
+import type { QueryContextBudgetDiagnostics } from "../../query-context/types.js";
 import type { ToolErrorSummary } from "../../tool-error-summary.js";
 import type { NormalizedUsage } from "../../usage.js";
 import type { RunEmbeddedPiAgentParams } from "./params.js";
@@ -22,6 +24,10 @@ export type EmbeddedRunAttemptParams = EmbeddedRunAttemptBase & {
   memoryRuntime?: MemoryRuntime;
   /** Resolved model context window in tokens for assemble/compact budgeting. */
   contextTokenBudget?: number;
+  /** Resolved model context window metadata used for query-context input budgeting. */
+  contextWindowInfo?: ContextWindowInfo;
+  /** Temporary per-run cap applied after a context overflow retry. */
+  contextUsableInputBudgetCap?: number;
   /** Auth profile resolved for this attempt's provider/model call. */
   authProfileId?: string;
   /** Source for the resolved auth profile (user-locked or automatic). */
@@ -59,6 +65,7 @@ export type EmbeddedRunAttemptResult = {
   cloudCodeAssistFormatError: boolean;
   attemptUsage?: NormalizedUsage;
   compactionCount?: number;
+  contextBudget?: QueryContextBudgetDiagnostics;
   /** Client tool call detected (OpenResponses hosted tools). */
   clientToolCall?: { name: string; params: Record<string, unknown> };
   /** True when sessions_yield tool was called during this attempt. */

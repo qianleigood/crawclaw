@@ -87,6 +87,40 @@ Everything the model receives counts, including:
 - Compaction summaries and pruning artifacts.
 - Provider “wrappers” or hidden headers (not visible, still counted).
 
+## Effective context budget
+
+CrawClaw does not treat the advertised context window as fully available for
+prompt text. For each run it resolves an effective model window from provider
+or model metadata, `models.providers.*.models[].contextWindow`, and the global
+`agents.defaults.contextTokens` cap.
+
+That window is split into a stable input budget:
+
+- Output reserve: room for the model response.
+- Provider overhead: conservative space for provider wrappers and hidden
+  framing.
+- Tool schema reserve: estimated size of the active tool definitions.
+- Usable input: the remaining budget for system prompt sections, structured
+  context, and the current user prompt.
+
+The budget strategy is not retuned on every message. Normal turns only run a
+deterministic compile step against the current model, config, and tool schema.
+The strategy is recomputed when one of those inputs changes, or when a context
+overflow event causes a one-shot lower input cap for the current run.
+
+Structured context is pruned before the provider request is built. System hard
+rules and the current user prompt are protected. The first pruning pass only
+targets structured sections such as memory/experience, bootstrap context, and
+hook/user context. Sections can declare budget metadata (`priority`,
+`eviction`, and `maxTokens`) so lower-priority sections are dropped or truncated
+before higher-priority sections. Conversation history is still handled by the
+existing pruning and compaction mechanisms.
+
+Memory recall receives a model-scaled budget. Smaller windows get a tighter
+memory budget, while 128k, 256k, and 1M-window models can receive more useful
+memory and experience recall. This still has hard caps, so large-window models
+do not cause CrawClaw to send unlimited context.
+
 ## How CrawClaw builds the system prompt
 
 The system prompt is **CrawClaw-owned** and rebuilt each run. It includes:

@@ -1,4 +1,5 @@
 import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
+import type { ContextWindowSource, ModelContextBudgetConfidence } from "../context-window-guard.js";
 
 export type QueryContextSectionRole = "system_prompt" | "system_context" | "user_context";
 export type QueryContextSectionType =
@@ -33,6 +34,12 @@ export type QueryContextSectionSchema =
       detail?: Record<string, unknown>;
     };
 
+export type QueryContextSectionBudget = {
+  priority?: "critical" | "high" | "normal" | "low";
+  eviction?: "drop" | "truncate";
+  maxTokens?: number;
+};
+
 export type QueryContextSection = {
   id: string;
   role: QueryContextSectionRole;
@@ -43,6 +50,7 @@ export type QueryContextSection = {
   source?: string;
   cacheable?: boolean;
   metadata?: Record<string, unknown>;
+  budget?: QueryContextSectionBudget;
 };
 
 export type QueryContextPatch = {
@@ -69,6 +77,7 @@ export type QueryContextDiagnostics = {
   hookMutations?: QueryContextHookMutationSummary[];
   memoryRecall?: QueryContextMemoryRecallDiagnostics;
   providerRequestSnapshot?: QueryContextProviderRequestSnapshot;
+  contextBudget?: QueryContextBudgetDiagnostics;
   queryContextHash?: string;
   decisionCodes?: Record<string, string>;
 };
@@ -165,6 +174,7 @@ export type QueryContextProviderRequestSnapshot = {
   systemPromptChars: number;
   sectionTokenUsage: QueryContextSectionTokenUsage;
   hookSectionDiffs?: QueryContextHookSectionDiff[];
+  contextBudget?: QueryContextBudgetDiagnostics;
   decisionCodes?: Record<string, string>;
   sectionOrder: Array<{
     id: string;
@@ -172,7 +182,33 @@ export type QueryContextProviderRequestSnapshot = {
     sectionType: QueryContextSectionType;
     estimatedTokens: number;
     source?: string;
+    budget?: QueryContextSectionBudget;
   }>;
+};
+
+export type QueryContextBudgetPruningAction = {
+  sectionId: string;
+  role: QueryContextSectionRole;
+  sectionType: QueryContextSectionType;
+  action: "drop" | "truncate";
+  priority: NonNullable<QueryContextSectionBudget["priority"]>;
+  beforeTokens: number;
+  afterTokens: number;
+  reason: string;
+};
+
+export type QueryContextBudgetDiagnostics = {
+  windowTokens: number;
+  usableInputTokens: number;
+  outputReserveTokens: number;
+  providerOverheadTokens: number;
+  toolSchemaTokens: number;
+  memoryBudgetTokens: number;
+  source: ContextWindowSource;
+  confidence: ModelContextBudgetConfidence;
+  originalEstimatedTokens: number;
+  remainingEstimatedTokens: number;
+  pruningActions: QueryContextBudgetPruningAction[];
 };
 
 export type QueryContextProviderRequest = {

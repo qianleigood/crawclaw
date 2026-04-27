@@ -115,6 +115,39 @@ afterEach(async () => {
 });
 
 describe("createContextMemoryRuntime().assemble", () => {
+  it("does not clamp large model-aware memory budgets to the old 1200-token cap", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+
+    searchNotebookLmViaCliMock.mockResolvedValue([]);
+    recallDurableMemoryMock.mockResolvedValue(null);
+    const info = vi.fn();
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-large-budget"),
+      }),
+      logger: { info, warn: vi.fn(), error: vi.fn() },
+      config: createBaseMemoryRuntimeConfig(),
+    });
+
+    await runtime.assemble({
+      sessionId: "session-large-budget",
+      sessionKey: "session-large-budget",
+      prompt: "Use relevant project memory for this request.",
+      messages: castAgentMessages([
+        { role: "user", content: "Use relevant project memory for this request." },
+      ]),
+      tokenBudget: 2_400,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-42",
+      },
+    });
+
+    expect(info.mock.calls.some(([message]) => String(message).includes("/2400 "))).toBe(true);
+  });
+
   it("renders final prompt additions with structured session, optional durable, and chinese experience cards", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-prompt-"));

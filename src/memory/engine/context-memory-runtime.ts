@@ -135,7 +135,7 @@ export function createContextMemoryRuntime(options: {
       const rawMessageTokens = estimateConversationMessageTokens(messages);
       const compactedMessageTokens = estimateConversationMessageTokens(compactedMessages);
       const droppedMessageCount = Math.max(0, messages.length - compactedMessages.length);
-      const targetBudget = Math.max(240, Math.min(tokenBudget ?? 1000, 1200));
+      const targetBudget = Math.max(240, Math.min(tokenBudget ?? 1000, 6000));
       const promptContext = resolvePromptContext({ prompt, messages: compactedMessages });
       const promptText = promptContext.prompt;
 

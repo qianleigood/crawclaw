@@ -199,6 +199,29 @@ describe("runEmbeddedAttempt memory runtime sessionKey forwarding", () => {
     );
   });
 
+  it("passes the model-scaled memory budget to assemble", async () => {
+    const { bootstrap, assemble } = createMemoryRuntimeBootstrapAndAssemble();
+
+    await createMemoryRuntimeAttemptRunner({
+      memoryRuntime: {
+        bootstrap,
+        assemble,
+      },
+      attemptOverrides: {
+        contextTokenBudget: 1_048_576,
+        contextWindowInfo: { tokens: 1_048_576, source: "modelsConfig" },
+      },
+      sessionKey,
+      tempPaths,
+    });
+
+    expect(assemble).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tokenBudget: 6_000,
+      }),
+    );
+  });
+
   it("skips maintenance when afterTurn fails", async () => {
     const { bootstrap, assemble } = createMemoryRuntimeBootstrapAndAssemble();
     const afterTurn = vi.fn(async () => {

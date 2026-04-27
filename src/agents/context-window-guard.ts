@@ -11,6 +11,19 @@ export type ContextWindowInfo = {
   source: ContextWindowSource;
 };
 
+export type ModelContextBudgetConfidence = "high" | "low";
+
+export type ModelContextBudget = {
+  windowTokens: number;
+  usableInputTokens: number;
+  memoryBudgetTokens: number;
+  outputReserveTokens: number;
+  providerOverheadTokens: number;
+  toolSchemaTokens: number;
+  source: ContextWindowSource;
+  confidence: ModelContextBudgetConfidence;
+};
+
 function normalizePositiveInt(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null;
@@ -48,6 +61,60 @@ export function resolveContextWindowInfo(params: {
   }
 
   return baseInfo;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function resolveMemoryBudgetTokens(windowTokens: number): number {
+  const raw = Math.floor(windowTokens * 0.04);
+  if (windowTokens >= 1_000_000) {
+    return clamp(raw, 4_000, 6_000);
+  }
+  if (windowTokens >= 256_000) {
+    return clamp(raw, 2_400, 4_000);
+  }
+  if (windowTokens >= 128_000) {
+    return clamp(raw, 1_200, 2_400);
+  }
+  if (windowTokens >= 32_000) {
+    return clamp(raw, 700, 1_100);
+  }
+  return clamp(raw, 400, 700);
+}
+
+export function resolveModelContextBudget(params: {
+  info: ContextWindowInfo;
+  modelMaxTokens?: number;
+  toolSchemaTokens?: number;
+}): ModelContextBudget {
+  const windowTokens = Math.max(1, Math.floor(params.info.tokens));
+  const modelMaxTokens = normalizePositiveInt(params.modelMaxTokens);
+  const outputReserveTokens = clamp(
+    modelMaxTokens ?? Math.floor(windowTokens * 0.08),
+    1_024,
+    Math.min(32_768, Math.floor(windowTokens * 0.2)),
+  );
+  const providerOverheadTokens = clamp(Math.floor(windowTokens * 0.03), 512, 8_192);
+  const toolSchemaTokens = Math.max(0, Math.floor(params.toolSchemaTokens ?? 0));
+  const usableInputTokens = Math.max(
+    0,
+    Math.floor(windowTokens * 0.88) -
+      outputReserveTokens -
+      providerOverheadTokens -
+      toolSchemaTokens,
+  );
+  return {
+    windowTokens,
+    usableInputTokens,
+    memoryBudgetTokens: resolveMemoryBudgetTokens(windowTokens),
+    outputReserveTokens,
+    providerOverheadTokens,
+    toolSchemaTokens,
+    source: params.info.source,
+    confidence: params.info.source === "default" ? "low" : "high",
+  };
 }
 
 export type ContextWindowGuardResult = ContextWindowInfo & {

@@ -264,4 +264,30 @@ describe("assembleMemoryPrompt", () => {
       experienceHeavy.sections.find((section) => section.kind === "durable")?.itemIds.length ?? 0;
     expect(durableHeavyCount).toBeGreaterThan(experienceHeavyCount);
   });
+
+  it("uses high memory budgets to include more experience recall without exceeding the hard cap", () => {
+    const experienceItems = Array.from({ length: 8 }, (_, index) =>
+      makeExperienceItem({
+        id: `sop-${index + 1}`,
+        source: "notebooklm",
+        title: `Procedure ${index + 1}`,
+        summary:
+          "This procedure has enough detail to make high-budget experience recall include more than the old per-layer cap.",
+        layer: "sop",
+        memoryKind: "procedure",
+        score: 0.9 - index * 0.01,
+      }),
+    );
+
+    const assembled = assembleMemoryPrompt({
+      durableItems: [],
+      experienceItems,
+      classification: makeClassification("sop", ["sop"]),
+      tokenBudget: 6_000,
+    });
+
+    const experienceSection = assembled.sections.find((section) => section.kind === "experience");
+    expect(experienceSection?.itemIds.length ?? 0).toBeGreaterThan(3);
+    expect(assembled.estimatedTokens).toBeLessThanOrEqual(6_000);
+  });
 });

@@ -150,6 +150,8 @@ function summarizeCapture(input: ModelVisibleContextCaptureInput): Record<string
     messageCount: input.messages.length,
     toolCount: input.tools.length,
     imageCount: input.images?.count ?? 0,
+    contextBudget:
+      input.providerRequestSnapshot?.contextBudget ?? input.queryContextDiagnostics?.contextBudget,
     queryContextHash:
       input.providerRequestSnapshot?.queryContextHash ??
       input.queryContextDiagnostics?.queryContextHash,

@@ -241,6 +241,7 @@ export function buildQueryContextProviderRequestSnapshot(
     sectionType: resolveSectionType(section),
     estimatedTokens: estimateTokens(section.content),
     ...(section.source ? { source: section.source } : {}),
+    ...(section.budget ? { budget: section.budget } : {}),
   }));
   const hookSectionDiffs = buildHookSectionDiffs(context);
   return {
@@ -250,6 +251,9 @@ export function buildQueryContextProviderRequestSnapshot(
     systemPromptChars: modelInput.systemPrompt.length,
     sectionTokenUsage: summarizeQueryContextSectionTokenUsage(context),
     ...(hookSectionDiffs ? { hookSectionDiffs } : {}),
+    ...(context.diagnostics?.contextBudget
+      ? { contextBudget: context.diagnostics.contextBudget }
+      : {}),
     decisionCodes: resolvePromptCacheDecisionCodes({
       hasInheritedPromptEnvelope: false,
       canReuseParentPrefix: false,

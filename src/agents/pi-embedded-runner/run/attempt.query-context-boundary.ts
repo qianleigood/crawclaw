@@ -1,4 +1,6 @@
 import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
+import type { ModelContextBudget } from "../../context-window-guard.js";
+import { compileQueryContextBudget } from "../../query-context/budget.js";
 import {
   buildQueryContextProviderRequest,
   materializeQueryContextProviderRequest,
@@ -24,6 +26,7 @@ function normalizeMetadataFromOptions(options: unknown): Record<string, unknown>
 export function wrapStreamFnWithQueryContextBoundary(params: {
   streamFn: StreamFn;
   getQueryContext: () => QueryContext;
+  getModelContextBudget?: () => ModelContextBudget | undefined;
   setQueryContext: (next: QueryContext) => void;
   onProviderRequestBuilt?: (
     request: QueryContextProviderRequest,
@@ -35,10 +38,17 @@ export function wrapStreamFnWithQueryContextBoundary(params: {
     const contextMessages = Array.isArray((context as { messages?: unknown }).messages)
       ? ((context as { messages: AgentMessage[] }).messages ?? [])
       : params.getQueryContext().messages;
-    const nextQueryContext = {
+    let nextQueryContext = {
       ...params.getQueryContext(),
       messages: contextMessages,
     };
+    const budget = params.getModelContextBudget?.();
+    if (budget) {
+      nextQueryContext = compileQueryContextBudget({
+        context: nextQueryContext,
+        budget,
+      }).context;
+    }
     params.setQueryContext(nextQueryContext);
     const providerRequest = buildQueryContextProviderRequest(nextQueryContext);
     const modelInput = materializeQueryContextProviderRequest(providerRequest);
@@ -63,6 +73,9 @@ export function wrapStreamFnWithQueryContextBoundary(params: {
           promptChars: providerRequest.snapshot.promptChars,
           systemPromptChars: providerRequest.snapshot.systemPromptChars,
           sectionTokenUsage: providerRequest.snapshot.sectionTokenUsage,
+          ...(providerRequest.snapshot.contextBudget
+            ? { contextBudget: providerRequest.snapshot.contextBudget }
+            : {}),
         },
       },
     } as typeof options;

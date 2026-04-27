@@ -58,6 +58,7 @@ import {
   resolveChannelReactionGuidance,
 } from "../../channel-tools.js";
 import { captureModelVisibleContext } from "../../context-archive/turn-capture.js";
+import { resolveModelContextBudget, type ModelContextBudget } from "../../context-window-guard.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../defaults.js";
 import { resolveCrawClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
@@ -86,6 +87,10 @@ import { applyPiAutoCompactionGuard } from "../../pi-settings.js";
 import { toClientToolDefinitions } from "../../pi-tool-definition-adapter.js";
 import { createCrawClawCodingTools, resolveToolLoopDetectionConfig } from "../../pi-tools.js";
 import { registerProviderStreamForModel } from "../../provider-stream.js";
+import {
+  compileQueryContextBudget,
+  estimateQueryContextToolSchemaTokens,
+} from "../../query-context/budget.js";
 import {
   applyQueryContextPatch,
   buildQueryContextProviderRequest,
@@ -858,6 +863,29 @@ export async function runEmbeddedAttempt(
       const staticLspTools = bundleLspRuntime?.tools ?? [];
       let effectiveTools = [...tools, ...(bundleMcpRuntime?.tools ?? []), ...staticLspTools];
       const toolContext = createQueryContextToolContext(effectiveTools);
+      const buildModelContextBudget = (nextToolContext: typeof toolContext): ModelContextBudget => {
+        const baseBudget = resolveModelContextBudget({
+          info: params.contextWindowInfo ?? {
+            tokens:
+              params.contextTokenBudget ?? params.model.contextWindow ?? DEFAULT_CONTEXT_TOKENS,
+            source:
+              typeof params.contextTokenBudget === "number" || params.model.contextWindow
+                ? "model"
+                : "default",
+          },
+          modelMaxTokens: params.model.maxTokens,
+          toolSchemaTokens: estimateQueryContextToolSchemaTokens(nextToolContext),
+        });
+        const cap =
+          typeof params.contextUsableInputBudgetCap === "number" &&
+          Number.isFinite(params.contextUsableInputBudgetCap)
+            ? Math.max(0, Math.floor(params.contextUsableInputBudgetCap))
+            : undefined;
+        return cap !== undefined && cap < baseBudget.usableInputTokens
+          ? { ...baseBudget, usableInputTokens: cap }
+          : baseBudget;
+      };
+      let modelContextBudget = buildModelContextBudget(toolContext);
       const allowedToolNames = collectAllowedToolNames({
         tools: effectiveTools,
         clientTools,
@@ -1076,11 +1104,21 @@ export async function runEmbeddedAttempt(
           memorySources: [],
         },
       };
+      const compileQueryContextForBudget = () => {
+        const compiled = compileQueryContextBudget({
+          context: queryContext,
+          budget: modelContextBudget,
+        });
+        queryContext = compiled.context;
+        return compiled.diagnostics;
+      };
+      compileQueryContextForBudget();
       let providerRequest: QueryContextProviderRequest =
         buildQueryContextProviderRequest(queryContext);
       let modelInput = materializeQueryContextProviderRequest(providerRequest);
       let providerRequestSnapshot: QueryContextProviderRequestSnapshot = providerRequest.snapshot;
       const refreshQueryContextProviderRequest = () => {
+        compileQueryContextForBudget();
         providerRequest = buildQueryContextProviderRequest(queryContext);
         modelInput = materializeQueryContextProviderRequest(providerRequest);
         providerRequestSnapshot = providerRequest.snapshot;
@@ -1338,6 +1376,7 @@ export async function runEmbeddedAttempt(
                 ...queryContext,
                 toolContext: createQueryContextToolContext(effectiveTools),
               };
+              modelContextBudget = buildModelContextBudget(queryContext.toolContext);
               refreshQueryContextProviderRequest();
               systemPromptText = modelInput.systemPrompt;
               replaceSetContents(
@@ -1628,6 +1667,7 @@ export async function runEmbeddedAttempt(
         activeSession.agent.streamFn = wrapStreamFnWithQueryContextBoundary({
           streamFn: activeSession.agent.streamFn,
           getQueryContext: () => queryContext,
+          getModelContextBudget: () => modelContextBudget,
           setQueryContext: (nextQueryContext) => {
             queryContext = nextQueryContext;
           },
@@ -1734,7 +1774,7 @@ export async function runEmbeddedAttempt(
                 sessionId: params.sessionId,
                 sessionKey: params.sessionKey,
                 messages: activeSession.messages,
-                tokenBudget: params.contextTokenBudget,
+                tokenBudget: modelContextBudget.memoryBudgetTokens,
                 modelId: params.modelId,
                 ...(params.prompt !== undefined ? { prompt: params.prompt } : {}),
                 runtimeContext: assembleRuntimeContext,
@@ -2641,6 +2681,8 @@ export async function runEmbeddedAttempt(
           ),
           attemptUsage: getUsageTotals(),
           compactionCount: getCompactionCount(),
+          contextBudget:
+            providerRequestSnapshot.contextBudget ?? queryContext.diagnostics?.contextBudget,
           // Client tool call detected (OpenResponses hosted tools)
           clientToolCall: clientToolCallDetected ?? undefined,
           yieldDetected: yieldDetected || undefined,

@@ -199,6 +199,9 @@ function buildExecApprovalPromptGuidance(params: { runtimeChannel?: string }) {
 function createPromptSection(
   id: string,
   lines: Array<string | undefined | false>,
+  options?: Partial<
+    Pick<QueryContextSection, "budget" | "cacheable" | "role" | "sectionType" | "source">
+  >,
 ): QueryContextSection | null {
   const content = lines.filter(Boolean).join("\n").trim();
   if (!content) {
@@ -206,10 +209,12 @@ function createPromptSection(
   }
   return {
     id,
-    role: "system_prompt",
+    role: options?.role ?? "system_prompt",
     content,
-    cacheable: true,
-    source: "system-prompt",
+    cacheable: options?.cacheable ?? true,
+    source: options?.source ?? "system-prompt",
+    ...(options?.sectionType ? { sectionType: options.sectionType } : {}),
+    ...(options?.budget ? { budget: options.budget } : {}),
   };
 }
 
@@ -689,6 +694,13 @@ export function buildAgentSystemPromptSections(params: {
             ...validContextFiles.flatMap((file) => [`## ${file.path}`, file.content]),
           ]
         : [],
+      {
+        sectionType: "bootstrap",
+        budget: {
+          priority: "low",
+          eviction: "drop",
+        },
+      },
     ),
     createPromptSection(
       "silent_replies",
