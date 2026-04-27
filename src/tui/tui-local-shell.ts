@@ -33,6 +33,8 @@ export function createLocalShellRunner(deps: LocalShellDeps) {
   const getCwd = deps.getCwd ?? (() => process.cwd());
   const env = deps.env ?? process.env;
   const maxChars = deps.maxOutputChars ?? 40_000;
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translateTuiText(key, params);
 
   const ensureLocalExecAllowed = async (): Promise<boolean> => {
     if (localExecAllowed) {
@@ -96,7 +98,7 @@ export function createLocalShellRunner(deps: LocalShellDeps) {
       return;
     }
 
-    deps.chatLog.addSystem(`[local] $ ${cmd}`);
+    deps.chatLog.addSystem(t("tui.local.command", { cmd }));
     deps.tui.requestRender();
 
     const appendWithCap = (text: string, chunk: string) => {
@@ -129,16 +131,21 @@ export function createLocalShellRunner(deps: LocalShellDeps) {
 
         if (combined) {
           for (const line of combined.split("\n")) {
-            deps.chatLog.addSystem(`[local] ${line}`);
+            deps.chatLog.addSystem(t("tui.local.output", { line }));
           }
         }
-        deps.chatLog.addSystem(`[local] exit ${code ?? "?"}${signal ? ` (signal ${signal})` : ""}`);
+        deps.chatLog.addSystem(
+          t("tui.local.exit", {
+            code: code ?? "?",
+            signal: signal ? ` (${t("tui.local.signal", { signal })})` : "",
+          }),
+        );
         deps.tui.requestRender();
         resolve();
       });
 
       child.on("error", (err) => {
-        deps.chatLog.addSystem(`[local] error: ${String(err)}`);
+        deps.chatLog.addSystem(t("tui.local.error", { error: String(err) }));
         deps.tui.requestRender();
         resolve();
       });

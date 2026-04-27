@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setActiveCliLocale } from "../cli/i18n/index.js";
-import { formatTuiFooter, TUI_FOOTER_HINT } from "./tui-footer.js";
+import { formatTuiFooter, getDefaultTuiFooterHint } from "./tui-footer.js";
 
 describe("tui footer model", () => {
   afterEach(() => {
@@ -8,9 +8,11 @@ describe("tui footer model", () => {
   });
 
   it("keeps a restrained discovery hint in the footer", () => {
-    expect(TUI_FOOTER_HINT).toContain("Ctrl+P");
-    expect(TUI_FOOTER_HINT).toContain("Ctrl+O");
-    expect(TUI_FOOTER_HINT).toContain("/help");
+    const hint = getDefaultTuiFooterHint();
+
+    expect(hint).toContain("Ctrl+P");
+    expect(hint).toContain("Ctrl+O");
+    expect(hint).toContain("/help");
   });
 
   it("formats session and agent labels before rendering the footer", () => {

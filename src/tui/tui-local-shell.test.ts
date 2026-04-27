@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 
 const createSelector = () => {
@@ -100,5 +101,39 @@ describe("createLocalShellRunner", () => {
     expect(spawnOptions.env?.CRAWCLAW_SHELL).toBe("tui-local");
     expect(spawnOptions.env?.PATH).toBe("/tmp/bin");
     expect(harness.messages).toContain("local shell: enabled for this session");
+  });
+
+  it("localizes runtime shell output in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    const spawnCommand = vi.fn((_command: string, _options: unknown) => {
+      const stdout = new EventEmitter();
+      const stderr = new EventEmitter();
+      return {
+        stdout,
+        stderr,
+        on: (event: string, callback: (...args: unknown[]) => void) => {
+          if (event === "close") {
+            setImmediate(() => {
+              stdout.emit("data", Buffer.from("hello\n"));
+              callback(0, null);
+            });
+          }
+        },
+      };
+    });
+
+    const harness = createShellHarness({
+      spawnCommand: spawnCommand as unknown as typeof import("node:child_process").spawn,
+    });
+
+    const firstRun = harness.runLocalShellLine("!echo hi");
+    const selector = harness.getLastSelector();
+    selector?.onSelect?.({ value: "yes", label: "是" });
+    await firstRun;
+
+    expect(harness.messages).toContain("本地 shell：本次会话已启用");
+    expect(harness.messages).toContain("[本地] $ echo hi");
+    expect(harness.messages).toContain("[本地] hello");
+    expect(harness.messages).toContain("[本地] 退出 0");
   });
 });

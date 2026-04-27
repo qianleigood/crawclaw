@@ -74,12 +74,13 @@ function isCliVisibleTechnicalLiteral(value: string): boolean {
   );
 }
 
-function extractCliVisibleLiterals(file: string): string[] {
+function extractVisibleLiterals(file: string): string[] {
   const source = fs.readFileSync(file, "utf8");
   const literals = new Set<string>();
   const literalPatterns = [
     /\b(?:message|title|label|hint|placeholder|emptyMessage|clearedMessage)\s*:\s*([`'"])([^`'"]*[A-Za-z][^`'"]*)\1/g,
     /\b(?:runtime\.(?:log|error|warn)|console\.(?:log|error|warn)|process\.(?:stdout|stderr)\.write|logger\.(?:info|warn|error)|writeStdoutLine)\s*\(\s*([`'"])([^`'"]*[A-Za-z][^`'"]*)\1/g,
+    /\b(?:addSystem|setMessage)\s*\(\s*([`'"])([^`'"]*[A-Za-z][^`'"]*)\1/g,
   ];
   for (const pattern of literalPatterns) {
     for (const match of source.matchAll(pattern)) {
@@ -225,7 +226,22 @@ describe("CLI translation coverage", () => {
     ]).filter((file) => !file.startsWith("extensions/") || file.endsWith("/src/cli.ts"));
     const untranslated = new Set<string>();
     for (const file of productionFiles) {
-      for (const literal of extractCliVisibleLiterals(file)) {
+      for (const literal of extractVisibleLiterals(file)) {
+        const translated = translateCliText("zh-CN", literal);
+        if (translated === literal) {
+          untranslated.add(`${file}: ${literal}`);
+        }
+      }
+    }
+
+    expect([...untranslated].toSorted()).toEqual([]);
+  });
+
+  it("has zh-CN copy for literal TUI-visible English text", () => {
+    const productionFiles = listTrackedTsFiles(["src/tui"]);
+    const untranslated = new Set<string>();
+    for (const file of productionFiles) {
+      for (const literal of extractVisibleLiterals(file)) {
         const translated = translateCliText("zh-CN", literal);
         if (translated === literal) {
           untranslated.add(`${file}: ${literal}`);

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { setActiveCliLocale } from "../../cli/i18n/index.js";
 import { stripAnsi } from "../../terminal/ansi.js";
 import type { ChatLogToolState } from "./chat-log.js";
 import { ToolOverlayComponent } from "./tool-overlay.js";
@@ -47,6 +48,27 @@ describe("ToolOverlayComponent", () => {
     expect(rendered).toContain("read_file");
     expect(rendered).toContain("error");
     expect(rendered).toContain("expanded");
+  });
+
+  it("localizes tool overlay chrome in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+    try {
+      const overlay = createToolOverlay();
+
+      const rendered = stripAnsi(overlay.render(100).join("\n"));
+
+      expect(rendered).toContain("工具输出");
+      expect(rendered).toContain("运行中");
+      expect(rendered).toContain("已折叠");
+      expect(rendered).toContain("错误");
+      expect(rendered).toContain("已展开");
+      expect(rendered).not.toContain("Tool output");
+      expect(rendered).not.toContain("running");
+      expect(rendered).not.toContain("collapsed");
+      expect(rendered).not.toContain("expanded");
+    } finally {
+      setActiveCliLocale("en");
+    }
   });
 
   it("toggles the selected tool with enter", () => {

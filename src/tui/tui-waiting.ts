@@ -1,3 +1,4 @@
+import { createCliTranslator } from "../cli/i18n/index.js";
 import { translateTuiText } from "../cli/i18n/tui.js";
 
 type MinimalTheme = {
@@ -6,31 +7,31 @@ type MinimalTheme = {
   accentSoft: (s: string) => string;
 };
 
-export const defaultWaitingPhrases = [
-  "flibbertigibbeting",
-  "kerfuffling",
-  "dillydallying",
-  "twiddling thumbs",
-  "noodling",
-  "bamboozling",
-  "moseying",
-  "hobnobbing",
-  "pondering",
-  "conjuring",
-];
+const en = createCliTranslator("en");
 
-export function pickWaitingPhrase(tick: number, phrases = defaultWaitingPhrases) {
-  const idx = Math.floor(tick / 10) % phrases.length;
-  return phrases[idx] ?? phrases[0] ?? "waiting";
-}
-
-export function getLocalizedWaitingPhrases(): string[] {
-  const translated = translateTuiText("tui.waiting.phrases");
-  const phrases = translated
+function parseWaitingPhrases(value: string): string[] {
+  return value
     .split("|")
     .map((phrase) => phrase.trim())
     .filter(Boolean);
-  return phrases.length > 0 ? phrases : defaultWaitingPhrases;
+}
+
+function getDefaultWaitingPhrases() {
+  return parseWaitingPhrases(en("tui.waiting.phrases"));
+}
+
+export function pickWaitingPhrase(tick: number, phrases = getDefaultWaitingPhrases()) {
+  const idx = Math.floor(tick / 10) % phrases.length;
+  return phrases[idx] ?? phrases[0] ?? en("tui.common.waiting");
+}
+
+export function getLocalizedWaitingPhrases(): string[] {
+  const translated = parseWaitingPhrases(translateTuiText("tui.waiting.phrases"));
+  if (translated.length > 0 && translated[0] !== "tui.waiting.phrases") {
+    return translated;
+  }
+  const fallback = getDefaultWaitingPhrases();
+  return fallback.length > 0 ? fallback : [en("tui.common.waiting")];
 }
 
 export function shimmerText(theme: MinimalTheme, text: string, tick: number) {

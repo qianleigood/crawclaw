@@ -70,4 +70,51 @@ describe("tui status line", () => {
 
     controller.stop();
   });
+
+  it("localizes waiting status text in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+    const children: Array<{ render: (width: number) => string[] }> = [];
+    const controller = createTuiStatusLineController({
+      tui: { requestRender: vi.fn() } as never,
+      statusContainer: {
+        clear: () => {
+          children.length = 0;
+        },
+        addChild: (child: { render: (width: number) => string[] }) => {
+          children.push(child);
+        },
+      } as never,
+      getConnectionStatus: () => "connected",
+      setConnectionStatusValue: vi.fn(),
+      getActivityStatus: () => "waiting",
+      setActivityStatusValue: vi.fn(),
+      getIsConnected: () => true,
+      getStatusTimeout: () => null,
+      setStatusTimeout: vi.fn(),
+    });
+
+    controller.renderStatus();
+
+    const rendered = stripAnsi(children[0]?.render(80).join("\n") ?? "");
+    expect(rendered).toContain("已连接");
+    expect(
+      [
+        "思考中",
+        "整理上下文",
+        "等待回复",
+        "分析中",
+        "处理请求",
+        "准备输出",
+        "检查工具",
+        "汇总结果",
+        "生成回复",
+        "继续处理",
+      ].some((phrase) => rendered.includes(phrase)),
+    ).toBe(true);
+    expect(rendered).not.toContain("flibbertigibbeting");
+    expect(rendered).not.toContain("kerfuffling");
+    expect(rendered).not.toContain("connected");
+
+    controller.stop();
+  });
 });

@@ -2,7 +2,9 @@ import { translateTuiText } from "../cli/i18n/tui.js";
 import { formatTuiFooterLine } from "./tui-formatters.js";
 import type { SessionInfo } from "./tui-types.js";
 
-export const TUI_FOOTER_HINT = "Ctrl+P sessions; Ctrl+O tools; /help";
+export function getDefaultTuiFooterHint() {
+  return translateTuiText("tui.footer.hint");
+}
 
 export function formatTuiFooter(params: {
   currentAgentId: string;
@@ -30,6 +32,6 @@ export function formatTuiFooter(params: {
     verboseLevel: params.sessionInfo.verboseLevel,
     reasoningLevel: params.sessionInfo.reasoningLevel,
     deliverEnabled: params.deliverEnabled,
-    hint: params.hint ?? translateTuiText("tui.footer.hint"),
+    hint: params.hint ?? getDefaultTuiFooterHint(),
   });
 }

@@ -1,7 +1,7 @@
 import { Container, Loader, Text, type TUI } from "@mariozechner/pi-tui";
 import { theme } from "./theme/theme.js";
 import { formatTuiStatusText } from "./tui-formatters.js";
-import { buildWaitingStatusMessage, defaultWaitingPhrases } from "./tui-waiting.js";
+import { buildWaitingStatusMessage, getLocalizedWaitingPhrases } from "./tui-waiting.js";
 
 const BUSY_STATUSES = new Set(["sending", "waiting", "streaming", "running"]);
 
@@ -132,8 +132,9 @@ export function createTuiStatusLineController(params: {
       return;
     }
     if (!waitingPhrase) {
-      const idx = Math.floor(Math.random() * defaultWaitingPhrases.length);
-      waitingPhrase = defaultWaitingPhrases[idx] ?? defaultWaitingPhrases[0] ?? "waiting";
+      const phrases = getLocalizedWaitingPhrases();
+      const idx = Math.floor(Math.random() * phrases.length);
+      waitingPhrase = phrases[idx] ?? phrases[0] ?? formatTuiStatusText("waiting");
     }
 
     waitingTick = 0;
