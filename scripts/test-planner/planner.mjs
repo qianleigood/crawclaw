@@ -1434,6 +1434,16 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
         },
       ]
     : [];
+  const macosNodeInclude = nodeEligible
+    ? [
+        {
+          check_name: "macos-node-install-smoke",
+          runtime: "node",
+          task: "install-smoke",
+          command: "node scripts/ci/macos-packed-install-smoke.mjs",
+        },
+      ]
+    : [];
   const extensionFastInclude = extensionFastEligible
     ? scope.changedExtensionsMatrix.include.map((entry) => ({
         check_name: `extension-fast-${entry.extension}`,
@@ -1458,7 +1468,7 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
       enabled: checksWindowsInclude.length > 0,
       matrix: { include: checksWindowsInclude },
     },
-    macosNode: { enabled: false, matrix: { include: [] } },
+    macosNode: { enabled: macosNodeInclude.length > 0, matrix: { include: macosNodeInclude } },
     installSmoke: { enabled: !scope.docsOnly && scope.runChangedSmoke },
   };
 
@@ -1476,6 +1486,7 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
       ...checksFastInclude.map((entry) => entry.check_name),
       ...checksInclude.map((entry) => entry.check_name),
       ...checksWindowsInclude.map((entry) => entry.check_name),
+      ...macosNodeInclude.map((entry) => entry.check_name),
       ...extensionFastInclude.map((entry) => entry.check_name),
       "check",
       "check-additional",

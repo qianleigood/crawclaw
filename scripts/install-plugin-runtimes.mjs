@@ -10,6 +10,8 @@ const WINDOWS_UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
 const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
 const PINCHTAB_VERSION = "0.9.1";
+const NPM_INSTALL_MAX_ATTEMPTS = 3;
+const NPM_INSTALL_RETRY_BASE_DELAY_MS = 1000;
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
 const SCRAPLING_REQUIREMENTS_LOCK = path.join(
@@ -117,6 +119,37 @@ function runOrThrow(command, args, options = {}) {
 
 function normalizeErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+export function shouldRetryNpmInstallError(error) {
+  const message = normalizeErrorMessage(error);
+  return (
+    /\b(ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|ECONNREFUSED|EPIPE)\b/iu.test(message) ||
+    /network aborted|network timeout|fetch failed|socket hang up/iu.test(message)
+  );
+}
+
+export function runNpmInstallWithRetry(command, args, options = {}, deps = {}) {
+  const runImpl = deps.runImpl ?? runOrThrow;
+  const sleepImpl = deps.sleepImpl ?? sleepSync;
+  const maxAttempts = deps.maxAttempts ?? NPM_INSTALL_MAX_ATTEMPTS;
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return runImpl(command, args, options);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxAttempts || !shouldRetryNpmInstallError(error)) {
+        throw error;
+      }
+      sleepImpl(NPM_INSTALL_RETRY_BASE_DELAY_MS * attempt);
+    }
+  }
+  throw lastError;
 }
 
 function classifyRuntimeInstallError(error) {
@@ -339,7 +372,7 @@ function installOpenWebSearchRuntime(env = process.env) {
       `open-websearch@${OPEN_WEBSEARCH_VERSION}`,
     ),
   });
-  runOrThrow(npmRunner.command, npmRunner.args, {
+  runNpmInstallWithRetry(npmRunner.command, npmRunner.args, {
     env: npmRunner.env ?? nestedEnv,
     shell: npmRunner.shell,
     windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,
@@ -374,7 +407,7 @@ function installBrowserRuntime(env = process.env) {
     env: nestedEnv,
     npmArgs: createLocalPrefixNpmInstallArgs(runtimeDir, `pinchtab@${PINCHTAB_VERSION}`),
   });
-  runOrThrow(npmRunner.command, npmRunner.args, {
+  runNpmInstallWithRetry(npmRunner.command, npmRunner.args, {
     env: npmRunner.env ?? nestedEnv,
     shell: npmRunner.shell,
     windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,

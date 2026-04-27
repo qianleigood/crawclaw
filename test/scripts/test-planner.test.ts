@@ -711,7 +711,18 @@ describe("test planner", () => {
     expect(manifest.requiredCheckNames).toEqual(
       expect.arrayContaining(["checks-windows-node-build", "checks-windows-node-install-smoke"]),
     );
-    expect(manifest.jobs.macosNode.matrix.include).toHaveLength(0);
+    expect(manifest.jobs.macosNode.enabled).toBe(true);
+    expect(manifest.jobs.macosNode.matrix.include).toEqual([
+      {
+        check_name: "macos-node-install-smoke",
+        runtime: "node",
+        task: "install-smoke",
+        command: "node scripts/ci/macos-packed-install-smoke.mjs",
+      },
+    ]);
+    expect(manifest.requiredCheckNames).toEqual(
+      expect.arrayContaining(["macos-node-install-smoke"]),
+    );
     expect(manifest.jobs.checksFast.matrix.include).toHaveLength(
       manifest.shardCounts.extensionFast + 1,
     );

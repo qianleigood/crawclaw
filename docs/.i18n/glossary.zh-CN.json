@@ -8,6 +8,10 @@
     "target": "Windows"
   },
   {
+    "source": "macOS",
+    "target": "macOS"
+  },
+  {
     "source": "Gateway",
     "target": "Gateway 网关"
   },

@@ -437,7 +437,7 @@ describe("scripts/test-parallel lane planning", () => {
 
     const manifest = JSON.parse(output);
     expect(manifest.jobs.checks.enabled).toBe(true);
-    expect(manifest.jobs.macosNode.enabled).toBe(false);
+    expect(manifest.jobs.macosNode.enabled).toBe(true);
     expect(manifest.jobs.checksWindows.enabled).toBe(true);
   });
 
@@ -454,7 +454,7 @@ describe("scripts/test-parallel lane planning", () => {
     });
     expect(outputs).toContain("run_build_artifacts=true");
     expect(outputs).toContain("run_checks_windows=true");
-    expect(outputs).toContain("run_macos_node=false");
+    expect(outputs).toContain("run_macos_node=true");
     expect(outputs).not.toContain("android_matrix=");
   });
 

@@ -394,4 +394,44 @@ describe("bundled plugin postinstall", () => {
       },
     );
   });
+
+  it("retries transient bundled plugin dependency install failures", async () => {
+    const extensionsDir = await createExtensionsDir();
+    const packageRoot = path.dirname(path.dirname(extensionsDir));
+    await writePluginPackage(extensionsDir, "telegram", {
+      dependencies: {
+        grammy: "1.38.4",
+      },
+    });
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce({
+        status: 1,
+        stderr: "npm error code ECONNRESET\nnpm error network aborted",
+        stdout: "",
+      })
+      .mockReturnValueOnce({ status: 0, stderr: "", stdout: "" });
+    const sleepSync = vi.fn();
+
+    runBundledPluginPostinstall({
+      env: {
+        HOME: "/tmp/home",
+      },
+      extensionsDir,
+      packageRoot,
+      npmRunner: createBareNpmRunner([
+        "install",
+        "--omit=dev",
+        "--no-save",
+        "--package-lock=false",
+        "grammy@1.38.4",
+      ]),
+      spawnSync,
+      sleepSync,
+      log: { log: vi.fn(), warn: vi.fn() },
+    });
+
+    expect(spawnSync).toHaveBeenCalledTimes(2);
+    expect(sleepSync).toHaveBeenCalledWith(1000);
+  });
 });

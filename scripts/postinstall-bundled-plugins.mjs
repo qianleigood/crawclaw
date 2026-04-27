@@ -15,6 +15,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_EXTENSIONS_DIR = join(__dirname, "..", "dist", "extensions");
 const DEFAULT_PACKAGE_ROOT = join(__dirname, "..");
 const DISABLE_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_BUNDLED_PLUGIN_POSTINSTALL";
+const NPM_INSTALL_MAX_ATTEMPTS = 3;
+const NPM_INSTALL_RETRY_BASE_DELAY_MS = 1000;
 
 function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
@@ -29,6 +31,38 @@ function collectRuntimeDeps(packageJson) {
     ...packageJson.dependencies,
     ...packageJson.optionalDependencies,
   };
+}
+
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function shouldRetryNpmInstallError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /\b(ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|ECONNREFUSED|EPIPE)\b/iu.test(message) ||
+    /network aborted|network timeout|fetch failed|socket hang up/iu.test(message)
+  );
+}
+
+function runBundledNpmInstallWithRetry(params) {
+  const attempts = params.attempts ?? NPM_INSTALL_MAX_ATTEMPTS;
+  const sleep = params.sleepSync ?? sleepSync;
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const result = params.spawn(params.command, params.args, params.options);
+    if (result.status === 0) {
+      return;
+    }
+    const output = [result.stderr, result.stdout].filter(Boolean).join("\n").trim();
+    const error = new Error(output || "npm install failed");
+    lastError = error;
+    if (attempt >= attempts || !shouldRetryNpmInstallError(error)) {
+      throw error;
+    }
+    sleep(NPM_INSTALL_RETRY_BASE_DELAY_MS * attempt);
+  }
+  throw lastError;
 }
 
 export function discoverBundledPluginRuntimeDeps(params = {}) {
@@ -171,18 +205,21 @@ export function runBundledPluginPostinstall(params = {}) {
         comSpec: params.comSpec,
         npmArgs: ["install", "--omit=dev", "--no-save", "--package-lock=false", ...missingSpecs],
       });
-    const result = spawn(npmRunner.command, npmRunner.args, {
-      cwd: packageRoot,
-      encoding: "utf8",
-      env: npmRunner.env ?? nestedEnv,
-      stdio: "pipe",
-      shell: npmRunner.shell,
-      windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,
+    runBundledNpmInstallWithRetry({
+      spawn,
+      command: npmRunner.command,
+      args: npmRunner.args,
+      attempts: params.installAttempts,
+      sleepSync: params.sleepSync,
+      options: {
+        cwd: packageRoot,
+        encoding: "utf8",
+        env: npmRunner.env ?? nestedEnv,
+        stdio: "pipe",
+        shell: npmRunner.shell,
+        windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,
+      },
     });
-    if (result.status !== 0) {
-      const output = [result.stderr, result.stdout].filter(Boolean).join("\n").trim();
-      throw new Error(output || "npm install failed");
-    }
     log.log(`[postinstall] installed bundled plugin deps: ${missingSpecs.join(", ")}`);
   } catch (e) {
     // Non-fatal: gateway will surface the missing dep via doctor.

@@ -21,6 +21,20 @@ type RuntimeInstallScript = {
   ) => Record<string, unknown>;
   createLocalPrefixNpmInstallArgs: (runtimeDir: string, packageSpec: string) => string[];
   createNestedNpmInstallEnv: (env: NodeJS.ProcessEnv) => NodeJS.ProcessEnv;
+  runNpmInstallWithRetry: (
+    command: string,
+    args: string[],
+    options: Record<string, unknown>,
+    deps?: {
+      maxAttempts?: number;
+      runImpl?: (
+        command: string,
+        args: string[],
+        options: Record<string, unknown>,
+      ) => Record<string, unknown>;
+      sleepImpl?: (ms: number) => void;
+    },
+  ) => Record<string, unknown>;
   resolveScraplingRuntimePackages: (
     lockedPackages: readonly string[],
     platform?: NodeJS.Platform,
@@ -37,6 +51,7 @@ type RuntimeInstallScript = {
     windowsVerbatimArguments?: boolean;
   };
   resolveScraplingVenvPython: (venvDir: string, platform?: NodeJS.Platform) => string;
+  shouldRetryNpmInstallError: (error: unknown) => boolean;
 };
 
 async function loadRuntimeInstallScript(): Promise<RuntimeInstallScript> {
@@ -67,6 +82,46 @@ describe("install-plugin-runtimes", () => {
         NPM_CONFIG_PREFIX: "C:\\node",
       }),
     ).toEqual({ PATH: "C:\\node" });
+  });
+
+  it("classifies transient npm network failures as retryable", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(
+      script.shouldRetryNpmInstallError(
+        new Error("npm error code ECONNRESET\nnpm error network aborted"),
+      ),
+    ).toBe(true);
+    expect(script.shouldRetryNpmInstallError(new Error("open-websearch binary missing"))).toBe(
+      false,
+    );
+  });
+
+  it("retries transient npm runtime installs", async () => {
+    const script = await loadRuntimeInstallScript();
+    const calls: string[] = [];
+    const sleeps: number[] = [];
+
+    const result = script.runNpmInstallWithRetry(
+      "npm",
+      ["install", "open-websearch@2.1.5"],
+      { env: { PATH: "/bin" } },
+      {
+        maxAttempts: 2,
+        runImpl: (command, args) => {
+          calls.push([command, ...args].join(" "));
+          if (calls.length === 1) {
+            throw new Error("npm error code ECONNRESET\nnpm error network aborted");
+          }
+          return { status: 0 };
+        },
+        sleepImpl: (ms) => sleeps.push(ms),
+      },
+    );
+
+    expect(result).toEqual({ status: 0 });
+    expect(calls).toEqual(["npm install open-websearch@2.1.5", "npm install open-websearch@2.1.5"]);
+    expect(sleeps).toEqual([1000]);
   });
 
   it("resolves scrapling venv python paths by platform", async () => {

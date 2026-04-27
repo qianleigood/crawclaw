@@ -859,7 +859,7 @@ jobs:
     needs: [preflight, build-artifacts]
     if: always() && needs.preflight.outputs.run_macos_node == 'true' && needs.build-artifacts.result == 'success'
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.preflight.outputs.macos_node_matrix) }}
@@ -888,6 +888,7 @@ jobs:
           path: src/canvas-host/a2ui/
 
       - name: Configure test shard (macOS)
+        if: matrix.task == 'test'
         env:
           SHARD_COUNT: ${{ matrix.shard_count }}
           SHARD_INDEX: ${{ matrix.shard_index }}
@@ -905,6 +906,9 @@ jobs:
           case "$TASK" in
             test)
               pnpm test
+              ;;
+            install-smoke)
+              node scripts/ci/macos-packed-install-smoke.mjs
               ;;
             *)
               echo "Unsupported macOS node task: $TASK" >&2
