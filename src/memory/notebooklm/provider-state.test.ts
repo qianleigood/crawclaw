@@ -78,6 +78,49 @@ describe("getNotebookLmProviderState", () => {
     expect(execFileMock).toHaveBeenCalledTimes(1);
   });
 
+  it("checks unified nlm auth with login --check", async () => {
+    execFileMock.mockImplementation((_command, args, _options, callback) => {
+      expect(args).toEqual(["login", "--check", "--profile", "work"]);
+      callback(
+        null,
+        [
+          "✓ Authentication valid!",
+          "  Profile: work",
+          "  Notebooks found: 3",
+          "  Account: user@example.com",
+        ].join("\n"),
+      );
+    });
+
+    const { getNotebookLmProviderState } = await import("./provider-state.ts");
+    const state = await getNotebookLmProviderState({
+      mode: "query",
+      config: {
+        ...baseConfig,
+        auth: { ...baseConfig.auth, profile: "work" },
+        cli: {
+          ...baseConfig.cli,
+          command: "nlm",
+          args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
+        },
+        write: {
+          ...baseConfig.write,
+          enabled: false,
+        },
+      },
+    });
+
+    expect(state).toMatchObject({
+      enabled: true,
+      ready: true,
+      lifecycle: "ready",
+      reason: null,
+      profile: "work",
+      notebookId: "nb-1",
+      authSource: "profile",
+    });
+  });
+
   it("returns a classified missing state when wrapper reports auth expiry", async () => {
     execFileMock.mockImplementation((_command, _args, _options, callback) => {
       callback(

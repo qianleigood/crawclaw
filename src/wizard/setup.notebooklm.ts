@@ -30,6 +30,39 @@ export async function promptNotebookLmEnablement(params: {
     initialValue: notebooklm.enabled,
   });
 
+  if (!enabled) {
+    return {
+      ...params.config,
+      memory: {
+        ...params.config.memory,
+        notebooklm: {
+          ...params.config.memory?.notebooklm,
+          enabled,
+        },
+      },
+    };
+  }
+
+  const existingCommand = notebooklm.cli.command.trim();
+  const command = (
+    await params.prompter.text({
+      message: "NotebookLM CLI command",
+      initialValue: existingCommand || "nlm",
+      placeholder: "nlm",
+      validate: (value) => (value.trim().length > 0 ? undefined : "Enter a command."),
+    })
+  ).trim();
+  const existingNotebookId =
+    (notebooklm.cli.notebookId ?? "").trim() || (notebooklm.write.notebookId ?? "").trim();
+  const notebookId = (
+    await params.prompter.text({
+      message: "NotebookLM notebook ID",
+      initialValue: existingNotebookId,
+      placeholder: "notebook id",
+      validate: (value) => (value.trim().length > 0 ? undefined : "Enter a notebook ID."),
+    })
+  ).trim();
+
   return {
     ...params.config,
     memory: {
@@ -37,6 +70,12 @@ export async function promptNotebookLmEnablement(params: {
       notebooklm: {
         ...params.config.memory?.notebooklm,
         enabled,
+        cli: {
+          ...notebooklm.cli,
+          enabled: true,
+          command: command || existingCommand || "nlm",
+          notebookId: notebookId || existingNotebookId,
+        },
       },
     },
   };

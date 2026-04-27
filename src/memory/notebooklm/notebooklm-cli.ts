@@ -54,12 +54,13 @@ function normalizeMemoryKind(
 
 function renderTemplate(
   value: string,
-  params: { query: string; limit: number; notebookId?: string },
+  params: { query: string; limit: number; notebookId?: string; profile: string },
 ): string {
   return value
     .replaceAll("{query}", params.query)
     .replaceAll("{limit}", String(params.limit))
-    .replaceAll("{notebookId}", params.notebookId ?? "");
+    .replaceAll("{notebookId}", params.notebookId ?? "")
+    .replaceAll("{profile}", params.profile);
 }
 
 function buildNotebookLmQuery(query: string, instruction: string | undefined): string {
@@ -338,6 +339,7 @@ export async function searchNotebookLmViaCli(params: {
       query: renderedQuery,
       limit,
       notebookId,
+      profile: (params.config.auth.profile || "default").trim() || "default",
     }),
   );
 

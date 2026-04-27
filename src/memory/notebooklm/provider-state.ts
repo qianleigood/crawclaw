@@ -90,7 +90,19 @@ function inferAuthArgs(config: NotebookLmConfig): string[] {
   return ["status", notebookId, profile];
 }
 
+function isNlmCommand(command: string): boolean {
+  const trimmed = command.trim();
+  return trimmed === "nlm" || trimmed.endsWith("/nlm") || trimmed.endsWith("\\nlm");
+}
+
 function inferAuthCommand(config: NotebookLmConfig): { command: string; args: string[] } | null {
+  const profile = (config.auth.profile || "default").trim() || "default";
+  if (config.cli.command.trim() && isNlmCommand(config.cli.command)) {
+    return {
+      command: config.cli.command,
+      args: ["login", "--check", ...(profile === "default" ? [] : ["--profile", profile])],
+    };
+  }
   if (config.write.command.trim()) {
     const firstArg = config.write.args[0]?.trim();
     if (firstArg && (/[/\\]/.test(firstArg) || /\.(py|js|mjs|cjs|ts)$/i.test(firstArg))) {
@@ -114,6 +126,49 @@ function inferAuthCommand(config: NotebookLmConfig): { command: string; args: st
     };
   }
   return null;
+}
+
+function parseNlmLoginCheckOutput(stdout: string): Record<string, unknown> | null {
+  if (!/Authentication valid/i.test(stdout)) {
+    return null;
+  }
+  const profile = stdout.match(/Profile:\s*([^\s]+)/i)?.[1];
+  const account = stdout.match(/Account:\s*(\S+)/i)?.[1];
+  return {
+    status: "ok",
+    ready: true,
+    reason: null,
+    profile,
+    refreshAttempted: false,
+    refreshSucceeded: false,
+    authSource: "profile",
+    ...(account ? { account } : {}),
+  };
+}
+
+function parseProviderStdout(stdout: string): Record<string, unknown> {
+  try {
+    return JSON.parse(stdout) as Record<string, unknown>;
+  } catch (error) {
+    const parsed = parseNlmLoginCheckOutput(stdout);
+    if (parsed) {
+      return parsed;
+    }
+    throw error;
+  }
+}
+
+function classifyExecFailure(message: string): NotebookLmProviderReason {
+  if (/ENOENT/.test(message)) {
+    return "cli_missing";
+  }
+  if (/profile .*not found|profile_missing/i.test(message)) {
+    return "profile_missing";
+  }
+  if (/Authentication failed|auth.*expired|unauthorized|forbidden|401|403/i.test(message)) {
+    return "auth_expired";
+  }
+  return "unknown";
 }
 
 function normalizeReason(value: unknown): NotebookLmProviderReason {
@@ -282,16 +337,23 @@ async function execNotebookLmProvider(
             : {}),
         },
       },
-      (error, nextStdout) => {
+      (error, nextStdout, nextStderr) => {
         if (error) {
-          reject(error);
+          const output = [
+            error instanceof Error ? error.message : "NotebookLM command failed",
+            nextStdout,
+            nextStderr,
+          ]
+            .filter((value) => typeof value === "string" && value.trim().length > 0)
+            .join("\n");
+          reject(new Error(output));
           return;
         }
         resolve(nextStdout);
       },
     );
   });
-  return JSON.parse(stdout) as Record<string, unknown>;
+  return parseProviderStdout(stdout);
 }
 
 export async function getNotebookLmProviderState(params: {
@@ -366,11 +428,7 @@ export async function getNotebookLmProviderState(params: {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     params.logger?.warn(`[memory] notebooklm provider status check failed | ${message}`);
-    const state = buildSkippedState(
-      config,
-      message.includes("ENOENT") ? "cli_missing" : "unknown",
-      message,
-    );
+    const state = buildSkippedState(config, classifyExecFailure(message), message);
     providerStateCache.set(cacheKey, toCachedState(state, config, Date.now(), cached));
     return providerStateCache.get(cacheKey)!.state;
   }
@@ -464,21 +522,20 @@ export async function refreshNotebookLmProviderState(params: {
     );
     try {
       const firstArg = resolved.args[0]?.trim();
-      const parsed = await execNotebookLmProvider(
-        config,
-        [
-          resolved.command,
-          ...(firstArg && (/[/\\]/.test(firstArg) || /\.(py|js|mjs|cjs|ts)$/i.test(firstArg))
-            ? [
-                firstArg,
-                "refresh",
-                notebookId,
-                (config.auth.profile || "default").trim() || "default",
-              ]
-            : ["refresh", notebookId, (config.auth.profile || "default").trim() || "default"]),
-        ],
-        params.logger,
-      );
+      const commandArgs = isNlmCommand(resolved.command)
+        ? [resolved.command, ...resolved.args]
+        : [
+            resolved.command,
+            ...(firstArg && (/[/\\]/.test(firstArg) || /\.(py|js|mjs|cjs|ts)$/i.test(firstArg))
+              ? [
+                  firstArg,
+                  "refresh",
+                  notebookId,
+                  (config.auth.profile || "default").trim() || "default",
+                ]
+              : ["refresh", notebookId, (config.auth.profile || "default").trim() || "default"]),
+          ];
+      const parsed = await execNotebookLmProvider(config, commandArgs, params.logger);
       const state = normalizeStateFromWrapper(parsed, config, notebookId, cached);
       const nextCached = toCachedState(state, config, Date.now(), cached);
       nextCached.lastRefreshAt = Date.now();
@@ -495,11 +552,7 @@ export async function refreshNotebookLmProviderState(params: {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       params.logger?.warn(`[memory] notebooklm provider refresh failed | ${message}`);
-      const state = buildSkippedState(
-        config,
-        message.includes("ENOENT") ? "cli_missing" : "unknown",
-        message,
-      );
+      const state = buildSkippedState(config, classifyExecFailure(message), message);
       const nextCached = toCachedState(
         {
           ...state,

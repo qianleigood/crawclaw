@@ -835,7 +835,7 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.notebooklm.cli.command":
     "Executable used for NotebookLM CLI retrieval, typically `nlm` or a local wrapper script. The command must return JSON that CrawClaw can normalize into experience recall items.",
   "memory.notebooklm.cli.args":
-    "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, and `{notebookId}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
+    "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, `{notebookId}`, and `{profile}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
   "memory.notebooklm.cli.timeoutMs":
     "Timeout in milliseconds for each NotebookLM CLI retrieval call. Lower values fail fast when NotebookLM hangs; higher values tolerate slower remote experience queries.",
   "memory.notebooklm.cli.limit":

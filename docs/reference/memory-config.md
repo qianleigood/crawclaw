@@ -47,6 +47,11 @@ For the conceptual model, start with:
 NotebookLM is an optional provider for experience recall and experience-note
 writeback.
 
+The built-in CLI defaults target the unified
+[`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) package:
+install it so `nlm` is on `PATH`, run `nlm login`, and set a notebook id for
+the read and write paths you want CrawClaw to use.
+
 | Key                                  | Type      | Description                    |
 | ------------------------------------ | --------- | ------------------------------ |
 | `memory.notebooklm.enabled`          | `boolean` | Enable NotebookLM integration  |

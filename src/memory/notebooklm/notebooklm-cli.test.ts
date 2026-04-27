@@ -6,6 +6,36 @@ vi.mock("node:child_process", () => ({
   execFile: (...args: unknown[]) => execFileMock(...args),
 }));
 
+function createNotebookLmConfig() {
+  return {
+    enabled: true,
+    auth: {
+      profile: "default",
+      cookieFile: "",
+      statusTtlMs: 60_000,
+      degradedCooldownMs: 120_000,
+      refreshCooldownMs: 180_000,
+      heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
+    },
+    cli: {
+      enabled: true,
+      command: "python",
+      args: ["/tmp/notebooklm-cli-recall.py", "{query}", "{limit}", "{notebookId}"],
+      timeoutMs: 1000,
+      limit: 5,
+      notebookId: "nb-1",
+      queryInstruction: "请使用简体中文，只返回直接相关的经验卡片。",
+    },
+    write: {
+      enabled: false,
+      command: "",
+      args: ["{payloadFile}"],
+      timeoutMs: 1000,
+      notebookId: "",
+    },
+  };
+}
+
 describe("searchNotebookLmViaCli", () => {
   beforeEach(() => {
     execFileMock.mockReset();
@@ -280,4 +310,40 @@ describe("searchNotebookLmViaCli", () => {
     expect(items[1]?.title).toBe("经验卡片二：文化象征");
     expect(items[1]?.summary).toContain("213 也是西海岸嘻哈文化的重要符号");
   });
+});
+
+it("renders the configured NotebookLM profile into CLI args", async () => {
+  execFileMock.mockImplementation((_command, args, _options, callback) => {
+    if (args.includes("login")) {
+      callback(null, "✓ Authentication valid!\n  Profile: work\n  Notebooks found: 2");
+      return;
+    }
+    expect(args).toContain("--profile");
+    expect(args).toContain("work");
+    callback(
+      null,
+      JSON.stringify({
+        answer: "经验卡片一：Profile 路由 使用 work profile 查询 NotebookLM。",
+      }),
+    );
+  });
+
+  const { searchNotebookLmViaCli } = await import("./notebooklm-cli.ts");
+  const items = await searchNotebookLmViaCli({
+    query: "profile?",
+    config: {
+      ...createNotebookLmConfig(),
+      auth: {
+        ...createNotebookLmConfig().auth,
+        profile: "work",
+      },
+      cli: {
+        ...createNotebookLmConfig().cli,
+        command: "nlm",
+        args: ["notebook", "query", "{notebookId}", "{query}", "--json", "--profile", "{profile}"],
+      },
+    },
+  });
+
+  expect(items[0]?.source).toBe("notebooklm");
 });

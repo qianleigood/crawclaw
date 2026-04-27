@@ -53,6 +53,15 @@ describe("setup.notebooklm", () => {
   it("adds NotebookLM enablement to the onboarding flow", async () => {
     const prompter = buildWizardPrompter({
       confirm: vi.fn(async () => true),
+      text: vi.fn(async (params) => {
+        if (params.message === "NotebookLM CLI command") {
+          return "nlm";
+        }
+        if (params.message === "NotebookLM notebook ID") {
+          return "experience-notebook";
+        }
+        return "";
+      }),
     });
 
     const nextConfig = await promptNotebookLmEnablement({
@@ -64,13 +73,31 @@ describe("setup.notebooklm", () => {
       message: "Enable NotebookLM experience recall?",
       initialValue: false,
     });
-    expect(nextConfig).toEqual({
-      memory: {
-        notebooklm: {
-          enabled: true,
-        },
-      },
-    });
+    expect(prompter.text).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "NotebookLM CLI command",
+        initialValue: "nlm",
+      }),
+    );
+    expect(prompter.text).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "NotebookLM notebook ID",
+      }),
+    );
+    expect(nextConfig).toEqual(
+      expect.objectContaining({
+        memory: expect.objectContaining({
+          notebooklm: expect.objectContaining({
+            enabled: true,
+            cli: expect.objectContaining({
+              enabled: true,
+              command: "nlm",
+              notebookId: "experience-notebook",
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
   it("keeps NotebookLM config unchanged in non-interactive mode", async () => {

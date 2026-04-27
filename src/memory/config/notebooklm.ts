@@ -27,7 +27,7 @@ export const DEFAULT_NOTEBOOKLM_AUTH: NotebookLmAuthConfig = {
 export const DEFAULT_NOTEBOOKLM_CLI: NotebookLmCliConfig = {
   enabled: false,
   command: "",
-  args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
+  args: ["notebook", "query", "{notebookId}", "{query}", "--json", "--profile", "{profile}"],
   timeoutMs: 8_000,
   limit: 8,
   notebookId: "",
