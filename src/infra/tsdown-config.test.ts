@@ -49,7 +49,7 @@ describe("tsdown config", () => {
         "plugins/provider-runtime.runtime",
         "plugins/runtime/runtime-line.contract",
         "plugins/runtime/index",
-        "plugin-sdk/index",
+        "plugin-sdk/core",
         bundledEntry("openai"),
         bundledEntry("matrix"),
         bundledEntry("msteams"),

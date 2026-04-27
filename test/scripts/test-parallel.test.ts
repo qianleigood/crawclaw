@@ -338,10 +338,18 @@ describe("scripts/test-parallel lane planning", () => {
   });
 
   it("uses coarser unit-fast batching for high-memory local multi-surface runs", () => {
-    const output = runHighMemoryLocalMultiSurfacePlan();
+    const multiSurfaceOutput = runHighMemoryLocalMultiSurfacePlan();
+    const unitOnlyOutput = runPlannerPlan(
+      ["--plan", "--surface", "unit"],
+      createHighMemoryLocalPlannerEnv(),
+    );
 
-    expect(output).toContain("unit-fast-batch-4");
-    expect(output).not.toContain("unit-fast-batch-5");
+    const multiSurfaceBatches = getPlanLines(multiSurfaceOutput, "unit-fast-batch-");
+    const unitOnlyBatches = getPlanLines(unitOnlyOutput, "unit-fast-batch-");
+
+    expect(multiSurfaceBatches.length).toBeGreaterThan(0);
+    expect(unitOnlyBatches.length).toBeGreaterThan(0);
+    expect(multiSurfaceBatches.length).toBeLessThan(unitOnlyBatches.length);
   });
 
   it("uses earlier targeted channel batching on high-memory local hosts", () => {

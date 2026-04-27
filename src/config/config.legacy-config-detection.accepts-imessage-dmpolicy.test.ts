@@ -229,15 +229,18 @@ describe("legacy config detection", () => {
     expect(res.config).toBeNull();
   });
 
-  it("flags channels.telegram.groupMentionsOnly as legacy in snapshot", async () => {
+  it("rejects removed channels.telegram.groupMentionsOnly and preserves the source file", async () => {
     await withSnapshotForConfig(
       { channels: { telegram: { groupMentionsOnly: true } } },
       async (ctx) => {
-        expect(ctx.snapshot.valid).toBe(true);
+        expect(ctx.snapshot.valid).toBe(false);
         expect(
           ctx.snapshot.legacyIssues.some(
             (issue) => issue.path === "channels.telegram.groupMentionsOnly",
           ),
+        ).toBe(true);
+        expect(
+          ctx.snapshot.issues.some((issue) => issue.path === "channels.telegram.groupMentionsOnly"),
         ).toBe(true);
         const parsed = ctx.parsed as {
           channels?: { telegram?: { groupMentionsOnly?: boolean } };

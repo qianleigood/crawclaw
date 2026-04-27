@@ -88,7 +88,7 @@ beforeAll(async () => {
 });
 
 describe("web search provider config", () => {
-  it("does not warn for legacy brave config when bundled web search allowlist compat applies", () => {
+  it("rejects removed legacy brave config before bundled web search allowlist compat", () => {
     const res = validateConfigObjectWithPlugins({
       plugins: {
         allow: ["bluebubbles", "legacy-memory"],
@@ -103,13 +103,17 @@ describe("web search provider config", () => {
       },
     });
 
-    expect(res.ok).toBe(true);
-    if (!res.ok) {
-      return;
+    expect(res.ok).toBe(false);
+    if (res.ok) {
+      throw new Error("expected legacy brave config to be rejected");
     }
+    expect(res.issues).toContainEqual(
+      expect.objectContaining({
+        path: "tools.web.search.apiKey",
+      }),
+    );
     expect(res.warnings).not.toContainEqual(
       expect.objectContaining({
-        path: "plugins.entries.brave",
         message: expect.stringContaining(
           "plugin disabled (not in allowlist) but config is present",
         ),
