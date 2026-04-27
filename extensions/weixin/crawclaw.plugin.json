@@ -1,0 +1,10 @@
+{
+  "id": "weixin",
+  "version": "2.1.10",
+  "channels": ["weixin"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

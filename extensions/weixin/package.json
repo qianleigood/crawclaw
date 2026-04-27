@@ -1,0 +1,60 @@
+{
+  "name": "@crawclaw/weixin",
+  "version": "2026.4.26",
+  "private": true,
+  "description": "CrawClaw Weixin channel plugin",
+  "license": "MIT",
+  "author": "Tencent",
+  "files": [
+    "src/",
+    "!src/**/*.test.ts",
+    "!src/**/node_modules/",
+    "index.ts",
+    "crawclaw.plugin.json",
+    "README.md",
+    "README.zh_CN.md",
+    "CHANGELOG.md",
+    "CHANGELOG.zh_CN.md",
+    "setup-entry.ts"
+  ],
+  "type": "module",
+  "dependencies": {
+    "qrcode-terminal": "0.12.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "crawclaw": "workspace:*"
+  },
+  "peerDependencies": {
+    "crawclaw": ">=2026.4.1-beta.1"
+  },
+  "peerDependenciesMeta": {
+    "crawclaw": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "setupEntry": "./setup-entry.ts",
+    "channel": {
+      "id": "weixin",
+      "label": "Weixin",
+      "selectionLabel": "Weixin (QR login)",
+      "docsPath": "/channels/weixin",
+      "docsLabel": "weixin",
+      "blurb": "Tencent iLink Bot via QR login for direct messages.",
+      "order": 75
+    },
+    "install": {
+      "npmSpec": "@crawclaw/weixin",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.4.1"
+    }
+  },
+  "ilink_appid": "bot"
+}

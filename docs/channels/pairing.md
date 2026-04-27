@@ -40,8 +40,8 @@ Primary QuickStart channels: `ddingtalk`, `feishu`, `qqbot`.
 
 Advanced setup can still use optional and legacy channels: `bluebubbles`,
 `discord`, `googlechat`, `imessage`, `irc`, `line`, `matrix`, `mattermost`,
-`msteams`, `nextcloud-talk`, `nostr`, `crawclaw-weixin`, `signal`, `slack`,
-`synology-chat`, `telegram`, `twitch`, `whatsapp`, `zalo`, `zalouser`.
+`msteams`, `nextcloud-talk`, `nostr`, `signal`, `slack`,
+`synology-chat`, `telegram`, `twitch`, `weixin`, `whatsapp`, `zalo`, `zalouser`.
 
 ### Where the state lives
 

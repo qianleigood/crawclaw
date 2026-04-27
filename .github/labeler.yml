@@ -103,6 +103,11 @@
       - any-glob-to-any-file:
           - "extensions/whatsapp/**"
           - "docs/channels/whatsapp.md"
+"channel: weixin":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/weixin/**"
+          - "docs/channels/weixin.md"
 "channel: zalo":
   - changed-files:
       - any-glob-to-any-file:
