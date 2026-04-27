@@ -461,6 +461,18 @@ describe("update-cli", () => {
     expect(output).toContain("未应用任何更改。");
   });
 
+  it("localizes update wizard TTY error in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    setTty(false);
+    vi.mocked(defaultRuntime.error).mockClear();
+    vi.mocked(defaultRuntime.exit).mockClear();
+
+    await updateWizardCommand({});
+
+    expect(defaultRuntime.error).toHaveBeenCalledWith(expect.stringContaining("更新向导需要 TTY"));
+    expect(defaultRuntime.exit).toHaveBeenCalledWith(1);
+  });
+
   it.each([
     {
       name: "table output",

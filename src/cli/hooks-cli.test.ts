@@ -7,7 +7,7 @@ import {
   formatHooksList,
   registerHooksCli,
 } from "./hooks-cli.js";
-import { createCliTranslator } from "./i18n/index.js";
+import { createCliTranslator, setActiveCliLocale } from "./i18n/index.js";
 import { setProgramContext } from "./program/program-context.js";
 import { createEmptyInstallChecks } from "./requirements-test-fixtures.js";
 
@@ -92,6 +92,23 @@ describe("hooks cli formatting", () => {
     const output = formatHookInfo(pluginReport, "plugin-hook", {});
     expect(output).toContain("voice-call");
     expect(output).toContain("Managed by plugin");
+  });
+
+  it("localizes runtime hook output in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+    try {
+      const listOutput = formatHooksList(report, {});
+      const infoOutput = formatHookInfo(createPluginManagedHookReport(), "plugin-hook", {});
+      const checkOutput = formatHooksCheck(report, {});
+
+      expect(listOutput).toContain("可用");
+      expect(listOutput).toContain("状态");
+      expect(infoOutput).toContain("详情：");
+      expect(infoOutput).toContain("由插件管理");
+      expect(checkOutput).toContain("Hooks 状态");
+    } finally {
+      setActiveCliLocale("en");
+    }
   });
 
   it("localizes hooks help copy", () => {

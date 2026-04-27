@@ -11,6 +11,7 @@ import { selectStyled } from "../../terminal/prompt-select-styled.js";
 import { stylePromptMessage } from "../../terminal/prompt-style.js";
 import { theme } from "../../terminal/theme.js";
 import { pathExists } from "../../utils.js";
+import { createCliTranslator, getActiveCliLocale } from "../i18n/index.js";
 import {
   isEmptyDir,
   isGitCheckout,
@@ -22,10 +23,9 @@ import {
 import { updateCommand } from "./update-command.js";
 
 export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promise<void> {
+  const t = createCliTranslator(getActiveCliLocale());
   if (!process.stdin.isTTY) {
-    defaultRuntime.error(
-      "Update wizard requires a TTY. Use `crawclaw update --channel <stable|beta|dev>` instead.",
-    );
+    defaultRuntime.error(t("update.wizard.error.requiresTty"));
     defaultRuntime.exit(1);
     return;
   }
@@ -64,34 +64,34 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
   });
 
   const pickedChannel = await selectStyled({
-    message: "Update channel",
+    message: t("ui.text.updateChannel"),
     options: [
       {
         value: "keep",
-        label: `Keep current (${channelInfo.channel})`,
+        label: t("update.wizard.option.keepCurrent", { channel: channelInfo.channel }),
         hint: channelLabel,
       },
       {
         value: "stable",
-        label: "Stable",
-        hint: "Tagged releases (npm latest)",
+        label: t("ui.text.stable"),
+        hint: t("ui.text.npmLatest"),
       },
       {
         value: "beta",
-        label: "Beta",
-        hint: "Prereleases (npm beta)",
+        label: t("ui.text.beta"),
+        hint: t("ui.text.npmBeta"),
       },
       {
         value: "dev",
-        label: "Dev",
-        hint: "Git main",
+        label: t("ui.text.dev"),
+        hint: t("ui.text.gitMain"),
       },
     ],
     initialValue: "keep",
   });
 
   if (isCancel(pickedChannel)) {
-    defaultRuntime.log(theme.muted("Update cancelled."));
+    defaultRuntime.log(theme.muted(t("ui.text.updateCancelled")));
     defaultRuntime.exit(0);
     return;
   }
@@ -106,22 +106,18 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
       if (dirExists) {
         const empty = await isEmptyDir(gitDir);
         if (!empty) {
-          defaultRuntime.error(
-            `CRAWCLAW_GIT_DIR points at a non-git directory: ${gitDir}. Set CRAWCLAW_GIT_DIR to an empty folder or a crawclaw checkout.`,
-          );
+          defaultRuntime.error(t("update.wizard.error.nonGitDir", { gitDir }));
           defaultRuntime.exit(1);
           return;
         }
       }
 
       const ok = await confirm({
-        message: stylePromptMessage(
-          `Create a git checkout at ${gitDir}? (override via CRAWCLAW_GIT_DIR)`,
-        ),
+        message: stylePromptMessage(t("update.wizard.prompt.createGitCheckout", { gitDir })),
         initialValue: true,
       });
       if (isCancel(ok) || !ok) {
-        defaultRuntime.log(theme.muted("Update cancelled."));
+        defaultRuntime.log(theme.muted(t("ui.text.updateCancelled")));
         defaultRuntime.exit(0);
         return;
       }
@@ -129,11 +125,11 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
   }
 
   const restart = await confirm({
-    message: stylePromptMessage("Restart the gateway service after update?"),
+    message: stylePromptMessage(t("ui.text.restartGatewayAfterUpdate")),
     initialValue: true,
   });
   if (isCancel(restart)) {
-    defaultRuntime.log(theme.muted("Update cancelled."));
+    defaultRuntime.log(theme.muted(t("ui.text.updateCancelled")));
     defaultRuntime.exit(0);
     return;
   }

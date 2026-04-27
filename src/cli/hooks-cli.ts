@@ -17,7 +17,7 @@ import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { shortenHomePath } from "../utils.js";
 import { formatCliCommand } from "./command-format.js";
-import { createCliTranslator } from "./i18n/index.js";
+import { createCliTranslator, getActiveCliLocale } from "./i18n/index.js";
 import { runPluginInstallCommand } from "./plugins-install-command.js";
 import { runPluginUpdateCommand } from "./plugins-update-command.js";
 import { getProgramContext } from "./program/program-context.js";
@@ -54,22 +54,30 @@ function buildHooksReport(config: CrawClawConfig): HookStatusReport {
   return buildWorkspaceHookStatus(workspaceDir, { config, entries });
 }
 
+function getHooksTranslator() {
+  return createCliTranslator(getActiveCliLocale());
+}
+
 function resolveHookForToggle(
   report: HookStatusReport,
   hookName: string,
   opts?: { requireEligible?: boolean },
 ): HookStatusEntry {
+  const t = getHooksTranslator();
   const hook = report.hooks.find((h) => h.name === hookName);
   if (!hook) {
-    throw new Error(`Hook "${hookName}" not found`);
+    throw new Error(t("hooks.runtime.error.notFound", { hook: hookName }));
   }
   if (hook.managedByPlugin) {
     throw new Error(
-      `Hook "${hookName}" is managed by plugin "${hook.pluginId ?? "unknown"}" and cannot be enabled/disabled.`,
+      t("hooks.runtime.error.managedByPlugin", {
+        hook: hookName,
+        pluginId: hook.pluginId ?? "unknown",
+      }),
     );
   }
   if (opts?.requireEligible && !hook.requirementsSatisfied) {
-    throw new Error(`Hook "${hookName}" is not eligible (missing requirements)`);
+    throw new Error(t("hooks.runtime.error.notEligible", { hook: hookName }));
   }
   return hook;
 }
@@ -99,13 +107,14 @@ function buildConfigWithHookEnabled(params: {
 }
 
 function formatHookStatus(hook: HookStatusEntry): string {
+  const t = getHooksTranslator();
   if (hook.loadable) {
-    return theme.success("✓ ready");
+    return theme.success(`✓ ${t("hooks.runtime.status.ready")}`);
   }
   if (!hook.enabledByConfig) {
-    return theme.warn("⏸ disabled");
+    return theme.warn(`⏸ ${t("hooks.runtime.status.disabled")}`);
   }
-  return theme.error("✗ missing");
+  return theme.error(`✗ ${t("hooks.runtime.status.missing")}`);
 }
 
 function formatHookName(hook: HookStatusEntry): string {
@@ -141,8 +150,9 @@ function formatHookMissingSummary(hook: HookStatusEntry): string {
 }
 
 function exitHooksCliWithError(err: unknown): never {
+  const t = getHooksTranslator();
   defaultRuntime.error(
-    `${theme.error("Error:")} ${err instanceof Error ? err.message : String(err)}`,
+    `${theme.error(t("hooks.runtime.label.error"))} ${err instanceof Error ? err.message : String(err)}`,
   );
   process.exit(1);
 }
@@ -167,6 +177,7 @@ async function runHooksCliAction(action: () => Promise<void> | void): Promise<vo
  * Format the hooks list output
  */
 export function formatHooksList(report: HookStatusReport, opts: HooksListOptions): string {
+  const t = getHooksTranslator();
   const hooks = opts.eligible ? report.hooks.filter((h) => h.loadable) : report.hooks;
 
   if (opts.json) {
@@ -196,8 +207,10 @@ export function formatHooksList(report: HookStatusReport, opts: HooksListOptions
 
   if (hooks.length === 0) {
     const message = opts.eligible
-      ? `No eligible hooks found. Run \`${formatCliCommand("crawclaw hooks list")}\` to see all hooks.`
-      : "No hooks found.";
+      ? t("hooks.runtime.empty.eligible", {
+          command: formatCliCommand("crawclaw hooks list"),
+        })
+      : t("hooks.runtime.empty.all");
     return message;
   }
 
@@ -206,27 +219,32 @@ export function formatHooksList(report: HookStatusReport, opts: HooksListOptions
   const rows = hooks.map((hook) => {
     const missing = formatHookMissingSummary(hook);
     return {
-      Status: formatHookStatus(hook),
-      Hook: formatHookName(hook),
-      Description: theme.muted(hook.description),
-      Source: formatHookSource(hook),
-      Missing: missing ? theme.warn(missing) : "",
+      status: formatHookStatus(hook),
+      hook: formatHookName(hook),
+      description: theme.muted(hook.description),
+      source: formatHookSource(hook),
+      missing: missing ? theme.warn(missing) : "",
     };
   });
 
   const columns = [
-    { key: "Status", header: "Status", minWidth: 10 },
-    { key: "Hook", header: "Hook", minWidth: 18, flex: true },
-    { key: "Description", header: "Description", minWidth: 24, flex: true },
-    { key: "Source", header: "Source", minWidth: 12, flex: true },
+    { key: "status", header: t("table.header.status"), minWidth: 10 },
+    { key: "hook", header: t("table.header.hook"), minWidth: 18, flex: true },
+    { key: "description", header: t("table.header.description"), minWidth: 24, flex: true },
+    { key: "source", header: t("table.header.source"), minWidth: 12, flex: true },
   ];
   if (opts.verbose) {
-    columns.push({ key: "Missing", header: "Missing", minWidth: 18, flex: true });
+    columns.push({ key: "missing", header: t("table.header.missing"), minWidth: 18, flex: true });
   }
 
   const lines: string[] = [];
   lines.push(
-    `${theme.heading("Hooks")} ${theme.muted(`(${eligible.length}/${hooks.length} ready)`)}`,
+    `${theme.heading(t("table.header.hooks"))} ${theme.muted(
+      t("hooks.runtime.summary.readyCount", {
+        ready: eligible.length,
+        total: hooks.length,
+      }),
+    )}`,
   );
   lines.push(
     renderTable({
@@ -246,13 +264,17 @@ export function formatHookInfo(
   hookName: string,
   opts: HookInfoOptions,
 ): string {
+  const t = getHooksTranslator();
   const hook = report.hooks.find((h) => h.name === hookName || h.hookKey === hookName);
 
   if (!hook) {
     if (opts.json) {
       return JSON.stringify({ error: "not found", hook: hookName }, null, 2);
     }
-    return `Hook "${hookName}" not found. Run \`${formatCliCommand("crawclaw hooks list")}\` to see available hooks.`;
+    return t("hooks.runtime.error.notFoundWithList", {
+      hook: hookName,
+      command: formatCliCommand("crawclaw hooks list"),
+    });
   }
 
   if (opts.json) {
@@ -270,10 +292,10 @@ export function formatHookInfo(
   const lines: string[] = [];
   const emoji = hook.emoji ?? "🔗";
   const status = hook.loadable
-    ? theme.success("✓ Ready")
+    ? theme.success(`✓ ${t("hooks.runtime.status.infoReady")}`)
     : !hook.enabledByConfig
-      ? theme.warn("⏸ Disabled")
-      : theme.error("✗ Missing requirements");
+      ? theme.warn(`⏸ ${t("hooks.runtime.status.infoDisabled")}`)
+      : theme.error(`✗ ${t("hooks.runtime.status.infoMissingRequirements")}`);
 
   lines.push(`${emoji} ${theme.heading(hook.name)} ${status}`);
   lines.push("");
@@ -281,25 +303,33 @@ export function formatHookInfo(
   lines.push("");
 
   // Details
-  lines.push(theme.heading("Details:"));
+  lines.push(theme.heading(t("hooks.runtime.section.details")));
   if (hook.managedByPlugin) {
-    lines.push(`${theme.muted("  Source:")} ${hook.source} (${hook.pluginId ?? "unknown"})`);
+    lines.push(
+      `${theme.muted(`  ${t("table.header.source")}:`)} ${hook.source} (${hook.pluginId ?? "unknown"})`,
+    );
   } else {
-    lines.push(`${theme.muted("  Source:")} ${hook.source}`);
+    lines.push(`${theme.muted(`  ${t("table.header.source")}:`)} ${hook.source}`);
   }
-  lines.push(`${theme.muted("  Path:")} ${shortenHomePath(hook.filePath)}`);
-  lines.push(`${theme.muted("  Handler:")} ${shortenHomePath(hook.handlerPath)}`);
+  lines.push(
+    `${theme.muted(`  ${t("hooks.runtime.label.path")}:`)} ${shortenHomePath(hook.filePath)}`,
+  );
+  lines.push(
+    `${theme.muted(`  ${t("hooks.runtime.label.handler")}:`)} ${shortenHomePath(hook.handlerPath)}`,
+  );
   if (hook.homepage) {
-    lines.push(`${theme.muted("  Homepage:")} ${hook.homepage}`);
+    lines.push(`${theme.muted(`  ${t("hooks.runtime.label.homepage")}:`)} ${hook.homepage}`);
   }
   if (hook.events.length > 0) {
-    lines.push(`${theme.muted("  Events:")} ${hook.events.join(", ")}`);
+    lines.push(`${theme.muted(`  ${t("hooks.runtime.label.events")}:`)} ${hook.events.join(", ")}`);
   }
   if (hook.managedByPlugin) {
-    lines.push(theme.muted("  Managed by plugin; enable/disable via hooks CLI not available."));
+    lines.push(theme.muted(`  ${t("hooks.runtime.info.managedByPlugin")}`));
   }
   if (hook.blockedReason) {
-    lines.push(`${theme.muted("  Blocked reason:")} ${hook.blockedReason}`);
+    lines.push(
+      `${theme.muted(`  ${t("hooks.runtime.label.blockedReason")}:`)} ${hook.blockedReason}`,
+    );
   }
 
   // Requirements
@@ -312,40 +342,50 @@ export function formatHookInfo(
 
   if (hasRequirements) {
     lines.push("");
-    lines.push(theme.heading("Requirements:"));
+    lines.push(theme.heading(t("hooks.runtime.section.requirements")));
     if (hook.requirements.bins.length > 0) {
       const binsStatus = hook.requirements.bins.map((bin) => {
         const missing = hook.missing.bins.includes(bin);
         return missing ? theme.error(`✗ ${bin}`) : theme.success(`✓ ${bin}`);
       });
-      lines.push(`${theme.muted("  Binaries:")} ${binsStatus.join(", ")}`);
+      lines.push(
+        `${theme.muted(`  ${t("hooks.runtime.label.binaries")}:`)} ${binsStatus.join(", ")}`,
+      );
     }
     if (hook.requirements.anyBins.length > 0) {
       const anyBinsStatus =
         hook.missing.anyBins.length > 0
-          ? theme.error(`✗ (any of: ${hook.requirements.anyBins.join(", ")})`)
-          : theme.success(`✓ (any of: ${hook.requirements.anyBins.join(", ")})`);
-      lines.push(`${theme.muted("  Any binary:")} ${anyBinsStatus}`);
+          ? theme.error(
+              `✗ (${t("hooks.runtime.label.anyOf")}: ${hook.requirements.anyBins.join(", ")})`,
+            )
+          : theme.success(
+              `✓ (${t("hooks.runtime.label.anyOf")}: ${hook.requirements.anyBins.join(", ")})`,
+            );
+      lines.push(`${theme.muted(`  ${t("hooks.runtime.label.anyBinary")}:`)} ${anyBinsStatus}`);
     }
     if (hook.requirements.env.length > 0) {
       const envStatus = hook.requirements.env.map((env) => {
         const missing = hook.missing.env.includes(env);
         return missing ? theme.error(`✗ ${env}`) : theme.success(`✓ ${env}`);
       });
-      lines.push(`${theme.muted("  Environment:")} ${envStatus.join(", ")}`);
+      lines.push(
+        `${theme.muted(`  ${t("hooks.runtime.label.environment")}:`)} ${envStatus.join(", ")}`,
+      );
     }
     if (hook.requirements.config.length > 0) {
       const configStatus = hook.configChecks.map((check) => {
         return check.satisfied ? theme.success(`✓ ${check.path}`) : theme.error(`✗ ${check.path}`);
       });
-      lines.push(`${theme.muted("  Config:")} ${configStatus.join(", ")}`);
+      lines.push(
+        `${theme.muted(`  ${t("hooks.runtime.label.config")}:`)} ${configStatus.join(", ")}`,
+      );
     }
     if (hook.requirements.os.length > 0) {
       const osStatus =
         hook.missing.os.length > 0
           ? theme.error(`✗ (${hook.requirements.os.join(", ")})`)
           : theme.success(`✓ (${hook.requirements.os.join(", ")})`);
-      lines.push(`${theme.muted("  OS:")} ${osStatus}`);
+      lines.push(`${theme.muted(`  ${t("hooks.runtime.label.os")}:`)} ${osStatus}`);
     }
   }
 
@@ -356,6 +396,7 @@ export function formatHookInfo(
  * Format check output
  */
 export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptions): string {
+  const t = getHooksTranslator();
   if (opts.json) {
     const eligible = report.hooks.filter((h) => h.loadable);
     const notEligible = report.hooks.filter((h) => !h.loadable);
@@ -382,15 +423,15 @@ export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptio
   const notEligible = report.hooks.filter((h) => !h.loadable);
 
   const lines: string[] = [];
-  lines.push(theme.heading("Hooks Status"));
+  lines.push(theme.heading(t("hooks.runtime.heading.status")));
   lines.push("");
-  lines.push(`${theme.muted("Total hooks:")} ${report.hooks.length}`);
-  lines.push(`${theme.success("Ready:")} ${eligible.length}`);
-  lines.push(`${theme.warn("Not ready:")} ${notEligible.length}`);
+  lines.push(`${theme.muted(`${t("hooks.runtime.label.totalHooks")}:`)} ${report.hooks.length}`);
+  lines.push(`${theme.success(`${t("hooks.runtime.label.ready")}:`)} ${eligible.length}`);
+  lines.push(`${theme.warn(`${t("hooks.runtime.label.notReady")}:`)} ${notEligible.length}`);
 
   if (notEligible.length > 0) {
     lines.push("");
-    lines.push(theme.heading("Hooks not ready:"));
+    lines.push(theme.heading(t("hooks.runtime.heading.notReady")));
     for (const hook of notEligible) {
       const reasons = [];
       if (hook.blockedReason && hook.blockedReason !== "missing requirements") {
@@ -419,6 +460,7 @@ export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptio
 }
 
 export async function enableHook(hookName: string): Promise<void> {
+  const t = getHooksTranslator();
   const snapshot = await readConfigFileSnapshot();
   const config = (snapshot.sourceConfig ?? snapshot.runtimeConfig) as CrawClawConfig;
   const hook = resolveHookForToggle(buildHooksReport(config), hookName, { requireEligible: true });
@@ -434,11 +476,12 @@ export async function enableHook(hookName: string): Promise<void> {
     ...(snapshot.hash !== undefined ? { baseHash: snapshot.hash } : {}),
   });
   defaultRuntime.log(
-    `${theme.success("✓")} Enabled hook: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
+    `${theme.success("✓")} ${t("hooks.runtime.action.enabled")}: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
   );
 }
 
 export async function disableHook(hookName: string): Promise<void> {
+  const t = getHooksTranslator();
   const snapshot = await readConfigFileSnapshot();
   const config = (snapshot.sourceConfig ?? snapshot.runtimeConfig) as CrawClawConfig;
   const hook = resolveHookForToggle(buildHooksReport(config), hookName);
@@ -449,7 +492,7 @@ export async function disableHook(hookName: string): Promise<void> {
     ...(snapshot.hash !== undefined ? { baseHash: snapshot.hash } : {}),
   });
   defaultRuntime.log(
-    `${theme.warn("⏸")} Disabled hook: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
+    `${theme.warn("⏸")} ${t("hooks.runtime.action.disabled")}: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
   );
 }
 
@@ -527,9 +570,7 @@ export function registerHooksCli(program: Command): void {
     .option("-l, --link", t("command.hooks.install.option.link"), false)
     .option("--pin", t("command.hooks.install.option.pin"), false)
     .action(async (raw: string, opts: { link?: boolean; pin?: boolean }) => {
-      defaultRuntime.log(
-        theme.warn("`crawclaw hooks install` is deprecated; use `crawclaw plugins install`."),
-      );
+      defaultRuntime.log(theme.warn(getHooksTranslator()("hooks.runtime.deprecated.install")));
       await runPluginInstallCommand({ raw, opts });
     });
 
@@ -540,9 +581,7 @@ export function registerHooksCli(program: Command): void {
     .option("--all", t("command.hooks.update.option.all"), false)
     .option("--dry-run", t("command.hooks.update.option.dryRun"), false)
     .action(async (id: string | undefined, opts: HooksUpdateOptions) => {
-      defaultRuntime.log(
-        theme.warn("`crawclaw hooks update` is deprecated; use `crawclaw plugins update`."),
-      );
+      defaultRuntime.log(theme.warn(t("hooks.runtime.deprecated.update")));
       await runPluginUpdateCommand({ id, opts });
     });
 

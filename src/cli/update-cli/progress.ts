@@ -4,37 +4,41 @@ import type {
   UpdateRunResult,
   UpdateStepInfo,
   UpdateStepProgress,
+  UpdateStepResult,
 } from "../../infra/update-runner.js";
 import { defaultRuntime } from "../../runtime.js";
 import { theme } from "../../terminal/theme.js";
-import { translateActiveCliText } from "../i18n/text.js";
+import { createCliTranslator, getActiveCliLocale } from "../i18n/index.js";
 import type { UpdateCommandOptions } from "./shared.js";
 
-const STEP_LABELS: Record<string, string> = {
-  "clean check": "Working directory is clean",
-  "upstream check": "Upstream branch exists",
-  "git fetch": "Fetching latest changes",
-  "git rebase": "Rebasing onto target commit",
-  "git rev-parse @{upstream}": "Resolving upstream commit",
-  "git rev-list": "Enumerating candidate commits",
-  "git clone": "Cloning git checkout",
-  "preflight worktree": "Preparing preflight worktree",
-  "preflight cleanup": "Cleaning preflight worktree",
-  "deps install": "Installing dependencies",
-  build: "Building",
-  "crawclaw doctor entry": "Checking doctor entrypoint",
-  "crawclaw doctor": "Running doctor checks",
-  "git rev-parse HEAD (after)": "Verifying update",
-  "global update": "Updating via package manager",
-  "global update (omit optional)": "Retrying update without optional deps",
-  "global install": "Installing global package",
+const STEP_LABEL_KEYS: Record<string, string> = {
+  "clean check": "update.progress.step.cleanCheck",
+  "upstream check": "update.progress.step.upstreamCheck",
+  "git fetch": "update.progress.step.gitFetch",
+  "git rebase": "update.progress.step.gitRebase",
+  "git rev-parse @{upstream}": "update.progress.step.resolveUpstreamCommit",
+  "git rev-list": "update.progress.step.enumerateCandidateCommits",
+  "git clone": "update.progress.step.gitClone",
+  "preflight worktree": "update.progress.step.preflightWorktree",
+  "preflight cleanup": "update.progress.step.preflightCleanup",
+  "deps install": "update.progress.step.depsInstall",
+  build: "update.progress.step.build",
+  "crawclaw doctor entry": "update.progress.step.doctorEntrypoint",
+  "crawclaw doctor": "update.progress.step.doctor",
+  "git rev-parse HEAD (after)": "update.progress.step.verifyUpdate",
+  "global update": "update.progress.step.globalUpdate",
+  "global update (omit optional)": "update.progress.step.globalUpdateOmitOptional",
+  "global install": "update.progress.step.globalInstall",
 };
 
-function getStepLabel(step: UpdateStepInfo): string {
-  return translateActiveCliText(STEP_LABELS[step.name] ?? step.name);
+function getStepLabel(step: Pick<UpdateStepInfo, "name"> | Pick<UpdateStepResult, "name">): string {
+  const t = createCliTranslator(getActiveCliLocale());
+  const key = STEP_LABEL_KEYS[step.name];
+  return key ? t(key) : step.name;
 }
 
 export function inferUpdateFailureHints(result: UpdateRunResult): string[] {
+  const t = createCliTranslator(getActiveCliLocale());
   if (result.status !== "error" || result.mode !== "npm") {
     return [];
   }
@@ -47,20 +51,16 @@ export function inferUpdateFailureHints(result: UpdateRunResult): string[] {
   const hints: string[] = [];
 
   if (failedStep.name.startsWith("global update") && stderr.includes("eacces")) {
-    hints.push(
-      "Detected permission failure (EACCES). Re-run with a writable global prefix or sudo (for system-managed Node installs).",
-    );
-    hints.push("Example: npm config set prefix ~/.local && npm i -g crawclaw@latest");
+    hints.push(t("update.progress.hint.permissionFailure"));
+    hints.push(t("update.progress.hint.permissionExample"));
   }
 
   if (
     failedStep.name.startsWith("global update") &&
     (stderr.includes("node-gyp") || stderr.includes("prebuild"))
   ) {
-    hints.push(
-      "Detected native optional dependency build failure. The updater retries with --omit=optional automatically.",
-    );
-    hints.push("If it still fails: npm i -g crawclaw@latest --omit=optional");
+    hints.push(t("update.progress.hint.nativeOptionalFailure"));
+    hints.push(t("update.progress.hint.nativeOptionalRetry"));
   }
 
   return hints;
@@ -135,6 +135,7 @@ type PrintResultOptions = UpdateCommandOptions & {
 };
 
 export function printResult(result: UpdateRunResult, opts: PrintResultOptions): void {
+  const t = createCliTranslator(getActiveCliLocale());
   if (opts.json) {
     defaultRuntime.writeJson(result);
     return;
@@ -145,31 +146,31 @@ export function printResult(result: UpdateRunResult, opts: PrintResultOptions): 
 
   defaultRuntime.log("");
   defaultRuntime.log(
-    `${theme.heading("Update Result:")} ${statusColor(result.status.toUpperCase())}`,
+    `${theme.heading(t("update.progress.result.title"))} ${statusColor(result.status.toUpperCase())}`,
   );
   if (result.root) {
-    defaultRuntime.log(`  Root: ${theme.muted(result.root)}`);
+    defaultRuntime.log(`  ${t("update.progress.result.root")}: ${theme.muted(result.root)}`);
   }
   if (result.reason) {
-    defaultRuntime.log(`  Reason: ${theme.muted(result.reason)}`);
+    defaultRuntime.log(`  ${t("update.progress.result.reason")}: ${theme.muted(result.reason)}`);
   }
 
   if (result.before?.version || result.before?.sha) {
     const before = result.before.version ?? result.before.sha?.slice(0, 8) ?? "";
-    defaultRuntime.log(`  Before: ${theme.muted(before)}`);
+    defaultRuntime.log(`  ${t("update.progress.result.before")}: ${theme.muted(before)}`);
   }
   if (result.after?.version || result.after?.sha) {
     const after = result.after.version ?? result.after.sha?.slice(0, 8) ?? "";
-    defaultRuntime.log(`  After: ${theme.muted(after)}`);
+    defaultRuntime.log(`  ${t("update.progress.result.after")}: ${theme.muted(after)}`);
   }
 
   if (!opts.hideSteps && result.steps.length > 0) {
     defaultRuntime.log("");
-    defaultRuntime.log(theme.heading("Steps:"));
+    defaultRuntime.log(theme.heading(t("update.progress.result.steps")));
     for (const step of result.steps) {
       const status = formatStepStatus(step.exitCode);
       const duration = theme.muted(`(${formatDurationPrecise(step.durationMs)})`);
-      defaultRuntime.log(`  ${status} ${step.name} ${duration}`);
+      defaultRuntime.log(`  ${status} ${getStepLabel(step)} ${duration}`);
 
       if (step.exitCode !== 0 && step.stderrTail) {
         const lines = step.stderrTail.split("\n").slice(0, 5);
@@ -185,12 +186,14 @@ export function printResult(result: UpdateRunResult, opts: PrintResultOptions): 
   const hints = inferUpdateFailureHints(result);
   if (hints.length > 0) {
     defaultRuntime.log("");
-    defaultRuntime.log(theme.heading("Recovery hints:"));
+    defaultRuntime.log(theme.heading(t("update.progress.result.recoveryHints")));
     for (const hint of hints) {
       defaultRuntime.log(`  - ${theme.warn(hint)}`);
     }
   }
 
   defaultRuntime.log("");
-  defaultRuntime.log(`Total time: ${theme.muted(formatDurationPrecise(result.durationMs))}`);
+  defaultRuntime.log(
+    `${t("update.progress.result.totalTime")}: ${theme.muted(formatDurationPrecise(result.durationMs))}`,
+  );
 }

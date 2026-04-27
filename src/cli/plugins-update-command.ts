@@ -6,6 +6,7 @@ import { parseRegistryNpmSpec } from "../infra/npm-registry-spec.js";
 import { updateNpmInstalledPlugins } from "../plugins/update.js";
 import { defaultRuntime } from "../runtime.js";
 import { theme } from "../terminal/theme.js";
+import { createCliTranslator, getActiveCliLocale } from "./i18n/index.js";
 import {
   extractInstalledNpmHookPackageName,
   extractInstalledNpmPackageName,
@@ -91,6 +92,7 @@ export async function runPluginUpdateCommand(params: {
   id?: string;
   opts: { all?: boolean; dryRun?: boolean };
 }) {
+  const t = createCliTranslator(getActiveCliLocale());
   const sourceSnapshotPromise = readConfigFileSnapshot().catch(() => null);
   const cfg = loadConfig();
   const logger = {
@@ -110,10 +112,10 @@ export async function runPluginUpdateCommand(params: {
 
   if (pluginSelection.pluginIds.length === 0 && hookSelection.hookIds.length === 0) {
     if (params.opts.all) {
-      defaultRuntime.log("No tracked plugins or hook packs to update.");
+      defaultRuntime.log(t("plugins.update.noTracked"));
       return;
     }
-    defaultRuntime.error("Provide a plugin or hook-pack id, or use --all.");
+    defaultRuntime.error(t("plugins.update.provideIdOrAll"));
     return defaultRuntime.exit(1);
   }
 
@@ -127,15 +129,18 @@ export async function runPluginUpdateCommand(params: {
       const specLabel = drift.resolvedSpec ?? drift.spec;
       defaultRuntime.log(
         theme.warn(
-          `Integrity drift detected for "${drift.pluginId}" (${specLabel})` +
-            `\nExpected: ${drift.expectedIntegrity}` +
-            `\nActual:   ${drift.actualIntegrity}`,
+          t("plugins.update.integrityDrift.plugin", {
+            pluginId: drift.pluginId,
+            spec: specLabel,
+          }) +
+            `\n${t("plugins.update.expected")}: ${drift.expectedIntegrity}` +
+            `\n${t("plugins.update.actual")}:   ${drift.actualIntegrity}`,
         ),
       );
       if (drift.dryRun) {
         return true;
       }
-      return await promptYesNo(`Continue updating "${drift.pluginId}" with this artifact?`);
+      return await promptYesNo(t("plugins.update.continuePlugin", { pluginId: drift.pluginId }));
     },
   });
   const hookResult = await updateNpmInstalledHookPacks({
@@ -148,15 +153,18 @@ export async function runPluginUpdateCommand(params: {
       const specLabel = drift.resolvedSpec ?? drift.spec;
       defaultRuntime.log(
         theme.warn(
-          `Integrity drift detected for hook pack "${drift.hookId}" (${specLabel})` +
-            `\nExpected: ${drift.expectedIntegrity}` +
-            `\nActual:   ${drift.actualIntegrity}`,
+          t("plugins.update.integrityDrift.hook", {
+            hookId: drift.hookId,
+            spec: specLabel,
+          }) +
+            `\n${t("plugins.update.expected")}: ${drift.expectedIntegrity}` +
+            `\n${t("plugins.update.actual")}:   ${drift.actualIntegrity}`,
         ),
       );
       if (drift.dryRun) {
         return true;
       }
-      return await promptYesNo(`Continue updating hook pack "${drift.hookId}" with this artifact?`);
+      return await promptYesNo(t("plugins.update.continueHook", { hookId: drift.hookId }));
     },
   });
 
@@ -189,6 +197,6 @@ export async function runPluginUpdateCommand(params: {
       nextConfig: hookResult.config,
       baseHash: (await sourceSnapshotPromise)?.hash,
     });
-    defaultRuntime.log("Restart the gateway to load plugins and hooks.");
+    defaultRuntime.log(t("plugins.update.restartTip"));
   }
 }

@@ -83,30 +83,32 @@ const SERVICE_REFRESH_PATH_ENV_KEYS = [
 ] as const;
 
 const UPDATE_QUIPS = [
-  "Leveled up! New skills unlocked. You're welcome.",
-  "Fresh code, same crab. Miss me?",
-  "Back and better. Did you even notice I was gone?",
-  "Update complete. I learned some new tricks while I was out.",
-  "Upgraded! Now with 23% more sass.",
-  "I've evolved. Try to keep up.",
-  "New version, who dis? Oh right, still me but shinier.",
-  "Patched, polished, and ready to pinch. Let's go.",
-  "The crab has molted. Harder shell, sharper claws.",
-  "Update done! Check the changelog or just trust me, it's good.",
-  "Reborn from the boiling waters of npm. Stronger now.",
-  "I went away and came back smarter. You should try it sometime.",
-  "Update complete. The bugs feared me, so they left.",
-  "New version installed. Old version sends its regards.",
-  "Firmware fresh. Brain wrinkles: increased.",
-  "I've seen things you wouldn't believe. Anyway, I'm updated.",
-  "Back online. The changelog is long but our friendship is longer.",
-  "Upgraded! Peter fixed stuff. Blame him if it breaks.",
-  "Molting complete. Please don't look at my soft shell phase.",
-  "Version bump! Same chaos energy, fewer crashes (probably).",
+  "update.quip.1",
+  "update.quip.2",
+  "update.quip.3",
+  "update.quip.4",
+  "update.quip.5",
+  "update.quip.6",
+  "update.quip.7",
+  "update.quip.8",
+  "update.quip.9",
+  "update.quip.10",
+  "update.quip.11",
+  "update.quip.12",
+  "update.quip.13",
+  "update.quip.14",
+  "update.quip.15",
+  "update.quip.16",
+  "update.quip.17",
+  "update.quip.18",
+  "update.quip.19",
+  "update.quip.20",
 ];
 
 function pickUpdateQuip(): string {
-  return UPDATE_QUIPS[Math.floor(Math.random() * UPDATE_QUIPS.length)] ?? "Update complete.";
+  const t = createCliTranslator(getActiveCliLocale());
+  const key = UPDATE_QUIPS[Math.floor(Math.random() * UPDATE_QUIPS.length)] ?? "update.quip.4";
+  return t(key);
 }
 
 function resolveGatewayInstallEntrypointCandidates(root?: string): string[] {
@@ -122,9 +124,10 @@ function resolveGatewayInstallEntrypointCandidates(root?: string): string[] {
 }
 
 function formatCommandFailure(stdout: string, stderr: string): string {
+  const t = createCliTranslator(getActiveCliLocale());
   const detail = (stderr || stdout).trim();
   if (!detail) {
-    return "command returned a non-zero exit code";
+    return t("update.error.commandNonZero");
   }
   return detail.split("\n").slice(-3).join("\n");
 }
@@ -141,6 +144,7 @@ async function resolvePackageRuntimePreflightError(params: {
   tag: string;
   timeoutMs?: number;
 }): Promise<string | null> {
+  const t = createCliTranslator(getActiveCliLocale());
   if (!canResolveRegistryVersionForPackageTarget(params.tag)) {
     return null;
   }
@@ -161,11 +165,15 @@ async function resolvePackageRuntimePreflightError(params: {
   }
   const targetLabel = status.version ?? target;
   return [
-    `Node ${process.versions.node ?? "unknown"} is too old for ${DEFAULT_PACKAGE_NAME}@${targetLabel}.`,
-    `The requested package requires ${status.nodeEngine}.`,
-    `Upgrade Node to 22.14+ or Node 24, then rerun \`${CLI_NAME} update\`.`,
-    `Bare \`npm i -g ${DEFAULT_PACKAGE_NAME}\` can silently install an older compatible release.`,
-    `After upgrading Node, use \`npm i -g ${DEFAULT_PACKAGE_NAME}@latest\`.`,
+    t("update.error.nodeTooOld.current", {
+      nodeVersion: process.versions.node ?? "unknown",
+      packageName: DEFAULT_PACKAGE_NAME,
+      target: targetLabel,
+    }),
+    t("update.error.nodeTooOld.requires", { nodeEngine: status.nodeEngine ?? "unknown" }),
+    t("update.error.nodeTooOld.upgradeNode", { cliName: CLI_NAME }),
+    t("update.error.nodeTooOld.silentOlderCompatible", { packageName: DEFAULT_PACKAGE_NAME }),
+    t("update.error.nodeTooOld.afterUpgradeInstallLatest", { packageName: DEFAULT_PACKAGE_NAME }),
   ].join("\n");
 }
 
@@ -283,8 +291,12 @@ async function refreshGatewayServiceEnv(params: {
     if (res.code === 0) {
       return;
     }
+    const t = createCliTranslator(getActiveCliLocale());
     throw new Error(
-      `updated install refresh failed (${candidate}): ${formatCommandFailure(res.stdout, res.stderr)}`,
+      t("update.restart.updatedInstallRefreshFailed", {
+        candidate,
+        detail: formatCommandFailure(res.stdout, res.stderr),
+      }),
     );
   }
 
@@ -295,6 +307,7 @@ async function tryInstallShellCompletion(opts: {
   jsonMode: boolean;
   skipPrompt: boolean;
 }): Promise<void> {
+  const t = createCliTranslator(getActiveCliLocale());
   if (opts.jsonMode || !process.stdin.isTTY) {
     return;
   }
@@ -302,7 +315,7 @@ async function tryInstallShellCompletion(opts: {
   const status = await checkShellCompletionStatus(CLI_NAME);
 
   if (status.usesSlowPattern) {
-    defaultRuntime.log(theme.muted("Upgrading shell completion to cached version..."));
+    defaultRuntime.log(theme.muted(t("update.completion.upgradingCached")));
     const cacheGenerated = await ensureCompletionCacheExists(CLI_NAME);
     if (cacheGenerated) {
       await installCompletion(status.shell, true, CLI_NAME);
@@ -311,17 +324,22 @@ async function tryInstallShellCompletion(opts: {
   }
 
   if (status.profileInstalled && !status.cacheExists) {
-    defaultRuntime.log(theme.muted("Regenerating shell completion cache..."));
+    defaultRuntime.log(theme.muted(t("update.completion.regeneratingCache")));
     await ensureCompletionCacheExists(CLI_NAME);
     return;
   }
 
   if (!status.profileInstalled) {
     defaultRuntime.log("");
-    defaultRuntime.log(theme.heading("Shell completion"));
+    defaultRuntime.log(theme.heading(t("update.completion.heading")));
 
     const shouldInstall = await confirm({
-      message: stylePromptMessage(`Enable ${status.shell} shell completion for ${CLI_NAME}?`),
+      message: stylePromptMessage(
+        t("update.completion.enablePrompt", {
+          shell: status.shell,
+          cliName: CLI_NAME,
+        }),
+      ),
       initialValue: true,
     });
 
@@ -329,7 +347,9 @@ async function tryInstallShellCompletion(opts: {
       if (!opts.skipPrompt) {
         defaultRuntime.log(
           theme.muted(
-            `Skipped. Run \`${replaceCliName(formatCliCommand("crawclaw completion --install"), CLI_NAME)}\` later to enable.`,
+            t("update.completion.skipped", {
+              command: replaceCliName(formatCliCommand("crawclaw completion --install"), CLI_NAME),
+            }),
           ),
         );
       }
@@ -338,7 +358,7 @@ async function tryInstallShellCompletion(opts: {
 
     const cacheGenerated = await ensureCompletionCacheExists(CLI_NAME);
     if (!cacheGenerated) {
-      defaultRuntime.log(theme.warn("Failed to generate completion cache."));
+      defaultRuntime.log(theme.warn(t("update.completion.generateFailed")));
       return;
     }
 
@@ -525,9 +545,10 @@ async function updatePluginsAfterCoreUpdate(params: {
   configSnapshot: Awaited<ReturnType<typeof readConfigFileSnapshot>>;
   opts: UpdateCommandOptions;
 }): Promise<void> {
+  const t = createCliTranslator(getActiveCliLocale());
   if (!params.configSnapshot.valid) {
     if (!params.opts.json) {
-      defaultRuntime.log(theme.warn("Skipping plugin updates: config is invalid."));
+      defaultRuntime.log(theme.warn(t("update.plugins.skipInvalidConfig")));
     }
     return;
   }
@@ -542,7 +563,7 @@ async function updatePluginsAfterCoreUpdate(params: {
 
   if (!params.opts.json) {
     defaultRuntime.log("");
-    defaultRuntime.log(theme.heading("Updating plugins..."));
+    defaultRuntime.log(theme.heading(t("update.plugins.heading")));
   }
 
   const syncResult = await syncPluginsForUpdateChannel({
@@ -575,19 +596,28 @@ async function updatePluginsAfterCoreUpdate(params: {
     if (list.length <= 6) {
       return list.join(", ");
     }
-    return `${list.slice(0, 6).join(", ")} +${list.length - 6} more`;
+    return t("update.plugins.summary.truncatedList", {
+      items: list.slice(0, 6).join(", "),
+      count: list.length - 6,
+    });
   };
 
   if (syncResult.summary.switchedToBundled.length > 0) {
     defaultRuntime.log(
       theme.muted(
-        `Switched to bundled plugins: ${summarizeList(syncResult.summary.switchedToBundled)}.`,
+        t("update.plugins.switchedToBundled", {
+          plugins: summarizeList(syncResult.summary.switchedToBundled),
+        }),
       ),
     );
   }
   if (syncResult.summary.switchedToNpm.length > 0) {
     defaultRuntime.log(
-      theme.muted(`Restored npm plugins: ${summarizeList(syncResult.summary.switchedToNpm)}.`),
+      theme.muted(
+        t("update.plugins.restoredNpm", {
+          plugins: summarizeList(syncResult.summary.switchedToNpm),
+        }),
+      ),
     );
   }
   for (const warning of syncResult.summary.warnings) {
@@ -603,16 +633,19 @@ async function updatePluginsAfterCoreUpdate(params: {
   const skipped = npmResult.outcomes.filter((entry) => entry.status === "skipped").length;
 
   if (npmResult.outcomes.length === 0) {
-    defaultRuntime.log(theme.muted("No plugin updates needed."));
+    defaultRuntime.log(theme.muted(t("update.plugins.noUpdatesNeeded")));
   } else {
-    const parts = [`${updated} updated`, `${unchanged} unchanged`];
+    const parts = [
+      t("update.plugins.summary.updated", { count: updated }),
+      t("update.plugins.summary.unchanged", { count: unchanged }),
+    ];
     if (failed > 0) {
-      parts.push(`${failed} failed`);
+      parts.push(t("update.plugins.summary.failed", { count: failed }));
     }
     if (skipped > 0) {
-      parts.push(`${skipped} skipped`);
+      parts.push(t("update.plugins.summary.skipped", { count: skipped }));
     }
-    defaultRuntime.log(theme.muted(`npm plugins: ${parts.join(", ")}.`));
+    defaultRuntime.log(theme.muted(t("update.plugins.summary.line", { parts: parts.join(", ") })));
   }
 
   for (const outcome of npmResult.outcomes) {
@@ -632,10 +665,11 @@ async function maybeRestartService(params: {
   restartScriptPath?: string | null;
   invocationCwd?: string;
 }): Promise<void> {
+  const t = createCliTranslator(getActiveCliLocale());
   if (params.shouldRestart) {
     if (!params.opts.json) {
       defaultRuntime.log("");
-      defaultRuntime.log(theme.heading("Restarting service..."));
+      defaultRuntime.log(theme.heading(t("update.restart.heading")));
     }
 
     try {
@@ -652,7 +686,7 @@ async function maybeRestartService(params: {
           // Always log the refresh failure so callers can detect it (issue #56772).
           // Previously this was silently suppressed in --json mode, hiding the root
           // cause and preventing auto-update callers from detecting the failure.
-          const message = `Failed to refresh gateway service environment from updated install: ${String(err)}`;
+          const message = t("update.restart.refreshFailed", { error: String(err) });
           if (params.opts.json) {
             defaultRuntime.error(message);
           } else {
@@ -668,7 +702,7 @@ async function maybeRestartService(params: {
       }
 
       if (!params.opts.json && restarted) {
-        defaultRuntime.log(theme.success("Daemon restarted successfully."));
+        defaultRuntime.log(theme.success(t("update.restart.daemonRestartedSuccessfully")));
         defaultRuntime.log("");
         process.env.CRAWCLAW_UPDATE_IN_PROGRESS = "1";
         try {
@@ -678,7 +712,7 @@ async function maybeRestartService(params: {
             nonInteractive: !interactiveDoctor,
           });
         } catch (err) {
-          defaultRuntime.log(theme.warn(`Doctor failed: ${String(err)}`));
+          defaultRuntime.log(theme.warn(t("update.restart.doctorFailed", { error: String(err) })));
         } finally {
           delete process.env.CRAWCLAW_UPDATE_IN_PROGRESS;
         }
@@ -694,7 +728,9 @@ async function maybeRestartService(params: {
           if (!params.opts.json) {
             defaultRuntime.log(
               theme.warn(
-                `Found stale gateway process(es) after restart: ${health.staleGatewayPids.join(", ")}. Cleaning up...`,
+                t("update.restart.foundStaleProcesses", {
+                  pids: health.staleGatewayPids.join(", "),
+                }),
               ),
             );
           }
@@ -707,15 +743,20 @@ async function maybeRestartService(params: {
         }
 
         if (health.healthy) {
-          defaultRuntime.log(theme.success("Daemon restart completed."));
+          defaultRuntime.log(theme.success(t("update.restart.completed")));
         } else {
-          defaultRuntime.log(theme.warn("Gateway did not become healthy after restart."));
+          defaultRuntime.log(theme.warn(t("update.restart.gatewayNotHealthy")));
           for (const line of renderRestartDiagnostics(health)) {
             defaultRuntime.log(theme.muted(line));
           }
           defaultRuntime.log(
             theme.muted(
-              `Run \`${replaceCliName(formatCliCommand("crawclaw gateway status --deep"), CLI_NAME)}\` for details.`,
+              t("update.restart.runStatusDeep", {
+                command: replaceCliName(
+                  formatCliCommand("crawclaw gateway status --deep"),
+                  CLI_NAME,
+                ),
+              }),
             ),
           );
         }
@@ -723,10 +764,12 @@ async function maybeRestartService(params: {
       }
     } catch (err) {
       if (!params.opts.json) {
-        defaultRuntime.log(theme.warn(`Daemon restart failed: ${String(err)}`));
+        defaultRuntime.log(theme.warn(t("update.restart.failed", { error: String(err) })));
         defaultRuntime.log(
           theme.muted(
-            `You may need to restart the service manually: ${replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME)}`,
+            t("update.restart.manualTip", {
+              command: replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME),
+            }),
           ),
         );
       }
@@ -739,13 +782,18 @@ async function maybeRestartService(params: {
     if (params.result.mode === "npm" || params.result.mode === "pnpm") {
       defaultRuntime.log(
         theme.muted(
-          `Tip: Run \`${replaceCliName(formatCliCommand("crawclaw doctor"), CLI_NAME)}\`, then \`${replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME)}\` to apply updates to a running gateway.`,
+          t("update.tip.doctorThenRestart", {
+            doctor: replaceCliName(formatCliCommand("crawclaw doctor"), CLI_NAME),
+            restart: replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME),
+          }),
         ),
       );
     } else {
       defaultRuntime.log(
         theme.muted(
-          `Tip: Run \`${replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME)}\` to apply updates to a running gateway.`,
+          t("update.tip.restartOnly", {
+            restart: replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME),
+          }),
         ),
       );
     }
@@ -754,6 +802,7 @@ async function maybeRestartService(params: {
 
 export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   suppressDeprecations();
+  const t = createCliTranslator(getActiveCliLocale());
   const invocationCwd = tryResolveInvocationCwd();
 
   const timeoutMs = parseTimeoutMsOrExit(opts.timeout);
@@ -777,13 +826,13 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 
   const requestedChannel = normalizeUpdateChannel(opts.channel);
   if (opts.channel && !requestedChannel) {
-    defaultRuntime.error(`--channel must be "stable", "beta", or "dev" (got "${opts.channel}")`);
+    defaultRuntime.error(t("update.error.invalidChannel", { channel: opts.channel }));
     defaultRuntime.exit(1);
     return;
   }
   if (opts.channel && !configSnapshot.valid) {
     const issues = formatConfigIssueLines(configSnapshot.issues, "-");
-    defaultRuntime.error(["Config is invalid; cannot set update channel.", ...issues].join("\n"));
+    defaultRuntime.error([t("update.error.invalidConfigSetChannel"), ...issues].join("\n"));
     defaultRuntime.exit(1);
     return;
   }
@@ -904,8 +953,8 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     if (!process.stdin.isTTY || opts.json) {
       defaultRuntime.error(
         [
-          "Downgrade confirmation required.",
-          "Downgrading can break configuration. Re-run in a TTY to confirm.",
+          t("update.error.downgradeConfirmationRequired"),
+          t("update.error.downgradeRequiresTty"),
         ].join("\n"),
       );
       defaultRuntime.exit(1);
@@ -913,14 +962,17 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     }
 
     const targetLabel = targetVersion ?? `${tag} (unknown)`;
-    const message = `Downgrading from ${currentVersion} to ${targetLabel} can break configuration. Continue?`;
+    const message = t("update.prompt.downgradeContinue", {
+      currentVersion: currentVersion ?? "unknown",
+      targetVersion: targetLabel,
+    });
     const ok = await confirm({
       message: stylePromptMessage(message),
       initialValue: false,
     });
     if (isCancel(ok) || !ok) {
       if (!opts.json) {
-        defaultRuntime.log(theme.muted("Update cancelled."));
+        defaultRuntime.log(theme.muted(t("ui.text.updateCancelled")));
       }
       defaultRuntime.exit(0);
       return;
@@ -928,9 +980,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   }
 
   if (updateInstallKind === "git" && opts.tag && !opts.json) {
-    defaultRuntime.log(
-      theme.muted("Note: --tag applies to npm installs only; git updates ignore it."),
-    );
+    defaultRuntime.log(theme.muted(t("update.note.tagNpmOnly")));
   }
 
   if (updateInstallKind === "package") {
@@ -947,7 +997,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 
   const showProgress = !opts.json && process.stdout.isTTY;
   if (!opts.json) {
-    defaultRuntime.log(theme.heading("Updating CrawClaw..."));
+    defaultRuntime.log(theme.heading(t("update.heading.updating")));
     defaultRuntime.log("");
   }
 
@@ -1006,21 +1056,23 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 
   if (result.status === "skipped") {
     if (result.reason === "dirty") {
-      defaultRuntime.log(
-        theme.warn(
-          "Skipped: working directory has uncommitted changes. Commit or stash them first.",
-        ),
-      );
+      defaultRuntime.log(theme.warn(t("update.skip.dirty")));
     }
     if (result.reason === "not-git-install") {
       defaultRuntime.log(
         theme.warn(
-          `Skipped: this CrawClaw install isn't a git checkout, and the package manager couldn't be detected. Update via your package manager, then run \`${replaceCliName(formatCliCommand("crawclaw doctor"), CLI_NAME)}\` and \`${replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME)}\`.`,
+          t("update.skip.notGitInstall", {
+            doctor: replaceCliName(formatCliCommand("crawclaw doctor"), CLI_NAME),
+            restart: replaceCliName(formatCliCommand("crawclaw gateway restart"), CLI_NAME),
+          }),
         ),
       );
       defaultRuntime.log(
         theme.muted(
-          `Examples: \`${replaceCliName("npm i -g crawclaw@latest", CLI_NAME)}\` or \`${replaceCliName("pnpm add -g crawclaw@latest", CLI_NAME)}\``,
+          t("update.skip.examples", {
+            npm: replaceCliName("npm i -g crawclaw@latest", CLI_NAME),
+            pnpm: replaceCliName("pnpm add -g crawclaw@latest", CLI_NAME),
+          }),
         ),
       );
     }
@@ -1051,7 +1103,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       config: asRuntimeConfig(next),
     };
     if (!opts.json) {
-      defaultRuntime.log(theme.muted(`Update channel set to ${requestedChannel}.`));
+      defaultRuntime.log(theme.muted(t("update.channel.set", { channel: requestedChannel })));
     }
   }
 

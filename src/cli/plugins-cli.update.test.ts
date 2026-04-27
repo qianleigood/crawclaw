@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
+import { setActiveCliLocale } from "./i18n/index.js";
 import {
   loadConfig,
   resetPluginsCliTestState,
@@ -14,6 +15,7 @@ import {
 describe("plugins cli update", () => {
   beforeEach(() => {
     resetPluginsCliTestState();
+    setActiveCliLocale("en");
   });
 
   it("updates tracked hook packs through plugins update", async () => {
@@ -102,6 +104,23 @@ describe("plugins cli update", () => {
     expect(updateNpmInstalledPlugins).not.toHaveBeenCalled();
     expect(updateNpmInstalledHookPacks).not.toHaveBeenCalled();
     expect(runtimeLogs.at(-1)).toBe("No tracked plugins or hook packs to update.");
+  });
+
+  it("localizes update runtime output in zh-CN", async () => {
+    setActiveCliLocale("zh-CN");
+    loadConfig.mockReturnValue({
+      plugins: {
+        installs: {},
+      },
+    } as CrawClawConfig);
+
+    await runPluginsCommand(["plugins", "update", "--all"]);
+    await expect(runPluginsCommand(["plugins", "update"])).rejects.toThrow("__exit__:1");
+
+    expect(
+      runtimeLogs.some((line) => line.includes("没有已跟踪的 plugins 或 hook packs 可更新。")),
+    ).toBe(true);
+    expect(runtimeErrors.some((line) => line.includes("请提供 plugin 或 hook-pack id"))).toBe(true);
   });
 
   it("maps an explicit unscoped npm dist-tag update to the tracked plugin id", async () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { UpdateRunResult } from "../../infra/update-runner.js";
+import { setActiveCliLocale } from "../i18n/index.js";
 import { inferUpdateFailureHints } from "./progress.js";
 
 function makeResult(
@@ -40,6 +41,20 @@ describe("inferUpdateFailureHints", () => {
     const result = makeResult("global update", "node-pre-gyp ERR!\nnode-gyp rebuild failed");
     const hints = inferUpdateFailureHints(result);
     expect(hints.join("\n")).toContain("--omit=optional");
+  });
+
+  it("localizes failure hints in zh-CN", () => {
+    setActiveCliLocale("zh-CN");
+    try {
+      const result = makeResult(
+        "global update",
+        "npm ERR! code EACCES\nnpm ERR! Error: EACCES: permission denied",
+      );
+      const hints = inferUpdateFailureHints(result);
+      expect(hints.join("\n")).toContain("检测到权限错误");
+    } finally {
+      setActiveCliLocale("en");
+    }
   });
 
   it("does not return npm hints for non-npm install modes", () => {
