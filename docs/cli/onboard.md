@@ -12,11 +12,13 @@ Interactive onboarding for local or remote Gateway setup.
 Use `--output-preset quiet|balanced|operator` to preselect the default reply
 presentation profile during onboarding.
 
-Onboarding includes a Memory / Experience decision for NotebookLM-backed
-experience recall. If you enable it, onboarding asks for the NotebookLM CLI
-command and notebook id so the provider can be checked immediately. If that
-provider check recommends `crawclaw memory login`, onboarding can offer to run
-the login flow near the end.
+Onboarding includes a Memory / Experience step for local experience memory.
+The local experience index is the fallback path and does not require
+NotebookLM. You can optionally add NotebookLM as an extra experience provider;
+if enabled, onboarding asks for the NotebookLM CLI command and notebook id so
+the provider can be checked immediately. If that provider check recommends
+`crawclaw memory login`, onboarding can offer to run the login flow near the
+end.
 
 Legacy onboarding auth-choice aliases such as `oauth` and `anthropic-cli` have
 been removed. Use the current `--auth-choice` values or the dedicated

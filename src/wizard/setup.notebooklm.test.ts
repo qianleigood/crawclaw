@@ -50,6 +50,77 @@ describe("setup.notebooklm", () => {
     expect(prompter.note).not.toHaveBeenCalled();
   });
 
+  it("enables local experience memory without NotebookLM", async () => {
+    const prompter = buildWizardPrompter({
+      confirm: vi.fn(async (params) => params.message === "Enable local experience memory?"),
+      text: vi.fn(async () => ""),
+    });
+
+    const nextConfig = await promptNotebookLmEnablement({
+      config: {},
+      prompter,
+    });
+
+    expect(prompter.confirm).toHaveBeenCalledWith({
+      message: "Enable local experience memory?",
+      initialValue: true,
+    });
+    expect(prompter.confirm).toHaveBeenCalledWith({
+      message: "Add NotebookLM as an optional experience provider?",
+      initialValue: false,
+    });
+    expect(prompter.text).not.toHaveBeenCalled();
+    expect(nextConfig).toEqual(
+      expect.objectContaining({
+        memory: expect.objectContaining({
+          experience: expect.objectContaining({
+            enabled: true,
+          }),
+          notebooklm: expect.objectContaining({
+            enabled: false,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("disables experience memory without prompting for NotebookLM", async () => {
+    const prompter = buildWizardPrompter({
+      confirm: vi.fn(async () => false),
+      text: vi.fn(async () => ""),
+    });
+
+    const nextConfig = await promptNotebookLmEnablement({
+      config: {
+        memory: {
+          notebooklm: {
+            enabled: true,
+          },
+        },
+      },
+      prompter,
+    });
+
+    expect(prompter.confirm).toHaveBeenCalledTimes(1);
+    expect(prompter.confirm).toHaveBeenCalledWith({
+      message: "Enable local experience memory?",
+      initialValue: true,
+    });
+    expect(prompter.text).not.toHaveBeenCalled();
+    expect(nextConfig).toEqual(
+      expect.objectContaining({
+        memory: expect.objectContaining({
+          experience: expect.objectContaining({
+            enabled: false,
+          }),
+          notebooklm: expect.objectContaining({
+            enabled: false,
+          }),
+        }),
+      }),
+    );
+  });
+
   it("adds NotebookLM enablement to the onboarding flow", async () => {
     const prompter = buildWizardPrompter({
       confirm: vi.fn(async () => true),
@@ -70,7 +141,11 @@ describe("setup.notebooklm", () => {
     });
 
     expect(prompter.confirm).toHaveBeenCalledWith({
-      message: "Enable NotebookLM experience recall?",
+      message: "Enable local experience memory?",
+      initialValue: true,
+    });
+    expect(prompter.confirm).toHaveBeenCalledWith({
+      message: "Add NotebookLM as an optional experience provider?",
       initialValue: false,
     });
     expect(prompter.text).toHaveBeenCalledWith(

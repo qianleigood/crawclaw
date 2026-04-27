@@ -76,10 +76,11 @@ Onboarding starts with **QuickStart** (defaults) vs **Advanced** (full control).
    Non-interactive token SecretRef path: `--gateway-token-ref-env <ENV_VAR>`.
 4. **Channels** — WhatsApp, Telegram, Discord, Google Chat, Mattermost, Signal, BlueBubbles, or iMessage.
 5. **Output and presentation** — picks a default reply preset (`quiet`, `balanced`, `operator`) for streaming and process visibility.
-6. **Memory / Experience** — asks whether to enable experience memory with the
-   local experience index and optional NotebookLM-backed provider recall. If you
-   enable NotebookLM, onboarding asks for the CLI command and notebook id before
-   checking whether `crawclaw memory login` should run near the end.
+6. **Memory / Experience** — asks whether to enable local experience memory.
+   That local index is the fallback path when NotebookLM is unavailable. You can
+   optionally add NotebookLM-backed provider recall; if enabled, onboarding asks
+   for the CLI command and notebook id before checking whether
+   `crawclaw memory login` should run near the end.
 7. **Daemon** — Installs a LaunchAgent (macOS), systemd user unit (Linux), or Scheduled Task with Startup-folder fallback (native Windows).
    If token auth requires a token and `gateway.auth.token` is SecretRef-managed, daemon install validates it but does not persist the resolved token into supervisor service environment metadata.
    If token auth requires a token and the configured token SecretRef is unresolved, daemon install is blocked with actionable guidance.

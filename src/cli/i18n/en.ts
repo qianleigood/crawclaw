@@ -2453,6 +2453,8 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.160": "NotebookLM CLI command",
   "cli.visible.161": "NotebookLM notebook ID",
   "cli.visible.162": "notebook id",
+  "cli.visible.163": "Enable local experience memory?",
+  "cli.visible.164": "Add NotebookLM as an optional experience provider?",
   "completion.install.unsupportedShell": "Automated installation not supported for {shell} yet.",
   "completion.install.cacheMissing": "Completion cache not found at {path}. Run `{command}` first.",
   "completion.install.profileCreated": "Profile not found at {path}. Created a new one.",

@@ -2335,6 +2335,8 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.160": "NotebookLM CLI 命令",
   "cli.visible.161": "NotebookLM 笔记本 ID",
   "cli.visible.162": "笔记本 ID",
+  "cli.visible.163": "启用本地 experience memory 吗？",
+  "cli.visible.164": "将 NotebookLM 作为可选 experience provider 添加吗？",
   "completion.install.unsupportedShell": "暂不支持自动安装 {shell} 补全。",
   "completion.install.cacheMissing": "未在 {path} 找到补全缓存。请先运行 `{command}`。",
   "completion.install.profileCreated": "未在 {path} 找到 profile，已新建。",

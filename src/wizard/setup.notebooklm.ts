@@ -25,8 +25,31 @@ export async function promptNotebookLmEnablement(params: {
   }
 
   const notebooklm = normalizeNotebookLmConfig(params.config.memory?.notebooklm ?? {});
+  const initialExperienceEnabled = params.config.memory?.experience?.enabled !== false;
+  const experienceEnabled = await params.prompter.confirm({
+    message: "Enable local experience memory?",
+    initialValue: initialExperienceEnabled,
+  });
+
+  if (!experienceEnabled) {
+    return {
+      ...params.config,
+      memory: {
+        ...params.config.memory,
+        experience: {
+          ...params.config.memory?.experience,
+          enabled: false,
+        },
+        notebooklm: {
+          ...params.config.memory?.notebooklm,
+          enabled: false,
+        },
+      },
+    };
+  }
+
   const enabled = await params.prompter.confirm({
-    message: "Enable NotebookLM experience recall?",
+    message: "Add NotebookLM as an optional experience provider?",
     initialValue: notebooklm.enabled,
   });
 
@@ -35,9 +58,13 @@ export async function promptNotebookLmEnablement(params: {
       ...params.config,
       memory: {
         ...params.config.memory,
+        experience: {
+          ...params.config.memory?.experience,
+          enabled: true,
+        },
         notebooklm: {
           ...params.config.memory?.notebooklm,
-          enabled,
+          enabled: false,
         },
       },
     };
@@ -67,6 +94,10 @@ export async function promptNotebookLmEnablement(params: {
     ...params.config,
     memory: {
       ...params.config.memory,
+      experience: {
+        ...params.config.memory?.experience,
+        enabled: true,
+      },
       notebooklm: {
         ...params.config.memory?.notebooklm,
         enabled,

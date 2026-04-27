@@ -21,8 +21,8 @@ Local mode (default) walks you through:
 - Gateway settings (port, bind, auth, tailscale)
 - Channels and providers (Telegram, WhatsApp, Discord, Google Chat, Mattermost plugin, Signal)
 - Output and presentation preset (`quiet`, `balanced`, `operator`)
-- Memory / Experience enablement for the local experience index and optional
-  NotebookLM-backed provider recall, including NotebookLM CLI command and
+- Memory / Experience enablement for the local experience index, with
+  NotebookLM as an optional provider, including NotebookLM CLI command and
   notebook id prompts when enabled
 - Daemon install (LaunchAgent or systemd user unit)
 - Health check
@@ -82,9 +82,10 @@ It does not install or modify anything on the remote host.
     - Maps to streaming, visible process detail, ACP visibility, and reply threading defaults.
   </Step>
   <Step title="Memory / Experience">
-    - Asks whether to enable experience memory with optional NotebookLM-backed
-      provider recall.
-    - If NotebookLM is enabled, onboarding configures `memory.notebooklm.enabled = true`
+    - Asks whether to enable local experience memory; the local index remains
+      the fallback path when NotebookLM is unavailable.
+    - Optionally adds NotebookLM-backed provider recall.
+    - If NotebookLM is added, onboarding configures `memory.notebooklm.enabled = true`
       plus the CLI command and notebook id needed for provider checks.
     - Near the end, if the provider state recommends `crawclaw memory login`, onboarding can offer to run that login flow immediately.
   </Step>
