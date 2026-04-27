@@ -48,7 +48,8 @@
       "docsPath": "/channels/weixin",
       "docsLabel": "weixin",
       "blurb": "Tencent iLink Bot via QR login for direct messages.",
-      "order": 75
+      "order": 75,
+      "profile": "primary-cn"
     },
     "install": {
       "npmSpec": "@crawclaw/weixin",

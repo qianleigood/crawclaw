@@ -412,7 +412,24 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "needs AppID + AppSecret": "needs AppID + AppSecret",
   "needs app creds": "needs app creds",
   "needs homeserver + access token or password": "needs homeserver + access token or password",
+  linked: "linked",
   "needs QR login": "needs QR login",
+  "run QR login after setup": "run QR login after setup",
+  Weixin: "Weixin",
+  "Weixin (QR login)": "Weixin (QR login)",
+  "Weixin setup": "Weixin setup",
+  "Weixin next steps": "Weixin next steps",
+  "Weixin uses Tencent iLink Bot QR login.": "Weixin uses Tencent iLink Bot QR login.",
+  "Setup only enables the channel and records the local account slot.":
+    "Setup only enables the channel and records the local account slot.",
+  "After setup, run QR login to link the bot account.":
+    "After setup, run QR login to link the bot account.",
+  "Next: run `crawclaw channels login --channel weixin` to generate a QR code.":
+    "Next: run `crawclaw channels login --channel weixin` to generate a QR code.",
+  "Then scan it in WeChat and wait for the gateway to reconnect.":
+    "Then scan it in WeChat and wait for the gateway to reconnect.",
+  "Verify with `crawclaw channels status --probe`.":
+    "Verify with `crawclaw channels status --probe`.",
   "needs token + incoming webhook": "needs token + incoming webhook",
   "needs private key": "needs private key",
   installed: "installed",

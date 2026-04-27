@@ -135,6 +135,18 @@ describe("createCliTranslator", () => {
     expect(t("common.confirm")).toBe("确认");
   });
 
+  it("translates Weixin onboarding literals for zh-CN", () => {
+    const t = createCliTranslator("zh-CN");
+    expect(t("Weixin")).toBe("微信");
+    expect(t("Weixin (QR login)")).toBe("微信（扫码登录）");
+    expect(t("Weixin setup")).toBe("微信设置");
+    expect(t("Weixin next steps")).toBe("微信后续步骤");
+    expect(t("Weixin uses Tencent iLink Bot QR login.")).toBe("微信通过腾讯 iLink Bot 扫码登录。");
+    expect(t("Next: run `crawclaw channels login --channel weixin` to generate a QR code.")).toBe(
+      "下一步：运行 `crawclaw channels login --channel weixin` 生成二维码。",
+    );
+  });
+
   it("falls back to english when a zh-CN key is missing", () => {
     const t = createCliTranslator("zh-CN");
     expect(t("unknown.key")).toBe("unknown.key");

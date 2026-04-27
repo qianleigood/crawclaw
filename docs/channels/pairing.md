@@ -36,7 +36,7 @@ crawclaw pairing list telegram
 crawclaw pairing approve telegram <CODE>
 ```
 
-Primary QuickStart channels: `ddingtalk`, `feishu`, `qqbot`.
+Primary QuickStart channels: `ddingtalk`, `feishu`, `qqbot`, `weixin`.
 
 Advanced setup can still use optional and legacy channels: `bluebubbles`,
 `discord`, `googlechat`, `imessage`, `irc`, `line`, `matrix`, `mattermost`,

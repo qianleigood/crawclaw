@@ -9,14 +9,15 @@ title: "Chat Channels"
 # Chat Channels
 
 CrawClaw defaults to a China-first channel surface. QuickStart and the main
-channel picker prioritize Feishu, DingTalk, and QQ Bot. Other channel plugins
-remain available for explicit installation or advanced setup.
+channel picker prioritize Feishu, DingTalk, QQ Bot, and Weixin. Other channel
+plugins remain available for explicit installation or advanced setup.
 
 ## Primary China channels
 
 - [DingTalk](/channels/ddingtalk) — DingTalk enterprise robot via Stream mode; supports text, images, files, group routing, and allowlists.
 - [Feishu](/channels/feishu) — Feishu/Lark bot via WebSocket with docs, wiki, drive, chat, and bot tools.
 - [QQ Bot](/channels/qqbot) — QQ Bot API; private chats, group chats, channels, and rich media.
+- [Weixin](/channels/weixin) — Tencent iLink Bot via QR login; private chats only.
 
 ## Optional and legacy channels
 
@@ -42,7 +43,6 @@ not shown as the default QuickStart recommendation.
 - [Twitch](/channels/twitch) — Twitch chat via IRC connection (plugin, installed separately).
 - [Voice Call](/plugins/voice-call) — Telephony via Plivo or Twilio (plugin, installed separately).
 - [WebChat](/web/webchat) — Gateway WebChat UI over WebSocket.
-- [Weixin](/channels/weixin) — Tencent iLink Bot via QR login; private chats only.
 - [WhatsApp](/channels/whatsapp) — Most popular; uses Baileys and requires QR pairing.
 - [Zalo](/channels/zalo) — Zalo Bot API; Vietnam's popular messenger (plugin, installed separately).
 - [Zalo Personal](/channels/zalouser) — Zalo personal account via QR login (plugin, installed separately).

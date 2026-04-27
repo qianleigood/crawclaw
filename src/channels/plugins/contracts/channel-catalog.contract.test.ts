@@ -79,4 +79,9 @@ describe("channel catalog profile metadata", () => {
 
     expect(entry?.meta.profile).toBe("primary-cn");
   });
+
+  it("marks bundled Weixin as a primary China quickstart channel", () => {
+    const entry = listChannelPluginCatalogEntries().find((item) => item.id === "weixin");
+    expect(entry?.meta.profile).toBe("primary-cn");
+  });
 });

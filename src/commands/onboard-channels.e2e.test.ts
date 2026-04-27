@@ -342,6 +342,101 @@ function setMinimalOnboardingRegistryForTests(): void {
           },
         },
       },
+      {
+        pluginId: "weixin",
+        source: "test",
+        plugin: {
+          ...createChannelTestPluginBase({
+            id: "weixin",
+            label: "Weixin",
+            capabilities: { chatTypes: ["direct"] },
+          }),
+          meta: {
+            ...createChannelTestPluginBase({
+              id: "weixin",
+              label: "Weixin",
+              capabilities: { chatTypes: ["direct"] },
+            }).meta,
+            selectionLabel: "Weixin (QR login)",
+            blurb: "Tencent iLink Bot via QR login for direct messages.",
+            profile: "primary-cn",
+          },
+          setupWizard: {
+            channel: "weixin",
+            getStatus: async ({ cfg }: { cfg: CrawClawConfig }) => ({
+              channel: "weixin",
+              configured: Boolean(
+                (
+                  cfg.channels?.weixin as
+                    | {
+                        accounts?: Record<string, { linked?: boolean }>;
+                      }
+                    | undefined
+                )?.accounts?.default?.linked,
+              ),
+              statusLines: [],
+              selectionHint: (
+                cfg.channels?.weixin as
+                  | {
+                      accounts?: Record<string, { linked?: boolean }>;
+                    }
+                  | undefined
+              )?.accounts?.default?.linked
+                ? "linked"
+                : "needs QR login",
+            }),
+            configure: async ({
+              cfg,
+              prompter,
+            }: {
+              cfg: CrawClawConfig;
+              prompter: WizardPrompter;
+            }) => {
+              await prompter.note(
+                [
+                  "Weixin uses Tencent iLink Bot QR login.",
+                  "Setup only enables the channel and records the local account slot.",
+                  "After setup, run QR login to link the bot account.",
+                ].join("\n"),
+                "Weixin setup",
+              );
+              await prompter.note(
+                "Next: run `crawclaw channels login --channel weixin` to generate a QR code.",
+                "Weixin next steps",
+              );
+              return {
+                cfg: {
+                  ...cfg,
+                  channels: {
+                    ...cfg.channels,
+                    weixin: {
+                      ...(cfg.channels?.weixin as Record<string, unknown> | undefined),
+                      enabled: true,
+                      defaultAccount: "default",
+                      accounts: {
+                        ...(
+                          cfg.channels?.weixin as
+                            | { accounts?: Record<string, Record<string, unknown>> }
+                            | undefined
+                        )?.accounts,
+                        default: {
+                          ...(
+                            cfg.channels?.weixin as
+                              | { accounts?: Record<string, Record<string, unknown>> }
+                              | undefined
+                          )?.accounts?.default,
+                          enabled: true,
+                        },
+                      },
+                    },
+                  },
+                } as CrawClawConfig,
+                accountId: "default",
+              };
+            },
+          },
+        },
+      },
     ]),
   );
 }
@@ -698,6 +793,50 @@ describe("setupChannels", () => {
 
   it("renders the QuickStart channel picker without requiring the Matrix runtime", async () => {
     await expectQuickstartPickerSkipsWithoutRuntime();
+  });
+
+  it("includes Weixin in QuickStart and leaves QR login as the follow-up step", async () => {
+    const notes: string[] = [];
+    const select = vi.fn(async ({ message, options }: { message: string; options: unknown[] }) => {
+      if (message === "Select channel (QuickStart)") {
+        const entries = options as Array<{ value: string; label: string; hint?: string }>;
+        const weixin = entries.find((entry) => entry.value === "weixin");
+        expect(weixin).toEqual(
+          expect.objectContaining({
+            label: "Weixin (QR login)",
+            hint: expect.stringContaining("needs QR login"),
+          }),
+        );
+        return "weixin";
+      }
+      return "__done__";
+    });
+    const { multiselect, text } = createUnexpectedPromptGuards();
+    const prompter = createPrompter({
+      select: select as unknown as WizardPrompter["select"],
+      multiselect,
+      text,
+      note: vi.fn(async (message: unknown) => {
+        notes.push(String(message));
+      }),
+    });
+
+    const cfg = await runSetupChannels({} as CrawClawConfig, prompter, {
+      quickstartDefaults: true,
+    });
+
+    expect(cfg.channels?.weixin).toMatchObject({
+      enabled: true,
+      defaultAccount: "default",
+      accounts: {
+        default: {
+          enabled: true,
+        },
+      },
+    });
+    expect(notes.join("\n")).toContain("Weixin uses Tencent iLink Bot QR login.");
+    expect(notes.join("\n")).toContain("crawclaw channels login --channel weixin");
+    expect(multiselect).not.toHaveBeenCalled();
   });
 
   it("continues Telegram setup when the plugin registry is empty", async () => {

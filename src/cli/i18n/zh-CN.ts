@@ -402,7 +402,24 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "needs AppID + AppSecret": "需要 AppID + AppSecret",
   "needs app creds": "需要应用凭据",
   "needs homeserver + access token or password": "需要 homeserver 和访问令牌或密码",
+  linked: "已连接",
   "needs QR login": "需要扫码登录",
+  "run QR login after setup": "完成设置后扫码登录",
+  Weixin: "微信",
+  "Weixin (QR login)": "微信（扫码登录）",
+  "Weixin setup": "微信设置",
+  "Weixin next steps": "微信后续步骤",
+  "Weixin uses Tencent iLink Bot QR login.": "微信通过腾讯 iLink Bot 扫码登录。",
+  "Setup only enables the channel and records the local account slot.":
+    "设置过程只会启用该渠道，并记录本地账号槽位。",
+  "After setup, run QR login to link the bot account.":
+    "完成设置后，运行扫码登录以关联机器人账号。",
+  "Next: run `crawclaw channels login --channel weixin` to generate a QR code.":
+    "下一步：运行 `crawclaw channels login --channel weixin` 生成二维码。",
+  "Then scan it in WeChat and wait for the gateway to reconnect.":
+    "然后在微信里扫码，并等待 gateway 重新连接。",
+  "Verify with `crawclaw channels status --probe`.":
+    "使用 `crawclaw channels status --probe` 验证。",
   "needs token + incoming webhook": "需要令牌和传入 webhook",
   "needs private key": "需要私钥",
   installed: "已安装",
