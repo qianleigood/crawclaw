@@ -29,6 +29,10 @@ vi.mock("./slash-commands.js", () => ({
     { trigger: "ping", description: "ping" },
     { trigger: "ping", description: "duplicate" },
   ],
+  buildDefaultMattermostCommandSpecs: () => [
+    { trigger: "ping", description: "ping" },
+    { trigger: "ping", description: "duplicate" },
+  ],
   isSlashCommandsEnabled,
   registerSlashCommands,
   resolveCallbackUrl,

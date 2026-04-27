@@ -7,6 +7,7 @@ import {
 } from "../../sessions/runtime/before-reset-hook.js";
 import { emitResetInternalHook } from "../../sessions/runtime/reset-internal-hook.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
+import { localizeSlashCommandReplyText } from "../commands-i18n.js";
 import { shouldHandleTextCommands } from "../commands-registry.js";
 import { handleAcpResetInPlace } from "./acp-reset-adapter.js";
 import type {
@@ -30,6 +31,10 @@ function loadCommandHandlersRuntime() {
 }
 
 let HANDLERS: CommandHandler[] | null = null;
+
+export function __resetCommandHandlersForTests(): void {
+  HANDLERS = null;
+}
 
 export type ResetCommandAction = "new";
 
@@ -146,6 +151,15 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
   for (const handler of HANDLERS) {
     const result = await handler(params, allowTextCommands);
     if (result) {
+      if (result.reply?.text) {
+        return {
+          ...result,
+          reply: {
+            ...result.reply,
+            text: localizeSlashCommandReplyText(result.reply.text, params.cfg),
+          },
+        };
+      }
       return result;
     }
   }

@@ -1364,6 +1364,18 @@ describe("buildCommandsMessage", () => {
     );
     expect(text).toContain("/demo_skill - Demo skill");
   });
+
+  it("localizes command discovery copy for zh-CN", () => {
+    const text = buildCommandsMessage({
+      cli: { language: "zh-CN" },
+      commands: { config: false, debug: false },
+    } as unknown as CrawClawConfig);
+    expect(text).toContain("ℹ️ 斜杠命令");
+    expect(text).toContain("状态");
+    expect(text).toContain("/commands - 列出所有斜杠命令。");
+    expect(text).toContain("/tools - 列出可用的运行时工具。");
+    expect(text).toContain("更多：/tools 查看可用能力");
+  });
 });
 
 describe("buildHelpMessage", () => {
@@ -1379,6 +1391,17 @@ describe("buildHelpMessage", () => {
 
   it("includes /fast in help output", () => {
     expect(buildHelpMessage()).toContain("/fast status|on|off");
+  });
+
+  it("localizes help hints for zh-CN", () => {
+    const text = buildHelpMessage({
+      cli: { language: "zh-CN" },
+      commands: { config: false, debug: false },
+    } as unknown as CrawClawConfig);
+    expect(text).toContain("ℹ️ 帮助");
+    expect(text).toContain("会话");
+    expect(text).toContain("技能");
+    expect(text).toContain("更多：/commands 查看完整列表，/tools 查看可用能力");
   });
 });
 

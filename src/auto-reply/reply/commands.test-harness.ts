@@ -29,6 +29,9 @@ export function buildCommandTestParams(
     triggerBodyNormalized: commandBody.trim(),
     commandAuthorized: true,
   });
+  if (!command.senderId && typeof ctx.SenderId === "string" && ctx.SenderId.trim()) {
+    command.senderId = ctx.SenderId.trim();
+  }
 
   const params: HandleCommandsParams = {
     ctx,

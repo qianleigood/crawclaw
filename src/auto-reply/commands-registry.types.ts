@@ -21,13 +21,14 @@ export type CommandArgChoiceContext = {
   arg: CommandArgDefinition;
 };
 
-export type CommandArgChoice = string | { value: string; label: string };
+export type CommandArgChoice = string | { value: string; label: string; labelZhCN?: string };
 
 export type CommandArgChoicesProvider = (context: CommandArgChoiceContext) => CommandArgChoice[];
 
 export type CommandArgDefinition = {
   name: string;
   description: string;
+  descriptionZhCN?: string;
   type: CommandArgType;
   required?: boolean;
   choices?: CommandArgChoice[] | CommandArgChoicesProvider;
@@ -38,6 +39,7 @@ export type CommandArgDefinition = {
 export type CommandArgMenuSpec = {
   arg: string;
   title?: string;
+  titleZhCN?: string;
 };
 
 export type CommandArgValue = string | number | boolean | bigint;
@@ -54,6 +56,7 @@ export type ChatCommandDefinition = {
   key: string;
   nativeName?: string;
   description: string;
+  descriptionZhCN?: string;
   textAliases: string[];
   acceptsArgs?: boolean;
   args?: CommandArgDefinition[];

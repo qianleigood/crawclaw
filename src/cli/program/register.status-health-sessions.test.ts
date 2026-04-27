@@ -273,11 +273,11 @@ describe("registerStatusHealthSessionsCommands", () => {
     const audit = tasks?.commands.find((command) => command.name() === "audit");
     const flow = tasks?.commands.find((command) => command.name() === "flow");
 
-    expect(status?.description()).toBe("显示渠道健康状态和最近会话目标");
+    expect(status?.description()).toBe("显示本地渠道/会话状态；实时网关健康请用 health");
     expect(status?.options.find((option) => option.long === "--json")?.description).toBe(
       "输出 JSON 而不是文本",
     );
-    expect(sessions?.description()).toBe("列出已存储的会话");
+    expect(sessions?.description()).toBe("列出已存会话；斜杠 /session 修改聊天设置");
     expect(tasks?.description()).toBe("查看持久化后台任务状态");
     expect(audit?.description()).toBe("显示过期或损坏的后台任务与 TaskFlow");
     expect(flow?.description()).toBe("查看 tasks 下持久化 TaskFlow 状态");

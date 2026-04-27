@@ -47,6 +47,18 @@ describe("getSlashCommands", () => {
       "显示网关状态摘要",
     );
   });
+
+  it("localizes appended Gateway command descriptions from config", () => {
+    setActiveCliLocale("zh-CN");
+
+    const commands = getSlashCommands({
+      cfg: { cli: { language: "zh-CN" }, commands: { config: false, debug: false } } as never,
+    });
+
+    expect(commands.find((command) => command.name === "tools")?.description).toBe(
+      "列出可用的运行时工具。",
+    );
+  });
 });
 
 describe("helpText", () => {

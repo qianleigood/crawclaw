@@ -7,7 +7,8 @@ title: "sessions"
 
 # `crawclaw sessions`
 
-List stored conversation sessions.
+List stored conversation sessions. This command is read-only session inventory;
+slash `/session` changes settings for the current chat session.
 
 ```bash
 crawclaw sessions

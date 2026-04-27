@@ -998,7 +998,7 @@
           "exportName": "buildCommandsMessage",
           "kind": "function",
           "source": {
-            "line": 1074,
+            "line": 1087,
             "path": "src/auto-reply/status.ts"
           }
         },
@@ -1007,7 +1007,7 @@
           "exportName": "buildCommandsMessagePaginated",
           "kind": "function",
           "source": {
-            "line": 1083,
+            "line": 1096,
             "path": "src/auto-reply/status.ts"
           }
         },
@@ -1025,7 +1025,7 @@
           "exportName": "buildCommandText",
           "kind": "function",
           "source": {
-            "line": 199,
+            "line": 211,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1034,7 +1034,7 @@
           "exportName": "buildCommandTextFromArgs",
           "kind": "function",
           "source": {
-            "line": 291,
+            "line": 303,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1043,7 +1043,7 @@
           "exportName": "buildHelpMessage",
           "kind": "function",
           "source": {
-            "line": 869,
+            "line": 874,
             "path": "src/auto-reply/status.ts"
           }
         },
@@ -1070,7 +1070,7 @@
           "exportName": "findCommandByNativeName",
           "kind": "function",
           "source": {
-            "line": 187,
+            "line": 199,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1088,7 +1088,7 @@
           "exportName": "getCommandDetection",
           "kind": "function",
           "source": {
-            "line": 440,
+            "line": 474,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1115,7 +1115,7 @@
           "exportName": "isCommandEnabled",
           "kind": "function",
           "source": {
-            "line": 98,
+            "line": 110,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1124,7 +1124,7 @@
           "exportName": "isCommandMessage",
           "kind": "function",
           "source": {
-            "line": 435,
+            "line": 469,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1142,16 +1142,16 @@
           "exportName": "isNativeCommandSurface",
           "kind": "function",
           "source": {
-            "line": 521,
+            "line": 555,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
         {
-          "declaration": "export function listChatCommands(params?: { skillCommands?: SkillCommandSpec[] | undefined; } | undefined): ChatCommandDefinition[];",
+          "declaration": "export function listChatCommands(params?: { skillCommands?: SkillCommandSpec[] | undefined; cfg?: CrawClawConfig | undefined; } | undefined): ChatCommandDefinition[];",
           "exportName": "listChatCommands",
           "kind": "function",
           "source": {
-            "line": 88,
+            "line": 99,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1160,7 +1160,7 @@
           "exportName": "listChatCommandsForConfig",
           "kind": "function",
           "source": {
-            "line": 117,
+            "line": 129,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1169,7 +1169,7 @@
           "exportName": "listNativeCommandSpecs",
           "kind": "function",
           "source": {
-            "line": 170,
+            "line": 182,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1178,7 +1178,7 @@
           "exportName": "listNativeCommandSpecsForConfig",
           "kind": "function",
           "source": {
-            "line": 180,
+            "line": 192,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1214,7 +1214,7 @@
           "exportName": "maybeResolveTextAlias",
           "kind": "function",
           "source": {
-            "line": 473,
+            "line": 507,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1223,7 +1223,7 @@
           "exportName": "normalizeCommandBody",
           "kind": "function",
           "source": {
-            "line": 384,
+            "line": 418,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1232,7 +1232,7 @@
           "exportName": "parseCommandArgs",
           "kind": "function",
           "source": {
-            "line": 254,
+            "line": 266,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1241,7 +1241,7 @@
           "exportName": "resolveCommandArgChoices",
           "kind": "function",
           "source": {
-            "line": 316,
+            "line": 328,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1250,7 +1250,7 @@
           "exportName": "resolveCommandArgMenu",
           "kind": "function",
           "source": {
-            "line": 346,
+            "line": 375,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1367,7 +1367,7 @@
           "exportName": "resolveTextCommand",
           "kind": "function",
           "source": {
-            "line": 494,
+            "line": 528,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1376,7 +1376,7 @@
           "exportName": "serializeCommandArgs",
           "kind": "function",
           "source": {
-            "line": 271,
+            "line": 283,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1394,7 +1394,7 @@
           "exportName": "shouldHandleTextCommands",
           "kind": "function",
           "source": {
-            "line": 528,
+            "line": 562,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1403,7 +1403,7 @@
           "exportName": "ChatCommandDefinition",
           "kind": "type",
           "source": {
-            "line": 53,
+            "line": 55,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1430,7 +1430,7 @@
           "exportName": "CommandArgMenuSpec",
           "kind": "type",
           "source": {
-            "line": 38,
+            "line": 39,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1439,7 +1439,7 @@
           "exportName": "CommandArgs",
           "kind": "type",
           "source": {
-            "line": 46,
+            "line": 48,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1448,7 +1448,7 @@
           "exportName": "CommandArgsParsing",
           "kind": "type",
           "source": {
-            "line": 51,
+            "line": 53,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1457,7 +1457,7 @@
           "exportName": "CommandArgValues",
           "kind": "type",
           "source": {
-            "line": 44,
+            "line": 46,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1493,7 +1493,7 @@
           "exportName": "CommandDetection",
           "kind": "type",
           "source": {
-            "line": 78,
+            "line": 81,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1511,7 +1511,7 @@
           "exportName": "CommandNormalizeOptions",
           "kind": "type",
           "source": {
-            "line": 74,
+            "line": 77,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1547,7 +1547,7 @@
           "exportName": "NativeCommandSpec",
           "kind": "type",
           "source": {
-            "line": 67,
+            "line": 70,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },
@@ -1556,7 +1556,7 @@
           "exportName": "ResolvedCommandArgChoice",
           "kind": "type",
           "source": {
-            "line": 314,
+            "line": 326,
             "path": "src/auto-reply/commands-registry.ts"
           }
         },
@@ -1601,7 +1601,7 @@
           "exportName": "ShouldHandleTextCommandsParams",
           "kind": "type",
           "source": {
-            "line": 83,
+            "line": 86,
             "path": "src/auto-reply/commands-registry.types.ts"
           }
         },

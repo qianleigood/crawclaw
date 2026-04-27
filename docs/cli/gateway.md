@@ -84,6 +84,9 @@ Pass `--token` or `--password` explicitly. Missing explicit credentials is an er
 
 ### `gateway health`
 
+Directly call the Gateway `health` RPC from the Gateway command namespace. For
+the normal formatted health check, use [`crawclaw health`](/cli/health).
+
 ```bash
 crawclaw gateway health --url ws://127.0.0.1:18789
 ```

@@ -180,17 +180,17 @@ const coreEntries: CoreCliEntry[] = [
     commands: [
       {
         name: "status",
-        description: "Show channel health and recent session recipients",
+        description: "Show local channel/session status; use health for live Gateway health",
         hasSubcommands: false,
       },
       {
         name: "health",
-        description: "Fetch health from the running gateway",
+        description: "Run live Gateway health checks; gateway health is the raw RPC view",
         hasSubcommands: false,
       },
       {
         name: "sessions",
-        description: "List stored conversation sessions",
+        description: "List stored sessions; slash /session changes chat settings",
         hasSubcommands: true,
       },
       {

@@ -10,13 +10,19 @@ import {
   type CommandOptions,
   type StringSelectMenuInteraction,
 } from "@buape/carbon";
-import { ApplicationCommandOptionType } from "discord-api-types/v10";
 import { resolveHumanDelayConfig } from "crawclaw/plugin-sdk/agent-runtime";
 import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
 import {
   resolveCommandAuthorizedFromAuthorizers,
   resolveNativeCommandSessionTargets,
 } from "crawclaw/plugin-sdk/command-auth";
+import type { CrawClawConfig, loadConfig } from "crawclaw/plugin-sdk/config-runtime";
+import {
+  isDangerousNameMatchingEnabled,
+  resolveOpenProviderRuntimeGroupPolicy,
+} from "crawclaw/plugin-sdk/config-runtime";
+import { buildPairingReply } from "crawclaw/plugin-sdk/conversation-runtime";
+import { getAgentScopedMediaLocalRoots } from "crawclaw/plugin-sdk/media-runtime";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
@@ -31,13 +37,6 @@ import {
   type CommandArgs,
   type NativeCommandSpec,
 } from "crawclaw/plugin-sdk/native-command-registry";
-import type { CrawClawConfig, loadConfig } from "crawclaw/plugin-sdk/config-runtime";
-import {
-  isDangerousNameMatchingEnabled,
-  resolveOpenProviderRuntimeGroupPolicy,
-} from "crawclaw/plugin-sdk/config-runtime";
-import { buildPairingReply } from "crawclaw/plugin-sdk/conversation-runtime";
-import { getAgentScopedMediaLocalRoots } from "crawclaw/plugin-sdk/media-runtime";
 import * as pluginRuntime from "crawclaw/plugin-sdk/plugin-runtime";
 import {
   resolveSendableOutboundReplyParts,
@@ -49,6 +48,7 @@ import type { ReplyPayload } from "crawclaw/plugin-sdk/reply-runtime";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { createSubsystemLogger } from "crawclaw/plugin-sdk/runtime-env";
 import { loadWebMedia } from "crawclaw/plugin-sdk/web-media";
+import { ApplicationCommandOptionType } from "discord-api-types/v10";
 import { resolveDiscordMaxLinesPerMessage } from "../accounts.js";
 import { chunkDiscordTextWithMode } from "../chunk.js";
 import {
@@ -587,18 +587,23 @@ export function createDiscordNativeCommand(params: {
     ephemeralDefault,
     threadBindings,
   } = params;
-  const commandDefinition =
-    findCommandByNativeName(command.name, "discord") ??
-    ({
-      key: command.name,
-      nativeName: command.name,
-      description: command.description,
-      textAliases: [],
-      acceptsArgs: command.acceptsArgs,
-      args: command.args,
-      argsParsing: "none",
-      scope: "native",
-    } satisfies ChatCommandDefinition);
+  const foundCommandDefinition = findCommandByNativeName(command.name, "discord");
+  const commandDefinition = foundCommandDefinition
+    ? ({
+        ...foundCommandDefinition,
+        description: command.description,
+        args: command.args ?? foundCommandDefinition.args,
+      } satisfies ChatCommandDefinition)
+    : ({
+        key: command.name,
+        nativeName: command.name,
+        description: command.description,
+        textAliases: [],
+        acceptsArgs: command.acceptsArgs,
+        args: command.args,
+        argsParsing: "none",
+        scope: "native",
+      } satisfies ChatCommandDefinition);
   const argDefinitions = commandDefinition.args ?? command.args;
   const commandOptions = buildDiscordCommandOptions({
     command: commandDefinition,

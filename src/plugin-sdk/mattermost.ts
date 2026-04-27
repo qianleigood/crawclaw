@@ -10,6 +10,8 @@ export {
   recordPendingHistoryEntryIfEnabled,
 } from "../auto-reply/reply/history.js";
 export { listSkillCommandsForAgents } from "../auto-reply/skill-commands.js";
+export { listNativeCommandSpecsForConfig } from "../auto-reply/commands-registry.js";
+export type { NativeCommandSpec } from "../auto-reply/commands-registry.js";
 export type { ReplyPayload } from "../auto-reply/types.js";
 export type { ChatType } from "../channels/chat-type.js";
 export { resolveControlCommandGate } from "../channels/command-gating.js";

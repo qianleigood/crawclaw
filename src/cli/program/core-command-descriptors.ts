@@ -83,19 +83,19 @@ export const CORE_CLI_COMMAND_DESCRIPTORS = [
   },
   {
     name: "status",
-    description: "Show channel health and recent session recipients",
+    description: "Show local channel/session status; use health for live Gateway health",
     descriptionKey: "command.status.description",
     hasSubcommands: false,
   },
   {
     name: "health",
-    description: "Fetch health from the running gateway",
+    description: "Run live Gateway health checks; gateway health is the raw RPC view",
     descriptionKey: "command.health.description",
     hasSubcommands: false,
   },
   {
     name: "sessions",
-    description: "List stored conversation sessions",
+    description: "List stored sessions; slash /session changes chat settings",
     descriptionKey: "command.sessions.description",
     hasSubcommands: true,
   },

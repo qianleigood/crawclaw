@@ -2197,7 +2197,7 @@ is_gateway_daemon_loaded() {
     fi
 
     local status_json=""
-    status_json="$("$claw" daemon status --json 2>/dev/null || true)"
+    status_json="$("$claw" gateway status --json 2>/dev/null || true)"
     if [[ -z "$status_json" ]]; then
         return 1
     fi
@@ -2549,13 +2549,13 @@ main() {
         fi
         if [[ -n "$claw" ]] && is_gateway_daemon_loaded "$claw"; then
             if [[ "$DRY_RUN" == "1" ]]; then
-                ui_info "Gateway daemon detected; would restart (crawclaw daemon restart)"
+                ui_info "Gateway daemon detected; would restart (crawclaw gateway restart)"
             else
                 ui_info "Gateway daemon detected; restarting"
-                if CRAWCLAW_UPDATE_IN_PROGRESS=1 "$claw" daemon restart >/dev/null 2>&1; then
+                if CRAWCLAW_UPDATE_IN_PROGRESS=1 "$claw" gateway restart >/dev/null 2>&1; then
                     ui_success "Gateway restarted"
                 else
-                    ui_warn "Gateway restart failed; try: crawclaw daemon restart"
+                    ui_warn "Gateway restart failed; try: crawclaw gateway restart"
                 fi
             fi
         fi

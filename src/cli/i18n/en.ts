@@ -1127,7 +1127,8 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.agents.delete.description": "Delete an agent and prune workspace/state",
   "command.agents.delete.option.force": "Skip confirmation",
   "command.agents.delete.option.json": "Output JSON summary",
-  "command.status.description": "Show channel health and recent session recipients",
+  "command.status.description":
+    "Show local channel/session status; use health for live Gateway health",
   "command.status.option.json": "Output JSON instead of text",
   "command.status.option.all": "Full diagnosis (read-only, pasteable)",
   "command.status.option.usage": "Show model provider usage/quota snapshots",
@@ -1144,12 +1145,13 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.status.example.deepTimeout": "Tighten probe timeout.",
   "command.status.help.jsonSnapshot":
     "Default `status --json` is a fast local snapshot; use `--deep` or `--all` for live probes and full diagnosis.",
-  "command.health.description": "Fetch health from the running gateway",
+  "command.health.description":
+    "Run live Gateway health checks; gateway health is the raw RPC view",
   "command.health.option.json": "Output JSON instead of text",
   "command.health.option.timeout": "Connection timeout in milliseconds",
   "command.health.option.verbose": "Verbose logging",
   "command.health.option.debug": "Alias for --verbose",
-  "command.sessions.description": "List stored conversation sessions",
+  "command.sessions.description": "List stored sessions; slash /session changes chat settings",
   "command.sessions.option.json": "Output as JSON",
   "command.sessions.option.verbose": "Verbose logging",
   "command.sessions.option.store": "Path to session store (default: resolved from config)",
@@ -1270,7 +1272,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.gateway.call.option.expectFinal": "Wait for final response (agent)",
   "command.gateway.usageCost.description": "Fetch usage cost summary from session logs",
   "command.gateway.usageCost.option.days": "Number of days to include",
-  "command.gateway.health.description": "Fetch Gateway health",
+  "command.gateway.health.description": "Call the Gateway health RPC directly",
   "command.gateway.status.description": "Show gateway service status + probe the Gateway",
   "command.gateway.probe.description":
     "Show gateway reachability + discovery + health + status summary (local + remote)",
@@ -1405,7 +1407,8 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.models.auth.order.option.provider": "Provider id (e.g. anthropic)",
   "command.models.auth.order.option.agent": "Agent id (default: configured default agent)",
   "command.models.auth.order.argument.profileIds": "Auth profile ids (e.g. anthropic:default)",
-  "command.memory.description": "Inspect and manage experience memory access",
+  "command.memory.description":
+    "Inspect memory provider access; context details live under /context",
   "command.memory.example.status": "Show NotebookLM provider status.",
   "command.memory.example.refresh": "Refresh NotebookLM auth from the configured cookie fallback.",
   "command.memory.example.login": "Open NotebookLM login flow and rebuild the local profile.",
@@ -1485,7 +1488,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.approvals.allowlist.example.remove": "Remove an allowlist pattern.",
   "command.approvals.allowlist.add.description": "Add a glob pattern to an allowlist",
   "command.approvals.allowlist.remove.description": "Remove a glob pattern from an allowlist",
-  "command.nodes.description": "Manage gateway-owned node pairing and node commands",
+  "command.nodes.description": "Manage gateway node hosts; device pairing lives under devices",
   "command.nodes.fullDescription":
     "Manage gateway-owned nodes (pairing, status, invoke, and media)",
   "command.nodes.example.status": "List known nodes with live status.",
@@ -1578,7 +1581,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.nodes.screen.option.fps": "Frames per second",
   "command.nodes.screen.option.noAudio": "Disable microphone audio capture",
   "command.nodes.screen.option.out": "Output path",
-  "command.devices.description": "Device pairing + token management",
+  "command.devices.description": "Manage chat/mobile device pairing; node hosts live under nodes",
   "command.devices.rpc.option.url":
     "Gateway WebSocket URL (defaults to gateway.remote.url when configured)",
   "command.devices.rpc.option.token": "Gateway token (if required)",
@@ -1696,7 +1699,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.webhooks.description": "Webhook helpers and integrations",
   "command.qr.description": "Generate a node pairing QR code and setup code",
   "command.pairing.description": "Secure DM pairing (approve inbound requests)",
-  "command.runtimes.description": "Install, inspect, and repair plugin runtimes",
+  "command.runtimes.description": "Install and inspect plugin runtimes; plugins manages enablement",
   "command.runtimes.option.json": "Print JSON",
   "command.runtimes.list.description":
     "List installed plugin runtime status from the shared runtime manifest",
@@ -1705,7 +1708,8 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.runtimes.install.description": "Install all bundled shared plugin runtimes",
   "command.runtimes.repair.description":
     "Re-run shared plugin runtime installation and verification",
-  "command.plugins.description": "Manage CrawClaw plugins and extensions",
+  "command.plugins.description":
+    "Manage plugin discovery and enablement; runtimes manages installs",
   "command.plugins.option.json": "Print JSON",
   "command.plugins.option.force": "Skip confirmation prompt",
   "command.plugins.argument.id": "Plugin id",
@@ -1737,7 +1741,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.plugins.marketplace.description": "Inspect Claude-compatible plugin marketplaces",
   "command.plugins.marketplace.list.description": "List plugins published by a marketplace source",
   "command.plugins.marketplace.argument.source": "Local marketplace path/repo or git/GitHub source",
-  "command.channels.description": "Manage connected chat channels (Telegram, Discord, etc.)",
+  "command.channels.description": "Manage channel config; health/status show runtime health",
   "command.channels.examples.list": "List configured channels and auth profiles.",
   "command.channels.examples.status": "Run channel status checks and probes.",
   "command.channels.examples.add": "Add or update a channel account non-interactively.",
@@ -1867,7 +1871,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.secrets.apply.option.dryRun": "Validate/preflight only",
   "command.secrets.apply.option.allowExec":
     "Allow exec SecretRef checks (may execute provider commands)",
-  "command.skills.description": "List and inspect available skills",
+  "command.skills.description": "List and inspect skills; slash /skill runs one",
   "command.skills.option.json": "Output as JSON",
   "command.skills.search.description": "Search ClawHub skills",
   "command.skills.search.argument.query": "Optional search query",

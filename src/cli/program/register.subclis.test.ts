@@ -7,6 +7,7 @@ import {
   registerSubCliByName,
   registerSubCliCommands,
 } from "./register.subclis.js";
+import { getSubCliEntries } from "./subcli-descriptors.js";
 
 const { acpAction, registerAcpCli } = vi.hoisted(() => {
   const action = vi.fn();
@@ -97,8 +98,13 @@ describe("registerSubCliCommands", () => {
     expect(names).toContain("acp");
     expect(names).toContain("gateway");
     expect(names).toContain("improve");
+    expect(names).not.toContain("daemon");
     expect(names).not.toContain("clawbot");
     expect(registerAcpCli).not.toHaveBeenCalled();
+  });
+
+  it("does not expose the removed daemon alias in static descriptors", () => {
+    expect(getSubCliEntries().map((entry) => entry.name)).not.toContain("daemon");
   });
 
   it("returns null for plugin registration when the config snapshot is invalid", async () => {

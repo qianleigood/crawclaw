@@ -76,6 +76,20 @@ Text + native (when enabled):
 - `/help`
 - `/commands`
 - `/tools [compact|verbose]` (show what the current agent can use right now; `verbose` adds descriptions)
+
+Read-only query commands:
+
+- `/health` (gateway, sessions, and configured-channel summary)
+- `/channels` (channel-only detail view from the same health snapshot as `/health`)
+- `/sessions` (read-only stored-session list; `/session` changes this chat's settings)
+- `/nodes` (paired headless node-host summary; device pairing is `/devices`)
+- `/devices` (chat/mobile device pairing summary; node hosts are `/nodes`)
+- `/memory` (memory provider access status; `/context` explains prompt inputs)
+- `/skills` (list user-invocable skill slash commands; `/skill` runs one)
+- `/runtimes` (plugin runtime install manifest; `/plugins` manages plugin enablement)
+
+Action and session commands:
+
 - `/skill <name> [input]` (run a skill by name)
 - `/status` (show current status; includes provider usage/quota for the current model provider when available)
 - `/tasks` (list background tasks for the current session; shows active and recent task details with agent-local fallback counts)
@@ -166,6 +180,7 @@ Notes:
   - Skills may optionally declare `command-dispatch: tool` to route the command directly to a tool (deterministic, no model).
   - Example: `/prose` (OpenProse plugin) — see [OpenProse](/prose).
 - **Native command arguments:** Discord uses autocomplete for dynamic options (and button menus when you omit required args). Telegram and Slack show a button menu when a command supports choices and you omit the arg.
+- **Localized command chrome:** command names and argument values stay in English, but command descriptions, argument hints, choice labels, help text, usage prompts, and native-command menus follow `cli.language` (for example `zh-CN`).
 
 ## `/tools`
 

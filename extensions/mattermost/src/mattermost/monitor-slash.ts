@@ -11,7 +11,7 @@ import {
   type RuntimeEnv,
 } from "./runtime-api.js";
 import {
-  DEFAULT_COMMAND_SPECS,
+  buildDefaultMattermostCommandSpecs,
   isSlashCommandsEnabled,
   registerSlashCommands,
   resolveCallbackUrl,
@@ -31,7 +31,9 @@ function buildSlashCommands(params: {
   runtime: RuntimeEnv;
   nativeSkills: boolean;
 }): MattermostCommandSpec[] {
-  const commandsToRegister: MattermostCommandSpec[] = [...DEFAULT_COMMAND_SPECS];
+  const commandsToRegister: MattermostCommandSpec[] = buildDefaultMattermostCommandSpecs(
+    params.cfg,
+  );
   if (!params.nativeSkills) {
     return commandsToRegister;
   }

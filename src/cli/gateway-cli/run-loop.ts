@@ -242,7 +242,7 @@ export async function runGatewayLoop(params: {
           throw err;
         }
         server = null;
-        // Release the gateway lock so that `daemon restart/stop` (which
+        // Release the gateway lock so that gateway service restart/stop (which
         // discovers PIDs via the gateway port) can still manage the process.
         // Without this, the process holds the lock but is not listening,
         // forcing manual cleanup. (#35862)

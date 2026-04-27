@@ -13,6 +13,11 @@
  */
 
 import type { MattermostClient } from "./client.js";
+import {
+  listNativeCommandSpecsForConfig,
+  type CrawClawConfig,
+  type NativeCommandSpec,
+} from "./runtime-api.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -182,6 +187,23 @@ export const DEFAULT_COMMAND_SPECS: MattermostCommandSpec[] = [
     autoCompleteHint: "[on|off]",
   },
 ];
+
+function formatMattermostAutoCompleteHint(args: NativeCommandSpec["args"]): string | undefined {
+  if (!args || args.length === 0) {
+    return undefined;
+  }
+  return args.map((arg) => (arg.required ? `<${arg.name}>` : `[${arg.name}]`)).join(" ");
+}
+
+export function buildDefaultMattermostCommandSpecs(cfg: CrawClawConfig): MattermostCommandSpec[] {
+  return listNativeCommandSpecsForConfig(cfg, { provider: "mattermost" }).map((spec) => ({
+    trigger: spec.name.startsWith("oc_") ? spec.name : `oc_${spec.name}`,
+    originalName: spec.name,
+    description: spec.description,
+    autoComplete: true,
+    autoCompleteHint: formatMattermostAutoCompleteHint(spec.args),
+  }));
+}
 
 // ─── Command registration ────────────────────────────────────────────────────
 

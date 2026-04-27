@@ -3,7 +3,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const LEGACY_DAEMON_CLI_EXPORTS = [
-  "registerDaemonCli",
   "runDaemonInstall",
   "runDaemonRestart",
   "runDaemonStart",
@@ -14,15 +13,10 @@ const LEGACY_DAEMON_CLI_EXPORTS = [
 
 type LegacyDaemonCliExport = (typeof LEGACY_DAEMON_CLI_EXPORTS)[number];
 type LegacyDaemonCliAccessors = {
-  registerDaemonCli: string;
   runDaemonRestart: string;
-} & Partial<
-  Record<Exclude<LegacyDaemonCliExport, "registerDaemonCli" | "runDaemonRestart">, string>
->;
+} & Partial<Record<Exclude<LegacyDaemonCliExport, "runDaemonRestart">, string>>;
 
 const EXPORT_SPEC_RE = /^([A-Za-z_$][\w$]*)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/;
-const REGISTER_CONTAINER_RE =
-  /(?:var|const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:\/\*[\s\S]*?\*\/\s*)?__exportAll\(\{\s*registerDaemonCli\s*:\s*\(\)\s*=>\s*registerDaemonCli\s*\}\)/;
 
 function parseExportAliases(bundleSource: string): Map<string, string> | null {
   const matches = [...bundleSource.matchAll(/export\s*\{([^}]+)\}\s*;?/g)];
@@ -51,19 +45,11 @@ function parseExportAliases(bundleSource: string): Map<string, string> | null {
   return aliases;
 }
 
-function findRegisterContainerSymbol(bundleSource: string): string | null {
-  return bundleSource.match(REGISTER_CONTAINER_RE)?.[1] ?? null;
-}
-
 function resolveLegacyDaemonCliAccessors(bundleSource: string): LegacyDaemonCliAccessors | null {
   const aliases = parseExportAliases(bundleSource);
   if (!aliases) {
     return null;
   }
-
-  const registerContainer = findRegisterContainerSymbol(bundleSource);
-  const registerContainerAlias = registerContainer ? aliases.get(registerContainer) : undefined;
-  const registerDirectAlias = aliases.get("registerDaemonCli");
 
   const runDaemonInstall = aliases.get("runDaemonInstall");
   const runDaemonRestart = aliases.get("runDaemonRestart");
@@ -71,14 +57,11 @@ function resolveLegacyDaemonCliAccessors(bundleSource: string): LegacyDaemonCliA
   const runDaemonStatus = aliases.get("runDaemonStatus");
   const runDaemonStop = aliases.get("runDaemonStop");
   const runDaemonUninstall = aliases.get("runDaemonUninstall");
-  if (!(registerContainerAlias || registerDirectAlias) || !runDaemonRestart) {
+  if (!runDaemonRestart) {
     return null;
   }
 
   const accessors: LegacyDaemonCliAccessors = {
-    registerDaemonCli: registerContainerAlias
-      ? `${registerContainerAlias}.registerDaemonCli`
-      : registerDirectAlias,
     runDaemonRestart,
   };
   if (runDaemonInstall) {
@@ -150,9 +133,6 @@ const buildExportLine = (name: (typeof LEGACY_DAEMON_CLI_EXPORTS)[number]) => {
   const accessor = accessors[name];
   if (accessor) {
     return `export const ${name} = daemonCli.${accessor};`;
-  }
-  if (name === "registerDaemonCli") {
-    return `export const ${name} = () => { throw new Error(${JSON.stringify(missingExportError(name))}); };`;
   }
   return `export const ${name} = async () => { throw new Error(${JSON.stringify(missingExportError(name))}); };`;
 };

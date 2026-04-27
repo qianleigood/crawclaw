@@ -21,12 +21,6 @@ export const SUB_CLI_DESCRIPTORS = [
     hasSubcommands: true,
   },
   {
-    name: "daemon",
-    description: "Gateway service (legacy alias)",
-    descriptionKey: "command.daemon.description",
-    hasSubcommands: true,
-  },
-  {
     name: "logs",
     description: "Tail gateway file logs via RPC",
     descriptionKey: "command.logs.description",
@@ -46,7 +40,7 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "memory",
-    description: "Inspect and manage experience memory access",
+    description: "Inspect memory provider access; context details live under /context",
     descriptionKey: "command.memory.description",
     hasSubcommands: true,
   },
@@ -58,13 +52,13 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "nodes",
-    description: "Manage gateway-owned node pairing and node commands",
+    description: "Manage gateway node hosts; device pairing lives under devices",
     descriptionKey: "command.nodes.description",
     hasSubcommands: true,
   },
   {
     name: "devices",
-    description: "Device pairing + token management",
+    description: "Manage chat/mobile device pairing; node hosts live under nodes",
     descriptionKey: "command.devices.description",
     hasSubcommands: true,
   },
@@ -130,19 +124,19 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "runtimes",
-    description: "Install, inspect, and repair plugin runtimes",
+    description: "Install and inspect plugin runtimes; plugins manages enablement",
     descriptionKey: "command.runtimes.description",
     hasSubcommands: true,
   },
   {
     name: "plugins",
-    description: "Manage CrawClaw plugins and extensions",
+    description: "Manage plugin discovery and enablement; runtimes manages installs",
     descriptionKey: "command.plugins.description",
     hasSubcommands: true,
   },
   {
     name: "channels",
-    description: "Manage connected chat channels (Telegram, Discord, etc.)",
+    description: "Manage channel config; health/status show runtime health",
     descriptionKey: "command.channels.description",
     hasSubcommands: true,
   },
@@ -166,7 +160,7 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "skills",
-    description: "List and inspect available skills",
+    description: "List and inspect skills; slash /skill runs one",
     descriptionKey: "command.skills.description",
     hasSubcommands: true,
   },

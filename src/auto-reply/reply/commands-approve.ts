@@ -73,7 +73,7 @@ function parseApproveCommand(raw: string): ParsedApproveCommand | null {
 
 function buildResolvedByLabel(params: Parameters<CommandHandler>[0]): string {
   const channel = params.command.channel;
-  const sender = params.command.senderId ?? "unknown";
+  const sender = params.command.senderId ?? params.ctx.SenderId ?? "unknown";
   return `${channel}:${sender}`;
 }
 
@@ -84,7 +84,7 @@ function isAuthorizedTelegramExecSender(params: Parameters<CommandHandler>[0]): 
   return isTelegramExecApprovalAuthorizedSender({
     cfg: params.cfg,
     accountId: params.ctx.AccountId,
-    senderId: params.command.senderId,
+    senderId: params.command.senderId ?? params.ctx.SenderId,
   });
 }
 
@@ -178,19 +178,20 @@ export const handleApproveCommand: CommandHandler = async (params, allowTextComm
   }
 
   const isPluginId = parsed.id.startsWith("plugin:");
+  const senderId = params.command.senderId ?? params.ctx.SenderId;
   const telegramExecAuthorizedSender = isAuthorizedTelegramExecSender(params);
   const execApprovalAuthorization = resolveApprovalCommandAuthorization({
     cfg: params.cfg,
     channel: params.command.channel,
     accountId: params.ctx.AccountId,
-    senderId: params.command.senderId,
+    senderId,
     kind: "exec",
   });
   const pluginApprovalAuthorization = resolveApprovalCommandAuthorization({
     cfg: params.cfg,
     channel: params.command.channel,
     accountId: params.ctx.AccountId,
-    senderId: params.command.senderId,
+    senderId,
     kind: "plugin",
   });
   const hasExplicitApprovalAuthorization =

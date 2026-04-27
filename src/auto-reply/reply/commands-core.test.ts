@@ -51,7 +51,8 @@ vi.mock("./commands-handlers.runtime.js", () => ({
   loadCommandHandlers: commandHandlersRuntimeMocks.loadCommandHandlers,
 }));
 
-const { emitResetCommandHooks, handleCommands } = await import("./commands-core.js");
+const { __resetCommandHandlersForTests, emitResetCommandHooks, handleCommands } =
+  await import("./commands-core.js");
 
 describe("emitResetCommandHooks", () => {
   async function runBeforeResetContext(sessionKey?: string) {
@@ -82,6 +83,7 @@ describe("emitResetCommandHooks", () => {
   }
 
   beforeEach(() => {
+    __resetCommandHandlersForTests();
     fsMocks.readFile.mockReset();
     fsMocks.readdir.mockReset();
     hookRunnerMocks.hasHooks.mockReset();
@@ -97,6 +99,7 @@ describe("emitResetCommandHooks", () => {
   });
 
   afterEach(() => {
+    __resetCommandHandlersForTests();
     vi.restoreAllMocks();
   });
 
@@ -261,6 +264,28 @@ describe("handleCommands ACP reset-in-place", () => {
       AcpDispatchTailAfterReset: true,
     });
   }
+
+  it("localizes handler reply text through the centralized command exit path", async () => {
+    commandHandlersRuntimeMocks.loadCommandHandlers.mockReturnValue([
+      async () => ({
+        shouldContinue: false,
+        reply: { text: "Usage: /tasks" },
+      }),
+    ] as never);
+
+    const params = buildHandleCommandsParams("/tasks");
+    params.cfg = {
+      ...(params.cfg as object),
+      cli: { language: "zh-CN" },
+    } as HandleCommandsParams["cfg"];
+
+    const result = await handleCommands(params);
+
+    expect(result).toEqual({
+      shouldContinue: false,
+      reply: { text: "用法：/tasks" },
+    });
+  });
 
   it("resets the bound ACP session in place and returns the success reply for bare /new", async () => {
     hookRunnerMocks.hasHooks.mockReturnValue(false);

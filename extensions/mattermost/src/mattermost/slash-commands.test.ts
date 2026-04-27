@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MattermostClient } from "./client.js";
 import {
+  buildDefaultMattermostCommandSpecs,
   DEFAULT_COMMAND_SPECS,
   parseSlashCommandPayload,
   registerSlashCommands,
@@ -91,6 +92,18 @@ describe("slash-commands", () => {
         (spec) => spec.trigger === "oc_model" || spec.trigger === "oc_models",
       ).map((spec) => spec.trigger),
     ).toEqual(["oc_model", "oc_models"]);
+  });
+
+  it("localizes default command descriptions and hints for zh-CN", () => {
+    const specs = buildDefaultMattermostCommandSpecs({
+      cli: { language: "zh-CN" },
+      commands: { native: true },
+    } as never);
+    const status = specs.find((spec) => spec.trigger === "oc_status");
+    const model = specs.find((spec) => spec.trigger === "oc_model");
+
+    expect(status?.description).toBe("显示当前状态。");
+    expect(model?.autoCompleteHint).toBe("[model]");
   });
 
   it("normalizes callback path in slash config", () => {

@@ -1,5 +1,7 @@
 import { listChannelPlugins } from "../channels/plugins/index.js";
+import type { CrawClawConfig } from "../config/types.js";
 import { getActivePluginRegistry } from "../plugins/runtime.js";
+import { localizeChatCommandDefinition } from "./commands-i18n.js";
 import {
   assertCommandRegistry,
   buildBuiltinChatCommands,
@@ -18,6 +20,7 @@ function defineDockCommand(plugin: ChannelPlugin): ChatCommandDefinition {
     key: `dock:${plugin.id}`,
     nativeName: `dock_${plugin.id}`,
     description: `Switch to ${plugin.id} for replies.`,
+    descriptionZhCN: `切换到 ${plugin.id} 回复。`,
     textAliases: [`/dock-${plugin.id}`, `/dock_${plugin.id}`],
     category: "docks",
   });
@@ -50,6 +53,11 @@ export function getChatCommands(): ChatCommandDefinition[] {
   cachedRegistry = registry;
   cachedNativeCommandSurfaces = null;
   return commands;
+}
+
+export function getLocalizedChatCommands(cfg?: CrawClawConfig): ChatCommandDefinition[] {
+  const commands = getChatCommands();
+  return commands.map((command) => localizeChatCommandDefinition(command, cfg));
 }
 
 export function getNativeCommandSurfaces(): Set<string> {

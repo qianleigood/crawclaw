@@ -56,7 +56,6 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`security`](/cli/security)
 - [`secrets`](/cli/secrets)
 - [`skills`](/cli/skills)
-- [`daemon`](/cli/daemon) (legacy alias for gateway service commands)
 - [`voicecall`](/cli/voicecall) (plugin; if installed)
 
 ## Global flags
@@ -192,13 +191,6 @@ crawclaw [--dev] [--profile <name>] <command>
     stop
     restart
     run
-  daemon
-    status
-    install
-    uninstall
-    start
-    stop
-    restart
   logs
   system
     event
@@ -552,7 +544,7 @@ crawclaw status --deep
 
 ### `skills`
 
-List and inspect available skills plus readiness info.
+List and inspect skills; slash `/skill` runs one from chat.
 
 Subcommands:
 
@@ -828,7 +820,8 @@ Notes:
 
 ### `health`
 
-Fetch health from the running Gateway.
+Run the normal live Gateway health check. `gateway health` is the lower-level
+Gateway namespace command for directly calling the same health RPC.
 
 Options:
 
@@ -838,7 +831,8 @@ Options:
 
 ### `sessions`
 
-List stored conversation sessions.
+List stored conversation sessions. This is read-only session inventory; slash
+`/session` changes per-chat session settings.
 
 Options:
 
@@ -1208,7 +1202,8 @@ Auth notes:
 
 ## Nodes
 
-`nodes` talks to the Gateway and targets paired nodes. See [/nodes](/nodes).
+`nodes` talks to the Gateway and targets paired headless node hosts. Device and
+chat pairing lives under `devices`. See [/nodes](/nodes).
 
 Common options:
 

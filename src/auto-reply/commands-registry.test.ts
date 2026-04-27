@@ -44,6 +44,7 @@ describe("commands registry", () => {
     expect(specs.find((spec) => spec.name === "review")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "whoami")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "compact")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "approvals")).toBeFalsy();
   });
 
   it("filters commands based on config flags", () => {
@@ -67,6 +68,41 @@ describe("commands registry", () => {
     expect(nativeDisabled.find((spec) => spec.name === "config")).toBeFalsy();
     expect(nativeDisabled.find((spec) => spec.name === "plugins")).toBeFalsy();
     expect(nativeDisabled.find((spec) => spec.name === "debug")).toBeFalsy();
+  });
+
+  it("localizes built-in command metadata for zh-CN config", () => {
+    const cfg = {
+      cli: { language: "zh-CN" },
+      commands: { native: true },
+    } as const;
+    const commands = listChatCommandsForConfig(cfg);
+    const tools = commands.find((spec) => spec.key === "tools");
+    expect(tools?.description).toBe("列出可用的运行时工具。");
+    expect(tools?.args?.find((arg) => arg.name === "mode")?.description).toBe("compact 或 verbose");
+    expect(commands.find((spec) => spec.key === "channels")?.description).toBe(
+      "显示 /health 中的渠道明细。",
+    );
+    expect(commands.find((spec) => spec.key === "sessions")?.description).toBe(
+      "列出已存会话；/session 修改当前聊天设置。",
+    );
+
+    const tts = commands.find((spec) => spec.key === "tts");
+    const action = tts?.args?.find((arg) => arg.name === "action");
+    if (!tts || !action) {
+      throw new Error("missing /tts action arg");
+    }
+    expect(resolveCommandArgChoices({ command: tts, arg: action, cfg })).toEqual(
+      expect.arrayContaining([
+        { value: "on", label: "开启" },
+        { value: "status", label: "状态" },
+      ]),
+    );
+    expect(resolveCommandArgMenu({ command: tts, args: undefined, cfg })?.title).toContain(
+      "TTS 操作",
+    );
+
+    const native = listNativeCommandSpecsForConfig(cfg, { provider: "telegram" });
+    expect(native.find((spec) => spec.name === "help")?.description).toBe("显示可用命令。");
   });
 
   it("does not enable restricted commands from inherited flags", () => {

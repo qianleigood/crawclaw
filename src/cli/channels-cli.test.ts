@@ -19,7 +19,7 @@ describe("registerChannelsCli", () => {
     const status = channels?.commands.find((command) => command.name() === "status");
     const login = channels?.commands.find((command) => command.name() === "login");
 
-    expect(channels?.description()).toBe("管理已连接的聊天渠道（Telegram、Discord 等）");
+    expect(channels?.description()).toBe("管理渠道配置；health/status 显示运行时健康");
     expect(add?.description()).toBe("新增或更新渠道账号");
     expect(add?.helpInformation()).toContain("机器人 token（Telegram/Discord）");
     expect(status?.description()).toBe("显示网关渠道状态（本地探测请用 status --deep）");

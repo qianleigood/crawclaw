@@ -1,5 +1,5 @@
-import { ChannelType } from "discord-api-types/v10";
 import type { CrawClawConfig, loadConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { ChannelType } from "discord-api-types/v10";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { logVerboseMock } = vi.hoisted(() => ({
@@ -27,6 +27,7 @@ vi.mock("crawclaw/plugin-sdk/runtime-env", async () => {
 });
 
 let listNativeCommandSpecs: typeof import("crawclaw/plugin-sdk/command-auth").listNativeCommandSpecs;
+let listNativeCommandSpecsForConfig: typeof import("crawclaw/plugin-sdk/command-auth").listNativeCommandSpecsForConfig;
 let createDiscordNativeCommand: typeof import("./native-command.js").createDiscordNativeCommand;
 let createNoopThreadBindingManager: typeof import("./thread-bindings.js").createNoopThreadBindingManager;
 
@@ -37,13 +38,15 @@ function createNativeCommand(
     discordConfig?: NonNullable<CrawClawConfig["channels"]>["discord"];
   },
 ): ReturnType<typeof import("./native-command.js").createDiscordNativeCommand> {
-  const command = listNativeCommandSpecs({ provider: "discord" }).find(
-    (entry) => entry.name === name,
-  );
+  const baseCfg = (opts?.cfg ?? {}) as ReturnType<typeof loadConfig>;
+  const commandSpecs =
+    opts?.cfg === undefined
+      ? listNativeCommandSpecs({ provider: "discord" })
+      : listNativeCommandSpecsForConfig(baseCfg, { provider: "discord" });
+  const command = commandSpecs.find((entry) => entry.name === name);
   if (!command) {
     throw new Error(`missing native command: ${name}`);
   }
-  const baseCfg = (opts?.cfg ?? {}) as ReturnType<typeof loadConfig>;
   const discordConfig = (opts?.discordConfig ?? baseCfg.channels?.discord ?? {}) as NonNullable<
     CrawClawConfig["channels"]
   >["discord"];
@@ -107,7 +110,8 @@ function readChoices(option: CommandOption | undefined): unknown[] | undefined {
 
 describe("createDiscordNativeCommand option wiring", () => {
   beforeAll(async () => {
-    ({ listNativeCommandSpecs } = await import("crawclaw/plugin-sdk/command-auth"));
+    ({ listNativeCommandSpecs, listNativeCommandSpecsForConfig } =
+      await import("crawclaw/plugin-sdk/command-auth"));
     ({ createDiscordNativeCommand } = await import("./native-command.js"));
     ({ createNoopThreadBindingManager } = await import("./thread-bindings.js"));
   });
@@ -163,6 +167,17 @@ describe("createDiscordNativeCommand option wiring", () => {
         expect.objectContaining({ name: expect.any(String), value: expect.any(String) }),
       ]),
     );
+  });
+
+  it("uses localized command and option descriptions from native specs", () => {
+    const command = createNativeCommand("voice", {
+      cfg: { cli: { language: "zh-CN" } } as ReturnType<typeof loadConfig>,
+    });
+    const action = requireOption(command, "action");
+
+    expect(command.description).toBe("控制文本转语音 (TTS)。");
+    expect(action.description).toBe("TTS 操作");
+    expect(readChoices(action)).toEqual(expect.arrayContaining([{ name: "开启", value: "on" }]));
   });
 
   it("returns no autocomplete choices for unauthorized users", async () => {

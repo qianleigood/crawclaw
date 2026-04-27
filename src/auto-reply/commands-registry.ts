@@ -4,7 +4,18 @@ import type { SkillCommandSpec } from "../agents/skills.js";
 import { isCommandFlagEnabled } from "../config/commands.js";
 import type { CrawClawConfig } from "../config/types.js";
 import { escapeRegExp } from "../utils.js";
-import { getChatCommands, getNativeCommandSurfaces } from "./commands-registry.data.js";
+import {
+  formatSlashCommandArgMenuTitle,
+  localizeChatCommandDefinition,
+  localizeCommandArgDefinition,
+  translateSlashCommandText,
+  translateSlashCommandChoiceLabel,
+} from "./commands-i18n.js";
+import {
+  getChatCommands,
+  getLocalizedChatCommands,
+  getNativeCommandSurfaces,
+} from "./commands-registry.data.js";
 import type {
   ChatCommandDefinition,
   CommandArgChoiceContext,
@@ -30,7 +41,7 @@ export type {
   CommandScope,
   NativeCommandSpec,
   ShouldHandleTextCommandsParams,
-  } from "./commands-registry.types.js";
+} from "./commands-registry.types.js";
 
 type TextAliasSpec = {
   key: string;
@@ -87,8 +98,9 @@ function buildSkillCommandDefinitions(skillCommands?: SkillCommandSpec[]): ChatC
 
 export function listChatCommands(params?: {
   skillCommands?: SkillCommandSpec[];
+  cfg?: CrawClawConfig;
 }): ChatCommandDefinition[] {
-  const commands = getChatCommands();
+  const commands = params?.cfg ? getLocalizedChatCommands(params.cfg) : getChatCommands();
   if (!params?.skillCommands?.length) {
     return [...commands];
   }
@@ -118,7 +130,9 @@ export function listChatCommandsForConfig(
   cfg: CrawClawConfig,
   params?: { skillCommands?: SkillCommandSpec[] },
 ): ChatCommandDefinition[] {
-  const base = getChatCommands().filter((command) => isCommandEnabled(cfg, command.key));
+  const base = getLocalizedChatCommands(cfg).filter((command) =>
+    isCommandEnabled(cfg, command.key),
+  );
   if (!params?.skillCommands?.length) {
     return base;
   }
@@ -339,7 +353,24 @@ export function resolveCommandArgChoices(params: {
         return provided(context);
       })();
   return raw.map((choice) =>
-    typeof choice === "string" ? { value: choice, label: choice } : choice,
+    typeof choice === "string"
+      ? {
+          value: choice,
+          label: translateSlashCommandChoiceLabel({
+            value: choice,
+            label: choice,
+            cfg,
+          }),
+        }
+      : {
+          value: choice.value,
+          label: translateSlashCommandChoiceLabel({
+            value: choice.value,
+            label: choice.label,
+            cfg,
+            labelZhCN: choice.labelZhCN,
+          }),
+        },
   );
 }
 
@@ -369,7 +400,8 @@ export function resolveCommandArgMenu(params: {
   if (args?.raw && !args.values) {
     return null;
   }
-  const arg = command.args.find((entry) => entry.name === argName);
+  const rawArg = command.args.find((entry) => entry.name === argName);
+  const arg = rawArg ? localizeCommandArgDefinition(rawArg, cfg) : undefined;
   if (!arg) {
     return null;
   }
@@ -377,8 +409,12 @@ export function resolveCommandArgMenu(params: {
   if (choices.length === 0) {
     return null;
   }
-  const title = argSpec !== "auto" ? argSpec.title : undefined;
-  return { arg, choices, title };
+  const localizedCommand = localizeChatCommandDefinition(command, cfg);
+  const title =
+    argSpec !== "auto"
+      ? translateSlashCommandText(argSpec.title ?? "", cfg, argSpec.titleZhCN)
+      : formatSlashCommandArgMenuTitle({ command: localizedCommand, arg, cfg });
+  return { arg, choices, title: title || undefined };
 }
 
 export function normalizeCommandBody(raw: string, options?: CommandNormalizeOptions): string {

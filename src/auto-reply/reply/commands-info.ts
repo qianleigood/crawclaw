@@ -3,6 +3,7 @@ import { resolveEffectiveToolInventory } from "../../agents/tools-effective-inve
 import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
 import { buildTelegramCommandsListReply } from "../../channels/telegram-command-replies.js";
 import { logVerbose } from "../../globals.js";
+import { translateSlashCommandText } from "../commands-i18n.js";
 import { listSkillCommandsForAgents } from "../skill-commands.js";
 import {
   buildCommandsMessage,
@@ -90,7 +91,10 @@ export const handleToolsCommand: CommandHandler = async (params, allowTextComman
   } else if (normalized === "/tools verbose") {
     verbose = true;
   } else if (normalized.startsWith("/tools ")) {
-    return { shouldContinue: false, reply: { text: "Usage: /tools [compact|verbose]" } };
+    return {
+      shouldContinue: false,
+      reply: { text: translateSlashCommandText("Usage: /tools [compact|verbose]", params.cfg) },
+    };
   } else {
     return null;
   }
@@ -145,13 +149,21 @@ export const handleToolsCommand: CommandHandler = async (params, allowTextComman
     });
     return {
       shouldContinue: false,
-      reply: { text: buildToolsMessage(result, { verbose }) },
+      reply: { text: buildToolsMessage(result, { verbose, cfg: params.cfg }) },
     };
   } catch (err) {
     const message = String(err);
     const text = message.includes("missing scope:")
-      ? "You do not have permission to view available tools."
-      : "Couldn't load available tools right now. Try again in a moment.";
+      ? translateSlashCommandText(
+          "You do not have permission to view available tools.",
+          params.cfg,
+          "你没有权限查看可用工具。",
+        )
+      : translateSlashCommandText(
+          "Couldn't load available tools right now. Try again in a moment.",
+          params.cfg,
+          "现在无法加载可用工具。请稍后重试。",
+        );
     return {
       shouldContinue: false,
       reply: { text },

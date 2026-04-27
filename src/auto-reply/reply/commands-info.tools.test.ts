@@ -159,6 +159,24 @@ describe("handleToolsCommand", () => {
     });
   });
 
+  it("localizes usage when arguments are invalid and zh-CN is configured", async () => {
+    const { buildCommandTestParams, handleToolsCommand } = await loadToolsHarness();
+    const result = await handleToolsCommand(
+      buildCommandTestParams(
+        "/tools extra",
+        { ...buildConfig(), cli: { language: "zh-CN" } },
+        undefined,
+        { workspaceDir: "/tmp" },
+      ),
+      true,
+    );
+
+    expect(result).toEqual({
+      shouldContinue: false,
+      reply: { text: "用法：/tools [compact|verbose]" },
+    });
+  });
+
   it("does not synthesize group ids for direct-chat sender ids", async () => {
     const { buildCommandTestParams, handleToolsCommand, resolveToolsMock } =
       await loadToolsHarness();

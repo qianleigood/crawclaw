@@ -18,6 +18,7 @@ import { handleMcpCommand } from "./commands-mcp.js";
 import { handleModelsCommand } from "./commands-models.js";
 import { handlePluginCommand } from "./commands-plugin.js";
 import { handlePluginsCommand } from "./commands-plugins.js";
+import { handleQueryCommand } from "./commands-query.js";
 import { handleReviewCommand } from "./commands-review.js";
 import {
   handleAbortTrigger,
@@ -51,6 +52,7 @@ export function loadCommandHandlers(): CommandHandler[] {
     handleCommandsListCommand,
     handleToolsCommand,
     handleStatusCommand,
+    handleQueryCommand,
     handleWorkflowCommand,
     handleReviewCommand,
     handleTasksCommand,

@@ -67,15 +67,6 @@ const entries: SubCliEntry[] = [
     },
   },
   {
-    name: "daemon",
-    description: "Gateway service (legacy alias)",
-    hasSubcommands: true,
-    register: async (program) => {
-      const mod = await import("../daemon-cli.js");
-      mod.registerDaemonCli(program);
-    },
-  },
-  {
     name: "logs",
     description: "Tail gateway file logs via RPC",
     hasSubcommands: false,
@@ -104,7 +95,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "memory",
-    description: "Inspect and manage experience memory access",
+    description: "Inspect memory provider access; context details live under /context",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../memory-cli.js");
@@ -131,7 +122,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "nodes",
-    description: "Manage gateway-owned node pairing and node commands",
+    description: "Manage gateway node hosts; device pairing lives under devices",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../nodes-cli.js");
@@ -140,7 +131,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "devices",
-    description: "Device pairing + token management",
+    description: "Manage chat/mobile device pairing; node hosts live under nodes",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../devices-cli.js");
@@ -247,7 +238,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "runtimes",
-    description: "Install, inspect, and repair plugin runtimes",
+    description: "Install and inspect plugin runtimes; plugins manages enablement",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../runtimes-cli.js");
@@ -256,7 +247,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "plugins",
-    description: "Manage CrawClaw plugins and extensions",
+    description: "Manage plugin discovery and enablement; runtimes manages installs",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../plugins-cli.js");
@@ -270,7 +261,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "channels",
-    description: "Manage connected chat channels (Telegram, Discord, etc.)",
+    description: "Manage channel config; health/status show runtime health",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../channels-cli.js");
@@ -306,7 +297,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "skills",
-    description: "List and inspect available skills",
+    description: "List and inspect skills; slash /skill runs one",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../skills-cli.js");

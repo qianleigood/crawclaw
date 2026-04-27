@@ -1363,7 +1363,6 @@
                     "group": "Gateway and service",
                     "pages": [
                       "cli/backup",
-                      "cli/daemon",
                       "cli/doctor",
                       "cli/gateway",
                       "cli/health",

@@ -38,6 +38,7 @@ import {
   resolveModelCostConfig,
 } from "../utils/usage-format.js";
 import { VERSION } from "../version.js";
+import { translateSlashCommandText } from "./commands-i18n.js";
 import {
   listChatCommands,
   listChatCommandsForConfig,
@@ -840,6 +841,10 @@ const CATEGORY_LABELS: Record<CommandCategory, string> = {
   docks: "Docks",
 };
 
+function getCategoryLabel(category: CommandCategory, cfg?: CrawClawConfig): string {
+  return translateSlashCommandText(CATEGORY_LABELS[category], cfg);
+}
+
 const CATEGORY_ORDER: CommandCategory[] = [
   "session",
   "options",
@@ -867,9 +872,10 @@ function groupCommandsByCategory(
 }
 
 export function buildHelpMessage(cfg?: CrawClawConfig): string {
-  const lines = ["ℹ️ Help", ""];
+  const tr = (text: string) => translateSlashCommandText(text, cfg);
+  const lines = [tr("ℹ️ Help"), ""];
 
-  lines.push("Session");
+  lines.push(tr("Session"));
   lines.push("  /new  |  /compact [instructions]  |  /stop");
   lines.push("");
 
@@ -880,19 +886,19 @@ export function buildHelpMessage(cfg?: CrawClawConfig): string {
   if (isCommandFlagEnabled(cfg, "debug")) {
     optionParts.push("/debug");
   }
-  lines.push("Options");
+  lines.push(tr("Options"));
   lines.push(`  ${optionParts.join("  |  ")}`);
   lines.push("");
 
-  lines.push("Status");
+  lines.push(tr("Status"));
   lines.push("  /status  |  /tasks  |  /whoami  |  /context");
   lines.push("");
 
-  lines.push("Skills");
+  lines.push(tr("Skills"));
   lines.push("  /skill <name> [input]");
 
   lines.push("");
-  lines.push("More: /commands for full list, /tools for available capabilities");
+  lines.push(tr("More: /commands for full list, /tools for available capabilities"));
 
   return lines.join("\n");
 }
@@ -945,11 +951,12 @@ function formatVerboseToolDescription(tool: ToolsMessageItem): string {
 
 export function buildToolsMessage(
   result: EffectiveToolInventoryResult,
-  options?: { verbose?: boolean },
+  options?: { verbose?: boolean; cfg?: CrawClawConfig },
 ): string {
+  const tr = (text: string) => translateSlashCommandText(text, options?.cfg);
   const groups = result.groups
     .map((group) => ({
-      label: group.label,
+      label: tr(group.label),
       tools: sortToolsMessageItems(
         group.tools.map((tool) => ({
           id: normalizeToolName(tool.id),
@@ -966,17 +973,22 @@ export function buildToolsMessage(
 
   if (groups.length === 0) {
     const lines = [
-      "No tools are available for this agent right now.",
+      tr("No tools are available for this agent right now."),
       "",
-      `Profile: ${result.profile}`,
+      `${tr("Profile: ")}${result.profile}`,
     ];
     return lines.join("\n");
   }
 
   const verbose = options?.verbose === true;
   const lines = verbose
-    ? ["Available tools", "", `Profile: ${result.profile}`, "What this agent can use right now:"]
-    : ["Available tools", "", `Profile: ${result.profile}`];
+    ? [
+        tr("Available tools"),
+        "",
+        `${tr("Profile: ")}${result.profile}`,
+        tr("What this agent can use right now:"),
+      ]
+    : [tr("Available tools"), "", `${tr("Profile: ")}${result.profile}`];
 
   for (const group of groups) {
     lines.push("", group.label);
@@ -990,9 +1002,9 @@ export function buildToolsMessage(
   }
 
   if (verbose) {
-    lines.push("", "Tool availability depends on this agent's configuration.");
+    lines.push("", tr("Tool availability depends on this agent's configuration."));
   } else {
-    lines.push("", "Use /tools verbose for descriptions.");
+    lines.push("", tr("Use /tools verbose for descriptions."));
   }
   return lines.join("\n");
 }
@@ -1027,6 +1039,7 @@ type CommandsListItem = {
 function buildCommandItems(
   commands: ChatCommandDefinition[],
   pluginCommands: ReturnType<typeof listPluginCommands>,
+  cfg?: CrawClawConfig,
 ): CommandsListItem[] {
   const grouped = groupCommandsByCategory(commands);
   const items: CommandsListItem[] = [];
@@ -1036,7 +1049,7 @@ function buildCommandItems(
     if (categoryCommands.length === 0) {
       continue;
     }
-    const label = CATEGORY_LABELS[category];
+    const label = getCategoryLabel(category, cfg);
     for (const command of categoryCommands) {
       items.push({ label, text: formatCommandEntry(command) });
     }
@@ -1045,7 +1058,7 @@ function buildCommandItems(
   for (const command of pluginCommands) {
     const pluginLabel = command.pluginId ? ` (${command.pluginId})` : "";
     items.push({
-      label: "Plugins",
+      label: translateSlashCommandText("Plugins", cfg),
       text: `/${command.name}${pluginLabel} - ${command.description}`,
     });
   }
@@ -1093,12 +1106,12 @@ export function buildCommandsMessagePaginated(
     ? listChatCommandsForConfig(cfg, { skillCommands })
     : listChatCommands({ skillCommands });
   const pluginCommands = listPluginCommands();
-  const items = buildCommandItems(commands, pluginCommands);
+  const items = buildCommandItems(commands, pluginCommands, cfg);
 
   if (!isTelegram) {
-    const lines = ["ℹ️ Slash commands", ""];
+    const lines = [translateSlashCommandText("ℹ️ Slash commands", cfg), ""];
     lines.push(formatCommandList(items));
-    lines.push("", "More: /tools for available capabilities");
+    lines.push("", translateSlashCommandText("More: /tools for available capabilities", cfg));
     return {
       text: lines.join("\n").trim(),
       totalPages: 1,
@@ -1115,7 +1128,8 @@ export function buildCommandsMessagePaginated(
   const endIndex = startIndex + COMMANDS_PER_PAGE;
   const pageItems = items.slice(startIndex, endIndex);
 
-  const lines = [`ℹ️ Commands (${currentPage}/${totalPages})`, ""];
+  const title = cfg?.cli?.language === "zh-CN" ? "ℹ️ 命令" : "ℹ️ Commands";
+  const lines = [`${title} (${currentPage}/${totalPages})`, ""];
   lines.push(formatCommandList(pageItems));
 
   return {

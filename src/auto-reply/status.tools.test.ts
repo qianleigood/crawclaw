@@ -72,6 +72,36 @@ describe("tools product copy", () => {
     expect(text).not.toContain("unavailable right now");
   });
 
+  it("localizes tool list framing for zh-CN", () => {
+    const text = buildToolsMessage(
+      {
+        agentId: "main",
+        profile: "coding",
+        groups: [
+          {
+            id: "core",
+            label: "Built-in tools",
+            source: "core",
+            tools: [
+              {
+                id: "exec",
+                label: "Exec",
+                description: "Run shell commands",
+                rawDescription: "Run shell commands",
+                source: "core",
+              },
+            ],
+          },
+        ],
+      },
+      { cfg: { cli: { language: "zh-CN" } } as CrawClawConfig },
+    );
+
+    expect(text).toContain("可用工具");
+    expect(text).toContain("配置档：coding");
+    expect(text).toContain("使用 /tools verbose 查看描述。");
+  });
+
   it("keeps detailed descriptions in verbose mode", () => {
     const text = buildToolsMessage(
       {

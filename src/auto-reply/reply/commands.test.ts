@@ -16,7 +16,6 @@ import {
   createResolvedApproverActionAuthAdapter,
 } from "../../plugin-sdk/approval-runtime.js";
 import { createScopedChannelConfigAdapter } from "../../plugin-sdk/channel-config-helpers.js";
-import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import {
   createChannelTestPluginBase,
@@ -276,6 +275,7 @@ const { addSubagentRunForTests, listSubagentRunsForRequester, resetSubagentRegis
   await import("../../agents/subagent-registry.js");
 const internalHooks = await import("../../hooks/internal-hooks.js");
 const { clearPluginCommands, registerPluginCommand } = await import("../../plugins/commands.js");
+const { setActivePluginRegistry } = await import("../../plugins/runtime.js");
 const { abortEmbeddedPiRun, compactEmbeddedPiSession } =
   await import("../../agents/pi-embedded.js");
 const { __testing: subagentControlTesting } = await import("../../agents/subagent-control.js");
@@ -898,7 +898,6 @@ describe("/approve command", () => {
       SenderId: "123",
     });
     params.command.isAuthorizedSender = false;
-
     callGatewayMock.mockResolvedValue({ ok: true });
 
     const result = await handleCommands(params);
@@ -927,7 +926,6 @@ describe("/approve command", () => {
       SenderId: "+15551230000",
     });
     params.command.isAuthorizedSender = false;
-
     callGatewayMock.mockResolvedValue({ ok: true });
 
     const result = await handleCommands(params);

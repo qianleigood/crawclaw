@@ -928,7 +928,7 @@ describe("update-cli", () => {
       },
     },
     {
-      name: "falls back to daemon restart when service env refresh cannot complete",
+      name: "falls back to gateway service restart when service env refresh cannot complete",
       run: async () => {
         vi.mocked(runDaemonRestart).mockResolvedValue(true);
         await runRestartFallbackScenario({ daemonInstall: "fail" });
