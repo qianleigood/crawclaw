@@ -998,7 +998,7 @@
           "exportName": "buildCommandsMessage",
           "kind": "function",
           "source": {
-            "line": 1087,
+            "line": 1121,
             "path": "src/auto-reply/status.ts"
           }
         },
@@ -1007,7 +1007,7 @@
           "exportName": "buildCommandsMessagePaginated",
           "kind": "function",
           "source": {
-            "line": 1096,
+            "line": 1130,
             "path": "src/auto-reply/status.ts"
           }
         },
@@ -2116,7 +2116,7 @@
           "exportName": "CrawClawConfig",
           "kind": "type",
           "source": {
-            "line": 28,
+            "line": 23,
             "path": "src/config/types.crawclaw.ts"
           }
         },
@@ -2215,7 +2215,7 @@
           "exportName": "GatewayRequestHandlerOptions",
           "kind": "type",
           "source": {
-            "line": 115,
+            "line": 112,
             "path": "src/gateway/server-methods/types.ts"
           }
         },
@@ -2784,7 +2784,7 @@
           "exportName": "CrawClawConfig",
           "kind": "type",
           "source": {
-            "line": 28,
+            "line": 23,
             "path": "src/config/types.crawclaw.ts"
           }
         },
@@ -3416,7 +3416,7 @@
           "exportName": "CrawClawConfig",
           "kind": "type",
           "source": {
-            "line": 28,
+            "line": 23,
             "path": "src/config/types.crawclaw.ts"
           }
         },
@@ -4234,7 +4234,7 @@
           "exportName": "CrawClawConfig",
           "kind": "type",
           "source": {
-            "line": 28,
+            "line": 23,
             "path": "src/config/types.crawclaw.ts"
           }
         },
