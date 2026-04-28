@@ -34,14 +34,11 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 - [RPC adapters](/reference/rpc)
 - [Gateway runbook](/gateway)
 - [Nodes (iOS and Android)](/nodes)
-- [Web surfaces](/web)
 - [Discovery and transports](/gateway/discovery)
 - [Remote access](/gateway/remote)
 
 ## Providers and UX
 
-- [WebChat](/web/webchat)
-- [WebChat](/web/webchat)
 - [Telegram](/channels/telegram)
 - [Discord](/channels/discord)
 - [Mattermost (plugin)](/channels/mattermost)

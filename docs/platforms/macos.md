@@ -3,46 +3,42 @@ summary: "macOS support matrix for native npm installs, Gateway host mode, Launc
 read_when:
   - Installing CrawClaw on macOS
   - Defining macOS support scope
-  - Looking for macOS app and Apple-local capability boundaries
+  - Looking for Apple-local capability boundaries
 title: "macOS"
 ---
 
 # macOS
 
 CrawClaw supports **native macOS** for Gateway host use. The macOS product
-boundary is the CLI, Gateway, web UI, plugins, install/runtime setup, and
+boundary is the CLI, Gateway, plugins, install/runtime setup, and
 per-user LaunchAgent startup on the Mac.
 
 Native macOS support does **not** mean every Apple-local integration is covered
 by the npm install smoke. Apple-local features depend on host permissions,
-signing, app distribution, or a separate bridge service when the feature needs
+signing, or a separate bridge service when the feature needs
 one.
 
 ## Native capability states
 
-The macOS matrix uses three support states:
+The macOS matrix uses two support states:
 
 - `supported`: CrawClaw owns the native macOS path and validates it with
   automated or smoke-backed gates.
-- `app-backed`: CrawClaw can use the capability through the macOS app or a
-  signed Apple-local runtime, with separate app validation requirements.
 - `external`: the capability depends on another local service, account, or
   provider outside the npm package itself.
 
 ## Native capability matrix
 
-| Surface                             | Status       | macOS boundary                                                                                     |
-| ----------------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
-| npm installer                       | `supported`  | `npm install -g crawclaw@latest` installs the CLI package and runs install-time runtime setup.     |
-| CLI                                 | `supported`  | Commands run under Node 22.14+ with macOS path, shell, and process handling.                       |
-| Gateway foreground                  | `supported`  | `crawclaw gateway run` starts the Gateway directly on the Mac.                                     |
-| Gateway service                     | `supported`  | Per-user LaunchAgent startup is the native service path.                                           |
-| Web UI                              | `supported`  | Served by the Gateway after local or remote access is configured.                                  |
-| Browser automation                  | `supported`  | Supported through Chrome-family discovery and the install-time browser runtime.                    |
-| Common provider plugins             | `supported`  | Node-based providers load through the bundled plugin runtime and install-time dependency setup.    |
-| macOS companion app                 | `app-backed` | The app owns app-local UX and permission-sensitive local capabilities; it has separate app gates.  |
-| iMessage and Apple-local messaging  | `external`   | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.  |
-| Camera, microphone, and screen APIs | `app-backed` | Permission-sensitive APIs depend on macOS TCC prompts, signing, and the app or node host boundary. |
+| Surface                             | Status      | macOS boundary                                                                                    |
+| ----------------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
+| npm installer                       | `supported` | `npm install -g crawclaw@latest` installs the CLI package and runs install-time runtime setup.    |
+| CLI                                 | `supported` | Commands run under Node 22.14+ with macOS path, shell, and process handling.                      |
+| Gateway foreground                  | `supported` | `crawclaw gateway run` starts the Gateway directly on the Mac.                                    |
+| Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                          |
+| Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                   |
+| Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.   |
+| iMessage and Apple-local messaging  | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient. |
+| Camera, microphone, and screen APIs | `external`  | Permission-sensitive APIs depend on macOS TCC prompts, signing, and a separate local runtime.     |
 
 ## Install
 
@@ -106,10 +102,8 @@ pnpm test:parallels:npm-update
 ## Current boundaries
 
 - The npm smoke covers CLI, plugin runtime setup, and foreground Gateway startup.
-  It does not validate the macOS app release, notarization, or TCC permission
-  prompts.
-- LaunchAgent behavior is the native managed-startup path, but app-managed
-  Gateway restarts and app permission flows still need app-specific validation.
+  It does not validate notarization or TCC permission prompts.
+- LaunchAgent behavior is the native managed-startup path.
 - Apple-local integrations can require local services, Apple accounts, or
   device permissions outside CrawClaw's npm package.
 

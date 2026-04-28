@@ -462,14 +462,14 @@ describe("readSessionTitleFieldsFromTranscript cache", () => {
     readSpy.mockRestore();
   });
 
-  test("falls back to latest reset archive for sender label when live transcript only has control-ui metadata", () => {
+  test("falls back to latest reset archive for sender label when live transcript only has browser-client metadata", () => {
     const sessionId = "test-cache-reset-sender";
     const transcriptPath = writeTranscript(
       tmpDir,
       sessionId,
       buildBasicSessionTranscript(
         sessionId,
-        'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-control-ui","id":"crawclaw-control-ui"}\n```\n\n你好',
+        'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-browser-client","id":"crawclaw-browser-client"}\n```\n\n你好',
         "ok",
       ),
     );
@@ -500,7 +500,7 @@ describe("readSessionTitleFieldsFromTranscript cache", () => {
       sessionId,
       buildBasicSessionTranscript(
         sessionId,
-        'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-control-ui","id":"crawclaw-control-ui"}\n```\n\n你好',
+        'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-browser-client","id":"crawclaw-browser-client"}\n```\n\n你好',
         "ok",
       ),
     );

@@ -15,7 +15,7 @@ x-i18n:
 
 # 日志
 
-面向用户的概览（CLI + Control UI + 配置），请参阅 [/logging](/logging)。
+面向用户的概览（CLI + Browser client + 配置），请参阅 [/logging](/logging)。
 
 CrawClaw 有两个日志"界面"：
 
@@ -32,7 +32,7 @@ CrawClaw 有两个日志"界面"：
 
 文件格式是每行一个 JSON 对象。
 
-Control UI 的 Logs 标签页通过 Gateway 网关（`logs.tail`）尾随此文件。CLI 也可以这样做：
+Browser client 的 Logs 标签页通过 Gateway 网关（`logs.tail`）尾随此文件。CLI 也可以这样做：
 
 ```bash
 crawclaw logs --follow

@@ -32,7 +32,7 @@ x-i18n:
 ## 云设置的工作原理
 
 - **Gateway 网关运行在 VPS 上**并拥有状态 + 工作区。
-- 你通过**控制 UI** 或 **Tailscale/SSH** 从笔记本电脑/手机连接。
+- 你通过**Gateway 客户端** 或 **Tailscale/SSH** 从笔记本电脑/手机连接。
 - 将 VPS 视为数据源并**备份**状态 + 工作区。
 - 安全默认：将 Gateway 网关保持在 loopback 上，通过 SSH 隧道或 Tailscale Serve 访问。
   如果你绑定到 `lan`/`tailnet`，需要 `gateway.auth.token` 或 `gateway.auth.password`。

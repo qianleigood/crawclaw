@@ -334,7 +334,7 @@ quietly regress:
 - provider lifecycle emission
 - embedded special-agent inheritance, cache, and observability
 - `agent inspect` runtime/archive enrichment
-- Control UI inspect entrypoints and views (`agents` / `chat` / `sessions`)
+- Browser client inspect entrypoints and views (`agents` / `chat` / `sessions`)
 
 Current coverage includes:
 
@@ -345,10 +345,6 @@ Current coverage includes:
 - `src/agents/pi-embedded-runner/run/attempt.*.test.ts`
 - `src/agents/special/runtime/*.test.ts`
 - `src/commands/agent.inspect.test.ts`
-- `ui/src/ui/controllers/agents.test.ts`
-- `ui/src/ui/views/agents.test.ts`
-- `ui/src/ui/views/chat.test.ts`
-- `ui/src/ui/views/sessions.test.ts`
 
 At the time of writing, this suite passes as:
 
@@ -359,7 +355,7 @@ This suite is the quickest way to answer:
 
 - is the memory architecture still wired correctly?
 - are the memory agents still runnable through the current substrate?
-- does inspect still expose the runtime/memory state to CLI and Control UI?
+- does inspect still expose the runtime/memory state to CLI and Browser client?
 
 It is still not a substitute for full e2e or long-running soak coverage. It is
 the primary targeted regression belt for the current run-loop, memory, special

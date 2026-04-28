@@ -1,17 +1,17 @@
 import { describe, expect, test } from "vitest";
 import {
   evaluateMissingDeviceIdentity,
-  isTrustedProxyControlUiOperatorAuth,
-  resolveControlUiAuthPolicy,
+  isTrustedProxyBrowserClientsOperatorAuth,
+  resolveBrowserClientsAuthPolicy,
   shouldClearUnboundScopesForMissingDeviceIdentity,
-  shouldSkipControlUiPairing,
+  shouldSkipBrowserClientsPairing,
 } from "./connect-policy.js";
 
 describe("ws connect policy", () => {
-  test("resolves control-ui auth policy", () => {
-    const bypass = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: { dangerouslyDisableDeviceAuth: true },
+  test("resolves browser-client auth policy", () => {
+    const bypass = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: { dangerouslyDisableDeviceAuth: true },
       deviceRaw: {
         id: "dev-1",
         publicKey: "pk",
@@ -23,9 +23,9 @@ describe("ws connect policy", () => {
     expect(bypass.allowBypass).toBe(true);
     expect(bypass.device).toBeNull();
 
-    const regular = resolveControlUiAuthPolicy({
-      isControlUi: false,
-      controlUiConfig: { dangerouslyDisableDeviceAuth: true },
+    const regular = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: false,
+      browserClientsConfig: { dangerouslyDisableDeviceAuth: true },
       deviceRaw: {
         id: "dev-2",
         publicKey: "pk",
@@ -39,9 +39,9 @@ describe("ws connect policy", () => {
   });
 
   test("evaluates missing-device decisions", () => {
-    const policy = resolveControlUiAuthPolicy({
-      isControlUi: false,
-      controlUiConfig: undefined,
+    const policy = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: false,
+      browserClientsConfig: undefined,
       deviceRaw: null,
     });
 
@@ -49,8 +49,8 @@ describe("ws connect policy", () => {
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: true,
         role: "node",
-        isControlUi: false,
-        controlUiAuthPolicy: policy,
+        isBrowserClients: false,
+        browserClientsAuthPolicy: policy,
         trustedProxyAuthOk: false,
         sharedAuthOk: true,
         authOk: true,
@@ -59,33 +59,33 @@ describe("ws connect policy", () => {
       }).kind,
     ).toBe("allow");
 
-    const controlUiStrict = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: { allowInsecureAuth: true, dangerouslyDisableDeviceAuth: false },
+    const browserClientsStrict = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: { allowInsecureAuth: true, dangerouslyDisableDeviceAuth: false },
       deviceRaw: null,
     });
-    // Remote Control UI with allowInsecureAuth -> still rejected.
+    // Remote Browser client with allowInsecureAuth -> still rejected.
     expect(
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "operator",
-        isControlUi: true,
-        controlUiAuthPolicy: controlUiStrict,
+        isBrowserClients: true,
+        browserClientsAuthPolicy: browserClientsStrict,
         trustedProxyAuthOk: false,
         sharedAuthOk: true,
         authOk: true,
         hasSharedAuth: true,
         isLocalClient: false,
       }).kind,
-    ).toBe("reject-control-ui-insecure-auth");
+    ).toBe("reject-browser-client-insecure-auth");
 
-    // Local Control UI with allowInsecureAuth -> allowed.
+    // Local Browser client with allowInsecureAuth -> allowed.
     expect(
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "operator",
-        isControlUi: true,
-        controlUiAuthPolicy: controlUiStrict,
+        isBrowserClients: true,
+        browserClientsAuthPolicy: browserClientsStrict,
         trustedProxyAuthOk: false,
         sharedAuthOk: true,
         authOk: true,
@@ -94,32 +94,32 @@ describe("ws connect policy", () => {
       }).kind,
     ).toBe("allow");
 
-    // Control UI without allowInsecureAuth, even on localhost -> rejected.
-    const controlUiNoInsecure = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: { dangerouslyDisableDeviceAuth: false },
+    // Browser client without allowInsecureAuth, even on localhost -> rejected.
+    const browserClientsNoInsecure = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: { dangerouslyDisableDeviceAuth: false },
       deviceRaw: null,
     });
     expect(
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "operator",
-        isControlUi: true,
-        controlUiAuthPolicy: controlUiNoInsecure,
+        isBrowserClients: true,
+        browserClientsAuthPolicy: browserClientsNoInsecure,
         trustedProxyAuthOk: false,
         sharedAuthOk: true,
         authOk: true,
         hasSharedAuth: true,
         isLocalClient: true,
       }).kind,
-    ).toBe("reject-control-ui-insecure-auth");
+    ).toBe("reject-browser-client-insecure-auth");
 
     expect(
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "operator",
-        isControlUi: false,
-        controlUiAuthPolicy: policy,
+        isBrowserClients: false,
+        browserClientsAuthPolicy: policy,
         trustedProxyAuthOk: false,
         sharedAuthOk: true,
         authOk: true,
@@ -132,8 +132,8 @@ describe("ws connect policy", () => {
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "operator",
-        isControlUi: false,
-        controlUiAuthPolicy: policy,
+        isBrowserClients: false,
+        browserClientsAuthPolicy: policy,
         trustedProxyAuthOk: false,
         sharedAuthOk: false,
         authOk: false,
@@ -146,8 +146,8 @@ describe("ws connect policy", () => {
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "node",
-        isControlUi: false,
-        controlUiAuthPolicy: policy,
+        isBrowserClients: false,
+        browserClientsAuthPolicy: policy,
         trustedProxyAuthOk: false,
         sharedAuthOk: true,
         authOk: true,
@@ -156,13 +156,13 @@ describe("ws connect policy", () => {
       }).kind,
     ).toBe("reject-device-required");
 
-    // Trusted-proxy authenticated Control UI should bypass device-identity gating.
+    // Trusted-proxy authenticated Browser client should bypass device-identity gating.
     expect(
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "operator",
-        isControlUi: true,
-        controlUiAuthPolicy: controlUiNoInsecure,
+        isBrowserClients: true,
+        browserClientsAuthPolicy: browserClientsNoInsecure,
         trustedProxyAuthOk: true,
         sharedAuthOk: false,
         authOk: true,
@@ -171,17 +171,17 @@ describe("ws connect policy", () => {
       }).kind,
     ).toBe("allow");
 
-    const bypass = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: { dangerouslyDisableDeviceAuth: true },
+    const bypass = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: { dangerouslyDisableDeviceAuth: true },
       deviceRaw: null,
     });
     expect(
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "operator",
-        isControlUi: true,
-        controlUiAuthPolicy: bypass,
+        isBrowserClients: true,
+        browserClientsAuthPolicy: bypass,
         trustedProxyAuthOk: false,
         sharedAuthOk: false,
         authOk: false,
@@ -191,7 +191,7 @@ describe("ws connect policy", () => {
     ).toBe("allow");
 
     // Regression: dangerouslyDisableDeviceAuth bypass must NOT extend to node-role
-    // sessions — the break-glass flag is scoped to operator Control UI only.
+    // sessions — the break-glass flag is scoped to operator Browser client only.
     // A device-less node-role connection must still be rejected even when the flag
     // is set, to prevent the flag from being abused to admit unauthorized node
     // registrations.
@@ -199,8 +199,8 @@ describe("ws connect policy", () => {
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: false,
         role: "node",
-        isControlUi: true,
-        controlUiAuthPolicy: bypass,
+        isBrowserClients: true,
+        browserClientsAuthPolicy: bypass,
         trustedProxyAuthOk: false,
         sharedAuthOk: false,
         authOk: false,
@@ -210,48 +210,52 @@ describe("ws connect policy", () => {
     ).toBe("reject-device-required");
   });
 
-  test("dangerouslyDisableDeviceAuth skips pairing for operator control-ui only", () => {
-    const bypass = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: { dangerouslyDisableDeviceAuth: true },
+  test("dangerouslyDisableDeviceAuth skips pairing for operator browser-client only", () => {
+    const bypass = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: { dangerouslyDisableDeviceAuth: true },
       deviceRaw: null,
     });
-    const strict = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: undefined,
+    const strict = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: undefined,
       deviceRaw: null,
     });
-    expect(shouldSkipControlUiPairing(bypass, "operator", false)).toBe(true);
-    expect(shouldSkipControlUiPairing(bypass, "node", false)).toBe(false);
-    expect(shouldSkipControlUiPairing(strict, "operator", false)).toBe(false);
-    expect(shouldSkipControlUiPairing(strict, "operator", true)).toBe(true);
+    expect(shouldSkipBrowserClientsPairing(bypass, "operator", false)).toBe(true);
+    expect(shouldSkipBrowserClientsPairing(bypass, "node", false)).toBe(false);
+    expect(shouldSkipBrowserClientsPairing(strict, "operator", false)).toBe(false);
+    expect(shouldSkipBrowserClientsPairing(strict, "operator", true)).toBe(true);
   });
 
-  test("auth.mode=none skips pairing for operator control-ui only", () => {
-    const controlUi = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: undefined,
+  test("auth.mode=none skips pairing for operator browser-client only", () => {
+    const browserClients = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: undefined,
       deviceRaw: null,
     });
-    const nonControlUi = resolveControlUiAuthPolicy({
-      isControlUi: false,
-      controlUiConfig: undefined,
+    const nonBrowserClients = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: false,
+      browserClientsConfig: undefined,
       deviceRaw: null,
     });
-    // Control UI + operator + auth.mode=none: skip pairing (the fix for #42931)
-    expect(shouldSkipControlUiPairing(controlUi, "operator", false, "none")).toBe(true);
-    // Control UI + node role + auth.mode=none: still require pairing
-    expect(shouldSkipControlUiPairing(controlUi, "node", false, "none")).toBe(false);
+    // Browser client + operator + auth.mode=none: skip pairing (the fix for #42931)
+    expect(shouldSkipBrowserClientsPairing(browserClients, "operator", false, "none")).toBe(true);
+    // Browser client + node role + auth.mode=none: still require pairing
+    expect(shouldSkipBrowserClientsPairing(browserClients, "node", false, "none")).toBe(false);
     // Non-Control-UI + operator + auth.mode=none: still require pairing
     // (prevents #43478 regression where ALL clients bypassed pairing)
-    expect(shouldSkipControlUiPairing(nonControlUi, "operator", false, "none")).toBe(false);
-    // Control UI + operator + auth.mode=shared-key: no change
-    expect(shouldSkipControlUiPairing(controlUi, "operator", false, "shared-key")).toBe(false);
-    // Control UI + operator + no authMode: no change
-    expect(shouldSkipControlUiPairing(controlUi, "operator", false)).toBe(false);
+    expect(shouldSkipBrowserClientsPairing(nonBrowserClients, "operator", false, "none")).toBe(
+      false,
+    );
+    // Browser client + operator + auth.mode=shared-key: no change
+    expect(shouldSkipBrowserClientsPairing(browserClients, "operator", false, "shared-key")).toBe(
+      false,
+    );
+    // Browser client + operator + no authMode: no change
+    expect(shouldSkipBrowserClientsPairing(browserClients, "operator", false)).toBe(false);
   });
 
-  test("trusted-proxy control-ui bypass only applies to operator + trusted-proxy auth", () => {
+  test("trusted-proxy browser-client bypass only applies to operator + trusted-proxy auth", () => {
     const cases: Array<{
       role: "operator" | "node";
       authMode: string;
@@ -291,8 +295,8 @@ describe("ws connect policy", () => {
 
     for (const tc of cases) {
       expect(
-        isTrustedProxyControlUiOperatorAuth({
-          isControlUi: true,
+        isTrustedProxyBrowserClientsOperatorAuth({
+          isBrowserClients: true,
           role: tc.role,
           authMode: tc.authMode,
           authOk: tc.authOk,
@@ -303,22 +307,22 @@ describe("ws connect policy", () => {
   });
 
   test("clears unbound scopes for device-less shared auth outside explicit preservation cases", () => {
-    const nonControlUi = resolveControlUiAuthPolicy({
-      isControlUi: false,
-      controlUiConfig: undefined,
+    const nonBrowserClients = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: false,
+      browserClientsConfig: undefined,
       deviceRaw: null,
     });
-    const controlUi = resolveControlUiAuthPolicy({
-      isControlUi: true,
-      controlUiConfig: { allowInsecureAuth: true },
+    const browserClients = resolveBrowserClientsAuthPolicy({
+      isBrowserClients: true,
+      browserClientsConfig: { allowInsecureAuth: true },
       deviceRaw: null,
     });
 
     expect(
       shouldClearUnboundScopesForMissingDeviceIdentity({
         decision: { kind: "allow" },
-        controlUiAuthPolicy: nonControlUi,
-        preserveInsecureLocalControlUiScopes: false,
+        browserClientsAuthPolicy: nonBrowserClients,
+        preserveInsecureLocalBrowserClientsScopes: false,
         authMethod: "token",
       }),
     ).toBe(true);
@@ -326,8 +330,8 @@ describe("ws connect policy", () => {
     expect(
       shouldClearUnboundScopesForMissingDeviceIdentity({
         decision: { kind: "allow" },
-        controlUiAuthPolicy: nonControlUi,
-        preserveInsecureLocalControlUiScopes: false,
+        browserClientsAuthPolicy: nonBrowserClients,
+        preserveInsecureLocalBrowserClientsScopes: false,
         authMethod: "password",
       }),
     ).toBe(true);
@@ -335,8 +339,8 @@ describe("ws connect policy", () => {
     expect(
       shouldClearUnboundScopesForMissingDeviceIdentity({
         decision: { kind: "allow" },
-        controlUiAuthPolicy: nonControlUi,
-        preserveInsecureLocalControlUiScopes: false,
+        browserClientsAuthPolicy: nonBrowserClients,
+        preserveInsecureLocalBrowserClientsScopes: false,
         authMethod: "trusted-proxy",
       }),
     ).toBe(true);
@@ -344,8 +348,8 @@ describe("ws connect policy", () => {
     expect(
       shouldClearUnboundScopesForMissingDeviceIdentity({
         decision: { kind: "allow" },
-        controlUiAuthPolicy: nonControlUi,
-        preserveInsecureLocalControlUiScopes: false,
+        browserClientsAuthPolicy: nonBrowserClients,
+        preserveInsecureLocalBrowserClientsScopes: false,
         authMethod: undefined,
         trustedProxyAuthOk: true,
       }),
@@ -354,8 +358,8 @@ describe("ws connect policy", () => {
     expect(
       shouldClearUnboundScopesForMissingDeviceIdentity({
         decision: { kind: "allow" },
-        controlUiAuthPolicy: controlUi,
-        preserveInsecureLocalControlUiScopes: true,
+        browserClientsAuthPolicy: browserClients,
+        preserveInsecureLocalBrowserClientsScopes: true,
         authMethod: "token",
       }),
     ).toBe(false);
@@ -363,8 +367,8 @@ describe("ws connect policy", () => {
     expect(
       shouldClearUnboundScopesForMissingDeviceIdentity({
         decision: { kind: "reject-device-required" },
-        controlUiAuthPolicy: nonControlUi,
-        preserveInsecureLocalControlUiScopes: false,
+        browserClientsAuthPolicy: nonBrowserClients,
+        preserveInsecureLocalBrowserClientsScopes: false,
         authMethod: undefined,
       }),
     ).toBe(true);

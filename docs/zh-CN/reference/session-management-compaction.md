@@ -39,7 +39,7 @@ x-i18n:
 
 CrawClaw 围绕一个拥有会话状态的单一 **Gateway 网关进程**设计。
 
-- UI（macOS 应用、web 控制 UI、TUI）应该向 Gateway 网关查询会话列表和 token 计数。
+- 客户端（TUI、自动化、浏览器来源客户端）应该向 Gateway 网关查询会话列表和 token 计数。
 - 在远程模式下，会话文件在远程主机上；"检查你的本地 Mac 文件"不会反映 Gateway 网关正在使用的内容。
 
 ---
@@ -154,7 +154,7 @@ CrawClaw 有意**不**"修复"记录；Gateway 网关使用 `SessionManager` 来
 两个不同的概念很重要：
 
 1. **模型上下文窗口**：每个模型的硬上限（模型可见的 token）
-2. **会话存储计数器**：写入 `sessions.json` 的滚动统计（用于 /status 和仪表板）
+2. **会话存储计数器**：写入 `sessions.json` 的滚动统计（用于 `/status` 和客户端视图）
 
 如果你在调整限制：
 

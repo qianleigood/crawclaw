@@ -22,7 +22,7 @@ x-i18n:
 - `crawclaw status --all` — 完整本地诊断（只读、彩色、可安全粘贴用于调试）。
 - `crawclaw status --deep` — 还会探测运行中的 Gateway 网关（支持时进行每渠道探测）。
 - `crawclaw health --json` — 向运行中的 Gateway 网关请求完整健康快照（仅 WS；不直接访问 Baileys 套接字）。
-- 在 WhatsApp/WebChat 中单独发送 `/status` 消息可获取状态回复，而不调用智能体。
+- 在 WhatsApp/Gateway 客户端 中单独发送 `/status` 消息可获取状态回复，而不调用智能体。
 - 日志：跟踪 `/tmp/crawclaw/crawclaw-*.log` 并过滤 `web-heartbeat`、`web-reconnect`、`web-auto-reply`、`web-inbound`。
 
 ## 深度诊断

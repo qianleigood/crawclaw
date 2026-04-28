@@ -33,7 +33,6 @@ async function startServerWithDefaultConfig(port: number) {
   return await startGatewayServer(port, {
     host: "127.0.0.1",
     auth: { mode: "none" },
-    controlUiEnabled: false,
     openAiChatCompletionsEnabled: false,
   });
 }
@@ -42,7 +41,6 @@ async function startServer(port: number, opts?: { openAiChatCompletionsEnabled?:
   return await startGatewayServer(port, {
     host: "127.0.0.1",
     auth: { mode: "none" },
-    controlUiEnabled: false,
     openAiChatCompletionsEnabled: opts?.openAiChatCompletionsEnabled ?? true,
   });
 }
@@ -51,7 +49,6 @@ async function startTokenServer(port: number, opts?: { openAiChatCompletionsEnab
   return await startGatewayServer(port, {
     host: "127.0.0.1",
     auth: { mode: "token", token: "secret" },
-    controlUiEnabled: false,
     openAiChatCompletionsEnabled: opts?.openAiChatCompletionsEnabled ?? true,
   });
 }
@@ -325,7 +322,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const json = (await res.json()) as { error?: { type?: string; message?: string } };
         expect(json.error?.type).toBe("invalid_request_error");
         expect(json.error?.message).toBe(
-        "Invalid `model`. Use `crawclaw` or `crawclaw/<agentId>`.",
+          "Invalid `model`. Use `crawclaw` or `crawclaw/<agentId>`.",
         );
         expect(agentCommand).toHaveBeenCalledTimes(0);
       }
@@ -732,7 +729,6 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         serverOptions: {
           host: "127.0.0.1",
-          controlUiEnabled: false,
           openAiChatCompletionsEnabled: true,
         },
       },

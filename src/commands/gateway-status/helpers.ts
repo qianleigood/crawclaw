@@ -38,8 +38,6 @@ export type GatewayConfigSummary = {
     mode: string | null;
     bind: string | null;
     port: number | null;
-    controlUiEnabled: boolean | null;
-    controlUiBasePath: string | null;
     authMode: string | null;
     authTokenConfigured: boolean;
     authPasswordConfigured: boolean;
@@ -278,7 +276,6 @@ export function extractConfigSummary(snapshotUnknown: unknown): GatewayConfigSum
 
   const remote = (gateway.remote ?? {}) as Record<string, unknown>;
   const auth = (gateway.auth ?? {}) as Record<string, unknown>;
-  const controlUi = (gateway.controlUi ?? {}) as Record<string, unknown>;
   const tailscale = (gateway.tailscale ?? {}) as Record<string, unknown>;
 
   const authMode = typeof auth.mode === "string" ? auth.mode : null;
@@ -311,8 +308,6 @@ export function extractConfigSummary(snapshotUnknown: unknown): GatewayConfigSum
       mode: typeof gateway.mode === "string" ? gateway.mode : null,
       bind: typeof gateway.bind === "string" ? gateway.bind : null,
       port: parseIntOrNull(gateway.port),
-      controlUiEnabled: typeof controlUi.enabled === "boolean" ? controlUi.enabled : null,
-      controlUiBasePath: typeof controlUi.basePath === "string" ? controlUi.basePath : null,
       authMode,
       authTokenConfigured,
       authPasswordConfigured,

@@ -1,12 +1,7 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { Type } from "@sinclair/typebox";
 import { writeBase64ToFile } from "../../cli/nodes-camera.js";
 import { canvasSnapshotTempPath, parseCanvasSnapshotPayload } from "../../cli/nodes-canvas.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import { logVerbose, shouldLogVerbose } from "../../globals.js";
-import { isInboundPathAllowed } from "../../media/inbound-path-policy.js";
-import { getDefaultMediaLocalRoots } from "../../media/local-roots.js";
 import { imageMimeFromFormat } from "../../media/mime.js";
 import { resolveImageSanitizationLimits } from "../image-sanitization.js";
 import { optionalStringEnum, stringEnum } from "../schema/typebox.js";
@@ -15,40 +10,9 @@ import { readGatewayCallOptions } from "./gateway.js";
 import { invokeNode } from "./nodes-gateway.js";
 import { resolveNodeId } from "./nodes-utils.js";
 
-const CANVAS_ACTIONS = [
-  "present",
-  "hide",
-  "navigate",
-  "eval",
-  "snapshot",
-  "a2ui_push",
-  "a2ui_reset",
-] as const;
+const CANVAS_ACTIONS = ["present", "hide", "navigate", "eval", "snapshot"] as const;
 
 const CANVAS_SNAPSHOT_FORMATS = ["png", "jpg", "jpeg"] as const;
-
-async function readJsonlFromPath(jsonlPath: string): Promise<string> {
-  const trimmed = jsonlPath.trim();
-  if (!trimmed) {
-    return "";
-  }
-  const resolved = path.resolve(trimmed);
-  const roots = getDefaultMediaLocalRoots();
-  if (!isInboundPathAllowed({ filePath: resolved, roots })) {
-    if (shouldLogVerbose()) {
-      logVerbose(`Blocked canvas jsonlPath outside allowed roots: ${resolved}`);
-    }
-    throw new Error("jsonlPath outside allowed roots");
-  }
-  const canonical = await fs.realpath(resolved).catch(() => resolved);
-  if (!isInboundPathAllowed({ filePath: canonical, roots })) {
-    if (shouldLogVerbose()) {
-      logVerbose(`Blocked canvas jsonlPath outside allowed roots: ${canonical}`);
-    }
-    throw new Error("jsonlPath outside allowed roots");
-  }
-  return await fs.readFile(canonical, "utf8");
-}
 
 // Flattened schema: runtime validates per-action requirements.
 const CanvasToolSchema = Type.Object({
@@ -72,9 +36,6 @@ const CanvasToolSchema = Type.Object({
   maxWidth: Type.Optional(Type.Number()),
   quality: Type.Optional(Type.Number()),
   delayMs: Type.Optional(Type.Number()),
-  // a2ui_push
-  jsonl: Type.Optional(Type.String()),
-  jsonlPath: Type.Optional(Type.String()),
 });
 
 export function createCanvasTool(options?: { config?: CrawClawConfig }): AnyAgentTool {
@@ -83,7 +44,7 @@ export function createCanvasTool(options?: { config?: CrawClawConfig }): AnyAgen
     label: "Canvas",
     name: "canvas",
     description:
-      "Control node canvases (present/hide/navigate/eval/snapshot/A2UI). Use snapshot to capture the rendered UI.",
+      "Control node canvases (present/hide/navigate/eval/snapshot). Use snapshot to capture the rendered UI.",
     parameters: CanvasToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -191,22 +152,6 @@ export function createCanvasTool(options?: { config?: CrawClawConfig }): AnyAgen
             imageSanitization,
           });
         }
-        case "a2ui_push": {
-          const jsonl =
-            typeof params.jsonl === "string" && params.jsonl.trim()
-              ? params.jsonl
-              : typeof params.jsonlPath === "string" && params.jsonlPath.trim()
-                ? await readJsonlFromPath(params.jsonlPath)
-                : "";
-          if (!jsonl.trim()) {
-            throw new Error("jsonl or jsonlPath required");
-          }
-          await invoke("canvas.a2ui.pushJSONL", { jsonl });
-          return jsonResult({ ok: true });
-        }
-        case "a2ui_reset":
-          await invoke("canvas.a2ui.reset", undefined);
-          return jsonResult({ ok: true });
         default:
           throw new Error(`Unknown action: ${action}`);
       }

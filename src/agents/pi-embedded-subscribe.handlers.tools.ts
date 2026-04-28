@@ -311,7 +311,7 @@ function readExecApprovalUnavailableDetails(result: unknown): {
     | "no-approval-route"
     | "heartbeat"
     | "background"
-    | "hidden-control-ui";
+    | "hidden-browser-client";
   warningText?: string;
   channelLabel?: string;
   sentApproverDms?: boolean;
@@ -333,7 +333,7 @@ function readExecApprovalUnavailableDetails(result: unknown): {
     details.reason === "no-approval-route" ||
     details.reason === "heartbeat" ||
     details.reason === "background" ||
-    details.reason === "hidden-control-ui"
+    details.reason === "hidden-browser-client"
       ? details.reason
       : null;
   if (!reason) {

@@ -16,7 +16,7 @@ import { healthCommand } from "../commands/health.js";
 import {
   probeGatewayReachable,
   waitForGatewayReachable,
-  resolveControlUiLinks,
+  resolveBrowserClientsLinks,
 } from "../commands/onboard-helpers.js";
 import type { OnboardOptions } from "../commands/onboard-types.js";
 import type { CrawClawConfig } from "../config/config.js";
@@ -47,7 +47,7 @@ type FinalizeOnboardingOptions = {
 export async function finalizeSetupWizard(
   options: FinalizeOnboardingOptions,
 ): Promise<{ launchedTui: boolean }> {
-  const { flow, opts, baseConfig, nextConfig, settings, prompter, runtime } = options;
+  const { flow, opts, nextConfig, settings, prompter, runtime } = options;
   let gatewayProbe: { ok: boolean; detail?: string } = { ok: true };
 
   const withWizardProgress = async <T>(
@@ -223,11 +223,10 @@ export async function finalizeSetupWizard(
   }
 
   if (!opts.skipHealth) {
-    const probeLinks = resolveControlUiLinks({
+    const probeLinks = resolveBrowserClientsLinks({
       bind: nextConfig.gateway?.bind ?? "loopback",
       port: settings.port,
       customBindHost: nextConfig.gateway?.customBindHost,
-      basePath: undefined,
     });
     // Daemon install/restart can briefly flap the WS; wait a bit so health check doesn't false-fail.
     gatewayProbe = await waitForGatewayReachable({
@@ -289,17 +288,16 @@ export async function finalizeSetupWizard(
   await prompter.note(
     [
       "Add nodes for extra features:",
-      "- macOS app (system + notifications + local node features)",
+      "- Node hosts for system commands and local features",
       "- Headless nodes attached through the Gateway",
     ].join("\n"),
     "Optional nodes",
   );
 
-  const links = resolveControlUiLinks({
+  const links = resolveBrowserClientsLinks({
     bind: settings.bind,
     port: settings.port,
     customBindHost: settings.customBindHost,
-    basePath: nextConfig.gateway?.controlUi?.basePath ?? baseConfig.gateway?.controlUi?.basePath,
   });
   let resolvedGatewayPassword = "";
   if (settings.authMode === "password") {

@@ -527,7 +527,7 @@ For static credentials, runtime no longer depends on plaintext legacy auth stora
 - Legacy static `api_key` entries are scrubbed when discovered.
 - OAuth-related compatibility behavior remains separate.
 
-## Web UI note
+## Raw config note
 
 Some SecretInput unions are easier to configure in raw editor mode than in form mode.
 

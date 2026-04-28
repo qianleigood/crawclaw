@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   BACKEND_GATEWAY_CLIENT,
   connectReq,
-  CONTROL_UI_CLIENT,
+  BROWSER_CLIENT_CLIENT,
   ConnectErrorDetailCodes,
   getFreePort,
   openWs,
@@ -91,15 +91,15 @@ describe("gateway auth compatibility baseline", () => {
       await expectSharedOperatorScopesCleared(port, { token: "secret" });
     });
 
-    test("returns stable token-missing details for control ui without token", async () => {
+    test("returns stable token-missing details for browser client without token", async () => {
       const ws = await openWs(port, { origin: originForPort(port) });
       try {
         const res = await connectReq(ws, {
           skipDefaultAuth: true,
-          client: { ...CONTROL_UI_CLIENT },
+          client: { ...BROWSER_CLIENT_CLIENT },
         });
         expect(res.ok).toBe(false);
-        expect(res.error?.message ?? "").toContain("Control UI settings");
+        expect(res.error?.message ?? "").toContain("gateway client");
         expectAuthErrorDetails({
           details: res.error?.details,
           expectedCode: ConnectErrorDetailCodes.AUTH_TOKEN_MISSING,

@@ -4,7 +4,7 @@ import {
   assertGatewayAuthConfigured,
   authorizeGatewayConnect,
   authorizeHttpGatewayConnect,
-  authorizeWsControlUiGatewayConnect,
+  authorizeWsBrowserClientsGatewayConnect,
   resolveGatewayAuth,
 } from "./auth.js";
 
@@ -69,7 +69,7 @@ describe("gateway auth", () => {
   }
 
   async function expectTailscaleHeaderAuthResult(params: {
-    authorize: typeof authorizeHttpGatewayConnect | typeof authorizeWsControlUiGatewayConnect;
+    authorize: typeof authorizeHttpGatewayConnect | typeof authorizeWsBrowserClientsGatewayConnect;
     expected: { ok: false; reason: string } | { ok: true; method: string; user: string };
   }) {
     const res = await params.authorize({
@@ -289,7 +289,7 @@ describe("gateway auth", () => {
       auth: { mode: "token", token: "secret", allowTailscale: true },
       connectAuth: null,
       tailscaleWhois: createTailscaleWhois(),
-      authSurface: "ws-control-ui",
+      authSurface: "ws-browser-client",
       req: createTailscaleForwardedReq(),
     });
 
@@ -305,9 +305,9 @@ describe("gateway auth", () => {
     });
   });
 
-  it("enables tailscale header auth on ws control-ui auth wrapper", async () => {
+  it("enables tailscale header auth on ws browser-client auth wrapper", async () => {
     await expectTailscaleHeaderAuthResult({
-      authorize: authorizeWsControlUiGatewayConnect,
+      authorize: authorizeWsBrowserClientsGatewayConnect,
       expected: { ok: true, method: "tailscale", user: "peter" },
     });
   });

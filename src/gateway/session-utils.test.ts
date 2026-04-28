@@ -1025,7 +1025,7 @@ describe("listSessionsFromStore search", () => {
             message: {
               role: "user",
               content:
-                'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-control-ui","id":"crawclaw-control-ui"}\n```\n\n你好',
+                'Sender (untrusted metadata):\n```json\n{"label":"crawclaw-browser-client","id":"crawclaw-browser-client"}\n```\n\n你好',
             },
           }),
         ].join("\n"),
@@ -2410,7 +2410,7 @@ describe("listSessionsFromStore subagent metadata", () => {
     }
   });
 
-  test("includes explicit parentSessionKey relationships for dashboard child sessions", () => {
+  test("includes explicit parentSessionKey relationships for client child sessions", () => {
     resetSubagentRegistryForTests({ persist: false });
     const now = Date.now();
     const store: Record<string, SessionEntry> = {
@@ -2418,7 +2418,7 @@ describe("listSessionsFromStore subagent metadata", () => {
         sessionId: "sess-main",
         updatedAt: now,
       } as SessionEntry,
-      "agent:main:dashboard:child": {
+      "agent:main:client:child": {
         sessionId: "sess-child",
         updatedAt: now - 1_000,
         parentSessionKey: "agent:main:main",
@@ -2433,12 +2433,12 @@ describe("listSessionsFromStore subagent metadata", () => {
     });
 
     const main = result.sessions.find((session) => session.key === "agent:main:main");
-    const child = result.sessions.find((session) => session.key === "agent:main:dashboard:child");
-    expect(main?.childSessions).toEqual(["agent:main:dashboard:child"]);
+    const child = result.sessions.find((session) => session.key === "agent:main:client:child");
+    expect(main?.childSessions).toEqual(["agent:main:client:child"]);
     expect(child?.parentSessionKey).toBe("agent:main:main");
   });
 
-  test("returns dashboard child sessions when filtering by parentSessionKey owner", () => {
+  test("returns client child sessions when filtering by parentSessionKey owner", () => {
     resetSubagentRegistryForTests({ persist: false });
     const now = Date.now();
     const store: Record<string, SessionEntry> = {
@@ -2446,8 +2446,8 @@ describe("listSessionsFromStore subagent metadata", () => {
         sessionId: "sess-main",
         updatedAt: now,
       } as SessionEntry,
-      "agent:main:dashboard:child": {
-        sessionId: "sess-dashboard-child",
+      "agent:main:client:child": {
+        sessionId: "sess-client-child",
         updatedAt: now - 1_000,
         parentSessionKey: "agent:main:main",
       } as SessionEntry,
@@ -2462,7 +2462,7 @@ describe("listSessionsFromStore subagent metadata", () => {
       },
     });
 
-    expect(result.sessions.map((session) => session.key)).toEqual(["agent:main:dashboard:child"]);
+    expect(result.sessions.map((session) => session.key)).toEqual(["agent:main:client:child"]);
   });
 
   test("falls back to persisted subagent timing after run archival", () => {

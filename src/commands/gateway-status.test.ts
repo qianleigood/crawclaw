@@ -581,8 +581,6 @@ describe("gateway-status command", () => {
           "authPasswordConfigured": true,
           "authTokenConfigured": true,
           "bind": null,
-          "controlUiBasePath": null,
-          "controlUiEnabled": null,
           "mode": "remote",
           "port": null,
           "remotePasswordConfigured": true,

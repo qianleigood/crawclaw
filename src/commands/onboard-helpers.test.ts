@@ -11,7 +11,7 @@ import {
   openUrl,
   printWizardHeader,
   resolveBrowserOpenCommand,
-  resolveControlUiLinks,
+  resolveBrowserClientsLinks,
   validateGatewayPasswordInput,
 } from "./onboard-helpers.js";
 
@@ -82,9 +82,9 @@ describe("resolveBrowserOpenCommand", () => {
   });
 });
 
-describe("resolveControlUiLinks", () => {
+describe("resolveBrowserClientsLinks", () => {
   it("uses customBindHost for custom bind", () => {
-    const links = resolveControlUiLinks({
+    const links = resolveBrowserClientsLinks({
       port: 18789,
       bind: "custom",
       customBindHost: "192.168.1.100",
@@ -94,7 +94,7 @@ describe("resolveControlUiLinks", () => {
   });
 
   it("falls back to loopback for invalid customBindHost", () => {
-    const links = resolveControlUiLinks({
+    const links = resolveBrowserClientsLinks({
       port: 18789,
       bind: "custom",
       customBindHost: "192.168.001.100",
@@ -105,7 +105,7 @@ describe("resolveControlUiLinks", () => {
 
   it("uses tailnet IP for tailnet bind", () => {
     mocks.pickPrimaryTailnetIPv4.mockReturnValueOnce("100.64.0.9");
-    const links = resolveControlUiLinks({
+    const links = resolveBrowserClientsLinks({
       port: 18789,
       bind: "tailnet",
     });
@@ -115,7 +115,7 @@ describe("resolveControlUiLinks", () => {
 
   it("keeps loopback for auto even when tailnet is present", () => {
     mocks.pickPrimaryTailnetIPv4.mockReturnValueOnce("100.64.0.9");
-    const links = resolveControlUiLinks({
+    const links = resolveBrowserClientsLinks({
       port: 18789,
       bind: "auto",
     });
@@ -128,7 +128,7 @@ describe("resolveControlUiLinks", () => {
       throw new Error("uv_interface_addresses failed");
     });
 
-    const links = resolveControlUiLinks({
+    const links = resolveBrowserClientsLinks({
       port: 18789,
       bind: "tailnet",
     });
@@ -142,7 +142,7 @@ describe("resolveControlUiLinks", () => {
       throw new Error("uv_interface_addresses failed");
     });
 
-    const links = resolveControlUiLinks({
+    const links = resolveBrowserClientsLinks({
       port: 18789,
       bind: "lan",
     });

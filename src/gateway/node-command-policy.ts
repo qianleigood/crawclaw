@@ -13,9 +13,6 @@ const CANVAS_COMMANDS = [
   "canvas.navigate",
   "canvas.eval",
   "canvas.snapshot",
-  "canvas.a2ui.push",
-  "canvas.a2ui.pushJSONL",
-  "canvas.a2ui.reset",
 ];
 
 const CAMERA_COMMANDS = ["camera.list"];

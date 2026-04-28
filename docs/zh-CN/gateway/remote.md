@@ -33,7 +33,7 @@ x-i18n:
 
 在持久主机上运行 Gateway 网关，并通过 **Tailscale** 或 SSH 访问它。
 
-- **最佳用户体验：** 保持 `gateway.bind: "loopback"` 并使用 **Tailscale Serve** 作为控制 UI。
+- **最佳用户体验：** 保持 `gateway.bind: "loopback"` 并使用 **Tailscale Serve** 访问 Gateway 网关。
 - **回退方案：** 保持 loopback + 从任何需要访问的机器建立 SSH 隧道。
 - **示例：** [exe.dev](/install/exe-dev)（简易 VM）或 [Hetzner](/install/hetzner)（生产 VPS）。
 
@@ -43,17 +43,17 @@ x-i18n:
 
 笔记本电脑**不**运行智能体。它远程连接：
 
-- 使用 SSH 隧道加 Control UI 或 WebChat。
-- 在本地保持隧道运行，这样健康检查和 Web 界面都能访问转发后的 Gateway 网关。
+- 使用 SSH 隧道连接 Gateway WebSocket。
+- 在本地保持隧道运行，这样健康检查和客户端都能访问转发后的 Gateway 网关。
 
 ### 3) 笔记本电脑运行 Gateway 网关，从其他机器远程访问
 
 保持 Gateway 网关在本地但安全地暴露它：
 
 - 从其他机器到笔记本电脑的 SSH 隧道，或
-- Tailscale Serve 控制 UI 并保持 Gateway 网关仅 loopback。
+- Tailscale Serve 转发 Gateway 网关并保持 Gateway 网关仅 loopback。
 
-指南：[Tailscale](/gateway/tailscale) 和 [Web 概览](/web)。
+指南：[Tailscale](/gateway/tailscale) 和 [远程访问](/gateway/remote)。
 
 ## 命令流（什么在哪里运行）
 
@@ -104,15 +104,15 @@ ssh -N -L 18789:127.0.0.1:18789 user@host
 
 当 Gateway 网关仅限 loopback 时，保持 URL 为 `ws://127.0.0.1:18789` 并先打开 SSH 隧道。
 
-## 通过 SSH 的聊天 UI
+## 通过 SSH 的 Gateway 客户端
 
-WebChat 不再使用单独的 HTTP 端口。Web 客户端直接连接到 Gateway WebSocket。
+客户端直接连接到 Gateway WebSocket。
 
 - 通过 SSH 转发 `18789`（见上文），然后让客户端连接到 `ws://127.0.0.1:18789`。
 
 ## Remote over SSH
 
-你可以用同一个隧道承载远程状态检查、WebChat 和其他 Web 界面。
+你可以用同一个隧道承载远程状态检查和 Gateway 客户端连接。
 
 ## 安全规则（远程/VPN）
 

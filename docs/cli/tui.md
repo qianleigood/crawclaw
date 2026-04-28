@@ -10,10 +10,6 @@ title: "tui"
 
 Open the terminal UI connected to the Gateway.
 
-Related:
-
-- TUI guide: [TUI](/web/tui)
-
 Notes:
 
 - `tui` resolves configured gateway auth SecretRefs for token/password auth when possible (`env`/`file`/`exec` providers).

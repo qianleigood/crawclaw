@@ -161,9 +161,9 @@ describe("sessions tools", () => {
               childSessions: ["agent:main:subagent:worker"],
             },
             {
-              key: "agent:main:dashboard:child",
+              key: "agent:main:client:child",
               kind: "direct",
-              sessionId: "s-dashboard-child",
+              sessionId: "s-client-child",
               updatedAt: 12,
               parentSessionKey: "agent:main:main",
             },
@@ -233,8 +233,8 @@ describe("sessions tools", () => {
     expect(group?.estimatedCostUsd).toBe(0.0042);
     expect(group?.childSessions).toEqual(["agent:main:subagent:worker"]);
 
-    const dashboardChild = details.sessions?.find((s) => s.key === "agent:main:dashboard:child");
-    expect(dashboardChild?.parentSessionKey).toBe("agent:main:main");
+    const clientChild = details.sessions?.find((s) => s.key === "agent:main:client:child");
+    expect(clientChild?.parentSessionKey).toBe("agent:main:main");
 
     const subagentWorker = details.sessions?.find((s) => s.key === "agent:main:subagent:worker");
     expect(subagentWorker?.spawnedBy).toBe("agent:main:main");

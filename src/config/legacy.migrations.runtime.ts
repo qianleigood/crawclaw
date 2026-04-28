@@ -1,9 +1,9 @@
 import {
-  buildDefaultControlUiAllowedOrigins,
-  hasConfiguredControlUiAllowedOrigins,
+  buildDefaultBrowserClientsAllowedOrigins,
+  hasConfiguredBrowserClientsAllowedOrigins,
   isGatewayNonLoopbackBindMode,
   resolveGatewayPortWithDefault,
-} from "./gateway-control-ui-origins.js";
+} from "./gateway-browser-client-origins.js";
 import { migrateLegacyXSearchConfig } from "./legacy-x-search.js";
 import {
   defineLegacyConfigMigration,
@@ -230,15 +230,16 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME: LegacyConfigMigrationSpec[] = [
     },
   }),
   defineLegacyConfigMigration({
-    // v2026.2.26 added a startup guard requiring gateway.controlUi.allowedOrigins (or the
+    // v2026.2.26 added a startup guard requiring gateway.browserClients.allowedOrigins (or the
     // host-header fallback flag) for any non-loopback bind. The setup wizard was updated
     // to seed this for new installs, but existing bind=lan/bind=custom installs that upgrade
     // crash-loop immediately on next startup with no recovery path (issue #29385).
     //
     // This migration runs on every gateway start via migrateLegacyConfig → applyLegacyMigrations
     // and writes the seeded origins to disk before the startup guard fires, preventing the loop.
-    id: "gateway.controlUi.allowedOrigins-seed-for-non-loopback",
-    describe: "Seed gateway.controlUi.allowedOrigins for existing non-loopback gateway installs",
+    id: "gateway.browserClients.allowedOrigins-seed-for-non-loopback",
+    describe:
+      "Seed gateway.browserClients.allowedOrigins for existing non-loopback gateway installs",
     apply: (raw, changes) => {
       const gateway = getRecord(raw.gateway);
       if (!gateway) {
@@ -248,28 +249,28 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME: LegacyConfigMigrationSpec[] = [
       if (!isGatewayNonLoopbackBindMode(bind)) {
         return;
       }
-      const controlUi = getRecord(gateway.controlUi) ?? {};
+      const browserClients = getRecord(gateway.browserClients) ?? {};
       if (
-        hasConfiguredControlUiAllowedOrigins({
-          allowedOrigins: controlUi.allowedOrigins,
+        hasConfiguredBrowserClientsAllowedOrigins({
+          allowedOrigins: browserClients.allowedOrigins,
           dangerouslyAllowHostHeaderOriginFallback:
-            controlUi.dangerouslyAllowHostHeaderOriginFallback,
+            browserClients.dangerouslyAllowHostHeaderOriginFallback,
         })
       ) {
         return;
       }
       const port = resolveGatewayPortWithDefault(gateway.port, DEFAULT_GATEWAY_PORT);
-      const origins = buildDefaultControlUiAllowedOrigins({
+      const origins = buildDefaultBrowserClientsAllowedOrigins({
         port,
         bind,
         customBindHost:
           typeof gateway.customBindHost === "string" ? gateway.customBindHost : undefined,
       });
-      gateway.controlUi = { ...controlUi, allowedOrigins: origins };
+      gateway.browserClients = { ...browserClients, allowedOrigins: origins };
       raw.gateway = gateway;
       changes.push(
-        `Seeded gateway.controlUi.allowedOrigins ${JSON.stringify(origins)} for bind=${bind}. ` +
-          "Required since v2026.2.26. Add other machine origins to gateway.controlUi.allowedOrigins if needed.",
+        `Seeded gateway.browserClients.allowedOrigins ${JSON.stringify(origins)} for bind=${bind}. ` +
+          "Required since v2026.2.26. Add other machine origins to gateway.browserClients.allowedOrigins if needed.",
       );
     },
   }),

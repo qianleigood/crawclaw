@@ -34,7 +34,7 @@ Notes:
 - With no extra config, `host=auto` still "just works": no sandbox means it resolves to `gateway`; a live sandbox means it stays in the sandbox.
 - `elevated` forces `host=gateway`; it is only available when elevated access is enabled for the current session/provider.
 - `gateway`/`node` approvals are controlled by `~/.crawclaw/exec-approvals.json`.
-- `node` requires a paired node (companion app or headless node host).
+- `node` requires a paired node host.
 - If multiple nodes are available, set `exec.node` or `tools.exec.node` to select one.
 - `exec host=node` is the only shell-execution path for nodes; the legacy `nodes.run` wrapper has been removed.
 - On non-Windows hosts, exec uses `SHELL` when set; if `SHELL` is `fish`, it prefers `bash` (or `sh`)
@@ -120,7 +120,7 @@ It updates **session state only** and does not write config. To hard-disable exe
 policy (`tools.deny: ["exec"]` or per-agent). Host approvals still apply unless you explicitly set
 `security=full` and `ask=off`.
 
-## Exec approvals (companion app / node host)
+## Exec approvals (node host)
 
 Sandboxed agents can require per-request approval before `exec` runs on the gateway or node host.
 See [Exec approvals](/tools/exec-approvals) for the policy, allowlist, and UI flow.

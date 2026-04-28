@@ -58,7 +58,7 @@ function candidateBinDirs(opts: EnsureCrawClawPathOpts): { prepend: string[]; ap
   const prepend: string[] = [];
   const append: string[] = [];
 
-  // Bundled macOS app: `crawclaw` lives next to the executable (process.execPath).
+  // Packaged layouts may place `crawclaw` next to the executable (process.execPath).
   try {
     const execDir = path.dirname(execPath);
     const siblingCli = path.join(execDir, "crawclaw");
@@ -111,7 +111,7 @@ function candidateBinDirs(opts: EnsureCrawClawPathOpts): { prepend: string[]; ap
 
 /**
  * Best-effort PATH bootstrap so skills that require the `crawclaw` CLI can run
- * under launchd/minimal environments (and inside the macOS app bundle).
+ * under launchd/minimal environments and packaged runtime layouts.
  */
 export function ensureCrawClawCliOnPath(opts: EnsureCrawClawPathOpts = {}) {
   if (isTruthyEnvValue(process.env.CRAWCLAW_PATH_BOOTSTRAPPED)) {

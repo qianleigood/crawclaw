@@ -362,7 +362,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
         });
         const result = await scheduler.runNow({
           scope: resolvedScope.scope,
-          triggerSource: "control_ui",
+          triggerSource: "browser_client",
           bypassGate: readOptionalBoolean(asRecord(params).force) ?? false,
           dryRun: readOptionalBoolean(asRecord(params).dryRun) ?? false,
           sessionLimit: readOptionalPositiveInt(asRecord(params).sessionLimit) ?? 12,

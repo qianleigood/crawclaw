@@ -81,7 +81,7 @@ Gateway 网关 WS 端口（默认 `18789`）默认绑定到 loopback。对于局
 对于仅 Tailnet 的设置：
 
 - 在 `~/.crawclaw/crawclaw.json` 中设置 `gateway.bind: "tailnet"`。
-- 重启 Gateway 网关（或重启 macOS 菜单栏应用）。
+- 重启 Gateway 网关。
 
 ## 什么在广播
 

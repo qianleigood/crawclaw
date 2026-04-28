@@ -71,12 +71,6 @@ pnpm remove -g crawclaw
 bun remove -g crawclaw
 ```
 
-6. 如果你安装了 macOS 应用：
-
-```bash
-rm -rf /Applications/CrawClaw.app
-```
-
 注意事项：
 
 - 如果你使用了配置文件（`--profile` / `CRAWCLAW_PROFILE`），对每个状态目录重复步骤 3（默认为 `~/.crawclaw-<profile>`）。

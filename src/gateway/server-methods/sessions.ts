@@ -208,7 +208,7 @@ function rejectWebchatSessionMutation(params: {
   if (!params.client?.connect || !params.isWebchatConnect(params.client.connect)) {
     return false;
   }
-  if (params.client.connect.client.id === GATEWAY_CLIENT_IDS.CONTROL_UI) {
+  if (params.client.connect.client.id === GATEWAY_CLIENT_IDS.BROWSER_CLIENT) {
     return false;
   }
   params.respond(
@@ -222,8 +222,8 @@ function rejectWebchatSessionMutation(params: {
   return true;
 }
 
-function buildDashboardSessionKey(agentId: string): string {
-  return `agent:${agentId}:dashboard:${randomUUID()}`;
+function buildClientSessionKey(agentId: string): string {
+  return `agent:${agentId}:client:${randomUUID()}`;
 }
 
 function ensureSessionTranscriptFile(params: {
@@ -705,7 +705,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
             requestKey: requestedKey,
             mainKey: cfg.session?.mainKey,
           })
-      : buildDashboardSessionKey(agentId);
+      : buildClientSessionKey(agentId);
     const target = resolveGatewaySessionStoreTarget({ cfg, key });
     const targetAgentId = resolveAgentIdFromSessionKey(target.canonicalKey);
     const created = await updateSessionStore(target.storePath, async (store) => {

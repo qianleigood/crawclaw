@@ -15,7 +15,7 @@ describe("subscribeEmbeddedPiSession", () => {
       type: "tool_execution_start",
       toolName: "canvas",
       toolCallId: "tool-canvas-1",
-      args: { action: "a2ui_push", jsonlPath: "/tmp/a2ui.jsonl" },
+      args: { action: "navigate", url: "https://example.test" },
     });
 
     // Wait for async handler to complete
@@ -24,7 +24,7 @@ describe("subscribeEmbeddedPiSession", () => {
     expect(onToolResult).toHaveBeenCalledTimes(1);
     const payload = onToolResult.mock.calls[0][0];
     expect(payload.text).toContain("Canvas");
-    expect(payload.text).toContain("/tmp/a2ui.jsonl");
+    expect(payload.text).toContain("https://example.test");
   });
   it("skips tool summaries when shouldEmitToolResult is false", () => {
     const onToolResult = vi.fn();

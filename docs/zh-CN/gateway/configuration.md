@@ -56,9 +56,9 @@ CrawClaw 会从 `~/.crawclaw/crawclaw.json` 读取可选的 <Tooltip tip="JSON5 
     crawclaw config unset plugins.entries.brave.config.webSearch.apiKey
     ```
   </Tab>
-  <Tab title="Control UI">
+  <Tab title="Browser client">
     打开 [http://127.0.0.1:18789](http://127.0.0.1:18789) 并使用 **Config** 标签页。
-    Control UI 会根据配置 schema 渲染表单，并提供 **Raw JSON** 编辑器作为后备方式。
+    Browser client 会根据配置 schema 渲染表单，并提供 **Raw JSON** 编辑器作为后备方式。
   </Tab>
   <Tab title="Direct edit">
     直接编辑 `~/.crawclaw/crawclaw.json`。Gateway 网关会监视该文件并自动应用更改（参见[热重载](#config-hot-reload)）。
@@ -466,9 +466,9 @@ Gateway 网关会监视 `~/.crawclaw/crawclaw.json` 并自动应用更改 ——
 | 自动化             | `hooks`、`cron`、`agent.heartbeat`                    | 否         |
 | 会话和消息         | `session`、`messages`                                 | 否         |
 | 工具和媒体         | `tools`、`browser`、`skills`、`audio`、`talk`         | 否         |
-| UI 和杂项          | `ui`、`logging`、`identity`、`bindings`               | 否         |
+| 运行时元数据       | `ui`、`logging`、`identity`、`bindings`               | 否         |
 | Gateway 网关服务器 | `gateway.*`（port、bind、auth、tailscale、TLS、HTTP） | **是**     |
-| 基础设施           | `discovery`、`canvasHost`、`plugins`                  | **是**     |
+| 基础设施           | `discovery`、`plugins`                                | **是**     |
 
 <Note>
 `gateway.reload` 和 `gateway.remote` 是例外 —— 更改它们**不会**触发重启。

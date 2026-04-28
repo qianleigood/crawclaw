@@ -7,7 +7,7 @@ export function isGatewayNonLoopbackBindMode(bind: unknown): bind is GatewayNonL
   return bind === "lan" || bind === "tailnet" || bind === "custom";
 }
 
-export function hasConfiguredControlUiAllowedOrigins(params: {
+export function hasConfiguredBrowserClientsAllowedOrigins(params: {
   allowedOrigins: unknown;
   dangerouslyAllowHostHeaderOriginFallback: unknown;
 }): boolean {
@@ -27,7 +27,7 @@ export function resolveGatewayPortWithDefault(
   return typeof port === "number" && port > 0 ? port : fallback;
 }
 
-export function buildDefaultControlUiAllowedOrigins(params: {
+export function buildDefaultBrowserClientsAllowedOrigins(params: {
   port: number;
   bind: unknown;
   customBindHost?: string;
@@ -43,9 +43,9 @@ export function buildDefaultControlUiAllowedOrigins(params: {
   return [...origins];
 }
 
-export function ensureControlUiAllowedOriginsForNonLoopbackBind(
+export function ensureBrowserClientsAllowedOriginsForNonLoopbackBind(
   config: CrawClawConfig,
-  opts?: { defaultPort?: number; requireControlUiEnabled?: boolean },
+  opts?: { defaultPort?: number },
 ): {
   config: CrawClawConfig;
   seededOrigins: string[] | null;
@@ -55,21 +55,18 @@ export function ensureControlUiAllowedOriginsForNonLoopbackBind(
   if (!isGatewayNonLoopbackBindMode(bind)) {
     return { config, seededOrigins: null, bind: null };
   }
-  if (opts?.requireControlUiEnabled && config.gateway?.controlUi?.enabled === false) {
-    return { config, seededOrigins: null, bind };
-  }
   if (
-    hasConfiguredControlUiAllowedOrigins({
-      allowedOrigins: config.gateway?.controlUi?.allowedOrigins,
+    hasConfiguredBrowserClientsAllowedOrigins({
+      allowedOrigins: config.gateway?.browserClients?.allowedOrigins,
       dangerouslyAllowHostHeaderOriginFallback:
-        config.gateway?.controlUi?.dangerouslyAllowHostHeaderOriginFallback,
+        config.gateway?.browserClients?.dangerouslyAllowHostHeaderOriginFallback,
     })
   ) {
     return { config, seededOrigins: null, bind };
   }
 
   const port = resolveGatewayPortWithDefault(config.gateway?.port, opts?.defaultPort);
-  const seededOrigins = buildDefaultControlUiAllowedOrigins({
+  const seededOrigins = buildDefaultBrowserClientsAllowedOrigins({
     port,
     bind,
     customBindHost: config.gateway?.customBindHost,
@@ -79,8 +76,8 @@ export function ensureControlUiAllowedOriginsForNonLoopbackBind(
       ...config,
       gateway: {
         ...config.gateway,
-        controlUi: {
-          ...config.gateway?.controlUi,
+        browserClients: {
+          ...config.gateway?.browserClients,
           allowedOrigins: seededOrigins,
         },
       },

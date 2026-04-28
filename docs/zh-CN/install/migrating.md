@@ -189,7 +189,7 @@ crawclaw doctor
 
 - `crawclaw status` 显示 Gateway 网关正在运行
 - 你的渠道仍然连接（例如 WhatsApp 不需要重新配对）
-- 仪表板打开并显示现有会话
+- Gateway 客户端能连接并显示现有会话
 - 你的工作区文件（记忆、配置）存在
 
 ## 相关内容

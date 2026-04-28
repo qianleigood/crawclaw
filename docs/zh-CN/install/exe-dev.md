@@ -1,7 +1,7 @@
 ---
 read_when:
   - 你想为 Gateway 网关使用一台便宜且始终在线的 Linux 主机
-  - 你想在不自行运行 VPS 的情况下远程访问控制 UI
+  - 你想在不自行运行 VPS 的情况下远程访问 Gateway 网关
 summary: 在 exe.dev 上运行 CrawClaw Gateway 网关（VM + HTTPS 代理）以实现远程访问
 title: exe.dev
 x-i18n:
@@ -110,7 +110,7 @@ server {
 
 ## 5）访问 CrawClaw 并授予权限
 
-访问 `https://<vm-name>.exe.xyz/`（请查看新手引导输出中的控制 UI）。如果提示进行身份验证，请粘贴 VM 上的
+访问 `https://<vm-name>.exe.xyz/`。如果提示进行身份验证，请粘贴 VM 上的
 `gateway.auth.token` 中的令牌（可通过 `crawclaw config get gateway.auth.token` 获取，或使用
 `crawclaw doctor --generate-gateway-token` 生成）。使用 `crawclaw devices list` 和
 `crawclaw devices approve <requestId>` 批准设备。如果拿不准，请在浏览器中使用 Shelley！

@@ -998,7 +998,7 @@ description: test skill
     expectFinding(res, "security.exposure.open_channels_with_exec", "critical");
   });
 
-  it("evaluates loopback control UI and logging exposure findings", async () => {
+  it("evaluates loopback browser client and logging exposure findings", async () => {
     const cases: Array<{
       name: string;
       cfg: CrawClawConfig;
@@ -1010,22 +1010,20 @@ description: test skill
       opts?: Omit<SecurityAuditOptions, "config">;
     }> = [
       {
-        name: "loopback control UI without trusted proxies",
+        name: "loopback browser client without trusted proxies",
         cfg: {
           gateway: {
             bind: "loopback",
-            controlUi: { enabled: true },
           },
         },
         checkId: "gateway.trusted_proxies_missing",
         severity: "warn",
       },
       {
-        name: "loopback control UI without auth",
+        name: "loopback browser client without auth",
         cfg: {
           gateway: {
             bind: "loopback",
-            controlUi: { enabled: true },
             auth: {},
           },
         },
@@ -1706,7 +1704,6 @@ description: test skill
       name: "flags browser control without auth when browser is enabled",
       cfg: {
         gateway: {
-          controlUi: { enabled: false },
           auth: {},
         },
         browser: {
@@ -1719,7 +1716,6 @@ description: test skill
       name: "does not flag browser control auth when gateway token is configured",
       cfg: {
         gateway: {
-          controlUi: { enabled: false },
           auth: { token: "very-long-browser-token-0123456789" },
         },
         browser: {
@@ -1732,7 +1728,6 @@ description: test skill
       name: "does not flag browser control auth when gateway password uses SecretRef",
       cfg: {
         gateway: {
-          controlUi: { enabled: false },
           auth: {
             password: {
               source: "env",
@@ -1793,30 +1788,30 @@ description: test skill
   it("warns on insecure or dangerous flags", async () => {
     const cases = [
       {
-        name: "control UI allows insecure auth",
+        name: "browser client allows insecure auth",
         cfg: {
           gateway: {
-            controlUi: { allowInsecureAuth: true },
+            browserClients: { allowInsecureAuth: true },
           },
         } satisfies CrawClawConfig,
         expectedFinding: {
-          checkId: "gateway.control_ui.insecure_auth",
+          checkId: "gateway.browser_client.insecure_auth",
           severity: "warn",
         },
-        expectedDangerousDetails: ["gateway.controlUi.allowInsecureAuth=true"],
+        expectedDangerousDetails: ["gateway.browserClients.allowInsecureAuth=true"],
       },
       {
-        name: "control UI device auth is disabled",
+        name: "browser client device auth is disabled",
         cfg: {
           gateway: {
-            controlUi: { dangerouslyDisableDeviceAuth: true },
+            browserClients: { dangerouslyDisableDeviceAuth: true },
           },
         } satisfies CrawClawConfig,
         expectedFinding: {
-          checkId: "gateway.control_ui.device_auth_disabled",
+          checkId: "gateway.browser_client.device_auth_disabled",
           severity: "critical",
         },
-        expectedDangerousDetails: ["gateway.controlUi.dangerouslyDisableDeviceAuth=true"],
+        expectedDangerousDetails: ["gateway.browserClients.dangerouslyDisableDeviceAuth=true"],
       },
       {
         name: "generic insecure debug flags",
@@ -1876,7 +1871,7 @@ description: test skill
 
   it.each([
     {
-      name: "flags non-loopback Control UI without allowed origins",
+      name: "flags non-loopback Browser client without allowed origins",
       cfg: {
         gateway: {
           bind: "lan",
@@ -1884,37 +1879,37 @@ description: test skill
         },
       } satisfies CrawClawConfig,
       expectedFinding: {
-        checkId: "gateway.control_ui.allowed_origins_required",
+        checkId: "gateway.browser_client.allowed_origins_required",
         severity: "critical",
       },
     },
     {
-      name: "flags wildcard Control UI origins by exposure level on loopback",
+      name: "flags wildcard Browser client origins by exposure level on loopback",
       cfg: {
         gateway: {
           bind: "loopback",
-          controlUi: { allowedOrigins: ["*"] },
+          browserClients: { allowedOrigins: ["*"] },
         },
       } satisfies CrawClawConfig,
       expectedFinding: {
-        checkId: "gateway.control_ui.allowed_origins_wildcard",
+        checkId: "gateway.browser_client.allowed_origins_wildcard",
         severity: "warn",
       },
     },
     {
-      name: "flags wildcard Control UI origins by exposure level when exposed",
+      name: "flags wildcard Browser client origins by exposure level when exposed",
       cfg: {
         gateway: {
           bind: "lan",
           auth: { mode: "token", token: "very-long-browser-token-0123456789" },
-          controlUi: { allowedOrigins: ["*"] },
+          browserClients: { allowedOrigins: ["*"] },
         },
       } satisfies CrawClawConfig,
       expectedFinding: {
-        checkId: "gateway.control_ui.allowed_origins_wildcard",
+        checkId: "gateway.browser_client.allowed_origins_wildcard",
         severity: "critical",
       },
-      expectedNoFinding: "gateway.control_ui.allowed_origins_required",
+      expectedNoFinding: "gateway.browser_client.allowed_origins_required",
     },
   ])("$name", async (testCase) => {
     const res = await audit(testCase.cfg);
@@ -1931,18 +1926,18 @@ description: test skill
       gateway: {
         bind: "lan",
         auth: { mode: "token", token: "very-long-browser-token-0123456789" },
-        controlUi: {
+        browserClients: {
           dangerouslyAllowHostHeaderOriginFallback: true,
         },
       },
     };
 
     const res = await audit(cfg);
-    expectFinding(res, "gateway.control_ui.host_header_origin_fallback", "critical");
-    expectNoFinding(res, "gateway.control_ui.allowed_origins_required");
+    expectFinding(res, "gateway.browser_client.host_header_origin_fallback", "critical");
+    expectNoFinding(res, "gateway.browser_client.allowed_origins_required");
     const flags = res.findings.find((f) => f.checkId === "config.insecure_or_dangerous_flags");
     expect(flags?.detail ?? "").toContain(
-      "gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true",
+      "gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true",
     );
   });
 

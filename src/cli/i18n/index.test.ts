@@ -19,6 +19,7 @@ function listTrackedTsFiles(paths: string[]): string[] {
     .trim()
     .split("\n")
     .filter((file) => /\.(ts|tsx)$/.test(file))
+    .filter((file) => fs.existsSync(file))
     .filter((file) => !/(^|[./-])(test|e2e|coverage|harness|fixtures|test-helpers|mock)/.test(file))
     .filter((file) => !file.includes("/node_modules/"));
 }
@@ -50,7 +51,6 @@ function isCliVisibleTechnicalLiteral(value: string): boolean {
     "e.g. local, ollama",
     "launchd / systemd / schtasks",
     "live",
-    "macOS app",
     "nlm",
     "nick@example.com,admin@company.com",
     "npm",

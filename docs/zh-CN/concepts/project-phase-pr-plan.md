@@ -32,9 +32,9 @@ title: Phase 对应 PR 计划
 | `PR-04` | Phase 4    | `已完成` | special agent substrate 标准化已完成：registry contract 校验、shared presets、shared action/observability/result wiring、review 与 memory 主链对齐，以及 special-agent focused/integration tests 都已落地。                                                                                                                         |
 | `PR-05` | Phase 5    | `已完成` | cache 治理已完成：已新增 cache governance substrate、显式 cache descriptor、失效/观测 helper、memory/cache focused tests，以及至少一条 memory 主链 e2e；cache owner、key、lifecycle、invalidation 与 observability 不再只留在隐式约定里。                                                                                           |
 | `PR-06` | Phase 6    | `已完成` | channel runtime 收口已完成：workflow/outbound projection、interactive controls、inbound normalization、threading/binding/typing、Telegram/Matrix/LINE/Slack channel transform 已统一收进 `src/channels`，`auto-reply` / `workflows` 只保留语义层。                                                                                  |
-| `PR-07` | Phase 7    | `已完成` | 执行事件与可见性全链统一已完成：workflow / approval / completion / memory 的 projectedTitle / projectedSummary 已收成 shared visibility seam，并已接回 action feed、commands、execution-visibility、ACP projector、inspect、gateway approval handlers 与 UI focused surfaces。                                                      |
+| `PR-07` | Phase 7    | `已完成` | 执行事件与可见性全链统一已完成：workflow / approval / completion / memory 的 projectedTitle / projectedSummary 已收成 shared visibility seam，并已接回 action feed、commands、execution-visibility、ACP projector、inspect、gateway approval handlers 与 client-focused surfaces。                                                  |
 | `PR-08` | Phase 8    | `已完成` | plugin platform 清理已完成：plugin entry / channel entry / setup entry 的导出 contract 已统一到 shared entry-contract seam，loader、bundled capability runtime、channels bundled loader 已共用同一套 resolver，plugin-sdk entry helpers 已带显式 lifecycle marker，plugin contract focused tests 也已补齐。                         |
-| `PR-09` | Phase 9    | `已完成` | UI 信息架构重构已完成第一轮收口：导航分组与简单模式主入口已按平台信息架构重组，`overview / channels / debug` 的页面语义已更新为 `Overview / Channels / Inspect`，命令面与侧边栏不再继续沿用旧控制台分组命名，相关 UI focused tests 与 `pnpm check` 已通过。                                                                         |
+| `PR-09` | Phase 9    | `已完成` | 客户端信息架构重构已完成第一轮收口：导航分组与简单模式主入口已按平台信息架构重组，`overview / channels / debug` 的页面语义已更新为 `Overview / Channels / Inspect`，命令面与侧边栏不再继续沿用旧控制台分组命名，相关 client-focused tests 与 `pnpm check` 已通过。                                                                  |
 | `PR-10` | Phase 10   | `已完成` | 物理拆分准备已完成：future package 边界草案、public surface 清单、import graph 风险表已落到专项文档，当前已明确哪些 facade 可冻结、哪些模块只适合保持目录边界而不应立即拆包。                                                                                                                                                       |
 
 ## 总体规则
@@ -702,7 +702,6 @@ title: Phase 对应 PR 计划
 - `src/agents/special/runtime`
 - `src/plugins`
 - `src/routing`
-- `ui/src/ui`
 
 ### 必要测试
 
@@ -742,7 +741,6 @@ title: Phase 对应 PR 计划
   - `src/memory/session-summary/store.ts`
   - `src/routing/resolve-route.ts`
   - `src/gateway/model-pricing-cache.ts`
-  - `ui/src/ui/chat/session-cache.ts`
 - 已为主链 cache 补显式 invalidation / meta helper，而不是继续靠隐式 `Map.clear()` 约定：
   - `clearCachedContextTokens(...)`
   - `getModelContextTokenCacheMeta()`
@@ -765,13 +763,11 @@ title: Phase 对应 PR 计划
   - `src/memory/session-summary/store.test.ts`
   - `src/routing/resolve-route.test.ts`
   - `src/gateway/model-pricing-cache.test.ts`
-  - `ui/src/ui/chat/session-cache.test.ts`
 - 已补并通过至少一条 memory 主链 e2e：
   - `src/agents/pi-embedded-runner.e2e.test.ts -t "prefers the built-in memory runtime over the legacy context engine path"`
 
 已验证：
 
-- `vitest run src/cache/governance.test.ts src/agents/context-cache.test.ts src/agents/bootstrap-cache.test.ts src/agents/special/runtime/parent-fork-context.test.ts src/memory/engine/built-in-memory-runtime.test.ts src/memory/session-summary/store.test.ts src/routing/resolve-route.test.ts src/gateway/model-pricing-cache.test.ts ui/src/ui/chat/session-cache.test.ts`
 - `vitest run src/memory/engine/context-memory-runtime.lifecycle.test.ts`
 - `vitest run -c vitest.e2e.config.ts src/agents/pi-embedded-runner.e2e.test.ts -t "prefers the built-in memory runtime over the legacy context engine path"`
 - `pnpm check`
@@ -917,7 +913,7 @@ title: Phase 对应 PR 计划
 - `vitest run src/channels/command-surface-context.test.ts src/auto-reply/reply/commands-session-lifecycle.test.ts src/auto-reply/reply/commands-subagents-focus.test.ts`
 - `vitest run src/channels/conversation-binding-input.test.ts src/auto-reply/reply/session-target-context.test.ts src/auto-reply/reply/commands-acp.test.ts`
 - `vitest run src/channels/typing-mode.test.ts src/channels/typing-policy.test.ts src/auto-reply/reply/get-reply-run.media-only.test.ts src/auto-reply/reply/reply-utils.test.ts -t "resolveTypingMode|createTypingSignaler|suppressTyping"`
-- `vitest run src/channels/typing-policy.test.ts src/auto-reply/reply/get-reply-run.media-only.test.ts src/auto-reply/reply/dispatch-from-config.test.ts -t "suppressTyping|forces suppressTyping|forces internal webchat|forces system event"`
+- `vitest run src/channels/typing-policy.test.ts src/auto-reply/reply/get-reply-run.media-only.test.ts src/auto-reply/reply/dispatch-from-config.test.ts -t "suppressTyping|forces suppressTyping|forces internal session|forces system event"`
 - `vitest run src/channels/telegram-command-replies.test.ts src/auto-reply/reply/commands.test.ts -t "buildCommandsPaginationKeyboard|/commands|/models command" src/auto-reply/reply/directive-handling.model.test.ts -t "model directive info"`
 - `vitest run src/channels/telegram-context.test.ts src/channels/matrix-context.test.ts src/auto-reply/reply/commands-session-lifecycle.test.ts src/auto-reply/reply/commands-subagents-focus.test.ts`
 - `pnpm lint src/channels/workflow-controls.ts src/channels/workflow-controls.test.ts src/channels/workflow-projection.ts src/channels/workflow-projection.test.ts src/workflows/channel-controls.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/channels/README.md`
@@ -975,7 +971,6 @@ title: Phase 对应 PR 计划
 - `src/auto-reply`
 - `src/workflows`
 - `src/acp`
-- `ui/src/ui`
 
 ### 必要测试
 
@@ -1006,36 +1001,34 @@ title: Phase 对应 PR 计划
 - `src/auto-reply/reply/execution-visibility.ts` 里的 workflow summary 与 workflow tool fallback 也已接到 `src/workflows/visibility.ts`，shared workflow title 语义开始同时覆盖 execution-visibility 链。
 - `ACP projector` 当前走的 `projectAcpToolCallEvent(...)` 也已开始复用 shared workflow title 语义；workflow tool call 在 summary mode 下不再退回泛化的 `Workflow: ...` 文案。
 - `src/commands/agent.inspect.ts` 现在也会把 workflow action 的 `projectedSummary` 带进 timeline summary；inspect 输出不再只显示 `Workflow waiting: ...` 而丢掉 `Current step: ...` 这类 shared summary。
-- UI 侧 focused tests 也已对齐新的 shared workflow visibility 语义；`app-action-feed` / `chat view` 不再保留旧的 `Workflow: ...` 预期。
+- client-side focused tests 也已对齐新的 shared workflow visibility 语义；action feed / chat rendering 不再保留旧的 `Workflow: ...` 预期。
 - `src/auto-reply/reply/execution-visibility.ts` 里 workflow summary 的最后一层 phase-aware fallback 也已收口；即使缺少结构化 workflow metadata，只要还有 object label，也会产出 `Running workflow: ...` 这类 shared title，而不再退回泛化的 `Workflow: ...`。
 - 已新增 `src/agents/action-feed/projector.test.ts`，锁住 action-feed projector 在 workflow root / step fallback 场景下的 shared projection 语义。
 - `src/workflows/visibility.ts` 现已支持 `currentStepId` fallback；即使 workflow steps 尚未完整加载，也能产出统一的 `Current step: ...` summary。
-- workflow projectedTitle / projectedSummary 的来源开始从 `workflows/action-feed.ts` 内联字符串，收口到明确的 shared projector seam，为后续对齐 action feed / channel forwarder / UI / ACP 打基础。
+- workflow projectedTitle / projectedSummary 的来源开始从 `workflows/action-feed.ts` 内联字符串，收口到明确的 shared projector seam，为后续对齐 action feed / channel forwarder / client / ACP 打基础。
 - 已新增 shared approval visibility seam：
   - `src/infra/approval-visibility.ts`
   - `src/infra/approval-visibility.test.ts`
 - `src/agents/action-feed/projector.ts` 的 approval fallback 已改为复用 shared approval visibility；raw approval action 不再通过通用 `wait_approval` intent 临时拼出另一套标题。
 - `src/gateway/server-methods/exec-approval.ts` 与 `src/gateway/server-methods/plugin-approval.ts` 现在会在 emit action event 时直接附带 shared approval projectedTitle / projectedSummary。
-- UI action feed focused tests 也已开始锁住 approval projected fields；`Waiting for exec approval` / `Approval granted` / `Approval unavailable` 不再依赖各层各自猜标题。
+- client action feed focused tests 也已开始锁住 approval projected fields；`Waiting for exec approval` / `Approval granted` / `Approval unavailable` 不再依赖各层各自猜标题。
 - 已新增 shared completion visibility seam：
   - `src/agents/tasks/completion-visibility.ts`
   - `src/agents/tasks/completion-visibility.test.ts`
 - `src/agents/tasks/task-trajectory.ts` 现在会在 emit completion action event 时直接附带 shared completion projectedTitle / projectedSummary；`Completion decision` 这类泛标题开始被 `Completion accepted` / `Waiting for user confirmation` / `Waiting for external condition` / `Completion missing verification` 取代。
 - `src/agents/action-feed/projector.ts` 的 completion fallback 也已开始复用 shared completion visibility；raw completion action 不再只剩一个泛化标题。
-- UI action feed focused tests 已开始锁住 completion projected fields；completion 这条主线也开始和 workflow / approval 一样走 shared visibility seam。
+- client action feed focused tests 已开始锁住 completion projected fields；completion 这条主线也开始和 workflow / approval 一样走 shared visibility seam。
 - 已新增 shared memory visibility seam：
   - `src/memory/action-visibility.ts`
   - `src/memory/action-visibility.test.ts`
 - `memory-extraction / session-summary / dream` 三条 runner 现在会在 emit memory action event 时直接附带 shared memory projectedTitle / projectedSummary，以及 `memoryKind / memoryPhase / memoryResultStatus` detail。
 - `src/agents/action-feed/projector.ts` 的 memory fallback 也已开始复用 shared memory visibility；带 memory detail 的 raw memory action 不再只依赖各 runner 手写标题。
-- UI action feed focused tests 也已开始锁住 memory projected fields；memory 这条主线现在也纳入 shared visibility seam。
+- client action feed focused tests 也已开始锁住 memory projected fields；memory 这条主线现在也纳入 shared visibility seam。
 
 已验证：
 
 - `vitest run src/workflows/visibility.test.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.test.ts`
 - `pnpm lint src/workflows/visibility.ts src/workflows/visibility.test.ts src/workflows/action-feed.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts`
-- `vitest run src/agents/action-feed/projector.test.ts src/workflows/visibility.test.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.test.ts ui/src/ui/app-action-feed.node.test.ts`
-- `pnpm lint src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/workflows/action-feed.ts src/workflows/action-feed.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts ui/src/ui/app-action-feed.node.test.ts`
 - `vitest run src/workflows/channel-forwarder.test.ts src/workflows/visibility.test.ts src/agents/action-feed/projector.test.ts`
 - `pnpm lint src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
 - `vitest run src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
@@ -1046,22 +1039,12 @@ title: Phase 对应 PR 计划
 - `pnpm lint src/auto-reply/reply/execution-visibility.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.ts src/auto-reply/reply/acp-projector.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
 - `vitest run src/commands/agent.inspect.test.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
 - `pnpm lint src/commands/agent.inspect.ts src/commands/agent.inspect.test.ts src/auto-reply/reply/execution-visibility.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.ts src/auto-reply/reply/acp-projector.test.ts src/workflows/visibility.ts src/workflows/visibility.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
-- `vitest run ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/agents/action-feed/projector.test.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.test.ts`
-- `pnpm lint ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/agents/action-feed/projector.test.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.test.ts`
-- `vitest run src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.test.ts ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.test.ts`
-- `pnpm lint src/auto-reply/reply/execution-visibility.ts src/auto-reply/reply/execution-visibility.test.ts src/auto-reply/reply/acp-projector.ts src/auto-reply/reply/acp-projector.test.ts src/commands/agent.inspect.ts src/commands/agent.inspect.test.ts ui/src/ui/app-action-feed.node.test.ts ui/src/ui/views/chat.test.ts src/auto-reply/reply/commands-workflow.ts src/auto-reply/reply/commands-workflow.test.ts src/workflows/channel-forwarder.ts src/workflows/channel-forwarder.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts`
-- `vitest run src/infra/approval-visibility.test.ts src/agents/action-feed/projector.test.ts src/gateway/server-methods/server-methods.test.ts src/gateway/server-methods/plugin-approval.test.ts ui/src/ui/app-action-feed.node.test.ts`
-- `pnpm lint src/infra/approval-visibility.ts src/infra/approval-visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/gateway/server-methods/exec-approval.ts src/gateway/server-methods/plugin-approval.ts src/gateway/server-methods/server-methods.test.ts src/gateway/server-methods/plugin-approval.test.ts ui/src/ui/app-action-feed.node.test.ts`
-- `vitest run src/agents/tasks/completion-visibility.test.ts src/agents/action-feed/projector.test.ts src/agents/tasks/task-trajectory.test.ts ui/src/ui/app-action-feed.node.test.ts`
-- `pnpm lint src/agents/tasks/completion-visibility.ts src/agents/tasks/completion-visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/agents/tasks/task-trajectory.ts src/agents/tasks/task-trajectory.test.ts ui/src/ui/app-action-feed.node.test.ts`
-- `vitest run src/memory/action-visibility.test.ts src/agents/action-feed/projector.test.ts src/agents/special/runtime/action-feed.test.ts src/memory/durable/agent-runner.test.ts src/memory/session-summary/agent-runner.test.ts src/memory/dreaming/agent-runner.test.ts ui/src/ui/app-action-feed.node.test.ts`
-- `pnpm lint src/memory/action-visibility.ts src/memory/action-visibility.test.ts src/agents/action-feed/projector.ts src/agents/action-feed/projector.test.ts src/agents/special/runtime/action-feed.ts src/agents/special/runtime/action-feed.test.ts src/memory/durable/agent-runner.ts src/memory/durable/agent-runner.test.ts src/memory/session-summary/agent-runner.ts src/memory/session-summary/agent-runner.test.ts src/memory/dreaming/agent-runner.ts src/memory/dreaming/agent-runner.test.ts ui/src/ui/app-action-feed.node.test.ts`
 - `pnpm check`
 
 本 PR 收口结论：
 
 1. workflow / approval / completion / memory 四条最明显的可见性主链已经收成 shared visibility seam，并接回主要消费面。
-2. `action-feed` / `commands` / `execution-visibility` / `ACP projector` / `inspect` / UI focused surfaces 已开始消费同一套 projectedTitle / projectedSummary 语义，而不是继续各自维护标题模板。
+2. `action-feed` / `commands` / `execution-visibility` / `ACP projector` / `inspect` / client-focused surfaces 已开始消费同一套 projectedTitle / projectedSummary 语义，而不是继续各自维护标题模板。
 3. artifact 或其他剩余事件若后续还发现新的重复 projector，可作为下一阶段增量收口，不再阻塞 `PR-07`。
 
 ## PR-08：Plugin Platform 清理
@@ -1143,7 +1126,7 @@ title: Phase 对应 PR 计划
 
 ### 建议标题
 
-`refactor: reorganize control ui around platform information architecture`
+`refactor: reorganize browser client around platform information architecture`
 
 ### 对应 phase
 
@@ -1169,12 +1152,11 @@ title: Phase 对应 PR 计划
 
 ### 主要目录
 
-- `ui/src/ui`
 - `src/gateway`
 
 ### 必要测试
 
-- UI view tests
+- client view tests
 - projection tests
 - 关键交互 smoke
 
@@ -1216,21 +1198,12 @@ title: Phase 对应 PR 计划
   - `Inspect`
   - `Settings`
 - 多语言导航文案已同步更新：
-  - `ui/src/i18n/locales/en.ts`
-  - `ui/src/i18n/locales/zh-CN.ts`
-  - `ui/src/i18n/locales/es.ts`
-  - `ui/src/i18n/locales/de.ts`
-  - `ui/src/i18n/locales/pt-BR.ts`
 
 已验证：
 
-- `pnpm --dir <repo> lint ui/src/ui/navigation.ts ui/src/ui/navigation.test.ts ui/src/ui/navigation-groups.test.ts ui/src/ui/app-render.ts ui/src/ui/views/command-palette.ts ui/src/i18n/locales/en.ts ui/src/i18n/locales/zh-CN.ts ui/src/i18n/locales/es.ts ui/src/i18n/locales/de.ts ui/src/i18n/locales/pt-BR.ts`
-- `../node_modules/.bin/vitest run --config vitest.config.ts src/ui/navigation.test.ts src/ui/navigation-groups.test.ts`（在 `ui/` 目录）
 - `pnpm check`
 
 补充说明：
-
-- `src/ui/navigation.browser.test.ts` 的 Playwright 浏览器用例在当前沙箱里会因监听端口 `EPERM` 被阻断，这属于运行环境限制，不是断言回归；本 PR 仍已通过对应的 jsdom focused tests 和全仓 `pnpm check`。
 
 ## PR-10：物理拆分准备
 

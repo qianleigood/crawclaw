@@ -2,7 +2,7 @@
 read_when:
   - 在 Windows 上安装 CrawClaw
   - 定义 Windows 支持范围
-  - 查找 Windows 配套应用状态
+  - 查找 Windows 节点主机状态
 summary: Windows 原生安装、Gateway 服务模式、插件和验证门禁的支持矩阵
 title: Windows
 x-i18n:
@@ -15,7 +15,7 @@ x-i18n:
 
 # Windows
 
-CrawClaw 支持 **原生 Windows** 作为 Gateway 网关主机。Windows 产品边界包括 CLI、Gateway 网关、Web UI、插件、安装/运行时设置，以及 Windows 主机上的每用户启动。
+CrawClaw 支持 **原生 Windows** 作为 Gateway 网关主机。Windows 产品边界包括 CLI、Gateway 网关、插件、安装/运行时设置，以及 Windows 主机上的每用户启动。
 
 原生 Windows 支持并不意味着与 macOS 专用本地集成或每一种 Linux sandbox 行为完全等价。它表示 Windows 主机可以安装 CrawClaw、运行 CLI、运行 Gateway 网关、管理每用户启动、加载受支持插件，并在不需要 Linux 兼容层的情况下通过 Windows 兼容性门禁。
 
@@ -29,21 +29,19 @@ Windows 矩阵使用三种支持状态：
 
 ## 原生能力矩阵
 
-| Surface                              | Status       | Windows boundary                                                                              |
-| ------------------------------------ | ------------ | --------------------------------------------------------------------------------------------- |
-| Installer                            | `supported`  | `install.ps1` 默认安装 Node 24，接受 Node 22.14+，检查 Git/PATH 前提，并安装 CrawClaw。       |
-| CLI                                  | `supported`  | 命令从 PowerShell 运行，并处理 Windows 安全的参数、路径、shell 和进程启动。                   |
-| Gateway foreground                   | `supported`  | `crawclaw gateway run` 直接在 Windows 主机上启动 Gateway 网关。                               |
-| Gateway service                      | `supported`  | 每用户登录服务：允许时使用 Scheduled Task；任务创建被拒绝时回退到 Startup 文件夹。            |
-| `exec` and `system.run` tools        | `supported`  | 优先使用 PowerShell 7，并回退到 Windows PowerShell；命令 shim 必须避免不安全的 shell 回退。   |
-| Browser automation                   | `supported`  | 在 Windows smoke 覆盖 Chrome/Edge/Brave 发现和浏览器运行时后支持。                            |
-| Docker sandbox                       | `supported`  | 在 Windows drive-path、Docker Desktop bind 和 sandbox 安全门禁通过后支持。                    |
-| Telegram, Discord, Slack, Matrix     | `supported`  | 通过内置或捆绑 channel/plugin 路径支持；在 provider 凭据允许时提供 smoke 覆盖。               |
-| Common provider plugins              | `supported`  | 基于 Node 的 provider 通过捆绑插件运行时和安装期依赖设置加载。                                |
-| BlueBubbles and iMessage             | `bridged`    | 通过 Mac server 或 Apple host 桥接；Windows 运行 Gateway/client 侧，而不是 Apple 本地消息栈。 |
-| Apple skills and macOS-only tooling  | `bridged`    | 通过 Mac 或 headless 节点桥接，由该主机持有 Apple 本地运行时和权限。                          |
-| macOS companion app                  | `not-native` | 本仓库不将其描述为原生 Windows 交付物。                                                       |
-| Windows tray or desktop companion UI | `not-native` | 当前未发布；原生 Windows 支持范围是 CLI、Gateway 网关、Web UI、插件和运行时设置。             |
+| Surface                             | Status      | Windows boundary                                                                              |
+| ----------------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| Installer                           | `supported` | `install.ps1` 默认安装 Node 24，接受 Node 22.14+，检查 Git/PATH 前提，并安装 CrawClaw。       |
+| CLI                                 | `supported` | 命令从 PowerShell 运行，并处理 Windows 安全的参数、路径、shell 和进程启动。                   |
+| Gateway foreground                  | `supported` | `crawclaw gateway run` 直接在 Windows 主机上启动 Gateway 网关。                               |
+| Gateway service                     | `supported` | 每用户登录服务：允许时使用 Scheduled Task；任务创建被拒绝时回退到 Startup 文件夹。            |
+| `exec` and `system.run` tools       | `supported` | 优先使用 PowerShell 7，并回退到 Windows PowerShell；命令 shim 必须避免不安全的 shell 回退。   |
+| Browser automation                  | `supported` | 在 Windows smoke 覆盖 Chrome/Edge/Brave 发现和浏览器运行时后支持。                            |
+| Docker sandbox                      | `supported` | 在 Windows drive-path、Docker Desktop bind 和 sandbox 安全门禁通过后支持。                    |
+| Telegram, Discord, Slack, Matrix    | `supported` | 通过内置或捆绑 channel/plugin 路径支持；在 provider 凭据允许时提供 smoke 覆盖。               |
+| Common provider plugins             | `supported` | 基于 Node 的 provider 通过捆绑插件运行时和安装期依赖设置加载。                                |
+| BlueBubbles and iMessage            | `bridged`   | 通过 Mac server 或 Apple host 桥接；Windows 运行 Gateway/client 侧，而不是 Apple 本地消息栈。 |
+| Apple skills and macOS-only tooling | `bridged`   | 通过 Mac 或 headless 节点桥接，由该主机持有 Apple 本地运行时和权限。                          |
 
 ## 安装
 
@@ -164,9 +162,9 @@ crawclaw configure
 crawclaw doctor
 ```
 
-## Windows 配套应用
+## Windows 节点主机
 
-当前没有 Windows 配套应用。受支持的 Windows 表面是本页描述的 CLI、Gateway 网关、Web UI、插件和安装/运行时路径。
+当前没有 Windows 节点主机。受支持的 Windows 表面是本页描述的 CLI、Gateway 网关、插件和安装/运行时路径。
 
 ## 相关页面
 

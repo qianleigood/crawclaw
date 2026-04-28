@@ -1234,8 +1234,6 @@ Canvas + screen:
 - `nodes canvas hide --node <id|name|ip> [--invoke-timeout <ms>]`
 - `nodes canvas navigate <url> --node <id|name|ip> [--invoke-timeout <ms>]`
 - `nodes canvas eval [<js>] --node <id|name|ip> [--js <code>] [--invoke-timeout <ms>]`
-- `nodes canvas a2ui push --node <id|name|ip> (--jsonl <path> | --text <text>) [--invoke-timeout <ms>]`
-- `nodes canvas a2ui reset --node <id|name|ip> [--invoke-timeout <ms>]`
 - `nodes screen record --node <id|name|ip> [--screen <index>] [--duration <ms|10s>] [--fps <n>] [--no-audio] [--out <path>] [--invoke-timeout <ms>]`
 
 Location:

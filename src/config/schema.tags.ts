@@ -42,14 +42,19 @@ const TAG_OVERRIDES: Record<string, ConfigTag[]> = {
   "gateway.auth.token": ["security", "auth", "access", "network"],
   "gateway.auth.password": ["security", "auth", "access", "network"],
   "gateway.push.apns.relay.baseUrl": ["network", "advanced"],
-  "gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback": [
+  "gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback": [
     "security",
     "access",
     "network",
     "advanced",
   ],
-  "gateway.controlUi.dangerouslyDisableDeviceAuth": ["security", "access", "network", "advanced"],
-  "gateway.controlUi.allowInsecureAuth": ["security", "access", "network", "advanced"],
+  "gateway.browserClients.dangerouslyDisableDeviceAuth": [
+    "security",
+    "access",
+    "network",
+    "advanced",
+  ],
+  "gateway.browserClients.allowInsecureAuth": ["security", "access", "network", "advanced"],
   "tools.exec.applyPatch.workspaceOnly": ["tools", "security", "access", "advanced"],
 };
 

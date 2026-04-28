@@ -217,7 +217,7 @@ Context Archive is now useful, but not finished as the long-term replay layer.
 
 The backend architecture is ahead of the current operator UI.
 
-- [ ] Add agent runtime detail panels to Control UI.
+- [ ] Add agent runtime detail panels to Browser client.
   - runtime state
   - trajectory
   - completion

@@ -168,7 +168,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - **Tailnet bind**: run `crawclaw gateway --bind tailnet --token "<token>"`, then connect a client to `http://<tailscale-ip>:18789/`.
     - **SSH tunnel**: `ssh -N -L 18789:127.0.0.1:18789 user@host` then connect a client to `http://127.0.0.1:18789/`.
 
-    See [Web surfaces](/web) for bind modes and auth details.
+    See [Remote access](/gateway/remote) for bind modes and auth details.
 
   </Accordion>
 
@@ -858,7 +858,7 @@ for usage/billing and raise limits as needed.
 
 <AccordionGroup>
   <Accordion title="What is CrawClaw, in one paragraph?">
-    CrawClaw is a personal AI assistant you run on your own devices. It replies on the messaging surfaces you already use (WhatsApp, Telegram, Slack, Mattermost (plugin), Discord, Google Chat, Signal, iMessage, WebChat) and can also do voice + a live Canvas on supported platforms. The **Gateway** is the always-on control plane; the assistant is the product.
+    CrawClaw is a personal AI assistant you run on your own devices. It replies on the messaging surfaces you already use (WhatsApp, Telegram, Slack, Mattermost (plugin), Discord, Google Chat, Signal, iMessage). The **Gateway** is the always-on control plane; the assistant is the product.
   </Accordion>
 
   <Accordion title="Value proposition">
@@ -871,8 +871,7 @@ for usage/billing and raise limits as needed.
 
     - **Your devices, your data:** run the Gateway wherever you want (Mac, Linux, VPS) and keep the
       workspace + session history local.
-    - **Real channels, not a web sandbox:** WhatsApp/Telegram/Slack/Discord/Signal/iMessage/etc,
-      plus mobile voice and Canvas on supported platforms.
+    - **Real channels, not a web sandbox:** WhatsApp/Telegram/Slack/Discord/Signal/iMessage/etc.
     - **Model-agnostic:** use Anthropic, OpenAI, MiniMax, OpenRouter, etc., with per-agent routing
       and failover.
     - **Local-only option:** run local models so **all data can stay on your device** if you want.
@@ -929,7 +928,7 @@ for usage/billing and raise limits as needed.
     Advantages:
 
     - **Persistent memory + workspace** across sessions
-    - **Multi-platform access** (WhatsApp, Telegram, TUI, WebChat)
+    - **Multi-platform access** (WhatsApp, Telegram, Slack, Discord, TUI)
     - **Tool orchestration** (browser, files, scheduling, hooks)
     - **Always-on Gateway** (run on a VPS, interact from anywhere)
     - **Nodes** for local browser/screen/camera/exec
@@ -1052,7 +1051,7 @@ for usage/billing and raise limits as needed.
     Run the Gateway where the macOS binaries exist, then connect from Linux in [remote mode](#gateway-ports-already-running-and-remote-mode) or over Tailscale. The skills load normally because the Gateway host is macOS.
 
     **Option B - use a macOS node (no SSH).**
-    Run the Gateway on Linux, pair a macOS node (menubar app), and set **Node Run Commands** to "Always Ask" or "Always Allow" on the Mac. CrawClaw can treat macOS-only skills as eligible when the required binaries exist on the node. The agent runs those skills via the `nodes` tool. If you choose "Always Ask", approving "Always Allow" in the prompt adds that command to the allowlist.
+    Run the Gateway on Linux, pair a macOS node host, and set **Node Run Commands** to "Always Ask" or "Always Allow" on the Mac. CrawClaw can treat macOS-only skills as eligible when the required binaries exist on the node. The agent runs those skills via the `nodes` tool. If you choose "Always Ask", approving "Always Allow" in the prompt adds that command to the allowlist.
 
     **Option C - proxy macOS binaries over SSH (advanced).**
     Keep the Gateway on Linux, but make the required CLI binaries resolve to SSH wrappers that run on a Mac. Then override the skill to allow Linux so it stays eligible.
@@ -1484,7 +1483,7 @@ for usage/billing and raise limits as needed.
     - **Sub-agents:** spawn background work from a main agent when you want parallelism.
     - **TUI:** connect to the Gateway and switch agents/sessions.
 
-    Docs: [Nodes](/nodes), [Remote access](/gateway/remote), [Multi-Agent Routing](/concepts/multi-agent), [Sub-agents](/tools/subagents), [TUI](/web/tui).
+    Docs: [Nodes](/nodes), [Remote access](/gateway/remote), [Multi-Agent Routing](/concepts/multi-agent), [Sub-agents](/tools/subagents), [TUI](/cli/tui).
 
   </Accordion>
 
@@ -1631,10 +1630,10 @@ for usage/billing and raise limits as needed.
 
   <Accordion title="Do nodes run a gateway service?">
     No. Only **one gateway** should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)). Nodes are peripherals that connect
-    to the gateway (macOS "node mode" in the menubar app, plus headless node hosts). For headless node
+    to the gateway (macOS node mode plus headless node hosts). For headless node
     hosts and CLI control, see [Node host CLI](/cli/node).
 
-    A full restart is required for `gateway`, `discovery`, and `canvasHost` changes.
+    A full restart is required for `gateway` and `discovery` changes.
 
   </Accordion>
 
@@ -2656,7 +2655,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     - Model auth not loaded on the **gateway host** (check `models status`).
     - Channel pairing/allowlist blocking replies (check channel config + logs).
-    - WebChat/Dashboard is open without the right token.
+    - The Gateway client is using the wrong token.
 
     If you are remote, confirm the tunnel/Tailscale connection is up and that the
     Gateway WebSocket is reachable.
@@ -2714,7 +2713,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     In the TUI, use `/status` to see the current state. If you expect replies in a chat
     channel, make sure delivery is enabled (`/deliver on`).
 
-    Docs: [TUI](/web/tui), [Slash commands](/tools/slash-commands).
+    Docs: [TUI](/cli/tui), [Slash commands](/tools/slash-commands).
 
   </Accordion>
 

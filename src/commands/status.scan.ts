@@ -274,7 +274,6 @@ export async function scanStatus(
       const tailscaleHttpsUrl = buildTailscaleHttpsUrl({
         tailscaleMode,
         tailscaleDns,
-        controlUiBasePath: cfg.gateway?.controlUi?.basePath,
       });
       progress.tick();
 

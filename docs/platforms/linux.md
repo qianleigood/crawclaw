@@ -1,7 +1,6 @@
 ---
-summary: "Linux support + companion app status"
+summary: "Linux support status"
 read_when:
-  - Looking for Linux companion app status
   - Planning platform coverage or contributions
 title: "Linux App"
 ---
@@ -11,7 +10,7 @@ title: "Linux App"
 The Gateway is fully supported on Linux. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
-Native Linux companion apps are planned. Contributions are welcome if you want to help build one.
+Linux support is focused on CLI, Gateway, plugins, and node host operation.
 
 ## Beginner quick path (VPS)
 
@@ -19,7 +18,7 @@ Native Linux companion apps are planned. Contributions are welcome if you want t
 2. `npm i -g crawclaw@latest`
 3. `crawclaw onboard --install-daemon`
 4. From your laptop: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
-5. Open `http://127.0.0.1:18789/` and paste your token
+5. Run `crawclaw tui` locally, or connect a supported Gateway client through the SSH tunnel
 
 Full Linux server guide: [Linux Server](/vps). Step-by-step VPS example: [exe.dev](/install/exe-dev)
 

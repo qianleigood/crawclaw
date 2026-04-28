@@ -17,9 +17,6 @@ title: 控制面 API Inventory
 
 当前 inventory 统计的是：
 
-- `ui/src/ui/controllers/*`
-- `ui/src/ui/chat/slash-command-executor.ts`
-
 不包含：
 
 - Debug 页手工输入的任意 raw RPC
@@ -44,7 +41,7 @@ title: 控制面 API Inventory
 - `sessions.compact`
 - `sessions.steer`
 
-这组是当前 Control UI 最稳定的一条资源型主线。
+这组是当前 Browser client 最稳定的一条资源型主线。
 
 ## 2. Config
 

@@ -211,7 +211,6 @@ Logs live under `/tmp/crawclaw/` (default: `crawclaw-YYYY-MM-DD.log`).
 
 ## Next steps
 
-- WebChat: [WebChat](/web/webchat)
 - Gateway ops: [Gateway runbook](/gateway)
 - Cron + wakeups: [Cron jobs](/automation/cron-jobs)
 - Historical mobile note: iOS and Android source trees were removed from this repository.

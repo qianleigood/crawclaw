@@ -48,13 +48,13 @@ export function resolveHandshakeBrowserSecurityContext(params: {
 export function shouldAllowSilentLocalPairing(params: {
   isLocalClient: boolean;
   hasBrowserOriginHeader: boolean;
-  isControlUi: boolean;
+  isBrowserClients: boolean;
   isWebchat: boolean;
   reason: "not-paired" | "role-upgrade" | "scope-upgrade" | "metadata-upgrade";
 }): boolean {
   return (
     params.isLocalClient &&
-    (!params.hasBrowserOriginHeader || params.isControlUi || params.isWebchat) &&
+    (!params.hasBrowserOriginHeader || params.isBrowserClients || params.isWebchat) &&
     (params.reason === "not-paired" ||
       params.reason === "scope-upgrade" ||
       params.reason === "role-upgrade")

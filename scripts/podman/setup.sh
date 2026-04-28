@@ -199,14 +199,14 @@ PY
   exit 1
 }
 
-seed_local_control_ui_origins() {
+seed_local_browser_client_origins() {
   local file="$1"
   local port="$2"
   local dir=""
   local tmp=""
   ensure_safe_write_file_path "config file" "$file"
   if ! command -v python3 >/dev/null 2>&1; then
-    echo "Warning: python3 not found; unable to seed gateway.controlUi.allowedOrigins in $file." >&2
+    echo "Warning: python3 not found; unable to seed gateway.browserClients.allowedOrigins in $file." >&2
     return 0
   fi
   dir="$(dirname "$file")"
@@ -223,7 +223,7 @@ try:
         data = json.load(fh)
 except json.JSONDecodeError as exc:
     print(
-        f"Warning: unable to seed gateway.controlUi.allowedOrigins in {path}: existing config is not strict JSON ({exc}). Leaving file unchanged.",
+        f"Warning: unable to seed gateway.browserClients.allowedOrigins in {path}: existing config is not strict JSON ({exc}). Leaving file unchanged.",
         file=sys.stderr,
     )
     raise SystemExit(1)
@@ -233,10 +233,10 @@ gateway = data.setdefault("gateway", {})
 if not isinstance(gateway, dict):
     raise SystemExit(f"{path}: expected gateway object")
 gateway.setdefault("mode", "local")
-control_ui = gateway.setdefault("controlUi", {})
-if not isinstance(control_ui, dict):
-    raise SystemExit(f"{path}: expected gateway.controlUi object")
-allowed = control_ui.get("allowedOrigins")
+browser_client = gateway.setdefault("browserClients", {})
+if not isinstance(browser_client, dict):
+    raise SystemExit(f"{path}: expected gateway.browserClients object")
+allowed = browser_client.get("allowedOrigins")
 managed_localhosts = {"127.0.0.1", "localhost"}
 desired = [
     f"http://127.0.0.1:{port}",
@@ -257,7 +257,7 @@ for origin in allowed:
         if host in managed_localhosts:
             continue
     cleaned.append(normalized)
-control_ui["allowedOrigins"] = cleaned + desired
+browser_client["allowedOrigins"] = cleaned + desired
 with open(tmp, "w", encoding="utf-8") as fh:
     json.dump(data, fh, indent=2)
     fh.write("\n")
@@ -400,7 +400,7 @@ if [[ ! -f "$CONFIG_JSON" ]]; then
 {
   "gateway": {
     "mode": "local",
-        "controlUi": {
+        "browserClients": {
           "allowedOrigins": [
         "http://127.0.0.1:${SEED_GATEWAY_PORT}",
         "http://localhost:${SEED_GATEWAY_PORT}"
@@ -412,7 +412,7 @@ JSON
   )
   echo "Wrote minimal config to $CONFIG_JSON"
 fi
-seed_local_control_ui_origins "$CONFIG_JSON" "$SEED_GATEWAY_PORT"
+seed_local_browser_client_origins "$CONFIG_JSON" "$SEED_GATEWAY_PORT"
 
 if [[ "$INSTALL_QUADLET" == true ]]; then
   QUADLET_DIR="$CRAWCLAW_HOME/.config/containers/systemd"

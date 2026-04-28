@@ -1,9 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { registerAgentRunContext, resetAgentRunContextForTest } from "../infra/agent-events.js";
 import {
-  registerAgentRunContext,
-  resetAgentRunContextForTest,
-} from "../infra/agent-events.js";
-import { registerAgentRuntimeRun, resetAgentProgressEventsForTest } from "./runtime/agent-progress.js";
+  registerAgentRuntimeRun,
+  resetAgentProgressEventsForTest,
+} from "./runtime/agent-progress.js";
 
 const mocks = vi.hoisted(() => ({
   sendExecApprovalFollowup: vi.fn(),
@@ -103,14 +103,14 @@ describe("bash-tools.exec-host-shared", () => {
     });
   });
 
-  it("maps hidden control UI runs into exec approval unavailability", () => {
+  it("maps hidden browser client runs into exec approval unavailability", () => {
     registerAgentRunContext("hidden-ui-run", {
       sessionKey: "agent:hidden",
       sessionId: "session-hidden",
       agentId: "main",
       taskRuntime: "cli",
       taskMode: "foreground",
-      isControlUiVisible: false,
+      isBrowserClientsVisible: false,
     });
     registerAgentRuntimeRun({
       runId: "hidden-ui-run",
@@ -125,8 +125,8 @@ describe("bash-tools.exec-host-shared", () => {
 
     expect(resolveExecApprovalGuardUnavailable({ runId: "hidden-ui-run" })).toEqual({
       warningText:
-        "Exec approval is required, but interactive approvals are unavailable when control UI updates are hidden for this run.",
-      unavailableReason: "hidden-control-ui",
+        "Exec approval is required, but interactive approvals are unavailable when operator client updates are hidden for this run.",
+      unavailableReason: "hidden-browser-client",
     });
   });
 });

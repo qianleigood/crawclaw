@@ -20,10 +20,6 @@ import {
   type ExecSecurity,
 } from "../infra/exec-approvals.js";
 import { logWarn } from "../logger.js";
-import {
-  formatAgentInteractiveApprovalUnavailableReason,
-  resolveAgentGuardContext,
-} from "./runtime/agent-guard-context.js";
 import { sendExecApprovalFollowup } from "./bash-tools.exec-approval-followup.js";
 import {
   type ExecApprovalRegistration,
@@ -32,6 +28,10 @@ import {
 import { buildApprovalPendingMessage } from "./bash-tools.exec-runtime.js";
 import { DEFAULT_APPROVAL_TIMEOUT_MS } from "./bash-tools.exec-runtime.js";
 import type { ExecToolDetails } from "./bash-tools.exec-types.js";
+import {
+  formatAgentInteractiveApprovalUnavailableReason,
+  resolveAgentGuardContext,
+} from "./runtime/agent-guard-context.js";
 
 type ResolvedExecApprovals = ReturnType<typeof resolveExecApprovals>;
 export const MAX_EXEC_APPROVAL_FOLLOWUP_FAILURE_LOG_KEYS = 256;
@@ -411,7 +411,7 @@ export function buildHeadlessExecApprovalDeniedMessage(params: {
     "Fix one of these:",
     '- align both files to security="full" and ask="off" for trusted local automation',
     "- keep allowlist mode and add an explicit allowlist entry for this command",
-    "- enable Web UI, terminal UI, or chat exec approvals and rerun interactively",
+    "- enable terminal UI or chat exec approvals and rerun interactively",
     'Tip: run "crawclaw doctor" and "crawclaw approvals get --gateway" to inspect the effective policy.',
   ].join("\n");
 }

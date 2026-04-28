@@ -102,7 +102,7 @@ docker compose run --rm --no-deps --entrypoint node crawclaw-gateway \
 docker compose run --rm --no-deps --entrypoint node crawclaw-gateway \
   dist/index.js config set gateway.bind lan
 docker compose run --rm --no-deps --entrypoint node crawclaw-gateway \
-  dist/index.js config set gateway.controlUi.allowedOrigins \
+  dist/index.js config set gateway.browserClients.allowedOrigins \
   '["http://localhost:18789","http://127.0.0.1:18789"]' --strict-json
 docker compose up -d crawclaw-gateway
 ```

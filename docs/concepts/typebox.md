@@ -58,7 +58,7 @@ Common methods + events:
 | --------- | --------------------------------------------------------- | ---------------------------------- |
 | Core      | `connect`, `health`, `status`                             | `connect` must be first            |
 | Messaging | `send`, `poll`, `agent`, `agent.wait`                     | side-effects need `idempotencyKey` |
-| Chat      | `chat.history`, `chat.send`, `chat.abort`, `chat.inject`  | WebChat uses these                 |
+| Chat      | `chat.history`, `chat.send`, `chat.abort`, `chat.inject`  | Gateway-native chat methods        |
 | Sessions  | `sessions.list`, `sessions.patch`, `sessions.delete`      | session admin                      |
 | Nodes     | `node.list`, `node.invoke`, `node.pair.*`                 | Gateway WS + node actions          |
 | Events    | `tick`, `presence`, `agent`, `chat`, `health`, `shutdown` | server push                        |

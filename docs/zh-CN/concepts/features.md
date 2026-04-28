@@ -27,8 +27,8 @@ x-i18n:
   <Card title="媒体" icon="image">
     支持图片、音频和文档的收发。
   </Card>
-  <Card title="应用与界面" icon="monitor">
-    Web 控制界面和 macOS 配套应用。
+  <Card title="Gateway 客户端" icon="monitor">
+    CLI、TUI、自动化和浏览器来源客户端。
   </Card>
   <Card title="节点模式" icon="smartphone">
     macOS 节点模式与无头节点，支持 Canvas 和远程命令。
@@ -37,7 +37,7 @@ x-i18n:
 
 ## 完整列表
 
-- 多渠道 Gateway 控制平面，统一管理会话、路由、presence、节点和控制界面
+- 多渠道 Gateway 控制平面，统一管理会话、路由、presence 和节点
 - 通过 WhatsApp Web（Baileys）集成 WhatsApp
 - Telegram 机器人支持（grammY）
 - Discord 机器人支持（channels.discord.js）
@@ -55,7 +55,6 @@ x-i18n:
 - 群聊支持，通过提及激活
 - 图片、音频和文档的媒体支持
 - 可选的语音消息转录钩子
-- WebChat 和 macOS 菜单栏应用
 - macOS 节点模式，支持配对、Canvas、相机和远程命令
 - 无头节点主机，支持配对和 `system.run`
 - ACP / 控制平面互操作，用于外部 agent 和运行时桥接

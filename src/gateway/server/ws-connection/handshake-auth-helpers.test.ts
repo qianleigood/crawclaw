@@ -70,7 +70,7 @@ describe("handshake auth helpers", () => {
       shouldAllowSilentLocalPairing({
         isLocalClient: true,
         hasBrowserOriginHeader: false,
-        isControlUi: false,
+        isBrowserClients: false,
         isWebchat: false,
         reason: "not-paired",
       }),
@@ -79,7 +79,7 @@ describe("handshake auth helpers", () => {
       shouldAllowSilentLocalPairing({
         isLocalClient: true,
         hasBrowserOriginHeader: false,
-        isControlUi: false,
+        isBrowserClients: false,
         isWebchat: false,
         reason: "role-upgrade",
       }),
@@ -88,7 +88,7 @@ describe("handshake auth helpers", () => {
       shouldAllowSilentLocalPairing({
         isLocalClient: true,
         hasBrowserOriginHeader: false,
-        isControlUi: false,
+        isBrowserClients: false,
         isWebchat: false,
         reason: "scope-upgrade",
       }),
@@ -97,7 +97,7 @@ describe("handshake auth helpers", () => {
       shouldAllowSilentLocalPairing({
         isLocalClient: true,
         hasBrowserOriginHeader: false,
-        isControlUi: false,
+        isBrowserClients: false,
         isWebchat: false,
         reason: "metadata-upgrade",
       }),
@@ -109,7 +109,7 @@ describe("handshake auth helpers", () => {
       shouldAllowSilentLocalPairing({
         isLocalClient: false,
         hasBrowserOriginHeader: false,
-        isControlUi: false,
+        isBrowserClients: false,
         isWebchat: false,
         reason: "role-upgrade",
       }),

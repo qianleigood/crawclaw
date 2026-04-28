@@ -131,7 +131,7 @@ x-i18n:
     - 安装可选依赖（某些在 macOS 上使用 Homebrew）。
   </Step>
   <Step title="完成">
-    - 摘要 + 后续步骤，包括 macOS 应用、节点模式和远程控制入口。
+    - 摘要 + 后续步骤，包括节点模式和远程控制入口。
   </Step>
 </Steps>
 
@@ -191,7 +191,7 @@ crawclaw agents add work \
 ## Gateway 网关向导 RPC
 
 Gateway 网关通过 RPC 暴露向导流程（`wizard.start`、`wizard.next`、`wizard.cancel`、`wizard.status`）。
-客户端（如 macOS 应用、WebChat）可以渲染这些步骤，而无需重新实现新手引导逻辑。
+客户端可以渲染这些步骤，而无需重新实现新手引导逻辑。
 
 ## Signal 设置（signal-cli）
 

@@ -119,7 +119,7 @@ describe("configureGatewayForSetup", () => {
     }
   });
 
-  it("enables insecure local control ui auth for fresh quickstart loopback setups", async () => {
+  it("enables insecure local browser client auth for fresh quickstart loopback setups", async () => {
     mocks.randomToken.mockReturnValue("generated-token");
 
     const result = await runGatewayConfig({
@@ -127,10 +127,10 @@ describe("configureGatewayForSetup", () => {
       textQueue: [],
     });
 
-    expect(result.nextConfig.gateway?.controlUi?.allowInsecureAuth).toBe(true);
+    expect(result.nextConfig.gateway?.browserClients?.allowInsecureAuth).toBe(true);
   });
 
-  it("preserves explicit control ui auth policy in quickstart", async () => {
+  it("preserves explicit browser client auth policy in quickstart", async () => {
     mocks.randomToken.mockReturnValue("generated-token");
 
     const result = await runGatewayConfig({
@@ -138,17 +138,17 @@ describe("configureGatewayForSetup", () => {
       textQueue: [],
       nextConfig: {
         gateway: {
-          controlUi: {
+          browserClients: {
             allowInsecureAuth: false,
           },
         },
       },
     });
 
-    expect(result.nextConfig.gateway?.controlUi?.allowInsecureAuth).toBe(false);
+    expect(result.nextConfig.gateway?.browserClients?.allowInsecureAuth).toBe(false);
   });
 
-  it("enables insecure local control ui auth when quickstart reuses an existing loopback config", async () => {
+  it("enables insecure local browser client auth when quickstart reuses an existing loopback config", async () => {
     mocks.randomToken.mockReturnValue("generated-token");
     const prompter = createPrompter({
       selectQueue: [],
@@ -174,7 +174,7 @@ describe("configureGatewayForSetup", () => {
       runtime,
     });
 
-    expect(result.nextConfig.gateway?.controlUi?.allowInsecureAuth).toBe(true);
+    expect(result.nextConfig.gateway?.browserClients?.allowInsecureAuth).toBe(true);
   });
 
   it("does not set password to literal 'undefined' when prompt returns undefined", async () => {
@@ -189,13 +189,13 @@ describe("configureGatewayForSetup", () => {
     expect(authConfig?.password).not.toBe("undefined");
   });
 
-  it("seeds control UI allowed origins for non-loopback binds", async () => {
+  it("seeds browser client allowed origins for non-loopback binds", async () => {
     mocks.randomToken.mockReturnValue("generated-token");
     const result = await runGatewayConfig({
       bindChoice: "lan",
     });
 
-    expect(result.nextConfig.gateway?.controlUi?.allowedOrigins).toEqual([
+    expect(result.nextConfig.gateway?.browserClients?.allowedOrigins).toEqual([
       "http://localhost:18789",
       "http://127.0.0.1:18789",
     ]);

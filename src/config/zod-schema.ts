@@ -517,19 +517,6 @@ export const CrawClawSchema = z
       })
       .strict()
       .optional(),
-    ui: z
-      .object({
-        seamColor: HexColorSchema.optional(),
-        assistant: z
-          .object({
-            name: z.string().max(50).optional(),
-            avatar: z.string().max(200).optional(),
-          })
-          .strict()
-          .optional(),
-      })
-      .strict()
-      .optional(),
     secrets: SecretsConfigSchema,
     auth: z
       .object({
@@ -761,15 +748,6 @@ export const CrawClawSchema = z
       })
       .strict()
       .optional(),
-    canvasHost: z
-      .object({
-        enabled: z.boolean().optional(),
-        root: z.string().optional(),
-        port: z.number().int().positive().optional(),
-        liveReload: z.boolean().optional(),
-      })
-      .strict()
-      .optional(),
     talk: TalkSchema.optional(),
     gateway: z
       .object({
@@ -785,10 +763,8 @@ export const CrawClawSchema = z
           ])
           .optional(),
         customBindHost: z.string().optional(),
-        controlUi: z
+        browserClients: z
           .object({
-            enabled: z.boolean().optional(),
-            basePath: z.string().optional(),
             allowedOrigins: z.array(z.string()).optional(),
             dangerouslyAllowHostHeaderOriginFallback: z.boolean().optional(),
             allowInsecureAuth: z.boolean().optional(),

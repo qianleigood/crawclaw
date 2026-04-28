@@ -135,7 +135,7 @@ describe("agent.inspect command", () => {
       guard: {
         interactiveApprovalAvailable: false,
         interactiveApprovalBlocker: "background",
-        controlUiVisible: false,
+        browserClientsVisible: false,
         heartbeat: false,
         sandboxed: true,
       },

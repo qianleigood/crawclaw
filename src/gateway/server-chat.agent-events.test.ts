@@ -1080,7 +1080,7 @@ describe("agent event handler", () => {
     });
     registerAgentRunContext("run-hidden", {
       sessionKey: "session-hidden",
-      isControlUiVisible: false,
+      isBrowserClientsVisible: false,
       verboseLevel: "off",
     });
 

@@ -35,7 +35,6 @@ COPY --chown=appuser:appuser docs ./docs
 COPY --chown=appuser:appuser packages ./packages
 COPY --chown=appuser:appuser skills ./skills
 COPY --chown=appuser:appuser extensions ./extensions
-COPY --chown=appuser:appuser src/canvas-host/a2ui-src ./src/canvas-host/a2ui-src
 
 RUN pnpm build
 

@@ -2,7 +2,7 @@ import type { CrawClawConfig } from "../config/config.js";
 import { resolveGatewayPort } from "../config/config.js";
 import { isValidEnvSecretRefId, type SecretInput } from "../config/types.secrets.js";
 import {
-  maybeAddTailnetOriginToControlUiAllowedOrigins,
+  maybeAddTailnetOriginToBrowserClientsAllowedOrigins,
   TAILSCALE_DOCS_LINES,
   TAILSCALE_EXPOSURE_OPTIONS,
   TAILSCALE_MISSING_BIN_NOTE_LINES,
@@ -341,7 +341,7 @@ export async function promptGatewayConfig(
     },
   };
 
-  next = await maybeAddTailnetOriginToControlUiAllowedOrigins({
+  next = await maybeAddTailnetOriginToBrowserClientsAllowedOrigins({
     config: next,
     tailscaleMode,
     tailscaleBin,

@@ -13,7 +13,7 @@ export type ExecApprovalUnavailableReason =
   | "no-approval-route"
   | "heartbeat"
   | "background"
-  | "hidden-control-ui";
+  | "hidden-browser-client";
 
 export type ExecApprovalReplyMetadata = {
   approvalId: string;
@@ -343,36 +343,48 @@ export function buildExecApprovalUnavailableReplyPayload(
       `Exec approval is required, but chat exec approvals are not enabled on ${params.channelLabel ?? "this platform"}.`,
     );
     lines.push(
-      "Approve it from the Web UI or terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
+      "Approve it from the terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
     );
   } else if (params.reason === "initiating-platform-unsupported") {
     lines.push(
       `Exec approval is required, but ${params.channelLabel ?? "this platform"} does not support chat exec approvals.`,
     );
     lines.push(
-      "Approve it from the Web UI or terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
+      "Approve it from the terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
     );
   } else if (params.reason === "heartbeat") {
     if (!warningText) {
-      lines.push("Exec approval is required, but interactive approvals are unavailable for heartbeat runs.");
+      lines.push(
+        "Exec approval is required, but interactive approvals are unavailable for heartbeat runs.",
+      );
     }
-    lines.push("Retry from an interactive foreground run in the Web UI or terminal UI, or rerun without heartbeat mode so the command can wait for approval.");
+    lines.push(
+      "Retry from an interactive foreground run in the terminal UI, or rerun without heartbeat mode so the command can wait for approval.",
+    );
   } else if (params.reason === "background") {
     if (!warningText) {
-      lines.push("Exec approval is required, but interactive approvals are unavailable for background agent runs.");
+      lines.push(
+        "Exec approval is required, but interactive approvals are unavailable for background agent runs.",
+      );
     }
-    lines.push("Resume or foreground the run in the Web UI or terminal UI, then retry the command so an approver can respond.");
-  } else if (params.reason === "hidden-control-ui") {
+    lines.push(
+      "Resume or foreground the run in the terminal UI, then retry the command so an approver can respond.",
+    );
+  } else if (params.reason === "hidden-browser-client") {
     if (!warningText) {
-      lines.push("Exec approval is required, but interactive approvals are unavailable when control UI updates are hidden for this run.");
+      lines.push(
+        "Exec approval is required, but interactive approvals are unavailable when operator client updates are hidden for this run.",
+      );
     }
-    lines.push("Rerun with control UI updates visible, or resume the run from the Web UI or terminal UI before retrying the command.");
+    lines.push(
+      "Rerun with operator client updates visible, or resume the run from the terminal UI before retrying the command.",
+    );
   } else {
     lines.push(
       "Exec approval is required, but no interactive approval client is currently available.",
     );
     lines.push(
-      "Open the Web UI or terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram, then retry the command. If those accounts already know your owner ID via allowFrom or owner config, you can usually leave execApprovals.approvers unset.",
+      "Open the terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram, then retry the command. If those accounts already know your owner ID via allowFrom or owner config, you can usually leave execApprovals.approvers unset.",
     );
   }
 

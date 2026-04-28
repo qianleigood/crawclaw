@@ -54,7 +54,7 @@ force `gateway.auth.mode: "password"`.
 }
 ```
 
-Open: `https://<magicdns>/` (or your configured `gateway.controlUi.basePath`)
+Open: `https://<magicdns>/`
 
 ### Tailnet-only (bind to Tailnet IP)
 
@@ -105,7 +105,7 @@ crawclaw gateway --tailscale funnel --auth password
   or `tailscale funnel` configuration on shutdown.
 - `gateway.bind: "tailnet"` is a direct Tailnet bind (no HTTPS, no Serve/Funnel).
 - `gateway.bind: "auto"` prefers loopback; use `tailnet` if you want Tailnet-only.
-- Serve/Funnel only expose the **Gateway control UI + WS**. Nodes connect over
+- Serve/Funnel only expose the **Gateway browser client + WS**. Nodes connect over
   the same Gateway WS endpoint, so Serve can work for node access.
 
 ## Browser control (remote Gateway + local browser)

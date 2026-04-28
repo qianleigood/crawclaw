@@ -493,10 +493,6 @@
       "destination": "/platforms/mac/bundled-gateway"
     },
     {
-      "source": "/mac/canvas",
-      "destination": "/platforms/mac/canvas"
-    },
-    {
       "source": "/mac/child-process",
       "destination": "/platforms/mac/child-process"
     },
@@ -551,10 +547,6 @@
     {
       "source": "/mac/voicewake",
       "destination": "/platforms/mac/voicewake"
-    },
-    {
-      "source": "/mac/webchat",
-      "destination": "/platforms/mac/webchat"
     },
     {
       "source": "/mac/xpc",
@@ -737,10 +729,6 @@
       "destination": "/help/troubleshooting"
     },
     {
-      "source": "/tui",
-      "destination": "/web/tui"
-    },
-    {
       "source": "/typebox",
       "destination": "/concepts/typebox"
     },
@@ -751,10 +739,6 @@
     {
       "source": "/voicewake",
       "destination": "/nodes/voicewake"
-    },
-    {
-      "source": "/webchat",
-      "destination": "/web/webchat"
     },
     {
       "source": "/webhook",
@@ -1346,10 +1330,6 @@
                     "pages": ["nodes/talk", "nodes/voicewake", "nodes/location-command"]
                   }
                 ]
-              },
-              {
-                "group": "Web interfaces",
-                "pages": ["web/index", "web/improvements", "web/webchat", "web/tui"]
               }
             ]
           },
@@ -1905,17 +1885,6 @@
               {
                 "group": "安全",
                 "pages": ["zh-CN/security/formal-verification"]
-              },
-              {
-                "group": "Web 界面",
-                "pages": [
-                  "zh-CN/web/index",
-                  "zh-CN/web/control-ui",
-                  "zh-CN/web/control-ui-ux",
-                  "zh-CN/web/dashboard",
-                  "zh-CN/web/webchat",
-                  "zh-CN/web/tui"
-                ]
               }
             ]
           },
@@ -1934,7 +1903,6 @@
                   "zh-CN/cli/config",
                   "zh-CN/cli/configure",
                   "zh-CN/cli/cron",
-                  "zh-CN/cli/dashboard",
                   "zh-CN/cli/devices",
                   "zh-CN/cli/directory",
                   "zh-CN/cli/dns",

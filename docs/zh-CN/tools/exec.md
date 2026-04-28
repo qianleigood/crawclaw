@@ -39,7 +39,7 @@ x-i18n:
 - `host` 默认为 `sandbox`。
 - 当沙箱隔离关闭时，`elevated` 会被忽略（exec 已在主机上运行）。
 - `gateway`/`node` 审批由 `~/.crawclaw/exec-approvals.json` 控制。
-- `node` 需要已配对的节点（配套应用或无头节点主机）。
+- `node` 需要已配对的节点主机。
 - 如果有多个可用节点，设置 `exec.node` 或 `tools.exec.node` 来选择一个。
 - 在非 Windows 主机上，exec 会使用已设置的 `SHELL`；如果 `SHELL` 是 `fish`，它会优先从 `PATH` 中选择 `bash`（或 `sh`）以避免 fish 不兼容的脚本，如果两者都不存在则回退到 `SHELL`。
 - 主机执行（`gateway`/`node`）会拒绝 `env.PATH` 和加载器覆盖（`LD_*`/`DYLD_*`），以防止二进制劫持或代码注入。
@@ -83,7 +83,7 @@ crawclaw config get agents.list
 crawclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 ```
 
-控制 UI：Nodes 标签页包含一个小的"Exec 节点绑定"面板用于相同的设置。
+也可以通过配置项 `exec.node` 或 `tools.exec.node` 完成相同的绑定。
 
 ## 会话覆盖（`/exec`）
 
@@ -101,7 +101,7 @@ crawclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 `/exec` 仅对**已授权发送者**（渠道白名单/配对加 `commands.useAccessGroups`）生效。
 它仅更新**会话状态**，不写入配置。要彻底禁用 exec，请通过工具策略拒绝它（`tools.deny: ["exec"]` 或按智能体配置）。除非你显式设置 `security=full` 和 `ask=off`，否则主机审批仍然适用。
 
-## Exec 审批（配套应用/节点主机）
+## Exec 审批（节点主机）
 
 沙箱隔离的智能体可以要求在 `exec` 于 Gateway 网关或节点主机上运行前进行逐请求审批。
 参阅 [Exec 审批](/tools/exec-approvals) 了解策略、白名单和 UI 流程。

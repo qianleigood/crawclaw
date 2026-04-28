@@ -483,7 +483,7 @@ Notes:
 
 ## Exec approvals in Slack
 
-Exec approval prompts can route natively through Slack using interactive buttons and interactions, instead of falling back to the Web UI or terminal. Approver authorization is enforced: only users identified as approvers can approve or deny requests through Slack.
+Exec approval prompts can route natively through Slack using interactive buttons and interactions, instead of falling back to the terminal. Approver authorization is enforced: only users identified as approvers can approve or deny requests through Slack.
 
 This uses the same shared approval button surface as other channels. When `interactivity` is enabled in your Slack app settings, approval prompts render as Block Kit buttons directly in the conversation.
 

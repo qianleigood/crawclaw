@@ -35,7 +35,6 @@ run_linux_ci_mirror() {
   run_step pnpm check
   run_step pnpm build:strict-smoke
   run_protocol_ci_mirror
-  run_step pnpm canvas:a2ui:bundle
   run_step pnpm vitest run --config vitest.extensions.config.ts --maxWorkers=1
   run_step env CI=true pnpm exec vitest run --config vitest.unit.config.ts --maxWorkers=1
 

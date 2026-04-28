@@ -471,11 +471,11 @@ describe("before_tool_call requireApproval handling", () => {
     expect(mockCallGateway).not.toHaveBeenCalled();
   });
 
-  it("blocks interactive approval when control UI visibility is disabled", async () => {
+  it("blocks interactive approval when browser client visibility is disabled", async () => {
     hookRunner.runBeforeToolCall.mockResolvedValue({
       requireApproval: {
         title: "Invisible approval",
-        description: "Should not prompt when control UI is hidden",
+        description: "Should not prompt when browser client is hidden",
       },
     });
     registerAgentRunContext("hidden-ui-run", {
@@ -484,7 +484,7 @@ describe("before_tool_call requireApproval handling", () => {
       agentId: "main",
       taskRuntime: "cli",
       taskMode: "foreground",
-      isControlUiVisible: false,
+      isBrowserClientsVisible: false,
     });
     registerAgentRuntimeRun({
       runId: "hidden-ui-run",
@@ -506,7 +506,7 @@ describe("before_tool_call requireApproval handling", () => {
     expect(result.blocked).toBe(true);
     expect(result).toHaveProperty(
       "reason",
-      "Plugin approval required, but interactive approvals are unavailable when control UI updates are hidden for this run.",
+      "Plugin approval required, but interactive approvals are unavailable when operator client updates are hidden for this run.",
     );
     expect(mockCallGateway).not.toHaveBeenCalled();
   });

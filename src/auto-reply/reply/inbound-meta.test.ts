@@ -188,14 +188,14 @@ describe("buildInboundUserContextPrefix", () => {
   it("does not treat group chats as direct based on sender id", () => {
     const text = buildInboundUserContextPrefix({
       ChatType: "group",
-      SenderId: "crawclaw-control-ui",
+      SenderId: "crawclaw-browser-client",
       MessageSid: "123",
       ConversationLabel: "some-label",
     } as TemplateContext);
 
     const conversationInfo = parseConversationInfoPayload(text);
     expect(conversationInfo["message_id"]).toBe("123");
-    expect(conversationInfo["sender_id"]).toBe("crawclaw-control-ui");
+    expect(conversationInfo["sender_id"]).toBe("crawclaw-browser-client");
     expect(conversationInfo["conversation_label"]).toBe("some-label");
   });
 

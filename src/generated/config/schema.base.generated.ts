@@ -509,30 +509,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
         },
         additionalProperties: false,
       },
-      ui: {
-        type: "object",
-        properties: {
-          seamColor: {
-            type: "string",
-            pattern: "^#?[0-9a-fA-F]{6}$",
-          },
-          assistant: {
-            type: "object",
-            properties: {
-              name: {
-                type: "string",
-                maxLength: 50,
-              },
-              avatar: {
-                type: "string",
-                maxLength: 200,
-              },
-            },
-            additionalProperties: false,
-          },
-        },
-        additionalProperties: false,
-      },
       secrets: {
         type: "object",
         properties: {
@@ -8311,26 +8287,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
         },
         additionalProperties: false,
       },
-      canvasHost: {
-        type: "object",
-        properties: {
-          enabled: {
-            type: "boolean",
-          },
-          root: {
-            type: "string",
-          },
-          port: {
-            type: "integer",
-            exclusiveMinimum: 0,
-            maximum: 9007199254740991,
-          },
-          liveReload: {
-            type: "boolean",
-          },
-        },
-        additionalProperties: false,
-      },
       talk: {
         type: "object",
         properties: {
@@ -8575,15 +8531,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
           customBindHost: {
             type: "string",
           },
-          controlUi: {
+          browserClients: {
             type: "object",
             properties: {
-              enabled: {
-                type: "boolean",
-              },
-              basePath: {
-                type: "string",
-              },
               allowedOrigins: {
                 type: "array",
                 items: {
@@ -10430,7 +10380,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "Gateway",
       group: "Gateway",
       order: 30,
-      help: "Gateway runtime surface for bind mode, auth, control UI, remote transport, and operational safety controls. Keep conservative defaults unless you intentionally expose the gateway beyond trusted local interfaces.",
+      help: "Gateway runtime surface for bind mode, auth, browser-origin clients, remote transport, and operational safety controls. Keep conservative defaults unless you intentionally expose the gateway beyond trusted local interfaces.",
       tags: ["advanced"],
     },
     nodeHost: {
@@ -10509,31 +10459,24 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Inbound webhook automation surface for mapping external events into wake or agent actions in CrawClaw. Keep this locked down with explicit token/session/agent controls before exposing it beyond trusted networks.",
       tags: ["advanced"],
     },
-    ui: {
-      label: "UI",
-      group: "UI",
-      order: 120,
-      help: "UI presentation settings for accenting and assistant identity shown in control surfaces. Use this for branding and readability customization without changing runtime behavior.",
-      tags: ["advanced"],
-    },
     browser: {
       label: "Browser",
       group: "Browser",
-      order: 130,
+      order: 120,
       help: "Browser runtime controls for local or remote CDP attachment, profile routing, and screenshot/snapshot behavior. Keep defaults unless your automation workflow requires custom browser transport settings.",
       tags: ["advanced"],
     },
     talk: {
       label: "Talk",
       group: "Talk",
-      order: 140,
+      order: 130,
       help: "Talk-mode voice synthesis settings for voice identity, model selection, output format, and interruption behavior. Use this section to tune human-facing voice UX while controlling latency and cost.",
       tags: ["advanced"],
     },
     channels: {
       label: "Channels",
       group: "Messaging Channels",
-      order: 150,
+      order: 140,
       help: "Channel provider configurations plus shared defaults that control access policies, heartbeat visibility, and per-surface behavior. Keep defaults centralized and override per provider only where required.",
       tags: ["advanced"],
     },
@@ -10756,7 +10699,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "diagnostics.otel.serviceName": {
       label: "OpenTelemetry Service Name",
-      help: "Service name reported in telemetry resource attributes to identify this gateway instance in observability backends. Use stable names so dashboards and alerts remain consistent over deployments.",
+      help: "Service name reported in telemetry resource attributes to identify this gateway instance in observability backends. Use stable names so alerts and charts remain consistent over deployments.",
       tags: ["observability"],
     },
     "diagnostics.otel.traces": {
@@ -10766,7 +10709,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "diagnostics.otel.metrics": {
       label: "OpenTelemetry Metrics Enabled",
-      help: "Enable metrics signal export to the configured OpenTelemetry collector endpoint. Keep enabled for runtime health dashboards, and disable only if metric volume must be minimized.",
+      help: "Enable metrics signal export to the configured OpenTelemetry collector endpoint. Keep enabled for runtime health views, and disable only if metric volume must be minimized.",
       tags: ["observability"],
     },
     "diagnostics.otel.logs": {
@@ -10881,7 +10824,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "gateway.port": {
       label: "Gateway Port",
-      help: "TCP port used by the gateway listener for API, control UI, and channel-facing ingress paths. Use a dedicated port and avoid collisions with reverse proxies or local developer services.",
+      help: "TCP port used by the gateway listener for API, browser-origin client, and channel-facing ingress paths. Use a dedicated port and avoid collisions with reverse proxies or local developer services.",
       tags: ["network"],
     },
     "gateway.mode": {
@@ -10899,14 +10842,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Explicit bind host/IP used when gateway.bind is set to custom for manual interface targeting. Use a precise address and avoid wildcard binds unless external exposure is required.",
       tags: ["network"],
     },
-    "gateway.controlUi": {
-      label: "Control UI",
-      help: "Control UI hosting settings including enablement, pathing, and browser-origin/auth hardening behavior. Keep UI exposure minimal and pair with strong auth controls before internet-facing deployments.",
-      tags: ["network"],
-    },
-    "gateway.controlUi.enabled": {
-      label: "Control UI Enabled",
-      help: "Enables serving the gateway Control UI from the gateway HTTP process when true. Keep enabled for local administration, and disable when an external control surface replaces it.",
+    "gateway.browserClients": {
+      label: "Browser Clients",
+      help: "Browser-origin client hardening settings. Configure explicit trusted origins before exposing the gateway beyond loopback.",
       tags: ["network"],
     },
     "gateway.auth": {
@@ -11134,7 +11072,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "browser.color": {
       label: "Browser Accent Color",
-      help: "Default accent color used for browser profile/UI cues where colored identity hints are displayed. Use consistent colors to help operators identify active browser profile context quickly.",
+      help: "Default accent color used for browser profile identity cues. Use consistent colors to help operators identify active browser profile context quickly.",
       tags: ["advanced"],
     },
     "browser.executablePath": {
@@ -11144,7 +11082,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "browser.headless": {
       label: "Browser Headless Mode",
-      help: "Forces browser launch in headless mode when the local launcher starts browser instances. Keep headless enabled for server environments and disable only when visible UI debugging is required.",
+      help: "Forces browser launch in headless mode when the local launcher starts browser instances. Keep headless enabled for server environments and disable only when visible browser debugging is required.",
       tags: ["advanced"],
     },
     "browser.noSandbox": {
@@ -11179,7 +11117,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "browser.profiles.*.color": {
       label: "Browser Profile Accent Color",
-      help: "Per-profile accent color for visual differentiation in dashboards and browser-related UI hints. Use distinct colors for high-signal operator recognition of active profiles.",
+      help: "Per-profile accent color for visual differentiation in client hints. Use distinct colors for high-signal operator recognition of active profiles.",
       tags: ["storage"],
     },
     "tools.allow": {
@@ -11837,31 +11775,25 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Use Readability to extract main content from HTML (fallbacks to basic HTML cleanup).",
       tags: ["tools"],
     },
-    "gateway.controlUi.basePath": {
-      label: "Control UI Base Path",
-      help: "Optional URL prefix where the Control UI is served (e.g. /crawclaw).",
-      placeholder: "/crawclaw",
-      tags: ["network", "storage"],
-    },
-    "gateway.controlUi.allowedOrigins": {
-      label: "Control UI Allowed Origins",
-      help: 'Allowed browser origins for Control UI/WebChat websocket connections (full origins only, e.g. https://control.example.com). Required for non-loopback Control UI deployments unless dangerous Host-header fallback is explicitly enabled. Setting ["*"] means allow any browser origin and should be avoided outside tightly controlled local testing.',
+    "gateway.browserClients.allowedOrigins": {
+      label: "Browser-Origin Allowed Origins",
+      help: 'Allowed browser origins for browser-origin WebSocket connections (full origins only, e.g. https://control.example.com). Required for non-loopback browser-origin deployments unless dangerous Host-header fallback is explicitly enabled. Setting ["*"] means allow any browser origin and should be avoided outside tightly controlled local testing.',
       placeholder: "https://control.example.com",
       tags: ["access", "network"],
     },
-    "gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback": {
+    "gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback": {
       label: "Dangerously Allow Host-Header Origin Fallback",
-      help: "DANGEROUS toggle that enables Host-header based origin fallback for Control UI/WebChat websocket checks. This mode is supported when your deployment intentionally relies on Host-header origin policy; explicit gateway.controlUi.allowedOrigins remains the recommended hardened default.",
+      help: "DANGEROUS toggle that enables Host-header based origin fallback for browser-origin WebSocket checks. This mode is supported when your deployment intentionally relies on Host-header origin policy; explicit gateway.browserClients.allowedOrigins remains the recommended hardened default.",
       tags: ["security", "access", "network", "advanced"],
     },
-    "gateway.controlUi.allowInsecureAuth": {
-      label: "Insecure Control UI Auth Toggle",
-      help: "Loosens strict browser auth checks for Control UI when you must run a non-standard setup. Keep this off unless you trust your network and proxy path, because impersonation risk is higher.",
+    "gateway.browserClients.allowInsecureAuth": {
+      label: "Insecure Browser-Origin Auth Toggle",
+      help: "Loosens strict browser-origin auth checks when you must run a non-standard setup. Keep this off unless you trust your network and proxy path, because impersonation risk is higher.",
       tags: ["security", "access", "network", "advanced"],
     },
-    "gateway.controlUi.dangerouslyDisableDeviceAuth": {
-      label: "Dangerously Disable Control UI Device Auth",
-      help: "Disables Control UI device identity checks and relies on token/password only. Use only for short-lived debugging on trusted networks, then turn it off immediately.",
+    "gateway.browserClients.dangerouslyDisableDeviceAuth": {
+      label: "Dangerously Disable Browser-Origin Device Auth",
+      help: "Disables browser-origin device identity checks and relies on token/password only. Use only for short-lived debugging on trusted networks, then turn it off immediately.",
       tags: ["security", "access", "network", "advanced"],
     },
     "gateway.push": {
@@ -11981,7 +11913,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       tags: ["access", "network"],
     },
     "gateway.webchat.chatHistoryMaxChars": {
-      label: "WebChat History Max Chars",
+      label: "Internal Chat History Max Chars",
       help: "Max characters per text field in chat.history responses before truncation (default: 12000).",
       tags: ["network", "performance"],
     },
@@ -13042,26 +12974,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Named MCP server definitions. CrawClaw stores them in its own config and runtime adapters decide which transports are supported at execution time.",
       tags: ["advanced"],
     },
-    "ui.seamColor": {
-      label: "Accent Color",
-      help: "Primary accent color used by UI surfaces for emphasis, badges, and visual identity cues. Use high-contrast values that remain readable across light/dark themes.",
-      tags: ["advanced"],
-    },
-    "ui.assistant": {
-      label: "Assistant Appearance",
-      help: "Assistant display identity settings for name and avatar shown in UI surfaces. Keep these values aligned with your operator-facing persona and support expectations.",
-      tags: ["advanced"],
-    },
-    "ui.assistant.name": {
-      label: "Assistant Name",
-      help: "Display name shown for the assistant in UI views, chat chrome, and status contexts. Keep this stable so operators can reliably identify which assistant persona is active.",
-      tags: ["advanced"],
-    },
-    "ui.assistant.avatar": {
-      label: "Assistant Avatar",
-      help: "Assistant avatar image source used in UI surfaces (URL, path, or data URI depending on runtime support). Use trusted assets and consistent branding dimensions for clean rendering.",
-      tags: ["advanced"],
-    },
     "browser.evaluateEnabled": {
       label: "Browser Evaluate Enabled",
       help: "Enables browser-side evaluate helpers for runtime script evaluation capabilities where supported. Keep disabled unless your workflows require evaluate semantics beyond snapshots/navigation.",
@@ -13476,7 +13388,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "hooks.mappings[].name": {
       label: "Hook Mapping Name",
-      help: "Human-readable mapping display name used in diagnostics and operator-facing config UIs. Keep names concise and descriptive so routing intent is obvious during incident review.",
+      help: "Human-readable mapping display name used in diagnostics and operator-facing config forms. Keep names concise and descriptive so routing intent is obvious during incident review.",
       tags: ["advanced"],
     },
     "hooks.mappings[].agentId": {
@@ -13771,31 +13683,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "mDNS discovery configuration group for local network advertisement and discovery behavior tuning. Keep minimal mode for routine LAN discovery unless extra metadata is required.",
       tags: ["network"],
     },
-    canvasHost: {
-      label: "Canvas Host",
-      help: "Canvas host settings for serving canvas assets and local live-reload behavior used by canvas-enabled workflows. Keep disabled unless canvas-hosted assets are actively used.",
-      tags: ["advanced"],
-    },
-    "canvasHost.enabled": {
-      label: "Canvas Host Enabled",
-      help: "Enables the canvas host server process and routes for serving canvas files. Keep disabled when canvas workflows are inactive to reduce exposed local services.",
-      tags: ["advanced"],
-    },
-    "canvasHost.root": {
-      label: "Canvas Host Root Directory",
-      help: "Filesystem root directory served by canvas host for canvas content and static assets. Use a dedicated directory and avoid broad repo roots for least-privilege file exposure.",
-      tags: ["advanced"],
-    },
-    "canvasHost.port": {
-      label: "Canvas Host Port",
-      help: "TCP port used by the canvas host HTTP server when canvas hosting is enabled. Choose a non-conflicting port and align firewall/proxy policy accordingly.",
-      tags: ["advanced"],
-    },
-    "canvasHost.liveReload": {
-      label: "Canvas Host Live Reload",
-      help: "Enables automatic live-reload behavior for canvas assets during development workflows. Keep disabled in production-like environments where deterministic output is preferred.",
-      tags: ["reliability"],
-    },
     "talk.voiceId": {
       label: "Talk Voice ID",
       help: "Legacy ElevenLabs default voice ID for Talk mode. Prefer talk.providers.elevenlabs.voiceId.",
@@ -14031,7 +13918,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "channels.defaults.heartbeat.useIndicator": {
       label: "Heartbeat Use Indicator",
-      help: "Enables concise indicator-style heartbeat rendering instead of verbose status text where supported. Use indicator mode for dense dashboards with many active channels.",
+      help: "Enables concise indicator-style heartbeat rendering instead of verbose status text where supported. Use indicator mode for dense status views with many active channels.",
       tags: ["network", "automation", "channels"],
     },
     "channels.modelByChannel": {

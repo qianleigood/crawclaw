@@ -99,7 +99,7 @@ export NOSTR_PRIVATE_KEY="nsec1..."
 
 ## 资料元数据
 
-资料数据会作为 NIP-01 `kind:0` 事件发布。你可以在控制 UI 中管理它（Channels -> Nostr -> Profile），也可以直接在配置中设置。
+资料数据会作为 NIP-01 `kind:0` 事件发布。请直接在配置中设置。
 
 示例：
 

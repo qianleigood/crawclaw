@@ -43,8 +43,8 @@ x-i18n:
   <Card title="运行新手引导" href="/start/wizard" icon="sparkles">
     通过 `crawclaw onboard` 和配对流程进行引导式设置。
   </Card>
-  <Card title="Web 界面" href="/web" icon="layout-dashboard">
-    查看仍保留的 WebChat 和浏览器访问方式。
+  <Card title="终端界面" href="/cli/tui" icon="terminal">
+    使用本地 TUI 连接 Gateway 网关并开始聊天。
   </Card>
 </Columns>
 
@@ -57,8 +57,8 @@ flowchart LR
   A["Chat apps + plugins"] --> B["Gateway"]
   B --> C["Pi agent"]
   B --> D["CLI"]
-  B --> E["Web 客户端"]
-  B --> F["Web clients"]
+  B --> E["TUI"]
+  B --> F["Browser-origin clients"]
   B --> G["Node integrations"]
 ```
 
@@ -79,8 +79,8 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
   <Card title="媒体支持" icon="image">
     发送和接收图片、音频和文档。
   </Card>
-  <Card title="Web 客户端" icon="monitor">
-    WebChat 和浏览器访问入口。
+  <Card title="终端界面" icon="terminal">
+    使用 TUI 进行本地聊天、会话和审批。
   </Card>
   <Card title="节点模式" icon="smartphone">
     配对节点与无头主机，支持 Canvas 与远程命令。
@@ -110,13 +110,12 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
 
 需要完整的安装和开发环境设置？请参阅[入门指南](/start/getting-started)。
 
-## Web 访问
+## 本地与远程访问
 
-Gateway 网关启动后，可通过仍保留的 Web 界面或本地终端使用它。
+Gateway 网关启动后，可通过本地终端或远程访问方式使用它。
 
 - 本地终端：`crawclaw tui`
-- 浏览器访问：[Web 界面](/web)
-- 远程访问：[Web 界面](/web) 和 [Tailscale](/gateway/tailscale)
+- 远程访问：[远程访问](/gateway/remote) 和 [Tailscale](/gateway/tailscale)
 
 <p align="center">
   <img src="/whatsapp-crawclaw.jpg" alt="CrawClaw" width="420" />

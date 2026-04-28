@@ -49,8 +49,7 @@ This matrix describes the current support posture for CrawClaw surfaces. It is n
 | Surface                            | Status       | Notes                                                 |
 | ---------------------------------- | ------------ | ----------------------------------------------------- |
 | Terminal-first setup and operation | Supported    | Primary recommended path.                             |
-| WebChat / browser web surfaces     | Beta         | Useful, but not yet the most stable public surface.   |
-| Browser and canvas tooling         | Experimental | Powerful local-first features with fast-moving edges. |
+| Browser tooling                    | Experimental | Powerful local-first features with fast-moving edges. |
 
 ## Contributor guidance
 

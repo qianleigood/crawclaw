@@ -22,9 +22,6 @@ title: "Features"
   <Card title="Media" icon="image">
     Images, audio, and documents in and out.
   </Card>
-  <Card title="Apps and UI" icon="monitor">
-    Gateway browser clients and macOS companion app.
-  </Card>
   <Card title="Node mode" icon="smartphone">
     macOS node mode with pairing and local device commands.
   </Card>
@@ -58,11 +55,9 @@ title: "Features"
 - Voice note transcription
 - Text-to-speech with multiple providers
 
-**Apps and interfaces:**
+**Nodes and local devices:**
 
-- WebChat and browser-authenticated gateway clients
-- macOS menu bar companion app
-- macOS node mode with pairing, Canvas, camera, screen recording, location, and voice flows
+- macOS node mode with pairing, camera, screen recording, location, and voice flows
 
 **Tools and automation:**
 

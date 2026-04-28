@@ -110,9 +110,9 @@ systemctl --user status crawclaw-gateway.service
 journalctl --user -u crawclaw-gateway.service -f
 ```
 
-## 6）访问 Dashboard
+## 6）访问 Gateway
 
-Gateway 网关默认绑定到 loopback。要访问 Control UI：
+Gateway 网关默认绑定到 loopback。要访问 Gateway：
 
 **选项 A：SSH 隧道（推荐）**
 
@@ -120,7 +120,7 @@ Gateway 网关默认绑定到 loopback。要访问 Control UI：
 # 在你的本地机器上
 ssh -L 18789:localhost:18789 root@YOUR_DROPLET_IP
 
-# 然后打开：http://localhost:18789
+# 然后连接：http://localhost:18789
 ```
 
 **选项 B：Tailscale Serve（HTTPS，仅 loopback）**
@@ -139,7 +139,7 @@ crawclaw gateway restart
 
 说明：
 
-- Serve 会让 Gateway 网关保持仅 loopback，并通过 Tailscale 身份头对 Control UI/WebSocket 流量进行认证（无 token 认证假定 Gateway 网关主机可信；HTTP API 仍然需要 token/password）。
+- Serve 会让 Gateway 网关保持仅 loopback，并通过 Tailscale 身份头对浏览器来源/WebSocket 流量进行认证（无 token 认证假定 Gateway 网关主机可信；HTTP API 仍然需要 token/password）。
 - 如果你想强制要求 token/password，请设置 `gateway.auth.allowTailscale: false` 或使用 `gateway.auth.mode: "password"`。
 
 **选项 C：绑定到 tailnet（不使用 Serve）**

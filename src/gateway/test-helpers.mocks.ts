@@ -231,9 +231,8 @@ const hoisted = vi.hoisted(() => {
         cronEnabled: boolean | undefined;
         gatewayBind: "auto" | "lan" | "tailnet" | "loopback" | undefined;
         gatewayAuth: Record<string, unknown> | undefined;
-        gatewayControlUi: Record<string, unknown> | undefined;
+        gatewayBrowserClients: Record<string, unknown> | undefined;
         hooksConfig: HooksConfig | undefined;
-        canvasHostPort: number | undefined;
         legacyIssues: Array<{ path: string; message: string }>;
         legacyParsed: Record<string, unknown>;
         migrationConfig: Record<string, unknown> | null;
@@ -279,9 +278,8 @@ const hoisted = vi.hoisted(() => {
       cronEnabled: false as boolean | undefined,
       gatewayBind: undefined as "auto" | "lan" | "tailnet" | "loopback" | undefined,
       gatewayAuth: undefined as Record<string, unknown> | undefined,
-      gatewayControlUi: undefined as Record<string, unknown> | undefined,
+      gatewayBrowserClients: undefined as Record<string, unknown> | undefined,
       hooksConfig: undefined as HooksConfig | undefined,
-      canvasHostPort: undefined as number | undefined,
       legacyIssues: [] as Array<{ path: string; message: string }>,
       legacyParsed: {} as Record<string, unknown>,
       migrationConfig: null as Record<string, unknown> | null,
@@ -619,21 +617,10 @@ vi.mock("../config/config.js", async () => {
     if (testState.gatewayAuth) {
       fileGateway.auth = testState.gatewayAuth;
     }
-    if (testState.gatewayControlUi) {
-      fileGateway.controlUi = testState.gatewayControlUi;
+    if (testState.gatewayBrowserClients) {
+      fileGateway.browserClients = testState.gatewayBrowserClients;
     }
     const gateway = Object.keys(fileGateway).length > 0 ? fileGateway : undefined;
-
-    const fileCanvasHost =
-      baseConfig.canvasHost &&
-      typeof baseConfig.canvasHost === "object" &&
-      !Array.isArray(baseConfig.canvasHost)
-        ? ({ ...(baseConfig.canvasHost as Record<string, unknown>) } as Record<string, unknown>)
-        : {};
-    if (typeof testState.canvasHostPort === "number") {
-      fileCanvasHost.port = testState.canvasHostPort;
-    }
-    const canvasHost = Object.keys(fileCanvasHost).length > 0 ? fileCanvasHost : undefined;
 
     const hooks = testState.hooksConfig ?? (baseConfig.hooks as HooksConfig | undefined);
 
@@ -656,7 +643,6 @@ vi.mock("../config/config.js", async () => {
       channels,
       session,
       gateway,
-      canvasHost,
       hooks,
       cron,
     } as CrawClawConfig;

@@ -36,12 +36,12 @@ export function isGatewayCliClient(client?: GatewayClientInfoLike | null): boole
 
 export function isOperatorUiClient(client?: GatewayClientInfoLike | null): boolean {
   const clientId = normalizeGatewayClientName(client?.id);
-  return clientId === GATEWAY_CLIENT_NAMES.CONTROL_UI || clientId === GATEWAY_CLIENT_NAMES.TUI;
+  return clientId === GATEWAY_CLIENT_NAMES.BROWSER_CLIENT || clientId === GATEWAY_CLIENT_NAMES.TUI;
 }
 
 export function isBrowserOperatorUiClient(client?: GatewayClientInfoLike | null): boolean {
   const clientId = normalizeGatewayClientName(client?.id);
-  return clientId === GATEWAY_CLIENT_NAMES.CONTROL_UI;
+  return clientId === GATEWAY_CLIENT_NAMES.BROWSER_CLIENT;
 }
 
 export function isInternalMessageChannel(raw?: string | null): raw is InternalMessageChannel {

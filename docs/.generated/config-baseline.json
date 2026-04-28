@@ -6423,7 +6423,7 @@
         "advanced"
       ],
       "label": "Browser Accent Color",
-      "help": "Default accent color used for browser profile/UI cues where colored identity hints are displayed. Use consistent colors to help operators identify active browser profile context quickly.",
+      "help": "Default accent color used for browser profile identity cues. Use consistent colors to help operators identify active browser profile context quickly.",
       "hasChildren": false
     },
     {
@@ -6513,7 +6513,7 @@
         "advanced"
       ],
       "label": "Browser Headless Mode",
-      "help": "Forces browser launch in headless mode when the local launcher starts browser instances. Keep headless enabled for server environments and disable only when visible UI debugging is required.",
+      "help": "Forces browser launch in headless mode when the local launcher starts browser instances. Keep headless enabled for server environments and disable only when visible browser debugging is required.",
       "hasChildren": false
     },
     {
@@ -6637,7 +6637,7 @@
         "storage"
       ],
       "label": "Browser Profile Accent Color",
-      "help": "Per-profile accent color for visual differentiation in dashboards and browser-related UI hints. Use distinct colors for high-signal operator recognition of active profiles.",
+      "help": "Per-profile accent color for visual differentiation in client hints. Use distinct colors for high-signal operator recognition of active profiles.",
       "hasChildren": false
     },
     {
@@ -6800,76 +6800,6 @@
       "deprecated": false,
       "sensitive": false,
       "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "canvasHost",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Canvas Host",
-      "help": "Canvas host settings for serving canvas assets and local live-reload behavior used by canvas-enabled workflows. Keep disabled unless canvas-hosted assets are actively used.",
-      "hasChildren": true
-    },
-    {
-      "path": "canvasHost.enabled",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Canvas Host Enabled",
-      "help": "Enables the canvas host server process and routes for serving canvas files. Keep disabled when canvas workflows are inactive to reduce exposed local services.",
-      "hasChildren": false
-    },
-    {
-      "path": "canvasHost.liveReload",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "reliability"
-      ],
-      "label": "Canvas Host Live Reload",
-      "help": "Enables automatic live-reload behavior for canvas assets during development workflows. Keep disabled in production-like environments where deterministic output is preferred.",
-      "hasChildren": false
-    },
-    {
-      "path": "canvasHost.port",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Canvas Host Port",
-      "help": "TCP port used by the canvas host HTTP server when canvas hosting is enabled. Choose a non-conflicting port and align firewall/proxy policy accordingly.",
-      "hasChildren": false
-    },
-    {
-      "path": "canvasHost.root",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Canvas Host Root Directory",
-      "help": "Filesystem root directory served by canvas host for canvas content and static assets. Use a dedicated directory and avoid broad repo roots for least-privilege file exposure.",
       "hasChildren": false
     },
     {
@@ -39130,7 +39060,7 @@
         "observability"
       ],
       "label": "OpenTelemetry Metrics Enabled",
-      "help": "Enable metrics signal export to the configured OpenTelemetry collector endpoint. Keep enabled for runtime health dashboards, and disable only if metric volume must be minimized.",
+      "help": "Enable metrics signal export to the configured OpenTelemetry collector endpoint. Keep enabled for runtime health views, and disable only if metric volume must be minimized.",
       "hasChildren": false
     },
     {
@@ -39172,7 +39102,7 @@
         "observability"
       ],
       "label": "OpenTelemetry Service Name",
-      "help": "Service name reported in telemetry resource attributes to identify this gateway instance in observability backends. Use stable names so dashboards and alerts remain consistent over deployments.",
+      "help": "Service name reported in telemetry resource attributes to identify this gateway instance in observability backends. Use stable names so alerts and charts remain consistent over deployments.",
       "hasChildren": false
     },
     {
@@ -39394,7 +39324,7 @@
         "advanced"
       ],
       "label": "Gateway",
-      "help": "Gateway runtime surface for bind mode, auth, control UI, remote transport, and operational safety controls. Keep conservative defaults unless you intentionally expose the gateway beyond trusted local interfaces.",
+      "help": "Gateway runtime surface for bind mode, auth, browser-origin clients, remote transport, and operational safety controls. Keep conservative defaults unless you intentionally expose the gateway beyond trusted local interfaces.",
       "hasChildren": true
     },
     {
@@ -39690,6 +39620,96 @@
       "hasChildren": false
     },
     {
+      "path": "gateway.browserClients",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "network"
+      ],
+      "label": "Browser Clients",
+      "help": "Browser-origin client hardening settings. Configure explicit trusted origins before exposing the gateway beyond loopback.",
+      "hasChildren": true
+    },
+    {
+      "path": "gateway.browserClients.allowedOrigins",
+      "kind": "core",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access",
+        "network"
+      ],
+      "label": "Browser-Origin Allowed Origins",
+      "help": "Allowed browser origins for browser-origin WebSocket connections (full origins only, e.g. https://control.example.com). Required for non-loopback browser-origin deployments unless dangerous Host-header fallback is explicitly enabled. Setting [\"*\"] means allow any browser origin and should be avoided outside tightly controlled local testing.",
+      "hasChildren": true
+    },
+    {
+      "path": "gateway.browserClients.allowedOrigins.*",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "gateway.browserClients.allowInsecureAuth",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access",
+        "advanced",
+        "network",
+        "security"
+      ],
+      "label": "Insecure Browser-Origin Auth Toggle",
+      "help": "Loosens strict browser-origin auth checks when you must run a non-standard setup. Keep this off unless you trust your network and proxy path, because impersonation risk is higher.",
+      "hasChildren": false
+    },
+    {
+      "path": "gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access",
+        "advanced",
+        "network",
+        "security"
+      ],
+      "label": "Dangerously Allow Host-Header Origin Fallback",
+      "help": "DANGEROUS toggle that enables Host-header based origin fallback for browser-origin WebSocket checks. This mode is supported when your deployment intentionally relies on Host-header origin policy; explicit gateway.browserClients.allowedOrigins remains the recommended hardened default.",
+      "hasChildren": false
+    },
+    {
+      "path": "gateway.browserClients.dangerouslyDisableDeviceAuth",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access",
+        "advanced",
+        "network",
+        "security"
+      ],
+      "label": "Dangerously Disable Browser-Origin Device Auth",
+      "help": "Disables browser-origin device identity checks and relies on token/password only. Use only for short-lived debugging on trusted networks, then turn it off immediately.",
+      "hasChildren": false
+    },
+    {
       "path": "gateway.channelHealthCheckMinutes",
       "kind": "core",
       "type": "integer",
@@ -39731,125 +39751,6 @@
       ],
       "label": "Gateway Channel Stale Event Threshold (min)",
       "help": "How many minutes a connected channel can go without receiving any event before the health monitor treats it as a stale socket and triggers a restart. Default: 30.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.controlUi",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "network"
-      ],
-      "label": "Control UI",
-      "help": "Control UI hosting settings including enablement, pathing, and browser-origin/auth hardening behavior. Keep UI exposure minimal and pair with strong auth controls before internet-facing deployments.",
-      "hasChildren": true
-    },
-    {
-      "path": "gateway.controlUi.allowedOrigins",
-      "kind": "core",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access",
-        "network"
-      ],
-      "label": "Control UI Allowed Origins",
-      "help": "Allowed browser origins for Control UI/WebChat websocket connections (full origins only, e.g. https://control.example.com). Required for non-loopback Control UI deployments unless dangerous Host-header fallback is explicitly enabled. Setting [\"*\"] means allow any browser origin and should be avoided outside tightly controlled local testing.",
-      "hasChildren": true
-    },
-    {
-      "path": "gateway.controlUi.allowedOrigins.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.controlUi.allowInsecureAuth",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access",
-        "advanced",
-        "network",
-        "security"
-      ],
-      "label": "Insecure Control UI Auth Toggle",
-      "help": "Loosens strict browser auth checks for Control UI when you must run a non-standard setup. Keep this off unless you trust your network and proxy path, because impersonation risk is higher.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.controlUi.basePath",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "network",
-        "storage"
-      ],
-      "label": "Control UI Base Path",
-      "help": "Optional URL prefix where the Control UI is served (e.g. /crawclaw).",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access",
-        "advanced",
-        "network",
-        "security"
-      ],
-      "label": "Dangerously Allow Host-Header Origin Fallback",
-      "help": "DANGEROUS toggle that enables Host-header based origin fallback for Control UI/WebChat websocket checks. This mode is supported when your deployment intentionally relies on Host-header origin policy; explicit gateway.controlUi.allowedOrigins remains the recommended hardened default.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.controlUi.dangerouslyDisableDeviceAuth",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access",
-        "advanced",
-        "network",
-        "security"
-      ],
-      "label": "Dangerously Disable Control UI Device Auth",
-      "help": "Disables Control UI device identity checks and relies on token/password only. Use only for short-lived debugging on trusted networks, then turn it off immediately.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.controlUi.enabled",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "network"
-      ],
-      "label": "Control UI Enabled",
-      "help": "Enables serving the gateway Control UI from the gateway HTTP process when true. Keep enabled for local administration, and disable when an external control surface replaces it.",
       "hasChildren": false
     },
     {
@@ -40521,7 +40422,7 @@
         "network"
       ],
       "label": "Gateway Port",
-      "help": "TCP port used by the gateway listener for API, control UI, and channel-facing ingress paths. Use a dedicated port and avoid collisions with reverse proxies or local developer services.",
+      "help": "TCP port used by the gateway listener for API, browser-origin client, and channel-facing ingress paths. Use a dedicated port and avoid collisions with reverse proxies or local developer services.",
       "hasChildren": false
     },
     {
@@ -41081,7 +40982,7 @@
         "network",
         "performance"
       ],
-      "label": "WebChat History Max Chars",
+      "label": "Internal Chat History Max Chars",
       "help": "Max characters per text field in chat.history responses before truncation (default: 12000).",
       "hasChildren": false
     },
@@ -42074,7 +41975,7 @@
         "advanced"
       ],
       "label": "Hook Mapping Name",
-      "help": "Human-readable mapping display name used in diagnostics and operator-facing config UIs. Keep names concise and descriptive so routing intent is obvious during incident review.",
+      "help": "Human-readable mapping display name used in diagnostics and operator-facing config forms. Keep names concise and descriptive so routing intent is obvious during incident review.",
       "hasChildren": false
     },
     {
@@ -66279,76 +66180,6 @@
       "deprecated": false,
       "sensitive": false,
       "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "ui",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "UI",
-      "help": "UI presentation settings for accenting and assistant identity shown in control surfaces. Use this for branding and readability customization without changing runtime behavior.",
-      "hasChildren": true
-    },
-    {
-      "path": "ui.assistant",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Assistant Appearance",
-      "help": "Assistant display identity settings for name and avatar shown in UI surfaces. Keep these values aligned with your operator-facing persona and support expectations.",
-      "hasChildren": true
-    },
-    {
-      "path": "ui.assistant.avatar",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Assistant Avatar",
-      "help": "Assistant avatar image source used in UI surfaces (URL, path, or data URI depending on runtime support). Use trusted assets and consistent branding dimensions for clean rendering.",
-      "hasChildren": false
-    },
-    {
-      "path": "ui.assistant.name",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Assistant Name",
-      "help": "Display name shown for the assistant in UI views, chat chrome, and status contexts. Keep this stable so operators can reliably identify which assistant persona is active.",
-      "hasChildren": false
-    },
-    {
-      "path": "ui.seamColor",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Accent Color",
-      "help": "Primary accent color used by UI surfaces for emphasis, badges, and visual identity cues. Use high-contrast values that remain readable across light/dark themes.",
       "hasChildren": false
     },
     {

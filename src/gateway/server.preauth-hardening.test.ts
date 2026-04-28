@@ -5,7 +5,6 @@ import type { ResolvedGatewayAuth } from "./auth.js";
 import { MAX_PREAUTH_PAYLOAD_BYTES } from "./server-constants.js";
 import { attachGatewayUpgradeHandler, createGatewayHttpServer } from "./server-http.js";
 import { createPreauthConnectionBudget } from "./server/preauth-connection-budget.js";
-import type { GatewayWsClient } from "./server/ws-types.js";
 import { testState } from "./test-helpers.mocks.js";
 import { createGatewaySuiteHarness, readConnectChallengeNonce } from "./test-helpers.server.js";
 import { withTempConfig } from "./test-temp-config.js";
@@ -20,11 +19,8 @@ afterEach(async () => {
 
 describe("gateway pre-auth hardening", () => {
   it("rejects upgrades before websocket handlers attach without consuming pre-auth budget", async () => {
-    const clients = new Set<GatewayWsClient>();
     const resolvedAuth: ResolvedGatewayAuth = { mode: "none", allowTailscale: false };
     const httpServer = createGatewayHttpServer({
-      canvasHost: null,
-      clients,
       openAiChatCompletionsEnabled: false,
       openResponsesEnabled: false,
       handleHooksRequest: async () => false,
@@ -34,10 +30,7 @@ describe("gateway pre-auth hardening", () => {
     attachGatewayUpgradeHandler({
       httpServer,
       wss,
-      canvasHost: null,
-      clients,
       preauthConnectionBudget: createPreauthConnectionBudget(1),
-      resolvedAuth,
     });
 
     await new Promise<void>((resolve) => httpServer.listen(0, "127.0.0.1", resolve));

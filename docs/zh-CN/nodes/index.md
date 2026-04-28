@@ -16,11 +16,11 @@ x-i18n:
 
 # 节点
 
-**节点**是一个配套设备（macOS/无头），它以 `role: "node"` 连接到 Gateway 网关 **WebSocket**（与操作员相同的端口），并通过 `node.invoke` 暴露命令接口（例如 `canvas.*`、`camera.*`、`system.*`）。协议详情：[Gateway 网关协议](/gateway/protocol)。
+**节点**是一个外围设备（macOS/无头），它以 `role: "node"` 连接到 Gateway 网关 **WebSocket**（与操作员相同的端口），并通过 `node.invoke` 暴露命令接口（例如 `camera.*`、`system.*`）。协议详情：[Gateway 网关协议](/gateway/protocol)。
 
 旧版传输：[Bridge 协议](/gateway/bridge-protocol)（TCP JSONL；当前节点已弃用/移除）。
 
-macOS 也可以在**节点模式**下运行：菜单栏应用连接到 Gateway 网关的 WS 服务器，并将其本地 canvas/camera 命令作为节点暴露（因此 `crawclaw nodes …` 可以针对这台 Mac 工作）。
+macOS 也可以在**节点模式**下运行：节点主机连接到 Gateway 网关的 WS 服务器，并将其本地命令作为节点暴露（因此 `crawclaw nodes …` 可以针对这台 Mac 工作）。
 
 历史说明：旧版移动端节点也使用同一类协议族，但对应源码已从本仓库移除。
 
@@ -185,18 +185,6 @@ crawclaw nodes canvas eval --node <idOrNameOrIp> --js "document.title"
 - `canvas present` 接受 URL 或本地文件路径（`--target`），以及可选的 `--x/--y/--width/--height` 用于定位。
 - `canvas eval` 接受内联 JS（`--js`）或位置参数。
 
-### A2UI（Canvas）
-
-```bash
-crawclaw nodes canvas a2ui push --node <idOrNameOrIp> --text "Hello"
-crawclaw nodes canvas a2ui push --node <idOrNameOrIp> --jsonl ./payload.jsonl
-crawclaw nodes canvas a2ui reset --node <idOrNameOrIp>
-```
-
-注意事项：
-
-- 仅支持 A2UI v0.8 JSONL（v0.9/createSurface 被拒绝）。
-
 ## 照片 + 视频（节点相机）
 
 照片（`jpg`）：
@@ -275,11 +263,11 @@ crawclaw nodes invoke --node <idOrNameOrIp> --command system.which --params '{"n
 - `system.run` 在负载中返回 stdout/stderr/退出码。
 - Shell 执行现在统一走带 `host=node` 的 `exec` 工具；`nodes` 保持为显式节点命令的直接 RPC 表面。
 - `nodes invoke` 不暴露 `system.run` 或 `system.run.prepare`；这些仅保留在 `exec` 路径上。
-- `system.notify` 遵守 macOS 应用上的通知权限状态。
+- `system.notify` 遵守节点主机上的通知权限状态。
 - `system.run` 支持 `--cwd`、`--env KEY=VAL`、`--command-timeout` 和 `--needs-screen-recording`。
 - `system.notify` 支持 `--priority <passive|active|timeSensitive>` 和 `--delivery <system|overlay|auto>`。
 - macOS 节点会丢弃 `PATH` 覆盖；无头节点主机仅在 `PATH` 前置到节点主机 PATH 时才接受它。
-- 在 macOS 节点模式下，`system.run` 受 macOS 应用中的 exec 批准限制（设置 → Exec 批准）。
+- 在 macOS 节点模式下，`system.run` 受节点主机中的 exec 批准限制。
   Ask/allowlist/full 的行为与无头节点主机相同；被拒绝的提示返回 `SYSTEM_RUN_DENIED`。
 - 在无头节点主机上，`system.run` 受 exec 批准限制（`~/.crawclaw/exec-approvals.json`）。
 
@@ -330,12 +318,10 @@ crawclaw node run --host <gateway-host> --port 18789
 - 节点主机将其节点 id、令牌、显示名称和 Gateway 网关连接信息存储在 `~/.crawclaw/node.json` 中。
 - Exec 批准通过 `~/.crawclaw/exec-approvals.json` 在本地执行
   （参见 [Exec 批准](/tools/exec-approvals)）。
-- 在 macOS 上，当配套应用 exec 主机可达时，无头节点主机优先使用它，
-  如果应用不可用则回退到本地执行。设置 `CRAWCLAW_NODE_EXEC_HOST=app` 要求
-  使用应用，或设置 `CRAWCLAW_NODE_EXEC_FALLBACK=0` 禁用回退。
+- 在 macOS 上，无头节点主机在本地执行并遵守本地 exec 审批配置。
 - 当 Gateway 网关 WS 使用 TLS 时，添加 `--tls` / `--tls-fingerprint`。
 
 ## Mac 节点模式
 
-- macOS 菜单栏应用作为节点连接到 Gateway 网关 WS 服务器（因此 `crawclaw nodes …` 可以针对这台 Mac 工作）。
-- 在远程模式下，应用为 Gateway 网关端口打开 SSH 隧道并连接到 `localhost`。
+- 节点主机作为节点连接到 Gateway 网关 WS 服务器（因此 `crawclaw nodes …` 可以针对这台 Mac 工作）。
+- 在远程模式下，先为 Gateway 网关端口打开 SSH 隧道或使用 tailnet 连接。

@@ -379,12 +379,11 @@ function collectGatewayConfigFindings(
   const bind = typeof cfg.gateway?.bind === "string" ? cfg.gateway.bind : "loopback";
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
   const auth = resolveGatewayAuth({ authConfig: cfg.gateway?.auth, tailscaleMode, env });
-  const controlUiEnabled = cfg.gateway?.controlUi?.enabled !== false;
-  const controlUiAllowedOrigins = (cfg.gateway?.controlUi?.allowedOrigins ?? [])
+  const browserClientsAllowedOrigins = (cfg.gateway?.browserClients?.allowedOrigins ?? [])
     .map((value) => value.trim())
     .filter(Boolean);
   const dangerouslyAllowHostHeaderOriginFallback =
-    cfg.gateway?.controlUi?.dangerouslyAllowHostHeaderOriginFallback === true;
+    cfg.gateway?.browserClients?.dangerouslyAllowHostHeaderOriginFallback === true;
   const trustedProxies = Array.isArray(cfg.gateway?.trustedProxies)
     ? cfg.gateway.trustedProxies
     : [];
@@ -466,57 +465,56 @@ function collectGatewayConfigFindings(
     });
   }
 
-  if (bind === "loopback" && controlUiEnabled && trustedProxies.length === 0) {
+  if (bind === "loopback" && trustedProxies.length === 0) {
     findings.push({
       checkId: "gateway.trusted_proxies_missing",
       severity: "warn",
       title: "Reverse proxy headers are not trusted",
       detail:
         "gateway.bind is loopback and gateway.trustedProxies is empty. " +
-        "If you expose the Control UI through a reverse proxy, configure trusted proxies " +
+        "If you expose the Browser client through a reverse proxy, configure trusted proxies " +
         "so local-client checks cannot be spoofed.",
       remediation:
-        "Set gateway.trustedProxies to your proxy IPs or keep the Control UI local-only.",
+        "Set gateway.trustedProxies to your proxy IPs or keep the Browser client local-only.",
     });
   }
 
-  if (bind === "loopback" && controlUiEnabled && !hasGatewayAuth) {
+  if (bind === "loopback" && !hasGatewayAuth) {
     findings.push({
       checkId: "gateway.loopback_no_auth",
       severity: "critical",
       title: "Gateway auth missing on loopback",
       detail:
         "gateway.bind is loopback but no gateway auth secret is configured. " +
-        "If the Control UI is exposed through a reverse proxy, unauthenticated access is possible.",
-      remediation: "Set gateway.auth (token recommended) or keep the Control UI local-only.",
+        "If the Browser client is exposed through a reverse proxy, unauthenticated access is possible.",
+      remediation: "Set gateway.auth (token recommended) or keep the Browser client local-only.",
     });
   }
   if (
     bind !== "loopback" &&
-    controlUiEnabled &&
-    controlUiAllowedOrigins.length === 0 &&
+    browserClientsAllowedOrigins.length === 0 &&
     !dangerouslyAllowHostHeaderOriginFallback
   ) {
     findings.push({
-      checkId: "gateway.control_ui.allowed_origins_required",
+      checkId: "gateway.browser_client.allowed_origins_required",
       severity: "critical",
-      title: "Non-loopback Control UI missing explicit allowed origins",
+      title: "Non-loopback Browser client missing explicit allowed origins",
       detail:
-        "Control UI is enabled on a non-loopback bind but gateway.controlUi.allowedOrigins is empty. " +
+        "Gateway accepts browser-origin clients on a non-loopback bind but gateway.browserClients.allowedOrigins is empty. " +
         "Strict origin policy requires explicit allowed origins for non-loopback deployments.",
       remediation:
-        "Set gateway.controlUi.allowedOrigins to full trusted origins (for example https://control.example.com). " +
-        "If your deployment intentionally relies on Host-header origin fallback, set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true.",
+        "Set gateway.browserClients.allowedOrigins to full trusted origins (for example https://control.example.com). " +
+        "If your deployment intentionally relies on Host-header origin fallback, set gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true.",
     });
   }
-  if (controlUiAllowedOrigins.includes("*")) {
+  if (browserClientsAllowedOrigins.includes("*")) {
     const exposed = bind !== "loopback";
     findings.push({
-      checkId: "gateway.control_ui.allowed_origins_wildcard",
+      checkId: "gateway.browser_client.allowed_origins_wildcard",
       severity: exposed ? "critical" : "warn",
-      title: "Control UI allowed origins contains wildcard",
+      title: "Browser-origin allowed origins contains wildcard",
       detail:
-        'gateway.controlUi.allowedOrigins includes "*" which means allow any browser origin for Control UI/WebChat requests. This disables origin allowlisting and should be treated as an intentional allow-all policy.',
+        'gateway.browserClients.allowedOrigins includes "*" which means allow any browser origin for browser-origin requests. This disables origin allowlisting and should be treated as an intentional allow-all policy.',
       remediation:
         'Replace wildcard origins with explicit trusted origins (for example https://control.example.com). Do not use "*" outside tightly controlled local testing.',
     });
@@ -524,14 +522,14 @@ function collectGatewayConfigFindings(
   if (dangerouslyAllowHostHeaderOriginFallback) {
     const exposed = bind !== "loopback";
     findings.push({
-      checkId: "gateway.control_ui.host_header_origin_fallback",
+      checkId: "gateway.browser_client.host_header_origin_fallback",
       severity: exposed ? "critical" : "warn",
       title: "DANGEROUS: Host-header origin fallback enabled",
       detail:
-        "gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true enables Host-header origin fallback " +
-        "for Control UI/WebChat websocket checks and weakens DNS rebinding protections.",
+        "gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true enables Host-header origin fallback " +
+        "for browser-origin websocket checks and weakens DNS rebinding protections.",
       remediation:
-        "Disable gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback and configure explicit gateway.controlUi.allowedOrigins.",
+        "Disable gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback and configure explicit gateway.browserClients.allowedOrigins.",
     });
   }
 
@@ -585,24 +583,24 @@ function collectGatewayConfigFindings(
     });
   }
 
-  if (cfg.gateway?.controlUi?.allowInsecureAuth === true) {
+  if (cfg.gateway?.browserClients?.allowInsecureAuth === true) {
     findings.push({
-      checkId: "gateway.control_ui.insecure_auth",
+      checkId: "gateway.browser_client.insecure_auth",
       severity: "warn",
-      title: "Control UI insecure auth toggle enabled",
+      title: "Browser client insecure auth toggle enabled",
       detail:
-        "gateway.controlUi.allowInsecureAuth=true does not bypass secure context or device identity checks; only dangerouslyDisableDeviceAuth disables Control UI device identity checks.",
+        "gateway.browserClients.allowInsecureAuth=true does not bypass secure context or device identity checks; only dangerouslyDisableDeviceAuth disables Browser client device identity checks.",
       remediation: "Disable it or switch to HTTPS (Tailscale Serve) or localhost.",
     });
   }
 
-  if (cfg.gateway?.controlUi?.dangerouslyDisableDeviceAuth === true) {
+  if (cfg.gateway?.browserClients?.dangerouslyDisableDeviceAuth === true) {
     findings.push({
-      checkId: "gateway.control_ui.device_auth_disabled",
+      checkId: "gateway.browser_client.device_auth_disabled",
       severity: "critical",
-      title: "DANGEROUS: Control UI device auth disabled",
+      title: "DANGEROUS: Browser client device auth disabled",
       detail:
-        "gateway.controlUi.dangerouslyDisableDeviceAuth=true disables device identity checks for the Control UI.",
+        "gateway.browserClients.dangerouslyDisableDeviceAuth=true disables device identity checks for the Browser client.",
       remediation: "Disable it unless you are in a short-lived break-glass scenario.",
     });
   }

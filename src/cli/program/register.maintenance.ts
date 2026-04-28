@@ -68,7 +68,6 @@ export function registerMaintenanceCommands(program: Command) {
     .option("--service", t("command.uninstall.option.service"), false)
     .option("--state", t("command.uninstall.option.state"), false)
     .option("--workspace", t("command.uninstall.option.workspace"), false)
-    .option("--app", t("command.uninstall.option.app"), false)
     .option("--all", t("command.uninstall.option.all"), false)
     .option("--yes", t("command.uninstall.option.yes"), false)
     .option("--non-interactive", t("command.uninstall.option.nonInteractive"), false)
@@ -79,7 +78,6 @@ export function registerMaintenanceCommands(program: Command) {
           service: Boolean(opts.service),
           state: Boolean(opts.state),
           workspace: Boolean(opts.workspace),
-          app: Boolean(opts.app),
           all: Boolean(opts.all),
           yes: Boolean(opts.yes),
           nonInteractive: Boolean(opts.nonInteractive),

@@ -127,7 +127,6 @@ x-i18n:
         slack: "collect",
         signal: "collect",
         imessage: "collect",
-        webchat: "collect",
       },
     },
   },
@@ -298,7 +297,6 @@ x-i18n:
         slack: ["U123"],
         signal: ["+15555550123"],
         imessage: ["user@example.com"],
-        webchat: ["session:demo"],
       },
     },
   },
@@ -381,7 +379,6 @@ x-i18n:
     mode: "local",
     port: 18789,
     bind: "loopback",
-    controlUi: { enabled: true, basePath: "/crawclaw" },
     auth: {
       mode: "token",
       token: "gateway-token",
@@ -566,5 +563,5 @@ x-i18n:
 
 - 如果你设置 `dmPolicy: "open"`，匹配的 `allowFrom` 列表必须包含 `"*"`。
 - 提供商 ID 各不相同（电话号码、用户 ID、频道 ID）。使用提供商文档确认格式。
-- 稍后添加的可选部分：`web`、`browser`、`ui`、`discovery`、`canvasHost`、`talk`、`signal`、`imessage`。
+- 稍后添加的可选部分：`web`、`browser`、`ui`、`discovery`、`talk`、`signal`、`imessage`。
 - 参阅[提供商](/channels/whatsapp)和[故障排除](/gateway/troubleshooting)了解更深入的设置说明。

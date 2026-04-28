@@ -224,7 +224,7 @@ describe("resolveCommandAuthorization", () => {
       Provider: "webchat",
       Surface: "webchat",
       OriginatingChannel: "webchat",
-      SenderId: "crawclaw-control-ui",
+      SenderId: "crawclaw-browser-client",
     } as MsgContext;
 
     const auth = resolveCommandAuthorization({

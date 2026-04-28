@@ -165,7 +165,7 @@ describe("promptGatewayConfig", () => {
     expect(result.config.gateway?.tailscale?.resetOnExit).toBe(false);
   });
 
-  it("adds Tailscale origin to controlUi.allowedOrigins when tailscale serve is enabled", async () => {
+  it("adds Tailscale origin to browserClients.allowedOrigins when tailscale serve is enabled", async () => {
     mocks.getTailnetHostname.mockResolvedValue("my-host.tail1234.ts.net");
     const { result } = await runGatewayPrompt({
       // bind=loopback, auth=token, tailscale=serve
@@ -174,12 +174,12 @@ describe("promptGatewayConfig", () => {
       confirmResult: true,
       authConfigFactory: ({ mode, token }) => ({ mode, token }),
     });
-    expect(result.config.gateway?.controlUi?.allowedOrigins).toContain(
+    expect(result.config.gateway?.browserClients?.allowedOrigins).toContain(
       "https://my-host.tail1234.ts.net",
     );
   });
 
-  it("adds Tailscale origin to controlUi.allowedOrigins when tailscale funnel is enabled", async () => {
+  it("adds Tailscale origin to browserClients.allowedOrigins when tailscale funnel is enabled", async () => {
     mocks.getTailnetHostname.mockResolvedValue("my-host.tail1234.ts.net");
     const { result } = await runGatewayPrompt({
       // bind=loopback, auth=password (funnel requires password), tailscale=funnel
@@ -188,7 +188,7 @@ describe("promptGatewayConfig", () => {
       confirmResult: true,
       authConfigFactory: ({ mode, password }) => ({ mode, password }),
     });
-    expect(result.config.gateway?.controlUi?.allowedOrigins).toContain(
+    expect(result.config.gateway?.browserClients?.allowedOrigins).toContain(
       "https://my-host.tail1234.ts.net",
     );
   });
@@ -201,7 +201,7 @@ describe("promptGatewayConfig", () => {
       confirmResult: true,
       authConfigFactory: ({ mode, token }) => ({ mode, token }),
     });
-    expect(result.config.gateway?.controlUi?.allowedOrigins).toBeUndefined();
+    expect(result.config.gateway?.browserClients?.allowedOrigins).toBeUndefined();
   });
 
   it("does not duplicate Tailscale origin if already present", async () => {
@@ -209,7 +209,7 @@ describe("promptGatewayConfig", () => {
     const { result } = await runGatewayPrompt({
       baseConfig: {
         gateway: {
-          controlUi: {
+          browserClients: {
             allowedOrigins: ["HTTPS://MY-HOST.TAIL1234.TS.NET"],
           },
         },
@@ -219,7 +219,7 @@ describe("promptGatewayConfig", () => {
       confirmResult: true,
       authConfigFactory: ({ mode, token }) => ({ mode, token }),
     });
-    const origins = result.config.gateway?.controlUi?.allowedOrigins ?? [];
+    const origins = result.config.gateway?.browserClients?.allowedOrigins ?? [];
     const tsOriginCount = origins.filter(
       (origin) => origin.toLowerCase() === "https://my-host.tail1234.ts.net",
     ).length;
@@ -234,7 +234,7 @@ describe("promptGatewayConfig", () => {
       confirmResult: true,
       authConfigFactory: ({ mode, token }) => ({ mode, token }),
     });
-    expect(result.config.gateway?.controlUi?.allowedOrigins).toContain(
+    expect(result.config.gateway?.browserClients?.allowedOrigins).toContain(
       "https://[fd7a:115c:a1e0::12]",
     );
   });

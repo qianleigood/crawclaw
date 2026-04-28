@@ -94,7 +94,7 @@ describe("buildSessionEntryState", () => {
         Surface: "webchat",
         Provider: "webchat",
         OriginatingChannel: "webchat",
-        OriginatingTo: "session:dashboard",
+        OriginatingTo: "session:client",
         ChatType: "direct",
       },
       sessionKey: "agent:main:feishu:direct:ou_833e794925a4d0da1e85f6cc2c3ab970",

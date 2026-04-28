@@ -1,7 +1,7 @@
 ---
-summary: 面向浏览器 Control UI 的控制面 RPC 契约文档
+summary: 面向浏览器 Browser client 的控制面 RPC 契约文档
 read_when:
-  - 你在扩展浏览器 Control UI
+  - 你在扩展浏览器 Browser client
   - 你想知道前端可以稳定依赖哪些 Gateway 方法
   - 你想把 config patch/set/apply、capability 规则放在同一个地方理解
 title: 控制面 RPC
@@ -9,7 +9,7 @@ title: 控制面 RPC
 
 # 控制面 RPC
 
-这页文档描述的是浏览器 Control UI 使用的**前端控制面 RPC 契约**。
+这页文档描述的是浏览器 Browser client 使用的**前端控制面 RPC 契约**。
 
 它故意比完整 Gateway 协议更窄：
 
@@ -24,7 +24,7 @@ title: 控制面 RPC
 当前有效的控制面契约来自 4 个地方：
 
 1. shared method contract：
-   - `src/gateway/protocol/control-ui-methods.ts`
+   - `src/gateway/protocol/browser-client-methods.ts`
 2. protocol schema：
    - `src/gateway/protocol/schema/*`
    - `src/gateway/protocol/schema/protocol-schemas.ts`
@@ -35,7 +35,7 @@ title: 控制面 RPC
 
 推荐这样理解它们之间的关系：
 
-- `control-ui-methods.ts` 负责定义前端稳定 method map：
+- `browser-client-methods.ts` 负责定义前端稳定 method map：
   - method
   - params schema
   - result schema
@@ -87,11 +87,11 @@ title: 控制面 RPC
 
 完整列表以这里为准：
 
-- `src/gateway/protocol/control-ui-methods.ts`
+- `src/gateway/protocol/browser-client-methods.ts`
 
 ## Capability 语义
 
-浏览器 Control UI 不应该再通过“先调用，再看是不是 `unknown method`”来探测 optional feature。
+浏览器 Browser client 不应该再通过“先调用，再看是不是 `unknown method`”来探测 optional feature。
 
 应该直接使用 hello 协商结果：
 
@@ -113,7 +113,7 @@ title: 控制面 RPC
 
 ## Config 写路径模型
 
-Control UI 继续坚持“配置文件中心”模型，不新增 `settings.*`。
+Browser client 继续坚持“配置文件中心”模型，不新增 `settings.*`。
 
 推荐写路径：
 
@@ -177,7 +177,7 @@ message 匹配现在只应保留为兼容兜底。
 
 见：
 
-- `src/gateway/control-ui-contract.ts`
+- `src/gateway/browser-client-contract.ts`
 
 ### Hello
 
@@ -198,7 +198,7 @@ WebSocket hello 当前负责：
 - 需要 runtime validation / JSON Schema 生成
 - 需要共享 schema 引用
 
-在这些场景下，应该先看 `control-ui-methods.ts`：
+在这些场景下，应该先看 `browser-client-methods.ts`：
 
 - 需要 UI-facing method list
 - 需要按 method 映射 params/result
@@ -210,6 +210,5 @@ WebSocket hello 当前负责：
 
 ## 相关文档
 
-- [Control UI](/web/control-ui)
 - [TypeBox](/concepts/typebox)
 - [Gateway 协议](/gateway/protocol)

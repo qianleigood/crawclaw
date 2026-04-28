@@ -26,7 +26,7 @@ Your laptop/desktop (and nodes) connect to that host.
 
 Run the Gateway on a persistent host and reach it via **Tailscale** or SSH.
 
-- **Best UX:** keep `gateway.bind: "loopback"` and use **Tailscale Serve** for browser clients.
+- Keep `gateway.bind: "loopback"` and use **Tailscale Serve** or SSH tunnels for remote clients.
 - **Fallback:** keep loopback + SSH tunnel from any machine that needs access.
 - **Examples:** [exe.dev](/install/exe-dev) (easy VM) or [Hetzner](/install/hetzner) (production VPS).
 
@@ -36,8 +36,8 @@ This is ideal when your laptop sleeps often but you want the agent always-on.
 
 The laptop does **not** run the agent. It connects remotely:
 
-- Use an SSH tunnel plus WebChat or another gateway client.
-- Keep the tunnel open locally so health checks and web surfaces reach the
+- Use an SSH tunnel plus a Gateway client.
+- Keep the tunnel open locally so health checks and clients reach the
   forwarded Gateway.
 
 ### 3) Laptop runs the Gateway, remote access from other machines
@@ -45,9 +45,9 @@ The laptop does **not** run the agent. It connects remotely:
 Keep the Gateway local but expose it safely:
 
 - SSH tunnel to the laptop from other machines, or
-- Tailscale Serve a browser client endpoint and keep the Gateway loopback-only.
+- Tailscale Serve and keep the Gateway loopback-only.
 
-Guide: [Tailscale](/gateway/tailscale) and [Web overview](/web).
+Guide: [Tailscale](/gateway/tailscale).
 
 ## Command flow (what runs where)
 
@@ -118,15 +118,15 @@ Gateway credential resolution follows one shared contract across call/probe/stat
 - Remote probe/status token checks are strict by default: they use `gateway.remote.token` only (no local token fallback) when targeting remote mode.
 - Gateway env overrides use `CRAWCLAW_GATEWAY_*` only.
 
-## Chat UI over SSH
+## Gateway clients over SSH
 
-WebChat no longer uses a separate HTTP port. Web clients connect directly to the Gateway WebSocket.
+Gateway clients connect directly to the Gateway WebSocket.
 
 - Forward `18789` over SSH (see above), then connect clients to `ws://127.0.0.1:18789`.
 
 ## Remote over SSH
 
-Use the same tunnel for remote status checks, WebChat, and other web surfaces.
+Use the same tunnel for remote status checks and Gateway clients.
 
 ## Security rules (remote/VPN)
 

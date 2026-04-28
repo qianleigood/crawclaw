@@ -1,11 +1,9 @@
-import fs from "node:fs/promises";
 import type { Command } from "commander";
 import { defaultRuntime } from "../../runtime.js";
 import { shortenHomePath } from "../../utils.js";
 import { writeBase64ToFile } from "../nodes-camera.js";
 import { canvasSnapshotTempPath, parseCanvasSnapshotPayload } from "../nodes-canvas.js";
 import { parseTimeoutMs } from "../parse-timeout.js";
-import { buildA2UITextJsonl, validateA2UIJsonl } from "./a2ui-jsonl.js";
 import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
 import {
   buildNodeInvokeParams,
@@ -182,63 +180,6 @@ export function registerNodesCanvasCommands(nodes: Command) {
           } else {
             const { ok } = getNodesTheme();
             defaultRuntime.log(ok("canvas eval ok"));
-          }
-        });
-      }),
-  );
-
-  const a2ui = canvas.command("a2ui").description(t("command.nodes.canvas.a2ui.description"));
-
-  nodesCallOpts(
-    a2ui
-      .command("push")
-      .description(t("command.nodes.canvas.a2ui.push.description"))
-      .option("--jsonl <path>", t("command.nodes.canvas.a2ui.option.jsonl"))
-      .option("--text <text>", t("command.nodes.canvas.a2ui.option.text"))
-      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
-      .option("--invoke-timeout <ms>", t("command.nodes.option.invokeTimeout"))
-      .action(async (opts: NodesRpcOpts) => {
-        await runNodesCommand("canvas a2ui push", async () => {
-          const hasJsonl = Boolean(opts.jsonl);
-          const hasText = typeof opts.text === "string";
-          if (hasJsonl === hasText) {
-            throw new Error("provide exactly one of --jsonl or --text");
-          }
-
-          const jsonl = hasText
-            ? buildA2UITextJsonl(opts.text ?? "")
-            : await fs.readFile(opts.jsonl ?? "", "utf8");
-          const { version, messageCount } = validateA2UIJsonl(jsonl);
-          if (version === "v0.9") {
-            throw new Error(
-              "Detected A2UI v0.9 JSONL (createSurface). CrawClaw currently supports v0.8 only.",
-            );
-          }
-          await invokeCanvas(opts, "canvas.a2ui.pushJSONL", { jsonl });
-          if (!opts.json) {
-            const { ok } = getNodesTheme();
-            defaultRuntime.log(
-              ok(
-                `canvas a2ui push ok (v0.8, ${messageCount} message${messageCount === 1 ? "" : "s"})`,
-              ),
-            );
-          }
-        });
-      }),
-  );
-
-  nodesCallOpts(
-    a2ui
-      .command("reset")
-      .description(t("command.nodes.canvas.a2ui.reset.description"))
-      .requiredOption("--node <idOrNameOrIp>", t("command.nodes.option.node"))
-      .option("--invoke-timeout <ms>", t("command.nodes.option.invokeTimeout"))
-      .action(async (opts: NodesRpcOpts) => {
-        await runNodesCommand("canvas a2ui reset", async () => {
-          await invokeCanvas(opts, "canvas.a2ui.reset", undefined);
-          if (!opts.json) {
-            const { ok } = getNodesTheme();
-            defaultRuntime.log(ok("canvas a2ui reset ok"));
           }
         });
       }),

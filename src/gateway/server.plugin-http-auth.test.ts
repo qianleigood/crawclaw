@@ -398,7 +398,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("serves plugin routes before control ui spa fallback", async () => {
+  test("serves plugin routes before default HTTP handling", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
       if (pathname === "/plugins/diffs/view/demo-id/demo-token") {
@@ -411,7 +411,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withRootMountedPluginServer({
-      prefix: "crawclaw-plugin-http-control-ui-precedence-test-",
+      prefix: "crawclaw-plugin-http-browser-client-precedence-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, {
@@ -425,7 +425,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("passes POST webhook routes through root-mounted control ui to plugins", async () => {
+  test("passes POST webhook routes through root-mounted HTTP handling to plugins", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
       if (req.method !== "POST" || pathname !== "/bluebubbles-webhook") {
@@ -438,7 +438,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withRootMountedPluginServer({
-      prefix: "crawclaw-plugin-http-control-ui-webhook-post-test-",
+      prefix: "crawclaw-plugin-http-browser-client-webhook-post-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, {
@@ -453,7 +453,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("plugin routes take priority over control ui catch-all", async () => {
+  test("plugin routes take priority over gateway catch-all handling", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
       if (pathname === "/my-plugin/inbound") {
@@ -466,7 +466,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withRootMountedPluginServer({
-      prefix: "crawclaw-plugin-http-control-ui-shadow-test-",
+      prefix: "crawclaw-plugin-http-browser-client-shadow-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, { path: "/my-plugin/inbound" });
@@ -482,7 +482,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     const handlePluginRequest = vi.fn(async () => false);
 
     await withRootMountedPluginServer({
-      prefix: "crawclaw-plugin-http-control-ui-fallthrough-test-",
+      prefix: "crawclaw-plugin-http-browser-client-fallthrough-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, { path: "/chat" });
@@ -493,11 +493,11 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("root-mounted control ui does not swallow gateway probe routes", async () => {
+  test("root-mounted HTTP handling does not swallow gateway probe routes", async () => {
     const handlePluginRequest = vi.fn(async () => false);
 
     await withRootMountedPluginServer({
-      prefix: "crawclaw-plugin-http-control-ui-probes-test-",
+      prefix: "crawclaw-plugin-http-browser-client-probes-test-",
       handlePluginRequest,
       run: async (server) => {
         await expectProbeRoutesHealthy(server);
@@ -506,11 +506,11 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("root-mounted control ui still lets plugins claim probe paths first", async () => {
+  test("root-mounted HTTP handling still lets plugins claim probe paths first", async () => {
     const handlePluginRequest = createHealthzPluginHandler();
 
     await withRootMountedPluginServer({
-      prefix: "crawclaw-plugin-http-control-ui-probe-shadow-test-",
+      prefix: "crawclaw-plugin-http-browser-client-probe-shadow-test-",
       handlePluginRequest,
       run: async (server) => {
         await expectHealthzPluginShadow({ server, handlePluginRequest });

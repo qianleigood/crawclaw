@@ -292,7 +292,7 @@ For the generic Docker flow, see [Docker](/install/docker).
     When binding to LAN (`CRAWCLAW_GATEWAY_BIND=lan`), configure a trusted browser origin before continuing:
 
     ```bash
-    docker compose run --rm crawclaw-cli config set gateway.controlUi.allowedOrigins '["http://127.0.0.1:18789"]' --strict-json
+    docker compose run --rm crawclaw-cli config set gateway.browserClients.allowedOrigins '["http://127.0.0.1:18789"]' --strict-json
     ```
 
     If you changed the gateway port, replace `18789` with your configured port.

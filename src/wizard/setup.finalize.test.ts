@@ -56,7 +56,7 @@ const listConfiguredWebSearchProviders = vi.hoisted(() =>
 
 vi.mock("../commands/onboard-helpers.js", () => ({
   probeGatewayReachable,
-  resolveControlUiLinks: vi.fn(() => ({
+  resolveBrowserClientsLinks: vi.fn(() => ({
     httpUrl: "http://127.0.0.1:18789",
     wsUrl: "ws://127.0.0.1:18789",
   })),
@@ -547,7 +547,7 @@ describe("finalizeSetupWizard", () => {
       expect.stringContaining("Setup was run without Gateway service install"),
       "Gateway",
     );
-    expect(prompter.note).not.toHaveBeenCalledWith(expect.any(String), "Dashboard ready");
+    expect(prompter.note).not.toHaveBeenCalledWith(expect.any(String), "Client ready");
   });
 
   it("does not show a Codex native search summary when web search is globally disabled", async () => {

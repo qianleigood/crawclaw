@@ -246,10 +246,10 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `gateway.tools_invoke_http.dangerous_allow`                   | warn/critical | Re-enables dangerous tools over HTTP API                                             | `gateway.tools.allow`                                                                                | no       |
 | `gateway.nodes.allow_commands_dangerous`                      | warn/critical | Enables high-impact node commands (camera/screen/contacts/calendar/SMS)              | `gateway.nodes.allowCommands`                                                                        | no       |
 | `gateway.tailscale_funnel`                                    | critical      | Public internet exposure                                                             | `gateway.tailscale.mode`                                                                             | no       |
-| `gateway.control_ui.allowed_origins_required`                 | critical      | Non-loopback browser client access without explicit browser-origin allowlist         | `gateway.controlUi.allowedOrigins`                                                                   | no       |
-| `gateway.control_ui.host_header_origin_fallback`              | warn/critical | Enables Host-header origin fallback (DNS rebinding hardening downgrade)              | `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback`                                         | no       |
-| `gateway.control_ui.insecure_auth`                            | warn          | Insecure-auth compatibility toggle enabled                                           | `gateway.controlUi.allowInsecureAuth`                                                                | no       |
-| `gateway.control_ui.device_auth_disabled`                     | critical      | Disables device identity check                                                       | `gateway.controlUi.dangerouslyDisableDeviceAuth`                                                     | no       |
+| `gateway.browser_client.allowed_origins_required`             | critical      | Non-loopback browser client access without explicit browser-origin allowlist         | `gateway.browserClients.allowedOrigins`                                                              | no       |
+| `gateway.browser_client.host_header_origin_fallback`          | warn/critical | Enables Host-header origin fallback (DNS rebinding hardening downgrade)              | `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback`                                    | no       |
+| `gateway.browser_client.insecure_auth`                        | warn          | Insecure-auth compatibility toggle enabled                                           | `gateway.browserClients.allowInsecureAuth`                                                           | no       |
+| `gateway.browser_client.device_auth_disabled`                 | critical      | Disables device identity check                                                       | `gateway.browserClients.dangerouslyDisableDeviceAuth`                                                | no       |
 | `gateway.real_ip_fallback_enabled`                            | warn/critical | Trusting `X-Real-IP` fallback can enable source-IP spoofing via proxy misconfig      | `gateway.allowRealIpFallback`, `gateway.trustedProxies`                                              | no       |
 | `discovery.mdns_full_mode`                                    | warn/critical | mDNS full mode advertises `cliPath`/`sshPort` metadata on local network              | `discovery.mdns.mode`, `gateway.bind`                                                                | no       |
 | `config.insecure_or_dangerous_flags`                          | warn          | Any insecure/dangerous debug flags enabled                                           | multiple keys (see finding detail)                                                                   | no       |
@@ -281,7 +281,7 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 ## Browser clients over HTTP
 
 Browser clients need a **secure context** (HTTPS or localhost) to generate device
-identity. `gateway.controlUi.allowInsecureAuth` is a local compatibility toggle:
+identity. `gateway.browserClients.allowInsecureAuth` is a local compatibility toggle:
 
 - On localhost, it allows browser-client auth without device identity when the page
   is loaded over non-secure HTTP.
@@ -290,7 +290,7 @@ identity. `gateway.controlUi.allowInsecureAuth` is a local compatibility toggle:
 
 Prefer HTTPS (Tailscale Serve) or open the UI on `127.0.0.1`.
 
-For break-glass scenarios only, `gateway.controlUi.dangerouslyDisableDeviceAuth`
+For break-glass scenarios only, `gateway.browserClients.dangerouslyDisableDeviceAuth`
 disables device identity checks entirely. This is a severe security downgrade;
 keep it off unless you are actively debugging and can revert quickly.
 
@@ -302,9 +302,9 @@ keep it off unless you are actively debugging and can revert quickly.
 known insecure/dangerous debug switches are enabled. That check currently
 aggregates:
 
-- `gateway.controlUi.allowInsecureAuth=true`
-- `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true`
-- `gateway.controlUi.dangerouslyDisableDeviceAuth=true`
+- `gateway.browserClients.allowInsecureAuth=true`
+- `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true`
+- `gateway.browserClients.dangerouslyDisableDeviceAuth=true`
 - `hooks.gmail.allowUnsafeExternalContent=true`
 - `hooks.mappings[<index>].allowUnsafeExternalContent=true`
 - `tools.exec.applyPatch.workspaceOnly=false`
@@ -313,8 +313,8 @@ aggregates:
 Complete `dangerous*` / `dangerously*` config keys defined in CrawClaw config
 schema:
 
-- `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback`
-- `gateway.controlUi.dangerouslyDisableDeviceAuth`
+- `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback`
+- `gateway.browserClients.dangerouslyDisableDeviceAuth`
 - `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork`
 - `channels.discord.dangerouslyAllowNameMatching`
 - `channels.discord.accounts.<accountId>.dangerouslyAllowNameMatching`
@@ -375,9 +375,9 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 - CrawClaw gateway is local/loopback first. If you terminate TLS at a reverse proxy, set HSTS on the proxy-facing HTTPS domain there.
 - If the gateway itself terminates HTTPS, you can set `gateway.http.securityHeaders.strictTransportSecurity` to emit the HSTS header from CrawClaw responses.
 - Detailed deployment guidance is in [Trusted Proxy Auth](/gateway/trusted-proxy-auth#tls-termination-and-hsts).
-- For non-loopback browser-client deployments, `gateway.controlUi.allowedOrigins` is required by default.
-- `gateway.controlUi.allowedOrigins: ["*"]` is an explicit allow-all browser-origin policy, not a hardened default. Avoid it outside tightly controlled local testing.
-- `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true` enables Host-header origin fallback mode; treat it as a dangerous operator-selected policy.
+- For non-loopback browser-client deployments, `gateway.browserClients.allowedOrigins` is required by default.
+- `gateway.browserClients.allowedOrigins: ["*"]` is an explicit allow-all browser-origin policy, not a hardened default. Avoid it outside tightly controlled local testing.
+- `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true` enables Host-header origin fallback mode; treat it as a dangerous operator-selected policy.
 - Treat DNS rebinding and proxy-host header behavior as deployment hardening concerns; keep `trustedProxies` tight and avoid exposing the gateway directly to the public internet.
 
 ## Local session logs live on disk
@@ -657,15 +657,12 @@ The Gateway multiplexes **WebSocket + HTTP** on a single port:
 - Default: `18789`
 - Config/flags/env: `gateway.port`, `--port`, `CRAWCLAW_GATEWAY_PORT`
 
-This HTTP surface includes browser-facing gateway clients and the canvas host:
+This HTTP surface includes browser-facing gateway clients and core HTTP APIs:
 
-- Browser-facing client surface (default base path `/`)
-- Canvas host: `/__crawclaw__/canvas/` and `/__crawclaw__/a2ui/` (arbitrary HTML/JS; treat as untrusted content)
+- Browser-origin checked WebSocket clients
+- Gateway HTTP APIs such as hooks, OpenAI-compatible endpoints, and tools invoke
 
-If you load canvas content in a normal browser, treat it like any other untrusted web page:
-
-- Don't expose the canvas host to untrusted networks/users.
-- Don't make canvas content share the same origin as privileged web surfaces unless you fully understand the implications.
+Keep privileged HTTP APIs behind Gateway auth and trusted network boundaries.
 
 Bind mode controls where the Gateway listens:
 
@@ -859,7 +856,7 @@ Trusted proxies:
 - CrawClaw will trust `x-forwarded-for` (or `x-real-ip`) from those IPs to determine the client IP for local pairing checks and HTTP auth/local checks.
 - Ensure your proxy **overwrites** `x-forwarded-for` and blocks direct access to the Gateway port.
 
-See [Tailscale](/gateway/tailscale) and [Web overview](/web).
+See [Tailscale](/gateway/tailscale) and [Remote access](/gateway/remote).
 
 ### 0.6.1) Browser control via node host (recommended)
 

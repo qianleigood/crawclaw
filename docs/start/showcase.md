@@ -120,14 +120,6 @@ Hotkey a screen region → Gemini vision → instant Markdown in your clipboard.
   <img src="/assets/showcase/snag.png" alt="SNAG screenshot-to-markdown tool" />
 </Card>
 
-<Card title="Agents UI" icon="window-maximize" href="https://releaseflow.net/kitze/agents-ui">
-  **@kitze** • `ui` `skills` `sync`
-
-Desktop app to manage skills/commands across Agents, Claude, Codex, and CrawClaw.
-
-  <img src="/assets/showcase/agents-ui.jpg" alt="Agents UI app" />
-</Card>
-
 <Card title="Telegram Voice Notes (papla.media)" icon="microphone" href="https://papla.media/docs">
   **Community** • `voice` `tts` `telegram`
 
@@ -170,14 +162,6 @@ Automated UK school meal booking via ParentPay. Uses mouse coordinates for relia
   **@julianengel** • `files` `r2` `presigned-urls`
 
 Upload to Cloudflare R2/S3 and generate secure presigned download links. Perfect for remote CrawClaw instances.
-</Card>
-
-<Card title="Mobile Build via Telegram" icon="mobile" href="#">
-  **@coard** • `ios` `xcode` `testflight`
-
-Built a complete mobile client with maps and voice recording, deployed to TestFlight entirely via Telegram chat.
-
-  <img src="/assets/showcase/ios-testflight.jpg" alt="mobile client on TestFlight" />
 </Card>
 
 <Card title="Oura Ring Health Assistant" icon="heart-pulse" href="#">

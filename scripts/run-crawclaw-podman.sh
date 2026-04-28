@@ -337,7 +337,7 @@ create_token_env_file() {
   printf '%s' "$tmp"
 }
 
-sync_local_control_ui_origins_via_cli() {
+sync_local_browser_client_origins_via_cli() {
   local file="$1"
   local port="$2"
   local config_dir=""
@@ -345,19 +345,19 @@ sync_local_control_ui_origins_via_cli() {
   local merged_json=""
   config_dir="$(dirname "$file")"
   if ! command -v crawclaw >/dev/null 2>&1; then
-    echo "Warning: crawclaw not found; unable to sync gateway.controlUi.allowedOrigins in $file." >&2
+    echo "Warning: crawclaw not found; unable to sync gateway.browserClients.allowedOrigins in $file." >&2
     return 0
   fi
   if ! command -v python3 >/dev/null 2>&1; then
     CRAWCLAW_CONTAINER="" CRAWCLAW_CONFIG_DIR="$config_dir" \
-      crawclaw config set gateway.controlUi.allowedOrigins \
+      crawclaw config set gateway.browserClients.allowedOrigins \
       "[\"http://127.0.0.1:${port}\",\"http://localhost:${port}\"]" \
       --strict-json >/dev/null
     return 0
   fi
   allowed_json="$(
     CRAWCLAW_CONTAINER="" CRAWCLAW_CONFIG_DIR="$config_dir" \
-      crawclaw config get gateway.controlUi.allowedOrigins --json 2>/dev/null || true
+      crawclaw config get gateway.browserClients.allowedOrigins --json 2>/dev/null || true
   )"
   merged_json="$(python3 - "$port" "$allowed_json" <<'PY'
 import json
@@ -391,17 +391,17 @@ print(json.dumps(cleaned))
 PY
   )"
   CRAWCLAW_CONTAINER="" CRAWCLAW_CONFIG_DIR="$config_dir" \
-    crawclaw config set gateway.controlUi.allowedOrigins "$merged_json" --strict-json >/dev/null
+    crawclaw config set gateway.browserClients.allowedOrigins "$merged_json" --strict-json >/dev/null
 }
 
-sync_local_control_ui_origins() {
+sync_local_browser_client_origins() {
   local file="$1"
   local port="$2"
   local dir=""
   local tmp=""
   ensure_safe_write_file_path "config file" "$file"
   if ! command -v python3 >/dev/null 2>&1; then
-    echo "Warning: python3 not found; unable to sync gateway.controlUi.allowedOrigins in $file." >&2
+    echo "Warning: python3 not found; unable to sync gateway.browserClients.allowedOrigins in $file." >&2
     return 0
   fi
   dir="$(dirname "$file")"
@@ -419,7 +419,7 @@ try:
         data = json.load(fh)
 except json.JSONDecodeError as exc:
     print(
-        f"Warning: unable to sync gateway.controlUi.allowedOrigins in {path}: existing config is not strict JSON ({exc}). Leaving file unchanged.",
+        f"Warning: unable to sync gateway.browserClients.allowedOrigins in {path}: existing config is not strict JSON ({exc}). Leaving file unchanged.",
         file=sys.stderr,
     )
     raise SystemExit(1)
@@ -429,10 +429,10 @@ gateway = data.setdefault("gateway", {})
 if not isinstance(gateway, dict):
     raise SystemExit(f"{path}: expected gateway object")
 gateway.setdefault("mode", "local")
-control_ui = gateway.setdefault("controlUi", {})
-if not isinstance(control_ui, dict):
-    raise SystemExit(f"{path}: expected gateway.controlUi object")
-allowed = control_ui.get("allowedOrigins")
+browser_client = gateway.setdefault("browserClients", {})
+if not isinstance(browser_client, dict):
+    raise SystemExit(f"{path}: expected gateway.browserClients object")
+allowed = browser_client.get("allowedOrigins")
 desired = [
     f"http://127.0.0.1:{port}",
     f"http://localhost:{port}",
@@ -453,14 +453,14 @@ for origin in desired:
     if origin not in seen:
         cleaned.append(origin)
         seen.add(origin)
-control_ui["allowedOrigins"] = cleaned
+browser_client["allowedOrigins"] = cleaned
 with open(tmp, "w", encoding="utf-8") as fh:
     json.dump(data, fh, indent=2)
     fh.write("\n")
 PY
   then
     rm -f "$tmp"
-    sync_local_control_ui_origins_via_cli "$file" "$port"
+    sync_local_browser_client_origins_via_cli "$file" "$port"
     return 0
   fi
   [[ -s "$tmp" ]] || {
@@ -497,7 +497,7 @@ JSON
   )
   echo "Created $CONFIG_JSON (minimal gateway.mode=local)." >&2
 fi
-sync_local_control_ui_origins "$CONFIG_JSON" "$HOST_GATEWAY_PORT"
+sync_local_browser_client_origins "$CONFIG_JSON" "$HOST_GATEWAY_PORT"
 
 PODMAN_USERNS="${CRAWCLAW_PODMAN_USERNS:-keep-id}"
 USERNS_ARGS=()

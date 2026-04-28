@@ -533,7 +533,7 @@ async function executeSystemRunPhase(
   if (useMacAppExec) {
     const execRequest: ExecHostRequest = {
       command: phase.plannedAllowlistArgv ?? phase.argv,
-      // Forward canonical display text so companion approval/prompt surfaces bind to
+      // Forward canonical display text so approval/prompt surfaces bind to
       // the exact command context already validated on the node-host.
       rawCommand: phase.commandText || null,
       cwd: phase.cwd ?? null,
@@ -552,7 +552,7 @@ async function executeSystemRunPhase(
       if (opts.execHostEnforced || !opts.execHostFallbackAllowed) {
         await sendSystemRunDenied(opts, phase.execution, {
           reason: "companion-unavailable",
-          message: "COMPANION_APP_UNAVAILABLE: macOS app exec host unreachable",
+          message: "NODE_EXEC_HOST_UNAVAILABLE: node exec host unreachable",
         });
         return;
       }

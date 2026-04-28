@@ -55,7 +55,7 @@ describe("migrateLegacyConfig", () => {
     expect(res).toEqual({ config: null, changes: [] });
   });
 
-  it("does not seed gateway.controlUi.allowedOrigins anymore", () => {
+  it("does not seed gateway.browserClients.allowedOrigins anymore", () => {
     const res = migrateLegacyConfig({
       gateway: {
         bind: "lan",

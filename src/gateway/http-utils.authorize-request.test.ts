@@ -8,7 +8,7 @@ vi.mock("./auth.js", () => ({
 vi.mock("../config/config.js", () => ({
   loadConfig: vi.fn(() => ({
     gateway: {
-      controlUi: {
+      browserClients: {
         allowedOrigins: ["https://control.example.com"],
       },
     },

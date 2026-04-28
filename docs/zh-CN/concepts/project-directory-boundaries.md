@@ -274,7 +274,7 @@ title: 目录与边界规划
 
 现状：
 
-- prompt cache、special agent cache、plugin cache、routing cache、memory file cache、UI cache 分散在多个域里
+- prompt cache、special agent cache、plugin cache、routing cache、memory file cache、client-side cache 分散在多个域里
 
 建议：
 
@@ -348,6 +348,5 @@ title: 目录与边界规划
 - `src/plugins` + `src/plugin-sdk` + `extensions` 是能力平台
 - `src/memory`、`src/workflows`、`src/cron`、`src/tasks` 是领域服务
 - `src/acp` 是正式互操作协议层
-- `ui/src/ui/chat/session-cache.ts` 这类 UI cache 仍归 Presentation Plane，不应倒灌回后端
 
 只要团队先按这个模型协作，后续目录改造会容易很多。

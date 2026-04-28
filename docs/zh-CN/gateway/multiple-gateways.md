@@ -86,7 +86,6 @@ crawclaw --profile rescue gateway install
 基础端口 = `gateway.port`（或 `CRAWCLAW_GATEWAY_PORT` / `--port`）。
 
 - browser 控制服务端口 = 基础端口 + 2（仅 loopback）
-- canvas host 由 Gateway 网关 HTTP 服务器提供（与 `gateway.port` 使用相同端口）
 - Browser profile CDP 端口会从 `browser.controlPort + 9 .. + 108` 自动分配
 
 如果你在配置或环境变量中覆盖了其中任何一个，必须确保它们在每个实例之间保持唯一。

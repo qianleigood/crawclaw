@@ -23,7 +23,7 @@ x-i18n:
 - [Gateway 网关架构](/concepts/architecture)
 - [Gateway 网关协议](/gateway/protocol)
 - [Gateway 网关运维手册](/gateway)
-- [Web 接口 + 绑定模式](/web)
+- [远程访问 + 绑定模式](/gateway/remote)
 
 ## 配对 + 身份
 

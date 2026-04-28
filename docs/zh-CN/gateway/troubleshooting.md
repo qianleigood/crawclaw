@@ -83,9 +83,9 @@ crawclaw models status
 
 更多详情：[Anthropic](/providers/anthropic) 和 [OAuth](/concepts/oauth)。
 
-### Control UI 在 HTTP 上失败（"device identity required" / "connect failed"）
+### 浏览器来源客户端在 HTTP 上失败（"device identity required" / "connect failed"）
 
-如果你通过纯 HTTP 打开仪表板（例如 `http://<lan-ip>:18789/` 或
+如果你通过纯 HTTP 连接 Gateway 网关（例如 `http://<lan-ip>:18789/` 或
 `http://<tailscale-ip>:18789/`），浏览器运行在**非安全上下文**中，
 会阻止 WebCrypto，因此无法生成设备身份。
 
@@ -93,9 +93,8 @@ crawclaw models status
 
 - 优先通过 [Tailscale Serve](/gateway/tailscale) 使用 HTTPS。
 - 或在 Gateway 网关主机上本地打开：`http://127.0.0.1:18789/`。
-- 如果必须使用 HTTP，启用 `gateway.controlUi.allowInsecureAuth: true` 并
-  使用 Gateway 网关令牌（仅令牌；无设备身份/配对）。参见
-  [Control UI](/web/control-ui#insecure-http)。
+- 如果必须使用 HTTP，启用 `gateway.browserClients.allowInsecureAuth: true` 并
+  使用 Gateway 网关令牌（仅令牌；无设备身份/配对）。
 
 ### CI Secrets Scan Failed
 

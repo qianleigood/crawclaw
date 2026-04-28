@@ -124,7 +124,6 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
         slack: "collect",
         signal: "collect",
         imessage: "collect",
-        webchat: "collect",
       },
     },
   },
@@ -319,7 +318,6 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
         slack: ["U123"],
         signal: ["+15555550123"],
         imessage: ["user@example.com"],
-        webchat: ["session:demo"],
       },
     },
   },
@@ -410,7 +408,6 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
     mode: "local",
     port: 18789,
     bind: "loopback",
-    controlUi: { enabled: true, basePath: "/crawclaw" },
     auth: {
       mode: "token",
       token: "gateway-token",
@@ -630,5 +627,5 @@ terms before depending on subscription auth.
 
 - If you set `dmPolicy: "open"`, the matching `allowFrom` list must include `"*"`.
 - Provider IDs differ (phone numbers, user IDs, channel IDs). Use the provider docs to confirm the format.
-- Optional sections to add later: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
+- Optional sections to add later: `web`, `browser`, `ui`, `discovery`, `talk`, `signal`, `imessage`.
 - See [Providers](/providers) and [Troubleshooting](/gateway/troubleshooting) for deeper setup notes.

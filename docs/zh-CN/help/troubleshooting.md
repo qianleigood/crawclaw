@@ -62,10 +62,9 @@ curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --beta --verbose
 - [Gateway 网关故障排除](/gateway/troubleshooting)
 - [Gateway 网关认证](/gateway/authentication)
 
-### 控制 UI 在 HTTP 上失败（需要设备身份）
+### 浏览器来源客户端在 HTTP 上失败（需要设备身份）
 
 - [Gateway 网关故障排除](/gateway/troubleshooting)
-- [控制 UI](/web/control-ui#insecure-http)
 
 ### `docs.crawclaw.ai` 显示 SSL 错误（Comcast/Xfinity）
 

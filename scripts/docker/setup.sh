@@ -105,7 +105,7 @@ read_env_gateway_token() {
   fi
 }
 
-ensure_control_ui_allowed_origins() {
+ensure_browser_client_allowed_origins() {
   if [[ "${CRAWCLAW_GATEWAY_BIND}" == "loopback" ]]; then
     return 0
   fi
@@ -114,18 +114,18 @@ ensure_control_ui_allowed_origins() {
   local current_allowed_origins
   allowed_origin_json="$(printf '["http://localhost:%s","http://127.0.0.1:%s"]' "$CRAWCLAW_GATEWAY_PORT" "$CRAWCLAW_GATEWAY_PORT")"
   current_allowed_origins="$(
-    run_prestart_cli config get gateway.controlUi.allowedOrigins 2>/dev/null || true
+    run_prestart_cli config get gateway.browserClients.allowedOrigins 2>/dev/null || true
   )"
   current_allowed_origins="${current_allowed_origins//$'\r'/}"
 
   if [[ -n "$current_allowed_origins" && "$current_allowed_origins" != "null" && "$current_allowed_origins" != "[]" ]]; then
-    echo "Browser client allowlist already configured; leaving gateway.controlUi.allowedOrigins unchanged."
+    echo "Browser client allowlist already configured; leaving gateway.browserClients.allowedOrigins unchanged."
     return 0
   fi
 
-  run_prestart_cli config set gateway.controlUi.allowedOrigins "$allowed_origin_json" --strict-json \
+  run_prestart_cli config set gateway.browserClients.allowedOrigins "$allowed_origin_json" --strict-json \
     >/dev/null
-  echo "Set gateway.controlUi.allowedOrigins to $allowed_origin_json for non-loopback bind."
+  echo "Set gateway.browserClients.allowedOrigins to $allowed_origin_json for non-loopback bind."
 }
 
 sync_gateway_mode_and_bind() {
@@ -518,7 +518,7 @@ sync_gateway_mode_and_bind
 
 echo ""
 echo "==> Browser client origin allowlist"
-ensure_control_ui_allowed_origins
+ensure_browser_client_allowed_origins
 
 echo ""
 echo "==> Provider setup (optional)"

@@ -112,14 +112,14 @@ const TEST_OPERATOR_CLIENT = {
   mode: GATEWAY_CLIENT_MODES.TEST,
 };
 
-const CONTROL_UI_CLIENT = {
-  id: GATEWAY_CLIENT_NAMES.CONTROL_UI,
+const BROWSER_CLIENT_CLIENT = {
+  id: GATEWAY_CLIENT_NAMES.BROWSER_CLIENT,
   version: "1.0.0",
   platform: "web",
   mode: GATEWAY_CLIENT_MODES.WEBCHAT,
 };
 
-const TRUSTED_PROXY_CONTROL_UI_HEADERS = {
+const TRUSTED_PROXY_BROWSER_CLIENT_HEADERS = {
   origin: "https://localhost",
   "x-forwarded-for": "203.0.113.10",
   "x-forwarded-proto": "https",
@@ -218,7 +218,7 @@ async function approvePendingPairingIfNeeded() {
   }
 }
 
-async function configureTrustedProxyControlUiAuth() {
+async function configureTrustedProxyBrowserClientsAuth() {
   testState.gatewayAuth = {
     mode: "trusted-proxy",
     trustedProxy: {
@@ -226,15 +226,15 @@ async function configureTrustedProxyControlUiAuth() {
       requiredHeaders: ["x-forwarded-proto"],
     },
   };
-  await writeTrustedProxyControlUiConfig();
+  await writeTrustedProxyBrowserClientsConfig();
 }
 
-async function writeTrustedProxyControlUiConfig(params?: { allowInsecureAuth?: boolean }) {
+async function writeTrustedProxyBrowserClientsConfig(params?: { allowInsecureAuth?: boolean }) {
   const { writeConfigFile } = await import("../config/config.js");
   await writeConfigFile({
     gateway: {
       trustedProxies: ["127.0.0.1"],
-      controlUi: {
+      browserClients: {
         allowedOrigins: ["https://localhost"],
         ...(params?.allowInsecureAuth ? { allowInsecureAuth: true } : {}),
       },
@@ -358,9 +358,9 @@ export {
   approvePendingPairingIfNeeded,
   BACKEND_GATEWAY_CLIENT,
   buildDeviceAuthPayload,
-  configureTrustedProxyControlUiAuth,
+  configureTrustedProxyBrowserClientsAuth,
   connectReq,
-  CONTROL_UI_CLIENT,
+  BROWSER_CLIENT_CLIENT,
   createSignedDevice,
   createGatewaySuiteHarness,
   ensurePairedDeviceTokenForCurrentIdentity,
@@ -383,13 +383,13 @@ export {
   startServerWithClient,
   TEST_OPERATOR_CLIENT,
   trackConnectChallengeNonce,
-  TRUSTED_PROXY_CONTROL_UI_HEADERS,
+  TRUSTED_PROXY_BROWSER_CLIENT_HEADERS,
   testState,
   testTailscaleWhois,
   waitForWsClose,
   withGatewayServer,
   withRuntimeVersionEnv,
-  writeTrustedProxyControlUiConfig,
+  writeTrustedProxyBrowserClientsConfig,
 };
 export { ConnectErrorDetailCodes } from "./protocol/connect-error-details.js";
 export { getPreauthHandshakeTimeoutMsFromEnv } from "./handshake-timeouts.js";

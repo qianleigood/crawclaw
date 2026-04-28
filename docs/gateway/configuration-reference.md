@@ -2517,25 +2517,6 @@ See [Plugins](/tools/plugin).
 
 ---
 
-## UI
-
-```json5
-{
-  ui: {
-    seamColor: "#FF4500",
-    assistant: {
-      name: "CrawClaw",
-      avatar: "CB", // emoji, short text, image URL, or data URI
-    },
-  },
-}
-```
-
-- `seamColor`: accent color for native app UI chrome (Talk Mode bubble tint, etc.).
-- `assistant`: browser-client identity override. Falls back to active agent identity.
-
----
-
 ## Gateway
 
 ```json5
@@ -2561,7 +2542,7 @@ See [Plugins](/tools/plugin).
       mode: "off", // off | serve | funnel
       resetOnExit: false,
     },
-    controlUi: {
+    browserClients: {
       enabled: true,
       basePath: "/crawclaw",
       // allowedOrigins: ["https://control.example.com"], // required for non-loopback browser-client access
@@ -2612,8 +2593,8 @@ See [Plugins](/tools/plugin).
   - `gateway.auth.rateLimit.exemptLoopback` defaults to `true`; set `false` when you intentionally want localhost traffic rate-limited too (for test setups or strict proxy deployments).
 - Browser-origin WS auth attempts are always throttled with loopback exemption disabled (defense-in-depth against browser-based localhost brute force).
 - `tailscale.mode`: `serve` (tailnet only, loopback bind) or `funnel` (public, requires auth).
-- `controlUi.allowedOrigins`: explicit browser-origin allowlist for Gateway WebSocket connects. Required when browser clients are expected from non-loopback origins.
-- `controlUi.dangerouslyAllowHostHeaderOriginFallback`: dangerous mode that enables Host-header origin fallback for deployments that intentionally rely on Host-header origin policy.
+- `browserClients.allowedOrigins`: explicit browser-origin allowlist for Gateway WebSocket connects. Required when browser clients are expected from non-loopback origins.
+- `browserClients.dangerouslyAllowHostHeaderOriginFallback`: dangerous mode that enables Host-header origin fallback for deployments that intentionally rely on Host-header origin policy.
 - `remote.transport`: `ssh` (default) or `direct` (ws/wss). For `direct`, `remote.url` must be `ws://` or `wss://`.
 - `CRAWCLAW_ALLOW_INSECURE_PRIVATE_WS=1`: client-side break-glass override that allows plaintext `ws://` to trusted private-network IPs; default remains loopback-only for plaintext.
 - `gateway.remote.token` / `.password` are remote-client credential fields. They do not configure gateway auth by themselves.
@@ -2793,33 +2774,6 @@ Auth: `Authorization: Bearer <token>` or `x-crawclaw-token: <token>`.
 
 - Gateway auto-starts `gog gmail watch serve` on boot when configured. Set `CRAWCLAW_SKIP_GMAIL_WATCHER=1` to disable.
 - Don't run a separate `gog gmail watch serve` alongside the Gateway.
-
----
-
-## Canvas host
-
-```json5
-{
-  canvasHost: {
-    root: "~/.crawclaw/workspace/canvas",
-    liveReload: true,
-    // enabled: false, // or CRAWCLAW_SKIP_CANVAS_HOST=1
-  },
-}
-```
-
-- Serves agent-editable HTML/CSS/JS and A2UI over HTTP under the Gateway port:
-  - `http://<gateway-host>:<gateway.port>/__crawclaw__/canvas/`
-  - `http://<gateway-host>:<gateway.port>/__crawclaw__/a2ui/`
-- Local-only: keep `gateway.bind: "loopback"` (default).
-- Non-loopback binds: canvas routes require Gateway auth (token/password/trusted-proxy), same as other Gateway HTTP surfaces.
-- Node WebViews typically don't send auth headers; after a node is paired and connected, the Gateway advertises node-scoped capability URLs for canvas/A2UI access.
-- Capability URLs are bound to the active node WS session and expire quickly. IP-based fallback is not used.
-- Injects live-reload client into served HTML.
-- Auto-creates starter `index.html` when empty.
-- Also serves A2UI at `/__crawclaw__/a2ui/`.
-- Changes require a gateway restart.
-- Disable live reload for large directories or `EMFILE` errors.
 
 ---
 

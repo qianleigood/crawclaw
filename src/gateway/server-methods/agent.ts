@@ -51,7 +51,6 @@ import {
 } from "../../utils/message-channel.js";
 import { resolveAssistantIdentity } from "../assistant-identity.js";
 import { MediaOffloadError, parseMessageWithAttachments } from "../chat-attachments.js";
-import { resolveAssistantAvatarUrl } from "../control-ui-shared.js";
 import { ADMIN_SCOPE } from "../method-scopes.js";
 import { GATEWAY_CLIENT_CAPS, hasGatewayClientCap } from "../protocol/client-info.js";
 import {
@@ -992,13 +991,7 @@ export const agentHandlers: GatewayRequestHandlers = {
     }
     const cfg = loadConfig();
     const identity = resolveAssistantIdentity({ cfg, agentId });
-    const avatarValue =
-      resolveAssistantAvatarUrl({
-        avatar: identity.avatar,
-        agentId: identity.agentId,
-        basePath: cfg.gateway?.controlUi?.basePath,
-      }) ?? identity.avatar;
-    respond(true, { ...identity, avatar: avatarValue }, undefined);
+    respond(true, identity, undefined);
   },
   "agent.inspect": async ({ params, respond }) => {
     const parsed = parseAgentInspectParams(params);

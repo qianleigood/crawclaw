@@ -7,7 +7,7 @@ import {
 import type {
   CrawClawConfig,
   GatewayBindMode,
-  GatewayControlUiConfig,
+  GatewayBrowserClientsConfig,
 } from "../../config/types.js";
 import { readLastGatewayErrorLine } from "../../daemon/diagnostics.js";
 import type { FindExtraGatewayServicesOptions } from "../../daemon/inspect.js";
@@ -40,7 +40,7 @@ type ConfigSummary = {
   exists: boolean;
   valid: boolean;
   issues?: Array<{ path: string; message: string }>;
-  controlUi?: GatewayControlUiConfig;
+  browserClients?: GatewayBrowserClientsConfig;
 };
 
 type GatewayStatusSummary = {
@@ -179,14 +179,14 @@ async function loadDaemonConfigContext(
     exists: cliSnapshot?.exists ?? false,
     valid: cliSnapshot?.valid ?? true,
     ...(cliSnapshot?.issues?.length ? { issues: cliSnapshot.issues } : {}),
-    controlUi: cliCfg.gateway?.controlUi,
+    browserClients: cliCfg.gateway?.browserClients,
   };
   const daemonConfigSummary: ConfigSummary = {
     path: daemonSnapshot?.path ?? daemonConfigPath,
     exists: daemonSnapshot?.exists ?? false,
     valid: daemonSnapshot?.valid ?? true,
     ...(daemonSnapshot?.issues?.length ? { issues: daemonSnapshot.issues } : {}),
-    controlUi: daemonCfg.gateway?.controlUi,
+    browserClients: daemonCfg.gateway?.browserClients,
   };
 
   return {

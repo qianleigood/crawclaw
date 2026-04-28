@@ -45,7 +45,7 @@ Bridge 协议是一个**旧版**节点传输（TCP JSONL）。新的节点客户
 3. 客户端发送 `pair-request`。
 4. Gateway 网关等待批准，然后发送 `pair-ok` 和 `hello-ok`。
 
-`hello-ok` 返回 `serverName`，可能包含 `canvasHostUrl`。
+`hello-ok` 返回 `serverName`。
 
 ## 帧
 

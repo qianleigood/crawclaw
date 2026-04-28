@@ -124,7 +124,7 @@ describe("redactConfigSnapshot", () => {
 
   it("preserves non-sensitive fields", () => {
     const snapshot = makeSnapshot({
-      ui: { seamColor: "#0088cc" },
+      cli: { theme: "system" },
       gateway: { port: 18789 },
       models: { providers: { openai: { baseUrl: "https://api.openai.com" } } },
     });

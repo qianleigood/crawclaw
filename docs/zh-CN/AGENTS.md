@@ -57,7 +57,7 @@ go run scripts/docs-i18n/main.go -mode segment docs/channels/matrix.md
 - `Skills 配置`
 - `沙箱`
 - `预期键名`
-- `配套应用`
+- `节点主机`
 - `分块流式传输`
 - `设备发现`
 

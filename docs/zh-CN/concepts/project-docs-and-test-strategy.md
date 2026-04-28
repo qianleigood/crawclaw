@@ -297,14 +297,14 @@ title: 文档与测试体系规划
 - reconnect semantics
 - control-plane integration
 
-### UI
+### Client surfaces
 
 重点：
 
 - gateway client contract
-- chat/action feed/session/workflow views
+- chat/action feed/session/workflow projections
 - execution visibility projection
-- channel-specific config forms
+- channel-specific config contracts
 - session cache LRU 行为
 
 ## 端到端测试必须覆盖的主链
@@ -353,7 +353,7 @@ title: 文档与测试体系规划
 - Gateway WS 协议、pairing、auth、node runtime
 - channel ingress / routing / outbound projection
 - workflow channel forwarding / interactive resume / cancel / status
-- execution visibility 的跨 UI / channel / ACP 投影链路
+- execution visibility 的跨 client / channel / ACP 投影链路
 
 ### 必须补 docker e2e / install smoke 的改动
 
@@ -362,9 +362,9 @@ title: 文档与测试体系规划
 - plugin install / plugin runtime startup
 - container / network / bridge 相关变更
 
-### 可以只用 integration + UI test 的改动
+### 可以只用 integration + client projection test 的改动
 
-- 纯 UI 视图渲染
+- 纯客户端投影渲染
 - 纯文案投影
 - 纯 cache key / normalization helper
 
@@ -425,10 +425,10 @@ title: 文档与测试体系规划
 ## 当前最值得补强的测试方向
 
 1. `special agent substrate` 的域级测试标签与说明。
-2. execution visibility 在 `tool / workflow / channel / UI / ACP` 之间的一致性测试。
+2. execution visibility 在 `tool / workflow / channel / client / ACP` 之间的一致性测试。
 3. `commands / auto-reply / gateway method` 共用业务 handler 后的共享回归测试。
 4. channel runtime 的结构化 contract 测试，而不仅是插件单点测试。
-5. 缓存相关测试的域级归属，例如 prompt cache、routing cache、memory file cache、UI cache 各自由谁负责。
+5. 缓存相关测试的域级归属，例如 prompt cache、routing cache、memory file cache、client-side cache 各自由谁负责。
 6. 文档与测试的映射检查，例如一级域是否同时存在维护文档和测试入口。
 7. workflow / memory / special-agent / execution-visibility 的最小 e2e 责任矩阵。
 
@@ -506,4 +506,4 @@ title: 文档与测试体系规划
 - 文档告诉开发者“系统分成哪些层”
 - 测试保证这些层的 contract 不被破坏
 
-一旦文档结构和测试结构都开始映射同一套平台模型，后续做目录调整、UI 重构、special agent 扩展、workflow 演进都会稳定得多。
+一旦文档结构和测试结构都开始映射同一套平台模型，后续做目录调整、client surface 重构、special agent 扩展、workflow 演进都会稳定得多。

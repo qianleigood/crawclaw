@@ -18,7 +18,6 @@ Most operations flow through the Gateway (`crawclaw gateway`), a single long-run
 
 - **Loopback first**: the Gateway WS defaults to `ws://127.0.0.1:18789`. Tokens are required for non-loopback binds.
 - **One Gateway per host** is recommended. For isolation, run multiple gateways with isolated profiles and ports ([Multiple Gateways](/gateway/multiple-gateways)).
-- **Canvas host** is served on the same port as the Gateway (`/__crawclaw__/canvas/`, `/__crawclaw__/a2ui/`), protected by Gateway auth when bound beyond loopback.
 - **Remote access** is typically SSH tunnel or Tailscale VPN ([Remote Access](/gateway/remote)).
 
 Key references:
@@ -26,7 +25,7 @@ Key references:
 - [Gateway architecture](/concepts/architecture)
 - [Gateway protocol](/gateway/protocol)
 - [Gateway runbook](/gateway)
-- [Web surfaces + bind modes](/web)
+- [Remote access](/gateway/remote)
 
 ## Pairing + identity
 

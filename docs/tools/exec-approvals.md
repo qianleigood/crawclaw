@@ -389,7 +389,7 @@ timeout, the request is treated as an approval timeout and surfaced as a denial 
 After an approved async exec finishes, CrawClaw sends a followup `agent` turn to the same session.
 
 - If a valid external delivery target exists (deliverable channel plus target `to`), followup delivery uses that channel.
-- In webchat-only or internal-session flows with no external target, followup delivery stays session-only (`deliver: false`).
+- In internal-session flows with no external target, followup delivery stays session-only (`deliver: false`).
 - If a caller explicitly requests strict external delivery with no resolvable external channel, the request fails with `INVALID_REQUEST`.
 - If `bestEffortDeliver` is enabled and no external channel can be resolved, delivery is downgraded to session-only instead of failing.
 
@@ -473,7 +473,7 @@ instructions.
 
 When an exec or plugin approval request originates from a deliverable chat surface, the same chat
 can now approve it with `/approve` by default. This applies to channels such as Slack, Matrix, and
-Microsoft Teams in addition to the existing Web UI and terminal UI flows.
+Microsoft Teams in addition to the existing terminal UI flow.
 
 This shared text-command path uses the normal channel auth model for that conversation. If the
 originating chat can already send commands and receive replies, approval requests no longer need a

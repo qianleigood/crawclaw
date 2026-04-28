@@ -20,7 +20,7 @@ vi.mock("../../terminal/theme.js", async (importOriginal) => {
 });
 
 vi.mock("../../commands/onboard-helpers.js", () => ({
-  resolveControlUiLinks: () => ({ httpUrl: "http://127.0.0.1:18789" }),
+  resolveBrowserClientsLinks: () => ({ httpUrl: "http://127.0.0.1:18789" }),
 }));
 
 vi.mock("../../daemon/inspect.js", () => ({

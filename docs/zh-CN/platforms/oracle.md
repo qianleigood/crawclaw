@@ -116,13 +116,13 @@ source ~/.bashrc
 
 ## 6) 配置 Gateway 网关（loopback + 令牌认证）并启用 Tailscale Serve
 
-使用令牌认证作为默认值。它是可预测的，避免需要任何"不安全认证"的控制 UI 标志。
+使用令牌认证作为默认值。它是可预测的，避免需要任何"不安全认证"的Gateway 客户端 标志。
 
 ```bash
 # 在 VM 上保持 Gateway 网关私有
 crawclaw config set gateway.bind loopback
 
-# 要求 Gateway 网关 + 控制 UI 的认证
+# 要求 Gateway 网关 + Gateway 客户端 的认证
 crawclaw config set gateway.auth.mode token
 crawclaw doctor --generate-gateway-token
 
@@ -163,7 +163,7 @@ curl http://localhost:18789
 
 ---
 
-## 访问控制 UI
+## 访问Gateway 客户端
 
 从你 Tailscale 网络上的任何设备：
 
@@ -261,7 +261,7 @@ crawclaw doctor --non-interactive
 journalctl --user -u crawclaw-gateway -n 50
 ```
 
-### 无法访问控制 UI
+### 无法访问Gateway 客户端
 
 ```bash
 # 验证 Tailscale Serve 正在运行

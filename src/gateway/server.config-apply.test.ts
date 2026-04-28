@@ -20,7 +20,7 @@ let port = 0;
 
 beforeAll(async () => {
   port = await getFreePort();
-  server = await startGatewayServer(port, { controlUiEnabled: true });
+  server = await startGatewayServer(port);
 });
 
 afterAll(async () => {

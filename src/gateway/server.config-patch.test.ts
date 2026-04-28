@@ -27,7 +27,7 @@ function requireWs(): Awaited<ReturnType<typeof startServerWithClient>>["ws"] {
 
 beforeAll(async () => {
   sharedTempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-sessions-config-"));
-  startedServer = await startServerWithClient(undefined, { controlUiEnabled: true });
+  startedServer = await startServerWithClient(undefined);
   await connectOk(requireWs());
 });
 

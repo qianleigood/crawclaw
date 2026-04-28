@@ -85,7 +85,7 @@ crawclaw update status --timeout 10
 4. 仅 dev：在临时工作树中预检 lint + TypeScript 构建；如果最新提交失败，回退最多 10 个提交以找到最新的干净构建。
 5. Rebase 到所选提交（仅 dev）。
 6. 安装依赖（优先使用 pnpm；npm 作为备选）。
-7. 构建 + 构建控制界面。
+7. 构建。
 8. 运行 `crawclaw doctor` 作为最终的"安全更新"检查。
 9. 将插件同步到当前渠道（dev 使用捆绑的扩展；stable/beta 使用 npm）并更新 npm 安装的插件。
 

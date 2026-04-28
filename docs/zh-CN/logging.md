@@ -3,7 +3,7 @@ read_when:
   - 你需要一个适合初学者的日志概述
   - 你想配置日志级别或格式
   - 你正在故障排除并需要快速找到日志
-summary: 日志概述：文件日志、控制台输出、CLI 跟踪和控制 UI
+summary: 日志概述：文件日志、控制台输出、CLI 跟踪和Gateway 客户端
 title: 日志
 x-i18n:
   generated_at: "2026-02-03T07:50:52Z"
@@ -19,7 +19,7 @@ x-i18n:
 CrawClaw 在两个地方记录日志：
 
 - **文件日志**（JSON 行）由 Gateway 网关写入。
-- **控制台输出**显示在终端和控制 UI 中。
+- **控制台输出**显示在终端和Gateway 客户端 中。
 
 本页说明日志存放位置、如何读取日志以及如何配置日志级别和格式。
 
@@ -72,10 +72,9 @@ crawclaw logs --follow
 crawclaw doctor
 ```
 
-### 控制 UI（Web）
+### 日志尾随
 
-控制 UI 的**日志**标签页使用 `logs.tail` 跟踪相同的文件。
-参见 [/web/control-ui](/web/control-ui) 了解如何打开它。
+`logs.tail` RPC 和 `crawclaw logs --follow` 跟踪相同的文件。
 
 ### 仅渠道日志
 
@@ -89,7 +88,7 @@ crawclaw channels logs --channel whatsapp
 
 ### 文件日志（JSONL）
 
-日志文件中的每一行都是一个 JSON 对象。CLI 和控制 UI 解析这些条目以渲染结构化输出（时间、级别、子系统、消息）。
+日志文件中的每一行都是一个 JSON 对象。CLI 和Gateway 客户端 解析这些条目以渲染结构化输出（时间、级别、子系统、消息）。
 
 ### 控制台输出
 

@@ -54,7 +54,7 @@ x-i18n:
 
 - `key`：会话键（字符串）
 - `kind`：`main | group | cron | hook | node | other`
-- `channel`：`whatsapp | telegram | discord | signal | imessage | webchat | internal | unknown`
+- `channel`：`whatsapp | telegram | discord | signal | imessage | internal | unknown`
 - `displayName`（如果可用的群组显示标签）
 - `updatedAt`（毫秒）
 - `sessionId`

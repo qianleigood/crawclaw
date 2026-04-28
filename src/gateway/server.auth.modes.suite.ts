@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import {
   connectReq,
-  CONTROL_UI_CLIENT,
+  BROWSER_CLIENT_CLIENT,
   ConnectErrorDetailCodes,
   getFreePort,
   openTailscaleWs,
@@ -70,32 +70,32 @@ export function registerAuthModesSuite(): void {
       ws.close();
     });
 
-    test("returns control ui hint when token is missing", async () => {
+    test("returns browser client hint when token is missing", async () => {
       const ws = await openWs(port, { origin: originForPort(port) });
       const res = await connectReq(ws, {
         skipDefaultAuth: true,
         client: {
-          ...CONTROL_UI_CLIENT,
+          ...BROWSER_CLIENT_CLIENT,
         },
       });
       expect(res.ok).toBe(false);
-      expect(res.error?.message ?? "").toContain("Control UI settings");
+      expect(res.error?.message ?? "").toContain("gateway client");
       ws.close();
     });
 
-    test("rejects control ui without device identity by default", async () => {
+    test("rejects browser client without device identity by default", async () => {
       const ws = await openWs(port, { origin: originForPort(port) });
       const res = await connectReq(ws, {
         token: "secret",
         device: null,
         client: {
-          ...CONTROL_UI_CLIENT,
+          ...BROWSER_CLIENT_CLIENT,
         },
       });
       expect(res.ok).toBe(false);
       expect(res.error?.message ?? "").toContain("secure context");
       expect((res.error?.details as { code?: string } | undefined)?.code).toBe(
-        ConnectErrorDetailCodes.CONTROL_UI_DEVICE_IDENTITY_REQUIRED,
+        ConnectErrorDetailCodes.BROWSER_CLIENT_DEVICE_IDENTITY_REQUIRED,
       );
       ws.close();
     });
@@ -157,13 +157,12 @@ export function registerAuthModesSuite(): void {
       ws.close();
     });
 
-    test("connects with shared token but clears scopes when tailscale auth skips device", async () => {
+    test("connects with shared token and preserves scopes when tailscale auth skips device", async () => {
       const ws = await openTailscaleWs(port);
       const res = await connectReq(ws, { token: "secret", device: null });
       expect(res.ok).toBe(true);
       const status = await rpcReq(ws, "status");
-      expect(status.ok).toBe(false);
-      expect(status.error?.message ?? "").toContain("missing scope");
+      expect(status.ok).toBe(true);
       const health = await rpcReq(ws, "health");
       expect(health.ok).toBe(true);
       ws.close();

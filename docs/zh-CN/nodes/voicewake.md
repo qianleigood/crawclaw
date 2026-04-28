@@ -51,12 +51,12 @@ CrawClaw 将**唤醒词作为单一全局列表**，由 **Gateway 网关**拥有
 
 接收者：
 
-- 所有 WebSocket 客户端（macOS 应用、WebChat 等）
+- 所有 WebSocket 客户端
 - 所有已连接的节点，以及节点连接时作为初始"当前状态"推送。
 
 ## 客户端行为
 
-### macOS 应用
+### Gateway 客户端
 
 - 使用全局列表来控制 `VoiceWakeRuntime` 触发器。
 - 在语音唤醒设置中编辑"触发词"会调用 `voicewake.set`，然后依赖广播保持其他客户端同步。

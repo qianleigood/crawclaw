@@ -184,7 +184,7 @@ export async function runAgentTurnWithFallback(params: {
     didNotifyAgentRunStart = true;
     params.opts?.onAgentRunStart?.(runId);
   };
-  const shouldSurfaceToControlUi = isInternalMessageChannel(
+  const shouldSurfaceToBrowserClients = isInternalMessageChannel(
     params.followupRun.run.messageProvider ??
       params.sessionCtx.Surface ??
       params.sessionCtx.Provider,
@@ -194,7 +194,7 @@ export async function runAgentTurnWithFallback(params: {
       sessionKey: params.sessionKey,
       verboseLevel: params.resolvedVerboseLevel,
       isHeartbeat: params.isHeartbeat,
-      isControlUiVisible: shouldSurfaceToControlUi,
+      isBrowserClientsVisible: shouldSurfaceToBrowserClients,
     });
   }
   let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
@@ -655,7 +655,7 @@ export async function runAgentTurnWithFallback(params: {
             `Live model switch failed after ${MAX_LIVE_SWITCH_RETRIES} retries ` +
               `(${sanitizeForLog(err.provider)}/${sanitizeForLog(err.model)}). The requested model may be unavailable.`,
           );
-          const switchErrorText = shouldSurfaceToControlUi
+          const switchErrorText = shouldSurfaceToBrowserClients
             ? "⚠️ Agent failed before reply: model switch could not be completed. " +
               "The requested model may be temporarily unavailable.\n" +
               "Logs: crawclaw logs --follow"
@@ -791,7 +791,7 @@ export async function runAgentTurnWithFallback(params: {
             ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
             : isRoleOrderingError
               ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-              : shouldSurfaceToControlUi
+              : shouldSurfaceToBrowserClients
                 ? `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: crawclaw logs --follow`
                 : buildExternalRunFailureText(message);
 

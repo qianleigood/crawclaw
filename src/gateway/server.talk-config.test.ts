@@ -42,7 +42,6 @@ type TalkConfigPayload = {
       silenceTimeoutMs?: number;
     };
     session?: { mainKey?: string };
-    ui?: { seamColor?: string };
   };
 };
 type TalkConfig = NonNullable<NonNullable<TalkConfigPayload["config"]>["talk"]>;
@@ -163,9 +162,6 @@ describe("gateway talk.config", () => {
       session: {
         mainKey: "main-test",
       },
-      ui: {
-        seamColor: "#112233",
-      },
     });
 
     await withServer(async (ws) => {
@@ -178,7 +174,7 @@ describe("gateway talk.config", () => {
         silenceTimeoutMs: 1500,
       });
       expect(res.payload?.config?.session?.mainKey).toBe("main-test");
-      expect(res.payload?.config?.ui?.seamColor).toBe("#112233");
+      expect(res.payload?.config).not.toHaveProperty("ui");
     });
   });
 

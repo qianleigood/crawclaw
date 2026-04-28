@@ -22,7 +22,7 @@ describe("session delivery direct-session routing overrides", () => {
       expect(
         resolveLastToRaw({
           originatingChannelRaw: "webchat",
-          originatingToRaw: "session:dashboard",
+          originatingToRaw: "session:client",
           persistedLastChannel: "telegram",
           persistedLastTo: "123456",
           sessionKey,
@@ -49,7 +49,7 @@ describe("session delivery direct-session routing overrides", () => {
     expect(
       resolveLastToRaw({
         originatingChannelRaw: "webchat",
-        originatingToRaw: "session:dashboard",
+        originatingToRaw: "session:client",
         persistedLastChannel: "telegram",
         persistedLastTo: "group:12345",
         sessionKey,

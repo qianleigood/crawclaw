@@ -21,7 +21,7 @@ x-i18n:
 - 拥有单一 Baileys/Telegram 连接和控制/事件平面的常驻进程。
 - 替代旧版 `gateway` 命令。CLI 入口点：`crawclaw gateway`。
 - 运行直到停止；出现致命错误时以非零退出码退出，以便 supervisor 重启它。
-- 面向浏览器 Control UI 的稳定 method surface、capability 规则和 config 写路径，见 [控制面 RPC](/gateway/control-plane-rpc)。
+- 面向浏览器 Browser client 的稳定 method surface、capability 规则和 config 写路径，见 [控制面 RPC](/gateway/control-plane-rpc)。
 
 ## 如何运行（本地）
 
@@ -40,11 +40,10 @@ pnpm gateway:watch
   - 热重载在需要时通过 **SIGUSR1** 使用进程内重启。
   - 使用 `gateway.reload.mode="off"` 禁用。
 - 将 WebSocket 控制平面绑定到 `127.0.0.1:<port>`（默认 18789）。
-- 同一端口也提供 HTTP 服务（控制界面、hooks、A2UI）。单端口多路复用。
+- 同一端口也提供 HTTP 服务（hooks、OpenAI 兼容端点、tools invoke）。单端口多路复用。
   - OpenAI Chat Completions（HTTP）：[`/v1/chat/completions`](/gateway/openai-http-api)。
   - OpenResponses（HTTP）：[`/v1/responses`](/gateway/openresponses-http-api)。
   - Tools Invoke（HTTP）：[`/tools/invoke`](/gateway/tools-invoke-http-api)。
-- 默认在 `canvasHost.port`（默认 `18793`）上启动 Canvas 文件服务器，从 `~/.crawclaw/workspace/canvas` 提供 `http://<gateway-host>:18793/__crawclaw__/canvas/`。使用 `canvasHost.enabled=false` 或 `CRAWCLAW_SKIP_CANVAS_HOST=1` 禁用。
 - 输出日志到 stdout；使用 launchd/systemd 保持运行并轮转日志。
 - 故障排除时传递 `--verbose` 以将调试日志（握手、请求/响应、事件）从日志文件镜像到 stdio。
 - `--force` 使用 `lsof` 查找所选端口上的监听器，发送 SIGTERM，记录它终止了什么，然后启动 Gateway 网关（如果缺少 `lsof` 则快速失败）。
@@ -101,14 +100,12 @@ crawclaw --dev health
 - `CRAWCLAW_CONFIG_PATH=~/.crawclaw-dev/crawclaw.json`
 - `CRAWCLAW_GATEWAY_PORT=19001`（Gateway 网关 WS + HTTP）
 - 浏览器控制服务端口 = `19003`（派生：`gateway.port+2`，仅 loopback）
-- `canvasHost.port=19005`（派生：`gateway.port+4`）
 - 当你在 `--dev` 下运行 `setup`/`onboard` 时，`agents.defaults.workspace` 默认变为 `~/.crawclaw/workspace-dev`。
 
 派生端口（经验法则）：
 
 - 基础端口 = `gateway.port`（或 `CRAWCLAW_GATEWAY_PORT` / `--port`）
 - 浏览器控制服务端口 = 基础 + 2（仅 loopback）
-- `canvasHost.port = 基础 + 4`（或 `CRAWCLAW_CANVAS_HOST_PORT` / 配置覆盖）
 - 浏览器配置文件 CDP 端口从 `browser.controlPort + 9 .. + 108` 自动分配（按配置文件持久化）。
 
 每个实例的检查清单：
@@ -166,11 +163,10 @@ CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b crawcla
 - `tick` — 定期保活/无操作以确认活跃。
 - `shutdown` — Gateway 网关正在退出；payload 包括 `reason` 和可选的 `restartExpectedMs`。客户端应重新连接。
 
-## WebChat 集成
+## Gateway 客户端集成
 
-- WebChat 是原生 SwiftUI UI，直接与 Gateway 网关 WebSocket 通信以获取历史记录、发送、中止和事件。
+- 客户端直接与 Gateway 网关 WebSocket 通信以获取历史记录、发送、中止和事件。
 - 远程使用通过相同的 SSH/Tailscale 隧道；如果配置了 Gateway 网关令牌，客户端在 `connect` 期间包含它。
-- macOS 应用通过单个 WS 连接（共享连接）；它从初始快照填充 presence 并监听 `presence` 事件以更新 UI。
 
 ## 类型和验证
 
@@ -201,7 +197,7 @@ CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b crawcla
 
 ## 重放 / 间隙
 
-- 事件不会重放。客户端检测 seq 间隙，应在继续之前刷新（`health` + `system-presence`）。WebChat 和 macOS 客户端现在会在间隙时自动刷新。
+- 事件不会重放。客户端检测 seq 间隙，应在继续之前刷新（`health` + `system-presence`）。
 
 ## 监管（macOS 示例）
 

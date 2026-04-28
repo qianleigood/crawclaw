@@ -109,13 +109,13 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
    - CLI commands
    - channel text commands
    - gateway methods
-   - UI actions
+   - client actions
 5. 输出缓存清单：
    - prompt identity
    - special agent snapshot
    - runtime TTL
    - plugin / routing / control plane
-   - file / UI cache
+   - file / client-side cache
 6. 输出 top 风险：
    - 重复入口
    - 过重文件
@@ -625,15 +625,15 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
   - `runtime_ttl`
   - `plugin_routing_control_plane`
   - `file_ui`
-- 已为 query context、context-window、workspace bootstrap、special-agent snapshot、built-in memory runtime、session summary、route resolution、gateway model pricing、UI session cache 等主链 cache 补显式 descriptor。
+- 已为 query context、context-window、workspace bootstrap、special-agent snapshot、built-in memory runtime、session summary、route resolution、gateway model pricing、client-side session cache 等主链 cache 补显式 descriptor。
 - 已为这些 cache 补 shared invalidation / observability helper，而不是继续依赖隐式 `Map.clear()` 与局部知识。
 - 已把 `context.ts` 的 reset 路径接到 shared invalidation helper。
 - 已补 focused cache governance tests、memory integration test，以及至少一条 memory 主链 e2e。
 
 收口说明：
 
-- Phase 5 的重点是把 cache owner / key / lifecycle / invalidation / observability 显式化，而不是一次性为所有 cache 都做 UI 面板。
-- 后续如果继续把 registry 暴露给更多 inspect / UI surface，属于增强项，不再作为 Phase 5 缺口。
+- Phase 5 的重点是把 cache owner / key / lifecycle / invalidation / observability 显式化，而不是一次性为所有 cache 都做客户端面板。
+- 后续如果继续把 registry 暴露给更多 inspect / client-facing surface，属于增强项，不再作为 Phase 5 缺口。
 
 ### 产出
 
@@ -648,7 +648,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
    - special-agent snapshot
    - runtime TTL cache
    - plugin / routing / control-plane cache
-   - file / UI cache
+   - file / client-side cache
 2. 为每类 cache 写清：
    - owner
    - key
@@ -670,7 +670,6 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - `src/agents/special/runtime`
 - `src/plugins`
 - `src/routing`
-- `ui/src/ui`
 
 ### 验收标准
 
@@ -817,19 +816,19 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - `src/auto-reply/reply/execution-visibility.ts` 里的 workflow summary 与 workflow tool fallback 也已接到 `src/workflows/visibility.ts`；workflow shared title 语义已开始同时覆盖 action feed、channel forwarder、commands、execution-visibility 四条展示路径。
 - `ACP projector` 走的 `projectAcpToolCallEvent(...)` 现在也开始复用 shared workflow title 语义；workflow tool call 在 summary mode 下不再退回泛化的 `Workflow: ...` 文案。
 - `src/commands/agent.inspect.ts` 现在也会把 workflow action 的 `projectedSummary` 带进 timeline summary；inspect 输出不再丢掉 `Current step: ...` 这类 shared workflow summary。
-- UI focused tests 也已对齐新的 shared workflow visibility 语义；`app-action-feed` / `chat view` 不再保留旧的 `Workflow: ...` 预期。
+- client-focused tests 也已对齐新的 shared workflow visibility 语义；action feed / chat rendering 不再保留旧的 `Workflow: ...` 预期。
 - `src/auto-reply/reply/execution-visibility.ts` 里 workflow summary 的最后一层 phase-aware fallback 也已收口；即使缺少结构化 workflow metadata，只要还有 object label，也会产出 `Running workflow: ...` 这类 shared title。
 - `src/workflows/visibility.ts` 已支持 `currentStepId` fallback；即使 steps 还没完整加载，也能产出统一的 `Current step: ...` summary。
 - 已新增 `src/infra/approval-visibility.ts`，把 approval waiting / granted / denied / unavailable 的 projectedTitle / projectedSummary 生成收成 shared seam。
 - `src/agents/action-feed/projector.ts` 与 gateway approval handlers 已开始复用 shared approval visibility；approval action feed / inspect / UI 的标题不再依赖通用 `wait_approval` intent fallback。
-- UI focused tests 也已开始锁住 approval projected fields；approval 这条主线现在和 workflow 一样开始走明确的 shared visibility seam。
+- client-focused tests 也已开始锁住 approval projected fields；approval 这条主线现在和 workflow 一样开始走明确的 shared visibility seam。
 - 已新增 `src/agents/tasks/completion-visibility.ts`，把 completion accepted / waiting_user / waiting_external / review_missing 的 projectedTitle / projectedSummary 生成收成 shared seam。
 - `src/agents/tasks/task-trajectory.ts` 与 `src/agents/action-feed/projector.ts` 已开始复用 shared completion visibility；completion action feed 不再只显示泛化的 `Completion decision`。
-- UI focused tests 也已开始锁住 completion projected fields；completion 这条主线现在也开始走 shared visibility seam。
+- client-focused tests 也已开始锁住 completion projected fields；completion 这条主线现在也开始走 shared visibility seam。
 - 已新增 `src/memory/action-visibility.ts`，把 memory-extraction / session-summary / dream 的 projectedTitle / projectedSummary 生成收成 shared seam。
 - `memory-extraction / session-summary / dream` 三条 runner 现在会在 emit memory action event 时直接附带 shared memory projectedTitle / projectedSummary，以及 `memoryKind / memoryPhase / memoryResultStatus` detail。
 - `src/agents/action-feed/projector.ts` 的 memory fallback 也已开始复用 shared memory visibility；带 memory detail 的 raw memory action 不再只依赖各 runner 手写标题。
-- UI focused tests 也已开始锁住 memory projected fields；memory 这条主线现在也纳入 shared visibility seam。
+- client-focused tests 也已开始锁住 memory projected fields；memory 这条主线现在也纳入 shared visibility seam。
 - 已补 focused tests：
   - `src/workflows/visibility.test.ts`
   - `src/workflows/action-feed.test.ts`
@@ -839,8 +838,6 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
   - `src/auto-reply/reply/execution-visibility.test.ts`
   - `src/auto-reply/reply/acp-projector.test.ts`
   - `src/commands/agent.inspect.test.ts`
-  - `ui/src/ui/app-action-feed.node.test.ts`
-  - `ui/src/ui/views/chat.test.ts`
   - `src/memory/action-visibility.test.ts`
   - `src/agents/special/runtime/action-feed.test.ts`
   - `src/memory/durable/agent-runner.test.ts`
@@ -850,7 +847,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 收口说明：
 
 - workflow / approval / completion / memory 四条最明显的 visibility 主链已经收口到 shared seam。
-- `action-feed` / `commands` / `execution-visibility` / `ACP projector` / `inspect` / UI focused surfaces 已开始消费同一套 projectedTitle / projectedSummary 语义。
+- `action-feed` / `commands` / `execution-visibility` / `ACP projector` / `inspect` / client-focused surfaces 已开始消费同一套 projectedTitle / projectedSummary 语义。
 - artifact 或其他剩余事件如果后续再发现分叉，可作为下一阶段增量收口，不再阻塞 Phase 7。
 
 ### 产出
@@ -877,7 +874,6 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - `src/auto-reply`
 - `src/workflows`
 - `src/acp`
-- `ui/src/ui`
 
 ### 验收标准
 
@@ -971,16 +967,15 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 ### 涉及目录
 
-- `ui/src/ui`
 - `src/gateway`
 
 ### 验收标准
 
-- 用户能按系统模型理解 UI，不再只是“页面堆功能”
+- 用户能按系统模型理解客户端，不再只是“页面堆功能”
 
 ### 必要测试
 
-- UI view tests
+- client view tests
 - projection contract tests
 - 关键交互 smoke
 
@@ -990,7 +985,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 
 已完成：
 
-1. 已把 UI 导航从旧控制台分组改成平台信息架构分组：
+1. 已把客户端导航从旧控制台分组改成平台信息架构分组：
    - `chat`
    - `workspace`
    - `automation`
@@ -1007,13 +1002,11 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
    - `Home` -> `Overview`
    - `Connect` -> `Channels`
    - `Debug` -> `Inspect`
-4. 已同步 command palette、sidebar brand 和多语言导航文案，使 UI 表达更接近平台模型，而不是功能堆页。
+4. 已同步 command palette、sidebar brand 和多语言导航文案，使客户端表达更接近平台模型，而不是功能堆页。
 
 已验证：
 
-- UI focused tests：
-  - `ui/src/ui/navigation.test.ts`
-  - `ui/src/ui/navigation-groups.test.ts`
+- client-focused tests：
 - `pnpm check`
 
 说明：

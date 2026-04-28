@@ -1,8 +1,8 @@
 ---
 read_when:
-  - 在 localhost 之外暴露 Gateway 网关控制 UI
-  - 自动化 tailnet 或公共仪表盘访问
-summary: 为 Gateway 网关仪表盘集成 Tailscale Serve/Funnel
+  - 在 localhost 之外暴露 Gateway 网关
+  - 自动化 tailnet 或公共 Gateway 访问
+summary: 为 Gateway 网关集成 Tailscale Serve/Funnel
 title: Tailscale
 x-i18n:
   generated_at: "2026-02-03T07:49:04Z"
@@ -13,9 +13,9 @@ x-i18n:
   workflow: 15
 ---
 
-# Tailscale（Gateway 网关仪表盘）
+# Tailscale（Gateway 网关）
 
-CrawClaw 可以为 Gateway 网关仪表盘和 WebSocket 端口自动配置 Tailscale **Serve**（tailnet）或 **Funnel**（公共）。这使 Gateway 网关保持绑定到 loopback，同时 Tailscale 提供 HTTPS、路由和（对于 Serve）身份头。
+CrawClaw 可以为 Gateway 网关和 WebSocket 端口自动配置 Tailscale **Serve**（tailnet）或 **Funnel**（公共）。这使 Gateway 网关保持绑定到 loopback，同时 Tailscale 提供 HTTPS、路由和（对于 Serve）身份头。
 
 ## 模式
 
@@ -48,7 +48,7 @@ CrawClaw 仅在请求从 loopback 到达并带有 Tailscale 的 `x-forwarded-for
 }
 ```
 
-打开：`https://<magicdns>/`（或你配置的 `gateway.controlUi.basePath`）
+打开：`https://<magicdns>/`
 
 ### 仅限 Tailnet（绑定到 Tailnet IP）
 
@@ -65,7 +65,7 @@ CrawClaw 仅在请求从 loopback 到达并带有 Tailscale 的 `x-forwarded-for
 
 从另一个 Tailnet 设备连接：
 
-- 控制 UI：`http://<tailscale-ip>:18789/`
+- Gateway HTTP/API：`http://<tailscale-ip>:18789/`
 - WebSocket：`ws://<tailscale-ip>:18789`
 
 注意：在此模式下 loopback（`http://127.0.0.1:18789`）将**不**工作。
@@ -98,7 +98,7 @@ crawclaw gateway --tailscale funnel --auth password
 - 如果你希望 CrawClaw 在关闭时撤销 `tailscale serve` 或 `tailscale funnel` 配置，设置 `gateway.tailscale.resetOnExit`。
 - `gateway.bind: "tailnet"` 是直接 Tailnet 绑定（无 HTTPS，无 Serve/Funnel）。
 - `gateway.bind: "auto"` 优先 loopback；如果你想要仅 Tailnet，使用 `tailnet`。
-- Serve/Funnel 仅暴露 **Gateway 网关控制 UI + WS**。节点通过相同的 Gateway 网关 WS 端点连接，因此 Serve 可以用于节点访问。
+- Serve/Funnel 仅暴露 **Gateway 网关 HTTP/API + WS**。节点通过相同的 Gateway 网关 WS 端点连接，因此 Serve 可以用于节点访问。
 
 ## 浏览器控制（远程 Gateway 网关 + 本地浏览器）
 

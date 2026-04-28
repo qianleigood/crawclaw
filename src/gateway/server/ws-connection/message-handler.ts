@@ -42,11 +42,6 @@ import { resolveRuntimeServiceVersion } from "../../../version.js";
 import type { AuthRateLimiter } from "../../auth-rate-limit.js";
 import type { GatewayAuthResult, ResolvedGatewayAuth } from "../../auth.js";
 import { isLocalDirectRequest } from "../../auth.js";
-import {
-  buildCanvasScopedHostUrl,
-  CANVAS_CAPABILITY_TTL_MS,
-  mintCanvasCapabilityToken,
-} from "../../canvas-capability.js";
 import { normalizeDeviceMetadataForAuth } from "../../device-auth.js";
 import { ADMIN_SCOPE } from "../../method-scopes.js";
 import {
@@ -96,10 +91,10 @@ import { resolveConnectAuthDecision, resolveConnectAuthState } from "./auth-cont
 import { formatGatewayAuthFailureMessage } from "./auth-messages.js";
 import {
   evaluateMissingDeviceIdentity,
-  isTrustedProxyControlUiOperatorAuth,
-  resolveControlUiAuthPolicy,
+  isTrustedProxyBrowserClientsOperatorAuth,
+  resolveBrowserClientsAuthPolicy,
   shouldClearUnboundScopesForMissingDeviceIdentity,
-  shouldSkipControlUiPairing,
+  shouldSkipBrowserClientsPairing,
 } from "./connect-policy.js";
 import {
   resolveDeviceSignaturePayloadVersion,
@@ -154,7 +149,6 @@ export function attachGatewayWsMessageHandler(params: {
   requestHost?: string;
   requestOrigin?: string;
   requestUserAgent?: string;
-  canvasHostUrl?: string;
   connectNonce: string;
   resolvedAuth: ResolvedGatewayAuth;
   /** Optional rate limiter for auth brute-force protection. */
@@ -189,7 +183,6 @@ export function attachGatewayWsMessageHandler(params: {
     requestHost,
     requestOrigin,
     requestUserAgent,
-    canvasHostUrl,
     connectNonce,
     resolvedAuth,
     rateLimiter,
@@ -416,22 +409,23 @@ export function attachGatewayWsMessageHandler(params: {
         connectParams.role = role;
         connectParams.scopes = scopes;
 
-        const isControlUi = isOperatorUiClient(connectParams.client);
+        const isBrowserClients = isOperatorUiClient(connectParams.client);
         const isBrowserOperatorUi = isBrowserOperatorUiClient(connectParams.client);
         const isWebchat = isWebchatConnect(connectParams);
         if (enforceOriginCheckForAnyClient || isBrowserOperatorUi || isWebchat) {
           const hostHeaderOriginFallbackEnabled =
-            configSnapshot.gateway?.controlUi?.dangerouslyAllowHostHeaderOriginFallback === true;
+            configSnapshot.gateway?.browserClients?.dangerouslyAllowHostHeaderOriginFallback ===
+            true;
           const originCheck = checkBrowserOrigin({
             requestHost,
             origin: requestOrigin,
-            allowedOrigins: configSnapshot.gateway?.controlUi?.allowedOrigins,
+            allowedOrigins: configSnapshot.gateway?.browserClients?.allowedOrigins,
             allowHostHeaderOriginFallback: hostHeaderOriginFallbackEnabled,
             isLocalClient,
           });
           if (!originCheck.ok) {
             const errorMessage =
-              "origin not allowed (open the Control UI from the gateway host or allow it in gateway.controlUi.allowedOrigins)";
+              "origin not allowed (open the Browser client from the gateway host or allow it in gateway.browserClients.allowedOrigins)";
             markHandshakeFailure("origin-mismatch", {
               origin: requestOrigin ?? "n/a",
               host: requestHost ?? "n/a",
@@ -439,7 +433,7 @@ export function attachGatewayWsMessageHandler(params: {
             });
             sendHandshakeErrorResponse(ErrorCodes.INVALID_REQUEST, errorMessage, {
               details: {
-                code: ConnectErrorDetailCodes.CONTROL_UI_ORIGIN_NOT_ALLOWED,
+                code: ConnectErrorDetailCodes.BROWSER_CLIENT_ORIGIN_NOT_ALLOWED,
                 reason: originCheck.reason,
               },
             });
@@ -453,7 +447,7 @@ export function attachGatewayWsMessageHandler(params: {
             );
             if (hostHeaderOriginFallbackEnabled) {
               logGateway.warn(
-                "security metric: gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback accepted a websocket connect request",
+                "security metric: gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback accepted a websocket connect request",
               );
             }
           }
@@ -465,12 +459,12 @@ export function attachGatewayWsMessageHandler(params: {
         const hasTokenAuth = Boolean(connectParams.auth?.token);
         const hasPasswordAuth = Boolean(connectParams.auth?.password);
         const hasSharedAuth = hasTokenAuth || hasPasswordAuth;
-        const controlUiAuthPolicy = resolveControlUiAuthPolicy({
-          isControlUi,
-          controlUiConfig: configSnapshot.gateway?.controlUi,
+        const browserClientsAuthPolicy = resolveBrowserClientsAuthPolicy({
+          isBrowserClients,
+          browserClientsConfig: configSnapshot.gateway?.browserClients,
           deviceRaw,
         });
-        const device = controlUiAuthPolicy.device;
+        const device = browserClientsAuthPolicy.device;
 
         let {
           authResult,
@@ -529,23 +523,23 @@ export function attachGatewayWsMessageHandler(params: {
           }
         };
         const handleMissingDeviceIdentity = (): boolean => {
-          const trustedProxyAuthOk = isTrustedProxyControlUiOperatorAuth({
-            isControlUi,
+          const trustedProxyAuthOk = isTrustedProxyBrowserClientsOperatorAuth({
+            isBrowserClients,
             role,
             authMode: resolvedAuth.mode,
             authOk,
             authMethod,
           });
-          const preserveInsecureLocalControlUiScopes =
-            isControlUi &&
-            controlUiAuthPolicy.allowInsecureAuthConfigured &&
+          const preserveInsecureLocalBrowserClientsScopes =
+            isBrowserClients &&
+            browserClientsAuthPolicy.allowInsecureAuthConfigured &&
             isLocalClient &&
             (authMethod === "token" || authMethod === "password");
           const decision = evaluateMissingDeviceIdentity({
             hasDeviceIdentity: Boolean(device),
             role,
-            isControlUi,
-            controlUiAuthPolicy,
+            isBrowserClients,
+            browserClientsAuthPolicy,
             trustedProxyAuthOk,
             sharedAuthOk,
             authOk,
@@ -559,8 +553,8 @@ export function attachGatewayWsMessageHandler(params: {
             !device &&
             shouldClearUnboundScopesForMissingDeviceIdentity({
               decision,
-              controlUiAuthPolicy,
-              preserveInsecureLocalControlUiScopes,
+              browserClientsAuthPolicy,
+              preserveInsecureLocalBrowserClientsScopes,
               authMethod,
               trustedProxyAuthOk,
             })
@@ -571,14 +565,14 @@ export function attachGatewayWsMessageHandler(params: {
             return true;
           }
 
-          if (decision.kind === "reject-control-ui-insecure-auth") {
+          if (decision.kind === "reject-browser-client-insecure-auth") {
             const errorMessage =
-              "control ui requires device identity (use HTTPS or localhost secure context)";
-            markHandshakeFailure("control-ui-insecure-auth", {
-              insecureAuthConfigured: controlUiAuthPolicy.allowInsecureAuthConfigured,
+              "browser client requires device identity (use HTTPS or localhost secure context)";
+            markHandshakeFailure("browser-client-insecure-auth", {
+              insecureAuthConfigured: browserClientsAuthPolicy.allowInsecureAuthConfigured,
             });
             sendHandshakeErrorResponse(ErrorCodes.INVALID_REQUEST, errorMessage, {
-              details: { code: ConnectErrorDetailCodes.CONTROL_UI_DEVICE_IDENTITY_REQUIRED },
+              details: { code: ConnectErrorDetailCodes.BROWSER_CLIENT_DEVICE_IDENTITY_REQUIRED },
             });
             close(1008, errorMessage);
             return false;
@@ -697,15 +691,15 @@ export function attachGatewayWsMessageHandler(params: {
           return;
         }
 
-        const trustedProxyAuthOk = isTrustedProxyControlUiOperatorAuth({
-          isControlUi,
+        const trustedProxyAuthOk = isTrustedProxyBrowserClientsOperatorAuth({
+          isBrowserClients,
           role,
           authMode: resolvedAuth.mode,
           authOk,
           authMethod,
         });
-        const skipPairing = shouldSkipControlUiPairing(
-          controlUiAuthPolicy,
+        const skipPairing = shouldSkipBrowserClientsPairing(
+          browserClientsAuthPolicy,
           role,
           trustedProxyAuthOk,
           resolvedAuth.mode,
@@ -787,7 +781,7 @@ export function attachGatewayWsMessageHandler(params: {
             const allowSilentLocalPairing = shouldAllowSilentLocalPairing({
               isLocalClient,
               hasBrowserOriginHeader,
-              isControlUi,
+              isBrowserClients,
               isWebchat,
               reason,
             });
@@ -1057,15 +1051,6 @@ export function attachGatewayWsMessageHandler(params: {
           snapshot.health = cachedHealth;
           snapshot.stateVersion.health = getHealthVersion();
         }
-        const canvasCapability =
-          role === "node" && canvasHostUrl ? mintCanvasCapabilityToken() : undefined;
-        const canvasCapabilityExpiresAtMs = canvasCapability
-          ? Date.now() + CANVAS_CAPABILITY_TTL_MS
-          : undefined;
-        const scopedCanvasHostUrl =
-          canvasHostUrl && canvasCapability
-            ? (buildCanvasScopedHostUrl(canvasHostUrl, canvasCapability) ?? canvasHostUrl)
-            : canvasHostUrl;
         const helloOk = {
           type: "hello-ok",
           protocol: PROTOCOL_VERSION,
@@ -1075,7 +1060,6 @@ export function attachGatewayWsMessageHandler(params: {
           },
           features: { methods: gatewayMethods, events },
           snapshot,
-          canvasHostUrl: scopedCanvasHostUrl,
           auth: deviceToken
             ? {
                 deviceToken: deviceToken.token,
@@ -1098,9 +1082,6 @@ export function attachGatewayWsMessageHandler(params: {
           connId,
           presenceKey,
           clientIp: reportedClientIp,
-          canvasHostUrl,
-          canvasCapability,
-          canvasCapabilityExpiresAtMs,
         };
         setSocketMaxPayload(socket, MAX_PAYLOAD_BYTES);
         setClient(nextClient);

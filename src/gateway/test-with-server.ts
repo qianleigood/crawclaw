@@ -16,14 +16,14 @@ export async function withServer<T>(run: (ws: GatewayWs) => Promise<T>): Promise
   }
 }
 
-export function installConnectedControlUiServerSuite(
+export function installConnectedBrowserClientsServerSuite(
   onReady: (started: { server: GatewayServer; ws: GatewayWs; port: number }) => void,
 ): void {
   let started: Awaited<ReturnType<StartServerWithClient>> | null = null;
   const token = "secret";
 
   beforeAll(async () => {
-    started = await startServerWithClient(token, { controlUiEnabled: true });
+    started = await startServerWithClient(token);
     onReady({
       server: started.server,
       ws: started.ws,

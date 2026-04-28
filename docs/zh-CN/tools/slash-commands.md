@@ -56,7 +56,7 @@ x-i18n:
 ```
 
 - `commands.text`（默认 `true`）启用解析聊天消息中的 `/...`。
-  - 在没有原生命令的平台上（WhatsApp/WebChat/Signal/iMessage/Google Chat/MS Teams），即使你将此设置为 `false`，文本命令仍然有效。
+  - 在没有原生命令的平台上（WhatsApp/Gateway 客户端/Signal/iMessage/Google Chat/MS Teams），即使你将此设置为 `false`，文本命令仍然有效。
 - `commands.native`（默认 `"auto"`）注册原生命令。
   - Auto：在 Discord/Telegram 上启用；在 Slack 上禁用（直到你添加斜杠命令）；在不支持原生命令的提供商上忽略。
   - 设置 `channels.discord.commands.native`、`channels.telegram.commands.native` 或 `channels.slack.commands.native` 以按提供商覆盖（布尔值或 `"auto"`）。

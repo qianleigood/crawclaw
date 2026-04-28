@@ -87,7 +87,7 @@ read_when:
   - `delete`
 - `crawclaw_agent` step 已编译成真实 n8n callback HTTP 节点。
 - `workflow-step-agent` 已通过 Gateway method 和 HTTP endpoint 接到真实执行链。
-- UI 管理面已落地：
+- Gateway management methods 已落地：
   - workflow 列表 / 详情
   - recent runs / execution timeline
   - waiting / resume
@@ -102,7 +102,7 @@ read_when:
 
 当前还明确未落地的部分：
 
-- 独立 CLI 子命令仍是后续项，当前主入口是 agent tools、gateway methods 和 UI。
+- 独立 CLI 子命令仍是后续项，当前主入口是 agent tools 和 gateway methods。
 - `branch_v2` 还不是完整图形化分支编辑器。
 - `fan_out` 已支持基础并行分支、`fan_in` 汇合、宽度上限约束和补偿状态投影。
 - `maxActiveBranches` 目前是 deploy-time 宽度校验，不是低宽度 staged 调度器。
@@ -602,11 +602,11 @@ step 级状态：
 4. `workflow.resume` 调用 n8n resume。
 5. execution 继续。
 
-## UI / CLI 管理面
+## Gateway / CLI 管理面
 
-### UI
+### Gateway methods
 
-当前 UI 已落地的 `Workflows` 管理面：
+当前 Gateway methods 已落地的 `Workflows` 管理能力：
 
 - Workflow 列表
 - Workflow 详情
@@ -617,7 +617,7 @@ step 级状态：
 - `Change Summary`
 - `Spec Workbench`
 
-当前 UI 还额外支持：
+当前 Gateway methods 还额外支持：
 
 - 比较历史 spec 版本
 - 保存 spec 修改
@@ -631,7 +631,7 @@ CLI 仍未单独落地；当前 workflow 管理主要通过：
 
 - agent tools
 - gateway methods
-- control UI
+- Gateway RPC clients
 
 ## 与当前 Task Flow 的关系
 
@@ -655,9 +655,9 @@ CLI 仍未单独落地；当前 workflow 管理主要通过：
 当前已经跑过并通过的验证包括：
 
 - workflow / gateway 定向测试
-- workflow UI controller 定向测试
+- workflow gateway controller 定向测试
 - 全量 `typecheck`
-- control UI build
+- Gateway RPC client smoke
 - 真实本地 n8n live e2e
 
 真实本地 n8n live e2e 已验证两条主链：

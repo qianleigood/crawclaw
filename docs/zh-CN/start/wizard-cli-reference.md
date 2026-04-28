@@ -110,13 +110,12 @@ x-i18n:
     - 安装可选依赖（部分依赖在 macOS 上使用 Homebrew）。
   </Step>
   <Step title="完成">
-    - 显示摘要和后续步骤，包括 iOS、Android 和 macOS 应用选项。
+    - 显示摘要和后续步骤，包括节点模式和远程控制入口。
   </Step>
 </Steps>
 
 <Note>
-如果未检测到 GUI，向导会打印用于控制 UI 的 SSH 端口转发说明，而不是打开浏览器。
-如果缺少控制 UI 资源，向导会尝试构建它们；回退命令为 `pnpm ui:build`（首次运行会自动安装 UI 依赖）。
+如果未检测到 GUI，向导会打印用于远程访问 Gateway 网关的 SSH 端口转发说明，而不是打开浏览器。
 </Note>
 
 ## 远程模式详情
@@ -304,7 +303,7 @@ Gateway 网关向导 RPC：
 - `wizard.cancel`
 - `wizard.status`
 
-客户端（macOS 应用和控制 UI）可以在不重新实现新手引导逻辑的情况下渲染步骤。
+客户端可以在不重新实现新手引导逻辑的情况下渲染步骤。
 
 Signal 设置行为：
 

@@ -98,14 +98,14 @@ crawclaw update
 - 需要干净的工作树。
 - 切换到选定的渠道（标签或分支）。
 - 获取并 rebase 到配置的上游（dev 渠道）。
-- 安装依赖、构建、构建控制 UI，并运行 `crawclaw doctor`。
+- 安装依赖、构建，并运行 `crawclaw doctor`。
 - 默认重启 Gateway 网关（使用 `--no-restart` 跳过）。
 
 如果你通过 **npm/pnpm** 安装（没有 git 元数据），`crawclaw update` 将尝试通过你的包管理器更新。如果无法检测到安装，请改用"更新（全局安装）"。
 
-## 更新（控制 UI / RPC）
+## 更新（RPC）
 
-控制 UI 有**更新并重启**（RPC：`update.run`）。它：
+Gateway RPC 提供**更新并重启**方法（`update.run`）。它：
 
 1. 运行与 `crawclaw update` 相同的源码更新流程（仅限 git checkout）。
 2. 写入带有结构化报告（stdout/stderr 尾部）的重启哨兵。

@@ -13,7 +13,7 @@ A **node** is a companion device (macOS/headless) that connects to the Gateway *
 
 Legacy transport: [Bridge protocol](/gateway/bridge-protocol) (TCP JSONL; deprecated/removed for current nodes).
 
-macOS can also run in **node mode**: the menubar app connects to the Gateway’s WS server and exposes its local canvas/camera commands as a node (so `crawclaw nodes …` works against this Mac).
+macOS can also run in **node mode** through a paired node host that connects to the Gateway’s WS server and exposes local commands as a node (so `crawclaw nodes …` works against this Mac).
 
 Historical note: archived mobile node implementations used the same protocol family, but those source trees were removed from this repository.
 
@@ -202,18 +202,6 @@ Notes:
 - `canvas present` accepts URLs or local file paths (`--target`), plus optional `--x/--y/--width/--height` for positioning.
 - `canvas eval` accepts inline JS (`--js`) or a positional arg.
 
-### A2UI (Canvas)
-
-```bash
-crawclaw nodes canvas a2ui push --node <idOrNameOrIp> --text "Hello"
-crawclaw nodes canvas a2ui push --node <idOrNameOrIp> --jsonl ./payload.jsonl
-crawclaw nodes canvas a2ui reset --node <idOrNameOrIp>
-```
-
-Notes:
-
-- Only A2UI v0.8 JSONL is supported (v0.9/createSurface is rejected).
-
 ## Photos + videos (node camera)
 
 Photos (`jpg`):
@@ -388,12 +376,10 @@ Notes:
 - The node host stores its node id, token, display name, and gateway connection info in `~/.crawclaw/node.json`.
 - Exec approvals are enforced locally via `~/.crawclaw/exec-approvals.json`
   (see [Exec approvals](/tools/exec-approvals)).
-- On macOS, the headless node host executes `system.run` locally by default. Set
-  `CRAWCLAW_NODE_EXEC_HOST=app` to route `system.run` through the companion app exec host; add
-  `CRAWCLAW_NODE_EXEC_FALLBACK=0` to require the app host and fail closed if it is unavailable.
+- On macOS, the headless node host executes `system.run` locally by default.
 - Add `--tls` / `--tls-fingerprint` when the Gateway WS uses TLS.
 
 ## Mac node mode
 
-- The macOS menubar app connects to the Gateway WS server as a node (so `crawclaw nodes …` works against this Mac).
-- In remote mode, the app opens an SSH tunnel for the Gateway port and connects to `localhost`.
+- A macOS node host connects to the Gateway WS server as a node (so `crawclaw nodes …` works against this Mac).
+- In remote mode, use an SSH tunnel for the Gateway port and connect to `localhost`.

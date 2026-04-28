@@ -518,7 +518,7 @@ export const usageHandlers: GatewayRequestHandlers = {
         } else {
           // Unnamed session - use session ID as key, no label
           mergedEntries.push({
-            // Keep agentId in the key so the dashboard can attribute sessions and later fetch logs.
+            // Keep agentId in the key so clients can attribute sessions and later fetch logs.
             key: `agent:${discovered.agentId}:${discovered.sessionId}`,
             sessionId: discovered.sessionId,
             sessionFile: discovered.sessionFile,

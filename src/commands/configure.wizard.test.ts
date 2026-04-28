@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => {
     printWizardHeader: vi.fn(),
     probeGatewayReachable: vi.fn(),
     waitForGatewayReachable: vi.fn(),
-    resolveControlUiLinks: vi.fn(),
+    resolveBrowserClientsLinks: vi.fn(),
     summarizeExistingConfig: vi.fn(),
   };
 });
@@ -58,7 +58,7 @@ vi.mock("./onboard-helpers.js", () => ({
   guardCancel: <T>(value: T) => value,
   printWizardHeader: mocks.printWizardHeader,
   probeGatewayReachable: mocks.probeGatewayReachable,
-  resolveControlUiLinks: mocks.resolveControlUiLinks,
+  resolveBrowserClientsLinks: mocks.resolveBrowserClientsLinks,
   summarizeExistingConfig: mocks.summarizeExistingConfig,
   waitForGatewayReachable: mocks.waitForGatewayReachable,
 }));
@@ -160,7 +160,7 @@ function setupBaseWizardState(config: CrawClawConfig = {}) {
   });
   mocks.resolveGatewayPort.mockReturnValue(18789);
   mocks.probeGatewayReachable.mockResolvedValue({ ok: false });
-  mocks.resolveControlUiLinks.mockReturnValue({ wsUrl: "ws://127.0.0.1:18789" });
+  mocks.resolveBrowserClientsLinks.mockReturnValue({ wsUrl: "ws://127.0.0.1:18789" });
   mocks.summarizeExistingConfig.mockReturnValue("");
   mocks.createClackPrompter.mockReturnValue({
     intro: vi.fn(async () => {}),

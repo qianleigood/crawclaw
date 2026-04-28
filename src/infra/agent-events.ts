@@ -30,8 +30,8 @@ export type AgentRunContext = {
   verboseLevel?: VerboseLevel;
   isHeartbeat?: boolean;
   observation: ObservationContext;
-  /** Whether control UI clients should receive chat/agent updates for this run. */
-  isControlUiVisible?: boolean;
+  /** Whether browser client clients should receive chat/agent updates for this run. */
+  isBrowserClientsVisible?: boolean;
 };
 
 export type AgentRunContextInput = Omit<AgentRunContext, "observation"> & {
@@ -117,8 +117,8 @@ export function registerAgentRunContext(runId: string, context: AgentRunContextI
   if (normalizedContext.verboseLevel && existing.verboseLevel !== normalizedContext.verboseLevel) {
     existing.verboseLevel = normalizedContext.verboseLevel;
   }
-  if (normalizedContext.isControlUiVisible !== undefined) {
-    existing.isControlUiVisible = normalizedContext.isControlUiVisible;
+  if (normalizedContext.isBrowserClientsVisible !== undefined) {
+    existing.isBrowserClientsVisible = normalizedContext.isBrowserClientsVisible;
   }
   if (
     normalizedContext.isHeartbeat !== undefined &&
@@ -153,10 +153,10 @@ export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
   const nextSeq = (state.seqByRun.get(event.runId) ?? 0) + 1;
   state.seqByRun.set(event.runId, nextSeq);
   const context = state.runContextById.get(event.runId);
-  const isControlUiVisible = context?.isControlUiVisible ?? true;
+  const isBrowserClientsVisible = context?.isBrowserClientsVisible ?? true;
   const eventSessionKey =
     typeof event.sessionKey === "string" && event.sessionKey.trim() ? event.sessionKey : undefined;
-  const sessionKey = isControlUiVisible ? (eventSessionKey ?? context?.sessionKey) : undefined;
+  const sessionKey = isBrowserClientsVisible ? (eventSessionKey ?? context?.sessionKey) : undefined;
   const enriched: AgentEventPayload = {
     ...event,
     sessionKey,

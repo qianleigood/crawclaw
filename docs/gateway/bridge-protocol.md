@@ -41,7 +41,7 @@ authoritative pin without explicit user intent or other out-of-band verification
 3. Client sends `pair-request`.
 4. Gateway waits for approval, then sends `pair-ok` and `hello-ok`.
 
-`hello-ok` returns `serverName` and may include `canvasHostUrl`.
+`hello-ok` returns `serverName`.
 
 ## Frames
 

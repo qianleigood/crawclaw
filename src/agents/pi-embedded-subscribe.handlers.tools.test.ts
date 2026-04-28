@@ -513,7 +513,7 @@ describe("handleToolExecutionEnd exec approval prompts", () => {
       expect.objectContaining({
         text: [
           "Exec approval is required, but interactive approvals are unavailable for background agent runs.",
-          "Resume or foreground the run in the Web UI or terminal UI, then retry the command so an approver can respond.",
+          "Resume or foreground the run in the terminal UI, then retry the command so an approver can respond.",
         ].join("\n\n"),
       }),
     );

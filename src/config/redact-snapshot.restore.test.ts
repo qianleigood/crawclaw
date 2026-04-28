@@ -52,15 +52,15 @@ describe("restoreRedactedValues", () => {
 
   it("preserves non-sensitive fields unchanged", () => {
     const incoming = {
-      ui: { seamColor: "#ff0000" },
+      cli: { theme: "dark" },
       gateway: { port: 9999, auth: { token: REDACTED_SENTINEL } },
     };
     const original = {
-      ui: { seamColor: "#0088cc" },
+      cli: { theme: "system" },
       gateway: { port: 18789, auth: { token: "real-secret" } },
     };
     const result = restoreRedactedValues(incoming, original) as typeof incoming;
-    expect(result.ui.seamColor).toBe("#ff0000");
+    expect(result.cli.theme).toBe("dark");
     expect(result.gateway.port).toBe(9999);
     expect(result.gateway.auth.token).toBe("real-secret");
   });
@@ -154,7 +154,7 @@ describe("restoreRedactedValues", () => {
           },
         },
       },
-      ui: { seamColor: "#0088cc" },
+      cli: { theme: "system" },
     };
     const snapshot = makeSnapshot(originalConfig);
     const redacted = redactConfigSnapshot(snapshot);

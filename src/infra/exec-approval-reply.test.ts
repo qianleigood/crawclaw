@@ -59,10 +59,10 @@ describe("exec approval reply helpers", () => {
         "Exec approval is required, but interactive approvals are unavailable for heartbeat runs.",
     },
     {
-      reason: "hidden-control-ui" as const,
+      reason: "hidden-browser-client" as const,
       channelLabel: undefined,
       expected:
-        "Exec approval is required, but interactive approvals are unavailable when control UI updates are hidden for this run.",
+        "Exec approval is required, but interactive approvals are unavailable when operator client updates are hidden for this run.",
     },
   ] as const;
 
@@ -90,7 +90,7 @@ describe("exec approval reply helpers", () => {
     ).toBe(
       [
         "Exec approval is required, but interactive approvals are unavailable for background agent runs.",
-        "Resume or foreground the run in the Web UI or terminal UI, then retry the command so an approver can respond.",
+        "Resume or foreground the run in the terminal UI, then retry the command so an approver can respond.",
       ].join("\n\n"),
     );
   });

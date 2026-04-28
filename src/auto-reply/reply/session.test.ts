@@ -2400,7 +2400,7 @@ describe("initSessionState internal channel routing preservation", () => {
         Body: "internal follow-up",
         SessionKey: sessionKey,
         OriginatingChannel: "webchat",
-        OriginatingTo: "session:dashboard",
+        OriginatingTo: "session:client",
       },
       cfg,
       commandAuthorized: true,
@@ -2412,8 +2412,8 @@ describe("initSessionState internal channel routing preservation", () => {
     expect(result.sessionEntry.deliveryContext?.to).toBe("group:12345");
   });
 
-  it("preserves persisted external route when webchat views a channel-peer session (fixes #47745)", async () => {
-    // Regression: dashboard/webchat access must not overwrite an established
+  it("preserves persisted external route when a gateway client observes a channel-peer session (fixes #47745)", async () => {
+    // Regression: client/webchat access must not overwrite an established
     // external delivery route (e.g. Telegram/iMessage) on a channel-scoped session.
     // Subagent completions should still be delivered to the original channel.
     const storePath = await createStorePath("webchat-direct-route-preserve-");
@@ -2436,10 +2436,10 @@ describe("initSessionState internal channel routing preservation", () => {
 
     const result = await initSessionState({
       ctx: {
-        Body: "reply from control ui",
+        Body: "reply from browser client",
         SessionKey: sessionKey,
         OriginatingChannel: "webchat",
-        OriginatingTo: "session:dashboard",
+        OriginatingTo: "session:client",
         Surface: "webchat",
       },
       cfg,
@@ -2470,10 +2470,10 @@ describe("initSessionState internal channel routing preservation", () => {
 
     const result = await initSessionState({
       ctx: {
-        Body: "reply from control ui",
+        Body: "reply from browser client",
         SessionKey: sessionKey,
         OriginatingChannel: "webchat",
-        OriginatingTo: "session:dashboard",
+        OriginatingTo: "session:client",
         Surface: "webchat",
       },
       cfg,
@@ -2481,9 +2481,9 @@ describe("initSessionState internal channel routing preservation", () => {
     });
 
     expect(result.sessionEntry.lastChannel).toBe("webchat");
-    expect(result.sessionEntry.lastTo).toBe("session:dashboard");
+    expect(result.sessionEntry.lastTo).toBe("session:client");
     expect(result.sessionEntry.deliveryContext?.channel).toBe("webchat");
-    expect(result.sessionEntry.deliveryContext?.to).toBe("session:dashboard");
+    expect(result.sessionEntry.deliveryContext?.to).toBe("session:client");
   });
 
   it("keeps persisted external route when OriginatingChannel is non-deliverable", async () => {

@@ -21,7 +21,7 @@ vi.mock("../infra/update-runner.js", () => ({
 import { runGatewayUpdate } from "../infra/update-runner.js";
 import { connectGatewayClient } from "./test-helpers.e2e.js";
 import { installGatewayTestHooks, onceMessage, rpcReq } from "./test-helpers.js";
-import { installConnectedControlUiServerSuite } from "./test-with-server.js";
+import { installConnectedBrowserClientsServerSuite } from "./test-with-server.js";
 
 installGatewayTestHooks({ scope: "suite" });
 const FAST_WAIT_OPTS = { timeout: 1_000, interval: 2 } as const;
@@ -29,7 +29,7 @@ const FAST_WAIT_OPTS = { timeout: 1_000, interval: 2 } as const;
 let ws: WebSocket;
 let port: number;
 
-installConnectedControlUiServerSuite((started) => {
+installConnectedBrowserClientsServerSuite((started) => {
   ws = started.ws;
   port = started.port;
 });

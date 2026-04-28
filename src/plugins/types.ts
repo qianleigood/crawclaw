@@ -2388,7 +2388,7 @@ export type PluginHookToolContext = {
   guard?: {
     runtime?: TaskRuntime;
     mode?: AgentTaskMode;
-    controlUiVisible: boolean;
+    browserClientsVisible: boolean;
     heartbeat: boolean;
     interactiveApprovalAvailable: boolean;
     interactiveApprovalBlocker?: AgentInteractiveApprovalBlocker;

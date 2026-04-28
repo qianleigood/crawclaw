@@ -252,7 +252,7 @@ describe("before_tool_call hook integration", () => {
         runId: "run-main",
         toolCallId: "call-5",
         guard: {
-          controlUiVisible: true,
+          browserClientsVisible: true,
           heartbeat: false,
           interactiveApprovalAvailable: true,
         },
@@ -302,7 +302,7 @@ describe("before_tool_call hook integration", () => {
         guard: {
           runtime: "cli",
           mode: "foreground",
-          controlUiVisible: true,
+          browserClientsVisible: true,
           heartbeat: false,
           interactiveApprovalAvailable: true,
         },
@@ -310,14 +310,14 @@ describe("before_tool_call hook integration", () => {
     );
   });
 
-  it("exposes runtime-derived guard context to hooks for hidden-control-ui runs", async () => {
+  it("exposes runtime-derived guard context to hooks for hidden-browser-client runs", async () => {
     registerAgentRunContext("run-hidden-hook", {
       sessionKey: "agent:hidden",
       sessionId: "ephemeral-hidden",
       agentId: "hidden-agent",
       taskRuntime: "cli",
       taskMode: "foreground",
-      isControlUiVisible: false,
+      isBrowserClientsVisible: false,
     });
     registerAgentRuntimeRun({
       runId: "run-hidden-hook",
@@ -353,10 +353,10 @@ describe("before_tool_call hook integration", () => {
         guard: {
           runtime: "cli",
           mode: "foreground",
-          controlUiVisible: false,
+          browserClientsVisible: false,
           heartbeat: false,
           interactiveApprovalAvailable: false,
-          interactiveApprovalBlocker: "hidden-control-ui",
+          interactiveApprovalBlocker: "hidden-browser-client",
         },
       }),
     );
@@ -430,7 +430,7 @@ describe("before_tool_call hook integration", () => {
           guard: {
             runtime: "subagent",
             mode: "background",
-            controlUiVisible: true,
+            browserClientsVisible: true,
             heartbeat: false,
             interactiveApprovalAvailable: false,
             interactiveApprovalBlocker: "background",

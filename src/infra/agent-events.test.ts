@@ -74,11 +74,11 @@ describe("agent-events sequencing", () => {
     expect(phases).toEqual(["start", "end"]);
   });
 
-  test("omits sessionKey for runs hidden from Control UI", async () => {
+  test("omits sessionKey for runs hidden from Browser client", async () => {
     resetAgentRunContextForTest();
     registerAgentRunContext("run-hidden", {
       sessionKey: "session-imessage",
-      isControlUiVisible: false,
+      isBrowserClientsVisible: false,
     });
 
     let receivedSessionKey: string | undefined;
@@ -100,7 +100,7 @@ describe("agent-events sequencing", () => {
     resetAgentRunContextForTest();
     registerAgentRunContext("run-ctx", {
       sessionKey: "session-main",
-      isControlUiVisible: true,
+      isBrowserClientsVisible: true,
     });
     registerAgentRunContext("run-ctx", {
       verboseLevel: "full",
@@ -111,7 +111,7 @@ describe("agent-events sequencing", () => {
       sessionKey: "session-main",
       verboseLevel: "full",
       isHeartbeat: true,
-      isControlUiVisible: true,
+      isBrowserClientsVisible: true,
       observation: expect.objectContaining({
         trace: expect.objectContaining({ traceId: "run-loop:run-ctx" }),
       }),

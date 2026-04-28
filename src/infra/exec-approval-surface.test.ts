@@ -78,7 +78,7 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
       expected: {
         kind: "enabled",
         channel: "web",
-        channelLabel: "Web UI",
+        channelLabel: "Gateway client",
       },
     },
   ])("treats built-in initiating surface %j", ({ channel, expected }) => {

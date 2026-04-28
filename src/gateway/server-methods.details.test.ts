@@ -19,7 +19,7 @@ function buildClient(scopes: string[]) {
       role: "operator",
       scopes,
       client: {
-        id: "crawclaw-control-ui",
+        id: "crawclaw-browser-client",
         version: "1.0.0",
         platform: "darwin",
         mode: "ui",

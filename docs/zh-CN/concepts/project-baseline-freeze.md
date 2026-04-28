@@ -93,13 +93,9 @@ title: 项目基线冻结
 
 典型入口：
 
-- `ui/src/ui/app.ts`
-- `ui/src/ui/app-render.ts`
-- `ui/src/ui/controllers/**`
-
 职责：
 
-- Control UI 的交互面
+- Browser client 的交互面
 - gateway contract 消费层
 
 ## 当前可冻结的 Public Surface 基线
@@ -318,8 +314,6 @@ title: 项目基线冻结
 ### 风险 4：浏览器侧 E2E 在受限环境下可运行性不足
 
 影响范围：
-
-- `ui/src/ui/*.browser.test.ts`
 
 说明：
 

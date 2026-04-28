@@ -83,7 +83,7 @@ function isExplicitlyNonSensitivePath(hints: ConfigUiHints | undefined, paths: s
  * Sentinel value used to replace sensitive config fields in gateway responses.
  * Write-side handlers (config.set, config.apply, config.patch) detect this
  * sentinel and restore the original value from the on-disk config, so a
- * round-trip through the Web UI does not corrupt credentials.
+ * round-trip through browser-origin clients does not corrupt credentials.
  */
 export const REDACTED_SENTINEL = "__CRAWCLAW_REDACTED__";
 
@@ -475,7 +475,7 @@ export type RedactionResult = {
  * (on sensitive paths) with the corresponding value from `original`.
  *
  * This is called by config.set / config.apply / config.patch before writing,
- * so that credentials survive a Web UI round-trip unmodified.
+ * so that credentials survive a browser-origin client round-trip unmodified.
  */
 export function restoreRedactedValues(
   incoming: unknown,

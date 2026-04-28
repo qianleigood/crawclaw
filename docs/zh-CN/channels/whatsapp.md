@@ -57,7 +57,7 @@ x-i18n:
 ## 架构（谁拥有什么）
 
 - **Gateway 网关**拥有 Baileys socket 和收件箱循环。
-- **CLI / macOS 应用**与 Gateway 网关通信；不直接使用 Baileys。
+- **CLI / Gateway 客户端**与 Gateway 网关通信；不直接使用 Baileys。
 - 发送出站消息需要**活跃的监听器**；否则发送会快速失败。
 
 ## 获取手机号码（两种模式）

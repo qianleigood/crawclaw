@@ -27,7 +27,6 @@ x-i18n:
 - [快速开始](/start/quickstart)
 - [CLI 新手引导](/start/wizard)
 - [安装配置](/start/setup)
-- [仪表盘（本地 Gateway 网关）](http://127.0.0.1:18789/)
 - [帮助](/help)
 - [文档目录](/start/docs-directory)
 - [配置](/gateway/configuration)
@@ -51,9 +50,6 @@ x-i18n:
 - [项目缓存机制总览](/concepts/project-cache-strategy)
 - [文档与测试体系规划](/concepts/project-docs-and-test-strategy)
 - [项目基线冻结](/concepts/project-baseline-freeze)
-- [控制面 API 重构方案](/concepts/project-control-plane-api-refactor)
-- [控制面 API 实施清单](/concepts/project-control-plane-api-implementation-plan)
-- [控制面 API PR 计划](/concepts/project-control-plane-api-pr-plan)
 - [控制面 API Inventory](/concepts/project-control-plane-api-inventory)
 - [项目实施路线图](/concepts/project-implementation-roadmap)
 - [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
@@ -98,7 +94,6 @@ x-i18n:
 - [BlueBubbles (iMessage)](/channels/bluebubbles)
 - [iMessage（旧版）](/channels/imessage)
 - [位置解析](/channels/location)
-- [WebChat](/web/webchat)
 - [Webhooks](/automation/webhook)
 - [Gmail Pub/Sub](/automation/gmail-pubsub)
 
@@ -114,8 +109,6 @@ x-i18n:
 - [Doctor](/gateway/doctor)
 - [日志](/gateway/logging)
 - [沙箱隔离](/gateway/sandboxing)
-- [Web 界面](/web)
-- [WebChat](/web/webchat)
 - [远程访问](/gateway/remote)
 - [远程 Gateway 网关 README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
@@ -136,7 +129,7 @@ x-i18n:
 - [模型](/concepts/models)
 - [子智能体](/tools/subagents)
 - [智能体发送 CLI](/tools/agent-send)
-- [终端界面](/web/tui)
+- [终端界面](/cli/tui)
 - [浏览器控制](/tools/browser)
 - [浏览器（Linux 故障排除）](/tools/browser-linux-troubleshooting)
 - [投票](/automation/poll)
@@ -156,7 +149,6 @@ x-i18n:
 - [平台概览](/platforms)
 - [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
-- [Web 界面](/web)
 
 ## 工作区 + 模板
 

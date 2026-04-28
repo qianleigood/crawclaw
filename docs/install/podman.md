@@ -116,7 +116,7 @@ Podman-specific note:
 See:
 
 - [Tailscale](/gateway/tailscale)
-- [Web surfaces](/web)
+- [Remote access](/gateway/remote)
 
 ## Systemd (Quadlet, optional)
 
@@ -159,7 +159,7 @@ The launch script and Quadlet bind-mount host state into the container:
 - `CRAWCLAW_WORKSPACE_DIR` -> `/home/node/.crawclaw/workspace`
 
 By default those are host directories, not anonymous container state, so config and workspace survive container replacement.
-The Podman setup also seeds `gateway.controlUi.allowedOrigins` for `127.0.0.1` and `localhost` on the published gateway port so local browser clients work with the container's non-loopback bind.
+The Podman setup also seeds `gateway.browserClients.allowedOrigins` for `127.0.0.1` and `localhost` on the published gateway port so local browser clients work with the container's non-loopback bind.
 
 Useful env vars for the manual launcher:
 

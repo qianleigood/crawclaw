@@ -4,7 +4,7 @@ import type { AgentTaskMode, TaskRuntime } from "../../tasks/task-registry.types
 import { readAgentTaskCapabilitySnapshotSync } from "./agent-metadata-store.js";
 import { getAgentRuntimeState } from "./agent-runtime-state.js";
 
-export type AgentInteractiveApprovalBlocker = "heartbeat" | "background" | "hidden-control-ui";
+export type AgentInteractiveApprovalBlocker = "heartbeat" | "background" | "hidden-browser-client";
 
 export type AgentGuardCapability = {
   snapshotRef?: string;
@@ -25,7 +25,7 @@ export type AgentGuardContext = {
   mode?: AgentTaskMode;
   sandboxed?: boolean;
   capability?: AgentGuardCapability;
-  controlUiVisible: boolean;
+  browserClientsVisible: boolean;
   heartbeat: boolean;
   interactiveApprovalAvailable: boolean;
   interactiveApprovalBlocker?: AgentInteractiveApprovalBlocker;
@@ -47,7 +47,7 @@ export function resolveAgentGuardContext(params?: {
   const runId = normalizeOptionalString(params?.runId);
   const runtimeState = runId ? getAgentRuntimeState(runId) : undefined;
   const runContext = runId ? getAgentRunContext(runId) : undefined;
-  const controlUiVisible = runContext?.isControlUiVisible ?? true;
+  const browserClientsVisible = runContext?.isBrowserClientsVisible ?? true;
   const heartbeat = runContext?.isHeartbeat === true;
   const mode = runtimeState?.mode ?? runContext?.taskMode;
   const runtime = runtimeState?.runtime ?? runContext?.taskRuntime;
@@ -94,8 +94,8 @@ export function resolveAgentGuardContext(params?: {
     ? "heartbeat"
     : mode === "background"
       ? "background"
-      : !controlUiVisible
-        ? "hidden-control-ui"
+      : !browserClientsVisible
+        ? "hidden-browser-client"
         : undefined;
   const interactiveApprovalReason = interactiveApprovalBlocker
     ? formatAgentInteractiveApprovalUnavailableReason({
@@ -113,7 +113,7 @@ export function resolveAgentGuardContext(params?: {
     ...(mode ? { mode } : {}),
     ...(sandboxed ? { sandboxed } : {}),
     ...(capability ? { capability } : {}),
-    controlUiVisible,
+    browserClientsVisible,
     heartbeat,
     interactiveApprovalAvailable: !interactiveApprovalBlocker,
     ...(interactiveApprovalBlocker ? { interactiveApprovalBlocker } : {}),
@@ -137,5 +137,5 @@ export function formatAgentInteractiveApprovalUnavailableReason(params: {
   if (params.blocker === "background") {
     return `${prefix} interactive approvals are unavailable for background agent runs.`;
   }
-  return `${prefix} interactive approvals are unavailable when control UI updates are hidden for this run.`;
+  return `${prefix} interactive approvals are unavailable when operator client updates are hidden for this run.`;
 }

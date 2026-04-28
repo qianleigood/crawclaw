@@ -72,7 +72,7 @@ After the first successful load, the running process serves the active in-memory
 - Single multiplexed port for:
   - WebSocket control/RPC
   - HTTP APIs, OpenAI compatible (`/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/tools/invoke`)
-  - browser clients, WebChat, and hooks
+  - browser-origin checked clients and hooks
 - Default bind mode: `loopback`.
 - Auth is required by default (`gateway.auth.token` / `gateway.auth.password`, or `CRAWCLAW_GATEWAY_TOKEN` / `CRAWCLAW_GATEWAY_PASSWORD`).
 

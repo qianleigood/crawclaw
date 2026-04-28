@@ -25,7 +25,15 @@ vi.mock("./doctor-memory-health.js", () => ({
   noteMemoryHealth: vi.fn().mockResolvedValue(undefined),
   resolveDoctorMemoryHealth: vi.fn().mockResolvedValue({
     overall: "ok",
-    notebooklm: { kind: "notebooklm", level: "ok", enabled: true, lifecycle: "ready", ready: true, reason: null, profile: "default" },
+    notebooklm: {
+      kind: "notebooklm",
+      level: "ok",
+      enabled: true,
+      lifecycle: "ready",
+      ready: true,
+      reason: null,
+      profile: "default",
+    },
     durable: {
       kind: "durable",
       level: "ok",
@@ -39,12 +47,27 @@ vi.mock("./doctor-memory-health.js", () => ({
       extractionMinEligibleTurnsBetweenRuns: 1,
       extractionMaxConcurrentWorkers: 2,
       extractionWorkerIdleTtlMs: 900000,
-      extractionWorkers: { workerCount: 0, runningCount: 0, queuedCount: 0, idleWorkers: 0, cooldownWorkers: 0 },
+      extractionWorkers: {
+        workerCount: 0,
+        runningCount: 0,
+        queuedCount: 0,
+        idleWorkers: 0,
+        cooldownWorkers: 0,
+      },
       markdownFilesScanned: 0,
       manifestReadable: true,
       parseErrors: [],
     },
-    session: { kind: "session", level: "ok", dbPath: "", dbExists: true, parentWritable: true, storeAccessible: true, sessionTableAccessible: true, contextAssemblyTableAccessible: true },
+    session: {
+      kind: "session",
+      level: "ok",
+      dbPath: "",
+      dbExists: true,
+      parentWritable: true,
+      storeAccessible: true,
+      sessionTableAccessible: true,
+      contextAssemblyTableAccessible: true,
+    },
   }),
 }));
 
@@ -70,10 +93,6 @@ vi.mock("./doctor-session-locks.js", () => ({
 vi.mock("./doctor-state-integrity.js", () => ({
   noteStateIntegrity: vi.fn().mockResolvedValue(undefined),
   noteWorkspaceBackupTip: vi.fn(),
-}));
-
-vi.mock("./doctor-ui.js", () => ({
-  maybeRepairUiProtocolFreshness: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("./doctor-workspace-status.js", () => ({

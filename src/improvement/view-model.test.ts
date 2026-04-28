@@ -69,7 +69,7 @@ function detailFor(proposal: ImprovementProposal): ImprovementProposalDetail {
   };
 }
 
-describe("improvement UI view models", () => {
+describe("improvement view models", () => {
   it("maps list items to beginner-readable labels", () => {
     const item: ImprovementProposalListItem = {
       id: "proposal-release-skill",

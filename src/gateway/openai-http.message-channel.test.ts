@@ -6,7 +6,6 @@ installGatewayTestHooks({ scope: "test" });
 const OPENAI_SERVER_OPTIONS = {
   host: "127.0.0.1",
   auth: { mode: "none" as const },
-  controlUiEnabled: false,
   openAiChatCompletionsEnabled: true,
 };
 

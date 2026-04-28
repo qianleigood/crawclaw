@@ -27,7 +27,7 @@ describe("resolveGatewayRuntimeConfig", () => {
             bind: "lan" as const,
             auth: TRUSTED_PROXY_AUTH,
             trustedProxies: ["192.168.1.1"],
-            controlUi: { allowedOrigins: ["https://control.example.com"] },
+            browserClients: { allowedOrigins: ["https://control.example.com"] },
           },
         },
         expectedBindHost: "0.0.0.0",
@@ -84,7 +84,7 @@ describe("resolveGatewayRuntimeConfig", () => {
             bind: "lan" as const,
             auth: TRUSTED_PROXY_AUTH,
             trustedProxies: [],
-            controlUi: { allowedOrigins: ["https://control.example.com"] },
+            browserClients: { allowedOrigins: ["https://control.example.com"] },
           },
         },
         expectedMessage:
@@ -138,7 +138,7 @@ describe("resolveGatewayRuntimeConfig", () => {
           gateway: {
             bind: "lan" as const,
             auth: TOKEN_AUTH,
-            controlUi: { allowedOrigins: ["https://control.example.com"] },
+            browserClients: { allowedOrigins: ["https://control.example.com"] },
           },
         },
         expectedAuthMode: "token",
@@ -211,22 +211,22 @@ describe("resolveGatewayRuntimeConfig", () => {
 
     it.each([
       {
-        name: "rejects non-loopback control UI when allowed origins are missing",
+        name: "rejects non-loopback browser client when allowed origins are missing",
         cfg: {
           gateway: {
             bind: "lan" as const,
             auth: TOKEN_AUTH,
           },
         },
-        expectedError: "non-loopback Control UI requires gateway.controlUi.allowedOrigins",
+        expectedError: "non-loopback Browser client requires gateway.browserClients.allowedOrigins",
       },
       {
-        name: "allows non-loopback control UI without allowed origins when dangerous fallback is enabled",
+        name: "allows non-loopback browser client without allowed origins when dangerous fallback is enabled",
         cfg: {
           gateway: {
             bind: "lan" as const,
             auth: TOKEN_AUTH,
-            controlUi: {
+            browserClients: {
               dangerouslyAllowHostHeaderOriginFallback: true,
             },
           },
@@ -234,12 +234,12 @@ describe("resolveGatewayRuntimeConfig", () => {
         expectedBindHost: "0.0.0.0",
       },
       {
-        name: "allows non-loopback control UI when allowed origins collapse after trimming",
+        name: "allows non-loopback browser client when allowed origins collapse after trimming",
         cfg: {
           gateway: {
             bind: "lan" as const,
             auth: TOKEN_AUTH,
-            controlUi: {
+            browserClients: {
               allowedOrigins: ["  https://control.example.com  "],
             },
           },

@@ -25,7 +25,6 @@ docker run --rm \
   -e "CRAWCLAW_SKIP_CHANNELS=1" \
   -e "CRAWCLAW_SKIP_GMAIL_WATCHER=1" \
   -e "CRAWCLAW_SKIP_CRON=1" \
-  -e "CRAWCLAW_SKIP_CANVAS_HOST=1" \
   -e "CRAWCLAW_STATE_DIR=/tmp/crawclaw-state" \
   -e "CRAWCLAW_CONFIG_PATH=/tmp/crawclaw-state/crawclaw.json" \
   -e "GW_URL=ws://127.0.0.1:$PORT" \

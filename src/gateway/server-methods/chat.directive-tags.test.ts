@@ -1468,7 +1468,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
       context,
       respond,
       idempotencyKey: "idem-user-transcript-agent-run",
-      message: "hello from dashboard",
+      message: "hello from client",
       expectBroadcast: false,
     });
 
@@ -1483,7 +1483,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
       sessionKey: "main",
       message: {
         role: "user",
-        content: "hello from dashboard",
+        content: "hello from client",
         timestamp: expect.any(Number),
       },
     });

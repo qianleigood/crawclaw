@@ -11,7 +11,7 @@ title: "Platforms"
 CrawClaw core is written in TypeScript. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
-CrawClaw focuses on the Gateway, CLI, web surfaces, and node integrations.
+CrawClaw focuses on the Gateway, CLI, plugins, and node integrations.
 Linux, macOS, and Windows are supported Gateway host targets today.
 
 ## Choose your OS

@@ -187,7 +187,7 @@ function snapshotArchiveGuardContext(
   guard: ReturnType<typeof resolveAgentGuardContext>,
 ): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {
-    controlUiVisible: guard.controlUiVisible,
+    browserClientsVisible: guard.browserClientsVisible,
     heartbeat: guard.heartbeat,
     interactiveApprovalAvailable: guard.interactiveApprovalAvailable,
   };
@@ -653,7 +653,7 @@ export async function runBeforeToolCallHook(args: {
       guard: {
         ...(guard.runtime ? { runtime: guard.runtime } : {}),
         ...(guard.mode ? { mode: guard.mode } : {}),
-        controlUiVisible: guard.controlUiVisible,
+        browserClientsVisible: guard.browserClientsVisible,
         heartbeat: guard.heartbeat,
         interactiveApprovalAvailable: guard.interactiveApprovalAvailable,
         ...(guard.interactiveApprovalBlocker

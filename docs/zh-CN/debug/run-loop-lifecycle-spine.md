@@ -254,7 +254,7 @@ pnpm test:runtime:stack
 - provider lifecycle 事件发射
 - embedded special agent 的继承上下文、cache、observability
 - `agent inspect` 的 runtime/archive 富化
-- Control UI inspect 相关入口与主视图（`agents` / `chat` / `sessions`）
+- Browser client inspect 相关入口与主视图（`agents` / `chat` / `sessions`）
 
 当前覆盖包括：
 
@@ -265,10 +265,6 @@ pnpm test:runtime:stack
 - `src/agents/pi-embedded-runner/run/attempt.*.test.ts`
 - `src/agents/special/runtime/*.test.ts`
 - `src/commands/agent.inspect.test.ts`
-- `ui/src/ui/controllers/agents.test.ts`
-- `ui/src/ui/views/agents.test.ts`
-- `ui/src/ui/views/chat.test.ts`
-- `ui/src/ui/views/sessions.test.ts`
 
 按当前这轮结果，这条测试集已经通过：
 
@@ -279,7 +275,7 @@ pnpm test:runtime:stack
 
 - 记忆架构现在是不是还接得对？
 - 记忆 agent 现在是不是还能通过当前 substrate 正常运行？
-- inspect 现在是不是还能把 runtime/memory 状态暴露给 CLI 和 Control UI？
+- inspect 现在是不是还能把 runtime/memory 状态暴露给 CLI 和 Browser client？
 
 它仍然不能替代完整 e2e 或长时间 soak 测试，但对于当前的 run-loop、memory、special agent 和
 inspect 架构，它就是最核心的定向回归带。

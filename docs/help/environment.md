@@ -68,7 +68,7 @@ CrawClaw also injects context markers into spawned child processes:
 These are runtime markers (not required user config). They can be used in shell/profile logic
 to apply context-specific rules.
 
-## UI env vars
+## Terminal env vars
 
 - `CRAWCLAW_LANG=zh-CN`: set the CLI and TUI language when `--lang` and `cli.language` are not set.
 - `CRAWCLAW_THEME=light` (legacy: `CRAWCLAW_THEME=light`): force the light TUI palette when your terminal has a light background.

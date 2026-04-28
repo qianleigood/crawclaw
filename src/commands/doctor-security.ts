@@ -135,7 +135,7 @@ function collectExecPolicyConflictWarnings(cfg: CrawClawConfig): string[] {
         `  Config: ${configParts.join(", ")}`,
         `  Host: ${hostParts.join(", ")}`,
         `  Effective host exec stays security="${snapshot.security.effective}" ask="${snapshot.ask.effective}" because the stricter side wins.`,
-        "  Headless runs like isolated cron cannot answer approval prompts; align both files or enable Web UI, terminal UI, or chat exec approvals.",
+        "  Headless runs like isolated cron cannot answer approval prompts; align both files or enable terminal UI or chat exec approvals.",
         `  Inspect with: ${formatCliCommand("crawclaw approvals get --gateway")}`,
       ].join("\n"),
     );

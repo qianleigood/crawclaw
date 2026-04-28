@@ -134,7 +134,7 @@ When adding or changing a cache:
 2. Add or update the governance descriptor for critical caches.
 3. Add a regression test for cross-session, cross-account, cross-provider, external-file-write, or config-mutation boundaries.
 4. Use explicit structured keys for security-sensitive caches.
-5. Keep provider prompt cache, response cache, runtime TTL cache, UI cache, and file cache as separate concepts.
+5. Keep provider prompt cache, response cache, runtime TTL cache, client-side cache, and file cache as separate concepts.
 
 ## Related Docs
 

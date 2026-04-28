@@ -134,7 +134,7 @@ Extension cache 应该把 channel account、conversation、recipient、provider 
 2. 对关键 cache 新增或更新 governance descriptor。
 3. 为 cross-session、cross-account、cross-provider、external-file-write 或 config-mutation 边界补回归测试。
 4. 安全敏感 cache 使用显式 structured key。
-5. 区分 provider prompt cache、response cache、runtime TTL cache、UI cache 和 file cache，不要混成一个概念。
+5. 区分 provider prompt cache、response cache、runtime TTL cache、client-side cache 和 file cache，不要混成一个概念。
 
 ## Related Docs
 

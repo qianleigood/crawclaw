@@ -6,14 +6,14 @@ import {
 } from "../commands/onboard-helpers.js";
 import type { GatewayAuthChoice, SecretInputMode } from "../commands/onboard-types.js";
 import type { GatewayBindMode, GatewayTailscaleMode, CrawClawConfig } from "../config/config.js";
-import { ensureControlUiAllowedOriginsForNonLoopbackBind } from "../config/gateway-control-ui-origins.js";
+import { ensureBrowserClientsAllowedOriginsForNonLoopbackBind } from "../config/gateway-browser-client-origins.js";
 import {
   normalizeSecretInputString,
   resolveSecretInputRef,
   type SecretInput,
 } from "../config/types.secrets.js";
 import {
-  maybeAddTailnetOriginToControlUiAllowedOrigins,
+  maybeAddTailnetOriginToBrowserClientsAllowedOrigins,
   TAILSCALE_DOCS_LINES,
   TAILSCALE_EXPOSURE_OPTIONS,
   TAILSCALE_MISSING_BIN_NOTE_LINES,
@@ -303,24 +303,22 @@ export async function configureGatewayForSetup(
   if (
     flow === "quickstart" &&
     bind === "loopback" &&
-    nextConfig.gateway?.controlUi?.allowInsecureAuth === undefined
+    nextConfig.gateway?.browserClients?.allowInsecureAuth === undefined
   ) {
     nextConfig = {
       ...nextConfig,
       gateway: {
         ...nextConfig.gateway,
-        controlUi: {
-          ...nextConfig.gateway?.controlUi,
+        browserClients: {
+          ...nextConfig.gateway?.browserClients,
           allowInsecureAuth: true,
         },
       },
     };
   }
 
-  nextConfig = ensureControlUiAllowedOriginsForNonLoopbackBind(nextConfig, {
-    requireControlUiEnabled: true,
-  }).config;
-  nextConfig = await maybeAddTailnetOriginToControlUiAllowedOrigins({
+  nextConfig = ensureBrowserClientsAllowedOriginsForNonLoopbackBind(nextConfig).config;
+  nextConfig = await maybeAddTailnetOriginToBrowserClientsAllowedOrigins({
     config: nextConfig,
     tailscaleMode,
     tailscaleBin,

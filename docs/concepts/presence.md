@@ -12,7 +12,7 @@ title: "Presence"
 CrawClaw “presence” is a lightweight, best‑effort view of:
 
 - the **Gateway** itself, and
-- **clients connected to the Gateway** (desktop clients, WebChat, CLI, etc.)
+- **clients connected to the Gateway** (CLI, automation, browser-authenticated clients, etc.)
 
 Presence is used primarily to render the operator-facing **Instances** view and to
 provide quick operator visibility.
@@ -26,7 +26,7 @@ Presence entries are structured objects with fields like:
 - `ip`: best‑effort IP address
 - `version`: client version string
 - `deviceFamily` / `modelIdentifier`: hardware hints
-- `mode`: `ui`, `webchat`, `cli`, `backend`, `probe`, `test`, `node`, ...
+- `mode`: `ui`, `cli`, `backend`, `probe`, `test`, `node`, ...
 - `lastInputSeconds`: “seconds since last user input” (if known)
 - `reason`: `self`, `connect`, `node-connected`, `periodic`, ...
 - `ts`: last update timestamp (ms since epoch)

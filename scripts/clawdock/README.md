@@ -8,7 +8,7 @@ Inspired by Simon Willison's [Running CrawClaw in Docker](https://til.simonwilli
 - [Available Commands](#available-commands)
   - [Basic Operations](#basic-operations)
   - [Container Access](#container-access)
-  - [Web UI \& Devices](#web-ui--devices)
+  - [Devices](#devices)
   - [Setup \& Configuration](#setup--configuration)
   - [Maintenance](#maintenance)
   - [Utilities](#utilities)

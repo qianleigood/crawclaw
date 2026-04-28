@@ -26,7 +26,8 @@ const DOCKER_OPENAI_MODEL: ModelDefinitionConfig = {
 
 async function main() {
   const stateDir = process.env.CRAWCLAW_STATE_DIR?.trim() || path.join(os.homedir(), ".crawclaw");
-  const configPath = process.env.CRAWCLAW_CONFIG_PATH?.trim() || path.join(stateDir, "crawclaw.json");
+  const configPath =
+    process.env.CRAWCLAW_CONFIG_PATH?.trim() || path.join(stateDir, "crawclaw.json");
   const sessionsDir = path.join(stateDir, "agents", "main", "sessions");
   const sessionFile = path.join(sessionsDir, "sess-main.jsonl");
   const storePath = path.join(sessionsDir, "sessions.json");
@@ -38,7 +39,7 @@ async function main() {
   const seededConfig = applyProviderConfigWithDefaultModelPreset(
     {
       gateway: {
-        controlUi: {
+        browserClients: {
           allowInsecureAuth: true,
           enabled: false,
         },

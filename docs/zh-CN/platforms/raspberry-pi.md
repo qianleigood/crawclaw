@@ -160,29 +160,20 @@ sudo systemctl status crawclaw
 journalctl -u crawclaw -f
 ```
 
-## 9）访问 CrawClaw Dashboard
+## 9）访问 Gateway
 
 将 `user@gateway-host` 替换为你的 Pi 用户名，以及主机名或 IP 地址。
 
-在你的电脑上，让 Pi 打印一个新的 Dashboard URL：
-
-```bash
-ssh user@gateway-host 'crawclaw dashboard --no-open'
-```
-
-该命令会打印 `Dashboard URL:`。根据 `gateway.auth.token`
-的配置方式，URL 可能是普通的 `http://127.0.0.1:18789/` 链接，也可能是包含 `#token=...` 的链接。
-
-在你电脑上的另一个终端中，创建 SSH 隧道：
+在你的电脑上，建立 SSH 隧道：
 
 ```bash
 ssh -N -L 18789:127.0.0.1:18789 user@gateway-host
 ```
 
-然后在本地浏览器中打开打印出的 Dashboard URL。
+然后让本地 Gateway 客户端连接 `ws://127.0.0.1:18789`。
 
 如果 UI 要求认证，请将 `gateway.auth.token`
-（或 `CRAWCLAW_GATEWAY_TOKEN`）中的 token 粘贴到 Control UI 设置中。
+（或 `CRAWCLAW_GATEWAY_TOKEN`）中的 token 粘贴到 Browser client 设置中。
 
 如需始终在线的远程访问，请参阅 [Tailscale](/gateway/tailscale)。
 

@@ -209,7 +209,6 @@ crawclaw health --json   # Gateway 网关健康快照（WS）
 
 ## 下一步
 
-- WebChat：[WebChat](/web/webchat)
 - Gateway 网关运维：[Gateway 网关运行手册](/gateway)
 - 定时任务 + 唤醒：[定时任务](/automation/cron-jobs)
 - 历史移动端说明：iOS / Android 源码已从本仓库移除

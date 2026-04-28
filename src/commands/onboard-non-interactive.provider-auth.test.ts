@@ -769,7 +769,6 @@ async function withOnboardEnv(
         CRAWCLAW_SKIP_CHANNELS: "1",
         CRAWCLAW_SKIP_GMAIL_WATCHER: "1",
         CRAWCLAW_SKIP_CRON: "1",
-        CRAWCLAW_SKIP_CANVAS_HOST: "1",
         CRAWCLAW_GATEWAY_TOKEN: undefined,
         CRAWCLAW_GATEWAY_PASSWORD: undefined,
         CUSTOM_API_KEY: undefined,

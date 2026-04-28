@@ -10,8 +10,8 @@ title: "Gateway Protocol"
 # Gateway protocol (WebSocket)
 
 The Gateway WS protocol is the **single control plane + node transport** for
-CrawClaw. All clients (CLI, web UI, desktop/web clients, node-mode clients,
-headless nodes) connect over WebSocket and declare their **role** + **scope**
+CrawClaw. All clients (CLI, browser-authenticated clients, node-mode clients,
+headless nodes, and automation) connect over WebSocket and declare their **role** + **scope**
 at handshake time.
 
 ## Transport
@@ -189,7 +189,7 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
   - The response is session-scoped and reflects what the active conversation can use right now,
     including core, plugin, and channel tools.
 - Operators may call `agent.observations.list` (`operator.read`) to fetch historical
-  ObservationContext run summaries for the Observation Workbench.
+  ObservationContext run summaries.
   - Filters: `query`, `status`, `source`, `from`, `to`, `limit`, and `cursor`.
   - `query` matches `runId`, `taskId`, `traceId`, `sessionKey`, and `agentId`.
   - `from` and `to` are inclusive epoch-millisecond time bounds.
@@ -207,7 +207,7 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 
 - `agent` requests can include `deliver=true` to request outbound delivery.
 - `bestEffortDeliver=false` keeps strict behavior: unresolved or internal-only delivery targets return `INVALID_REQUEST`.
-- `bestEffortDeliver=true` allows fallback to session-only execution when no external deliverable route can be resolved (for example internal/webchat sessions or ambiguous multi-channel configs).
+- `bestEffortDeliver=true` allows fallback to session-only execution when no external deliverable route can be resolved (for example internal sessions or ambiguous multi-channel configs).
 
 ## Versioning
 
@@ -245,8 +245,8 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
   (so same‑host tailnet binds can still auto‑approve).
 - All WS clients must include `device` identity during `connect` (operator + node).
   Browser-facing clients can omit it only in these modes:
-  - `gateway.controlUi.allowInsecureAuth=true` for localhost-only insecure HTTP compatibility.
-  - `gateway.controlUi.dangerouslyDisableDeviceAuth=true` (break-glass, severe security downgrade).
+  - `gateway.browserClients.allowInsecureAuth=true` for localhost-only insecure HTTP compatibility.
+  - `gateway.browserClients.dangerouslyDisableDeviceAuth=true` (break-glass, severe security downgrade).
 - All connections must sign the server-provided `connect.challenge` nonce.
 
 ### Device auth migration diagnostics

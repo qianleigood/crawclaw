@@ -27,7 +27,7 @@ x-i18n:
 1. 克隆仓库 → 自定义 `fly.toml`
 2. 创建应用 + 卷 → 设置密钥
 3. 使用 `fly deploy` 部署
-4. SSH 进入创建配置或使用 Control UI
+4. SSH 进入创建配置或使用 Browser client
 
 ## 1）创建 Fly 应用
 
@@ -221,7 +221,7 @@ fly machine restart <machine-id>
 
 ## 6）访问 Gateway 网关
 
-### Control UI
+### Browser client
 
 在浏览器中打开：
 
@@ -466,12 +466,12 @@ ngrok 隧道在容器内运行并提供公共 webhook URL，而不暴露 Fly 应
 
 ### 安全优势
 
-| 方面            | 公共   | 私有     |
-| --------------- | ------ | -------- |
-| 互联网扫描器    | 可发现 | 隐藏     |
-| 直接攻击        | 可能   | 被阻止   |
-| Control UI 访问 | 浏览器 | 代理/VPN |
-| Webhook 投递    | 直接   | 通过隧道 |
+| 方面                | 公共   | 私有     |
+| ------------------- | ------ | -------- |
+| 互联网扫描器        | 可发现 | 隐藏     |
+| 直接攻击            | 可能   | 被阻止   |
+| Browser client 访问 | 浏览器 | 代理/VPN |
+| Webhook 投递        | 直接   | 通过隧道 |
 
 ## 注意事项
 

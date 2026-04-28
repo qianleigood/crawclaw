@@ -72,7 +72,7 @@ CrawClaw 还会向子进程注入一些运行时标记：
 - `CRAWCLAW_SHELL=acp-client`（兼容 `CRAWCLAW_SHELL=acp-client`）：`crawclaw acp client` 拉起 ACP bridge 时。
 - `CRAWCLAW_SHELL=tui-local`（兼容 `CRAWCLAW_SHELL=tui-local`）：本地 TUI 的 `!` shell 命令。
 
-## UI 环境变量
+## 终端环境变量
 
 - `CRAWCLAW_THEME=light`（兼容 `CRAWCLAW_THEME=light`）：强制使用浅色 TUI 配色。
 - `CRAWCLAW_THEME=dark`（兼容 `CRAWCLAW_THEME=dark`）：强制使用深色 TUI 配色。

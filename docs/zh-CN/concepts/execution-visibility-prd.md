@@ -554,7 +554,7 @@ type RenderMode = "summary" | "verbose" | "full";
 
 type RenderContext = {
   mode: RenderMode;
-  surface: "controlUi" | "channel";
+  surface: "browserClients" | "channel";
   channel?: string;
 };
 

@@ -495,7 +495,6 @@ config.gateway = {
   ...(config.gateway || {}),
   port: 18789,
   auth: { mode: "token", token: "plugin-e2e-token" },
-  controlUi: { enabled: false },
 };
 if (process.env.OPENAI_API_KEY) {
   config.agents = {

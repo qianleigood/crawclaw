@@ -379,7 +379,7 @@ describe("resolveGatewayConnection", () => {
     loadConfig.mockReturnValue({
       gateway: {
         mode: "local",
-        controlUi: {
+        browserClients: {
           allowInsecureAuth: true,
         },
         auth: {
@@ -397,7 +397,7 @@ describe("resolveGatewayConnection", () => {
     loadConfig.mockReturnValue({
       gateway: {
         mode: "local",
-        controlUi: {
+        browserClients: {
           allowInsecureAuth: true,
         },
         auth: {

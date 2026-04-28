@@ -18,7 +18,7 @@ import {
   writeSessionStore,
 } from "./test-helpers.js";
 import { agentCommand } from "./test-helpers.mocks.js";
-import { installConnectedControlUiServerSuite } from "./test-with-server.js";
+import { installConnectedBrowserClientsServerSuite } from "./test-with-server.js";
 
 installGatewayTestHooks({ scope: "suite" });
 const CHAT_RESPONSE_TIMEOUT_MS = 4_000;
@@ -26,7 +26,7 @@ const CHAT_RESPONSE_TIMEOUT_MS = 4_000;
 let ws: WebSocket;
 let port: number;
 
-installConnectedControlUiServerSuite((started) => {
+installConnectedBrowserClientsServerSuite((started) => {
   ws = started.ws;
   port = started.port;
 });
@@ -190,22 +190,22 @@ describe("gateway server chat", () => {
     };
   };
 
-  test("sessions.send accepts dashboard messages for existing sessions", async () => {
+  test("sessions.send accepts client messages for existing sessions", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-sessions-send-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     try {
       await writeSessionStore({
         entries: {
-          "agent:main:dashboard:test-send": {
-            sessionId: "sess-dashboard-send",
+          "agent:main:client:test-send": {
+            sessionId: "sess-client-send",
             updatedAt: Date.now(),
           },
         },
       });
 
       const res = await rpcReq(ws, "sessions.send", {
-        key: "agent:main:dashboard:test-send",
-        message: "hello from dashboard",
+        key: "agent:main:client:test-send",
+        message: "hello from client",
         idempotencyKey: "idem-sessions-send-1",
       });
       expect(res.ok).toBe(true);
@@ -217,22 +217,22 @@ describe("gateway server chat", () => {
     }
   });
 
-  test("sessions.steer accepts dashboard follow-up messages for existing sessions", async () => {
+  test("sessions.steer accepts client follow-up messages for existing sessions", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-sessions-steer-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     try {
       await writeSessionStore({
         entries: {
-          "agent:main:dashboard:test-steer": {
-            sessionId: "sess-dashboard-steer",
+          "agent:main:client:test-steer": {
+            sessionId: "sess-client-steer",
             updatedAt: Date.now(),
           },
         },
       });
 
       const res = await rpcReq(ws, "sessions.steer", {
-        key: "agent:main:dashboard:test-steer",
-        message: "follow-up from dashboard",
+        key: "agent:main:client:test-steer",
+        message: "follow-up from client",
         idempotencyKey: "idem-sessions-steer-1",
       });
       expect(res.ok).toBe(true);
@@ -244,21 +244,21 @@ describe("gateway server chat", () => {
     }
   });
 
-  test("sessions.abort stops active dashboard runs", async () => {
+  test("sessions.abort stops active client runs", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-sessions-abort-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     try {
       await writeSessionStore({
         entries: {
-          "agent:main:dashboard:test-abort": {
-            sessionId: "sess-dashboard-abort",
+          "agent:main:client:test-abort": {
+            sessionId: "sess-client-abort",
             updatedAt: Date.now(),
           },
         },
       });
 
       const sendRes = await rpcReq(ws, "sessions.send", {
-        key: "agent:main:dashboard:test-abort",
+        key: "agent:main:client:test-abort",
         message: "hello",
         idempotencyKey: "idem-sessions-abort-1",
         timeoutMs: 30_000,
@@ -266,7 +266,7 @@ describe("gateway server chat", () => {
       expect(sendRes.ok).toBe(true);
 
       const abortRes = await rpcReq(ws, "sessions.abort", {
-        key: "agent:main:dashboard:test-abort",
+        key: "agent:main:client:test-abort",
         runId: "idem-sessions-abort-1",
       });
       expect(abortRes.ok).toBe(true);
@@ -313,7 +313,7 @@ describe("gateway server chat", () => {
       await new Promise<void>((resolve) => webchatWs?.once("open", resolve));
       await connectOk(webchatWs, {
         client: {
-          id: GATEWAY_CLIENT_NAMES.CONTROL_UI,
+          id: GATEWAY_CLIENT_NAMES.BROWSER_CLIENT,
           version: "dev",
           platform: "web",
           mode: GATEWAY_CLIENT_MODES.WEBCHAT,
@@ -598,13 +598,13 @@ describe("gateway server chat", () => {
       expect(sideResult.payload).toMatchObject({
         kind: "btw",
         runId: "idem-btw-1",
-        sessionKey: "main",
+        sessionKey: "agent:main:main",
         question: "what is 17 * 19?",
         text: "323",
       });
       expect(finalEvent.payload).toMatchObject({
         runId: "idem-btw-1",
-        sessionKey: "main",
+        sessionKey: "agent:main:main",
         state: "final",
       });
 
@@ -747,7 +747,7 @@ describe("gateway server chat", () => {
           expect(sendRes.ok).toBe(true);
 
           const waitRes = await rpcReq(scopedWs, "agent.wait", {
-            runId: "idem-write-scope-reset-no-rotate",
+            runId: "idem-write-scope-new-no-rotate",
             timeoutMs: 1_000,
           });
           expect(waitRes.ok).toBe(true);

@@ -187,7 +187,7 @@ vi.mock("../commands/onboard-helpers.js", () => ({
   printWizardHeader: vi.fn(),
   probeGatewayReachable,
   waitForGatewayReachable: vi.fn(async () => {}),
-  resolveControlUiLinks: vi.fn(() => ({
+  resolveBrowserClientsLinks: vi.fn(() => ({
     httpUrl: "http://127.0.0.1:18789",
     wsUrl: "ws://127.0.0.1:18789",
   })),

@@ -75,7 +75,7 @@ export async function executeNodeHostCommand(
   const nodes = await listNodes({});
   if (nodes.length === 0) {
     throw new Error(
-      "exec host=node requires a paired node (none available). This requires a companion app or node host.",
+      "exec host=node requires a paired node (none available). Start or pair a node host.",
     );
   }
   let nodeId: string;
@@ -95,9 +95,7 @@ export async function executeNodeHostCommand(
     ? nodeInfo?.commands?.includes("system.run")
     : false;
   if (!supportsSystemRun) {
-    throw new Error(
-      "exec host=node requires a node that supports system.run (companion app or node host).",
-    );
+    throw new Error("exec host=node requires a node that supports system.run.");
   }
   const argv = buildNodeShellCommand(params.command, nodeInfo?.platform);
   const prepareRaw = await callGatewayTool<{ payload?: unknown }>(

@@ -38,16 +38,6 @@ export type DiscoveryConfig = {
   mdns?: MdnsDiscoveryConfig;
 };
 
-export type CanvasHostConfig = {
-  enabled?: boolean;
-  /** Directory to serve (default: ~/.crawclaw/workspace/canvas). */
-  root?: string;
-  /** HTTP port to listen on (default: 18793). */
-  port?: number;
-  /** Enable live-reload file watching + WS reloads (default: true). */
-  liveReload?: boolean;
-};
-
 export type TalkProviderConfig = {
   /** Default voice ID for the provider's Talk mode implementation. */
   voiceId?: string;
@@ -96,12 +86,8 @@ export type TalkConfigResponse = TalkConfig & {
   resolved?: ResolvedTalkConfig;
 };
 
-export type GatewayControlUiConfig = {
-  /** If false, the Gateway will not serve the Control UI (default /). */
-  enabled?: boolean;
-  /** Optional base path prefix for the Control UI (e.g. "/crawclaw"). */
-  basePath?: string;
-  /** Allowed browser origins for Control UI/WebChat websocket connections. */
+export type GatewayBrowserClientsConfig = {
+  /** Allowed browser origins for browser-origin websocket connections. */
   allowedOrigins?: string[];
   /**
    * DANGEROUS: Keep Host-header origin fallback behavior.
@@ -110,11 +96,11 @@ export type GatewayControlUiConfig = {
   dangerouslyAllowHostHeaderOriginFallback?: boolean;
   /**
    * Insecure-auth toggle.
-   * Control UI still requires secure context + device identity unless
+   * Browser-origin clients still require secure context + device identity unless
    * dangerouslyDisableDeviceAuth is enabled.
    */
   allowInsecureAuth?: boolean;
-  /** DANGEROUS: Disable device identity checks for the Control UI (default: false). */
+  /** DANGEROUS: Disable device identity checks for browser-origin clients (default: false). */
   dangerouslyDisableDeviceAuth?: boolean;
 };
 
@@ -177,7 +163,7 @@ export type GatewayAuthRateLimitConfig = {
 export type GatewayTailscaleMode = "off" | "serve" | "funnel";
 
 export type GatewayTailscaleConfig = {
-  /** Tailscale exposure mode for the Gateway control UI. */
+  /** Tailscale exposure mode for the Gateway. */
   mode?: GatewayTailscaleMode;
   /** Reset serve/funnel configuration on shutdown. */
   resetOnExit?: boolean;
@@ -402,7 +388,7 @@ export type GatewayConfig = {
    */
   mode?: "local" | "remote";
   /**
-   * Bind address policy for the Gateway WebSocket + Control UI HTTP server.
+   * Bind address policy for the Gateway WebSocket and HTTP server.
    * - auto: Loopback (127.0.0.1) if available, else 0.0.0.0 (fallback to all interfaces)
    * - lan: 0.0.0.0 (all interfaces, no fallback)
    * - loopback: 127.0.0.1 (local-only)
@@ -413,7 +399,7 @@ export type GatewayConfig = {
   bind?: GatewayBindMode;
   /** Custom IP address for bind="custom" mode. Fallback: 0.0.0.0. */
   customBindHost?: string;
-  controlUi?: GatewayControlUiConfig;
+  browserClients?: GatewayBrowserClientsConfig;
   auth?: GatewayAuthConfig;
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;
@@ -435,7 +421,7 @@ export type GatewayConfig = {
   allowRealIpFallback?: boolean;
   /** Tool access restrictions for HTTP /tools/invoke endpoint. */
   tools?: GatewayToolsConfig;
-  /** WebChat display/history settings. */
+  /** Internal Gateway chat display/history settings. */
   webchat?: GatewayWebchatConfig;
   /**
    * Channel health monitor interval in minutes.

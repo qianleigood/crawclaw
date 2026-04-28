@@ -325,7 +325,7 @@ describe("normalizeRpcAttachmentsToChatAttachments", () => {
     expect(normalizeRpcAttachmentsToChatAttachments(attachments)).toEqual(expected);
   });
 
-  it("accepts dashboard image attachments with nested base64 source", () => {
+  it("accepts client image attachments with nested base64 source", () => {
     const res = normalizeRpcAttachmentsToChatAttachments([
       {
         type: "image",

@@ -65,7 +65,7 @@ cat ~/.crawclaw/crawclaw.json
 ## 功能概述
 
 - git 安装的可选预检更新（仅交互模式）。
-- UI 协议新鲜度检查（当协议 schema 较新时重建 Control UI）。
+- UI 协议新鲜度检查（当协议 schema 较新时重建 Browser client）。
 - 健康检查 + 重启提示。
 - Skills 状态摘要（符合条件/缺失/被阻止）。
 - 遗留值的配置规范化。

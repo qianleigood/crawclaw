@@ -198,24 +198,22 @@ export const talkHandlers: GatewayRequestHandlers = {
     }
 
     const snapshot = await readConfigFileSnapshot();
+    const snapshotConfig = snapshot as typeof snapshot & {
+      config?: CrawClawConfig;
+      runtimeConfig?: CrawClawConfig;
+    };
+    const runtimeConfig = snapshotConfig.runtimeConfig ?? snapshotConfig.config ?? {};
     const configPayload: Record<string, unknown> = {};
 
-    const talkSource = includeSecrets
-      ? snapshot.runtimeConfig.talk
-      : redactConfigObject(snapshot.runtimeConfig.talk);
+    const talkSource = includeSecrets ? runtimeConfig.talk : redactConfigObject(runtimeConfig.talk);
     const talk = buildTalkConfigResponse(talkSource);
     if (talk) {
       configPayload.talk = talk;
     }
 
-    const sessionMainKey = snapshot.runtimeConfig.session?.mainKey;
+    const sessionMainKey = runtimeConfig.session?.mainKey;
     if (typeof sessionMainKey === "string") {
       configPayload.session = { mainKey: sessionMainKey };
-    }
-
-    const seamColor = snapshot.runtimeConfig.ui?.seamColor;
-    if (typeof seamColor === "string") {
-      configPayload.ui = { seamColor };
     }
 
     respond(true, { config: configPayload }, undefined);
@@ -241,7 +239,12 @@ export const talkHandlers: GatewayRequestHandlers = {
 
     try {
       const snapshot = await readConfigFileSnapshot();
-      const setup = buildTalkTtsConfig(snapshot.runtimeConfig);
+      const snapshotConfig = snapshot as typeof snapshot & {
+        config?: CrawClawConfig;
+        runtimeConfig?: CrawClawConfig;
+      };
+      const runtimeConfig = snapshotConfig.runtimeConfig ?? snapshotConfig.config ?? {};
+      const setup = buildTalkTtsConfig(runtimeConfig);
       if ("error" in setup) {
         respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, setup.error));
         return;
@@ -250,7 +253,7 @@ export const talkHandlers: GatewayRequestHandlers = {
       const overrides = buildTalkSpeakOverrides(
         setup.provider,
         setup.providerConfig,
-        snapshot.runtimeConfig,
+        runtimeConfig,
         params,
       );
       const result = await synthesizeSpeech({

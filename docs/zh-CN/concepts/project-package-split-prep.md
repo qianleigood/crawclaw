@@ -268,7 +268,6 @@ title: 模块公开 Surface 与拆包准备
 
 - `src/channels`
 - `src/workflows/channel-forwarder.ts`
-- `ui/src/ui/**`
 
 `PR-06` 已让渠道形态回到 `src/channels`，但后续如果 UI 或 workflow 再直接拼 transport payload，边界会再次软化。
 

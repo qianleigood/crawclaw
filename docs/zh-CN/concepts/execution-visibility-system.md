@@ -1,20 +1,20 @@
 ---
 read_when:
   - 你想统一显示 tools、skills、workflow 的执行过程
-  - 你想让 Control UI 与外部渠道共享同一套过程展示语义
+  - 你想让 Browser client 与外部渠道共享同一套过程展示语义
 summary: 执行过程可见性系统总方案：统一事件、意图识别、投影器、渠道降级与前端开关
 title: 执行过程可见性系统
 ---
 
 # 执行过程可见性系统
 
-本文定义 CrawClaw 的统一执行过程可见性系统（Execution Visibility System）。目标不是只给 Control UI 加一个“显示工具过程”的开关，而是建立一套跨 UI、跨渠道、跨能力类型的一致语义层，让 tools、skills、workflow、system status、artifact delivery 都能通过同一套策略被投影、节流、降级并展示。
+本文定义 CrawClaw 的统一执行过程可见性系统（Execution Visibility System）。目标不是只给 Browser client 加一个“显示工具过程”的开关，而是建立一套跨 UI、跨渠道、跨能力类型的一致语义层，让 tools、skills、workflow、system status、artifact delivery 都能通过同一套策略被投影、节流、降级并展示。
 
 ## 目标
 
 系统应同时满足：
 
-- `Control UI` 可以完整展示执行过程。
+- `Browser client` 可以完整展示执行过程。
 - 外部渠道也可以按自身承载能力展示执行摘要。
 - 用户有统一的全局、渠道级、会话级开关。
 - 新增 tool、skill、workflow 时不需要为每个渠道重复写文案。
@@ -24,7 +24,7 @@ title: 执行过程可见性系统
 
 当前系统里已经存在多种“过程展示”能力：
 
-- `Control UI` 有 `Action Feed`、`tool cards`、`inspect timeline`。
+- `Browser client` 有 `Action Feed`、`tool cards`、`inspect timeline`。
 - 部分渠道支持 tool result 投递、draft stream、editable draft stream、card stream。
 - ACP projector 已能把部分工具过程投影成用户可见文本。
 
@@ -65,7 +65,7 @@ title: 执行过程可见性系统
 
 - `summary` 面向普通用户和大多数外部渠道。
 - `verbose` 面向高承载渠道和高级用户。
-- `full` 面向 Control UI 和少数高信息密度表面。
+- `full` 面向 Browser client 和少数高信息密度表面。
 
 ## 架构总览
 
@@ -218,7 +218,7 @@ type ExecutionEvent = {
 ### `full`
 
 - 尽可能显示完整 lifecycle
-- 适合 Control UI
+- 适合 Browser client
 - 渠道侧默认不启用
 
 ## 配置模型
@@ -242,7 +242,7 @@ type ExecutionVisibilityConfig = {
   enabled?: boolean;
   sessionOverride?: boolean;
   surfaces?: {
-    controlUi?: SurfaceVisibilityConfig;
+    browserClients?: SurfaceVisibilityConfig;
     channels?: ChannelVisibilityConfig;
   };
 };
@@ -256,7 +256,7 @@ type ExecutionVisibilityConfig = {
     "enabled": true,
     "sessionOverride": true,
     "surfaces": {
-      "controlUi": {
+      "browserClients": {
         "mode": "full"
       },
       "channels": {
@@ -299,7 +299,7 @@ type ExecutionVisibilityCapability = {
 
 默认建议：
 
-- `controlUi`: `full`
+- `browserClients`: `full`
 - `slack`: `verbose`
 - `discord`: `summary`
 - `telegram`: `summary`
@@ -425,7 +425,7 @@ workflow 必须单独考虑，不能只被折叠成 `execute`。
 
 ## 渲染策略
 
-### Control UI
+### Browser client
 
 - `summary`: 轻量 action feed
 - `verbose`: 展示更多阶段和能力名

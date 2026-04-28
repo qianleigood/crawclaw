@@ -61,9 +61,8 @@ Docker 是**可选的**。仅当你想要容器化的 Gateway 网关或验证 Do
 
 完成后：
 
-- 在浏览器中打开 `http://127.0.0.1:18789/`。
-- 将令牌粘贴到控制 UI（设置 → token）。
-- 需要再次获取带令牌的 URL？运行 `docker compose run --rm crawclaw-cli dashboard --no-open`。
+- 运行 `crawclaw tui`，或让支持的 Gateway 客户端连接 `http://127.0.0.1:18789/`。
+- 在 Gateway 客户端配置中设置相同的令牌。
 
 它在主机上写入配置/工作区：
 
@@ -86,17 +85,16 @@ docker compose up -d crawclaw-gateway
 docker compose -f docker-compose.yml -f docker-compose.extra.yml <command>
 ```
 
-### 控制 UI 令牌 + 配对（Docker）
+### Gateway 客户端令牌 + 配对（Docker）
 
-如果你看到"unauthorized"或"disconnected (1008): pairing required"，获取新的仪表板链接并批准浏览器设备：
+如果你看到"unauthorized"或"disconnected (1008): pairing required"，检查设备配对请求并批准设备：
 
 ```bash
-docker compose run --rm crawclaw-cli dashboard --no-open
 docker compose run --rm crawclaw-cli devices list
 docker compose run --rm crawclaw-cli devices approve <requestId>
 ```
 
-更多详情：[仪表板](/web/dashboard)，[设备](/cli/devices)。
+更多详情：[设备](/cli/devices)。
 
 ### 额外挂载（可选）
 

@@ -14,7 +14,7 @@ Run a **headless node host** that connects to the Gateway WebSocket and exposes
 ## Why use a node host?
 
 Use a node host when you want agents to **run commands on other machines** in your
-network without installing a full macOS companion app there.
+network without running the Gateway on that host.
 
 Common use cases:
 

@@ -2,7 +2,7 @@
 read_when:
   - 添加智能体控制的浏览器自动化
   - 调试 crawclaw 干扰你自己 Chrome 的问题
-  - 在 macOS 应用中实现浏览器设置和生命周期管理
+  - 在 节点主机中实现浏览器设置和生命周期管理
 summary: 基于 PinchTab 的集成浏览器工具
 title: 浏览器（CrawClaw 托管）
 x-i18n:

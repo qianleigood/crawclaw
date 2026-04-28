@@ -298,7 +298,7 @@ export async function resolveGatewayConnection(
     ...(urlOverride ? { url: urlOverride } : {}),
   }).url;
   const allowInsecureLocalOperatorUi = (() => {
-    if (config.gateway?.controlUi?.allowInsecureAuth !== true) {
+    if (config.gateway?.browserClients?.allowInsecureAuth !== true) {
       return false;
     }
     try {

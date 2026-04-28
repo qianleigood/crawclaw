@@ -195,7 +195,6 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       "CRAWCLAW_SKIP_CHANNELS",
       "CRAWCLAW_SKIP_GMAIL_WATCHER",
       "CRAWCLAW_SKIP_CRON",
-      "CRAWCLAW_SKIP_CANVAS_HOST",
       "CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER",
       "CRAWCLAW_GATEWAY_TOKEN",
       "CRAWCLAW_GATEWAY_PASSWORD",
@@ -203,7 +202,6 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
     process.env.CRAWCLAW_SKIP_CHANNELS = "1";
     process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = "1";
     process.env.CRAWCLAW_SKIP_CRON = "1";
-    process.env.CRAWCLAW_SKIP_CANVAS_HOST = "1";
     process.env.CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
     delete process.env.CRAWCLAW_GATEWAY_TOKEN;
     delete process.env.CRAWCLAW_GATEWAY_PASSWORD;

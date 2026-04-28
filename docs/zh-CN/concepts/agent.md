@@ -153,7 +153,7 @@ guard 结果，capabilities JSON 保存 guard / inspection 使用的运行时执
 通过 `agents.defaults.blockStreamingBreak` 调整边界（`text_end` 与 `message_end`；默认为 text_end）。
 使用 `agents.defaults.blockStreamingChunk` 控制软块分块（默认 800–1200 字符；优先段落分隔，其次换行；最后是句子）。
 使用 `agents.defaults.blockStreamingCoalesce` 合并流式块以减少单行刷屏（发送前基于空闲的合并）。非 Telegram 渠道需要显式设置 `*.blockStreaming: true` 以启用分块回复。
-工具启动时发出详细工具摘要（无防抖）；Control UI 在可用时通过智能体事件流式传输工具输出。
+工具启动时发出详细工具摘要（无防抖）；Browser client 在可用时通过智能体事件流式传输工具输出。
 更多详情：[流式传输 + 分块](/concepts/streaming)。
 
 ## 模型引用

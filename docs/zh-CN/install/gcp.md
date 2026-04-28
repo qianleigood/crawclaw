@@ -30,7 +30,7 @@ x-i18n:
 - 安装 Docker（隔离的应用运行时）
 - 在 Docker 中启动 CrawClaw Gateway 网关
 - 在主机上持久化 `~/.crawclaw` + `~/.crawclaw/workspace`（重启/重建后仍保留）
-- 通过 SSH 隧道从你的笔记本电脑访问控制 UI
+- 通过 SSH 隧道从你的笔记本电脑访问Gateway 客户端
 
 Gateway 网关可以通过以下方式访问：
 

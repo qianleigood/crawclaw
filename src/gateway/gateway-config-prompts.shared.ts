@@ -63,7 +63,7 @@ export function appendAllowedOrigin(existing: string[] | undefined, origin: stri
   return [...current, origin];
 }
 
-export async function maybeAddTailnetOriginToControlUiAllowedOrigins(params: {
+export async function maybeAddTailnetOriginToBrowserClientsAllowedOrigins(params: {
   config: CrawClawConfig;
   tailscaleMode: string;
   tailscaleBin?: string | null;
@@ -78,14 +78,14 @@ export async function maybeAddTailnetOriginToControlUiAllowedOrigins(params: {
     return params.config;
   }
 
-  const existing = params.config.gateway?.controlUi?.allowedOrigins ?? [];
+  const existing = params.config.gateway?.browserClients?.allowedOrigins ?? [];
   const updatedOrigins = appendAllowedOrigin(existing, tsOrigin);
   return {
     ...params.config,
     gateway: {
       ...params.config.gateway,
-      controlUi: {
-        ...params.config.gateway?.controlUi,
+      browserClients: {
+        ...params.config.gateway?.browserClients,
         allowedOrigins: updatedOrigins,
       },
     },

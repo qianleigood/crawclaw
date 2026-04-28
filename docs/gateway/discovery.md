@@ -11,7 +11,7 @@ title: "Discovery and Transports"
 
 CrawClaw has two distinct problems that look similar on the surface:
 
-1. **Operator remote control**: a desktop/web client controlling a gateway running elsewhere.
+1. **Operator remote control**: a Gateway client controlling a gateway running elsewhere.
 2. **Node pairing**: node hosts (and future nodes) finding a gateway and pairing securely.
 
 The design goal is to keep all network discovery/advertising in the **Node Gateway** (`crawclaw gateway`) and keep clients and node hosts as consumers.
@@ -66,7 +66,6 @@ Troubleshooting and beacon details: [Bonjour](/gateway/bonjour).
   - `gatewayPort=18789` (Gateway WS + HTTP)
   - `gatewayTls=1` (only when TLS is enabled)
   - `gatewayTlsSha256=<sha256>` (only when TLS is enabled and fingerprint is available)
-  - `canvasPort=<port>` (canvas host port; currently the same as `gatewayPort` when the canvas host is enabled)
   - `cliPath=<path>` (optional; absolute path to a runnable `crawclaw` entrypoint or binary)
   - `tailnetDns=<magicdns>` (optional hint; auto-detected when Tailscale is available)
 
@@ -123,5 +122,5 @@ The gateway is the source of truth for node/client admission.
 ## Responsibilities by component
 
 - **Gateway**: advertises discovery beacons, owns pairing decisions, and hosts the WS endpoint.
-- **Desktop/web clients**: help you pick a gateway, show pairing prompts, and use SSH only as a fallback.
+- **Gateway clients**: connect to a selected gateway, show pairing prompts, and use SSH only as a fallback.
 - **Node clients**: browse Bonjour as a convenience and connect to the paired Gateway WS.

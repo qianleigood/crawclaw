@@ -78,7 +78,7 @@ describe("mime detection", () => {
     {
       name: "uses extension mapping for JavaScript assets",
       input: async () => ({
-        filePath: "/tmp/a2ui.bundle.js",
+        filePath: "/tmp/browser-script.js",
       }),
       expected: "text/javascript",
     },

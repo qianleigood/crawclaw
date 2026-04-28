@@ -37,7 +37,7 @@ import {
   ensureWorkspaceAndSessions,
   guardCancel,
   probeGatewayReachable,
-  resolveControlUiLinks,
+  resolveBrowserClientsLinks,
   summarizeExistingConfig,
   waitForGatewayReachable,
 } from "./onboard-helpers.js";
@@ -68,11 +68,10 @@ async function runGatewayHealthCheck(params: {
   runtime: RuntimeEnv;
   port: number;
 }): Promise<void> {
-  const localLinks = resolveControlUiLinks({
+  const localLinks = resolveBrowserClientsLinks({
     bind: params.cfg.gateway?.bind ?? "loopback",
     port: params.port,
     customBindHost: params.cfg.gateway?.customBindHost,
-    basePath: undefined,
   });
   const remoteUrl = params.cfg.gateway?.remote?.url?.trim();
   const wsUrl = params.cfg.gateway?.mode === "remote" && remoteUrl ? remoteUrl : localLinks.wsUrl;
@@ -648,11 +647,10 @@ export async function runConfigureWizard(
     }
 
     const bind = nextConfig.gateway?.bind ?? "loopback";
-    const links = resolveControlUiLinks({
+    const links = resolveBrowserClientsLinks({
       bind,
       port: gatewayPort,
       customBindHost: nextConfig.gateway?.customBindHost,
-      basePath: nextConfig.gateway?.controlUi?.basePath,
     });
     const newPassword =
       process.env.CRAWCLAW_GATEWAY_PASSWORD ??

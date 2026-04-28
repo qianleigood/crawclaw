@@ -63,11 +63,11 @@ Once the gateway is running and your email is added to the visibility list:
 
 ## Public URL (Webhook-only)
 
-Google Chat webhooks require a public HTTPS endpoint. For security, **only expose the `/googlechat` path** to the internet. Keep the CrawClaw dashboard and other sensitive endpoints on your private network.
+Google Chat webhooks require a public HTTPS endpoint. For security, **only expose the `/googlechat` path** to the internet. Keep the CrawClaw Gateway API and other sensitive endpoints on your private network.
 
 ### Option A: Tailscale Funnel (Recommended)
 
-Use Tailscale Serve for the private dashboard and Funnel for the public webhook path. This keeps `/` private while exposing only `/googlechat`.
+Use Tailscale Serve for private Gateway access and Funnel for the public webhook path. This keeps `/` private while exposing only `/googlechat`.
 
 1. **Check what address your gateway is bound to:**
 
@@ -77,7 +77,7 @@ Use Tailscale Serve for the private dashboard and Funnel for the public webhook 
 
    Note the IP address (e.g., `127.0.0.1`, `0.0.0.0`, or your Tailscale IP like `100.x.x.x`).
 
-2. **Expose the dashboard to the tailnet only (port 8443):**
+2. **Expose Gateway access to the tailnet only (port 8443):**
 
    ```bash
    # If bound to localhost (127.0.0.1 or 0.0.0.0):
@@ -110,7 +110,7 @@ Use Tailscale Serve for the private dashboard and Funnel for the public webhook 
 Your public webhook URL will be:
 `https://<node-name>.<tailnet>.ts.net/googlechat`
 
-Your private dashboard stays tailnet-only:
+Your private Gateway access stays tailnet-only:
 `https://<node-name>.<tailnet>.ts.net:8443/`
 
 Use the public URL (without `:8443`) in the Google Chat app config.

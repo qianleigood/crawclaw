@@ -184,7 +184,7 @@ crawclaw agents add work \
 ## Gateway wizard RPC
 
 The Gateway exposes the onboarding flow over RPC (`wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`).
-Clients such as WebChat and other web surfaces can render steps without re‑implementing onboarding logic.
+Gateway clients can render steps without re‑implementing onboarding logic.
 
 ## Signal setup (signal-cli)
 

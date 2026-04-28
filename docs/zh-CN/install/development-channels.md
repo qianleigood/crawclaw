@@ -73,9 +73,9 @@ crawclaw update --channel dev
   - `beta` → 候选构建
   - `dev` → main 快照（可选）
 
-## macOS 应用可用性
+## 节点主机可用性
 
-Beta 和 dev 构建可能**不**包含 macOS 应用发布。这没问题：
+Beta 和 dev 构建可能**不**包含 节点主机发布。这没问题：
 
 - git 标签和 npm dist-tag 仍然可以发布。
 - 在发布说明或变更日志中注明"此 beta 无 macOS 构建"。

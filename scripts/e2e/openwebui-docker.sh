@@ -72,7 +72,6 @@ docker run -d \
   -e "CRAWCLAW_SKIP_CHANNELS=1" \
   -e "CRAWCLAW_SKIP_GMAIL_WATCHER=1" \
   -e "CRAWCLAW_SKIP_CRON=1" \
-  -e "CRAWCLAW_SKIP_CANVAS_HOST=1" \
   "${EXTERNAL_AUTH_MOUNTS[@]}" \
   "${PROFILE_MOUNT[@]}" \
   "$IMAGE_NAME" \
@@ -94,9 +93,9 @@ docker run -d \
     entry=dist/index.mjs
     [ -f "$entry" ] || entry=dist/index.js
 
-    node "$entry" config set gateway.controlUi.enabled false >/dev/null
     node "$entry" config set gateway.mode local >/dev/null
     node "$entry" config set gateway.bind lan >/dev/null
+    node "$entry" config set gateway.browserClients.allowedOrigins '["http://127.0.0.1:18789","http://localhost:18789"]' --strict-json >/dev/null
     node "$entry" config set gateway.auth.mode token >/dev/null
     node "$entry" config set gateway.auth.token "$CRAWCLAW_GATEWAY_TOKEN" >/dev/null
     node "$entry" config set gateway.http.endpoints.chatCompletions.enabled true --strict-json >/dev/null

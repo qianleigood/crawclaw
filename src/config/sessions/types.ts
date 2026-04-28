@@ -102,7 +102,7 @@ export type SessionEntry = {
   };
   /** Workspace inherited by spawned sessions and reused on later turns for the same child session. */
   spawnedWorkspaceDir?: string;
-  /** Explicit parent session linkage for dashboard-created child sessions. */
+  /** Explicit parent session linkage for client-created child sessions. */
   parentSessionKey?: string;
   /** True after a thread/topic session has been forked from its parent transcript once. */
   forkedFromParent?: boolean;

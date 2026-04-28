@@ -135,7 +135,7 @@ export function readSessionMessages(
       }
 
       // Compaction entries are not "message" records, but they're useful context for debugging.
-      // Emit a lightweight synthetic message that the Web UI can render as a divider.
+      // Emit a lightweight synthetic message that clients can render as a divider.
       if (parsed?.type === "compaction") {
         const ts = typeof parsed.timestamp === "string" ? Date.parse(parsed.timestamp) : Number.NaN;
         const timestamp = Number.isFinite(ts) ? ts : Date.now();
@@ -247,12 +247,12 @@ export function readSessionTitleFieldsFromTranscript(
       // ignore head read errors
     }
 
-    if (!firstUserSenderLabel || isControlUiSenderLabel(firstUserSenderLabel)) {
+    if (!firstUserSenderLabel || isBrowserClientsSenderLabel(firstUserSenderLabel)) {
       const archived = readArchivedSessionTitleFieldsFallback(filePath, opts);
       if (archived) {
         if (
           archived.firstUserSenderLabel &&
-          !isControlUiSenderLabel(archived.firstUserSenderLabel)
+          !isBrowserClientsSenderLabel(archived.firstUserSenderLabel)
         ) {
           firstUserSenderLabel = archived.firstUserSenderLabel;
         }
@@ -263,7 +263,7 @@ export function readSessionTitleFieldsFromTranscript(
     }
 
     if (
-      (!firstUserSenderLabel || isControlUiSenderLabel(firstUserSenderLabel)) &&
+      (!firstUserSenderLabel || isBrowserClientsSenderLabel(firstUserSenderLabel)) &&
       opts?.sessionKey?.trim() &&
       storePath
     ) {
@@ -277,7 +277,7 @@ export function readSessionTitleFieldsFromTranscript(
       if (historical) {
         if (
           historical.firstUserSenderLabel &&
-          !isControlUiSenderLabel(historical.firstUserSenderLabel)
+          !isBrowserClientsSenderLabel(historical.firstUserSenderLabel)
         ) {
           firstUserSenderLabel = historical.firstUserSenderLabel;
         }
@@ -397,9 +397,9 @@ function extractSenderLabelFromInboundMeta(text: string): string | null {
   }
 }
 
-function isControlUiSenderLabel(label: string | null | undefined): boolean {
+function isBrowserClientsSenderLabel(label: string | null | undefined): boolean {
   const normalized = (label ?? "").trim().toLowerCase();
-  return normalized === "crawclaw-control-ui" || normalized === "crawclaw control ui";
+  return normalized === "crawclaw-browser-client";
 }
 
 function findLatestArchivedTranscript(sessionFile: string): string | null {
@@ -544,10 +544,13 @@ function readTranscriptTitleFieldsForFallback(
     // ignore transcript read failures
   }
 
-  if (!firstUserSenderLabel || isControlUiSenderLabel(firstUserSenderLabel)) {
+  if (!firstUserSenderLabel || isBrowserClientsSenderLabel(firstUserSenderLabel)) {
     const archived = readArchivedSessionTitleFieldsFallback(transcriptPath, opts);
     if (archived) {
-      if (archived.firstUserSenderLabel && !isControlUiSenderLabel(archived.firstUserSenderLabel)) {
+      if (
+        archived.firstUserSenderLabel &&
+        !isBrowserClientsSenderLabel(archived.firstUserSenderLabel)
+      ) {
         firstUserSenderLabel = archived.firstUserSenderLabel;
       }
       if (!firstUserMessage && archived.firstUserMessage) {
@@ -596,7 +599,10 @@ function readHistoricalSessionTitleFieldsFallback(params: {
       if (!fields) {
         continue;
       }
-      if (fields.firstUserSenderLabel && !isControlUiSenderLabel(fields.firstUserSenderLabel)) {
+      if (
+        fields.firstUserSenderLabel &&
+        !isBrowserClientsSenderLabel(fields.firstUserSenderLabel)
+      ) {
         return fields;
       }
       if (fields.firstUserMessage) {

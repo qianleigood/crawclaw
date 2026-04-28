@@ -47,7 +47,7 @@ export type AgentHealthSummary = {
 
 export type HealthSummary = {
   /**
-   * Convenience top-level flag for UIs (e.g. WebChat) that only need a binary
+   * Convenience top-level flag for clients that only need a binary
    * "can talk to the gateway" signal. If this payload exists, the gateway RPC
    * succeeded, so this is always `true`.
    */

@@ -23,7 +23,6 @@ async function startServer(port: number, opts?: { openAiChatCompletionsEnabled?:
   return await startGatewayServer(port, {
     host: "127.0.0.1",
     auth: { mode: "none" },
-    controlUiEnabled: false,
     openAiChatCompletionsEnabled: opts?.openAiChatCompletionsEnabled ?? false,
   });
 }
@@ -32,7 +31,6 @@ async function startTokenServer(port: number, opts?: { openAiChatCompletionsEnab
   return await startGatewayServer(port, {
     host: "127.0.0.1",
     auth: { mode: "token", token: "secret" },
-    controlUiEnabled: false,
     openAiChatCompletionsEnabled: opts?.openAiChatCompletionsEnabled ?? false,
   });
 }

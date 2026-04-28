@@ -18,7 +18,7 @@ x-i18n:
 CrawClaw 核心使用 TypeScript 编写。**Node 是推荐的运行时**。
 不建议将 Bun 用于 Gateway 网关（存在 WhatsApp/Telegram bug）。
 
-CrawClaw 当前聚焦于 Gateway 网关、CLI、Web 界面和节点集成。Windows 与
+CrawClaw 当前聚焦于 Gateway 网关、CLI、Gateway 客户端和节点集成。Windows 与
 Linux 目前都可作为 Gateway 网关主机运行。
 
 ## 选择你的操作系统

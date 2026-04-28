@@ -25,7 +25,7 @@ function labelForChannel(channel?: string): string {
     case "tui":
       return "terminal UI";
     case INTERNAL_MESSAGE_CHANNEL:
-      return "Web UI";
+      return "Gateway client";
     default:
       return channel ? channel[0]?.toUpperCase() + channel.slice(1) : "this platform";
   }

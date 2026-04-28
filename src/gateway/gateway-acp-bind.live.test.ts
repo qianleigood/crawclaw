@@ -317,7 +317,6 @@ describeLive("gateway live (ACP bind)", () => {
         skipChannels: process.env.CRAWCLAW_SKIP_CHANNELS,
         skipGmail: process.env.CRAWCLAW_SKIP_GMAIL_WATCHER,
         skipCron: process.env.CRAWCLAW_SKIP_CRON,
-        skipCanvas: process.env.CRAWCLAW_SKIP_CANVAS_HOST,
       };
       const liveAgent = normalizeAcpAgent(process.env.CRAWCLAW_LIVE_ACP_BIND_AGENT);
       const acpxCommand = process.env.CRAWCLAW_LIVE_ACP_BIND_ACPX_COMMAND?.trim() || undefined;
@@ -337,7 +336,6 @@ describeLive("gateway live (ACP bind)", () => {
       process.env.CRAWCLAW_SKIP_CHANNELS = "1";
       process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = "1";
       process.env.CRAWCLAW_SKIP_CRON = "1";
-      process.env.CRAWCLAW_SKIP_CANVAS_HOST = "1";
       process.env.CRAWCLAW_GATEWAY_TOKEN = token;
       process.env.CRAWCLAW_GATEWAY_PORT = String(port);
 
@@ -391,7 +389,6 @@ describeLive("gateway live (ACP bind)", () => {
       const server = await startGatewayServer(port, {
         bind: "loopback",
         auth: { mode: "token", token },
-        controlUiEnabled: false,
       });
       logLiveStep("gateway startup returned");
       await waitForGatewayPort({ host: "127.0.0.1", port, timeoutMs: CONNECT_TIMEOUT_MS });
@@ -474,11 +471,6 @@ describeLive("gateway live (ACP bind)", () => {
           delete process.env.CRAWCLAW_SKIP_CRON;
         } else {
           process.env.CRAWCLAW_SKIP_CRON = previous.skipCron;
-        }
-        if (previous.skipCanvas === undefined) {
-          delete process.env.CRAWCLAW_SKIP_CANVAS_HOST;
-        } else {
-          process.env.CRAWCLAW_SKIP_CANVAS_HOST = previous.skipCanvas;
         }
       }
     },

@@ -101,7 +101,6 @@ describe("gateway e2e", () => {
         "CRAWCLAW_SKIP_CHANNELS",
         "CRAWCLAW_SKIP_GMAIL_WATCHER",
         "CRAWCLAW_SKIP_CRON",
-        "CRAWCLAW_SKIP_CANVAS_HOST",
         "CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER",
       ]);
 
@@ -114,7 +113,6 @@ describe("gateway e2e", () => {
       process.env.CRAWCLAW_SKIP_CHANNELS = "1";
       process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = "1";
       process.env.CRAWCLAW_SKIP_CRON = "1";
-      process.env.CRAWCLAW_SKIP_CANVAS_HOST = "1";
       process.env.CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
 
       const token = nextGatewayId("test-token");
@@ -201,7 +199,6 @@ describe("gateway e2e", () => {
         "CRAWCLAW_SKIP_CHANNELS",
         "CRAWCLAW_SKIP_GMAIL_WATCHER",
         "CRAWCLAW_SKIP_CRON",
-        "CRAWCLAW_SKIP_CANVAS_HOST",
         "CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER",
       ]);
 
@@ -212,7 +209,6 @@ describe("gateway e2e", () => {
       process.env.CRAWCLAW_SKIP_CHANNELS = "1";
       process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = "1";
       process.env.CRAWCLAW_SKIP_CRON = "1";
-      process.env.CRAWCLAW_SKIP_CANVAS_HOST = "1";
       process.env.CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
 
       const token = nextGatewayId("http-tools-token");
@@ -259,7 +255,6 @@ module.exports = {
       const server = await startGatewayServer(port, {
         bind: "loopback",
         auth: { mode: "token", token },
-        controlUiEnabled: false,
       });
 
       try {
@@ -307,14 +302,12 @@ module.exports = {
         "CRAWCLAW_SKIP_CHANNELS",
         "CRAWCLAW_SKIP_GMAIL_WATCHER",
         "CRAWCLAW_SKIP_CRON",
-        "CRAWCLAW_SKIP_CANVAS_HOST",
         "CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER",
       ]);
 
       process.env.CRAWCLAW_SKIP_CHANNELS = "1";
       process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = "1";
       process.env.CRAWCLAW_SKIP_CRON = "1";
-      process.env.CRAWCLAW_SKIP_CANVAS_HOST = "1";
       process.env.CRAWCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
       delete process.env.CRAWCLAW_GATEWAY_TOKEN;
 
@@ -328,7 +321,6 @@ module.exports = {
       const server = await startGatewayServer(port, {
         bind: "loopback",
         auth: { mode: "token", token: wizardToken },
-        controlUiEnabled: false,
         wizardRunner: async (_opts, _runtime, prompter) => {
           await prompter.intro("Wizard E2E");
           await prompter.note("write token");
@@ -393,7 +385,6 @@ module.exports = {
       const port2 = await getFreeGatewayPort();
       const server2 = await startGatewayServer(port2, {
         bind: "loopback",
-        controlUiEnabled: false,
       });
       try {
         const resNoToken = await connectDeviceAuthReq({

@@ -16,12 +16,12 @@ x-i18n:
 
 最后更新：2026-04-17
 
-TypeBox 是一个 TypeScript 优先的模式库。我们用它来定义 **Gateway 网关 WebSocket 协议**（握手、请求/响应、服务器事件）。这些模式驱动**运行时验证**、**JSON Schema 导出**和 macOS 应用的 **Swift 代码生成**。
+TypeBox 是一个 TypeScript 优先的模式库。我们用它来定义 **Gateway 网关 WebSocket 协议**（握手、请求/响应、服务器事件）。这些模式驱动**运行时验证**、**JSON Schema 导出**和 节点主机的 **Swift 代码生成**。
 
-对浏览器 Control UI 来说，TypeBox 现在需要和共享 method contract 一起理解：
+对浏览器 Browser client 来说，TypeBox 现在需要和共享 method contract 一起理解：
 
 - **TypeBox / ProtocolSchemas**：协议对象 shape 和可复用 schema
-- **`src/gateway/protocol/control-ui-methods.ts`**：前端 method 列表、params/result 映射、scope、capability、effects 元信息
+- **`src/gateway/protocol/browser-client-methods.ts`**：前端 method 列表、params/result 映射、scope、capability、effects 元信息
 
 如果你看的是浏览器控制面的稳定 RPC surface，请同时参考
 [控制面 RPC](/gateway/control-plane-rpc)。
@@ -55,7 +55,7 @@ Client                    Gateway
 | ---- | --------------------------------------------------------- | ------------------------------- |
 | 核心 | `connect`、`health`、`status`                             | `connect` 必须是第一个          |
 | 消息 | `send`、`poll`、`agent`、`agent.wait`                     | 有副作用的需要 `idempotencyKey` |
-| 聊天 | `chat.history`、`chat.send`、`chat.abort`、`chat.inject`  | WebChat 使用这些                |
+| 聊天 | `chat.history`、`chat.send`、`chat.abort`、`chat.inject`  | Gateway 客户端使用这些          |
 | 会话 | `sessions.list`、`sessions.patch`、`sessions.delete`      | 会话管理                        |
 | 节点 | `node.list`、`node.invoke`、`node.pair.*`                 | Gateway 网关 WS + 节点操作      |
 | 事件 | `tick`、`presence`、`agent`、`chat`、`health`、`shutdown` | 服务器推送                      |
@@ -64,7 +64,7 @@ Client                    Gateway
 
 - 协议 schema：`src/gateway/protocol/schema/*`
 - 共享 protocol exports：`src/gateway/protocol/schema/protocol-schemas.ts`
-- Control UI method contract：`src/gateway/protocol/control-ui-methods.ts`
+- Browser client method contract：`src/gateway/protocol/browser-client-methods.ts`
 - gateway dispatch/runtime 行为：`src/gateway/server-methods.ts`
 
 ## 模式所在位置
@@ -72,7 +72,7 @@ Client                    Gateway
 - 源模块：`src/gateway/protocol/schema/*`
 - 共享 protocol exports：`src/gateway/protocol/schema/protocol-schemas.ts`
 - 运行时验证器（AJV）：`src/gateway/protocol/index.ts`
-- 控制面 method contract：`src/gateway/protocol/control-ui-methods.ts`
+- 控制面 method contract：`src/gateway/protocol/browser-client-methods.ts`
 - 服务器握手 + 方法分发：`src/gateway/server-methods.ts`
 - 节点客户端：`src/gateway/client.ts`
 - 生成的 JSON Schema：`dist/protocol.schema.json`

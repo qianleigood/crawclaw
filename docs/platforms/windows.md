@@ -3,14 +3,13 @@ summary: "Windows support matrix for native installs, Gateway service mode, plug
 read_when:
   - Installing CrawClaw on Windows
   - Defining Windows support scope
-  - Looking for Windows companion app status
 title: "Windows"
 ---
 
 # Windows
 
 CrawClaw supports **native Windows** for Gateway host use. The Windows product
-boundary is the CLI, Gateway, web UI, plugins, install/runtime setup, and
+boundary is the CLI, Gateway, plugins, install/runtime setup, and
 per-user startup on the Windows host.
 
 Native Windows support does **not** mean full parity with macOS-only local
@@ -32,21 +31,19 @@ The Windows matrix uses three support states:
 
 ## Native capability matrix
 
-| Surface                              | Status       | Windows boundary                                                                                                      |
-| ------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------- |
-| Installer                            | `supported`  | `install.ps1` installs Node 24 by default, accepts Node 22.14+, checks Git/PATH prerequisites, and installs CrawClaw. |
-| CLI                                  | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                     |
-| Gateway foreground                   | `supported`  | `crawclaw gateway run` starts the Gateway directly on the Windows host.                                               |
-| Gateway service                      | `supported`  | Per-user login service: Scheduled Task when allowed, Startup-folder fallback when task creation is denied.            |
-| `exec` and `system.run` tools        | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.          |
-| Browser automation                   | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                       |
-| Docker sandbox                       | `supported`  | Supported after Windows drive-path, Docker Desktop bind, and sandbox security gates pass.                             |
-| Telegram, Discord, Slack, Matrix     | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.    |
-| Common provider plugins              | `supported`  | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                       |
-| BlueBubbles and iMessage             | `bridged`    | Bridged through a Mac server or Apple host; Windows runs the Gateway/client side, not Apple's local messaging stack.  |
-| Apple skills and macOS-only tooling  | `bridged`    | Bridged through a Mac or headless node that owns the Apple-local runtime and permissions.                             |
-| macOS companion app                  | `not-native` | Not described as a native Windows deliverable in this repo.                                                           |
-| Windows tray or desktop companion UI | `not-native` | Not shipped today; native Windows support is CLI, Gateway, web UI, plugins, and runtime setup.                        |
+| Surface                             | Status      | Windows boundary                                                                                                      |
+| ----------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| Installer                           | `supported` | `install.ps1` installs Node 24 by default, accepts Node 22.14+, checks Git/PATH prerequisites, and installs CrawClaw. |
+| CLI                                 | `supported` | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                     |
+| Gateway foreground                  | `supported` | `crawclaw gateway run` starts the Gateway directly on the Windows host.                                               |
+| Gateway service                     | `supported` | Per-user login service: Scheduled Task when allowed, Startup-folder fallback when task creation is denied.            |
+| `exec` and `system.run` tools       | `supported` | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.          |
+| Browser automation                  | `supported` | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                       |
+| Docker sandbox                      | `supported` | Supported after Windows drive-path, Docker Desktop bind, and sandbox security gates pass.                             |
+| Telegram, Discord, Slack, Matrix    | `supported` | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.    |
+| Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                       |
+| BlueBubbles and iMessage            | `bridged`   | Bridged through a Mac server or Apple host; Windows runs the Gateway/client side, not Apple's local messaging stack.  |
+| Apple skills and macOS-only tooling | `bridged`   | Bridged through a Mac or headless node that owns the Apple-local runtime and permissions.                             |
 
 ## Install
 
@@ -189,11 +186,6 @@ Repair/migrate:
 ```
 crawclaw doctor
 ```
-
-## Windows companion app
-
-There is no Windows companion app today. The supported Windows surface is the
-CLI, Gateway, web UI, plugins, and install/runtime path described on this page.
 
 ## Related pages
 

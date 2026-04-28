@@ -429,7 +429,7 @@ crawclaw hooks list
 # 启用它
 crawclaw hooks enable my-hook
 
-# 重启你的 Gateway 网关进程（macOS 上重启菜单栏应用，或重启你的开发进程）
+# 重启你的 Gateway 网关进程（macOS 上重启节点主机，或重启你的开发进程）
 
 # 触发事件
 # 通过你的消息渠道发送 /new

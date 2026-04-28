@@ -10,7 +10,6 @@ import { CONFIG_PATH } from "../config/config.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
-import { normalizeControlUiBasePath } from "../gateway/control-ui-shared.js";
 import { isValidIPv4 } from "../gateway/net.js";
 import {
   detectBrowserOpenSupport,
@@ -130,40 +129,6 @@ export function applyWizardMetadata(
       lastRunMode: params.mode,
     },
   };
-}
-
-export function formatControlUiSshHint(params: {
-  port: number;
-  basePath?: string;
-  token?: string;
-}): string {
-  const basePath = normalizeControlUiBasePath(params.basePath);
-  const uiPath = basePath ? `${basePath}/` : "/";
-  const localUrl = `http://localhost:${params.port}${uiPath}`;
-  const authedUrl = params.token
-    ? `${localUrl}#token=${encodeURIComponent(params.token)}`
-    : undefined;
-  const sshTarget = resolveSshTargetHint();
-  const t = createCliTranslator(getActiveCliLocale());
-  return [
-    t("wizard.gateway.noGuiOpen"),
-    `ssh -N -L ${params.port}:127.0.0.1:${params.port} ${sshTarget}`,
-    t("wizard.gateway.thenOpen"),
-    localUrl,
-    authedUrl,
-    t("wizard.gateway.docs"),
-    "https://docs.crawclaw.ai/gateway/remote",
-    "https://docs.crawclaw.ai/web",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function resolveSshTargetHint(): string {
-  const user = process.env.USER || process.env.LOGNAME || "user";
-  const conn = process.env.SSH_CONNECTION?.trim().split(/\s+/);
-  const host = conn?.[2] ?? "<host>";
-  return `${user}@${host}`;
 }
 
 export async function ensureWorkspaceAndSessions(
@@ -307,11 +272,10 @@ function summarizeError(err: unknown): string {
 
 export const DEFAULT_WORKSPACE = DEFAULT_AGENT_WORKSPACE_DIR;
 
-export function resolveControlUiLinks(params: {
+export function resolveBrowserClientsLinks(params: {
   port: number;
   bind?: "auto" | "lan" | "loopback" | "custom" | "tailnet";
   customBindHost?: string;
-  basePath?: string;
 }): { httpUrl: string; wsUrl: string } {
   const port = params.port;
   const bind = params.bind ?? "loopback";
@@ -329,11 +293,8 @@ export function resolveControlUiLinks(params: {
     }
     return "127.0.0.1";
   })();
-  const basePath = normalizeControlUiBasePath(params.basePath);
-  const uiPath = basePath ? `${basePath}/` : "/";
-  const wsPath = basePath ? basePath : "";
   return {
-    httpUrl: `http://${host}:${port}${uiPath}`,
-    wsUrl: `ws://${host}:${port}${wsPath}`,
+    httpUrl: `http://${host}:${port}/`,
+    wsUrl: `ws://${host}:${port}`,
   };
 }

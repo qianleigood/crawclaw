@@ -246,7 +246,6 @@ export async function startGatewayWithClient(params: {
   const server = await startGatewayServer(port, {
     bind: "loopback",
     auth: { mode: "token", token: params.token },
-    controlUiEnabled: false,
   });
   const client = await connectGatewayClient({
     url: `ws://127.0.0.1:${port}`,

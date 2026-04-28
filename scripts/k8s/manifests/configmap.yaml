@@ -14,7 +14,7 @@ data:
         "auth": {
           "mode": "token"
         },
-        "controlUi": {
+        "browserClients": {
           "enabled": true
         }
       },

@@ -74,7 +74,7 @@ access, bind explicitly and keep auth enabled.
 For tailnet‑only setups:
 
 - Set `gateway.bind: "tailnet"` in `~/.crawclaw/crawclaw.json`.
-- Restart the Gateway (or restart the macOS menubar app).
+- Restart the Gateway.
 
 ## What advertises
 
@@ -94,7 +94,6 @@ The Gateway advertises small non‑secret hints to make UI flows convenient:
 - `gatewayPort=<port>` (Gateway WS + HTTP)
 - `gatewayTls=1` (only when TLS is enabled)
 - `gatewayTlsSha256=<sha256>` (only when TLS is enabled and fingerprint is available)
-- `canvasPort=<port>` (only when the canvas host is enabled; currently the same as `gatewayPort`)
 - `sshPort=<port>` (defaults to 22 when not overridden)
 - `transport=gateway`
 - `cliPath=<path>` (optional; absolute path to a runnable `crawclaw` entrypoint)

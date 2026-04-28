@@ -93,7 +93,7 @@ async function writeTrustedProxyBrowserAuthConfig() {
         },
       },
       trustedProxies: ["127.0.0.1"],
-      controlUi: {
+      browserClients: {
         allowedOrigins: [ALLOWED_BROWSER_ORIGIN],
       },
     },
@@ -125,7 +125,7 @@ describe("gateway auth browser hardening", () => {
       expect(res.ok).toBe(false);
       expect(res.error?.message ?? "").toContain("origin not allowed");
       expect((res.error?.details as { code?: string } | undefined)?.code).toBe(
-        ConnectErrorDetailCodes.CONTROL_UI_ORIGIN_NOT_ALLOWED,
+        ConnectErrorDetailCodes.BROWSER_CLIENT_ORIGIN_NOT_ALLOWED,
       );
     });
   });
@@ -140,7 +140,7 @@ describe("gateway auth browser hardening", () => {
     });
   });
 
-  test("clears scopes for trusted-proxy non-control-ui browser sessions", async () => {
+  test("clears scopes for trusted-proxy non-browser-client browser sessions", async () => {
     await withTrustedProxyBrowserWs(ALLOWED_BROWSER_ORIGIN, async (ws) => {
       const payload = await connectOk(ws, {
         client: TEST_OPERATOR_CLIENT,
@@ -174,7 +174,7 @@ describe("gateway auth browser hardening", () => {
       testState.gatewayAuth = { mode: "token", token: "secret" };
       await writeConfigFile({
         gateway: {
-          controlUi: {
+          browserClients: {
             allowedOrigins: [ALLOWED_BROWSER_ORIGIN],
           },
         },
@@ -194,7 +194,7 @@ describe("gateway auth browser hardening", () => {
           } else {
             expect(res.error?.message ?? "").toContain(expectedMessage ?? "");
             expect((res.error?.details as { code?: string } | undefined)?.code).toBe(
-              ConnectErrorDetailCodes.CONTROL_UI_ORIGIN_NOT_ALLOWED,
+              ConnectErrorDetailCodes.BROWSER_CLIENT_ORIGIN_NOT_ALLOWED,
             );
           }
         } finally {
@@ -204,7 +204,7 @@ describe("gateway auth browser hardening", () => {
     },
   );
 
-  test("rejects non-local browser origins for non-control-ui clients", async () => {
+  test("rejects non-local browser origins for non-browser-client clients", async () => {
     testState.gatewayAuth = { mode: "token", token: "secret" };
     await withGatewayServer(async ({ port }) => {
       const ws = await openWs(port, { origin: "https://attacker.example" });
@@ -216,7 +216,7 @@ describe("gateway auth browser hardening", () => {
         expect(res.ok).toBe(false);
         expect(res.error?.message ?? "").toContain("origin not allowed");
         expect((res.error?.details as { code?: string } | undefined)?.code).toBe(
-          ConnectErrorDetailCodes.CONTROL_UI_ORIGIN_NOT_ALLOWED,
+          ConnectErrorDetailCodes.BROWSER_CLIENT_ORIGIN_NOT_ALLOWED,
         );
       } finally {
         ws.close();
@@ -242,7 +242,7 @@ describe("gateway auth browser hardening", () => {
         expect(res.ok).toBe(false);
         expect(res.error?.message ?? "").toContain("origin not allowed");
         expect((res.error?.details as { code?: string } | undefined)?.code).toBe(
-          ConnectErrorDetailCodes.CONTROL_UI_ORIGIN_NOT_ALLOWED,
+          ConnectErrorDetailCodes.BROWSER_CLIENT_ORIGIN_NOT_ALLOWED,
         );
       } finally {
         ws.close();
@@ -309,7 +309,7 @@ describe("gateway auth browser hardening", () => {
     });
   });
 
-  test("does not silently auto-pair non-control-ui browser clients on loopback", async () => {
+  test("does not silently auto-pair non-browser-client browser clients on loopback", async () => {
     const { listDevicePairing } = await import("../infra/device-pairing.js");
     testState.gatewayAuth = { mode: "token", token: "secret" };
 
@@ -345,7 +345,7 @@ describe("gateway auth browser hardening", () => {
     });
   });
 
-  test("rejects forged loopback origin for control-ui when proxy headers make client non-local", async () => {
+  test("rejects forged loopback origin for browser-client when proxy headers make client non-local", async () => {
     testState.gatewayAuth = { mode: "token", token: "secret" };
     await withGatewayServer(async ({ port }) => {
       const ws = await openWs(port, {
@@ -357,7 +357,7 @@ describe("gateway auth browser hardening", () => {
           token: "secret",
           client: {
             ...TEST_OPERATOR_CLIENT,
-            id: GATEWAY_CLIENT_NAMES.CONTROL_UI,
+            id: GATEWAY_CLIENT_NAMES.BROWSER_CLIENT,
             mode: GATEWAY_CLIENT_MODES.UI,
           },
         });

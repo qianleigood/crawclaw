@@ -259,14 +259,6 @@ jobs:
           path: dist/
           retention-days: 1
 
-      - name: Upload A2UI bundle artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: canvas-a2ui-bundle
-          path: src/canvas-host/a2ui/
-          include-hidden-files: true
-          retention-days: 1
-
   checks-fast:
     name: ${{ matrix.check_name }}
     needs: [preflight]
@@ -372,13 +364,6 @@ jobs:
         with:
           name: dist-build
           path: dist/
-
-      - name: Download A2UI bundle artifact
-        if: matrix.task == 'test' || matrix.task == 'channels'
-        uses: actions/download-artifact@v8
-        with:
-          name: canvas-a2ui-bundle
-          path: src/canvas-host/a2ui/
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
         if: github.event_name != 'pull_request' || matrix.task != 'compat-node22'
@@ -817,19 +802,10 @@ jobs:
           name: dist-build
           path: dist/
 
-      - name: Download A2UI bundle artifact
-        id: download_a2ui
-        if: matrix.task == 'test' || matrix.task == 'install-smoke'
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: canvas-a2ui-bundle
-          path: src/canvas-host/a2ui/
-
       - name: Build dist when artifact download fails
-        if: (matrix.task == 'test' || matrix.task == 'install-smoke') && (steps.download_dist.outcome != 'success' || steps.download_a2ui.outcome != 'success')
+        if: (matrix.task == 'test' || matrix.task == 'install-smoke') && steps.download_dist.outcome != 'success'
         run: |
-          echo "::warning title=Artifact download fallback::Building dist locally because one or more Windows artifact downloads failed."
+          echo "::warning title=Artifact download fallback::Building dist locally because the Windows dist artifact download failed."
           pnpm build
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
@@ -880,12 +856,6 @@ jobs:
         with:
           name: dist-build
           path: dist/
-
-      - name: Download A2UI bundle artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: canvas-a2ui-bundle
-          path: src/canvas-host/a2ui/
 
       - name: Configure test shard (macOS)
         if: matrix.task == 'test'

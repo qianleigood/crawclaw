@@ -3,7 +3,6 @@ import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js"
 import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
 import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
-import type { CanvasHostServer } from "../canvas-host/server.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { createDefaultDeps } from "../cli/deps.js";
@@ -145,7 +144,7 @@ import {
   mergeGatewayAuthConfig,
   mergeGatewayTailscaleConfig,
 } from "./startup-auth.js";
-import { maybeSeedControlUiAllowedOriginsAtStartup } from "./startup-control-ui-origins.js";
+import { maybeSeedBrowserClientsAllowedOriginsAtStartup } from "./startup-browser-client-origins.js";
 
 export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
 
@@ -163,7 +162,6 @@ function resolveMediaCleanupTtlMs(ttlHoursRaw: number): number {
 }
 
 const log = createSubsystemLogger("gateway");
-const logCanvas = log.child("canvas");
 const logDiscovery = log.child("discovery");
 const logTailscale = log.child("tailscale");
 const logChannels = log.child("channels");
@@ -181,8 +179,6 @@ const logHooks = log.child("hooks");
 const logPlugins = log.child("plugins");
 const logWsControl = log.child("ws");
 const logSecrets = log.child("secrets");
-const canvasRuntime = runtimeForLogger(logCanvas);
-
 type AuthRateLimitConfig = Parameters<typeof createAuthRateLimiter>[0];
 
 function createGatewayAuthRateLimiters(rateLimitConfig: AuthRateLimitConfig | undefined): {
@@ -331,11 +327,6 @@ export type GatewayServerOptions = {
    */
   host?: string;
   /**
-   * If false, do not serve the browser Control UI.
-   * Default: config `gateway.controlUi.enabled` (or true when absent).
-   */
-  controlUiEnabled?: boolean;
-  /**
    * If false, do not serve `POST /v1/chat/completions`.
    * Default: config `gateway.http.endpoints.chatCompletions.enabled` (or false when absent).
    */
@@ -353,10 +344,6 @@ export type GatewayServerOptions = {
    * Override gateway Tailscale exposure configuration (merges with config).
    */
   tailscale?: import("../config/config.js").GatewayTailscaleConfig;
-  /**
-   * Test-only: allow canvas host startup even when NODE_ENV/VITEST would disable it.
-   */
-  allowCanvasHostInTests?: boolean;
   /**
    * Test-only: override the setup wizard runner.
    */
@@ -520,15 +507,15 @@ export async function startGatewayServer(
       getActiveEmbeddedRunCount() +
       getInspectableTaskRegistrySummary().active,
   );
-  // Unconditional startup migration: seed gateway.controlUi.allowedOrigins for existing
+  // Unconditional startup migration: seed gateway.browserClients.allowedOrigins for existing
   // non-loopback installs that upgraded to v2026.2.26+ without required origins.
-  const controlUiSeed = await maybeSeedControlUiAllowedOriginsAtStartup({
+  const browserClientsSeed = await maybeSeedBrowserClientsAllowedOriginsAtStartup({
     config: cfgAtStart,
     writeConfig: writeConfigFile,
     log,
   });
-  cfgAtStart = controlUiSeed.config;
-  if (authBootstrap.persistedGeneratedToken || controlUiSeed.persistedAllowedOriginsSeed) {
+  cfgAtStart = browserClientsSeed.config;
+  if (authBootstrap.persistedGeneratedToken || browserClientsSeed.persistedAllowedOriginsSeed) {
     const startupSnapshot = await readConfigFileSnapshot();
     startupInternalWriteHash = startupSnapshot.hash ?? null;
   }
@@ -611,7 +598,6 @@ export async function startGatewayServer(
     port,
     bind: opts.bind,
     host: opts.host,
-    controlUiEnabled: opts.controlUiEnabled,
     openAiChatCompletionsEnabled: opts.openAiChatCompletionsEnabled,
     openResponsesEnabled: opts.openResponsesEnabled,
     auth: opts.auth,
@@ -624,14 +610,12 @@ export async function startGatewayServer(
     openResponsesEnabled,
     openResponsesConfig,
     strictTransportSecurityHeader,
-    controlUiBasePath,
     resolvedAuth,
     tailscaleConfig,
     tailscaleMode,
   } = runtimeConfig;
   let hooksConfig = runtimeConfig.hooksConfig;
   let hookClientIpConfig = resolveHookClientIpConfig(cfgAtStart);
-  const canvasHostEnabled = runtimeConfig.canvasHostEnabled;
 
   // Create auth rate limiters used by connect/auth flows.
   const rateLimitConfig = cfgAtStart.gateway?.auth?.rateLimit;
@@ -642,7 +626,6 @@ export async function startGatewayServer(
   const { wizardSessions, findRunningWizard, purgeWizardSession } = createWizardSessionTracker();
 
   const deps = createDefaultDeps();
-  let canvasHostServer: CanvasHostServer | null = null;
   const gatewayTls = await loadGatewayTlsRuntime(cfgAtStart.gateway?.tls, log.child("tls"));
   if (cfgAtStart.gateway?.tls?.enabled && !gatewayTls.enabled) {
     throw new Error(gatewayTls.error ?? "gateway tls: failed to enable");
@@ -664,7 +647,6 @@ export async function startGatewayServer(
   });
   log.info("starting HTTP server...");
   const {
-    canvasHost,
     releasePluginRouteRegistry,
     httpServer,
     httpServers,
@@ -701,10 +683,6 @@ export async function startGatewayServer(
     pluginRegistry,
     pinChannelRegistry: !minimalTestGateway,
     deps,
-    canvasRuntime,
-    canvasHostEnabled,
-    allowCanvasHostInTests: opts.allowCanvasHostInTests,
-    logCanvas,
     log,
     logHooks,
     logPlugins,
@@ -745,8 +723,6 @@ export async function startGatewayServer(
     await createGatewayCloseHandler({
       bonjourStop,
       tailscaleCleanup,
-      canvasHost,
-      canvasHostServer,
       releasePluginRouteRegistry,
       stopChannel,
       pluginServices,
@@ -1152,8 +1128,6 @@ export async function startGatewayServer(
       },
     });
 
-    const canvasHostServerPort = (canvasHostServer as CanvasHostServer | null)?.port;
-
     const gatewayRequestContext: import("./server-methods/types.js").GatewayRequestContext = {
       deps,
       cron,
@@ -1244,10 +1218,6 @@ export async function startGatewayServer(
       wss,
       clients,
       preauthConnectionBudget,
-      port,
-      gatewayHost: bindHost ?? undefined,
-      canvasHostEnabled: Boolean(canvasHost),
-      canvasHostServerPort,
       resolvedAuth,
       rateLimiter: authRateLimiter,
       browserRateLimiter: browserAuthRateLimiter,
@@ -1291,7 +1261,6 @@ export async function startGatewayServer(
           tailscaleMode,
           resetOnExit: tailscaleConfig.resetOnExit,
           port,
-          controlUiBasePath,
           logTailscale,
         });
 
@@ -1420,8 +1389,6 @@ export async function startGatewayServer(
   const close = createGatewayCloseHandler({
     bonjourStop,
     tailscaleCleanup,
-    canvasHost,
-    canvasHostServer,
     releasePluginRouteRegistry,
     stopChannel,
     pluginServices,

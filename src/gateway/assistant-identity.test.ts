@@ -5,10 +5,13 @@ import { DEFAULT_ASSISTANT_IDENTITY, resolveAssistantIdentity } from "./assistan
 describe("resolveAssistantIdentity avatar normalization", () => {
   it("drops sentence-like avatar placeholders", () => {
     const cfg: CrawClawConfig = {
-      ui: {
-        assistant: {
-          avatar: "workspace-relative path, http(s) URL, or data URI",
-        },
+      agents: {
+        list: [
+          {
+            id: "main",
+            identity: { avatar: "workspace-relative path, http(s) URL, or data URI" },
+          },
+        ],
       },
     };
 
@@ -19,10 +22,8 @@ describe("resolveAssistantIdentity avatar normalization", () => {
 
   it("keeps short text avatars", () => {
     const cfg: CrawClawConfig = {
-      ui: {
-        assistant: {
-          avatar: "PS",
-        },
+      agents: {
+        list: [{ id: "main", identity: { avatar: "PS" } }],
       },
     };
 
@@ -31,10 +32,8 @@ describe("resolveAssistantIdentity avatar normalization", () => {
 
   it("keeps path avatars", () => {
     const cfg: CrawClawConfig = {
-      ui: {
-        assistant: {
-          avatar: "avatars/crawclaw.png",
-        },
+      agents: {
+        list: [{ id: "main", identity: { avatar: "avatars/crawclaw.png" } }],
       },
     };
 

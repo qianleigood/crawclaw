@@ -19,7 +19,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Getting Started](/start/getting-started)
 - [Onboarding (CLI)](/start/wizard)
 - [Setup](/start/setup)
-- [Dashboard (local Gateway)](http://127.0.0.1:18789/)
 - [Help](/help)
 - [Docs directory](/start/docs-directory)
 - [Configuration](/gateway/configuration)
@@ -77,7 +76,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [BlueBubbles (iMessage)](/channels/bluebubbles)
 - [iMessage (legacy)](/channels/imessage)
 - [Location parsing](/channels/location)
-- [WebChat](/web/webchat)
 - [Webhooks](/automation/cron-jobs#webhooks)
 - [Gmail Pub/Sub](/automation/cron-jobs#gmail-pubsub-integration)
 
@@ -93,8 +91,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Doctor](/gateway/doctor)
 - [Logging](/gateway/logging)
 - [Sandboxing](/gateway/sandboxing)
-- [Web surfaces](/web)
-- [WebChat](/web/webchat)
 - [Remote access](/gateway/remote)
 - [Remote gateway README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
@@ -115,7 +111,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Models](/concepts/models)
 - [Sub-agents](/tools/subagents)
 - [Agent send CLI](/tools/agent-send)
-- [Terminal UI](/web/tui)
 - [Browser control](/tools/browser)
 - [Browser (Linux troubleshooting)](/tools/browser-linux-troubleshooting)
 - [Polls](/cli/message)
@@ -135,7 +130,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Platforms overview](/platforms)
 - [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
-- [Web surfaces](/web)
 
 ## Extensions + plugins
 

@@ -16,7 +16,7 @@ Short guide to verify channel connectivity without guessing.
 - `crawclaw status --all` — full local diagnosis (read-only, color, safe to paste for debugging).
 - `crawclaw status --deep` — also probes the running Gateway (per-channel probes when supported).
 - `crawclaw health --json` — asks the running Gateway for a full health snapshot (WS-only; no direct Baileys socket).
-- Send `/status` as a standalone message in WhatsApp/WebChat to get a status reply without invoking the agent.
+- Send `/status` as a standalone message in WhatsApp to get a status reply without invoking the agent.
 - Logs: tail `/tmp/crawclaw/crawclaw-*.log` and filter for `web-heartbeat`, `web-reconnect`, `web-auto-reply`, `web-inbound`.
 
 ## Deep diagnostics

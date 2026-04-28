@@ -1,6 +1,6 @@
 export const GATEWAY_CLIENT_IDS = {
   WEBCHAT_UI: "webchat-ui",
-  CONTROL_UI: "crawclaw-control-ui",
+  BROWSER_CLIENT: "crawclaw-browser-client",
   TUI: "crawclaw-tui",
   WEBCHAT: "webchat",
   CLI: "cli",

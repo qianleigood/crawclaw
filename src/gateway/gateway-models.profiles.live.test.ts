@@ -1095,7 +1095,6 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
     skipChannels: process.env.CRAWCLAW_SKIP_CHANNELS,
     skipGmail: process.env.CRAWCLAW_SKIP_GMAIL_WATCHER,
     skipCron: process.env.CRAWCLAW_SKIP_CRON,
-    skipCanvas: process.env.CRAWCLAW_SKIP_CANVAS_HOST,
     disableBonjour: process.env.CRAWCLAW_DISABLE_BONJOUR,
     logLevel: process.env.CRAWCLAW_LOG_LEVEL,
     agentDir: process.env.CRAWCLAW_AGENT_DIR,
@@ -1108,7 +1107,6 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
   process.env.CRAWCLAW_SKIP_CHANNELS = "1";
   process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = "1";
   process.env.CRAWCLAW_SKIP_CRON = "1";
-  process.env.CRAWCLAW_SKIP_CANVAS_HOST = "1";
   if (QUIET_LIVE_LOGS) {
     process.env.CRAWCLAW_DISABLE_BONJOUR = "1";
     process.env.CRAWCLAW_LOG_LEVEL = "silent";
@@ -1182,7 +1180,6 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
       startGatewayServer(port, {
         bind: "loopback",
         auth: { mode: "token", token },
-        controlUiEnabled: false,
       }),
       `${params.label}: gateway-start`,
     );
@@ -1779,7 +1776,6 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
     process.env.CRAWCLAW_SKIP_CHANNELS = previous.skipChannels;
     process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = previous.skipGmail;
     process.env.CRAWCLAW_SKIP_CRON = previous.skipCron;
-    process.env.CRAWCLAW_SKIP_CANVAS_HOST = previous.skipCanvas;
     process.env.CRAWCLAW_DISABLE_BONJOUR = previous.disableBonjour;
     process.env.CRAWCLAW_LOG_LEVEL = previous.logLevel;
     process.env.CRAWCLAW_AGENT_DIR = previous.agentDir;
@@ -1913,13 +1909,11 @@ describeLive("gateway live (dev agent, profile keys)", () => {
       skipChannels: process.env.CRAWCLAW_SKIP_CHANNELS,
       skipGmail: process.env.CRAWCLAW_SKIP_GMAIL_WATCHER,
       skipCron: process.env.CRAWCLAW_SKIP_CRON,
-      skipCanvas: process.env.CRAWCLAW_SKIP_CANVAS_HOST,
     };
 
     process.env.CRAWCLAW_SKIP_CHANNELS = "1";
     process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = "1";
     process.env.CRAWCLAW_SKIP_CRON = "1";
-    process.env.CRAWCLAW_SKIP_CANVAS_HOST = "1";
 
     const token = `test-${randomUUID()}`;
     process.env.CRAWCLAW_GATEWAY_TOKEN = token;
@@ -1962,7 +1956,6 @@ describeLive("gateway live (dev agent, profile keys)", () => {
         startGatewayServer(port, {
           bind: "loopback",
           auth: { mode: "token", token },
-          controlUiEnabled: false,
         }),
         "zai-fallback: gateway-start",
       );
@@ -2066,7 +2059,6 @@ describeLive("gateway live (dev agent, profile keys)", () => {
       process.env.CRAWCLAW_SKIP_CHANNELS = previous.skipChannels;
       process.env.CRAWCLAW_SKIP_GMAIL_WATCHER = previous.skipGmail;
       process.env.CRAWCLAW_SKIP_CRON = previous.skipCron;
-      process.env.CRAWCLAW_SKIP_CANVAS_HOST = previous.skipCanvas;
     }
   }, 180_000);
 });

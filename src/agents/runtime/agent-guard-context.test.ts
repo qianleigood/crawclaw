@@ -35,19 +35,19 @@ describe("agent-guard-context", () => {
       mode: "background",
       interactiveApprovalBlocker: "background",
       interactiveApprovalAvailable: false,
-      controlUiVisible: true,
+      browserClientsVisible: true,
       heartbeat: false,
     });
   });
 
-  it("marks hidden-control-ui runs as ineligible for interactive approvals", () => {
+  it("marks hidden-browser-client runs as ineligible for interactive approvals", () => {
     registerAgentRunContext("hidden-run", {
       sessionKey: "agent:hidden",
       sessionId: "session-hidden",
       agentId: "main",
       taskRuntime: "cli",
       taskMode: "foreground",
-      isControlUiVisible: false,
+      isBrowserClientsVisible: false,
     });
     registerAgentRuntimeRun({
       runId: "hidden-run",
@@ -67,9 +67,9 @@ describe("agent-guard-context", () => {
       sessionId: "session-hidden",
       runtime: "cli",
       mode: "foreground",
-      interactiveApprovalBlocker: "hidden-control-ui",
+      interactiveApprovalBlocker: "hidden-browser-client",
       interactiveApprovalAvailable: false,
-      controlUiVisible: false,
+      browserClientsVisible: false,
       heartbeat: false,
     });
   });

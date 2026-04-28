@@ -218,7 +218,6 @@ export async function scanStatusJsonCore(params: {
   const tailscaleHttpsUrl = buildTailscaleHttpsUrl({
     tailscaleMode,
     tailscaleDns,
-    controlUiBasePath: cfg.gateway?.controlUi?.basePath,
   });
 
   const {

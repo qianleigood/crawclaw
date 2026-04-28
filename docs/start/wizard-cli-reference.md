@@ -304,7 +304,7 @@ Gateway wizard RPC:
 - `wizard.cancel`
 - `wizard.status`
 
-Clients such as WebChat can render steps without re-implementing onboarding logic.
+Gateway clients can render steps without re-implementing onboarding logic.
 
 Signal setup behavior:
 

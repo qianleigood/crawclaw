@@ -60,9 +60,9 @@ describe("sessions-list-tool", () => {
           path: "/tmp/sessions.json",
           sessions: [
             {
-              key: "agent:main:dashboard:child",
+              key: "agent:main:client:child",
               kind: "direct",
-              sessionId: "sess-dashboard-child",
+              sessionId: "sess-client-child",
               deliveryContext: {
                 channel: "discord",
                 to: "discord:child",

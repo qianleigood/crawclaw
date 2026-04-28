@@ -18,10 +18,10 @@ x-i18n:
 目标：以最少的设置，从零开始到完成第一次可用聊天。
 
 <Info>
-最快的聊天方式：运行 `crawclaw tui`，或使用仍保留的 WebChat/浏览器客户端（无需先设置渠道），在
+最快的聊天方式：运行 `crawclaw tui`（无需先设置渠道），在
 <Tooltip headline="Gateway host" tip="运行 CrawClaw Gateway 网关服务的机器。">网关主机</Tooltip>
-上访问浏览器入口。
-文档：[Web 界面](/web)。
+上打开本地终端界面。
+文档：[TUI](/cli/tui)。
 </Info>
 
 ## 前置条件
@@ -84,7 +84,7 @@ x-i18n:
 </Steps>
 
 <Check>
-如果 `crawclaw tui` 能正常进入，或 Web 客户端能连接，你的 Gateway 网关就已准备就绪，可以使用。
+如果 `crawclaw tui` 能正常进入，你的 Gateway 网关就已准备就绪，可以使用。
 </Check>
 
 ## 可选检查和附加内容

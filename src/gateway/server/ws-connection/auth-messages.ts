@@ -15,17 +15,17 @@ export function formatGatewayAuthFailureMessage(params: {
 }): string {
   const { authMode, authProvided, reason, client } = params;
   const isCli = isGatewayCliClient(client);
-  const isControlUi = isOperatorUiClient(client);
+  const isBrowserClients = isOperatorUiClient(client);
   const isWebchat = isWebchatClient(client);
   const uiHint = "open the gateway client and provide the configured token";
   const tokenHint = isCli
     ? "set gateway.remote.token to match gateway.auth.token"
-    : isControlUi || isWebchat
+    : isBrowserClients || isWebchat
       ? uiHint
       : "provide gateway auth token";
   const passwordHint = isCli
     ? "set gateway.remote.password to match gateway.auth.password"
-    : isControlUi || isWebchat
+    : isBrowserClients || isWebchat
       ? "enter the password in the gateway client"
       : "provide gateway auth password";
   switch (reason) {
