@@ -1,0 +1,130 @@
+{
+  "id": "turix-cua",
+  "enabledByDefault": true,
+  "name": "TuriX CUA",
+  "description": "Run high-risk local desktop automation tasks through a controlled TuriX-CUA worker.",
+  "contracts": {
+    "tools": ["turix_desktop_run"]
+  },
+  "uiHints": {
+    "runtime.mode": {
+      "label": "TuriX runtime mode",
+      "help": "Use managed for CrawClaw-owned runtime provisioning, or external to point at an existing TuriX-CUA checkout."
+    },
+    "runtime.projectDir": {
+      "label": "TuriX project directory",
+      "help": "Required for external runtime mode. Points at a TuriX-CUA checkout."
+    },
+    "runtime.pythonPath": {
+      "label": "TuriX Python executable",
+      "help": "Python executable used to run examples/main.py."
+    },
+    "models.*.apiKeyEnv": {
+      "label": "Provider API key env var",
+      "help": "Environment variable name used for the TuriX model provider API key.",
+      "sensitive": true
+    },
+    "allowRemoteRequests": {
+      "label": "Allow channel-originated desktop runs",
+      "help": "Keep disabled unless you explicitly want remote chat channels to trigger local desktop automation after approval."
+    },
+    "stripReasoningTags": {
+      "label": "Strip leading reasoning tags",
+      "help": "Remove leading <think>...</think> blocks from TuriX model responses before TuriX parses structured output."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "runtime": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["managed", "external"]
+          },
+          "projectDir": {
+            "type": "string"
+          },
+          "pythonPath": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          }
+        }
+      },
+      "models": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "brain": { "$ref": "#/$defs/model" },
+          "actor": { "$ref": "#/$defs/model" },
+          "planner": { "$ref": "#/$defs/model" },
+          "memory": { "$ref": "#/$defs/model" }
+        }
+      },
+      "outputRoot": {
+        "type": "string"
+      },
+      "defaultMaxSteps": {
+        "type": "number"
+      },
+      "defaultTimeoutMs": {
+        "type": "number"
+      },
+      "retainRunsDays": {
+        "type": "number"
+      },
+      "allowRemoteRequests": {
+        "type": "boolean"
+      },
+      "stripReasoningTags": {
+        "type": "boolean"
+      },
+      "usePlan": {
+        "type": "boolean"
+      },
+      "useSkills": {
+        "type": "boolean"
+      },
+      "skillsDir": {
+        "type": "string"
+      },
+      "maxActionsPerStep": {
+        "type": "number"
+      },
+      "forceStopHotkey": {
+        "type": "string"
+      }
+    },
+    "$defs": {
+      "model": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "apiKeyEnv": {
+            "type": "string"
+          },
+          "maxTokens": {
+            "type": "number"
+          },
+          "timeout": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}

@@ -11,6 +11,7 @@ Docs: https://docs.crawclaw.ai
 - Channels/context visibility: add configurable `contextVisibility` per channel (`all`, `allowlist`, `allowlist_quote`) so supplemental room context such as quoted replies, thread roots, and fetched history can be filtered by sender allowlists instead of always passing through as received.
 - CLI/install: remove old pre-CrawClaw compatibility entrypoints, migration command surface, and legacy state-root auto-detection so new installs only advertise the canonical CrawClaw paths.
 - Dependencies/Agents: bump embedded Pi SDK packages to `0.70.0`, picking up Fireworks/model catalog updates, source-ordered parallel tool-result transcripts, and tool-result terminate hints.
+- Plugins/TuriX CUA: add an optional owner-gated `turix_desktop_run` tool for approved local macOS desktop automation through a TuriX-CUA checkout, with default reasoning-tag cleanup for structured TuriX model outputs.
 
 ### Fixes
 

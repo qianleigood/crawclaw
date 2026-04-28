@@ -1,0 +1,15 @@
+{
+  "name": "@crawclaw/turix-cua-plugin",
+  "version": "2026.4.1-beta.1",
+  "private": true,
+  "description": "CrawClaw TuriX desktop automation plugin",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.49"
+  },
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

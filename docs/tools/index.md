@@ -83,6 +83,7 @@ Plugins can register additional tools. Some examples:
 - [Lobster](/tools/lobster) — typed workflow runtime with resumable approvals
 - [LLM Task](/tools/llm-task) — JSON-only LLM step for structured output
 - [Diffs](/tools/diffs) — diff viewer and renderer
+- [TuriX CUA](/tools/turix-cua) — high-risk local desktop automation through TuriX-CUA
 - [OpenProse](/prose) — markdown-first workflow orchestration
 
 ## Tool configuration
