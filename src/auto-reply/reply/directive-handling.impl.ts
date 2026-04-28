@@ -1,14 +1,9 @@
-import {
-  resolveAgentConfig,
-  resolveAgentDir,
-  resolveSessionAgentId,
-} from "../../agents/agent-scope.js";
-import { renderExecTargetLabel, resolveExecTarget } from "../../agents/bash-tools.exec-runtime.js";
+import { resolveAgentDir, resolveSessionAgentId } from "../../agents/agent-scope.js";
+import { renderExecTargetLabel } from "../../agents/bash-tools.exec-runtime.js";
+import { describeExecRiskDiagnostic, resolveExecPosture } from "../../agents/exec-posture.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
-import type { CrawClawConfig } from "../../config/config.js";
-import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
-import type { ExecAsk, ExecHost, ExecSecurity, ExecTarget } from "../../infra/exec-approvals.js";
+import { updateSessionStore } from "../../config/sessions.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { formatThinkingLevels, formatXHighModelHint, supportsXHighThinking } from "../thinking.js";
 import type { ReplyPayload } from "../types.js";
@@ -35,49 +30,6 @@ import {
   applySharedSessionPatch,
   type SharedSessionPatch,
 } from "./session-patch-runtime.js";
-
-function resolveExecDefaults(params: {
-  cfg: CrawClawConfig;
-  sessionEntry?: SessionEntry;
-  agentId?: string;
-  sandboxAvailable: boolean;
-}): {
-  host: ExecTarget;
-  effectiveHost: ExecHost;
-  security: ExecSecurity;
-  ask: ExecAsk;
-  node?: string;
-} {
-  const globalExec = params.cfg.tools?.exec;
-  const agentExec = params.agentId
-    ? resolveAgentConfig(params.cfg, params.agentId)?.tools?.exec
-    : undefined;
-  const host =
-    (params.sessionEntry?.execHost as ExecTarget | undefined) ??
-    (agentExec?.host as ExecTarget | undefined) ??
-    (globalExec?.host as ExecTarget | undefined) ??
-    "auto";
-  const resolved = resolveExecTarget({
-    configuredTarget: host,
-    elevatedRequested: false,
-    sandboxAvailable: params.sandboxAvailable,
-  });
-  return {
-    host,
-    effectiveHost: resolved.effectiveHost,
-    security:
-      (params.sessionEntry?.execSecurity as ExecSecurity | undefined) ??
-      (agentExec?.security as ExecSecurity | undefined) ??
-      (globalExec?.security as ExecSecurity | undefined) ??
-      "deny",
-    ask:
-      (params.sessionEntry?.execAsk as ExecAsk | undefined) ??
-      (agentExec?.ask as ExecAsk | undefined) ??
-      (globalExec?.ask as ExecAsk | undefined) ??
-      "on-miss",
-    node: params.sessionEntry?.execNode ?? agentExec?.node ?? globalExec?.node,
-  };
-}
 
 export async function handleDirectiveOnly(
   params: HandleDirectiveOnlyParams,
@@ -288,16 +240,22 @@ export async function handleDirectiveOnly(
       };
     }
     if (!directives.hasExecOptions) {
-      const execDefaults = resolveExecDefaults({
+      const execDefaults = resolveExecPosture({
         cfg: params.cfg,
         sessionEntry,
         agentId: activeAgentId,
         sandboxAvailable: runtimeIsSandboxed,
       });
+      const execDiagnostic = describeExecRiskDiagnostic(execDefaults);
       const nodeLabel = execDefaults.node ? `node=${execDefaults.node}` : "node=(unset)";
       return {
         text: withOptions(
-          `Current exec defaults: host=${renderExecTargetLabel(execDefaults.host)}, effective=${execDefaults.effectiveHost}, security=${execDefaults.security}, ask=${execDefaults.ask}, ${nodeLabel}.`,
+          [
+            `Current exec defaults: host=${renderExecTargetLabel(execDefaults.host)}, effective=${execDefaults.effectiveHost}, security=${execDefaults.security}, ask=${execDefaults.ask}, ${nodeLabel}.`,
+            execDiagnostic,
+          ]
+            .filter(Boolean)
+            .join("\n"),
           "host=auto|sandbox|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>",
         ),
       };

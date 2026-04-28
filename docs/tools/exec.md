@@ -104,7 +104,8 @@ Browser-facing clients can expose an “Exec node binding” control for the sam
 ## Session overrides (`/exec`)
 
 Use `/exec` to set **per-session** defaults for `host`, `security`, `ask`, and `node`.
-Send `/exec` with no arguments to show the current values.
+Send `/exec` with no arguments to show the current effective values. If the current posture allows
+host exec without approval prompts, the reply includes a warning with the safer config shape.
 
 Example:
 

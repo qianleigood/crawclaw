@@ -1,13 +1,18 @@
 import type { CrawClawConfig } from "../config/config.js";
+import type { SessionEntry } from "../config/sessions.js";
 import { coerceModelCompatConfig } from "../plugins/provider-model-compat.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import { resolveAgentDir, resolveAgentWorkspaceDir, resolveSessionAgentId } from "./agent-scope.js";
 import { getChannelAgentToolMeta } from "./channel-tools.js";
+import { describeExecRiskDiagnostic, resolveExecPosture } from "./exec-posture.js";
 import { resolveModel } from "./pi-embedded-runner/model.js";
 import { createCrawClawCodingTools } from "./pi-tools.js";
-import { resolveEffectiveToolPolicy } from "./pi-tools.policy.js";
+import { isToolAllowedByPolicyName, resolveEffectiveToolPolicy } from "./pi-tools.policy.js";
+import { resolveSandboxRuntimeStatus } from "./sandbox.js";
+import { listCoreToolSections, resolveCoreToolProfiles } from "./tool-catalog.js";
 import { summarizeToolDescriptionText } from "./tool-description-summary.js";
 import { resolveToolDisplay } from "./tool-display.js";
+import { isOwnerOnlyToolName, type ToolPolicyLike } from "./tool-policy.js";
 import type { AnyAgentTool } from "./tools/common.js";
 
 export type EffectiveToolSource = "core" | "plugin" | "channel";
@@ -33,10 +38,25 @@ export type EffectiveToolInventoryResult = {
   agentId: string;
   profile: string;
   groups: EffectiveToolInventoryGroup[];
+  unavailableTools?: EffectiveToolUnavailableEntry[];
+  diagnostics?: EffectiveToolDiagnostic[];
+};
+
+export type EffectiveToolUnavailableEntry = {
+  id: string;
+  label: string;
+  source: "core";
+  reason: string;
+};
+
+export type EffectiveToolDiagnostic = {
+  level: "warning";
+  message: string;
 };
 
 export type ResolveEffectiveToolInventoryParams = {
   cfg: CrawClawConfig;
+  sessionEntry?: SessionEntry;
   agentId?: string;
   sessionKey?: string;
   workspaceDir?: string;
@@ -60,6 +80,7 @@ export type ResolveEffectiveToolInventoryParams = {
   modelHasVision?: boolean;
   requireExplicitMessageTarget?: boolean;
   disableMessageTool?: boolean;
+  sandboxAvailable?: boolean;
 };
 
 function resolveEffectiveToolLabel(tool: AnyAgentTool): string {
@@ -140,6 +161,136 @@ function resolveEffectiveModelCompat(params: {
   }
 }
 
+function describeProfileBlock(params: {
+  toolId: string;
+  profile?: string;
+  label: string;
+}): string | undefined {
+  const profile = params.profile?.trim();
+  if (!profile || profile === "full") {
+    return undefined;
+  }
+  if (resolveCoreToolProfiles(params.toolId).some((candidate) => candidate === profile)) {
+    return undefined;
+  }
+  return `not included in ${params.label} (${profile})`;
+}
+
+function describePolicyBlock(params: {
+  toolId: string;
+  policy?: ToolPolicyLike;
+  label: string;
+}): string | undefined {
+  if (!params.policy || isToolAllowedByPolicyName(params.toolId, params.policy)) {
+    return undefined;
+  }
+  return `blocked by ${params.label}`;
+}
+
+function describeUnavailableCoreTool(params: {
+  toolId: string;
+  effectivePolicy: ReturnType<typeof resolveEffectiveToolPolicy>;
+  senderIsOwner?: boolean;
+}): string {
+  if (isOwnerOnlyToolName(params.toolId) && params.senderIsOwner !== true) {
+    return "restricted to owner senders";
+  }
+  return (
+    describeProfileBlock({
+      toolId: params.toolId,
+      profile: params.effectivePolicy.profile,
+      label: "tools.profile",
+    }) ??
+    describeProfileBlock({
+      toolId: params.toolId,
+      profile: params.effectivePolicy.providerProfile,
+      label: "tools.byProvider.profile",
+    }) ??
+    describePolicyBlock({
+      toolId: params.toolId,
+      policy: params.effectivePolicy.globalPolicy,
+      label: "tools.allow",
+    }) ??
+    describePolicyBlock({
+      toolId: params.toolId,
+      policy: params.effectivePolicy.globalProviderPolicy,
+      label: "tools.byProvider.allow",
+    }) ??
+    describePolicyBlock({
+      toolId: params.toolId,
+      policy: params.effectivePolicy.agentPolicy,
+      label: "agent tools.allow",
+    }) ??
+    describePolicyBlock({
+      toolId: params.toolId,
+      policy: params.effectivePolicy.agentProviderPolicy,
+      label: "agent tools.byProvider.allow",
+    }) ??
+    "not registered for the current model, config, or runtime"
+  );
+}
+
+function buildUnavailableCoreTools(params: {
+  availableTools: EffectiveToolInventoryEntry[];
+  effectivePolicy: ReturnType<typeof resolveEffectiveToolPolicy>;
+  senderIsOwner?: boolean;
+}): EffectiveToolUnavailableEntry[] | undefined {
+  const available = new Set(params.availableTools.map((tool) => tool.id));
+  const unavailable = listCoreToolSections()
+    .flatMap((section) => section.tools)
+    .filter((tool) => !available.has(tool.id))
+    .map((tool) => ({
+      id: tool.id,
+      label: tool.label,
+      source: "core" as const,
+      reason: describeUnavailableCoreTool({
+        toolId: tool.id,
+        effectivePolicy: params.effectivePolicy,
+        senderIsOwner: params.senderIsOwner,
+      }),
+    }));
+  return unavailable.length > 0 ? unavailable : undefined;
+}
+
+function buildDiagnostics(messages: string[]): EffectiveToolDiagnostic[] | undefined {
+  const seen = new Set<string>();
+  const diagnostics = messages
+    .map((message) => message.trim())
+    .filter((message) => {
+      if (!message || seen.has(message)) {
+        return false;
+      }
+      seen.add(message);
+      return true;
+    })
+    .map((message) => ({ level: "warning" as const, message }));
+  return diagnostics.length > 0 ? diagnostics : undefined;
+}
+
+function maybeDescribeExecRisk(params: {
+  cfg: CrawClawConfig;
+  sessionEntry?: SessionEntry;
+  agentId: string;
+  sessionKey?: string;
+  sandboxAvailable?: boolean;
+  availableTools: EffectiveToolInventoryEntry[];
+}): string | undefined {
+  if (!params.availableTools.some((tool) => tool.id === "exec")) {
+    return undefined;
+  }
+  const sandboxAvailable =
+    params.sandboxAvailable ??
+    resolveSandboxRuntimeStatus({ cfg: params.cfg, sessionKey: params.sessionKey }).sandboxed;
+  return describeExecRiskDiagnostic(
+    resolveExecPosture({
+      cfg: params.cfg,
+      sessionEntry: params.sessionEntry,
+      agentId: params.agentId,
+      sandboxAvailable,
+    }),
+  );
+}
+
 export function resolveEffectiveToolInventory(
   params: ResolveEffectiveToolInventoryParams,
 ): EffectiveToolInventoryResult {
@@ -155,6 +306,7 @@ export function resolveEffectiveToolInventory(
     modelId: params.modelId,
   });
 
+  const toolPolicyDiagnostics: string[] = [];
   const effectiveTools = createCrawClawCodingTools({
     agentId,
     sessionKey: params.sessionKey,
@@ -182,6 +334,7 @@ export function resolveEffectiveToolInventory(
     modelHasVision: params.modelHasVision,
     requireExplicitMessageTarget: params.requireExplicitMessageTarget,
     disableMessageTool: params.disableMessageTool,
+    toolPolicyDiagnostics,
   });
   const effectivePolicy = resolveEffectiveToolPolicy({
     config: params.cfg,
@@ -206,6 +359,23 @@ export function resolveEffectiveToolInventory(
       })
       .toSorted((a, b) => a.label.localeCompare(b.label)),
   );
+  const unavailableTools = buildUnavailableCoreTools({
+    availableTools: entries,
+    effectivePolicy,
+    senderIsOwner: params.senderIsOwner,
+  });
+  const execRiskDiagnostic = maybeDescribeExecRisk({
+    cfg: params.cfg,
+    sessionEntry: params.sessionEntry,
+    agentId,
+    sessionKey: params.sessionKey,
+    sandboxAvailable: params.sandboxAvailable,
+    availableTools: entries,
+  });
+  const diagnostics = buildDiagnostics([
+    ...toolPolicyDiagnostics,
+    ...(execRiskDiagnostic ? [execRiskDiagnostic] : []),
+  ]);
   const groupsBySource = new Map<EffectiveToolSource, EffectiveToolInventoryEntry[]>();
   for (const entry of entries) {
     const tools = groupsBySource.get(entry.source) ?? [];
@@ -228,5 +398,11 @@ export function resolveEffectiveToolInventory(
     })
     .filter((group): group is EffectiveToolInventoryGroup => group !== null);
 
-  return { agentId, profile, groups };
+  return {
+    agentId,
+    profile,
+    groups,
+    ...(unavailableTools ? { unavailableTools } : {}),
+    ...(diagnostics ? { diagnostics } : {}),
+  };
 }

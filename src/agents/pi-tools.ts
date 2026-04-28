@@ -418,6 +418,8 @@ export function createCrawClawCodingTools(options?: {
   onYield?: (message: string) => Promise<void> | void;
   /** Optional semantic skill retriever shared with the current run. */
   skillSemanticRetrieve?: SkillSemanticRetriever;
+  /** Optional sink for policy diagnostics that should be surfaced to callers. */
+  toolPolicyDiagnostics?: string[];
   /** Explicit special-agent spawn source for embedded fork runs. */
   specialAgentSpawnSource?: string;
   /** Explicit durable-memory scope for embedded fork runs. */
@@ -821,6 +823,9 @@ export function createCrawClawCodingTools(options?: {
     tools: toolsByAuthorization,
     toolMeta: (tool) => getPluginToolMeta(tool),
     warn: logWarn,
+    diagnose: (message) => {
+      options?.toolPolicyDiagnostics?.push(message);
+    },
     steps: [
       ...buildDefaultToolPolicyPipelineSteps({
         profilePolicy: profilePolicyWithAlsoAllow,

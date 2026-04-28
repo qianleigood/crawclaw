@@ -333,11 +333,31 @@ export const ToolsEffectiveGroupSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ToolsEffectiveUnavailableToolSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    label: NonEmptyString,
+    source: Type.Literal("core"),
+    reason: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const ToolsEffectiveDiagnosticSchema = Type.Object(
+  {
+    level: Type.Literal("warning"),
+    message: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
 export const ToolsEffectiveResultSchema = Type.Object(
   {
     agentId: NonEmptyString,
     profile: NonEmptyString,
     groups: Type.Array(ToolsEffectiveGroupSchema),
+    unavailableTools: Type.Optional(Type.Array(ToolsEffectiveUnavailableToolSchema)),
+    diagnostics: Type.Optional(Type.Array(ToolsEffectiveDiagnosticSchema)),
   },
   { additionalProperties: false },
 );

@@ -928,8 +928,20 @@ type ToolsMessageItem = {
   channelId?: string;
 };
 
+type UnavailableToolsMessageItem = {
+  id: string;
+  label: string;
+  reason: string;
+};
+
 function sortToolsMessageItems(items: ToolsMessageItem[]): ToolsMessageItem[] {
   return items.toSorted((a, b) => a.name.localeCompare(b.name));
+}
+
+function sortUnavailableToolsMessageItems(
+  items: UnavailableToolsMessageItem[],
+): UnavailableToolsMessageItem[] {
+  return items.toSorted((a, b) => a.label.localeCompare(b.label));
 }
 
 function formatCompactToolEntry(tool: ToolsMessageItem): string {
@@ -981,6 +993,14 @@ export function buildToolsMessage(
   }
 
   const verbose = options?.verbose === true;
+  const unavailableTools = sortUnavailableToolsMessageItems(
+    (result.unavailableTools ?? []).map((tool) => ({
+      id: normalizeToolName(tool.id),
+      label: tool.label,
+      reason: tool.reason,
+    })),
+  );
+  const diagnostics = result.diagnostics ?? [];
   const lines = verbose
     ? [
         tr("Available tools"),
@@ -999,6 +1019,20 @@ export function buildToolsMessage(
       continue;
     }
     lines.push(`  ${group.tools.map((tool) => formatCompactToolEntry(tool)).join(", ")}`);
+  }
+
+  if (verbose && unavailableTools.length > 0) {
+    lines.push("", tr("Unavailable tools"));
+    for (const tool of unavailableTools) {
+      lines.push(`  ${tool.id} - ${tool.reason}`);
+    }
+  }
+
+  if (diagnostics.length > 0) {
+    lines.push("", tr("Warnings"));
+    for (const diagnostic of diagnostics) {
+      lines.push(`  ${diagnostic.message}`);
+    }
   }
 
   if (verbose) {

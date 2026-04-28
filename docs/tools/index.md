@@ -72,6 +72,10 @@ These tools ship with CrawClaw and are available without installing any plugins:
 `image` and `pdf` are conditionally registered: CrawClaw only exposes them
 when it can resolve usable media-capable models for the current agent.
 
+Use `/tools` in an authorized chat to inspect the current agent's effective tool set.
+`/tools verbose` also lists unavailable built-in tools and warnings, including risky
+exec postures such as host execution without approval prompts.
+
 ### Plugin-provided tools
 
 Plugins can register additional tools. Some examples:
@@ -102,12 +106,12 @@ config. Deny always wins over allow.
 `tools.profile` sets a base allowlist before `allow`/`deny` is applied.
 Per-agent override: `agents.list[].tools.profile`.
 
-| Profile     | What it includes                                  |
-| ----------- | ------------------------------------------------- |
-| `full`      | All tools (default)                               |
-| `coding`    | File I/O, runtime, web, sessions, cron, and image |
-| `messaging` | Messaging, session list/history/send/status       |
-| `minimal`   | `session_status` only                             |
+| Profile     | What it includes                                       |
+| ----------- | ------------------------------------------------------ |
+| `full`      | All tools (default)                                    |
+| `coding`    | File I/O, runtime, web, sessions, cron, image, and PDF |
+| `messaging` | Messaging, session list/history/send/status            |
+| `minimal`   | `session_status` only                                  |
 
 ### Tool groups
 
@@ -124,8 +128,7 @@ Use `group:*` shorthands in allow/deny lists:
 | `group:messaging`  | message                                                                                                   |
 | `group:nodes`      | nodes                                                                                                     |
 | `group:agents`     | agents_list                                                                                               |
-| `group:media`      | image, tts                                                                                                |
-| `group:media`      | image, tts                                                                                                |
+| `group:media`      | image, pdf, tts                                                                                           |
 | `group:crawclaw`   | All built-in CrawClaw tools (excludes plugin tools)                                                       |
 
 ### Provider-specific restrictions

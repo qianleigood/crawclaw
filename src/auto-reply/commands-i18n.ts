@@ -46,6 +46,8 @@ const TEXT_ZH_CN: Record<string, string> = {
   "Available tools": "可用工具",
   "Profile: ": "配置档：",
   "What this agent can use right now:": "此 agent 当前可用：",
+  "Unavailable tools": "不可用工具",
+  Warnings: "警告",
   "Tool availability depends on this agent's configuration.": "工具可用性取决于此 agent 的配置。",
   "Use /tools verbose for descriptions.": "使用 /tools verbose 查看描述。",
   "No tools are available for this agent right now.": "此 agent 当前没有可用工具。",

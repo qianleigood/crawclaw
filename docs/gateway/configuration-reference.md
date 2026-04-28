@@ -1828,7 +1828,7 @@ Local onboarding defaults new local configs to `tools.profile: "coding"` when un
 | Profile     | Includes                                                                                  |
 | ----------- | ----------------------------------------------------------------------------------------- |
 | `minimal`   | `session_status` only                                                                     |
-| `coding`    | `group:fs`, `group:runtime`, `group:web`, `group:sessions`, `cron`, `image`               |
+| `coding`    | `group:fs`, `group:runtime`, `group:web`, `group:sessions`, `cron`, `image`, `pdf`        |
 | `messaging` | `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status` |
 | `full`      | No restriction (same as unset)                                                            |
 
@@ -1845,7 +1845,7 @@ Local onboarding defaults new local configs to `tools.profile: "coding"` when un
 | `group:automation` | `cron`, `gateway`                                                                                                       |
 | `group:nodes`      | `nodes`                                                                                                                 |
 | `group:agents`     | `agents_list`                                                                                                           |
-| `group:media`      | `image`, `tts`                                                                                                          |
+| `group:media`      | `image`, `pdf`, `tts`                                                                                                   |
 | `group:crawclaw`   | All built-in tools (excludes provider plugins)                                                                          |
 
 ### `tools.allow` / `tools.deny`

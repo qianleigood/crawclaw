@@ -123,6 +123,21 @@ describe("tools product copy", () => {
             ],
           },
         ],
+        unavailableTools: [
+          {
+            id: "exec",
+            label: "exec",
+            source: "core",
+            reason: "not included in tools.profile (minimal)",
+          },
+        ],
+        diagnostics: [
+          {
+            level: "warning",
+            message:
+              "tools: tools.allow allowlist contains unknown entries (wat). These entries won't match any tool unless the plugin is enabled.",
+          },
+        ],
       },
       { verbose: true },
     );
@@ -130,8 +145,11 @@ describe("tools product copy", () => {
     expect(text).toContain("What this agent can use right now:");
     expect(text).toContain("Profile: minimal");
     expect(text).toContain("Exec - Run shell commands");
+    expect(text).toContain("Unavailable tools");
+    expect(text).toContain("exec - not included in tools.profile (minimal)");
+    expect(text).toContain("Warnings");
+    expect(text).toContain("unknown entries (wat)");
     expect(text).toContain("Tool availability depends on this agent's configuration.");
-    expect(text).not.toContain("unavailable right now");
   });
 
   it("trims verbose output before schema-like doc blocks", () => {

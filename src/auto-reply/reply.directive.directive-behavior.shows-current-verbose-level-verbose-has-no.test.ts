@@ -158,6 +158,12 @@ describe("directive behavior", () => {
       expect(elevatedText).toContain("Current elevated level: on");
       expect(elevatedText).toContain("Options: on, off, ask, full.");
 
+      const defaultExecText = await runCommand(home, "/exec");
+      expect(defaultExecText).toContain(
+        "Current exec defaults: host=auto, effective=gateway, security=full, ask=off, node=(unset).",
+      );
+      expect(defaultExecText).toContain("Exec can run on gateway without approval prompts.");
+
       const execText = await runCommand(home, "/exec", {
         extra: {
           tools: {
@@ -173,6 +179,7 @@ describe("directive behavior", () => {
       expect(execText).toContain(
         "Current exec defaults: host=gateway, effective=gateway, security=allowlist, ask=always, node=mac-1.",
       );
+      expect(execText).not.toContain("without approval prompts");
       expect(execText).toContain(
         "Options: host=auto|sandbox|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>.",
       );

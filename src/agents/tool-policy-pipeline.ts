@@ -94,6 +94,7 @@ export function applyToolPolicyPipeline(params: {
   tools: AnyAgentTool[];
   toolMeta: (tool: AnyAgentTool) => { pluginId: string } | undefined;
   warn: (message: string) => void;
+  diagnose?: (message: string) => void;
   steps: ToolPolicyPipelineStep[];
 }): AnyAgentTool[] {
   const coreToolNames = new Set(
@@ -136,6 +137,7 @@ export function applyToolPolicyPipeline(params: {
             hasOtherEntries: otherEntries.length > 0,
           });
           const warning = `tools: ${step.label} allowlist contains unknown entries (${entries}). ${suffix}`;
+          params.diagnose?.(warning);
           if (rememberToolPolicyWarning(warning)) {
             params.warn(warning);
           }

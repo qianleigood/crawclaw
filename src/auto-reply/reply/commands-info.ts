@@ -116,6 +116,7 @@ export const handleToolsCommand: CommandHandler = async (params, allowTextComman
     });
     const result = resolveEffectiveToolInventory({
       cfg: params.cfg,
+      sessionEntry: params.sessionEntry,
       agentId,
       sessionKey: params.sessionKey,
       workspaceDir: params.workspaceDir,

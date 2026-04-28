@@ -46,6 +46,13 @@ async function loadHarness(options?: {
   vi.doMock("./pi-tools.policy.js", () => ({
     resolveEffectiveToolPolicy: () => options?.effectivePolicy ?? {},
   }));
+  vi.doMock("../infra/exec-approvals.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../infra/exec-approvals.js")>();
+    return {
+      ...actual,
+      loadExecApprovals: () => ({ version: 1 }),
+    };
+  });
   return await import("./tools-effective-inventory.js");
 }
 
@@ -63,7 +70,7 @@ describe("resolveEffectiveToolInventory", () => {
 
     const result = resolveEffectiveToolInventory({ cfg: {} });
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       agentId: "main",
       profile: "full",
       groups: [
@@ -193,7 +200,7 @@ describe("resolveEffectiveToolInventory", () => {
     ]);
     const { resolveEffectiveToolInventory } = await loadHarness({
       createToolsMock,
-      resolvedModelCompat: { supportsTools: true, supportsNativeWebSearch: true },
+      resolvedModelCompat: { supportsTools: true, nativeWebSearchTool: true },
     });
 
     resolveEffectiveToolInventory({
@@ -206,8 +213,94 @@ describe("resolveEffectiveToolInventory", () => {
     expect(createToolsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         allowGatewaySubagentBinding: true,
-        modelCompat: { supportsTools: true, supportsNativeWebSearch: true },
+        modelCompat: { supportsTools: true, nativeWebSearchTool: true },
       }),
+    );
+  });
+
+  it("reports core tools unavailable because of the active profile", async () => {
+    const { resolveEffectiveToolInventory } = await loadHarness({
+      tools: [{ name: "session_status", label: "Session Status", description: "Session status" }],
+      effectivePolicy: { profile: "minimal" },
+    });
+
+    const result = resolveEffectiveToolInventory({ cfg: {} });
+
+    expect(result.unavailableTools).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "exec",
+          source: "core",
+          reason: "not included in tools.profile (minimal)",
+        }),
+      ]),
+    );
+  });
+
+  it("surfaces tool policy diagnostics collected during tool creation", async () => {
+    const warning =
+      "tools: tools.allow allowlist contains unknown entries (wat). These entries won't match any tool unless the plugin is enabled.";
+    const createToolsMock = vi.fn((options?: { toolPolicyDiagnostics?: string[] }) => {
+      options?.toolPolicyDiagnostics?.push(warning);
+      return [{ name: "exec", label: "Exec", description: "Run shell commands" }];
+    });
+    const { resolveEffectiveToolInventory } = await loadHarness({ createToolsMock });
+
+    const result = resolveEffectiveToolInventory({ cfg: {} });
+
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([{ level: "warning", message: warning }]),
+    );
+  });
+
+  it("surfaces risky no-approval host exec diagnostics", async () => {
+    const { resolveEffectiveToolInventory } = await loadHarness({
+      tools: [{ name: "exec", label: "Exec", description: "Run shell commands" }],
+    });
+
+    const result = resolveEffectiveToolInventory({ cfg: {} });
+
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          level: "warning",
+          message: expect.stringContaining("Exec can run on gateway without approval prompts."),
+        },
+      ]),
+    );
+  });
+
+  it("does not warn when host exec uses approval prompts", async () => {
+    const { resolveEffectiveToolInventory } = await loadHarness({
+      tools: [{ name: "exec", label: "Exec", description: "Run shell commands" }],
+    });
+
+    const result = resolveEffectiveToolInventory({
+      cfg: { tools: { exec: { security: "allowlist", ask: "always" } } },
+    });
+
+    expect(result.diagnostics?.some((item) => item.message.includes("approval prompts"))).not.toBe(
+      true,
+    );
+  });
+
+  it("uses session exec overrides when diagnosing exec risk", async () => {
+    const { resolveEffectiveToolInventory } = await loadHarness({
+      tools: [{ name: "exec", label: "Exec", description: "Run shell commands" }],
+    });
+
+    const result = resolveEffectiveToolInventory({
+      cfg: {},
+      sessionEntry: {
+        sessionId: "session-1",
+        updatedAt: 0,
+        execSecurity: "allowlist",
+        execAsk: "always",
+      },
+    });
+
+    expect(result.diagnostics?.some((item) => item.message.includes("approval prompts"))).not.toBe(
+      true,
     );
   });
 });

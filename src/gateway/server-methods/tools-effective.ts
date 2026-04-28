@@ -70,6 +70,7 @@ function resolveTrustedToolsEffectiveContext(params: {
   const resolvedModel = resolveSessionModelRef(loaded.cfg, loaded.entry, sessionAgentId);
   return {
     cfg: loaded.cfg,
+    sessionEntry: loaded.entry,
     agentId: sessionAgentId,
     senderIsOwner: params.senderIsOwner,
     modelProvider: resolvedModel.provider,
@@ -141,6 +142,7 @@ export const toolsEffectiveHandlers: GatewayRequestHandlers = {
       true,
       resolveEffectiveToolInventory({
         cfg: trustedContext.cfg,
+        sessionEntry: trustedContext.sessionEntry,
         agentId: trustedContext.agentId,
         sessionKey: params.sessionKey,
         messageProvider: trustedContext.messageProvider,

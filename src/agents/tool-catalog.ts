@@ -233,6 +233,14 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     includeInCrawClawGroup: true,
   },
   {
+    id: "pdf",
+    label: "pdf",
+    description: "PDF analysis",
+    sectionId: "media",
+    profiles: ["coding"],
+    includeInCrawClawGroup: true,
+  },
+  {
     id: "tts",
     label: "tts",
     description: "Text-to-speech conversion",
@@ -265,7 +273,7 @@ const CORE_TOOL_PROFILES: Record<ToolProfileId, ToolProfilePolicy> = {
   full: {},
 };
 
-function buildCoreToolGroupMap() {
+function buildCoreToolGroupMap(): Record<string, string[]> {
   const sectionToolMap = new Map<string, string[]>();
   for (const tool of CORE_TOOL_DEFINITIONS) {
     const groupId = `group:${tool.sectionId}`;
