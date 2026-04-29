@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createNestedNpmInstallEnv,
+  discoverBundledPluginDependencyPlan,
   discoverBundledPluginRuntimeDeps,
   runBundledPluginPostinstall,
 } from "../../scripts/postinstall-bundled-plugins.mjs";
@@ -231,6 +232,56 @@ describe("bundled plugin postinstall", () => {
         },
       ]),
     );
+  });
+
+  it("classifies package-root and staged bundled plugin runtime deps", async () => {
+    const extensionsDir = await createExtensionsDir();
+    await writePluginPackage(extensionsDir, "slack", {
+      crawclaw: {
+        bundle: {
+          stageRuntimeDependencies: true,
+        },
+      },
+      dependencies: {
+        "@slack/web-api": "7.11.0",
+        "https-proxy-agent": "^9.0.0",
+      },
+    });
+    await writePluginPackage(extensionsDir, "feishu", {
+      dependencies: {
+        "https-proxy-agent": "^9.0.0",
+        "qrcode-terminal": "^0.12.0",
+      },
+    });
+
+    expect(discoverBundledPluginDependencyPlan({ extensionsDir })).toEqual({
+      packageRootRuntimeDeps: expect.arrayContaining([
+        {
+          name: "@slack/web-api",
+          pluginIds: ["slack"],
+          sentinelPath: path.join("node_modules", "@slack", "web-api", "package.json"),
+          version: "7.11.0",
+        },
+        {
+          name: "https-proxy-agent",
+          pluginIds: ["feishu", "slack"],
+          sentinelPath: path.join("node_modules", "https-proxy-agent", "package.json"),
+          version: "^9.0.0",
+        },
+        {
+          name: "qrcode-terminal",
+          pluginIds: ["feishu"],
+          sentinelPath: path.join("node_modules", "qrcode-terminal", "package.json"),
+          version: "^0.12.0",
+        },
+      ]),
+      stagedRuntimeDependencyPlugins: [
+        {
+          dependencyNames: ["@slack/web-api", "https-proxy-agent"],
+          pluginId: "slack",
+        },
+      ],
+    });
   });
 
   it("installs missing bundled plugin runtime deps during global installs", async () => {

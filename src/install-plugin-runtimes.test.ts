@@ -50,6 +50,18 @@ type RuntimeInstallScript = {
     shell?: boolean;
     windowsVerbatimArguments?: boolean;
   };
+  listManagedPluginRuntimeInstallPlan: (params?: { platform?: NodeJS.Platform }) => Array<{
+    id: string;
+    installTime: boolean;
+    npmPackage?: string;
+    python?: {
+      candidates: string[];
+      envOverrides: string[];
+      minimumVersion: string;
+      requirementsLockPath: string;
+      windowsExtraPackages: string[];
+    };
+  }>;
   resolveScraplingVenvPython: (venvDir: string, platform?: NodeJS.Platform) => string;
   shouldRetryNpmInstallError: (error: unknown) => boolean;
 };
@@ -243,6 +255,49 @@ describe("install-plugin-runtimes", () => {
     expect(messages).toEqual(["[postinstall] installing plugin runtime: scrapling-fetch"]);
     expect(warnings).toEqual([
       "[postinstall] plugin runtime unavailable: scrapling-fetch (missing-python)",
+    ]);
+  });
+
+  it("exposes the managed runtime install plan with Python policy", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(script.listManagedPluginRuntimeInstallPlan({ platform: "win32" })).toEqual([
+      {
+        id: "browser",
+        installTime: true,
+        npmPackage: "pinchtab@0.9.1",
+      },
+      {
+        id: "open-websearch",
+        installTime: true,
+        npmPackage: "open-websearch@2.1.5",
+      },
+      {
+        id: "scrapling-fetch",
+        installTime: true,
+        python: {
+          candidates: [
+            "python3.14",
+            "python3.13",
+            "python3.12",
+            "python3.11",
+            "python3.10",
+            "python3",
+            "python",
+            "py",
+          ],
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_SCRAPLING_PYTHON"],
+          minimumVersion: "3.10",
+          requirementsLockPath: path.join(
+            process.cwd(),
+            "extensions",
+            "scrapling-fetch",
+            "runtime",
+            "requirements.lock.txt",
+          ),
+          windowsExtraPackages: ["msvc-runtime==14.44.35112"],
+        },
+      },
     ]);
   });
 });

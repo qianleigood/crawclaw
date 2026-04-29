@@ -33,6 +33,28 @@ function collectRuntimeDeps(packageJson) {
   };
 }
 
+function shouldStageRuntimeDeps(packageJson) {
+  return packageJson?.crawclaw?.bundle?.stageRuntimeDependencies === true;
+}
+
+function createBundledPluginRuntimeDepEntry(name, version, pluginId) {
+  return {
+    name,
+    version,
+    sentinelPath: dependencySentinelPath(name),
+    pluginIds: [pluginId],
+  };
+}
+
+function normalizeRuntimeDepEntries(deps) {
+  return [...deps.values()]
+    .map((dep) => ({
+      ...dep,
+      pluginIds: [...dep.pluginIds].toSorted((a, b) => a.localeCompare(b)),
+    }))
+    .toSorted((a, b) => a.name.localeCompare(b.name));
+}
+
 function sleepSync(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
@@ -66,6 +88,10 @@ function runBundledNpmInstallWithRetry(params) {
 }
 
 export function discoverBundledPluginRuntimeDeps(params = {}) {
+  return discoverBundledPluginDependencyPlan(params).packageRootRuntimeDeps;
+}
+
+export function discoverBundledPluginDependencyPlan(params = {}) {
   const extensionsDir = params.extensionsDir ?? DEFAULT_EXTENSIONS_DIR;
   const pathExists = params.existsSync ?? existsSync;
   const readDir = params.readdirSync ?? readdirSync;
@@ -81,9 +107,13 @@ export function discoverBundledPluginRuntimeDeps(params = {}) {
       },
     ]),
   );
+  const stagedRuntimeDependencyPlugins = [];
 
   if (!pathExists(extensionsDir)) {
-    return [...deps.values()].toSorted((a, b) => a.name.localeCompare(b.name));
+    return {
+      packageRootRuntimeDeps: normalizeRuntimeDepEntries(deps),
+      stagedRuntimeDependencyPlugins,
+    };
   }
 
   for (const entry of readDir(extensionsDir, { withFileTypes: true })) {
@@ -97,7 +127,14 @@ export function discoverBundledPluginRuntimeDeps(params = {}) {
     }
     try {
       const packageJson = readJsonFile(packageJsonPath);
-      for (const [name, version] of Object.entries(collectRuntimeDeps(packageJson))) {
+      const runtimeDeps = collectRuntimeDeps(packageJson);
+      if (shouldStageRuntimeDeps(packageJson) && Object.keys(runtimeDeps).length > 0) {
+        stagedRuntimeDependencyPlugins.push({
+          pluginId,
+          dependencyNames: Object.keys(runtimeDeps).toSorted((a, b) => a.localeCompare(b)),
+        });
+      }
+      for (const [name, version] of Object.entries(runtimeDeps)) {
         const existing = deps.get(name);
         if (existing) {
           if (existing.version !== version) {
@@ -108,24 +145,19 @@ export function discoverBundledPluginRuntimeDeps(params = {}) {
           }
           continue;
         }
-        deps.set(name, {
-          name,
-          version,
-          sentinelPath: dependencySentinelPath(name),
-          pluginIds: [pluginId],
-        });
+        deps.set(name, createBundledPluginRuntimeDepEntry(name, version, pluginId));
       }
     } catch {
       // Ignore malformed plugin manifests; runtime will surface those separately.
     }
   }
 
-  return [...deps.values()]
-    .map((dep) => ({
-      ...dep,
-      pluginIds: [...dep.pluginIds].toSorted((a, b) => a.localeCompare(b)),
-    }))
-    .toSorted((a, b) => a.name.localeCompare(b.name));
+  return {
+    packageRootRuntimeDeps: normalizeRuntimeDepEntries(deps),
+    stagedRuntimeDependencyPlugins: stagedRuntimeDependencyPlugins.toSorted((a, b) =>
+      a.pluginId.localeCompare(b.pluginId),
+    ),
+  };
 }
 
 export function createNestedNpmInstallEnv(env = process.env) {

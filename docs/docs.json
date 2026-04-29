@@ -960,6 +960,7 @@
                 "group": "Messaging platforms",
                 "pages": [
                   "channels/bluebubbles",
+                  "channels/ddingtalk",
                   "channels/discord",
                   "channels/feishu",
                   "channels/googlechat",
@@ -1004,6 +1005,7 @@
               {
                 "group": "Fundamentals",
                 "pages": [
+                  "concepts/index",
                   "concepts/architecture",
                   "concepts/agent",
                   "concepts/agent-loop",
@@ -1029,6 +1031,15 @@
                       "concepts/memory-builtin",
                       "concepts/memory-qmd",
                       "concepts/memory-honcho"
+                    ]
+                  },
+                  {
+                    "group": "Learning boundaries",
+                    "pages": [
+                      "concepts/learning-loop",
+                      "concepts/session-vs-memory",
+                      "concepts/memory-vs-skill",
+                      "concepts/skill-vs-workflow"
                     ]
                   },
                   "concepts/compaction"
@@ -1067,6 +1078,7 @@
                   "plugins/community",
                   "plugins/bundles",
                   "plugins/voice-call",
+                  "plugins/zalouser",
                   {
                     "group": "Building Plugins",
                     "pages": [
@@ -1185,6 +1197,7 @@
                   "providers/anthropic",
                   "providers/bedrock",
                   "providers/claude-max-api-proxy",
+                  "providers/chutes",
                   "providers/cloudflare-ai-gateway",
                   "providers/deepgram",
                   "providers/deepseek",
@@ -1399,7 +1412,7 @@
                   },
                   {
                     "group": "Plugins and skills",
-                    "pages": ["cli/plugins", "cli/skills"]
+                    "pages": ["cli/plugins", "cli/runtimes", "cli/skills"]
                   },
                   {
                     "group": "Interfaces",
@@ -1434,12 +1447,14 @@
                 "pages": [
                   "pi",
                   "reference/wizard",
+                  "reference/n8n-workflow-architecture",
                   "reference/token-use",
                   "reference/secretref-credential-surface",
                   "reference/prompt-caching",
                   "reference/api-usage-costs",
                   "reference/transcript-hygiene",
                   "reference/memory-config",
+                  "reference/skills-audit",
                   "date-time"
                 ]
               },
@@ -1455,7 +1470,7 @@
               },
               {
                 "group": "Project",
-                "pages": ["reference/credits"]
+                "pages": ["reference/index", "reference/credits"]
               },
               {
                 "group": "Release policy",

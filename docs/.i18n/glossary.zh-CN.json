@@ -268,6 +268,14 @@
     "target": "插件 SDK"
   },
   {
+    "source": "Plugin Dependency Maintenance",
+    "target": "插件依赖维护"
+  },
+  {
+    "source": "Plugin dependency maintenance",
+    "target": "插件依赖维护"
+  },
+  {
     "source": "Plugin SDK Overview",
     "target": "插件 SDK 概览"
   },
@@ -418,6 +426,14 @@
   {
     "source": "DingTalk",
     "target": "DingTalk"
+  },
+  {
+    "source": "Chutes",
+    "target": "Chutes"
+  },
+  {
+    "source": "/tools/browser#missing-browser-tool",
+    "target": "/tools/browser#missing-browser-tool"
   },
   {
     "source": "/gateway/troubleshooting#cron-and-main-session-wake-delivery",

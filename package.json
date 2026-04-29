@@ -1025,6 +1025,8 @@
     "lint:web-fetch-provider-boundaries": "node scripts/check-web-fetch-provider-boundaries.mjs",
     "lint:web-search-provider-boundaries": "node scripts/check-web-search-provider-boundaries.mjs",
     "lint:webhook:no-low-level-body-read": "node scripts/check-webhook-auth-body-order.mjs",
+    "plugin-deps:check": "node scripts/generate-plugin-dependency-plan.mjs --check",
+    "plugin-deps:gen": "node scripts/generate-plugin-dependency-plan.mjs --write",
     "plugin-sdk:api:check": "node --import tsx scripts/generate-plugin-sdk-api-baseline.ts --check",
     "plugin-sdk:api:gen": "node --import tsx scripts/generate-plugin-sdk-api-baseline.ts --write",
     "plugin-sdk:check-exports": "node scripts/sync-plugin-sdk-exports.mjs --check",

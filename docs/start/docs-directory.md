@@ -43,6 +43,7 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 - [Discord](/channels/discord)
 - [Mattermost (plugin)](/channels/mattermost)
 - [BlueBubbles (iMessage)](/channels/bluebubbles)
+- [DingTalk](/channels/ddingtalk)
 - [iMessage (legacy)](/channels/imessage)
 - [Groups](/channels/groups)
 - [WhatsApp group messages](/channels/group-messages)

@@ -74,6 +74,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Mattermost](/channels/mattermost) (plugin)
 - [Signal](/channels/signal)
 - [BlueBubbles (iMessage)](/channels/bluebubbles)
+- [DingTalk](/channels/ddingtalk)
 - [iMessage (legacy)](/channels/imessage)
 - [Location parsing](/channels/location)
 - [Webhooks](/automation/cron-jobs#webhooks)

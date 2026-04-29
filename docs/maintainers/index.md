@@ -12,6 +12,7 @@ title: Maintainers Docs
 
 ## Core Maintainer Docs
 
+- [Plugin dependency maintenance](/maintainers/plugin-dependency-maintenance)
 - [Repository structure](/maintainers/repo-structure)
 - [Skills catalog](/maintainers/skills-catalog)
 

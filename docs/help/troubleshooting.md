@@ -336,7 +336,7 @@ flowchart TD
     Deep pages:
 
     - [/gateway/troubleshooting#browser-tool-fails](/gateway/troubleshooting#browser-tool-fails)
-    - [/tools/browser#missing-browser-command-or-tool](/tools/browser#missing-browser-command-or-tool)
+    - [/tools/browser#missing-browser-tool](/tools/browser#missing-browser-tool)
     - [/tools/browser-linux-troubleshooting](/tools/browser-linux-troubleshooting)
 
   </Accordion>

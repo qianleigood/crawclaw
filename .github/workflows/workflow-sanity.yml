@@ -96,3 +96,6 @@ jobs:
 
       - name: Check plugin SDK API baseline drift
         run: pnpm plugin-sdk:api:check
+
+      - name: Check plugin dependency plan drift
+        run: pnpm plugin-deps:check

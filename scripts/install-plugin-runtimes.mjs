@@ -10,6 +10,8 @@ const WINDOWS_UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
 const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
 const PINCHTAB_VERSION = "0.9.1";
+const SCRAPLING_MINIMUM_PYTHON_VERSION = "3.10";
+const SCRAPLING_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_SCRAPLING_PYTHON"];
 const NPM_INSTALL_MAX_ATTEMPTS = 3;
 const NPM_INSTALL_RETRY_BASE_DELAY_MS = 1000;
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -22,6 +24,30 @@ const SCRAPLING_REQUIREMENTS_LOCK = path.join(
   "requirements.lock.txt",
 );
 const WINDOWS_SCRAPLING_RUNTIME_PACKAGES = ["msvc-runtime==14.44.35112"];
+
+function resolvePlatformPythonCandidates(platform = process.platform) {
+  return platform === "win32"
+    ? [
+        "python3.14",
+        "python3.13",
+        "python3.12",
+        "python3.11",
+        "python3.10",
+        "python3",
+        "python",
+        "py",
+      ]
+    : [
+        "/opt/homebrew/bin/python3",
+        "python3.14",
+        "python3.13",
+        "python3.12",
+        "python3.11",
+        "python3.10",
+        "python3",
+        "python",
+      ];
+}
 
 function resolveStateRoot(env = process.env) {
   const override = env.CRAWCLAW_STATE_DIR?.trim();
@@ -226,32 +252,9 @@ export function resolveScraplingRuntimePackages(lockedPackages, platform = proce
 }
 
 export function resolvePythonCandidates(env = process.env, platform = process.platform) {
-  const platformCandidates =
-    platform === "win32"
-      ? [
-          "python3.14",
-          "python3.13",
-          "python3.12",
-          "python3.11",
-          "python3.10",
-          "python3",
-          "python",
-          "py",
-        ]
-      : [
-          "/opt/homebrew/bin/python3",
-          "python3.14",
-          "python3.13",
-          "python3.12",
-          "python3.11",
-          "python3.10",
-          "python3",
-          "python",
-        ];
   const candidates = [
-    env.CRAWCLAW_RUNTIME_PYTHON,
-    env.CRAWCLAW_SCRAPLING_PYTHON,
-    ...platformCandidates,
+    ...SCRAPLING_PYTHON_ENV_OVERRIDES.map((key) => env[key]),
+    ...resolvePlatformPythonCandidates(platform),
   ].filter(Boolean);
   return [...new Set(candidates)];
 }
@@ -280,7 +283,8 @@ function comparePythonVersion(a, b) {
 }
 
 function resolveBestPython(env = process.env) {
-  const minimum = { major: 3, minor: 10, patch: 0 };
+  const [major, minor] = SCRAPLING_MINIMUM_PYTHON_VERSION.split(".").map(Number);
+  const minimum = { major, minor, patch: 0 };
   let best = null;
   for (const candidate of resolvePythonCandidates(env)) {
     try {
@@ -301,7 +305,7 @@ function resolveBestPython(env = process.env) {
   }
   if (!best) {
     throw new Error(
-      "No supported Python interpreter found for scrapling-fetch; requires Python >= 3.10.",
+      `No supported Python interpreter found for scrapling-fetch; requires Python >= ${SCRAPLING_MINIMUM_PYTHON_VERSION}.`,
     );
   }
   return best;
@@ -427,6 +431,41 @@ function installBrowserRuntime(env = process.env) {
   };
 }
 
+function listManagedPluginRuntimeInstallers() {
+  return [
+    { id: "browser", installer: installBrowserRuntime },
+    { id: "open-websearch", installer: installOpenWebSearchRuntime },
+    { id: "scrapling-fetch", installer: installScraplingRuntime },
+  ];
+}
+
+export function listManagedPluginRuntimeInstallPlan(params = {}) {
+  const platform = params.platform ?? process.platform;
+  return [
+    {
+      id: "browser",
+      installTime: true,
+      npmPackage: `pinchtab@${PINCHTAB_VERSION}`,
+    },
+    {
+      id: "open-websearch",
+      installTime: true,
+      npmPackage: `open-websearch@${OPEN_WEBSEARCH_VERSION}`,
+    },
+    {
+      id: "scrapling-fetch",
+      installTime: true,
+      python: {
+        candidates: resolvePlatformPythonCandidates(platform),
+        envOverrides: [...SCRAPLING_PYTHON_ENV_OVERRIDES],
+        minimumVersion: SCRAPLING_MINIMUM_PYTHON_VERSION,
+        requirementsLockPath: SCRAPLING_REQUIREMENTS_LOCK,
+        windowsExtraPackages: [...WINDOWS_SCRAPLING_RUNTIME_PACKAGES],
+      },
+    },
+  ];
+}
+
 export function runPluginRuntimeInstall(params = {}) {
   const env = params.env ?? process.env;
   const log = params.log ?? console;
@@ -434,28 +473,17 @@ export function runPluginRuntimeInstall(params = {}) {
     return;
   }
   const manifest = readManifest(env);
-  const nextPlugins = {
-    ...manifest.plugins,
-    browser: installRuntimeOrUnavailable("browser", installBrowserRuntime, env, log),
-    "open-websearch": installRuntimeOrUnavailable(
-      "open-websearch",
-      installOpenWebSearchRuntime,
-      env,
-      log,
-    ),
-    "scrapling-fetch": installRuntimeOrUnavailable(
-      "scrapling-fetch",
-      installScraplingRuntime,
-      env,
-      log,
-    ),
-  };
+  const nextPlugins = { ...manifest.plugins };
+  for (const runtime of listManagedPluginRuntimeInstallers()) {
+    nextPlugins[runtime.id] = installRuntimeOrUnavailable(runtime.id, runtime.installer, env, log);
+  }
   const nextManifest = {
     ...manifest,
     plugins: nextPlugins,
   };
   writeManifest(nextManifest, env);
-  log.log("[postinstall] installed plugin runtimes: browser, open-websearch, scrapling-fetch");
+  const runtimeIds = listManagedPluginRuntimeInstallers().map((runtime) => runtime.id);
+  log.log(`[postinstall] installed plugin runtimes: ${runtimeIds.join(", ")}`);
   const unavailable = Object.entries(nextPlugins)
     .filter(([, entry]) => entry?.state !== "healthy")
     .map(([pluginId, entry]) => `${pluginId} (${entry?.reason ?? "unavailable"})`);
