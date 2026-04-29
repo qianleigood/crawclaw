@@ -651,6 +651,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.skills.homebrewRecommended":
     "Many skill dependencies are shipped via Homebrew.\nWithout brew, you'll need to build from source or download releases manually.",
   "wizard.skills.homebrewRecommendedTitle": "Homebrew recommended",
+  "wizard.skills.installPrompt": "Install missing core skill dependencies now?",
   "wizard.skills.homebrewInstall": "Run:\n{command}",
   "wizard.skills.homebrewInstallTitle": "Homebrew install",
   "wizard.skills.installing": "Installing {name}…",

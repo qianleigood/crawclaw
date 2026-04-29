@@ -17,20 +17,6 @@ function summarizeInstallFailure(message: string): string | undefined {
   return cleaned.length > maxLen ? `${cleaned.slice(0, maxLen - 1)}…` : cleaned;
 }
 
-function formatSkillHint(skill: {
-  description?: string;
-  install: Array<{ label: string }>;
-}): string {
-  const desc = skill.description?.trim();
-  const installLabel = skill.install[0]?.label?.trim();
-  const combined = desc && installLabel ? `${desc} — ${installLabel}` : desc || installLabel;
-  if (!combined) {
-    return "install";
-  }
-  const maxLen = 90;
-  return combined.length > maxLen ? `${combined.slice(0, maxLen - 1)}…` : combined;
-}
-
 function upsertSkillEntry(
   cfg: CrawClawConfig,
   skillKey: string,
@@ -75,40 +61,16 @@ export async function setupSkills(
     t("wizard.skills.statusTitle"),
   );
 
-  const shouldConfigure = await prompter.confirm({
-    message: t("ui.text.configureSkillsNow"),
-    initialValue: true,
-  });
-  if (!shouldConfigure) {
-    return cfg;
-  }
-
   const installable = missing.filter(
     (skill) => skill.install.length > 0 && skill.missing.bins.length > 0,
   );
   let next: CrawClawConfig = cfg;
   if (installable.length > 0) {
-    const toInstall = await prompter.multiselect({
-      message: t("ui.text.installMissingSkillDeps"),
-      options: [
-        {
-          value: "__skip__",
-          label: t("ui.text.skipForNow"),
-          hint: t("ui.text.continueWithoutInstallingDeps"),
-        },
-        ...installable.map((skill) => ({
-          value: skill.name,
-          label: `${skill.emoji ?? "🧩"} ${skill.name}`,
-          hint: formatSkillHint(skill),
-        })),
-      ],
+    const shouldInstall = await prompter.confirm({
+      message: t("wizard.skills.installPrompt"),
+      initialValue: true,
     });
-
-    const selected = toInstall.filter((name) => name !== "__skip__");
-
-    const selectedSkills = selected
-      .map((name) => installable.find((s) => s.name === name))
-      .filter((item): item is (typeof installable)[number] => Boolean(item));
+    const selectedSkills = shouldInstall ? installable : [];
 
     const needsBrewPrompt =
       process.platform !== "win32" &&
@@ -155,16 +117,15 @@ export async function setupSkills(
       };
     }
 
-    for (const name of selected) {
-      const target = installable.find((s) => s.name === name);
-      if (!target || target.install.length === 0) {
+    for (const target of selectedSkills) {
+      if (target.install.length === 0) {
         continue;
       }
       const installId = target.install[0]?.id;
       if (!installId) {
         continue;
       }
-      const spin = prompter.progress(t("wizard.skills.installing", { name }));
+      const spin = prompter.progress(t("wizard.skills.installing", { name: target.name }));
       const result = await installSkill({
         workspaceDir,
         skillName: target.name,
@@ -175,8 +136,8 @@ export async function setupSkills(
       if (result.ok) {
         spin.stop(
           warnings.length > 0
-            ? t("wizard.skills.installedWithWarnings", { name })
-            : t("wizard.skills.installed", { name }),
+            ? t("wizard.skills.installedWithWarnings", { name: target.name })
+            : t("wizard.skills.installed", { name: target.name }),
         );
         for (const warning of warnings) {
           runtime.log(warning);
@@ -189,7 +150,7 @@ export async function setupSkills(
       const detail = summarizeInstallFailure(result.message);
       spin.stop(
         t("wizard.skills.installFailed", {
-          name,
+          name: target.name,
           code: codeText || code,
           detail: detail ? t("wizard.skills.failureDetail", { detail }) : "",
         }),

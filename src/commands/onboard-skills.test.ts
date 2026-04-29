@@ -89,15 +89,14 @@ function mockMissingBrewStatus(skills: Array<ReturnType<typeof createBundledSkil
   } as never);
 }
 
-function createPrompter(params: {
-  configure?: boolean;
-  showBrewInstall?: boolean;
-  multiselect?: string[];
-}): { prompter: WizardPrompter; notes: Array<{ title?: string; message: string }> } {
+function createPrompter(params: { installDependencies?: boolean; showBrewInstall?: boolean }): {
+  prompter: WizardPrompter;
+  notes: Array<{ title?: string; message: string }>;
+} {
   const notes: Array<{ title?: string; message: string }> = [];
 
   const confirmAnswers: boolean[] = [];
-  confirmAnswers.push(params.configure ?? true);
+  confirmAnswers.push(params.installDependencies ?? true);
 
   const prompter: WizardPrompter = {
     intro: vi.fn(async () => {}),
@@ -106,9 +105,7 @@ function createPrompter(params: {
       notes.push({ title, message });
     }),
     select: vi.fn(async () => "npm") as unknown as WizardPrompter["select"],
-    multiselect: vi.fn(
-      async () => params.multiselect ?? ["__skip__"],
-    ) as unknown as WizardPrompter["multiselect"],
+    multiselect: vi.fn(async () => []) as unknown as WizardPrompter["multiselect"],
     text: vi.fn(async () => ""),
     confirm: vi.fn(async ({ message }) => {
       if (message === "Show Homebrew install command?") {
@@ -132,6 +129,7 @@ const runtime: RuntimeEnv = {
 
 describe("setupSkills", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     setActiveCliLocale("en");
   });
 
@@ -160,7 +158,7 @@ describe("setupSkills", () => {
       }),
     ]);
 
-    const { prompter, notes } = createPrompter({ multiselect: ["__skip__"] });
+    const { prompter, notes } = createPrompter({ installDependencies: false });
     await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
 
     // OS-mismatched skill should be counted as unsupported, not installable/missing.
@@ -169,6 +167,7 @@ describe("setupSkills", () => {
 
     const brewNote = notes.find((n) => n.title === "Homebrew recommended");
     expect(brewNote).toBeUndefined();
+    expect(prompter.multiselect).not.toHaveBeenCalled();
   });
 
   it("recommends Homebrew when user selects a brew-backed install and brew is missing", async () => {
@@ -185,11 +184,44 @@ describe("setupSkills", () => {
       }),
     ]);
 
-    const { prompter, notes } = createPrompter({ multiselect: ["video-frames"] });
+    const { prompter, notes } = createPrompter({ installDependencies: true });
     await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
 
     const brewNote = notes.find((n) => n.title === "Homebrew recommended");
     expect(brewNote).toBeDefined();
+  });
+
+  it("installs every installable missing core skill dependency after one confirmation", async () => {
+    mockMissingBrewStatus([
+      createBundledSkill({
+        name: "video-frames",
+        description: "ffmpeg",
+        bins: ["ffmpeg"],
+        installLabel: "Install ffmpeg (brew)",
+      }),
+      createBundledSkill({
+        name: "pdf-tools",
+        description: "pdftk",
+        bins: ["pdftk"],
+        installLabel: "Install pdftk (brew)",
+      }),
+    ]);
+
+    const { prompter } = createPrompter({ installDependencies: true });
+    await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
+
+    expect(prompter.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Install missing core skill dependencies now?" }),
+    );
+    expect(installSkill).toHaveBeenCalledTimes(2);
+    expect(installSkill).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ skillName: "video-frames", installId: "brew" }),
+    );
+    expect(installSkill).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ skillName: "pdf-tools", installId: "brew" }),
+    );
   });
 
   it("localizes skills setup chrome in zh-CN", async () => {
@@ -203,22 +235,15 @@ describe("setupSkills", () => {
       }),
     ]);
 
-    const { prompter, notes } = createPrompter({ multiselect: ["__skip__"] });
+    const { prompter, notes } = createPrompter({ installDependencies: false });
     await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
 
     const status = notes.find((n) => n.title === "技能状态")?.message ?? "";
     expect(status).toContain("符合条件：0");
     expect(status).toContain("缺失要求：1");
     expect(prompter.confirm).toHaveBeenCalledWith(
-      expect.objectContaining({ message: "现在配置技能吗？（推荐）" }),
+      expect.objectContaining({ message: "现在安装缺失的核心技能依赖吗？" }),
     );
-    expect(prompter.multiselect).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "安装缺失的技能依赖",
-        options: expect.arrayContaining([
-          expect.objectContaining({ label: "暂时跳过", hint: "不安装依赖并继续" }),
-        ]),
-      }),
-    );
+    expect(prompter.multiselect).not.toHaveBeenCalled();
   });
 });

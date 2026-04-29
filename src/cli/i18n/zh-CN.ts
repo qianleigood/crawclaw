@@ -633,6 +633,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.skills.homebrewRecommended":
     "很多技能依赖通过 Homebrew 分发。\n没有 brew 时，你需要自行从源码构建或手动下载 release。",
   "wizard.skills.homebrewRecommendedTitle": "建议安装 Homebrew",
+  "wizard.skills.installPrompt": "现在安装缺失的核心技能依赖吗？",
   "wizard.skills.homebrewInstall": "运行：\n{command}",
   "wizard.skills.homebrewInstallTitle": "Homebrew 安装",
   "wizard.skills.installing": "正在安装 {name}…",
