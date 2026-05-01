@@ -257,8 +257,8 @@ function diffChannelNode(
 
   if (path.endsWith('.accounts')) {
     if (isPlainObject(beforeValue) && isPlainObject(afterValue)) {
-      const beforeKeys = Object.keys(beforeValue).toSorted()
-      const afterKeys = Object.keys(afterValue).toSorted()
+      const beforeKeys = Object.keys(beforeValue).sort()
+      const afterKeys = Object.keys(afterValue).sort()
       const sameKeys =
         beforeKeys.length === afterKeys.length &&
         beforeKeys.every((key, index) => key === afterKeys[index])
@@ -307,7 +307,7 @@ function diffChannelNode(
 
   const mergedKeys = Array.from(
     new Set([...Object.keys(beforeValue), ...Object.keys(afterValue)])
-  ).toSorted()
+  ).sort()
 
   for (const key of mergedKeys) {
     const beforeHasKey = Object.prototype.hasOwnProperty.call(beforeValue, key)
@@ -338,7 +338,7 @@ export function buildChannelPatches(
   const patches: ConfigPatch[] = []
   const channelKeys = Array.from(
     new Set([...Object.keys(beforeChannels), ...Object.keys(afterChannels)])
-  ).toSorted()
+  ).sort()
 
   for (const channelKey of channelKeys) {
     const path = `channels.${channelKey}`
@@ -391,7 +391,7 @@ export function collectSecretFieldKeys(
     }
   }
 
-  return Array.from(keys).toSorted()
+  return Array.from(keys).sort()
 }
 
 export function extractAdvancedChannelJson(

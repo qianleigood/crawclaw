@@ -23,7 +23,7 @@ const KNOWN_FILE_ORDER = [...BOOTSTRAP_FILE_ORDER, ...MEMORY_FILE_ORDER]
 
 function sortKnownFiles(files: AgentFileEntry[]): AgentFileEntry[] {
   const rank = new Map<string, number>(KNOWN_FILE_ORDER.map((name, index) => [name, index]))
-  return [...files].toSorted((a, b) => {
+  return [...files].sort((a, b) => {
     const ra = rank.has(a.name) ? (rank.get(a.name) as number) : 999
     const rb = rank.has(b.name) ? (rank.get(b.name) as number) : 999
     if (ra !== rb) {return ra - rb}
@@ -88,7 +88,7 @@ function normalizeAgentsFromConfig(config: OpenClawConfig): AgentInfo[] {
   }
 
   return Array.from(ids)
-    .toSorted((a, b) => {
+    .sort((a, b) => {
       if (a === 'main') {return -1}
       if (b === 'main') {return 1}
       return a.localeCompare(b)

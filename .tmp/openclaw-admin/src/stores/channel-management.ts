@@ -223,7 +223,7 @@ export const useChannelManagementStore = defineStore('channel-management', () =>
   const allChannelKeys = computed(() => {
     return Array.from(
       new Set([...Object.keys(channelsDraft.value), ...Object.keys(runtimeByChannel.value)])
-    ).toSorted()
+    ).sort()
   })
 
   function resetDraftFromConfig(config: OpenClawConfig): void {

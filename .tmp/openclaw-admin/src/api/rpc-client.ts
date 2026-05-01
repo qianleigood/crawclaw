@@ -2790,7 +2790,7 @@ export class RPCClient {
       return entries
         .map((item) => this.normalizePresenceEntry(item))
         .filter((item) => !!item.host || !!item.instanceId || !!item.deviceId)
-        .toSorted((a, b) => (b.ts || 0) - (a.ts || 0))
+        .sort((a, b) => (b.ts || 0) - (a.ts || 0))
     })
   }
 

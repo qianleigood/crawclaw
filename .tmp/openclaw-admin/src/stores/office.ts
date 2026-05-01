@@ -143,7 +143,7 @@ export const useOfficeStore = defineStore('office', () => {
       const lastActivity = agentSessions.length > 0
         ? agentSessions
             .map((s) => new Date(s.lastActivity).getTime())
-            .toSorted((a, b) => b - a)[0]
+            .sort((a, b) => b - a)[0]
         : undefined
 
       // 获取智能体的状态
@@ -210,7 +210,7 @@ export const useOfficeStore = defineStore('office', () => {
     if (!selectedAgentId.value) {return []}
     return sessionStore.sessions
       .filter((s) => s.agentId === selectedAgentId.value)
-      .toSorted((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
+      .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
   })
 
   const selectedSession = computed(() => {
@@ -231,7 +231,7 @@ export const useOfficeStore = defineStore('office', () => {
   )
 
   const recentMessages = computed(() => 
-    [...messages.value].toSorted((a, b) => b.timestamp - a.timestamp).slice(0, 20)
+    [...messages.value].sort((a, b) => b.timestamp - a.timestamp).slice(0, 20)
   )
 
   const agentMessages = computed(() => {
@@ -641,7 +641,7 @@ export const useOfficeStore = defineStore('office', () => {
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Failed to create agent'
       error.value = errorMsg
-      throw new Error(errorMsg, { cause: e })
+      throw new Error(errorMsg)
     }
   }
 

@@ -3644,7 +3644,7 @@ app.get('/api/backup/list', authMiddleware, (req, res) => {
           format: f.endsWith('.zip') ? 'zip' : 'json.gz'
         }
       })
-      .toSorted((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
     res.json({ ok: true, backups: files })
   } catch (err) {

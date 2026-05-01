@@ -51,7 +51,7 @@ function readStoredStringArray(key: string): string[] {
 }
 
 function uniqueSortedStrings(values: string[]): string[] {
-  return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean))).toSorted((a, b) =>
+  return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b)
   )
 }
@@ -60,7 +60,7 @@ function normalizeBooleanRecord(input: Record<string, boolean>): Record<string, 
   const entries = Object.entries(input)
     .map(([k, v]) => [k.trim(), v] as const)
     .filter(([k]) => !!k)
-    .toSorted(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => a.localeCompare(b))
 
   const next: Record<string, boolean> = {}
   for (const [k, v] of entries) {
