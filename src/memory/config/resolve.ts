@@ -118,8 +118,17 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
       ...experience,
     },
     dreaming: {
-      ...DEFAULT_CONFIG.dreaming,
-      ...dreaming,
+      enabled: readBooleanValue(dreaming.enabled, DEFAULT_CONFIG.dreaming.enabled),
+      minHours: readNumberValue(dreaming.minHours, DEFAULT_CONFIG.dreaming.minHours),
+      minSessions: readNumberValue(dreaming.minSessions, DEFAULT_CONFIG.dreaming.minSessions),
+      scanThrottleMs: readNumberValue(
+        dreaming.scanThrottleMs,
+        DEFAULT_CONFIG.dreaming.scanThrottleMs,
+      ),
+      lockStaleAfterMs: readNumberValue(
+        dreaming.lockStaleAfterMs,
+        DEFAULT_CONFIG.dreaming.lockStaleAfterMs,
+      ),
     },
     sessionSummary: {
       ...DEFAULT_CONFIG.sessionSummary,
