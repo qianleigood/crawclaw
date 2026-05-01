@@ -21,6 +21,7 @@ import {
 } from "../../../infra/observation/context.js";
 import { withObservationContext } from "../../../infra/observation/scope.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
+import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../../../memory/special-agent-toollists.js";
 import {
   isOllamaCompatProvider,
   resolveOllamaCompatNumCtxEnabled,
@@ -255,13 +256,7 @@ export {
 export { convertMinimaxXmlToolCallsInMessage } from "./attempt.minimax-tool-call-xml.js";
 
 const MAX_BTW_SNAPSHOT_MESSAGES = 100;
-const DURABLE_MEMORY_TOOL_ALLOWLIST = new Set([
-  "memory_manifest_read",
-  "memory_note_read",
-  "memory_note_write",
-  "memory_note_edit",
-  "memory_note_delete",
-]);
+const DURABLE_MEMORY_TOOL_ALLOWLIST = new Set<string>(MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST);
 
 function shouldUseMinimalPromptForAllowedTools(toolsAllow?: string[]): boolean {
   if (!toolsAllow?.length) {
@@ -794,6 +789,7 @@ export async function runEmbeddedAttempt(
                 params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
               disableMessageTool: params.disableMessageTool,
               skillSemanticRetrieve,
+              runtimeToolAlsoAllow: params.runtimeToolAlsoAllow,
               onYield: (message) => {
                 yieldDetected = true;
                 yieldMessage = message;

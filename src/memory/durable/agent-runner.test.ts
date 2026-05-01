@@ -83,6 +83,7 @@ describe("runDurableExtractionAgentOnce", () => {
         "memory_note_delete",
       ],
       enforcement: "runtime_deny",
+      modelVisibility: "allowlist",
     });
     expect(MEMORY_EXTRACTION_AGENT_DEFINITION.cachePolicy).toMatchObject({
       cacheRetention: "short",
@@ -91,6 +92,15 @@ describe("runDurableExtractionAgentOnce", () => {
     const systemPrompt = buildMemoryExtractionSystemPrompt();
     expect(systemPrompt).toContain("hard turn budget of 5 turns");
     expect(systemPrompt).toContain("Use the provided manifest first");
+    expect(systemPrompt).toContain(
+      "Only extract durable profile/context memory: user preferences, explicit future-behavior feedback, stable project facts, and stable references",
+    );
+    expect(systemPrompt).toContain(
+      "Do NOT save reusable procedures, SOPs, command sequences, debugging workflows, test strategies, failure patterns, or implementation lessons",
+    );
+    expect(systemPrompt).toContain(
+      "Those belong to write_experience_note and the Experience Agent",
+    );
     expect(systemPrompt).toContain(
       "Do NOT bounce between investigation and writing across many turns",
     );
@@ -106,12 +116,23 @@ describe("runDurableExtractionAgentOnce", () => {
 
     const taskPrompt = buildMemoryExtractionTaskPrompt({
       scopeKey: "main:feishu:user-1",
-      recentMessages: [makeAgentUserMessage({ content: "以后操作类回答先给步骤。" })],
+      recentMessages: [
+        makeAgentUserMessage({
+          content:
+            "以后操作类回答先给步骤。刚才修工具分配时先跑 catalog/onboard 测试这条经验以后可复用。",
+        }),
+      ],
       recentMessageLimit: 24,
       existingEntries: [],
       maxNotes: 2,
     });
     expect(taskPrompt).toContain("Existing durable memory manifest:");
+    expect(taskPrompt).toContain(
+      "First classify each candidate as durable profile/context memory or experience memory",
+    );
+    expect(taskPrompt).toContain(
+      "If the recent messages contain only operational experience, do not write durable memory",
+    );
     expect(taskPrompt).toContain("First review the manifest");
     expect(taskPrompt).toContain(
       "Only create a new note when no existing note can be updated cleanly",
@@ -202,6 +223,13 @@ describe("runDurableExtractionAgentOnce", () => {
       expect.objectContaining({
         specialAgentSpawnSource: "memory-extraction",
         maxTurns: 5,
+        toolsAllow: [
+          "memory_manifest_read",
+          "memory_note_read",
+          "memory_note_write",
+          "memory_note_edit",
+          "memory_note_delete",
+        ],
         specialDurableMemoryScope: {
           agentId: "main",
           channel: "feishu",
@@ -217,10 +245,7 @@ describe("runDurableExtractionAgentOnce", () => {
           specialParentPromptEnvelope?: { forkContextMessages?: unknown[] };
         }
       | undefined;
-    expect(embeddedParams?.specialParentPromptEnvelope).toMatchObject({
-      systemPromptText: "parent system prompt",
-      forkContextMessages: fullForkMessages,
-    });
+    expect(embeddedParams?.specialParentPromptEnvelope).toBeUndefined();
     expect(embeddedParams?.sessionId).not.toBe("session-1");
     expect(embeddedParams?.sessionFile).not.toBe("/tmp/session-1.jsonl");
     expect(emitAgentActionEvent).toHaveBeenCalledTimes(3);

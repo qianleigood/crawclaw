@@ -1,6 +1,7 @@
 import { PROMOTION_JUDGE_AGENT_DEFINITION } from "../../../improvement/promotion-judge.js";
 import {
   DREAM_AGENT_DEFINITION,
+  EXPERIENCE_AGENT_DEFINITION,
   MEMORY_EXTRACTION_AGENT_DEFINITION,
   SESSION_SUMMARY_AGENT_DEFINITION,
 } from "../../../memory/special-agents.js";
@@ -23,6 +24,7 @@ function getRegisteredSpecialAgentDefinitions(): readonly SpecialAgentDefinition
     MEMORY_EXTRACTION_AGENT_DEFINITION,
     DREAM_AGENT_DEFINITION,
     SESSION_SUMMARY_AGENT_DEFINITION,
+    EXPERIENCE_AGENT_DEFINITION,
     PROMOTION_JUDGE_AGENT_DEFINITION,
   ] as const satisfies readonly SpecialAgentDefinition[];
 }

@@ -8,6 +8,7 @@ import type { RuntimeStore } from "../runtime/runtime-store.js";
 import type { ExperienceExtractionConfig } from "../types/config.js";
 import type { GmMessageRow } from "../types/runtime.js";
 import type {
+  ForegroundExperienceWrite,
   ExperienceExtractionRunParams,
   ExperienceExtractionRunResult,
 } from "./agent-runner.js";
@@ -39,6 +40,7 @@ type WorkerState = {
   inProgress: Promise<void> | null;
   pendingContext: PendingContext | null;
   lastRunAt: number | null;
+  lastProcessedCursor: number;
   lastTouchedAt: number;
   eligibleTurnsSinceLastRun: number;
 };
@@ -91,6 +93,84 @@ function mapRowToAgentMessage(row: GmMessageRow): AgentMessage {
     role: row.role,
     content: row.contentBlocks?.length ? row.contentBlocks : (row.contentText ?? row.content),
   } as AgentMessage;
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readTrimmedString(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function normalizeForegroundWriteAction(
+  value: string | undefined,
+): ForegroundExperienceWrite["action"] {
+  if (value === "archive" || value === "supersede") {
+    return value;
+  }
+  return "upsert";
+}
+
+function parseToolResultPayload(row: GmMessageRow): Record<string, unknown> | null {
+  const text = (row.contentText ?? row.content).trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    return readRecord(JSON.parse(text));
+  } catch {
+    return null;
+  }
+}
+
+function extractForegroundExperienceWrites(
+  rows: readonly GmMessageRow[],
+): ForegroundExperienceWrite[] {
+  return rows.flatMap((row) => {
+    if (
+      row.role !== "toolResult" ||
+      row.runtimeShape?.toolName !== "write_experience_note" ||
+      row.runtimeShape?.isError === true
+    ) {
+      return [];
+    }
+    const payload = parseToolResultPayload(row);
+    if (!payload || readTrimmedString(payload, "status") !== "ok") {
+      return [];
+    }
+    return [
+      {
+        cursor: row.turnIndex,
+        action: normalizeForegroundWriteAction(readTrimmedString(payload, "action")),
+        ...(typeof row.runtimeShape?.toolCallId === "string" && row.runtimeShape.toolCallId.trim()
+          ? { toolCallId: row.runtimeShape.toolCallId.trim() }
+          : {}),
+        ...(readTrimmedString(payload, "noteId")
+          ? { noteId: readTrimmedString(payload, "noteId") }
+          : {}),
+        ...(readTrimmedString(payload, "targetId")
+          ? { targetId: readTrimmedString(payload, "targetId") }
+          : {}),
+        ...(readTrimmedString(payload, "dedupeKey")
+          ? { dedupeKey: readTrimmedString(payload, "dedupeKey") }
+          : {}),
+        ...(readTrimmedString(payload, "title")
+          ? { title: readTrimmedString(payload, "title") }
+          : {}),
+        ...(readTrimmedString(payload, "summary")
+          ? { summary: readTrimmedString(payload, "summary") }
+          : {}),
+        ...(readTrimmedString(payload, "type") ? { type: readTrimmedString(payload, "type") } : {}),
+        ...(readTrimmedString(payload, "supersededBy")
+          ? { supersededBy: readTrimmedString(payload, "supersededBy") }
+          : {}),
+      },
+    ];
+  });
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -252,6 +332,7 @@ export class ExperienceExtractionWorkerManager {
       inProgress: null,
       pendingContext: null,
       lastRunAt: null,
+      lastProcessedCursor: 0,
       lastTouchedAt: nowMs(),
       eligibleTurnsSinceLastRun: 0,
     };
@@ -290,6 +371,7 @@ export class ExperienceExtractionWorkerManager {
     this.runningCount += 1;
     worker.inProgress = (async () => {
       let runId = "";
+      const afterTurnExclusive = Math.max(0, worker.lastProcessedCursor);
       try {
         runId = await this.runtimeStore.createMaintenanceRun({
           kind: "experience_extraction",
@@ -298,12 +380,23 @@ export class ExperienceExtractionWorkerManager {
           triggerSource: "stop",
           summary: "Experience extraction running",
         });
-        const recentRows = await this.runtimeStore.listModelVisibleMessagesForDurableExtraction(
-          pending.sessionId,
-          0,
-          pending.messageCursor,
-          clampInt(this.config.recentMessageLimit, 24),
-        );
+        const recentMessageLimit = clampInt(this.config.recentMessageLimit, 24);
+        const foregroundWriteScanLimit = Math.max(recentMessageLimit, 96);
+        const [recentRows, foregroundWriteRows] = await Promise.all([
+          this.runtimeStore.listModelVisibleMessagesForDurableExtraction(
+            pending.sessionId,
+            afterTurnExclusive,
+            pending.messageCursor,
+            recentMessageLimit,
+          ),
+          this.runtimeStore.listModelVisibleMessagesForDurableExtraction(
+            pending.sessionId,
+            afterTurnExclusive,
+            pending.messageCursor,
+            foregroundWriteScanLimit,
+          ),
+        ]);
+        const foregroundExperienceWrites = extractForegroundExperienceWrites(foregroundWriteRows);
         const result = await runner({
           runId,
           sessionId: pending.sessionId,
@@ -315,7 +408,8 @@ export class ExperienceExtractionWorkerManager {
           ...(pending.parentForkContext ? { parentForkContext: pending.parentForkContext } : {}),
           messageCursor: pending.messageCursor,
           recentMessages: recentRows.map(mapRowToAgentMessage),
-          recentMessageLimit: clampInt(this.config.recentMessageLimit, 24),
+          foregroundExperienceWrites,
+          recentMessageLimit,
           maxNotes: clampInt(this.config.maxNotesPerTurn, 2),
         });
         await this.runtimeStore.updateMaintenanceRun({
@@ -328,10 +422,14 @@ export class ExperienceExtractionWorkerManager {
             updatedCount: result.updatedCount,
             deletedCount: result.deletedCount,
             touchedNotes: result.touchedNotes ?? [],
+            foregroundWriteCount: foregroundExperienceWrites.length,
           }),
           ...(result.status === "failed" ? { error: result.summary ?? "experience failed" } : {}),
           finishedAt: nowMs(),
         });
+        if (result.advanceCursor) {
+          worker.lastProcessedCursor = Math.max(worker.lastProcessedCursor, pending.messageCursor);
+        }
         getSharedMemoryPromptJournal()?.recordStage("experience_extract", {
           sessionId: pending.sessionId,
           sessionKey: pending.sessionKey,
@@ -345,6 +443,7 @@ export class ExperienceExtractionWorkerManager {
             updatedCount: result.updatedCount,
             deletedCount: result.deletedCount,
             touchedNotes: result.touchedNotes ?? [],
+            foregroundWriteCount: foregroundExperienceWrites.length,
           },
         });
       } catch (error) {

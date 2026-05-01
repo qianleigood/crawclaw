@@ -160,7 +160,39 @@ describe("resolveEffectiveToolInventory", () => {
       description: "Schedule and manage cron jobs.",
       rawDescription: "Long raw description\n\nACTIONS:\n- status",
       source: "core",
+      lifecycle: "owner_restricted",
+      gatedBy: ["owner"],
+      visibilityReason: "visible after owner gates",
     });
+  });
+
+  it("reports lifecycle and gate metadata for effective tools", async () => {
+    const { resolveEffectiveToolInventory } = await loadHarness({
+      tools: [
+        { name: "browser", label: "Browser", description: "Control browser" },
+        { name: "docs_lookup", label: "Docs Lookup", description: "Search docs" },
+      ],
+      pluginMeta: { docs_lookup: { pluginId: "docs" } },
+    });
+
+    const result = resolveEffectiveToolInventory({ cfg: {} });
+    const entries = result.groups.flatMap((group) => group.tools);
+
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "browser",
+          lifecycle: "runtime_conditional",
+          gatedBy: ["runtime", "profile"],
+        }),
+        expect.objectContaining({
+          id: "docs_lookup",
+          lifecycle: "runtime_conditional",
+          gatedBy: ["runtime", "profile"],
+          pluginId: "docs",
+        }),
+      ]),
+    );
   });
 
   it("falls back to a sanitized summary for multi-line raw descriptions", async () => {

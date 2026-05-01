@@ -35,6 +35,19 @@ describe("special agent registry", () => {
     expect(definition?.toolPolicy?.enforcement).toBe("runtime_deny");
   });
 
+  it("registers experience as a narrow embedded special agent", () => {
+    const definition = resolveSpecialAgentDefinitionBySpawnSource("experience");
+
+    expect(definition?.id).toBe("experience");
+    expect(definition?.executionMode).toBe("embedded_fork");
+    expect(definition?.transcriptPolicy).toBe("isolated");
+    expect(definition?.toolPolicy).toMatchObject({
+      allowlist: ["write_experience_note"],
+      enforcement: "runtime_deny",
+      modelVisibility: "allowlist",
+    });
+  });
+
   it("keeps all registered special agent definitions contract-valid", () => {
     expect(listRegisteredSpecialAgentContractIssues()).toEqual([]);
   });

@@ -9,13 +9,27 @@ import { resolveModel } from "./pi-embedded-runner/model.js";
 import { createCrawClawCodingTools } from "./pi-tools.js";
 import { isToolAllowedByPolicyName, resolveEffectiveToolPolicy } from "./pi-tools.policy.js";
 import { resolveSandboxRuntimeStatus } from "./sandbox.js";
-import { listCoreToolSections, resolveCoreToolProfiles } from "./tool-catalog.js";
+import {
+  listCoreToolSections,
+  resolveCoreToolLifecycle,
+  resolveCoreToolProfiles,
+  type ToolLifecycle,
+} from "./tool-catalog.js";
 import { summarizeToolDescriptionText } from "./tool-description-summary.js";
 import { resolveToolDisplay } from "./tool-display.js";
 import { isOwnerOnlyToolName, type ToolPolicyLike } from "./tool-policy.js";
 import type { AnyAgentTool } from "./tools/common.js";
 
 export type EffectiveToolSource = "core" | "plugin" | "channel";
+export type EffectiveToolGate =
+  | "profile"
+  | "runtime"
+  | "special"
+  | "host"
+  | "owner"
+  | "sandbox"
+  | "provider"
+  | "config";
 
 export type EffectiveToolInventoryEntry = {
   id: string;
@@ -23,6 +37,9 @@ export type EffectiveToolInventoryEntry = {
   description: string;
   rawDescription: string;
   source: EffectiveToolSource;
+  lifecycle?: ToolLifecycle;
+  gatedBy?: EffectiveToolGate[];
+  visibilityReason?: string;
   pluginId?: string;
   channelId?: string;
 };
@@ -46,6 +63,8 @@ export type EffectiveToolUnavailableEntry = {
   id: string;
   label: string;
   source: "core";
+  lifecycle?: ToolLifecycle;
+  gatedBy?: EffectiveToolGate[];
   reason: string;
 };
 
@@ -116,6 +135,44 @@ function resolveEffectiveToolSource(tool: AnyAgentTool): {
     return { source: "channel", channelId: channelMeta.channelId };
   }
   return { source: "core" };
+}
+
+function resolveGatesForLifecycle(lifecycle: ToolLifecycle): EffectiveToolGate[] {
+  switch (lifecycle) {
+    case "profile_default":
+      return ["profile"];
+    case "runtime_conditional":
+      return ["runtime", "profile"];
+    case "host_gated":
+      return ["host"];
+    case "special_agent_only":
+      return ["special"];
+    case "owner_restricted":
+      return ["owner"];
+    default: {
+      const exhaustive: never = lifecycle;
+      void exhaustive;
+      throw new Error("Unhandled tool lifecycle");
+    }
+  }
+}
+
+function resolveToolLifecycleMetadata(params: { toolId: string; source: EffectiveToolSource }): {
+  lifecycle?: ToolLifecycle;
+  gatedBy?: EffectiveToolGate[];
+  visibilityReason?: string;
+} {
+  const lifecycle =
+    params.source === "core" ? resolveCoreToolLifecycle(params.toolId) : "runtime_conditional";
+  if (!lifecycle) {
+    return {};
+  }
+  const gatedBy = resolveGatesForLifecycle(lifecycle);
+  return {
+    lifecycle,
+    gatedBy,
+    visibilityReason: `visible after ${gatedBy.join(", ")} gates`,
+  };
 }
 
 function groupLabel(source: EffectiveToolSource): string {
@@ -195,6 +252,13 @@ function describeUnavailableCoreTool(params: {
   if (isOwnerOnlyToolName(params.toolId) && params.senderIsOwner !== true) {
     return "restricted to owner senders";
   }
+  const lifecycle = resolveCoreToolLifecycle(params.toolId);
+  if (lifecycle === "host_gated") {
+    return "requires a host-gated workflow for this turn";
+  }
+  if (lifecycle === "special_agent_only") {
+    return "available only to its special agent";
+  }
   return (
     describeProfileBlock({
       toolId: params.toolId,
@@ -243,6 +307,7 @@ function buildUnavailableCoreTools(params: {
       id: tool.id,
       label: tool.label,
       source: "core" as const,
+      ...resolveToolLifecycleMetadata({ toolId: tool.id, source: "core" }),
       reason: describeUnavailableCoreTool({
         toolId: tool.id,
         effectivePolicy: params.effectivePolicy,
@@ -355,6 +420,7 @@ export function resolveEffectiveToolInventory(
           description: summarizeToolDescription(tool),
           rawDescription: resolveRawToolDescription(tool) || summarizeToolDescription(tool),
           ...source,
+          ...resolveToolLifecycleMetadata({ toolId: tool.name, source: source.source }),
         } satisfies EffectiveToolInventoryEntry;
       })
       .toSorted((a, b) => a.label.localeCompare(b.label)),

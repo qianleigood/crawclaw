@@ -724,6 +724,13 @@ describe("runSpecialAgentToCompletion", () => {
 
     const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
     expect(params?.specialParentPromptEnvelope).toBeUndefined();
+    expect(params?.toolsAllow).toEqual([
+      "memory_manifest_read",
+      "memory_note_read",
+      "memory_note_write",
+      "memory_note_edit",
+      "memory_note_delete",
+    ]);
     expect(params?.streamParams).toEqual({
       cacheRetention: "short",
       skipCacheWrite: true,

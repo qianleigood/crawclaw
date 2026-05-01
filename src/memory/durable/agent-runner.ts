@@ -28,6 +28,7 @@ export const MEMORY_EXTRACTION_AGENT_DEFINITION: SpecialAgentDefinition =
     label: "memory-extraction",
     spawnSource: MEMORY_EXTRACTION_SPAWN_SOURCE,
     allowlist: MEMORY_EXTRACTION_TOOL_ALLOWLIST,
+    modelVisibility: "allowlist",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
   });
@@ -46,6 +47,17 @@ function resolveMemoryExtractionAgentDeps(): MemoryExtractionAgentDeps {
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function resolveParentForkModelRef(
+  parentForkContext: DurableExtractionRunParams["parentForkContext"],
+): { provider?: string; model?: string } {
+  const provider = normalizeOptionalString(parentForkContext?.provider);
+  const model = normalizeOptionalString(parentForkContext?.modelId);
+  if (!provider || provider === "manual" || !model) {
+    return {};
+  }
+  return { provider, model };
 }
 
 function decodeDurableScopeSegment(value: string | null | undefined): string | undefined {
@@ -126,7 +138,7 @@ export function buildMemoryExtractionSystemPrompt(): string {
     "",
     "## Mission",
     "- Maintain file-based durable memory for the current scope only.",
-    "- Extract only stable, future-useful durable notes from the provided recent model-visible messages.",
+    "- Only extract durable profile/context memory: user preferences, explicit future-behavior feedback, stable project facts, and stable references.",
     "- Prefer updating an existing durable note over creating a duplicate.",
     "",
     "## Turn Budget",
@@ -141,12 +153,14 @@ export function buildMemoryExtractionSystemPrompt(): string {
     "- Do NOT inspect project source files, run shell commands, browse the web, or spawn other agents.",
     "- Do NOT write experience notes. This task is only for durable memory.",
     "- The recent messages are the source of truth for this run. Do not attempt to verify them against code, git state, or external systems.",
-    "- If a parent forked conversation context is available, use it only to resolve references in the recent messages; do not extract facts solely from older context outside the cursor window.",
-    "- Treat feedback as bidirectional: record both corrective guidance and non-obvious successful patterns explicitly confirmed by the user.",
+    "- Use only the recent messages provided in the task input; do not rely on older parent context.",
+    "- Do NOT save reusable procedures, SOPs, command sequences, debugging workflows, test strategies, failure patterns, or implementation lessons.",
+    "- Those belong to write_experience_note and the Experience Agent.",
+    "- Treat feedback as bidirectional only when it is explicit future-behavior guidance, a user preference, or stable project/reference context.",
     "",
     "## Durable Boundary",
     "- Only create durable memory of type user, feedback, project, or reference.",
-    "- Do NOT save task progress, temporary plans, activity logs, code structure, or transient debugging state.",
+    "- Do NOT save task progress, temporary plans, activity logs, code structure, operational runbooks, or transient debugging state.",
     "- Do NOT invent created/updated timestamps or other time metadata; omit timestamp fields unless an exact timestamp is provided in the task input.",
     "- If nothing in the provided recent messages deserves durable memory, do not write anything.",
     "",
@@ -188,7 +202,7 @@ export function buildMemoryExtractionTaskPrompt(params: {
     : ["(none)"];
   return [
     "Maintain durable memory for the current scope using only the provided recent messages and scoped memory file tools.",
-    "The forked parent conversation may be available for continuity, but the extraction window below remains authoritative.",
+    "The extraction window below is authoritative; do not rely on older parent conversation context.",
     "",
     `Scope: ${params.scopeKey}`,
     `Max durable notes to create or update: ${Math.max(1, params.maxNotes)}`,
@@ -200,6 +214,8 @@ export function buildMemoryExtractionTaskPrompt(params: {
     ...existingManifestLines,
     "",
     "Workflow:",
+    "- First classify each candidate as durable profile/context memory or experience memory.",
+    "- If the recent messages contain only operational experience, do not write durable memory.",
     "- First review the manifest and identify whether an existing note should be updated, removed, or left untouched.",
     "- Only create a new note when no existing note can be updated cleanly.",
     "- If several note changes are needed, read all relevant candidate notes first, then execute the writes/edits without stretching the work across many turns.",
@@ -256,6 +272,7 @@ export async function runDurableExtractionAgentOnce(
   const parentRunId =
     normalizeOptionalString(params.parentRunId) ??
     normalizeOptionalString(params.parentForkContext?.parentRunId);
+  const parentModelRef = resolveParentForkModelRef(params.parentForkContext);
   const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
     sessionId: params.sessionId,
@@ -299,13 +316,13 @@ export async function runDurableExtractionAgentOnce(
       task: taskPrompt,
       extraSystemPrompt: buildMemoryExtractionSystemPrompt(),
       ...(parentRunId ? { parentRunId } : {}),
-      ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
       ...(params.observation ? { observation: params.observation } : {}),
       embeddedContext: {
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,
         sessionFile: params.sessionFile,
         workspaceDir: params.workspaceDir,
+        ...parentModelRef,
         ...(normalizeOptionalString(params.scope.agentId)
           ? { agentId: normalizeOptionalString(params.scope.agentId) }
           : {}),

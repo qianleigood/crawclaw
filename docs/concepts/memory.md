@@ -22,13 +22,17 @@ CrawClaw remembers things through a layered memory system:
 The model only "remembers" what is persisted into those layers -- there is no
 hidden state.
 
-Local onboarding gives the default `main` agent the scoped durable-memory file
-tools needed for explicit remember, update, and forget requests, plus
-`write_experience_note` for explicit experience writes. Dream transcript
-fallback, session-summary file edits, and promotion verdict submission stay
-restricted to their owning background agents. These `main` memory write tools
-are required across all tool profiles; `minimal`, `coding`, `messaging`, and
-`full` only change the surrounding tool baseline.
+The `coding` tool profile includes `write_experience_note` for explicit
+experience writes. Local onboarding defaults new configs to that profile when
+unset; it does not add a `main` agent `tools.alsoAllow` override for experience
+writes. Scoped durable-memory file tools (`memory_manifest_read`,
+`memory_note_read`, `memory_note_write`, `memory_note_edit`, and
+`memory_note_delete`) are host-gated per turn: they are hidden from `main` by
+default, including under `tools.profile: "full"`, and become visible only when
+the host detects an explicit durable-memory request or when a dedicated
+maintenance agent receives them through its special-agent allowlist.
+Session-summary file edits and promotion verdict submission stay restricted to
+their owning background agents.
 
 ## Durable memory files
 
@@ -82,6 +86,11 @@ Durable auto-write also follows a turn-end completion trigger:
 - the cursor-based recent-message window remains the extraction boundary; older
   forked context is available only to resolve references in the recent messages,
   not as a source for re-extracting stale history
+- `memory_extractor` only writes durable profile/context memory: user
+  preferences, explicit future-behavior feedback, stable project facts, and
+  stable references. Reusable procedures, command sequences, debugging
+  workflows, test strategies, failure patterns, and implementation lessons belong
+  to experience memory instead.
 - the new messages for that turn must include a final assistant reply
 - if the latest assistant reply still contains tool calls, or ended in
   `error` / `aborted`, background durable extraction is skipped for that turn
@@ -100,7 +109,9 @@ CrawClaw also has a second durable-memory maintenance layer:
 - auto-dream uses runtime DB state, not file `mtime`, for both gating and lock
   ownership
 - auto-dream prefers runtime store, session summaries, and Context Archive
-  signals; transcript-search fallback is no longer part of the dream path
+  signals; it does not read raw session transcripts
+- auto-dream consolidates the same durable profile/context layer and must not
+  convert reusable operational experience into durable notes
 - auto-dream now surfaces phase-level actions for orient / gather /
   consolidate / prune through the Action Feed
 - manual dream runs can now be bounded with `--session-limit` / `--signal-limit`

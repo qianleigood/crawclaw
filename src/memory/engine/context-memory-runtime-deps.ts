@@ -96,18 +96,6 @@ export function createContextMemoryRuntimeDeps(options: {
     runner: options.experienceExtractionRunner,
     logger: options.logger,
   });
-  const autoDreamScheduler = getSharedAutoDreamScheduler({
-    config: options.config?.dreaming ?? {
-      enabled: false,
-      minHours: 24,
-      minSessions: 5,
-      scanThrottleMs: 10 * 60_000,
-      lockStaleAfterMs: 60 * 60_000,
-    },
-    runtimeStore: options.runtimeStore,
-    runner: options.dreamRunner,
-    logger: options.logger,
-  });
   const sessionSummaryScheduler = getSharedSessionSummaryScheduler({
     config: {
       enabled: options.config?.sessionSummary?.enabled ?? true,
@@ -124,6 +112,34 @@ export function createContextMemoryRuntimeDeps(options: {
     runtimeStore: options.runtimeStore,
     runner: options.sessionSummaryRunner,
     logger: options.logger,
+  });
+  const autoDreamScheduler = getSharedAutoDreamScheduler({
+    config: options.config?.dreaming ?? {
+      enabled: false,
+      minHours: 24,
+      minSessions: 5,
+      scanThrottleMs: 10 * 60_000,
+      lockStaleAfterMs: 60 * 60_000,
+    },
+    runtimeStore: options.runtimeStore,
+    runner: options.dreamRunner,
+    logger: options.logger,
+    beforeRun: async (params) => {
+      const waits: Array<Promise<void>> = [];
+      if (params.sessionId) {
+        waits.push(sessionSummaryScheduler.drainSession(params.sessionId));
+      }
+      if (params.sessionKey) {
+        waits.push(durableExtractionManager.drainSession(params.sessionKey));
+      }
+      const results = await Promise.allSettled(waits);
+      const failed = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failed) {
+        throw failed.reason instanceof Error ? failed.reason : new Error(String(failed.reason));
+      }
+    },
   });
 
   getSharedSessionSummaryLifecycleSubscriber({

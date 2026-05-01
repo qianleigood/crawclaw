@@ -69,7 +69,6 @@ CrawClaw 还有第二层持久记忆维护：
 - `memory_extractor` 和 `dream` 现在都订阅运行循环的 `stop` 阶段，而非直接从 `afterTurn` 调度
 - 自动做梦使用运行时数据库状态，而非文件 `mtime`，用于门控和锁所有权
 - 自动做梦优先使用运行时存储、会话摘要和上下文存档信号，而非转录 grep 作为主要信号源
-- 当摘要缺失或过时，或结构化信号太弱时，自动做梦可能会向 dream 智能体暴露有限的 `memory_transcript_search` 后备。该后备仍限定在当前持久记忆作用域内，限制在选择用于 dream 运行的最近会话 ID 内，仅返回简短的模型可见摘要。它不会打开 shell 访问，也不会将原始转录 grep 作为主要工作流程。
 - 自动做梦现在通过操作反馈界面呈现面向/收集/整合/修剪的阶段级操作
 - 手动 dream 运行现在可以用 `--session-limit`/`--signal-limit` 限定范围，并用 `--dry-run` 预览，而无需获取 dream 锁或写入记忆
 - dream 状态现在保留最近的跳过/门控原因，以便 status/history/inspect 可以解释整合未启动的原因

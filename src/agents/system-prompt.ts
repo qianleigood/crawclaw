@@ -1,6 +1,7 @@
 import { createHmac, createHash } from "node:crypto";
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../memory/special-agent-toollists.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
@@ -18,13 +19,7 @@ import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 export type PromptMode = "full" | "minimal" | "none";
 type OwnerIdDisplay = "raw" | "hash";
 
-const DURABLE_MEMORY_TOOL_NAMES = new Set([
-  "memory_manifest_read",
-  "memory_note_read",
-  "memory_note_write",
-  "memory_note_edit",
-  "memory_note_delete",
-]);
+const DURABLE_MEMORY_TOOL_NAMES = new Set<string>(MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST);
 const EXPERIENCE_WRITE_TOOL_NAME = "write_experience_note";
 
 function buildSkillsSection(params: {

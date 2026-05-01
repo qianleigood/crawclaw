@@ -21,6 +21,7 @@ export const EXPERIENCE_AGENT_DEFINITION: SpecialAgentDefinition =
     label: "experience",
     spawnSource: EXPERIENCE_SPAWN_SOURCE,
     allowlist: EXPERIENCE_TOOL_ALLOWLIST,
+    modelVisibility: "allowlist",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
   });
@@ -36,8 +37,22 @@ export type ExperienceExtractionRunParams = {
   parentForkContext?: SpecialAgentParentForkContext;
   messageCursor: number;
   recentMessages: AgentMessage[];
+  foregroundExperienceWrites?: ForegroundExperienceWrite[];
   recentMessageLimit: number;
   maxNotes: number;
+};
+
+export type ForegroundExperienceWrite = {
+  cursor: number;
+  action: "upsert" | "archive" | "supersede";
+  toolCallId?: string;
+  noteId?: string;
+  targetId?: string;
+  dedupeKey?: string;
+  title?: string;
+  summary?: string;
+  type?: string;
+  supersededBy?: string;
 };
 
 export type ExperienceExtractionRunResult = {
@@ -68,6 +83,17 @@ function resolveExperienceAgentDeps(): ExperienceAgentDeps {
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function resolveParentForkModelRef(
+  parentForkContext: ExperienceExtractionRunParams["parentForkContext"],
+): { provider?: string; model?: string } {
+  const provider = normalizeOptionalString(parentForkContext?.provider);
+  const model = normalizeOptionalString(parentForkContext?.modelId);
+  if (!provider || provider === "manual" || !model) {
+    return {};
+  }
+  return { provider, model };
 }
 
 function trimStructuredField(value: string | undefined): string | undefined {
@@ -157,6 +183,30 @@ function buildExperienceIndexLines(entries: ExperienceIndexEntry[], limit: numbe
   });
 }
 
+function buildForegroundExperienceWriteLines(
+  writes: readonly ForegroundExperienceWrite[] | undefined,
+  limit: number,
+): string[] {
+  if (!writes?.length) {
+    return ["(none)"];
+  }
+  return writes.slice(0, Math.max(1, limit)).map((write, index) => {
+    const fields = [
+      `cursor=${write.cursor}`,
+      `action=${write.action}`,
+      write.toolCallId ? `toolCallId=${write.toolCallId}` : null,
+      write.noteId ? `noteId=${write.noteId}` : null,
+      write.targetId ? `targetId=${write.targetId}` : null,
+      write.dedupeKey ? `dedupeKey=${write.dedupeKey}` : null,
+      write.title ? `title=${write.title}` : null,
+      write.type ? `type=${write.type}` : null,
+      write.summary ? `summary=${write.summary}` : null,
+      write.supersededBy ? `supersededBy=${write.supersededBy}` : null,
+    ].filter((field): field is string => Boolean(field));
+    return `${index + 1}. ${fields.join(" | ")}`;
+  });
+}
+
 export function buildExperienceExtractionSystemPrompt(): string {
   return [
     "# Experience Agent",
@@ -215,6 +265,7 @@ export function buildExperienceExtractionTaskPrompt(params: {
   scopeKey: string;
   recentMessages: AgentMessage[];
   sessionSummary?: string | null;
+  foregroundExperienceWrites?: ForegroundExperienceWrite[];
   existingEntries: ExperienceIndexEntry[];
   maxNotes: number;
 }): string {
@@ -222,6 +273,10 @@ export function buildExperienceExtractionTaskPrompt(params: {
   const indexLines = params.existingEntries.length
     ? buildExperienceIndexLines(params.existingEntries, 24)
     : ["(none)"];
+  const foregroundWriteLines = buildForegroundExperienceWriteLines(
+    params.foregroundExperienceWrites,
+    24,
+  );
   return [
     "Extract reusable experience from the completed task, then write only validated experience notes.",
     "",
@@ -233,6 +288,17 @@ export function buildExperienceExtractionTaskPrompt(params: {
     "",
     "Recent model-visible messages:",
     ...(recentLines.length ? recentLines : ["(none)"]),
+    "",
+    "Foreground experience writes already made in this unprocessed session window:",
+    ...foregroundWriteLines,
+    "",
+    "Rules for foreground writes:",
+    "- Treat these as already covered experience items, not as proof the whole window is processed.",
+    "- Do not create duplicate notes for the same lesson.",
+    "- Do not count already written foreground items against the max note limit for additional changes you make.",
+    "- If later messages refine the same lesson, update the existing note using the same dedupeKey or noteId when available.",
+    "- If later messages invalidate one of these notes, archive or supersede it.",
+    "- Continue extracting other independent validated experience from the recent messages.",
     "",
     "Existing experience index:",
     ...indexLines,
@@ -253,6 +319,7 @@ export async function runExperienceExtractionAgentOnce(
   const parentRunId =
     normalizeOptionalString(params.parentRunId) ??
     normalizeOptionalString(params.parentForkContext?.parentRunId);
+  const parentModelRef = resolveParentForkModelRef(params.parentForkContext);
   const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
     definition: EXPERIENCE_AGENT_DEFINITION,
     sessionId: params.sessionId,
@@ -269,17 +336,18 @@ export async function runExperienceExtractionAgentOnce(
         scopeKey: params.scope.scopeKey ?? "experience",
         recentMessages: params.recentMessages,
         sessionSummary: sessionSummary.content,
+        foregroundExperienceWrites: params.foregroundExperienceWrites,
         existingEntries,
         maxNotes: params.maxNotes,
       }),
       extraSystemPrompt: buildExperienceExtractionSystemPrompt(),
       ...(parentRunId ? { parentRunId } : {}),
-      ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
       embeddedContext: {
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,
         sessionFile: params.sessionFile,
         workspaceDir: params.workspaceDir,
+        ...parentModelRef,
         ...(normalizeOptionalString(params.scope.agentId)
           ? { agentId: normalizeOptionalString(params.scope.agentId) }
           : {}),

@@ -6,6 +6,7 @@ import { resolveDurableMemoryScope, type DurableMemoryScope } from "../durable/s
 import { scanDurableMemoryScopeEntries } from "../durable/store.ts";
 import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
+import { renderSessionSummaryForCompaction } from "../session-summary/sections.ts";
 import { readSessionSummaryFile } from "../session-summary/store.ts";
 import type { DreamingConfig } from "../types/config.ts";
 import { newId } from "../util/ids.ts";
@@ -63,12 +64,24 @@ type AutoDreamPreview = {
   sessionSummaries: DreamSessionSummary[];
 };
 
+type AutoDreamBeforeRunParams = {
+  scope: DurableMemoryScope;
+  sessionId?: string;
+  sessionKey?: string;
+  triggerSource: string;
+};
+
+type AutoDreamBeforeRun = (params: AutoDreamBeforeRunParams) => Promise<void> | void;
+
 type AutoDreamSchedulerParams = {
   config: DreamingConfig;
   runtimeStore: RuntimeStore;
   runner?: AutoDreamRunner;
   logger: RuntimeLogger;
+  beforeRun?: AutoDreamBeforeRun;
 };
+
+const DREAM_SESSION_SUMMARY_TOKEN_BUDGET = 1_200;
 
 function clampInt(value: number | undefined, fallback: number, minimum = 1): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -86,6 +99,10 @@ async function collectRecentSessionSummaries(params: {
     params.sessionIds.map(async (sessionId) => ({
       sessionId,
       state: await params.runtimeStore.getSessionSummaryState(sessionId),
+      compactionState:
+        typeof params.runtimeStore.getSessionCompactionState === "function"
+          ? await params.runtimeStore.getSessionCompactionState(sessionId)
+          : null,
       file: await readSessionSummaryFile({
         agentId: params.scope.agentId,
         sessionId,
@@ -93,18 +110,33 @@ async function collectRecentSessionSummaries(params: {
     })),
   );
   return rows
-    .flatMap(({ sessionId, state, file }) => {
-      if (!file.content?.trim()) {
+    .flatMap(({ sessionId, state, compactionState, file }) => {
+      if (file.content?.trim()) {
+        const summary: DreamSessionSummary = {
+          sessionId,
+          source: "session_summary",
+          summaryText:
+            renderSessionSummaryForCompaction(file.content, {
+              tokenBudget: DREAM_SESSION_SUMMARY_TOKEN_BUDGET,
+            }) || file.content.trim(),
+          updatedAt: state?.lastSummaryUpdatedAt ?? file.updatedAt ?? 0,
+        };
+        return [summary];
+      }
+      const compactSummary = compactionState?.summaryOverrideText?.trim();
+      if (!compactSummary) {
         return [];
       }
-      return [
-        {
-          sessionId,
-          summaryText: file.content,
-          lastSummarizedTurn: 0,
-          updatedAt: state?.lastSummaryUpdatedAt ?? file.updatedAt ?? 0,
-        } satisfies DreamSessionSummary,
-      ];
+      const summary: DreamSessionSummary = {
+        sessionId,
+        source: "compact_summary",
+        summaryText:
+          renderSessionSummaryForCompaction(compactSummary, {
+            tokenBudget: DREAM_SESSION_SUMMARY_TOKEN_BUDGET,
+          }) || compactSummary,
+        updatedAt: compactionState?.updatedAt ?? state?.lastSummaryUpdatedAt ?? file.updatedAt ?? 0,
+      };
+      return [summary];
     })
     .toSorted((left, right) => right.updatedAt - left.updatedAt);
 }
@@ -240,6 +272,7 @@ export class AutoDreamScheduler {
   private runtimeStore: RuntimeStore;
   private runner?: AutoDreamRunner;
   private logger: RuntimeLogger;
+  private beforeRun?: AutoDreamBeforeRun;
   private readonly inFlightScopes = new Set<string>();
 
   constructor(params: AutoDreamSchedulerParams) {
@@ -247,6 +280,7 @@ export class AutoDreamScheduler {
     this.runtimeStore = params.runtimeStore;
     this.runner = params.runner;
     this.logger = params.logger;
+    this.beforeRun = params.beforeRun;
   }
 
   reconfigure(params: AutoDreamSchedulerParams): void {
@@ -254,6 +288,20 @@ export class AutoDreamScheduler {
     this.runtimeStore = params.runtimeStore;
     this.runner = params.runner;
     this.logger = params.logger;
+    this.beforeRun = params.beforeRun;
+  }
+
+  private async waitBeforeRun(params: AutoDreamBeforeRunParams): Promise<void> {
+    if (!this.beforeRun) {
+      return;
+    }
+    try {
+      await this.beforeRun(params);
+    } catch (error) {
+      this.logger.warn(
+        `[memory] dream pre-run maintenance wait failed scope=${params.scope.scopeKey ?? "unknown"} error=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   submitTurn(params: SubmitAutoDreamTurnParams): void {
@@ -333,6 +381,13 @@ export class AutoDreamScheduler {
       await runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "min_sessions_gate" });
       return { status: "skipped", reason: "min_sessions_gate" };
     }
+
+    await this.waitBeforeRun({
+      scope: params.scope,
+      ...(params.sessionId?.trim() ? { sessionId: params.sessionId.trim() } : {}),
+      ...(params.sessionKey?.trim() ? { sessionKey: params.sessionKey.trim() } : {}),
+      triggerSource: params.triggerSource,
+    });
 
     const preview = await collectDreamInputs({
       runtimeStore,

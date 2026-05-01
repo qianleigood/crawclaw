@@ -103,6 +103,8 @@ export type RunEmbeddedPiAgentParams = {
   bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
   /** Optional tool allow-list; when set, only these tools are sent to the model. */
   toolsAllow?: string[];
+  /** Host-provided turn-scoped tools; does not override toolsAllow hard filtering. */
+  runtimeToolAlsoAllow?: string[];
   /** Explicit special-agent spawn source for embedded fork runs. */
   specialAgentSpawnSource?: string;
   /** Explicit durable-memory scope for embedded special-agent runs. */

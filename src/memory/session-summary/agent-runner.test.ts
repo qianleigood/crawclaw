@@ -65,6 +65,7 @@ describe("session summary agent runner", () => {
     expect(SESSION_SUMMARY_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: ["session_summary_file_read", "session_summary_file_edit"],
       enforcement: "runtime_deny",
+      modelVisibility: "allowlist",
     });
     expect(SESSION_SUMMARY_AGENT_DEFINITION.cachePolicy).toMatchObject({
       cacheRetention: "short",
@@ -220,6 +221,12 @@ UPDATED_COUNT: 2
       parentForkContext,
     });
 
+    expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        specialAgentSpawnSource: "session-summary",
+        toolsAllow: ["session_summary_file_read", "session_summary_file_edit"],
+      }),
+    );
     expect(result).toMatchObject({
       status: "written",
       writtenCount: 1,

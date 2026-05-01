@@ -415,6 +415,14 @@ export async function runEmbeddedPiAgent(
         [params.extraSystemPrompt?.trim(), explicitDurableGate.systemPromptInstruction?.trim()]
           .filter((segment): segment is string => Boolean(segment))
           .join("\n\n") || undefined;
+      const effectiveRuntimeToolAlsoAllow = explicitDurableGate.runtimeToolAlsoAllow?.length
+        ? Array.from(
+            new Set([
+              ...(params.runtimeToolAlsoAllow ?? []),
+              ...explicitDurableGate.runtimeToolAlsoAllow,
+            ]),
+          )
+        : params.runtimeToolAlsoAllow;
       if (explicitDurableGate.forcedToolName) {
         log.info(
           `[durable-intent-gate] forcing main-agent durable tool call via ${explicitDurableGate.forcedToolName} for ${params.sessionId}`,
@@ -594,6 +602,7 @@ export async function runEmbeddedPiAgent(
             clientTools: params.clientTools,
             disableTools: params.disableTools,
             toolsAllow: params.toolsAllow,
+            runtimeToolAlsoAllow: effectiveRuntimeToolAlsoAllow,
             specialAgentSpawnSource: params.specialAgentSpawnSource,
             specialDurableMemoryScope: params.specialDurableMemoryScope,
             specialSessionSummaryTarget: params.specialSessionSummaryTarget,

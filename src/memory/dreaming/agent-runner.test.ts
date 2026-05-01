@@ -84,6 +84,7 @@ describe("runDreamAgentOnce", () => {
         "memory_note_delete",
       ],
       enforcement: "runtime_deny",
+      modelVisibility: "allowlist",
     });
     expect(DREAM_AGENT_DEFINITION.cachePolicy).toMatchObject({
       cacheRetention: "short",
@@ -93,7 +94,10 @@ describe("runDreamAgentOnce", () => {
     expect(systemPrompt).toContain("hard turn budget of 8 turns");
     expect(systemPrompt).toContain("Review the provided recent session summaries");
     expect(systemPrompt).toContain("Do not grep transcripts as a primary workflow");
-    expect(systemPrompt).not.toContain("memory_transcript_search");
+    expect(systemPrompt).toContain(
+      "Do NOT create or rewrite durable notes for reusable procedures, command sequences, debugging workflows, test strategies, failure patterns, or implementation lessons",
+    );
+    expect(systemPrompt).toContain("Those belong to experience memory");
     expect(systemPrompt).not.toContain("Transcript fallback");
     expect(systemPrompt).toContain("Keep MEMORY.md as a short index");
     expect(systemPrompt).toContain("Orient -> Gather -> Consolidate -> Prune");
@@ -108,9 +112,9 @@ describe("runDreamAgentOnce", () => {
       recentSessions: [
         {
           sessionId: "s1",
+          source: "session_summary",
           summaryText:
             "The user confirmed step-first answers and a release freeze through April 30.",
-          lastSummarizedTurn: 12,
           updatedAt: Date.now(),
         },
       ],
@@ -126,12 +130,35 @@ describe("runDreamAgentOnce", () => {
     });
     expect(taskPrompt).toContain("Mode: dry-run preview");
     expect(taskPrompt).toContain("Recent session summaries since the last successful dream run");
+    expect(taskPrompt).toContain("source=session_summary");
+    expect(taskPrompt).toContain("<session_summary>");
+    expect(taskPrompt).toContain("</session_summary>");
     expect(taskPrompt).toContain("Recent structured signals:");
+    expect(taskPrompt).toContain("<signal>");
+    expect(taskPrompt).toContain("</signal>");
     expect(taskPrompt).toContain("Gather recent signal from the provided session summaries first");
+    expect(taskPrompt).not.toContain("lastTurn=");
     expect(taskPrompt).not.toContain("Transcript fallback:");
-    expect(taskPrompt).not.toContain("memory_transcript_search");
     expect(taskPrompt).toContain("Prune and index");
     expect(taskPrompt).toContain("do not call any write/edit/delete tool");
+
+    const compactSummaryPrompt = buildDreamTaskPrompt({
+      scopeKey: "main:feishu:user-1",
+      triggerSource: "stop",
+      lastSuccessAt: null,
+      recentSessions: [
+        {
+          sessionId: "s1",
+          source: "compact_summary",
+          summaryText: "Recovered compact summary from transcript fallback.",
+          updatedAt: Date.now(),
+        },
+      ],
+      recentSignals: [],
+      existingEntries: [],
+    });
+    expect(compactSummaryPrompt).toContain("source=compact_summary");
+    expect(compactSummaryPrompt).toContain("Recovered compact summary");
   });
 
   it("spawns a background dream agent and emits action events", async () => {
@@ -202,7 +229,6 @@ describe("runDreamAgentOnce", () => {
           sessionId: "s1",
           summaryText:
             "The user confirmed step-first answers and a release freeze through April 30.",
-          lastSummarizedTurn: 12,
           updatedAt: Date.now(),
         },
       ],
@@ -226,6 +252,13 @@ describe("runDreamAgentOnce", () => {
         provider: "openai",
         model: "gpt-5.4",
         maxTurns: 8,
+        toolsAllow: [
+          "memory_manifest_read",
+          "memory_note_read",
+          "memory_note_write",
+          "memory_note_edit",
+          "memory_note_delete",
+        ],
         specialDurableMemoryScope: {
           agentId: "main",
           channel: "feishu",

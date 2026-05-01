@@ -107,30 +107,45 @@ config. Deny always wins over allow.
 `tools.profile` sets a base allowlist before `allow`/`deny` is applied.
 Per-agent override: `agents.list[].tools.profile`.
 
-| Profile     | What it includes                                       |
-| ----------- | ------------------------------------------------------ |
-| `full`      | All tools (default)                                    |
-| `coding`    | File I/O, runtime, web, sessions, cron, image, and PDF |
-| `messaging` | Messaging, session list/history/send/status            |
-| `minimal`   | `session_status` only                                  |
+Lifecycle gates run before policy allow/deny. `full` removes the profile
+restriction, but it does not expose host-gated or special-agent-only tools by
+itself.
+
+| Profile     | What it includes                                                                                                             |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `full`      | No profile restriction; runtime, host, owner, sandbox, provider, and special-agent gates still apply                         |
+| `coding`    | File I/O, runtime, web, sessions, browser, skills discovery, workflow tools, review, experience writes, cron, image, and PDF |
+| `messaging` | Messaging, session list/history/send/status                                                                                  |
+| `minimal`   | `session_status` only                                                                                                        |
 
 ### Tool groups
 
 Use `group:*` shorthands in allow/deny lists:
 
-| Group              | Tools                                                                                                     |
-| ------------------ | --------------------------------------------------------------------------------------------------------- |
-| `group:runtime`    | exec, bash, process, code_execution                                                                       |
-| `group:fs`         | read, write, edit, apply_patch                                                                            |
-| `group:web`        | web_search, web_fetch, x_search                                                                           |
-| `group:sessions`   | sessions_list, sessions_history, sessions_send, sessions_spawn, sessions_yield, subagents, session_status |
-| `group:ui`         | browser, canvas                                                                                           |
-| `group:automation` | cron, gateway                                                                                             |
-| `group:messaging`  | message                                                                                                   |
-| `group:nodes`      | nodes                                                                                                     |
-| `group:agents`     | agents_list                                                                                               |
-| `group:media`      | image, pdf, tts                                                                                           |
-| `group:crawclaw`   | All built-in CrawClaw tools (excludes plugin tools)                                                       |
+| Group                   | Tools                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `group:runtime`         | exec, bash, process, code_execution                                                                                    |
+| `group:fs`              | read, write, edit, apply_patch                                                                                         |
+| `group:web`             | web_search, web_fetch, x_search                                                                                        |
+| `group:sessions`        | sessions_list, sessions_history, sessions_send, sessions_spawn, sessions_yield, subagents, session_status              |
+| `group:ui`              | browser, canvas                                                                                                        |
+| `group:automation`      | cron, gateway                                                                                                          |
+| `group:messaging`       | message                                                                                                                |
+| `group:nodes`           | nodes                                                                                                                  |
+| `group:agents`          | agents_list                                                                                                            |
+| `group:skills`          | discover_skills                                                                                                        |
+| `group:workflow`        | workflow, workflowize                                                                                                  |
+| `group:review`          | review_task                                                                                                            |
+| `group:memory`          | write_experience_note, memory_manifest_read, memory_note_read, memory_note_write, memory_note_edit, memory_note_delete |
+| `group:session_summary` | session_summary_file_read, session_summary_file_edit                                                                   |
+| `group:improvement`     | submit_promotion_verdict                                                                                               |
+| `group:media`           | image, pdf, tts                                                                                                        |
+| `group:crawclaw`        | All built-in CrawClaw tools (excludes plugin tools)                                                                    |
+
+Group expansion does not bypass lifecycle gates. For example, `group:memory`
+names scoped durable-memory file tools, but those tools stay hidden from `main`
+unless the host opens them for the current turn or a matching special agent is
+running.
 
 ### Provider-specific restrictions
 

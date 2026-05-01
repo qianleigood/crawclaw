@@ -39,6 +39,7 @@ export const SESSION_SUMMARY_AGENT_DEFINITION: SpecialAgentDefinition = {
     label: "session-summary",
     spawnSource: SESSION_SUMMARY_SPAWN_SOURCE,
     allowlist: SESSION_SUMMARY_TOOL_ALLOWLIST,
+    modelVisibility: "allowlist",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
   }),

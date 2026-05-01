@@ -170,7 +170,7 @@ describe("review session tool gating", () => {
     ).rejects.toThrow('Tool "write" is not allowed for this special-agent run');
   });
 
-  it("does not expose transcript search for embedded dream runs", async () => {
+  it("keeps scoped memory tools for embedded memory maintenance runs", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-dream-tools-"));
     tempDirs.push(dir);
     const config = {
@@ -194,7 +194,7 @@ describe("review session tool gating", () => {
       specialDurableMemoryScope: scope,
       senderIsOwner: true,
     });
-    expect(dreamTools.map((tool) => tool.name)).not.toContain("memory_transcript_search");
+    expect(dreamTools.map((tool) => tool.name)).toContain("memory_manifest_read");
 
     const extractionTools = createCrawClawCodingTools({
       config,
@@ -204,6 +204,6 @@ describe("review session tool gating", () => {
       specialDurableMemoryScope: scope,
       senderIsOwner: true,
     });
-    expect(extractionTools.map((tool) => tool.name)).not.toContain("memory_transcript_search");
+    expect(extractionTools.map((tool) => tool.name)).toContain("memory_manifest_read");
   });
 });

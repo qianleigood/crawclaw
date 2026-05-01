@@ -1,15 +1,11 @@
+import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../../memory/special-agent-toollists.js";
+
 type ToolChoice =
   | "required"
   | { type: "function"; function: { name: string } }
   | { type: "tool"; name: string };
 
-const DURABLE_MEMORY_FILE_TOOL_NAMES = [
-  "memory_manifest_read",
-  "memory_note_read",
-  "memory_note_write",
-  "memory_note_edit",
-  "memory_note_delete",
-] as const;
+const DURABLE_MEMORY_FILE_TOOL_NAME_SET = new Set<string>(MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST);
 
 const EXPLICIT_DURABLE_REMEMBER_RE =
   /(记住这个|记一下|以后都按这个|默认就这样|长期按这个|后面都这样|以后按这个来|默认这样|记住这条|remember this|default to this|from now on)/i;
@@ -35,7 +31,7 @@ function resolveForcedDurableToolCall(params: {
   toolsAllow?: string[];
   modelApi?: string | null;
 }): { toolName: string; toolChoice: ToolChoice } | null {
-  const preferredTools = DURABLE_MEMORY_FILE_TOOL_NAMES;
+  const preferredTools = MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST;
   const toolName = params.toolsAllow?.length
     ? preferredTools.find((name) => params.toolsAllow?.includes(name))
     : preferredTools[0];
@@ -78,11 +74,7 @@ function canUseDurableToolForIntent(params: {
   if (!params.toolsAllow?.length) {
     return true;
   }
-  return params.toolsAllow.some((toolName) =>
-    DURABLE_MEMORY_FILE_TOOL_NAMES.includes(
-      toolName as (typeof DURABLE_MEMORY_FILE_TOOL_NAMES)[number],
-    ),
-  );
+  return params.toolsAllow.some((toolName) => DURABLE_MEMORY_FILE_TOOL_NAME_SET.has(toolName));
 }
 
 export async function maybeRunExplicitDurableIntentGate(params: {
@@ -100,6 +92,7 @@ export async function maybeRunExplicitDurableIntentGate(params: {
   systemPromptInstruction?: string;
   forcedToolName?: string;
   toolChoice?: ToolChoice;
+  runtimeToolAlsoAllow?: string[];
 }> {
   const intent = detectExplicitDurableIntent(params.prompt);
   if (!intent) {
@@ -159,6 +152,9 @@ export async function maybeRunExplicitDurableIntentGate(params: {
     reason: "explicit_durable_gate_force_tool_call",
     forcedToolName: forcedToolCall.toolName,
     toolChoice: forcedToolCall.toolChoice,
+    ...(!params.toolsAllow?.length
+      ? { runtimeToolAlsoAllow: [...MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST] }
+      : {}),
     systemPromptInstruction:
       `${HOST_DURABLE_TOOL_PROMPT_PREFIX} ` +
       `Before replying, you must start the durable-memory workflow with the ${forcedToolCall.toolName} tool, then use the scoped memory file tools to update notes and MEMORY.md as needed. ` +

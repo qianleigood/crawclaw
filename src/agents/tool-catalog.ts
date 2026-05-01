@@ -1,5 +1,12 @@
 export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
 
+export type ToolLifecycle =
+  | "profile_default"
+  | "runtime_conditional"
+  | "host_gated"
+  | "special_agent_only"
+  | "owner_restricted";
+
 type ToolProfilePolicy = {
   allow?: string[];
   deny?: string[];
@@ -21,6 +28,7 @@ type CoreToolDefinition = {
   description: string;
   sectionId: string;
   profiles: ToolProfileId[];
+  lifecycle?: ToolLifecycle;
   includeInCrawClawGroup?: boolean;
 };
 
@@ -34,6 +42,12 @@ const CORE_TOOL_SECTION_ORDER: Array<{ id: string; label: string }> = [
   { id: "automation", label: "Automation" },
   { id: "nodes", label: "Nodes" },
   { id: "agents", label: "Agents" },
+  { id: "skills", label: "Skills" },
+  { id: "workflow", label: "Workflow" },
+  { id: "review", label: "Review" },
+  { id: "memory", label: "Memory" },
+  { id: "session_summary", label: "Session Summary" },
+  { id: "improvement", label: "Improvement" },
   { id: "media", label: "Media" },
 ];
 
@@ -173,7 +187,8 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     label: "browser",
     description: "Control web browser",
     sectionId: "ui",
-    profiles: [],
+    profiles: ["coding"],
+    lifecycle: "runtime_conditional",
     includeInCrawClawGroup: true,
   },
   {
@@ -198,6 +213,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Schedule tasks",
     sectionId: "automation",
     profiles: ["coding"],
+    lifecycle: "owner_restricted",
     includeInCrawClawGroup: true,
   },
   {
@@ -206,6 +222,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Gateway control",
     sectionId: "automation",
     profiles: [],
+    lifecycle: "owner_restricted",
     includeInCrawClawGroup: true,
   },
   {
@@ -214,6 +231,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Nodes + devices",
     sectionId: "nodes",
     profiles: [],
+    lifecycle: "owner_restricted",
     includeInCrawClawGroup: true,
   },
   {
@@ -248,6 +266,110 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     profiles: [],
     includeInCrawClawGroup: true,
   },
+  {
+    id: "discover_skills",
+    label: "discover_skills",
+    description: "Search available skills",
+    sectionId: "skills",
+    profiles: ["coding"],
+    includeInCrawClawGroup: true,
+  },
+  {
+    id: "workflow",
+    label: "workflow",
+    description: "Manage and run workflows",
+    sectionId: "workflow",
+    profiles: ["coding"],
+    includeInCrawClawGroup: true,
+  },
+  {
+    id: "workflowize",
+    label: "workflowize",
+    description: "Create workflow drafts",
+    sectionId: "workflow",
+    profiles: ["coding"],
+    includeInCrawClawGroup: true,
+  },
+  {
+    id: "review_task",
+    label: "review_task",
+    description: "Review task completion",
+    sectionId: "review",
+    profiles: ["coding"],
+    includeInCrawClawGroup: true,
+  },
+  {
+    id: "write_experience_note",
+    label: "write_experience_note",
+    description: "Write reusable experience notes",
+    sectionId: "memory",
+    profiles: ["coding"],
+    includeInCrawClawGroup: true,
+  },
+  {
+    id: "memory_manifest_read",
+    label: "memory_manifest_read",
+    description: "Read scoped durable-memory manifest",
+    sectionId: "memory",
+    profiles: [],
+    lifecycle: "host_gated",
+  },
+  {
+    id: "memory_note_read",
+    label: "memory_note_read",
+    description: "Read scoped durable-memory notes",
+    sectionId: "memory",
+    profiles: [],
+    lifecycle: "host_gated",
+  },
+  {
+    id: "memory_note_write",
+    label: "memory_note_write",
+    description: "Write scoped durable-memory notes",
+    sectionId: "memory",
+    profiles: [],
+    lifecycle: "host_gated",
+  },
+  {
+    id: "memory_note_edit",
+    label: "memory_note_edit",
+    description: "Edit scoped durable-memory notes",
+    sectionId: "memory",
+    profiles: [],
+    lifecycle: "host_gated",
+  },
+  {
+    id: "memory_note_delete",
+    label: "memory_note_delete",
+    description: "Delete scoped durable-memory notes",
+    sectionId: "memory",
+    profiles: [],
+    lifecycle: "host_gated",
+  },
+  {
+    id: "session_summary_file_read",
+    label: "session_summary_file_read",
+    description: "Read session-summary files",
+    sectionId: "session_summary",
+    profiles: [],
+    lifecycle: "special_agent_only",
+  },
+  {
+    id: "session_summary_file_edit",
+    label: "session_summary_file_edit",
+    description: "Edit session-summary files",
+    sectionId: "session_summary",
+    profiles: [],
+    lifecycle: "special_agent_only",
+  },
+  {
+    id: "submit_promotion_verdict",
+    label: "submit_promotion_verdict",
+    description: "Submit promotion judge verdicts",
+    sectionId: "improvement",
+    profiles: [],
+    lifecycle: "special_agent_only",
+  },
 ];
 
 const CORE_TOOL_BY_ID = new Map<string, CoreToolDefinition>(
@@ -258,6 +380,10 @@ function listCoreToolIdsForProfile(profile: ToolProfileId): string[] {
   return CORE_TOOL_DEFINITIONS.filter((tool) => tool.profiles.includes(profile)).map(
     (tool) => tool.id,
   );
+}
+
+function resolveToolLifecycle(tool: CoreToolDefinition): ToolLifecycle {
+  return tool.lifecycle ?? "profile_default";
 }
 
 const CORE_TOOL_PROFILES: Record<ToolProfileId, ToolProfilePolicy> = {
@@ -334,6 +460,17 @@ export function resolveCoreToolProfiles(toolId: string): ToolProfileId[] {
     return [];
   }
   return [...tool.profiles];
+}
+
+export function resolveCoreToolLifecycle(toolId: string): ToolLifecycle | undefined {
+  const tool = CORE_TOOL_BY_ID.get(toolId);
+  return tool ? resolveToolLifecycle(tool) : undefined;
+}
+
+export function listCoreToolIdsByLifecycle(lifecycle: ToolLifecycle): string[] {
+  return CORE_TOOL_DEFINITIONS.filter((tool) => resolveToolLifecycle(tool) === lifecycle).map(
+    (tool) => tool.id,
+  );
 }
 
 export function isKnownCoreToolId(toolId: string): boolean {

@@ -191,7 +191,12 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 
 ### Tool Restrictions
 
-The filtering order is:
+Runtime lifecycle gates apply before ordinary policy. A registered tool can
+still be hidden because it is runtime-conditional, host-gated for the current
+turn, owner-restricted, or special-agent-only. `tools.profile: "full"` removes
+the profile filter, but it does not bypass those gates.
+
+The policy filtering order is:
 
 1. **Tool profile** (`tools.profile` or `agents.list[].tools.profile`)
 2. **Provider tool profile** (`tools.byProvider[provider].profile` or `agents.list[].tools.byProvider[provider].profile`)

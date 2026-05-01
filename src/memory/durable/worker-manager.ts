@@ -409,6 +409,39 @@ export class DurableExtractionWorkerManager {
     }
   }
 
+  async drainSession(sessionKey: string | undefined | null, timeoutMs = 15_000): Promise<void> {
+    const key = sessionKey?.trim();
+    if (!key) {
+      return;
+    }
+    const deadline = nowMs() + Math.max(1, timeoutMs);
+    while (true) {
+      this.cleanupIdle();
+      const worker = this.workers.get(key);
+      if (!worker) {
+        return;
+      }
+      if (!worker.inProgress && worker.pendingContext && worker.status !== "scheduled") {
+        worker.status = "scheduled";
+        this.enqueue(worker.sessionKey);
+      }
+      this.pumpQueue();
+      const queued = this.queue.includes(key);
+      if (!worker.inProgress && !worker.pendingContext && !queued) {
+        return;
+      }
+      const remaining = deadline - nowMs();
+      if (remaining <= 0) {
+        throw new Error("Timed out draining durable extraction worker");
+      }
+      if (worker.inProgress) {
+        await withTimeout(worker.inProgress, remaining);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, Math.min(remaining, 50)));
+      }
+    }
+  }
+
   getStatus(): DurableExtractionWorkerManagerStatus {
     this.cleanupIdle();
     const workers = [...this.workers.values()];

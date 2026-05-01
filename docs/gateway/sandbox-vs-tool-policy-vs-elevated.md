@@ -61,6 +61,9 @@ Two layers matter:
 
 Rules of thumb:
 
+- Lifecycle gates also apply: runtime-conditional, host-gated, owner-restricted,
+  and special-agent-only tools are not exposed just because a profile or
+  allowlist includes them.
 - `deny` always wins.
 - If `allow` is non-empty, everything else is treated as blocked.
 - Tool policy is the hard stop: `/exec` cannot override a denied `exec` tool.
@@ -87,13 +90,26 @@ Available groups:
 
 - `group:runtime`: `exec`, `bash`, `process`
 - `group:fs`: `read`, `write`, `edit`, `apply_patch`
-- `group:sessions`: `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `session_status`
-- `group:web`: `web_search`, `web_fetch`
+- `group:sessions`: `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `sessions_yield`, `subagents`, `session_status`
+- `group:web`: `web_search`, `web_fetch`, `x_search`
 - `group:ui`: `browser`, `canvas`
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
+- `group:agents`: `agents_list`
+- `group:skills`: `discover_skills`
+- `group:workflow`: `workflow`, `workflowize`
+- `group:review`: `review_task`
+- `group:memory`: `write_experience_note`, `memory_manifest_read`, `memory_note_read`, `memory_note_write`, `memory_note_edit`, `memory_note_delete`
+- `group:session_summary`: `session_summary_file_read`, `session_summary_file_edit`
+- `group:improvement`: `submit_promotion_verdict`
+- `group:media`: `image`, `pdf`, `tts`
 - `group:crawclaw`: all built-in CrawClaw tools (excludes provider plugins)
+
+Group expansion does not bypass lifecycle gates. For example, `group:memory`
+names scoped durable-memory file tools, but those tools stay hidden from `main`
+unless the host opens them for the current turn or a matching special agent is
+running.
 
 ## Elevated: exec-only "run on host"
 

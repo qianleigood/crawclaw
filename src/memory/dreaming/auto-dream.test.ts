@@ -399,6 +399,196 @@ describe("AutoDreamScheduler", () => {
     expect(runner).not.toHaveBeenCalled();
   });
 
+  it("compacts session summaries before passing them to the dream runner", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-compact-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const longBody = `${"stable durable signal ".repeat(2_000)}tail-marker-should-not-survive`;
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId: "s1",
+      content: `# Session Summary\n\n## Current State\n${longBody}\n\n## Key Results\nfinal result\n`,
+    });
+    const runtimeStore = asRuntimeStore({
+      getDreamState: vi.fn().mockResolvedValue(null),
+      listScopedSessionIdsTouchedSince: vi.fn().mockResolvedValue(["s1"]),
+      touchDreamAttempt: vi.fn().mockResolvedValue(undefined),
+      acquireDreamLock: vi.fn(),
+      listRecentContextArchiveRuns: vi.fn().mockResolvedValue([]),
+      listContextArchiveEvents: vi.fn().mockResolvedValue([]),
+      listRecentMaintenanceRuns: vi.fn().mockResolvedValue([]),
+      getSessionSummaryState: vi.fn().mockResolvedValue({
+        lastSummarizedMessageId: "msg-1",
+        lastSummaryUpdatedAt: Date.now(),
+        tokensAtLastSummary: 8_000,
+        summaryInProgress: false,
+      }),
+    });
+
+    const scheduler = new AutoDreamScheduler({
+      config: {
+        enabled: true,
+        minHours: 24,
+        minSessions: 1,
+        scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
+      },
+      runtimeStore,
+      runner: vi.fn(),
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      bypassGate: true,
+      dryRun: true,
+    });
+
+    const summaryText = result.preview?.sessionSummaries[0]?.summaryText ?? "";
+    expect(summaryText).toContain("[truncated to fit compact summary budget]");
+    expect(summaryText).not.toContain("tail-marker-should-not-survive");
+  });
+
+  it("uses compact summary state when the session summary file is empty", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-compact-state-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const getSessionCompactionState = vi.fn().mockResolvedValue({
+      sessionId: "s1",
+      preservedTailStartTurn: 7,
+      preservedTailMessageId: "m7",
+      summarizedThroughMessageId: null,
+      mode: "transcript-fallback",
+      summaryOverrideText: "Recovered compact summary from transcript fallback.",
+      updatedAt: Date.now(),
+    });
+    const runtimeStore = asRuntimeStore({
+      getDreamState: vi.fn().mockResolvedValue(null),
+      listScopedSessionIdsTouchedSince: vi.fn().mockResolvedValue(["s1"]),
+      touchDreamAttempt: vi.fn().mockResolvedValue(undefined),
+      acquireDreamLock: vi.fn(),
+      listRecentContextArchiveRuns: vi.fn().mockResolvedValue([]),
+      listContextArchiveEvents: vi.fn().mockResolvedValue([]),
+      listRecentMaintenanceRuns: vi.fn().mockResolvedValue([]),
+      getSessionSummaryState: vi.fn().mockResolvedValue(null),
+      getSessionCompactionState,
+    });
+
+    const scheduler = new AutoDreamScheduler({
+      config: {
+        enabled: true,
+        minHours: 24,
+        minSessions: 1,
+        scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
+      },
+      runtimeStore,
+      runner: vi.fn(),
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      bypassGate: true,
+      dryRun: true,
+    });
+
+    expect(getSessionCompactionState).toHaveBeenCalledWith("s1");
+    expect(result.preview?.sessionSummaries).toEqual([
+      expect.objectContaining({
+        sessionId: "s1",
+        source: "compact_summary",
+        summaryText: expect.stringContaining("Recovered compact summary"),
+      }),
+    ]);
+  });
+
+  it("waits for the pre-run maintenance hook before collecting dream inputs", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-wait-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId: "s1",
+      content: "# Session Summary\n\n## Current State\nstale summary\n",
+    });
+    const runtimeStore = asRuntimeStore({
+      getDreamState: vi.fn().mockResolvedValue(null),
+      listScopedSessionIdsTouchedSince: vi.fn().mockResolvedValue(["s1"]),
+      touchDreamAttempt: vi.fn().mockResolvedValue(undefined),
+      acquireDreamLock: vi.fn(),
+      listRecentContextArchiveRuns: vi.fn().mockResolvedValue([]),
+      listContextArchiveEvents: vi.fn().mockResolvedValue([]),
+      listRecentMaintenanceRuns: vi.fn().mockResolvedValue([]),
+      getSessionSummaryState: vi.fn().mockResolvedValue({
+        lastSummarizedMessageId: "msg-1",
+        lastSummaryUpdatedAt: Date.now(),
+        tokensAtLastSummary: 120,
+        summaryInProgress: false,
+      }),
+    });
+    const beforeRun = vi.fn().mockImplementation(async () => {
+      await writeSessionSummaryFile({
+        agentId: "main",
+        sessionId: "s1",
+        content: "# Session Summary\n\n## Current State\nfresh summary\n",
+      });
+    });
+
+    const scheduler = new AutoDreamScheduler({
+      config: {
+        enabled: true,
+        minHours: 24,
+        minSessions: 1,
+        scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
+      },
+      runtimeStore,
+      runner: vi.fn(),
+      logger: console,
+      beforeRun,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      sessionId: "s1",
+      sessionKey: "agent:main:feishu:user-1",
+      triggerSource: "stop",
+      bypassGate: true,
+      dryRun: true,
+    });
+
+    expect(beforeRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "s1",
+        sessionKey: "agent:main:feishu:user-1",
+        triggerSource: "stop",
+      }),
+    );
+    expect(result.preview?.sessionSummaries[0]?.summaryText).toContain("fresh summary");
+    expect(result.preview?.sessionSummaries[0]?.summaryText).not.toContain("stale summary");
+  });
+
   it("does not plan transcript fallback when summaries or structured signals are weak", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-fallback-"));
     tempDirs.push(stateDir);

@@ -34,7 +34,8 @@ The original durable auto-write path had three structural problems:
 3. `feedback` semantics are incomplete  
    Feedback used to behave more like corrective memory. The stronger rule is:
    - record corrections
-   - also record non-obvious approaches that were validated as successful
+   - record explicit future-behavior guidance and durable preference/context signal
+   - do not record operational lessons; those belong to experience memory
 
 So this is not just a prompt tweak. It is a lifecycle, windowing, and execution-shape refactor.
 
@@ -46,7 +47,8 @@ Durable auto-write should eventually behave like this:
 - only processes model-visible messages since an extraction cursor
 - explicit durable write/delete wins, so background extraction skips
 - `write_experience_note` no longer suppresses durable extraction
-- `feedback` supports corrective + reinforcing semantics
+- `feedback` supports bidirectional durable behavior guidance, not operational
+  lessons
 - runs as a task-backed background special agent
 - is visible through Action Feed, Context Archive, and inspect
 
@@ -60,7 +62,8 @@ As of the current version, the main path is already landed:
 
 - cursor-based incremental extraction window
 - `write_experience_note` no longer suppresses durable extraction
-- bidirectional `feedback` guidance
+- bidirectional durable `feedback` guidance, with operational experience routed
+  away from durable extraction
 - task-backed background `memory_extractor`
 - hard stop at `maxTurns: 5` for the extraction agent
 - manifest-first prompt workflow: candidate review first, then tightly batched durable writes within the 5-turn budget
@@ -278,20 +281,23 @@ Reason:
 - NotebookLM experience and durable collaboration memory are different layers
 - a turn can validly write experience and still deserve durable feedback/project extraction
 
-### `feedback` becomes bidirectional
+### `feedback` stays durable-only
 
-`feedback` should no longer mean only "correction memory".
+`feedback` should no longer mean only "correction memory", but it must stay
+inside the durable-memory boundary.
 
 It should cover:
 
 - corrective
   - "don't do this in the future"
   - "do not default to that response style"
-- reinforcing
-  - "that non-obvious choice was correct"
-  - "keep doing this in similar situations"
+- reinforcing durable guidance
+  - "keep answering this user's operations questions step-first"
+  - "default this project discussion to the plugin boundary terminology"
 
-First stage does not require a new top-level type.
+It should not cover reusable procedures, command sequences, debugging workflows,
+test strategies, failure patterns, or implementation lessons. Those belong to
+`write_experience_note` and the Experience Agent.
 
 The safer first step is:
 
@@ -400,7 +406,7 @@ remove experience-write suppression
 
 ### PR-C
 
-bidirectional feedback guidance
+bidirectional durable feedback guidance
 
 ### PR-D
 

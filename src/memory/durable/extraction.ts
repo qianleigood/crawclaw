@@ -1,4 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import { MEMORY_FILE_MUTATING_TOOL_ALLOWLIST } from "../special-agent-toollists.js";
+
+const MEMORY_FILE_MUTATING_TOOL_NAMES = new Set<string>(MEMORY_FILE_MUTATING_TOOL_ALLOWLIST);
 
 function extractTextBlocks(content: unknown): string[] {
   if (typeof content === "string") {
@@ -40,11 +43,7 @@ export function hasDurableMemoryWriteInMessages(messages: AgentMessage[]): boole
       typeof (message as { toolName?: unknown }).toolName === "string"
         ? String((message as { toolName?: unknown }).toolName).trim()
         : "";
-    return (
-      toolName === "memory_note_write" ||
-      toolName === "memory_note_edit" ||
-      toolName === "memory_note_delete"
-    );
+    return MEMORY_FILE_MUTATING_TOOL_NAMES.has(toolName);
   });
 }
 

@@ -6,16 +6,6 @@ import {
   ONBOARDING_DEFAULT_TOOLS_PROFILE,
 } from "./onboard-config.js";
 
-const designedDefaultMainTools = [
-  "browser",
-  "memory_manifest_read",
-  "memory_note_read",
-  "memory_note_write",
-  "memory_note_edit",
-  "memory_note_delete",
-  "write_experience_note",
-];
-
 describe("applyLocalSetupWorkspaceConfig", () => {
   it("defaults local setup tool profile to coding", () => {
     expect(ONBOARDING_DEFAULT_TOOLS_PROFILE).toBe("coding");
@@ -31,20 +21,13 @@ describe("applyLocalSetupWorkspaceConfig", () => {
     expect(result.tools?.profile).toBe(ONBOARDING_DEFAULT_TOOLS_PROFILE);
   });
 
-  it("allows designed default tools on the default main agent", () => {
+  it("does not create a main agent tool override for local setup", () => {
     const result = applyLocalSetupWorkspaceConfig({}, "/tmp/workspace");
 
-    expect(result.agents?.list).toEqual([
-      {
-        id: "main",
-        tools: {
-          alsoAllow: designedDefaultMainTools,
-        },
-      },
-    ]);
+    expect(result.agents?.list).toBeUndefined();
   });
 
-  it("merges designed default tools into an existing main agent additive tool policy", () => {
+  it("preserves existing main agent additive tool policy without injecting defaults", () => {
     const baseConfig: CrawClawConfig = {
       agents: {
         list: [
@@ -64,19 +47,15 @@ describe("applyLocalSetupWorkspaceConfig", () => {
       id: "main",
       name: "Main",
       tools: {
-        alsoAllow: ["tts", ...designedDefaultMainTools],
+        alsoAllow: ["tts"],
       },
     });
   });
 
-  it("does not default special-agent-only memory maintenance tools to main", () => {
+  it("does not default host-gated memory maintenance tools to main", () => {
     const result = applyLocalSetupWorkspaceConfig({}, "/tmp/workspace");
-    const alsoAllow = result.agents?.list?.[0]?.tools?.alsoAllow ?? [];
 
-    expect(alsoAllow).not.toContain("memory_transcript_search");
-    expect(alsoAllow).not.toContain("session_summary_file_read");
-    expect(alsoAllow).not.toContain("session_summary_file_edit");
-    expect(alsoAllow).not.toContain("submit_promotion_verdict");
+    expect(result.agents?.list).toBeUndefined();
   });
 
   it("preserves existing dmScope when already configured", () => {

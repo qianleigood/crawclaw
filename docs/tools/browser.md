@@ -80,13 +80,12 @@ same `browser` tool name. The default browser experience needs both:
 If you turn off only the plugin, the bundled browser tool disappears together.
 Your `browser.*` config stays intact for a replacement plugin to reuse.
 
-Local onboarding keeps the `coding` tool profile for new configs, then allows
-`browser` on the default `main` agent with `agents.list[].tools.alsoAllow`.
-That same additive policy also includes the scoped durable-memory file tools
-used for explicit remember, update, and forget requests, plus
-`write_experience_note` for explicit experience writes. If you later switch the
-profile to `minimal`, `messaging`, or `full`, these default `main` tools remain
-available unless an explicit deny policy blocks them.
+Local onboarding keeps the `coding` tool profile for new configs. The bundled
+`browser` tool is part of that profile, so it is available to the default
+`main` agent when the browser plugin is enabled. Onboarding no longer adds
+`browser` through `agents.list[].tools.alsoAllow`; if you later switch the
+profile to `minimal` or `messaging`, `browser` is hidden unless you explicitly
+allow it.
 
 ## PinchTab execution engine
 

@@ -26,6 +26,7 @@ describe("explicit durable intent gate", () => {
       notesSaved: 0,
       reason: "explicit_durable_gate_missing_write_tool",
     });
+    expect(result.runtimeToolAlsoAllow).toBeUndefined();
   });
 
   it("skips gating inside special-agent runs", async () => {
@@ -43,6 +44,31 @@ describe("explicit durable intent gate", () => {
     });
     expect(result.forcedToolName).toBeUndefined();
     expect(result.toolChoice).toBeUndefined();
+    expect(result.runtimeToolAlsoAllow).toBeUndefined();
+  });
+
+  it("opens scoped durable memory tools for the turn when no hard toolsAllow is set", async () => {
+    const result = await maybeRunExplicitDurableIntentGate({
+      prompt: "记住这个：以后回答操作类问题先给步骤。",
+      trigger: "user",
+      modelApi: "anthropic-messages",
+    });
+
+    expect(result).toMatchObject({
+      applied: false,
+      intent: "remember",
+      notesSaved: 0,
+      reason: "explicit_durable_gate_force_tool_call",
+      forcedToolName: "memory_manifest_read",
+      toolChoice: { type: "tool", name: "memory_manifest_read" },
+      runtimeToolAlsoAllow: [
+        "memory_manifest_read",
+        "memory_note_read",
+        "memory_note_write",
+        "memory_note_edit",
+        "memory_note_delete",
+      ],
+    });
   });
 
   it("forces a main-agent durable tool call for explicit remember cues", async () => {
@@ -61,6 +87,7 @@ describe("explicit durable intent gate", () => {
       forcedToolName: "memory_manifest_read",
       toolChoice: { type: "tool", name: "memory_manifest_read" },
     });
+    expect(result.runtimeToolAlsoAllow).toBeUndefined();
     expect(result.systemPromptInstruction).toContain(
       "must start the durable-memory workflow with the memory_manifest_read tool",
     );
@@ -82,6 +109,7 @@ describe("explicit durable intent gate", () => {
       forcedToolName: "memory_manifest_read",
       toolChoice: { type: "tool", name: "memory_manifest_read" },
     });
+    expect(result.runtimeToolAlsoAllow).toBeUndefined();
     expect(result.systemPromptInstruction).toContain(
       "must start the durable-memory workflow with the memory_manifest_read tool",
     );

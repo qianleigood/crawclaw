@@ -93,6 +93,10 @@ function clampInt(value: number | undefined, fallback: number, minimum = 1): num
   return Math.max(minimum, Math.floor(value));
 }
 
+function nowMs(): number {
+  return Date.now();
+}
+
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -428,6 +432,24 @@ export class SessionSummaryScheduler {
         this.submitTurn(pending);
       }
     });
+  }
+
+  async drainSession(sessionId: string | undefined | null, timeoutMs = 15_000): Promise<void> {
+    const normalizedSessionId = sessionId?.trim();
+    if (!normalizedSessionId) {
+      return;
+    }
+    const deadline = nowMs() + Math.max(1, timeoutMs);
+    while (
+      this.inFlightSessions.has(normalizedSessionId) ||
+      this.pendingTurns.has(normalizedSessionId)
+    ) {
+      const remaining = deadline - nowMs();
+      if (remaining <= 0) {
+        throw new Error("Timed out draining session summary scheduler");
+      }
+      await new Promise((resolve) => setTimeout(resolve, Math.min(remaining, 50)));
+    }
   }
 
   async runNow(params: SubmitTurnParams): Promise<{

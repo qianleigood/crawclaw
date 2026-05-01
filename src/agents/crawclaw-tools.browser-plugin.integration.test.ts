@@ -44,8 +44,8 @@ describe("createCrawClawTools browser plugin integration", () => {
     expect(tools.map((tool) => tool.name)).toContain("browser");
   });
 
-  it.each(["minimal", "coding", "messaging", "full"] as const)(
-    "keeps browser available to the onboarded main agent through the %s profile",
+  it.each(["coding", "full"] as const)(
+    "keeps browser available through the %s profile",
     (profile) => {
       const config = applyLocalSetupWorkspaceConfig(
         { plugins: { allow: ["browser"] }, tools: { profile } },
@@ -62,7 +62,25 @@ describe("createCrawClawTools browser plugin integration", () => {
     },
   );
 
-  it("keeps browser available to the onboarded main agent when profile is unset", () => {
+  it.each(["minimal", "messaging"] as const)(
+    "omits browser when the explicit profile is %s",
+    (profile) => {
+      const config = applyLocalSetupWorkspaceConfig(
+        { plugins: { allow: ["browser"] }, tools: { profile } },
+        "/tmp/workspace",
+      );
+      const tools = createCrawClawCodingTools({
+        config,
+        sessionKey: "agent:main:main",
+        workspaceDir: "/tmp/workspace",
+        agentDir: "/tmp/agent",
+      });
+
+      expect(tools.map((tool) => tool.name)).not.toContain("browser");
+    },
+  );
+
+  it("keeps browser available to the onboarded main agent because onboarding defaults to coding profile", () => {
     const config = applyLocalSetupWorkspaceConfig(
       { plugins: { allow: ["browser"] } },
       "/tmp/workspace",
