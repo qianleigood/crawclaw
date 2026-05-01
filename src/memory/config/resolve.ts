@@ -40,8 +40,6 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
   const durableExtraction = readConfigRecord(raw.durableExtraction);
   const experience = readConfigRecord(raw.experience);
   const dreaming = readConfigRecord(raw.dreaming);
-  const dreamingTranscriptFallback = readConfigRecord(dreaming.transcriptFallback);
-  const defaultDreamingTranscriptFallback = DEFAULT_CONFIG.dreaming.transcriptFallback!;
   const sessionSummary = readConfigRecord(raw.sessionSummary);
   const automation = asConfigRecord(raw.automation);
   const automationStages = asConfigRecord(automation.stages);
@@ -122,36 +120,6 @@ function mergeConfig(raw: RawMemoryConfig): MemoryRuntimeConfig {
     dreaming: {
       ...DEFAULT_CONFIG.dreaming,
       ...dreaming,
-      transcriptFallback: {
-        enabled: readBooleanValue(
-          dreamingTranscriptFallback.enabled,
-          defaultDreamingTranscriptFallback.enabled,
-        ),
-        minSignals: readNumberValue(
-          dreamingTranscriptFallback.minSignals,
-          defaultDreamingTranscriptFallback.minSignals,
-        ),
-        staleSummaryMs: readNumberValue(
-          dreamingTranscriptFallback.staleSummaryMs,
-          defaultDreamingTranscriptFallback.staleSummaryMs,
-        ),
-        maxSessions: readNumberValue(
-          dreamingTranscriptFallback.maxSessions,
-          defaultDreamingTranscriptFallback.maxSessions,
-        ),
-        maxMatchesPerSession: readNumberValue(
-          dreamingTranscriptFallback.maxMatchesPerSession,
-          defaultDreamingTranscriptFallback.maxMatchesPerSession,
-        ),
-        maxTotalBytes: readNumberValue(
-          dreamingTranscriptFallback.maxTotalBytes,
-          defaultDreamingTranscriptFallback.maxTotalBytes,
-        ),
-        maxExcerptChars: readNumberValue(
-          dreamingTranscriptFallback.maxExcerptChars,
-          defaultDreamingTranscriptFallback.maxExcerptChars,
-        ),
-      },
     },
     sessionSummary: {
       ...DEFAULT_CONFIG.sessionSummary,

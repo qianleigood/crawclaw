@@ -9547,45 +9547,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                     exclusiveMinimum: 0,
                     maximum: 9007199254740991,
                   },
-                  transcriptFallback: {
-                    type: "object",
-                    properties: {
-                      enabled: {
-                        type: "boolean",
-                      },
-                      minSignals: {
-                        type: "integer",
-                        minimum: 0,
-                        maximum: 9007199254740991,
-                      },
-                      staleSummaryMs: {
-                        type: "integer",
-                        minimum: 0,
-                        maximum: 9007199254740991,
-                      },
-                      maxSessions: {
-                        type: "integer",
-                        exclusiveMinimum: 0,
-                        maximum: 9007199254740991,
-                      },
-                      maxMatchesPerSession: {
-                        type: "integer",
-                        exclusiveMinimum: 0,
-                        maximum: 9007199254740991,
-                      },
-                      maxTotalBytes: {
-                        type: "integer",
-                        exclusiveMinimum: 0,
-                        maximum: 9007199254740991,
-                      },
-                      maxExcerptChars: {
-                        type: "integer",
-                        exclusiveMinimum: 0,
-                        maximum: 9007199254740991,
-                      },
-                    },
-                    additionalProperties: false,
-                  },
                 },
                 additionalProperties: false,
               },
