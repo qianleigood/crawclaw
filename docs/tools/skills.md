@@ -261,6 +261,34 @@ CrawClaw snapshots the eligible skills **when a session starts** and reuses that
 
 Skills can also refresh mid-session when the skills watcher is enabled or when a new eligible remote node appears (see below). Think of this as a **hot reload**: the refreshed list is picked up on the next agent turn.
 
+## Semantic skill discovery
+
+CrawClaw can use embeddings before lexical fallback and reranking when looking up skills for a task. Interactive `crawclaw onboard` can configure this in the **Skills** step with local Ollama embeddings. This does **not** change the main chat model.
+
+The Skills step can choose:
+
+- `nomic-embed-text`: default, small download, good for most laptops and short skill descriptions.
+- `qwen3-embedding:0.6b`: stronger multilingual and code-retrieval behavior with a moderate download.
+- `mxbai-embed-large`: larger English retrieval model when the extra disk and memory are acceptable.
+
+If the selected embedding model is missing locally, CrawClaw pulls it automatically through Ollama before embedding skills.
+
+Manual config:
+
+```json5
+{
+  skills: {
+    discovery: {
+      semantic: {
+        enabled: true,
+        provider: "ollama",
+        model: "nomic-embed-text",
+      },
+    },
+  },
+}
+```
+
 ## Remote macOS nodes (Linux gateway)
 
 If the Gateway is running on Linux but a **macOS node** is connected **with `system.run` allowed** (Exec approvals security not set to `deny`), CrawClaw can treat macOS-only skills as eligible when the required binaries are present on that node. The agent should execute those skills via the `exec` tool with `host=node`.

@@ -3,10 +3,33 @@ import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { openUrl } from "../infra/browser-open.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
-import type { WizardPrompter } from "../wizard/prompts.js";
+import { type WizardPrompter } from "../wizard/prompts.js";
 import { detectBinary, resolveNodeManagerOptions } from "./onboard-helpers.js";
+
+const OLLAMA_EMBEDDING_BASE_URL = "http://127.0.0.1:11434";
+const OLLAMA_DOWNLOAD_URL = "https://ollama.com/download";
+const OLLAMA_EMBEDDING_MODELS = [
+  {
+    value: "nomic-embed-text",
+    labelKey: "wizard.skills.semanticModel.nomic.label",
+    hintKey: "wizard.skills.semanticModel.nomic.hint",
+  },
+  {
+    value: "qwen3-embedding:0.6b",
+    labelKey: "wizard.skills.semanticModel.qwen3Small.label",
+    hintKey: "wizard.skills.semanticModel.qwen3Small.hint",
+  },
+  {
+    value: "mxbai-embed-large",
+    labelKey: "wizard.skills.semanticModel.mxbai.label",
+    hintKey: "wizard.skills.semanticModel.mxbai.hint",
+  },
+];
+
+type OllamaEmbeddingSetupAction = "download" | "retry" | "continue" | "skip";
 
 function summarizeInstallFailure(message: string): string | undefined {
   const cleaned = message.replace(/^Install failed(?:\s*\([^)]*\))?\s*:?\s*/i, "").trim();
@@ -32,6 +55,134 @@ function upsertSkillEntry(
       entries,
     },
   };
+}
+
+function isSemanticSkillDiscoveryConfigured(cfg: CrawClawConfig): boolean {
+  const semantic = cfg.skills?.discovery?.semantic;
+  return Boolean(semantic?.enabled === true && semantic.provider?.trim() && semantic.model?.trim());
+}
+
+function applyOllamaSemanticSkillDiscovery(cfg: CrawClawConfig, model: string): CrawClawConfig {
+  return {
+    ...cfg,
+    skills: {
+      ...cfg.skills,
+      discovery: {
+        ...cfg.skills?.discovery,
+        semantic: {
+          ...cfg.skills?.discovery?.semantic,
+          enabled: true,
+          provider: "ollama",
+          model,
+        },
+      },
+    },
+  };
+}
+
+async function isOllamaReachableForEmbeddings(): Promise<boolean> {
+  try {
+    await fetch(`${OLLAMA_EMBEDDING_BASE_URL}/api/tags`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function formatOllamaEmbeddingInstallGuidance(t: ReturnType<typeof createCliTranslator>): string {
+  return t("wizard.skills.semanticOllamaInstall", {
+    url: OLLAMA_DOWNLOAD_URL,
+    linuxCommand: "curl -fsSL https://ollama.com/install.sh | sh",
+    serveCommand: "ollama serve",
+  });
+}
+
+async function ensureOllamaEmbeddingRuntime(
+  prompter: WizardPrompter,
+  t: ReturnType<typeof createCliTranslator>,
+): Promise<boolean> {
+  for (;;) {
+    if (await isOllamaReachableForEmbeddings()) {
+      return true;
+    }
+    await prompter.note(formatOllamaEmbeddingInstallGuidance(t), t("wizard.skills.semanticTitle"));
+    const action = (await prompter.select({
+      message: t("wizard.skills.semanticOllamaUnavailable"),
+      options: [
+        {
+          value: "download",
+          label: t("wizard.skills.semanticOllamaOpenDownload"),
+          hint: t("wizard.skills.semanticOllamaOpenDownloadHint"),
+        },
+        {
+          value: "retry",
+          label: t("wizard.skills.semanticOllamaRetry"),
+          hint: t("wizard.skills.semanticOllamaRetryHint"),
+        },
+        {
+          value: "continue",
+          label: t("wizard.skills.semanticOllamaContinue"),
+          hint: t("wizard.skills.semanticOllamaContinueHint"),
+        },
+        {
+          value: "skip",
+          label: t("wizard.skills.semanticOllamaSkip"),
+        },
+      ],
+      initialValue: "download",
+    })) as OllamaEmbeddingSetupAction;
+
+    if (action === "download") {
+      const opened = await openUrl(OLLAMA_DOWNLOAD_URL);
+      if (!opened) {
+        await prompter.note(OLLAMA_DOWNLOAD_URL, t("wizard.skills.semanticOllamaDownloadTitle"));
+      }
+      const retry = await prompter.confirm({
+        message: t("wizard.skills.semanticOllamaRetryAfterInstall"),
+        initialValue: true,
+      });
+      if (retry) {
+        continue;
+      }
+      return false;
+    }
+    if (action === "retry") {
+      continue;
+    }
+    return action === "continue";
+  }
+}
+
+async function setupSemanticSkillDiscovery(
+  cfg: CrawClawConfig,
+  prompter: WizardPrompter,
+  t: ReturnType<typeof createCliTranslator>,
+): Promise<CrawClawConfig> {
+  if (isSemanticSkillDiscoveryConfigured(cfg)) {
+    return cfg;
+  }
+  const enabled = await prompter.confirm({
+    message: t("wizard.skills.semanticPrompt"),
+    initialValue: true,
+  });
+  if (!enabled) {
+    return cfg;
+  }
+  if (!(await ensureOllamaEmbeddingRuntime(prompter, t))) {
+    return cfg;
+  }
+  const model = await prompter.select({
+    message: t("wizard.skills.semanticModelPrompt"),
+    options: OLLAMA_EMBEDDING_MODELS.map((model) => ({
+      value: model.value,
+      label: t(model.labelKey),
+      hint: t(model.hintKey),
+    })),
+    initialValue: "nomic-embed-text",
+  });
+  return applyOllamaSemanticSkillDiscovery(cfg, model);
 }
 
 export async function setupSkills(
@@ -185,6 +336,8 @@ export async function setupSkills(
     });
     next = upsertSkillEntry(next, skill.skillKey, { apiKey: normalizeSecretInput(apiKey) });
   }
+
+  next = await setupSemanticSkillDiscovery(next, prompter, t);
 
   return next;
 }

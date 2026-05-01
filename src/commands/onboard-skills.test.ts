@@ -19,6 +19,10 @@ vi.mock("./onboard-helpers.js", () => ({
     { value: "bun", label: "bun" },
   ]),
 }));
+const openUrl = vi.hoisted(() => vi.fn(async () => true));
+vi.mock("../infra/browser-open.js", () => ({
+  openUrl,
+}));
 
 import { installSkill } from "../agents/skills-install.js";
 import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
@@ -89,6 +93,14 @@ function mockMissingBrewStatus(skills: Array<ReturnType<typeof createBundledSkil
   } as never);
 }
 
+function mockEmptySkillStatus(): void {
+  vi.mocked(buildWorkspaceSkillStatus).mockReturnValue({
+    workspaceDir: "/tmp/ws",
+    managedSkillsDir: "/tmp/managed",
+    skills: [],
+  } as never);
+}
+
 function createPrompter(params: { installDependencies?: boolean; showBrewInstall?: boolean }): {
   prompter: WizardPrompter;
   notes: Array<{ title?: string; message: string }>;
@@ -135,6 +147,7 @@ describe("setupSkills", () => {
 
   afterEach(() => {
     setActiveCliLocale("en");
+    vi.unstubAllGlobals();
   });
 
   it("does not recommend Homebrew when user skips installing brew-backed deps", async () => {
@@ -245,5 +258,73 @@ describe("setupSkills", () => {
       expect.objectContaining({ message: "现在安装缺失的核心技能依赖吗？" }),
     );
     expect(prompter.multiselect).not.toHaveBeenCalled();
+  });
+
+  it("configures Ollama embeddings for semantic skill discovery", async () => {
+    mockEmptySkillStatus();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 200 })),
+    );
+    const prompter = {
+      intro: vi.fn(async () => {}),
+      outro: vi.fn(async () => {}),
+      note: vi.fn(async () => {}),
+      confirm: vi.fn(async () => true),
+      select: vi.fn(async () => "qwen3-embedding:0.6b") as unknown as WizardPrompter["select"],
+      multiselect: vi.fn(async () => []) as unknown as WizardPrompter["multiselect"],
+      text: vi.fn(async () => ""),
+      progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
+    } as WizardPrompter;
+
+    const result = await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
+
+    expect(result.skills?.discovery?.semantic).toEqual({
+      enabled: true,
+      provider: "ollama",
+      model: "qwen3-embedding:0.6b",
+    });
+    expect(openUrl).not.toHaveBeenCalled();
+  });
+
+  it("shows Ollama install guidance and retries for skill embeddings", async () => {
+    mockEmptySkillStatus();
+    let tagRequests = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        tagRequests += 1;
+        if (tagRequests === 1) {
+          throw new Error("connect ECONNREFUSED");
+        }
+        return new Response("{}", { status: 200 });
+      }),
+    );
+    const notes: Array<{ title?: string; message: string }> = [];
+    const confirmAnswers = [true, true];
+    const selectAnswers = ["download", "nomic-embed-text"];
+    const prompter = {
+      intro: vi.fn(async () => {}),
+      outro: vi.fn(async () => {}),
+      note: vi.fn(async (message: string, title?: string) => {
+        notes.push({ title, message });
+      }),
+      confirm: vi.fn(async () => confirmAnswers.shift() ?? false),
+      select: vi.fn(async () => selectAnswers.shift() ?? "") as unknown as WizardPrompter["select"],
+      multiselect: vi.fn(async () => []) as unknown as WizardPrompter["multiselect"],
+      text: vi.fn(async () => ""),
+      progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
+    } as WizardPrompter;
+
+    const result = await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
+
+    const installNote = notes.find((note) => note.title === "Skill embeddings")?.message ?? "";
+    expect(installNote).toContain("macOS");
+    expect(installNote).toContain("Windows");
+    expect(installNote).toContain("Linux");
+    expect(installNote).toContain("https://ollama.com/download");
+    expect(installNote).toContain("curl -fsSL https://ollama.com/install.sh | sh");
+    expect(openUrl).toHaveBeenCalledWith("https://ollama.com/download");
+    expect(result.skills?.discovery?.semantic?.model).toBe("nomic-embed-text");
   });
 });

@@ -45,6 +45,12 @@ export type OllamaEmbeddingClient = {
 };
 
 type OllamaEmbeddingClientConfig = Omit<OllamaEmbeddingClient, "embedBatch">;
+type OllamaTagsResponse = {
+  models?: Array<{ name?: string }>;
+};
+type OllamaPullChunk = {
+  error?: string;
+};
 
 export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "nomic-embed-text";
 
@@ -100,6 +106,44 @@ function normalizeEmbeddingModel(model: string): string {
   return trimmed.startsWith("ollama/") ? trimmed.slice("ollama/".length) : trimmed;
 }
 
+function isOllamaCloudModel(model: string): boolean {
+  return model.trim().toLowerCase().endsWith(":cloud");
+}
+
+function isOllamaModelAvailable(configuredModel: string, availableModel: string | undefined) {
+  if (!availableModel) {
+    return false;
+  }
+  if (availableModel === configuredModel) {
+    return true;
+  }
+  return !configuredModel.includes(":") && availableModel === `${configuredModel}:latest`;
+}
+
+async function parsePullResponse(response: Response, model: string): Promise<void> {
+  const text = await response.text();
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    try {
+      const chunk = JSON.parse(trimmed) as OllamaPullChunk;
+      if (chunk.error) {
+        throw new Error(`Download failed: ${chunk.error}`);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith("Download failed:")) {
+        throw err;
+      }
+      // Ignore malformed progress lines from Ollama.
+    }
+  }
+  if (!text.trim()) {
+    throw new Error(`Failed to download ${model} (empty response body)`);
+  }
+}
+
 function resolveOllamaApiKey(options: OllamaEmbeddingOptions): string | undefined {
   if (options.providerApiKey) {
     return options.providerApiKey;
@@ -145,9 +189,55 @@ export async function createOllamaEmbeddingProvider(
   options: OllamaEmbeddingOptions,
 ): Promise<{ provider: OllamaEmbeddingProvider; client: OllamaEmbeddingClient }> {
   const client = resolveOllamaEmbeddingClient(options);
-  const embedUrl = `${client.baseUrl.replace(/\/$/, "")}/api/embeddings`;
+  const baseUrl = client.baseUrl.replace(/\/$/, "");
+  const tagsUrl = `${baseUrl}/api/tags`;
+  const pullUrl = `${baseUrl}/api/pull`;
+  const embedUrl = `${baseUrl}/api/embeddings`;
+  let modelReadyPromise: Promise<void> | null = null;
+
+  const ensureModelReady = async (): Promise<void> => {
+    if (isOllamaCloudModel(client.model)) {
+      return;
+    }
+    modelReadyPromise ??= (async () => {
+      const tags = await withRemoteHttpResponse({
+        url: tagsUrl,
+        ssrfPolicy: client.ssrfPolicy,
+        init: { headers: client.headers },
+        onResponse: async (response) => {
+          if (!response.ok) {
+            throw new Error(`Ollama tags HTTP ${response.status}: ${await response.text()}`);
+          }
+          return (await response.json()) as OllamaTagsResponse;
+        },
+      });
+      if ((tags.models ?? []).some((model) => isOllamaModelAvailable(client.model, model.name))) {
+        return;
+      }
+      await withRemoteHttpResponse({
+        url: pullUrl,
+        ssrfPolicy: client.ssrfPolicy,
+        init: {
+          method: "POST",
+          headers: client.headers,
+          body: JSON.stringify({ name: client.model }),
+        },
+        onResponse: async (response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to download ${client.model} (HTTP ${response.status})`);
+          }
+          await parsePullResponse(response, client.model);
+        },
+      });
+    })().catch((err) => {
+      modelReadyPromise = null;
+      throw err;
+    });
+    await modelReadyPromise;
+  };
 
   const embedOne = async (text: string): Promise<number[]> => {
+    await ensureModelReady();
     const json = await withRemoteHttpResponse({
       url: embedUrl,
       ssrfPolicy: client.ssrfPolicy,

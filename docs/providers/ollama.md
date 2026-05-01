@@ -235,6 +235,34 @@ To use cloud models, select **Cloud + Local** mode during setup. The wizard chec
 
 You can also sign in directly at [ollama.com/signin](https://ollama.com/signin).
 
+## Skill semantic discovery embeddings
+
+Ollama can also provide the embedding model used by skill semantic discovery. This is separate from the main chat model configured above. During `crawclaw onboard`, the **Skills** step can enable `skills.discovery.semantic` with provider `ollama`, then choose an embedding model.
+
+Recommended embedding models:
+
+- `nomic-embed-text`: default, small download, good for most laptops and short skill descriptions.
+- `qwen3-embedding:0.6b`: stronger multilingual and code-retrieval behavior with a moderate download; good when you have many mixed-language skills.
+- `mxbai-embed-large`: larger embedding model for higher-quality English retrieval; use when the extra disk and memory are acceptable.
+
+If the selected embedding model is missing locally, CrawClaw pulls it automatically through Ollama before embedding skills.
+
+Manual config:
+
+```json5
+{
+  skills: {
+    discovery: {
+      semantic: {
+        enabled: true,
+        provider: "ollama",
+        model: "nomic-embed-text",
+      },
+    },
+  },
+}
+```
+
 ## Advanced
 
 ### Reasoning models
