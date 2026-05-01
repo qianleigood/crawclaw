@@ -1,10 +1,10 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useWebSocketStore } from './websocket'
-import type { OpenClawConfig, ConfigPatch } from '@/api/types'
+import type { CrawClawConfig, ConfigPatch } from '@/api/types'
 
 export const useConfigStore = defineStore('config', () => {
-  const config = ref<OpenClawConfig | null>(null)
+  const config = ref<CrawClawConfig | null>(null)
   const loading = ref(false)
   const saving = ref(false)
   const lastError = ref<string | null>(null)
@@ -39,7 +39,7 @@ export const useConfigStore = defineStore('config', () => {
     }
   }
 
-  async function setConfig(newConfig: OpenClawConfig) {
+  async function setConfig(newConfig: CrawClawConfig) {
     saving.value = true
     lastError.value = null
     try {

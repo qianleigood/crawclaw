@@ -52,7 +52,7 @@ export const CHANNEL_TEMPLATES: ChannelTemplate[] = [
   },
   {
     key: 'dingtalk',
-    aliases: ['ding'],
+    aliases: ['ding', 'ddingtalk'],
     label: '钉钉',
     channelSecretFields: ['clientSecret'],
     accountSecretFields: ['clientSecret'],

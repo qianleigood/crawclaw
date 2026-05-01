@@ -517,7 +517,7 @@ function exportFilteredLogs() {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `openclaw-logs-${Date.now()}.log`
+  link.download = `crawclaw-logs-${Date.now()}.log`
   link.click()
   URL.revokeObjectURL(url)
 }

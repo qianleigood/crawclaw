@@ -19,17 +19,17 @@
 
 ## Introduction
 
-CrawClaw Admin is a modern AI agent management platform built with Vue 3, supporting both **OpenClaw Gateway** and **Hermes Agent**. Through intuitive visual operations, users can easily manage AI agents, sessions, models, channels, skills, and other core features, with a full-featured Web CLI terminal experience.
+CrawClaw Admin is a modern AI agent management platform built with Vue 3, supporting both **CrawClaw Gateway** and **Hermes Agent**. Through intuitive visual operations, users can easily manage AI agents, sessions, models, channels, skills, and other core features, with a full-featured Web CLI terminal experience.
 
 ### Version Compatibility
 
-| CrawClaw Admin | OpenClaw Gateway | Hermes Agent | Status     |
+| CrawClaw Admin | CrawClaw Gateway | Hermes Agent | Status     |
 | -------------- | ---------------- | ------------ | ---------- |
 | 0.2.7          | 2026.4.5         | 2026.4.9     | ✅ Verified |
 
 ### Highlights
 
-- 🎯 **Dual Gateway Support**: Manage both OpenClaw Gateway and Hermes Agent from a single platform
+- 🎯 **Dual Gateway Support**: Manage both CrawClaw Gateway and Hermes Agent from a single platform
 - 🖥️ **Web CLI Terminal**: Real CLI experience powered by xterm.js, with session persistence, reconnection, and launch parameter configuration
 - 🤖 **Multi-Agent Collaboration**: Create and manage multiple AI agents for complex task collaboration
 - 📊 **Real-time Monitoring**: System resources, session status, token usage, and more
@@ -40,7 +40,7 @@ CrawClaw Admin is a modern AI agent management platform built with Vue 3, suppor
 
 ## Features
 
-### I. OpenClaw Gateway Module
+### I. CrawClaw Gateway Module
 
 #### Dashboard
 
@@ -289,7 +289,7 @@ CrawClaw Admin is a modern AI agent management platform built with Vue 3, suppor
 
 | Technology   | Version | Description                                      |
 | ------------ | ------- | ------------------------------------------------ |
-| WebSocket    | -       | Real-time Bidirectional Communication (OpenClaw) |
+| WebSocket    | -       | Real-time Bidirectional Communication (CrawClaw) |
 | SSE          | -       | Server-Sent Events (Hermes)                      |
 | markdown-it  | 14.x    | Markdown Parser                                  |
 | highlight.js | 11.x    | Code Highlighting                                |
@@ -684,10 +684,10 @@ DEV_PORT=3001
 AUTH_USERNAME=admin
 AUTH_PASSWORD=admin
 
-# === OpenClaw Gateway ===
-OPENCLAW_WS_URL=ws://localhost:18789
-OPENCLAW_AUTH_TOKEN=
-OPENCLAW_AUTH_PASSWORD=        # Gateway password, either one with Token is enough
+# === CrawClaw Gateway ===
+CRAWCLAW_WS_URL=ws://localhost:18789
+CRAWCLAW_AUTH_TOKEN=
+CRAWCLAW_AUTH_PASSWORD=        # Gateway password, either one with Token is enough
 
 # === Hermes Agent ===
 HERMES_WEB_URL=http://localhost:9119
@@ -704,9 +704,9 @@ MEDIA_DIR=
 
 ## API Reference
 
-### OpenClaw WebSocket RPC Methods
+### CrawClaw WebSocket RPC Methods
 
-The project communicates with OpenClaw Gateway via WebSocket, supporting the following RPC methods:
+The project communicates with CrawClaw Gateway via WebSocket, supporting the following RPC methods:
 
 #### Configuration Management
 

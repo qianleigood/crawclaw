@@ -6,7 +6,7 @@ import { useHermesConnectionStore } from '@/stores/hermes/connection'
 const connStore = useHermesConnectionStore()
 
 const options = [
-  { label: 'OpenClaw', value: 'openclaw' },
+  { label: 'CrawClaw', value: 'crawclaw' },
   { label: 'Hermes Agent', value: 'hermes' },
 ]
 
@@ -25,7 +25,7 @@ function renderLabel(option: { label: string; value: string }) {
 }
 
 async function handleChange(val: string) {
-  await connStore.switchGateway(val as 'openclaw' | 'hermes')
+  await connStore.switchGateway(val as 'crawclaw' | 'hermes')
 }
 </script>
 

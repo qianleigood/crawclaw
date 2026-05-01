@@ -1,6 +1,6 @@
 export type AppLocale = 'zh-CN' | 'en-US'
 
-const STORAGE_KEY = 'openclaw_locale'
+const STORAGE_KEY = 'crawclaw_locale'
 
 export function normalizeLocale(input?: string | null): AppLocale | null {
   if (!input) {return null}

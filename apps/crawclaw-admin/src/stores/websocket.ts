@@ -1,6 +1,6 @@
 import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
-import { OpenClawWebSocket } from '@/api/websocket'
+import { CrawClawWebSocket } from '@/api/websocket'
 import { RPCClient } from '@/api/rpc-client'
 import { ConnectionState } from '@/api/types'
 import { useAuthStore } from './auth'
@@ -33,14 +33,14 @@ export const useWebSocketStore = defineStore('websocket', () => {
   let listenersBound = false
   const persistentListeners = new Map<string, Set<(...args: unknown[]) => void>>()
 
-  function createWebSocket(): OpenClawWebSocket {
+  function createWebSocket(): CrawClawWebSocket {
     const authStore = useAuthStore()
-    return new OpenClawWebSocket({
+    return new CrawClawWebSocket({
       getToken: () => authStore.getToken(),
     })
   }
 
-  const ws = shallowRef<OpenClawWebSocket>(createWebSocket())
+  const ws = shallowRef<CrawClawWebSocket>(createWebSocket())
   const rpc = shallowRef<RPCClient>(new RPCClient(ws.value))
 
   function rebindPersistentListeners() {

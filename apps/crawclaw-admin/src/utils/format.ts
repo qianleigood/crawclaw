@@ -162,7 +162,7 @@ export function parseSessionKey(key: string): { agent: string; channel: string; 
     }
   }
 
-  // Canonical OpenClaw form: agent:<agentId>:<rest...>
+  // Canonical CrawClaw form: agent:<agentId>:<rest...>
   if (parts[0] === 'agent' && parts.length >= 3) {
     const agent = parts[1] || 'main'
     const rest = parts.slice(2)

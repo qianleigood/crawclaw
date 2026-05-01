@@ -57,7 +57,7 @@ watch(
     if (!config) return
     primaryModel.value = config.models?.primary || config.agents?.defaults?.model?.primary || ''
     gatewayPort.value = config.gateway?.port || 18789
-    workspace.value = config.agents?.defaults?.workspace || '~/.openclaw/workspace'
+    workspace.value = config.agents?.defaults?.workspace || '~/.crawclaw/workspace'
   },
   { immediate: true }
 )

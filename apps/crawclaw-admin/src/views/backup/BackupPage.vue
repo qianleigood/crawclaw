@@ -94,7 +94,7 @@ function getTaskStatusType(status: BackupTask['status']): 'default' | 'success' 
 function translateProgressMessage(message: string): string {
   const keyMap: Record<string, string> = {
     'Starting backup...': 'pages.backup.progress.starting',
-    'Creating OpenClaw backup...': 'pages.backup.progress.openclawBackup',
+    'Creating CrawClaw backup...': 'pages.backup.progress.crawclawBackup',
     'Backing up project database...': 'pages.backup.progress.wizardDb',
     'Backing up environment config...': 'pages.backup.progress.envConfig',
     'Creating archive...': 'pages.backup.progress.creatingZip',
@@ -103,7 +103,7 @@ function translateProgressMessage(message: string): string {
     'Starting restore...': 'pages.backup.progress.starting',
     'Extracting backup archive...': 'pages.backup.progress.extractingZip',
     'Reading legacy backup file...': 'pages.backup.progress.extractingZip',
-    'Restoring OpenClaw data...': 'pages.backup.progress.restoringOpenclaw',
+    'Restoring CrawClaw data...': 'pages.backup.progress.restoringCrawClaw',
     'Restoring project database...': 'pages.backup.progress.restoringDb',
     'Restoring environment config...': 'pages.backup.progress.restoringEnv',
     'Restore completed successfully': 'pages.backup.progress.restoreCompleted',

@@ -1,6 +1,6 @@
 # Contributing
 
-感谢你参与 OpenClaw Web。
+感谢你参与 CrawClaw Web。
 
 ## 开发环境
 

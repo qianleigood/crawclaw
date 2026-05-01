@@ -76,8 +76,8 @@ const roleFilterOptions = computed<SelectOption[]>(() => [
 ])
 
 const BOTTOM_GAP = 32
-const QUICK_REPLY_STORAGE_KEY = 'openclaw_chat_quick_replies_v1'
-const SESSION_KEY_STORAGE_KEY = 'openclaw_chat_selected_session_v1'
+const QUICK_REPLY_STORAGE_KEY = 'crawclaw_chat_quick_replies_v1'
+const SESSION_KEY_STORAGE_KEY = 'crawclaw_chat_selected_session_v1'
 let pendingForceScroll = false
 let pendingScroll = false
 let destroyed = false
@@ -436,12 +436,12 @@ function buildImageUrl(part: ChatMessageContent): string | undefined {
     }
     
     // 从 file:// URL 中提取相对路径
-    // 例如: file:///C:/Users/xxx/.openclaw/media/browser/xxx.png -> browser/xxx.png
+    // 例如: file:///C:/Users/xxx/.crawclaw/media/browser/xxx.png -> browser/xxx.png
     if (mediaPath.startsWith('file://')) {
-      // 查找 .openclaw/media/ 后面的相对路径
-      const mediaIndex = mediaPath.indexOf('.openclaw/media/')
+      // 查找 .crawclaw/media/ 后面的相对路径
+      const mediaIndex = mediaPath.indexOf('.crawclaw/media/')
       if (mediaIndex !== -1) {
-        mediaPath = mediaPath.slice(mediaIndex + '.openclaw/media/'.length)
+        mediaPath = mediaPath.slice(mediaIndex + '.crawclaw/media/'.length)
       } else {
         // 如果没有找到标准路径，尝试提取文件名
         const lastSlash = mediaPath.lastIndexOf('/')
@@ -466,11 +466,11 @@ function normalizeMediaPath(path: string): string {
   }
   
   // 从 file:// URL 中提取相对路径
-  // 例如: file:///C:/Users/xxx/.openclaw/media/browser/xxx.png -> browser/xxx.png
+  // 例如: file:///C:/Users/xxx/.crawclaw/media/browser/xxx.png -> browser/xxx.png
   if (path.startsWith('file://')) {
-    const mediaIndex = path.indexOf('.openclaw/media/')
+    const mediaIndex = path.indexOf('.crawclaw/media/')
     if (mediaIndex !== -1) {
-      return path.slice(mediaIndex + '.openclaw/media/'.length)
+      return path.slice(mediaIndex + '.crawclaw/media/'.length)
     }
     // 如果没有找到标准路径，尝试提取文件名
     const lastSlash = path.lastIndexOf('/')
@@ -753,7 +753,7 @@ interface SlashSuggestionItem {
   model?: ConfiguredModelOption
 }
 
-// 基于 OpenClaw 官方 docs/tools/slash-commands.md 维护的常用命令清单
+// 基于 CrawClaw 官方 docs/tools/slash-commands.md 维护的常用命令清单
 const slashCommandPresets = computed<SlashCommandPreset[]>(() => [
   {
     command: '/new',
@@ -1036,7 +1036,7 @@ const filteredQuickReplies = computed(() => {
   )
 })
 
-const workspaceRoot = computed(() => configStore.config?.agents?.defaults?.workspace || '~/.openclaw/workspace')
+const workspaceRoot = computed(() => configStore.config?.agents?.defaults?.workspace || '~/.crawclaw/workspace')
 const workspaceQuickReplyDir = computed(() => {
   const root = workspaceRoot.value.endsWith('/') ? workspaceRoot.value.slice(0, -1) : workspaceRoot.value
   return `${root}/prompts/common-replies`

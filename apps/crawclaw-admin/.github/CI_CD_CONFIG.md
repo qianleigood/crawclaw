@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档描述 OpenClaw-Admin 项目的完整 CI/CD 流水线配置，包括 GitHub Actions、Docker 容器化、Kubernetes 部署和监控告警。
+本文档描述 CrawClaw-Admin 项目的完整 CI/CD 流水线配置，包括 GitHub Actions、Docker 容器化、Kubernetes 部署和监控告警。
 
 ## 架构组成
 
@@ -97,7 +97,7 @@ git push → GitHub Webhook → GitHub Actions
 ```yaml
 服务列表:
   - app: 主应用服务 (端口 10001)
-  - openclaw: 网关服务 (可选)
+  - crawclaw: 网关服务 (可选)
   - redis: 缓存服务 (可选)
 ```
 
@@ -188,7 +188,7 @@ cat deploy_key | pbcopy
 - Prometheus 自身
 - Node Exporter (主机指标)
 - cAdvisor (容器指标)
-- OpenClaw-Admin 应用
+- CrawClaw-Admin 应用
 
 **告警规则** (`monitoring/prometheus/alerts-rules.yml`):
 - HighCPUUsage: CPU > 80% 持续 5 分钟
@@ -229,7 +229,7 @@ cat deploy_key | pbcopy
 docker-compose logs -f app
 
 # Kubernetes 日志
-kubectl logs -n openclaw-admin -l app=openclaw-admin -f
+kubectl logs -n crawclaw-admin -l app=crawclaw-admin -f
 
 # 收集日志到文件
 ./scripts/log-collector.sh

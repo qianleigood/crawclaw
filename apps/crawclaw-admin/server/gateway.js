@@ -8,7 +8,7 @@ const APP_VERSION = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf-8'),
 ).version || ''
 
-export class OpenClawGateway extends EventEmitter {
+export class CrawClawGateway extends EventEmitter {
   constructor(url, authToken, authPassword, logLevel = 'INFO', locale = 'zh-CN') {
     super()
     this.url = url
@@ -134,7 +134,7 @@ export class OpenClawGateway extends EventEmitter {
       maxProtocol: 3,
       client: {
         id: 'cli',
-        displayName: 'OpenClaw Web Backend',
+        displayName: 'CrawClaw Web Backend',
         version: APP_VERSION,
         platform: process.platform,
         mode: 'cli',
@@ -149,7 +149,7 @@ export class OpenClawGateway extends EventEmitter {
         password: this.authPassword || '', // 支持 password 认证
       },
       locale: this.locale,
-      userAgent: `OpenClaw-Web-Backend/${APP_VERSION}`,
+      userAgent: `CrawClaw-Web-Backend/${APP_VERSION}`,
     }
 
     try {

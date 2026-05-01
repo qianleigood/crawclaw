@@ -130,7 +130,7 @@ export const useAgentStore = defineStore("agent", () => {
     workspace?: string;
     name?: string;
   }) {
-    const workspace = params.workspace || `~/.openclaw/workspace-${params.id}`;
+    const workspace = params.workspace || `~/.crawclaw/workspace-${params.id}`;
     const agentId = params.id;
     const agentName = params.name || params.id;
 

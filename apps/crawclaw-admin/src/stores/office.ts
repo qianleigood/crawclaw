@@ -624,7 +624,7 @@ export const useOfficeStore = defineStore('office', () => {
       await agentStore.addAgent({
         id: agentId,
         name: template.name,
-        workspace: `~/.openclaw/workspace-${agentId}`,
+        workspace: `~/.crawclaw/workspace-${agentId}`,
       })
 
       if (template.emoji) {

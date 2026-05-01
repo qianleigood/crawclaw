@@ -43,9 +43,9 @@ const saving = ref(false)
 const configForm = ref({
   AUTH_USERNAME: '',
   AUTH_PASSWORD: '',
-  OPENCLAW_WS_URL: '',
-  OPENCLAW_AUTH_TOKEN: '',
-  OPENCLAW_AUTH_PASSWORD: '', // Gateway 密码认证
+  CRAWCLAW_WS_URL: '',
+  CRAWCLAW_AUTH_TOKEN: '',
+  CRAWCLAW_AUTH_PASSWORD: '', // Gateway 密码认证
 })
 
 // TTS settings
@@ -89,9 +89,9 @@ async function loadConfig() {
       configForm.value = {
         AUTH_USERNAME: data.config.AUTH_USERNAME || '',
         AUTH_PASSWORD: data.config.AUTH_PASSWORD || '',
-        OPENCLAW_WS_URL: data.config.OPENCLAW_WS_URL || '',
-        OPENCLAW_AUTH_TOKEN: data.config.OPENCLAW_AUTH_TOKEN || '',
-        OPENCLAW_AUTH_PASSWORD: data.config.OPENCLAW_AUTH_PASSWORD || '',
+        CRAWCLAW_WS_URL: data.config.CRAWCLAW_WS_URL || '',
+        CRAWCLAW_AUTH_TOKEN: data.config.CRAWCLAW_AUTH_TOKEN || '',
+        CRAWCLAW_AUTH_PASSWORD: data.config.CRAWCLAW_AUTH_PASSWORD || '',
       }
     }
   } catch (e) {
@@ -274,28 +274,28 @@ onMounted(() => {
             />
           </NFormItem>
           
-          <NFormItem :label="t('pages.settings.openclawUrl')">
+          <NFormItem :label="t('pages.settings.crawclawUrl')">
             <NInput
-              v-model:value="configForm.OPENCLAW_WS_URL"
-              :placeholder="t('pages.settings.openclawUrlPlaceholder')"
+              v-model:value="configForm.CRAWCLAW_WS_URL"
+              :placeholder="t('pages.settings.crawclawUrlPlaceholder')"
             />
           </NFormItem>
           
-          <NFormItem :label="t('pages.settings.openclawToken')">
+          <NFormItem :label="t('pages.settings.crawclawToken')">
             <NInput
-              v-model:value="configForm.OPENCLAW_AUTH_TOKEN"
+              v-model:value="configForm.CRAWCLAW_AUTH_TOKEN"
               type="password"
               show-password-on="click"
-              :placeholder="t('pages.settings.openclawTokenPlaceholder')"
+              :placeholder="t('pages.settings.crawclawTokenPlaceholder')"
             />
           </NFormItem>
           
-          <NFormItem :label="t('pages.settings.openclawPassword')">
+          <NFormItem :label="t('pages.settings.crawclawPassword')">
             <NInput
-              v-model:value="configForm.OPENCLAW_AUTH_PASSWORD"
+              v-model:value="configForm.CRAWCLAW_AUTH_PASSWORD"
               type="password"
               show-password-on="click"
-              :placeholder="t('pages.settings.openclawPasswordPlaceholder')"
+              :placeholder="t('pages.settings.crawclawPasswordPlaceholder')"
             />
           </NFormItem>
           

@@ -64,7 +64,7 @@ jobs:
 
       - name: 🐳 构建 Docker 镜像
         run: |
-          docker build -t openclaw-admin:scan-${{ github.sha }} .
+          docker build -t crawclaw-admin:scan-${{ github.sha }} .
 
       - name: 🛡️ 安装 Trivy
         uses: aquasecurity/trivy-action@master
@@ -77,7 +77,7 @@ jobs:
             --format sarif \
             --output trivy-results.sarif \
             --severity HIGH,CRITICAL \
-            openclaw-admin:scan-${{ github.sha }} || true
+            crawclaw-admin:scan-${{ github.sha }} || true
 
       - name: 📊 上传扫描结果
         uses: actions/upload-artifact@v4

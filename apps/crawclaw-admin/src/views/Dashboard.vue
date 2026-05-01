@@ -31,7 +31,7 @@ import type {
   CostUsageSummary,
   CronJob,
   ModelInfo,
-  OpenClawConfig,
+  CrawClawConfig,
   SessionsUsageResult,
   SessionsUsageTotals,
   Skill,
@@ -530,7 +530,7 @@ async function refreshDashboard() {
         sessionsUsageResult.value = null
       }
     } else {
-      // OpenClaw 模式：通过 WebSocket RPC 获取数据
+      // CrawClaw 模式：通过 WebSocket RPC 获取数据
       const [sessionsRes, cronsRes, modelsRes, skillsRes, configRes, usageRes, usageCostRes] = await Promise.allSettled([
         wsStore.rpc.listSessions(),
         wsStore.rpc.listCrons(),
@@ -731,7 +731,7 @@ function collectProviderModelIds(provider: unknown, modelIds: Set<string>) {
   extract(row.whitelist)
 }
 
-function resolveConfiguredModelCount(config: OpenClawConfig | null, fallbackModels: ModelInfo[]): number {
+function resolveConfiguredModelCount(config: CrawClawConfig | null, fallbackModels: ModelInfo[]): number {
   const refs = new Set<string>()
   const defaultsRaw = toRecord(config?.agents?.defaults)
   const defaultsModelRaw = toRecord(defaultsRaw?.model)

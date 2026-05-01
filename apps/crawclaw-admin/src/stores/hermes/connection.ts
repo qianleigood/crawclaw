@@ -6,10 +6,10 @@ import type { HermesConnectionConfig, HermesStatus } from '@/api/hermes/types'
 const STORAGE_KEY_GATEWAY = 'hermes_gateway'
 const STORAGE_KEY_CONNECTION_CONFIG = 'hermes_connection_config'
 
-function readStoredGateway(): 'openclaw' | 'hermes' {
+function readStoredGateway(): 'crawclaw' | 'hermes' {
   const raw = localStorage.getItem(STORAGE_KEY_GATEWAY)
   if (raw === 'hermes') {return 'hermes'}
-  return 'openclaw'
+  return 'crawclaw'
 }
 
 function readStoredConnectionConfig(): HermesConnectionConfig {
@@ -40,7 +40,7 @@ function readStoredConnectionConfig(): HermesConnectionConfig {
 export const useHermesConnectionStore = defineStore('hermes-connection', () => {
   // ---- 状态 ----
 
-  const currentGateway = ref<'openclaw' | 'hermes'>(readStoredGateway())
+  const currentGateway = ref<'crawclaw' | 'hermes'>(readStoredGateway())
   const hermesConnected = ref(false)
   const hermesConnecting = ref(false)
   const hermesError = ref<string | null>(null)
@@ -146,9 +146,9 @@ export const useHermesConnectionStore = defineStore('hermes-connection', () => {
   /**
    * 切换网关
    */
-  async function switchGateway(gateway: 'openclaw' | 'hermes') {
+  async function switchGateway(gateway: 'crawclaw' | 'hermes') {
     if (gateway === currentGateway.value) {return}
-    if (gateway === 'openclaw') {
+    if (gateway === 'crawclaw') {
       disconnect()
     }
     currentGateway.value = gateway

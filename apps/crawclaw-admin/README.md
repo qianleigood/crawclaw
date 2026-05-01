@@ -19,17 +19,17 @@
 
 ## 项目简介
 
-CrawClaw Admin 是一个基于 Vue 3 构建的现代化 AI 智能体管理平台，同时支持 **OpenClaw Gateway** 和 **Hermes Agent** 两大 AI 智能体网关。通过直观的可视化操作，用户可以轻松管理 AI 智能体、会话、模型、频道、技能等核心功能，并提供完整的 Web CLI 终端体验。
+CrawClaw Admin 是一个基于 Vue 3 构建的现代化 AI 智能体管理平台，同时支持 **CrawClaw Gateway** 和 **Hermes Agent** 两大 AI 智能体网关。通过直观的可视化操作，用户可以轻松管理 AI 智能体、会话、模型、频道、技能等核心功能，并提供完整的 Web CLI 终端体验。
 
 ### 版本兼容性
 
-| CrawClaw Admin | OpenClaw Gateway | Hermes Agent | 状态    |
+| CrawClaw Admin | CrawClaw Gateway | Hermes Agent | 状态    |
 | -------------- | ---------------- | ------------ | ----- |
 | 0.2.7          | 2026.4.5         | 2026.4.9     | ✅ 已验证 |
 
 ### 核心亮点
 
-- 🎯 **双网关支持**：同时支持 OpenClaw Gateway 和 Hermes Agent，一套平台管理两种智能体
+- 🎯 **双网关支持**：同时支持 CrawClaw Gateway 和 Hermes Agent，一套平台管理两种智能体
 - 🖥️ **Web CLI 终端**：基于 xterm.js 的真实 CLI 终端，支持会话持久化、断线重连、启动参数配置
 - 🤖 **多智能体协作**：支持创建和管理多个 AI 智能体，实现复杂任务协作
 - 📊 **实时监控**：提供系统资源、会话状态、Token 使用量等实时监控
@@ -40,7 +40,7 @@ CrawClaw Admin 是一个基于 Vue 3 构建的现代化 AI 智能体管理平台
 
 ## 功能特性
 
-### 一、OpenClaw Gateway 模块
+### 一、CrawClaw Gateway 模块
 
 #### 仪表盘 (Dashboard)
 
@@ -289,7 +289,7 @@ CrawClaw Admin 是一个基于 Vue 3 构建的现代化 AI 智能体管理平台
 
 | 技术           | 版本   | 说明               |
 | ------------ | ---- | ---------------- |
-| WebSocket    | -    | 实时双向通信（OpenClaw） |
+| WebSocket    | -    | 实时双向通信（CrawClaw） |
 | SSE          | -    | 服务器推送事件（Hermes）  |
 | markdown-it  | 14.x | Markdown 解析器     |
 | highlight.js | 11.x | 代码高亮             |
@@ -691,10 +691,10 @@ DEV_PORT=3001
 AUTH_USERNAME=admin
 AUTH_PASSWORD=admin
 
-# === OpenClaw Gateway 配置 ===
-OPENCLAW_WS_URL=ws://localhost:18789
-OPENCLAW_AUTH_TOKEN=1212
-OPENCLAW_AUTH_PASSWORD=        # Gateway 密码，与 Token 二选一即可
+# === CrawClaw Gateway 配置 ===
+CRAWCLAW_WS_URL=ws://localhost:18789
+CRAWCLAW_AUTH_TOKEN=1212
+CRAWCLAW_AUTH_PASSWORD=        # Gateway 密码，与 Token 二选一即可
 
 # === Hermes Agent 配置 ===
 HERMES_WEB_URL=http://localhost:9119
@@ -720,9 +720,9 @@ npm run dev:all
 
 ## API 参考
 
-### OpenClaw WebSocket RPC 方法
+### CrawClaw WebSocket RPC 方法
 
-项目通过 WebSocket 与 OpenClaw Gateway 通信，支持以下 RPC 方法：
+项目通过 WebSocket 与 CrawClaw Gateway 通信，支持以下 RPC 方法：
 
 #### 配置管理
 

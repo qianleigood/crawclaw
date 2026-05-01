@@ -1459,9 +1459,9 @@ async function executeCreateAgent(agentId: string) {
   let workspace: string
   if (workspaceMode.value === 'shared' && aiGeneratedAgents.value.length > 0 && aiGeneratedAgents.value[0]) {
     const teamLeader = aiGeneratedAgents.value[0]
-    workspace = `~/.openclaw/workspace-${teamLeader.id}`
+    workspace = `~/.crawclaw/workspace-${teamLeader.id}`
   } else {
-    workspace = `~/.openclaw/workspace-${agent.id}`
+    workspace = `~/.crawclaw/workspace-${agent.id}`
   }
   
   await agentStore.addAgent({

@@ -2,7 +2,7 @@
 
 ## 问题回顾
 
-wecom 插件创建的 `dynamicAgent`（动态代理）在 CrawClaw Admin 中显示不出来，但在 openclaw-control-center 中能正常显示。
+wecom 插件创建的 `dynamicAgent`（动态代理）在 CrawClaw Admin 中显示不出来，但在 历史控制台 中能正常显示。
 
 ## 根本原因
 
@@ -116,7 +116,7 @@ wecom 创建新 agent
   
 - **网络开销**：
   - 仅发送必要的 RPC 调用
-  - 与 openclaw-control-center 类似的轮询策略
+  - 与 历史控制台 类似的轮询策略
 
 - **CPU 开销**：
   - 最小化：仅在定时器触发时执行
@@ -176,7 +176,7 @@ npm run build
 ## 兼容性
 
 - ✅ 不破坏现有的手动刷新功能
-- ✅ 与 openclaw-control-center 的策略一致
+- ✅ 与 历史控制台 的策略一致
 - ✅ 支持 wecom 插件的动态代理创建
 - ✅ 支持其他通过 RPC 动态创建的代理
 
@@ -201,7 +201,7 @@ npm run build
 
 ### 长期
 
-- [ ] 与 openclaw-control-center 完全对齐（文件系统级别的发现能力）
+- [ ] 与 历史控制台 完全对齐（文件系统级别的发现能力）
 - [ ] 实现更智能的刷新策略（根据实际变化调整间隔）
 
 ## 2026-03-23 实施完成

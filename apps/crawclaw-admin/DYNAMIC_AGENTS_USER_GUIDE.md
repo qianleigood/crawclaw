@@ -8,7 +8,7 @@
 
 ### 1. 确保 wecom 插件已启用并配置了 dynamicAgents
 
-在 `~/.openclaw/openclaw.json` 中配置：
+在 `~/.crawclaw/crawclaw.json` 中配置：
 
 ```json
 {
@@ -93,7 +93,7 @@ CrawClaw Admin 使用两层机制来检测动态代理：
 2. **定期刷新**（每 10 秒）
    - 作为备选方案
    - 确保最多 10 秒内发现任何新代理
-   - 与 openclaw-control-center 保持一致
+   - 与 历史控制台 保持一致
 
 ## 常见场景
 
@@ -170,7 +170,7 @@ A: 不会。
 
 - 每 10 秒仅发送一个网络请求
 - 仅在应用运行时执行（不会持续消耗资源）
-- 与 openclaw-control-center 的策略相同
+- 与 历史控制台 的策略相同
 
 ### Q: 如何修改刷新间隔？
 
@@ -202,14 +202,14 @@ wecom 插件创建的 dynamicAgent 已经包含了必要的配置。当会话通
 1. ✅ 确保 wecom 插件已启用
 
    ```bash
-   openclaw plugins list
+   crawclaw plugins list
    # 应该显示 wecom 已启用
    ```
 
-2. ✅ 检查 openclaw.json 中的 dynamicAgents 配置
+2. ✅ 检查 crawclaw.json 中的 dynamicAgents 配置
 
    ```bash
-   cat ~/.openclaw/openclaw.json | grep -A 5 dynamicAgents
+   cat ~/.crawclaw/crawclaw.json | grep -A 5 dynamicAgents
    ```
 
 3. ✅ 查看浏览器控制台，检查错误信息
@@ -220,7 +220,7 @@ wecom 插件创建的 dynamicAgent 已经包含了必要的配置。当会话通
 4. ✅ 检查 Gateway 日志
 
    ```bash
-   openclaw channels logs --channel wecom --lines 50
+   crawclaw channels logs --channel wecom --lines 50
    ```
 
 ### 问题：浏览器控制台显示 `Auto-refresh started` 但列表没有更新
@@ -235,13 +235,13 @@ wecom 插件创建的 dynamicAgent 已经包含了必要的配置。当会话通
 
 ```bash
 # 检查 Gateway 状态
-openclaw status
+crawclaw status
 
 # 查看 wecom 详细日志
-openclaw channels logs --channel wecom --probe
+crawclaw channels logs --channel wecom --probe
 
 # 检查是否有权限创建代理
-openclaw agents list
+crawclaw agents list
 ```
 
 ### 问题：刷新间隔太频繁，导致网络请求过多
@@ -262,10 +262,10 @@ const AUTO_REFRESH_INTERVAL_MS = 30000  // 改为 30 秒
 
 ```bash
 # 监控 Gateway wecom 日志
-openclaw channels logs --channel wecom --follow
+crawclaw channels logs --channel wecom --follow
 
 # 监控代理列表变化
-openclaw agents list --watch
+crawclaw agents list --watch
 ```
 
 ### 2. 调整刷新间隔以平衡延迟和负载
@@ -309,7 +309,7 @@ wsStore.subscribe('agents.updated', ...)     // 通用更新事件
 如果遇到问题，请提供：
 
 1. 浏览器控制台日志（包含 `[AgentStore]` 消息）
-2. Gateway 日志（`openclaw channels logs --channel wecom`）
+2. Gateway 日志（`crawclaw channels logs --channel wecom`）
 3. wecom 插件配置
 4. 期望的行为 vs 实际行为
 

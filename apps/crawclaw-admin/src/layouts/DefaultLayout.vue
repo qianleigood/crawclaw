@@ -13,10 +13,10 @@ const connStore = useHermesConnectionStore()
 const route = useRoute()
 const router = useRouter()
 
-const isOpenClaw = computed(() => connStore.currentGateway === 'openclaw')
+const isCrawClaw = computed(() => connStore.currentGateway === 'crawclaw')
 
 onMounted(() => {
-  if (isOpenClaw.value) {
+  if (isCrawClaw.value) {
     wsStore.connect()
   } else {
     // Hermes 模式：自动连接 Hermes
@@ -24,14 +24,14 @@ onMounted(() => {
   }
 
   // 如果当前页面不属于当前网关，自动跳转
-  const currentGateway = isOpenClaw.value ? 'openclaw' : 'hermes'
+  const currentGateway = isCrawClaw.value ? 'crawclaw' : 'hermes'
   const routeGateway = route.meta?.gateway as string | undefined
   if (routeGateway && routeGateway !== currentGateway) {
-    router.replace(isOpenClaw.value ? '/' : '/hermes/chat')
+    router.replace(isCrawClaw.value ? '/' : '/hermes/chat')
   }
 })
 
-watch(isOpenClaw, (val) => {
+watch(isCrawClaw, (val) => {
   if (val) {
     wsStore.connect()
     connStore.disconnect()
@@ -42,7 +42,7 @@ watch(isOpenClaw, (val) => {
   }
 
   // 网关切换时，如果当前页面不属于新网关，自动跳转到首页
-  const currentGateway = val ? 'openclaw' : 'hermes'
+  const currentGateway = val ? 'crawclaw' : 'hermes'
   const routeGateway = route.meta?.gateway as string | undefined
   if (routeGateway && routeGateway !== currentGateway) {
     router.push(val ? '/' : '/hermes/chat')

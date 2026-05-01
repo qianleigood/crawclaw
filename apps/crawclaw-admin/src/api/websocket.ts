@@ -21,7 +21,7 @@ const DEFAULT_CONFIG: Required<Omit<WebSocketConfig, 'auth' | 'getToken'>> & { a
   getToken: undefined,
 }
 
-export class OpenClawWebSocket {
+export class CrawClawWebSocket {
   private apiClient: ApiClient
   private config: Required<Omit<WebSocketConfig, 'auth' | 'getToken'>> & { auth?: string; getToken?: () => string | null }
   private listeners = new Map<string, Set<EventHandler>>()

@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 
 export type ThemeMode = 'light' | 'dark'
 
-const STORAGE_KEY = 'openclaw_theme'
+const STORAGE_KEY = 'crawclaw_theme'
 
 function getSystemTheme(): ThemeMode {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'

@@ -1,4 +1,4 @@
-export interface OpenClawConfig {
+export interface CrawClawConfig {
   agents?: AgentConfig
   channels?: Record<string, ChannelConfig>
   plugins?: PluginsConfig

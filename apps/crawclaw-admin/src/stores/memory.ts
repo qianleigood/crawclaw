@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useWebSocketStore } from './websocket'
-import type { AgentFileEntry, AgentInfo, OpenClawConfig } from '@/api/types'
+import type { AgentFileEntry, AgentInfo, CrawClawConfig } from '@/api/types'
 import { byLocale, getActiveLocale } from '@/i18n/text'
 
 const BOOTSTRAP_FILE_ORDER = [
@@ -77,7 +77,7 @@ function hasMemoryFile(files: AgentFileEntry[]): boolean {
   return files.some((item) => MEMORY_FILE_ORDER.includes(item.name))
 }
 
-function normalizeAgentsFromConfig(config: OpenClawConfig): AgentInfo[] {
+function normalizeAgentsFromConfig(config: CrawClawConfig): AgentInfo[] {
   const ids = new Set<string>()
   ids.add('main')
 

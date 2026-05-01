@@ -82,18 +82,18 @@ jobs:
       - name: 🛑 停止旧容器
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "docker stop openclaw-admin || true"
+            "docker stop crawclaw-admin || true"
 
       - name: 🗑️ 删除旧容器
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "docker rm openclaw-admin || true"
+            "docker rm crawclaw-admin || true"
 
       - name: 🚀 启动新容器
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "docker run -d \
-              --name openclaw-admin \
+              --name crawclaw-admin \
               -p 10001:10001 \
               -e NODE_ENV=production \
               -e PORT=10001 \

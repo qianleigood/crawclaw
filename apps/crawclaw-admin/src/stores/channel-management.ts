@@ -5,7 +5,7 @@ import type {
   ChannelAccountConfig,
   ChannelConfig,
   ConfigPatch,
-  OpenClawConfig,
+  CrawClawConfig,
   PluginPackage,
 } from '@/api/types'
 import { ConnectionState } from '@/api/types'
@@ -89,7 +89,7 @@ export const useChannelManagementStore = defineStore('channel-management', () =>
   const saving = ref(false)
   const applying = ref(false)
   const runtimeChannels = ref<Channel[]>([])
-  const configSnapshot = ref<OpenClawConfig | null>(null)
+  const configSnapshot = ref<CrawClawConfig | null>(null)
   const channelsBaseline = ref<Record<string, ChannelConfig>>({})
   const channelsDraft = ref<Record<string, ChannelConfig>>({})
   const plugins = ref<PluginPackage[]>([])
@@ -114,11 +114,11 @@ export const useChannelManagementStore = defineStore('channel-management', () =>
     const slashTail = normalized.split('/').pop() || ''
     if (slashTail) {result.add(slashTail)}
 
-    if (slashTail.startsWith('openclaw-')) {
-      result.add(slashTail.slice('openclaw-'.length))
+    if (slashTail.startsWith('crawclaw-')) {
+      result.add(slashTail.slice('crawclaw-'.length))
     }
-    if (slashTail.startsWith('openclaw-china-')) {
-      result.add(slashTail.slice('openclaw-china-'.length))
+    if (slashTail.endsWith('-crawclaw-plugin')) {
+      result.add(slashTail.slice(0, -'-crawclaw-plugin'.length))
     }
     if (slashTail.endsWith('-china')) {
       result.add(slashTail.slice(0, -'-china'.length))
@@ -226,7 +226,7 @@ export const useChannelManagementStore = defineStore('channel-management', () =>
     ).sort()
   })
 
-  function resetDraftFromConfig(config: OpenClawConfig): void {
+  function resetDraftFromConfig(config: CrawClawConfig): void {
     const channels = cloneChannelConfigs(config.channels)
     configSnapshot.value = config
     channelsBaseline.value = channels

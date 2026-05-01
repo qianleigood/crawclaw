@@ -210,7 +210,7 @@ function handleCustomUpdate() {
       :bordered="false"
       round
     >
-      OpenClaw {{ wsStore.gatewayVersion }}
+      CrawClaw {{ wsStore.gatewayVersion }}
     </NTag>
     <NPopover 
       v-if="hasUpdate && wsStore.state === ConnectionState.CONNECTED && displayLatestVersion"

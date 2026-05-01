@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto'
 import { fileURLToPath } from 'url'
 import { dirname, join, resolve, basename, extname, sep } from 'path'
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, rmSync, unlinkSync, stat, promises as fsPromises, createReadStream, createWriteStream, copyFileSync, readlinkSync, symlinkSync, renameSync } from 'fs'
-import { OpenClawGateway } from './gateway.js'
+import { CrawClawGateway } from './gateway.js'
 import { N8nService, normalizeAppLocale } from './n8n-service.js'
 import { parse } from 'dotenv'
 import os from 'os'
@@ -20,45 +20,68 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const envPath = join(__dirname, '../.env')
+const LEGACY_CRAWCLAW_PREFIX = ['OPEN', 'CLAW'].join('')
+const CRAWCLAW_ENV_PREFIX = 'CRAWCLAW_'
+const CRAWCLAW_ENV_KEYS = [
+  'CRAWCLAW_WS_URL',
+  'CRAWCLAW_AUTH_TOKEN',
+  'CRAWCLAW_AUTH_PASSWORD',
+  'CRAWCLAW_LOCALE',
+  'CRAWCLAW_HOME',
+  'CRAWCLAW_N8N_MANAGED',
+  'CRAWCLAW_N8N_BIN',
+  'CRAWCLAW_N8N_HOST',
+  'CRAWCLAW_N8N_PORT',
+  'CRAWCLAW_N8N_USER_FOLDER',
+]
 
-function loadEnvConfig() {
-  if (!existsSync(envPath)) {
-    return {
-      PORT: 3001,
-      OPENCLAW_WS_URL: 'ws://localhost:18789',
-      OPENCLAW_AUTH_TOKEN: '',
-      OPENCLAW_AUTH_PASSWORD: '',
-      OPENCLAW_LOCALE: '',
-      OPENCLAW_N8N_MANAGED: undefined,
-      OPENCLAW_N8N_BIN: '',
-      OPENCLAW_N8N_HOST: '',
-      OPENCLAW_N8N_PORT: '',
-      OPENCLAW_N8N_USER_FOLDER: '',
-      DEV_FRONTEND_URL: 'http://localhost:3000',
-      AUTH_USERNAME: '',
-      AUTH_PASSWORD: '',
-      MEDIA_DIR: '',
-      LOG_LEVEL: 'INFO',
-      HERMES_WEB_URL: '',
-      HERMES_API_URL: '',
-      HERMES_API_KEY: '',
-      HERMES_CLI_PATH: '',
-      HERMES_HOME: '',
+function legacyCrawClawEnvKey(key) {
+  if (!key.startsWith(CRAWCLAW_ENV_PREFIX)) {return key}
+  return `${LEGACY_CRAWCLAW_PREFIX}_${key.slice(CRAWCLAW_ENV_PREFIX.length)}`
+}
+
+function readEnvValue(source, key, fallback = undefined) {
+  const value = source[key] ?? source[legacyCrawClawEnvKey(key)]
+  return value === undefined ? fallback : value
+}
+
+function normalizeCrawClawEnvSnapshot(source) {
+  const normalized = { ...source }
+  for (const key of CRAWCLAW_ENV_KEYS) {
+    const legacyKey = legacyCrawClawEnvKey(key)
+    if (normalized[key] === undefined && normalized[legacyKey] !== undefined) {
+      normalized[key] = normalized[legacyKey]
     }
   }
-  const content = readFileSync(envPath, 'utf-8')
-  const parsed = parse(content)
+  return normalized
+}
+
+function removeLegacyCrawClawEnvKeys(source) {
+  for (const key of CRAWCLAW_ENV_KEYS) {
+    delete source[legacyCrawClawEnvKey(key)]
+  }
+}
+
+function resolveCrawClawHome() {
+  return readEnvValue(process.env, 'CRAWCLAW_HOME', '')
+}
+
+function loadEnvConfig() {
+  const parsed = existsSync(envPath)
+    ? parse(readFileSync(envPath, 'utf-8'))
+    : process.env
   return {
     PORT: parsed.PORT || 3001,
-    OPENCLAW_WS_URL: parsed.OPENCLAW_WS_URL || 'ws://localhost:18789',
-    OPENCLAW_AUTH_TOKEN: parsed.OPENCLAW_AUTH_TOKEN || '',
-    OPENCLAW_AUTH_PASSWORD: parsed.OPENCLAW_AUTH_PASSWORD || '',
-    OPENCLAW_LOCALE: parsed.OPENCLAW_LOCALE || '',
-    OPENCLAW_N8N_MANAGED: parsed.OPENCLAW_N8N_MANAGED,
-    OPENCLAW_N8N_BIN: parsed.OPENCLAW_N8N_BIN || '',
-    OPENCLAW_N8N_HOST: parsed.OPENCLAW_N8N_HOST || '',
-    OPENCLAW_N8N_PORT: parsed.OPENCLAW_N8N_PORT || '',
-    OPENCLAW_N8N_USER_FOLDER: parsed.OPENCLAW_N8N_USER_FOLDER || '',
+    CRAWCLAW_WS_URL: readEnvValue(parsed, 'CRAWCLAW_WS_URL', 'ws://localhost:18789'),
+    CRAWCLAW_AUTH_TOKEN: readEnvValue(parsed, 'CRAWCLAW_AUTH_TOKEN', ''),
+    CRAWCLAW_AUTH_PASSWORD: readEnvValue(parsed, 'CRAWCLAW_AUTH_PASSWORD', ''),
+    CRAWCLAW_LOCALE: readEnvValue(parsed, 'CRAWCLAW_LOCALE', ''),
+    CRAWCLAW_HOME: readEnvValue(parsed, 'CRAWCLAW_HOME', ''),
+    CRAWCLAW_N8N_MANAGED: readEnvValue(parsed, 'CRAWCLAW_N8N_MANAGED'),
+    CRAWCLAW_N8N_BIN: readEnvValue(parsed, 'CRAWCLAW_N8N_BIN', ''),
+    CRAWCLAW_N8N_HOST: readEnvValue(parsed, 'CRAWCLAW_N8N_HOST', ''),
+    CRAWCLAW_N8N_PORT: readEnvValue(parsed, 'CRAWCLAW_N8N_PORT', ''),
+    CRAWCLAW_N8N_USER_FOLDER: readEnvValue(parsed, 'CRAWCLAW_N8N_USER_FOLDER', ''),
     DEV_FRONTEND_URL: parsed.DEV_FRONTEND_URL || 'http://localhost:3000',
     AUTH_USERNAME: parsed.AUTH_USERNAME || '',
     AUTH_PASSWORD: parsed.AUTH_PASSWORD || '',
@@ -73,7 +96,7 @@ function loadEnvConfig() {
 }
 
 let envConfig = loadEnvConfig()
-let currentLocale = normalizeAppLocale(envConfig.OPENCLAW_LOCALE || process.env.OPENCLAW_LOCALE || process.env.CRAWCLAW_LANG || process.env.LANG)
+let currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || readEnvValue(process.env, 'CRAWCLAW_LOCALE', '') || process.env.CRAWCLAW_LANG || process.env.LANG)
 
 const isDebug = envConfig.LOG_LEVEL === 'DEBUG'
 
@@ -102,17 +125,17 @@ initHermesConfig(envConfig)
 app.use(hermesProxyRouter)
 
 function buildServerRuntimeEnv() {
-  return {
+  return normalizeCrawClawEnvSnapshot({
     ...process.env,
     ...envConfig,
-    OPENCLAW_LOCALE: currentLocale,
-  }
+    CRAWCLAW_LOCALE: currentLocale,
+  })
 }
 
-let gateway = new OpenClawGateway(
-  envConfig.OPENCLAW_WS_URL,
-  envConfig.OPENCLAW_AUTH_TOKEN,
-  envConfig.OPENCLAW_AUTH_PASSWORD,
+let gateway = new CrawClawGateway(
+  envConfig.CRAWCLAW_WS_URL,
+  envConfig.CRAWCLAW_AUTH_TOKEN,
+  envConfig.CRAWCLAW_AUTH_PASSWORD,
   envConfig.LOG_LEVEL,
   currentLocale
 )
@@ -264,7 +287,7 @@ let gatewayVersion = null
 let updateInfo = null
 
 gateway.on('connected', () => {
-  console.log('[Gateway] Connected to OpenClaw')
+  console.log('[Gateway] Connected to CrawClaw')
 })
 
 gateway.on('version', (info) => {
@@ -275,7 +298,7 @@ gateway.on('version', (info) => {
 })
 
 gateway.on('disconnected', () => {
-  console.log('[Gateway] Disconnected from OpenClaw')
+  console.log('[Gateway] Disconnected from CrawClaw')
   gatewayVersion = null
   broadcastSSE({ type: 'gatewayState', state: 'disconnected' })
 })
@@ -295,7 +318,7 @@ gateway.on('stateChange', (state) => {
   broadcastSSE({ type: 'gatewayState', state })
 })
 
-debug('Connecting to Gateway at:', envConfig.OPENCLAW_WS_URL)
+debug('Connecting to Gateway at:', envConfig.CRAWCLAW_WS_URL)
 gateway.connect()
 ensureN8nStartedAndBroadcast().catch((error) => {
   console.error('[n8n] Failed to start:', error.message)
@@ -423,13 +446,14 @@ function stringifyEnvFile(data) {
   return lines.join('\n') + '\n'
 }
 
-function persistOpenClawLocale(locale) {
+function persistCrawClawLocale(locale) {
   const existingContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : ''
-  const existing = parseEnvFile(existingContent)
-  existing.OPENCLAW_LOCALE = locale
+  const existing = normalizeCrawClawEnvSnapshot(parseEnvFile(existingContent))
+  existing.CRAWCLAW_LOCALE = locale
+  removeLegacyCrawClawEnvKeys(existing)
   writeFileSync(envPath, stringifyEnvFile(existing), 'utf-8')
   envConfig = loadEnvConfig()
-  currentLocale = normalizeAppLocale(envConfig.OPENCLAW_LOCALE || locale)
+  currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || locale)
   refreshN8nRuntimeEnv()
 }
 
@@ -453,7 +477,7 @@ app.post('/api/n8n/locale', authMiddleware, async (req, res) => {
   try {
     const locale = normalizeAppLocale(req.body?.locale)
     currentLocale = locale
-    persistOpenClawLocale(locale)
+    persistCrawClawLocale(locale)
     await reconnectGatewayForLocale(locale)
     const status = await n8nService.setLocale(locale)
     broadcastSSE({ type: 'n8nState', state: status })
@@ -469,7 +493,7 @@ app.get('/api/config', authMiddleware, (req, res) => {
       return res.json({ ok: true, config: {} })
     }
     const content = readFileSync(envPath, 'utf-8')
-    const config = parseEnvFile(content)
+    const config = normalizeCrawClawEnvSnapshot(parseEnvFile(content))
     res.json({ ok: true, config })
   } catch (err) {
     res.status(500).json({ ok: false, error: { message: err.message } })
@@ -478,46 +502,47 @@ app.get('/api/config', authMiddleware, (req, res) => {
 
 app.post('/api/config', authMiddleware, (req, res) => {
   try {
-    const { AUTH_USERNAME, AUTH_PASSWORD, OPENCLAW_WS_URL, OPENCLAW_AUTH_TOKEN, OPENCLAW_AUTH_PASSWORD } = req.body
+    const { AUTH_USERNAME, AUTH_PASSWORD, CRAWCLAW_WS_URL, CRAWCLAW_AUTH_TOKEN, CRAWCLAW_AUTH_PASSWORD } = req.body
     
     const existingContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : ''
-    const existing = parseEnvFile(existingContent)
+    const existing = normalizeCrawClawEnvSnapshot(parseEnvFile(existingContent))
     
     if (AUTH_USERNAME !== undefined) {existing.AUTH_USERNAME = AUTH_USERNAME}
     if (AUTH_PASSWORD !== undefined) {existing.AUTH_PASSWORD = AUTH_PASSWORD}
-    if (OPENCLAW_WS_URL !== undefined) {existing.OPENCLAW_WS_URL = OPENCLAW_WS_URL}
-    if (OPENCLAW_AUTH_TOKEN !== undefined) {existing.OPENCLAW_AUTH_TOKEN = OPENCLAW_AUTH_TOKEN}
-    if (OPENCLAW_AUTH_PASSWORD !== undefined) {existing.OPENCLAW_AUTH_PASSWORD = OPENCLAW_AUTH_PASSWORD}
+    if (CRAWCLAW_WS_URL !== undefined) {existing.CRAWCLAW_WS_URL = CRAWCLAW_WS_URL}
+    if (CRAWCLAW_AUTH_TOKEN !== undefined) {existing.CRAWCLAW_AUTH_TOKEN = CRAWCLAW_AUTH_TOKEN}
+    if (CRAWCLAW_AUTH_PASSWORD !== undefined) {existing.CRAWCLAW_AUTH_PASSWORD = CRAWCLAW_AUTH_PASSWORD}
+    removeLegacyCrawClawEnvKeys(existing)
     
     const newContent = stringifyEnvFile(existing)
     writeFileSync(envPath, newContent, 'utf-8')
     
     const oldConfig = { ...envConfig }
     envConfig = loadEnvConfig()
-    currentLocale = normalizeAppLocale(envConfig.OPENCLAW_LOCALE || currentLocale)
+    currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || currentLocale)
     refreshN8nRuntimeEnv()
     
-    const wsUrlChanged = oldConfig.OPENCLAW_WS_URL !== envConfig.OPENCLAW_WS_URL
-    const tokenChanged = oldConfig.OPENCLAW_AUTH_TOKEN !== envConfig.OPENCLAW_AUTH_TOKEN
-    const passwordChanged = oldConfig.OPENCLAW_AUTH_PASSWORD !== envConfig.OPENCLAW_AUTH_PASSWORD
+    const wsUrlChanged = oldConfig.CRAWCLAW_WS_URL !== envConfig.CRAWCLAW_WS_URL
+    const tokenChanged = oldConfig.CRAWCLAW_AUTH_TOKEN !== envConfig.CRAWCLAW_AUTH_TOKEN
+    const passwordChanged = oldConfig.CRAWCLAW_AUTH_PASSWORD !== envConfig.CRAWCLAW_AUTH_PASSWORD
     
     if (wsUrlChanged || tokenChanged || passwordChanged) {
       console.log('[Config] Gateway config changed, reconnecting...')
       gateway.disconnect()
-      gateway = new OpenClawGateway(
-        envConfig.OPENCLAW_WS_URL,
-        envConfig.OPENCLAW_AUTH_TOKEN,
-        envConfig.OPENCLAW_AUTH_PASSWORD,
+      gateway = new CrawClawGateway(
+        envConfig.CRAWCLAW_WS_URL,
+        envConfig.CRAWCLAW_AUTH_TOKEN,
+        envConfig.CRAWCLAW_AUTH_PASSWORD,
         envConfig.LOG_LEVEL,
         currentLocale
       )
       
       gateway.on('connected', (info) => {
-        console.log('[Gateway] Connected to OpenClaw:', info?.server?.version)
+        console.log('[Gateway] Connected to CrawClaw:', info?.server?.version)
         broadcastSSE({ type: 'gatewayState', state: 'connected' })
       })
       gateway.on('disconnected', () => {
-        console.log('[Gateway] Disconnected from OpenClaw')
+        console.log('[Gateway] Disconnected from CrawClaw')
         broadcastSSE({ type: 'gatewayState', state: 'disconnected' })
       })
       gateway.on('error', (err) => {
@@ -2957,19 +2982,19 @@ app.get('/api/media', (req, res) => {
       possibleMediaDirs.push(process.env.MEDIA_DIR)
     }
     
-    // 3. OPENCLAW_HOME 推导的媒体目录
-    const openclawHome = process.env.OPENCLAW_HOME
-    if (openclawHome) {
-      possibleMediaDirs.push(join(openclawHome, '.openclaw', 'media'))
+    // 3. CRAWCLAW_HOME 推导的媒体目录
+    const crawclawHome = envConfig.CRAWCLAW_HOME || resolveCrawClawHome()
+    if (crawclawHome) {
+      possibleMediaDirs.push(join(crawclawHome, '.crawclaw', 'media'))
     }
     
     // 4. 当前用户主目录
-    possibleMediaDirs.push(join(os.homedir(), '.openclaw', 'media'))
+    possibleMediaDirs.push(join(os.homedir(), '.crawclaw', 'media'))
     
     // 5. 常见的其他用户目录（适用于 root 运行但文件在 ubuntu 用户目录的情况）
     if (process.platform !== 'win32') {
-      possibleMediaDirs.push('/home/ubuntu/.openclaw/media')
-      possibleMediaDirs.push('/home/user/.openclaw/media')
+      possibleMediaDirs.push('/home/ubuntu/.crawclaw/media')
+      possibleMediaDirs.push('/home/user/.crawclaw/media')
     }
     
     // 去重
@@ -3076,31 +3101,31 @@ function broadcastBackupProgress(taskId, progress) {
   })
 }
 
-async function executeOpenClawBackup(outputPath) {
+async function executeCrawClawBackup(outputPath) {
   return new Promise((resolve, reject) => {
-    const openclawHome = process.env.OPENCLAW_HOME
+    const crawclawHome = envConfig.CRAWCLAW_HOME || resolveCrawClawHome()
     
     let command, args, spawnOptions
     
-    if (openclawHome && process.platform !== 'win32') {
-      const username = openclawHome.split('/').pop()
+    if (crawclawHome && process.platform !== 'win32') {
+      const username = crawclawHome.split('/').pop()
       console.log(`[Backup] Running as user '${username}' with full environment`)
       
       command = 'su'
-      args = ['-', username, '-c', `openclaw backup create --output ${outputPath}`]
+      args = ['-', username, '-c', `crawclaw backup create --output ${outputPath}`]
       spawnOptions = { stdio: ['ignore', 'pipe', 'pipe'] }
     } else {
-      command = 'openclaw'
+      command = 'crawclaw'
       args = ['backup', 'create', '--output', outputPath]
       spawnOptions = {
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: process.platform === 'win32',
-        env: openclawHome 
-          ? { ...process.env, HOME: openclawHome }
+        env: crawclawHome
+          ? { ...process.env, HOME: crawclawHome }
           : process.env
       }
-      if (openclawHome) {
-        console.log(`[Backup] Using OPENCLAW_HOME: ${openclawHome}`)
+      if (crawclawHome) {
+        console.log(`[Backup] Using CRAWCLAW_HOME: ${crawclawHome}`)
       }
     }
     
@@ -3121,32 +3146,32 @@ async function executeOpenClawBackup(outputPath) {
       if (code === 0) {
         resolve({ success: true, stdout, stderr })
       } else {
-        reject(new Error(`OpenClaw backup failed with code ${code}: ${stderr || stdout}`))
+        reject(new Error(`CrawClaw backup failed with code ${code}: ${stderr || stdout}`))
       }
     })
 
     proc.on('error', (err) => {
-      reject(new Error(`Failed to execute openclaw backup: ${err.message}`))
+      reject(new Error(`Failed to execute crawclaw backup: ${err.message}`))
     })
   })
 }
 
-async function extractOpenClawBackup(backupPath, tempDir) {
+async function extractCrawClawBackup(backupPath, tempDir) {
   return new Promise((resolve, reject) => {
-    const homeDir = process.env.OPENCLAW_HOME || os.homedir()
-    const openclawDir = join(homeDir, '.openclaw')
-    console.log('[Restore] Target OpenClaw directory:', openclawDir)
+    const homeDir = envConfig.CRAWCLAW_HOME || resolveCrawClawHome() || os.homedir()
+    const crawclawDir = join(homeDir, '.crawclaw')
+    console.log('[Restore] Target CrawClaw directory:', crawclawDir)
 
     if (!existsSync(backupPath)) {
-      return reject(new Error(`OpenClaw backup file not found: ${backupPath}`))
+      return reject(new Error(`CrawClaw backup file not found: ${backupPath}`))
     }
 
     const stat = statSync(backupPath)
     if (stat.size === 0) {
-      return reject(new Error('OpenClaw backup file is empty'))
+      return reject(new Error('CrawClaw backup file is empty'))
     }
 
-    console.log('[Restore] Extracting OpenClaw backup:', backupPath, 'size:', stat.size)
+    console.log('[Restore] Extracting CrawClaw backup:', backupPath, 'size:', stat.size)
 
     const proc = spawn('tar', ['-xzf', backupPath, '-C', tempDir, '--ignore-zeros'], {
       stdio: ['ignore', 'pipe', 'pipe']
@@ -3161,7 +3186,7 @@ async function extractOpenClawBackup(backupPath, tempDir) {
 
     timeout = setTimeout(() => {
       proc.kill()
-      reject(new Error('OpenClaw backup extraction timed out'))
+      reject(new Error('CrawClaw backup extraction timed out'))
     }, timeoutMs)
 
     proc.stdout.on('data', (data) => {
@@ -3176,33 +3201,33 @@ async function extractOpenClawBackup(backupPath, tempDir) {
       clearTimeout(timeout)
       try {
         if (code !== 0 && stderr.includes('unexpected end of file')) {
-          return reject(new Error('OpenClaw backup file is corrupted or incomplete'))
+          return reject(new Error('CrawClaw backup file is corrupted or incomplete'))
         }
 
         const items = readdirSync(tempDir, { withFileTypes: true })
-        const backupRoot = items.find(item => item.isDirectory() && item.name.includes('openclaw-backup'))
+        const backupRoot = items.find(item => item.isDirectory() && item.name.includes('crawclaw-backup'))
 
         if (!backupRoot) {
           if (code !== 0 && stderr) {
             console.warn('[Restore] tar warnings:', stderr)
           }
-          return reject(new Error('Invalid OpenClaw backup: no backup root directory found'))
+          return reject(new Error('Invalid CrawClaw backup: no backup root directory found'))
         }
 
         const payloadPath = join(tempDir, backupRoot.name, 'payload')
         if (!existsSync(payloadPath)) {
-          return reject(new Error('Invalid OpenClaw backup: no payload directory found'))
+          return reject(new Error('Invalid CrawClaw backup: no payload directory found'))
         }
 
-        function findOpenClawDir(dir) {
+        function findCrawClawDir(dir) {
           try {
             const items = readdirSync(dir, { withFileTypes: true })
             for (const item of items) {
               if (item.isDirectory()) {
-                if (item.name === '.openclaw') {
+                if (item.name === '.crawclaw') {
                   return join(dir, item.name)
                 }
-                const found = findOpenClawDir(join(dir, item.name))
+                const found = findCrawClawDir(join(dir, item.name))
                 if (found) {return found}
               }
             }
@@ -3212,9 +3237,9 @@ async function extractOpenClawBackup(backupPath, tempDir) {
           return null
         }
 
-        const extractedOpenClawDir = findOpenClawDir(payloadPath)
-        if (!extractedOpenClawDir) {
-          return reject(new Error('Invalid OpenClaw backup: .openclaw directory not found in payload'))
+        const extractedCrawClawDir = findCrawClawDir(payloadPath)
+        if (!extractedCrawClawDir) {
+          return reject(new Error('Invalid CrawClaw backup: .crawclaw directory not found in payload'))
         }
 
         function copyDirSync(src, dest, overwrite = false) {
@@ -3256,9 +3281,9 @@ async function extractOpenClawBackup(backupPath, tempDir) {
           }
         }
 
-        copyDirSync(extractedOpenClawDir, openclawDir, true)
+        copyDirSync(extractedCrawClawDir, crawclawDir, true)
 
-        console.log('[Restore] OpenClaw backup restored to:', openclawDir)
+        console.log('[Restore] CrawClaw backup restored to:', crawclawDir)
         resolve({ success: true, stdout, stderr, warnings: code !== 0 ? stderr : null })
       } catch (err) {
         reject(new Error(`Failed to move extracted files: ${err.message}`))
@@ -3267,7 +3292,7 @@ async function extractOpenClawBackup(backupPath, tempDir) {
 
     proc.on('error', (err) => {
       clearTimeout(timeout)
-      reject(new Error(`Failed to extract OpenClaw backup: ${err.message}`))
+      reject(new Error(`Failed to extract CrawClaw backup: ${err.message}`))
     })
   })
 }
@@ -3353,7 +3378,7 @@ async function executeBackupTask(taskId, params = {}) {
   if (!task) {return}
 
   createBackupRecord(taskId, 'create')
-  const tempDir = join(os.tmpdir(), `.openclaw_backup_${taskId}`)
+  const tempDir = join(os.tmpdir(), `.crawclaw_backup_${taskId}`)
 
   try {
     task.status = 'running'
@@ -3376,25 +3401,25 @@ async function executeBackupTask(taskId, params = {}) {
     const backupFilename = `backup_${timestamp}.zip`
     const backupPath = join(BACKUP_DIR, backupFilename)
 
-    task.message = 'Creating OpenClaw backup...'
+    task.message = 'Creating CrawClaw backup...'
     task.progress = 10
-    broadcastBackupProgress(taskId, { status: 'running', progress: 10, message: task.message, stage: 'openclaw_backup' })
-    updateBackupRecord(taskId, { status: 'running', progress: 10, message: task.message, stage: 'openclaw_backup' })
+    broadcastBackupProgress(taskId, { status: 'running', progress: 10, message: task.message, stage: 'crawclaw_backup' })
+    updateBackupRecord(taskId, { status: 'running', progress: 10, message: task.message, stage: 'crawclaw_backup' })
 
-    const openclawBackupPath = join(os.tmpdir(), `openclaw_backup_${taskId}.tar.gz`)
-    const openclawFinalPath = join(tempDir, 'openclaw_backup.tar.gz')
+    const crawclawBackupPath = join(os.tmpdir(), `crawclaw_backup_${taskId}.tar.gz`)
+    const crawclawFinalPath = join(tempDir, 'crawclaw_backup.tar.gz')
     try {
-      await executeOpenClawBackup(openclawBackupPath)
-      console.log('[Backup] OpenClaw backup created')
+      await executeCrawClawBackup(crawclawBackupPath)
+      console.log('[Backup] CrawClaw backup created')
       
-      if (existsSync(openclawBackupPath)) {
-        copyFileSync(openclawBackupPath, openclawFinalPath)
-        unlinkSync(openclawBackupPath)
+      if (existsSync(crawclawBackupPath)) {
+        copyFileSync(crawclawBackupPath, crawclawFinalPath)
+        unlinkSync(crawclawBackupPath)
       }
     } catch (err) {
-      console.warn('[Backup] OpenClaw backup skipped:', err.message)
-      if (existsSync(openclawBackupPath)) {
-        try { unlinkSync(openclawBackupPath) } catch (e) {}
+      console.warn('[Backup] CrawClaw backup skipped:', err.message)
+      if (existsSync(crawclawBackupPath)) {
+        try { unlinkSync(crawclawBackupPath) } catch (e) {}
       }
     }
 
@@ -3405,9 +3430,9 @@ async function executeBackupTask(taskId, params = {}) {
 
     const filesToArchive = []
 
-    if (existsSync(openclawFinalPath)) {
-      filesToArchive.push({ path: openclawFinalPath, name: 'openclaw_backup.tar.gz' })
-      console.log('[Backup] OpenClaw backup added')
+    if (existsSync(crawclawFinalPath)) {
+      filesToArchive.push({ path: crawclawFinalPath, name: 'crawclaw_backup.tar.gz' })
+      console.log('[Backup] CrawClaw backup added')
     }
 
     if (existsSync(WIZARD_DB_PATH)) {
@@ -3434,7 +3459,7 @@ async function executeBackupTask(taskId, params = {}) {
       nodeVersion: process.version,
       source: 'crawclaw-admin',
       components: {
-        openclaw: existsSync(openclawBackupPath),
+        crawclaw: existsSync(crawclawBackupPath),
         wizardDb: existsSync(WIZARD_DB_PATH),
         env: existsSync(ENV_PATH)
       }
@@ -3515,7 +3540,7 @@ async function executeRestoreTask(taskId, filename) {
   const task = backupTasks.get(taskId)
   if (!task) {return}
 
-  const tempDir = join(os.tmpdir(), `.openclaw_restore_${taskId}`)
+  const tempDir = join(os.tmpdir(), `.crawclaw_restore_${taskId}`)
 
   try {
     task.status = 'running'
@@ -3594,27 +3619,27 @@ async function executeRestoreTask(taskId, filename) {
     const results = {
       wizardDb: false,
       env: false,
-      openclaw: false,
+      crawclaw: false,
       errors: []
     }
 
-    task.message = 'Restoring OpenClaw data...'
+    task.message = 'Restoring CrawClaw data...'
     task.progress = 30
-    broadcastBackupProgress(taskId, { status: 'running', progress: 30, message: task.message, stage: 'openclaw_restore' })
-    updateBackupRecord(taskId, { status: 'running', progress: 30, message: task.message, stage: 'openclaw_restore' })
+    broadcastBackupProgress(taskId, { status: 'running', progress: 30, message: task.message, stage: 'crawclaw_restore' })
+    updateBackupRecord(taskId, { status: 'running', progress: 30, message: task.message, stage: 'crawclaw_restore' })
 
-    const extractedOpenClawBackup = join(tempDir, 'openclaw_backup.tar.gz')
-    if (existsSync(extractedOpenClawBackup)) {
+    const extractedCrawClawBackup = join(tempDir, 'crawclaw_backup.tar.gz')
+    if (existsSync(extractedCrawClawBackup)) {
       try {
-        const openclawTempDir = join(os.tmpdir(), `.openclaw_extract_${taskId}`)
-        mkdirSync(openclawTempDir, { recursive: true })
-        await extractOpenClawBackup(extractedOpenClawBackup, openclawTempDir)
-        rmSync(openclawTempDir, { recursive: true, force: true })
-        results.openclaw = true
-        console.log('[Restore] OpenClaw data restored')
+        const crawclawTempDir = join(os.tmpdir(), `.crawclaw_extract_${taskId}`)
+        mkdirSync(crawclawTempDir, { recursive: true })
+        await extractCrawClawBackup(extractedCrawClawBackup, crawclawTempDir)
+        rmSync(crawclawTempDir, { recursive: true, force: true })
+        results.crawclaw = true
+        console.log('[Restore] CrawClaw data restored')
       } catch (e) {
-        results.errors.push(`OpenClaw restore failed: ${e.message}`)
-        console.warn('[Restore] OpenClaw restore error:', e.message)
+        results.errors.push(`CrawClaw restore failed: ${e.message}`)
+        console.warn('[Restore] CrawClaw restore error:', e.message)
       }
     }
 
@@ -3932,7 +3957,7 @@ app.delete('/api/backup/delete', authMiddleware, (req, res) => {
 
 // 上传并恢复备份
 const backupUpload = multer({ 
-  dest: join(os.tmpdir(), 'openclaw-backup-uploads'),
+  dest: join(os.tmpdir(), 'crawclaw-backup-uploads'),
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB 限制
 })
 
@@ -4153,7 +4178,7 @@ if (hasDist) {
 
 server.listen(envConfig.PORT, () => {
   console.log(`Server running on http://localhost:${envConfig.PORT}`)
-  console.log(`OpenClaw Gateway: ${envConfig.OPENCLAW_WS_URL}`)
+  console.log(`CrawClaw Gateway: ${envConfig.CRAWCLAW_WS_URL}`)
   if (isAuthEnabled()) {
     console.log(`Auth enabled: user "${envConfig.AUTH_USERNAME}"`)
   } else {

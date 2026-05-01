@@ -32,7 +32,7 @@ import { useI18n } from 'vue-i18n'
 import { useConfigStore } from '@/stores/config'
 import { useWebSocketStore } from '@/stores/websocket'
 import type { DataTableColumns } from 'naive-ui'
-import type { ConfigPatch, ModelProviderConfig, OpenClawConfig } from '@/api/types'
+import type { ConfigPatch, ModelProviderConfig, CrawClawConfig } from '@/api/types'
 
 const configStore = useConfigStore()
 const wsStore = useWebSocketStore()
@@ -1797,7 +1797,7 @@ async function handleDeleteProvider(providerIdInput: string): Promise<void> {
     }
   }
 
-  const newConfig: OpenClawConfig = {
+  const newConfig: CrawClawConfig = {
     ...currentConfig,
     models: {
       ...currentConfig.models,
@@ -1911,7 +1911,7 @@ async function handleSaveProvider(confirmed = false) {
     [providerId]: fullProviderValue,
   }
   
-  const newConfig: OpenClawConfig = {
+  const newConfig: CrawClawConfig = {
     ...currentConfig,
     models: {
       ...currentConfig.models,
@@ -2031,7 +2031,7 @@ async function handleCreateProvider(confirmed = false) {
     [providerId]: fullProviderValue,
   }
   
-  const newConfig: OpenClawConfig = {
+  const newConfig: CrawClawConfig = {
     ...currentConfig,
     models: {
       ...currentConfig.models,

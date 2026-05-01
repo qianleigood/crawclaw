@@ -3,10 +3,10 @@ import { defineStore } from 'pinia'
 import { useWebSocketStore } from './websocket'
 import type { Skill } from '@/api/types'
 
-const STORAGE_KEY_SHOW_BUNDLED = 'openclaw_skill_show_bundled'
-const STORAGE_KEY_SHOW_BUNDLED_IN_CHAT = 'openclaw_skill_show_bundled_in_chat'
-const STORAGE_KEY_CHAT_VISIBILITY = 'openclaw_skill_chat_visibility'
-const STORAGE_KEY_CHAT_HIDDEN_SKILLS = 'openclaw_skill_chat_hidden' // legacy
+const STORAGE_KEY_SHOW_BUNDLED = 'crawclaw_skill_show_bundled'
+const STORAGE_KEY_SHOW_BUNDLED_IN_CHAT = 'crawclaw_skill_show_bundled_in_chat'
+const STORAGE_KEY_CHAT_VISIBILITY = 'crawclaw_skill_chat_visibility'
+const STORAGE_KEY_CHAT_HIDDEN_SKILLS = 'crawclaw_skill_chat_hidden' // legacy
 
 function readStoredBool(key: string, defaultValue: boolean): boolean {
   const raw = localStorage.getItem(key)

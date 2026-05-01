@@ -43,25 +43,25 @@ export class N8nService {
     this.env = env
     this.log = log
     this.process = null
-    this.locale = normalizeAppLocale(env.OPENCLAW_LOCALE || env.CRAWCLAW_LANG || env.LANG)
+    this.locale = normalizeAppLocale(env.CRAWCLAW_LOCALE || env.CRAWCLAW_LANG || env.LANG)
     this.lastError = null
     this.lastExit = null
     this.externalRunning = false
   }
 
   isManagedEnabled() {
-    if (this.env.OPENCLAW_N8N_MANAGED !== undefined) {
-      return !isFalseLike(this.env.OPENCLAW_N8N_MANAGED)
+    if (this.env.CRAWCLAW_N8N_MANAGED !== undefined) {
+      return !isFalseLike(this.env.CRAWCLAW_N8N_MANAGED)
     }
     return existsSync(this.resolveBinPath())
   }
 
   resolveHost() {
-    return this.env.OPENCLAW_N8N_HOST || this.env.N8N_HOST || 'localhost'
+    return this.env.CRAWCLAW_N8N_HOST || this.env.N8N_HOST || 'localhost'
   }
 
   resolvePort() {
-    const raw = Number(this.env.OPENCLAW_N8N_PORT || this.env.N8N_PORT || 5679)
+    const raw = Number(this.env.CRAWCLAW_N8N_PORT || this.env.N8N_PORT || 5679)
     return Number.isFinite(raw) && raw > 0 ? Math.trunc(raw) : 5679
   }
 
@@ -71,8 +71,8 @@ export class N8nService {
   }
 
   resolveBinPath() {
-    if (this.env.OPENCLAW_N8N_BIN?.trim()) {
-      return this.env.OPENCLAW_N8N_BIN.trim()
+    if (this.env.CRAWCLAW_N8N_BIN?.trim()) {
+      return this.env.CRAWCLAW_N8N_BIN.trim()
     }
     const suffix = process.platform === 'win32' ? 'n8n.cmd' : 'n8n'
     return join(resolveStateDir(this.env), 'runtimes', 'n8n', 'node_modules', '.bin', suffix)
@@ -80,7 +80,7 @@ export class N8nService {
 
   resolveUserFolder() {
     return (
-      this.env.OPENCLAW_N8N_USER_FOLDER?.trim() ||
+      this.env.CRAWCLAW_N8N_USER_FOLDER?.trim() ||
       this.env.N8N_USER_FOLDER?.trim() ||
       join(resolveStateDir(this.env), 'n8n')
     )

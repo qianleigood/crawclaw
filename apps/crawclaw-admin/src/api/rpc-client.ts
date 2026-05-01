@@ -1,4 +1,4 @@
-import { OpenClawWebSocket } from './websocket'
+import { CrawClawWebSocket } from './websocket'
 import type {
   RPCResponse,
   Session,
@@ -8,7 +8,7 @@ import type {
   ChannelAuthParams,
   PairParams,
   ChannelStatus,
-  OpenClawConfig,
+  CrawClawConfig,
   ConfigPatch,
   PluginPackage,
   Skill,
@@ -81,9 +81,9 @@ function nextId(): string {
 }
 
 export class RPCClient {
-  private readonly ws: OpenClawWebSocket
+  private readonly ws: CrawClawWebSocket
 
-  constructor(ws: OpenClawWebSocket) {
+  constructor(ws: CrawClawWebSocket) {
     this.ws = ws
   }
 
@@ -830,7 +830,7 @@ export class RPCClient {
       return 'bundled'
     }
 
-    const source = sourceRaw.replace(/^openclaw-/, '')
+    const source = sourceRaw.replace(/^crawclaw-/, '')
     if (source === 'workspace') {return 'workspace'}
     if (source === 'managed') {return 'managed'}
     if (source === 'bundled' || source === 'built-in' || source === 'builtin') {return 'bundled'}
@@ -842,7 +842,7 @@ export class RPCClient {
     if (sourceRaw.includes('extra')) {return 'extra'}
 
     const filePath = this.asString(row.filePath || row.path).toLowerCase()
-    if (/\.openclaw[\\/]+skills/.test(filePath)) {return 'managed'}
+    if (/\.crawclaw[\\/]+skills/.test(filePath)) {return 'managed'}
     if (/[\\/]+skills[\\/]/.test(filePath)) {return 'workspace'}
 
     return 'bundled'
@@ -1735,7 +1735,7 @@ export class RPCClient {
     }
   }
 
-  private looksLikeConfigRoot(value: unknown): value is OpenClawConfig {
+  private looksLikeConfigRoot(value: unknown): value is CrawClawConfig {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {return false}
     const row = value as Record<string, unknown>
     const keys = [
@@ -1750,7 +1750,7 @@ export class RPCClient {
     return keys.some((key) => key in row)
   }
 
-  private normalizeConfigPayload(payload: unknown): OpenClawConfig {
+  private normalizeConfigPayload(payload: unknown): CrawClawConfig {
     if (this.looksLikeConfigRoot(payload)) {
       return payload
     }
@@ -1763,7 +1763,7 @@ export class RPCClient {
       }
     }
 
-    return row as OpenClawConfig
+    return row as CrawClawConfig
   }
 
   private cloneJsonValue<T>(value: T): T {
@@ -2433,7 +2433,7 @@ export class RPCClient {
   }
 
   // --- Config ---
-  getConfig(): Promise<OpenClawConfig> {
+  getConfig(): Promise<CrawClawConfig> {
     return this.call<unknown>('config.get').then((payload) => this.normalizeConfigPayload(payload))
   }
 
@@ -2480,7 +2480,7 @@ export class RPCClient {
     return this.call('config.apply')
   }
 
-  async setConfig(config: OpenClawConfig): Promise<void> {
+  async setConfig(config: CrawClawConfig): Promise<void> {
     const snapshotPayload = await this.call<unknown>('config.get', {})
     const snapshotMeta = this.resolveConfigSnapshotMeta(snapshotPayload)
     let baseHash = snapshotMeta.hash

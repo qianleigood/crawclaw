@@ -63,30 +63,30 @@ const CHINA_CHANNELS: ChinaChannelMeta[] = [
   {
     key: 'qqbot',
     icon: faQq,
-    pluginPackages: ['@openclaw-china/qqbot'],
+    pluginPackages: ['@crawclaw/qqbot'],
     pluginIds: ['qqbot'],
-    guideUrl: 'https://github.com/BytePioneer-AI/openclaw-china/blob/main/doc/guides/qqbot/configuration.md',
+    guideUrl: 'https://docs.crawclaw.ai/channels/qqbot',
   },
   {
     key: 'feishu',
     icon: faPaperPlane,
-    pluginPackages: ['@openclaw-china/feishu-china', '@openclaw/feishu'],
-    pluginIds: ['feishu', 'feishu-china'],
-    guideUrl: 'https://github.com/openclaw/openclaw/blob/main/docs/zh-CN/channels/feishu.md',
+    pluginPackages: ['@crawclaw/feishu'],
+    pluginIds: ['feishu'],
+    guideUrl: 'https://docs.crawclaw.ai/channels/feishu',
   },
   {
     key: 'dingtalk',
     icon: faComments,
-    pluginPackages: ['@openclaw-china/dingtalk'],
-    pluginIds: ['dingtalk'],
-    guideUrl: 'https://github.com/BytePioneer-AI/openclaw-china/blob/main/doc/guides/dingtalk/configuration.md',
+    pluginPackages: ['@largezhou/ddingtalk'],
+    pluginIds: ['ddingtalk', 'dingtalk'],
+    guideUrl: 'https://docs.crawclaw.ai/channels/ddingtalk',
   },
   {
     key: 'wecom',
     icon: faBuilding,
-    pluginPackages: ['@openclaw-china/wecom', '@openclaw-china/wecom-app'],
-    pluginIds: ['wecom', 'wecom-app'],
-    guideUrl: 'https://github.com/BytePioneer-AI/openclaw-china/blob/main/doc/guides/wecom/configuration.md',
+    pluginPackages: ['@wecom/wecom-crawclaw-plugin'],
+    pluginIds: ['wecom', 'wecom-app', 'wecom-crawclaw-plugin'],
+    guideUrl: 'https://docs.crawclaw.ai/plugins/community#wecom',
   },
 ]
 
@@ -237,7 +237,7 @@ function refreshExpandedPanels(): void {
 }
 
 function buildPluginInstallCommands(pluginPackages: string[]): string[] {
-  return pluginPackages.map((pluginPackage) => `openclaw plugins install ${pluginPackage}`)
+  return pluginPackages.map((pluginPackage) => `crawclaw plugins install ${pluginPackage}`)
 }
 
 async function installChannel(meta: ChannelCard): Promise<void> {
@@ -342,21 +342,21 @@ onMounted(() => {
             <span>
               {{ t('pages.channels.thanks.prefix') }}
               <a
-                href="https://github.com/BytePioneer-AI/openclaw-china"
+                href="https://docs.crawclaw.ai/channels"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="banner-link"
               >
-                openclaw-china
+                CrawClaw channels
               </a>
               {{ t('pages.channels.thanks.suffix') }}
             </span>
           </div>
           <span class="guide-pill-row">
-            <a class="guide-pill" href="https://github.com/BytePioneer-AI/openclaw-china/blob/main/doc/guides/qqbot/configuration.md" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.qqbot') }}</a>
-            <a class="guide-pill" href="https://github.com/openclaw/openclaw/blob/main/docs/zh-CN/channels/feishu.md" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.feishu') }}</a>
-            <a class="guide-pill" href="https://github.com/BytePioneer-AI/openclaw-china/blob/main/doc/guides/dingtalk/configuration.md" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.dingtalk') }}</a>
-            <a class="guide-pill" href="https://github.com/BytePioneer-AI/openclaw-china/blob/main/doc/guides/wecom/configuration.md" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.wecom') }}</a>
+            <a class="guide-pill" href="https://docs.crawclaw.ai/channels/qqbot" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.qqbot') }}</a>
+            <a class="guide-pill" href="https://docs.crawclaw.ai/channels/feishu" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.feishu') }}</a>
+            <a class="guide-pill" href="https://docs.crawclaw.ai/channels/ddingtalk" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.dingtalk') }}</a>
+            <a class="guide-pill" href="https://docs.crawclaw.ai/plugins/community#wecom" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.wecom') }}</a>
           </span>
         </div>
 
