@@ -1,10 +1,44 @@
-import { jsonResponse, requestBodyText, requestUrl } from "crawclaw/plugin-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createOllamaEmbeddingProvider } from "./embedding-provider.js";
+
+const fetchWithSsrFGuardMock = vi.hoisted(() =>
+  vi.fn(async (params: { url: string; init?: RequestInit }) => ({
+    response: await fetch(params.url, params.init),
+    finalUrl: params.url,
+    release: vi.fn(async () => {}),
+  })),
+);
+
+vi.mock("crawclaw/plugin-sdk/ssrf-runtime", () => ({
+  fetchWithSsrFGuard: fetchWithSsrFGuardMock,
+  formatErrorMessage: (err: unknown) => (err instanceof Error ? err.message : String(err)),
+}));
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function requestUrl(input: string | URL | Request): string {
+  if (typeof input === "string") {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.toString();
+  }
+  return input.url;
+}
+
+function requestBodyText(body: BodyInit | null | undefined): string {
+  return typeof body === "string" ? body : "{}";
+}
 
 describe("ollama embedding provider", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    fetchWithSsrFGuardMock.mockClear();
   });
 
   it("pulls a missing embedding model before embedding", async () => {
