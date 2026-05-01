@@ -1,6 +1,5 @@
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
 import type { WizardPrompter } from "crawclaw/plugin-sdk/setup";
-import { jsonResponse, requestBodyText, requestUrl } from "crawclaw/plugin-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   configureOllamaNonInteractive,
@@ -12,6 +11,27 @@ const upsertAuthProfileWithLock = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../../../src/agents/auth-profiles.js", () => ({
   upsertAuthProfileWithLock,
 }));
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function requestUrl(input: string | URL | Request): string {
+  if (typeof input === "string") {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.toString();
+  }
+  return input.url;
+}
+
+function requestBodyText(body: BodyInit | null | undefined): string {
+  return typeof body === "string" ? body : "{}";
+}
 
 function createOllamaFetchMock(params: {
   tags?: string[];
