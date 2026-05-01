@@ -17,8 +17,6 @@ import type {
   CreatePromotionCandidateInput,
   DeadLetter,
   DurableExtractionCursorRow,
-  DreamTranscriptSearchInput,
-  DreamTranscriptSearchRow,
   DreamLockAcquireResult,
   DreamStateRow,
   GmMessageRow,
@@ -140,9 +138,6 @@ export interface RuntimeStore {
     upToTurnInclusive: number,
     limit: number,
   ): Promise<GmMessageRow[]>;
-  searchScopedModelVisibleMessages(
-    input: DreamTranscriptSearchInput,
-  ): Promise<DreamTranscriptSearchRow[]>;
   getSessionCompactionState(sessionId: string): Promise<SessionCompactionStateRow | null>;
   upsertSessionCompactionState(input: UpsertSessionCompactionStateInput): Promise<void>;
   clearSessionCompactionState(sessionId: string): Promise<void>;
