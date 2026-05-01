@@ -64,7 +64,7 @@ export function buildConnectParamsLegacy(token: string): ConnectParams {
     maxProtocol: DEFAULT_MAX_PROTOCOL,
     client: {
       id: DEFAULT_CLIENT_ID,
-      displayName: 'OpenClaw Admin',
+      displayName: 'CrawClaw Admin',
       version: getClientVersion(),
       platform: getClientPlatform(),
       mode: DEFAULT_CLIENT_MODE,

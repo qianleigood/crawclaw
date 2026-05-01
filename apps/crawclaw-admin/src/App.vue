@@ -33,11 +33,11 @@ watch(
   ([titleKey]) => {
     if (typeof document === "undefined") return;
     if (!titleKey) {
-      document.title = "OpenClaw Admin";
+      document.title = "CrawClaw Admin";
       return;
     }
     const title = t(titleKey);
-    document.title = `${title} - OpenClaw Admin`;
+    document.title = `${title} - CrawClaw Admin`;
   },
   { immediate: true },
 );

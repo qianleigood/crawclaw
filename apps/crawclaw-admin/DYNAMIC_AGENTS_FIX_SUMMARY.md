@@ -1,12 +1,12 @@
-# OpenClaw-Admin dynamicAgent 修复实施总结
+# CrawClaw Admin dynamicAgent 修复实施总结
 
 ## 问题回顾
 
-wecom 插件创建的 `dynamicAgent`（动态代理）在 OpenClaw-Admin 中显示不出来，但在 openclaw-control-center 中能正常显示。
+wecom 插件创建的 `dynamicAgent`（动态代理）在 CrawClaw Admin 中显示不出来，但在 openclaw-control-center 中能正常显示。
 
 ## 根本原因
 
-OpenClaw-Admin 的代理列表只在页面初始加载时获取一次，没有定期刷新机制，因此无法发现运行时动态创建的代理。
+CrawClaw Admin 的代理列表只在页面初始加载时获取一次，没有定期刷新机制，因此无法发现运行时动态创建的代理。
 
 ## 解决方案
 

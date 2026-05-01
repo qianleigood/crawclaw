@@ -1,11 +1,11 @@
-# Claw Admin - AI Agent Management Platform
+# CrawClaw Admin - AI Agent Management Platform
 
 <p align="center">
   <strong>Modern AI Agent Gateway Management Console</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/itq5/OpenClaw-Admin">GitHub</a> &bull;
+  <a href="https://github.com/qianleigood/crawclaw/tree/main/apps/crawclaw-admin">GitHub</a> &bull;
   <a href="#features">Features</a> &bull;
   <a href="#tech-stack">Tech Stack</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
@@ -19,11 +19,11 @@
 
 ## Introduction
 
-Claw Admin is a modern AI agent management platform built with Vue 3, supporting both **OpenClaw Gateway** and **Hermes Agent**. Through intuitive visual operations, users can easily manage AI agents, sessions, models, channels, skills, and other core features, with a full-featured Web CLI terminal experience.
+CrawClaw Admin is a modern AI agent management platform built with Vue 3, supporting both **OpenClaw Gateway** and **Hermes Agent**. Through intuitive visual operations, users can easily manage AI agents, sessions, models, channels, skills, and other core features, with a full-featured Web CLI terminal experience.
 
 ### Version Compatibility
 
-| OpenClaw Admin | OpenClaw Gateway | Hermes Agent | Status     |
+| CrawClaw Admin | OpenClaw Gateway | Hermes Agent | Status     |
 | -------------- | ---------------- | ------------ | ---------- |
 | 0.2.7          | 2026.4.5         | 2026.4.9     | ✅ Verified |
 
@@ -375,7 +375,7 @@ npm run preview
 
 ### Prerequisites
 
-Hermes Agent must be installed and configured separately. OpenClaw Admin communicates with Hermes Agent via HTTP API. The following services need to be running:
+Hermes Agent must be installed and configured separately. CrawClaw Admin communicates with Hermes Agent via HTTP API. The following services need to be running:
 
 | Service           | Default Port | Description                                          |
 | ----------------- | ------------ | ---------------------------------------------------- |
@@ -466,9 +466,9 @@ curl http://localhost:8642/v1/health
 curl http://localhost:9119/api/status
 ```
 
-### Connecting Hermes in OpenClaw Admin
+### Connecting Hermes in CrawClaw Admin
 
-1. Log in to OpenClaw Admin
+1. Log in to CrawClaw Admin
 2. Go to the **Settings** page
 3. In the **Hermes Agent** section, configure:
    - **Web UI URL**: `http://localhost:9119` (default)
@@ -514,7 +514,7 @@ In the Web interface, expand the **Launch Config** panel to visually configure t
 ## Project Structure
 
 ```
-openclaw-admin/
+crawclaw-admin/
 ├── src/
 │   ├── api/                        # API Layer
 │   │   ├── hermes/                 # Hermes API Client
@@ -676,7 +676,7 @@ Then configure in `.env` file:
 
 ```env
 # === Application ===
-VITE_APP_TITLE=OpenClaw Admin
+VITE_APP_TITLE=CrawClaw Admin
 PORT=3000
 DEV_PORT=3001
 
@@ -802,7 +802,7 @@ The backend proxies requests to two Hermes Agent services via `hermes-proxy.js`:
 
 Issues and Pull Requests are welcome!
 
-**GitHub Repository**: <https://github.com/itq5/OpenClaw-Admin>
+**GitHub Repository**: <https://github.com/qianleigood/crawclaw/tree/main/apps/crawclaw-admin>
 
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -830,5 +830,5 @@ Welcome to join our WeChat group for latest updates and technical support:
 ***
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/itq5/OpenClaw-Admin">Claw Admin</a> Team
+  Made with ❤️ by <a href="https://github.com/qianleigood/crawclaw/tree/main/apps/crawclaw-admin">CrawClaw Admin</a> Team
 </p>

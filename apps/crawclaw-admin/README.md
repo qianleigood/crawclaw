@@ -1,11 +1,11 @@
-# Claw Admin - AI 智能体管理平台
+# CrawClaw Admin - AI 智能体管理平台
 
 <p align="center">
   <strong>现代化的 AI 智能体网关管理控制台</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/itq5/OpenClaw-Admin">GitHub</a> &bull;
+  <a href="https://github.com/qianleigood/crawclaw/tree/main/apps/crawclaw-admin">GitHub</a> &bull;
   <a href="#功能特性">功能特性</a> &bull;
   <a href="#技术栈">技术栈</a> &bull;
   <a href="#快速开始">快速开始</a> &bull;
@@ -19,11 +19,11 @@
 
 ## 项目简介
 
-Claw Admin 是一个基于 Vue 3 构建的现代化 AI 智能体管理平台，同时支持 **OpenClaw Gateway** 和 **Hermes Agent** 两大 AI 智能体网关。通过直观的可视化操作，用户可以轻松管理 AI 智能体、会话、模型、频道、技能等核心功能，并提供完整的 Web CLI 终端体验。
+CrawClaw Admin 是一个基于 Vue 3 构建的现代化 AI 智能体管理平台，同时支持 **OpenClaw Gateway** 和 **Hermes Agent** 两大 AI 智能体网关。通过直观的可视化操作，用户可以轻松管理 AI 智能体、会话、模型、频道、技能等核心功能，并提供完整的 Web CLI 终端体验。
 
 ### 版本兼容性
 
-| OpenClaw Admin | OpenClaw Gateway | Hermes Agent | 状态    |
+| CrawClaw Admin | OpenClaw Gateway | Hermes Agent | 状态    |
 | -------------- | ---------------- | ------------ | ----- |
 | 0.2.7          | 2026.4.5         | 2026.4.9     | ✅ 已验证 |
 
@@ -376,7 +376,7 @@ npm run start
 
 ### 前置条件
 
-Hermes Agent 需要单独安装和配置。OpenClaw Admin 通过 HTTP API 与 Hermes Agent 通信，需要以下服务运行：
+Hermes Agent 需要单独安装和配置。CrawClaw Admin 通过 HTTP API 与 Hermes Agent 通信，需要以下服务运行：
 
 | 服务                | 默认端口 | 说明                        |
 | ----------------- | ---- | ------------------------- |
@@ -473,9 +473,9 @@ curl http://localhost:8642/v1/health
 curl http://localhost:9119/api/status
 ```
 
-### 在 OpenClaw Admin 中连接 Hermes
+### 在 CrawClaw Admin 中连接 Hermes
 
-1. 登录 OpenClaw Admin
+1. 登录 CrawClaw Admin
 2. 进入 **设置** 页面
 3. 在 **Hermes Agent** 区域配置：
    - **Web UI 地址**：`http://localhost:9119`（默认）
@@ -521,7 +521,7 @@ Hermes CLI 终端支持以下启动参数：
 ## 项目结构
 
 ```
-openclaw-admin/
+crawclaw-admin/
 ├── src/
 │   ├── api/                        # API 层
 │   │   ├── hermes/                 # Hermes API 客户端
@@ -683,7 +683,7 @@ cp .env.example .env
 
 ```env
 # === 应用配置 ===
-VITE_APP_TITLE=OpenClaw Admin
+VITE_APP_TITLE=CrawClaw Admin
 PORT=3000
 DEV_PORT=3001
 
@@ -818,7 +818,7 @@ npm run dev:all
 
 欢迎提交 Issue 和 Pull Request！
 
-**GitHub 仓库**: <https://github.com/itq5/OpenClaw-Admin>
+**GitHub 仓库**: <https://github.com/qianleigood/crawclaw/tree/main/apps/crawclaw-admin>
 
 1. Fork 本仓库
 2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
@@ -846,5 +846,5 @@ npm run dev:all
 ***
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/itq5/OpenClaw-Admin">Claw Admin</a> Team
+  Made with ❤️ by <a href="https://github.com/qianleigood/crawclaw/tree/main/apps/crawclaw-admin">CrawClaw Admin</a> Team
 </p>

@@ -23,7 +23,7 @@
     "unicorn/require-post-message-target-origin": "off"
   },
   "ignorePatterns": [
-    ".tmp/openclaw-admin/",
+    "apps/crawclaw-admin/",
     "**/node_modules/**",
     "assets/",
     "dist/",

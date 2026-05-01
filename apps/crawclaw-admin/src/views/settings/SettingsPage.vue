@@ -35,7 +35,7 @@ const wsStore = useWebSocketStore()
 const authStore = useAuthStore()
 const { t } = useI18n()
 const message = useMessage()
-const appTitle = import.meta.env.VITE_APP_TITLE || 'OpenClaw Admin'
+const appTitle = import.meta.env.VITE_APP_TITLE || 'CrawClaw Admin'
 const appVersion = import.meta.env.VITE_APP_VERSION || ''
 
 const loading = ref(false)

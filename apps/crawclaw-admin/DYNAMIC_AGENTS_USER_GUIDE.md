@@ -1,8 +1,8 @@
-# wecom dynamicAgent 在 OpenClaw-Admin 中的使用指南
+# wecom dynamicAgent 在 CrawClaw Admin 中的使用指南
 
 ## 概述
 
-从 v0.2.3 开始，OpenClaw-Admin 已经实现了对 wecom 插件动态代理的实时支持。系统会自动检测并显示由 wecom 插件动态创建的代理。
+从 v0.2.3 开始，CrawClaw Admin 已经实现了对 wecom 插件动态代理的实时支持。系统会自动检测并显示由 wecom 插件动态创建的代理。
 
 ## 快速开始
 
@@ -26,7 +26,7 @@
 }
 ```
 
-### 2. 启动 OpenClaw-Admin
+### 2. 启动 CrawClaw Admin
 
 打开浏览器访问 `http://localhost:3001`
 
@@ -38,7 +38,7 @@
 
 ### 自动刷新流程
 
-OpenClaw-Admin 使用两层机制来检测动态代理：
+CrawClaw Admin 使用两层机制来检测动态代理：
 
 ```
 ┌─────────────────────────────────────────┐
@@ -105,7 +105,7 @@ OpenClaw-Admin 使用两层机制来检测动态代理：
        ↓
 00:01  wecom 插件创建 dynamicAgent: wecom-default-dm-zhangsan
        ↓
-00:02  OpenClaw-Admin 通过 WebSocket 事件立即检测（或最迟在下一个刷新周期）
+00:02  CrawClaw Admin 通过 WebSocket 事件立即检测（或最迟在下一个刷新周期）
        ↓
 00:03  新代理在"多智能体"页面显示
 ```
@@ -121,7 +121,7 @@ OpenClaw-Admin 使用两层机制来检测动态代理：
        └─ wecom-default-dm-user2
        └─ wecom-default-dm-user3
        ↓
-00:02  OpenClaw-Admin 自动发现所有新代理
+00:02  CrawClaw Admin 自动发现所有新代理
        ↓
 00:03  所有代理都显示在列表中
 ```
@@ -135,7 +135,7 @@ OpenClaw-Admin 使用两层机制来检测动态代理：
 00:01  wecom 插件创建 groupEnabled 的 dynamicAgent
        └─ wecom-default-group-[groupId]
        ↓
-00:02  OpenClaw-Admin 自动发现
+00:02  CrawClaw Admin 自动发现
        ↓
 00:03  群聊代理显示在列表中
 ```

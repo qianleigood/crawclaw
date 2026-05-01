@@ -114,7 +114,7 @@ function handleSelect(key: string) {
         strong
         style="font-size: 18px; white-space: nowrap; letter-spacing: -0.5px;"
       >
-        {{ connStore.currentGateway === 'hermes' ? 'Hermes Agent' : 'OpenClaw-Admin' }}
+        {{ connStore.currentGateway === 'hermes' ? 'Hermes Agent' : 'CrawClaw Admin' }}
       </NText>
     </div>
 

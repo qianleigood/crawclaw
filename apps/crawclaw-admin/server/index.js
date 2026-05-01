@@ -3338,7 +3338,7 @@ async function executeBackupTask(taskId, params = {}) {
       createdAt: new Date().toISOString(),
       platform: process.platform,
       nodeVersion: process.version,
-      source: 'openclaw-admin',
+      source: 'crawclaw-admin',
       components: {
         openclaw: existsSync(openclawBackupPath),
         wizardDb: existsSync(WIZARD_DB_PATH),

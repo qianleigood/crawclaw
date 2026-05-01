@@ -91,7 +91,7 @@ npm run build
 
 ### 4. 手工测试
 
-1. 打开 OpenClaw-Admin
+1. 打开 CrawClaw Admin
 2. 进入"多智能体"页面
 3. 使用 wecom 机器人发送消息（触发 dynamicAgent 创建）
 4. 观察列表，应该在 10 秒内自动显示新代理

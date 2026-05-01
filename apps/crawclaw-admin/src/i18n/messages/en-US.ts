@@ -1,6 +1,6 @@
 export default {
   app: {
-    title: 'Claw Admin',
+    title: 'CrawClaw Admin',
   },
   routes: {
     login: 'Login',
