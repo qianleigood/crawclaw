@@ -1,0 +1,10 @@
+node_modules
+dist
+.vscode
+backups
+.env
+!.env.example
+data/
+data/wizard.db-shm
+data/wizard.db-wal
+.trae

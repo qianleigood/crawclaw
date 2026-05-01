@@ -1,0 +1,167 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 阶段 1: 代码检查
+  lint:
+    name: 🔍 代码检查
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🟢 设置 Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 安装依赖
+        run: npm ci
+
+      - name: 🔎 运行 ESLint
+        run: npm run lint
+
+      - name: 📝 检查 TypeScript
+        run: npm run type-check
+
+  # 阶段 2: 单元测试
+  test:
+    name: 🧪 单元测试
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🟢 设置 Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 安装依赖
+        run: npm ci
+
+      - name: 🧪 运行测试
+        run: npm run test:coverage
+
+      - name: 📊 上传测试报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-coverage
+          path: coverage/
+          retention-days: 7
+
+  # 阶段 3: 构建
+  build:
+    name: 🏗️ 构建
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🟢 设置 Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 安装依赖
+        run: npm ci
+
+      - name: 🏗️ 构建项目
+        run: npm run build
+
+      - name: 📦 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # 阶段 4: 部署（仅 main 分支）
+  deploy:
+    name: 🚀 部署
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 📦 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: 🔐 配置 SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: 🚀 部署到服务器
+        run: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
+            dist/ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/
+
+      - name: 🔄 重启服务
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && pm2 restart all || systemctl restart ai-work"
+
+      - name: 📢 通知部署完成
+        uses: feishu-webhook-action@v1
+        with:
+          webhook-url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          title: '🚀 部署完成'
+          content: |
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            部署者：${{ github.actor }}
+            时间：${{ github.event.head_commit.timestamp }}
+
+  # 阶段 5: 监控健康检查
+  health-check:
+    name: 🏥 健康检查
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: 🏥 检查服务健康状态
+        run: |
+          for i in {1..10}; do
+            if curl -sf ${{ secrets.PRODUCTION_URL }}/health > /dev/null; then
+              echo "✅ 服务健康"
+              exit 0
+            fi
+            echo "⏳ 等待服务启动... ($i/10)"
+            sleep 10
+          done
+          echo "❌ 服务健康检查失败"
+          exit 1
+
+      - name: 📢 发送健康检查通知
+        uses: feishu-webhook-action@v1
+        if: always()
+        with:
+          webhook-url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          title: '🏥 健康检查结果'
+          content: |
+            状态：${{ job.status }}
+            URL: ${{ secrets.PRODUCTION_URL }}/health

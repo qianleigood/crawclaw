@@ -1,0 +1,135 @@
+name: Monitoring Deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'monitoring/**'
+      - '.github/workflows/monitoring-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}-monitoring
+
+jobs:
+  # 部署监控栈
+  deploy-monitoring:
+    name: 📊 部署监控栈
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🔐 配置 SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: 📊 部署监控容器
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            cd ${{ secrets.DEPLOY_PATH }}/monitoring
+            
+            # 拉取最新镜像
+            docker-compose pull
+            
+            # 重启监控服务
+            docker-compose down
+            docker-compose up -d
+            
+            # 等待服务启动
+            sleep 15
+            
+            # 检查服务状态
+            docker-compose ps
+            
+            # 验证服务健康状态
+            for i in {1..10}; do
+              if curl -sf http://localhost:9090/-/healthy >/dev/null 2>&1; then
+                echo "✅ Prometheus 健康"
+                break
+              fi
+              echo "⏳ 等待 Prometheus 启动... ($i/10)"
+              sleep 10
+            done
+            
+            for i in {1..10}; do
+              if curl -sf http://localhost:3002/api/health >/dev/null 2>&1; then
+                echo "✅ Grafana 健康"
+                break
+              fi
+              echo "⏳ 等待 Grafana 启动... ($i/10)"
+              sleep 10
+            done
+          EOF
+
+      - name: 📢 通知部署完成
+        uses: feishu-webhook-action@v1
+        with:
+          webhook-url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          title: '📊 监控栈部署完成'
+          content: |
+            环境：${{ github.event.inputs.environment || 'production' }}
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            部署者：${{ github.actor }}
+            
+            访问地址:
+            - Prometheus: http://${{ secrets.DEPLOY_HOST }}:9090
+            - Grafana: http://${{ secrets.DEPLOY_HOST }}:3002
+            - Alertmanager: http://${{ secrets.DEPLOY_HOST }}:9093
+            - Node Exporter: http://${{ secrets.DEPLOY_HOST }}:9100
+            - cAdvisor: http://${{ secrets.DEPLOY_HOST }}:8080
+
+  # 监控健康检查
+  monitoring-health-check:
+    name: 🏥 监控健康检查
+    runs-on: ubuntu-latest
+    needs: deploy-monitoring
+    steps:
+      - name: 🔐 配置 SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: 🏥 检查监控服务健康状态
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            echo "检查 Prometheus..."
+            curl -sf http://localhost:9090/-/healthy || exit 1
+            
+            echo "检查 Grafana..."
+            curl -sf http://localhost:3002/api/health || exit 1
+            
+            echo "检查 Alertmanager..."
+            curl -sf http://localhost:9093/api/status || exit 1
+            
+            echo "检查 Node Exporter..."
+            curl -sf http://localhost:9100/metrics || exit 1
+            
+            echo "检查 cAdvisor..."
+            curl -sf http://localhost:8080/metrics || exit 1
+            
+            echo "✅ 所有监控服务健康"
+          EOF
+
+      - name: 📢 发送健康检查通知
+        uses: feishu-webhook-action@v1
+        if: always()
+        with:
+          webhook-url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          title: '🏥 监控服务健康检查结果'
+          content: |
+            状态：${{ job.status }}
+            时间：${{ github.event.head_commit.timestamp }}

@@ -1,0 +1,178 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # 每天凌晨 2 点执行
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # 依赖漏洞扫描
+  npm-audit:
+    name: 🔍 NPM 依赖扫描
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🟢 设置 Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 安装依赖
+        run: npm ci
+
+      - name: 🛡️ 运行 NPM 审计
+        run: |
+          npm audit --audit-level=moderate --json > npm-audit-report.json || true
+          cat npm-audit-report.json
+
+      - name: 📊 上传审计报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit-report.json
+          retention-days: 30
+
+      - name: 📢 发送通知
+        if: failure()
+        uses: feishu-webhook-action@v1
+        with:
+          webhook-url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          title: '⚠️ NPM 依赖漏洞扫描发现高危漏洞'
+          content: |
+            仓库：${{ github.repository }}
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            请检查 npm-audit-report.json
+
+  # Docker 镜像安全扫描
+  trivy-scan:
+    name: 🐳 Trivy 镜像扫描
+    runs-on: ubuntu-latest
+    needs: npm-audit
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🐳 构建 Docker 镜像
+        run: |
+          docker build -t openclaw-admin:scan-${{ github.sha }} .
+
+      - name: 🛡️ 安装 Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          version: 'latest'
+
+      - name: 🔍 运行 Trivy 扫描
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-results.sarif \
+            --severity HIGH,CRITICAL \
+            openclaw-admin:scan-${{ github.sha }} || true
+
+      - name: 📊 上传扫描结果
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: trivy-results.sarif
+          retention-days: 30
+
+      - name: 📤 上传到 GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        if: github.repository_owner == 'your-org'
+        with:
+          sarif_file: trivy-results.sarif
+
+  # 秘密信息检测
+  secret-scan:
+    name: 🔐 秘密信息检测
+    runs-on: ubuntu-latest
+    needs: npm-audit
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 安装 Gitleaks
+        run: |
+          wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
+          tar -xzf gitleaks_8.18.2_linux_x64.tar.gz
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: 🛡️ 运行 Gitleaks 扫描
+        run: |
+          gitleaks detect --source . --report-format json --report-path gitleaks-report.json || true
+
+      - name: 📊 上传扫描报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          retention-days: 30
+
+      - name: 📢 发送通知
+        if: failure()
+        uses: feishu-webhook-action@v1
+        with:
+          webhook-url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          title: '🔐 发现潜在的秘密信息'
+          content: |
+            仓库：${{ github.repository }}
+            分支：${{ github.ref_name }}
+            请检查 gitleaks-report.json
+
+  # 安全扫描汇总报告
+  security-summary:
+    name: 📋 安全报告汇总
+    runs-on: ubuntu-latest
+    needs: [npm-audit, trivy-scan, secret-scan]
+    if: always()
+    steps:
+      - name: 📥 下载所有报告
+        uses: actions/download-artifact@v4
+
+      - name: 📊 生成汇总报告
+        run: |
+          echo "## 安全扫描汇总报告" > security-summary.md
+          echo "" >> security-summary.md
+          echo "### 扫描时间：$(date '+%Y-%m-%d %H:%M:%S')" >> security-summary.md
+          echo "" >> security-summary.md
+          echo "| 扫描类型 | 状态 |" >> security-summary.md
+          echo "|---------|------|" >> security-summary.md
+          echo "| NPM 依赖扫描 | ${{ needs.npm-audit.result }} |" >> security-summary.md
+          echo "| Trivy 镜像扫描 | ${{ needs.trivy-scan.result }} |" >> security-summary.md
+          echo "| 秘密信息检测 | ${{ needs.secret-scan.result }} |" >> security-summary.md
+
+      - name: 📤 上传汇总报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-summary
+          path: security-summary.md
+          retention-days: 30
+
+      - name: 📢 发送汇总通知
+        uses: feishu-webhook-action@v1
+        if: always()
+        with:
+          webhook-url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          title: '📋 安全扫描完成'
+          content: |
+            仓库：${{ github.repository }}
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            
+            扫描结果:
+            - NPM 依赖扫描：${{ needs.npm-audit.result }}
+            - Trivy 镜像扫描：${{ needs.trivy-scan.result }}
+            - 秘密信息检测：${{ needs.secret-scan.result }}
