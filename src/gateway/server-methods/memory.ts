@@ -201,6 +201,18 @@ function buildNotebookLmSetupConfig(
 function resolveDreamScopeParams(params: Record<string, unknown>) {
   const scopeKey = readOptionalString(params.scopeKey);
   if (scopeKey) {
+    const [agentId, channel, userId, ...extra] = scopeKey.split(":");
+    if (agentId && channel && userId && extra.length === 0) {
+      return {
+        scopeKey,
+        scope: {
+          agentId,
+          channel,
+          userId,
+          scopeKey,
+        },
+      };
+    }
     return { scopeKey };
   }
   const scope = resolveDurableMemoryScope({

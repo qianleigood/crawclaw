@@ -52,7 +52,12 @@ function resolveNotebookLmConfig(cfg: CrawClawConfig) {
 }
 
 function resolveMemoryRuntimeConfig(cfg: CrawClawConfig) {
-  return resolveMemoryConfig(cfg.memory ?? {});
+  const memoryConfig = resolveMemoryConfig(cfg.memory ?? {});
+  const runtimeDbPath = process.env.RUNTIME_DB_PATH?.trim();
+  if (runtimeDbPath) {
+    memoryConfig.runtimeStore.dbPath = runtimeDbPath;
+  }
+  return memoryConfig;
 }
 
 async function withMemoryRuntimeStore<T>(
@@ -178,7 +183,20 @@ export async function runMemoryStatus(opts: MemoryCommandOptions) {
 
 function resolveDreamScopeFromOptions(opts: MemoryCommandOptions) {
   if (opts.scopeKey?.trim()) {
-    return { scopeKey: opts.scopeKey.trim() };
+    const scopeKey = opts.scopeKey.trim();
+    const [agentId, channel, userId, ...extra] = scopeKey.split(":");
+    if (agentId && channel && userId && extra.length === 0) {
+      return {
+        scopeKey,
+        scope: {
+          agentId,
+          channel,
+          userId,
+          scopeKey,
+        },
+      };
+    }
+    return { scopeKey };
   }
   const scope = resolveDurableMemoryScope({
     agentId: opts.agent,

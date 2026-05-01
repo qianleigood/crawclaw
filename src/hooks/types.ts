@@ -17,6 +17,7 @@ export type CrawClawHookMetadata = {
   /** Optional export name (default: "default") */
   export?: string;
   os?: string[];
+  arch?: string[];
   requires?: {
     bins?: string[];
     anyBins?: string[];
@@ -54,6 +55,7 @@ export type HookEntry = {
 export type HookEligibilityContext = {
   remote?: {
     platforms: string[];
+    architectures?: string[];
     hasBin: (bin: string) => boolean;
     hasAnyBin: (bins: string[]) => boolean;
     note?: string;

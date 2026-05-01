@@ -1,6 +1,6 @@
 ---
 name: superpowers
-description: Spec-first, TDD, subagent-driven software development workflow for building features, debugging failures, planning implementation, and finishing feature branches. Not for one-line fixes, passive code reading, or non-code tasks. Requires exec tool and sessions_spawn.
+description: Use when a non-trivial software task has ambiguous requirements, multi-step implementation risk, failing technical behavior, independent subtasks, or a feature branch to finish. Not for one-line fixes or passive code reading.
 ---
 
 # Superpowers

@@ -79,4 +79,13 @@ describe("resolveCrawClawMetadata install validation", () => {
       notes: "Requires logged-in browser state.",
     });
   });
+
+  it("parses architecture metadata", () => {
+    const metadata = resolveCrawClawMetadata({
+      metadata: '{"crawclaw":{"os":["darwin"],"arch":["arm64"]}}',
+    });
+
+    expect(metadata?.os).toEqual(["darwin"]);
+    expect(metadata?.arch).toEqual(["arm64"]);
+  });
 });

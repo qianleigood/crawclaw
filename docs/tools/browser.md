@@ -80,6 +80,14 @@ same `browser` tool name. The default browser experience needs both:
 If you turn off only the plugin, the bundled browser tool disappears together.
 Your `browser.*` config stays intact for a replacement plugin to reuse.
 
+Local onboarding keeps the `coding` tool profile for new configs, then allows
+`browser` on the default `main` agent with `agents.list[].tools.alsoAllow`.
+That same additive policy also includes the scoped durable-memory file tools
+used for explicit remember, update, and forget requests, plus
+`write_experience_note` for explicit experience writes. If you later switch the
+profile to `minimal`, `messaging`, or `full`, these default `main` tools remain
+available unless an explicit deny policy blocks them.
+
 ## PinchTab execution engine
 
 CrawClaw now runs the `browser` tool through PinchTab across all routes.

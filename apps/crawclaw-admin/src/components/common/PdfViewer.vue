@@ -7,7 +7,7 @@ import {
   ExpandOutline,
   ContractOutline,
 } from '@vicons/ionicons5'
-import VuePdfEmbed from 'vue-pdf-embed'
+import VuePdfEmbed from 'vue-pdf-embed/dist/index.essential.mjs'
 
 const props = defineProps<{
   url: string

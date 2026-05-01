@@ -214,18 +214,20 @@ describe("resolveCrawClawMetadata", () => {
     expect(result?.install?.[1].package).toBe("@crawclaw/hook");
   });
 
-  it("handles os restrictions", () => {
+  it("handles platform restrictions", () => {
     const frontmatter = {
       metadata: JSON.stringify({
         crawclaw: {
           events: ["command"],
           os: ["darwin", "linux"],
+          arch: ["arm64"],
         },
       }),
     };
 
     const result = resolveCrawClawMetadata(frontmatter);
     expect(result?.os).toEqual(["darwin", "linux"]);
+    expect(result?.arch).toEqual(["arm64"]);
   });
 
   it("parses real command-logger HOOK.md format", () => {

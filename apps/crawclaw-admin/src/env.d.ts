@@ -12,6 +12,18 @@ declare module 'vue-pdf-embed' {
   export default component
 }
 
+declare module 'vue-pdf-embed/dist/index.essential.mjs' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, any>
+  export default component
+}
+
+declare module 'highlight.js/lib/languages/*' {
+  import type { LanguageFn } from 'highlight.js'
+  const language: LanguageFn
+  export default language
+}
+
 interface ImportMetaEnv {
   readonly VITE_WS_URL: string
   readonly VITE_APP_TITLE: string

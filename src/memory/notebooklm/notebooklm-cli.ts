@@ -2,7 +2,7 @@ import { execFile as execFileCallback } from "node:child_process";
 import { projectMemoryKind } from "../recall/memory-kind.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import type { UnifiedRecallItem } from "../types/orchestration.ts";
-import { isNotebookLmNlmCommand, resolveNotebookLmCliCommand } from "./command.js";
+import { resolveNotebookLmCliCommand } from "./command.js";
 import { emitNotebookLmNotification } from "./notification.ts";
 import { getNotebookLmProviderState } from "./provider-state.ts";
 
@@ -31,18 +31,6 @@ type RawNotebookLmHit = {
   kind?: string;
   memoryKind?: string;
   tags?: string[];
-};
-
-type RawNotebookLmNote = {
-  id?: string;
-  title?: string;
-  content?: string;
-  preview?: string;
-  summary?: string;
-  text?: string;
-  notebookId?: string;
-  updatedAt?: string;
-  createdAt?: string;
 };
 
 type AnswerCardSegment = {
@@ -97,10 +85,6 @@ function renderTemplate(
     .replaceAll("{profile}", params.profile);
 }
 
-function profileArgs(profile: string): string[] {
-  return profile === "default" ? [] : ["--profile", profile];
-}
-
 function buildNotebookLmQuery(query: string, instruction: string | undefined): string {
   const cleanQuery = query.trim();
   const cleanInstruction = (instruction ?? "").trim();
@@ -147,18 +131,6 @@ function toEntries(payload: unknown): unknown[] {
   ];
 }
 
-function toNoteEntries(payload: unknown): unknown[] {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-  if (!payload || typeof payload !== "object") {
-    return [];
-  }
-  const record = payload as Record<string, unknown>;
-  const candidate = record.notes ?? record.items ?? record.results ?? record.data;
-  return Array.isArray(candidate) ? candidate : [];
-}
-
 function normalizeHit(raw: unknown): RawNotebookLmHit | null {
   if (!raw || typeof raw !== "object") {
     return null;
@@ -192,39 +164,6 @@ function normalizeHit(raw: unknown): RawNotebookLmHit | null {
     kind: typeof record.kind === "string" ? record.kind : undefined,
     memoryKind: typeof record.memoryKind === "string" ? record.memoryKind : undefined,
     tags,
-  };
-}
-
-function normalizeNote(raw: unknown): RawNotebookLmNote | null {
-  if (!raw || typeof raw !== "object") {
-    return null;
-  }
-  const record = raw as Record<string, unknown>;
-  const id =
-    typeof record.id === "string"
-      ? record.id
-      : typeof record.noteId === "string"
-        ? record.noteId
-        : undefined;
-  const title =
-    typeof record.title === "string"
-      ? record.title
-      : typeof record.name === "string"
-        ? record.name
-        : undefined;
-  if (!id || !title) {
-    return null;
-  }
-  return {
-    id,
-    title,
-    content: typeof record.content === "string" ? record.content : undefined,
-    preview: typeof record.preview === "string" ? record.preview : undefined,
-    summary: typeof record.summary === "string" ? record.summary : undefined,
-    text: typeof record.text === "string" ? record.text : undefined,
-    notebookId: typeof record.notebookId === "string" ? record.notebookId : undefined,
-    updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : undefined,
-    createdAt: typeof record.createdAt === "string" ? record.createdAt : undefined,
   };
 }
 
@@ -368,60 +307,6 @@ function mapHit(raw: RawNotebookLmHit, rank: number): UnifiedRecallItem {
   };
 }
 
-function noteMatchesQuery(note: RawNotebookLmNote, query: string): boolean {
-  const normalizedQuery = query.toLocaleLowerCase().trim();
-  if (!normalizedQuery) {
-    return false;
-  }
-  const haystack = [note.id, note.title, note.content, note.preview, note.summary, note.text]
-    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-    .join(" ")
-    .toLocaleLowerCase();
-  if (haystack.includes(normalizedQuery)) {
-    return true;
-  }
-  const tokens = normalizedQuery.split(/\s+/).filter((token) => token.length >= 2);
-  return tokens.some((token) => haystack.includes(token));
-}
-
-function mapNote(note: RawNotebookLmNote, rank: number, notebookId: string): UnifiedRecallItem {
-  const title = note.title ?? `NotebookLM note ${rank + 1}`;
-  const content =
-    extractShortChineseCardText(note.content ?? note.text ?? note.preview ?? note.summary, 520) ||
-    undefined;
-  const summary =
-    extractShortChineseCardText(note.summary ?? note.preview ?? note.content ?? note.text, 220) ||
-    title;
-  const memoryKind = projectMemoryKind({
-    source: "notebooklm",
-    title,
-    summary,
-    content,
-    metadata: {
-      kind: "note",
-    },
-  });
-  return {
-    id: `notebooklm:note:${note.id ?? rank + 1}`,
-    source: "notebooklm",
-    title,
-    summary,
-    content,
-    memoryKind,
-    retrievalScore: Math.max(0.1, 0.7 - rank * 0.04),
-    importance: 0.68,
-    canonicalKey: note.id ?? note.title ?? `note-${rank + 1}`,
-    sourceRef: note.id,
-    metadata: {
-      notebookId: note.notebookId ?? notebookId,
-      source: "notebooklm_note",
-      sourceId: note.id,
-      kind: "note",
-      tags: [],
-    },
-  };
-}
-
 function mapHitVariants(raw: RawNotebookLmHit, rank: number): UnifiedRecallItem[] {
   const cardSegments = splitNotebookLmAnswerCards(
     raw.answer ?? raw.text ?? raw.content ?? raw.summary,
@@ -540,26 +425,6 @@ export async function searchNotebookLmViaCli(params: {
     throw new Error("NotebookLM command failed");
   };
 
-  const profile = (params.config.auth.profile || "default").trim() || "default";
-  const searchNotes = async (): Promise<UnifiedRecallItem[]> => {
-    if (!isNotebookLmNlmCommand(command)) {
-      return [];
-    }
-    const stdout = await execNotebookLmCommand([
-      "note",
-      "list",
-      notebookId,
-      "--json",
-      ...profileArgs(profile),
-    ]);
-    return toNoteEntries(JSON.parse(stdout))
-      .map(normalizeNote)
-      .filter((entry): entry is RawNotebookLmNote => Boolean(entry))
-      .filter((entry) => noteMatchesQuery(entry, params.query))
-      .map((entry, index) => mapNote(entry, index, notebookId))
-      .slice(0, limit);
-  };
-
   try {
     const stdout = await execNotebookLmCommand(args);
     const parsed = JSON.parse(stdout);
@@ -572,13 +437,7 @@ export async function searchNotebookLmViaCli(params: {
     }
   } catch (error) {
     params.logger?.warn(`[memory] notebooklm cli retrieval skipped | ${formatUnknownError(error)}`);
-  }
-  try {
-    return await searchNotes();
-  } catch (error) {
-    params.logger?.warn(
-      `[memory] notebooklm note retrieval skipped | ${formatUnknownError(error)}`,
-    );
     return [];
   }
+  return [];
 }

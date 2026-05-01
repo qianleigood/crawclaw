@@ -61,6 +61,8 @@ const runInputText = ref('{}')
 const resumeInputText = ref('')
 const runTarget = ref<WorkflowListEntry | null>(null)
 const resumeTarget = ref<WorkflowExecutionView | null>(null)
+const n8nBaseUrl = ref<string | null>(null)
+const n8nStatusError = ref<string | null>(null)
 
 const filteredWorkflows = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -103,6 +105,14 @@ const n8nExecutions = computed(() => workflowStore.n8nDetails?.remoteExecutions 
 const n8nConnectionsText = computed(() =>
   JSON.stringify(workflowStore.n8nDetails?.remoteWorkflow.connections || {}, null, 2)
 )
+const selectedN8nWorkflowId = computed(() =>
+  selectedWorkflow.value?.n8nWorkflowId || workflowStore.n8nDetails?.remoteWorkflow.id || null
+)
+const n8nWorkflowUrl = computed(() => {
+  if (workflowStore.n8nDetails?.remoteWorkflowUrl) return workflowStore.n8nDetails.remoteWorkflowUrl
+  if (!n8nBaseUrl.value || !selectedN8nWorkflowId.value) return null
+  return `${n8nBaseUrl.value.replace(/\/$/, '')}/workflow/${encodeURIComponent(selectedN8nWorkflowId.value)}`
+})
 
 const stats = computed(() => {
   const workflows = workflowStore.workflows
@@ -174,7 +184,27 @@ function openUrl(url?: string) {
 }
 
 async function refreshAll() {
-  await workflowStore.fetchOverview()
+  await Promise.all([
+    workflowStore.fetchOverview(),
+    refreshN8nStatus(),
+  ])
+}
+
+async function refreshN8nStatus() {
+  n8nStatusError.value = null
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch('/api/n8n/status', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    const payload = await response.json()
+    n8nBaseUrl.value = payload?.status?.baseUrl || null
+  } catch (error) {
+    n8nStatusError.value = error instanceof Error ? error.message : String(error)
+  }
 }
 
 async function selectWorkflow(workflowId: string) {
@@ -750,6 +780,9 @@ onMounted(() => {
               <NAlert v-if="workflowStore.n8nError" type="warning" class="page-alert">
                 {{ workflowStore.n8nError }}
               </NAlert>
+              <NAlert v-else-if="n8nStatusError" type="warning" class="page-alert">
+                {{ n8nStatusError }}
+              </NAlert>
 
               <NSpace v-if="workflowStore.n8nDetails" vertical size="large">
                 <div class="n8n-header">
@@ -761,7 +794,7 @@ onMounted(() => {
                     <NTag :type="workflowStore.n8nDetails.remoteWorkflow.active ? 'success' : 'default'">
                       {{ workflowStore.n8nDetails.remoteWorkflow.active ? t('pages.workflows.n8n.active') : t('pages.workflows.n8n.inactive') }}
                     </NTag>
-                    <NButton size="small" @click="openUrl(workflowStore.n8nDetails.remoteWorkflowUrl)">
+                    <NButton size="small" :disabled="!n8nWorkflowUrl" @click="openUrl(n8nWorkflowUrl || undefined)">
                       <template #icon>
                         <NIcon :component="LinkOutline" />
                       </template>
@@ -813,7 +846,22 @@ onMounted(() => {
                 </div>
               </NSpace>
 
-              <NEmpty v-else-if="!workflowStore.n8nError" :description="t('pages.workflows.emptyN8n')" />
+              <NSpace v-else-if="n8nWorkflowUrl" vertical size="large">
+                <div class="n8n-header">
+                  <div>
+                    <div class="section-title">{{ selectedWorkflow.name }}</div>
+                    <NText code>{{ selectedN8nWorkflowId }}</NText>
+                  </div>
+                  <NButton size="small" @click="openUrl(n8nWorkflowUrl || undefined)">
+                    <template #icon>
+                      <NIcon :component="LinkOutline" />
+                    </template>
+                    {{ t('pages.workflows.actions.openWorkflow') }}
+                  </NButton>
+                </div>
+              </NSpace>
+
+              <NEmpty v-else :description="t('pages.workflows.emptyN8n')" />
             </NSpin>
           </NTabPane>
         </NTabs>

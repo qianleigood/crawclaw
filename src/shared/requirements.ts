@@ -4,6 +4,7 @@ export type Requirements = {
   env: string[];
   config: string[];
   os: string[];
+  arch: string[];
 };
 
 export type RequirementConfigCheck = {
@@ -14,18 +15,21 @@ export type RequirementConfigCheck = {
 export type RequirementsMetadata = {
   requires?: Partial<Pick<Requirements, "bins" | "anyBins" | "env" | "config">>;
   os?: string[];
+  arch?: string[];
 };
 
 export type RequirementRemote = {
   hasBin?: (bin: string) => boolean;
   hasAnyBin?: (bins: string[]) => boolean;
   platforms?: string[];
+  architectures?: string[];
 };
 
 type RequirementsEvaluationContext = {
   always: boolean;
   hasLocalBin: (bin: string) => boolean;
   localPlatform: string;
+  localArch: string;
   isEnvSatisfied: (envName: string) => boolean;
   isConfigSatisfied: (pathStr: string) => boolean;
 };
@@ -34,6 +38,7 @@ type RequirementsEvaluationRemoteContext = {
   hasRemoteBin?: (bin: string) => boolean;
   hasRemoteAnyBin?: (bins: string[]) => boolean;
   remotePlatforms?: string[];
+  remoteArchitectures?: string[];
 };
 
 export function resolveMissingBins(params: {
@@ -87,6 +92,23 @@ export function resolveMissingOs(params: {
   return params.required;
 }
 
+export function resolveMissingArch(params: {
+  required: string[];
+  localArch: string;
+  remoteArchitectures?: string[];
+}): string[] {
+  if (params.required.length === 0) {
+    return [];
+  }
+  if (params.required.includes(params.localArch)) {
+    return [];
+  }
+  if (params.remoteArchitectures?.some((arch) => params.required.includes(arch))) {
+    return [];
+  }
+  return params.required;
+}
+
 export function resolveMissingEnv(params: {
   required: string[];
   isSatisfied: (envName: string) => boolean;
@@ -132,6 +154,11 @@ export function evaluateRequirements(
     localPlatform: params.localPlatform,
     remotePlatforms: params.remotePlatforms,
   });
+  const missingArch = resolveMissingArch({
+    required: params.required.arch,
+    localArch: params.localArch,
+    remoteArchitectures: params.remoteArchitectures,
+  });
   const missingEnv = resolveMissingEnv({
     required: params.required.env,
     isSatisfied: params.isEnvSatisfied,
@@ -143,13 +170,14 @@ export function evaluateRequirements(
   const missingConfig = configChecks.filter((check) => !check.satisfied).map((check) => check.path);
 
   const missing = params.always
-    ? { bins: [], anyBins: [], env: [], config: [], os: [] }
+    ? { bins: [], anyBins: [], env: [], config: [], os: [], arch: [] }
     : {
         bins: missingBins,
         anyBins: missingAnyBins,
         env: missingEnv,
         config: missingConfig,
         os: missingOs,
+        arch: missingArch,
       };
 
   const eligible =
@@ -158,7 +186,8 @@ export function evaluateRequirements(
       missing.anyBins.length === 0 &&
       missing.env.length === 0 &&
       missing.config.length === 0 &&
-      missing.os.length === 0);
+      missing.os.length === 0 &&
+      missing.arch.length === 0);
 
   return { missing, eligible, configChecks };
 }
@@ -180,6 +209,7 @@ export function evaluateRequirementsFromMetadata(
     env: params.metadata?.requires?.env ?? [],
     config: params.metadata?.requires?.config ?? [],
     os: params.metadata?.os ?? [],
+    arch: params.metadata?.arch ?? [],
   };
 
   const result = evaluateRequirements({
@@ -189,7 +219,9 @@ export function evaluateRequirementsFromMetadata(
     hasRemoteBin: params.hasRemoteBin,
     hasRemoteAnyBin: params.hasRemoteAnyBin,
     localPlatform: params.localPlatform,
+    localArch: params.localArch,
     remotePlatforms: params.remotePlatforms,
+    remoteArchitectures: params.remoteArchitectures,
     isEnvSatisfied: params.isEnvSatisfied,
     isConfigSatisfied: params.isConfigSatisfied,
   });
@@ -214,7 +246,9 @@ export function evaluateRequirementsFromMetadataWithRemote(
     hasRemoteBin: params.remote?.hasBin,
     hasRemoteAnyBin: params.remote?.hasAnyBin,
     localPlatform: params.localPlatform,
+    localArch: params.localArch,
     remotePlatforms: params.remote?.platforms,
+    remoteArchitectures: params.remote?.architectures,
     isEnvSatisfied: params.isEnvSatisfied,
     isConfigSatisfied: params.isConfigSatisfied,
   });

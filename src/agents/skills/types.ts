@@ -28,6 +28,7 @@ export type CrawClawSkillMetadata = {
   emoji?: string;
   homepage?: string;
   os?: string[];
+  arch?: string[];
   requires?: {
     bins?: string[];
     anyBins?: string[];
@@ -94,6 +95,7 @@ export type SkillEntry = {
 export type SkillEligibilityContext = {
   remote?: {
     platforms: string[];
+    architectures?: string[];
     hasBin: (bin: string) => boolean;
     hasAnyBin: (bins: string[]) => boolean;
     note?: string;

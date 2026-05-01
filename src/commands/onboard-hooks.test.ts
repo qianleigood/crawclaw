@@ -73,6 +73,7 @@ describe("onboard-hooks", () => {
       env: [],
       config: ["workspace.dir"],
       os: [],
+      arch: [],
     },
     missing: {
       bins: [],
@@ -80,6 +81,7 @@ describe("onboard-hooks", () => {
       env: [],
       config: eligible ? [] : ["workspace.dir"],
       os: [],
+      arch: [],
     },
     configChecks: [],
     install: [],

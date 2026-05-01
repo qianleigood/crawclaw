@@ -5,6 +5,7 @@ export function createEmptyRequirements() {
     env: [],
     config: [],
     os: [],
+    arch: [],
   };
 }
 

@@ -38,6 +38,12 @@ describe("agent memory routing guidance", () => {
       "如果用户即将根据某条 durable memory 采取行动，而不是只是在问历史背景，先验证再建议。",
     );
     expect(contract.text).toContain("把运行态与经验回忆信号当作时间敏感信息，它们可能已经过时。");
+    expect(contract.text).toContain(
+      "如果当前回合明确产出了经过验证、未来可复用的操作经验、决策经验、运行模式、失败模式、工作流或参考资料，且当前可用 write_experience_note，应在当前回合显式调用它。",
+    );
+    expect(contract.text).toContain(
+      "回合结束后的 Experience Agent 也会在 stop lifecycle 后判断是否需要调用 write_experience_note；这是后台兜底，不替代前台主 Agent 对明确经验的显式写入。",
+    );
     expect(contract.text).not.toContain("runtime signals");
   });
 
@@ -84,6 +90,21 @@ describe("agent memory routing guidance", () => {
     expect(prompt).not.toContain("## Durable Memory");
     expect(prompt).not.toContain(
       "Use scoped durable memory tools only for stable, future-useful collaboration information.",
+    );
+  });
+
+  it("renders experience-memory write guardrails in the base prompt when the tool is available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/crawclaw",
+      toolNames: ["write_experience_note"],
+    });
+
+    expect(prompt).toContain("## Experience Memory");
+    expect(prompt).toContain(
+      "Use write_experience_note only for verified reusable procedures, decisions, runtime patterns, failure patterns, collaboration workflows, or references.",
+    );
+    expect(prompt).toContain(
+      "Do not save temporary task progress, unverified guesses, current repo facts, or short-lived debugging state as experience memory.",
     );
   });
 

@@ -807,9 +807,6 @@ export async function runEmbeddedAttempt(
               ...(params.specialDurableMemoryScope
                 ? { specialDurableMemoryScope: params.specialDurableMemoryScope }
                 : {}),
-              ...(params.specialTranscriptSearch
-                ? { specialTranscriptSearch: params.specialTranscriptSearch }
-                : {}),
               ...(params.specialSessionSummaryTarget
                 ? { specialSessionSummaryTarget: params.specialSessionSummaryTarget }
                 : {}),

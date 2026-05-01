@@ -1,6 +1,6 @@
 ---
 name: session-logs
-description: Search and analyze your own session logs with jq and rg. Use when a user references an older conversation, a parent session, or a prior reply that is no longer in current context.
+description: Use when the user references an older conversation, parent session, prior reply, missing context, or session JSONL that needs searching with jq or rg.
 metadata:
   {
     "crawclaw":

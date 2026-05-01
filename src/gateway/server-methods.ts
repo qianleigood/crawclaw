@@ -23,6 +23,7 @@ import { memoryHandlers } from "./server-methods/memory.js";
 import { modelsHandlers } from "./server-methods/models.js";
 import { nodePendingHandlers } from "./server-methods/nodes-pending.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
+import { pluginsHandlers } from "./server-methods/plugins.js";
 import { pushHandlers } from "./server-methods/push.js";
 import { sendHandlers } from "./server-methods/send.js";
 import { sessionsHandlers } from "./server-methods/sessions.js";
@@ -45,6 +46,9 @@ const CONTROL_PLANE_WRITE_METHODS = new Set([
   "config.patch",
   "channels.config.patch",
   "channels.config.apply",
+  "plugins.enable",
+  "plugins.disable",
+  "plugins.install",
   "update.run",
   "improvement.run",
   "improvement.review",
@@ -108,6 +112,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...toolsCatalogHandlers,
   ...toolsEffectiveHandlers,
   ...ttsHandlers,
+  ...pluginsHandlers,
   ...skillsHandlers,
   ...sessionsHandlers,
   ...systemHandlers,

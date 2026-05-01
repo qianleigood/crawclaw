@@ -36,13 +36,6 @@ export type SpecialAgentEmbeddedContext = {
       agentId: string;
       sessionId: string;
     };
-    transcriptSearch?: {
-      sessionIds?: string[];
-      maxSessions?: number;
-      maxMatchesPerSession?: number;
-      maxTotalBytes?: number;
-      maxExcerptChars?: number;
-    };
   };
   config?: CrawClawConfig;
   sessionKey?: string;

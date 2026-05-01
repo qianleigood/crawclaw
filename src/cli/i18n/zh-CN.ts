@@ -628,7 +628,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.hooks.noun.many": "hooks",
   "wizard.hooks.configuredTitle": "Hooks 已配置",
   "wizard.skills.status":
-    "符合条件：{eligible}\n缺失要求：{missing}\n当前 OS 不支持：{unsupported}\n被 allowlist 阻止：{blocked}",
+    "符合条件：{eligible}\n缺失要求：{missing}\n当前平台不支持：{unsupported}\n被 allowlist 阻止：{blocked}",
   "wizard.skills.statusTitle": "技能状态",
   "wizard.skills.homebrewRecommended":
     "很多技能依赖通过 Homebrew 分发。\n没有 brew 时，你需要自行从源码构建或手动下载 release。",

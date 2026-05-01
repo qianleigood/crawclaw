@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """
 MiniMax Sync TTS (HTTP)
-Self-contained: no external dependencies beyond `requests`.
+Self-contained: uses only the Python standard library.
 
 Usage:
   python minimax_tts.py "Hello world" -o output.mp3
@@ -17,7 +17,7 @@ import json
 import os
 import sys
 
-import requests
+from minimax_http import request_json
 
 API_KEY = os.getenv("MINIMAX_API_KEY")
 # China Mainland: https://api.minimaxi.com/v1
@@ -64,17 +64,16 @@ def tts(
         "output_format": "hex",
     }
 
-    resp = requests.post(
+    data = request_json(
         f"{API_BASE}/t2a_v2",
         headers={
             "Authorization": f"Bearer {API_KEY}",
             "Content-Type": "application/json",
         },
-        json=payload,
+        method="POST",
+        payload=payload,
         timeout=timeout,
     )
-    resp.raise_for_status()
-    data = resp.json()
 
     # Check API-level error
     base_resp = data.get("base_resp", {})

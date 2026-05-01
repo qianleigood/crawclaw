@@ -17,7 +17,6 @@ import { createCompleteFn, type CompleteFn } from "../extraction/llm.ts";
 import { IngestCoordinator } from "../ingest/ingest-coordinator.ts";
 import { UnifiedContextAssembler } from "../orchestration/context-assembler.ts";
 import { UnifiedQueryClassifier } from "../orchestration/query-classifier.ts";
-import { UnifiedReranker } from "../orchestration/unified-reranker.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import { getSharedSessionSummaryLifecycleSubscriber } from "../session-summary/lifecycle-subscriber.ts";
 import { getSharedSessionSummaryScheduler } from "../session-summary/scheduler.ts";
@@ -56,7 +55,6 @@ export function createContextMemoryRuntimeDeps(options: {
     config: options.config,
   });
   const queryClassifier = new UnifiedQueryClassifier();
-  const reranker = new UnifiedReranker();
   const contextAssembler = new UnifiedContextAssembler();
   const experienceProviderRegistry = createDefaultExperienceProviderRegistry({
     notebooklm: options.config?.notebooklm,
@@ -152,7 +150,6 @@ export function createContextMemoryRuntimeDeps(options: {
     structuredComplete,
     ingestCoordinator,
     queryClassifier,
-    reranker,
     contextAssembler,
     experienceProviderRegistry,
     skillIndexStore,

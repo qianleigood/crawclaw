@@ -85,6 +85,7 @@ describe("skills-cli", () => {
             env: ["API_KEY"],
             config: [],
             os: ["darwin"],
+            arch: ["arm64"],
           },
         }),
       ]);
@@ -93,6 +94,7 @@ describe("skills-cli", () => {
       expect(output).toContain("needs setup");
       expect(output).toContain("anyBins");
       expect(output).toContain("os:");
+      expect(output).toContain("arch:");
     });
 
     it("filters to eligible only with --eligible flag", () => {
@@ -130,6 +132,7 @@ describe("skills-cli", () => {
             env: ["API_KEY"],
             config: [],
             os: [],
+            arch: [],
           },
           missing: {
             bins: [],
@@ -137,6 +140,7 @@ describe("skills-cli", () => {
             env: ["API_KEY"],
             config: [],
             os: [],
+            arch: [],
           },
         }),
       ]);
@@ -162,6 +166,7 @@ describe("skills-cli", () => {
             env: ["API_KEY"],
             config: [],
             os: [],
+            arch: [],
           },
           missing: {
             bins: [],
@@ -169,6 +174,7 @@ describe("skills-cli", () => {
             env: ["API_KEY"],
             config: [],
             os: [],
+            arch: [],
           },
         }),
       ]);
@@ -200,7 +206,7 @@ describe("skills-cli", () => {
         createMockSkill({
           name: "not-ready",
           eligible: false,
-          missing: { bins: ["go"], anyBins: [], env: [], config: [], os: [] },
+          missing: { bins: ["go"], anyBins: [], env: [], config: [], os: [], arch: [] },
         }),
         createMockSkill({ name: "disabled", eligible: false, disabled: true }),
       ]);
@@ -220,7 +226,7 @@ describe("skills-cli", () => {
           name: "missing-emoji",
           emoji: "🎙\uFE0E",
           eligible: false,
-          missing: { bins: ["ffmpeg"], anyBins: [], env: [], config: [], os: [] },
+          missing: { bins: ["ffmpeg"], anyBins: [], env: [], config: [], os: [], arch: [] },
         }),
       ]);
 

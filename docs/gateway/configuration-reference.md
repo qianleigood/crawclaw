@@ -1823,7 +1823,13 @@ Defaults for Talk mode (macOS; archived mobile runtimes had separate compatibili
 
 `tools.profile` sets a base allowlist before `tools.allow`/`tools.deny`:
 
-Local onboarding defaults new local configs to `tools.profile: "coding"` when unset (existing explicit profiles are preserved).
+Local onboarding defaults new local configs to `tools.profile: "coding"` when unset
+(existing explicit profiles are preserved) and adds only the designed default
+`main` agent tools with `agents.list[].tools.alsoAllow`: `browser`,
+`memory_manifest_read`, `memory_note_read`, `memory_note_write`,
+`memory_note_edit`, `memory_note_delete`, and `write_experience_note`. That
+agent-level additive policy applies regardless of whether the effective profile
+is `minimal`, `coding`, `messaging`, or `full`.
 
 | Profile     | Includes                                                                                  |
 | ----------- | ----------------------------------------------------------------------------------------- |

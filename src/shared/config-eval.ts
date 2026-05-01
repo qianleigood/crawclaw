@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { resolveSystemBin } from "../infra/resolve-system-bin.js";
 
 export function isTruthy(value: unknown): boolean {
   if (value === undefined || value === null) {
@@ -175,6 +176,14 @@ export function hasBinary(bin: string): boolean {
       }
     }
   }
+
+  // macOS GUI/launchd environments can omit Homebrew dirs from PATH even when
+  // the binary is installed in a standard package-manager location.
+  if (process.platform === "darwin" && resolveSystemBin(bin, { trust: "standard" })) {
+    hasBinaryCache.set(bin, true);
+    return true;
+  }
+
   hasBinaryCache.set(bin, false);
   return false;
 }

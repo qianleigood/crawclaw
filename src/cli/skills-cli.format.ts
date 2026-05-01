@@ -91,6 +91,9 @@ function formatSkillMissingSummary(skill: SkillStatusEntry): string {
   if (skill.missing.os.length > 0) {
     missing.push(`os: ${skill.missing.os.join(", ")}`);
   }
+  if (skill.missing.arch.length > 0) {
+    missing.push(`arch: ${skill.missing.arch.join(", ")}`);
+  }
   return missing.join("; ");
 }
 
@@ -218,7 +221,8 @@ export function formatSkillInfo(
     skill.requirements.anyBins.length > 0 ||
     skill.requirements.env.length > 0 ||
     skill.requirements.config.length > 0 ||
-    skill.requirements.os.length > 0;
+    skill.requirements.os.length > 0 ||
+    skill.requirements.arch.length > 0;
 
   if (hasRequirements) {
     lines.push("");
@@ -258,6 +262,13 @@ export function formatSkillInfo(
         return missing ? theme.error(`✗ ${osName}`) : theme.success(`✓ ${osName}`);
       });
       lines.push(`${theme.muted("  OS:")} ${osStatus.join(", ")}`);
+    }
+    if (skill.requirements.arch.length > 0) {
+      const archStatus = skill.requirements.arch.map((archName) => {
+        const missing = skill.missing.arch.includes(archName);
+        return missing ? theme.error(`✗ ${archName}`) : theme.success(`✓ ${archName}`);
+      });
+      lines.push(`${theme.muted("  Arch:")} ${archStatus.join(", ")}`);
     }
   }
 

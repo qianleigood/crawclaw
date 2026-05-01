@@ -333,8 +333,11 @@ describe("createContextMemoryRuntime().assemble", () => {
     expect(systemContextText).toContain("## 经验回忆");
     expect(systemContextText).toContain("## 操作经验");
     expect(systemContextText).toContain("【操作经验】本地网关异常恢复 适用场景：");
-    expect(systemContextText).not.toContain("## 决策经验");
-    expect(systemContextText).not.toContain("【决策经验】经验召回改用 NotebookLM");
+    expect(systemContextText).toContain("## 决策经验");
+    expect(systemContextText).toContain("【决策经验】经验召回改用 NotebookLM");
+    expect(systemContextText).toMatch(
+      /## 操作经验[\s\S]*本地网关异常恢复[\s\S]*## 决策经验[\s\S]*经验召回改用 NotebookLM/,
+    );
     const routingContractSection = systemContextSections.find(
       (section) => section.id === "memory:routing_contract",
     );
@@ -553,6 +556,114 @@ describe("createContextMemoryRuntime().assemble", () => {
       limit: 7,
       providerIds: ["notebooklm"],
     });
+  });
+
+  it("keeps NotebookLM provider order for experience recall instead of local score order", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+
+    searchNotebookLmViaCliMock.mockResolvedValue([
+      {
+        id: "experience:gemini-first",
+        source: "notebooklm",
+        title: "Gemini 第一选择",
+        summary: "NotebookLM 判断这条经验最适合当前问题，即使本地 retrievalScore 很低。",
+        layer: "sop",
+        memoryKind: "procedure",
+        retrievalScore: 0.1,
+        importance: 0.1,
+        metadata: {},
+      },
+      {
+        id: "experience:local-score-first",
+        source: "notebooklm",
+        title: "本地分数较高但排第二",
+        summary: "这条经验有更高的本地 retrievalScore，但 NotebookLM 把它排在第二。",
+        layer: "sop",
+        memoryKind: "procedure",
+        retrievalScore: 0.99,
+        importance: 0.99,
+        metadata: {},
+      },
+    ]);
+    recallDurableMemoryMock.mockResolvedValue({
+      scope: {
+        agentId: "main",
+        channel: "feishu",
+        userId: "user-42",
+        scopeKey: "main:feishu:user-42",
+        rootDir: "/tmp/durable",
+      },
+      manifest: [],
+      items: [],
+      selection: {
+        mode: "heuristic",
+        selectedItemIds: [],
+        omittedItemIds: [],
+        selectedDetails: [],
+        omittedDetails: [],
+        recentDreamTouchedNotes: [],
+      },
+    });
+
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-provider-order"),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: {
+        ...createBaseMemoryRuntimeConfig(),
+        notebooklm: {
+          ...createBaseMemoryRuntimeConfig().notebooklm,
+          enabled: true,
+          cli: {
+            enabled: true,
+            command: "python3",
+            args: [],
+            timeoutMs: 30_000,
+            limit: 5,
+          },
+        },
+      },
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-provider-order",
+      sessionKey: "session-provider-order",
+      prompt: "本地网关挂了怎么恢复？给我操作流程",
+      messages: castAgentMessages([
+        { role: "user", content: "本地网关挂了怎么恢复？给我操作流程" },
+      ]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-42",
+      },
+    });
+
+    expect(result.diagnostics?.memoryRecall?.selectedExperienceItemIds).toEqual([
+      "experience:gemini-first",
+      "experience:local-score-first",
+    ]);
+    expect(result.diagnostics?.memoryRecall?.selectedExperienceDetails).toEqual([
+      expect.objectContaining({
+        itemId: "experience:gemini-first",
+        providerOrder: 0,
+        selectionReason: "notebooklm_provider_order",
+      }),
+      expect.objectContaining({
+        itemId: "experience:local-score-first",
+        providerOrder: 1,
+        selectionReason: "notebooklm_provider_order",
+      }),
+    ]);
+    expect(result.diagnostics?.memoryRecall?.selectedExperienceDetails?.[0]).not.toHaveProperty(
+      "scoreBreakdown",
+    );
+    expect(renderQueryContextSections(result.systemContextSections)).toMatch(
+      /Gemini 第一选择[\s\S]*本地分数较高但排第二/,
+    );
   });
 
   it("does not fall back to the local experience index when NotebookLM has no hits", async () => {

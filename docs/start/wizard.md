@@ -87,7 +87,7 @@ Onboarding starts with **QuickStart** (defaults) vs **Advanced** (full control).
    If token auth requires a token and the configured token SecretRef is unresolved, daemon install is blocked with actionable guidance.
    If both `gateway.auth.token` and `gateway.auth.password` are configured and `gateway.auth.mode` is unset, daemon install is blocked until mode is set explicitly.
 8. **Health check** — Starts the Gateway and verifies it's running.
-9. **Skills** — Installs recommended skills and optional dependencies.
+9. **Skills** — Checks bundled skills, offers one install step for missing core skill dependencies, and can configure local Ollama embeddings for semantic skill discovery. Ollama here is only for skill embeddings, not the main chat model.
 
 <Note>
 Re-running onboarding does **not** wipe anything unless you explicitly choose **Reset** (or pass `--reset`).

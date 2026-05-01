@@ -20,12 +20,14 @@ function makeEntry(params: {
   name: string;
   source?: string;
   os?: string[];
+  arch?: string[];
   requires?: { bins?: string[]; env?: string[]; config?: string[] };
   install?: Array<{
     id: string;
-    kind: "brew" | "download";
+    kind: "brew" | "download" | "node";
     bins?: string[];
     formula?: string;
+    package?: string;
     os?: string[];
     url?: string;
     label?: string;
@@ -44,6 +46,7 @@ function makeEntry(params: {
     frontmatter: {},
     metadata: {
       ...(params.os ? { os: params.os } : {}),
+      ...(params.arch ? { arch: params.arch } : {}),
       ...(params.requires ? { requires: params.requires } : {}),
       ...(params.install ? { install: params.install } : {}),
       ...(params.requires?.env?.[0] ? { primaryEnv: params.requires.env[0] } : {}),
@@ -112,6 +115,24 @@ describe("buildWorkspaceSkillStatus", () => {
     } else {
       expect(skill?.eligible).toBe(false);
       expect(skill?.missing.os).toEqual(["darwin"]);
+    }
+  });
+  it("respects architecture-gated skills", async () => {
+    const entry = makeEntry({
+      name: "arch-skill",
+      arch: ["arm64"],
+    });
+
+    const report = buildWorkspaceSkillStatus("/tmp/ws", { entries: [entry] });
+    const skill = report.skills.find((entry) => entry.name === "arch-skill");
+
+    expect(skill).toBeDefined();
+    if (process.arch === "arm64") {
+      expect(skill?.eligible).toBe(true);
+      expect(skill?.missing.arch).toEqual([]);
+    } else {
+      expect(skill?.eligible).toBe(false);
+      expect(skill?.missing.arch).toEqual(["arm64"]);
     }
   });
   it("marks bundled skills blocked by allowlist", async () => {
@@ -206,5 +227,43 @@ describe("buildWorkspaceSkillStatus", () => {
     } else {
       expect(skill?.install).toEqual([]);
     }
+  });
+
+  it("prefers node install when preferBrew is disabled", async () => {
+    const entry = makeEntry({
+      name: "summarize-like-skill",
+      requires: {
+        bins: ["missing-summarize-bin"],
+      },
+      install: [
+        {
+          id: "brew",
+          kind: "brew",
+          formula: "summarize",
+          bins: ["missing-summarize-bin"],
+          label: "Install summarize (brew)",
+        },
+        {
+          id: "node",
+          kind: "node",
+          package: "@steipete/summarize",
+          bins: ["missing-summarize-bin"],
+          label: "Install summarize (npm)",
+        },
+      ],
+    });
+
+    const report = withEnv({ PATH: "" }, () =>
+      buildWorkspaceSkillStatus("/tmp/ws", {
+        entries: [entry],
+        config: { skills: { install: { preferBrew: false, nodeManager: "npm" } } },
+      }),
+    );
+    const skill = report.skills.find((reportEntry) => reportEntry.name === "summarize-like-skill");
+
+    expect(skill).toBeDefined();
+    expect(skill?.eligible).toBe(false);
+    expect(skill?.install.map((opt) => opt.id)).toEqual(["node"]);
+    expect(skill?.install[0]?.label).toBe("Install @steipete/summarize (npm)");
   });
 });

@@ -82,7 +82,6 @@ describe("runDreamAgentOnce", () => {
         "memory_note_write",
         "memory_note_edit",
         "memory_note_delete",
-        "memory_transcript_search",
       ],
       enforcement: "runtime_deny",
     });
@@ -94,8 +93,8 @@ describe("runDreamAgentOnce", () => {
     expect(systemPrompt).toContain("hard turn budget of 8 turns");
     expect(systemPrompt).toContain("Review the provided recent session summaries");
     expect(systemPrompt).toContain("Do not grep transcripts as a primary workflow");
-    expect(systemPrompt).toContain("memory_transcript_search");
-    expect(systemPrompt).toContain("fallback only");
+    expect(systemPrompt).not.toContain("memory_transcript_search");
+    expect(systemPrompt).not.toContain("Transcript fallback");
     expect(systemPrompt).toContain("Keep MEMORY.md as a short index");
     expect(systemPrompt).toContain("Orient -> Gather -> Consolidate -> Prune");
     expect(systemPrompt).toContain("description");
@@ -122,17 +121,6 @@ describe("runDreamAgentOnce", () => {
           text: "Memory extraction wrote durable notes",
         },
       ],
-      transcriptFallback: {
-        enabled: true,
-        reasons: ["missing_session_summary"],
-        sessionIds: ["s1"],
-        limits: {
-          maxSessions: 4,
-          maxMatchesPerSession: 2,
-          maxTotalBytes: 12_000,
-          maxExcerptChars: 900,
-        },
-      },
       existingEntries: [],
       dryRun: true,
     });
@@ -140,10 +128,8 @@ describe("runDreamAgentOnce", () => {
     expect(taskPrompt).toContain("Recent session summaries since the last successful dream run");
     expect(taskPrompt).toContain("Recent structured signals:");
     expect(taskPrompt).toContain("Gather recent signal from the provided session summaries first");
-    expect(taskPrompt).toContain("Transcript fallback:");
-    expect(taskPrompt).toContain("missing_session_summary");
-    expect(taskPrompt).toContain("memory_transcript_search");
-    expect(taskPrompt).toContain("sessionIds=s1");
+    expect(taskPrompt).not.toContain("Transcript fallback:");
+    expect(taskPrompt).not.toContain("memory_transcript_search");
     expect(taskPrompt).toContain("Prune and index");
     expect(taskPrompt).toContain("do not call any write/edit/delete tool");
   });

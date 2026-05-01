@@ -34,6 +34,7 @@ describe("shared/entry-status", () => {
           config: ["gateway.bind"],
         },
         os: ["darwin"],
+        arch: ["arm64"],
       },
       frontmatter: {
         emoji: "🙂",
@@ -41,6 +42,7 @@ describe("shared/entry-status", () => {
       },
       hasLocalBin: (bin) => bin === "bun",
       localPlatform: "linux",
+      localArch: "x64",
       remote: {
         hasAnyBin: (bins) => bins.includes("sox"),
       },
@@ -57,6 +59,7 @@ describe("shared/entry-status", () => {
         env: ["CRAWCLAW_TOKEN"],
         config: ["gateway.bind"],
         os: ["darwin"],
+        arch: ["arm64"],
       },
       missing: {
         bins: [],
@@ -64,6 +67,7 @@ describe("shared/entry-status", () => {
         env: ["CRAWCLAW_TOKEN"],
         config: [],
         os: ["darwin"],
+        arch: ["arm64"],
       },
       requirementsSatisfied: false,
       configChecks: [{ path: "gateway.bind", satisfied: true }],
@@ -85,6 +89,7 @@ describe("shared/entry-status", () => {
 
     expect(result.requirementsSatisfied).toBe(true);
     expect(result.missing.os).toEqual([]);
+    expect(result.missing.arch).toEqual([]);
   });
 
   it("pulls metadata and frontmatter from entry objects in the entry wrapper", () => {
@@ -117,6 +122,7 @@ describe("shared/entry-status", () => {
         env: [],
         config: [],
         os: [],
+        arch: [],
       },
       missing: {
         bins: [],
@@ -124,6 +130,7 @@ describe("shared/entry-status", () => {
         env: [],
         config: [],
         os: [],
+        arch: [],
       },
       requirementsSatisfied: true,
       configChecks: [],
@@ -135,6 +142,7 @@ describe("shared/entry-status", () => {
       always: false,
       hasLocalBin: () => false,
       localPlatform: "linux",
+      localArch: "x64",
       isEnvSatisfied: () => false,
       isConfigSatisfied: () => false,
     });
@@ -146,6 +154,7 @@ describe("shared/entry-status", () => {
         env: [],
         config: [],
         os: [],
+        arch: [],
       },
       missing: {
         bins: [],
@@ -153,6 +162,7 @@ describe("shared/entry-status", () => {
         env: [],
         config: [],
         os: [],
+        arch: [],
       },
       requirementsSatisfied: true,
       configChecks: [],

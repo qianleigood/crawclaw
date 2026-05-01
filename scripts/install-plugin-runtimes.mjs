@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -10,9 +20,13 @@ const WINDOWS_UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
 const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
 const PINCHTAB_VERSION = "0.9.1";
+const N8N_VERSION = "2.18.5";
+const N8N_ZH_CN_EDITOR_UI_SOURCE = "other-blowsnow/n8n-i18n-chinese";
+const CORE_SKILLS_MINIMUM_PYTHON_VERSION = "3.10";
 const SCRAPLING_MINIMUM_PYTHON_VERSION = "3.10";
 const NOTEBOOKLM_MCP_CLI_VERSION = "0.6.1";
 const NOTEBOOKLM_MINIMUM_PYTHON_VERSION = "3.11";
+const CORE_SKILLS_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"];
 const SCRAPLING_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_SCRAPLING_PYTHON"];
 const NOTEBOOKLM_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_NOTEBOOKLM_PYTHON"];
 const NPM_INSTALL_MAX_ATTEMPTS = 3;
@@ -26,30 +40,38 @@ const SCRAPLING_REQUIREMENTS_LOCK = path.join(
   "runtime",
   "requirements.lock.txt",
 );
+const CORE_SKILLS_REQUIREMENTS_LOCK = path.join(
+  PACKAGE_ROOT,
+  "skills",
+  ".runtime",
+  "requirements.lock.txt",
+);
+const OPENAI_WHISPER_REQUIREMENTS_LOCK = path.join(
+  PACKAGE_ROOT,
+  "skills",
+  "openai-whisper",
+  "runtime",
+  "requirements.macos-arm64.lock.txt",
+);
 const WINDOWS_SCRAPLING_RUNTIME_PACKAGES = ["msvc-runtime==14.44.35112"];
 
 function resolvePlatformPythonCandidates(platform = process.platform) {
-  return platform === "win32"
-    ? [
-        "python3.14",
-        "python3.13",
-        "python3.12",
-        "python3.11",
-        "python3.10",
-        "python3",
-        "python",
-        "py",
-      ]
-    : [
-        "/opt/homebrew/bin/python3",
-        "python3.14",
-        "python3.13",
-        "python3.12",
-        "python3.11",
-        "python3.10",
-        "python3",
-        "python",
-      ];
+  const baseCandidates = [
+    "python3.14",
+    "python3.13",
+    "python3.12",
+    "python3.11",
+    "python3.10",
+    "python3",
+    "python",
+  ];
+  if (platform === "win32") {
+    return [...baseCandidates, "py"];
+  }
+  if (platform === "darwin") {
+    return ["/opt/homebrew/bin/python3", ...baseCandidates];
+  }
+  return baseCandidates;
 }
 
 function resolveStateRoot(env = process.env) {
@@ -148,6 +170,18 @@ function runOrThrow(command, args, options = {}) {
 
 function normalizeErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
+}
+
+export function resolveN8nChineseEditorUiUrl(version = N8N_VERSION) {
+  return `https://github.com/${N8N_ZH_CN_EDITOR_UI_SOURCE}/releases/download/release%2F${version}/editor-ui.tar.gz`;
+}
+
+function resolveN8nEditorUiDistDir(runtimeDir) {
+  return path.join(runtimeDir, "node_modules", "n8n-editor-ui", "dist");
+}
+
+function resolveN8nEditorUiLocalizationMetadataPath(distDir) {
+  return path.join(distDir, ".crawclaw-localization.json");
 }
 
 function sleepSync(ms) {
@@ -351,6 +385,54 @@ function verifyScraplingRuntime(pythonBin) {
   runOrThrow(pythonBin, ["-c", buildScraplingImportCheckScript()]);
 }
 
+function installPythonRequirementsRuntime(params, env = process.env) {
+  const runtimeDir = path.join(resolveRuntimesRoot(env), params.id);
+  const venvDir = path.join(runtimeDir, "venv");
+  const python = resolveBestPython(env, {
+    label: params.id,
+    minimumVersion: params.minimumVersion,
+    envOverrides: params.envOverrides,
+  });
+  const lockedPackages = readLockedRequirements(params.requirementsLockPath);
+  mkdirSync(runtimeDir, { recursive: true });
+  const venvPython = resolveScraplingVenvPython(venvDir);
+  if (!existsSync(venvPython)) {
+    runOrThrow(python.command, ["-m", "venv", venvDir], { env });
+  }
+  runOrThrow(venvPython, ["-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"], {
+    env,
+  });
+  runOrThrow(
+    venvPython,
+    ["-m", "pip", "install", "--disable-pip-version-check", ...lockedPackages],
+    { env },
+  );
+  if (params.verifyScript) {
+    runOrThrow(venvPython, ["-c", params.verifyScript], { env });
+  }
+  return {
+    state: "healthy",
+    python: python.command,
+    pythonVersion: python.version.text,
+    venvDir,
+    installedAt: new Date().toISOString(),
+    packages: [...lockedPackages],
+  };
+}
+
+function installCoreSkillsRuntime(env = process.env) {
+  return installPythonRequirementsRuntime(
+    {
+      id: "core-skills",
+      minimumVersion: CORE_SKILLS_MINIMUM_PYTHON_VERSION,
+      envOverrides: CORE_SKILLS_PYTHON_ENV_OVERRIDES,
+      requirementsLockPath: CORE_SKILLS_REQUIREMENTS_LOCK,
+      verifyScript: "import yaml; print('ok')",
+    },
+    env,
+  );
+}
+
 function installScraplingRuntime(env = process.env) {
   const runtimesRoot = resolveRuntimesRoot(env);
   const runtimeDir = path.join(runtimesRoot, "scrapling-fetch");
@@ -428,6 +510,26 @@ function installNotebookLmRuntime(env = process.env) {
   };
 }
 
+function supportsOpenAiWhisperRuntime(platform = process.platform, arch = process.arch) {
+  return platform === "darwin" && arch === "arm64";
+}
+
+function installOpenAiWhisperRuntime(env = process.env) {
+  if (!supportsOpenAiWhisperRuntime()) {
+    throw new Error("skill-openai-whisper requires macOS Apple Silicon.");
+  }
+  return installPythonRequirementsRuntime(
+    {
+      id: "skill-openai-whisper",
+      minimumVersion: CORE_SKILLS_MINIMUM_PYTHON_VERSION,
+      envOverrides: CORE_SKILLS_PYTHON_ENV_OVERRIDES,
+      requirementsLockPath: OPENAI_WHISPER_REQUIREMENTS_LOCK,
+      verifyScript: "import mlx_whisper; print('ok')",
+    },
+    env,
+  );
+}
+
 function installOpenWebSearchRuntime(env = process.env) {
   const runtimeDir = path.join(resolveRuntimesRoot(env), "open-websearch");
   mkdirSync(runtimeDir, { recursive: true });
@@ -456,6 +558,185 @@ function installOpenWebSearchRuntime(env = process.env) {
     version: OPEN_WEBSEARCH_VERSION,
     installDir: runtimeDir,
     binPath,
+    installedAt: new Date().toISOString(),
+  };
+}
+
+function resolveN8nRuntimeBin(runtimeDir) {
+  return process.platform === "win32"
+    ? path.join(runtimeDir, "node_modules", ".bin", "n8n.cmd")
+    : path.join(runtimeDir, "node_modules", ".bin", "n8n");
+}
+
+function hasN8nChineseLocalization(distDir) {
+  const assetsDir = path.join(distDir, "assets");
+  if (!existsSync(assetsDir)) {
+    return false;
+  }
+  for (const entry of readdirSync(assetsDir)) {
+    if (/^zh-CN[-.].*\.js$/u.test(entry)) {
+      return true;
+    }
+    if (!entry.endsWith(".js")) {
+      continue;
+    }
+    const asset = readFileSync(path.join(assetsDir, entry), "utf8");
+    if (/工作流|凭证|执行|运行|节点/u.test(asset)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function downloadN8nChineseEditorUiArchive(url, archivePath, env = process.env) {
+  try {
+    runOrThrow("curl", ["-fL", url, "-o", archivePath], { env });
+    return;
+  } catch (curlError) {
+    if (process.platform !== "win32") {
+      throw curlError;
+    }
+  }
+  runOrThrow(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$ProgressPreference='SilentlyContinue'; " +
+        `Invoke-WebRequest -Uri ${JSON.stringify(url)} -OutFile ${JSON.stringify(archivePath)}`,
+    ],
+    { env },
+  );
+}
+
+function findExtractedN8nEditorUiDistDir(rootDir, maxDepth = 4) {
+  const queue = [{ dir: rootDir, depth: 0 }];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || current.depth > maxDepth) {
+      continue;
+    }
+    if (
+      path.basename(current.dir) === "dist" &&
+      existsSync(path.join(current.dir, "index.html")) &&
+      existsSync(path.join(current.dir, "assets"))
+    ) {
+      return current.dir;
+    }
+    for (const entry of readdirSync(current.dir)) {
+      const child = path.join(current.dir, entry);
+      if (statSync(child).isDirectory()) {
+        queue.push({ dir: child, depth: current.depth + 1 });
+      }
+    }
+  }
+  return null;
+}
+
+export function applyN8nChineseEditorUi(runtimeDir, env = process.env) {
+  const distDir = resolveN8nEditorUiDistDir(runtimeDir);
+  const url = resolveN8nChineseEditorUiUrl();
+  const base = {
+    locale: "zh-CN",
+    source: N8N_ZH_CN_EDITOR_UI_SOURCE,
+    url,
+  };
+  if (!existsSync(distDir)) {
+    throw new Error(`n8n editor-ui dist missing after install: ${distDir}`);
+  }
+  if (hasN8nChineseLocalization(distDir)) {
+    return {
+      ...base,
+      state: "healthy",
+      installedAt: new Date().toISOString(),
+      reason: "already-installed",
+    };
+  }
+
+  const parentDir = path.dirname(distDir);
+  const tempRoot = mkdtempSync(path.join(parentDir, ".crawclaw-i18n-"));
+  const archivePath = path.join(tempRoot, "editor-ui.tar.gz");
+  const extractDir = path.join(tempRoot, "extract");
+  const backupDir = path.join(parentDir, ".crawclaw-editor-ui-dist-backup");
+  mkdirSync(extractDir, { recursive: true });
+  try {
+    downloadN8nChineseEditorUiArchive(url, archivePath, env);
+    runOrThrow("tar", ["-xzf", archivePath, "-C", extractDir], { env });
+    const extractedDistDir = findExtractedN8nEditorUiDistDir(extractDir);
+    if (!extractedDistDir) {
+      throw new Error("downloaded n8n zh-CN editor-ui archive did not contain a dist directory");
+    }
+    if (!hasN8nChineseLocalization(extractedDistDir)) {
+      throw new Error("downloaded n8n zh-CN editor-ui archive did not contain zh-CN localization");
+    }
+
+    rmSync(backupDir, { recursive: true, force: true });
+    renameSync(distDir, backupDir);
+    try {
+      renameSync(extractedDistDir, distDir);
+    } catch (error) {
+      rmSync(distDir, { recursive: true, force: true });
+      renameSync(backupDir, distDir);
+      throw error;
+    }
+    rmSync(backupDir, { recursive: true, force: true });
+    const metadata = {
+      ...base,
+      state: "healthy",
+      installedAt: new Date().toISOString(),
+      n8nVersion: N8N_VERSION,
+    };
+    writeFileSync(
+      resolveN8nEditorUiLocalizationMetadataPath(distDir),
+      `${JSON.stringify(metadata, null, 2)}\n`,
+      "utf8",
+    );
+    return metadata;
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
+function installN8nRuntime(env = process.env) {
+  const runtimeDir = path.join(resolveRuntimesRoot(env), "n8n");
+  mkdirSync(runtimeDir, { recursive: true });
+  const nestedEnv = createNestedNpmInstallEnv(env);
+  const packageSpec = `n8n@${N8N_VERSION}`;
+  const npmRunner = resolveNpmRunner({
+    env: nestedEnv,
+    npmArgs: createLocalPrefixNpmInstallArgs(runtimeDir, packageSpec),
+  });
+  runNpmInstallWithRetry(npmRunner.command, npmRunner.args, {
+    env: npmRunner.env ?? nestedEnv,
+    shell: npmRunner.shell,
+    windowsVerbatimArguments: npmRunner.windowsVerbatimArguments,
+  });
+  const binPath = resolveN8nRuntimeBin(runtimeDir);
+  if (!existsSync(binPath)) {
+    throw new Error(`n8n binary missing after install: ${binPath}`);
+  }
+  let localization;
+  try {
+    localization = applyN8nChineseEditorUi(runtimeDir, env);
+  } catch (error) {
+    localization = {
+      locale: "zh-CN",
+      source: N8N_ZH_CN_EDITOR_UI_SOURCE,
+      url: resolveN8nChineseEditorUiUrl(),
+      state: "unavailable",
+      error: normalizeErrorMessage(error),
+      installedAt: new Date().toISOString(),
+    };
+  }
+  return {
+    state: "healthy",
+    version: N8N_VERSION,
+    package: packageSpec,
+    installDir: runtimeDir,
+    binPath,
+    localization,
     installedAt: new Date().toISOString(),
   };
 }
@@ -495,21 +776,48 @@ function installBrowserRuntime(env = process.env) {
 }
 
 function listManagedPluginRuntimeInstallers() {
-  return [
+  const installers = [
     { id: "browser", installer: installBrowserRuntime },
+    { id: "core-skills", installer: installCoreSkillsRuntime },
+    { id: "n8n", installer: installN8nRuntime },
     { id: "open-websearch", installer: installOpenWebSearchRuntime },
     { id: "scrapling-fetch", installer: installScraplingRuntime },
     { id: "notebooklm-mcp-cli", installer: installNotebookLmRuntime },
   ];
+  if (supportsOpenAiWhisperRuntime()) {
+    installers.push({ id: "skill-openai-whisper", installer: installOpenAiWhisperRuntime });
+  }
+  return installers;
 }
 
 export function listManagedPluginRuntimeInstallPlan(params = {}) {
   const platform = params.platform ?? process.platform;
+  const arch = params.arch ?? process.arch;
   return [
     {
       id: "browser",
       installTime: true,
       npmPackage: `pinchtab@${PINCHTAB_VERSION}`,
+    },
+    {
+      id: "core-skills",
+      installTime: true,
+      python: {
+        candidates: resolvePlatformPythonCandidates(platform),
+        envOverrides: [...CORE_SKILLS_PYTHON_ENV_OVERRIDES],
+        minimumVersion: CORE_SKILLS_MINIMUM_PYTHON_VERSION,
+        requirementsLockPath: CORE_SKILLS_REQUIREMENTS_LOCK,
+      },
+    },
+    {
+      id: "n8n",
+      installTime: true,
+      localization: {
+        locale: "zh-CN",
+        source: N8N_ZH_CN_EDITOR_UI_SOURCE,
+        url: resolveN8nChineseEditorUiUrl(),
+      },
+      npmPackage: `n8n@${N8N_VERSION}`,
     },
     {
       id: "open-websearch",
@@ -535,6 +843,17 @@ export function listManagedPluginRuntimeInstallPlan(params = {}) {
         envOverrides: [...NOTEBOOKLM_PYTHON_ENV_OVERRIDES],
         minimumVersion: NOTEBOOKLM_MINIMUM_PYTHON_VERSION,
         package: `notebooklm-mcp-cli==${NOTEBOOKLM_MCP_CLI_VERSION}`,
+      },
+    },
+    {
+      id: "skill-openai-whisper",
+      installTime: supportsOpenAiWhisperRuntime(platform, arch),
+      platforms: ["darwin:arm64"],
+      python: {
+        candidates: resolvePlatformPythonCandidates(platform),
+        envOverrides: [...CORE_SKILLS_PYTHON_ENV_OVERRIDES],
+        minimumVersion: CORE_SKILLS_MINIMUM_PYTHON_VERSION,
+        requirementsLockPath: OPENAI_WHISPER_REQUIREMENTS_LOCK,
       },
     },
   ];

@@ -1,6 +1,6 @@
 ---
 name: node-connect
-description: Diagnose CrawClaw node connection and pairing failures for Android, iOS, and macOS companion apps. Use when QR, setup code, or manual connect fails, especially around LAN, tailnet, public URL, pairing, or bootstrap token errors.
+description: Use when CrawClaw Android, iOS, or macOS companion apps cannot pair or connect through QR codes, setup codes, LAN, tailnet, public URL, bootstrap token, or auth routes.
 ---
 
 # Node Connect

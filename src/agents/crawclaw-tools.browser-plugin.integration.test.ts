@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createBundledBrowserPluginFixture } from "../../test/helpers/browser-bundled-plugin-fixture.js";
+import { applyLocalSetupWorkspaceConfig } from "../commands/onboard-config.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { clearPluginDiscoveryCache } from "../plugins/discovery.js";
 import { clearPluginLoaderCache } from "../plugins/loader.js";
 import { clearPluginManifestRegistryCache } from "../plugins/manifest-registry.js";
 import { resetPluginRuntimeStateForTest } from "../plugins/runtime.js";
 import { createCrawClawTools } from "./crawclaw-tools.js";
+import { createCrawClawCodingTools } from "./pi-tools.js";
 
 function resetPluginState() {
   clearPluginLoaderCache();
@@ -37,6 +39,39 @@ describe("createCrawClawTools browser plugin integration", () => {
           allow: ["browser"],
         },
       } as CrawClawConfig,
+    });
+
+    expect(tools.map((tool) => tool.name)).toContain("browser");
+  });
+
+  it.each(["minimal", "coding", "messaging", "full"] as const)(
+    "keeps browser available to the onboarded main agent through the %s profile",
+    (profile) => {
+      const config = applyLocalSetupWorkspaceConfig(
+        { plugins: { allow: ["browser"] }, tools: { profile } },
+        "/tmp/workspace",
+      );
+      const tools = createCrawClawCodingTools({
+        config,
+        sessionKey: "agent:main:main",
+        workspaceDir: "/tmp/workspace",
+        agentDir: "/tmp/agent",
+      });
+
+      expect(tools.map((tool) => tool.name)).toContain("browser");
+    },
+  );
+
+  it("keeps browser available to the onboarded main agent when profile is unset", () => {
+    const config = applyLocalSetupWorkspaceConfig(
+      { plugins: { allow: ["browser"] } },
+      "/tmp/workspace",
+    );
+    const tools = createCrawClawCodingTools({
+      config,
+      sessionKey: "agent:main:main",
+      workspaceDir: "/tmp/workspace",
+      agentDir: "/tmp/agent",
     });
 
     expect(tools.map((tool) => tool.name)).toContain("browser");

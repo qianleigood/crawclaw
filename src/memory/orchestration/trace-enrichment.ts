@@ -1,10 +1,10 @@
-import type { RecallTrace } from "../types/recall.ts";
 import type {
   UnifiedRecallTraceEnrichment,
   UnifiedRecallTraceEnrichmentInput,
   UnifiedTraceEntitySummary,
   UnifiedTraceSectionSummary,
 } from "../types/orchestration.ts";
+import type { RecallTrace } from "../types/recall.ts";
 
 function collectEntities(input: UnifiedRecallTraceEnrichmentInput): UnifiedTraceEntitySummary[] {
   return (input.entityResolution?.selectedCandidates ?? []).map((entity) => ({
@@ -25,13 +25,15 @@ function collectSections(input: UnifiedRecallTraceEnrichmentInput): UnifiedTrace
   }));
 }
 
-export function buildUnifiedRecallTraceEnrichment(input: UnifiedRecallTraceEnrichmentInput): UnifiedRecallTraceEnrichment {
+export function buildUnifiedRecallTraceEnrichment(
+  input: UnifiedRecallTraceEnrichmentInput,
+): UnifiedRecallTraceEnrichment {
   return {
     queryType: input.classification?.intent ?? "unknown",
     entities: collectEntities(input),
-    graphHits: input.rerankTrace?.counts.graph ?? input.graphItems?.length ?? 0,
-    notebooklmHits: input.rerankTrace?.counts.notebooklm ?? input.notebooklmItems?.length ?? 0,
-    nativeMemoryHits: input.rerankTrace?.counts.native_memory ?? input.nativeItems?.length ?? input.nativeMemoryResult?.items.length ?? 0,
+    graphHits: input.graphItems?.length ?? 0,
+    notebooklmHits: input.notebooklmItems?.length ?? 0,
+    nativeMemoryHits: input.nativeItems?.length ?? input.nativeMemoryResult?.items.length ?? 0,
     assembledSections: collectSections(input),
     nativeMemory: input.nativeMemoryResult?.trace,
   };

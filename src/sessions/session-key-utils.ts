@@ -97,6 +97,20 @@ export function isSubagentSessionKey(sessionKey: string | undefined | null): boo
   return (parsed?.rest ?? "").toLowerCase().startsWith("subagent:");
 }
 
+export function isEmbeddedSessionKey(sessionKey: string | undefined | null): boolean {
+  const raw = (sessionKey ?? "").trim();
+  if (!raw) {
+    return false;
+  }
+  return raw.toLowerCase().startsWith("embedded:");
+}
+
+export function isMemoryAutomationExcludedSessionKey(
+  sessionKey: string | undefined | null,
+): boolean {
+  return isSubagentSessionKey(sessionKey) || isEmbeddedSessionKey(sessionKey);
+}
+
 export function getSubagentDepth(sessionKey: string | undefined | null): number {
   const raw = (sessionKey ?? "").trim().toLowerCase();
   if (!raw) {

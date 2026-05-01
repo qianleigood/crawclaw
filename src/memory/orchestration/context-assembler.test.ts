@@ -150,6 +150,9 @@ describe("assembleMemoryPrompt", () => {
     expect(assembled.text).toContain("【操作经验】deployment-security-checklist 适用场景：");
     expect(assembled.text).toContain("## 决策经验");
     expect(assembled.text).toContain("【决策经验】Use built-in memory runtime 经验结论：");
+    expect(assembled.text).toMatch(
+      /## 操作经验[\s\S]*deployment-security-checklist[\s\S]*## 决策经验[\s\S]*Use built-in memory runtime/,
+    );
     expect(assembled.selectedItemIds).toEqual(
       expect.arrayContaining([
         "user-memory",

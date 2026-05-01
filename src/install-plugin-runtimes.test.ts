@@ -50,10 +50,19 @@ type RuntimeInstallScript = {
     shell?: boolean;
     windowsVerbatimArguments?: boolean;
   };
-  listManagedPluginRuntimeInstallPlan: (params?: { platform?: NodeJS.Platform }) => Array<{
+  listManagedPluginRuntimeInstallPlan: (params?: {
+    arch?: NodeJS.Architecture;
+    platform?: NodeJS.Platform;
+  }) => Array<{
     id: string;
     installTime: boolean;
+    localization?: {
+      locale: string;
+      source: string;
+      url: string;
+    };
     npmPackage?: string;
+    platforms?: string[];
     python?: {
       candidates: string[];
       envOverrides: string[];
@@ -63,6 +72,7 @@ type RuntimeInstallScript = {
       windowsExtraPackages?: string[];
     };
   }>;
+  resolveN8nChineseEditorUiUrl: (version?: string) => string;
   resolveScraplingVenvPython: (venvDir: string, platform?: NodeJS.Platform) => string;
   shouldRetryNpmInstallError: (error: unknown) => boolean;
 };
@@ -154,6 +164,16 @@ describe("install-plugin-runtimes", () => {
     expect(script.resolvePythonCandidates({}, "win32")).toEqual(
       expect.arrayContaining(["python", "py"]),
     );
+  });
+
+  it("keeps platform-specific Python candidates scoped", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(script.resolvePythonCandidates({}, "darwin")).toEqual(
+      expect.arrayContaining(["/opt/homebrew/bin/python3", "python3"]),
+    );
+    expect(script.resolvePythonCandidates({}, "linux")).not.toContain("/opt/homebrew/bin/python3");
+    expect(script.resolvePythonCandidates({}, "linux")).not.toContain("py");
   });
 
   it("installs the app-local MSVC runtime for Windows Scrapling venvs", async () => {
@@ -269,6 +289,40 @@ describe("install-plugin-runtimes", () => {
         npmPackage: "pinchtab@0.9.1",
       },
       {
+        id: "core-skills",
+        installTime: true,
+        python: {
+          candidates: [
+            "python3.14",
+            "python3.13",
+            "python3.12",
+            "python3.11",
+            "python3.10",
+            "python3",
+            "python",
+            "py",
+          ],
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"],
+          minimumVersion: "3.10",
+          requirementsLockPath: path.join(
+            process.cwd(),
+            "skills",
+            ".runtime",
+            "requirements.lock.txt",
+          ),
+        },
+      },
+      {
+        id: "n8n",
+        installTime: true,
+        localization: {
+          locale: "zh-CN",
+          source: "other-blowsnow/n8n-i18n-chinese",
+          url: "https://github.com/other-blowsnow/n8n-i18n-chinese/releases/download/release%2F2.18.5/editor-ui.tar.gz",
+        },
+        npmPackage: "n8n@2.18.5",
+      },
+      {
         id: "open-websearch",
         installTime: true,
         npmPackage: "open-websearch@2.1.5",
@@ -318,6 +372,59 @@ describe("install-plugin-runtimes", () => {
           package: "notebooklm-mcp-cli==0.6.1",
         },
       },
+      {
+        id: "skill-openai-whisper",
+        installTime: false,
+        platforms: ["darwin:arm64"],
+        python: {
+          candidates: [
+            "python3.14",
+            "python3.13",
+            "python3.12",
+            "python3.11",
+            "python3.10",
+            "python3",
+            "python",
+            "py",
+          ],
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"],
+          minimumVersion: "3.10",
+          requirementsLockPath: path.join(
+            process.cwd(),
+            "skills",
+            "openai-whisper",
+            "runtime",
+            "requirements.macos-arm64.lock.txt",
+          ),
+        },
+      },
     ]);
+  });
+
+  it("resolves the version-paired n8n Chinese editor UI archive", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(script.resolveN8nChineseEditorUiUrl("2.18.5")).toBe(
+      "https://github.com/other-blowsnow/n8n-i18n-chinese/releases/download/release%2F2.18.5/editor-ui.tar.gz",
+    );
+  });
+
+  it("only marks MLX Whisper install-time on Apple Silicon macOS", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    const macArm = script
+      .listManagedPluginRuntimeInstallPlan({ platform: "darwin", arch: "arm64" })
+      .find((entry) => entry.id === "skill-openai-whisper");
+    const macX64 = script
+      .listManagedPluginRuntimeInstallPlan({ platform: "darwin", arch: "x64" })
+      .find((entry) => entry.id === "skill-openai-whisper");
+    const linuxX64 = script
+      .listManagedPluginRuntimeInstallPlan({ platform: "linux", arch: "x64" })
+      .find((entry) => entry.id === "skill-openai-whisper");
+
+    expect(macArm?.installTime).toBe(true);
+    expect(macArm?.platforms).toEqual(["darwin:arm64"]);
+    expect(macX64?.installTime).toBe(false);
+    expect(linuxX64?.installTime).toBe(false);
   });
 });

@@ -52,16 +52,44 @@ export function resolveBrowserRuntimeDir(env: NodeJS.ProcessEnv = process.env): 
   return path.join(resolvePluginRuntimesRoot(env), "browser");
 }
 
+export function resolveN8nRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolvePluginRuntimesRoot(env), "n8n");
+}
+
 export function resolveBrowserRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
   return process.platform === "win32"
     ? path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "pinchtab.cmd")
     : path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "pinchtab");
 }
 
+export function resolveN8nRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
+  return process.platform === "win32"
+    ? path.join(resolveN8nRuntimeDir(env), "node_modules", ".bin", "n8n.cmd")
+    : path.join(resolveN8nRuntimeDir(env), "node_modules", ".bin", "n8n");
+}
+
 export function resolveOpenWebSearchRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
   return process.platform === "win32"
     ? path.join(resolveOpenWebSearchRuntimeDir(env), "node_modules", ".bin", "open-websearch.cmd")
     : path.join(resolveOpenWebSearchRuntimeDir(env), "node_modules", ".bin", "open-websearch");
+}
+
+export function normalizeN8nLocale(locale?: string | null): "en" | "zh-CN" {
+  const normalized = locale?.trim().toLowerCase().replace(/_/g, "-") ?? "";
+  return normalized.startsWith("zh") ? "zh-CN" : "en";
+}
+
+export function createN8nRuntimeEnv(params: {
+  env?: NodeJS.ProcessEnv;
+  locale?: string | null;
+}): NodeJS.ProcessEnv {
+  const env = params.env ?? process.env;
+  return {
+    ...env,
+    N8N_DEFAULT_LOCALE: normalizeN8nLocale(
+      params.locale ?? env.CRAWCLAW_LANG ?? env.LC_ALL ?? env.LC_MESSAGES ?? env.LANG,
+    ),
+  };
 }
 
 export function resolveScraplingFetchRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {

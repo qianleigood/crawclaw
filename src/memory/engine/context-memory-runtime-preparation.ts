@@ -9,21 +9,11 @@ import type {
   SkillRoutingResult,
   UnifiedQueryClassification,
   UnifiedRecallItem,
-  UnifiedRerankResult,
 } from "../types/orchestration.ts";
 import type { MemoryRuntimeContext } from "./types.ts";
 
 type QueryClassifierLike = {
   classify(params: { query: string; recentMessages?: string[] }): UnifiedQueryClassification;
-};
-
-type UnifiedRerankerLike = {
-  rerank(params: {
-    query: string;
-    classification: UnifiedQueryClassification;
-    notebooklmItems: UnifiedRecallItem[];
-    limit?: number;
-  }): UnifiedRerankResult;
 };
 
 type SkillIndexStoreLike = {
@@ -35,7 +25,6 @@ export async function prepareMemoryAssemblyContext(params: {
   recentMessages?: string[];
   runtimeContext?: MemoryRuntimeContext;
   queryClassifier: QueryClassifierLike;
-  reranker: UnifiedRerankerLike;
   skillIndexStore: SkillIndexStoreLike;
   skillRoutingEnabled: boolean;
   skillRoutingLimit?: number;
@@ -49,7 +38,6 @@ export async function prepareMemoryAssemblyContext(params: {
   classification: UnifiedQueryClassification;
   experienceRecallItems: UnifiedRecallItem[];
   experienceRecall: ExperienceRecallResult;
-  reranked: UnifiedRerankResult;
   skillRouting: SkillRoutingResult | null;
   selectedExperience: ExperienceRecallSelectionResult;
 }> {
@@ -64,12 +52,6 @@ export async function prepareMemoryAssemblyContext(params: {
     runtimeContext: params.runtimeContext,
   });
   const experienceRecallItems = experienceRecall.items;
-  const reranked = params.reranker.rerank({
-    query: params.promptText,
-    classification,
-    notebooklmItems: experienceRecallItems,
-    limit: 10,
-  });
   const skillRouting = params.skillRoutingEnabled
     ? selectRelevantSkills({
         classification,
@@ -77,13 +59,12 @@ export async function prepareMemoryAssemblyContext(params: {
         limit: params.skillRoutingLimit,
       })
     : null;
-  const selectedExperience = selectExperienceRecall({ items: reranked.items, limit: 6 });
+  const selectedExperience = selectExperienceRecall({ items: experienceRecallItems, limit: 6 });
 
   return {
     classification,
     experienceRecallItems,
     experienceRecall,
-    reranked,
     skillRouting,
     selectedExperience,
   };

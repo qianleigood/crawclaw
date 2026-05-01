@@ -98,6 +98,10 @@ export function resolveCrawClawManifestOs(metadataObj: Record<string, unknown>):
   return normalizeStringList(metadataObj.os);
 }
 
+export function resolveCrawClawManifestArch(metadataObj: Record<string, unknown>): string[] {
+  return normalizeStringList(metadataObj.arch);
+}
+
 export type ParsedCrawClawManifestInstallBase = {
   raw: Record<string, unknown>;
   kind: string;

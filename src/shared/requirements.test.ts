@@ -5,6 +5,7 @@ import {
   evaluateRequirementsFromMetadata,
   evaluateRequirementsFromMetadataWithRemote,
   resolveMissingAnyBins,
+  resolveMissingArch,
   resolveMissingBins,
   resolveMissingEnv,
   resolveMissingOs,
@@ -56,6 +57,19 @@ describe("requirements helpers", () => {
     expect(resolveMissingOs({ required: ["darwin"], localPlatform: "linux" })).toEqual(["darwin"]);
   });
 
+  it("resolveMissingArch allows remote architecture", () => {
+    expect(resolveMissingArch({ required: [], localArch: "x64" })).toEqual([]);
+    expect(resolveMissingArch({ required: ["arm64"], localArch: "arm64" })).toEqual([]);
+    expect(
+      resolveMissingArch({
+        required: ["arm64"],
+        localArch: "x64",
+        remoteArchitectures: ["arm64"],
+      }),
+    ).toEqual([]);
+    expect(resolveMissingArch({ required: ["arm64"], localArch: "x64" })).toEqual(["arm64"]);
+  });
+
   it("resolveMissingEnv uses predicate", () => {
     expect(
       resolveMissingEnv({ required: ["A", "B"], isSatisfied: (name) => name === "B" }),
@@ -77,9 +91,11 @@ describe("requirements helpers", () => {
       metadata: {
         requires: { bins: ["a"], anyBins: ["b"], env: ["E"], config: ["cfg.value"] },
         os: ["darwin"],
+        arch: ["arm64"],
       },
       hasLocalBin: (bin) => bin === "a",
       localPlatform: "linux",
+      localArch: "x64",
       isEnvSatisfied: (name) => name === "E",
       isConfigSatisfied: () => false,
     });
@@ -87,6 +103,7 @@ describe("requirements helpers", () => {
     expect(res.required.bins).toEqual(["a"]);
     expect(res.missing.config).toEqual(["cfg.value"]);
     expect(res.missing.os).toEqual(["darwin"]);
+    expect(res.missing.arch).toEqual(["arm64"]);
     expect(res.eligible).toBe(false);
   });
 
@@ -99,12 +116,15 @@ describe("requirements helpers", () => {
         env: ["OPENAI_API_KEY"],
         config: ["browser.enabled", "gateway.enabled"],
         os: ["darwin"],
+        arch: ["arm64"],
       },
       hasLocalBin: () => false,
       hasRemoteBin: (bin) => bin === "node",
       hasRemoteAnyBin: () => false,
       localPlatform: "linux",
+      localArch: "x64",
       remotePlatforms: ["windows"],
+      remoteArchitectures: ["arm"],
       isEnvSatisfied: () => false,
       isConfigSatisfied: (path) => path === "gateway.enabled",
     });
@@ -115,6 +135,7 @@ describe("requirements helpers", () => {
       env: ["OPENAI_API_KEY"],
       config: ["browser.enabled"],
       os: ["darwin"],
+      arch: ["arm64"],
     });
     expect(res.configChecks).toEqual([
       { path: "browser.enabled", satisfied: false },
@@ -132,14 +153,16 @@ describe("requirements helpers", () => {
         env: ["OPENAI_API_KEY"],
         config: ["browser.enabled"],
         os: ["darwin"],
+        arch: ["arm64"],
       },
       hasLocalBin: () => false,
       localPlatform: "linux",
+      localArch: "x64",
       isEnvSatisfied: () => false,
       isConfigSatisfied: () => false,
     });
 
-    expect(res.missing).toEqual({ bins: [], anyBins: [], env: [], config: [], os: [] });
+    expect(res.missing).toEqual({ bins: [], anyBins: [], env: [], config: [], os: [], arch: [] });
     expect(res.configChecks).toEqual([{ path: "browser.enabled", satisfied: false }]);
     expect(res.eligible).toBe(true);
   });
@@ -150,14 +173,17 @@ describe("requirements helpers", () => {
       metadata: {
         requires: { bins: ["node"], anyBins: ["bun"], env: ["OPENAI_API_KEY"] },
         os: ["darwin"],
+        arch: ["arm64"],
       },
       remote: {
         hasBin: (bin) => bin === "node",
         hasAnyBin: (bins) => bins.includes("bun"),
         platforms: ["darwin"],
+        architectures: ["arm64"],
       },
       hasLocalBin: () => false,
       localPlatform: "linux",
+      localArch: "x64",
       isEnvSatisfied: (name) => name === "OPENAI_API_KEY",
       isConfigSatisfied: () => true,
     });
@@ -168,8 +194,9 @@ describe("requirements helpers", () => {
       env: ["OPENAI_API_KEY"],
       config: [],
       os: ["darwin"],
+      arch: ["arm64"],
     });
-    expect(res.missing).toEqual({ bins: [], anyBins: [], env: [], config: [], os: [] });
+    expect(res.missing).toEqual({ bins: [], anyBins: [], env: [], config: [], os: [], arch: [] });
     expect(res.eligible).toBe(true);
   });
 
@@ -178,6 +205,7 @@ describe("requirements helpers", () => {
       always: false,
       hasLocalBin: () => false,
       localPlatform: "linux",
+      localArch: "x64",
       isEnvSatisfied: () => false,
       isConfigSatisfied: () => false,
     });
@@ -188,6 +216,7 @@ describe("requirements helpers", () => {
       env: [],
       config: [],
       os: [],
+      arch: [],
     });
     expect(res.missing).toEqual({
       bins: [],
@@ -195,6 +224,7 @@ describe("requirements helpers", () => {
       env: [],
       config: [],
       os: [],
+      arch: [],
     });
     expect(res.configChecks).toEqual([]);
     expect(res.eligible).toBe(true);

@@ -307,7 +307,8 @@ describe("searchNotebookLmViaCli", () => {
     expect(items[0]?.summary).toContain("受管运行时");
   });
 
-  it("falls back to NotebookLM notes when source query has no searchable sources", async () => {
+  it("returns no items instead of running local note-list matching when source query fails", async () => {
+    const logger = { warn: vi.fn() };
     execFileMock
       .mockImplementationOnce((_command, args, _options, callback) => {
         expect(args).toEqual(["login", "--check"]);
@@ -322,21 +323,6 @@ describe("searchNotebookLmViaCli", () => {
           }),
           "",
         );
-      })
-      .mockImplementationOnce((_command, args, _options, callback) => {
-        expect(args).toEqual(["note", "list", "nb-1", "--json"]);
-        callback(
-          null,
-          JSON.stringify({
-            notes: [
-              {
-                id: "note-1",
-                title: "云端经验同步验收流程 codex-note-token",
-                preview: "唯一标记 codex-note-token，用于验证 NotebookLM note recall。",
-              },
-            ],
-          }),
-        );
       });
 
     const { searchNotebookLmViaCli } = await import("./notebooklm-cli.ts");
@@ -350,16 +336,14 @@ describe("searchNotebookLmViaCli", () => {
           args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
         },
       },
+      logger,
     });
 
-    expect(items).toEqual([
-      expect.objectContaining({
-        id: "notebooklm:note:note-1",
-        source: "notebooklm",
-        title: "云端经验同步验收流程 codex-note-token",
-        content: expect.stringContaining("codex-note-token"),
-      }),
-    ]);
+    expect(items).toEqual([]);
+    expect(execFileMock).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("notebooklm cli retrieval skipped"),
+    );
   });
 
   it("returns no items when provider is not ready", async () => {

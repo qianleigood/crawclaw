@@ -2,14 +2,14 @@
 
 ## Quick reference
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `MINIMAX_API_KEY is not set` | Key not set | `export MINIMAX_API_KEY="key"` |
-| `401 Unauthorized` | Invalid/expired key | Check key validity |
-| `429 Too Many Requests` | Rate limit | Add delays between requests |
-| `TimeoutError` | Network or long text | Use async TTS for long text, check network |
-| `invalid params, method t2a-v2 not have model` | Wrong model name | Use `speech-2.8-hd` (hyphens, not underscores) |
-| `brotli: decoder process called...` | Encoding issue | Already fixed in utils.py (Accept-Encoding header) |
+| Error                                          | Cause                | Fix                                                                                          |
+| ---------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------- |
+| `MINIMAX_API_KEY is not set`                   | Key not set          | `export MINIMAX_API_KEY="key"`                                                               |
+| `401 Unauthorized`                             | Invalid/expired key  | Check key validity                                                                           |
+| `429 Too Many Requests`                        | Rate limit           | Add delays between requests                                                                  |
+| `TimeoutError`                                 | Network or long text | Use async TTS for long text, check network                                                   |
+| `invalid params, method t2a-v2 not have model` | Wrong model name     | Use `speech-2.8-hd` (hyphens, not underscores)                                               |
+| `MINIMAX_API_BASE is not set`                  | API base URL not set | Use `https://api.minimaxi.com/v1` for China Mainland or `https://api.minimax.io/v1` overseas |
 
 ## Environment
 
@@ -35,12 +35,6 @@ sudo apt install ffmpeg
 ffmpeg -version
 ```
 
-### Missing Python packages
-
-```bash
-pip install requests
-```
-
 ## API errors
 
 ### Authentication (401)
@@ -51,6 +45,7 @@ pip install requests
 ### Rate limiting (429)
 
 Add delays between requests:
+
 ```python
 import time
 for text in texts:
@@ -61,6 +56,7 @@ for text in texts:
 ### Invalid model name
 
 Valid names (use hyphens, must include -hd or -turbo):
+
 - `speech-2.8-hd` (recommended)
 - `speech-2.8-turbo`
 - `speech-2.6-hd`
@@ -73,6 +69,7 @@ Wrong: `speech_01`, `speech_2.6`, `speech-01`
 ### Poor quality
 
 Re-generate with higher settings:
+
 ```bash
 python scripts/minimax_tts.py "text" -o out.mp3 --sample-rate 32000 --model speech-2.8-hd
 ```
@@ -80,6 +77,7 @@ python scripts/minimax_tts.py "text" -o out.mp3 --sample-rate 32000 --model spee
 ### Invalid emotion
 
 Valid emotions:
+
 - All models: happy, sad, angry, fearful, disgusted, surprised, calm
 - speech-2.6 only: + fluent, whisper
 - speech-2.8: auto-matched (leave empty, recommended)

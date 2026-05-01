@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   flushPendingExperienceNotesMock: vi.fn(),
   runNotebookLmLoginCommandMock: vi.fn(),
   normalizeNotebookLmConfigMock: vi.fn(),
+  getSharedAutoDreamSchedulerMock: vi.fn(),
   getSharedSessionSummarySchedulerMock: vi.fn(),
   readSessionSummaryFileMock: vi.fn(),
   sqliteRuntimeStoreInitMock: vi.fn(),
@@ -41,7 +42,7 @@ vi.mock("../../memory/cli-api.js", () => ({
   ensureNotebookLmNotebook: mocks.ensureNotebookLmNotebookMock,
   getNotebookLmProviderState: mocks.getNotebookLmProviderStateMock,
   flushPendingExperienceNotes: mocks.flushPendingExperienceNotesMock,
-  getSharedAutoDreamScheduler: vi.fn(),
+  getSharedAutoDreamScheduler: mocks.getSharedAutoDreamSchedulerMock,
   getSharedSessionSummaryScheduler: mocks.getSharedSessionSummarySchedulerMock,
   normalizeNotebookLmConfig: mocks.normalizeNotebookLmConfigMock,
   readSessionSummaryFile: mocks.readSessionSummaryFileMock,
@@ -197,6 +198,9 @@ describe("memoryHandlers", () => {
     mocks.getSharedSessionSummarySchedulerMock.mockReturnValue({
       runNow: vi.fn().mockResolvedValue({ status: "started", runId: "summary-run-1" }),
     });
+    mocks.getSharedAutoDreamSchedulerMock.mockReturnValue({
+      runNow: vi.fn().mockResolvedValue({ status: "started", runId: "dream-run-1" }),
+    });
   });
 
   it("sets up the CrawClaw NotebookLM notebook after login succeeds", async () => {
@@ -327,6 +331,37 @@ describe("memoryHandlers", () => {
           }),
         ],
       }),
+      undefined,
+    );
+  });
+
+  it("runs dream from an explicit durable scope key", async () => {
+    const opts = createOptions("memory.dream.run", {
+      scopeKey: "main:telegram:alice",
+      force: true,
+      sessionLimit: 3,
+      signalLimit: 2,
+    });
+
+    await memoryHandlers["memory.dream.run"](opts);
+
+    const scheduler = mocks.getSharedAutoDreamSchedulerMock.mock.results[0]?.value;
+    expect(scheduler.runNow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: expect.objectContaining({
+          agentId: "main",
+          channel: "telegram",
+          userId: "alice",
+          scopeKey: "main:telegram:alice",
+        }),
+        bypassGate: true,
+        sessionLimit: 3,
+        signalLimit: 2,
+      }),
+    );
+    expect(opts.respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({ status: "started", runId: "dream-run-1" }),
       undefined,
     );
   });

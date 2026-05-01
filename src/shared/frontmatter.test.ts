@@ -7,6 +7,7 @@ import {
   parseCrawClawManifestInstallBase,
   resolveCrawClawManifestBlock,
   resolveCrawClawManifestInstall,
+  resolveCrawClawManifestArch,
   resolveCrawClawManifestOs,
   resolveCrawClawManifestRequires,
 } from "./frontmatter.js";
@@ -61,7 +62,7 @@ describe("shared/frontmatter", () => {
     ).toBeUndefined();
   });
 
-  it("normalizes manifest requirement and os lists", () => {
+  it("normalizes manifest requirement, os, and arch lists", () => {
     expect(
       resolveCrawClawManifestRequires({
         requires: {
@@ -82,6 +83,7 @@ describe("shared/frontmatter", () => {
       "darwin",
       "linux",
     ]);
+    expect(resolveCrawClawManifestArch({ arch: [" arm64 ", "x64", ""] })).toEqual(["arm64", "x64"]);
   });
 
   it("parses and applies install common fields", () => {

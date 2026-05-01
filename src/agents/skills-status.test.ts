@@ -40,6 +40,29 @@ describe("buildWorkspaceSkillStatus", () => {
     expect(report.skills).toHaveLength(1);
     expect(report.skills[0]?.install).toEqual([]);
   });
+
+  it("does not mark architecture-scoped skills eligible on unsupported architectures", () => {
+    const mismatchedArch = process.arch === "arm64" ? "x64" : "arm64";
+
+    const entry: SkillEntry = {
+      skill: createFixtureSkill({
+        name: "arch-scoped",
+        description: "test",
+        filePath: "/tmp/arch-scoped",
+        baseDir: "/tmp",
+        source: "test",
+      }),
+      frontmatter: {},
+      metadata: {
+        arch: [mismatchedArch],
+      },
+    };
+
+    const report = buildWorkspaceSkillStatus("/tmp/ws", { entries: [entry] });
+    expect(report.skills).toHaveLength(1);
+    expect(report.skills[0]?.eligible).toBe(false);
+    expect(report.skills[0]?.missing.arch).toEqual([mismatchedArch]);
+  });
 });
 
 function createFixtureSkill(params: {

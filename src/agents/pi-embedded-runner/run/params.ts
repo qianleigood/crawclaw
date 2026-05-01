@@ -111,14 +111,6 @@ export type RunEmbeddedPiAgentParams = {
     channel?: string | null;
     userId?: string | null;
   };
-  /** Dream-only bounded transcript search scope and limits. */
-  specialTranscriptSearch?: {
-    sessionIds?: string[];
-    maxSessions?: number;
-    maxMatchesPerSession?: number;
-    maxTotalBytes?: number;
-    maxExcerptChars?: number;
-  };
   /** Explicit special-agent summary target for embedded session-summary runs. */
   specialSessionSummaryTarget?: {
     agentId: string;

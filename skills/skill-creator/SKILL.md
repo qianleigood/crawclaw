@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Create new skills, tighten existing SKILL.md files, improve trigger descriptions, and evaluate skill quality. Use when the user wants to add a skill, refactor a skill, remove stale wording, compare skill variants, or improve when a skill should fire.
+description: Use when adding, refactoring, tightening, evaluating, packaging, or comparing skills, especially when improving SKILL.md trigger descriptions, pruning stale wording, or deciding when a skill should fire.
 ---
 
 # Skill Creator
@@ -24,7 +24,7 @@ Use this skill as the owner for skill design, cleanup, and evaluation.
    - move detailed procedures into `references/`
    - keep `name` and `description` as the trigger-defining layer
 4. Validate before claiming completion:
-   - run `scripts/quick_validate.py`
+   - run `scripts/quick_validate.py` with the install-time `core-skills` Python runtime available
    - use representative prompts or comparisons when the change is meaningful
 5. Optimize trigger wording last:
    - first make the workflow correct
@@ -33,18 +33,24 @@ Use this skill as the owner for skill design, cleanup, and evaluation.
 ## Reference routing
 
 ### Skill schema and benchmark data
+
 Read `references/schemas.md` when you need:
+
 - eval input schema
 - benchmark output shape
 - grading data structure
 
 ### Evaluation helpers
+
 Read these only when the task includes measurement:
+
 - `agents/grader.md`
 - `agents/analyzer.md`
 
 ### Execution helpers
+
 Use these when the task reaches validation or packaging:
+
 - `scripts/quick_validate.py`
 - `scripts/aggregate_benchmark.py`
 - `scripts/improve_description.py`

@@ -8,7 +8,75 @@ import re
 import sys
 from pathlib import Path
 
-import yaml
+ALLOWED_PROPERTIES = {
+    'allowed-tools',
+    'compatibility',
+    'description',
+    'disable-model-invocation',
+    'homepage',
+    'license',
+    'metadata',
+    'name',
+    'user-invocable',
+}
+
+CORE_SKILLS_REEXEC_ENV = "CRAWCLAW_CORE_SKILLS_REEXECED"
+
+
+def _resolve_core_skills_python():
+    override = os.environ.get("CRAWCLAW_CORE_SKILLS_PYTHON")
+    if override:
+        return Path(override).expanduser()
+
+    state_dir = Path(os.environ.get("CRAWCLAW_STATE_DIR", Path.home() / ".crawclaw")).expanduser()
+    venv_dir = state_dir / "runtimes" / "core-skills" / "venv"
+    if os.name == "nt":
+        return venv_dir / "Scripts" / "python.exe"
+    return venv_dir / "bin" / "python"
+
+
+def _maybe_reexec_with_core_skills_python():
+    if os.environ.get(CORE_SKILLS_REEXEC_ENV) == "1":
+        return
+    python_path = _resolve_core_skills_python()
+    if not python_path.exists():
+        return
+    try:
+        if Path(sys.executable).resolve() == python_path.resolve():
+            return
+    except OSError:
+        pass
+    env = os.environ.copy()
+    env[CORE_SKILLS_REEXEC_ENV] = "1"
+    os.execve(str(python_path), [str(python_path), *sys.argv], env)
+
+
+def _load_yaml_module():
+    try:
+        import yaml
+    except ImportError:
+        _maybe_reexec_with_core_skills_python()
+        return None
+    return yaml
+
+
+def _parse_frontmatter(frontmatter_text):
+    yaml_module = _load_yaml_module()
+    if yaml_module is None:
+        return None, (
+            "PyYAML is required for skill validation. CrawClaw installs it in the "
+            "core-skills runtime during project install/postinstall; run "
+            "`crawclaw runtimes install` or use "
+            "`~/.crawclaw/runtimes/core-skills/venv/bin/python`."
+        )
+
+    try:
+        frontmatter = yaml_module.safe_load(frontmatter_text)
+        if not isinstance(frontmatter, dict):
+            return None, "Frontmatter must be a YAML dictionary"
+        return frontmatter, None
+    except yaml_module.YAMLError as e:
+        return None, f"Invalid YAML in frontmatter: {e}"
 
 
 def validate_skill(skill_path):
@@ -21,7 +89,7 @@ def validate_skill(skill_path):
         return False, "SKILL.md not found"
 
     # Read and validate frontmatter
-    content = skill_md.read_text()
+    content = skill_md.read_text(encoding='utf-8')
     if not content.startswith('---'):
         return False, "No YAML frontmatter found"
 
@@ -32,16 +100,10 @@ def validate_skill(skill_path):
 
     frontmatter_text = match.group(1)
 
-    # Parse YAML frontmatter
-    try:
-        frontmatter = yaml.safe_load(frontmatter_text)
-        if not isinstance(frontmatter, dict):
-            return False, "Frontmatter must be a YAML dictionary"
-    except yaml.YAMLError as e:
-        return False, f"Invalid YAML in frontmatter: {e}"
-
-    # Define allowed properties
-    ALLOWED_PROPERTIES = {'name', 'description', 'license', 'allowed-tools', 'metadata', 'compatibility'}
+    # Parse YAML frontmatter through the managed core-skills Python runtime.
+    frontmatter, parse_error = _parse_frontmatter(frontmatter_text)
+    if parse_error:
+        return False, parse_error
 
     # Check for unexpected properties (excluding nested keys under metadata)
     unexpected_keys = set(frontmatter.keys()) - ALLOWED_PROPERTIES
@@ -99,7 +161,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python quick_validate.py <skill_directory>")
         sys.exit(1)
-    
+
     valid, message = validate_skill(sys.argv[1])
     print(message)
     sys.exit(0 if valid else 1)

@@ -1,6 +1,6 @@
 ---
 name: github
-description: GitHub operations via gh CLI. Use when checking PR status, workflow runs, issues, comments, or repository data with gh or gh api.
+description: Use when inspecting or changing GitHub repository data with gh or gh api, including PRs, issues, comments, checks, workflow runs, releases, or repo metadata.
 metadata:
   {
     "crawclaw":
@@ -15,13 +15,6 @@ metadata:
               "formula": "gh",
               "bins": ["gh"],
               "label": "Install GitHub CLI (brew)",
-            },
-            {
-              "id": "apt",
-              "kind": "apt",
-              "package": "gh",
-              "bins": ["gh"],
-              "label": "Install GitHub CLI (apt)",
             },
           ],
       },

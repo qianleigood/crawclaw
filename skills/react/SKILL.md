@@ -1,6 +1,6 @@
 ---
 name: react
-description: React engineering skill for component architecture, React 19 patterns, hooks, state management, rendering behavior, performance, forms, and production-grade React implementation. Use when the main complexity is specifically React engineering rather than broader visual frontend design or full-stack system design.
+description: Use when the main complexity is React engineering, including component architecture, hooks, React 19, rendering behavior, state separation, forms, performance, or React-specific debugging.
 ---
 
 # React
@@ -10,6 +10,7 @@ Production-grade React engineering guidance.
 ## When to use
 
 Use this skill when the main challenge is specifically React:
+
 - components and page architecture
 - hooks and rendering behavior
 - React 19 features
@@ -20,6 +21,7 @@ Use this skill when the main challenge is specifically React:
 ## Core decisions
 
 Before implementation, decide:
+
 - rendering mode
 - server-state approach
 - client-state approach
@@ -39,20 +41,26 @@ Before implementation, decide:
 ## Reference routing
 
 ### Architecture and state
+
 Read `references/architecture-and-state.md` when you need:
+
 - architecture decisions
 - component rules
 - state management defaults
 
 ### React 19 and performance
+
 Read `references/react-19-and-performance.md` when you need:
+
 - Server Components
 - `use()`
 - `useActionState`
 - performance rules and rendering pitfalls
 
 ### Traps and setup
+
 Read `references/traps-and-setup.md` when you need:
+
 - common hook / rendering / fetching traps
 - setup guidance
 - routing between this skill and neighboring skills

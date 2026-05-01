@@ -8,7 +8,7 @@ title: "Skills"
 
 # Skills (CrawClaw)
 
-CrawClaw uses **[AgentSkills](https://agentskills.io)-compatible** skill folders to teach the agent how to use tools. Each skill is a directory containing a `SKILL.md` with YAML frontmatter and instructions. CrawClaw loads **bundled skills** plus optional local overrides, and filters them at load time based on environment, config, and binary presence.
+CrawClaw uses **[AgentSkills](https://agentskills.io)-compatible** skill folders to teach the agent how to use tools. Each skill is a directory containing a `SKILL.md` with YAML frontmatter and instructions. CrawClaw loads **bundled skills** plus optional local overrides, and filters them at load time based on platform, CPU architecture, environment, config, and binary presence.
 
 ## Locations and precedence
 
@@ -140,6 +140,7 @@ Fields under `metadata.crawclaw`:
 - `emoji` — optional emoji used by the macOS Skills UI.
 - `homepage` — optional URL shown as “Website” in the macOS Skills UI.
 - `os` — optional list of platforms (`darwin`, `linux`, `win32`). If set, the skill is only eligible on those OSes.
+- `arch` — optional list of Node CPU architectures (`arm64`, `x64`, etc.). If set, the skill is only eligible on those architectures.
 - `requires.bins` — list; each must exist on `PATH`.
 - `requires.anyBins` — list; at least one must exist on `PATH`.
 - `requires.env` — list; env var must exist **or** be provided in config.
@@ -255,6 +256,26 @@ When an agent run starts, CrawClaw:
 
 This is **scoped to the agent run**, not a global shell environment.
 
+## Bundled skill dependencies
+
+Bundled core skill helper dependencies are installed at project
+install/postinstall time through the managed `core-skills` runtime under
+`~/.crawclaw/runtimes/core-skills/venv`.
+
+Rules for bundled core skills:
+
+- Put shared Python package pins in `skills/.runtime/requirements.lock.txt`.
+- Let `scripts/install-plugin-runtimes.mjs` create or repair the runtime.
+- Do not run `pip install` or similar package installation from a skill script
+  on first use.
+- If a runtime is missing, report `crawclaw runtimes install` /
+  `crawclaw runtimes repair`.
+
+Platform-specific bundled skill runtimes should declare platform metadata and
+install-time policy together. For example, `openai-whisper` declares
+`os: ["darwin"]` and `arch: ["arm64"]`, and its MLX Whisper runtime is only
+installed on macOS Apple Silicon.
+
 ## Session snapshot (performance)
 
 CrawClaw snapshots the eligible skills **when a session starts** and reuses that list for subsequent turns in the same session. Changes to skills or config take effect on the next new session.
@@ -264,6 +285,11 @@ Skills can also refresh mid-session when the skills watcher is enabled or when a
 ## Semantic skill discovery
 
 CrawClaw can use embeddings before lexical fallback and reranking when looking up skills for a task. Interactive `crawclaw onboard` can configure this in the **Skills** step with local Ollama embeddings. This does **not** change the main chat model.
+
+The vector text for each skill is intentionally aligned with the trigger
+surface: skill name, trigger description, and the skill file or directory
+basename. The full `SKILL.md` body is not embedded, so the `description` field
+should stay concise and trigger-focused.
 
 The Skills step can choose:
 

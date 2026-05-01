@@ -22,6 +22,14 @@ CrawClaw remembers things through a layered memory system:
 The model only "remembers" what is persisted into those layers -- there is no
 hidden state.
 
+Local onboarding gives the default `main` agent the scoped durable-memory file
+tools needed for explicit remember, update, and forget requests, plus
+`write_experience_note` for explicit experience writes. Dream transcript
+fallback, session-summary file edits, and promotion verdict submission stay
+restricted to their owning background agents. These `main` memory write tools
+are required across all tool profiles; `minimal`, `coding`, `messaging`, and
+`full` only change the surrounding tool baseline.
+
 ## Durable memory files
 
 Durable memory is stored as plain Markdown files under the scoped durable-memory
@@ -253,9 +261,13 @@ that classification:
   but prompt recall does not read local pending notes
 - if NotebookLM returns no hits or is not authenticated, experience recall is
   empty for that turn instead of falling back to local outbox entries
-- recall ranking records experience-specific signals such as trigger match,
-  applicability match, failure/workflow pattern boosts, recent-success wording,
-  and confidence
+- NotebookLM/Gemini owns semantic relevance and ordering for experience recall;
+  CrawClaw preserves provider order and only applies deterministic guardrails
+  such as NotebookLM-only source filtering, duplicate removal, non-empty content
+  checks, and prompt-budget limits
+- experience recall diagnostics expose the preserved `providerOrder` and
+  selection reason, not a local score breakdown; local score fields are reserved
+  for durable-memory observability
 - selected experience recall is still bounded by the memory prompt budget; layer
   allocations are soft guidance, but the assembled experience section must fit
   the global experience budget for the turn

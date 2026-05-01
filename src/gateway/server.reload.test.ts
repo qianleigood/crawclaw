@@ -898,4 +898,50 @@ describe("gateway agents", () => {
     ws.close();
     await server.close();
   });
+
+  it("does not expose internal disk-only special agent directories via agents.list RPC", async () => {
+    const stateDir = process.env.CRAWCLAW_STATE_DIR;
+    if (!stateDir) {
+      throw new Error("missing CRAWCLAW_STATE_DIR");
+    }
+    await fs.mkdir(path.join(stateDir, "agents", "special", "cache-safe-params"), {
+      recursive: true,
+    });
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+    const res = await rpcReq<{ agents: Array<{ id: string }> }>(ws, "agents.list", {});
+    expect(res.ok).toBe(true);
+    expect(res.payload?.agents.map((agent) => agent.id)).toEqual(["main"]);
+    ws.close();
+    await server.close();
+  });
+
+  it("keeps explicitly configured special agent ids visible via agents.list RPC", async () => {
+    const configPath = process.env.CRAWCLAW_CONFIG_PATH;
+    if (!configPath) {
+      throw new Error("missing CRAWCLAW_CONFIG_PATH");
+    }
+    await fs.writeFile(
+      configPath,
+      `${JSON.stringify(
+        {
+          agents: {
+            list: [{ id: "main", default: true }, { id: "special" }],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+    const res = await rpcReq<{ agents: Array<{ id: string }> }>(ws, "agents.list", {});
+    expect(res.ok).toBe(true);
+    expect(res.payload?.agents.map((agent) => agent.id)).toEqual(["main", "special"]);
+    ws.close();
+    await server.close();
+  });
 });

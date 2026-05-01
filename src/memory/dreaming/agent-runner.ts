@@ -45,18 +45,6 @@ export type DreamSignal = {
   text: string;
 };
 
-export type DreamTranscriptFallbackPlan = {
-  enabled: boolean;
-  reasons: string[];
-  sessionIds: string[];
-  limits: {
-    maxSessions: number;
-    maxMatchesPerSession: number;
-    maxTotalBytes: number;
-    maxExcerptChars: number;
-  };
-};
-
 export type DreamRunParams = {
   runId: string;
   sessionId: string;
@@ -70,7 +58,6 @@ export type DreamRunParams = {
   lastSuccessAt?: number | null;
   recentSessions: DreamSessionSummary[];
   recentSignals?: DreamSignal[];
-  transcriptFallback?: DreamTranscriptFallbackPlan;
   dryRun?: boolean;
 };
 
@@ -185,23 +172,6 @@ function formatAgeLine(lastSuccessAt?: number | null): string {
   return `Last successful dream run was ${ageHours}h ago.`;
 }
 
-function buildTranscriptFallbackLines(plan?: DreamTranscriptFallbackPlan): string[] {
-  if (!plan?.enabled || plan.sessionIds.length === 0) {
-    return [
-      "Transcript fallback:",
-      "- unavailable; rely on session summaries, structured signals, and scoped durable notes.",
-    ];
-  }
-  return [
-    "Transcript fallback:",
-    `- available: reasons=${plan.reasons.length ? plan.reasons.join(",") : "unspecified"}`,
-    `- allowed sessionIds=${plan.sessionIds.join(",")}`,
-    `- limits: maxSessions=${plan.limits.maxSessions}, maxMatchesPerSession=${plan.limits.maxMatchesPerSession}, maxTotalBytes=${plan.limits.maxTotalBytes}, maxExcerptChars=${plan.limits.maxExcerptChars}`,
-    "- Use memory_transcript_search only as a fallback for targeted clarification, never as the primary consolidation workflow.",
-    "- Do not search sessions outside the allowed sessionIds list.",
-  ];
-}
-
 export function buildDreamSystemPrompt(): string {
   return [
     "# Dream Agent",
@@ -224,7 +194,6 @@ export function buildDreamSystemPrompt(): string {
     "- Do NOT inspect project source files, run shell commands, browse the web, or spawn other agents.",
     "- Do NOT write experience notes. This task is only for durable memory.",
     "- The provided recent session summaries are the primary signal. Do not grep transcripts as a primary workflow.",
-    "- memory_transcript_search is fallback only: use it only when the task says transcript fallback is available and only for the allowed session ids.",
     "",
     "## Consolidation Rules",
     "- Durable memory still only allows: user, feedback, project, reference.",
@@ -250,7 +219,6 @@ export function buildDreamSystemPrompt(): string {
     "- Use memory_note_write to create a new note or replace a file completely.",
     "- Use memory_note_edit for targeted changes after reading a file.",
     "- Use memory_note_delete only when a durable note is clearly invalid, stale, superseded, or explicitly should be forgotten.",
-    "- Use memory_transcript_search only to recover missing or stale summary signal, and keep queries targeted to the suspected durable fact.",
     "- If several note changes are needed, read all relevant candidates first, then finish the writes/edits in a tight batch.",
     "",
     "## Output",
@@ -270,7 +238,6 @@ export function buildDreamTaskPrompt(params: {
   lastSuccessAt?: number | null;
   recentSessions: DreamSessionSummary[];
   recentSignals?: DreamSignal[];
-  transcriptFallback?: DreamTranscriptFallbackPlan;
   existingEntries: DurableMemoryManifestEntry[];
   dryRun?: boolean;
 }): string {
@@ -303,15 +270,12 @@ export function buildDreamTaskPrompt(params: {
     "Recent structured signals:",
     ...signalLines,
     "",
-    ...buildTranscriptFallbackLines(params.transcriptFallback),
-    "",
     "Existing durable memory manifest:",
     ...manifestLines,
     "",
     "Workflow:",
     "- Orient on the current manifest and identify the small set of note files that may need changes.",
     "- Gather recent signal from the provided session summaries first, then use the structured signals to confirm or sharpen consolidation candidates.",
-    "- If transcript fallback is available and those inputs are insufficient, call memory_transcript_search with a narrow query and only the listed sessionIds.",
     "- Consolidate: merge duplicates, refine durable wording, prune stale or contradicted notes, and preserve durable categories.",
     "- Prune and index: keep MEMORY.md aligned with the current durable note set and short enough to scan quickly.",
     "- If Mode is dry-run preview, do not call any write/edit/delete tool; instead describe the intended changes and return STATUS: NO_CHANGE.",
@@ -393,7 +357,6 @@ export async function runDreamAgentOnce(
     lastSuccessAt: params.lastSuccessAt,
     recentSessions: params.recentSessions,
     recentSignals: params.recentSignals,
-    transcriptFallback: params.transcriptFallback,
     existingEntries,
     dryRun: params.dryRun,
   });
@@ -412,7 +375,6 @@ export async function runDreamAgentOnce(
     detail: {
       triggerSource: params.triggerSource,
       recentSessionCount: params.recentSessions.length,
-      transcriptFallbackEnabled: params.transcriptFallback?.enabled === true,
     },
   });
   emitDreamAction({
@@ -427,8 +389,6 @@ export async function runDreamAgentOnce(
     detail: {
       recentSessionCount: params.recentSessions.length,
       recentSignalCount: params.recentSignals?.length ?? 0,
-      transcriptFallbackEnabled: params.transcriptFallback?.enabled === true,
-      transcriptFallbackSessionCount: params.transcriptFallback?.sessionIds.length ?? 0,
     },
   });
 
@@ -457,14 +417,6 @@ export async function runDreamAgentOnce(
             channel: decodeScopeSegment(params.scope.channel) ?? null,
             userId: decodeScopeSegment(params.scope.userId) ?? null,
           },
-          ...(params.transcriptFallback?.enabled
-            ? {
-                transcriptSearch: {
-                  sessionIds: params.transcriptFallback.sessionIds,
-                  ...params.transcriptFallback.limits,
-                },
-              }
-            : {}),
         },
       },
       spawnContext: params.sessionKey
@@ -517,7 +469,6 @@ export async function runDreamAgentOnce(
     detail: {
       ...buildSpecialAgentRunRefDetail(run),
       recentSessionCount: params.recentSessions.length,
-      transcriptFallbackEnabled: params.transcriptFallback?.enabled === true,
     },
   });
 
@@ -597,8 +548,6 @@ export async function runDreamAgentOnce(
         deletedCount: result.deletedCount,
         touchedNotes: result.touchedNotes ?? [],
         recentSessionCount: params.recentSessions.length,
-        transcriptFallbackEnabled: params.transcriptFallback?.enabled === true,
-        transcriptFallbackSessionCount: params.transcriptFallback?.sessionIds.length ?? 0,
       },
     }),
   });
@@ -613,8 +562,6 @@ export async function runDreamAgentOnce(
       deletedCount: result.deletedCount,
       touchedNotes: result.touchedNotes ?? [],
       recentSessionCount: params.recentSessions.length,
-      transcriptFallbackEnabled: params.transcriptFallback?.enabled === true,
-      transcriptFallbackSessionCount: params.transcriptFallback?.sessionIds.length ?? 0,
     },
   });
 

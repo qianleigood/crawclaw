@@ -128,7 +128,11 @@ Notes:
 - Durable recall observability now records whether a selected note won on
   `index`, `header`, `body_index`, `body_rerank`, and/or `dream_boost` signals;
   inspect those details with `crawclaw agent inspect`.
-- NotebookLM and local-index experience recall happen during prompt assembly for live agent turns; `crawclaw memory` does not trigger recall.
+- NotebookLM-only experience recall happens during prompt assembly for live
+  agent turns; `crawclaw memory` does not trigger recall.
+- `crawclaw agent inspect` reports experience recall in NotebookLM provider
+  order. It does not expose a local experience ranking score because CrawClaw no
+  longer reranks NotebookLM results locally.
 - The Experience Agent runs after eligible top-level turns and records `experience_extract` diagnostics when prompt journaling is enabled.
 - `write_experience_note` is the only experience write path in the current runtime.
 - Prompt journal is debug-only and intentionally lossy/truncated. Use Context

@@ -25,6 +25,7 @@ const DURABLE_MEMORY_TOOL_NAMES = new Set([
   "memory_note_edit",
   "memory_note_delete",
 ]);
+const EXPERIENCE_WRITE_TOOL_NAME = "write_experience_note";
 
 function buildSkillsSection(params: {
   skillsPrompt?: string;
@@ -69,23 +70,36 @@ function buildMemorySection(params: {
   if (params.isMinimal || params.memoryRuntimeActive) {
     return [];
   }
-  const hasDurableMemoryTools = Array.from(DURABLE_MEMORY_TOOL_NAMES).some((toolName) =>
-    params.availableTools.has(toolName),
-  );
-  if (!hasDurableMemoryTools) {
+  const sections = [];
+  if (
+    Array.from(DURABLE_MEMORY_TOOL_NAMES).some((toolName) => params.availableTools.has(toolName))
+  ) {
+    sections.push(
+      "## Durable Memory",
+      "Use scoped durable memory tools only for stable, future-useful collaboration information.",
+      "If the user explicitly asks you to remember, default, forget, remove, or update durable memory, use the scoped durable memory tools when available; do not only acknowledge it verbally.",
+      "When writing durable memory, first read the scoped manifest, prefer updating an existing note, and keep MEMORY.md as a short index.",
+      "Durable memory notes may only be user, feedback, project, or reference.",
+      "Do not save task progress, temporary plans, code structure, file paths, git history, debugging fixes, or activity logs as durable memory.",
+      "Current code, docs, git state, runtime state, and user instructions override stale durable memory.",
+      "If durable memory tools are unavailable or reject an operation, explain that outcome instead of claiming the memory was changed.",
+      "",
+    );
+  }
+  if (params.availableTools.has(EXPERIENCE_WRITE_TOOL_NAME)) {
+    sections.push(
+      "## Experience Memory",
+      "Use write_experience_note only for verified reusable procedures, decisions, runtime patterns, failure patterns, collaboration workflows, or references.",
+      "When the current turn clearly produces reusable experience and the tool is available, call write_experience_note explicitly in the current turn.",
+      "Do not save temporary task progress, unverified guesses, current repo facts, or short-lived debugging state as experience memory.",
+      "The background Experience Agent may also call write_experience_note after the stop lifecycle, but that is a fallback and does not replace explicit writes for clear experience.",
+      "",
+    );
+  }
+  if (sections.length === 0) {
     return [];
   }
-  return [
-    "## Durable Memory",
-    "Use scoped durable memory tools only for stable, future-useful collaboration information.",
-    "If the user explicitly asks you to remember, default, forget, remove, or update durable memory, use the scoped durable memory tools when available; do not only acknowledge it verbally.",
-    "When writing durable memory, first read the scoped manifest, prefer updating an existing note, and keep MEMORY.md as a short index.",
-    "Durable memory notes may only be user, feedback, project, or reference.",
-    "Do not save task progress, temporary plans, code structure, file paths, git history, debugging fixes, or activity logs as durable memory.",
-    "Current code, docs, git state, runtime state, and user instructions override stale durable memory.",
-    "If durable memory tools are unavailable or reject an operation, explain that outcome instead of claiming the memory was changed.",
-    "",
-  ];
+  return sections;
 }
 
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {

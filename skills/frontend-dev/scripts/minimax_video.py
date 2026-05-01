@@ -17,7 +17,7 @@ import os
 import sys
 import time
 
-import requests
+from minimax_http import download_bytes, request_json
 
 API_KEY = os.getenv("MINIMAX_API_KEY")
 # China Mainland: https://api.minimaxi.com/v1
@@ -60,14 +60,13 @@ def create_task(
         "prompt_optimizer": prompt_optimizer,
     }
 
-    resp = requests.post(
+    data = request_json(
         f"{API_BASE}/video_generation",
         headers=_headers(),
-        json=payload,
+        method="POST",
+        payload=payload,
         timeout=30,
     )
-    resp.raise_for_status()
-    data = resp.json()
     _check_resp(data)
 
     task_id = data.get("task_id")
@@ -80,14 +79,12 @@ def poll_task(task_id: str, interval: int = 10, max_wait: int = 600) -> str:
     """Poll task status until Success. Returns file_id."""
     elapsed = 0
     while elapsed < max_wait:
-        resp = requests.get(
+        data = request_json(
             f"{API_BASE}/query/video_generation",
             headers=_headers(),
             params={"task_id": task_id},
             timeout=30,
         )
-        resp.raise_for_status()
-        data = resp.json()
         _check_resp(data)
 
         status = data.get("status", "")
@@ -110,14 +107,12 @@ def poll_task(task_id: str, interval: int = 10, max_wait: int = 600) -> str:
 
 def download_video(file_id: str, output_path: str):
     """Retrieve download URL via file_id and save the video."""
-    resp = requests.get(
+    data = request_json(
         f"{API_BASE}/files/retrieve",
         headers=_headers(),
         params={"file_id": file_id},
         timeout=30,
     )
-    resp.raise_for_status()
-    data = resp.json()
     _check_resp(data)
 
     download_url = data.get("file", {}).get("download_url", "")
@@ -125,14 +120,13 @@ def download_video(file_id: str, output_path: str):
         raise SystemExit(f"No download_url in response: {json.dumps(data, indent=2)}")
 
     print(f"  Downloading from {download_url[:80]}...")
-    video_resp = requests.get(download_url, timeout=300)
-    video_resp.raise_for_status()
+    content = download_bytes(download_url, timeout=300)
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     with open(output_path, "wb") as f:
-        f.write(video_resp.content)
+        f.write(content)
 
-    print(f"OK: {len(video_resp.content)} bytes -> {output_path}")
+    print(f"OK: {len(content)} bytes -> {output_path}")
 
 
 def generate(

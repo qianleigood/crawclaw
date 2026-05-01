@@ -1,6 +1,6 @@
 ---
 name: coding-agent
-description: Delegate coding work to Codex, Claude Code, OpenCode, or Pi. Use when a task needs a background coding agent, a temp review workspace, or a focused workdir-based implementation run.
+description: Use when a coding task should be delegated to Codex, Claude Code, OpenCode, or Pi in a separate workdir, temp review workspace, background run, or focused implementation agent.
 metadata:
   {
     "crawclaw":

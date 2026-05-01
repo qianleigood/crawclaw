@@ -152,6 +152,7 @@ describe("plugin dependency plan", () => {
         id: string;
         installTime: boolean;
         npmPackage?: string;
+        platforms?: string[];
         source?: string;
         python?: {
           candidates: string[];
@@ -201,6 +202,32 @@ describe("plugin dependency plan", () => {
         source: "scripts/install-plugin-runtimes.mjs",
       }),
       expect.objectContaining({
+        id: "core-skills",
+        installTime: true,
+        source: "scripts/install-plugin-runtimes.mjs",
+        python: expect.objectContaining({
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"],
+          minimumVersion: "3.10",
+          requirements: ["PyYAML==6.0.3"],
+        }),
+      }),
+      expect.objectContaining({
+        id: "n8n",
+        installTime: true,
+        npmPackage: "n8n@2.18.5",
+        source: "scripts/install-plugin-runtimes.mjs",
+      }),
+      expect.objectContaining({
+        id: "notebooklm-mcp-cli",
+        installTime: true,
+        source: "scripts/install-plugin-runtimes.mjs",
+        python: expect.objectContaining({
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_NOTEBOOKLM_PYTHON"],
+          minimumVersion: "3.11",
+          package: "notebooklm-mcp-cli==0.6.1",
+        }),
+      }),
+      expect.objectContaining({
         id: "open-websearch",
         installTime: true,
         npmPackage: "open-websearch@2.1.5",
@@ -232,6 +259,17 @@ describe("plugin dependency plan", () => {
             "msgspec==0.20.0",
           ]),
           windowsExtraPackages: ["msvc-runtime==14.44.35112"],
+        }),
+      }),
+      expect.objectContaining({
+        id: "skill-openai-whisper",
+        installTime: false,
+        platforms: ["darwin:arm64"],
+        source: "scripts/install-plugin-runtimes.mjs",
+        python: expect.objectContaining({
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"],
+          minimumVersion: "3.10",
+          requirements: ["mlx-whisper==0.4.3"],
         }),
       }),
     ]);

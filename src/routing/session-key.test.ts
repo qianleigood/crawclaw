@@ -3,6 +3,8 @@ import {
   deriveSessionChatType,
   getSubagentDepth,
   isCronSessionKey,
+  isEmbeddedSessionKey,
+  isMemoryAutomationExcludedSessionKey,
   parseThreadSessionSuffix,
   resolveThreadParentSessionKey,
 } from "../sessions/session-key-utils.js";
@@ -67,6 +69,28 @@ describe("isCronSessionKey", () => {
     { key: undefined, expected: false },
   ] as const)("matches cron key %j => $expected", ({ key, expected }) => {
     expect(isCronSessionKey(key)).toBe(expected);
+  });
+});
+
+describe("memory automation session-key filtering", () => {
+  it.each([
+    { key: "embedded:session_summary:special:run-1", expected: true },
+    { key: "EMBEDDED:memory_extractor:special:run-1", expected: true },
+    { key: "agent:main:main", expected: false },
+    { key: "agent:main:subagent:worker", expected: false },
+    { key: undefined, expected: false },
+  ] as const)("matches embedded key %j => $expected", ({ key, expected }) => {
+    expect(isEmbeddedSessionKey(key)).toBe(expected);
+  });
+
+  it.each([
+    { key: "embedded:session_summary:special:run-1", expected: true },
+    { key: "agent:main:subagent:worker", expected: true },
+    { key: "subagent:worker", expected: true },
+    { key: "agent:main:feishu:direct:user-1", expected: false },
+    { key: undefined, expected: false },
+  ] as const)("marks memory automation exclusion for %j => $expected", ({ key, expected }) => {
+    expect(isMemoryAutomationExcludedSessionKey(key)).toBe(expected);
   });
 });
 

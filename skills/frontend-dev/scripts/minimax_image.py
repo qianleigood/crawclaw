@@ -12,11 +12,12 @@ Env: MINIMAX_API_KEY (required)
 """
 
 import argparse
+import base64
 import json
 import os
 import sys
 
-import requests
+from minimax_http import download_bytes, request_json
 
 API_KEY = os.getenv("MINIMAX_API_KEY")
 # China Mainland: https://api.minimaxi.com/v1
@@ -58,14 +59,13 @@ def generate_image(
     if seed is not None:
         payload["seed"] = seed
 
-    resp = requests.post(
+    data = request_json(
         f"{API_BASE}/image_generation",
         headers=_headers(),
-        json=payload,
+        method="POST",
+        payload=payload,
         timeout=120,
     )
-    resp.raise_for_status()
-    data = resp.json()
 
     base_resp = data.get("base_resp", {})
     if base_resp.get("status_code", 0) != 0:
@@ -76,11 +76,10 @@ def generate_image(
 
 def download_and_save(url: str, output_path: str):
     """Download image from URL and save."""
-    resp = requests.get(url, timeout=60)
-    resp.raise_for_status()
+    content = download_bytes(url, timeout=60)
     with open(output_path, "wb") as f:
-        f.write(resp.content)
-    return len(resp.content)
+        f.write(content)
+    return len(content)
 
 
 def main():
@@ -113,7 +112,6 @@ def main():
 
     if args.base64:
         images = result.get("data", {}).get("image_base64", [])
-        import base64
         for i, b64 in enumerate(images):
             path = args.output if len(images) == 1 else _numbered_path(args.output, i)
             raw = base64.b64decode(b64)

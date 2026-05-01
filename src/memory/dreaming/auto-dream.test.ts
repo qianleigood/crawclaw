@@ -203,6 +203,136 @@ describe("AutoDreamScheduler", () => {
     );
   });
 
+  it("finishes on the original runtime store if a nested runtime reconfigures the shared scheduler", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-reconfig-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await Promise.all(
+      ["s1", "s2", "s3", "s4", "s5"].map(async (sessionId) => {
+        await writeSessionSummaryFile({
+          agentId: "main",
+          sessionId,
+          content: `# Session Summary\n\n## Current State\nsummary:${sessionId}\n`,
+        });
+      }),
+    );
+
+    const updateMaintenanceRun = vi.fn().mockResolvedValue(undefined);
+    const releaseDreamLock = vi.fn().mockResolvedValue(undefined);
+    const originalStore = asRuntimeStore({
+      getDreamState: vi.fn().mockResolvedValue({
+        scopeKey: "main:feishu:user-1",
+        lastSuccessAt: null,
+        lastAttemptAt: null,
+        lastFailureAt: null,
+        lockOwner: null,
+        lockAcquiredAt: null,
+        lastRunId: null,
+        updatedAt: Date.now(),
+      }),
+      listScopedSessionIdsTouchedSince: vi.fn().mockResolvedValue(["s1", "s2", "s3", "s4", "s5"]),
+      touchDreamAttempt: vi.fn().mockResolvedValue(undefined),
+      acquireDreamLock: vi.fn().mockResolvedValue({
+        acquired: true,
+        state: {
+          scopeKey: "main:feishu:user-1",
+          lastSuccessAt: null,
+          lastAttemptAt: Date.now(),
+          lastFailureAt: null,
+          lockOwner: "dream-1",
+          lockAcquiredAt: Date.now(),
+          lastRunId: null,
+          updatedAt: Date.now(),
+        },
+      }),
+      createMaintenanceRun: vi.fn().mockResolvedValue("mrun-original"),
+      listRecentContextArchiveRuns: vi.fn().mockResolvedValue([]),
+      listContextArchiveEvents: vi.fn().mockResolvedValue([]),
+      listRecentMaintenanceRuns: vi.fn().mockResolvedValue([]),
+      getSessionSummaryState: vi.fn().mockResolvedValue({
+        lastSummarizedMessageId: "msg-1",
+        lastSummaryUpdatedAt: Date.now(),
+        tokensAtLastSummary: 120,
+        summaryInProgress: false,
+      }),
+      updateMaintenanceRun,
+      releaseDreamLock,
+    });
+    const nestedUpdateMaintenanceRun = vi.fn().mockResolvedValue(undefined);
+    const nestedReleaseDreamLock = vi.fn().mockResolvedValue(undefined);
+    const nestedStore = asRuntimeStore({
+      updateMaintenanceRun: nestedUpdateMaintenanceRun,
+      releaseDreamLock: nestedReleaseDreamLock,
+    });
+
+    let scheduler: AutoDreamScheduler;
+    const runner = vi.fn().mockImplementation(async () => {
+      scheduler.reconfigure({
+        config: {
+          enabled: true,
+          minHours: 24,
+          minSessions: 5,
+          scanThrottleMs: 600_000,
+          lockStaleAfterMs: 3_600_000,
+        },
+        runtimeStore: nestedStore,
+        runner: vi.fn(),
+        logger: console,
+      });
+      return {
+        status: "written",
+        summary: "merged duplicate feedback notes",
+        writtenCount: 0,
+        updatedCount: 1,
+        deletedCount: 1,
+        touchedNotes: ["feedback/answer-style.md"],
+      };
+    });
+
+    scheduler = new AutoDreamScheduler({
+      config: {
+        enabled: true,
+        minHours: 24,
+        minSessions: 5,
+        scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
+      },
+      runtimeStore: originalStore,
+      runner,
+      logger: console,
+    });
+
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      bypassGate: true,
+    });
+
+    expect(result.status).toBe("started");
+    expect(updateMaintenanceRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "mrun-original",
+        status: "done",
+      }),
+    );
+    expect(releaseDreamLock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scopeKey: scope!.scopeKey,
+        runId: "mrun-original",
+        status: "succeeded",
+      }),
+    );
+    expect(nestedUpdateMaintenanceRun).not.toHaveBeenCalled();
+    expect(nestedReleaseDreamLock).not.toHaveBeenCalled();
+  });
+
   it("supports dry-run preview without acquiring the lock or spawning consolidation", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-dry-"));
     tempDirs.push(stateDir);
@@ -269,7 +399,7 @@ describe("AutoDreamScheduler", () => {
     expect(runner).not.toHaveBeenCalled();
   });
 
-  it("plans transcript fallback when summaries or structured signals are weak", async () => {
+  it("does not plan transcript fallback when summaries or structured signals are weak", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-fallback-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
@@ -325,15 +455,6 @@ describe("AutoDreamScheduler", () => {
         minSessions: 5,
         scanThrottleMs: 600_000,
         lockStaleAfterMs: 3_600_000,
-        transcriptFallback: {
-          enabled: true,
-          minSignals: 2,
-          staleSummaryMs: 60_000,
-          maxSessions: 4,
-          maxMatchesPerSession: 2,
-          maxTotalBytes: 12_000,
-          maxExcerptChars: 900,
-        },
       },
       runtimeStore,
       runner,
@@ -355,25 +476,10 @@ describe("AutoDreamScheduler", () => {
 
     expect(result.status).toBe("started");
     expect(runner).toHaveBeenCalledWith(
-      expect.objectContaining({
-        transcriptFallback: expect.objectContaining({
-          enabled: true,
-          reasons: expect.arrayContaining(["missing_session_summary", "weak_structured_signals"]),
-          sessionIds: ["s1", "s2", "s3", "s4"],
-          limits: expect.objectContaining({
-            maxSessions: 4,
-            maxMatchesPerSession: 2,
-          }),
-        }),
-      }),
+      expect.not.objectContaining({ transcriptFallback: expect.anything() }),
       console,
     );
     const metricsJson = updateMaintenanceRun.mock.calls.at(-1)?.[0]?.metricsJson;
-    expect(JSON.parse(String(metricsJson))).toMatchObject({
-      transcriptFallback: {
-        enabled: true,
-        sessionCount: 4,
-      },
-    });
+    expect(JSON.parse(String(metricsJson))).not.toHaveProperty("transcriptFallback");
   });
 });

@@ -86,6 +86,10 @@ vi.mock("../memory/session-summary/store.ts", () => ({
 
 vi.mock("../memory/runtime/sqlite-runtime-store.js", () => ({
   SqliteRuntimeStore: class {
+    dbPath: string;
+    constructor(dbPath: string) {
+      this.dbPath = dbPath;
+    }
     init = mocks.sqliteRuntimeStoreInitMock;
     close = mocks.sqliteRuntimeStoreCloseMock;
     getDreamState = mocks.sqliteRuntimeStoreGetDreamStateMock;
@@ -104,9 +108,16 @@ const {
 } = await import("./memory-cli.runtime.js");
 
 describe("memory-cli dream runtime", () => {
+  const previousRuntimeDbPath = process.env.RUNTIME_DB_PATH;
+
   beforeEach(() => {
     vi.clearAllMocks();
     resetRuntimeCapture();
+    if (previousRuntimeDbPath === undefined) {
+      delete process.env.RUNTIME_DB_PATH;
+    } else {
+      process.env.RUNTIME_DB_PATH = previousRuntimeDbPath;
+    }
     mocks.loadConfigMock.mockReturnValue({ memory: {} });
     mocks.resolveCommandSecretRefsViaGatewayMock.mockResolvedValue({
       resolvedConfig: { memory: {} },
@@ -303,6 +314,41 @@ Nothing yet.
     expect(runtimeLogs.join("\n")).toContain("Auto Dream Run");
     expect(runtimeLogs.join("\n")).toContain("preview");
     expect(runtimeLogs.join("\n")).toContain("Session IDs");
+  });
+
+  it("runs dream dry-run preview from explicit scope key", async () => {
+    process.env.RUNTIME_DB_PATH = "/tmp/crawclaw-memory-cli-runtime-test.sqlite";
+
+    await runMemoryDreamRun({
+      scopeKey: "main:telegram:alice",
+      dryRun: true,
+      sessionLimit: "2",
+      signalLimit: "1",
+    });
+
+    const scheduler = mocks.getSharedAutoDreamSchedulerMock.mock.results[0]?.value;
+    expect(scheduler.runNow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: expect.objectContaining({
+          agentId: "main",
+          channel: "telegram",
+          userId: "alice",
+          scopeKey: "main:telegram:alice",
+        }),
+        triggerSource: "manual_cli",
+        dryRun: true,
+        sessionLimit: 2,
+        signalLimit: 1,
+      }),
+    );
+    expect(mocks.getSharedAutoDreamSchedulerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeStore: expect.objectContaining({
+          dbPath: "/tmp/crawclaw-memory-cli-runtime-test.sqlite",
+        }),
+      }),
+    );
+    expect(runtimeErrors.join("\n")).not.toContain("requires --scope-key");
   });
 
   it("errors when dream run is missing scope options", async () => {

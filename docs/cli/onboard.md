@@ -70,7 +70,7 @@ crawclaw onboard --non-interactive \
 
 `--custom-base-url` defaults to `http://127.0.0.1:11434`. `--custom-model-id` is optional; if omitted, onboarding uses Ollama's suggested defaults. Cloud model IDs such as `kimi-k2.5:cloud` also work here.
 
-The interactive Skills step can also enable semantic skill discovery with Ollama embeddings. That flow is separate from the main chat model above and writes `skills.discovery.semantic.provider: "ollama"` plus an embedding model such as `nomic-embed-text`, `qwen3-embedding:0.6b`, or `mxbai-embed-large`.
+The interactive Skills step can also enable semantic skill discovery with Ollama embeddings. That flow is separate from the main chat model above and writes `skills.discovery.semantic.provider: "ollama"` plus an embedding model such as `nomic-embed-text`, `qwen3-embedding:0.6b`, or `mxbai-embed-large`. If the selected embedding model is not local, onboarding asks Ollama to pull it automatically.
 
 Store provider keys as refs instead of plaintext:
 

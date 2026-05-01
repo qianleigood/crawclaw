@@ -1,6 +1,6 @@
 ---
 name: weather
-description: Get current weather and forecasts via wttr.in or Open-Meteo. Use when the user asks about current weather, rain, temperature, or short forecasts for a location. Not for historical weather, severe-alert workflows, or detailed meteorological analysis.
+description: Use when the user asks for current weather, rain, temperature, conditions, or short forecasts for a location. Not for historical weather, severe alerts, aviation, marine, or climate analysis.
 homepage: https://wttr.in/:help
 metadata:
   {

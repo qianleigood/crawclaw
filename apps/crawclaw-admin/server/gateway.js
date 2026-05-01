@@ -9,12 +9,13 @@ const APP_VERSION = JSON.parse(
 ).version || ''
 
 export class OpenClawGateway extends EventEmitter {
-  constructor(url, authToken, authPassword, logLevel = 'INFO') {
+  constructor(url, authToken, authPassword, logLevel = 'INFO', locale = 'zh-CN') {
     super()
     this.url = url
     this.authToken = authToken
     this.authPassword = authPassword
     this.logLevel = logLevel
+    this.locale = locale
     this.isDebug = logLevel === 'DEBUG'
     this.ws = null
     this.isConnected = false
@@ -31,6 +32,10 @@ export class OpenClawGateway extends EventEmitter {
     if (this.isDebug) {
       console.log('[Gateway]', ...args)
     }
+  }
+
+  setLocale(locale) {
+    this.locale = locale
   }
 
   async connect() {
@@ -143,7 +148,7 @@ export class OpenClawGateway extends EventEmitter {
         token: this.authToken || '',
         password: this.authPassword || '', // 支持 password 认证
       },
-      locale: 'zh-CN',
+      locale: this.locale,
       userAgent: `OpenClaw-Web-Backend/${APP_VERSION}`,
     }
 

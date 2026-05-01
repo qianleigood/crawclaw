@@ -22,11 +22,6 @@
       "crawclaw/plugin-sdk": ["./src/plugin-sdk/index.ts"],
       "crawclaw/plugin-sdk/*": ["./src/plugin-sdk/*.ts"],
       "crawclaw/plugin-sdk/account-id": ["./src/plugin-sdk/account-id.ts"],
-      "@crawclaw/*": ["./extensions/*"],
-      "crawclaw/extension-api": ["./src/extensionAPI.ts"],
-      "crawclaw/plugin-sdk": ["./src/plugin-sdk/index.ts"],
-      "crawclaw/plugin-sdk/*": ["./src/plugin-sdk/*.ts"],
-      "crawclaw/plugin-sdk/account-id": ["./src/plugin-sdk/account-id.ts"],
       "@crawclaw/*": ["./extensions/*"]
     }
   },

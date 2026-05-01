@@ -46,6 +46,12 @@ vi.mock("../notebooklm/heartbeat.ts", () => ({
   startNotebookLmHeartbeat: vi.fn(),
 }));
 
+const searchNotebookLmViaCliMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../notebooklm/notebooklm-cli.ts", () => ({
+  searchNotebookLmViaCli: searchNotebookLmViaCliMock,
+}));
+
 const tempDirs: string[] = [];
 const stores: SqliteRuntimeStore[] = [];
 const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
@@ -60,6 +66,7 @@ afterEach(async () => {
   autoDreamTesting.resetSharedAutoDreamScheduler();
   sessionSummaryLifecycleTesting.resetSharedSessionSummaryLifecycleSubscriber();
   resetRunLoopLifecycleHandlersForTests();
+  searchNotebookLmViaCliMock.mockReset();
   await Promise.all(stores.splice(0).map(async (store) => store.close()));
   await Promise.all(tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })));
   if (previousStateDir === undefined) {
@@ -132,9 +139,9 @@ describe("context memory runtime cross-layer e2e", () => {
       },
       dreaming: { enabled: false },
       notebooklm: {
-        enabled: false,
+        enabled: true,
         auth: { heartbeat: { enabled: false } },
-        cli: { enabled: false },
+        cli: { enabled: true, command: "nlm", notebookId: "experience-notebook" },
         write: { enabled: false },
       },
       sessionSummary: {
@@ -218,6 +225,18 @@ describe("context memory runtime cross-layer e2e", () => {
     expect((await readExperienceIndexEntries()).map((entry) => entry.id)).toContain(
       "experience-index:gateway-release-order",
     );
+    searchNotebookLmViaCliMock.mockResolvedValue([
+      {
+        id: "notebooklm:gateway-release-order",
+        source: "notebooklm",
+        title: "网关发布失败顺序经验",
+        summary: "网关发布失败时先回滚 service，再验证 secret 和探针输出。",
+        layer: "sop",
+        memoryKind: "procedure",
+        retrievalScore: 0.1,
+        metadata: {},
+      },
+    ]);
     const rowsForAssembly = await store.listMessagesByTurnRange(sessionId, 1, messages.length);
     const assembled = await runtime.assemble({
       sessionId,
@@ -228,7 +247,7 @@ describe("context memory runtime cross-layer e2e", () => {
       runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-77" },
     });
     expect(assembled.diagnostics?.memoryRecall?.selectedExperienceItemIds).toContain(
-      "experience-index:gateway-release-order",
+      "notebooklm:gateway-release-order",
     );
     expect(renderQueryContextSections(assembled.systemContextSections)).toContain(
       "网关发布失败顺序经验",
@@ -259,9 +278,9 @@ describe("context memory runtime cross-layer e2e", () => {
         lockStaleAfterMs: 60_000,
       },
       notebooklm: {
-        enabled: false,
+        enabled: true,
         auth: { heartbeat: { enabled: false } },
-        cli: { enabled: false },
+        cli: { enabled: true, command: "nlm", notebookId: "experience-notebook" },
         write: { enabled: false },
       },
       sessionSummary: {
@@ -489,6 +508,18 @@ The compact summary should appear before the preserved tail.
     expect(dreamRun?.metricsJson).toContain("60 Preferences/step-first.md");
 
     const rowsForAssembly = await store.listMessagesByTurnRange(sessionId, 1, messages.length);
+    searchNotebookLmViaCliMock.mockResolvedValue([
+      {
+        id: "notebooklm:gateway-recovery",
+        source: "notebooklm",
+        title: "gateway-recovery 恢复经验",
+        summary: "gateway-recovery 场景要按检查状态、查看日志、重启网关、验证探针的顺序处理。",
+        layer: "sop",
+        memoryKind: "procedure",
+        retrievalScore: 0.1,
+        metadata: {},
+      },
+    ]);
     const assembled = await runtime.assemble({
       sessionId,
       sessionKey,
@@ -507,7 +538,7 @@ The compact summary should appear before the preserved tail.
     expect(diagnostics?.recentDreamTouchedNotes).toContain("60 Preferences/step-first.md");
     expect(diagnostics?.selectedDurableDetails?.[0]?.provenance).toContain("dream_boost");
     expect(diagnostics?.selectedExperienceItemIds).toEqual(
-      expect.arrayContaining(["experience-index:gateway-recovery"]),
+      expect.arrayContaining(["notebooklm:gateway-recovery"]),
     );
     expect(diagnostics?.experienceQueryPlan).toMatchObject({
       enabled: true,

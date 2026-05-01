@@ -1,16 +1,16 @@
 ---
-title: "Plugin Dependency Maintenance"
-summary: "Maintainer workflow for plugin dependency baselines and install-time runtime setup"
+title: "Dependency Maintenance"
+summary: "Maintainer workflow for plugin dependency baselines, core skill dependencies, and install-time runtime setup"
 read_when:
   - You add, remove, rename, publish, or repackage a bundled plugin
-  - You change plugin package dependencies, staged runtime dependencies, or managed plugin runtimes
-  - You need to verify Python runtime requirements for plugin install setup
+  - You change plugin package dependencies, staged runtime dependencies, managed plugin runtimes, or bundled core skill runtime requirements
+  - You need to verify Python runtime requirements for install setup
 ---
 
-# Plugin Dependency Maintenance
+# Dependency Maintenance
 
 The plugin dependency plan is a read-only generated baseline for the dependency
-surface owned by bundled plugins and managed plugin runtimes.
+surface owned by bundled plugins, managed plugin runtimes, and bundled core skill helper runtimes.
 
 It is generated from source metadata. It does not install packages, activate
 plugins, import plugin runtime code, or modify runtime state.
@@ -32,6 +32,10 @@ The plan covers:
 - released plugin `crawclaw.install.npmSpec` metadata
 - `crawclaw.bundle.stageRuntimeDependencies` metadata
 - install-time managed runtimes from `scripts/install-plugin-runtimes.mjs`
+- bundled core skill Python package pins from
+  `skills/.runtime/requirements.lock.txt`
+- `openai-whisper` Apple Silicon package pins from
+  `skills/openai-whisper/runtime/requirements.macos-arm64.lock.txt`
 - `scrapling-fetch` Python package pins from
   `extensions/scrapling-fetch/runtime/requirements.lock.txt`
 
@@ -65,7 +69,7 @@ Treat plugin dependency setup as four separate layers:
 - Bundled plugin JavaScript dependencies live in each plugin package.
 - Staged bundled plugin dependencies are explicitly marked by
   `crawclaw.bundle.stageRuntimeDependencies`.
-- Managed plugin runtimes are prepared by `scripts/install-plugin-runtimes.mjs`
+- Managed runtimes are prepared by `scripts/install-plugin-runtimes.mjs`
   during install or repair flows.
 
 Do not move plugin-only dependencies into the root package unless core code
@@ -73,17 +77,20 @@ imports them directly.
 
 ## Python Runtime Policy
 
-Python is currently a managed runtime concern for `scrapling-fetch`.
+Python is currently a managed runtime concern for `core-skills`, `scrapling-fetch`,
+`notebooklm-mcp-cli`, and Apple Silicon `skill-openai-whisper`.
 
 The generated plan records the policy from `scripts/install-plugin-runtimes.mjs`:
 
-- minimum Python version: `>=3.10`
-- override environment variables:
-  `CRAWCLAW_RUNTIME_PYTHON` and `CRAWCLAW_SCRAPLING_PYTHON`
+- minimum Python version per runtime
+- override environment variables such as `CRAWCLAW_RUNTIME_PYTHON`,
+  `CRAWCLAW_CORE_SKILLS_PYTHON`, `CRAWCLAW_SCRAPLING_PYTHON`, and
+  `CRAWCLAW_NOTEBOOKLM_PYTHON`
 - interpreter candidates discovered by the installer
+- platform/architecture install-time policy, such as `skill-openai-whisper`
+  only installing on `darwin/arm64`
 - Windows-only extra package pins such as `msvc-runtime`
-- locked Python packages from
-  `extensions/scrapling-fetch/runtime/requirements.lock.txt`
+- locked Python packages from the runtime requirement lockfiles above
 
 If the Python policy changes, update the installer and locked requirements first,
 then run `pnpm plugin-deps:gen`.

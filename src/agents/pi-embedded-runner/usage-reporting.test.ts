@@ -189,10 +189,6 @@ describe("runEmbeddedPiAgent usage reporting", () => {
         channel: "local",
         userId: "owner",
       },
-      specialTranscriptSearch: {
-        sessionIds: ["session-a"],
-        maxSessions: 2,
-      },
       specialSessionSummaryTarget: {
         agentId: "main",
         sessionId: "summary-session",
@@ -206,10 +202,6 @@ describe("runEmbeddedPiAgent usage reporting", () => {
           agentId: "main",
           channel: "local",
           userId: "owner",
-        },
-        specialTranscriptSearch: {
-          sessionIds: ["session-a"],
-          maxSessions: 2,
         },
         specialSessionSummaryTarget: {
           agentId: "main",

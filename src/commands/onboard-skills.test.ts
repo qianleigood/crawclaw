@@ -34,6 +34,7 @@ function createBundledSkill(params: {
   description: string;
   bins: string[];
   os?: string[];
+  arch?: string[];
   installLabel: string;
 }): {
   name: string;
@@ -53,8 +54,16 @@ function createBundledSkill(params: {
     env: string[];
     config: string[];
     os: string[];
+    arch: string[];
   };
-  missing: { bins: string[]; anyBins: string[]; env: string[]; config: string[]; os: string[] };
+  missing: {
+    bins: string[];
+    anyBins: string[];
+    env: string[];
+    config: string[];
+    os: string[];
+    arch: string[];
+  };
   configChecks: [];
   install: Array<{ id: string; kind: string; label: string; bins: string[] }>;
 } {
@@ -70,8 +79,22 @@ function createBundledSkill(params: {
     disabled: false,
     blockedByAllowlist: false,
     eligible: false,
-    requirements: { bins: params.bins, anyBins: [], env: [], config: [], os: params.os ?? [] },
-    missing: { bins: params.bins, anyBins: [], env: [], config: [], os: params.os ?? [] },
+    requirements: {
+      bins: params.bins,
+      anyBins: [],
+      env: [],
+      config: [],
+      os: params.os ?? [],
+      arch: params.arch ?? [],
+    },
+    missing: {
+      bins: params.bins,
+      anyBins: [],
+      env: [],
+      config: [],
+      os: params.os ?? [],
+      arch: params.arch ?? [],
+    },
     configChecks: [],
     install: [{ id: "brew", kind: "brew", label: params.installLabel, bins: params.bins }],
   };
@@ -174,12 +197,33 @@ describe("setupSkills", () => {
     const { prompter, notes } = createPrompter({ installDependencies: false });
     await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
 
-    // OS-mismatched skill should be counted as unsupported, not installable/missing.
+    // Platform-mismatched skill should be counted as unsupported, not installable/missing.
     const status = notes.find((n) => n.title === "Skills status")?.message ?? "";
-    expect(status).toContain("Unsupported on this OS: 1");
+    expect(status).toContain("Unsupported on this platform: 1");
 
     const brewNote = notes.find((n) => n.title === "Homebrew recommended");
     expect(brewNote).toBeUndefined();
+    expect(prompter.multiselect).not.toHaveBeenCalled();
+  });
+
+  it("counts architecture-mismatched skills as unsupported", async () => {
+    const mismatchedArch = process.arch === "arm64" ? "x64" : "arm64";
+
+    mockMissingBrewStatus([
+      createBundledSkill({
+        name: "mlx-whisper",
+        description: "Apple Silicon only",
+        bins: ["python3"],
+        arch: [mismatchedArch],
+        installLabel: "Install Python (brew)",
+      }),
+    ]);
+
+    const { prompter, notes } = createPrompter({ installDependencies: false });
+    await setupSkills({} as CrawClawConfig, "/tmp/ws", runtime, prompter);
+
+    const status = notes.find((n) => n.title === "Skills status")?.message ?? "";
+    expect(status).toContain("Unsupported on this platform: 1");
     expect(prompter.multiselect).not.toHaveBeenCalled();
   });
 

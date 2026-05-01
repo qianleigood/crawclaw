@@ -28,14 +28,18 @@ function getAssemblySection(
   return sections.find((section) => section.kind === kind);
 }
 
-function toNumericRecord(values: object): Record<string, number> {
-  const record: Record<string, number> = {};
-  for (const [key, value] of Object.entries(values)) {
-    if (typeof value === "number") {
-      record[key] = value;
-    }
-  }
-  return record;
+function experienceSelectionMetadata(item: ExperienceRecallSelectionResult["items"][number]): {
+  providerOrder?: number;
+  selectionReason?: string;
+} {
+  const providerOrder = item.metadata?.providerOrder;
+  const selectionReason = item.metadata?.experienceRecallSelection;
+  return {
+    ...(typeof providerOrder === "number" && Number.isFinite(providerOrder)
+      ? { providerOrder }
+      : {}),
+    ...(typeof selectionReason === "string" && selectionReason.trim() ? { selectionReason } : {}),
+  };
 }
 
 export function buildPromptMissingAssemblyResult(params: {
@@ -133,15 +137,15 @@ export function buildMemoryAssemblyArtifacts(params: {
     title: item.title,
     source: item.source,
     ...(item.memoryKind ? { memoryKind: item.memoryKind } : {}),
-    scoreBreakdown: toNumericRecord(item.scoreBreakdown),
+    ...experienceSelectionMetadata(item),
   }));
   const omittedExperienceDetails = params.selectedExperience.omittedItems.map((item) => ({
     itemId: item.id,
     title: item.title,
     source: item.source,
     ...(item.memoryKind ? { memoryKind: item.memoryKind } : {}),
-    omittedReason: "selection_floor",
-    scoreBreakdown: toNumericRecord(item.scoreBreakdown),
+    omittedReason: "provider_order_limit",
+    ...experienceSelectionMetadata(item),
   }));
 
   const hitReason = resolveMemoryRecallHitReason({

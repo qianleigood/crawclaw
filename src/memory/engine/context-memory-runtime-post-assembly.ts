@@ -54,7 +54,7 @@ export async function runPostAssemblySideEffects(params: {
   experienceSectionEstimatedTokens?: number;
   memoryRecallDiagnostics: QueryContextMemoryRecallDiagnostics;
   compactionState?: SessionCompactionStateRow | null;
-  rerankedItemCount: number;
+  recallItemCount: number;
   experienceRecallCandidateCount: number;
   durableRecall: DurableRecallResult | null;
   durableRecallSource: DurableRecallSource;
@@ -81,7 +81,7 @@ export async function runPostAssemblySideEffects(params: {
     details: {
       droppedMessageCount: params.droppedMessageCount,
       targetBudget: params.targetBudget,
-      recallItems: params.rerankedItemCount,
+      recallItems: params.recallItemCount,
       durableManifestCount: params.durableRecall?.manifest.length ?? 0,
       selectedDurableMemoryIds: params.selectedDurableItemIds,
       omittedDurableMemoryIds: params.omittedDurableItemIds,

@@ -5,6 +5,7 @@ import {
   normalizeStringList,
   parseCrawClawManifestInstallBase,
   parseFrontmatterBool,
+  resolveCrawClawManifestArch,
   resolveCrawClawManifestBlock,
   resolveCrawClawManifestInstall,
   resolveCrawClawManifestOs,
@@ -54,6 +55,7 @@ export function resolveCrawClawMetadata(
   const requires = resolveCrawClawManifestRequires(metadataObj);
   const install = resolveCrawClawManifestInstall(metadataObj, parseInstallSpec);
   const osRaw = resolveCrawClawManifestOs(metadataObj);
+  const archRaw = resolveCrawClawManifestArch(metadataObj);
   const eventsRaw = normalizeStringList(metadataObj.events);
   return {
     always: typeof metadataObj.always === "boolean" ? metadataObj.always : undefined,
@@ -62,6 +64,7 @@ export function resolveCrawClawMetadata(
     hookKey: typeof metadataObj.hookKey === "string" ? metadataObj.hookKey : undefined,
     export: typeof metadataObj.export === "string" ? metadataObj.export : undefined,
     os: osRaw.length > 0 ? osRaw : undefined,
+    arch: archRaw.length > 0 ? archRaw : undefined,
     events: eventsRaw.length > 0 ? eventsRaw : [],
     requires: requires,
     install: install.length > 0 ? install : undefined,

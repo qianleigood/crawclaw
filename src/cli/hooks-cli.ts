@@ -146,6 +146,9 @@ function formatHookMissingSummary(hook: HookStatusEntry): string {
   if (hook.missing.os.length > 0) {
     missing.push(`os: ${hook.missing.os.join(", ")}`);
   }
+  if (hook.missing.arch.length > 0) {
+    missing.push(`arch: ${hook.missing.arch.join(", ")}`);
+  }
   return missing.join("; ");
 }
 
@@ -338,7 +341,8 @@ export function formatHookInfo(
     hook.requirements.anyBins.length > 0 ||
     hook.requirements.env.length > 0 ||
     hook.requirements.config.length > 0 ||
-    hook.requirements.os.length > 0;
+    hook.requirements.os.length > 0 ||
+    hook.requirements.arch.length > 0;
 
   if (hasRequirements) {
     lines.push("");
@@ -386,6 +390,13 @@ export function formatHookInfo(
           ? theme.error(`✗ (${hook.requirements.os.join(", ")})`)
           : theme.success(`✓ (${hook.requirements.os.join(", ")})`);
       lines.push(`${theme.muted(`  ${t("hooks.runtime.label.os")}:`)} ${osStatus}`);
+    }
+    if (hook.requirements.arch.length > 0) {
+      const archStatus =
+        hook.missing.arch.length > 0
+          ? theme.error(`✗ (${hook.requirements.arch.join(", ")})`)
+          : theme.success(`✓ (${hook.requirements.arch.join(", ")})`);
+      lines.push(`${theme.muted("  Arch:")} ${archStatus}`);
     }
   }
 
@@ -451,6 +462,9 @@ export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptio
       }
       if (hook.missing.os.length > 0) {
         reasons.push(`os: ${hook.missing.os.join(", ")}`);
+      }
+      if (hook.missing.arch.length > 0) {
+        reasons.push(`arch: ${hook.missing.arch.join(", ")}`);
       }
       lines.push(`  ${hook.emoji ?? "🔗"} ${hook.name} - ${reasons.join("; ")}`);
     }

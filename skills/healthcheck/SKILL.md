@@ -1,6 +1,6 @@
 ---
 name: healthcheck
-description: Audit and harden the host running CrawClaw. Use when the user asks for security posture review, exposure assessment, firewall or SSH hardening, periodic host audits, or CrawClaw version and audit checks.
+description: Use when auditing or hardening the host running CrawClaw, including security posture review, exposure assessment, firewall or SSH hardening, periodic host audits, or version checks.
 ---
 
 # CrawClaw Host Hardening

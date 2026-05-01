@@ -99,6 +99,23 @@ const MEMORY_FILE_NAMES = [DEFAULT_MEMORY_FILENAME, DEFAULT_MEMORY_ALT_FILENAME]
 
 const ALLOWED_FILE_NAMES = new Set<string>([...BOOTSTRAP_FILE_NAMES, ...MEMORY_FILE_NAMES]);
 
+function filterAgentListRpcRows(
+  cfg: ReturnType<typeof loadConfig>,
+  agents: Array<{ id: string }>,
+  defaultId: string,
+): Array<{ id: string }> {
+  const explicitIds = new Set(
+    (cfg.agents?.list ?? [])
+      .map((entry) => (entry?.id ? normalizeAgentId(entry.id) : ""))
+      .filter(Boolean),
+  );
+  if (explicitIds.size === 0) {
+    return agents.filter((agent) => normalizeAgentId(agent.id) === defaultId);
+  }
+  explicitIds.add(defaultId);
+  return agents.filter((agent) => explicitIds.has(normalizeAgentId(agent.id)));
+}
+
 function resolveAgentWorkspaceFileOrRespondError(
   params: Record<string, unknown>,
   respond: RespondFn,
@@ -538,7 +555,14 @@ export const agentsHandlers: GatewayRequestHandlers = {
 
     const cfg = loadConfig();
     const result = listAgentsForGateway(cfg);
-    respond(true, result, undefined);
+    respond(
+      true,
+      {
+        ...result,
+        agents: filterAgentListRpcRows(cfg, result.agents, normalizeAgentId(result.defaultId)),
+      },
+      undefined,
+    );
   },
   "agents.create": async ({ params, respond }) => {
     if (!validateAgentsCreateParams(params)) {

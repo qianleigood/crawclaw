@@ -1,6 +1,27 @@
 ---
 name: openai-whisper
-description: Local speech-to-text on Apple Silicon using MLX Whisper. Use as the default general-purpose local transcription skill on this Mac when transcribing audio/video without an API key; prefer this over narrower wrappers unless the user specifically needs a short-video or workflow-specific variant.
+description: Use when transcribing local audio or video on Apple Silicon without an API key, especially when MLX Whisper should be the default general-purpose local speech-to-text path.
+metadata:
+  {
+    "crawclaw":
+      {
+        "emoji": "🎙️",
+        "os": ["darwin"],
+        "arch": ["arm64"],
+        "requires": { "bins": ["python3"] },
+        "install":
+          [
+            {
+              "id": "brew-python",
+              "kind": "brew",
+              "formula": "python@3.12",
+              "bins": ["python3"],
+              "os": ["darwin"],
+              "label": "Install Python (brew)",
+            },
+          ],
+      },
+  }
 ---
 
 # MLX Whisper (Apple Silicon)
@@ -24,9 +45,11 @@ description: Local speech-to-text on Apple Silicon using MLX Whisper. Use as the
 ```
 
 默认模型：
+
 - `mlx-community/whisper-turbo`
 
 可选模型：
+
 - `mlx-community/whisper-base`
 - `mlx-community/whisper-small`
 
@@ -39,11 +62,14 @@ description: Local speech-to-text on Apple Silicon using MLX Whisper. Use as the
 
 ## 文件
 
-- `run.sh`：自动激活 `.venv` 并执行转写
+- `run.sh`：使用项目安装期准备的 `~/.crawclaw/runtimes/skill-openai-whisper/venv`
+  执行转写；可用 `CRAWCLAW_OPENAI_WHISPER_VENV` 覆盖 venv 路径
 - `transcribe_mlx.py`：最小 MLX Whisper 调用入口
 
 ## 注意事项
 
+- `run.sh` 会先检查 macOS Apple Silicon；其他平台请不要使用这个 skill
+- 如果 runtime 缺失，重新运行项目安装，或执行 `crawclaw runtimes repair`
 - 首次运行会下载模型到本地缓存，速度取决于网络
 - 视频文件可直接输入；底层会处理音频解码
 - 推荐默认使用 `whisper-turbo`，在 M2 Pro 上通常速度和效果更均衡

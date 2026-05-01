@@ -7,11 +7,17 @@ import {
   normalizeStringList,
   parseCrawClawManifestInstallBase,
   parseFrontmatterBool,
+  resolveCrawClawManifestArch,
   resolveCrawClawManifestBlock,
   resolveCrawClawManifestInstall,
   resolveCrawClawManifestOs,
   resolveCrawClawManifestRequires,
 } from "../../shared/frontmatter.js";
+import type {
+  WorkflowHttpMethod,
+  WorkflowPortability,
+  WorkflowStepKind,
+} from "../../workflows/api.js";
 import type {
   CrawClawSkillMetadata,
   ParsedSkillFrontmatter,
@@ -19,11 +25,6 @@ import type {
   SkillInstallSpec,
   SkillInvocationPolicy,
 } from "./types.js";
-import type {
-  WorkflowHttpMethod,
-  WorkflowPortability,
-  WorkflowStepKind,
-} from "../../workflows/api.js";
 
 const WORKFLOW_PORTABILITY_VALUES = new Set<string>([
   "native",
@@ -223,6 +224,7 @@ export function resolveCrawClawMetadata(
   const requires = resolveCrawClawManifestRequires(metadataObj);
   const install = resolveCrawClawManifestInstall(metadataObj, parseInstallSpec);
   const osRaw = resolveCrawClawManifestOs(metadataObj);
+  const archRaw = resolveCrawClawManifestArch(metadataObj);
   const workflowRaw =
     typeof metadataObj.workflow === "object" && metadataObj.workflow !== null
       ? (metadataObj.workflow as Record<string, unknown>)
@@ -290,6 +292,7 @@ export function resolveCrawClawMetadata(
     skillKey: typeof metadataObj.skillKey === "string" ? metadataObj.skillKey : undefined,
     primaryEnv: typeof metadataObj.primaryEnv === "string" ? metadataObj.primaryEnv : undefined,
     os: osRaw.length > 0 ? osRaw : undefined,
+    arch: archRaw.length > 0 ? archRaw : undefined,
     requires: requires,
     install: install.length > 0 ? install : undefined,
     workflow,

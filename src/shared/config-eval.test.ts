@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { _resetResolveSystemBin } from "../infra/resolve-system-bin.js";
 import {
   evaluateRuntimeEligibility,
   evaluateRuntimeRequires,
@@ -24,6 +25,7 @@ function setPlatform(platform: NodeJS.Platform): void {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  _resetResolveSystemBin();
   process.env.PATH = originalPath;
   if (originalPathExt === undefined) {
     delete process.env.PATHEXT;
@@ -130,6 +132,23 @@ describe("config-eval helpers", () => {
       exeCandidate,
       cmdCandidate,
     ]);
+  });
+
+  it("falls back to standard Homebrew dirs on macOS when PATH misses them", () => {
+    setPlatform("darwin");
+    process.env.PATH = ["/usr/bin", "/bin"].join(path.delimiter);
+    const homebrewCandidate = "/opt/homebrew/bin/summarize";
+    const accessSpy = vi.spyOn(fs, "accessSync").mockImplementation((candidate) => {
+      if (String(candidate) === homebrewCandidate) {
+        return undefined;
+      }
+      throw new Error("missing");
+    });
+
+    expect(hasBinary("summarize")).toBe(true);
+    expect(accessSpy.mock.calls.map(([candidate]) => String(candidate))).toContain(
+      homebrewCandidate,
+    );
   });
 });
 

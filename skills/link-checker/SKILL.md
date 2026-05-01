@@ -1,6 +1,6 @@
 ---
 name: link-checker
-description: "Check webpages for broken links, redirects, and link health. Use when auditing websites or validating URLs."
+description: Use when auditing webpages or URL lists for broken links, redirects, crawl health, HTTP status failures, timeouts, or link-report generation.
 ---
 
 # link-checker
@@ -11,17 +11,17 @@ Powered by BytesAgain | bytesagain.com | hello@bytesagain.com
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `check <url>` | Check all links on a single page |
-| `crawl <url>` | Recursively crawl and check links |
-| `report <url>` | Generate a full HTML report |
-| `broken <url>` | Show only broken links |
-| `redirects <url>` | Show only redirected links |
-| `external <url>` | Check only external links |
-| `internal <url>` | Check only internal links |
-| `batch <file>` | Check links on multiple pages |
-| `summary <url>` | Quick summary with counts |
+| Command           | Description                       |
+| ----------------- | --------------------------------- |
+| `check <url>`     | Check all links on a single page  |
+| `crawl <url>`     | Recursively crawl and check links |
+| `report <url>`    | Generate a full HTML report       |
+| `broken <url>`    | Show only broken links            |
+| `redirects <url>` | Show only redirected links        |
+| `external <url>`  | Check only external links         |
+| `internal <url>`  | Check only internal links         |
+| `batch <file>`    | Check links on multiple pages     |
+| `summary <url>`   | Quick summary with counts         |
 
 ## Options
 
@@ -61,14 +61,14 @@ bash scripts/main.sh summary https://example.com
 
 ## Status Categories
 
-| Category | Status Codes | Description |
-|----------|-------------|-------------|
-| ✅ OK | 200, 204 | Link is working |
-| 🔄 Redirect | 301, 302, 307, 308 | Link redirects |
-| ❌ Broken | 404, 410 | Link is dead |
-| ⚠️ Error | 403, 500, 502, 503 | Server error |
-| ⏱️ Timeout | — | Connection timed out |
-| 🚫 Failed | — | Connection refused/DNS failure |
+| Category    | Status Codes       | Description                    |
+| ----------- | ------------------ | ------------------------------ |
+| ✅ OK       | 200, 204           | Link is working                |
+| 🔄 Redirect | 301, 302, 307, 308 | Link redirects                 |
+| ❌ Broken   | 404, 410           | Link is dead                   |
+| ⚠️ Error    | 403, 500, 502, 503 | Server error                   |
+| ⏱️ Timeout  | —                  | Connection timed out           |
+| 🚫 Failed   | —                  | Connection refused/DNS failure |
 
 ## 子代理执行策略
 

@@ -6,11 +6,9 @@
 export MINIMAX_API_KEY="<paste-your-key-here>"
 ```
 
-## 2. Install dependencies
+## 2. Optional media tools
 
 ```bash
-pip install requests
-
 # FFmpeg (optional, for audio post-processing)
 # macOS:
 brew install ffmpeg
@@ -21,7 +19,7 @@ sudo apt install ffmpeg
 ## 3. Quick test
 
 ```bash
-python scripts/minimax_tts.py "Hello world" -o test.mp3
+MINIMAX_API_BASE=https://api.minimaxi.com/v1 python scripts/minimax_tts.py "Hello world" -o test.mp3
 ```
 
 If successful, you'll see `OK: xxxxx bytes -> test.mp3`.

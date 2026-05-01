@@ -1,6 +1,6 @@
 ---
 name: gh-issues
-description: Fetch GitHub issues, choose which ones to process, and spawn background agents to fix them or address reviews. Use when triaging repo issues or running a monitored issue-fixing workflow.
+description: Use when a repository has GitHub issues, review requests, labels, milestones, or watch-mode triage that should be selected and handled with GitHub CLI access.
 user-invocable: true
 metadata:
   {

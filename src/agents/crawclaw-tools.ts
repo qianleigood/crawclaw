@@ -24,7 +24,6 @@ import {
   createMemoryNoteDeleteTool,
   createMemoryNoteEditTool,
   createMemoryNoteReadTool,
-  createMemoryTranscriptSearchTool,
   createMemoryNoteWriteTool,
 } from "./tools/memory-file-tools.js";
 import { createMessageTool } from "./tools/message-tool.js";
@@ -109,14 +108,6 @@ export function createCrawClawTools(
     };
     /** Explicit special-agent spawn source for embedded background sessions. */
     specialAgentSpawnSource?: string;
-    /** Dream-only bounded transcript search scope and limits. */
-    specialTranscriptSearch?: {
-      sessionIds?: string[];
-      maxSessions?: number;
-      maxMatchesPerSession?: number;
-      maxTotalBytes?: number;
-      maxExcerptChars?: number;
-    };
     /** Whether the requesting sender is an owner. */
     senderIsOwner?: boolean;
     /** Ephemeral session UUID — regenerated on /new. */
@@ -223,17 +214,6 @@ export function createCrawClawTools(
     channel: options?.durableMemoryChannel ?? options?.agentChannel,
     requesterSenderId: options?.requesterSenderId ?? undefined,
   });
-  const memoryTranscriptSearchTool =
-    options?.specialAgentSpawnSource === "dream"
-      ? createMemoryTranscriptSearchTool({
-          scope: options?.durableMemoryScope,
-          agentId: sessionAgentId,
-          channel: options?.durableMemoryChannel ?? options?.agentChannel,
-          requesterSenderId: options?.requesterSenderId ?? undefined,
-          config: resolvedConfig,
-          transcriptSearch: options?.specialTranscriptSearch,
-        })
-      : null;
   const submitPromotionVerdictTool =
     options?.specialAgentSpawnSource === "promotion-judge"
       ? createSubmitPromotionVerdictTool({
@@ -301,7 +281,6 @@ export function createCrawClawTools(
     ...(memoryNoteWriteTool ? [memoryNoteWriteTool] : []),
     ...(memoryNoteEditTool ? [memoryNoteEditTool] : []),
     ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
-    ...(memoryTranscriptSearchTool ? [memoryTranscriptSearchTool] : []),
     ...(submitPromotionVerdictTool ? [submitPromotionVerdictTool] : []),
     ...(experienceWriteTool ? [experienceWriteTool] : []),
     ...(reviewTaskTool ? [reviewTaskTool] : []),

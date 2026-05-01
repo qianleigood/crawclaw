@@ -129,7 +129,8 @@ export type QueryContextMemoryRecallDiagnostics = {
     title: string;
     source: string;
     memoryKind?: string;
-    scoreBreakdown?: Record<string, number>;
+    providerOrder?: number;
+    selectionReason?: string;
   }>;
   omittedExperienceDetails?: Array<{
     itemId: string;
@@ -137,7 +138,8 @@ export type QueryContextMemoryRecallDiagnostics = {
     source: string;
     memoryKind?: string;
     omittedReason?: string;
-    scoreBreakdown?: Record<string, number>;
+    providerOrder?: number;
+    selectionReason?: string;
   }>;
   experienceQueryPlan?: {
     enabled: boolean;

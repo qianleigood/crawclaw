@@ -1,6 +1,6 @@
 ---
 name: pptx-generator
-description: Generate, edit, or read PowerPoint presentations. Use when creating a deck from scratch with PptxGenJS, editing an existing PPTX through structured XML workflows, or extracting content for analysis.
+description: Use when creating, editing, reading, or extracting PowerPoint presentations, including PptxGenJS deck generation, structured PPTX XML edits, or slide-content analysis.
 license: MIT
 metadata:
   version: "1.0"

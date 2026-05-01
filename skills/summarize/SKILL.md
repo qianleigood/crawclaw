@@ -1,6 +1,6 @@
 ---
 name: summarize
-description: Summarize URLs or files with the summarize CLI (web, PDFs, images, audio, YouTube).
+description: Use when summarizing URLs, webpages, PDFs, images, audio, YouTube links, or local files with the summarize CLI, especially when a concise extract or structured summary is needed.
 metadata:
   {
     "crawclaw":
@@ -12,9 +12,16 @@ metadata:
             {
               "id": "brew",
               "kind": "brew",
-              "formula": "steipete/tap/summarize",
+              "formula": "summarize",
               "bins": ["summarize"],
               "label": "Install summarize (brew)",
+            },
+            {
+              "id": "node",
+              "kind": "node",
+              "package": "@steipete/summarize",
+              "bins": ["summarize"],
+              "label": "Install summarize (npm)",
             },
           ],
       },

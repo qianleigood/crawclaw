@@ -8,7 +8,6 @@ export const MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST = [
 
 export const DREAM_MEMORY_MAINTENANCE_TOOL_ALLOWLIST = [
   ...MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST,
-  "memory_transcript_search",
 ] as const;
 
 export const EXPERIENCE_MEMORY_MAINTENANCE_TOOL_ALLOWLIST = ["write_experience_note"] as const;

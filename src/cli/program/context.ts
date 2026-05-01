@@ -25,7 +25,14 @@ export function createProgramContext(options?: {
     }
     return cachedChannelOptions;
   };
-  const configLanguage = options?.configLanguage ?? loadConfig().cli?.language;
+  let configLanguage = options?.configLanguage;
+  if (configLanguage === undefined) {
+    try {
+      configLanguage = loadConfig().cli?.language;
+    } catch {
+      configLanguage = undefined;
+    }
+  }
   const locale = resolveCliLocale({
     argv: options?.argv ?? process.argv,
     config: configLanguage,

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join, resolve, basename, extname, sep } from 'path'
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, rmSync, unlinkSync, stat, promises as fsPromises, createReadStream, createWriteStream, copyFileSync, readlinkSync, symlinkSync, renameSync } from 'fs'
 import { OpenClawGateway } from './gateway.js'
+import { N8nService, normalizeAppLocale } from './n8n-service.js'
 import { parse } from 'dotenv'
 import os from 'os'
 import multer from 'multer'
@@ -27,6 +28,12 @@ function loadEnvConfig() {
       OPENCLAW_WS_URL: 'ws://localhost:18789',
       OPENCLAW_AUTH_TOKEN: '',
       OPENCLAW_AUTH_PASSWORD: '',
+      OPENCLAW_LOCALE: '',
+      OPENCLAW_N8N_MANAGED: undefined,
+      OPENCLAW_N8N_BIN: '',
+      OPENCLAW_N8N_HOST: '',
+      OPENCLAW_N8N_PORT: '',
+      OPENCLAW_N8N_USER_FOLDER: '',
       DEV_FRONTEND_URL: 'http://localhost:3000',
       AUTH_USERNAME: '',
       AUTH_PASSWORD: '',
@@ -46,6 +53,12 @@ function loadEnvConfig() {
     OPENCLAW_WS_URL: parsed.OPENCLAW_WS_URL || 'ws://localhost:18789',
     OPENCLAW_AUTH_TOKEN: parsed.OPENCLAW_AUTH_TOKEN || '',
     OPENCLAW_AUTH_PASSWORD: parsed.OPENCLAW_AUTH_PASSWORD || '',
+    OPENCLAW_LOCALE: parsed.OPENCLAW_LOCALE || '',
+    OPENCLAW_N8N_MANAGED: parsed.OPENCLAW_N8N_MANAGED,
+    OPENCLAW_N8N_BIN: parsed.OPENCLAW_N8N_BIN || '',
+    OPENCLAW_N8N_HOST: parsed.OPENCLAW_N8N_HOST || '',
+    OPENCLAW_N8N_PORT: parsed.OPENCLAW_N8N_PORT || '',
+    OPENCLAW_N8N_USER_FOLDER: parsed.OPENCLAW_N8N_USER_FOLDER || '',
     DEV_FRONTEND_URL: parsed.DEV_FRONTEND_URL || 'http://localhost:3000',
     AUTH_USERNAME: parsed.AUTH_USERNAME || '',
     AUTH_PASSWORD: parsed.AUTH_PASSWORD || '',
@@ -60,6 +73,7 @@ function loadEnvConfig() {
 }
 
 let envConfig = loadEnvConfig()
+let currentLocale = normalizeAppLocale(envConfig.OPENCLAW_LOCALE || process.env.OPENCLAW_LOCALE || process.env.CRAWCLAW_LANG || process.env.LANG)
 
 const isDebug = envConfig.LOG_LEVEL === 'DEBUG'
 
@@ -87,7 +101,26 @@ app.use(express.json())
 initHermesConfig(envConfig)
 app.use(hermesProxyRouter)
 
-let gateway = new OpenClawGateway(envConfig.OPENCLAW_WS_URL, envConfig.OPENCLAW_AUTH_TOKEN, envConfig.OPENCLAW_AUTH_PASSWORD, envConfig.LOG_LEVEL)
+function buildServerRuntimeEnv() {
+  return {
+    ...process.env,
+    ...envConfig,
+    OPENCLAW_LOCALE: currentLocale,
+  }
+}
+
+let gateway = new OpenClawGateway(
+  envConfig.OPENCLAW_WS_URL,
+  envConfig.OPENCLAW_AUTH_TOKEN,
+  envConfig.OPENCLAW_AUTH_PASSWORD,
+  envConfig.LOG_LEVEL,
+  currentLocale
+)
+const n8nService = new N8nService(buildServerRuntimeEnv(), console)
+
+function refreshN8nRuntimeEnv() {
+  n8nService.env = buildServerRuntimeEnv()
+}
 
 const sseClients = new Map()
 
@@ -264,6 +297,19 @@ gateway.on('stateChange', (state) => {
 
 debug('Connecting to Gateway at:', envConfig.OPENCLAW_WS_URL)
 gateway.connect()
+ensureN8nStartedAndBroadcast().catch((error) => {
+  console.error('[n8n] Failed to start:', error.message)
+})
+
+async function ensureN8nStartedAndBroadcast() {
+  refreshN8nRuntimeEnv()
+  const status = await n8nService.ensureStarted(currentLocale)
+  broadcastSSE({ type: 'n8nState', state: status })
+  if (status.managed) {
+    console.log(`[n8n] ${status.running || status.externalRunning ? 'Ready' : 'Not running'} at ${status.baseUrl}`)
+  }
+  return status
+}
 
 function broadcastSSE(data) {
   const message = `data: ${JSON.stringify(data)}\n\n`
@@ -377,6 +423,46 @@ function stringifyEnvFile(data) {
   return lines.join('\n') + '\n'
 }
 
+function persistOpenClawLocale(locale) {
+  const existingContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : ''
+  const existing = parseEnvFile(existingContent)
+  existing.OPENCLAW_LOCALE = locale
+  writeFileSync(envPath, stringifyEnvFile(existing), 'utf-8')
+  envConfig = loadEnvConfig()
+  currentLocale = normalizeAppLocale(envConfig.OPENCLAW_LOCALE || locale)
+  refreshN8nRuntimeEnv()
+}
+
+async function reconnectGatewayForLocale(locale) {
+  gateway.setLocale(locale)
+  if (!gateway.isConnected) return
+  gateway.disconnect()
+  await gateway.connect()
+}
+
+app.get('/api/n8n/status', authMiddleware, async (req, res) => {
+  try {
+    const status = await ensureN8nStartedAndBroadcast()
+    res.json({ ok: true, status })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+})
+
+app.post('/api/n8n/locale', authMiddleware, async (req, res) => {
+  try {
+    const locale = normalizeAppLocale(req.body?.locale)
+    currentLocale = locale
+    persistOpenClawLocale(locale)
+    await reconnectGatewayForLocale(locale)
+    const status = await n8nService.setLocale(locale)
+    broadcastSSE({ type: 'n8nState', state: status })
+    res.json({ ok: true, locale, n8n: status })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+})
+
 app.get('/api/config', authMiddleware, (req, res) => {
   try {
     if (!existsSync(envPath)) {
@@ -408,6 +494,8 @@ app.post('/api/config', authMiddleware, (req, res) => {
     
     const oldConfig = { ...envConfig }
     envConfig = loadEnvConfig()
+    currentLocale = normalizeAppLocale(envConfig.OPENCLAW_LOCALE || currentLocale)
+    refreshN8nRuntimeEnv()
     
     const wsUrlChanged = oldConfig.OPENCLAW_WS_URL !== envConfig.OPENCLAW_WS_URL
     const tokenChanged = oldConfig.OPENCLAW_AUTH_TOKEN !== envConfig.OPENCLAW_AUTH_TOKEN
@@ -416,7 +504,13 @@ app.post('/api/config', authMiddleware, (req, res) => {
     if (wsUrlChanged || tokenChanged || passwordChanged) {
       console.log('[Config] Gateway config changed, reconnecting...')
       gateway.disconnect()
-      gateway = new OpenClawGateway(envConfig.OPENCLAW_WS_URL, envConfig.OPENCLAW_AUTH_TOKEN, envConfig.OPENCLAW_AUTH_PASSWORD)
+      gateway = new OpenClawGateway(
+        envConfig.OPENCLAW_WS_URL,
+        envConfig.OPENCLAW_AUTH_TOKEN,
+        envConfig.OPENCLAW_AUTH_PASSWORD,
+        envConfig.LOG_LEVEL,
+        currentLocale
+      )
       
       gateway.on('connected', (info) => {
         console.log('[Gateway] Connected to OpenClaw:', info?.server?.version)
@@ -4094,18 +4188,18 @@ process.on('SIGINT', () => {
   console.log('\nShutting down...')
   cleanupAllTerminalSessions()
   gateway.disconnect()
-  server.close(() => {
+  n8nService.stop().finally(() => server.close(() => {
     console.log('Server closed')
     process.exit(0)
-  })
+  }))
 })
 
 process.on('SIGTERM', () => {
   console.log('\nShutting down (SIGTERM)...')
   cleanupAllTerminalSessions()
   gateway.disconnect()
-  server.close(() => {
+  n8nService.stop().finally(() => server.close(() => {
     console.log('Server closed')
     process.exit(0)
-  })
+  }))
 })

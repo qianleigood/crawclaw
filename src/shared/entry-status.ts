@@ -22,6 +22,7 @@ export function evaluateEntryMetadataRequirements(params: {
   } | null;
   hasLocalBin: (bin: string) => boolean;
   localPlatform: string;
+  localArch: string;
   remote?: RequirementRemote;
   isEnvSatisfied: (envName: string) => boolean;
   isConfigSatisfied: (pathStr: string) => boolean;
@@ -42,6 +43,7 @@ export function evaluateEntryMetadataRequirements(params: {
     metadata: params.metadata ?? undefined,
     hasLocalBin: params.hasLocalBin,
     localPlatform: params.localPlatform,
+    localArch: params.localArch,
     remote: params.remote,
     isEnvSatisfied: params.isEnvSatisfied,
     isConfigSatisfied: params.isConfigSatisfied,
@@ -57,11 +59,12 @@ export function evaluateEntryMetadataRequirements(params: {
 }
 
 export function evaluateEntryMetadataRequirementsForCurrentPlatform(
-  params: Omit<EntryMetadataRequirementsParams, "localPlatform">,
+  params: Omit<EntryMetadataRequirementsParams, "localPlatform" | "localArch">,
 ): ReturnType<typeof evaluateEntryMetadataRequirements> {
   return evaluateEntryMetadataRequirements({
     ...params,
     localPlatform: process.platform,
+    localArch: process.arch,
   });
 }
 

@@ -41,9 +41,12 @@ NotebookLM is optional and is configured under `memory.notebooklm`. When it is
 disabled or returns no useful result, CrawClaw skips experience recall for that
 turn instead of reading the local outbox as a fallback. Durable-memory recall
 still runs independently. The local experience index is a pending write queue
-and sync ledger for NotebookLM. The default NotebookLM CLI path uses CrawClaw's
-managed `notebooklm-mcp-cli` runtime when it is installed; run `crawclaw
-runtimes install` or `crawclaw runtimes repair` if `nlm` is missing.
+and sync ledger for NotebookLM. NotebookLM/Gemini owns semantic relevance and
+ordering for experience recall; CrawClaw preserves provider order and only
+applies deterministic guardrails before prompt assembly. The default NotebookLM
+CLI path uses CrawClaw's managed `notebooklm-mcp-cli` runtime when it is
+installed; run `crawclaw runtimes install` or `crawclaw runtimes repair` if
+`nlm` is missing.
 
 ## Operational notes
 

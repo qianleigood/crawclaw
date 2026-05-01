@@ -259,16 +259,20 @@ async function collectManagedRuntimes(repoRoot) {
   const runtimeScriptPath = path.join("scripts", "install-plugin-runtimes.mjs");
   const runtimes = await Promise.all(
     listManagedPluginRuntimeInstallPlan({ platform: "win32" }).map(async (runtime) => {
+      const requirementsLockPath = runtime.python?.requirementsLockPath;
       const python = runtime.python
         ? {
             candidates: runtime.python.candidates,
             envOverrides: runtime.python.envOverrides,
             minimumVersion: runtime.python.minimumVersion,
-            requirements: await readLockedRequirements(
-              path.isAbsolute(runtime.python.requirementsLockPath)
-                ? runtime.python.requirementsLockPath
-                : path.join(repoRoot, runtime.python.requirementsLockPath),
-            ),
+            package: runtime.python.package,
+            requirements: requirementsLockPath
+              ? await readLockedRequirements(
+                  path.isAbsolute(requirementsLockPath)
+                    ? requirementsLockPath
+                    : path.join(repoRoot, requirementsLockPath),
+                )
+              : undefined,
             windowsExtraPackages: runtime.python.windowsExtraPackages,
           }
         : undefined;

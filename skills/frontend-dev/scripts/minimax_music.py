@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """
 MiniMax Music Generation (HTTP)
-Self-contained: no external dependencies beyond `requests`.
+Self-contained: uses only the Python standard library.
 
 Usage:
   python minimax_music.py --prompt "Indie folk, melancholic" --lyrics "[verse]\nStreetlights flicker" -o song.mp3
@@ -17,7 +17,7 @@ import json
 import os
 import sys
 
-import requests
+from minimax_http import download_bytes, request_json
 
 API_KEY = os.getenv("MINIMAX_API_KEY")
 # China Mainland: https://api.minimaxi.com/v1
@@ -62,17 +62,16 @@ def generate_music(
     if lyrics_optimizer:
         payload["lyrics_optimizer"] = True
 
-    resp = requests.post(
+    data = request_json(
         f"{API_BASE}/music_generation",
         headers={
             "Authorization": f"Bearer {API_KEY}",
             "Content-Type": "application/json",
         },
-        json=payload,
+        method="POST",
+        payload=payload,
         timeout=timeout,
     )
-    resp.raise_for_status()
-    data = resp.json()
 
     # Check API-level error
     base_resp = data.get("base_resp", {})
@@ -144,11 +143,10 @@ def main():
         size = len(result["audio_bytes"])
     else:
         # URL mode — download
-        r = requests.get(result["audio_url"], timeout=120)
-        r.raise_for_status()
+        content = download_bytes(result["audio_url"], timeout=120)
         with open(args.output, "wb") as f:
-            f.write(r.content)
-        size = len(r.content)
+            f.write(content)
+        size = len(content)
 
     duration = result.get("duration", "?")
     print(f"OK: {size} bytes -> {args.output} (duration: {duration}s)")

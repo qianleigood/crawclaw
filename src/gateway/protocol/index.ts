@@ -152,6 +152,14 @@ import {
   PluginApprovalRequestParamsSchema,
   type PluginApprovalResolveParams,
   PluginApprovalResolveParamsSchema,
+  type PluginsDisableParams,
+  PluginsDisableParamsSchema,
+  type PluginsEnableParams,
+  PluginsEnableParamsSchema,
+  type PluginsInstallParams,
+  PluginsInstallParamsSchema,
+  type PluginsListParams,
+  PluginsListParamsSchema,
   ErrorCodes,
   type ErrorShape,
   ErrorShapeSchema,
@@ -535,6 +543,15 @@ export const validatePluginApprovalRequestParams = ajv.compile<PluginApprovalReq
 export const validatePluginApprovalResolveParams = ajv.compile<PluginApprovalResolveParams>(
   PluginApprovalResolveParamsSchema,
 );
+export const validatePluginsListParams = ajv.compile<PluginsListParams>(PluginsListParamsSchema);
+export const validatePluginsEnableParams =
+  ajv.compile<PluginsEnableParams>(PluginsEnableParamsSchema);
+export const validatePluginsDisableParams = ajv.compile<PluginsDisableParams>(
+  PluginsDisableParamsSchema,
+);
+export const validatePluginsInstallParams = ajv.compile<PluginsInstallParams>(
+  PluginsInstallParamsSchema,
+);
 export const validateExecApprovalsNodeGetParams = ajv.compile<ExecApprovalsNodeGetParams>(
   ExecApprovalsNodeGetParamsSchema,
 );
@@ -842,6 +859,10 @@ export type {
   ExecApprovalsGetParams,
   ExecApprovalsSetParams,
   ExecApprovalsSnapshot,
+  PluginsListParams,
+  PluginsEnableParams,
+  PluginsDisableParams,
+  PluginsInstallParams,
   LogsTailParams,
   LogsTailResult,
   PollParams,

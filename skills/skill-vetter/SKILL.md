@@ -1,6 +1,6 @@
 ---
 name: skill-vetter
-description: Security-first vetting for third-party skills. Use before installing skills from skillhub, clawhub, GitHub, or other external sources to check trust signals, permission scope, and obvious red flags.
+description: Use before installing or trusting third-party skills from skillhub, clawhub, GitHub, or other external sources when source trust, permissions, secrets, or command/network risk need review.
 ---
 
 # Skill Vetter

@@ -1,7 +1,6 @@
 ---
 name: frontend-dev
-description: |
-  Frontend implementation skill for polished browser-facing delivery. Use when the main challenge is visual hierarchy, interaction design, motion, media integration, responsive layout, or landing/dashboard/app UI quality. Prefer this over `react` when the problem is the product experience in the browser rather than React internals.
+description: Use when building or improving browser-facing UI where visual hierarchy, responsive layout, interaction design, motion, media, copy, or product polish is the main challenge.
 license: MIT
 metadata:
   version: "1.0.0"

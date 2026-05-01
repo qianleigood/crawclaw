@@ -107,6 +107,7 @@ It does not install or modify anything on the remote host.
     - Reads available skills and checks requirements.
     - Lets you choose node manager: npm or pnpm (bun not recommended).
     - Installs optional dependencies (some use Homebrew on macOS).
+    - Can configure local Ollama embeddings for semantic skill discovery; this is separate from the main chat model and pulls the selected embedding model if needed.
   </Step>
   <Step title="Finish">
     - Summary and next steps, including CLI, node, and remote-access options.

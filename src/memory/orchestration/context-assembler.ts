@@ -22,14 +22,6 @@ import type {
   UnifiedRecallLayer,
 } from "../types/orchestration.ts";
 
-const EXPERIENCE_LAYER_ORDER: UnifiedRecallLayer[] = [
-  "key_decisions",
-  "sop",
-  "preferences",
-  "runtime_signals",
-  "sources",
-];
-
 const DURABLE_HEADING = "## Durable memory";
 const EXPERIENCE_HEADING = EXPERIENCE_DISPLAY_HEADING;
 
@@ -307,69 +299,52 @@ function assembleExperienceSection(
   const experienceItemIds = new Set<string>();
   let experienceOmitted = 0;
   let totalUsed = estimateTokens(EXPERIENCE_HEADING);
+  const layerCounts = new Map<UnifiedRecallLayer, number>();
+  const layerUsed = new Map<UnifiedRecallLayer, number>();
+  let previousLayer: UnifiedRecallLayer | null = null;
 
-  for (const layer of EXPERIENCE_LAYER_ORDER) {
-    const candidates = items.filter((item) => layerForExperienceItem(item) === layer);
-    if (!candidates.length && layer !== "sources") {
-      continue;
-    }
-
-    const layerLines: string[] = [];
+  for (const item of items) {
+    const layer = layerForExperienceItem(item);
     const layerHeading = getExperienceLayerHeading(layer);
     const layerHeadingTokens = estimateTokens(layerHeading);
-    let used = estimateTokens(layerHeading);
     const layerBudget = Math.max(1, layerBudgets[layer] ?? budget);
+    const currentLayerCount = layerCounts.get(layer) ?? 0;
+    const currentLayerUsed = layerUsed.get(layer) ?? estimateTokens(layerHeading);
     const hardCap =
       layer === "sources"
-        ? Math.max(1, Math.min(budget >= 4_000 ? 10 : 6, candidates.length))
-        : Math.max(1, Math.min(budget >= 4_000 ? 6 : 3, candidates.length));
+        ? Math.max(1, Math.min(budget >= 4_000 ? 10 : 6, items.length))
+        : Math.max(1, Math.min(budget >= 4_000 ? 6 : 3, items.length));
 
-    for (const item of candidates) {
-      if (layerLines.length >= hardCap) {
-        experienceOmitted += 1;
-        continue;
-      }
-      const line = layer === "sources" ? formatSourceLine(item) : formatExperienceItemLine(item);
-      const nextUsed = used + estimateTokens(line);
-      const nextTotalUsed =
-        totalUsed + (layerLines.length === 0 ? layerHeadingTokens : 0) + estimateTokens(line);
-      if (nextTotalUsed > budget) {
-        experienceOmitted += 1;
-        continue;
-      }
-      if (nextUsed > layerBudget && layerLines.length > 0) {
-        experienceOmitted += 1;
-        continue;
-      }
-      layerLines.push(line);
-      used = nextUsed;
-      experienceItemIds.add(item.id);
-      totalUsed = nextTotalUsed;
-    }
-
-    if (!layerLines.length && layer === "sources" && items.length) {
-      const fallbackLines: string[] = [];
-      for (const item of items.slice(0, Math.min(4, items.length))) {
-        const line = formatSourceLine(item);
-        const nextTotalUsed =
-          totalUsed + (fallbackLines.length === 0 ? layerHeadingTokens : 0) + estimateTokens(line);
-        if (nextTotalUsed > budget) {
-          experienceOmitted += 1;
-          continue;
-        }
-        fallbackLines.push(line);
-        experienceItemIds.add(item.id);
-        totalUsed = nextTotalUsed;
-      }
-      if (fallbackLines.length) {
-        experienceLines.push(layerHeading, ...fallbackLines);
-      }
+    if (currentLayerCount >= hardCap) {
+      experienceOmitted += 1;
       continue;
     }
 
-    if (layerLines.length) {
-      experienceLines.push(layerHeading, ...layerLines);
+    const line = layer === "sources" ? formatSourceLine(item) : formatExperienceItemLine(item);
+    const lineTokens = estimateTokens(line);
+    const shouldRenderHeading = previousLayer !== layer;
+    const nextTotalUsed = totalUsed + (shouldRenderHeading ? layerHeadingTokens : 0) + lineTokens;
+    const nextLayerUsed = currentLayerUsed + lineTokens;
+
+    if (nextTotalUsed > budget) {
+      experienceOmitted += 1;
+      continue;
     }
+    if (nextLayerUsed > layerBudget && currentLayerCount > 0) {
+      experienceOmitted += 1;
+      continue;
+    }
+
+    if (shouldRenderHeading) {
+      experienceLines.push(layerHeading);
+      totalUsed += layerHeadingTokens;
+    }
+    experienceLines.push(line);
+    experienceItemIds.add(item.id);
+    totalUsed += lineTokens;
+    layerUsed.set(layer, nextLayerUsed);
+    layerCounts.set(layer, currentLayerCount + 1);
+    previousLayer = layer;
   }
 
   if (!experienceLines.length) {

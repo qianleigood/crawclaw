@@ -2,7 +2,6 @@ import type { SpecialAgentParentForkContext } from "../../agents/special/runtime
 import type { ObservationContext } from "../../infra/observation/types.js";
 import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
 import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
-import { DEFAULT_CONFIG } from "../config/defaults.ts";
 import { resolveDurableMemoryScope, type DurableMemoryScope } from "../durable/scope.ts";
 import { scanDurableMemoryScopeEntries } from "../durable/store.ts";
 import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
@@ -15,7 +14,6 @@ import type {
   DreamRunResult,
   DreamSignal,
   DreamSessionSummary,
-  DreamTranscriptFallbackPlan,
 } from "./agent-runner.ts";
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
@@ -63,7 +61,6 @@ type AutoDreamPreview = {
   recentSignalCount: number;
   recentSignals: DreamSignal[];
   sessionSummaries: DreamSessionSummary[];
-  transcriptFallback: DreamTranscriptFallbackPlan;
 };
 
 type AutoDreamSchedulerParams = {
@@ -78,55 +75,6 @@ function clampInt(value: number | undefined, fallback: number, minimum = 1): num
     return fallback;
   }
   return Math.max(minimum, Math.floor(value));
-}
-
-function resolveTranscriptFallbackConfig(config: DreamingConfig) {
-  return config.transcriptFallback ?? DEFAULT_CONFIG.dreaming.transcriptFallback!;
-}
-
-function buildTranscriptFallbackPlan(params: {
-  config: DreamingConfig;
-  now: number;
-  sessionIds: string[];
-  summaries: DreamSessionSummary[];
-  signals: DreamSignal[];
-}): DreamTranscriptFallbackPlan {
-  const config = resolveTranscriptFallbackConfig(params.config);
-  const limits = {
-    maxSessions: clampInt(config.maxSessions, 4),
-    maxMatchesPerSession: clampInt(config.maxMatchesPerSession, 2),
-    maxTotalBytes: clampInt(config.maxTotalBytes, 12_000, 512),
-    maxExcerptChars: clampInt(config.maxExcerptChars, 900, 80),
-  };
-  if (!config.enabled) {
-    return { enabled: false, reasons: [], sessionIds: [], limits };
-  }
-  const summaryBySession = new Map(params.summaries.map((summary) => [summary.sessionId, summary]));
-  const reasons = new Set<string>();
-  if (params.sessionIds.some((sessionId) => !summaryBySession.has(sessionId))) {
-    reasons.add("missing_session_summary");
-  }
-  const staleSummaryMs = Math.max(0, config.staleSummaryMs);
-  if (
-    staleSummaryMs > 0 &&
-    params.summaries.some(
-      (summary) => summary.updatedAt <= 0 || params.now - summary.updatedAt > staleSummaryMs,
-    )
-  ) {
-    reasons.add("stale_session_summary");
-  }
-  if (params.signals.length < Math.max(0, config.minSignals)) {
-    reasons.add("weak_structured_signals");
-  }
-  if (reasons.size === 0) {
-    return { enabled: false, reasons: [], sessionIds: [], limits };
-  }
-  return {
-    enabled: true,
-    reasons: Array.from(reasons),
-    sessionIds: params.sessionIds.slice(0, limits.maxSessions),
-    limits,
-  };
 }
 
 async function collectRecentSessionSummaries(params: {
@@ -258,13 +206,11 @@ async function collectRecentStructuredSignals(params: {
 
 async function collectDreamInputs(params: {
   runtimeStore: RuntimeStore;
-  config: DreamingConfig;
   scope: DurableMemoryScope;
   scopeKey: string;
   sessionIds: string[];
   sessionLimit?: number;
   signalLimit?: number;
-  now?: number;
 }): Promise<AutoDreamPreview> {
   const sessionIds = params.sessionIds.slice(0, Math.max(1, params.sessionLimit ?? 12));
   const summaries = await collectRecentSessionSummaries({
@@ -279,13 +225,6 @@ async function collectDreamInputs(params: {
     sessionIds,
     maxSignals: params.signalLimit,
   });
-  const transcriptFallback = buildTranscriptFallbackPlan({
-    config: params.config,
-    now: params.now ?? Date.now(),
-    sessionIds,
-    summaries,
-    signals: recentSignals,
-  });
   return {
     scopeKey: params.scopeKey,
     recentSessionIds: sessionIds,
@@ -293,7 +232,6 @@ async function collectDreamInputs(params: {
     recentSignalCount: recentSignals.length,
     recentSignals,
     sessionSummaries: summaries,
-    transcriptFallback,
   };
 }
 
@@ -362,44 +300,47 @@ export class AutoDreamScheduler {
     runId?: string;
     preview?: AutoDreamPreview;
   }> {
-    if (!this.runner || !params.scope.scopeKey) {
+    const runner = this.runner;
+    const runtimeStore = this.runtimeStore;
+    const config = this.config;
+    const logger = this.logger;
+
+    if (!runner || !params.scope.scopeKey) {
       return { status: "skipped", reason: "dreaming disabled" };
     }
     const scopeKey = params.scope.scopeKey;
     const now = Date.now();
-    const state = await this.runtimeStore.getDreamState(scopeKey);
+    const state = await runtimeStore.getDreamState(scopeKey);
     if (!params.bypassGate) {
-      const minIntervalMs = Math.max(0, this.config.minHours) * 3_600_000;
+      const minIntervalMs = Math.max(0, config.minHours) * 3_600_000;
       if (state?.lastSuccessAt != null && now - state.lastSuccessAt < minIntervalMs) {
-        await this.runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "min_hours_gate" });
+        await runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "min_hours_gate" });
         return { status: "skipped", reason: "min_hours_gate" };
       }
-      if (state?.lastAttemptAt != null && now - state.lastAttemptAt < this.config.scanThrottleMs) {
-        await this.runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "scan_throttle" });
+      if (state?.lastAttemptAt != null && now - state.lastAttemptAt < config.scanThrottleMs) {
+        await runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "scan_throttle" });
         return { status: "skipped", reason: "scan_throttle" };
       }
     }
 
-    const recentSessionIds = await this.runtimeStore.listScopedSessionIdsTouchedSince(
+    const recentSessionIds = await runtimeStore.listScopedSessionIdsTouchedSince(
       scopeKey,
       state?.lastSuccessAt ?? 0,
       null,
-      clampInt(this.config.minSessions * 4, 20),
+      clampInt(config.minSessions * 4, 20),
     );
-    if (!params.bypassGate && recentSessionIds.length < this.config.minSessions) {
-      await this.runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "min_sessions_gate" });
+    if (!params.bypassGate && recentSessionIds.length < config.minSessions) {
+      await runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "min_sessions_gate" });
       return { status: "skipped", reason: "min_sessions_gate" };
     }
 
     const preview = await collectDreamInputs({
-      runtimeStore: this.runtimeStore,
-      config: this.config,
+      runtimeStore,
       scope: params.scope,
       scopeKey,
       sessionIds: recentSessionIds,
       sessionLimit: params.sessionLimit,
       signalLimit: params.signalLimit,
-      now,
     });
 
     if (params.dryRun) {
@@ -411,17 +352,17 @@ export class AutoDreamScheduler {
     }
 
     const lockOwner = newId("dream");
-    const lock = await this.runtimeStore.acquireDreamLock({
+    const lock = await runtimeStore.acquireDreamLock({
       scopeKey,
       owner: lockOwner,
-      staleAfterMs: this.config.lockStaleAfterMs,
+      staleAfterMs: config.lockStaleAfterMs,
       now,
     });
     if (!lock.acquired) {
       return { status: "skipped", reason: "lock_held" };
     }
 
-    const runId = await this.runtimeStore.createMaintenanceRun({
+    const runId = await runtimeStore.createMaintenanceRun({
       kind: "dream",
       status: "running",
       scope: scopeKey,
@@ -440,7 +381,7 @@ export class AutoDreamScheduler {
       });
 
     try {
-      const result = await this.runner(
+      const result = await runner(
         {
           runId,
           sessionId: embeddedSessionId,
@@ -456,12 +397,11 @@ export class AutoDreamScheduler {
           lastSuccessAt: state?.lastSuccessAt ?? null,
           recentSessions: preview.sessionSummaries,
           recentSignals: preview.recentSignals,
-          transcriptFallback: preview.transcriptFallback,
         },
-        this.logger,
+        logger,
       );
 
-      await this.runtimeStore.updateMaintenanceRun({
+      await runtimeStore.updateMaintenanceRun({
         id: runId,
         status: result.status === "failed" ? "failed" : "done",
         summary: result.summary ?? "Dream completed",
@@ -472,17 +412,11 @@ export class AutoDreamScheduler {
           updatedCount: result.updatedCount,
           deletedCount: result.deletedCount,
           touchedNotes: result.touchedNotes ?? [],
-          transcriptFallback: {
-            enabled: preview.transcriptFallback.enabled,
-            reasons: preview.transcriptFallback.reasons,
-            sessionCount: preview.transcriptFallback.sessionIds.length,
-            limits: preview.transcriptFallback.limits,
-          },
         }),
         ...(result.status === "failed" ? { error: result.summary ?? "dream failed" } : {}),
         finishedAt: Date.now(),
       });
-      await this.runtimeStore.releaseDreamLock({
+      await runtimeStore.releaseDreamLock({
         scopeKey,
         owner: lockOwner,
         runId,
@@ -495,20 +429,20 @@ export class AutoDreamScheduler {
       };
     } catch (error) {
       const summary = error instanceof Error ? error.message : String(error);
-      await this.runtimeStore.updateMaintenanceRun({
+      await runtimeStore.updateMaintenanceRun({
         id: runId,
         status: "failed",
         summary: "Dream failed",
         error: summary,
         finishedAt: Date.now(),
       });
-      await this.runtimeStore.releaseDreamLock({
+      await runtimeStore.releaseDreamLock({
         scopeKey,
         owner: lockOwner,
         runId,
         status: "failed",
       });
-      this.logger.warn(`[memory] dream failed scope=${scopeKey} error=${summary}`);
+      logger.warn(`[memory] dream failed scope=${scopeKey} error=${summary}`);
       return { status: "failed", reason: summary, runId };
     }
   }

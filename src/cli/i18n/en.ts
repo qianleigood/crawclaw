@@ -646,7 +646,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.hooks.noun.many": "hooks",
   "wizard.hooks.configuredTitle": "Hooks Configured",
   "wizard.skills.status":
-    "Eligible: {eligible}\nMissing requirements: {missing}\nUnsupported on this OS: {unsupported}\nBlocked by allowlist: {blocked}",
+    "Eligible: {eligible}\nMissing requirements: {missing}\nUnsupported on this platform: {unsupported}\nBlocked by allowlist: {blocked}",
   "wizard.skills.statusTitle": "Skills status",
   "wizard.skills.homebrewRecommended":
     "Many skill dependencies are shipped via Homebrew.\nWithout brew, you'll need to build from source or download releases manually.",

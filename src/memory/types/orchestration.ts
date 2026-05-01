@@ -186,7 +186,7 @@ export interface UnifiedRecallTraceEnrichment {
   nativeMemory?: UnifiedNativeMemoryTrace;
 }
 
-export interface UnifiedRerankScoreBreakdown {
+export interface UnifiedRecallScoreBreakdown {
   retrieval: number;
   sourcePrior: number;
   layerPrior: number;
@@ -199,12 +199,6 @@ export interface UnifiedRerankScoreBreakdown {
   supportBoost: number;
   lifecycleBoost: number;
   mediaBoost: number;
-  triggerMatch?: number;
-  appliesWhen?: number;
-  failurePattern?: number;
-  workflowPattern?: number;
-  recentSuccess?: number;
-  confidenceBoost?: number;
   penalty: number;
   finalScore: number;
 }
@@ -213,7 +207,7 @@ export interface UnifiedRankedItem extends UnifiedRecallItem {
   score: number;
   supportingSources: UnifiedRecallSource[];
   supportingIds: string[];
-  scoreBreakdown: UnifiedRerankScoreBreakdown;
+  scoreBreakdown: UnifiedRecallScoreBreakdown;
 }
 
 export type DurableMemoryKind = "user" | "feedback" | "project" | "reference";
@@ -250,26 +244,6 @@ export interface MemoryPromptAssemblyResult {
   omittedItemIds: string[];
 }
 
-export interface UnifiedRerankInput {
-  query: string;
-  queryHasImage?: boolean;
-  classification?: UnifiedQueryClassification;
-  entityResolution?: UnifiedEntityResolutionResult;
-  graphItems?: UnifiedRecallItem[];
-  notebooklmItems?: UnifiedRecallItem[];
-  nativeItems?: UnifiedRecallItem[];
-  executionItems?: UnifiedRecallItem[];
-  limit?: number;
-}
-
-export interface UnifiedRerankResult {
-  items: UnifiedRankedItem[];
-  trace: {
-    counts: Record<UnifiedRecallSource, number>;
-    deduped: number;
-  };
-}
-
 export type UnifiedContextSection = MemoryPromptSection;
 
 export interface UnifiedContextAssemblyInput {
@@ -284,7 +258,6 @@ export type UnifiedContextAssemblyResult = MemoryPromptAssemblyResult;
 export interface UnifiedRecallTraceEnrichmentInput {
   classification?: UnifiedQueryClassification;
   entityResolution?: UnifiedEntityResolutionResult;
-  rerankTrace?: UnifiedRerankResult["trace"];
   graphItems?: UnifiedRecallItem[];
   notebooklmItems?: UnifiedRecallItem[];
   nativeItems?: UnifiedRecallItem[];

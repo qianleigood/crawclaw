@@ -596,7 +596,6 @@ export async function runEmbeddedPiAgent(
             toolsAllow: params.toolsAllow,
             specialAgentSpawnSource: params.specialAgentSpawnSource,
             specialDurableMemoryScope: params.specialDurableMemoryScope,
-            specialTranscriptSearch: params.specialTranscriptSearch,
             specialSessionSummaryTarget: params.specialSessionSummaryTarget,
             provider,
             modelId,

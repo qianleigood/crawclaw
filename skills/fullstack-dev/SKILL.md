@@ -1,7 +1,6 @@
 ---
 name: fullstack-dev
-description: |
-  Full-stack application architecture and implementation skill for work that spans backend services and browser-facing product behavior. Use when users need API plus frontend integration, auth/session flows, uploads, CRUD/business workflows, real-time features, or production hardening across Node.js, Python, Go, Next.js API routes, or similar stacks.
+description: Use when work spans backend services and browser-facing behavior, including APIs, auth/session flows, uploads, CRUD/business workflows, realtime features, or production hardening.
 license: MIT
 metadata:
   category: full-stack

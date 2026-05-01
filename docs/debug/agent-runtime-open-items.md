@@ -245,7 +245,7 @@ Memory is aligned with the current simplified model, but follow-up work remains.
   - Design and background:
     - [`Memory Extractor Agent Design`](/debug/memory-extractor-agent)
     - [`Durable Memory Refactor Status`](/debug/claude-memory-refactor)
-- [ ] Add agent-scoped routing guidance for `write_experience_note`, matching the
+- [x] Add agent-scoped routing guidance for `write_experience_note`, matching the
       durable-memory guidance quality level.
 - [ ] Revisit candidate extraction as a future suggestion layer only.
   - It should not become a hidden writeback path again.

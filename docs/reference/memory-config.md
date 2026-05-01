@@ -44,6 +44,10 @@ optional managed source titled
 `CrawClaw Memory Index`, rendered from the bounded local experience index, so
 NotebookLM native source queries have material to search without turning every
 experience note into a separate source.
+NotebookLM/Gemini is responsible for semantic relevance and ordering during
+experience recall; CrawClaw preserves provider order and only applies local
+guardrails such as source filtering, duplicate removal, empty-content checks,
+and prompt-budget limits.
 
 The built-in CLI defaults target the unified
 [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) package.
