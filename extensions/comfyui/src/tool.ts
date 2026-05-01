@@ -14,7 +14,12 @@ import { isRecord, parseGraphIr, type ComfyGraphIr } from "./graph-ir.js";
 import { collectOutputArtifacts, downloadOutputArtifacts } from "./outputs.js";
 import { createGraphPlan } from "./planner.js";
 import { repairGraphIr } from "./repair.js";
-import { loadWorkflowArtifacts, saveWorkflowArtifacts } from "./store.js";
+import {
+  appendWorkflowRunRecord,
+  loadWorkflowArtifacts,
+  saveWorkflowArtifacts,
+  type ComfyRunStatus,
+} from "./store.js";
 import { validateGraphIr } from "./validator.js";
 
 type ToolDeps = {
@@ -65,7 +70,7 @@ function requireIr(value: unknown): ComfyGraphIr {
 async function resolveIrForRun(
   params: Record<string, unknown>,
   config: ComfyUiResolvedConfig,
-): Promise<ComfyGraphIr> {
+): Promise<{ ir: ComfyGraphIr; workflowId?: string }> {
   if (Object.hasOwn(params, "prompt")) {
     throw new ToolInputError(
       "Raw prompt JSON is not accepted for run; use workflowId or validated graph IR.",
@@ -73,9 +78,12 @@ async function resolveIrForRun(
   }
   const workflowId = readStringParam(params, "workflowId");
   if (workflowId) {
-    return (await loadWorkflowArtifacts({ workflowsDir: config.workflowsDir, workflowId })).ir;
+    return {
+      ir: (await loadWorkflowArtifacts({ workflowsDir: config.workflowsDir, workflowId })).ir,
+      workflowId,
+    };
   }
-  return requireIr(params.ir);
+  return { ir: requireIr(params.ir) };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -119,6 +127,24 @@ async function waitForPromptHistory(params: {
     await sleep(Math.min(params.pollIntervalMs, Math.max(1, deadline - Date.now())));
   }
   throw new Error(`Timed out waiting for ComfyUI prompt ${params.promptId}`);
+}
+
+function runStatusForError(error: unknown): ComfyRunStatus {
+  return error instanceof Error && /timed out/i.test(error.message) ? "timed_out" : "failed";
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function appendWorkflowRunRecordBestEffort(
+  params: Parameters<typeof appendWorkflowRunRecord>[0],
+): Promise<void> {
+  try {
+    await appendWorkflowRunRecord(params);
+  } catch {
+    // Workflow history is advisory; persistence failures must not mask run results.
+  }
 }
 
 export function createComfyUiWorkflowTool(
@@ -231,31 +257,80 @@ export function createComfyUiWorkflowTool(
           });
         }
         case "run": {
-          const ir = await resolveIrForRun(params, config);
+          const { ir, workflowId } = await resolveIrForRun(params, config);
           const catalog = await loadCatalog(client);
           const validation = validateGraphIr(ir, catalog);
           if (!validation.ok) {
             return jsonResult({ ok: false, action, diagnostics: validation.diagnostics });
           }
+          const startedAtDate = new Date();
+          const startedAt = startedAtDate.toISOString();
           const started = await client.submitPrompt(compileGraphIrToPrompt(ir));
           let history: unknown;
           let outputs;
           if (params.waitForCompletion === true || params.downloadOutputs === true) {
-            history = await waitForPromptHistory({
-              client,
-              promptId: started.prompt_id,
-              timeoutMs: config.runTimeoutMs,
-              pollIntervalMs: config.runPollIntervalMs,
-            });
-            outputs = collectOutputArtifacts(started.prompt_id, history);
-            if (params.downloadOutputs === true) {
-              outputs = await downloadOutputArtifacts({
+            try {
+              history = await waitForPromptHistory({
                 client,
-                outputDir: config.outputDir,
                 promptId: started.prompt_id,
-                artifacts: outputs,
+                timeoutMs: config.runTimeoutMs,
+                pollIntervalMs: config.runPollIntervalMs,
               });
+              outputs = collectOutputArtifacts(started.prompt_id, history);
+              if (params.downloadOutputs === true) {
+                outputs = await downloadOutputArtifacts({
+                  client,
+                  outputDir: config.outputDir,
+                  promptId: started.prompt_id,
+                  artifacts: outputs,
+                });
+              }
+              if (workflowId) {
+                const completedAtDate = new Date();
+                await appendWorkflowRunRecordBestEffort({
+                  workflowsDir: config.workflowsDir,
+                  workflowId,
+                  record: {
+                    workflowId,
+                    promptId: started.prompt_id,
+                    status: "success",
+                    startedAt,
+                    completedAt: completedAtDate.toISOString(),
+                    durationMs: completedAtDate.getTime() - startedAtDate.getTime(),
+                    outputs,
+                  },
+                });
+              }
+            } catch (error) {
+              if (workflowId) {
+                const completedAtDate = new Date();
+                await appendWorkflowRunRecordBestEffort({
+                  workflowsDir: config.workflowsDir,
+                  workflowId,
+                  record: {
+                    workflowId,
+                    promptId: started.prompt_id,
+                    status: runStatusForError(error),
+                    startedAt,
+                    completedAt: completedAtDate.toISOString(),
+                    durationMs: completedAtDate.getTime() - startedAtDate.getTime(),
+                    error: errorMessage(error),
+                  },
+                });
+              }
+              throw error;
             }
+          } else if (workflowId) {
+            await appendWorkflowRunRecordBestEffort({
+              workflowsDir: config.workflowsDir,
+              workflowId,
+              record: {
+                workflowId,
+                promptId: started.prompt_id,
+                status: "queued",
+                startedAt,
+              },
+            });
           }
           return jsonResult({
             ok: true,

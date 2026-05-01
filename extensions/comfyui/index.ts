@@ -3,6 +3,7 @@ import {
   type CrawClawPluginApi,
   type CrawClawPluginToolFactory,
 } from "./runtime-api.js";
+import { registerComfyUiGatewayMethods } from "./src/control-plane.js";
 import { createComfyUiWorkflowTool } from "./src/tool.js";
 
 function isRunAction(event: unknown): boolean {
@@ -24,6 +25,7 @@ export default definePluginEntry({
   name: "ComfyUI",
   description: "Build, validate, run, and download local ComfyUI workflows.",
   register(api: CrawClawPluginApi) {
+    registerComfyUiGatewayMethods(api);
     api.registerTool(
       ((ctx) =>
         createComfyUiWorkflowTool(ctx, {

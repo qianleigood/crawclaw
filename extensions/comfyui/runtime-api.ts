@@ -10,3 +10,4 @@ export type {
   CrawClawPluginToolContext,
   CrawClawPluginToolFactory,
 } from "crawclaw/plugin-sdk/plugin-entry";
+export type { GatewayRequestHandlerOptions } from "crawclaw/plugin-sdk/core";
