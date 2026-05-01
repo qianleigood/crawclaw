@@ -192,7 +192,7 @@ Nothing yet.
     });
     mocks.getSharedSessionSummarySchedulerMock.mockReturnValue({
       runNow: vi.fn().mockResolvedValue({
-        status: "started",
+        status: "no_change",
         reason: "manual_refresh",
         runId: "summary-run-1",
       }),
@@ -349,6 +349,13 @@ Nothing yet.
     });
 
     const scheduler = mocks.getSharedSessionSummarySchedulerMock.mock.results[0]?.value;
+    expect(mocks.getSharedSessionSummarySchedulerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          runTimeoutSeconds: 90,
+        }),
+      }),
+    );
     expect(scheduler.runNow).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: "sess-1",
@@ -368,6 +375,35 @@ Nothing yet.
       }),
     );
     expect(runtimeLogs.join("\n")).toContain("Session Summary Refresh");
+    expect(runtimeLogs.join("\n")).toContain("no_change");
     expect(runtimeLogs.join("\n")).toContain("summary-run-1");
+  });
+
+  it("prints the final session summary refresh status in json output", async () => {
+    mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([
+      { id: "m1", role: "user", content: "Do the thing", contentText: "Do the thing" },
+      { id: "m2", role: "assistant", content: "Done", contentText: "Done" },
+    ]);
+
+    await runMemorySessionSummaryRefresh({
+      agent: "main",
+      sessionId: "sess-1",
+      sessionKey: "agent:main:sess-1",
+      force: true,
+      json: true,
+    });
+
+    expect(defaultRuntime.writeJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: "main",
+        sessionId: "sess-1",
+        sessionKey: "agent:main:sess-1",
+        result: expect.objectContaining({
+          status: "no_change",
+          reason: "manual_refresh",
+          runId: "summary-run-1",
+        }),
+      }),
+    );
   });
 });

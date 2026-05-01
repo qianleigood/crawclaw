@@ -17,6 +17,7 @@ import {
   markAuthProfileUsed,
 } from "../auth-profiles.js";
 import { summarizeCompactPostArtifacts } from "../compaction/post-compact-artifacts.js";
+import { resolveContextBudgetPolicy, resolveModelContextBudget } from "../context-window-guard.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import {
   coerceToFailoverError,
@@ -195,6 +196,14 @@ export async function runEmbeddedPiAgent(
       });
       const ctxInfo = resolvedRuntimeModel.ctxInfo;
       let effectiveModel = resolvedRuntimeModel.effectiveModel;
+      const resolveTimeoutRecoveryTriggerTokens = (): number =>
+        resolveContextBudgetPolicy(
+          resolveModelContextBudget({
+            info: ctxInfo,
+            modelMaxTokens: effectiveModel.maxTokens,
+            toolSchemaTokens: 0,
+          }),
+        ).timeoutRecoveryTriggerTokens;
 
       const authStore = ensureAuthProfileStore(agentDir, {
         allowKeychainPrompt: false,
@@ -400,6 +409,7 @@ export async function runEmbeddedPiAgent(
         disableTools: params.disableTools,
         toolsAllow: params.toolsAllow,
         modelApi: effectiveModel.api,
+        specialAgentSpawnSource: params.specialAgentSpawnSource,
       });
       const effectiveExtraSystemPrompt =
         [params.extraSystemPrompt?.trim(), explicitDurableGate.systemPromptInstruction?.trim()]
@@ -706,6 +716,7 @@ export async function runEmbeddedPiAgent(
             // tokens, which can make a long generation look like high context
             // pressure even when the prompt itself was small.
             const lastTurnPromptTokens = derivePromptTokens(lastRunPromptUsage);
+            const timeoutRecoveryTriggerTokens = resolveTimeoutRecoveryTriggerTokens();
             const tokenUsedRatio =
               lastTurnPromptTokens != null && ctxInfo.tokens > 0
                 ? lastTurnPromptTokens / ctxInfo.tokens
@@ -714,11 +725,14 @@ export async function runEmbeddedPiAgent(
               log.warn(
                 `[timeout-compaction] already attempted timeout compaction ${timeoutCompactionAttempts} time(s); falling through to failover rotation`,
               );
-            } else if (tokenUsedRatio > 0.65) {
+            } else if (
+              lastTurnPromptTokens != null &&
+              lastTurnPromptTokens >= timeoutRecoveryTriggerTokens
+            ) {
               const timeoutDiagId = createCompactionDiagId();
               timeoutCompactionAttempts++;
               log.warn(
-                `[timeout-compaction] LLM timed out with high prompt token usage (${Math.round(tokenUsedRatio * 100)}%); ` +
+                `[timeout-compaction] LLM timed out with high prompt token usage (${Math.round(tokenUsedRatio * 100)}%, threshold=${timeoutRecoveryTriggerTokens}); ` +
                   `attempting compaction before retry (attempt ${timeoutCompactionAttempts}/${MAX_TIMEOUT_COMPACTION_ATTEMPTS}) diagId=${timeoutDiagId}`,
               );
               let timeoutCompactResult: Awaited<ReturnType<typeof memoryRuntime.compact>>;

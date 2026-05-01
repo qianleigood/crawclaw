@@ -14,7 +14,7 @@ function clampLimit(limit: number | undefined): number {
 }
 
 function isPromptFacingExperienceSource(item: UnifiedRankedItem): boolean {
-  return item.source === "notebooklm" || item.source === "local_experience_index";
+  return item.source === "notebooklm";
 }
 
 export function selectExperienceRecall(input: {

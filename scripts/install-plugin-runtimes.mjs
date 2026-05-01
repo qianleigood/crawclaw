@@ -11,7 +11,10 @@ const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
 const PINCHTAB_VERSION = "0.9.1";
 const SCRAPLING_MINIMUM_PYTHON_VERSION = "3.10";
+const NOTEBOOKLM_MCP_CLI_VERSION = "0.6.1";
+const NOTEBOOKLM_MINIMUM_PYTHON_VERSION = "3.11";
 const SCRAPLING_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_SCRAPLING_PYTHON"];
+const NOTEBOOKLM_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_NOTEBOOKLM_PYTHON"];
 const NPM_INSTALL_MAX_ATTEMPTS = 3;
 const NPM_INSTALL_RETRY_BASE_DELAY_MS = 1000;
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -243,6 +246,14 @@ export function resolveScraplingVenvPython(venvDir, platform = process.platform)
     : pathImpl.join(venvDir, "bin", "python");
 }
 
+export function resolveNotebookLmVenvBin(venvDir, binName = "nlm", platform = process.platform) {
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  const suffix = platform === "win32" ? ".exe" : "";
+  return platform === "win32"
+    ? pathImpl.join(venvDir, "Scripts", `${binName}${suffix}`)
+    : pathImpl.join(venvDir, "bin", binName);
+}
+
 export function resolveScraplingRuntimePackages(lockedPackages, platform = process.platform) {
   const packages =
     platform === "win32"
@@ -251,9 +262,13 @@ export function resolveScraplingRuntimePackages(lockedPackages, platform = proce
   return [...new Set(packages)];
 }
 
-export function resolvePythonCandidates(env = process.env, platform = process.platform) {
+export function resolvePythonCandidates(
+  env = process.env,
+  platform = process.platform,
+  envOverrides = SCRAPLING_PYTHON_ENV_OVERRIDES,
+) {
   const candidates = [
-    ...SCRAPLING_PYTHON_ENV_OVERRIDES.map((key) => env[key]),
+    ...envOverrides.map((key) => env[key]),
     ...resolvePlatformPythonCandidates(platform),
   ].filter(Boolean);
   return [...new Set(candidates)];
@@ -282,11 +297,14 @@ function comparePythonVersion(a, b) {
   return a.patch - b.patch;
 }
 
-function resolveBestPython(env = process.env) {
-  const [major, minor] = SCRAPLING_MINIMUM_PYTHON_VERSION.split(".").map(Number);
+function resolveBestPython(env = process.env, params = {}) {
+  const minimumVersion = params.minimumVersion ?? SCRAPLING_MINIMUM_PYTHON_VERSION;
+  const label = params.label ?? "scrapling-fetch";
+  const envOverrides = params.envOverrides ?? SCRAPLING_PYTHON_ENV_OVERRIDES;
+  const [major, minor] = minimumVersion.split(".").map(Number);
   const minimum = { major, minor, patch: 0 };
   let best = null;
-  for (const candidate of resolvePythonCandidates(env)) {
+  for (const candidate of resolvePythonCandidates(env, process.platform, envOverrides)) {
     try {
       const result = runOrThrow(candidate, [
         "-c",
@@ -305,7 +323,7 @@ function resolveBestPython(env = process.env) {
   }
   if (!best) {
     throw new Error(
-      `No supported Python interpreter found for scrapling-fetch; requires Python >= ${SCRAPLING_MINIMUM_PYTHON_VERSION}.`,
+      `No supported Python interpreter found for ${label}; requires Python >= ${minimumVersion}.`,
     );
   }
   return best;
@@ -362,6 +380,51 @@ function installScraplingRuntime(env = process.env) {
     venvDir,
     installedAt: new Date().toISOString(),
     packages: [...lockedPackages],
+  };
+}
+
+function installNotebookLmRuntime(env = process.env) {
+  const runtimeDir = path.join(resolveRuntimesRoot(env), "notebooklm-mcp-cli");
+  const venvDir = path.join(runtimeDir, "venv");
+  const python = resolveBestPython(env, {
+    label: "notebooklm-mcp-cli",
+    minimumVersion: NOTEBOOKLM_MINIMUM_PYTHON_VERSION,
+    envOverrides: NOTEBOOKLM_PYTHON_ENV_OVERRIDES,
+  });
+  mkdirSync(runtimeDir, { recursive: true });
+  const venvPython = resolveScraplingVenvPython(venvDir);
+  if (!existsSync(venvPython)) {
+    runOrThrow(python.command, ["-m", "venv", venvDir], { env });
+  }
+  runOrThrow(venvPython, ["-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"], {
+    env,
+  });
+  const packageSpec = `notebooklm-mcp-cli==${NOTEBOOKLM_MCP_CLI_VERSION}`;
+  runOrThrow(venvPython, ["-m", "pip", "install", "--disable-pip-version-check", packageSpec], {
+    env,
+  });
+  const binPath = resolveNotebookLmVenvBin(venvDir, "nlm");
+  const mcpBinPath = resolveNotebookLmVenvBin(venvDir, "notebooklm-mcp");
+  if (!existsSync(binPath)) {
+    throw new Error(`notebooklm-mcp-cli nlm binary missing after install: ${binPath}`);
+  }
+  if (!existsSync(mcpBinPath)) {
+    throw new Error(`notebooklm-mcp-cli MCP binary missing after install: ${mcpBinPath}`);
+  }
+  const version =
+    runOrThrow(venvPython, ["-c", "import notebooklm_tools; print(notebooklm_tools.__version__)"], {
+      env,
+    }).stdout.trim() || NOTEBOOKLM_MCP_CLI_VERSION;
+  return {
+    state: "healthy",
+    version,
+    package: packageSpec,
+    python: python.command,
+    pythonVersion: python.version.text,
+    venvDir,
+    binPath,
+    mcpBinPath,
+    installedAt: new Date().toISOString(),
   };
 }
 
@@ -436,6 +499,7 @@ function listManagedPluginRuntimeInstallers() {
     { id: "browser", installer: installBrowserRuntime },
     { id: "open-websearch", installer: installOpenWebSearchRuntime },
     { id: "scrapling-fetch", installer: installScraplingRuntime },
+    { id: "notebooklm-mcp-cli", installer: installNotebookLmRuntime },
   ];
 }
 
@@ -461,6 +525,16 @@ export function listManagedPluginRuntimeInstallPlan(params = {}) {
         minimumVersion: SCRAPLING_MINIMUM_PYTHON_VERSION,
         requirementsLockPath: SCRAPLING_REQUIREMENTS_LOCK,
         windowsExtraPackages: [...WINDOWS_SCRAPLING_RUNTIME_PACKAGES],
+      },
+    },
+    {
+      id: "notebooklm-mcp-cli",
+      installTime: true,
+      python: {
+        candidates: resolvePlatformPythonCandidates(platform),
+        envOverrides: [...NOTEBOOKLM_PYTHON_ENV_OVERRIDES],
+        minimumVersion: NOTEBOOKLM_MINIMUM_PYTHON_VERSION,
+        package: `notebooklm-mcp-cli==${NOTEBOOKLM_MCP_CLI_VERSION}`,
       },
     },
   ];

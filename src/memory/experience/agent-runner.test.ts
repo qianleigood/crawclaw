@@ -14,9 +14,20 @@ describe("experience extraction agent", () => {
   it("instructs the background agent to extract reusable experience only", () => {
     const prompt = buildExperienceExtractionSystemPrompt();
 
+    expect(prompt).toContain("## Types of experience memory");
+    expect(prompt).toContain("## What NOT to save");
+    expect(prompt).toContain("## How to maintain experience memory");
+    expect(prompt).toContain(
+      "Prefer updating an existing experience note over creating a duplicate",
+    );
     expect(prompt).toContain("Do NOT write durable memory");
     expect(prompt).toContain("Do NOT store user preferences");
     expect(prompt).toContain("write_experience_note");
+    expect(prompt).toContain("- decision: a decision with its reason");
+    expect(prompt).not.toContain("decision_record");
+    expect(prompt).toContain("operation=archive");
+    expect(prompt).toContain("operation=supersede");
+    expect(prompt).toContain("Return STATUS: NO_CHANGE");
     expect(prompt).toContain("STATUS: WRITTEN | SKIPPED | NO_CHANGE | FAILED");
     expect(prompt).toContain("TOUCHED_NOTES");
   });
@@ -43,6 +54,9 @@ describe("experience extraction agent", () => {
           dedupeKey: "gateway-deploy",
           aliases: [],
           tags: [],
+          status: "active",
+          supersededBy: null,
+          archivedAt: null,
           updatedAt: 1,
         },
       ],
@@ -53,6 +67,7 @@ describe("experience extraction agent", () => {
     expect(prompt).toContain("Session summary:");
     expect(prompt).toContain("gateway 发布顺序");
     expect(prompt).toContain("Existing experience index:");
+    expect(prompt).toContain("status=active");
     expect(prompt).toContain("dedupeKey=gateway-deploy");
   });
 

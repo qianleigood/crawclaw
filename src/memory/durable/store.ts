@@ -21,6 +21,14 @@ import {
 export const MEMORY_INDEX_MAX_LINES = 200;
 export const MEMORY_INDEX_MAX_BYTES = 25 * 1024;
 export const MEMORY_INDEX_MAX_ENTRY_CHARS = 150;
+const MANAGED_TIME_FRONTMATTER_KEYS = new Set([
+  "created",
+  "created_at",
+  "createdat",
+  "updated",
+  "updated_at",
+  "updatedat",
+]);
 
 export interface DurableMemoryManifestEntry {
   notePath: string;
@@ -157,6 +165,23 @@ function validateMemoryIndexContent(content: string): string {
     }
   }
   return `${normalized}\n`;
+}
+
+function validateRawNoteContent(notePath: string, content: string): string {
+  const rendered = content.endsWith("\n") ? content : `${content}\n`;
+  if (notePath === "MEMORY.md") {
+    return validateMemoryIndexContent(rendered);
+  }
+  const parsed = parseMarkdownFrontmatter(rendered);
+  const managedKeys = Object.keys(parsed.frontmatter).filter((key) =>
+    MANAGED_TIME_FRONTMATTER_KEYS.has(key.toLowerCase()),
+  );
+  if (managedKeys.length > 0) {
+    throw new Error(
+      `Durable memory note time metadata is managed by CrawClaw; omit ${managedKeys.join(", ")}.`,
+    );
+  }
+  return rendered;
 }
 
 function renderIndex(scope: DurableMemoryScope, entries: DurableMemoryManifestEntry[]): string {
@@ -414,12 +439,7 @@ export async function writeDurableMemoryScopedFile(params: {
   } catch {
     beforeHash = undefined;
   }
-  const rendered =
-    resolved.notePath === "MEMORY.md"
-      ? validateMemoryIndexContent(params.content)
-      : params.content.endsWith("\n")
-        ? params.content
-        : `${params.content}\n`;
+  const rendered = validateRawNoteContent(resolved.notePath, params.content);
   await fs.writeFile(resolved.absolutePath, rendered, "utf8");
   return {
     notePath: resolved.notePath,
@@ -461,7 +481,7 @@ export async function editDurableMemoryScopedFile(params: {
         replacements += 1;
         return params.replaceText;
       });
-  const validatedNext = resolved.notePath === "MEMORY.md" ? validateMemoryIndexContent(next) : next;
+  const validatedNext = validateRawNoteContent(resolved.notePath, next);
   await fs.writeFile(resolved.absolutePath, validatedNext, "utf8");
   return {
     notePath: resolved.notePath,

@@ -80,11 +80,6 @@ const installRunEmbeddedMocks = () => {
     ) => computeBackoffMock(policy, attempt),
     sleepWithAbort: (ms: number, abortSignal?: AbortSignal) => sleepWithAbortMock(ms, abortSignal),
   }));
-  vi.doMock("./pi-embedded-runner/compact.js", () => ({
-    compactEmbeddedPiSessionDirect: vi.fn(async () => {
-      throw new Error("compact should not run in auth profile rotation tests");
-    }),
-  }));
   vi.doMock("./models-config.js", async (importOriginal) => {
     const mod = await importOriginal<typeof import("./models-config.js")>();
     return {

@@ -1,5 +1,6 @@
 import { execFile as execFileCallback } from "node:child_process";
 import type { NotebookLmConfig } from "../types/config.ts";
+import { isNotebookLmNlmCommand, resolveNotebookLmCliCommand } from "./command.js";
 
 type RuntimeLogger = { warn(message: string): void };
 type RuntimeInfoLogger = RuntimeLogger & { info?(message: string): void };
@@ -90,16 +91,12 @@ function inferAuthArgs(config: NotebookLmConfig): string[] {
   return ["status", notebookId, profile];
 }
 
-function isNlmCommand(command: string): boolean {
-  const trimmed = command.trim();
-  return trimmed === "nlm" || trimmed.endsWith("/nlm") || trimmed.endsWith("\\nlm");
-}
-
 function inferAuthCommand(config: NotebookLmConfig): { command: string; args: string[] } | null {
   const profile = (config.auth.profile || "default").trim() || "default";
-  if (config.cli.command.trim() && isNlmCommand(config.cli.command)) {
+  const command = resolveNotebookLmCliCommand(config.cli.command);
+  if (isNotebookLmNlmCommand(command)) {
     return {
-      command: config.cli.command,
+      command,
       args: ["login", "--check", ...(profile === "default" ? [] : ["--profile", profile])],
     };
   }
@@ -112,16 +109,16 @@ function inferAuthCommand(config: NotebookLmConfig): { command: string; args: st
       };
     }
   }
-  if (config.cli.command.trim()) {
+  if (command.trim()) {
     const firstArg = config.cli.args[0]?.trim();
     if (firstArg && (/[/\\]/.test(firstArg) || /\.(py|js|mjs|cjs|ts)$/i.test(firstArg))) {
       return {
-        command: config.cli.command,
+        command,
         args: [firstArg, ...inferAuthArgs(config)],
       };
     }
     return {
-      command: config.cli.command,
+      command,
       args: inferAuthArgs(config),
     };
   }
@@ -171,6 +168,14 @@ function classifyExecFailure(message: string): NotebookLmProviderReason {
   return "unknown";
 }
 
+function isTransientNotebookLmApiError(message: string): boolean {
+  return /API error \(code 7\)|google\.rpc\.ErrorInfo/i.test(message);
+}
+
+async function waitForNotebookLmRetry(attempt: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+}
+
 function normalizeReason(value: unknown): NotebookLmProviderReason {
   switch (value) {
     case "disabled":
@@ -215,7 +220,7 @@ function buildProviderCacheKey(config: NotebookLmConfig, mode: ProviderMode): st
     mode,
     profile: (config.auth.profile || "default").trim() || "default",
     notebookId: (mode === "write"
-      ? (config.write.notebookId ?? "")
+      ? config.write.notebookId || config.cli.notebookId || ""
       : (config.cli.notebookId ?? config.write.notebookId ?? "")
     ).trim(),
     command: config.cli.command,
@@ -323,37 +328,50 @@ async function execNotebookLmProvider(
   commandArgs: string[],
   _logger?: RuntimeLogger,
 ): Promise<Record<string, unknown>> {
-  const stdout = await new Promise<string>((resolve, reject) => {
-    execFileCallback(
-      commandArgs[0],
-      commandArgs.slice(1),
-      {
-        timeout: Math.max(config.cli.timeoutMs || 0, config.write.timeoutMs || 0, 5_000),
-        maxBuffer: 1024 * 1024,
-        env: {
-          ...process.env,
-          ...(config.auth.cookieFile?.trim()
-            ? { CRAWCLAW_NOTEBOOKLM_COOKIE_FILE: config.auth.cookieFile.trim() }
-            : {}),
-        },
-      },
-      (error, nextStdout, nextStderr) => {
-        if (error) {
-          const output = [
-            error instanceof Error ? error.message : "NotebookLM command failed",
-            nextStdout,
-            nextStderr,
-          ]
-            .filter((value) => typeof value === "string" && value.trim().length > 0)
-            .join("\n");
-          reject(new Error(output));
-          return;
-        }
-        resolve(nextStdout);
-      },
-    );
-  });
-  return parseProviderStdout(stdout);
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const stdout = await new Promise<string>((resolve, reject) => {
+        execFileCallback(
+          commandArgs[0],
+          commandArgs.slice(1),
+          {
+            timeout: Math.max(config.cli.timeoutMs || 0, config.write.timeoutMs || 0, 5_000),
+            maxBuffer: 1024 * 1024,
+            env: {
+              ...process.env,
+              ...(config.auth.cookieFile?.trim()
+                ? { CRAWCLAW_NOTEBOOKLM_COOKIE_FILE: config.auth.cookieFile.trim() }
+                : {}),
+            },
+          },
+          (error, nextStdout, nextStderr) => {
+            if (error) {
+              const output = [
+                error instanceof Error ? error.message : "NotebookLM command failed",
+                nextStdout,
+                nextStderr,
+              ]
+                .filter((value) => typeof value === "string" && value.trim().length > 0)
+                .join("\n");
+              reject(new Error(output));
+              return;
+            }
+            resolve(nextStdout);
+          },
+        );
+      });
+      return parseProviderStdout(stdout);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (attempt < maxAttempts && isTransientNotebookLmApiError(message)) {
+        await waitForNotebookLmRetry(attempt);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("NotebookLM provider command failed");
 }
 
 export async function getNotebookLmProviderState(params: {
@@ -390,7 +408,7 @@ export async function getNotebookLmProviderState(params: {
 
   const rawNotebookId =
     params.mode === "write"
-      ? (config.write.notebookId ?? "")
+      ? config.write.notebookId || config.cli.notebookId || ""
       : (config.cli.notebookId ?? config.write.notebookId ?? "");
   const notebookId = rawNotebookId.trim();
   if (!notebookId) {
@@ -461,7 +479,7 @@ export async function refreshNotebookLmProviderState(params: {
   }
   const rawNotebookId =
     params.mode === "write"
-      ? (config.write.notebookId ?? "")
+      ? config.write.notebookId || config.cli.notebookId || ""
       : (config.cli.notebookId ?? config.write.notebookId ?? "");
   const notebookId = rawNotebookId.trim();
   if (!notebookId) {
@@ -522,7 +540,7 @@ export async function refreshNotebookLmProviderState(params: {
     );
     try {
       const firstArg = resolved.args[0]?.trim();
-      const commandArgs = isNlmCommand(resolved.command)
+      const commandArgs = isNotebookLmNlmCommand(resolved.command)
         ? [resolved.command, ...resolved.args]
         : [
             resolved.command,

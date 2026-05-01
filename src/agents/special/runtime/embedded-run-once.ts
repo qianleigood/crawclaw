@@ -61,6 +61,19 @@ function splitModelRef(ref?: string): { model?: string; provider?: string } {
   };
 }
 
+function splitParentForkModelRef(
+  parentForkContext: SpecialAgentSpawnRequest["parentForkContext"],
+): { model?: string; provider?: string } {
+  const provider = normalizeOptionalText(parentForkContext?.provider);
+  if (!provider || provider === "manual") {
+    return {};
+  }
+  return {
+    provider,
+    model: normalizeOptionalText(parentForkContext?.modelId),
+  };
+}
+
 function resolveEmbeddedToolsAllow(
   toolPolicy: SpecialAgentToolPolicy | undefined,
 ): readonly string[] | undefined {
@@ -153,15 +166,16 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
   const configuredDefaultModel = configuredDefaultRef
     ? splitModelRef(modelKey(configuredDefaultRef.provider, configuredDefaultRef.model))
     : {};
+  const parentForkModel = splitParentForkModelRef(request.parentForkContext);
   const provider =
     modelOverride.provider ??
     normalizeOptionalText(embeddedContext?.provider) ??
-    normalizeOptionalText(request.parentForkContext?.provider) ??
+    parentForkModel.provider ??
     configuredDefaultModel.provider;
   const model =
     modelOverride.model ??
     embeddedModel.model ??
-    normalizeOptionalText(request.parentForkContext?.modelId) ??
+    parentForkModel.model ??
     configuredDefaultModel.model;
   if (!provider || !model) {
     return {

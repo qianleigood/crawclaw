@@ -21,6 +21,12 @@ describe("startNotebookLmHeartbeat", () => {
         minIntervalMs: 60_000,
         maxIntervalMs: 180_000,
       },
+      autoLogin: {
+        enabled: false,
+        intervalMs: 24 * 60 * 60_000,
+        provider: "nlm_profile",
+        cdpUrl: "",
+      },
     },
     cli: {
       enabled: true,
@@ -109,5 +115,45 @@ describe("startNotebookLmHeartbeat", () => {
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining("notebooklm auth heartbeat degraded"),
     );
+  });
+
+  it("runs auto login and flushes pending experience when the provider is ready", async () => {
+    const probe = vi.fn().mockResolvedValue({
+      enabled: true,
+      ready: true,
+      reason: null,
+      profile: "default",
+      notebookId: "nb-1",
+      refreshAttempted: false,
+      refreshSucceeded: false,
+      authSource: "profile",
+      lastValidatedAt: new Date().toISOString(),
+    });
+    const autoLogin = vi.fn().mockResolvedValue(undefined);
+    const flushPending = vi.fn().mockResolvedValue(undefined);
+
+    startNotebookLmHeartbeat({
+      config: {
+        ...baseConfig,
+        auth: {
+          ...baseConfig.auth,
+          autoLogin: {
+            ...baseConfig.auth.autoLogin!,
+            enabled: true,
+            intervalMs: 60_000,
+          },
+        },
+      },
+      logger,
+      probe,
+      autoLogin,
+      flushPending,
+    });
+
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(autoLogin).toHaveBeenCalledTimes(1);
+    expect(probe).toHaveBeenCalledTimes(1);
+    expect(flushPending).toHaveBeenCalledTimes(1);
   });
 });

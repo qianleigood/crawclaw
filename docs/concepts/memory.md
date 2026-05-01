@@ -214,15 +214,17 @@ can write durable memory or an experience note depending on what should be retai
 
 Experience memory is a separate memory layer for validated lessons from prior
 work. It stores reusable procedures, decisions, runtime patterns, failure
-patterns, workflow patterns, and references. NotebookLM can be used as a
-provider, but prompt assembly talks to a provider registry and local experience
-index instead of binding the recall path to NotebookLM directly. CrawClaw can:
+patterns, workflow patterns, and references. NotebookLM is the prompt-facing
+experience recall provider. The local experience index is kept as a reliable
+write-ahead outbox and sync ledger, not as a fallback prompt recall source.
+CrawClaw can:
 
 - query NotebookLM for relevant reusable experience
 - write structured experience notes directly through `write_experience_note`
 - run a background Experience Agent after top-level turns to extract reusable
   experience without blocking the main task
 - manage login, refresh, and provider status via `crawclaw memory`
+- flush local pending experience notes with `crawclaw memory sync`
 - summarize nightly memory prompt diagnostics via `crawclaw memory prompt-journal-summary`
 
 Experience extraction and recall are deliberately split:
@@ -232,9 +234,12 @@ Experience extraction and recall are deliberately split:
   context, and the existing experience index
 - the agent can only use `write_experience_note`; it cannot run shell commands,
   browse, inspect source files, write durable memory, or spawn agents
-- successful writes update the local experience index and optionally sync to
-  NotebookLM when a write adapter is configured
+- successful writes update the local experience sync ledger and sync to
+  NotebookLM when the provider is ready
+- if NotebookLM is not ready, writes stay in the local pending outbox until
+  login, heartbeat, startup, or `crawclaw memory sync` flushes them
 - the next prompt assembly synchronously recalls the most relevant experience
+  from NotebookLM only
 
 Experience recall runs during the context-assembly phase of each agent turn. The
 runtime first classifies the user query, then builds a provider query plan from
@@ -244,11 +249,10 @@ that classification:
   provider queries
 - SOP and runbook prompts can borrow a small amount of provider search budget so
   weak metadata does not starve operational experience
-- successful `write_experience_note` calls update a small local baseline index,
-  so recently written experience can still be recalled when live provider search
-  returns no hits
-- local baseline hits keep their own `local_experience_index` source, so inspect
-  and prompt diagnostics can distinguish them from live NotebookLM hits
+- successful `write_experience_note` calls update the local sync ledger first,
+  but prompt recall does not read local pending notes
+- if NotebookLM returns no hits or is not authenticated, experience recall is
+  empty for that turn instead of falling back to local outbox entries
 - recall ranking records experience-specific signals such as trigger match,
   applicability match, failure/workflow pattern boosts, recent-success wording,
   and confidence
@@ -264,11 +268,25 @@ provider querying entirely.
 
 `write_experience_note` is the only experience write tool in the current
 runtime. It writes a local experience index entry first and can also sync to
-NotebookLM when `memory.notebooklm.write` is configured. Experience notes should
-capture reusable context, trigger, action, result, lesson, applicability
-boundaries, and supporting evidence rather than temporary task state. The
-write schema only accepts the current structured fields; legacy aliases such as
-freeform body/rationale fields are not kept as compatibility inputs.
+NotebookLM when `memory.notebooklm.write.enabled` is not explicitly disabled.
+With the managed NotebookLM runtime, CrawClaw writes via `nlm note create`; a
+custom `memory.notebooklm.write.command` is only needed for nonstandard write
+helpers. CrawClaw can also maintain one managed NotebookLM source titled
+`CrawClaw Memory Index` from the bounded local experience index. That source
+lets NotebookLM native source query work without uploading each experience note
+as a separate source; the per-note NotebookLM writeback remains a note-level
+sync path. Experience notes should capture reusable context, trigger, action,
+result, lesson, applicability boundaries, and supporting evidence rather than
+temporary task state. The write schema only accepts the current structured
+fields; legacy aliases such as freeform body/rationale fields are not kept as
+compatibility inputs.
+
+NotebookLM auth can be kept warm by `memory.notebooklm.auth.autoLogin`. The
+default provider runs the managed `nlm login --profile <profile>` flow on a
+daily interval, reusing the persisted notebooklm-mcp-cli browser profile. For an
+OpenClaw-managed browser, set the provider to `openclaw_cdp` and provide a CDP
+URL. After auto login succeeds, CrawClaw clears the provider cache and flushes
+pending experience notes to NotebookLM.
 
 ## Context Archive
 
@@ -299,8 +317,8 @@ These layers do not share the same boundaries:
 - **Session memory** is isolated per session.
 - **Durable memory** is shared whenever runs resolve to the same
   `agentId + channel + userId` scope.
-- **Experience memory** uses the same local experience index and optional
-  provider configuration across runs; it is not partitioned by session id.
+- **Experience memory** uses the same local sync ledger and NotebookLM provider
+  configuration across runs; it is not partitioned by session id.
 
 All agents that use the built-in memory runtime receive the same agent memory
 routing contract. This guidance is not limited to the `main` agent.
@@ -336,6 +354,7 @@ This keeps short-term continuity on one source of truth:
 crawclaw memory status   # Check NotebookLM provider status
 crawclaw memory login    # Rebuild the NotebookLM profile
 crawclaw memory refresh  # Refresh NotebookLM auth from cookie fallback
+crawclaw memory sync     # Flush pending experience notes to NotebookLM
 crawclaw memory dream status --json
 crawclaw memory dream history --json
 crawclaw memory dream run --agent main --channel telegram --user alice --force

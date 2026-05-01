@@ -9332,240 +9332,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       memory: {
         type: "object",
         properties: {
-          backend: {
-            anyOf: [
-              {
-                type: "string",
-                const: "builtin",
-              },
-              {
-                type: "string",
-                const: "qmd",
-              },
-            ],
-          },
-          qmd: {
-            type: "object",
-            properties: {
-              command: {
-                type: "string",
-              },
-              mcporter: {
-                type: "object",
-                properties: {
-                  enabled: {
-                    type: "boolean",
-                  },
-                  serverName: {
-                    type: "string",
-                  },
-                  startDaemon: {
-                    type: "boolean",
-                  },
-                },
-                additionalProperties: false,
-              },
-              searchMode: {
-                anyOf: [
-                  {
-                    type: "string",
-                    const: "query",
-                  },
-                  {
-                    type: "string",
-                    const: "search",
-                  },
-                  {
-                    type: "string",
-                    const: "vsearch",
-                  },
-                ],
-              },
-              searchTool: {
-                type: "string",
-                minLength: 1,
-              },
-              includeDefaultMemory: {
-                type: "boolean",
-              },
-              paths: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    path: {
-                      type: "string",
-                    },
-                    name: {
-                      type: "string",
-                    },
-                    pattern: {
-                      type: "string",
-                    },
-                  },
-                  required: ["path"],
-                  additionalProperties: false,
-                },
-              },
-              sessions: {
-                type: "object",
-                properties: {
-                  enabled: {
-                    type: "boolean",
-                  },
-                  exportDir: {
-                    type: "string",
-                  },
-                  retentionDays: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                },
-                additionalProperties: false,
-              },
-              update: {
-                type: "object",
-                properties: {
-                  interval: {
-                    type: "string",
-                  },
-                  debounceMs: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  onBoot: {
-                    type: "boolean",
-                  },
-                  waitForBootSync: {
-                    type: "boolean",
-                  },
-                  embedInterval: {
-                    type: "string",
-                  },
-                  commandTimeoutMs: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  updateTimeoutMs: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  embedTimeoutMs: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                },
-                additionalProperties: false,
-              },
-              limits: {
-                type: "object",
-                properties: {
-                  maxResults: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  maxSnippetChars: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  maxInjectedChars: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  timeoutMs: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                },
-                additionalProperties: false,
-              },
-              scope: {
-                type: "object",
-                properties: {
-                  default: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "allow",
-                      },
-                      {
-                        type: "string",
-                        const: "deny",
-                      },
-                    ],
-                  },
-                  rules: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        action: {
-                          anyOf: [
-                            {
-                              type: "string",
-                              const: "allow",
-                            },
-                            {
-                              type: "string",
-                              const: "deny",
-                            },
-                          ],
-                        },
-                        match: {
-                          type: "object",
-                          properties: {
-                            channel: {
-                              type: "string",
-                            },
-                            chatType: {
-                              anyOf: [
-                                {
-                                  type: "string",
-                                  const: "direct",
-                                },
-                                {
-                                  type: "string",
-                                  const: "group",
-                                },
-                                {
-                                  type: "string",
-                                  const: "channel",
-                                },
-                                {
-                                  type: "string",
-                                  const: "dm",
-                                },
-                              ],
-                            },
-                            keyPrefix: {
-                              type: "string",
-                            },
-                            rawKeyPrefix: {
-                              type: "string",
-                            },
-                          },
-                          additionalProperties: false,
-                        },
-                      },
-                      required: ["action"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                additionalProperties: false,
-              },
-            },
-            additionalProperties: false,
-          },
           notebooklm: {
             type: "object",
             properties: {
@@ -9611,6 +9377,35 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                         type: "integer",
                         exclusiveMinimum: 0,
                         maximum: 9007199254740991,
+                      },
+                    },
+                    additionalProperties: false,
+                  },
+                  autoLogin: {
+                    type: "object",
+                    properties: {
+                      enabled: {
+                        type: "boolean",
+                      },
+                      intervalMs: {
+                        type: "integer",
+                        exclusiveMinimum: 0,
+                        maximum: 9007199254740991,
+                      },
+                      provider: {
+                        anyOf: [
+                          {
+                            type: "string",
+                            const: "nlm_profile",
+                          },
+                          {
+                            type: "string",
+                            const: "openclaw_cdp",
+                          },
+                        ],
+                      },
+                      cdpUrl: {
+                        type: "string",
                       },
                     },
                     additionalProperties: false,
@@ -9674,6 +9469,36 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                   },
                   notebookId: {
                     type: "string",
+                  },
+                },
+                additionalProperties: false,
+              },
+              source: {
+                type: "object",
+                properties: {
+                  enabled: {
+                    type: "boolean",
+                  },
+                  title: {
+                    type: "string",
+                  },
+                  timeoutMs: {
+                    type: "integer",
+                    minimum: 0,
+                    maximum: 9007199254740991,
+                  },
+                  maxEntries: {
+                    type: "integer",
+                    exclusiveMinimum: 0,
+                    maximum: 9007199254740991,
+                  },
+                  maxChars: {
+                    type: "integer",
+                    exclusiveMinimum: 0,
+                    maximum: 9007199254740991,
+                  },
+                  deletePrevious: {
+                    type: "boolean",
                   },
                 },
                 additionalProperties: false,
@@ -12122,154 +11947,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Memory backend configuration (global).",
       tags: ["advanced"],
     },
-    "memory.backend": {
-      label: "Memory Backend",
-      help: 'Selects the global memory engine: "builtin" uses CrawClaw memory internals, while "qmd" uses the QMD sidecar pipeline. Keep "builtin" unless you intentionally operate QMD.',
-      tags: ["storage"],
-    },
-    "memory.qmd.command": {
-      label: "QMD Binary",
-      help: "Sets the executable path for the `qmd` binary used by the QMD backend (default: resolved from PATH). Use an explicit absolute path when multiple qmd installs exist or PATH differs across environments.",
-      tags: ["storage"],
-    },
-    "memory.qmd.mcporter": {
-      label: "QMD MCPorter",
-      help: "Routes QMD work through mcporter (MCP runtime) instead of spawning `qmd` for each call. Use this when cold starts are expensive on large models; keep direct process mode for simpler local setups.",
-      tags: ["storage"],
-    },
-    "memory.qmd.mcporter.enabled": {
-      label: "QMD MCPorter Enabled",
-      help: "Routes QMD through an mcporter daemon instead of spawning qmd per request, reducing cold-start overhead for larger models. Keep disabled unless mcporter is installed and configured.",
-      tags: ["storage"],
-    },
-    "memory.qmd.mcporter.serverName": {
-      label: "QMD MCPorter Server Name",
-      help: "Names the mcporter server target used for QMD calls (default: qmd). Change only when your mcporter setup uses a custom server name for qmd mcp keep-alive.",
-      tags: ["storage"],
-    },
-    "memory.qmd.mcporter.startDaemon": {
-      label: "QMD MCPorter Start Daemon",
-      help: "Automatically starts the mcporter daemon when mcporter-backed QMD mode is enabled (default: true). Keep enabled unless process lifecycle is managed externally by your service supervisor.",
-      tags: ["storage"],
-    },
-    "memory.qmd.searchMode": {
-      label: "QMD Search Mode",
-      help: 'Selects the QMD retrieval path: "query" uses standard query flow, "search" uses search-oriented retrieval, and "vsearch" emphasizes vector retrieval. Keep default unless tuning relevance quality.',
-      tags: ["storage"],
-    },
-    "memory.qmd.searchTool": {
-      label: "QMD Search Tool Override",
-      help: "Overrides the exact mcporter tool name used for QMD searches while preserving `searchMode` as the semantic retrieval mode. Use this only when your QMD MCP server exposes a custom tool such as `hybrid_search` and keep it unset for the normal built-in tool mapping.",
-      tags: ["storage"],
-    },
-    "memory.qmd.includeDefaultMemory": {
-      label: "QMD Include Default Memory",
-      help: "Automatically indexes default memory files (MEMORY.md and memory/**/*.md) into QMD collections. Keep enabled unless you want indexing controlled only through explicit custom paths.",
-      tags: ["storage"],
-    },
-    "memory.qmd.paths": {
-      label: "QMD Extra Paths",
-      help: "Adds custom directories or files to include in QMD indexing, each with an optional name and glob pattern. Use this for project-specific knowledge locations that are outside default memory paths.",
-      tags: ["storage"],
-    },
-    "memory.qmd.paths.path": {
-      label: "QMD Path",
-      help: "Defines the root location QMD should scan, using an absolute path or `~`-relative path. Use stable directories so collection identity does not drift across environments.",
-      tags: ["storage"],
-    },
-    "memory.qmd.paths.pattern": {
-      label: "QMD Path Pattern",
-      help: "Filters files under each indexed root using a glob pattern, with default `**/*.md`. Use narrower patterns to reduce noise and indexing cost when directories contain mixed file types.",
-      tags: ["storage"],
-    },
-    "memory.qmd.paths.name": {
-      label: "QMD Path Name",
-      help: "Sets a stable collection name for an indexed path instead of deriving it from filesystem location. Use this when paths vary across machines but you want consistent collection identity.",
-      tags: ["storage"],
-    },
-    "memory.qmd.sessions.enabled": {
-      label: "QMD Session Indexing",
-      help: "Indexes session transcripts into QMD so recall can include prior conversation content (experimental, default: false). Enable only when transcript memory is required and you accept larger index churn.",
-      tags: ["storage"],
-    },
-    "memory.qmd.sessions.exportDir": {
-      label: "QMD Session Export Directory",
-      help: "Overrides where sanitized session exports are written before QMD indexing. Use this when default state storage is constrained or when exports must land on a managed volume.",
-      tags: ["storage"],
-    },
-    "memory.qmd.sessions.retentionDays": {
-      label: "QMD Session Retention (days)",
-      help: "Defines how long exported session files are kept before automatic pruning, in days (default: unlimited). Set a finite value for storage hygiene or compliance retention policies.",
-      tags: ["storage"],
-    },
-    "memory.qmd.update.interval": {
-      label: "QMD Update Interval",
-      help: "Sets how often QMD refreshes indexes from source content (duration string, default: 5m). Shorter intervals improve freshness but increase background CPU and I/O.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.update.debounceMs": {
-      label: "QMD Update Debounce (ms)",
-      help: "Sets the minimum delay between consecutive QMD refresh attempts in milliseconds (default: 15000). Increase this if frequent file changes cause update thrash or unnecessary background load.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.update.onBoot": {
-      label: "QMD Update on Startup",
-      help: "Runs an initial QMD update once during gateway startup (default: true). Keep enabled so recall starts from a fresh baseline; disable only when startup speed is more important than immediate freshness.",
-      tags: ["storage"],
-    },
-    "memory.qmd.update.waitForBootSync": {
-      label: "QMD Wait for Boot Sync",
-      help: "Blocks startup completion until the initial boot-time QMD sync finishes (default: false). Enable when you need fully up-to-date recall before serving traffic, and keep off for faster boot.",
-      tags: ["storage"],
-    },
-    "memory.qmd.update.embedInterval": {
-      label: "QMD Embed Interval",
-      help: "Sets how often QMD recomputes embeddings (duration string, default: 60m; set 0 to disable periodic embeds). Lower intervals improve freshness but increase embedding workload and cost.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.update.commandTimeoutMs": {
-      label: "QMD Command Timeout (ms)",
-      help: "Sets timeout for QMD maintenance commands such as collection list/add in milliseconds (default: 30000). Increase when running on slower disks or remote filesystems that delay command completion.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.update.updateTimeoutMs": {
-      label: "QMD Update Timeout (ms)",
-      help: "Sets maximum runtime for each `qmd update` cycle in milliseconds (default: 120000). Raise this for larger collections; lower it when you want quicker failure detection in automation.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.update.embedTimeoutMs": {
-      label: "QMD Embed Timeout (ms)",
-      help: "Sets maximum runtime for each `qmd embed` cycle in milliseconds (default: 120000). Increase for heavier embedding workloads or slower hardware, and lower to fail fast under tight SLAs.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.limits.maxResults": {
-      label: "QMD Max Results",
-      help: "Limits how many QMD hits are returned into the agent loop for each recall request (default: 6). Increase for broader recall context, or lower to keep prompts tighter and faster.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.limits.maxSnippetChars": {
-      label: "QMD Max Snippet Chars",
-      help: "Caps per-result snippet length extracted from QMD hits in characters (default: 700). Lower this when prompts bloat quickly, and raise only if answers consistently miss key details.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.limits.maxInjectedChars": {
-      label: "QMD Max Injected Chars",
-      help: "Caps how much QMD text can be injected into one turn across all hits. Use lower values to control prompt bloat and latency; raise only when context is consistently truncated.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.limits.timeoutMs": {
-      label: "QMD Search Timeout (ms)",
-      help: "Sets per-query QMD search timeout in milliseconds (default: 4000). Increase for larger indexes or slower environments, and lower to keep request latency bounded.",
-      tags: ["performance", "storage"],
-    },
-    "memory.qmd.scope": {
-      label: "QMD Surface Scope",
-      help: "Defines which sessions/channels are eligible for QMD recall using session.sendPolicy-style rules. Keep default direct-only scope unless you intentionally want cross-chat memory sharing.",
-      tags: ["storage"],
-    },
     "memory.notebooklm": {
       label: "NotebookLM Experience Provider",
-      help: "Configures the optional NotebookLM provider for experience memory. Prompt-facing experience recall also uses the local experience index when NotebookLM is disabled or returns no hits.",
+      help: "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local experience index is only a sync ledger and pending write queue.",
       tags: ["storage"],
     },
     "memory.notebooklm.auth": {
@@ -12322,19 +12002,44 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Upper bound for the randomized NotebookLM auth heartbeat interval in milliseconds. Each keepalive run picks a random delay between min and max before the next status probe.",
       tags: ["performance", "storage", "automation"],
     },
+    "memory.notebooklm.auth.autoLogin": {
+      label: "NotebookLM Auto Login",
+      help: "Controls the automatic NotebookLM login refresh loop. This uses the managed nlm profile or an OpenClaw CDP browser session to keep NotebookLM available as the prompt-facing experience recall provider.",
+      tags: ["storage"],
+    },
+    "memory.notebooklm.auth.autoLogin.enabled": {
+      label: "NotebookLM Auto Login Enabled",
+      help: "Enables periodic NotebookLM auto login. When enabled, CrawClaw can reuse the managed nlm browser profile or configured OpenClaw CDP session, then flush pending local experience notes after auth recovers.",
+      tags: ["storage"],
+    },
+    "memory.notebooklm.auth.autoLogin.intervalMs": {
+      label: "NotebookLM Auto Login Interval (ms)",
+      help: "Minimum interval in milliseconds between automatic NotebookLM login attempts. The default is once per day.",
+      tags: ["performance", "storage"],
+    },
+    "memory.notebooklm.auth.autoLogin.provider": {
+      label: "NotebookLM Auto Login Provider",
+      help: 'Auto login provider. Use "nlm_profile" for the managed notebooklm-mcp-cli browser profile, or "openclaw_cdp" to ask nlm to authenticate through an OpenClaw-managed browser CDP endpoint.',
+      tags: ["storage"],
+    },
+    "memory.notebooklm.auth.autoLogin.cdpUrl": {
+      label: "NotebookLM Auto Login CDP URL",
+      help: "CDP endpoint used when autoLogin.provider is openclaw_cdp, for example http://127.0.0.1:18800.",
+      tags: ["storage"],
+    },
     "memory.notebooklm.cli": {
       label: "NotebookLM CLI Reader",
-      help: "Optional NotebookLM CLI adapter used for prompt-facing experience recall. Enable this when `nlm` is installed and authenticated, and you want CrawClaw to query NotebookLM directly.",
+      help: "Optional NotebookLM CLI adapter used for prompt-facing experience recall. Enable this when the managed notebooklm-mcp-cli runtime or another authenticated `nlm` command is available, and you want CrawClaw to query NotebookLM directly.",
       tags: ["storage"],
     },
     "memory.notebooklm.cli.enabled": {
       label: "NotebookLM CLI Enabled",
-      help: "Enables NotebookLM CLI retrieval for prompt-facing experience recall. Keep disabled unless a working `nlm` command is configured and authenticated.",
+      help: "Enables NotebookLM CLI retrieval for prompt-facing experience recall. Keep disabled unless the managed `nlm` runtime, PATH `nlm`, or an explicit wrapper command is authenticated.",
       tags: ["storage"],
     },
     "memory.notebooklm.cli.command": {
       label: "NotebookLM CLI Command",
-      help: "Executable used for NotebookLM CLI retrieval, typically `nlm` or a local wrapper script. The command must return JSON that CrawClaw can normalize into experience recall items.",
+      help: "Executable used for NotebookLM CLI retrieval. Leave empty to use CrawClaw's managed notebooklm-mcp-cli `nlm` runtime when installed, then PATH `nlm`; set a local wrapper script only when you need a custom adapter.",
       tags: ["storage"],
     },
     "memory.notebooklm.cli.args": {
@@ -12364,22 +12069,22 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.write": {
       label: "NotebookLM Writeback",
-      help: "Configures NotebookLM note writing for the experience layer. Use this to let CrawClaw create or update Chinese-readable experience notes inside a designated NotebookLM notebook.",
+      help: "Configures NotebookLM note writing for the experience layer. By default CrawClaw uses the managed `nlm note create` runtime; set a command only when you need a custom write helper.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.enabled": {
       label: "NotebookLM Writeback Enabled",
-      help: "Enables NotebookLM note writing for the experience layer. Keep disabled unless you have a working write command and a target notebook configured.",
+      help: "Enables NotebookLM note writing for the experience layer. When NotebookLM is enabled this defaults to the managed `nlm` write path unless explicitly disabled.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.command": {
       label: "NotebookLM Writeback Command",
-      help: "Executable used for NotebookLM note writing, typically a local wrapper script or Python entrypoint that performs notebook note upsert operations.",
+      help: "Optional executable override for NotebookLM note writing. Leave empty to use the managed `nlm note create` runtime.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.args": {
       label: "NotebookLM Writeback Arguments",
-      help: "Argument template passed to the NotebookLM write command. Use placeholders like `{payloadFile}` and `{notebookId}` so CrawClaw can hand the note payload to a bounded write helper.",
+      help: "Argument template passed to a custom NotebookLM write command. Ignored by the managed `nlm` write path.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.timeoutMs": {
@@ -12392,9 +12097,44 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
       tags: ["storage"],
     },
+    "memory.notebooklm.source": {
+      label: "NotebookLM Managed Source",
+      help: "Configures the managed NotebookLM source that mirrors the bounded local experience index into one CrawClaw Memory Index source. This gives NotebookLM native source query material without turning each experience note into its own source.",
+      tags: ["storage"],
+    },
+    "memory.notebooklm.source.enabled": {
+      label: "NotebookLM Managed Source Enabled",
+      help: "Enables managed NotebookLM source synchronization after experience writes. Disable this when you only want local index recall and NotebookLM note writeback.",
+      tags: ["storage"],
+    },
+    "memory.notebooklm.source.title": {
+      label: "NotebookLM Managed Source Title",
+      help: "Title used for the managed NotebookLM source. Keep it stable so CrawClaw can recognize and replace the previous index source.",
+      tags: ["storage"],
+    },
+    "memory.notebooklm.source.timeoutMs": {
+      label: "NotebookLM Managed Source Timeout (ms)",
+      help: "Timeout in milliseconds for source list/add/delete operations. Source uploads can be slower than note writes because NotebookLM processes the source.",
+      tags: ["performance", "storage"],
+    },
+    "memory.notebooklm.source.maxEntries": {
+      label: "NotebookLM Managed Source Max Entries",
+      help: "Maximum number of active or stale experience index entries rendered into the managed NotebookLM source.",
+      tags: ["performance", "storage"],
+    },
+    "memory.notebooklm.source.maxChars": {
+      label: "NotebookLM Managed Source Max Chars",
+      help: "Maximum rendered character count for the managed NotebookLM source.",
+      tags: ["performance", "storage"],
+    },
+    "memory.notebooklm.source.deletePrevious": {
+      label: "NotebookLM Managed Source Delete Previous",
+      help: "Deletes the previous managed source after a replacement source is added successfully. Keep enabled to avoid duplicate CrawClaw Memory Index sources.",
+      tags: ["storage"],
+    },
     "memory.experience": {
       label: "Experience Memory Agent",
-      help: "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local experience index entries, and optionally syncs through the NotebookLM write path when configured.",
+      help: "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local sync-ledger entries, and syncs them through the NotebookLM write path when available.",
       tags: ["storage"],
     },
     "memory.experience.enabled": {

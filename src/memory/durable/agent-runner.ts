@@ -147,6 +147,7 @@ export function buildMemoryExtractionSystemPrompt(): string {
     "## Durable Boundary",
     "- Only create durable memory of type user, feedback, project, or reference.",
     "- Do NOT save task progress, temporary plans, activity logs, code structure, or transient debugging state.",
+    "- Do NOT invent created/updated timestamps or other time metadata; omit timestamp fields unless an exact timestamp is provided in the task input.",
     "- If nothing in the provided recent messages deserves durable memory, do not write anything.",
     "",
     "## Tooling Strategy",

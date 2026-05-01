@@ -9,7 +9,10 @@ import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { SkillRoutingResult, UnifiedQueryClassification } from "../types/orchestration.ts";
 import type { SessionCompactionStateRow } from "../types/runtime.ts";
 import type { RuntimeLogger } from "./context-memory-runtime-deps.ts";
-import type { DurableRecallSource } from "./context-memory-runtime-helpers.ts";
+import {
+  resolveMemoryMessageChannel,
+  type DurableRecallSource,
+} from "./context-memory-runtime-helpers.ts";
 import type { MemoryRuntimeContext } from "./types.ts";
 
 type ContextArchiveTurnCaptureLike = {
@@ -120,10 +123,7 @@ export async function runPostAssemblySideEffects(params: {
       typeof params.runtimeContext?.agentId === "string"
         ? params.runtimeContext.agentId
         : undefined,
-    channel:
-      typeof params.runtimeContext?.messageChannel === "string"
-        ? params.runtimeContext.messageChannel
-        : undefined,
+    channel: resolveMemoryMessageChannel(params.runtimeContext),
     userId:
       typeof params.runtimeContext?.senderId === "string"
         ? params.runtimeContext.senderId

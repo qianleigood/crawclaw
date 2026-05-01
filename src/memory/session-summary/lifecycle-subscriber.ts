@@ -6,7 +6,7 @@ import {
 } from "../../agents/special/runtime/lifecycle-subscriber.js";
 import { resolveSpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateConversationMessageTokens } from "../context/assembly.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { SessionSummaryScheduler } from "./scheduler.ts";
@@ -49,13 +49,56 @@ function resolveWorkspaceDir(event: RunLoopLifecycleEvent): string {
   return candidate || process.cwd();
 }
 
+function resolvePositiveInt(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  return Math.floor(value);
+}
+
+function resolveSessionSummaryThresholds(event: RunLoopLifecycleEvent): {
+  lightInitialTokenThreshold?: number;
+  initialTokenThreshold?: number;
+  updateTokenThreshold?: number;
+} {
+  const policy =
+    event.metadata?.contextBudgetPolicy && typeof event.metadata.contextBudgetPolicy === "object"
+      ? (event.metadata.contextBudgetPolicy as { sessionSummary?: unknown })
+      : null;
+  const summary =
+    policy?.sessionSummary && typeof policy.sessionSummary === "object"
+      ? (policy.sessionSummary as Record<string, unknown>)
+      : null;
+  if (!summary) {
+    return {};
+  }
+  const thresholds: {
+    lightInitialTokenThreshold?: number;
+    initialTokenThreshold?: number;
+    updateTokenThreshold?: number;
+  } = {};
+  const lightInitialTokenThreshold = resolvePositiveInt(summary.lightInitialTokenThreshold);
+  if (lightInitialTokenThreshold !== undefined) {
+    thresholds.lightInitialTokenThreshold = lightInitialTokenThreshold;
+  }
+  const initialTokenThreshold = resolvePositiveInt(summary.initialTokenThreshold);
+  if (initialTokenThreshold !== undefined) {
+    thresholds.initialTokenThreshold = initialTokenThreshold;
+  }
+  const updateTokenThreshold = resolvePositiveInt(summary.updateTokenThreshold);
+  if (updateTokenThreshold !== undefined) {
+    thresholds.updateTokenThreshold = updateTokenThreshold;
+  }
+  return thresholds;
+}
+
 export class SessionSummaryLifecycleSubscriber {
   private runtimeStore: RuntimeStore;
   private scheduler: SessionSummaryScheduler;
   private logger: RuntimeLogger;
   private readonly handler = (event: RunLoopLifecycleEvent) => this.handleEvent(event);
   private readonly registration = createRunLoopLifecycleRegistration({
-    phases: ["post_sampling", "settled_turn"],
+    phases: ["settled_turn"],
     handler: this.handler,
   });
 
@@ -80,13 +123,13 @@ export class SessionSummaryLifecycleSubscriber {
   }
 
   private async handleEvent(event: RunLoopLifecycleEvent): Promise<void> {
-    if (event.phase !== "post_sampling" && event.phase !== "settled_turn") {
+    if (event.phase !== "settled_turn") {
       return;
     }
 
     const sessionKey = typeof event.sessionKey === "string" ? event.sessionKey.trim() : "";
     const sessionFile = typeof event.sessionFile === "string" ? event.sessionFile.trim() : "";
-    if (!sessionKey || isSubagentSessionKey(sessionKey)) {
+    if (!sessionKey || isMemoryAutomationExcludedSessionKey(sessionKey)) {
       return;
     }
     if (!sessionFile) {
@@ -142,6 +185,7 @@ export class SessionSummaryLifecycleSubscriber {
           .find((row) => row.role === "user" || row.role === "assistant")?.id ?? null;
       const allMessages = lifecycleModelVisibleMessages;
       const recentMessages = allMessages.slice(prePromptMessageCount);
+      const summaryThresholds = resolveSessionSummaryThresholds(event);
 
       this.scheduler.submitTurn({
         sessionId: event.sessionId,
@@ -158,6 +202,7 @@ export class SessionSummaryLifecycleSubscriber {
         recentMessageLimit: 24,
         currentTokenCount: estimateConversationMessageTokens(allMessages),
         toolCallCount,
+        ...summaryThresholds,
         isSettledTurn: event.phase === "settled_turn",
       });
     } catch (error) {

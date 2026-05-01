@@ -172,6 +172,40 @@ export const mockedResolveContextWindowInfo = vi.fn(() => ({
   tokens: 200000,
   source: "model",
 }));
+export const mockedResolveModelContextBudget = vi.fn(
+  ({ info }: { info: { tokens: number; source: string } }) => ({
+    windowTokens: info.tokens,
+    usableInputTokens: Math.floor(info.tokens * 0.77),
+    memoryBudgetTokens: 4_000,
+    outputReserveTokens: 16_000,
+    providerOverheadTokens: 6_000,
+    toolSchemaTokens: 0,
+    source: info.source,
+    confidence: "high",
+  }),
+);
+export const mockedResolveContextBudgetPolicy = vi.fn(
+  (budget: { windowTokens: number; usableInputTokens: number }) => {
+    const compactTriggerTokens = Math.floor(budget.usableInputTokens * 0.92);
+    return {
+      compactTriggerTokens,
+      memoryFlushTriggerTokens: compactTriggerTokens - 4_000,
+      memoryFlushLeadTokens: 4_000,
+      timeoutRecoveryTriggerTokens: Math.floor(budget.usableInputTokens * 0.85),
+      sessionSummary: {
+        lightInitialTokenThreshold: 5_000,
+        initialTokenThreshold: 16_000,
+        updateTokenThreshold: 8_000,
+      },
+      compaction: {
+        tailMinTokens: 2_000,
+        tailMaxTokens: 6_000,
+        minTextMessages: 12,
+        compactSummaryBudgetTokens: 2_000,
+      },
+    };
+  },
+);
 export const mockedGetApiKeyForModel = vi.fn(
   async ({ profileId }: { profileId?: string } = {}) => ({
     apiKey: "test-key",
@@ -310,6 +344,8 @@ export function resetRunOverflowCompactionHarnessMocks(): void {
     tokens: 200000,
     source: "model",
   });
+  mockedResolveModelContextBudget.mockClear();
+  mockedResolveContextBudgetPolicy.mockClear();
   mockedGetApiKeyForModel.mockReset();
   mockedGetApiKeyForModel.mockImplementation(
     async ({ profileId }: { profileId?: string } = {}) => ({
@@ -453,6 +489,8 @@ export async function loadRunOverflowCompactionHarness(): Promise<{
     CONTEXT_WINDOW_HARD_MIN_TOKENS: 1000,
     CONTEXT_WINDOW_WARN_BELOW_TOKENS: 5000,
     evaluateContextWindowGuard: mockedEvaluateContextWindowGuard,
+    resolveContextBudgetPolicy: mockedResolveContextBudgetPolicy,
+    resolveModelContextBudget: mockedResolveModelContextBudget,
     resolveContextWindowInfo: mockedResolveContextWindowInfo,
   }));
 

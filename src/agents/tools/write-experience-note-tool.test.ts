@@ -93,6 +93,9 @@ describe("createExperienceWriteTool", () => {
               timeoutMs: 1000,
               notebookId: "experience-notebook",
             },
+            source: {
+              enabled: false,
+            },
           },
         },
       } satisfies CrawClawConfig,
@@ -180,6 +183,9 @@ describe("createExperienceWriteTool", () => {
               timeoutMs: 1000,
               notebookId: "experience-notebook",
             },
+            source: {
+              enabled: false,
+            },
           },
         },
       } satisfies CrawClawConfig,
@@ -196,11 +202,47 @@ describe("createExperienceWriteTool", () => {
     ).rejects.toThrow(/experience note should not store transient session state/i);
   });
 
-  it("writes to the local experience index when NotebookLM writeback is not configured", async () => {
+  it("stores a pending sync entry when NotebookLM writeback is not ready", async () => {
     const stateDir = await createTempDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
+    execFileMock.mockImplementationOnce((_command, _args, _options, callback) => {
+      callback(new Error("Authentication failed"), "", "Authentication failed");
+    });
 
-    const tool = createExperienceWriteTool();
+    const tool = createExperienceWriteTool({
+      config: {
+        memory: {
+          notebooklm: {
+            enabled: true,
+            auth: {
+              profile: "default",
+              cookieFile: "",
+              statusTtlMs: 60_000,
+              degradedCooldownMs: 120_000,
+              refreshCooldownMs: 180_000,
+            },
+            cli: {
+              enabled: true,
+              command: "python",
+              args: ["/tmp/notebooklm-cli-recall.py", "{query}", "{limit}", "{notebookId}"],
+              timeoutMs: 1000,
+              limit: 5,
+              notebookId: "experience-notebook",
+            },
+            write: {
+              enabled: true,
+              command: "python",
+              args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
+              timeoutMs: 1000,
+              notebookId: "experience-notebook",
+            },
+            source: {
+              enabled: false,
+            },
+          },
+        },
+      } satisfies CrawClawConfig,
+    });
 
     expect(tool).not.toBeNull();
     const result = await tool!.execute("call_1", {
@@ -223,10 +265,11 @@ describe("createExperienceWriteTool", () => {
         status: "ok",
         action: "upsert",
         notebookId: "local",
-        syncStatus: "skipped",
+        syncStatus: "pending_sync",
+        recommendedAction: "crawclaw memory login",
       }),
     );
-    expect(execFileMock).not.toHaveBeenCalled();
+    expect(execFileMock).toHaveBeenCalledTimes(1);
 
     const indexEntries = await readExperienceIndexEntries();
     expect(indexEntries).toEqual([
@@ -237,7 +280,123 @@ describe("createExperienceWriteTool", () => {
         type: "failure_pattern",
         noteId: null,
         notebookId: "local",
+        syncStatus: "pending_sync",
+        lastSyncError: expect.stringContaining("Authentication failed"),
       }),
     ]);
+  });
+
+  it("archives an existing local experience note through the same tool", async () => {
+    const stateDir = await createTempDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    const tool = createExperienceWriteTool();
+
+    expect(tool).not.toBeNull();
+    await tool!.execute("call_1", {
+      type: "procedure",
+      title: "旧发布流程经验",
+      summary: "旧流程已被新的验证流程替代。",
+      context: "发布流程曾经依赖旧顺序。",
+      trigger: "后续验证证明旧顺序不再适用。",
+      action: "归档旧流程，避免后续召回。",
+      result: "旧经验不再进入召回。",
+      lesson: "被否定的经验应该从后续召回中移除。",
+      appliesWhen: "适用于旧经验被明确推翻时。",
+      evidence: ["新的流程已经验证通过。"],
+      dedupeKey: "old-release-procedure",
+      confidence: "high",
+    });
+
+    const result = await tool!.execute("call_2", {
+      operation: "archive",
+      targetId: "old-release-procedure",
+    });
+
+    expect(result.details).toEqual(
+      expect.objectContaining({
+        status: "ok",
+        action: "archive",
+        indexStatus: "archived",
+        targetId: "experience-index:old-release-procedure",
+        remoteDeleteStatus: "skipped",
+      }),
+    );
+
+    const indexEntries = await readExperienceIndexEntries();
+    expect(indexEntries).toEqual([
+      expect.objectContaining({
+        id: "experience-index:old-release-procedure",
+        status: "archived",
+      }),
+    ]);
+  });
+
+  it("marks an existing experience note as superseded by a replacement", async () => {
+    const stateDir = await createTempDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    const tool = createExperienceWriteTool();
+
+    expect(tool).not.toBeNull();
+    await tool!.execute("call_1", {
+      type: "procedure",
+      title: "旧网关恢复经验",
+      summary: "旧恢复流程只检查端口，覆盖不完整。",
+      context: "网关恢复排查曾经只看端口。",
+      trigger: "用户反馈旧流程不能覆盖实际故障。",
+      action: "保留为待替换经验。",
+      result: "后续需要用新的恢复流程替代。",
+      lesson: "覆盖不完整的经验应该被新经验替代。",
+      appliesWhen: "适用于旧经验被更完整流程替代时。",
+      evidence: ["新流程覆盖 health、RPC 和日志。"],
+      dedupeKey: "old-gateway-recovery",
+      confidence: "medium",
+    });
+    await tool!.execute("call_2", {
+      type: "procedure",
+      title: "新网关恢复经验",
+      summary: "新恢复流程按 health、RPC、日志顺序定位。",
+      context: "网关恢复需要同时检查连接状态和日志。",
+      trigger: "health 或 RPC 异常。",
+      action: "先查 health，再查 RPC，最后查日志。",
+      result: "能更准确定位恢复路径。",
+      lesson: "恢复流程应该先用最直接的运行态信号定界。",
+      appliesWhen: "适用于本地网关恢复。",
+      evidence: ["新流程已经验证通过。"],
+      dedupeKey: "new-gateway-recovery",
+      confidence: "high",
+    });
+
+    const result = await tool!.execute("call_3", {
+      operation: "supersede",
+      targetId: "old-gateway-recovery",
+      supersededBy: "new-gateway-recovery",
+    });
+
+    expect(result.details).toEqual(
+      expect.objectContaining({
+        status: "ok",
+        action: "supersede",
+        indexStatus: "superseded",
+        targetId: "experience-index:old-gateway-recovery",
+        supersededBy: "experience-index:new-gateway-recovery",
+      }),
+    );
+
+    const indexEntries = await readExperienceIndexEntries();
+    expect(indexEntries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "experience-index:old-gateway-recovery",
+          status: "superseded",
+          supersededBy: "experience-index:new-gateway-recovery",
+        }),
+        expect.objectContaining({
+          id: "experience-index:new-gateway-recovery",
+          status: "active",
+        }),
+      ]),
+    );
   });
 });

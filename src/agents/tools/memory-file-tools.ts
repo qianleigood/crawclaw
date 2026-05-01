@@ -45,6 +45,7 @@ function resolveScopedMemoryFileToolScope(
     agentId: options?.scope?.agentId ?? options?.agentId,
     channel: options?.scope?.channel ?? options?.channel,
     userId: options?.scope?.userId ?? options?.requesterSenderId ?? undefined,
+    fallbackToLocal: true,
   });
 }
 

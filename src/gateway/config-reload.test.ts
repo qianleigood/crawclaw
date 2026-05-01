@@ -29,22 +29,16 @@ describe("diffConfigPaths", () => {
 
   it("does not report unchanged arrays of objects as changed", () => {
     const prev = {
-      memory: {
-        qmd: {
-          paths: [{ path: "~/docs", pattern: "**/*.md", name: "docs" }],
-          scope: {
-            rules: [{ when: { channel: "slack" }, include: ["docs"] }],
-          },
+      session: {
+        sendPolicy: {
+          rules: [{ match: { channel: "slack" }, action: "send" }],
         },
       },
     };
     const next = {
-      memory: {
-        qmd: {
-          paths: [{ path: "~/docs", pattern: "**/*.md", name: "docs" }],
-          scope: {
-            rules: [{ when: { channel: "slack" }, include: ["docs"] }],
-          },
+      session: {
+        sendPolicy: {
+          rules: [{ match: { channel: "slack" }, action: "send" }],
         },
       },
     };
@@ -53,20 +47,20 @@ describe("diffConfigPaths", () => {
 
   it("reports changed arrays of objects", () => {
     const prev = {
-      memory: {
-        qmd: {
-          paths: [{ path: "~/docs", pattern: "**/*.md", name: "docs" }],
+      session: {
+        sendPolicy: {
+          rules: [{ match: { channel: "slack" }, action: "send" }],
         },
       },
     };
     const next = {
-      memory: {
-        qmd: {
-          paths: [{ path: "~/docs", pattern: "**/*.txt", name: "docs" }],
+      session: {
+        sendPolicy: {
+          rules: [{ match: { channel: "slack" }, action: "skip" }],
         },
       },
     };
-    expect(diffConfigPaths(prev, next)).toContain("memory.qmd.paths");
+    expect(diffConfigPaths(prev, next)).toContain("session.sendPolicy.rules");
   });
 });
 
@@ -304,6 +298,7 @@ function createWatcherMock() {
 }
 
 function makeSnapshot(partial: Partial<ConfigFileSnapshot> = {}): ConfigFileSnapshot {
+  const runtimeConfig = partial.runtimeConfig ?? partial.config ?? {};
   return {
     path: "/tmp/crawclaw.json",
     exists: true,
@@ -312,8 +307,8 @@ function makeSnapshot(partial: Partial<ConfigFileSnapshot> = {}): ConfigFileSnap
     sourceConfig: {},
     resolved: {},
     valid: true,
-    runtimeConfig: {},
-    config: {},
+    runtimeConfig,
+    config: runtimeConfig,
     issues: [],
     warnings: [],
     legacyIssues: [],

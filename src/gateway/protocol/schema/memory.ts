@@ -63,6 +63,51 @@ export const MemoryLoginResultSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const MemoryDurableIndexListParamsSchema = Type.Object(
+  {
+    limit: Type.Optional(Type.Integer({ minimum: 1 })),
+  },
+  { additionalProperties: false },
+);
+
+export const MemoryDurableIndexGetParamsSchema = Type.Object(
+  {
+    id: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const MemoryDurableIndexEntrySchema = Type.Object(
+  {
+    id: NonEmptyString,
+    relativePath: NonEmptyString,
+    title: Type.String(),
+    scopeKey: NonEmptyString,
+    agentId: NonEmptyString,
+    channel: NonEmptyString,
+    userId: NonEmptyString,
+    updatedAt: Type.String(),
+    sizeBytes: Type.Integer({ minimum: 0 }),
+    noteCount: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+export const MemoryDurableIndexListResultSchema = Type.Object(
+  {
+    items: Type.Array(MemoryDurableIndexEntrySchema),
+  },
+  { additionalProperties: false },
+);
+
+export const MemoryDurableIndexGetResultSchema = Type.Object(
+  {
+    item: MemoryDurableIndexEntrySchema,
+    content: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
 export const MemoryScopeParamsSchema = Type.Object(
   {
     agent: Type.Optional(Type.String()),

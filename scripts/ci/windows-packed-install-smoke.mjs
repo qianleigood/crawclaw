@@ -10,7 +10,12 @@ const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "..", "..");
 const MAX_OUTPUT_CHARS = 8000;
 const UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
-const REQUIRED_RUNTIME_PLUGINS = ["browser", "open-websearch", "scrapling-fetch"];
+const REQUIRED_RUNTIME_PLUGINS = [
+  "browser",
+  "open-websearch",
+  "scrapling-fetch",
+  "notebooklm-mcp-cli",
+];
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_INSTALL_TIMEOUT_MS = 45 * 60_000;
@@ -286,6 +291,10 @@ export function validateRuntimeManifest(manifest) {
   requireHealthyRuntimeEntry("browser", plugins.browser, ["binPath"]);
   requireHealthyRuntimeEntry("open-websearch", plugins["open-websearch"], ["binPath"]);
   requireHealthyRuntimeEntry("scrapling-fetch", plugins["scrapling-fetch"], ["pythonVersion"]);
+  requireHealthyRuntimeEntry("notebooklm-mcp-cli", plugins["notebooklm-mcp-cli"], [
+    "binPath",
+    "pythonVersion",
+  ]);
 }
 
 export function assertBundledPluginRuntimeDepsInstalled(params) {

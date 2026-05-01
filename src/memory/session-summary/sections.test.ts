@@ -53,4 +53,33 @@ Edited files.
     expect(rendered).not.toContain("## Worklog");
     expect(rendered).not.toContain("## Learnings");
   });
+
+  it("keeps the compaction view inside a provided token budget", () => {
+    const rendered = renderSessionSummaryForCompaction(
+      `
+# Current State
+${"Current state detail. ".repeat(80)}
+
+# Open Loops
+${"Open loop detail. ".repeat(80)}
+
+# Task specification
+${"Task specification detail. ".repeat(80)}
+
+# Workflow
+${"Workflow detail. ".repeat(80)}
+
+# Errors & Corrections
+${"Correction detail. ".repeat(80)}
+
+# Key results
+${"Result detail. ".repeat(80)}
+`,
+      { tokenBudget: 80 },
+    );
+
+    expect(rendered).toContain("## Current State");
+    expect(rendered).not.toContain("## Key Results");
+    expect(rendered.length).toBeLessThan(700);
+  });
 });

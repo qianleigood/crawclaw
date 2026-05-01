@@ -1,9 +1,11 @@
 import type {
   NotebookLmAuthConfig,
+  NotebookLmAutoLoginConfig,
   NotebookLmHeartbeatConfig,
   NotebookLmCliConfig,
   NotebookLmConfig,
   NotebookLmConfigInput,
+  NotebookLmSourceConfig,
   NotebookLmWriteConfig,
 } from "../types/config.ts";
 
@@ -11,6 +13,13 @@ export const DEFAULT_NOTEBOOKLM_HEARTBEAT: NotebookLmHeartbeatConfig = {
   enabled: true,
   minIntervalMs: 12 * 60_000,
   maxIntervalMs: 24 * 60_000,
+};
+
+export const DEFAULT_NOTEBOOKLM_AUTO_LOGIN: NotebookLmAutoLoginConfig = {
+  enabled: true,
+  intervalMs: 24 * 60 * 60_000,
+  provider: "nlm_profile",
+  cdpUrl: "",
 };
 
 export const DEFAULT_NOTEBOOKLM_AUTH: NotebookLmAuthConfig = {
@@ -22,13 +31,26 @@ export const DEFAULT_NOTEBOOKLM_AUTH: NotebookLmAuthConfig = {
   heartbeat: {
     ...DEFAULT_NOTEBOOKLM_HEARTBEAT,
   },
+  autoLogin: {
+    ...DEFAULT_NOTEBOOKLM_AUTO_LOGIN,
+  },
 };
 
 export const DEFAULT_NOTEBOOKLM_CLI: NotebookLmCliConfig = {
   enabled: false,
   command: "",
-  args: ["notebook", "query", "{notebookId}", "{query}", "--json", "--profile", "{profile}"],
-  timeoutMs: 8_000,
+  args: [
+    "notebook",
+    "query",
+    "{notebookId}",
+    "{query}",
+    "--json",
+    "--timeout",
+    "120",
+    "--profile",
+    "{profile}",
+  ],
+  timeoutMs: 130_000,
   limit: 8,
   notebookId: "",
   queryInstruction: [
@@ -43,11 +65,20 @@ export const DEFAULT_NOTEBOOKLM_CLI: NotebookLmCliConfig = {
 };
 
 export const DEFAULT_NOTEBOOKLM_WRITE: NotebookLmWriteConfig = {
-  enabled: false,
+  enabled: true,
   command: "",
   args: ["{payloadFile}"],
   timeoutMs: 10_000,
   notebookId: "",
+};
+
+export const DEFAULT_NOTEBOOKLM_SOURCE: NotebookLmSourceConfig = {
+  enabled: true,
+  title: "CrawClaw Memory Index",
+  timeoutMs: 120_000,
+  maxEntries: 120,
+  maxChars: 80_000,
+  deletePrevious: true,
 };
 
 export const DEFAULT_NOTEBOOKLM_CONFIG: NotebookLmConfig = {
@@ -62,6 +93,9 @@ export const DEFAULT_NOTEBOOKLM_CONFIG: NotebookLmConfig = {
   write: {
     ...DEFAULT_NOTEBOOKLM_WRITE,
     args: [...DEFAULT_NOTEBOOKLM_WRITE.args],
+  },
+  source: {
+    ...DEFAULT_NOTEBOOKLM_SOURCE,
   },
 };
 
@@ -101,6 +135,7 @@ export function normalizeNotebookLmConfig(raw?: NotebookLmConfigInput | null): N
             ? raw.auth.heartbeat.maxIntervalMs
             : DEFAULT_NOTEBOOKLM_AUTH.heartbeat.maxIntervalMs,
       },
+      autoLogin: normalizeNotebookLmAutoLoginConfig(raw?.auth?.autoLogin),
     },
     cli: {
       enabled:
@@ -149,5 +184,50 @@ export function normalizeNotebookLmConfig(raw?: NotebookLmConfigInput | null): N
           ? raw.write.notebookId
           : DEFAULT_NOTEBOOKLM_WRITE.notebookId,
     },
+    source: {
+      enabled:
+        typeof raw?.source?.enabled === "boolean"
+          ? raw.source.enabled
+          : DEFAULT_NOTEBOOKLM_SOURCE.enabled,
+      title:
+        typeof raw?.source?.title === "string" && raw.source.title.trim()
+          ? raw.source.title.trim()
+          : DEFAULT_NOTEBOOKLM_SOURCE.title,
+      timeoutMs:
+        typeof raw?.source?.timeoutMs === "number"
+          ? raw.source.timeoutMs
+          : DEFAULT_NOTEBOOKLM_SOURCE.timeoutMs,
+      maxEntries:
+        typeof raw?.source?.maxEntries === "number"
+          ? raw.source.maxEntries
+          : DEFAULT_NOTEBOOKLM_SOURCE.maxEntries,
+      maxChars:
+        typeof raw?.source?.maxChars === "number"
+          ? raw.source.maxChars
+          : DEFAULT_NOTEBOOKLM_SOURCE.maxChars,
+      deletePrevious:
+        typeof raw?.source?.deletePrevious === "boolean"
+          ? raw.source.deletePrevious
+          : DEFAULT_NOTEBOOKLM_SOURCE.deletePrevious,
+    },
+  };
+}
+
+export function normalizeNotebookLmAutoLoginConfig(
+  raw?: Partial<NotebookLmAutoLoginConfig> | null,
+): NotebookLmAutoLoginConfig {
+  const provider =
+    raw?.provider === "openclaw_cdp" || raw?.provider === "nlm_profile"
+      ? raw.provider
+      : DEFAULT_NOTEBOOKLM_AUTO_LOGIN.provider;
+  return {
+    enabled:
+      typeof raw?.enabled === "boolean" ? raw.enabled : DEFAULT_NOTEBOOKLM_AUTO_LOGIN.enabled,
+    intervalMs:
+      typeof raw?.intervalMs === "number" && Number.isFinite(raw.intervalMs)
+        ? Math.max(60_000, raw.intervalMs)
+        : DEFAULT_NOTEBOOKLM_AUTO_LOGIN.intervalMs,
+    provider,
+    cdpUrl: typeof raw?.cdpUrl === "string" ? raw.cdpUrl : DEFAULT_NOTEBOOKLM_AUTO_LOGIN.cdpUrl,
   };
 }

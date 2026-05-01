@@ -61,4 +61,27 @@ describe("durable memory common helpers", () => {
     );
     expect(toPosixPathForAssert(resolveDurableMemoryRootDir())).toContain("/durable-memory");
   });
+
+  it("uses a fixed local channel id for durable memory without an external channel", () => {
+    const mainSessionScope = resolveDurableMemoryScope({
+      sessionKey: "agent:main:main",
+    });
+    expect(mainSessionScope).toMatchObject({
+      agentId: "main",
+      channel: "local",
+      userId: "main",
+      scopeKey: "main:local:main",
+    });
+
+    const fallbackScope = resolveDurableMemoryScope({
+      agentId: "main",
+      fallbackToLocal: true,
+    });
+    expect(fallbackScope).toMatchObject({
+      agentId: "main",
+      channel: "local",
+      userId: "local",
+      scopeKey: "main:local:local",
+    });
+  });
 });

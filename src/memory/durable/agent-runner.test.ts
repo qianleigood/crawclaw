@@ -97,6 +97,7 @@ describe("runDurableExtractionAgentOnce", () => {
     expect(systemPrompt).toContain(
       "Do not attempt to verify them against code, git state, or external systems",
     );
+    expect(systemPrompt).toContain("Do NOT invent created/updated timestamps");
     expect(systemPrompt).toContain("memory_manifest_read");
     expect(systemPrompt).toContain("memory_note_read");
     expect(systemPrompt).toContain("memory_note_write");

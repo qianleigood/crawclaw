@@ -86,7 +86,6 @@ cat ~/.crawclaw/crawclaw.json
 - systemd linger check on Linux.
 - Workspace bootstrap file size check (truncation/near-limit warnings for context files).
 - Shell completion status check and auto-install/upgrade.
-- Memory search embedding provider readiness check (local model, remote API key, or QMD binary).
 - Source install checks (pnpm workspace mismatch, missing UI assets, missing tsx binary).
 - Writes updated config + wizard metadata.
 
@@ -373,26 +372,6 @@ Some repair flows need to inspect configured credentials without weakening runti
 
 Doctor runs a health check and offers to restart the gateway when it looks
 unhealthy.
-
-### 13b) Memory search readiness
-
-Doctor checks whether the configured memory search embedding provider is ready
-for the default agent. The behavior depends on the configured backend and provider:
-
-- **QMD backend**: probes whether the `qmd` binary is available and startable.
-  If not, prints fix guidance including the npm package and a manual binary path option.
-- **Explicit local provider**: checks for a local model file or a recognized
-  remote/downloadable model URL. If missing, suggests switching to a remote provider.
-- **Explicit remote provider** (`openai`, `voyage`, etc.): verifies an API key is
-  present in the environment or auth store. Prints actionable fix hints if missing.
-- **Auto provider**: checks local model availability first, then tries each remote
-  provider in auto-selection order.
-
-When a gateway probe result is available (gateway was healthy at the time of the
-check), doctor cross-references its result with the CLI-visible config and notes
-any discrepancy.
-
-Use `crawclaw memory status --deep` to verify embedding readiness at runtime.
 
 ### 14) Channel status warnings
 

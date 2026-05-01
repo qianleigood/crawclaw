@@ -7,8 +7,11 @@ import { normalizeAgentId } from "../../routing/session-key.ts";
 import {
   buildSessionSummaryTemplate,
   extractSessionSummarySectionText,
+  getSessionSummarySectionHeading,
+  getSessionSummarySectionInstruction,
   parseSessionSummaryDocument,
   renderSessionSummaryDocument,
+  SESSION_SUMMARY_SECTION_ORDER,
   type SessionSummaryDocument,
   type SessionSummarySectionKey,
 } from "./template.ts";
@@ -31,6 +34,7 @@ type SessionSummaryReadCacheEntry = {
 };
 
 const sessionSummaryReadCache = new Map<string, SessionSummaryReadCacheEntry>();
+const sessionSummaryEditLocks = new Map<string, Promise<void>>();
 
 export const SESSION_SUMMARY_READ_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
   id: "memory.session-summary.read-cache",
@@ -204,6 +208,49 @@ export async function ensureSessionSummaryFile(params: {
   });
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function assertSessionSummaryStructure(content: string): void {
+  for (const key of SESSION_SUMMARY_SECTION_ORDER) {
+    const heading = getSessionSummarySectionHeading(key);
+    const headingRe = new RegExp(`^# ${escapeRegExp(heading)}$`, "gm");
+    const count = [...content.matchAll(headingRe)].length;
+    if (count !== 1) {
+      throw new Error(`session summary edit would break section structure: ${heading}`);
+    }
+    if (!content.includes(getSessionSummarySectionInstruction(key))) {
+      throw new Error(`session summary edit would remove section instruction: ${heading}`);
+    }
+  }
+}
+
+async function withSessionSummaryEditLock<T>(
+  summaryPath: string,
+  task: () => Promise<T>,
+): Promise<T> {
+  const previous = sessionSummaryEditLocks.get(summaryPath) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const next = previous.then(
+    () => current,
+    () => current,
+  );
+  sessionSummaryEditLocks.set(summaryPath, next);
+  await previous.catch(() => undefined);
+  try {
+    return await task();
+  } finally {
+    release();
+    if (sessionSummaryEditLocks.get(summaryPath) === next) {
+      sessionSummaryEditLocks.delete(summaryPath);
+    }
+  }
+}
+
 export async function editSessionSummaryFile(params: {
   agentId?: string | null;
   sessionId?: string | null;
@@ -212,35 +259,43 @@ export async function editSessionSummaryFile(params: {
   replaceAll?: boolean;
   rootDir?: string | null;
 }): Promise<SessionSummaryFileSnapshot & { replacements: number }> {
-  const snapshot = await readSessionSummaryFile({
+  const summaryPath = resolveSessionSummaryPath({
     agentId: params.agentId,
     sessionId: params.sessionId,
     rootDir: params.rootDir,
   });
-  if (!snapshot.exists || !snapshot.content) {
-    throw new Error("Session summary file not found.");
-  }
-  const findText = params.findText;
-  const replaceText = params.replaceText;
-  if (!findText.trim()) {
-    throw new Error("findText required");
-  }
-  const replaceAll = params.replaceAll === true;
-  const current = snapshot.content;
-  const replacements = current.includes(findText) ? current.split(findText).length - 1 : 0;
-  if (replacements === 0) {
-    return { ...snapshot, replacements: 0 };
-  }
-  const nextContent = replaceAll
-    ? current.split(findText).join(replaceText)
-    : current.replace(findText, replaceText);
-  const written = await writeSessionSummaryFile({
-    agentId: params.agentId,
-    sessionId: params.sessionId,
-    content: nextContent,
-    rootDir: params.rootDir,
+  return await withSessionSummaryEditLock(summaryPath, async () => {
+    const snapshot = await readSessionSummaryFile({
+      agentId: params.agentId,
+      sessionId: params.sessionId,
+      rootDir: params.rootDir,
+    });
+    if (!snapshot.exists || !snapshot.content) {
+      throw new Error("Session summary file not found.");
+    }
+    const findText = params.findText;
+    const replaceText = params.replaceText;
+    if (!findText.trim()) {
+      throw new Error("findText required");
+    }
+    const replaceAll = params.replaceAll === true;
+    const current = snapshot.content;
+    const replacements = current.includes(findText) ? current.split(findText).length - 1 : 0;
+    if (replacements === 0) {
+      return { ...snapshot, replacements: 0 };
+    }
+    const nextContent = replaceAll
+      ? current.split(findText).join(replaceText)
+      : current.replace(findText, replaceText);
+    assertSessionSummaryStructure(nextContent);
+    const written = await writeSessionSummaryFile({
+      agentId: params.agentId,
+      sessionId: params.sessionId,
+      content: nextContent,
+      rootDir: params.rootDir,
+    });
+    return { ...written, replacements: replaceAll ? replacements : 1 };
   });
-  return { ...written, replacements: replaceAll ? replacements : 1 };
 }
 
 export function ensureSessionSummaryTemplateContent(params: { sessionId?: string | null }): string {

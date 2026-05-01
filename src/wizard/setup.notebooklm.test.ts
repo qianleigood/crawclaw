@@ -52,7 +52,9 @@ describe("setup.notebooklm", () => {
 
   it("enables local experience memory without NotebookLM", async () => {
     const prompter = buildWizardPrompter({
-      confirm: vi.fn(async (params) => params.message === "Enable local experience memory?"),
+      confirm: vi.fn(
+        async (params) => params.message === "Enable experience capture and local sync queue?",
+      ),
       text: vi.fn(async () => ""),
     });
 
@@ -62,11 +64,11 @@ describe("setup.notebooklm", () => {
     });
 
     expect(prompter.confirm).toHaveBeenCalledWith({
-      message: "Enable local experience memory?",
+      message: "Enable experience capture and local sync queue?",
       initialValue: true,
     });
     expect(prompter.confirm).toHaveBeenCalledWith({
-      message: "Add NotebookLM as an optional experience provider?",
+      message: "Enable NotebookLM experience recall and sync?",
       initialValue: false,
     });
     expect(prompter.text).not.toHaveBeenCalled();
@@ -103,7 +105,7 @@ describe("setup.notebooklm", () => {
 
     expect(prompter.confirm).toHaveBeenCalledTimes(1);
     expect(prompter.confirm).toHaveBeenCalledWith({
-      message: "Enable local experience memory?",
+      message: "Enable experience capture and local sync queue?",
       initialValue: true,
     });
     expect(prompter.text).not.toHaveBeenCalled();
@@ -141,11 +143,11 @@ describe("setup.notebooklm", () => {
     });
 
     expect(prompter.confirm).toHaveBeenCalledWith({
-      message: "Enable local experience memory?",
+      message: "Enable experience capture and local sync queue?",
       initialValue: true,
     });
     expect(prompter.confirm).toHaveBeenCalledWith({
-      message: "Add NotebookLM as an optional experience provider?",
+      message: "Enable NotebookLM experience recall and sync?",
       initialValue: false,
     });
     expect(prompter.text).toHaveBeenCalledWith(

@@ -4,6 +4,8 @@ import {
   CONTEXT_WINDOW_HARD_MIN_TOKENS,
   CONTEXT_WINDOW_WARN_BELOW_TOKENS,
   evaluateContextWindowGuard,
+  resolveContextBudgetPolicy,
+  resolveContextBudgetPolicyFromWindow,
   resolveModelContextBudget,
   resolveContextWindowInfo,
 } from "./context-window-guard.js";
@@ -222,5 +224,66 @@ describe("context-window-guard", () => {
     expect(budget.memoryBudgetTokens).toBe(6_000);
     expect(budget.usableInputTokens).toBeGreaterThan(800_000);
     expect(budget.confidence).toBe("high");
+  });
+
+  it("derives a unified runtime policy from small model budgets", () => {
+    const budget = resolveModelContextBudget({
+      info: { tokens: 16_000, source: "model" },
+      modelMaxTokens: 4_096,
+      toolSchemaTokens: 1_000,
+    });
+
+    expect(resolveContextBudgetPolicy(budget)).toEqual({
+      compactTriggerTokens: 8_618,
+      memoryFlushTriggerTokens: 7_618,
+      memoryFlushLeadTokens: 1_000,
+      timeoutRecoveryTriggerTokens: 7_962,
+      sessionSummary: {
+        lightInitialTokenThreshold: 1_200,
+        initialTokenThreshold: 5_000,
+        updateTokenThreshold: 2_000,
+      },
+      compaction: {
+        tailMinTokens: 240,
+        tailMaxTokens: 840,
+        minTextMessages: 5,
+        compactSummaryBudgetTokens: 600,
+      },
+    });
+  });
+
+  it("derives capped runtime policy values for million-token models", () => {
+    const budget = resolveModelContextBudget({
+      info: { tokens: 1_048_576, source: "modelsConfig" },
+      modelMaxTokens: 65_536,
+      toolSchemaTokens: 20_000,
+    });
+
+    expect(resolveContextBudgetPolicy(budget)).toEqual({
+      compactTriggerTokens: 792_843,
+      memoryFlushTriggerTokens: 784_843,
+      memoryFlushLeadTokens: 8_000,
+      timeoutRecoveryTriggerTokens: 732_518,
+      sessionSummary: {
+        lightInitialTokenThreshold: 24_000,
+        initialTokenThreshold: 80_000,
+        updateTokenThreshold: 40_000,
+      },
+      compaction: {
+        tailMinTokens: 6_000,
+        tailMaxTokens: 24_000,
+        minTextMessages: 12,
+        compactSummaryBudgetTokens: 6_000,
+      },
+    });
+  });
+
+  it("can derive window-only compaction and summary policy for runtime compaction", () => {
+    expect(resolveContextBudgetPolicyFromWindow(200_000).compaction).toEqual({
+      tailMinTokens: 2_000,
+      tailMaxTokens: 6_000,
+      minTextMessages: 12,
+      compactSummaryBudgetTokens: 2_000,
+    });
   });
 });

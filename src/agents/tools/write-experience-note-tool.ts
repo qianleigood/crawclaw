@@ -3,8 +3,13 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeNotebookLmConfig } from "../../memory/config/notebooklm.ts";
 import { getSharedMemoryPromptJournal } from "../../memory/diagnostics/prompt-journal.ts";
 import {
+  readExperienceIndexEntries,
+  markExperienceIndexEntrySyncFailed,
+  markExperienceIndexEntryPendingSync,
+  type ExperienceIndexEntry,
   upsertExperienceIndexEntry,
   upsertExperienceIndexEntryFromNote,
+  updateExperienceIndexEntryStatus,
 } from "../../memory/experience/index-store.ts";
 import {
   classifyExperienceNoteGuardIssue,
@@ -12,7 +17,11 @@ import {
   normalizeExperienceNoteType,
   type ExperienceNoteWriteInput,
 } from "../../memory/experience/note.ts";
-import { writeNotebookLmExperienceNoteViaCli } from "../../memory/notebooklm/notebooklm-write.ts";
+import { syncNotebookLmExperienceIndexSourceViaCli } from "../../memory/notebooklm/managed-source.ts";
+import {
+  deleteNotebookLmExperienceNoteViaCli,
+  writeNotebookLmExperienceNoteViaCli,
+} from "../../memory/notebooklm/notebooklm-write.ts";
 import type { NotebookLmConfigInput } from "../../memory/types/config.ts";
 import { stringEnum } from "../schema/typebox.js";
 import {
@@ -32,19 +41,43 @@ const EXPERIENCE_NOTE_TYPES = [
   "reference",
 ] as const;
 
+const EXPERIENCE_NOTE_OPERATIONS = ["upsert", "archive", "supersede"] as const;
 const EXPERIENCE_CONFIDENCE_VALUES = ["low", "medium", "high"] as const;
 
 const WriteExperienceNoteToolSchema = Type.Object({
-  type: stringEnum(EXPERIENCE_NOTE_TYPES, {
-    description:
-      "Experience note type. Must be one of procedure, decision, runtime_pattern, failure_pattern, workflow_pattern, or reference.",
-  }),
-  title: Type.String({
-    description: "Chinese-readable title for the experience note.",
-  }),
-  summary: Type.String({
-    description: "Short Chinese summary for the reusable experience.",
-  }),
+  operation: Type.Optional(
+    stringEnum(EXPERIENCE_NOTE_OPERATIONS, {
+      description:
+        "Maintenance operation. Use upsert to write/update a note, archive to remove an old note from recall, or supersede to mark it replaced by another note.",
+    }),
+  ),
+  targetId: Type.Optional(
+    Type.String({
+      description:
+        "Existing experience index id, note id, dedupe key, or title. Required for archive and supersede.",
+    }),
+  ),
+  supersededBy: Type.Optional(
+    Type.String({
+      description: "Replacement experience index id or dedupe key. Required for supersede.",
+    }),
+  ),
+  type: Type.Optional(
+    stringEnum(EXPERIENCE_NOTE_TYPES, {
+      description:
+        "Experience note type for upsert. Must be one of procedure, decision, runtime_pattern, failure_pattern, workflow_pattern, or reference.",
+    }),
+  ),
+  title: Type.Optional(
+    Type.String({
+      description: "Chinese-readable title for the experience note. Required for upsert.",
+    }),
+  ),
+  summary: Type.Optional(
+    Type.String({
+      description: "Short Chinese summary for the reusable experience. Required for upsert.",
+    }),
+  ),
   context: Type.Optional(
     Type.String({
       description: "Situation where this experience was learned or should be considered.",
@@ -142,9 +175,159 @@ type ExperienceWriteToolOptions = {
   config?: CrawClawConfig;
 };
 
+type ExperienceNoteOperation = (typeof EXPERIENCE_NOTE_OPERATIONS)[number];
+
+function normalizeExperienceNoteOperation(
+  value: string | undefined,
+): ExperienceNoteOperation | null {
+  if (value === undefined) {
+    return "upsert";
+  }
+  return (EXPERIENCE_NOTE_OPERATIONS as readonly string[]).includes(value)
+    ? (value as ExperienceNoteOperation)
+    : null;
+}
+
+function findExperienceIndexEntry(
+  entries: readonly ExperienceIndexEntry[],
+  target: string,
+): ExperienceIndexEntry | null {
+  const normalized = target.trim();
+  if (!normalized) {
+    return null;
+  }
+  const lower = normalized.toLowerCase();
+  return (
+    entries.find(
+      (entry) =>
+        entry.id === normalized ||
+        entry.noteId === normalized ||
+        entry.dedupeKey === normalized ||
+        entry.title === normalized,
+    ) ??
+    entries.find(
+      (entry) =>
+        entry.id.toLowerCase() === lower ||
+        entry.noteId?.toLowerCase() === lower ||
+        entry.dedupeKey?.toLowerCase() === lower ||
+        entry.title.toLowerCase() === lower,
+    ) ??
+    null
+  );
+}
+
 function resolveNotebookLmExperienceWriteConfig(config?: CrawClawConfig) {
   const notebooklm = normalizeNotebookLmConfig(config?.memory?.notebooklm as NotebookLmConfigInput);
   return notebooklm;
+}
+
+function isNotebookLmPendingSyncError(message: string | null): boolean {
+  return Boolean(
+    message &&
+    /NotebookLM provider not ready|auth_expired|profile_missing|cookie_file_missing|cookie_invalid|Authentication failed|unauthorized|forbidden|401|403/i.test(
+      message,
+    ),
+  );
+}
+
+function recommendedActionForSyncError(message: string | null): string | null {
+  if (!message) {
+    return null;
+  }
+  return isNotebookLmPendingSyncError(message) ? "crawclaw memory login" : "crawclaw memory sync";
+}
+
+async function syncExperienceIndexSource(notebooklm: ReturnType<typeof normalizeNotebookLmConfig>) {
+  let sourceResult = null;
+  let sourceSyncError: string | null = null;
+  try {
+    sourceResult = await syncNotebookLmExperienceIndexSourceViaCli({
+      config: notebooklm,
+    });
+  } catch (error) {
+    sourceSyncError = error instanceof Error ? error.message : String(error);
+  }
+  return { sourceResult, sourceSyncError };
+}
+
+async function runExperienceLifecycleOperation(params: {
+  operation: Exclude<ExperienceNoteOperation, "upsert">;
+  targetId: string;
+  supersededBy?: string;
+  notebooklm: ReturnType<typeof normalizeNotebookLmConfig>;
+}) {
+  const entries = await readExperienceIndexEntries();
+  const target = findExperienceIndexEntry(entries, params.targetId);
+  if (!target) {
+    throw new ToolInputError(`experience note not found: ${params.targetId}`);
+  }
+  const replacement =
+    params.operation === "supersede"
+      ? findExperienceIndexEntry(entries, params.supersededBy ?? "")
+      : null;
+  if (params.operation === "supersede" && !replacement) {
+    throw new ToolInputError(`replacement experience note not found: ${params.supersededBy ?? ""}`);
+  }
+
+  const nextStatus = params.operation === "archive" ? "archived" : "superseded";
+  const updated = await updateExperienceIndexEntryStatus({
+    id: target.id,
+    status: nextStatus,
+    supersededBy: replacement?.id,
+  });
+  if (!updated) {
+    throw new ToolInputError(`experience note not found: ${target.id}`);
+  }
+
+  getSharedMemoryPromptJournal()?.recordStage("experience_write", {
+    payload: {
+      status: "ok",
+      action: params.operation,
+      noteId: updated.noteId,
+      notebookId: updated.notebookId,
+      title: updated.title,
+      noteType: updated.type,
+      summary: updated.summary,
+      dedupeKey: updated.dedupeKey,
+      targetId: updated.id,
+      supersededBy: updated.supersededBy,
+      storage: "experience_sync_ledger",
+    },
+  });
+
+  let remoteDeleteStatus: "ok" | "missing" | "skipped" | "failed" = "skipped";
+  let remoteDeleteError: string | null = null;
+  if (target.noteId && target.notebookId !== "local") {
+    try {
+      const deleted = await deleteNotebookLmExperienceNoteViaCli({
+        config: params.notebooklm,
+        notebookId: target.notebookId,
+        noteId: target.noteId,
+      });
+      remoteDeleteStatus = deleted?.status ?? "skipped";
+    } catch (error) {
+      remoteDeleteStatus = "failed";
+      remoteDeleteError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  const { sourceResult, sourceSyncError } = await syncExperienceIndexSource(params.notebooklm);
+  return jsonResult({
+    status: "ok",
+    action: params.operation,
+    targetId: updated.id,
+    noteId: updated.noteId ?? updated.id,
+    notebookId: updated.notebookId,
+    title: updated.title,
+    type: updated.type,
+    indexStatus: updated.status,
+    supersededBy: updated.supersededBy,
+    remoteDeleteStatus,
+    remoteDeleteError,
+    sourceSyncStatus: sourceResult?.status ?? (sourceSyncError ? "failed" : "skipped"),
+    sourceId: sourceResult?.sourceId ?? null,
+    sourceSyncError,
+  });
 }
 
 export function createExperienceWriteTool(
@@ -159,6 +342,19 @@ export function createExperienceWriteTool(
     parameters: WriteExperienceNoteToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
+      const operation = normalizeExperienceNoteOperation(readStringParam(params, "operation"));
+      if (!operation) {
+        throw new ToolInputError("operation must be one of: upsert, archive, supersede");
+      }
+      if (operation === "archive" || operation === "supersede") {
+        return await runExperienceLifecycleOperation({
+          operation,
+          targetId: readStringParam(params, "targetId", { required: true }),
+          supersededBy: readStringParam(params, "supersededBy"),
+          notebooklm,
+        });
+      }
+
       const type = normalizeExperienceNoteType(readStringParam(params, "type", { required: true }));
       if (!type) {
         throw new ToolInputError(
@@ -218,6 +414,7 @@ export function createExperienceWriteTool(
       const localIndexEntry = await upsertExperienceIndexEntryFromNote({
         note,
         notebookId: "local",
+        syncStatus: "pending_sync",
       });
       getSharedMemoryPromptJournal()?.recordStage("experience_write", {
         payload: {
@@ -229,7 +426,7 @@ export function createExperienceWriteTool(
           noteType: note.type,
           summary: note.summary,
           dedupeKey: dedupeKey ?? null,
-          storage: "local_experience_index",
+          storage: "experience_sync_ledger",
         },
       });
 
@@ -249,7 +446,28 @@ export function createExperienceWriteTool(
           note,
           writeResult: result,
         });
+      } else if (syncError && isNotebookLmPendingSyncError(syncError)) {
+        await markExperienceIndexEntryPendingSync({
+          id: localIndexEntry.id,
+          error: syncError,
+        });
+      } else if (syncError && !isNotebookLmPendingSyncError(syncError)) {
+        await markExperienceIndexEntrySyncFailed({
+          id: localIndexEntry.id,
+          error: syncError,
+        });
       }
+
+      const { sourceResult, sourceSyncError } =
+        result?.status === "ok"
+          ? await syncExperienceIndexSource(notebooklm)
+          : { sourceResult: null, sourceSyncError: null };
+      const syncStatus =
+        result?.status === "ok"
+          ? "synced"
+          : syncError && !isNotebookLmPendingSyncError(syncError)
+            ? "failed"
+            : "pending_sync";
 
       return jsonResult({
         status: "ok",
@@ -259,8 +477,12 @@ export function createExperienceWriteTool(
         title: result?.title ?? localIndexEntry.title ?? title,
         type,
         dedupeKey: dedupeKey ?? null,
-        syncStatus: result?.status ?? (syncError ? "failed" : "skipped"),
+        syncStatus,
         syncError,
+        recommendedAction: recommendedActionForSyncError(syncError),
+        sourceSyncStatus: sourceResult?.status ?? (sourceSyncError ? "failed" : "skipped"),
+        sourceId: sourceResult?.sourceId ?? null,
+        sourceSyncError,
         payloadFile: result?.payloadFile ?? null,
       });
     },

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { resolveBootstrapWarningSignaturesSeen } from "../../agents/bootstrap-budget.js";
 import { estimateMessagesTokens } from "../../agents/compaction.js";
+import { resolveContextBudgetPolicyFromWindow } from "../../agents/context-window-guard.js";
 import { appendCronStyleCurrentTimeLine } from "../../agents/current-time.js";
 import { resolveUserTimezone } from "../../agents/date-time.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
@@ -430,12 +431,8 @@ export async function runPreflightCompactionIfNeeded(params: {
     modelId: params.followupRun.run.model ?? params.defaultModel,
     agentCfgContextTokens: params.agentCfgContextTokens,
   });
-  const memoryFlushPlan = resolveMemoryFlushPlan({ cfg: params.cfg });
-  const reserveTokensFloor =
-    memoryFlushPlan?.reserveTokensFloor ??
-    params.cfg.agents?.defaults?.compaction?.reserveTokensFloor ??
-    20_000;
-  const softThresholdTokens = memoryFlushPlan?.softThresholdTokens ?? 4_000;
+  const contextBudgetPolicy = resolveContextBudgetPolicyFromWindow(contextWindowTokens);
+  const threshold = contextBudgetPolicy.compactTriggerTokens;
   const freshPersistedTokens = resolveFreshSessionTotalTokens(entry);
   const persistedTotalTokens = entry.totalTokens;
   const hasPersistedTotalTokens =
@@ -468,7 +465,6 @@ export async function runPreflightCompactionIfNeeded(params: {
       ? projectedTokenCount
       : undefined;
 
-  const threshold = contextWindowTokens - reserveTokensFloor - softThresholdTokens;
   logVerbose(
     `preflightCompaction check: sessionKey=${params.sessionKey} ` +
       `tokenCount=${tokenCountForCompaction ?? freshPersistedTokens ?? "undefined"} ` +
@@ -483,8 +479,9 @@ export async function runPreflightCompactionIfNeeded(params: {
     entry,
     tokenCount: tokenCountForCompaction,
     contextWindowTokens,
-    reserveTokensFloor,
-    softThresholdTokens,
+    reserveTokensFloor: 0,
+    softThresholdTokens: 0,
+    triggerTokens: threshold,
   });
   if (!shouldCompact) {
     return entry ?? params.sessionEntry;
@@ -590,6 +587,7 @@ export async function runMemoryFlushIfNeeded(params: {
     modelId: params.followupRun.run.model ?? params.defaultModel,
     agentCfgContextTokens: params.agentCfgContextTokens,
   });
+  const contextBudgetPolicy = resolveContextBudgetPolicyFromWindow(contextWindowTokens);
 
   const promptTokenEstimate = estimatePromptTokensForMemoryFlush(
     params.promptForEstimate ?? params.followupRun.prompt,
@@ -604,8 +602,7 @@ export async function runMemoryFlushIfNeeded(params: {
   const hasFreshPersistedPromptTokens =
     typeof persistedPromptTokens === "number" && entry?.totalTokensFresh === true;
 
-  const flushThreshold =
-    contextWindowTokens - memoryFlushPlan.reserveTokensFloor - memoryFlushPlan.softThresholdTokens;
+  const flushThreshold = contextBudgetPolicy.memoryFlushTriggerTokens;
 
   // When totals are stale/unknown, derive prompt + last output from transcript so memory
   // flush can still be evaluated against projected next-input size.
@@ -734,6 +731,7 @@ export async function runMemoryFlushIfNeeded(params: {
         contextWindowTokens,
         reserveTokensFloor: memoryFlushPlan.reserveTokensFloor,
         softThresholdTokens: memoryFlushPlan.softThresholdTokens,
+        triggerTokens: flushThreshold,
       })) ||
     (shouldForceFlushByTranscriptSize &&
       entry != null &&

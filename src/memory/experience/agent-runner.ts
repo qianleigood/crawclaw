@@ -152,7 +152,8 @@ function formatRecentMessages(messages: AgentMessage[], limit: number): string[]
 function buildExperienceIndexLines(entries: ExperienceIndexEntry[], limit: number): string[] {
   return entries.slice(0, Math.max(1, limit)).map((entry, index) => {
     const dedupeText = entry.dedupeKey ? ` | dedupeKey=${entry.dedupeKey}` : "";
-    return `${index + 1}. type=${entry.type} | title=${entry.title} | summary=${entry.summary}${dedupeText}`;
+    const supersededText = entry.supersededBy ? ` | supersededBy=${entry.supersededBy}` : "";
+    return `${index + 1}. type=${entry.type} | status=${entry.status} | title=${entry.title} | summary=${entry.summary}${dedupeText}${supersededText}`;
   });
 }
 
@@ -163,9 +164,33 @@ export function buildExperienceExtractionSystemPrompt(): string {
     "You are a dedicated background experience-memory agent.",
     "",
     "## Mission",
-    "- Extract reusable, verified experience from the just-finished top-level task.",
-    "- Capture context, trigger, action, result, lesson, applicability boundaries, evidence, confidence, and a stable dedupeKey.",
+    "- Maintain the local experience memory index for the current scope.",
+    "- Extract only reusable, verified experience from the just-finished top-level task.",
+    "- Capture context, trigger, action, result, lesson, applicability boundaries, evidence, confidence, and a stable dedupeKey when a note is warranted.",
     "- Prefer updating an existing experience note over creating a duplicate.",
+    "",
+    "## Types of experience memory",
+    "- procedure: a repeatable sequence that has been validated in this environment.",
+    "- failure_pattern: a failure mode plus the confirmed diagnosis and repair path.",
+    "- runtime_pattern: behavior observed from tools, providers, channels, models, or the gateway that should shape future execution.",
+    "- workflow_pattern: a reusable operational flow, release path, testing path, or investigation pattern.",
+    "- decision: a decision with its reason and when it should be applied again.",
+    "- reference: a pointer to an external system or artifact that is useful when handling this class of task.",
+    "",
+    "## What NOT to save",
+    "- User preferences or collaboration style. Those belong to durable memory, not experience memory.",
+    "- Temporary task progress, todo lists, current-session state, or chat transcript fragments.",
+    "- Unverified guesses, vague impressions, or one-off observations with no future applicability.",
+    "- Code structure, file paths, or architecture facts that can be recovered by reading the repo.",
+    "- Duplicates of an existing experience note. Update the existing note instead.",
+    "",
+    "## How to maintain experience memory",
+    "- Treat the existing experience index as a manifest. Read it first and decide whether to update, supersede, delete, or leave notes unchanged.",
+    "- Write a note only when the recent messages show a reusable and verified lesson, pattern, or procedure.",
+    "- If a recent turn corrects or narrows an old note, update the old note rather than creating a competing note.",
+    "- If a recent turn disproves an old note, call write_experience_note with operation=archive or operation=supersede.",
+    "- Keep every note actionable: include when it applies, when it does not apply, and the evidence that made it trustworthy.",
+    "- Return STATUS: NO_CHANGE when there is no validated reusable experience to persist.",
     "",
     "## Constraints",
     "- Use only write_experience_note.",
@@ -173,6 +198,7 @@ export function buildExperienceExtractionSystemPrompt(): string {
     "- Do NOT write durable memory. This task is only for experience memory.",
     "- Do NOT store user preferences, temporary progress, chat transcript fragments, or unverified guesses.",
     "- The provided recent messages and session summary are the source of truth.",
+    "- If the recent messages are ambiguous, do not invent missing evidence. Return STATUS: NO_CHANGE.",
     "",
     "## Output",
     "Return a final report in exactly this shape:",

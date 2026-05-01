@@ -6,7 +6,8 @@ import {
 } from "../../agents/special/runtime/lifecycle-subscriber.js";
 import { resolveSpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
+import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { GmMessageRow } from "../types/runtime.ts";
 import type { DurableExtractionWorkerManager } from "./worker-manager.ts";
@@ -88,7 +89,7 @@ export class DurableExtractionLifecycleSubscriber {
 
     const sessionKey = typeof event.sessionKey === "string" ? event.sessionKey.trim() : "";
     const sessionFile = typeof event.sessionFile === "string" ? event.sessionFile.trim() : "";
-    if (!sessionKey || isSubagentSessionKey(sessionKey)) {
+    if (!sessionKey || isMemoryAutomationExcludedSessionKey(sessionKey)) {
       return;
     }
     if (!sessionFile) {
@@ -139,9 +140,8 @@ export class DurableExtractionLifecycleSubscriber {
           ...(parentForkContext ? { parentForkContext } : {}),
           sessionFile,
           workspaceDir: resolveWorkspaceDir(event),
-          ...(typeof event.metadata?.messageChannel === "string" &&
-          event.metadata.messageChannel.trim()
-            ? { messageChannel: event.metadata.messageChannel.trim() }
+          ...(resolveMemoryMessageChannel(event.metadata)
+            ? { messageChannel: resolveMemoryMessageChannel(event.metadata) }
             : {}),
           ...(typeof event.metadata?.senderId === "string" && event.metadata.senderId.trim()
             ? { senderId: event.metadata.senderId.trim() }

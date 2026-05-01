@@ -798,8 +798,8 @@ describe("runSetupWizard", () => {
       select,
       confirm: vi.fn(
         async (params) =>
-          params.message === "Enable local experience memory?" ||
-          params.message === "Add NotebookLM as an optional experience provider?",
+          params.message === "Enable experience capture and local sync queue?" ||
+          params.message === "Enable NotebookLM experience recall and sync?",
       ),
     });
     const runtime = createRuntime();

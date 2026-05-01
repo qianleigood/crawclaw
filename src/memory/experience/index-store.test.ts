@@ -2,7 +2,16 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { searchExperienceIndexEntries, upsertExperienceIndexEntry } from "./index-store.js";
+import {
+  markExperienceIndexEntrySyncFailed,
+  markExperienceIndexEntrySynced,
+  pruneExperienceIndexEntries,
+  readExperienceIndexEntries,
+  readPendingExperienceIndexEntries,
+  updateExperienceIndexEntryStatus,
+  upsertExperienceIndexEntry,
+  upsertExperienceIndexEntryFromNote,
+} from "./index-store.js";
 
 const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
 const tempDirs: string[] = [];
@@ -24,51 +33,74 @@ async function useTempStateDir(): Promise<string> {
 }
 
 describe("experience local index", () => {
-  it("recalls a written SOP note from the baseline index", async () => {
+  it("tracks NotebookLM sync state separately from lifecycle state", async () => {
     await useTempStateDir();
-    await upsertExperienceIndexEntry({
+    const entry = await upsertExperienceIndexEntryFromNote({
       note: {
         type: "procedure",
-        title: "本地网关恢复流程",
-        summary: "网关关闭或 health 失败时，按端口检查、重启服务、重新验证的顺序恢复。",
-        context: "适用于本地网关异常关闭。",
-        steps: ["检查 18789 端口", "重启 CrawClaw 网关", "重新运行 health probe"],
-        validation: ["health probe 返回 ok:true"],
-        dedupeKey: "gateway-recovery-procedure",
-        tags: ["网关", "恢复"],
+        title: "待同步经验",
+        summary: "NotebookLM 暂不可用时，本地只作为同步队列。",
+        context: "NotebookLM 登录态过期。",
+        action: "先落本地，等待恢复后同步。",
+        lesson: "本地状态不能被当作 prompt recall 来源。",
+        dedupeKey: "pending-sync-experience",
       },
-      writeResult: {
-        status: "ok",
-        action: "upsert",
-        noteId: "note-gateway",
-        title: "本地网关恢复流程",
-        notebookId: "experience-notebook",
-        payloadFile: "/tmp/payload.json",
-      },
+      notebookId: "local",
+      syncStatus: "pending_sync",
+      syncError: "auth_expired",
       updatedAt: 1_000,
     });
 
-    const items = await searchExperienceIndexEntries({
-      query: "本地网关挂了怎么恢复？给我操作流程",
-      limit: 5,
-      targetLayers: ["sop", "sources"],
+    expect(entry).toMatchObject({
+      id: "experience-index:pending-sync-experience",
+      status: "active",
+      syncStatus: "pending_sync",
+      syncAttempts: 0,
+      lastSyncAttemptAt: null,
+      lastSyncError: "auth_expired",
     });
 
-    expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({
-      id: "experience-index:gateway-recovery-procedure",
-      source: "local_experience_index",
-      title: "本地网关恢复流程",
-      layer: "sop",
-      memoryKind: "procedure",
-      sourceRef: "note-gateway",
-      metadata: expect.objectContaining({
-        indexSource: "local_experience_index",
-      }),
+    expect((await readPendingExperienceIndexEntries(10)).map((item) => item.id)).toEqual([
+      "experience-index:pending-sync-experience",
+    ]);
+
+    await markExperienceIndexEntrySyncFailed({
+      id: entry.id,
+      error: "notebook unreachable",
+      attemptedAt: 2_000,
     });
+    expect(await readPendingExperienceIndexEntries(10)).toEqual([
+      expect.objectContaining({
+        id: entry.id,
+        syncStatus: "failed",
+        syncAttempts: 1,
+        lastSyncAttemptAt: 2_000,
+        lastSyncError: "notebook unreachable",
+      }),
+    ]);
+
+    await markExperienceIndexEntrySynced({
+      id: entry.id,
+      noteId: "note-synced",
+      notebookId: "experience-notebook",
+      attemptedAt: 3_000,
+    });
+
+    expect(await readPendingExperienceIndexEntries(10)).toEqual([]);
+    expect(await readExperienceIndexEntries(10)).toEqual([
+      expect.objectContaining({
+        id: entry.id,
+        syncStatus: "synced",
+        syncAttempts: 2,
+        lastSyncAttemptAt: 3_000,
+        lastSyncError: null,
+        noteId: "note-synced",
+        notebookId: "experience-notebook",
+      }),
+    ]);
   });
 
-  it("maps failure and workflow experience into recallable layers", async () => {
+  it("maps failure and workflow experience into index layers", async () => {
     await useTempStateDir();
     await upsertExperienceIndexEntry({
       note: {
@@ -113,26 +145,228 @@ describe("experience local index", () => {
       updatedAt: 2_000,
     });
 
-    const failureItems = await searchExperienceIndexEntries({
-      query: "工具没有出现在 payload 里怎么查",
-      limit: 5,
-      targetLayers: ["runtime_signals"],
-    });
-    expect(failureItems[0]).toMatchObject({
+    const entries = await readExperienceIndexEntries(10);
+    const failureEntry = entries.find(
+      (entry) => entry.id === "experience-index:missing-tool-payload",
+    );
+    const workflowEntry = entries.find(
+      (entry) => entry.id === "experience-index:release-debug-workflow",
+    );
+    expect(failureEntry).toMatchObject({
       id: "experience-index:missing-tool-payload",
       layer: "runtime_signals",
       memoryKind: "runtime_pattern",
     });
-
-    const workflowItems = await searchExperienceIndexEntries({
-      query: "发布排查继续看下一个 blocker",
-      limit: 5,
-      targetLayers: ["sop"],
-    });
-    expect(workflowItems[0]).toMatchObject({
+    expect(workflowEntry).toMatchObject({
       id: "experience-index:release-debug-workflow",
       layer: "sop",
       memoryKind: "procedure",
     });
+  });
+
+  it("filters archived and superseded experience out of recallable index reads", async () => {
+    await useTempStateDir();
+    await upsertExperienceIndexEntry({
+      note: {
+        type: "procedure",
+        title: "当前网关恢复流程",
+        summary: "网关异常时，先检查 health，再重启服务并复测。",
+        context: "适用于当前网关恢复。",
+        steps: ["检查 health", "重启服务", "复测 health"],
+        dedupeKey: "gateway-recovery-current",
+      },
+      writeResult: {
+        status: "ok",
+        action: "upsert",
+        noteId: "note-current",
+        title: "当前网关恢复流程",
+        notebookId: "experience-notebook",
+        payloadFile: "/tmp/payload.json",
+      },
+      updatedAt: 3_000,
+    });
+    await upsertExperienceIndexEntry({
+      note: {
+        type: "procedure",
+        title: "旧网关恢复流程",
+        summary: "旧流程要求直接重启服务。",
+        context: "旧版本网关恢复。",
+        steps: ["直接重启服务"],
+        dedupeKey: "gateway-recovery-old",
+      },
+      writeResult: {
+        status: "ok",
+        action: "upsert",
+        noteId: "note-old",
+        title: "旧网关恢复流程",
+        notebookId: "experience-notebook",
+        payloadFile: "/tmp/payload.json",
+      },
+      updatedAt: 2_000,
+    });
+    await upsertExperienceIndexEntry({
+      note: {
+        type: "procedure",
+        title: "废弃网关恢复流程",
+        summary: "废弃流程依赖不存在的启动命令。",
+        context: "废弃版本。",
+        steps: ["运行旧启动命令"],
+        dedupeKey: "gateway-recovery-archived",
+      },
+      writeResult: {
+        status: "ok",
+        action: "upsert",
+        noteId: "note-archived",
+        title: "废弃网关恢复流程",
+        notebookId: "experience-notebook",
+        payloadFile: "/tmp/payload.json",
+      },
+      updatedAt: 1_000,
+    });
+
+    await updateExperienceIndexEntryStatus({
+      id: "experience-index:gateway-recovery-old",
+      status: "superseded",
+      supersededBy: "experience-index:gateway-recovery-current",
+      updatedAt: 4_000,
+    });
+    await updateExperienceIndexEntryStatus({
+      id: "experience-index:gateway-recovery-archived",
+      status: "archived",
+      updatedAt: 5_000,
+    });
+
+    const recallableEntries = await readExperienceIndexEntries(10, { recallableOnly: true });
+    expect(recallableEntries.map((item) => item.id)).toEqual([
+      "experience-index:gateway-recovery-current",
+    ]);
+
+    const archivedEntries = await readExperienceIndexEntries(10, { status: "archived" });
+    expect(archivedEntries).toEqual([
+      expect.objectContaining({
+        id: "experience-index:gateway-recovery-archived",
+        status: "archived",
+        archivedAt: 5_000,
+      }),
+    ]);
+  });
+
+  it("prunes experience index entries through stale and archived lifecycle states", async () => {
+    await useTempStateDir();
+    for (const [dedupeKey, title, updatedAt] of [
+      ["gateway-current", "当前网关经验", 1_500],
+      ["gateway-old-active", "旧 active 网关经验", 500],
+      ["gateway-old-stale", "旧 stale 网关经验", 100],
+    ] as const) {
+      await upsertExperienceIndexEntry({
+        note: {
+          type: "procedure",
+          title,
+          summary: `${title} 的恢复流程。`,
+          context: "网关恢复。",
+          steps: ["检查 health", "重启服务"],
+          dedupeKey,
+        },
+        writeResult: {
+          status: "ok",
+          action: "upsert",
+          noteId: `note-${dedupeKey}`,
+          title,
+          notebookId: "experience-notebook",
+          payloadFile: "/tmp/payload.json",
+        },
+        updatedAt,
+      });
+    }
+    await updateExperienceIndexEntryStatus({
+      id: "experience-index:gateway-old-stale",
+      status: "stale",
+      updatedAt: 100,
+    });
+
+    const result = await pruneExperienceIndexEntries({
+      now: 2_000,
+      staleAfterMs: 1_000,
+      archiveAfterMs: 1_500,
+    });
+
+    expect(result).toMatchObject({
+      staleIds: ["experience-index:gateway-old-active"],
+      archivedIds: ["experience-index:gateway-old-stale"],
+      retainedIds: ["experience-index:gateway-current"],
+    });
+    expect(
+      (await readExperienceIndexEntries(10, { status: "stale" })).map((entry) => entry.id),
+    ).toEqual(["experience-index:gateway-old-active"]);
+    expect(
+      (await readExperienceIndexEntries(10, { status: "archived" })).map((entry) => entry.id),
+    ).toEqual(["experience-index:gateway-old-stale"]);
+  });
+
+  it("serializes concurrent experience index lifecycle mutations", async () => {
+    await useTempStateDir();
+    for (const [dedupeKey, title] of [
+      ["concurrent-archive", "并发归档经验"],
+      ["concurrent-supersede", "并发替换经验"],
+    ] as const) {
+      await upsertExperienceIndexEntry({
+        note: {
+          type: "procedure",
+          title,
+          summary: `${title} 的状态写入流程。`,
+          context: "多个 lifecycle 操作同时触发。",
+          steps: ["串行化读取和写回 index 文件"],
+          dedupeKey,
+        },
+        writeResult: {
+          status: "ok",
+          action: "upsert",
+          noteId: `note-${dedupeKey}`,
+          title,
+          notebookId: "experience-notebook",
+          payloadFile: "/tmp/payload.json",
+        },
+        updatedAt: 100,
+      });
+    }
+
+    await Promise.all([
+      updateExperienceIndexEntryStatus({
+        id: "experience-index:concurrent-archive",
+        status: "archived",
+        updatedAt: 2_000,
+      }),
+      pruneExperienceIndexEntries({
+        now: 2_000,
+        staleAfterMs: 1_000,
+        archiveAfterMs: 1_500,
+      }),
+      updateExperienceIndexEntryStatus({
+        id: "experience-index:concurrent-supersede",
+        status: "superseded",
+        supersededBy: "experience-index:concurrent-archive",
+        updatedAt: 3_000,
+      }),
+    ]);
+
+    const entries = await readExperienceIndexEntries(10);
+    expect(
+      entries.map((entry) => ({
+        id: entry.id,
+        status: entry.status,
+        supersededBy: entry.supersededBy,
+      })),
+    ).toEqual([
+      {
+        id: "experience-index:concurrent-supersede",
+        status: "superseded",
+        supersededBy: "experience-index:concurrent-archive",
+      },
+      {
+        id: "experience-index:concurrent-archive",
+        status: "archived",
+        supersededBy: null,
+      },
+    ]);
   });
 });

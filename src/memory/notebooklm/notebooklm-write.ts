@@ -9,6 +9,7 @@ import {
   type ExperienceNoteWriteInput,
 } from "../experience/note.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
+import { resolveNotebookLmDefaultCommand } from "./command.js";
 import { emitNotebookLmNotification } from "./notification.ts";
 import { getNotebookLmProviderState } from "./provider-state.ts";
 
@@ -42,6 +43,27 @@ type RawNotebookLmWriteResponse = {
   message?: string;
   raw?: unknown;
 };
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (typeof error === "number" || typeof error === "boolean" || typeof error === "bigint") {
+    return `${error}`;
+  }
+  if (typeof error === "symbol") {
+    return error.description ? `Symbol(${error.description})` : "Symbol()";
+  }
+  try {
+    const serialized = JSON.stringify(error);
+    return typeof serialized === "string" ? serialized : "Unknown error";
+  } catch {
+    return "Unknown error";
+  }
+}
 
 function renderTemplate(
   value: string,
@@ -78,6 +100,79 @@ function normalizeWriteResponse(value: unknown): RawNotebookLmWriteResponse {
   };
 }
 
+function resolveProfile(config: NotebookLmConfig): string {
+  return (config.auth.profile || "default").trim() || "default";
+}
+
+function profileArgs(profile: string): string[] {
+  return profile === "default" ? [] : ["--profile", profile];
+}
+
+function parseNativeNoteCreateResponse(stdout: string): RawNotebookLmWriteResponse {
+  const noteId = stdout.match(/Note created:\s*(\S+)/i)?.[1]?.trim();
+  const title = stdout.match(/^\s*Title:\s*(.+?)\s*$/im)?.[1]?.trim();
+  return {
+    status: "ok",
+    action: "create",
+    noteId,
+    title,
+    raw: stdout,
+  };
+}
+
+function isTransientNotebookLmApiError(message: string): boolean {
+  return /API error \(code 7\)|google\.rpc\.ErrorInfo/i.test(message);
+}
+
+async function waitForNotebookLmRetry(attempt: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+}
+
+async function execNotebookLmWriteCommand(params: {
+  command: string;
+  args: string[];
+  timeoutMs: number;
+  env?: NodeJS.ProcessEnv;
+}): Promise<string> {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        execFileCallback(
+          params.command,
+          params.args,
+          {
+            timeout: params.timeoutMs,
+            maxBuffer: 1024 * 1024,
+            env: {
+              ...process.env,
+              ...params.env,
+            },
+          },
+          (error, nextStdout, nextStderr) => {
+            if (error) {
+              const detail = [formatUnknownError(error), nextStdout, nextStderr]
+                .filter((part) => typeof part === "string" && part.trim().length > 0)
+                .join("\n");
+              reject(new Error(detail));
+              return;
+            }
+            resolve(nextStdout);
+          },
+        );
+      });
+    } catch (error) {
+      const message = formatUnknownError(error);
+      if (attempt < maxAttempts && isTransientNotebookLmApiError(message)) {
+        await waitForNotebookLmRetry(attempt);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("NotebookLM write command failed");
+}
+
 async function createPayloadFile(payload: unknown): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-notebooklm-write-"));
   const filePath = path.join(dir, "payload.json");
@@ -96,7 +191,7 @@ export async function writeNotebookLmExperienceNoteViaCli(params: {
   };
 }): Promise<NotebookLmExperienceWriteResult | null> {
   const writeConfig = params.config?.write;
-  if (!params.config?.enabled || !writeConfig?.enabled || !writeConfig.command.trim()) {
+  if (!params.config?.enabled || !writeConfig?.enabled) {
     return null;
   }
 
@@ -177,33 +272,42 @@ export async function writeNotebookLmExperienceNoteViaCli(params: {
   );
 
   try {
-    const stdout = await new Promise<string>((resolve, reject) => {
-      execFileCallback(
-        writeConfig.command,
-        args,
-        {
-          timeout: writeConfig.timeoutMs,
-          maxBuffer: 1024 * 1024,
+    const stdout = writeConfig.command.trim()
+      ? await execNotebookLmWriteCommand({
+          command: writeConfig.command,
+          args,
+          timeoutMs: writeConfig.timeoutMs,
           env: {
-            ...process.env,
             NOTEBOOKLM_NOTEBOOK_ID: notebookId,
             NOTEBOOKLM_NOTE_PAYLOAD_FILE: payloadFile,
             NOTEBOOKLM_NOTE_TITLE: params.note.title.trim(),
             NOTEBOOKLM_NOTE_TYPE: params.note.type,
             NOTEBOOKLM_NOTE_DEDUPE_KEY: params.note.dedupeKey?.trim() ?? "",
           },
-        },
-        (error, nextStdout) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve(nextStdout);
-        },
-      );
-    });
-
-    const parsed = JSON.parse(stdout);
+        })
+      : await execNotebookLmWriteCommand({
+          command: resolveNotebookLmDefaultCommand(),
+          args: [
+            "note",
+            "create",
+            notebookId,
+            "--content",
+            content,
+            "--title",
+            params.note.title.trim(),
+            ...profileArgs(resolveProfile(params.config)),
+          ],
+          timeoutMs: writeConfig.timeoutMs,
+          env: {
+            NOTEBOOKLM_NOTEBOOK_ID: notebookId,
+            NOTEBOOKLM_NOTE_TITLE: params.note.title.trim(),
+            NOTEBOOKLM_NOTE_TYPE: params.note.type,
+            NOTEBOOKLM_NOTE_DEDUPE_KEY: params.note.dedupeKey?.trim() ?? "",
+          },
+        });
+    const parsed = writeConfig.command.trim()
+      ? JSON.parse(stdout)
+      : parseNativeNoteCreateResponse(stdout);
     const normalized = normalizeWriteResponse(parsed);
     const action =
       normalized.action === "create" ||
@@ -248,12 +352,10 @@ export async function writeNotebookLmExperienceNoteViaCli(params: {
         title: params.note.title,
         noteType: params.note.type,
         summary: params.note.summary,
-        error: error instanceof Error ? error.message : String(error),
+        error: formatUnknownError(error),
       },
     });
-    params.logger?.warn(
-      `[memory] notebooklm note write skipped | ${error instanceof Error ? error.message : String(error)}`,
-    );
+    params.logger?.warn(`[memory] notebooklm note write skipped | ${formatUnknownError(error)}`);
     throw error;
   }
 }
@@ -270,7 +372,7 @@ export async function deleteNotebookLmExperienceNoteViaCli(params: {
   };
 }): Promise<NotebookLmExperienceDeleteResult | null> {
   const writeConfig = params.config?.write;
-  if (!params.config?.enabled || !writeConfig?.enabled || !writeConfig.command.trim()) {
+  if (!params.config?.enabled || !writeConfig?.enabled) {
     return null;
   }
 
@@ -298,35 +400,41 @@ export async function deleteNotebookLmExperienceNoteViaCli(params: {
   }
 
   try {
-    const stdout = await new Promise<string>((resolve, reject) => {
-      execFileCallback(
-        writeConfig.command,
-        [
-          "delete",
-          params.noteId.trim(),
-          params.notebookId.trim(),
-          params.config?.auth.profile ?? "default",
-        ],
-        {
-          timeout: writeConfig.timeoutMs,
-          maxBuffer: 1024 * 1024,
+    const stdout = writeConfig.command.trim()
+      ? await execNotebookLmWriteCommand({
+          command: writeConfig.command,
+          args: [
+            "delete",
+            params.noteId.trim(),
+            params.notebookId.trim(),
+            params.config?.auth.profile ?? "default",
+          ],
+          timeoutMs: writeConfig.timeoutMs,
           env: {
-            ...process.env,
             NOTEBOOKLM_NOTEBOOK_ID: params.notebookId.trim(),
             NOTEBOOKLM_NOTE_ID: params.noteId.trim(),
           },
-        },
-        (error, nextStdout) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve(nextStdout);
-        },
-      );
-    });
+        })
+      : await execNotebookLmWriteCommand({
+          command: resolveNotebookLmDefaultCommand(),
+          args: [
+            "note",
+            "delete",
+            params.notebookId.trim(),
+            params.noteId.trim(),
+            "--confirm",
+            ...profileArgs(resolveProfile(params.config)),
+          ],
+          timeoutMs: writeConfig.timeoutMs,
+          env: {
+            NOTEBOOKLM_NOTEBOOK_ID: params.notebookId.trim(),
+            NOTEBOOKLM_NOTE_ID: params.noteId.trim(),
+          },
+        });
 
-    const parsed = normalizeWriteResponse(JSON.parse(stdout));
+    const parsed = writeConfig.command.trim()
+      ? normalizeWriteResponse(JSON.parse(stdout))
+      : ({ notebookId: params.notebookId.trim() } as RawNotebookLmWriteResponse);
     return {
       status: parsed.status === "missing" ? "missing" : "ok",
       action: "delete",
@@ -335,9 +443,7 @@ export async function deleteNotebookLmExperienceNoteViaCli(params: {
       raw: parsed.raw,
     };
   } catch (error) {
-    params.logger?.warn(
-      `[memory] notebooklm note delete skipped | ${error instanceof Error ? error.message : String(error)}`,
-    );
+    params.logger?.warn(`[memory] notebooklm note delete skipped | ${formatUnknownError(error)}`);
     throw error;
   }
 }

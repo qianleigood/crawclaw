@@ -332,6 +332,105 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     return vi.fn().mockResolvedValue(result);
   }
 
+  it("uses messageProvider as the memory channel when messageChannel is missing", async () => {
+    const runtimeStore = createRuntimeStore() as RuntimeStore & {
+      upsertSessionScope: ReturnType<typeof vi.fn>;
+    };
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createRuntimeConfig(),
+    });
+
+    await runtime.afterTurn?.({
+      sessionId: "session-provider-channel",
+      sessionKey: "agent:main:cli",
+      sessionFile: "/tmp/session-provider-channel.jsonl",
+      messages: castAgentMessages([
+        makeAgentUserMessage({ content: "记住这个 webchat scope 测试。" }),
+        makeAgentAssistantMessage({ content: [{ type: "text", text: "已记录。" }] }),
+      ]),
+      prePromptMessageCount: 0,
+      runtimeContext: { agentId: "main", messageProvider: "webchat", senderId: "cli" },
+    });
+
+    expect(runtimeStore.upsertSessionScope).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scopeKey: "main:webchat:cli",
+        agentId: "main",
+        channel: "webchat",
+        userId: "cli",
+      }),
+    );
+  });
+
+  it("passes messageProvider-derived channel into lifecycle durable extraction", async () => {
+    const stateDir = await createRuntimeRoot();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runtimeStore = createRuntimeStore();
+    const durableExtractionRunner = createDurableExtractionRunner({
+      current: {
+        status: "written",
+        notes: [
+          {
+            type: "feedback",
+            title: "webchat scope",
+            description: "messageProvider 应作为后台记忆 scope channel。",
+            dedupeKey: "webchat-provider-scope",
+          },
+        ],
+      },
+    });
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createRuntimeConfig(),
+      durableExtractionRunner,
+    });
+    const messages = castAgentMessages([
+      makeAgentUserMessage({ content: "以后 webchat 的后台记忆不要落到 local。" }),
+      makeAgentAssistantMessage({ content: [{ type: "text", text: "已确认。" }] }),
+    ]);
+
+    await runtime.afterTurn?.({
+      sessionId: "session-provider-lifecycle",
+      sessionKey: "agent:main:cli",
+      sessionFile: "/tmp/session-provider-lifecycle.jsonl",
+      messages,
+      prePromptMessageCount: 0,
+      runtimeContext: { agentId: "main", messageProvider: "webchat", senderId: "cli" },
+    });
+    await emitRunLoopLifecycleEvent({
+      phase: "stop",
+      runId: "provider-lifecycle-run",
+      sessionId: "session-provider-lifecycle",
+      sessionKey: "agent:main:cli",
+      agentId: "main",
+      isTopLevel: true,
+      sessionFile: "/tmp/session-provider-lifecycle.jsonl",
+      messageCount: messages.length,
+      metadata: {
+        prePromptMessageCount: 0,
+        messageProvider: "webchat",
+        senderId: "cli",
+        workspaceDir: stateDir,
+      },
+    });
+    await drainSharedDurableExtractionWorkers();
+
+    expect(durableExtractionRunner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: expect.objectContaining({
+          scopeKey: "main:webchat:cli",
+          channel: "webchat",
+          userId: "cli",
+        }),
+      }),
+    );
+  });
+
   async function emitStopPhase(params: {
     sessionId: string;
     sessionKey: string;
@@ -504,6 +603,60 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     expect(runnerInput?.recentMessages).toHaveLength(2);
   });
 
+  it("lets the experience agent judge turns that do not match the old regex router", async () => {
+    const stateDir = await createRuntimeRoot();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const experienceExtractionRunner = createExperienceExtractionRunner({
+      status: "no_change",
+      summary: "agent judged no reusable experience",
+      writtenCount: 0,
+      updatedCount: 0,
+      deletedCount: 0,
+      touchedNotes: [],
+      advanceCursor: true,
+    });
+
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const { drainSharedExperienceExtractionWorkers } =
+      await import("../experience/worker-manager.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: createRuntimeStore(),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createRuntimeConfig(),
+      experienceExtractionRunner,
+    });
+    const messages = castAgentMessages([
+      makeAgentUserMessage({
+        content: "这个现象不是 provider 本身的问题，是初始化顺序导致配置还没落盘。",
+      }),
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "收到，我会按这个边界处理后续判断。" }],
+      }),
+    ]);
+
+    await runtime.afterTurn?.({
+      sessionId: "session-experience-agent-judges",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      sessionFile: "/tmp/session.jsonl",
+      messages,
+      prePromptMessageCount: 0,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await emitStopPhase({
+      sessionId: "session-experience-agent-judges",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      messageCount: 2,
+    });
+    await drainSharedExperienceExtractionWorkers();
+
+    expect(experienceExtractionRunner).toHaveBeenCalledTimes(1);
+    const runnerInput = vi.mocked(experienceExtractionRunner).mock.calls[0]?.[0] as
+      | ExperienceExtractionRunParams
+      | undefined;
+    expect(runnerInput?.sessionId).toBe("session-experience-agent-judges");
+    expect(runnerInput?.recentMessages).toHaveLength(2);
+  });
+
   it("does not schedule durable extraction from ingestion alone before the lifecycle stop phase fires", async () => {
     const stateDir = await createRuntimeRoot();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
@@ -584,7 +737,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     expect(sessionSummaryRunner).not.toHaveBeenCalled();
   });
 
-  it("schedules session summary work from the lifecycle spine post_sampling phase when tool-call threshold is met", async () => {
+  it("schedules session summary work from the lifecycle spine settled_turn phase", async () => {
     const stateDir = await createRuntimeRoot();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     const sessionSummaryRunner = vi.fn().mockResolvedValue({
@@ -652,7 +805,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
     });
     await emitRunLoopLifecycleEvent({
-      phase: "post_sampling",
+      phase: "settled_turn",
       runId: "parent-run-lifecycle-1",
       sessionId: "session-1",
       sessionKey: "agent:main:feishu:direct:user-1",
@@ -729,7 +882,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     });
 
     await emitRunLoopLifecycleEvent({
-      phase: "post_sampling",
+      phase: "settled_turn",
       runId: "parent-run-missing-fork-context",
       sessionId: "session-missing-lifecycle-fork-context",
       sessionKey: "agent:main:feishu:direct:user-1",
@@ -1121,5 +1274,140 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     });
 
     expect(submitTurn).not.toHaveBeenCalled();
+  });
+
+  it("does not schedule memory automation from embedded special-agent sessions", async () => {
+    const stateDir = await createRuntimeRoot();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const submitDreamTurn = vi.fn();
+    vi.doMock("../dreaming/auto-dream.ts", () => ({
+      getSharedAutoDreamScheduler: () => ({ submitTurn: submitDreamTurn }),
+    }));
+
+    const durableExtractionRunner = createDurableExtractionRunner({
+      current: {
+        status: "written",
+        notes: [
+          {
+            type: "feedback",
+            title: "不应该触发",
+            description: "embedded session 不应触发自动 durable extraction。",
+            dedupeKey: "embedded-should-not-run",
+          },
+        ],
+      },
+    });
+    const experienceExtractionRunner = createExperienceExtractionRunner({
+      status: "written",
+      summary: "should not run",
+      writtenCount: 1,
+      updatedCount: 0,
+      deletedCount: 0,
+      touchedNotes: ["embedded-should-not-run"],
+      advanceCursor: true,
+    });
+    const sessionSummaryRunner = vi.fn().mockResolvedValue({
+      status: "no_change",
+      writtenCount: 0,
+      updatedCount: 0,
+    });
+    const runtimeStore = createRuntimeStore() as RuntimeStore & {
+      upsertSessionScope: ReturnType<typeof vi.fn>;
+    };
+
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const baseConfig = createRuntimeConfig();
+    const runtime = createContextMemoryRuntime({
+      runtimeStore,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: {
+        ...baseConfig,
+        durableExtraction: {
+          ...baseConfig.durableExtraction,
+          enabled: true,
+        },
+        experience: {
+          ...baseConfig.experience!,
+          enabled: true,
+        },
+        dreaming: {
+          ...baseConfig.dreaming,
+          enabled: true,
+        },
+        sessionSummary: {
+          ...baseConfig.sessionSummary,
+          enabled: true,
+          minTokensToInit: 1,
+          minTokensBetweenUpdates: 1,
+          toolCallsBetweenUpdates: 0,
+        },
+      },
+      durableExtractionRunner,
+      experienceExtractionRunner,
+      dreamRunner: vi.fn(),
+      sessionSummaryRunner,
+    });
+
+    const messages = castAgentMessages([
+      makeAgentUserMessage({ content: "帮我总结这段递归测试上下文。" }),
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "这是 embedded memory agent 的内部回合。" }],
+      }),
+    ]);
+    const parentForkContext = {
+      parentRunId: "parent-run-embedded-recursion",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "embedded test system prompt",
+        toolNames: ["read"],
+        toolPromptPayload: [{ name: "read" }],
+        thinkingConfig: {},
+        forkContextMessages: messages,
+      }),
+    };
+
+    await runtime.afterTurn?.({
+      sessionId: "embedded-session-1",
+      sessionKey: "embedded:memory_extractor:special:embedded-run-1",
+      sessionFile: "/tmp/embedded-session.jsonl",
+      messages,
+      prePromptMessageCount: 0,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await emitRunLoopLifecycleEvent({
+      phase: "post_sampling",
+      runId: "embedded-run-1",
+      sessionId: "embedded-session-1",
+      sessionKey: "embedded:memory_extractor:special:embedded-run-1",
+      agentId: "main",
+      isTopLevel: false,
+      sessionFile: "/tmp/embedded-session.jsonl",
+      messageCount: messages.length,
+      metadata: {
+        prePromptMessageCount: 0,
+        messageChannel: "feishu",
+        senderId: "user-1",
+        workspaceDir: stateDir,
+        parentForkContext,
+      },
+    });
+    await emitStopPhase({
+      sessionId: "embedded-session-1",
+      sessionKey: "embedded:memory_extractor:special:embedded-run-1",
+      messageCount: messages.length,
+      parentForkContext,
+    });
+    await drainSharedDurableExtractionWorkers();
+    const { drainSharedExperienceExtractionWorkers } =
+      await import("../experience/worker-manager.ts");
+    await drainSharedExperienceExtractionWorkers();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(runtimeStore.upsertSessionScope).not.toHaveBeenCalled();
+    expect(durableExtractionRunner).not.toHaveBeenCalled();
+    expect(experienceExtractionRunner).not.toHaveBeenCalled();
+    expect(sessionSummaryRunner).not.toHaveBeenCalled();
+    expect(submitDreamTurn).not.toHaveBeenCalled();
   });
 });

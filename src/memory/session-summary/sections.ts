@@ -1,3 +1,4 @@
+import { estimateTokenCount } from "../recall/token-estimate.ts";
 import {
   getSessionSummarySectionText,
   parseSessionSummaryDocument,
@@ -18,7 +19,52 @@ export function isSessionSummaryEffectivelyEmpty(content: string | null | undefi
   );
 }
 
-export function renderSessionSummaryForCompaction(content: string | null | undefined): string {
+function truncateToTokenBudget(text: string, tokenBudget: number): string {
+  const clean = text.trim();
+  if (!clean || estimateTokenCount(clean) <= tokenBudget) {
+    return clean;
+  }
+  let candidate = clean.slice(0, Math.max(1, tokenBudget * 4)).trimEnd();
+  const suffix = "\n[truncated to fit compact summary budget]";
+  while (candidate.length > 0 && estimateTokenCount(`${candidate}${suffix}`) > tokenBudget) {
+    candidate = candidate.slice(0, Math.floor(candidate.length * 0.85)).trimEnd();
+  }
+  return candidate ? `${candidate}${suffix}` : "";
+}
+
+function applyCompactionTokenBudget(sections: string[], tokenBudget: number | undefined): string {
+  if (typeof tokenBudget !== "number" || !Number.isFinite(tokenBudget) || tokenBudget <= 0) {
+    return sections.join("\n\n");
+  }
+  const targetBudget = Math.floor(tokenBudget);
+  let remainingBudget = targetBudget;
+  const selected: string[] = [];
+  for (const section of sections) {
+    const sectionTokens = estimateTokenCount(section);
+    if (sectionTokens <= remainingBudget) {
+      selected.push(section);
+      remainingBudget -= sectionTokens;
+      continue;
+    }
+    if (selected.length === 0 || remainingBudget >= 24) {
+      const [heading = "", ...bodyLines] = section.split("\n");
+      const headingText = heading.trim();
+      const headingTokens = estimateTokenCount(headingText);
+      const bodyBudget = Math.max(1, remainingBudget - headingTokens);
+      const body = truncateToTokenBudget(bodyLines.join("\n"), bodyBudget);
+      if (headingText && body) {
+        selected.push(`${headingText}\n${body}`);
+      }
+    }
+    break;
+  }
+  return (selected.length ? selected : sections.slice(0, 1)).join("\n\n");
+}
+
+export function renderSessionSummaryForCompaction(
+  content: string | null | undefined,
+  options?: { tokenBudget?: number },
+): string {
   const normalized = normalizeLineEndings(content ?? "");
   const document = parseSessionSummaryDocument(normalized);
   if (!document) {
@@ -45,5 +91,5 @@ export function renderSessionSummaryForCompaction(content: string | null | undef
   if (!sections.length) {
     return "";
   }
-  return sections.join("\n\n");
+  return applyCompactionTokenBudget(sections, options?.tokenBudget);
 }

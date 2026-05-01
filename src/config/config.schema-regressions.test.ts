@@ -37,6 +37,24 @@ describe("config schema regressions", () => {
     expect(res.ok).toBe(false);
   });
 
+  it("rejects removed QMD memory backend config", () => {
+    const backend = validateConfigObject({
+      memory: {
+        backend: "qmd",
+      },
+    });
+    const qmd = validateConfigObject({
+      memory: {
+        qmd: {
+          searchMode: "vsearch",
+        },
+      },
+    });
+
+    expect(backend.ok).toBe(false);
+    expect(qmd.ok).toBe(false);
+  });
+
   it("rejects removed NotebookLM autoRefresh config", () => {
     const res = validateConfigObject({
       memory: {

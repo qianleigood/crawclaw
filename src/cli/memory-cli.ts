@@ -28,6 +28,11 @@ async function runMemoryLogin(opts: MemoryCommandOptions) {
   await runtime.runMemoryLogin(opts);
 }
 
+async function runMemorySync(opts: MemoryCommandOptions) {
+  const runtime = await loadMemoryCliRuntime();
+  await runtime.runMemorySync(opts);
+}
+
 async function runMemoryPromptJournalSummary(opts: MemoryCommandOptions) {
   const runtime = await loadMemoryCliRuntime();
   await runtime.runMemoryPromptJournalSummary(opts);
@@ -70,6 +75,7 @@ export function registerMemoryCli(program: Command) {
           ["crawclaw memory status", t("command.memory.example.status")],
           ["crawclaw memory refresh", t("command.memory.example.refresh")],
           ["crawclaw memory login", t("command.memory.example.login")],
+          ["crawclaw memory sync", t("command.memory.example.sync")],
           [
             "crawclaw memory prompt-journal-summary --json",
             t("command.memory.example.promptJournalSummary"),
@@ -120,6 +126,15 @@ export function registerMemoryCli(program: Command) {
     .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryLogin(opts);
+    });
+
+  memory
+    .command("sync")
+    .description(t("command.memory.sync.description"))
+    .option("--json", t("command.memory.option.json"))
+    .option("--verbose", t("command.memory.option.verbose"), false)
+    .action(async (opts: MemoryCommandOptions) => {
+      await runMemorySync(opts);
     });
 
   memory

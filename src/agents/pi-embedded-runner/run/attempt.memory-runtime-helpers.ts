@@ -1,12 +1,23 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import { resolveMemoryMessageChannel } from "../../../memory/engine/context-memory-runtime-helpers.ts";
 import type { MemoryRuntime, MemoryRuntimeContext } from "../../../memory/index.js";
 import { isSubagentSessionKey } from "../../../sessions/session-key-utils.ts";
+import type { ContextBudgetPolicy } from "../../context-window-guard.js";
 import { emitRunLoopLifecycleEvent } from "../../runtime/lifecycle/bus.js";
 import { ensureSharedRunLoopLifecycleSubscribers } from "../../runtime/lifecycle/shared-subscribers.js";
 import type { SpecialAgentParentForkContext } from "../../special/runtime/parent-fork-context.js";
 import { extractToolCallsFromAssistant } from "../../tool-call-id.js";
 
 export type AttemptMemoryRuntime = MemoryRuntime;
+
+const NON_FINAL_ASSISTANT_STOP_REASONS = new Set([
+  "tooluse",
+  "tool_calls",
+  "error",
+  "aborted",
+  "max_tokens",
+  "length",
+]);
 
 function shouldEmitStopLifecyclePhase(
   messages: AgentMessage[],
@@ -31,12 +42,7 @@ function shouldEmitStopLifecyclePhase(
     return true;
   }
   const normalizedStopReason = stopReason.trim().toLowerCase();
-  return (
-    normalizedStopReason !== "tooluse" &&
-    normalizedStopReason !== "tool_calls" &&
-    normalizedStopReason !== "error" &&
-    normalizedStopReason !== "aborted"
-  );
+  return !NON_FINAL_ASSISTANT_STOP_REASONS.has(normalizedStopReason);
 }
 
 export async function runAttemptMemoryRuntimeBootstrap(params: {
@@ -123,6 +129,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
   parentForkContext?: SpecialAgentParentForkContext;
   prePromptMessageCount: number;
   tokenBudget?: number;
+  contextBudgetPolicy?: ContextBudgetPolicy;
   runtimeContext?: MemoryRuntimeContext;
   runMaintenance: (params: {
     memoryRuntime?: unknown;
@@ -148,11 +155,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
     typeof params.runtimeContext?.agentId === "string" && params.runtimeContext.agentId.trim()
       ? params.runtimeContext.agentId
       : undefined;
-  const messageChannel =
-    typeof params.runtimeContext?.messageChannel === "string" &&
-    params.runtimeContext.messageChannel.trim()
-      ? params.runtimeContext.messageChannel
-      : undefined;
+  const messageChannel = resolveMemoryMessageChannel(params.runtimeContext);
   const senderId =
     typeof params.runtimeContext?.senderId === "string" && params.runtimeContext.senderId.trim()
       ? params.runtimeContext.senderId
@@ -232,6 +235,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
         ...(workspaceDir ? { workspaceDir } : {}),
         ...(messageChannel ? { messageChannel } : {}),
         ...(senderId ? { senderId } : {}),
+        ...(params.contextBudgetPolicy ? { contextBudgetPolicy: params.contextBudgetPolicy } : {}),
       },
     });
   }
@@ -258,6 +262,7 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
         ...(workspaceDir ? { workspaceDir } : {}),
         ...(messageChannel ? { messageChannel } : {}),
         ...(senderId ? { senderId } : {}),
+        ...(params.contextBudgetPolicy ? { contextBudgetPolicy: params.contextBudgetPolicy } : {}),
       },
     });
     if (shouldEmitStopLifecyclePhase(params.messagesSnapshot, params.prePromptMessageCount)) {
@@ -277,6 +282,9 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
           ...(workspaceDir ? { workspaceDir } : {}),
           ...(messageChannel ? { messageChannel } : {}),
           ...(senderId ? { senderId } : {}),
+          ...(params.contextBudgetPolicy
+            ? { contextBudgetPolicy: params.contextBudgetPolicy }
+            : {}),
         },
       });
     }
@@ -318,6 +326,9 @@ export async function finalizeAttemptMemoryRuntimeTurn(params: {
           ...(workspaceDir ? { workspaceDir } : {}),
           ...(messageChannel ? { messageChannel } : {}),
           ...(senderId ? { senderId } : {}),
+          ...(params.contextBudgetPolicy
+            ? { contextBudgetPolicy: params.contextBudgetPolicy }
+            : {}),
         },
       });
     }

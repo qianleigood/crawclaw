@@ -38,14 +38,20 @@ Most users do not need to configure the builtin runtime. To pin the runtime DB:
 ```
 
 NotebookLM is optional and is configured under `memory.notebooklm`. When it is
-disabled or returns no useful result, CrawClaw still uses the local experience
-index and durable-memory recall.
+disabled or returns no useful result, CrawClaw skips experience recall for that
+turn instead of reading the local outbox as a fallback. Durable-memory recall
+still runs independently. The local experience index is a pending write queue
+and sync ledger for NotebookLM. The default NotebookLM CLI path uses CrawClaw's
+managed `notebooklm-mcp-cli` runtime when it is installed; run `crawclaw
+runtimes install` or `crawclaw runtimes repair` if `nlm` is missing.
 
 ## Operational notes
 
 - Durable notes live in scoped Markdown files and are recalled during prompt
   assembly.
 - Experience extraction runs after eligible completed turns.
+- Experience recall reads NotebookLM only; local pending entries sync after
+  login, heartbeat, startup, or `crawclaw memory sync`.
 - Session summaries are maintained separately from durable memory and are used
   as compaction continuity.
 - Context Archive is off by default unless enabled under `memory.contextArchive`.

@@ -118,7 +118,7 @@ describe("durable memory taxonomy", () => {
   it("keeps experience notes out of durable user classification", () => {
     const experience = makeItem({
       id: "experience",
-      source: "local_experience_index",
+      source: "notebooklm",
       title: "网关恢复经验",
       summary: "经验类型：操作经验。恢复时先检查状态，再重启服务。",
       layer: "sop",

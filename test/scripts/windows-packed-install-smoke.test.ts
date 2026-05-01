@@ -226,6 +226,11 @@ describe("windows packed install smoke helpers", () => {
           browser: { state: "healthy", binPath: "C:\\Temp\\pinchtab.cmd" },
           "open-websearch": { state: "healthy", binPath: "C:\\Temp\\open-websearch.cmd" },
           "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.0" },
+          "notebooklm-mcp-cli": {
+            state: "healthy",
+            binPath: "C:\\Temp\\nlm.exe",
+            pythonVersion: "3.14.0",
+          },
         },
       }),
     ).not.toThrow();

@@ -28,6 +28,7 @@ function resolveMemoryFlushGateState<
   contextWindowTokens: number;
   reserveTokensFloor: number;
   softThresholdTokens: number;
+  triggerTokens?: number;
 }): { entry: TEntry; totalTokens: number; threshold: number } | null {
   if (!params.entry) {
     return null;
@@ -42,7 +43,11 @@ function resolveMemoryFlushGateState<
   const contextWindow = Math.max(1, Math.floor(params.contextWindowTokens));
   const reserveTokens = Math.max(0, Math.floor(params.reserveTokensFloor));
   const softThreshold = Math.max(0, Math.floor(params.softThresholdTokens));
-  const threshold = Math.max(0, contextWindow - reserveTokens - softThreshold);
+  const policyTrigger =
+    typeof params.triggerTokens === "number" && Number.isFinite(params.triggerTokens)
+      ? Math.max(0, Math.floor(params.triggerTokens))
+      : undefined;
+  const threshold = policyTrigger ?? Math.max(0, contextWindow - reserveTokens - softThreshold);
   if (threshold <= 0) {
     return null;
   }
@@ -64,6 +69,7 @@ export function shouldRunMemoryFlush(params: {
   contextWindowTokens: number;
   reserveTokensFloor: number;
   softThresholdTokens: number;
+  triggerTokens?: number;
 }): boolean {
   const state = resolveMemoryFlushGateState(params);
   if (!state || state.totalTokens < state.threshold) {
@@ -88,6 +94,7 @@ export function shouldRunPreflightCompaction(params: {
   contextWindowTokens: number;
   reserveTokensFloor: number;
   softThresholdTokens: number;
+  triggerTokens?: number;
 }): boolean {
   const state = resolveMemoryFlushGateState(params);
   return Boolean(state && state.totalTokens >= state.threshold);

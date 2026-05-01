@@ -316,6 +316,184 @@ describe("DurableExtractionWorkerManager", () => {
     expect(secondCall?.sessionId).toBe("session-b");
   });
 
+  it("serializes concurrent runs that target the same durable scope", async () => {
+    const stateDir = await createStateDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    let releaseFirst!: () => void;
+    const first = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const runtimeStore = createRuntimeStore();
+    const runner = createRunnerQueue([
+      {
+        waitFor: first,
+        result: {
+          status: "written",
+          notesSaved: 1,
+          reason: "first same-scope run",
+          advanceCursor: true,
+        },
+      },
+      {
+        result: {
+          status: "written",
+          notesSaved: 1,
+          reason: "second same-scope run",
+          advanceCursor: true,
+        },
+      },
+    ]);
+
+    const { getSharedDurableExtractionWorkerManager } = await import("./worker-manager.ts");
+    const manager = getSharedDurableExtractionWorkerManager({
+      config: {
+        enabled: true,
+        recentMessageLimit: 8,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 2,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-scope-a",
+      content: "同一个用户的第一个会话触发 durable memory。",
+      turnIndex: 1,
+    });
+    await manager.submitTurn({
+      sessionId: "session-scope-a",
+      sessionKey: "agent:main:feishu:direct:user-same:thread:a",
+      newMessages: [
+        makeAgentUserMessage({ content: "同一个用户的第一个会话触发 durable memory。" }),
+      ] as never,
+      messageCursor: 1,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-same" },
+    });
+
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(1);
+    });
+
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-scope-b",
+      content: "同一个用户的第二个会话也触发 durable memory。",
+      turnIndex: 1,
+    });
+    await manager.submitTurn({
+      sessionId: "session-scope-b",
+      sessionKey: "agent:main:feishu:direct:user-same:thread:b",
+      newMessages: [
+        makeAgentUserMessage({ content: "同一个用户的第二个会话也触发 durable memory。" }),
+      ] as never,
+      messageCursor: 1,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-same" },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(manager.getStatus()).toMatchObject({
+      runningCount: 1,
+      queuedCount: 1,
+    });
+
+    releaseFirst();
+
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(2);
+    });
+    const secondCall = runner.mock.calls.at(-1)?.[0];
+    expect(secondCall?.sessionId).toBe("session-scope-b");
+  });
+
+  it("allows different durable scopes to run concurrently up to the global limit", async () => {
+    const stateDir = await createStateDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    let releaseFirst!: () => void;
+    let releaseSecond!: () => void;
+    const first = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const second = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    const runtimeStore = createRuntimeStore();
+    const runner = createRunnerQueue([
+      {
+        waitFor: first,
+        result: {
+          status: "written",
+          notesSaved: 1,
+          reason: "first different-scope run",
+          advanceCursor: true,
+        },
+      },
+      {
+        waitFor: second,
+        result: {
+          status: "written",
+          notesSaved: 1,
+          reason: "second different-scope run",
+          advanceCursor: true,
+        },
+      },
+    ]);
+
+    const { getSharedDurableExtractionWorkerManager } = await import("./worker-manager.ts");
+    const manager = getSharedDurableExtractionWorkerManager({
+      config: {
+        enabled: true,
+        recentMessageLimit: 8,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 2,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-scope-user-a",
+      content: "第一个用户触发 durable memory。",
+      turnIndex: 1,
+    });
+    await manager.submitTurn({
+      sessionId: "session-scope-user-a",
+      sessionKey: "agent:main:feishu:direct:user-a",
+      newMessages: [makeAgentUserMessage({ content: "第一个用户触发 durable memory。" })] as never,
+      messageCursor: 1,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-a" },
+    });
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-scope-user-b",
+      content: "第二个用户触发 durable memory。",
+      turnIndex: 1,
+    });
+    await manager.submitTurn({
+      sessionId: "session-scope-user-b",
+      sessionKey: "agent:main:feishu:direct:user-b",
+      newMessages: [makeAgentUserMessage({ content: "第二个用户触发 durable memory。" })] as never,
+      messageCursor: 1,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-b" },
+    });
+
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(2);
+    });
+    expect(manager.getStatus()).toMatchObject({
+      runningCount: 2,
+      queuedCount: 0,
+    });
+
+    releaseFirst();
+    releaseSecond();
+  });
+
   it("cleans up idle workers and drains in-flight runs", async () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;

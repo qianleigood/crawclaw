@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderAgentMemoryRoutingContract } from "../memory/context/render-routing-guidance.ts";
 import { createCrawClawTools } from "./crawclaw-tools.ts";
+import { buildAgentSystemPrompt } from "./system-prompt.ts";
 
 describe("agent memory routing guidance", () => {
   it("renders durable-memory routing rules in the agent memory routing contract", () => {
@@ -36,6 +37,54 @@ describe("agent memory routing guidance", () => {
     expect(contract.text).toContain(
       "如果用户即将根据某条 durable memory 采取行动，而不是只是在问历史背景，先验证再建议。",
     );
+    expect(contract.text).toContain("把运行态与经验回忆信号当作时间敏感信息，它们可能已经过时。");
+    expect(contract.text).not.toContain("runtime signals");
+  });
+
+  it("renders durable-memory guardrails in the base prompt when scoped tools are available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/crawclaw",
+      toolNames: [
+        "memory_manifest_read",
+        "memory_note_read",
+        "memory_note_write",
+        "memory_note_edit",
+        "memory_note_delete",
+      ],
+    });
+
+    expect(prompt).toContain("## Durable Memory");
+    expect(prompt).toContain(
+      "Use scoped durable memory tools only for stable, future-useful collaboration information.",
+    );
+    expect(prompt).toContain(
+      "Do not save task progress, temporary plans, code structure, file paths, git history, debugging fixes, or activity logs as durable memory.",
+    );
+    expect(prompt).toContain(
+      "When writing durable memory, first read the scoped manifest, prefer updating an existing note, and keep MEMORY.md as a short index.",
+    );
+    expect(prompt).toContain(
+      "Current code, docs, git state, runtime state, and user instructions override stale durable memory.",
+    );
+  });
+
+  it("lets the memory runtime own durable-memory routing when it is active", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/crawclaw",
+      memoryRuntimeActive: true,
+      toolNames: [
+        "memory_manifest_read",
+        "memory_note_read",
+        "memory_note_write",
+        "memory_note_edit",
+        "memory_note_delete",
+      ],
+    });
+
+    expect(prompt).not.toContain("## Durable Memory");
+    expect(prompt).not.toContain(
+      "Use scoped durable memory tools only for stable, future-useful collaboration information.",
+    );
   });
 
   it("exposes scoped memory file tools to the agent toolset with anti-pollution guidance", () => {
@@ -59,7 +108,9 @@ describe("agent memory routing guidance", () => {
     expect(manifestTool?.description).toContain("Read the scoped durable memory manifest");
     expect(readNoteTool?.description).toContain("Read a specific durable memory file");
     expect(writeNoteTool?.description).toContain("Write a complete durable memory Markdown file");
-    expect(editNoteTool?.description).toContain("Edit a scoped durable memory file by replacing exact text");
+    expect(editNoteTool?.description).toContain(
+      "Edit a scoped durable memory file by replacing exact text",
+    );
     expect(deleteNoteTool?.description).toContain("Delete a scoped durable memory Markdown file");
   });
 });

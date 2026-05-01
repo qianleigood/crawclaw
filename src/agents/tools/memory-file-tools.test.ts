@@ -59,7 +59,6 @@ describe("memory file tools", () => {
       'title: "Step-first answers"',
       'description: "Lead with steps first."',
       'type: "feedback"',
-      'updated_at: "2026-04-07T00:00:00.000Z"',
       "---",
       "",
       "# Step-first answers",
@@ -110,6 +109,18 @@ describe("memory file tools", () => {
     expect(JSON.stringify(deleteResult.details)).toContain('"status":"deleted"');
   });
 
+  it("keeps durable tools available for local runs without a channel", async () => {
+    process.env.CRAWCLAW_STATE_DIR = await createStateDir();
+    const manifest = createMemoryManifestReadTool({ agentId: "main" });
+    expect(manifest).toBeTruthy();
+
+    const manifestResult = await manifest!.execute("tool-local", {});
+    const details = JSON.stringify(manifestResult.details);
+    expect(details).toContain('"channel":"local"');
+    expect(details).toContain('"userId":"local"');
+    expect(details).toContain('"scopeKey":"main:local:local"');
+  });
+
   it("rejects MEMORY.md content that violates bounded index constraints", async () => {
     process.env.CRAWCLAW_STATE_DIR = await createStateDir();
     const { write } = createScopedTools();
@@ -121,6 +132,60 @@ describe("memory file tools", () => {
         content: ["---", 'title: "bad"', "---", "", "# MEMORY.md"].join("\n"),
       }),
     ).rejects.toThrow(/frontmatter/i);
+  });
+
+  it("rejects raw note writes with managed time frontmatter", async () => {
+    process.env.CRAWCLAW_STATE_DIR = await createStateDir();
+    const { write } = createScopedTools();
+    expect(write).toBeTruthy();
+
+    await expect(
+      write!.execute("tool-1", {
+        notePath: "60 Preferences/time.md",
+        content: [
+          "---",
+          'title: "Time metadata"',
+          'type: "feedback"',
+          'created: "2025-06-20T02:30:17.569Z"',
+          "---",
+          "",
+          "# Time metadata",
+          "",
+        ].join("\n"),
+      }),
+    ).rejects.toThrow(/created.*managed|managed.*created/i);
+  });
+
+  it("rejects raw note edits that introduce managed time frontmatter", async () => {
+    process.env.CRAWCLAW_STATE_DIR = await createStateDir();
+    const { read, write, edit } = createScopedTools();
+    expect(read && write && edit).toBeTruthy();
+
+    const notePath = "60 Preferences/time-edit.md";
+    const originalContent = [
+      "---",
+      'title: "Time edit"',
+      'type: "feedback"',
+      "---",
+      "",
+      "# Time edit",
+      "",
+    ].join("\n");
+    await write!.execute("tool-1", {
+      notePath,
+      content: originalContent,
+    });
+
+    await expect(
+      edit!.execute("tool-2", {
+        notePath,
+        findText: 'type: "feedback"',
+        replaceText: ['type: "feedback"', 'updated_at: "2025-06-20T02:30:17.569Z"'].join("\n"),
+      }),
+    ).rejects.toThrow(/updated_at.*managed|managed.*updated_at/i);
+
+    const readAfterEdit = await read!.execute("tool-3", { notePath });
+    expect(JSON.stringify(readAfterEdit.details)).not.toContain("updated_at");
   });
 
   it("rejects note deletion paths that escape the durable memory scope", async () => {

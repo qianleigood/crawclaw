@@ -7,6 +7,21 @@ import { cleanPrompt } from "../util/prompt.ts";
 
 export type DurableRecallSource = "sync" | "sync_error";
 
+export function resolveMemoryMessageChannel(
+  runtimeContext: Record<string, unknown> | null | undefined,
+): string | undefined {
+  const messageChannel =
+    typeof runtimeContext?.messageChannel === "string" ? runtimeContext.messageChannel.trim() : "";
+  if (messageChannel) {
+    return messageChannel;
+  }
+  const messageProvider =
+    typeof runtimeContext?.messageProvider === "string"
+      ? runtimeContext.messageProvider.trim()
+      : "";
+  return messageProvider || undefined;
+}
+
 export function resolveMemoryRecallHitReason(params: {
   selectedDurableCount: number;
   selectedExperienceCount: number;

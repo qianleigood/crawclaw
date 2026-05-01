@@ -26,7 +26,12 @@ const GATEWAY_STOP_TIMEOUT_MS = readTimeoutMsFromEnv(
   10_000,
 );
 const SMOKE_GATEWAY_TOKEN = "macos-packed-install-smoke-token";
-const REQUIRED_RUNTIME_PLUGINS = ["browser", "open-websearch", "scrapling-fetch"];
+const REQUIRED_RUNTIME_PLUGINS = [
+  "browser",
+  "open-websearch",
+  "scrapling-fetch",
+  "notebooklm-mcp-cli",
+];
 
 function isDirectRun() {
   return process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;
@@ -140,6 +145,10 @@ function validateRuntimeManifest(manifest) {
   requireHealthyRuntimeEntry("browser", plugins.browser, ["binPath"]);
   requireHealthyRuntimeEntry("open-websearch", plugins["open-websearch"], ["binPath"]);
   requireHealthyRuntimeEntry("scrapling-fetch", plugins["scrapling-fetch"], ["pythonVersion"]);
+  requireHealthyRuntimeEntry("notebooklm-mcp-cli", plugins["notebooklm-mcp-cli"], [
+    "binPath",
+    "pythonVersion",
+  ]);
 }
 
 function assertBundledPluginRuntimeDepsInstalled(packageRoot) {

@@ -27,7 +27,7 @@ export async function promptNotebookLmEnablement(params: {
   const notebooklm = normalizeNotebookLmConfig(params.config.memory?.notebooklm ?? {});
   const initialExperienceEnabled = params.config.memory?.experience?.enabled !== false;
   const experienceEnabled = await params.prompter.confirm({
-    message: "Enable local experience memory?",
+    message: "Enable experience capture and local sync queue?",
     initialValue: initialExperienceEnabled,
   });
 
@@ -49,7 +49,7 @@ export async function promptNotebookLmEnablement(params: {
   }
 
   const enabled = await params.prompter.confirm({
-    message: "Add NotebookLM as an optional experience provider?",
+    message: "Enable NotebookLM experience recall and sync?",
     initialValue: notebooklm.enabled,
   });
 

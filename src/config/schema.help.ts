@@ -798,10 +798,8 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.defaults.envelopeElapsed": 'Include elapsed time in message envelopes ("on" or "off").',
   "agents.defaults.models": "Configured model catalog (keys are full provider/model IDs).",
   memory: "Memory backend configuration (global).",
-  "memory.backend":
-    'Selects the global memory engine: "builtin" uses CrawClaw memory internals, while "qmd" uses the QMD sidecar pipeline. Keep "builtin" unless you intentionally operate QMD.',
   "memory.notebooklm":
-    "Configures the optional NotebookLM provider for experience memory. Prompt-facing experience recall also uses the local experience index when NotebookLM is disabled or returns no hits.",
+    "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local experience index is only a sync ledger and pending write queue.",
   "memory.notebooklm.auth":
     "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by experience recall and experience-note writes.",
   "memory.notebooklm.auth.profile":
@@ -822,12 +820,22 @@ export const FIELD_HELP: Record<string, string> = {
     "Lower bound for the randomized NotebookLM auth heartbeat interval in milliseconds. Use a moderate floor to avoid noisy provider probes.",
   "memory.notebooklm.auth.heartbeat.maxIntervalMs":
     "Upper bound for the randomized NotebookLM auth heartbeat interval in milliseconds. Each keepalive run picks a random delay between min and max before the next status probe.",
+  "memory.notebooklm.auth.autoLogin":
+    "Controls the automatic NotebookLM login refresh loop. This uses the managed nlm profile or an OpenClaw CDP browser session to keep NotebookLM available as the prompt-facing experience recall provider.",
+  "memory.notebooklm.auth.autoLogin.enabled":
+    "Enables periodic NotebookLM auto login. When enabled, CrawClaw can reuse the managed nlm browser profile or configured OpenClaw CDP session, then flush pending local experience notes after auth recovers.",
+  "memory.notebooklm.auth.autoLogin.intervalMs":
+    "Minimum interval in milliseconds between automatic NotebookLM login attempts. The default is once per day.",
+  "memory.notebooklm.auth.autoLogin.provider":
+    'Auto login provider. Use "nlm_profile" for the managed notebooklm-mcp-cli browser profile, or "openclaw_cdp" to ask nlm to authenticate through an OpenClaw-managed browser CDP endpoint.',
+  "memory.notebooklm.auth.autoLogin.cdpUrl":
+    "CDP endpoint used when autoLogin.provider is openclaw_cdp, for example http://127.0.0.1:18800.",
   "memory.notebooklm.cli":
-    "Optional NotebookLM CLI adapter used for prompt-facing experience recall. Enable this when `nlm` is installed and authenticated, and you want CrawClaw to query NotebookLM directly.",
+    "Optional NotebookLM CLI adapter used for prompt-facing experience recall. Enable this when the managed notebooklm-mcp-cli runtime or another authenticated `nlm` command is available, and you want CrawClaw to query NotebookLM directly.",
   "memory.notebooklm.cli.enabled":
-    "Enables NotebookLM CLI retrieval for prompt-facing experience recall. Keep disabled unless a working `nlm` command is configured and authenticated.",
+    "Enables NotebookLM CLI retrieval for prompt-facing experience recall. Keep disabled unless the managed `nlm` runtime, PATH `nlm`, or an explicit wrapper command is authenticated.",
   "memory.notebooklm.cli.command":
-    "Executable used for NotebookLM CLI retrieval, typically `nlm` or a local wrapper script. The command must return JSON that CrawClaw can normalize into experience recall items.",
+    "Executable used for NotebookLM CLI retrieval. Leave empty to use CrawClaw's managed notebooklm-mcp-cli `nlm` runtime when installed, then PATH `nlm`; set a local wrapper script only when you need a custom adapter.",
   "memory.notebooklm.cli.args":
     "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, `{notebookId}`, and `{profile}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
   "memory.notebooklm.cli.timeoutMs":
@@ -839,19 +847,33 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.notebooklm.cli.queryInstruction":
     "Optional prompt instruction prepended to every NotebookLM experience query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
   "memory.notebooklm.write":
-    "Configures NotebookLM note writing for the experience layer. Use this to let CrawClaw create or update Chinese-readable experience notes inside a designated NotebookLM notebook.",
+    "Configures NotebookLM note writing for the experience layer. By default CrawClaw uses the managed `nlm note create` runtime; set a command only when you need a custom write helper.",
   "memory.notebooklm.write.enabled":
-    "Enables NotebookLM note writing for the experience layer. Keep disabled unless you have a working write command and a target notebook configured.",
+    "Enables NotebookLM note writing for the experience layer. When NotebookLM is enabled this defaults to the managed `nlm` write path unless explicitly disabled.",
   "memory.notebooklm.write.command":
-    "Executable used for NotebookLM note writing, typically a local wrapper script or Python entrypoint that performs notebook note upsert operations.",
+    "Optional executable override for NotebookLM note writing. Leave empty to use the managed `nlm note create` runtime.",
   "memory.notebooklm.write.args":
-    "Argument template passed to the NotebookLM write command. Use placeholders like `{payloadFile}` and `{notebookId}` so CrawClaw can hand the note payload to a bounded write helper.",
+    "Argument template passed to a custom NotebookLM write command. Ignored by the managed `nlm` write path.",
   "memory.notebooklm.write.timeoutMs":
     "Timeout in milliseconds for each NotebookLM note write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
   "memory.notebooklm.write.notebookId":
     "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
+  "memory.notebooklm.source":
+    "Configures the managed NotebookLM source that mirrors the bounded local experience index into one CrawClaw Memory Index source. This gives NotebookLM native source query material without turning each experience note into its own source.",
+  "memory.notebooklm.source.enabled":
+    "Enables managed NotebookLM source synchronization after experience writes. Disable this when you only want local index recall and NotebookLM note writeback.",
+  "memory.notebooklm.source.title":
+    "Title used for the managed NotebookLM source. Keep it stable so CrawClaw can recognize and replace the previous index source.",
+  "memory.notebooklm.source.timeoutMs":
+    "Timeout in milliseconds for source list/add/delete operations. Source uploads can be slower than note writes because NotebookLM processes the source.",
+  "memory.notebooklm.source.maxEntries":
+    "Maximum number of active or stale experience index entries rendered into the managed NotebookLM source.",
+  "memory.notebooklm.source.maxChars":
+    "Maximum rendered character count for the managed NotebookLM source.",
+  "memory.notebooklm.source.deletePrevious":
+    "Deletes the previous managed source after a replacement source is added successfully. Keep enabled to avoid duplicate CrawClaw Memory Index sources.",
   "memory.experience":
-    "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local experience index entries, and optionally syncs through the NotebookLM write path when configured.",
+    "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local sync-ledger entries, and syncs them through the NotebookLM write path when available.",
   "memory.experience.enabled":
     "Enables the background Experience Agent. Keep enabled to let CrawClaw automatically retain validated procedures, decisions, failure patterns, workflow patterns, and references after tasks complete.",
   "memory.experience.recentMessageLimit":
@@ -864,62 +886,6 @@ export const FIELD_HELP: Record<string, string> = {
     "Maximum number of in-process experience extraction workers that may run concurrently.",
   "memory.experience.workerIdleTtlMs":
     "How long idle experience workers may remain resident before cleanup.",
-  "memory.qmd.command":
-    "Sets the executable path for the `qmd` binary used by the QMD backend (default: resolved from PATH). Use an explicit absolute path when multiple qmd installs exist or PATH differs across environments.",
-  "memory.qmd.mcporter":
-    "Routes QMD work through mcporter (MCP runtime) instead of spawning `qmd` for each call. Use this when cold starts are expensive on large models; keep direct process mode for simpler local setups.",
-  "memory.qmd.mcporter.enabled":
-    "Routes QMD through an mcporter daemon instead of spawning qmd per request, reducing cold-start overhead for larger models. Keep disabled unless mcporter is installed and configured.",
-  "memory.qmd.mcporter.serverName":
-    "Names the mcporter server target used for QMD calls (default: qmd). Change only when your mcporter setup uses a custom server name for qmd mcp keep-alive.",
-  "memory.qmd.mcporter.startDaemon":
-    "Automatically starts the mcporter daemon when mcporter-backed QMD mode is enabled (default: true). Keep enabled unless process lifecycle is managed externally by your service supervisor.",
-  "memory.qmd.searchMode":
-    'Selects the QMD retrieval path: "query" uses standard query flow, "search" uses search-oriented retrieval, and "vsearch" emphasizes vector retrieval. Keep default unless tuning relevance quality.',
-  "memory.qmd.searchTool":
-    "Overrides the exact mcporter tool name used for QMD searches while preserving `searchMode` as the semantic retrieval mode. Use this only when your QMD MCP server exposes a custom tool such as `hybrid_search` and keep it unset for the normal built-in tool mapping.",
-  "memory.qmd.includeDefaultMemory":
-    "Automatically indexes default memory files (MEMORY.md and memory/**/*.md) into QMD collections. Keep enabled unless you want indexing controlled only through explicit custom paths.",
-  "memory.qmd.paths":
-    "Adds custom directories or files to include in QMD indexing, each with an optional name and glob pattern. Use this for project-specific knowledge locations that are outside default memory paths.",
-  "memory.qmd.paths.path":
-    "Defines the root location QMD should scan, using an absolute path or `~`-relative path. Use stable directories so collection identity does not drift across environments.",
-  "memory.qmd.paths.pattern":
-    "Filters files under each indexed root using a glob pattern, with default `**/*.md`. Use narrower patterns to reduce noise and indexing cost when directories contain mixed file types.",
-  "memory.qmd.paths.name":
-    "Sets a stable collection name for an indexed path instead of deriving it from filesystem location. Use this when paths vary across machines but you want consistent collection identity.",
-  "memory.qmd.sessions.enabled":
-    "Indexes session transcripts into QMD so recall can include prior conversation content (experimental, default: false). Enable only when transcript memory is required and you accept larger index churn.",
-  "memory.qmd.sessions.exportDir":
-    "Overrides where sanitized session exports are written before QMD indexing. Use this when default state storage is constrained or when exports must land on a managed volume.",
-  "memory.qmd.sessions.retentionDays":
-    "Defines how long exported session files are kept before automatic pruning, in days (default: unlimited). Set a finite value for storage hygiene or compliance retention policies.",
-  "memory.qmd.update.interval":
-    "Sets how often QMD refreshes indexes from source content (duration string, default: 5m). Shorter intervals improve freshness but increase background CPU and I/O.",
-  "memory.qmd.update.debounceMs":
-    "Sets the minimum delay between consecutive QMD refresh attempts in milliseconds (default: 15000). Increase this if frequent file changes cause update thrash or unnecessary background load.",
-  "memory.qmd.update.onBoot":
-    "Runs an initial QMD update once during gateway startup (default: true). Keep enabled so recall starts from a fresh baseline; disable only when startup speed is more important than immediate freshness.",
-  "memory.qmd.update.waitForBootSync":
-    "Blocks startup completion until the initial boot-time QMD sync finishes (default: false). Enable when you need fully up-to-date recall before serving traffic, and keep off for faster boot.",
-  "memory.qmd.update.embedInterval":
-    "Sets how often QMD recomputes embeddings (duration string, default: 60m; set 0 to disable periodic embeds). Lower intervals improve freshness but increase embedding workload and cost.",
-  "memory.qmd.update.commandTimeoutMs":
-    "Sets timeout for QMD maintenance commands such as collection list/add in milliseconds (default: 30000). Increase when running on slower disks or remote filesystems that delay command completion.",
-  "memory.qmd.update.updateTimeoutMs":
-    "Sets maximum runtime for each `qmd update` cycle in milliseconds (default: 120000). Raise this for larger collections; lower it when you want quicker failure detection in automation.",
-  "memory.qmd.update.embedTimeoutMs":
-    "Sets maximum runtime for each `qmd embed` cycle in milliseconds (default: 120000). Increase for heavier embedding workloads or slower hardware, and lower to fail fast under tight SLAs.",
-  "memory.qmd.limits.maxResults":
-    "Limits how many QMD hits are returned into the agent loop for each recall request (default: 6). Increase for broader recall context, or lower to keep prompts tighter and faster.",
-  "memory.qmd.limits.maxSnippetChars":
-    "Caps per-result snippet length extracted from QMD hits in characters (default: 700). Lower this when prompts bloat quickly, and raise only if answers consistently miss key details.",
-  "memory.qmd.limits.maxInjectedChars":
-    "Caps how much QMD text can be injected into one turn across all hits. Use lower values to control prompt bloat and latency; raise only when context is consistently truncated.",
-  "memory.qmd.limits.timeoutMs":
-    "Sets per-query QMD search timeout in milliseconds (default: 4000). Increase for larger indexes or slower environments, and lower to keep request latency bounded.",
-  "memory.qmd.scope":
-    "Defines which sessions/channels are eligible for QMD recall using session.sendPolicy-style rules. Keep default direct-only scope unless you intentionally want cross-chat memory sharing.",
   plugins:
     "Plugin system controls for enabling extensions, constraining load scope, configuring entries, and tracking installs. Keep plugin policy explicit and least-privilege in production environments.",
   "plugins.enabled":

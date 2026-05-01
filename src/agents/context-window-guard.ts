@@ -24,6 +24,24 @@ export type ModelContextBudget = {
   confidence: ModelContextBudgetConfidence;
 };
 
+export type ContextBudgetPolicy = {
+  compactTriggerTokens: number;
+  memoryFlushTriggerTokens: number;
+  memoryFlushLeadTokens: number;
+  timeoutRecoveryTriggerTokens: number;
+  sessionSummary: {
+    lightInitialTokenThreshold: number;
+    initialTokenThreshold: number;
+    updateTokenThreshold: number;
+  };
+  compaction: {
+    tailMinTokens: number;
+    tailMaxTokens: number;
+    minTextMessages: number;
+    compactSummaryBudgetTokens: number;
+  };
+};
+
 function normalizePositiveInt(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null;
@@ -65,6 +83,10 @@ export function resolveContextWindowInfo(params: {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function clampInt(value: number, min: number, max: number): number {
+  return Math.floor(clamp(Math.floor(value), min, max));
 }
 
 function resolveMemoryBudgetTokens(windowTokens: number): number {
@@ -115,6 +137,53 @@ export function resolveModelContextBudget(params: {
     source: params.info.source,
     confidence: params.info.source === "default" ? "low" : "high",
   };
+}
+
+function resolveCompactionMinTextMessages(windowTokens: number): number {
+  if (windowTokens < 32_000) {
+    return 5;
+  }
+  if (windowTokens < 128_000) {
+    return 8;
+  }
+  return 12;
+}
+
+export function resolveContextBudgetPolicy(
+  budget: Pick<ModelContextBudget, "windowTokens" | "usableInputTokens">,
+): ContextBudgetPolicy {
+  const windowTokens = Math.max(1, Math.floor(budget.windowTokens));
+  const usableInputTokens = Math.max(0, Math.floor(budget.usableInputTokens));
+  const compactTriggerTokens = Math.floor(usableInputTokens * 0.92);
+  const memoryFlushLeadTokens = clampInt(windowTokens * 0.02, 1_000, 8_000);
+  const tailMinTokens = clampInt(windowTokens * 0.01, 240, 6_000);
+  const tailMaxTokens = Math.max(tailMinTokens, clampInt(windowTokens * 0.03, 840, 24_000));
+
+  return {
+    compactTriggerTokens,
+    memoryFlushTriggerTokens: Math.max(0, compactTriggerTokens - memoryFlushLeadTokens),
+    memoryFlushLeadTokens,
+    timeoutRecoveryTriggerTokens: Math.floor(usableInputTokens * 0.85),
+    sessionSummary: {
+      lightInitialTokenThreshold: clampInt(windowTokens * 0.025, 1_200, 24_000),
+      initialTokenThreshold: clampInt(windowTokens * 0.08, 5_000, 80_000),
+      updateTokenThreshold: clampInt(windowTokens * 0.04, 2_000, 40_000),
+    },
+    compaction: {
+      tailMinTokens,
+      tailMaxTokens,
+      minTextMessages: resolveCompactionMinTextMessages(windowTokens),
+      compactSummaryBudgetTokens: clampInt(windowTokens * 0.01, 600, 6_000),
+    },
+  };
+}
+
+export function resolveContextBudgetPolicyFromWindow(windowTokens: number): ContextBudgetPolicy {
+  return resolveContextBudgetPolicy(
+    resolveModelContextBudget({
+      info: { tokens: windowTokens, source: "model" },
+    }),
+  );
 }
 
 export type ContextWindowGuardResult = ContextWindowInfo & {

@@ -102,6 +102,7 @@ Notes:
 - `memory status` reports the current NotebookLM provider state, including lifecycle, reason, and recommended action.
 - `memory refresh` rebuilds the local NotebookLM profile from the configured cookie fallback.
 - `memory login` runs the interactive NotebookLM login flow and validates the rebuilt profile.
+- `memory sync` flushes local pending experience notes into NotebookLM and updates the managed `CrawClaw Memory Index` source when configured.
 - `memory prompt-journal-summary` aggregates the nightly memory prompt journal into counts for prompt assembly, after-turn decisions, durable extraction, experience extraction, and experience writes.
 - auto-dream is enabled by default, but it still respects minimum-session,
   minimum-hour, scan-throttle, and DB-lock gates before starting a background

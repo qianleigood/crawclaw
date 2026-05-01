@@ -551,11 +551,11 @@ describe("createContextMemoryRuntime().assemble", () => {
       enabled: true,
       reason: "intent:sop",
       limit: 7,
-      providerIds: expect.arrayContaining(["notebooklm", "local_experience_index"]),
+      providerIds: ["notebooklm"],
     });
   });
 
-  it("falls back to the local experience index when provider recall has no hits", async () => {
+  it("does not fall back to the local experience index when NotebookLM has no hits", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
     const { upsertExperienceIndexEntry } = await import("../experience/index-store.ts");
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-experience-index-runtime-"));
@@ -641,11 +641,11 @@ describe("createContextMemoryRuntime().assemble", () => {
     });
 
     const systemContextText = renderQueryContextSections(result.systemContextSections);
-    expect(systemContextText).toContain("## 经验回忆");
-    expect(systemContextText).toContain("【操作经验】本地网关恢复流程");
-    expect(result.diagnostics?.memoryRecall?.experienceQueryPlan?.providerIds).toContain(
-      "local_experience_index",
-    );
+    expect(systemContextText).not.toContain("## 经验回忆");
+    expect(systemContextText).not.toContain("【操作经验】本地网关恢复流程");
+    expect(result.diagnostics?.memoryRecall?.experienceQueryPlan?.providerIds).toEqual([
+      "notebooklm",
+    ]);
   });
 
   it("does not inject session summary into system context during assemble", async () => {

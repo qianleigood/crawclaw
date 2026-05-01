@@ -1,4 +1,6 @@
 import type { CompactPostArtifacts } from "../../agents/compaction/post-compact-artifacts.js";
+import { resolveContextBudgetPolicyFromWindow } from "../../agents/context-window-guard.js";
+import type { CompleteFn } from "../extraction/llm.ts";
 import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import { renderSessionSummaryForCompaction } from "../session-summary/sections.ts";
@@ -7,15 +9,19 @@ import {
   getSessionSummarySectionText,
   inferSessionSummaryProfile,
 } from "../session-summary/template.ts";
+import type { GmMessageRow } from "../types/runtime.ts";
 import {
   buildSessionSummaryPostCompactArtifacts,
   calculateCompactionBoundaryStartRow,
   estimateMessageRowTokens,
   MIN_COMPACTION_TAIL_MESSAGES,
-  MIN_COMPACTION_TEXT_MESSAGES,
 } from "./compaction.ts";
 
 const SESSION_SUMMARY_STALE_LEASE_MS = 60_000;
+type CompactionSummarySource =
+  | "session-summary"
+  | "transcript-fallback-llm"
+  | "transcript-fallback-local";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -43,6 +49,115 @@ function buildSessionSummaryPlanAttachmentText(
     return null;
   }
   return parts.map((entry) => `## ${entry.label}\n${entry.text.trim()}`).join("\n\n");
+}
+
+function normalizeCompactText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function truncateToTokenBudget(text: string, tokenBudget: number): string {
+  const clean = text.trim();
+  if (!clean || estimateTokenCount(clean) <= tokenBudget) {
+    return clean;
+  }
+  let candidate = clean.slice(0, Math.max(1, tokenBudget * 4)).trimEnd();
+  const suffix = "\n[truncated to fit compact summary budget]";
+  while (candidate.length > 0 && estimateTokenCount(`${candidate}${suffix}`) > tokenBudget) {
+    candidate = candidate.slice(0, Math.floor(candidate.length * 0.85)).trimEnd();
+  }
+  return candidate ? `${candidate}${suffix}` : clean.slice(0, 160).trimEnd();
+}
+
+function renderTranscriptFallbackRows(rows: GmMessageRow[]): string {
+  const selectedRows = rows.length <= 16 ? rows : [...rows.slice(0, 4), ...rows.slice(-12)];
+  const omittedRows = rows.length - selectedRows.length;
+  const lines = selectedRows.map((row) => {
+    const content = normalizeCompactText(row.contentText || row.content || "");
+    const preview = content
+      ? content.length > 500
+        ? `${content.slice(0, 500).trimEnd()}...`
+        : content
+      : "[non-text message]";
+    return `- turn ${row.turnIndex} ${row.role}: ${preview}`;
+  });
+  if (omittedRows > 0) {
+    lines.splice(4, 0, `- ${omittedRows} middle message(s) omitted from fallback digest.`);
+  }
+  return lines.join("\n");
+}
+
+function buildLocalTranscriptFallbackSummary(params: {
+  sessionId: string;
+  summarizedRows: GmMessageRow[];
+  tokenBudget: number;
+}): string {
+  const rows = params.summarizedRows;
+  const firstTurn = rows[0]?.turnIndex ?? 0;
+  const lastTurn = rows.at(-1)?.turnIndex ?? firstTurn;
+  const summary = [
+    "## Current State",
+    "No session summary was available, so earlier transcript was compacted directly to keep the run within the model context window.",
+    "",
+    "## Compacted Transcript",
+    `Session ${params.sessionId}: compacted ${rows.length} message(s) from turns ${firstTurn}-${lastTurn}.`,
+    renderTranscriptFallbackRows(rows),
+  ].join("\n");
+  return truncateToTokenBudget(summary, params.tokenBudget);
+}
+
+async function buildTranscriptFallbackCompactionSummary(params: {
+  sessionId: string;
+  summarizedRows: GmMessageRow[];
+  tokenBudget: number;
+  complete?: CompleteFn;
+  logger: { info(msg: string): void };
+}): Promise<{ text: string; source: CompactionSummarySource }> {
+  const localSummary = buildLocalTranscriptFallbackSummary({
+    sessionId: params.sessionId,
+    summarizedRows: params.summarizedRows,
+    tokenBudget: params.tokenBudget,
+  });
+  if (!params.complete) {
+    return { text: localSummary, source: "transcript-fallback-local" };
+  }
+
+  const transcriptDigest = truncateToTokenBudget(
+    renderTranscriptFallbackRows(params.summarizedRows),
+    Math.max(params.tokenBudget, 800),
+  );
+  try {
+    const generated = await params.complete(
+      [
+        "You compact agent transcript history for future context.",
+        "Preserve concrete facts, user requests, decisions, open work, errors, fixes, file paths, commands, identifiers, and constraints.",
+        "Do not invent details. Return concise Markdown suitable for a compact_summary message.",
+      ].join("\n"),
+      [
+        `Session ID: ${params.sessionId}`,
+        `Compacted messages: ${params.summarizedRows.length}`,
+        "",
+        "The live tail after these messages remains visible separately. Summarize only this compacted prefix:",
+        transcriptDigest,
+      ].join("\n"),
+    );
+    const generatedText = generated.trim();
+    if (generatedText) {
+      const summary = /^##\s+/m.test(generatedText)
+        ? generatedText
+        : `## Current State\n${generatedText}`;
+      return {
+        text: truncateToTokenBudget(summary, params.tokenBudget),
+        source: "transcript-fallback-llm",
+      };
+    }
+  } catch (error) {
+    params.logger.info(
+      `[memory] transcript fallback summary generation failed sessionId=${params.sessionId} error=${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  return { text: localSummary, source: "transcript-fallback-local" };
 }
 
 export function formatCompactionTrigger(
@@ -132,6 +247,7 @@ export async function runSessionMemoryCompaction(params: {
   force?: boolean;
   runtimeContext?: Record<string, unknown>;
   maxSummaryWaitMs?: number;
+  complete?: CompleteFn;
 }): Promise<CompactionResult> {
   const triggerInfo = formatCompactionTrigger(params.runtimeContext);
   const waitResult = await waitForSessionSummaryIdle({
@@ -147,19 +263,23 @@ export async function runSessionMemoryCompaction(params: {
     }),
     params.runtimeStore.getSessionSummaryState(params.sessionId),
   ]);
-  const renderedSummary = renderSessionSummaryForCompaction(summaryFile.content);
+  const budgetWindowTokens = Math.max(
+    1,
+    Math.floor(params.tokenBudget ?? params.currentTokenCount ?? 1000),
+  );
+  const contextBudgetPolicy = resolveContextBudgetPolicyFromWindow(budgetWindowTokens);
+  const compactionPolicy = contextBudgetPolicy.compaction;
+  const renderedSummary = renderSessionSummaryForCompaction(summaryFile.content, {
+    tokenBudget: compactionPolicy.compactSummaryBudgetTokens,
+  });
+  const hasSessionSummary = renderedSummary.trim().length > 0;
   const summarizedThroughMessageId = summaryState?.lastSummarizedMessageId ?? null;
   const summaryLastUpdatedAt = summaryState?.lastSummaryUpdatedAt ?? summaryFile.updatedAt ?? null;
   const summaryAgeMs =
     summaryLastUpdatedAt != null ? Math.max(0, Date.now() - summaryLastUpdatedAt) : null;
-  const summaryProfile = inferSessionSummaryProfile(summaryFile.document);
-
-  if (!renderedSummary.trim()) {
-    params.logger.info(
-      `[memory] compaction skipped sessionId=${params.sessionId} ${triggerInfo} reason=session-summary-unavailable`,
-    );
-    return { ok: true, compacted: false, reason: "session-summary-unavailable" };
-  }
+  const summaryProfile = hasSessionSummary
+    ? inferSessionSummaryProfile(summaryFile.document)
+    : null;
 
   if (params.totalTurns < MIN_COMPACTION_TAIL_MESSAGES + 2) {
     params.logger.info(
@@ -168,15 +288,8 @@ export async function runSessionMemoryCompaction(params: {
     return { ok: true, compacted: false, reason: "not-enough-turns" };
   }
 
-  const effectiveBudget = Math.max(
-    240,
-    Math.min(params.tokenBudget ?? params.currentTokenCount ?? 1000, 1200),
-  );
-  const minPreservedTokens = Math.max(120, Math.min(420, Math.floor(effectiveBudget * 0.35)));
-  const maxPreservedTokens = Math.max(
-    minPreservedTokens,
-    Math.min(840, Math.floor(effectiveBudget * 0.75)),
-  );
+  const minPreservedTokens = compactionPolicy.tailMinTokens;
+  const maxPreservedTokens = compactionPolicy.tailMaxTokens;
   const allRows = await params.runtimeStore.listMessagesByTurnRange(
     params.sessionId,
     1,
@@ -190,11 +303,14 @@ export async function runSessionMemoryCompaction(params: {
     return { ok: true, compacted: false, reason: "tail-already-small" };
   }
 
+  const compactionSummarizedThroughMessageId = hasSessionSummary
+    ? summarizedThroughMessageId
+    : null;
   const preservedTailStartRow = calculateCompactionBoundaryStartRow({
     rows: allRows,
-    summarizedThroughMessageId,
+    summarizedThroughMessageId: compactionSummarizedThroughMessageId,
     minTokens: minPreservedTokens,
-    minTextMessages: MIN_COMPACTION_TEXT_MESSAGES,
+    minTextMessages: compactionPolicy.minTextMessages,
     maxTokens: maxPreservedTokens,
     floorMessageId: existingState?.preservedTailMessageId ?? null,
     floorTurnIndex: existingState?.preservedTailStartTurn ?? null,
@@ -218,7 +334,7 @@ export async function runSessionMemoryCompaction(params: {
     !params.force &&
     existingState?.preservedTailStartTurn === preservedTailStartTurn &&
     (existingState?.preservedTailMessageId ?? null) === preservedTailMessageId &&
-    (existingState?.summarizedThroughMessageId ?? null) === summarizedThroughMessageId
+    (existingState?.summarizedThroughMessageId ?? null) === compactionSummarizedThroughMessageId
   ) {
     params.logger.info(
       `[memory] compaction skipped sessionId=${params.sessionId} ${triggerInfo} reason=compaction-state-unchanged preservedTailStartTurn=${preservedTailStartTurn}`,
@@ -226,25 +342,45 @@ export async function runSessionMemoryCompaction(params: {
     return { ok: true, compacted: false, reason: "compaction-state-unchanged" };
   }
 
+  const keptRows = allRows.filter((row) => row.turnIndex >= preservedTailStartTurn);
+  const summarizedRows = allRows.filter((row) => row.turnIndex < preservedTailStartTurn);
+  const summaryBuild = hasSessionSummary
+    ? ({
+        text: renderedSummary,
+        source: "session-summary",
+      } satisfies { text: string; source: CompactionSummarySource })
+    : await buildTranscriptFallbackCompactionSummary({
+        sessionId: params.sessionId,
+        summarizedRows,
+        tokenBudget: compactionPolicy.compactSummaryBudgetTokens,
+        complete: params.complete,
+        logger: params.logger,
+      });
+  const compactSummaryText = summaryBuild.text;
+  const compactionReason =
+    summaryBuild.source === "session-summary"
+      ? "session-summary-tail-compaction"
+      : "transcript-fallback-tail-compaction";
+
   await params.runtimeStore.upsertSessionCompactionState({
     sessionId: params.sessionId,
     preservedTailStartTurn,
     preservedTailMessageId,
-    summarizedThroughMessageId,
-    mode: "session-summary",
-    summaryOverrideText: renderedSummary,
+    summarizedThroughMessageId: compactionSummarizedThroughMessageId,
+    mode: summaryBuild.source === "session-summary" ? "session-summary" : "transcript-fallback",
+    summaryOverrideText: compactSummaryText,
   });
 
-  const keptRows = allRows.filter((row) => row.turnIndex >= preservedTailStartTurn);
-  const summarizedRows = allRows.filter((row) => row.turnIndex < preservedTailStartTurn);
-  const summaryTokens = estimateTokenCount(renderedSummary);
+  const summaryTokens = estimateTokenCount(compactSummaryText);
   const tailTokensBefore = estimateMessageRowTokens(allRows);
   const tailTokensAfter = estimateMessageRowTokens(keptRows);
   const tokensBefore = Math.max(params.currentTokenCount ?? 0, summaryTokens + tailTokensBefore);
   const tokensAfter = summaryTokens + tailTokensAfter;
-  const planAttachmentText = buildSessionSummaryPlanAttachmentText(summaryFile);
+  const planAttachmentText = hasSessionSummary
+    ? buildSessionSummaryPlanAttachmentText(summaryFile)
+    : null;
   const postCompactArtifacts = buildSessionSummaryPostCompactArtifacts({
-    summary: renderedSummary,
+    summary: compactSummaryText,
     allRows,
     keptRows,
     planAttachmentText,
@@ -252,7 +388,7 @@ export async function runSessionMemoryCompaction(params: {
       typeof params.runtimeContext?.trigger === "string" ? params.runtimeContext.trigger : null,
     tokensBefore,
     messagesSummarized: summarizedRows.length,
-    resumedWithoutBoundary: !summarizedThroughMessageId,
+    resumedWithoutBoundary: !compactionSummarizedThroughMessageId,
   });
   const compactionDetails = {
     trigger:
@@ -260,16 +396,17 @@ export async function runSessionMemoryCompaction(params: {
         ? params.runtimeContext.trigger
         : "unspecified",
     force: Boolean(params.force),
-    resumedWithoutBoundary: !summarizedThroughMessageId,
+    resumedWithoutBoundary: !compactionSummarizedThroughMessageId,
     totalTurns: params.totalTurns,
     preservedTailStartTurn,
     preservedTailMessageId,
-    summarizedThroughMessageId,
+    summarizedThroughMessageId: compactionSummarizedThroughMessageId,
     summarizedMessages: summarizedRows.length,
     keptMessages: keptRows.length,
-    summaryChars: renderedSummary.length,
+    summaryChars: compactSummaryText.length,
     summaryTokens,
     summaryProfile,
+    summarySource: summaryBuild.source,
     summaryLastUpdatedAt,
     summaryAgeMs,
     waitedForSummaryMs: waitResult.waitedForSummaryMs,
@@ -280,14 +417,16 @@ export async function runSessionMemoryCompaction(params: {
     tailTokensAfter,
     minPreservedTokens,
     maxPreservedTokens,
+    minTextMessages: compactionPolicy.minTextMessages,
+    compactSummaryBudgetTokens: compactionPolicy.compactSummaryBudgetTokens,
   };
   await params.runtimeStore.appendCompactionAudit({
     sessionId: params.sessionId,
     kind: "compact",
     trigger:
       typeof params.runtimeContext?.trigger === "string" ? params.runtimeContext.trigger : null,
-    reason: "session-summary-tail-compaction",
-    tokenBudget: params.tokenBudget ?? effectiveBudget,
+    reason: compactionReason,
+    tokenBudget: params.tokenBudget ?? budgetWindowTokens,
     currentTokenCount: params.currentTokenCount ?? null,
     tokensBefore,
     tokensAfter,
@@ -303,9 +442,9 @@ export async function runSessionMemoryCompaction(params: {
   return {
     ok: true,
     compacted: true,
-    reason: "session-summary-tail-compaction",
+    reason: compactionReason,
     result: {
-      summary: renderedSummary,
+      summary: compactSummaryText,
       firstKeptEntryId: preservedTailMessageId ?? "",
       tokensBefore,
       tokensAfter,

@@ -5,6 +5,7 @@ import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import {
   SESSION_SUMMARY_READ_CACHE_DESCRIPTOR,
   clearSessionSummaryReadCache,
+  editSessionSummaryFile,
   getSessionSummaryReadCacheMeta,
   ensureSessionSummaryFile,
   resolveSessionSummaryPath,
@@ -101,6 +102,76 @@ describe("session summary store", () => {
     });
     expect(readBack?.content).toBe(written.content);
     expect(readBack?.summaryPath).toBe(written.summaryPath);
+  });
+
+  it("rejects edits that remove a required section heading", async () => {
+    const rootDir = await tempDirs.make("session-summary-store-edit-structure-");
+    const sessionId = "session-edit-structure";
+    const initial = await ensureSessionSummaryFile({
+      agentId: "main",
+      sessionId,
+      rootDir,
+    });
+    const findText =
+      "# Key results\n_If the user asked a specific output such as an answer to a question, a table, or other document, repeat the exact result here_\n\n\n# Worklog\n";
+
+    await expect(
+      editSessionSummaryFile({
+        agentId: "main",
+        sessionId,
+        rootDir,
+        findText,
+        replaceText:
+          "# Key results\n_If the user asked a specific output such as an answer to a question, a table, or other document, repeat the exact result here_\n\nConfirmed.# Worklog\n",
+      }),
+    ).rejects.toThrow("session summary edit would break section structure: Worklog");
+
+    const readBack = await readSessionSummaryFile({
+      agentId: "main",
+      sessionId,
+      rootDir,
+    });
+    expect(readBack.content).toBe(initial.content);
+  });
+
+  it("serializes concurrent edits to the same summary file", async () => {
+    const rootDir = await tempDirs.make("session-summary-store-concurrent-edit-");
+    const sessionId = "session-concurrent-edit";
+    await ensureSessionSummaryFile({
+      agentId: "main",
+      sessionId,
+      rootDir,
+    });
+
+    await Promise.all([
+      editSessionSummaryFile({
+        agentId: "main",
+        sessionId,
+        rootDir,
+        findText:
+          "# Current State\n_What is actively being worked on right now? Pending tasks not yet completed. Immediate next steps._\n\n\n",
+        replaceText:
+          "# Current State\n_What is actively being worked on right now? Pending tasks not yet completed. Immediate next steps._\n\nCurrent state updated.\n\n",
+      }),
+      editSessionSummaryFile({
+        agentId: "main",
+        sessionId,
+        rootDir,
+        findText:
+          "# Open Loops\n_Which work items, decisions, or follow-ups are still open right now? Keep this tightly focused on unresolved items._\n\n\n",
+        replaceText:
+          "# Open Loops\n_Which work items, decisions, or follow-ups are still open right now? Keep this tightly focused on unresolved items._\n\nNo open loops.\n\n",
+      }),
+    ]);
+
+    const readBack = await readSessionSummaryFile({
+      agentId: "main",
+      sessionId,
+      rootDir,
+    });
+    expect(readBack.content).toContain("Current state updated.");
+    expect(readBack.content).toContain("No open loops.");
+    expect(readBack.content).toContain("# Worklog");
   });
 
   it("reuses cached summary reads when mtime/bytes are unchanged", async () => {

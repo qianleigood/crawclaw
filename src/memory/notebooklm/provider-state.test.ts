@@ -1,7 +1,12 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NotebookLmConfig } from "../types/config.ts";
 
 const execFileMock = vi.fn();
+const tempRoots: string[] = [];
+const originalStateDir = process.env.CRAWCLAW_STATE_DIR;
 
 vi.mock("node:child_process", () => ({
   execFile: (...args: unknown[]) => execFileMock(...args),
@@ -34,6 +39,19 @@ const baseConfig: NotebookLmConfig = {
   },
 };
 
+function makeManagedNlmBin(): string {
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-notebooklm-state-"));
+  tempRoots.push(stateDir);
+  const binPath =
+    process.platform === "win32"
+      ? path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "Scripts", "nlm.exe")
+      : path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "bin", "nlm");
+  fs.mkdirSync(path.dirname(binPath), { recursive: true });
+  fs.writeFileSync(binPath, "", "utf8");
+  process.env.CRAWCLAW_STATE_DIR = stateDir;
+  return binPath;
+}
+
 describe("getNotebookLmProviderState", () => {
   beforeEach(() => {
     execFileMock.mockReset();
@@ -41,6 +59,14 @@ describe("getNotebookLmProviderState", () => {
 
   afterEach(() => {
     vi.resetModules();
+    if (originalStateDir === undefined) {
+      delete process.env.CRAWCLAW_STATE_DIR;
+    } else {
+      process.env.CRAWCLAW_STATE_DIR = originalStateDir;
+    }
+    for (const root of tempRoots.splice(0)) {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("reports ready state from the wrapper status response", async () => {
@@ -119,6 +145,68 @@ describe("getNotebookLmProviderState", () => {
       notebookId: "nb-1",
       authSource: "profile",
     });
+  });
+
+  it("checks auth through the managed nlm runtime when no command is configured", async () => {
+    const binPath = makeManagedNlmBin();
+    execFileMock.mockImplementation((command, args, _options, callback) => {
+      expect(command).toBe(binPath);
+      expect(args).toEqual(["login", "--check"]);
+      callback(null, "✓ Authentication valid!\n  Profile: default\n  Notebooks found: 3");
+    });
+
+    const { getNotebookLmProviderState } = await import("./provider-state.ts");
+    const state = await getNotebookLmProviderState({
+      mode: "query",
+      config: {
+        ...baseConfig,
+        cli: {
+          ...baseConfig.cli,
+          command: "",
+          args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
+        },
+      },
+    });
+
+    expect(state).toMatchObject({
+      ready: true,
+      lifecycle: "ready",
+      reason: null,
+    });
+  });
+
+  it("retries transient NotebookLM API code 7 auth checks before degrading", async () => {
+    execFileMock
+      .mockImplementationOnce((_command, _args, _options, callback) => {
+        callback(
+          new Error("Command failed"),
+          "",
+          "✗ Authentication failed: API error (code 7): type.googleapis.com/google.rpc.ErrorInfo",
+        );
+      })
+      .mockImplementationOnce((_command, _args, _options, callback) => {
+        callback(null, "✓ Authentication valid!\n  Profile: default\n  Notebooks found: 3");
+      });
+
+    const { getNotebookLmProviderState } = await import("./provider-state.ts");
+    const state = await getNotebookLmProviderState({
+      mode: "query",
+      config: {
+        ...baseConfig,
+        cli: {
+          ...baseConfig.cli,
+          command: "nlm",
+          args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
+        },
+      },
+    });
+
+    expect(state).toMatchObject({
+      ready: true,
+      lifecycle: "ready",
+      reason: null,
+    });
+    expect(execFileMock).toHaveBeenCalledTimes(2);
   });
 
   it("returns a classified missing state when wrapper reports auth expiry", async () => {

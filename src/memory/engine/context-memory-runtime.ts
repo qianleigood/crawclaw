@@ -1,6 +1,6 @@
 import type { ContextArchiveService } from "../../agents/context-archive/service.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateConversationMessageTokens } from "../context/assembly.ts";
 import { runSessionMemoryCompaction } from "../context/compaction-runner.ts";
 import {
@@ -26,7 +26,11 @@ import {
   createContextMemoryRuntimeDeps,
   type RuntimeLogger,
 } from "./context-memory-runtime-deps.ts";
-import { getMessageRole, resolvePromptContext } from "./context-memory-runtime-helpers.ts";
+import {
+  getMessageRole,
+  resolveMemoryMessageChannel,
+  resolvePromptContext,
+} from "./context-memory-runtime-helpers.ts";
 import { runPostAssemblySideEffects } from "./context-memory-runtime-post-assembly.ts";
 import { prepareMemoryAssemblyContext } from "./context-memory-runtime-preparation.ts";
 import { resolveDurableRecallForAssembly } from "./context-memory-runtime-recall.ts";
@@ -311,14 +315,11 @@ export function createContextMemoryRuntime(options: {
       );
 
       const resolvedSessionKey = typeof sessionKey === "string" ? sessionKey.trim() : "";
-      if (resolvedSessionKey && !isSubagentSessionKey(resolvedSessionKey)) {
+      if (resolvedSessionKey && !isMemoryAutomationExcludedSessionKey(resolvedSessionKey)) {
         const durableScope = resolveDurableMemoryScope({
           sessionKey: resolvedSessionKey,
           agentId: typeof runtimeContext?.agentId === "string" ? runtimeContext.agentId : undefined,
-          channel:
-            typeof runtimeContext?.messageChannel === "string"
-              ? runtimeContext.messageChannel
-              : undefined,
+          channel: resolveMemoryMessageChannel(runtimeContext),
           userId:
             typeof runtimeContext?.senderId === "string" ? runtimeContext.senderId : undefined,
         });
@@ -354,6 +355,7 @@ export function createContextMemoryRuntime(options: {
         force,
         runtimeContext,
         maxSummaryWaitMs: options.config?.sessionSummary?.maxWaitMs ?? 15_000,
+        complete: structuredComplete,
       });
       await contextArchiveTurnCapture
         .appendEvent({

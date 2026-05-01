@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { resolveUnifiedEntities } from "./entity-resolver.ts";
 
 describe("resolveUnifiedEntities", () => {
-  it("scores local experience index entities with the experience route bias", () => {
+  it("scores NotebookLM experience entities with the experience route bias", () => {
     const result = resolveUnifiedEntities({
       query: "gateway recovery",
       classification: {
@@ -25,11 +25,11 @@ describe("resolveUnifiedEntities", () => {
       },
       registries: [
         {
-          source: "local_experience_index",
+          source: "notebooklm",
           items: [
             {
-              id: "local-gateway-recovery",
-              source: "local_experience_index",
+              id: "notebooklm-gateway-recovery",
+              source: "notebooklm",
               title: "gateway recovery",
             },
           ],
@@ -38,7 +38,7 @@ describe("resolveUnifiedEntities", () => {
     });
 
     expect(result.selectedCandidates.map((candidate) => candidate.id)).toEqual([
-      "local-gateway-recovery",
+      "notebooklm-gateway-recovery",
     ]);
   });
 });

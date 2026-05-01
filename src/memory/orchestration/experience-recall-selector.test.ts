@@ -70,26 +70,6 @@ describe("selectExperienceRecall", () => {
     expect(result.mode).toBe("heuristic");
   });
 
-  it("accepts local experience index items without pretending they came from notebooklm", () => {
-    const result = selectExperienceRecall({
-      items: [
-        makeItem({
-          id: "local-sop",
-          source: "local_experience_index",
-          title: "gateway recovery",
-          summary:
-            "When gateway health fails, inspect the port, restart the service, then verify health.",
-          layer: "sop",
-          memoryKind: "procedure",
-          score: 0.79,
-        }),
-      ],
-    });
-
-    expect(result.selectedItemIds).toEqual(["local-sop"]);
-    expect(result.mode).toBe("heuristic");
-  });
-
   it("can select more than four strong experience items when the caller lends budget", () => {
     const items = Array.from({ length: 6 }, (_, index) =>
       makeItem({

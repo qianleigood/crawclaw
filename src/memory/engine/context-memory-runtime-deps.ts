@@ -119,7 +119,7 @@ export function createContextMemoryRuntimeDeps(options: {
       minToolCalls: options.config?.sessionSummary?.toolCallsBetweenUpdates ?? 3,
       minIntervalMs: 0,
       runTimeoutSeconds: options.config?.sessionSummary?.maxWaitMs
-        ? Math.max(15, Math.floor(options.config.sessionSummary.maxWaitMs / 1000))
+        ? Math.max(90, Math.floor(options.config.sessionSummary.maxWaitMs / 1000))
         : 90,
       maxTurns: options.config?.sessionSummary?.maxTurns ?? 5,
     },

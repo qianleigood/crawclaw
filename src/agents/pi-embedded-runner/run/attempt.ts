@@ -58,7 +58,12 @@ import {
   resolveChannelReactionGuidance,
 } from "../../channel-tools.js";
 import { captureModelVisibleContext } from "../../context-archive/turn-capture.js";
-import { resolveModelContextBudget, type ModelContextBudget } from "../../context-window-guard.js";
+import {
+  resolveContextBudgetPolicy,
+  resolveModelContextBudget,
+  type ContextBudgetPolicy,
+  type ModelContextBudget,
+} from "../../context-window-guard.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../defaults.js";
 import { resolveCrawClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
@@ -886,6 +891,7 @@ export async function runEmbeddedAttempt(
           : baseBudget;
       };
       let modelContextBudget = buildModelContextBudget(toolContext);
+      let contextBudgetPolicy: ContextBudgetPolicy = resolveContextBudgetPolicy(modelContextBudget);
       const allowedToolNames = collectAllowedToolNames({
         tools: effectiveTools,
         clientTools,
@@ -1070,6 +1076,7 @@ export async function runEmbeddedAttempt(
             skillsPrompt: effectiveSkillsPrompt,
             docsPath: docsPath ?? undefined,
             ttsHint,
+            memoryRuntimeActive: Boolean(params.memoryRuntime),
             workspaceNotes,
             reactionGuidance,
             promptMode: effectivePromptMode,
@@ -1377,6 +1384,7 @@ export async function runEmbeddedAttempt(
                 toolContext: createQueryContextToolContext(effectiveTools),
               };
               modelContextBudget = buildModelContextBudget(queryContext.toolContext);
+              contextBudgetPolicy = resolveContextBudgetPolicy(modelContextBudget);
               refreshQueryContextProviderRequest();
               systemPromptText = modelInput.systemPrompt;
               replaceSetContents(
@@ -2513,6 +2521,7 @@ export async function runEmbeddedAttempt(
               }),
               prePromptMessageCount,
               tokenBudget: params.contextTokenBudget,
+              contextBudgetPolicy,
               runtimeContext: afterTurnRuntimeContext,
               runMaintenance: async (contextParams) =>
                 await runMemoryRuntimeMaintenance({

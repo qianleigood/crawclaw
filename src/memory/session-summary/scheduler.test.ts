@@ -183,7 +183,7 @@ describe("session summary scheduler gate", () => {
       currentSummary: null,
     });
 
-    expect(result).toMatchObject({ status: "started", runId: "summary-run-1" });
+    expect(result).toMatchObject({ status: "no_change", runId: "summary-run-1" });
     expect(runner).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: "session-1",
@@ -235,6 +235,52 @@ describe("session summary scheduler gate", () => {
 
     expect(result).toMatchObject({ status: "skipped", reason: "missing_fork_context" });
     expect(runner).not.toHaveBeenCalled();
+  });
+
+  it("uses per-turn model-aware thresholds for the preview gate", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-policy-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runtimeStore = {
+      getSessionSummaryState: vi.fn().mockResolvedValue(null),
+      upsertSessionSummaryState: vi.fn().mockResolvedValue(undefined),
+    };
+    const scheduler = new SessionSummaryScheduler({
+      config: {
+        enabled: true,
+        lightInitialTokenThreshold: 3_000,
+        initialTokenThreshold: 10_000,
+        updateTokenThreshold: 5_000,
+        minToolCalls: 0,
+      },
+      runtimeStore: runtimeStore as never,
+      runner: vi.fn(),
+      logger: console,
+    });
+
+    const preview = await scheduler.preview({
+      sessionId: "session-policy-1",
+      sessionKey: "agent:main:main",
+      sessionFile: "/tmp/session-policy-1.jsonl",
+      workspaceDir: "/tmp/workspace",
+      agentId: "main",
+      recentMessages: [{ role: "assistant", content: "not enough yet" }] as never,
+      parentForkContext: createParentForkContext(),
+      currentTokenCount: 20_000,
+      toolCallCount: 0,
+      isSettledTurn: true,
+      currentSummary: null,
+      lightInitialTokenThreshold: 24_000,
+      initialTokenThreshold: 80_000,
+      updateTokenThreshold: 40_000,
+    });
+
+    expect(preview.targetProfile).toBe("light");
+    expect(preview.gate).toMatchObject({
+      ready: false,
+      reason: "below_initial_token_threshold",
+      currentTokenCount: 20_000,
+    });
   });
 
   it("replays the latest queued turn after an in-flight summary run completes", async () => {

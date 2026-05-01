@@ -1,8 +1,9 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { getSharedMemoryPromptJournal } from "../diagnostics/prompt-journal.js";
 import { resolveDurableMemoryScope, type DurableMemoryScope } from "../durable/scope.js";
+import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.js";
 import type { ExperienceExtractionConfig } from "../types/config.js";
 import type { GmMessageRow } from "../types/runtime.js";
@@ -58,6 +59,7 @@ type SubmitTurnParams = {
   runtimeContext?: {
     agentId?: string | null;
     messageChannel?: string | null;
+    messageProvider?: string | null;
     senderId?: string | null;
     parentRunId?: string | null;
     parentForkContext?: SpecialAgentParentForkContext | null;
@@ -89,32 +91,6 @@ function mapRowToAgentMessage(row: GmMessageRow): AgentMessage {
     role: row.role,
     content: row.contentBlocks?.length ? row.contentBlocks : (row.contentText ?? row.content),
   } as AgentMessage;
-}
-
-function hasExperienceSignal(messages: AgentMessage[]): boolean {
-  const text = messages
-    .map((message) => {
-      const content = (message as { content?: unknown }).content;
-      if (typeof content === "string") {
-        return content;
-      }
-      if (Array.isArray(content)) {
-        return content
-          .map((part) =>
-            part &&
-            typeof part === "object" &&
-            typeof (part as { text?: unknown }).text === "string"
-              ? (part as { text: string }).text
-              : "",
-          )
-          .join(" ");
-      }
-      return "";
-    })
-    .join("\n");
-  return /(经验|复盘|教训|已验证|以后.*先|下次.*先|failure|lesson|validated|postmortem|runbook|SOP)/i.test(
-    text,
-  );
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -169,21 +145,13 @@ export class ExperienceExtractionWorkerManager {
       return;
     }
     const sessionKey = params.sessionKey.trim();
-    if (isSubagentSessionKey(sessionKey)) {
-      return;
-    }
-    if (!hasExperienceSignal(params.newMessages)) {
-      getSharedMemoryPromptJournal()?.recordStage("experience_extract", {
-        sessionId: params.sessionId,
-        sessionKey,
-        payload: { decision: "skip_no_experience_signal", messageCursor: params.messageCursor },
-      });
+    if (isMemoryAutomationExcludedSessionKey(sessionKey)) {
       return;
     }
     const scope = resolveDurableMemoryScope({
       sessionKey,
       agentId: params.runtimeContext?.agentId,
-      channel: params.runtimeContext?.messageChannel,
+      channel: resolveMemoryMessageChannel(params.runtimeContext),
       userId: params.runtimeContext?.senderId,
     });
     if (!scope?.scopeKey) {

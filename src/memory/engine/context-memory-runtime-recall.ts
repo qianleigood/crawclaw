@@ -7,7 +7,10 @@ import { resolveDurableMemoryScope } from "../durable/scope.ts";
 import type { CompleteFn } from "../extraction/llm.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { RuntimeLogger } from "./context-memory-runtime-deps.ts";
-import { type DurableRecallSource } from "./context-memory-runtime-helpers.ts";
+import {
+  resolveMemoryMessageChannel,
+  type DurableRecallSource,
+} from "./context-memory-runtime-helpers.ts";
 import type { MemoryRuntimeContext } from "./types.ts";
 
 function collectRecentDreamTouchedNotes(params: {
@@ -69,10 +72,7 @@ export async function resolveDurableRecallForAssembly(params: {
       typeof params.runtimeContext?.agentId === "string"
         ? params.runtimeContext.agentId
         : undefined,
-    channel:
-      typeof params.runtimeContext?.messageChannel === "string"
-        ? params.runtimeContext.messageChannel
-        : undefined,
+    channel: resolveMemoryMessageChannel(params.runtimeContext),
     userId:
       typeof params.runtimeContext?.senderId === "string"
         ? params.runtimeContext.senderId

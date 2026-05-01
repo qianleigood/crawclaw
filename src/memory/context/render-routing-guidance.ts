@@ -34,7 +34,7 @@ const STABLE_MEMORY_SKILL_CONTRACT = [
   "只有通过宿主 available_skills 目录展示出来的技能，才算可打开或可读取的本地技能。",
   "当前用户意图、最近可见消息和当前工具 / 运行时状态，优先于旧的 durable memory 或 experience recall。",
   "如果某条召回记忆会影响当前建议，先用当前文件、工具或 surfaced skills 验证，再采取行动。",
-  "把 runtime signals 当作时间敏感信息，它们可能已经过时。",
+  "把运行态与经验回忆信号当作时间敏感信息，它们可能已经过时。",
 ].join(" ");
 
 export function renderAgentMemoryRoutingContract(): { text: string; estimatedTokens: number } {

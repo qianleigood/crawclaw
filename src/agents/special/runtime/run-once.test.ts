@@ -551,6 +551,56 @@ describe("runSpecialAgentToCompletion", () => {
     });
   });
 
+  it("ignores synthetic manual parent model refs for embedded fork model selection", async () => {
+    const parentPromptEnvelope = buildSpecialAgentCacheEnvelope({
+      systemPromptText: "manual refresh context",
+      toolPromptPayload: [],
+      thinkingConfig: {},
+      forkContextMessages: [{ role: "user", content: "summarize persisted messages" }],
+    });
+    const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
+      payloads: [{ text: "STATUS: OK" }],
+      meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
+    });
+
+    await runSpecialAgentToCompletion(
+      {
+        definition: TEST_EMBEDDED_SPECIAL_AGENT_DEFINITION,
+        task: "refresh summary",
+        parentForkContext: {
+          parentRunId: "manual-session-summary:session-1",
+          provider: "manual",
+          modelId: "session-summary-refresh",
+          promptEnvelope: parentPromptEnvelope,
+        },
+        embeddedContext: {
+          sessionId: "session-embedded-manual",
+          sessionKey: "agent:main:main",
+          sessionFile: "/tmp/crawclaw-manual-refresh-session.jsonl",
+          workspaceDir: "/tmp/crawclaw-manual-refresh",
+          agentId: "main",
+          config: {
+            agents: { defaults: { model: { primary: "openai/gpt-5.4" } } },
+          },
+        },
+      },
+      {
+        spawnAgentSessionDirect: vi.fn(),
+        captureSubagentCompletionReply: vi.fn(),
+        callGateway: vi.fn(),
+        onAgentEvent: vi.fn(),
+        runEmbeddedPiAgent,
+      },
+    );
+
+    expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "openai",
+        model: "gpt-5.4",
+      }),
+    );
+  });
+
   it("uses explicit parent prompt tool inventory for embedded runtime_deny agents", async () => {
     const parentPromptEnvelope = buildSpecialAgentCacheEnvelope({
       systemPromptText: "system prompt",

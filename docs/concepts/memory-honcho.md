@@ -109,18 +109,18 @@ accurate turn boundaries and relevant recall.
 
 ## Honcho vs builtin memory
 
-|                   | Builtin / QMD                | Honcho                              |
-| ----------------- | ---------------------------- | ----------------------------------- |
-| **Storage**       | Workspace Markdown files     | Dedicated service (local or hosted) |
-| **Cross-session** | Via memory files             | Automatic, built-in                 |
-| **User modeling** | Manual (write to MEMORY.md)  | Automatic profiles                  |
-| **Search**        | Vector + keyword (hybrid)    | Semantic over observations          |
-| **Multi-agent**   | Not tracked                  | Parent/child awareness              |
-| **Dependencies**  | None (builtin) or QMD binary | Plugin install                      |
+|                   | Builtin memory                | Honcho                              |
+| ----------------- | ----------------------------- | ----------------------------------- |
+| **Storage**       | Workspace Markdown files      | Dedicated service (local or hosted) |
+| **Cross-session** | Via memory files              | Automatic, built-in                 |
+| **User modeling** | Manual (write to MEMORY.md)   | Automatic profiles                  |
+| **Search**        | Local index and prompt recall | Semantic over observations          |
+| **Multi-agent**   | Not tracked                   | Parent/child awareness              |
+| **Dependencies**  | None                          | Plugin install                      |
 
-Honcho and the builtin memory system can work together. When QMD is configured,
-additional tools become available for searching local Markdown files alongside
-Honcho's cross-session memory.
+Honcho and the builtin memory system can work together: builtin memory keeps
+local project guidance available while Honcho adds cross-session memory through
+the plugin service.
 
 ## CLI commands
 

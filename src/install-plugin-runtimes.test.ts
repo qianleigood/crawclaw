@@ -58,8 +58,9 @@ type RuntimeInstallScript = {
       candidates: string[];
       envOverrides: string[];
       minimumVersion: string;
-      requirementsLockPath: string;
-      windowsExtraPackages: string[];
+      package?: string;
+      requirementsLockPath?: string;
+      windowsExtraPackages?: string[];
     };
   }>;
   resolveScraplingVenvPython: (venvDir: string, platform?: NodeJS.Platform) => string;
@@ -296,6 +297,25 @@ describe("install-plugin-runtimes", () => {
             "requirements.lock.txt",
           ),
           windowsExtraPackages: ["msvc-runtime==14.44.35112"],
+        },
+      },
+      {
+        id: "notebooklm-mcp-cli",
+        installTime: true,
+        python: {
+          candidates: [
+            "python3.14",
+            "python3.13",
+            "python3.12",
+            "python3.11",
+            "python3.10",
+            "python3",
+            "python",
+            "py",
+          ],
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_NOTEBOOKLM_PYTHON"],
+          minimumVersion: "3.11",
+          package: "notebooklm-mcp-cli==0.6.1",
         },
       },
     ]);

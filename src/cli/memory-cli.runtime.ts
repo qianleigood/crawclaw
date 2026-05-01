@@ -25,6 +25,7 @@ import {
   SqliteRuntimeStore,
   summarizePromptJournal,
   clearNotebookLmProviderStateCache,
+  flushPendingExperienceNotes,
   type NotebookLmProviderState,
   type NotebookLmConfigInput,
 } from "../memory/cli-api.js";
@@ -518,7 +519,7 @@ export async function runMemorySessionSummaryRefresh(opts: MemoryCommandOptions)
         minToolCalls: memoryConfig.sessionSummary.toolCallsBetweenUpdates,
         runTimeoutSeconds:
           memoryConfig.sessionSummary.maxWaitMs > 0
-            ? Math.max(1, Math.floor(memoryConfig.sessionSummary.maxWaitMs / 1000))
+            ? Math.max(90, Math.floor(memoryConfig.sessionSummary.maxWaitMs / 1000))
             : undefined,
         maxTurns: memoryConfig.sessionSummary.maxTurns,
       },
@@ -572,11 +573,20 @@ export async function runMemoryRefresh(opts: MemoryCommandOptions) {
     return;
   }
   const state = await refreshNotebookLmProviderState({ config: notebooklm, mode: "query" });
+  const syncResult = state.ready ? await flushPendingExperienceNotes({ config: notebooklm }) : null;
   if (opts.json) {
-    defaultRuntime.writeJson(formatNotebookLmStateSummary(state));
+    defaultRuntime.writeJson({
+      ...formatNotebookLmStateSummary(state),
+      pendingSync: syncResult,
+    });
     return;
   }
   defaultRuntime.log(renderNotebookLmStateLines(state).join("\n"));
+  if (syncResult) {
+    defaultRuntime.log(
+      `Experience sync: scanned=${syncResult.scanned} synced=${syncResult.synced} failed=${syncResult.failed}`,
+    );
+  }
 }
 
 export async function runMemoryLogin(opts: MemoryCommandOptions) {
@@ -604,11 +614,43 @@ export async function runMemoryLogin(opts: MemoryCommandOptions) {
   }
   clearNotebookLmProviderStateCache();
   const state = await getNotebookLmProviderState({ config: notebooklm, mode: "query" });
+  const syncResult = state.ready ? await flushPendingExperienceNotes({ config: notebooklm }) : null;
   if (opts.json) {
-    defaultRuntime.writeJson(formatNotebookLmStateSummary(state));
+    defaultRuntime.writeJson({
+      ...formatNotebookLmStateSummary(state),
+      pendingSync: syncResult,
+    });
     return;
   }
   defaultRuntime.log(renderNotebookLmStateLines(state).join("\n"));
+  if (syncResult) {
+    defaultRuntime.log(
+      `Experience sync: scanned=${syncResult.scanned} synced=${syncResult.synced} failed=${syncResult.failed}`,
+    );
+  }
+}
+
+export async function runMemorySync(opts: MemoryCommandOptions) {
+  setVerbose(Boolean(opts.verbose));
+  const { config: cfg, diagnostics } = await loadMemoryCommandConfig("memory sync");
+  emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
+  const notebooklm = resolveNotebookLmConfig(cfg);
+  if (!notebooklm.enabled) {
+    defaultRuntime.error("NotebookLM experience provider is disabled.");
+    process.exitCode = 1;
+    return;
+  }
+  const result = await flushPendingExperienceNotes({ config: notebooklm });
+  if (opts.json) {
+    defaultRuntime.writeJson(result);
+    return;
+  }
+  defaultRuntime.log(
+    `Experience sync: status=${result.status} scanned=${result.scanned} synced=${result.synced} failed=${result.failed}`,
+  );
+  for (const error of result.errors) {
+    defaultRuntime.error(`Experience sync failed: ${error.id}: ${error.error}`);
+  }
 }
 
 function renderPromptJournalSummaryLines(

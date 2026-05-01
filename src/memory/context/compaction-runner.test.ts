@@ -148,6 +148,10 @@ Summary-backed compaction result.
         summaryProfile: "light",
         summaryAgeMs: expect.any(Number),
         waitedForSummaryMs: expect.any(Number),
+        minPreservedTokens: 240,
+        maxPreservedTokens: 840,
+        minTextMessages: 5,
+        compactSummaryBudgetTokens: 600,
       }),
     );
   });
@@ -238,6 +242,64 @@ Compaction can proceed.
     }
     expect(result.result.details).toEqual(
       expect.objectContaining({ staleSummaryLeaseCleared: true }),
+    );
+  });
+
+  it("compacts with a transcript fallback when no session summary exists", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-compaction-fallback-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    const runtimeStore = {
+      getSessionSummaryState: vi.fn().mockResolvedValue(null),
+      listMessagesByTurnRange: vi.fn().mockResolvedValue([
+        { id: "m1", turnIndex: 1, role: "user", content: "older request one" },
+        { id: "m2", turnIndex: 2, role: "assistant", content: longText },
+        { id: "m3", turnIndex: 3, role: "user", content: longText },
+        { id: "m4", turnIndex: 4, role: "assistant", content: longText },
+        { id: "m5", turnIndex: 5, role: "user", content: longText },
+        { id: "m6", turnIndex: 6, role: "assistant", content: longText },
+        { id: "m7", turnIndex: 7, role: "user", content: longText },
+        { id: "m8", turnIndex: 8, role: "assistant", content: longText },
+      ]),
+      getSessionCompactionState: vi.fn().mockResolvedValue(null),
+      upsertSessionCompactionState: vi.fn().mockResolvedValue(undefined),
+      appendCompactionAudit: vi.fn().mockResolvedValue("audit-fallback"),
+    };
+    const complete = vi.fn().mockResolvedValue("Recovered transcript fallback summary.");
+
+    const result = await runSessionMemoryCompaction({
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      logger: { info: vi.fn() },
+      sessionId: "session-fallback",
+      agentId: "main",
+      totalTurns: 8,
+      tokenBudget: 900,
+      currentTokenCount: 1400,
+      force: true,
+      runtimeContext: { trigger: "overflow" },
+      complete,
+    });
+
+    expect(result.compacted).toBe(true);
+    if (!result.compacted || !result.result) {
+      throw new Error(`expected fallback compaction success, got ${result.reason ?? "unknown"}`);
+    }
+    expect(complete).toHaveBeenCalledOnce();
+    expect(result.reason).toBe("transcript-fallback-tail-compaction");
+    expect(runtimeStore.upsertSessionCompactionState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "transcript-fallback",
+        summarizedThroughMessageId: null,
+        summaryOverrideText: expect.stringContaining("Recovered transcript fallback summary."),
+      }),
+    );
+    expect(result.result.details).toEqual(
+      expect.objectContaining({
+        resumedWithoutBoundary: true,
+        summaryProfile: null,
+        summarySource: "transcript-fallback-llm",
+      }),
     );
   });
 });

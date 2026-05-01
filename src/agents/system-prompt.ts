@@ -18,6 +18,14 @@ import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 export type PromptMode = "full" | "minimal" | "none";
 type OwnerIdDisplay = "raw" | "hash";
 
+const DURABLE_MEMORY_TOOL_NAMES = new Set([
+  "memory_manifest_read",
+  "memory_note_read",
+  "memory_note_write",
+  "memory_note_edit",
+  "memory_note_delete",
+]);
+
 function buildSkillsSection(params: {
   skillsPrompt?: string;
   readToolName: string;
@@ -53,11 +61,31 @@ function buildSkillsSection(params: {
   return lines;
 }
 
-function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<string> }) {
-  if (params.isMinimal) {
+function buildMemorySection(params: {
+  isMinimal: boolean;
+  availableTools: Set<string>;
+  memoryRuntimeActive?: boolean;
+}) {
+  if (params.isMinimal || params.memoryRuntimeActive) {
     return [];
   }
-  return [];
+  const hasDurableMemoryTools = Array.from(DURABLE_MEMORY_TOOL_NAMES).some((toolName) =>
+    params.availableTools.has(toolName),
+  );
+  if (!hasDurableMemoryTools) {
+    return [];
+  }
+  return [
+    "## Durable Memory",
+    "Use scoped durable memory tools only for stable, future-useful collaboration information.",
+    "If the user explicitly asks you to remember, default, forget, remove, or update durable memory, use the scoped durable memory tools when available; do not only acknowledge it verbally.",
+    "When writing durable memory, first read the scoped manifest, prefer updating an existing note, and keep MEMORY.md as a short index.",
+    "Durable memory notes may only be user, feedback, project, or reference.",
+    "Do not save task progress, temporary plans, code structure, file paths, git history, debugging fixes, or activity logs as durable memory.",
+    "Current code, docs, git state, runtime state, and user instructions override stale durable memory.",
+    "If durable memory tools are unavailable or reject an operation, explain that outcome instead of claiming the memory was changed.",
+    "",
+  ];
 }
 
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
@@ -239,6 +267,8 @@ export function buildAgentSystemPromptSections(params: {
   docsPath?: string;
   workspaceNotes?: string[];
   ttsHint?: string;
+  /** When active, the memory runtime injects detailed memory routing sections. */
+  memoryRuntimeActive?: boolean;
   /** Controls which hardcoded sections to include. Defaults to "full". */
   promptMode?: PromptMode;
   /** Whether ACP-specific routing guidance should be included. Defaults to true. */
@@ -439,6 +469,7 @@ export function buildAgentSystemPromptSections(params: {
   const memorySection = buildMemorySection({
     isMinimal,
     availableTools,
+    memoryRuntimeActive: params.memoryRuntimeActive,
   });
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,

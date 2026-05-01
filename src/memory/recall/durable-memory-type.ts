@@ -101,11 +101,7 @@ export function classifyMemoryRecallItem(item: UnifiedRankedItem): MemoryRecallC
   const hasExplicitDurableTag = tags.some((tag) =>
     ["user", "person", "feedback", "preference", "project", "reference"].includes(tag),
   );
-  if (
-    !item.durableMemoryType &&
-    !hasExplicitDurableTag &&
-    (item.source === "notebooklm" || item.source === "local_experience_index")
-  ) {
+  if (!item.durableMemoryType && !hasExplicitDurableTag && item.source === "notebooklm") {
     return {
       bucket: "experience",
       reasons: buildExperienceReasons(item),

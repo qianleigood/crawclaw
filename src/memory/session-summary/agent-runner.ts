@@ -14,7 +14,7 @@ import {
 } from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
 import { buildMemoryActionVisibilityProjection } from "../action-visibility.js";
-import { ensureSessionSummaryFile } from "./store.ts";
+import { ensureSessionSummaryFile, readSessionSummaryFile } from "./store.ts";
 import {
   buildSessionSummaryTemplate,
   renderSessionSummaryDocument,
@@ -121,6 +121,46 @@ function buildSessionSummaryBudgetReminder(
   return parts.join("\n\n");
 }
 
+function extractModelVisibleMessageText(message: unknown): string {
+  if (!message || typeof message !== "object") {
+    return "";
+  }
+  const content = (message as { content?: unknown; contentText?: unknown }).content;
+  if (typeof content === "string") {
+    return content.trim();
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((part) =>
+        part && typeof part === "object" && typeof (part as { text?: unknown }).text === "string"
+          ? (part as { text: string }).text
+          : "",
+      )
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+  const contentText = (message as { contentText?: unknown }).contentText;
+  return typeof contentText === "string" ? contentText.trim() : "";
+}
+
+function renderModelVisibleConversation(messages: unknown[] | undefined): string {
+  const lines = (messages ?? [])
+    .slice(-20)
+    .map((message) => {
+      const role =
+        message &&
+        typeof message === "object" &&
+        typeof (message as { role?: unknown }).role === "string"
+          ? (message as { role: string }).role
+          : "unknown";
+      const text = extractModelVisibleMessageText(message).replace(/\s+/g, " ").trim();
+      return text ? `- ${role}: ${text.slice(0, 1200)}` : "";
+    })
+    .filter(Boolean);
+  return lines.join("\n");
+}
+
 type ParsedSessionSummaryResult = {
   status?: "written" | "skipped" | "no_change" | "failed";
   summary?: string;
@@ -213,6 +253,7 @@ export function buildSessionSummaryTaskPrompt(params: {
   sessionId: string;
   summaryPath: string;
   currentSummary: SessionSummaryDocument | null;
+  modelVisibleMessages?: unknown[];
   profile?: SessionSummaryProfile;
   maxSectionsToChange?: number;
 }): string {
@@ -229,6 +270,7 @@ export function buildSessionSummaryTaskPrompt(params: {
     ? Object.values(params.currentSummary.sections).filter((value) => (value ?? []).length > 0)
         .length
     : 0;
+  const modelVisibleConversation = renderModelVisibleConversation(params.modelVisibleMessages);
 
   return [
     "IMPORTANT: This message and these instructions are NOT part of the actual user conversation.",
@@ -248,8 +290,10 @@ export function buildSessionSummaryTaskPrompt(params: {
     currentSummaryText.trimEnd(),
     "</current_summary_content>",
     "",
-    "The current model-visible conversation has already been provided as this forked agent's message history.",
-    "Use that conversation history plus the current summary contents above.",
+    "The current model-visible conversation is provided below. Use it plus the current summary contents above.",
+    ...(modelVisibleConversation
+      ? ["<model_visible_conversation>", modelVisibleConversation, "</model_visible_conversation>"]
+      : ["<model_visible_conversation>", "(none)", "</model_visible_conversation>"]),
     "",
     "Your ONLY task is to use the session_summary_file_edit tool to update the summary file, then stop.",
     "You can make multiple edits. If multiple sections need updates, make all edit calls in parallel in a single message.",
@@ -328,6 +372,7 @@ export async function runSessionSummaryAgentOnce(params: {
     sessionId: params.sessionId,
     summaryPath: summaryFileSnapshot.summaryPath,
     currentSummary: summarySnapshot,
+    modelVisibleMessages: parentPromptEnvelope.forkContextMessages,
     profile: params.profile,
     maxSectionsToChange: params.profile === "light" ? 4 : 6,
   });
@@ -458,6 +503,18 @@ export async function runSessionSummaryAgentOnce(params: {
   }
 
   const parsed = parseSessionSummaryResult(run.reply);
+  if (!parsed.status) {
+    const refreshedSummary = await readSessionSummaryFile({
+      agentId: params.agentId,
+      sessionId: params.sessionId,
+    });
+    if ((refreshedSummary.content ?? "") !== (summaryFileSnapshot.content ?? "")) {
+      parsed.status = "written";
+      parsed.summary = "summary file updated";
+      parsed.writtenCount = 1;
+      parsed.updatedCount = 0;
+    }
+  }
   if (!parsed.status) {
     const error = "session summary agent completed without a STATUS line";
     await observability.recordResult({

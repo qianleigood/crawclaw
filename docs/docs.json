@@ -1029,7 +1029,6 @@
                     "pages": [
                       "concepts/memory",
                       "concepts/memory-builtin",
-                      "concepts/memory-qmd",
                       "concepts/memory-honcho"
                     ]
                   },

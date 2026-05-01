@@ -208,7 +208,7 @@ describe("session memory e2e", () => {
       bypassGate: true,
     });
 
-    expect(result).toMatchObject({ status: "started", runId: "summary-e2e-run-1" });
+    expect(result).toMatchObject({ status: "no_change", runId: "summary-e2e-run-1" });
     expect(runner).toHaveBeenCalledWith(
       expect.objectContaining({
         parentForkContext: expect.objectContaining({

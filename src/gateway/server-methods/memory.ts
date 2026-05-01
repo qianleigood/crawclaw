@@ -1,6 +1,6 @@
 import path from "node:path";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
-import { loadConfig, type CrawClawConfig } from "../../config/config.js";
+import { loadConfig, writeConfigFile, type CrawClawConfig } from "../../config/config.js";
 import {
   loadSessionStore,
   resolveSessionStoreEntry,
@@ -8,12 +8,16 @@ import {
 } from "../../config/sessions.js";
 import {
   clearNotebookLmProviderStateCache,
+  ensureNotebookLmNotebook,
+  flushPendingExperienceNotes,
   getNotebookLmProviderState,
   getSharedAutoDreamScheduler,
   getSharedSessionSummaryScheduler,
+  listDurableMemoryIndexDocuments,
   normalizeNotebookLmConfig,
   readSessionSummaryFile,
   readSessionSummarySectionText,
+  readDurableMemoryIndexDocument,
   refreshNotebookLmProviderState,
   resolveDurableMemoryScope,
   resolveDreamClosedLoopStatus,
@@ -24,6 +28,13 @@ import {
   summarizePromptJournal,
   type NotebookLmProviderState,
 } from "../../memory/cli-api.js";
+import {
+  EXPERIENCE_INDEX_STATUSES,
+  pruneExperienceIndexEntries,
+  readExperienceIndexEntries,
+  updateExperienceIndexEntryStatus,
+  type ExperienceIndexStatus,
+} from "../../memory/experience/index-store.ts";
 import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
@@ -38,7 +49,21 @@ function describeUnknownError(error: unknown): string {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
   }
-  return String(error);
+  if (typeof error === "string") {
+    return error;
+  }
+  if (typeof error === "number" || typeof error === "boolean" || typeof error === "bigint") {
+    return `${error}`;
+  }
+  if (typeof error === "symbol") {
+    return error.description ? `Symbol(${error.description})` : "Symbol()";
+  }
+  try {
+    const serialized = JSON.stringify(error);
+    return typeof serialized === "string" ? serialized : "Unknown error";
+  } catch {
+    return "Unknown error";
+  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -69,6 +94,13 @@ function readOptionalPositiveInt(value: unknown): number | undefined {
     return undefined;
   }
   return value;
+}
+
+function readExperienceIndexStatus(value: unknown): ExperienceIndexStatus | undefined {
+  return typeof value === "string" &&
+    (EXPERIENCE_INDEX_STATUSES as readonly string[]).includes(value)
+    ? (value as ExperienceIndexStatus)
+    : undefined;
 }
 
 function parseTouchedNotes(value: string | null | undefined): string[] {
@@ -134,6 +166,36 @@ function resolveMemoryProviderPayload(cfg: CrawClawConfig, state: NotebookLmProv
 
 function resolveMode(value: unknown): "query" | "write" {
   return value === "write" ? "write" : "query";
+}
+
+function buildNotebookLmSetupConfig(
+  cfg: CrawClawConfig,
+  setup: { notebookId: string; profile: string },
+): CrawClawConfig {
+  const current = asRecord(cfg.memory?.notebooklm);
+  return {
+    ...cfg,
+    memory: {
+      ...cfg.memory,
+      notebooklm: {
+        ...current,
+        enabled: true,
+        auth: {
+          ...asRecord(current.auth),
+          profile: setup.profile,
+        },
+        cli: {
+          ...asRecord(current.cli),
+          enabled: true,
+          notebookId: setup.notebookId,
+        },
+        write: {
+          ...asRecord(current.write),
+          notebookId: setup.notebookId,
+        },
+      },
+    },
+  };
 }
 
 function resolveDreamScopeParams(params: Record<string, unknown>) {
@@ -210,7 +272,12 @@ export const memoryHandlers: GatewayRequestHandlers = {
   "memory.login": async ({ params, respond }) => {
     const interactive = readOptionalBoolean(asRecord(params).interactive) ?? true;
     try {
-      const cfg = await loadResolvedMemoryConfig();
+      const sourceCfg = loadConfig();
+      const prepared = await prepareSecretsRuntimeSnapshot({
+        config: sourceCfg,
+        includeAuthStoreRefs: false,
+      });
+      const cfg = prepared.config;
       const notebooklm = normalizeNotebookLmConfig(cfg.memory?.notebooklm);
       if (!notebooklm.enabled) {
         respond(true, {
@@ -244,20 +311,74 @@ export const memoryHandlers: GatewayRequestHandlers = {
         return;
       }
       await runNotebookLmLoginCommand(loginCommand.command, loginCommand.args);
-      clearNotebookLmProviderStateCache();
-      const state = await getNotebookLmProviderState({ config: notebooklm, mode: "query" });
-      respond(true, {
-        started: true,
-        status: "completed",
-        command: [loginCommand.command, ...loginCommand.args].join(" "),
-        message: null,
-        providerState: resolveMemoryProviderPayload(cfg, state),
+      const setup = await ensureNotebookLmNotebook({
+        config: notebooklm,
+        title: "CrawClaw",
+        create: true,
       });
+      const nextCfg = buildNotebookLmSetupConfig(sourceCfg, setup);
+      const nextNotebookLm = normalizeNotebookLmConfig(nextCfg.memory?.notebooklm);
+      await writeConfigFile(nextCfg);
+      clearNotebookLmProviderStateCache();
+      const state = await getNotebookLmProviderState({ config: nextNotebookLm, mode: "query" });
+      respond(
+        true,
+        {
+          started: true,
+          status: "completed",
+          command: [loginCommand.command, ...loginCommand.args].join(" "),
+          message: null,
+          providerState: resolveMemoryProviderPayload(nextCfg, state),
+        },
+        undefined,
+      );
     } catch (error) {
       respond(
         false,
         undefined,
         errorShape(ErrorCodes.UNAVAILABLE, `memory.login failed: ${describeUnknownError(error)}`),
+      );
+    }
+  },
+
+  "memory.durable.index.list": async ({ params, respond }) => {
+    try {
+      const limit = readOptionalPositiveInt(asRecord(params).limit) ?? 50;
+      const result = await listDurableMemoryIndexDocuments({ limit });
+      respond(true, result, undefined);
+    } catch (error) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `memory.durable.index.list failed: ${describeUnknownError(error)}`,
+        ),
+      );
+    }
+  },
+
+  "memory.durable.index.get": async ({ params, respond }) => {
+    try {
+      const id = readRequiredString(asRecord(params).id);
+      if (!id) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "memory.durable.index.get requires id"),
+        );
+        return;
+      }
+      const result = await readDurableMemoryIndexDocument({ id });
+      respond(true, result, undefined);
+    } catch (error) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `memory.durable.index.get failed: ${describeUnknownError(error)}`,
+        ),
       );
     }
   },
@@ -492,7 +613,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
             minToolCalls: memoryConfig.sessionSummary.toolCallsBetweenUpdates,
             runTimeoutSeconds:
               memoryConfig.sessionSummary.maxWaitMs > 0
-                ? Math.max(1, Math.floor(memoryConfig.sessionSummary.maxWaitMs / 1000))
+                ? Math.max(90, Math.floor(memoryConfig.sessionSummary.maxWaitMs / 1000))
                 : undefined,
             maxTurns: memoryConfig.sessionSummary.maxTurns,
           },
@@ -529,6 +650,108 @@ export const memoryHandlers: GatewayRequestHandlers = {
         errorShape(
           ErrorCodes.UNAVAILABLE,
           `memory.sessionSummary.refresh failed: ${describeUnknownError(error)}`,
+        ),
+      );
+    }
+  },
+
+  "memory.experience.index.list": async ({ params, respond }) => {
+    try {
+      const request = asRecord(params);
+      const status = readExperienceIndexStatus(request.status);
+      const limit = readOptionalPositiveInt(request.limit) ?? 50;
+      const items = await readExperienceIndexEntries(limit, status ? { status } : {});
+      respond(true, { items }, undefined);
+    } catch (error) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `memory.experience.index.list failed: ${describeUnknownError(error)}`,
+        ),
+      );
+    }
+  },
+
+  "memory.experience.index.updateStatus": async ({ params, respond }) => {
+    try {
+      const request = asRecord(params);
+      const id = readRequiredString(request.id);
+      const status = readExperienceIndexStatus(request.status);
+      if (!id || !status) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            "memory.experience.index.updateStatus requires id and valid status",
+          ),
+        );
+        return;
+      }
+      const supersededBy = readOptionalString(request.supersededBy);
+      const item = await updateExperienceIndexEntryStatus({
+        id,
+        status,
+        ...(supersededBy ? { supersededBy } : {}),
+      });
+      if (!item) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, `experience index entry not found: ${id}`),
+        );
+        return;
+      }
+      respond(true, { item }, undefined);
+    } catch (error) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `memory.experience.index.updateStatus failed: ${describeUnknownError(error)}`,
+        ),
+      );
+    }
+  },
+
+  "memory.experience.index.prune": async ({ params, respond }) => {
+    try {
+      const request = asRecord(params);
+      const staleAfterMs = readOptionalPositiveInt(request.staleAfterMs);
+      const archiveAfterMs = readOptionalPositiveInt(request.archiveAfterMs);
+      const result = await pruneExperienceIndexEntries({
+        ...(staleAfterMs !== undefined ? { staleAfterMs } : {}),
+        ...(archiveAfterMs !== undefined ? { archiveAfterMs } : {}),
+      });
+      respond(true, { result }, undefined);
+    } catch (error) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `memory.experience.index.prune failed: ${describeUnknownError(error)}`,
+        ),
+      );
+    }
+  },
+
+  "memory.experience.sync.flush": async ({ respond }) => {
+    try {
+      const cfg = loadConfig();
+      const notebooklm = normalizeNotebookLmConfig(cfg.memory?.notebooklm);
+      const result = await flushPendingExperienceNotes({ config: notebooklm });
+      respond(true, { result }, undefined);
+    } catch (error) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `memory.experience.sync.flush failed: ${describeUnknownError(error)}`,
         ),
       );
     }

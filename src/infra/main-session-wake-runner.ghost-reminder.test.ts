@@ -181,9 +181,9 @@ describe("Ghost reminder bug (issue #13317)", () => {
       replyText: "Relay this cron update now",
       reason: "interval",
       enqueue: (sessionKey) => {
-        enqueueSystemEvent("Cron: QMD maintenance completed", {
+        enqueueSystemEvent("Cron: memory maintenance completed", {
           sessionKey,
-          contextKey: "cron:qmd-maintenance",
+          contextKey: "cron:memory-maintenance",
         });
       },
     });
@@ -191,7 +191,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
     expect(replyCallCount).toBe(1);
     expect(calledCtx?.Provider).toBe("cron-event");
     expect(calledCtx?.Body).toContain("scheduled reminder has been triggered");
-    expect(calledCtx?.Body).toContain("Cron: QMD maintenance completed");
+    expect(calledCtx?.Body).toContain("Cron: memory maintenance completed");
     expect(calledCtx?.Body).not.toContain("Read HEARTBEAT.md");
     expect(sendTelegram).toHaveBeenCalled();
   });

@@ -1,10 +1,11 @@
 import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import type { ObservationContext } from "../../infra/observation/types.js";
 import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { DEFAULT_CONFIG } from "../config/defaults.ts";
 import { resolveDurableMemoryScope, type DurableMemoryScope } from "../durable/scope.ts";
 import { scanDurableMemoryScopeEntries } from "../durable/store.ts";
+import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import { readSessionSummaryFile } from "../session-summary/store.ts";
 import type { DreamingConfig } from "../types/config.ts";
@@ -32,6 +33,7 @@ type SubmitAutoDreamTurnParams = {
   runtimeContext?: {
     agentId?: string | null;
     messageChannel?: string | null;
+    messageProvider?: string | null;
     senderId?: string | null;
     parentRunId?: string | null;
     parentForkContext?: SpecialAgentParentForkContext | null;
@@ -321,13 +323,13 @@ export class AutoDreamScheduler {
       return;
     }
     const sessionKey = params.sessionKey.trim();
-    if (isSubagentSessionKey(sessionKey)) {
+    if (isMemoryAutomationExcludedSessionKey(sessionKey)) {
       return;
     }
     const scope = resolveDurableMemoryScope({
       sessionKey,
       agentId: params.runtimeContext?.agentId,
-      channel: params.runtimeContext?.messageChannel,
+      channel: resolveMemoryMessageChannel(params.runtimeContext),
       userId: params.runtimeContext?.senderId,
     });
     if (!scope?.scopeKey) {

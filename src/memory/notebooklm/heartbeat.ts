@@ -1,10 +1,14 @@
+import { flushPendingExperienceNotes } from "../experience/sync-outbox.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
+import { inferNotebookLmAutoLoginCommand, runNotebookLmLoginCommand } from "./login.ts";
 import { emitNotebookLmNotification } from "./notification.ts";
-import { getNotebookLmProviderState } from "./provider-state.ts";
+import { clearNotebookLmProviderStateCache, getNotebookLmProviderState } from "./provider-state.ts";
 
 type RuntimeLogger = { info(message: string): void; warn(message: string): void };
 
 type HeartbeatStateProbe = typeof getNotebookLmProviderState;
+type HeartbeatAutoLogin = (config: NotebookLmConfig) => Promise<void>;
+type HeartbeatFlushPending = (config: NotebookLmConfig) => Promise<unknown>;
 
 type HeartbeatEntry = {
   key: string;
@@ -23,6 +27,10 @@ function buildHeartbeatKey(config: NotebookLmConfig): string {
     enabled: config.auth.heartbeat.enabled,
     minIntervalMs: config.auth.heartbeat.minIntervalMs,
     maxIntervalMs: config.auth.heartbeat.maxIntervalMs,
+    autoLoginEnabled: config.auth.autoLogin?.enabled ?? false,
+    autoLoginProvider: config.auth.autoLogin?.provider ?? "nlm_profile",
+    autoLoginIntervalMs: config.auth.autoLogin?.intervalMs ?? 0,
+    autoLoginCdpUrl: config.auth.autoLogin?.cdpUrl ?? "",
   });
 }
 
@@ -41,6 +49,22 @@ function maybeUnref(timer: ReturnType<typeof setTimeout>): void {
   }
 }
 
+async function runConfiguredAutoLogin(config: NotebookLmConfig): Promise<void> {
+  if (!config.auth.autoLogin?.enabled) {
+    return;
+  }
+  const command = inferNotebookLmAutoLoginCommand(config);
+  if (!command) {
+    throw new Error("NotebookLM auto login command is not configured");
+  }
+  await runNotebookLmLoginCommand(command.command, command.args);
+  clearNotebookLmProviderStateCache();
+}
+
+async function flushConfiguredPendingExperience(config: NotebookLmConfig): Promise<void> {
+  await flushPendingExperienceNotes({ config });
+}
+
 export function stopNotebookLmHeartbeatForTests(): void {
   activeHeartbeat?.stop();
   activeHeartbeat = null;
@@ -50,6 +74,8 @@ export function startNotebookLmHeartbeat(params: {
   config?: NotebookLmConfig;
   logger: RuntimeLogger;
   probe?: HeartbeatStateProbe;
+  autoLogin?: HeartbeatAutoLogin;
+  flushPending?: HeartbeatFlushPending;
 }): void {
   const config = params.config;
   if (!config?.enabled || !config.cli.enabled || !config.auth.heartbeat.enabled) {
@@ -72,7 +98,10 @@ export function startNotebookLmHeartbeat(params: {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let running = false;
   let lastReady: boolean | null = null;
+  let lastAutoLoginAt = 0;
   const probe = params.probe ?? getNotebookLmProviderState;
+  const autoLogin = params.autoLogin ?? runConfiguredAutoLogin;
+  const flushPending = params.flushPending ?? flushConfiguredPendingExperience;
 
   const scheduleNext = () => {
     if (stopped) {
@@ -85,6 +114,22 @@ export function startNotebookLmHeartbeat(params: {
       }
       running = true;
       try {
+        let autoLoginRan = false;
+        const autoLoginConfig = config.auth.autoLogin;
+        const autoLoginInterval = Math.max(60_000, autoLoginConfig?.intervalMs || 0);
+        if (autoLoginConfig?.enabled && Date.now() - lastAutoLoginAt >= autoLoginInterval) {
+          try {
+            await autoLogin(config);
+            lastAutoLoginAt = Date.now();
+            autoLoginRan = true;
+          } catch (error) {
+            params.logger.warn(
+              `[memory] notebooklm auth auto login failed | ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            );
+          }
+        }
         const state = await probe({ config, mode: "query", logger: params.logger });
         if (!state.ready) {
           emitNotebookLmNotification({
@@ -101,6 +146,9 @@ export function startNotebookLmHeartbeat(params: {
           params.logger.info(
             `[memory] notebooklm auth heartbeat healthy | profile=${state.profile} notebook=${state.notebookId ?? notebookId}`,
           );
+        }
+        if (state.ready && (autoLoginRan || lastReady === false || state.refreshSucceeded)) {
+          await flushPending(config);
         }
         lastReady = state.ready;
       } catch (error) {

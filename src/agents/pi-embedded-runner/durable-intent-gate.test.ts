@@ -28,6 +28,23 @@ describe("explicit durable intent gate", () => {
     });
   });
 
+  it("skips gating inside special-agent runs", async () => {
+    const result = await maybeRunExplicitDurableIntentGate({
+      prompt: "记住这个：以后回答操作类问题先给步骤。",
+      toolsAllow: ["memory_manifest_read", "memory_note_write"],
+      specialAgentSpawnSource: "memory-extraction",
+    });
+
+    expect(result).toMatchObject({
+      applied: false,
+      intent: "remember",
+      notesSaved: 0,
+      reason: "explicit_durable_gate_skipped_special_agent",
+    });
+    expect(result.forcedToolName).toBeUndefined();
+    expect(result.toolChoice).toBeUndefined();
+  });
+
   it("forces a main-agent durable tool call for explicit remember cues", async () => {
     const result = await maybeRunExplicitDurableIntentGate({
       prompt: "记住这个：以后回答操作类问题先给步骤。",

@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { SessionSummaryRunResult } from "./agent-runner.ts";
@@ -195,7 +195,7 @@ export function evaluateSessionSummaryGate(params: {
       tokenDelta,
     };
   }
-  if (params.sessionKey && isSubagentSessionKey(params.sessionKey)) {
+  if (params.sessionKey && isMemoryAutomationExcludedSessionKey(params.sessionKey)) {
     return {
       ready: false,
       reason: "subagent_session",
@@ -298,6 +298,9 @@ type SubmitTurnParams = {
   parentForkContext?: SpecialAgentParentForkContext;
   currentTokenCount?: number;
   toolCallCount?: number;
+  lightInitialTokenThreshold?: number;
+  initialTokenThreshold?: number;
+  updateTokenThreshold?: number;
   isSettledTurn?: boolean;
   dryRun?: boolean;
   bypassGate?: boolean;
@@ -342,10 +345,12 @@ export class SessionSummaryScheduler {
     const currentProfile = inferSessionSummaryProfile(
       params.currentSummary ?? fileSnapshot.document,
     );
+    const initialTokenThreshold = params.initialTokenThreshold ?? this.config.initialTokenThreshold;
+    const lightInitialTokenThreshold =
+      params.lightInitialTokenThreshold ?? this.config.lightInitialTokenThreshold;
+    const updateTokenThreshold = params.updateTokenThreshold ?? this.config.updateTokenThreshold;
     const targetProfile: SessionSummaryProfile =
-      (params.currentTokenCount ?? 0) >= (this.config.initialTokenThreshold ?? 10_000)
-        ? "full"
-        : "light";
+      (params.currentTokenCount ?? 0) >= (initialTokenThreshold ?? 10_000) ? "full" : "light";
     const requiresFullUpgrade = targetProfile === "full" && currentProfile !== "full";
     const gateSummaryText = params.currentSummary
       ? currentSummaryText
@@ -360,9 +365,9 @@ export class SessionSummaryScheduler {
       currentTokenCount: params.currentTokenCount,
       toolCallCount: params.toolCallCount,
       lastSummaryUpdatedAt: state?.lastSummaryUpdatedAt ?? fileSnapshot.updatedAt,
-      lightInitialTokenThreshold: this.config.lightInitialTokenThreshold,
-      initialTokenThreshold: this.config.initialTokenThreshold,
-      updateTokenThreshold: this.config.updateTokenThreshold,
+      lightInitialTokenThreshold,
+      initialTokenThreshold,
+      updateTokenThreshold,
       minToolCalls: this.config.minToolCalls,
       minIntervalMs: this.config.minIntervalMs,
       requiresFullUpgrade,
@@ -399,7 +404,7 @@ export class SessionSummaryScheduler {
     if (!this.config.enabled || !this.runner || !params.sessionKey?.trim()) {
       return;
     }
-    if (isSubagentSessionKey(params.sessionKey)) {
+    if (isMemoryAutomationExcludedSessionKey(params.sessionKey)) {
       return;
     }
     const normalizedParams = {
@@ -426,7 +431,7 @@ export class SessionSummaryScheduler {
   }
 
   async runNow(params: SubmitTurnParams): Promise<{
-    status: "started" | "skipped" | "failed" | "preview";
+    status: SessionSummaryRunResult["status"] | "skipped" | "failed" | "preview";
     reason?: string;
     runId?: string;
     preview?: SessionSummaryPreview;
@@ -515,7 +520,7 @@ export class SessionSummaryScheduler {
         });
       }
       return {
-        status: result.status === "failed" ? "failed" : "started",
+        status: result.status,
         reason: result.reason ?? result.summary,
         runId: result.runId,
       };

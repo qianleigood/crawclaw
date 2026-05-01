@@ -78,9 +78,11 @@ function canUseDurableToolForIntent(params: {
   if (!params.toolsAllow?.length) {
     return true;
   }
-  return params.toolsAllow.some((toolName) => DURABLE_MEMORY_FILE_TOOL_NAMES.includes(
-    toolName as (typeof DURABLE_MEMORY_FILE_TOOL_NAMES)[number],
-  ));
+  return params.toolsAllow.some((toolName) =>
+    DURABLE_MEMORY_FILE_TOOL_NAMES.includes(
+      toolName as (typeof DURABLE_MEMORY_FILE_TOOL_NAMES)[number],
+    ),
+  );
 }
 
 export async function maybeRunExplicitDurableIntentGate(params: {
@@ -89,6 +91,7 @@ export async function maybeRunExplicitDurableIntentGate(params: {
   disableTools?: boolean;
   toolsAllow?: string[];
   modelApi?: string | null;
+  specialAgentSpawnSource?: string | null;
 }): Promise<{
   applied: boolean;
   intent: "remember" | "forget" | null;
@@ -104,6 +107,14 @@ export async function maybeRunExplicitDurableIntentGate(params: {
       applied: false,
       intent,
       notesSaved: 0,
+    };
+  }
+  if (params.specialAgentSpawnSource?.trim()) {
+    return {
+      applied: false,
+      intent,
+      notesSaved: 0,
+      reason: "explicit_durable_gate_skipped_special_agent",
     };
   }
   if (params.trigger && params.trigger !== "user" && params.trigger !== "manual") {

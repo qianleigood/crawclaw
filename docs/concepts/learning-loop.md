@@ -219,12 +219,10 @@ Use memory for:
 Experience is the structured subset of memory that captures reusable context,
 trigger, action, result, lesson, applicability boundaries, and evidence.
 
-It may live in:
-
-- the local experience index
-- notebook-backed stores
-- graph or vector systems
-- promoted note stores
+It may be staged in the local experience sync ledger and queried from
+NotebookLM-backed stores after sync. Future promoted forms may also live in
+graph, vector, or note stores, but the local ledger itself is not a prompt
+recall provider.
 
 Use experience for:
 

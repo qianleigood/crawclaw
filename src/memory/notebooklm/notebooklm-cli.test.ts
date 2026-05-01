@@ -1,10 +1,28 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const execFileMock = vi.fn();
+const tempRoots: string[] = [];
+const originalStateDir = process.env.CRAWCLAW_STATE_DIR;
 
 vi.mock("node:child_process", () => ({
   execFile: (...args: unknown[]) => execFileMock(...args),
 }));
+
+function makeManagedNlmBin(): string {
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-notebooklm-cli-"));
+  tempRoots.push(stateDir);
+  const binPath =
+    process.platform === "win32"
+      ? path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "Scripts", "nlm.exe")
+      : path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "bin", "nlm");
+  fs.mkdirSync(path.dirname(binPath), { recursive: true });
+  fs.writeFileSync(binPath, "", "utf8");
+  process.env.CRAWCLAW_STATE_DIR = stateDir;
+  return binPath;
+}
 
 function createNotebookLmConfig() {
   return {
@@ -43,6 +61,14 @@ describe("searchNotebookLmViaCli", () => {
 
   afterEach(() => {
     vi.resetModules();
+    if (originalStateDir === undefined) {
+      delete process.env.CRAWCLAW_STATE_DIR;
+    } else {
+      process.env.CRAWCLAW_STATE_DIR = originalStateDir;
+    }
+    for (const root of tempRoots.splice(0)) {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("normalizes list-style NotebookLM CLI results", async () => {
@@ -189,6 +215,151 @@ describe("searchNotebookLmViaCli", () => {
     expect(items[0].summary).toContain("先重启本地服务并重新检查健康状态。");
     expect(items[0].summary).not.toContain("[1-3]");
     expect(items[0].summary).not.toContain("**");
+  });
+
+  it("normalizes native nlm value-wrapped query responses", async () => {
+    execFileMock
+      .mockImplementationOnce((_command, _args, _options, callback) => {
+        callback(
+          null,
+          JSON.stringify({
+            status: "ok",
+            ready: true,
+            profile: "default",
+            notebookId: "nb-1",
+            refreshAttempted: false,
+            refreshSucceeded: false,
+          }),
+        );
+      })
+      .mockImplementationOnce((_command, _args, _options, callback) => {
+        callback(
+          null,
+          JSON.stringify({
+            value: {
+              answer: "源里包含发布回归排查三步法和自进化晋升 workflow。",
+              sources_used: ["source-1"],
+            },
+          }),
+        );
+      });
+
+    const { searchNotebookLmViaCli } = await import("./notebooklm-cli.ts");
+    const items = await searchNotebookLmViaCli({
+      config: {
+        ...createNotebookLmConfig(),
+        cli: {
+          ...createNotebookLmConfig().cli,
+          command: "nlm",
+          args: ["notebook", "query", "{notebookId}", "{query}", "--json", "--timeout", "120"],
+        },
+      },
+      query: "源里有哪些经验标题？",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.summary).toContain("发布回归排查三步法");
+    expect(items[0]?.sourceRef).toBe("source-1");
+  });
+
+  it("queries through the managed nlm runtime when no command is configured", async () => {
+    const binPath = makeManagedNlmBin();
+    execFileMock
+      .mockImplementationOnce((command, args, _options, callback) => {
+        expect(command).toBe(binPath);
+        expect(args).toEqual(["login", "--check"]);
+        callback(null, "✓ Authentication valid!\n  Profile: default\n  Notebooks found: 1");
+      })
+      .mockImplementationOnce((command, args, _options, callback) => {
+        expect(command).toBe(binPath);
+        expect(args).toContain("notebook");
+        expect(args).toContain("query");
+        callback(
+          null,
+          JSON.stringify({
+            answer: "经验卡片一：受管运行时 未配置命令时使用 CrawClaw 安装的 nlm。",
+          }),
+        );
+      });
+
+    const { searchNotebookLmViaCli } = await import("./notebooklm-cli.ts");
+    const items = await searchNotebookLmViaCli({
+      query: "managed runtime?",
+      config: {
+        ...createNotebookLmConfig(),
+        cli: {
+          ...createNotebookLmConfig().cli,
+          command: "",
+          args: [
+            "notebook",
+            "query",
+            "{notebookId}",
+            "{query}",
+            "--json",
+            "--profile",
+            "{profile}",
+          ],
+        },
+      },
+    });
+
+    expect(items[0]?.source).toBe("notebooklm");
+    expect(items[0]?.summary).toContain("受管运行时");
+  });
+
+  it("falls back to NotebookLM notes when source query has no searchable sources", async () => {
+    execFileMock
+      .mockImplementationOnce((_command, args, _options, callback) => {
+        expect(args).toEqual(["login", "--check"]);
+        callback(null, "✓ Authentication valid!\n  Profile: default\n  Notebooks found: 1");
+      })
+      .mockImplementationOnce((_command, _args, _options, callback) => {
+        callback(
+          Object.assign(new Error("Query failed"), { code: 1 }),
+          JSON.stringify({
+            status: "error",
+            error: "This notebook has no sources to query.",
+          }),
+          "",
+        );
+      })
+      .mockImplementationOnce((_command, args, _options, callback) => {
+        expect(args).toEqual(["note", "list", "nb-1", "--json"]);
+        callback(
+          null,
+          JSON.stringify({
+            notes: [
+              {
+                id: "note-1",
+                title: "云端经验同步验收流程 codex-note-token",
+                preview: "唯一标记 codex-note-token，用于验证 NotebookLM note recall。",
+              },
+            ],
+          }),
+        );
+      });
+
+    const { searchNotebookLmViaCli } = await import("./notebooklm-cli.ts");
+    const items = await searchNotebookLmViaCli({
+      query: "codex-note-token 云端经验同步验收流程",
+      config: {
+        ...createNotebookLmConfig(),
+        cli: {
+          ...createNotebookLmConfig().cli,
+          command: "nlm",
+          args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
+        },
+      },
+    });
+
+    expect(items).toEqual([
+      expect.objectContaining({
+        id: "notebooklm:note:note-1",
+        source: "notebooklm",
+        title: "云端经验同步验收流程 codex-note-token",
+        content: expect.stringContaining("codex-note-token"),
+      }),
+    ]);
   });
 
   it("returns no items when provider is not ready", async () => {

@@ -145,6 +145,15 @@ export interface NotebookLmWriteConfig {
   notebookId?: string;
 }
 
+export interface NotebookLmSourceConfig {
+  enabled: boolean;
+  title: string;
+  timeoutMs: number;
+  maxEntries: number;
+  maxChars: number;
+  deletePrevious: boolean;
+}
+
 export interface NotebookLmAuthConfig {
   profile: string;
   cookieFile?: string;
@@ -152,6 +161,7 @@ export interface NotebookLmAuthConfig {
   degradedCooldownMs: number;
   refreshCooldownMs: number;
   heartbeat: NotebookLmHeartbeatConfig;
+  autoLogin?: NotebookLmAutoLoginConfig;
 }
 
 export interface NotebookLmHeartbeatConfig {
@@ -160,20 +170,30 @@ export interface NotebookLmHeartbeatConfig {
   maxIntervalMs: number;
 }
 
+export interface NotebookLmAutoLoginConfig {
+  enabled: boolean;
+  intervalMs: number;
+  provider: "nlm_profile" | "openclaw_cdp";
+  cdpUrl?: string;
+}
+
 export interface NotebookLmConfig {
   enabled: boolean;
   auth: NotebookLmAuthConfig;
   cli: NotebookLmCliConfig;
   write: NotebookLmWriteConfig;
+  source?: NotebookLmSourceConfig;
 }
 
 export interface NotebookLmConfigInput {
   enabled?: boolean;
-  auth?: Partial<NotebookLmAuthConfig> & {
+  auth?: Omit<Partial<NotebookLmAuthConfig>, "heartbeat" | "autoLogin"> & {
     heartbeat?: Partial<NotebookLmHeartbeatConfig>;
+    autoLogin?: Partial<NotebookLmAutoLoginConfig>;
   };
   cli?: Partial<NotebookLmCliConfig>;
   write?: Partial<NotebookLmWriteConfig>;
+  source?: Partial<NotebookLmSourceConfig>;
 }
 
 export interface MemoryRuntimeConfig {

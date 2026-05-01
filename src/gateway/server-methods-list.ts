@@ -63,6 +63,7 @@ const BASE_METHODS = [
   "memory.experience.index.list",
   "memory.experience.index.updateStatus",
   "memory.experience.index.prune",
+  "memory.experience.sync.flush",
   "memory.promptJournal.summary",
   "agentRuntime.summary",
   "agentRuntime.list",

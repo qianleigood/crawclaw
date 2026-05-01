@@ -153,6 +153,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "memory.sessionSummary.refresh",
     "memory.experience.index.updateStatus",
     "memory.experience.index.prune",
+    "memory.experience.sync.flush",
     "agentRuntime.cancel",
     "push.test",
     "node.pending.enqueue",

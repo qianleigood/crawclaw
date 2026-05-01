@@ -138,6 +138,59 @@ describe("finalizeAttemptMemoryRuntimeTurn", () => {
     expect(lifecycleEvents).toEqual(["stop_failure"]);
   });
 
+  it("threads the context budget policy into lifecycle metadata", async () => {
+    const lifecyclePolicies: unknown[] = [];
+    registerRunLoopLifecycleHandler("*", (event) => {
+      lifecyclePolicies.push(event.metadata?.contextBudgetPolicy);
+    });
+    const contextBudgetPolicy = {
+      compactTriggerTokens: 8_618,
+      memoryFlushTriggerTokens: 7_618,
+      memoryFlushLeadTokens: 1_000,
+      timeoutRecoveryTriggerTokens: 7_962,
+      sessionSummary: {
+        lightInitialTokenThreshold: 1_200,
+        initialTokenThreshold: 5_000,
+        updateTokenThreshold: 2_000,
+      },
+      compaction: {
+        tailMinTokens: 240,
+        tailMaxTokens: 840,
+        minTextMessages: 5,
+        compactSummaryBudgetTokens: 600,
+      },
+    };
+
+    await finalizeAttemptMemoryRuntimeTurn({
+      memoryRuntime: {
+        info: { id: "builtin-memory", name: "Memory" },
+        ingest: async () => ({ ingested: true }),
+        compact: async () => ({ ok: false, compacted: false }),
+        assemble: async () => ({ messages: [], estimatedTokens: 0 }),
+        afterTurn: vi.fn(),
+      },
+      promptError: false,
+      aborted: false,
+      yieldAborted: false,
+      sessionIdUsed: "session-1",
+      sessionKey: "agent:main:feishu:user-1",
+      sessionFile: "/tmp/session.jsonl",
+      messagesSnapshot: [{ role: "assistant", content: "done" }] as unknown as AgentMessage[],
+      prePromptMessageCount: 0,
+      contextBudgetPolicy,
+      runtimeContext: { agentId: "main" },
+      runMaintenance: vi.fn(async () => undefined),
+      sessionManager: {},
+      warn: vi.fn(),
+    });
+
+    expect(lifecyclePolicies).toEqual([
+      contextBudgetPolicy,
+      contextBudgetPolicy,
+      contextBudgetPolicy,
+    ]);
+  });
+
   it("does not emit stop when the turn ends on an assistant tool call", async () => {
     const lifecycleEvents: string[] = [];
     registerRunLoopLifecycleHandler("*", (event) => {
@@ -174,4 +227,44 @@ describe("finalizeAttemptMemoryRuntimeTurn", () => {
 
     expect(lifecycleEvents).toEqual(["post_sampling", "settled_turn"]);
   });
+
+  it.each(["max_tokens", "length"])(
+    "does not emit stop when the final assistant reply is truncated by %s",
+    async (stopReason) => {
+      const lifecycleEvents: string[] = [];
+      registerRunLoopLifecycleHandler("*", (event) => {
+        lifecycleEvents.push(event.phase);
+      });
+
+      await finalizeAttemptMemoryRuntimeTurn({
+        memoryRuntime: {
+          info: { id: "builtin-memory", name: "Memory" },
+          ingest: async () => ({ ingested: true }),
+          compact: async () => ({ ok: false, compacted: false }),
+          assemble: async () => ({ messages: [], estimatedTokens: 0 }),
+          afterTurn: vi.fn(),
+        },
+        promptError: false,
+        aborted: false,
+        yieldAborted: false,
+        sessionIdUsed: "session-1",
+        sessionKey: "agent:main:feishu:user-1",
+        sessionFile: "/tmp/session.jsonl",
+        messagesSnapshot: [
+          {
+            role: "assistant",
+            content: "这里是被截断的回复，不能作为完整回合触发后台 durable extraction。",
+            stopReason,
+          },
+        ] as unknown as AgentMessage[],
+        prePromptMessageCount: 0,
+        runtimeContext: { agentId: "main" },
+        runMaintenance: vi.fn(async () => undefined),
+        sessionManager: {},
+        warn: vi.fn(),
+      });
+
+      expect(lifecycleEvents).toEqual(["post_sampling", "settled_turn"]);
+    },
+  );
 });

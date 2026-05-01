@@ -1,6 +1,6 @@
 ---
 title: "Memory configuration reference"
-summary: "Configuration keys for the built-in memory runtime, NotebookLM, QMD, session summaries, and Context Archive"
+summary: "Configuration keys for the built-in memory runtime, NotebookLM, session summaries, and Context Archive"
 read_when:
   - You want to configure CrawClaw memory
   - You want to enable NotebookLM-backed experience recall
@@ -16,13 +16,6 @@ For the conceptual model, start with:
 
 - [Memory Overview](/concepts/memory)
 - [Builtin Memory Runtime](/concepts/memory-builtin)
-- [QMD Engine](/concepts/memory-qmd)
-
-## Backend
-
-| Key              | Type     | Default     | Description                         |
-| ---------------- | -------- | ----------- | ----------------------------------- |
-| `memory.backend` | `string` | `"builtin"` | Use `"builtin"` for CrawClaw memory |
 
 ## Runtime store
 
@@ -44,27 +37,45 @@ For the conceptual model, start with:
 
 ## NotebookLM
 
-NotebookLM is an optional provider for experience recall and experience-note
-writeback.
+NotebookLM is the prompt-facing provider for experience recall and
+experience-note writeback. CrawClaw keeps a local pending outbox so experience
+writes are not lost while NotebookLM auth is unavailable. It also maintains one
+optional managed source titled
+`CrawClaw Memory Index`, rendered from the bounded local experience index, so
+NotebookLM native source queries have material to search without turning every
+experience note into a separate source.
 
 The built-in CLI defaults target the unified
-[`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) package:
-install it so `nlm` is on `PATH`, run `nlm login`, and set a notebook id for
-the read and write paths you want CrawClaw to use.
+[`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) package.
+CrawClaw installs it as a managed runtime during postinstall and
+`crawclaw runtimes install`. Leave `memory.notebooklm.cli.command` empty to use
+that managed `nlm` first, then PATH `nlm` as a fallback. Run `crawclaw memory
+login` or `nlm login`, then set a notebook id for the read and write paths you
+want CrawClaw to use.
 
-| Key                                  | Type      | Description                    |
-| ------------------------------------ | --------- | ------------------------------ |
-| `memory.notebooklm.enabled`          | `boolean` | Enable NotebookLM integration  |
-| `memory.notebooklm.auth.profile`     | `string`  | Local NotebookLM profile name  |
-| `memory.notebooklm.auth.cookieFile`  | `string`  | Optional cookie file path      |
-| `memory.notebooklm.cli.enabled`      | `boolean` | Enable CLI-backed read queries |
-| `memory.notebooklm.cli.command`      | `string`  | Read command executable        |
-| `memory.notebooklm.cli.args`         | `array`   | Read command arguments         |
-| `memory.notebooklm.cli.notebookId`   | `string`  | Optional read notebook id      |
-| `memory.notebooklm.write.enabled`    | `boolean` | Enable note writeback          |
-| `memory.notebooklm.write.command`    | `string`  | Write command executable       |
-| `memory.notebooklm.write.args`       | `array`   | Write command arguments        |
-| `memory.notebooklm.write.notebookId` | `string`  | Optional write notebook id     |
+| Key                                           | Type      | Description                         |
+| --------------------------------------------- | --------- | ----------------------------------- |
+| `memory.notebooklm.enabled`                   | `boolean` | Enable NotebookLM integration       |
+| `memory.notebooklm.auth.profile`              | `string`  | Local NotebookLM profile name       |
+| `memory.notebooklm.auth.cookieFile`           | `string`  | Optional cookie file path           |
+| `memory.notebooklm.auth.autoLogin.enabled`    | `boolean` | Enable periodic auto login          |
+| `memory.notebooklm.auth.autoLogin.intervalMs` | `number`  | Auto login interval in ms           |
+| `memory.notebooklm.auth.autoLogin.provider`   | `string`  | `nlm_profile` or `openclaw_cdp`     |
+| `memory.notebooklm.auth.autoLogin.cdpUrl`     | `string`  | CDP URL for OpenClaw provider       |
+| `memory.notebooklm.cli.enabled`               | `boolean` | Enable CLI-backed read queries      |
+| `memory.notebooklm.cli.command`               | `string`  | Optional read command override      |
+| `memory.notebooklm.cli.args`                  | `array`   | Read command arguments              |
+| `memory.notebooklm.cli.notebookId`            | `string`  | Optional read notebook id           |
+| `memory.notebooklm.write.enabled`             | `boolean` | Enable note writeback               |
+| `memory.notebooklm.write.command`             | `string`  | Optional write command override     |
+| `memory.notebooklm.write.args`                | `array`   | Custom write command arguments      |
+| `memory.notebooklm.write.notebookId`          | `string`  | Optional write notebook id          |
+| `memory.notebooklm.source.enabled`            | `boolean` | Enable managed source sync          |
+| `memory.notebooklm.source.title`              | `string`  | Managed source title                |
+| `memory.notebooklm.source.timeoutMs`          | `number`  | Source list/add/delete timeout      |
+| `memory.notebooklm.source.maxEntries`         | `number`  | Max experience entries in source    |
+| `memory.notebooklm.source.maxChars`           | `number`  | Max rendered source characters      |
+| `memory.notebooklm.source.deletePrevious`     | `boolean` | Delete old source after replacement |
 
 ## Extraction and summaries
 
@@ -87,8 +98,3 @@ the read and write paths you want CrawClaw to use.
 | `memory.contextArchive.rootDir`       | Archive output directory                 |
 | `memory.contextArchive.redactSecrets` | Redact secrets in archive payloads       |
 | `memory.contextArchive.retentionDays` | Retention window for archive records     |
-
-## QMD
-
-QMD remains configured under `memory.qmd` when you intentionally use the QMD
-sidecar path. See [QMD Engine](/concepts/memory-qmd).

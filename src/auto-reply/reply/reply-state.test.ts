@@ -292,6 +292,18 @@ describe("shouldRunMemoryFlush", () => {
     ).toBe(true);
   });
 
+  it("uses the model policy trigger when provided", () => {
+    expect(
+      shouldRunMemoryFlush({
+        entry: { totalTokens: 7_700, compactionCount: 1 },
+        contextWindowTokens: 100_000,
+        reserveTokensFloor: 20_000,
+        softThresholdTokens: 10_000,
+        triggerTokens: 7_600,
+      }),
+    ).toBe(true);
+  });
+
   it("ignores stale cached totals", () => {
     expect(
       shouldRunMemoryFlush({
@@ -324,6 +336,19 @@ describe("shouldRunPreflightCompaction", () => {
         contextWindowTokens: 100_000,
         reserveTokensFloor: 5_000,
         softThresholdTokens: 2_000,
+      }),
+    ).toBe(true);
+  });
+
+  it("uses the model policy compaction trigger when provided", () => {
+    expect(
+      shouldRunPreflightCompaction({
+        entry: { totalTokens: 10, totalTokensFresh: false },
+        tokenCount: 8_700,
+        contextWindowTokens: 100_000,
+        reserveTokensFloor: 20_000,
+        softThresholdTokens: 10_000,
+        triggerTokens: 8_600,
       }),
     ).toBe(true);
   });

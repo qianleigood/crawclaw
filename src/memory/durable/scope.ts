@@ -10,9 +10,14 @@ export interface DurableMemoryScope {
   rootDir?: string;
 }
 
+export const LOCAL_DURABLE_MEMORY_CHANNEL_ID = "local";
+export const LOCAL_DURABLE_MEMORY_USER_ID = "local";
+
 function normalizeScopeSegment(value: string | null | undefined): string {
   const trimmed = (value ?? "").trim();
-  if (!trimmed) {return "unknown";}
+  if (!trimmed) {
+    return "unknown";
+  }
   const encoded = encodeURIComponent(trimmed);
   return encoded || "unknown";
 }
@@ -20,23 +25,33 @@ function normalizeScopeSegment(value: string | null | undefined): string {
 function parseScopeFromSessionKey(sessionKey: string): { channel: string; userId: string } | null {
   const stripped = sessionKey.split(":thread:")[0]?.trim() || sessionKey.trim();
   const parsed = parseAgentSessionKey(stripped);
-  if (!parsed) {return null;}
+  if (!parsed) {
+    return null;
+  }
   const tokens = parsed.rest.split(":").filter(Boolean);
-  if (!tokens.length) {return null;}
+  if (!tokens.length) {
+    return null;
+  }
   if (tokens.length === 1) {
     const single = tokens[0]?.trim();
-    if (!single) {return null;}
-    return { channel: single, userId: single };
+    if (!single) {
+      return null;
+    }
+    return { channel: LOCAL_DURABLE_MEMORY_CHANNEL_ID, userId: single };
   }
   if (tokens[1] && ["direct", "group", "channel"].includes(tokens[1])) {
     const channel = tokens[0]?.trim();
     const userId = tokens.slice(2).join(":").trim();
-    if (!channel || !userId) {return null;}
+    if (!channel || !userId) {
+      return null;
+    }
     return { channel, userId };
   }
   const channel = tokens[0]?.trim();
   const userId = tokens.slice(1).join(":").trim();
-  if (!channel || !userId) {return null;}
+  if (!channel || !userId) {
+    return null;
+  }
   return { channel, userId };
 }
 
@@ -54,14 +69,20 @@ export function resolveDurableMemoryScope(params: {
   channel?: string | null;
   userId?: string | null;
   rootDir?: string | null;
+  fallbackToLocal?: boolean | null;
 }): DurableMemoryScope | null {
-  const sessionKey = params.sessionKey?.split(":thread:")[0]?.trim() || params.sessionKey?.trim() || undefined;
+  const sessionKey =
+    params.sessionKey?.split(":thread:")[0]?.trim() || params.sessionKey?.trim() || undefined;
   const parsedSessionKey = sessionKey ? parseAgentSessionKey(sessionKey) : null;
   const agentId = normalizeAgentId(params.agentId ?? parsedSessionKey?.agentId ?? undefined);
   const parsedFromSession = sessionKey ? parseScopeFromSessionKey(sessionKey) : null;
-  const channel = params.channel?.trim() || parsedFromSession?.channel?.trim() || null;
-  const userId = params.userId?.trim() || parsedFromSession?.userId?.trim() || null;
-  if (!agentId || !channel || !userId) {return null;}
+  const fallbackChannel = params.fallbackToLocal ? LOCAL_DURABLE_MEMORY_CHANNEL_ID : null;
+  const fallbackUserId = params.fallbackToLocal ? LOCAL_DURABLE_MEMORY_USER_ID : null;
+  const channel = params.channel?.trim() || parsedFromSession?.channel?.trim() || fallbackChannel;
+  const userId = params.userId?.trim() || parsedFromSession?.userId?.trim() || fallbackUserId;
+  if (!agentId || !channel || !userId) {
+    return null;
+  }
   const normalizedChannel = normalizeScopeSegment(channel);
   const normalizedUserId = normalizeScopeSegment(userId);
   const rootDir = path.join(
@@ -86,7 +107,10 @@ export function resolveDurableMemoryScopeDir(
   scope: Pick<DurableMemoryScope, "agentId" | "channel" | "userId" | "scopeKey" | "rootDir">,
   rootDir = resolveDurableMemoryRootDir(),
 ): string {
-  return scope.rootDir ?? path.join(rootDir, "agents", scope.agentId, "channels", scope.channel, "users", scope.userId);
+  return (
+    scope.rootDir ??
+    path.join(rootDir, "agents", scope.agentId, "channels", scope.channel, "users", scope.userId)
+  );
 }
 
 export function getDurableMemoryScopeDir(scope: DurableMemoryScope): string {

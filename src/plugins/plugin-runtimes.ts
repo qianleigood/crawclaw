@@ -72,10 +72,36 @@ export function resolveScraplingFetchRuntimeVenvDir(env: NodeJS.ProcessEnv = pro
   return path.join(resolveScraplingFetchRuntimeDir(env), "venv");
 }
 
+export function resolveNotebookLmRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolvePluginRuntimesRoot(env), "notebooklm-mcp-cli");
+}
+
+export function resolveNotebookLmRuntimeVenvDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveNotebookLmRuntimeDir(env), "venv");
+}
+
 export function resolveScraplingFetchRuntimePython(env: NodeJS.ProcessEnv = process.env): string {
   return process.platform === "win32"
     ? path.join(resolveScraplingFetchRuntimeVenvDir(env), "Scripts", "python.exe")
     : path.join(resolveScraplingFetchRuntimeVenvDir(env), "bin", "python");
+}
+
+export function resolveNotebookLmRuntimePython(env: NodeJS.ProcessEnv = process.env): string {
+  return process.platform === "win32"
+    ? path.join(resolveNotebookLmRuntimeVenvDir(env), "Scripts", "python.exe")
+    : path.join(resolveNotebookLmRuntimeVenvDir(env), "bin", "python");
+}
+
+export function resolveNotebookLmRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
+  return process.platform === "win32"
+    ? path.join(resolveNotebookLmRuntimeVenvDir(env), "Scripts", "nlm.exe")
+    : path.join(resolveNotebookLmRuntimeVenvDir(env), "bin", "nlm");
+}
+
+export function resolveNotebookLmMcpRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
+  return process.platform === "win32"
+    ? path.join(resolveNotebookLmRuntimeVenvDir(env), "Scripts", "notebooklm-mcp.exe")
+    : path.join(resolveNotebookLmRuntimeVenvDir(env), "bin", "notebooklm-mcp");
 }
 
 export function getPluginRuntimeStatus(

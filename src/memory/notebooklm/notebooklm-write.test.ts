@@ -105,6 +105,91 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
     );
   });
 
+  it("writes through managed nlm note create when no custom write command is configured", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-notebooklm-native-write-"));
+    const binPath =
+      process.platform === "win32"
+        ? path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "Scripts", "nlm.exe")
+        : path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "bin", "nlm");
+    await fs.mkdir(path.dirname(binPath), { recursive: true });
+    await fs.writeFile(binPath, "", "utf8");
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    execFileMock
+      .mockImplementationOnce((command, args, _options, callback) => {
+        expect(command).toBe(binPath);
+        expect(args).toEqual(["login", "--check"]);
+        callback(null, "✓ Authentication valid!\n  Profile: default\n  Notebooks found: 1");
+      })
+      .mockImplementationOnce((command, args, _options, callback) => {
+        expect(command).toBe(binPath);
+        expect(args).toEqual(
+          expect.arrayContaining([
+            "note",
+            "create",
+            "nb-managed",
+            "--title",
+            "云端经验同步验收流程",
+            "--content",
+          ]),
+        );
+        callback(null, "✓ Note created: note-managed-1\n  Title: 云端经验同步验收流程\n");
+      });
+
+    const result = await writeNotebookLmExperienceNoteViaCli({
+      config: {
+        enabled: true,
+        auth: {
+          profile: "default",
+          cookieFile: "",
+          statusTtlMs: 60_000,
+          degradedCooldownMs: 120_000,
+          refreshCooldownMs: 180_000,
+          heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
+        },
+        cli: {
+          enabled: true,
+          command: "",
+          args: [
+            "notebook",
+            "query",
+            "{notebookId}",
+            "{query}",
+            "--json",
+            "--profile",
+            "{profile}",
+          ],
+          timeoutMs: 1000,
+          limit: 5,
+          notebookId: "nb-managed",
+        },
+        write: {
+          enabled: true,
+          command: "",
+          args: ["{payloadFile}"],
+          timeoutMs: 1000,
+          notebookId: "nb-managed",
+        },
+      },
+      note: {
+        type: "procedure",
+        title: "云端经验同步验收流程",
+        summary: "云端经验库验收要同时检查写入结果和检索命中。",
+        context: "完成登录后需要确认云端经验库 provider 是否真正接通。",
+        action: "写入经验 note 后再用同一标记检索。",
+        lesson: "provider 验收不能只看本地索引。",
+      },
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: "ok",
+        action: "create",
+        noteId: "note-managed-1",
+        notebookId: "nb-managed",
+      }),
+    );
+  });
+
   it("throws a clear error when the provider is not ready", async () => {
     execFileMock.mockImplementationOnce((_command, _args, _options, callback) => {
       callback(

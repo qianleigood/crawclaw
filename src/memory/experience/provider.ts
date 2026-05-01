@@ -1,7 +1,6 @@
 import type { MemoryRuntimeContext } from "../engine/types.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import type { UnifiedQueryClassification, UnifiedRecallItem } from "../types/orchestration.ts";
-import { LocalExperienceIndexProvider } from "./local-index-provider.ts";
 import { NotebookLmExperienceProvider } from "./notebooklm-provider.ts";
 import { buildExperienceQueryPlan, type ExperienceQueryPlan } from "./query-plan.ts";
 
@@ -107,7 +106,6 @@ export function createDefaultExperienceProviderRegistry(options: {
         config: options.notebooklm,
         logger: options.logger,
       }),
-      new LocalExperienceIndexProvider(),
     ],
     {
       defaultLimit: options.notebooklm?.cli.limit ?? 5,

@@ -37,8 +37,8 @@ describe("timeout-triggered compaction", () => {
     resetRunOverflowCompactionHarnessMocks();
   });
 
-  it("attempts compaction when LLM times out with high prompt token usage (>65%)", async () => {
-    // First attempt: timeout with high prompt usage (150k / 200k = 75%)
+  it("attempts compaction when LLM times out above the model-aware prompt threshold", async () => {
+    // First attempt: timeout with high prompt usage above the model-aware recovery threshold.
     mockedRunEmbeddedAttempt.mockResolvedValueOnce(
       makeAttemptResult({
         timedOut: true,

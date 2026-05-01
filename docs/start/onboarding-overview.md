@@ -34,7 +34,7 @@ Regardless of which path you choose, onboarding sets up:
 3. **Gateway** — port, bind address, auth mode
 4. **Channels** (optional) — WhatsApp, Telegram, Discord, and more
 5. **Output and presentation** — default reply visibility and streaming preset
-6. **Memory / Experience** (optional) — local experience memory first, with optional NotebookLM provider enablement
+6. **Memory / Experience** (optional) — experience capture with a local sync queue and optional NotebookLM recall/sync enablement
 7. **Daemon** (optional) — background service so the Gateway starts automatically
 
 ## CLI onboarding

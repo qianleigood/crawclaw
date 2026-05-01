@@ -1,8 +1,9 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import type { ObservationContext } from "../../infra/observation/types.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.ts";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { getSharedMemoryPromptJournal } from "../diagnostics/prompt-journal.ts";
+import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { DurableExtractionConfig } from "../types/config.ts";
 import type { GmMessageRow } from "../types/runtime.ts";
@@ -91,6 +92,7 @@ type SubmitTurnParams = {
   runtimeContext?: {
     agentId?: string | null;
     messageChannel?: string | null;
+    messageProvider?: string | null;
     senderId?: string | null;
     parentRunId?: string | null;
     parentForkContext?: SpecialAgentParentForkContext | null;
@@ -144,6 +146,7 @@ export class DurableExtractionWorkerManager {
   private logger: RuntimeLogger;
   private readonly workers = new Map<string, DurableExtractionWorkerState>();
   private readonly queue: string[] = [];
+  private readonly runningScopeKeys = new Set<string>();
   private runningCount = 0;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -174,21 +177,22 @@ export class DurableExtractionWorkerManager {
       return;
     }
     const sessionKey = params.sessionKey.trim();
-    if (isSubagentSessionKey(sessionKey)) {
+    if (isMemoryAutomationExcludedSessionKey(sessionKey)) {
       return;
     }
     const scope = resolveDurableMemoryScope({
       sessionKey,
       agentId: params.runtimeContext?.agentId,
-      channel: params.runtimeContext?.messageChannel,
+      channel: resolveMemoryMessageChannel(params.runtimeContext),
       userId: params.runtimeContext?.senderId,
+      fallbackToLocal: true,
     });
     if (!scope) {
       getSharedMemoryPromptJournal()?.recordStage("after_turn_decision", {
         sessionId: params.sessionId,
         sessionKey,
         agentId: params.runtimeContext?.agentId ?? undefined,
-        channel: params.runtimeContext?.messageChannel ?? undefined,
+        channel: resolveMemoryMessageChannel(params.runtimeContext),
         userId: params.runtimeContext?.senderId ?? undefined,
         payload: {
           decision: "skip_no_scope",
@@ -465,9 +469,42 @@ export class DurableExtractionWorkerManager {
     }
   }
 
+  private resolveScopeLockKey(scope: DurableMemoryScope): string {
+    return scope.scopeKey ?? `${scope.agentId}:${scope.channel}:${scope.userId}`;
+  }
+
+  private takeNextRunnableSessionKey(): string | null {
+    for (let index = 0; index < this.queue.length; ) {
+      const nextSessionKey = this.queue[index];
+      if (!nextSessionKey) {
+        this.queue.splice(index, 1);
+        continue;
+      }
+      const worker = this.workers.get(nextSessionKey);
+      if (
+        !worker ||
+        worker.stopRequested ||
+        worker.status !== "scheduled" ||
+        !worker.pendingContext ||
+        worker.inProgress
+      ) {
+        this.queue.splice(index, 1);
+        continue;
+      }
+      const scopeLockKey = this.resolveScopeLockKey(worker.pendingContext.scope);
+      if (this.runningScopeKeys.has(scopeLockKey)) {
+        index += 1;
+        continue;
+      }
+      this.queue.splice(index, 1);
+      return nextSessionKey;
+    }
+    return null;
+  }
+
   private pumpQueue(): void {
     while (this.runningCount < this.normalizeMaxConcurrentWorkers()) {
-      const nextSessionKey = this.queue.shift();
+      const nextSessionKey = this.takeNextRunnableSessionKey();
       if (!nextSessionKey) {
         return;
       }
@@ -497,6 +534,8 @@ export class DurableExtractionWorkerManager {
     worker.lastRunCursor = Math.max(worker.lastRunCursor, pending.messageCursor);
     worker.eligibleTurnsSinceLastRun = 0;
     this.runningCount += 1;
+    const scopeLockKey = this.resolveScopeLockKey(pending.scope);
+    this.runningScopeKeys.add(scopeLockKey);
 
     worker.inProgress = (async () => {
       try {
@@ -545,6 +584,7 @@ export class DurableExtractionWorkerManager {
         worker.lastRunAt = nowMs();
         worker.lastTouchedAt = nowMs();
         this.runningCount = Math.max(0, this.runningCount - 1);
+        this.runningScopeKeys.delete(scopeLockKey);
         if (worker.stopRequested) {
           worker.status = "stopped";
           this.workers.delete(worker.sessionKey);

@@ -1,3 +1,4 @@
+import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import { searchNotebookLmViaCli } from "../notebooklm/notebooklm-cli.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import type {
@@ -32,10 +33,7 @@ export class NotebookLmExperienceProvider implements ExperienceProvider {
           typeof input.runtimeContext?.agentId === "string"
             ? input.runtimeContext.agentId
             : undefined,
-        channel:
-          typeof input.runtimeContext?.messageChannel === "string"
-            ? input.runtimeContext.messageChannel
-            : undefined,
+        channel: resolveMemoryMessageChannel(input.runtimeContext),
         userId:
           typeof input.runtimeContext?.senderId === "string"
             ? input.runtimeContext.senderId

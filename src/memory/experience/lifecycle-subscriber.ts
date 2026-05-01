@@ -6,7 +6,8 @@ import {
 } from "../../agents/special/runtime/lifecycle-subscriber.js";
 import { resolveSpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { isSubagentSessionKey } from "../../sessions/session-key-utils.js";
+import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.js";
+import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.js";
 import type { GmMessageRow } from "../types/runtime.js";
 import type { ExperienceExtractionWorkerManager } from "./worker-manager.js";
@@ -77,7 +78,7 @@ export class ExperienceExtractionLifecycleSubscriber {
     }
     const sessionKey = typeof event.sessionKey === "string" ? event.sessionKey.trim() : "";
     const sessionFile = typeof event.sessionFile === "string" ? event.sessionFile.trim() : "";
-    if (!sessionKey || isSubagentSessionKey(sessionKey) || !sessionFile) {
+    if (!sessionKey || isMemoryAutomationExcludedSessionKey(sessionKey) || !sessionFile) {
       return;
     }
     const currentTurnCount =
@@ -117,9 +118,8 @@ export class ExperienceExtractionLifecycleSubscriber {
           ...(parentForkContext ? { parentForkContext } : {}),
           sessionFile,
           workspaceDir: resolveWorkspaceDir(event),
-          ...(typeof event.metadata?.messageChannel === "string" &&
-          event.metadata.messageChannel.trim()
-            ? { messageChannel: event.metadata.messageChannel.trim() }
+          ...(resolveMemoryMessageChannel(event.metadata)
+            ? { messageChannel: resolveMemoryMessageChannel(event.metadata) }
             : {}),
           ...(typeof event.metadata?.senderId === "string" && event.metadata.senderId.trim()
             ? { senderId: event.metadata.senderId.trim() }

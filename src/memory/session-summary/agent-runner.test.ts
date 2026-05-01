@@ -10,6 +10,7 @@ import {
   SESSION_SUMMARY_AGENT_DEFINITION,
   runSessionSummaryAgentOnce,
 } from "./agent-runner.js";
+import { ensureSessionSummaryTemplateContent, writeSessionSummaryFile } from "./store.js";
 
 function createParentForkContext(params?: {
   parentRunId?: string;
@@ -76,6 +77,7 @@ describe("session summary agent runner", () => {
       sessionId: "session-1",
       summaryPath: "/tmp/session-summary/agents/main/sessions/session-1/summary.md",
       currentSummary: null,
+      modelVisibleMessages: [{ role: "user", content: "Summarize the live memory test." }],
       profile: "light",
       maxSectionsToChange: 3,
     });
@@ -86,8 +88,8 @@ describe("session summary agent runner", () => {
     expect(taskPrompt).toContain("NOT part of the actual user conversation");
     expect(taskPrompt).toContain("<current_summary_content>");
     expect(taskPrompt).toContain("Based on the model-visible conversation above");
-    expect(taskPrompt).toContain("provided as this forked agent's message history");
-    expect(taskPrompt).not.toContain("Recent model-visible messages");
+    expect(taskPrompt).toContain("<model_visible_conversation>");
+    expect(taskPrompt).toContain("- user: Summarize the live memory test.");
     expect(taskPrompt).toContain("session_summary_file_edit");
     expect(taskPrompt).toContain("Do not call any other tools");
     expect(taskPrompt).toContain("STRUCTURE PRESERVATION REMINDER");
@@ -95,19 +97,25 @@ describe("session summary agent runner", () => {
     expect(taskPrompt).toContain("LIGHT profile runs");
   });
 
-  it("does not embed recent-message excerpts in the task prompt", () => {
+  it("embeds bounded model-visible excerpts in the task prompt", () => {
     const taskPrompt = buildSessionSummaryTaskPrompt({
       sessionId: "session-1",
       summaryPath: "/tmp/session-summary/agents/main/sessions/session-1/summary.md",
       currentSummary: null,
+      modelVisibleMessages: [
+        {
+          role: "user",
+          content: "This recent text should be available to the session summary agent.",
+        },
+      ],
       profile: "full",
     });
 
     expect(taskPrompt).toContain("Based on the model-visible conversation above");
-    expect(taskPrompt).not.toContain(
-      "Recent model-visible messages since the last summary checkpoint",
+    expect(taskPrompt).toContain("<model_visible_conversation>");
+    expect(taskPrompt).toContain(
+      "- user: This recent text should be available to the session summary agent.",
     );
-    expect(taskPrompt).not.toContain("This recent text should stay out of the task prompt.");
   });
 
   it("adds budget reminders when the current summary is oversized", () => {
@@ -307,8 +315,78 @@ UPDATED_COUNT: 2
       forkContextMessages: fullModelVisibleMessages,
     });
     expect(embeddedParams?.prompt).toContain("Based on the model-visible conversation above");
+    expect(embeddedParams?.prompt).toContain("- user: full context user request");
+    expect(embeddedParams?.prompt).toContain("- assistant: full context assistant response");
     expect(embeddedParams?.extraSystemPrompt).toBeUndefined();
     expect(embeddedParams?.streamParams).toEqual({ cacheRetention: "short" });
+  });
+
+  it("treats a changed summary file as written when the final agent reply omits STATUS", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-statusless-"));
+    process.env.CRAWCLAW_SESSION_SUMMARY_DIR = dir;
+    process.env.CRAWCLAW_STATE_DIR = dir;
+    const sessionId = "session-statusless";
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId,
+      rootDir: dir,
+      content: ensureSessionSummaryTemplateContent({ sessionId }),
+    });
+
+    const emitAgentActionEvent = vi.fn();
+    const runEmbeddedPiAgent = vi.fn().mockImplementation(async () => {
+      await writeSessionSummaryFile({
+        agentId: "main",
+        sessionId,
+        rootDir: dir,
+        content: ensureSessionSummaryTemplateContent({ sessionId }).replace(
+          "# Current State\n_What is actively being worked on right now? Pending tasks not yet completed. Immediate next steps._\n\n\n",
+          "# Current State\n_What is actively being worked on right now? Pending tasks not yet completed. Immediate next steps._\n\nStatusless edit landed.\n\n",
+        ),
+      });
+      return {
+        payloads: [{ text: "已更新 Current State。" }],
+        meta: {
+          durationMs: 1,
+          agentMeta: { usage: { input: 1, output: 1, total: 2 } },
+        },
+      };
+    });
+    __testing.setDepsForTest({
+      emitAgentActionEvent,
+      runEmbeddedPiAgent,
+    });
+
+    const result = await runSessionSummaryAgentOnce({
+      sessionId,
+      sessionKey: `agent:main:${sessionId}`,
+      sessionFile: "/tmp/session-statusless.jsonl",
+      workspaceDir: dir,
+      agentId: "main",
+      parentForkContext: createParentForkContext({
+        messages: [{ role: "user", content: "Update session memory." }],
+      }),
+    });
+
+    expect(result).toMatchObject({
+      status: "written",
+      summary: "summary file updated",
+      writtenCount: 1,
+      updatedCount: 0,
+    });
+    expect(emitAgentActionEvent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "completed",
+          projectedTitle: "Session summary updated",
+          detail: expect.objectContaining({
+            memoryKind: "session_summary",
+            memoryPhase: "final",
+            memoryResultStatus: "written",
+          }),
+        }),
+      }),
+    );
   });
 
   it("fails without falling back to recent excerpts when the parent fork context is unavailable", async () => {
