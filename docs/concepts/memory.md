@@ -100,13 +100,7 @@ CrawClaw also has a second durable-memory maintenance layer:
 - auto-dream uses runtime DB state, not file `mtime`, for both gating and lock
   ownership
 - auto-dream prefers runtime store, session summaries, and Context Archive
-  signals instead of transcript grep as its primary signal source
-- when summaries are missing or stale, or structured signals are too weak,
-  auto-dream may expose a bounded `memory_transcript_search` fallback to the
-  dream agent. The fallback is still scoped to the current durable-memory scope,
-  limited to the recent session ids selected for the dream run, and returns only
-  short model-visible excerpts. It does not open shell access or make raw
-  transcript grep a primary workflow.
+  signals; transcript-search fallback is no longer part of the dream path
 - auto-dream now surfaces phase-level actions for orient / gather /
   consolidate / prune through the Action Feed
 - manual dream runs can now be bounded with `--session-limit` / `--signal-limit`
@@ -116,9 +110,6 @@ CrawClaw also has a second durable-memory maintenance layer:
 - status and inspect surfaces explicitly report whether the dream closed loop is
   active for the inspected durable scope, instead of leaving dream as an opaque
   optional background behavior
-- status and inspect surfaces also show whether transcript fallback is enabled
-  and what its session/match limits are, so fallback usage is an explicit dream
-  configuration state rather than hidden behavior
 - dream status/history surfaces now expose recent `touchedNotes`, so you can
   see which durable notes were just rewritten before checking later recall
   behavior

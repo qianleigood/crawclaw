@@ -222,8 +222,6 @@ Nothing yet.
     expect(runtimeLogs.join("\n")).toContain("agent_failed");
     expect(runtimeLogs.join("\n")).toContain("Closed loop:");
     expect(runtimeLogs.join("\n")).toContain("active");
-    expect(runtimeLogs.join("\n")).toContain("Transcript fallback:");
-    expect(runtimeLogs.join("\n")).toContain("maxSessions=4");
   });
 
   it("renders dream status with touched note diagnostics", async () => {
