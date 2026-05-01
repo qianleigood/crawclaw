@@ -548,6 +548,53 @@ export const WorkflowRunsResultSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const N8nWorkflowRecordSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    name: NonEmptyString,
+    active: Type.Optional(Type.Boolean()),
+    nodes: Type.Array(Type.Record(Type.String(), Type.Unknown())),
+    connections: Type.Record(Type.String(), Type.Unknown()),
+    settings: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    staticData: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    meta: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    createdAt: Type.Optional(Type.String()),
+    updatedAt: Type.Optional(Type.String()),
+  },
+  { additionalProperties: true },
+);
+
+export const N8nExecutionRecordSchema = Type.Object(
+  {
+    id: Type.Optional(Type.String()),
+    executionId: Type.Optional(Type.String()),
+    workflowId: Type.Optional(Type.String()),
+    status: Type.Optional(Type.String()),
+    finished: Type.Optional(Type.Boolean()),
+    stoppedAt: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    startedAt: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    data: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  },
+  { additionalProperties: true },
+);
+
+export const WorkflowN8nGetParamsSchema = defineWorkflowContextParamsSchema({
+  workflow: NonEmptyString,
+  executionsLimit: Type.Optional(Type.Integer({ minimum: 1 })),
+});
+
+export const WorkflowN8nGetResultSchema = Type.Object(
+  {
+    agentId: Type.Optional(Type.String()),
+    workflow: WorkflowRegistryEntrySchema,
+    remoteWorkflow: N8nWorkflowRecordSchema,
+    remoteExecutions: Type.Array(N8nExecutionRecordSchema),
+    remoteWorkflowUrl: NonEmptyString,
+    remoteExecutionsUrl: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
 export const WorkflowMutationParamsSchema = defineWorkflowContextParamsSchema({
   workflow: NonEmptyString,
 });

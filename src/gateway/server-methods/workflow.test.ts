@@ -235,6 +235,122 @@ describe("workflow management handlers", () => {
     expect(payload?.workflows[0]?.recentExecution?.workflowId).toBe(created.entry.workflowId);
   });
 
+  it("returns n8n workflow details for a deployed workflow", async () => {
+    const workspaceDir = await tempDirs.make("gateway-workflow-n8n-view-");
+    process.env.CRAWCLAW_N8N_BASE_URL = "https://n8n.example.com";
+    process.env.CRAWCLAW_N8N_API_KEY = "secret-token";
+    process.env.CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN = "trigger-secret";
+    process.env.CRAWCLAW_N8N_CALLBACK_BASE_URL = "https://crawclaw.example.com";
+    process.env.CRAWCLAW_N8N_CALLBACK_BEARER_TOKEN = "secret-gateway-token";
+    const created = await createWorkflowDraft({
+      workspaceDir,
+      name: "Publish Redbook Note",
+      goal: "Generate and publish a redbook post",
+    });
+
+    n8nTesting.setDepsForTest({
+      fetchImpl: async (input) => {
+        const url = requestUrl(input);
+        if (url.endsWith("/api/v1/workflows")) {
+          return new Response(
+            JSON.stringify({
+              id: "wf_remote_view",
+              name: "Publish Redbook Note",
+              active: false,
+              nodes: [],
+              connections: {},
+              settings: {},
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.endsWith("/api/v1/workflows/wf_remote_view")) {
+          return new Response(
+            JSON.stringify({
+              id: "wf_remote_view",
+              name: "Publish Redbook Note",
+              active: true,
+              nodes: [{ id: "trigger", name: "Trigger", type: "n8n-nodes-base.webhook" }],
+              connections: {},
+              settings: { executionOrder: "v1" },
+              staticData: { crawclawWorkflowId: created.entry.workflowId },
+              updatedAt: "2026-05-01T00:00:00.000Z",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.endsWith("/api/v1/workflows/wf_remote_view/activate")) {
+          return new Response(
+            JSON.stringify({
+              id: "wf_remote_view",
+              name: "Publish Redbook Note",
+              active: true,
+              nodes: [],
+              connections: {},
+              settings: {},
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.includes("/api/v1/executions?workflowId=wf_remote_view")) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  id: "exec_remote_view",
+                  workflowId: "wf_remote_view",
+                  status: "success",
+                  finished: true,
+                  startedAt: "2026-05-01T00:00:00.000Z",
+                  stoppedAt: "2026-05-01T00:00:05.000Z",
+                },
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const deploy = createInvokeParams("workflow.deploy", {
+      workspaceDir,
+      workflow: created.entry.workflowId,
+    });
+    await deploy.invoke();
+    const deployCall = deploy.respond.mock.calls[0] as RespondCall | undefined;
+    expect(deployCall?.[2]).toBeUndefined();
+    expectSuccessPayload<{ workflow: { n8nWorkflowId?: string } }>(deployCall);
+
+    const details = createInvokeParams("workflow.n8n.get" as keyof typeof workflowHandlers, {
+      workspaceDir,
+      workflow: created.entry.workflowId,
+      executionsLimit: 5,
+    });
+    await details.invoke();
+
+    const detailsCall = details.respond.mock.calls[0] as RespondCall | undefined;
+    expect(detailsCall?.[2]).toBeUndefined();
+    const payload = expectSuccessPayload<{
+      workflow: { workflowId: string; n8nWorkflowId?: string };
+      remoteWorkflow: { id: string; active?: boolean; nodes: Array<Record<string, unknown>> };
+      remoteExecutions: Array<{ id?: string; status?: string; finished?: boolean }>;
+    }>(detailsCall);
+    expect(payload.workflow.n8nWorkflowId).toBe("wf_remote_view");
+    expect(payload.remoteWorkflow).toMatchObject({
+      id: "wf_remote_view",
+      active: true,
+      nodes: [{ id: "trigger", name: "Trigger" }],
+    });
+    expect(payload.remoteExecutions).toEqual([
+      expect.objectContaining({
+        id: "exec_remote_view",
+        status: "success",
+        finished: true,
+      }),
+    ]);
+  });
+
   it("archives and deletes workflows through gateway workflow methods", async () => {
     const workspaceDir = await tempDirs.make("gateway-workflow-archive-");
     const created = await createWorkflowDraft({

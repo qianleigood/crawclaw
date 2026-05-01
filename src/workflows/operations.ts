@@ -226,6 +226,54 @@ export async function describeWorkflowWithRecentExecutions(
   };
 }
 
+function buildN8nUiUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+export async function buildWorkflowN8nDetailsPayload(params: {
+  context: WorkflowStoreContext;
+  config?: CrawClawConfig;
+  workflowRef: string;
+  executionsLimit?: number;
+}) {
+  const described = await describeWorkflow(params.context, params.workflowRef);
+  if (!described || !described.spec) {
+    throw new WorkflowOperationInputError(`Workflow "${params.workflowRef}" not found.`);
+  }
+  if (!described.entry.n8nWorkflowId) {
+    throw new WorkflowOperationInputError(
+      `Workflow "${params.workflowRef}" has not been deployed to n8n yet.`,
+    );
+  }
+
+  const { client, resolved } = requireWorkflowN8nRuntime(params.config);
+  const remoteWorkflowId = described.entry.n8nWorkflowId;
+  const [remoteWorkflow, remoteExecutions] = await Promise.all([
+    client.getWorkflow(remoteWorkflowId),
+    client.listExecutions({
+      workflowId: remoteWorkflowId,
+      limit: Math.max(1, Math.floor(params.executionsLimit ?? 10)),
+    }),
+  ]);
+
+  return {
+    workflow: {
+      ...described.entry,
+      invocation: getWorkflowInvocationHint(described.entry),
+    },
+    remoteWorkflow,
+    remoteExecutions: remoteExecutions.data,
+    remoteWorkflowUrl: buildN8nUiUrl(
+      resolved.baseUrl,
+      `/workflow/${encodeURIComponent(remoteWorkflowId)}`,
+    ),
+    remoteExecutionsUrl: buildN8nUiUrl(
+      resolved.baseUrl,
+      `/executions?workflowId=${encodeURIComponent(remoteWorkflowId)}`,
+    ),
+  };
+}
+
 export async function buildWorkflowVersionsPayload(
   context: WorkflowStoreContext,
   workflowRef: string,

@@ -5,6 +5,7 @@ import {
   buildWorkflowCatalogPayload,
   buildWorkflowDiffPayload,
   buildWorkflowMatchPayload,
+  buildWorkflowN8nDetailsPayload,
   buildWorkflowRunsPayload,
   buildWorkflowVersionsPayload,
   createN8nClient,
@@ -356,6 +357,52 @@ export const workflowHandlers: GatewayRequestHandlers = {
       },
       undefined,
     );
+  },
+  "workflow.n8n.get": async ({ params, respond }) => {
+    if (
+      !isPlainRecord(params) ||
+      !isOptionalString(params.agentId) ||
+      !isOptionalString(params.workspaceDir) ||
+      !isOptionalString(params.agentDir) ||
+      typeof params.workflow !== "string" ||
+      !params.workflow.trim() ||
+      !isOptionalPositiveNumber(params.executionsLimit)
+    ) {
+      respondInvalid(
+        respond,
+        "invalid workflow.n8n.get params: expected workflow plus optional agentId/workspaceDir/agentDir and positive executionsLimit",
+      );
+      return;
+    }
+    const resolved = resolveWorkflowStoreContext(params, respond);
+    if (!resolved) {
+      return;
+    }
+    const workflowRef = params.workflow.trim();
+    const executionsLimit = readPositiveInteger(params.executionsLimit) ?? 10;
+    await respondUnavailableOnThrow(respond, async () => {
+      try {
+        respond(
+          true,
+          {
+            agentId: resolved.agentId,
+            ...(await buildWorkflowN8nDetailsPayload({
+              context: resolved,
+              config: resolved.cfg,
+              workflowRef,
+              executionsLimit,
+            })),
+          },
+          undefined,
+        );
+      } catch (error) {
+        if (error instanceof WorkflowOperationInputError) {
+          respondInvalid(respond, error.message);
+          return;
+        }
+        throw error;
+      }
+    });
   },
   "workflow.match": async ({ params, respond }) => {
     if (

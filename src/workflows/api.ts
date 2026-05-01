@@ -48,6 +48,7 @@ export {
   buildWorkflowCatalogPayload,
   buildWorkflowDiffPayload,
   buildWorkflowMatchPayload,
+  buildWorkflowN8nDetailsPayload,
   buildWorkflowVersionsPayload,
   buildWorkflowListPayload,
   buildWorkflowRunsPayload,
