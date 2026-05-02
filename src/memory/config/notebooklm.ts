@@ -69,7 +69,7 @@ export const DEFAULT_NOTEBOOKLM_CLI: NotebookLmCliConfig = {
 export const DEFAULT_NOTEBOOKLM_WRITE: NotebookLmWriteConfig = {
   command: "",
   args: ["{payloadFile}"],
-  timeoutMs: 10_000,
+  timeoutMs: 60_000,
   notebookId: "",
 };
 

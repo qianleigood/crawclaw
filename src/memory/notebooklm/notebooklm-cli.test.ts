@@ -259,6 +259,76 @@ describe("searchNotebookLmViaCli", () => {
     expect(items[0]?.sourceRef).toBe("source-1");
   });
 
+  it("preserves structured JSON answers for callers that parse NotebookLM output", async () => {
+    const answer = JSON.stringify({
+      candidates: [
+        {
+          id: "notebooklm-candidate:workflow-order",
+          signalSummary: "workflow 执行异常时使用 registry、operations、executions 的顺序排查。",
+          observedFrequency: 3,
+          currentReuseLevel: "experience",
+          triggerPattern: "workflow 状态不一致",
+          repeatedActions: ["先查 registry", "再查 operations", "最后查 executions"],
+          validationEvidence: ["三次排障都能定位失败层级"],
+          evidenceKinds: ["trigger", "action", "result", "validation"],
+          baselineDecision: "ready",
+          blockers: [],
+          score: 95,
+        },
+      ],
+    });
+    execFileMock
+      .mockImplementationOnce((_command, _args, _options, callback) => {
+        callback(
+          null,
+          JSON.stringify({
+            status: "ok",
+            ready: true,
+            profile: "default",
+            notebookId: "nb-1",
+            refreshAttempted: false,
+            refreshSucceeded: false,
+          }),
+        );
+      })
+      .mockImplementationOnce((_command, _args, _options, callback) => {
+        callback(
+          null,
+          JSON.stringify({
+            value: {
+              answer,
+              sources_used: ["source-json"],
+            },
+          }),
+        );
+      });
+
+    const { searchNotebookLmViaCli } = await import("./notebooklm-cli.ts");
+    const items = await searchNotebookLmViaCli({
+      config: {
+        ...createNotebookLmConfig(),
+        cli: {
+          ...createNotebookLmConfig().cli,
+          command: "nlm",
+          args: ["notebook", "query", "{notebookId}", "{query}", "--json", "--timeout", "120"],
+        },
+      },
+      query: "返回自进化候选 JSON。",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.content).toBe(answer);
+    expect(JSON.parse(items[0]?.content ?? "{}")).toMatchObject({
+      candidates: [
+        {
+          id: "notebooklm-candidate:workflow-order",
+          baselineDecision: "ready",
+          score: 95,
+        },
+      ],
+    });
+  });
+
   it("queries through the managed nlm runtime when no command is configured", async () => {
     const binPath = makeManagedNlmBin();
     execFileMock

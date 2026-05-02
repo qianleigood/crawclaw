@@ -4,7 +4,10 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __testing as promptJournalTesting } from "../diagnostics/prompt-journal.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
-import { writeNotebookLmExperienceNoteViaCli } from "./notebooklm-write.ts";
+import {
+  deleteNotebookLmExperienceNoteViaCli,
+  writeNotebookLmExperienceNoteViaCli,
+} from "./notebooklm-write.ts";
 import { clearNotebookLmProviderStateCache } from "./provider-state.ts";
 
 const execFileMock = vi.hoisted(() => vi.fn());
@@ -106,7 +109,7 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
     );
   });
 
-  it("writes through managed nlm note create when no custom write command is configured", async () => {
+  it("writes through managed nlm source add when no custom write command is configured", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-notebooklm-native-write-"));
     const binPath =
       process.platform === "win32"
@@ -125,15 +128,19 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
         expect(command).toBe(binPath);
         expect(args).toEqual(
           expect.arrayContaining([
-            "note",
-            "create",
+            "source",
+            "add",
             "nb-managed",
             "--title",
             "云端经验同步验收流程",
-            "--content",
+            "--text",
+            "--wait",
           ]),
         );
-        callback(null, "✓ Note created: note-managed-1\n  Title: 云端经验同步验收流程\n");
+        callback(
+          null,
+          "✓ Source added\n  Source ID: source-managed-1\n  Title: 云端经验同步验收流程\n",
+        );
       });
 
     const result = await writeNotebookLmExperienceNoteViaCli({
@@ -184,7 +191,76 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
       expect.objectContaining({
         status: "ok",
         action: "create",
-        noteId: "note-managed-1",
+        noteId: "source-managed-1",
+        notebookId: "nb-managed",
+      }),
+    );
+  });
+
+  it("deletes managed NotebookLM experience sources by id", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-notebooklm-native-delete-"));
+    const binPath =
+      process.platform === "win32"
+        ? path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "Scripts", "nlm.exe")
+        : path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "bin", "nlm");
+    await fs.mkdir(path.dirname(binPath), { recursive: true });
+    await fs.writeFile(binPath, "", "utf8");
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    execFileMock
+      .mockImplementationOnce((command, args, _options, callback) => {
+        expect(command).toBe(binPath);
+        expect(args).toEqual(["login", "--check"]);
+        callback(null, "✓ Authentication valid!\n  Profile: default\n  Notebooks found: 1");
+      })
+      .mockImplementationOnce((command, args, _options, callback) => {
+        expect(command).toBe(binPath);
+        expect(args).toEqual(["source", "delete", "source-managed-1", "--confirm"]);
+        callback(null, "✓ Deleted source: source-managed-1\n");
+      });
+
+    const result = await deleteNotebookLmExperienceNoteViaCli({
+      config: {
+        enabled: true,
+        auth: {
+          profile: "default",
+          cookieFile: "",
+          statusTtlMs: 60_000,
+          degradedCooldownMs: 120_000,
+          refreshCooldownMs: 180_000,
+          heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
+        },
+        cli: {
+          enabled: true,
+          command: "",
+          args: [
+            "notebook",
+            "query",
+            "{notebookId}",
+            "{query}",
+            "--json",
+            "--profile",
+            "{profile}",
+          ],
+          timeoutMs: 1000,
+          limit: 5,
+          notebookId: "nb-managed",
+        },
+        write: {
+          command: "",
+          args: ["{payloadFile}"],
+          timeoutMs: 1000,
+          notebookId: "nb-managed",
+        },
+      },
+      notebookId: "nb-managed",
+      noteId: "source-managed-1",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: "ok",
+        action: "delete",
+        noteId: "source-managed-1",
         notebookId: "nb-managed",
       }),
     );

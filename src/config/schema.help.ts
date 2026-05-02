@@ -847,13 +847,13 @@ export const FIELD_HELP: Record<string, string> = {
   "memory.notebooklm.cli.queryInstruction":
     "Optional prompt instruction prepended to every NotebookLM experience query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
   "memory.notebooklm.write":
-    "Configures NotebookLM note writing for the experience layer. By default CrawClaw uses the managed `nlm note create` runtime; set a command only when you need a custom write helper.",
+    "Configures NotebookLM experience writeback. By default CrawClaw uses the managed `nlm source add --text --wait` runtime so written experience is available to NotebookLM queries; set a command only when you need a custom write helper.",
   "memory.notebooklm.write.command":
-    "Optional executable override for NotebookLM note writing. Leave empty to use the managed `nlm note create` runtime.",
+    "Optional executable override for NotebookLM experience writeback. Leave empty to use the managed `nlm source add --text --wait` runtime.",
   "memory.notebooklm.write.args":
     "Argument template passed to a custom NotebookLM write command. Ignored by the managed `nlm` write path.",
   "memory.notebooklm.write.timeoutMs":
-    "Timeout in milliseconds for each NotebookLM note write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
+    "Timeout in milliseconds for each NotebookLM experience write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
   "memory.notebooklm.write.notebookId":
     "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
   "memory.experience":

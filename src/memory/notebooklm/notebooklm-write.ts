@@ -108,8 +108,10 @@ function profileArgs(profile: string): string[] {
   return profile === "default" ? [] : ["--profile", profile];
 }
 
-function parseNativeNoteCreateResponse(stdout: string): RawNotebookLmWriteResponse {
-  const noteId = stdout.match(/Note created:\s*(\S+)/i)?.[1]?.trim();
+function parseNativeExperienceWriteResponse(stdout: string): RawNotebookLmWriteResponse {
+  const noteId =
+    stdout.match(/Source ID:\s*(\S+)/i)?.[1]?.trim() ??
+    stdout.match(/Note created:\s*(\S+)/i)?.[1]?.trim();
   const title = stdout.match(/^\s*Title:\s*(.+?)\s*$/im)?.[1]?.trim();
   return {
     status: "ok",
@@ -288,13 +290,14 @@ export async function writeNotebookLmExperienceNoteViaCli(params: {
       : await execNotebookLmWriteCommand({
           command: resolveNotebookLmDefaultCommand(),
           args: [
-            "note",
-            "create",
+            "source",
+            "add",
             notebookId,
-            "--content",
+            "--text",
             content,
             "--title",
             params.note.title.trim(),
+            "--wait",
             ...profileArgs(resolveProfile(params.config)),
           ],
           timeoutMs: writeConfig.timeoutMs,
@@ -307,7 +310,7 @@ export async function writeNotebookLmExperienceNoteViaCli(params: {
         });
     const parsed = writeConfig.command.trim()
       ? JSON.parse(stdout)
-      : parseNativeNoteCreateResponse(stdout);
+      : parseNativeExperienceWriteResponse(stdout);
     const normalized = normalizeWriteResponse(parsed);
     const action =
       normalized.action === "create" ||
@@ -418,9 +421,8 @@ export async function deleteNotebookLmExperienceNoteViaCli(params: {
       : await execNotebookLmWriteCommand({
           command: resolveNotebookLmDefaultCommand(),
           args: [
-            "note",
+            "source",
             "delete",
-            params.notebookId.trim(),
             params.noteId.trim(),
             "--confirm",
             ...profileArgs(resolveProfile(params.config)),

@@ -11997,12 +11997,12 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.write": {
       label: "NotebookLM Writeback",
-      help: "Configures NotebookLM note writing for the experience layer. By default CrawClaw uses the managed `nlm note create` runtime; set a command only when you need a custom write helper.",
+      help: "Configures NotebookLM experience writeback. By default CrawClaw uses the managed `nlm source add --text --wait` runtime so written experience is available to NotebookLM queries; set a command only when you need a custom write helper.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.command": {
       label: "NotebookLM Writeback Command",
-      help: "Optional executable override for NotebookLM note writing. Leave empty to use the managed `nlm note create` runtime.",
+      help: "Optional executable override for NotebookLM experience writeback. Leave empty to use the managed `nlm source add --text --wait` runtime.",
       tags: ["storage"],
     },
     "memory.notebooklm.write.args": {
@@ -12012,7 +12012,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm.write.timeoutMs": {
       label: "NotebookLM Writeback Timeout (ms)",
-      help: "Timeout in milliseconds for each NotebookLM note write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
+      help: "Timeout in milliseconds for each NotebookLM experience write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
       tags: ["performance", "storage"],
     },
     "memory.notebooklm.write.notebookId": {

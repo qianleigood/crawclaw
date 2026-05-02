@@ -299,7 +299,8 @@ provider querying entirely.
 
 `write_experience_note` is the only experience write tool in the current
 runtime. When NotebookLM is enabled, it writes to NotebookLM first. With the
-managed NotebookLM runtime, CrawClaw writes via `nlm note create`; a custom
+managed NotebookLM runtime, CrawClaw writes via `nlm source add --text --wait`
+so the experience is available to later NotebookLM queries; a custom
 `memory.notebooklm.write.command` is only needed for nonstandard write helpers.
 If NotebookLM writeback fails, CrawClaw stores the
 structured note in the local pending outbox and retries it later through

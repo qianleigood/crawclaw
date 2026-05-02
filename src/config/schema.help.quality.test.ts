@@ -540,7 +540,7 @@ describe("config help copy quality", () => {
 
   it("includes concrete examples on representative fields", () => {
     expect(FIELD_HELP["memory.notebooklm.cli.command"].includes("PATH `nlm`")).toBe(true);
-    expect(FIELD_HELP["memory.notebooklm.write.command"].includes("nlm note create")).toBe(true);
+    expect(FIELD_HELP["memory.notebooklm.write.command"].includes("nlm source add")).toBe(true);
   });
 
   it("documents cron deprecation, migration, and retention formats", () => {

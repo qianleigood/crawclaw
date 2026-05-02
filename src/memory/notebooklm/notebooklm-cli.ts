@@ -251,6 +251,14 @@ function extractShortChineseCardText(value: string | undefined, maxChars: number
   return compactText(joined || cleaned, maxChars);
 }
 
+function isStructuredJsonText(value: string | undefined): boolean {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return false;
+  }
+  return /^[{[]/.test(trimmed) || /^```(?:json)?\s*[{[]/i.test(trimmed);
+}
+
 function mapHit(raw: RawNotebookLmHit, rank: number): UnifiedRecallItem {
   const title =
     raw.title ??
@@ -263,11 +271,11 @@ function mapHit(raw: RawNotebookLmHit, rank: number): UnifiedRecallItem {
     raw.summary ?? raw.preview ?? raw.snippet ?? raw.answer ?? raw.text ?? raw.content,
     220,
   );
-  const content =
-    extractShortChineseCardText(
-      raw.answer ?? raw.text ?? raw.content ?? raw.snippet ?? raw.preview ?? raw.summary,
-      520,
-    ) || undefined;
+  const rawContent =
+    raw.answer ?? raw.text ?? raw.content ?? raw.snippet ?? raw.preview ?? raw.summary;
+  const content = isStructuredJsonText(rawContent)
+    ? rawContent?.trim()
+    : extractShortChineseCardText(rawContent, 520) || undefined;
   const retrievalScore = raw.score ?? raw.relevance ?? Math.max(0.1, 1 - rank * 0.04);
   const sourceRef = raw.url ?? raw.path ?? raw.sourceId ?? raw.id;
   const memoryKind = projectMemoryKind({
