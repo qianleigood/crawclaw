@@ -94,6 +94,7 @@ describe("session summary agent runner", () => {
       cacheRetention: "short",
     });
     expect(SESSION_SUMMARY_AGENT_DEFINITION.cachePolicy?.skipWrite).toBeUndefined();
+    expect(SESSION_SUMMARY_AGENT_DEFINITION.systemPromptMode).toBe("isolated");
   });
 
   it("builds a fork-context task prompt that keeps the edit set narrow", () => {

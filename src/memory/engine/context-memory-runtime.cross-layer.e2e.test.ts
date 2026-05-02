@@ -472,7 +472,6 @@ The compact summary should appear before the preserved tail.
       logger: { info: vi.fn() },
       sessionId,
       agentId: "main",
-      totalTurns: persistedRows.length,
       tokenBudget: 900,
       currentTokenCount: 1_500,
       force: true,

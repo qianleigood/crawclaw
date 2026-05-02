@@ -294,7 +294,6 @@ The prompt should contain a compact summary before the preserved tail.
       logger: { info: vi.fn() },
       sessionId,
       agentId: "main",
-      totalTurns: 8,
       tokenBudget: 900,
       currentTokenCount: 1_500,
       force: true,

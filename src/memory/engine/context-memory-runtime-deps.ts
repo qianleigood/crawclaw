@@ -1,6 +1,5 @@
 import type { ContextArchiveService } from "../../agents/context-archive/service.js";
 import { createContextArchiveTurnCapture } from "../../agents/context-archive/turn-capture.js";
-import { renderAgentMemoryRoutingContract } from "../context/render-routing-guidance.ts";
 import { getSharedAutoDreamScheduler } from "../dreaming/auto-dream.ts";
 import type { AutoDreamRunner } from "../dreaming/auto-dream.ts";
 import { getSharedAutoDreamLifecycleSubscriber } from "../dreaming/lifecycle-subscriber.ts";
@@ -72,7 +71,6 @@ export function createContextMemoryRuntimeDeps(options: {
     logger: options.logger,
     ttlMs: options.config?.skillRouting.ttlMs,
   });
-  const agentMemoryRoutingContract = renderAgentMemoryRoutingContract();
   const contextArchiveTurnCapture = createContextArchiveTurnCapture({
     archive: options.contextArchive,
   });
@@ -174,7 +172,6 @@ export function createContextMemoryRuntimeDeps(options: {
     contextAssembler,
     experienceProviderRegistry,
     skillIndexStore,
-    agentMemoryRoutingContract,
     contextArchiveTurnCapture,
     durableExtractionManager,
     experienceExtractionManager,

@@ -15,6 +15,19 @@ describe("renderRoutingGuidance", () => {
     expect(contract.text).toContain("优先在当前回合显式调用这些工具");
   });
 
+  it("renders a session-summary-only contract without durable or experience rules", () => {
+    const contract = renderAgentMemoryRoutingContract({ mode: "session-summary" });
+
+    expect(contract.text).toContain("Session memory");
+    expect(contract.text).toContain("只维护当前 session summary");
+    expect(contract.text).toContain("不要把 session memory 更新过程写入 summary");
+    expect(contract.text).toContain("保持 summary 文件既有结构");
+    expect(contract.text).not.toContain("Durable memory 用来保存");
+    expect(contract.text).not.toContain("Experience memory 用来保存");
+    expect(contract.text).not.toContain("write_experience_note");
+    expect(contract.text).not.toContain("MEMORY.md");
+  });
+
   it("renders a Chinese context routing section", () => {
     const section = renderContextRoutingSection({
       query: "how do I deploy safely",

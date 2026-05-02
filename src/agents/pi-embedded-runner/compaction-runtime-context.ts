@@ -24,6 +24,11 @@ export type EmbeddedCompactionRuntimeContext = {
   bashElevated?: ExecElevatedDefaults;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
+  specialAgentSpawnSource?: string;
+  specialSessionSummaryTarget?: {
+    agentId: string;
+    sessionId: string;
+  };
 };
 
 /**
@@ -89,6 +94,11 @@ export function buildEmbeddedCompactionRuntimeContext(params: {
   bashElevated?: ExecElevatedDefaults;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
+  specialAgentSpawnSource?: string | null;
+  specialSessionSummaryTarget?: {
+    agentId: string;
+    sessionId: string;
+  } | null;
 }): EmbeddedCompactionRuntimeContext {
   const resolved = resolveEmbeddedCompactionTarget({
     config: params.config,
@@ -118,5 +128,7 @@ export function buildEmbeddedCompactionRuntimeContext(params: {
     bashElevated: params.bashElevated,
     extraSystemPrompt: params.extraSystemPrompt,
     ownerNumbers: params.ownerNumbers,
+    specialAgentSpawnSource: params.specialAgentSpawnSource?.trim() || undefined,
+    specialSessionSummaryTarget: params.specialSessionSummaryTarget ?? undefined,
   };
 }

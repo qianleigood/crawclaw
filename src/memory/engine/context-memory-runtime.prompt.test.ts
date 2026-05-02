@@ -969,4 +969,43 @@ Probe output recovered after the stale process was removed.
       "m4",
     ]);
   });
+
+  it("uses only the session-summary routing contract for session-summary special agents", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createBaseMemoryRuntimeConfig(),
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "session-summary-target",
+      sessionKey: "agent:main:session-summary-target",
+      prompt: "Update the session summary file.",
+      messages: castAgentMessages([{ role: "user", content: "Update the session summary file." }]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        specialAgentSpawnSource: "session-summary",
+        specialSessionSummaryTarget: {
+          agentId: "main",
+          sessionId: "session-summary-target",
+        },
+      },
+    });
+
+    const routingContractSection = (result.systemContextSections ?? []).find(
+      (section) => section.id === "memory:routing_contract",
+    );
+    expect(routingContractSection?.content).toContain("只维护当前 session summary");
+    expect(routingContractSection?.content).not.toContain("Durable memory 用来保存");
+    expect(routingContractSection?.content).not.toContain("Experience memory 用来保存");
+    expect(result.systemContextSections?.map((section) => section.id)).toEqual([
+      "memory:routing_contract",
+    ]);
+    expect(recallDurableMemoryMock).not.toHaveBeenCalled();
+    expect(searchNotebookLmViaCliMock).not.toHaveBeenCalled();
+  });
 });

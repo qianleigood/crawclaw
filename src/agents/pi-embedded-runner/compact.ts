@@ -77,6 +77,11 @@ export type CompactEmbeddedPiSessionParams = {
   enqueue?: typeof enqueueCommand;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
+  specialAgentSpawnSource?: string;
+  specialSessionSummaryTarget?: {
+    agentId: string;
+    sessionId: string;
+  };
   abortSignal?: AbortSignal;
   /** Allow runtime plugins for this compaction to late-bind the gateway subagent. */
   allowGatewaySubagentBinding?: boolean;
@@ -234,6 +239,8 @@ export async function compactEmbeddedPiSession(
             bashElevated: params.bashElevated,
             extraSystemPrompt: params.extraSystemPrompt,
             ownerNumbers: params.ownerNumbers,
+            specialAgentSpawnSource: params.specialAgentSpawnSource,
+            specialSessionSummaryTarget: params.specialSessionSummaryTarget,
           }),
         };
         if (engineOwnsCompaction) {

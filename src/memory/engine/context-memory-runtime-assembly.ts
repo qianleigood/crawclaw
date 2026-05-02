@@ -62,6 +62,43 @@ export function buildPromptMissingAssemblyResult(params: {
   };
 }
 
+export function buildRoutingContractOnlyAssemblyResult(params: {
+  agentMemoryRoutingContract: { text: string; estimatedTokens: number };
+  messages: MemoryAssembleResult["messages"];
+  hitReason: string;
+}): MemoryAssembleResult {
+  const routingContractSection = createMemorySystemContextSection({
+    id: "memory:routing_contract",
+    text: params.agentMemoryRoutingContract.text,
+    estimatedTokens: params.agentMemoryRoutingContract.estimatedTokens,
+    sectionType: "routing",
+    schema: {
+      kind: "routing",
+      routingKind: "memory_contract",
+    },
+    metadata: {
+      sectionType: "routing",
+    },
+  });
+  return {
+    messages: params.messages,
+    estimatedTokens: params.agentMemoryRoutingContract.estimatedTokens,
+    systemContextSections: routingContractSection ? [routingContractSection] : [],
+    diagnostics: {
+      memoryRecall: {
+        selectedItemIds: [],
+        omittedItemIds: [],
+        selectedDurableItemIds: [],
+        omittedDurableItemIds: [],
+        selectedExperienceItemIds: [],
+        omittedExperienceItemIds: [],
+        hitReason: params.hitReason,
+        durableRecallSource: "skipped",
+      },
+    },
+  };
+}
+
 export function buildMemoryAssemblyArtifacts(params: {
   built: MemoryPromptAssemblyResult;
   classification: UnifiedQueryClassification;

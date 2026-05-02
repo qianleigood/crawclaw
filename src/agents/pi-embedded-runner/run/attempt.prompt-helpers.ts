@@ -440,28 +440,32 @@ export function resolveAttemptFsWorkspaceOnly(params: {
 
 /** Build runtime context passed into memory-runtime afterTurn hooks. */
 export function buildAfterTurnRuntimeContext(params: {
-  attempt: Pick<
-    EmbeddedRunAttemptParams,
-    | "sessionKey"
-    | "agentId"
-    | "messageChannel"
-    | "messageProvider"
-    | "agentAccountId"
-    | "currentChannelId"
-    | "currentThreadTs"
-    | "currentMessageId"
-    | "config"
-    | "surfacedSkillNames"
-    | "senderIsOwner"
-    | "senderId"
-    | "provider"
-    | "modelId"
-    | "thinkLevel"
-    | "reasoningLevel"
-    | "bashElevated"
-    | "extraSystemPrompt"
-    | "ownerNumbers"
-    | "authProfileId"
+  attempt: Partial<
+    Pick<
+      EmbeddedRunAttemptParams,
+      | "sessionKey"
+      | "agentId"
+      | "messageChannel"
+      | "messageProvider"
+      | "agentAccountId"
+      | "currentChannelId"
+      | "currentThreadTs"
+      | "currentMessageId"
+      | "config"
+      | "surfacedSkillNames"
+      | "senderIsOwner"
+      | "senderId"
+      | "provider"
+      | "modelId"
+      | "thinkLevel"
+      | "reasoningLevel"
+      | "bashElevated"
+      | "extraSystemPrompt"
+      | "ownerNumbers"
+      | "authProfileId"
+      | "specialAgentSpawnSource"
+      | "specialSessionSummaryTarget"
+    >
   >;
   workspaceDir: string;
   agentDir: string;
@@ -488,5 +492,7 @@ export function buildAfterTurnRuntimeContext(params: {
     bashElevated: params.attempt.bashElevated,
     extraSystemPrompt: params.attempt.extraSystemPrompt,
     ownerNumbers: params.attempt.ownerNumbers,
+    specialAgentSpawnSource: params.attempt.specialAgentSpawnSource,
+    specialSessionSummaryTarget: params.attempt.specialSessionSummaryTarget,
   });
 }

@@ -159,10 +159,9 @@ Session memory now follows a single-track design:
 - a background `session_summary` agent maintains that file from the run-loop
   post-sampling hook
 - the summary agent runs from one captured parent fork context: the run-loop
-  lifecycle event carries both the parent prompt envelope and the full current
-  model-visible message context, then the summary run appends a narrow
-  `summary.md` maintenance prompt instead of adding another summary-specific
-  system prompt
+  lifecycle event carries the full current model-visible message context, then
+  the summary run uses an isolated system prompt plus a narrow `summary.md`
+  maintenance prompt instead of reusing the parent system prompt
 - the fork context is captured from the active run-loop, not reconstructed from
   older persisted rows or reassembled from a separate persisted prompt artifact, so
   compaction boundaries stay aligned with what the main agent actually saw
@@ -170,7 +169,8 @@ Session memory now follows a single-track design:
   or gateway refresh reconstructs a bounded manual fork context from persisted
   model-visible rows
 - session-summary keeps short-lived cache retention for the fork, but does not
-  derive or reuse a parent prompt-cache key
+  derive or reuse a parent prompt-cache key, and it does not run durable or
+  experience recall during summary maintenance
 - the scheduler can start with a lightweight summary profile earlier, then
   upgrade the same file to a full profile later
 - natural settled turns still trigger summary updates, but the scheduler can

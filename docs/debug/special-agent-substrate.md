@@ -128,10 +128,10 @@ agents:
 - the shared runner translates those policies into provider request params
   such as short retention and cache-write suppression
 - parent runs build a lifecycle `parentForkContext` from the final parent
-  prompt assembly, so `session_summary` receives the parent prompt envelope and
-  model-visible messages as one captured fork object
-- embedded forks receive an explicit parent prompt envelope when the lifecycle
-  captured one; otherwise they run from their own prompt assembly
+  prompt assembly, so embedded forks can receive one captured handoff object
+  containing model-visible messages plus cache/debug metadata
+- embedded forks may receive an explicit parent prompt envelope when the
+  lifecycle captured one; otherwise they run from their own prompt assembly
 - the parent fork context separates:
   - a canonical `CacheEnvelope` for the model-visible shared prefix
   - debug context fields for run/session metadata that should not affect cache identity
@@ -148,12 +148,16 @@ agents:
 - that parent fork context carries the full current model-visible
   fork-context messages, matching Claude Code's session-memory update shape
   without a recent-message excerpt fallback
+- session-summary now also declares isolated special-agent system prompt mode,
+  so it does not reuse the parent system prompt, the main-agent prompt extras,
+  or the main memory-runtime recall path; it only receives the forked parent
+  conversation plus its own summary-maintenance instructions
 - lifecycle updates with missing fork context are skipped, while explicit
   CLI/gateway refresh builds a bounded manual parent fork context from persisted
   model-visible rows
-- when that parent envelope is available, the summary-specific instructions
-  stay in the appended task prompt instead of being appended to the parent
-  system prompt
+- when that parent fork context is available, the summary-specific instructions
+  stay in the task prompt instead of being appended to or merged into the
+  parent system prompt
 - durable extraction does not attach the parent run's captured prompt envelope
 - dream is an independent embedded maintenance special agent. It does not
   receive a parent fork context, does not spawn a child session, and consumes

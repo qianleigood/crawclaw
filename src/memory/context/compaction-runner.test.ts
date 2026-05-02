@@ -93,7 +93,6 @@ Summary-backed compaction result.
       logger: { info: vi.fn() },
       sessionId: "session-compact",
       agentId: "main",
-      totalTurns: 8,
       tokenBudget: 900,
       currentTokenCount: 1400,
       force: true,
@@ -153,6 +152,72 @@ Summary-backed compaction result.
         minTextMessages: 5,
         compactSummaryBudgetTokens: 600,
       }),
+    );
+  });
+
+  it("derives turn high-water from stored rows instead of caller state", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-compaction-store-turns-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+
+    await writeSessionSummaryFile({
+      agentId: "main",
+      sessionId: "session-store-turns",
+      content: `# Session Title
+Store-backed compaction
+
+# Current State
+Compaction should use stored rows.
+
+# Open Loops
+Keep the recent tail.
+
+# Key results
+The runtime store is the source of truth for turn counts.
+`,
+    });
+
+    const runtimeStore = {
+      getSessionSummaryState: vi.fn().mockResolvedValue({
+        sessionId: "session-store-turns",
+        lastSummarizedMessageId: "m2",
+        lastSummaryUpdatedAt: Date.now(),
+        tokensAtLastSummary: 1200,
+        summaryInProgress: false,
+        updatedAt: Date.now(),
+      }),
+      listMessagesByTurnRange: vi.fn().mockResolvedValue([
+        { id: "m1", turnIndex: 1, role: "user", content: "older request one" },
+        { id: "m2", turnIndex: 2, role: "assistant", content: longText },
+        { id: "m3", turnIndex: 3, role: "user", content: longText },
+        { id: "m4", turnIndex: 4, role: "assistant", content: longText },
+        { id: "m5", turnIndex: 5, role: "user", content: longText },
+        { id: "m6", turnIndex: 6, role: "assistant", content: longText },
+        { id: "m7", turnIndex: 7, role: "user", content: longText },
+        { id: "m8", turnIndex: 8, role: "assistant", content: longText },
+      ]),
+      getSessionCompactionState: vi.fn().mockResolvedValue(null),
+      upsertSessionCompactionState: vi.fn().mockResolvedValue(undefined),
+      appendCompactionAudit: vi.fn().mockResolvedValue("audit-store-turns"),
+    };
+
+    const result = await runSessionMemoryCompaction({
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      logger: { info: vi.fn() },
+      sessionId: "session-store-turns",
+      agentId: "main",
+      tokenBudget: 900,
+      currentTokenCount: 1400,
+      force: true,
+      runtimeContext: { trigger: "overflow" },
+    });
+
+    expect(result.compacted).toBe(true);
+    expect(result.reason).not.toBe("not-enough-turns");
+    expect(runtimeStore.listMessagesByTurnRange).toHaveBeenCalledWith(
+      "session-store-turns",
+      1,
+      expect.any(Number),
     );
   });
 
@@ -222,7 +287,6 @@ Compaction can proceed.
       logger: { info: vi.fn() },
       sessionId: "session-stale",
       agentId: "main",
-      totalTurns: 8,
       tokenBudget: 900,
       currentTokenCount: 1400,
       force: true,
@@ -273,7 +337,6 @@ Compaction can proceed.
       logger: { info: vi.fn() },
       sessionId: "session-fallback",
       agentId: "main",
-      totalTurns: 8,
       tokenBudget: 900,
       currentTokenCount: 1400,
       force: true,

@@ -40,6 +40,7 @@ export const SESSION_SUMMARY_AGENT_DEFINITION: SpecialAgentDefinition = {
     spawnSource: SESSION_SUMMARY_SPAWN_SOURCE,
     allowlist: SESSION_SUMMARY_TOOL_ALLOWLIST,
     modelVisibility: "allowlist",
+    systemPromptMode: "isolated",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
   }),

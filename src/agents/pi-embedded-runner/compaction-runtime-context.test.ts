@@ -126,6 +126,25 @@ describe("buildEmbeddedCompactionRuntimeContext", () => {
     expect(result.authProfileId).toBe("ollama:default");
   });
 
+  it("preserves special memory routing markers", () => {
+    const result = buildEmbeddedCompactionRuntimeContext({
+      workspaceDir: "/tmp/workspace",
+      agentDir: "/tmp/agent",
+      specialAgentSpawnSource: "session-summary",
+      specialSessionSummaryTarget: {
+        agentId: "main",
+        sessionId: "session-abc",
+      },
+    });
+    expect(result).toMatchObject({
+      specialAgentSpawnSource: "session-summary",
+      specialSessionSummaryTarget: {
+        agentId: "main",
+        sessionId: "session-abc",
+      },
+    });
+  });
+
   it("applies runtime defaults when resolving the effective compaction target", () => {
     expect(
       resolveEmbeddedCompactionTarget({

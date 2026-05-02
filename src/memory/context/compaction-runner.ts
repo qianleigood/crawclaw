@@ -18,6 +18,7 @@ import {
 } from "./compaction.ts";
 
 const SESSION_SUMMARY_STALE_LEASE_MS = 60_000;
+const ALL_SESSION_TURNS_END = Number.MAX_SAFE_INTEGER;
 type CompactionSummarySource =
   | "session-summary"
   | "transcript-fallback-llm"
@@ -53,6 +54,13 @@ function buildSessionSummaryPlanAttachmentText(
 
 function normalizeCompactText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function maxStoredTurnIndex(rows: GmMessageRow[]): number {
+  return rows.reduce((max, row) => {
+    const turnIndex = Number.isFinite(row.turnIndex) ? Math.floor(row.turnIndex) : 0;
+    return Math.max(max, turnIndex);
+  }, 0);
 }
 
 function truncateToTokenBudget(text: string, tokenBudget: number): string {
@@ -241,7 +249,6 @@ export async function runSessionMemoryCompaction(params: {
   logger: { info(msg: string): void };
   sessionId: string;
   agentId: string;
-  totalTurns: number;
   tokenBudget?: number;
   currentTokenCount?: number;
   force?: boolean;
@@ -280,21 +287,22 @@ export async function runSessionMemoryCompaction(params: {
   const summaryProfile = hasSessionSummary
     ? inferSessionSummaryProfile(summaryFile.document)
     : null;
+  const allRows = await params.runtimeStore.listMessagesByTurnRange(
+    params.sessionId,
+    1,
+    ALL_SESSION_TURNS_END,
+  );
+  const totalTurns = maxStoredTurnIndex(allRows);
 
-  if (params.totalTurns < MIN_COMPACTION_TAIL_MESSAGES + 2) {
+  if (totalTurns < MIN_COMPACTION_TAIL_MESSAGES + 2) {
     params.logger.info(
-      `[memory] compaction skipped sessionId=${params.sessionId} ${triggerInfo} reason=not-enough-turns totalTurns=${params.totalTurns}`,
+      `[memory] compaction skipped sessionId=${params.sessionId} ${triggerInfo} reason=not-enough-turns totalTurns=${totalTurns}`,
     );
     return { ok: true, compacted: false, reason: "not-enough-turns" };
   }
 
   const minPreservedTokens = compactionPolicy.tailMinTokens;
   const maxPreservedTokens = compactionPolicy.tailMaxTokens;
-  const allRows = await params.runtimeStore.listMessagesByTurnRange(
-    params.sessionId,
-    1,
-    params.totalTurns,
-  );
   const existingState = await params.runtimeStore.getSessionCompactionState(params.sessionId);
   if (allRows.length <= MIN_COMPACTION_TAIL_MESSAGES) {
     params.logger.info(
@@ -325,7 +333,7 @@ export async function runSessionMemoryCompaction(params: {
   const preservedTailMessageId = preservedTailStartRow?.id ?? null;
   if (preservedTailStartTurn <= 1) {
     params.logger.info(
-      `[memory] compaction skipped sessionId=${params.sessionId} ${triggerInfo} reason=compaction-would-keep-full-history totalTurns=${params.totalTurns}`,
+      `[memory] compaction skipped sessionId=${params.sessionId} ${triggerInfo} reason=compaction-would-keep-full-history totalTurns=${totalTurns}`,
     );
     return { ok: true, compacted: false, reason: "compaction-would-keep-full-history" };
   }
@@ -397,7 +405,7 @@ export async function runSessionMemoryCompaction(params: {
         : "unspecified",
     force: Boolean(params.force),
     resumedWithoutBoundary: !compactionSummarizedThroughMessageId,
-    totalTurns: params.totalTurns,
+    totalTurns,
     preservedTailStartTurn,
     preservedTailMessageId,
     summarizedThroughMessageId: compactionSummarizedThroughMessageId,

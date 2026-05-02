@@ -285,6 +285,10 @@ function buildParentPromptEmbeddedSystemPrompt(params: {
   return `${parent}\n\n${extra}`;
 }
 
+function shouldReuseParentSystemPrompt(params: { specialAgentSpawnSource?: string }): boolean {
+  return params.specialAgentSpawnSource?.trim() !== "session-summary";
+}
+
 function buildIsolatedSpecialAgentSystemPromptSections(params: {
   extraSystemPrompt?: string;
   specialAgentSpawnSource?: string;
@@ -1076,52 +1080,56 @@ export async function runEmbeddedAttempt(
           : {}),
       };
 
-      const baseSystemPromptSections = params.specialParentPromptEnvelope?.systemPromptText
-        ? [
-            {
-              id: "special:parent_system_prompt",
-              role: "system_prompt" as const,
-              content: buildParentPromptEmbeddedSystemPrompt({
-                parentSystemPromptText: params.specialParentPromptEnvelope.systemPromptText,
+      const baseSystemPromptSections =
+        params.specialParentPromptEnvelope?.systemPromptText &&
+        shouldReuseParentSystemPrompt({
+          specialAgentSpawnSource: params.specialAgentSpawnSource,
+        })
+          ? [
+              {
+                id: "special:parent_system_prompt",
+                role: "system_prompt" as const,
+                content: buildParentPromptEmbeddedSystemPrompt({
+                  parentSystemPromptText: params.specialParentPromptEnvelope.systemPromptText,
+                  extraSystemPrompt: params.extraSystemPrompt,
+                }),
+                source: "special-agent",
+                cacheable: true,
+              },
+            ]
+          : isolatedSpecialSystemPrompt
+            ? buildIsolatedSpecialAgentSystemPromptSections({
                 extraSystemPrompt: params.extraSystemPrompt,
-              }),
-              source: "special-agent",
-              cacheable: true,
-            },
-          ]
-        : isolatedSpecialSystemPrompt
-          ? buildIsolatedSpecialAgentSystemPromptSections({
-              extraSystemPrompt: params.extraSystemPrompt,
-              specialAgentSpawnSource: params.specialAgentSpawnSource,
-            })
-          : buildEmbeddedSystemPromptSections({
-              workspaceDir: effectiveWorkspace,
-              defaultThinkLevel: parentPromptThinking.thinkLevel,
-              reasoningLevel: parentPromptThinking.reasoningLevel ?? "off",
-              extraSystemPrompt: params.extraSystemPrompt,
-              ownerNumbers: params.ownerNumbers,
-              ownerDisplay: ownerDisplay.ownerDisplay,
-              ownerDisplaySecret: ownerDisplay.ownerDisplaySecret,
-              reasoningTagHint,
-              heartbeatPrompt,
-              skillsPrompt: effectiveSkillsPrompt,
-              docsPath: docsPath ?? undefined,
-              ttsHint,
-              memoryRuntimeActive: Boolean(memoryRuntime),
-              workspaceNotes,
-              reactionGuidance,
-              promptMode: effectivePromptMode,
-              acpEnabled: params.config?.acp?.enabled !== false,
-              runtimeInfo,
-              messageToolHints,
-              sandboxInfo,
-              tools: effectiveTools,
-              modelAliasLines: buildModelAliasLines(params.config),
-              userTimezone,
-              userTime,
-              userTimeFormat,
-              contextFiles,
-            });
+                specialAgentSpawnSource: params.specialAgentSpawnSource,
+              })
+            : buildEmbeddedSystemPromptSections({
+                workspaceDir: effectiveWorkspace,
+                defaultThinkLevel: parentPromptThinking.thinkLevel,
+                reasoningLevel: parentPromptThinking.reasoningLevel ?? "off",
+                extraSystemPrompt: params.extraSystemPrompt,
+                ownerNumbers: params.ownerNumbers,
+                ownerDisplay: ownerDisplay.ownerDisplay,
+                ownerDisplaySecret: ownerDisplay.ownerDisplaySecret,
+                reasoningTagHint,
+                heartbeatPrompt,
+                skillsPrompt: effectiveSkillsPrompt,
+                docsPath: docsPath ?? undefined,
+                ttsHint,
+                memoryRuntimeActive: Boolean(memoryRuntime),
+                workspaceNotes,
+                reactionGuidance,
+                promptMode: effectivePromptMode,
+                acpEnabled: params.config?.acp?.enabled !== false,
+                runtimeInfo,
+                messageToolHints,
+                sandboxInfo,
+                tools: effectiveTools,
+                modelAliasLines: buildModelAliasLines(params.config),
+                userTimezone,
+                userTime,
+                userTimeFormat,
+                contextFiles,
+              });
       const skillExposureStateForPrompt = getSkillExposureState({
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,

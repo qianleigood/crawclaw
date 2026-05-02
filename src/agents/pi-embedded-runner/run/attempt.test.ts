@@ -2102,4 +2102,30 @@ describe("buildAfterTurnRuntimeContext", () => {
       currentMessageId: "msg-42",
     });
   });
+
+  it("preserves special memory agent routing context", () => {
+    const legacy = buildAfterTurnRuntimeContext({
+      attempt: {
+        sessionKey: "agent:main:session:abc",
+        config: {} as CrawClawConfig,
+        provider: "openai-codex",
+        modelId: "gpt-5.4",
+        specialAgentSpawnSource: "session-summary",
+        specialSessionSummaryTarget: {
+          agentId: "main",
+          sessionId: "session-abc",
+        },
+      },
+      workspaceDir: "/tmp/workspace",
+      agentDir: "/tmp/agent",
+    });
+
+    expect(legacy).toMatchObject({
+      specialAgentSpawnSource: "session-summary",
+      specialSessionSummaryTarget: {
+        agentId: "main",
+        sessionId: "session-abc",
+      },
+    });
+  });
 });

@@ -6,6 +6,10 @@ import {
   applyCompactionStateToMessages,
   prependSessionSummaryCompactMessage,
 } from "../context/compaction.ts";
+import {
+  renderAgentMemoryRoutingContract,
+  resolveMemoryRoutingContractMode,
+} from "../context/render-routing-guidance.ts";
 import { runTranscriptMaintenance } from "../context/transcript-maintenance.ts";
 import type { AutoDreamRunner } from "../dreaming/auto-dream.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
@@ -18,8 +22,9 @@ import type { SessionSummaryRunner } from "../session-summary/scheduler.ts";
 import type { MemoryRuntimeConfig, LlmConfig } from "../types/config.ts";
 import type { UnifiedQueryClassification } from "../types/orchestration.ts";
 import {
-  buildPromptMissingAssemblyResult,
   buildMemoryAssemblyArtifacts,
+  buildPromptMissingAssemblyResult,
+  buildRoutingContractOnlyAssemblyResult,
 } from "./context-memory-runtime-assembly.ts";
 import {
   createContextMemoryRuntimeDeps,
@@ -30,6 +35,23 @@ import { runPostAssemblySideEffects } from "./context-memory-runtime-post-assemb
 import { prepareMemoryAssemblyContext } from "./context-memory-runtime-preparation.ts";
 import { resolveDurableRecallForAssembly } from "./context-memory-runtime-recall.ts";
 import type { MemoryRuntime, MemoryRuntimeContext } from "./types.ts";
+
+const ALL_SESSION_TURNS_END = Number.MAX_SAFE_INTEGER;
+
+async function resolveStoredTurnHighWater(params: {
+  runtimeStore: RuntimeStore;
+  sessionId: string;
+}): Promise<number> {
+  const rows = await params.runtimeStore.listMessagesByTurnRange(
+    params.sessionId,
+    1,
+    ALL_SESSION_TURNS_END,
+  );
+  return rows.reduce((max, row) => {
+    const turnIndex = Number.isFinite(row.turnIndex) ? Math.floor(row.turnIndex) : 0;
+    return Math.max(max, turnIndex);
+  }, 0);
+}
 
 export function createContextMemoryRuntime(options: {
   runtimeStore: RuntimeStore;
@@ -44,7 +66,6 @@ export function createContextMemoryRuntime(options: {
   contextArchive?: Pick<ContextArchiveService, "createRun" | "appendEvent">;
   experienceProviderRegistry?: Pick<ExperienceProviderRegistry, "search">;
 }): MemoryRuntime {
-  const turnIndex = new Map<string, number>();
   const {
     structuredComplete,
     ingestCoordinator,
@@ -52,7 +73,6 @@ export function createContextMemoryRuntime(options: {
     contextAssembler,
     experienceProviderRegistry,
     skillIndexStore,
-    agentMemoryRoutingContract,
     contextArchiveTurnCapture,
   } = createContextMemoryRuntimeDeps(options);
 
@@ -77,10 +97,7 @@ export function createContextMemoryRuntime(options: {
       ownsCompaction: true,
     },
 
-    async bootstrap({ sessionId }) {
-      if (!turnIndex.has(sessionId)) {
-        turnIndex.set(sessionId, 0);
-      }
+    async bootstrap() {
       startNotebookLmHeartbeat({
         config: options.config?.notebooklm,
         logger: options.logger,
@@ -92,8 +109,11 @@ export function createContextMemoryRuntime(options: {
       if (isHeartbeat) {
         return { ingested: false };
       }
-      const idx = (turnIndex.get(sessionId) ?? 0) + 1;
-      turnIndex.set(sessionId, idx);
+      const idx =
+        (await resolveStoredTurnHighWater({
+          runtimeStore: options.runtimeStore,
+          sessionId,
+        })) + 1;
       await ingestCoordinator.ingestMessage({
         sessionId,
         conversationUid: sessionId,
@@ -154,7 +174,7 @@ export function createContextMemoryRuntime(options: {
             sessionKey,
             agentId:
               typeof runtimeContext?.agentId === "string" ? runtimeContext.agentId : undefined,
-            turnIndex: turnIndex.get(sessionId) ?? undefined,
+            turnIndex: rawMessageCount > 0 ? rawMessageCount : undefined,
             payload: {
               model: model ?? null,
               prompt: null,
@@ -179,6 +199,18 @@ export function createContextMemoryRuntime(options: {
             );
           });
         return promptMissingResult;
+      }
+
+      const routingContractMode = resolveMemoryRoutingContractMode(runtimeContext);
+      const agentMemoryRoutingContract = renderAgentMemoryRoutingContract({
+        mode: routingContractMode,
+      });
+      if (routingContractMode === "session-summary") {
+        return buildRoutingContractOnlyAssemblyResult({
+          agentMemoryRoutingContract,
+          messages: compactedMessages,
+          hitReason: "session_summary_contract_only",
+        });
       }
 
       const {
@@ -238,7 +270,7 @@ export function createContextMemoryRuntime(options: {
         contextArchiveTurnCapture,
         sessionId,
         sessionKey,
-        turnIndex: turnIndex.get(sessionId) ?? undefined,
+        turnIndex: rawMessageCount > 0 ? rawMessageCount : undefined,
         promptText,
         model,
         compactedMessages,
@@ -281,10 +313,14 @@ export function createContextMemoryRuntime(options: {
     async afterTurn({ sessionId, messages, prePromptMessageCount }) {
       const hasLiveMessages = Array.isArray(messages);
       const messageList = hasLiveMessages ? messages : [];
-      const resolvedPrePromptCount =
-        typeof prePromptMessageCount === "number" && Number.isFinite(prePromptMessageCount)
-          ? prePromptMessageCount
-          : (turnIndex.get(sessionId) ?? messageList.length);
+      const hasPrePromptCount =
+        typeof prePromptMessageCount === "number" && Number.isFinite(prePromptMessageCount);
+      const resolvedPrePromptCount = hasPrePromptCount
+        ? prePromptMessageCount
+        : await resolveStoredTurnHighWater({
+            runtimeStore: options.runtimeStore,
+            sessionId,
+          });
       const newMessages = hasLiveMessages ? messageList.slice(resolvedPrePromptCount) : [];
       const count = hasLiveMessages
         ? resolvedPrePromptCount + newMessages.length
@@ -315,13 +351,11 @@ export function createContextMemoryRuntime(options: {
           typeof runtimeContext?.sessionKey === "string" ? runtimeContext.sessionKey : undefined,
         ) ||
         "main";
-      const totalTurns = Math.max(turnIndex.get(sessionId) ?? 0, 0);
       const result = await runSessionMemoryCompaction({
         runtimeStore: options.runtimeStore,
         logger: options.logger,
         sessionId,
         agentId: compactAgentId,
-        totalTurns,
         tokenBudget,
         currentTokenCount,
         force,
@@ -335,7 +369,10 @@ export function createContextMemoryRuntime(options: {
           sessionKey:
             typeof runtimeContext?.sessionKey === "string" ? runtimeContext.sessionKey : undefined,
           agentId: typeof runtimeContext?.agentId === "string" ? runtimeContext.agentId : undefined,
-          turnIndex: totalTurns,
+          turnIndex:
+            result.compacted && typeof result.result.details.totalTurns === "number"
+              ? result.result.details.totalTurns
+              : undefined,
           type: "turn.compaction",
           payload: {
             sessionId,
@@ -397,7 +434,6 @@ export function createContextMemoryRuntime(options: {
     },
 
     async dispose() {
-      turnIndex.clear();
       contextArchiveTurnCapture.reset();
     },
   };

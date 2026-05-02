@@ -141,4 +141,66 @@ describe("runEmbeddedAttempt special parent prompt envelope", () => {
       expect.arrayContaining([{ role: "assistant", content: "done", timestamp: 2 }]),
     );
   });
+
+  it("does not reuse the parent system prompt for session-summary special agents", async () => {
+    const workspaceDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-parent-envelope-summary-workspace-"),
+    );
+    const agentDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-parent-envelope-summary-agent-"),
+    );
+    const sessionFile = path.join(workspaceDir, "session.jsonl");
+    tempPaths.push(workspaceDir, agentDir);
+    await fs.writeFile(sessionFile, "", "utf8");
+
+    const session = createDefaultEmbeddedSession({
+      prompt: async (currentSession) => {
+        currentSession.messages = [
+          ...currentSession.messages,
+          { role: "assistant", content: "done", timestamp: 2 },
+        ];
+      },
+    });
+    hoisted.createAgentSessionMock.mockResolvedValue({
+      session,
+    });
+
+    const parentEnvelope = buildSpecialAgentCacheEnvelope({
+      systemPromptText: "parent system prompt",
+      toolNames: ["session_summary_file_edit"],
+      toolPromptPayload: [{ name: "session_summary_file_edit" }],
+      thinkingConfig: {
+        thinkLevel: "off",
+      },
+      forkContextMessages: [{ role: "user", content: "from parent", timestamp: 1 }],
+    });
+
+    const runEmbeddedAttempt = await getRunEmbeddedAttempt();
+    await runEmbeddedAttempt({
+      sessionId: "embedded-session",
+      sessionKey: "agent:main:main",
+      sessionFile,
+      workspaceDir,
+      agentDir,
+      config: {},
+      prompt: "update the session summary",
+      timeoutMs: 30_000,
+      runId: "run-parent-envelope-summary",
+      provider: "openai",
+      modelId: "gpt-test",
+      model: testModel,
+      authStorage: {} as never,
+      modelRegistry: {} as never,
+      thinkLevel: "off",
+      senderIsOwner: true,
+      disableMessageTool: true,
+      specialAgentSpawnSource: "session-summary",
+      specialSystemPromptMode: "isolated",
+      specialParentPromptEnvelope: parentEnvelope,
+      extraSystemPrompt: "summary-only instructions",
+    });
+
+    expect(hoisted.buildEmbeddedSystemPromptMock).not.toHaveBeenCalled();
+    expect(session.messages[0]).toEqual({ role: "user", content: "from parent", timestamp: 1 });
+  });
 });
