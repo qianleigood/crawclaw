@@ -3,7 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
-import { makeAgentUserMessage } from "../../agents/test-helpers/agent-message-fixtures.js";
+import {
+  makeAgentAssistantMessage,
+  makeAgentToolResultMessage,
+  makeAgentUserMessage,
+} from "../../agents/test-helpers/agent-message-fixtures.js";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type {
   AppendMessageInput,
@@ -39,7 +43,6 @@ describe("DurableExtractionWorkerManager", () => {
     | "getDurableExtractionCursor"
     | "upsertDurableExtractionCursor"
     | "listMessagesByTurnRange"
-    | "listModelVisibleMessagesForDurableExtraction"
   >;
 
   function createRuntimeStore(): MockRuntimeStore {
@@ -92,27 +95,6 @@ describe("DurableExtractionWorkerManager", () => {
             })
             .toSorted((left, right) => left.turnIndex - right.turnIndex),
         ),
-      listModelVisibleMessagesForDurableExtraction: vi
-        .fn()
-        .mockImplementation(
-          async (
-            sessionId: string,
-            afterTurnExclusive: number,
-            upToTurnInclusive: number,
-            limit: number,
-          ) =>
-            messageRows
-              .filter((row) => {
-                return (
-                  row.sessionId === sessionId &&
-                  (row.role === "user" || row.role === "assistant") &&
-                  row.turnIndex > afterTurnExclusive &&
-                  row.turnIndex <= upToTurnInclusive
-                );
-              })
-              .toSorted((left, right) => left.turnIndex - right.turnIndex)
-              .slice(-limit),
-        ),
     };
   }
 
@@ -125,6 +107,32 @@ describe("DurableExtractionWorkerManager", () => {
       conversationUid: params.sessionId,
       role: params.role ?? "user",
       content: params.content,
+      turnIndex: params.turnIndex,
+    });
+  }
+
+  async function appendToolResultMessage(
+    runtimeStore: ReturnType<typeof createRuntimeStore>,
+    params: {
+      sessionId: string;
+      toolCallId: string;
+      toolName: string;
+      content: string;
+      turnIndex: number;
+    },
+  ): Promise<void> {
+    await runtimeStore.appendMessage({
+      sessionId: params.sessionId,
+      conversationUid: params.sessionId,
+      role: "toolResult",
+      content: params.content,
+      contentText: params.content,
+      contentBlocks: [{ type: "text", text: params.content }],
+      runtimeShape: {
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        isError: false,
+      },
       turnIndex: params.turnIndex,
     });
   }
@@ -777,7 +785,127 @@ describe("DurableExtractionWorkerManager", () => {
         parentForkContext,
       }),
     );
-    expect(runtimeStore.listModelVisibleMessagesForDurableExtraction).not.toHaveBeenCalled();
+  });
+
+  it("counts cursor deltas by model-visible messages when tool results dominate", async () => {
+    const stateDir = await createStateDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runtimeStore = createRuntimeStore();
+    await runtimeStore.upsertDurableExtractionCursor({
+      sessionId: "session-tools",
+      sessionKey: "agent:main:feishu:direct:user-tools",
+      lastExtractedTurn: 2,
+      lastRunAt: Date.now(),
+    });
+    const runner = vi.fn().mockResolvedValue({
+      status: "no_change",
+      notesSaved: 0,
+      reason: "noop",
+      advanceCursor: true,
+    });
+
+    const { getSharedDurableExtractionWorkerManager } = await import("./worker-manager.ts");
+    const manager = getSharedDurableExtractionWorkerManager({
+      config: {
+        enabled: true,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 1,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-tools",
+      content: "以后审查先列风险。",
+      turnIndex: 3,
+    });
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-tools",
+      role: "assistant",
+      content: "我会先读取上下文。",
+      turnIndex: 4,
+    });
+    for (let index = 0; index < 12; index += 1) {
+      await appendToolResultMessage(runtimeStore, {
+        sessionId: "session-tools",
+        toolCallId: `read-${index}`,
+        toolName: "read",
+        content: `tool result ${index}`,
+        turnIndex: 5 + index,
+      });
+    }
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-tools",
+      role: "assistant",
+      content: "明白，审查会先列风险。",
+      turnIndex: 17,
+    });
+    const parentForkContext = createParentForkContext({
+      messages: [
+        makeAgentUserMessage({ content: "以后审查先列风险。" }),
+        makeAgentAssistantMessage({
+          stopReason: "toolUse",
+          content: [
+            { type: "toolUse", id: "read-0", name: "read", input: { path: "MEMORY.md" } },
+          ] as never,
+        }),
+        makeAgentToolResultMessage({
+          toolCallId: "read-0",
+          toolName: "read",
+          content: [{ type: "text", text: "tool result 0" }],
+        }),
+        makeAgentAssistantMessage({
+          content: [{ type: "text", text: "明白，审查会先列风险。" }],
+        }),
+      ],
+    });
+
+    await manager.submitTurn({
+      sessionId: "session-tools",
+      sessionKey: "agent:main:feishu:direct:user-tools",
+      newMessages: [
+        makeAgentUserMessage({ content: "以后审查先列风险。" }),
+        ...Array.from({ length: 12 }, (_, index) =>
+          makeAgentToolResultMessage({
+            toolCallId: `read-${index}`,
+            toolName: "read",
+            content: [{ type: "text", text: `tool result ${index}` }],
+          }),
+        ),
+        makeAgentAssistantMessage({
+          content: [{ type: "text", text: "明白，审查会先列风险。" }],
+        }),
+      ] as never,
+      messageCursor: 17,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-tools",
+        parentForkContext,
+      },
+    });
+
+    await vi.waitFor(async () => {
+      expect(runner).toHaveBeenCalledTimes(1);
+      await expect(runtimeStore.getDurableExtractionCursor("session-tools")).resolves.toMatchObject(
+        {
+          lastExtractedTurn: 17,
+          lastExtractedMessageId: "msg-15",
+        },
+      );
+    });
+    const runnerInput = runner.mock.calls[0]?.[0];
+    expect(runnerInput).toEqual(
+      expect.objectContaining({
+        messageCursor: 17,
+        newMessageCount: 3,
+        parentForkContext,
+      }),
+    );
   });
 
   it("fails closed when the background runner fails", async () => {

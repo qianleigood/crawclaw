@@ -235,6 +235,10 @@
         "reason": "This bundled browser capability loader suite passes direct reruns but can time out when the shared unit-fast lane is already saturated with plugin runtime imports; keep it isolated so loader coverage stays deterministic."
       },
       {
+        "file": "src/plugins/runtime/index.test.ts",
+        "reason": "This plugin runtime facade suite imports the runtime index entrypoint directly and can trip Node's imported-after-required module status when it shares a non-isolated plugin runtime batch; keep it isolated so the entrypoint coverage still runs without cross-file loader state."
+      },
+      {
         "file": "src/cron/isolated-agent/run.cron-model-override.test.ts",
         "reason": "This cron runner harness suite hoists many importOriginal module mocks; keep it isolated so Windows shared unit shards do not reuse partially mocked cron or agent modules."
       },

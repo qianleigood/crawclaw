@@ -160,26 +160,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         ),
       createMaintenanceRun: vi.fn().mockResolvedValue("mrun-1"),
       updateMaintenanceRun: vi.fn().mockResolvedValue(undefined),
-      listModelVisibleMessagesForDurableExtraction: vi
-        .fn()
-        .mockImplementation(
-          async (
-            sessionId: string,
-            afterTurnExclusive: number,
-            upToTurnInclusive: number,
-            limit: number,
-          ) =>
-            messageRows
-              .filter(
-                (row) =>
-                  row.sessionId === sessionId &&
-                  (row.role === "user" || row.role === "assistant") &&
-                  row.turnIndex > afterTurnExclusive &&
-                  row.turnIndex <= upToTurnInclusive,
-              )
-              .toSorted((left, right) => left.turnIndex - right.turnIndex)
-              .slice(-limit),
-        ),
     });
   }
 

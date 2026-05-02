@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  castAgentMessages,
-  makeAgentAssistantMessage,
-  makeAgentToolResultMessage,
-  makeAgentUserMessage,
-} from "../../agents/test-helpers/agent-message-fixtures.js";
+import { makeAgentToolResultMessage } from "../../agents/test-helpers/agent-message-fixtures.js";
 import {
   classifyAfterTurnDurableSkipReason,
-  collectRecentDurableConversation,
   hasDurableMemoryWriteInMessages,
   shouldSkipAfterTurnDurableExtraction,
 } from "./extraction.ts";
@@ -120,58 +114,5 @@ describe("durable extraction helpers", () => {
         }),
       ]),
     ).toBe(false);
-  });
-
-  it("collects only recent visible user and assistant messages", () => {
-    const recent = collectRecentDurableConversation(
-      castAgentMessages([
-        makeAgentUserMessage({ content: "记住我喜欢简洁回复。" }),
-        makeAgentToolResultMessage({
-          toolCallId: "call-8",
-          toolName: "memory_note_write",
-          content: [{ type: "text", text: "ignored" }],
-        }),
-        makeAgentAssistantMessage({
-          content: [{ type: "text", text: "好的，以后我会尽量简洁。" }],
-        }),
-      ]),
-      8,
-    );
-
-    expect(recent).toEqual([
-      { role: "user", text: "记住我喜欢简洁回复。" },
-      { role: "assistant", text: "好的，以后我会尽量简洁。" },
-    ]);
-  });
-
-  it("strips internal runtime context before durable extraction", () => {
-    const recent = collectRecentDurableConversation(
-      castAgentMessages([
-        makeAgentUserMessage({
-          content: [
-            "[Sat 2026-05-02 14:14 GMT+8] <<<BEGIN_CRAWCLAW_INTERNAL_CONTEXT>>>",
-            "CrawClaw runtime context (internal):",
-            "This context is runtime-generated, not user-authored. Keep internal details private.",
-            "",
-            "[Internal task completion event]",
-            "Action:",
-            "Reply ONLY: NO_REPLY if this exact result was already delivered.",
-            "<<<END_CRAWCLAW_INTERNAL_CONTEXT>>>",
-          ].join("\n"),
-        }),
-        makeAgentUserMessage({
-          content: [
-            "[Sat 2026-05-02 14:15 GMT+8] <<<BEGIN_CRAWCLAW_INTERNAL_CONTEXT>>>",
-            "internal delivery block",
-            "<<<END_CRAWCLAW_INTERNAL_CONTEXT>>>",
-            "",
-            "记住我喜欢简洁回复。",
-          ].join("\n"),
-        }),
-      ]),
-      8,
-    );
-
-    expect(recent).toEqual([{ role: "user", text: "记住我喜欢简洁回复。" }]);
   });
 });

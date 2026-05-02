@@ -161,9 +161,6 @@ function createFakeExtractorRun(params: { capturedEmbeddedRuns: RunEmbeddedPiAge
     expect(embeddedParams.prompt).toContain(
       "Analyze the most recent ~2 model-visible messages above",
     );
-    expect(embeddedParams.prompt).not.toContain(
-      "Recent model-visible messages since the last extraction cursor:",
-    );
     expect(embeddedParams.prompt).not.toContain("旧上下文：我只想要中文回答。");
     expect(embeddedParams.specialParentPromptEnvelope?.forkContextMessages).toHaveLength(4);
 

@@ -3,7 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
-import { makeAgentUserMessage } from "../../agents/test-helpers/agent-message-fixtures.js";
+import {
+  makeAgentAssistantMessage,
+  makeAgentToolResultMessage,
+  makeAgentUserMessage,
+} from "../../agents/test-helpers/agent-message-fixtures.js";
 import {
   __testing,
   DURABLE_MEMORY_AGENT_DEFINITION,
@@ -103,9 +107,6 @@ describe("runDurableMemoryAgentOnce", () => {
     });
     expect(taskPrompt).toContain("You are now acting as the durable memory extraction subagent");
     expect(taskPrompt).toContain("Analyze the most recent ~2 model-visible messages above");
-    expect(taskPrompt).not.toContain(
-      "Recent model-visible messages since the last extraction cursor",
-    );
     expect(taskPrompt).toContain("Existing durable memory manifest:");
     expect(taskPrompt).toContain(
       "Only use those recent model-visible messages to update durable memory",
@@ -124,6 +125,15 @@ describe("runDurableMemoryAgentOnce", () => {
     expect(taskPrompt).toContain("Update MEMORY.md whenever the note set changes");
     expect(taskPrompt).toContain("Recent-message safety:");
     expect(taskPrompt).toContain("Do not output NO_REPLY");
+
+    expect(
+      buildDurableMemoryAgentTaskPrompt({
+        scopeKey: "main:feishu:user-1",
+        newMessageCount: 3,
+        existingEntries: [],
+        maxNotes: 2,
+      }),
+    ).toContain("Analyze the most recent ~3 model-visible messages above");
   });
 
   it("spawns a background durable memory agent and emits action events", async () => {
@@ -171,6 +181,18 @@ describe("runDurableMemoryAgentOnce", () => {
     });
     const fullForkMessages = [
       makeAgentUserMessage({ content: "旧上下文：我只想要中文回答。" }),
+      makeAgentAssistantMessage({
+        stopReason: "toolUse",
+        content: [
+          { type: "text", text: "我先读一下现有记忆。" },
+          { type: "toolUse", id: "toolcall-read-memory", name: "memory_note_read", input: {} },
+        ] as never,
+      }),
+      makeAgentToolResultMessage({
+        toolCallId: "toolcall-read-memory",
+        toolName: "memory_note_read",
+        content: [{ type: "text", text: "existing memory" }],
+      }),
       makeAgentUserMessage({ content: "以后操作类回答先给步骤。" }),
     ];
     const parentForkContext = {
@@ -236,9 +258,6 @@ describe("runDurableMemoryAgentOnce", () => {
     );
     expect(embeddedParams?.prompt).toContain(
       "Analyze the most recent ~1 model-visible messages above",
-    );
-    expect(embeddedParams?.prompt).not.toContain(
-      "Recent model-visible messages since the last extraction cursor",
     );
     expect(embeddedParams?.extraSystemPrompt).toBeUndefined();
     expect(embeddedParams?.sessionId).not.toBe("session-1");

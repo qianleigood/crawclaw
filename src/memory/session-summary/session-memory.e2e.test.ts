@@ -171,7 +171,9 @@ describe("session memory e2e", () => {
       role: "assistant",
       content: "Final assistant state",
     });
-    const rows = await store.listModelVisibleMessagesForDurableExtraction(sessionId, 0, 10, 20);
+    const rows = (await store.listMessagesByTurnRange(sessionId, 1, 10)).filter(
+      (row) => row.role === "user" || row.role === "assistant" || row.role === "toolResult",
+    );
     const manualContext = buildManualSessionSummaryRefreshContext({
       sessionId,
       rows,

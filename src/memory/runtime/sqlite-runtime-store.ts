@@ -1047,35 +1047,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     );
   }
 
-  async listModelVisibleMessagesForDurableExtraction(
-    sessionId: string,
-    afterTurnExclusive: number,
-    upToTurnInclusive: number,
-    limit: number,
-  ): Promise<GmMessageRow[]> {
-    const db = this.getDb();
-    const rows = db
-      .prepare(`SELECT id, session_id, conversation_uid, role, content, content_text, content_blocks_json, runtime_meta_json, runtime_shape_json, has_media, primary_media_id, turn_index, extracted, created_at
-      FROM (
-        SELECT id, session_id, conversation_uid, role, content, content_text, content_blocks_json, runtime_meta_json, runtime_shape_json, has_media, primary_media_id, turn_index, extracted, created_at
-        FROM gm_messages
-        WHERE session_id = ?
-          AND role IN ('user', 'assistant', 'toolResult')
-          AND turn_index > ?
-          AND turn_index <= ?
-        ORDER BY turn_index DESC
-        LIMIT ?
-      ) recent
-      ORDER BY turn_index ASC`)
-      .all(
-        sessionId,
-        Math.max(0, afterTurnExclusive),
-        Math.max(0, upToTurnInclusive),
-        Math.max(1, limit),
-      );
-    return this.mapMessageRows(rows);
-  }
-
   async getSessionCompactionState(sessionId: string): Promise<SessionCompactionStateRow | null> {
     const db = this.getDb();
     const row = db

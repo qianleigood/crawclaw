@@ -95,6 +95,12 @@ function mapRowToAgentMessage(row: GmMessageRow): AgentMessage {
   } as AgentMessage;
 }
 
+function selectRecentExperienceRows(rows: readonly GmMessageRow[], limit: number): GmMessageRow[] {
+  return rows
+    .filter((row) => row.role === "user" || row.role === "assistant" || row.role === "toolResult")
+    .slice(-Math.max(1, limit));
+}
+
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -382,20 +388,13 @@ export class ExperienceExtractionWorkerManager {
         });
         const recentMessageLimit = clampInt(this.config.recentMessageLimit, 24);
         const foregroundWriteScanLimit = Math.max(recentMessageLimit, 96);
-        const [recentRows, foregroundWriteRows] = await Promise.all([
-          this.runtimeStore.listModelVisibleMessagesForDurableExtraction(
-            pending.sessionId,
-            afterTurnExclusive,
-            pending.messageCursor,
-            recentMessageLimit,
-          ),
-          this.runtimeStore.listModelVisibleMessagesForDurableExtraction(
-            pending.sessionId,
-            afterTurnExclusive,
-            pending.messageCursor,
-            foregroundWriteScanLimit,
-          ),
-        ]);
+        const turnRows = await this.runtimeStore.listMessagesByTurnRange(
+          pending.sessionId,
+          afterTurnExclusive + 1,
+          pending.messageCursor,
+        );
+        const recentRows = selectRecentExperienceRows(turnRows, recentMessageLimit);
+        const foregroundWriteRows = selectRecentExperienceRows(turnRows, foregroundWriteScanLimit);
         const foregroundExperienceWrites = extractForegroundExperienceWrites(foregroundWriteRows);
         const result = await runner({
           runId,

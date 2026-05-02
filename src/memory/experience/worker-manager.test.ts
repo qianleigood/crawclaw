@@ -33,10 +33,7 @@ describe("ExperienceExtractionWorkerManager", () => {
 
   type MockRuntimeStore = Pick<
     RuntimeStore,
-    | "appendMessage"
-    | "createMaintenanceRun"
-    | "updateMaintenanceRun"
-    | "listModelVisibleMessagesForDurableExtraction"
+    "appendMessage" | "createMaintenanceRun" | "updateMaintenanceRun" | "listMessagesByTurnRange"
   > & {
     maintenanceUpdates: UpdateMaintenanceRunInput[];
   };
@@ -70,25 +67,17 @@ describe("ExperienceExtractionWorkerManager", () => {
       updateMaintenanceRun: vi.fn().mockImplementation(async (input: UpdateMaintenanceRunInput) => {
         maintenanceUpdates.push(input);
       }),
-      listModelVisibleMessagesForDurableExtraction: vi
+      listMessagesByTurnRange: vi
         .fn()
-        .mockImplementation(
-          async (
-            sessionId: string,
-            afterTurnExclusive: number,
-            upToTurnInclusive: number,
-            limit: number,
-          ) =>
-            messageRows
-              .filter(
-                (row) =>
-                  row.sessionId === sessionId &&
-                  (row.role === "user" || row.role === "assistant" || row.role === "toolResult") &&
-                  row.turnIndex > afterTurnExclusive &&
-                  row.turnIndex <= upToTurnInclusive,
-              )
-              .toSorted((left, right) => left.turnIndex - right.turnIndex)
-              .slice(-limit),
+        .mockImplementation(async (sessionId: string, startTurn: number, endTurn: number) =>
+          messageRows
+            .filter(
+              (row) =>
+                row.sessionId === sessionId &&
+                row.turnIndex >= startTurn &&
+                row.turnIndex <= endTurn,
+            )
+            .toSorted((left, right) => left.turnIndex - right.turnIndex),
         ),
     };
   }

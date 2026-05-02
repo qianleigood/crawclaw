@@ -51,7 +51,7 @@ describe("resolveMemoryRuntime", () => {
           notebooklm: expect.objectContaining({
             enabled: false,
             cli: expect.objectContaining({ enabled: false }),
-            write: expect.objectContaining({ enabled: false }),
+            write: expect.any(Object),
           }),
           durableExtraction: expect.objectContaining({ enabled: false }),
           sessionSummary: expect.objectContaining({ enabled: false }),

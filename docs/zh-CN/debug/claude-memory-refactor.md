@@ -147,9 +147,7 @@ CrawClaw 当前是在：
 
 ### 2. 旧窗口是“本轮新增消息里的最后 8 条 user/assistant 可见文本”
 
-真正做提炼时，CrawClaw 会调用：
-
-- `collectRecentDurableConversation(...)` in `src/memory/durable/extraction.ts`
+旧实现真正做提炼时，会调用 durable extraction 内部的 recent-message helper。
 
 规则是：
 
@@ -365,7 +363,7 @@ Claude 只在主线程跑，CrawClaw 当前也已经跳过 subagent session：
 
 - 新增 cursor state
 - 新增按 cursor 取 model-visible message 的 store query
-- `collectRecentDurableConversation(...)` 不再自己决定主窗口语义
+- 旧 recent-message helper 不再自己决定主窗口语义
 
 ### PR2：收紧 skip 规则，移除 `knowledge_write -> skip durable extraction`
 

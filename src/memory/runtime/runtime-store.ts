@@ -115,12 +115,6 @@ export interface RuntimeStore {
   upsertSessionSummaryState(input: UpsertSessionSummaryStateInput): Promise<void>;
   getDurableExtractionCursor(sessionId: string): Promise<DurableExtractionCursorRow | null>;
   upsertDurableExtractionCursor(input: UpsertDurableExtractionCursorInput): Promise<void>;
-  listModelVisibleMessagesForDurableExtraction(
-    sessionId: string,
-    afterTurnExclusive: number,
-    upToTurnInclusive: number,
-    limit: number,
-  ): Promise<GmMessageRow[]>;
   getSessionCompactionState(sessionId: string): Promise<SessionCompactionStateRow | null>;
   upsertSessionCompactionState(input: UpsertSessionCompactionStateInput): Promise<void>;
   clearSessionCompactionState(sessionId: string): Promise<void>;

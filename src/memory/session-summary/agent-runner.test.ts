@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
+import type { GmMessageRow } from "../types/runtime.js";
 import {
   __testing,
   buildSessionSummaryTaskPrompt,
@@ -10,6 +11,7 @@ import {
   SESSION_SUMMARY_AGENT_DEFINITION,
   runSessionSummaryAgentOnce,
 } from "./agent-runner.js";
+import { buildManualSessionSummaryRefreshContext } from "./manual-refresh.js";
 import { ensureSessionSummaryTemplateContent, writeSessionSummaryFile } from "./store.js";
 
 function createParentForkContext(params?: {
@@ -35,6 +37,27 @@ function createParentForkContext(params?: {
       thinkingConfig: params?.thinkingConfig ?? {},
       forkContextMessages: messages,
     }),
+  };
+}
+
+function createMessageRow(params: {
+  id: string;
+  sessionId: string;
+  role: string;
+  content: string;
+  turnIndex: number;
+}): GmMessageRow {
+  return {
+    id: params.id,
+    sessionId: params.sessionId,
+    conversationUid: params.sessionId,
+    role: params.role,
+    content: params.content,
+    contentText: params.content,
+    contentBlocks: params.content ? [{ type: "text", text: params.content }] : [],
+    turnIndex: params.turnIndex,
+    extracted: false,
+    createdAt: 1_774_972_800_000 + params.turnIndex,
   };
 }
 
@@ -78,7 +101,6 @@ describe("session summary agent runner", () => {
       sessionId: "session-1",
       summaryPath: "/tmp/session-summary/agents/main/sessions/session-1/summary.md",
       currentSummary: null,
-      modelVisibleMessages: [{ role: "user", content: "Summarize the live memory test." }],
       profile: "light",
       maxSectionsToChange: 3,
     });
@@ -88,9 +110,9 @@ describe("session summary agent runner", () => {
     expect(taskPrompt).toContain("Max sections to change: 3");
     expect(taskPrompt).toContain("NOT part of the actual user conversation");
     expect(taskPrompt).toContain("<current_summary_content>");
-    expect(taskPrompt).toContain("Based on the model-visible conversation above");
-    expect(taskPrompt).toContain("<model_visible_conversation>");
-    expect(taskPrompt).toContain("- user: Summarize the live memory test.");
+    expect(taskPrompt).toContain("Use the forked parent conversation that is already available");
+    expect(taskPrompt).not.toContain("Based on the model-visible conversation above");
+    expect(taskPrompt).not.toContain("<model_visible_conversation>");
     expect(taskPrompt).toContain("session_summary_file_edit");
     expect(taskPrompt).toContain("Do not call any other tools");
     expect(taskPrompt).toContain("STRUCTURE PRESERVATION REMINDER");
@@ -98,25 +120,18 @@ describe("session summary agent runner", () => {
     expect(taskPrompt).toContain("LIGHT profile runs");
   });
 
-  it("embeds bounded model-visible excerpts in the task prompt", () => {
+  it("does not duplicate model-visible excerpts in the task prompt", () => {
     const taskPrompt = buildSessionSummaryTaskPrompt({
       sessionId: "session-1",
       summaryPath: "/tmp/session-summary/agents/main/sessions/session-1/summary.md",
       currentSummary: null,
-      modelVisibleMessages: [
-        {
-          role: "user",
-          content: "This recent text should be available to the session summary agent.",
-        },
-      ],
       profile: "full",
     });
 
-    expect(taskPrompt).toContain("Based on the model-visible conversation above");
-    expect(taskPrompt).toContain("<model_visible_conversation>");
-    expect(taskPrompt).toContain(
-      "- user: This recent text should be available to the session summary agent.",
-    );
+    expect(taskPrompt).toContain("Use the forked parent conversation that is already available");
+    expect(taskPrompt).not.toContain("Based on the model-visible conversation above");
+    expect(taskPrompt).not.toContain("<model_visible_conversation>");
+    expect(taskPrompt).not.toContain("This recent text should be available");
   });
 
   it("adds budget reminders when the current summary is oversized", () => {
@@ -321,11 +336,95 @@ UPDATED_COUNT: 2
       systemPromptText: "parent system prompt",
       forkContextMessages: fullModelVisibleMessages,
     });
-    expect(embeddedParams?.prompt).toContain("Based on the model-visible conversation above");
-    expect(embeddedParams?.prompt).toContain("- user: full context user request");
-    expect(embeddedParams?.prompt).toContain("- assistant: full context assistant response");
+    expect(embeddedParams?.prompt).toContain(
+      "Use the forked parent conversation that is already available",
+    );
+    expect(embeddedParams?.prompt).not.toContain("Based on the model-visible conversation above");
+    expect(embeddedParams?.prompt).not.toContain("<model_visible_conversation>");
+    expect(embeddedParams?.prompt).not.toContain("full context user request");
+    expect(embeddedParams?.prompt).not.toContain("full context assistant response");
     expect(embeddedParams?.extraSystemPrompt).toBeUndefined();
     expect(embeddedParams?.streamParams).toEqual({ cacheRetention: "short" });
+  });
+
+  it("keeps manual refresh rows in the synthesized fork context instead of the task prompt", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-session-summary-manual-"));
+    process.env.CRAWCLAW_SESSION_SUMMARY_DIR = dir;
+    process.env.CRAWCLAW_STATE_DIR = dir;
+
+    const sessionId = "session-manual-refresh";
+    const manualContext = buildManualSessionSummaryRefreshContext({
+      sessionId,
+      rows: [
+        createMessageRow({
+          id: "msg-user-1",
+          sessionId,
+          role: "user",
+          content: "manual refresh persisted request",
+          turnIndex: 1,
+        }),
+        createMessageRow({
+          id: "msg-tool-1",
+          sessionId,
+          role: "toolResult",
+          content: "manual refresh tool result",
+          turnIndex: 2,
+        }),
+        createMessageRow({
+          id: "msg-assistant-1",
+          sessionId,
+          role: "assistant",
+          content: "manual refresh persisted response",
+          turnIndex: 3,
+        }),
+      ],
+    });
+    const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
+      payloads: [
+        {
+          text: [
+            "STATUS: NO_CHANGE",
+            "SUMMARY: Already current.",
+            "WRITTEN_COUNT: 0",
+            "UPDATED_COUNT: 0",
+          ].join("\n"),
+        },
+      ],
+      meta: {
+        durationMs: 1,
+        agentMeta: { usage: { input: 1, output: 1, total: 2 } },
+      },
+    });
+    __testing.setDepsForTest({
+      emitAgentActionEvent: vi.fn(),
+      runEmbeddedPiAgent,
+    });
+
+    await runSessionSummaryAgentOnce({
+      sessionId,
+      sessionKey: `agent:main:${sessionId}`,
+      sessionFile: "/tmp/session-manual-refresh.jsonl",
+      workspaceDir: dir,
+      agentId: "main",
+      parentForkContext: manualContext.parentForkContext,
+    });
+
+    const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as
+      | {
+          prompt?: string;
+          specialParentPromptEnvelope?: {
+            forkContextMessages?: Array<{ content?: unknown }>;
+          };
+        }
+      | undefined;
+    expect(
+      embeddedParams?.specialParentPromptEnvelope?.forkContextMessages?.map(
+        (message) => message.content,
+      ),
+    ).toEqual(["manual refresh persisted request", "manual refresh persisted response"]);
+    expect(embeddedParams?.prompt).not.toContain("manual refresh persisted request");
+    expect(embeddedParams?.prompt).not.toContain("manual refresh persisted response");
+    expect(embeddedParams?.prompt).not.toContain("manual refresh tool result");
   });
 
   it("treats a changed summary file as written when the final agent reply omits STATUS", async () => {
