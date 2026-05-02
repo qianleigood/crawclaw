@@ -161,7 +161,8 @@ agents:
   refs.
 - dream also declares isolated special-agent system prompt mode, so the
   embedded runner skips the default main-agent prompt, skills prompt, docs path,
-  bootstrap context files, and workspace reminders for that run.
+  bootstrap context files, workspace reminders, and the main memory runtime
+  recall/lifecycle for that run.
 - durable extraction and dream special runs still keep cache-write suppression
   and short retention
 - session-summary keeps short retention but does not reuse a parent

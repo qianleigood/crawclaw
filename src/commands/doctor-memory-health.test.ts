@@ -68,7 +68,6 @@ describe("doctor-memory-health", () => {
           parentWritable: true,
           rootWritable: true,
           extractionEnabled: true,
-          extractionRecentMessageLimit: 8,
           extractionMaxNotesPerTurn: 2,
           extractionMinEligibleTurnsBetweenRuns: 1,
           extractionMaxConcurrentWorkers: 2,

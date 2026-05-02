@@ -108,6 +108,7 @@ import type {
   QueryContextDiagnostics,
   QueryContextProviderRequest,
   QueryContextProviderRequestSnapshot,
+  QueryContextSection,
 } from "../../query-context/types.js";
 import { resolveSandboxContext } from "../../sandbox.js";
 import { resolveSandboxRuntimeStatus } from "../../sandbox/runtime-status.js";
@@ -282,6 +283,25 @@ function buildParentPromptEmbeddedSystemPrompt(params: {
     return extra;
   }
   return `${parent}\n\n${extra}`;
+}
+
+function buildIsolatedSpecialAgentSystemPromptSections(params: {
+  extraSystemPrompt?: string;
+  specialAgentSpawnSource?: string;
+}): QueryContextSection[] {
+  const content =
+    params.extraSystemPrompt?.trim() ||
+    "You are a dedicated background special agent. Follow the user task exactly.";
+  return [
+    {
+      id: `special:${params.specialAgentSpawnSource?.trim() || "agent"}:system_prompt`,
+      role: "system_prompt",
+      content,
+      source: "special-agent",
+      cacheable: true,
+      sectionType: "other",
+    },
+  ];
 }
 
 function extractParentPromptToolNames(
@@ -624,18 +644,24 @@ export async function runEmbeddedAttempt(
         config: params.config,
         agentId: params.agentId,
       });
+      const isolatedSpecialSystemPrompt = params.specialSystemPromptMode === "isolated";
+      const memoryRuntime = isolatedSpecialSystemPrompt ? undefined : params.memoryRuntime;
       log = log.withContext({ agentId: sessionAgentId });
-      const { skillEntries } = resolveEmbeddedRunSkillEntries({
-        workspaceDir: effectiveWorkspace,
-        config: params.config,
-        sessionId: params.sessionId,
-        sessionKey: params.sessionKey,
-        prompt: params.prompt,
-      });
-      restoreSkillEnv = applySkillEnvOverrides({
-        skills: skillEntries ?? [],
-        config: params.config,
-      });
+      const { skillEntries } = isolatedSpecialSystemPrompt
+        ? { skillEntries: [] }
+        : resolveEmbeddedRunSkillEntries({
+            workspaceDir: effectiveWorkspace,
+            config: params.config,
+            sessionId: params.sessionId,
+            sessionKey: params.sessionKey,
+            prompt: params.prompt,
+          });
+      restoreSkillEnv = isolatedSpecialSystemPrompt
+        ? undefined
+        : applySkillEnvOverrides({
+            skills: skillEntries ?? [],
+            config: params.config,
+          });
 
       const hookRunner = getGlobalHookRunner();
       const skillSemanticRetrieve = createSkillSemanticRetrieverFromConfig({
@@ -643,32 +669,34 @@ export async function runEmbeddedAttempt(
         workspaceDir: effectiveWorkspace,
         getProviderApiKey: async (provider) => await params.authStorage.getApiKey(provider),
       });
-      const surfacedSkillNames = await resolveSurfacedSkillsHookResult({
-        initialSkillExposureState: params.skillExposureState,
-        explicitSurfacedSkillNames: params.surfacedSkillNames,
-        purpose: "run",
-        prompt: params.prompt,
-        workspaceDir: effectiveWorkspace,
-        availableSkills: buildAvailableSkillsForHook({
-          skillEntries,
-        }),
-        hookCtx: {
-          runId: params.runId,
-          agentId: sessionAgentId,
-          sessionKey: params.sessionKey,
-          sessionId: params.sessionId,
-          workspaceDir: params.workspaceDir,
-          messageProvider: params.messageProvider ?? undefined,
-          trigger: params.trigger,
-          channelId: params.messageChannel ?? params.messageProvider ?? undefined,
-        },
-        hookRunner,
-        skillDiscoveryRerank: createModelSkillDiscoveryReranker({
-          model: params.model,
-          authStorage: params.authStorage,
-        }),
-        skillSemanticRetrieve,
-      });
+      const surfacedSkillNames = isolatedSpecialSystemPrompt
+        ? []
+        : await resolveSurfacedSkillsHookResult({
+            initialSkillExposureState: params.skillExposureState,
+            explicitSurfacedSkillNames: params.surfacedSkillNames,
+            purpose: "run",
+            prompt: params.prompt,
+            workspaceDir: effectiveWorkspace,
+            availableSkills: buildAvailableSkillsForHook({
+              skillEntries,
+            }),
+            hookCtx: {
+              runId: params.runId,
+              agentId: sessionAgentId,
+              sessionKey: params.sessionKey,
+              sessionId: params.sessionId,
+              workspaceDir: params.workspaceDir,
+              messageProvider: params.messageProvider ?? undefined,
+              trigger: params.trigger,
+              channelId: params.messageChannel ?? params.messageProvider ?? undefined,
+            },
+            hookRunner,
+            skillDiscoveryRerank: createModelSkillDiscoveryReranker({
+              model: params.model,
+              authStorage: params.authStorage,
+            }),
+            skillSemanticRetrieve,
+          });
 
       const skillsPrompt = resolveSkillsPromptForRun({
         entries: skillEntries,
@@ -679,15 +707,17 @@ export async function runEmbeddedAttempt(
 
       const sessionLabel = params.sessionKey ?? params.sessionId;
       const { bootstrapFiles: hookAdjustedBootstrapFiles, contextFiles } =
-        await resolveBootstrapContextForRun({
-          workspaceDir: effectiveWorkspace,
-          config: params.config,
-          sessionKey: params.sessionKey,
-          sessionId: params.sessionId,
-          warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
-          contextMode: params.bootstrapContextMode,
-          runKind: params.bootstrapContextRunKind,
-        });
+        isolatedSpecialSystemPrompt
+          ? { bootstrapFiles: [], contextFiles: [] }
+          : await resolveBootstrapContextForRun({
+              workspaceDir: effectiveWorkspace,
+              config: params.config,
+              sessionKey: params.sessionKey,
+              sessionId: params.sessionId,
+              warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
+              contextMode: params.bootstrapContextMode,
+              runKind: params.bootstrapContextRunKind,
+            });
       const bootstrapMaxChars = resolveBootstrapMaxChars(params.config);
       const bootstrapTotalMaxChars = resolveBootstrapTotalMaxChars(params.config);
       const bootstrapAnalysis = analyzeBootstrapBudget({
@@ -705,11 +735,13 @@ export async function runEmbeddedAttempt(
         seenSignatures: params.bootstrapPromptWarningSignaturesSeen,
         previousSignature: params.bootstrapPromptWarningSignature,
       });
-      const workspaceNotes = hookAdjustedBootstrapFiles.some(
-        (file) => file.name === DEFAULT_BOOTSTRAP_FILENAME && !file.missing,
-      )
-        ? ["Reminder: commit your changes in this workspace after edits."]
-        : undefined;
+      const workspaceNotes =
+        !isolatedSpecialSystemPrompt &&
+        hookAdjustedBootstrapFiles.some(
+          (file) => file.name === DEFAULT_BOOTSTRAP_FILENAME && !file.missing,
+        )
+          ? ["Reminder: commit your changes in this workspace after edits."]
+          : undefined;
 
       const effectiveFsWorkspaceOnly = resolveAttemptFsWorkspaceOnly({
         config: params.config,
@@ -1008,12 +1040,14 @@ export async function runEmbeddedAttempt(
         ? ("minimal" as const)
         : promptMode;
       const effectiveSkillsPrompt = useMinimalPromptForAllowedTools ? undefined : skillsPrompt;
-      const docsPath = await resolveCrawClawDocsPath({
-        workspaceDir: effectiveWorkspace,
-        argv1: process.argv[1],
-        cwd: effectiveWorkspace,
-        moduleUrl: import.meta.url,
-      });
+      const docsPath = isolatedSpecialSystemPrompt
+        ? null
+        : await resolveCrawClawDocsPath({
+            workspaceDir: effectiveWorkspace,
+            argv1: process.argv[1],
+            cwd: effectiveWorkspace,
+            moduleUrl: import.meta.url,
+          });
       const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
       const ownerDisplay = resolveOwnerDisplaySetting(params.config);
       const heartbeatPrompt = shouldInjectHeartbeatPrompt({
@@ -1055,34 +1089,39 @@ export async function runEmbeddedAttempt(
               cacheable: true,
             },
           ]
-        : buildEmbeddedSystemPromptSections({
-            workspaceDir: effectiveWorkspace,
-            defaultThinkLevel: parentPromptThinking.thinkLevel,
-            reasoningLevel: parentPromptThinking.reasoningLevel ?? "off",
-            extraSystemPrompt: params.extraSystemPrompt,
-            ownerNumbers: params.ownerNumbers,
-            ownerDisplay: ownerDisplay.ownerDisplay,
-            ownerDisplaySecret: ownerDisplay.ownerDisplaySecret,
-            reasoningTagHint,
-            heartbeatPrompt,
-            skillsPrompt: effectiveSkillsPrompt,
-            docsPath: docsPath ?? undefined,
-            ttsHint,
-            memoryRuntimeActive: Boolean(params.memoryRuntime),
-            workspaceNotes,
-            reactionGuidance,
-            promptMode: effectivePromptMode,
-            acpEnabled: params.config?.acp?.enabled !== false,
-            runtimeInfo,
-            messageToolHints,
-            sandboxInfo,
-            tools: effectiveTools,
-            modelAliasLines: buildModelAliasLines(params.config),
-            userTimezone,
-            userTime,
-            userTimeFormat,
-            contextFiles,
-          });
+        : isolatedSpecialSystemPrompt
+          ? buildIsolatedSpecialAgentSystemPromptSections({
+              extraSystemPrompt: params.extraSystemPrompt,
+              specialAgentSpawnSource: params.specialAgentSpawnSource,
+            })
+          : buildEmbeddedSystemPromptSections({
+              workspaceDir: effectiveWorkspace,
+              defaultThinkLevel: parentPromptThinking.thinkLevel,
+              reasoningLevel: parentPromptThinking.reasoningLevel ?? "off",
+              extraSystemPrompt: params.extraSystemPrompt,
+              ownerNumbers: params.ownerNumbers,
+              ownerDisplay: ownerDisplay.ownerDisplay,
+              ownerDisplaySecret: ownerDisplay.ownerDisplaySecret,
+              reasoningTagHint,
+              heartbeatPrompt,
+              skillsPrompt: effectiveSkillsPrompt,
+              docsPath: docsPath ?? undefined,
+              ttsHint,
+              memoryRuntimeActive: Boolean(memoryRuntime),
+              workspaceNotes,
+              reactionGuidance,
+              promptMode: effectivePromptMode,
+              acpEnabled: params.config?.acp?.enabled !== false,
+              runtimeInfo,
+              messageToolHints,
+              sandboxInfo,
+              tools: effectiveTools,
+              modelAliasLines: buildModelAliasLines(params.config),
+              userTimezone,
+              userTime,
+              userTimeFormat,
+              contextFiles,
+            });
       const skillExposureStateForPrompt = getSkillExposureState({
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,
@@ -1203,7 +1242,7 @@ export async function runEmbeddedAttempt(
 
         await runAttemptMemoryRuntimeBootstrap({
           hadSessionFile,
-          memoryRuntime: params.memoryRuntime,
+          memoryRuntime,
           sessionId: params.sessionId,
           sessionKey: params.sessionKey,
           sessionFile: params.sessionFile,
@@ -1241,7 +1280,7 @@ export async function runEmbeddedAttempt(
         });
         applyPiAutoCompactionGuard({
           settingsManager,
-          memoryRuntimeInfo: params.memoryRuntime?.info,
+          memoryRuntimeInfo: memoryRuntime?.info,
         });
 
         // Sets compaction/pruning runtime state and returns extension factories
@@ -1767,10 +1806,10 @@ export async function runEmbeddedAttempt(
             activeSession.agent.state.messages = limited;
           }
 
-          if (params.memoryRuntime) {
+          if (memoryRuntime) {
             try {
               const assembled = await assembleAttemptMemoryRuntime({
-                memoryRuntime: params.memoryRuntime,
+                memoryRuntime,
                 sessionId: params.sessionId,
                 sessionKey: params.sessionKey,
                 messages: activeSession.messages,
@@ -2487,14 +2526,14 @@ export async function runEmbeddedAttempt(
           }
 
           // Let the active memory runtime run its post-turn lifecycle.
-          if (params.memoryRuntime) {
+          if (memoryRuntime) {
             const afterTurnRuntimeContext = buildAfterTurnRuntimeContext({
               attempt: { ...params, surfacedSkillNames },
               workspaceDir: effectiveWorkspace,
               agentDir,
             });
             await finalizeAttemptMemoryRuntimeTurn({
-              memoryRuntime: params.memoryRuntime,
+              memoryRuntime,
               runId: params.runId,
               promptError: Boolean(promptError),
               aborted,

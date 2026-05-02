@@ -19,6 +19,7 @@ import {
   mockedPickFallbackThinkingLevel,
   mockedResolveContextWindowInfo,
   mockedResolveFailoverStatus,
+  mockedResolveMemoryRuntime,
   mockedRunMemoryRuntimeMaintenance,
   mockedRunEmbeddedAttempt,
   mockedSessionLikelyHasOversizedToolResults,
@@ -52,6 +53,24 @@ describe("runEmbeddedPiAgent overflow compaction trigger routing", () => {
         authProfileIdSource: "auto",
       }),
     );
+  });
+
+  it("skips the main memory runtime for isolated special-agent runs", async () => {
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(makeAttemptResult({ promptError: null }));
+
+    await runEmbeddedPiAgent({
+      ...overflowBaseRunParams,
+      runId: "run-isolated-special-memory-runtime",
+      specialAgentSpawnSource: "dream",
+      specialSystemPromptMode: "isolated",
+    });
+
+    expect(mockedResolveMemoryRuntime).not.toHaveBeenCalled();
+    const attemptParams = mockedRunEmbeddedAttempt.mock.calls[0]?.[0] as
+      | { memoryRuntime?: unknown; specialSystemPromptMode?: string }
+      | undefined;
+    expect(attemptParams?.specialSystemPromptMode).toBe("isolated");
+    expect(attemptParams?.memoryRuntime).toBeUndefined();
   });
 
   it("emits turn_started before dispatching an embedded attempt", async () => {

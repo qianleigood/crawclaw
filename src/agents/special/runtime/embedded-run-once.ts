@@ -302,6 +302,12 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
       ...(request.extraSystemPrompt ? { extraSystemPrompt: request.extraSystemPrompt } : {}),
       ...(effectiveStreamParams ? { streamParams: effectiveStreamParams } : {}),
       ...(toolsAllow ? { toolsAllow: [...toolsAllow] } : {}),
+      ...(request.definition.systemPromptMode === "isolated"
+        ? {
+            specialSystemPromptMode: "isolated" as const,
+            surfacedSkillNames: [],
+          }
+        : {}),
       ...(parentPromptEnvelope ? { specialParentPromptEnvelope: parentPromptEnvelope } : {}),
       specialAgentSpawnSource: request.definition.spawnSource,
       ...(embeddedContext?.specialAgentContext?.durableMemoryScope

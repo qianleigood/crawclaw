@@ -138,6 +138,8 @@ describe("buildPromotionCandidateAssessments", () => {
 
   it("builds promotion candidates from NotebookLM before using local outbox entries", async () => {
     await withStateDirEnv("crawclaw-improvement-candidates-", async () => {
+      let notebookLmQuery = "";
+      let queryInstruction: string | undefined;
       const assessments = await buildPromotionCandidateAssessments({
         config: {
           memory: {
@@ -167,34 +169,43 @@ describe("buildPromotionCandidateAssessments", () => {
             },
           },
         },
-        searchNotebookLm: async () => [
-          {
-            id: "notebooklm-hit-1",
-            source: "notebooklm",
-            title: "自进化候选",
-            summary: "NotebookLM 返回的结构化候选。",
-            content: JSON.stringify({
-              candidates: [
-                {
-                  id: "notebooklm-candidate:workflow-debug-order",
-                  sourceRefs: [{ kind: "experience", ref: "note-workflow-debug-order" }],
-                  signalSummary:
-                    "workflow 排查反复使用 registry -> operations -> executions 的顺序。",
-                  observedFrequency: 3,
-                  currentReuseLevel: "experience",
-                  triggerPattern: "workflow 执行异常或更新异常",
-                  repeatedActions: ["先查 registry，再查 operations，再看 executions。"],
-                  validationEvidence: ["三次排障都按这个顺序定位问题。"],
-                  evidenceKinds: ["trigger", "action", "result", "validation"],
-                  baselineDecision: "ready",
-                  score: 42,
-                },
-              ],
-            }),
-          },
-        ],
+        searchNotebookLm: async (params) => {
+          notebookLmQuery = params.query;
+          queryInstruction = params.config.cli.queryInstruction;
+          return [
+            {
+              id: "notebooklm-hit-1",
+              source: "notebooklm",
+              title: "自进化候选",
+              summary: "NotebookLM 返回的结构化候选。",
+              content: JSON.stringify({
+                candidates: [
+                  {
+                    id: "notebooklm-candidate:workflow-debug-order",
+                    sourceRefs: [{ kind: "experience", ref: "note-workflow-debug-order" }],
+                    signalSummary:
+                      "workflow 排查反复使用 registry -> operations -> executions 的顺序。",
+                    observedFrequency: 3,
+                    currentReuseLevel: "experience",
+                    triggerPattern: "workflow 执行异常或更新异常",
+                    repeatedActions: ["先查 registry，再查 operations，再看 executions。"],
+                    validationEvidence: ["三次排障都按这个顺序定位问题。"],
+                    evidenceKinds: ["trigger", "action", "result", "validation"],
+                    baselineDecision: "ready",
+                    score: 42,
+                  },
+                ],
+              }),
+            },
+          ];
+        },
       });
 
+      expect(notebookLmQuery).toContain(
+        "你负责完成候选的 baselineDecision 判定、blockers 归因和 score 排序",
+      );
+      expect(notebookLmQuery).toContain("返回列表必须按 score 从高到低排序");
+      expect(queryInstruction).toBe("");
       expect(assessments).toHaveLength(1);
       expect(assessments[0]).toMatchObject({
         baselineDecision: "ready",

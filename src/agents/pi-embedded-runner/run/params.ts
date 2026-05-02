@@ -105,6 +105,8 @@ export type RunEmbeddedPiAgentParams = {
   toolsAllow?: string[];
   /** Explicit special-agent spawn source for embedded fork runs. */
   specialAgentSpawnSource?: string;
+  /** If set, build only the special-agent system prompt and skip default prompt extras. */
+  specialSystemPromptMode?: "isolated";
   /** Explicit durable-memory scope for embedded special-agent runs. */
   specialDurableMemoryScope?: {
     agentId?: string | null;

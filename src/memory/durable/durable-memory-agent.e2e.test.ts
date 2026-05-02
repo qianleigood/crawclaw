@@ -125,7 +125,6 @@ function createMemoryRuntimeConfig(stateDir: string): MemoryRuntimeConfig {
     },
     durableExtraction: {
       enabled: true,
-      recentMessageLimit: 8,
       maxNotesPerTurn: 2,
       minEligibleTurnsBetweenRuns: 1,
       maxConcurrentWorkers: 2,
@@ -160,11 +159,13 @@ function createFakeExtractorRun(params: { capturedEmbeddedRuns: RunEmbeddedPiAge
       userId: "user-1",
     });
     expect(embeddedParams.prompt).toContain(
+      "Analyze the most recent ~2 model-visible messages above",
+    );
+    expect(embeddedParams.prompt).not.toContain(
       "Recent model-visible messages since the last extraction cursor:",
     );
-    expect(embeddedParams.prompt).toContain("以后操作类回答先给步骤。");
     expect(embeddedParams.prompt).not.toContain("旧上下文：我只想要中文回答。");
-    expect(embeddedParams.specialParentPromptEnvelope).toBeUndefined();
+    expect(embeddedParams.specialParentPromptEnvelope?.forkContextMessages).toHaveLength(4);
 
     const writeTool = createMemoryNoteWriteTool({
       scope: embeddedParams.specialDurableMemoryScope,

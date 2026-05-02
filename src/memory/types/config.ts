@@ -81,7 +81,6 @@ export interface SkillRoutingConfig {
 
 export interface DurableExtractionConfig {
   enabled: boolean;
-  recentMessageLimit: number;
   maxNotesPerTurn: number;
   minEligibleTurnsBetweenRuns: number;
   maxConcurrentWorkers: number;

@@ -110,7 +110,8 @@ contracts.
       lifecycle only schedules the scope, and dream receives no parent prompt
       envelope, parent messages, parent run id, provider/model inheritance,
       child-session state, subagent announcement, default main-agent prompt,
-      skills, bootstrap context, or workspace reminders
+      skills, bootstrap context, workspace reminders, or main memory runtime
+      recall/lifecycle
     - the embedded runner has an isolated special-agent system-prompt mode for
       dream, which omits default prompt extras instead of relying on the normal
       embedded prompt branch
@@ -266,7 +267,8 @@ Memory is aligned with the current simplified model, but follow-up work remains.
   - It does not spawn a child session, emit a subagent completion message, or
     inherit parent prompt/context state.
   - NotebookLM/experience writes stay on the explicit experience path; Dream
-    only consolidates durable profile/context memory.
+    does not run main memory runtime recall and only consolidates durable
+    profile/context memory.
 
 ## Priority 2: multi-agent governance
 

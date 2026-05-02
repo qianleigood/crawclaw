@@ -38,6 +38,7 @@ describe("DurableExtractionWorkerManager", () => {
     | "appendMessage"
     | "getDurableExtractionCursor"
     | "upsertDurableExtractionCursor"
+    | "listMessagesByTurnRange"
     | "listModelVisibleMessagesForDurableExtraction"
   >;
 
@@ -78,6 +79,19 @@ describe("DurableExtractionWorkerManager", () => {
             updatedAt: input.updatedAt ?? Date.now(),
           });
         }),
+      listMessagesByTurnRange: vi
+        .fn()
+        .mockImplementation(async (sessionId: string, startTurn: number, endTurn: number) =>
+          messageRows
+            .filter((row) => {
+              return (
+                row.sessionId === sessionId &&
+                row.turnIndex >= startTurn &&
+                row.turnIndex <= endTurn
+              );
+            })
+            .toSorted((left, right) => left.turnIndex - right.turnIndex),
+        ),
       listModelVisibleMessagesForDurableExtraction: vi
         .fn()
         .mockImplementation(
@@ -141,6 +155,20 @@ describe("DurableExtractionWorkerManager", () => {
     });
   }
 
+  function createParentForkContext(params?: { parentRunId?: string; messages?: unknown[] }) {
+    return {
+      parentRunId: params?.parentRunId ?? "parent-run-test",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "parent system prompt",
+        forkContextMessages: params?.messages ?? [
+          makeAgentUserMessage({ content: "父会话上下文。" }),
+        ],
+      }),
+    };
+  }
+
   it("keeps one worker per session and runs a trailing extraction with the latest pending context", async () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
@@ -173,7 +201,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 2,
@@ -199,6 +226,7 @@ describe("DurableExtractionWorkerManager", () => {
         messageChannel: "feishu",
         senderId: "user-1",
         parentRunId: "parent-run-1",
+        parentForkContext: createParentForkContext(),
       },
     });
     await appendVisibleMessage(runtimeStore, {
@@ -211,7 +239,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-1",
       newMessages: [makeAgentUserMessage({ content: "记住第二条 durable note。" })] as never,
       messageCursor: 2,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-1",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     expect(manager.getStatus()).toMatchObject({
@@ -227,10 +260,8 @@ describe("DurableExtractionWorkerManager", () => {
     const secondCall = runner.mock.calls.at(-1)?.[0];
     const firstCall = runner.mock.calls[0]?.[0];
     expect(firstCall?.parentRunId).toBe("parent-run-1");
-    expect(JSON.stringify(secondCall?.recentMessages ?? [])).toContain("记住第二条 durable note。");
-    expect(JSON.stringify(secondCall?.recentMessages ?? [])).not.toContain(
-      "记住第一条 durable note。",
-    );
+    expect(secondCall?.newMessageCount).toBe(1);
+    expect(secondCall).not.toHaveProperty("recentMessages");
   });
 
   it("applies a global concurrency limit across sessions", async () => {
@@ -265,7 +296,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 1,
@@ -286,7 +316,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-a",
       newMessages: [makeAgentUserMessage({ content: "先处理第一个 session。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-a" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-a",
+        parentForkContext: createParentForkContext(),
+      },
     });
     await appendVisibleMessage(runtimeStore, {
       sessionId: "session-b",
@@ -298,7 +333,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-b",
       newMessages: [makeAgentUserMessage({ content: "然后处理第二个 session。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-b" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-b",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     expect(manager.getStatus()).toMatchObject({
@@ -348,7 +388,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 2,
@@ -371,7 +410,12 @@ describe("DurableExtractionWorkerManager", () => {
         makeAgentUserMessage({ content: "同一个用户的第一个会话触发 durable memory。" }),
       ] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-same" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-same",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     await vi.waitFor(() => {
@@ -390,7 +434,12 @@ describe("DurableExtractionWorkerManager", () => {
         makeAgentUserMessage({ content: "同一个用户的第二个会话也触发 durable memory。" }),
       ] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-same" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-same",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     await new Promise((resolve) => setTimeout(resolve, 25));
@@ -446,7 +495,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 2,
@@ -467,7 +515,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-a",
       newMessages: [makeAgentUserMessage({ content: "第一个用户触发 durable memory。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-a" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-a",
+        parentForkContext: createParentForkContext(),
+      },
     });
     await appendVisibleMessage(runtimeStore, {
       sessionId: "session-scope-user-b",
@@ -479,7 +532,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-b",
       newMessages: [makeAgentUserMessage({ content: "第二个用户触发 durable memory。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-b" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-b",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     await vi.waitFor(() => {
@@ -518,7 +576,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 1,
@@ -539,7 +596,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-c",
       newMessages: [makeAgentUserMessage({ content: "记住这条。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-c" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-c",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     const drainPromise = manager.drainAll(5_000);
@@ -585,7 +647,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 1,
@@ -606,7 +667,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-d",
       newMessages: [makeAgentUserMessage({ content: "第一条消息。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-d" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-d",
+        parentForkContext: createParentForkContext(),
+      },
     });
     await appendVisibleMessage(runtimeStore, {
       sessionId: "session-d",
@@ -618,7 +684,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-d",
       newMessages: [makeAgentUserMessage({ content: "第二条消息。" })] as never,
       messageCursor: 2,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-d" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-d",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     const stopPromise = manager.stopSession("agent:main:feishu:direct:user-d", {
@@ -659,7 +730,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 1,
@@ -702,11 +772,12 @@ describe("DurableExtractionWorkerManager", () => {
         sessionId: "session-runner",
         sessionKey: "agent:main:feishu:direct:user-runner",
         messageCursor: 1,
-        recentMessageLimit: 8,
+        newMessageCount: 1,
         maxNotes: 2,
         parentForkContext,
       }),
     );
+    expect(runtimeStore.listModelVisibleMessagesForDurableExtraction).not.toHaveBeenCalled();
   });
 
   it("fails closed when the background runner fails", async () => {
@@ -725,7 +796,6 @@ describe("DurableExtractionWorkerManager", () => {
     const manager = getSharedDurableExtractionWorkerManager({
       config: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 1,
@@ -746,7 +816,12 @@ describe("DurableExtractionWorkerManager", () => {
       sessionKey: "agent:main:feishu:direct:user-fallback",
       newMessages: [makeAgentUserMessage({ content: "以后别重复背景，先给结论。" })] as never,
       messageCursor: 1,
-      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-fallback" },
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-fallback",
+        parentForkContext: createParentForkContext(),
+      },
     });
 
     await vi.waitFor(async () => {

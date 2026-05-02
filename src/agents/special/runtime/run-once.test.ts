@@ -551,6 +551,56 @@ describe("runSpecialAgentToCompletion", () => {
     });
   });
 
+  it("propagates isolated system-prompt mode for independent embedded special agents", async () => {
+    const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
+      payloads: [{ text: "STATUS: OK" }],
+      meta: {
+        durationMs: 12,
+        agentMeta: {
+          sessionId: "session-isolated-1",
+          provider: "openai",
+          model: "gpt-5.4",
+        },
+      },
+    });
+
+    await runSpecialAgentToCompletion(
+      {
+        definition: {
+          ...TEST_EMBEDDED_SPECIAL_AGENT_DEFINITION,
+          id: "test_isolated_embedded_special_agent",
+          spawnSource: "test-isolated-embedded-special-agent",
+          systemPromptMode: "isolated",
+        },
+        task: "do the isolated thing",
+        extraSystemPrompt: "isolated system prompt",
+        embeddedContext: {
+          sessionId: "session-isolated-1",
+          sessionFile: "/tmp/crawclaw-isolated-session.jsonl",
+          workspaceDir: "/tmp/crawclaw-isolated",
+          provider: "openai",
+          model: "gpt-5.4",
+        },
+      },
+      {
+        spawnAgentSessionDirect: vi.fn(),
+        captureSubagentCompletionReply: vi.fn(),
+        callGateway: vi.fn(),
+        onAgentEvent: vi.fn(),
+        runEmbeddedPiAgent,
+      },
+    );
+
+    expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        specialSystemPromptMode: "isolated",
+        surfacedSkillNames: [],
+        extraSystemPrompt: "isolated system prompt",
+        specialAgentSpawnSource: "test-isolated-embedded-special-agent",
+      }),
+    );
+  });
+
   it("ignores synthetic manual parent model refs for embedded fork model selection", async () => {
     const parentPromptEnvelope = buildSpecialAgentCacheEnvelope({
       systemPromptText: "manual refresh context",
@@ -693,16 +743,26 @@ describe("runSpecialAgentToCompletion", () => {
     );
   });
 
-  it("does not attach a parent prompt envelope for durable memory special agents", async () => {
+  it("attaches the parent prompt envelope for durable memory special agents", async () => {
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
       payloads: [{ text: "STATUS: NO_CHANGE" }],
       meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
+    });
+    const parentPromptEnvelope = buildSpecialAgentCacheEnvelope({
+      systemPromptText: "parent system prompt",
+      forkContextMessages: [{ role: "user", content: "remember this" }],
     });
 
     await runSpecialAgentToCompletion(
       {
         definition: DURABLE_MEMORY_AGENT_DEFINITION,
         task: "extract memory",
+        parentForkContext: {
+          parentRunId: "parent-run-memory-1",
+          provider: "openai",
+          modelId: "gpt-5.4",
+          promptEnvelope: parentPromptEnvelope,
+        },
         embeddedContext: {
           sessionId: "session-memory-1",
           sessionKey: "agent:main:main",
@@ -723,7 +783,9 @@ describe("runSpecialAgentToCompletion", () => {
     );
 
     const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    expect(params?.specialParentPromptEnvelope).toBeUndefined();
+    expect(params?.specialParentPromptEnvelope).toBe(parentPromptEnvelope);
+    expect(params?.specialSystemPromptMode).toBeUndefined();
+    expect(params?.surfacedSkillNames).toBeUndefined();
     expect(params?.toolsAllow).toEqual([
       "memory_manifest_read",
       "memory_note_read",

@@ -77,7 +77,6 @@ want CrawClaw to use.
 | Key                                             | Description                                 |
 | ----------------------------------------------- | ------------------------------------------- |
 | `memory.durableExtraction.enabled`              | Enable the durable memory agent             |
-| `memory.durableExtraction.recentMessageLimit`   | Recent message window for extraction        |
 | `memory.experience.enabled`                     | Enable background experience extraction     |
 | `memory.experience.maxNotesPerTurn`             | Maximum experience notes per completed turn |
 | `memory.sessionSummary.enabled`                 | Enable session-summary maintenance          |

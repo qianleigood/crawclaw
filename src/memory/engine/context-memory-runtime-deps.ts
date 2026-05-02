@@ -79,7 +79,6 @@ export function createContextMemoryRuntimeDeps(options: {
   const durableExtractionManager = getSharedDurableExtractionWorkerManager({
     config: options.config?.durableExtraction ?? {
       enabled: false,
-      recentMessageLimit: 24,
       maxNotesPerTurn: 2,
       minEligibleTurnsBetweenRuns: 1,
       maxConcurrentWorkers: 2,

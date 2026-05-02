@@ -107,7 +107,6 @@ function createMemoryRuntimeConfig(stateDir: string): MemoryRuntimeConfig {
     },
     durableExtraction: {
       enabled: false,
-      recentMessageLimit: 8,
       maxNotesPerTurn: 2,
       minEligibleTurnsBetweenRuns: 1,
       maxConcurrentWorkers: 2,

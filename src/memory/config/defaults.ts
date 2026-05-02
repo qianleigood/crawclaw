@@ -59,7 +59,6 @@ export const DEFAULT_CONFIG: MemoryRuntimeConfig = {
   },
   durableExtraction: {
     enabled: true,
-    recentMessageLimit: 24,
     maxNotesPerTurn: 2,
     minEligibleTurnsBetweenRuns: 1,
     maxConcurrentWorkers: 2,

@@ -285,6 +285,10 @@ function buildNotebookLmImprovementQuery(limit: number): string {
   return [
     "请从 CrawClaw NotebookLM 经验库中找可晋升为自进化提案的重复经验。",
     "只返回已经有可复用动作和验证证据的候选；不要返回用户偏好、一次性临时修复或未验证猜测。",
+    "你负责完成候选的 baselineDecision 判定、blockers 归因和 score 排序；CrawClaw 只会解析你返回的结构化结果。",
+    "判定规则：只有重复出现、触发信号清晰、动作可复用、结果或验证证据充分，且没有阻断项时，baselineDecision 才能是 ready；否则必须是 needs_more_evidence，并在 blockers 中写清缺口。",
+    "score 使用 0 到 100 的整数，代表晋升价值和证据充分度；返回列表必须按 score 从高到低排序，分数相同则优先 observedFrequency 更高、验证证据更强的候选。",
+    '如果没有符合条件的候选，请返回 {"candidates":[]}。',
     "请返回严格 JSON，不要 Markdown，不要解释文字。",
     "JSON 结构：",
     '{"candidates":[{"id":"notebooklm-candidate:<slug>","sourceRefs":[{"kind":"experience","ref":"<note-or-source-id>"}],"signalSummary":"...","observedFrequency":2,"currentReuseLevel":"experience","triggerPattern":"...","repeatedActions":["..."],"validationEvidence":["..."],"evidenceKinds":["trigger","action","result","validation"],"baselineDecision":"ready","blockers":[],"score":30}]}',
@@ -306,7 +310,13 @@ async function buildNotebookLmCandidateAssessments(params: {
   }
   const search = params.searchNotebookLm ?? searchNotebookLmViaCli;
   const items = await search({
-    config: notebooklm,
+    config: {
+      ...notebooklm,
+      cli: {
+        ...notebooklm.cli,
+        queryInstruction: "",
+      },
+    },
     query: buildNotebookLmImprovementQuery(params.limit),
     limit: params.limit,
     logger: params.logger,

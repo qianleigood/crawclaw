@@ -48,7 +48,6 @@ export interface DoctorDurableMemoryHealth {
   parentWritable: boolean;
   rootWritable: boolean;
   extractionEnabled: boolean;
-  extractionRecentMessageLimit: number;
   extractionMaxNotesPerTurn: number;
   extractionMinEligibleTurnsBetweenRuns: number;
   extractionMaxConcurrentWorkers: number;
@@ -228,7 +227,6 @@ export async function checkDurableMemoryHealth(
     parentWritable,
     rootWritable,
     extractionEnabled: memoryConfig.durableExtraction.enabled,
-    extractionRecentMessageLimit: memoryConfig.durableExtraction.recentMessageLimit,
     extractionMaxNotesPerTurn: memoryConfig.durableExtraction.maxNotesPerTurn,
     extractionMinEligibleTurnsBetweenRuns:
       memoryConfig.durableExtraction.minEligibleTurnsBetweenRuns,

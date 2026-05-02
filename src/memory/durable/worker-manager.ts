@@ -29,7 +29,7 @@ export type DurableExtractionWorkerPendingContext = {
   workspaceDir: string;
   scope: DurableMemoryScope;
   parentRunId?: string;
-  parentForkContext?: SpecialAgentParentForkContext;
+  parentForkContext: SpecialAgentParentForkContext;
   observation?: ObservationContext;
   messageCursor: number;
 };
@@ -65,11 +65,10 @@ export type DurableExtractionRunParams = {
   workspaceDir: string;
   scope: DurableMemoryScope;
   parentRunId?: string;
-  parentForkContext?: SpecialAgentParentForkContext;
+  parentForkContext: SpecialAgentParentForkContext;
   observation?: ObservationContext;
   messageCursor: number;
-  recentMessages: AgentMessage[];
-  recentMessageLimit: number;
+  newMessageCount: number;
   maxNotes: number;
 };
 
@@ -256,6 +255,23 @@ export class DurableExtractionWorkerManager {
     }
 
     const parentForkContext = params.runtimeContext?.parentForkContext ?? undefined;
+    if (!parentForkContext?.promptEnvelope.forkContextMessages.length) {
+      getSharedMemoryPromptJournal()?.recordStage("after_turn_decision", {
+        sessionId: params.sessionId,
+        sessionKey,
+        agentId: scope.agentId,
+        channel: scope.channel,
+        userId: scope.userId,
+        payload: {
+          decision: "skip_missing_fork_context",
+          messageCursor: params.messageCursor,
+        },
+      });
+      this.logger.warn(
+        `[memory] durable extraction skipped_missing_fork_context sessionKey=${sessionKey} cursor=${params.messageCursor}`,
+      );
+      return;
+    }
     const parentForkRunId =
       typeof parentForkContext?.parentRunId === "string"
         ? parentForkContext.parentRunId.trim()
@@ -270,7 +286,7 @@ export class DurableExtractionWorkerManager {
       workspaceDir: params.runtimeContext?.workspaceDir?.trim() || process.cwd(),
       scope,
       ...(parentRunId ? { parentRunId } : {}),
-      ...(parentForkContext ? { parentForkContext } : {}),
+      parentForkContext,
       ...(params.runtimeContext?.observation
         ? { observation: params.runtimeContext.observation }
         : {}),
@@ -573,25 +589,25 @@ export class DurableExtractionWorkerManager {
     worker.inProgress = (async () => {
       try {
         const cursor = await this.runtimeStore.getDurableExtractionCursor(pending.sessionId);
-        const recentMessageLimit = this.normalizeRecentMessageLimit();
-        const recentMessages = await this.runtimeStore.listModelVisibleMessagesForDurableExtraction(
+        const modelVisibleRows = await this.runtimeStore.listMessagesByTurnRange(
           pending.sessionId,
-          cursor?.lastExtractedTurn ?? 0,
+          (cursor?.lastExtractedTurn ?? 0) + 1,
           pending.messageCursor,
-          recentMessageLimit,
         );
-        const recentAgentMessages = recentMessages.map((row) => this.mapRowToAgentMessage(row));
+        const newMessageCount = this.countModelVisibleMessages(modelVisibleRows);
         const result = await this.runWithAgentRunner({
           pending,
-          recentMessages: recentAgentMessages,
-          recentMessageLimit,
+          newMessageCount,
         });
         if (result.advanceCursor) {
+          const lastModelVisibleMessageId =
+            modelVisibleRows.filter((row) => row.role === "user" || row.role === "assistant").at(-1)
+              ?.id ?? null;
           await this.runtimeStore.upsertDurableExtractionCursor({
             sessionId: pending.sessionId,
             sessionKey: pending.sessionKey,
             lastExtractedTurn: pending.messageCursor,
-            lastExtractedMessageId: recentMessages.at(-1)?.id ?? null,
+            lastExtractedMessageId: lastModelVisibleMessageId,
             lastRunAt: nowMs(),
           });
         }
@@ -638,10 +654,6 @@ export class DurableExtractionWorkerManager {
     })();
   }
 
-  private normalizeRecentMessageLimit(): number {
-    return clampInt(this.config.recentMessageLimit, 24, 1);
-  }
-
   private normalizeMaxNotesPerTurn(): number {
     return clampInt(this.config.maxNotesPerTurn, 2, 1);
   }
@@ -679,17 +691,13 @@ export class DurableExtractionWorkerManager {
     this.cleanupTimer.unref?.();
   }
 
-  private mapRowToAgentMessage(row: GmMessageRow): AgentMessage {
-    return {
-      role: row.role as "user" | "assistant",
-      content: row.contentBlocks?.length ? row.contentBlocks : (row.contentText ?? row.content),
-    } as AgentMessage;
+  private countModelVisibleMessages(rows: GmMessageRow[]): number {
+    return rows.filter((row) => row.role === "user" || row.role === "assistant").length;
   }
 
   private async runWithAgentRunner(params: {
     pending: DurableExtractionWorkerPendingContext;
-    recentMessages: AgentMessage[];
-    recentMessageLimit: number;
+    newMessageCount: number;
   }): Promise<DurableExtractionRunResult> {
     try {
       const result = await this.runner!({
@@ -699,13 +707,10 @@ export class DurableExtractionWorkerManager {
         workspaceDir: params.pending.workspaceDir,
         scope: params.pending.scope,
         ...(params.pending.parentRunId ? { parentRunId: params.pending.parentRunId } : {}),
-        ...(params.pending.parentForkContext
-          ? { parentForkContext: params.pending.parentForkContext }
-          : {}),
+        parentForkContext: params.pending.parentForkContext,
         ...(params.pending.observation ? { observation: params.pending.observation } : {}),
         messageCursor: params.pending.messageCursor,
-        recentMessages: params.recentMessages,
-        recentMessageLimit: params.recentMessageLimit,
+        newMessageCount: params.newMessageCount,
         maxNotes: this.normalizeMaxNotesPerTurn(),
       });
       return result;

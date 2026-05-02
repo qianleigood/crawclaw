@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import { sleepWithAbort } from "../../infra/backoff.js";
 import { resolveMemoryRuntime } from "../../memory/bootstrap/init-memory-runtime.js";
+import type { MemoryRuntime } from "../../memory/index.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { enqueueCommandInLane } from "../../process/command-queue.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
@@ -97,6 +98,7 @@ import { createUsageAccumulator, mergeUsageIntoAccumulator } from "./usage-accum
 import { describeUnknownError } from "./utils.js";
 
 type ApiKeyInfo = ResolvedProviderAuth;
+type MemoryCompactResult = Awaited<ReturnType<MemoryRuntime["compact"]>>;
 
 export async function runEmbeddedPiAgent(
   params: RunEmbeddedPiAgentParams,
@@ -405,16 +407,19 @@ export async function runEmbeddedPiAgent(
       const effectiveExtraSystemPrompt = params.extraSystemPrompt?.trim() || undefined;
       // Resolve the memory runtime once and reuse across retries to avoid
       // repeated initialization/connection overhead per attempt.
-      const memoryRuntime = await resolveMemoryRuntime(params.config, {
-        complete: memoryComplete,
-      });
+      const memoryRuntime =
+        params.specialSystemPromptMode === "isolated"
+          ? undefined
+          : await resolveMemoryRuntime(params.config, {
+              complete: memoryComplete,
+            });
       try {
         const emitOwnedCompactionLifecycle = async (event: {
           phase: "pre_compact" | "post_compact";
           trigger: "timeout_recovery" | "overflow";
-          compactResult?: Awaited<ReturnType<typeof memoryRuntime.compact>>;
+          compactResult?: MemoryCompactResult;
         }) => {
-          if (memoryRuntime.info.ownsCompaction !== true) {
+          if (!memoryRuntime || memoryRuntime.info.ownsCompaction !== true) {
             return;
           }
           ensureSharedRunLoopLifecycleSubscribers();
@@ -571,8 +576,10 @@ export async function runEmbeddedPiAgent(
             disableTools: params.disableTools,
             toolsAllow: params.toolsAllow,
             specialAgentSpawnSource: params.specialAgentSpawnSource,
+            specialSystemPromptMode: params.specialSystemPromptMode,
             specialDurableMemoryScope: params.specialDurableMemoryScope,
             specialSessionSummaryTarget: params.specialSessionSummaryTarget,
+            surfacedSkillNames: params.surfacedSkillNames,
             provider,
             modelId,
             model: applyAuthHeaderOverride(
@@ -686,7 +693,7 @@ export async function runEmbeddedPiAgent(
           // ── Timeout-triggered compaction ──────────────────────────────────
           // When the LLM times out with high context usage, compact before
           // retrying to break the death spiral of repeated timeouts.
-          if (timedOut && !timedOutDuringCompaction) {
+          if (memoryRuntime && timedOut && !timedOutDuringCompaction) {
             // Only consider prompt-side tokens here. API totals include output
             // tokens, which can make a long generation look like high context
             // pressure even when the prompt itself was small.
@@ -710,7 +717,7 @@ export async function runEmbeddedPiAgent(
                 `[timeout-compaction] LLM timed out with high prompt token usage (${Math.round(tokenUsedRatio * 100)}%, threshold=${timeoutRecoveryTriggerTokens}); ` +
                   `attempting compaction before retry (attempt ${timeoutCompactionAttempts}/${MAX_TIMEOUT_COMPACTION_ATTEMPTS}) diagId=${timeoutDiagId}`,
               );
-              let timeoutCompactResult: Awaited<ReturnType<typeof memoryRuntime.compact>>;
+              let timeoutCompactResult: MemoryCompactResult;
               await emitOwnedCompactionLifecycle({
                 phase: "pre_compact",
                 trigger: "timeout_recovery",
@@ -854,6 +861,7 @@ export async function runEmbeddedPiAgent(
             // Attempt explicit overflow compaction only when this attempt did not
             // already auto-compact.
             if (
+              memoryRuntime &&
               !isCompactionFailure &&
               !hadAttemptLevelCompaction &&
               overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS
@@ -869,7 +877,7 @@ export async function runEmbeddedPiAgent(
               log.warn(
                 `context overflow detected (attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS}); attempting auto-compaction for ${provider}/${modelId}`,
               );
-              let compactResult: Awaited<ReturnType<typeof memoryRuntime.compact>>;
+              let compactResult: MemoryCompactResult;
               await emitOwnedCompactionLifecycle({
                 phase: "pre_compact",
                 trigger: "overflow",
@@ -1566,7 +1574,7 @@ export async function runEmbeddedPiAgent(
           };
         }
       } finally {
-        await memoryRuntime.dispose?.();
+        await memoryRuntime?.dispose?.();
         stopRuntimeAuthRefreshTimer();
         if (params.cleanupBundleMcpOnRunEnd === true) {
           await disposeSessionMcpRuntime(params.sessionId).catch((error) => {

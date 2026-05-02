@@ -278,7 +278,6 @@ describe("context memory runtime cross-layer e2e", () => {
       skillRouting: { enabled: false },
       durableExtraction: {
         enabled: true,
-        recentMessageLimit: 8,
         maxNotesPerTurn: 2,
         minEligibleTurnsBetweenRuns: 1,
         maxConcurrentWorkers: 2,

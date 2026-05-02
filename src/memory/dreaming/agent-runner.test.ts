@@ -258,6 +258,8 @@ describe("runDreamAgentOnce", () => {
         extraSystemPrompt: expect.stringContaining("# Dream Agent"),
         provider: "openai",
         model: "gpt-5.4",
+        specialSystemPromptMode: "isolated",
+        surfacedSkillNames: [],
         toolsAllow: [
           "read",
           "exec",
@@ -279,12 +281,14 @@ describe("runDreamAgentOnce", () => {
     const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as
       | {
           maxTurns?: number;
+          agentId?: string;
           sessionId?: string;
           sessionFile?: string;
           specialParentPromptEnvelope?: unknown;
         }
       | undefined;
     expect(embeddedParams?.maxTurns).toBeUndefined();
+    expect(embeddedParams?.agentId).toBeUndefined();
     expect(embeddedParams?.sessionId).not.toBe("session-1");
     expect(embeddedParams?.sessionFile).not.toBe("/tmp/session-1.jsonl");
     expect(embeddedParams?.specialParentPromptEnvelope).toBeUndefined();
