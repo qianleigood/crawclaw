@@ -1,6 +1,5 @@
 import type { ContextArchiveService } from "../../agents/context-archive/service.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateConversationMessageTokens } from "../context/assembly.ts";
 import { runSessionMemoryCompaction } from "../context/compaction-runner.ts";
 import {
@@ -9,7 +8,6 @@ import {
 } from "../context/compaction.ts";
 import { runTranscriptMaintenance } from "../context/transcript-maintenance.ts";
 import type { AutoDreamRunner } from "../dreaming/auto-dream.ts";
-import { resolveDurableMemoryScope } from "../durable/scope.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
 import type { ExperienceExtractionRunner } from "../experience/worker-manager.ts";
 import type { CompleteFn } from "../extraction/llm.ts";
@@ -26,11 +24,7 @@ import {
   createContextMemoryRuntimeDeps,
   type RuntimeLogger,
 } from "./context-memory-runtime-deps.ts";
-import {
-  getMessageRole,
-  resolveMemoryMessageChannel,
-  resolvePromptContext,
-} from "./context-memory-runtime-helpers.ts";
+import { getMessageRole, resolvePromptContext } from "./context-memory-runtime-helpers.ts";
 import { runPostAssemblySideEffects } from "./context-memory-runtime-post-assembly.ts";
 import { prepareMemoryAssemblyContext } from "./context-memory-runtime-preparation.ts";
 import { resolveDurableRecallForAssembly } from "./context-memory-runtime-recall.ts";
@@ -282,7 +276,7 @@ export function createContextMemoryRuntime(options: {
       };
     },
 
-    async afterTurn({ sessionId, sessionKey, messages, prePromptMessageCount, runtimeContext }) {
+    async afterTurn({ sessionId, messages, prePromptMessageCount }) {
       const hasLiveMessages = Array.isArray(messages);
       const messageList = hasLiveMessages ? messages : [];
       const resolvedPrePromptCount =
@@ -310,27 +304,6 @@ export function createContextMemoryRuntime(options: {
           }),
         ),
       );
-
-      const resolvedSessionKey = typeof sessionKey === "string" ? sessionKey.trim() : "";
-      if (resolvedSessionKey && !isMemoryAutomationExcludedSessionKey(resolvedSessionKey)) {
-        const durableScope = resolveDurableMemoryScope({
-          sessionKey: resolvedSessionKey,
-          agentId: typeof runtimeContext?.agentId === "string" ? runtimeContext.agentId : undefined,
-          channel: resolveMemoryMessageChannel(runtimeContext),
-          userId:
-            typeof runtimeContext?.senderId === "string" ? runtimeContext.senderId : undefined,
-        });
-        if (durableScope?.scopeKey) {
-          await options.runtimeStore.upsertSessionScope({
-            sessionId,
-            sessionKey: resolvedSessionKey,
-            scopeKey: durableScope.scopeKey,
-            agentId: durableScope.agentId,
-            channel: durableScope.channel,
-            userId: durableScope.userId,
-          });
-        }
-      }
     },
 
     async compact({ sessionId, tokenBudget, currentTokenCount, force, runtimeContext }) {
