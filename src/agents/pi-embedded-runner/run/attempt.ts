@@ -789,7 +789,6 @@ export async function runEmbeddedAttempt(
                 params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
               disableMessageTool: params.disableMessageTool,
               skillSemanticRetrieve,
-              runtimeToolAlsoAllow: params.runtimeToolAlsoAllow,
               onYield: (message) => {
                 yieldDetected = true;
                 yieldMessage = message;

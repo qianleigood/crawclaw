@@ -133,7 +133,6 @@ export type AgentInspectionSnapshot = {
         omittedReason?: string;
         scoreBreakdown?: Record<string, number>;
       }>;
-      recentDreamTouchedNotes?: string[];
       selectedExperienceDetails?: Array<{
         itemId: string;
         title: string;
@@ -181,20 +180,14 @@ export type AgentInspectionSnapshot = {
     closedLoopActive?: boolean;
     closedLoopReason?: string;
     state?: {
-      lastSuccessAt: number | null;
-      lastAttemptAt: number | null;
-      lastFailureAt: number | null;
-      lastSkipReason: string | null;
+      lastConsolidatedAt: number | null;
+      lockPath: string;
+      lockActive: boolean;
+      lockStale: boolean;
       lockOwner: string | null;
+      lockAcquiredAt: number | null;
     };
-    recentRuns: Array<{
-      id: string;
-      status: string;
-      summary: string | null;
-      triggerSource: string | null;
-      reason?: string | null;
-      touchedNotes?: string[];
-    }>;
+    historyPersisted?: boolean;
   };
   sessionSummary?: {
     sessionId: string;

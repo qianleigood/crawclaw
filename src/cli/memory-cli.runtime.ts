@@ -19,6 +19,7 @@ import {
   refreshNotebookLmProviderState,
   resolveDurableMemoryScope,
   resolveDreamClosedLoopStatus,
+  readDreamConsolidationStatus,
   resolveMemoryConfig,
   runDreamAgentOnce,
   runSessionSummaryAgentOnce,
@@ -214,141 +215,77 @@ function parsePositiveIntOption(value: string | undefined, fallback: number, min
   return Math.max(minimum, parsed);
 }
 
-function summarizeDreamRunReason(run: {
-  status: string;
-  summary: string | null;
-  error?: string | null;
-}): string | null {
-  if (run.status === "failed") {
-    return run.error ?? run.summary ?? "failed";
-  }
-  return run.summary ?? null;
-}
-
-function parseTouchedNotes(value: string | null | undefined): string[] {
-  try {
-    const parsed = JSON.parse(value ?? "{}") as Record<string, unknown>;
-    return Array.isArray(parsed.touchedNotes)
-      ? parsed.touchedNotes.filter((item): item is string => typeof item === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 export async function runMemoryDreamStatus(opts: MemoryCommandOptions) {
   setVerbose(Boolean(opts.verbose));
   const { config: cfg, diagnostics } = await loadMemoryCommandConfig("memory dream status");
   emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
-  await withMemoryRuntimeStore(cfg, async (store, memoryConfig) => {
-    const limit = Math.max(1, Number.parseInt(opts.limit ?? "10", 10) || 10);
-    const scope = resolveDreamScopeFromOptions(opts);
-    const state = scope.scopeKey ? await store.getDreamState(scope.scopeKey) : null;
-    const runs = (await store.listRecentMaintenanceRuns(Math.max(limit * 3, 20)))
-      .filter((entry) => entry.kind === "dream")
-      .filter((entry) => !scope.scopeKey || entry.scope === scope.scopeKey)
-      .slice(0, limit)
-      .map((entry) => ({
-        ...entry,
-        touchedNotes: parseTouchedNotes(entry.metricsJson),
-      }));
-    const closedLoop = resolveDreamClosedLoopStatus({
-      config: memoryConfig.dreaming,
-      scopeKey: scope.scopeKey,
-    });
-    const payload = {
-      enabled: memoryConfig.dreaming.enabled,
-      ...closedLoop,
-      config: memoryConfig.dreaming,
-      scopeKey: scope.scopeKey ?? null,
-      state,
-      runs,
-    };
-    if (opts.json) {
-      defaultRuntime.writeJson(payload);
-      return;
-    }
-    defaultRuntime.log(theme.heading("Auto Dream"));
-    defaultRuntime.log(`${theme.muted("Enabled:")} ${payload.enabled ? "yes" : "no"}`);
-    defaultRuntime.log(
-      `${theme.muted("Closed loop:")} ${payload.closedLoopActive ? "active" : "inactive"} (${payload.closedLoopReason})`,
-    );
-    defaultRuntime.log(`${theme.muted("minHours:")} ${memoryConfig.dreaming.minHours}`);
-    defaultRuntime.log(`${theme.muted("minSessions:")} ${memoryConfig.dreaming.minSessions}`);
-    defaultRuntime.log(`${theme.muted("scanThrottleMs:")} ${memoryConfig.dreaming.scanThrottleMs}`);
-    if (scope.scopeKey) {
-      defaultRuntime.log(`${theme.muted("Scope:")} ${scope.scopeKey}`);
-    }
-    if (state) {
-      defaultRuntime.log(`${theme.muted("Last success:")} ${state.lastSuccessAt ?? "(never)"}`);
-      defaultRuntime.log(`${theme.muted("Last attempt:")} ${state.lastAttemptAt ?? "(never)"}`);
-      defaultRuntime.log(`${theme.muted("Last failure:")} ${state.lastFailureAt ?? "(never)"}`);
-      defaultRuntime.log(`${theme.muted("Last skip reason:")} ${state.lastSkipReason ?? "(none)"}`);
-      defaultRuntime.log(`${theme.muted("Lock owner:")} ${state.lockOwner ?? "(none)"}`);
-    }
-    if (runs.length) {
-      defaultRuntime.log("");
-      defaultRuntime.log(theme.heading("Recent Runs"));
-      for (const run of runs) {
-        const parts = [run.status, run.scope ?? "(global)"];
-        const reason = summarizeDreamRunReason(run);
-        if (reason) {
-          parts.push(reason);
-        }
-        defaultRuntime.log(parts.join(" · "));
-        for (const notePath of run.touchedNotes) {
-          defaultRuntime.log(`  touched: ${notePath}`);
-        }
-      }
-    }
+  const memoryConfig = resolveMemoryRuntimeConfig(cfg);
+  const scope = resolveDreamScopeFromOptions(opts);
+  const state = scope.scope
+    ? await readDreamConsolidationStatus({
+        scope: scope.scope,
+        staleAfterMs: memoryConfig.dreaming.lockStaleAfterMs,
+      })
+    : null;
+  const closedLoop = resolveDreamClosedLoopStatus({
+    config: memoryConfig.dreaming,
+    scopeKey: scope.scopeKey,
   });
+  const payload = {
+    enabled: memoryConfig.dreaming.enabled,
+    ...closedLoop,
+    config: memoryConfig.dreaming,
+    scopeKey: scope.scopeKey ?? null,
+    state,
+    historyPersisted: false,
+  };
+  if (opts.json) {
+    defaultRuntime.writeJson(payload);
+    return;
+  }
+  defaultRuntime.log(theme.heading("Auto Dream"));
+  defaultRuntime.log(`${theme.muted("Enabled:")} ${payload.enabled ? "yes" : "no"}`);
+  defaultRuntime.log(
+    `${theme.muted("Closed loop:")} ${payload.closedLoopActive ? "active" : "inactive"} (${payload.closedLoopReason})`,
+  );
+  defaultRuntime.log(`${theme.muted("minHours:")} ${memoryConfig.dreaming.minHours}`);
+  defaultRuntime.log(`${theme.muted("minSessions:")} ${memoryConfig.dreaming.minSessions}`);
+  defaultRuntime.log(`${theme.muted("scanThrottleMs:")} ${memoryConfig.dreaming.scanThrottleMs}`);
+  if (scope.scopeKey) {
+    defaultRuntime.log(`${theme.muted("Scope:")} ${scope.scopeKey}`);
+  }
+  if (state) {
+    defaultRuntime.log(
+      `${theme.muted("Last consolidated:")} ${state.lastConsolidatedAt ?? "(never)"}`,
+    );
+    defaultRuntime.log(`${theme.muted("Lock active:")} ${state.lockActive ? "yes" : "no"}`);
+    defaultRuntime.log(`${theme.muted("Lock owner:")} ${state.lockOwner ?? "(none)"}`);
+    defaultRuntime.log(`${theme.muted("Lock path:")} ${state.lockPath}`);
+  }
 }
 
 export async function runMemoryDreamHistory(opts: MemoryCommandOptions) {
   setVerbose(Boolean(opts.verbose));
   const { config: cfg, diagnostics } = await loadMemoryCommandConfig("memory dream history");
   emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
-  await withMemoryRuntimeStore(cfg, async (store, _memoryConfig) => {
-    const limit = Math.max(1, Number.parseInt(opts.limit ?? "20", 10) || 20);
-    const scope = resolveDreamScopeFromOptions(opts);
-    const runs = (await store.listRecentMaintenanceRuns(Math.max(limit * 3, 40)))
-      .filter((entry) => entry.kind === "dream")
-      .filter((entry) => !scope.scopeKey || entry.scope === scope.scopeKey)
-      .slice(0, limit)
-      .map((entry) => ({
-        ...entry,
-        touchedNotes: parseTouchedNotes(entry.metricsJson),
-      }));
-    if (opts.json) {
-      defaultRuntime.writeJson({
-        scopeKey: scope.scopeKey ?? null,
-        runs,
-      });
-      return;
-    }
-    defaultRuntime.log(theme.heading("Auto Dream History"));
-    if (scope.scopeKey) {
-      defaultRuntime.log(`${theme.muted("Scope:")} ${scope.scopeKey}`);
-    }
-    if (!runs.length) {
-      defaultRuntime.log("No dream runs found.");
-      return;
-    }
-    for (const run of runs) {
-      const line = [
-        run.status,
-        run.scope ?? "(no-scope)",
-        run.triggerSource ?? "(no-trigger)",
-        summarizeDreamRunReason(run) ?? "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      defaultRuntime.log(line);
-      for (const notePath of run.touchedNotes) {
-        defaultRuntime.log(`  touched: ${notePath}`);
-      }
-    }
-  });
+  void cfg;
+  const scope = resolveDreamScopeFromOptions(opts);
+  const payload = {
+    scopeKey: scope.scopeKey ?? null,
+    historyPersisted: false,
+    reason: "Dream uses the scope .consolidate-lock file mtime as its watermark.",
+  };
+  if (opts.json) {
+    defaultRuntime.writeJson(payload);
+    return;
+  }
+  defaultRuntime.log(theme.heading("Auto Dream History"));
+  if (scope.scopeKey) {
+    defaultRuntime.log(`${theme.muted("Scope:")} ${scope.scopeKey}`);
+  }
+  defaultRuntime.log(
+    "Dream run history is not persisted; inspect dream status for the file watermark.",
+  );
 }
 
 export async function runMemoryDreamRun(opts: MemoryCommandOptions) {

@@ -52,7 +52,7 @@ describe("applyLocalSetupWorkspaceConfig", () => {
     });
   });
 
-  it("does not default host-gated memory maintenance tools to main", () => {
+  it("does not create a main agent override for memory maintenance tools", () => {
     const result = applyLocalSetupWorkspaceConfig({}, "/tmp/workspace");
 
     expect(result.agents?.list).toBeUndefined();

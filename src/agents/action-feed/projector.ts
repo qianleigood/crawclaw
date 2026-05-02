@@ -192,7 +192,9 @@ export function projectAgentActionEventData(input: AgentActionEventData): AgentA
     const memoryKind = normalizeOptionalString(input.detail?.memoryKind);
     const memoryPhase = normalizeOptionalString(input.detail?.memoryPhase);
     if (
-      (memoryKind === "extraction" || memoryKind === "session_summary" || memoryKind === "dream") &&
+      (memoryKind === "durable_memory" ||
+        memoryKind === "session_summary" ||
+        memoryKind === "dream") &&
       (memoryPhase === "scheduled" ||
         memoryPhase === "running" ||
         memoryPhase === "failed_to_start" ||

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { SqliteRuntimeStore } from "./sqlite-runtime-store.js";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
+import { SqliteRuntimeStore } from "./sqlite-runtime-store.js";
 
 const tempDirs = createTrackedTempDirs();
 const stores: SqliteRuntimeStore[] = [];
@@ -85,6 +85,39 @@ describe("SqliteRuntimeStore gm_messages runtime meta", () => {
       toolName: "exec",
       isError: false,
       content: [{ type: "text", text: "tool result payload" }],
+    });
+  });
+
+  it("keeps durable extraction cursor monotonic when stale workers finish later", async () => {
+    const rootDir = await tempDirs.make("sqlite-durable-cursor-");
+    const store = new SqliteRuntimeStore(`${rootDir}/runtime.sqlite`);
+    await store.init();
+    stores.push(store);
+
+    await store.upsertDurableExtractionCursor({
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      lastExtractedTurn: 5,
+      lastExtractedMessageId: "msg-5",
+      lastRunAt: 500,
+      updatedAt: 500,
+    });
+    await store.upsertDurableExtractionCursor({
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      lastExtractedTurn: 3,
+      lastExtractedMessageId: "msg-3",
+      lastRunAt: 600,
+      updatedAt: 600,
+    });
+
+    await expect(store.getDurableExtractionCursor("session-1")).resolves.toMatchObject({
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      lastExtractedTurn: 5,
+      lastExtractedMessageId: "msg-5",
+      lastRunAt: 600,
+      updatedAt: 600,
     });
   });
 });

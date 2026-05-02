@@ -8,12 +8,14 @@ export function createRuntimeDenyToolPolicy(
   allowlist: readonly string[],
   options?: {
     modelVisibility?: SpecialAgentToolPolicy["modelVisibility"];
+    guard?: SpecialAgentToolPolicy["guard"];
   },
 ): SpecialAgentToolPolicy {
   return {
     allowlist: [...allowlist],
     enforcement: "runtime_deny",
     ...(options?.modelVisibility ? { modelVisibility: options.modelVisibility } : {}),
+    ...(options?.guard ? { guard: options.guard } : {}),
   };
 }
 
@@ -30,8 +32,9 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
   spawnSource: string;
   allowlist: readonly string[];
   modelVisibility?: SpecialAgentToolPolicy["modelVisibility"];
+  guard?: SpecialAgentToolPolicy["guard"];
   defaultRunTimeoutSeconds: number;
-  defaultMaxTurns: number;
+  defaultMaxTurns?: number;
 }): SpecialAgentDefinition {
   return {
     id: params.id,
@@ -41,6 +44,7 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
     transcriptPolicy: "isolated",
     toolPolicy: createRuntimeDenyToolPolicy(params.allowlist, {
       modelVisibility: params.modelVisibility,
+      guard: params.guard,
     }),
     cachePolicy: createShortMemoryCachePolicy(),
     mode: "run",
@@ -48,6 +52,8 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
     sandbox: "inherit",
     expectsCompletionMessage: false,
     defaultRunTimeoutSeconds: params.defaultRunTimeoutSeconds,
-    defaultMaxTurns: params.defaultMaxTurns,
+    ...(typeof params.defaultMaxTurns === "number"
+      ? { defaultMaxTurns: params.defaultMaxTurns }
+      : {}),
   };
 }

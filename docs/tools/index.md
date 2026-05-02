@@ -108,15 +108,15 @@ config. Deny always wins over allow.
 Per-agent override: `agents.list[].tools.profile`.
 
 Lifecycle gates run before policy allow/deny. `full` removes the profile
-restriction, but it does not expose host-gated or special-agent-only tools by
-itself.
+restriction, but it does not expose runtime-conditional or special-agent-only
+tools by itself.
 
-| Profile     | What it includes                                                                                                             |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `full`      | No profile restriction; runtime, host, owner, sandbox, provider, and special-agent gates still apply                         |
-| `coding`    | File I/O, runtime, web, sessions, browser, skills discovery, workflow tools, review, experience writes, cron, image, and PDF |
-| `messaging` | Messaging, session list/history/send/status                                                                                  |
-| `minimal`   | `session_status` only                                                                                                        |
+| Profile     | What it includes                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `full`      | No profile restriction; runtime, owner, sandbox, provider, and special-agent gates still apply                                              |
+| `coding`    | File I/O, runtime, web, sessions, browser, skills discovery, workflow tools, review, durable/experience memory writes, cron, image, and PDF |
+| `messaging` | Messaging, session list/history/send/status                                                                                                 |
+| `minimal`   | `session_status` only                                                                                                                       |
 
 ### Tool groups
 
@@ -142,10 +142,9 @@ Use `group:*` shorthands in allow/deny lists:
 | `group:media`           | image, pdf, tts                                                                                                        |
 | `group:crawclaw`        | All built-in CrawClaw tools (excludes plugin tools)                                                                    |
 
-Group expansion does not bypass lifecycle gates. For example, `group:memory`
-names scoped durable-memory file tools, but those tools stay hidden from `main`
-unless the host opens them for the current turn or a matching special agent is
-running.
+Group expansion does not bypass lifecycle gates. For example,
+`group:session_summary` and `group:improvement` name tools that remain
+available only to their owning special agents.
 
 ### Provider-specific restrictions
 

@@ -68,8 +68,8 @@ describe("review session tool gating", () => {
     ).rejects.toThrow('Tool "write" is not allowed for this special-agent run');
   });
 
-  it("keeps memory-extraction tool inventory broad but runtime-denies non-allowlisted tools", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-memory-extraction-tools-"));
+  it("keeps durable-memory tool inventory broad but runtime-denies non-allowlisted tools", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-memory-tools-"));
     tempDirs.push(dir);
     const storePath = path.join(dir, "sessions.json");
     const sessionKey = "agent:main:subagent:memory-child";
@@ -80,7 +80,7 @@ describe("review session tool gating", () => {
           [sessionKey]: {
             sessionId: "memory-child-session",
             updatedAt: Date.now(),
-            spawnSource: "memory-extraction",
+            spawnSource: "durable-memory",
             durableMemoryScope: {
               agentId: "main",
               channel: "feishu",
@@ -140,7 +140,7 @@ describe("review session tool gating", () => {
       sessionKey: "agent:main:main",
       workspaceDir: dir,
       agentDir: path.join(dir, "agent"),
-      specialAgentSpawnSource: "memory-extraction",
+      specialAgentSpawnSource: "durable-memory",
       specialDurableMemoryScope: {
         agentId: "main",
         channel: "feishu",
@@ -194,13 +194,41 @@ describe("review session tool gating", () => {
       specialDurableMemoryScope: scope,
       senderIsOwner: true,
     });
-    expect(dreamTools.map((tool) => tool.name)).toContain("memory_manifest_read");
+    const dreamToolNames = dreamTools.map((tool) => tool.name);
+    expect(dreamToolNames).toEqual(
+      expect.arrayContaining([
+        "read",
+        "exec",
+        "write",
+        "edit",
+        "memory_manifest_read",
+        "memory_note_read",
+        "memory_note_write",
+        "memory_note_edit",
+        "memory_note_delete",
+      ]),
+    );
+    const blockedDreamWrite = dreamTools.find((tool) => tool.name === "write");
+    expect(blockedDreamWrite).toBeDefined();
+    await expect(
+      blockedDreamWrite!.execute?.("call-dream-write-deny", {
+        file_path: path.join(dir, "outside-memory.md"),
+        content: "should-not-run",
+      }),
+    ).rejects.toThrow("memory maintenance write/edit is restricted");
+    const blockedDreamExec = dreamTools.find((tool) => tool.name === "exec");
+    expect(blockedDreamExec).toBeDefined();
+    await expect(
+      blockedDreamExec!.execute?.("call-dream-exec-deny", {
+        command: "rm -rf /tmp/crawclaw-memory",
+      }),
+    ).rejects.toThrow("memory maintenance exec is restricted to read-only commands");
 
     const extractionTools = createCrawClawCodingTools({
       config,
       sessionKey: "agent:main:main",
       workspaceDir: dir,
-      specialAgentSpawnSource: "memory-extraction",
+      specialAgentSpawnSource: "durable-memory",
       specialDurableMemoryScope: scope,
       senderIsOwner: true,
     });

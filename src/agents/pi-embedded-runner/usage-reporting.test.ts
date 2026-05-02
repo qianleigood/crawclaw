@@ -3,7 +3,6 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   loadRunOverflowCompactionHarness,
   mockedEnsureRuntimePluginsLoaded,
-  mockedMaybeRunExplicitDurableIntentGate,
   mockedRunEmbeddedAttempt,
 } from "./run.overflow-compaction.harness.js";
 import type { EmbeddedRunAttemptResult } from "./run/types.js";
@@ -55,7 +54,6 @@ describe("runEmbeddedPiAgent usage reporting", () => {
 
   beforeEach(() => {
     mockedEnsureRuntimePluginsLoaded.mockReset();
-    mockedMaybeRunExplicitDurableIntentGate.mockReset();
     mockedRunEmbeddedAttempt.mockReset();
   });
 
@@ -211,16 +209,7 @@ describe("runEmbeddedPiAgent usage reporting", () => {
     );
   });
 
-  it("appends durable tool-call instructions to the attempt system prompt", async () => {
-    mockedMaybeRunExplicitDurableIntentGate.mockResolvedValueOnce({
-      applied: false,
-      intent: "remember",
-      notesSaved: 0,
-      forcedToolName: "memory_manifest_read",
-      toolChoice: { type: "tool", name: "memory_manifest_read" },
-      systemPromptInstruction:
-        "must start the durable-memory workflow with the memory_manifest_read tool",
-    });
+  it("preserves caller stream params without forcing durable-memory tool choice", async () => {
     mockedRunEmbeddedAttempt.mockResolvedValueOnce(
       makeAttemptResult({
         assistantTexts: ["Response 1"],
@@ -234,64 +223,7 @@ describe("runEmbeddedPiAgent usage reporting", () => {
       workspaceDir: "/tmp/workspace",
       prompt: "记住这个：以后回答操作类问题先给步骤。",
       timeoutMs: 30000,
-      runId: "run-durable-intent-gate",
-      extraSystemPrompt: "existing extra",
-      toolsAllow: ["memory_manifest_read"],
-      senderId: "user-1",
-      messageChannel: "feishu",
-    });
-
-    expect(mockedMaybeRunExplicitDurableIntentGate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: "记住这个：以后回答操作类问题先给步骤。",
-        toolsAllow: ["memory_manifest_read"],
-      }),
-    );
-    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        extraSystemPrompt: expect.stringContaining("existing extra"),
-      }),
-    );
-    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        extraSystemPrompt: expect.stringContaining(
-          "must start the durable-memory workflow with the memory_manifest_read tool",
-        ),
-      }),
-    );
-    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        streamParams: expect.objectContaining({
-          toolChoice: { type: "tool", name: "memory_manifest_read" },
-        }),
-      }),
-    );
-  });
-
-  it("forces the main agent to self-call the durable tool on the narrow durable-only path", async () => {
-    mockedMaybeRunExplicitDurableIntentGate.mockResolvedValueOnce({
-      applied: false,
-      intent: "remember",
-      notesSaved: 0,
-      forcedToolName: "memory_manifest_read",
-      toolChoice: { type: "tool", name: "memory_manifest_read" },
-      systemPromptInstruction: "must call the durable tool first",
-    });
-    mockedRunEmbeddedAttempt.mockResolvedValueOnce(
-      makeAttemptResult({
-        assistantTexts: ["Response 1"],
-      }),
-    );
-
-    await runEmbeddedPiAgent({
-      sessionId: "test-session",
-      sessionKey: "test-key",
-      sessionFile: "/tmp/session.json",
-      workspaceDir: "/tmp/workspace",
-      prompt: "记住这个：以后回答操作类问题先给步骤。",
-      timeoutMs: 30000,
-      runId: "run-durable-toolchoice-forwarding",
-      toolsAllow: ["memory_manifest_read"],
+      runId: "run-no-durable-toolchoice-forwarding",
       streamParams: { temperature: 0.2 },
     });
 
@@ -299,13 +231,7 @@ describe("runEmbeddedPiAgent usage reporting", () => {
       expect.objectContaining({
         streamParams: {
           temperature: 0.2,
-          toolChoice: { type: "tool", name: "memory_manifest_read" },
         },
-      }),
-    );
-    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        extraSystemPrompt: expect.stringContaining("must call the durable tool first"),
       }),
     );
   });

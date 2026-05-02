@@ -75,7 +75,7 @@ describe("isCronSessionKey", () => {
 describe("memory automation session-key filtering", () => {
   it.each([
     { key: "embedded:session_summary:special:run-1", expected: true },
-    { key: "EMBEDDED:memory_extractor:special:run-1", expected: true },
+    { key: "EMBEDDED:durable_memory:special:run-1", expected: true },
     { key: "agent:main:main", expected: false },
     { key: "agent:main:subagent:worker", expected: false },
     { key: undefined, expected: false },

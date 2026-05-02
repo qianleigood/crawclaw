@@ -2,6 +2,7 @@ import { Type } from "@sinclair/typebox";
 import { NonEmptyString } from "./primitives.js";
 
 const NullableString = Type.Union([Type.String(), Type.Null()]);
+const NullableNumber = Type.Union([Type.Number(), Type.Null()]);
 
 const MemoryModeSchema = Type.Union([Type.Literal("query"), Type.Literal("write")]);
 
@@ -159,28 +160,15 @@ export const MemoryDreamRunResultSchema = Type.Object(
 
 export const MemoryDreamStateSchema = Type.Object(
   {
-    lastSuccessAt: Type.Optional(NullableString),
-    lastAttemptAt: Type.Optional(NullableString),
-    lastFailureAt: Type.Optional(NullableString),
-    lastSkipReason: Type.Optional(NullableString),
+    exists: Type.Optional(Type.Boolean()),
+    lockPath: Type.Optional(Type.String()),
+    lastConsolidatedAt: Type.Optional(NullableNumber),
+    lockActive: Type.Optional(Type.Boolean()),
+    lockStale: Type.Optional(Type.Boolean()),
     lockOwner: Type.Optional(NullableString),
+    lockAcquiredAt: Type.Optional(NullableNumber),
   },
   { additionalProperties: false },
-);
-
-export const MemoryDreamRunEntrySchema = Type.Object(
-  {
-    kind: Type.Optional(Type.String()),
-    runId: Type.Optional(NullableString),
-    status: Type.String(),
-    scope: Type.Optional(NullableString),
-    triggerSource: Type.Optional(NullableString),
-    summary: Type.Optional(NullableString),
-    error: Type.Optional(NullableString),
-    createdAt: Type.Optional(NullableString),
-    touchedNotes: Type.Optional(Type.Array(Type.String())),
-  },
-  { additionalProperties: true },
 );
 
 export const MemoryDreamStatusResultSchema = Type.Object(
@@ -198,7 +186,7 @@ export const MemoryDreamStatusResultSchema = Type.Object(
     ),
     scopeKey: NullableString,
     state: Type.Union([MemoryDreamStateSchema, Type.Null()]),
-    runs: Type.Array(MemoryDreamRunEntrySchema),
+    historyPersisted: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );
@@ -206,7 +194,8 @@ export const MemoryDreamStatusResultSchema = Type.Object(
 export const MemoryDreamHistoryResultSchema = Type.Object(
   {
     scopeKey: NullableString,
-    runs: Type.Array(MemoryDreamRunEntrySchema),
+    historyPersisted: Type.Optional(Type.Boolean()),
+    reason: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
 );

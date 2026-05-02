@@ -266,13 +266,11 @@ describe("createContextMemoryRuntime().assemble", () => {
               index: 0,
               bodyIndex: 0,
               bodyRerank: 0,
-              dreamBoost: 0,
               final: 1.15,
             },
           },
         ],
         omittedDetails: [],
-        recentDreamTouchedNotes: [],
       },
     });
 
@@ -437,7 +435,6 @@ describe("createContextMemoryRuntime().assemble", () => {
         omittedItemIds: [],
         selectedDetails: [],
         omittedDetails: [],
-        recentDreamTouchedNotes: [],
       },
     });
 
@@ -504,7 +501,6 @@ describe("createContextMemoryRuntime().assemble", () => {
         omittedItemIds: [],
         selectedDetails: [],
         omittedDetails: [],
-        recentDreamTouchedNotes: [],
       },
     });
 
@@ -601,7 +597,6 @@ describe("createContextMemoryRuntime().assemble", () => {
         omittedItemIds: [],
         selectedDetails: [],
         omittedDetails: [],
-        recentDreamTouchedNotes: [],
       },
     });
 
@@ -690,7 +685,6 @@ describe("createContextMemoryRuntime().assemble", () => {
         omittedItemIds: [],
         selectedDetails: [],
         omittedDetails: [],
-        recentDreamTouchedNotes: [],
       },
     });
     await upsertExperienceIndexEntry({

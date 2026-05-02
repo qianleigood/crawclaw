@@ -15,10 +15,9 @@ const mocks = vi.hoisted(() => ({
   resolveSharedContextArchiveServiceMock: vi.fn(),
   readEventsMock: vi.fn(),
   readSessionSummaryFileMock: vi.fn(),
+  readDreamConsolidationStatusMock: vi.fn(),
   sqliteRuntimeStoreInitMock: vi.fn(),
   sqliteRuntimeStoreCloseMock: vi.fn(),
-  sqliteRuntimeStoreGetDreamStateMock: vi.fn(),
-  sqliteRuntimeStoreListRecentMaintenanceRunsMock: vi.fn(),
   sqliteRuntimeStoreGetSessionSummaryStateMock: vi.fn(),
 }));
 
@@ -58,12 +57,14 @@ vi.mock("../memory/config/resolve.js", () => ({
   resolveMemoryConfig: mocks.resolveMemoryConfigMock,
 }));
 
+vi.mock("../memory/dreaming/consolidation-lock.ts", () => ({
+  readDreamConsolidationStatus: mocks.readDreamConsolidationStatusMock,
+}));
+
 vi.mock("../memory/runtime/sqlite-runtime-store.js", () => ({
   SqliteRuntimeStore: class {
     init = mocks.sqliteRuntimeStoreInitMock;
     close = mocks.sqliteRuntimeStoreCloseMock;
-    getDreamState = mocks.sqliteRuntimeStoreGetDreamStateMock;
-    listRecentMaintenanceRuns = mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock;
     getSessionSummaryState = mocks.sqliteRuntimeStoreGetSessionSummaryStateMock;
   },
 }));
@@ -94,8 +95,15 @@ describe("agent.inspect command", () => {
     mocks.readEventsMock.mockResolvedValue([]);
     mocks.sqliteRuntimeStoreInitMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreCloseMock.mockResolvedValue(undefined);
-    mocks.sqliteRuntimeStoreGetDreamStateMock.mockResolvedValue(null);
-    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([]);
+    mocks.readDreamConsolidationStatusMock.mockResolvedValue({
+      exists: true,
+      lockPath: "/tmp/durable/.consolidate-lock",
+      lastConsolidatedAt: 100,
+      lockOwner: null,
+      lockAcquiredAt: null,
+      lockActive: false,
+      lockStale: false,
+    });
     mocks.sqliteRuntimeStoreGetSessionSummaryStateMock.mockResolvedValue(null);
     mocks.readSessionSummaryFileMock.mockResolvedValue({
       sessionId: "sess-inspection",
@@ -411,38 +419,15 @@ describe("agent.inspect command", () => {
         agentId: "main",
       },
     });
-    mocks.sqliteRuntimeStoreGetDreamStateMock.mockResolvedValue({
-      scopeKey: "main:channel:chat%3Auser%3Auser-1",
-      lastSuccessAt: 100,
-      lastAttemptAt: 101,
-      lastFailureAt: 99,
-      lastSkipReason: "min_sessions_gate",
+    mocks.readDreamConsolidationStatusMock.mockResolvedValue({
+      exists: true,
+      lockPath: "/tmp/durable/.consolidate-lock",
+      lastConsolidatedAt: 100,
       lockOwner: "dream-1",
+      lockAcquiredAt: 101,
+      lockActive: true,
+      lockStale: false,
     });
-    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([
-      {
-        id: "mr-1",
-        kind: "dream",
-        scope: "main:channel:chat%3Auser%3Auser-1",
-        status: "completed",
-        triggerSource: "after_turn",
-        summary: "Consolidated notes",
-        error: null,
-        metricsJson: JSON.stringify({
-          touchedNotes: ["60 Preferences/answer-style.md"],
-        }),
-      },
-      {
-        id: "mr-2",
-        kind: "dream",
-        scope: "main:channel:chat%3Auser%3Auser-1",
-        status: "failed",
-        triggerSource: "manual_cli",
-        summary: "Dream failed",
-        error: "agent_failed",
-        metricsJson: null,
-      },
-    ]);
 
     await agentInspectCommand({ runId: "run-dream" }, runtime);
 
@@ -451,13 +436,9 @@ describe("agent.inspect command", () => {
       expect.stringContaining("Scope: main:channel:chat%3Auser%3Auser-1"),
     );
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Closed loop: active"));
-    expect(runtime.log).toHaveBeenCalledWith(
-      expect.stringContaining("Last skip reason: min_sessions_gate"),
-    );
-    expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("reason: agent_failed"));
-    expect(runtime.log).toHaveBeenCalledWith(
-      expect.stringContaining("touched: 60 Preferences/answer-style.md"),
-    );
+    expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Last consolidated: 100"));
+    expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Lock active: yes"));
+    expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Lock owner: dream-1"));
   });
 
   it("enriches the inspection with session summary state", async () => {
@@ -592,28 +573,14 @@ describe("agent.inspect command", () => {
         closedLoopActive: true,
         closedLoopReason: "active",
         state: {
-          lastSuccessAt: 100,
-          lastAttemptAt: 101,
-          lastFailureAt: 99,
-          lastSkipReason: "min_sessions_gate",
+          lastConsolidatedAt: 100,
+          lockPath: "/tmp/durable/.consolidate-lock",
+          lockActive: true,
+          lockStale: false,
           lockOwner: "dream-1",
+          lockAcquiredAt: 101,
         },
-        recentRuns: [
-          {
-            id: "mr-1",
-            status: "completed",
-            summary: "Consolidated notes",
-            triggerSource: "after_turn",
-            touchedNotes: ["60 Preferences/answer-style.md"],
-          },
-          {
-            id: "mr-2",
-            status: "failed",
-            summary: "Dream failed",
-            triggerSource: "manual_cli",
-            reason: "agent_failed",
-          },
-        ],
+        historyPersisted: false,
       },
     });
 
@@ -622,10 +589,10 @@ describe("agent.inspect command", () => {
     expect(rendered).toContain("Enabled: yes");
     expect(rendered).toContain("Closed loop: active");
     expect(rendered).not.toContain("Transcript fallback:");
-    expect(rendered).toContain("Last skip reason: min_sessions_gate");
+    expect(rendered).toContain("Last consolidated: 100");
+    expect(rendered).toContain("Lock active: yes");
     expect(rendered).toContain("Lock owner: dream-1");
-    expect(rendered).toContain("reason: agent_failed");
-    expect(rendered).toContain("touched: 60 Preferences/answer-style.md");
+    expect(rendered).toContain("Run history: not persisted");
   });
 
   it("renders session summary state when present", () => {
@@ -685,7 +652,6 @@ describe("agent.inspect command", () => {
               omittedReason: "ranked_below_limit",
             },
           ],
-          recentDreamTouchedNotes: ["project-probe-note.md"],
         },
       },
     } as never);
@@ -697,8 +663,6 @@ describe("agent.inspect command", () => {
     expect(rendered).toContain(
       "- durable:project-gateway-note.md [header] reason=ranked_below_limit",
     );
-    expect(rendered).toContain("Dream touched durable notes:");
-    expect(rendered).toContain("project-probe-note.md");
   });
 
   it("renders timeline entries when present", () => {

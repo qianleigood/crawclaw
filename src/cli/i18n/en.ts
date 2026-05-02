@@ -1455,7 +1455,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.memory.example.login": "Open NotebookLM login flow and rebuild the local profile.",
   "command.memory.example.sync": "Flush pending local experience notes to NotebookLM.",
   "command.memory.example.promptJournalSummary": "Summarize nightly memory prompt journal data.",
-  "command.memory.example.dreamStatus": "Show auto-dream state and recent dream runs.",
+  "command.memory.example.dreamStatus": "Show auto-dream file watermark state.",
   "command.memory.example.dreamRun": "Trigger one durable-memory dream run for a scope.",
   "command.memory.example.dreamDryRun": "Preview one dream window without writing durable memory.",
   "command.memory.example.sessionSummaryStatus": "Show one session summary file and runtime state.",
@@ -1468,7 +1468,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.memory.option.channel": "Channel id for scope resolution",
   "command.memory.option.user": "User id for scope resolution",
   "command.memory.option.scopeKey": "Explicit durable scope key",
-  "command.memory.option.limit": "Maximum recent runs to display",
   "command.memory.status.description": "Show NotebookLM experience provider status",
   "command.memory.refresh.description":
     "Refresh NotebookLM experience auth from the configured cookie fallback",
@@ -1480,7 +1479,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.memory.promptJournalSummary.option.date": "Summarize a specific date bucket",
   "command.memory.promptJournalSummary.option.days": "Summarize the most recent N daily files",
   "command.memory.dream.description": "Inspect and run durable-memory dream passes",
-  "command.memory.dream.status.description": "Show auto-dream state and recent dream runs",
+  "command.memory.dream.status.description": "Show auto-dream file watermark state",
   "command.memory.dream.run.description": "Trigger an auto-dream pass now",
   "command.memory.dream.run.option.force": "Bypass min-hours and min-sessions gates",
   "command.memory.dream.run.option.dryRun": "Preview dream inputs without writing durable memory",
@@ -1488,7 +1487,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
     "Cap how many recent sessions feed one manual run",
   "command.memory.dream.run.option.signalLimit":
     "Cap how many structured signals feed one manual run",
-  "command.memory.dream.history.description": "Show recent auto-dream runs",
+  "command.memory.dream.history.description": "Explain auto-dream history persistence",
   "command.memory.sessionSummary.description": "Inspect and refresh per-session summary files",
   "command.memory.sessionSummary.status.description":
     "Show one session summary file and runtime state",

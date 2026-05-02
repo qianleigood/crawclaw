@@ -192,9 +192,9 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 ### Tool Restrictions
 
 Runtime lifecycle gates apply before ordinary policy. A registered tool can
-still be hidden because it is runtime-conditional, host-gated for the current
-turn, owner-restricted, or special-agent-only. `tools.profile: "full"` removes
-the profile filter, but it does not bypass those gates.
+still be hidden because it is runtime-conditional, owner-restricted, or
+special-agent-only. `tools.profile: "full"` removes the profile filter, but it
+does not bypass those gates.
 
 The policy filtering order is:
 

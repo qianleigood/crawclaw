@@ -45,7 +45,7 @@ function readOptionalPositiveInt(value: unknown): number | undefined {
 function resolveCategory(task: TaskRecord): AgentRuntimeCategory {
   const spawnSource = task.agentMetadata?.spawnSource?.trim();
   if (
-    spawnSource === "memory-extraction" ||
+    spawnSource === "durable-memory" ||
     spawnSource === "session-summary" ||
     spawnSource === "dream"
   ) {
@@ -77,8 +77,8 @@ function humanizeIdentifier(value: string): string {
 function resolveTaskTitle(task: TaskRecord): string {
   const spawnSource = task.agentMetadata?.spawnSource?.trim();
   switch (spawnSource) {
-    case "memory-extraction":
-      return "Durable memory update";
+    case "durable-memory":
+      return "Durable memory agent";
     case "session-summary":
       return "Session summary refresh";
     case "dream":

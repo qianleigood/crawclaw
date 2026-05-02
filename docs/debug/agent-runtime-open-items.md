@@ -28,8 +28,8 @@ The following are already landed:
 - `/review` as the public two-stage review entrypoint
 - Context Archive foundation
 - Action Feed foundation
-- the background `memory_extractor` path for durable auto-write
-- the shared special-agent substrate for `session_summary`, `memory_extractor`, `dream`, and review
+- the background `durable_memory` path for durable auto-write
+- the shared special-agent substrate for `session_summary`, `durable_memory`, `dream`, and review
 
 The items below are the main gaps that still matter.
 
@@ -79,7 +79,7 @@ contracts.
     - shared spawn / embedded-run / completion capture runtime
     - shared event / history / usage hooks in the runtime runner
     - `session_summary` migrated to `embedded_fork`
-    - `memory_extractor` migrated as a pilot on the shared substrate
+    - `durable_memory` migrated as a pilot on the shared substrate
     - `dream` migrated on the shared substrate
     - embedded memory special runs now record usage/history/action observations into Context Archive
     - embedded memory special runs now surface usage, including cache read/write, in Action Feed completion details
@@ -234,7 +234,7 @@ The backend architecture is ahead of the current operator UI.
 
 Memory is aligned with the current simplified model, but follow-up work remains.
 
-- [x] Upgrade the main durable auto-write path to a background `memory_extractor` agent.
+- [x] Upgrade the main durable auto-write path to a background `durable_memory` agent.
   - Landed:
     - cursor-based incremental window
     - explicit durable write/delete wins
@@ -243,7 +243,7 @@ Memory is aligned with the current simplified model, but follow-up work remains.
     - task-backed background special agent
     - Action Feed / Context Archive recording
   - Design and background:
-    - [`Memory Extractor Agent Design`](/debug/memory-extractor-agent)
+    - [`Durable Memory Agent Design`](/debug/memory-extractor-agent)
     - [`Durable Memory Refactor Status`](/debug/claude-memory-refactor)
 - [x] Add agent-scoped routing guidance for `write_experience_note`, matching the
       durable-memory guidance quality level.

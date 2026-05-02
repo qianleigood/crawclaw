@@ -166,7 +166,6 @@ export function buildMemoryAssemblyArtifacts(params: {
     omittedDurableItemIds,
     selectedDurableDetails: params.durableRecall?.selection.selectedDetails ?? [],
     omittedDurableDetails: params.durableRecall?.selection.omittedDetails ?? [],
-    recentDreamTouchedNotes: params.durableRecall?.selection.recentDreamTouchedNotes ?? [],
     selectedExperienceItemIds,
     omittedExperienceItemIds,
     selectedExperienceDetails,

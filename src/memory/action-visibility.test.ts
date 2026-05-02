@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import { buildMemoryActionVisibilityProjection } from "./action-visibility.js";
 
 describe("buildMemoryActionVisibilityProjection", () => {
-  it("projects durable extraction completion titles", () => {
+  it("projects durable memory agent completion titles", () => {
     expect(
       buildMemoryActionVisibilityProjection({
-        kind: "extraction",
+        kind: "durable_memory",
         phase: "final",
         resultStatus: "written",
         summary: "saved one durable note",
       }),
     ).toEqual({
-      projectedTitle: "Memory extraction wrote durable notes",
+      projectedTitle: "Durable memory agent wrote durable notes",
       projectedSummary: "saved one durable note",
     });
   });

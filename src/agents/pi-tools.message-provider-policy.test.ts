@@ -19,26 +19,26 @@ describe("createCrawClawCodingTools message provider policy", () => {
     expect(names.has("tts")).toBe(true);
   });
 
-  it("hides host-gated memory manifest tool for main runs even when sender scope exists", () => {
+  it("exposes durable memory manifest tool to main runs when sender scope exists", () => {
     const tools = createCrawClawCodingTools({
       messageProvider: "smoke",
       senderId: "user-1",
     });
     const names = new Set(tools.map((tool) => tool.name));
-    expect(names.has("memory_manifest_read")).toBe(false);
+    expect(names.has("memory_manifest_read")).toBe(true);
   });
 
-  it("hides all host-gated scoped memory file tools for main runs when sender scope exists", () => {
+  it("exposes all scoped memory file tools for main coding runs when sender scope exists", () => {
     const tools = createCrawClawCodingTools({
       messageProvider: "smoke",
       senderId: "user-1",
     });
     const names = new Set(tools.map((tool) => tool.name));
-    expect(names.has("memory_manifest_read")).toBe(false);
-    expect(names.has("memory_note_read")).toBe(false);
-    expect(names.has("memory_note_write")).toBe(false);
-    expect(names.has("memory_note_edit")).toBe(false);
-    expect(names.has("memory_note_delete")).toBe(false);
+    expect(names.has("memory_manifest_read")).toBe(true);
+    expect(names.has("memory_note_read")).toBe(true);
+    expect(names.has("memory_note_write")).toBe(true);
+    expect(names.has("memory_note_edit")).toBe(true);
+    expect(names.has("memory_note_delete")).toBe(true);
   });
 
   it.each([
@@ -47,7 +47,7 @@ describe("createCrawClawCodingTools message provider policy", () => {
     ["messaging", false],
     ["full", true],
   ] as const)(
-    "keeps host-gated memory tools hidden through local onboarding with the %s profile",
+    "applies durable memory visibility through local onboarding with the %s profile",
     (profile, expectsExperienceTool) => {
       const config = applyLocalSetupWorkspaceConfig(
         {
@@ -68,11 +68,11 @@ describe("createCrawClawCodingTools message provider policy", () => {
       });
       const names = new Set(tools.map((tool) => tool.name));
 
-      expect(names.has("memory_manifest_read")).toBe(false);
-      expect(names.has("memory_note_read")).toBe(false);
-      expect(names.has("memory_note_write")).toBe(false);
-      expect(names.has("memory_note_edit")).toBe(false);
-      expect(names.has("memory_note_delete")).toBe(false);
+      expect(names.has("memory_manifest_read")).toBe(expectsExperienceTool);
+      expect(names.has("memory_note_read")).toBe(expectsExperienceTool);
+      expect(names.has("memory_note_write")).toBe(expectsExperienceTool);
+      expect(names.has("memory_note_edit")).toBe(expectsExperienceTool);
+      expect(names.has("memory_note_delete")).toBe(expectsExperienceTool);
       expect(names.has("write_experience_note")).toBe(expectsExperienceTool);
       expect(names.has("session_summary_file_read")).toBe(false);
       expect(names.has("session_summary_file_edit")).toBe(false);
@@ -80,7 +80,7 @@ describe("createCrawClawCodingTools message provider policy", () => {
     },
   );
 
-  it("keeps the coding profile experience write tool through local onboarding without a profile", () => {
+  it("keeps coding profile memory tools through local onboarding without a profile", () => {
     const config = applyLocalSetupWorkspaceConfig(
       {
         plugins: {
@@ -97,28 +97,21 @@ describe("createCrawClawCodingTools message provider policy", () => {
     });
     const names = new Set(tools.map((tool) => tool.name));
 
-    expect(names.has("memory_manifest_read")).toBe(false);
-    expect(names.has("memory_note_read")).toBe(false);
-    expect(names.has("memory_note_write")).toBe(false);
-    expect(names.has("memory_note_edit")).toBe(false);
-    expect(names.has("memory_note_delete")).toBe(false);
+    expect(names.has("memory_manifest_read")).toBe(true);
+    expect(names.has("memory_note_read")).toBe(true);
+    expect(names.has("memory_note_write")).toBe(true);
+    expect(names.has("memory_note_edit")).toBe(true);
+    expect(names.has("memory_note_delete")).toBe(true);
     expect(names.has("write_experience_note")).toBe(true);
     expect(names.has("session_summary_file_read")).toBe(false);
     expect(names.has("session_summary_file_edit")).toBe(false);
     expect(names.has("submit_promotion_verdict")).toBe(false);
   });
 
-  it("exposes host-gated memory tools only when the host opens them for the turn", () => {
+  it("does not need a turn-scoped host opening for durable memory tools", () => {
     const tools = createCrawClawCodingTools({
       messageProvider: "smoke",
       senderId: "user-1",
-      runtimeToolAlsoAllow: [
-        "memory_manifest_read",
-        "memory_note_read",
-        "memory_note_write",
-        "memory_note_edit",
-        "memory_note_delete",
-      ],
     });
     const names = new Set(tools.map((tool) => tool.name));
 

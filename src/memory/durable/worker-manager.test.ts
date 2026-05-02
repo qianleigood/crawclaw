@@ -631,7 +631,7 @@ describe("DurableExtractionWorkerManager", () => {
     expect(runner).toHaveBeenCalledTimes(1);
   });
 
-  it("prefers the background memory extraction runner when configured", async () => {
+  it("prefers the background durable memory runner when configured", async () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     const runtimeStore = createRuntimeStore();

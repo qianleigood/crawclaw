@@ -1,5 +1,6 @@
 export { normalizeNotebookLmConfig } from "./config/notebooklm.js";
 export { resolveMemoryConfig } from "./config/resolve.js";
+export { readDreamConsolidationStatus } from "./dreaming/consolidation-lock.ts";
 export { resolveDreamClosedLoopStatus } from "./dreaming/status.ts";
 export {
   getSharedDurableExtractionWorkerManagerStatus,

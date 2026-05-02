@@ -56,10 +56,9 @@ crawclaw memory prompt-journal-summary --json --days 1
 
 `memory dream status`:
 
-- `--json`: print machine-readable state and recent run history.
+- `--json`: print machine-readable file watermark and lock state.
 - `--agent <id>` / `--channel <id>` / `--user <id>`: resolve one durable scope.
 - `--scope-key <key>`: inspect one explicit durable scope.
-- `--limit <n>`: cap recent dream runs in the output.
 - `--verbose`: emit detailed logs.
 
 `memory dream run`:
@@ -68,17 +67,16 @@ crawclaw memory prompt-journal-summary --json --days 1
 - `--agent <id>` / `--channel <id>` / `--user <id>`: resolve one durable scope.
 - `--scope-key <key>`: run one explicit durable scope.
 - `--force`: bypass the min-hours and min-sessions gates for the manual run.
-- `--dry-run`: preview the dream window without taking the runtime DB lock or writing durable memory.
+- `--dry-run`: preview the dream window without taking the file lock or writing durable memory.
 - `--session-limit <n>`: cap how many recent sessions feed the manual run or preview.
 - `--signal-limit <n>`: cap how many structured signals feed the manual run or preview.
 - `--verbose`: emit detailed logs.
 
 `memory dream history`:
 
-- `--json`: print machine-readable recent dream runs.
+- `--json`: print machine-readable history availability.
 - `--agent <id>` / `--channel <id>` / `--user <id>`: resolve one durable scope.
 - `--scope-key <key>`: filter one explicit durable scope.
-- `--limit <n>`: cap recent run count.
 - `--verbose`: emit detailed logs.
 
 `memory session-summary status`:
@@ -105,19 +103,18 @@ Notes:
 - `memory sync` flushes local pending experience notes into NotebookLM and updates the managed `CrawClaw Memory Index` source when configured.
 - `memory prompt-journal-summary` aggregates the nightly memory prompt journal into counts for prompt assembly, after-turn decisions, durable extraction, experience extraction, and experience writes.
 - auto-dream is enabled by default, but it still respects minimum-session,
-  minimum-hour, scan-throttle, and DB-lock gates before starting a background
+  minimum-hour, scan-throttle, and file-lock gates before starting a background
   dream pass.
-- `memory dream status` reports auto-dream state from the runtime DB plus recent dream runs.
+- `memory dream status` reports the per-scope `.consolidate-lock` file
+  watermark, lock path, and active/stale lock state.
 - `memory dream status` explicitly reports whether the dream closed loop is
   active for the inspected scope. `closedLoopActive=false` with
   `closedLoopReason=disabled` means config disabled it; `scope_unresolved`
   means status could not resolve the durable scope being inspected.
-- `memory dream status` also shows the most recent skip/gate reason, such as `min_hours_gate`, `min_sessions_gate`, `scan_throttle`, or `lock_held`.
-- `memory dream status` and `memory dream history` now surface recent
-  `touchedNotes`, so you can see which durable notes were just consolidated.
 - `memory dream run` triggers one manual durable-memory dream pass for a scope.
 - `memory dream run --dry-run` previews the same gating/input collection path without spawning the dream agent.
-- `memory dream history` shows recent dream runs for one scope or all scopes, including failure reasons when a dream run ends in `failed`.
+- `memory dream history` no longer reads runtime DB run history; Dream uses the
+  scope `.consolidate-lock` file `mtime` as its persistent watermark.
 - `memory session-summary status` shows the current `summary.md` path, file state, and runtime summary boundary for one session.
 - `memory session-summary status` also reports the inferred summary profile and
   the current `Open Loops` section when present.
@@ -126,8 +123,8 @@ Notes:
   automatic session-summary maintenance.
 - Durable `MEMORY.md` indexes are now validated as bounded recall indexes: no frontmatter, one short pointer per line, and roughly capped at 200 lines / 25KB.
 - Durable recall observability now records whether a selected note won on
-  `index`, `header`, `body_index`, `body_rerank`, and/or `dream_boost` signals;
-  inspect those details with `crawclaw agent inspect`.
+  `index`, `header`, `body_index`, and/or `body_rerank` signals; inspect those
+  details with `crawclaw agent inspect`.
 - NotebookLM-only experience recall happens during prompt assembly for live
   agent turns; `crawclaw memory` does not trigger recall.
 - `crawclaw agent inspect` reports experience recall in NotebookLM provider

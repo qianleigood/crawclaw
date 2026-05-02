@@ -19,7 +19,7 @@ title: Debug Docs
 ## Memory And Special Agents
 
 - [Durable memory refactor status](/debug/claude-memory-refactor)
-- [Memory extractor agent](/debug/memory-extractor-agent)
+- [Durable Memory Agent](/debug/memory-extractor-agent)
 - [Special agent substrate](/debug/special-agent-substrate)
 
 ## Architecture Deep Dives

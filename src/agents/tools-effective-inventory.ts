@@ -143,8 +143,6 @@ function resolveGatesForLifecycle(lifecycle: ToolLifecycle): EffectiveToolGate[]
       return ["profile"];
     case "runtime_conditional":
       return ["runtime", "profile"];
-    case "host_gated":
-      return ["host"];
     case "special_agent_only":
       return ["special"];
     case "owner_restricted":
@@ -253,9 +251,6 @@ function describeUnavailableCoreTool(params: {
     return "restricted to owner senders";
   }
   const lifecycle = resolveCoreToolLifecycle(params.toolId);
-  if (lifecycle === "host_gated") {
-    return "requires a host-gated workflow for this turn";
-  }
   if (lifecycle === "special_agent_only") {
     return "available only to its special agent";
   }

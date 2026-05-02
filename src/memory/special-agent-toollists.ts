@@ -11,6 +11,10 @@ export const MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST = [
 ] as const;
 
 export const DREAM_MEMORY_MAINTENANCE_TOOL_ALLOWLIST = [
+  "read",
+  "exec",
+  "write",
+  "edit",
   ...MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST,
 ] as const;
 

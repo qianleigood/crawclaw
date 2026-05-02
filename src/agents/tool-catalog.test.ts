@@ -8,7 +8,7 @@ import {
 } from "./tool-catalog.js";
 
 describe("tool-catalog", () => {
-  it("includes code_execution, web_search, x_search, web_fetch, and pdf in the coding profile policy", () => {
+  it("includes durable memory and experience tools in the coding profile policy", () => {
     const policy = resolveCoreToolProfilePolicy("coding");
     expect(policy).toBeDefined();
     expect(policy!.allow).toContain("code_execution");
@@ -19,8 +19,16 @@ describe("tool-catalog", () => {
     expect(policy!.allow).toContain("pdf");
     expect(policy!.allow).toContain("discover_skills");
     expect(policy!.allow).toContain("write_experience_note");
+    expect(policy!.allow).toEqual(
+      expect.arrayContaining([
+        "memory_manifest_read",
+        "memory_note_read",
+        "memory_note_write",
+        "memory_note_edit",
+        "memory_note_delete",
+      ]),
+    );
     expect(policy!.allow).not.toContain("image_generate");
-    expect(policy!.allow).not.toContain("memory_manifest_read");
   });
 
   it("lists pdf in the media group and core tool sections", () => {
@@ -31,14 +39,14 @@ describe("tool-catalog", () => {
     );
   });
 
-  it("classifies host-gated and special-agent-only tools separately from profiles", () => {
+  it("classifies runtime, profile, and special-agent-only tools", () => {
     expect(resolveCoreToolLifecycle("browser")).toBe("runtime_conditional");
     expect(resolveCoreToolLifecycle("write_experience_note")).toBe("profile_default");
-    expect(resolveCoreToolLifecycle("memory_manifest_read")).toBe("host_gated");
+    expect(resolveCoreToolLifecycle("memory_manifest_read")).toBe("profile_default");
     expect(resolveCoreToolLifecycle("session_summary_file_read")).toBe("special_agent_only");
     expect(resolveCoreToolLifecycle("submit_promotion_verdict")).toBe("special_agent_only");
 
-    expect(listCoreToolIdsByLifecycle("host_gated")).toEqual(
+    expect(listCoreToolIdsByLifecycle("profile_default")).toEqual(
       expect.arrayContaining([
         "memory_manifest_read",
         "memory_note_read",

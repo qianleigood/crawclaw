@@ -184,13 +184,13 @@ describe("projectAgentActionEventData", () => {
   it("uses shared memory visibility for memory detail fallback", () => {
     const projected = projectAgentActionEventData({
       version: 1,
-      actionId: "memory-extraction:session-1:2",
+      actionId: "durable-memory:session-1:2",
       kind: "memory",
       status: "completed",
       title: "raw memory title",
       summary: "saved one durable note",
       detail: {
-        memoryKind: "extraction",
+        memoryKind: "durable_memory",
         memoryPhase: "final",
         memoryResultStatus: "written",
       },
@@ -198,7 +198,7 @@ describe("projectAgentActionEventData", () => {
 
     expect(projected).toMatchObject({
       kind: "memory",
-      projectedTitle: "Memory extraction wrote durable notes",
+      projectedTitle: "Durable memory agent wrote durable notes",
       projectedSummary: "saved one durable note",
     });
   });

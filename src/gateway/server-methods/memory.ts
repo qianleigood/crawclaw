@@ -21,6 +21,7 @@ import {
   refreshNotebookLmProviderState,
   resolveDurableMemoryScope,
   resolveDreamClosedLoopStatus,
+  readDreamConsolidationStatus,
   resolveMemoryConfig,
   runDreamAgentOnce,
   runSessionSummaryAgentOnce,
@@ -101,17 +102,6 @@ function readExperienceIndexStatus(value: unknown): ExperienceIndexStatus | unde
     (EXPERIENCE_INDEX_STATUSES as readonly string[]).includes(value)
     ? (value as ExperienceIndexStatus)
     : undefined;
-}
-
-function parseTouchedNotes(value: string | null | undefined): string[] {
-  try {
-    const parsed = JSON.parse(value ?? "{}") as Record<string, unknown>;
-    return Array.isArray(parsed.touchedNotes)
-      ? parsed.touchedNotes.filter((item): item is string => typeof item === "string")
-      : [];
-  } catch {
-    return [];
-  }
 }
 
 async function loadResolvedMemoryConfig(): Promise<CrawClawConfig> {
@@ -398,35 +388,30 @@ export const memoryHandlers: GatewayRequestHandlers = {
   "memory.dream.status": async ({ params, respond }) => {
     try {
       const cfg = await loadResolvedMemoryConfig();
-      await withMemoryRuntimeStore(cfg, async (store, memoryConfig) => {
-        const limit = readOptionalPositiveInt(asRecord(params).limit) ?? 10;
-        const scope = resolveDreamScopeParams(asRecord(params));
-        const state = scope.scopeKey ? await store.getDreamState(scope.scopeKey) : null;
-        const runs = (await store.listRecentMaintenanceRuns(Math.max(limit * 3, 20)))
-          .filter((entry) => entry.kind === "dream")
-          .filter((entry) => !scope.scopeKey || entry.scope === scope.scopeKey)
-          .slice(0, limit)
-          .map((entry) => ({
-            ...entry,
-            touchedNotes: parseTouchedNotes(entry.metricsJson),
-          }));
-        const closedLoop = resolveDreamClosedLoopStatus({
-          config: memoryConfig.dreaming,
-          scopeKey: scope.scopeKey,
-        });
-        respond(
-          true,
-          {
-            enabled: memoryConfig.dreaming.enabled,
-            ...closedLoop,
-            config: memoryConfig.dreaming,
-            scopeKey: scope.scopeKey ?? null,
-            state,
-            runs,
-          },
-          undefined,
-        );
+      const memoryConfig = resolveMemoryConfig(cfg.memory ?? {});
+      const scope = resolveDreamScopeParams(asRecord(params));
+      const state = scope.scope
+        ? await readDreamConsolidationStatus({
+            scope: scope.scope,
+            staleAfterMs: memoryConfig.dreaming.lockStaleAfterMs,
+          })
+        : null;
+      const closedLoop = resolveDreamClosedLoopStatus({
+        config: memoryConfig.dreaming,
+        scopeKey: scope.scopeKey,
       });
+      respond(
+        true,
+        {
+          enabled: memoryConfig.dreaming.enabled,
+          ...closedLoop,
+          config: memoryConfig.dreaming,
+          scopeKey: scope.scopeKey ?? null,
+          state,
+          historyPersisted: false,
+        },
+        undefined,
+      );
     } catch (error) {
       respond(
         false,
@@ -442,19 +427,17 @@ export const memoryHandlers: GatewayRequestHandlers = {
   "memory.dream.history": async ({ params, respond }) => {
     try {
       const cfg = await loadResolvedMemoryConfig();
-      await withMemoryRuntimeStore(cfg, async (store) => {
-        const limit = readOptionalPositiveInt(asRecord(params).limit) ?? 20;
-        const scope = resolveDreamScopeParams(asRecord(params));
-        const runs = (await store.listRecentMaintenanceRuns(Math.max(limit * 3, 40)))
-          .filter((entry) => entry.kind === "dream")
-          .filter((entry) => !scope.scopeKey || entry.scope === scope.scopeKey)
-          .slice(0, limit)
-          .map((entry) => ({
-            ...entry,
-            touchedNotes: parseTouchedNotes(entry.metricsJson),
-          }));
-        respond(true, { scopeKey: scope.scopeKey ?? null, runs }, undefined);
-      });
+      void cfg;
+      const scope = resolveDreamScopeParams(asRecord(params));
+      respond(
+        true,
+        {
+          scopeKey: scope.scopeKey ?? null,
+          historyPersisted: false,
+          reason: "Dream uses the scope .consolidate-lock file mtime as its watermark.",
+        },
+        undefined,
+      );
     } catch (error) {
       respond(
         false,

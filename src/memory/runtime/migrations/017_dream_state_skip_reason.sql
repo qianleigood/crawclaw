@@ -1,3 +1,0 @@
--- No-op.
--- `last_skip_reason` is now ensured imperatively in sqlite-runtime-store.ts
--- because this runtime replays SQL migrations on every startup.

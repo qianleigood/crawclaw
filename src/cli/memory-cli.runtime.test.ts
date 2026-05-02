@@ -9,8 +9,6 @@ const mocks = vi.hoisted(() => ({
   getSharedSessionSummarySchedulerMock: vi.fn(),
   sqliteRuntimeStoreInitMock: vi.fn(),
   sqliteRuntimeStoreCloseMock: vi.fn(),
-  sqliteRuntimeStoreGetDreamStateMock: vi.fn(),
-  sqliteRuntimeStoreListRecentMaintenanceRunsMock: vi.fn(),
   sqliteRuntimeStoreGetSessionSummaryStateMock: vi.fn(),
   sqliteRuntimeStoreListMessagesByTurnRangeMock: vi.fn(),
   readSessionSummaryFileMock: vi.fn(),
@@ -92,8 +90,6 @@ vi.mock("../memory/runtime/sqlite-runtime-store.js", () => ({
     }
     init = mocks.sqliteRuntimeStoreInitMock;
     close = mocks.sqliteRuntimeStoreCloseMock;
-    getDreamState = mocks.sqliteRuntimeStoreGetDreamStateMock;
-    listRecentMaintenanceRuns = mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock;
     getSessionSummaryState = mocks.sqliteRuntimeStoreGetSessionSummaryStateMock;
     listMessagesByTurnRange = mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock;
   },
@@ -143,8 +139,6 @@ describe("memory-cli dream runtime", () => {
     });
     mocks.sqliteRuntimeStoreInitMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreCloseMock.mockResolvedValue(undefined);
-    mocks.sqliteRuntimeStoreGetDreamStateMock.mockResolvedValue(null);
-    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([]);
     mocks.sqliteRuntimeStoreGetSessionSummaryStateMock.mockResolvedValue(null);
     mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([]);
     mocks.readSessionSummaryFileMock.mockResolvedValue({
@@ -190,84 +184,24 @@ Nothing yet.
     });
   });
 
-  it("renders dream status with skip reason", async () => {
-    mocks.sqliteRuntimeStoreGetDreamStateMock.mockResolvedValue({
-      scopeKey: "main:telegram:alice",
-      lastSuccessAt: 100,
-      lastAttemptAt: 101,
-      lastFailureAt: 99,
-      lastSkipReason: "min_sessions_gate",
-      lockOwner: null,
-    });
-    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([
-      {
-        id: "mr-1",
-        kind: "dream",
-        scope: "main:telegram:alice",
-        status: "failed",
-        triggerSource: "stop",
-        summary: "Dream failed",
-        error: "agent_failed",
-      },
-    ]);
-
+  it("renders dream status from the file watermark", async () => {
     await runMemoryDreamStatus({
       agent: "main",
       channel: "telegram",
       user: "alice",
     });
 
-    expect(runtimeLogs.join("\n")).toContain("Last skip reason:");
-    expect(runtimeLogs.join("\n")).toContain("min_sessions_gate");
-    expect(runtimeLogs.join("\n")).toContain("agent_failed");
+    expect(runtimeLogs.join("\n")).toContain("Last consolidated:");
+    expect(runtimeLogs.join("\n")).toContain("Lock active:");
     expect(runtimeLogs.join("\n")).toContain("Closed loop:");
     expect(runtimeLogs.join("\n")).toContain("active");
   });
 
-  it("renders dream status with touched note diagnostics", async () => {
-    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([
-      {
-        id: "mr-1",
-        kind: "dream",
-        scope: "main:telegram:alice",
-        status: "done",
-        triggerSource: "manual_cli",
-        summary: "Consolidated gateway notes",
-        error: null,
-        metricsJson: JSON.stringify({
-          touchedNotes: ["project/gateway-recovery.md", "feedback/answer-style.md"],
-        }),
-      },
-    ]);
-
-    await runMemoryDreamStatus({
-      agent: "main",
-      channel: "telegram",
-      user: "alice",
-    });
-
-    expect(runtimeLogs.join("\n")).toContain("touched: project/gateway-recovery.md");
-    expect(runtimeLogs.join("\n")).toContain("touched: feedback/answer-style.md");
-  });
-
-  it("renders dream history with failure reason", async () => {
-    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([
-      {
-        id: "mr-1",
-        kind: "dream",
-        scope: "main:telegram:alice",
-        status: "failed",
-        triggerSource: "manual_cli",
-        summary: "Dream failed",
-        error: "agent_failed",
-      },
-    ]);
-
+  it("renders dream history as non-persisted", async () => {
     await runMemoryDreamHistory({});
 
     expect(runtimeLogs.join("\n")).toContain("Auto Dream History");
-    expect(runtimeLogs.join("\n")).toContain("failed");
-    expect(runtimeLogs.join("\n")).toContain("agent_failed");
+    expect(runtimeLogs.join("\n")).toContain("Dream run history is not persisted");
   });
 
   it("runs dream dry-run preview with bounded session/signal inputs", async () => {

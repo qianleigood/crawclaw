@@ -23,14 +23,15 @@ The model only "remembers" what is persisted into those layers -- there is no
 hidden state.
 
 The `coding` tool profile includes `write_experience_note` for explicit
-experience writes. Local onboarding defaults new configs to that profile when
-unset; it does not add a `main` agent `tools.alsoAllow` override for experience
-writes. Scoped durable-memory file tools (`memory_manifest_read`,
-`memory_note_read`, `memory_note_write`, `memory_note_edit`, and
-`memory_note_delete`) are host-gated per turn: they are hidden from `main` by
-default, including under `tools.profile: "full"`, and become visible only when
-the host detects an explicit durable-memory request or when a dedicated
-maintenance agent receives them through its special-agent allowlist.
+experience writes and the scoped durable-memory file tools
+(`memory_manifest_read`, `memory_note_read`, `memory_note_write`,
+`memory_note_edit`, and `memory_note_delete`) for explicit durable-memory
+maintenance. Local onboarding defaults new configs to that profile when unset;
+it does not add a `main` agent `tools.alsoAllow` override for memory tools.
+The main agent decides when to use those durable tools from the memory routing
+prompt, matching Claude Code's prompt-driven memory writes. Dedicated
+maintenance agents receive the same durable tools through their special-agent
+allowlist and remain runtime-restricted to that narrow surface.
 Session-summary file edits and promotion verdict submission stay restricted to
 their owning background agents.
 
@@ -62,12 +63,9 @@ the system prompt. Durable recall now runs synchronously during prompt assembly:
 - only a bounded top candidate slice reads body excerpts for a second-pass
   rerank
 - durable recall diagnostics now record whether a selected note won on `index`,
-  `header`, `body_index`, `body_rerank`, and/or `dream_boost` signals so
-  inspect/debug flows can explain why a note was selected or omitted
+  `header`, `body_index`, and/or `body_rerank` signals so inspect/debug flows
+  can explain why a note was selected or omitted
 - full note contents are loaded only for the final selected items
-- recently dream-touched notes can receive a light recall prior, but that prior
-  decays over time and only applies when the current query is already relevant
-  to the note
 - prompt assembly receives durable recall score breakdowns and can shift a
   small amount of memory budget toward durable memory for durable-heavy queries
   or away from durable memory when experience/SOP recall is the stronger fit
@@ -78,52 +76,57 @@ the system prompt. Durable recall now runs synchronously during prompt assembly:
 Durable auto-write also follows a turn-end completion trigger:
 
 - the run-loop now emits a `stop` lifecycle phase after a final top-level turn,
-  and `memory_extractor` consumes that phase as a subscriber
+  and `durable_memory` consumes that phase as a subscriber
 - the same stop event can carry the captured parent fork context, including the
   parent prompt envelope and full model-visible message context; the embedded
-  `memory_extractor` inherits that fork and appends only a narrow durable-memory
+  `durable_memory` inherits that fork and appends only a narrow durable-memory
   maintenance prompt
 - the cursor-based recent-message window remains the extraction boundary; older
   forked context is available only to resolve references in the recent messages,
   not as a source for re-extracting stale history
-- `memory_extractor` only writes durable profile/context memory: user
+- `durable_memory` only writes durable profile/context memory: user
   preferences, explicit future-behavior feedback, stable project facts, and
   stable references. Reusable procedures, command sequences, debugging
   workflows, test strategies, failure patterns, and implementation lessons belong
   to experience memory instead.
 - the new messages for that turn must include a final assistant reply
 - if the latest assistant reply still contains tool calls, or ended in
-  `error` / `aborted`, background durable extraction is skipped for that turn
+  `error` / `aborted`, the durable memory agent is skipped for that turn
 - cursor advancement only happens once the turn is actually handled, so
   incomplete tool-call turns do not accidentally consume extraction history
 
 CrawClaw also has a second durable-memory maintenance layer:
 
-- `memory_extractor` is the light per-turn background writer
+- `durable_memory` is the light per-turn background writer
 - `dream` (auto-dream) is enabled by default as the lower-frequency
   consolidator; the runtime gates still require the configured minimum session
-  count, minimum hours between successful runs, scan throttle, and DB lock
+  count, minimum hours between successful runs, scan throttle, and file lock
 - `session_summary` is the short-term continuity agent for one session
-- both `memory_extractor` and `dream` now subscribe to the same
+- both `durable_memory` and `dream` now subscribe to the same
   run-loop `stop` phase instead of being scheduled directly from `afterTurn`
-- auto-dream uses runtime DB state, not file `mtime`, for both gating and lock
-  ownership
-- auto-dream prefers runtime store, session summaries, and Context Archive
-  signals; it does not read raw session transcripts
+- auto-dream uses a per-scope `.consolidate-lock` file in the durable memory
+  scope directory for both lock ownership and its consolidation watermark; the
+  lock file `mtime` advances at run start and rolls back if the run fails
+- auto-dream scans agent session transcript files by `mtime` and passes refs for
+  sessions touched since the previous file watermark; Dream may use narrow
+  `read` or read-only `exec` searches over those refs, while the host guard
+  blocks mutating Bash and blocks raw `write` / `edit` outside the durable
+  memory directory
+- auto-dream is bounded by its run timeout rather than a fixed turn-count cap, so
+  large cross-session consolidations are not cut off only because they needed
+  more agent turns
 - auto-dream consolidates the same durable profile/context layer and must not
   convert reusable operational experience into durable notes
 - auto-dream now surfaces phase-level actions for orient / gather /
   consolidate / prune through the Action Feed
 - manual dream runs can now be bounded with `--session-limit` / `--signal-limit`
   and previewed with `--dry-run` without taking the dream lock or writing memory
-- dream state now keeps the most recent skip/gate reason so status/history/
-  inspect can explain why a consolidation did not start
 - status and inspect surfaces explicitly report whether the dream closed loop is
   active for the inspected durable scope, instead of leaving dream as an opaque
   optional background behavior
-- dream status/history surfaces now expose recent `touchedNotes`, so you can
-  see which durable notes were just rewritten before checking later recall
-  behavior
+- dream status and inspect surfaces report the file watermark, lock path, and
+  whether a lock is currently active; dream run history is no longer persisted
+  in the runtime DB
 
 Promotion is separate from recall and maintenance:
 

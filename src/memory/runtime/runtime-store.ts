@@ -17,8 +17,6 @@ import type {
   CreatePromotionCandidateInput,
   DeadLetter,
   DurableExtractionCursorRow,
-  DreamLockAcquireResult,
-  DreamStateRow,
   GmMessageRow,
   MaintenanceRun,
   MergeAudit,
@@ -46,12 +44,8 @@ import type {
   UpsertObservationBackfillCheckpointInput,
   UpsertObservationEventInput,
   UpsertObservationRunInput,
-  UpsertSessionScopeInput,
   UpsertSessionCompactionStateInput,
   UpsertSessionSummaryStateInput,
-  AcquireDreamLockInput,
-  ReleaseDreamLockInput,
-  TouchDreamAttemptInput,
 } from "../types/runtime.ts";
 
 export interface RuntimeStore {
@@ -121,17 +115,6 @@ export interface RuntimeStore {
   upsertSessionSummaryState(input: UpsertSessionSummaryStateInput): Promise<void>;
   getDurableExtractionCursor(sessionId: string): Promise<DurableExtractionCursorRow | null>;
   upsertDurableExtractionCursor(input: UpsertDurableExtractionCursorInput): Promise<void>;
-  upsertSessionScope(input: UpsertSessionScopeInput): Promise<void>;
-  listScopedSessionIdsTouchedSince(
-    scopeKey: string,
-    sinceTime: number,
-    excludeSessionId?: string | null,
-    limit?: number,
-  ): Promise<string[]>;
-  getDreamState(scopeKey: string): Promise<DreamStateRow | null>;
-  touchDreamAttempt(input: TouchDreamAttemptInput): Promise<void>;
-  acquireDreamLock(input: AcquireDreamLockInput): Promise<DreamLockAcquireResult>;
-  releaseDreamLock(input: ReleaseDreamLockInput): Promise<void>;
   listModelVisibleMessagesForDurableExtraction(
     sessionId: string,
     afterTurnExclusive: number,

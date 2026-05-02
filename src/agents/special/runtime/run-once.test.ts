@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { PROMOTION_JUDGE_AGENT_DEFINITION } from "../../../improvement/promotion-judge.js";
-import { MEMORY_EXTRACTION_AGENT_DEFINITION } from "../../../memory/durable/agent-runner.js";
+import { DURABLE_MEMORY_AGENT_DEFINITION } from "../../../memory/durable/agent-runner.js";
 import { buildSpecialAgentCacheEnvelope } from "./parent-fork-context.js";
 import { runSpecialAgentToCompletion } from "./run-once.js";
 import type { SpecialAgentDefinition } from "./types.js";
@@ -693,7 +693,7 @@ describe("runSpecialAgentToCompletion", () => {
     );
   });
 
-  it("does not attach a parent prompt envelope for memory extraction special agents", async () => {
+  it("does not attach a parent prompt envelope for durable memory special agents", async () => {
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
       payloads: [{ text: "STATUS: NO_CHANGE" }],
       meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
@@ -701,7 +701,7 @@ describe("runSpecialAgentToCompletion", () => {
 
     await runSpecialAgentToCompletion(
       {
-        definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
+        definition: DURABLE_MEMORY_AGENT_DEFINITION,
         task: "extract memory",
         embeddedContext: {
           sessionId: "session-memory-1",

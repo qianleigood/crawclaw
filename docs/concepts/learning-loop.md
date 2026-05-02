@@ -73,7 +73,7 @@ The system decides which parts of history are important enough to keep, summariz
 
 Examples:
 
-- memory extraction
+- durable memory agent
 - session summary generation
 - durable memory promotion
 - compaction

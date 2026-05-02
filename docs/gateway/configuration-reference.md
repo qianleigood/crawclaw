@@ -1825,22 +1825,21 @@ Defaults for Talk mode (macOS; archived mobile runtimes had separate compatibili
 
 Local onboarding defaults new local configs to `tools.profile: "coding"` when unset
 (existing explicit profiles are preserved). The `coding` profile includes
-`write_experience_note`; onboarding does not add a `main` agent
-`tools.alsoAllow` override for it.
+`write_experience_note` and the scoped durable-memory file tools; onboarding
+does not add a `main` agent `tools.alsoAllow` override for them.
 
-Some tools are lifecycle-gated before profile allow/deny policy. For example,
-scoped durable-memory file tools are hidden from `main` by default, including
-under `tools.profile: "full"`, and are opened only by the host for an explicit
-durable-memory turn or by a special-agent allowlist. Special-agent-only tools
-such as `session_summary_file_read`, `session_summary_file_edit`, and
-`submit_promotion_verdict` are not main-agent defaults.
+Some tools are lifecycle-gated before profile allow/deny policy. Runtime
+conditional tools still require their runtime/plugin/channel capability, and
+special-agent-only tools such as `session_summary_file_read`,
+`session_summary_file_edit`, and `submit_promotion_verdict` are not main-agent
+defaults.
 
-| Profile     | Includes                                                                                                                                                                            |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `minimal`   | `session_status` only                                                                                                                                                               |
-| `coding`    | `group:fs`, `group:runtime`, `group:web`, `group:sessions`, `browser`, `discover_skills`, `workflow`, `workflowize`, `review_task`, `write_experience_note`, `cron`, `image`, `pdf` |
-| `messaging` | `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status`                                                                                           |
-| `full`      | No profile restriction (runtime, host, owner, sandbox, provider, and special-agent gates still apply)                                                                               |
+| Profile     | Includes                                                                                                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `minimal`   | `session_status` only                                                                                                                                                      |
+| `coding`    | `group:fs`, `group:runtime`, `group:web`, `group:sessions`, `browser`, `discover_skills`, `workflow`, `workflowize`, `review_task`, `group:memory`, `cron`, `image`, `pdf` |
+| `messaging` | `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status`                                                                                  |
+| `full`      | No profile restriction (runtime, owner, sandbox, provider, and special-agent gates still apply)                                                                            |
 
 ### Tool groups
 

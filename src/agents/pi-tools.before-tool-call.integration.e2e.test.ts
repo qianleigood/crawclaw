@@ -1,3 +1,4 @@
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerAgentRunContext, resetAgentRunContextForTest } from "../infra/agent-events.js";
 import { resetDiagnosticSessionStateForTest } from "../logging/diagnostic-session-state.js";
@@ -173,6 +174,116 @@ describe("before_tool_call hook integration", () => {
         extensionContext,
       ),
     ).rejects.toThrow('Tool "write" is not allowed for this special-agent run');
+
+    expect(beforeToolCallHook).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("allows read-only exec under the memory maintenance guard", async () => {
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "exec", execute } as any, {
+      specialToolAllowlist: ["exec"],
+      specialToolGuard: {
+        kind: "memory_maintenance",
+        memoryDir: path.resolve("durable-memory"),
+      },
+    });
+    const extensionContext = {} as Parameters<typeof tool.execute>[3];
+
+    await tool.execute(
+      "call-memory-exec-readonly",
+      { command: 'grep -rn "foo" /tmp/sessions --include="*.jsonl" | tail -50' },
+      undefined,
+      extensionContext,
+    );
+
+    expect(beforeToolCallHook).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      "call-memory-exec-readonly",
+      { command: 'grep -rn "foo" /tmp/sessions --include="*.jsonl" | tail -50' },
+      undefined,
+      extensionContext,
+    );
+  });
+
+  it("blocks mutating exec under the memory maintenance guard before plugin hooks run", async () => {
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "exec", execute } as any, {
+      specialToolAllowlist: ["exec"],
+      specialToolGuard: {
+        kind: "memory_maintenance",
+        memoryDir: path.resolve("durable-memory"),
+      },
+    });
+    const extensionContext = {} as Parameters<typeof tool.execute>[3];
+
+    await expect(
+      tool.execute(
+        "call-memory-exec-deny",
+        { command: "rm -rf /tmp/memory" },
+        undefined,
+        extensionContext,
+      ),
+    ).rejects.toThrow("memory maintenance exec is restricted to read-only commands");
+
+    expect(beforeToolCallHook).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("allows raw write under the durable memory directory", async () => {
+    const memoryDir = path.resolve("durable-memory");
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "write", execute } as any, {
+      specialToolAllowlist: ["write"],
+      specialToolGuard: {
+        kind: "memory_maintenance",
+        memoryDir,
+      },
+    });
+    const extensionContext = {} as Parameters<typeof tool.execute>[3];
+
+    await tool.execute(
+      "call-memory-write",
+      { file_path: "notes/project.md", content: "ok" },
+      undefined,
+      extensionContext,
+    );
+
+    expect(beforeToolCallHook).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      "call-memory-write",
+      expect.objectContaining({
+        path: path.join(memoryDir, "notes/project.md"),
+        content: "ok",
+      }),
+      undefined,
+      extensionContext,
+    );
+  });
+
+  it("blocks raw write outside the durable memory directory before plugin hooks run", async () => {
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "write", execute } as any, {
+      specialToolAllowlist: ["write"],
+      specialToolGuard: {
+        kind: "memory_maintenance",
+        memoryDir: path.resolve("durable-memory"),
+      },
+    });
+    const extensionContext = {} as Parameters<typeof tool.execute>[3];
+
+    await expect(
+      tool.execute(
+        "call-memory-write-deny",
+        { file_path: path.resolve("outside.md"), content: "bad" },
+        undefined,
+        extensionContext,
+      ),
+    ).rejects.toThrow("memory maintenance write/edit is restricted");
 
     expect(beforeToolCallHook).not.toHaveBeenCalled();
     expect(execute).not.toHaveBeenCalled();

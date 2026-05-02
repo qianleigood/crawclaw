@@ -301,54 +301,6 @@ export interface UpsertDurableExtractionCursorInput {
   updatedAt?: number;
 }
 
-export interface UpsertSessionScopeInput {
-  sessionId: string;
-  sessionKey?: string | null;
-  scopeKey: string;
-  agentId?: string | null;
-  channel?: string | null;
-  userId?: string | null;
-  updatedAt?: number;
-}
-
-export interface DreamStateRow {
-  scopeKey: string;
-  lastSuccessAt: number | null;
-  lastAttemptAt: number | null;
-  lastFailureAt: number | null;
-  lastSkipReason: string | null;
-  lockOwner: string | null;
-  lockAcquiredAt: number | null;
-  lastRunId: string | null;
-  updatedAt: number;
-}
-
-export interface DreamLockAcquireResult {
-  acquired: boolean;
-  state: DreamStateRow;
-}
-
-export interface TouchDreamAttemptInput {
-  scopeKey: string;
-  now?: number;
-  reason?: string | null;
-}
-
-export interface AcquireDreamLockInput {
-  scopeKey: string;
-  owner: string;
-  staleAfterMs: number;
-  now?: number;
-}
-
-export interface ReleaseDreamLockInput {
-  scopeKey: string;
-  owner: string;
-  status: "succeeded" | "failed" | "cancelled";
-  runId?: string | null;
-  now?: number;
-}
-
 export interface SessionCompactionStateRow {
   sessionId: string;
   preservedTailStartTurn: number;

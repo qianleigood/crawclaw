@@ -133,7 +133,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
           updatedAt: input.updatedAt ?? Date.now(),
         });
       }),
-      upsertSessionScope: vi.fn().mockResolvedValue(undefined),
       getSessionSummaryState: vi
         .fn()
         .mockImplementation(
@@ -159,23 +158,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
             )
             .toSorted((left, right) => left.turnIndex - right.turnIndex),
         ),
-      listScopedSessionIdsTouchedSince: vi.fn().mockResolvedValue([]),
-      getDreamState: vi.fn().mockResolvedValue(null),
-      touchDreamAttempt: vi.fn().mockResolvedValue(undefined),
-      acquireDreamLock: vi.fn().mockResolvedValue({
-        acquired: false,
-        state: {
-          scopeKey: "main:feishu:user-1",
-          lastSuccessAt: null,
-          lastAttemptAt: null,
-          lastFailureAt: null,
-          lockOwner: null,
-          lockAcquiredAt: null,
-          lastRunId: null,
-          updatedAt: Date.now(),
-        },
-      }),
-      releaseDreamLock: vi.fn().mockResolvedValue(undefined),
       createMaintenanceRun: vi.fn().mockResolvedValue("mrun-1"),
       updateMaintenanceRun: vi.fn().mockResolvedValue(undefined),
       listModelVisibleMessagesForDurableExtraction: vi
@@ -331,39 +313,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
   ): ExperienceExtractionRunner {
     return vi.fn().mockResolvedValue(result);
   }
-
-  it("uses messageProvider as the memory channel when messageChannel is missing", async () => {
-    const runtimeStore = createRuntimeStore() as RuntimeStore & {
-      upsertSessionScope: ReturnType<typeof vi.fn>;
-    };
-    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
-    const runtime = createContextMemoryRuntime({
-      runtimeStore,
-      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-      config: createRuntimeConfig(),
-    });
-
-    await runtime.afterTurn?.({
-      sessionId: "session-provider-channel",
-      sessionKey: "agent:main:cli",
-      sessionFile: "/tmp/session-provider-channel.jsonl",
-      messages: castAgentMessages([
-        makeAgentUserMessage({ content: "记住这个 webchat scope 测试。" }),
-        makeAgentAssistantMessage({ content: [{ type: "text", text: "已记录。" }] }),
-      ]),
-      prePromptMessageCount: 0,
-      runtimeContext: { agentId: "main", messageProvider: "webchat", senderId: "cli" },
-    });
-
-    expect(runtimeStore.upsertSessionScope).toHaveBeenCalledWith(
-      expect.objectContaining({
-        scopeKey: "main:webchat:cli",
-        agentId: "main",
-        channel: "webchat",
-        userId: "cli",
-      }),
-    );
-  });
 
   it("passes messageProvider-derived channel into lifecycle durable extraction", async () => {
     const stateDir = await createRuntimeRoot();
@@ -968,6 +917,109 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     ).toBe(true);
   });
 
+  it("runs stop-phase durable extraction for later turns after a direct durable write", async () => {
+    const stateDir = await createRuntimeRoot();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const runtimeStore = createRuntimeStore();
+    const durableExtractionRunner = createDurableExtractionRunner({
+      current: {
+        status: "written",
+        notes: [
+          {
+            type: "feedback",
+            title: "后续 durable note",
+            description: "主 Agent 直接写入后的后续回合仍应进入 durable memory agent。",
+            dedupeKey: "later-turn-after-direct-write",
+          },
+        ],
+      },
+    });
+
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore,
+      logger,
+      config: createRuntimeConfig(),
+      durableExtractionRunner,
+    });
+    const firstTurnMessages = castAgentMessages([
+      makeAgentUserMessage({ content: "记住我喜欢步骤优先。" }),
+      makeAgentToolResultMessage({
+        toolCallId: "toolcall-1",
+        toolName: "memory_note_write",
+        content: [{ type: "text", text: "ok" }],
+      }),
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "已更新 durable memory，并同步了 MEMORY.md。" }],
+      }),
+    ]);
+
+    await runtime.afterTurn?.({
+      sessionId: "session-direct-then-later",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      sessionFile: "/tmp/session.jsonl",
+      messages: firstTurnMessages,
+      prePromptMessageCount: 0,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await emitStopPhase({
+      sessionId: "session-direct-then-later",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      messageCount: firstTurnMessages.length,
+    });
+    await drainSharedDurableExtractionWorkers();
+
+    expect(durableExtractionRunner).not.toHaveBeenCalled();
+
+    const secondTurnMessages = castAgentMessages([
+      ...firstTurnMessages,
+      makeAgentUserMessage({ content: "以后代码审查先列风险，再给总结。" }),
+      makeAgentAssistantMessage({
+        content: [{ type: "text", text: "明白，后续审查会先列风险。" }],
+      }),
+    ]);
+    await runtime.afterTurn?.({
+      sessionId: "session-direct-then-later",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      sessionFile: "/tmp/session.jsonl",
+      messages: secondTurnMessages,
+      prePromptMessageCount: firstTurnMessages.length,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await emitStopPhase({
+      sessionId: "session-direct-then-later",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      messageCount: secondTurnMessages.length,
+      prePromptMessageCount: firstTurnMessages.length,
+    });
+    await drainSharedDurableExtractionWorkers();
+
+    expect(durableExtractionRunner).toHaveBeenCalledTimes(1);
+    const runnerInput = vi.mocked(durableExtractionRunner).mock.calls[0]?.[0];
+    const recentText = JSON.stringify(runnerInput?.recentMessages ?? []);
+    expect(recentText).toContain("以后代码审查先列风险");
+    expect(recentText).not.toContain("记住我喜欢步骤优先");
+    await vi.waitFor(async () => {
+      const note = await fs.readFile(
+        path.join(
+          stateDir,
+          "durable-memory",
+          "agents",
+          "main",
+          "channels",
+          "feishu",
+          "users",
+          "user-1",
+          "60 Preferences",
+          "later-turn-after-direct-write.md",
+        ),
+        "utf8",
+      );
+      expect(note).toContain("后续回合仍应进入 durable memory agent");
+    });
+  });
+
   it("still allows stop-phase durable extraction when the turn already wrote an experience note successfully", async () => {
     const stateDir = await createRuntimeRoot();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
@@ -1311,9 +1363,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       writtenCount: 0,
       updatedCount: 0,
     });
-    const runtimeStore = createRuntimeStore() as RuntimeStore & {
-      upsertSessionScope: ReturnType<typeof vi.fn>;
-    };
+    const runtimeStore = createRuntimeStore();
 
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
     const baseConfig = createRuntimeConfig();
@@ -1369,7 +1419,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
 
     await runtime.afterTurn?.({
       sessionId: "embedded-session-1",
-      sessionKey: "embedded:memory_extractor:special:embedded-run-1",
+      sessionKey: "embedded:durable_memory:special:embedded-run-1",
       sessionFile: "/tmp/embedded-session.jsonl",
       messages,
       prePromptMessageCount: 0,
@@ -1379,7 +1429,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       phase: "post_sampling",
       runId: "embedded-run-1",
       sessionId: "embedded-session-1",
-      sessionKey: "embedded:memory_extractor:special:embedded-run-1",
+      sessionKey: "embedded:durable_memory:special:embedded-run-1",
       agentId: "main",
       isTopLevel: false,
       sessionFile: "/tmp/embedded-session.jsonl",
@@ -1394,7 +1444,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     });
     await emitStopPhase({
       sessionId: "embedded-session-1",
-      sessionKey: "embedded:memory_extractor:special:embedded-run-1",
+      sessionKey: "embedded:durable_memory:special:embedded-run-1",
       messageCount: messages.length,
       parentForkContext,
     });
@@ -1404,7 +1454,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     await drainSharedExperienceExtractionWorkers();
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    expect(runtimeStore.upsertSessionScope).not.toHaveBeenCalled();
     expect(durableExtractionRunner).not.toHaveBeenCalled();
     expect(experienceExtractionRunner).not.toHaveBeenCalled();
     expect(sessionSummaryRunner).not.toHaveBeenCalled();

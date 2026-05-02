@@ -5,7 +5,7 @@
 It owns:
 
 - context assembly and compaction
-- durable memory extraction and recall
+- durable memory agent execution and recall
 - experience recall planning and provider orchestration
 - session summaries
 - dreaming and maintenance flows
@@ -27,11 +27,11 @@ It owns:
 - Keep memory as a domain service with explicit APIs and runtime seams.
 - Do not hide memory orchestration inside unrelated agent or auto-reply glue when it belongs here.
 - If memory needs background agent work, register it through the special-agent substrate instead of creating a private runner model.
-- Keep recall, extraction, summary, and dream policies explicit; do not bury them in generic caches or transport code.
+- Keep recall, durable agent, summary, and dream policies explicit; do not bury them in generic caches or transport code.
 - Keep experience lifecycle states explicit; archived and superseded entries must not be rendered into managed NotebookLM source sync.
 - Keep provider adapters behind `experience/*`; context assembly should consume query plans and provider results, not provider-specific CLI calls.
 
 ## Review Notes
 
 - Memory changes often have cache, replay, and prompt-shape consequences. Check those three together.
-- Update integration tests when touching extraction, summary, context assembly, or storage contracts.
+- Update integration tests when touching durable memory agent, summary, context assembly, or storage contracts.

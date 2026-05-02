@@ -68,9 +68,9 @@ The shared substrate is now used by:
 - session summary
   - `src/memory/session-summary/agent-runner.ts`
   - definition: `SESSION_SUMMARY_AGENT_DEFINITION`
-- durable memory extraction
+- durable memory agent
   - `src/memory/durable/agent-runner.ts`
-  - definition: `MEMORY_EXTRACTION_AGENT_DEFINITION`
+  - definition: `DURABLE_MEMORY_AGENT_DEFINITION`
 - dream
   - `src/memory/dreaming/agent-runner.ts`
   - definition: `DREAM_AGENT_DEFINITION`
@@ -104,7 +104,7 @@ That means:
 That gives the shared runtime coverage across:
 
 - session-summary maintenance
-- durable memory extraction
+- durable memory agent
 - dream / auto-dream
 - review
 

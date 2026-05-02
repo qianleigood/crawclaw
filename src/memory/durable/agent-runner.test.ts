@@ -6,15 +6,15 @@ import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/par
 import { makeAgentUserMessage } from "../../agents/test-helpers/agent-message-fixtures.js";
 import {
   __testing,
-  MEMORY_EXTRACTION_AGENT_DEFINITION,
-  buildMemoryExtractionSystemPrompt,
-  buildMemoryExtractionTaskPrompt,
-  parseMemoryExtractorResult,
-  runDurableExtractionAgentOnce,
+  DURABLE_MEMORY_AGENT_DEFINITION,
+  buildDurableMemoryAgentSystemPrompt,
+  buildDurableMemoryAgentTaskPrompt,
+  parseDurableMemoryAgentResult,
+  runDurableMemoryAgentOnce,
 } from "./agent-runner.js";
 import { resolveDurableMemoryScope } from "./scope.js";
 
-describe("runDurableExtractionAgentOnce", () => {
+describe("runDurableMemoryAgentOnce", () => {
   const previousRoot = process.env.CRAWCLAW_DURABLE_MEMORY_DIR;
 
   beforeEach(() => {
@@ -30,9 +30,9 @@ describe("runDurableExtractionAgentOnce", () => {
     }
   });
 
-  it("parses strict memory extractor reports", () => {
+  it("parses strict durable memory agent reports", () => {
     expect(
-      parseMemoryExtractorResult(
+      parseDurableMemoryAgentResult(
         [
           "STATUS: WRITTEN",
           "SUMMARY: saved one durable note",
@@ -50,9 +50,9 @@ describe("runDurableExtractionAgentOnce", () => {
     });
   });
 
-  it("parses markdown-formatted memory extractor reports", () => {
+  it("parses markdown-formatted durable memory agent reports", () => {
     expect(
-      parseMemoryExtractorResult(
+      parseDurableMemoryAgentResult(
         [
           "**STATUS: NO_CHANGE**",
           "",
@@ -72,9 +72,14 @@ describe("runDurableExtractionAgentOnce", () => {
     });
   });
 
-  it("aligns the memory extractor prompt with the turn-budget workflow", () => {
-    expect(MEMORY_EXTRACTION_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
-    expect(MEMORY_EXTRACTION_AGENT_DEFINITION.toolPolicy).toMatchObject({
+  it("aligns the durable memory agent prompt with the turn-budget workflow", () => {
+    expect(DURABLE_MEMORY_AGENT_DEFINITION).toMatchObject({
+      id: "durable_memory",
+      label: "durable-memory",
+      spawnSource: "durable-memory",
+    });
+    expect(DURABLE_MEMORY_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
+    expect(DURABLE_MEMORY_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: [
         "memory_manifest_read",
         "memory_note_read",
@@ -85,11 +90,12 @@ describe("runDurableExtractionAgentOnce", () => {
       enforcement: "runtime_deny",
       modelVisibility: "allowlist",
     });
-    expect(MEMORY_EXTRACTION_AGENT_DEFINITION.cachePolicy).toMatchObject({
+    expect(DURABLE_MEMORY_AGENT_DEFINITION.cachePolicy).toMatchObject({
       cacheRetention: "short",
       skipWrite: true,
     });
-    const systemPrompt = buildMemoryExtractionSystemPrompt();
+    const systemPrompt = buildDurableMemoryAgentSystemPrompt();
+    expect(systemPrompt).toContain("# Durable Memory Agent");
     expect(systemPrompt).toContain("hard turn budget of 5 turns");
     expect(systemPrompt).toContain("Use the provided manifest first");
     expect(systemPrompt).toContain(
@@ -107,6 +113,9 @@ describe("runDurableExtractionAgentOnce", () => {
     expect(systemPrompt).toContain(
       "Do not attempt to verify them against code, git state, or external systems",
     );
+    expect(systemPrompt).toContain(
+      "use older parent conversation only to resolve references in the recent messages",
+    );
     expect(systemPrompt).toContain("Do NOT invent created/updated timestamps");
     expect(systemPrompt).toContain("memory_manifest_read");
     expect(systemPrompt).toContain("memory_note_read");
@@ -114,7 +123,7 @@ describe("runDurableExtractionAgentOnce", () => {
     expect(systemPrompt).toContain("memory_note_edit");
     expect(systemPrompt).toContain("memory_note_delete");
 
-    const taskPrompt = buildMemoryExtractionTaskPrompt({
+    const taskPrompt = buildDurableMemoryAgentTaskPrompt({
       scopeKey: "main:feishu:user-1",
       recentMessages: [
         makeAgentUserMessage({
@@ -127,6 +136,9 @@ describe("runDurableExtractionAgentOnce", () => {
       maxNotes: 2,
     });
     expect(taskPrompt).toContain("Existing durable memory manifest:");
+    expect(taskPrompt).toContain(
+      "Older parent fork context may only resolve references inside this window",
+    );
     expect(taskPrompt).toContain(
       "First classify each candidate as durable profile/context memory or experience memory",
     );
@@ -141,8 +153,8 @@ describe("runDurableExtractionAgentOnce", () => {
     expect(taskPrompt).toContain("Update MEMORY.md whenever the note set changes");
   });
 
-  it("spawns a background memory extractor agent and emits action events", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-memory-extractor-agent-"));
+  it("spawns a background durable memory agent and emits action events", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-memory-agent-"));
     process.env.CRAWCLAW_DURABLE_MEMORY_DIR = dir;
     const scope = resolveDurableMemoryScope({
       agentId: "main",
@@ -201,7 +213,7 @@ describe("runDurableExtractionAgentOnce", () => {
       }),
     };
 
-    const result = await runDurableExtractionAgentOnce({
+    const result = await runDurableMemoryAgentOnce({
       sessionId: "session-1",
       sessionKey: "agent:main:feishu:user-1",
       sessionFile: "/tmp/session-1.jsonl",
@@ -221,7 +233,7 @@ describe("runDurableExtractionAgentOnce", () => {
     });
     expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
       expect.objectContaining({
-        specialAgentSpawnSource: "memory-extraction",
+        specialAgentSpawnSource: "durable-memory",
         maxTurns: 5,
         toolsAllow: [
           "memory_manifest_read",
@@ -253,10 +265,10 @@ describe("runDurableExtractionAgentOnce", () => {
       data: expect.objectContaining({
         kind: "memory",
         status: "started",
-        projectedTitle: "Memory extraction scheduled",
+        projectedTitle: "Durable memory agent scheduled",
         projectedSummary: "main:feishu:user-1",
         detail: expect.objectContaining({
-          memoryKind: "extraction",
+          memoryKind: "durable_memory",
           memoryPhase: "scheduled",
         }),
       }),
@@ -265,10 +277,10 @@ describe("runDurableExtractionAgentOnce", () => {
       data: expect.objectContaining({
         kind: "memory",
         status: "running",
-        projectedTitle: "Memory extraction running",
+        projectedTitle: "Durable memory agent running",
         projectedSummary: "main:feishu:user-1",
         detail: expect.objectContaining({
-          memoryKind: "extraction",
+          memoryKind: "durable_memory",
           memoryPhase: "running",
         }),
       }),
@@ -277,11 +289,11 @@ describe("runDurableExtractionAgentOnce", () => {
       data: expect.objectContaining({
         kind: "memory",
         status: "completed",
-        title: "Memory extraction wrote durable notes",
-        projectedTitle: "Memory extraction wrote durable notes",
+        title: "Durable memory agent wrote durable notes",
+        projectedTitle: "Durable memory agent wrote durable notes",
         projectedSummary: "saved one durable note",
         detail: expect.objectContaining({
-          memoryKind: "extraction",
+          memoryKind: "durable_memory",
           memoryPhase: "final",
           memoryResultStatus: "written",
           usage: expect.objectContaining({
@@ -297,8 +309,8 @@ describe("runDurableExtractionAgentOnce", () => {
     });
   });
 
-  it("fails closed when the background memory extractor cannot start", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-memory-extractor-agent-"));
+  it("fails closed when the background durable memory agent cannot start", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-memory-agent-"));
     process.env.CRAWCLAW_DURABLE_MEMORY_DIR = dir;
     const scope = resolveDurableMemoryScope({
       agentId: "main",
@@ -313,7 +325,7 @@ describe("runDurableExtractionAgentOnce", () => {
       runEmbeddedPiAgent: vi.fn().mockRejectedValue(new Error("pairing required")),
     });
 
-    const result = await runDurableExtractionAgentOnce({
+    const result = await runDurableMemoryAgentOnce({
       sessionId: "session-1",
       sessionKey: "agent:main:feishu:user-1",
       sessionFile: "/tmp/session-1.jsonl",
@@ -335,11 +347,11 @@ describe("runDurableExtractionAgentOnce", () => {
         data: expect.objectContaining({
           kind: "memory",
           status: "failed",
-          title: "Memory extraction did not complete",
-          projectedTitle: "Memory extraction did not complete",
+          title: "Durable memory agent did not complete",
+          projectedTitle: "Durable memory agent did not complete",
           projectedSummary: "pairing required",
           detail: expect.objectContaining({
-            memoryKind: "extraction",
+            memoryKind: "durable_memory",
             memoryPhase: "wait_failed",
           }),
         }),

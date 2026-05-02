@@ -10,7 +10,6 @@ import type {
   AppendContextArchiveEventInput,
   AppendRawEventInput,
   AppendRecallFeedbackInput,
-  AcquireDreamLockInput,
   CompactionAudit,
   ContextAssemblyAudit,
   ContextArchiveBlobRow,
@@ -18,8 +17,6 @@ import type {
   ContextArchiveRunRow,
   CreatePipelineJobInput,
   CreateContextArchiveRunInput,
-  DreamLockAcquireResult,
-  DreamStateRow,
   CreateMaintenanceRunInput,
   CreatePromotionCandidateInput,
   DeadLetter,
@@ -44,11 +41,8 @@ import type {
   UpdateContextArchiveRunInput,
   UpdateMaintenanceRunInput,
   UpdatePromotionCandidateInput,
-  ReleaseDreamLockInput,
-  TouchDreamAttemptInput,
   UpsertMediaAssetInput,
   UpsertDurableExtractionCursorInput,
-  UpsertSessionScopeInput,
   UpsertContextArchiveBlobInput,
   UpsertObservationBackfillCheckpointInput,
   UpsertObservationEventInput,
@@ -195,7 +189,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     }
     this.ensureCanonicalMessageSchema();
     this.ensureAutomationMultimodalRuntimeSchema();
-    this.ensureDreamStateColumns();
     this.ensureMessageRuntimeMetaColumns();
     this.ensureMessageRuntimeShapeColumns();
     this.ensureSessionCompactionStateColumns();
@@ -1032,8 +1025,16 @@ export class SqliteRuntimeStore implements RuntimeStore {
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(session_id) DO UPDATE SET
         session_key = excluded.session_key,
-        last_extracted_turn = excluded.last_extracted_turn,
-        last_extracted_message_id = excluded.last_extracted_message_id,
+        last_extracted_turn = CASE
+          WHEN excluded.last_extracted_turn >= gm_durable_extraction_cursor.last_extracted_turn
+          THEN excluded.last_extracted_turn
+          ELSE gm_durable_extraction_cursor.last_extracted_turn
+        END,
+        last_extracted_message_id = CASE
+          WHEN excluded.last_extracted_turn >= gm_durable_extraction_cursor.last_extracted_turn
+          THEN excluded.last_extracted_message_id
+          ELSE gm_durable_extraction_cursor.last_extracted_message_id
+        END,
         last_run_at = excluded.last_run_at,
         updated_at = excluded.updated_at`).run(
       input.sessionId,
@@ -1042,189 +1043,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
       input.lastExtractedMessageId ?? null,
       input.lastRunAt ?? null,
       input.updatedAt ?? Date.now(),
-    );
-  }
-
-  async upsertSessionScope(input: UpsertSessionScopeInput): Promise<void> {
-    const db = this.getDb();
-    const now = input.updatedAt ?? Date.now();
-    db.prepare(`INSERT INTO gm_session_scope
-      (session_id, session_key, scope_key, agent_id, channel, user_id, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(session_id) DO UPDATE SET
-        session_key = excluded.session_key,
-        scope_key = excluded.scope_key,
-        agent_id = excluded.agent_id,
-        channel = excluded.channel,
-        user_id = excluded.user_id,
-        updated_at = excluded.updated_at`).run(
-      input.sessionId,
-      input.sessionKey ?? null,
-      input.scopeKey,
-      input.agentId ?? null,
-      input.channel ?? null,
-      input.userId ?? null,
-      now,
-    );
-  }
-
-  async listScopedSessionIdsTouchedSince(
-    scopeKey: string,
-    sinceTime: number,
-    excludeSessionId?: string | null,
-    limit = 100,
-  ): Promise<string[]> {
-    const db = this.getDb();
-    const rows = excludeSessionId
-      ? (db
-          .prepare(`SELECT m.session_id AS session_id, MAX(m.created_at) AS max_created_at
-          FROM gm_messages m
-          JOIN gm_session_scope s ON s.session_id = m.session_id
-          WHERE s.scope_key = ? AND m.created_at > ? AND m.session_id <> ?
-          GROUP BY m.session_id
-          ORDER BY max_created_at DESC
-          LIMIT ?`)
-          .all(scopeKey, sinceTime, excludeSessionId, limit) as Array<{ session_id: string }>)
-      : (db
-          .prepare(`SELECT m.session_id AS session_id, MAX(m.created_at) AS max_created_at
-          FROM gm_messages m
-          JOIN gm_session_scope s ON s.session_id = m.session_id
-          WHERE s.scope_key = ? AND m.created_at > ?
-          GROUP BY m.session_id
-          ORDER BY max_created_at DESC
-          LIMIT ?`)
-          .all(scopeKey, sinceTime, limit) as Array<{ session_id: string }>);
-    return rows.map((row) => row.session_id).filter(Boolean);
-  }
-
-  async getDreamState(scopeKey: string): Promise<DreamStateRow | null> {
-    const db = this.getDb();
-    const row = db
-      .prepare(`SELECT * FROM gm_dream_state WHERE scope_key = ? LIMIT 1`)
-      .get(scopeKey);
-    return row ? this.mapDreamStateRow(row) : null;
-  }
-
-  async touchDreamAttempt(input: TouchDreamAttemptInput): Promise<void> {
-    const db = this.getDb();
-    const now = input.now ?? Date.now();
-    db.prepare(`INSERT INTO gm_dream_state
-      (scope_key, last_attempt_at, last_skip_reason, updated_at)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(scope_key) DO UPDATE SET
-        last_attempt_at = excluded.last_attempt_at,
-        last_skip_reason = excluded.last_skip_reason,
-        updated_at = excluded.updated_at`).run(input.scopeKey, now, input.reason ?? null, now);
-  }
-
-  async acquireDreamLock(input: AcquireDreamLockInput): Promise<DreamLockAcquireResult> {
-    const db = this.getDb();
-    const now = input.now ?? Date.now();
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      const current = db
-        .prepare(`SELECT * FROM gm_dream_state WHERE scope_key = ? LIMIT 1`)
-        .get(input.scopeKey);
-      const currentState = current
-        ? this.mapDreamStateRow(current)
-        : ({
-            scopeKey: input.scopeKey,
-            lastSuccessAt: null,
-            lastAttemptAt: null,
-            lastFailureAt: null,
-            lastSkipReason: null,
-            lockOwner: null,
-            lockAcquiredAt: null,
-            lastRunId: null,
-            updatedAt: now,
-          } satisfies DreamStateRow);
-      const lockHeld = Boolean(
-        currentState.lockOwner &&
-        currentState.lockAcquiredAt != null &&
-        now - currentState.lockAcquiredAt < Math.max(1, input.staleAfterMs),
-      );
-      if (lockHeld && currentState.lockOwner !== input.owner) {
-        db.prepare(`INSERT INTO gm_dream_state
-          (scope_key, last_success_at, last_attempt_at, last_failure_at, last_skip_reason, lock_owner, lock_acquired_at, last_run_id, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(scope_key) DO UPDATE SET
-            last_attempt_at = excluded.last_attempt_at,
-            last_skip_reason = excluded.last_skip_reason,
-            updated_at = excluded.updated_at`).run(
-          input.scopeKey,
-          currentState.lastSuccessAt,
-          now,
-          currentState.lastFailureAt,
-          "lock_held",
-          currentState.lockOwner,
-          currentState.lockAcquiredAt,
-          currentState.lastRunId,
-          now,
-        );
-        db.exec("COMMIT");
-        return {
-          acquired: false,
-          state: {
-            ...currentState,
-            lastAttemptAt: now,
-            lastSkipReason: "lock_held",
-            updatedAt: now,
-          },
-        };
-      }
-      db.prepare(`INSERT INTO gm_dream_state
-        (scope_key, last_success_at, last_attempt_at, last_failure_at, last_skip_reason, lock_owner, lock_acquired_at, last_run_id, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(scope_key) DO UPDATE SET
-          last_attempt_at = excluded.last_attempt_at,
-          last_skip_reason = excluded.last_skip_reason,
-          lock_owner = excluded.lock_owner,
-          lock_acquired_at = excluded.lock_acquired_at,
-          updated_at = excluded.updated_at`).run(
-        input.scopeKey,
-        currentState.lastSuccessAt,
-        now,
-        currentState.lastFailureAt,
-        null,
-        input.owner,
-        now,
-        currentState.lastRunId,
-        now,
-      );
-      const next = db
-        .prepare(`SELECT * FROM gm_dream_state WHERE scope_key = ? LIMIT 1`)
-        .get(input.scopeKey);
-      db.exec("COMMIT");
-      return {
-        acquired: true,
-        state: this.mapDreamStateRow(next),
-      };
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
-  }
-
-  async releaseDreamLock(input: ReleaseDreamLockInput): Promise<void> {
-    const db = this.getDb();
-    const now = input.now ?? Date.now();
-    db.prepare(`UPDATE gm_dream_state
-      SET last_success_at = CASE WHEN ? = 'succeeded' THEN ? ELSE last_success_at END,
-          last_failure_at = CASE WHEN ? = 'failed' THEN ? ELSE last_failure_at END,
-          last_skip_reason = NULL,
-          lock_owner = NULL,
-          lock_acquired_at = NULL,
-          last_run_id = COALESCE(?, last_run_id),
-          updated_at = ?
-      WHERE scope_key = ? AND (lock_owner IS NULL OR lock_owner = ?)`).run(
-      input.status,
-      now,
-      input.status,
-      now,
-      input.runId ?? null,
-      now,
-      input.scopeKey,
-      input.owner,
     );
   }
 
@@ -1447,29 +1265,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
     });
   }
 
-  private mapDreamStateRow(row: unknown): DreamStateRow {
-    const rec = requireSqliteRow(row, "Invalid dream state row");
-    return {
-      scopeKey: String(rec.scope_key ?? ""),
-      lastSuccessAt: sqliteNullableString(rec.last_success_at)
-        ? sqliteNumber(rec.last_success_at)
-        : null,
-      lastAttemptAt: sqliteNullableString(rec.last_attempt_at)
-        ? sqliteNumber(rec.last_attempt_at)
-        : null,
-      lastFailureAt: sqliteNullableString(rec.last_failure_at)
-        ? sqliteNumber(rec.last_failure_at)
-        : null,
-      lastSkipReason: sqliteNullableString(rec.last_skip_reason),
-      lockOwner: sqliteNullableString(rec.lock_owner),
-      lockAcquiredAt: sqliteNullableString(rec.lock_acquired_at)
-        ? sqliteNumber(rec.lock_acquired_at)
-        : null,
-      lastRunId: sqliteNullableString(rec.last_run_id),
-      updatedAt: sqliteNumber(rec.updated_at),
-    };
-  }
-
   async listRecentMergeAudits(limit: number): Promise<MergeAudit[]> {
     const db = this.getDb();
     const rows = db
@@ -1523,10 +1318,6 @@ export class SqliteRuntimeStore implements RuntimeStore {
       throw new Error("RuntimeStore not initialized");
     }
     return this.db;
-  }
-
-  private ensureDreamStateColumns() {
-    this.ensureColumn("gm_dream_state", "last_skip_reason", "TEXT");
   }
 
   private ensureMessageRuntimeMetaColumns() {

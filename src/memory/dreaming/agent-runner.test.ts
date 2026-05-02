@@ -77,6 +77,10 @@ describe("runDreamAgentOnce", () => {
     expect(DREAM_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
     expect(DREAM_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: [
+        "read",
+        "exec",
+        "write",
+        "edit",
         "memory_manifest_read",
         "memory_note_read",
         "memory_note_write",
@@ -85,15 +89,21 @@ describe("runDreamAgentOnce", () => {
       ],
       enforcement: "runtime_deny",
       modelVisibility: "allowlist",
+      guard: "memory_maintenance",
     });
     expect(DREAM_AGENT_DEFINITION.cachePolicy).toMatchObject({
       cacheRetention: "short",
       skipWrite: true,
     });
     const systemPrompt = buildDreamSystemPrompt();
-    expect(systemPrompt).toContain("hard turn budget of 8 turns");
+    expect(DREAM_AGENT_DEFINITION.defaultMaxTurns).toBeUndefined();
+    expect(systemPrompt).not.toContain("hard turn budget");
+    expect(systemPrompt).toContain("Complete within the run timeout");
     expect(systemPrompt).toContain("Review the provided recent session summaries");
-    expect(systemPrompt).toContain("Do not grep transcripts as a primary workflow");
+    expect(systemPrompt).toContain("session transcript references");
+    expect(systemPrompt).toContain("read-only exec");
+    expect(systemPrompt).toContain("host guard blocks non-read-only exec");
+    expect(systemPrompt).toContain("Use transcript refs like Claude Code auto-dream");
     expect(systemPrompt).toContain(
       "Do NOT create or rewrite durable notes for reusable procedures, command sequences, debugging workflows, test strategies, failure patterns, or implementation lessons",
     );
@@ -118,11 +128,12 @@ describe("runDreamAgentOnce", () => {
           updatedAt: Date.now(),
         },
       ],
+      recentTranscriptRefs: [{ sessionId: "s1", path: "/tmp/s1.jsonl" }],
       recentSignals: [
         {
           sessionId: "s1",
           kind: "archive_actions",
-          text: "Memory extraction wrote durable notes",
+          text: "Durable memory agent wrote durable notes",
         },
       ],
       existingEntries: [],
@@ -133,6 +144,10 @@ describe("runDreamAgentOnce", () => {
     expect(taskPrompt).toContain("source=session_summary");
     expect(taskPrompt).toContain("<session_summary>");
     expect(taskPrompt).toContain("</session_summary>");
+    expect(taskPrompt).toContain(
+      "Session transcripts available for narrow read/read-only-exec search",
+    );
+    expect(taskPrompt).toContain("session=s1 | path=/tmp/s1.jsonl");
     expect(taskPrompt).toContain("Recent structured signals:");
     expect(taskPrompt).toContain("<signal>");
     expect(taskPrompt).toContain("</signal>");
@@ -154,6 +169,7 @@ describe("runDreamAgentOnce", () => {
           updatedAt: Date.now(),
         },
       ],
+      recentTranscriptRefs: [],
       recentSignals: [],
       existingEntries: [],
     });
@@ -232,11 +248,12 @@ describe("runDreamAgentOnce", () => {
           updatedAt: Date.now(),
         },
       ],
+      recentTranscriptRefs: [{ sessionId: "s1", path: "/tmp/s1.jsonl" }],
       recentSignals: [
         {
           sessionId: "s1",
           kind: "archive_actions",
-          text: "Memory extraction wrote durable notes",
+          text: "Durable memory agent wrote durable notes",
         },
       ],
     });
@@ -251,8 +268,11 @@ describe("runDreamAgentOnce", () => {
         specialAgentSpawnSource: "dream",
         provider: "openai",
         model: "gpt-5.4",
-        maxTurns: 8,
         toolsAllow: [
+          "read",
+          "exec",
+          "write",
+          "edit",
           "memory_manifest_read",
           "memory_note_read",
           "memory_note_write",
@@ -267,12 +287,13 @@ describe("runDreamAgentOnce", () => {
         workspaceDir: dir,
       }),
     );
+    expect(runEmbeddedPiAgent.mock.calls[0]?.[0]).not.toHaveProperty("maxTurns");
     const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as
-      | { sessionId?: string; sessionFile?: string }
+      | { sessionId?: string; sessionFile?: string; specialParentPromptEnvelope?: unknown }
       | undefined;
     expect(embeddedParams?.sessionId).not.toBe("session-1");
     expect(embeddedParams?.sessionFile).not.toBe("/tmp/session-1.jsonl");
-    expect(runEmbeddedPiAgent.mock.calls[0]?.[0]).not.toHaveProperty("specialParentPromptEnvelope");
+    expect(embeddedParams?.specialParentPromptEnvelope).toEqual(parentForkContext.promptEnvelope);
     expect(emitAgentActionEvent).toHaveBeenCalledTimes(4);
     expect(emitAgentActionEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({

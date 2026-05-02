@@ -102,7 +102,7 @@ describe("ensureAllowedToolsActiveInSession", () => {
     expect(
       __private?.({
         inheritedToolNames: ["read", "write"],
-        specialAgentSpawnSource: "memory-extraction",
+        specialAgentSpawnSource: "durable-memory",
       }),
     ).toBeUndefined();
   });

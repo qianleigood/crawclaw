@@ -9,6 +9,7 @@ import type { ModelCompatConfig } from "../config/types.models.js";
 import type { ToolLoopDetectionConfig } from "../config/types.tools.js";
 import { resolveMergedSafeBinProfileFixtures } from "../infra/exec-safe-bin-runtime-policy.js";
 import { logWarn } from "../logger.js";
+import { resolveDurableMemoryScope } from "../memory/durable/scope.js";
 import { SESSION_SUMMARY_SPAWN_SOURCE } from "../memory/session-summary/agent-runner.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
@@ -27,7 +28,10 @@ import { createCrawClawTools } from "./crawclaw-tools.js";
 import { resolveImageSanitizationLimits } from "./image-sanitization.js";
 import type { ModelAuthMode } from "./model-auth.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
-import { wrapToolWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
+import {
+  type SpecialToolGuardContext,
+  wrapToolWithBeforeToolCallHook,
+} from "./pi-tools.before-tool-call.js";
 import {
   isToolAllowedByPolicies,
   resolveEffectiveToolPolicy,
@@ -56,7 +60,6 @@ import { cleanSchemaForGemini } from "./schema/clean-for-gemini.js";
 import type { SkillSemanticRetriever } from "./skills/discovery.js";
 import { createSkillSemanticRetrieverFromConfig } from "./skills/semantic-retrieval.js";
 import { resolveSpecialAgentDefinitionBySpawnSource } from "./special/runtime/registry.js";
-import { listCoreToolIdsByLifecycle } from "./tool-catalog.js";
 import { createToolFsPolicy, resolveToolFsConfig } from "./tool-fs-policy.js";
 import {
   applyToolPolicyPipeline,
@@ -66,7 +69,6 @@ import {
   applyOwnerOnlyToolPolicy,
   collectExplicitAllowlist,
   mergeAlsoAllowPolicy,
-  normalizeToolName,
   resolveToolProfilePolicy,
 } from "./tool-policy.js";
 import { createDiscoverSkillsTool } from "./tools/discover-skills-tool.js";
@@ -85,31 +87,10 @@ const TOOL_ALLOW_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>
   node: ["canvas", "discover_skills", "image", "pdf", "tts", "web_fetch", "web_search"],
 };
 const MEMORY_FLUSH_ALLOWED_TOOL_NAMES = new Set(["read", "write"]);
-const HOST_GATED_TOOL_NAMES = new Set(
-  listCoreToolIdsByLifecycle("host_gated").map((name) => normalizeToolName(name)),
-);
 
 function normalizeMessageProvider(messageProvider?: string): string | undefined {
   const normalized = messageProvider?.trim().toLowerCase();
   return normalized && normalized.length > 0 ? normalized : undefined;
-}
-
-function applyHostGatedToolVisibility(
-  tools: AnyAgentTool[],
-  allowedToolNames: readonly string[] | undefined,
-): AnyAgentTool[] {
-  if (HOST_GATED_TOOL_NAMES.size === 0) {
-    return tools;
-  }
-  const allowed = new Set(
-    (allowedToolNames ?? [])
-      .map((toolName) => normalizeToolName(toolName))
-      .filter((toolName) => toolName.length > 0),
-  );
-  return tools.filter((tool) => {
-    const name = normalizeToolName(tool.name);
-    return !HOST_GATED_TOOL_NAMES.has(name) || allowed.has(name);
-  });
 }
 
 function resolveSessionSpawnContext(params: {
@@ -437,8 +418,6 @@ export function createCrawClawCodingTools(options?: {
   skillSemanticRetrieve?: SkillSemanticRetriever;
   /** Optional sink for policy diagnostics that should be surfaced to callers. */
   toolPolicyDiagnostics?: string[];
-  /** Host-provided turn-scoped tools that may bypass lifecycle visibility gates. */
-  runtimeToolAlsoAllow?: string[];
   /** Explicit special-agent spawn source for embedded fork runs. */
   specialAgentSpawnSource?: string;
   /** Explicit durable-memory scope for embedded fork runs. */
@@ -530,37 +509,40 @@ export function createCrawClawCodingTools(options?: {
       ? [...specialAgentToolPolicy.allowlist]
       : undefined;
   const specialAgentAlsoAllow = specialAgentRuntimeAllowlist ?? [];
-  const runtimeToolAlsoAllow = options?.runtimeToolAlsoAllow ?? [];
+  const specialAgentMemoryScope =
+    specialAgentToolPolicy?.guard === "memory_maintenance" && sessionSpawnContext.durableMemoryScope
+      ? resolveDurableMemoryScope({
+          agentId: sessionSpawnContext.durableMemoryScope.agentId,
+          channel: sessionSpawnContext.durableMemoryScope.channel,
+          userId: sessionSpawnContext.durableMemoryScope.userId,
+        })
+      : null;
+  const specialToolGuard =
+    specialAgentToolPolicy?.guard === "memory_maintenance"
+      ? ({
+          kind: "memory_maintenance",
+          ...(specialAgentMemoryScope?.rootDir
+            ? { memoryDir: specialAgentMemoryScope.rootDir }
+            : {}),
+        } satisfies SpecialToolGuardContext)
+      : undefined;
   const profilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(profilePolicy, [
     ...(profileAlsoAllow ?? []),
     ...specialAgentAlsoAllow,
-    ...runtimeToolAlsoAllow,
   ]);
   const providerProfilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(providerProfilePolicy, [
     ...(providerProfileAlsoAllow ?? []),
     ...specialAgentAlsoAllow,
-    ...runtimeToolAlsoAllow,
   ]);
-  const globalPolicyWithSpecialAllow = mergeAlsoAllowPolicy(globalPolicy, [
-    ...specialAgentAlsoAllow,
-    ...runtimeToolAlsoAllow,
-  ]);
+  const globalPolicyWithSpecialAllow = mergeAlsoAllowPolicy(globalPolicy, specialAgentAlsoAllow);
   const globalProviderPolicyWithSpecialAllow = mergeAlsoAllowPolicy(globalProviderPolicy, [
     ...specialAgentAlsoAllow,
-    ...runtimeToolAlsoAllow,
   ]);
-  const agentPolicyWithSpecialAllow = mergeAlsoAllowPolicy(agentPolicy, [
-    ...specialAgentAlsoAllow,
-    ...runtimeToolAlsoAllow,
-  ]);
+  const agentPolicyWithSpecialAllow = mergeAlsoAllowPolicy(agentPolicy, specialAgentAlsoAllow);
   const agentProviderPolicyWithSpecialAllow = mergeAlsoAllowPolicy(agentProviderPolicy, [
     ...specialAgentAlsoAllow,
-    ...runtimeToolAlsoAllow,
   ]);
-  const groupPolicyWithSpecialAllow = mergeAlsoAllowPolicy(groupPolicy, [
-    ...specialAgentAlsoAllow,
-    ...runtimeToolAlsoAllow,
-  ]);
+  const groupPolicyWithSpecialAllow = mergeAlsoAllowPolicy(groupPolicy, specialAgentAlsoAllow);
   const allowBackground = isToolAllowedByPolicies("process", [
     profilePolicyWithAlsoAllow,
     providerProfilePolicyWithAlsoAllow,
@@ -838,13 +820,9 @@ export function createCrawClawCodingTools(options?: {
     agentDir: options?.agentDir,
     modelCompat: options?.modelCompat,
   });
-  const toolsForHostGating = applyHostGatedToolVisibility(toolsForModelProvider, [
-    ...runtimeToolAlsoAllow,
-    ...(specialAgentToolPolicy?.allowlist ?? []),
-  ]);
   // Security: treat unknown/undefined as unauthorized (opt-in, not opt-out)
   const senderIsOwner = options?.senderIsOwner === true;
-  const toolsByAuthorization = applyOwnerOnlyToolPolicy(toolsForHostGating, senderIsOwner);
+  const toolsByAuthorization = applyOwnerOnlyToolPolicy(toolsForModelProvider, senderIsOwner);
   const subagentFiltered = applyToolPolicyPipeline({
     tools: toolsByAuthorization,
     toolMeta: (tool) => getPluginToolMeta(tool),
@@ -892,6 +870,7 @@ export function createCrawClawCodingTools(options?: {
       ...(specialAgentRuntimeAllowlist?.length
         ? { specialToolAllowlist: specialAgentRuntimeAllowlist }
         : {}),
+      ...(specialToolGuard ? { specialToolGuard } : {}),
     }),
   );
   const withAbort = options?.abortSignal

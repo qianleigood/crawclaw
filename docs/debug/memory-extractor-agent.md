@@ -1,21 +1,22 @@
 ---
 read_when:
   - You want to refactor durable memory auto-write into a background agent
-  - You want the exact trigger rules, input contract, capability boundary, and rollout plan for a memory_extractor agent
-  - You want a practical mapping from parent-context memory extraction to CrawClaw's runtime architecture
-summary: Design for refactoring durable memory auto-write into a background memory_extractor agent
-title: Memory Extractor Agent Design
+  - You want the exact trigger rules, input contract, capability boundary, and rollout plan for a durable_memory agent
+  - You want a practical mapping from parent-context durable memory maintenance to CrawClaw's runtime architecture
+summary: Design for refactoring durable memory auto-write into a background durable_memory agent
+title: Durable Memory Agent Design
 ---
 
-# Memory Extractor Agent Design
+# Durable Memory Agent Design
 
 This document records the refactor direction that has now been landed:
 
 **move CrawClaw durable memory auto-write from the former synchronous extraction
-flow into a constrained background `memory_extractor` agent.**
+flow into a constrained background `durable_memory` agent.**
 
-The goal was not to copy Claude's implementation literally. It was to borrow two
-durable-memory properties and fit them into CrawClaw's runtime architecture:
+The goal was to align with Claude Code's durable-memory mechanics without
+copying its file-native implementation literally. CrawClaw borrows two
+durable-memory properties and fits them into CrawClaw's runtime architecture:
 
 - more complete extraction rules
 - a background execution shape that does not block the main interaction loop
@@ -64,17 +65,17 @@ As of the current version, the main path is already landed:
 - `write_experience_note` no longer suppresses durable extraction
 - bidirectional durable `feedback` guidance, with operational experience routed
   away from durable extraction
-- task-backed background `memory_extractor`
-- hard stop at `maxTurns: 5` for the extraction agent
+- task-backed background `durable_memory`
+- hard stop at `maxTurns: 5` for the durable memory agent
 - manifest-first prompt workflow: candidate review first, then tightly batched durable writes within the 5-turn budget
-- scoped memory file tools now back the extractor:
+- scoped memory file tools now back the durable memory agent:
   - `memory_manifest_read`
   - `memory_note_read`
   - `memory_note_write`
   - `memory_note_edit`
   - `memory_note_delete`
 - Action Feed and Context Archive integration
-- explicit durable scope inheritance for memory-extraction child sessions
+- explicit durable scope inheritance for durable-memory child sessions
 - parent fork context inheritance for continuity, with the cursor window kept as
   the authoritative extraction source
 
@@ -84,7 +85,7 @@ The current trigger semantics are now aligned with "settled top-level
 turn end" in a stricter sense:
 
 - `afterTurn` is only reached from post-turn finalization
-- `memory_extractor` is scheduled only when the turn's new messages include a
+- `durable_memory` is scheduled only when the turn's new messages include a
   final assistant reply
 - if that latest assistant reply still contains tool calls, or ended in
   `error` / `aborted`, extraction is skipped for that turn
@@ -111,9 +112,11 @@ But it also has real limits:
 - awkward to surface in Action Feed
 - behaves more like a runtime helper than a real background maintenance unit
 
-### Why not copy Claude's file-native forked extractor directly
+### Claude mechanism alignment versus file-native copying
 
-Claude's forked extractor writes memory files directly. That works there, but CrawClaw already has better infrastructure for this:
+Claude's forked extractor writes memory files directly through normal file tools
+restricted by runtime permission checks. That works there, but CrawClaw already
+has better infrastructure for this:
 
 - task-backed runtime
 - guard and capability policy
@@ -123,7 +126,7 @@ Claude's forked extractor writes memory files directly. That works there, but Cr
 
 So the right approach is:
 
-- **borrow the parent-context execution pattern**
+- **align with the parent-context execution pattern**
 - **keep CrawClaw's durable store and upsert model**
 
 ## Core design
@@ -132,8 +135,8 @@ So the right approach is:
 
 Introduce a special built-in agent profile:
 
-- `agentId: memory_extractor`
-- `spawnSource: "memory-extraction"`
+- `agentId: durable_memory`
+- `spawnSource: "durable-memory"`
 - `mode: background`
 - task-backed
 - hidden from ordinary chat transcript by default
@@ -141,7 +144,7 @@ Introduce a special built-in agent profile:
 This is conceptually similar to review stages:
 
 - review stages = read-only validation agents
-- memory_extractor = durable-memory maintenance agent
+- durable_memory = durable-memory maintenance agent
 
 ### Trigger rules
 
@@ -159,7 +162,7 @@ Explicitly **not** a skip condition:
 
 ### Input contract
 
-The input to `memory_extractor` must be narrow and structured:
+The input to `durable_memory` must be narrow and structured:
 
 ```ts
 type MemoryExtractorInput = {
@@ -272,7 +275,7 @@ If the turn already used:
 - `memory_note_edit`
 - `memory_note_delete`
 
-then the memory_extractor skips that turn and still advances the cursor.
+then the durable_memory skips that turn and still advances the cursor.
 
 ### `write_experience_note` should not suppress durable extraction
 
@@ -335,15 +338,15 @@ Advance rules:
 
 ### Action Feed
 
-`memory_extractor` should be first-class in Action Feed.
+`durable_memory` should be first-class in Action Feed.
 
 Minimum actions:
 
-- `memory extraction scheduled`
-- `memory extraction running`
-- `memory extraction skipped`
-- `memory extraction wrote 2 notes`
-- `memory extraction failed`
+- `durable memory agent scheduled`
+- `durable memory agent running`
+- `durable memory agent skipped`
+- `durable memory agent wrote 2 notes`
+- `durable memory agent failed`
 
 ### Context Archive
 
@@ -380,19 +383,19 @@ Completed:
 During this transition, the legacy structured extraction + upsert path was
 briefly reused.
 
-### Phase 2: move execution into a background `memory_extractor` agent
+### Phase 2: move execution into a background `durable_memory` agent
 
 Completed:
 
 - durable auto-write becomes a task-backed background special agent
-- scoped memory file tools replace the earlier high-level durable write tools inside `memory_extractor`
+- scoped memory file tools replace the earlier high-level durable write tools inside `durable_memory`
 - Action Feed / Archive / inspect all integrate cleanly
 
 Current final state:
 
 - the former structured extraction worker has been removed from the durable
   auto-write path
-- `memory_extractor` is the only automatic durable write path
+- `durable_memory` is the only automatic durable write path
 
 ## Completed PR breakdown
 
@@ -410,7 +413,7 @@ bidirectional durable feedback guidance
 
 ### PR-D
 
-background memory_extractor agent
+background durable_memory agent
 
 ### PR-E
 
@@ -418,7 +421,7 @@ Action Feed / Archive / inspect integration
 
 ## Bottom line
 
-The most valuable move here is not piling more prompt logic onto the existing after-turn extractor.
+The most valuable move here is not piling more prompt logic onto the existing after-turn extraction helper.
 
 It is:
 

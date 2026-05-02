@@ -2,7 +2,7 @@
 title: "Session vs Memory"
 summary: "Boundary between raw session history and retained memory"
 read_when:
-  - You are working on sessions, transcript storage, or memory extraction
+  - You are working on sessions, transcript storage, or the durable memory agent
   - You need to explain what remains after a session is evaluated
 ---
 

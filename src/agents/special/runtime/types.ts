@@ -10,11 +10,13 @@ import type { SpecialAgentParentForkContext } from "./parent-fork-context.js";
 
 export type SpecialAgentTranscriptPolicy = "isolated" | "thread_bound";
 export type SpecialAgentExecutionMode = "embedded_fork" | "spawned_session";
+export type SpecialAgentToolGuard = "memory_maintenance";
 
 export type SpecialAgentToolPolicy = {
   allowlist: readonly string[];
   enforcement?: "prompt_allowlist" | "runtime_deny";
   modelVisibility?: "allowlist" | "full_inventory";
+  guard?: SpecialAgentToolGuard;
 };
 
 export type SpecialAgentCachePolicy = {

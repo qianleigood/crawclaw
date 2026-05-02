@@ -1,5 +1,7 @@
+import path from "node:path";
 import { getRuntimeConfigSnapshot } from "../config/config.js";
 import type { ToolLoopDetectionConfig } from "../config/types.tools.js";
+import { analyzeShellCommand } from "../infra/exec-approvals-analysis.js";
 import type { SessionState } from "../logging/diagnostic-session-state.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
@@ -27,6 +29,12 @@ export type HookContext = {
   sandboxed?: boolean;
   loopDetection?: ToolLoopDetectionConfig;
   specialToolAllowlist?: string[];
+  specialToolGuard?: SpecialToolGuardContext;
+};
+
+export type SpecialToolGuardContext = {
+  kind: "memory_maintenance";
+  memoryDir?: string;
 };
 
 export type ToolCallRuntimeContext = Pick<
@@ -50,6 +58,47 @@ const ARCHIVE_DECISION_LABEL = "tool-guard-loop-decisions";
 const MAX_ARCHIVE_DECISION_RUN_IDS = 256;
 const archiveDecisionRunIdsByScope = new Map<string, string>();
 const activeToolCallContextById = new Map<string, ToolCallRuntimeContext>();
+const MEMORY_MAINTENANCE_SCOPED_TOOL_NAMES = new Set([
+  "memory_manifest_read",
+  "memory_note_read",
+  "memory_note_write",
+  "memory_note_edit",
+  "memory_note_delete",
+]);
+const MEMORY_MAINTENANCE_RAW_FS_TOOL_NAMES = new Set(["write", "edit"]);
+const MEMORY_MAINTENANCE_READ_ONLY_EXECUTABLES = new Set([
+  "cat",
+  "find",
+  "grep",
+  "head",
+  "ls",
+  "pwd",
+  "rg",
+  "stat",
+  "tail",
+  "wc",
+]);
+const FIND_MUTATING_OPTIONS = new Set([
+  "-delete",
+  "-exec",
+  "-execdir",
+  "-fls",
+  "-fprint",
+  "-fprint0",
+  "-fprintf",
+  "-ok",
+  "-okdir",
+]);
+const EXEC_GUARD_BLOCKED_PARAMS = new Set([
+  "ask",
+  "background",
+  "elevated",
+  "host",
+  "node",
+  "pty",
+  "security",
+  "yieldMs",
+]);
 
 function emitLoopActionEvent(params: {
   runId?: string;
@@ -119,6 +168,197 @@ function emitGuardBlockedActionEvent(params: {
       },
     },
   });
+}
+
+function normalizeExecutableName(argv0: string | undefined): string | undefined {
+  const raw = argv0?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  const base = path.basename(raw).toLowerCase();
+  return base.endsWith(".exe") ? base.slice(0, -4) : base;
+}
+
+function isShellEnvAssignmentToken(token: string | undefined): boolean {
+  return Boolean(token && /^[A-Za-z_][A-Za-z0-9_]*=.*$/u.test(token));
+}
+
+function hasActiveExecGuardOverride(record: Record<string, unknown>): boolean {
+  const env = record.env;
+  if (env !== undefined) {
+    if (!isPlainObject(env)) {
+      return true;
+    }
+    if (Object.keys(env).length > 0) {
+      return true;
+    }
+  }
+  for (const key of EXEC_GUARD_BLOCKED_PARAMS) {
+    const value = record[key];
+    if (value === undefined || value === null) {
+      continue;
+    }
+    if (typeof value === "boolean") {
+      if (value) {
+        return true;
+      }
+      continue;
+    }
+    if (typeof value === "string") {
+      if (value.trim()) {
+        return true;
+      }
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
+function isReadOnlyFindInvocation(argv: string[]): boolean {
+  return !argv
+    .slice(1)
+    .some((token) => FIND_MUTATING_OPTIONS.has(token) || /^-(?:exec|ok)(?:dir)?\b/u.test(token));
+}
+
+function isReadOnlyTailInvocation(argv: string[]): boolean {
+  return !argv.slice(1).some((token) => token === "-f" || token === "--follow");
+}
+
+function isReadOnlyExecCommand(
+  command: string,
+): { allowed: true } | { allowed: false; reason: string } {
+  const analysis = analyzeShellCommand({ command });
+  if (!analysis.ok) {
+    return { allowed: false, reason: analysis.reason ?? "unsupported shell syntax" };
+  }
+  for (const segment of analysis.segments) {
+    const firstCommandIndex = segment.argv.findIndex((token) => !isShellEnvAssignmentToken(token));
+    if (firstCommandIndex > 0) {
+      return {
+        allowed: false,
+        reason: "inline environment assignments are not allowed for memory maintenance exec",
+      };
+    }
+    const executable = normalizeExecutableName(segment.argv[firstCommandIndex]);
+    if (!executable || !MEMORY_MAINTENANCE_READ_ONLY_EXECUTABLES.has(executable)) {
+      return {
+        allowed: false,
+        reason: executable
+          ? `exec command "${executable}" is not read-only-allowlisted`
+          : "exec command is empty",
+      };
+    }
+    if (executable === "find" && !isReadOnlyFindInvocation(segment.argv)) {
+      return { allowed: false, reason: "find mutating actions are not allowed" };
+    }
+    if (executable === "tail" && !isReadOnlyTailInvocation(segment.argv)) {
+      return { allowed: false, reason: "tail follow mode is not allowed" };
+    }
+  }
+  return { allowed: true };
+}
+
+function resolvePathAlias(record: Record<string, unknown>): string | undefined {
+  for (const key of ["path", "file_path", "filePath", "file"]) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function isPathWithinOrEqual(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function resolveMemoryMaintenanceFileParams(
+  params: unknown,
+  guard: SpecialToolGuardContext,
+): { ok: true; params: unknown } | { ok: false; reason: string } {
+  if (!isPlainObject(params)) {
+    return { ok: false, reason: "memory maintenance write/edit requires object parameters" };
+  }
+  const memoryDir = guard.memoryDir?.trim();
+  if (!memoryDir) {
+    return { ok: false, reason: "memory maintenance guard has no durable memory directory" };
+  }
+  const rawPath = resolvePathAlias(params);
+  if (!rawPath) {
+    return { ok: false, reason: "memory maintenance write/edit requires a file path" };
+  }
+  const withoutAt = rawPath.startsWith("@") ? rawPath.slice(1) : rawPath;
+  if (/^file:\/\//iu.test(withoutAt)) {
+    return { ok: false, reason: "file:// paths are not allowed for memory maintenance write/edit" };
+  }
+  const root = path.resolve(memoryDir);
+  const resolved = path.isAbsolute(withoutAt)
+    ? path.resolve(withoutAt)
+    : path.resolve(root, withoutAt || ".");
+  if (!isPathWithinOrEqual(root, resolved)) {
+    return {
+      ok: false,
+      reason: "memory maintenance write/edit is restricted to the durable memory directory",
+    };
+  }
+  return {
+    ok: true,
+    params: {
+      ...params,
+      path: resolved,
+    },
+  };
+}
+
+function evaluateMemoryMaintenanceToolGuard(params: {
+  toolName: string;
+  toolParams: unknown;
+  guard: SpecialToolGuardContext;
+}): HookOutcome {
+  const toolName = params.toolName;
+  if (MEMORY_MAINTENANCE_SCOPED_TOOL_NAMES.has(toolName)) {
+    return { blocked: false, params: params.toolParams };
+  }
+  if (toolName === "read") {
+    return { blocked: false, params: params.toolParams };
+  }
+  if (toolName === "exec") {
+    if (!isPlainObject(params.toolParams)) {
+      return { blocked: true, reason: "memory maintenance exec requires object parameters" };
+    }
+    if (hasActiveExecGuardOverride(params.toolParams)) {
+      return {
+        blocked: true,
+        reason:
+          "memory maintenance exec cannot override host/security/env/background/pty/elevation settings",
+      };
+    }
+    const command = params.toolParams.command;
+    if (typeof command !== "string" || !command.trim()) {
+      return { blocked: true, reason: "memory maintenance exec requires a command" };
+    }
+    const readOnlyDecision = isReadOnlyExecCommand(command.trim());
+    if (!readOnlyDecision.allowed) {
+      return {
+        blocked: true,
+        reason: `memory maintenance exec is restricted to read-only commands: ${readOnlyDecision.reason}`,
+      };
+    }
+    return { blocked: false, params: params.toolParams };
+  }
+  if (MEMORY_MAINTENANCE_RAW_FS_TOOL_NAMES.has(toolName)) {
+    const fileDecision = resolveMemoryMaintenanceFileParams(params.toolParams, params.guard);
+    if (!fileDecision.ok) {
+      return { blocked: true, reason: fileDecision.reason };
+    }
+    return { blocked: false, params: fileDecision.params };
+  }
+  return {
+    blocked: true,
+    reason: `Tool "${toolName}" is not allowed by memory maintenance guard`,
+  };
 }
 
 const loadBeforeToolCallRuntime = createLazyRuntimeSurface(
@@ -428,7 +668,7 @@ export async function runBeforeToolCallHook(args: {
   signal?: AbortSignal;
 }): Promise<HookOutcome> {
   const toolName = normalizeToolName(args.toolName || "tool");
-  const params = args.params;
+  let params = args.params;
   const loopDetection = args.ctx?.loopDetection;
   const { sessionState, runtimeState } = await resolveRuntimeAwareSessionState(args.ctx);
   const effectiveAgentId = runtimeState?.agentId ?? args.ctx?.agentId;
@@ -491,6 +731,47 @@ export async function runBeforeToolCallHook(args: {
       blocked: true,
       reason,
     };
+  }
+
+  if (args.ctx?.specialToolGuard) {
+    const guardOutcome = evaluateMemoryMaintenanceToolGuard({
+      toolName,
+      toolParams: params,
+      guard: args.ctx.specialToolGuard,
+    });
+    if (guardOutcome.blocked) {
+      emitGuardBlockedActionEvent({
+        runId: args.ctx?.runId,
+        sessionKey: effectiveSessionKey,
+        toolName,
+        toolCallId: args.toolCallId,
+        title: `Blocked ${toolName} by special-agent guard`,
+        reason: guardOutcome.reason,
+      });
+      await recordArchiveDecisionEvent({
+        type: "tool.guard_admission",
+        scope: archiveScope,
+        payload: {
+          version: 1,
+          toolName,
+          ...(args.toolCallId ? { toolCallId: args.toolCallId } : {}),
+          ...(args.ctx?.runId ? { runId: args.ctx.runId } : {}),
+          ...(effectiveSessionKey ? { sessionKey: effectiveSessionKey } : {}),
+          ...(effectiveSessionId ? { sessionId: effectiveSessionId } : {}),
+          ...(effectiveAgentId ? { agentId: effectiveAgentId } : {}),
+          guard: snapshotArchiveGuardContext(guard),
+          admission: {
+            stage: "special_agent_guard",
+            blocked: true,
+            reason: guardOutcome.reason,
+            specialToolGuard: args.ctx.specialToolGuard.kind,
+          },
+          inputParams: isPlainObject(params) ? params : {},
+        },
+      });
+      return guardOutcome;
+    }
+    params = guardOutcome.params;
   }
 
   if (sessionState) {

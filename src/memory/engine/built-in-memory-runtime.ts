@@ -4,7 +4,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeSecretInputString } from "../../config/types.secrets.js";
 import { resolveMemoryConfig } from "../config/resolve.js";
 import { runDreamAgentOnce } from "../dreaming/agent-runner.js";
-import { runDurableExtractionAgentOnce } from "../durable/agent-runner.js";
+import { runDurableMemoryAgentOnce } from "../durable/agent-runner.js";
 import { runExperienceExtractionAgentOnce } from "../experience/agent-runner.js";
 import type { CompleteFn } from "../extraction/llm.js";
 import { SqliteRuntimeStore } from "../runtime/sqlite-runtime-store.js";
@@ -176,7 +176,7 @@ async function bootstrapBuiltInMemoryRuntime(
     config: resolvedConfig,
     llm: llmConfig,
     complete: overrides?.complete,
-    durableExtractionRunner: runDurableExtractionAgentOnce,
+    durableExtractionRunner: runDurableMemoryAgentOnce,
     experienceExtractionRunner: runExperienceExtractionAgentOnce,
     dreamRunner: runDreamAgentOnce,
     sessionSummaryRunner: runSessionSummaryAgentOnce,

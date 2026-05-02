@@ -3,7 +3,6 @@ export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
 export type ToolLifecycle =
   | "profile_default"
   | "runtime_conditional"
-  | "host_gated"
   | "special_agent_only"
   | "owner_restricted";
 
@@ -311,40 +310,35 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     label: "memory_manifest_read",
     description: "Read scoped durable-memory manifest",
     sectionId: "memory",
-    profiles: [],
-    lifecycle: "host_gated",
+    profiles: ["coding"],
   },
   {
     id: "memory_note_read",
     label: "memory_note_read",
     description: "Read scoped durable-memory notes",
     sectionId: "memory",
-    profiles: [],
-    lifecycle: "host_gated",
+    profiles: ["coding"],
   },
   {
     id: "memory_note_write",
     label: "memory_note_write",
     description: "Write scoped durable-memory notes",
     sectionId: "memory",
-    profiles: [],
-    lifecycle: "host_gated",
+    profiles: ["coding"],
   },
   {
     id: "memory_note_edit",
     label: "memory_note_edit",
     description: "Edit scoped durable-memory notes",
     sectionId: "memory",
-    profiles: [],
-    lifecycle: "host_gated",
+    profiles: ["coding"],
   },
   {
     id: "memory_note_delete",
     label: "memory_note_delete",
     description: "Delete scoped durable-memory notes",
     sectionId: "memory",
-    profiles: [],
-    lifecycle: "host_gated",
+    profiles: ["coding"],
   },
   {
     id: "session_summary_file_read",

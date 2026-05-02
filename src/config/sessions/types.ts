@@ -94,7 +94,7 @@ export type SessionEntry = {
   spawnedBy?: string;
   /** Spawn source tag for specialized child-session policies such as verification agents. */
   spawnSource?: string;
-  /** Explicit durable-memory scope for special background sessions such as memory extraction. */
+  /** Explicit durable-memory scope for special background sessions such as the durable memory agent. */
   durableMemoryScope?: {
     agentId?: string;
     channel?: string;

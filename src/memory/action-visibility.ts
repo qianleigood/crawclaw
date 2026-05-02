@@ -1,4 +1,4 @@
-export type MemoryVisibilityKind = "extraction" | "session_summary" | "dream";
+export type MemoryVisibilityKind = "durable_memory" | "session_summary" | "dream";
 
 export type MemoryVisibilityPhase =
   | "scheduled"
@@ -30,28 +30,28 @@ function resolveMemoryTitle(params: {
   phase: MemoryVisibilityPhase;
   resultStatus?: MemoryVisibilityResultStatus;
 }): string {
-  if (params.kind === "extraction") {
+  if (params.kind === "durable_memory") {
     switch (params.phase) {
       case "scheduled":
-        return "Memory extraction scheduled";
+        return "Durable memory agent scheduled";
       case "running":
-        return "Memory extraction running";
+        return "Durable memory agent running";
       case "failed_to_start":
-        return "Memory extraction failed to start";
+        return "Durable memory agent failed to start";
       case "wait_failed":
-        return "Memory extraction did not complete";
+        return "Durable memory agent did not complete";
       case "invalid_report":
-        return "Memory extraction report invalid";
+        return "Durable memory agent report invalid";
       case "final":
         switch (params.resultStatus) {
           case "written":
-            return "Memory extraction wrote durable notes";
+            return "Durable memory agent wrote durable notes";
           case "skipped":
-            return "Memory extraction skipped";
+            return "Durable memory agent skipped";
           case "no_change":
-            return "Memory extraction found no durable changes";
+            return "Durable memory agent found no durable changes";
           default:
-            return "Memory extraction failed";
+            return "Durable memory agent failed";
         }
     }
   }

@@ -15,6 +15,7 @@ import {
   readSessionSummaryFile,
   resolveDurableMemoryScope,
   resolveDreamClosedLoopStatus,
+  readDreamConsolidationStatus,
   resolveMemoryConfig,
   SqliteRuntimeStore,
 } from "../memory/command-api.js";
@@ -427,7 +428,6 @@ async function enrichInspectionWithArchive(
             omittedReason?: string;
             scoreBreakdown?: Record<string, number>;
           }>;
-          recentDreamTouchedNotes?: string[];
           selectedExperienceDetails?: Array<{
             itemId: string;
             title: string;
@@ -496,18 +496,6 @@ async function enrichInspectionWithArchive(
   }
 }
 
-function parseMetricsJson(value: string | null | undefined): Record<string, unknown> | null {
-  if (!value) {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
-}
-
 async function enrichInspectionWithDream(
   snapshot: AgentInspectionSnapshot,
 ): Promise<AgentInspectionSnapshot> {
@@ -532,53 +520,30 @@ async function enrichInspectionWithDream(
     return snapshot;
   }
   const memoryConfig = resolveMemoryConfig(rawMemory);
-  const store = new SqliteRuntimeStore(memoryConfig.runtimeStore.dbPath);
-  await store.init();
-  try {
-    const state = await store.getDreamState(scope.scopeKey);
-    const recentRuns = (await store.listRecentMaintenanceRuns(20))
-      .filter((entry) => entry.kind === "dream" && entry.scope === scope.scopeKey)
-      .slice(0, 5)
-      .map((entry) => {
-        const metrics = parseMetricsJson(entry.metricsJson);
-        const touchedNotes = Array.isArray(metrics?.touchedNotes)
-          ? metrics?.touchedNotes.filter((value): value is string => typeof value === "string")
-          : [];
-        return {
-          id: entry.id,
-          status: entry.status,
-          summary: entry.summary,
-          triggerSource: entry.triggerSource,
-          reason: entry.error ?? null,
-          ...(touchedNotes.length ? { touchedNotes } : {}),
-        };
-      });
-    return {
-      ...snapshot,
-      dream: {
+  const state = await readDreamConsolidationStatus({
+    scope,
+    staleAfterMs: memoryConfig.dreaming.lockStaleAfterMs,
+  });
+  return {
+    ...snapshot,
+    dream: {
+      scopeKey: scope.scopeKey,
+      enabled: memoryConfig.dreaming.enabled,
+      ...resolveDreamClosedLoopStatus({
+        config: memoryConfig.dreaming,
         scopeKey: scope.scopeKey,
-        enabled: memoryConfig.dreaming.enabled,
-        ...resolveDreamClosedLoopStatus({
-          config: memoryConfig.dreaming,
-          scopeKey: scope.scopeKey,
-        }),
-        ...(state
-          ? {
-              state: {
-                lastSuccessAt: state.lastSuccessAt,
-                lastAttemptAt: state.lastAttemptAt,
-                lastFailureAt: state.lastFailureAt,
-                lastSkipReason: state.lastSkipReason,
-                lockOwner: state.lockOwner,
-              },
-            }
-          : {}),
-        recentRuns,
+      }),
+      state: {
+        lastConsolidatedAt: state.lastConsolidatedAt,
+        lockPath: state.lockPath,
+        lockActive: state.lockActive,
+        lockStale: state.lockStale,
+        lockOwner: state.lockOwner,
+        lockAcquiredAt: state.lockAcquiredAt,
       },
-    };
-  } finally {
-    await store.close();
-  }
+      historyPersisted: false,
+    },
+  };
 }
 
 async function enrichInspectionWithSessionSummary(
@@ -740,31 +705,16 @@ export function formatAgentInspection(snapshot: AgentInspectionSnapshot): string
       );
     }
     if (snapshot.dream.state) {
-      lines.push(`  Last success: ${snapshot.dream.state.lastSuccessAt ?? "(never)"}`);
-      lines.push(`  Last attempt: ${snapshot.dream.state.lastAttemptAt ?? "(never)"}`);
-      lines.push(`  Last failure: ${snapshot.dream.state.lastFailureAt ?? "(never)"}`);
-      if (snapshot.dream.state.lastSkipReason) {
-        lines.push(`  Last skip reason: ${snapshot.dream.state.lastSkipReason}`);
-      }
+      lines.push(`  Last consolidated: ${snapshot.dream.state.lastConsolidatedAt ?? "(never)"}`);
+      lines.push(`  Lock active: ${snapshot.dream.state.lockActive ? "yes" : "no"}`);
+      lines.push(`  Lock stale: ${snapshot.dream.state.lockStale ? "yes" : "no"}`);
       if (snapshot.dream.state.lockOwner) {
         lines.push(`  Lock owner: ${snapshot.dream.state.lockOwner}`);
       }
+      lines.push(`  Lock path: ${snapshot.dream.state.lockPath}`);
     }
-    if (snapshot.dream.recentRuns.length > 0) {
-      lines.push("  Recent runs:");
-      for (const run of snapshot.dream.recentRuns) {
-        lines.push(
-          `    - ${run.status} ${run.triggerSource ?? "(no-trigger)"} ${run.summary ?? ""}`.trim(),
-        );
-        if (run.reason) {
-          lines.push(`      reason: ${run.reason}`);
-        }
-        if (run.touchedNotes?.length) {
-          for (const note of run.touchedNotes) {
-            lines.push(`      touched: ${note}`);
-          }
-        }
-      }
+    if (snapshot.dream.historyPersisted === false) {
+      lines.push("  Run history: not persisted");
     }
   }
 
@@ -912,14 +862,6 @@ export function formatAgentInspection(snapshot: AgentInspectionSnapshot): string
               (entry) =>
                 `${entry.itemId} source=${entry.source} kind=${entry.memoryKind ?? "unknown"} reason=${entry.omittedReason ?? "unknown"}`,
             ),
-          ),
-        );
-      }
-      if (snapshot.queryContext.memoryRecall.recentDreamTouchedNotes?.length) {
-        lines.push(
-          ...formatArray(
-            "  Dream touched durable notes:",
-            snapshot.queryContext.memoryRecall.recentDreamTouchedNotes,
           ),
         );
       }

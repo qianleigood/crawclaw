@@ -20,28 +20,28 @@ import type { DurableMemoryManifestEntry } from "./store.js";
 import { scanDurableMemoryScopeEntries } from "./store.js";
 import type { DurableExtractionRunParams, DurableExtractionRunResult } from "./worker-manager.js";
 
-export const MEMORY_EXTRACTION_SPAWN_SOURCE = "memory-extraction";
-export const MEMORY_EXTRACTION_TOOL_ALLOWLIST = MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST;
-export const MEMORY_EXTRACTION_AGENT_DEFINITION: SpecialAgentDefinition =
+export const DURABLE_MEMORY_AGENT_SPAWN_SOURCE = "durable-memory";
+export const DURABLE_MEMORY_AGENT_TOOL_ALLOWLIST = MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST;
+export const DURABLE_MEMORY_AGENT_DEFINITION: SpecialAgentDefinition =
   createEmbeddedMemorySpecialAgentDefinition({
-    id: "memory_extractor",
-    label: "memory-extraction",
-    spawnSource: MEMORY_EXTRACTION_SPAWN_SOURCE,
-    allowlist: MEMORY_EXTRACTION_TOOL_ALLOWLIST,
+    id: "durable_memory",
+    label: "durable-memory",
+    spawnSource: DURABLE_MEMORY_AGENT_SPAWN_SOURCE,
+    allowlist: DURABLE_MEMORY_AGENT_TOOL_ALLOWLIST,
     modelVisibility: "allowlist",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
   });
 
-type MemoryExtractionAgentDeps = SpecialAgentActionRuntimeDeps;
+type DurableMemoryAgentDeps = SpecialAgentActionRuntimeDeps;
 
-let memoryExtractionAgentDeps: MemoryExtractionAgentDeps | undefined;
+let durableMemoryAgentDeps: DurableMemoryAgentDeps | undefined;
 
-function resolveMemoryExtractionAgentDeps(): MemoryExtractionAgentDeps {
-  if (!memoryExtractionAgentDeps) {
-    memoryExtractionAgentDeps = createDefaultSpecialAgentActionRuntimeDeps();
+function resolveDurableMemoryAgentDeps(): DurableMemoryAgentDeps {
+  if (!durableMemoryAgentDeps) {
+    durableMemoryAgentDeps = createDefaultSpecialAgentActionRuntimeDeps();
   }
-  return memoryExtractionAgentDeps;
+  return durableMemoryAgentDeps;
 }
 
 function normalizeOptionalString(value: string | null | undefined): string | undefined {
@@ -81,7 +81,7 @@ function trimStructuredField(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-type ParsedMemoryExtractorResult = {
+type ParsedDurableMemoryAgentResult = {
   status?: "written" | "skipped" | "no_change" | "failed";
   summary?: string;
   writtenCount?: number;
@@ -94,7 +94,7 @@ function parseOptionalCount(text: string, label: string): number | undefined {
   return match ? Number.parseInt(match[1] ?? "", 10) : undefined;
 }
 
-export function parseMemoryExtractorResult(text: string): ParsedMemoryExtractorResult {
+export function parseDurableMemoryAgentResult(text: string): ParsedDurableMemoryAgentResult {
   const normalized = normalizeOptionalString(text);
   if (!normalized) {
     return {};
@@ -105,7 +105,9 @@ export function parseMemoryExtractorResult(text: string): ParsedMemoryExtractorR
   const summaryMatch = normalized.match(/^\s*\**\s*SUMMARY:\s*(.+?)\s*\**\s*$/im);
   return {
     ...(statusMatch
-      ? { status: statusMatch[1].trim().toLowerCase() as ParsedMemoryExtractorResult["status"] }
+      ? {
+          status: statusMatch[1].trim().toLowerCase() as ParsedDurableMemoryAgentResult["status"],
+        }
       : {}),
     ...(summaryMatch ? { summary: trimStructuredField(summaryMatch[1]) } : {}),
     ...(parseOptionalCount(normalized, "WRITTEN_COUNT") !== undefined
@@ -130,9 +132,9 @@ function buildExistingManifestLines(
   });
 }
 
-export function buildMemoryExtractionSystemPrompt(): string {
+export function buildDurableMemoryAgentSystemPrompt(): string {
   return [
-    "# Memory Extractor Agent",
+    "# Durable Memory Agent",
     "",
     "You are a dedicated background memory maintenance agent.",
     "",
@@ -152,8 +154,8 @@ export function buildMemoryExtractionSystemPrompt(): string {
     "- Use only the scoped memory file tools for this run.",
     "- Do NOT inspect project source files, run shell commands, browse the web, or spawn other agents.",
     "- Do NOT write experience notes. This task is only for durable memory.",
-    "- The recent messages are the source of truth for this run. Do not attempt to verify them against code, git state, or external systems.",
-    "- Use only the recent messages provided in the task input; do not rely on older parent context.",
+    "- The recent messages are the authoritative candidate window for this run. Do not attempt to verify them against code, git state, or external systems.",
+    "- If the run includes a parent fork context, use older parent conversation only to resolve references in the recent messages; never extract a durable note solely from older parent context.",
     "- Do NOT save reusable procedures, SOPs, command sequences, debugging workflows, test strategies, failure patterns, or implementation lessons.",
     "- Those belong to write_experience_note and the Experience Agent.",
     "- Treat feedback as bidirectional only when it is explicit future-behavior guidance, a user preference, or stable project/reference context.",
@@ -186,7 +188,7 @@ export function buildMemoryExtractionSystemPrompt(): string {
   ].join("\n");
 }
 
-export function buildMemoryExtractionTaskPrompt(params: {
+export function buildDurableMemoryAgentTaskPrompt(params: {
   scopeKey: string;
   recentMessages: AgentMessage[];
   recentMessageLimit: number;
@@ -202,7 +204,7 @@ export function buildMemoryExtractionTaskPrompt(params: {
     : ["(none)"];
   return [
     "Maintain durable memory for the current scope using only the provided recent messages and scoped memory file tools.",
-    "The extraction window below is authoritative; do not rely on older parent conversation context.",
+    "The extraction window below is authoritative for what may become durable memory. Older parent fork context may only resolve references inside this window.",
     "",
     `Scope: ${params.scopeKey}`,
     `Max durable notes to create or update: ${Math.max(1, params.maxNotes)}`,
@@ -226,7 +228,7 @@ export function buildMemoryExtractionTaskPrompt(params: {
   ].join("\n");
 }
 
-function emitMemoryExtractionAction(params: {
+function emitDurableMemoryAgentAction(params: {
   actionRunId: string;
   actionId: string;
   sessionKey: string;
@@ -239,13 +241,13 @@ function emitMemoryExtractionAction(params: {
   detail?: Record<string, unknown>;
 }) {
   const projection = buildMemoryActionVisibilityProjection({
-    kind: "extraction",
+    kind: "durable_memory",
     phase: params.phase,
     summary: params.summary,
     resultStatus: params.resultStatus,
   });
   emitSpecialAgentActionEvent({
-    emitAgentActionEvent: resolveMemoryExtractionAgentDeps().emitAgentActionEvent,
+    emitAgentActionEvent: resolveDurableMemoryAgentDeps().emitAgentActionEvent,
     runId: params.actionRunId,
     actionId: params.actionId,
     kind: "memory",
@@ -257,7 +259,7 @@ function emitMemoryExtractionAction(params: {
     projectedTitle: projection.projectedTitle,
     projectedSummary: projection.projectedSummary,
     detail: {
-      memoryKind: "extraction",
+      memoryKind: "durable_memory",
       memoryPhase: params.phase,
       ...(params.resultStatus ? { memoryResultStatus: params.resultStatus } : {}),
       ...params.detail,
@@ -265,7 +267,7 @@ function emitMemoryExtractionAction(params: {
   });
 }
 
-export async function runDurableExtractionAgentOnce(
+export async function runDurableMemoryAgentOnce(
   params: DurableExtractionRunParams,
 ): Promise<DurableExtractionRunResult> {
   const existingEntries = await scanDurableMemoryScopeEntries(params.scope);
@@ -274,7 +276,7 @@ export async function runDurableExtractionAgentOnce(
     normalizeOptionalString(params.parentForkContext?.parentRunId);
   const parentModelRef = resolveParentForkModelRef(params.parentForkContext);
   const { runtimeConfig, observability } = createConfiguredSpecialAgentObservability({
-    definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
+    definition: DURABLE_MEMORY_AGENT_DEFINITION,
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
     ...(normalizeOptionalString(params.scope.agentId)
@@ -282,22 +284,22 @@ export async function runDurableExtractionAgentOnce(
       : {}),
     ...(parentRunId ? { parentRunId } : {}),
   });
-  const taskPrompt = buildMemoryExtractionTaskPrompt({
+  const taskPrompt = buildDurableMemoryAgentTaskPrompt({
     scopeKey: params.scope.scopeKey ?? "durable-memory",
     recentMessages: params.recentMessages,
     recentMessageLimit: params.recentMessageLimit,
     existingEntries,
     maxNotes: params.maxNotes,
   });
-  const actionRunId = `memory-extraction:${params.sessionId}:${params.messageCursor}`;
-  const actionId = `memory-extraction:${params.sessionId}:${params.messageCursor}`;
-  emitMemoryExtractionAction({
+  const actionRunId = `durable-memory:${params.sessionId}:${params.messageCursor}`;
+  const actionId = `durable-memory:${params.sessionId}:${params.messageCursor}`;
+  emitDurableMemoryAgentAction({
     actionRunId,
     actionId,
     sessionKey: params.sessionKey,
     agentId: params.scope.agentId,
     status: "started",
-    title: "Memory extraction scheduled",
+    title: "Durable memory agent scheduled",
     summary: params.scope.scopeKey,
     phase: "scheduled",
     detail: {
@@ -312,9 +314,9 @@ export async function runDurableExtractionAgentOnce(
 
   const run = await runSpecialAgentToCompletion(
     {
-      definition: MEMORY_EXTRACTION_AGENT_DEFINITION,
+      definition: DURABLE_MEMORY_AGENT_DEFINITION,
       task: taskPrompt,
-      extraSystemPrompt: buildMemoryExtractionSystemPrompt(),
+      extraSystemPrompt: buildDurableMemoryAgentSystemPrompt(),
       ...(parentRunId ? { parentRunId } : {}),
       ...(params.observation ? { observation: params.observation } : {}),
       embeddedContext: {
@@ -347,7 +349,7 @@ export async function runDurableExtractionAgentOnce(
       spawnOverrides: {},
       hooks: observability.hooks,
     },
-    resolveMemoryExtractionAgentDeps(),
+    resolveDurableMemoryAgentDeps(),
   );
 
   if (run.status === "spawn_failed") {
@@ -357,13 +359,13 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       summary: error,
     });
-    emitMemoryExtractionAction({
+    emitDurableMemoryAgentAction({
       actionRunId,
       actionId,
       sessionKey: params.sessionKey,
       agentId: params.scope.agentId,
       status: "failed",
-      title: "Memory extraction failed to start",
+      title: "Durable memory agent failed to start",
       summary: error,
       phase: "failed_to_start",
       detail: buildSpecialAgentRunRefDetail(run),
@@ -376,13 +378,13 @@ export async function runDurableExtractionAgentOnce(
     };
   }
 
-  emitMemoryExtractionAction({
+  emitDurableMemoryAgentAction({
     actionRunId,
     actionId,
     sessionKey: params.sessionKey,
     agentId: params.scope.agentId,
     status: "running",
-    title: "Memory extraction running",
+    title: "Durable memory agent running",
     summary: params.scope.scopeKey,
     phase: "running",
     detail: buildSpecialAgentRunRefDetail(run),
@@ -395,13 +397,13 @@ export async function runDurableExtractionAgentOnce(
       status: "failed",
       summary: error,
     });
-    emitMemoryExtractionAction({
+    emitDurableMemoryAgentAction({
       actionRunId,
       actionId,
       sessionKey: params.sessionKey,
       agentId: params.scope.agentId,
       status: "failed",
-      title: "Memory extraction did not complete",
+      title: "Durable memory agent did not complete",
       summary: error,
       phase: "wait_failed",
       detail: buildSpecialAgentWaitFailureDetail(run),
@@ -414,21 +416,21 @@ export async function runDurableExtractionAgentOnce(
     };
   }
 
-  const parsed = parseMemoryExtractorResult(run.reply);
+  const parsed = parseDurableMemoryAgentResult(run.reply);
   if (!parsed.status) {
-    const error = "memory extraction agent completed without a STATUS line";
+    const error = "durable memory agent completed without a STATUS line";
     await observability.recordResult({
       result: run,
       status: "failed",
       summary: error,
     });
-    emitMemoryExtractionAction({
+    emitDurableMemoryAgentAction({
       actionRunId,
       actionId,
       sessionKey: params.sessionKey,
       agentId: params.scope.agentId,
       status: "failed",
-      title: "Memory extraction report invalid",
+      title: "Durable memory agent report invalid",
       summary: error,
       phase: "invalid_report",
       detail: buildSpecialAgentRunRefDetail(run),
@@ -445,7 +447,7 @@ export async function runDurableExtractionAgentOnce(
     (parsed.writtenCount ?? 0) + (parsed.updatedCount ?? 0) + (parsed.deletedCount ?? 0);
   const status =
     parsed.status === "written" ? "completed" : parsed.status === "failed" ? "failed" : "completed";
-  emitMemoryExtractionAction({
+  emitDurableMemoryAgentAction({
     actionRunId,
     actionId,
     sessionKey: params.sessionKey,
@@ -453,12 +455,12 @@ export async function runDurableExtractionAgentOnce(
     status,
     title:
       parsed.status === "written"
-        ? "Memory extraction wrote durable notes"
+        ? "Durable memory agent wrote durable notes"
         : parsed.status === "skipped"
-          ? "Memory extraction skipped"
+          ? "Durable memory agent skipped"
           : parsed.status === "no_change"
-            ? "Memory extraction found no durable changes"
-            : "Memory extraction failed",
+            ? "Durable memory agent found no durable changes"
+            : "Durable memory agent failed",
     summary: parsed.summary,
     phase: "final",
     resultStatus: parsed.status,
@@ -492,8 +494,8 @@ export async function runDurableExtractionAgentOnce(
 }
 
 export const __testing = {
-  setDepsForTest(overrides?: Partial<MemoryExtractionAgentDeps>) {
-    memoryExtractionAgentDeps = overrides
+  setDepsForTest(overrides?: Partial<DurableMemoryAgentDeps>) {
+    durableMemoryAgentDeps = overrides
       ? {
           ...createDefaultSpecialAgentActionRuntimeDeps(),
           ...overrides,

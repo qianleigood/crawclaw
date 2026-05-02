@@ -14,6 +14,7 @@ import {
   makeAgentAssistantMessage,
   makeAgentUserMessage,
 } from "../../agents/test-helpers/agent-message-fixtures.js";
+import { resolveSessionTranscriptPath } from "../../config/sessions/paths.js";
 import { resolveMemoryConfig } from "../config/resolve.ts";
 import { runSessionMemoryCompaction } from "../context/compaction-runner.ts";
 import type { DreamRunResult } from "../dreaming/agent-runner.ts";
@@ -96,16 +97,15 @@ async function createStore(prefix: string): Promise<{
   return { stateDir, store };
 }
 
-async function waitForDreamRun(store: SqliteRuntimeStore): Promise<void> {
+async function waitForDreamRun(dreamRunner: ReturnType<typeof vi.fn>): Promise<void> {
   const deadline = Date.now() + 3_000;
   while (Date.now() < deadline) {
-    const runs = await store.listRecentMaintenanceRuns(10);
-    if (runs.some((run) => run.kind === "dream" && run.status === "done")) {
+    if (dreamRunner.mock.calls.length > 0) {
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  throw new Error("timed out waiting for dream maintenance run");
+  throw new Error("timed out waiting for dream runner");
 }
 
 function rowsToAgentMessages(
@@ -468,6 +468,13 @@ The compact summary should appear before the preserved tail.
     });
     expect(compaction.compacted).toBe(true);
 
+    const priorDreamSessionFile = resolveSessionTranscriptPath("session-prior-dream", "main");
+    await fs.mkdir(path.dirname(priorDreamSessionFile), { recursive: true });
+    await fs.writeFile(
+      priorDreamSessionFile,
+      '{"type":"message","text":"prior dream signal for gateway recovery"}\n',
+    );
+
     const parentForkContext = {
       parentRunId: "parent-cross-layer",
       provider: "openai",
@@ -498,14 +505,10 @@ The compact summary should appear before the preserved tail.
       },
     });
     await drainSharedDurableExtractionWorkers();
-    await waitForDreamRun(store);
+    await waitForDreamRun(dreamRunner);
 
     expect(durableExtractionRunner).toHaveBeenCalledTimes(1);
     expect(dreamRunner).toHaveBeenCalledTimes(1);
-
-    const maintenanceRuns = await store.listRecentMaintenanceRuns(5);
-    const dreamRun = maintenanceRuns.find((run) => run.kind === "dream");
-    expect(dreamRun?.metricsJson).toContain("60 Preferences/step-first.md");
 
     const rowsForAssembly = await store.listMessagesByTurnRange(sessionId, 1, messages.length);
     searchNotebookLmViaCliMock.mockResolvedValue([
@@ -535,8 +538,6 @@ The compact summary should appear before the preserved tail.
     );
     const diagnostics = assembled.diagnostics?.memoryRecall;
     expect(diagnostics?.selectedDurableItemIds).toContain("durable:60 Preferences/step-first.md");
-    expect(diagnostics?.recentDreamTouchedNotes).toContain("60 Preferences/step-first.md");
-    expect(diagnostics?.selectedDurableDetails?.[0]?.provenance).toContain("dream_boost");
     expect(diagnostics?.selectedExperienceItemIds).toEqual(
       expect.arrayContaining(["notebooklm:gateway-recovery"]),
     );

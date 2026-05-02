@@ -63,13 +63,6 @@ export const mockedEnsureRuntimePluginsLoaded = vi.fn<(params?: unknown) => void
 export const mockedPrepareProviderRuntimeAuth = vi.fn(async () => undefined);
 export const mockedResolveProviderCapabilitiesWithPlugin = vi.fn(() => undefined);
 export const mockedResolveMemoryRuntime = vi.fn(async () => mockedMemoryRuntime);
-export const mockedMaybeRunExplicitDurableIntentGate = vi.fn<
-  typeof import("./durable-intent-gate.js").maybeRunExplicitDurableIntentGate
->(async () => ({
-  applied: false,
-  intent: null,
-  notesSaved: 0,
-}));
 export const mockedRunEmbeddedAttempt =
   vi.fn<(params: unknown) => Promise<EmbeddedRunAttemptResult>>();
 export const mockedRunMemoryRuntimeMaintenance = vi.fn(async () => undefined);
@@ -253,12 +246,6 @@ export function resetRunOverflowCompactionHarnessMocks(): void {
   mockedResolveProviderCapabilitiesWithPlugin.mockReturnValue(undefined);
   mockedResolveMemoryRuntime.mockReset();
   mockedResolveMemoryRuntime.mockResolvedValue(mockedMemoryRuntime);
-  mockedMaybeRunExplicitDurableIntentGate.mockReset();
-  mockedMaybeRunExplicitDurableIntentGate.mockResolvedValue({
-    applied: false,
-    intent: null,
-    notesSaved: 0,
-  });
   mockedRunEmbeddedAttempt.mockReset();
   mockedRunMemoryRuntimeMaintenance.mockReset();
   mockedRunMemoryRuntimeMaintenance.mockResolvedValue(undefined);
@@ -392,10 +379,6 @@ export async function loadRunOverflowCompactionHarness(): Promise<{
   }));
   vi.doMock("../../memory/bootstrap/init-memory-runtime.js", () => ({
     resolveMemoryRuntime: mockedResolveMemoryRuntime,
-  }));
-
-  vi.doMock("./durable-intent-gate.js", () => ({
-    maybeRunExplicitDurableIntentGate: mockedMaybeRunExplicitDurableIntentGate,
   }));
 
   vi.doMock("../auth-profiles.js", () => ({

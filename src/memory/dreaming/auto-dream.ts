@@ -1,4 +1,10 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
+import {
+  resolveSessionTranscriptPath,
+  resolveSessionTranscriptsDirForAgent,
+} from "../../config/sessions/paths.js";
 import type { ObservationContext } from "../../infra/observation/types.js";
 import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
 import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
@@ -15,7 +21,14 @@ import type {
   DreamRunResult,
   DreamSignal,
   DreamSessionSummary,
+  DreamTranscriptRef,
 } from "./agent-runner.ts";
+import {
+  markDreamConsolidationSucceeded,
+  readDreamConsolidationStatus,
+  rollbackDreamConsolidationLock,
+  tryAcquireDreamConsolidationLock,
+} from "./consolidation-lock.ts";
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
 
@@ -59,9 +72,16 @@ type AutoDreamPreview = {
   scopeKey: string;
   recentSessionIds: string[];
   recentSessionCount: number;
+  recentTranscriptRefCount: number;
   recentSignalCount: number;
   recentSignals: DreamSignal[];
   sessionSummaries: DreamSessionSummary[];
+  transcriptRefs: DreamTranscriptRef[];
+};
+
+type RecentTranscriptCandidate = {
+  sessionId: string;
+  mtimeMs: number;
 };
 
 type AutoDreamBeforeRunParams = {
@@ -83,11 +103,51 @@ type AutoDreamSchedulerParams = {
 
 const DREAM_SESSION_SUMMARY_TOKEN_BUDGET = 1_200;
 
-function clampInt(value: number | undefined, fallback: number, minimum = 1): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return fallback;
+async function collectRecentTranscriptSessionIds(params: {
+  scope: DurableMemoryScope;
+  sinceTime: number;
+  excludeSessionId?: string | null;
+  limit?: number | null;
+}): Promise<string[]> {
+  const sessionsDir = resolveSessionTranscriptsDirForAgent(params.scope.agentId);
+  let entries: Array<{ name: string; isFile(): boolean }>;
+  try {
+    entries = await fs.readdir(sessionsDir, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
+    throw error;
   }
-  return Math.max(minimum, Math.floor(value));
+  const candidates: RecentTranscriptCandidate[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".jsonl")) {
+      continue;
+    }
+    const sessionId = entry.name.slice(0, -".jsonl".length);
+    if (!sessionId || sessionId === params.excludeSessionId) {
+      continue;
+    }
+    const filePath = path.join(sessionsDir, entry.name);
+    let stat;
+    try {
+      stat = await fs.stat(filePath);
+    } catch {
+      continue;
+    }
+    if (stat.mtimeMs <= params.sinceTime) {
+      continue;
+    }
+    candidates.push({ sessionId, mtimeMs: stat.mtimeMs });
+  }
+  const sorted = candidates.toSorted(
+    (left, right) => right.mtimeMs - left.mtimeMs || left.sessionId.localeCompare(right.sessionId),
+  );
+  const limit =
+    typeof params.limit === "number" && Number.isFinite(params.limit) && params.limit > 0
+      ? Math.floor(params.limit)
+      : null;
+  return (limit == null ? sorted : sorted.slice(0, limit)).map((entry) => entry.sessionId);
 }
 
 async function collectRecentSessionSummaries(params: {
@@ -153,6 +213,16 @@ function safeParseJsonObject(value: string | null | undefined): Record<string, u
   }
 }
 
+function collectRecentTranscriptRefs(params: {
+  scope: DurableMemoryScope;
+  sessionIds: string[];
+}): DreamTranscriptRef[] {
+  return params.sessionIds.map((sessionId) => ({
+    sessionId,
+    path: resolveSessionTranscriptPath(sessionId, params.scope.agentId),
+  }));
+}
+
 async function collectRecentStructuredSignals(params: {
   runtimeStore: RuntimeStore;
   scope: DurableMemoryScope;
@@ -206,22 +276,6 @@ async function collectRecentStructuredSignals(params: {
     }
   }
 
-  const maintenanceRuns = (await params.runtimeStore.listRecentMaintenanceRuns(40))
-    .filter((entry) => entry.scope === params.scopeKey)
-    .filter((entry) => entry.kind === "dream" || entry.kind === "durable_extraction")
-    .slice(0, 4);
-  for (const run of maintenanceRuns) {
-    const parts = [run.kind, run.status];
-    if (run.summary) {
-      parts.push(run.summary);
-    }
-    signals.push({
-      sessionId: run.id,
-      kind: "maintenance_runs",
-      text: parts.join(" | "),
-    });
-  }
-
   const recentDurableEntries = (await scanDurableMemoryScopeEntries(params.scope))
     .filter((entry) => entry.updatedAt > 0)
     .slice(0, 4);
@@ -244,9 +298,16 @@ async function collectDreamInputs(params: {
   sessionLimit?: number;
   signalLimit?: number;
 }): Promise<AutoDreamPreview> {
-  const sessionIds = params.sessionIds.slice(0, Math.max(1, params.sessionLimit ?? 12));
+  const sessionIds =
+    params.sessionLimit === undefined
+      ? params.sessionIds
+      : params.sessionIds.slice(0, Math.max(1, params.sessionLimit));
   const summaries = await collectRecentSessionSummaries({
     runtimeStore: params.runtimeStore,
+    scope: params.scope,
+    sessionIds,
+  });
+  const transcriptRefs = collectRecentTranscriptRefs({
     scope: params.scope,
     sessionIds,
   });
@@ -261,9 +322,11 @@ async function collectDreamInputs(params: {
     scopeKey: params.scopeKey,
     recentSessionIds: sessionIds,
     recentSessionCount: summaries.length,
+    recentTranscriptRefCount: transcriptRefs.length,
     recentSignalCount: recentSignals.length,
     recentSignals,
     sessionSummaries: summaries,
+    transcriptRefs,
   };
 }
 
@@ -274,6 +337,7 @@ export class AutoDreamScheduler {
   private logger: RuntimeLogger;
   private beforeRun?: AutoDreamBeforeRun;
   private readonly inFlightScopes = new Set<string>();
+  private readonly lastScanAtByScope = new Map<string, number>();
 
   constructor(params: AutoDreamSchedulerParams) {
     this.config = params.config;
@@ -358,27 +422,30 @@ export class AutoDreamScheduler {
     }
     const scopeKey = params.scope.scopeKey;
     const now = Date.now();
-    const state = await runtimeStore.getDreamState(scopeKey);
+    const consolidationStatus = await readDreamConsolidationStatus({
+      scope: params.scope,
+      staleAfterMs: config.lockStaleAfterMs,
+      now,
+    });
+    const lastConsolidatedAt = consolidationStatus.lastConsolidatedAt ?? 0;
     if (!params.bypassGate) {
       const minIntervalMs = Math.max(0, config.minHours) * 3_600_000;
-      if (state?.lastSuccessAt != null && now - state.lastSuccessAt < minIntervalMs) {
-        await runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "min_hours_gate" });
+      if (lastConsolidatedAt > 0 && now - lastConsolidatedAt < minIntervalMs) {
         return { status: "skipped", reason: "min_hours_gate" };
       }
-      if (state?.lastAttemptAt != null && now - state.lastAttemptAt < config.scanThrottleMs) {
-        await runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "scan_throttle" });
+      const lastScanAt = this.lastScanAtByScope.get(scopeKey);
+      if (lastScanAt != null && now - lastScanAt < config.scanThrottleMs) {
         return { status: "skipped", reason: "scan_throttle" };
       }
     }
+    this.lastScanAtByScope.set(scopeKey, now);
 
-    const recentSessionIds = await runtimeStore.listScopedSessionIdsTouchedSince(
-      scopeKey,
-      state?.lastSuccessAt ?? 0,
-      null,
-      clampInt(config.minSessions * 4, 20),
-    );
+    const recentSessionIds = await collectRecentTranscriptSessionIds({
+      scope: params.scope,
+      sinceTime: lastConsolidatedAt,
+      excludeSessionId: params.sessionId,
+    });
     if (!params.bypassGate && recentSessionIds.length < config.minSessions) {
-      await runtimeStore.touchDreamAttempt({ scopeKey, now, reason: "min_sessions_gate" });
       return { status: "skipped", reason: "min_sessions_gate" };
     }
 
@@ -407,8 +474,8 @@ export class AutoDreamScheduler {
     }
 
     const lockOwner = newId("dream");
-    const lock = await runtimeStore.acquireDreamLock({
-      scopeKey,
+    const lock = await tryAcquireDreamConsolidationLock({
+      scope: params.scope,
       owner: lockOwner,
       staleAfterMs: config.lockStaleAfterMs,
       now,
@@ -417,13 +484,7 @@ export class AutoDreamScheduler {
       return { status: "skipped", reason: "lock_held" };
     }
 
-    const runId = await runtimeStore.createMaintenanceRun({
-      kind: "dream",
-      status: "running",
-      scope: scopeKey,
-      triggerSource: params.triggerSource,
-      summary: "Dream running",
-    });
+    const runId = lockOwner;
 
     const embeddedSessionId =
       params.sessionId?.trim() || preview.recentSessionIds[0]?.trim() || `dream-${scopeKey}`;
@@ -449,34 +510,19 @@ export class AutoDreamScheduler {
           scope: params.scope,
           sessionKey: params.sessionKey,
           triggerSource: params.triggerSource,
-          lastSuccessAt: state?.lastSuccessAt ?? null,
+          lastSuccessAt: consolidationStatus.lastConsolidatedAt,
           recentSessions: preview.sessionSummaries,
+          recentTranscriptRefs: preview.transcriptRefs,
           recentSignals: preview.recentSignals,
         },
         logger,
       );
 
-      await runtimeStore.updateMaintenanceRun({
-        id: runId,
-        status: result.status === "failed" ? "failed" : "done",
-        summary: result.summary ?? "Dream completed",
-        metricsJson: JSON.stringify({
-          recentSessionCount: preview.recentSessionCount,
-          recentSignalCount: preview.recentSignalCount,
-          writtenCount: result.writtenCount,
-          updatedCount: result.updatedCount,
-          deletedCount: result.deletedCount,
-          touchedNotes: result.touchedNotes ?? [],
-        }),
-        ...(result.status === "failed" ? { error: result.summary ?? "dream failed" } : {}),
-        finishedAt: Date.now(),
-      });
-      await runtimeStore.releaseDreamLock({
-        scopeKey,
-        owner: lockOwner,
-        runId,
-        status: result.status === "failed" ? "failed" : "succeeded",
-      });
+      if (result.status === "failed") {
+        await rollbackDreamConsolidationLock(lock.lock);
+      } else {
+        await markDreamConsolidationSucceeded(lock.lock);
+      }
       return {
         status: result.status === "failed" ? "failed" : "started",
         reason: result.summary,
@@ -484,19 +530,7 @@ export class AutoDreamScheduler {
       };
     } catch (error) {
       const summary = error instanceof Error ? error.message : String(error);
-      await runtimeStore.updateMaintenanceRun({
-        id: runId,
-        status: "failed",
-        summary: "Dream failed",
-        error: summary,
-        finishedAt: Date.now(),
-      });
-      await runtimeStore.releaseDreamLock({
-        scopeKey,
-        owner: lockOwner,
-        runId,
-        status: "failed",
-      });
+      await rollbackDreamConsolidationLock(lock.lock);
       logger.warn(`[memory] dream failed scope=${scopeKey} error=${summary}`);
       return { status: "failed", reason: summary, runId };
     }

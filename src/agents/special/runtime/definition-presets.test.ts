@@ -23,17 +23,17 @@ describe("special agent definition presets", () => {
   it("creates embedded memory definitions with shared substrate defaults", () => {
     expect(
       createEmbeddedMemorySpecialAgentDefinition({
-        id: "memory_extractor",
-        label: "memory-extraction",
-        spawnSource: "memory-extraction",
+        id: "durable_memory",
+        label: "durable-memory",
+        spawnSource: "durable-memory",
         allowlist: ["memory_note_read", "memory_note_write"],
         defaultRunTimeoutSeconds: 90,
         defaultMaxTurns: 5,
       }),
     ).toEqual({
-      id: "memory_extractor",
-      label: "memory-extraction",
-      spawnSource: "memory-extraction",
+      id: "durable_memory",
+      label: "durable-memory",
+      spawnSource: "durable-memory",
       executionMode: "embedded_fork",
       transcriptPolicy: "isolated",
       toolPolicy: {
@@ -51,5 +51,18 @@ describe("special agent definition presets", () => {
       defaultRunTimeoutSeconds: 90,
       defaultMaxTurns: 5,
     });
+  });
+
+  it("allows embedded memory definitions to rely on timeout without a turn cap", () => {
+    const definition = createEmbeddedMemorySpecialAgentDefinition({
+      id: "dream",
+      label: "dream",
+      spawnSource: "dream",
+      allowlist: ["memory_note_read"],
+      defaultRunTimeoutSeconds: 120,
+    });
+
+    expect(definition.defaultRunTimeoutSeconds).toBe(120);
+    expect(definition).not.toHaveProperty("defaultMaxTurns");
   });
 });

@@ -121,7 +121,6 @@ export type QueryContextMemoryRecallDiagnostics = {
     omittedReason?: string;
     scoreBreakdown?: Record<string, number>;
   }>;
-  recentDreamTouchedNotes?: string[];
   selectedExperienceItemIds?: string[];
   omittedExperienceItemIds?: string[];
   selectedExperienceDetails?: Array<{

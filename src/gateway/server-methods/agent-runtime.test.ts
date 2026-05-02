@@ -55,10 +55,10 @@ describe("agentRuntimeHandlers", () => {
       childSessionKey: "agent:main:child-1",
       runId: "run-memory-1",
       status: "running",
-      label: "memory-extraction",
-      task: "memory extraction for latest session",
+      label: "durable-memory",
+      task: "durable memory update for latest session",
       agentMetadata: {
-        spawnSource: "memory-extraction",
+        spawnSource: "durable-memory",
         mode: "background",
       },
       progressSummary: "Writing durable memory",
@@ -121,7 +121,7 @@ describe("agentRuntimeHandlers", () => {
           }),
           expect.objectContaining({
             category: "memory",
-            title: "Durable memory update",
+            title: "Durable memory agent",
             summary: "Writing durable memory",
           }),
           expect.objectContaining({

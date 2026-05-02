@@ -160,7 +160,6 @@ export function registerMemoryCli(program: Command) {
     .option("--channel <id>", t("command.memory.option.channel"))
     .option("--user <id>", t("command.memory.option.user"))
     .option("--scope-key <key>", t("command.memory.option.scopeKey"))
-    .option("--limit <n>", t("command.memory.option.limit"), "10")
     .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryDreamStatus(opts);
@@ -191,7 +190,6 @@ export function registerMemoryCli(program: Command) {
     .option("--channel <id>", t("command.memory.option.channel"))
     .option("--user <id>", t("command.memory.option.user"))
     .option("--scope-key <key>", t("command.memory.option.scopeKey"))
-    .option("--limit <n>", t("command.memory.option.limit"), "20")
     .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
       await runMemoryDreamHistory(opts);

@@ -65,7 +65,6 @@ import { isLikelyMutatingToolName } from "../tool-mutation.js";
 import { derivePromptTokens, normalizeUsage, type UsageLike } from "../usage.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
 import { buildEmbeddedCompactionRuntimeContext } from "./compaction-runtime-context.js";
-import { maybeRunExplicitDurableIntentGate } from "./durable-intent-gate.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
 import { createEmbeddedMemoryCompleteFn } from "./memory-complete.js";
@@ -403,38 +402,7 @@ export async function runEmbeddedPiAgent(
         getAuthStorage: () => authStorage,
         getRuntimeModel: () => runtimeModel,
       });
-      const explicitDurableGate = await maybeRunExplicitDurableIntentGate({
-        prompt: params.prompt,
-        trigger: params.trigger,
-        disableTools: params.disableTools,
-        toolsAllow: params.toolsAllow,
-        modelApi: effectiveModel.api,
-        specialAgentSpawnSource: params.specialAgentSpawnSource,
-      });
-      const effectiveExtraSystemPrompt =
-        [params.extraSystemPrompt?.trim(), explicitDurableGate.systemPromptInstruction?.trim()]
-          .filter((segment): segment is string => Boolean(segment))
-          .join("\n\n") || undefined;
-      const effectiveRuntimeToolAlsoAllow = explicitDurableGate.runtimeToolAlsoAllow?.length
-        ? Array.from(
-            new Set([
-              ...(params.runtimeToolAlsoAllow ?? []),
-              ...explicitDurableGate.runtimeToolAlsoAllow,
-            ]),
-          )
-        : params.runtimeToolAlsoAllow;
-      if (explicitDurableGate.forcedToolName) {
-        log.info(
-          `[durable-intent-gate] forcing main-agent durable tool call via ${explicitDurableGate.forcedToolName} for ${params.sessionId}`,
-        );
-      }
-      const effectiveStreamParams =
-        explicitDurableGate.toolChoice === undefined
-          ? params.streamParams
-          : {
-              ...params.streamParams,
-              toolChoice: explicitDurableGate.toolChoice,
-            };
+      const effectiveExtraSystemPrompt = params.extraSystemPrompt?.trim() || undefined;
       // Resolve the memory runtime once and reuse across retries to avoid
       // repeated initialization/connection overhead per attempt.
       const memoryRuntime = await resolveMemoryRuntime(params.config, {
@@ -602,7 +570,6 @@ export async function runEmbeddedPiAgent(
             clientTools: params.clientTools,
             disableTools: params.disableTools,
             toolsAllow: params.toolsAllow,
-            runtimeToolAlsoAllow: effectiveRuntimeToolAlsoAllow,
             specialAgentSpawnSource: params.specialAgentSpawnSource,
             specialDurableMemoryScope: params.specialDurableMemoryScope,
             specialSessionSummaryTarget: params.specialSessionSummaryTarget,
@@ -646,7 +613,7 @@ export async function runEmbeddedPiAgent(
             onAgentEvent: params.onAgentEvent,
             extraSystemPrompt: effectiveExtraSystemPrompt,
             inputProvenance: params.inputProvenance,
-            streamParams: effectiveStreamParams,
+            streamParams: params.streamParams,
             ownerNumbers: params.ownerNumbers,
             enforceFinalTag: params.enforceFinalTag,
             silentExpected: params.silentExpected,

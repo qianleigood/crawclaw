@@ -223,7 +223,6 @@ summary file should stay out of assemble
     const runtime = createContextMemoryRuntime({
       runtimeStore: asRuntimeStore({
         appendMessage: vi.fn().mockResolvedValue(undefined),
-        upsertSessionScope: vi.fn().mockResolvedValue(undefined),
       }),
       logger: {
         info: vi.fn(),

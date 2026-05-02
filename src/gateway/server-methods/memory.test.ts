@@ -18,8 +18,6 @@ const mocks = vi.hoisted(() => ({
   readSessionSummaryFileMock: vi.fn(),
   sqliteRuntimeStoreInitMock: vi.fn(),
   sqliteRuntimeStoreCloseMock: vi.fn(),
-  sqliteRuntimeStoreGetDreamStateMock: vi.fn(),
-  sqliteRuntimeStoreListRecentMaintenanceRunsMock: vi.fn(),
   sqliteRuntimeStoreListMessagesByTurnRangeMock: vi.fn(),
   readExperienceIndexEntriesMock: vi.fn(),
   updateExperienceIndexEntryStatusMock: vi.fn(),
@@ -53,6 +51,15 @@ vi.mock("../../memory/cli-api.js", () => ({
     closedLoopActive: true,
     closedLoopReason: "active",
   }),
+  readDreamConsolidationStatus: vi.fn().mockResolvedValue({
+    exists: true,
+    lockPath: "/tmp/durable/.consolidate-lock",
+    lastConsolidatedAt: 100,
+    lockOwner: null,
+    lockAcquiredAt: null,
+    lockActive: false,
+    lockStale: false,
+  }),
   resolveMemoryConfig: mocks.resolveMemoryConfigMock,
   listDurableMemoryIndexDocuments: mocks.listDurableMemoryIndexDocumentsMock,
   readDurableMemoryIndexDocument: mocks.readDurableMemoryIndexDocumentMock,
@@ -62,8 +69,6 @@ vi.mock("../../memory/cli-api.js", () => ({
   SqliteRuntimeStore: class {
     init = mocks.sqliteRuntimeStoreInitMock;
     close = mocks.sqliteRuntimeStoreCloseMock;
-    getDreamState = mocks.sqliteRuntimeStoreGetDreamStateMock;
-    listRecentMaintenanceRuns = mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock;
     listMessagesByTurnRange = mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock;
   },
 }));
@@ -174,11 +179,11 @@ describe("memoryHandlers", () => {
         minHours: 24,
         minSessions: 5,
         scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
       },
     });
     mocks.sqliteRuntimeStoreInitMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreCloseMock.mockResolvedValue(undefined);
-    mocks.sqliteRuntimeStoreGetDreamStateMock.mockResolvedValue(null);
     mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([]);
     mocks.readExperienceIndexEntriesMock.mockResolvedValue([]);
     mocks.updateExperienceIndexEntryStatusMock.mockResolvedValue(null);
@@ -301,21 +306,7 @@ describe("memoryHandlers", () => {
     );
   });
 
-  it("includes touched notes in dream status responses", async () => {
-    mocks.sqliteRuntimeStoreListRecentMaintenanceRunsMock.mockResolvedValue([
-      {
-        id: "mr-1",
-        kind: "dream",
-        scope: "main:telegram:alice",
-        status: "done",
-        triggerSource: "manual_cli",
-        summary: "Consolidated gateway notes",
-        error: null,
-        metricsJson: JSON.stringify({
-          touchedNotes: ["project/gateway-recovery.md", "feedback/answer-style.md"],
-        }),
-      },
-    ]);
+  it("includes file watermark state in dream status responses", async () => {
     const opts = createOptions("memory.dream.status", { scopeKey: "main:telegram:alice" });
 
     await memoryHandlers["memory.dream.status"](opts);
@@ -325,11 +316,11 @@ describe("memoryHandlers", () => {
       expect.objectContaining({
         closedLoopActive: true,
         closedLoopReason: "active",
-        runs: [
-          expect.objectContaining({
-            touchedNotes: ["project/gateway-recovery.md", "feedback/answer-style.md"],
-          }),
-        ],
+        historyPersisted: false,
+        state: expect.objectContaining({
+          lastConsolidatedAt: 100,
+          lockActive: false,
+        }),
       }),
       undefined,
     );

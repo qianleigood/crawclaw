@@ -61,9 +61,9 @@ Two layers matter:
 
 Rules of thumb:
 
-- Lifecycle gates also apply: runtime-conditional, host-gated, owner-restricted,
-  and special-agent-only tools are not exposed just because a profile or
-  allowlist includes them.
+- Lifecycle gates also apply: runtime-conditional, owner-restricted, and
+  special-agent-only tools are not exposed just because a profile or allowlist
+  includes them.
 - `deny` always wins.
 - If `allow` is non-empty, everything else is treated as blocked.
 - Tool policy is the hard stop: `/exec` cannot override a denied `exec` tool.
