@@ -1,4 +1,3 @@
-import { safeParseJsonWithSchema } from "crawclaw/plugin-sdk/extension-shared";
 import { z } from "zod";
 import type { AcpRuntimeEvent, AcpSessionUpdateTag } from "../../runtime-api.js";
 import {
@@ -10,8 +9,6 @@ import {
   type AcpxJsonObject,
   isRecord,
 } from "./shared.js";
-
-const AcpxJsonObjectSchema = z.record(z.string(), z.unknown());
 
 const AcpxErrorEventSchema = z.object({
   type: z.literal("error"),
@@ -25,6 +22,15 @@ export function toAcpxErrorEvent(value: unknown): AcpxErrorEvent | null {
   return parsed.success ? parsed.data : null;
 }
 
+function parseAcpxJsonObject(raw: string): AcpxJsonObject | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function parseJsonLines(value: string): AcpxJsonObject[] {
   const events: AcpxJsonObject[] = [];
   for (const line of value.split(/\r?\n/)) {
@@ -32,7 +38,7 @@ export function parseJsonLines(value: string): AcpxJsonObject[] {
     if (!trimmed) {
       continue;
     }
-    const parsed = safeParseJsonWithSchema(AcpxJsonObjectSchema, trimmed);
+    const parsed = parseAcpxJsonObject(trimmed);
     if (parsed) {
       events.push(parsed);
     }
@@ -198,7 +204,7 @@ export function parsePromptEventLine(line: string): AcpRuntimeEvent | null {
   if (!trimmed) {
     return null;
   }
-  const parsed = safeParseJsonWithSchema(AcpxJsonObjectSchema, trimmed);
+  const parsed = parseAcpxJsonObject(trimmed);
   if (!parsed) {
     return {
       type: "status",
