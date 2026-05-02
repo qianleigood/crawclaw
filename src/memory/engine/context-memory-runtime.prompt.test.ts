@@ -1008,4 +1008,41 @@ Probe output recovered after the stale process was removed.
     expect(recallDurableMemoryMock).not.toHaveBeenCalled();
     expect(searchNotebookLmViaCliMock).not.toHaveBeenCalled();
   });
+
+  it("uses only the durable-memory routing contract for durable-memory special agents", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: asRuntimeStore({
+        getSessionCompactionState: vi.fn().mockResolvedValue(null),
+      }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config: createBaseMemoryRuntimeConfig(),
+    });
+
+    const result = await runtime.assemble({
+      sessionId: "durable-memory-target",
+      sessionKey: "agent:main:durable-memory-target",
+      prompt: "Extract durable memory.",
+      messages: castAgentMessages([{ role: "user", content: "Extract durable memory." }]),
+      tokenBudget: 900,
+      runtimeContext: {
+        agentId: "main",
+        specialAgentSpawnSource: "durable-memory",
+      },
+    });
+
+    const routingContractSection = (result.systemContextSections ?? []).find(
+      (section) => section.id === "memory:routing_contract",
+    );
+    expect(routingContractSection?.content).toContain(
+      "Durable memory agent 只维护当前 durable memory scope",
+    );
+    expect(routingContractSection?.content).not.toContain("Experience memory 用来保存");
+    expect(routingContractSection?.content).not.toContain("本地 SKILL.md 文件");
+    expect(result.systemContextSections?.map((section) => section.id)).toEqual([
+      "memory:routing_contract",
+    ]);
+    expect(recallDurableMemoryMock).not.toHaveBeenCalled();
+    expect(searchNotebookLmViaCliMock).not.toHaveBeenCalled();
+  });
 });

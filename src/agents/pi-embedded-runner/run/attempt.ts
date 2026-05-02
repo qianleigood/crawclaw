@@ -124,6 +124,7 @@ import { applySkillEnvOverrides, resolveSkillsPromptForRun } from "../../skills.
 import { createModelSkillDiscoveryReranker } from "../../skills/discovery-reranker.js";
 import { getSkillExposureState } from "../../skills/exposure-state.js";
 import { createSkillSemanticRetrieverFromConfig } from "../../skills/semantic-retrieval.js";
+import { shouldUseIsolatedSpecialAgentContext } from "../../special/runtime/context-policy.js";
 import { buildSpecialAgentParentForkContextFromModelInput } from "../../special/runtime/parent-fork-context.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
@@ -286,7 +287,7 @@ function buildParentPromptEmbeddedSystemPrompt(params: {
 }
 
 function shouldReuseParentSystemPrompt(params: { specialAgentSpawnSource?: string }): boolean {
-  return params.specialAgentSpawnSource?.trim() !== "session-summary";
+  return !shouldUseIsolatedSpecialAgentContext(params.specialAgentSpawnSource);
 }
 
 function buildIsolatedSpecialAgentSystemPromptSections(params: {
@@ -648,7 +649,9 @@ export async function runEmbeddedAttempt(
         config: params.config,
         agentId: params.agentId,
       });
-      const isolatedSpecialSystemPrompt = params.specialSystemPromptMode === "isolated";
+      const isolatedSpecialSystemPrompt = shouldUseIsolatedSpecialAgentContext(
+        params.specialAgentSpawnSource,
+      );
       const memoryRuntime = isolatedSpecialSystemPrompt ? undefined : params.memoryRuntime;
       log = log.withContext({ agentId: sessionAgentId });
       const { skillEntries } = isolatedSpecialSystemPrompt
@@ -1060,11 +1063,11 @@ export async function runEmbeddedAttempt(
       })
         ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
         : undefined;
-      const parentForkContextMessages = Array.isArray(
-        params.specialParentPromptEnvelope?.forkContextMessages,
-      )
-        ? params.specialParentPromptEnvelope.forkContextMessages
-        : [];
+      const parentForkContextMessages = Array.isArray(params.specialParentForkMessages)
+        ? params.specialParentForkMessages
+        : Array.isArray(params.specialParentPromptEnvelope?.forkContextMessages)
+          ? params.specialParentPromptEnvelope.forkContextMessages
+          : [];
       const thinkingConfig = {
         ...(parentPromptThinking.thinkLevel !== undefined
           ? { thinkLevel: parentPromptThinking.thinkLevel }

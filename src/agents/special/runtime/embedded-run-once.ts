@@ -74,6 +74,21 @@ function splitParentForkModelRef(
   };
 }
 
+function shouldAttachParentPromptEnvelope(definitionId: string): boolean {
+  return definitionId !== "durable_memory";
+}
+
+function resolveParentForkMessages(
+  parentPromptEnvelope:
+    | NonNullable<SpecialAgentSpawnRequest["parentForkContext"]>["promptEnvelope"]
+    | undefined,
+): unknown[] | undefined {
+  return Array.isArray(parentPromptEnvelope?.forkContextMessages) &&
+    parentPromptEnvelope.forkContextMessages.length > 0
+    ? parentPromptEnvelope.forkContextMessages
+    : undefined;
+}
+
 function resolveEmbeddedToolsAllow(
   toolPolicy: SpecialAgentToolPolicy | undefined,
 ): readonly string[] | undefined {
@@ -226,6 +241,10 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
 
   const toolsAllow = resolveEmbeddedToolsAllow(request.definition.toolPolicy);
   const parentPromptEnvelope = request.parentForkContext?.promptEnvelope;
+  const attachParentPromptEnvelope = shouldAttachParentPromptEnvelope(request.definition.id);
+  const parentForkMessages = attachParentPromptEnvelope
+    ? undefined
+    : resolveParentForkMessages(parentPromptEnvelope);
 
   return {
     runId,
@@ -302,13 +321,10 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
       ...(request.extraSystemPrompt ? { extraSystemPrompt: request.extraSystemPrompt } : {}),
       ...(effectiveStreamParams ? { streamParams: effectiveStreamParams } : {}),
       ...(toolsAllow ? { toolsAllow: [...toolsAllow] } : {}),
-      ...(request.definition.systemPromptMode === "isolated"
-        ? {
-            specialSystemPromptMode: "isolated" as const,
-            surfacedSkillNames: [],
-          }
+      ...(attachParentPromptEnvelope && parentPromptEnvelope
+        ? { specialParentPromptEnvelope: parentPromptEnvelope }
         : {}),
-      ...(parentPromptEnvelope ? { specialParentPromptEnvelope: parentPromptEnvelope } : {}),
+      ...(parentForkMessages ? { specialParentForkMessages: parentForkMessages } : {}),
       specialAgentSpawnSource: request.definition.spawnSource,
       ...(embeddedContext?.specialAgentContext?.durableMemoryScope
         ? {

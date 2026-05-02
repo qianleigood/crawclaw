@@ -1,7 +1,6 @@
 import type {
   SpecialAgentCachePolicy,
   SpecialAgentDefinition,
-  SpecialAgentSystemPromptMode,
   SpecialAgentToolPolicy,
 } from "./types.js";
 
@@ -34,7 +33,6 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
   allowlist: readonly string[];
   modelVisibility?: SpecialAgentToolPolicy["modelVisibility"];
   guard?: SpecialAgentToolPolicy["guard"];
-  systemPromptMode?: SpecialAgentSystemPromptMode;
   defaultRunTimeoutSeconds: number;
   defaultMaxTurns?: number;
 }): SpecialAgentDefinition {
@@ -49,7 +47,6 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
       guard: params.guard,
     }),
     cachePolicy: createShortMemoryCachePolicy(),
-    ...(params.systemPromptMode ? { systemPromptMode: params.systemPromptMode } : {}),
     mode: "run",
     cleanup: "keep",
     sandbox: "inherit",

@@ -59,7 +59,6 @@ describe("special agent registry", () => {
       modelVisibility: "allowlist",
       guard: "memory_maintenance",
     });
-    expect(definition?.systemPromptMode).toBe("isolated");
     expect(definition?.defaultMaxTurns).toBeUndefined();
   });
 

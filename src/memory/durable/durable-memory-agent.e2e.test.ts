@@ -162,7 +162,8 @@ function createFakeExtractorRun(params: { capturedEmbeddedRuns: RunEmbeddedPiAge
       "Analyze the most recent ~2 model-visible messages above",
     );
     expect(embeddedParams.prompt).not.toContain("旧上下文：我只想要中文回答。");
-    expect(embeddedParams.specialParentPromptEnvelope?.forkContextMessages).toHaveLength(4);
+    expect(embeddedParams.specialParentPromptEnvelope).toBeUndefined();
+    expect(embeddedParams.specialParentForkMessages).toHaveLength(4);
 
     const writeTool = createMemoryNoteWriteTool({
       scope: embeddedParams.specialDurableMemoryScope,

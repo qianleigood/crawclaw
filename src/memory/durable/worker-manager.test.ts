@@ -119,6 +119,7 @@ describe("DurableExtractionWorkerManager", () => {
       toolName: string;
       content: string;
       turnIndex: number;
+      isError?: boolean;
     },
   ): Promise<void> {
     await runtimeStore.appendMessage({
@@ -131,7 +132,7 @@ describe("DurableExtractionWorkerManager", () => {
       runtimeShape: {
         toolCallId: params.toolCallId,
         toolName: params.toolName,
-        isError: false,
+        isError: params.isError === true,
       },
       turnIndex: params.turnIndex,
     });
@@ -906,6 +907,80 @@ describe("DurableExtractionWorkerManager", () => {
         parentForkContext,
       }),
     );
+  });
+
+  it("runs background extraction after a failed explicit durable write", async () => {
+    const stateDir = await createStateDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runtimeStore = createRuntimeStore();
+    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const runner = vi.fn().mockResolvedValue({
+      status: "failed",
+      notesSaved: 0,
+      reason: "fallback_failed",
+      advanceCursor: false,
+    });
+
+    const { getSharedDurableExtractionWorkerManager } = await import("./worker-manager.ts");
+    const manager = getSharedDurableExtractionWorkerManager({
+      config: {
+        enabled: true,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 1,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger,
+    });
+
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-failed-direct-write",
+      role: "assistant",
+      content: "I will update durable memory.",
+      turnIndex: 1,
+    });
+    await appendToolResultMessage(runtimeStore, {
+      sessionId: "session-failed-direct-write",
+      toolCallId: "call-failed-write",
+      toolName: "memory_note_write",
+      content: '{"status":"error"}',
+      turnIndex: 2,
+      isError: true,
+    });
+
+    await manager.submitTurn({
+      sessionId: "session-failed-direct-write",
+      sessionKey: "agent:main:feishu:direct:user-failed-direct-write",
+      newMessages: [
+        makeAgentAssistantMessage({
+          content: [{ type: "text", text: "I will update durable memory." }],
+        }),
+        makeAgentToolResultMessage({
+          toolCallId: "call-failed-write",
+          toolName: "memory_note_write",
+          content: [{ type: "text", text: '{"status":"error"}' }],
+          details: { status: "error" },
+          isError: true,
+        }),
+      ] as never,
+      messageCursor: 2,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-failed-direct-write",
+        parentForkContext: createParentForkContext(),
+      },
+    });
+
+    await vi.waitFor(async () => {
+      expect(runner).toHaveBeenCalledTimes(1);
+      await expect(
+        runtimeStore.getDurableExtractionCursor("session-failed-direct-write"),
+      ).resolves.toBeNull();
+    });
+    expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining("skipped_direct_write"));
   });
 
   it("fails closed when the background runner fails", async () => {

@@ -24,8 +24,6 @@ export type SpecialAgentCachePolicy = {
   skipWrite?: boolean;
 };
 
-export type SpecialAgentSystemPromptMode = "default" | "isolated";
-
 export type SpecialAgentEmbeddedContext = {
   sessionId: string;
   sessionFile: string;
@@ -71,7 +69,6 @@ export type SpecialAgentDefinition = {
   transcriptPolicy?: SpecialAgentTranscriptPolicy;
   toolPolicy?: SpecialAgentToolPolicy;
   cachePolicy?: SpecialAgentCachePolicy;
-  systemPromptMode?: SpecialAgentSystemPromptMode;
   runtime?: SpawnAgentSessionParams["runtime"];
   mode?: SpawnAgentSessionParams["mode"];
   cleanup?: SpawnAgentSessionParams["cleanup"];

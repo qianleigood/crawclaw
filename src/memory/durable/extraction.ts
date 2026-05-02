@@ -12,7 +12,10 @@ export function hasDurableMemoryWriteInMessages(messages: AgentMessage[]): boole
       typeof (message as { toolName?: unknown }).toolName === "string"
         ? String((message as { toolName?: unknown }).toolName).trim()
         : "";
-    return MEMORY_FILE_MUTATING_TOOL_NAMES.has(toolName);
+    return (
+      MEMORY_FILE_MUTATING_TOOL_NAMES.has(toolName) &&
+      (message as { isError?: unknown }).isError !== true
+    );
   });
 }
 

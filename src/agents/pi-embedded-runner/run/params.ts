@@ -105,8 +105,6 @@ export type RunEmbeddedPiAgentParams = {
   toolsAllow?: string[];
   /** Explicit special-agent spawn source for embedded fork runs. */
   specialAgentSpawnSource?: string;
-  /** If set, build only the special-agent system prompt and skip default prompt extras. */
-  specialSystemPromptMode?: "isolated";
   /** Explicit durable-memory scope for embedded special-agent runs. */
   specialDurableMemoryScope?: {
     agentId?: string | null;
@@ -120,6 +118,8 @@ export type RunEmbeddedPiAgentParams = {
   };
   /** Parent-run prompt envelope used by embedded special-agent forks such as session summary. */
   specialParentPromptEnvelope?: SpecialAgentCacheEnvelope;
+  /** Parent-run fork messages without the full captured prompt envelope. */
+  specialParentForkMessages?: unknown[];
   /** Seen bootstrap truncation warning signatures for this session (once mode dedupe). */
   bootstrapPromptWarningSignaturesSeen?: string[];
   /** Last shown bootstrap truncation warning signature for this session. */

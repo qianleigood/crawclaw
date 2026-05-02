@@ -205,11 +205,14 @@ export function createContextMemoryRuntime(options: {
       const agentMemoryRoutingContract = renderAgentMemoryRoutingContract({
         mode: routingContractMode,
       });
-      if (routingContractMode === "session-summary") {
+      if (routingContractMode === "session-summary" || routingContractMode === "durable-memory") {
         return buildRoutingContractOnlyAssemblyResult({
           agentMemoryRoutingContract,
           messages: compactedMessages,
-          hitReason: "session_summary_contract_only",
+          hitReason:
+            routingContractMode === "session-summary"
+              ? "session_summary_contract_only"
+              : "durable_memory_contract_only",
         });
       }
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   renderAgentMemoryRoutingContract,
   renderContextRoutingSection,
+  resolveMemoryRoutingContractMode,
 } from "./render-routing-guidance.ts";
 
 describe("renderRoutingGuidance", () => {
@@ -26,6 +27,23 @@ describe("renderRoutingGuidance", () => {
     expect(contract.text).not.toContain("Experience memory 用来保存");
     expect(contract.text).not.toContain("write_experience_note");
     expect(contract.text).not.toContain("MEMORY.md");
+  });
+
+  it("renders a durable-memory-only contract for durable memory special agents", () => {
+    expect(resolveMemoryRoutingContractMode({ specialAgentSpawnSource: "durable-memory" })).toBe(
+      "durable-memory",
+    );
+
+    const contract = renderAgentMemoryRoutingContract({ mode: "durable-memory" });
+
+    expect(contract.text).toContain("Durable memory agent 只维护当前 durable memory scope");
+    expect(contract.text).toContain(
+      "只根据 forked parent conversation 中最近的 model-visible messages",
+    );
+    expect(contract.text).toContain("不要写 Experience memory");
+    expect(contract.text).not.toContain("Experience memory 用来保存");
+    expect(contract.text).not.toContain("write_experience_note");
+    expect(contract.text).not.toContain("本地 SKILL.md 文件");
   });
 
   it("renders a Chinese context routing section", () => {

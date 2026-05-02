@@ -112,8 +112,8 @@ contracts.
       child-session state, subagent announcement, default main-agent prompt,
       skills, bootstrap context, workspace reminders, or main memory runtime
       recall/lifecycle
-    - the embedded runner has an isolated special-agent system-prompt mode for
-      dream, which omits default prompt extras instead of relying on the normal
+    - the embedded runner isolates dream through the special-agent spawn-source
+      policy, which omits default prompt extras instead of relying on the normal
       embedded prompt branch
     - explicit CLI/gateway summary refresh now reconstructs a bounded manual
       parent fork context from persisted model-visible rows instead of calling

@@ -94,7 +94,6 @@ describe("session summary agent runner", () => {
       cacheRetention: "short",
     });
     expect(SESSION_SUMMARY_AGENT_DEFINITION.cachePolicy?.skipWrite).toBeUndefined();
-    expect(SESSION_SUMMARY_AGENT_DEFINITION.systemPromptMode).toBe("isolated");
   });
 
   it("builds a fork-context task prompt that keeps the edit set narrow", () => {
@@ -344,7 +343,8 @@ UPDATED_COUNT: 2
     expect(embeddedParams?.prompt).not.toContain("<model_visible_conversation>");
     expect(embeddedParams?.prompt).not.toContain("full context user request");
     expect(embeddedParams?.prompt).not.toContain("full context assistant response");
-    expect(embeddedParams?.extraSystemPrompt).toBeUndefined();
+    expect(embeddedParams?.extraSystemPrompt).toContain("只维护当前 session summary");
+    expect(embeddedParams?.extraSystemPrompt).not.toContain("Experience memory 用来保存");
     expect(embeddedParams?.streamParams).toEqual({ cacheRetention: "short" });
   });
 

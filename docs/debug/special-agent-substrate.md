@@ -148,9 +148,9 @@ agents:
 - that parent fork context carries the full current model-visible
   fork-context messages, matching Claude Code's session-memory update shape
   without a recent-message excerpt fallback
-- session-summary now also declares isolated special-agent system prompt mode,
-  so it does not reuse the parent system prompt, the main-agent prompt extras,
-  or the main memory-runtime recall path; it only receives the forked parent
+- session-summary is isolated by the special-agent spawn-source policy, so it
+  does not reuse the parent system prompt, the main-agent prompt extras, or the
+  main memory-runtime recall path; it only receives the forked parent
   conversation plus its own summary-maintenance instructions
 - lifecycle updates with missing fork context are skipped, while explicit
   CLI/gateway refresh builds a bounded manual parent fork context from persisted
@@ -158,13 +158,15 @@ agents:
 - when that parent fork context is available, the summary-specific instructions
   stay in the task prompt instead of being appended to or merged into the
   parent system prompt
-- durable extraction does not attach the parent run's captured prompt envelope
+- durable extraction does not attach the parent run's captured prompt envelope;
+  it receives only the fork-context messages required for the recent-message
+  extraction window
 - dream is an independent embedded maintenance special agent. It does not
   receive a parent fork context, does not spawn a child session, and consumes
   only the host-provided durable manifest, structured signals, and transcript
   refs.
-- dream also declares isolated special-agent system prompt mode, so the
-  embedded runner skips the default main-agent prompt, skills prompt, docs path,
+- dream is isolated by the special-agent spawn-source policy, so the embedded
+  runner skips the default main-agent prompt, skills prompt, docs path,
   bootstrap context files, workspace reminders, and the main memory runtime
   recall/lifecycle for that run.
 - durable extraction and dream special runs still keep cache-write suppression

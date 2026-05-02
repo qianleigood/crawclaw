@@ -91,6 +91,20 @@ describe("durable extraction helpers", () => {
     ).toBeNull();
   });
 
+  it("does not suppress after-turn extraction after failed durable writes", () => {
+    const failedWrite = makeAgentToolResultMessage({
+      toolCallId: "call-failed-write",
+      toolName: "memory_note_write",
+      content: [{ type: "text", text: '{"status":"error"}' }],
+      details: { status: "error" },
+      isError: true,
+    });
+
+    expect(hasDurableMemoryWriteInMessages([failedWrite])).toBe(false);
+    expect(classifyAfterTurnDurableSkipReason([failedWrite])).toBeNull();
+    expect(shouldSkipAfterTurnDurableExtraction([failedWrite])).toBe(false);
+  });
+
   it("does not suppress after-turn durable extraction after experience note write", () => {
     expect(
       shouldSkipAfterTurnDurableExtraction([

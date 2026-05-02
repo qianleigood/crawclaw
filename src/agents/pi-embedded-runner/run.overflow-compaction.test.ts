@@ -62,14 +62,12 @@ describe("runEmbeddedPiAgent overflow compaction trigger routing", () => {
       ...overflowBaseRunParams,
       runId: "run-isolated-special-memory-runtime",
       specialAgentSpawnSource: "dream",
-      specialSystemPromptMode: "isolated",
     });
 
     expect(mockedResolveMemoryRuntime).not.toHaveBeenCalled();
     const attemptParams = mockedRunEmbeddedAttempt.mock.calls[0]?.[0] as
-      | { memoryRuntime?: unknown; specialSystemPromptMode?: string }
+      | { memoryRuntime?: unknown }
       | undefined;
-    expect(attemptParams?.specialSystemPromptMode).toBe("isolated");
     expect(attemptParams?.memoryRuntime).toBeUndefined();
   });
 

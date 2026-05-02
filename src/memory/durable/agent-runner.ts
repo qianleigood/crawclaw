@@ -13,6 +13,7 @@ import {
 } from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
 import { buildMemoryActionVisibilityProjection } from "../action-visibility.js";
+import { renderAgentMemoryRoutingContract } from "../context/render-routing-guidance.js";
 import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../special-agent-toollists.js";
 import type { DurableMemoryManifestEntry } from "./store.js";
 import { scanDurableMemoryScopeEntries } from "./store.js";
@@ -120,6 +121,14 @@ export function parseDurableMemoryAgentResult(text: string): ParsedDurableMemory
   };
 }
 
+function resolveMissingRequiredReportFields(parsed: ParsedDurableMemoryAgentResult): string[] {
+  return [
+    parsed.writtenCount === undefined ? "WRITTEN_COUNT" : undefined,
+    parsed.updatedCount === undefined ? "UPDATED_COUNT" : undefined,
+    parsed.deletedCount === undefined ? "DELETED_COUNT" : undefined,
+  ].filter((field): field is string => field !== undefined);
+}
+
 function buildExistingManifestLines(
   entries: DurableMemoryManifestEntry[],
   limit: number,
@@ -128,6 +137,13 @@ function buildExistingManifestLines(
     const dedupeText = entry.dedupeKey ? ` | dedupeKey=${entry.dedupeKey}` : "";
     return `${index + 1}. type=${entry.durableType} | title=${entry.title} | description=${entry.description}${dedupeText}`;
   });
+}
+
+export function buildDurableMemoryAgentSystemPrompt(): string {
+  return [
+    "# Durable Memory Agent",
+    renderAgentMemoryRoutingContract({ mode: "durable-memory" }).text,
+  ].join("\n\n");
 }
 
 export function buildDurableMemoryAgentTaskPrompt(params: {
@@ -165,6 +181,26 @@ export function buildDurableMemoryAgentTaskPrompt(params: {
     "- If several note changes are needed, read all relevant candidate notes first, then execute the writes/edits without stretching the work across many turns.",
     "- Use memory_note_read before memory_note_edit, use memory_note_write for full replacements or new files, and use memory_note_delete only when forgetting/removal is clearly warranted.",
     "- Update MEMORY.md whenever the note set changes, but keep it as a short index rather than a content dump.",
+    "",
+    "Final response format:",
+    "- Always include all five lines below as the final reply, with no extra prose before or after the block.",
+    "- STATUS: one of WRITTEN, SKIPPED, NO_CHANGE, FAILED",
+    "- SUMMARY: <one sentence>",
+    "- WRITTEN_COUNT: <integer>",
+    "- UPDATED_COUNT: <integer>",
+    "- DELETED_COUNT: <integer>",
+    "- Use 0 for counts with no changes.",
+    "- Use STATUS: WRITTEN when any memory_note_write, memory_note_edit, or memory_note_delete succeeded.",
+    "- Use STATUS: NO_CHANGE when no durable memory change is needed.",
+    "- Use STATUS: SKIPPED when you intentionally did not attempt maintenance because the recent messages are out of scope.",
+    "- Use STATUS: FAILED only when required maintenance could not complete after a tool or runtime error.",
+    "",
+    "Final reply template:",
+    "STATUS: NO_CHANGE",
+    "SUMMARY: no durable memory changes needed",
+    "WRITTEN_COUNT: 0",
+    "UPDATED_COUNT: 0",
+    "DELETED_COUNT: 0",
     "",
     "Use the scoped memory file tools only when a stable durable note is clearly warranted. If there is no durable memory to add, update, or delete, do nothing and return STATUS: NO_CHANGE.",
   ].join("\n");
@@ -262,6 +298,7 @@ export async function runDurableMemoryAgentOnce(
     {
       definition: DURABLE_MEMORY_AGENT_DEFINITION,
       task: taskPrompt,
+      extraSystemPrompt: buildDurableMemoryAgentSystemPrompt(),
       ...(parentRunId ? { parentRunId } : {}),
       parentForkContext: params.parentForkContext,
       ...(params.observation ? { observation: params.observation } : {}),
@@ -363,12 +400,12 @@ export async function runDurableMemoryAgentOnce(
   }
 
   const parsed = parseDurableMemoryAgentResult(run.reply);
-  if (!parsed.status) {
-    const error = "durable memory agent completed without a STATUS line";
+  const parsedStatus = parsed.status;
+  const failInvalidReport = async (reason: string): Promise<DurableExtractionRunResult> => {
     await observability.recordResult({
       result: run,
       status: "failed",
-      summary: error,
+      summary: reason,
     });
     emitDurableMemoryAgentAction({
       actionRunId,
@@ -377,22 +414,31 @@ export async function runDurableMemoryAgentOnce(
       agentId: params.scope.agentId,
       status: "failed",
       title: "Durable memory agent report invalid",
-      summary: error,
+      summary: reason,
       phase: "invalid_report",
       detail: buildSpecialAgentRunRefDetail(run),
     });
     return {
       status: "failed",
       notesSaved: 0,
-      reason: error,
+      reason,
       advanceCursor: false,
     };
+  };
+  if (!parsedStatus) {
+    return await failInvalidReport("durable memory agent completed without a STATUS line");
+  }
+  const missingRequiredFields = resolveMissingRequiredReportFields(parsed);
+  if (missingRequiredFields.length > 0) {
+    return await failInvalidReport(
+      `durable memory agent report missing required fields: ${missingRequiredFields.join(", ")}`,
+    );
   }
 
   const notesSaved =
     (parsed.writtenCount ?? 0) + (parsed.updatedCount ?? 0) + (parsed.deletedCount ?? 0);
   const status =
-    parsed.status === "written" ? "completed" : parsed.status === "failed" ? "failed" : "completed";
+    parsedStatus === "written" ? "completed" : parsedStatus === "failed" ? "failed" : "completed";
   emitDurableMemoryAgentAction({
     actionRunId,
     actionId,
@@ -400,16 +446,16 @@ export async function runDurableMemoryAgentOnce(
     agentId: params.scope.agentId,
     status,
     title:
-      parsed.status === "written"
+      parsedStatus === "written"
         ? "Durable memory agent wrote durable notes"
-        : parsed.status === "skipped"
+        : parsedStatus === "skipped"
           ? "Durable memory agent skipped"
-          : parsed.status === "no_change"
+          : parsedStatus === "no_change"
             ? "Durable memory agent found no durable changes"
             : "Durable memory agent failed",
     summary: parsed.summary,
     phase: "final",
-    resultStatus: parsed.status,
+    resultStatus: parsedStatus,
     detail: buildSpecialAgentCompletionDetail({
       result: run,
       detail: {
@@ -423,7 +469,7 @@ export async function runDurableMemoryAgentOnce(
 
   await observability.recordResult({
     result: run,
-    status: parsed.status === "failed" ? "failed" : "complete",
+    status: parsedStatus === "failed" ? "failed" : "complete",
     summary: parsed.summary,
     detail: {
       writtenCount: parsed.writtenCount ?? 0,
@@ -434,10 +480,10 @@ export async function runDurableMemoryAgentOnce(
   });
 
   return {
-    status: parsed.status,
+    status: parsedStatus,
     notesSaved,
     reason: parsed.summary,
-    advanceCursor: parsed.status !== "failed",
+    advanceCursor: parsedStatus !== "failed",
   };
 }
 

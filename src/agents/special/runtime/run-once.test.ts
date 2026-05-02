@@ -551,7 +551,7 @@ describe("runSpecialAgentToCompletion", () => {
     });
   });
 
-  it("propagates isolated system-prompt mode for independent embedded special agents", async () => {
+  it("forwards extra system prompt without definition-level prompt modes", async () => {
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
       payloads: [{ text: "STATUS: OK" }],
       meta: {
@@ -568,12 +568,11 @@ describe("runSpecialAgentToCompletion", () => {
       {
         definition: {
           ...TEST_EMBEDDED_SPECIAL_AGENT_DEFINITION,
-          id: "test_isolated_embedded_special_agent",
-          spawnSource: "test-isolated-embedded-special-agent",
-          systemPromptMode: "isolated",
+          id: "test_embedded_special_agent_extra_prompt",
+          spawnSource: "test-embedded-special-agent-extra-prompt",
         },
-        task: "do the isolated thing",
-        extraSystemPrompt: "isolated system prompt",
+        task: "do the embedded thing",
+        extraSystemPrompt: "extra system prompt",
         embeddedContext: {
           sessionId: "session-isolated-1",
           sessionFile: "/tmp/crawclaw-isolated-session.jsonl",
@@ -593,12 +592,12 @@ describe("runSpecialAgentToCompletion", () => {
 
     expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
       expect.objectContaining({
-        specialSystemPromptMode: "isolated",
-        surfacedSkillNames: [],
-        extraSystemPrompt: "isolated system prompt",
-        specialAgentSpawnSource: "test-isolated-embedded-special-agent",
+        extraSystemPrompt: "extra system prompt",
+        specialAgentSpawnSource: "test-embedded-special-agent-extra-prompt",
       }),
     );
+    const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    expect(params?.surfacedSkillNames).toBeUndefined();
   });
 
   it("ignores synthetic manual parent model refs for embedded fork model selection", async () => {
@@ -743,7 +742,7 @@ describe("runSpecialAgentToCompletion", () => {
     );
   });
 
-  it("attaches the parent prompt envelope for durable memory special agents", async () => {
+  it("passes only fork messages for durable memory special agents", async () => {
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
       payloads: [{ text: "STATUS: NO_CHANGE" }],
       meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
@@ -783,8 +782,8 @@ describe("runSpecialAgentToCompletion", () => {
     );
 
     const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    expect(params?.specialParentPromptEnvelope).toBe(parentPromptEnvelope);
-    expect(params?.specialSystemPromptMode).toBeUndefined();
+    expect(params?.specialParentPromptEnvelope).toBeUndefined();
+    expect(params?.specialParentForkMessages).toEqual(parentPromptEnvelope.forkContextMessages);
     expect(params?.surfacedSkillNames).toBeUndefined();
     expect(params?.toolsAllow).toEqual([
       "memory_manifest_read",

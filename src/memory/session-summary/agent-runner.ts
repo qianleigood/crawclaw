@@ -14,6 +14,7 @@ import {
 } from "../../agents/special/runtime/runtime-deps.js";
 import type { SpecialAgentDefinition } from "../../agents/special/runtime/types.js";
 import { buildMemoryActionVisibilityProjection } from "../action-visibility.js";
+import { renderAgentMemoryRoutingContract } from "../context/render-routing-guidance.js";
 import { ensureSessionSummaryFile, readSessionSummaryFile } from "./store.ts";
 import {
   buildSessionSummaryTemplate,
@@ -40,7 +41,6 @@ export const SESSION_SUMMARY_AGENT_DEFINITION: SpecialAgentDefinition = {
     spawnSource: SESSION_SUMMARY_SPAWN_SOURCE,
     allowlist: SESSION_SUMMARY_TOOL_ALLOWLIST,
     modelVisibility: "allowlist",
-    systemPromptMode: "isolated",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
   }),
@@ -359,6 +359,7 @@ export async function runSessionSummaryAgentOnce(params: {
     {
       definition: SESSION_SUMMARY_AGENT_DEFINITION,
       task: taskPrompt,
+      extraSystemPrompt: renderAgentMemoryRoutingContract({ mode: "session-summary" }).text,
       ...(normalizeOptionalString(params.parentForkContext?.parentRunId)
         ? { parentRunId: params.parentForkContext?.parentRunId }
         : {}),

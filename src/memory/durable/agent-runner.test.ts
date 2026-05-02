@@ -82,7 +82,6 @@ describe("runDurableMemoryAgentOnce", () => {
       spawnSource: "durable-memory",
     });
     expect(DURABLE_MEMORY_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
-    expect(DURABLE_MEMORY_AGENT_DEFINITION.systemPromptMode).toBeUndefined();
     expect(DURABLE_MEMORY_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: [
         "memory_manifest_read",
@@ -125,6 +124,14 @@ describe("runDurableMemoryAgentOnce", () => {
     expect(taskPrompt).toContain("Update MEMORY.md whenever the note set changes");
     expect(taskPrompt).toContain("Recent-message safety:");
     expect(taskPrompt).toContain("Do not output NO_REPLY");
+    expect(taskPrompt).toContain("Final response format:");
+    expect(taskPrompt).toContain("STATUS: one of WRITTEN, SKIPPED, NO_CHANGE, FAILED");
+    expect(taskPrompt).toContain("SUMMARY: <one sentence>");
+    expect(taskPrompt).toContain("WRITTEN_COUNT: <integer>");
+    expect(taskPrompt).toContain("UPDATED_COUNT: <integer>");
+    expect(taskPrompt).toContain("DELETED_COUNT: <integer>");
+    expect(taskPrompt).toContain("Always include all five lines");
+    expect(taskPrompt).toContain("Use 0 for counts with no changes");
 
     expect(
       buildDurableMemoryAgentTaskPrompt({
@@ -249,17 +256,23 @@ describe("runDurableMemoryAgentOnce", () => {
           sessionId?: string;
           sessionFile?: string;
           specialParentPromptEnvelope?: { forkContextMessages?: unknown[] };
+          specialParentForkMessages?: unknown[];
           prompt?: string;
           extraSystemPrompt?: string;
+          surfacedSkillNames?: string[];
         }
       | undefined;
-    expect(embeddedParams?.specialParentPromptEnvelope?.forkContextMessages).toEqual(
-      fullForkMessages,
-    );
+    expect(embeddedParams?.specialParentPromptEnvelope).toBeUndefined();
+    expect(embeddedParams?.specialParentForkMessages).toEqual(fullForkMessages);
     expect(embeddedParams?.prompt).toContain(
       "Analyze the most recent ~1 model-visible messages above",
     );
-    expect(embeddedParams?.extraSystemPrompt).toBeUndefined();
+    expect(embeddedParams?.surfacedSkillNames).toBeUndefined();
+    expect(embeddedParams?.extraSystemPrompt).toContain(
+      "Durable memory agent 只维护当前 durable memory scope",
+    );
+    expect(embeddedParams?.extraSystemPrompt).not.toContain("Experience memory 用来保存");
+    expect(embeddedParams?.extraSystemPrompt).not.toContain("本地 SKILL.md 文件");
     expect(embeddedParams?.sessionId).not.toBe("session-1");
     expect(embeddedParams?.sessionFile).not.toBe("/tmp/session-1.jsonl");
     expect(emitAgentActionEvent).toHaveBeenCalledTimes(3);
@@ -310,6 +323,74 @@ describe("runDurableMemoryAgentOnce", () => {
         }),
       }),
     });
+  });
+
+  it("rejects completed durable reports that omit required counts", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-memory-agent-"));
+    process.env.CRAWCLAW_DURABLE_MEMORY_DIR = dir;
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const emitAgentActionEvent = vi.fn();
+    const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
+      payloads: [
+        {
+          text: ["STATUS: WRITTEN", "SUMMARY: saved one durable note"].join("\n"),
+        },
+      ],
+      meta: {
+        durationMs: 1,
+        agentMeta: { usage: { input: 1, output: 1, total: 2 } },
+      },
+    });
+    __testing.setDepsForTest({
+      emitAgentActionEvent,
+      runEmbeddedPiAgent,
+    });
+    const parentForkContext = {
+      parentRunId: "parent-run-1",
+      provider: "openai",
+      modelId: "gpt-5.4",
+      promptEnvelope: buildSpecialAgentCacheEnvelope({
+        systemPromptText: "parent system prompt",
+        forkContextMessages: [makeAgentUserMessage({ content: "以后操作类回答先给步骤。" })],
+      }),
+    };
+
+    const result = await runDurableMemoryAgentOnce({
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:user-1",
+      sessionFile: "/tmp/session-1.jsonl",
+      workspaceDir: dir,
+      scope: scope!,
+      parentForkContext,
+      messageCursor: 2,
+      newMessageCount: 1,
+      maxNotes: 2,
+    });
+
+    expect(result).toMatchObject({
+      status: "failed",
+      notesSaved: 0,
+      reason:
+        "durable memory agent report missing required fields: WRITTEN_COUNT, UPDATED_COUNT, DELETED_COUNT",
+      advanceCursor: false,
+    });
+    expect(emitAgentActionEvent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "failed",
+          title: "Durable memory agent report invalid",
+          detail: expect.objectContaining({
+            memoryPhase: "invalid_report",
+          }),
+        }),
+      }),
+    );
   });
 
   it("fails closed when the background durable memory agent cannot start", async () => {

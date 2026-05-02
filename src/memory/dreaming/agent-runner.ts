@@ -27,7 +27,6 @@ export const DREAM_AGENT_DEFINITION: SpecialAgentDefinition =
     allowlist: DREAM_MEMORY_MAINTENANCE_TOOL_ALLOWLIST,
     modelVisibility: "allowlist",
     guard: "memory_maintenance",
-    systemPromptMode: "isolated",
     defaultRunTimeoutSeconds: 120,
   });
 

@@ -62,6 +62,7 @@ import {
 import { ensureRuntimePluginsLoaded } from "../runtime-plugins.js";
 import { emitRunLoopLifecycleEvent } from "../runtime/lifecycle/bus.js";
 import { ensureSharedRunLoopLifecycleSubscribers } from "../runtime/lifecycle/shared-subscribers.js";
+import { shouldUseIsolatedSpecialAgentContext } from "../special/runtime/context-policy.js";
 import { isLikelyMutatingToolName } from "../tool-mutation.js";
 import { derivePromptTokens, normalizeUsage, type UsageLike } from "../usage.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
@@ -407,12 +408,11 @@ export async function runEmbeddedPiAgent(
       const effectiveExtraSystemPrompt = params.extraSystemPrompt?.trim() || undefined;
       // Resolve the memory runtime once and reuse across retries to avoid
       // repeated initialization/connection overhead per attempt.
-      const memoryRuntime =
-        params.specialSystemPromptMode === "isolated"
-          ? undefined
-          : await resolveMemoryRuntime(params.config, {
-              complete: memoryComplete,
-            });
+      const memoryRuntime = shouldUseIsolatedSpecialAgentContext(params.specialAgentSpawnSource)
+        ? undefined
+        : await resolveMemoryRuntime(params.config, {
+            complete: memoryComplete,
+          });
       try {
         const emitOwnedCompactionLifecycle = async (event: {
           phase: "pre_compact" | "post_compact";
@@ -576,7 +576,6 @@ export async function runEmbeddedPiAgent(
             disableTools: params.disableTools,
             toolsAllow: params.toolsAllow,
             specialAgentSpawnSource: params.specialAgentSpawnSource,
-            specialSystemPromptMode: params.specialSystemPromptMode,
             specialDurableMemoryScope: params.specialDurableMemoryScope,
             specialSessionSummaryTarget: params.specialSessionSummaryTarget,
             surfacedSkillNames: params.surfacedSkillNames,

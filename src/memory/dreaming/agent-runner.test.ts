@@ -258,8 +258,6 @@ describe("runDreamAgentOnce", () => {
         extraSystemPrompt: expect.stringContaining("# Dream Agent"),
         provider: "openai",
         model: "gpt-5.4",
-        specialSystemPromptMode: "isolated",
-        surfacedSkillNames: [],
         toolsAllow: [
           "read",
           "exec",
@@ -284,6 +282,7 @@ describe("runDreamAgentOnce", () => {
           agentId?: string;
           sessionId?: string;
           sessionFile?: string;
+          surfacedSkillNames?: string[];
           specialParentPromptEnvelope?: unknown;
         }
       | undefined;
@@ -291,6 +290,7 @@ describe("runDreamAgentOnce", () => {
     expect(embeddedParams?.agentId).toBeUndefined();
     expect(embeddedParams?.sessionId).not.toBe("session-1");
     expect(embeddedParams?.sessionFile).not.toBe("/tmp/session-1.jsonl");
+    expect(embeddedParams?.surfacedSkillNames).toBeUndefined();
     expect(embeddedParams?.specialParentPromptEnvelope).toBeUndefined();
     expect(emitAgentActionEvent).toHaveBeenCalledTimes(4);
     expect(emitAgentActionEvent).toHaveBeenLastCalledWith(
