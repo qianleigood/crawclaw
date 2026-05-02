@@ -85,6 +85,7 @@ export async function spawnSubagentDirect(
 ): Promise<SpawnSubagentResult> {
   const task = params.task;
   const label = params.label?.trim() || "";
+  const explicitSpawnSource = params.spawnSource?.trim();
   const requestedAgentId = params.agentId?.trim();
 
   // Reject malformed agentId before normalizeAgentId can mangle it.
@@ -282,7 +283,7 @@ export async function spawnSubagentDirect(
     spawnDepth: childDepth,
     subagentRole: childCapabilities.role === "main" ? null : childCapabilities.role,
     subagentControlScope: childCapabilities.controlScope,
-    ...(params.spawnSource?.trim() ? { spawnSource: params.spawnSource.trim() } : {}),
+    ...(explicitSpawnSource ? { spawnSource: explicitSpawnSource } : {}),
   };
   if (resolvedModel) {
     initialChildSessionPatch.model = resolvedModel;
@@ -500,7 +501,7 @@ export async function spawnSubagentDirect(
         timeout: runTimeoutSeconds,
         ...(typeof maxTurns === "number" ? { maxTurns } : {}),
         ...(params.streamParams ? { streamParams: params.streamParams } : {}),
-        label: label || undefined,
+        label: explicitSpawnSource ? undefined : label || undefined,
         ...publicSpawnedMetadata,
       },
       timeoutMs: 10_000,
@@ -585,7 +586,7 @@ export async function spawnSubagentDirect(
       model: resolvedModel,
       workspaceDir: spawnedMetadata.workspaceDir,
       runTimeoutSeconds,
-      spawnSource: params.spawnSource?.trim() || "sessions_spawn",
+      spawnSource: explicitSpawnSource || "sessions_spawn",
       expectsCompletionMessage,
       spawnMode,
       attachmentsDir: attachmentAbsDir,

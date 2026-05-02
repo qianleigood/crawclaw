@@ -158,6 +158,10 @@ This happens at multiple levels:
 - a repeatable multi-step procedure becomes a `workflow`
 - a recurring or event-driven workflow becomes `cron` or `hook` automation
 
+Improvement scans use NotebookLM-returned structured candidates for promotion
+signals. The local pending outbox is only a writeback retry queue, not an
+automation candidate source.
+
 Relevant areas:
 
 - `src/agents/skills`
@@ -219,10 +223,10 @@ Use memory for:
 Experience is the structured subset of memory that captures reusable context,
 trigger, action, result, lesson, applicability boundaries, and evidence.
 
-It may be staged in the local experience sync ledger and queried from
-NotebookLM-backed stores after sync. Future promoted forms may also live in
-graph, vector, or note stores, but the local ledger itself is not a prompt
-recall provider.
+It may be staged in the local pending outbox when NotebookLM writeback is not
+available, then queried from NotebookLM after sync. Future promoted forms may
+also live in graph, vector, or note stores, but the local outbox itself is not a
+prompt recall provider.
 
 Use experience for:
 

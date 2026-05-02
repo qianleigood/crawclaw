@@ -37,7 +37,6 @@ function withMinimalBuiltInMemoryConfig(config?: CrawClawConfig): CrawClawConfig
         },
         write: {
           ...notebooklmWrite,
-          enabled: false,
         },
       },
       durableExtraction: {

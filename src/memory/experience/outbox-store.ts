@@ -7,12 +7,12 @@ import type { UnifiedRecallLayer } from "../types/orchestration.ts";
 import type { ExperienceNoteType, ExperienceNoteWriteInput } from "./note.ts";
 import { renderExperienceNoteMarkdown } from "./note.ts";
 
-export const EXPERIENCE_INDEX_STATUSES = ["active", "stale", "superseded", "archived"] as const;
-export type ExperienceIndexStatus = (typeof EXPERIENCE_INDEX_STATUSES)[number];
+export const EXPERIENCE_OUTBOX_STATUSES = ["active", "stale", "superseded", "archived"] as const;
+export type ExperienceOutboxStatus = (typeof EXPERIENCE_OUTBOX_STATUSES)[number];
 export const EXPERIENCE_SYNC_STATUSES = ["synced", "pending_sync", "failed"] as const;
 export type ExperienceSyncStatus = (typeof EXPERIENCE_SYNC_STATUSES)[number];
 
-export interface ExperienceIndexEntry {
+export interface ExperienceOutboxEntry {
   id: string;
   title: string;
   summary: string;
@@ -26,7 +26,7 @@ export interface ExperienceIndexEntry {
   dedupeKey: string | null;
   aliases: string[];
   tags: string[];
-  status: ExperienceIndexStatus;
+  status: ExperienceOutboxStatus;
   supersededBy: string | null;
   archivedAt: number | null;
   syncStatus?: ExperienceSyncStatus;
@@ -36,39 +36,39 @@ export interface ExperienceIndexEntry {
   updatedAt: number;
 }
 
-type ExperienceIndexFile = {
+type ExperienceOutboxFile = {
   version: 1;
-  entries: ExperienceIndexEntry[];
+  entries: ExperienceOutboxEntry[];
 };
 
-type ReadExperienceIndexOptions = {
-  status?: ExperienceIndexStatus;
+type ReadExperienceOutboxOptions = {
+  status?: ExperienceOutboxStatus;
   recallableOnly?: boolean;
 };
 
-type PruneExperienceIndexInput = {
+type PruneExperienceOutboxInput = {
   now?: number;
   staleAfterMs?: number;
   archiveAfterMs?: number;
 };
 
-export type PruneExperienceIndexResult = {
+export type PruneExperienceOutboxResult = {
   total: number;
   retainedIds: string[];
   staleIds: string[];
   archivedIds: string[];
 };
 
-function resolveExperienceIndexPath(): string {
-  return path.join(resolveStateDir(), "experience", "index.json");
+function resolveExperienceOutboxPath(): string {
+  return path.join(resolveStateDir(), "experience", "outbox.json");
 }
 
-let experienceIndexWriteQueue = Promise.resolve();
+let experienceOutboxWriteQueue = Promise.resolve();
 
-async function withExperienceIndexMutation<T>(fn: () => Promise<T>): Promise<T> {
-  const previous = experienceIndexWriteQueue;
+async function withExperienceOutboxMutation<T>(fn: () => Promise<T>): Promise<T> {
+  const previous = experienceOutboxWriteQueue;
   let release!: () => void;
-  experienceIndexWriteQueue = new Promise<void>((resolve) => {
+  experienceOutboxWriteQueue = new Promise<void>((resolve) => {
     release = resolve;
   });
   await previous;
@@ -92,16 +92,16 @@ function normalizeNullableTimestamp(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function normalizeExperienceIndexStatus(value: unknown): ExperienceIndexStatus {
+function normalizeExperienceOutboxStatus(value: unknown): ExperienceOutboxStatus {
   return typeof value === "string" &&
-    (EXPERIENCE_INDEX_STATUSES as readonly string[]).includes(value)
-    ? (value as ExperienceIndexStatus)
+    (EXPERIENCE_OUTBOX_STATUSES as readonly string[]).includes(value)
+    ? (value as ExperienceOutboxStatus)
     : "active";
 }
 
 function normalizeExperienceSyncStatus(
   value: unknown,
-  entry?: Partial<ExperienceIndexEntry> | null,
+  entry?: Partial<ExperienceOutboxEntry> | null,
 ): ExperienceSyncStatus {
   if (
     typeof value === "string" &&
@@ -118,15 +118,15 @@ function normalizeCounter(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
 }
 
-function normalizeExperienceIndexEntry(raw: unknown): ExperienceIndexEntry | null {
-  const entry = raw as Partial<ExperienceIndexEntry> | null;
+function normalizeExperienceOutboxEntry(raw: unknown): ExperienceOutboxEntry | null {
+  const entry = raw as Partial<ExperienceOutboxEntry> | null;
   if (!entry?.id) {
     return null;
   }
-  const status = normalizeExperienceIndexStatus(entry.status);
+  const status = normalizeExperienceOutboxStatus(entry.status);
   const syncStatus = normalizeExperienceSyncStatus(entry.syncStatus, entry);
   return {
-    ...(entry as ExperienceIndexEntry),
+    ...(entry as ExperienceOutboxEntry),
     note: entry.note ?? null,
     status,
     supersededBy: status === "superseded" ? normalizeNullableString(entry.supersededBy) : null,
@@ -176,14 +176,14 @@ function memoryKindForType(type: ExperienceNoteType): MemoryKind {
   return "reference";
 }
 
-async function readIndexFile(): Promise<ExperienceIndexFile> {
+async function readOutboxFile(): Promise<ExperienceOutboxFile> {
   try {
-    const raw = await fs.readFile(resolveExperienceIndexPath(), "utf8");
-    const parsed = JSON.parse(raw) as Partial<ExperienceIndexFile>;
+    const raw = await fs.readFile(resolveExperienceOutboxPath(), "utf8");
+    const parsed = JSON.parse(raw) as Partial<ExperienceOutboxFile>;
     const entries = Array.isArray(parsed.entries)
       ? parsed.entries
-          .map((entry) => normalizeExperienceIndexEntry(entry))
-          .filter((entry): entry is ExperienceIndexEntry => Boolean(entry))
+          .map((entry) => normalizeExperienceOutboxEntry(entry))
+          .filter((entry): entry is ExperienceOutboxEntry => Boolean(entry))
       : [];
     return { version: 1, entries };
   } catch (error) {
@@ -194,43 +194,43 @@ async function readIndexFile(): Promise<ExperienceIndexFile> {
   }
 }
 
-async function writeIndexFile(index: ExperienceIndexFile): Promise<void> {
-  const filePath = resolveExperienceIndexPath();
+async function writeOutboxFile(outbox: ExperienceOutboxFile): Promise<void> {
+  const filePath = resolveExperienceOutboxPath();
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  await fs.writeFile(filePath, `${JSON.stringify(outbox, null, 2)}\n`, "utf8");
 }
 
-function isRecallableExperienceIndexEntry(entry: ExperienceIndexEntry): boolean {
+function isRecallableExperienceOutboxEntry(entry: ExperienceOutboxEntry): boolean {
   return entry.status === "active" || entry.status === "stale";
 }
 
-function isPendingExperienceIndexEntry(entry: ExperienceIndexEntry): boolean {
+function isPendingExperienceOutboxEntry(entry: ExperienceOutboxEntry): boolean {
   return (
-    isRecallableExperienceIndexEntry(entry) &&
+    isRecallableExperienceOutboxEntry(entry) &&
     (entry.syncStatus === "pending_sync" || entry.syncStatus === "failed")
   );
 }
 
-export async function readExperienceIndexEntries(
+export async function readExperienceOutboxEntries(
   limit = 200,
-  options: ReadExperienceIndexOptions = {},
-): Promise<ExperienceIndexEntry[]> {
-  const index = await readIndexFile();
-  return index.entries
+  options: ReadExperienceOutboxOptions = {},
+): Promise<ExperienceOutboxEntry[]> {
+  const outbox = await readOutboxFile();
+  return outbox.entries
     .filter((entry) => !options.status || entry.status === options.status)
-    .filter((entry) => !options.recallableOnly || isRecallableExperienceIndexEntry(entry))
+    .filter((entry) => !options.recallableOnly || isRecallableExperienceOutboxEntry(entry))
     .toSorted(
       (left, right) => right.updatedAt - left.updatedAt || left.title.localeCompare(right.title),
     )
     .slice(0, Math.max(0, limit));
 }
 
-export async function readPendingExperienceIndexEntries(
+export async function readPendingExperienceOutboxEntries(
   limit = 200,
-): Promise<ExperienceIndexEntry[]> {
-  const index = await readIndexFile();
-  return index.entries
-    .filter(isPendingExperienceIndexEntry)
+): Promise<ExperienceOutboxEntry[]> {
+  const outbox = await readOutboxFile();
+  return outbox.entries
+    .filter(isPendingExperienceOutboxEntry)
     .toSorted(
       (left, right) =>
         (left.lastSyncAttemptAt ?? 0) - (right.lastSyncAttemptAt ?? 0) ||
@@ -240,12 +240,12 @@ export async function readPendingExperienceIndexEntries(
     .slice(0, Math.max(0, limit));
 }
 
-export async function upsertExperienceIndexEntry(params: {
+export async function upsertExperienceOutboxEntry(params: {
   note: ExperienceNoteWriteInput;
   writeResult: NotebookLmExperienceWriteResult;
   updatedAt?: number;
-}): Promise<ExperienceIndexEntry> {
-  return await upsertExperienceIndexEntryFromNote({
+}): Promise<ExperienceOutboxEntry> {
+  return await upsertExperienceOutboxEntryFromNote({
     note: params.note,
     title: params.writeResult.title,
     notebookId: params.writeResult.notebookId,
@@ -255,7 +255,7 @@ export async function upsertExperienceIndexEntry(params: {
   });
 }
 
-export async function upsertExperienceIndexEntryFromNote(params: {
+export async function upsertExperienceOutboxEntryFromNote(params: {
   note: ExperienceNoteWriteInput;
   title?: string;
   notebookId?: string;
@@ -265,12 +265,12 @@ export async function upsertExperienceIndexEntryFromNote(params: {
   syncAttempts?: number;
   lastSyncAttemptAt?: number | null;
   updatedAt?: number;
-}): Promise<ExperienceIndexEntry> {
-  return await withExperienceIndexMutation(async () => {
+}): Promise<ExperienceOutboxEntry> {
+  return await withExperienceOutboxMutation(async () => {
     const dedupeKey = params.note.dedupeKey?.trim() || null;
     const stableKey = dedupeKey ?? params.noteId ?? params.note.title.trim();
-    const entry: ExperienceIndexEntry = {
-      id: `experience-index:${slugifyId(stableKey)}`,
+    const entry: ExperienceOutboxEntry = {
+      id: `experience-outbox:${slugifyId(stableKey)}`,
       title: params.title?.trim() || params.note.title.trim(),
       summary: params.note.summary.trim(),
       content: renderExperienceNoteMarkdown(params.note),
@@ -297,14 +297,14 @@ export async function upsertExperienceIndexEntryFromNote(params: {
       updatedAt: params.updatedAt ?? Date.now(),
     };
 
-    const index = await readIndexFile();
-    const filtered = index.entries.filter(
+    const outbox = await readOutboxFile();
+    const filtered = outbox.entries.filter(
       (candidate) =>
         candidate.id !== entry.id &&
         !(entry.noteId && candidate.noteId === entry.noteId) &&
         !(entry.dedupeKey && candidate.dedupeKey === entry.dedupeKey),
     );
-    await writeIndexFile({
+    await writeOutboxFile({
       version: 1,
       entries: [entry, ...filtered].slice(0, 200),
     });
@@ -312,20 +312,20 @@ export async function upsertExperienceIndexEntryFromNote(params: {
   });
 }
 
-export async function markExperienceIndexEntrySyncFailed(params: {
+export async function markExperienceOutboxEntrySyncFailed(params: {
   id: string;
   error: string;
   attemptedAt?: number;
-}): Promise<ExperienceIndexEntry | null> {
-  return await withExperienceIndexMutation(async () => {
+}): Promise<ExperienceOutboxEntry | null> {
+  return await withExperienceOutboxMutation(async () => {
     const id = params.id.trim();
     if (!id) {
       return null;
     }
-    const index = await readIndexFile();
+    const outbox = await readOutboxFile();
     const attemptedAt = params.attemptedAt ?? Date.now();
-    let updatedEntry: ExperienceIndexEntry | null = null;
-    const entries = index.entries.map((entry) => {
+    let updatedEntry: ExperienceOutboxEntry | null = null;
+    const entries = outbox.entries.map((entry) => {
       if (entry.id !== id) {
         return entry;
       }
@@ -342,25 +342,25 @@ export async function markExperienceIndexEntrySyncFailed(params: {
     if (!updatedEntry) {
       return null;
     }
-    await writeIndexFile({ version: 1, entries });
+    await writeOutboxFile({ version: 1, entries });
     return updatedEntry;
   });
 }
 
-export async function markExperienceIndexEntryPendingSync(params: {
+export async function markExperienceOutboxEntryPendingSync(params: {
   id: string;
   error?: string | null;
   updatedAt?: number;
-}): Promise<ExperienceIndexEntry | null> {
-  return await withExperienceIndexMutation(async () => {
+}): Promise<ExperienceOutboxEntry | null> {
+  return await withExperienceOutboxMutation(async () => {
     const id = params.id.trim();
     if (!id) {
       return null;
     }
-    const index = await readIndexFile();
+    const outbox = await readOutboxFile();
     const updatedAt = params.updatedAt ?? Date.now();
-    let updatedEntry: ExperienceIndexEntry | null = null;
-    const entries = index.entries.map((entry) => {
+    let updatedEntry: ExperienceOutboxEntry | null = null;
+    const entries = outbox.entries.map((entry) => {
       if (entry.id !== id) {
         return entry;
       }
@@ -375,26 +375,26 @@ export async function markExperienceIndexEntryPendingSync(params: {
     if (!updatedEntry) {
       return null;
     }
-    await writeIndexFile({ version: 1, entries });
+    await writeOutboxFile({ version: 1, entries });
     return updatedEntry;
   });
 }
 
-export async function markExperienceIndexEntrySynced(params: {
+export async function markExperienceOutboxEntrySynced(params: {
   id: string;
   noteId?: string | null;
   notebookId: string;
   attemptedAt?: number;
-}): Promise<ExperienceIndexEntry | null> {
-  return await withExperienceIndexMutation(async () => {
+}): Promise<ExperienceOutboxEntry | null> {
+  return await withExperienceOutboxMutation(async () => {
     const id = params.id.trim();
     if (!id) {
       return null;
     }
-    const index = await readIndexFile();
+    const outbox = await readOutboxFile();
     const attemptedAt = params.attemptedAt ?? Date.now();
-    let updatedEntry: ExperienceIndexEntry | null = null;
-    const entries = index.entries.map((entry) => {
+    let updatedEntry: ExperienceOutboxEntry | null = null;
+    const entries = outbox.entries.map((entry) => {
       if (entry.id !== id) {
         return entry;
       }
@@ -413,26 +413,47 @@ export async function markExperienceIndexEntrySynced(params: {
     if (!updatedEntry) {
       return null;
     }
-    await writeIndexFile({ version: 1, entries });
+    await writeOutboxFile({ version: 1, entries });
     return updatedEntry;
   });
 }
 
-export async function updateExperienceIndexEntryStatus(params: {
+export async function removeExperienceOutboxEntry(params: {
   id: string;
-  status: ExperienceIndexStatus;
-  supersededBy?: string | null;
-  updatedAt?: number;
-}): Promise<ExperienceIndexEntry | null> {
-  return await withExperienceIndexMutation(async () => {
+}): Promise<ExperienceOutboxEntry | null> {
+  return await withExperienceOutboxMutation(async () => {
     const id = params.id.trim();
     if (!id) {
       return null;
     }
-    const index = await readIndexFile();
+    const outbox = await readOutboxFile();
+    const removed = outbox.entries.find((entry) => entry.id === id) ?? null;
+    if (!removed) {
+      return null;
+    }
+    await writeOutboxFile({
+      version: 1,
+      entries: outbox.entries.filter((entry) => entry.id !== id),
+    });
+    return removed;
+  });
+}
+
+export async function updateExperienceOutboxEntryStatus(params: {
+  id: string;
+  status: ExperienceOutboxStatus;
+  supersededBy?: string | null;
+  updatedAt?: number;
+}): Promise<ExperienceOutboxEntry | null> {
+  return await withExperienceOutboxMutation(async () => {
+    const id = params.id.trim();
+    if (!id) {
+      return null;
+    }
+    const outbox = await readOutboxFile();
     const updatedAt = params.updatedAt ?? Date.now();
-    let updatedEntry: ExperienceIndexEntry | null = null;
-    const entries = index.entries.map((entry) => {
+    let updatedEntry: ExperienceOutboxEntry | null = null;
+    const entries = outbox.entries.map((entry) => {
       if (entry.id !== id) {
         return entry;
       }
@@ -449,23 +470,23 @@ export async function updateExperienceIndexEntryStatus(params: {
     if (!updatedEntry) {
       return null;
     }
-    await writeIndexFile({ version: 1, entries });
+    await writeOutboxFile({ version: 1, entries });
     return updatedEntry;
   });
 }
 
-export async function pruneExperienceIndexEntries(
-  params: PruneExperienceIndexInput = {},
-): Promise<PruneExperienceIndexResult> {
-  return await withExperienceIndexMutation(async () => {
+export async function pruneExperienceOutboxEntries(
+  params: PruneExperienceOutboxInput = {},
+): Promise<PruneExperienceOutboxResult> {
+  return await withExperienceOutboxMutation(async () => {
     const now = params.now ?? Date.now();
     const staleAfterMs = Math.max(0, params.staleAfterMs ?? 90 * 86_400_000);
     const archiveAfterMs = Math.max(staleAfterMs, params.archiveAfterMs ?? 180 * 86_400_000);
-    const index = await readIndexFile();
+    const outbox = await readOutboxFile();
     const retainedIds: string[] = [];
     const staleIds: string[] = [];
     const archivedIds: string[] = [];
-    const entries = index.entries.map((entry) => {
+    const entries = outbox.entries.map((entry) => {
       if (entry.status === "archived" || entry.status === "superseded") {
         return entry;
       }
@@ -491,7 +512,7 @@ export async function pruneExperienceIndexEntries(
       return entry;
     });
     if (staleIds.length || archivedIds.length) {
-      await writeIndexFile({ version: 1, entries });
+      await writeOutboxFile({ version: 1, entries });
     }
     return {
       total: entries.length,

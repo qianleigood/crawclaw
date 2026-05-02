@@ -154,8 +154,14 @@ agents:
 - when that parent envelope is available, the summary-specific instructions
   stay in the appended task prompt instead of being appended to the parent
   system prompt
-- other embedded memory special agents do not attach the parent run's captured
-  prompt envelope
+- durable extraction does not attach the parent run's captured prompt envelope
+- dream is an independent embedded maintenance special agent. It does not
+  receive a parent fork context, does not spawn a child session, and consumes
+  only the host-provided durable manifest, structured signals, and transcript
+  refs.
+- dream also declares isolated special-agent system prompt mode, so the
+  embedded runner skips the default main-agent prompt, skills prompt, docs path,
+  bootstrap context files, and workspace reminders for that run.
 - durable extraction and dream special runs still keep cache-write suppression
   and short retention
 - session-summary keeps short retention but does not reuse a parent
@@ -181,5 +187,7 @@ The main remaining difference from Claude Code is that CrawClaw still does not r
 
 Future task-specific special agents should continue to opt in case-by-case:
 
-- maintenance-style, fire-and-forget background agents should prefer `embedded_fork`
+- maintenance-style, fire-and-forget background agents should prefer
+  `embedded_fork`; independence comes from omitting parent fork context and
+  parent messages, not from creating a child session
 - user-invoked or session-bearing task agents should remain `spawned_session` unless they explicitly need a parent fork context more than child-session state

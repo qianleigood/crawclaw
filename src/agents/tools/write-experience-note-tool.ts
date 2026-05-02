@@ -3,21 +3,17 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeNotebookLmConfig } from "../../memory/config/notebooklm.ts";
 import { getSharedMemoryPromptJournal } from "../../memory/diagnostics/prompt-journal.ts";
 import {
-  readExperienceIndexEntries,
-  markExperienceIndexEntrySyncFailed,
-  markExperienceIndexEntryPendingSync,
-  type ExperienceIndexEntry,
-  upsertExperienceIndexEntry,
-  upsertExperienceIndexEntryFromNote,
-  updateExperienceIndexEntryStatus,
-} from "../../memory/experience/index-store.ts";
-import {
   classifyExperienceNoteGuardIssue,
   normalizeExperienceConfidence,
   normalizeExperienceNoteType,
   type ExperienceNoteWriteInput,
 } from "../../memory/experience/note.ts";
-import { syncNotebookLmExperienceIndexSourceViaCli } from "../../memory/notebooklm/managed-source.ts";
+import {
+  readExperienceOutboxEntries,
+  type ExperienceOutboxEntry,
+  upsertExperienceOutboxEntryFromNote,
+  updateExperienceOutboxEntryStatus,
+} from "../../memory/experience/outbox-store.ts";
 import {
   deleteNotebookLmExperienceNoteViaCli,
   writeNotebookLmExperienceNoteViaCli,
@@ -54,12 +50,12 @@ const WriteExperienceNoteToolSchema = Type.Object({
   targetId: Type.Optional(
     Type.String({
       description:
-        "Existing experience index id, note id, dedupe key, or title. Required for archive and supersede.",
+        "Existing local outbox id, note id, dedupe key, or title. Required for archive and supersede.",
     }),
   ),
   supersededBy: Type.Optional(
     Type.String({
-      description: "Replacement experience index id or dedupe key. Required for supersede.",
+      description: "Replacement local outbox id or dedupe key. Required for supersede.",
     }),
   ),
   type: Type.Optional(
@@ -188,10 +184,10 @@ function normalizeExperienceNoteOperation(
     : null;
 }
 
-function findExperienceIndexEntry(
-  entries: readonly ExperienceIndexEntry[],
+function findExperienceOutboxEntry(
+  entries: readonly ExperienceOutboxEntry[],
   target: string,
-): ExperienceIndexEntry | null {
+): ExperienceOutboxEntry | null {
   const normalized = target.trim();
   if (!normalized) {
     return null;
@@ -237,40 +233,27 @@ function recommendedActionForSyncError(message: string | null): string | null {
   return isNotebookLmPendingSyncError(message) ? "crawclaw memory login" : "crawclaw memory sync";
 }
 
-async function syncExperienceIndexSource(notebooklm: ReturnType<typeof normalizeNotebookLmConfig>) {
-  let sourceResult = null;
-  let sourceSyncError: string | null = null;
-  try {
-    sourceResult = await syncNotebookLmExperienceIndexSourceViaCli({
-      config: notebooklm,
-    });
-  } catch (error) {
-    sourceSyncError = error instanceof Error ? error.message : String(error);
-  }
-  return { sourceResult, sourceSyncError };
-}
-
 async function runExperienceLifecycleOperation(params: {
   operation: Exclude<ExperienceNoteOperation, "upsert">;
   targetId: string;
   supersededBy?: string;
   notebooklm: ReturnType<typeof normalizeNotebookLmConfig>;
 }) {
-  const entries = await readExperienceIndexEntries();
-  const target = findExperienceIndexEntry(entries, params.targetId);
+  const entries = await readExperienceOutboxEntries();
+  const target = findExperienceOutboxEntry(entries, params.targetId);
   if (!target) {
     throw new ToolInputError(`experience note not found: ${params.targetId}`);
   }
   const replacement =
     params.operation === "supersede"
-      ? findExperienceIndexEntry(entries, params.supersededBy ?? "")
+      ? findExperienceOutboxEntry(entries, params.supersededBy ?? "")
       : null;
   if (params.operation === "supersede" && !replacement) {
     throw new ToolInputError(`replacement experience note not found: ${params.supersededBy ?? ""}`);
   }
 
   const nextStatus = params.operation === "archive" ? "archived" : "superseded";
-  const updated = await updateExperienceIndexEntryStatus({
+  const updated = await updateExperienceOutboxEntryStatus({
     id: target.id,
     status: nextStatus,
     supersededBy: replacement?.id,
@@ -291,13 +274,13 @@ async function runExperienceLifecycleOperation(params: {
       dedupeKey: updated.dedupeKey,
       targetId: updated.id,
       supersededBy: updated.supersededBy,
-      storage: "experience_sync_ledger",
+      storage: "experience_pending_outbox",
     },
   });
 
   let remoteDeleteStatus: "ok" | "missing" | "skipped" | "failed" = "skipped";
   let remoteDeleteError: string | null = null;
-  if (target.noteId && target.notebookId !== "local") {
+  if (target.noteId && target.notebookId !== "local" && params.notebooklm.enabled) {
     try {
       const deleted = await deleteNotebookLmExperienceNoteViaCli({
         config: params.notebooklm,
@@ -311,7 +294,6 @@ async function runExperienceLifecycleOperation(params: {
     }
   }
 
-  const { sourceResult, sourceSyncError } = await syncExperienceIndexSource(params.notebooklm);
   return jsonResult({
     status: "ok",
     action: params.operation,
@@ -320,13 +302,10 @@ async function runExperienceLifecycleOperation(params: {
     notebookId: updated.notebookId,
     title: updated.title,
     type: updated.type,
-    indexStatus: updated.status,
+    outboxStatus: updated.status,
     supersededBy: updated.supersededBy,
     remoteDeleteStatus,
     remoteDeleteError,
-    sourceSyncStatus: sourceResult?.status ?? (sourceSyncError ? "failed" : "skipped"),
-    sourceId: sourceResult?.sourceId ?? null,
-    sourceSyncError,
   });
 }
 
@@ -338,7 +317,7 @@ export function createExperienceWriteTool(
     label: "Write Experience Note",
     name: "write_experience_note",
     description:
-      "Write a Chinese-readable experience note into the local experience index, with optional NotebookLM sync when configured. Use this for reusable procedures, decisions, runtime/failure patterns, collaboration workflows, or references. Update existing notes instead of duplicating them.",
+      "Write a Chinese-readable experience note to NotebookLM first; if NotebookLM is unavailable, keep it in the local pending outbox for later sync. Use this for reusable procedures, decisions, runtime/failure patterns, collaboration workflows, or references. Update existing notes instead of duplicating them.",
     parameters: WriteExperienceNoteToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -411,79 +390,71 @@ export function createExperienceWriteTool(
         throw new ToolInputError(guardIssue);
       }
 
-      const localIndexEntry = await upsertExperienceIndexEntryFromNote({
+      let result = null;
+      let syncError: string | null = null;
+      if (notebooklm.enabled) {
+        try {
+          result = await writeNotebookLmExperienceNoteViaCli({
+            config: notebooklm,
+            note,
+          });
+        } catch (error) {
+          syncError = error instanceof Error ? error.message : String(error);
+        }
+      }
+
+      if (result?.status === "ok") {
+        return jsonResult({
+          status: "ok",
+          action: result.action ?? "upsert",
+          notebookId: result.notebookId,
+          noteId: result.noteId ?? null,
+          title: result.title,
+          type,
+          dedupeKey: dedupeKey ?? null,
+          syncStatus: "synced",
+          syncError: null,
+          recommendedAction: null,
+          payloadFile: result.payloadFile ?? null,
+        });
+      }
+
+      const syncStatus =
+        syncError && !isNotebookLmPendingSyncError(syncError) ? "failed" : "pending_sync";
+      const localOutboxEntry = await upsertExperienceOutboxEntryFromNote({
         note,
         notebookId: "local",
-        syncStatus: "pending_sync",
+        syncStatus,
+        syncError,
       });
       getSharedMemoryPromptJournal()?.recordStage("experience_write", {
         payload: {
           status: "ok",
           action: "upsert",
-          noteId: localIndexEntry.noteId,
-          notebookId: localIndexEntry.notebookId,
-          title: localIndexEntry.title,
+          noteId: localOutboxEntry.noteId,
+          notebookId: localOutboxEntry.notebookId,
+          title: localOutboxEntry.title,
           noteType: note.type,
           summary: note.summary,
           dedupeKey: dedupeKey ?? null,
-          storage: "experience_sync_ledger",
+          storage: "experience_pending_outbox",
+          syncStatus,
+          syncError,
         },
       });
 
-      let result = null;
-      let syncError: string | null = null;
-      try {
-        result = await writeNotebookLmExperienceNoteViaCli({
-          config: notebooklm,
-          note,
-        });
-      } catch (error) {
-        syncError = error instanceof Error ? error.message : String(error);
-      }
-
-      if (result?.status === "ok") {
-        await upsertExperienceIndexEntry({
-          note,
-          writeResult: result,
-        });
-      } else if (syncError && isNotebookLmPendingSyncError(syncError)) {
-        await markExperienceIndexEntryPendingSync({
-          id: localIndexEntry.id,
-          error: syncError,
-        });
-      } else if (syncError && !isNotebookLmPendingSyncError(syncError)) {
-        await markExperienceIndexEntrySyncFailed({
-          id: localIndexEntry.id,
-          error: syncError,
-        });
-      }
-
-      const { sourceResult, sourceSyncError } =
-        result?.status === "ok"
-          ? await syncExperienceIndexSource(notebooklm)
-          : { sourceResult: null, sourceSyncError: null };
-      const syncStatus =
-        result?.status === "ok"
-          ? "synced"
-          : syncError && !isNotebookLmPendingSyncError(syncError)
-            ? "failed"
-            : "pending_sync";
-
       return jsonResult({
         status: "ok",
-        action: result?.action ?? "upsert",
-        notebookId: result?.notebookId ?? localIndexEntry.notebookId,
-        noteId: result?.noteId ?? localIndexEntry.id,
-        title: result?.title ?? localIndexEntry.title ?? title,
+        action: "upsert",
+        notebookId: localOutboxEntry.notebookId,
+        noteId: localOutboxEntry.id,
+        title: localOutboxEntry.title ?? title,
         type,
         dedupeKey: dedupeKey ?? null,
         syncStatus,
         syncError,
         recommendedAction: recommendedActionForSyncError(syncError),
-        sourceSyncStatus: sourceResult?.status ?? (sourceSyncError ? "failed" : "skipped"),
-        sourceId: sourceResult?.sourceId ?? null,
-        sourceSyncError,
-        payloadFile: result?.payloadFile ?? null,
+        payloadFile: null,
       });
     },
   };

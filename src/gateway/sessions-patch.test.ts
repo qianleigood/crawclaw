@@ -283,6 +283,16 @@ describe("gateway sessions patch", () => {
     expect(entry.spawnDepth).toBe(2);
   });
 
+  test("sets spawnSource for subagent sessions", async () => {
+    const entry = expectPatchOk(
+      await runPatch({
+        storeKey: "agent:main:subagent:child",
+        patch: { key: "agent:main:subagent:child", spawnSource: "dream" },
+      }),
+    );
+    expect(entry.spawnSource).toBe("dream");
+  });
+
   test("sets spawnedBy for ACP sessions", async () => {
     const entry = expectPatchOk(
       await runPatch({
@@ -294,6 +304,19 @@ describe("gateway sessions patch", () => {
       }),
     );
     expect(entry.spawnedBy).toBe("agent:main:main");
+  });
+
+  test("sets spawnSource for ACP sessions", async () => {
+    const entry = expectPatchOk(
+      await runPatch({
+        storeKey: "agent:main:acp:child",
+        patch: {
+          key: "agent:main:acp:child",
+          spawnSource: "dream",
+        },
+      }),
+    );
+    expect(entry.spawnSource).toBe("dream");
   });
 
   test("sets spawnedWorkspaceDir for subagent sessions", async () => {
@@ -324,6 +347,13 @@ describe("gateway sessions patch", () => {
       patch: { key: MAIN_SESSION_KEY, spawnDepth: 1 },
     });
     expectPatchError(result, "spawnDepth is only supported");
+  });
+
+  test("rejects spawnSource on non-subagent sessions", async () => {
+    const result = await runPatch({
+      patch: { key: MAIN_SESSION_KEY, spawnSource: "dream" },
+    });
+    expectPatchError(result, "spawnSource is only supported");
   });
 
   test("rejects spawnedWorkspaceDir on non-subagent sessions", async () => {

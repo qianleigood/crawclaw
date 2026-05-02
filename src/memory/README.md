@@ -28,7 +28,7 @@ It owns:
 - Do not hide memory orchestration inside unrelated agent or auto-reply glue when it belongs here.
 - If memory needs background agent work, register it through the special-agent substrate instead of creating a private runner model.
 - Keep recall, durable agent, summary, and dream policies explicit; do not bury them in generic caches or transport code.
-- Keep experience lifecycle states explicit; archived and superseded entries must not be rendered into managed NotebookLM source sync.
+- Keep experience lifecycle states explicit; archived and superseded local outbox entries must not be rendered into prompt recall.
 - Keep provider adapters behind `experience/*`; context assembly should consume query plans and provider results, not provider-specific CLI calls.
 
 ## Review Notes

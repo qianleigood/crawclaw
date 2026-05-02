@@ -48,7 +48,6 @@ function createMemoryRuntimeConfig(): MemoryRuntimeConfig {
         limit: 5,
       },
       write: {
-        enabled: false,
         command: "",
         args: [],
         timeoutMs: 30_000,

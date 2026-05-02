@@ -45,7 +45,6 @@ function createNotebookLmConfig() {
       queryInstruction: "请使用简体中文，只返回直接相关的经验卡片。",
     },
     write: {
-      enabled: false,
       command: "",
       args: ["{payloadFile}"],
       timeoutMs: 1000,
@@ -127,7 +126,6 @@ describe("searchNotebookLmViaCli", () => {
           queryInstruction: "请使用简体中文，只返回直接相关的经验卡片。",
         },
         write: {
-          enabled: false,
           command: "",
           args: ["{payloadFile}"],
           timeoutMs: 1000,
@@ -199,7 +197,6 @@ describe("searchNotebookLmViaCli", () => {
           queryInstruction: "请使用简体中文，只保留直接相关内容。",
         },
         write: {
-          enabled: false,
           command: "",
           args: ["{payloadFile}"],
           timeoutMs: 1000,
@@ -384,7 +381,6 @@ describe("searchNotebookLmViaCli", () => {
           notebookId: "nb-3",
         },
         write: {
-          enabled: false,
           command: "",
           args: ["{payloadFile}"],
           timeoutMs: 1000,
@@ -449,7 +445,6 @@ describe("searchNotebookLmViaCli", () => {
           queryInstruction: "请只返回简短经验卡片。",
         },
         write: {
-          enabled: false,
           command: "",
           args: ["{payloadFile}"],
           timeoutMs: 1000,

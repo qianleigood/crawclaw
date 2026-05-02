@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __testing as promptJournalTesting } from "../diagnostics/prompt-journal.ts";
+import type { NotebookLmConfig } from "../types/config.ts";
 import { writeNotebookLmExperienceNoteViaCli } from "./notebooklm-write.ts";
 import { clearNotebookLmProviderStateCache } from "./provider-state.ts";
 
@@ -74,12 +75,12 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
           notebookId: "nb-42",
         },
         write: {
-          enabled: true,
+          enabled: false,
           command: "python",
           args: ["writer.py", "{payloadFile}", "{notebookId}"],
           timeoutMs: 1000,
           notebookId: "nb-42",
-        },
+        } as unknown as NotebookLmConfig["write"],
       },
       note: {
         type: "decision",
@@ -163,7 +164,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
           notebookId: "nb-managed",
         },
         write: {
-          enabled: true,
           command: "",
           args: ["{payloadFile}"],
           timeoutMs: 1000,
@@ -176,7 +176,7 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
         summary: "云端经验库验收要同时检查写入结果和检索命中。",
         context: "完成登录后需要确认云端经验库 provider 是否真正接通。",
         action: "写入经验 note 后再用同一标记检索。",
-        lesson: "provider 验收不能只看本地索引。",
+        lesson: "provider 验收不能只看本地 outbox。",
       },
     });
 
@@ -228,7 +228,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
             notebookId: "nb-42",
           },
           write: {
-            enabled: true,
             command: "python",
             args: ["writer.py", "{payloadFile}", "{notebookId}"],
             timeoutMs: 1000,
@@ -303,7 +302,6 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
           notebookId: "nb-42",
         },
         write: {
-          enabled: true,
           command: "python",
           args: ["writer.py", "{payloadFile}", "{notebookId}"],
           timeoutMs: 1000,

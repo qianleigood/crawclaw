@@ -69,7 +69,10 @@ crawclaw improve metrics --json
 
 - Proposals are stored under the workspace-local `.crawclaw/improvements`
   directory.
-- `improve run` scans existing experience signals and can create a new proposal.
+- `improve run` asks NotebookLM for repeated experience signals and can create a
+  new proposal from the structured candidates it returns.
+- If NotebookLM is disabled or returns no structured candidates, the scan records
+  `no_candidate`; it does not read the local pending outbox as a fallback.
 - `improve inbox` is the proposal queue for reviewable skill and workflow
   promotions.
 - `improve show` displays the evidence refs, risk, policy blockers, and patch

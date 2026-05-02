@@ -475,11 +475,6 @@ export async function resolveCliConfig(): Promise<{
   config.notebooklm.cli.notebookId =
     pickEnv("GM_NOTEBOOKLM_NOTEBOOK_ID", "NOTEBOOKLM_NOTEBOOK_ID") ??
     config.notebooklm.cli.notebookId;
-  config.notebooklm.write.enabled = setBooleanFromEnv(
-    config.notebooklm.write?.enabled ?? false,
-    "GM_NOTEBOOKLM_WRITE_ENABLED",
-    "NOTEBOOKLM_WRITE_ENABLED",
-  );
   config.notebooklm.write.command =
     pickEnv("GM_NOTEBOOKLM_WRITE_COMMAND", "NOTEBOOKLM_WRITE_COMMAND") ??
     config.notebooklm.write?.command ??

@@ -1,6 +1,10 @@
 import type { ErrorObject } from "ajv";
 import { describe, expect, it } from "vitest";
-import { formatValidationErrors, validateTalkConfigResult } from "./index.js";
+import {
+  formatValidationErrors,
+  validateSessionsPatchParams,
+  validateTalkConfigResult,
+} from "./index.js";
 
 const makeError = (overrides: Partial<ErrorObject>): ErrorObject => ({
   keyword: "type",
@@ -115,5 +119,16 @@ describe("validateTalkConfigResult", () => {
         },
       }),
     ).toBe(false);
+  });
+});
+
+describe("validateSessionsPatchParams", () => {
+  it("accepts spawnSource on subagent session patches", () => {
+    expect(
+      validateSessionsPatchParams({
+        key: "agent:main:subagent:child",
+        spawnSource: "dream",
+      }),
+    ).toBe(true);
   });
 });

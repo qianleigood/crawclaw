@@ -38,7 +38,6 @@ describe("startNotebookLmHeartbeat", () => {
       queryInstruction: "",
     },
     write: {
-      enabled: true,
       command: "python",
       args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
       timeoutMs: 5_000,
@@ -154,6 +153,106 @@ describe("startNotebookLmHeartbeat", () => {
 
     expect(autoLogin).toHaveBeenCalledTimes(1);
     expect(probe).toHaveBeenCalledTimes(1);
+    expect(flushPending).toHaveBeenCalledTimes(1);
+  });
+
+  it("flushes pending experience when the provider recovers from degraded to ready", async () => {
+    const probe = vi
+      .fn()
+      .mockResolvedValueOnce({
+        enabled: true,
+        ready: false,
+        reason: "auth_expired",
+        profile: "default",
+        notebookId: "nb-1",
+        refreshAttempted: false,
+        refreshSucceeded: false,
+        authSource: "profile",
+        lastValidatedAt: new Date().toISOString(),
+        details: "Authentication expired",
+      })
+      .mockResolvedValueOnce({
+        enabled: true,
+        ready: true,
+        reason: null,
+        profile: "default",
+        notebookId: "nb-1",
+        refreshAttempted: false,
+        refreshSucceeded: false,
+        authSource: "profile",
+        lastValidatedAt: new Date().toISOString(),
+      });
+    const flushPending = vi.fn().mockResolvedValue(undefined);
+
+    startNotebookLmHeartbeat({
+      config: {
+        ...baseConfig,
+        auth: {
+          ...baseConfig.auth,
+          heartbeat: {
+            ...baseConfig.auth.heartbeat,
+            minIntervalMs: 60_000,
+            maxIntervalMs: 60_000,
+          },
+        },
+      },
+      logger,
+      probe,
+      flushPending,
+    });
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(flushPending).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(probe).toHaveBeenCalledTimes(2);
+    expect(flushPending).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects the auto-login interval and does not flush on unchanged ready probes", async () => {
+    const probe = vi.fn().mockResolvedValue({
+      enabled: true,
+      ready: true,
+      reason: null,
+      profile: "default",
+      notebookId: "nb-1",
+      refreshAttempted: false,
+      refreshSucceeded: false,
+      authSource: "profile",
+      lastValidatedAt: new Date().toISOString(),
+    });
+    const autoLogin = vi.fn().mockResolvedValue(undefined);
+    const flushPending = vi.fn().mockResolvedValue(undefined);
+
+    startNotebookLmHeartbeat({
+      config: {
+        ...baseConfig,
+        auth: {
+          ...baseConfig.auth,
+          heartbeat: {
+            ...baseConfig.auth.heartbeat,
+            minIntervalMs: 60_000,
+            maxIntervalMs: 60_000,
+          },
+          autoLogin: {
+            ...baseConfig.auth.autoLogin!,
+            enabled: true,
+            intervalMs: 180_000,
+          },
+        },
+      },
+      logger,
+      probe,
+      autoLogin,
+      flushPending,
+    });
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(probe).toHaveBeenCalledTimes(3);
+    expect(autoLogin).toHaveBeenCalledTimes(1);
     expect(flushPending).toHaveBeenCalledTimes(1);
   });
 });

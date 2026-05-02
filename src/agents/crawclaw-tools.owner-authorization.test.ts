@@ -32,7 +32,6 @@ function readToolByNameWithNotebookLmWrite() {
               notebookId: "nb-1",
             },
             write: {
-              enabled: true,
               command: "nlm-write",
               args: ["{payloadFile}"],
               timeoutMs: 1000,

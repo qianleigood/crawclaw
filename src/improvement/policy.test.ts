@@ -5,7 +5,7 @@ import type { ImprovementProposal, PromotionCandidate, PromotionVerdict } from "
 function makeCandidate(): PromotionCandidate {
   return {
     id: "candidate-1",
-    sourceRefs: [{ kind: "experience", ref: "experience-index:gateway" }],
+    sourceRefs: [{ kind: "experience", ref: "experience-outbox:gateway" }],
     signalSummary: "Gateway 发布失败时总是先回滚 service，再检查 secret。",
     observedFrequency: 2,
     currentReuseLevel: "experience",

@@ -31,7 +31,6 @@ const baseConfig: NotebookLmConfig = {
     notebookId: "nb-1",
   },
   write: {
-    enabled: true,
     command: "python",
     args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
     timeoutMs: 1000,
@@ -132,7 +131,7 @@ describe("getNotebookLmProviderState", () => {
         write: {
           ...baseConfig.write,
           enabled: false,
-        },
+        } as unknown as NotebookLmConfig["write"],
       },
     });
 
@@ -249,6 +248,7 @@ describe("getNotebookLmProviderState", () => {
       ready: false,
       lifecycle: "expired",
       reason: "auth_expired",
+      recommendedAction: "crawclaw memory login",
       refreshAttempted: true,
       refreshSucceeded: false,
     });
@@ -313,7 +313,12 @@ describe("getNotebookLmProviderState", () => {
 
     expect(first.refreshAttempted).toBe(true);
     expect(first.ready).toBe(false);
+    expect(first.lifecycle).toBe("expired");
+    expect(first.recommendedAction).toBe("crawclaw memory login");
+    expect(first.nextAllowedRefreshAt).toEqual(expect.any(String));
     expect(second.details).toContain("refresh cooldown active");
+    expect(second.lifecycle).toBe("expired");
+    expect(second.nextAllowedRefreshAt).toBe(first.nextAllowedRefreshAt);
     expect(execFileMock).toHaveBeenCalledTimes(1);
   });
 });

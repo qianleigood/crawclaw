@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
+import { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } from "../../config/config.js";
 import { resolveDurableMemoryScope } from "../durable/scope.js";
 import {
   __testing,
@@ -22,6 +22,7 @@ describe("runDreamAgentOnce", () => {
 
   afterEach(() => {
     __testing.setDepsForTest();
+    clearRuntimeConfigSnapshot();
     if (previousRoot === undefined) {
       delete process.env.CRAWCLAW_DURABLE_MEMORY_DIR;
     } else {
@@ -75,6 +76,7 @@ describe("runDreamAgentOnce", () => {
 
   it("aligns the dream prompt with the orient/gather/consolidate/prune workflow", () => {
     expect(DREAM_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
+    expect(DREAM_AGENT_DEFINITION.transcriptPolicy).toBe("isolated");
     expect(DREAM_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: [
         "read",
@@ -99,11 +101,18 @@ describe("runDreamAgentOnce", () => {
     expect(DREAM_AGENT_DEFINITION.defaultMaxTurns).toBeUndefined();
     expect(systemPrompt).not.toContain("hard turn budget");
     expect(systemPrompt).toContain("Complete within the run timeout");
-    expect(systemPrompt).toContain("Review the provided recent session summaries");
+    expect(systemPrompt).toContain("Review the provided existing durable memory manifest");
     expect(systemPrompt).toContain("session transcript references");
     expect(systemPrompt).toContain("read-only exec");
     expect(systemPrompt).toContain("host guard blocks non-read-only exec");
+    expect(systemPrompt).toContain("You do not inherit the parent agent prompt");
+    expect(systemPrompt).toContain(
+      "host-provided manifest, structured signals, and transcript refs",
+    );
     expect(systemPrompt).toContain("Use transcript refs like Claude Code auto-dream");
+    expect(systemPrompt).toContain(
+      "Do not create or rewrite durable memory solely from transcript search",
+    );
     expect(systemPrompt).toContain(
       "Do NOT create or rewrite durable notes for reusable procedures, command sequences, debugging workflows, test strategies, failure patterns, or implementation lessons",
     );
@@ -119,15 +128,6 @@ describe("runDreamAgentOnce", () => {
       scopeKey: "main:feishu:user-1",
       triggerSource: "stop",
       lastSuccessAt: null,
-      recentSessions: [
-        {
-          sessionId: "s1",
-          source: "session_summary",
-          summaryText:
-            "The user confirmed step-first answers and a release freeze through April 30.",
-          updatedAt: Date.now(),
-        },
-      ],
       recentTranscriptRefs: [{ sessionId: "s1", path: "/tmp/s1.jsonl" }],
       recentSignals: [
         {
@@ -140,46 +140,36 @@ describe("runDreamAgentOnce", () => {
       dryRun: true,
     });
     expect(taskPrompt).toContain("Mode: dry-run preview");
-    expect(taskPrompt).toContain("Recent session summaries since the last successful dream run");
-    expect(taskPrompt).toContain("source=session_summary");
-    expect(taskPrompt).toContain("<session_summary>");
-    expect(taskPrompt).toContain("</session_summary>");
-    expect(taskPrompt).toContain(
-      "Session transcripts available for narrow read/read-only-exec search",
-    );
-    expect(taskPrompt).toContain("session=s1 | path=/tmp/s1.jsonl");
+    expect(taskPrompt).not.toContain("Recent session summaries");
+    expect(taskPrompt).not.toContain("source=session_summary");
+    expect(taskPrompt).not.toContain("<session_summary>");
+    expect(taskPrompt).toContain("Existing durable memory manifest:");
     expect(taskPrompt).toContain("Recent structured signals:");
     expect(taskPrompt).toContain("<signal>");
     expect(taskPrompt).toContain("</signal>");
-    expect(taskPrompt).toContain("Gather recent signal from the provided session summaries first");
+    expect(taskPrompt).toContain(
+      "Session transcripts available for optional narrow read/read-only-exec lookup",
+    );
+    expect(taskPrompt).toContain("session=s1 | path=/tmp/s1.jsonl");
+    expect(taskPrompt).toContain("Transcript lookup rules:");
+    expect(taskPrompt).toContain("Do not read whole JSONL transcript files");
+    expect(taskPrompt).toContain("Gather recent signal from structured signals first");
     expect(taskPrompt).not.toContain("lastTurn=");
     expect(taskPrompt).not.toContain("Transcript fallback:");
     expect(taskPrompt).toContain("Prune and index");
     expect(taskPrompt).toContain("do not call any write/edit/delete tool");
-
-    const compactSummaryPrompt = buildDreamTaskPrompt({
-      scopeKey: "main:feishu:user-1",
-      triggerSource: "stop",
-      lastSuccessAt: null,
-      recentSessions: [
-        {
-          sessionId: "s1",
-          source: "compact_summary",
-          summaryText: "Recovered compact summary from transcript fallback.",
-          updatedAt: Date.now(),
-        },
-      ],
-      recentTranscriptRefs: [],
-      recentSignals: [],
-      existingEntries: [],
-    });
-    expect(compactSummaryPrompt).toContain("source=compact_summary");
-    expect(compactSummaryPrompt).toContain("Recovered compact summary");
   });
 
-  it("spawns a background dream agent and emits action events", async () => {
+  it("runs dream as an independent embedded maintenance agent and emits action events", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-dream-"));
     process.env.CRAWCLAW_DURABLE_MEMORY_DIR = dir;
+    setRuntimeConfigSnapshot({
+      agents: {
+        defaults: {
+          model: "openai/gpt-5.4",
+        },
+      },
+    });
     const scope = resolveDurableMemoryScope({
       agentId: "main",
       channel: "feishu",
@@ -188,6 +178,10 @@ describe("runDreamAgentOnce", () => {
     expect(scope).not.toBeNull();
 
     const emitAgentActionEvent = vi.fn();
+    const spawnAgentSessionDirect = vi.fn();
+    const callGateway = vi.fn();
+    const captureSubagentCompletionReply = vi.fn();
+    const onAgentEvent = vi.fn(() => () => {});
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
       payloads: [
         {
@@ -203,9 +197,9 @@ describe("runDreamAgentOnce", () => {
       meta: {
         durationMs: 123,
         agentMeta: {
-          sessionId: "session-1",
-          provider: "anthropic",
-          model: "claude-sonnet",
+          sessionId: "embedded-dream-session",
+          provider: "openai",
+          model: "gpt-5.4",
           usage: {
             input: 18,
             output: 9,
@@ -218,36 +212,22 @@ describe("runDreamAgentOnce", () => {
     });
     __testing.setDepsForTest({
       emitAgentActionEvent,
+      spawnAgentSessionDirect,
+      callGateway,
+      captureSubagentCompletionReply,
+      onAgentEvent,
       runEmbeddedPiAgent,
     });
-    const parentForkContext = {
-      parentRunId: "parent-run-dream-1",
-      provider: "openai",
-      modelId: "gpt-5.4",
-      promptEnvelope: buildSpecialAgentCacheEnvelope({
-        systemPromptText: "Parent system prompt",
-        forkContextMessages: [{ role: "user", content: "remember step-first answers" }],
-      }),
-    };
 
     const result = await runDreamAgentOnce({
       runId: "mrun-1",
       sessionId: "session-1",
       sessionFile: "/tmp/session-1.jsonl",
       workspaceDir: dir,
-      parentForkContext,
       scope: scope!,
       sessionKey: "agent:main:feishu:user-1",
       triggerSource: "stop",
       lastSuccessAt: null,
-      recentSessions: [
-        {
-          sessionId: "s1",
-          summaryText:
-            "The user confirmed step-first answers and a release freeze through April 30.",
-          updatedAt: Date.now(),
-        },
-      ],
       recentTranscriptRefs: [{ sessionId: "s1", path: "/tmp/s1.jsonl" }],
       recentSignals: [
         {
@@ -263,9 +243,19 @@ describe("runDreamAgentOnce", () => {
       writtenCount: 1,
       updatedCount: 1,
     });
+    expect(spawnAgentSessionDirect).not.toHaveBeenCalled();
+    expect(callGateway).not.toHaveBeenCalled();
+    expect(captureSubagentCompletionReply).not.toHaveBeenCalled();
+    expect(onAgentEvent).not.toHaveBeenCalled();
     expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         specialAgentSpawnSource: "dream",
+        sessionId: expect.stringMatching(/^embedded-dream-special-dream-/),
+        sessionKey: expect.stringMatching(/^embedded:dream:special:dream:/),
+        sessionFile: expect.stringMatching(/embedded-dream-special-dream-.*\.jsonl$/),
+        workspaceDir: dir,
+        prompt: expect.stringContaining("Consolidate durable memory for the current scope"),
+        extraSystemPrompt: expect.stringContaining("# Dream Agent"),
         provider: "openai",
         model: "gpt-5.4",
         toolsAllow: [
@@ -284,16 +274,20 @@ describe("runDreamAgentOnce", () => {
           channel: "feishu",
           userId: "user-1",
         },
-        workspaceDir: dir,
       }),
     );
-    expect(runEmbeddedPiAgent.mock.calls[0]?.[0]).not.toHaveProperty("maxTurns");
     const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as
-      | { sessionId?: string; sessionFile?: string; specialParentPromptEnvelope?: unknown }
+      | {
+          maxTurns?: number;
+          sessionId?: string;
+          sessionFile?: string;
+          specialParentPromptEnvelope?: unknown;
+        }
       | undefined;
+    expect(embeddedParams?.maxTurns).toBeUndefined();
     expect(embeddedParams?.sessionId).not.toBe("session-1");
     expect(embeddedParams?.sessionFile).not.toBe("/tmp/session-1.jsonl");
-    expect(embeddedParams?.specialParentPromptEnvelope).toEqual(parentForkContext.promptEnvelope);
+    expect(embeddedParams?.specialParentPromptEnvelope).toBeUndefined();
     expect(emitAgentActionEvent).toHaveBeenCalledTimes(4);
     expect(emitAgentActionEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({

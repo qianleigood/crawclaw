@@ -26,7 +26,6 @@ const baseConfig: NotebookLmConfig = {
     notebookId: "",
   },
   write: {
-    enabled: false,
     command: "",
     args: ["{payloadFile}"],
     timeoutMs: 1000,

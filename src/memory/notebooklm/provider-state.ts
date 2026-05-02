@@ -393,7 +393,7 @@ export async function getNotebookLmProviderState(params: {
           heartbeat: { enabled: true, minIntervalMs: 12 * 60_000, maxIntervalMs: 24 * 60_000 },
         },
         cli: { enabled: false, command: "", args: [], timeoutMs: 0, limit: 0, notebookId: "" },
-        write: { enabled: false, command: "", args: [], timeoutMs: 0, notebookId: "" },
+        write: { command: "", args: [], timeoutMs: 0, notebookId: "" },
       },
       "disabled",
     );
@@ -402,10 +402,6 @@ export async function getNotebookLmProviderState(params: {
   if (params.mode === "query" && !config.cli.enabled) {
     return buildSkippedState(config, "disabled");
   }
-  if (params.mode === "write" && !config.write.enabled) {
-    return buildSkippedState(config, "disabled");
-  }
-
   const rawNotebookId =
     params.mode === "write"
       ? config.write.notebookId || config.cli.notebookId || ""
@@ -472,7 +468,7 @@ export async function refreshNotebookLmProviderState(params: {
           heartbeat: { enabled: true, minIntervalMs: 12 * 60_000, maxIntervalMs: 24 * 60_000 },
         },
         cli: { enabled: false, command: "", args: [], timeoutMs: 0, limit: 0, notebookId: "" },
-        write: { enabled: false, command: "", args: [], timeoutMs: 0, notebookId: "" },
+        write: { command: "", args: [], timeoutMs: 0, notebookId: "" },
       },
       "disabled",
     );

@@ -82,7 +82,7 @@ function countLinkedNotes(content: string): number {
   return notePaths.size;
 }
 
-async function listIndexFiles(rootDir: string): Promise<string[]> {
+async function listOutboxFiles(rootDir: string): Promise<string[]> {
   const files: string[] = [];
   const visit = async (dir: string) => {
     let entries: Dirent[];
@@ -160,7 +160,7 @@ export async function listDurableMemoryIndexDocuments(params?: {
 }): Promise<{ items: DurableMemoryIndexDocumentEntry[] }> {
   const rootDir = path.resolve(params?.rootDir ?? resolveDurableMemoryRootDir());
   const limit = Math.max(1, Math.min(params?.limit ?? 50, 500));
-  const files = await listIndexFiles(rootDir);
+  const files = await listOutboxFiles(rootDir);
   const items: DurableMemoryIndexDocumentEntry[] = [];
   for (const absolutePath of files) {
     const stat = await fs.stat(absolutePath);

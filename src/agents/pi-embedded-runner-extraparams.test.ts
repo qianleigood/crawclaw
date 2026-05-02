@@ -3352,6 +3352,49 @@ describe("applyExtraParamsToAgent", () => {
     },
   );
 
+  it("leaves Codex Responses default tool_choice when a pinned toolChoice is configured", () => {
+    const payload = runResponsesPayloadMutationCase({
+      applyProvider: "openai-codex",
+      applyModelId: "gpt-5.4",
+      model: {
+        api: "openai-codex-responses",
+        provider: "openai-codex",
+        id: "gpt-5.4",
+        baseUrl: "https://chatgpt.com/backend-api/codex/responses",
+      } as Model<"openai-codex-responses">,
+      extraParamsOverride: {
+        toolChoice: { type: "tool", name: "write_experience_note" },
+      },
+      payload: {
+        store: false,
+        tool_choice: "auto",
+      },
+    });
+
+    expect(payload.tool_choice).toBe("auto");
+  });
+
+  it("normalizes pinned toolChoice for direct OpenAI Responses payloads", () => {
+    const payload = runResponsesPayloadMutationCase({
+      applyProvider: "openai",
+      applyModelId: "gpt-5",
+      model: {
+        api: "openai-responses",
+        provider: "openai",
+        id: "gpt-5",
+        baseUrl: "https://api.openai.com/v1",
+      } as unknown as Model<"openai-responses">,
+      extraParamsOverride: {
+        toolChoice: { type: "tool", name: "write_experience_note" },
+      },
+    });
+
+    expect(payload.tool_choice).toEqual({
+      type: "function",
+      name: "write_experience_note",
+    });
+  });
+
   it("strips prompt cache fields for non-OpenAI openai-responses endpoints", () => {
     const payload = runResponsesPayloadMutationCase({
       applyProvider: "custom-proxy",
@@ -3415,6 +3458,141 @@ describe("applyExtraParamsToAgent", () => {
     });
     expect(payload.prompt_cache_key).toBe("special:agent:main:main");
     expect(payload).not.toHaveProperty("prompt_cache_retention");
+  });
+
+  it("removes provider-default prompt cache keys when skipCacheWrite has no explicit key", () => {
+    const payload = runResponsesPayloadMutationCase({
+      applyProvider: "openai-codex",
+      applyModelId: "gpt-5.4",
+      model: {
+        api: "openai-codex-responses",
+        provider: "openai-codex",
+        id: "gpt-5.4",
+        baseUrl: "https://chatgpt.com/backend-api/codex/responses",
+      } as Model<"openai-codex-responses">,
+      extraParamsOverride: {
+        skipCacheWrite: true,
+      },
+      payload: {
+        store: false,
+        prompt_cache_key: `embedded:durable_memory:special:durable_memory:${"x".repeat(36)}`,
+        prompt_cache_retention: "24h",
+      },
+    });
+
+    expect(payload).not.toHaveProperty("prompt_cache_key");
+    expect(payload).not.toHaveProperty("prompt_cache_retention");
+  });
+
+  it("bounds explicit OpenAI Responses prompt cache keys to provider limits", () => {
+    const longKey = `embedded:durable_memory:special:durable_memory:${"x".repeat(80)}`;
+    const payload = runResponsesPayloadMutationCase({
+      applyProvider: "openai",
+      applyModelId: "gpt-5",
+      model: {
+        api: "openai-responses",
+        provider: "openai",
+        id: "gpt-5",
+        baseUrl: "https://api.openai.com/v1",
+      } as unknown as Model<"openai-responses">,
+      extraParamsOverride: {
+        promptCacheKey: longKey,
+      },
+      payload: {
+        store: false,
+      },
+    });
+
+    expect(typeof payload.prompt_cache_key).toBe("string");
+    expect((payload.prompt_cache_key as string).length).toBeLessThanOrEqual(64);
+    expect(payload.prompt_cache_key).not.toBe(longKey);
+  });
+
+  it("bounds provider-default OpenAI Codex prompt cache keys to provider limits", () => {
+    const longKey = `embedded:durable_memory:special:durable_memory:${"x".repeat(80)}`;
+    const payload = runResponsesPayloadMutationCase({
+      applyProvider: "openai-codex",
+      applyModelId: "gpt-5.4",
+      model: {
+        api: "openai-codex-responses",
+        provider: "openai-codex",
+        id: "gpt-5.4",
+        baseUrl: "https://chatgpt.com/backend-api/codex/responses",
+      } as Model<"openai-codex-responses">,
+      payload: {
+        store: false,
+        prompt_cache_key: longKey,
+      },
+    });
+
+    expect(typeof payload.prompt_cache_key).toBe("string");
+    expect((payload.prompt_cache_key as string).length).toBeLessThanOrEqual(64);
+    expect(payload.prompt_cache_key).not.toBe(longKey);
+  });
+
+  it("bounds OpenAI Codex sessionId stream options before provider prompt-cache mapping", () => {
+    const { agent, calls } = createOptionsCaptureAgent();
+    const longSessionId = `embedded-durable_memory-special-durable_memory-${"x".repeat(80)}`;
+
+    applyExtraParamsToAgent(agent, undefined, "openai-codex", "gpt-5.4");
+
+    const model = {
+      api: "openai-codex-responses",
+      provider: "openai-codex",
+      id: "gpt-5.4",
+      baseUrl: "https://chatgpt.com/backend-api/codex/responses",
+    } as Model<"openai-codex-responses">;
+    const context: Context = { messages: [] };
+    void agent.streamFn?.(model, context, { sessionId: longSessionId });
+
+    expect(typeof calls[0]?.sessionId).toBe("string");
+    expect(calls[0]?.sessionId?.length).toBeLessThanOrEqual(64);
+    expect(calls[0]?.sessionId).not.toBe(longSessionId);
+  });
+
+  it("removes provider-default OpenAI Codex prompt cache keys when cacheRetention is none", () => {
+    const payload = runResponsesPayloadMutationCase({
+      applyProvider: "openai-codex",
+      applyModelId: "gpt-5.4",
+      model: {
+        api: "openai-codex-responses",
+        provider: "openai-codex",
+        id: "gpt-5.4",
+        baseUrl: "https://chatgpt.com/backend-api/codex/responses",
+      } as Model<"openai-codex-responses">,
+      extraParamsOverride: {
+        cacheRetention: "none",
+      },
+      payload: {
+        store: false,
+        prompt_cache_key: `embedded:experience:special:experience:${"x".repeat(80)}`,
+        prompt_cache_retention: "24h",
+      },
+    });
+
+    expect(payload).not.toHaveProperty("prompt_cache_key");
+    expect(payload).not.toHaveProperty("prompt_cache_retention");
+  });
+
+  it("removes OpenAI Codex sessionId stream options when skipCacheWrite has no explicit key", () => {
+    const { agent, calls } = createOptionsCaptureAgent();
+
+    applyExtraParamsToAgent(agent, undefined, "openai-codex", "gpt-5.4", {
+      skipCacheWrite: true,
+    });
+
+    const model = {
+      api: "openai-codex-responses",
+      provider: "openai-codex",
+      id: "gpt-5.4",
+      baseUrl: "https://chatgpt.com/backend-api/codex/responses",
+    } as Model<"openai-codex-responses">;
+    const context: Context = { messages: [] };
+    void agent.streamFn?.(model, context, {
+      sessionId: `embedded-experience-special-experience-${"x".repeat(80)}`,
+    });
+
+    expect(calls[0]?.sessionId).toBeUndefined();
   });
 
   it("forces cacheRetention=none when skipCacheWrite is enabled", () => {

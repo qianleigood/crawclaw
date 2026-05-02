@@ -30,12 +30,12 @@ import {
   type NotebookLmProviderState,
 } from "../../memory/cli-api.js";
 import {
-  EXPERIENCE_INDEX_STATUSES,
-  pruneExperienceIndexEntries,
-  readExperienceIndexEntries,
-  updateExperienceIndexEntryStatus,
-  type ExperienceIndexStatus,
-} from "../../memory/experience/index-store.ts";
+  EXPERIENCE_OUTBOX_STATUSES,
+  pruneExperienceOutboxEntries,
+  readExperienceOutboxEntries,
+  updateExperienceOutboxEntryStatus,
+  type ExperienceOutboxStatus,
+} from "../../memory/experience/outbox-store.ts";
 import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
@@ -97,10 +97,10 @@ function readOptionalPositiveInt(value: unknown): number | undefined {
   return value;
 }
 
-function readExperienceIndexStatus(value: unknown): ExperienceIndexStatus | undefined {
+function readExperienceOutboxStatus(value: unknown): ExperienceOutboxStatus | undefined {
   return typeof value === "string" &&
-    (EXPERIENCE_INDEX_STATUSES as readonly string[]).includes(value)
-    ? (value as ExperienceIndexStatus)
+    (EXPERIENCE_OUTBOX_STATUSES as readonly string[]).includes(value)
+    ? (value as ExperienceOutboxStatus)
     : undefined;
 }
 
@@ -650,12 +650,12 @@ export const memoryHandlers: GatewayRequestHandlers = {
     }
   },
 
-  "memory.experience.index.list": async ({ params, respond }) => {
+  "memory.experience.outbox.list": async ({ params, respond }) => {
     try {
       const request = asRecord(params);
-      const status = readExperienceIndexStatus(request.status);
+      const status = readExperienceOutboxStatus(request.status);
       const limit = readOptionalPositiveInt(request.limit) ?? 50;
-      const items = await readExperienceIndexEntries(limit, status ? { status } : {});
+      const items = await readExperienceOutboxEntries(limit, status ? { status } : {});
       respond(true, { items }, undefined);
     } catch (error) {
       respond(
@@ -663,30 +663,30 @@ export const memoryHandlers: GatewayRequestHandlers = {
         undefined,
         errorShape(
           ErrorCodes.UNAVAILABLE,
-          `memory.experience.index.list failed: ${describeUnknownError(error)}`,
+          `memory.experience.outbox.list failed: ${describeUnknownError(error)}`,
         ),
       );
     }
   },
 
-  "memory.experience.index.updateStatus": async ({ params, respond }) => {
+  "memory.experience.outbox.updateStatus": async ({ params, respond }) => {
     try {
       const request = asRecord(params);
       const id = readRequiredString(request.id);
-      const status = readExperienceIndexStatus(request.status);
+      const status = readExperienceOutboxStatus(request.status);
       if (!id || !status) {
         respond(
           false,
           undefined,
           errorShape(
             ErrorCodes.INVALID_REQUEST,
-            "memory.experience.index.updateStatus requires id and valid status",
+            "memory.experience.outbox.updateStatus requires id and valid status",
           ),
         );
         return;
       }
       const supersededBy = readOptionalString(request.supersededBy);
-      const item = await updateExperienceIndexEntryStatus({
+      const item = await updateExperienceOutboxEntryStatus({
         id,
         status,
         ...(supersededBy ? { supersededBy } : {}),
@@ -695,7 +695,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
         respond(
           false,
           undefined,
-          errorShape(ErrorCodes.INVALID_REQUEST, `experience index entry not found: ${id}`),
+          errorShape(ErrorCodes.INVALID_REQUEST, `experience outbox entry not found: ${id}`),
         );
         return;
       }
@@ -706,18 +706,18 @@ export const memoryHandlers: GatewayRequestHandlers = {
         undefined,
         errorShape(
           ErrorCodes.UNAVAILABLE,
-          `memory.experience.index.updateStatus failed: ${describeUnknownError(error)}`,
+          `memory.experience.outbox.updateStatus failed: ${describeUnknownError(error)}`,
         ),
       );
     }
   },
 
-  "memory.experience.index.prune": async ({ params, respond }) => {
+  "memory.experience.outbox.prune": async ({ params, respond }) => {
     try {
       const request = asRecord(params);
       const staleAfterMs = readOptionalPositiveInt(request.staleAfterMs);
       const archiveAfterMs = readOptionalPositiveInt(request.archiveAfterMs);
-      const result = await pruneExperienceIndexEntries({
+      const result = await pruneExperienceOutboxEntries({
         ...(staleAfterMs !== undefined ? { staleAfterMs } : {}),
         ...(archiveAfterMs !== undefined ? { archiveAfterMs } : {}),
       });
@@ -728,7 +728,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
         undefined,
         errorShape(
           ErrorCodes.UNAVAILABLE,
-          `memory.experience.index.prune failed: ${describeUnknownError(error)}`,
+          `memory.experience.outbox.prune failed: ${describeUnknownError(error)}`,
         ),
       );
     }

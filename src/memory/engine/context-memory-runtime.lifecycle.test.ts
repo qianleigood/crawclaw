@@ -249,7 +249,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
           },
         },
         cli: { enabled: false, command: "", args: [], timeoutMs: 1, limit: 5 },
-        write: { enabled: false, command: "", args: [], timeoutMs: 1 },
+        write: { command: "", args: [], timeoutMs: 1 },
       },
       experience: {
         enabled: true,
@@ -313,6 +313,67 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
   ): ExperienceExtractionRunner {
     return vi.fn().mockResolvedValue(result);
   }
+
+  it("starts NotebookLM heartbeat from runtime bootstrap", async () => {
+    const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
+    const { startNotebookLmHeartbeat } = await import("../notebooklm/heartbeat.ts");
+    const config = {
+      ...createRuntimeConfig(),
+      notebooklm: {
+        enabled: true,
+        auth: {
+          profile: "default",
+          cookieFile: "",
+          statusTtlMs: 60_000,
+          degradedCooldownMs: 60_000,
+          refreshCooldownMs: 60_000,
+          heartbeat: {
+            enabled: true,
+            minIntervalMs: 60_000,
+            maxIntervalMs: 120_000,
+          },
+          autoLogin: {
+            enabled: true,
+            intervalMs: 24 * 60 * 60_000,
+            provider: "nlm_profile" as const,
+            cdpUrl: "",
+          },
+        },
+        cli: {
+          enabled: true,
+          command: "nlm",
+          args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
+          timeoutMs: 1_000,
+          limit: 5,
+          notebookId: "nb-1",
+        },
+        write: { command: "", args: ["{payloadFile}"], timeoutMs: 1_000, notebookId: "nb-1" },
+      },
+    };
+    const runtime = createContextMemoryRuntime({
+      runtimeStore: createRuntimeStore(),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      config,
+    });
+
+    await expect(
+      runtime.bootstrap?.({
+        sessionId: "session-notebooklm-heartbeat",
+        sessionKey: "agent:main:web:direct:user",
+        sessionFile: "/tmp/session.jsonl",
+      }),
+    ).resolves.toEqual({ bootstrapped: true });
+
+    expect(startNotebookLmHeartbeat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: config.notebooklm,
+        logger: expect.objectContaining({
+          info: expect.any(Function),
+          warn: expect.any(Function),
+        }),
+      }),
+    );
+  });
 
   it("passes messageProvider-derived channel into lifecycle durable extraction", async () => {
     const stateDir = await createRuntimeRoot();
@@ -1274,11 +1335,15 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         sessionId: "session-dream-1",
         sessionKey: "agent:main:feishu:direct:user-1",
         runtimeContext: expect.objectContaining({
-          parentForkContext,
+          agentId: "main",
+          messageChannel: "feishu",
         }),
       }),
     );
+    expect(submitTurn.mock.calls[0]?.[0]?.runtimeContext).not.toHaveProperty("parentForkContext");
     expect(submitTurn.mock.calls[0]?.[0]?.runtimeContext).not.toHaveProperty("parentRunId");
+    expect(submitTurn.mock.calls[0]?.[0]?.runtimeContext).not.toHaveProperty("parentProvider");
+    expect(submitTurn.mock.calls[0]?.[0]?.runtimeContext).not.toHaveProperty("parentModelId");
   });
 
   it("does not schedule auto-dream from ingestion alone before the lifecycle stop phase fires", async () => {

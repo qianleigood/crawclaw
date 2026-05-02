@@ -5,7 +5,6 @@ import type { RunEmbeddedPiAgentParams } from "../agents/pi-embedded-runner/run/
 import type { EmbeddedPiRunResult } from "../agents/pi-embedded-runner/types.js";
 import { createCrawClawCodingTools } from "../agents/pi-tools.js";
 import { runSpecialAgentToCompletion } from "../agents/special/runtime/run-once.js";
-import { upsertExperienceIndexEntryFromNote } from "../memory/experience/index-store.ts";
 import { withStateDirEnv } from "../test-helpers/state-dir-env.js";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
 import { runPromotionJudge } from "./promotion-judge.js";
@@ -13,7 +12,9 @@ import {
   applyImprovementProposal,
   reviewImprovementProposal,
   runImprovementWorkflow,
+  type ImprovementWorkflowDeps,
 } from "./runner.js";
+import type { PromotionCandidateAssessment } from "./types.js";
 
 const tempDirs = createTrackedTempDirs();
 
@@ -21,39 +22,32 @@ afterEach(async () => {
   await tempDirs.cleanup();
 });
 
-async function seedRepeatedExperience(): Promise<void> {
-  await upsertExperienceIndexEntryFromNote({
-    note: {
-      type: "workflow_pattern",
-      title: "workflow 排查顺序 E2E A",
-      summary: "排查 workflow 问题时先查 registry，再查 operations，再看 executions。",
-      context: "workflow 执行失败。",
-      trigger: "workflow 执行异常。",
-      action: "先查 registry，再查 operations，再看 executions。",
-      result: "定位问题更快。",
-      lesson: "先看结构定义，再看执行记录。",
-      evidence: ["e2e 场景第一次验证。"],
-      confidence: "high",
-      dedupeKey: "workflow-e2e-order-a",
+function buildCandidateAssessment(): PromotionCandidateAssessment {
+  return {
+    candidate: {
+      id: "notebooklm-candidate:workflow-e2e-order",
+      sourceRefs: [{ kind: "experience", ref: "note-workflow-e2e-order" }],
+      signalSummary: "排查 workflow 问题时先查 registry，再查 operations，再看 executions。",
+      observedFrequency: 2,
+      currentReuseLevel: "experience",
+      triggerPattern: "workflow 执行异常",
+      repeatedActions: ["先查 registry，再查 operations，再看 executions。"],
+      validationEvidence: ["两次 e2e 场景都按这个顺序定位问题。"],
+      firstSeenAt: 100,
+      lastSeenAt: 200,
     },
-    notebookId: "local",
-  });
-  await upsertExperienceIndexEntryFromNote({
-    note: {
-      type: "workflow_pattern",
-      title: "workflow 排查顺序 E2E B",
-      summary: "处理 workflow 更新异常时先查 registry，再查 operations，再看 executions。",
-      context: "workflow 更新后异常。",
-      trigger: "workflow 更新异常。",
-      action: "先查 registry，再查 operations，再看 executions。",
-      result: "更快定位定义与运行差异。",
-      lesson: "定义和执行要分开排查。",
-      evidence: ["e2e 场景第二次验证。"],
-      confidence: "high",
-      dedupeKey: "workflow-e2e-order-b",
-    },
-    notebookId: "local",
-  });
+    evidenceKinds: ["trigger", "action", "result", "validation"],
+    baselineDecision: "ready",
+    blockers: [],
+    score: 42,
+  };
+}
+
+function buildWorkflowDeps(): ImprovementWorkflowDeps {
+  return {
+    buildPromotionCandidateAssessments: async () => [buildCandidateAssessment()],
+    runPromotionJudge,
+  };
 }
 
 function createEmbeddedPromotionJudgeHarness(params: { workspaceDir: string }) {
@@ -154,17 +148,19 @@ describe("improvement workflow e2e", () => {
   it("runs through promotion judge embedded_fork and applies the promoted skill", async () => {
     await withStateDirEnv("crawclaw-improvement-e2e-", async () => {
       const workspaceDir = await tempDirs.make("improvement-workflow-e2e-");
-      await seedRepeatedExperience();
       const embeddedJudge = createEmbeddedPromotionJudgeHarness({ workspaceDir });
 
-      const result = await runImprovementWorkflow({
-        workspaceDir,
-        judge: async ({ candidate }) =>
-          await embeddedJudge({
-            workspaceDir,
-            candidate,
-          }),
-      });
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          judge: async ({ candidate }) =>
+            await embeddedJudge({
+              workspaceDir,
+              candidate,
+            }),
+        },
+        buildWorkflowDeps(),
+      );
 
       expect(result.proposal?.status).toBe("pending_review");
       await reviewImprovementProposal({

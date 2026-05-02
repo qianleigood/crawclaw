@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveSessionTranscriptPath } from "../../config/sessions/paths.js";
 import { resolveDurableMemoryScope } from "../durable/scope.js";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
-import { writeSessionSummaryFile } from "../session-summary/store.ts";
 import { AutoDreamScheduler, __testing } from "./auto-dream.js";
 import { readDreamConsolidationStatus } from "./consolidation-lock.js";
 
@@ -30,13 +29,6 @@ function createRuntimeStore(overrides: Partial<RuntimeStore> = {}): RuntimeStore
   return asRuntimeStore({
     listRecentContextArchiveRuns: vi.fn().mockResolvedValue([]),
     listContextArchiveEvents: vi.fn().mockResolvedValue([]),
-    getSessionSummaryState: vi.fn().mockResolvedValue({
-      lastSummarizedMessageId: "msg-1",
-      lastSummaryUpdatedAt: Date.now(),
-      tokensAtLastSummary: 120,
-      summaryInProgress: false,
-    }),
-    getSessionCompactionState: vi.fn().mockResolvedValue(null),
     ...overrides,
   });
 }
@@ -50,14 +42,6 @@ async function writeTranscript(params: { agentId?: string; sessionId: string; mt
     await fs.utimes(filePath, date, date);
   }
   return filePath;
-}
-
-async function writeSummary(sessionId: string) {
-  await writeSessionSummaryFile({
-    agentId: "main",
-    sessionId,
-    content: `# Session Summary\n\n## Current State\nsummary:${sessionId}\n`,
-  });
 }
 
 describe("AutoDreamScheduler", () => {
@@ -120,7 +104,6 @@ describe("AutoDreamScheduler", () => {
     await Promise.all(
       sessionIds.map(async (sessionId, index) => {
         await writeTranscript({ sessionId, mtimeMs: 10_000 + index });
-        await writeSummary(sessionId);
       }),
     );
     vi.useFakeTimers({ now: new Date(30_000) });
@@ -148,7 +131,6 @@ describe("AutoDreamScheduler", () => {
 
     const result = await scheduler.runNow({
       scope: scope!,
-      parentRunId: "parent-run-1",
       triggerSource: "manual_cli",
       bypassGate: true,
     });
@@ -158,7 +140,6 @@ describe("AutoDreamScheduler", () => {
     expect(runner).toHaveBeenCalledWith(
       expect.objectContaining({
         runId: result.runId,
-        parentRunId: "parent-run-1",
         scope,
         lastSuccessAt: null,
         recentTranscriptRefs: sessionIds
@@ -186,12 +167,10 @@ describe("AutoDreamScheduler", () => {
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     for (const sessionId of ["s1", "s2", "s3", "s4", "s5"]) {
       await writeTranscript({ sessionId, mtimeMs: 10_000 });
-      await writeSummary(sessionId);
     }
     vi.useFakeTimers({ now: new Date(30_000) });
     const runner = vi.fn().mockImplementation(async () => {
       await writeTranscript({ sessionId: "s-new", mtimeMs: 35_000 });
-      await writeSummary("s-new");
       return {
         status: "no_change",
         summary: "nothing changed",
@@ -235,7 +214,6 @@ describe("AutoDreamScheduler", () => {
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     for (const sessionId of ["s1", "s2", "s3", "s4", "s5"]) {
       await writeTranscript({ sessionId, mtimeMs: 10_000 });
-      await writeSummary(sessionId);
     }
     vi.useFakeTimers({ now: new Date(30_000) });
     const scope = resolveDurableMemoryScope({
@@ -264,7 +242,6 @@ describe("AutoDreamScheduler", () => {
     });
 
     await writeTranscript({ sessionId: "s6", mtimeMs: 35_000 });
-    await writeSummary("s6");
     vi.setSystemTime(new Date(40_000));
     scheduler.reconfigure({
       config: dreamConfig({ minHours: 0, scanThrottleMs: 0 }),
@@ -300,7 +277,6 @@ describe("AutoDreamScheduler", () => {
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     for (const sessionId of ["s1", "s2", "s3", "s4", "s5"]) {
       await writeTranscript({ sessionId });
-      await writeSummary(sessionId);
     }
     const runner = vi.fn();
     const scheduler = new AutoDreamScheduler({
@@ -335,67 +311,26 @@ describe("AutoDreamScheduler", () => {
     expect(status.exists).toBe(false);
   });
 
-  it("compacts session summaries before passing them to the dream runner", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-compact-"));
+  it("does not read session summary or compaction state for dream previews", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-no-summary-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     await writeTranscript({ sessionId: "s1" });
-    const longBody = `${"stable durable signal ".repeat(2_000)}tail-marker-should-not-survive`;
-    await writeSessionSummaryFile({
-      agentId: "main",
-      sessionId: "s1",
-      content: `# Session Summary\n\n## Current State\n${longBody}\n\n## Key Results\nfinal result\n`,
+    const getSessionSummaryState = vi.fn().mockResolvedValue({
+      lastSummarizedMessageId: "msg-1",
+      lastSummaryUpdatedAt: Date.now(),
+      tokensAtLastSummary: 8_000,
+      summaryInProgress: false,
     });
-    const scheduler = new AutoDreamScheduler({
-      config: dreamConfig({ minSessions: 1 }),
-      runtimeStore: createRuntimeStore({
-        getSessionSummaryState: vi.fn().mockResolvedValue({
-          lastSummarizedMessageId: "msg-1",
-          lastSummaryUpdatedAt: Date.now(),
-          tokensAtLastSummary: 8_000,
-          summaryInProgress: false,
-        }),
-      }),
-      runner: vi.fn(),
-      logger: console,
-    });
-    const scope = resolveDurableMemoryScope({
-      agentId: "main",
-      channel: "feishu",
-      userId: "user-1",
-    });
-    expect(scope).not.toBeNull();
-
-    const result = await scheduler.runNow({
-      scope: scope!,
-      triggerSource: "manual_cli",
-      bypassGate: true,
-      dryRun: true,
-    });
-
-    const summaryText = result.preview?.sessionSummaries[0]?.summaryText ?? "";
-    expect(summaryText).toContain("[truncated to fit compact summary budget]");
-    expect(summaryText).not.toContain("tail-marker-should-not-survive");
-  });
-
-  it("uses compact summary state when the session summary file is empty", async () => {
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-compact-state-"));
-    tempDirs.push(stateDir);
-    process.env.CRAWCLAW_STATE_DIR = stateDir;
-    await writeTranscript({ sessionId: "s1" });
     const getSessionCompactionState = vi.fn().mockResolvedValue({
       sessionId: "s1",
-      preservedTailStartTurn: 7,
-      preservedTailMessageId: "m7",
-      summarizedThroughMessageId: null,
-      mode: "transcript-fallback",
-      summaryOverrideText: "Recovered compact summary from transcript fallback.",
+      summaryOverrideText: "Recovered compact summary that dream should ignore.",
       updatedAt: Date.now(),
     });
     const scheduler = new AutoDreamScheduler({
       config: dreamConfig({ minSessions: 1 }),
       runtimeStore: createRuntimeStore({
-        getSessionSummaryState: vi.fn().mockResolvedValue(null),
+        getSessionSummaryState,
         getSessionCompactionState,
       }),
       runner: vi.fn(),
@@ -415,36 +350,51 @@ describe("AutoDreamScheduler", () => {
       dryRun: true,
     });
 
-    expect(getSessionCompactionState).toHaveBeenCalledWith("s1");
-    expect(result.preview?.sessionSummaries).toEqual([
-      expect.objectContaining({
-        sessionId: "s1",
-        source: "compact_summary",
-        summaryText: expect.stringContaining("Recovered compact summary"),
-      }),
-    ]);
+    expect(getSessionSummaryState).not.toHaveBeenCalled();
+    expect(getSessionCompactionState).not.toHaveBeenCalled();
+    expect(result.preview?.transcriptRefs).toEqual([expect.objectContaining({ sessionId: "s1" })]);
   });
 
-  it("waits for the pre-run maintenance hook before collecting dream inputs", async () => {
+  it("waits for the pre-run maintenance hook before collecting structured signals", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-wait-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     await writeTranscript({ sessionId: "s1" });
-    await writeSessionSummaryFile({
-      agentId: "main",
-      sessionId: "s1",
-      content: "# Session Summary\n\n## Current State\nstale summary\n",
-    });
+    let maintenanceFinished = false;
     const beforeRun = vi.fn().mockImplementation(async () => {
-      await writeSessionSummaryFile({
-        agentId: "main",
-        sessionId: "s1",
-        content: "# Session Summary\n\n## Current State\nfresh summary\n",
-      });
+      maintenanceFinished = true;
     });
     const scheduler = new AutoDreamScheduler({
       config: dreamConfig({ minSessions: 1 }),
-      runtimeStore: createRuntimeStore(),
+      runtimeStore: createRuntimeStore({
+        listRecentContextArchiveRuns: vi.fn().mockImplementation(async () =>
+          maintenanceFinished
+            ? [
+                {
+                  id: "run-1",
+                  sessionId: "s1",
+                  startedAt: Date.now(),
+                  endedAt: Date.now(),
+                },
+              ]
+            : [],
+        ),
+        listContextArchiveEvents: vi.fn().mockResolvedValue([
+          {
+            id: "event-1",
+            runId: "run-1",
+            sessionId: "s1",
+            eventKind: "agent.action",
+            payloadJson: JSON.stringify({
+              action: {
+                title: "Dream can see fresh maintenance signal",
+                summary: "after beforeRun",
+              },
+            }),
+            createdAt: Date.now(),
+          },
+        ]),
+      }),
       runner: vi.fn(),
       logger: console,
       beforeRun,
@@ -472,7 +422,12 @@ describe("AutoDreamScheduler", () => {
         triggerSource: "stop",
       }),
     );
-    expect(result.preview?.sessionSummaries[0]?.summaryText).toContain("fresh summary");
-    expect(result.preview?.sessionSummaries[0]?.summaryText).not.toContain("stale summary");
+    expect(result.preview?.recentSignals).toEqual([
+      expect.objectContaining({
+        sessionId: "s1",
+        kind: "archive_actions",
+        text: "Dream can see fresh maintenance signal (after beforeRun)",
+      }),
+    ]);
   });
 });

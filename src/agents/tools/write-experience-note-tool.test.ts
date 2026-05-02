@@ -3,15 +3,17 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
-import { readExperienceIndexEntries } from "../../memory/experience/index-store.js";
-import { createExperienceWriteTool } from "./write-experience-note-tool.js";
+import { readExperienceOutboxEntries } from "../../memory/experience/outbox-store.js";
 
-const execFileMock = vi.fn();
+const notebookLmWriteMock = vi.hoisted(() => vi.fn());
+const notebookLmDeleteMock = vi.hoisted(() => vi.fn());
 const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
 const tempDirs: string[] = [];
+let createExperienceWriteTool: typeof import("./write-experience-note-tool.js").createExperienceWriteTool;
 
-vi.mock("node:child_process", () => ({
-  execFile: (...args: unknown[]) => execFileMock(...args),
+vi.mock("../../memory/notebooklm/notebooklm-write.ts", () => ({
+  writeNotebookLmExperienceNoteViaCli: (...args: unknown[]) => notebookLmWriteMock(...args),
+  deleteNotebookLmExperienceNoteViaCli: (...args: unknown[]) => notebookLmDeleteMock(...args),
 }));
 
 async function createTempDir(): Promise<string> {
@@ -21,9 +23,11 @@ async function createTempDir(): Promise<string> {
 }
 
 describe("createExperienceWriteTool", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
-    execFileMock.mockReset();
+    notebookLmWriteMock.mockReset();
+    notebookLmDeleteMock.mockReset();
+    ({ createExperienceWriteTool } = await import("./write-experience-note-tool.js"));
   });
 
   afterEach(async () => {
@@ -40,31 +44,14 @@ describe("createExperienceWriteTool", () => {
   it("renders a Chinese experience card and writes it through the NotebookLM adapter", async () => {
     const stateDir = await createTempDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
-    execFileMock
-      .mockImplementationOnce((_command, _args, _options, callback) => {
-        callback(
-          null,
-          JSON.stringify({
-            status: "ok",
-            ready: true,
-            profile: "default",
-            notebookId: "experience-notebook",
-            refreshAttempted: false,
-            refreshSucceeded: false,
-          }),
-        );
-      })
-      .mockImplementationOnce((_command, _args, _options, callback) => {
-        callback(
-          null,
-          JSON.stringify({
-            status: "ok",
-            action: "create",
-            noteId: "note-123",
-            title: "网关恢复经验",
-          }),
-        );
-      });
+    notebookLmWriteMock.mockResolvedValueOnce({
+      status: "ok",
+      action: "create",
+      noteId: "note-123",
+      notebookId: "experience-notebook",
+      title: "网关恢复经验",
+      payloadFile: path.join(stateDir, "payload.json"),
+    });
 
     const tool = createExperienceWriteTool({
       config: {
@@ -87,14 +74,10 @@ describe("createExperienceWriteTool", () => {
               notebookId: "experience-notebook",
             },
             write: {
-              enabled: true,
               command: "python",
               args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
               timeoutMs: 1000,
               notebookId: "experience-notebook",
-            },
-            source: {
-              enabled: false,
             },
           },
         },
@@ -128,31 +111,22 @@ describe("createExperienceWriteTool", () => {
       }),
     );
 
-    const execArgs = execFileMock.mock.calls[1];
-    expect(execArgs[0]).toBe("python");
-    const payloadFile = String(execArgs[1][2]);
-    const payload = JSON.parse(await fs.readFile(payloadFile, "utf8")) as Record<string, unknown>;
-    const content =
-      typeof payload.content === "string" ? payload.content : JSON.stringify(payload.content ?? "");
-
-    expect(payload.notebookId).toBe("experience-notebook");
-    expect(content).toContain("## 场景");
-    expect(content).toContain("## 触发信号");
-    expect(content).toContain("## 有效做法");
-    expect(content).toContain("经验类型：操作经验");
-    expect(content).toContain("经验键：gateway-recovery-experience");
-
-    const indexEntries = await readExperienceIndexEntries();
-    expect(indexEntries).toEqual([
+    expect(notebookLmWriteMock).toHaveBeenCalledTimes(1);
+    expect(notebookLmWriteMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: "experience-index:gateway-recovery-experience",
-        title: "网关恢复经验",
-        summary: "在网关关闭时按顺序恢复服务。",
-        type: "procedure",
-        noteId: "note-123",
-        notebookId: "experience-notebook",
+        note: expect.objectContaining({
+          title: "网关恢复经验",
+          context: "用户要求恢复网关或排查服务不可用。",
+          trigger: "health 检查失败，或者 RPC 连接关闭。",
+          action: "先检查端口，再重启进程。",
+          result: "恢复后 health 检查返回 ok:true。",
+          lesson: "恢复类问题应该先给可执行步骤，再解释原因。",
+          dedupeKey: "gateway-recovery-experience",
+        }),
       }),
-    ]);
+    );
+
+    await expect(readExperienceOutboxEntries()).resolves.toEqual([]);
   });
 
   it("rejects transient session-state style content", async () => {
@@ -177,14 +151,10 @@ describe("createExperienceWriteTool", () => {
               notebookId: "experience-notebook",
             },
             write: {
-              enabled: true,
               command: "python",
               args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
               timeoutMs: 1000,
               notebookId: "experience-notebook",
-            },
-            source: {
-              enabled: false,
             },
           },
         },
@@ -205,9 +175,7 @@ describe("createExperienceWriteTool", () => {
   it("stores a pending sync entry when NotebookLM writeback is not ready", async () => {
     const stateDir = await createTempDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
-    execFileMock.mockImplementationOnce((_command, _args, _options, callback) => {
-      callback(new Error("Authentication failed"), "", "Authentication failed");
-    });
+    notebookLmWriteMock.mockRejectedValueOnce(new Error("Authentication failed"));
 
     const tool = createExperienceWriteTool({
       config: {
@@ -230,14 +198,10 @@ describe("createExperienceWriteTool", () => {
               notebookId: "experience-notebook",
             },
             write: {
-              enabled: true,
               command: "python",
               args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
               timeoutMs: 1000,
               notebookId: "experience-notebook",
-            },
-            source: {
-              enabled: false,
             },
           },
         },
@@ -269,12 +233,12 @@ describe("createExperienceWriteTool", () => {
         recommendedAction: "crawclaw memory login",
       }),
     );
-    expect(execFileMock).toHaveBeenCalledTimes(1);
+    expect(notebookLmWriteMock).toHaveBeenCalledTimes(1);
 
-    const indexEntries = await readExperienceIndexEntries();
-    expect(indexEntries).toEqual([
+    const outboxEntries = await readExperienceOutboxEntries();
+    expect(outboxEntries).toEqual([
       expect.objectContaining({
-        id: "experience-index:missing-tool-payload-debug",
+        id: "experience-outbox:missing-tool-payload-debug",
         title: "工具缺失排查经验",
         summary: "工具没有进入模型 payload 时，先检查实际 payload 再看注册路径。",
         type: "failure_pattern",
@@ -290,7 +254,36 @@ describe("createExperienceWriteTool", () => {
     const stateDir = await createTempDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
 
-    const tool = createExperienceWriteTool();
+    const tool = createExperienceWriteTool({
+      config: {
+        memory: {
+          notebooklm: {
+            enabled: false,
+            auth: {
+              profile: "default",
+              cookieFile: "",
+              statusTtlMs: 60_000,
+              degradedCooldownMs: 120_000,
+              refreshCooldownMs: 180_000,
+            },
+            cli: {
+              enabled: true,
+              command: "python",
+              args: ["/tmp/notebooklm-cli-recall.py", "{query}", "{limit}", "{notebookId}"],
+              timeoutMs: 1000,
+              limit: 5,
+              notebookId: "experience-notebook",
+            },
+            write: {
+              command: "python",
+              args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
+              timeoutMs: 1000,
+              notebookId: "experience-notebook",
+            },
+          },
+        },
+      } satisfies CrawClawConfig,
+    });
 
     expect(tool).not.toBeNull();
     await tool!.execute("call_1", {
@@ -317,16 +310,18 @@ describe("createExperienceWriteTool", () => {
       expect.objectContaining({
         status: "ok",
         action: "archive",
-        indexStatus: "archived",
-        targetId: "experience-index:old-release-procedure",
+        outboxStatus: "archived",
+        targetId: "experience-outbox:old-release-procedure",
         remoteDeleteStatus: "skipped",
       }),
     );
+    expect(notebookLmWriteMock).not.toHaveBeenCalled();
+    expect(notebookLmDeleteMock).not.toHaveBeenCalled();
 
-    const indexEntries = await readExperienceIndexEntries();
-    expect(indexEntries).toEqual([
+    const outboxEntries = await readExperienceOutboxEntries();
+    expect(outboxEntries).toEqual([
       expect.objectContaining({
-        id: "experience-index:old-release-procedure",
+        id: "experience-outbox:old-release-procedure",
         status: "archived",
       }),
     ]);
@@ -378,22 +373,22 @@ describe("createExperienceWriteTool", () => {
       expect.objectContaining({
         status: "ok",
         action: "supersede",
-        indexStatus: "superseded",
-        targetId: "experience-index:old-gateway-recovery",
-        supersededBy: "experience-index:new-gateway-recovery",
+        outboxStatus: "superseded",
+        targetId: "experience-outbox:old-gateway-recovery",
+        supersededBy: "experience-outbox:new-gateway-recovery",
       }),
     );
 
-    const indexEntries = await readExperienceIndexEntries();
-    expect(indexEntries).toEqual(
+    const outboxEntries = await readExperienceOutboxEntries();
+    expect(outboxEntries).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "experience-index:old-gateway-recovery",
+          id: "experience-outbox:old-gateway-recovery",
           status: "superseded",
-          supersededBy: "experience-index:new-gateway-recovery",
+          supersededBy: "experience-outbox:new-gateway-recovery",
         }),
         expect.objectContaining({
-          id: "experience-index:new-gateway-recovery",
+          id: "experience-outbox:new-gateway-recovery",
           status: "active",
         }),
       ]),

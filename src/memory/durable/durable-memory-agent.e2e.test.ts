@@ -87,7 +87,7 @@ function createMemoryRuntimeConfig(stateDir: string): MemoryRuntimeConfig {
         heartbeat: { enabled: false, minIntervalMs: 60_000, maxIntervalMs: 120_000 },
       },
       cli: { enabled: false, command: "python3", args: [], timeoutMs: 30_000, limit: 5 },
-      write: { enabled: false, command: "", args: [], timeoutMs: 30_000 },
+      write: { command: "", args: [], timeoutMs: 30_000 },
     },
     skillRouting: { enabled: false, ttlMs: 60_000, shortlistLimit: 4, extraRoots: [] },
     automation: {

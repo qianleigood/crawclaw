@@ -9,6 +9,7 @@ import {
 import { runTranscriptMaintenance } from "../context/transcript-maintenance.ts";
 import type { AutoDreamRunner } from "../dreaming/auto-dream.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
+import type { ExperienceProviderRegistry } from "../experience/provider.ts";
 import type { ExperienceExtractionRunner } from "../experience/worker-manager.ts";
 import type { CompleteFn } from "../extraction/llm.ts";
 import { startNotebookLmHeartbeat } from "../notebooklm/heartbeat.ts";
@@ -41,6 +42,7 @@ export function createContextMemoryRuntime(options: {
   dreamRunner?: AutoDreamRunner;
   sessionSummaryRunner?: SessionSummaryRunner;
   contextArchive?: Pick<ContextArchiveService, "createRun" | "appendEvent">;
+  experienceProviderRegistry?: Pick<ExperienceProviderRegistry, "search">;
 }): MemoryRuntime {
   const turnIndex = new Map<string, number>();
   const {

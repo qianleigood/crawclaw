@@ -102,22 +102,10 @@ const MemoryNotebookLmCliSchema = z
 
 const MemoryNotebookLmWriteSchema = z
   .object({
-    enabled: z.boolean().optional(),
     command: z.string().optional(),
     args: z.array(z.string()).optional(),
     timeoutMs: z.number().int().nonnegative().optional(),
     notebookId: z.string().optional(),
-  })
-  .strict();
-
-const MemoryNotebookLmSourceSchema = z
-  .object({
-    enabled: z.boolean().optional(),
-    title: z.string().optional(),
-    timeoutMs: z.number().int().nonnegative().optional(),
-    maxEntries: z.number().int().positive().optional(),
-    maxChars: z.number().int().positive().optional(),
-    deletePrevious: z.boolean().optional(),
   })
   .strict();
 
@@ -127,7 +115,6 @@ const MemoryNotebookLmSchema = z
     auth: MemoryNotebookLmAuthSchema.optional(),
     cli: MemoryNotebookLmCliSchema.optional(),
     write: MemoryNotebookLmWriteSchema.optional(),
-    source: MemoryNotebookLmSourceSchema.optional(),
   })
   .strict();
 

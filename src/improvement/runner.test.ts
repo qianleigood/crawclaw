@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadWorkspaceSkillEntries } from "../agents/skills/workspace.js";
-import { upsertExperienceIndexEntryFromNote } from "../memory/experience/index-store.ts";
 import { withStateDirEnv } from "../test-helpers/state-dir-env.js";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
 import { describeWorkflow, listWorkflowVersions } from "../workflows/registry.js";
@@ -10,6 +9,7 @@ import {
   applyImprovementProposal,
   reviewImprovementProposal,
   runImprovementWorkflow,
+  type ImprovementWorkflowDeps,
 } from "./runner.js";
 import {
   loadImprovementProposal,
@@ -17,49 +17,13 @@ import {
   loadImprovementStoreIndex,
   resolveImprovementRunPath,
 } from "./store.js";
-import type { PromotionVerdict } from "./types.js";
+import type { PromotionCandidateAssessment, PromotionVerdict } from "./types.js";
 
 const tempDirs = createTrackedTempDirs();
 
 afterEach(async () => {
   await tempDirs.cleanup();
 });
-
-async function seedRepeatedExperience(): Promise<void> {
-  await upsertExperienceIndexEntryFromNote({
-    note: {
-      type: "workflow_pattern",
-      title: "workflow 排查顺序 A",
-      summary: "排查 workflow 时先查 registry，再查 operations，再看 executions。",
-      context: "workflow 执行失败。",
-      trigger: "workflow 执行异常。",
-      action: "先查 registry，再查 operations，再看 executions。",
-      result: "定位问题更快。",
-      lesson: "先看结构定义，再看运行记录。",
-      evidence: ["这次排障按这个顺序定位到了问题。"],
-      confidence: "high",
-      dedupeKey: "workflow-order-a",
-    },
-    notebookId: "local",
-  });
-
-  await upsertExperienceIndexEntryFromNote({
-    note: {
-      type: "workflow_pattern",
-      title: "workflow 排查顺序 B",
-      summary: "处理 workflow 问题时先查 registry，再查 operations，再看 executions。",
-      context: "workflow 更新后异常。",
-      trigger: "workflow 更新异常。",
-      action: "先查 registry，再查 operations，再看 executions。",
-      result: "更快定位定义与执行偏差。",
-      lesson: "定义和执行要分开看。",
-      evidence: ["另一次修复也按这条顺序成功。"],
-      confidence: "high",
-      dedupeKey: "workflow-order-b",
-    },
-    notebookId: "local",
-  });
-}
 
 function buildSkillVerdict(candidateId: string): PromotionVerdict {
   return {
@@ -74,6 +38,37 @@ function buildSkillVerdict(candidateId: string): PromotionVerdict {
     reasonsAgainst: [],
     missingEvidence: [],
     verificationPlan: ["验证 SKILL frontmatter", "验证 discoverSkillsForTask 命中"],
+  };
+}
+
+function buildCandidateAssessment(): PromotionCandidateAssessment {
+  return {
+    candidate: {
+      id: "notebooklm-candidate:workflow-order",
+      sourceRefs: [{ kind: "experience", ref: "note-workflow-order" }],
+      signalSummary: "workflow 排查反复使用 registry -> operations -> executions 的顺序。",
+      observedFrequency: 2,
+      currentReuseLevel: "experience",
+      triggerPattern: "workflow 执行异常",
+      repeatedActions: ["先查 registry，再查 operations，再看 executions。"],
+      validationEvidence: ["两次排障都按这个顺序定位问题。"],
+      firstSeenAt: 100,
+      lastSeenAt: 200,
+    },
+    evidenceKinds: ["trigger", "action", "result", "validation"],
+    baselineDecision: "ready",
+    blockers: [],
+    score: 42,
+  };
+}
+
+function buildWorkflowDeps(
+  overrides: Partial<ImprovementWorkflowDeps> = {},
+): ImprovementWorkflowDeps {
+  return {
+    buildPromotionCandidateAssessments: async () => [buildCandidateAssessment()],
+    runPromotionJudge: async ({ candidate }) => buildSkillVerdict(candidate.id),
+    ...overrides,
   };
 }
 
@@ -97,12 +92,14 @@ describe("improvement runner", () => {
   it("builds a pending review proposal from experience without mutating workspace files", async () => {
     await withStateDirEnv("crawclaw-improvement-runner-", async () => {
       const workspaceDir = await tempDirs.make("improvement-runner-pending-");
-      await seedRepeatedExperience();
 
-      const result = await runImprovementWorkflow({
-        workspaceDir,
-        judge: async ({ candidate }) => buildSkillVerdict(candidate.id),
-      });
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          judge: async ({ candidate }) => buildSkillVerdict(candidate.id),
+        },
+        buildWorkflowDeps(),
+      );
 
       expect(result.proposal).toBeTruthy();
       expect(result.proposal?.status).toBe("pending_review");
@@ -126,7 +123,6 @@ describe("improvement runner", () => {
     await withStateDirEnv("crawclaw-improvement-runner-", async () => {
       const workspaceDir = await tempDirs.make("improvement-runner-local-context-");
       const config = {} as never;
-      await seedRepeatedExperience();
 
       let observedContext:
         | Parameters<typeof runImprovementWorkflow>[0]["embeddedJudgeContext"]
@@ -136,12 +132,12 @@ describe("improvement runner", () => {
           workspaceDir,
           config,
         },
-        {
+        buildWorkflowDeps({
           runPromotionJudge: async ({ candidate, embeddedContext }) => {
             observedContext = embeddedContext;
             return buildSkillVerdict(candidate.id);
           },
-        },
+        }),
       );
 
       expect(result.proposal?.status).toBe("pending_review");
@@ -161,12 +157,14 @@ describe("improvement runner", () => {
   it("refuses to apply proposals before approval", async () => {
     await withStateDirEnv("crawclaw-improvement-runner-", async () => {
       const workspaceDir = await tempDirs.make("improvement-runner-unapproved-");
-      await seedRepeatedExperience();
 
-      const result = await runImprovementWorkflow({
-        workspaceDir,
-        judge: async ({ candidate }) => buildSkillVerdict(candidate.id),
-      });
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          judge: async ({ candidate }) => buildSkillVerdict(candidate.id),
+        },
+        buildWorkflowDeps(),
+      );
 
       await expect(
         applyImprovementProposal({
@@ -180,12 +178,14 @@ describe("improvement runner", () => {
   it("applies approved skill proposals into workspace .agents/skills", async () => {
     await withStateDirEnv("crawclaw-improvement-runner-", async () => {
       const workspaceDir = await tempDirs.make("improvement-runner-skill-");
-      await seedRepeatedExperience();
 
-      const result = await runImprovementWorkflow({
-        workspaceDir,
-        judge: async ({ candidate }) => buildSkillVerdict(candidate.id),
-      });
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          judge: async ({ candidate }) => buildSkillVerdict(candidate.id),
+        },
+        buildWorkflowDeps(),
+      );
       await reviewImprovementProposal({
         workspaceDir,
         proposalId: result.proposal!.id,
@@ -214,12 +214,14 @@ describe("improvement runner", () => {
   it("applies approved workflow proposals through the registry and saves versions", async () => {
     await withStateDirEnv("crawclaw-improvement-runner-", async () => {
       const workspaceDir = await tempDirs.make("improvement-runner-workflow-");
-      await seedRepeatedExperience();
 
-      const result = await runImprovementWorkflow({
-        workspaceDir,
-        judge: async ({ candidate }) => buildWorkflowVerdict(candidate.id),
-      });
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          judge: async ({ candidate }) => buildWorkflowVerdict(candidate.id),
+        },
+        buildWorkflowDeps(),
+      );
       await reviewImprovementProposal({
         workspaceDir,
         proposalId: result.proposal!.id,
@@ -258,14 +260,16 @@ describe("improvement runner", () => {
     const workspaceDir = await tempDirs.make("improvement-runner-failed-");
 
     await withStateDirEnv("crawclaw-improvement-runner-", async () => {
-      await seedRepeatedExperience();
-      const result = await runImprovementWorkflow({
-        workspaceDir,
-        judge: async ({ candidate }) => ({
-          ...buildSkillVerdict(candidate.id),
-          reusableMethod: "生成一个格式错误的 skill。",
-        }),
-      });
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          judge: async ({ candidate }) => ({
+            ...buildSkillVerdict(candidate.id),
+            reusableMethod: "生成一个格式错误的 skill。",
+          }),
+        },
+        buildWorkflowDeps(),
+      );
 
       const proposal = await loadImprovementProposal({ workspaceDir }, result.proposal!.id);
       expect(proposal).toBeTruthy();

@@ -3,15 +3,15 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  markExperienceIndexEntrySyncFailed,
-  markExperienceIndexEntrySynced,
-  pruneExperienceIndexEntries,
-  readExperienceIndexEntries,
-  readPendingExperienceIndexEntries,
-  updateExperienceIndexEntryStatus,
-  upsertExperienceIndexEntry,
-  upsertExperienceIndexEntryFromNote,
-} from "./index-store.js";
+  markExperienceOutboxEntrySyncFailed,
+  markExperienceOutboxEntrySynced,
+  pruneExperienceOutboxEntries,
+  readExperienceOutboxEntries,
+  readPendingExperienceOutboxEntries,
+  updateExperienceOutboxEntryStatus,
+  upsertExperienceOutboxEntry,
+  upsertExperienceOutboxEntryFromNote,
+} from "./outbox-store.js";
 
 const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
 const tempDirs: string[] = [];
@@ -26,16 +26,16 @@ afterEach(async () => {
 });
 
 async function useTempStateDir(): Promise<string> {
-  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-experience-index-"));
+  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-experience-outbox-"));
   tempDirs.push(stateDir);
   process.env.CRAWCLAW_STATE_DIR = stateDir;
   return stateDir;
 }
 
-describe("experience local index", () => {
+describe("experience local outbox", () => {
   it("tracks NotebookLM sync state separately from lifecycle state", async () => {
-    await useTempStateDir();
-    const entry = await upsertExperienceIndexEntryFromNote({
+    const stateDir = await useTempStateDir();
+    const entry = await upsertExperienceOutboxEntryFromNote({
       note: {
         type: "procedure",
         title: "待同步经验",
@@ -52,24 +52,30 @@ describe("experience local index", () => {
     });
 
     expect(entry).toMatchObject({
-      id: "experience-index:pending-sync-experience",
+      id: "experience-outbox:pending-sync-experience",
       status: "active",
       syncStatus: "pending_sync",
       syncAttempts: 0,
       lastSyncAttemptAt: null,
       lastSyncError: "auth_expired",
     });
+    await expect(fs.access(path.join(stateDir, "experience", "outbox.json"))).resolves.toBe(
+      undefined,
+    );
+    await expect(fs.access(path.join(stateDir, "experience", "index.json"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
 
-    expect((await readPendingExperienceIndexEntries(10)).map((item) => item.id)).toEqual([
-      "experience-index:pending-sync-experience",
+    expect((await readPendingExperienceOutboxEntries(10)).map((item) => item.id)).toEqual([
+      "experience-outbox:pending-sync-experience",
     ]);
 
-    await markExperienceIndexEntrySyncFailed({
+    await markExperienceOutboxEntrySyncFailed({
       id: entry.id,
       error: "notebook unreachable",
       attemptedAt: 2_000,
     });
-    expect(await readPendingExperienceIndexEntries(10)).toEqual([
+    expect(await readPendingExperienceOutboxEntries(10)).toEqual([
       expect.objectContaining({
         id: entry.id,
         syncStatus: "failed",
@@ -79,15 +85,15 @@ describe("experience local index", () => {
       }),
     ]);
 
-    await markExperienceIndexEntrySynced({
+    await markExperienceOutboxEntrySynced({
       id: entry.id,
       noteId: "note-synced",
       notebookId: "experience-notebook",
       attemptedAt: 3_000,
     });
 
-    expect(await readPendingExperienceIndexEntries(10)).toEqual([]);
-    expect(await readExperienceIndexEntries(10)).toEqual([
+    expect(await readPendingExperienceOutboxEntries(10)).toEqual([]);
+    expect(await readExperienceOutboxEntries(10)).toEqual([
       expect.objectContaining({
         id: entry.id,
         syncStatus: "synced",
@@ -100,9 +106,9 @@ describe("experience local index", () => {
     ]);
   });
 
-  it("maps failure and workflow experience into index layers", async () => {
+  it("maps failure and workflow experience into outbox layers", async () => {
     await useTempStateDir();
-    await upsertExperienceIndexEntry({
+    await upsertExperienceOutboxEntry({
       note: {
         type: "failure_pattern",
         title: "工具缺失失败经验",
@@ -124,7 +130,7 @@ describe("experience local index", () => {
       },
       updatedAt: 1_000,
     });
-    await upsertExperienceIndexEntry({
+    await upsertExperienceOutboxEntry({
       note: {
         type: "workflow_pattern",
         title: "发布排查协作经验",
@@ -145,28 +151,28 @@ describe("experience local index", () => {
       updatedAt: 2_000,
     });
 
-    const entries = await readExperienceIndexEntries(10);
+    const entries = await readExperienceOutboxEntries(10);
     const failureEntry = entries.find(
-      (entry) => entry.id === "experience-index:missing-tool-payload",
+      (entry) => entry.id === "experience-outbox:missing-tool-payload",
     );
     const workflowEntry = entries.find(
-      (entry) => entry.id === "experience-index:release-debug-workflow",
+      (entry) => entry.id === "experience-outbox:release-debug-workflow",
     );
     expect(failureEntry).toMatchObject({
-      id: "experience-index:missing-tool-payload",
+      id: "experience-outbox:missing-tool-payload",
       layer: "runtime_signals",
       memoryKind: "runtime_pattern",
     });
     expect(workflowEntry).toMatchObject({
-      id: "experience-index:release-debug-workflow",
+      id: "experience-outbox:release-debug-workflow",
       layer: "sop",
       memoryKind: "procedure",
     });
   });
 
-  it("filters archived and superseded experience out of recallable index reads", async () => {
+  it("filters archived and superseded experience out of recallable outbox reads", async () => {
     await useTempStateDir();
-    await upsertExperienceIndexEntry({
+    await upsertExperienceOutboxEntry({
       note: {
         type: "procedure",
         title: "当前网关恢复流程",
@@ -185,7 +191,7 @@ describe("experience local index", () => {
       },
       updatedAt: 3_000,
     });
-    await upsertExperienceIndexEntry({
+    await upsertExperienceOutboxEntry({
       note: {
         type: "procedure",
         title: "旧网关恢复流程",
@@ -204,7 +210,7 @@ describe("experience local index", () => {
       },
       updatedAt: 2_000,
     });
-    await upsertExperienceIndexEntry({
+    await upsertExperienceOutboxEntry({
       note: {
         type: "procedure",
         title: "废弃网关恢复流程",
@@ -224,41 +230,41 @@ describe("experience local index", () => {
       updatedAt: 1_000,
     });
 
-    await updateExperienceIndexEntryStatus({
-      id: "experience-index:gateway-recovery-old",
+    await updateExperienceOutboxEntryStatus({
+      id: "experience-outbox:gateway-recovery-old",
       status: "superseded",
-      supersededBy: "experience-index:gateway-recovery-current",
+      supersededBy: "experience-outbox:gateway-recovery-current",
       updatedAt: 4_000,
     });
-    await updateExperienceIndexEntryStatus({
-      id: "experience-index:gateway-recovery-archived",
+    await updateExperienceOutboxEntryStatus({
+      id: "experience-outbox:gateway-recovery-archived",
       status: "archived",
       updatedAt: 5_000,
     });
 
-    const recallableEntries = await readExperienceIndexEntries(10, { recallableOnly: true });
+    const recallableEntries = await readExperienceOutboxEntries(10, { recallableOnly: true });
     expect(recallableEntries.map((item) => item.id)).toEqual([
-      "experience-index:gateway-recovery-current",
+      "experience-outbox:gateway-recovery-current",
     ]);
 
-    const archivedEntries = await readExperienceIndexEntries(10, { status: "archived" });
+    const archivedEntries = await readExperienceOutboxEntries(10, { status: "archived" });
     expect(archivedEntries).toEqual([
       expect.objectContaining({
-        id: "experience-index:gateway-recovery-archived",
+        id: "experience-outbox:gateway-recovery-archived",
         status: "archived",
         archivedAt: 5_000,
       }),
     ]);
   });
 
-  it("prunes experience index entries through stale and archived lifecycle states", async () => {
+  it("prunes experience outbox entries through stale and archived lifecycle states", async () => {
     await useTempStateDir();
     for (const [dedupeKey, title, updatedAt] of [
       ["gateway-current", "当前网关经验", 1_500],
       ["gateway-old-active", "旧 active 网关经验", 500],
       ["gateway-old-stale", "旧 stale 网关经验", 100],
     ] as const) {
-      await upsertExperienceIndexEntry({
+      await upsertExperienceOutboxEntry({
         note: {
           type: "procedure",
           title,
@@ -278,44 +284,44 @@ describe("experience local index", () => {
         updatedAt,
       });
     }
-    await updateExperienceIndexEntryStatus({
-      id: "experience-index:gateway-old-stale",
+    await updateExperienceOutboxEntryStatus({
+      id: "experience-outbox:gateway-old-stale",
       status: "stale",
       updatedAt: 100,
     });
 
-    const result = await pruneExperienceIndexEntries({
+    const result = await pruneExperienceOutboxEntries({
       now: 2_000,
       staleAfterMs: 1_000,
       archiveAfterMs: 1_500,
     });
 
     expect(result).toMatchObject({
-      staleIds: ["experience-index:gateway-old-active"],
-      archivedIds: ["experience-index:gateway-old-stale"],
-      retainedIds: ["experience-index:gateway-current"],
+      staleIds: ["experience-outbox:gateway-old-active"],
+      archivedIds: ["experience-outbox:gateway-old-stale"],
+      retainedIds: ["experience-outbox:gateway-current"],
     });
     expect(
-      (await readExperienceIndexEntries(10, { status: "stale" })).map((entry) => entry.id),
-    ).toEqual(["experience-index:gateway-old-active"]);
+      (await readExperienceOutboxEntries(10, { status: "stale" })).map((entry) => entry.id),
+    ).toEqual(["experience-outbox:gateway-old-active"]);
     expect(
-      (await readExperienceIndexEntries(10, { status: "archived" })).map((entry) => entry.id),
-    ).toEqual(["experience-index:gateway-old-stale"]);
+      (await readExperienceOutboxEntries(10, { status: "archived" })).map((entry) => entry.id),
+    ).toEqual(["experience-outbox:gateway-old-stale"]);
   });
 
-  it("serializes concurrent experience index lifecycle mutations", async () => {
+  it("serializes concurrent experience outbox lifecycle mutations", async () => {
     await useTempStateDir();
     for (const [dedupeKey, title] of [
       ["concurrent-archive", "并发归档经验"],
       ["concurrent-supersede", "并发替换经验"],
     ] as const) {
-      await upsertExperienceIndexEntry({
+      await upsertExperienceOutboxEntry({
         note: {
           type: "procedure",
           title,
           summary: `${title} 的状态写入流程。`,
           context: "多个 lifecycle 操作同时触发。",
-          steps: ["串行化读取和写回 index 文件"],
+          steps: ["串行化读取和写回 outbox 文件"],
           dedupeKey,
         },
         writeResult: {
@@ -331,25 +337,25 @@ describe("experience local index", () => {
     }
 
     await Promise.all([
-      updateExperienceIndexEntryStatus({
-        id: "experience-index:concurrent-archive",
+      updateExperienceOutboxEntryStatus({
+        id: "experience-outbox:concurrent-archive",
         status: "archived",
         updatedAt: 2_000,
       }),
-      pruneExperienceIndexEntries({
+      pruneExperienceOutboxEntries({
         now: 2_000,
         staleAfterMs: 1_000,
         archiveAfterMs: 1_500,
       }),
-      updateExperienceIndexEntryStatus({
-        id: "experience-index:concurrent-supersede",
+      updateExperienceOutboxEntryStatus({
+        id: "experience-outbox:concurrent-supersede",
         status: "superseded",
-        supersededBy: "experience-index:concurrent-archive",
+        supersededBy: "experience-outbox:concurrent-archive",
         updatedAt: 3_000,
       }),
     ]);
 
-    const entries = await readExperienceIndexEntries(10);
+    const entries = await readExperienceOutboxEntries(10);
     expect(
       entries.map((entry) => ({
         id: entry.id,
@@ -358,12 +364,12 @@ describe("experience local index", () => {
       })),
     ).toEqual([
       {
-        id: "experience-index:concurrent-supersede",
+        id: "experience-outbox:concurrent-supersede",
         status: "superseded",
-        supersededBy: "experience-index:concurrent-archive",
+        supersededBy: "experience-outbox:concurrent-archive",
       },
       {
-        id: "experience-index:concurrent-archive",
+        id: "experience-outbox:concurrent-archive",
         status: "archived",
         supersededBy: null,
       },

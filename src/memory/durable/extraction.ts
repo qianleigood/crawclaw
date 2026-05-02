@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import { stripMemoryInternalRuntimeContext } from "../internal-runtime-context.js";
 import { MEMORY_FILE_MUTATING_TOOL_ALLOWLIST } from "../special-agent-toollists.js";
 
 const MEMORY_FILE_MUTATING_TOOL_NAMES = new Set<string>(MEMORY_FILE_MUTATING_TOOL_ALLOWLIST);
@@ -28,10 +29,10 @@ function extractMessageText(message: AgentMessage): string {
   const record = message as unknown as Record<string, unknown>;
   const directContent = extractTextBlocks(record.content).join("\n");
   if (directContent) {
-    return directContent;
+    return stripMemoryInternalRuntimeContext(directContent);
   }
   const toolOutput = typeof record.toolOutput === "string" ? record.toolOutput.trim() : "";
-  return toolOutput;
+  return stripMemoryInternalRuntimeContext(toolOutput);
 }
 
 export function hasDurableMemoryWriteInMessages(messages: AgentMessage[]): boolean {

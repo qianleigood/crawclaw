@@ -313,8 +313,21 @@ vi.mock("../../pi-bundle-lsp-runtime.js", () => ({
 }));
 
 vi.mock("../../model-selection.js", () => ({
+  modelKey: (provider: string, model: string) => `${provider}/${model}`,
   normalizeProviderId: (providerId?: string) => providerId?.trim().toLowerCase() ?? "",
-  resolveDefaultModelForAgent: () => ({ provider: "openai", model: "gpt-test" }),
+  resolveDefaultModelForAgent: (params?: {
+    cfg?: { agents?: { defaults?: { model?: { primary?: string } } } };
+  }) => {
+    const primary = params?.cfg?.agents?.defaults?.model?.primary?.trim();
+    const separator = primary?.indexOf("/") ?? -1;
+    if (primary && separator > 0 && separator < primary.length - 1) {
+      return {
+        provider: primary.slice(0, separator),
+        model: primary.slice(separator + 1),
+      };
+    }
+    return { provider: "openai", model: "gpt-test" };
+  },
 }));
 
 vi.mock("../../anthropic-vertex-stream.js", () => ({

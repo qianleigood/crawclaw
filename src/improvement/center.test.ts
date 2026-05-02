@@ -13,9 +13,17 @@ import {
   summarizeImprovementMetrics,
 } from "./center.js";
 import { applyImprovementPolicy } from "./policy.js";
-import { reviewImprovementProposal, runImprovementWorkflow } from "./runner.js";
+import {
+  reviewImprovementProposal,
+  runImprovementWorkflow,
+  type ImprovementWorkflowDeps,
+} from "./runner.js";
 import { saveImprovementProposal } from "./store.js";
-import type { ImprovementProposal, PromotionVerdict } from "./types.js";
+import type {
+  ImprovementProposal,
+  PromotionCandidateAssessment,
+  PromotionVerdict,
+} from "./types.js";
 
 const tempDirs = createTrackedTempDirs();
 
@@ -112,27 +120,32 @@ function buildProposal(params: {
   };
 }
 
-async function seedRepeatedExperience(): Promise<void> {
-  const { upsertExperienceIndexEntryFromNote } =
-    await import("../memory/experience/index-store.ts");
-  for (const suffix of ["a", "b"]) {
-    await upsertExperienceIndexEntryFromNote({
-      note: {
-        type: "workflow_pattern",
-        title: `workflow diagnosis ${suffix}`,
-        summary: "Check registry, operations, and executions in order.",
-        context: "Workflow failed.",
-        trigger: "Workflow issue repeats.",
-        action: "Check registry, operations, and executions in order.",
-        result: "Issue was found faster.",
-        lesson: "Definition and execution evidence should be separated.",
-        evidence: [`validated ${suffix}`],
-        confidence: "high",
-        dedupeKey: `improvement-center-${suffix}`,
-      },
-      notebookId: "local",
-    });
-  }
+function buildCandidateAssessment(): PromotionCandidateAssessment {
+  return {
+    candidate: {
+      id: "notebooklm-candidate:workflow-order",
+      sourceRefs: [{ kind: "experience", ref: "note-workflow-order" }],
+      signalSummary: "Check registry, operations, and executions in order.",
+      observedFrequency: 2,
+      currentReuseLevel: "experience",
+      triggerPattern: "Workflow issue repeats.",
+      repeatedActions: ["Check registry, operations, and executions in order."],
+      validationEvidence: ["Validated twice."],
+      firstSeenAt: 100,
+      lastSeenAt: 200,
+    },
+    evidenceKinds: ["trigger", "action", "result", "validation"],
+    baselineDecision: "ready",
+    blockers: [],
+    score: 42,
+  };
+}
+
+function buildWorkflowDeps(): ImprovementWorkflowDeps {
+  return {
+    buildPromotionCandidateAssessments: async () => [buildCandidateAssessment()],
+    runPromotionJudge: async ({ candidate }) => buildVerdict(candidate.id),
+  };
 }
 
 describe("Improvement Center", () => {
@@ -181,11 +194,13 @@ describe("Improvement Center", () => {
   it("applies and rolls back a generated workspace skill", async () => {
     await withStateDirEnv("crawclaw-improvement-center-", async () => {
       const workspaceDir = await tempDirs.make("improvement-center-skill-");
-      await seedRepeatedExperience();
-      const result = await runImprovementWorkflow({
-        workspaceDir,
-        judge: async ({ candidate }) => buildVerdict(candidate.id),
-      });
+      const result = await runImprovementWorkflow(
+        {
+          workspaceDir,
+          judge: async ({ candidate }) => buildVerdict(candidate.id),
+        },
+        buildWorkflowDeps(),
+      );
       await reviewImprovementProposal({
         workspaceDir,
         proposalId: result.proposal!.id,

@@ -9,6 +9,7 @@ import { copyPluginToolMeta } from "../plugins/tools.js";
 import { PluginApprovalResolutions, type PluginApprovalResolution } from "../plugins/types.js";
 import { createLazyRuntimeSurface } from "../shared/lazy-runtime.js";
 import { isPlainObject } from "../utils.js";
+import { splitShellArgs } from "../utils/shell-argv.js";
 import { emitAgentActionEvent } from "./action-feed/emit.js";
 import { copyChannelAgentToolMeta } from "./channel-tools.js";
 import { resolveSharedContextArchiveService } from "./context-archive/runtime.js";
@@ -225,10 +226,120 @@ function isReadOnlyTailInvocation(argv: string[]): boolean {
   return !argv.slice(1).some((token) => token === "-f" || token === "--follow");
 }
 
+function stripNoopStderrRedirects(command: string): string {
+  let result = "";
+  let inSingle = false;
+  let inDouble = false;
+  let escaped = false;
+  for (let i = 0; i < command.length; i += 1) {
+    const ch = command[i];
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (!inSingle && ch === "\\") {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+    if (!inDouble && ch === "'") {
+      inSingle = !inSingle;
+      result += ch;
+      continue;
+    }
+    if (!inSingle && ch === '"') {
+      inDouble = !inDouble;
+      result += ch;
+      continue;
+    }
+    if (!inSingle && !inDouble && ch === "2" && command[i + 1] === ">") {
+      let cursor = i + 2;
+      while (command[cursor] === " " || command[cursor] === "\t") {
+        cursor += 1;
+      }
+      if (
+        command.startsWith("/dev/null", cursor) &&
+        (command[cursor + "/dev/null".length] == null ||
+          /\s|\|/u.test(command[cursor + "/dev/null".length] ?? ""))
+      ) {
+        i = cursor + "/dev/null".length - 1;
+        continue;
+      }
+    }
+    result += ch;
+  }
+  return result.trim();
+}
+
+function splitLeadingAndChain(command: string): { left: string; right: string } | null {
+  let inSingle = false;
+  let inDouble = false;
+  let escaped = false;
+  for (let i = 0; i < command.length - 1; i += 1) {
+    const ch = command[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (!inSingle && ch === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (!inDouble && ch === "'") {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (!inSingle && ch === '"') {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (!inSingle && !inDouble && ch === "&" && command[i + 1] === "&") {
+      const left = command.slice(0, i).trim();
+      const right = command.slice(i + 2).trim();
+      return left && right ? { left, right } : null;
+    }
+  }
+  return null;
+}
+
+function stripReadOnlyLeadingCd(
+  command: string,
+  guard?: SpecialToolGuardContext,
+): { ok: true; command: string } | { ok: false; reason: string } {
+  const chain = splitLeadingAndChain(command);
+  if (!chain) {
+    return { ok: true, command };
+  }
+  const argv = splitShellArgs(chain.left);
+  if (!argv || argv.length !== 2 || argv[0] !== "cd") {
+    return { ok: true, command };
+  }
+  const root = guard?.memoryDir ? path.resolve(guard.memoryDir) : undefined;
+  if (!root) {
+    return { ok: false, reason: "memory maintenance cd requires a durable memory directory" };
+  }
+  const resolved = path.resolve(root, argv[1] ?? "");
+  if (!isPathWithinOrEqual(root, resolved)) {
+    return {
+      ok: false,
+      reason: "memory maintenance cd is restricted to the durable memory directory",
+    };
+  }
+  return { ok: true, command: chain.right };
+}
+
 function isReadOnlyExecCommand(
   command: string,
+  guard?: SpecialToolGuardContext,
 ): { allowed: true } | { allowed: false; reason: string } {
-  const analysis = analyzeShellCommand({ command });
+  const cdDecision = stripReadOnlyLeadingCd(command, guard);
+  if (!cdDecision.ok) {
+    return { allowed: false, reason: cdDecision.reason };
+  }
+  const analysis = analyzeShellCommand({
+    command: stripNoopStderrRedirects(cdDecision.command),
+  });
   if (!analysis.ok) {
     return { allowed: false, reason: analysis.reason ?? "unsupported shell syntax" };
   }
@@ -339,7 +450,7 @@ function evaluateMemoryMaintenanceToolGuard(params: {
     if (typeof command !== "string" || !command.trim()) {
       return { blocked: true, reason: "memory maintenance exec requires a command" };
     }
-    const readOnlyDecision = isReadOnlyExecCommand(command.trim());
+    const readOnlyDecision = isReadOnlyExecCommand(command.trim(), params.guard);
     if (!readOnlyDecision.allowed) {
       return {
         blocked: true,

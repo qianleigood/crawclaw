@@ -5,7 +5,6 @@ import type {
   NotebookLmCliConfig,
   NotebookLmConfig,
   NotebookLmConfigInput,
-  NotebookLmSourceConfig,
   NotebookLmWriteConfig,
 } from "../types/config.ts";
 
@@ -68,20 +67,10 @@ export const DEFAULT_NOTEBOOKLM_CLI: NotebookLmCliConfig = {
 };
 
 export const DEFAULT_NOTEBOOKLM_WRITE: NotebookLmWriteConfig = {
-  enabled: true,
   command: "",
   args: ["{payloadFile}"],
   timeoutMs: 10_000,
   notebookId: "",
-};
-
-export const DEFAULT_NOTEBOOKLM_SOURCE: NotebookLmSourceConfig = {
-  enabled: true,
-  title: "CrawClaw Memory Index",
-  timeoutMs: 120_000,
-  maxEntries: 120,
-  maxChars: 80_000,
-  deletePrevious: true,
 };
 
 export const DEFAULT_NOTEBOOKLM_CONFIG: NotebookLmConfig = {
@@ -96,9 +85,6 @@ export const DEFAULT_NOTEBOOKLM_CONFIG: NotebookLmConfig = {
   write: {
     ...DEFAULT_NOTEBOOKLM_WRITE,
     args: [...DEFAULT_NOTEBOOKLM_WRITE.args],
-  },
-  source: {
-    ...DEFAULT_NOTEBOOKLM_SOURCE,
   },
 };
 
@@ -165,10 +151,6 @@ export function normalizeNotebookLmConfig(raw?: NotebookLmConfigInput | null): N
           : DEFAULT_NOTEBOOKLM_CLI.queryInstruction,
     },
     write: {
-      enabled:
-        typeof raw?.write?.enabled === "boolean"
-          ? raw.write.enabled
-          : DEFAULT_NOTEBOOKLM_WRITE.enabled,
       command:
         typeof raw?.write?.command === "string"
           ? raw.write.command
@@ -186,32 +168,6 @@ export function normalizeNotebookLmConfig(raw?: NotebookLmConfigInput | null): N
         typeof raw?.write?.notebookId === "string"
           ? raw.write.notebookId
           : DEFAULT_NOTEBOOKLM_WRITE.notebookId,
-    },
-    source: {
-      enabled:
-        typeof raw?.source?.enabled === "boolean"
-          ? raw.source.enabled
-          : DEFAULT_NOTEBOOKLM_SOURCE.enabled,
-      title:
-        typeof raw?.source?.title === "string" && raw.source.title.trim()
-          ? raw.source.title.trim()
-          : DEFAULT_NOTEBOOKLM_SOURCE.title,
-      timeoutMs:
-        typeof raw?.source?.timeoutMs === "number"
-          ? raw.source.timeoutMs
-          : DEFAULT_NOTEBOOKLM_SOURCE.timeoutMs,
-      maxEntries:
-        typeof raw?.source?.maxEntries === "number"
-          ? raw.source.maxEntries
-          : DEFAULT_NOTEBOOKLM_SOURCE.maxEntries,
-      maxChars:
-        typeof raw?.source?.maxChars === "number"
-          ? raw.source.maxChars
-          : DEFAULT_NOTEBOOKLM_SOURCE.maxChars,
-      deletePrevious:
-        typeof raw?.source?.deletePrevious === "boolean"
-          ? raw.source.deletePrevious
-          : DEFAULT_NOTEBOOKLM_SOURCE.deletePrevious,
     },
   };
 }

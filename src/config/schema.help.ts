@@ -799,7 +799,7 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.defaults.models": "Configured model catalog (keys are full provider/model IDs).",
   memory: "Memory backend configuration (global).",
   "memory.notebooklm":
-    "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local experience index is only a sync ledger and pending write queue.",
+    "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local store is only a pending outbox.",
   "memory.notebooklm.auth":
     "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by experience recall and experience-note writes.",
   "memory.notebooklm.auth.profile":
@@ -848,8 +848,6 @@ export const FIELD_HELP: Record<string, string> = {
     "Optional prompt instruction prepended to every NotebookLM experience query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
   "memory.notebooklm.write":
     "Configures NotebookLM note writing for the experience layer. By default CrawClaw uses the managed `nlm note create` runtime; set a command only when you need a custom write helper.",
-  "memory.notebooklm.write.enabled":
-    "Enables NotebookLM note writing for the experience layer. When NotebookLM is enabled this defaults to the managed `nlm` write path unless explicitly disabled.",
   "memory.notebooklm.write.command":
     "Optional executable override for NotebookLM note writing. Leave empty to use the managed `nlm note create` runtime.",
   "memory.notebooklm.write.args":
@@ -858,22 +856,8 @@ export const FIELD_HELP: Record<string, string> = {
     "Timeout in milliseconds for each NotebookLM note write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
   "memory.notebooklm.write.notebookId":
     "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
-  "memory.notebooklm.source":
-    "Configures the managed NotebookLM source that mirrors the bounded local experience index into one CrawClaw Memory Index source. This gives NotebookLM native source query material without turning each experience note into its own source.",
-  "memory.notebooklm.source.enabled":
-    "Enables managed NotebookLM source synchronization after experience writes. Disable this when you only want local index recall and NotebookLM note writeback.",
-  "memory.notebooklm.source.title":
-    "Title used for the managed NotebookLM source. Keep it stable so CrawClaw can recognize and replace the previous index source.",
-  "memory.notebooklm.source.timeoutMs":
-    "Timeout in milliseconds for source list/add/delete operations. Source uploads can be slower than note writes because NotebookLM processes the source.",
-  "memory.notebooklm.source.maxEntries":
-    "Maximum number of active or stale experience index entries rendered into the managed NotebookLM source.",
-  "memory.notebooklm.source.maxChars":
-    "Maximum rendered character count for the managed NotebookLM source.",
-  "memory.notebooklm.source.deletePrevious":
-    "Deletes the previous managed source after a replacement source is added successfully. Keep enabled to avoid duplicate CrawClaw Memory Index sources.",
   "memory.experience":
-    "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local sync-ledger entries, and syncs them through the NotebookLM write path when available.",
+    "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local pending-outbox entries, and syncs them through the NotebookLM write path when available.",
   "memory.experience.enabled":
     "Enables the background Experience Agent. Keep enabled to let CrawClaw automatically retain validated procedures, decisions, failure patterns, workflow patterns, and references after tasks complete.",
   "memory.experience.recentMessageLimit":

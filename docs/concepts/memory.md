@@ -14,8 +14,9 @@ CrawClaw remembers things through a layered memory system:
 - **Session memory** for short-lived task continuity inside one session
 - **Durable memory** for long-term user and collaboration facts, scoped by
   `agentId + channel + userId`
-- **Experience memory** backed by a local index, an optional NotebookLM provider,
-  a background Experience Agent, and prompt-time recall
+- **Experience memory** backed by NotebookLM prompt-time recall, NotebookLM
+  writeback, a local pending outbox for failed writes, and a background
+  Experience Agent
 - **Context Archive** for replay/export/debug records of what a run actually saw
   and did
 
@@ -104,6 +105,16 @@ CrawClaw also has a second durable-memory maintenance layer:
 - `session_summary` is the short-term continuity agent for one session
 - both `durable_memory` and `dream` now subscribe to the same
   run-loop `stop` phase instead of being scheduled directly from `afterTurn`
+- Dream runs as an independent embedded background maintenance job, not as a
+  spawned child session and not as a parent-run fork. The stop event only
+  triggers scheduling and scope resolution; Dream does not receive the parent
+  prompt envelope, parent model-visible messages, parent run id, child-session
+  state, subagent announcement, or parent provider/model selection.
+- Dream uses its own system prompt and isolated embedded special-agent context
+  with the dream tool policy, so it does not inherit the default main-agent
+  prompt, surfaced skills, bootstrap context files, or workspace reminders.
+  The embedded runner skips those default prompt extras for Dream rather than
+  falling back to the normal main-agent embedded prompt branch.
 - auto-dream uses a per-scope `.consolidate-lock` file in the durable memory
   scope directory for both lock ownership and its consolidation watermark; the
   lock file `mtime` advances at run start and rolls back if the run fails
@@ -112,6 +123,9 @@ CrawClaw also has a second durable-memory maintenance layer:
   `read` or read-only `exec` searches over those refs, while the host guard
   blocks mutating Bash and blocks raw `write` / `edit` outside the durable
   memory directory
+- Dream does not consume `session_summary` files or compact-summary
+  `summaryOverrideText`; those stay scoped to single-session continuity and
+  compaction rather than cross-session durable consolidation
 - auto-dream is bounded by its run timeout rather than a fixed turn-count cap, so
   large cross-session consolidations are not cut off only because they needed
   more agent turns
@@ -228,8 +242,9 @@ can write durable memory or an experience note depending on what should be retai
 Experience memory is a separate memory layer for validated lessons from prior
 work. It stores reusable procedures, decisions, runtime patterns, failure
 patterns, workflow patterns, and references. NotebookLM is the prompt-facing
-experience recall provider. The local experience index is kept as a reliable
-write-ahead outbox and sync ledger, not as a fallback prompt recall source.
+experience recall provider and the primary write target. The local experience
+store is only used as a failure outbox when NotebookLM writeback is unavailable;
+it is not a fallback prompt recall source or the primary experience store.
 CrawClaw can:
 
 - query NotebookLM for relevant reusable experience
@@ -244,11 +259,10 @@ Experience extraction and recall are deliberately split:
 
 - lifecycle `stop` captures the just-finished top-level turn
 - the Experience Agent reviews recent model-visible messages, session summary
-  context, and the existing experience index
+  context, and the local pending outbox for unsynced NotebookLM writes
 - the agent can only use `write_experience_note`; it cannot run shell commands,
   browse, inspect source files, write durable memory, or spawn agents
-- successful writes update the local experience sync ledger and sync to
-  NotebookLM when the provider is ready
+- successful writes go directly to NotebookLM when the provider is ready
 - if NotebookLM is not ready, writes stay in the local pending outbox until
   login, heartbeat, startup, or `crawclaw memory sync` flushes them
 - the next prompt assembly synchronously recalls the most relevant experience
@@ -262,8 +276,8 @@ that classification:
   provider queries
 - SOP and runbook prompts can borrow a small amount of provider search budget so
   weak metadata does not starve operational experience
-- successful `write_experience_note` calls update the local sync ledger first,
-  but prompt recall does not read local pending notes
+- successful `write_experience_note` calls do not keep a full local experience
+  copy; only failed NotebookLM writes are kept in the local pending outbox
 - if NotebookLM returns no hits or is not authenticated, experience recall is
   empty for that turn instead of falling back to local outbox entries
 - NotebookLM/Gemini owns semantic relevance and ordering for experience recall;
@@ -284,19 +298,17 @@ If there is no usable prompt for the current turn, the runtime skips experience
 provider querying entirely.
 
 `write_experience_note` is the only experience write tool in the current
-runtime. It writes a local experience index entry first and can also sync to
-NotebookLM when `memory.notebooklm.write.enabled` is not explicitly disabled.
-With the managed NotebookLM runtime, CrawClaw writes via `nlm note create`; a
-custom `memory.notebooklm.write.command` is only needed for nonstandard write
-helpers. CrawClaw can also maintain one managed NotebookLM source titled
-`CrawClaw Memory Index` from the bounded local experience index. That source
-lets NotebookLM native source query work without uploading each experience note
-as a separate source; the per-note NotebookLM writeback remains a note-level
-sync path. Experience notes should capture reusable context, trigger, action,
-result, lesson, applicability boundaries, and supporting evidence rather than
-temporary task state. The write schema only accepts the current structured
-fields; legacy aliases such as freeform body/rationale fields are not kept as
-compatibility inputs.
+runtime. When NotebookLM is enabled, it writes to NotebookLM first. With the
+managed NotebookLM runtime, CrawClaw writes via `nlm note create`; a custom
+`memory.notebooklm.write.command` is only needed for nonstandard write helpers.
+If NotebookLM writeback fails, CrawClaw stores the
+structured note in the local pending outbox and retries it later through
+heartbeat, startup, or `crawclaw memory sync`. After a pending item syncs
+successfully, the local payload is removed. Experience notes should capture
+reusable context, trigger, action, result, lesson, applicability boundaries, and
+supporting evidence rather than temporary task state. The write schema only
+accepts the current structured fields; legacy aliases such as freeform
+body/rationale fields are not kept as compatibility inputs.
 
 NotebookLM auth can be kept warm by `memory.notebooklm.auth.autoLogin`. The
 default provider runs the managed `nlm login --profile <profile>` flow on a
@@ -334,8 +346,8 @@ These layers do not share the same boundaries:
 - **Session memory** is isolated per session.
 - **Durable memory** is shared whenever runs resolve to the same
   `agentId + channel + userId` scope.
-- **Experience memory** uses the same local sync ledger and NotebookLM provider
-  configuration across runs; it is not partitioned by session id.
+- **Experience memory** uses the same NotebookLM provider configuration and
+  local pending outbox across runs; it is not partitioned by session id.
 
 All agents that use the built-in memory runtime receive the same agent memory
 routing contract. This guidance is not limited to the `main` agent.

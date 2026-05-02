@@ -103,6 +103,17 @@ contracts.
     - durable extraction and dream keep short retention plus cache-write
       suppression, while session-summary uses the parent fork context only for
       prompt/history handoff and does not reuse parent prompt-cache keys
+    - dream does not consume session-summary files or compact-summary state;
+      it consolidates durable memory from the manifest, structured signals,
+      and narrow transcript refs
+    - dream now runs as an independent embedded maintenance special agent; stop
+      lifecycle only schedules the scope, and dream receives no parent prompt
+      envelope, parent messages, parent run id, provider/model inheritance,
+      child-session state, subagent announcement, default main-agent prompt,
+      skills, bootstrap context, or workspace reminders
+    - the embedded runner has an isolated special-agent system-prompt mode for
+      dream, which omits default prompt extras instead of relying on the normal
+      embedded prompt branch
     - explicit CLI/gateway summary refresh now reconstructs a bounded manual
       parent fork context from persisted model-visible rows instead of calling
       the scheduler without fork context
@@ -249,11 +260,13 @@ Memory is aligned with the current simplified model, but follow-up work remains.
       durable-memory guidance quality level.
 - [ ] Revisit candidate extraction as a future suggestion layer only.
   - It should not become a hidden writeback path again.
-- [ ] Decide whether dreaming / dream runs should be introduced as a new
-      pipeline on top of the current runtime store.
-- [ ] If dreaming is added later:
-  - keep NotebookLM writes on the explicit tool path
-  - keep automatic consolidation separate from formal experience writes
+- [x] Keep dreaming as a separate durable-memory consolidation pipeline.
+  - Dream uses an isolated embedded special-agent run with host-provided
+    manifest, structured signals, and narrow transcript refs.
+  - It does not spawn a child session, emit a subagent completion message, or
+    inherit parent prompt/context state.
+  - NotebookLM/experience writes stay on the explicit experience path; Dream
+    only consolidates durable profile/context memory.
 
 ## Priority 2: multi-agent governance
 

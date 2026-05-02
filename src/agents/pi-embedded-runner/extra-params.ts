@@ -22,6 +22,7 @@ import {
   shouldApplyMoonshotPayloadCompat,
   shouldApplySiliconFlowThinkingOffCompat,
 } from "./moonshot-stream-wrappers.js";
+import { normalizeOpenAIPromptCacheKey } from "./openai-prompt-cache.js";
 import {
   createOpenAIAttributionHeadersWrapper,
   createCodexNativeWebSearchWrapper,
@@ -29,6 +30,7 @@ import {
   createOpenAIFastModeWrapper,
   createOpenAIReasoningCompatibilityWrapper,
   createOpenAIResponsesContextManagementWrapper,
+  createOpenAIResponsesPromptCacheCompatibilityWrapper,
   createOpenAIServiceTierWrapper,
   createOpenAITextVerbosityWrapper,
   resolveOpenAIFastMode,
@@ -120,6 +122,7 @@ type CacheRetentionStreamOptions = Partial<SimpleStreamOptions> & {
   toolChoice?: unknown;
 };
 type SupportedTransport = Exclude<CacheRetentionStreamOptions["transport"], undefined>;
+const SKIP_RESPONSES_TOOL_CHOICE = Symbol("skip responses tool choice");
 
 function normalizeOptionalText(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -135,6 +138,43 @@ function supportsPromptCachePayload(modelApi?: string): boolean {
     modelApi === "azure-openai-responses" ||
     modelApi === "openai-codex-responses"
   );
+}
+
+function normalizeResponsesToolChoice(toolChoice: unknown, modelApi?: string): unknown {
+  if (modelApi === "openai-codex-responses") {
+    return toolChoice === "auto" ? "auto" : SKIP_RESPONSES_TOOL_CHOICE;
+  }
+  if (!supportsPromptCachePayload(modelApi)) {
+    return toolChoice;
+  }
+  if (!toolChoice || typeof toolChoice !== "object" || Array.isArray(toolChoice)) {
+    return toolChoice;
+  }
+  const choice = toolChoice as Record<string, unknown>;
+  if (choice.type !== "tool" || typeof choice.name !== "string") {
+    return toolChoice;
+  }
+  const name = choice.name.trim();
+  if (!name) {
+    return toolChoice;
+  }
+  return {
+    type: "function",
+    name,
+  };
+}
+
+function normalizeExistingPromptCacheKey(payload: Record<string, unknown>): void {
+  const existing = payload.prompt_cache_key;
+  if (typeof existing !== "string") {
+    return;
+  }
+  const trimmed = existing.trim();
+  if (!trimmed) {
+    delete payload.prompt_cache_key;
+    return;
+  }
+  payload.prompt_cache_key = normalizeOpenAIPromptCacheKey(trimmed);
 }
 
 function resolveSupportedTransport(value: unknown): SupportedTransport | undefined {
@@ -283,6 +323,7 @@ function createStreamFnWithExtraParams(
       ...streamParams,
       ...options,
     };
+    const skipCacheWrite = mergedOptions.skipCacheWrite === true;
     const { skipCacheWrite: _skipCacheWrite, ...providerOptions } = mergedOptions;
     const toolChoice = Object.hasOwn(providerOptions, "toolChoice")
       ? providerOptions.toolChoice
@@ -292,18 +333,29 @@ function createStreamFnWithExtraParams(
     const shouldPatchPromptCache = supportsPromptCachePayload(model.api);
     if (
       toolChoice === undefined &&
-      (!shouldPatchPromptCache || (!promptCacheKey && !promptCacheRetention))
+      (!shouldPatchPromptCache || (!promptCacheKey && !promptCacheRetention && !skipCacheWrite))
     ) {
       return underlying(model, context, providerOptions);
     }
     return streamWithPayloadPatch(underlying, model, context, providerOptions, (payload) => {
       if (toolChoice !== undefined) {
-        payload.tool_choice = toolChoice;
+        const normalizedToolChoice = normalizeResponsesToolChoice(toolChoice, model.api);
+        if (normalizedToolChoice !== SKIP_RESPONSES_TOOL_CHOICE) {
+          payload.tool_choice = normalizedToolChoice;
+        }
+      }
+      if (shouldPatchPromptCache && skipCacheWrite) {
+        delete payload.prompt_cache_retention;
+        if (!promptCacheKey) {
+          delete payload.prompt_cache_key;
+        }
       }
       if (shouldPatchPromptCache && promptCacheKey) {
-        payload.prompt_cache_key = promptCacheKey;
+        payload.prompt_cache_key = normalizeOpenAIPromptCacheKey(promptCacheKey);
+      } else if (shouldPatchPromptCache && !skipCacheWrite) {
+        normalizeExistingPromptCacheKey(payload);
       }
-      if (shouldPatchPromptCache && promptCacheRetention) {
+      if (shouldPatchPromptCache && promptCacheRetention && !skipCacheWrite) {
         payload.prompt_cache_retention = promptCacheRetention;
       }
     });
@@ -507,6 +559,11 @@ function applyPostPluginStreamWrappers(
   ) {
     ctx.agent.streamFn = createOpenAIReasoningCompatibilityWrapper(ctx.agent.streamFn);
   }
+
+  ctx.agent.streamFn = createOpenAIResponsesPromptCacheCompatibilityWrapper(
+    ctx.agent.streamFn,
+    ctx.effectiveExtraParams,
+  );
 
   const rawParallelToolCalls = resolveAliasedParamValue(
     [ctx.resolvedExtraParams, ctx.override],

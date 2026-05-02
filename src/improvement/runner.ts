@@ -4,7 +4,11 @@ import { discoverSkillsForTask } from "../agents/skills/discovery.js";
 import { readSkillFrontmatterSafe } from "../agents/skills/local-loader.js";
 import { loadWorkspaceSkillEntries } from "../agents/skills/workspace.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { upsertExperienceIndexEntryFromNote } from "../memory/experience/index-store.ts";
+import { normalizeNotebookLmConfig } from "../memory/config/notebooklm.ts";
+import type { ExperienceNoteWriteInput } from "../memory/experience/note.ts";
+import { upsertExperienceOutboxEntryFromNote } from "../memory/experience/outbox-store.ts";
+import { writeNotebookLmExperienceNoteViaCli } from "../memory/notebooklm/notebooklm-write.ts";
+import type { NotebookLmConfigInput } from "../memory/types/config.ts";
 import { resolveN8nCallbackConfig, resolveN8nConfig } from "../workflows/n8n-client.js";
 import {
   compileWorkflowSpecToN8n,
@@ -40,10 +44,12 @@ import type {
 
 export type ImprovementWorkflowDeps = {
   runPromotionJudge: typeof runPromotionJudge;
+  buildPromotionCandidateAssessments: typeof buildPromotionCandidateAssessments;
 };
 
 const defaultImprovementWorkflowDeps: ImprovementWorkflowDeps = {
   runPromotionJudge,
+  buildPromotionCandidateAssessments,
 };
 
 function slugify(value: string): string {
@@ -394,24 +400,45 @@ function buildSkillRelativePath(params: { targetDir: string; skillName: string }
 async function writePromotionExperienceNote(params: {
   proposal: ImprovementProposal;
   verification: ImprovementVerificationResult;
+  config?: CrawClawConfig;
 }): Promise<void> {
-  await upsertExperienceIndexEntryFromNote({
-    note: {
-      type: params.proposal.patchPlan.kind === "workflow" ? "workflow_pattern" : "procedure",
-      title: `自进化晋升：${params.proposal.patchPlan.kind}`,
-      summary: `将重复经验晋升为 ${params.proposal.patchPlan.kind}，并通过了目标验证。`,
-      context: `proposal=${params.proposal.id}`,
-      trigger: "同类经验重复出现且经过审批。",
-      action: `将候选 ${params.proposal.candidate.id} 晋升为 ${params.proposal.patchPlan.kind}。`,
-      result: "提案应用成功并完成验证。",
-      lesson: "重复经验先形成提案，再审批和验证，最后再沉淀为稳定能力。",
-      appliesWhen: "需要把重复经验沉淀为 skill 或 workflow 时。",
-      evidence: [`proposal=${params.proposal.id}`, ...params.verification.checks.slice(0, 4)],
-      confidence: "high",
-      dedupeKey: `improvement-promotion:${params.proposal.id}`,
-      tags: ["improvement", params.proposal.patchPlan.kind],
-    },
+  const note: ExperienceNoteWriteInput = {
+    type: params.proposal.patchPlan.kind === "workflow" ? "workflow_pattern" : "procedure",
+    title: `自进化晋升：${params.proposal.patchPlan.kind}`,
+    summary: `将重复经验晋升为 ${params.proposal.patchPlan.kind}，并通过了目标验证。`,
+    context: `proposal=${params.proposal.id}`,
+    trigger: "同类经验重复出现且经过审批。",
+    action: `将候选 ${params.proposal.candidate.id} 晋升为 ${params.proposal.patchPlan.kind}。`,
+    result: "提案应用成功并完成验证。",
+    lesson: "重复经验先形成提案，再审批和验证，最后再沉淀为稳定能力。",
+    appliesWhen: "需要把重复经验沉淀为 skill 或 workflow 时。",
+    evidence: [`proposal=${params.proposal.id}`, ...params.verification.checks.slice(0, 4)],
+    confidence: "high",
+    dedupeKey: `improvement-promotion:${params.proposal.id}`,
+    tags: ["improvement", params.proposal.patchPlan.kind],
+  };
+  const notebooklm = normalizeNotebookLmConfig(
+    params.config?.memory?.notebooklm as NotebookLmConfigInput | undefined,
+  );
+  let syncError: string | null = null;
+  if (notebooklm.enabled) {
+    try {
+      const result = await writeNotebookLmExperienceNoteViaCli({
+        config: notebooklm,
+        note,
+      });
+      if (result?.status === "ok") {
+        return;
+      }
+    } catch (error) {
+      syncError = error instanceof Error ? error.message : String(error);
+    }
+  }
+  await upsertExperienceOutboxEntryFromNote({
+    note,
     notebookId: "local",
+    syncStatus: "pending_sync",
+    syncError,
   });
 }
 
@@ -427,7 +454,9 @@ export async function runImprovementWorkflow(
   },
   deps: ImprovementWorkflowDeps = defaultImprovementWorkflowDeps,
 ): Promise<ImprovementWorkflowResult> {
-  const assessments = await buildPromotionCandidateAssessments();
+  const assessments = await deps.buildPromotionCandidateAssessments({
+    config: params.config,
+  });
   const selected = pickCandidate(assessments);
   const baseRun = await saveImprovementRunRecord(
     { workspaceDir: params.workspaceDir },
@@ -668,6 +697,7 @@ export async function applyImprovementProposal(params: {
         await writePromotionExperienceNote({
           proposal: working,
           verification,
+          config: params.config,
         });
       }
       return working;
@@ -749,6 +779,7 @@ export async function applyImprovementProposal(params: {
         await writePromotionExperienceNote({
           proposal: working,
           verification,
+          config: params.config,
         });
       }
       return working;

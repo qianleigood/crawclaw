@@ -14,7 +14,7 @@ afterEach(async () => {
 function makeCandidate(): PromotionCandidate {
   return {
     id: "candidate-judge-1",
-    sourceRefs: [{ kind: "experience", ref: "experience-index:workflow-order" }],
+    sourceRefs: [{ kind: "experience", ref: "experience-outbox:workflow-order" }],
     signalSummary: "Workflow 排查总是先查 registry，再查 operations。",
     observedFrequency: 2,
     currentReuseLevel: "experience",

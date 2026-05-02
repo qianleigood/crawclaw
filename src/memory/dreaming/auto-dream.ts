@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { SpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import {
   resolveSessionTranscriptPath,
   resolveSessionTranscriptsDirForAgent,
@@ -12,15 +11,12 @@ import { resolveDurableMemoryScope, type DurableMemoryScope } from "../durable/s
 import { scanDurableMemoryScopeEntries } from "../durable/store.ts";
 import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
-import { renderSessionSummaryForCompaction } from "../session-summary/sections.ts";
-import { readSessionSummaryFile } from "../session-summary/store.ts";
 import type { DreamingConfig } from "../types/config.ts";
 import { newId } from "../util/ids.ts";
 import type {
   DreamRunParams,
   DreamRunResult,
   DreamSignal,
-  DreamSessionSummary,
   DreamTranscriptRef,
 } from "./agent-runner.ts";
 import {
@@ -47,8 +43,6 @@ type SubmitAutoDreamTurnParams = {
     messageChannel?: string | null;
     messageProvider?: string | null;
     senderId?: string | null;
-    parentRunId?: string | null;
-    parentForkContext?: SpecialAgentParentForkContext | null;
     observation?: ObservationContext;
   };
 };
@@ -59,8 +53,6 @@ type RunAutoDreamNowParams = {
   sessionFile?: string;
   workspaceDir?: string;
   sessionKey?: string;
-  parentRunId?: string;
-  parentForkContext?: SpecialAgentParentForkContext;
   triggerSource: string;
   bypassGate?: boolean;
   dryRun?: boolean;
@@ -75,7 +67,6 @@ type AutoDreamPreview = {
   recentTranscriptRefCount: number;
   recentSignalCount: number;
   recentSignals: DreamSignal[];
-  sessionSummaries: DreamSessionSummary[];
   transcriptRefs: DreamTranscriptRef[];
 };
 
@@ -100,8 +91,6 @@ type AutoDreamSchedulerParams = {
   logger: RuntimeLogger;
   beforeRun?: AutoDreamBeforeRun;
 };
-
-const DREAM_SESSION_SUMMARY_TOKEN_BUDGET = 1_200;
 
 async function collectRecentTranscriptSessionIds(params: {
   scope: DurableMemoryScope;
@@ -148,57 +137,6 @@ async function collectRecentTranscriptSessionIds(params: {
       ? Math.floor(params.limit)
       : null;
   return (limit == null ? sorted : sorted.slice(0, limit)).map((entry) => entry.sessionId);
-}
-
-async function collectRecentSessionSummaries(params: {
-  runtimeStore: RuntimeStore;
-  scope: DurableMemoryScope;
-  sessionIds: string[];
-}): Promise<DreamSessionSummary[]> {
-  const rows = await Promise.all(
-    params.sessionIds.map(async (sessionId) => ({
-      sessionId,
-      state: await params.runtimeStore.getSessionSummaryState(sessionId),
-      compactionState:
-        typeof params.runtimeStore.getSessionCompactionState === "function"
-          ? await params.runtimeStore.getSessionCompactionState(sessionId)
-          : null,
-      file: await readSessionSummaryFile({
-        agentId: params.scope.agentId,
-        sessionId,
-      }),
-    })),
-  );
-  return rows
-    .flatMap(({ sessionId, state, compactionState, file }) => {
-      if (file.content?.trim()) {
-        const summary: DreamSessionSummary = {
-          sessionId,
-          source: "session_summary",
-          summaryText:
-            renderSessionSummaryForCompaction(file.content, {
-              tokenBudget: DREAM_SESSION_SUMMARY_TOKEN_BUDGET,
-            }) || file.content.trim(),
-          updatedAt: state?.lastSummaryUpdatedAt ?? file.updatedAt ?? 0,
-        };
-        return [summary];
-      }
-      const compactSummary = compactionState?.summaryOverrideText?.trim();
-      if (!compactSummary) {
-        return [];
-      }
-      const summary: DreamSessionSummary = {
-        sessionId,
-        source: "compact_summary",
-        summaryText:
-          renderSessionSummaryForCompaction(compactSummary, {
-            tokenBudget: DREAM_SESSION_SUMMARY_TOKEN_BUDGET,
-          }) || compactSummary,
-        updatedAt: compactionState?.updatedAt ?? state?.lastSummaryUpdatedAt ?? file.updatedAt ?? 0,
-      };
-      return [summary];
-    })
-    .toSorted((left, right) => right.updatedAt - left.updatedAt);
 }
 
 function safeParseJsonObject(value: string | null | undefined): Record<string, unknown> | null {
@@ -302,11 +240,6 @@ async function collectDreamInputs(params: {
     params.sessionLimit === undefined
       ? params.sessionIds
       : params.sessionIds.slice(0, Math.max(1, params.sessionLimit));
-  const summaries = await collectRecentSessionSummaries({
-    runtimeStore: params.runtimeStore,
-    scope: params.scope,
-    sessionIds,
-  });
   const transcriptRefs = collectRecentTranscriptRefs({
     scope: params.scope,
     sessionIds,
@@ -321,11 +254,10 @@ async function collectDreamInputs(params: {
   return {
     scopeKey: params.scopeKey,
     recentSessionIds: sessionIds,
-    recentSessionCount: summaries.length,
+    recentSessionCount: sessionIds.length,
     recentTranscriptRefCount: transcriptRefs.length,
     recentSignalCount: recentSignals.length,
     recentSignals,
-    sessionSummaries: summaries,
     transcriptRefs,
   };
 }
@@ -388,9 +320,6 @@ export class AutoDreamScheduler {
     if (this.inFlightScopes.has(scope.scopeKey)) {
       return;
     }
-    const parentForkContext = params.runtimeContext?.parentForkContext ?? undefined;
-    const parentRunId =
-      parentForkContext?.parentRunId?.trim() || params.runtimeContext?.parentRunId?.trim();
     this.inFlightScopes.add(scope.scopeKey);
     void this.runNow({
       scope,
@@ -398,8 +327,6 @@ export class AutoDreamScheduler {
       ...(params.sessionFile?.trim() ? { sessionFile: params.sessionFile.trim() } : {}),
       ...(params.workspaceDir?.trim() ? { workspaceDir: params.workspaceDir.trim() } : {}),
       sessionKey,
-      ...(parentForkContext ? { parentForkContext } : {}),
-      ...(!parentForkContext && parentRunId ? { parentRunId } : {}),
       triggerSource: "stop",
     }).finally(() => {
       this.inFlightScopes.delete(scope.scopeKey ?? "");
@@ -486,13 +413,13 @@ export class AutoDreamScheduler {
 
     const runId = lockOwner;
 
-    const embeddedSessionId =
+    const dreamSessionId =
       params.sessionId?.trim() || preview.recentSessionIds[0]?.trim() || `dream-${scopeKey}`;
-    const embeddedWorkspaceDir = params.workspaceDir?.trim() || process.cwd();
-    const embeddedSessionFile =
+    const dreamWorkspaceDir = params.workspaceDir?.trim() || process.cwd();
+    const dreamSessionFile =
       params.sessionFile?.trim() ||
       buildRandomTempFilePath({
-        prefix: embeddedSessionId,
+        prefix: dreamSessionId,
         extension: ".jsonl",
       });
 
@@ -500,18 +427,13 @@ export class AutoDreamScheduler {
       const result = await runner(
         {
           runId,
-          sessionId: embeddedSessionId,
-          sessionFile: embeddedSessionFile,
-          workspaceDir: embeddedWorkspaceDir,
-          ...(params.parentForkContext ? { parentForkContext: params.parentForkContext } : {}),
-          ...(!params.parentForkContext && params.parentRunId
-            ? { parentRunId: params.parentRunId }
-            : {}),
+          sessionId: dreamSessionId,
+          sessionFile: dreamSessionFile,
+          workspaceDir: dreamWorkspaceDir,
           scope: params.scope,
           sessionKey: params.sessionKey,
           triggerSource: params.triggerSource,
           lastSuccessAt: consolidationStatus.lastConsolidatedAt,
-          recentSessions: preview.sessionSummaries,
           recentTranscriptRefs: preview.transcriptRefs,
           recentSignals: preview.recentSignals,
         },

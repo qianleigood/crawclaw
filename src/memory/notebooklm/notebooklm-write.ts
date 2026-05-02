@@ -191,7 +191,7 @@ export async function writeNotebookLmExperienceNoteViaCli(params: {
   };
 }): Promise<NotebookLmExperienceWriteResult | null> {
   const writeConfig = params.config?.write;
-  if (!params.config?.enabled || !writeConfig?.enabled) {
+  if (!params.config?.enabled || !writeConfig) {
     return null;
   }
 
@@ -372,7 +372,7 @@ export async function deleteNotebookLmExperienceNoteViaCli(params: {
   };
 }): Promise<NotebookLmExperienceDeleteResult | null> {
   const writeConfig = params.config?.write;
-  if (!params.config?.enabled || !writeConfig?.enabled) {
+  if (!params.config?.enabled || !writeConfig) {
     return null;
   }
 

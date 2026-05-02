@@ -48,6 +48,21 @@ describe("special agent registry", () => {
     });
   });
 
+  it("registers dream as an embedded memory maintenance agent", () => {
+    const definition = resolveSpecialAgentDefinitionBySpawnSource("dream");
+
+    expect(definition?.id).toBe("dream");
+    expect(definition?.executionMode).toBe("embedded_fork");
+    expect(definition?.transcriptPolicy).toBe("isolated");
+    expect(definition?.toolPolicy).toMatchObject({
+      enforcement: "runtime_deny",
+      modelVisibility: "allowlist",
+      guard: "memory_maintenance",
+    });
+    expect(definition?.systemPromptMode).toBe("isolated");
+    expect(definition?.defaultMaxTurns).toBeUndefined();
+  });
+
   it("keeps all registered special agent definitions contract-valid", () => {
     expect(listRegisteredSpecialAgentContractIssues()).toEqual([]);
   });

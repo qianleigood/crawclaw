@@ -9450,9 +9450,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               write: {
                 type: "object",
                 properties: {
-                  enabled: {
-                    type: "boolean",
-                  },
                   command: {
                     type: "string",
                   },
@@ -9469,36 +9466,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                   },
                   notebookId: {
                     type: "string",
-                  },
-                },
-                additionalProperties: false,
-              },
-              source: {
-                type: "object",
-                properties: {
-                  enabled: {
-                    type: "boolean",
-                  },
-                  title: {
-                    type: "string",
-                  },
-                  timeoutMs: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  maxEntries: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  maxChars: {
-                    type: "integer",
-                    exclusiveMinimum: 0,
-                    maximum: 9007199254740991,
-                  },
-                  deletePrevious: {
-                    type: "boolean",
                   },
                 },
                 additionalProperties: false,
@@ -11910,7 +11877,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "memory.notebooklm": {
       label: "NotebookLM Experience Provider",
-      help: "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local experience index is only a sync ledger and pending write queue.",
+      help: "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local store is only a pending outbox.",
       tags: ["storage"],
     },
     "memory.notebooklm.auth": {
@@ -12033,11 +12000,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Configures NotebookLM note writing for the experience layer. By default CrawClaw uses the managed `nlm note create` runtime; set a command only when you need a custom write helper.",
       tags: ["storage"],
     },
-    "memory.notebooklm.write.enabled": {
-      label: "NotebookLM Writeback Enabled",
-      help: "Enables NotebookLM note writing for the experience layer. When NotebookLM is enabled this defaults to the managed `nlm` write path unless explicitly disabled.",
-      tags: ["storage"],
-    },
     "memory.notebooklm.write.command": {
       label: "NotebookLM Writeback Command",
       help: "Optional executable override for NotebookLM note writing. Leave empty to use the managed `nlm note create` runtime.",
@@ -12058,44 +12020,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
       tags: ["storage"],
     },
-    "memory.notebooklm.source": {
-      label: "NotebookLM Managed Source",
-      help: "Configures the managed NotebookLM source that mirrors the bounded local experience index into one CrawClaw Memory Index source. This gives NotebookLM native source query material without turning each experience note into its own source.",
-      tags: ["storage"],
-    },
-    "memory.notebooklm.source.enabled": {
-      label: "NotebookLM Managed Source Enabled",
-      help: "Enables managed NotebookLM source synchronization after experience writes. Disable this when you only want local index recall and NotebookLM note writeback.",
-      tags: ["storage"],
-    },
-    "memory.notebooklm.source.title": {
-      label: "NotebookLM Managed Source Title",
-      help: "Title used for the managed NotebookLM source. Keep it stable so CrawClaw can recognize and replace the previous index source.",
-      tags: ["storage"],
-    },
-    "memory.notebooklm.source.timeoutMs": {
-      label: "NotebookLM Managed Source Timeout (ms)",
-      help: "Timeout in milliseconds for source list/add/delete operations. Source uploads can be slower than note writes because NotebookLM processes the source.",
-      tags: ["performance", "storage"],
-    },
-    "memory.notebooklm.source.maxEntries": {
-      label: "NotebookLM Managed Source Max Entries",
-      help: "Maximum number of active or stale experience index entries rendered into the managed NotebookLM source.",
-      tags: ["performance", "storage"],
-    },
-    "memory.notebooklm.source.maxChars": {
-      label: "NotebookLM Managed Source Max Chars",
-      help: "Maximum rendered character count for the managed NotebookLM source.",
-      tags: ["performance", "storage"],
-    },
-    "memory.notebooklm.source.deletePrevious": {
-      label: "NotebookLM Managed Source Delete Previous",
-      help: "Deletes the previous managed source after a replacement source is added successfully. Keep enabled to avoid duplicate CrawClaw Memory Index sources.",
-      tags: ["storage"],
-    },
     "memory.experience": {
       label: "Experience Memory Agent",
-      help: "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local sync-ledger entries, and syncs them through the NotebookLM write path when available.",
+      help: "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local pending-outbox entries, and syncs them through the NotebookLM write path when available.",
       tags: ["storage"],
     },
     "memory.experience.enabled": {

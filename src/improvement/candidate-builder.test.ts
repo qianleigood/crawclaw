@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { upsertExperienceIndexEntryFromNote } from "../memory/experience/index-store.ts";
+import {
+  readExperienceOutboxEntries,
+  upsertExperienceOutboxEntryFromNote,
+} from "../memory/experience/outbox-store.ts";
 import { withStateDirEnv } from "../test-helpers/state-dir-env.js";
 import { buildPromotionCandidateAssessments } from "./candidate-builder.js";
 
 describe("buildPromotionCandidateAssessments", () => {
   it("clusters repeated reusable experiences into a promotion-ready candidate", async () => {
     await withStateDirEnv("crawclaw-improvement-candidates-", async () => {
-      await upsertExperienceIndexEntryFromNote({
+      await upsertExperienceOutboxEntryFromNote({
         note: {
           type: "failure_pattern",
           title: "网关回滚顺序经验 A",
@@ -25,7 +28,7 @@ describe("buildPromotionCandidateAssessments", () => {
         notebookId: "local",
       });
 
-      await upsertExperienceIndexEntryFromNote({
+      await upsertExperienceOutboxEntryFromNote({
         note: {
           type: "failure_pattern",
           title: "网关回滚顺序经验 B",
@@ -44,7 +47,9 @@ describe("buildPromotionCandidateAssessments", () => {
         notebookId: "local",
       });
 
-      const assessments = await buildPromotionCandidateAssessments();
+      const assessments = await buildPromotionCandidateAssessments({
+        entries: await readExperienceOutboxEntries(),
+      });
 
       expect(assessments).toHaveLength(1);
       expect(assessments[0]?.candidate.observedFrequency).toBe(2);
@@ -60,7 +65,7 @@ describe("buildPromotionCandidateAssessments", () => {
 
   it("filters durable preference and temporary workaround notes", async () => {
     await withStateDirEnv("crawclaw-improvement-candidates-", async () => {
-      await upsertExperienceIndexEntryFromNote({
+      await upsertExperienceOutboxEntryFromNote({
         note: {
           type: "decision",
           title: "回答风格偏好",
@@ -76,7 +81,7 @@ describe("buildPromotionCandidateAssessments", () => {
         notebookId: "local",
       });
 
-      await upsertExperienceIndexEntryFromNote({
+      await upsertExperienceOutboxEntryFromNote({
         note: {
           type: "failure_pattern",
           title: "临时热修经验",
@@ -93,7 +98,9 @@ describe("buildPromotionCandidateAssessments", () => {
         notebookId: "local",
       });
 
-      const assessments = await buildPromotionCandidateAssessments();
+      const assessments = await buildPromotionCandidateAssessments({
+        entries: await readExperienceOutboxEntries(),
+      });
 
       expect(assessments).toEqual([]);
     });
@@ -101,7 +108,7 @@ describe("buildPromotionCandidateAssessments", () => {
 
   it("marks candidates without enough evidence as needs_more_evidence", async () => {
     await withStateDirEnv("crawclaw-improvement-candidates-", async () => {
-      await upsertExperienceIndexEntryFromNote({
+      await upsertExperienceOutboxEntryFromNote({
         note: {
           type: "procedure",
           title: "workflow 排查入口顺序",
@@ -116,7 +123,9 @@ describe("buildPromotionCandidateAssessments", () => {
         notebookId: "local",
       });
 
-      const assessments = await buildPromotionCandidateAssessments();
+      const assessments = await buildPromotionCandidateAssessments({
+        entries: await readExperienceOutboxEntries(),
+      });
 
       expect(assessments).toHaveLength(1);
       expect(assessments[0]?.candidate.observedFrequency).toBe(1);
@@ -124,6 +133,139 @@ describe("buildPromotionCandidateAssessments", () => {
       expect(assessments[0]?.blockers).toEqual(
         expect.arrayContaining(["missing_result_or_validation_evidence"]),
       );
+    });
+  });
+
+  it("builds promotion candidates from NotebookLM before using local outbox entries", async () => {
+    await withStateDirEnv("crawclaw-improvement-candidates-", async () => {
+      const assessments = await buildPromotionCandidateAssessments({
+        config: {
+          memory: {
+            notebooklm: {
+              enabled: true,
+              auth: {
+                profile: "default",
+                cookieFile: "",
+                statusTtlMs: 60_000,
+                degradedCooldownMs: 120_000,
+                refreshCooldownMs: 180_000,
+              },
+              cli: {
+                enabled: true,
+                command: "python",
+                args: ["/tmp/notebooklm-query.py", "{query}", "{limit}", "{notebookId}"],
+                timeoutMs: 1_000,
+                limit: 5,
+                notebookId: "experience-notebook",
+              },
+              write: {
+                command: "python",
+                args: ["/tmp/notebooklm-write.py", "{payloadFile}", "{notebookId}"],
+                timeoutMs: 1_000,
+                notebookId: "experience-notebook",
+              },
+            },
+          },
+        },
+        searchNotebookLm: async () => [
+          {
+            id: "notebooklm-hit-1",
+            source: "notebooklm",
+            title: "自进化候选",
+            summary: "NotebookLM 返回的结构化候选。",
+            content: JSON.stringify({
+              candidates: [
+                {
+                  id: "notebooklm-candidate:workflow-debug-order",
+                  sourceRefs: [{ kind: "experience", ref: "note-workflow-debug-order" }],
+                  signalSummary:
+                    "workflow 排查反复使用 registry -> operations -> executions 的顺序。",
+                  observedFrequency: 3,
+                  currentReuseLevel: "experience",
+                  triggerPattern: "workflow 执行异常或更新异常",
+                  repeatedActions: ["先查 registry，再查 operations，再看 executions。"],
+                  validationEvidence: ["三次排障都按这个顺序定位问题。"],
+                  evidenceKinds: ["trigger", "action", "result", "validation"],
+                  baselineDecision: "ready",
+                  score: 42,
+                },
+              ],
+            }),
+          },
+        ],
+      });
+
+      expect(assessments).toHaveLength(1);
+      expect(assessments[0]).toMatchObject({
+        baselineDecision: "ready",
+        score: 42,
+        evidenceKinds: ["trigger", "action", "result", "validation"],
+        candidate: {
+          id: "notebooklm-candidate:workflow-debug-order",
+          observedFrequency: 3,
+          currentReuseLevel: "experience",
+          repeatedActions: ["先查 registry，再查 operations，再看 executions。"],
+          validationEvidence: ["三次排障都按这个顺序定位问题。"],
+        },
+      });
+    });
+  });
+
+  it("does not build runtime candidates from the local outbox without NotebookLM config", async () => {
+    await withStateDirEnv("crawclaw-improvement-candidates-", async () => {
+      await upsertExperienceOutboxEntryFromNote({
+        note: {
+          type: "workflow_pattern",
+          title: "本地 outbox 经验",
+          summary: "以后都这样做：这个本地 pending 条目不应直接晋升为自进化候选。",
+          context: "NotebookLM 尚未配置。",
+          trigger: "自进化扫描。",
+          action: "不要读取本地 outbox 做候选来源。",
+          result: "等待 NotebookLM 返回结构化候选。",
+          lesson: "自进化候选来源应是 NotebookLM。",
+          evidence: ["本地 outbox 只用于待同步。"],
+          confidence: "high",
+          dedupeKey: "local-outbox-runtime-candidate",
+        },
+        notebookId: "local",
+        syncStatus: "pending_sync",
+      });
+
+      await expect(buildPromotionCandidateAssessments()).resolves.toEqual([]);
+    });
+  });
+
+  it("does not build runtime candidates from the local outbox when NotebookLM is disabled", async () => {
+    await withStateDirEnv("crawclaw-improvement-candidates-", async () => {
+      await upsertExperienceOutboxEntryFromNote({
+        note: {
+          type: "workflow_pattern",
+          title: "禁用 NotebookLM 时的本地 outbox 经验",
+          summary: "以后都这样做：NotebookLM disabled 时也不应回退到本地 outbox。",
+          context: "NotebookLM disabled。",
+          trigger: "自进化扫描。",
+          action: "返回 no_candidate。",
+          result: "没有从本地 outbox 产生候选。",
+          lesson: "自进化候选来源应是 NotebookLM。",
+          evidence: ["本地 outbox 只用于待同步。"],
+          confidence: "high",
+          dedupeKey: "disabled-notebooklm-local-candidate",
+        },
+        notebookId: "local",
+        syncStatus: "pending_sync",
+      });
+
+      await expect(
+        buildPromotionCandidateAssessments({
+          config: {
+            memory: {
+              notebooklm: {
+                enabled: false,
+              },
+            },
+          },
+        }),
+      ).resolves.toEqual([]);
     });
   });
 });

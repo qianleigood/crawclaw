@@ -326,15 +326,19 @@ export async function runSubagentAnnounceFlow(params: {
   const expectsCompletionMessage = params.expectsCompletionMessage === true;
   const announceType = params.announceType ?? "subagent task";
   let shouldDeleteChildSession = params.cleanup === "delete";
+  let childSpawnSource: string | undefined;
   try {
     let targetRequesterSessionKey = params.requesterSessionKey;
     let targetRequesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
-    const childSessionId = (() => {
-      const entry = loadSessionEntryByKey(params.childSessionKey);
-      return typeof entry?.sessionId === "string" && entry.sessionId.trim()
-        ? entry.sessionId.trim()
+    const childSessionEntry = loadSessionEntryByKey(params.childSessionKey);
+    const childSessionId =
+      typeof childSessionEntry?.sessionId === "string" && childSessionEntry.sessionId.trim()
+        ? childSessionEntry.sessionId.trim()
         : undefined;
-    })();
+    childSpawnSource =
+      typeof childSessionEntry?.spawnSource === "string" && childSessionEntry.spawnSource.trim()
+        ? childSessionEntry.spawnSource.trim()
+        : undefined;
     const settleTimeoutMs = Math.min(Math.max(params.timeoutMs, 1), 120_000);
     let reply = params.roundOneReply;
     let outcome: SubagentRunOutcome | undefined = params.outcome;
@@ -624,7 +628,7 @@ export async function runSubagentAnnounceFlow(params: {
     // Best-effort follow-ups; ignore failures to avoid breaking the caller response.
   } finally {
     // Patch label after all writes complete
-    if (params.label) {
+    if (params.label && !childSpawnSource) {
       try {
         await subagentAnnounceDeps.callGateway({
           method: "sessions.patch",

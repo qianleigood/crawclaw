@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeNotebookLmConfig } from "./notebooklm.js";
 
 describe("normalizeNotebookLmConfig", () => {
-  it("enables managed NotebookLM writeback by default when NotebookLM is enabled", () => {
+  it("exposes NotebookLM writeback settings without a second enabled gate", () => {
     const config = normalizeNotebookLmConfig({
       enabled: true,
       cli: {
@@ -11,23 +11,23 @@ describe("normalizeNotebookLmConfig", () => {
       },
     });
 
-    expect(config.write.enabled).toBe(true);
+    expect((config.write as { enabled?: unknown }).enabled).toBeUndefined();
     expect(config.write.command).toBe("");
     expect(config.write.notebookId).toBe("");
   });
 
-  it("preserves an explicit writeback disable", () => {
+  it("ignores legacy writeback enabled settings", () => {
     const config = normalizeNotebookLmConfig({
       enabled: true,
       write: {
         enabled: false,
       },
-    });
+    } as unknown as Parameters<typeof normalizeNotebookLmConfig>[0]);
 
-    expect(config.write.enabled).toBe(false);
+    expect((config.write as { enabled?: unknown }).enabled).toBeUndefined();
   });
 
-  it("enables the managed NotebookLM source index by default when NotebookLM is enabled", () => {
+  it("does not expose source upload config by default", () => {
     const config = normalizeNotebookLmConfig({
       enabled: true,
       cli: {
@@ -36,20 +36,19 @@ describe("normalizeNotebookLmConfig", () => {
       },
     });
 
-    expect(config.source?.enabled).toBe(true);
-    expect(config.source?.title).toBe("CrawClaw Memory Index");
-    expect(config.source?.maxEntries).toBeGreaterThan(0);
+    expect((config as { source?: unknown }).source).toBeUndefined();
   });
 
-  it("preserves an explicit managed source disable", () => {
+  it("ignores legacy source upload settings", () => {
     const config = normalizeNotebookLmConfig({
       enabled: true,
       source: {
-        enabled: false,
+        enabled: true,
+        title: "Legacy Source",
       },
-    });
+    } as unknown as Parameters<typeof normalizeNotebookLmConfig>[0]);
 
-    expect(config.source?.enabled).toBe(false);
+    expect((config as { source?: unknown }).source).toBeUndefined();
   });
 
   it("defaults NotebookLM auto login to the managed profile provider", () => {

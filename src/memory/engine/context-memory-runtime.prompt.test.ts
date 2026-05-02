@@ -4,6 +4,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderQueryContextSections } from "../../agents/query-context/render.js";
 import { castAgentMessages } from "../../agents/test-helpers/agent-message-fixtures.js";
+import { recallDurableMemory } from "../durable/read.ts";
+import { searchNotebookLmViaCli } from "../notebooklm/notebooklm-cli.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import { writeSessionSummaryFile } from "../session-summary/store.ts";
 import type { MemoryRuntimeConfig } from "../types/config.ts";
@@ -26,7 +28,7 @@ function createBaseMemoryRuntimeConfig(): MemoryRuntimeConfig {
         heartbeat: { enabled: false, minIntervalMs: 60_000, maxIntervalMs: 120_000 },
       },
       cli: { enabled: false, command: "python3", args: [], timeoutMs: 30_000, limit: 5 },
-      write: { enabled: false, command: "", args: [], timeoutMs: 30_000 },
+      write: { command: "", args: [], timeoutMs: 30_000 },
     },
     skillRouting: { enabled: false, ttlMs: 60_000, shortlistLimit: 4, extraRoots: [] },
     automation: {
@@ -92,16 +94,16 @@ function createBaseMemoryRuntimeConfig(): MemoryRuntimeConfig {
   };
 }
 
-const searchNotebookLmViaCliMock = vi.fn();
-const recallDurableMemoryMock = vi.fn();
-
 vi.mock("../notebooklm/notebooklm-cli.ts", () => ({
-  searchNotebookLmViaCli: searchNotebookLmViaCliMock,
+  searchNotebookLmViaCli: vi.fn(),
 }));
 
 vi.mock("../durable/read.ts", () => ({
-  recallDurableMemory: recallDurableMemoryMock,
+  recallDurableMemory: vi.fn(),
 }));
+
+const searchNotebookLmViaCliMock = vi.mocked(searchNotebookLmViaCli);
+const recallDurableMemoryMock = vi.mocked(recallDurableMemory);
 
 const tempDirs: string[] = [];
 
@@ -119,7 +121,24 @@ describe("createContextMemoryRuntime().assemble", () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
 
     searchNotebookLmViaCliMock.mockResolvedValue([]);
-    recallDurableMemoryMock.mockResolvedValue(null);
+    recallDurableMemoryMock.mockResolvedValue({
+      scope: {
+        agentId: "main",
+        channel: "feishu",
+        userId: "user-42",
+        scopeKey: "main:feishu:user-42",
+        rootDir: "/tmp/durable",
+      },
+      manifest: [],
+      items: [],
+      selection: {
+        mode: "heuristic",
+        selectedItemIds: [],
+        omittedItemIds: [],
+        selectedDetails: [],
+        omittedDetails: [],
+      },
+    });
     const info = vi.fn();
     const runtime = createContextMemoryRuntime({
       runtimeStore: asRuntimeStore({
@@ -298,7 +317,6 @@ describe("createContextMemoryRuntime().assemble", () => {
             notebookId: "experience-notebook",
           },
           write: {
-            enabled: false,
             command: "",
             args: [],
             timeoutMs: 30_000,
@@ -661,10 +679,12 @@ describe("createContextMemoryRuntime().assemble", () => {
     );
   });
 
-  it("does not fall back to the local experience index when NotebookLM has no hits", async () => {
+  it("does not fall back to the local experience outbox when NotebookLM has no hits", async () => {
     const { createContextMemoryRuntime } = await import("./context-memory-runtime.ts");
-    const { upsertExperienceIndexEntry } = await import("../experience/index-store.ts");
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-experience-index-runtime-"));
+    const { upsertExperienceOutboxEntry } = await import("../experience/outbox-store.ts");
+    const stateDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-experience-outbox-runtime-"),
+    );
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
 
@@ -687,7 +707,7 @@ describe("createContextMemoryRuntime().assemble", () => {
         omittedDetails: [],
       },
     });
-    await upsertExperienceIndexEntry({
+    await upsertExperienceOutboxEntry({
       note: {
         type: "procedure",
         title: "本地网关恢复流程",
@@ -711,7 +731,7 @@ describe("createContextMemoryRuntime().assemble", () => {
     const runtime = createContextMemoryRuntime({
       runtimeStore: asRuntimeStore({
         getSessionCompactionState: vi.fn().mockResolvedValue(null),
-        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-local-index"),
+        appendContextAssemblyAudit: vi.fn().mockResolvedValue("audit-local-outbox"),
       }),
       logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
       config: {
@@ -731,8 +751,8 @@ describe("createContextMemoryRuntime().assemble", () => {
     });
 
     const result = await runtime.assemble({
-      sessionId: "session-local-index",
-      sessionKey: "session-local-index",
+      sessionId: "session-local-outbox",
+      sessionKey: "session-local-outbox",
       prompt: "本地网关挂了怎么恢复？给我操作流程",
       messages: castAgentMessages([
         { role: "user", content: "本地网关挂了怎么恢复？给我操作流程" },

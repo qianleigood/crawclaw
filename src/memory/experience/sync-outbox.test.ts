@@ -2,11 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { NotebookLmConfig } from "../types/config.ts";
 import {
-  readExperienceIndexEntries,
-  readPendingExperienceIndexEntries,
-  upsertExperienceIndexEntryFromNote,
-} from "./index-store.js";
+  readExperienceOutboxEntries,
+  readPendingExperienceOutboxEntries,
+  upsertExperienceOutboxEntryFromNote,
+} from "./outbox-store.js";
 
 const execFileMock = vi.fn();
 const previousStateDir = process.env.CRAWCLAW_STATE_DIR;
@@ -40,10 +41,10 @@ describe("flushPendingExperienceNotes", () => {
     }
   });
 
-  it("flushes pending local experience notes to NotebookLM and marks them synced", async () => {
+  it("flushes pending local experience notes to NotebookLM and removes the local payload", async () => {
     await useTempStateDir();
     const { flushPendingExperienceNotes } = await import("./sync-outbox.js");
-    await upsertExperienceIndexEntryFromNote({
+    await upsertExperienceOutboxEntryFromNote({
       note: {
         type: "procedure",
         title: "待同步网关恢复经验",
@@ -110,20 +111,12 @@ describe("flushPendingExperienceNotes", () => {
           notebookId: "experience-notebook",
         },
         write: {
-          enabled: true,
+          enabled: false,
           command: "python",
           args: ["/tmp/notebooklm-cli-recall.py", "write", "{payloadFile}", "{notebookId}"],
           timeoutMs: 1_000,
           notebookId: "experience-notebook",
-        },
-        source: {
-          enabled: false,
-          title: "CrawClaw Memory Index",
-          timeoutMs: 1_000,
-          maxEntries: 120,
-          maxChars: 80_000,
-          deletePrevious: true,
-        },
+        } as unknown as NotebookLmConfig["write"],
       },
     });
 
@@ -134,15 +127,7 @@ describe("flushPendingExperienceNotes", () => {
       failed: 0,
       skipped: false,
     });
-    expect(await readPendingExperienceIndexEntries(10)).toEqual([]);
-    expect(await readExperienceIndexEntries(10)).toEqual([
-      expect.objectContaining({
-        id: "experience-index:pending-gateway-recovery",
-        syncStatus: "synced",
-        noteId: "note-pending-gateway",
-        notebookId: "experience-notebook",
-        lastSyncError: null,
-      }),
-    ]);
+    expect(await readPendingExperienceOutboxEntries(10)).toEqual([]);
+    expect(await readExperienceOutboxEntries(10)).toEqual([]);
   });
 });

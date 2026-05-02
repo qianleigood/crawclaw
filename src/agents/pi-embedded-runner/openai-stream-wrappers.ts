@@ -8,12 +8,21 @@ import {
 } from "../codex-native-web-search.js";
 import { resolveProviderRequestPolicyConfig } from "../provider-request-config.js";
 import { log } from "./logger.js";
+import {
+  normalizeOpenAIPromptCacheKey,
+  patchOpenAIResponsesPromptCachePayload,
+} from "./openai-prompt-cache.js";
 import { streamWithPayloadPatch } from "./stream-payload-utils.js";
 
 type OpenAIServiceTier = "auto" | "default" | "flex" | "priority";
 type OpenAITextVerbosity = "low" | "medium" | "high";
 
 const OPENAI_RESPONSES_APIS = new Set(["openai-responses", "azure-openai-responses"]);
+const OPENAI_RESPONSES_PROMPT_CACHE_APIS = new Set([
+  "openai-responses",
+  "azure-openai-responses",
+  "openai-codex-responses",
+]);
 const OPENAI_REASONING_COMPAT_PROVIDERS = new Set([
   "openai",
   "openai-codex",
@@ -134,6 +143,44 @@ function shouldStripResponsesStore(
 
 function shouldStripResponsesPromptCache(model: { api?: unknown; baseUrl?: unknown }): boolean {
   return resolveOpenAIRequestCapabilities(model).shouldStripResponsesPromptCache;
+}
+
+function shouldApplyOpenAIResponsesPromptCacheCompatibility(model: { api?: unknown }): boolean {
+  return typeof model.api === "string" && OPENAI_RESPONSES_PROMPT_CACHE_APIS.has(model.api);
+}
+
+function hasPromptCacheKey(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeResponsesPromptCacheSessionId(params: {
+  options: SimpleStreamOptions | undefined;
+  cacheRetention?: unknown;
+  preservePromptCacheKey: boolean;
+}): SimpleStreamOptions | undefined {
+  if (!params.options) {
+    return undefined;
+  }
+  const sessionId = (params.options as { sessionId?: unknown }).sessionId;
+  if (params.cacheRetention === "none" && !params.preservePromptCacheKey) {
+    if (sessionId === undefined) {
+      return params.options;
+    }
+    const nextOptions = { ...params.options } as SimpleStreamOptions & { sessionId?: string };
+    delete nextOptions.sessionId;
+    return nextOptions;
+  }
+  if (typeof sessionId !== "string") {
+    return params.options;
+  }
+  const trimmed = sessionId.trim();
+  const nextOptions = { ...params.options } as SimpleStreamOptions & { sessionId?: string };
+  if (!trimmed) {
+    delete nextOptions.sessionId;
+    return nextOptions;
+  }
+  nextOptions.sessionId = normalizeOpenAIPromptCacheKey(trimmed);
+  return nextOptions;
 }
 
 function shouldApplyOpenAIReasoningCompatibility(model: {
@@ -330,6 +377,49 @@ export function createOpenAIResponsesContextManagementWrapper(
             stripPromptCache,
             useServerCompaction,
             compactThreshold,
+          });
+        }
+        return originalOnPayload?.(payload, model);
+      },
+    });
+  };
+}
+
+export function createOpenAIResponsesPromptCacheCompatibilityWrapper(
+  baseStreamFn: StreamFn | undefined,
+  extraParams?: Record<string, unknown>,
+): StreamFn {
+  const underlying = baseStreamFn ?? streamSimple;
+  return (model, context, options) => {
+    if (!shouldApplyOpenAIResponsesPromptCacheCompatibility(model)) {
+      return underlying(model, context, options);
+    }
+    const optionCacheRetention = (options as { cacheRetention?: unknown } | undefined)
+      ?.cacheRetention;
+    const skipCacheWrite =
+      extraParams?.skipCacheWrite === true ||
+      (options as { skipCacheWrite?: unknown } | undefined)?.skipCacheWrite === true;
+    const cacheRetention = skipCacheWrite
+      ? "none"
+      : (optionCacheRetention ?? extraParams?.cacheRetention);
+    const preservePromptCacheKey =
+      hasPromptCacheKey((options as { promptCacheKey?: unknown } | undefined)?.promptCacheKey) ||
+      hasPromptCacheKey(extraParams?.promptCacheKey) ||
+      hasPromptCacheKey(extraParams?.prompt_cache_key);
+    const nextOptions = normalizeResponsesPromptCacheSessionId({
+      options,
+      cacheRetention,
+      preservePromptCacheKey,
+    });
+    const originalOnPayload = nextOptions?.onPayload;
+    return underlying(model, context, {
+      ...nextOptions,
+      onPayload: (payload) => {
+        if (payload && typeof payload === "object") {
+          patchOpenAIResponsesPromptCachePayload({
+            payloadObj: payload as Record<string, unknown>,
+            cacheRetention,
+            preservePromptCacheKey,
           });
         }
         return originalOnPayload?.(payload, model);

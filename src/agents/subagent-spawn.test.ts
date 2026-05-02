@@ -266,4 +266,55 @@ describe("spawnSubagentDirect seam flow", () => {
       }),
     );
   });
+
+  it("keeps explicit special-agent labels out of gateway session labels", async () => {
+    let agentParams:
+      | {
+          label?: string;
+        }
+      | undefined;
+    const patchParams: Array<Record<string, unknown>> = [];
+
+    hoisted.callGatewayMock.mockImplementation(
+      async (request: { method?: string; params?: Record<string, unknown> }) => {
+        if (request.method === "agent") {
+          agentParams = request.params;
+          return { runId: "run-dream" };
+        }
+        if (request.method === "sessions.patch") {
+          patchParams.push(request.params ?? {});
+          return { ok: true };
+        }
+        if (request.method?.startsWith("sessions.")) {
+          return { ok: true };
+        }
+        return {};
+      },
+    );
+    installSessionStoreCaptureMock(hoisted.updateSessionStoreMock);
+
+    const result = await spawnSubagentDirect(
+      {
+        task: "consolidate memory",
+        label: "dream",
+        spawnSource: "dream",
+        expectsCompletionMessage: false,
+      },
+      {
+        agentSessionKey: "agent:main:main",
+      },
+    );
+
+    expect(result.status).toBe("accepted");
+    expect(agentParams?.label).toBeUndefined();
+    expect(patchParams).toEqual(
+      expect.arrayContaining([expect.objectContaining({ spawnSource: "dream" })]),
+    );
+    expect(hoisted.registerSubagentRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: "dream",
+        spawnSource: "dream",
+      }),
+    );
+  });
 });

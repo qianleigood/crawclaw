@@ -207,6 +207,84 @@ describe("before_tool_call hook integration", () => {
     );
   });
 
+  it("allows read-only exec under the memory maintenance guard with stderr discarded", async () => {
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "exec", execute } as any, {
+      specialToolAllowlist: ["exec"],
+      specialToolGuard: {
+        kind: "memory_maintenance",
+        memoryDir: path.resolve("durable-memory"),
+      },
+    });
+    const extensionContext = {} as Parameters<typeof tool.execute>[3];
+
+    await tool.execute(
+      "call-memory-exec-readonly-stderr-null",
+      { command: 'grep -rn "foo" /tmp/sessions 2>/dev/null | tail -50' },
+      undefined,
+      extensionContext,
+    );
+
+    expect(beforeToolCallHook).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      "call-memory-exec-readonly-stderr-null",
+      { command: 'grep -rn "foo" /tmp/sessions 2>/dev/null | tail -50' },
+      undefined,
+      extensionContext,
+    );
+  });
+
+  it("allows read-only exec under the memory maintenance guard after cd into memory dir", async () => {
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    const memoryDir = path.resolve("durable-memory");
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "exec", execute } as any, {
+      specialToolAllowlist: ["exec"],
+      specialToolGuard: {
+        kind: "memory_maintenance",
+        memoryDir,
+      },
+    });
+    const extensionContext = {} as Parameters<typeof tool.execute>[3];
+
+    await tool.execute(
+      "call-memory-exec-readonly-cd",
+      { command: `cd "${memoryDir}" && grep -rn "foo" . 2>/dev/null | head -50` },
+      undefined,
+      extensionContext,
+    );
+
+    expect(beforeToolCallHook).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      "call-memory-exec-readonly-cd",
+      { command: `cd "${memoryDir}" && grep -rn "foo" . 2>/dev/null | head -50` },
+      undefined,
+      extensionContext,
+    );
+  });
+
+  it("blocks memory maintenance exec cd outside memory dir before plugin hooks run", async () => {
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "exec", execute } as any, {
+      specialToolAllowlist: ["exec"],
+      specialToolGuard: {
+        kind: "memory_maintenance",
+        memoryDir: path.resolve("durable-memory"),
+      },
+    });
+
+    await expect(
+      tool.execute("call-memory-exec-cd-deny", {
+        command: 'cd "/tmp" && grep -rn "foo" .',
+      }),
+    ).rejects.toThrow("memory maintenance exec is restricted to read-only commands");
+
+    expect(beforeToolCallHook).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("blocks mutating exec under the memory maintenance guard before plugin hooks run", async () => {
     const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
     // oxlint-disable-next-line typescript/no-explicit-any

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CrawClawConfig } from "../config/config.js";
 
 type AgentCallRequest = { method?: string; params?: Record<string, unknown> };
 
@@ -15,7 +16,7 @@ const readLatestAssistantReplyMock = vi.fn(async (_params?: unknown) => "raw sub
 const isEmbeddedPiRunActiveMock = vi.fn((_sessionId: string) => false);
 const queueEmbeddedPiMessageMock = vi.fn((_sessionId: string, _text: string) => false);
 const waitForEmbeddedPiRunEndMock = vi.fn(async (_sessionId: string, _timeoutMs?: number) => true);
-let mockConfig: Record<string, unknown> = {
+let mockConfig: Partial<CrawClawConfig> = {
   session: {
     mainKey: "main",
     scope: "per-sender",
@@ -94,10 +95,11 @@ vi.mock("./subagent-registry-runtime.js", async (importOriginal) => {
     ...subagentRegistryRuntimeMock,
   };
 });
-import { runSubagentAnnounceFlow } from "./subagent-announce.js";
+let runSubagentAnnounceFlow: typeof import("./subagent-announce.js").runSubagentAnnounceFlow;
 
 describe("subagent announce seam flow", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
     agentSpy.mockClear();
     sessionsDeleteSpy.mockClear();
     callGatewayMock.mockReset().mockImplementation(async (req: unknown) => {
@@ -150,6 +152,23 @@ describe("subagent announce seam flow", () => {
     subagentRegistryRuntimeMock.replaceSubagentRunAfterSteer.mockReturnValue(true);
     subagentRegistryRuntimeMock.resolveRequesterForChildSession.mockReset();
     subagentRegistryRuntimeMock.resolveRequesterForChildSession.mockReturnValue(null);
+    const deps = {
+      callGateway: (async <T = unknown>(
+        request: Parameters<typeof callGatewayMock>[0],
+      ): Promise<T> =>
+        (await callGatewayMock(request)) as T) as typeof import("../gateway/call.js").callGateway,
+      loadConfig: () => mockConfig as CrawClawConfig,
+    };
+    const [{ runSubagentAnnounceFlow: nextRunSubagentAnnounceFlow, __testing }, deliveryModule] =
+      await Promise.all([
+        import("./subagent-announce.js"),
+        import("./subagent-announce-delivery.js"),
+      ]);
+    runSubagentAnnounceFlow = nextRunSubagentAnnounceFlow;
+    const subagentAnnounceTesting = __testing;
+    const subagentAnnounceDeliveryTesting = deliveryModule.__testing;
+    subagentAnnounceTesting.setDepsForTest(deps);
+    subagentAnnounceDeliveryTesting.setDepsForTest(deps);
   });
 
   it("suppresses ANNOUNCE_SKIP delivery while still deleting the child session", async () => {
@@ -211,6 +230,57 @@ describe("subagent announce seam flow", () => {
       },
       timeoutMs: 10_000,
     });
+  });
+
+  it("does not patch a reusable label onto special-agent child sessions", async () => {
+    const patchCalls: AgentCallRequest[] = [];
+    callGatewayMock.mockImplementation(async (req: unknown) => {
+      const typed = req as AgentCallRequest;
+      if (typed.method === "agent") {
+        return await agentSpy(typed);
+      }
+      if (typed.method === "agent.wait") {
+        return { status: "ok", startedAt: 10, endedAt: 20 };
+      }
+      if (typed.method === "chat.history") {
+        return { messages: [] as Array<unknown> };
+      }
+      if (typed.method === "sessions.patch") {
+        patchCalls.push(typed);
+        return {};
+      }
+      if (typed.method === "sessions.delete") {
+        sessionsDeleteSpy(typed);
+        return {};
+      }
+      return {};
+    });
+    loadSessionStoreMock.mockImplementation(() => ({
+      "agent:main:subagent:dream": {
+        id: "dream-session",
+        sessionId: "dream-session",
+        spawnSource: "dream",
+      },
+    }));
+
+    const didAnnounce = await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:dream",
+      childRunId: "run-dream",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "consolidate memory",
+      timeoutMs: 10,
+      cleanup: "keep",
+      waitForCompletion: false,
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+      roundOneReply: "STATUS: NO_CHANGE",
+      label: "dream",
+    });
+
+    expect(didAnnounce).toBe(true);
+    expect(patchCalls).toHaveLength(0);
   });
 
   it("uses origin.provider for channel-specific queue settings in active announce delivery", async () => {

@@ -127,20 +127,10 @@ export interface NotebookLmCliConfig {
 }
 
 export interface NotebookLmWriteConfig {
-  enabled: boolean;
   command: string;
   args: string[];
   timeoutMs: number;
   notebookId?: string;
-}
-
-export interface NotebookLmSourceConfig {
-  enabled: boolean;
-  title: string;
-  timeoutMs: number;
-  maxEntries: number;
-  maxChars: number;
-  deletePrevious: boolean;
 }
 
 export interface NotebookLmAuthConfig {
@@ -171,7 +161,6 @@ export interface NotebookLmConfig {
   auth: NotebookLmAuthConfig;
   cli: NotebookLmCliConfig;
   write: NotebookLmWriteConfig;
-  source?: NotebookLmSourceConfig;
 }
 
 export interface NotebookLmConfigInput {
@@ -182,7 +171,6 @@ export interface NotebookLmConfigInput {
   };
   cli?: Partial<NotebookLmCliConfig>;
   write?: Partial<NotebookLmWriteConfig>;
-  source?: Partial<NotebookLmSourceConfig>;
 }
 
 export interface MemoryRuntimeConfig {

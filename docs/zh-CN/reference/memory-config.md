@@ -1,23 +1,29 @@
 ---
-title: "Memory configuration reference"
-summary: "Configuration keys for the built-in memory runtime, NotebookLM, session summaries, and Context Archive"
 read_when:
-  - You want to configure CrawClaw memory
-  - You want to enable NotebookLM-backed experience recall
-  - You want to tune session summaries, dream, or Context Archive
+  - 你想要配置 CrawClaw 记忆
+  - 你想要启用基于 NotebookLM 的体验召回
+  - 你想要调整会话摘要、dream 或 Context Archive
+summary: 内置记忆运行时、NotebookLM、会话摘要和 Context Archive 的配置键
+title: 记忆配置参考
+x-i18n:
+  generated_at: "2026-05-02T05:44:53Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 9a75b647a917d7a7d76407434f3e2dd8453af2d5e3ccc77db8df921176a18d81
+  source_path: reference/memory-config.md
+  workflow: 15
 ---
 
-# Memory configuration reference
+# 记忆配置参考
 
-CrawClaw memory configuration lives under the top-level `memory` key. The old
-per-agent search configuration has been removed.
+CrawClaw 记忆配置位于顶级 `memory` 键。旧的每智能体搜索配置已被移除。
 
-For the conceptual model, start with:
+如需了解概念模型，请从以下内容开始：
 
-- [Memory Overview](/concepts/memory)
-- [Builtin Memory Runtime](/concepts/memory-builtin)
+- [记忆概览](/concepts/memory)
+- [内置记忆运行时](/concepts/memory-builtin)
 
-## Runtime store
+## 运行时存储
 
 | Key                          | Type     | Default                         | Description                  |
 | ---------------------------- | -------- | ------------------------------- | ---------------------------- |
@@ -37,23 +43,12 @@ For the conceptual model, start with:
 
 ## NotebookLM
 
-NotebookLM is the prompt-facing provider for experience recall and
-experience-note writeback. CrawClaw keeps a local pending outbox so experience
-writes are not lost while NotebookLM auth is unavailable. Successful writes do
-not keep a duplicate local payload; pending local payloads are removed after
-they sync to NotebookLM.
-NotebookLM/Gemini is responsible for semantic relevance and ordering during
-experience recall; CrawClaw preserves provider order and only applies local
-guardrails such as source filtering, duplicate removal, empty-content checks,
-and prompt-budget limits.
+NotebookLM 是面向提示的体验召回和体验笔记写回提供商。CrawClaw 保留本地待处理发件箱，以便在 NotebookLM 认证不可用时不会丢失体验写入。成功的写入不会保留重复的本地负载；待处理的本地负载在同步到 NotebookLM 后被移除。NotebookLM/Gemini 负责体验召回期间的语义相关性和排序；CrawClaw 保留提供商顺序，仅应用本地防护栏，如源过滤、去重、空内容检查和提示预算限制。
 
-The built-in CLI defaults target the unified
-[`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) package.
-CrawClaw installs it as a managed runtime during postinstall and
-`crawclaw runtimes install`. Leave `memory.notebooklm.cli.command` empty to use
-that managed `nlm` first, then PATH `nlm` as a fallback. Run `crawclaw memory
-login` or `nlm login`, then set a notebook id for the read and write paths you
-want CrawClaw to use.
+内置 CLI 默认目标统一
+[`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) 包。CrawClaw 在 postinstall 期间将其作为托管运行时安装，并
+`crawclaw runtimes install`：保留 `memory.notebooklm.cli.command` 空以使用该托管 `nlm` 先查找指定位置，然后再查找 PATH `nlm` 作为后备。运行 `crawclaw memory
+login` 或 `nlm login`然后为读写路径设置 notebook ID，你希望 CrawClaw 使用这些路径。
 
 | Key                                           | Type      | Description                     |
 | --------------------------------------------- | --------- | ------------------------------- |
@@ -72,7 +67,7 @@ want CrawClaw to use.
 | `memory.notebooklm.write.args`                | `array`   | Custom write command arguments  |
 | `memory.notebooklm.write.notebookId`          | `string`  | Optional write notebook id      |
 
-## Extraction and summaries
+## 提取和摘要
 
 | Key                                             | Description                                 |
 | ----------------------------------------------- | ------------------------------------------- |

@@ -122,6 +122,27 @@ export async function applySessionsPatchToStore(params: {
     }
   }
 
+  if ("spawnSource" in patch) {
+    const raw = patch.spawnSource;
+    if (raw === null) {
+      if (existing?.spawnSource) {
+        return invalid("spawnSource cannot be cleared once set");
+      }
+    } else if (raw !== undefined) {
+      const trimmed = raw.trim();
+      if (!trimmed) {
+        return invalid("invalid spawnSource: empty");
+      }
+      if (!supportsSpawnLineage(storeKey)) {
+        return invalid("spawnSource is only supported for subagent:* or acp:* sessions");
+      }
+      if (existing?.spawnSource && existing.spawnSource !== trimmed) {
+        return invalid("spawnSource cannot be changed once set");
+      }
+      next.spawnSource = trimmed;
+    }
+  }
+
   if ("spawnedWorkspaceDir" in patch) {
     const raw = patch.spawnedWorkspaceDir;
     if (raw === null) {

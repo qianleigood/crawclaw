@@ -12,6 +12,26 @@ afterEach(async () => {
 });
 
 describe("SqliteRuntimeStore session summary state", () => {
+  it("sets a busy timeout for concurrent runtime lifecycle access", async () => {
+    const rootDir = await tempDirs.make("sqlite-busy-timeout-");
+    const store = new SqliteRuntimeStore(`${rootDir}/runtime.sqlite`);
+    await store.init();
+    stores.push(store);
+
+    const db = (
+      store as unknown as {
+        db?: {
+          prepare(sql: string): {
+            get(): unknown;
+          };
+        };
+      }
+    ).db;
+    const row = db?.prepare("PRAGMA busy_timeout").get() as { timeout?: number } | undefined;
+
+    expect(row?.timeout).toBe(5_000);
+  });
+
   it("does not create legacy extraction tables during init", async () => {
     const rootDir = await tempDirs.make("sqlite-no-extraction-jobs-");
     const dbPath = `${rootDir}/runtime.sqlite`;

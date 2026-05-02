@@ -42712,7 +42712,7 @@
         "storage"
       ],
       "label": "NotebookLM Experience Provider",
-      "help": "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local experience index is only a sync ledger and pending write queue.",
+      "help": "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local store is only a pending outbox.",
       "hasChildren": true
     },
     {
@@ -43068,107 +43068,6 @@
       "hasChildren": false
     },
     {
-      "path": "memory.notebooklm.source",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "NotebookLM Managed Source",
-      "help": "Configures the managed NotebookLM source that mirrors the bounded local experience index into one CrawClaw Memory Index source. This gives NotebookLM native source query material without turning each experience note into its own source.",
-      "hasChildren": true
-    },
-    {
-      "path": "memory.notebooklm.source.deletePrevious",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "NotebookLM Managed Source Delete Previous",
-      "help": "Deletes the previous managed source after a replacement source is added successfully. Keep enabled to avoid duplicate CrawClaw Memory Index sources.",
-      "hasChildren": false
-    },
-    {
-      "path": "memory.notebooklm.source.enabled",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "NotebookLM Managed Source Enabled",
-      "help": "Enables managed NotebookLM source synchronization after experience writes. Disable this when you only want local index recall and NotebookLM note writeback.",
-      "hasChildren": false
-    },
-    {
-      "path": "memory.notebooklm.source.maxChars",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "performance",
-        "storage"
-      ],
-      "label": "NotebookLM Managed Source Max Chars",
-      "help": "Maximum rendered character count for the managed NotebookLM source.",
-      "hasChildren": false
-    },
-    {
-      "path": "memory.notebooklm.source.maxEntries",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "performance",
-        "storage"
-      ],
-      "label": "NotebookLM Managed Source Max Entries",
-      "help": "Maximum number of active or stale experience index entries rendered into the managed NotebookLM source.",
-      "hasChildren": false
-    },
-    {
-      "path": "memory.notebooklm.source.timeoutMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "performance",
-        "storage"
-      ],
-      "label": "NotebookLM Managed Source Timeout (ms)",
-      "help": "Timeout in milliseconds for source list/add/delete operations. Source uploads can be slower than note writes because NotebookLM processes the source.",
-      "hasChildren": false
-    },
-    {
-      "path": "memory.notebooklm.source.title",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "NotebookLM Managed Source Title",
-      "help": "Title used for the managed NotebookLM source. Keep it stable so CrawClaw can recognize and replace the previous index source.",
-      "hasChildren": false
-    },
-    {
       "path": "memory.notebooklm.write",
       "kind": "core",
       "type": "object",
@@ -43218,20 +43117,6 @@
       ],
       "label": "NotebookLM Writeback Command",
       "help": "Optional executable override for NotebookLM note writing. Leave empty to use the managed `nlm note create` runtime.",
-      "hasChildren": false
-    },
-    {
-      "path": "memory.notebooklm.write.enabled",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "NotebookLM Writeback Enabled",
-      "help": "Enables NotebookLM note writing for the experience layer. When NotebookLM is enabled this defaults to the managed `nlm` write path unless explicitly disabled.",
       "hasChildren": false
     },
     {

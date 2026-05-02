@@ -8,7 +8,10 @@ import { getSharedDurableExtractionLifecycleSubscriber } from "../durable/lifecy
 import { getSharedDurableExtractionWorkerManager } from "../durable/worker-manager.ts";
 import type { DurableExtractionRunner } from "../durable/worker-manager.ts";
 import { getSharedExperienceExtractionLifecycleSubscriber } from "../experience/lifecycle-subscriber.ts";
-import { createDefaultExperienceProviderRegistry } from "../experience/provider.ts";
+import {
+  createDefaultExperienceProviderRegistry,
+  type ExperienceProviderRegistry,
+} from "../experience/provider.ts";
 import {
   getSharedExperienceExtractionWorkerManager,
   type ExperienceExtractionRunner,
@@ -41,6 +44,7 @@ export function createContextMemoryRuntimeDeps(options: {
   dreamRunner?: AutoDreamRunner;
   sessionSummaryRunner?: SessionSummaryRunner;
   contextArchive?: Pick<ContextArchiveService, "createRun" | "appendEvent">;
+  experienceProviderRegistry?: Pick<ExperienceProviderRegistry, "search">;
 }) {
   const structuredComplete =
     options.complete ??
@@ -56,10 +60,12 @@ export function createContextMemoryRuntimeDeps(options: {
   });
   const queryClassifier = new UnifiedQueryClassifier();
   const contextAssembler = new UnifiedContextAssembler();
-  const experienceProviderRegistry = createDefaultExperienceProviderRegistry({
-    notebooklm: options.config?.notebooklm,
-    logger: options.logger,
-  });
+  const experienceProviderRegistry =
+    options.experienceProviderRegistry ??
+    createDefaultExperienceProviderRegistry({
+      notebooklm: options.config?.notebooklm,
+      logger: options.logger,
+    });
   const skillIndexStore = new SkillIndexStore({
     workspaceDir: process.cwd(),
     extraRoots: options.config?.skillRouting.extraRoots,

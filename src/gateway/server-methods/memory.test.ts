@@ -19,9 +19,9 @@ const mocks = vi.hoisted(() => ({
   sqliteRuntimeStoreInitMock: vi.fn(),
   sqliteRuntimeStoreCloseMock: vi.fn(),
   sqliteRuntimeStoreListMessagesByTurnRangeMock: vi.fn(),
-  readExperienceIndexEntriesMock: vi.fn(),
-  updateExperienceIndexEntryStatusMock: vi.fn(),
-  pruneExperienceIndexEntriesMock: vi.fn(),
+  readExperienceOutboxEntriesMock: vi.fn(),
+  updateExperienceOutboxEntryStatusMock: vi.fn(),
+  pruneExperienceOutboxEntriesMock: vi.fn(),
   listDurableMemoryIndexDocumentsMock: vi.fn(),
   readDurableMemoryIndexDocumentMock: vi.fn(),
 }));
@@ -73,11 +73,11 @@ vi.mock("../../memory/cli-api.js", () => ({
   },
 }));
 
-vi.mock("../../memory/experience/index-store.ts", () => ({
-  readExperienceIndexEntries: mocks.readExperienceIndexEntriesMock,
-  updateExperienceIndexEntryStatus: mocks.updateExperienceIndexEntryStatusMock,
-  pruneExperienceIndexEntries: mocks.pruneExperienceIndexEntriesMock,
-  EXPERIENCE_INDEX_STATUSES: ["active", "stale", "superseded", "archived"],
+vi.mock("../../memory/experience/outbox-store.ts", () => ({
+  readExperienceOutboxEntries: mocks.readExperienceOutboxEntriesMock,
+  updateExperienceOutboxEntryStatus: mocks.updateExperienceOutboxEntryStatusMock,
+  pruneExperienceOutboxEntries: mocks.pruneExperienceOutboxEntriesMock,
+  EXPERIENCE_OUTBOX_STATUSES: ["active", "stale", "superseded", "archived"],
 }));
 
 vi.mock("../../memory/notebooklm/login.js", () => ({
@@ -140,7 +140,6 @@ describe("memoryHandlers", () => {
         notebookId: "",
       },
       write: {
-        enabled: false,
         command: "",
         args: ["{payloadFile}"],
         timeoutMs: 1000,
@@ -185,9 +184,9 @@ describe("memoryHandlers", () => {
     mocks.sqliteRuntimeStoreInitMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreCloseMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([]);
-    mocks.readExperienceIndexEntriesMock.mockResolvedValue([]);
-    mocks.updateExperienceIndexEntryStatusMock.mockResolvedValue(null);
-    mocks.pruneExperienceIndexEntriesMock.mockResolvedValue({
+    mocks.readExperienceOutboxEntriesMock.mockResolvedValue([]);
+    mocks.updateExperienceOutboxEntryStatusMock.mockResolvedValue(null);
+    mocks.pruneExperienceOutboxEntriesMock.mockResolvedValue({
       total: 0,
       retainedIds: [],
       staleIds: [],
@@ -250,7 +249,6 @@ describe("memoryHandlers", () => {
         notebookId: "",
       },
       write: {
-        enabled: false,
         command: "",
         args: ["{payloadFile}"],
         timeoutMs: 1000,
@@ -410,28 +408,28 @@ describe("memoryHandlers", () => {
     );
   });
 
-  it("lists experience index entries with lifecycle filters", async () => {
-    mocks.readExperienceIndexEntriesMock.mockResolvedValue([
+  it("lists experience outbox entries with lifecycle filters", async () => {
+    mocks.readExperienceOutboxEntriesMock.mockResolvedValue([
       {
-        id: "experience-index:gateway-recovery",
+        id: "experience-outbox:gateway-recovery",
         title: "网关恢复流程",
         status: "stale",
       },
     ]);
-    const opts = createOptions("memory.experience.index.list", {
+    const opts = createOptions("memory.experience.outbox.list", {
       status: "stale",
       limit: 5,
     });
 
-    await memoryHandlers["memory.experience.index.list"](opts);
+    await memoryHandlers["memory.experience.outbox.list"](opts);
 
-    expect(mocks.readExperienceIndexEntriesMock).toHaveBeenCalledWith(5, { status: "stale" });
+    expect(mocks.readExperienceOutboxEntriesMock).toHaveBeenCalledWith(5, { status: "stale" });
     expect(opts.respond).toHaveBeenCalledWith(
       true,
       {
         items: [
           expect.objectContaining({
-            id: "experience-index:gateway-recovery",
+            id: "experience-outbox:gateway-recovery",
             status: "stale",
           }),
         ],
@@ -440,28 +438,28 @@ describe("memoryHandlers", () => {
     );
   });
 
-  it("updates an experience index entry lifecycle status", async () => {
-    mocks.updateExperienceIndexEntryStatusMock.mockResolvedValue({
-      id: "experience-index:gateway-recovery",
+  it("updates an experience outbox entry lifecycle status", async () => {
+    mocks.updateExperienceOutboxEntryStatusMock.mockResolvedValue({
+      id: "experience-outbox:gateway-recovery",
       status: "archived",
       archivedAt: 6_000,
     });
-    const opts = createOptions("memory.experience.index.updateStatus", {
-      id: "experience-index:gateway-recovery",
+    const opts = createOptions("memory.experience.outbox.updateStatus", {
+      id: "experience-outbox:gateway-recovery",
       status: "archived",
     });
 
-    await memoryHandlers["memory.experience.index.updateStatus"](opts);
+    await memoryHandlers["memory.experience.outbox.updateStatus"](opts);
 
-    expect(mocks.updateExperienceIndexEntryStatusMock).toHaveBeenCalledWith({
-      id: "experience-index:gateway-recovery",
+    expect(mocks.updateExperienceOutboxEntryStatusMock).toHaveBeenCalledWith({
+      id: "experience-outbox:gateway-recovery",
       status: "archived",
     });
     expect(opts.respond).toHaveBeenCalledWith(
       true,
       {
         item: expect.objectContaining({
-          id: "experience-index:gateway-recovery",
+          id: "experience-outbox:gateway-recovery",
           status: "archived",
         }),
       },
@@ -469,21 +467,21 @@ describe("memoryHandlers", () => {
     );
   });
 
-  it("runs deterministic experience index pruning", async () => {
-    mocks.pruneExperienceIndexEntriesMock.mockResolvedValue({
+  it("runs deterministic experience outbox pruning", async () => {
+    mocks.pruneExperienceOutboxEntriesMock.mockResolvedValue({
       total: 3,
-      retainedIds: ["experience-index:current"],
-      staleIds: ["experience-index:old-active"],
-      archivedIds: ["experience-index:old-stale"],
+      retainedIds: ["experience-outbox:current"],
+      staleIds: ["experience-outbox:old-active"],
+      archivedIds: ["experience-outbox:old-stale"],
     });
-    const opts = createOptions("memory.experience.index.prune", {
+    const opts = createOptions("memory.experience.outbox.prune", {
       staleAfterMs: 1_000,
       archiveAfterMs: 2_000,
     });
 
-    await memoryHandlers["memory.experience.index.prune"](opts);
+    await memoryHandlers["memory.experience.outbox.prune"](opts);
 
-    expect(mocks.pruneExperienceIndexEntriesMock).toHaveBeenCalledWith({
+    expect(mocks.pruneExperienceOutboxEntriesMock).toHaveBeenCalledWith({
       staleAfterMs: 1_000,
       archiveAfterMs: 2_000,
     });
@@ -491,8 +489,8 @@ describe("memoryHandlers", () => {
       true,
       {
         result: expect.objectContaining({
-          staleIds: ["experience-index:old-active"],
-          archivedIds: ["experience-index:old-stale"],
+          staleIds: ["experience-outbox:old-active"],
+          archivedIds: ["experience-outbox:old-stale"],
         }),
       },
       undefined,
@@ -512,8 +510,6 @@ describe("memoryHandlers", () => {
       synced: 2,
       failed: 0,
       skipped: false,
-      sourceSyncStatus: "ok",
-      sourceId: "source-1",
       errors: [],
     });
     const opts = createOptions("memory.experience.sync.flush", {});

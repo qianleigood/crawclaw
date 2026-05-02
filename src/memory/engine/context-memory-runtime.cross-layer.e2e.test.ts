@@ -27,12 +27,12 @@ import {
   drainSharedDurableExtractionWorkers,
 } from "../durable/worker-manager.ts";
 import type { DurableExtractionRunResult } from "../durable/worker-manager.ts";
-import { upsertExperienceIndexEntry } from "../experience/index-store.ts";
-import {
-  readExperienceIndexEntries,
-  upsertExperienceIndexEntryFromNote,
-} from "../experience/index-store.ts";
 import { __testing as experienceLifecycleTesting } from "../experience/lifecycle-subscriber.ts";
+import { upsertExperienceOutboxEntry } from "../experience/outbox-store.ts";
+import {
+  readExperienceOutboxEntries,
+  upsertExperienceOutboxEntryFromNote,
+} from "../experience/outbox-store.ts";
 import {
   __testing as experienceWorkerTesting,
   drainSharedExperienceExtractionWorkers,
@@ -41,17 +41,14 @@ import type { ExperienceExtractionRunResult } from "../experience/worker-manager
 import { SqliteRuntimeStore } from "../runtime/sqlite-runtime-store.ts";
 import { __testing as sessionSummaryLifecycleTesting } from "../session-summary/lifecycle-subscriber.ts";
 import { writeSessionSummaryFile } from "../session-summary/store.ts";
+import type { UnifiedRecallItem } from "../types/orchestration.ts";
 import { createContextMemoryRuntime } from "./context-memory-runtime.ts";
 
 vi.mock("../notebooklm/heartbeat.ts", () => ({
   startNotebookLmHeartbeat: vi.fn(),
 }));
 
-const searchNotebookLmViaCliMock = vi.hoisted(() => vi.fn());
-
-vi.mock("../notebooklm/notebooklm-cli.ts", () => ({
-  searchNotebookLmViaCli: searchNotebookLmViaCliMock,
-}));
+const experienceSearchMock = vi.hoisted(() => vi.fn());
 
 const tempDirs: string[] = [];
 const stores: SqliteRuntimeStore[] = [];
@@ -67,7 +64,7 @@ afterEach(async () => {
   autoDreamTesting.resetSharedAutoDreamScheduler();
   sessionSummaryLifecycleTesting.resetSharedSessionSummaryLifecycleSubscriber();
   resetRunLoopLifecycleHandlersForTests();
-  searchNotebookLmViaCliMock.mockReset();
+  experienceSearchMock.mockReset();
   await Promise.all(stores.splice(0).map(async (store) => store.close()));
   await Promise.all(tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })));
   if (previousStateDir === undefined) {
@@ -119,8 +116,23 @@ function rowsToAgentMessages(
   })) as AgentMessage[];
 }
 
+function mockExperienceRecall(items: UnifiedRecallItem[]): void {
+  experienceSearchMock.mockResolvedValueOnce({
+    items,
+    queryPlan: {
+      enabled: true,
+      query: "test",
+      limit: Math.max(1, items.length),
+      targetLayers: ["sop"],
+      reason: "intent:sop",
+      providerIds: ["notebooklm"],
+    },
+    providerIds: ["notebooklm"],
+  });
+}
+
 describe("context memory runtime cross-layer e2e", () => {
-  it("lets the experience agent auto-write an index entry that the next assembly recalls", async () => {
+  it("lets the experience agent auto-write an outbox entry that the next assembly recalls", async () => {
     const { stateDir, store } = await createStore("crawclaw-memory-experience-agent-");
     const sessionId = "session-experience-agent";
     const sessionKey = "agent:main:feishu:direct:user-77";
@@ -155,7 +167,7 @@ describe("context memory runtime cross-layer e2e", () => {
       },
     });
     const experienceExtractionRunner = vi.fn(async (): Promise<ExperienceExtractionRunResult> => {
-      await upsertExperienceIndexEntryFromNote({
+      await upsertExperienceOutboxEntryFromNote({
         note: {
           type: "failure_pattern",
           title: "网关发布失败顺序经验",
@@ -188,6 +200,7 @@ describe("context memory runtime cross-layer e2e", () => {
       logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
       config,
       experienceExtractionRunner,
+      experienceProviderRegistry: { search: experienceSearchMock },
     });
     const messages = castAgentMessages([
       makeAgentUserMessage({ content: "这次 gateway 发布失败是因为先改 service 再改 secret。" }),
@@ -222,10 +235,10 @@ describe("context memory runtime cross-layer e2e", () => {
     await drainSharedExperienceExtractionWorkers();
 
     expect(experienceExtractionRunner).toHaveBeenCalledTimes(1);
-    expect((await readExperienceIndexEntries()).map((entry) => entry.id)).toContain(
-      "experience-index:gateway-release-order",
+    expect((await readExperienceOutboxEntries()).map((entry) => entry.id)).toContain(
+      "experience-outbox:gateway-release-order",
     );
-    searchNotebookLmViaCliMock.mockResolvedValue([
+    mockExperienceRecall([
       {
         id: "notebooklm:gateway-release-order",
         source: "notebooklm",
@@ -335,7 +348,7 @@ describe("context memory runtime cross-layer e2e", () => {
       };
     });
 
-    await upsertExperienceIndexEntry({
+    await upsertExperienceOutboxEntry({
       note: {
         type: "procedure",
         title: "gateway-recovery 恢复经验",
@@ -364,6 +377,7 @@ describe("context memory runtime cross-layer e2e", () => {
       config,
       durableExtractionRunner,
       dreamRunner,
+      experienceProviderRegistry: { search: experienceSearchMock },
     });
 
     const longGatewayContext =
@@ -511,7 +525,7 @@ The compact summary should appear before the preserved tail.
     expect(dreamRunner).toHaveBeenCalledTimes(1);
 
     const rowsForAssembly = await store.listMessagesByTurnRange(sessionId, 1, messages.length);
-    searchNotebookLmViaCliMock.mockResolvedValue([
+    mockExperienceRecall([
       {
         id: "notebooklm:gateway-recovery",
         source: "notebooklm",

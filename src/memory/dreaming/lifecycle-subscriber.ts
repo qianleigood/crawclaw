@@ -3,7 +3,6 @@ import {
   createRunLoopLifecycleRegistration,
   createSharedLifecycleSubscriberAccessor,
 } from "../../agents/special/runtime/lifecycle-subscriber.js";
-import { resolveSpecialAgentParentForkContext } from "../../agents/special/runtime/parent-fork-context.js";
 import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-helpers.ts";
 import type { AutoDreamScheduler } from "./auto-dream.ts";
@@ -54,12 +53,6 @@ export class AutoDreamLifecycleSubscriber {
     if (!sessionFile) {
       return;
     }
-    const parentForkContext = resolveSpecialAgentParentForkContext(
-      event.metadata?.parentForkContext,
-    );
-    const parentRunId =
-      parentForkContext?.parentRunId ||
-      (typeof event.runId === "string" && event.runId.trim() ? event.runId.trim() : undefined);
     try {
       this.scheduler.submitTurn({
         sessionId: event.sessionId,
@@ -77,9 +70,7 @@ export class AutoDreamLifecycleSubscriber {
           ...(typeof event.metadata?.senderId === "string" && event.metadata.senderId.trim()
             ? { senderId: event.metadata.senderId.trim() }
             : {}),
-          ...(parentForkContext ? { parentForkContext } : {}),
           observation: event.observation,
-          ...(!parentForkContext && parentRunId ? { parentRunId } : {}),
         },
       });
     } catch (error) {
