@@ -45,9 +45,8 @@ func ensureDocsPiModelsConfig(agentDir string) error {
 				APIKey:     apiKeyEnv,
 				AuthHeader: true,
 				ModelOverrides: map[string]docsPiModelOverrideCapabilities{
-					defaultMiniMaxModel:      {Reasoning: true},
-					"MiniMax-M2.7-highspeed": {Reasoning: true},
-					model:                    {Reasoning: true},
+					defaultMiniMaxModel: {Reasoning: true},
+					model:               {Reasoning: true},
 				},
 			},
 		},

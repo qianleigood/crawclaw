@@ -392,6 +392,14 @@
     "target": "持久记忆重构状态"
   },
   {
+    "source": "Durable Memory Agent",
+    "target": "持久记忆智能体"
+  },
+  {
+    "source": "Durable Memory Agent Design",
+    "target": "持久记忆智能体设计"
+  },
+  {
     "source": "Durable memory refactor status",
     "target": "持久记忆重构状态"
   },

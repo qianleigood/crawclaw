@@ -150,7 +150,10 @@ crawclaw [--dev] [--profile <name>] <command>
     status
     refresh
     login
+    sync
     prompt-journal-summary
+    dream status|history|run
+    session-summary status|refresh
   message
     send
     broadcast
@@ -191,17 +194,10 @@ crawclaw [--dev] [--profile <name>] <command>
     stop
     restart
     run
-  daemon
-    status
-    install
-    uninstall
-    start
-    stop
-    restart
   logs
   system
     event
-    heartbeat last
+    main-session-wake last
     presence
   models
     list
@@ -329,6 +325,10 @@ crawclaw [--dev] [--profile <name>] <command>
 - `crawclaw memory prompt-journal-summary --json` — 汇总 nightly memory prompt journal 数据（仅 debug 用，且会截断）。
 
 NotebookLM 写入现在统一走 `write_experience_note`。
+
+- `crawclaw memory sync` — 在已配置 NotebookLM 时，将待处理的本地经验笔记刷新进去。
+- `crawclaw memory dream status|history|run` — 检查或手动运行持久记忆 dream 维护。
+- `crawclaw memory session-summary status|refresh` — 检查或刷新后台会话摘要。
 
 ## Agent 运行时运维
 

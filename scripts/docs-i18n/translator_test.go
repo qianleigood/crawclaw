@@ -35,8 +35,9 @@ func TestRunPromptAddsTimeout(t *testing.T) {
 			if !ok {
 				t.Fatal("expected prompt deadline")
 			}
-			if message != "Translate me" {
-				t.Fatalf("unexpected message %q", message)
+			if !strings.Contains(message, "Translate only the source text between the markers") ||
+				!strings.Contains(message, "Translate me") {
+				t.Fatalf("expected wrapped translation request, got %q", message)
 			}
 			return "translated", nil
 		},
@@ -53,6 +54,36 @@ func TestRunPromptAddsTimeout(t *testing.T) {
 	remaining := time.Until(deadline)
 	if remaining <= time.Minute || remaining > docsI18nPromptTimeout() {
 		t.Fatalf("unexpected timeout window %s", remaining)
+	}
+}
+
+func TestDocsPiClientArgsDisableAgentSurfacesForTranslation(t *testing.T) {
+	t.Setenv(envDocsI18nProvider, "minimax")
+	t.Setenv(envDocsI18nModel, "MiniMax-M2.7-highspeed")
+
+	args := docsPiClientArgs(docsPiClientOptions{
+		SystemPrompt: "Translate only.",
+		Thinking:     "off",
+	})
+	joined := " " + strings.Join(args, " ") + " "
+
+	for _, flag := range []string{
+		"--no-tools",
+		"--no-extensions",
+		"--no-skills",
+		"--no-prompt-templates",
+		"--no-themes",
+		"--no-context-files",
+	} {
+		if !strings.Contains(joined, " "+flag+" ") {
+			t.Fatalf("expected docs i18n Pi args to contain %s, got %v", flag, args)
+		}
+	}
+	if !strings.Contains(joined, " --mode rpc ") {
+		t.Fatalf("expected rpc mode args, got %v", args)
+	}
+	if !strings.Contains(joined, " --system-prompt Translate only. ") {
+		t.Fatalf("expected system prompt args, got %v", args)
 	}
 }
 

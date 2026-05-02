@@ -1,5 +1,9 @@
 # dynamicAgent 在 CrawClaw Admin 读取不到的问题分析
 
+> 历史说明：本文记录的是外部/社区 wecom 插件的 dynamicAgent 支持问题，
+> 不是当前仓库内置插件清单的权威说明。当前仓库内置的微信相关插件目录是
+> `extensions/weixin`；继续使用 wecom 时，请以对应外部插件文档为准。
+
 ## 问题描述
 
 wecom 插件创建的 `dynamicAgent`（动态代理）在 CrawClaw Admin 中显示不出来，但在 历史控制台 中能正常显示。

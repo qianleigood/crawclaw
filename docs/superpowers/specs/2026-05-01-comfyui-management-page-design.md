@@ -8,6 +8,11 @@ read_when:
 
 # ComfyUI Management Page Design
 
+> Historical note: this design was written while the admin frontend target lived
+> under `.tmp/openclaw-admin`. The tracked admin app now lives under
+> `apps/crawclaw-admin`; treat `.tmp/openclaw-admin` and OpenClaw Admin wording
+> below as implementation history, not the current source path.
+
 ## Summary
 
 CrawClaw should add a ComfyUI management page that acts as an operations index

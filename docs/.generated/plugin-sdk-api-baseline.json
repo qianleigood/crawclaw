@@ -1610,7 +1610,7 @@
           "exportName": "SkillCommandSpec",
           "kind": "type",
           "source": {
-            "line": 68,
+            "line": 69,
             "path": "src/agents/skills/types.ts"
           }
         },

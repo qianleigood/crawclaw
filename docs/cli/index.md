@@ -150,7 +150,10 @@ crawclaw [--dev] [--profile <name>] <command>
     status
     refresh
     login
+    sync
     prompt-journal-summary
+    dream status|history|run
+    session-summary status|refresh
   message
     send
     broadcast
@@ -194,7 +197,7 @@ crawclaw [--dev] [--profile <name>] <command>
   logs
   system
     event
-    heartbeat last
+    main-session-wake last
     presence
   models
     list
@@ -319,7 +322,10 @@ Experience memory access and memory prompt diagnostics:
 - `crawclaw memory status` — show NotebookLM provider status.
 - `crawclaw memory refresh` — refresh NotebookLM auth from the configured cookie fallback.
 - `crawclaw memory login` — rebuild the NotebookLM profile interactively.
+- `crawclaw memory sync` — flush pending local experience notes into NotebookLM when configured.
 - `crawclaw memory prompt-journal-summary --json` — summarize nightly memory prompt journal data (debug-only, truncated diagnostics).
+- `crawclaw memory dream status|history|run` — inspect or manually run durable-memory dream maintenance.
+- `crawclaw memory session-summary status|refresh` — inspect or refresh background session summaries.
 
 Experience writes go through `write_experience_note`; NotebookLM sync is optional.
 

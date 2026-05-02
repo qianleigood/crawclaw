@@ -71,16 +71,7 @@ func startDocsPiClient(ctx context.Context, options docsPiClientOptions) (*docsP
 	}
 
 	args := append([]string{}, command.Args...)
-	args = append(args,
-		"--mode", "rpc",
-		"--provider", docsPiProvider(),
-		"--model", docsPiModel(),
-		"--thinking", options.Thinking,
-		"--no-session",
-	)
-	if strings.TrimSpace(options.SystemPrompt) != "" {
-		args = append(args, "--system-prompt", options.SystemPrompt)
-	}
+	args = append(args, docsPiClientArgs(options)...)
 
 	process := exec.Command(command.Executable, args...)
 	agentDir, err := getDocsPiAgentDir()
@@ -119,6 +110,26 @@ func startDocsPiClient(ctx context.Context, options docsPiClientOptions) (*docsP
 	go client.readStdout(stdout)
 
 	return client, nil
+}
+
+func docsPiClientArgs(options docsPiClientOptions) []string {
+	args := []string{
+		"--mode", "rpc",
+		"--provider", docsPiProvider(),
+		"--model", docsPiModel(),
+		"--thinking", options.Thinking,
+		"--no-session",
+		"--no-tools",
+		"--no-extensions",
+		"--no-skills",
+		"--no-prompt-templates",
+		"--no-themes",
+		"--no-context-files",
+	}
+	if strings.TrimSpace(options.SystemPrompt) != "" {
+		args = append(args, "--system-prompt", options.SystemPrompt)
+	}
+	return args
 }
 
 func (client *docsPiClient) Prompt(ctx context.Context, message string) (string, error) {

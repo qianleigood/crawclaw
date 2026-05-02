@@ -23,9 +23,12 @@ CrawClaw Admin is a modern AI agent management platform built with Vue 3, suppor
 
 ### Version Compatibility
 
-| CrawClaw Admin | CrawClaw Gateway | Hermes Agent | Status     |
-| -------------- | ---------------- | ------------ | ---------- |
-| 0.2.7          | 2026.4.5         | 2026.4.9     | ✅ Verified |
+| CrawClaw Admin | CrawClaw Gateway | Hermes Agent                  | Status                |
+| -------------- | ---------------- | ----------------------------- | --------------------- |
+| 1.0.2          | 2026.4.28        | Varies by external deployment | Current repo baseline |
+
+Hermes Agent is an external integration. Validate compatibility against the
+deployed Hermes version instead of relying on older pinned examples.
 
 ### Highlights
 

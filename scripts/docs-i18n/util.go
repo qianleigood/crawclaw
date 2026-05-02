@@ -19,7 +19,7 @@ const (
 	envMiniMaxBaseURL        = "MINIMAX_BASE_URL"
 	envMiniMaxModel          = "MINIMAX_MODEL"
 	defaultMiniMaxProvider   = "minimax"
-	defaultMiniMaxModel      = "MiniMax-M2.7"
+	defaultMiniMaxModel      = "MiniMax-M2.7-highspeed"
 	defaultOpenAIModel       = "gpt-5.4"
 	defaultAnthropicModel    = "claude-opus-4-6"
 	defaultFallbackProvider  = defaultMiniMaxProvider
@@ -82,9 +82,6 @@ func docsPiModel() string {
 	case "anthropic":
 		return defaultAnthropicModel
 	case defaultMiniMaxProvider:
-		if value := strings.TrimSpace(os.Getenv(envMiniMaxModel)); value != "" {
-			return value
-		}
 		return defaultMiniMaxModel
 	case "openai":
 		return defaultOpenAIModel

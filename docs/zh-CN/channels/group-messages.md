@@ -14,11 +14,11 @@ x-i18n:
 
 # 群组消息（WhatsApp 网页渠道）
 
-目标：让 Clawd 留在 WhatsApp 群组中，仅在被提及时唤醒，并将该对话线程与个人私信会话分开。
+目标：让 CrawClaw 留在 WhatsApp 群组中，仅在被提及时唤醒，并将该对话线程与个人私信会话分开。
 
 注意：`agents.list[].groupChat.mentionPatterns` 现在也被 Telegram/Discord/Slack/iMessage 使用；本文档重点介绍 WhatsApp 特定的行为。对于多智能体设置，为每个智能体设置 `agents.list[].groupChat.mentionPatterns`（或使用 `messages.groupChat.mentionPatterns` 作为全局回退）。
 
-## 已实现的功能（2025-12-03）
+## 实现说明
 
 - 激活模式：`mention`（默认）或 `always`。`mention` 需要被提及（通过 `mentionedJids` 的真实 WhatsApp @提及、正则表达式模式，或文本中任意位置的机器人 E.164 号码）。`always` 会在每条消息时唤醒智能体，但它应该只在能提供有意义价值时才回复；否则返回静默令牌 `NO_REPLY`。默认值可在配置中设置（`channels.whatsapp.groups`），并可通过 `/activation` 为每个群组单独覆盖。当设置了 `channels.whatsapp.groups` 时，它同时充当群组允许列表（包含 `"*"` 以允许所有群组）。
 - 群组策略：`channels.whatsapp.groupPolicy` 控制是否接受群组消息（`open|disabled|allowlist`）。`allowlist` 使用 `channels.whatsapp.groupAllowFrom`（回退：显式的 `channels.whatsapp.allowFrom`）。默认为 `allowlist`（在你添加发送者之前被阻止）。

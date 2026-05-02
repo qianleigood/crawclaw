@@ -1,5 +1,9 @@
 # wecom dynamicAgent 在 CrawClaw Admin 中的使用指南
 
+> 历史说明：本文记录的是外部/社区 wecom 插件的 dynamicAgent 用法，
+> 不是当前仓库内置插件清单的权威说明。当前仓库内置的微信相关插件目录是
+> `extensions/weixin`；继续使用 wecom 时，请以对应外部插件文档为准。
+
 ## 概述
 
 从 v0.2.3 开始，CrawClaw Admin 已经实现了对 wecom 插件动态代理的实时支持。系统会自动检测并显示由 wecom 插件动态创建的代理。

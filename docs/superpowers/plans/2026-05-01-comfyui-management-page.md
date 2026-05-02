@@ -1,5 +1,10 @@
 # ComfyUI Management Page Implementation Plan
 
+**Historical note:** this plan was written while the admin frontend target lived
+under `.tmp/openclaw-admin`. The tracked admin app now lives under
+`apps/crawclaw-admin`; treat `.tmp/openclaw-admin` and OpenClaw Admin wording
+below as implementation history, not the current source path.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a ComfyUI management page that lists saved workflows, links to the native ComfyUI UI, shows recent runs, and shows generated outputs.
