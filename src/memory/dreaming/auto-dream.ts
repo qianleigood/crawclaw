@@ -1,9 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  resolveDefaultSessionStorePath,
   resolveSessionTranscriptPath,
   resolveSessionTranscriptsDirForAgent,
 } from "../../config/sessions/paths.js";
+import { loadSessionStore } from "../../config/sessions/store.js";
 import type { ObservationContext } from "../../infra/observation/types.js";
 import { buildRandomTempFilePath } from "../../plugin-sdk/temp-path.js";
 import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
@@ -92,12 +94,52 @@ type AutoDreamSchedulerParams = {
   beforeRun?: AutoDreamBeforeRun;
 };
 
+function includeTriggeringStopSession(params: {
+  sessionIds: string[];
+  sessionId?: string;
+  triggerSource: string;
+}): string[] {
+  const triggeringSessionId = params.triggerSource === "stop" ? params.sessionId?.trim() || "" : "";
+  if (!triggeringSessionId) {
+    return params.sessionIds;
+  }
+  return [
+    triggeringSessionId,
+    ...params.sessionIds.filter((sessionId) => sessionId !== triggeringSessionId),
+  ];
+}
+
+function collectScopedSessionIds(scope: DurableMemoryScope): Set<string> {
+  let store: ReturnType<typeof loadSessionStore>;
+  try {
+    store = loadSessionStore(resolveDefaultSessionStorePath(scope.agentId), { skipCache: true });
+  } catch {
+    return new Set<string>();
+  }
+  const sessionIds = new Set<string>();
+  for (const [sessionKey, entry] of Object.entries(store)) {
+    const sessionId = typeof entry?.sessionId === "string" ? entry.sessionId.trim() : "";
+    if (!sessionId) {
+      continue;
+    }
+    const entryScope = resolveDurableMemoryScope({ sessionKey });
+    if (entryScope?.scopeKey === scope.scopeKey) {
+      sessionIds.add(sessionId);
+    }
+  }
+  return sessionIds;
+}
+
 async function collectRecentTranscriptSessionIds(params: {
   scope: DurableMemoryScope;
   sinceTime: number;
   excludeSessionId?: string | null;
   limit?: number | null;
 }): Promise<string[]> {
+  const scopedSessionIds = collectScopedSessionIds(params.scope);
+  if (scopedSessionIds.size === 0) {
+    return [];
+  }
   const sessionsDir = resolveSessionTranscriptsDirForAgent(params.scope.agentId);
   let entries: Array<{ name: string; isFile(): boolean }>;
   try {
@@ -114,7 +156,7 @@ async function collectRecentTranscriptSessionIds(params: {
       continue;
     }
     const sessionId = entry.name.slice(0, -".jsonl".length);
-    if (!sessionId || sessionId === params.excludeSessionId) {
+    if (!sessionId || sessionId === params.excludeSessionId || !scopedSessionIds.has(sessionId)) {
       continue;
     }
     const filePath = path.join(sessionsDir, entry.name);
@@ -367,10 +409,15 @@ export class AutoDreamScheduler {
     }
     this.lastScanAtByScope.set(scopeKey, now);
 
-    const recentSessionIds = await collectRecentTranscriptSessionIds({
+    const historicalSessionIds = await collectRecentTranscriptSessionIds({
       scope: params.scope,
       sinceTime: lastConsolidatedAt,
       excludeSessionId: params.sessionId,
+    });
+    const recentSessionIds = includeTriggeringStopSession({
+      sessionIds: historicalSessionIds,
+      sessionId: params.sessionId,
+      triggerSource: params.triggerSource,
     });
     if (!params.bypassGate && recentSessionIds.length < config.minSessions) {
       return { status: "skipped", reason: "min_sessions_gate" };

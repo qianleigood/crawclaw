@@ -2,11 +2,17 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveSessionTranscriptPath } from "../../config/sessions/paths.js";
+import {
+  resolveDefaultSessionStorePath,
+  resolveSessionTranscriptPath,
+} from "../../config/sessions/paths.js";
 import { resolveDurableMemoryScope } from "../durable/scope.js";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import { AutoDreamScheduler, __testing } from "./auto-dream.js";
-import { readDreamConsolidationStatus } from "./consolidation-lock.js";
+import {
+  readDreamConsolidationStatus,
+  tryAcquireDreamConsolidationLock,
+} from "./consolidation-lock.js";
 
 function asRuntimeStore(store: Partial<RuntimeStore>): RuntimeStore {
   return store as RuntimeStore;
@@ -42,6 +48,44 @@ async function writeTranscript(params: { agentId?: string; sessionId: string; mt
     await fs.utimes(filePath, date, date);
   }
   return filePath;
+}
+
+async function writeSessionStore(params: {
+  agentId?: string;
+  entries: Array<{ sessionKey: string; sessionId: string; updatedAt?: number }>;
+}) {
+  const storePath = resolveDefaultSessionStorePath(params.agentId ?? "main");
+  await fs.mkdir(path.dirname(storePath), { recursive: true });
+  const store = Object.fromEntries(
+    params.entries.map((entry, index) => [
+      entry.sessionKey,
+      {
+        sessionId: entry.sessionId,
+        updatedAt: entry.updatedAt ?? index + 1,
+      },
+    ]),
+  );
+  await fs.writeFile(storePath, `${JSON.stringify(store)}\n`);
+  return storePath;
+}
+
+async function writeSameScopeSessionStore(params: {
+  agentId?: string;
+  channel?: string;
+  userId?: string;
+  sessionIds: string[];
+}) {
+  const agentId = params.agentId ?? "main";
+  const channel = params.channel ?? "feishu";
+  const userId = params.userId ?? "user-1";
+  await writeSessionStore({
+    agentId,
+    entries: params.sessionIds.map((sessionId, index) => ({
+      sessionKey: `agent:${agentId}:${channel}:direct:${userId}:thread:t${index + 1}`,
+      sessionId,
+      updatedAt: index + 1,
+    })),
+  });
 }
 
 describe("AutoDreamScheduler", () => {
@@ -96,11 +140,40 @@ describe("AutoDreamScheduler", () => {
     expect(status.exists).toBe(false);
   });
 
+  it("does not auto-schedule when dreaming is disabled", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-disabled-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runner = vi.fn();
+    const scheduler = new AutoDreamScheduler({
+      config: dreamConfig({ enabled: false }),
+      runtimeStore: createRuntimeStore(),
+      runner,
+      logger: console,
+    });
+
+    scheduler.submitTurn({
+      sessionId: "session-disabled",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      sessionFile: "/tmp/session-disabled.jsonl",
+      workspaceDir: stateDir,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "feishu",
+        senderId: "user-1",
+      },
+    });
+    await Promise.resolve();
+
+    expect(runner).not.toHaveBeenCalled();
+  });
+
   it("uses a scope file lock as the dream watermark and run lock", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-lock-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     const sessionIds = ["s1", "s2", "s3", "s4", "s5"];
+    await writeSameScopeSessionStore({ sessionIds });
     await Promise.all(
       sessionIds.map(async (sessionId, index) => {
         await writeTranscript({ sessionId, mtimeMs: 10_000 + index });
@@ -161,10 +234,144 @@ describe("AutoDreamScheduler", () => {
     expect(status.lockOwner).toBeNull();
   });
 
+  it("skips when the minimum hour gate is not met", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-hours-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const sessionIds = ["s1", "s2", "s3", "s4", "s5"];
+    await writeSameScopeSessionStore({ sessionIds });
+    await Promise.all(
+      sessionIds.map((sessionId) => writeTranscript({ sessionId, mtimeMs: 10_000 })),
+    );
+    vi.useFakeTimers({ now: new Date(30_000) });
+    const runner = vi.fn().mockResolvedValue({
+      status: "no_change",
+      summary: "nothing changed",
+      writtenCount: 0,
+      updatedCount: 0,
+      deletedCount: 0,
+      touchedNotes: [],
+    });
+    const scheduler = new AutoDreamScheduler({
+      config: dreamConfig({ minHours: 1, scanThrottleMs: 0 }),
+      runtimeStore: createRuntimeStore(),
+      runner,
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      bypassGate: true,
+    });
+    vi.setSystemTime(new Date(30 * 60_000));
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+    });
+
+    expect(result).toEqual({
+      status: "skipped",
+      reason: "min_hours_gate",
+    });
+    expect(runner).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips when the scan throttle window is still active", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-throttle-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSameScopeSessionStore({ sessionIds: ["s1"] });
+    await writeTranscript({ sessionId: "s1", mtimeMs: 10_000 });
+    vi.useFakeTimers({ now: new Date(30_000) });
+    const runner = vi.fn();
+    const scheduler = new AutoDreamScheduler({
+      config: dreamConfig({ minHours: 0, minSessions: 1, scanThrottleMs: 600_000 }),
+      runtimeStore: createRuntimeStore(),
+      runner,
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const first = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      dryRun: true,
+    });
+    const second = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      dryRun: true,
+    });
+
+    expect(first.status).toBe("preview");
+    expect(second).toEqual({
+      status: "skipped",
+      reason: "scan_throttle",
+    });
+    expect(runner).not.toHaveBeenCalled();
+  });
+
+  it("skips when another active dream lock is already held for the scope", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-held-lock-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSameScopeSessionStore({ sessionIds: ["s1"] });
+    await writeTranscript({ sessionId: "s1", mtimeMs: 10_000 });
+    vi.useFakeTimers({ now: new Date(30_000) });
+    const runner = vi.fn();
+    const scheduler = new AutoDreamScheduler({
+      config: dreamConfig({ minHours: 0, minSessions: 1, scanThrottleMs: 0 }),
+      runtimeStore: createRuntimeStore(),
+      runner,
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const lock = await tryAcquireDreamConsolidationLock({
+      scope: scope!,
+      owner: "other-dream",
+      staleAfterMs: dreamConfig().lockStaleAfterMs,
+      now: Date.now(),
+    });
+    expect(lock.acquired).toBe(true);
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      bypassGate: true,
+    });
+
+    expect(result).toEqual({
+      status: "skipped",
+      reason: "lock_held",
+    });
+    expect(runner).not.toHaveBeenCalled();
+  });
+
   it("keeps sessions touched during a dream run for the next pass", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-next-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const sessionIds = ["s1", "s2", "s3", "s4", "s5", "s-new"];
+    await writeSameScopeSessionStore({ sessionIds });
     for (const sessionId of ["s1", "s2", "s3", "s4", "s5"]) {
       await writeTranscript({ sessionId, mtimeMs: 10_000 });
     }
@@ -212,6 +419,7 @@ describe("AutoDreamScheduler", () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-rollback-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSameScopeSessionStore({ sessionIds: ["s1", "s2", "s3", "s4", "s5", "s6"] });
     for (const sessionId of ["s1", "s2", "s3", "s4", "s5"]) {
       await writeTranscript({ sessionId, mtimeMs: 10_000 });
     }
@@ -275,6 +483,7 @@ describe("AutoDreamScheduler", () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-dry-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSameScopeSessionStore({ sessionIds: ["s1", "s2", "s3", "s4", "s5"] });
     for (const sessionId of ["s1", "s2", "s3", "s4", "s5"]) {
       await writeTranscript({ sessionId });
     }
@@ -311,10 +520,127 @@ describe("AutoDreamScheduler", () => {
     expect(status.exists).toBe(false);
   });
 
+  it("limits recent transcripts to the current durable scope", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-scope-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSessionStore({
+      entries: [
+        { sessionKey: "agent:main:feishu:direct:user-1", sessionId: "current-session" },
+        {
+          sessionKey: "agent:main:feishu:direct:user-1:thread:thread-1",
+          sessionId: "same-scope-thread",
+        },
+        { sessionKey: "agent:main:feishu:direct:user-2", sessionId: "other-user-session" },
+        { sessionKey: "agent:main:discord:direct:user-1", sessionId: "other-channel-session" },
+      ],
+    });
+    await writeTranscript({ sessionId: "current-session", mtimeMs: 40_000 });
+    await writeTranscript({ sessionId: "same-scope-thread", mtimeMs: 30_000 });
+    await writeTranscript({ sessionId: "other-user-session", mtimeMs: 35_000 });
+    await writeTranscript({ sessionId: "other-channel-session", mtimeMs: 34_000 });
+
+    const scheduler = new AutoDreamScheduler({
+      config: dreamConfig({ minSessions: 1 }),
+      runtimeStore: createRuntimeStore(),
+      runner: vi.fn(),
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      triggerSource: "manual_cli",
+      bypassGate: true,
+      dryRun: true,
+    });
+
+    expect(result.preview?.recentSessionIds).toEqual(["current-session", "same-scope-thread"]);
+  });
+
+  it("includes the triggering stop-phase session in the current dream input", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-stop-current-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSessionStore({
+      entries: [
+        { sessionKey: "agent:main:feishu:direct:user-1", sessionId: "current-session" },
+        {
+          sessionKey: "agent:main:feishu:direct:user-1:thread:thread-1",
+          sessionId: "older-session",
+        },
+      ],
+    });
+    await writeTranscript({ sessionId: "current-session", mtimeMs: 40_000 });
+    await writeTranscript({ sessionId: "older-session", mtimeMs: 30_000 });
+
+    const scheduler = new AutoDreamScheduler({
+      config: dreamConfig({ minSessions: 1 }),
+      runtimeStore: createRuntimeStore(),
+      runner: vi.fn(),
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      sessionId: "current-session",
+      triggerSource: "stop",
+      bypassGate: true,
+      dryRun: true,
+    });
+
+    expect(result.preview?.recentSessionIds).toEqual(["current-session", "older-session"]);
+  });
+
+  it("counts the triggering stop-phase session toward the min-session gate", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-stop-gate-"));
+    tempDirs.push(stateDir);
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSessionStore({
+      entries: [{ sessionKey: "agent:main:feishu:direct:user-1", sessionId: "current-session" }],
+    });
+    await writeTranscript({ sessionId: "current-session", mtimeMs: 40_000 });
+
+    const scheduler = new AutoDreamScheduler({
+      config: dreamConfig({ minSessions: 1 }),
+      runtimeStore: createRuntimeStore(),
+      runner: vi.fn(),
+      logger: console,
+    });
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
+
+    const result = await scheduler.runNow({
+      scope: scope!,
+      sessionId: "current-session",
+      triggerSource: "stop",
+      dryRun: true,
+    });
+
+    expect(result.status).toBe("preview");
+    expect(result.preview?.recentSessionIds).toEqual(["current-session"]);
+  });
+
   it("does not read session summary or compaction state for dream previews", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-no-summary-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSameScopeSessionStore({ sessionIds: ["s1"] });
     await writeTranscript({ sessionId: "s1" });
     const getSessionSummaryState = vi.fn().mockResolvedValue({
       lastSummarizedMessageId: "msg-1",
@@ -359,6 +685,7 @@ describe("AutoDreamScheduler", () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-auto-dream-wait-"));
     tempDirs.push(stateDir);
     process.env.CRAWCLAW_STATE_DIR = stateDir;
+    await writeSameScopeSessionStore({ sessionIds: ["s1"] });
     await writeTranscript({ sessionId: "s1" });
     let maintenanceFinished = false;
     const beforeRun = vi.fn().mockImplementation(async () => {
@@ -422,12 +749,13 @@ describe("AutoDreamScheduler", () => {
         triggerSource: "stop",
       }),
     );
-    expect(result.preview?.recentSignals).toEqual([
-      expect.objectContaining({
-        sessionId: "s1",
-        kind: "archive_actions",
-        text: "Dream can see fresh maintenance signal (after beforeRun)",
-      }),
-    ]);
+    expect(result.preview?.recentSignals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "archive_actions",
+          text: "Dream can see fresh maintenance signal (after beforeRun)",
+        }),
+      ]),
+    );
   });
 });
