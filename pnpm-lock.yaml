@@ -730,6 +730,12 @@ importers:
 
   extensions/together: {}
 
+  extensions/turix-cua:
+    dependencies:
+      '@sinclair/typebox':
+        specifier: 0.34.49
+        version: 0.34.49
+
   extensions/twitch:
     dependencies:
       '@twurple/api':
