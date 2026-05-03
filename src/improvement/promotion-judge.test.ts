@@ -1,7 +1,13 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
-import { parsePromotionJudgeReplyVerdict, runPromotionJudge } from "./promotion-judge.js";
+import {
+  PROMOTION_JUDGE_TOOL_ALLOWLIST,
+  buildPromotionJudgeSystemPrompt,
+  buildPromotionJudgeTaskPrompt,
+  parsePromotionJudgeReplyVerdict,
+  runPromotionJudge,
+} from "./promotion-judge.js";
 import { persistPromotionJudgeVerdictEnvelope, resolvePromotionJudgeVerdictPath } from "./store.js";
 import type { PromotionCandidate, PromotionVerdict } from "./types.js";
 
@@ -43,6 +49,19 @@ function makeVerdict(decision: PromotionVerdict["decision"]): PromotionVerdict {
 }
 
 describe("runPromotionJudge", () => {
+  it("gives the judge read-only project inspection instructions", () => {
+    const systemPrompt = buildPromotionJudgeSystemPrompt();
+    const taskPrompt = buildPromotionJudgeTaskPrompt(makeCandidate());
+
+    expect(PROMOTION_JUDGE_TOOL_ALLOWLIST).toEqual(["read", "submit_promotion_verdict"]);
+    expect(systemPrompt).toContain("read relevant project files");
+    expect(systemPrompt).toContain("Do not write, edit, patch, or run shell commands.");
+    expect(systemPrompt).not.toContain("Do not inspect project files.");
+    expect(taskPrompt).toContain("Source refs:");
+    expect(taskPrompt).toContain("experience: experience-outbox:workflow-order");
+    expect(taskPrompt).toContain("read the relevant project files");
+  });
+
   it("parses JSON fallback verdict replies", () => {
     const verdict = parsePromotionJudgeReplyVerdict(
       `{"verdict":"propose_workflow","candidate_id":"candidate-judge-1","reason":"稳定的排查流程。","summary":"先查 registry，再查 operations。"}`,

@@ -82,6 +82,7 @@ describe("runDurableMemoryAgentOnce", () => {
       spawnSource: "durable-memory",
     });
     expect(DURABLE_MEMORY_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
+    expect(DURABLE_MEMORY_AGENT_DEFINITION.parentContextPolicy).toBe("fork_messages_only");
     expect(DURABLE_MEMORY_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: [
         "memory_manifest_read",

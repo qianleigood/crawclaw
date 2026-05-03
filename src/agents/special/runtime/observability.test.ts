@@ -8,6 +8,7 @@ const TEST_DEFINITION: SpecialAgentDefinition = {
   spawnSource: "test-special-agent",
   executionMode: "embedded_fork",
   transcriptPolicy: "isolated",
+  parentContextPolicy: "none",
   toolPolicy: {
     allowlist: ["read"],
     enforcement: "runtime_deny",

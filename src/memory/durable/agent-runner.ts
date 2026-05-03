@@ -27,6 +27,7 @@ export const DURABLE_MEMORY_AGENT_DEFINITION: SpecialAgentDefinition =
     label: "durable-memory",
     spawnSource: DURABLE_MEMORY_AGENT_SPAWN_SOURCE,
     allowlist: DURABLE_MEMORY_AGENT_TOOL_ALLOWLIST,
+    parentContextPolicy: "fork_messages_only",
     modelVisibility: "allowlist",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,

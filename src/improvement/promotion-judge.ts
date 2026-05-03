@@ -14,13 +14,14 @@ import {
 import type { PromotionCandidate, PromotionVerdict } from "./types.js";
 
 export const PROMOTION_JUDGE_SPAWN_SOURCE = "promotion-judge";
-export const PROMOTION_JUDGE_TOOL_ALLOWLIST = ["submit_promotion_verdict"] as const;
+export const PROMOTION_JUDGE_TOOL_ALLOWLIST = ["read", "submit_promotion_verdict"] as const;
 export const PROMOTION_JUDGE_AGENT_DEFINITION: SpecialAgentDefinition =
   createEmbeddedMemorySpecialAgentDefinition({
     id: "promotion-judge",
     label: "promotion-judge",
     spawnSource: PROMOTION_JUDGE_SPAWN_SOURCE,
     allowlist: PROMOTION_JUDGE_TOOL_ALLOWLIST,
+    parentContextPolicy: "none",
     modelVisibility: "allowlist",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 4,
@@ -290,10 +291,11 @@ export function buildPromotionJudgeSystemPrompt(): string {
     "You must submit exactly one structured verdict with submit_promotion_verdict.",
     "",
     "Constraints:",
-    "- Do not inspect project files.",
-    "- Do not run shell commands.",
+    "- You may read relevant project files with read when the candidate mentions files, modules, workflows, skills, tools, prompts, or code-owned behavior.",
+    "- Only inspect files needed to validate the candidate against current code.",
+    "- Do not write, edit, patch, or run shell commands.",
     "- Do not describe the verdict in free-form text instead of the tool.",
-    "- Use only the provided candidate evidence.",
+    "- Base the verdict on the supplied candidate evidence and read-only code evidence when available.",
     "",
     "Decision options:",
     "- keep_experience",
@@ -312,7 +314,13 @@ export function buildPromotionJudgeTaskPrompt(candidate: PromotionCandidate): st
     `Candidate ID: ${candidate.id}`,
     `Signal summary: ${candidate.signalSummary}`,
     `Observed frequency: ${candidate.observedFrequency}`,
+    `Current reuse level: ${candidate.currentReuseLevel}`,
     ...(candidate.triggerPattern ? [`Trigger pattern: ${candidate.triggerPattern}`] : []),
+    "",
+    "Source refs:",
+    ...(candidate.sourceRefs.length > 0
+      ? candidate.sourceRefs.map((sourceRef) => `- ${sourceRef.kind}: ${sourceRef.ref}`)
+      : ["- (none)"]),
     "",
     "Repeated actions:",
     ...(candidate.repeatedActions.length > 0
@@ -323,6 +331,8 @@ export function buildPromotionJudgeTaskPrompt(candidate: PromotionCandidate): st
     ...(candidate.validationEvidence.length > 0
       ? candidate.validationEvidence.map((evidence) => `- ${evidence}`)
       : ["- (none)"]),
+    "",
+    "When the candidate refers to code, workflows, skills, tools, prompts, or repository behavior, read the relevant project files before submitting the verdict.",
     "",
     "Submit exactly one verdict with submit_promotion_verdict, then stop.",
   ].join("\n");

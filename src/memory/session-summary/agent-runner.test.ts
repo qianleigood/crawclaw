@@ -85,6 +85,7 @@ describe("session summary agent runner", () => {
 
   it("runs session summary through the embedded fork substrate", () => {
     expect(SESSION_SUMMARY_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
+    expect(SESSION_SUMMARY_AGENT_DEFINITION.parentContextPolicy).toBe("full_envelope");
     expect(SESSION_SUMMARY_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: ["session_summary_file_read", "session_summary_file_edit"],
       enforcement: "runtime_deny",

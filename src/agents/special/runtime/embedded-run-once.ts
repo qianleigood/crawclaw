@@ -9,6 +9,7 @@ import { resolveSpecialAgentCacheHints } from "./cache-plan.js";
 import { normalizeOptionalText, resolveMaxTurns, resolveRunTimeoutSeconds } from "./shared.js";
 import type {
   SpecialAgentCompletionResult,
+  SpecialAgentParentContextPolicy,
   SpecialAgentSpawnRequest,
   SpecialAgentToolPolicy,
 } from "./types.js";
@@ -74,10 +75,6 @@ function splitParentForkModelRef(
   };
 }
 
-function shouldAttachParentPromptEnvelope(definitionId: string): boolean {
-  return definitionId !== "durable_memory";
-}
-
 function resolveParentForkMessages(
   parentPromptEnvelope:
     | NonNullable<SpecialAgentSpawnRequest["parentForkContext"]>["promptEnvelope"]
@@ -87,6 +84,42 @@ function resolveParentForkMessages(
     parentPromptEnvelope.forkContextMessages.length > 0
     ? parentPromptEnvelope.forkContextMessages
     : undefined;
+}
+
+function resolveParentContextTransport(params: {
+  definitionId: string;
+  parentContextPolicy: SpecialAgentParentContextPolicy | undefined;
+  parentForkContext: SpecialAgentSpawnRequest["parentForkContext"];
+}):
+  | {
+      parentPromptEnvelope?: NonNullable<
+        SpecialAgentSpawnRequest["parentForkContext"]
+      >["promptEnvelope"];
+      parentForkMessages?: unknown[];
+    }
+  | {
+      error: string;
+    } {
+  const parentPromptEnvelope = params.parentForkContext?.promptEnvelope;
+  if (!parentPromptEnvelope) {
+    return {};
+  }
+  switch (params.parentContextPolicy) {
+    case "none":
+      return {
+        error: `embedded special agent "${params.definitionId}" does not accept parentForkContext`,
+      };
+    case "fork_messages_only": {
+      const parentForkMessages = resolveParentForkMessages(parentPromptEnvelope);
+      return parentForkMessages ? { parentForkMessages } : {};
+    }
+    case "full_envelope":
+      return { parentPromptEnvelope };
+    default:
+      return {
+        error: `embedded special agent "${params.definitionId}" requires explicit parentContextPolicy`,
+      };
+  }
 }
 
 function resolveEmbeddedToolsAllow(
@@ -99,21 +132,6 @@ function resolveEmbeddedToolsAllow(
   return enforcement === "prompt_allowlist" || toolPolicy.modelVisibility === "allowlist"
     ? [...toolPolicy.allowlist]
     : undefined;
-}
-
-function resolveEmbeddedToolChoice(
-  toolPolicy: SpecialAgentToolPolicy | undefined,
-): { type: "tool"; name: string } | undefined {
-  if (toolPolicy?.modelVisibility !== "allowlist") {
-    return undefined;
-  }
-  if (toolPolicy.allowlist.length !== 1) {
-    return undefined;
-  }
-  return {
-    type: "tool",
-    name: toolPolicy.allowlist[0],
-  };
 }
 
 function deriveEmbeddedReply(result: EmbeddedPiRunResult): string {
@@ -225,10 +243,7 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
     requested: request.spawnOverrides?.maxTurns,
     fallback: request.definition.defaultMaxTurns,
   });
-  const streamParams = await resolveSpecialAgentCacheHints(request);
-  const toolChoice = resolveEmbeddedToolChoice(request.definition.toolPolicy);
-  const effectiveStreamParams =
-    toolChoice === undefined ? streamParams : { ...streamParams, toolChoice };
+  const effectiveStreamParams = await resolveSpecialAgentCacheHints(request);
   const agentId =
     normalizeOptionalText(request.spawnOverrides?.agentId) ??
     normalizeOptionalText(embeddedContext?.agentId) ??
@@ -240,11 +255,14 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
   let eventSeq = 0;
 
   const toolsAllow = resolveEmbeddedToolsAllow(request.definition.toolPolicy);
-  const parentPromptEnvelope = request.parentForkContext?.promptEnvelope;
-  const attachParentPromptEnvelope = shouldAttachParentPromptEnvelope(request.definition.id);
-  const parentForkMessages = attachParentPromptEnvelope
-    ? undefined
-    : resolveParentForkMessages(parentPromptEnvelope);
+  const parentContextTransport = resolveParentContextTransport({
+    definitionId: request.definition.id,
+    parentContextPolicy: request.definition.parentContextPolicy,
+    parentForkContext: request.parentForkContext,
+  });
+  if ("error" in parentContextTransport) {
+    return { error: parentContextTransport.error };
+  }
 
   return {
     runId,
@@ -321,10 +339,12 @@ async function buildEmbeddedRunParams(request: SpecialAgentSpawnRequest): Promis
       ...(request.extraSystemPrompt ? { extraSystemPrompt: request.extraSystemPrompt } : {}),
       ...(effectiveStreamParams ? { streamParams: effectiveStreamParams } : {}),
       ...(toolsAllow ? { toolsAllow: [...toolsAllow] } : {}),
-      ...(attachParentPromptEnvelope && parentPromptEnvelope
-        ? { specialParentPromptEnvelope: parentPromptEnvelope }
+      ...(parentContextTransport.parentPromptEnvelope
+        ? { specialParentPromptEnvelope: parentContextTransport.parentPromptEnvelope }
         : {}),
-      ...(parentForkMessages ? { specialParentForkMessages: parentForkMessages } : {}),
+      ...(parentContextTransport.parentForkMessages
+        ? { specialParentForkMessages: parentContextTransport.parentForkMessages }
+        : {}),
       specialAgentSpawnSource: request.definition.spawnSource,
       ...(embeddedContext?.specialAgentContext?.durableMemoryScope
         ? {

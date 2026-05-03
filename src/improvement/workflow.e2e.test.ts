@@ -57,6 +57,7 @@ function createEmbeddedPromotionJudgeHarness(params: { workspaceDir: string }) {
     ): Promise<EmbeddedPiRunResult> => {
       expect(embeddedParams.specialAgentSpawnSource).toBe("promotion-judge");
       expect(embeddedParams.prompt).toContain("Submit exactly one verdict");
+      expect(embeddedParams.prompt).toContain("Source refs:");
 
       const tools = createCrawClawCodingTools({
         workspaceDir: params.workspaceDir,
@@ -66,6 +67,7 @@ function createEmbeddedPromotionJudgeHarness(params: { workspaceDir: string }) {
         specialAgentSpawnSource: embeddedParams.specialAgentSpawnSource,
         agentDir: path.join(params.workspaceDir, "agent"),
       });
+      expect(tools.map((tool) => tool.name)).toContain("read");
       const verdictTool = tools.find((tool) => tool.name === "submit_promotion_verdict");
       expect(verdictTool).toBeDefined();
       await verdictTool!.execute?.("tool-call-promotion-judge", {

@@ -25,6 +25,7 @@ export const DREAM_AGENT_DEFINITION: SpecialAgentDefinition =
     label: "dream",
     spawnSource: DREAM_SPAWN_SOURCE,
     allowlist: DREAM_MEMORY_MAINTENANCE_TOOL_ALLOWLIST,
+    parentContextPolicy: "none",
     modelVisibility: "allowlist",
     guard: "memory_maintenance",
     defaultRunTimeoutSeconds: 120,

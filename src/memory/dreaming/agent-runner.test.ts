@@ -77,6 +77,7 @@ describe("runDreamAgentOnce", () => {
   it("aligns the dream prompt with the orient/gather/consolidate/prune workflow", () => {
     expect(DREAM_AGENT_DEFINITION.executionMode).toBe("embedded_fork");
     expect(DREAM_AGENT_DEFINITION.transcriptPolicy).toBe("isolated");
+    expect(DREAM_AGENT_DEFINITION.parentContextPolicy).toBe("none");
     expect(DREAM_AGENT_DEFINITION.toolPolicy).toMatchObject({
       allowlist: [
         "read",

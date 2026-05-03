@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
@@ -19,6 +20,15 @@ describe("pi-tools promotion judge gating", () => {
     const toolNames = tools.map((tool) => tool.name);
 
     expect(toolNames).toContain("submit_promotion_verdict");
+    expect(toolNames).toContain("read");
+
+    await fs.writeFile(path.join(workspaceDir, "candidate-code.ts"), "export const status = 'ok';");
+    const readTool = tools.find((tool) => tool.name === "read");
+    expect(readTool).toBeDefined();
+    const readResult = await readTool!.execute?.("call-promotion-read", {
+      path: path.join(workspaceDir, "candidate-code.ts"),
+    });
+    expect(JSON.stringify(readResult)).toContain("status");
 
     const verdictTool = tools.find((tool) => tool.name === "submit_promotion_verdict");
     expect(verdictTool).toBeDefined();

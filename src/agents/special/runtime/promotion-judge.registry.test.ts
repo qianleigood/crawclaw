@@ -11,9 +11,11 @@ describe("promotion judge special agent registry", () => {
     expect(definition?.id).toBe("promotion-judge");
     expect(definition?.executionMode).toBe("embedded_fork");
     expect(definition?.transcriptPolicy).toBe("isolated");
+    expect(definition?.parentContextPolicy).toBe("none");
     expect(definition?.toolPolicy?.enforcement).toBe("runtime_deny");
     expect(definition?.toolPolicy?.modelVisibility).toBe("allowlist");
     expect(resolveSpecialAgentToolAllowlistBySpawnSource("promotion-judge")).toEqual([
+      "read",
       "submit_promotion_verdict",
     ]);
   });
