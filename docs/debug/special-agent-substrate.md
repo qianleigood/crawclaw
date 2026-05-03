@@ -130,8 +130,9 @@ agents:
 - parent runs build a lifecycle `parentForkContext` from the final parent
   prompt assembly, so embedded forks can receive one captured handoff object
   containing model-visible messages plus cache/debug metadata
-- embedded forks may receive an explicit parent prompt envelope when the
-  lifecycle captured one; otherwise they run from their own prompt assembly
+- embedded forks now declare a definition-level `parentContextPolicy`
+  (`none`, `fork_messages_only`, or `full_envelope`) so the runtime decides
+  whether a captured parent prompt envelope may be attached at all
 - the parent fork context separates:
   - a canonical `CacheEnvelope` for the model-visible shared prefix
   - debug context fields for run/session metadata that should not affect cache identity
@@ -148,10 +149,10 @@ agents:
 - that parent fork context carries the full current model-visible
   fork-context messages, matching Claude Code's session-memory update shape
   without a recent-message excerpt fallback
-- session-summary is isolated by the special-agent spawn-source policy, so it
-  does not reuse the parent system prompt, the main-agent prompt extras, or the
-  main memory-runtime recall path; it only receives the forked parent
-  conversation plus its own summary-maintenance instructions
+- session-summary now declares `isolatedContext: true`, so it does
+  not reuse the parent system prompt, the main-agent prompt extras, or the main
+  memory-runtime recall path; its `parentContextPolicy: "full_envelope"` only
+  controls the handoff object, not parent-system-prompt reuse
 - lifecycle updates with missing fork context are skipped, while explicit
   CLI/gateway refresh builds a bounded manual parent fork context from persisted
   model-visible rows
@@ -159,16 +160,20 @@ agents:
   stay in the task prompt instead of being appended to or merged into the
   parent system prompt
 - durable extraction does not attach the parent run's captured prompt envelope;
-  it receives only the fork-context messages required for the recent-message
-  extraction window
+  its `parentContextPolicy: "fork_messages_only"` gives it only the
+  fork-context messages required for the recent-message extraction window
 - dream is an independent embedded maintenance special agent. It does not
-  receive a parent fork context, does not spawn a child session, and consumes
+  receive a parent fork context because its definition now declares
+  `parentContextPolicy: "none"`, does not spawn a child session, and consumes
   only the host-provided durable manifest, structured signals, and transcript
   refs.
-- dream is isolated by the special-agent spawn-source policy, so the embedded
+- dream also declares `isolatedContext: true`, so the embedded
   runner skips the default main-agent prompt, skills prompt, docs path,
   bootstrap context files, workspace reminders, and the main memory runtime
   recall/lifecycle for that run.
+- experience now also declares `isolatedContext: true`, so its embedded run
+  stays on the narrow maintenance prompt surface instead of inheriting the main
+  agent's skills, docs path, or memory-runtime prompt extras.
 - durable extraction and dream special runs still keep cache-write suppression
   and short retention
 - session-summary keeps short retention but does not reuse a parent
@@ -195,6 +200,7 @@ The main remaining difference from Claude Code is that CrawClaw still does not r
 Future task-specific special agents should continue to opt in case-by-case:
 
 - maintenance-style, fire-and-forget background agents should prefer
-  `embedded_fork`; independence comes from omitting parent fork context and
-  parent messages, not from creating a child session
+  `embedded_fork`; independence should come from an explicit
+  `parentContextPolicy` choice plus isolated context behavior, not from
+  implicitly omitting parent fork context at the call site
 - user-invoked or session-bearing task agents should remain `spawned_session` unless they explicitly need a parent fork context more than child-session state

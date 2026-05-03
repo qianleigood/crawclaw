@@ -80,8 +80,10 @@ Durable auto-write also follows a turn-end completion trigger:
   and `durable_memory` consumes that phase as a subscriber
 - the same stop event can carry the captured parent fork context, including the
   parent prompt envelope and full model-visible message context; the embedded
-  `durable_memory` inherits that fork and appends only a narrow durable-memory
-  maintenance prompt
+  `durable_memory` definition explicitly uses `parentContextPolicy:
+"fork_messages_only"`, so the embedded run inherits only the forked messages
+  needed for the recent-message extraction window and appends only a narrow
+  durable-memory maintenance prompt
 - the cursor-based recent-message window remains the extraction boundary; older
   forked context is available only to resolve references in the recent messages,
   not as a source for re-extracting stale history
@@ -109,7 +111,9 @@ CrawClaw also has a second durable-memory maintenance layer:
   spawned child session and not as a parent-run fork. The stop event only
   triggers scheduling and scope resolution; Dream does not receive the parent
   prompt envelope, parent model-visible messages, parent run id, child-session
-  state, subagent announcement, or parent provider/model selection.
+  state, subagent announcement, or parent provider/model selection. This is now
+  enforced by the special-agent contract with `parentContextPolicy: "none"`,
+  rather than relying on the caller to omit `parentForkContext`.
 - Dream uses its own system prompt and isolated embedded special-agent context
   with the dream tool policy, so it does not inherit the default main-agent
   prompt, surfaced skills, bootstrap context files, or workspace reminders.
@@ -260,6 +264,8 @@ Experience extraction and recall are deliberately split:
 - lifecycle `stop` captures the just-finished top-level turn
 - the Experience Agent reviews recent model-visible messages, session summary
   context, and the local pending outbox for unsynced NotebookLM writes
+- experience extraction progress is tracked per session in the runtime store, so
+  restarts resume from the persisted cursor instead of rescanning from turn `0`
 - the agent can only use `write_experience_note`; it cannot run shell commands,
   browse, inspect source files, write durable memory, or spawn agents
 - successful writes go directly to NotebookLM when the provider is ready
@@ -348,7 +354,9 @@ These layers do not share the same boundaries:
 - **Durable memory** is shared whenever runs resolve to the same
   `agentId + channel + userId` scope.
 - **Experience memory** uses the same NotebookLM provider configuration and
-  local pending outbox across runs; it is not partitioned by session id.
+  prompt-facing recall across runs, while the local pending outbox is scoped by
+  the same `agentId + channel + userId` boundary and the extraction cursor is
+  tracked per session.
 
 All agents that use the built-in memory runtime receive the same agent memory
 routing contract. This guidance is not limited to the `main` agent.

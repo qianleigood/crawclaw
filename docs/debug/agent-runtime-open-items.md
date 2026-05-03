@@ -103,6 +103,9 @@ contracts.
     - durable extraction and dream keep short retention plus cache-write
       suppression, while session-summary uses the parent fork context only for
       prompt/history handoff and does not reuse parent prompt-cache keys
+    - embedded forks now declare explicit `parentContextPolicy`
+      (`none`, `fork_messages_only`, `full_envelope`) instead of relying on
+      ad hoc call-site omission or `definitionId` checks
     - dream does not consume session-summary files or compact-summary state;
       it consolidates durable memory from the manifest, structured signals,
       and narrow transcript refs
@@ -111,10 +114,10 @@ contracts.
       envelope, parent messages, parent run id, provider/model inheritance,
       child-session state, subagent announcement, default main-agent prompt,
       skills, bootstrap context, workspace reminders, or main memory runtime
-      recall/lifecycle
-    - the embedded runner isolates dream through the special-agent spawn-source
-      policy, which omits default prompt extras instead of relying on the normal
-      embedded prompt branch
+      recall/lifecycle because its contract is now `parentContextPolicy: "none"`
+    - dream now declares `isolatedContext: true`, and the embedded runner uses
+      that definition-level contract to omit default prompt extras instead of
+      relying on a spawn-source allowlist
     - explicit CLI/gateway summary refresh now reconstructs a bounded manual
       parent fork context from persisted model-visible rows instead of calling
       the scheduler without fork context
@@ -259,6 +262,11 @@ Memory is aligned with the current simplified model, but follow-up work remains.
     - [`Durable Memory Refactor Status`](/debug/claude-memory-refactor)
 - [x] Add agent-scoped routing guidance for `write_experience_note`, matching the
       durable-memory guidance quality level.
+- [x] Move maintenance-agent isolation onto `SpecialAgentDefinition`.
+  - `durable-memory`, `session-summary`, `dream`, and `experience` now declare
+    `isolatedContext: true` directly.
+  - the embedded runner resolves isolation from the registered definition
+    instead of a hardcoded spawn-source set.
 - [ ] Revisit candidate extraction as a future suggestion layer only.
   - It should not become a hidden writeback path again.
 - [x] Keep dreaming as a separate durable-memory consolidation pipeline.
