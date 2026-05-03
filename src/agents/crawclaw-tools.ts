@@ -1,5 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
+import { resolveDurableMemoryScope } from "../memory/durable/scope.js";
 import { resolvePluginTools } from "../plugins/tools.js";
 import {
   getActiveSecretsRuntimeSnapshot,
@@ -183,6 +184,13 @@ export function createCrawClawTools(
   });
   const experienceWriteTool = createExperienceWriteTool({
     config: resolvedConfig,
+    scope: resolveDurableMemoryScope({
+      sessionKey: options?.agentSessionKey,
+      agentId: sessionAgentId,
+      channel: options?.durableMemoryChannel ?? options?.agentChannel,
+      userId: options?.requesterSenderId ?? undefined,
+      fallbackToLocal: true,
+    }),
   });
   const memoryManifestReadTool = createMemoryManifestReadTool({
     scope: options?.durableMemoryScope,

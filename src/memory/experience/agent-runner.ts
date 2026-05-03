@@ -22,6 +22,7 @@ export const EXPERIENCE_AGENT_DEFINITION: SpecialAgentDefinition =
     label: "experience",
     spawnSource: EXPERIENCE_SPAWN_SOURCE,
     allowlist: EXPERIENCE_TOOL_ALLOWLIST,
+    parentContextPolicy: "none",
     modelVisibility: "allowlist",
     defaultRunTimeoutSeconds: 90,
     defaultMaxTurns: 5,
@@ -319,7 +320,9 @@ export function buildExperienceExtractionTaskPrompt(params: {
 export async function runExperienceExtractionAgentOnce(
   params: ExperienceExtractionRunParams,
 ): Promise<ExperienceExtractionRunResult> {
-  const existingEntries = await readPendingExperienceOutboxEntries(80);
+  const existingEntries = await readPendingExperienceOutboxEntries(80, {
+    scope: params.scope.scopeKey ? { scopeKey: params.scope.scopeKey } : null,
+  });
   const sessionSummary = await readSessionSummaryFile({
     agentId: params.scope.agentId,
     sessionId: params.sessionId,

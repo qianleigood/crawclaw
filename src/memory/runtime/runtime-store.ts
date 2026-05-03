@@ -113,6 +113,8 @@ export interface RuntimeStore {
   ): Promise<ObservationBackfillCheckpointRow | null>;
   getSessionSummaryState(sessionId: string): Promise<SessionSummaryStateRow | null>;
   upsertSessionSummaryState(input: UpsertSessionSummaryStateInput): Promise<void>;
+  getExperienceExtractionCursor(sessionId: string): Promise<DurableExtractionCursorRow | null>;
+  upsertExperienceExtractionCursor(input: UpsertDurableExtractionCursorInput): Promise<void>;
   getDurableExtractionCursor(sessionId: string): Promise<DurableExtractionCursorRow | null>;
   upsertDurableExtractionCursor(input: UpsertDurableExtractionCursorInput): Promise<void>;
   getSessionCompactionState(sessionId: string): Promise<SessionCompactionStateRow | null>;

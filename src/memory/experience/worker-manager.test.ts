@@ -6,7 +6,9 @@ import { makeAgentUserMessage } from "../../agents/test-helpers/agent-message-fi
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type {
   AppendMessageInput,
+  DurableExtractionCursorRow,
   GmMessageRow,
+  UpsertDurableExtractionCursorInput,
   UpdateMaintenanceRunInput,
 } from "../types/runtime.ts";
 
@@ -35,6 +37,10 @@ describe("ExperienceExtractionWorkerManager", () => {
     RuntimeStore,
     "appendMessage" | "createMaintenanceRun" | "updateMaintenanceRun" | "listMessagesByTurnRange"
   > & {
+    getExperienceExtractionCursor: (
+      sessionId: string,
+    ) => Promise<DurableExtractionCursorRow | null>;
+    upsertExperienceExtractionCursor: (input: UpsertDurableExtractionCursorInput) => Promise<void>;
     maintenanceUpdates: UpdateMaintenanceRunInput[];
   };
 
@@ -42,6 +48,7 @@ describe("ExperienceExtractionWorkerManager", () => {
     let nextMessageId = 0;
     const messageRows: GmMessageRow[] = [];
     const maintenanceUpdates: UpdateMaintenanceRunInput[] = [];
+    const cursorRows = new Map<string, DurableExtractionCursorRow>();
     return {
       maintenanceUpdates,
       appendMessage: vi.fn().mockImplementation(async (input: AppendMessageInput) => {
@@ -67,6 +74,26 @@ describe("ExperienceExtractionWorkerManager", () => {
       updateMaintenanceRun: vi.fn().mockImplementation(async (input: UpdateMaintenanceRunInput) => {
         maintenanceUpdates.push(input);
       }),
+      getExperienceExtractionCursor: vi.fn().mockImplementation(async (sessionId: string) => {
+        return cursorRows.get(sessionId) ?? null;
+      }),
+      upsertExperienceExtractionCursor: vi
+        .fn()
+        .mockImplementation(async (input: UpsertDurableExtractionCursorInput) => {
+          const current = cursorRows.get(input.sessionId);
+          const nextTurn = Math.max(current?.lastExtractedTurn ?? 0, input.lastExtractedTurn);
+          cursorRows.set(input.sessionId, {
+            sessionId: input.sessionId,
+            sessionKey: input.sessionKey ?? current?.sessionKey ?? null,
+            lastExtractedTurn: nextTurn,
+            lastExtractedMessageId:
+              nextTurn === input.lastExtractedTurn
+                ? (input.lastExtractedMessageId ?? null)
+                : (current?.lastExtractedMessageId ?? null),
+            lastRunAt: input.lastRunAt ?? null,
+            updatedAt: input.updatedAt ?? Date.now(),
+          });
+        }),
       listMessagesByTurnRange: vi
         .fn()
         .mockImplementation(async (sessionId: string, startTurn: number, endTurn: number) =>
@@ -220,5 +247,115 @@ describe("ExperienceExtractionWorkerManager", () => {
       foregroundWriteCount?: number;
     };
     expect(metrics.foregroundWriteCount).toBe(2);
+  });
+
+  it("resumes from the persisted experience cursor after manager reset", async () => {
+    const stateDir = await createStateDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runtimeStore = createRuntimeStore();
+    const runner = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: "no_change",
+        summary: "first pass",
+        writtenCount: 0,
+        updatedCount: 0,
+        deletedCount: 0,
+        touchedNotes: [],
+        advanceCursor: true,
+      })
+      .mockResolvedValueOnce({
+        status: "no_change",
+        summary: "second pass",
+        writtenCount: 0,
+        updatedCount: 0,
+        deletedCount: 0,
+        touchedNotes: [],
+        advanceCursor: true,
+      });
+
+    const { __testing, getSharedExperienceExtractionWorkerManager } =
+      await import("./worker-manager.ts");
+
+    await appendMessage(runtimeStore, {
+      sessionId: "session-experience-cursor",
+      role: "user",
+      content: "第一轮消息 1",
+      turnIndex: 1,
+    });
+    await appendMessage(runtimeStore, {
+      sessionId: "session-experience-cursor",
+      role: "assistant",
+      content: "第一轮消息 2",
+      turnIndex: 2,
+    });
+
+    const firstManager = getSharedExperienceExtractionWorkerManager({
+      config: {
+        enabled: true,
+        recentMessageLimit: 8,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 1,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+    firstManager.submitTurn({
+      sessionId: "session-experience-cursor",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      newMessages: [makeAgentUserMessage({ content: "第一轮 stop" })] as never,
+      messageCursor: 2,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await firstManager.drainAll();
+
+    await __testing.resetSharedExperienceExtractionWorkerManager();
+
+    await appendMessage(runtimeStore, {
+      sessionId: "session-experience-cursor",
+      role: "user",
+      content: "第二轮消息 3",
+      turnIndex: 3,
+    });
+    await appendMessage(runtimeStore, {
+      sessionId: "session-experience-cursor",
+      role: "assistant",
+      content: "第二轮消息 4",
+      turnIndex: 4,
+    });
+
+    const secondManager = getSharedExperienceExtractionWorkerManager({
+      config: {
+        enabled: true,
+        recentMessageLimit: 8,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 1,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+    secondManager.submitTurn({
+      sessionId: "session-experience-cursor",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      newMessages: [makeAgentUserMessage({ content: "第二轮 stop" })] as never,
+      messageCursor: 4,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await secondManager.drainAll();
+
+    expect(runner).toHaveBeenCalledTimes(2);
+    expect(runner.mock.calls[1]?.[0]?.recentMessages).toHaveLength(2);
+    expect(runtimeStore.listMessagesByTurnRange).toHaveBeenNthCalledWith(
+      2,
+      "session-experience-cursor",
+      3,
+      4,
+    );
   });
 });

@@ -1019,6 +1019,16 @@ export class SqliteRuntimeStore implements RuntimeStore {
     return row ? this.mapDurableExtractionCursorRow(row) : null;
   }
 
+  async getExperienceExtractionCursor(
+    sessionId: string,
+  ): Promise<DurableExtractionCursorRow | null> {
+    const db = this.getDb();
+    const row = db
+      .prepare(`SELECT * FROM gm_experience_extraction_cursor WHERE session_id = ? LIMIT 1`)
+      .get(sessionId);
+    return row ? this.mapDurableExtractionCursorRow(row) : null;
+  }
+
   async upsertDurableExtractionCursor(input: UpsertDurableExtractionCursorInput): Promise<void> {
     const db = this.getDb();
     db.prepare(`INSERT INTO gm_durable_extraction_cursor
@@ -1035,6 +1045,34 @@ export class SqliteRuntimeStore implements RuntimeStore {
           WHEN excluded.last_extracted_turn >= gm_durable_extraction_cursor.last_extracted_turn
           THEN excluded.last_extracted_message_id
           ELSE gm_durable_extraction_cursor.last_extracted_message_id
+        END,
+        last_run_at = excluded.last_run_at,
+        updated_at = excluded.updated_at`).run(
+      input.sessionId,
+      input.sessionKey ?? null,
+      input.lastExtractedTurn,
+      input.lastExtractedMessageId ?? null,
+      input.lastRunAt ?? null,
+      input.updatedAt ?? Date.now(),
+    );
+  }
+
+  async upsertExperienceExtractionCursor(input: UpsertDurableExtractionCursorInput): Promise<void> {
+    const db = this.getDb();
+    db.prepare(`INSERT INTO gm_experience_extraction_cursor
+      (session_id, session_key, last_extracted_turn, last_extracted_message_id, last_run_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(session_id) DO UPDATE SET
+        session_key = excluded.session_key,
+        last_extracted_turn = CASE
+          WHEN excluded.last_extracted_turn >= gm_experience_extraction_cursor.last_extracted_turn
+          THEN excluded.last_extracted_turn
+          ELSE gm_experience_extraction_cursor.last_extracted_turn
+        END,
+        last_extracted_message_id = CASE
+          WHEN excluded.last_extracted_turn >= gm_experience_extraction_cursor.last_extracted_turn
+          THEN excluded.last_extracted_message_id
+          ELSE gm_experience_extraction_cursor.last_extracted_message_id
         END,
         last_run_at = excluded.last_run_at,
         updated_at = excluded.updated_at`).run(

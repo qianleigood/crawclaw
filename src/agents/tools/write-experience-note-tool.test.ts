@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
+import { resolveDurableMemoryScope } from "../../memory/durable/scope.js";
 import { readExperienceOutboxEntries } from "../../memory/experience/outbox-store.js";
 
 const notebookLmWriteMock = vi.hoisted(() => vi.fn());
@@ -176,6 +177,12 @@ describe("createExperienceWriteTool", () => {
     const stateDir = await createTempDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     notebookLmWriteMock.mockRejectedValueOnce(new Error("Authentication failed"));
+    const scope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "feishu",
+      userId: "user-1",
+    });
+    expect(scope).not.toBeNull();
 
     const tool = createExperienceWriteTool({
       config: {
@@ -206,6 +213,7 @@ describe("createExperienceWriteTool", () => {
           },
         },
       } satisfies CrawClawConfig,
+      scope: scope!,
     });
 
     expect(tool).not.toBeNull();
@@ -238,7 +246,7 @@ describe("createExperienceWriteTool", () => {
     const outboxEntries = await readExperienceOutboxEntries();
     expect(outboxEntries).toEqual([
       expect.objectContaining({
-        id: "experience-outbox:missing-tool-payload-debug",
+        id: "experience-outbox:main-feishu-user-1-missing-tool-payload-debug",
         title: "工具缺失排查经验",
         summary: "工具没有进入模型 payload 时，先检查实际 payload 再看注册路径。",
         type: "failure_pattern",
@@ -246,6 +254,9 @@ describe("createExperienceWriteTool", () => {
         notebookId: "local",
         syncStatus: "pending_sync",
         lastSyncError: expect.stringContaining("Authentication failed"),
+        scope: expect.objectContaining({
+          scopeKey: scope!.scopeKey,
+        }),
       }),
     ]);
   });

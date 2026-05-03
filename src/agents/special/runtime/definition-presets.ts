@@ -1,4 +1,5 @@
 import type {
+  SpecialAgentParentContextPolicy,
   SpecialAgentCachePolicy,
   SpecialAgentDefinition,
   SpecialAgentToolPolicy,
@@ -31,6 +32,7 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
   label: string;
   spawnSource: string;
   allowlist: readonly string[];
+  parentContextPolicy: SpecialAgentParentContextPolicy;
   modelVisibility?: SpecialAgentToolPolicy["modelVisibility"];
   guard?: SpecialAgentToolPolicy["guard"];
   defaultRunTimeoutSeconds: number;
@@ -41,7 +43,9 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
     label: params.label,
     spawnSource: params.spawnSource,
     executionMode: "embedded_fork",
+    isolatedContext: true,
     transcriptPolicy: "isolated",
+    parentContextPolicy: params.parentContextPolicy,
     toolPolicy: createRuntimeDenyToolPolicy(params.allowlist, {
       modelVisibility: params.modelVisibility,
       guard: params.guard,

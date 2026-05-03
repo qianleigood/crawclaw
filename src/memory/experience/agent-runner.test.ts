@@ -260,9 +260,10 @@ describe("experience extraction agent", () => {
       }),
     );
     const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as
-      | { specialParentPromptEnvelope?: unknown }
+      | { specialParentPromptEnvelope?: unknown; streamParams?: Record<string, unknown> }
       | undefined;
     expect(embeddedParams?.specialParentPromptEnvelope).toBeUndefined();
+    expect(embeddedParams?.streamParams).not.toHaveProperty("toolChoice");
   });
 
   it("passes only pending local outbox entries into the extraction prompt", async () => {
@@ -292,6 +293,7 @@ describe("experience extraction agent", () => {
       },
       notebookId: "local",
       syncStatus: "pending_sync",
+      scope: scope!,
     });
     await upsertExperienceOutboxEntryFromNote({
       note: {
@@ -310,6 +312,32 @@ describe("experience extraction agent", () => {
       notebookId: "experience-notebook",
       noteId: "note-synced",
       syncStatus: "synced",
+      scope: scope!,
+    });
+    const otherScope = resolveDurableMemoryScope({
+      agentId: "main",
+      channel: "slack",
+      userId: "user-2",
+      rootDir: path.join(dir, "durable-memory"),
+    });
+    expect(otherScope).not.toBeNull();
+    await upsertExperienceOutboxEntryFromNote({
+      note: {
+        type: "workflow_pattern",
+        title: "其他 scope 待同步经验",
+        summary: "这个 pending 条目属于其他 scope，不应进入当前 Experience Agent prompt。",
+        context: "其他渠道的 NotebookLM 写入失败。",
+        trigger: "后续经验提取。",
+        action: "不要把其他 scope 的 pending manifest 混进来。",
+        result: "prompt 中不可见其他 scope 条目。",
+        lesson: "pending outbox 必须按 scope 隔离。",
+        evidence: ["pending_sync"],
+        confidence: "high",
+        dedupeKey: "other-scope-outbox-hidden",
+      },
+      notebookId: "local",
+      syncStatus: "pending_sync",
+      scope: otherScope!,
     });
 
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
@@ -361,5 +389,6 @@ describe("experience extraction agent", () => {
     const embeddedParams = runEmbeddedPiAgent.mock.calls[0]?.[0] as { prompt?: string } | undefined;
     expect(embeddedParams?.prompt).toContain("待同步经验");
     expect(embeddedParams?.prompt).not.toContain("已同步旧经验");
+    expect(embeddedParams?.prompt).not.toContain("其他 scope 待同步经验");
   });
 });

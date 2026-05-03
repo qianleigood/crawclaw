@@ -27,6 +27,7 @@ describe("special agent definition presets", () => {
         label: "durable-memory",
         spawnSource: "durable-memory",
         allowlist: ["memory_note_read", "memory_note_write"],
+        parentContextPolicy: "fork_messages_only",
         defaultRunTimeoutSeconds: 90,
         defaultMaxTurns: 5,
       }),
@@ -35,7 +36,9 @@ describe("special agent definition presets", () => {
       label: "durable-memory",
       spawnSource: "durable-memory",
       executionMode: "embedded_fork",
+      isolatedContext: true,
       transcriptPolicy: "isolated",
+      parentContextPolicy: "fork_messages_only",
       toolPolicy: {
         allowlist: ["memory_note_read", "memory_note_write"],
         enforcement: "runtime_deny",
@@ -59,10 +62,12 @@ describe("special agent definition presets", () => {
       label: "dream",
       spawnSource: "dream",
       allowlist: ["memory_note_read"],
+      parentContextPolicy: "none",
       defaultRunTimeoutSeconds: 120,
     });
 
     expect(definition.defaultRunTimeoutSeconds).toBe(120);
     expect(definition).not.toHaveProperty("defaultMaxTurns");
+    expect(definition.isolatedContext).toBe(true);
   });
 });

@@ -1,12 +1,18 @@
-const ISOLATED_SPECIAL_AGENT_SPAWN_SOURCES = new Set([
-  "durable-memory",
-  "session-summary",
-  "dream",
-]);
+import { resolveSpecialAgentDefinitionBySpawnSource } from "./registry.js";
+import type { SpecialAgentDefinition } from "./types.js";
 
 export function shouldUseIsolatedSpecialAgentContext(
-  spawnSource: string | null | undefined,
+  definitionOrSpawnSource: SpecialAgentDefinition | string | null | undefined,
 ): boolean {
-  const normalized = spawnSource?.trim();
-  return normalized !== undefined && ISOLATED_SPECIAL_AGENT_SPAWN_SOURCES.has(normalized);
+  if (!definitionOrSpawnSource) {
+    return false;
+  }
+  if (typeof definitionOrSpawnSource !== "string") {
+    return definitionOrSpawnSource.isolatedContext === true;
+  }
+  const normalized = definitionOrSpawnSource.trim();
+  if (!normalized) {
+    return false;
+  }
+  return resolveSpecialAgentDefinitionBySpawnSource(normalized)?.isolatedContext === true;
 }

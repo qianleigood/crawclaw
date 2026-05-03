@@ -2,6 +2,7 @@ import { Type } from "@sinclair/typebox";
 import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeNotebookLmConfig } from "../../memory/config/notebooklm.ts";
 import { getSharedMemoryPromptJournal } from "../../memory/diagnostics/prompt-journal.ts";
+import type { DurableMemoryScope } from "../../memory/durable/scope.ts";
 import {
   classifyExperienceNoteGuardIssue,
   normalizeExperienceConfidence,
@@ -169,6 +170,7 @@ const WriteExperienceNoteToolSchema = Type.Object({
 
 type ExperienceWriteToolOptions = {
   config?: CrawClawConfig;
+  scope?: DurableMemoryScope | null;
 };
 
 type ExperienceNoteOperation = (typeof EXPERIENCE_NOTE_OPERATIONS)[number];
@@ -238,8 +240,11 @@ async function runExperienceLifecycleOperation(params: {
   targetId: string;
   supersededBy?: string;
   notebooklm: ReturnType<typeof normalizeNotebookLmConfig>;
+  scope?: DurableMemoryScope | null;
 }) {
-  const entries = await readExperienceOutboxEntries();
+  const entries = await readExperienceOutboxEntries(200, {
+    scope: params.scope?.scopeKey ? { scopeKey: params.scope.scopeKey } : null,
+  });
   const target = findExperienceOutboxEntry(entries, params.targetId);
   if (!target) {
     throw new ToolInputError(`experience note not found: ${params.targetId}`);
@@ -331,6 +336,7 @@ export function createExperienceWriteTool(
           targetId: readStringParam(params, "targetId", { required: true }),
           supersededBy: readStringParam(params, "supersededBy"),
           notebooklm,
+          scope: options?.scope,
         });
       }
 
@@ -426,6 +432,7 @@ export function createExperienceWriteTool(
         notebookId: "local",
         syncStatus,
         syncError,
+        scope: options?.scope,
       });
       getSharedMemoryPromptJournal()?.recordStage("experience_write", {
         payload: {

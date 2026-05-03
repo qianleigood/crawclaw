@@ -11,6 +11,7 @@ import type { SpecialAgentParentForkContext } from "./parent-fork-context.js";
 export type SpecialAgentTranscriptPolicy = "isolated" | "thread_bound";
 export type SpecialAgentExecutionMode = "embedded_fork" | "spawned_session";
 export type SpecialAgentToolGuard = "memory_maintenance";
+export type SpecialAgentParentContextPolicy = "none" | "fork_messages_only" | "full_envelope";
 
 export type SpecialAgentToolPolicy = {
   allowlist: readonly string[];
@@ -66,7 +67,9 @@ export type SpecialAgentDefinition = {
   label: string;
   spawnSource: string;
   executionMode?: SpecialAgentExecutionMode;
+  isolatedContext?: boolean;
   transcriptPolicy?: SpecialAgentTranscriptPolicy;
+  parentContextPolicy?: SpecialAgentParentContextPolicy;
   toolPolicy?: SpecialAgentToolPolicy;
   cachePolicy?: SpecialAgentCachePolicy;
   runtime?: SpawnAgentSessionParams["runtime"];
@@ -155,6 +158,11 @@ export function validateSpecialAgentDefinitionContract(
   }
   if (executionMode === "embedded_fork" && transcriptPolicy !== "isolated") {
     issues.push('embedded_fork requires transcriptPolicy="isolated"');
+  }
+  if (executionMode === "embedded_fork" && !definition.parentContextPolicy) {
+    issues.push(
+      'embedded_fork requires explicit parentContextPolicy ("none", "fork_messages_only", or "full_envelope")',
+    );
   }
   if (executionMode === "embedded_fork" && !toolPolicy?.enforcement) {
     issues.push(

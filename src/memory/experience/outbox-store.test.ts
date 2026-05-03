@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { resolveDurableMemoryScope } from "../durable/scope.js";
 import {
   markExperienceOutboxEntrySyncFailed,
   markExperienceOutboxEntrySynced,
@@ -32,9 +33,64 @@ async function useTempStateDir(): Promise<string> {
   return stateDir;
 }
 
+function buildScope(params: { agentId: string; channel: string; userId: string }) {
+  return resolveDurableMemoryScope(params);
+}
+
 describe("experience local outbox", () => {
+  it("stores scope on pending entries and filters pending reads by scope", async () => {
+    await useTempStateDir();
+    const scopeA = buildScope({ agentId: "main", channel: "feishu", userId: "user-a" });
+    const scopeB = buildScope({ agentId: "main", channel: "slack", userId: "user-b" });
+    expect(scopeA).not.toBeNull();
+    expect(scopeB).not.toBeNull();
+
+    const entryA = await upsertExperienceOutboxEntryFromNote({
+      note: {
+        type: "procedure",
+        title: "Scope A 待同步经验",
+        summary: "Scope A 的 pending 经验应只出现在 A 的提取上下文里。",
+        context: "A scope NotebookLM 暂不可用。",
+        action: "只在 A scope 内重试。",
+        lesson: "pending outbox 需要 scope 隔离。",
+        dedupeKey: "shared-pending-experience",
+      },
+      notebookId: "local",
+      syncStatus: "pending_sync",
+      scope: scopeA!,
+      updatedAt: 1_000,
+    });
+    const entryB = await upsertExperienceOutboxEntryFromNote({
+      note: {
+        type: "procedure",
+        title: "Scope B 待同步经验",
+        summary: "Scope B 的 pending 经验不应覆盖 A。",
+        context: "B scope NotebookLM 暂不可用。",
+        action: "只在 B scope 内重试。",
+        lesson: "相同 dedupeKey 也必须允许跨 scope 共存。",
+        dedupeKey: "shared-pending-experience",
+      },
+      notebookId: "local",
+      syncStatus: "pending_sync",
+      scope: scopeB!,
+      updatedAt: 2_000,
+    });
+
+    expect(entryA.id).not.toBe(entryB.id);
+    expect(entryA.scope).toMatchObject({ scopeKey: scopeA!.scopeKey });
+    expect(entryB.scope).toMatchObject({ scopeKey: scopeB!.scopeKey });
+    expect(
+      (await readPendingExperienceOutboxEntries(10, { scope: scopeA! })).map((item) => item.id),
+    ).toEqual([entryA.id]);
+    expect(
+      (await readPendingExperienceOutboxEntries(10, { scope: scopeB! })).map((item) => item.id),
+    ).toEqual([entryB.id]);
+  });
+
   it("tracks NotebookLM sync state separately from lifecycle state", async () => {
     const stateDir = await useTempStateDir();
+    const scope = buildScope({ agentId: "main", channel: "feishu", userId: "user-1" });
+    expect(scope).not.toBeNull();
     const entry = await upsertExperienceOutboxEntryFromNote({
       note: {
         type: "procedure",
@@ -48,11 +104,12 @@ describe("experience local outbox", () => {
       notebookId: "local",
       syncStatus: "pending_sync",
       syncError: "auth_expired",
+      scope: scope!,
       updatedAt: 1_000,
     });
 
     expect(entry).toMatchObject({
-      id: "experience-outbox:pending-sync-experience",
+      id: "experience-outbox:main-feishu-user-1-pending-sync-experience",
       status: "active",
       syncStatus: "pending_sync",
       syncAttempts: 0,
@@ -67,7 +124,7 @@ describe("experience local outbox", () => {
     });
 
     expect((await readPendingExperienceOutboxEntries(10)).map((item) => item.id)).toEqual([
-      "experience-outbox:pending-sync-experience",
+      entry.id,
     ]);
 
     await markExperienceOutboxEntrySyncFailed({

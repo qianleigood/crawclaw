@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { PROMOTION_JUDGE_AGENT_DEFINITION } from "../../../improvement/promotion-judge.js";
+import { DREAM_AGENT_DEFINITION } from "../../../memory/dreaming/agent-runner.js";
 import { DURABLE_MEMORY_AGENT_DEFINITION } from "../../../memory/durable/agent-runner.js";
+import { EXPERIENCE_AGENT_DEFINITION } from "../../../memory/experience/agent-runner.js";
+import { shouldUseIsolatedSpecialAgentContext } from "./context-policy.js";
 import { buildSpecialAgentCacheEnvelope } from "./parent-fork-context.js";
 import { runSpecialAgentToCompletion } from "./run-once.js";
 import type { SpecialAgentDefinition } from "./types.js";
@@ -39,6 +42,7 @@ const TEST_EMBEDDED_SPECIAL_AGENT_DEFINITION: SpecialAgentDefinition = {
     allowlist: ["read"],
     enforcement: "prompt_allowlist",
   },
+  parentContextPolicy: "full_envelope",
 };
 
 const TEST_EMBEDDED_RUNTIME_DENY_SPECIAL_AGENT_DEFINITION: SpecialAgentDefinition = {
@@ -50,9 +54,17 @@ const TEST_EMBEDDED_RUNTIME_DENY_SPECIAL_AGENT_DEFINITION: SpecialAgentDefinitio
     allowlist: ["read"],
     enforcement: "runtime_deny",
   },
+  parentContextPolicy: "full_envelope",
 };
 
 describe("runSpecialAgentToCompletion", () => {
+  it("derives isolated-context policy from the special agent definition", () => {
+    expect(shouldUseIsolatedSpecialAgentContext(EXPERIENCE_AGENT_DEFINITION)).toBe(true);
+    expect(shouldUseIsolatedSpecialAgentContext(DREAM_AGENT_DEFINITION)).toBe(true);
+    expect(shouldUseIsolatedSpecialAgentContext("experience")).toBe(true);
+    expect(shouldUseIsolatedSpecialAgentContext(TEST_SPECIAL_AGENT_DEFINITION)).toBe(false);
+  });
+
   it("returns spawn_failed when the child agent cannot be started", async () => {
     const result = await runSpecialAgentToCompletion(
       {
@@ -699,7 +711,7 @@ describe("runSpecialAgentToCompletion", () => {
     );
   });
 
-  it("surfaces only the verdict tool for promotion-judge embedded runs", async () => {
+  it("surfaces read and the verdict tool for promotion-judge embedded runs", async () => {
     const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
       payloads: [{ text: "STATUS: OK" }],
       meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
@@ -729,17 +741,14 @@ describe("runSpecialAgentToCompletion", () => {
     );
 
     const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    expect(params?.toolsAllow).toEqual(["submit_promotion_verdict"]);
+    expect(params?.toolsAllow).toEqual(["read", "submit_promotion_verdict"]);
     expect(params?.streamParams).toEqual(
       expect.objectContaining({
         cacheRetention: "short",
         skipCacheWrite: true,
-        toolChoice: {
-          type: "tool",
-          name: "submit_promotion_verdict",
-        },
       }),
     );
+    expect(params?.streamParams).not.toHaveProperty("toolChoice");
   });
 
   it("passes only fork messages for durable memory special agents", async () => {
@@ -796,6 +805,89 @@ describe("runSpecialAgentToCompletion", () => {
       cacheRetention: "short",
       skipCacheWrite: true,
     });
+  });
+
+  it("rejects parent fork context for dream special agents", async () => {
+    const runEmbeddedPiAgent = vi.fn();
+    const parentPromptEnvelope = buildSpecialAgentCacheEnvelope({
+      systemPromptText: "parent system prompt",
+      forkContextMessages: [{ role: "user", content: "remember this" }],
+    });
+
+    const result = await runSpecialAgentToCompletion(
+      {
+        definition: DREAM_AGENT_DEFINITION,
+        task: "consolidate memory",
+        parentForkContext: {
+          parentRunId: "parent-run-dream-1",
+          provider: "openai",
+          modelId: "gpt-5.4",
+          promptEnvelope: parentPromptEnvelope,
+        },
+        embeddedContext: {
+          sessionId: "session-dream-1",
+          sessionKey: "agent:main:main",
+          sessionFile: "/tmp/crawclaw-dream-session.jsonl",
+          workspaceDir: "/tmp/crawclaw-dream",
+          agentId: "main",
+          provider: "openai",
+          model: "gpt-5.4",
+        },
+      },
+      {
+        spawnAgentSessionDirect: vi.fn(),
+        captureSubagentCompletionReply: vi.fn(),
+        callGateway: vi.fn(),
+        onAgentEvent: vi.fn(),
+        runEmbeddedPiAgent,
+      },
+    );
+
+    expect(result).toEqual({
+      status: "spawn_failed",
+      error: 'embedded special agent "dream" does not accept parentForkContext',
+    });
+    expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+  });
+
+  it("does not pin toolChoice for embedded special agents with a single visible tool", async () => {
+    const runEmbeddedPiAgent = vi.fn().mockResolvedValue({
+      payloads: [{ text: "STATUS: NO_CHANGE" }],
+      meta: { durationMs: 1, agentMeta: { usage: { input: 1, output: 1, total: 2 } } },
+    });
+
+    await runSpecialAgentToCompletion(
+      {
+        definition: {
+          ...TEST_EMBEDDED_RUNTIME_DENY_SPECIAL_AGENT_DEFINITION,
+          toolPolicy: {
+            ...TEST_EMBEDDED_RUNTIME_DENY_SPECIAL_AGENT_DEFINITION.toolPolicy!,
+            modelVisibility: "allowlist",
+          },
+        },
+        task: "inspect and return no change",
+        embeddedContext: {
+          sessionId: "session-single-tool-1",
+          sessionKey: "agent:main:main",
+          sessionFile: "/tmp/crawclaw-single-tool-session.jsonl",
+          workspaceDir: "/tmp/crawclaw-single-tool",
+          agentId: "main",
+          provider: "openai",
+          model: "gpt-5.4",
+        },
+      },
+      {
+        spawnAgentSessionDirect: vi.fn(),
+        captureSubagentCompletionReply: vi.fn(),
+        callGateway: vi.fn(),
+        onAgentEvent: vi.fn(),
+        runEmbeddedPiAgent,
+      },
+    );
+
+    const params = runEmbeddedPiAgent.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    expect(params?.toolsAllow).toEqual(["read"]);
+    expect(params?.streamParams).not.toHaveProperty("toolChoice");
   });
 
   it("returns spawn_failed when embedded_fork definitions are missing embedded context", async () => {

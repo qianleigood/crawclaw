@@ -377,8 +377,13 @@ export class ExperienceExtractionWorkerManager {
     this.runningCount += 1;
     worker.inProgress = (async () => {
       let runId = "";
-      const afterTurnExclusive = Math.max(0, worker.lastProcessedCursor);
       try {
+        const cursor = await this.runtimeStore.getExperienceExtractionCursor(pending.sessionId);
+        worker.lastProcessedCursor = Math.max(
+          worker.lastProcessedCursor,
+          cursor?.lastExtractedTurn ?? 0,
+        );
+        const afterTurnExclusive = Math.max(0, worker.lastProcessedCursor);
         runId = await this.runtimeStore.createMaintenanceRun({
           kind: "experience_extraction",
           status: "running",
@@ -428,6 +433,16 @@ export class ExperienceExtractionWorkerManager {
         });
         if (result.advanceCursor) {
           worker.lastProcessedCursor = Math.max(worker.lastProcessedCursor, pending.messageCursor);
+          const lastModelVisibleMessageId =
+            turnRows.filter((row) => row.role === "user" || row.role === "assistant").at(-1)?.id ??
+            null;
+          await this.runtimeStore.upsertExperienceExtractionCursor({
+            sessionId: pending.sessionId,
+            sessionKey: pending.sessionKey,
+            lastExtractedTurn: pending.messageCursor,
+            lastExtractedMessageId: lastModelVisibleMessageId,
+            lastRunAt: nowMs(),
+          });
         }
         getSharedMemoryPromptJournal()?.recordStage("experience_extract", {
           sessionId: pending.sessionId,

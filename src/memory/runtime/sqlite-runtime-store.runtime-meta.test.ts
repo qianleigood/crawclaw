@@ -120,4 +120,37 @@ describe("SqliteRuntimeStore gm_messages runtime meta", () => {
       updatedAt: 600,
     });
   });
+
+  it("keeps experience extraction cursor monotonic when stale workers finish later", async () => {
+    const rootDir = await tempDirs.make("sqlite-experience-cursor-");
+    const store = new SqliteRuntimeStore(`${rootDir}/runtime.sqlite`);
+    await store.init();
+    stores.push(store);
+
+    await store.upsertExperienceExtractionCursor({
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      lastExtractedTurn: 5,
+      lastExtractedMessageId: "msg-5",
+      lastRunAt: 500,
+      updatedAt: 500,
+    });
+    await store.upsertExperienceExtractionCursor({
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      lastExtractedTurn: 3,
+      lastExtractedMessageId: "msg-3",
+      lastRunAt: 600,
+      updatedAt: 600,
+    });
+
+    await expect(store.getExperienceExtractionCursor("session-1")).resolves.toMatchObject({
+      sessionId: "session-1",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      lastExtractedTurn: 5,
+      lastExtractedMessageId: "msg-5",
+      lastRunAt: 600,
+      updatedAt: 600,
+    });
+  });
 });

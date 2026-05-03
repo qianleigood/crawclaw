@@ -32,6 +32,7 @@ describe("special agent registry", () => {
     expect(definition?.cachePolicy).toEqual({
       cacheRetention: "short",
     });
+    expect(definition?.parentContextPolicy).toBe("full_envelope");
     expect(definition?.toolPolicy?.enforcement).toBe("runtime_deny");
   });
 
@@ -41,6 +42,8 @@ describe("special agent registry", () => {
     expect(definition?.id).toBe("experience");
     expect(definition?.executionMode).toBe("embedded_fork");
     expect(definition?.transcriptPolicy).toBe("isolated");
+    expect(definition?.isolatedContext).toBe(true);
+    expect(definition?.parentContextPolicy).toBe("none");
     expect(definition?.toolPolicy).toMatchObject({
       allowlist: ["write_experience_note"],
       enforcement: "runtime_deny",
@@ -54,6 +57,8 @@ describe("special agent registry", () => {
     expect(definition?.id).toBe("dream");
     expect(definition?.executionMode).toBe("embedded_fork");
     expect(definition?.transcriptPolicy).toBe("isolated");
+    expect(definition?.isolatedContext).toBe(true);
+    expect(definition?.parentContextPolicy).toBe("none");
     expect(definition?.toolPolicy).toMatchObject({
       enforcement: "runtime_deny",
       modelVisibility: "allowlist",

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../../config/paths.ts";
+import type { DurableMemoryScope } from "../durable/scope.ts";
 import type { NotebookLmExperienceWriteResult } from "../notebooklm/notebooklm-write.ts";
 import type { MemoryKind } from "../recall/memory-kind.ts";
 import type { UnifiedRecallLayer } from "../types/orchestration.ts";
@@ -11,6 +12,13 @@ export const EXPERIENCE_OUTBOX_STATUSES = ["active", "stale", "superseded", "arc
 export type ExperienceOutboxStatus = (typeof EXPERIENCE_OUTBOX_STATUSES)[number];
 export const EXPERIENCE_SYNC_STATUSES = ["synced", "pending_sync", "failed"] as const;
 export type ExperienceSyncStatus = (typeof EXPERIENCE_SYNC_STATUSES)[number];
+
+export interface ExperienceOutboxScope {
+  agentId: string;
+  channel: string;
+  userId: string;
+  scopeKey: string;
+}
 
 export interface ExperienceOutboxEntry {
   id: string;
@@ -33,6 +41,7 @@ export interface ExperienceOutboxEntry {
   syncAttempts?: number;
   lastSyncAttemptAt?: number | null;
   lastSyncError?: string | null;
+  scope?: ExperienceOutboxScope | null;
   updatedAt: number;
 }
 
@@ -44,6 +53,7 @@ type ExperienceOutboxFile = {
 type ReadExperienceOutboxOptions = {
   status?: ExperienceOutboxStatus;
   recallableOnly?: boolean;
+  scope?: Pick<ExperienceOutboxScope, "scopeKey"> | null;
 };
 
 type PruneExperienceOutboxInput = {
@@ -118,6 +128,19 @@ function normalizeCounter(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
 }
 
+function normalizeExperienceOutboxScope(
+  value: Partial<ExperienceOutboxScope> | DurableMemoryScope | null | undefined,
+): ExperienceOutboxScope | null {
+  const agentId = value?.agentId?.trim();
+  const channel = value?.channel?.trim();
+  const userId = value?.userId?.trim();
+  const scopeKey = value?.scopeKey?.trim();
+  if (!agentId || !channel || !userId || !scopeKey) {
+    return null;
+  }
+  return { agentId, channel, userId, scopeKey };
+}
+
 function normalizeExperienceOutboxEntry(raw: unknown): ExperienceOutboxEntry | null {
   const entry = raw as Partial<ExperienceOutboxEntry> | null;
   if (!entry?.id) {
@@ -135,6 +158,7 @@ function normalizeExperienceOutboxEntry(raw: unknown): ExperienceOutboxEntry | n
     syncAttempts: normalizeCounter(entry.syncAttempts),
     lastSyncAttemptAt: normalizeNullableTimestamp(entry.lastSyncAttemptAt),
     lastSyncError: normalizeNullableString(entry.lastSyncError),
+    scope: normalizeExperienceOutboxScope(entry.scope),
   };
 }
 
@@ -211,6 +235,28 @@ function isPendingExperienceOutboxEntry(entry: ExperienceOutboxEntry): boolean {
   );
 }
 
+function isSameOutboxScope(
+  left: ExperienceOutboxEntry["scope"] | undefined,
+  right: ExperienceOutboxEntry["scope"] | undefined,
+): boolean {
+  const leftKey = left?.scopeKey?.trim();
+  const rightKey = right?.scopeKey?.trim();
+  if (leftKey || rightKey) {
+    return Boolean(leftKey) && leftKey === rightKey;
+  }
+  return !left && !right;
+}
+
+function matchesRequestedOutboxScope(
+  entry: ExperienceOutboxEntry,
+  scope: ReadExperienceOutboxOptions["scope"],
+): boolean {
+  if (!scope?.scopeKey?.trim()) {
+    return true;
+  }
+  return entry.scope?.scopeKey === scope.scopeKey.trim();
+}
+
 export async function readExperienceOutboxEntries(
   limit = 200,
   options: ReadExperienceOutboxOptions = {},
@@ -219,6 +265,7 @@ export async function readExperienceOutboxEntries(
   return outbox.entries
     .filter((entry) => !options.status || entry.status === options.status)
     .filter((entry) => !options.recallableOnly || isRecallableExperienceOutboxEntry(entry))
+    .filter((entry) => matchesRequestedOutboxScope(entry, options.scope))
     .toSorted(
       (left, right) => right.updatedAt - left.updatedAt || left.title.localeCompare(right.title),
     )
@@ -227,10 +274,12 @@ export async function readExperienceOutboxEntries(
 
 export async function readPendingExperienceOutboxEntries(
   limit = 200,
+  options: ReadExperienceOutboxOptions = {},
 ): Promise<ExperienceOutboxEntry[]> {
   const outbox = await readOutboxFile();
   return outbox.entries
     .filter(isPendingExperienceOutboxEntry)
+    .filter((entry) => matchesRequestedOutboxScope(entry, options.scope))
     .toSorted(
       (left, right) =>
         (left.lastSyncAttemptAt ?? 0) - (right.lastSyncAttemptAt ?? 0) ||
@@ -244,6 +293,7 @@ export async function upsertExperienceOutboxEntry(params: {
   note: ExperienceNoteWriteInput;
   writeResult: NotebookLmExperienceWriteResult;
   updatedAt?: number;
+  scope?: DurableMemoryScope | null;
 }): Promise<ExperienceOutboxEntry> {
   return await upsertExperienceOutboxEntryFromNote({
     note: params.note,
@@ -251,6 +301,7 @@ export async function upsertExperienceOutboxEntry(params: {
     notebookId: params.writeResult.notebookId,
     noteId: params.writeResult.noteId ?? null,
     syncStatus: "synced",
+    scope: params.scope,
     updatedAt: params.updatedAt,
   });
 }
@@ -265,12 +316,15 @@ export async function upsertExperienceOutboxEntryFromNote(params: {
   syncAttempts?: number;
   lastSyncAttemptAt?: number | null;
   updatedAt?: number;
+  scope?: DurableMemoryScope | null;
 }): Promise<ExperienceOutboxEntry> {
   return await withExperienceOutboxMutation(async () => {
     const dedupeKey = params.note.dedupeKey?.trim() || null;
     const stableKey = dedupeKey ?? params.noteId ?? params.note.title.trim();
+    const scope = normalizeExperienceOutboxScope(params.scope);
+    const scopedStableKey = scope?.scopeKey ? `${scope.scopeKey}:${stableKey}` : stableKey;
     const entry: ExperienceOutboxEntry = {
-      id: `experience-outbox:${slugifyId(stableKey)}`,
+      id: `experience-outbox:${slugifyId(scopedStableKey)}`,
       title: params.title?.trim() || params.note.title.trim(),
       summary: params.note.summary.trim(),
       content: renderExperienceNoteMarkdown(params.note),
@@ -294,6 +348,7 @@ export async function upsertExperienceOutboxEntryFromNote(params: {
       syncAttempts: normalizeCounter(params.syncAttempts),
       lastSyncAttemptAt: params.lastSyncAttemptAt ?? null,
       lastSyncError: normalizeNullableString(params.syncError),
+      scope,
       updatedAt: params.updatedAt ?? Date.now(),
     };
 
@@ -302,7 +357,11 @@ export async function upsertExperienceOutboxEntryFromNote(params: {
       (candidate) =>
         candidate.id !== entry.id &&
         !(entry.noteId && candidate.noteId === entry.noteId) &&
-        !(entry.dedupeKey && candidate.dedupeKey === entry.dedupeKey),
+        !(
+          entry.dedupeKey &&
+          candidate.dedupeKey === entry.dedupeKey &&
+          isSameOutboxScope(candidate.scope, entry.scope)
+        ),
     );
     await writeOutboxFile({
       version: 1,
