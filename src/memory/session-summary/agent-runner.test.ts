@@ -331,12 +331,14 @@ UPDATED_COUNT: 2
             systemPromptText?: string;
             forkContextMessages?: unknown[];
           };
+          specialParentForkMessages?: unknown[];
         }
       | undefined;
     expect(embeddedParams?.specialParentPromptEnvelope).toMatchObject({
       systemPromptText: "parent system prompt",
       forkContextMessages: fullModelVisibleMessages,
     });
+    expect(embeddedParams?.specialParentForkMessages).toEqual(fullModelVisibleMessages);
     expect(embeddedParams?.prompt).toContain(
       "Use the forked parent conversation that is already available",
     );

@@ -51,10 +51,10 @@ Durable auto-write is now a turn-end background maintenance flow:
 
 The durable memory agent runs as an embedded special agent:
 
-- it inherits the captured parent fork context when lifecycle metadata provides
-  one
-- the parent fork includes the prompt envelope and full current model-visible
-  conversation context
+- lifecycle metadata may provide a captured parent fork context
+- `durable_memory` declares `parentContextPolicy: "fork_messages_only"`, so the
+  embedded run receives only the forked model-visible messages and does not
+  attach the parent prompt envelope
 - the durable extraction task prompt still makes the cursor-based recent window
   authoritative for candidate memories
 - older forked context may resolve references in recent messages, but it is not

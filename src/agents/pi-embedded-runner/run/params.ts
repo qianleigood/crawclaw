@@ -116,9 +116,9 @@ export type RunEmbeddedPiAgentParams = {
     agentId: string;
     sessionId: string;
   };
-  /** Parent-run prompt envelope used by embedded special-agent forks such as session summary. */
+  /** Parent-run prompt envelope metadata for embedded special-agent forks such as session summary. */
   specialParentPromptEnvelope?: SpecialAgentCacheEnvelope;
-  /** Parent-run fork messages without the full captured prompt envelope. */
+  /** Parent-run fork messages selected by the special-agent parentContextPolicy. */
   specialParentForkMessages?: unknown[];
   /** Seen bootstrap truncation warning signatures for this session (once mode dedupe). */
   bootstrapPromptWarningSignaturesSeen?: string[];

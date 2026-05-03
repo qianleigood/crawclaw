@@ -1063,11 +1063,12 @@ export async function runEmbeddedAttempt(
       })
         ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
         : undefined;
+      // Parent fork messages are policy-selected by the special-agent transport.
+      // Do not infer them from the full envelope here; durable-memory isolation
+      // depends on the caller explicitly choosing a narrow handoff.
       const parentForkContextMessages = Array.isArray(params.specialParentForkMessages)
         ? params.specialParentForkMessages
-        : Array.isArray(params.specialParentPromptEnvelope?.forkContextMessages)
-          ? params.specialParentPromptEnvelope.forkContextMessages
-          : [];
+        : [];
       const thinkingConfig = {
         ...(parentPromptThinking.thinkLevel !== undefined
           ? { thinkLevel: parentPromptThinking.thinkLevel }

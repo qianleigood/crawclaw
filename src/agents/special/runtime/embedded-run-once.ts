@@ -113,8 +113,12 @@ function resolveParentContextTransport(params: {
       const parentForkMessages = resolveParentForkMessages(parentPromptEnvelope);
       return parentForkMessages ? { parentForkMessages } : {};
     }
-    case "full_envelope":
-      return { parentPromptEnvelope };
+    case "full_envelope": {
+      const parentForkMessages = resolveParentForkMessages(parentPromptEnvelope);
+      return parentForkMessages
+        ? { parentPromptEnvelope, parentForkMessages }
+        : { parentPromptEnvelope };
+    }
     default:
       return {
         error: `embedded special agent "${params.definitionId}" requires explicit parentContextPolicy`,

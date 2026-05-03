@@ -114,6 +114,7 @@ describe("runEmbeddedAttempt special parent prompt envelope", () => {
       senderIsOwner: true,
       disableMessageTool: true,
       specialParentPromptEnvelope: parentEnvelope,
+      specialParentForkMessages: parentMessages,
     });
 
     expect(hoisted.buildEmbeddedSystemPromptMock).not.toHaveBeenCalled();
@@ -165,6 +166,7 @@ describe("runEmbeddedAttempt special parent prompt envelope", () => {
       session,
     });
 
+    const parentMessages = [{ role: "user", content: "from parent", timestamp: 1 }];
     const parentEnvelope = buildSpecialAgentCacheEnvelope({
       systemPromptText: "parent system prompt",
       toolNames: ["session_summary_file_edit"],
@@ -172,7 +174,7 @@ describe("runEmbeddedAttempt special parent prompt envelope", () => {
       thinkingConfig: {
         thinkLevel: "off",
       },
-      forkContextMessages: [{ role: "user", content: "from parent", timestamp: 1 }],
+      forkContextMessages: parentMessages,
     });
 
     const runEmbeddedAttempt = await getRunEmbeddedAttempt();
@@ -196,11 +198,61 @@ describe("runEmbeddedAttempt special parent prompt envelope", () => {
       disableMessageTool: true,
       specialAgentSpawnSource: "session-summary",
       specialParentPromptEnvelope: parentEnvelope,
+      specialParentForkMessages: parentMessages,
       extraSystemPrompt: "summary-only instructions",
     });
 
     expect(hoisted.buildEmbeddedSystemPromptMock).not.toHaveBeenCalled();
     expect(session.messages[0]).toEqual({ role: "user", content: "from parent", timestamp: 1 });
+  });
+
+  it("does not derive fork messages from the parent prompt envelope implicitly", async () => {
+    const workspaceDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-parent-envelope-no-fallback-workspace-"),
+    );
+    const agentDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "crawclaw-parent-envelope-no-fallback-agent-"),
+    );
+    const sessionFile = path.join(workspaceDir, "session.jsonl");
+    tempPaths.push(workspaceDir, agentDir);
+    await fs.writeFile(sessionFile, "", "utf8");
+
+    const session = createDefaultEmbeddedSession();
+    hoisted.createAgentSessionMock.mockResolvedValue({
+      session,
+    });
+
+    const parentEnvelope = buildSpecialAgentCacheEnvelope({
+      systemPromptText: "parent system prompt",
+      forkContextMessages: [{ role: "user", content: "from parent envelope", timestamp: 1 }],
+    });
+
+    const runEmbeddedAttempt = await getRunEmbeddedAttempt();
+    await runEmbeddedAttempt({
+      sessionId: "embedded-session",
+      sessionKey: "agent:main:main",
+      sessionFile,
+      workspaceDir,
+      agentDir,
+      config: {},
+      prompt: "update the session summary",
+      timeoutMs: 30_000,
+      runId: "run-parent-envelope-no-fallback",
+      provider: "openai",
+      modelId: "gpt-test",
+      model: testModel,
+      authStorage: {} as never,
+      modelRegistry: {} as never,
+      thinkLevel: "off",
+      senderIsOwner: true,
+      disableMessageTool: true,
+      specialAgentSpawnSource: "session-summary",
+      specialParentPromptEnvelope: parentEnvelope,
+    });
+
+    expect(session.messages).toEqual(
+      expect.not.arrayContaining([{ role: "user", content: "from parent envelope", timestamp: 1 }]),
+    );
   });
 
   it("uses fork messages without a parent prompt envelope for durable-memory special agents", async () => {

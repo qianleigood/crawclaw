@@ -162,6 +162,9 @@ agents:
 - durable extraction does not attach the parent run's captured prompt envelope;
   its `parentContextPolicy: "fork_messages_only"` gives it only the
   fork-context messages required for the recent-message extraction window
+- embedded runs do not infer fork-context messages from a full parent prompt
+  envelope; the special-agent transport selects that handoff from the declared
+  `parentContextPolicy`
 - dream is an independent embedded maintenance special agent. It does not
   receive a parent fork context because its definition now declares
   `parentContextPolicy: "none"`, does not spawn a child session, and consumes

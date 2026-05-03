@@ -205,6 +205,7 @@ The most important constraint is:
 
 - do not pass the whole transcript
 - do not pass the whole project context
+- do not attach the parent prompt envelope to `durable_memory`
 - only pass the incremental messages and manifest needed for durable extraction
 
 ### Capability boundary
