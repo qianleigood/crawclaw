@@ -102,7 +102,6 @@ Available groups:
 - `group:review`: `review_task`
 - `group:memory`: `write_experience_note`, `memory_manifest_read`, `memory_note_read`, `memory_note_write`, `memory_note_edit`, `memory_note_delete`
 - `group:session_summary`: `session_summary_file_read`, `session_summary_file_edit`
-- `group:improvement`: `submit_promotion_verdict`
 - `group:media`: `image`, `pdf`, `tts`
 - `group:crawclaw`: all built-in CrawClaw tools (excludes provider plugins)
 

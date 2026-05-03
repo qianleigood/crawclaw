@@ -38,7 +38,6 @@ import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createSessionsYieldTool } from "./tools/sessions-yield-tool.js";
 import { createSubagentsTool } from "./tools/subagents-tool.js";
-import { createSubmitPromotionVerdictTool } from "./tools/submit-promotion-verdict-tool.js";
 import { createTtsTool } from "./tools/tts-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { createWorkflowTool } from "./tools/workflow-tool.js";
@@ -222,12 +221,6 @@ export function createCrawClawTools(
     channel: options?.durableMemoryChannel ?? options?.agentChannel,
     requesterSenderId: options?.requesterSenderId ?? undefined,
   });
-  const submitPromotionVerdictTool =
-    options?.specialAgentSpawnSource === "promotion-judge"
-      ? createSubmitPromotionVerdictTool({
-          workspaceDir,
-        })
-      : null;
   const reviewTaskTool = isReviewSpawnSource(options?.specialAgentSpawnSource)
     ? null
     : createReviewTaskTool({
@@ -289,7 +282,6 @@ export function createCrawClawTools(
     ...(memoryNoteWriteTool ? [memoryNoteWriteTool] : []),
     ...(memoryNoteEditTool ? [memoryNoteEditTool] : []),
     ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
-    ...(submitPromotionVerdictTool ? [submitPromotionVerdictTool] : []),
     ...(experienceWriteTool ? [experienceWriteTool] : []),
     ...(reviewTaskTool ? [reviewTaskTool] : []),
     createAgentsListTool({

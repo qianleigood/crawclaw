@@ -138,13 +138,12 @@ Use `group:*` shorthands in allow/deny lists:
 | `group:review`          | review_task                                                                                                            |
 | `group:memory`          | write_experience_note, memory_manifest_read, memory_note_read, memory_note_write, memory_note_edit, memory_note_delete |
 | `group:session_summary` | session_summary_file_read, session_summary_file_edit                                                                   |
-| `group:improvement`     | submit_promotion_verdict                                                                                               |
 | `group:media`           | image, pdf, tts                                                                                                        |
 | `group:crawclaw`        | All built-in CrawClaw tools (excludes plugin tools)                                                                    |
 
 Group expansion does not bypass lifecycle gates. For example,
-`group:session_summary` and `group:improvement` name tools that remain
-available only to their owning special agents.
+`group:session_summary` names tools that remain available only to their owning
+special agents.
 
 ### Provider-specific restrictions
 

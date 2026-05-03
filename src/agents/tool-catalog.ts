@@ -46,7 +46,6 @@ const CORE_TOOL_SECTION_ORDER: Array<{ id: string; label: string }> = [
   { id: "review", label: "Review" },
   { id: "memory", label: "Memory" },
   { id: "session_summary", label: "Session Summary" },
-  { id: "improvement", label: "Improvement" },
   { id: "media", label: "Media" },
 ];
 
@@ -353,14 +352,6 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     label: "session_summary_file_edit",
     description: "Edit session-summary files",
     sectionId: "session_summary",
-    profiles: [],
-    lifecycle: "special_agent_only",
-  },
-  {
-    id: "submit_promotion_verdict",
-    label: "submit_promotion_verdict",
-    description: "Submit promotion judge verdicts",
-    sectionId: "improvement",
     profiles: [],
     lifecycle: "special_agent_only",
   },

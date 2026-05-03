@@ -124,9 +124,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "workflow.diff",
     "workflow.runs",
     "workflow.status",
-    "improvement.list",
-    "improvement.get",
-    "improvement.metrics",
   ],
   [WRITE_SCOPE]: [
     "send",
@@ -170,11 +167,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "workflow.cancel",
     "workflow.resume",
     "workflow.agent.run",
-    "improvement.run",
-    "improvement.review",
-    "improvement.apply",
-    "improvement.verify",
-    "improvement.rollback",
   ],
   [ADMIN_SCOPE]: [
     "channels.logout",

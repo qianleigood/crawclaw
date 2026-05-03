@@ -44,8 +44,6 @@ describe("tool-catalog", () => {
     expect(resolveCoreToolLifecycle("write_experience_note")).toBe("profile_default");
     expect(resolveCoreToolLifecycle("memory_manifest_read")).toBe("profile_default");
     expect(resolveCoreToolLifecycle("session_summary_file_read")).toBe("special_agent_only");
-    expect(resolveCoreToolLifecycle("submit_promotion_verdict")).toBe("special_agent_only");
-
     expect(listCoreToolIdsByLifecycle("profile_default")).toEqual(
       expect.arrayContaining([
         "memory_manifest_read",

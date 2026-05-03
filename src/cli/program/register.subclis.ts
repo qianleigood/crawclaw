@@ -103,15 +103,6 @@ const entries: SubCliEntry[] = [
     },
   },
   {
-    name: "improve",
-    description: "Review and apply governed improvement proposals",
-    hasSubcommands: true,
-    register: async (program) => {
-      const mod = await import("../improve-cli.js");
-      mod.registerImproveCli(program);
-    },
-  },
-  {
     name: "approvals",
     description: "Manage exec approvals (gateway or node host)",
     hasSubcommands: true,

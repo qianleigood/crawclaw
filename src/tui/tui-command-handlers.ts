@@ -24,15 +24,6 @@ import {
   formatStatusOverlayLines,
   sanitizeRenderableText,
 } from "./tui-formatters.js";
-import {
-  createDefaultTuiImprovementApi,
-  ImprovementProposalOverlayComponent,
-  formatImprovementProposalListLabel,
-  formatTuiImprovementAction,
-  formatTuiImprovementStatus,
-  type ImprovementOverlayAction,
-  type TuiImprovementApi,
-} from "./tui-improvement-center.js";
 import type {
   AgentSummary,
   GatewayStatusSummary,
@@ -62,7 +53,6 @@ type CommandHandlerContext = {
   forgetLocalRunId?: (runId: string) => void;
   forgetLocalBtwRunId?: (runId: string) => void;
   recordError?: (message: string) => void;
-  improvements?: TuiImprovementApi;
   requestExit: () => void;
 };
 
@@ -92,7 +82,6 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     forgetLocalRunId,
     forgetLocalBtwRunId,
     recordError,
-    improvements = createDefaultTuiImprovementApi(),
     requestExit,
   } = context;
 
@@ -309,106 +298,6 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     }
   };
 
-  const openImprovementDetail = async (proposalId: string) => {
-    try {
-      const detail = await improvements.detail(proposalId);
-      const runAction = async (action: ImprovementOverlayAction) => {
-        try {
-          if (action === "approve") {
-            await improvements.review(proposalId, true);
-          } else if (action === "reject") {
-            await improvements.review(proposalId, false);
-          } else if (action === "apply") {
-            await improvements.apply(proposalId);
-          } else if (action === "verify") {
-            await improvements.verify(proposalId);
-          } else {
-            await improvements.rollback(proposalId);
-          }
-          chatLog.addSystem(
-            translateTuiText("tui.message.improveAction", {
-              action: formatTuiImprovementAction(action),
-              id: proposalId,
-            }),
-          );
-          closeOverlay();
-          await openImprovementDetail(proposalId);
-        } catch (err) {
-          addErrorSystem(translateTuiText("tui.error.improveFailed", { error: String(err) }));
-          tui.requestRender();
-        }
-      };
-      openOverlay(
-        new ImprovementProposalOverlayComponent(detail, {
-          onClose: closeOverlayAndRender,
-          onBack: () => {
-            closeOverlay();
-            void openImprovementInbox();
-          },
-          onAction: runAction,
-        }),
-      );
-      tui.requestRender();
-    } catch (err) {
-      addErrorSystem(translateTuiText("tui.error.improveFailed", { error: String(err) }));
-      tui.requestRender();
-    }
-  };
-
-  const openImprovementInbox = async () => {
-    try {
-      const proposals = await improvements.list();
-      if (proposals.length === 0) {
-        chatLog.addSystem(translateTuiText("tui.message.noImprovementProposals"));
-        tui.requestRender();
-        return;
-      }
-      const selector = createFilterableSelectList(
-        proposals.map((proposal) => ({
-          value: proposal.id,
-          label: formatImprovementProposalListLabel(proposal),
-          description: proposal.signalSummary,
-          searchText: [
-            proposal.id,
-            proposal.kind,
-            proposal.status,
-            proposal.riskLevel,
-            proposal.signalSummary,
-          ].join(" "),
-        })),
-        9,
-      );
-      selector.onSelect = (item) => {
-        void (async () => {
-          closeOverlay();
-          await openImprovementDetail(item.value);
-        })();
-      };
-      selector.onCancel = closeOverlayAndRender;
-      openOverlay(selector as Component);
-      tui.requestRender();
-    } catch (err) {
-      addErrorSystem(translateTuiText("tui.error.improveFailed", { error: String(err) }));
-      tui.requestRender();
-    }
-  };
-
-  const runImprovementScanFromTui = async () => {
-    try {
-      const result = await improvements.run();
-      chatLog.addSystem(
-        translateTuiText("tui.message.improveRun", {
-          status: formatTuiImprovementStatus(result.run.status),
-          id: result.proposal?.id ?? result.run.runId,
-        }),
-      );
-      tui.requestRender();
-    } catch (err) {
-      addErrorSystem(translateTuiText("tui.error.improveFailed", { error: String(err) }));
-      tui.requestRender();
-    }
-  };
-
   const handleCommand = async (raw: string) => {
     const { name, args } = parseCommand(raw);
     if (!name) {
@@ -425,15 +314,6 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         break;
       case "status":
         await openStatusOverlay();
-        break;
-      case "improve":
-        if (args === "run") {
-          await runImprovementScanFromTui();
-        } else if (args) {
-          await openImprovementDetail(args);
-        } else {
-          await openImprovementInbox();
-        }
         break;
       case "agent":
         if (!args) {

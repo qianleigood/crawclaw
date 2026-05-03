@@ -2,7 +2,7 @@
 title: "CrawClaw Learning Loop"
 summary: "How CrawClaw turns action history into retained memory, skills, and workflows"
 read_when:
-  - You are designing memory, skill, workflow, or improvement-loop behavior
+  - You are designing memory, skill, workflow, or automation behavior
   - You need the boundary between action, retention, recall, and automation
 ---
 
@@ -158,9 +158,9 @@ This happens at multiple levels:
 - a repeatable multi-step procedure becomes a `workflow`
 - a recurring or event-driven workflow becomes `cron` or `hook` automation
 
-Improvement scans use NotebookLM-returned structured candidates for promotion
-signals. The local pending outbox is only a writeback retry queue, not an
-automation candidate source.
+CrawClaw does not run an automatic self-evolution loop here. Experience recall
+can reveal repeated patterns, but turning those patterns into a skill,
+workflow, cron job, or hook remains an explicit authoring step.
 
 Relevant areas:
 

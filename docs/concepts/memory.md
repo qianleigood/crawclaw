@@ -33,8 +33,7 @@ The main agent decides when to use those durable tools from the memory routing
 prompt, matching Claude Code's prompt-driven memory writes. Dedicated
 maintenance agents receive the same durable tools through their special-agent
 allowlist and remain runtime-restricted to that narrow surface.
-Session-summary file edits and promotion verdict submission stay restricted to
-their owning background agents.
+Session-summary file edits stay restricted to their owning background agent.
 
 ## Durable memory files
 
@@ -78,12 +77,11 @@ Durable auto-write also follows a turn-end completion trigger:
 
 - the run-loop now emits a `stop` lifecycle phase after a final top-level turn,
   and `durable_memory` consumes that phase as a subscriber
-- the same stop event can carry the captured parent fork context, including the
-  parent prompt envelope and full model-visible message context; the embedded
-  `durable_memory` definition explicitly uses `parentContextPolicy:
-"fork_messages_only"`, so the embedded run inherits only the forked messages
-  needed for the recent-message extraction window and appends only a narrow
-  durable-memory maintenance prompt
+- the same stop event can carry a captured parent fork context for lifecycle
+  subscribers; the embedded `durable_memory` definition explicitly uses
+  `parentContextPolicy: "fork_messages_only"`, so the durable run receives only
+  the forked model-visible messages needed for the recent-message extraction
+  window, not the full parent prompt envelope
 - the cursor-based recent-message window remains the extraction boundary; older
   forked context is available only to resolve references in the recent messages,
   not as a source for re-extracting stale history

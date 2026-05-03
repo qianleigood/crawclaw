@@ -76,7 +76,6 @@ describe("createCrawClawCodingTools message provider policy", () => {
       expect(names.has("write_experience_note")).toBe(expectsExperienceTool);
       expect(names.has("session_summary_file_read")).toBe(false);
       expect(names.has("session_summary_file_edit")).toBe(false);
-      expect(names.has("submit_promotion_verdict")).toBe(false);
     },
   );
 
@@ -105,7 +104,6 @@ describe("createCrawClawCodingTools message provider policy", () => {
     expect(names.has("write_experience_note")).toBe(true);
     expect(names.has("session_summary_file_read")).toBe(false);
     expect(names.has("session_summary_file_edit")).toBe(false);
-    expect(names.has("submit_promotion_verdict")).toBe(false);
   });
 
   it("does not need a turn-scoped host opening for durable memory tools", () => {

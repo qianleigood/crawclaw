@@ -80,10 +80,14 @@ describe("experience local outbox", () => {
     expect(entryA.scope).toMatchObject({ scopeKey: scopeA!.scopeKey });
     expect(entryB.scope).toMatchObject({ scopeKey: scopeB!.scopeKey });
     expect(
-      (await readPendingExperienceOutboxEntries(10, { scope: scopeA! })).map((item) => item.id),
+      (
+        await readPendingExperienceOutboxEntries(10, { scope: { scopeKey: scopeA!.scopeKey! } })
+      ).map((item) => item.id),
     ).toEqual([entryA.id]);
     expect(
-      (await readPendingExperienceOutboxEntries(10, { scope: scopeB! })).map((item) => item.id),
+      (
+        await readPendingExperienceOutboxEntries(10, { scope: { scopeKey: scopeB!.scopeKey! } })
+      ).map((item) => item.id),
     ).toEqual([entryB.id]);
   });
 

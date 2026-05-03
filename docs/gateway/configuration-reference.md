@@ -1831,8 +1831,7 @@ does not add a `main` agent `tools.alsoAllow` override for them.
 Some tools are lifecycle-gated before profile allow/deny policy. Runtime
 conditional tools still require their runtime/plugin/channel capability, and
 special-agent-only tools such as `session_summary_file_read`,
-`session_summary_file_edit`, and `submit_promotion_verdict` are not main-agent
-defaults.
+`session_summary_file_edit` are not main-agent defaults.
 
 | Profile     | Includes                                                                                                                                                                   |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1859,7 +1858,6 @@ defaults.
 | `group:review`          | `review_task`                                                                                                                      |
 | `group:memory`          | `write_experience_note`, `memory_manifest_read`, `memory_note_read`, `memory_note_write`, `memory_note_edit`, `memory_note_delete` |
 | `group:session_summary` | `session_summary_file_read`, `session_summary_file_edit`                                                                           |
-| `group:improvement`     | `submit_promotion_verdict`                                                                                                         |
 | `group:media`           | `image`, `pdf`, `tts`                                                                                                              |
 | `group:crawclaw`        | All built-in tools (excludes provider plugins)                                                                                     |
 

@@ -181,7 +181,7 @@ describe("runEmbeddedPiAgent usage reporting", () => {
       prompt: "judge this candidate",
       timeoutMs: 30000,
       runId: "run-special-agent-forwarding",
-      specialAgentSpawnSource: "promotion-judge",
+      specialAgentSpawnSource: "experience",
       specialDurableMemoryScope: {
         agentId: "main",
         channel: "local",
@@ -195,7 +195,7 @@ describe("runEmbeddedPiAgent usage reporting", () => {
 
     expect(mockedRunEmbeddedAttempt).toHaveBeenCalledWith(
       expect.objectContaining({
-        specialAgentSpawnSource: "promotion-judge",
+        specialAgentSpawnSource: "experience",
         specialDurableMemoryScope: {
           agentId: "main",
           channel: "local",

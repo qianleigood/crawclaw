@@ -17,7 +17,6 @@ import { deviceHandlers } from "./server-methods/devices.js";
 import { doctorHandlers } from "./server-methods/doctor.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
 import { healthHandlers } from "./server-methods/health.js";
-import { improvementHandlers } from "./server-methods/improvement.js";
 import { logsHandlers } from "./server-methods/logs.js";
 import { memoryHandlers } from "./server-methods/memory.js";
 import { modelsHandlers } from "./server-methods/models.js";
@@ -50,11 +49,6 @@ const CONTROL_PLANE_WRITE_METHODS = new Set([
   "plugins.disable",
   "plugins.install",
   "update.run",
-  "improvement.run",
-  "improvement.review",
-  "improvement.apply",
-  "improvement.verify",
-  "improvement.rollback",
 ]);
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
   if (!client?.connect) {
@@ -97,7 +91,6 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...memoryHandlers,
   ...voicewakeHandlers,
   ...healthHandlers,
-  ...improvementHandlers,
   ...channelsHandlers,
   ...chatHandlers,
   ...cronHandlers,
