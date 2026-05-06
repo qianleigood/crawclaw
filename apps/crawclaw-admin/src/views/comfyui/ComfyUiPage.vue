@@ -23,12 +23,14 @@ import type { DataTableColumns } from 'naive-ui'
 import {
   AlertCircleOutline,
   CheckmarkCircleOutline,
+  DownloadOutline,
   OpenOutline,
   PlayOutline,
   RefreshOutline,
   WarningOutline,
 } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
 import { useComfyUiStore } from '@/stores/comfyui'
 import type {
   ComfyUiDiagnostic,
@@ -42,6 +44,7 @@ import { formatDate, truncate } from '@/utils/format'
 type TagType = 'default' | 'info' | 'success' | 'warning' | 'error'
 
 const store = useComfyUiStore()
+const authStore = useAuthStore()
 const message = useMessage()
 const { t } = useI18n()
 
@@ -97,6 +100,15 @@ function renderStatusTag(status?: ComfyUiRunStatus) {
 
 function renderCount(value: number) {
   return h(NTag, { size: 'small', bordered: false }, { default: () => String(value) })
+}
+
+function outputDownloadUrl(output: ComfyUiOutputSummary): string {
+  const params = new URLSearchParams({ path: output.localPath ?? '' })
+  const token = authStore.getToken()
+  if (token) {
+    params.set('token', token)
+  }
+  return `/api/comfyui/outputs/download?${params.toString()}`
 }
 
 function diagnosticIcon(diagnostic: ComfyUiDiagnostic): Component {
@@ -227,10 +239,24 @@ const outputColumns = computed<DataTableColumns<ComfyUiOutputSummary>>(() => [
     render: (row) => formatOptionalDate(row.createdAt),
   },
   {
-    title: () => t('pages.comfyui.fields.localPath'),
-    key: 'localPath',
-    minWidth: 260,
-    render: (row) => row.localPath ? h(NText, { code: true }, { default: () => row.localPath }) : '-',
+    title: () => t('pages.comfyui.download'),
+    key: 'download',
+    width: 120,
+    render: (row) => row.localPath
+      ? h(
+          NButton,
+          {
+            tag: 'a',
+            href: outputDownloadUrl(row),
+            download: row.filename,
+            size: 'small',
+            secondary: true,
+            type: 'primary',
+            renderIcon: renderIcon(DownloadOutline),
+          },
+          { default: () => t('pages.comfyui.download') }
+        )
+      : '-',
   },
 ])
 
