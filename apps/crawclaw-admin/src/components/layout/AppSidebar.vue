@@ -108,7 +108,7 @@ function handleSelect(key: string) {
         alt="Hermes"
         style="width: 24px; height: 24px; object-fit: contain;"
       />
-      <span v-else style="font-size: 24px;">🦞</span>
+      <span v-else style="font-size: 24px;">🦀</span>
       <NText
         v-if="!collapsed"
         strong

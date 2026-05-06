@@ -2028,7 +2028,7 @@ export default {
         theme: '主题',
         themePlaceholder: '例如：space lobster',
         emoji: 'Emoji',
-        emojiPlaceholder: '例如：🦞',
+        emojiPlaceholder: '例如：🦀',
         avatar: '头像',
         avatarPlaceholder: '例如：avatars/crawclaw.png',
         model: '模型',

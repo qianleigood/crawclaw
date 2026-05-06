@@ -1756,7 +1756,7 @@ onUnmounted(() => {
         </div>
         
         <div class="company-logo">
-          <span class="logo-icon">🦞</span>
+          <span class="logo-icon">🦀</span>
         </div>
         
         <div class="characters-layer">

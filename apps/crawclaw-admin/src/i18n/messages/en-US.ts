@@ -2024,7 +2024,7 @@ export default {
         theme: 'Theme',
         themePlaceholder: 'e.g. space lobster',
         emoji: 'Emoji',
-        emojiPlaceholder: 'e.g. 🦞',
+        emojiPlaceholder: 'e.g. 🦀',
         avatar: 'Avatar',
         avatarPlaceholder: 'e.g. avatars/crawclaw.png',
         model: 'Model',

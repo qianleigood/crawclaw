@@ -129,7 +129,7 @@ function handleBlur() {
   <div class="login-container">
     <div class="login-left">
       <div class="login-brand">
-        <span class="login-logo">🦞</span>
+        <span class="login-logo">🦀</span>
         <span class="login-brand-text">CrawClaw Admin</span>
       </div>
 
@@ -149,7 +149,7 @@ function handleBlur() {
     <div class="login-right">
       <div class="login-form-wrapper">
         <div class="login-mobile-brand">
-          <span class="login-logo-small">🦞</span>
+          <span class="login-logo-small">🦀</span>
           <span>CrawClaw Admin</span>
         </div>
 

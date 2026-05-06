@@ -17,7 +17,7 @@ function renderLabel(option: { label: string; value: string }) {
       h('span', {}, option.label),
     ])
   }
-  const logo = '🦞'
+  const logo = '🦀'
   return h('span', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
     h('span', { style: { fontSize: '16px' } }, logo),
     h('span', {}, option.label),
