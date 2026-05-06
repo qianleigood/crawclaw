@@ -840,22 +840,7 @@ Subcommands:
 
 - `sessions cleanup` — remove expired or orphaned sessions
 
-## Reset / Uninstall
-
-### `reset`
-
-Reset local config/state (keeps the CLI installed).
-
-Options:
-
-- `--scope <config|config+creds+sessions|full>`
-- `--yes`
-- `--non-interactive`
-- `--dry-run`
-
-Notes:
-
-- `--non-interactive` requires `--scope` and `--yes`.
+## Uninstall
 
 ### `uninstall`
 
@@ -881,10 +866,11 @@ Notes:
 List and manage [background task](/automation/tasks) runs across agents.
 
 - `tasks list` — show active and recent task runs
-- `tasks show <id>` — show details for a specific task run
-- `tasks notify <id>` — change notification policy for a task run
-- `tasks cancel <id>` — cancel a running task
+- `tasks show <lookup>` — show details for a task by task id, run id, or session key
+- `tasks notify <lookup> <done_only|state_changes|silent>` — change notification policy for a task run
+- `tasks cancel <lookup>` — cancel a running task
 - `tasks audit` — surface operational issues (stale, lost, delivery failures)
+- `tasks maintenance [--apply]` — preview or apply task and TaskFlow maintenance
 - `tasks flow list` — list active and recent Task Flow flows
 - `tasks flow show <lookup>` — inspect a flow by id or lookup key
 - `tasks flow cancel <lookup>` — cancel a running flow and its active tasks

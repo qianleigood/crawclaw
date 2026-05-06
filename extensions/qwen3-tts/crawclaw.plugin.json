@@ -1,0 +1,12 @@
+{
+  "id": "qwen3-tts",
+  "enabledByDefault": true,
+  "contracts": {
+    "speechProviders": ["qwen3-tts"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

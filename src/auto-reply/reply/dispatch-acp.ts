@@ -229,6 +229,7 @@ async function maybeUnbindStaleBoundConversations(params: {
 
 async function finalizeAcpTurnOutput(params: {
   cfg: CrawClawConfig;
+  agentId: string;
   sessionKey: string;
   delivery: AcpDispatchDeliveryCoordinator;
   inboundAudio: boolean;
@@ -249,6 +250,7 @@ async function finalizeAcpTurnOutput(params: {
       const ttsSyntheticReply = await maybeApplyTtsToPayload({
         payload: { text: accumulatedBlockText },
         cfg: params.cfg,
+        agentId: params.agentId,
         channel: params.ttsChannel,
         kind: "final",
         inboundAudio: params.inboundAudio,
@@ -344,21 +346,6 @@ export async function tryDispatchAcpReply(params: {
   }
   const canonicalSessionKey = acpResolution.sessionKey;
 
-  let queuedFinal = false;
-  const delivery = createAcpDispatchDeliveryCoordinator({
-    cfg: params.cfg,
-    ctx: params.ctx,
-    dispatcher: params.dispatcher,
-    inboundAudio: params.inboundAudio,
-    sessionTtsAuto: params.sessionTtsAuto,
-    ttsChannel: params.ttsChannel,
-    suppressUserDelivery: params.suppressUserDelivery,
-    shouldRouteToOriginating: params.shouldRouteToOriginating,
-    originatingChannel: params.originatingChannel,
-    originatingTo: params.originatingTo,
-    onReplyStart: params.onReplyStart,
-  });
-
   const identityPendingBeforeTurn = isSessionIdentityPending(
     resolveSessionIdentityFromMeta(acpResolution.kind === "ready" ? acpResolution.meta : undefined),
   );
@@ -380,6 +367,21 @@ export async function tryDispatchAcpReply(params: {
           resolveAgentIdFromSessionKey(canonicalSessionKey)
         ).trim()
       : resolveAgentIdFromSessionKey(canonicalSessionKey);
+  let queuedFinal = false;
+  const delivery = createAcpDispatchDeliveryCoordinator({
+    cfg: params.cfg,
+    ctx: params.ctx,
+    agentId: resolvedAcpAgent,
+    dispatcher: params.dispatcher,
+    inboundAudio: params.inboundAudio,
+    sessionTtsAuto: params.sessionTtsAuto,
+    ttsChannel: params.ttsChannel,
+    suppressUserDelivery: params.suppressUserDelivery,
+    shouldRouteToOriginating: params.shouldRouteToOriginating,
+    originatingChannel: params.originatingChannel,
+    originatingTo: params.originatingTo,
+    onReplyStart: params.onReplyStart,
+  });
   const projector = createAcpReplyProjector({
     cfg: params.cfg,
     shouldSendToolSummaries: params.shouldSendToolSummaries,
@@ -465,6 +467,7 @@ export async function tryDispatchAcpReply(params: {
     queuedFinal =
       (await finalizeAcpTurnOutput({
         cfg: params.cfg,
+        agentId: resolvedAcpAgent,
         sessionKey: canonicalSessionKey,
         delivery,
         inboundAudio: params.inboundAudio,

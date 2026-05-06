@@ -46,12 +46,6 @@ export const CORE_CLI_COMMAND_DESCRIPTORS = [
     hasSubcommands: false,
   },
   {
-    name: "reset",
-    description: "Reset local config/state (keeps the CLI installed)",
-    descriptionKey: "command.reset.description",
-    hasSubcommands: false,
-  },
-  {
     name: "uninstall",
     description: "Uninstall the gateway service + local data (CLI remains)",
     descriptionKey: "command.uninstall.description",

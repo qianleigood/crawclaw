@@ -28,7 +28,7 @@ import {
 } from "../../infra/restart-sentinel.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
 import { prepareSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
-import { diffConfigPaths } from "../config-reload.js";
+import { buildGatewayReloadPlan, diffConfigPaths } from "../config-reload.js";
 import {
   formatControlPlaneActor,
   resolveControlPlaneActor,
@@ -126,6 +126,28 @@ function parseRawConfigOrRespond(
     return null;
   }
   return rawValue;
+}
+
+function scheduleConfigRestartIfNeeded(params: {
+  changedPaths: string[];
+  reason: "config.patch" | "config.apply" | "channels.config.patch" | "channels.config.apply";
+  actor: ReturnType<typeof resolveControlPlaneActor>;
+  restartDelayMs: number | undefined;
+}) {
+  const plan = buildGatewayReloadPlan(params.changedPaths);
+  if (!plan.restartGateway) {
+    return undefined;
+  }
+  return scheduleGatewaySigusr1Restart({
+    delayMs: params.restartDelayMs,
+    reason: params.reason,
+    audit: {
+      actor: params.actor.actor,
+      deviceId: params.actor.deviceId,
+      clientIp: params.actor.clientIp,
+      changedPaths: params.changedPaths,
+    },
+  });
 }
 
 function sanitizeLookupPathForLog(path: string): string {
@@ -713,17 +735,13 @@ export const configHandlers: GatewayRequestHandlers = {
       note,
     });
     const sentinelPath = await tryWriteRestartSentinelPayload(payload);
-    const restart = scheduleGatewaySigusr1Restart({
-      delayMs: restartDelayMs,
+    const restart = scheduleConfigRestartIfNeeded({
+      changedPaths,
       reason: "config.patch",
-      audit: {
-        actor: actor.actor,
-        deviceId: actor.deviceId,
-        clientIp: actor.clientIp,
-        changedPaths,
-      },
+      actor,
+      restartDelayMs,
     });
-    if (restart.coalesced) {
+    if (restart?.coalesced) {
       context?.logGateway?.warn(
         `config.patch restart coalesced ${formatControlPlaneActor(actor)} delayMs=${restart.delayMs}`,
       );
@@ -776,17 +794,13 @@ export const configHandlers: GatewayRequestHandlers = {
       note,
     });
     const sentinelPath = await tryWriteRestartSentinelPayload(payload);
-    const restart = scheduleGatewaySigusr1Restart({
-      delayMs: restartDelayMs,
+    const restart = scheduleConfigRestartIfNeeded({
+      changedPaths,
       reason: "config.apply",
-      audit: {
-        actor: actor.actor,
-        deviceId: actor.deviceId,
-        clientIp: actor.clientIp,
-        changedPaths,
-      },
+      actor,
+      restartDelayMs,
     });
-    if (restart.coalesced) {
+    if (restart?.coalesced) {
       context?.logGateway?.warn(
         `config.apply restart coalesced ${formatControlPlaneActor(actor)} delayMs=${restart.delayMs}`,
       );
@@ -916,17 +930,13 @@ export const configHandlers: GatewayRequestHandlers = {
       note,
     });
     const sentinelPath = await tryWriteRestartSentinelPayload(payload);
-    const restart = scheduleGatewaySigusr1Restart({
-      delayMs: restartDelayMs,
+    const restart = scheduleConfigRestartIfNeeded({
+      changedPaths,
       reason: "channels.config.patch",
-      audit: {
-        actor: actor.actor,
-        deviceId: actor.deviceId,
-        clientIp: actor.clientIp,
-        changedPaths,
-      },
+      actor,
+      restartDelayMs,
     });
-    if (restart.coalesced) {
+    if (restart?.coalesced) {
       context?.logGateway?.warn(
         `channels.config.patch restart coalesced ${formatControlPlaneActor(actor)} delayMs=${restart.delayMs}`,
       );
@@ -1029,17 +1039,13 @@ export const configHandlers: GatewayRequestHandlers = {
       note,
     });
     const sentinelPath = await tryWriteRestartSentinelPayload(payload);
-    const restart = scheduleGatewaySigusr1Restart({
-      delayMs: restartDelayMs,
+    const restart = scheduleConfigRestartIfNeeded({
+      changedPaths,
       reason: "channels.config.apply",
-      audit: {
-        actor: actor.actor,
-        deviceId: actor.deviceId,
-        clientIp: actor.clientIp,
-        changedPaths,
-      },
+      actor,
+      restartDelayMs,
     });
-    if (restart.coalesced) {
+    if (restart?.coalesced) {
       context?.logGateway?.warn(
         `channels.config.apply restart coalesced ${formatControlPlaneActor(actor)} delayMs=${restart.delayMs}`,
       );

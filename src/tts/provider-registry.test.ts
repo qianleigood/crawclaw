@@ -110,6 +110,7 @@ describe("speech provider registry", () => {
             elevenlabs: { enabled: true },
             microsoft: { enabled: true },
             openai: { enabled: true },
+            "qwen3-tts": { enabled: true },
           },
         },
       },

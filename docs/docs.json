@@ -1164,7 +1164,6 @@
                   "tools/loop-detection",
                   "tools/pdf",
                   "tools/reactions",
-                  "tools/tts",
                   "tools/thinking"
                 ]
               },
@@ -1333,8 +1332,7 @@
                       "nodes/media-understanding",
                       "nodes/images",
                       "nodes/audio",
-                      "nodes/camera",
-                      "tools/tts"
+                      "nodes/camera"
                     ]
                   },
                   {
@@ -1424,7 +1422,7 @@
               },
               {
                 "group": "RPC and API",
-                "pages": ["reference/rpc", "cli/devices"]
+                "pages": ["reference/rpc"]
               },
               {
                 "group": "Templates",
@@ -1710,7 +1708,6 @@
                   "zh-CN/tools/pdf",
                   "zh-CN/tools/reactions",
                   "zh-CN/tools/thinking",
-                  "zh-CN/tools/tts",
                   "zh-CN/tools/web"
                 ]
               },
@@ -1766,8 +1763,7 @@
                   "zh-CN/nodes/camera",
                   "zh-CN/nodes/talk",
                   "zh-CN/nodes/voicewake",
-                  "zh-CN/nodes/location-command",
-                  "zh-CN/tools/tts"
+                  "zh-CN/nodes/location-command"
                 ]
               }
             ]
@@ -1949,7 +1945,7 @@
               },
               {
                 "group": "RPC 与 API",
-                "pages": ["zh-CN/reference/rpc", "zh-CN/cli/devices"]
+                "pages": ["zh-CN/reference/rpc"]
               },
               {
                 "group": "模板",

@@ -875,7 +875,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.doctor.option.deep": "扫描系统服务中的额外网关安装",
   "command.doctor.memory.description": "检查当前 Session/Durable/NotebookLM 记忆健康状态",
   "command.doctor.memory.option.json": "打印机器可读 JSON",
-  "command.reset.description": "重置本地配置/状态（保留 CLI 安装）",
   "command.uninstall.description": "卸载网关服务和本地数据（保留 CLI）",
   "command.uninstall.option.service": "移除 gateway 服务",
   "command.uninstall.option.state": "移除状态和配置",
@@ -2472,8 +2471,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "update.error.commandNonZero": "命令返回了非零退出码",
   "update.error.nodeTooOld.current": "Node {nodeVersion} 对于 {packageName}@{target} 来说过旧。",
   "update.error.nodeTooOld.requires": "请求的包要求 {nodeEngine}。",
-  "update.error.nodeTooOld.upgradeNode":
-    "请升级到 Node 22.14+ 或 Node 24，然后重新运行 `{cliName} update`。",
+  "update.error.nodeTooOld.upgradeNode": "请升级到 Node 24.x，然后重新运行 `{cliName} update`。",
   "update.error.nodeTooOld.silentOlderCompatible":
     "直接运行 `npm i -g {packageName}` 可能会悄悄安装一个更旧但兼容的版本。",
   "update.error.nodeTooOld.afterUpgradeInstallLatest":

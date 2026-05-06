@@ -31,7 +31,9 @@ export function getSystemLocale(): AppLocale {
 
 export function getStoredLocale(): AppLocale | null {
   if (typeof window === 'undefined') {return null}
-  return normalizeLocale(window.localStorage.getItem(STORAGE_KEY))
+  const storage = window.localStorage
+  if (!storage || typeof storage.getItem !== 'function') {return null}
+  return normalizeLocale(storage.getItem(STORAGE_KEY))
 }
 
 export function getPreferredLocale(): AppLocale {
@@ -40,8 +42,9 @@ export function getPreferredLocale(): AppLocale {
 
 export function saveLocale(locale: AppLocale): void {
   if (typeof window === 'undefined') {return}
-  window.localStorage.setItem(STORAGE_KEY, locale)
+  const storage = window.localStorage
+  if (!storage || typeof storage.setItem !== 'function') {return}
+  storage.setItem(STORAGE_KEY, locale)
 }
 
 export const LOCALE_STORAGE_KEY = STORAGE_KEY
-

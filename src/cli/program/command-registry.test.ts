@@ -21,7 +21,6 @@ vi.mock("./register.backup.js", () => ({
 vi.mock("./register.maintenance.js", () => ({
   registerMaintenanceCommands: (program: Command) => {
     program.command("doctor");
-    program.command("reset");
     program.command("uninstall");
   },
 }));
@@ -139,8 +138,8 @@ describe("command-registry", () => {
 
     const names = getCoreCliCommandNames();
     expect(names).toContain("doctor");
-    expect(names).toContain("reset");
     expect(names).toContain("uninstall");
+    expect(names).not.toContain("reset");
     expect(names).not.toContain("maintenance");
   });
 
@@ -159,13 +158,19 @@ describe("command-registry", () => {
     expect(names).toContain("tasks");
   });
 
+  it("does not expose the retired reset command", async () => {
+    const program = createProgram();
+
+    expect(await registerCoreCliByName(program, testProgramContext, "reset")).toBe(false);
+  });
+
   it("replaces placeholders when loading a grouped entry by secondary command name", async () => {
     const program = createProgram();
     registerCoreCliCommands(program, testProgramContext, ["node", "crawclaw", "doctor"]);
     expect(namesOf(program)).toEqual(["doctor"]);
 
-    const found = await registerCoreCliByName(program, testProgramContext, "reset");
+    const found = await registerCoreCliByName(program, testProgramContext, "uninstall");
     expect(found).toBe(true);
-    expect(namesOf(program)).toEqual(["doctor", "reset", "uninstall"]);
+    expect(namesOf(program)).toEqual(["doctor", "uninstall"]);
   });
 });

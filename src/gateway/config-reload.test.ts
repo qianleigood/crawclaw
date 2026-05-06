@@ -193,6 +193,20 @@ describe("buildGatewayReloadPlan", () => {
     expect(plan.noopPaths).toContain("diagnostics.stuckSessionWarnMs");
   });
 
+  it("treats messages.tts changes as no-op for gateway restart planning", () => {
+    const plan = buildGatewayReloadPlan([
+      "messages.tts.provider",
+      'messages.tts.providers["qwen3-tts"].defaultProfile',
+    ]);
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.noopPaths).toEqual(
+      expect.arrayContaining([
+        "messages.tts.provider",
+        'messages.tts.providers["qwen3-tts"].defaultProfile',
+      ]),
+    );
+  });
+
   it("restarts for gateway.auth.token changes", () => {
     const plan = buildGatewayReloadPlan(["gateway.auth.token"]);
     expect(plan.restartGateway).toBe(true);

@@ -163,6 +163,9 @@ export async function dispatchReplyFromConfig(params: {
   configOverride?: CrawClawConfig;
 }): Promise<DispatchFromConfigResult> {
   const { ctx, cfg, dispatcher } = params;
+  const agentId = ctx.SessionKey
+    ? resolveSessionAgentId({ sessionKey: ctx.SessionKey, config: cfg })
+    : undefined;
   const diagnosticsEnabled = isDiagnosticsEnabled(cfg);
   const channel = (ctx.Surface ?? ctx.Provider ?? "unknown").toLowerCase();
   const chatId = ctx.To ?? ctx.From;
@@ -518,6 +521,7 @@ export async function dispatchReplyFromConfig(params: {
       const ttsPayload = await maybeApplyTtsToPayload({
         payload,
         cfg,
+        agentId,
         channel: ttsChannel,
         kind: "final",
         inboundAudio,
@@ -678,6 +682,7 @@ export async function dispatchReplyFromConfig(params: {
             const ttsPayload = await maybeApplyTtsToPayload({
               payload,
               cfg,
+              agentId,
               channel: ttsChannel,
               kind: "tool",
               inboundAudio,
@@ -728,6 +733,7 @@ export async function dispatchReplyFromConfig(params: {
             const ttsPayload = await maybeApplyTtsToPayload({
               payload,
               cfg,
+              agentId,
               channel: ttsChannel,
               kind: "block",
               inboundAudio,
@@ -802,6 +808,7 @@ export async function dispatchReplyFromConfig(params: {
         const ttsSyntheticReply = await maybeApplyTtsToPayload({
           payload: { text: accumulatedBlockText },
           cfg,
+          agentId,
           channel: ttsChannel,
           kind: "final",
           inboundAudio,

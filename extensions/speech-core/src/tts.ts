@@ -683,6 +683,7 @@ function resolveTtsRequestSetup(params: {
 export async function textToSpeech(params: {
   text: string;
   cfg: CrawClawConfig;
+  agentId?: string;
   prefsPath?: string;
   channel?: string;
   overrides?: TtsDirectiveOverrides;
@@ -721,6 +722,7 @@ export async function textToSpeech(params: {
 export async function synthesizeSpeech(params: {
   text: string;
   cfg: CrawClawConfig;
+  agentId?: string;
   prefsPath?: string;
   channel?: string;
   overrides?: TtsDirectiveOverrides;
@@ -772,6 +774,7 @@ export async function synthesizeSpeech(params: {
       const synthesis = await resolvedProvider.provider.synthesize({
         text: params.text,
         cfg: params.cfg,
+        agentId: params.agentId,
         providerConfig: resolvedProvider.providerConfig,
         target,
         providerOverrides: params.overrides?.providerOverrides?.[resolvedProvider.provider.id],
@@ -955,6 +958,7 @@ export async function listSpeechVoices(params: {
 export async function maybeApplyTtsToPayload(params: {
   payload: ReplyPayload;
   cfg: CrawClawConfig;
+  agentId?: string;
   channel?: string;
   kind?: "tool" | "block" | "final";
   inboundAudio?: boolean;
@@ -1074,6 +1078,7 @@ export async function maybeApplyTtsToPayload(params: {
   const result = await textToSpeech({
     text: textForAudio,
     cfg: params.cfg,
+    agentId: params.agentId,
     prefsPath,
     channel: params.channel,
     overrides: directives.overrides,

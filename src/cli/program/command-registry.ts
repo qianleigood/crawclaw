@@ -115,11 +115,6 @@ const coreEntries: CoreCliEntry[] = [
         hasSubcommands: false,
       },
       {
-        name: "reset",
-        description: "Reset local config/state (keeps the CLI installed)",
-        hasSubcommands: false,
-      },
-      {
         name: "uninstall",
         description: "Uninstall the gateway service + local data (CLI remains)",
         hasSubcommands: false,

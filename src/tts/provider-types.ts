@@ -43,6 +43,7 @@ export type SpeechProviderConfiguredContext = {
 export type SpeechSynthesisRequest = {
   text: string;
   cfg: CrawClawConfig;
+  agentId?: string;
   providerConfig: SpeechProviderConfig;
   target: SpeechSynthesisTarget;
   providerOverrides?: SpeechProviderOverrides;

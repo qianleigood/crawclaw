@@ -41,6 +41,7 @@ type AcpDispatchDeliveryState = {
 };
 
 export type AcpDispatchDeliveryCoordinator = {
+  agentId: string;
   startReplyLifecycle: () => Promise<void>;
   deliver: (
     kind: ReplyDispatchKind,
@@ -60,6 +61,7 @@ export type AcpDispatchDeliveryCoordinator = {
 export function createAcpDispatchDeliveryCoordinator(params: {
   cfg: CrawClawConfig;
   ctx: FinalizedMsgContext;
+  agentId: string;
   dispatcher: ReplyDispatcher;
   inboundAudio: boolean;
   sessionTtsAuto?: TtsAutoMode;
@@ -179,6 +181,7 @@ export function createAcpDispatchDeliveryCoordinator(params: {
       : await maybeApplyTtsToPayload({
           payload,
           cfg: params.cfg,
+          agentId: params.agentId,
           channel: params.ttsChannel,
           kind,
           inboundAudio: params.inboundAudio,
@@ -260,6 +263,7 @@ export function createAcpDispatchDeliveryCoordinator(params: {
   };
 
   return {
+    agentId: params.agentId,
     startReplyLifecycle: startReplyLifecycleOnce,
     deliver,
     getBlockCount: () => state.blockCount,

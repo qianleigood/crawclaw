@@ -914,7 +914,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.doctor.memory.description":
     "Inspect the current Session/Durable/NotebookLM memory health",
   "command.doctor.memory.option.json": "Print machine-readable JSON",
-  "command.reset.description": "Reset local config/state (keeps the CLI installed)",
   "command.uninstall.description": "Uninstall the gateway service + local data (CLI remains)",
   "command.uninstall.option.service": "Remove the gateway service",
   "command.uninstall.option.state": "Remove state + config",
@@ -2599,8 +2598,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "update.error.commandNonZero": "command returned a non-zero exit code",
   "update.error.nodeTooOld.current": "Node {nodeVersion} is too old for {packageName}@{target}.",
   "update.error.nodeTooOld.requires": "The requested package requires {nodeEngine}.",
-  "update.error.nodeTooOld.upgradeNode":
-    "Upgrade Node to 22.14+ or Node 24, then rerun `{cliName} update`.",
+  "update.error.nodeTooOld.upgradeNode": "Upgrade Node to 24.x, then rerun `{cliName} update`.",
   "update.error.nodeTooOld.silentOlderCompatible":
     "Bare `npm i -g {packageName}` can silently install an older compatible release.",
   "update.error.nodeTooOld.afterUpgradeInstallLatest":

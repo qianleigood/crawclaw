@@ -2755,6 +2755,39 @@
       "source": "scripts/install-plugin-runtimes.mjs"
     },
     {
+      "id": "qwen3-tts",
+      "installTime": true,
+      "platforms": [
+        "darwin:arm64",
+        "darwin:x64",
+        "linux:x64",
+        "linux:arm64",
+        "win32:x64",
+        "win32:arm64"
+      ],
+      "python": {
+        "candidates": [
+          "python3.14",
+          "python3.13",
+          "python3.12",
+          "python3.11",
+          "python3.10",
+          "python3",
+          "python",
+          "py"
+        ],
+        "envOverrides": [
+          "CRAWCLAW_RUNTIME_PYTHON",
+          "CRAWCLAW_QWEN3_TTS_PYTHON"
+        ],
+        "minimumVersion": "3.10",
+        "requirements": [
+          "qwen-tts==0.1.1"
+        ]
+      },
+      "source": "scripts/install-plugin-runtimes.mjs"
+    },
+    {
       "id": "scrapling-fetch",
       "installTime": true,
       "python": {

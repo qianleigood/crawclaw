@@ -9,7 +9,7 @@ title: "Text-to-Speech"
 
 # Text-to-speech (TTS)
 
-CrawClaw can convert outbound replies into audio using ElevenLabs, Microsoft, or OpenAI.
+CrawClaw can convert outbound replies into audio using ElevenLabs, Microsoft, OpenAI, or a local Qwen3-TTS sidecar.
 It works anywhere CrawClaw can send audio.
 
 ## Supported services
@@ -17,6 +17,45 @@ It works anywhere CrawClaw can send audio.
 - **ElevenLabs** (primary or fallback provider)
 - **Microsoft** (primary or fallback provider; current bundled implementation uses `node-edge-tts`)
 - **OpenAI** (primary or fallback provider; also used for summaries)
+- **Qwen3-TTS** (primary or fallback provider; local sidecar for Qwen3-TTS runtimes)
+
+### Qwen3-TTS local notes
+
+The bundled Qwen3-TTS speech provider targets a local sidecar contract:
+
+- `POST /synthesize`
+- `POST /synthesize-telephony`
+
+You explicitly enable it with `messages.tts.providers.qwen3-tts.enabled: true`,
+then either point it at a local runtime wrapper or let CrawClaw launch a local
+loopback sidecar. Platform defaults are:
+
+- macOS Apple Silicon: `mlx-audio` at `http://127.0.0.1:8011`
+- Linux, Windows, and non-Apple-Silicon macOS: `qwen-tts` at `http://127.0.0.1:8013`
+- Explicit high-throughput Linux runtime: `vllm-omni` at `http://127.0.0.1:8010`
+- Explicit Windows native runtime: `qwen3-tts.cpp` at `http://127.0.0.1:8012` (experimental)
+
+Because `isConfigured()` is synchronous, Qwen3-TTS stays disabled until you
+explicitly turn it on in config. That prevents auto-select from hijacking TTS
+for users who have not started a local runtime yet.
+
+If you want CrawClaw to start a loopback sidecar automatically, set
+`providers.qwen3-tts.autoStart: true`. CrawClaw ships two bundled sidecars and
+uses the managed venv at `~/.crawclaw/runtimes/qwen3-tts/venv` when you do not
+provide an explicit launch command:
+
+- macOS Apple Silicon uses the MLX sidecar and pinned `mlx-audio` packages.
+- Linux, Windows, and non-Apple-Silicon macOS use the official `qwen-tts`
+  Python package sidecar.
+
+The managed runtime is installed during postinstall and can be repaired with
+`crawclaw runtimes install` or `crawclaw runtimes repair`. Explicit
+`vllm-omni` and `qwen3-tts.cpp` runtimes still require an explicit
+`launchCommand`. CrawClaw probes `baseUrl + healthPath`, verifies the managed
+runtime imports before spawning the bundled sidecar, then waits for the health
+check to turn green before sending TTS requests. The bundled sidecars download
+the requested model on first synthesis if it is not already cached locally, so
+the first request can be noticeably slower.
 
 ### Microsoft speech notes
 
@@ -52,6 +91,8 @@ so that provider must also be authenticated if you enable summaries.
 - [ElevenLabs Authentication](https://elevenlabs.io/docs/api-reference/authentication)
 - [node-edge-tts](https://github.com/SchneeHertz/node-edge-tts)
 - [Microsoft Speech output formats](https://learn.microsoft.com/azure/ai-services/speech-service/rest-text-to-speech#audio-outputs)
+- [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)
+- [vLLM-Omni Qwen3-TTS serving](https://docs.vllm.ai/projects/vllm-omni/en/latest/user_guide/examples/online_serving/qwen3_tts/)
 
 ## Is it enabled by default?
 
@@ -174,6 +215,64 @@ Full schema is in [Gateway configuration](/gateway/configuration).
 }
 ```
 
+### Local Qwen3-TTS primary
+
+```json5
+{
+  messages: {
+    tts: {
+      auto: "always",
+      provider: "qwen3-tts",
+      providers: {
+        "qwen3-tts": {
+          enabled: true,
+          runtime: "auto",
+          autoStart: true,
+          defaultProfile: "assistant",
+          profiles: {
+            assistant: {
+              source: "preset",
+              quality: "balanced",
+              voice: "vivian",
+              language: "Auto",
+              instructions: "natural, warm, expressive",
+            },
+          },
+        },
+      },
+    },
+  },
+}
+```
+
+### Local Qwen3-TTS clone profile
+
+```json5
+{
+  messages: {
+    tts: {
+      provider: "qwen3-tts",
+      providers: {
+        "qwen3-tts": {
+          enabled: true,
+          voiceDirectory: "~/.crawclaw/voices",
+          defaultProfile: "owner",
+          profiles: {
+            owner: {
+              source: "clone",
+              quality: "clone",
+              refAudio: "~/.crawclaw/voices/owner.wav",
+              refText: "Reference transcript for the cloning sample.",
+              language: "en",
+            },
+          },
+        },
+      },
+    },
+  },
+}
+```
+
 ### Only reply with audio after an inbound voice message
 
 ```json5
@@ -211,7 +310,7 @@ Then run:
   - `tagged` only sends audio when the reply includes `[[tts]]` tags.
 - `enabled`: legacy toggle (doctor migrates this to `auto`).
 - `mode`: `"final"` (default) or `"all"` (includes tool/block replies).
-- `provider`: speech provider id such as `"elevenlabs"`, `"microsoft"`, or `"openai"` (fallback is automatic).
+- `provider`: speech provider id such as `"elevenlabs"`, `"microsoft"`, `"openai"`, or `"qwen3-tts"` (fallback is automatic).
 - If `provider` is **unset**, CrawClaw uses the first configured speech provider in registry auto-select order.
 - Legacy `provider: "edge"` still works and is normalized to `microsoft`.
 - `summaryModel`: optional cheap model for auto-summary; defaults to `agents.defaults.model.primary`.
@@ -219,6 +318,22 @@ Then run:
 - `modelOverrides`: allow the model to emit TTS directives (on by default).
   - `allowProvider` defaults to `false` (provider switching is opt-in).
 - `providers.<id>`: provider-owned settings keyed by speech provider id.
+- `providers.qwen3-tts.enabled`: explicit enable switch for the local provider. Default `false`.
+- `providers.qwen3-tts.runtime`: `auto`, `qwen-tts`, `vllm-omni`, `mlx-audio`, `qwen3-tts.cpp`, or `cpu`.
+- `providers.qwen3-tts.baseUrl`: local sidecar base URL. Defaults by runtime/platform.
+- `providers.qwen3-tts.experimental`: allow experimental Windows native or CPU-only runtimes.
+- `providers.qwen3-tts.autoStart`: when `true`, probe a loopback sidecar and start it if needed. CrawClaw uses a bundled sidecar and the managed `qwen3-tts` venv automatically for `mlx-audio`, `qwen-tts`, and `cpu` runtimes when no explicit launch command is configured.
+- `providers.qwen3-tts.startupTimeoutMs`: sidecar readiness timeout in milliseconds. Default `30000`.
+- `providers.qwen3-tts.healthPath`: health probe path appended to `baseUrl`. Default `/health`.
+- `providers.qwen3-tts.launchCommand`: command to spawn when `autoStart` is enabled and the local sidecar is down.
+- `providers.qwen3-tts.launchArgs`: optional argument array passed to `launchCommand`.
+- `providers.qwen3-tts.launchCwd`: optional working directory for the spawned sidecar command.
+- `providers.qwen3-tts.defaultProfile`: default local profile id.
+- `providers.qwen3-tts.voiceDirectory`: allowlist root for clone reference audio. Default `~/.crawclaw/voices`.
+- `providers.qwen3-tts.profiles.<id>`:
+  `source: "preset"` uses built-in voices such as `vivian`, `serena`, or `ryan`.
+  `source: "clone"` uses `refAudio` + `refText` and enforces the `voiceDirectory` allowlist.
+  `source: "design"` uses a text `prompt` to create a voice in the local runtime wrapper.
 - Legacy direct provider blocks (`messages.tts.openai`, `messages.tts.elevenlabs`, `messages.tts.microsoft`, `messages.tts.edge`) are auto-migrated to `messages.tts.providers.<id>` on load.
 - `maxTextLength`: hard cap for TTS input (chars). `/tts audio` fails if exceeded.
 - `timeoutMs`: request timeout (ms).

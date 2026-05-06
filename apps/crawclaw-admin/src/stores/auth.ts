@@ -1,11 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { normalizeLocale, type AppLocale } from '@/i18n/locale'
 
 const AUTH_TOKEN_KEY = 'auth_token'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem(AUTH_TOKEN_KEY))
   const authEnabled = ref(true)
+  const serverLocale = ref<AppLocale | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const configLoaded = ref(false)
@@ -34,10 +36,12 @@ export const useAuthStore = defineStore('auth', () => {
       })
       const data = await response.json()
       authEnabled.value = !!data.enabled
+      serverLocale.value = normalizeLocale(data.locale)
       configLoaded.value = true
       return authEnabled.value
     } catch {
       authEnabled.value = false
+      serverLocale.value = null
       configLoaded.value = true
       return false
     }
@@ -120,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token,
     authEnabled,
+    serverLocale,
     loading,
     error,
     isAuthenticated,

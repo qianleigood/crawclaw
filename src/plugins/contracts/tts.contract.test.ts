@@ -1019,6 +1019,54 @@ describe("tts", () => {
       });
     }
 
+    it("passes agent identity into automatic TTS synthesis", async () => {
+      let observedAgentId: unknown;
+      const agentAwareProvider: SpeechProviderPlugin = {
+        id: "agent-aware",
+        label: "AgentAware",
+        autoSelectOrder: 1,
+        resolveConfig: () => ({}),
+        isConfigured: () => true,
+        synthesize: async (request) => {
+          observedAgentId = (request as Record<string, unknown>).agentId;
+          return {
+            audioBuffer: createAudioBuffer(2),
+            outputFormat: "mp3",
+            fileExtension: ".mp3",
+            voiceCompatible: true,
+          };
+        },
+      };
+      const registry = createEmptyPluginRegistry();
+      registry.speechProviders = [
+        { pluginId: "agent-aware", provider: agentAwareProvider, source: "test" },
+      ];
+      const { cacheKey } = pluginLoaderTesting.resolvePluginLoadCacheContext({ config: {} });
+      setActivePluginRegistry(registry, cacheKey);
+      const prevPrefs = process.env.CRAWCLAW_TTS_PREFS;
+      process.env.CRAWCLAW_TTS_PREFS = `/tmp/tts-agent-test-${Date.now()}.json`;
+      try {
+        const result = await maybeApplyTtsToPayload({
+          payload: { text: "这条回复足够长，可以触发自动语音合成。" },
+          cfg: {
+            messages: {
+              tts: {
+                auto: "always",
+                provider: "agent-aware",
+              },
+            },
+          },
+          kind: "final",
+          agentId: "sales",
+        } as Parameters<typeof maybeApplyTtsToPayload>[0] & { agentId: string });
+
+        expect(result.mediaUrl).toBeDefined();
+        expect(observedAgentId).toBe("sales");
+      } finally {
+        process.env.CRAWCLAW_TTS_PREFS = prevPrefs;
+      }
+    });
+
     it.each([
       {
         name: "inbound gating blocks non-audio",
