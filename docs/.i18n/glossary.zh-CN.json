@@ -68,6 +68,10 @@
     "target": "Diffs"
   },
   {
+    "source": "ESP32",
+    "target": "ESP32"
+  },
+  {
     "source": "TuriX CUA",
     "target": "TuriX CUA"
   },

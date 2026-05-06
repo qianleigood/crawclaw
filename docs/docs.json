@@ -1606,6 +1606,7 @@
                 "pages": [
                   "zh-CN/channels/bluebubbles",
                   "zh-CN/channels/discord",
+                  "zh-CN/channels/esp32",
                   "zh-CN/channels/feishu",
                   "zh-CN/channels/grammy",
                   "zh-CN/channels/googlechat",

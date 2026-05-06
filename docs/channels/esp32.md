@@ -8,7 +8,7 @@ title: "ESP32"
 
 # ESP32
 
-Status: experimental bundled plugin for ESP32-S3-BOX-3 desktop assistants.
+Status: experimental bundled plugin for ESP32-S3-BOX-3 desktop assistants. Enable `plugins.entries.esp32.enabled: true` before using the CLI or channel.
 
 The ESP32 channel uses a XiaoZhi-compatible split transport:
 
@@ -67,7 +67,7 @@ Enable the plugin and use the managed MQTT broker:
 
 ## Pairing
 
-Start a short-lived pairing session:
+After you enable `plugins.entries.esp32.enabled: true`, start a short-lived pairing session:
 
 ```bash
 crawclaw esp32 pair start --name desk
