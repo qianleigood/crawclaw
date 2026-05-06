@@ -26,7 +26,7 @@ import {
 } from '@vicons/ionicons5'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
-import { faQq } from '@fortawesome/free-brands-svg-icons'
+import { faQq, faWeixin } from '@fortawesome/free-brands-svg-icons'
 import { useI18n } from 'vue-i18n'
 import {
   faCircleCheck,
@@ -42,7 +42,7 @@ import {
 import { maskSecretValue } from '@/utils/secret-mask'
 
 interface ChinaChannelMeta {
-  key: 'qqbot' | 'feishu' | 'dingtalk' | 'wecom'
+  key: 'qqbot' | 'feishu' | 'dingtalk' | 'weixin' | 'wecom'
   icon: IconDefinition
   pluginPackages: string[]
   pluginIds: string[]
@@ -80,6 +80,13 @@ const CHINA_CHANNELS: ChinaChannelMeta[] = [
     pluginPackages: ['@largezhou/ddingtalk'],
     pluginIds: ['ddingtalk', 'dingtalk'],
     guideUrl: 'https://docs.crawclaw.ai/channels/ddingtalk',
+  },
+  {
+    key: 'weixin',
+    icon: faWeixin,
+    pluginPackages: ['@crawclaw/weixin'],
+    pluginIds: ['weixin'],
+    guideUrl: 'https://docs.crawclaw.ai/channels/weixin',
   },
   {
     key: 'wecom',
@@ -356,6 +363,7 @@ onMounted(() => {
             <a class="guide-pill" href="https://docs.crawclaw.ai/channels/qqbot" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.qqbot') }}</a>
             <a class="guide-pill" href="https://docs.crawclaw.ai/channels/feishu" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.feishu') }}</a>
             <a class="guide-pill" href="https://docs.crawclaw.ai/channels/ddingtalk" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.dingtalk') }}</a>
+            <a class="guide-pill" href="https://docs.crawclaw.ai/channels/weixin" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.weixin') }}</a>
             <a class="guide-pill" href="https://docs.crawclaw.ai/plugins/community#wecom" target="_blank" rel="noopener noreferrer">{{ t('pages.channels.guides.wecom') }}</a>
           </span>
         </div>
@@ -760,6 +768,10 @@ onMounted(() => {
 
 .channel-brand--dingtalk {
   background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%);
+}
+
+.channel-brand--weixin {
+  background: linear-gradient(135deg, #07c160 0%, #059669 100%);
 }
 
 .channel-brand--wecom {

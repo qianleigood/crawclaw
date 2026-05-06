@@ -404,6 +404,7 @@ export default {
         qqbot: 'QQ 教学',
         feishu: '飞书 教学',
         dingtalk: '钉钉 教学',
+        weixin: '微信 教学',
         wecom: '企业微信 教学',
       },
       channels: {
@@ -418,6 +419,10 @@ export default {
         dingtalk: {
           label: '钉钉',
           description: '覆盖钉钉机器人接入场景，推荐仅配置 clientId 与 clientSecret。',
+        },
+        weixin: {
+          label: '微信',
+          description: '通过腾讯 iLink Bot 扫码登录接入个人微信，当前仅支持私聊。',
         },
         wecom: {
           label: '企业微信',

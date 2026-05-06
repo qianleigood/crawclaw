@@ -75,6 +75,14 @@ export const CHANNEL_TEMPLATES: ChannelTemplate[] = [
     accountFields: ['appId', 'corpId', 'agentId'],
   },
   {
+    key: 'weixin',
+    aliases: [],
+    label: '微信',
+    channelSecretFields: [],
+    accountSecretFields: [],
+    accountFields: [],
+  },
+  {
     key: 'feishu',
     aliases: ['lark', 'feishu-china'],
     label: '飞书',

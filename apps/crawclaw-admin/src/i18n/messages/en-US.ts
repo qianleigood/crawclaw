@@ -404,6 +404,7 @@ export default {
         qqbot: 'QQ guide',
         feishu: 'Feishu guide',
         dingtalk: 'DingTalk guide',
+        weixin: 'Weixin guide',
         wecom: 'WeCom guide',
       },
       channels: {
@@ -418,6 +419,10 @@ export default {
         dingtalk: {
           label: 'DingTalk',
           description: 'For DingTalk bot scenarios. Recommended to only configure clientId and clientSecret.',
+        },
+        weixin: {
+          label: 'Weixin',
+          description: 'For personal Weixin via Tencent iLink Bot QR login. Direct messages only.',
         },
         wecom: {
           label: 'WeCom',
