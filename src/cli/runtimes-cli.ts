@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import {
   formatPluginRuntimeDoctorLines,
+  getPluginRuntimeManifestHealth,
   readPluginRuntimeManifest,
   resolvePluginRuntimeManifestPath,
   runPluginRuntimeInstall,
@@ -22,12 +23,14 @@ type RuntimeInstallOptions = {
 async function installAndReport(opts: RuntimeInstallOptions, action: "install" | "repair") {
   await runPluginRuntimeInstall();
   const manifest = readPluginRuntimeManifest();
+  const health = getPluginRuntimeManifestHealth();
   if (opts.json) {
     defaultRuntime.writeJson({
       ok: true,
       action,
       manifestPath: resolvePluginRuntimeManifestPath(),
       manifest,
+      health,
     });
     return;
   }
@@ -57,12 +60,20 @@ export function registerRuntimesCli(program: Command) {
     .action((opts: RuntimeListOptions) => {
       const manifestPath = resolvePluginRuntimeManifestPath();
       const manifest = readPluginRuntimeManifest();
+      const health = getPluginRuntimeManifestHealth();
       if (opts.json) {
-        defaultRuntime.writeJson({ manifestPath, manifest });
+        defaultRuntime.writeJson({ manifestPath, manifest, health });
         return;
       }
       defaultRuntime.log(theme.heading("Plugin Runtimes"));
       defaultRuntime.log(theme.muted(manifestPath));
+      if (health.supportLevel === "experimental") {
+        defaultRuntime.log(
+          theme.warn(
+            `Current Node ${health.currentNodeVersion} is experimental; Node 24.x remains the stable runtime.`,
+          ),
+        );
+      }
       const lines = formatPluginRuntimeDoctorLines();
       if (lines.length === 0) {
         defaultRuntime.log(theme.muted("No runtime manifest entries found."));
@@ -80,17 +91,26 @@ export function registerRuntimesCli(program: Command) {
     .action((opts: RuntimeListOptions) => {
       const manifestPath = resolvePluginRuntimeManifestPath();
       const manifest = readPluginRuntimeManifest();
+      const health = getPluginRuntimeManifestHealth();
       const lines = formatPluginRuntimeDoctorLines();
       if (opts.json) {
         defaultRuntime.writeJson({
           manifestPath,
           manifest,
-          healthy: lines.every((line) => line.includes(": healthy ")),
+          health,
+          healthy: !health.mismatchReason && lines.every((line) => line.includes(": healthy ")),
         });
         return;
       }
       defaultRuntime.log(theme.heading("Runtime Doctor"));
       defaultRuntime.log(theme.muted(manifestPath));
+      if (health.supportLevel === "experimental") {
+        defaultRuntime.log(
+          theme.warn(
+            `Current Node ${health.currentNodeVersion} is experimental; reinstall runtimes if you switch back to Node 24.x.`,
+          ),
+        );
+      }
       if (lines.length === 0) {
         defaultRuntime.log(theme.warn("No plugin runtime manifest entries found."));
         return;

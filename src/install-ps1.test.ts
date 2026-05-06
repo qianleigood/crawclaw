@@ -49,14 +49,15 @@ describe("install.ps1", () => {
     expect(installer).toContain("exit 2");
   });
 
-  it("prefers Node 24 while accepting Node 22.14 and newer", () => {
+  it("supports Node 24.x and Node 25.x experimental", () => {
     const installer = readInstaller();
 
     expect(installer).toContain("$PreferredNodeMajor = 24");
-    expect(installer).toContain("$MinimumNodeMajor = 22");
-    expect(installer).toContain("$MinimumNodeMinorForMajor = 14");
+    expect(installer).toContain("$ExperimentalNodeMajor = 25");
     expect(installer).toContain("function Test-NodeVersionSupported");
-    expect(installer).toContain("Node.js 24 is recommended; continuing with supported Node.js");
+    expect(installer).toContain("Installing Node.js 24...");
+    expect(installer).toContain("Node.js 25.x is experimental");
+    expect(installer).toContain("but need Node 24.x or Node 25.x (experimental)");
   });
 
   it("checks native command exit codes instead of trusting PowerShell success", () => {

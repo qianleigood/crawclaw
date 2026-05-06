@@ -45,7 +45,7 @@ For all flags and CI/automation options, see [Installer internals](/install/inst
 
 ## System requirements
 
-- **Node 24** (recommended) or Node 22.14+ — the installer script handles this automatically
+- **Node 24.x** (stable) or **Node 25.x** (experimental) — the installer script handles this automatically
 - **macOS, Linux, or Windows** — Windows uses the native PowerShell installer. See [Windows](/platforms/windows).
 - `pnpm` is only needed if you build from source
 

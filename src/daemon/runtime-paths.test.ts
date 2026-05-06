@@ -56,7 +56,7 @@ describe("resolvePreferredNodePath", () => {
     const execFile = vi
       .fn()
       .mockResolvedValueOnce({ stdout: "18.0.0\n", stderr: "" }) // execPath too old
-      .mockResolvedValueOnce({ stdout: "22.14.0\n", stderr: "" }); // system node ok
+      .mockResolvedValueOnce({ stdout: "24.14.0\n", stderr: "" }); // system node ok
 
     const result = await resolvePreferredNodePath({
       env: {},
@@ -73,7 +73,7 @@ describe("resolvePreferredNodePath", () => {
   it("ignores execPath when it is not node", async () => {
     mockNodePathPresent(darwinNode);
 
-    const execFile = vi.fn().mockResolvedValue({ stdout: "22.14.0\n", stderr: "" });
+    const execFile = vi.fn().mockResolvedValue({ stdout: "24.14.0\n", stderr: "" });
 
     const result = await resolvePreferredNodePath({
       env: {},
@@ -90,11 +90,10 @@ describe("resolvePreferredNodePath", () => {
     });
   });
 
-  it("uses system node when it meets the minimum version", async () => {
+  it("uses system node when it is on the supported major", async () => {
     mockNodePathPresent(darwinNode);
 
-    // Node 22.14.0+ is the minimum required version
-    const execFile = vi.fn().mockResolvedValue({ stdout: "22.14.0\n", stderr: "" });
+    const execFile = vi.fn().mockResolvedValue({ stdout: "24.14.0\n", stderr: "" });
 
     const result = await resolvePreferredNodePath({
       env: {},
@@ -108,11 +107,10 @@ describe("resolvePreferredNodePath", () => {
     expect(execFile).toHaveBeenCalledTimes(1);
   });
 
-  it("skips system node when it is too old", async () => {
+  it("skips system node when it is outside the supported major", async () => {
     mockNodePathPresent(darwinNode);
 
-    // Node 22.13.x is below minimum 22.14.0
-    const execFile = vi.fn().mockResolvedValue({ stdout: "22.13.0\n", stderr: "" });
+    const execFile = vi.fn().mockResolvedValue({ stdout: "26.0.0\n", stderr: "" });
 
     const result = await resolvePreferredNodePath({
       env: {},
@@ -165,11 +163,11 @@ describe("resolveStableNodePath", () => {
     expect(result).toBe("/usr/local/opt/node/bin/node");
   });
 
-  it("resolves versioned node@22 formula to opt symlink", async () => {
-    mockNodePathPresent("/opt/homebrew/opt/node@22/bin/node");
+  it("resolves versioned node@24 formula to opt symlink", async () => {
+    mockNodePathPresent("/opt/homebrew/opt/node@24/bin/node");
 
-    const result = await resolveStableNodePath("/opt/homebrew/Cellar/node@22/22.14.0/bin/node");
-    expect(result).toBe("/opt/homebrew/opt/node@22/bin/node");
+    const result = await resolveStableNodePath("/opt/homebrew/Cellar/node@24/24.14.0/bin/node");
+    expect(result).toBe("/opt/homebrew/opt/node@24/bin/node");
   });
 
   it("returns original path when no stable symlink exists", async () => {
@@ -198,7 +196,7 @@ describe("resolvePreferredNodePath — Homebrew Cellar", () => {
     const stableNode = "/opt/homebrew/opt/node/bin/node";
     mockNodePathPresent(stableNode);
 
-    const execFile = vi.fn().mockResolvedValue({ stdout: "25.7.0\n", stderr: "" });
+    const execFile = vi.fn().mockResolvedValue({ stdout: "24.7.0\n", stderr: "" });
 
     const result = await resolvePreferredNodePath({
       env: {},
@@ -218,8 +216,7 @@ describe("resolveSystemNodeInfo", () => {
   it("returns supported info when version is new enough", async () => {
     mockNodePathPresent(darwinNode);
 
-    // Node 22.14.0+ is the minimum required version
-    const execFile = vi.fn().mockResolvedValue({ stdout: "22.14.0\n", stderr: "" });
+    const execFile = vi.fn().mockResolvedValue({ stdout: "24.14.0\n", stderr: "" });
 
     const result = await resolveSystemNodeInfo({
       env: {},
@@ -229,7 +226,7 @@ describe("resolveSystemNodeInfo", () => {
 
     expect(result).toEqual({
       path: darwinNode,
-      version: "22.14.0",
+      version: "24.14.0",
       supported: true,
     });
   });
@@ -251,7 +248,7 @@ describe("resolveSystemNodeInfo", () => {
       "/Users/me/.fnm/node-22/bin/node",
     );
 
-    expect(warning).toContain("below the required Node 22.14+");
+    expect(warning).toContain("outside the supported Node 24.x / 25.x range");
     expect(warning).toContain(darwinNode);
   });
 

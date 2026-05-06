@@ -114,7 +114,7 @@ This script drives the interactive wizard via a pseudo-tty, verifies config/work
 
 ## QR import smoke (Docker)
 
-Ensures `qrcode-terminal` loads under the supported Docker Node runtimes (Node 24 default, Node 22 compatible):
+Ensures `qrcode-terminal` loads under the supported Docker Node runtime (Node 24.x):
 
 ```bash
 pnpm test:docker:qr

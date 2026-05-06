@@ -14,7 +14,7 @@ Linux support is focused on CLI, Gateway, plugins, and node host operation.
 
 ## Beginner quick path (VPS)
 
-1. Install Node 24 (recommended; Node 22 LTS, currently `22.14+`, still works for compatibility)
+1. Install Node 24.x (stable) or Node 25.x (experimental)
 2. `npm i -g crawclaw@latest`
 3. `crawclaw onboard --install-daemon`
 4. From your laptop: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`

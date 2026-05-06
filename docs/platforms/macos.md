@@ -29,16 +29,16 @@ The macOS matrix uses two support states:
 
 ## Native capability matrix
 
-| Surface                             | Status      | macOS boundary                                                                                    |
-| ----------------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
-| npm installer                       | `supported` | `npm install -g crawclaw@latest` installs the CLI package and runs install-time runtime setup.    |
-| CLI                                 | `supported` | Commands run under Node 22.14+ with macOS path, shell, and process handling.                      |
-| Gateway foreground                  | `supported` | `crawclaw gateway run` starts the Gateway directly on the Mac.                                    |
-| Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                          |
-| Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                   |
-| Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.   |
-| iMessage and Apple-local messaging  | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient. |
-| Camera, microphone, and screen APIs | `external`  | Permission-sensitive APIs depend on macOS TCC prompts, signing, and a separate local runtime.     |
+| Surface                             | Status      | macOS boundary                                                                                                  |
+| ----------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
+| npm installer                       | `supported` | `npm install -g crawclaw@latest` installs the CLI package and runs install-time runtime setup.                  |
+| CLI                                 | `supported` | Commands run under Node 24.x (stable) or Node 25.x (experimental) with macOS path, shell, and process handling. |
+| Gateway foreground                  | `supported` | `crawclaw gateway run` starts the Gateway directly on the Mac.                                                  |
+| Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                                        |
+| Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                                 |
+| Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                 |
+| iMessage and Apple-local messaging  | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.               |
+| Camera, microphone, and screen APIs | `external`  | Permission-sensitive APIs depend on macOS TCC prompts, signing, and a separate local runtime.                   |
 
 ## Install
 

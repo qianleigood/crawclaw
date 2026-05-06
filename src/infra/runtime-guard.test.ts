@@ -5,44 +5,46 @@ import {
   isAtLeast,
   isSupportedNodeVersion,
   nodeVersionSatisfiesEngine,
-  parseMinimumNodeEngine,
+  parseNodeEngineRange,
   parseSemver,
+  resolveNodeSupportLevel,
   type RuntimeDetails,
   runtimeSatisfies,
 } from "./runtime-guard.js";
 
 describe("runtime-guard", () => {
   it("parses semver with or without leading v", () => {
-    expect(parseSemver("v22.1.3")).toEqual({ major: 22, minor: 1, patch: 3 });
+    expect(parseSemver("v24.1.3")).toEqual({ major: 24, minor: 1, patch: 3 });
     expect(parseSemver("1.3.0")).toEqual({ major: 1, minor: 3, patch: 0 });
-    expect(parseSemver("22.14.0-beta.1")).toEqual({ major: 22, minor: 14, patch: 0 });
+    expect(parseSemver("24.14.0-beta.1")).toEqual({ major: 24, minor: 14, patch: 0 });
     expect(parseSemver("invalid")).toBeNull();
   });
 
   it("compares versions correctly", () => {
-    expect(isAtLeast({ major: 22, minor: 14, patch: 0 }, { major: 22, minor: 14, patch: 0 })).toBe(
+    expect(isAtLeast({ major: 24, minor: 0, patch: 0 }, { major: 24, minor: 0, patch: 0 })).toBe(
       true,
     );
-    expect(isAtLeast({ major: 22, minor: 15, patch: 0 }, { major: 22, minor: 14, patch: 0 })).toBe(
+    expect(isAtLeast({ major: 24, minor: 1, patch: 0 }, { major: 24, minor: 0, patch: 0 })).toBe(
       true,
     );
-    expect(isAtLeast({ major: 22, minor: 13, patch: 0 }, { major: 22, minor: 14, patch: 0 })).toBe(
+    expect(isAtLeast({ major: 23, minor: 9, patch: 0 }, { major: 24, minor: 0, patch: 0 })).toBe(
       false,
     );
-    expect(isAtLeast({ major: 21, minor: 9, patch: 0 }, { major: 22, minor: 14, patch: 0 })).toBe(
-      false,
+    expect(isAtLeast({ major: 25, minor: 0, patch: 0 }, { major: 24, minor: 0, patch: 0 })).toBe(
+      true,
     );
   });
 
   it("validates runtime thresholds", () => {
     const nodeOk: RuntimeDetails = {
       kind: "node",
-      version: "22.14.0",
+      version: "24.0.0",
       execPath: "/usr/bin/node",
       pathEnv: "/usr/bin",
     };
-    const nodeOld: RuntimeDetails = { ...nodeOk, version: "22.13.0" };
-    const nodeTooOld: RuntimeDetails = { ...nodeOk, version: "21.9.0" };
+    const nodeOld: RuntimeDetails = { ...nodeOk, version: "23.9.0" };
+    const nodeExperimental: RuntimeDetails = { ...nodeOk, version: "25.0.0" };
+    const nodeTooNew: RuntimeDetails = { ...nodeOk, version: "26.0.0" };
     const unknown: RuntimeDetails = {
       kind: "unknown",
       version: null,
@@ -51,24 +53,39 @@ describe("runtime-guard", () => {
     };
     expect(runtimeSatisfies(nodeOk)).toBe(true);
     expect(runtimeSatisfies(nodeOld)).toBe(false);
-    expect(runtimeSatisfies(nodeTooOld)).toBe(false);
+    expect(runtimeSatisfies(nodeExperimental)).toBe(true);
+    expect(runtimeSatisfies(nodeTooNew)).toBe(false);
     expect(runtimeSatisfies(unknown)).toBe(false);
-    expect(isSupportedNodeVersion("22.14.0")).toBe(true);
-    expect(isSupportedNodeVersion("22.13.9")).toBe(false);
+    expect(isSupportedNodeVersion("24.0.0")).toBe(true);
+    expect(isSupportedNodeVersion("24.14.1")).toBe(true);
+    expect(isSupportedNodeVersion("25.0.0")).toBe(true);
+    expect(isSupportedNodeVersion("23.9.9")).toBe(false);
+    expect(isSupportedNodeVersion("26.0.0")).toBe(false);
     expect(isSupportedNodeVersion(null)).toBe(false);
+    expect(resolveNodeSupportLevel("24.14.1")).toBe("stable");
+    expect(resolveNodeSupportLevel("25.0.0")).toBe("experimental");
+    expect(resolveNodeSupportLevel("26.0.0")).toBeNull();
   });
 
-  it("parses simple minimum node engine ranges", () => {
-    expect(parseMinimumNodeEngine(">=22.14.0")).toEqual({ major: 22, minor: 14, patch: 0 });
-    expect(parseMinimumNodeEngine(" >=v24.0.0 ")).toEqual({ major: 24, minor: 0, patch: 0 });
-    expect(parseMinimumNodeEngine("^22.14.0")).toBeNull();
+  it("parses bounded node engine ranges", () => {
+    expect(parseNodeEngineRange(">=24.0.0 <26")).toEqual({
+      minimum: { major: 24, minor: 0, patch: 0 },
+      exclusiveUpperMajor: 26,
+    });
+    expect(parseNodeEngineRange(" >=v24.0.0 <26.0.0 ")).toEqual({
+      minimum: { major: 24, minor: 0, patch: 0 },
+      exclusiveUpperMajor: 26,
+    });
+    expect(parseNodeEngineRange("^24.0.0")).toBeNull();
   });
 
-  it("checks node versions against simple engine ranges", () => {
-    expect(nodeVersionSatisfiesEngine("22.14.0", ">=22.14.0")).toBe(true);
-    expect(nodeVersionSatisfiesEngine("22.13.9", ">=22.14.0")).toBe(false);
-    expect(nodeVersionSatisfiesEngine("24.0.0", ">=22.14.0")).toBe(true);
-    expect(nodeVersionSatisfiesEngine("22.14.0", "^22.14.0")).toBeNull();
+  it("checks node versions against bounded engine ranges", () => {
+    expect(nodeVersionSatisfiesEngine("24.0.0", ">=24.0.0 <26")).toBe(true);
+    expect(nodeVersionSatisfiesEngine("24.14.1", ">=24.0.0 <26")).toBe(true);
+    expect(nodeVersionSatisfiesEngine("25.0.0", ">=24.0.0 <26")).toBe(true);
+    expect(nodeVersionSatisfiesEngine("23.9.9", ">=24.0.0 <26")).toBe(false);
+    expect(nodeVersionSatisfiesEngine("26.0.0", ">=24.0.0 <26")).toBe(false);
+    expect(nodeVersionSatisfiesEngine("24.0.0", "^24.0.0")).toBeNull();
   });
 
   it("throws via exit when runtime is too old", () => {
@@ -99,11 +116,27 @@ describe("runtime-guard", () => {
     const details: RuntimeDetails = {
       ...detectRuntime(),
       kind: "node",
-      version: "22.14.0",
+      version: "24.14.0",
       execPath: "/usr/bin/node",
     };
     expect(() => assertSupportedRuntime(runtime, details)).not.toThrow();
     expect(runtime.exit).not.toHaveBeenCalled();
+  });
+
+  it("logs an experimental warning on Node 25.x", () => {
+    const runtime = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn(),
+    };
+    const details: RuntimeDetails = {
+      kind: "node",
+      version: "25.0.0",
+      execPath: "/usr/bin/node",
+      pathEnv: "/usr/bin",
+    };
+    expect(() => assertSupportedRuntime(runtime, details)).not.toThrow();
+    expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("experimental Node 25.0.0"));
   });
 
   it("reports unknown runtimes with fallback labels", () => {

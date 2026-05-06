@@ -138,7 +138,7 @@ The Docker setup uses three config files on the host. The container never stores
 
 | File                       | Purpose                                                                    |
 | -------------------------- | -------------------------------------------------------------------------- |
-| `Dockerfile`               | Builds the `crawclaw:local` image (Node 22, pnpm, non-root `node` user)    |
+| `Dockerfile`               | Builds the `crawclaw:local` image (Node 24, pnpm, non-root `node` user)    |
 | `docker-compose.yml`       | Defines `crawclaw-gateway` and `crawclaw-cli` services, bind-mounts, ports |
 | `docker-setup.sh`          | First-time setup — builds image, creates `.env` from `.env.example`        |
 | `.env.example`             | Template for `<project>/.env` with all supported vars and docs             |

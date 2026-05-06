@@ -73,7 +73,7 @@ Recommended for most interactive installs on macOS/Linux.
     Supports macOS and Linux. If macOS is detected, installs Homebrew if missing.
   </Step>
   <Step title="Ensure Node.js 24 by default">
-    Checks Node version and installs Node 24 if needed (Homebrew on macOS, NodeSource setup scripts on Linux apt/dnf/yum). CrawClaw still supports Node 22 LTS, currently `22.14+`, for compatibility.
+    Checks Node version and installs Node 24 if needed (Homebrew on macOS, NodeSource setup scripts on Linux apt/dnf/yum). Node 25 is allowed as an experimental path, but the installer still defaults to Node 24.
   </Step>
   <Step title="Ensure Git">
     Installs Git if missing.
@@ -267,7 +267,7 @@ The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names whil
     Requires PowerShell 5+.
   </Step>
   <Step title="Ensure Node.js 24 by default">
-    If missing, attempts install via winget, then Chocolatey, then Scoop. Node 24 is preferred; Node 22 LTS, currently `22.14+`, remains supported for compatibility.
+    If missing, attempts install via winget, then Chocolatey, then Scoop. Node 25 is allowed as an experimental path, but the installer still defaults to Node 24.
   </Step>
   <Step title="Ensure Git and PATH prerequisites">
     Git is required for npm and git installs on Windows. The installer checks Git/PATH prerequisites before package installation so PATH problems produce a clear first actionable error instead of a later `spawn git ENOENT`.

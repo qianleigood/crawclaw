@@ -17,9 +17,7 @@ NC='\033[0m' # No Color
 
 DEFAULT_TAGLINE="All your chats, one CrawClaw."
 NODE_DEFAULT_MAJOR=24
-NODE_MIN_MAJOR=22
-NODE_MIN_MINOR=14
-NODE_MIN_VERSION="${NODE_MIN_MAJOR}.${NODE_MIN_MINOR}"
+NODE_EXPERIMENTAL_MAJOR=25
 
 ORIGINAL_PATH="${PATH:-}"
 
@@ -1279,17 +1277,14 @@ node_major_version() {
     return 1
 }
 
-node_is_at_least_required() {
+node_is_supported_major() {
     local version_components major minor
     version_components="$(parse_node_version_components || true)"
     read -r major minor <<< "$version_components"
     if [[ ! "$major" =~ ^[0-9]+$ || ! "$minor" =~ ^[0-9]+$ ]]; then
         return 1
     fi
-    if [[ "$major" -gt "$NODE_MIN_MAJOR" ]]; then
-        return 0
-    fi
-    if [[ "$major" -eq "$NODE_MIN_MAJOR" && "$minor" -ge "$NODE_MIN_MINOR" ]]; then
+    if [[ "$major" -eq "$NODE_DEFAULT_MAJOR" || "$major" -eq "$NODE_EXPERIMENTAL_MAJOR" ]]; then
         return 0
     fi
     return 1
@@ -1328,7 +1323,7 @@ ensure_macos_default_node_active() {
 
     local major=""
     major="$(node_major_version || true)"
-    if [[ -n "$major" && "$major" -ge 22 ]]; then
+    if [[ -n "$major" && "$major" -eq "$NODE_DEFAULT_MAJOR" ]]; then
         return 0
     fi
 
@@ -1347,7 +1342,7 @@ ensure_macos_default_node_active() {
 }
 
 ensure_default_node_active_shell() {
-    if node_is_at_least_required; then
+    if node_is_supported_major; then
         return 0
     fi
 
@@ -1355,7 +1350,7 @@ ensure_default_node_active_shell() {
     active_path="$(command -v node 2>/dev/null || echo "not found")"
     active_version="$(node -v 2>/dev/null || echo "missing")"
 
-    ui_error "Active Node.js must be v${NODE_MIN_VERSION}+ but this shell is using ${active_version} (${active_path})"
+    ui_error "Active Node.js must be v${NODE_DEFAULT_MAJOR}.x or v${NODE_EXPERIMENTAL_MAJOR}.x but this shell is using ${active_version} (${active_path})"
     print_active_node_paths || true
 
     local nvm_detected=0
@@ -1375,7 +1370,7 @@ ensure_default_node_active_shell() {
         echo "Then open a new shell and rerun:"
         echo "  curl -fsSL https://crawclaw.ai/install.sh | bash"
     else
-        echo "Install/select Node.js ${NODE_DEFAULT_MAJOR} (or Node ${NODE_MIN_VERSION}+ minimum) and ensure it is first on PATH, then rerun installer."
+        echo "Install/select Node.js ${NODE_DEFAULT_MAJOR} (stable) or ${NODE_EXPERIMENTAL_MAJOR} (experimental) and ensure it is first on PATH, then rerun installer."
     fi
 
     return 1
@@ -1384,15 +1379,18 @@ ensure_default_node_active_shell() {
 check_node() {
     if command -v node &> /dev/null; then
         NODE_VERSION="$(node_major_version || true)"
-        if node_is_at_least_required; then
+        if node_is_supported_major; then
             ui_success "Node.js v$(node -v | cut -d'v' -f2) found"
             print_active_node_paths || true
+            if [[ "$NODE_VERSION" == "$NODE_EXPERIMENTAL_MAJOR" ]]; then
+                ui_warn "Node.js ${NODE_EXPERIMENTAL_MAJOR}.x is experimental. Node.js ${NODE_DEFAULT_MAJOR}.x remains the stable runtime."
+            fi
             return 0
         else
             if [[ -n "$NODE_VERSION" ]]; then
-                ui_info "Node.js $(node -v) found, upgrading to v${NODE_MIN_VERSION}+"
+                ui_info "Node.js $(node -v) found, switching to Node.js ${NODE_DEFAULT_MAJOR}.x"
             else
-                ui_info "Node.js found but version could not be parsed; reinstalling v${NODE_MIN_VERSION}+"
+                ui_info "Node.js found but version could not be parsed; reinstalling Node.js ${NODE_DEFAULT_MAJOR}.x"
             fi
             return 1
         fi
@@ -1472,7 +1470,7 @@ install_node() {
             fi
         else
             ui_error "Could not detect package manager"
-            echo "Please install Node.js ${NODE_DEFAULT_MAJOR} manually (or Node ${NODE_MIN_VERSION}+ minimum): https://nodejs.org"
+            echo "Please install Node.js ${NODE_DEFAULT_MAJOR} manually (or Node.js ${NODE_EXPERIMENTAL_MAJOR} if you want the experimental path): https://nodejs.org"
             exit 1
         fi
 

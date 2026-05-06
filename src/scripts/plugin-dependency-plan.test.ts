@@ -44,7 +44,7 @@ async function createFixtureRepo(): Promise<string> {
       vitest: "^4.1.2",
     },
     engines: {
-      node: ">=22.14.0",
+      node: ">=24.0.0 <26",
     },
     optionalDependencies: {
       openshell: "0.1.0",
@@ -175,7 +175,7 @@ describe("plugin dependency plan", () => {
 
     expect(plan.root).toMatchObject({
       dependencies: { zod: "^4.3.6" },
-      engines: { node: ">=22.14.0" },
+      engines: { node: ">=24.0.0 <26" },
       packageManager: "pnpm@10.32.1",
       pnpm: {
         packageJsonOnlyBuiltDependencies: ["sharp"],
@@ -206,6 +206,16 @@ describe("plugin dependency plan", () => {
         installTime: true,
         source: "scripts/install-plugin-runtimes.mjs",
         python: expect.objectContaining({
+          candidates: expect.arrayContaining([
+            "python3.14",
+            "python3.13",
+            "python3.12",
+            "python3.11",
+            "python3.10",
+            "python3",
+            "python",
+            "py",
+          ]),
           envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"],
           minimumVersion: "3.10",
           requirements: ["PyYAML==6.0.3"],
@@ -232,6 +242,34 @@ describe("plugin dependency plan", () => {
         installTime: true,
         npmPackage: "open-websearch@2.1.5",
         source: "scripts/install-plugin-runtimes.mjs",
+      }),
+      expect.objectContaining({
+        id: "qwen3-tts",
+        installTime: true,
+        platforms: [
+          "darwin:arm64",
+          "darwin:x64",
+          "linux:x64",
+          "linux:arm64",
+          "win32:x64",
+          "win32:arm64",
+        ],
+        source: "scripts/install-plugin-runtimes.mjs",
+        python: expect.objectContaining({
+          candidates: expect.arrayContaining([
+            "python3.14",
+            "python3.13",
+            "python3.12",
+            "python3.11",
+            "python3.10",
+            "python3",
+            "python",
+            "py",
+          ]),
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_QWEN3_TTS_PYTHON"],
+          minimumVersion: "3.10",
+          requirements: ["qwen-tts==0.1.1"],
+        }),
       }),
       expect.objectContaining({
         id: "scrapling-fetch",

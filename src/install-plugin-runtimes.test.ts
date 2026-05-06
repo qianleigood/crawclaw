@@ -398,6 +398,39 @@ describe("install-plugin-runtimes", () => {
           ),
         },
       },
+      {
+        id: "qwen3-tts",
+        installTime: true,
+        platforms: [
+          "darwin:arm64",
+          "darwin:x64",
+          "linux:x64",
+          "linux:arm64",
+          "win32:x64",
+          "win32:arm64",
+        ],
+        python: {
+          candidates: [
+            "python3.14",
+            "python3.13",
+            "python3.12",
+            "python3.11",
+            "python3.10",
+            "python3",
+            "python",
+            "py",
+          ],
+          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_QWEN3_TTS_PYTHON"],
+          minimumVersion: "3.10",
+          requirementsLockPath: path.join(
+            process.cwd(),
+            "extensions",
+            "qwen3-tts",
+            "runtime",
+            "requirements.python.lock.txt",
+          ),
+        },
+      },
     ]);
   });
 
@@ -426,5 +459,31 @@ describe("install-plugin-runtimes", () => {
     expect(macArm?.platforms).toEqual(["darwin:arm64"]);
     expect(macX64?.installTime).toBe(false);
     expect(linuxX64?.installTime).toBe(false);
+  });
+
+  it("uses the MLX Qwen3-TTS runtime on Apple Silicon and Python runtime elsewhere", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    const macArm = script
+      .listManagedPluginRuntimeInstallPlan({ platform: "darwin", arch: "arm64" })
+      .find((entry) => entry.id === "qwen3-tts");
+    const macX64 = script
+      .listManagedPluginRuntimeInstallPlan({ platform: "darwin", arch: "x64" })
+      .find((entry) => entry.id === "qwen3-tts");
+    const linuxX64 = script
+      .listManagedPluginRuntimeInstallPlan({ platform: "linux", arch: "x64" })
+      .find((entry) => entry.id === "qwen3-tts");
+    const winX64 = script
+      .listManagedPluginRuntimeInstallPlan({ platform: "win32", arch: "x64" })
+      .find((entry) => entry.id === "qwen3-tts");
+
+    expect(macArm?.installTime).toBe(true);
+    expect(macArm?.python?.requirementsLockPath).toContain("requirements.macos-arm64.lock.txt");
+    expect(macX64?.installTime).toBe(true);
+    expect(macX64?.python?.requirementsLockPath).toContain("requirements.python.lock.txt");
+    expect(linuxX64?.installTime).toBe(true);
+    expect(linuxX64?.python?.requirementsLockPath).toContain("requirements.python.lock.txt");
+    expect(winX64?.installTime).toBe(true);
+    expect(winX64?.python?.requirementsLockPath).toContain("requirements.python.lock.txt");
   });
 });

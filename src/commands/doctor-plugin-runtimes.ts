@@ -2,6 +2,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import { runPluginRuntimeInstall } from "../plugins/plugin-runtimes.js";
 import {
   formatPluginRuntimeDoctorLines,
+  getPluginRuntimeManifestHealth,
   readPluginRuntimeManifest,
   resolvePluginRuntimeManifestPath,
 } from "../plugins/plugin-runtimes.js";
@@ -12,7 +13,11 @@ import type { DoctorPrompter } from "./doctor-prompter.js";
 function hasUnhealthyRuntimeState(): boolean {
   const manifest = readPluginRuntimeManifest();
   const plugins = manifest.plugins ?? {};
-  return Object.values(plugins).some((entry) => entry.state !== "healthy");
+  const health = getPluginRuntimeManifestHealth();
+  return (
+    Boolean(health.mismatchReason) ||
+    Object.values(plugins).some((entry) => entry.state !== "healthy")
+  );
 }
 
 export async function maybeRepairSharedPluginRuntimes(params: {

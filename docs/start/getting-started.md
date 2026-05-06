@@ -14,7 +14,7 @@ and a working chat session.
 
 ## What you need
 
-- **Node.js** — Node 24 recommended (Node 22.14+ also supported)
+- **Node.js** — Node 24.x (stable) or Node 25.x (experimental)
 - **An API key** from a model provider (Anthropic, OpenAI, Google, etc.) — onboarding will prompt you
 
 <Tip>

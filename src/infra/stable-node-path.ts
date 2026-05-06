@@ -6,7 +6,7 @@ import path from "node:path";
  * break when Homebrew upgrades Node and removes the old version directory.
  * Resolve these to a stable Homebrew-managed path that survives upgrades:
  *   - Default formula "node":  <prefix>/opt/node/bin/node  or  <prefix>/bin/node
- *   - Versioned formula "node@22":  <prefix>/opt/node@22/bin/node  (keg-only)
+ *   - Versioned formula "node@24":  <prefix>/opt/node@24/bin/node  (keg-only)
  */
 export async function resolveStableNodePath(nodePath: string): Promise<string> {
   const cellarMatch = nodePath.match(
@@ -16,7 +16,7 @@ export async function resolveStableNodePath(nodePath: string): Promise<string> {
     return nodePath;
   }
   const prefix = cellarMatch[1]; // e.g. /opt/homebrew
-  const formula = cellarMatch[2]; // e.g. "node" or "node@22"
+  const formula = cellarMatch[2]; // e.g. "node" or "node@24"
   const pathModule = nodePath.includes("\\") ? path.win32 : path.posix;
 
   // Try the Homebrew opt symlink first — works for both default and versioned formulas.

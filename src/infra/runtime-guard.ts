@@ -2,6 +2,7 @@ import process from "node:process";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 
 export type RuntimeKind = "node" | "unknown";
+export type NodeSupportLevel = "stable" | "experimental";
 
 type Semver = {
   major: number;
@@ -9,8 +10,14 @@ type Semver = {
   patch: number;
 };
 
-const MIN_NODE: Semver = { major: 22, minor: 14, patch: 0 };
-const MINIMUM_ENGINE_RE = /^\s*>=\s*v?(\d+\.\d+\.\d+)\s*$/i;
+const STABLE_NODE_MAJOR = 24;
+const EXPERIMENTAL_NODE_MAJOR = 25;
+const BOUNDED_ENGINE_RE = /^\s*>=\s*v?(\d+\.\d+\.\d+)\s+<\s*v?(\d+)(?:\.\d+\.\d+)?\s*$/i;
+
+type NodeEngineRange = {
+  minimum: Semver;
+  exclusiveUpperMajor: number;
+};
 
 export type RuntimeDetails = {
   kind: RuntimeKind;
@@ -65,35 +72,62 @@ export function detectRuntime(): RuntimeDetails {
 export function runtimeSatisfies(details: RuntimeDetails): boolean {
   const parsed = parseSemver(details.version);
   if (details.kind === "node") {
-    return isAtLeast(parsed, MIN_NODE);
+    return isSupportedNodeSemver(parsed);
   }
   return false;
 }
 
 export function isSupportedNodeVersion(version: string | null): boolean {
-  return isAtLeast(parseSemver(version), MIN_NODE);
+  return isSupportedNodeSemver(parseSemver(version));
 }
 
-export function parseMinimumNodeEngine(engine: string | null): Semver | null {
+function isSupportedNodeSemver(version: Semver | null): boolean {
+  return resolveNodeSupportLevel(version) !== null;
+}
+
+export function resolveNodeSupportLevel(version: Semver | string | null): NodeSupportLevel | null {
+  const parsed = typeof version === "string" ? parseSemver(version) : version;
+  if (!parsed) {
+    return null;
+  }
+  if (parsed.major === STABLE_NODE_MAJOR) {
+    return "stable";
+  }
+  if (parsed.major === EXPERIMENTAL_NODE_MAJOR) {
+    return "experimental";
+  }
+  return null;
+}
+
+export function parseNodeEngineRange(engine: string | null): NodeEngineRange | null {
   if (!engine) {
     return null;
   }
-  const match = engine.match(MINIMUM_ENGINE_RE);
+  const match = engine.match(BOUNDED_ENGINE_RE);
   if (!match) {
     return null;
   }
-  return parseSemver(match[1] ?? null);
+  const minimum = parseSemver(match[1] ?? null);
+  const exclusiveUpperMajor = Number.parseInt(match[2] ?? "", 10);
+  if (!minimum || !Number.isFinite(exclusiveUpperMajor)) {
+    return null;
+  }
+  return {
+    minimum,
+    exclusiveUpperMajor,
+  };
 }
 
 export function nodeVersionSatisfiesEngine(
   version: string | null,
   engine: string | null,
 ): boolean | null {
-  const minimum = parseMinimumNodeEngine(engine);
-  if (!minimum) {
+  const range = parseNodeEngineRange(engine);
+  const parsedVersion = parseSemver(version);
+  if (!range || !parsedVersion) {
     return null;
   }
-  return isAtLeast(parseSemver(version), minimum);
+  return isAtLeast(parsedVersion, range.minimum) && parsedVersion.major < range.exclusiveUpperMajor;
 }
 
 export function assertSupportedRuntime(
@@ -101,6 +135,15 @@ export function assertSupportedRuntime(
   details: RuntimeDetails = detectRuntime(),
 ): void {
   if (runtimeSatisfies(details)) {
+    const supportLevel = resolveNodeSupportLevel(details.version);
+    if (supportLevel === "experimental") {
+      runtime.log(
+        [
+          `crawclaw is running on experimental Node ${details.version}.`,
+          "Node 24.x is the stable runtime. Reinstall native/runtime artifacts if you switch majors.",
+        ].join("\n"),
+      );
+    }
     return;
   }
 
@@ -111,7 +154,7 @@ export function assertSupportedRuntime(
 
   runtime.error(
     [
-      "crawclaw requires Node >=22.14.0.",
+      "crawclaw requires Node 24.x or Node 25.x (experimental).",
       `Detected: ${runtimeLabel} (exec: ${execLabel}).`,
       `PATH searched: ${details.pathEnv}`,
       "Install Node: https://nodejs.org/en/download",

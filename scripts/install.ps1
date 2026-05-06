@@ -26,8 +26,7 @@ $ERROR = "`e[38;2;230;57;70m"     # coral-mid
 $MUTED = "`e[38;2;90;100;128m"    # text-muted
 $NC = "`e[0m"                     # No Color
 $PreferredNodeMajor = 24
-$MinimumNodeMajor = 22
-$MinimumNodeMinorForMajor = 14
+$ExperimentalNodeMajor = 25
 
 function Write-Host {
     param([string]$Message, [string]$Level = "info")
@@ -233,18 +232,12 @@ function Test-NodeVersionSupported {
     if ($null -eq $parts) {
         return $false
     }
-    if ($parts.Major -gt $MinimumNodeMajor) {
-        return $true
-    }
-    if ($parts.Major -eq $MinimumNodeMajor -and $parts.Minor -ge $MinimumNodeMinorForMajor) {
-        return $true
-    }
-    return $false
+    return $parts.Major -eq $PreferredNodeMajor -or $parts.Major -eq $ExperimentalNodeMajor
 }
 
 function Install-Node {
     Write-Host "Node.js not found" -Level info
-    Write-Host "Installing Node.js 24 (Node 22.14+ remains compatible)..." -Level info
+    Write-Host "Installing Node.js 24..." -Level info
     
     # Try winget first
     if (Get-Command winget -ErrorAction SilentlyContinue) {
@@ -296,22 +289,22 @@ function Install-Node {
     }
     
     Write-Host "Could not install Node.js automatically" -Level error
-    Write-Host "Please install Node.js 24 from https://nodejs.org, or Node.js 22.14+ if you need the compatibility floor." -Level info
+    Write-Host "Please install Node.js 24 from https://nodejs.org." -Level info
     return $false
 }
 
 function Ensure-Node {
     $nodeVersion = Get-NodeVersion
     if ($nodeVersion) {
-        $parts = ConvertTo-NodeVersionParts -Version $nodeVersion
         if (Test-NodeVersionSupported -Version $nodeVersion) {
             Write-Host "Node.js v$nodeVersion found" -Level success
-            if ($parts.Major -lt $PreferredNodeMajor) {
-                Write-Host "Node.js 24 is recommended; continuing with supported Node.js v$nodeVersion." -Level warn
+            $parts = ConvertTo-NodeVersionParts -Version $nodeVersion
+            if ($parts.Major -eq $ExperimentalNodeMajor) {
+                Write-Host "Node.js 25.x is experimental. Node.js 24.x remains the stable runtime." -Level warn
             }
             return $true
         }
-        Write-Host "Node.js v$nodeVersion found, but need v22.14+ (Node 24 recommended)" -Level warn
+        Write-Host "Node.js v$nodeVersion found, but need Node 24.x or Node 25.x (experimental)" -Level warn
     }
     return Install-Node
 }

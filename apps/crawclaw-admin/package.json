@@ -4,6 +4,9 @@
   "version": "1.0.2",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <26"
+  },
   "scripts": {
     "dev": "vite",
     "dev:server": "node --env-file=.env server/index.js",

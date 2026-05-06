@@ -45,7 +45,7 @@ node --import tsx scripts/repro/tsx-name-repro.ts
 
 - Node 25.3.0: fails
 - Node 22.22.0 (Homebrew `node@22`): fails
-- Node 24: not installed here yet; needs verification
+- Node 24.14.1: passes for the current repo build/runtime path
 
 ## Notes / hypothesis
 
@@ -78,8 +78,8 @@ node --import tsx scripts/repro/tsx-name-repro.ts
 - [https://esbuild.github.io/api/#keep-names](https://esbuild.github.io/api/#keep-names)
 - [https://github.com/evanw/esbuild/issues/1031](https://github.com/evanw/esbuild/issues/1031)
 
-## Next steps
+## Current takeaway
 
-- Repro on Node 22/24 to confirm Node 25 regression.
-- Test `tsx` nightly or pin to earlier version if a known regression exists.
-- If reproduces on Node LTS, file a minimal repro upstream with the `__name` stack trace.
+- The failure is not a general CrawClaw incompatibility with Node 24.
+- Treat Node 25 as unsupported for this repo until the tsx/esbuild loader path is proven stable.
+- Keep the repo on Node 24.x for installs, CI, and local development.

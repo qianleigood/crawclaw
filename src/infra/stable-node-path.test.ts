@@ -12,9 +12,9 @@ describe("resolveStableNodePath", () => {
   it("prefers the Homebrew opt symlink for default and versioned formulas", async () => {
     const prefix = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-stable-node-"));
     const defaultNode = path.join(prefix, "Cellar", "node", "25.7.0", "bin", "node");
-    const versionedNode = path.join(prefix, "Cellar", "node@22", "22.17.0", "bin", "node");
+    const versionedNode = path.join(prefix, "Cellar", "node@24", "24.14.1", "bin", "node");
     const optDefault = path.join(prefix, "opt", "node", "bin", "node");
-    const optVersioned = path.join(prefix, "opt", "node@22", "bin", "node");
+    const optVersioned = path.join(prefix, "opt", "node@24", "bin", "node");
 
     await fs.mkdir(path.dirname(optDefault), { recursive: true });
     await fs.mkdir(path.dirname(optVersioned), { recursive: true });
@@ -28,7 +28,7 @@ describe("resolveStableNodePath", () => {
   it("falls back to the bin symlink for the default formula, otherwise original path", async () => {
     const prefix = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-stable-node-"));
     const defaultNode = path.join(prefix, "Cellar", "node", "25.7.0", "bin", "node");
-    const versionedNode = path.join(prefix, "Cellar", "node@22", "22.17.0", "bin", "node");
+    const versionedNode = path.join(prefix, "Cellar", "node@24", "24.14.1", "bin", "node");
     const binNode = path.join(prefix, "bin", "node");
 
     await fs.mkdir(path.dirname(binNode), { recursive: true });

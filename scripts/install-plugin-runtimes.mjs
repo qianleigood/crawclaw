@@ -26,9 +26,11 @@ const CORE_SKILLS_MINIMUM_PYTHON_VERSION = "3.10";
 const SCRAPLING_MINIMUM_PYTHON_VERSION = "3.10";
 const NOTEBOOKLM_MCP_CLI_VERSION = "0.6.1";
 const NOTEBOOKLM_MINIMUM_PYTHON_VERSION = "3.11";
+const QWEN3_TTS_MINIMUM_PYTHON_VERSION = "3.10";
 const CORE_SKILLS_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"];
 const SCRAPLING_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_SCRAPLING_PYTHON"];
 const NOTEBOOKLM_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_NOTEBOOKLM_PYTHON"];
+const QWEN3_TTS_PYTHON_ENV_OVERRIDES = ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_QWEN3_TTS_PYTHON"];
 const NPM_INSTALL_MAX_ATTEMPTS = 3;
 const NPM_INSTALL_RETRY_BASE_DELAY_MS = 1000;
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -53,7 +55,29 @@ const OPENAI_WHISPER_REQUIREMENTS_LOCK = path.join(
   "runtime",
   "requirements.macos-arm64.lock.txt",
 );
+const QWEN3_TTS_MLX_REQUIREMENTS_LOCK = path.join(
+  PACKAGE_ROOT,
+  "extensions",
+  "qwen3-tts",
+  "runtime",
+  "requirements.macos-arm64.lock.txt",
+);
+const QWEN3_TTS_PYTHON_REQUIREMENTS_LOCK = path.join(
+  PACKAGE_ROOT,
+  "extensions",
+  "qwen3-tts",
+  "runtime",
+  "requirements.python.lock.txt",
+);
 const WINDOWS_SCRAPLING_RUNTIME_PACKAGES = ["msvc-runtime==14.44.35112"];
+const QWEN3_TTS_SUPPORTED_PLATFORMS = [
+  "darwin:arm64",
+  "darwin:x64",
+  "linux:x64",
+  "linux:arm64",
+  "win32:x64",
+  "win32:arm64",
+];
 
 function resolvePlatformPythonCandidates(platform = process.platform) {
   const baseCandidates = [
@@ -83,11 +107,17 @@ function resolveStateRoot(env = process.env) {
 }
 
 function resolveRuntimesRoot(env = process.env) {
-  return path.join(resolveStateRoot(env), "runtimes");
+  const major = Number.parseInt(
+    (env.CRAWCLAW_RUNTIME_NODE_VERSION?.trim() || process.versions.node || "")
+      .replace(/^v/, "")
+      .split(".")[0] || "",
+    10,
+  );
+  return path.join(resolveStateRoot(env), "runtimes", `node-${Number.isFinite(major) ? major : 0}`);
 }
 
 function resolveManifestPath(env = process.env) {
-  return path.join(resolveRuntimesRoot(env), "manifest.json");
+  return path.join(resolveStateRoot(env), "runtimes", "manifest.json");
 }
 
 function readLockedRequirements(filePath) {
@@ -412,6 +442,7 @@ function installPythonRequirementsRuntime(params, env = process.env) {
   }
   return {
     state: "healthy",
+    ...(params.runtime ? { runtime: params.runtime } : {}),
     python: python.command,
     pythonVersion: python.version.text,
     venvDir,
@@ -525,6 +556,46 @@ function installOpenAiWhisperRuntime(env = process.env) {
       envOverrides: CORE_SKILLS_PYTHON_ENV_OVERRIDES,
       requirementsLockPath: OPENAI_WHISPER_REQUIREMENTS_LOCK,
       verifyScript: "import mlx_whisper; print('ok')",
+    },
+    env,
+  );
+}
+
+function supportsQwen3TtsRuntime(platform = process.platform, arch = process.arch) {
+  return QWEN3_TTS_SUPPORTED_PLATFORMS.includes(`${platform}:${arch}`);
+}
+
+function resolveQwen3TtsRuntimeKind(platform = process.platform, arch = process.arch) {
+  return platform === "darwin" && arch === "arm64" ? "mlx-audio" : "qwen-tts";
+}
+
+function resolveQwen3TtsRequirementsLock(platform = process.platform, arch = process.arch) {
+  return resolveQwen3TtsRuntimeKind(platform, arch) === "mlx-audio"
+    ? QWEN3_TTS_MLX_REQUIREMENTS_LOCK
+    : QWEN3_TTS_PYTHON_REQUIREMENTS_LOCK;
+}
+
+function buildQwen3TtsVerifyScript(platform = process.platform, arch = process.arch) {
+  if (resolveQwen3TtsRuntimeKind(platform, arch) === "mlx-audio") {
+    return "import mlx, mlx_audio, huggingface_hub, numpy, soundfile, librosa, transformers; print('ok')";
+  }
+  return "import qwen_tts, torch, soundfile, numpy; print('ok')";
+}
+
+function installQwen3TtsRuntime(env = process.env) {
+  if (!supportsQwen3TtsRuntime()) {
+    throw new Error(
+      `qwen3-tts runtime is supported on ${QWEN3_TTS_SUPPORTED_PLATFORMS.join(", ")}.`,
+    );
+  }
+  return installPythonRequirementsRuntime(
+    {
+      id: "qwen3-tts",
+      runtime: resolveQwen3TtsRuntimeKind(),
+      minimumVersion: QWEN3_TTS_MINIMUM_PYTHON_VERSION,
+      envOverrides: QWEN3_TTS_PYTHON_ENV_OVERRIDES,
+      requirementsLockPath: resolveQwen3TtsRequirementsLock(),
+      verifyScript: buildQwen3TtsVerifyScript(),
     },
     env,
   );
@@ -787,6 +858,9 @@ function listManagedPluginRuntimeInstallers() {
   if (supportsOpenAiWhisperRuntime()) {
     installers.push({ id: "skill-openai-whisper", installer: installOpenAiWhisperRuntime });
   }
+  if (supportsQwen3TtsRuntime()) {
+    installers.push({ id: "qwen3-tts", installer: installQwen3TtsRuntime });
+  }
   return installers;
 }
 
@@ -856,6 +930,17 @@ export function listManagedPluginRuntimeInstallPlan(params = {}) {
         requirementsLockPath: OPENAI_WHISPER_REQUIREMENTS_LOCK,
       },
     },
+    {
+      id: "qwen3-tts",
+      installTime: supportsQwen3TtsRuntime(platform, arch),
+      platforms: [...QWEN3_TTS_SUPPORTED_PLATFORMS],
+      python: {
+        candidates: resolvePlatformPythonCandidates(platform),
+        envOverrides: [...QWEN3_TTS_PYTHON_ENV_OVERRIDES],
+        minimumVersion: QWEN3_TTS_MINIMUM_PYTHON_VERSION,
+        requirementsLockPath: resolveQwen3TtsRequirementsLock(platform, arch),
+      },
+    },
   ];
 }
 
@@ -872,6 +957,18 @@ export function runPluginRuntimeInstall(params = {}) {
   }
   const nextManifest = {
     ...manifest,
+    node: {
+      major: Number.parseInt((process.versions.node || "").split(".")[0] || "", 10) || 0,
+      version: process.versions.node,
+      abi: process.versions.modules,
+      supportLevel:
+        Number.parseInt((process.versions.node || "").split(".")[0] || "", 10) === 24
+          ? "stable"
+          : Number.parseInt((process.versions.node || "").split(".")[0] || "", 10) === 25
+            ? "experimental"
+            : undefined,
+    },
+    runtimeRoot: resolveRuntimesRoot(env),
     plugins: nextPlugins,
   };
   writeManifest(nextManifest, env);
