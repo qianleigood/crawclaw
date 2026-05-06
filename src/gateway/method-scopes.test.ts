@@ -26,6 +26,7 @@ describe("method scope resolution", () => {
     ["workflow.get", ["operator.read"]],
     ["workflow.status", ["operator.read"]],
     ["memory.status", ["operator.read"]],
+    ["memory.admin.overview", ["operator.read"]],
     ["memory.durable.index.list", ["operator.read"]],
     ["memory.durable.index.get", ["operator.read"]],
     ["memory.dream.status", ["operator.read"]],

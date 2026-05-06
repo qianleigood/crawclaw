@@ -27,14 +27,18 @@ import {
   runSessionSummaryAgentOnce,
   SqliteRuntimeStore,
   summarizePromptJournal,
+  type DurableMemoryIndexDocumentEntry,
   type NotebookLmProviderState,
 } from "../../memory/cli-api.js";
 import {
   EXPERIENCE_OUTBOX_STATUSES,
+  EXPERIENCE_SYNC_STATUSES,
   pruneExperienceOutboxEntries,
   readExperienceOutboxEntries,
   updateExperienceOutboxEntryStatus,
+  type ExperienceOutboxEntry,
   type ExperienceOutboxStatus,
+  type ExperienceSyncStatus,
 } from "../../memory/experience/outbox-store.ts";
 import {
   inferNotebookLmLoginCommand,
@@ -154,6 +158,51 @@ function resolveMemoryProviderPayload(cfg: CrawClawConfig, state: NotebookLmProv
   };
 }
 
+function readBoundedPositiveInt(value: unknown, fallback: number, max: number): number {
+  return Math.min(readOptionalPositiveInt(value) ?? fallback, max);
+}
+
+function countByKnownKeys<K extends string>(keys: readonly K[]): Record<K, number> {
+  return Object.fromEntries(keys.map((key) => [key, 0])) as Record<K, number>;
+}
+
+function summarizeDurableItems(items: DurableMemoryIndexDocumentEntry[]) {
+  const recentUpdatedAt = items.reduce<string | null>((latest, item) => {
+    if (!item.updatedAt) {
+      return latest;
+    }
+    return latest === null || item.updatedAt > latest ? item.updatedAt : latest;
+  }, null);
+  return {
+    items,
+    visibleCount: items.length,
+    recentUpdatedAt,
+  };
+}
+
+function summarizeExperienceOutbox(items: ExperienceOutboxEntry[]) {
+  const statusCounts = countByKnownKeys(EXPERIENCE_OUTBOX_STATUSES);
+  const syncStatusCounts = countByKnownKeys(EXPERIENCE_SYNC_STATUSES);
+  let pendingSyncCount = 0;
+
+  for (const item of items) {
+    statusCounts[item.status] += 1;
+    const syncStatus: ExperienceSyncStatus = item.syncStatus ?? "pending_sync";
+    syncStatusCounts[syncStatus] += 1;
+    if (syncStatus === "pending_sync" || syncStatus === "failed") {
+      pendingSyncCount += 1;
+    }
+  }
+
+  return {
+    items,
+    visibleCount: items.length,
+    statusCounts,
+    syncStatusCounts,
+    pendingSyncCount,
+  };
+}
+
 function resolveMode(value: unknown): "query" | "write" {
   return value === "write" ? "write" : "query";
 }
@@ -231,6 +280,52 @@ async function withMemoryRuntimeStore<T>(
 }
 
 export const memoryHandlers: GatewayRequestHandlers = {
+  "memory.admin.overview": async ({ params, respond }) => {
+    try {
+      const request = asRecord(params);
+      const durableLimit = readBoundedPositiveInt(request.durableLimit, 20, 100);
+      const experienceLimit = readBoundedPositiveInt(request.experienceLimit, 50, 500);
+      const cfg = await loadResolvedMemoryConfig();
+      const memoryConfig = resolveMemoryConfig(cfg.memory ?? {});
+      const notebooklm = normalizeNotebookLmConfig(cfg.memory?.notebooklm);
+      const state = notebooklm.enabled
+        ? await getNotebookLmProviderState({
+            config: notebooklm,
+            mode: resolveMode(request.mode),
+          })
+        : null;
+      const [durableResult, experienceItems] = await Promise.all([
+        listDurableMemoryIndexDocuments({ limit: durableLimit }),
+        readExperienceOutboxEntries(experienceLimit),
+      ]);
+
+      respond(
+        true,
+        {
+          generatedAt: new Date().toISOString(),
+          provider: resolveMemoryProviderPayload(cfg, state),
+          runtime: {
+            storePath: memoryConfig.runtimeStore.dbPath,
+          },
+          durable: summarizeDurableItems(durableResult.items),
+          experience: summarizeExperienceOutbox(experienceItems),
+          dreaming: memoryConfig.dreaming,
+          sessionSummary: memoryConfig.sessionSummary,
+        },
+        undefined,
+      );
+    } catch (error) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `memory.admin.overview failed: ${describeUnknownError(error)}`,
+        ),
+      );
+    }
+  },
+
   "memory.status": async ({ params, respond }) => {
     try {
       const cfg = await loadResolvedMemoryConfig();

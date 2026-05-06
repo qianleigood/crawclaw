@@ -15,6 +15,15 @@ export const MemoryStatusParamsSchema = Type.Object(
 
 export const MemoryRefreshParamsSchema = MemoryStatusParamsSchema;
 
+export const MemoryAdminOverviewParamsSchema = Type.Object(
+  {
+    mode: Type.Optional(MemoryModeSchema),
+    durableLimit: Type.Optional(Type.Integer({ minimum: 1 })),
+    experienceLimit: Type.Optional(Type.Integer({ minimum: 1 })),
+  },
+  { additionalProperties: false },
+);
+
 export const MemoryProviderStatusSchema = Type.Object(
   {
     provider: Type.Literal("notebooklm"),
@@ -105,6 +114,100 @@ export const MemoryDurableIndexGetResultSchema = Type.Object(
   {
     item: MemoryDurableIndexEntrySchema,
     content: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
+const MemoryExperienceOutboxStatusSchema = Type.Union([
+  Type.Literal("active"),
+  Type.Literal("stale"),
+  Type.Literal("superseded"),
+  Type.Literal("archived"),
+]);
+
+const MemoryExperienceSyncStatusSchema = Type.Union([
+  Type.Literal("synced"),
+  Type.Literal("pending_sync"),
+  Type.Literal("failed"),
+]);
+
+export const MemoryExperienceOutboxEntrySchema = Type.Object(
+  {
+    id: NonEmptyString,
+    title: Type.String(),
+    summary: Type.Optional(Type.String()),
+    content: Type.Optional(Type.String()),
+    type: Type.Optional(Type.String()),
+    layer: Type.Optional(Type.String()),
+    memoryKind: Type.Optional(Type.String()),
+    noteId: Type.Optional(NullableString),
+    notebookId: Type.Optional(Type.String()),
+    dedupeKey: Type.Optional(NullableString),
+    aliases: Type.Optional(Type.Array(Type.String())),
+    tags: Type.Optional(Type.Array(Type.String())),
+    status: MemoryExperienceOutboxStatusSchema,
+    supersededBy: Type.Optional(NullableString),
+    archivedAt: Type.Optional(NullableNumber),
+    syncStatus: Type.Optional(MemoryExperienceSyncStatusSchema),
+    syncAttempts: Type.Optional(Type.Integer({ minimum: 0 })),
+    lastSyncAttemptAt: Type.Optional(NullableNumber),
+    lastSyncError: Type.Optional(NullableString),
+    updatedAt: Type.Optional(Type.Number()),
+  },
+  { additionalProperties: true },
+);
+
+export const MemoryAdminOverviewResultSchema = Type.Object(
+  {
+    generatedAt: Type.String(),
+    provider: MemoryProviderStatusSchema,
+    runtime: Type.Object(
+      {
+        storePath: Type.String(),
+      },
+      { additionalProperties: false },
+    ),
+    durable: Type.Object(
+      {
+        items: Type.Array(MemoryDurableIndexEntrySchema),
+        visibleCount: Type.Integer({ minimum: 0 }),
+        recentUpdatedAt: NullableString,
+      },
+      { additionalProperties: false },
+    ),
+    experience: Type.Object(
+      {
+        items: Type.Array(MemoryExperienceOutboxEntrySchema),
+        visibleCount: Type.Integer({ minimum: 0 }),
+        statusCounts: Type.Record(Type.String(), Type.Integer({ minimum: 0 })),
+        syncStatusCounts: Type.Record(Type.String(), Type.Integer({ minimum: 0 })),
+        pendingSyncCount: Type.Integer({ minimum: 0 }),
+      },
+      { additionalProperties: false },
+    ),
+    dreaming: Type.Object(
+      {
+        enabled: Type.Boolean(),
+        minHours: Type.Number(),
+        minSessions: Type.Number(),
+        scanThrottleMs: Type.Number(),
+        lockStaleAfterMs: Type.Number(),
+      },
+      { additionalProperties: false },
+    ),
+    sessionSummary: Type.Object(
+      {
+        enabled: Type.Boolean(),
+        rootDir: Type.Optional(Type.String()),
+        lightInitTokenThreshold: Type.Optional(Type.Number()),
+        minTokensToInit: Type.Number(),
+        minTokensBetweenUpdates: Type.Number(),
+        toolCallsBetweenUpdates: Type.Number(),
+        maxWaitMs: Type.Number(),
+        maxTurns: Type.Number(),
+      },
+      { additionalProperties: false },
+    ),
   },
   { additionalProperties: false },
 );

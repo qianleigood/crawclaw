@@ -75,6 +75,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "tools.effective",
     "agents.list",
     "memory.status",
+    "memory.admin.overview",
     "memory.durable.index.list",
     "memory.durable.index.get",
     "memory.dream.status",
@@ -114,6 +115,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "config.get",
     "config.schema.lookup",
     "talk.config",
+    "voice.getOverview",
     "agents.files.list",
     "agents.files.get",
     "workflow.list",
@@ -133,6 +135,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "wake",
     "talk.mode",
     "talk.speak",
+    "voice.qwen3Tts.preview",
     "tts.enable",
     "tts.disable",
     "tts.convert",
@@ -204,6 +207,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "channels.login.wait",
     "system-event",
     "agents.files.set",
+    "voice.qwen3Tts.uploadReferenceAudio",
   ],
 };
 

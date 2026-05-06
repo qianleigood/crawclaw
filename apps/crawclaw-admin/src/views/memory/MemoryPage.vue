@@ -12,7 +12,10 @@ import {
   NInput,
   NSelect,
   NSpace,
+  NSpin,
   NTag,
+  NTabPane,
+  NTabs,
   NText,
   useMessage,
 } from 'naive-ui'
@@ -29,6 +32,8 @@ import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/format'
 import { renderSimpleMarkdown } from '@/utils/markdown'
 import { useMemoryStore } from '@/stores/memory'
+import { useMemoryRuntimeStore } from '@/stores/memory-runtime'
+import type { MemoryExperienceOutboxStatus } from '@/api/types'
 
 type DocGroupKey = 'role' | 'runtime' | 'memory' | 'other'
 type DocRisk = 'high' | 'normal'
@@ -115,10 +120,15 @@ const DOC_META_MAP: Record<string, DocMeta> = {
 }
 
 const memoryStore = useMemoryStore()
+const runtimeStore = useMemoryRuntimeStore()
 const message = useMessage()
 const { t } = useI18n()
 const editorContent = ref('')
 const isEditing = ref(false)
+const activeTab = ref('overview')
+const sessionSummaryAgent = ref('main')
+const sessionSummarySessionId = ref('')
+const sessionSummarySessionKey = ref('')
 
 function isMemoryAliasName(name: string): boolean {
   return name.trim().toLowerCase() === 'memory.md'
@@ -243,7 +253,13 @@ const groupedDocs = computed<Array<{ key: DocGroupKey; label: string; items: Doc
 })
 
 const loading = computed(
-  () => memoryStore.loadingAgents || memoryStore.loadingFiles || memoryStore.loadingFileContent
+  () =>
+    memoryStore.loadingAgents ||
+    memoryStore.loadingFiles ||
+    memoryStore.loadingFileContent ||
+    runtimeStore.loadingOverview ||
+    runtimeStore.loadingDurable ||
+    runtimeStore.loadingExperience
 )
 const activeFile = computed(() => memoryStore.activeFile)
 const activeDoc = computed<DocEntry | null>(() => {
@@ -279,6 +295,21 @@ const fileSizeText = computed(() => formatBytes(activeFile.value?.size))
 
 const docCount = computed(() => docEntries.value.length)
 const highRiskDocCount = computed(() => docEntries.value.filter((item) => item.risk === 'high').length)
+const overview = computed(() => runtimeStore.overview)
+const providerTagType = computed<'success' | 'warning'>(() => runtimeStore.providerReady ? 'success' : 'warning')
+const providerStateLabel = computed(() => {
+  if (!overview.value) return t('pages.memory.runtime.state.unknown')
+  return overview.value.provider.ready
+    ? t('pages.memory.runtime.state.ready')
+    : t('pages.memory.runtime.state.notReady')
+})
+const experienceStatusOptions = computed(() => [
+  { label: t('pages.memory.runtime.filters.all'), value: '' },
+  { label: t('pages.memory.runtime.status.active'), value: 'active' },
+  { label: t('pages.memory.runtime.status.stale'), value: 'stale' },
+  { label: t('pages.memory.runtime.status.superseded'), value: 'superseded' },
+  { label: t('pages.memory.runtime.status.archived'), value: 'archived' },
+])
 
 const snippets = computed<Snippet[]>(() => {
   const fileName = memoryStore.selectedFileName
@@ -399,9 +430,21 @@ watch(
   { immediate: true }
 )
 
+watch(activeTab, (value) => {
+  if (value === 'durable' && runtimeStore.durableDocuments.length === 0) {
+    void runtimeStore.fetchDurableDocuments(50)
+  }
+  if (value === 'experience' && runtimeStore.experienceEntries.length === 0) {
+    void runtimeStore.fetchExperienceOutbox({ limit: 50 })
+  }
+})
+
 onMounted(async () => {
   try {
-    await memoryStore.initialize()
+    await Promise.all([
+      memoryStore.initialize(),
+      runtimeStore.fetchOverview(),
+    ])
   } catch (error) {
     message.warning(error instanceof Error ? error.message : t('pages.memory.messages.initFailed'))
   }
@@ -435,6 +478,23 @@ function formatBytes(value?: number): string {
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
   return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatMaybeDate(value?: string | number | null): string {
+  if (!value) return '-'
+  if (typeof value === 'number') return formatDate(value)
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? formatDate(parsed) : value
+}
+
+function formatMs(value?: number): string {
+  if (!value || value <= 0) return '-'
+  if (value < 1000) return `${value} ms`
+  const seconds = value / 1000
+  if (seconds < 60) return `${seconds.toFixed(1)} s`
+  const minutes = seconds / 60
+  if (minutes < 60) return `${minutes.toFixed(1)} min`
+  return `${(minutes / 60).toFixed(1)} h`
 }
 
 function confirmDiscardIfNeeded(): boolean {
@@ -506,6 +566,63 @@ async function handleRefresh() {
   }
 }
 
+async function handlePageRefresh() {
+  if (activeTab.value === 'agentDocs') {
+    await handleRefresh()
+    return
+  }
+  try {
+    await runtimeStore.refreshAll()
+    message.success(t('pages.memory.messages.refreshed'))
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : t('pages.memory.messages.refreshFailed'))
+  }
+}
+
+async function handleFetchDurableDocuments() {
+  await runtimeStore.fetchDurableDocuments(50)
+}
+
+async function handleExperienceStatusChange(value: string | null) {
+  const status = value ? (value as MemoryExperienceOutboxStatus) : undefined
+  await runtimeStore.fetchExperienceOutbox({
+    ...(status ? { status } : {}),
+    limit: 50,
+  })
+}
+
+async function handleLoadSessionSummary() {
+  const sessionId = sessionSummarySessionId.value.trim()
+  if (!sessionId) {
+    message.warning(t('pages.memory.runtime.session.sessionIdRequired'))
+    return
+  }
+  await runtimeStore.fetchSessionSummary({
+    agent: sessionSummaryAgent.value.trim() || undefined,
+    sessionId,
+  })
+}
+
+async function handleRefreshSessionSummary() {
+  const sessionId = sessionSummarySessionId.value.trim()
+  const sessionKey = sessionSummarySessionKey.value.trim()
+  if (!sessionId || !sessionKey) {
+    message.warning(t('pages.memory.runtime.session.refreshRequiresKey'))
+    return
+  }
+  try {
+    await runtimeStore.refreshSessionSummary({
+      agent: sessionSummaryAgent.value.trim() || undefined,
+      sessionId,
+      sessionKey,
+      force: true,
+    })
+    message.success(t('pages.memory.runtime.session.refreshStarted'))
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : t('pages.memory.messages.refreshFailed'))
+  }
+}
+
 async function handleSave() {
   if (!memoryStore.selectedAgentId || !memoryStore.selectedFileName) {
     message.warning(t('pages.memory.messages.selectAgentAndDocFirst'))
@@ -537,18 +654,18 @@ function isActiveDoc(name: string): boolean {
       </template>
       <template #header-extra>
         <NSpace :size="8">
-          <NButton size="small" :loading="loading" @click="handleRefresh">
+          <NButton size="small" :loading="loading" @click="handlePageRefresh">
             <template #icon><NIcon :component="RefreshOutline" /></template>
             {{ t('common.refresh') }}
           </NButton>
-          <NButton v-if="!isEditing" size="small" type="primary" tertiary @click="handleStartEdit">
+          <NButton v-if="activeTab === 'agentDocs' && !isEditing" size="small" type="primary" tertiary @click="handleStartEdit">
             <template #icon><NIcon :component="CreateOutline" /></template>
             {{ t('pages.memory.actions.edit') }}
           </NButton>
-          <NButton v-else size="small" @click="handleCancelEdit">
+          <NButton v-else-if="activeTab === 'agentDocs'" size="small" @click="handleCancelEdit">
             {{ t('pages.memory.actions.cancelEdit') }}
           </NButton>
-          <NButton v-if="isEditing" size="small" type="primary" :loading="memoryStore.saving" @click="handleSave">
+          <NButton v-if="activeTab === 'agentDocs' && isEditing" size="small" type="primary" :loading="memoryStore.saving" @click="handleSave">
             <template #icon><NIcon :component="SaveOutline" /></template>
             {{ t('pages.memory.actions.saveDoc') }}
           </NButton>
@@ -563,8 +680,190 @@ function isActiveDoc(name: string): boolean {
         <NAlert v-if="memoryStore.lastError" type="warning" :show-icon="true" :bordered="false">
           {{ t('pages.memory.gatewayLimited', { error: memoryStore.lastError }) }}
         </NAlert>
+        <NAlert v-if="runtimeStore.lastError" type="warning" :show-icon="true" :bordered="false">
+          {{ t('pages.memory.runtime.gatewayLimited', { error: runtimeStore.lastError }) }}
+        </NAlert>
       </NSpace>
+    </NCard>
 
+    <NTabs v-model:value="activeTab" class="memory-tabs" animated>
+      <NTabPane name="overview" :tab="t('pages.memory.tabs.overview')">
+        <NSpin :show="runtimeStore.loadingOverview">
+          <section class="memory-runtime-grid">
+            <NCard class="memory-card memory-runtime-card" :bordered="false">
+              <template #header>{{ t('pages.memory.runtime.provider.title') }}</template>
+              <template #header-extra>
+                <NTag size="small" :type="providerTagType" :bordered="false" round>
+                  {{ providerStateLabel }}
+                </NTag>
+              </template>
+              <div class="memory-runtime-metric">
+                <span>{{ t('pages.memory.runtime.provider.notebook') }}</span>
+                <strong>{{ overview?.provider.notebookId || '-' }}</strong>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.provider.profile') }}</span>
+                <code>{{ overview?.provider.profile || '-' }}</code>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.provider.lastValidated') }}</span>
+                <span>{{ formatMaybeDate(overview?.provider.lastValidatedAt) }}</span>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.provider.reason') }}</span>
+                <span>{{ overview?.provider.reason || overview?.provider.details || '-' }}</span>
+              </div>
+            </NCard>
+
+            <NCard class="memory-card memory-runtime-card" :bordered="false">
+              <template #header>{{ t('pages.memory.runtime.durable.title') }}</template>
+              <div class="memory-runtime-metric">
+                <span>{{ t('pages.memory.runtime.durable.scopes') }}</span>
+                <strong>{{ runtimeStore.durableScopeCount }}</strong>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.durable.recent') }}</span>
+                <span>{{ formatMaybeDate(overview?.durable.recentUpdatedAt) }}</span>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.durable.notes') }}</span>
+                <span>{{ overview?.durable.items.reduce((sum, item) => sum + item.noteCount, 0) ?? 0 }}</span>
+              </div>
+            </NCard>
+
+            <NCard class="memory-card memory-runtime-card" :bordered="false">
+              <template #header>{{ t('pages.memory.runtime.experience.title') }}</template>
+              <div class="memory-runtime-metric">
+                <span>{{ t('pages.memory.runtime.experience.visible') }}</span>
+                <strong>{{ overview?.experience.visibleCount ?? 0 }}</strong>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.experience.pendingSync') }}</span>
+                <span>{{ runtimeStore.pendingExperienceSyncCount }}</span>
+              </div>
+              <div class="memory-runtime-status-row">
+                <NTag size="small" type="success" :bordered="false">{{ t('pages.memory.runtime.status.active') }} {{ overview?.experience.statusCounts.active ?? 0 }}</NTag>
+                <NTag size="small" type="warning" :bordered="false">{{ t('pages.memory.runtime.status.stale') }} {{ overview?.experience.statusCounts.stale ?? 0 }}</NTag>
+                <NTag size="small" type="default" :bordered="false">{{ t('pages.memory.runtime.status.archived') }} {{ overview?.experience.statusCounts.archived ?? 0 }}</NTag>
+              </div>
+            </NCard>
+
+            <NCard class="memory-card memory-runtime-card" :bordered="false">
+              <template #header>{{ t('pages.memory.runtime.session.title') }}</template>
+              <div class="memory-runtime-metric">
+                <span>{{ t('pages.memory.runtime.session.enabled') }}</span>
+                <strong>{{ overview?.sessionSummary.enabled ? t('common.enabled') : t('common.disabled') }}</strong>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.session.initTokens') }}</span>
+                <span>{{ overview?.sessionSummary.minTokensToInit ?? '-' }}</span>
+              </div>
+              <div class="memory-runtime-kv">
+                <span>{{ t('pages.memory.runtime.session.maxWait') }}</span>
+                <span>{{ formatMs(overview?.sessionSummary.maxWaitMs) }}</span>
+              </div>
+            </NCard>
+          </section>
+        </NSpin>
+      </NTabPane>
+
+      <NTabPane name="durable" :tab="t('pages.memory.tabs.durable')">
+        <NCard class="memory-card" :bordered="false">
+          <template #header>{{ t('pages.memory.runtime.durable.title') }}</template>
+          <template #header-extra>
+            <NButton size="small" :loading="runtimeStore.loadingDurable" @click="handleFetchDurableDocuments">
+              <template #icon><NIcon :component="RefreshOutline" /></template>
+              {{ t('common.refresh') }}
+            </NButton>
+          </template>
+          <div v-if="runtimeStore.durableDocuments.length" class="memory-runtime-list">
+            <div v-for="item in runtimeStore.durableDocuments" :key="item.id" class="memory-runtime-list-item">
+              <div>
+                <strong>{{ item.title || item.scopeKey }}</strong>
+                <div class="memory-runtime-subtext">{{ item.scopeKey }} · {{ item.relativePath }}</div>
+              </div>
+              <NSpace :size="6" align="center">
+                <NTag size="small" :bordered="false">{{ t('pages.memory.runtime.durable.noteCount', { count: item.noteCount }) }}</NTag>
+                <NText depth="3">{{ formatMaybeDate(item.updatedAt) }}</NText>
+              </NSpace>
+            </div>
+          </div>
+          <NEmpty v-else :description="t('pages.memory.runtime.durable.empty')" />
+        </NCard>
+      </NTabPane>
+
+      <NTabPane name="experience" :tab="t('pages.memory.tabs.experience')">
+        <NCard class="memory-card" :bordered="false">
+          <template #header>{{ t('pages.memory.runtime.experience.title') }}</template>
+          <template #header-extra>
+            <NSelect
+              class="memory-runtime-filter"
+              :value="runtimeStore.selectedExperienceStatus || ''"
+              :options="experienceStatusOptions"
+              size="small"
+              @update:value="(value) => handleExperienceStatusChange(String(value || ''))"
+            />
+          </template>
+          <div v-if="runtimeStore.experienceEntries.length" class="memory-runtime-list">
+            <div v-for="item in runtimeStore.experienceEntries" :key="item.id" class="memory-runtime-list-item">
+              <div>
+                <strong>{{ item.title || item.id }}</strong>
+                <div class="memory-runtime-subtext">
+                  {{ item.summary || item.content || item.id }}
+                </div>
+              </div>
+              <NSpace :size="6" align="center">
+                <NTag size="small" :bordered="false">{{ t(`pages.memory.runtime.status.${item.status}`) }}</NTag>
+                <NTag v-if="item.syncStatus" size="small" type="info" :bordered="false">{{ item.syncStatus }}</NTag>
+              </NSpace>
+            </div>
+          </div>
+          <NEmpty v-else :description="t('pages.memory.runtime.experience.empty')" />
+        </NCard>
+      </NTabPane>
+
+      <NTabPane name="sessionSummary" :tab="t('pages.memory.tabs.sessionSummary')">
+        <NCard class="memory-card" :bordered="false">
+          <template #header>{{ t('pages.memory.runtime.session.title') }}</template>
+          <div class="memory-session-controls">
+            <NInput v-model:value="sessionSummaryAgent" :placeholder="t('pages.memory.runtime.session.agentPlaceholder')" />
+            <NInput v-model:value="sessionSummarySessionId" :placeholder="t('pages.memory.runtime.session.sessionIdPlaceholder')" />
+            <NInput v-model:value="sessionSummarySessionKey" :placeholder="t('pages.memory.runtime.session.sessionKeyPlaceholder')" />
+            <NButton :loading="runtimeStore.loadingSessionSummary" @click="handleLoadSessionSummary">{{ t('pages.memory.runtime.session.load') }}</NButton>
+            <NButton type="primary" tertiary :loading="runtimeStore.refreshingSessionSummary" @click="handleRefreshSessionSummary">{{ t('pages.memory.runtime.session.refresh') }}</NButton>
+          </div>
+
+          <div v-if="runtimeStore.sessionSummary" class="memory-session-summary">
+            <div class="memory-meta-grid">
+              <div class="memory-meta-item">
+                <NText depth="3">{{ t('pages.memory.runtime.session.summaryPath') }}</NText>
+                <code><NEllipsis>{{ runtimeStore.sessionSummary.summaryPath }}</NEllipsis></code>
+              </div>
+              <div class="memory-meta-item">
+                <NText depth="3">{{ t('pages.memory.runtime.session.profile') }}</NText>
+                <div>{{ runtimeStore.sessionSummary.profile || '-' }}</div>
+              </div>
+              <div class="memory-meta-item">
+                <NText depth="3">{{ t('pages.memory.infoCard.updatedAt') }}</NText>
+                <div>{{ formatMaybeDate(runtimeStore.sessionSummary.updatedAt) }}</div>
+              </div>
+              <div class="memory-meta-item">
+                <NText depth="3">{{ t('pages.memory.runtime.session.state') }}</NText>
+                <div>{{ runtimeStore.sessionSummary.state?.summaryInProgress ? t('pages.memory.runtime.session.inProgress') : t('pages.memory.runtime.session.idle') }}</div>
+              </div>
+            </div>
+            <div class="memory-session-sections">
+              <section v-for="section in Object.entries(runtimeStore.sessionSummary.sections)" :key="section[0]">
+                <h4>{{ t(`pages.memory.runtime.session.sections.${section[0]}`) }}</h4>
+                <p>{{ section[1] || '-' }}</p>
+              </section>
+            </div>
+          </div>
+          <NEmpty v-else :description="t('pages.memory.runtime.session.empty')" />
+        </NCard>
+      </NTabPane>
+
+      <NTabPane name="agentDocs" :tab="t('pages.memory.tabs.agentDocs')">
       <div class="memory-toolbar">
         <NSelect
           :value="memoryStore.selectedAgentId"
@@ -591,7 +890,6 @@ function isActiveDoc(name: string): boolean {
           </NTag>
         </NSpace>
       </div>
-    </NCard>
 
     <section class="memory-layout">
       <NCard class="memory-card memory-nav-card" :bordered="false">
@@ -729,6 +1027,8 @@ function isActiveDoc(name: string): boolean {
         </NCard>
       </div>
     </section>
+      </NTabPane>
+    </NTabs>
   </div>
 </template>
 
@@ -751,6 +1051,130 @@ function isActiveDoc(name: string): boolean {
   font-size: 18px;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.memory-tabs {
+  min-width: 0;
+}
+
+.memory-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.memory-runtime-card {
+  min-height: 180px;
+}
+
+.memory-runtime-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.memory-runtime-metric span,
+.memory-runtime-kv span:first-child {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.memory-runtime-metric strong {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.memory-runtime-kv {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.memory-runtime-kv code,
+.memory-meta-item code {
+  min-width: 0;
+}
+
+.memory-runtime-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.memory-runtime-filter {
+  width: 160px;
+}
+
+.memory-runtime-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memory-runtime-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+}
+
+.memory-runtime-subtext {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memory-session-controls {
+  display: grid;
+  grid-template-columns: minmax(140px, 180px) minmax(180px, 1fr) minmax(220px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.memory-session-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.memory-session-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.memory-session-sections section {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+}
+
+.memory-session-sections h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.memory-session-sections p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 .memory-toolbar {
@@ -1175,6 +1599,14 @@ function isActiveDoc(name: string): boolean {
 }
 
 @media (max-width: 1200px) {
+  .memory-runtime-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .memory-session-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .memory-layout {
     grid-template-columns: 1fr;
   }
@@ -1193,6 +1625,16 @@ function isActiveDoc(name: string): boolean {
 }
 
 @media (max-width: 1024px) {
+  .memory-runtime-grid,
+  .memory-session-controls,
+  .memory-session-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .memory-runtime-list-item {
+    grid-template-columns: 1fr;
+  }
+
   .memory-toolbar {
     grid-template-columns: 1fr;
     align-items: stretch;

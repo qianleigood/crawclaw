@@ -78,6 +78,7 @@ vi.mock("../../memory/experience/outbox-store.ts", () => ({
   updateExperienceOutboxEntryStatus: mocks.updateExperienceOutboxEntryStatusMock,
   pruneExperienceOutboxEntries: mocks.pruneExperienceOutboxEntriesMock,
   EXPERIENCE_OUTBOX_STATUSES: ["active", "stale", "superseded", "archived"],
+  EXPERIENCE_SYNC_STATUSES: ["synced", "pending_sync", "failed"],
 }));
 
 vi.mock("../../memory/notebooklm/login.js", () => ({
@@ -318,6 +319,144 @@ describe("memoryHandlers", () => {
         state: expect.objectContaining({
           lastConsolidatedAt: 100,
           lockActive: false,
+        }),
+      }),
+      undefined,
+    );
+  });
+
+  it("builds an admin overview from the current memory layers", async () => {
+    const notebookLmConfig = {
+      enabled: true,
+      auth: {
+        profile: "default",
+        cookieFile: "",
+        statusTtlMs: 60_000,
+        degradedCooldownMs: 120_000,
+        refreshCooldownMs: 180_000,
+        heartbeat: { enabled: true, minIntervalMs: 1_000, maxIntervalMs: 2_000 },
+      },
+      cli: {
+        enabled: true,
+        command: "",
+        args: ["notebook", "query", "{notebookId}", "{query}", "--json"],
+        timeoutMs: 1000,
+        limit: 5,
+        notebookId: "nb-crawclaw",
+      },
+      write: {
+        command: "",
+        args: ["{payloadFile}"],
+        timeoutMs: 1000,
+        notebookId: "nb-crawclaw",
+      },
+    };
+    mocks.loadConfigMock.mockReturnValue({
+      memory: { notebooklm: { enabled: true } },
+    });
+    mocks.prepareSecretsRuntimeSnapshotMock.mockResolvedValue({
+      config: { memory: { notebooklm: { enabled: true } } },
+    });
+    mocks.normalizeNotebookLmConfigMock.mockReturnValue(notebookLmConfig);
+    mocks.resolveMemoryConfigMock.mockReturnValue({
+      runtimeStore: { dbPath: "/tmp/memory-runtime.db" },
+      dreaming: {
+        enabled: true,
+        minHours: 24,
+        minSessions: 5,
+        scanThrottleMs: 600_000,
+        lockStaleAfterMs: 3_600_000,
+      },
+      sessionSummary: {
+        enabled: true,
+        rootDir: "~/.crawclaw",
+        lightInitTokenThreshold: 3_000,
+        minTokensToInit: 10_000,
+        minTokensBetweenUpdates: 5_000,
+        toolCallsBetweenUpdates: 3,
+        maxWaitMs: 15_000,
+        maxTurns: 5,
+      },
+    });
+    mocks.listDurableMemoryIndexDocumentsMock.mockResolvedValue({
+      items: [
+        {
+          id: "agents/main/channels/discord/users/alice/MEMORY.md",
+          relativePath: "agents/main/channels/discord/users/alice/MEMORY.md",
+          scopeKey: "main:discord:alice",
+          agentId: "main",
+          channel: "discord",
+          userId: "alice",
+          title: "Alice memory",
+          updatedAt: "2026-05-01T00:00:00.000Z",
+          sizeBytes: 120,
+          noteCount: 2,
+        },
+      ],
+    });
+    mocks.readExperienceOutboxEntriesMock.mockResolvedValue([
+      {
+        id: "experience-outbox:gateway-recovery",
+        title: "Gateway recovery",
+        status: "active",
+        syncStatus: "pending_sync",
+      },
+      {
+        id: "experience-outbox:stale-runtime",
+        title: "Stale runtime",
+        status: "stale",
+        syncStatus: "failed",
+      },
+    ]);
+    const opts = createOptions("memory.admin.overview", {
+      durableLimit: 3,
+      experienceLimit: 4,
+    });
+
+    await memoryHandlers["memory.admin.overview"](opts);
+
+    expect(mocks.listDurableMemoryIndexDocumentsMock).toHaveBeenCalledWith({ limit: 3 });
+    expect(mocks.readExperienceOutboxEntriesMock).toHaveBeenCalledWith(4);
+    expect(opts.respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        provider: expect.objectContaining({
+          ready: true,
+          notebookId: "nb-crawclaw",
+        }),
+        runtime: { storePath: "/tmp/memory-runtime.db" },
+        durable: expect.objectContaining({
+          visibleCount: 1,
+          recentUpdatedAt: "2026-05-01T00:00:00.000Z",
+          items: [
+            expect.objectContaining({
+              scopeKey: "main:discord:alice",
+              noteCount: 2,
+            }),
+          ],
+        }),
+        experience: expect.objectContaining({
+          visibleCount: 2,
+          pendingSyncCount: 2,
+          statusCounts: {
+            active: 1,
+            stale: 1,
+            superseded: 0,
+            archived: 0,
+          },
+          syncStatusCounts: {
+            synced: 0,
+            pending_sync: 1,
+            failed: 1,
+          },
+        }),
+        dreaming: expect.objectContaining({
+          enabled: true,
+          minSessions: 5,
+        }),
+        sessionSummary: expect.objectContaining({
+          enabled: true,
+          minTokensToInit: 10_000,
         }),
       }),
       undefined,

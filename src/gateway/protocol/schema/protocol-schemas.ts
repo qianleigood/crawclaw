@@ -155,6 +155,8 @@ import {
   LogsTailResultSchema,
 } from "./logs-chat.js";
 import {
+  MemoryAdminOverviewParamsSchema,
+  MemoryAdminOverviewResultSchema,
   MemoryDreamHistoryResultSchema,
   MemoryDreamRunParamsSchema,
   MemoryDreamRunResultSchema,
@@ -165,6 +167,7 @@ import {
   MemoryDurableIndexGetResultSchema,
   MemoryDurableIndexListParamsSchema,
   MemoryDurableIndexListResultSchema,
+  MemoryExperienceOutboxEntrySchema,
   MemoryLoginParamsSchema,
   MemoryLoginResultSchema,
   MemoryPromptJournalSummaryParamsSchema,
@@ -529,6 +532,8 @@ export const ProtocolSchemas = {
   ExecApprovalsSnapshot: ExecApprovalsSnapshotSchema,
   MemoryStatusParams: MemoryStatusParamsSchema,
   MemoryRefreshParams: MemoryRefreshParamsSchema,
+  MemoryAdminOverviewParams: MemoryAdminOverviewParamsSchema,
+  MemoryAdminOverviewResult: MemoryAdminOverviewResultSchema,
   MemoryProviderStatus: MemoryProviderStatusSchema,
   MemoryLoginParams: MemoryLoginParamsSchema,
   MemoryLoginResult: MemoryLoginResultSchema,
@@ -537,6 +542,7 @@ export const ProtocolSchemas = {
   MemoryDurableIndexListResult: MemoryDurableIndexListResultSchema,
   MemoryDurableIndexGetParams: MemoryDurableIndexGetParamsSchema,
   MemoryDurableIndexGetResult: MemoryDurableIndexGetResultSchema,
+  MemoryExperienceOutboxEntry: MemoryExperienceOutboxEntrySchema,
   MemoryDreamStatusParams: MemoryDreamStatusParamsSchema,
   MemoryDreamStatusResult: MemoryDreamStatusResultSchema,
   MemoryDreamHistoryResult: MemoryDreamHistoryResultSchema,
