@@ -73,6 +73,28 @@ import type {
   ComfyUiOutputsResult,
   ComfyUiValidationResult,
   ComfyUiRunResult,
+  MemoryAdminOverview,
+  MemoryAdminOverviewParams,
+  MemoryDurableIndexDocumentResult,
+  MemoryDurableIndexListResult,
+  MemoryExperienceOutboxListParams,
+  MemoryExperienceOutboxListResult,
+  MemorySessionSummaryRefreshParams,
+  MemorySessionSummaryRefreshResult,
+  MemorySessionSummaryStatusParams,
+  MemorySessionSummaryStatusResult,
+  ObservationInspectionSnapshot,
+  ObservationInspectParams,
+  ObservationRunsListParams,
+  ObservationRunsListResult,
+  ObservationRunStatus,
+  ObservationSource,
+  ObservationTimelineEntry,
+  VoiceOverviewResult,
+  VoicePreviewParams,
+  VoicePreviewResult,
+  VoiceUploadReferenceAudioParams,
+  VoiceUploadReferenceAudioResult,
 } from './types'
 
 let requestId = 0
@@ -1585,6 +1607,161 @@ export class RPCClient {
     }
   }
 
+  private normalizeObservationStatus(value: unknown): ObservationRunStatus {
+    const raw = this.asString(value, 'unknown').trim()
+    if (
+      raw === 'running' ||
+      raw === 'ok' ||
+      raw === 'error' ||
+      raw === 'timeout' ||
+      raw === 'archived' ||
+      raw === 'unknown'
+    ) {
+      return raw
+    }
+    return 'unknown'
+  }
+
+  private normalizeObservationSource(value: unknown): ObservationSource | null {
+    const raw = this.asString(value).trim()
+    if (
+      raw === 'lifecycle' ||
+      raw === 'diagnostic' ||
+      raw === 'action' ||
+      raw === 'archive' ||
+      raw === 'trajectory' ||
+      raw === 'log' ||
+      raw === 'otel'
+    ) {
+      return raw
+    }
+    return null
+  }
+
+  private normalizeObservationSourceList(value: unknown): ObservationSource[] {
+    if (!Array.isArray(value)) {return []}
+    return value
+      .map((item) => this.normalizeObservationSource(item))
+      .filter((item): item is ObservationSource => Boolean(item))
+  }
+
+  private normalizeObservationRunSummary(value: unknown) {
+    const row = this.asRecord(value)
+    const traceId = this.asString(row.traceId)
+    return {
+      runId: this.asString(row.runId) || undefined,
+      taskId: this.asString(row.taskId) || undefined,
+      traceId,
+      sessionId: this.asString(row.sessionId) || undefined,
+      sessionKey: this.asString(row.sessionKey) || undefined,
+      agentId: this.asString(row.agentId) || undefined,
+      status: this.normalizeObservationStatus(row.status),
+      startedAt: this.asNumber(row.startedAt, NaN),
+      endedAt: this.asNumber(row.endedAt, NaN),
+      lastEventAt: this.asNumber(row.lastEventAt, NaN),
+      eventCount: Math.max(0, Math.floor(this.asNumber(row.eventCount, 0))),
+      errorCount: Math.max(0, Math.floor(this.asNumber(row.errorCount, 0))),
+      sources: this.normalizeObservationSourceList(row.sources),
+      summary: this.asString(row.summary, 'observation run'),
+    }
+  }
+
+  private normalizeObservationRunsListResult(payload: unknown): ObservationRunsListResult {
+    const row = this.asRecord(payload)
+    const items = Array.isArray(row.items)
+      ? row.items
+          .map((item) => this.normalizeObservationRunSummary(item))
+          .filter((item) => item.traceId)
+      : []
+    return {
+      items: items.map((item) => ({
+        ...item,
+        startedAt: Number.isFinite(item.startedAt) ? item.startedAt : undefined,
+        endedAt: Number.isFinite(item.endedAt) ? item.endedAt : undefined,
+        lastEventAt: Number.isFinite(item.lastEventAt) ? item.lastEventAt : undefined,
+      })),
+      nextCursor: this.asString(row.nextCursor) || undefined,
+      generatedAt: this.asNumber(row.generatedAt, Date.now()),
+    }
+  }
+
+  private normalizeObservationValueMap(
+    value: unknown
+  ): Record<string, string | number | boolean | null> | undefined {
+    const row = this.asRecord(value)
+    const out: Record<string, string | number | boolean | null> = {}
+    for (const [key, item] of Object.entries(row)) {
+      if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean' || item === null) {
+        out[key] = item
+      }
+    }
+    return Object.keys(out).length > 0 ? out : undefined
+  }
+
+  private normalizeObservationTimelineEntry(value: unknown): ObservationTimelineEntry {
+    const row = this.asRecord(value)
+    return {
+      eventId: this.asString(row.eventId),
+      type: this.asString(row.type, 'observation.event'),
+      phase: this.asString(row.phase) || undefined,
+      createdAt: this.asNumber(row.createdAt, 0),
+      source: this.normalizeObservationSource(row.source) || undefined,
+      traceId: this.asString(row.traceId) || undefined,
+      spanId: this.asString(row.spanId) || undefined,
+      parentSpanId: row.parentSpanId === null ? null : (this.asString(row.parentSpanId) || undefined),
+      status: this.asString(row.status) || undefined,
+      decisionCode: this.asString(row.decisionCode) || undefined,
+      decisionSummary: this.asString(row.decisionSummary) || undefined,
+      summary: this.asString(row.summary, 'observation event'),
+      metrics: this.normalizeNumberMap(row.metrics),
+      refs: this.normalizeObservationValueMap(row.refs),
+    }
+  }
+
+  private normalizeNumberMap(value: unknown): Record<string, number> | undefined {
+    const row = this.asRecord(value)
+    const out: Record<string, number> = {}
+    for (const [key, item] of Object.entries(row)) {
+      if (typeof item === 'number' && Number.isFinite(item)) {
+        out[key] = item
+      }
+    }
+    return Object.keys(out).length > 0 ? out : undefined
+  }
+
+  private normalizeStringMap(value: unknown): Record<string, string> {
+    const row = this.asRecord(value)
+    const out: Record<string, string> = {}
+    for (const [key, item] of Object.entries(row)) {
+      const text = this.asString(item)
+      if (text) {
+        out[key] = text
+      }
+    }
+    return out
+  }
+
+  private normalizeObservationInspectionSnapshot(payload: unknown): ObservationInspectionSnapshot {
+    const row = this.asRecord(payload)
+    const lookup = this.asRecord(row.lookup)
+    return {
+      lookup: {
+        runId: this.asString(lookup.runId) || undefined,
+        taskId: this.asString(lookup.taskId) || undefined,
+        traceId: this.asString(lookup.traceId) || undefined,
+      },
+      runId: this.asString(row.runId) || undefined,
+      taskId: this.asString(row.taskId) || undefined,
+      timeline: Array.isArray(row.timeline)
+        ? row.timeline.map((item) => this.normalizeObservationTimelineEntry(item))
+        : undefined,
+      refs: this.normalizeStringMap(row.refs),
+      warnings: Array.isArray(row.warnings)
+        ? row.warnings.map((item) => this.asString(item)).filter(Boolean)
+        : [],
+    }
+  }
+
   private normalizeExecApprovalsFile(value: unknown): ExecApprovalsFile {
     const normalizeSecurity = (input: unknown): ExecApprovalsDefaults['security'] | undefined => {
       const value = this.asString(input).trim()
@@ -2812,6 +2989,40 @@ export class RPCClient {
     ).then((payload) => this.normalizeLogsTailResult(payload))
   }
 
+  listObservationRuns(params: ObservationRunsListParams = {}): Promise<ObservationRunsListResult> {
+    const payload: Record<string, unknown> = {}
+    const query = params.query?.trim()
+    const cursor = params.cursor?.trim()
+    if (query) {payload.query = query}
+    if (params.status) {payload.status = params.status}
+    if (params.source) {payload.source = params.source}
+    if (typeof params.limit === 'number' && Number.isFinite(params.limit) && params.limit > 0) {
+      payload.limit = Math.min(200, Math.floor(params.limit))
+    }
+    if (cursor) {payload.cursor = cursor}
+    if (typeof params.from === 'number' && Number.isFinite(params.from) && params.from >= 0) {
+      payload.from = Math.floor(params.from)
+    }
+    if (typeof params.to === 'number' && Number.isFinite(params.to) && params.to >= 0) {
+      payload.to = Math.floor(params.to)
+    }
+
+    return this.call<unknown>('agent.observations.list', payload)
+      .then((res) => this.normalizeObservationRunsListResult(res))
+  }
+
+  inspectObservationRun(params: ObservationInspectParams): Promise<ObservationInspectionSnapshot> {
+    const payload: Record<string, unknown> = {}
+    const runId = params.runId?.trim()
+    const taskId = params.taskId?.trim()
+    const traceId = params.traceId?.trim()
+    if (runId) {payload.runId = runId}
+    if (taskId) {payload.taskId = taskId}
+    if (traceId) {payload.traceId = traceId}
+    return this.call<unknown>('agent.inspect', payload)
+      .then((res) => this.normalizeObservationInspectionSnapshot(res))
+  }
+
   getExecApprovals(target?: { nodeId?: string }): Promise<ExecApprovalsSnapshot> {
     const nodeId = target?.nodeId?.trim()
     if (nodeId) {
@@ -2879,6 +3090,78 @@ export class RPCClient {
         ? Math.max(5000, Math.floor(params.timeoutMs) + 15000)
         : 240000
     ).then((res) => this.normalizeUpdateRunResponse(res))
+  }
+
+  // --- Memory ---
+  getMemoryAdminOverview(params: MemoryAdminOverviewParams = {}): Promise<MemoryAdminOverview> {
+    return this.call<MemoryAdminOverview>('memory.admin.overview', params as Record<string, unknown>)
+  }
+
+  listMemoryDurableDocuments(limit = 50): Promise<MemoryDurableIndexListResult> {
+    return this.call<MemoryDurableIndexListResult>('memory.durable.index.list', { limit })
+  }
+
+  getMemoryDurableDocument(id: string): Promise<MemoryDurableIndexDocumentResult> {
+    return this.call<MemoryDurableIndexDocumentResult>('memory.durable.index.get', { id })
+  }
+
+  listMemoryExperienceOutbox(
+    params: MemoryExperienceOutboxListParams = {}
+  ): Promise<MemoryExperienceOutboxListResult> {
+    return this.call<MemoryExperienceOutboxListResult>(
+      'memory.experience.outbox.list',
+      params as Record<string, unknown>
+    )
+  }
+
+  getMemorySessionSummaryStatus(
+    params: MemorySessionSummaryStatusParams
+  ): Promise<MemorySessionSummaryStatusResult> {
+    const payload: Record<string, unknown> = { sessionId: params.sessionId }
+    if (params.agent !== undefined) {payload.agent = params.agent}
+    return this.call<MemorySessionSummaryStatusResult>('memory.sessionSummary.status', payload)
+  }
+
+  refreshMemorySessionSummary(
+    params: MemorySessionSummaryRefreshParams
+  ): Promise<MemorySessionSummaryRefreshResult> {
+    const payload: Record<string, unknown> = {
+      sessionId: params.sessionId,
+      sessionKey: params.sessionKey,
+    }
+    if (params.agent !== undefined) {payload.agent = params.agent}
+    if (params.force !== undefined) {payload.force = params.force}
+    return this.call<MemorySessionSummaryRefreshResult>(
+      'memory.sessionSummary.refresh',
+      payload,
+      120000
+    )
+  }
+
+  getVoiceOverview(): Promise<VoiceOverviewResult> {
+    return this.call<VoiceOverviewResult>('voice.getOverview', {})
+  }
+
+  previewQwen3Tts(params: VoicePreviewParams): Promise<VoicePreviewResult> {
+    const payload: Record<string, unknown> = { text: params.text }
+    if (params.profileId !== undefined) {payload.profileId = params.profileId}
+    if (params.draftProfile !== undefined) {payload.draftProfile = params.draftProfile}
+    if (params.agentId !== undefined) {payload.agentId = params.agentId}
+    if (params.target !== undefined) {payload.target = params.target}
+    return this.call<VoicePreviewResult>('voice.qwen3Tts.preview', payload, 120000)
+  }
+
+  uploadQwen3TtsReferenceAudio(
+    params: VoiceUploadReferenceAudioParams
+  ): Promise<VoiceUploadReferenceAudioResult> {
+    return this.call<VoiceUploadReferenceAudioResult>(
+      'voice.qwen3Tts.uploadReferenceAudio',
+      {
+        filename: params.filename,
+        audioBase64: params.audioBase64,
+      },
+      120000
+    )
   }
 
   // --- Agents ---

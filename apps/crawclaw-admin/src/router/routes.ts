@@ -67,6 +67,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { titleKey: 'routes.models', icon: 'SparklesOutline', gateway: 'crawclaw' },
       },
       {
+        path: 'voice',
+        name: 'VoiceModule',
+        component: () => import('@/views/voice/VoiceModulePage.vue'),
+        meta: { titleKey: 'routes.voiceModule', icon: 'VolumeHighOutline', gateway: 'crawclaw' },
+      },
+      {
         path: 'channels',
         name: 'Channels',
         component: () => import('@/views/channels/ChannelsPage.vue'),
@@ -91,8 +97,8 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'system',
         name: 'System',
-        component: () => import('@/views/system/SystemPage.vue'),
-        meta: { titleKey: 'routes.system', icon: 'PulseOutline', gateway: 'crawclaw' },
+        redirect: { name: 'Monitor' },
+        meta: { hidden: true },
       },
       {
         path: 'terminal',
@@ -140,7 +146,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'monitor',
         name: 'Monitor',
         component: () => import('@/views/monitor/MonitorPage.vue'),
-        meta: { titleKey: 'routes.monitor', icon: 'PulseOutline', hidden: true },
+        meta: { titleKey: 'routes.monitor', icon: 'PulseOutline', gateway: 'crawclaw' },
       },
       {
         path: 'hermes',

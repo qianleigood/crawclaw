@@ -11,10 +11,12 @@ import {
   NIcon,
   NInput,
   NInputNumber,
+  NProgress,
   NScrollbar,
   NSelect,
   NSpace,
   NSpin,
+  NStatistic,
   NSwitch,
   NTabPane,
   NTabs,
@@ -26,12 +28,17 @@ import {
 import {
   AddOutline,
   DownloadOutline,
+  HardwareChipOutline,
   RefreshOutline,
   SearchOutline,
   SaveOutline,
+  ServerOutline,
+  TimeOutline,
   TrashOutline,
+  WifiOutline,
 } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
 import { useWebSocketStore } from '@/stores/websocket'
 import { formatDate, formatRelativeTime } from '@/utils/format'
 import type {
@@ -43,13 +50,18 @@ import type {
   HealthSummary,
   LogEntry,
   LogLevel,
+  ObservationInspectionSnapshot,
+  ObservationRunStatus,
+  ObservationRunSummary,
+  ObservationSource,
   StatusSummary,
+  SystemMetrics,
   SystemPresenceEntry,
   UpdateRunResponse,
   UpdateRunStepResult,
 } from '@/api/types'
 
-type OpsTab = 'presence' | 'logs' | 'approvals' | 'update'
+type OpsTab = 'presence' | 'logs' | 'traces' | 'approvals' | 'update'
 type ExecTargetKind = 'gateway' | 'node'
 
 const LOG_LEVEL_OPTIONS: Array<{ label: string; value: LogLevel }> = [
@@ -71,13 +83,36 @@ const POLICY_ASK_OPTIONS = [
   { label: 'always', value: 'always' },
 ]
 const LOG_BUFFER_LIMIT = 2000
+const OBSERVATION_STATUS_OPTIONS: Array<{ label: string; value: ObservationRunStatus }> = [
+  { label: 'running', value: 'running' },
+  { label: 'ok', value: 'ok' },
+  { label: 'error', value: 'error' },
+  { label: 'timeout', value: 'timeout' },
+  { label: 'archived', value: 'archived' },
+  { label: 'unknown', value: 'unknown' },
+]
+const OBSERVATION_SOURCE_OPTIONS: Array<{ label: string; value: ObservationSource }> = [
+  { label: 'lifecycle', value: 'lifecycle' },
+  { label: 'diagnostic', value: 'diagnostic' },
+  { label: 'action', value: 'action' },
+  { label: 'archive', value: 'archive' },
+  { label: 'trajectory', value: 'trajectory' },
+  { label: 'log', value: 'log' },
+  { label: 'otel', value: 'otel' },
+]
 
 const message = useMessage()
 const dialog = useDialog()
+const authStore = useAuthStore()
 const wsStore = useWebSocketStore()
 const { t } = useI18n()
 
 const activeTab = ref<OpsTab>('presence')
+
+const hostLoading = ref(false)
+const hostError = ref('')
+const hostMetrics = ref<SystemMetrics | null>(null)
+const hostLastUpdatedAt = ref<number | null>(null)
 
 const presenceLoading = ref(false)
 const presenceError = ref('')
@@ -106,6 +141,19 @@ const logsLimit = ref(500)
 const logsMaxBytes = ref(250000)
 const logScrollbarRef = ref<any>(null)
 
+const tracesLoading = ref(false)
+const traceInspectLoading = ref(false)
+const tracesError = ref('')
+const observationRuns = ref<ObservationRunSummary[]>([])
+const observationNextCursor = ref('')
+const observationQuery = ref('')
+const observationStatusFilter = ref<ObservationRunStatus | null>(null)
+const observationSourceFilter = ref<ObservationSource | null>(null)
+const observationLimit = ref(50)
+const selectedObservationTraceId = ref('')
+const selectedObservation = ref<ObservationInspectionSnapshot | null>(null)
+const tracesLastUpdatedAt = ref<number | null>(null)
+
 const nodesLoading = ref(false)
 const nodes = ref<DeviceNode[]>([])
 
@@ -132,6 +180,7 @@ const updateResponse = ref<UpdateRunResponse | null>(null)
 
 let presenceTimer: ReturnType<typeof setInterval> | null = null
 let logsTimer: ReturnType<typeof setInterval> | null = null
+let hostTimer: ReturnType<typeof setInterval> | null = null
 
 const connectionTagType = computed<'success' | 'warning' | 'error' | 'default'>(() => {
   if (wsStore.state === 'connected') return 'success'
@@ -147,6 +196,14 @@ const connectionLabel = computed(() => {
   if (wsStore.state === 'failed') return t('pages.monitor.connection.failed')
   return t('pages.monitor.connection.disconnected')
 })
+
+const hostCpuUsage = computed(() => hostMetrics.value?.cpu?.usage ?? 0)
+const hostMemoryUsage = computed(() => hostMetrics.value?.memory?.usagePercent ?? 0)
+const hostDiskUsage = computed(() => hostMetrics.value?.disk?.usagePercent ?? 0)
+
+const hostCpuColor = computed(() => resolveUsageColor(hostCpuUsage.value, 50, 80))
+const hostMemoryColor = computed(() => resolveUsageColor(hostMemoryUsage.value, 60, 85))
+const hostDiskColor = computed(() => resolveUsageColor(hostDiskUsage.value, 70, 90))
 
 const onlinePresenceCount = computed(() => {
   const now = Date.now()
@@ -215,6 +272,12 @@ const supportsStatus = computed(() => methodUnknown.value || wsStore.supportsAny
 const supportsLogs = computed(
   () => methodUnknown.value || wsStore.supportsAnyMethod(['logs.tail'])
 )
+const supportsObservations = computed(
+  () => methodUnknown.value || wsStore.supportsAnyMethod(['agent.observations.list'])
+)
+const supportsInspect = computed(
+  () => methodUnknown.value || wsStore.supportsAnyMethod(['agent.inspect'])
+)
 const supportsExecApprovals = computed(() => {
   if (methodUnknown.value) return true
   if (approvalsTargetKind.value === 'node') {
@@ -240,6 +303,13 @@ const logsFilteredEntries = computed(() => {
       .includes(query)
   })
 })
+const selectedObservationRun = computed(() =>
+  observationRuns.value.find((run) => run.traceId === selectedObservationTraceId.value) || null
+)
+
+function recordEntries(value?: Record<string, unknown> | null): Array<[string, unknown]> {
+  return Object.entries(value || {})
+}
 
 const nodeOptions = computed(() =>
   nodes.value.map((node) => ({
@@ -272,6 +342,31 @@ const updateStatusTagType = computed<'success' | 'error' | 'warning' | 'default'
   if (status === 'skipped') return 'warning'
   return 'default'
 })
+
+function resolveUsageColor(value: number, warningAt: number, errorAt: number): string {
+  if (value < warningAt) return '#18a058'
+  if (value < errorAt) return '#f0a020'
+  return '#d03050'
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const base = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(base)), sizes.length - 1)
+  return `${parseFloat((bytes / Math.pow(base, index)).toFixed(2))} ${sizes[index]}`
+}
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  if (mins > 0) parts.push(`${mins}m`)
+  return parts.join(' ') || '< 1m'
+}
 
 function methodNotReadyLabel(methodLabel: string): string {
   return t('pages.monitor.methodNotSupported', { method: methodLabel })
@@ -327,6 +422,15 @@ function parseMaybeJsonString(value: unknown): Record<string, unknown> | null {
   }
 }
 
+function firstStringField(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    }
+  }
+  return null
+}
+
 function parseLogLine(line: string): LogEntry {
   if (!line.trim()) {
     return { raw: line, message: line }
@@ -376,13 +480,21 @@ function parseLogLine(line: string): LogEntry {
       text = obj.message
     }
 
+    const mergedMeta = {
+      ...(meta || {}),
+      ...(contextObject || {}),
+    }
     return {
       raw: line,
       time,
       level,
       subsystem,
       message: text || line,
-      meta: meta || undefined,
+      traceId: firstStringField(obj.traceId, meta?.traceId, contextObject?.traceId, contextObject?.trace),
+      spanId: firstStringField(obj.spanId, meta?.spanId, contextObject?.spanId, contextObject?.span),
+      runId: firstStringField(obj.runId, meta?.runId, contextObject?.runId, contextObject?.run),
+      sessionKey: firstStringField(obj.sessionKey, meta?.sessionKey, contextObject?.sessionKey),
+      meta: Object.keys(mergedMeta).length > 0 ? mergedMeta : undefined,
     }
   } catch {
     return { raw: line, message: line }
@@ -393,6 +505,43 @@ function scrollLogsToBottom() {
   nextTick(() => {
     logScrollbarRef.value?.scrollTo({ top: Number.MAX_SAFE_INTEGER })
   })
+}
+
+async function loadHostMetrics(quiet = false) {
+  if (hostLoading.value) return
+  if (!quiet) hostLoading.value = true
+  hostError.value = ''
+  try {
+    const token = authStore.token || localStorage.getItem('auth_token') || ''
+    const response = await fetch('/api/system/metrics', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+
+    if (response.status === 401) {
+      hostError.value = t('pages.monitor.host.authRequired')
+      return
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json() as {
+      ok?: boolean
+      metrics?: SystemMetrics
+      error?: { message?: string }
+    }
+    if (!data.ok || !data.metrics) {
+      throw new Error(data.error?.message || t('pages.monitor.host.loadFailed'))
+    }
+
+    hostMetrics.value = data.metrics
+    hostLastUpdatedAt.value = Date.now()
+  } catch (error) {
+    hostError.value = asErrorMessage(error, t('pages.monitor.host.loadFailed'))
+  } finally {
+    if (!quiet) hostLoading.value = false
+  }
 }
 
 async function loadNodes() {
@@ -520,6 +669,93 @@ function exportFilteredLogs() {
   link.download = `crawclaw-logs-${Date.now()}.log`
   link.click()
   URL.revokeObjectURL(url)
+}
+
+function observationStatusTagType(status?: ObservationRunStatus | string): 'success' | 'error' | 'warning' | 'default' {
+  if (status === 'ok') return 'success'
+  if (status === 'error' || status === 'timeout') return 'error'
+  if (status === 'running') return 'warning'
+  return 'default'
+}
+
+function inspectTargetForRun(run: ObservationRunSummary): { traceId: string } {
+  return { traceId: run.traceId }
+}
+
+async function inspectObservationRun(run: ObservationRunSummary) {
+  if (!supportsInspect.value) {
+    tracesError.value = methodNotReadyLabel('agent.inspect')
+    return
+  }
+  selectedObservationTraceId.value = run.traceId
+  traceInspectLoading.value = true
+  tracesError.value = ''
+  try {
+    selectedObservation.value = await wsStore.rpc.inspectObservationRun(inspectTargetForRun(run))
+  } catch (error) {
+    selectedObservation.value = null
+    tracesError.value = asErrorMessage(error, t('pages.monitor.traces.errors.inspectFailed'))
+  } finally {
+    traceInspectLoading.value = false
+  }
+}
+
+async function loadObservationRuns(opts?: { reset?: boolean; cursor?: string; selectTraceId?: string }) {
+  if (!supportsObservations.value) {
+    tracesError.value = methodNotReadyLabel('agent.observations.list')
+    return
+  }
+  if (tracesLoading.value) return
+
+  tracesLoading.value = true
+  tracesError.value = ''
+  try {
+    const result = await wsStore.rpc.listObservationRuns({
+      query: observationQuery.value.trim() || undefined,
+      status: observationStatusFilter.value || undefined,
+      source: observationSourceFilter.value || undefined,
+      limit: Math.max(1, Math.floor(observationLimit.value || 50)),
+      cursor: opts?.reset ? undefined : (opts?.cursor || observationNextCursor.value || undefined),
+    })
+    observationRuns.value = opts?.reset
+      ? result.items
+      : [...observationRuns.value, ...result.items]
+    observationNextCursor.value = result.nextCursor || ''
+    tracesLastUpdatedAt.value = Date.now()
+
+    const selected =
+      result.items.find((item) => item.traceId === opts?.selectTraceId) ||
+      observationRuns.value.find((item) => item.traceId === selectedObservationTraceId.value) ||
+      result.items[0]
+    if (selected) {
+      await inspectObservationRun(selected)
+    } else {
+      selectedObservation.value = null
+      selectedObservationTraceId.value = ''
+    }
+  } catch (error) {
+    tracesError.value = asErrorMessage(error, t('pages.monitor.traces.errors.loadFailed'))
+  } finally {
+    tracesLoading.value = false
+  }
+}
+
+function openTraceFromLog(entry: LogEntry) {
+  const traceId = entry.traceId?.trim()
+  const runId = entry.runId?.trim()
+  const query = traceId || runId
+  if (!query) return
+  activeTab.value = 'traces'
+  observationQuery.value = query
+  void loadObservationRuns({ reset: true, selectTraceId: traceId || undefined })
+}
+
+function filterLogsByObservation(run: ObservationRunSummary) {
+  activeTab.value = 'logs'
+  logsKeyword.value = run.traceId || run.runId || run.sessionKey || ''
+  if (logsEntries.value.length === 0) {
+    void loadLogs({ reset: true })
+  }
 }
 
 function applyApprovalsSnapshot(snapshot: ExecApprovalsSnapshot) {
@@ -737,9 +973,11 @@ function confirmRunUpdate() {
 
 async function refreshOpsData() {
   await Promise.all([
+    loadHostMetrics(),
     loadHealthStatus(),
     loadPresence(),
     loadLogs({ reset: true }),
+    loadObservationRuns({ reset: true }),
     loadNodes(),
   ])
   if (activeTab.value === 'approvals') {
@@ -758,6 +996,9 @@ watch(
     if (activeTab.value === 'logs') {
       void loadLogs({ reset: true })
     }
+    if (activeTab.value === 'traces') {
+      void loadObservationRuns({ reset: true })
+    }
     if (activeTab.value === 'approvals') {
       void loadApprovals()
     }
@@ -774,6 +1015,9 @@ watch(activeTab, (tab) => {
   }
   if (tab === 'logs' && logsEntries.value.length === 0) {
     void loadLogs({ reset: true })
+  }
+  if (tab === 'traces' && observationRuns.value.length === 0) {
+    void loadObservationRuns({ reset: true })
   }
   if (tab === 'approvals' && !approvalsSnapshot.value) {
     void loadApprovals()
@@ -795,6 +1039,10 @@ onMounted(() => {
     void loadPresence(true)
   }, 8000)
 
+  hostTimer = setInterval(() => {
+    void loadHostMetrics(true)
+  }, 5000)
+
   logsTimer = setInterval(() => {
     if (!logsAutoFollow.value || activeTab.value !== 'logs') return
     void loadLogs({ quiet: true })
@@ -804,6 +1052,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (presenceTimer) clearInterval(presenceTimer)
   if (logsTimer) clearInterval(logsTimer)
+  if (hostTimer) clearInterval(hostTimer)
 })
 </script>
 
@@ -825,6 +1074,9 @@ onUnmounted(() => {
         <NTag type="info" :bordered="false" round>
           {{ t('pages.monitor.summary.logs', { count: logsFilteredEntries.length }) }}
         </NTag>
+        <NTag type="warning" :bordered="false" round>
+          {{ t('pages.monitor.summary.traces', { count: observationRuns.length }) }}
+        </NTag>
         <NText depth="3" style="font-size: 12px;">
           {{
             t('pages.monitor.summary.lastSync', {
@@ -836,6 +1088,136 @@ onUnmounted(() => {
       <NText depth="3" class="ops-top-subtitle">
         {{ t('pages.monitor.subtitle') }}
       </NText>
+
+      <div class="host-metrics-panel">
+        <div class="host-metrics-head">
+          <NText strong>{{ t('pages.monitor.host.title') }}</NText>
+          <NText v-if="hostLastUpdatedAt" depth="3" style="font-size: 12px;">
+            {{ t('pages.monitor.host.lastUpdated', { time: formatRelativeTime(hostLastUpdatedAt) }) }}
+          </NText>
+        </div>
+
+        <NAlert v-if="hostError" type="error" :bordered="false" style="margin-bottom: 10px;">
+          {{ hostError }}
+        </NAlert>
+
+        <NSpin :show="hostLoading && !hostMetrics">
+          <NGrid cols="1 s:2 m:4" responsive="screen" :x-gap="12" :y-gap="12">
+            <NGridItem>
+              <div class="host-metric-card">
+                <div class="host-metric-title">
+                  <NIcon :component="HardwareChipOutline" :color="hostCpuColor" size="18" />
+                  <NText strong>{{ t('pages.monitor.host.cpu') }}</NText>
+                </div>
+                <div class="host-metric-body">
+                  <NProgress
+                    type="circle"
+                    :percentage="hostCpuUsage"
+                    :color="hostCpuColor"
+                    :stroke-width="12"
+                    :show-indicator="false"
+                    style="width: 64px;"
+                  />
+                  <div class="host-metric-stats">
+                    <NStatistic :value="hostCpuUsage.toFixed(1)" suffix="%">
+                      <template #label>{{ t('pages.monitor.host.usage') }}</template>
+                    </NStatistic>
+                    <NText depth="3" style="font-size: 12px;">
+                      {{ hostMetrics?.cpu?.cores ?? '-' }} {{ t('pages.monitor.host.cores') }}
+                    </NText>
+                  </div>
+                </div>
+              </div>
+            </NGridItem>
+
+            <NGridItem>
+              <div class="host-metric-card">
+                <div class="host-metric-title">
+                  <NIcon :component="ServerOutline" :color="hostMemoryColor" size="18" />
+                  <NText strong>{{ t('pages.monitor.host.memory') }}</NText>
+                </div>
+                <div class="host-metric-body">
+                  <NProgress
+                    type="circle"
+                    :percentage="hostMemoryUsage"
+                    :color="hostMemoryColor"
+                    :stroke-width="12"
+                    :show-indicator="false"
+                    style="width: 64px;"
+                  />
+                  <div class="host-metric-stats">
+                    <NStatistic :value="hostMemoryUsage.toFixed(1)" suffix="%">
+                      <template #label>{{ t('pages.monitor.host.usage') }}</template>
+                    </NStatistic>
+                    <NText depth="3" style="font-size: 12px;">
+                      {{ formatBytes(hostMetrics?.memory?.used ?? 0) }} / {{ formatBytes(hostMetrics?.memory?.total ?? 0) }}
+                    </NText>
+                  </div>
+                </div>
+              </div>
+            </NGridItem>
+
+            <NGridItem>
+              <div class="host-metric-card">
+                <div class="host-metric-title">
+                  <NIcon :component="SaveOutline" :color="hostDiskColor" size="18" />
+                  <NText strong>{{ t('pages.monitor.host.disk') }}</NText>
+                </div>
+                <div class="host-metric-body">
+                  <NProgress
+                    type="circle"
+                    :percentage="hostDiskUsage"
+                    :color="hostDiskColor"
+                    :stroke-width="12"
+                    :show-indicator="false"
+                    style="width: 64px;"
+                  />
+                  <div class="host-metric-stats">
+                    <NStatistic :value="hostDiskUsage.toFixed(1)" suffix="%">
+                      <template #label>{{ t('pages.monitor.host.usage') }}</template>
+                    </NStatistic>
+                    <NText depth="3" style="font-size: 12px;">
+                      {{ formatBytes(hostMetrics?.disk?.used ?? 0) }} / {{ formatBytes(hostMetrics?.disk?.total ?? 0) }}
+                    </NText>
+                  </div>
+                </div>
+              </div>
+            </NGridItem>
+
+            <NGridItem>
+              <div class="host-metric-card">
+                <div class="host-metric-title">
+                  <NIcon :component="WifiOutline" color="#2080f0" size="18" />
+                  <NText strong>{{ t('pages.monitor.host.network') }}</NText>
+                </div>
+                <div class="host-network-grid">
+                  <div class="host-network-stat">
+                    <NText depth="3" style="font-size: 12px;">RX</NText>
+                    <NText strong>{{ formatBytes(hostMetrics?.network?.bytesReceived ?? 0) }}</NText>
+                  </div>
+                  <div class="host-network-stat">
+                    <NText depth="3" style="font-size: 12px;">TX</NText>
+                    <NText strong>{{ formatBytes(hostMetrics?.network?.bytesSent ?? 0) }}</NText>
+                  </div>
+                  <div v-if="hostMetrics?.network?.connections" class="host-network-stat">
+                    <NText depth="3" style="font-size: 12px;">{{ t('pages.monitor.host.connections') }}</NText>
+                    <NText strong>{{ hostMetrics.network.connections }}</NText>
+                  </div>
+                </div>
+              </div>
+            </NGridItem>
+          </NGrid>
+
+          <NSpace :size="8" align="center" class="host-runtime-row">
+            <NIcon :component="TimeOutline" color="#18a058" size="16" />
+            <NText depth="3" style="font-size: 12px;">
+              {{ t('pages.monitor.host.uptime') }}: {{ formatUptime(hostMetrics?.uptime ?? 0) }}
+            </NText>
+            <NTag v-if="hostMetrics?.platform" :bordered="false" round>{{ hostMetrics.platform }}</NTag>
+            <NTag v-if="hostMetrics?.hostname" :bordered="false" round type="info">{{ hostMetrics.hostname }}</NTag>
+          </NSpace>
+        </NSpin>
+      </div>
     </NCard>
 
     <NTabs v-model:value="activeTab" type="line" animated>
@@ -877,7 +1259,7 @@ onUnmounted(() => {
                 </NButton>
                 <NButton size="small" type="warning" :loading="diagLoading" @click="loadHealthStatus({ probe: true })">
                   <template #icon><NIcon :component="SearchOutline" /></template>
-                  Probe
+                  {{ t('pages.monitor.diag.probeAction') }}
                 </NButton>
               </NSpace>
             </template>
@@ -1136,11 +1518,276 @@ onUnmounted(() => {
                     {{ (entry.level || 'raw').toUpperCase() }}
                   </NTag>
                   <div class="log-subsystem">{{ entry.subsystem || '-' }}</div>
+                  <NButton
+                    v-if="entry.traceId || entry.runId"
+                    text
+                    size="tiny"
+                    type="primary"
+                    @click="openTraceFromLog(entry)"
+                  >
+                    {{ entry.traceId ? t('pages.monitor.logs.openTrace') : t('pages.monitor.logs.openRun') }}
+                  </NButton>
                   <pre class="log-message">{{ entry.message || entry.raw }}</pre>
                 </div>
               </div>
             </NScrollbar>
           </NSpin>
+        </NCard>
+      </NTabPane>
+
+      <NTabPane name="traces" :tab="t('pages.monitor.tabs.traces')">
+        <NCard :title="t('pages.monitor.traces.title')" class="app-card">
+          <template #header-extra>
+            <NSpace :size="8" align="center" class="app-toolbar">
+              <NButton
+                size="small"
+                class="app-toolbar-btn app-toolbar-btn--refresh"
+                :loading="tracesLoading"
+                @click="loadObservationRuns({ reset: true })"
+              >
+                <template #icon><NIcon :component="RefreshOutline" /></template>
+                {{ t('common.refresh') }}
+              </NButton>
+              <NButton
+                size="small"
+                class="app-toolbar-btn app-toolbar-btn--refresh"
+                :disabled="!selectedObservationRun"
+                @click="selectedObservationRun && filterLogsByObservation(selectedObservationRun)"
+              >
+                <template #icon><NIcon :component="SearchOutline" /></template>
+                {{ t('pages.monitor.traces.actions.filterLogs') }}
+              </NButton>
+            </NSpace>
+          </template>
+
+          <NAlert
+            v-if="!supportsObservations || !supportsInspect"
+            type="warning"
+            :bordered="false"
+            style="margin-bottom: 12px;"
+          >
+            {{ t('pages.monitor.traces.notSupportedPrefix') }}<code>agent.observations.list</code> / <code>agent.inspect</code>{{ t('pages.monitor.traces.notSupportedSuffix') }}
+          </NAlert>
+          <NAlert
+            v-else-if="tracesError"
+            type="error"
+            :bordered="false"
+            style="margin-bottom: 12px;"
+          >
+            {{ tracesError }}
+          </NAlert>
+
+          <NText depth="3" style="font-size: 12px; display: block; margin-bottom: 10px;">
+            {{ t('pages.monitor.traces.hintPrefix') }}<code>ObservationContext</code>{{ t('pages.monitor.traces.hintSuffix') }}
+          </NText>
+
+          <NGrid cols="1 s:2 m:4" responsive="screen" :x-gap="12" :y-gap="10" style="margin-bottom: 12px;">
+            <NGridItem>
+              <NFormItem :label="t('pages.monitor.traces.query')">
+                <NInput
+                  v-model:value="observationQuery"
+                  :placeholder="t('pages.monitor.traces.queryPlaceholder')"
+                  clearable
+                  @keydown.enter="loadObservationRuns({ reset: true })"
+                />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem>
+              <NFormItem :label="t('pages.monitor.traces.status')">
+                <NSelect
+                  v-model:value="observationStatusFilter"
+                  :options="OBSERVATION_STATUS_OPTIONS"
+                  clearable
+                />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem>
+              <NFormItem :label="t('pages.monitor.traces.source')">
+                <NSelect
+                  v-model:value="observationSourceFilter"
+                  :options="OBSERVATION_SOURCE_OPTIONS"
+                  clearable
+                />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem>
+              <NFormItem label="limit">
+                <NInputNumber v-model:value="observationLimit" :min="1" :max="200" style="width: 100%;" />
+              </NFormItem>
+            </NGridItem>
+          </NGrid>
+
+          <NText v-if="tracesLastUpdatedAt" depth="3" style="font-size: 12px; display: block; margin-bottom: 12px;">
+            {{ t('pages.monitor.traces.updatedAt', { time: formatRelativeTime(tracesLastUpdatedAt) }) }}
+          </NText>
+
+          <NGrid cols="1 m:2" responsive="screen" :x-gap="12" :y-gap="12">
+            <NGridItem>
+              <NSpin :show="tracesLoading">
+                <div class="trace-list">
+                  <button
+                    v-for="run in observationRuns"
+                    :key="run.traceId"
+                    type="button"
+                    class="trace-item"
+                    :class="{ 'trace-item--active': run.traceId === selectedObservationTraceId }"
+                    @click="inspectObservationRun(run)"
+                  >
+                    <div class="trace-item-head">
+                      <span class="trace-summary">{{ run.summary }}</span>
+                      <NTag size="small" :type="observationStatusTagType(run.status)" :bordered="false">
+                        {{ run.status }}
+                      </NTag>
+                    </div>
+                    <div class="trace-id">{{ run.traceId }}</div>
+                    <div class="trace-meta">
+                      <span>{{ run.agentId || '-' }}</span>
+                      <span>{{ run.sessionKey || run.sessionId || '-' }}</span>
+                      <span>{{ run.lastEventAt ? formatRelativeTime(run.lastEventAt) : '-' }}</span>
+                    </div>
+                    <NSpace :size="6" style="margin-top: 8px; flex-wrap: wrap;">
+                      <NTag
+                        v-for="source in run.sources"
+                        :key="`${run.traceId}-${source}`"
+                        size="small"
+                        :bordered="false"
+                        round
+                      >
+                        {{ source }}
+                      </NTag>
+                      <NTag size="small" :bordered="false" round>
+                        {{ t('pages.monitor.traces.events', { count: run.eventCount }) }}
+                      </NTag>
+                      <NTag v-if="run.errorCount > 0" size="small" type="error" :bordered="false" round>
+                        {{ t('pages.monitor.traces.errorsCount', { count: run.errorCount }) }}
+                      </NTag>
+                    </NSpace>
+                  </button>
+
+                  <NEmpty
+                    v-if="!tracesLoading && observationRuns.length === 0"
+                    :description="t('pages.monitor.traces.empty')"
+                    style="padding: 48px 0;"
+                  />
+
+                  <NButton
+                    v-if="observationNextCursor"
+                    block
+                    size="small"
+                    :loading="tracesLoading"
+                    style="margin-top: 10px;"
+                    @click="loadObservationRuns()"
+                  >
+                    {{ t('pages.monitor.traces.actions.loadMore') }}
+                  </NButton>
+                </div>
+              </NSpin>
+            </NGridItem>
+
+            <NGridItem>
+              <NSpin :show="traceInspectLoading">
+                <div v-if="selectedObservation" class="trace-detail">
+                  <div class="trace-detail-head">
+                    <div>
+                      <div class="trace-detail-title">
+                        {{ selectedObservation.runId || selectedObservation.lookup.traceId || '-' }}
+                      </div>
+                      <div class="trace-id">{{ selectedObservation.lookup.traceId || selectedObservationRun?.traceId || '-' }}</div>
+                    </div>
+                    <NButton
+                      size="small"
+                      class="app-toolbar-btn app-toolbar-btn--refresh"
+                      :disabled="!selectedObservationRun"
+                      @click="selectedObservationRun && filterLogsByObservation(selectedObservationRun)"
+                    >
+                      <template #icon><NIcon :component="SearchOutline" /></template>
+                      {{ t('pages.monitor.traces.actions.filterLogs') }}
+                    </NButton>
+                  </div>
+
+                  <NAlert
+                    v-for="warning in selectedObservation.warnings"
+                    :key="warning"
+                    type="warning"
+                    :bordered="false"
+                    style="margin-bottom: 10px;"
+                  >
+                    {{ warning }}
+                  </NAlert>
+
+                  <div v-if="recordEntries(selectedObservation.refs).length > 0" class="trace-ref-grid">
+                    <div
+                      v-for="[key, value] in recordEntries(selectedObservation.refs)"
+                      :key="key"
+                      class="trace-ref"
+                    >
+                      <span>{{ key }}</span>
+                      <code>{{ value }}</code>
+                    </div>
+                  </div>
+
+                  <div class="trace-timeline">
+                    <div
+                      v-for="event in selectedObservation.timeline || []"
+                      :key="event.eventId"
+                      class="trace-event"
+                    >
+                      <div class="trace-event-dot" :class="`trace-event-dot--${event.status || 'unknown'}`" />
+                      <div class="trace-event-body">
+                        <div class="trace-event-head">
+                          <span>{{ event.summary }}</span>
+                          <NTag size="small" :type="observationStatusTagType(event.status)" :bordered="false">
+                            {{ event.status || event.phase || event.source || 'event' }}
+                          </NTag>
+                        </div>
+                        <div class="trace-event-meta">
+                          <span>{{ event.type }}</span>
+                          <span>{{ event.createdAt ? formatDate(event.createdAt) : '-' }}</span>
+                          <span>{{ event.source || '-' }}</span>
+                        </div>
+                        <div v-if="event.decisionCode" class="trace-id">
+                          {{ t('pages.monitor.traces.decision') }}: {{ event.decisionCode }}
+                        </div>
+                        <div v-if="recordEntries(event.metrics).length > 0" class="trace-chip-row">
+                          <NTag
+                            v-for="[key, value] in recordEntries(event.metrics)"
+                            :key="`${event.eventId}-metric-${key}`"
+                            size="small"
+                            :bordered="false"
+                            round
+                          >
+                            {{ key }}={{ value }}
+                          </NTag>
+                        </div>
+                        <div v-if="recordEntries(event.refs).length > 0" class="trace-chip-row">
+                          <NTag
+                            v-for="[key, value] in recordEntries(event.refs)"
+                            :key="`${event.eventId}-ref-${key}`"
+                            size="small"
+                            :bordered="false"
+                            round
+                          >
+                            {{ key }}={{ value }}
+                          </NTag>
+                        </div>
+                      </div>
+                    </div>
+                    <NEmpty
+                      v-if="(selectedObservation.timeline || []).length === 0"
+                      :description="t('pages.monitor.traces.emptyTimeline')"
+                      style="padding: 48px 0;"
+                    />
+                  </div>
+                </div>
+
+                <NEmpty
+                  v-else
+                  :description="t('pages.monitor.traces.selectRun')"
+                  style="padding: 64px 0;"
+                />
+              </NSpin>
+            </NGridItem>
+          </NGrid>
         </NCard>
       </NTabPane>
 
@@ -1567,6 +2214,68 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+.host-metrics-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.host-metrics-head {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.host-metric-card {
+  min-height: 132px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--bg-primary);
+}
+
+.host-metric-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.host-metric-body {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.host-metric-stats {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.host-network-grid {
+  margin-top: 14px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.host-network-stat {
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.host-runtime-row {
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
 .presence-list {
   display: flex;
   flex-direction: column;
@@ -1622,7 +2331,7 @@ onUnmounted(() => {
 
 .log-row {
   display: grid;
-  grid-template-columns: minmax(170px, 220px) 90px minmax(140px, 200px) minmax(320px, 1fr);
+  grid-template-columns: minmax(170px, 220px) 90px minmax(140px, 200px) 80px minmax(320px, 1fr);
   gap: 10px;
   align-items: flex-start;
   border-bottom: 1px solid var(--border-color);
@@ -1647,6 +2356,149 @@ onUnmounted(() => {
   word-break: break-word;
   font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
   line-height: 1.4;
+}
+
+.trace-list {
+  max-height: calc(100vh - 430px);
+  min-height: 360px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trace-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.trace-item:hover,
+.trace-item--active {
+  border-color: var(--primary-color);
+  background: var(--bg-secondary);
+}
+
+.trace-item-head,
+.trace-detail-head,
+.trace-event-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trace-summary,
+.trace-detail-title,
+.trace-event-head span:first-child {
+  min-width: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.trace-id {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.trace-meta,
+.trace-event-meta {
+  margin-top: 6px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.trace-detail {
+  min-height: 360px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--bg-primary);
+}
+
+.trace-ref-grid {
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.trace-ref {
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.trace-ref span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.trace-ref code {
+  overflow-wrap: anywhere;
+}
+
+.trace-timeline {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trace-event {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.trace-event-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 6px;
+  background: var(--text-secondary);
+}
+
+.trace-event-dot--ok {
+  background: #18a058;
+}
+
+.trace-event-dot--error,
+.trace-event-dot--timeout {
+  background: #d03050;
+}
+
+.trace-event-dot--running {
+  background: #f0a020;
+}
+
+.trace-event-body {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  min-width: 0;
+}
+
+.trace-chip-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .approvals-meta {

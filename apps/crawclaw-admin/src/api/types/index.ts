@@ -7,6 +7,9 @@ export * from './remote-desktop'
 export * from './backup'
 export * from './workflow'
 export * from './comfyui'
+export * from './memory'
+export * from './observability'
+export * from './voice'
 import type { ModelConfig, ToolPolicyConfig } from './config'
 
 export interface Skill {
@@ -409,6 +412,10 @@ export interface LogEntry {
   level?: LogLevel | null
   subsystem?: string | null
   message?: string | null
+  traceId?: string | null
+  spanId?: string | null
+  runId?: string | null
+  sessionKey?: string | null
   meta?: Record<string, unknown> | null
 }
 

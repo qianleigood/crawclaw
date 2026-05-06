@@ -3,8 +3,8 @@ import cors from 'cors'
 import { createServer } from 'http'
 import { randomUUID } from 'crypto'
 import { fileURLToPath } from 'url'
-import { dirname, join, resolve, basename, extname, sep } from 'path'
-import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, rmSync, unlinkSync, stat, promises as fsPromises, createReadStream, createWriteStream, copyFileSync, readlinkSync, symlinkSync, renameSync } from 'fs'
+import { dirname, join, resolve, basename, extname, sep, relative as pathRelative, isAbsolute as pathIsAbsolute } from 'path'
+import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, realpathSync, mkdirSync, rmSync, unlinkSync, stat, promises as fsPromises, createReadStream, createWriteStream, copyFileSync, readlinkSync, symlinkSync, renameSync } from 'fs'
 import { CrawClawGateway } from './gateway.js'
 import { N8nService, normalizeAppLocale } from './n8n-service.js'
 import { parse } from 'dotenv'
@@ -108,6 +108,7 @@ function debug(...args) {
 
 const app = express()
 const server = createServer(app)
+const JSON_BODY_LIMIT = '25mb'
 
 const CRAWCLAW_PACKAGE_NAME = 'crawclaw'
 
@@ -118,7 +119,7 @@ const hasDist = existsSync(indexPath)
 const sessions = new Map()
 
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: JSON_BODY_LIMIT }))
 
 // 初始化 Hermes 代理
 initHermesConfig(envConfig)
@@ -379,6 +380,7 @@ setAuthMiddleware(authMiddleware)
 app.get('/api/auth/config', (req, res) => {
   res.json({
     enabled: isAuthEnabled(),
+    locale: currentLocale,
   })
 })
 
@@ -449,12 +451,19 @@ function stringifyEnvFile(data) {
 function persistCrawClawLocale(locale) {
   const existingContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : ''
   const existing = normalizeCrawClawEnvSnapshot(parseEnvFile(existingContent))
+  const previousLocale = normalizeAppLocale(existing.CRAWCLAW_LOCALE || currentLocale)
+  if (previousLocale === locale) {
+    currentLocale = locale
+    refreshN8nRuntimeEnv()
+    return false
+  }
   existing.CRAWCLAW_LOCALE = locale
   removeLegacyCrawClawEnvKeys(existing)
   writeFileSync(envPath, stringifyEnvFile(existing), 'utf-8')
   envConfig = loadEnvConfig()
   currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || locale)
   refreshN8nRuntimeEnv()
+  return true
 }
 
 async function reconnectGatewayForLocale(locale) {
@@ -477,11 +486,16 @@ app.post('/api/n8n/locale', authMiddleware, async (req, res) => {
   try {
     const locale = normalizeAppLocale(req.body?.locale)
     currentLocale = locale
-    persistCrawClawLocale(locale)
-    await reconnectGatewayForLocale(locale)
-    const status = await n8nService.setLocale(locale)
-    broadcastSSE({ type: 'n8nState', state: status })
-    res.json({ ok: true, locale, n8n: status })
+    const changed = persistCrawClawLocale(locale)
+    let status
+    if (changed) {
+      await reconnectGatewayForLocale(locale)
+      status = await n8nService.setLocale(locale)
+      broadcastSSE({ type: 'n8nState', state: status })
+    } else {
+      status = n8nService.getStatus()
+    }
+    res.json({ ok: true, locale, changed, n8n: status })
   } catch (err) {
     res.status(500).json({ ok: false, error: { message: err.message } })
   }
@@ -818,6 +832,35 @@ function safePath(userPath, workspaceBase) {
   return targetPath
 }
 
+function isPathInside(basePath, targetPath) {
+  const relativePath = pathRelative(basePath, targetPath)
+  return relativePath !== '' && !relativePath.startsWith('..') && !pathIsAbsolute(relativePath)
+}
+
+function contentTypeForOutput(filePath) {
+  const ext = extname(filePath).slice(1).toLowerCase()
+  const contentTypes = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+    mp4: 'video/mp4',
+    mov: 'video/quicktime',
+    webm: 'video/webm',
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    flac: 'audio/flac',
+  }
+  return contentTypes[ext] || 'application/octet-stream'
+}
+
+function attachmentFilename(filePath) {
+  return (basename(filePath) || 'comfyui-output').replace(/["\r\n]/g, '_')
+}
+
 async function getAgentWorkspace(agentId) {
   if (agentWorkspaceCache.has(agentId)) {
     const cached = agentWorkspaceCache.get(agentId)
@@ -1069,6 +1112,63 @@ app.get('/api/files/get', authMiddleware, async (req, res) => {
     }
   } catch (err) {
     console.error('[Files] Get error:', err)
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+})
+
+app.get('/api/comfyui/outputs/download', authMiddleware, async (req, res) => {
+  try {
+    const requestedPath = typeof req.query.path === 'string' ? req.query.path : ''
+
+    if (!requestedPath) {
+      return res.status(400).json({ ok: false, error: { message: 'Path is required' } })
+    }
+
+    if (!gateway.isConnected) {
+      return res.status(503).json({ ok: false, error: { message: 'Gateway not connected' } })
+    }
+
+    const status = await gateway.call('comfyui.status', {}, 60000)
+    const outputDir = typeof status?.outputDir === 'string' ? status.outputDir : ''
+    if (!outputDir) {
+      return res.status(500).json({ ok: false, error: { message: 'ComfyUI output directory is unavailable' } })
+    }
+
+    const outputRoot = resolve(expandHomePath(outputDir))
+    const outputPath = resolve(expandHomePath(requestedPath))
+
+    if (!existsSync(outputRoot)) {
+      return res.status(404).json({ ok: false, error: { message: 'ComfyUI output directory not found' } })
+    }
+    if (!existsSync(outputPath)) {
+      return res.status(404).json({ ok: false, error: { message: 'Output file not found' } })
+    }
+
+    const realOutputRoot = realpathSync(outputRoot)
+    const realOutputPath = realpathSync(outputPath)
+    if (!isPathInside(realOutputRoot, realOutputPath)) {
+      return res.status(400).json({ ok: false, error: { message: 'Invalid output path' } })
+    }
+
+    const stats = statSync(realOutputPath)
+    if (stats.isDirectory()) {
+      return res.status(400).json({ ok: false, error: { message: 'Cannot download directory' } })
+    }
+
+    res.setHeader('Content-Type', contentTypeForOutput(realOutputPath))
+    res.setHeader('Content-Length', stats.size)
+    res.setHeader('Content-Disposition', `attachment; filename="${attachmentFilename(realOutputPath)}"`)
+
+    const stream = createReadStream(realOutputPath)
+    stream.pipe(res)
+    stream.on('error', (err) => {
+      console.error('[ComfyUI] Output download stream error:', err.message)
+      if (!res.headersSent) {
+        res.status(500).json({ ok: false, error: { message: err.message } })
+      }
+    })
+  } catch (err) {
+    console.error('[ComfyUI] Output download error:', err)
     res.status(500).json({ ok: false, error: { message: err.message } })
   }
 })
