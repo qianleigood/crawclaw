@@ -87,6 +87,15 @@ describe("bundled plugin metadata", () => {
     );
   });
 
+  it("loads esp32 channel config metadata from the lightweight schema surface", () => {
+    const esp32 = listBundledPluginMetadata().find((entry) => entry.dirName === "esp32");
+    expect(esp32?.manifest.channelConfigs?.esp32).toEqual(
+      expect.objectContaining({
+        schema: expect.objectContaining({ type: "object" }),
+      }),
+    );
+  });
+
   it("excludes test-only public surface artifacts", () => {
     listBundledPluginMetadata().forEach((entry) =>
       expectTestOnlyArtifactsExcluded(entry.publicSurfaceArtifacts ?? []),
