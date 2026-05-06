@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveNotebookLmRuntimeBin } from "../../plugins/plugin-runtimes.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 
 const execFileMock = vi.fn();
@@ -41,10 +42,7 @@ const baseConfig: NotebookLmConfig = {
 function makeManagedNlmBin(): string {
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-notebooklm-state-"));
   tempRoots.push(stateDir);
-  const binPath =
-    process.platform === "win32"
-      ? path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "Scripts", "nlm.exe")
-      : path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "bin", "nlm");
+  const binPath = resolveNotebookLmRuntimeBin({ CRAWCLAW_STATE_DIR: stateDir });
   fs.mkdirSync(path.dirname(binPath), { recursive: true });
   fs.writeFileSync(binPath, "", "utf8");
   process.env.CRAWCLAW_STATE_DIR = stateDir;

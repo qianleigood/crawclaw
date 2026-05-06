@@ -2,7 +2,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emitRunLoopLifecycleEvent } from "../../agents/runtime/lifecycle/bus.js";
+import {
+  emitRunLoopLifecycleEvent,
+  resetRunLoopLifecycleHandlersForTests,
+} from "../../agents/runtime/lifecycle/bus.js";
 import { buildSpecialAgentCacheEnvelope } from "../../agents/special/runtime/parent-fork-context.js";
 import {
   castAgentMessages,
@@ -43,6 +46,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
 
   beforeEach(() => {
     vi.resetModules();
+    resetRunLoopLifecycleHandlersForTests();
   });
 
   afterEach(() => {
@@ -71,6 +75,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         __testing.resetSharedSessionSummaryLifecycleSubscriber();
       })
       .finally(() => {
+        resetRunLoopLifecycleHandlersForTests();
         if (previousStateDir === undefined) {
           delete process.env.CRAWCLAW_STATE_DIR;
         } else {
@@ -96,6 +101,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
   function createRuntimeStore(): RuntimeStore {
     let nextMessageId = 0;
     const cursorRows = new Map<string, DurableExtractionCursorRow>();
+    const experienceCursorRows = new Map<string, DurableExtractionCursorRow>();
     const messageRows: GmMessageRow[] = [];
     const sessionSummaryState = new Map<string, SessionSummaryStateRow>();
     return asRuntimeStore({
@@ -125,6 +131,21 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
         .mockImplementation(async (sessionId: string) => cursorRows.get(sessionId) ?? null),
       upsertDurableExtractionCursor: vi.fn().mockImplementation(async (input) => {
         cursorRows.set(input.sessionId, {
+          sessionId: input.sessionId,
+          sessionKey: input.sessionKey ?? null,
+          lastExtractedTurn: input.lastExtractedTurn,
+          lastExtractedMessageId: input.lastExtractedMessageId ?? null,
+          lastRunAt: input.lastRunAt ?? null,
+          updatedAt: input.updatedAt ?? Date.now(),
+        });
+      }),
+      getExperienceExtractionCursor: vi
+        .fn()
+        .mockImplementation(
+          async (sessionId: string) => experienceCursorRows.get(sessionId) ?? null,
+        ),
+      upsertExperienceExtractionCursor: vi.fn().mockImplementation(async (input) => {
+        experienceCursorRows.set(input.sessionId, {
           sessionId: input.sessionId,
           sessionKey: input.sessionKey ?? null,
           lastExtractedTurn: input.lastExtractedTurn,

@@ -292,6 +292,11 @@ export class ExperienceExtractionWorkerManager {
   async drainAll(timeoutMs = 15_000): Promise<void> {
     const deadline = nowMs() + Math.max(1, timeoutMs);
     while (true) {
+      for (const worker of this.workers.values()) {
+        if (!worker.inProgress && worker.pendingContext) {
+          this.enqueue(worker.sessionKey);
+        }
+      }
       this.pumpQueue();
       const inFlight = [...this.workers.values()]
         .map((worker) => worker.inProgress)

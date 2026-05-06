@@ -1,0 +1,55 @@
+{
+  "id": "esp32",
+  "channels": ["esp32"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "broker": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": { "type": "string", "enum": ["managed"] },
+          "bindHost": { "type": "string" },
+          "port": { "type": "number" },
+          "advertisedHost": { "type": "string" }
+        }
+      },
+      "udp": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "bindHost": { "type": "string" },
+          "port": { "type": "number" },
+          "advertisedHost": { "type": "string" }
+        }
+      },
+      "renderer": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "model": { "type": "string" },
+          "timeoutMs": { "type": "number" },
+          "maxSpokenChars": { "type": "number" },
+          "maxDisplayChars": { "type": "number" }
+        }
+      },
+      "tts": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "provider": { "type": "string" },
+          "target": { "type": "string", "enum": ["voice-note"] }
+        }
+      },
+      "tools": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allowlist": { "type": "array", "items": { "type": "string" } },
+          "highRiskRequiresApproval": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

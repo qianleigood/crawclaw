@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveNotebookLmRuntimeBin } from "../../plugins/plugin-runtimes.ts";
 import { __testing as promptJournalTesting } from "../diagnostics/prompt-journal.ts";
 import type { NotebookLmConfig } from "../types/config.ts";
 import {
@@ -111,10 +112,7 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
 
   it("writes through managed nlm source add when no custom write command is configured", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-notebooklm-native-write-"));
-    const binPath =
-      process.platform === "win32"
-        ? path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "Scripts", "nlm.exe")
-        : path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "bin", "nlm");
+    const binPath = resolveNotebookLmRuntimeBin({ CRAWCLAW_STATE_DIR: stateDir });
     await fs.mkdir(path.dirname(binPath), { recursive: true });
     await fs.writeFile(binPath, "", "utf8");
     process.env.CRAWCLAW_STATE_DIR = stateDir;
@@ -199,10 +197,7 @@ describe("writeNotebookLmExperienceNoteViaCli", () => {
 
   it("deletes managed NotebookLM experience sources by id", async () => {
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-notebooklm-native-delete-"));
-    const binPath =
-      process.platform === "win32"
-        ? path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "Scripts", "nlm.exe")
-        : path.join(stateDir, "runtimes", "notebooklm-mcp-cli", "venv", "bin", "nlm");
+    const binPath = resolveNotebookLmRuntimeBin({ CRAWCLAW_STATE_DIR: stateDir });
     await fs.mkdir(path.dirname(binPath), { recursive: true });
     await fs.writeFile(binPath, "", "utf8");
     process.env.CRAWCLAW_STATE_DIR = stateDir;

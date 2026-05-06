@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resolveOpenWebSearchRuntimeBin } from "../plugins/plugin-runtimes.ts";
 import { __testing } from "./daemon.js";
 
 const tempRoots: string[] = [];
@@ -10,25 +11,9 @@ const originalStateDir = process.env.CRAWCLAW_STATE_DIR;
 function makeRuntimeBin(): { stateDir: string; binPath: string; entrypoint: string } {
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-open-websearch-"));
   tempRoots.push(stateDir);
-  const packageRoot = path.join(
-    stateDir,
-    "runtimes",
-    "open-websearch",
-    "node_modules",
-    "open-websearch",
-  );
+  const binPath = resolveOpenWebSearchRuntimeBin({ CRAWCLAW_STATE_DIR: stateDir });
+  const packageRoot = path.resolve(path.dirname(binPath), "..", "open-websearch");
   const entrypoint = path.join(packageRoot, "dist", "cli.js");
-  const binPath =
-    process.platform === "win32"
-      ? path.join(
-          stateDir,
-          "runtimes",
-          "open-websearch",
-          "node_modules",
-          ".bin",
-          "open-websearch.cmd",
-        )
-      : path.join(stateDir, "runtimes", "open-websearch", "node_modules", ".bin", "open-websearch");
   fs.mkdirSync(path.dirname(binPath), { recursive: true });
   fs.mkdirSync(path.dirname(entrypoint), { recursive: true });
   fs.writeFileSync(binPath, "", "utf8");
@@ -65,11 +50,9 @@ describe("open-websearch daemon runtime resolution", () => {
   it("resolves the Windows cmd shim to the package Node entrypoint", () => {
     const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
     const { stateDir, binPath } = makeRuntimeBin();
-    const entrypoint = path.join(
-      stateDir,
-      "runtimes",
-      "open-websearch",
-      "node_modules",
+    const entrypoint = path.resolve(
+      path.dirname(binPath),
+      "..",
       "open-websearch",
       "dist",
       "cli.js",

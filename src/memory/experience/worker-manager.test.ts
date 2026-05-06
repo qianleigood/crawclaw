@@ -249,6 +249,99 @@ describe("ExperienceExtractionWorkerManager", () => {
     expect(metrics.foregroundWriteCount).toBe(2);
   });
 
+  it("drains a pending rerun submitted while a worker is running", async () => {
+    const stateDir = await createStateDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    const runtimeStore = createRuntimeStore();
+    let releaseFirstRun: () => void = () => {};
+    let firstRunStarted: () => void = () => {};
+    const firstRunGate = new Promise<void>((resolve) => {
+      releaseFirstRun = resolve;
+    });
+    const firstRunStartedGate = new Promise<void>((resolve) => {
+      firstRunStarted = resolve;
+    });
+    const runner = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        firstRunStarted();
+        await firstRunGate;
+        return {
+          status: "no_change",
+          summary: "first pass",
+          writtenCount: 0,
+          updatedCount: 0,
+          deletedCount: 0,
+          touchedNotes: [],
+          advanceCursor: true,
+        };
+      })
+      .mockResolvedValueOnce({
+        status: "no_change",
+        summary: "second pass",
+        writtenCount: 0,
+        updatedCount: 0,
+        deletedCount: 0,
+        touchedNotes: [],
+        advanceCursor: true,
+      });
+
+    const { getSharedExperienceExtractionWorkerManager } = await import("./worker-manager.ts");
+    const manager = getSharedExperienceExtractionWorkerManager({
+      config: {
+        enabled: true,
+        recentMessageLimit: 8,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 1,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+
+    await appendMessage(runtimeStore, {
+      sessionId: "session-experience-rerun",
+      role: "user",
+      content: "第一轮经验",
+      turnIndex: 1,
+    });
+    await appendMessage(runtimeStore, {
+      sessionId: "session-experience-rerun",
+      role: "assistant",
+      content: "第二轮经验",
+      turnIndex: 2,
+    });
+    manager.submitTurn({
+      sessionId: "session-experience-rerun",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      newMessages: [makeAgentUserMessage({ content: "第一轮 stop" })] as never,
+      messageCursor: 1,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    await firstRunStartedGate;
+
+    manager.submitTurn({
+      sessionId: "session-experience-rerun",
+      sessionKey: "agent:main:feishu:direct:user-1",
+      newMessages: [makeAgentUserMessage({ content: "第二轮 stop" })] as never,
+      messageCursor: 2,
+      runtimeContext: { agentId: "main", messageChannel: "feishu", senderId: "user-1" },
+    });
+    releaseFirstRun();
+    await manager.drainAll();
+
+    expect(runner).toHaveBeenCalledTimes(2);
+    expect(runner.mock.calls[1]?.[0]?.recentMessages).toHaveLength(1);
+    expect(runtimeStore.listMessagesByTurnRange).toHaveBeenNthCalledWith(
+      2,
+      "session-experience-rerun",
+      2,
+      2,
+    );
+  });
+
   it("resumes from the persisted experience cursor after manager reset", async () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;

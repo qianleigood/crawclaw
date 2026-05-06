@@ -26,6 +26,7 @@ not shown as the default QuickStart recommendation.
 
 - [BlueBubbles](/channels/bluebubbles) — Legacy iMessage-adjacent option through the BlueBubbles macOS server REST API.
 - [Discord](/channels/discord) — Discord Bot API + Gateway; supports servers, channels, and DMs.
+- [ESP32](/channels/esp32) — ESP32-S3-BOX-3 desktop assistant over MQTT+UDP (plugin, experimental).
 - [Google Chat](/channels/googlechat) — Google Chat API app via HTTP webhook.
 - [iMessage (legacy)](/channels/imessage) — Legacy macOS integration via imsg CLI (deprecated, use BlueBubbles for new setups).
 - [IRC](/channels/irc) — Classic IRC servers; channels + DMs with pairing/allowlist controls.

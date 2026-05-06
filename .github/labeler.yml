@@ -8,6 +8,11 @@
       - any-glob-to-any-file:
           - "extensions/discord/**"
           - "docs/channels/discord.md"
+"channel: esp32":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/esp32/**"
+          - "docs/channels/esp32.md"
 "channel: ddingtalk":
   - changed-files:
       - any-glob-to-any-file:

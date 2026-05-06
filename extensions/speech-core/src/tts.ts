@@ -39,6 +39,7 @@ import {
   type TtsDirectiveOverrides,
   type TtsDirectiveParseResult,
 } from "../api.js";
+import { resolveTtsTargetForChannel } from "./tts-target.js";
 
 export type { TtsDirectiveOverrides, TtsDirectiveParseResult };
 
@@ -524,8 +525,6 @@ export function setLastTtsAttempt(entry: TtsStatusEntry | undefined): void {
   lastTtsAttempt = entry;
 }
 
-const OPUS_CHANNELS = new Set(["telegram", "feishu", "whatsapp", "matrix"]);
-
 function resolveChannelId(channel: string | undefined): ChannelId | null {
   return channel ? normalizeChannelId(channel) : null;
 }
@@ -740,8 +739,7 @@ export async function synthesizeSpeech(params: {
   }
 
   const { config, providers } = setup;
-  const channelId = resolveChannelId(params.channel);
-  const target = channelId && OPUS_CHANNELS.has(channelId) ? "voice-note" : "audio-file";
+  const target = resolveTtsTargetForChannel(params.channel);
 
   const errors: string[] = [];
   const attemptedProviders: string[] = [];
@@ -1097,9 +1095,9 @@ export async function maybeApplyTtsToPayload(params: {
       latencyMs: result.latencyMs,
     };
 
-    const channelId = resolveChannelId(params.channel);
     const shouldVoice =
-      channelId !== null && OPUS_CHANNELS.has(channelId) && result.voiceCompatible === true;
+      resolveTtsTargetForChannel(params.channel) === "voice-note" &&
+      result.voiceCompatible === true;
     return {
       ...nextPayload,
       mediaUrl: result.audioPath,

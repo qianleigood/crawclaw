@@ -962,6 +962,7 @@
                   "channels/bluebubbles",
                   "channels/ddingtalk",
                   "channels/discord",
+                  "channels/esp32",
                   "channels/feishu",
                   "channels/googlechat",
                   "channels/imessage",

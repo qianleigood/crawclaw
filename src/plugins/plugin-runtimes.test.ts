@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { resolveNodeSupportLevel } from "../infra/runtime-guard.js";
 import {
   resolveBrowserRuntimeBin,
   getPluginRuntimeManifestHealth,
@@ -109,7 +110,7 @@ describe("plugin-runtimes", () => {
       node: {
         abi: process.versions.modules,
         major: Number.parseInt(process.versions.node.split(".")[0] ?? "0", 10),
-        supportLevel: "stable",
+        supportLevel: resolveNodeSupportLevel(process.versions.node),
         version: process.versions.node,
       },
       runtimeRoot: resolvePluginRuntimesRoot(env),

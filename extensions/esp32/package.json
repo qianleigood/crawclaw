@@ -1,0 +1,42 @@
+{
+  "name": "@crawclaw/esp32",
+  "version": "2026.5.3",
+  "description": "ESP32-S3-BOX-3 MQTT+UDP channel plugin for CrawClaw",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.49",
+    "aedes": "^1.0.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "crawclaw": "workspace:*"
+  },
+  "peerDependencies": {
+    "crawclaw": ">=2026.4.1"
+  },
+  "peerDependenciesMeta": {
+    "crawclaw": {
+      "optional": true
+    }
+  },
+  "crawclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "esp32",
+      "label": "ESP32",
+      "selectionLabel": "ESP32-S3-BOX-3",
+      "docsPath": "/channels/esp32",
+      "docsLabel": "esp32",
+      "blurb": "Connect an ESP32-S3-BOX-3 desktop assistant over XiaoZhi-compatible MQTT+UDP.",
+      "order": 95,
+      "profile": "optional"
+    },
+    "install": {
+      "npmSpec": "@crawclaw/esp32",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.4.1"
+    }
+  }
+}
