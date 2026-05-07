@@ -305,6 +305,15 @@ describe("buildServiceEnvironment", () => {
     expect(env.TMPDIR).toBe("/var/folders/xw/abc123/T/");
   });
 
+  it("preserves Electron-as-Node mode for bundled desktop service commands", () => {
+    const env = buildServiceEnvironment({
+      env: { HOME: "/home/user", ELECTRON_RUN_AS_NODE: "1" },
+      port: 18789,
+    });
+
+    expect(env.ELECTRON_RUN_AS_NODE).toBe("1");
+  });
+
   it("falls back to os.tmpdir when TMPDIR is not set", () => {
     const env = buildServiceEnvironment({
       env: { HOME: "/home/user" },

@@ -7,6 +7,7 @@ export function buildDesktopCapabilities(params = {}) {
   const platform = normalizePlatform(params.platform || process.platform)
   const env = params.env || process.env
   const runtimeMode = params.runtimeMode === 'desktop' ? 'desktop' : 'web'
+  const desktopLocal = runtimeMode === 'desktop' && env.CRAWCLAW_ADMIN_DESKTOP_LOCAL === '1'
   const paths = params.paths || {}
   const filesWritable = isCreatableOrWritablePath(paths.dataDir)
   const backupWritable = isCreatableOrWritablePath(paths.backupDir)
@@ -39,6 +40,11 @@ export function buildDesktopCapabilities(params = {}) {
       available: runtimeMode === 'desktop',
       platform,
       ...unavailableReason(runtimeMode === 'desktop', 'Desktop updates are only available in desktop mode.'),
+    },
+    desktopLocal: {
+      available: desktopLocal,
+      platform,
+      ...unavailableReason(desktopLocal, 'Desktop local runtime is only available in CrawClaw Desktop.'),
     },
   }
 }

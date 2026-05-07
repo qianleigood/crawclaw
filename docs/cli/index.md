@@ -312,7 +312,7 @@ Manage extensions and their config:
 - `crawclaw plugins enable <id>` / `disable <id>` — toggle `plugins.entries.<id>.enabled`.
 - `crawclaw plugins doctor` — report plugin load errors.
 
-Most plugin changes require a gateway restart. See [/plugin](/tools/plugin).
+Plugin config changes are applied through Gateway live reconfigure. Plugins without a dedicated reconfigure hook fall back to stop/start for their own runtime service. See [/plugin](/tools/plugin).
 
 ## Memory
 
@@ -971,8 +971,8 @@ Subcommands:
 Common RPCs:
 
 - `config.set` (validate + write full config; use `baseHash` for optimistic concurrency)
-- `config.apply` (validate + write config + restart + wake)
-- `config.patch` (merge a partial update + restart + wake)
+- `config.apply` (validate + write config + live reconfigure)
+- `config.patch` (merge a partial update + live reconfigure)
 - `update.run` (run update + restart + wake)
 
 Tip: when calling `config.set`/`config.apply`/`config.patch` directly, pass `baseHash` from

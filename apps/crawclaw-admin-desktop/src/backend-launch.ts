@@ -2,17 +2,17 @@ import { access } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { utilityProcess, type UtilityProcess } from 'electron'
+import type { UtilityProcess } from 'electron'
 import type { DesktopAppPaths } from './app-paths.js'
 
 export interface DesktopGatewayConfig {
   wsUrl: string
   authToken?: string
   authPassword?: string
+  runtimeRoot: string
+  crawclawStateDir: string
+  nodePath?: string
   locale?: string
-  hermesWebUrl?: string
-  hermesApiUrl?: string
-  hermesApiKey?: string
 }
 
 export interface BackendLaunchResult {
@@ -31,6 +31,7 @@ export async function startAdminBackend(params: {
   await access(entryPoint)
 
   let exitCode: number | null | undefined
+  const { utilityProcess } = await import('electron')
   const child = utilityProcess.fork(entryPoint, [], {
     cwd: params.adminRoot,
     env: buildBackendEnv(params.paths, params.gateway, port),
@@ -55,14 +56,16 @@ export async function startAdminBackend(params: {
   }
 }
 
-function buildBackendEnv(
+export function buildBackendEnv(
   paths: DesktopAppPaths,
   gateway: DesktopGatewayConfig,
-  port: number
+  port: number,
+  baseEnv: NodeJS.ProcessEnv = process.env
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
-    ...process.env,
+    ...baseEnv,
     CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
+    CRAWCLAW_ADMIN_DESKTOP_LOCAL: '1',
     CRAWCLAW_ADMIN_BIND_HOST: '127.0.0.1',
     CRAWCLAW_ADMIN_PORT: String(port),
     CRAWCLAW_ADMIN_STATE_DIR: paths.stateDir,
@@ -71,15 +74,19 @@ function buildBackendEnv(
     CRAWCLAW_ADMIN_BACKUP_DIR: paths.backupDir,
     CRAWCLAW_ADMIN_LOG_DIR: paths.logDir,
     CRAWCLAW_ADMIN_SESSION_SECRET: randomUUID(),
+    CRAWCLAW_DESKTOP_RUNTIME_ROOT: gateway.runtimeRoot,
+    CRAWCLAW_DESKTOP_NODE_PATH: gateway.nodePath ?? '',
+    CRAWCLAW_STATE_DIR: gateway.crawclawStateDir,
     CRAWCLAW_WS_URL: gateway.wsUrl,
     CRAWCLAW_AUTH_TOKEN: gateway.authToken ?? '',
     CRAWCLAW_AUTH_PASSWORD: gateway.authPassword ?? '',
+    ELECTRON_RUN_AS_NODE: gateway.nodePath ? '1' : undefined,
+    HERMES_WEB_URL: undefined,
+    HERMES_API_URL: undefined,
+    HERMES_API_KEY: undefined,
   }
 
   setOptionalEnv(env, 'CRAWCLAW_LOCALE', gateway.locale)
-  setOptionalEnv(env, 'HERMES_WEB_URL', gateway.hermesWebUrl)
-  setOptionalEnv(env, 'HERMES_API_URL', gateway.hermesApiUrl)
-  setOptionalEnv(env, 'HERMES_API_KEY', gateway.hermesApiKey)
 
   return env
 }

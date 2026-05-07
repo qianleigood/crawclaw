@@ -19,12 +19,14 @@ export async function resolveDaemonInstallRuntimeInputs(params: {
   nodePath?: string;
 }): Promise<{ devMode: boolean; nodePath?: string }> {
   const devMode = params.devMode ?? resolveGatewayDevMode();
+  const desktopNodePath = params.env.CRAWCLAW_DESKTOP_NODE_PATH?.trim();
   const nodePath =
     params.nodePath ??
-    (await resolvePreferredNodePath({
-      env: params.env,
-      runtime: params.runtime,
-    }));
+    (desktopNodePath ||
+      (await resolvePreferredNodePath({
+        env: params.env,
+        runtime: params.runtime,
+      })));
   return { devMode, nodePath };
 }
 

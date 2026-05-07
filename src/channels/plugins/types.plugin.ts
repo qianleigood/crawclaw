@@ -1,3 +1,4 @@
+import type { CrawClawConfig } from "../../config/config.js";
 import type { ChannelSetupWizardAdapter } from "./setup-wizard-types.js";
 import type { ChannelSetupWizard } from "./setup-wizard.js";
 import type {
@@ -67,6 +68,11 @@ export type ChannelConfigRuntimeSchema = {
   safeParse: (value: unknown) => ChannelConfigRuntimeParseResult;
 };
 
+export type ChannelReloadReconfigureContext = {
+  config: CrawClawConfig;
+  changedPaths: string[];
+};
+
 /** JSON-schema-like config description published by a channel plugin. */
 export type ChannelConfigSchema = {
   schema: Record<string, unknown>;
@@ -87,7 +93,11 @@ export type ChannelPlugin<ResolvedAccount = any, Probe = unknown, Audit = unknow
       debounceMs?: number;
     };
   };
-  reload?: { configPrefixes: string[]; noopPrefixes?: string[] };
+  reload?: {
+    configPrefixes: string[];
+    noopPrefixes?: string[];
+    reconfigure?: (ctx: ChannelReloadReconfigureContext) => void | Promise<void>;
+  };
   setupWizard?: ChannelPluginSetupWizard;
   config: ChannelConfigAdapter<ResolvedAccount>;
   configSchema?: ChannelConfigSchema;

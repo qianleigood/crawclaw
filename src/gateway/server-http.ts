@@ -733,6 +733,15 @@ export function createGatewayHttpServer(opts: {
   resolvedAuth: ResolvedGatewayAuth;
   /** Optional rate limiter for auth brute-force protection. */
   rateLimiter?: AuthRateLimiter;
+  getRuntimeSurface?: () => {
+    openAiChatCompletionsEnabled: boolean;
+    openAiChatCompletionsConfig?: import("../config/types.gateway.js").GatewayHttpChatCompletionsConfig;
+    openResponsesEnabled: boolean;
+    openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
+    strictTransportSecurityHeader?: string;
+    resolvedAuth: ResolvedGatewayAuth;
+    rateLimiter?: AuthRateLimiter;
+  };
   getReadiness?: ReadinessChecker;
   tlsOptions?: TlsOptions;
 }): HttpServer {
@@ -749,7 +758,17 @@ export function createGatewayHttpServer(opts: {
     rateLimiter,
     getReadiness,
   } = opts;
-  const openAiCompatEnabled = openAiChatCompletionsEnabled || openResponsesEnabled;
+  const getRuntimeSurface =
+    opts.getRuntimeSurface ??
+    (() => ({
+      openAiChatCompletionsEnabled,
+      openAiChatCompletionsConfig,
+      openResponsesEnabled,
+      openResponsesConfig,
+      strictTransportSecurityHeader,
+      resolvedAuth,
+      rateLimiter,
+    }));
   const httpServer: HttpServer = opts.tlsOptions
     ? createHttpsServer(opts.tlsOptions, (req, res) => {
         void handleRequest(req, res);
@@ -759,8 +778,11 @@ export function createGatewayHttpServer(opts: {
       });
 
   async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+    const runtimeSurface = getRuntimeSurface();
+    const openAiCompatEnabled =
+      runtimeSurface.openAiChatCompletionsEnabled || runtimeSurface.openResponsesEnabled;
     setDefaultSecurityHeaders(res, {
-      strictTransportSecurity: strictTransportSecurityHeader,
+      strictTransportSecurity: runtimeSurface.strictTransportSecurityHeader,
     });
 
     // Don't interfere with WebSocket upgrades; ws handles the 'upgrade' event.
@@ -787,10 +809,10 @@ export function createGatewayHttpServer(opts: {
           run: () =>
             openAiCompatEnabled
               ? handleOpenAiModelsHttpRequest(req, res, {
-                  auth: resolvedAuth,
+                  auth: runtimeSurface.resolvedAuth,
                   trustedProxies,
                   allowRealIpFallback,
-                  rateLimiter,
+                  rateLimiter: runtimeSurface.rateLimiter,
                 })
               : false,
         },
@@ -798,40 +820,40 @@ export function createGatewayHttpServer(opts: {
           name: "tools-invoke",
           run: () =>
             handleToolsInvokeHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: runtimeSurface.resolvedAuth,
               trustedProxies,
               allowRealIpFallback,
-              rateLimiter,
+              rateLimiter: runtimeSurface.rateLimiter,
             }),
         },
         {
           name: "workflow-agent",
           run: () =>
             handleWorkflowAgentHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: runtimeSurface.resolvedAuth,
               trustedProxies,
               allowRealIpFallback,
-              rateLimiter,
+              rateLimiter: runtimeSurface.rateLimiter,
             }),
         },
         {
           name: "sessions-kill",
           run: () =>
             handleSessionKillHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: runtimeSurface.resolvedAuth,
               trustedProxies,
               allowRealIpFallback,
-              rateLimiter,
+              rateLimiter: runtimeSurface.rateLimiter,
             }),
         },
         {
           name: "sessions-history",
           run: () =>
             handleSessionHistoryHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: runtimeSurface.resolvedAuth,
               trustedProxies,
               allowRealIpFallback,
-              rateLimiter,
+              rateLimiter: runtimeSurface.rateLimiter,
             }),
         },
         {
@@ -839,29 +861,29 @@ export function createGatewayHttpServer(opts: {
           run: () => handleSlackHttpRequest(req, res),
         },
       ];
-      if (openResponsesEnabled) {
+      if (runtimeSurface.openResponsesEnabled) {
         requestStages.push({
           name: "openresponses",
           run: () =>
             handleOpenResponsesHttpRequest(req, res, {
-              auth: resolvedAuth,
-              config: openResponsesConfig,
+              auth: runtimeSurface.resolvedAuth,
+              config: runtimeSurface.openResponsesConfig,
               trustedProxies,
               allowRealIpFallback,
-              rateLimiter,
+              rateLimiter: runtimeSurface.rateLimiter,
             }),
         });
       }
-      if (openAiChatCompletionsEnabled) {
+      if (runtimeSurface.openAiChatCompletionsEnabled) {
         requestStages.push({
           name: "openai",
           run: () =>
             handleOpenAiHttpRequest(req, res, {
-              auth: resolvedAuth,
-              config: openAiChatCompletionsConfig,
+              auth: runtimeSurface.resolvedAuth,
+              config: runtimeSurface.openAiChatCompletionsConfig,
               trustedProxies,
               allowRealIpFallback,
-              rateLimiter,
+              rateLimiter: runtimeSurface.rateLimiter,
             }),
         });
       }
@@ -877,10 +899,10 @@ export function createGatewayHttpServer(opts: {
           pluginPathContext,
           handlePluginRequest,
           shouldEnforcePluginGatewayAuth,
-          resolvedAuth,
+          resolvedAuth: runtimeSurface.resolvedAuth,
           trustedProxies,
           allowRealIpFallback,
-          rateLimiter,
+          rateLimiter: runtimeSurface.rateLimiter,
         }),
       );
 
@@ -891,7 +913,7 @@ export function createGatewayHttpServer(opts: {
             req,
             res,
             requestPath,
-            resolvedAuth,
+            runtimeSurface.resolvedAuth,
             trustedProxies,
             allowRealIpFallback,
             getReadiness,

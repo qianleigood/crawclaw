@@ -145,6 +145,11 @@ export type ChannelManager = {
   startChannels: () => Promise<void>;
   startChannel: (channel: ChannelId, accountId?: string) => Promise<void>;
   stopChannel: (channel: ChannelId, accountId?: string) => Promise<void>;
+  reconfigureChannel?: (
+    channel: ChannelId,
+    cfg: CrawClawConfig,
+    changedPaths: string[],
+  ) => Promise<void>;
   markChannelLoggedOut: (channelId: ChannelId, cleared: boolean, accountId?: string) => void;
   isManuallyStopped: (channelId: ChannelId, accountId: string) => boolean;
   resetRestartAttempts: (channelId: ChannelId, accountId: string) => void;
@@ -512,6 +517,20 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
     );
   };
 
+  const reconfigureChannel = async (
+    channelId: ChannelId,
+    cfg: ReturnType<typeof loadConfig>,
+    changedPaths: string[],
+  ) => {
+    const plugin = getChannelPlugin(channelId);
+    if (plugin?.reload?.reconfigure) {
+      await plugin.reload.reconfigure({ config: cfg, changedPaths });
+      return;
+    }
+    await stopChannel(channelId);
+    await startChannel(channelId);
+  };
+
   const startChannels = async () => {
     for (const plugin of listChannelPlugins()) {
       try {
@@ -603,6 +622,7 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
     startChannels,
     startChannel,
     stopChannel,
+    reconfigureChannel,
     markChannelLoggedOut,
     isManuallyStopped: isManuallyStopped_,
     resetRestartAttempts: resetRestartAttempts_,

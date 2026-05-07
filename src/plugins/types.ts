@@ -1831,6 +1831,7 @@ export type CrawClawPluginServiceContext = {
 export type CrawClawPluginService = {
   id: string;
   start: (ctx: CrawClawPluginServiceContext) => void | Promise<void>;
+  reconfigure?: (ctx: CrawClawPluginServiceContext) => void | Promise<void>;
   stop?: (ctx: CrawClawPluginServiceContext) => void | Promise<void>;
 };
 

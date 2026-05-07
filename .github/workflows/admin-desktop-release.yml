@@ -1,4 +1,4 @@
-name: CrawClaw Admin Desktop Release
+name: CrawClaw Desktop Release
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ on:
         type: boolean
 
 concurrency:
-  group: admin-desktop-release-${{ inputs.tag }}
+  group: crawclaw-desktop-release-${{ inputs.tag }}
   cancel-in-progress: false
 
 env:
@@ -73,6 +73,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           check-latest: false
 
+      - name: Install root runtime dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
       - name: Install and build admin frontend
         run: |
           npm --prefix apps/crawclaw-admin ci
@@ -89,15 +94,15 @@ jobs:
 
       - name: Collect artifacts
         env:
-          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-macos
+          ARTIFACT_DIR: ${{ runner.temp }}/crawclaw-desktop-macos
           ARTIFACT_LABEL: macos
         run: node scripts/collect-admin-desktop-artifacts.mjs
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: admin-desktop-macos-${{ inputs.tag }}
-          path: ${{ runner.temp }}/admin-desktop-macos
+          name: crawclaw-desktop-macos-${{ inputs.tag }}
+          path: ${{ runner.temp }}/crawclaw-desktop-macos
           if-no-files-found: error
 
   build-windows:
@@ -120,6 +125,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           check-latest: false
 
+      - name: Install root runtime dependencies
+        shell: bash
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
       - name: Install and build admin frontend
         shell: bash
         run: |
@@ -140,15 +151,15 @@ jobs:
       - name: Collect artifacts
         shell: bash
         env:
-          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-windows
+          ARTIFACT_DIR: ${{ runner.temp }}/crawclaw-desktop-windows
           ARTIFACT_LABEL: windows
         run: node scripts/collect-admin-desktop-artifacts.mjs
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: admin-desktop-windows-${{ inputs.tag }}
-          path: ${{ runner.temp }}/admin-desktop-windows
+          name: crawclaw-desktop-windows-${{ inputs.tag }}
+          path: ${{ runner.temp }}/crawclaw-desktop-windows
           if-no-files-found: error
 
   build-linux:
@@ -171,6 +182,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           check-latest: false
 
+      - name: Install root runtime dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
       - name: Install system build dependencies
         run: |
           sudo apt-get update
@@ -192,15 +208,15 @@ jobs:
 
       - name: Collect artifacts
         env:
-          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-linux
+          ARTIFACT_DIR: ${{ runner.temp }}/crawclaw-desktop-linux
           ARTIFACT_LABEL: linux
         run: node scripts/collect-admin-desktop-artifacts.mjs
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: admin-desktop-linux-${{ inputs.tag }}
-          path: ${{ runner.temp }}/admin-desktop-linux
+          name: crawclaw-desktop-linux-${{ inputs.tag }}
+          path: ${{ runner.temp }}/crawclaw-desktop-linux
           if-no-files-found: error
 
   publish-draft-release:
@@ -213,15 +229,15 @@ jobs:
       - name: Download desktop artifacts
         uses: actions/download-artifact@v7
         with:
-          pattern: admin-desktop-*-${{ inputs.tag }}
-          path: ${{ runner.temp }}/admin-desktop-release
+          pattern: crawclaw-desktop-*-${{ inputs.tag }}
+          path: ${{ runner.temp }}/crawclaw-desktop-release
           merge-multiple: true
 
       - name: Publish draft release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
-          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-release
+          ARTIFACT_DIR: ${{ runner.temp }}/crawclaw-desktop-release
         run: |
           set -euo pipefail
           if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
@@ -229,6 +245,6 @@ jobs:
           else
             gh release create "${RELEASE_TAG}" "${ARTIFACT_DIR}"/* \
               --draft \
-              --title "CrawClaw Admin Desktop ${RELEASE_TAG}" \
-              --notes "Draft CrawClaw Admin Desktop release assets for ${RELEASE_TAG}."
+              --title "CrawClaw Desktop ${RELEASE_TAG}" \
+              --notes "Draft CrawClaw Desktop release assets for ${RELEASE_TAG}."
           fi

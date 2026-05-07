@@ -27,6 +27,11 @@
 - 支持 Node **22.14+**
 - 一个模型 provider 账号或 API key
 
+桌面产品请从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases)
+安装 **CrawClaw Desktop**。桌面 app 会内置 CrawClaw runtime，初始化本机
+`~/.crawclaw` 配置，并管理本机 Gateway 服务，不要求用户全局安装
+`crawclaw` 命令。
+
 使用推荐安装脚本：
 
 ```bash
@@ -62,6 +67,9 @@ crawclaw tui
 
 ## 安装方式
 
+本机桌面客户端优先使用 [CrawClaw Desktop](https://docs.crawclaw.ai/install/desktop)。
+下面的 CLI 安装方式适合终端、服务器、headless 和高级部署。
+
 如果你已经自行管理 Node，也可以用 npm 或 pnpm：
 
 ```bash
@@ -94,6 +102,7 @@ docker compose run --rm crawclaw-cli tui
 
 更多安装路径：
 
+- [桌面版](https://docs.crawclaw.ai/install/desktop)
 - [Docker](https://docs.crawclaw.ai/install/docker)
 - [Nix](https://docs.crawclaw.ai/install/nix)
 - [Podman](https://docs.crawclaw.ai/install/podman)

@@ -47,6 +47,139 @@ import type { ReadinessChecker } from "./server/readiness.js";
 import type { GatewayTlsRuntime } from "./server/tls.js";
 import type { GatewayWsClient } from "./server/ws-types.js";
 
+export type GatewayRuntimeHttpListenerSet = {
+  httpServer: HttpServer;
+  httpServers: HttpServer[];
+  httpBindHosts: string[];
+};
+
+export async function startGatewayRuntimeHttpListeners(params: {
+  cfg: import("../config/config.js").CrawClawConfig;
+  bindHost: string;
+  port: number;
+  openAiChatCompletionsEnabled: boolean;
+  openAiChatCompletionsConfig?: import("../config/types.gateway.js").GatewayHttpChatCompletionsConfig;
+  openResponsesEnabled: boolean;
+  openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
+  strictTransportSecurityHeader?: string;
+  resolvedAuth: ResolvedGatewayAuth;
+  rateLimiter?: AuthRateLimiter;
+  getHttpRuntimeSurface?: () => {
+    openAiChatCompletionsEnabled: boolean;
+    openAiChatCompletionsConfig?: import("../config/types.gateway.js").GatewayHttpChatCompletionsConfig;
+    openResponsesEnabled: boolean;
+    openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
+    strictTransportSecurityHeader?: string;
+    resolvedAuth: ResolvedGatewayAuth;
+    rateLimiter?: AuthRateLimiter;
+  };
+  gatewayTls?: GatewayTlsRuntime;
+  hooksConfig: () => HooksConfigResolved | null;
+  getHookClientIpConfig: () => HookClientIpConfig;
+  pluginRegistry: PluginRegistry;
+  deps: CliDeps;
+  log: { info: (msg: string) => void; warn: (msg: string) => void };
+  logHooks: ReturnType<typeof createSubsystemLogger>;
+  logPlugins: ReturnType<typeof createSubsystemLogger>;
+  getReadiness?: ReadinessChecker;
+  wss: WebSocketServer;
+  preauthConnectionBudget: PreauthConnectionBudget;
+}): Promise<GatewayRuntimeHttpListenerSet> {
+  const handleHooksRequest = createGatewayHooksRequestHandler({
+    deps: params.deps,
+    getHooksConfig: params.hooksConfig,
+    getClientIpConfig: params.getHookClientIpConfig,
+    bindHost: params.bindHost,
+    port: params.port,
+    logHooks: params.logHooks,
+  });
+
+  const handlePluginRequest = createGatewayPluginRequestHandler({
+    registry: params.pluginRegistry,
+    log: params.logPlugins,
+  });
+  const shouldEnforcePluginGatewayAuth = (pathContext: PluginRoutePathContext): boolean => {
+    return shouldEnforceGatewayAuthForPluginPath(
+      resolveActivePluginHttpRouteRegistry(params.pluginRegistry),
+      pathContext,
+    );
+  };
+
+  const bindHosts = await resolveGatewayListenHosts(params.bindHost);
+  if (!isLoopbackHost(params.bindHost)) {
+    params.log.warn(
+      "⚠️  Gateway is binding to a non-loopback address. " +
+        "Ensure authentication is configured before exposing to public networks.",
+    );
+  }
+  if (params.cfg.gateway?.browserClients?.dangerouslyAllowHostHeaderOriginFallback === true) {
+    params.log.warn(
+      "⚠️  gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true is enabled. " +
+        "Host-header origin fallback weakens origin checks and should only be used as break-glass.",
+    );
+  }
+  const httpServers: HttpServer[] = [];
+  const httpBindHosts: string[] = [];
+  for (const host of bindHosts) {
+    const httpServer = createGatewayHttpServer({
+      openAiChatCompletionsEnabled: params.openAiChatCompletionsEnabled,
+      openAiChatCompletionsConfig: params.openAiChatCompletionsConfig,
+      openResponsesEnabled: params.openResponsesEnabled,
+      openResponsesConfig: params.openResponsesConfig,
+      strictTransportSecurityHeader: params.strictTransportSecurityHeader,
+      handleHooksRequest,
+      handlePluginRequest,
+      shouldEnforcePluginGatewayAuth,
+      resolvedAuth: params.resolvedAuth,
+      rateLimiter: params.rateLimiter,
+      getRuntimeSurface: params.getHttpRuntimeSurface,
+      getReadiness: params.getReadiness,
+      tlsOptions: params.gatewayTls?.enabled ? params.gatewayTls.tlsOptions : undefined,
+    });
+    try {
+      await listenGatewayHttpServer({
+        httpServer,
+        bindHost: host,
+        port: params.port,
+      });
+      attachGatewayUpgradeHandler({
+        httpServer,
+        wss: params.wss,
+        preauthConnectionBudget: params.preauthConnectionBudget,
+      });
+      httpServers.push(httpServer);
+      httpBindHosts.push(host);
+    } catch (err) {
+      if (host === bindHosts[0]) {
+        await closeGatewayHttpServers(httpServers).catch(() => undefined);
+        throw err;
+      }
+      params.log.warn(
+        `gateway: failed to bind loopback alias ${host}:${params.port} (${String(err)})`,
+      );
+    }
+  }
+  const httpServer = httpServers[0];
+  if (!httpServer) {
+    throw new Error("Gateway HTTP server failed to start");
+  }
+  return { httpServer, httpServers, httpBindHosts };
+}
+
+export async function closeGatewayHttpServers(httpServers: HttpServer[]): Promise<void> {
+  for (const server of httpServers) {
+    const httpServer = server as HttpServer & {
+      closeIdleConnections?: () => void;
+    };
+    if (typeof httpServer.closeIdleConnections === "function") {
+      httpServer.closeIdleConnections();
+    }
+    await new Promise<void>((resolve, reject) =>
+      httpServer.close((err) => (err ? reject(err) : resolve())),
+    );
+  }
+}
+
 export async function createGatewayRuntimeState(params: {
   cfg: import("../config/config.js").CrawClawConfig;
   bindHost: string;
@@ -59,6 +192,15 @@ export async function createGatewayRuntimeState(params: {
   resolvedAuth: ResolvedGatewayAuth;
   /** Optional rate limiter for auth brute-force protection. */
   rateLimiter?: AuthRateLimiter;
+  getHttpRuntimeSurface?: () => {
+    openAiChatCompletionsEnabled: boolean;
+    openAiChatCompletionsConfig?: import("../config/types.gateway.js").GatewayHttpChatCompletionsConfig;
+    openResponsesEnabled: boolean;
+    openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
+    strictTransportSecurityHeader?: string;
+    resolvedAuth: ResolvedGatewayAuth;
+    rateLimiter?: AuthRateLimiter;
+  };
   gatewayTls?: GatewayTlsRuntime;
   hooksConfig: () => HooksConfigResolved | null;
   getHookClientIpConfig: () => HookClientIpConfig;
@@ -104,90 +246,16 @@ export async function createGatewayRuntimeState(params: {
     const clients = new Set<GatewayWsClient>();
     const { broadcast, broadcastToConnIds } = createGatewayBroadcaster({ clients });
 
-    const handleHooksRequest = createGatewayHooksRequestHandler({
-      deps: params.deps,
-      getHooksConfig: params.hooksConfig,
-      getClientIpConfig: params.getHookClientIpConfig,
-      bindHost: params.bindHost,
-      port: params.port,
-      logHooks: params.logHooks,
-    });
-
-    const handlePluginRequest = createGatewayPluginRequestHandler({
-      registry: params.pluginRegistry,
-      log: params.logPlugins,
-    });
-    const shouldEnforcePluginGatewayAuth = (pathContext: PluginRoutePathContext): boolean => {
-      return shouldEnforceGatewayAuthForPluginPath(
-        resolveActivePluginHttpRouteRegistry(params.pluginRegistry),
-        pathContext,
-      );
-    };
-
-    const bindHosts = await resolveGatewayListenHosts(params.bindHost);
-    if (!isLoopbackHost(params.bindHost)) {
-      params.log.warn(
-        "⚠️  Gateway is binding to a non-loopback address. " +
-          "Ensure authentication is configured before exposing to public networks.",
-      );
-    }
-    if (params.cfg.gateway?.browserClients?.dangerouslyAllowHostHeaderOriginFallback === true) {
-      params.log.warn(
-        "⚠️  gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true is enabled. " +
-          "Host-header origin fallback weakens origin checks and should only be used as break-glass.",
-      );
-    }
-    const httpServers: HttpServer[] = [];
-    const httpBindHosts: string[] = [];
-    for (const host of bindHosts) {
-      const httpServer = createGatewayHttpServer({
-        openAiChatCompletionsEnabled: params.openAiChatCompletionsEnabled,
-        openAiChatCompletionsConfig: params.openAiChatCompletionsConfig,
-        openResponsesEnabled: params.openResponsesEnabled,
-        openResponsesConfig: params.openResponsesConfig,
-        strictTransportSecurityHeader: params.strictTransportSecurityHeader,
-        handleHooksRequest,
-        handlePluginRequest,
-        shouldEnforcePluginGatewayAuth,
-        resolvedAuth: params.resolvedAuth,
-        rateLimiter: params.rateLimiter,
-        getReadiness: params.getReadiness,
-        tlsOptions: params.gatewayTls?.enabled ? params.gatewayTls.tlsOptions : undefined,
-      });
-      try {
-        await listenGatewayHttpServer({
-          httpServer,
-          bindHost: host,
-          port: params.port,
-        });
-        httpServers.push(httpServer);
-        httpBindHosts.push(host);
-      } catch (err) {
-        if (host === bindHosts[0]) {
-          throw err;
-        }
-        params.log.warn(
-          `gateway: failed to bind loopback alias ${host}:${params.port} (${String(err)})`,
-        );
-      }
-    }
-    const httpServer = httpServers[0];
-    if (!httpServer) {
-      throw new Error("Gateway HTTP server failed to start");
-    }
-
     const wss = new WebSocketServer({
       noServer: true,
       maxPayload: MAX_PREAUTH_PAYLOAD_BYTES,
     });
     const preauthConnectionBudget = createPreauthConnectionBudget();
-    for (const server of httpServers) {
-      attachGatewayUpgradeHandler({
-        httpServer: server,
-        wss,
-        preauthConnectionBudget,
-      });
-    }
+    const { httpServer, httpServers, httpBindHosts } = await startGatewayRuntimeHttpListeners({
+      ...params,
+      wss,
+      preauthConnectionBudget,
+    });
 
     const agentRunSeq = new Map<string, number>();
     const dedupe = new Map<string, DedupeEntry>();
@@ -204,11 +272,10 @@ export async function createGatewayRuntimeState(params: {
     return {
       releasePluginRouteRegistry: () => {
         // Releases both pinned HTTP-route and channel registries set at startup.
-        releasePinnedPluginHttpRouteRegistry(params.pluginRegistry);
-        // Release unconditionally (no registry arg): the channel pin may have
-        // been re-pinned to a deferred-reload registry that differs from the
-        // original params.pluginRegistry, so an identity-guarded release would
-        // be a no-op and leak the pin across in-process restarts.
+        // Release unconditionally (no registry arg): runtime reconfigure may
+        // re-pin either surface to a registry that differs from the original
+        // startup registry, so identity-guarded release would leak the pin.
+        releasePinnedPluginHttpRouteRegistry();
         releasePinnedPluginChannelRegistry();
       },
       httpServer,

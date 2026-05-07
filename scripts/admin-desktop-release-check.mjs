@@ -10,6 +10,8 @@ const rootPackagePath = join(rootDir, "package.json");
 const desktopPackagePath = join(rootDir, "apps", "crawclaw-admin-desktop", "package.json");
 const builderConfigPath = join(rootDir, "apps", "crawclaw-admin-desktop", "electron-builder.yml");
 const adminDistIndexPath = join(rootDir, "apps", "crawclaw-admin", "dist", "index.html");
+const desktopRuntimeRoot = join(rootDir, "apps", "crawclaw-admin-desktop", ".runtime", "crawclaw");
+const desktopRuntimeEntrypoint = join(desktopRuntimeRoot, "crawclaw.mjs");
 
 const rootPackage = readJson(rootPackagePath);
 assertFile(desktopPackagePath, "desktop package.json");
@@ -21,17 +23,21 @@ assertEqual(
 );
 
 const builderConfig = readText(builderConfigPath);
-assertIncludes(builderConfig, "appId: ai.crawclaw.admin", "Electron Builder app id");
-assertIncludes(builderConfig, "productName: CrawClaw Admin", "Electron Builder product name");
+assertIncludes(builderConfig, "appId: ai.crawclaw.desktop", "Electron Builder app id");
+assertIncludes(builderConfig, "productName: CrawClaw Desktop", "Electron Builder product name");
+assertIncludes(builderConfig, "to: runtime/crawclaw", "bundled CrawClaw runtime resource");
 assertIncludes(builderConfig, "- dmg", "macOS dmg target");
 assertIncludes(builderConfig, "- zip", "macOS zip target");
 assertIncludes(builderConfig, "- nsis", "Windows nsis target");
 assertIncludes(builderConfig, "- AppImage", "Linux AppImage target");
 
 assertFile(adminDistIndexPath, "admin frontend dist/index.html");
+assertFile(desktopRuntimeEntrypoint, "bundled CrawClaw runtime crawclaw.mjs");
+assertFile(join(desktopRuntimeRoot, "dist", "index.js"), "bundled CrawClaw runtime dist/index.js");
+assertBundledRuntimeCanPrintGatewayHelp();
 assertNoDirtyGeneratedPaths();
 
-console.log("Admin desktop release check passed");
+console.log("CrawClaw Desktop release check passed");
 
 function readJson(path) {
   return JSON.parse(readText(path));
@@ -57,6 +63,21 @@ function assertEqual(actual, expected, label) {
 function assertIncludes(source, value, label) {
   if (!source.includes(value)) {
     throw new Error(`Missing ${label}: ${value}`);
+  }
+}
+
+function assertBundledRuntimeCanPrintGatewayHelp() {
+  const result = spawnSync(process.execPath, [desktopRuntimeEntrypoint, "gateway", "--help"], {
+    cwd: desktopRuntimeRoot,
+    encoding: "utf-8",
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `Bundled CrawClaw runtime gateway --help failed:\n${result.stderr || result.stdout}`,
+    );
+  }
+  if (!result.stdout.includes("gateway")) {
+    throw new Error("Bundled CrawClaw runtime gateway --help did not print gateway help");
   }
 }
 

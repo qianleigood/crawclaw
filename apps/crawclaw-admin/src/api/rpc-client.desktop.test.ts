@@ -46,6 +46,7 @@ describe('RPCClient desktop methods', () => {
         reason: 'Desktop input is only implemented for Linux display sessions.',
       },
       desktopUpdate: { available: true, platform: 'darwin' },
+      desktopLocal: { available: true, platform: 'darwin' },
     }
     const fetchFn: typeof fetch = async (input) => {
       fetchCalls.push(String(input))

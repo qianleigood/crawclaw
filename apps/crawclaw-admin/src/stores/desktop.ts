@@ -16,6 +16,7 @@ export const useDesktopStore = defineStore('desktop', () => {
   let pendingLoad: Promise<DesktopCapabilities | null> | null = null
 
   const isDesktopMode = computed(() => capabilities.value?.desktopUpdate.available ?? false)
+  const isDesktopLocal = computed(() => capabilities.value?.desktopLocal.available ?? false)
   const platform = computed(() => capabilities.value?.terminal.platform ?? null)
 
   function capability(key: keyof DesktopCapabilities): DesktopCapability | null {
@@ -66,6 +67,7 @@ export const useDesktopStore = defineStore('desktop', () => {
     loaded,
     lastError,
     isDesktopMode,
+    isDesktopLocal,
     platform,
     capability,
     capabilityUnavailableReason,

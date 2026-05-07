@@ -2619,6 +2619,7 @@ export class RPCClient {
       remoteDesktop: this.normalizeDesktopCapability(row.remoteDesktop),
       desktopInput: this.normalizeDesktopCapability(row.desktopInput),
       desktopUpdate: this.normalizeDesktopCapability(row.desktopUpdate),
+      desktopLocal: this.normalizeDesktopCapability(row.desktopLocal),
     }
   }
 

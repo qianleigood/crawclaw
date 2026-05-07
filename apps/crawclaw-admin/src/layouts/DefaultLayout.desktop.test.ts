@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => {
     wsConnect: vi.fn(),
     wsDisconnect: vi.fn(),
     ensureCapabilitiesLoaded: vi.fn(),
+    isDesktopLocal: false,
     route: { meta: { gateway: 'crawclaw' } as Record<string, unknown> },
     routerReplace: vi.fn(),
     routerPush: vi.fn(),
@@ -58,6 +59,7 @@ vi.mock('@/stores/hermes/connection', () => ({
 vi.mock('@/stores/desktop', () => ({
   useDesktopStore: () => ({
     ensureCapabilitiesLoaded: mocks.ensureCapabilitiesLoaded,
+    isDesktopLocal: mocks.isDesktopLocal,
   }),
 }))
 
@@ -82,6 +84,7 @@ describe('DefaultLayout desktop capabilities', () => {
     mocks.routerPush.mockReset()
     mocks.route.meta = { gateway: 'crawclaw' }
     mocks.hermesStore.currentGateway = 'crawclaw'
+    mocks.isDesktopLocal = false
   })
 
   it('loads desktop capabilities once when the authenticated CrawClaw layout boots', async () => {
@@ -97,5 +100,26 @@ describe('DefaultLayout desktop capabilities', () => {
 
     expect(mocks.wsConnect).toHaveBeenCalledTimes(1)
     expect(mocks.ensureCapabilitiesLoaded).toHaveBeenCalledTimes(1)
+  })
+
+  it('forces CrawClaw mode in desktop-local mode and does not connect Hermes', async () => {
+    mocks.isDesktopLocal = true
+    mocks.hermesStore.currentGateway = 'hermes'
+    mocks.route.meta = { gateway: 'hermes' }
+
+    mount(DefaultLayout, {
+      global: {
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+
+    expect(mocks.hermesStore.currentGateway).toBe('crawclaw')
+    expect(mocks.wsConnect).toHaveBeenCalledTimes(1)
+    expect(mocks.hermesStore.connect).not.toHaveBeenCalled()
+    expect(mocks.routerReplace).toHaveBeenCalledWith('/')
   })
 })

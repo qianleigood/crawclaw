@@ -24,6 +24,11 @@ import { execSync } from 'child_process'
 import pty from 'node-pty'
 import db, { createBackupRecord, updateBackupRecord, getBackupRecord, getBackupRecords, getBackupRecordsCount, deleteBackupRecord } from './database.js'
 import hermesProxyRouter, { initHermesConfig, setAuthMiddleware } from './hermes-proxy.js'
+import {
+  readDesktopRuntimeStatus,
+  runDesktopServiceAction,
+  tailDesktopGatewayLogs,
+} from './desktop-runtime.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -58,9 +63,12 @@ const sessions = new Map()
 app.use(cors())
 app.use(express.json({ limit: JSON_BODY_LIMIT }))
 
-// 初始化 Hermes 代理
-initHermesConfig(envConfig)
-app.use(hermesProxyRouter)
+// Desktop-local mode is a single local CrawClaw product surface; Hermes remains
+// available only in the web/admin deployment mode.
+if (!envConfig.desktopLocal) {
+  initHermesConfig(envConfig)
+  app.use(hermesProxyRouter)
+}
 
 function buildServerRuntimeEnv() {
   return normalizeCrawClawEnvSnapshot({
@@ -402,6 +410,69 @@ app.get('/api/desktop/capabilities', authMiddleware, (req, res) => {
       paths: envConfig.paths,
     })
     res.json({ ok: true, capabilities })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+})
+
+function requireDesktopLocalRuntime(res) {
+  if (envConfig.desktopLocal && envConfig.CRAWCLAW_DESKTOP_RUNTIME_ROOT) {
+    return true
+  }
+  res.status(404).json({ ok: false, error: { message: 'Desktop local runtime is not available.' } })
+  return false
+}
+
+function desktopRuntimeParams() {
+  return {
+    runtimeRoot: envConfig.CRAWCLAW_DESKTOP_RUNTIME_ROOT,
+    env: buildServerRuntimeEnv(),
+    authToken: envConfig.CRAWCLAW_AUTH_TOKEN,
+    wsUrl: envConfig.CRAWCLAW_WS_URL,
+    port: Number(new URL(envConfig.CRAWCLAW_WS_URL).port || 18789),
+  }
+}
+
+app.get('/api/desktop/runtime/status', authMiddleware, async (req, res) => {
+  if (!requireDesktopLocalRuntime(res)) {
+    return
+  }
+  try {
+    const status = await readDesktopRuntimeStatus(desktopRuntimeParams())
+    res.json({ ok: true, status })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+})
+
+app.post('/api/desktop/runtime/service/:action', authMiddleware, async (req, res) => {
+  if (!requireDesktopLocalRuntime(res)) {
+    return
+  }
+  const action = req.params.action
+  if (!['start', 'stop', 'restart'].includes(action)) {
+    res.status(400).json({ ok: false, error: { message: 'Unsupported desktop service action.' } })
+    return
+  }
+  try {
+    const result = await runDesktopServiceAction({ ...desktopRuntimeParams(), action })
+    res.json({ ok: true, result })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+})
+
+app.get('/api/desktop/runtime/logs/tail', authMiddleware, (req, res) => {
+  if (!requireDesktopLocalRuntime(res)) {
+    return
+  }
+  try {
+    const maxBytes = Number(req.query.maxBytes || 64 * 1024)
+    const logs = tailDesktopGatewayLogs({
+      stateDir: envConfig.CRAWCLAW_STATE_DIR,
+      maxBytes: Number.isFinite(maxBytes) && maxBytes > 0 ? Math.min(maxBytes, 1024 * 1024) : 64 * 1024,
+    })
+    res.json({ ok: true, logs })
   } catch (err) {
     res.status(500).json({ ok: false, error: { message: err.message } })
   }

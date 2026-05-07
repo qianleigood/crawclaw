@@ -18,4 +18,5 @@ export interface DesktopCapabilities {
   remoteDesktop: DesktopCapability
   desktopInput: DesktopCapability
   desktopUpdate: DesktopCapability
+  desktopLocal: DesktopCapability
 }

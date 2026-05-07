@@ -15,12 +15,21 @@ const desktopStore = useDesktopStore()
 const route = useRoute()
 const router = useRouter()
 
-const isCrawClaw = computed(() => connStore.currentGateway === 'crawclaw')
+const isCrawClaw = computed(() => desktopStore.isDesktopLocal || connStore.currentGateway === 'crawclaw')
 
-onMounted(() => {
+function enforceDesktopLocalGateway() {
+  if (desktopStore.isDesktopLocal && connStore.currentGateway !== 'crawclaw') {
+    connStore.currentGateway = 'crawclaw'
+    connStore.disconnect()
+  }
+}
+
+onMounted(async () => {
+  await desktopStore.ensureCapabilitiesLoaded()
+  enforceDesktopLocalGateway()
+
   if (isCrawClaw.value) {
     wsStore.connect()
-    void desktopStore.ensureCapabilitiesLoaded()
   } else {
     // Hermes 模式：自动连接 Hermes
     connStore.connect()
@@ -35,6 +44,8 @@ onMounted(() => {
 })
 
 watch(isCrawClaw, (val) => {
+  enforceDesktopLocalGateway()
+
   if (val) {
     wsStore.connect()
     void desktopStore.ensureCapabilitiesLoaded()

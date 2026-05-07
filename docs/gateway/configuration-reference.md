@@ -2480,7 +2480,7 @@ See [Local Models](/gateway/local-models). TL;DR: run a large local model via LM
 
 - Loaded from `~/.crawclaw/extensions`, `<workspace>/.crawclaw/extensions`, plus `plugins.load.paths`.
 - Discovery accepts native CrawClaw plugins plus compatible Codex bundles and Claude bundles, including manifestless Claude default-layout bundles.
-- **Config changes require a gateway restart.**
+- Config changes are applied through Gateway live reconfigure. Plugins without a dedicated reconfigure hook fall back to stop/start for their own runtime service.
 - `allow`: optional allowlist (only listed plugins load). `deny` wins.
 - `plugins.entries.<id>.apiKey`: plugin-level API key convenience field (when supported by the plugin).
 - `plugins.entries.<id>.env`: plugin-scoped env var map.
@@ -2700,9 +2700,9 @@ See [Multiple Gateways](/gateway/multiple-gateways).
 
 - `mode`: controls how config edits are applied at runtime.
   - `"off"`: ignore live edits; changes require an explicit restart.
-  - `"restart"`: always restart the gateway process on config change.
+  - `"restart"`: force a gateway process restart on config change for debugging or ops.
   - `"hot"`: apply changes in-process without restarting.
-  - `"hybrid"` (default): try hot reload first; fall back to restart if required.
+  - `"hybrid"` (default): apply schema-owned config changes in-process by default.
 - `debounceMs`: debounce window in ms before config changes are applied (non-negative integer).
 - `deferralTimeoutMs`: maximum time in ms to wait for in-flight operations before forcing a restart (default: `300000` = 5 minutes).
 

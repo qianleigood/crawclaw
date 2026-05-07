@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useLocaleStore } from '@/stores/locale'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useWideModeStore } from '@/stores/wideMode'
+import { useDesktopStore } from '@/stores/desktop'
 import ConnectionStatus from '@/components/common/ConnectionStatus.vue'
 import GatewaySwitcher from '@/components/common/GatewaySwitcher.vue'
 
@@ -19,6 +20,7 @@ const authStore = useAuthStore()
 const localeStore = useLocaleStore()
 const wsStore = useWebSocketStore()
 const wideModeStore = useWideModeStore()
+const desktopStore = useDesktopStore()
 const { t } = useI18n()
 
 const breadcrumbs = computed(() => {
@@ -54,7 +56,7 @@ async function handleLogout() {
 
     <NSpace :size="8" align="center">
       <ConnectionStatus />
-      <GatewaySwitcher />
+      <GatewaySwitcher v-if="!desktopStore.isDesktopLocal" />
 
       <NTooltip>
         <template #trigger>

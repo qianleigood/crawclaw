@@ -131,9 +131,9 @@ Looking for third-party plugins? See [Community Plugins](/plugins/community).
 | `slots`          | Exclusive slot selectors (e.g. `memory`) |
 | `entries.\<id\>` | Per-plugin toggles + config              |
 
-Config changes **require a gateway restart**. If the Gateway is running with config
-watch + in-process restart enabled (the default `crawclaw gateway` path), that
-restart is usually performed automatically a moment after the config write lands.
+Config changes apply through Gateway live reconfigure. Plugins that implement a
+dedicated reconfigure hook receive the new config directly; older plugin services
+fall back to stop/start without restarting the Gateway process.
 
 <Accordion title="Plugin states: disabled vs missing vs invalid">
   - **Disabled**: plugin exists but enablement rules turned it off. Config is preserved.

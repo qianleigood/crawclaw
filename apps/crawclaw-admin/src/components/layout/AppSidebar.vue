@@ -32,6 +32,7 @@ import {
 import { NIcon } from 'naive-ui'
 import { routes } from '@/router/routes'
 import { useHermesConnectionStore } from '@/stores/hermes/connection'
+import { useDesktopStore } from '@/stores/desktop'
 
 defineProps<{ collapsed: boolean }>()
 
@@ -39,6 +40,7 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const connStore = useHermesConnectionStore()
+const desktopStore = useDesktopStore()
 
 const iconMap: Record<string, unknown> = {
   GridOutline,
@@ -98,6 +100,13 @@ const activeKey = computed(() => {
   return route.name as string
 })
 
+const productName = computed(() => {
+  if (desktopStore.isDesktopLocal) {
+    return 'CrawClaw Desktop'
+  }
+  return connStore.currentGateway === 'hermes' ? 'Hermes Agent' : 'CrawClaw Admin'
+})
+
 function handleSelect(key: string) {
   router.push({ name: key })
 }
@@ -118,7 +127,7 @@ function handleSelect(key: string) {
         strong
         style="font-size: 18px; white-space: nowrap; letter-spacing: -0.5px;"
       >
-        {{ connStore.currentGateway === 'hermes' ? 'Hermes Agent' : 'CrawClaw Admin' }}
+        {{ productName }}
       </NText>
     </div>
 

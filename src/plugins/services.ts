@@ -33,6 +33,7 @@ function createServiceContext(params: {
 }
 
 export type PluginServicesHandle = {
+  reconfigure: (config: CrawClawConfig) => Promise<void>;
   stop: () => Promise<void>;
 };
 
@@ -43,7 +44,9 @@ export async function startPluginServices(params: {
 }): Promise<PluginServicesHandle> {
   const running: Array<{
     id: string;
-    stop?: () => void | Promise<void>;
+    service: (typeof params.registry.services)[number]["service"];
+    context: CrawClawPluginServiceContext;
+    stop?: (ctx: CrawClawPluginServiceContext) => void | Promise<void>;
   }> = [];
   const serviceContext = createServiceContext({
     config: params.config,
@@ -62,7 +65,9 @@ export async function startPluginServices(params: {
       await service.start(serviceContext);
       running.push({
         id: service.id,
-        stop: service.stop ? () => service.stop?.(serviceContext) : undefined,
+        service,
+        context: serviceContext,
+        stop: service.stop,
       });
     } catch (err) {
       const error = err as Error;
@@ -74,13 +79,45 @@ export async function startPluginServices(params: {
   }
 
   return {
+    reconfigure: async (config: CrawClawConfig) => {
+      for (const entry of running) {
+        const nextContext = createServiceContext({
+          config,
+          workspaceDir: params.workspaceDir,
+        });
+        if (entry.service.reconfigure) {
+          try {
+            await entry.service.reconfigure(nextContext);
+            entry.context = nextContext;
+          } catch (err) {
+            log.warn(`plugin service reconfigure failed (${entry.id}): ${String(err)}`);
+            throw err;
+          }
+          continue;
+        }
+        if (entry.stop) {
+          try {
+            await entry.stop(entry.context);
+          } catch (err) {
+            log.warn(`plugin service stop failed (${entry.id}): ${String(err)}`);
+          }
+        }
+        try {
+          await entry.service.start(nextContext);
+          entry.context = nextContext;
+        } catch (err) {
+          log.error(`plugin service restart failed (${entry.id}): ${String(err)}`);
+          throw err;
+        }
+      }
+    },
     stop: async () => {
       for (const entry of running.toReversed()) {
         if (!entry.stop) {
           continue;
         }
         try {
-          await entry.stop();
+          await entry.stop(entry.context);
         } catch (err) {
           log.warn(`plugin service stop failed (${entry.id}): ${String(err)}`);
         }

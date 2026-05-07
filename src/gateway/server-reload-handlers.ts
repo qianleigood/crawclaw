@@ -40,6 +40,11 @@ export function createGatewayReloadHandlers(params: {
   setState: (state: GatewayHotReloadState) => void;
   startChannel: (name: ChannelKind) => Promise<void>;
   stopChannel: (name: ChannelKind) => Promise<void>;
+  reconfigureChannel?: (
+    name: ChannelKind,
+    nextConfig: ReturnType<typeof loadConfig>,
+    changedPaths: string[],
+  ) => Promise<void>;
   logHooks: {
     info: (msg: string) => void;
     warn: (msg: string) => void;
@@ -53,6 +58,15 @@ export function createGatewayReloadHandlers(params: {
     timing?: { staleEventThresholdMs?: number };
     maxRestartsPerHour?: number;
   }) => ChannelHealthMonitor;
+  reloadServerSurface?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  reloadInternalHooks?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  reloadDiscovery?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  reloadTailscale?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  restartModelPricing?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  restartUpdateCheck?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  restartMediaCleanup?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  reloadPluginRuntime?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
+  reloadBrowserRuntime?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
 }) {
   const applyHotReload = async (
     plan: GatewayReloadPlan,
@@ -62,12 +76,23 @@ export function createGatewayReloadHandlers(params: {
     const state = params.getState();
     const nextState = { ...state };
 
+    if (plan.reloadServerSurface) {
+      await params.reloadServerSurface?.(nextConfig);
+    }
+    if (plan.reloadPluginRuntime) {
+      await params.reloadPluginRuntime?.(nextConfig);
+    }
+    if (plan.reloadBrowserRuntime) {
+      await params.reloadBrowserRuntime?.(nextConfig);
+    }
+
     if (plan.reloadHooks) {
       try {
         nextState.hooksConfig = resolveHooksConfig(nextConfig);
       } catch (err) {
         params.logHooks.warn(`hooks config reload failed: ${String(err)}`);
       }
+      await params.reloadInternalHooks?.(nextConfig);
     }
     nextState.hookClientIpConfig = resolveHookClientIpConfig(nextConfig);
 
@@ -122,6 +147,11 @@ export function createGatewayReloadHandlers(params: {
         params.logChannels.info("skipping channel reload (CRAWCLAW_SKIP_CHANNELS=1)");
       } else {
         const restartChannel = async (name: ChannelKind) => {
+          if (params.reconfigureChannel) {
+            params.logChannels.info(`reconfiguring ${name} channel`);
+            await params.reconfigureChannel(name, nextConfig, plan.changedPaths);
+            return;
+          }
           params.logChannels.info(`restarting ${name} channel`);
           await params.stopChannel(name);
           await params.startChannel(name);
@@ -130,6 +160,22 @@ export function createGatewayReloadHandlers(params: {
           await restartChannel(channel);
         }
       }
+    }
+
+    if (plan.restartModelPricing) {
+      await params.restartModelPricing?.(nextConfig);
+    }
+    if (plan.restartUpdateCheck) {
+      await params.restartUpdateCheck?.(nextConfig);
+    }
+    if (plan.restartMediaCleanup) {
+      await params.restartMediaCleanup?.(nextConfig);
+    }
+    if (plan.reloadDiscovery) {
+      await params.reloadDiscovery?.(nextConfig);
+    }
+    if (plan.reloadTailscale) {
+      await params.reloadTailscale?.(nextConfig);
     }
 
     setCommandLaneConcurrency(CommandLane.Cron, nextConfig.cron?.maxConcurrentRuns ?? 1);

@@ -3,11 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
 import type { ConfigFileSnapshot, ConfigWriteNotification } from "../config/config.js";
+import { CrawClawSchema } from "../config/zod-schema.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import {
+  buildGatewayReconfigurePlan,
   buildGatewayReloadPlan,
   diffConfigPaths,
+  listGatewayReconfigureOwners,
   resolveGatewayReloadSettings,
   startGatewayConfigReloader,
 } from "./config-reload.js";
@@ -111,17 +114,19 @@ describe("buildGatewayReloadPlan", () => {
     setActivePluginRegistry(emptyRegistry);
   });
 
-  it("marks gateway changes as restart required", () => {
+  it("reconfigures gateway changes without a process restart", () => {
     const plan = buildGatewayReloadPlan(["gateway.port"]);
-    expect(plan.restartGateway).toBe(true);
-    expect(plan.restartReasons).toContain("gateway.port");
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.hotReasons).toContain("gateway.port");
+    expect(plan.reloadServerSurface).toBe(true);
+    expect(plan.reloadDiscovery).toBe(true);
+    expect(plan.reloadTailscale).toBe(true);
   });
 
-  it("restarts the gateway for browser plugin config changes", () => {
+  it("reconfigures browser plugin config changes without a process restart", () => {
     const plan = buildGatewayReloadPlan(["browser.enabled"]);
-    expect(plan.restartGateway).toBe(true);
-    expect(plan.restartReasons).toContain("browser.enabled");
-    expect(plan.hotReasons).toEqual([]);
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.hotReasons).toContain("browser.enabled");
   });
 
   it("restarts the Gmail watcher for hooks.gmail changes", () => {
@@ -207,16 +212,16 @@ describe("buildGatewayReloadPlan", () => {
     );
   });
 
-  it("restarts for gateway.auth.token changes", () => {
+  it("reconfigures gateway.auth.token changes without a process restart", () => {
     const plan = buildGatewayReloadPlan(["gateway.auth.token"]);
-    expect(plan.restartGateway).toBe(true);
-    expect(plan.restartReasons).toContain("gateway.auth.token");
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.hotReasons).toContain("gateway.auth.token");
   });
 
-  it("restarts for gateway.auth.mode changes", () => {
+  it("reconfigures gateway.auth.mode changes without a process restart", () => {
     const plan = buildGatewayReloadPlan(["gateway.auth.mode"]);
-    expect(plan.restartGateway).toBe(true);
-    expect(plan.restartReasons).toContain("gateway.auth.mode");
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.hotReasons).toContain("gateway.auth.mode");
   });
 
   it("defaults unknown paths to restart", () => {
@@ -227,8 +232,8 @@ describe("buildGatewayReloadPlan", () => {
   it.each([
     {
       path: "browser.enabled",
-      expectRestartGateway: true,
-      expectRestartReason: "browser.enabled",
+      expectRestartGateway: false,
+      expectHotPath: "browser.enabled",
     },
     {
       path: "gateway.channelHealthCheckMinutes",
@@ -250,8 +255,8 @@ describe("buildGatewayReloadPlan", () => {
     },
     {
       path: "gateway.auth.token",
-      expectRestartGateway: true,
-      expectRestartReason: "gateway.auth.token",
+      expectRestartGateway: false,
+      expectHotPath: "gateway.auth.token",
     },
     {
       path: "unknownField",
@@ -279,6 +284,51 @@ describe("buildGatewayReloadPlan", () => {
     if (testCase.expectReloadHooks) {
       expect(plan.reloadHooks).toBe(true);
     }
+  });
+});
+
+describe("buildGatewayReconfigurePlan", () => {
+  it("assigns every base schema root to a reconfigure owner or explicit no-op", () => {
+    const schema = CrawClawSchema.toJSONSchema({
+      target: "draft-07",
+      unrepresentable: "any",
+    });
+    const roots = Object.keys(schema.properties ?? {}).toSorted();
+
+    const plan = buildGatewayReconfigurePlan(
+      roots.map((root) => (root === "$schema" ? "$schema" : `${root}.__probe`)),
+    );
+
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.unmatchedPaths).toEqual([]);
+    expect(plan.ownerIds.length).toBeGreaterThan(0);
+  });
+
+  it("keeps stale reload prefixes out of the owner registry", () => {
+    const ownerPrefixes = listGatewayReconfigureOwners().flatMap((owner) => owner.prefixes);
+
+    expect(ownerPrefixes).not.toEqual(
+      expect.arrayContaining(["agent", "audio", "identity", "routing", "ui"]),
+    );
+  });
+
+  it.each([
+    ["gateway.auth.token", "gateway-server-surface"],
+    ["gateway.http.endpoints.responses.enabled", "gateway-server-surface"],
+    ["discovery.mdns.mode", "gateway-discovery"],
+    ["gateway.tailscale.mode", "gateway-tailscale"],
+    ["update.auto.enabled", "gateway-update"],
+    ["media.ttlHours", "gateway-media"],
+    ["hooks.internal.enabled", "gateway-hooks"],
+    ["models.providers.openai.models", "gateway-agents-runtime"],
+    ["plugins.entries.demo.enabled", "gateway-plugin-runtime"],
+    ["channels.telegram.botToken", "gateway-channel-runtime"],
+  ])("routes %s to %s", (path, ownerId) => {
+    const plan = buildGatewayReconfigurePlan([path]);
+
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.ownerIds).toContain(ownerId);
+    expect(plan.unmatchedPaths).toEqual([]);
   });
 });
 
@@ -435,7 +485,7 @@ describe("startGatewayConfigReloader", () => {
       .mockResolvedValueOnce(
         makeSnapshot({
           config: {
-            gateway: { reload: { debounceMs: 0 }, port: 18790 },
+            gateway: { reload: { debounceMs: 0, mode: "restart" }, port: 18790 },
           },
           hash: "restart-1",
         }),
@@ -443,7 +493,7 @@ describe("startGatewayConfigReloader", () => {
       .mockResolvedValueOnce(
         makeSnapshot({
           config: {
-            gateway: { reload: { debounceMs: 0 }, port: 18791 },
+            gateway: { reload: { debounceMs: 0, mode: "restart" }, port: 18791 },
           },
           hash: "restart-2",
         }),
@@ -540,8 +590,8 @@ describe("startGatewayConfigReloader", () => {
     await vi.runOnlyPendingTimersAsync();
 
     expect(readSnapshot).toHaveBeenCalledTimes(2);
-    expect(harness.onHotReload).toHaveBeenCalledTimes(1);
-    expect(harness.onRestart).toHaveBeenCalledTimes(1);
+    expect(harness.onHotReload).toHaveBeenCalledTimes(2);
+    expect(harness.onRestart).not.toHaveBeenCalled();
 
     await harness.reloader.stop();
   });
@@ -580,7 +630,8 @@ describe("startGatewayConfigReloader", () => {
     await vi.runOnlyPendingTimersAsync();
 
     expect(readSnapshot).toHaveBeenCalledTimes(2);
-    expect(harness.onRestart).toHaveBeenCalledTimes(1);
+    expect(harness.onHotReload).toHaveBeenCalledTimes(1);
+    expect(harness.onRestart).not.toHaveBeenCalled();
 
     await harness.reloader.stop();
   });

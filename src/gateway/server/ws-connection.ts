@@ -63,10 +63,13 @@ export type GatewayWsSharedHandlerParams = {
   clients: Set<GatewayWsClient>;
   preauthConnectionBudget: PreauthConnectionBudget;
   resolvedAuth: ResolvedGatewayAuth;
+  getResolvedAuth?: () => ResolvedGatewayAuth;
   /** Optional rate limiter for auth brute-force protection. */
   rateLimiter?: AuthRateLimiter;
+  getRateLimiter?: () => AuthRateLimiter | undefined;
   /** Browser-origin fallback limiter (loopback is never exempt). */
   browserRateLimiter?: AuthRateLimiter;
+  getBrowserRateLimiter?: () => AuthRateLimiter | undefined;
   gatewayMethods: string[];
   events: string[];
 };
@@ -93,8 +96,11 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
     clients,
     preauthConnectionBudget,
     resolvedAuth,
+    getResolvedAuth,
     rateLimiter,
+    getRateLimiter,
     browserRateLimiter,
+    getBrowserRateLimiter,
     gatewayMethods,
     events,
     logGateway,
@@ -292,9 +298,9 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
       requestOrigin,
       requestUserAgent,
       connectNonce,
-      resolvedAuth,
-      rateLimiter,
-      browserRateLimiter,
+      resolvedAuth: getResolvedAuth?.() ?? resolvedAuth,
+      rateLimiter: getRateLimiter?.() ?? rateLimiter,
+      browserRateLimiter: getBrowserRateLimiter?.() ?? browserRateLimiter,
       gatewayMethods,
       events,
       extraHandlers,

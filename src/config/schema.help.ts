@@ -414,7 +414,7 @@ export const FIELD_HELP: Record<string, string> = {
   "gateway.http.endpoints.chatCompletions.images.timeoutMs":
     "Timeout in milliseconds for `image_url` URL fetches (default: 10000).",
   "gateway.reload.mode":
-    'Controls how config edits are applied: "off" ignores live edits, "restart" always restarts, "hot" applies in-process, and "hybrid" tries hot then restarts if required. Keep "hybrid" for safest routine updates.',
+    'Controls how config edits are applied: "off" ignores live edits, "restart" forces a process restart for debugging/ops, "hot" applies in-process, and "hybrid" applies schema-owned config in-process by default.',
   "gateway.reload.debounceMs": "Debounce window (ms) before applying config changes.",
   "gateway.reload.deferralTimeoutMs":
     "Maximum time (ms) to wait for in-flight operations to complete before forcing a SIGUSR1 restart. Default: 300000 (5 minutes). Lower values risk aborting active subagent LLM calls.",
@@ -887,7 +887,7 @@ export const FIELD_HELP: Record<string, string> = {
   "plugins.entries":
     "Per-plugin settings keyed by plugin ID including enablement and plugin-specific runtime configuration payloads. Use this for scoped plugin tuning without changing global loader policy.",
   "plugins.entries.*.enabled":
-    "Per-plugin enablement override for a specific entry, applied on top of global plugin policy (restart required). Use this to stage plugin rollout gradually across environments.",
+    "Per-plugin enablement override for a specific entry, applied on top of global plugin policy. The gateway swaps plugin runtime state during live reconfigure.",
   "plugins.entries.*.hooks":
     "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
   "plugins.entries.*.hooks.allowPromptInjection":

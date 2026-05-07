@@ -1374,10 +1374,11 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="Do I have to restart after changing config?">
-    The Gateway watches the config and supports hot-reload:
+    The Gateway watches the config and applies schema-owned settings online:
 
-    - `gateway.reload.mode: "hybrid"` (default): hot-apply safe changes, restart for critical ones
-    - `hot`, `restart`, `off` are also supported
+    - `gateway.reload.mode: "hybrid"` (default): reconfigure in-process by default
+    - `hot`, `restart`, `off` are also supported; use `restart` only as an explicit debug/ops override
+    - Listener changes such as `gateway.port`, bind, or TLS can briefly disconnect clients while the listener is rebuilt
 
   </Accordion>
 
@@ -1633,12 +1634,12 @@ for usage/billing and raise limits as needed.
     to the gateway (macOS node mode plus headless node hosts). For headless node
     hosts and CLI control, see [Node host CLI](/cli/node).
 
-    A full restart is required for `gateway` and `discovery` changes.
+    `gateway` and `discovery` changes reconfigure online. Listener-level gateway changes can briefly reconnect clients.
 
   </Accordion>
 
   <Accordion title="Is there an API / RPC way to apply config?">
-    Yes. `config.apply` validates + writes the full config and restarts the Gateway as part of the operation.
+    Yes. `config.apply` validates + writes the full config, then the running Gateway applies the changed settings through the live reconfigure pipeline.
   </Accordion>
 
   <Accordion title="Minimal sane config for a first install">

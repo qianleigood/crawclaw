@@ -31,6 +31,12 @@ Requirements:
 - Node **22.14+** supported
 - A model provider account or API key
 
+For the desktop product, install **CrawClaw Desktop** from
+[GitHub Releases](https://github.com/qianleigood/crawclaw/releases). The desktop
+app bundles the CrawClaw runtime, initializes the local `~/.crawclaw` config,
+and manages the local Gateway service without requiring a global `crawclaw`
+command.
+
 Install with the recommended script:
 
 ```bash
@@ -66,6 +72,10 @@ Docs:
 
 ## Install Options
 
+Use [CrawClaw Desktop](https://docs.crawclaw.ai/install/desktop) for the local
+desktop client. The CLI install paths below are for terminal, server, headless,
+and advanced deployments.
+
 If you already manage Node yourself, npm and pnpm installs are also supported:
 
 ```bash
@@ -98,6 +108,7 @@ docker compose run --rm crawclaw-cli tui
 
 More install paths:
 
+- [Desktop](https://docs.crawclaw.ai/install/desktop)
 - [Docker](https://docs.crawclaw.ai/install/docker)
 - [Nix](https://docs.crawclaw.ai/install/nix)
 - [Podman](https://docs.crawclaw.ai/install/podman)

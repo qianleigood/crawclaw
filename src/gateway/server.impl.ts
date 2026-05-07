@@ -21,6 +21,8 @@ import {
 import { formatConfigIssueLines } from "../config/issue-format.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
+import { clearInternalHooks } from "../hooks/internal-hooks.js";
+import { loadInternalHooks } from "../hooks/loader.js";
 import { clearAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
 import { logAcceptedEnvOption } from "../infra/env.js";
@@ -53,9 +55,13 @@ import {
 } from "../plugins/channel-plugin-ids.js";
 import { getGlobalHookRunner, runGlobalGatewayStopSafely } from "../plugins/hook-runner-global.js";
 import { createEmptyPluginRegistry } from "../plugins/registry.js";
-import { setActivePluginRegistry } from "../plugins/runtime.js";
+import {
+  pinActivePluginChannelRegistry,
+  pinActivePluginHttpRouteRegistry,
+  setActivePluginRegistry,
+} from "../plugins/runtime.js";
 import { createPluginRuntime } from "../plugins/runtime/index.js";
-import type { PluginServicesHandle } from "../plugins/services.js";
+import { startPluginServices, type PluginServicesHandle } from "../plugins/services.js";
 import { getTotalQueueSize } from "../process/command-queue.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { CommandSecretAssignment } from "../secrets/command-config.js";
@@ -97,7 +103,10 @@ import { createGatewayCloseHandler } from "./server-close.js";
 import { buildGatewayCronService } from "./server-cron.js";
 import { startGatewayDiscovery } from "./server-discovery-runtime.js";
 import { applyGatewayLaneConcurrency } from "./server-lanes.js";
-import { startGatewayMaintenanceTimers } from "./server-maintenance.js";
+import {
+  startGatewayMaintenanceTimers,
+  startGatewayMediaCleanupTimer,
+} from "./server-maintenance.js";
 import { GATEWAY_EVENTS, listGatewayMethods } from "./server-methods-list.js";
 import { coreGatewayHandlers } from "./server-methods.js";
 import { createExecApprovalHandlers } from "./server-methods/exec-approval.js";
@@ -114,7 +123,11 @@ import {
 import { setFallbackGatewayContextResolver } from "./server-plugins.js";
 import { createGatewayReloadHandlers } from "./server-reload-handlers.js";
 import { resolveGatewayRuntimeConfig } from "./server-runtime-config.js";
-import { createGatewayRuntimeState } from "./server-runtime-state.js";
+import {
+  closeGatewayHttpServers,
+  createGatewayRuntimeState,
+  startGatewayRuntimeHttpListeners,
+} from "./server-runtime-state.js";
 import { resolveSessionKeyForRun } from "./server-session-key.js";
 import { logGatewayStartup } from "./server-startup-log.js";
 import { runStartupSessionMigration } from "./server-startup-session-migration.js";
@@ -593,9 +606,10 @@ export async function startGatewayServer(
   const channelMethods = listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []);
   const gatewayMethods = Array.from(new Set([...baseGatewayMethods, ...channelMethods]));
   let pluginServices: PluginServicesHandle | null = null;
-  const runtimeConfig = await resolveGatewayRuntimeConfig({
+  let activePort = port;
+  let runtimeConfig = await resolveGatewayRuntimeConfig({
     cfg: cfgAtStart,
-    port,
+    port: activePort,
     bind: opts.bind,
     host: opts.host,
     openAiChatCompletionsEnabled: opts.openAiChatCompletionsEnabled,
@@ -603,33 +617,40 @@ export async function startGatewayServer(
     auth: opts.auth,
     tailscale: opts.tailscale,
   });
-  const {
-    bindHost,
-    openAiChatCompletionsEnabled,
-    openAiChatCompletionsConfig,
-    openResponsesEnabled,
-    openResponsesConfig,
-    strictTransportSecurityHeader,
-    resolvedAuth,
-    tailscaleConfig,
-    tailscaleMode,
-  } = runtimeConfig;
+  let bindHost = runtimeConfig.bindHost;
+  let openAiChatCompletionsEnabled = runtimeConfig.openAiChatCompletionsEnabled;
+  let openAiChatCompletionsConfig = runtimeConfig.openAiChatCompletionsConfig;
+  let openResponsesEnabled = runtimeConfig.openResponsesEnabled;
+  let openResponsesConfig = runtimeConfig.openResponsesConfig;
+  let strictTransportSecurityHeader = runtimeConfig.strictTransportSecurityHeader;
+  let resolvedAuth = runtimeConfig.resolvedAuth;
+  let tailscaleConfig = runtimeConfig.tailscaleConfig;
+  let tailscaleMode = runtimeConfig.tailscaleMode;
   let hooksConfig = runtimeConfig.hooksConfig;
   let hookClientIpConfig = resolveHookClientIpConfig(cfgAtStart);
 
   // Create auth rate limiters used by connect/auth flows.
   const rateLimitConfig = cfgAtStart.gateway?.auth?.rateLimit;
-  const { rateLimiter: authRateLimiter, browserRateLimiter: browserAuthRateLimiter } =
+  let { rateLimiter: authRateLimiter, browserRateLimiter: browserAuthRateLimiter } =
     createGatewayAuthRateLimiters(rateLimitConfig);
 
   const wizardRunner = opts.wizardRunner ?? runSetupWizard;
   const { wizardSessions, findRunningWizard, purgeWizardSession } = createWizardSessionTracker();
 
   const deps = createDefaultDeps();
-  const gatewayTls = await loadGatewayTlsRuntime(cfgAtStart.gateway?.tls, log.child("tls"));
+  let gatewayTls = await loadGatewayTlsRuntime(cfgAtStart.gateway?.tls, log.child("tls"));
   if (cfgAtStart.gateway?.tls?.enabled && !gatewayTls.enabled) {
     throw new Error(gatewayTls.error ?? "gateway tls: failed to enable");
   }
+  const getHttpRuntimeSurface = () => ({
+    openAiChatCompletionsEnabled,
+    openAiChatCompletionsConfig,
+    openResponsesEnabled,
+    openResponsesConfig,
+    strictTransportSecurityHeader,
+    resolvedAuth,
+    rateLimiter: authRateLimiter,
+  });
   const serverStartedAt = Date.now();
   const channelManager = createChannelManager({
     loadConfig: () =>
@@ -669,7 +690,7 @@ export async function startGatewayServer(
   } = await createGatewayRuntimeState({
     cfg: cfgAtStart,
     bindHost,
-    port,
+    port: activePort,
     openAiChatCompletionsEnabled,
     openAiChatCompletionsConfig,
     openResponsesEnabled,
@@ -677,6 +698,7 @@ export async function startGatewayServer(
     strictTransportSecurityHeader,
     resolvedAuth,
     rateLimiter: authRateLimiter,
+    getHttpRuntimeSurface,
     gatewayTls,
     hooksConfig: () => hooksConfig,
     getHookClientIpConfig: () => hookClientIpConfig,
@@ -776,8 +798,14 @@ export async function startGatewayServer(
   });
   let { cron, storePath: cronStorePath } = cronState;
 
-  const { getRuntimeSnapshot, startChannels, startChannel, stopChannel, markChannelLoggedOut } =
-    channelManager;
+  const {
+    getRuntimeSnapshot,
+    startChannels,
+    startChannel,
+    stopChannel,
+    reconfigureChannel,
+    markChannelLoggedOut,
+  } = channelManager;
   let agentUnsub: (() => void) | null = null;
   let mainSessionWakeUnsub: (() => void) | null = null;
   let transcriptUnsub: (() => void) | null = null;
@@ -787,7 +815,7 @@ export async function startGatewayServer(
       const machineDisplayName = await getMachineDisplayName();
       const discovery = await startGatewayDiscovery({
         machineDisplayName,
-        port,
+        port: activePort,
         gatewayTls: gatewayTls.enabled
           ? { enabled: true, fingerprintSha256: gatewayTls.fingerprintSha256 }
           : undefined,
@@ -1127,6 +1155,32 @@ export async function startGatewayServer(
         return { assignments, diagnostics, inactiveRefPaths };
       },
     });
+    const extraGatewayHandlers = {
+      ...pluginRegistry.gatewayHandlers,
+      ...execApprovalHandlers,
+      ...pluginApprovalHandlers,
+      ...secretsHandlers,
+    };
+    let pluginGatewayHandlerKeys = new Set(Object.keys(pluginRegistry.gatewayHandlers));
+    const replacePluginGatewayHandlers = (nextHandlers: typeof pluginRegistry.gatewayHandlers) => {
+      for (const key of pluginGatewayHandlerKeys) {
+        delete extraGatewayHandlers[key];
+      }
+      Object.assign(extraGatewayHandlers, nextHandlers);
+      pluginGatewayHandlerKeys = new Set(Object.keys(nextHandlers));
+    };
+    const replaceGatewayMethods = (nextMethods: string[]) => {
+      gatewayMethods.splice(0, gatewayMethods.length, ...nextMethods);
+    };
+    const ensureChannelRuntimeSurfaces = () => {
+      for (const plugin of listChannelPlugins()) {
+        if (!channelLogs[plugin.id]) {
+          const logger = logChannels.child(plugin.id);
+          channelLogs[plugin.id] = logger;
+          channelRuntimeEnvs[plugin.id] = runtimeForLogger(logger);
+        }
+      }
+    };
 
     const gatewayRequestContext: import("./server-methods/types.js").GatewayRequestContext = {
       deps,
@@ -1219,19 +1273,17 @@ export async function startGatewayServer(
       clients,
       preauthConnectionBudget,
       resolvedAuth,
+      getResolvedAuth: () => resolvedAuth,
       rateLimiter: authRateLimiter,
+      getRateLimiter: () => authRateLimiter,
       browserRateLimiter: browserAuthRateLimiter,
+      getBrowserRateLimiter: () => browserAuthRateLimiter,
       gatewayMethods,
       events: GATEWAY_EVENTS,
       logGateway: log,
       logHealth,
       logWsControl,
-      extraHandlers: {
-        ...pluginRegistry.gatewayHandlers,
-        ...execApprovalHandlers,
-        ...pluginApprovalHandlers,
-        ...secretsHandlers,
-      },
+      extraHandlers: extraGatewayHandlers,
       broadcast,
       context: gatewayRequestContext,
     });
@@ -1239,7 +1291,7 @@ export async function startGatewayServer(
       cfg: cfgAtStart,
       bindHost,
       bindHosts: httpBindHosts,
-      port,
+      port: activePort,
       tlsEnabled: gatewayTls.enabled,
       log,
       isNixMode,
@@ -1260,7 +1312,7 @@ export async function startGatewayServer(
       : await startGatewayTailscaleExposure({
           tailscaleMode,
           resetOnExit: tailscaleConfig.resetOnExit,
-          port,
+          port: activePort,
           logTailscale,
         });
 
@@ -1293,7 +1345,7 @@ export async function startGatewayServer(
     if (!minimalTestGateway) {
       const hookRunner = getGlobalHookRunner();
       if (hookRunner?.hasHooks("gateway_start")) {
-        void hookRunner.runGatewayStart({ port }, { port }).catch((err) => {
+        void hookRunner.runGatewayStart({ port: activePort }, { port: activePort }).catch((err) => {
           log.warn(`gateway_start hook failed: ${String(err)}`);
         });
       }
@@ -1319,10 +1371,13 @@ export async function startGatewayServer(
               cronState = nextState.cronState;
               cron = cronState.cron;
               cronStorePath = cronState.storePath;
+              gatewayRequestContext.cron = cron;
+              gatewayRequestContext.cronStorePath = cronStorePath;
               channelHealthMonitor = nextState.channelHealthMonitor;
             },
             startChannel,
             stopChannel,
+            reconfigureChannel,
             logHooks,
             logChannels,
             logCron,
@@ -1342,6 +1397,312 @@ export async function startGatewayServer(
                   maxRestartsPerHour: opts.maxRestartsPerHour,
                 }),
               }),
+            reloadServerSurface: async (nextConfig) => {
+              const nextPort = nextConfig.gateway?.port ?? port;
+              const nextRuntimeConfig = await resolveGatewayRuntimeConfig({
+                cfg: nextConfig,
+                port: nextPort,
+                bind: opts.bind,
+                host: opts.host,
+                openAiChatCompletionsEnabled: opts.openAiChatCompletionsEnabled,
+                openResponsesEnabled: opts.openResponsesEnabled,
+                auth: opts.auth,
+                tailscale: opts.tailscale,
+              });
+              const nextGatewayTls = await loadGatewayTlsRuntime(
+                nextConfig.gateway?.tls,
+                log.child("tls"),
+              );
+              if (nextConfig.gateway?.tls?.enabled && !nextGatewayTls.enabled) {
+                throw new Error(nextGatewayTls.error ?? "gateway tls: failed to enable");
+              }
+              const nextRateLimiters = createGatewayAuthRateLimiters(
+                nextConfig.gateway?.auth?.rateLimit,
+              );
+              const listenerChanged =
+                nextPort !== activePort ||
+                nextRuntimeConfig.bindHost !== bindHost ||
+                nextGatewayTls.enabled !== gatewayTls.enabled ||
+                nextGatewayTls.fingerprintSha256 !== gatewayTls.fingerprintSha256;
+
+              if (listenerChanged) {
+                const previousServers = httpServers.slice();
+                const startNextListeners = async () =>
+                  await startGatewayRuntimeHttpListeners({
+                    cfg: nextConfig,
+                    bindHost: nextRuntimeConfig.bindHost,
+                    port: nextPort,
+                    openAiChatCompletionsEnabled: nextRuntimeConfig.openAiChatCompletionsEnabled,
+                    openAiChatCompletionsConfig: nextRuntimeConfig.openAiChatCompletionsConfig,
+                    openResponsesEnabled: nextRuntimeConfig.openResponsesEnabled,
+                    openResponsesConfig: nextRuntimeConfig.openResponsesConfig,
+                    strictTransportSecurityHeader: nextRuntimeConfig.strictTransportSecurityHeader,
+                    resolvedAuth: nextRuntimeConfig.resolvedAuth,
+                    rateLimiter: nextRateLimiters.rateLimiter,
+                    getHttpRuntimeSurface,
+                    gatewayTls: nextGatewayTls,
+                    hooksConfig: () => hooksConfig,
+                    getHookClientIpConfig: () => hookClientIpConfig,
+                    pluginRegistry,
+                    deps,
+                    log,
+                    logHooks,
+                    logPlugins,
+                    getReadiness,
+                    wss,
+                    preauthConnectionBudget,
+                  });
+                const startCurrentListeners = async () =>
+                  await startGatewayRuntimeHttpListeners({
+                    cfg: loadConfig(),
+                    bindHost,
+                    port: activePort,
+                    openAiChatCompletionsEnabled,
+                    openAiChatCompletionsConfig,
+                    openResponsesEnabled,
+                    openResponsesConfig,
+                    strictTransportSecurityHeader,
+                    resolvedAuth,
+                    rateLimiter: authRateLimiter,
+                    getHttpRuntimeSurface,
+                    gatewayTls,
+                    hooksConfig: () => hooksConfig,
+                    getHookClientIpConfig: () => hookClientIpConfig,
+                    pluginRegistry,
+                    deps,
+                    log,
+                    logHooks,
+                    logPlugins,
+                    getReadiness,
+                    wss,
+                    preauthConnectionBudget,
+                  });
+                const mustCloseBeforeBind =
+                  nextPort === activePort && nextRuntimeConfig.bindHost === bindHost;
+                let nextListeners: Awaited<
+                  ReturnType<typeof startGatewayRuntimeHttpListeners>
+                > | null = null;
+                if (mustCloseBeforeBind) {
+                  await closeGatewayHttpServers(previousServers);
+                  try {
+                    nextListeners = await startNextListeners();
+                  } catch (err) {
+                    const restored = await startCurrentListeners().catch((restoreErr) => {
+                      log.warn(
+                        `gateway listener restore failed after reload error: ${String(restoreErr)}`,
+                      );
+                      return null;
+                    });
+                    if (restored) {
+                      httpServers.splice(0, httpServers.length, ...restored.httpServers);
+                      httpBindHosts.splice(0, httpBindHosts.length, ...restored.httpBindHosts);
+                    }
+                    throw err;
+                  }
+                } else {
+                  nextListeners = await startNextListeners();
+                  await closeGatewayHttpServers(previousServers);
+                }
+                httpServers.splice(0, httpServers.length, ...nextListeners.httpServers);
+                httpBindHosts.splice(0, httpBindHosts.length, ...nextListeners.httpBindHosts);
+                log.info(
+                  `gateway listener reconfigured (${httpBindHosts
+                    .map((host) => `${host}:${nextPort}`)
+                    .join(", ")})`,
+                );
+              }
+
+              runtimeConfig = nextRuntimeConfig;
+              activePort = nextPort;
+              bindHost = nextRuntimeConfig.bindHost;
+              openAiChatCompletionsEnabled = nextRuntimeConfig.openAiChatCompletionsEnabled;
+              openAiChatCompletionsConfig = nextRuntimeConfig.openAiChatCompletionsConfig;
+              openResponsesEnabled = nextRuntimeConfig.openResponsesEnabled;
+              openResponsesConfig = nextRuntimeConfig.openResponsesConfig;
+              strictTransportSecurityHeader = nextRuntimeConfig.strictTransportSecurityHeader;
+              resolvedAuth = nextRuntimeConfig.resolvedAuth;
+              tailscaleConfig = nextRuntimeConfig.tailscaleConfig;
+              tailscaleMode = nextRuntimeConfig.tailscaleMode;
+              hooksConfig = nextRuntimeConfig.hooksConfig;
+              gatewayTls = nextGatewayTls;
+              authRateLimiter?.dispose();
+              browserAuthRateLimiter.dispose();
+              authRateLimiter = nextRateLimiters.rateLimiter;
+              browserAuthRateLimiter = nextRateLimiters.browserRateLimiter;
+            },
+            reloadInternalHooks: async (nextConfig) => {
+              clearInternalHooks();
+              const loadedCount = await loadInternalHooks(nextConfig, defaultWorkspaceDir);
+              if (loadedCount > 0) {
+                logHooks.info(
+                  `loaded ${loadedCount} internal hook handler${loadedCount > 1 ? "s" : ""}`,
+                );
+              }
+            },
+            restartModelPricing: (nextConfig) => {
+              stopModelPricingRefresh();
+              stopModelPricingRefresh =
+                process.env.VITEST !== "1"
+                  ? startGatewayModelPricingRefresh({ config: nextConfig })
+                  : () => {};
+            },
+            restartUpdateCheck: (nextConfig) => {
+              stopGatewayUpdateCheck();
+              stopGatewayUpdateCheck = scheduleGatewayUpdateCheck({
+                cfg: nextConfig,
+                log,
+                isNixMode,
+                onUpdateAvailableChange: (updateAvailable) => {
+                  const payload: GatewayUpdateAvailableEventPayload = { updateAvailable };
+                  broadcast(GATEWAY_EVENT_UPDATE_AVAILABLE, payload, { dropIfSlow: true });
+                },
+              });
+            },
+            restartMediaCleanup: (nextConfig) => {
+              if (mediaCleanup) {
+                clearInterval(mediaCleanup);
+                mediaCleanup = null;
+              }
+              if (typeof nextConfig.media?.ttlHours === "number") {
+                mediaCleanup = startGatewayMediaCleanupTimer({
+                  mediaCleanupTtlMs: resolveMediaCleanupTtlMs(nextConfig.media.ttlHours),
+                  logHealth,
+                });
+              }
+            },
+            reloadDiscovery: async (nextConfig) => {
+              await bonjourStop?.();
+              const machineDisplayName = await getMachineDisplayName();
+              const discovery = await startGatewayDiscovery({
+                machineDisplayName,
+                port: activePort,
+                gatewayTls: gatewayTls.enabled
+                  ? { enabled: true, fingerprintSha256: gatewayTls.fingerprintSha256 }
+                  : undefined,
+                wideAreaDiscoveryEnabled: nextConfig.discovery?.wideArea?.enabled === true,
+                wideAreaDiscoveryDomain: nextConfig.discovery?.wideArea?.domain,
+                tailscaleMode,
+                mdnsMode: nextConfig.discovery?.mdns?.mode,
+                logDiscovery,
+              });
+              bonjourStop = discovery.bonjourStop;
+            },
+            reloadTailscale: async (nextConfig) => {
+              const nextRuntimeConfig = await resolveGatewayRuntimeConfig({
+                cfg: nextConfig,
+                port: activePort,
+                bind: opts.bind,
+                host: opts.host,
+                openAiChatCompletionsEnabled: opts.openAiChatCompletionsEnabled,
+                openResponsesEnabled: opts.openResponsesEnabled,
+                auth: opts.auth,
+                tailscale: opts.tailscale,
+              });
+              runtimeConfig = nextRuntimeConfig;
+              tailscaleConfig = nextRuntimeConfig.tailscaleConfig;
+              tailscaleMode = nextRuntimeConfig.tailscaleMode;
+              resolvedAuth = nextRuntimeConfig.resolvedAuth;
+              await tailscaleCleanup?.();
+              tailscaleCleanup = await startGatewayTailscaleExposure({
+                tailscaleMode,
+                resetOnExit: tailscaleConfig.resetOnExit,
+                port: activePort,
+                logTailscale,
+              });
+            },
+            reloadPluginRuntime: async (nextConfig) => {
+              const nextGatewayPluginConfig = applyPluginAutoEnable({
+                config: nextConfig,
+                env: process.env,
+              }).config;
+              const nextDeferredChannelPluginIds = resolveConfiguredDeferredChannelPluginIds({
+                config: nextGatewayPluginConfig,
+                workspaceDir: defaultWorkspaceDir,
+                env: process.env,
+              });
+              const nextPluginIds = resolveGatewayStartupPluginIds({
+                config: nextGatewayPluginConfig,
+                workspaceDir: defaultWorkspaceDir,
+                env: process.env,
+              });
+              const previousRegistry = pluginRegistry;
+              const previousServices = pluginServices;
+              const nextLoaded = loadGatewayStartupPlugins({
+                cfg: nextGatewayPluginConfig,
+                workspaceDir: defaultWorkspaceDir,
+                log,
+                coreGatewayHandlers,
+                baseMethods,
+                pluginIds: nextPluginIds,
+                preferSetupRuntimeForChannelPlugins: nextDeferredChannelPluginIds.length > 0,
+              });
+              if (previousServices && nextLoaded.pluginRegistry === previousRegistry) {
+                await previousServices.reconfigure(nextGatewayPluginConfig);
+                pinActivePluginHttpRouteRegistry(previousRegistry);
+                if (!minimalTestGateway) {
+                  pinActivePluginChannelRegistry(previousRegistry);
+                }
+                ensureChannelRuntimeSurfaces();
+                baseGatewayMethods = nextLoaded.gatewayMethods;
+                replaceGatewayMethods(
+                  Array.from(
+                    new Set([
+                      ...baseGatewayMethods,
+                      ...listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []),
+                    ]),
+                  ),
+                );
+                return;
+              }
+              let nextServices: PluginServicesHandle | null = null;
+              try {
+                nextServices = await startPluginServices({
+                  registry: nextLoaded.pluginRegistry,
+                  config: nextGatewayPluginConfig,
+                  workspaceDir: defaultWorkspaceDir,
+                });
+              } catch (err) {
+                setActivePluginRegistry(previousRegistry, undefined, "gateway-bindable");
+                pinActivePluginHttpRouteRegistry(previousRegistry);
+                if (!minimalTestGateway) {
+                  pinActivePluginChannelRegistry(previousRegistry);
+                }
+                throw err;
+              }
+              try {
+                await previousServices?.stop().catch(() => {});
+                pluginRegistry = nextLoaded.pluginRegistry;
+                baseGatewayMethods = nextLoaded.gatewayMethods;
+                pinActivePluginHttpRouteRegistry(pluginRegistry);
+                if (!minimalTestGateway) {
+                  pinActivePluginChannelRegistry(pluginRegistry);
+                }
+                ensureChannelRuntimeSurfaces();
+                replacePluginGatewayHandlers(pluginRegistry.gatewayHandlers);
+                replaceGatewayMethods(
+                  Array.from(
+                    new Set([
+                      ...baseGatewayMethods,
+                      ...listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []),
+                    ]),
+                  ),
+                );
+                pluginServices = nextServices;
+                log.info(`plugins reconfigured (${pluginRegistry.plugins.length} plugins)`);
+              } catch (err) {
+                await nextServices.stop().catch(() => {});
+                setActivePluginRegistry(previousRegistry, undefined, "gateway-bindable");
+                pinActivePluginHttpRouteRegistry(previousRegistry);
+                if (!minimalTestGateway) {
+                  pinActivePluginChannelRegistry(previousRegistry);
+                }
+                throw err;
+              }
+            },
+            reloadBrowserRuntime: () => {
+              // Browser runtime config is read lazily by browser/node-host call sites.
+              // Keeping an owner here prevents browser settings from falling back to restart.
+            },
           });
 
           return startGatewayConfigReloader({
@@ -1386,39 +1747,43 @@ export async function startGatewayServer(
     throw err;
   }
 
-  const close = createGatewayCloseHandler({
-    bonjourStop,
-    tailscaleCleanup,
-    releasePluginRouteRegistry,
-    stopChannel,
-    pluginServices,
-    cron,
-    mainSessionWakeRunner,
-    updateCheckStop: stopGatewayUpdateCheck,
-    nodePresenceTimers,
-    broadcast,
-    tickInterval,
-    healthInterval,
-    dedupeCleanup,
-    mediaCleanup,
-    agentUnsub,
-    mainSessionWakeUnsub,
-    transcriptUnsub,
-    lifecycleUnsub,
-    chatRunState,
-    clients,
-    configReloader,
-    wss,
-    httpServer,
-    httpServers,
-  });
+  const closeCurrentGateway = async (opts?: {
+    reason?: string;
+    restartExpectedMs?: number | null;
+  }) =>
+    await createGatewayCloseHandler({
+      bonjourStop,
+      tailscaleCleanup,
+      releasePluginRouteRegistry,
+      stopChannel,
+      pluginServices,
+      cron,
+      mainSessionWakeRunner,
+      updateCheckStop: stopGatewayUpdateCheck,
+      nodePresenceTimers,
+      broadcast,
+      tickInterval,
+      healthInterval,
+      dedupeCleanup,
+      mediaCleanup,
+      agentUnsub,
+      mainSessionWakeUnsub,
+      transcriptUnsub,
+      lifecycleUnsub,
+      chatRunState,
+      clients,
+      configReloader,
+      wss,
+      httpServer,
+      httpServers,
+    })(opts);
 
   return {
     close: async (opts) => {
       // Run gateway_stop plugin hook before shutdown
       await runGlobalGatewayStopSafely({
         event: { reason: opts?.reason ?? "gateway stopping" },
-        ctx: { port },
+        ctx: { port: activePort },
         onError: (err) => log.warn(`gateway_stop hook failed: ${String(err)}`),
       });
       if (diagnosticsEnabled) {
@@ -1434,7 +1799,7 @@ export async function startGatewayServer(
       stopModelPricingRefresh();
       channelHealthMonitor?.stop();
       clearSecretsRuntimeSnapshot();
-      await close(opts);
+      await closeCurrentGateway(opts);
     },
   };
 }

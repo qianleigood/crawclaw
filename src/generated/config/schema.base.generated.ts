@@ -11632,7 +11632,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "gateway.reload.mode": {
       label: "Config Reload Mode",
-      help: 'Controls how config edits are applied: "off" ignores live edits, "restart" always restarts, "hot" applies in-process, and "hybrid" tries hot then restarts if required. Keep "hybrid" for safest routine updates.',
+      help: 'Controls how config edits are applied: "off" ignores live edits, "restart" forces a process restart for debugging/ops, "hot" applies in-process, and "hybrid" applies schema-owned config in-process by default.',
       tags: ["network", "reliability"],
     },
     "gateway.reload.debounceMs": {
@@ -13627,7 +13627,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "plugins.entries.*.enabled": {
       label: "Plugin Enabled",
-      help: "Per-plugin enablement override for a specific entry, applied on top of global plugin policy (restart required). Use this to stage plugin rollout gradually across environments.",
+      help: "Per-plugin enablement override for a specific entry, applied on top of global plugin policy. The gateway swaps plugin runtime state during live reconfigure.",
       tags: ["advanced"],
     },
     "plugins.entries.*.hooks": {

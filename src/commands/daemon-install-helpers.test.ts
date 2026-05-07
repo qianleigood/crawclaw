@@ -119,6 +119,33 @@ describe("buildGatewayInstallPlan", () => {
     );
   });
 
+  it("uses the desktop bundled node path from env for service installs", async () => {
+    mockNodeGatewayPlanFixture();
+
+    await buildGatewayInstallPlan({
+      env: {
+        HOME: isolatedHome,
+        CRAWCLAW_DESKTOP_NODE_PATH:
+          "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
+      },
+      port: 3000,
+      runtime: "node",
+    });
+
+    expect(mocks.resolvePreferredNodePath).not.toHaveBeenCalled();
+    expect(mocks.resolveGatewayProgramArguments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: "node",
+        nodePath: "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
+      }),
+    );
+    expect(mocks.buildServiceEnvironment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraPathDirs: ["/Applications/CrawClaw Desktop.app/Contents/MacOS"],
+      }),
+    );
+  });
+
   it("does not prepend '.' when nodePath is a bare executable name", async () => {
     mockNodeGatewayPlanFixture();
 

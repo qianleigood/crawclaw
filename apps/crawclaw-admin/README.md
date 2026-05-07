@@ -21,7 +21,7 @@
 
 CrawClaw Admin 是一个基于 Vue 3 构建的现代化 AI 智能体管理平台，同时支持 **CrawClaw Gateway** 和 **Hermes Agent** 两大 AI 智能体网关。通过直观的可视化操作，用户可以轻松管理 AI 智能体、会话、模型、频道、技能等核心功能，并提供完整的 Web CLI 终端体验。
 
-CrawClaw Admin Desktop 是该控制台的桌面封装形态，复用这里的 Vue 前端和本地 Node 后端，并通过 Electron host 在 macOS、Windows 和 Linux 上打包发布。桌面版本仍连接已有 CrawClaw Gateway，不会自动安装或启动 Gateway。更多信息见 [Desktop install guide](https://docs.crawclaw.ai/install/desktop)。
+CrawClaw Desktop 是该控制台的桌面产品形态，复用这里的 Vue 前端和本地 Node 后端，并通过 Electron host 在 macOS、Windows 和 Linux 上打包发布。桌面版本只连接本机 CrawClaw，内置 root runtime，首次启动会初始化 `~/.crawclaw` 并通过本机 Gateway 服务进入主界面。更多信息见 [Desktop install guide](https://docs.crawclaw.ai/install/desktop)。
 
 ### 版本兼容性
 

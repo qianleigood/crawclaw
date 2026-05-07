@@ -1,5 +1,5 @@
-appId: ai.crawclaw.admin
-productName: CrawClaw Admin
+appId: ai.crawclaw.desktop
+productName: CrawClaw Desktop
 directories:
   output: out
 files:
@@ -20,6 +20,12 @@ extraResources:
     to: admin/dist
   - from: ../crawclaw-admin/node_modules
     to: admin/node_modules
+    filter:
+      - "**/*"
+      - "!**/.cache/**"
+      - "!**/*.map"
+  - from: .runtime/crawclaw
+    to: runtime/crawclaw
     filter:
       - "**/*"
       - "!**/.cache/**"

@@ -137,7 +137,19 @@ describe('buildDesktopCapabilities', () => {
     expect(web.hermesCli.available).toBe(false)
     expect(web.hermesCli.reason).toBe('Set HERMES_CLI_PATH to enable Hermes CLI.')
     expect(web.desktopUpdate.available).toBe(false)
+    expect(web.desktopLocal.available).toBe(false)
     expect(desktop.hermesCli.available).toBe(true)
     expect(desktop.desktopUpdate.available).toBe(true)
+    expect(desktop.desktopLocal.available).toBe(false)
+  })
+
+  it('reports desktop-local runtime only when desktop mode opts into local runtime', () => {
+    const capabilities = buildDesktopCapabilities({
+      platform: 'darwin',
+      runtimeMode: 'desktop',
+      env: { CRAWCLAW_ADMIN_DESKTOP_LOCAL: '1' },
+    })
+
+    expect(capabilities.desktopLocal.available).toBe(true)
   })
 })

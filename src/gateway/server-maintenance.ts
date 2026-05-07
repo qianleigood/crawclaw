@@ -153,10 +153,21 @@ export function startGatewayMaintenanceTimers(params: {
     }
   }, 60_000);
 
-  if (typeof params.mediaCleanupTtlMs !== "number") {
-    return { tickInterval, healthInterval, dedupeCleanup, mediaCleanup: null };
-  }
+  const mediaCleanup =
+    typeof params.mediaCleanupTtlMs === "number"
+      ? startGatewayMediaCleanupTimer({
+          mediaCleanupTtlMs: params.mediaCleanupTtlMs,
+          logHealth: params.logHealth,
+        })
+      : null;
 
+  return { tickInterval, healthInterval, dedupeCleanup, mediaCleanup };
+}
+
+export function startGatewayMediaCleanupTimer(params: {
+  mediaCleanupTtlMs: number;
+  logHealth: { error: (msg: string) => void };
+}): ReturnType<typeof setInterval> {
   let mediaCleanupInFlight: Promise<void> | null = null;
   const runMediaCleanup = () => {
     if (mediaCleanupInFlight) {
@@ -181,5 +192,5 @@ export function startGatewayMaintenanceTimers(params: {
 
   void runMediaCleanup();
 
-  return { tickInterval, healthInterval, dedupeCleanup, mediaCleanup };
+  return mediaCleanup;
 }

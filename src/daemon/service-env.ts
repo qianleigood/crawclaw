@@ -323,6 +323,7 @@ function buildCommonServiceEnvironment(
     NODE_USE_SYSTEM_CA: sharedEnv.nodeUseSystemCa,
     CRAWCLAW_STATE_DIR: sharedEnv.stateDir,
     CRAWCLAW_CONFIG_PATH: sharedEnv.configPath,
+    ELECTRON_RUN_AS_NODE: env.ELECTRON_RUN_AS_NODE === "1" ? "1" : undefined,
   };
   if (sharedEnv.minimalPath) {
     serviceEnv.PATH = sharedEnv.minimalPath;

@@ -9,9 +9,15 @@ title: "Install"
 
 # Install
 
-## Recommended: installer script
+## Recommended: CrawClaw Desktop
 
-The fastest way to install. It detects your OS, installs Node if needed, installs CrawClaw, and launches onboarding.
+For a local desktop client, install CrawClaw Desktop from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases). It bundles the CrawClaw runtime, initializes local Gateway configuration under `~/.crawclaw`, and manages the local Gateway service without requiring a global CLI install.
+
+See [Desktop](/install/desktop).
+
+## CLI and server install: installer script
+
+Use this path for terminal, server, headless, or advanced deployments. The installer detects your OS, installs Node if needed, installs CrawClaw, and launches onboarding.
 
 <Tabs>
   <Tab title="macOS / Linux">

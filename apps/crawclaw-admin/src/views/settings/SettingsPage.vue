@@ -20,6 +20,10 @@ const appVersion = import.meta.env.VITE_APP_VERSION || ''
 
 const loading = ref(false)
 const saving = ref(false)
+const runtimeLoading = ref(false)
+const runtimeAction = ref<'start' | 'stop' | 'restart' | null>(null)
+const runtimeStatus = ref<Record<string, unknown> | null>(null)
+const runtimeLogs = ref('')
 const configForm = ref({
   AUTH_USERNAME: '',
   AUTH_PASSWORD: '',
@@ -35,6 +39,8 @@ const themeOptions = computed(() => ([
 
 const desktopUpdateCapability = computed(() => desktopStore.capability('desktopUpdate'))
 const isDesktopUpdateMode = computed(() => desktopUpdateCapability.value?.available ?? false)
+const isDesktopLocal = computed(() => desktopStore.isDesktopLocal)
+const runtimeStatusText = computed(() => runtimeStatus.value ? JSON.stringify(runtimeStatus.value, null, 2) : '-')
 
 const connectionStatus = computed(() => {
   switch (wsStore.state) {
@@ -119,9 +125,68 @@ async function refreshDesktopCapabilities() {
   await desktopStore.refreshCapabilities()
 }
 
+async function fetchDesktopRuntime(path: string, init: RequestInit = {}) {
+  const token = authStore.getToken()
+  const headers = new Headers(init.headers)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  const response = await fetch(path, {
+    ...init,
+    headers,
+  })
+  const data = await response.json()
+  if (!response.ok || data.ok === false) {
+    throw new Error(data.error?.message || 'Desktop runtime request failed')
+  }
+  return data
+}
+
+async function loadDesktopRuntimeStatus() {
+  if (!isDesktopLocal.value) {return}
+  runtimeLoading.value = true
+  try {
+    const data = await fetchDesktopRuntime('/api/desktop/runtime/status')
+    runtimeStatus.value = data.status || data
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : t('pages.settings.desktopRuntimeStatusFailed'))
+  } finally {
+    runtimeLoading.value = false
+  }
+}
+
+async function runDesktopService(action: 'start' | 'stop' | 'restart') {
+  runtimeAction.value = action
+  try {
+    const data = await fetchDesktopRuntime(`/api/desktop/runtime/service/${action}`, { method: 'POST' })
+    runtimeStatus.value = data.result || data
+    message.success(t('pages.settings.desktopServiceActionSuccess'))
+    await loadDesktopRuntimeStatus()
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : t('pages.settings.desktopServiceActionFailed'))
+  } finally {
+    runtimeAction.value = null
+  }
+}
+
+async function loadDesktopLogs() {
+  if (!isDesktopLocal.value) {return}
+  try {
+    const data = await fetchDesktopRuntime('/api/desktop/runtime/logs/tail')
+    runtimeLogs.value = data.logs?.content || ''
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : t('pages.settings.desktopLogsFailed'))
+  }
+}
+
 onMounted(() => {
   void loadConfig()
-  void desktopStore.ensureCapabilitiesLoaded()
+  void desktopStore.ensureCapabilitiesLoaded().then(() => {
+    if (isDesktopLocal.value) {
+      void loadDesktopRuntimeStatus()
+      void loadDesktopLogs()
+    }
+  })
 })
 </script>
 
@@ -168,7 +233,47 @@ onMounted(() => {
       </NSpace>
     </NCard>
 
-    <NCard :title="t('pages.settings.envSettings')" class="app-card">
+    <NCard
+      v-if="isDesktopLocal"
+      :title="t('pages.settings.desktopRuntime')"
+      class="app-card"
+    >
+      <NSpace vertical :size="12">
+        <NAlert type="info" :bordered="false">
+          {{ t('pages.settings.desktopRuntimeHint') }}
+        </NAlert>
+        <NSpace align="center" :size="8">
+          <NButton size="small" :loading="runtimeLoading" @click="loadDesktopRuntimeStatus">
+            {{ t('common.refresh') }}
+          </NButton>
+          <NButton size="small" type="primary" :loading="runtimeAction === 'start'" @click="runDesktopService('start')">
+            {{ t('pages.settings.desktopServiceStart') }}
+          </NButton>
+          <NButton size="small" :loading="runtimeAction === 'restart'" @click="runDesktopService('restart')">
+            {{ t('pages.settings.desktopServiceRestart') }}
+          </NButton>
+          <NButton size="small" type="error" ghost :loading="runtimeAction === 'stop'" @click="runDesktopService('stop')">
+            {{ t('pages.settings.desktopServiceStop') }}
+          </NButton>
+        </NSpace>
+        <pre class="settings-runtime-output">{{ runtimeStatusText }}</pre>
+      </NSpace>
+    </NCard>
+
+    <NCard
+      v-if="isDesktopLocal"
+      :title="t('pages.settings.desktopLogs')"
+      class="app-card"
+    >
+      <NSpace vertical :size="12">
+        <NButton size="small" @click="loadDesktopLogs">
+          {{ t('common.refresh') }}
+        </NButton>
+        <pre class="settings-runtime-output">{{ runtimeLogs || t('pages.settings.desktopLogsEmpty') }}</pre>
+      </NSpace>
+    </NCard>
+
+    <NCard v-if="!isDesktopLocal" :title="t('pages.settings.envSettings')" class="app-card">
       <NSpin :show="loading">
         <NForm label-placement="left" label-width="140" style="max-width: 600px;">
           <NFormItem :label="t('pages.settings.authUsername')">
@@ -254,3 +359,17 @@ onMounted(() => {
     </NCard>
   </NSpace>
 </template>
+
+<style scoped>
+.settings-runtime-output {
+  margin: 0;
+  padding: 12px;
+  max-height: 260px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--bg-muted, rgba(127, 127, 127, 0.08));
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+</style>

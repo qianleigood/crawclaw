@@ -231,6 +231,61 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
+  test("uses the latest runtime auth surface for new protected plugin HTTP requests", async () => {
+    const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
+      const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
+      if (pathname !== "/api/channels/nostr/default/profile") {
+        return false;
+      }
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ ok: true, route: "channel" }));
+      return true;
+    });
+    const runtimeSurface = {
+      openAiChatCompletionsEnabled: false,
+      openResponsesEnabled: false,
+      resolvedAuth: AUTH_TOKEN,
+    };
+
+    await withGatewayServer({
+      prefix: "crawclaw-plugin-http-runtime-auth-test-",
+      resolvedAuth: AUTH_TOKEN,
+      overrides: {
+        handlePluginRequest,
+        shouldEnforcePluginGatewayAuth: (pathContext) =>
+          isProtectedPluginRoutePath(pathContext.pathname),
+        getRuntimeSurface: () => runtimeSurface,
+      },
+      run: async (server) => {
+        const first = await sendRequest(server, {
+          path: "/api/channels/nostr/default/profile",
+          authorization: "Bearer test-token",
+        });
+        expect(first.res.statusCode).toBe(200);
+
+        runtimeSurface.resolvedAuth = {
+          mode: "token",
+          token: "next-token",
+          password: undefined,
+          allowTailscale: false,
+        };
+
+        const staleToken = await sendRequest(server, {
+          path: "/api/channels/nostr/default/profile",
+          authorization: "Bearer test-token",
+        });
+        expectUnauthorizedResponse(staleToken);
+
+        const nextToken = await sendRequest(server, {
+          path: "/api/channels/nostr/default/profile",
+          authorization: "Bearer next-token",
+        });
+        expect(nextToken.res.statusCode).toBe(200);
+      },
+    });
+  });
+
   test("allows unauthenticated Mattermost slash callback routes while keeping other channel routes protected", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;

@@ -34,6 +34,7 @@ const capabilities: DesktopCapabilities = {
     reason: 'Desktop input is only implemented for Linux display sessions.',
   },
   desktopUpdate: { available: true, platform: 'darwin' },
+  desktopLocal: { available: false, platform: 'darwin' },
 }
 
 describe('useDesktopStore', () => {

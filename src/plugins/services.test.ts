@@ -173,4 +173,54 @@ describe("startPluginServices", () => {
     expect(stopOk).toHaveBeenCalledOnce();
     expect(stopThrows).toHaveBeenCalledOnce();
   });
+
+  it("reconfigures services that implement the optional runtime hook", async () => {
+    const contexts: CrawClawPluginServiceContext[] = [];
+    const reconfigureContexts: CrawClawPluginServiceContext[] = [];
+    const initialConfig = createServiceConfig();
+    const nextConfig = { plugins: { enabled: true } };
+    const service: CrawClawPluginService = {
+      id: "service-reconfigure",
+      start: (ctx) => {
+        contexts.push(ctx);
+      },
+      reconfigure: (ctx) => {
+        reconfigureContexts.push(ctx);
+      },
+    };
+
+    const handle = await startTrackingServices({
+      services: [service],
+      config: initialConfig,
+      workspaceDir: "/tmp/workspace",
+    });
+    await handle.reconfigure(nextConfig);
+    await handle.stop();
+
+    expect(contexts).toHaveLength(1);
+    expect(reconfigureContexts).toHaveLength(1);
+    expectServiceContext(reconfigureContexts[0], nextConfig);
+  });
+
+  it("falls back to stop/start when a service has no reconfigure hook", async () => {
+    const starts: string[] = [];
+    const stops: string[] = [];
+    const contexts: CrawClawPluginServiceContext[] = [];
+    const initialConfig = createServiceConfig();
+    const nextConfig = { plugins: { enabled: false } };
+
+    const handle = await startTrackingServices({
+      services: [createTrackingService("service-a", { starts, stops, contexts })],
+      config: initialConfig,
+      workspaceDir: "/tmp/workspace",
+    });
+    await handle.reconfigure(nextConfig);
+    await handle.stop();
+
+    expect(starts).toEqual(["a", "a"]);
+    expect(stops).toEqual(["a", "a"]);
+    expect(contexts).toHaveLength(2);
+    expectServiceContext(contexts[0], initialConfig);
+    expectServiceContext(contexts[1], nextConfig);
+  });
 });

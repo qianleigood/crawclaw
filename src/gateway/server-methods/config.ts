@@ -699,9 +699,8 @@ export const configHandlers: GatewayRequestHandlers = {
     const actor = resolveControlPlaneActor(client);
 
     // No-op: if the validated config is identical to the current config,
-    // skip the file write and SIGUSR1 restart entirely. This avoids a full
-    // gateway restart (and the resulting connection drop) when a control-plane
-    // client re-sends the same config (e.g. hot-apply with no actual changes).
+    // skip the file write and live reconfigure entirely. This avoids needless
+    // runtime churn when a control-plane client re-sends the same config.
     if (changedPaths.length === 0) {
       context?.logGateway?.info(
         `config.patch noop ${formatControlPlaneActor(actor)} (no changed paths)`,
@@ -720,7 +719,7 @@ export const configHandlers: GatewayRequestHandlers = {
     }
 
     context?.logGateway?.info(
-      `config.patch write ${formatControlPlaneActor(actor)} changedPaths=${summarizeChangedPaths(changedPaths)} restartReason=config.patch`,
+      `config.patch write ${formatControlPlaneActor(actor)} changedPaths=${summarizeChangedPaths(changedPaths)} reloadReason=config.patch`,
     );
     await writeConfigFile(validated.config, writeOptions);
 
@@ -779,7 +778,7 @@ export const configHandlers: GatewayRequestHandlers = {
     const changedPaths = diffConfigPaths(snapshot.runtimeConfig, parsed.config);
     const actor = resolveControlPlaneActor(client);
     context?.logGateway?.info(
-      `config.apply write ${formatControlPlaneActor(actor)} changedPaths=${summarizeChangedPaths(changedPaths)} restartReason=config.apply`,
+      `config.apply write ${formatControlPlaneActor(actor)} changedPaths=${summarizeChangedPaths(changedPaths)} reloadReason=config.apply`,
     );
     await writeConfigFile(parsed.config, writeOptions);
 
@@ -915,7 +914,7 @@ export const configHandlers: GatewayRequestHandlers = {
       return;
     }
     context?.logGateway?.info(
-      `channels.config.patch write ${formatControlPlaneActor(actor)} channel=${target.channelId} changedPaths=${summarizeChangedPaths(changedPaths)} restartReason=channels.config.patch`,
+      `channels.config.patch write ${formatControlPlaneActor(actor)} channel=${target.channelId} changedPaths=${summarizeChangedPaths(changedPaths)} reloadReason=channels.config.patch`,
     );
     await writeConfigFile(validated.config, writeOptions);
 
@@ -1024,7 +1023,7 @@ export const configHandlers: GatewayRequestHandlers = {
     const changedPaths = diffConfigPaths(snapshot.runtimeConfig, validated.config);
     const actor = resolveControlPlaneActor(client);
     context?.logGateway?.info(
-      `channels.config.apply write ${formatControlPlaneActor(actor)} channel=${target.channelId} changedPaths=${summarizeChangedPaths(changedPaths)} restartReason=channels.config.apply`,
+      `channels.config.apply write ${formatControlPlaneActor(actor)} channel=${target.channelId} changedPaths=${summarizeChangedPaths(changedPaths)} reloadReason=channels.config.apply`,
     );
     await writeConfigFile(validated.config, writeOptions);
 
