@@ -1,0 +1,24 @@
+{
+  "name": "crawclaw-admin-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build && electron .",
+    "pack": "npm run build && npm run rebuild:admin-native && electron-builder --dir",
+    "dist": "npm run build && npm run rebuild:admin-native && electron-builder",
+    "rebuild:native": "electron-rebuild && npm run rebuild:admin-native",
+    "rebuild:admin-native": "electron-rebuild --module-dir ../crawclaw-admin --only better-sqlite3,node-pty,ssh2,cpu-features"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.3"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
+    "electron": "^39.2.4",
+    "electron-builder": "^26.0.12",
+    "typescript": "~5.9.3"
+  }
+}

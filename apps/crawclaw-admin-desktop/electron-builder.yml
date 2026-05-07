@@ -1,0 +1,35 @@
+appId: ai.crawclaw.admin
+productName: CrawClaw Admin
+directories:
+  output: out
+files:
+  - dist/**
+  - package.json
+extraResources:
+  - from: ../crawclaw-admin/package.json
+    to: admin/package.json
+  - from: ../crawclaw-admin/package-lock.json
+    to: admin/package-lock.json
+  - from: ../crawclaw-admin/server
+    to: admin/server
+    filter:
+      - "**/*"
+      - "!**/*.test.ts"
+  - from: ../crawclaw-admin/dist
+    to: admin/dist
+  - from: ../crawclaw-admin/node_modules
+    to: admin/node_modules
+    filter:
+      - "**/*"
+      - "!**/.cache/**"
+      - "!**/*.map"
+mac:
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+linux:
+  target:
+    - AppImage
