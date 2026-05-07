@@ -916,7 +916,7 @@
             "groups": [
               {
                 "group": "Install overview",
-                "pages": ["install/index", "install/installer", "install/node"]
+                "pages": ["install/index", "install/desktop", "install/installer", "install/node"]
               },
               {
                 "group": "Containers",
