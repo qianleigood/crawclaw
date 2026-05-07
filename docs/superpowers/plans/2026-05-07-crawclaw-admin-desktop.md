@@ -632,7 +632,7 @@ Committed as `709bbe958`.
 - Modify `apps/crawclaw-admin-desktop/package.json`
 - Modify `apps/crawclaw-admin-desktop/package-lock.json`
 
-- [ ] **Step 1: Add tests**
+- [x] **Step 1: Add tests**
 
 Test:
 
@@ -644,7 +644,9 @@ Run: `npm --prefix apps/crawclaw-admin-desktop run build`
 
 Expected: PASS before test runner exists; this task uses TypeScript compile as the first gate.
 
-- [ ] **Step 2: Add credential dependency**
+Observed: build passed. The compiled Node test runner command `node --test apps/crawclaw-admin-desktop/dist/config-store.test.js apps/crawclaw-admin-desktop/dist/credential-store.test.js` passed with 5 tests.
+
+- [x] **Step 2: Add credential dependency**
 
 Add `keytar` to desktop dependencies and run:
 
@@ -655,7 +657,9 @@ npm --prefix apps/crawclaw-admin-desktop run rebuild:native
 
 Expected: native rebuild succeeds on the local platform.
 
-- [ ] **Step 3: Implement config store**
+Observed: `keytar` was added and `npm --prefix apps/crawclaw-admin-desktop run rebuild:native` passed.
+
+- [x] **Step 3: Implement config store**
 
 Store only non-sensitive values:
 
@@ -670,7 +674,7 @@ export interface DesktopConfig {
 }
 ```
 
-- [ ] **Step 4: Implement credential store**
+- [x] **Step 4: Implement credential store**
 
 Expose:
 
@@ -687,19 +691,23 @@ export async function deleteGatewaySecret(profileId: string): Promise<void>;
 
 Do not log credential values.
 
-- [ ] **Step 5: Wire credentials into backend launch**
+- [x] **Step 5: Wire credentials into backend launch**
 
 Load the active profile before `startAdminBackend()` and pass `CRAWCLAW_WS_URL`, `CRAWCLAW_AUTH_TOKEN`, and `CRAWCLAW_AUTH_PASSWORD` in the backend environment.
 
-- [ ] **Step 6: Build**
+- [x] **Step 6: Build**
 
 Run: `npm --prefix apps/crawclaw-admin-desktop run build`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+Observed: build passed. `npm --prefix apps/crawclaw-admin-desktop run pack` also passed and verified the packaged admin resources. A read-only subagent review returned PASS and confirmed secrets are not written to desktop config or logs by the new desktop package code.
 
-Run: `scripts/committer "Admin desktop: add config and credential stores" apps/crawclaw-admin-desktop`
+- [x] **Step 7: Commit**
+
+Run: `scripts/committer "Admin desktop: add config and credential stores" apps/crawclaw-admin-desktop/electron-builder.yml apps/crawclaw-admin-desktop/package.json apps/crawclaw-admin-desktop/package-lock.json apps/crawclaw-admin-desktop/src/main.ts apps/crawclaw-admin-desktop/src/config-store.ts apps/crawclaw-admin-desktop/src/config-store.test.ts apps/crawclaw-admin-desktop/src/credential-store.ts apps/crawclaw-admin-desktop/src/credential-store.test.ts`
+
+Committed as `4804ee06b`.
 
 ### Task 10: Add Electron Builder packaging
 
