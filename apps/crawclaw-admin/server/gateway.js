@@ -79,7 +79,7 @@ export class CrawClawGateway extends EventEmitter {
 
       this.ws.on('message', (data) => {
         this.debug('Received message:', data.toString().substring(0, 500))
-        this.handleMessage(data)
+        this.handleMessage(data, generation)
       })
 
       this.ws.on('close', (code, reason) => {
@@ -269,7 +269,9 @@ export class CrawClawGateway extends EventEmitter {
       .join('')
   }
 
-  handleMessage(data) {
+  handleMessage(data, generation = this.connectionGeneration) {
+    if (generation !== this.connectionGeneration) {return}
+
     try {
       const frame = JSON.parse(data.toString())
 

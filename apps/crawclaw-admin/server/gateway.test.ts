@@ -28,11 +28,34 @@ describe('CrawClawGateway disconnect', () => {
 
     const staleGeneration = gateway.connectionGeneration
     gateway.disconnect()
-    await gateway.connect()
+    gateway.connectionGeneration += 1
     gateway.isConnected = true
     gateway.handleDisconnect(1000, 'stale close', staleGeneration)
 
     expect(scheduled).toBe(false)
     expect(gateway.isConnected).toBe(true)
+  })
+
+  it('ignores stale connect challenge messages after reconnecting the same instance', () => {
+    const gateway = new CrawClawGateway('ws://localhost:18789', '', '')
+    let sentConnect = false
+    gateway.sendConnect = () => {
+      sentConnect = true
+    }
+
+    const staleGeneration = gateway.connectionGeneration
+    gateway.connectionGeneration += 1
+
+    gateway.handleMessage(
+      JSON.stringify({
+        type: 'event',
+        event: 'connect.challenge',
+        payload: { nonce: 'stale-nonce' },
+      }),
+      staleGeneration
+    )
+
+    expect(gateway.nonce).toBe(null)
+    expect(sentConnect).toBe(false)
   })
 })

@@ -235,10 +235,12 @@ function createGatewayFromConfig() {
 
 function attachGatewayHandlers(targetGateway) {
   targetGateway.on('connected', () => {
+    if (targetGateway !== gateway) {return}
     console.log('[Gateway] Connected to CrawClaw')
   })
 
   targetGateway.on('version', (info) => {
+    if (targetGateway !== gateway) {return}
     debug('Gateway version info:', info)
     updateInfo = info
     gatewayVersion = info.currentVersion
@@ -246,22 +248,26 @@ function attachGatewayHandlers(targetGateway) {
   })
 
   targetGateway.on('disconnected', () => {
+    if (targetGateway !== gateway) {return}
     console.log('[Gateway] Disconnected from CrawClaw')
     gatewayVersion = null
     broadcastSSE({ type: 'gatewayState', state: 'disconnected' })
   })
 
   targetGateway.on('error', (err) => {
+    if (targetGateway !== gateway) {return}
     console.error('[Gateway] Error:', err.message)
     debug('Error stack:', err.stack)
   })
 
   targetGateway.on('event', (event, payload) => {
+    if (targetGateway !== gateway) {return}
     debug('Gateway event:', event, 'payload keys:', payload ? Object.keys(payload) : null)
     broadcastSSE({ type: 'event', event, payload })
   })
 
   targetGateway.on('stateChange', (state) => {
+    if (targetGateway !== gateway) {return}
     debug('Gateway state changed to:', state)
     broadcastSSE({ type: 'gatewayState', state })
   })
