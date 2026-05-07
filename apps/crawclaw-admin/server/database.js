@@ -2,13 +2,18 @@ import Database from 'better-sqlite3'
 import { join, dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { mkdirSync } from 'fs'
+import { resolveAdminPaths } from './admin-paths.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const dataDir = process.env.CRAWCLAW_ADMIN_DATA_DIR
-  ? resolve(process.env.CRAWCLAW_ADMIN_DATA_DIR)
-  : join(__dirname, '../data')
+const adminPaths = resolveAdminPaths()
+const dataDir =
+  process.env.CRAWCLAW_ADMIN_DATA_DIR
+    ? resolve(process.env.CRAWCLAW_ADMIN_DATA_DIR)
+    : adminPaths.runtimeMode === 'desktop'
+      ? resolve(adminPaths.dataDir)
+      : join(__dirname, '../data')
 mkdirSync(dataDir, { recursive: true })
 const dbPath = join(dataDir, 'wizard.db')
 

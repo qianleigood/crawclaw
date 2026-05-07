@@ -66,13 +66,7 @@ function buildServerRuntimeEnv() {
   })
 }
 
-let gateway = new CrawClawGateway(
-  envConfig.CRAWCLAW_WS_URL,
-  envConfig.CRAWCLAW_AUTH_TOKEN,
-  envConfig.CRAWCLAW_AUTH_PASSWORD,
-  envConfig.LOG_LEVEL,
-  currentLocale
-)
+let gateway = createGatewayFromConfig()
 const n8nService = new N8nService(buildServerRuntimeEnv(), console)
 
 function refreshN8nRuntimeEnv() {
@@ -220,38 +214,66 @@ setInterval(cleanupOrphanedHermesCliSessions, 5 * 60 * 1000)
 let gatewayVersion = null
 let updateInfo = null
 
-gateway.on('connected', () => {
-  console.log('[Gateway] Connected to CrawClaw')
-})
+function createGatewayFromConfig() {
+  return new CrawClawGateway(
+    envConfig.CRAWCLAW_WS_URL,
+    envConfig.CRAWCLAW_AUTH_TOKEN,
+    envConfig.CRAWCLAW_AUTH_PASSWORD,
+    envConfig.LOG_LEVEL,
+    currentLocale
+  )
+}
 
-gateway.on('version', (info) => {
-  debug('Gateway version info:', info)
-  updateInfo = info
-  gatewayVersion = info.currentVersion
-  broadcastSSE({ type: 'gatewayState', state: 'connected', version: info.currentVersion, updateAvailable: info })
-})
+function attachGatewayHandlers(targetGateway) {
+  targetGateway.on('connected', () => {
+    console.log('[Gateway] Connected to CrawClaw')
+  })
 
-gateway.on('disconnected', () => {
-  console.log('[Gateway] Disconnected from CrawClaw')
-  gatewayVersion = null
-  broadcastSSE({ type: 'gatewayState', state: 'disconnected' })
-})
+  targetGateway.on('version', (info) => {
+    debug('Gateway version info:', info)
+    updateInfo = info
+    gatewayVersion = info.currentVersion
+    broadcastSSE({ type: 'gatewayState', state: 'connected', version: info.currentVersion, updateAvailable: info })
+  })
 
-gateway.on('error', (err) => {
-  console.error('[Gateway] Error:', err.message)
-  debug('Error stack:', err.stack)
-})
+  targetGateway.on('disconnected', () => {
+    console.log('[Gateway] Disconnected from CrawClaw')
+    gatewayVersion = null
+    broadcastSSE({ type: 'gatewayState', state: 'disconnected' })
+  })
 
-gateway.on('event', (event, payload) => {
-  debug('Gateway event:', event, 'payload keys:', payload ? Object.keys(payload) : null)
-  broadcastSSE({ type: 'event', event, payload })
-})
+  targetGateway.on('error', (err) => {
+    console.error('[Gateway] Error:', err.message)
+    debug('Error stack:', err.stack)
+  })
 
-gateway.on('stateChange', (state) => {
-  debug('Gateway state changed to:', state)
-  broadcastSSE({ type: 'gatewayState', state })
-})
+  targetGateway.on('event', (event, payload) => {
+    debug('Gateway event:', event, 'payload keys:', payload ? Object.keys(payload) : null)
+    broadcastSSE({ type: 'event', event, payload })
+  })
 
+  targetGateway.on('stateChange', (state) => {
+    debug('Gateway state changed to:', state)
+    broadcastSSE({ type: 'gatewayState', state })
+  })
+}
+
+function reconnectGatewayForConfigChange(oldConfig) {
+  const wsUrlChanged = oldConfig.CRAWCLAW_WS_URL !== envConfig.CRAWCLAW_WS_URL
+  const tokenChanged = oldConfig.CRAWCLAW_AUTH_TOKEN !== envConfig.CRAWCLAW_AUTH_TOKEN
+  const passwordChanged = oldConfig.CRAWCLAW_AUTH_PASSWORD !== envConfig.CRAWCLAW_AUTH_PASSWORD
+
+  if (!wsUrlChanged && !tokenChanged && !passwordChanged) {return false}
+
+  console.log('[Config] Gateway config changed, reconnecting...')
+  gateway.disconnect()
+  gateway = createGatewayFromConfig()
+  attachGatewayHandlers(gateway)
+  gateway.connect()
+  return true
+}
+
+attachGatewayHandlers(gateway)
 debug('Connecting to Gateway at:', envConfig.CRAWCLAW_WS_URL)
 gateway.connect()
 ensureN8nStartedAndBroadcast().catch((error) => {
@@ -391,11 +413,12 @@ function ensureParentDir(filePath) {
   mkdirSync(dirname(filePath), { recursive: true })
 }
 
-function applyDesktopConfigToProcessEnv(config) {
-  if (envConfig.paths.runtimeMode !== 'desktop') {return}
-  for (const [key, value] of Object.entries(config)) {
-    process.env[key] = value
-  }
+function reloadAdminRuntimeConfig(configPath) {
+  const oldConfig = { ...envConfig }
+  envConfig = loadAdminRuntimeConfig(process.env, { envPath: configPath })
+  currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || currentLocale)
+  refreshN8nRuntimeEnv()
+  return oldConfig
 }
 
 function persistCrawClawLocale(locale) {
@@ -412,10 +435,8 @@ function persistCrawClawLocale(locale) {
   removeLegacyCrawClawEnvKeys(existing)
   ensureParentDir(configPath)
   writeFileSync(configPath, stringifyEnvFile(existing), 'utf-8')
-  applyDesktopConfigToProcessEnv(existing)
-  envConfig = loadAdminRuntimeConfig(process.env, { envPath: configPath })
+  reloadAdminRuntimeConfig(configPath)
   currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || locale)
-  refreshN8nRuntimeEnv()
   return true
 }
 
@@ -486,47 +507,9 @@ app.post('/api/config', authMiddleware, (req, res) => {
     const newContent = stringifyEnvFile(existing)
     ensureParentDir(configPath)
     writeFileSync(configPath, newContent, 'utf-8')
-    applyDesktopConfigToProcessEnv(existing)
     
-    const oldConfig = { ...envConfig }
-    envConfig = loadAdminRuntimeConfig(process.env, { envPath: configPath })
-    currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || currentLocale)
-    refreshN8nRuntimeEnv()
-    
-    const wsUrlChanged = oldConfig.CRAWCLAW_WS_URL !== envConfig.CRAWCLAW_WS_URL
-    const tokenChanged = oldConfig.CRAWCLAW_AUTH_TOKEN !== envConfig.CRAWCLAW_AUTH_TOKEN
-    const passwordChanged = oldConfig.CRAWCLAW_AUTH_PASSWORD !== envConfig.CRAWCLAW_AUTH_PASSWORD
-    
-    if (wsUrlChanged || tokenChanged || passwordChanged) {
-      console.log('[Config] Gateway config changed, reconnecting...')
-      gateway.disconnect()
-      gateway = new CrawClawGateway(
-        envConfig.CRAWCLAW_WS_URL,
-        envConfig.CRAWCLAW_AUTH_TOKEN,
-        envConfig.CRAWCLAW_AUTH_PASSWORD,
-        envConfig.LOG_LEVEL,
-        currentLocale
-      )
-      
-      gateway.on('connected', (info) => {
-        console.log('[Gateway] Connected to CrawClaw:', info?.server?.version)
-        broadcastSSE({ type: 'gatewayState', state: 'connected' })
-      })
-      gateway.on('disconnected', () => {
-        console.log('[Gateway] Disconnected from CrawClaw')
-        broadcastSSE({ type: 'gatewayState', state: 'disconnected' })
-      })
-      gateway.on('error', (err) => {
-        console.error('[Gateway] Error:', err.message)
-      })
-      gateway.on('event', (event, payload) => {
-        broadcastSSE({ type: 'event', event, payload })
-      })
-      gateway.on('stateChange', (state) => {
-        broadcastSSE({ type: 'gatewayState', state })
-      })
-      gateway.connect()
-    }
+    const oldConfig = reloadAdminRuntimeConfig(configPath)
+    reconnectGatewayForConfigChange(oldConfig)
     
     console.log('[Config] Configuration reloaded')
     res.json({ ok: true, message: 'Configuration saved and reloaded.' })
@@ -3755,6 +3738,8 @@ async function executeRestoreTask(taskId, filename) {
           copyFileSync(currentConfigPath, backupEnvPath)
         }
         copyFileSync(extractedEnv, currentConfigPath)
+        const oldConfig = reloadAdminRuntimeConfig(currentConfigPath)
+        reconnectGatewayForConfigChange(oldConfig)
         results.env = true
         console.log('[Restore] Environment config restored')
       } catch (e) {

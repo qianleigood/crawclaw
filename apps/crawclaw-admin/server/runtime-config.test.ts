@@ -118,6 +118,28 @@ describe('loadAdminRuntimeConfig', () => {
     expect(config.crawclawWsUrl).toBe('ws://desktop-gateway:18789')
   })
 
+  it('reads desktop persisted config values from CRAWCLAW_ADMIN_CONFIG_PATH', () => {
+    const configPath = writeEnvFile([
+      'CRAWCLAW_WS_URL=ws://persisted-gateway:18789',
+      'CRAWCLAW_AUTH_TOKEN=persisted-token',
+      'AUTH_USERNAME=persisted-admin',
+    ].join('\n'))
+
+    const config = loadAdminRuntimeConfig(
+      {
+        CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
+        CRAWCLAW_ADMIN_CONFIG_PATH: configPath,
+        CRAWCLAW_WS_URL: 'ws://stale-process-env:18789',
+        CRAWCLAW_AUTH_TOKEN: 'stale-token',
+      },
+      { platform: 'linux', homeDir: '/tmp/home' }
+    )
+
+    expect(config.crawclawWsUrl).toBe('ws://persisted-gateway:18789')
+    expect(config.crawclawAuthToken).toBe('persisted-token')
+    expect(config.authUsername).toBe('persisted-admin')
+  })
+
   it('stores the SQLite database under CRAWCLAW_ADMIN_DATA_DIR in desktop mode', async () => {
     const originalDataDir = process.env.CRAWCLAW_ADMIN_DATA_DIR
     const dataDir = join(makeTempDir(), 'desktop-data')
@@ -159,6 +181,71 @@ describe('loadAdminRuntimeConfig', () => {
         database.close()
       }
     } finally {
+      if (originalDataDir === undefined) {
+        delete process.env.CRAWCLAW_ADMIN_DATA_DIR
+      } else {
+        process.env.CRAWCLAW_ADMIN_DATA_DIR = originalDataDir
+      }
+      vi.doUnmock('better-sqlite3')
+      vi.resetModules()
+    }
+  })
+
+  it('stores the SQLite database under the default desktop state data dir', async () => {
+    const originalRuntimeMode = process.env.CRAWCLAW_ADMIN_RUNTIME_MODE
+    const originalStateDir = process.env.CRAWCLAW_ADMIN_STATE_DIR
+    const originalDataDir = process.env.CRAWCLAW_ADMIN_DATA_DIR
+    const stateDir = join(makeTempDir(), 'desktop-state')
+    process.env.CRAWCLAW_ADMIN_RUNTIME_MODE = 'desktop'
+    process.env.CRAWCLAW_ADMIN_STATE_DIR = stateDir
+    delete process.env.CRAWCLAW_ADMIN_DATA_DIR
+    vi.doMock('better-sqlite3', () => ({
+      default: class FakeDatabase {
+        name: string
+
+        constructor(name: string) {
+          this.name = name
+          writeFileSync(name, '')
+        }
+
+        pragma() {}
+
+        exec() {}
+
+        prepare() {
+          return {
+            all: () => [],
+            get: () => ({ count: 0 }),
+            run: () => {},
+          }
+        }
+
+        close() {}
+      },
+    }))
+
+    try {
+      const databaseUrl = new URL('./database.js', import.meta.url)
+      databaseUrl.search = `?desktop-state-dir-${Date.now()}`
+      const databaseModule = await import(databaseUrl.href)
+      const database = databaseModule.default
+      try {
+        expect(database.name).toBe(join(stateDir, 'data', 'wizard.db'))
+        expect(existsSync(join(stateDir, 'data', 'wizard.db'))).toBe(true)
+      } finally {
+        database.close()
+      }
+    } finally {
+      if (originalRuntimeMode === undefined) {
+        delete process.env.CRAWCLAW_ADMIN_RUNTIME_MODE
+      } else {
+        process.env.CRAWCLAW_ADMIN_RUNTIME_MODE = originalRuntimeMode
+      }
+      if (originalStateDir === undefined) {
+        delete process.env.CRAWCLAW_ADMIN_STATE_DIR
+      } else {
+        process.env.CRAWCLAW_ADMIN_STATE_DIR = originalStateDir
+      }
       if (originalDataDir === undefined) {
         delete process.env.CRAWCLAW_ADMIN_DATA_DIR
       } else {

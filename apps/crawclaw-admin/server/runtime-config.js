@@ -26,7 +26,8 @@ const CRAWCLAW_ENV_KEYS = [
 export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
   const paths = resolveAdminPaths(env, opts)
   const envPath = opts.envPath || DEFAULT_ENV_PATH
-  const parsed = paths.runtimeMode === 'desktop' ? env : readDotEnv(envPath, env)
+  const parsed =
+    paths.runtimeMode === 'desktop' ? readDesktopConfig(paths.configPath, env) : readDotEnv(envPath, env)
   const port = Number(env.CRAWCLAW_ADMIN_PORT || parsed.PORT || 3001)
   const bindHost = resolveBindHost(paths.runtimeMode, env.CRAWCLAW_ADMIN_BIND_HOST)
   const crawclawWsUrl = readEnvValue(parsed, 'CRAWCLAW_WS_URL', 'ws://localhost:18789')
@@ -110,6 +111,11 @@ export function removeLegacyCrawClawEnvKeys(source) {
 
 function readDotEnv(envPath, fallbackEnv) {
   return existsSync(envPath) ? parse(readFileSync(envPath, 'utf-8')) : fallbackEnv
+}
+
+function readDesktopConfig(configPath, env) {
+  const persisted = existsSync(configPath) ? parse(readFileSync(configPath, 'utf-8')) : {}
+  return { ...env, ...persisted }
 }
 
 function resolveBindHost(runtimeMode, requestedHost) {
