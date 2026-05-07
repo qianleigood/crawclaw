@@ -8,6 +8,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, realpat
 import { CrawClawGateway } from './gateway.js'
 import { N8nService, normalizeAppLocale } from './n8n-service.js'
 import { buildDesktopCapabilities, desktopServerPlatform } from './desktop-capabilities.js'
+import { runAdminUpdate } from './update-mode.js'
 import {
   loadAdminRuntimeConfig,
   normalizeCrawClawEnvSnapshot,
@@ -598,27 +599,23 @@ app.get('/api/npm/versions', async (req, res) => {
 app.post('/api/npm/update', async (req, res) => {
   try {
     const { version } = req.body
-    const requestedVersion = typeof version === 'string' ? version.trim() : ''
-    const packageSpec = requestedVersion
-      ? `${CRAWCLAW_PACKAGE_NAME}@${requestedVersion}`
-      : `${CRAWCLAW_PACKAGE_NAME}@latest`
-    
-    console.log(`[Server] Updating CrawClaw via npm: ${packageSpec}`)
-    
-    // 执行npm更新命令
-    const { execSync } = await import('child_process')
-    const output = execSync(`npm install -g ${packageSpec}`, {
-      encoding: 'utf8',
-      timeout: 120000 // 2分钟超时
+    const result = runAdminUpdate({
+      runtimeMode: envConfig.paths.runtimeMode,
+      packageName: CRAWCLAW_PACKAGE_NAME,
+      version,
+      execNpmUpdate(packageSpec) {
+        console.log(`[Server] Updating CrawClaw via npm: ${packageSpec}`)
+        return execSync(`npm install -g ${packageSpec}`, {
+          encoding: 'utf8',
+          timeout: 120000 // 2分钟超时
+        })
+      },
     })
-    
-    console.log('[Server] npm update output:', output)
-    
-    res.json({ 
-      ok: true, 
-      message: `Successfully updated to ${packageSpec}`,
-      output: output
-    })
+
+    if (result.updateMode === 'npm-global') {
+      console.log('[Server] npm update output:', result.output)
+    }
+    res.json(result)
   } catch (error) {
     console.error('[Server] Failed to update CrawClaw via npm:', error.message)
     res.status(500).json({ 
