@@ -934,7 +934,7 @@ Committed as `b667d238b`.
 
 - All files touched by Tasks 1 through 13.
 
-- [ ] **Step 1: Run focused admin backend tests**
+- [x] **Step 1: Run focused admin backend tests**
 
 Run:
 
@@ -944,7 +944,7 @@ pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/crawclaw-a
 
 Expected: PASS.
 
-- [ ] **Step 2: Run focused admin frontend tests**
+- [x] **Step 2: Run focused admin frontend tests**
 
 Run:
 
@@ -954,7 +954,7 @@ pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/crawclaw-a
 
 Expected: PASS.
 
-- [ ] **Step 3: Build admin and desktop**
+- [x] **Step 3: Build admin and desktop**
 
 Run:
 
@@ -965,7 +965,7 @@ npm --prefix apps/crawclaw-admin-desktop run build
 
 Expected: PASS.
 
-- [ ] **Step 4: Run local desktop pack**
+- [x] **Step 4: Run local desktop pack**
 
 Run:
 
@@ -975,7 +975,7 @@ npm --prefix apps/crawclaw-admin-desktop run pack
 
 Expected: local platform package directory is produced.
 
-- [ ] **Step 5: Run repo gates**
+- [x] **Step 5: Run repo gates**
 
 Run:
 
@@ -987,7 +987,9 @@ git diff --check -- apps/crawclaw-admin apps/crawclaw-admin-desktop scripts .git
 
 Expected: all commands pass. If unrelated repo-wide failures appear, capture the first unrelated failure and rerun the focused gates before asking whether to broaden scope.
 
-- [ ] **Step 6: Manual smoke**
+Observed: focused backend tests passed with 3 files / 26 tests. Focused frontend tests passed, and the final focused rerun passed with 9 files / 37 tests. `npm --prefix apps/crawclaw-admin run build`, `npm --prefix apps/crawclaw-admin-desktop run build`, `npm --prefix apps/crawclaw-admin-desktop run pack`, `pnpm build`, and scoped `git diff --check` passed. `pnpm check` failed in unrelated memory code at `src/cli/memory-cli.runtime.ts` and `src/gateway/server-methods/memory.ts` with an existing `DurableMemoryScope | undefined` type error; the touched admin desktop gates were rerun afterward and passed.
+
+- [x] **Step 6: Manual smoke**
 
 Run the packaged desktop app locally and verify:
 
@@ -1000,10 +1002,14 @@ Run the packaged desktop app locally and verify:
 - Backup create/download flow works
 - app quit stops backend runtime
 
-- [ ] **Step 7: Final commit if needed**
+Observed: packaged macOS app launched from `apps/crawclaw-admin-desktop/out/mac-arm64/CrawClaw Admin.app`, backend reached `/api/health`, Files listed the workspace, Terminal created a PTY SSE session, Backup create/download completed, and quitting the app stopped the backend health port. Gateway connection was not authenticated because the local Gateway requires a token and no token was provided for the smoke.
+
+- [x] **Step 7: Final commit if needed**
 
 If integration fixes were needed after Task 13, commit them with:
 
 ```bash
 scripts/committer "Admin desktop: finish beta integration" <changed-files>
 ```
+
+Committed as final integration fix after increasing the desktop backend health wait budget for packaged startup.

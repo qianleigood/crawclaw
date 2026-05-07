@@ -118,7 +118,7 @@ async function waitForBackendHealth(
   url: string,
   getExitCode: () => number | null | undefined
 ): Promise<void> {
-  const deadline = Date.now() + 15_000
+  const deadline = Date.now() + 60_000
   const healthUrl = `${url}/api/health`
 
   while (Date.now() < deadline) {
