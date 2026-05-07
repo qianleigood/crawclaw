@@ -18,4 +18,13 @@ describe('N8nService runtime env updates', () => {
     expect(service.env.CRAWCLAW_N8N_PORT).toBe('5680')
     expect(restartedLocale).toBe('zh-CN')
   })
+
+  it('clears stale external running state when env changes', async () => {
+    const service = new N8nService({ CRAWCLAW_N8N_MANAGED: 'true', CRAWCLAW_N8N_PORT: '5679' })
+    service.externalRunning = true
+
+    await service.updateEnv({ CRAWCLAW_N8N_MANAGED: 'true', CRAWCLAW_N8N_PORT: '5680' })
+
+    expect(service.externalRunning).toBe(false)
+  })
 })

@@ -27,6 +27,7 @@ export class CrawClawGateway extends EventEmitter {
     this.heartbeatTimer = null
     this.deviceIdentity = null
     this.intentionalDisconnect = false
+    this.connectionGeneration = 0
   }
 
   debug(...args) {
@@ -41,6 +42,8 @@ export class CrawClawGateway extends EventEmitter {
 
   async connect() {
     this.intentionalDisconnect = false
+    this.connectionGeneration += 1
+    const generation = this.connectionGeneration
     if (this.ws) {
       this.ws.close()
     }
@@ -81,7 +84,7 @@ export class CrawClawGateway extends EventEmitter {
 
       this.ws.on('close', (code, reason) => {
         this.debug('WebSocket closed:', { code, reason: reason.toString() })
-        this.handleDisconnect(code, reason.toString())
+        this.handleDisconnect(code, reason.toString(), generation)
       })
 
       this.ws.on('error', (err) => {
@@ -353,7 +356,8 @@ export class CrawClawGateway extends EventEmitter {
     }
   }
 
-  handleDisconnect(code, reason) {
+  handleDisconnect(code, reason, generation = this.connectionGeneration) {
+    if (generation !== this.connectionGeneration) {return}
     this.isConnected = false
     this.connectSent = false
     this.connectId = null

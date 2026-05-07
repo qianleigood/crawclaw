@@ -175,6 +175,7 @@ export class N8nService {
   async updateEnv(env, options = {}) {
     const shouldRestart = options.restartManaged && this.process && !this.process.killed
     this.env = env
+    this.externalRunning = false
     if (shouldRestart) {
       await this.restart(options.locale || this.locale)
     }
