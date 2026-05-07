@@ -888,7 +888,7 @@ Committed as `317215766`.
 - Modify `apps/crawclaw-admin/README.md`
 - Modify `apps/crawclaw-admin/README.en.md`
 
-- [ ] **Step 1: Write docs page**
+- [x] **Step 1: Write docs page**
 
 Create `docs/install/desktop.md` covering:
 
@@ -901,15 +901,15 @@ Create `docs/install/desktop.md` covering:
 - beta limitations
 - update behavior
 
-- [ ] **Step 2: Add docs navigation**
+- [x] **Step 2: Add docs navigation**
 
 Add the page to `docs/docs.json` near other install surfaces.
 
-- [ ] **Step 3: Update admin READMEs**
+- [x] **Step 3: Update admin READMEs**
 
 Mention the desktop app as the packaged form of `apps/crawclaw-admin` and keep the web development instructions intact.
 
-- [ ] **Step 4: Run docs checks**
+- [x] **Step 4: Run docs checks**
 
 Run:
 
@@ -920,9 +920,13 @@ pnpm lint:docs
 
 Expected: both commands pass.
 
-- [ ] **Step 5: Commit**
+Observed: `pnpm format:docs:check`, `pnpm lint:docs`, and the extra `pnpm docs:check-i18n-glossary` check passed.
 
-Run: `scripts/committer "Docs: add admin desktop packaging guide" docs/install/desktop.md docs/docs.json apps/crawclaw-admin/README.md apps/crawclaw-admin/README.en.md`
+- [x] **Step 5: Commit**
+
+Run: `scripts/committer "Docs: add admin desktop packaging guide" docs/install/desktop.md docs/docs.json docs/.i18n/glossary.zh-CN.json apps/crawclaw-admin/README.md apps/crawclaw-admin/README.en.md`
+
+Committed as `b667d238b`.
 
 ### Task 14: Final integration gate
 
