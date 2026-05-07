@@ -344,7 +344,7 @@ Committed as `a40e632aa`.
 - Modify `apps/crawclaw-admin/server/index.js`
 - Create or extend `apps/crawclaw-admin/server/runtime-config.test.ts`
 
-- [ ] **Step 1: Add desktop update behavior test**
+- [x] **Step 1: Add desktop update behavior test**
 
 Add a test or server-level helper test proving desktop mode returns a structured desktop-update response instead of executing `npm install -g`.
 
@@ -352,7 +352,7 @@ Run: `pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/craw
 
 Expected: FAIL until the helper exists.
 
-- [ ] **Step 2: Extract update decision helper**
+- [x] **Step 2: Extract update decision helper**
 
 Add a small helper in `index.js` or a local server module:
 
@@ -364,7 +364,7 @@ function resolveUpdateMode(runtimeMode) {
 
 Use it in `/api/npm/update`.
 
-- [ ] **Step 3: Return desktop update response**
+- [x] **Step 3: Return desktop update response**
 
 When update mode is `desktop-release`, return:
 
@@ -378,7 +378,7 @@ When update mode is `desktop-release`, return:
 
 Do not invoke `execSync` in this branch.
 
-- [ ] **Step 4: Run tests and build**
+- [x] **Step 4: Run tests and build**
 
 Run:
 
@@ -389,9 +389,11 @@ npm --prefix apps/crawclaw-admin run build
 
 Expected: both commands pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run: `scripts/committer "Admin desktop: disable npm updates in desktop mode" apps/crawclaw-admin/server/index.js apps/crawclaw-admin/server/runtime-config.test.ts`
+
+Committed as `4c57100af`.
 
 ### Task 6: Add frontend desktop capability access
 
