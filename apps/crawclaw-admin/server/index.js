@@ -7,7 +7,12 @@ import { dirname, join, resolve, basename, extname, sep, relative as pathRelativ
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, realpathSync, mkdirSync, rmSync, unlinkSync, stat, promises as fsPromises, createReadStream, createWriteStream, copyFileSync, readlinkSync, symlinkSync, renameSync } from 'fs'
 import { CrawClawGateway } from './gateway.js'
 import { N8nService, normalizeAppLocale } from './n8n-service.js'
-import { parse } from 'dotenv'
+import {
+  loadAdminRuntimeConfig,
+  normalizeCrawClawEnvSnapshot,
+  readEnvValue,
+  removeLegacyCrawClawEnvKeys,
+} from './runtime-config.js'
 import os from 'os'
 import multer from 'multer'
 import checkDiskSpace from 'check-disk-space'
@@ -19,83 +24,12 @@ import hermesProxyRouter, { initHermesConfig, setAuthMiddleware } from './hermes
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const envPath = join(__dirname, '../.env')
-const LEGACY_CRAWCLAW_PREFIX = ['OPEN', 'CLAW'].join('')
-const CRAWCLAW_ENV_PREFIX = 'CRAWCLAW_'
-const CRAWCLAW_ENV_KEYS = [
-  'CRAWCLAW_WS_URL',
-  'CRAWCLAW_AUTH_TOKEN',
-  'CRAWCLAW_AUTH_PASSWORD',
-  'CRAWCLAW_LOCALE',
-  'CRAWCLAW_HOME',
-  'CRAWCLAW_N8N_MANAGED',
-  'CRAWCLAW_N8N_BIN',
-  'CRAWCLAW_N8N_HOST',
-  'CRAWCLAW_N8N_PORT',
-  'CRAWCLAW_N8N_USER_FOLDER',
-]
-
-function legacyCrawClawEnvKey(key) {
-  if (!key.startsWith(CRAWCLAW_ENV_PREFIX)) {return key}
-  return `${LEGACY_CRAWCLAW_PREFIX}_${key.slice(CRAWCLAW_ENV_PREFIX.length)}`
-}
-
-function readEnvValue(source, key, fallback = undefined) {
-  const value = source[key] ?? source[legacyCrawClawEnvKey(key)]
-  return value === undefined ? fallback : value
-}
-
-function normalizeCrawClawEnvSnapshot(source) {
-  const normalized = { ...source }
-  for (const key of CRAWCLAW_ENV_KEYS) {
-    const legacyKey = legacyCrawClawEnvKey(key)
-    if (normalized[key] === undefined && normalized[legacyKey] !== undefined) {
-      normalized[key] = normalized[legacyKey]
-    }
-  }
-  return normalized
-}
-
-function removeLegacyCrawClawEnvKeys(source) {
-  for (const key of CRAWCLAW_ENV_KEYS) {
-    delete source[legacyCrawClawEnvKey(key)]
-  }
-}
-
 function resolveCrawClawHome() {
   return readEnvValue(process.env, 'CRAWCLAW_HOME', '')
 }
 
-function loadEnvConfig() {
-  const parsed = existsSync(envPath)
-    ? parse(readFileSync(envPath, 'utf-8'))
-    : process.env
-  return {
-    PORT: parsed.PORT || 3001,
-    CRAWCLAW_WS_URL: readEnvValue(parsed, 'CRAWCLAW_WS_URL', 'ws://localhost:18789'),
-    CRAWCLAW_AUTH_TOKEN: readEnvValue(parsed, 'CRAWCLAW_AUTH_TOKEN', ''),
-    CRAWCLAW_AUTH_PASSWORD: readEnvValue(parsed, 'CRAWCLAW_AUTH_PASSWORD', ''),
-    CRAWCLAW_LOCALE: readEnvValue(parsed, 'CRAWCLAW_LOCALE', ''),
-    CRAWCLAW_HOME: readEnvValue(parsed, 'CRAWCLAW_HOME', ''),
-    CRAWCLAW_N8N_MANAGED: readEnvValue(parsed, 'CRAWCLAW_N8N_MANAGED'),
-    CRAWCLAW_N8N_BIN: readEnvValue(parsed, 'CRAWCLAW_N8N_BIN', ''),
-    CRAWCLAW_N8N_HOST: readEnvValue(parsed, 'CRAWCLAW_N8N_HOST', ''),
-    CRAWCLAW_N8N_PORT: readEnvValue(parsed, 'CRAWCLAW_N8N_PORT', ''),
-    CRAWCLAW_N8N_USER_FOLDER: readEnvValue(parsed, 'CRAWCLAW_N8N_USER_FOLDER', ''),
-    DEV_FRONTEND_URL: parsed.DEV_FRONTEND_URL || 'http://localhost:3000',
-    AUTH_USERNAME: parsed.AUTH_USERNAME || '',
-    AUTH_PASSWORD: parsed.AUTH_PASSWORD || '',
-    MEDIA_DIR: parsed.MEDIA_DIR || '',
-    LOG_LEVEL: parsed.LOG_LEVEL || 'INFO',
-    HERMES_WEB_URL: parsed.HERMES_WEB_URL || '',
-    HERMES_API_URL: parsed.HERMES_API_URL || '',
-    HERMES_API_KEY: parsed.HERMES_API_KEY || '',
-    HERMES_CLI_PATH: parsed.HERMES_CLI_PATH || '',
-    HERMES_HOME: parsed.HERMES_HOME || '',
-  }
-}
-
-let envConfig = loadEnvConfig()
+let envConfig = loadAdminRuntimeConfig()
+const envPath = envConfig.envPath
 let currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || readEnvValue(process.env, 'CRAWCLAW_LOCALE', '') || process.env.CRAWCLAW_LANG || process.env.LANG)
 
 const isDebug = envConfig.LOG_LEVEL === 'DEBUG'
@@ -460,7 +394,7 @@ function persistCrawClawLocale(locale) {
   existing.CRAWCLAW_LOCALE = locale
   removeLegacyCrawClawEnvKeys(existing)
   writeFileSync(envPath, stringifyEnvFile(existing), 'utf-8')
-  envConfig = loadEnvConfig()
+  envConfig = loadAdminRuntimeConfig(process.env, { envPath })
   currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || locale)
   refreshN8nRuntimeEnv()
   return true
@@ -532,7 +466,7 @@ app.post('/api/config', authMiddleware, (req, res) => {
     writeFileSync(envPath, newContent, 'utf-8')
     
     const oldConfig = { ...envConfig }
-    envConfig = loadEnvConfig()
+    envConfig = loadAdminRuntimeConfig(process.env, { envPath })
     currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || currentLocale)
     refreshN8nRuntimeEnv()
     
@@ -4276,8 +4210,9 @@ if (hasDist) {
   })
 }
 
-server.listen(envConfig.PORT, () => {
-  console.log(`Server running on http://localhost:${envConfig.PORT}`)
+server.listen(envConfig.port, envConfig.bindHost, () => {
+  const displayHost = envConfig.bindHost === '0.0.0.0' ? 'localhost' : envConfig.bindHost
+  console.log(`Server running on http://${displayHost}:${envConfig.port}`)
   console.log(`CrawClaw Gateway: ${envConfig.CRAWCLAW_WS_URL}`)
   if (isAuthEnabled()) {
     console.log(`Auth enabled: user "${envConfig.AUTH_USERNAME}"`)
