@@ -718,7 +718,7 @@ Committed as `4804ee06b`.
 - Modify `scripts/admin-desktop-build.mjs`
 - Modify root `package.json`
 
-- [ ] **Step 1: Add Electron Builder config**
+- [x] **Step 1: Add Electron Builder config**
 
 Create config with:
 
@@ -730,7 +730,9 @@ Create config with:
 - win target `nsis`
 - linux target `AppImage`
 
-- [ ] **Step 2: Add build script**
+Observed: Electron Builder config was added earlier with the host package commit and validated by `admin:desktop:pack`.
+
+- [x] **Step 2: Add build script**
 
 Create `scripts/admin-desktop-build.mjs` to:
 
@@ -740,7 +742,7 @@ Create `scripts/admin-desktop-build.mjs` to:
 4. run `npm --prefix apps/crawclaw-admin-desktop run rebuild:native`
 5. run `npm --prefix apps/crawclaw-admin-desktop run dist`
 
-- [ ] **Step 3: Add root scripts**
+- [x] **Step 3: Add root scripts**
 
 Add:
 
@@ -751,7 +753,7 @@ Add:
 "admin:desktop:dist": "node scripts/admin-desktop-build.mjs"
 ```
 
-- [ ] **Step 4: Run local package check**
+- [x] **Step 4: Run local package check**
 
 Run:
 
@@ -762,9 +764,13 @@ npm --prefix apps/crawclaw-admin-desktop run pack
 
 Expected: desktop directory package is produced for the local platform.
 
-- [ ] **Step 5: Commit**
+Observed: `pnpm admin:desktop:build` and `pnpm admin:desktop:pack` passed. The directory package was checked for bundled admin backend, frontend, and `express` dependency resources.
+
+- [x] **Step 5: Commit**
 
 Run: `scripts/committer "Admin desktop: add packaging config" apps/crawclaw-admin-desktop/electron-builder.yml apps/crawclaw-admin-desktop/package.json apps/crawclaw-admin-desktop/package-lock.json scripts/admin-desktop-build.mjs package.json`
+
+Committed as `ec356d51a`.
 
 ### Task 11: Add desktop release checks
 
