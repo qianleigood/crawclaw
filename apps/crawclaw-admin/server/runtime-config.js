@@ -39,7 +39,7 @@ export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
   const crawclawStateDir = readEnvValue(
     parsed,
     'CRAWCLAW_STATE_DIR',
-    paths.runtimeMode === 'desktop' ? paths.stateDir : ''
+    readEnvValue(env, 'CRAWCLAW_STATE_DIR', paths.runtimeMode === 'desktop' ? paths.stateDir : '')
   )
   const crawclawN8nManaged = readEnvValue(parsed, 'CRAWCLAW_N8N_MANAGED')
   const crawclawN8nBin = readEnvValue(parsed, 'CRAWCLAW_N8N_BIN', '')
@@ -114,6 +114,13 @@ export function removeLegacyCrawClawEnvKeys(source) {
   for (const key of CRAWCLAW_ENV_KEYS) {
     delete source[legacyCrawClawEnvKey(key)]
   }
+}
+
+export function resolveCrawClawStateDir(env = process.env, opts = {}) {
+  const stateDir = env.CRAWCLAW_STATE_DIR?.trim()
+  if (stateDir) {return stateDir}
+  const homeDir = env.CRAWCLAW_HOME?.trim() || opts.homeDir || env.HOME || env.USERPROFILE || process.cwd()
+  return join(homeDir, '.crawclaw')
 }
 
 function readDotEnv(envPath, fallbackEnv) {

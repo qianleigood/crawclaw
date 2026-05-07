@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CrawClawGateway } from './gateway.js'
 
 describe('CrawClawGateway disconnect', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('does not schedule reconnect after an intentional disconnect close event', () => {
     const gateway = new CrawClawGateway('ws://localhost:18789', '', '')
     let scheduled = false
@@ -56,6 +60,29 @@ describe('CrawClawGateway disconnect', () => {
     )
 
     expect(gateway.nonce).toBe(null)
+    expect(sentConnect).toBe(false)
+  })
+
+  it('ignores stale open events after reconnecting the same instance', async () => {
+    vi.useFakeTimers()
+    const gateway = new CrawClawGateway('ws://localhost:18789', '', '')
+    let sentConnect = false
+    gateway.connectId = 'current-connect'
+    gateway.nonce = 'current-nonce'
+    gateway.connectSent = true
+    gateway.sendConnect = () => {
+      sentConnect = true
+    }
+
+    const staleGeneration = gateway.connectionGeneration
+    gateway.connectionGeneration += 1
+
+    gateway.handleOpen(staleGeneration)
+    await vi.advanceTimersByTimeAsync(500)
+
+    expect(gateway.connectId).toBe('current-connect')
+    expect(gateway.nonce).toBe('current-nonce')
+    expect(gateway.connectSent).toBe(true)
     expect(sentConnect).toBe(false)
   })
 })

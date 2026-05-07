@@ -12,6 +12,7 @@ import {
   normalizeCrawClawEnvSnapshot,
   readEnvValue,
   removeLegacyCrawClawEnvKeys,
+  resolveCrawClawStateDir,
 } from './runtime-config.js'
 import os from 'os'
 import multer from 'multer'
@@ -3172,26 +3173,29 @@ function broadcastBackupProgress(taskId, progress) {
 
 async function executeCrawClawBackup(outputPath) {
   return new Promise((resolve, reject) => {
-    const crawclawHome = envConfig.CRAWCLAW_HOME || resolveCrawClawHome()
+    const crawclawEnv = buildServerRuntimeEnv()
+    const crawclawHome = crawclawEnv.CRAWCLAW_HOME || resolveCrawClawHome()
+    if (crawclawHome) {
+      crawclawEnv.CRAWCLAW_HOME = crawclawHome
+      crawclawEnv.HOME = crawclawHome
+    }
     
     let command, args, spawnOptions
     
-    if (crawclawHome && process.platform !== 'win32') {
+    if (crawclawHome && envConfig.paths.runtimeMode !== 'desktop' && process.platform !== 'win32') {
       const username = crawclawHome.split('/').pop()
       console.log(`[Backup] Running as user '${username}' with full environment`)
       
       command = 'su'
       args = ['-', username, '-c', `crawclaw backup create --output ${outputPath}`]
-      spawnOptions = { stdio: ['ignore', 'pipe', 'pipe'] }
+      spawnOptions = { stdio: ['ignore', 'pipe', 'pipe'], env: crawclawEnv }
     } else {
       command = 'crawclaw'
       args = ['backup', 'create', '--output', outputPath]
       spawnOptions = {
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: process.platform === 'win32',
-        env: crawclawHome
-          ? { ...process.env, HOME: crawclawHome }
-          : process.env
+        env: crawclawEnv,
       }
       if (crawclawHome) {
         console.log(`[Backup] Using CRAWCLAW_HOME: ${crawclawHome}`)
@@ -3227,8 +3231,8 @@ async function executeCrawClawBackup(outputPath) {
 
 async function extractCrawClawBackup(backupPath, tempDir) {
   return new Promise((resolve, reject) => {
-    const homeDir = envConfig.CRAWCLAW_HOME || resolveCrawClawHome() || os.homedir()
-    const crawclawDir = join(homeDir, '.crawclaw')
+    const crawclawEnv = buildServerRuntimeEnv()
+    const crawclawDir = resolveCrawClawStateDir(crawclawEnv, { homeDir: os.homedir() })
     console.log('[Restore] Target CrawClaw directory:', crawclawDir)
 
     if (!existsSync(backupPath)) {

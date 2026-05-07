@@ -63,18 +63,7 @@ export class CrawClawGateway extends EventEmitter {
       this.ws = new WebSocket(wsUrl)
       
       this.ws.on('open', () => {
-        this.debug('WebSocket opened, preparing connect frame...')
-        this.connectId = `connect-${Date.now()}`
-        this.nonce = null
-        this.connectSent = false
-        this.emit('stateChange', 'connecting')
-        
-        setTimeout(() => {
-          if (!this.connectSent) {
-            this.debug('Sending connect frame (no challenge received)')
-            this.sendConnect()
-          }
-        }, 500)
+        this.handleOpen(generation)
       })
 
       this.ws.on('message', (data) => {
@@ -88,6 +77,7 @@ export class CrawClawGateway extends EventEmitter {
       })
 
       this.ws.on('error', (err) => {
+        if (generation !== this.connectionGeneration) {return}
         console.error('[Gateway] WebSocket error:', err.message)
         this.emit('error', err)
       })
@@ -96,6 +86,24 @@ export class CrawClawGateway extends EventEmitter {
       this.emit('error', err)
       this.scheduleReconnect()
     }
+  }
+
+  handleOpen(generation = this.connectionGeneration) {
+    if (generation !== this.connectionGeneration) {return}
+
+    this.debug('WebSocket opened, preparing connect frame...')
+    this.connectId = `connect-${Date.now()}`
+    this.nonce = null
+    this.connectSent = false
+    this.emit('stateChange', 'connecting')
+
+    setTimeout(() => {
+      if (generation !== this.connectionGeneration) {return}
+      if (!this.connectSent) {
+        this.debug('Sending connect frame (no challenge received)')
+        this.sendConnect()
+      }
+    }, 500)
   }
 
   async sendConnect() {

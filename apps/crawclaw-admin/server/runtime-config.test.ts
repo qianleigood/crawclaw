@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loadAdminRuntimeConfig } from './runtime-config.js'
+import { loadAdminRuntimeConfig, resolveCrawClawStateDir } from './runtime-config.js'
 import { N8nService } from './n8n-service.js'
 
 const tempDirs: string[] = []
@@ -154,6 +154,34 @@ describe('loadAdminRuntimeConfig', () => {
 
     expect(config.CRAWCLAW_STATE_DIR).toBe(stateDir)
     expect(service.resolveUserFolder()).toBe(join(stateDir, 'n8n'))
+  })
+
+  it('preserves the process CrawClaw state dir in web mode when .env omits it', () => {
+    const envPath = writeEnvFile('PORT=4123')
+    const stateDir = join(makeTempDir(), 'web-state')
+
+    const config = loadAdminRuntimeConfig(
+      {
+        HOME: '/tmp/home',
+        CRAWCLAW_STATE_DIR: stateDir,
+      },
+      { envPath, platform: 'linux', homeDir: '/tmp/home' }
+    )
+
+    expect(config.CRAWCLAW_STATE_DIR).toBe(stateDir)
+  })
+
+  it('resolves backup restore target from the desktop Admin state dir', () => {
+    const stateDir = join(makeTempDir(), 'desktop-state')
+    const config = loadAdminRuntimeConfig(
+      {
+        CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
+        CRAWCLAW_ADMIN_STATE_DIR: stateDir,
+      },
+      { platform: 'linux', homeDir: '/tmp/home' }
+    )
+
+    expect(resolveCrawClawStateDir(config, { homeDir: '/tmp/home' })).toBe(stateDir)
   })
 
   it('stores the SQLite database under CRAWCLAW_ADMIN_DATA_DIR in desktop mode', async () => {
