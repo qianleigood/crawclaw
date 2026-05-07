@@ -1,6 +1,8 @@
 import type { CliTranslations } from "./types.js";
 
 export const EN_CLI_TRANSLATIONS: CliTranslations = {
+  "After the device submits its request, approve it with crawclaw devices approve <requestId>.":
+    "After the device submits its request, approve it with crawclaw devices approve <requestId>.",
   "common.confirm": "Confirm",
   "common.cancel": "Cancel",
   "common.note": "Note",

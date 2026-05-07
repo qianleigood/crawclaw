@@ -1,6 +1,8 @@
 import type { CliTranslations } from "./types.js";
 
 export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
+  "After the device submits its request, approve it with crawclaw devices approve <requestId>.":
+    "设备提交请求后，使用 crawclaw devices approve <requestId> 批准它。",
   "common.confirm": "确认",
   "common.cancel": "取消",
   "common.note": "提示",
