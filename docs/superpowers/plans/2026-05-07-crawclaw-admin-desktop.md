@@ -525,12 +525,13 @@ Committed as `35c3fb211`.
 
 - Create `apps/crawclaw-admin-desktop/package.json`
 - Create `apps/crawclaw-admin-desktop/tsconfig.json`
+- Create `apps/crawclaw-admin-desktop/electron-builder.yml`
 - Create `apps/crawclaw-admin-desktop/src/main.ts`
 - Create `apps/crawclaw-admin-desktop/src/preload.ts`
 - Create `apps/crawclaw-admin-desktop/src/app-paths.ts`
 - Create `apps/crawclaw-admin-desktop/src/backend-launch.ts`
 
-- [ ] **Step 1: Create app-local package**
+- [x] **Step 1: Create app-local package**
 
 Create `package.json` with app-local npm scripts:
 
@@ -563,15 +564,17 @@ Run: `npm --prefix apps/crawclaw-admin-desktop install`
 
 Expected: `package-lock.json` is created.
 
-- [ ] **Step 2: Add TypeScript config**
+Observed: `package-lock.json` was created. `npm audit` reported 7 dependency advisories in the Electron dependency tree; no automatic audit fix was applied.
+
+- [x] **Step 2: Add TypeScript config**
 
 Create a strict Node/Electron-oriented `tsconfig.json` that emits to `dist`.
 
-- [ ] **Step 3: Implement app paths**
+- [x] **Step 3: Implement app paths**
 
 In `app-paths.ts`, export `resolveDesktopAppPaths(app)` returning `stateDir`, `configPath`, `dataDir`, `backupDir`, `logDir`, and `runtimeDir` from Electron's `app.getPath('userData')`.
 
-- [ ] **Step 4: Implement backend launcher**
+- [x] **Step 4: Implement backend launcher**
 
 In `backend-launch.ts`, export:
 
@@ -591,7 +594,7 @@ export async function startAdminBackend(params: {
 
 Use `utilityProcess.fork()` for the backend entry point. Select a free port before launch, pass it through `CRAWCLAW_ADMIN_PORT`, and wait for `/api/health`.
 
-- [ ] **Step 5: Implement main and preload**
+- [x] **Step 5: Implement main and preload**
 
 `main.ts` should:
 
@@ -604,15 +607,19 @@ Use `utilityProcess.fork()` for the backend entry point. Select a free port befo
 
 `preload.ts` should expose only host-owned helpers such as opening external URLs.
 
-- [ ] **Step 6: Build**
+- [x] **Step 6: Build**
 
 Run: `npm --prefix apps/crawclaw-admin-desktop run build`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+Observed: `npm --prefix apps/crawclaw-admin-desktop run build` passed. `npm --prefix apps/crawclaw-admin-desktop run pack` also passed after adding `electron-builder.yml`, packaged admin resources under `Resources/admin`, and the admin native dependency rebuild step. The packaged directory was checked for `admin/server/index.js`, `admin/dist/index.html`, and `admin/node_modules/express`, and the server test files were excluded. A read-only subagent review initially found the missing packaged backend resource as a blocker; the follow-up review returned PASS.
 
-Run: `scripts/committer "Admin desktop: add Electron host package" apps/crawclaw-admin-desktop/package.json apps/crawclaw-admin-desktop/package-lock.json apps/crawclaw-admin-desktop/tsconfig.json apps/crawclaw-admin-desktop/src/main.ts apps/crawclaw-admin-desktop/src/preload.ts apps/crawclaw-admin-desktop/src/app-paths.ts apps/crawclaw-admin-desktop/src/backend-launch.ts`
+- [x] **Step 7: Commit**
+
+Run: `scripts/committer "Admin desktop: add Electron host package" apps/crawclaw-admin-desktop/.gitignore apps/crawclaw-admin-desktop/package.json apps/crawclaw-admin-desktop/package-lock.json apps/crawclaw-admin-desktop/tsconfig.json apps/crawclaw-admin-desktop/electron-builder.yml apps/crawclaw-admin-desktop/src/main.ts apps/crawclaw-admin-desktop/src/preload.ts apps/crawclaw-admin-desktop/src/app-paths.ts apps/crawclaw-admin-desktop/src/backend-launch.ts`
+
+Committed as `709bbe958`.
 
 ### Task 9: Add desktop config and credential storage
 
