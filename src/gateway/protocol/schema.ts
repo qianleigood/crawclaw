@@ -6,6 +6,7 @@ export * from "./schema/cron.js";
 export * from "./schema/error-codes.js";
 export * from "./schema/exec-approvals.js";
 export * from "./schema/devices.js";
+export * from "./schema/esp32.js";
 export * from "./schema/frames.js";
 export * from "./schema/logs-chat.js";
 export * from "./schema/nodes.js";

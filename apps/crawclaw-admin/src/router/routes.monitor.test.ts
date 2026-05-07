@@ -8,10 +8,13 @@ describe('monitor route consolidation', () => {
     const children = mainRoute?.children || []
     const systemRoute = children.find((route) => route.name === 'System')
     const monitorRoute = children.find((route) => route.name === 'Monitor')
+    const esp32Route = children.find((route) => route.name === 'ESP32')
 
     expect(systemRoute?.redirect).toEqual({ name: 'Monitor' })
     expect(systemRoute?.meta?.hidden).toBe(true)
     expect(monitorRoute?.meta?.titleKey).toBe('routes.monitor')
+    expect(esp32Route?.path).toBe('esp32')
+    expect(esp32Route?.meta?.titleKey).toBe('routes.esp32')
   })
 
   it('renders legacy host metrics inside MonitorPage', () => {

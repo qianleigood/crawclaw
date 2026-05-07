@@ -71,6 +71,35 @@ async function writeState(stateDir: string, state: PairingSessionState): Promise
   await writeFile(filePath, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
 }
 
+export async function listEsp32PairingSessions(
+  stateDir: string,
+  nowMs: number = Date.now(),
+): Promise<Esp32PairingSession[]> {
+  const state = pruneExpired(await readState(stateDir), nowMs);
+  await writeState(stateDir, state);
+  return Object.values(state)
+    .toSorted((left, right) => right.issuedAtMs - left.issuedAtMs)
+    .map((entry) => ({
+      ...entry,
+      username: `pair:${entry.pairId}`,
+    }));
+}
+
+export async function revokeEsp32PairingSession(
+  stateDir: string,
+  pairId: string,
+  nowMs: number = Date.now(),
+): Promise<boolean> {
+  const state = pruneExpired(await readState(stateDir), nowMs);
+  if (!state[pairId]) {
+    await writeState(stateDir, state);
+    return false;
+  }
+  delete state[pairId];
+  await writeState(stateDir, state);
+  return true;
+}
+
 function pruneExpired(state: PairingSessionState, nowMs: number): PairingSessionState {
   const next: PairingSessionState = {};
   for (const [pairId, entry] of Object.entries(state)) {

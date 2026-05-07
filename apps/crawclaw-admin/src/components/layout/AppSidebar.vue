@@ -26,6 +26,7 @@ import {
   SettingsOutline,
   CodeSlashOutline,
   ImagesOutline,
+  HardwareChipOutline,
   VolumeHighOutline,
 } from '@vicons/ionicons5'
 import { NIcon } from 'naive-ui'
@@ -61,6 +62,7 @@ const iconMap: Record<string, unknown> = {
   SettingsOutline,
   CodeSlashOutline,
   ImagesOutline,
+  HardwareChipOutline,
   VolumeHighOutline,
 }
 

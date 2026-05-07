@@ -135,6 +135,16 @@ import {
   DeviceTokenRevokeParamsSchema,
   type DeviceTokenRotateParams,
   DeviceTokenRotateParamsSchema,
+  Esp32DeviceCommandSendParamsSchema,
+  Esp32DeviceGetParamsSchema,
+  Esp32DeviceRevokeParamsSchema,
+  Esp32DevicesListParamsSchema,
+  Esp32PairingRequestApproveParamsSchema,
+  Esp32PairingRequestRejectParamsSchema,
+  Esp32PairingSessionRevokeParamsSchema,
+  Esp32PairingRequestsListParamsSchema,
+  Esp32PairingStartParamsSchema,
+  Esp32StatusGetParamsSchema,
   type ExecApprovalsGetParams,
   ExecApprovalsGetParamsSchema,
   type ExecApprovalsNodeGetParams,
@@ -495,6 +505,24 @@ export const validateDeviceTokenRotateParams = ajv.compile<DeviceTokenRotatePara
 export const validateDeviceTokenRevokeParams = ajv.compile<DeviceTokenRevokeParams>(
   DeviceTokenRevokeParamsSchema,
 );
+export const validateEsp32StatusGetParams = ajv.compile(Esp32StatusGetParamsSchema);
+export const validateEsp32PairingStartParams = ajv.compile(Esp32PairingStartParamsSchema);
+export const validateEsp32PairingRequestsListParams = ajv.compile(
+  Esp32PairingRequestsListParamsSchema,
+);
+export const validateEsp32PairingRequestApproveParams = ajv.compile(
+  Esp32PairingRequestApproveParamsSchema,
+);
+export const validateEsp32PairingRequestRejectParams = ajv.compile(
+  Esp32PairingRequestRejectParamsSchema,
+);
+export const validateEsp32PairingSessionRevokeParams = ajv.compile(
+  Esp32PairingSessionRevokeParamsSchema,
+);
+export const validateEsp32DevicesListParams = ajv.compile(Esp32DevicesListParamsSchema);
+export const validateEsp32DeviceGetParams = ajv.compile(Esp32DeviceGetParamsSchema);
+export const validateEsp32DeviceRevokeParams = ajv.compile(Esp32DeviceRevokeParamsSchema);
+export const validateEsp32DeviceCommandSendParams = ajv.compile(Esp32DeviceCommandSendParamsSchema);
 export const validateExecApprovalsGetParams = ajv.compile<ExecApprovalsGetParams>(
   ExecApprovalsGetParamsSchema,
 );

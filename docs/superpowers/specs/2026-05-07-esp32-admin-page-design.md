@@ -373,6 +373,26 @@ channel-management store would mix unrelated state lifecycles, while reusing the
 node store would force ESP32 to imitate a generic node pairing model that does
 not actually match the bundled ESP32 plugin.
 
+## Internationalization
+
+The page must fully participate in the existing admin language-switching model.
+`ESP32` should not become an English-only operations surface.
+
+Requirements:
+
+- Route title, menu label, section titles, button labels, table headings,
+  empty states, confirmation dialogs, and error toasts must all use the
+  existing admin i18n message system.
+- The page must respond correctly when the operator changes the admin UI
+  language at runtime.
+- Device-declared values such as `deviceId`, `hardwareTarget`, tool names,
+  affect identifiers, and MQTT field names should remain literal identifiers
+  rather than being translated.
+- Operator-facing explanatory text around those identifiers must be localized.
+- The first implementation pass should include both at least `en-US` and
+  `zh-CN` message coverage, following the same message-key conventions already
+  used by other admin pages.
+
 ## UI Behavior
 
 - Use a compact operational layout with restrained visual styling.

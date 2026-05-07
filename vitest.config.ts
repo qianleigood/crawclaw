@@ -46,6 +46,10 @@ export default defineConfig({
         replacement: path.join(repoRoot, "src", "plugin-sdk", "index.ts"),
       },
       {
+        find: "@crawclaw/esp32/api.js",
+        replacement: path.join(repoRoot, "extensions", "esp32", "api.ts"),
+      },
+      {
         find: "crawclaw/plugin-sdk",
         replacement: path.join(repoRoot, "src", "plugin-sdk", "index.ts"),
       },

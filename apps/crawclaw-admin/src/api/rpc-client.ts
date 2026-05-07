@@ -95,6 +95,11 @@ import type {
   VoicePreviewResult,
   VoiceUploadReferenceAudioParams,
   VoiceUploadReferenceAudioResult,
+  Esp32DeviceDetail,
+  Esp32DeviceSummary,
+  Esp32PairingRequestSummary,
+  Esp32PairingStartResult,
+  Esp32StatusSummary,
 } from './types'
 
 let requestId = 0
@@ -2932,6 +2937,60 @@ export class RPCClient {
 
   approveNodePairing(nodeId: string, code: string): Promise<void> {
     return this.call('node.pair.approve', { nodeId, code })
+  }
+
+  // --- ESP32 ---
+  getEsp32Status(): Promise<Esp32StatusSummary> {
+    return this.call('esp32.status.get', {})
+  }
+
+  startEsp32Pairing(params?: { name?: string; ttlMs?: number }): Promise<Esp32PairingStartResult> {
+    const payload: Record<string, unknown> = {}
+    if (params?.name?.trim()) {
+      payload.name = params.name.trim()
+    }
+    if (typeof params?.ttlMs === 'number' && Number.isFinite(params.ttlMs)) {
+      payload.ttlMs = Math.floor(params.ttlMs)
+    }
+    return this.call('esp32.pairing.start', payload)
+  }
+
+  listEsp32PairingRequests(): Promise<Esp32PairingRequestSummary[]> {
+    return this.call('esp32.pairing.requests.list', {}).then((payload) => {
+      const row = this.asRecord(payload)
+      return this.normalizeList<Esp32PairingRequestSummary>(row.items ?? payload, ['items', 'list', 'data'])
+    })
+  }
+
+  revokeEsp32PairingSession(pairId: string): Promise<void> {
+    return this.call('esp32.pairing.session.revoke', { pairId })
+  }
+
+  approveEsp32PairingRequest(requestId: string): Promise<void> {
+    return this.call('esp32.pairing.request.approve', { requestId })
+  }
+
+  rejectEsp32PairingRequest(requestId: string): Promise<void> {
+    return this.call('esp32.pairing.request.reject', { requestId })
+  }
+
+  listEsp32Devices(): Promise<Esp32DeviceSummary[]> {
+    return this.call('esp32.devices.list', {}).then((payload) => {
+      const row = this.asRecord(payload)
+      return this.normalizeList<Esp32DeviceSummary>(row.items ?? payload, ['items', 'list', 'data'])
+    })
+  }
+
+  getEsp32Device(deviceId: string): Promise<Esp32DeviceDetail> {
+    return this.call('esp32.devices.get', { deviceId })
+  }
+
+  revokeEsp32Device(deviceId: string): Promise<void> {
+    return this.call('esp32.devices.revoke', { deviceId })
+  }
+
+  sendEsp32DisplayText(deviceId: string, text: string): Promise<void> {
+    return this.call('esp32.devices.command.send', { deviceId, text })
   }
 
   // --- Ops ---

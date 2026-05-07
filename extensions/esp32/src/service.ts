@@ -24,6 +24,12 @@ import {
 } from "./types.js";
 import { Esp32UdpService, type Esp32UdpSessionPublicParams } from "./udp-service.js";
 
+export type Esp32OnlineDeviceSnapshot = {
+  deviceId: string;
+  capabilities: Esp32DeviceCapabilities;
+  lastSeenAtMs: number;
+};
+
 type Esp32TextInput = {
   deviceId: string;
   text: string;
@@ -135,12 +141,20 @@ export class Esp32ChannelService {
     await this.deviceStore.upsert({ ...device, lastSeenAtMs: Date.now() });
   }
 
-  listOnlineDevices() {
+  listOnlineDevices(): Esp32OnlineDeviceSnapshot[] {
     return this.registry.listDevices();
   }
 
   async listStoredDevices(): Promise<StoredEsp32Device[]> {
     return await this.deviceStore.list();
+  }
+
+  async getStoredDevice(deviceId: string): Promise<StoredEsp32Device | null> {
+    return await this.deviceStore.get(deviceId);
+  }
+
+  async removeStoredDevice(deviceId: string): Promise<boolean> {
+    return await this.deviceStore.remove(deviceId);
   }
 
   ensureUdpSession(deviceId: string): Esp32UdpSessionPublicParams {

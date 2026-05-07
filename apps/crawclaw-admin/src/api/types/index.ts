@@ -10,6 +10,7 @@ export * from './comfyui'
 export * from './memory'
 export * from './observability'
 export * from './voice'
+export * from './esp32'
 import type { ModelConfig, ToolPolicyConfig } from './config'
 
 export interface Skill {

@@ -68,4 +68,14 @@ export class Esp32DeviceStore {
       left.deviceId.localeCompare(right.deviceId),
     );
   }
+
+  async remove(deviceId: string): Promise<boolean> {
+    const state = await readStore(this.stateDir);
+    if (!state.devices[deviceId]) {
+      return false;
+    }
+    delete state.devices[deviceId];
+    await writeStore(this.stateDir, state);
+    return true;
+  }
 }

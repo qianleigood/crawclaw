@@ -73,6 +73,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { titleKey: 'routes.voiceModule', icon: 'VolumeHighOutline', gateway: 'crawclaw' },
       },
       {
+        path: 'esp32',
+        name: 'ESP32',
+        component: () => import('@/views/esp32/ESP32Page.vue'),
+        meta: { titleKey: 'routes.esp32', icon: 'HardwareChipOutline', gateway: 'crawclaw' },
+      },
+      {
         path: 'channels',
         name: 'Channels',
         component: () => import('@/views/channels/ChannelsPage.vue'),
