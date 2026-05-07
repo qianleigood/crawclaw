@@ -6,10 +6,12 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useHermesConnectionStore } from '@/stores/hermes/connection'
+import { useDesktopStore } from '@/stores/desktop'
 
 const collapsed = ref(false)
 const wsStore = useWebSocketStore()
 const connStore = useHermesConnectionStore()
+const desktopStore = useDesktopStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -18,6 +20,7 @@ const isCrawClaw = computed(() => connStore.currentGateway === 'crawclaw')
 onMounted(() => {
   if (isCrawClaw.value) {
     wsStore.connect()
+    void desktopStore.ensureCapabilitiesLoaded()
   } else {
     // Hermes 模式：自动连接 Hermes
     connStore.connect()
@@ -34,6 +37,7 @@ onMounted(() => {
 watch(isCrawClaw, (val) => {
   if (val) {
     wsStore.connect()
+    void desktopStore.ensureCapabilitiesLoaded()
     connStore.disconnect()
   } else {
     wsStore.disconnect()

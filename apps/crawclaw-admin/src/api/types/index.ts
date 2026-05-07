@@ -11,6 +11,7 @@ export * from './memory'
 export * from './observability'
 export * from './voice'
 export * from './esp32'
+export * from './desktop'
 import type { ModelConfig, ToolPolicyConfig } from './config'
 
 export interface Skill {

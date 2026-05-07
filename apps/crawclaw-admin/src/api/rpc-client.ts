@@ -100,6 +100,8 @@ import type {
   Esp32PairingRequestSummary,
   Esp32PairingStartResult,
   Esp32StatusSummary,
+  DesktopCapabilities,
+  DesktopCapability,
 } from './types'
 
 let requestId = 0
@@ -107,11 +109,25 @@ function nextId(): string {
   return `rpc-${++requestId}-${Date.now()}`
 }
 
+interface RPCClientOptions {
+  fetch?: typeof fetch
+  getToken?: () => string | null
+}
+
+function readStoredAuthToken(): string | null {
+  if (typeof globalThis.localStorage === 'undefined') {return null}
+  return globalThis.localStorage.getItem('auth_token')
+}
+
 export class RPCClient {
   private readonly ws: CrawClawWebSocket
+  private readonly fetchFn: typeof fetch
+  private readonly getToken: () => string | null
 
-  constructor(ws: CrawClawWebSocket) {
+  constructor(ws: CrawClawWebSocket, options: RPCClientOptions = {}) {
     this.ws = ws
+    this.fetchFn = options.fetch ?? ((input, init) => fetch(input, init))
+    this.getToken = options.getToken ?? readStoredAuthToken
   }
 
   private asRecord(value: unknown): Record<string, unknown> {
@@ -2578,6 +2594,69 @@ export class RPCClient {
     }
   }
 
+  private normalizeDesktopCapability(value: unknown): DesktopCapability {
+    const row = this.asRecord(value)
+    const reason = this.asOptionalString(row.reason)
+    const requirements = this.asStringList(row.requirements)
+    return {
+      available: this.asBoolean(row.available, false),
+      platform: this.asString(row.platform, 'unknown'),
+      ...(reason ? { reason } : {}),
+      ...(requirements.length > 0 ? { requirements } : {}),
+    }
+  }
+
+  private normalizeDesktopCapabilities(value: unknown): DesktopCapabilities {
+    const row = this.asRecord(value)
+    return {
+      terminal: this.normalizeDesktopCapability(row.terminal),
+      files: this.normalizeDesktopCapability(row.files),
+      backup: this.normalizeDesktopCapability(row.backup),
+      hermesCli: this.normalizeDesktopCapability(row.hermesCli),
+      n8n: this.normalizeDesktopCapability(row.n8n),
+      comfyuiDownloads: this.normalizeDesktopCapability(row.comfyuiDownloads),
+      systemMetrics: this.normalizeDesktopCapability(row.systemMetrics),
+      remoteDesktop: this.normalizeDesktopCapability(row.remoteDesktop),
+      desktopInput: this.normalizeDesktopCapability(row.desktopInput),
+      desktopUpdate: this.normalizeDesktopCapability(row.desktopUpdate),
+    }
+  }
+
+  private async readHttpJson(response: Response): Promise<unknown> {
+    try {
+      return await response.json()
+    } catch {
+      return null
+    }
+  }
+
+  private httpErrorMessage(payload: unknown, fallback: string): string {
+    const row = this.asRecord(payload)
+    if (typeof row.error === 'string' && row.error.trim()) {
+      return row.error
+    }
+
+    const errorRow = this.asRecord(row.error)
+    return this.asOptionalString(errorRow.message) ?? fallback
+  }
+
+  private async httpGet(path: string): Promise<unknown> {
+    const token = this.getToken()
+    const response = await this.fetchFn(path, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
+    const payload = await this.readHttpJson(response)
+    if (!response.ok) {
+      throw new Error(this.httpErrorMessage(payload, `HTTP ${response.status}`))
+    }
+
+    const row = this.asRecord(payload)
+    if (row.ok === false) {
+      throw new Error(this.httpErrorMessage(payload, 'Request failed'))
+    }
+    return payload
+  }
+
   private call<T>(method: string, params?: Record<string, unknown>, timeout = 15000): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const id = nextId()
@@ -2612,6 +2691,16 @@ export class RPCClient {
         reject(err)
       })
     })
+  }
+
+  // --- Desktop ---
+  async getDesktopCapabilities(): Promise<DesktopCapabilities> {
+    const payload = await this.httpGet('/api/desktop/capabilities')
+    const row = this.asRecord(payload)
+    if (!this.asOptionalRecord(row.capabilities)) {
+      throw new Error('Desktop capabilities response missing capabilities')
+    }
+    return this.normalizeDesktopCapabilities(row.capabilities)
   }
 
   // --- Config ---
