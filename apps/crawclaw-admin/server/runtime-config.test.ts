@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadAdminRuntimeConfig } from './runtime-config.js'
 
 const tempDirs: string[] = []
@@ -89,6 +89,9 @@ describe('loadAdminRuntimeConfig', () => {
 
   it('reads desktop mode values from CRAWCLAW_ADMIN env without requiring .env', () => {
     const missingEnvPath = join(makeTempDir(), 'missing.env')
+    const configPath = join(makeTempDir(), 'config.json')
+    const dataDir = join(makeTempDir(), 'data')
+    const backupDir = join(makeTempDir(), 'backups')
 
     const config = loadAdminRuntimeConfig(
       {
@@ -96,6 +99,9 @@ describe('loadAdminRuntimeConfig', () => {
         CRAWCLAW_ADMIN_PORT: '5123',
         CRAWCLAW_ADMIN_BIND_HOST: '127.0.0.2',
         CRAWCLAW_ADMIN_STATE_DIR: '/tmp/admin-state',
+        CRAWCLAW_ADMIN_CONFIG_PATH: configPath,
+        CRAWCLAW_ADMIN_DATA_DIR: dataDir,
+        CRAWCLAW_ADMIN_BACKUP_DIR: backupDir,
         CRAWCLAW_WS_URL: 'ws://desktop-gateway:18789',
       },
       { envPath: missingEnvPath, platform: 'linux', homeDir: '/tmp/home' }
@@ -104,9 +110,63 @@ describe('loadAdminRuntimeConfig', () => {
     expect(existsSync(missingEnvPath)).toBe(false)
     expect(config.paths.runtimeMode).toBe('desktop')
     expect(config.paths.stateDir).toBe('/tmp/admin-state')
+    expect(config.paths.configPath).toBe(configPath)
+    expect(config.paths.dataDir).toBe(dataDir)
+    expect(config.paths.backupDir).toBe(backupDir)
     expect(config.port).toBe(5123)
     expect(config.bindHost).toBe('127.0.0.2')
     expect(config.crawclawWsUrl).toBe('ws://desktop-gateway:18789')
+  })
+
+  it('stores the SQLite database under CRAWCLAW_ADMIN_DATA_DIR in desktop mode', async () => {
+    const originalDataDir = process.env.CRAWCLAW_ADMIN_DATA_DIR
+    const dataDir = join(makeTempDir(), 'desktop-data')
+    process.env.CRAWCLAW_ADMIN_DATA_DIR = dataDir
+    vi.doMock('better-sqlite3', () => ({
+      default: class FakeDatabase {
+        name: string
+
+        constructor(name: string) {
+          this.name = name
+          writeFileSync(name, '')
+        }
+
+        pragma() {}
+
+        exec() {}
+
+        prepare() {
+          return {
+            all: () => [],
+            get: () => ({ count: 0 }),
+            run: () => {},
+          }
+        }
+
+        close() {}
+      },
+    }))
+
+    try {
+      const databaseUrl = new URL('./database.js', import.meta.url)
+      databaseUrl.search = `?desktop-data-dir-${Date.now()}`
+      const databaseModule = await import(databaseUrl.href)
+      const database = databaseModule.default
+      try {
+        expect(database.name).toBe(join(dataDir, 'wizard.db'))
+        expect(existsSync(join(dataDir, 'wizard.db'))).toBe(true)
+      } finally {
+        database.close()
+      }
+    } finally {
+      if (originalDataDir === undefined) {
+        delete process.env.CRAWCLAW_ADMIN_DATA_DIR
+      } else {
+        process.env.CRAWCLAW_ADMIN_DATA_DIR = originalDataDir
+      }
+      vi.doUnmock('better-sqlite3')
+      vi.resetModules()
+    }
   })
 
   it('defaults desktop bind host to loopback', () => {

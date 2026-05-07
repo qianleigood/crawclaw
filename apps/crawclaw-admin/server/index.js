@@ -29,7 +29,6 @@ function resolveCrawClawHome() {
 }
 
 let envConfig = loadAdminRuntimeConfig()
-const envPath = envConfig.envPath
 let currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || readEnvValue(process.env, 'CRAWCLAW_LOCALE', '') || process.env.CRAWCLAW_LANG || process.env.LANG)
 
 const isDebug = envConfig.LOG_LEVEL === 'DEBUG'
@@ -382,8 +381,26 @@ function stringifyEnvFile(data) {
   return lines.join('\n') + '\n'
 }
 
+function adminConfigPath() {
+  return envConfig.paths.runtimeMode === 'desktop'
+    ? resolve(envConfig.paths.configPath)
+    : envConfig.envPath
+}
+
+function ensureParentDir(filePath) {
+  mkdirSync(dirname(filePath), { recursive: true })
+}
+
+function applyDesktopConfigToProcessEnv(config) {
+  if (envConfig.paths.runtimeMode !== 'desktop') {return}
+  for (const [key, value] of Object.entries(config)) {
+    process.env[key] = value
+  }
+}
+
 function persistCrawClawLocale(locale) {
-  const existingContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : ''
+  const configPath = adminConfigPath()
+  const existingContent = existsSync(configPath) ? readFileSync(configPath, 'utf-8') : ''
   const existing = normalizeCrawClawEnvSnapshot(parseEnvFile(existingContent))
   const previousLocale = normalizeAppLocale(existing.CRAWCLAW_LOCALE || currentLocale)
   if (previousLocale === locale) {
@@ -393,8 +410,10 @@ function persistCrawClawLocale(locale) {
   }
   existing.CRAWCLAW_LOCALE = locale
   removeLegacyCrawClawEnvKeys(existing)
-  writeFileSync(envPath, stringifyEnvFile(existing), 'utf-8')
-  envConfig = loadAdminRuntimeConfig(process.env, { envPath })
+  ensureParentDir(configPath)
+  writeFileSync(configPath, stringifyEnvFile(existing), 'utf-8')
+  applyDesktopConfigToProcessEnv(existing)
+  envConfig = loadAdminRuntimeConfig(process.env, { envPath: configPath })
   currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || locale)
   refreshN8nRuntimeEnv()
   return true
@@ -437,10 +456,11 @@ app.post('/api/n8n/locale', authMiddleware, async (req, res) => {
 
 app.get('/api/config', authMiddleware, (req, res) => {
   try {
-    if (!existsSync(envPath)) {
+    const configPath = adminConfigPath()
+    if (!existsSync(configPath)) {
       return res.json({ ok: true, config: {} })
     }
-    const content = readFileSync(envPath, 'utf-8')
+    const content = readFileSync(configPath, 'utf-8')
     const config = normalizeCrawClawEnvSnapshot(parseEnvFile(content))
     res.json({ ok: true, config })
   } catch (err) {
@@ -451,8 +471,9 @@ app.get('/api/config', authMiddleware, (req, res) => {
 app.post('/api/config', authMiddleware, (req, res) => {
   try {
     const { AUTH_USERNAME, AUTH_PASSWORD, CRAWCLAW_WS_URL, CRAWCLAW_AUTH_TOKEN, CRAWCLAW_AUTH_PASSWORD } = req.body
+    const configPath = adminConfigPath()
     
-    const existingContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : ''
+    const existingContent = existsSync(configPath) ? readFileSync(configPath, 'utf-8') : ''
     const existing = normalizeCrawClawEnvSnapshot(parseEnvFile(existingContent))
     
     if (AUTH_USERNAME !== undefined) {existing.AUTH_USERNAME = AUTH_USERNAME}
@@ -463,10 +484,12 @@ app.post('/api/config', authMiddleware, (req, res) => {
     removeLegacyCrawClawEnvKeys(existing)
     
     const newContent = stringifyEnvFile(existing)
-    writeFileSync(envPath, newContent, 'utf-8')
+    ensureParentDir(configPath)
+    writeFileSync(configPath, newContent, 'utf-8')
+    applyDesktopConfigToProcessEnv(existing)
     
     const oldConfig = { ...envConfig }
-    envConfig = loadAdminRuntimeConfig(process.env, { envPath })
+    envConfig = loadAdminRuntimeConfig(process.env, { envPath: configPath })
     currentLocale = normalizeAppLocale(envConfig.CRAWCLAW_LOCALE || currentLocale)
     refreshN8nRuntimeEnv()
     
@@ -3109,17 +3132,31 @@ import archiver from 'archiver'
 import unzipper from 'unzipper'
 import AdmZip from 'adm-zip'
 
-const BACKUP_DIR = join(__dirname, '../backups')
-const DATA_DIR = join(__dirname, '../data')
-const PROJECT_ROOT = join(__dirname, '..')
-const WIZARD_DB_PATH = join(DATA_DIR, 'wizard.db')
-const ENV_PATH = join(PROJECT_ROOT, '.env')
+const WEB_BACKUP_DIR = join(__dirname, '../backups')
+const WEB_DATA_DIR = join(__dirname, '../data')
 
 const backupTasks = new Map()
 
+function adminBackupDir() {
+  return envConfig.paths.runtimeMode === 'desktop'
+    ? resolve(envConfig.paths.backupDir)
+    : WEB_BACKUP_DIR
+}
+
+function adminDataDir() {
+  return envConfig.paths.runtimeMode === 'desktop'
+    ? resolve(envConfig.paths.dataDir)
+    : WEB_DATA_DIR
+}
+
+function wizardDbPath() {
+  return join(adminDataDir(), 'wizard.db')
+}
+
 function ensureBackupDir() {
-  if (!existsSync(BACKUP_DIR)) {
-    mkdirSync(BACKUP_DIR, { recursive: true })
+  const backupDir = adminBackupDir()
+  if (!existsSync(backupDir)) {
+    mkdirSync(backupDir, { recursive: true })
   }
 }
 
@@ -3433,7 +3470,7 @@ async function executeBackupTask(taskId, params = {}) {
       .replace(/\..+/, '')
 
     const backupFilename = `backup_${timestamp}.zip`
-    const backupPath = join(BACKUP_DIR, backupFilename)
+    const backupPath = join(adminBackupDir(), backupFilename)
 
     task.message = 'Creating CrawClaw backup...'
     task.progress = 10
@@ -3469,8 +3506,9 @@ async function executeBackupTask(taskId, params = {}) {
       console.log('[Backup] CrawClaw backup added')
     }
 
-    if (existsSync(WIZARD_DB_PATH)) {
-      filesToArchive.push({ path: WIZARD_DB_PATH, name: 'data/wizard.db' })
+    const currentWizardDbPath = wizardDbPath()
+    if (existsSync(currentWizardDbPath)) {
+      filesToArchive.push({ path: currentWizardDbPath, name: 'data/wizard.db' })
       console.log('[Backup] Wizard database added')
     }
 
@@ -3479,9 +3517,10 @@ async function executeBackupTask(taskId, params = {}) {
     broadcastBackupProgress(taskId, { status: 'running', progress: 50, message: task.message, stage: 'env_config' })
     updateBackupRecord(taskId, { status: 'running', progress: 50, message: task.message, stage: 'env_config' })
 
-    if (existsSync(ENV_PATH)) {
+    const currentConfigPath = adminConfigPath()
+    if (existsSync(currentConfigPath)) {
       const tempEnvPath = join(tempDir, '.env')
-      copyFileSync(ENV_PATH, tempEnvPath)
+      copyFileSync(currentConfigPath, tempEnvPath)
       filesToArchive.push({ path: tempEnvPath, name: '.env' })
       console.log('[Backup] Environment config added')
     }
@@ -3494,8 +3533,8 @@ async function executeBackupTask(taskId, params = {}) {
       source: 'crawclaw-admin',
       components: {
         crawclaw: existsSync(crawclawBackupPath),
-        wizardDb: existsSync(WIZARD_DB_PATH),
-        env: existsSync(ENV_PATH)
+        wizardDb: existsSync(currentWizardDbPath),
+        env: existsSync(currentConfigPath)
       }
     }
     const manifestPath = join(tempDir, 'manifest.json')
@@ -3588,7 +3627,7 @@ async function executeRestoreTask(taskId, filename) {
       throw new Error('Invalid filename. Expected .zip or .json.gz file.')
     }
 
-    const backupPath = join(BACKUP_DIR, safeName)
+    const backupPath = join(adminBackupDir(), safeName)
     if (!existsSync(backupPath)) {
       throw new Error('Backup not found')
     }
@@ -3686,11 +3725,13 @@ async function executeRestoreTask(taskId, filename) {
     const extractedWizardDb = join(tempDir, 'data', 'wizard.db')
     if (existsSync(extractedWizardDb)) {
       try {
-        if (existsSync(WIZARD_DB_PATH)) {
-          backupDbPath = `${WIZARD_DB_PATH}.bak-${Date.now()}`
-          writeFileSync(backupDbPath, readFileSync(WIZARD_DB_PATH))
+        const currentWizardDbPath = wizardDbPath()
+        ensureParentDir(currentWizardDbPath)
+        if (existsSync(currentWizardDbPath)) {
+          backupDbPath = `${currentWizardDbPath}.bak-${Date.now()}`
+          writeFileSync(backupDbPath, readFileSync(currentWizardDbPath))
         }
-        writeFileSync(WIZARD_DB_PATH, readFileSync(extractedWizardDb))
+        writeFileSync(currentWizardDbPath, readFileSync(extractedWizardDb))
         results.wizardDb = true
         console.log('[Restore] Wizard database restored')
       } catch (e) {
@@ -3707,11 +3748,13 @@ async function executeRestoreTask(taskId, filename) {
     const extractedEnv = join(tempDir, '.env')
     if (existsSync(extractedEnv)) {
       try {
-        if (existsSync(ENV_PATH)) {
-          backupEnvPath = `${ENV_PATH}.bak-${Date.now()}`
-          copyFileSync(ENV_PATH, backupEnvPath)
+        const currentConfigPath = adminConfigPath()
+        ensureParentDir(currentConfigPath)
+        if (existsSync(currentConfigPath)) {
+          backupEnvPath = `${currentConfigPath}.bak-${Date.now()}`
+          copyFileSync(currentConfigPath, backupEnvPath)
         }
-        copyFileSync(extractedEnv, ENV_PATH)
+        copyFileSync(extractedEnv, currentConfigPath)
         results.env = true
         console.log('[Restore] Environment config restored')
       } catch (e) {
@@ -3779,10 +3822,11 @@ async function executeRestoreTask(taskId, filename) {
 app.get('/api/backup/list', authMiddleware, (req, res) => {
   try {
     ensureBackupDir()
-    const files = readdirSync(BACKUP_DIR)
+    const backupDir = adminBackupDir()
+    const files = readdirSync(backupDir)
       .filter(f => f.endsWith('.zip') || f.endsWith('.json.gz'))
       .map(f => {
-        const filePath = join(BACKUP_DIR, f)
+        const filePath = join(backupDir, f)
         const stats = statSync(filePath)
         const zipMatch = f.match(/backup_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.zip/)
         const gzMatch = f.match(/backup_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.json\.gz/)
@@ -3902,7 +3946,7 @@ app.get('/api/backup/download', authMiddleware, (req, res) => {
       return res.status(400).json({ ok: false, error: { message: 'Invalid filename. Expected .zip or .json.gz file.' } })
     }
     
-    const backupPath = join(BACKUP_DIR, safeName)
+    const backupPath = join(adminBackupDir(), safeName)
     if (!existsSync(backupPath)) {
       return res.status(404).json({ ok: false, error: { message: 'Backup not found' } })
     }
@@ -3932,7 +3976,7 @@ app.post('/api/backup/restore', authMiddleware, async (req, res) => {
       return res.status(400).json({ ok: false, error: { message: 'Invalid filename. Expected .zip or .json.gz file.' } })
     }
 
-    const backupPath = join(BACKUP_DIR, safeName)
+    const backupPath = join(adminBackupDir(), safeName)
     if (!existsSync(backupPath)) {
       return res.status(404).json({ ok: false, error: { message: 'Backup not found' } })
     }
@@ -3975,7 +4019,7 @@ app.delete('/api/backup/delete', authMiddleware, (req, res) => {
       return res.status(400).json({ ok: false, error: { message: 'Invalid filename. Expected .zip or .json.gz file.' } })
     }
 
-    const backupPath = join(BACKUP_DIR, safeName)
+    const backupPath = join(adminBackupDir(), safeName)
     if (!existsSync(backupPath)) {
       return res.status(404).json({ ok: false, error: { message: 'Backup not found' } })
     }
@@ -4059,7 +4103,7 @@ app.post('/api/backup/upload', authMiddleware, backupUpload.single('backup'), as
           broadcastBackupProgress(taskId, { status: 'running', progress: 50, message: task.message })
 
           const newFilename = `uploaded_${timestamp}.zip`
-          const newPath = join(BACKUP_DIR, newFilename)
+          const newPath = join(adminBackupDir(), newFilename)
 
           const filesToArchive = []
           const items = readdirSync(tempExtractDir, { recursive: true, withFileTypes: true })
@@ -4126,7 +4170,7 @@ app.post('/api/backup/upload', authMiddleware, backupUpload.single('backup'), as
           broadcastBackupProgress(taskId, { status: 'running', progress: 50, message: task.message })
 
           const newFilename = `uploaded_${timestamp}.json.gz`
-          const newPath = join(BACKUP_DIR, newFilename)
+          const newPath = join(adminBackupDir(), newFilename)
 
           const newGzip = createGzip()
           const writeStream = createWriteStream(newPath)

@@ -1,11 +1,16 @@
 import Database from 'better-sqlite3'
-import { join, dirname } from 'path'
+import { join, dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import { mkdirSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const dbPath = join(__dirname, '../data/wizard.db')
+const dataDir = process.env.CRAWCLAW_ADMIN_DATA_DIR
+  ? resolve(process.env.CRAWCLAW_ADMIN_DATA_DIR)
+  : join(__dirname, '../data')
+mkdirSync(dataDir, { recursive: true })
+const dbPath = join(dataDir, 'wizard.db')
 
 const db = new Database(dbPath)
 
