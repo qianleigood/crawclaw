@@ -16,6 +16,7 @@ const CRAWCLAW_ENV_KEYS = [
   'CRAWCLAW_AUTH_PASSWORD',
   'CRAWCLAW_LOCALE',
   'CRAWCLAW_HOME',
+  'CRAWCLAW_STATE_DIR',
   'CRAWCLAW_N8N_MANAGED',
   'CRAWCLAW_N8N_BIN',
   'CRAWCLAW_N8N_HOST',
@@ -35,6 +36,11 @@ export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
   const crawclawAuthPassword = readEnvValue(parsed, 'CRAWCLAW_AUTH_PASSWORD', '')
   const crawclawLocale = readEnvValue(parsed, 'CRAWCLAW_LOCALE', '')
   const crawclawHome = readEnvValue(parsed, 'CRAWCLAW_HOME', '')
+  const crawclawStateDir = readEnvValue(
+    parsed,
+    'CRAWCLAW_STATE_DIR',
+    paths.runtimeMode === 'desktop' ? paths.stateDir : ''
+  )
   const crawclawN8nManaged = readEnvValue(parsed, 'CRAWCLAW_N8N_MANAGED')
   const crawclawN8nBin = readEnvValue(parsed, 'CRAWCLAW_N8N_BIN', '')
   const crawclawN8nHost = readEnvValue(parsed, 'CRAWCLAW_N8N_HOST', '')
@@ -69,6 +75,7 @@ export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
     CRAWCLAW_AUTH_PASSWORD: crawclawAuthPassword,
     CRAWCLAW_LOCALE: crawclawLocale,
     CRAWCLAW_HOME: crawclawHome,
+    CRAWCLAW_STATE_DIR: crawclawStateDir,
     CRAWCLAW_N8N_MANAGED: crawclawN8nManaged,
     CRAWCLAW_N8N_BIN: crawclawN8nBin,
     CRAWCLAW_N8N_HOST: crawclawN8nHost,

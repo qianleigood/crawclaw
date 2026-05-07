@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadAdminRuntimeConfig } from './runtime-config.js'
+import { N8nService } from './n8n-service.js'
 
 const tempDirs: string[] = []
 const defaultEnvRestores: Array<() => void> = []
@@ -138,6 +139,21 @@ describe('loadAdminRuntimeConfig', () => {
     expect(config.crawclawWsUrl).toBe('ws://persisted-gateway:18789')
     expect(config.crawclawAuthToken).toBe('persisted-token')
     expect(config.authUsername).toBe('persisted-admin')
+  })
+
+  it('maps the desktop admin state dir to the managed CrawClaw runtime state dir', () => {
+    const stateDir = join(makeTempDir(), 'desktop-state')
+    const config = loadAdminRuntimeConfig(
+      {
+        CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
+        CRAWCLAW_ADMIN_STATE_DIR: stateDir,
+      },
+      { platform: 'linux', homeDir: '/tmp/home' }
+    )
+    const service = new N8nService(config)
+
+    expect(config.CRAWCLAW_STATE_DIR).toBe(stateDir)
+    expect(service.resolveUserFolder()).toBe(join(stateDir, 'n8n'))
   })
 
   it('stores the SQLite database under CRAWCLAW_ADMIN_DATA_DIR in desktop mode', async () => {
