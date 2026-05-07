@@ -1,0 +1,234 @@
+name: CrawClaw Admin Desktop Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build, for example v2026.5.3
+        required: true
+        type: string
+      preflight_only:
+        description: Build and validate artifacts only; skip draft release publication
+        required: true
+        default: true
+        type: boolean
+      publish_draft_release:
+        description: Upload artifacts to a draft GitHub Release
+        required: true
+        default: false
+        type: boolean
+      skip_signing:
+        description: Disable certificate discovery and build unsigned artifacts
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: admin-desktop-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  NODE_VERSION: "24.x"
+
+jobs:
+  validate-input:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Validate release inputs
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          PREFLIGHT_ONLY: ${{ inputs.preflight_only }}
+          PUBLISH_DRAFT_RELEASE: ${{ inputs.publish_draft_release }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]{4}\.[0-9]+\.[0-9]+((-beta\.[1-9][0-9]*)|(-[1-9][0-9]*))?$ ]]; then
+            echo "Invalid release tag format: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+          if [[ "${PREFLIGHT_ONLY}" == "true" && "${PUBLISH_DRAFT_RELEASE}" == "true" ]]; then
+            echo "publish_draft_release requires preflight_only=false." >&2
+            exit 1
+          fi
+
+  build-macos:
+    needs: validate-input
+    runs-on: macos-15
+    permissions:
+      contents: read
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ inputs.skip_signing && 'false' || 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          check-latest: false
+
+      - name: Install and build admin frontend
+        run: |
+          npm --prefix apps/crawclaw-admin ci
+          npm --prefix apps/crawclaw-admin run build
+
+      - name: Install and build desktop app
+        run: |
+          npm --prefix apps/crawclaw-admin-desktop ci
+          npm --prefix apps/crawclaw-admin-desktop run rebuild:native
+          npm --prefix apps/crawclaw-admin-desktop run dist
+
+      - name: Validate release contents
+        run: node scripts/admin-desktop-release-check.mjs
+
+      - name: Collect artifacts
+        env:
+          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-macos
+          ARTIFACT_LABEL: macos
+        run: node scripts/collect-admin-desktop-artifacts.mjs
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-desktop-macos-${{ inputs.tag }}
+          path: ${{ runner.temp }}/admin-desktop-macos
+          if-no-files-found: error
+
+  build-windows:
+    needs: validate-input
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ inputs.skip_signing && 'false' || 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          check-latest: false
+
+      - name: Install and build admin frontend
+        shell: bash
+        run: |
+          npm --prefix apps/crawclaw-admin ci
+          npm --prefix apps/crawclaw-admin run build
+
+      - name: Install and build desktop app
+        shell: bash
+        run: |
+          npm --prefix apps/crawclaw-admin-desktop ci
+          npm --prefix apps/crawclaw-admin-desktop run rebuild:native
+          npm --prefix apps/crawclaw-admin-desktop run dist
+
+      - name: Validate release contents
+        shell: bash
+        run: node scripts/admin-desktop-release-check.mjs
+
+      - name: Collect artifacts
+        shell: bash
+        env:
+          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-windows
+          ARTIFACT_LABEL: windows
+        run: node scripts/collect-admin-desktop-artifacts.mjs
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-desktop-windows-${{ inputs.tag }}
+          path: ${{ runner.temp }}/admin-desktop-windows
+          if-no-files-found: error
+
+  build-linux:
+    needs: validate-input
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ inputs.skip_signing && 'false' || 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          check-latest: false
+
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev
+
+      - name: Install and build admin frontend
+        run: |
+          npm --prefix apps/crawclaw-admin ci
+          npm --prefix apps/crawclaw-admin run build
+
+      - name: Install and build desktop app
+        run: |
+          npm --prefix apps/crawclaw-admin-desktop ci
+          npm --prefix apps/crawclaw-admin-desktop run rebuild:native
+          npm --prefix apps/crawclaw-admin-desktop run dist
+
+      - name: Validate release contents
+        run: node scripts/admin-desktop-release-check.mjs
+
+      - name: Collect artifacts
+        env:
+          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-linux
+          ARTIFACT_LABEL: linux
+        run: node scripts/collect-admin-desktop-artifacts.mjs
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-desktop-linux-${{ inputs.tag }}
+          path: ${{ runner.temp }}/admin-desktop-linux
+          if-no-files-found: error
+
+  publish-draft-release:
+    needs: [build-macos, build-windows, build-linux]
+    if: ${{ !inputs.preflight_only && inputs.publish_draft_release }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download desktop artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: admin-desktop-*-${{ inputs.tag }}
+          path: ${{ runner.temp }}/admin-desktop-release
+          merge-multiple: true
+
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          ARTIFACT_DIR: ${{ runner.temp }}/admin-desktop-release
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" "${ARTIFACT_DIR}"/* --clobber
+          else
+            gh release create "${RELEASE_TAG}" "${ARTIFACT_DIR}"/* \
+              --draft \
+              --title "CrawClaw Admin Desktop ${RELEASE_TAG}" \
+              --notes "Draft CrawClaw Admin Desktop release assets for ${RELEASE_TAG}."
+          fi
