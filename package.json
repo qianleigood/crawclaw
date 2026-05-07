@@ -999,6 +999,8 @@
     "gateway:dev:reset": "CRAWCLAW_SKIP_CHANNELS=1 node scripts/run-node.mjs --dev gateway --reset",
     "gateway:watch": "node scripts/watch-node.mjs gateway --force",
     "ghsa:patch": "node scripts/ghsa-patch.mjs",
+    "github:labels:check": "node --import tsx scripts/sync-labels.ts --check",
+    "github:labels:sync": "node --import tsx scripts/sync-labels.ts",
     "lint": "node scripts/run-oxlint.mjs",
     "lint:agent:ingress-owner": "node scripts/check-ingress-agent-owner-context.mjs",
     "lint:all": "pnpm lint",

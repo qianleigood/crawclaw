@@ -24,22 +24,10 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/create-github-app-token@v3
-        id: app-token
-        continue-on-error: true
-        with:
-          app-id: "2729701"
-          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-      - uses: actions/create-github-app-token@v3
-        id: app-token-fallback
-        if: steps.app-token.outcome == 'failure'
-        with:
-          app-id: "2971289"
-          private-key: ${{ secrets.GH_APP_PRIVATE_KEY_FALLBACK }}
       - name: Handle labeled items
         uses: actions/github-script@v9
         with:
-          github-token: ${{ steps.app-token.outputs.token || steps.app-token-fallback.outputs.token }}
+          github-token: ${{ github.token }}
           script: |
             // Labels prefixed with "r:" are auto-response triggers.
             const activePrLimit = 10;
@@ -94,7 +82,6 @@ jobs:
               },
             ];
 
-            const maintainerTeam = "maintainer";
             const pingWarningMessage =
               "Please don’t spam-ping multiple maintainers at once. Be patient, or join our community Discord for help: https://discord.gg/clawd";
             const mentionRegex = /@([A-Za-z0-9-]+)/g;
@@ -221,14 +208,16 @@ jobs:
               }
               let isMember = false;
               try {
-                const membership = await github.rest.teams.getMembershipForUserInOrg({
-                  org: context.repo.owner,
-                  team_slug: maintainerTeam,
+                const permission = await github.rest.repos.getCollaboratorPermissionLevel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
                   username: normalized,
                 });
-                isMember = membership?.data?.state === "active";
+                const roleName = (permission?.data?.role_name ?? "").toLowerCase();
+                const level = (permission?.data?.permission ?? "").toLowerCase();
+                isMember = roleName === "admin" || roleName === "maintain" || level === "admin";
               } catch (error) {
-                if (error?.status !== 404) {
+                if (error?.status !== 403 && error?.status !== 404) {
                   throw error;
                 }
               }
@@ -243,12 +232,6 @@ jobs:
               const normalizedAuthor = authorLogin ? normalizeLogin(authorLogin) : "";
               if (normalizedAuthor && (await isMaintainer(normalizedAuthor))) {
                 return 0;
-              }
-
-              const haystack = body.toLowerCase();
-              const teamMention = `@${context.repo.owner.toLowerCase()}/${maintainerTeam}`;
-              if (haystack.includes(teamMention)) {
-                return 3;
               }
 
               const mentions = new Set();
