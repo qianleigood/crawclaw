@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loadAdminRuntimeConfig, resolveCrawClawStateDir } from './runtime-config.js'
+import {
+  loadAdminRuntimeConfig,
+  removeDesktopSecretEnvKeys,
+  resolveCrawClawStateDir,
+} from './runtime-config.js'
 import { N8nService } from './n8n-service.js'
 
 const tempDirs: string[] = []
@@ -119,10 +123,11 @@ describe('loadAdminRuntimeConfig', () => {
     expect(config.crawclawWsUrl).toBe('ws://desktop-gateway:18789')
   })
 
-  it('reads desktop persisted config values from CRAWCLAW_ADMIN_CONFIG_PATH', () => {
+  it('ignores desktop persisted Gateway secrets from CRAWCLAW_ADMIN_CONFIG_PATH', () => {
     const configPath = writeEnvFile([
       'CRAWCLAW_WS_URL=ws://persisted-gateway:18789',
       'CRAWCLAW_AUTH_TOKEN=persisted-token',
+      'CRAWCLAW_AUTH_PASSWORD=persisted-password',
       'AUTH_USERNAME=persisted-admin',
     ].join('\n'))
 
@@ -131,14 +136,37 @@ describe('loadAdminRuntimeConfig', () => {
         CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
         CRAWCLAW_ADMIN_CONFIG_PATH: configPath,
         CRAWCLAW_WS_URL: 'ws://stale-process-env:18789',
-        CRAWCLAW_AUTH_TOKEN: 'stale-token',
+        CRAWCLAW_AUTH_TOKEN: 'credential-token',
+        CRAWCLAW_AUTH_PASSWORD: 'credential-password',
       },
       { platform: 'linux', homeDir: '/tmp/home' }
     )
 
     expect(config.crawclawWsUrl).toBe('ws://persisted-gateway:18789')
-    expect(config.crawclawAuthToken).toBe('persisted-token')
+    expect(config.crawclawAuthToken).toBe('credential-token')
+    expect(config.crawclawAuthPassword).toBe('credential-password')
     expect(config.authUsername).toBe('persisted-admin')
+  })
+
+  it('removes canonical and legacy Gateway secrets from desktop config snapshots', () => {
+    const config = {
+      CRAWCLAW_WS_URL: 'ws://gateway:18789',
+      CRAWCLAW_AUTH_TOKEN: 'token',
+      CRAWCLAW_AUTH_PASSWORD: 'password',
+      [`${legacyPrefix}_AUTH_TOKEN`]: 'legacy-token',
+      [`${legacyPrefix}_AUTH_PASSWORD`]: 'legacy-password',
+      AUTH_PASSWORD: 'admin-password',
+      CRAWCLAW_ADMIN_AUTH_PASSWORD: 'admin-password',
+      HERMES_API_KEY: 'hermes-key',
+      AUTH_USERNAME: 'admin',
+    }
+
+    removeDesktopSecretEnvKeys(config)
+
+    expect(config).toEqual({
+      CRAWCLAW_WS_URL: 'ws://gateway:18789',
+      AUTH_USERNAME: 'admin',
+    })
   })
 
   it('maps the desktop admin state dir to the managed CrawClaw runtime state dir', () => {

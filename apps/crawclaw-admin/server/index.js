@@ -13,6 +13,7 @@ import {
   loadAdminRuntimeConfig,
   normalizeCrawClawEnvSnapshot,
   readEnvValue,
+  removeDesktopSecretEnvKeys,
   removeLegacyCrawClawEnvKeys,
   resolveCrawClawStateDir,
 } from './runtime-config.js'
@@ -445,6 +446,25 @@ function ensureParentDir(filePath) {
   mkdirSync(dirname(filePath), { recursive: true })
 }
 
+function sanitizeAdminConfigForDisk(config) {
+  removeLegacyCrawClawEnvKeys(config)
+  if (envConfig.paths.runtimeMode === 'desktop') {
+    removeDesktopSecretEnvKeys(config)
+  }
+  return config
+}
+
+function copyAdminConfigForDisk(sourcePath, targetPath) {
+  if (envConfig.paths.runtimeMode !== 'desktop') {
+    copyFileSync(sourcePath, targetPath)
+    return
+  }
+
+  const config = normalizeCrawClawEnvSnapshot(parseEnvFile(readFileSync(sourcePath, 'utf-8')))
+  sanitizeAdminConfigForDisk(config)
+  writeFileSync(targetPath, stringifyEnvFile(config), 'utf-8')
+}
+
 function reloadAdminRuntimeConfig(configPath) {
   const oldConfig = { ...envConfig }
   envConfig = loadAdminRuntimeConfig(process.env, { envPath: configPath })
@@ -464,7 +484,7 @@ function persistCrawClawLocale(locale) {
     return false
   }
   existing.CRAWCLAW_LOCALE = locale
-  removeLegacyCrawClawEnvKeys(existing)
+  sanitizeAdminConfigForDisk(existing)
   ensureParentDir(configPath)
   writeFileSync(configPath, stringifyEnvFile(existing), 'utf-8')
   reloadAdminRuntimeConfig(configPath)
@@ -515,6 +535,9 @@ app.get('/api/config', authMiddleware, (req, res) => {
     }
     const content = readFileSync(configPath, 'utf-8')
     const config = normalizeCrawClawEnvSnapshot(parseEnvFile(content))
+    if (envConfig.paths.runtimeMode === 'desktop') {
+      removeDesktopSecretEnvKeys(config)
+    }
     res.json({ ok: true, config })
   } catch (err) {
     res.status(500).json({ ok: false, error: { message: err.message } })
@@ -534,7 +557,7 @@ app.post('/api/config', authMiddleware, (req, res) => {
     if (CRAWCLAW_WS_URL !== undefined) {existing.CRAWCLAW_WS_URL = CRAWCLAW_WS_URL}
     if (CRAWCLAW_AUTH_TOKEN !== undefined) {existing.CRAWCLAW_AUTH_TOKEN = CRAWCLAW_AUTH_TOKEN}
     if (CRAWCLAW_AUTH_PASSWORD !== undefined) {existing.CRAWCLAW_AUTH_PASSWORD = CRAWCLAW_AUTH_PASSWORD}
-    removeLegacyCrawClawEnvKeys(existing)
+    sanitizeAdminConfigForDisk(existing)
     
     const newContent = stringifyEnvFile(existing)
     ensureParentDir(configPath)
@@ -3547,7 +3570,7 @@ async function executeBackupTask(taskId, params = {}) {
     const currentConfigPath = adminConfigPath()
     if (existsSync(currentConfigPath)) {
       const tempEnvPath = join(tempDir, '.env')
-      copyFileSync(currentConfigPath, tempEnvPath)
+      copyAdminConfigForDisk(currentConfigPath, tempEnvPath)
       filesToArchive.push({ path: tempEnvPath, name: '.env' })
       console.log('[Backup] Environment config added')
     }
@@ -3779,9 +3802,9 @@ async function executeRestoreTask(taskId, filename) {
         ensureParentDir(currentConfigPath)
         if (existsSync(currentConfigPath)) {
           backupEnvPath = `${currentConfigPath}.bak-${Date.now()}`
-          copyFileSync(currentConfigPath, backupEnvPath)
+          copyAdminConfigForDisk(currentConfigPath, backupEnvPath)
         }
-        copyFileSync(extractedEnv, currentConfigPath)
+        copyAdminConfigForDisk(extractedEnv, currentConfigPath)
         const oldConfig = reloadAdminRuntimeConfig(currentConfigPath)
         reconnectGatewayForConfigChange(oldConfig)
         await refreshN8nRuntimeEnvAfterRestore()

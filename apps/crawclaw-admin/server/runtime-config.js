@@ -23,6 +23,13 @@ const CRAWCLAW_ENV_KEYS = [
   'CRAWCLAW_N8N_PORT',
   'CRAWCLAW_N8N_USER_FOLDER',
 ]
+const DESKTOP_SECRET_ENV_KEYS = [
+  'AUTH_PASSWORD',
+  'CRAWCLAW_ADMIN_AUTH_PASSWORD',
+  'CRAWCLAW_AUTH_TOKEN',
+  'CRAWCLAW_AUTH_PASSWORD',
+  'HERMES_API_KEY',
+]
 
 export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
   const paths = resolveAdminPaths(env, opts)
@@ -116,6 +123,13 @@ export function removeLegacyCrawClawEnvKeys(source) {
   }
 }
 
+export function removeDesktopSecretEnvKeys(source) {
+  for (const key of DESKTOP_SECRET_ENV_KEYS) {
+    delete source[key]
+    delete source[legacyCrawClawEnvKey(key)]
+  }
+}
+
 export function resolveCrawClawStateDir(env = process.env, opts = {}) {
   const stateDir = env.CRAWCLAW_STATE_DIR?.trim()
   if (stateDir) {return stateDir}
@@ -129,6 +143,7 @@ function readDotEnv(envPath, fallbackEnv) {
 
 function readDesktopConfig(configPath, env) {
   const persisted = existsSync(configPath) ? parse(readFileSync(configPath, 'utf-8')) : {}
+  removeDesktopSecretEnvKeys(persisted)
   return { ...env, ...persisted }
 }
 

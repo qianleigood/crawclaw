@@ -79,4 +79,38 @@ describe('SettingsPage desktop capabilities', () => {
     expect(wrapper.text()).toContain('pages.settings.desktopUpdateMode')
     expect(wrapper.text()).toContain('components.connectionStatus.desktopUpdateMessage')
   })
+
+  it('omits secret-bearing fields when saving desktop config', async () => {
+    mocks.fetch
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          ok: true,
+          config: {
+            AUTH_USERNAME: 'admin',
+            AUTH_PASSWORD: 'admin-password',
+            CRAWCLAW_WS_URL: 'ws://gateway:18789',
+            CRAWCLAW_AUTH_TOKEN: 'gateway-token',
+            CRAWCLAW_AUTH_PASSWORD: 'gateway-password',
+          },
+        }))
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })))
+
+    const wrapper = mount(SettingsPage)
+
+    await flushPromises()
+
+    const saveButton = wrapper.findAll('button').find((button) => button.text() === 'pages.settings.save')
+    expect(saveButton).toBeDefined()
+    await saveButton!.trigger('click')
+    await flushPromises()
+
+    const saveCall = mocks.fetch.mock.calls[1]
+    expect(saveCall).toBeDefined()
+    const [, request] = saveCall!
+    expect(JSON.parse(request.body)).toEqual({
+      AUTH_USERNAME: 'admin',
+      CRAWCLAW_WS_URL: 'ws://gateway:18789',
+    })
+  })
 })

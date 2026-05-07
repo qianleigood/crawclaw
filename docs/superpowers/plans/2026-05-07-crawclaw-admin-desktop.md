@@ -1013,3 +1013,13 @@ scripts/committer "Admin desktop: finish beta integration" <changed-files>
 ```
 
 Committed as final integration fix after increasing the desktop backend health wait budget for packaged startup.
+
+- [x] **Step 8: Final review blockers**
+
+Fix the final review findings:
+
+- Desktop mode must not read or persist secret-bearing config keys from `admin.env`; Gateway credentials continue to come from the OS credential store or process-only environment.
+- Desktop backup and restore must sanitize desktop config snapshots before writing `.env`, `.bak-*`, or restored `admin.env` files.
+- Desktop artifact collection must require at least one real installer/archive artifact and must only copy update metadata from explicit file-name allowlists.
+
+Observed: `runtime-config.test.ts` passed with 13 tests, the focused admin desktop regression set passed with 8 files / 36 tests, `npm --prefix apps/crawclaw-admin run build`, `npm --prefix apps/crawclaw-admin-desktop run build`, `npm --prefix apps/crawclaw-admin-desktop run pack`, and `npm --prefix apps/crawclaw-admin-desktop run dist` passed. The artifact collector copied the generated macOS `dmg`, `zip`, and blockmaps while excluding `builder-debug.yml`. `git diff --check` passed for both the current working tree and the cumulative branch diff including working-tree fixes.

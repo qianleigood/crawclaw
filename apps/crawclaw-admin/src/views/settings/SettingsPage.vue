@@ -86,7 +86,7 @@ async function saveConfig() {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(configForm.value),
+      body: JSON.stringify(buildConfigPayload()),
     })
     const data = await response.json()
     if (data.ok) {
@@ -101,6 +101,17 @@ async function saveConfig() {
     message.error(t('pages.settings.saveFailed'))
   } finally {
     saving.value = false
+  }
+}
+
+function buildConfigPayload() {
+  if (!isDesktopUpdateMode.value) {
+    return configForm.value
+  }
+
+  return {
+    AUTH_USERNAME: configForm.value.AUTH_USERNAME,
+    CRAWCLAW_WS_URL: configForm.value.CRAWCLAW_WS_URL,
   }
 }
 
@@ -172,6 +183,7 @@ onMounted(() => {
               v-model:value="configForm.AUTH_PASSWORD"
               type="password"
               show-password-on="click"
+              :disabled="isDesktopUpdateMode"
               :placeholder="t('pages.settings.authPasswordPlaceholder')"
             />
           </NFormItem>
@@ -188,6 +200,7 @@ onMounted(() => {
               v-model:value="configForm.CRAWCLAW_AUTH_TOKEN"
               type="password"
               show-password-on="click"
+              :disabled="isDesktopUpdateMode"
               :placeholder="t('pages.settings.crawclawTokenPlaceholder')"
             />
           </NFormItem>
@@ -197,6 +210,7 @@ onMounted(() => {
               v-model:value="configForm.CRAWCLAW_AUTH_PASSWORD"
               type="password"
               show-password-on="click"
+              :disabled="isDesktopUpdateMode"
               :placeholder="t('pages.settings.crawclawPasswordPlaceholder')"
             />
           </NFormItem>

@@ -35,4 +35,3 @@ export function ensureDesktopAppPaths(paths: DesktopAppPaths): void {
   mkdirSync(paths.logDir, { recursive: true })
   mkdirSync(paths.runtimeDir, { recursive: true })
 }
-
