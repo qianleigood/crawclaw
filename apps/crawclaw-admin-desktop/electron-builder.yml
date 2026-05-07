@@ -4,6 +4,7 @@ directories:
   output: out
 files:
   - dist/**
+  - "!dist/**/*.test.js"
   - package.json
 extraResources:
   - from: ../crawclaw-admin/package.json

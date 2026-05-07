@@ -13,7 +13,8 @@
     "rebuild:admin-native": "electron-rebuild --module-dir ../crawclaw-admin --only better-sqlite3,node-pty,ssh2,cpu-features"
   },
   "dependencies": {
-    "electron-log": "^5.4.3"
+    "electron-log": "^5.4.3",
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.2",

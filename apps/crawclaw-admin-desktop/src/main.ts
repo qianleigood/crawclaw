@@ -4,10 +4,11 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ensureDesktopAppPaths, resolveDesktopAppPaths } from './app-paths.js'
 import { startAdminBackend, type BackendLaunchResult } from './backend-launch.js'
+import { DEFAULT_GATEWAY_WS_URL, loadDesktopConfig } from './config-store.js'
+import { getGatewaySecret } from './credential-store.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const DEFAULT_GATEWAY_WS_URL = 'ws://localhost:18789'
 
 let mainWindow: BrowserWindow | undefined
 let backend: BackendLaunchResult | undefined
@@ -65,17 +66,21 @@ async function startDesktopApp(): Promise<void> {
 
   const paths = resolveDesktopAppPaths(app)
   ensureDesktopAppPaths(paths)
+  const desktopConfig = await loadDesktopConfig(paths.configPath)
+  const gatewaySecret = await getGatewaySecret(desktopConfig.activeProfileId, {
+    allowSessionFallback: true,
+  })
 
   backend = await startAdminBackend({
     adminRoot: resolveAdminRoot(),
     paths,
     gateway: {
-      wsUrl: process.env.CRAWCLAW_WS_URL || DEFAULT_GATEWAY_WS_URL,
-      authToken: process.env.CRAWCLAW_AUTH_TOKEN,
-      authPassword: process.env.CRAWCLAW_AUTH_PASSWORD,
-      locale: process.env.CRAWCLAW_LOCALE,
-      hermesWebUrl: process.env.HERMES_WEB_URL,
-      hermesApiUrl: process.env.HERMES_API_URL,
+      wsUrl: process.env.CRAWCLAW_WS_URL || desktopConfig.gatewayWsUrl || DEFAULT_GATEWAY_WS_URL,
+      authToken: process.env.CRAWCLAW_AUTH_TOKEN ?? gatewaySecret.token,
+      authPassword: process.env.CRAWCLAW_AUTH_PASSWORD ?? gatewaySecret.password,
+      locale: process.env.CRAWCLAW_LOCALE || desktopConfig.locale,
+      hermesWebUrl: process.env.HERMES_WEB_URL || desktopConfig.hermesWebUrl,
+      hermesApiUrl: process.env.HERMES_API_URL || desktopConfig.hermesApiUrl,
       hermesApiKey: process.env.HERMES_API_KEY,
     },
   })
