@@ -946,6 +946,10 @@
     "./cli-entry": "./crawclaw.mjs"
   },
   "scripts": {
+    "admin:build": "npm --prefix apps/crawclaw-admin run build",
+    "admin:desktop:build": "npm --prefix apps/crawclaw-admin-desktop run build",
+    "admin:desktop:dist": "node scripts/admin-desktop-build.mjs",
+    "admin:desktop:pack": "npm --prefix apps/crawclaw-admin-desktop run pack",
     "audit:seams": "node scripts/audit-seams.mjs",
     "build": "node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && node scripts/build-stamp.mjs && pnpm build:plugin-sdk:dts && node --import tsx scripts/write-plugin-sdk-entry-dts.ts && node scripts/check-plugin-sdk-exports.mjs && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/copy-export-html-templates.ts && node --import tsx scripts/write-build-info.ts && node --import tsx scripts/write-cli-startup-metadata.ts && node --import tsx scripts/write-cli-compat.ts",
     "build:docker": "node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && node scripts/build-stamp.mjs && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/copy-export-html-templates.ts && node --import tsx scripts/write-build-info.ts && node --import tsx scripts/write-cli-startup-metadata.ts && node --import tsx scripts/write-cli-compat.ts",
