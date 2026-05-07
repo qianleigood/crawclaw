@@ -579,6 +579,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
         );
         return;
       }
+      const scope = resolvedScope.scope;
       await withMemoryRuntimeStore(cfg, async (store, memoryConfig) => {
         const scheduler = getSharedAutoDreamScheduler({
           config: memoryConfig.dreaming,
@@ -591,7 +592,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
           },
         });
         const result = await scheduler.runNow({
-          scope: resolvedScope.scope,
+          scope,
           triggerSource: "browser_client",
           bypassGate: readOptionalBoolean(asRecord(params).force) ?? false,
           dryRun: readOptionalBoolean(asRecord(params).dryRun) ?? false,

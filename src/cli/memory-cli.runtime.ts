@@ -311,6 +311,7 @@ export async function runMemoryDreamRun(opts: MemoryCommandOptions) {
     process.exitCode = 1;
     return;
   }
+  const scope = resolvedScope.scope;
   await withMemoryRuntimeStore(cfg, async (store, memoryConfig) => {
     const scheduler = getSharedAutoDreamScheduler({
       config: memoryConfig.dreaming,
@@ -323,7 +324,7 @@ export async function runMemoryDreamRun(opts: MemoryCommandOptions) {
       },
     });
     const result = await scheduler.runNow({
-      scope: resolvedScope.scope,
+      scope,
       triggerSource: "manual_cli",
       bypassGate: Boolean(opts.force),
       dryRun: Boolean(opts.dryRun),
