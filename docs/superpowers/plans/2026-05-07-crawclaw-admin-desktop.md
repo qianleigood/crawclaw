@@ -404,8 +404,11 @@ Committed as `4c57100af`.
 - Modify `apps/crawclaw-admin/src/api/rpc-client.ts`
 - Create `apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts`
 - Create `apps/crawclaw-admin/src/stores/desktop.ts`
+- Create `apps/crawclaw-admin/src/stores/desktop.test.ts`
+- Modify `apps/crawclaw-admin/src/layouts/DefaultLayout.vue`
+- Create `apps/crawclaw-admin/src/layouts/DefaultLayout.desktop.test.ts`
 
-- [ ] **Step 1: Add RPC client test**
+- [x] **Step 1: Add RPC client test**
 
 Create `rpc-client.desktop.test.ts` asserting that the client calls `/api/desktop/capabilities` through the HTTP API surface or a dedicated helper without a Gateway RPC method name.
 
@@ -413,7 +416,7 @@ Run: `pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/craw
 
 Expected: FAIL because the helper and types do not exist.
 
-- [ ] **Step 2: Add desktop types**
+- [x] **Step 2: Add desktop types**
 
 Create `apps/crawclaw-admin/src/api/types/desktop.ts`:
 
@@ -443,24 +446,26 @@ export interface DesktopCapabilities {
 
 Export these from the existing type barrel.
 
-- [ ] **Step 3: Add client and store**
+- [x] **Step 3: Add client and store**
 
 Add a client helper and a `useDesktopStore()` that loads capabilities once on app boot and can refresh from Settings.
 
-- [ ] **Step 4: Run tests and build**
+- [x] **Step 4: Run tests and build**
 
 Run:
 
 ```bash
-pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts
+pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts apps/crawclaw-admin/src/layouts/DefaultLayout.desktop.test.ts apps/crawclaw-admin/src/stores/desktop.test.ts
 npm --prefix apps/crawclaw-admin run build
 ```
 
 Expected: both commands pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
-Run: `scripts/committer "Admin desktop: add frontend capability store" apps/crawclaw-admin/src/api/types/desktop.ts apps/crawclaw-admin/src/api/types/index.ts apps/crawclaw-admin/src/api/rpc-client.ts apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts apps/crawclaw-admin/src/stores/desktop.ts`
+Run: `scripts/committer "Admin desktop: add frontend capability store" apps/crawclaw-admin/src/api/types/desktop.ts apps/crawclaw-admin/src/api/types/index.ts apps/crawclaw-admin/src/api/rpc-client.ts apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts apps/crawclaw-admin/src/stores/desktop.ts apps/crawclaw-admin/src/stores/desktop.test.ts apps/crawclaw-admin/src/layouts/DefaultLayout.vue apps/crawclaw-admin/src/layouts/DefaultLayout.desktop.test.ts`
+
+Committed as `29c2dedab`.
 
 ### Task 7: Gate desktop-sensitive admin UI
 
