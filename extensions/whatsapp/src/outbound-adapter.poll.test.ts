@@ -1,30 +1,40 @@
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { whatsappPlugin } from "./channel.js";
 
 const hoisted = vi.hoisted(() => ({
   sendPollWhatsApp: vi.fn(async () => ({ messageId: "poll-1", toJid: "1555@s.whatsapp.net" })),
   sendReactionWhatsApp: vi.fn(async () => undefined),
+  sendMessageWhatsApp: vi.fn(async () => ({ messageId: "msg-1", toJid: "1555@s.whatsapp.net" })),
 }));
 
 vi.mock("../../../src/globals.js", () => ({
   shouldLogVerbose: () => false,
 }));
 
-vi.mock("./send.js", () => ({
-  sendPollWhatsApp: hoisted.sendPollWhatsApp,
-  sendReactionWhatsApp: hoisted.sendReactionWhatsApp,
+vi.mock("./runtime.js", () => ({
+  getWhatsAppRuntime: () => ({
+    logging: {
+      shouldLogVerbose: () => false,
+    },
+  }),
 }));
 
-let whatsappOutbound: typeof import("./outbound-adapter.js").whatsappOutbound;
+vi.mock("./send.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./send.js")>();
+  return {
+    ...actual,
+    sendMessageWhatsApp: hoisted.sendMessageWhatsApp,
+    sendPollWhatsApp: hoisted.sendPollWhatsApp,
+    sendReactionWhatsApp: hoisted.sendReactionWhatsApp,
+  };
+});
 
 describe("whatsappOutbound sendPoll", () => {
-  beforeAll(async () => {
-    ({ whatsappOutbound } = await import("./outbound-adapter.js"));
-  });
-
   beforeEach(() => {
     hoisted.sendPollWhatsApp.mockClear();
     hoisted.sendReactionWhatsApp.mockClear();
+    hoisted.sendMessageWhatsApp.mockClear();
   });
 
   it("threads cfg through poll send options", async () => {
@@ -34,8 +44,12 @@ describe("whatsappOutbound sendPoll", () => {
       options: ["Pizza", "Sushi"],
       maxSelections: 1,
     };
+    const sendPoll = whatsappPlugin.outbound?.sendPoll;
+    if (!sendPoll) {
+      throw new Error("whatsapp outbound sendPoll is unavailable");
+    }
 
-    const result = await whatsappOutbound.sendPoll!({
+    const result = await sendPoll({
       cfg,
       to: "+1555",
       poll,

@@ -2,31 +2,49 @@ import { listBundledChannelPlugins } from "../channels/plugins/bundled.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import type { PluginRuntime } from "../plugins/runtime/index.js";
-import { loadBundledPluginTestApiSync } from "../test-utils/bundled-plugin-public-surface.js";
+import { loadBundledPluginPublicSurfaceSync } from "../test-utils/bundled-plugin-public-surface.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import { getChannelSetupWizardAdapter } from "./channel-setup/registry.js";
 import type { ChannelSetupWizardAdapter } from "./channel-setup/types.js";
 import type { ChannelChoice } from "./onboard-types.js";
 
-const { googlechatPlugin } = loadBundledPluginTestApiSync<{
+const { googlechatPlugin } = loadBundledPluginPublicSurfaceSync<{
   googlechatPlugin: ChannelPlugin;
-}>("googlechat");
-const { matrixPlugin, setMatrixRuntime } = loadBundledPluginTestApiSync<{
+}>({
+  pluginId: "googlechat",
+  artifactBasename: "index.js",
+});
+const { matrixPlugin, setMatrixRuntime } = loadBundledPluginPublicSurfaceSync<{
   matrixPlugin: ChannelPlugin;
   setMatrixRuntime: (runtime: PluginRuntime) => void;
-}>("matrix");
-const { msteamsPlugin } = loadBundledPluginTestApiSync<{
+}>({
+  pluginId: "matrix",
+  artifactBasename: "index.js",
+});
+const { msteamsPlugin } = loadBundledPluginPublicSurfaceSync<{
   msteamsPlugin: ChannelPlugin;
-}>("msteams");
-const { nostrPlugin } = loadBundledPluginTestApiSync<{
+}>({
+  pluginId: "msteams",
+  artifactBasename: "index.js",
+});
+const { nostrPlugin } = loadBundledPluginPublicSurfaceSync<{
   nostrPlugin: ChannelPlugin;
-}>("nostr");
-const { tlonPlugin } = loadBundledPluginTestApiSync<{
+}>({
+  pluginId: "nostr",
+  artifactBasename: "index.js",
+});
+const { tlonPlugin } = loadBundledPluginPublicSurfaceSync<{
   tlonPlugin: ChannelPlugin;
-}>("tlon");
-const { whatsappPlugin } = loadBundledPluginTestApiSync<{
+}>({
+  pluginId: "tlon",
+  artifactBasename: "index.js",
+});
+const { whatsappPlugin } = loadBundledPluginPublicSurfaceSync<{
   whatsappPlugin: ChannelPlugin;
-}>("whatsapp");
+}>({
+  pluginId: "whatsapp",
+  artifactBasename: "index.js",
+});
 
 type ChannelSetupWizardAdapterPatch = Partial<
   Pick<

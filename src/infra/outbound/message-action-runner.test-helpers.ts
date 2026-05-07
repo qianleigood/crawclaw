@@ -2,17 +2,23 @@ import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createPluginRuntime, type PluginRuntime } from "../../plugins/runtime/index.js";
-import { loadBundledPluginTestApiSync } from "../../test-utils/bundled-plugin-public-surface.js";
+import { loadBundledPluginPublicSurfaceSync } from "../../test-utils/bundled-plugin-public-surface.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 
-const { slackPlugin, setSlackRuntime } = loadBundledPluginTestApiSync<{
+const { slackPlugin, setSlackRuntime } = loadBundledPluginPublicSurfaceSync<{
   slackPlugin: ChannelPlugin;
   setSlackRuntime: (runtime: PluginRuntime) => void;
-}>("slack");
-const { telegramPlugin, setTelegramRuntime } = loadBundledPluginTestApiSync<{
+}>({
+  pluginId: "slack",
+  artifactBasename: "index.js",
+});
+const { telegramPlugin, setTelegramRuntime } = loadBundledPluginPublicSurfaceSync<{
   telegramPlugin: ChannelPlugin;
   setTelegramRuntime: (runtime: PluginRuntime) => void;
-}>("telegram");
+}>({
+  pluginId: "telegram",
+  artifactBasename: "index.js",
+});
 
 export const slackConfig = {
   channels: {

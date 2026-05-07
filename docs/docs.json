@@ -333,6 +333,10 @@
       "destination": "/gateway/authentication"
     },
     {
+      "source": "/automation/auth-monitoring",
+      "destination": "/gateway/authentication"
+    },
+    {
       "source": "/camera",
       "destination": "/nodes/camera"
     },
@@ -593,6 +597,10 @@
       "destination": "/cli/message"
     },
     {
+      "source": "/automation/poll",
+      "destination": "/cli/message"
+    },
+    {
       "source": "/presence",
       "destination": "/concepts/presence"
     },
@@ -743,6 +751,10 @@
     {
       "source": "/webhook",
       "destination": "/automation/cron-jobs"
+    },
+    {
+      "source": "/automation/webhook",
+      "destination": "/automation/cron-jobs#webhooks"
     },
     {
       "source": "/whatsapp",

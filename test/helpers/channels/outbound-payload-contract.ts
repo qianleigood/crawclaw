@@ -7,20 +7,65 @@ import {
 } from "../../../src/channels/plugins/contracts/suites.js";
 import { createDirectTextMediaOutbound } from "../../../src/channels/plugins/outbound/direct-text-media.js";
 import type { ChannelOutboundAdapter } from "../../../src/channels/plugins/types.js";
+import { sendPayloadWithChunkedTextAndMedia } from "../../../src/plugin-sdk/reply-payload.js";
 import {
   chunkTextForOutbound as chunkZaloTextForOutbound,
   sendPayloadWithChunkedTextAndMedia as sendZaloPayloadWithChunkedTextAndMedia,
 } from "../../../src/plugin-sdk/zalo.js";
 import { sendPayloadWithChunkedTextAndMedia as sendZalouserPayloadWithChunkedTextAndMedia } from "../../../src/plugin-sdk/zalouser.js";
-import { loadBundledPluginTestApiSync } from "../../../src/test-utils/bundled-plugin-public-surface.js";
+import {
+  loadBundledPluginPublicSurfaceSync,
+  loadBundledPluginTestApiSync,
+} from "../../../src/test-utils/bundled-plugin-public-surface.js";
 type ParseZalouserOutboundTarget = (raw: string) => { threadId: string; isGroup: boolean };
 
-const { discordOutbound } = loadBundledPluginTestApiSync<{
-  discordOutbound: ChannelOutboundAdapter;
-}>("discord");
-const { whatsappOutbound } = loadBundledPluginTestApiSync<{
-  whatsappOutbound: ChannelOutboundAdapter;
-}>("whatsapp");
+type PayloadAdapter = Pick<
+  ChannelOutboundAdapter,
+  "chunker" | "textChunkLimit" | "sendText" | "sendMedia"
+> & {
+  sendText: NonNullable<ChannelOutboundAdapter["sendText"]>;
+  sendMedia: NonNullable<ChannelOutboundAdapter["sendMedia"]>;
+};
+
+function requirePayloadAdapter(
+  pluginId: string,
+  plugin: {
+    outbound?: Pick<
+      ChannelOutboundAdapter,
+      "chunker" | "textChunkLimit" | "sendText" | "sendMedia"
+    >;
+  },
+): PayloadAdapter {
+  if (!plugin.outbound?.sendText || !plugin.outbound?.sendMedia) {
+    throw new Error(`${pluginId} payload adapter unavailable`);
+  }
+  return plugin.outbound as PayloadAdapter;
+}
+
+const { discordPlugin } = loadBundledPluginPublicSurfaceSync<{
+  discordPlugin: {
+    outbound?: Pick<
+      ChannelOutboundAdapter,
+      "chunker" | "textChunkLimit" | "sendText" | "sendMedia"
+    >;
+  };
+}>({
+  pluginId: "discord",
+  artifactBasename: "index.js",
+});
+const discordOutbound = requirePayloadAdapter("discord", discordPlugin);
+const { whatsappPlugin } = loadBundledPluginPublicSurfaceSync<{
+  whatsappPlugin: {
+    outbound?: Pick<
+      ChannelOutboundAdapter,
+      "chunker" | "textChunkLimit" | "sendText" | "sendMedia"
+    >;
+  };
+}>({
+  pluginId: "whatsapp",
+  artifactBasename: "index.js",
+});
+const whatsappOutbound = requirePayloadAdapter("whatsapp", whatsappPlugin);
 const { parseZalouserOutboundTarget } = loadBundledPluginTestApiSync<{
   parseZalouserOutboundTarget: ParseZalouserOutboundTarget;
 }>("zalouser");
@@ -54,7 +99,15 @@ function createDiscordHarness(params: PayloadHarnessParams) {
     },
   };
   return {
-    run: async () => await discordOutbound.sendPayload!(ctx),
+    run: async () =>
+      await sendPayloadWithChunkedTextAndMedia({
+        ctx,
+        textChunkLimit: discordOutbound.textChunkLimit,
+        chunker: discordOutbound.chunker,
+        sendText: async (nextCtx) => await discordOutbound.sendText(nextCtx),
+        sendMedia: async (nextCtx) => await discordOutbound.sendMedia(nextCtx),
+        emptyResult: { channel: "discord", messageId: "" },
+      }),
     sendMock: sendDiscord,
     to: ctx.to,
   };
@@ -73,7 +126,15 @@ function createWhatsAppHarness(params: PayloadHarnessParams) {
     },
   };
   return {
-    run: async () => await whatsappOutbound.sendPayload!(ctx),
+    run: async () =>
+      await sendPayloadWithChunkedTextAndMedia({
+        ctx,
+        textChunkLimit: whatsappOutbound.textChunkLimit,
+        chunker: whatsappOutbound.chunker,
+        sendText: async (nextCtx) => await whatsappOutbound.sendText(nextCtx),
+        sendMedia: async (nextCtx) => await whatsappOutbound.sendMedia(nextCtx),
+        emptyResult: { channel: "whatsapp", messageId: "" },
+      }),
     sendMock: sendWhatsApp,
     to: ctx.to,
   };

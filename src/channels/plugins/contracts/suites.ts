@@ -296,6 +296,8 @@ export function installChannelSurfaceContractSuite(params: {
           messaging?.hasStructuredReplyPayload,
           messaging?.formatTargetDisplay,
           messaging?.resolveOutboundSessionRoute,
+          messaging?.targetResolver?.looksLikeId,
+          messaging?.targetResolver?.resolveTarget,
         ].some((value) => typeof value === "function"),
       ).toBe(true);
       if (messaging?.targetResolver) {

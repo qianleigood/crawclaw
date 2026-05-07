@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { ResolvedIMessageAccount } from "./accounts.js";
 import { imessagePlugin } from "./channel.js";
 import type { IMessageRpcClient } from "./client.js";
-import { imessageOutbound } from "./outbound-adapter.js";
 import { sendMessageIMessage } from "./send.js";
 
 function requireIMessageSendText() {
@@ -198,52 +197,6 @@ describe("imessagePlugin outbound", () => {
 
     expect(() => chunker("hello world", 5)).not.toThrow();
     expect(chunker("hello world", 5)).toEqual(["hello", "world"]);
-  });
-});
-
-describe("imessageOutbound", () => {
-  const cfg = {
-    channels: {
-      imessage: {
-        mediaMaxMb: 3,
-      },
-    },
-  };
-
-  it("forwards replyToId on direct text sends", async () => {
-    const sendIMessage = vi.fn().mockResolvedValueOnce({ messageId: "m-text" });
-
-    await expectReplyToTextForwarding({
-      invoke: async () =>
-        await imessageOutbound.sendText!({
-          cfg,
-          to: "chat_id:12",
-          text: "hello",
-          accountId: "default",
-          replyToId: "reply-1",
-          deps: { sendIMessage },
-        }),
-      sendIMessage,
-    });
-  });
-
-  it("forwards mediaLocalRoots on direct media sends", async () => {
-    const sendIMessage = vi.fn().mockResolvedValueOnce({ messageId: "m-media-local" });
-
-    await expectMediaLocalRootsForwarding({
-      invoke: async () =>
-        await imessageOutbound.sendMedia!({
-          cfg,
-          to: "chat_id:88",
-          text: "caption",
-          mediaUrl: "/tmp/workspace/pic.png",
-          mediaLocalRoots: ["/tmp/workspace"],
-          accountId: "acct-1",
-          replyToId: "reply-2",
-          deps: { sendIMessage },
-        }),
-      sendIMessage,
-    });
   });
 });
 

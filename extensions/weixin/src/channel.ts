@@ -227,6 +227,7 @@ export const weixinPlugin: ChannelPlugin<ResolvedWeixinAccount> = {
     },
   },
   messaging: {
+    inferTargetChatType: ({ to }) => (to.trim().endsWith("@im.wechat") ? "direct" : undefined),
     targetResolver: {
       // Weixin user IDs always end with @im.wechat; treat as direct IDs, skip directory lookup.
       looksLikeId: (raw) => raw.endsWith("@im.wechat"),

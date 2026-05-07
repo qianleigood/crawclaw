@@ -1,1 +1,0 @@
--- Retired knowledge writeback run tables are intentionally not created.

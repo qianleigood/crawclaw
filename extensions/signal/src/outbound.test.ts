@@ -7,8 +7,6 @@ vi.mock("./send.js", () => ({
   sendMessageSignal: (...args: unknown[]) => sendMessageSignalMock(...args),
 }));
 
-import { signalOutbound } from "./outbound-adapter.js";
-
 describe("signal outbound", () => {
   beforeEach(() => {
     sendMessageSignalMock.mockReset();
@@ -16,14 +14,19 @@ describe("signal outbound", () => {
 
   it("formats media captions and forwards mediaLocalRoots", async () => {
     sendMessageSignalMock.mockResolvedValueOnce({ messageId: "sig-media" });
+    const sendFormattedMedia = signalPlugin.outbound?.sendFormattedMedia;
+    if (!sendFormattedMedia) {
+      throw new Error("signal outbound sendFormattedMedia is unavailable");
+    }
 
-    const result = await signalOutbound.sendFormattedMedia!({
+    const result = await sendFormattedMedia({
       cfg: {} as never,
       to: "signal:+15551234567",
       text: "**bold** caption",
       mediaUrl: "/tmp/workspace/photo.png",
       mediaLocalRoots: ["/tmp/workspace"],
       accountId: "default",
+      deps: { sendSignal: sendMessageSignalMock },
     });
 
     expect(sendMessageSignalMock).toHaveBeenCalledWith(
@@ -42,12 +45,17 @@ describe("signal outbound", () => {
 
   it("formats markdown text into plain Signal chunks with styles", async () => {
     sendMessageSignalMock.mockResolvedValue({ messageId: "sig-text" });
+    const sendFormattedText = signalPlugin.outbound?.sendFormattedText;
+    if (!sendFormattedText) {
+      throw new Error("signal outbound sendFormattedText is unavailable");
+    }
 
-    const result = await signalOutbound.sendFormattedText!({
+    const result = await sendFormattedText({
       cfg: {} as never,
       to: "signal:+15557654321",
       text: "hi _there_ **boss**",
       accountId: "default",
+      deps: { sendSignal: sendMessageSignalMock },
     });
 
     expect(sendMessageSignalMock).toHaveBeenCalledTimes(1);
