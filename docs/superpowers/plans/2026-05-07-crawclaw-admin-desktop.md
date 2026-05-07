@@ -473,9 +473,18 @@ Committed as `29c2dedab`.
 
 - Modify `apps/crawclaw-admin/src/views/settings/SettingsPage.vue`
 - Modify `apps/crawclaw-admin/src/components/common/ConnectionStatus.vue`
-- Modify remote-desktop, terminal, files, and backup page entry points only if they currently render unsupported actions without checking backend capability.
+- Modify `apps/crawclaw-admin/src/stores/desktop.ts`
+- Modify `apps/crawclaw-admin/src/views/terminal/TerminalPage.vue`
+- Modify `apps/crawclaw-admin/src/views/remote-desktop/RemoteDesktopPage.vue`
+- Modify `apps/crawclaw-admin/src/views/files/FilesPage.vue`
+- Modify `apps/crawclaw-admin/src/views/backup/BackupPage.vue`
+- Modify `apps/crawclaw-admin/src/i18n/messages/en-US.ts`
+- Modify `apps/crawclaw-admin/src/i18n/messages/zh-CN.ts`
+- Create `apps/crawclaw-admin/src/components/common/ConnectionStatus.desktop.test.ts`
+- Create `apps/crawclaw-admin/src/views/settings/SettingsPage.desktop.test.ts`
+- Create `apps/crawclaw-admin/src/views/terminal/TerminalPage.desktop.test.ts`
 
-- [ ] **Step 1: Add UI tests where existing harnesses cover the target pages**
+- [x] **Step 1: Add UI tests where existing harnesses cover the target pages**
 
 Extend existing admin tests for Settings or page behavior when capabilities are unavailable. Keep this scoped to pages touched in this task.
 
@@ -483,28 +492,32 @@ Run: `pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/craw
 
 Expected: existing tests still pass before edits.
 
-- [ ] **Step 2: Wire desktop store into Settings**
+- [x] **Step 2: Wire desktop store into Settings**
 
 Show desktop update mode when `desktopUpdate.available` is true. For desktop mode, replace npm update action copy with GitHub Release download behavior.
 
-- [ ] **Step 3: Wire capability state into sensitive pages**
+- [x] **Step 3: Wire capability state into sensitive pages**
 
 For unsupported capabilities, show the existing page shell with a disabled state and the backend-provided reason. Do not remove routes in this task.
 
-- [ ] **Step 4: Run focused tests and build**
+- [x] **Step 4: Run focused tests and build**
 
 Run:
 
 ```bash
-pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts apps/crawclaw-admin/src/router/routes.monitor.test.ts
+pnpm exec vitest run --config apps/crawclaw-admin/vite.config.ts apps/crawclaw-admin/src/views/monitor/MonitorPage.i18n.test.ts apps/crawclaw-admin/src/router/routes.monitor.test.ts apps/crawclaw-admin/src/stores/desktop.test.ts apps/crawclaw-admin/src/components/common/ConnectionStatus.desktop.test.ts apps/crawclaw-admin/src/views/settings/SettingsPage.desktop.test.ts apps/crawclaw-admin/src/views/terminal/TerminalPage.desktop.test.ts apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts
 npm --prefix apps/crawclaw-admin run build
 ```
 
 Expected: both commands pass.
 
-- [ ] **Step 5: Commit**
+Observed: focused tests passed with 7 files / 12 tests. Build passed with the existing Vite chunk-size warning. A read-only subagent quality review returned PASS; the nonblocking `ConnectionStatus` unsubscribe suggestion was fixed and covered by a regression test before commit.
 
-Run: `scripts/committer "Admin desktop: gate platform-sensitive UI" apps/crawclaw-admin/src/views/settings/SettingsPage.vue apps/crawclaw-admin/src/components/common/ConnectionStatus.vue apps/crawclaw-admin/src/stores/desktop.ts apps/crawclaw-admin/src/api/rpc-client.desktop.test.ts`
+- [x] **Step 5: Commit**
+
+Run: `scripts/committer "Admin desktop: gate platform-sensitive UI" apps/crawclaw-admin/src/stores/desktop.ts apps/crawclaw-admin/src/stores/desktop.test.ts apps/crawclaw-admin/src/components/common/ConnectionStatus.vue apps/crawclaw-admin/src/components/common/ConnectionStatus.desktop.test.ts apps/crawclaw-admin/src/views/settings/SettingsPage.vue apps/crawclaw-admin/src/views/settings/SettingsPage.desktop.test.ts apps/crawclaw-admin/src/views/terminal/TerminalPage.vue apps/crawclaw-admin/src/views/terminal/TerminalPage.desktop.test.ts apps/crawclaw-admin/src/views/remote-desktop/RemoteDesktopPage.vue apps/crawclaw-admin/src/views/files/FilesPage.vue apps/crawclaw-admin/src/views/backup/BackupPage.vue apps/crawclaw-admin/src/i18n/messages/en-US.ts apps/crawclaw-admin/src/i18n/messages/zh-CN.ts`
+
+Committed as `35c3fb211`.
 
 ### Task 8: Create the Electron desktop package
 
