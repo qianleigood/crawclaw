@@ -28,8 +28,7 @@ export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
   const envPath = opts.envPath || DEFAULT_ENV_PATH
   const parsed = paths.runtimeMode === 'desktop' ? env : readDotEnv(envPath, env)
   const port = Number(env.CRAWCLAW_ADMIN_PORT || parsed.PORT || 3001)
-  const bindHost =
-    env.CRAWCLAW_ADMIN_BIND_HOST || (paths.runtimeMode === 'desktop' ? '127.0.0.1' : '0.0.0.0')
+  const bindHost = resolveBindHost(paths.runtimeMode, env.CRAWCLAW_ADMIN_BIND_HOST)
   const crawclawWsUrl = readEnvValue(parsed, 'CRAWCLAW_WS_URL', 'ws://localhost:18789')
   const crawclawAuthToken = readEnvValue(parsed, 'CRAWCLAW_AUTH_TOKEN', '')
   const crawclawAuthPassword = readEnvValue(parsed, 'CRAWCLAW_AUTH_PASSWORD', '')
@@ -111,6 +110,19 @@ export function removeLegacyCrawClawEnvKeys(source) {
 
 function readDotEnv(envPath, fallbackEnv) {
   return existsSync(envPath) ? parse(readFileSync(envPath, 'utf-8')) : fallbackEnv
+}
+
+function resolveBindHost(runtimeMode, requestedHost) {
+  if (runtimeMode !== 'desktop') {
+    return requestedHost || '0.0.0.0'
+  }
+
+  return isLoopbackHost(requestedHost) ? requestedHost : '127.0.0.1'
+}
+
+function isLoopbackHost(host) {
+  if (!host) {return false}
+  return host === 'localhost' || host === '::1' || /^127(?:\.\d{1,3}){3}$/.test(host)
 }
 
 function legacyCrawClawEnvKey(key) {

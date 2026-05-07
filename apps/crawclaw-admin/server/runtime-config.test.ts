@@ -118,6 +118,18 @@ describe('loadAdminRuntimeConfig', () => {
     expect(config.bindHost).toBe('127.0.0.1')
   })
 
+  it('ignores non-loopback desktop bind host overrides', () => {
+    const config = loadAdminRuntimeConfig(
+      {
+        CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
+        CRAWCLAW_ADMIN_BIND_HOST: '0.0.0.0',
+      },
+      { envPath: join(makeTempDir(), 'missing.env'), platform: 'linux', homeDir: '/tmp/home' }
+    )
+
+    expect(config.bindHost).toBe('127.0.0.1')
+  })
+
   it('keeps PORT compatibility for web mode when no .env exists', () => {
     const config = loadAdminRuntimeConfig(
       { HOME: '/tmp/home', PORT: '4321' },
