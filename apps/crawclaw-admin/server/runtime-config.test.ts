@@ -1,10 +1,13 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { loadAdminRuntimeConfig } from './runtime-config.js'
 
 const tempDirs: string[] = []
+const defaultEnvRestores: Array<() => void> = []
+const defaultEnvPath = fileURLToPath(new URL('../.env', import.meta.url))
 const legacyPrefix = ['OPEN', 'CLAW'].join('')
 
 function makeTempDir() {
@@ -19,7 +22,23 @@ function writeEnvFile(content: string) {
   return envPath
 }
 
+function writeDefaultEnvFile(content: string) {
+  const hadOriginal = existsSync(defaultEnvPath)
+  const originalContent = hadOriginal ? readFileSync(defaultEnvPath, 'utf-8') : ''
+  writeFileSync(defaultEnvPath, content, 'utf-8')
+  defaultEnvRestores.push(() => {
+    if (hadOriginal) {
+      writeFileSync(defaultEnvPath, originalContent, 'utf-8')
+    } else if (existsSync(defaultEnvPath)) {
+      unlinkSync(defaultEnvPath)
+    }
+  })
+}
+
 afterEach(() => {
+  while (defaultEnvRestores.length > 0) {
+    defaultEnvRestores.pop()!()
+  }
   while (tempDirs.length > 0) {
     rmSync(tempDirs.pop()!, { recursive: true, force: true })
   }
@@ -47,6 +66,25 @@ describe('loadAdminRuntimeConfig', () => {
     expect(config.crawclawAuthToken).toBe('file-token')
     expect(config.authUsername).toBe('admin')
     expect(config.logLevel).toBe('DEBUG')
+  })
+
+  it('reads web mode values from the default admin .env path', () => {
+    writeDefaultEnvFile([
+      'PORT=4455',
+      'CRAWCLAW_WS_URL=ws://default-env-gateway:18789',
+      'CRAWCLAW_AUTH_TOKEN=default-token',
+    ].join('\n'))
+
+    const config = loadAdminRuntimeConfig({
+      HOME: '/tmp/home',
+      PORT: '9999',
+      CRAWCLAW_WS_URL: 'ws://process-env:18789',
+    })
+
+    expect(config.envPath).toBe(defaultEnvPath)
+    expect(config.port).toBe(4455)
+    expect(config.crawclawWsUrl).toBe('ws://default-env-gateway:18789')
+    expect(config.crawclawAuthToken).toBe('default-token')
   })
 
   it('reads desktop mode values from CRAWCLAW_ADMIN env without requiring .env', () => {
