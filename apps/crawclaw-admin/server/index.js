@@ -73,6 +73,15 @@ function refreshN8nRuntimeEnv() {
   n8nService.env = buildServerRuntimeEnv()
 }
 
+async function refreshN8nRuntimeEnvAfterRestore() {
+  const status = await n8nService.updateEnv(buildServerRuntimeEnv(), {
+    restartManaged: true,
+    locale: currentLocale,
+  })
+  broadcastSSE({ type: 'n8nState', state: status })
+  return status
+}
+
 const sseClients = new Map()
 
 const terminalSessions = new Map()
@@ -3740,6 +3749,7 @@ async function executeRestoreTask(taskId, filename) {
         copyFileSync(extractedEnv, currentConfigPath)
         const oldConfig = reloadAdminRuntimeConfig(currentConfigPath)
         reconnectGatewayForConfigChange(oldConfig)
+        await refreshN8nRuntimeEnvAfterRestore()
         results.env = true
         console.log('[Restore] Environment config restored')
       } catch (e) {

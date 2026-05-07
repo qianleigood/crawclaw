@@ -172,6 +172,15 @@ export class N8nService {
     await this.ensureStarted(locale)
   }
 
+  async updateEnv(env, options = {}) {
+    const shouldRestart = options.restartManaged && this.process && !this.process.killed
+    this.env = env
+    if (shouldRestart) {
+      await this.restart(options.locale || this.locale)
+    }
+    return this.getStatus()
+  }
+
   async setLocale(locale) {
     const nextLocale = normalizeAppLocale(locale)
     const previousN8nLocale = normalizeN8nLocale(this.locale)

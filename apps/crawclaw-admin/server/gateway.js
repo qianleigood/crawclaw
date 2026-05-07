@@ -26,6 +26,7 @@ export class CrawClawGateway extends EventEmitter {
     this.reconnectTimer = null
     this.heartbeatTimer = null
     this.deviceIdentity = null
+    this.intentionalDisconnect = false
   }
 
   debug(...args) {
@@ -39,6 +40,7 @@ export class CrawClawGateway extends EventEmitter {
   }
 
   async connect() {
+    this.intentionalDisconnect = false
     if (this.ws) {
       this.ws.close()
     }
@@ -365,7 +367,9 @@ export class CrawClawGateway extends EventEmitter {
     }
     this.pendingCalls.clear()
 
-    this.scheduleReconnect()
+    if (!this.intentionalDisconnect) {
+      this.scheduleReconnect()
+    }
   }
 
   scheduleReconnect() {
@@ -417,6 +421,7 @@ export class CrawClawGateway extends EventEmitter {
   }
 
   disconnect() {
+    this.intentionalDisconnect = true
     this.clearTimers()
     if (this.ws) {
       this.ws.close()
