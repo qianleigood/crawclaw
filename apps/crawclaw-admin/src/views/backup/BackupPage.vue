@@ -38,12 +38,14 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useBackupStore } from '@/stores/backup'
 import { useWebSocketStore } from '@/stores/websocket'
+import { useDesktopStore } from '@/stores/desktop'
 import type { BackupItem, BackupTask } from '@/api/types/backup'
 
 const { t } = useI18n()
 const message = useMessage()
 const backupStore = useBackupStore()
 const wsStore = useWebSocketStore()
+const desktopStore = useDesktopStore()
 
 const showRestoreModal = ref(false)
 const selectedBackup = ref<string | null>(null)
@@ -56,6 +58,9 @@ const activeTask = computed(() => {
 const hasRunningTask = computed(() => {
   return backupStore.hasActiveTask
 })
+const backupUnavailableReason = computed(() =>
+  desktopStore.capabilityUnavailableReason('backup', t('common.capabilityUnavailable'))
+)
 
 const recentTasks = computed(() => {
   return Array.from(backupStore.tasks.values())
@@ -136,6 +141,7 @@ function handleBackupProgress(...args: unknown[]) {
 }
 
 async function fetchBackupList() {
+  if (backupUnavailableReason.value) {return}
   try {
     await backupStore.fetchBackupList()
   } catch (e: any) {
@@ -144,6 +150,10 @@ async function fetchBackupList() {
 }
 
 async function createBackup() {
+  if (backupUnavailableReason.value) {
+    message.warning(backupUnavailableReason.value)
+    return
+  }
   if (hasRunningTask.value) {
     message.warning(t('pages.backup.taskInProgress'))
     return
@@ -157,6 +167,10 @@ async function createBackup() {
 }
 
 async function downloadBackup(filename: string) {
+  if (backupUnavailableReason.value) {
+    message.warning(backupUnavailableReason.value)
+    return
+  }
   try {
     await backupStore.downloadBackup(filename)
   } catch (e: any) {
@@ -165,6 +179,10 @@ async function downloadBackup(filename: string) {
 }
 
 async function restoreBackup(filename: string) {
+  if (backupUnavailableReason.value) {
+    message.warning(backupUnavailableReason.value)
+    return
+  }
   if (hasRunningTask.value) {
     message.warning(t('pages.backup.taskInProgress'))
     return
@@ -180,6 +198,10 @@ async function restoreBackup(filename: string) {
 }
 
 async function deleteBackup(filename: string) {
+  if (backupUnavailableReason.value) {
+    message.warning(backupUnavailableReason.value)
+    return
+  }
   try {
     await backupStore.deleteBackup(filename)
     message.success(t('pages.backup.deleteSuccess'))
@@ -189,6 +211,10 @@ async function deleteBackup(filename: string) {
 }
 
 async function handleUpload({ file }: { file: UploadFileInfo }) {
+  if (backupUnavailableReason.value) {
+    message.warning(backupUnavailableReason.value)
+    return false
+  }
   if (hasRunningTask.value) {
     message.warning(t('pages.backup.taskInProgress'))
     return false
@@ -208,6 +234,7 @@ function openRestoreModal(filename: string) {
 }
 
 function clearCompletedTasks() {
+  if (backupUnavailableReason.value) {return}
   backupStore.clearCompletedTasks()
 }
 
@@ -232,6 +259,7 @@ const backupColumns: DataTableColumns<BackupItem> = [
         h(NButton, {
           size: 'small',
           quaternary: true,
+          disabled: !!backupUnavailableReason.value,
           onClick: () => downloadBackup(row.filename),
         }, {
           icon: () => h(NIcon, { component: DownloadOutline }),
@@ -241,7 +269,7 @@ const backupColumns: DataTableColumns<BackupItem> = [
           size: 'small',
           quaternary: true,
           type: 'warning',
-          disabled: hasRunningTask.value,
+          disabled: hasRunningTask.value || !!backupUnavailableReason.value,
           onClick: () => openRestoreModal(row.filename),
         }, { default: () => t('pages.backup.restore') }),
         h(NPopconfirm, {
@@ -251,6 +279,7 @@ const backupColumns: DataTableColumns<BackupItem> = [
             size: 'small',
             quaternary: true,
             type: 'error',
+            disabled: !!backupUnavailableReason.value,
           }, { icon: () => h(NIcon, { component: TrashOutline }) }),
           default: () => t('pages.backup.deleteConfirm'),
         }),
@@ -262,7 +291,9 @@ const backupColumns: DataTableColumns<BackupItem> = [
 let unsubscribe: (() => void) | null = null
 let unsubscribeDisconnect: (() => void) | null = null
 
-onMounted(() => {
+onMounted(async () => {
+  await desktopStore.ensureCapabilitiesLoaded()
+  if (backupUnavailableReason.value) {return}
   void backupStore.initialize()
   void backupStore.fetchTasks()
   unsubscribe = wsStore.subscribe('backupProgress', handleBackupProgress)
@@ -290,7 +321,7 @@ onUnmounted(() => {
     <NCard :title="t('routes.backup')" class="app-card">
       <template #header-extra>
         <NSpace :size="8">
-          <NButton size="small" type="primary" :loading="hasRunningTask" :disabled="hasRunningTask" @click="createBackup">
+          <NButton size="small" type="primary" :loading="hasRunningTask" :disabled="hasRunningTask || !!backupUnavailableReason" @click="createBackup">
             <template #icon><NIcon :component="SaveOutline" /></template>
             {{ t('pages.backup.create') }}
           </NButton>
@@ -298,14 +329,14 @@ onUnmounted(() => {
             :custom-request="handleUpload"
             :show-file-list="false"
             accept=".zip,.gz"
-            :disabled="hasRunningTask"
+            :disabled="hasRunningTask || !!backupUnavailableReason"
           >
-            <NButton size="small" :disabled="hasRunningTask">
+            <NButton size="small" :disabled="hasRunningTask || !!backupUnavailableReason">
               <template #icon><NIcon :component="CloudUploadOutline" /></template>
               {{ t('pages.backup.upload') }}
             </NButton>
           </NUpload>
-          <NButton size="small" :loading="backupStore.loading" @click="fetchBackupList">
+          <NButton size="small" :loading="backupStore.loading" :disabled="!!backupUnavailableReason" @click="fetchBackupList">
             <template #icon><NIcon :component="RefreshOutline" /></template>
             {{ t('common.refresh') }}
           </NButton>
@@ -315,6 +346,15 @@ onUnmounted(() => {
       <NText depth="3" style="font-size: 12px; display: block; margin-bottom: 16px;">
         {{ t('pages.backup.subtitle') }}
       </NText>
+
+      <NAlert
+        v-if="backupUnavailableReason"
+        type="warning"
+        :bordered="false"
+        style="margin-bottom: 16px;"
+      >
+        {{ backupUnavailableReason }}
+      </NAlert>
 
       <NGrid cols="1 s:2 m:3" responsive="screen" :x-gap="16" :y-gap="16" style="margin-bottom: 24px;">
         <NGridItem>
@@ -390,7 +430,7 @@ onUnmounted(() => {
         <div v-if="!backupStore.loading && backupStore.backupList.length === 0" style="padding: 48px 0; text-align: center;">
           <NEmpty :description="t('pages.backup.emptyHint')">
             <template #extra>
-              <NButton size="small" type="primary" :disabled="hasRunningTask" @click="createBackup">
+              <NButton size="small" type="primary" :disabled="hasRunningTask || !!backupUnavailableReason" @click="createBackup">
                 {{ t('pages.backup.createFirst') }}
               </NButton>
             </template>
@@ -403,7 +443,7 @@ onUnmounted(() => {
       <template #header>
         <NSpace align="center" justify="space-between" style="width: 100%;">
           <NText strong>{{ t('pages.backup.recentTasks') }}</NText>
-          <NButton size="small" quaternary @click="clearCompletedTasks">
+          <NButton size="small" quaternary :disabled="!!backupUnavailableReason" @click="clearCompletedTasks">
             {{ t('pages.backup.clearCompleted') }}
           </NButton>
         </NSpace>
@@ -481,7 +521,7 @@ onUnmounted(() => {
       <template #action>
         <NSpace justify="end">
           <NButton @click="showRestoreModal = false">{{ t('common.cancel') }}</NButton>
-          <NButton type="warning" :loading="hasRunningTask" :disabled="hasRunningTask" @click="restoreBackup(selectedBackup!)">
+          <NButton type="warning" :loading="hasRunningTask" :disabled="hasRunningTask || !!backupUnavailableReason" @click="restoreBackup(selectedBackup!)">
             {{ t('pages.backup.confirmRestore') }}
           </NButton>
         </NSpace>

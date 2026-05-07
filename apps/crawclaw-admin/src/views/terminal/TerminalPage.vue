@@ -26,12 +26,14 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useTerminalStore } from '@/stores/terminal'
 import { useWebSocketStore } from '@/stores/websocket'
+import { useDesktopStore } from '@/stores/desktop'
 import type { DeviceNode } from '@/api/types'
 
 const message = useMessage()
 const { t } = useI18n()
 const terminalStore = useTerminalStore()
 const wsStore = useWebSocketStore()
+const desktopStore = useDesktopStore()
 
 const terminalContainerRef = ref<HTMLDivElement | null>(null)
 const isFullscreen = ref(false)
@@ -51,6 +53,9 @@ const terminalError = ref<string | null>(null)
 const terminal = shallowRef<any>(null)
 const fitAddon = shallowRef<any>(null)
 const resizeObserver = shallowRef<ResizeObserver | null>(null)
+const terminalUnavailableReason = computed(() =>
+  desktopStore.capabilityUnavailableReason('terminal', t('common.capabilityUnavailable'))
+)
 
 const connectionTagType = computed<'success' | 'warning' | 'error' | 'default'>(() => {
   if (terminalStore.isConnected) return 'success'
@@ -217,6 +222,7 @@ async function initTerminal() {
 }
 
 function handleConnect() {
+  if (terminalUnavailableReason.value) {return}
   if (terminalStore.isConnected) {
     terminalStore.disconnect()
     terminal.value?.write('\x1b[33mDisconnecting...\x1b[0m\r\n')
@@ -234,10 +240,12 @@ function handleConnect() {
 }
 
 function handleClear() {
+  if (terminalUnavailableReason.value) {return}
   terminal.value?.clear()
 }
 
 function handleFullscreen() {
+  if (terminalUnavailableReason.value) {return}
   isFullscreen.value = !isFullscreen.value
   
   if (isFullscreen.value) {
@@ -255,6 +263,7 @@ function handleFullscreen() {
 }
 
 function handleTerminalResize() {
+  if (terminalUnavailableReason.value) {return}
   fitAddon.value?.fit()
 }
 
@@ -272,9 +281,14 @@ function handleKeyDown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  loadNodes()
-  initTerminal()
+onMounted(async () => {
+  await desktopStore.ensureCapabilitiesLoaded()
+  if (terminalUnavailableReason.value) {
+    terminalLoading.value = false
+  } else {
+    loadNodes()
+    initTerminal()
+  }
   window.addEventListener('resize', handleTerminalResize)
   window.addEventListener('keydown', handleKeyDown)
 })
@@ -302,6 +316,7 @@ onUnmounted(() => {
           <NButton
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!terminalUnavailableReason"
             @click="showSettings = !showSettings"
           >
             <template #icon><NIcon :component="TerminalOutline" /></template>
@@ -310,6 +325,7 @@ onUnmounted(() => {
           <NButton
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!terminalUnavailableReason"
             @click="handleClear"
           >
             <template #icon><NIcon :component="RefreshOutline" /></template>
@@ -318,6 +334,7 @@ onUnmounted(() => {
           <NButton
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!terminalUnavailableReason"
             @click="handleFullscreen"
           >
             <template #icon>
@@ -329,6 +346,7 @@ onUnmounted(() => {
             :type="terminalStore.isConnected ? 'error' : 'primary'"
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!terminalUnavailableReason"
             @click="handleConnect"
           >
             <template #icon>
@@ -353,6 +371,15 @@ onUnmounted(() => {
           {{ t('pages.terminal.size') }}: {{ terminalStore.config.cols }}x{{ terminalStore.config.rows }}
         </NText>
       </NSpace>
+
+      <NAlert
+        v-if="terminalUnavailableReason"
+        type="warning"
+        :bordered="false"
+        style="margin-bottom: 12px;"
+      >
+        {{ terminalUnavailableReason }}
+      </NAlert>
 
       <NAlert
         v-if="terminalStore.error"

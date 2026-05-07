@@ -22,6 +22,13 @@ export const useDesktopStore = defineStore('desktop', () => {
     return capabilities.value?.[key] ?? null
   }
 
+  function capabilityUnavailableReason(key: keyof DesktopCapabilities, fallback: string): string | null {
+    const selected = capability(key)
+    if (!selected) {return fallback}
+    if (selected.available) {return null}
+    return selected.reason || fallback
+  }
+
   async function refreshCapabilities(): Promise<DesktopCapabilities | null> {
     if (pendingLoad) {return pendingLoad}
 
@@ -61,6 +68,7 @@ export const useDesktopStore = defineStore('desktop', () => {
     isDesktopMode,
     platform,
     capability,
+    capabilityUnavailableReason,
     refreshCapabilities,
     ensureCapabilitiesLoaded,
   }

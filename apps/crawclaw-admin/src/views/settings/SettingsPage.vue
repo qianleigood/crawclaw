@@ -5,11 +5,14 @@ import { useI18n } from 'vue-i18n'
 import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useAuthStore } from '@/stores/auth'
+import { useDesktopStore } from '@/stores/desktop'
 import { ConnectionState } from '@/api/types'
 
+const DESKTOP_RELEASES_URL = 'https://github.com/qianleigood/crawclaw/releases'
 const themeStore = useThemeStore()
 const wsStore = useWebSocketStore()
 const authStore = useAuthStore()
+const desktopStore = useDesktopStore()
 const { t } = useI18n()
 const message = useMessage()
 const appTitle = import.meta.env.VITE_APP_TITLE || 'CrawClaw Admin'
@@ -29,6 +32,9 @@ const themeOptions = computed(() => ([
   { label: t('pages.settings.themeLight'), value: 'light' },
   { label: t('pages.settings.themeDark'), value: 'dark' },
 ]))
+
+const desktopUpdateCapability = computed(() => desktopStore.capability('desktopUpdate'))
+const isDesktopUpdateMode = computed(() => desktopUpdateCapability.value?.available ?? false)
 
 const connectionStatus = computed(() => {
   switch (wsStore.state) {
@@ -98,8 +104,13 @@ async function saveConfig() {
   }
 }
 
+async function refreshDesktopCapabilities() {
+  await desktopStore.refreshCapabilities()
+}
+
 onMounted(() => {
-  loadConfig()
+  void loadConfig()
+  void desktopStore.ensureCapabilitiesLoaded()
 })
 </script>
 
@@ -110,6 +121,40 @@ onMounted(() => {
         {{ t('pages.settings.currentStatus', { status: connectionStatus.text }) }}
         <span v-if="wsStore.lastError">（{{ wsStore.lastError }}）</span>
       </NAlert>
+    </NCard>
+
+    <NCard
+      v-if="isDesktopUpdateMode"
+      :title="t('pages.settings.desktopUpdateMode')"
+      class="app-card"
+    >
+      <NSpace vertical :size="12">
+        <NAlert type="info" :bordered="false">
+          {{ t('components.connectionStatus.desktopUpdateMessage') }}
+        </NAlert>
+        <NSpace align="center" :size="12">
+          <NText depth="3" style="font-size: 13px;">
+            {{ t('pages.settings.desktopPlatform', { platform: desktopUpdateCapability?.platform || '-' }) }}
+          </NText>
+          <NButton
+            size="small"
+            :loading="desktopStore.loading"
+            @click="refreshDesktopCapabilities"
+          >
+            {{ t('common.refresh') }}
+          </NButton>
+          <NButton
+            tag="a"
+            size="small"
+            type="primary"
+            :href="DESKTOP_RELEASES_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ t('components.connectionStatus.openReleases') }}
+          </NButton>
+        </NSpace>
+      </NSpace>
     </NCard>
 
     <NCard :title="t('pages.settings.envSettings')" class="app-card">

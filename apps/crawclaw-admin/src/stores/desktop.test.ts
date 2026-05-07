@@ -60,4 +60,27 @@ describe('useDesktopStore', () => {
     expect(store.loaded).toBe(true)
     expect(store.capabilities).toEqual(capabilities)
   })
+
+  it('returns backend-provided unavailable reasons for gated features', async () => {
+    const store = useDesktopStore()
+    store.capabilities = {
+      ...capabilities,
+      remoteDesktop: {
+        available: false,
+        platform: 'darwin',
+        reason: 'Remote desktop capture is not implemented for this platform.',
+      },
+    }
+
+    expect(store.capabilityUnavailableReason('remoteDesktop', 'Fallback')).toBe(
+      'Remote desktop capture is not implemented for this platform.'
+    )
+    expect(store.capabilityUnavailableReason('terminal', 'Fallback')).toBeNull()
+  })
+
+  it('treats unloaded sensitive capabilities as unavailable', () => {
+    const store = useDesktopStore()
+
+    expect(store.capabilityUnavailableReason('files', 'Fallback')).toBe('Fallback')
+  })
 })

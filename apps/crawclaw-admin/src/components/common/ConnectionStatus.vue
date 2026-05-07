@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { NTag, NSpace, NButton, NSelect, NPopover } from 'naive-ui'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useHermesConnectionStore } from '@/stores/hermes/connection'
+import { useDesktopStore } from '@/stores/desktop'
 import { ConnectionState } from '@/api/types'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
 
+const DESKTOP_RELEASES_URL = 'https://github.com/qianleigood/crawclaw/releases'
 const message = useMessage()
 
 const wsStore = useWebSocketStore()
 const hermesConnStore = useHermesConnectionStore()
+const desktopStore = useDesktopStore()
 const { t } = useI18n()
 const isUpdating = ref(false)
 const selectedVersion = ref('')
@@ -21,6 +24,10 @@ const isLoadingVersions = ref(false)
 const latestVersion = ref<string | null>(null)
 
 const isHermes = computed(() => hermesConnStore.currentGateway === 'hermes')
+
+function isDesktopUpdateMode() {
+  return desktopStore.capability('desktopUpdate')?.available ?? false
+}
 
 const status = computed(() => {
   if (isHermes.value) {
@@ -50,6 +57,9 @@ const status = computed(() => {
 const hasUpdate = computed(() => {
   if (wsStore.updateAvailable) {
     return true
+  }
+  if (isDesktopUpdateMode()) {
+    return false
   }
   // 比较当前版本和从 npm 获取的最新版本
   if (wsStore.gatewayVersion && latestVersion.value) {
@@ -133,6 +143,14 @@ async function fetchNpmVersions() {
 // 当连接状态或更新信息变化时，获取版本列表
 const updateVersionOptions = async () => {
   if (wsStore.state === ConnectionState.CONNECTED) {
+    await desktopStore.ensureCapabilitiesLoaded()
+    if (!desktopStore.loaded) {
+      return
+    }
+    if (isDesktopUpdateMode()) {
+      applyGatewayUpdateAvailable()
+      return
+    }
     if (applyGatewayUpdateAvailable()) {
       return
     }
@@ -141,20 +159,38 @@ const updateVersionOptions = async () => {
 }
 
 // 监听连接状态和更新信息变化
+let unsubscribeConnection: (() => void) | undefined
+let isUnmounted = false
+
 onMounted(async () => {
   await updateVersionOptions()
-  
+
+  if (isUnmounted) {
+    return
+  }
+
   // 监听WebSocket状态变化
-  const unsubscribe = wsStore.subscribe('connected', async () => {
+  unsubscribeConnection = wsStore.subscribe('connected', async () => {
     await updateVersionOptions()
   })
-  
-  return () => {
-    unsubscribe()
-  }
+})
+
+onUnmounted(() => {
+  isUnmounted = true
+  unsubscribeConnection?.()
 })
 
 async function handleUpdate(version?: string) {
+  await desktopStore.ensureCapabilitiesLoaded()
+  if (!desktopStore.loaded) {
+    message.warning(t('components.connectionStatus.fetchVersionsFailed'))
+    return
+  }
+  if (isDesktopUpdateMode()) {
+    window.open(DESKTOP_RELEASES_URL, '_blank', 'noopener,noreferrer')
+    return
+  }
+
   isUpdating.value = true
   try {
     message.info(t('components.connectionStatus.updatingMessage'))
@@ -230,6 +266,22 @@ function handleCustomUpdate() {
         </NButton>
       </template>
       <div style="padding: 12px;">
+        <template v-if="isDesktopUpdateMode()">
+          <div style="margin-bottom: 8px;">
+            {{ t('components.connectionStatus.desktopUpdateMessage') }}
+          </div>
+          <NButton
+            tag="a"
+            size="small"
+            type="primary"
+            :href="DESKTOP_RELEASES_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ t('components.connectionStatus.openReleases') }}
+          </NButton>
+        </template>
+        <template v-else>
         <div style="margin-bottom: 8px;">{{ t('components.connectionStatus.upgradeToVersion') }}</div>
         <NSpace align="center">
           <NSelect
@@ -250,6 +302,7 @@ function handleCustomUpdate() {
             {{ t('components.connectionStatus.upgrade') }}
           </NButton>
         </NSpace>
+        </template>
       </div>
     </NPopover>
     <NTag

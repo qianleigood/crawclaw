@@ -30,6 +30,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useRemoteDesktopStore } from '@/stores/remote-desktop'
 import { useWebSocketStore } from '@/stores/websocket'
+import { useDesktopStore } from '@/stores/desktop'
 import type { RemoteDesktopNode } from '@/api/types'
 import DesktopCanvas from './components/DesktopCanvas.vue'
 import NodeSelector from './components/NodeSelector.vue'
@@ -38,6 +39,7 @@ const message = useMessage()
 const { t } = useI18n()
 const desktopStore = useRemoteDesktopStore()
 const wsStore = useWebSocketStore()
+const capabilityStore = useDesktopStore()
 
 const desktopCanvasRef = ref<InstanceType<typeof DesktopCanvas> | null>(null)
 const isFullscreen = ref(false)
@@ -54,6 +56,12 @@ const displayInput = ref<string>('')
 const displaysLoading = ref(false)
 const displays = ref<{ display: string; number: number }[]>([])
 const platform = ref<string>('unknown')
+const remoteDesktopUnavailableReason = computed(() =>
+  capabilityStore.capabilityUnavailableReason('remoteDesktop', t('common.capabilityUnavailable'))
+)
+const desktopInputUnavailableReason = computed(() =>
+  capabilityStore.capabilityUnavailableReason('desktopInput', t('common.capabilityUnavailable'))
+)
 
 const displayOptions = computed(() => {
   const options: { label: string; value: string }[] = [
@@ -122,6 +130,7 @@ async function loadDisplays() {
 }
 
 async function handleCreateSession() {
+  if (remoteDesktopUnavailableReason.value) {return}
   const session = await desktopStore.createSession(
     selectedNodeId.value || undefined,
     widthInput.value,
@@ -137,6 +146,7 @@ async function handleCreateSession() {
 }
 
 function handleConnect(sessionId: string) {
+  if (remoteDesktopUnavailableReason.value) {return}
   desktopStore.connect(sessionId)
 }
 
@@ -151,6 +161,7 @@ async function handleDestroySession() {
 }
 
 function handleFullscreen() {
+  if (remoteDesktopUnavailableReason.value) {return}
   isFullscreen.value = !isFullscreen.value
 
   if (isFullscreen.value) {
@@ -168,6 +179,7 @@ function handleFullscreen() {
 }
 
 function handleMouseMove(x: number, y: number) {
+  if (desktopInputUnavailableReason.value) {return}
   if (!desktopStore.isConnected || !desktopStore.currentSession) return
   fetch('/api/desktop/input/mouse', {
     method: 'POST',
@@ -185,6 +197,7 @@ function handleMouseMove(x: number, y: number) {
 }
 
 function handleMouseClick(x: number, y: number, button: number) {
+  if (desktopInputUnavailableReason.value) {return}
   if (!desktopStore.isConnected || !desktopStore.currentSession) return
   fetch('/api/desktop/input/mouse', {
     method: 'POST',
@@ -202,6 +215,7 @@ function handleMouseClick(x: number, y: number, button: number) {
 }
 
 function handleMouseWheel(x: number, y: number, deltaX: number, deltaY: number) {
+  if (desktopInputUnavailableReason.value) {return}
   if (!desktopStore.isConnected || !desktopStore.currentSession) return
   fetch('/api/desktop/input/mouse', {
     method: 'POST',
@@ -221,6 +235,7 @@ function handleMouseWheel(x: number, y: number, deltaX: number, deltaY: number) 
 }
 
 function handleKeyDown(event: KeyboardEvent) {
+  if (desktopInputUnavailableReason.value) {return}
   if (!desktopStore.isConnected) return
   if (event.key === 'Escape' && isFullscreen.value) {
     isFullscreen.value = false
@@ -230,11 +245,13 @@ function handleKeyDown(event: KeyboardEvent) {
 }
 
 function handleKeyUp(event: KeyboardEvent) {
+  if (desktopInputUnavailableReason.value) {return}
   if (!desktopStore.isConnected) return
   desktopStore.sendKeyboardEvent(event)
 }
 
 async function handleClipboardPaste(text: string) {
+  if (desktopInputUnavailableReason.value) {return}
   if (!desktopStore.isConnected) return
   const success = await desktopStore.sendClipboardText(text)
   if (success) {
@@ -248,9 +265,12 @@ function handleKeyDownGlobal(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  loadNodes()
-  loadDisplays()
+onMounted(async () => {
+  await capabilityStore.ensureCapabilitiesLoaded()
+  if (!remoteDesktopUnavailableReason.value) {
+    loadNodes()
+    loadDisplays()
+  }
   window.addEventListener('keydown', handleKeyDownGlobal)
 })
 
@@ -278,6 +298,7 @@ watch(isFullscreen, () => {
           <NButton
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!remoteDesktopUnavailableReason"
             @click="showSettings = !showSettings"
           >
             <template #icon><NIcon :component="DesktopOutline" /></template>
@@ -286,6 +307,7 @@ watch(isFullscreen, () => {
           <NButton
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!remoteDesktopUnavailableReason"
             @click="handleFullscreen"
           >
             <template #icon>
@@ -298,6 +320,7 @@ watch(isFullscreen, () => {
             type="error"
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!remoteDesktopUnavailableReason"
             @click="handleDisconnect"
           >
             <template #icon><NIcon :component="StopOutline" /></template>
@@ -308,6 +331,7 @@ watch(isFullscreen, () => {
             type="primary"
             size="small"
             class="app-toolbar-btn"
+            :disabled="!!remoteDesktopUnavailableReason"
             @click="handleCreateSession"
           >
             <template #icon><NIcon :component="PlayOutline" /></template>
@@ -327,6 +351,24 @@ watch(isFullscreen, () => {
           {{ t('pages.remoteDesktop.size') }}: {{ desktopStore.config.width }}x{{ desktopStore.config.height }}
         </NText>
       </NSpace>
+
+      <NAlert
+        v-if="remoteDesktopUnavailableReason"
+        type="warning"
+        :bordered="false"
+        style="margin-bottom: 12px;"
+      >
+        {{ remoteDesktopUnavailableReason }}
+      </NAlert>
+
+      <NAlert
+        v-else-if="desktopInputUnavailableReason"
+        type="warning"
+        :bordered="false"
+        style="margin-bottom: 12px;"
+      >
+        {{ desktopInputUnavailableReason }}
+      </NAlert>
 
       <NAlert
         v-if="desktopStore.error"
@@ -420,7 +462,14 @@ watch(isFullscreen, () => {
       <div v-if="isFullscreen && showFullscreenHint" class="fullscreen-hint">
         {{ t('pages.remoteDesktop.hints.pressEscToExit') }}
       </div>
-      <NSpin :show="desktopStore.isConnecting">
+      <NAlert
+        v-if="remoteDesktopUnavailableReason"
+        type="warning"
+        :bordered="false"
+      >
+        {{ remoteDesktopUnavailableReason }}
+      </NAlert>
+      <NSpin v-else :show="desktopStore.isConnecting">
         <DesktopCanvas
           ref="desktopCanvasRef"
           :width="desktopStore.config.width"

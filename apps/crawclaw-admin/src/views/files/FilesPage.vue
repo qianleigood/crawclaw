@@ -65,6 +65,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useMemoryStore } from '@/stores/memory'
+import { useDesktopStore } from '@/stores/desktop'
 import { formatRelativeTime } from '@/utils/format'
 import { renderSimpleMarkdown, extractTocHeadings } from '@/utils/markdown'
 import PdfViewer from '@/components/common/PdfViewer.vue'
@@ -97,6 +98,7 @@ const { t } = useI18n()
 const message = useMessage()
 const authStore = useAuthStore()
 const memoryStore = useMemoryStore()
+const desktopStore = useDesktopStore()
 
 const loading = ref(false)
 const error = ref('')
@@ -322,6 +324,9 @@ const pathParts = computed(() => {
 
 const directories = computed(() => entries.value.filter(e => e.type === 'directory'))
 const files = computed(() => entries.value.filter(e => e.type === 'file'))
+const filesUnavailableReason = computed(() =>
+  desktopStore.capabilityUnavailableReason('files', t('common.capabilityUnavailable'))
+)
 
 function getAuthHeaders() {
   const token = authStore.token
@@ -342,8 +347,10 @@ const tableColumns = computed<DataTableColumns<FileEntry>>(() => [
         default: () => [
           h(NIcon, { component: icon, color, size: 18 }),
           h('span', { 
-            style: 'cursor: pointer; font-weight: 500;', 
-            onClick: () => handleRowClick(row) 
+            style: filesUnavailableReason.value ? 'font-weight: 500;' : 'cursor: pointer; font-weight: 500;',
+            onClick: () => {
+              if (!filesUnavailableReason.value) {handleRowClick(row)}
+            },
           }, row.name),
         ],
       })
@@ -392,6 +399,7 @@ const tableColumns = computed<DataTableColumns<FileEntry>>(() => [
             size: 'tiny',
             quaternary: true,
             type: 'primary',
+            disabled: !!filesUnavailableReason.value,
             onClick: () => navigateToDirectory(row.name),
           }, {
             default: () => t('pages.files.actions.open'),
@@ -406,6 +414,7 @@ const tableColumns = computed<DataTableColumns<FileEntry>>(() => [
           h(NButton, {
             size: 'tiny',
             quaternary: true,
+            disabled: !!filesUnavailableReason.value,
             onClick: () => openPreview(row),
           }, {
             default: () => t('pages.files.actions.view'),
@@ -415,6 +424,7 @@ const tableColumns = computed<DataTableColumns<FileEntry>>(() => [
           h(NButton, {
             size: 'tiny',
             quaternary: true,
+            disabled: !!filesUnavailableReason.value,
             onClick: () => downloadFileDirect(row),
           }, {
             default: () => t('pages.files.actions.download'),
@@ -426,6 +436,7 @@ const tableColumns = computed<DataTableColumns<FileEntry>>(() => [
               size: 'tiny',
               quaternary: true,
               type: 'info',
+              disabled: !!filesUnavailableReason.value,
               onClick: () => openEditor(row),
             }, {
               default: () => t('pages.files.actions.edit'),
@@ -438,6 +449,7 @@ const tableColumns = computed<DataTableColumns<FileEntry>>(() => [
         h(NButton, {
           size: 'tiny',
           quaternary: true,
+          disabled: !!filesUnavailableReason.value,
           onClick: () => openRenameModal(row),
         }, {
           default: () => t('pages.files.actions.rename'),
@@ -452,6 +464,7 @@ const tableColumns = computed<DataTableColumns<FileEntry>>(() => [
             size: 'tiny',
             quaternary: true,
             type: 'error',
+            disabled: !!filesUnavailableReason.value,
           }, {
             default: () => t('pages.files.actions.delete'),
           }),
@@ -487,6 +500,7 @@ function formatFileSize(bytes: number): string {
 }
 
 async function browsePath(path: string) {
+  if (filesUnavailableReason.value) {return}
   if (!currentWorkspace.value) {
     error.value = t('pages.files.noWorkspace')
     return
@@ -529,6 +543,7 @@ async function browsePath(path: string) {
 }
 
 async function switchAgent(agentId: string) {
+  if (filesUnavailableReason.value) {return}
   selectedAgentId.value = agentId
   currentPath.value = ''
   entries.value = []
@@ -541,6 +556,7 @@ async function switchAgent(agentId: string) {
 }
 
 function handleRowClick(row: FileEntry) {
+  if (filesUnavailableReason.value) {return}
   if (row.type === 'directory') {
     navigateToDirectory(row.name)
   } else {
@@ -549,6 +565,7 @@ function handleRowClick(row: FileEntry) {
 }
 
 function navigateToDirectory(dirName: string) {
+  if (filesUnavailableReason.value) {return}
   const newPath = currentPath.value 
     ? `${currentPath.value}/${dirName}` 
     : dirName
@@ -556,6 +573,7 @@ function navigateToDirectory(dirName: string) {
 }
 
 function navigateToPath(index: number) {
+  if (filesUnavailableReason.value) {return}
   if (index === -1) {
     browsePath('')
   } else {
@@ -565,6 +583,7 @@ function navigateToPath(index: number) {
 }
 
 async function openPreview(file: FileEntry) {
+  if (filesUnavailableReason.value) {return}
   selectedFile.value = file
   fileLoading.value = true
   fileContent.value = ''
@@ -599,6 +618,7 @@ async function openPreview(file: FileEntry) {
 }
 
 async function openEditor(file: FileEntry) {
+  if (filesUnavailableReason.value) {return}
   selectedFile.value = file
   fileLoading.value = true
   fileContent.value = ''
@@ -632,6 +652,7 @@ async function openEditor(file: FileEntry) {
 }
 
 async function saveFile() {
+  if (filesUnavailableReason.value) {return}
   if (!selectedFile.value) return
   
   fileLoading.value = true
@@ -666,6 +687,7 @@ async function saveFile() {
 }
 
 async function downloadFileDirect(file: FileEntry) {
+  if (filesUnavailableReason.value) {return}
   try {
     const response = await fetch(`/api/files/get?path=${encodeURIComponent(file.path)}&workspace=${encodeURIComponent(currentWorkspace.value)}`, {
       headers: getAuthHeaders()
@@ -697,6 +719,7 @@ async function downloadFileDirect(file: FileEntry) {
 }
 
 function downloadFile(file: FileEntry) {
+  if (filesUnavailableReason.value) {return}
   if (!fileContent.value) {
     message.warning(t('pages.files.noContent'))
     return
@@ -711,12 +734,14 @@ function downloadFile(file: FileEntry) {
 }
 
 function openCreateModal(type: 'file' | 'directory') {
+  if (filesUnavailableReason.value) {return}
   createType.value = type
   createName.value = ''
   showCreateModal.value = true
 }
 
 async function createEntry() {
+  if (filesUnavailableReason.value) {return}
   if (!createName.value.trim()) return
   
   createLoading.value = true
@@ -775,6 +800,7 @@ async function createEntry() {
 }
 
 async function deleteEntry(file: FileEntry) {
+  if (filesUnavailableReason.value) {return}
   try {
     console.log('[FilesPage] Deleting:', file.path)
     
@@ -806,12 +832,14 @@ async function deleteEntry(file: FileEntry) {
 }
 
 function openRenameModal(file: FileEntry) {
+  if (filesUnavailableReason.value) {return}
   renameTarget.value = file
   renameName.value = file.name
   showRenameModal.value = true
 }
 
 async function renameEntry() {
+  if (filesUnavailableReason.value) {return}
   if (!renameTarget.value || !renameName.value.trim()) return
   
   const newName = renameName.value.trim()
@@ -856,6 +884,10 @@ async function renameEntry() {
 }
 
 async function handleUpload({ file, onFinish, onError }: { file: UploadFileInfo, onFinish: () => void, onError: (error: Error) => void }) {
+  if (filesUnavailableReason.value) {
+    onError(new Error(filesUnavailableReason.value))
+    return
+  }
   if (!file.file) {
     onError(new Error('No file'))
     return
@@ -1042,6 +1074,11 @@ async function handleEditorPaste(event: ClipboardEvent) {
 }
 
 async function uploadPastedImage(file: File) {
+  if (filesUnavailableReason.value) {
+    message.warning(filesUnavailableReason.value)
+    return
+  }
+
   if (!currentWorkspace.value || !selectedFile.value) {
     message.error(t('pages.files.uploadFailed') + ': No workspace selected')
     return
@@ -1095,6 +1132,9 @@ async function uploadPastedImage(file: File) {
 }
 
 async function initialize() {
+  await desktopStore.ensureCapabilitiesLoaded()
+  if (filesUnavailableReason.value) {return}
+
   if (memoryStore.agents.length === 0) {
     await memoryStore.fetchAgents()
   }
@@ -1113,13 +1153,13 @@ async function initialize() {
 }
 
 watch(selectedAgentId, (newId, oldId) => {
-  if (newId && newId !== oldId) {
+  if (!filesUnavailableReason.value && newId && newId !== oldId) {
     switchAgent(newId)
   }
 })
 
 onMounted(() => {
-  initialize()
+  void initialize()
 })
 </script>
 
@@ -1128,7 +1168,7 @@ onMounted(() => {
     <NCard :title="t('routes.files')" class="app-card">
       <template #header-extra>
         <NSpace :size="8">
-          <NButton size="small" class="app-toolbar-btn app-toolbar-btn--refresh" :loading="loading || memoryStore.loadingAgents" @click="browsePath(currentPath)">
+          <NButton size="small" class="app-toolbar-btn app-toolbar-btn--refresh" :loading="loading || memoryStore.loadingAgents" :disabled="!!filesUnavailableReason" @click="browsePath(currentPath)">
             <template #icon><NIcon :component="RefreshOutline" /></template>
             {{ t('common.refresh') }}
           </NButton>
@@ -1137,6 +1177,14 @@ onMounted(() => {
 
       <NAlert v-if="error" type="error" :bordered="false" style="margin-bottom: 16px;">
         {{ error }}
+      </NAlert>
+      <NAlert
+        v-if="filesUnavailableReason"
+        type="warning"
+        :bordered="false"
+        style="margin-bottom: 16px;"
+      >
+        {{ filesUnavailableReason }}
       </NAlert>
 
       <div class="files-toolbar">
@@ -1148,6 +1196,7 @@ onMounted(() => {
             :render-label="renderAgentLabel"
             style="width: 260px;"
             :loading="memoryStore.loadingAgents"
+            :disabled="!!filesUnavailableReason"
           >
             <template #arrow>
               <NIcon :component="PersonOutline" />
@@ -1165,20 +1214,20 @@ onMounted(() => {
         </NSpace>
         
         <NSpace :size="8">
-          <NButton size="small" @click="openCreateModal('directory')" :disabled="!currentWorkspace">
+          <NButton size="small" @click="openCreateModal('directory')" :disabled="!currentWorkspace || !!filesUnavailableReason">
             <template #icon><NIcon :component="AddOutline" /></template>
             {{ t('pages.files.actions.newFolder') }}
           </NButton>
-          <NButton size="small" @click="openCreateModal('file')" :disabled="!currentWorkspace">
+          <NButton size="small" @click="openCreateModal('file')" :disabled="!currentWorkspace || !!filesUnavailableReason">
             <template #icon><NIcon :component="AddOutline" /></template>
             {{ t('pages.files.actions.newFile') }}
           </NButton>
           <NUpload
             :show-file-list="false"
             :custom-request="handleUpload"
-            :disabled="uploadLoading || !currentWorkspace"
+            :disabled="uploadLoading || !currentWorkspace || !!filesUnavailableReason"
           >
-            <NButton size="small" :loading="uploadLoading" :disabled="!currentWorkspace">
+            <NButton size="small" :loading="uploadLoading" :disabled="!currentWorkspace || !!filesUnavailableReason">
               <template #icon><NIcon :component="CloudUploadOutline" /></template>
               {{ t('pages.files.actions.upload') }}
             </NButton>
