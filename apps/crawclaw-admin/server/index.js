@@ -7,6 +7,7 @@ import { dirname, join, resolve, basename, extname, sep, relative as pathRelativ
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, realpathSync, mkdirSync, rmSync, unlinkSync, stat, promises as fsPromises, createReadStream, createWriteStream, copyFileSync, readlinkSync, symlinkSync, renameSync } from 'fs'
 import { CrawClawGateway } from './gateway.js'
 import { N8nService, normalizeAppLocale } from './n8n-service.js'
+import { buildDesktopCapabilities, desktopServerPlatform } from './desktop-capabilities.js'
 import {
   loadAdminRuntimeConfig,
   normalizeCrawClawEnvSnapshot,
@@ -388,6 +389,20 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.get('/api/auth/check', authMiddleware, (req, res) => {
   res.json({ ok: true, authenticated: true })
+})
+
+app.get('/api/desktop/capabilities', authMiddleware, (req, res) => {
+  try {
+    const capabilities = buildDesktopCapabilities({
+      platform: process.platform,
+      env: buildServerRuntimeEnv(),
+      runtimeMode: envConfig.paths.runtimeMode,
+      paths: envConfig.paths,
+    })
+    res.json({ ok: true, capabilities })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
 })
 
 function parseEnvFile(content) {
@@ -2203,7 +2218,14 @@ async function captureWindowsDesktop() {
 }
 
 app.get('/api/desktop/displays', authMiddleware, (req, res) => {
-  if (process.platform === 'win32') {
+  const platform = desktopServerPlatform(process.platform)
+  if (!platform) {
+    return res.status(501).json({
+      ok: false,
+      error: { message: 'Remote desktop capture is not implemented for this platform.' },
+    })
+  }
+  if (platform === 'windows') {
     return res.json({ ok: true, displays: [], platform: 'windows' })
   }
   
@@ -2255,7 +2277,13 @@ app.post('/api/desktop/create', authMiddleware, async (req, res) => {
   const { nodeId, width, height, host, port, password, display: inputDisplay } = req.body
   
   const sessionId = randomUUID()
-  const platform = process.platform === 'win32' ? 'windows' : 'linux'
+  const platform = desktopServerPlatform(process.platform)
+  if (!platform) {
+    return res.status(501).json({
+      ok: false,
+      error: { message: 'Remote desktop capture is not implemented for this platform.' },
+    })
+  }
   
   const session = {
     id: sessionId,
