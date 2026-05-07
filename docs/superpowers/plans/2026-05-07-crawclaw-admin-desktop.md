@@ -823,7 +823,7 @@ Committed as `41bf051e5`.
 
 - Create `.github/workflows/admin-desktop-release.yml`
 
-- [ ] **Step 1: Create workflow**
+- [x] **Step 1: Create workflow**
 
 The workflow should support `workflow_dispatch` with inputs:
 
@@ -840,7 +840,7 @@ Jobs:
 - `build-linux`
 - `publish-draft-release`
 
-- [ ] **Step 2: Use app-local npm installs**
+- [x] **Step 2: Use app-local npm installs**
 
 Each platform build job should:
 
@@ -852,15 +852,15 @@ npm --prefix apps/crawclaw-admin-desktop run rebuild:native
 npm --prefix apps/crawclaw-admin-desktop run dist
 ```
 
-- [ ] **Step 3: Upload artifacts**
+- [x] **Step 3: Upload artifacts**
 
 Upload platform artifacts and checksums with `actions/upload-artifact`.
 
-- [ ] **Step 4: Add draft release publication**
+- [x] **Step 4: Add draft release publication**
 
 Use GitHub Release upload only when `publish_draft_release=true` and preflight passed.
 
-- [ ] **Step 5: Run workflow validation**
+- [x] **Step 5: Run workflow validation**
 
 Run:
 
@@ -871,9 +871,13 @@ pnpm lint:docs
 
 Expected: both commands pass.
 
-- [ ] **Step 6: Commit**
+Observed: workflow YAML parsed locally. `pnpm check:no-conflict-markers` and `pnpm lint:docs` passed. The workflow uses a helper script to collect top-level Electron Builder release artifacts and platform-specific checksum files.
 
-Run: `scripts/committer "Admin desktop: add release workflow" .github/workflows/admin-desktop-release.yml`
+- [x] **Step 6: Commit**
+
+Run: `scripts/committer "Admin desktop: add release workflow" .github/workflows/admin-desktop-release.yml scripts/collect-admin-desktop-artifacts.mjs`
+
+Committed as `317215766`.
 
 ### Task 13: Add desktop documentation
 
