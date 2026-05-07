@@ -779,7 +779,7 @@ Committed as `ec356d51a`.
 - Create `scripts/admin-desktop-release-check.mjs`
 - Modify root `package.json`
 
-- [ ] **Step 1: Implement release check script**
+- [x] **Step 1: Implement release check script**
 
 Validate:
 
@@ -789,7 +789,7 @@ Validate:
 - admin frontend `dist/index.html` exists after build
 - no desktop release asset is built from a dirty generated path
 
-- [ ] **Step 2: Add root script**
+- [x] **Step 2: Add root script**
 
 Add:
 
@@ -797,7 +797,7 @@ Add:
 "admin:desktop:release-check": "node scripts/admin-desktop-release-check.mjs"
 ```
 
-- [ ] **Step 3: Run release check**
+- [x] **Step 3: Run release check**
 
 Run:
 
@@ -809,9 +809,13 @@ pnpm admin:desktop:release-check
 
 Expected: all commands pass.
 
-- [ ] **Step 4: Commit**
+Observed: all three commands passed. The release check validated version alignment, Electron Builder targets, built admin frontend, and generated path status.
 
-Run: `scripts/committer "Admin desktop: add release checks" scripts/admin-desktop-release-check.mjs package.json`
+- [x] **Step 4: Commit**
+
+Run: `scripts/committer "Admin desktop: add release checks" scripts/admin-desktop-release-check.mjs package.json apps/crawclaw-admin-desktop/package.json apps/crawclaw-admin-desktop/package-lock.json`
+
+Committed as `41bf051e5`.
 
 ### Task 12: Add GitHub Actions desktop release workflow
 
